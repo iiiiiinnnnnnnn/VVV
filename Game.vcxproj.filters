@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソースファイル">
+      <UniqueIdentifier>{22b9d892-a108-4576-907a-6671f2b47c75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー">
+      <UniqueIdentifier>{15a18324-c569-44a5-860e-70b29ab50491}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\カメラ">
+      <UniqueIdentifier>{4561f66d-646b-410b-8980-6e0d0e83782d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム">
+      <UniqueIdentifier>{ce22373c-1a62-465a-b450-acd78071dcf9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\リソース">
+      <UniqueIdentifier>{9bbcc62a-8dc0-41e6-855c-50271dfd7fbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\アプリ">
+      <UniqueIdentifier>{3084c246-b69a-4652-8a81-096e9c7ab090}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\描画">
+      <UniqueIdentifier>{ceab042a-835d-40bc-a5bc-816c0c37d9a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\シェーダー">
+      <UniqueIdentifier>{f47cc0d1-a12e-469d-b7ea-389cc1b7d144}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\レンダラー">
+      <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\シーン">
+      <UniqueIdentifier>{d200445d-b38a-4cfe-afb0-822a19aa506d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Camera.cpp">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FreeCameraController.cpp">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GLTFImporter.cpp">
+      <Filter>ソースファイル\システム\リソース</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GpuResourceUtils.cpp">
+      <Filter>ソースファイル\システム\リソース</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics.cpp">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Framework.cpp">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Main.cpp">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Model.cpp">
+      <Filter>ソースファイル\システム</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Dialog.cpp">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ImGuiRenderer.cpp">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ModelRenderer.cpp">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ShapeRenderer.cpp">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\PrimitiveRenderer.cpp">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BasicShader.cpp">
+      <Filter>ソースファイル\システム\シェーダー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\LambertShader.cpp">
+      <Filter>ソースファイル\システム\シェーダー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene.cpp">
+      <Filter>ソースファイル\シーン</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RenderState.cpp">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Sprite.cpp">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Camera.h">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FreeCameraController.h">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GLTFImporter.h">
+      <Filter>ソースファイル\システム\リソース</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GpuResourceUtils.h">
+      <Filter>ソースファイル\システム\リソース</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics.h">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\HighResolutionTimer.h">
+      <Filter>ソースファイル\システム\リソース</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Common.h">
+      <Filter>ソースファイル\システム</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Framework.h">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Misc.h">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model.h">
+      <Filter>ソースファイル\システム</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Dialog.h">
+      <Filter>ソースファイル\システム\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RenderContext.h">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Light.h">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ImGuiRenderer.h">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ModelRenderer.h">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ShapeRenderer.h">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PrimitiveRenderer.h">
+      <Filter>ソースファイル\システム\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BasicShader.h">
+      <Filter>ソースファイル\システム\シェーダー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LambertShader.h">
+      <Filter>ソースファイル\システム\シェーダー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene.h">
+      <Filter>ソースファイル\シーン</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RenderState.h">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shader.h">
+      <Filter>ソースファイル\システム\シェーダー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Sprite.h">
+      <Filter>ソースファイル\システム\描画</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Basic.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\Lambert.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\PrimitiveRenderer.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\Scene.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\ShapeRenderer.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\Skinning.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\Sprite.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\BasicPS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BasicVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LambertPS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LambertVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PrimitiveRendererPS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShapeRendererPS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShapeRendererVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SpritePS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SpriteVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
