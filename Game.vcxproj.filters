@@ -181,6 +181,7 @@
     <None Include="Shader\Sprite.hlsli">
       <Filter>シェーダー</Filter>
     </None>
+    <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicPS.hlsl">
