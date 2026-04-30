@@ -1,10 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <wrl.h>
-#include <d3d11.h>
-#include <DirectXMath.h>
+#include "Common.h"
 #include "Model.h"
 #include "Shader.h"
 
@@ -31,15 +27,18 @@ public:
 private:
 	struct CbScene
 	{
-		DirectX::XMFLOAT4X4		viewProjection;
-		DirectX::XMFLOAT4		lightDirection;
-		DirectX::XMFLOAT4		lightColor;
-		DirectX::XMFLOAT4		cameraPosition;
+		Matrix		viewProjection;
+		Vector3		lightDirection;
+		float DUMMY;
+		Vector3		lightColor;
+		float DUMMY;
+		Vector3		cameraPosition;
+		float DUMMY;
 	};
 
 	struct CbSkeleton
 	{
-		DirectX::XMFLOAT4X4		boneTransforms[256];
+		Matrix		boneTransforms[256];
 	};
 
 	struct DrawInfo

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <wrl.h>
-#include <d3d11.h>
-#include <DirectXMath.h>
+#include "Common.h"
 
 class ShapeRenderer
 {
@@ -13,35 +10,35 @@ public:
 
 	// î†ï`âÊ
 	void DrawBox(
-		const DirectX::XMFLOAT3& position,
-		const DirectX::XMFLOAT3& angle,
-		const DirectX::XMFLOAT3& size,
-		const DirectX::XMFLOAT4& color);
+		const Vector3& position,
+		const Vector3& angle,
+		const Vector3& size,
+		const Color& color);
 
 	// ãÖï`âÊ
 	void DrawSphere(
-		const DirectX::XMFLOAT3& position,
+		const Vector3& position,
 		float radius,
-		const DirectX::XMFLOAT4& color);
+		const Color& color);
 
 	// ÉJÉvÉZÉãï`âÊ
 	void DrawCapsule(
-		const DirectX::XMFLOAT4X4& transform,
+		const Matrix& transform,
 		float radius,
 		float height,
-		const DirectX::XMFLOAT4& color);
+		const Color& color);
 
 	// çúï`âÊ
 	void DrawBone(
-		const DirectX::XMFLOAT4X4& transform,
+		const Matrix& transform,
 		float length,
-		const DirectX::XMFLOAT4& color);
+		const Color& color);
 
 	// ï`âÊé¿çs
 	void Render(
 		ID3D11DeviceContext* dc,
-		const DirectX::XMFLOAT4X4& view,
-		const DirectX::XMFLOAT4X4& projection);
+		const Matrix& view,
+		const Matrix& projection);
 
 private:
 	struct Mesh
@@ -52,19 +49,19 @@ private:
 
 	struct Instance
 	{
-		Mesh* mesh;
-		DirectX::XMFLOAT4X4		worldTransform;
-		DirectX::XMFLOAT4		color;
+		Mesh*		mesh;
+		Matrix		worldTransform;
+		Color		color;
 	};
 
 	struct CbMesh
 	{
-		DirectX::XMFLOAT4X4		worldViewProjection;
-		DirectX::XMFLOAT4		color;
+		Matrix		worldViewProjection;
+		Color		color;
 	};
 
 	// ÉÅÉbÉVÉÖê∂ê¨
-	void CreateMesh(ID3D11Device* device, const std::vector<DirectX::XMFLOAT3>& vertices, Mesh& mesh);
+	void CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh);
 
 	// î†ÉÅÉbÉVÉÖçÏê¨
 	void CreateBoxMesh(ID3D11Device* device, float width, float height, float depth);

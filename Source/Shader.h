@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common.h"
 #include "RenderContext.h"
 #include "Model.h"
 

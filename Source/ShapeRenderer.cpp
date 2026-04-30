@@ -50,10 +50,10 @@ ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 
 // 箱描画
 void ShapeRenderer::DrawBox(
-	const DirectX::XMFLOAT3& position,
-	const DirectX::XMFLOAT3& angle,
-	const DirectX::XMFLOAT3& size,
-	const DirectX::XMFLOAT4& color)
+	const Vector3& position,
+	const Vector3& angle,
+	const Vector3& size,
+	const Color& color)
 {
 	Instance& instance = instances.emplace_back();
 	instance.mesh = &boxMesh;
@@ -67,9 +67,9 @@ void ShapeRenderer::DrawBox(
 
 // 球描画
 void ShapeRenderer::DrawSphere(
-	const DirectX::XMFLOAT3& position,
+	const Vector3& position,
 	float radius,
-	const DirectX::XMFLOAT4& color)
+	const Color& color)
 {
 	Instance& instance = instances.emplace_back();
 	instance.mesh = &sphereMesh;
@@ -82,10 +82,10 @@ void ShapeRenderer::DrawSphere(
 
 // カプセル描画
 void ShapeRenderer::DrawCapsule(
-	const DirectX::XMFLOAT4X4& transform,
+	const Matrix& transform,
 	float radius,
 	float height,
-	const DirectX::XMFLOAT4& color)
+	const Color& color)
 {
 	DirectX::XMMATRIX Transform = DirectX::XMLoadFloat4x4(&transform);
 
@@ -130,9 +130,9 @@ void ShapeRenderer::DrawCapsule(
 
 // 骨描画
 void ShapeRenderer::DrawBone(
-	const DirectX::XMFLOAT4X4& transform,
+	const Matrix& transform,
 	float length,
-	const DirectX::XMFLOAT4& color)
+	const Color& color)
 {
 	Instance& instance = instances.emplace_back();
 	instance.mesh = &boneMesh;
@@ -146,10 +146,10 @@ void ShapeRenderer::DrawBone(
 }
 
 // メッシュ生成
-void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<DirectX::XMFLOAT3>& vertices, Mesh& mesh)
+void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh)
 {
 	D3D11_BUFFER_DESC desc = {};
-	desc.ByteWidth = static_cast<UINT>(sizeof(DirectX::XMFLOAT3) * vertices.size());
+	desc.ByteWidth = static_cast<UINT>(sizeof(Vector3) * vertices.size());
 	desc.Usage = D3D11_USAGE_IMMUTABLE;
 	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	desc.CPUAccessFlags = 0;
@@ -169,7 +169,7 @@ void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<DirectX::
 // 箱メッシュ作成
 void ShapeRenderer::CreateBoxMesh(ID3D11Device* device, float width, float height, float depth)
 {
-	DirectX::XMFLOAT3 positions[8] =
+	Vector3 positions[8] =
 	{
 		// top
 		{ -width,  height, -depth},
@@ -183,7 +183,7 @@ void ShapeRenderer::CreateBoxMesh(ID3D11Device* device, float width, float heigh
 		{ -width, -height,  depth},
 	};
 
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<Vector3> vertices;
 	vertices.resize(32);
 
 	// top
@@ -223,7 +223,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 {
 	float step = DirectX::XM_2PI / subdivisions;
 
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<Vector3> vertices;
 
 	// XZ平面
 	for (int i = 0; i < subdivisions; ++i)
@@ -232,7 +232,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 		{
 			float theta = step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& p = vertices.emplace_back();
+			Vector3& p = vertices.emplace_back();
 			p.x = sinf(theta) * radius;
 			p.y = 0.0f;
 			p.z = cosf(theta) * radius;
@@ -245,7 +245,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 		{
 			float theta = step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& p = vertices.emplace_back();
+			Vector3& p = vertices.emplace_back();
 			p.x = sinf(theta) * radius;
 			p.y = cosf(theta) * radius;
 			p.z = 0.0f;
@@ -258,7 +258,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 		{
 			float theta = step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& p = vertices.emplace_back();
+			Vector3& p = vertices.emplace_back();
 			p.x = 0.0f;
 			p.y = sinf(theta) * radius;
 			p.z = cosf(theta) * radius;
@@ -272,7 +272,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 // 半球メッシュ作成
 void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int subdivisions)
 {
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<Vector3> vertices;
 
 	float theta_step = DirectX::XM_2PI / subdivisions;
 
@@ -283,7 +283,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 		{
 			float theta = theta_step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& v = vertices.emplace_back();
+			Vector3& v = vertices.emplace_back();
 
 			v.x = sinf(theta) * radius;
 			v.y = 0.0f;
@@ -297,7 +297,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 		{
 			float theta = theta_step * ((i + j) % subdivisions) - DirectX::XM_PIDIV2;
 
-			DirectX::XMFLOAT3& v = vertices.emplace_back();
+			Vector3& v = vertices.emplace_back();
 
 			v.x = sinf(theta) * radius;
 			v.y = cosf(theta) * radius;
@@ -311,7 +311,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 		{
 			float theta = theta_step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& v = vertices.emplace_back();
+			Vector3& v = vertices.emplace_back();
 
 			v.x = 0.0f;
 			v.y = sinf(theta) * radius;
@@ -326,7 +326,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 // 円柱
 void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, float radius2, float start, float height, int subdivisions)
 {
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<Vector3> vertices;
 
 	float theta_step = DirectX::XM_2PI / subdivisions;
 
@@ -337,7 +337,7 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 		{
 			float theta = theta_step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& v = vertices.emplace_back();
+			Vector3& v = vertices.emplace_back();
 
 			v.x = sinf(theta) * radius1;
 			v.y = start;
@@ -350,7 +350,7 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 		{
 			float theta = theta_step * ((i + j) % subdivisions);
 
-			DirectX::XMFLOAT3& v = vertices.emplace_back();
+			Vector3& v = vertices.emplace_back();
 
 			v.x = sinf(theta) * radius2;
 			v.y = start + height;
@@ -359,17 +359,17 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 	}
 	// XY平面
 	{
-		vertices.emplace_back(DirectX::XMFLOAT3(0.0f, start, radius1));
-		vertices.emplace_back(DirectX::XMFLOAT3(0.0f, start + height, radius2));
-		vertices.emplace_back(DirectX::XMFLOAT3(0.0f, start, -radius1));
-		vertices.emplace_back(DirectX::XMFLOAT3(0.0f, start + height, -radius2));
+		vertices.emplace_back(Vector3(0.0f, start, radius1));
+		vertices.emplace_back(Vector3(0.0f, start + height, radius2));
+		vertices.emplace_back(Vector3(0.0f, start, -radius1));
+		vertices.emplace_back(Vector3(0.0f, start + height, -radius2));
 	}
 	// YZ平面
 	{
-		vertices.emplace_back(DirectX::XMFLOAT3(radius1, start, 0.0f));
-		vertices.emplace_back(DirectX::XMFLOAT3(radius2, start + height, 0.0f));
-		vertices.emplace_back(DirectX::XMFLOAT3(-radius1, start, 0.0f));
-		vertices.emplace_back(DirectX::XMFLOAT3(-radius2, start + height, 0.0f));
+		vertices.emplace_back(Vector3(radius1, start, 0.0f));
+		vertices.emplace_back(Vector3(radius2, start + height, 0.0f));
+		vertices.emplace_back(Vector3(-radius1, start, 0.0f));
+		vertices.emplace_back(Vector3(-radius2, start + height, 0.0f));
 	}
 
 	// メッシュ生成
@@ -380,7 +380,7 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 void ShapeRenderer::CreateBoneMesh(ID3D11Device* device, float length)
 {
 	float width = length * 0.25f;
-	DirectX::XMFLOAT3 positions[8] =
+	Vector3 positions[8] =
 	{
 		{ -0.00f,  0.00f,  0.00f},
 		{  width,  0.00f,  width},
@@ -390,7 +390,7 @@ void ShapeRenderer::CreateBoneMesh(ID3D11Device* device, float length)
 		{  0.00f, -width,  width},
 	};
 
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<Vector3> vertices;
 	vertices.reserve(24);
 
 	// xz
@@ -428,8 +428,8 @@ void ShapeRenderer::CreateBoneMesh(ID3D11Device* device, float length)
 // 描画実行
 void ShapeRenderer::Render(
 	ID3D11DeviceContext* dc,
-	const DirectX::XMFLOAT4X4& view,
-	const DirectX::XMFLOAT4X4& projection)
+	const Matrix& view,
+	const Matrix& projection)
 {
 	// シェーダー設定
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
@@ -445,7 +445,7 @@ void ShapeRenderer::Render(
 	DirectX::XMMATRIX VP = V * P;
 
 	// プリミティブ設定
-	UINT stride = sizeof(DirectX::XMFLOAT3);
+	UINT stride = sizeof(Vector3);
 	UINT offset = 0;
 	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 

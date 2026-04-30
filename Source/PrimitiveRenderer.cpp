@@ -44,7 +44,7 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 }
 
 // 頂点追加
-void PrimitiveRenderer::AddVertex(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT4& color)
+void PrimitiveRenderer::AddVertex(const Vector3& position, const Color& color)
 {
 	Vertex& v = vertices.emplace_back();
 	v.position = position;
@@ -52,7 +52,7 @@ void PrimitiveRenderer::AddVertex(const DirectX::XMFLOAT3& position, const Direc
 }
 
 // 軸描画
-void PrimitiveRenderer::DrawAxis(const DirectX::XMFLOAT4X4& transform, const DirectX::XMFLOAT4& color)
+void PrimitiveRenderer::DrawAxis(const Matrix& transform, const Color& color)
 {
 	DirectX::XMMATRIX W = DirectX::XMLoadFloat4x4(&transform);
 	DirectX::XMFLOAT3 p, x, y, z;
@@ -80,11 +80,11 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 	int index = 0;
 	float s = -corner;
 
-	const DirectX::XMFLOAT4 white = DirectX::XMFLOAT4(1, 1, 1, 1);
+	const Color white = Color(1, 1, 1, 1);
 
 	// Create vertical lines
 	float scaling = static_cast<float>(subdivisions) * scale;
-	DirectX::XMMATRIX M = DirectX::XMMatrixScaling(scaling, scaling, scaling);
+	DirectX::XMMATRIX M = Matrix::CreateScale(scaling);
 	DirectX::XMVECTOR V, P;
 	DirectX::XMFLOAT3 position;
 	for (int i = 0; i <= subdivisions; i++)
@@ -165,8 +165,8 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 // 描画実行
 void PrimitiveRenderer::Render(
 	ID3D11DeviceContext* dc,
-	const DirectX::XMFLOAT4X4& view,
-	const DirectX::XMFLOAT4X4& projection,
+	const Matrix& view,
+	const Matrix& projection,
 	D3D11_PRIMITIVE_TOPOLOGY primitiveTopology)
 {
 	// シェーダー設定

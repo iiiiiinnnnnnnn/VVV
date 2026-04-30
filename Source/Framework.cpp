@@ -6,6 +6,8 @@
 #include "Graphics.h"
 #include "ImGuiRenderer.h"
 
+#include "ModelViewerScene.h"
+
 // 垂直同期間隔設定
 static const int syncInterval = 1;
 
@@ -20,7 +22,7 @@ Framework::Framework(HWND hWnd)
 	ImGuiRenderer::Initialize(hWnd, Graphics::Instance().GetDevice(), Graphics::Instance().GetDeviceContext());
 
 	// シーン初期化
-	scene = std::make_unique<Scene>();
+	scene = std::make_unique<ModelViewerScene>();
 }
 
 // デストラクタ
@@ -57,7 +59,7 @@ void Framework::Render(float elapsedTime)
 	// シーンGUI描画処理
 	scene->DrawGUI();
 
-#if 1
+#if 0
 	// IMGUIデモウインドウ描画（IMGUI機能テスト用）
 	ImGui::ShowDemoWindow();
 #endif

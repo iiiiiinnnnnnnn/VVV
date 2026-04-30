@@ -44,20 +44,13 @@ void ModelRenderer::Render(const RenderContext& rc)
 		const LightManager* lightManager = rc.lightManager ? rc.lightManager : &defaultLightManager;
 
 		CbScene cbScene{};
-		DirectX::XMMATRIX V = DirectX::XMLoadFloat4x4(&rc.camera->GetView());
-		DirectX::XMMATRIX P = DirectX::XMLoadFloat4x4(&rc.camera->GetProjection());
-		DirectX::XMStoreFloat4x4(&cbScene.viewProjection, V * P);
+		Matrix V = rc.camera->GetView();
+		Matrix P = rc.camera->GetProjection();
+		cbScene.viewProjection = V * P;
 		const DirectionalLight& directionalLight = lightManager->GetDirectionalLight();
-		cbScene.lightDirection.x = directionalLight.direction.x;
-		cbScene.lightDirection.y = directionalLight.direction.y;
-		cbScene.lightDirection.z = directionalLight.direction.z;
-		cbScene.lightColor.x = directionalLight.color.x;
-		cbScene.lightColor.y = directionalLight.color.y;
-		cbScene.lightColor.z = directionalLight.color.z;
-		const DirectX::XMFLOAT3& eye = rc.camera->GetEye();
-		cbScene.cameraPosition.x = eye.x;
-		cbScene.cameraPosition.y = eye.y;
-		cbScene.cameraPosition.z = eye.z;
+		cbScene.lightDirection = directionalLight.direction;
+		cbScene.lightColor = directionalLight.color;
+		cbScene.cameraPosition = rc.camera->GetEye();
 		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 	}
 
@@ -102,10 +95,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 			for (size_t i = 0; i < mesh.bones.size(); ++i)
 			{
 				const Model::Bone& bone = mesh.bones.at(i);
-				DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&bone.node->worldTransform);
-				DirectX::XMMATRIX OffsetTransform = DirectX::XMLoadFloat4x4(&bone.offsetTransform);
-				DirectX::XMMATRIX BoneTransform = OffsetTransform * WorldTransform;
-				DirectX::XMStoreFloat4x4(&cbSkeleton.boneTransforms[i], BoneTransform);
+				cbSkeleton.boneTransforms[i] =
+					bone.offsetTransform * bone.node->worldTransform;
 			}
 		}
 		else
@@ -120,9 +111,6 @@ void ModelRenderer::Render(const RenderContext& rc)
 		// 描画
 		dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
 	};
-
-	DirectX::XMVECTOR CameraPosition = DirectX::XMLoadFloat3(&rc.camera->GetEye());
-	DirectX::XMVECTOR CameraFront = DirectX::XMLoadFloat3(&rc.camera->GetFront());
 
 	// ブレンドステート設定
 	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
@@ -147,8 +135,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 					mesh.node->worldTransform._42,
 					mesh.node->worldTransform._43,
 					0.0f);
-				DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(Position, CameraPosition);
-				transparencyDrawInfo.distance = DirectX::XMVectorGetX(DirectX::XMVector3Dot(CameraFront, Vec));
+				DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(Position, rc.camera->GetEye());
+				transparencyDrawInfo.distance = DirectX::XMVectorGetX(DirectX::XMVector3Dot(rc.camera->GetFront(), Vec));
 
 				continue;
 			}
