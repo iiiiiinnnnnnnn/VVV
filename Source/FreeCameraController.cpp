@@ -10,14 +10,10 @@ void FreeCameraController::SyncCameraToController(const Camera& camera)
 	right = camera.GetRight();
 
 	// 視点から注視点までの距離を算出
-	DirectX::XMVECTOR Eye = DirectX::XMLoadFloat3(&eye);
-	DirectX::XMVECTOR Focus = DirectX::XMLoadFloat3(&focus);
-	DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(Focus, Eye);
-	DirectX::XMVECTOR Distance = DirectX::XMVector3Length(Vec);
-	DirectX::XMStoreFloat(&distance, Distance);
+	distance = Vector3::Distance(eye, focus);
 
 	// 回転角度を算出
-	const DirectX::XMFLOAT3& front = camera.GetFront();
+	const Vector3& front = camera.GetFront();
 	angleX = ::asinf(-front.y);
 	if (up.y < 0)
 	{
@@ -119,21 +115,20 @@ void FreeCameraController::Update()
 	float cy = ::cosf(angleY);
 
 	// カメラの方向を算出
-	DirectX::XMVECTOR Front = DirectX::XMVectorSet(-cx * sy, -sx, -cx * cy, 0.0f);
-	DirectX::XMVECTOR Right = DirectX::XMVectorSet(cy, 0, -sy, 0.0f);
-	DirectX::XMVECTOR Up = DirectX::XMVector3Cross(Right, Front);
+	Vector3 Front = Vector3(-cx * sy, -sx, -cx * cy);
+	Vector3 Right = Vector3(cy, 0, -sy);
+	Vector3 Up = Right.Cross(Front);
 	// カメラの視点＆注視点を算出
-	DirectX::XMVECTOR Focus = DirectX::XMLoadFloat3(&focus);
-	DirectX::XMVECTOR Distance = DirectX::XMVectorSet(distance, distance, distance, 0.0f);
-	DirectX::XMVECTOR Eye = DirectX::XMVectorSubtract(Focus, DirectX::XMVectorMultiply(Front, Distance));
+	Vector3 Focus = focus;
+	Vector3 Eye = Focus - (Front * distance);
 	// ビュー行列からワールド行列を算出
-	DirectX::XMMATRIX View = DirectX::XMMatrixLookAtLH(Eye, Focus, Up);
-	DirectX::XMMATRIX World = DirectX::XMMatrixTranspose(View);
+	Matrix View = Matrix::CreateLookAt(Eye, Focus, Up);
+	Matrix World = DirectX::XMMatrixTranspose(View);
 	// ワールド行列から方向を算出
-	Right = DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(1, 0, 0, 0), World);
-	Up = DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(0, 1, 0, 0), World);
+	Right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
+	Up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
 	// 結果を格納
-	DirectX::XMStoreFloat3(&eye, Eye);
-	DirectX::XMStoreFloat3(&up, Up);
-	DirectX::XMStoreFloat3(&right, Right);
+	eye = Eye;
+	up = Up;
+	right = Right;
 }
