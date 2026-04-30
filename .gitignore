@@ -362,10 +362,9 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# ImGui config
-/imgui.ini
-
 # Shader compiled file
 *.cso
 *.cod
+# ImGui 
+
 /imgui.ini

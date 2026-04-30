@@ -88,9 +88,9 @@ void FreeCameraController::Update()
 		float x = moveX * s;
 		float y = moveY * s;
 
-		focus.x -= right.x * x;
-		focus.y -= right.y * x;
-		focus.z -= right.z * x;
+		focus.x += right.x * x;
+		focus.y += right.y * x;
+		focus.z += right.z * x;
 
 		focus.x += up.x * y;
 		focus.y += up.y * y;
