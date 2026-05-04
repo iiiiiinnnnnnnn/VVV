@@ -3,6 +3,9 @@
 #include "ModelViewerScene.h"
 #include "Graphics.h"
 #include "Dialog.h"
+#include "GpuResourceUtils.h"
+
+#define DISABLE_MODEL_LOAD
 
 // コンストラクタ
 ModelViewerScene::ModelViewerScene()
@@ -32,6 +35,16 @@ ModelViewerScene::ModelViewerScene()
 	directionalLight.direction = { 0, -1, -1 };
 	directionalLight.color = { 1, 1, 1 };
 	lightManager.SetDirectionalLight(directionalLight);
+
+	model_stage = std::make_shared<Model>(device, "Data/Model/Stage/Stage00.glb", animationSamplingRate);
+	model_player = std::make_shared<Model>(device, "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb", animationSamplingRate);
+	
+	// materialにセット
+	GpuResourceUtils::LoadTexture(
+		Graphics::Instance().GetDevice(),
+		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_Japan_Infantry.tga",
+		model_player->GetMaterials()[0].baseMap.GetAddressOf()
+	);
 }
 
 // 更新処理
@@ -41,8 +54,9 @@ void ModelViewerScene::Update(float elapsedTime)
 	cameraController.Update();
 	cameraController.SyncControllerToCamera(camera);
 
+#ifndef DISABLE_MODEL_LOAD
 	// モデルのあれこれ
-	if (model != nullptr)
+	if (model)
 	{
 		// アニメーション更新
 		if (animationPlaying && currentAnimationIndex >= 0)
@@ -71,7 +85,23 @@ void ModelViewerScene::Update(float elapsedTime)
 		worldTransform = Matrix::Identity;
 		model->UpdateTransform(worldTransform);
 	}
+#endif
 
+	if (model_stage)
+	{
+		// トランスフォーム更新
+		Matrix worldTransform;
+		worldTransform = Matrix::CreateScale(100, 100, 100);
+		model_stage->UpdateTransform(worldTransform);
+	}
+
+	if (model_player)
+	{
+		// トランスフォーム更新
+		Matrix worldTransform;
+		worldTransform = Matrix::CreateScale(1, 1, 1);
+		model_player->UpdateTransform(worldTransform);
+	}
 }
 
 // 描画処理
@@ -94,6 +124,7 @@ void ModelViewerScene::Render(float elapsedTime)
 	rc.lightManager = &lightManager;
 
 	// 描画
+#ifndef DISABLE_MODEL_LOAD
 	if (model != nullptr)
 	{
 		// モデル描画
@@ -128,16 +159,33 @@ void ModelViewerScene::Render(float elapsedTime)
 		}
 		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	}
+#endif
+
+	if (model_stage != nullptr)
+	{
+		// モデル描画
+		modelRenderer->Draw(static_cast<ShaderId>(shaderId), model_stage);
+		modelRenderer->Render(rc);
+	}
+
+	if (model_player != nullptr)
+	{
+		// モデル描画
+		modelRenderer->Draw(static_cast<ShaderId>(shaderId), model_player);
+		modelRenderer->Render(rc);
+	}
 }
 
 // GUI描画処理
 void ModelViewerScene::DrawGUI()
 {
+#ifndef DISABLE_MODEL_LOAD
 	DrawMenuGUI();
 	DrawHierarchyGUI();
 	DrawPropertyGUI();
 	DrawAnimationGUI();
 	DrawMaterialGUI();
+#endif
 }
 
 // メニューGUI描画

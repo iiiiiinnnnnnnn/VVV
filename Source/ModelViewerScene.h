@@ -44,6 +44,8 @@ private:
 	FreeCameraController				cameraController;
 	LightManager						lightManager;
 	std::shared_ptr<Model>				model;
+	std::shared_ptr<Model>				model_player;
+	std::shared_ptr<Model>				model_stage;
 	Model::Node*						selectionNode = nullptr;
 	std::vector<Model::NodePose>		nodePoses;
 	bool								animationPlaying = false;

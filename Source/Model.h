@@ -151,7 +151,7 @@ public:
 	void AppendAnimations(const char* filename);
 
 	// マテリアルデータ取得
-	const std::vector<Material>& GetMaterials() const { return materials; }
+	std::vector<Material>& GetMaterials() { return materials; }
 
 	// メッシュデータ取得
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
