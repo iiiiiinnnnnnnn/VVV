@@ -195,7 +195,7 @@ void Model::Animation::serialize(Archive& archive)
 #endif
 
 // コンストラクタ
-Model::Model(ID3D11Device* device, const char* filename, float sampleRate)
+Model::Model(ID3D11Device* device, const char* filename, float sampleRate, bool importRawModel)
 {
 	std::filesystem::path filepath(filename);
 	std::filesystem::path dirpath(filepath.parent_path());
@@ -204,10 +204,21 @@ Model::Model(ID3D11Device* device, const char* filename, float sampleRate)
 
 	// 独自形式のモデルファイルの存在確認
 	filepath.replace_extension(".cereal");
-	if (std::filesystem::exists(filepath))
+	if (std::filesystem::exists(filepath) && !importRawModel)
 	{
 		// 独自形式のモデルファイルの読み込み
-		Deserialize(filepath.string().c_str());
+		uint16_t lastWriteTime;
+		Deserialize(filepath.string().c_str(), lastWriteTime);
+		// cerealが古いなら、元のモデルファイルから再構築する
+		if (std::filesystem::exists(filename)) {
+			uint16_t fileLastWriteTime = std::filesystem::last_write_time(filename).time_since_epoch().count();
+			if (fileLastWriteTime != lastWriteTime)
+			{
+				Model tmpModel(device, filename, sampleRate, true);
+				*this = std::move(tmpModel);
+				return;
+			}
+		}
 	}
 	else if (extension == ".gltf" || extension == ".glb")
 	{
@@ -227,7 +238,7 @@ Model::Model(ID3D11Device* device, const char* filename, float sampleRate)
 		importer.LoadAnimations(animations, nodes, sampleRate);
 
 		// 独自形式のモデルファイルを保存
-		//Serialize(filepath.string().c_str());
+		Serialize(filepath.string().c_str(), std::filesystem::last_write_time(filename).time_since_epoch().count());
 	}
 	else
 	{
@@ -529,7 +540,7 @@ void Model::GetNodePoses(std::vector<NodePose>& nodePoses) const
 }
 
 // シリアライズ
-void Model::Serialize(const char* filename)
+void Model::Serialize(const char* filename, uint16_t lastWrite)
 {
 	std::ofstream ostream(filename, std::ios::binary);
 	if (ostream.is_open())
@@ -539,6 +550,7 @@ void Model::Serialize(const char* filename)
 		try
 		{
 			archive(
+				CEREAL_NVP(lastWrite),
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),
@@ -553,7 +565,7 @@ void Model::Serialize(const char* filename)
 }
 
 // デシリアライズ
-void Model::Deserialize(const char* filename)
+void Model::Deserialize(const char* filename, uint16_t& lastWrite)
 {
 	std::ifstream istream(filename, std::ios::binary);
 	if (istream.is_open())
@@ -563,6 +575,7 @@ void Model::Deserialize(const char* filename)
 		try
 		{
 			archive(
+				CEREAL_NVP(lastWrite),
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),

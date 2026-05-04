@@ -7,7 +7,7 @@
 class Model
 {
 public:
-	Model(ID3D11Device* device, const char* filename, float sampleRate = 60);
+	Model(ID3D11Device* device, const char* filename, float sampleRate = 60, bool importRawModel = false);
 
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 
@@ -39,6 +39,7 @@ public:
 
 	struct Material
 	{
+		// 保存する
 		std::string			name;
 		std::string			baseTextureFileName;
 		std::string			normalTextureFileName;
@@ -187,10 +188,10 @@ public:
 
 private:
 	// シリアライズ
-	void Serialize(const char* filename);
+	void Serialize(const char* filename, uint16_t lastWrite);
 
 	// デシリアライズ
-	void Deserialize(const char* filename);
+	void Deserialize(const char* filename, uint16_t& lastWrite);
 
 private:
 

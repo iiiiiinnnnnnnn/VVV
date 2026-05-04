@@ -368,4 +368,4 @@ FodyWeavers.xsd
 # ImGui 
 
 /imgui.ini
-/Data/Model/Stage/Stage00.cereal
+*.cereal

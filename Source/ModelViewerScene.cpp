@@ -45,6 +45,9 @@ ModelViewerScene::ModelViewerScene()
 		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_Japan_Infantry.tga",
 		model_player->GetMaterials()[0].baseMap.GetAddressOf()
 	);
+
+	debug_models.push_back(model_stage.get());
+	debug_models.push_back(model_player.get());
 }
 
 // 更新処理
@@ -179,12 +182,13 @@ void ModelViewerScene::Render(float elapsedTime)
 // GUI描画処理
 void ModelViewerScene::DrawGUI()
 {
-#ifndef DISABLE_MODEL_LOAD
-	DrawMenuGUI();
 	DrawHierarchyGUI();
 	DrawPropertyGUI();
 	DrawAnimationGUI();
 	DrawMaterialGUI();
+
+#ifndef DISABLE_MODEL_LOAD
+	DrawMenuGUI();
 #endif
 }
 
@@ -226,49 +230,58 @@ void ModelViewerScene::DrawHierarchyGUI()
 {
 	if (ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_None))
 	{
-		// ノードツリーを再帰的に描画する関数
-		std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
+		for (int i = 0; i < debug_models.size(); i++)
 		{
-			// 矢印をクリック、またはノードをダブルクリックで階層を開く
-			ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
-				| ImGuiTreeNodeFlags_OpenOnDoubleClick;
-
-			// 子がいない場合は矢印をつけない
-			size_t childCount = node->children.size();
-			if (childCount == 0)
+			Model* debug_model = debug_models[i];
+			if (debug_model)
 			{
-				nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-			}
+				ImGui::PushID(debug_model);
 
-			// 選択フラグ
-			if (selectionNode == node)
-			{
-				nodeFlags |= ImGuiTreeNodeFlags_Selected;
-			}
+				// ノードツリーを再帰的に描画する関数
+				std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
+					{
+						// 矢印をクリック、またはノードをダブルクリックで階層を開く
+						ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
+							| ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-			// ツリーノードを表示
-			bool opened = ImGui::TreeNodeEx(node, nodeFlags, node->name.c_str());
+						// 子がいない場合は矢印をつけない
+						size_t childCount = node->children.size();
+						if (childCount == 0)
+						{
+							nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+						}
 
-			// フォーカスされたノードを選択する
-			if (ImGui::IsItemFocused())
-			{
-				selectionNode = node;
-			}
+						// 選択フラグ
+						if (selectionNode == node)
+						{
+							nodeFlags |= ImGuiTreeNodeFlags_Selected;
+						}
 
-			// 開かれている場合、子階層も同じ処理を行う
-			if (opened && childCount > 0)
-			{
-				for (Model::Node* child : node->children)
-				{
-					drawNodeTree(child);
-				}
-				ImGui::TreePop();
+						// ツリーノードを表示
+						bool opened = ImGui::TreeNodeEx(node, nodeFlags, node->name.c_str());
+
+						// フォーカスされたノードを選択する
+						if (ImGui::IsItemFocused())
+						{
+							selectionNode = node;
+						}
+
+						// 開かれている場合、子階層も同じ処理を行う
+						if (opened && childCount > 0)
+						{
+							for (Model::Node* child : node->children)
+							{
+								drawNodeTree(child);
+							}
+							ImGui::TreePop();
+						}
+					};
+
+				// 再帰的にノードを描画
+				drawNodeTree(debug_model->GetRootNode());
+
+				ImGui::PopID();
 			}
-		};
-		// 再帰的にノードを描画
-		if (model != nullptr)
-		{
-			drawNodeTree(model->GetRootNode());
 		}
 	}
 	ImGui::End();

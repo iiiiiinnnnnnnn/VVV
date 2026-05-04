@@ -46,6 +46,7 @@ private:
 	std::shared_ptr<Model>				model;
 	std::shared_ptr<Model>				model_player;
 	std::shared_ptr<Model>				model_stage;
+	std::vector<Model*> 				debug_models;
 	Model::Node*						selectionNode = nullptr;
 	std::vector<Model::NodePose>		nodePoses;
 	bool								animationPlaying = false;
