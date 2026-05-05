@@ -54,12 +54,12 @@ void PrimitiveRenderer::AddVertex(const Vector3& position, const Color& color)
 // Ž²•`‰æ
 void PrimitiveRenderer::DrawAxis(const Matrix& transform, const Color& color)
 {
-	DirectX::XMMATRIX W = DirectX::XMLoadFloat4x4(&transform);
-	DirectX::XMFLOAT3 p, x, y, z;
-	DirectX::XMStoreFloat3(&p, W.r[3]);
-	DirectX::XMStoreFloat3(&x, DirectX::XMVector3Transform(DirectX::XMVectorSet(1, 0, 0, 0), W));
-	DirectX::XMStoreFloat3(&y, DirectX::XMVector3Transform(DirectX::XMVectorSet(0, 1, 0, 0), W));
-	DirectX::XMStoreFloat3(&z, DirectX::XMVector3Transform(DirectX::XMVectorSet(0, 0, 1, 0), W));
+	DirectX::XMMATRIX W = transform;
+	Vector3 p, x, y, z;
+	p = W.r[3];
+	x = DirectX::XMVector3Transform(Vector3(1, 0, 0), W);
+	y = DirectX::XMVector3Transform(Vector3(0, 1, 0), W);
+	z = DirectX::XMVector3Transform(Vector3(0, 0, 1), W);
 	AddVertex(p, { 1, 0, 0, 1 });
 	AddVertex(x, { 1, 0, 0, 1 });
 	AddVertex(p, { 0, 1, 0, 1 });
@@ -86,17 +86,17 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 	float scaling = static_cast<float>(subdivisions) * scale;
 	DirectX::XMMATRIX M = Matrix::CreateScale(scaling);
 	DirectX::XMVECTOR V, P;
-	DirectX::XMFLOAT3 position;
+	Vector3 position;
 	for (int i = 0; i <= subdivisions; i++)
 	{
-		V = DirectX::XMVectorSet(s, 0, corner, 0);
+		V = Vector3(s, 0, corner);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, white);
 
-		V = DirectX::XMVectorSet(s, 0, -corner, 0);
+		V = Vector3(s, 0, -corner);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, white);
 
 		s += step;
@@ -106,14 +106,14 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 	s = -corner;
 	for (int i = 0; i <= subdivisions; i++)
 	{
-		V = DirectX::XMVectorSet(corner, 0, s, 0);
+		V = Vector3(corner, 0, s);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, white);
 
-		V = DirectX::XMVectorSet(-corner, 0, s, 0);
+		V = Vector3(-corner, 0, s);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, white);
 
 		s += step;
@@ -121,43 +121,43 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 
 	// XŽ²
 	{
-		const DirectX::XMFLOAT4 red = DirectX::XMFLOAT4(1, 0, 0, 1);
-		V = DirectX::XMVectorSet(0, 0, 0, 0);
+		const Color red = Color(1, 0, 0, 1);
+		V = Vector3(0, 0, 0);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, red);
 
-		V = DirectX::XMVectorSet(corner, 0, 0, 0);
+		V = Vector3(corner, 0, 0);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, red);
 	}
 
 	// YŽ²
 	{
-		const DirectX::XMFLOAT4 green = DirectX::XMFLOAT4(0, 1, 0, 1);
-		V = DirectX::XMVectorSet(0, 0, 0, 0);
+		const Color green = Color(0, 1, 0, 1);
+		V = Vector3(0, 0, 0);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, green);
 
-		V = DirectX::XMVectorSet(0, corner, 0, 0);
+		V = Vector3(0, corner, 0);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, green);
 	}
 
 	// ZŽ²
 	{
-		const DirectX::XMFLOAT4 blue = DirectX::XMFLOAT4(0, 0, 1, 1);
-		V = DirectX::XMVectorSet(0, 0, 0, 0);
+		const Color blue = Color(0, 0, 1, 1);
+		V = Vector3(0, 0, 0);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, blue);
 
-		V = DirectX::XMVectorSet(0, 0, corner, 0);
+		V = Vector3(0, 0, corner);
 		P = DirectX::XMVector3TransformCoord(V, M);
-		DirectX::XMStoreFloat3(&position, P);
+		position = P;
 		AddVertex(position, blue);
 	}
 }

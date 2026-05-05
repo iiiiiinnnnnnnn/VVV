@@ -34,6 +34,9 @@
     <Filter Include="ソースファイル\モデル">
       <UniqueIdentifier>{8df532a5-1bd4-4c9e-b5a3-cd098dc25cb8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\入力">
+      <UniqueIdentifier>{54aafe05-06b6-40a0-87fc-65221ee22d61}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -98,6 +101,15 @@
     </ClCompile>
     <ClCompile Include="Source\Animator.cpp">
       <Filter>ソースファイル\モデル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input.cpp">
+      <Filter>ソースファイル\入力</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mouse.cpp">
+      <Filter>ソースファイル\入力</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GamePad.cpp">
+      <Filter>ソースファイル\入力</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +190,15 @@
     </ClInclude>
     <ClInclude Include="Source\Animator.h">
       <Filter>ソースファイル\モデル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GamePad.h">
+      <Filter>ソースファイル\入力</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input.h">
+      <Filter>ソースファイル\入力</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Mouse.h">
+      <Filter>ソースファイル\入力</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

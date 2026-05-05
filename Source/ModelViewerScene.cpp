@@ -1,9 +1,12 @@
+// ModelViewerScene.cpp
+
 #include <functional>
 #include <imgui.h>
 #include "ModelViewerScene.h"
 #include "Graphics.h"
 #include "Dialog.h"
 #include "GpuResourceUtils.h"
+#include "Input.h"
 
 #define DISABLE_MODEL_LOAD
 
@@ -111,7 +114,6 @@ void ModelViewerScene::Update(float elapsedTime)
 	if (model_stage)
 	{
 		// トランスフォーム更新
-		animator_player->Update(elapsedTime);
 		Matrix worldTransform;
 		worldTransform = Matrix::CreateScale(100, 100, 100);
 		model_stage->UpdateTransform(worldTransform);
@@ -120,6 +122,7 @@ void ModelViewerScene::Update(float elapsedTime)
 	if (model_player)
 	{
 		// トランスフォーム更新
+		animator_player->Update(elapsedTime);
 		Matrix worldTransform;
 		worldTransform = Matrix::CreateScale(1, 1, 1);
 		model_player->UpdateTransform(worldTransform);
@@ -134,20 +137,22 @@ void ModelViewerScene::Render(float elapsedTime)
 	PrimitiveRenderer* primitiveRenderer = Graphics::Instance().GetPrimitiveRenderer();
 	ModelRenderer* modelRenderer = Graphics::Instance().GetModelRenderer();
 
-	// グリッド描画
-#ifdef _DEBUG
-	if (GetKeyState(VK_CONTROL) & 0x8000) {
-		primitiveRenderer->DrawGrid(100, 1);
-		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	}
-#endif
-
 	// 描画コンテキスト設定
 	RenderContext rc;
 	rc.deviceContext = dc;
 	rc.renderState = renderState;
 	rc.camera = &camera;
 	rc.lightManager = &lightManager;
+	rc.renderSettings = &renderSettings;
+
+	// グリッド描画
+#ifdef _DEBUG
+	if (Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3) renderSettings.showDebug = !renderSettings.showDebug;
+	if (renderSettings.showDebug) {
+		primitiveRenderer->DrawGrid(100, 1);
+		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	}
+#endif
 
 	if (model_stage != nullptr)
 	{
@@ -167,6 +172,8 @@ void ModelViewerScene::Render(float elapsedTime)
 // GUI描画処理
 void ModelViewerScene::DrawGUI()
 {
+	if (!renderSettings.showDebug) return;
+
 	DrawHierarchyGUI();
 	DrawPropertyGUI();
 	DrawAnimationGUI();

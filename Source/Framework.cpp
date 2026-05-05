@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include "Framework.h"
+#include "Input.h"
 #include "Graphics.h"
 #include "ImGuiRenderer.h"
 
@@ -25,6 +26,9 @@ Framework::Framework(HWND hWnd)
 	}
 #endif
 
+	// 入力初期化
+	Input::Instance().Initialize(hWnd);
+
 	// グラフィックス初期化
 	Graphics::Instance().Initialize(hWnd);
 
@@ -45,6 +49,9 @@ Framework::~Framework()
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
+	// 入力更新処理
+	Input::Instance().Update();
+
 	// IMGUIフレーム開始処理	
 	ImGuiRenderer::NewFrame();
 

@@ -7,6 +7,7 @@
 #include "Model.h"
 #include "Light.h"
 #include "Animator.h"
+#include "RenderContext.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene
@@ -41,6 +42,7 @@ private:
 	Camera								camera;
 	FreeCameraController				cameraController;
 	LightManager						lightManager;
+	RenderSettings 						renderSettings;
 	std::shared_ptr<Model>				model;
 	std::shared_ptr<Model>				model_player;
 	std::shared_ptr<Animator>			animator_player;
