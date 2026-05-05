@@ -8,8 +8,6 @@
 #include "GpuResourceUtils.h"
 #include "Input.h"
 
-#define DISABLE_MODEL_LOAD
-
 // コンストラクタ
 ModelViewerScene::ModelViewerScene()
 {
@@ -37,7 +35,7 @@ ModelViewerScene::ModelViewerScene()
 	directionalLight.color = { 1, 1, 1 };
 	lightManager.SetDirectionalLight(directionalLight);
 
-
+	// 生成
 	stage = std::make_shared<Stage>();
 	player = std::make_shared<Player>();
 
@@ -53,34 +51,7 @@ void ModelViewerScene::Update(float elapsedTime)
 	cameraController.Update();
 	cameraController.SyncControllerToCamera(camera);
 
-#ifndef DISABLE_MODEL_LOAD
-	// モデルのあれこれ
-	if (model)
-	{
-		// アニメーション更新
-		if (animationPlaying && currentAnimationIndex >= 0)
-		{
-			model->ComputeAnimation(currentAnimationIndex, currentAnimationSeconds, nodePoses);
-			model->SetNodePoses(nodePoses);
-
-			// 時間更新
-			const Model::Animation& animation = model->GetAnimations().at(currentAnimationIndex);
-			currentAnimationSeconds += elapsedTime * animationSpeed;
-			if (currentAnimationSeconds > animation.secondsLength)
-			{
-				if (animationLoop)
-				{
-					currentAnimationSeconds -= animation.secondsLength;
-				}
-				else
-				{
-					currentAnimationSeconds = animation.secondsLength;
-				}
-			}
-		}
-	}
-#endif
-
+	// 更新
 	stage->Update(elapsedTime);
 	player->Update(elapsedTime);
 }
@@ -110,6 +81,7 @@ void ModelViewerScene::Render(float elapsedTime)
 	}
 #endif
 
+	// 描画
 	stage->Render(rc, elapsedTime, modelRenderer);
 	player->Render(rc, elapsedTime, modelRenderer);
 }
@@ -396,7 +368,7 @@ void ModelViewerScene::DrawMaterialGUI()
 						{
 							ImGui::Text("BaseMap");
 							ImGui::Image(material.baseMap.Get(), ImVec2(50, 50));
-							DirectX::XMFLOAT4 baseColor = material.baseColor;
+							Color baseColor = material.baseColor;
 							ImGui::ColorEdit4("BaseColor", &baseColor.x, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
 
 							ImGui::TreePop();
