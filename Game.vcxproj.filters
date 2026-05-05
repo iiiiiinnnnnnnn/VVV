@@ -37,6 +37,9 @@
     <Filter Include="ソースファイル\入力">
       <UniqueIdentifier>{54aafe05-06b6-40a0-87fc-65221ee22d61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\ステージ">
+      <UniqueIdentifier>{1fd1280e-963f-407d-99a2-64ff85eaeefd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -110,6 +113,9 @@
     </ClCompile>
     <ClCompile Include="Source\GamePad.cpp">
       <Filter>ソースファイル\入力</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Stage.cpp">
+      <Filter>ソースファイル\ステージ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -199,6 +205,9 @@
     </ClInclude>
     <ClInclude Include="Source\Mouse.h">
       <Filter>ソースファイル\入力</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage.h">
+      <Filter>ソースファイル\ステージ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

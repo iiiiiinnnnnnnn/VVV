@@ -1,3 +1,5 @@
+// GLTFImporter.cpp
+
 #include <fstream>
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION

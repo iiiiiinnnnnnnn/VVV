@@ -1,18 +1,17 @@
-// Player.h
+// Stage.h
 
 #pragma once
 
 #include "Common.h"
 #include "RenderContext.h"
 #include "Model.h"
-#include "Animator.h"
 #include "ModelRenderer.h"
 
-class Player
+class Stage
 {
 public:
-	Player();
-	~Player() = default;
+	Stage();
+	~Stage() = default;
 	void Update(float elapsedTime);
 	void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer);
 
@@ -25,9 +24,7 @@ public:
 	} transform;
 
 	Model* GetModel() const { return model.get(); }
-	Animator* GetAnimator() const { return animator.get(); }
 
 private:
 	std::shared_ptr<Model> model;
-	std::shared_ptr<Animator> animator;
 };

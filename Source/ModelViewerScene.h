@@ -6,8 +6,8 @@
 #include "FreeCameraController.h"
 #include "Model.h"
 #include "Light.h"
-#include "Animator.h"
-#include "RenderContext.h"
+#include "Player.h"
+#include "Stage.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene
@@ -43,19 +43,9 @@ private:
 	FreeCameraController				cameraController;
 	LightManager						lightManager;
 	RenderSettings 						renderSettings;
-	std::shared_ptr<Model>				model;
-	std::shared_ptr<Model>				model_player;
-	std::shared_ptr<Animator>			animator_player;
-	std::shared_ptr<Model>				model_stage;
+	std::shared_ptr<Player>				player;
+	std::shared_ptr<Stage>				stage;
 	std::vector<Model*> 				debug_models;
 	Model::Node*						selectionNode = nullptr;
 	std::vector<Model::NodePose>		nodePoses;
-	bool								animationPlaying = false;
-	bool								animationLoop = false;
-	float								animationSamplingRate = 60;
-	float								animationBlendSeconds = 0;
-	float								animationSpeed = 1.0f;
-	float								currentAnimationSeconds = 0;
-	int									currentAnimationIndex = -1;
-	int									shaderId;
 };
