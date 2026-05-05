@@ -1,3 +1,5 @@
+// Skinning.hlsli
+
 cbuffer CbSkeleton : register(b6)
 {
 	row_major float4x4	boneTransforms[256];

@@ -29,19 +29,10 @@ public:
 	void LoadAnimations(AnimationList& animations, const NodeList& nodes, float sampleRate = 60);
 
 private:
-	// gltfVector3 Å® XMFLOAT3
-	static DirectX::XMFLOAT3 gltfVector3ToXMFLOAT3(const std::vector<double>& gltfValue);
-
-	// gltfQuaternion Å® XMFLOAT4
-	static DirectX::XMFLOAT4 gltfQuaternionToXMFLOAT4(const std::vector<double>& gltfValue);
-
-	// gltfMatrix Å® XMFLOAT4X4
-	static DirectX::XMFLOAT4X4 gltfMatrixToXMFLOAT4X4(const std::vector<double>& gltfValue);
-
 	// ç¿ïWånïœä∑
-	static void ConvertPositionAxisSystem(DirectX::XMFLOAT3& v);
-	static void ConvertPositionAxisSystem(DirectX::XMFLOAT4& v);
-	static void ConvertRotationAxisSystem(DirectX::XMFLOAT4& q);
+	static void ConvertPositionAxisSystem(Vector3& v);
+	static void ConvertPositionAxisSystem(Vector4& v);
+	static void ConvertRotationAxisSystem(Quaternion& q);
 	static void ConvertMatrixAxisSystem(DirectX::XMFLOAT4X4& m);
 	static void ConvertNodeAxisSystem(Model::Node& node);
 	static void ConvertMeshAxisSystem(Model::Mesh& mesh);

@@ -54,6 +54,7 @@ public:
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
 
+		// 保存しない
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	emissiveMap;
@@ -89,13 +90,17 @@ public:
 
 	struct Mesh
 	{
+		// 保存する
 		std::vector<Vertex>		vertices;
 		std::vector<uint32_t>	indices;
 		std::vector<Bone>		bones;
 		int			nodeIndex = 0;
 		int			materialIndex = 0;
+
+		// 保存しない
 		Material*	material = nullptr;
 		Node*		node = nullptr;
+		bool		isDraw = true;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>	vertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
 
@@ -152,13 +157,16 @@ public:
 	void AppendAnimations(const char* filename);
 
 	// マテリアルデータ取得
+	const std::vector<Material>& GetMaterials() const { return materials; }
 	std::vector<Material>& GetMaterials() { return materials; }
 
 	// メッシュデータ取得
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
+	std::vector<Mesh>& GetMeshes() { return meshes; }
 
 	// アニメーションデータ取得
 	const std::vector<Animation>& GetAnimations() const { return animations; }
+	std::vector<Animation>& GetAnimations() { return animations; }
 
 	// アニメーションインデックス取得
 	int GetAnimationIndex(const char* name) const;

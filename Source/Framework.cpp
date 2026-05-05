@@ -15,6 +15,16 @@ static const int syncInterval = 1;
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
+	// シフトキーが押されている場合はコンソールを表示
+#if _DEBUG
+	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
+	{
+		AllocConsole();
+		freopen("CONOUT$", "w", stdout);
+		freopen("CONOUT$", "w", stderr);
+	}
+#endif
+
 	// グラフィックス初期化
 	Graphics::Instance().Initialize(hWnd);
 
@@ -59,10 +69,6 @@ void Framework::Render(float elapsedTime)
 	// シーンGUI描画処理
 	scene->DrawGUI();
 
-#if 0
-	// IMGUIデモウインドウ描画（IMGUI機能テスト用）
-	ImGui::ShowDemoWindow();
-#endif
 	// IMGUI描画
 	ImGuiRenderer::Render(dc);
 

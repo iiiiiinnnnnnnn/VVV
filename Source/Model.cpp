@@ -238,7 +238,8 @@ Model::Model(ID3D11Device* device, const char* filename, float sampleRate, bool 
 		importer.LoadAnimations(animations, nodes, sampleRate);
 
 		// 独自形式のモデルファイルを保存
-		Serialize(filepath.string().c_str(), std::filesystem::last_write_time(filename).time_since_epoch().count());
+		//Serialize(filepath.string().c_str(), std::filesystem::last_write_time(filename).time_since_epoch().count());
+		// ↑本当は保存できるけど、テクスチャ埋め込めないのが正直キツイのでglbって元々早いしglbでいいです
 	}
 	else
 	{

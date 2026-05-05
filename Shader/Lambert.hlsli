@@ -1,3 +1,5 @@
+// Lambert.hlsli
+
 #include "Scene.hlsli"
 
 struct VS_OUT

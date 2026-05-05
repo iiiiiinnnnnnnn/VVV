@@ -6,6 +6,7 @@
 #include "FreeCameraController.h"
 #include "Model.h"
 #include "Light.h"
+#include "Animator.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene
@@ -24,9 +25,6 @@ public:
 	void DrawGUI() override;
 
 private:
-	// メニューGUI描画
-	void DrawMenuGUI();
-
 	// ヒエラルキーGUI描画
 	void DrawHierarchyGUI();
 
@@ -45,6 +43,7 @@ private:
 	LightManager						lightManager;
 	std::shared_ptr<Model>				model;
 	std::shared_ptr<Model>				model_player;
+	std::shared_ptr<Animator>			animator_player;
 	std::shared_ptr<Model>				model_stage;
 	std::vector<Model*> 				debug_models;
 	Model::Node*						selectionNode = nullptr;

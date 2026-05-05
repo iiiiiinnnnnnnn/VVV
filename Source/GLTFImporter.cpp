@@ -20,6 +20,8 @@ bool LoadImageData(tinygltf::Image*, const int, std::string*,
 GLTFImporter::GLTFImporter(const char* filename)
 	: filepath(filename) 
 {
+	_ASSERT_EXPR_A(std::filesystem::exists(filename), "file is not found");
+
 	// 拡張子取得
 	std::string extension = filepath.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
@@ -74,28 +76,22 @@ void GLTFImporter::LoadNodes(NodeList& nodes)
 
 		if (!gltfNode.matrix.empty())
 		{
-			DirectX::XMFLOAT4X4 m = gltfMatrixToXMFLOAT4X4(gltfNode.matrix);
-
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&m));
-
-			DirectX::XMStoreFloat3(&node.scale, S);
-			DirectX::XMStoreFloat4(&node.rotation, R);
-			DirectX::XMStoreFloat3(&node.position, T);
+			Matrix m = MATRIX(gltfNode.matrix);
+			m.Decompose(node.scale, node.rotation, node.position);
 		}
 		else
 		{
 			if (gltfNode.scale.size() > 0)
 			{
-				node.scale = gltfVector3ToXMFLOAT3(gltfNode.scale);
+				node.scale = VEC(gltfNode.scale);
 			}
 			if (gltfNode.rotation.size() > 0)
 			{
-				node.rotation = gltfQuaternionToXMFLOAT4(gltfNode.rotation);
+				node.rotation = QUAT(gltfNode.rotation);
 			}
 			if (gltfNode.translation.size() > 0)
 			{
-				node.position = gltfVector3ToXMFLOAT3(gltfNode.translation);
+				node.position = VEC(gltfNode.translation);
 			}
 		}
 		// 座標系変換
@@ -182,7 +178,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 					const float* p = static_cast<const float*>(vertexBuffer);
 					for (size_t i = 0; i < gltfAccessor.count; ++i)
 					{
-						DirectX::XMFLOAT3& position = mesh.vertices.at(i).position;
+						Vector3& position = mesh.vertices.at(i).position;
 						position.x = p[0];
 						position.y = p[1];
 						position.z = p[2];
@@ -194,7 +190,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 					const float* p = static_cast<const float*>(vertexBuffer);
 					for (size_t i = 0; i < gltfAccessor.count; ++i)
 					{
-						DirectX::XMFLOAT3& normal = mesh.vertices.at(i).normal;
+						Vector3& normal = mesh.vertices.at(i).normal;
 						normal.x = p[0];
 						normal.y = p[1];
 						normal.z = p[2];
@@ -206,7 +202,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 					const float* p = static_cast<const float*>(vertexBuffer);
 					for (size_t i = 0; i < gltfAccessor.count; ++i)
 					{
-						DirectX::XMFLOAT4& tangent = mesh.vertices.at(i).tangent;
+						Vector4& tangent = mesh.vertices.at(i).tangent;
 						tangent.x = p[0];
 						tangent.y = p[1];
 						tangent.z = p[2];
@@ -223,7 +219,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const float* p = static_cast<const float*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT2& texcoord = mesh.vertices.at(i).texcoord;
+								Vector2& texcoord = mesh.vertices.at(i).texcoord;
 								texcoord.x = p[0];
 								texcoord.y = p[1];
 								p += 2;
@@ -235,7 +231,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const uint8_t* p = static_cast<const uint8_t*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT2& texcoord = mesh.vertices.at(i).texcoord;
+								Vector2& texcoord = mesh.vertices.at(i).texcoord;
 								texcoord.x = p[0] / static_cast<float>(0xFF);
 								texcoord.y = p[1] / static_cast<float>(0xFF);
 								p += 2;
@@ -247,7 +243,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const uint16_t* p = static_cast<const uint16_t*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT2& texcoord = mesh.vertices.at(i).texcoord;
+								Vector2& texcoord = mesh.vertices.at(i).texcoord;
 								texcoord.x = p[0] / static_cast<float>(0xFFFF);
 								texcoord.y = p[1] / static_cast<float>(0xFFFF);
 								p += 2;
@@ -309,7 +305,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const float* p = static_cast<const float*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT4& boneWeights = mesh.vertices.at(i).boneWeight;
+								Vector4& boneWeights = mesh.vertices.at(i).boneWeight;
 								boneWeights.x = p[0];
 								boneWeights.y = p[1];
 								boneWeights.z = p[2];
@@ -323,7 +319,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const uint8_t* p = static_cast<const uint8_t*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT4& boneWeights = mesh.vertices.at(i).boneWeight;
+								Vector4& boneWeights = mesh.vertices.at(i).boneWeight;
 								boneWeights.x = p[0] / static_cast<float>(0xFF);
 								boneWeights.y = p[1] / static_cast<float>(0xFF);
 								boneWeights.z = p[2] / static_cast<float>(0xFF);
@@ -337,7 +333,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							const uint16_t* p = static_cast<const uint16_t*>(vertexBuffer);
 							for (size_t i = 0; i < gltfAccessor.count; ++i)
 							{
-								DirectX::XMFLOAT4& boneWeights = mesh.vertices.at(i).boneWeight;
+								Vector4& boneWeights = mesh.vertices.at(i).boneWeight;
 								boneWeights.x = p[0] / static_cast<float>(0xFFFF);
 								boneWeights.y = p[1] / static_cast<float>(0xFFFF);
 								boneWeights.z = p[2] / static_cast<float>(0xFFFF);
@@ -553,10 +549,10 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 				}
 				// キーフレームの値が全て同じなら最初のキーフレーム以外省く
 				bool result = true;
-				DirectX::XMVECTOR A = DirectX::XMLoadFloat3(&nodeAnim.scaleKeyframes.at(0).value);
+				Vector3 A = nodeAnim.scaleKeyframes.at(0).value;
 				for (size_t i = 1; i < nodeAnim.scaleKeyframes.size(); ++i)
 				{
-					DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&nodeAnim.scaleKeyframes.at(i).value);
+					Vector3 B = nodeAnim.scaleKeyframes.at(i).value;
 					if (!DirectX::XMVector3NearEqual(A, B, Epsilon))
 					{
 						result = false;
@@ -586,10 +582,10 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 
 				// キーフレームの値が全て同じなら最初のキーフレーム以外省く
 				bool result = true;
-				DirectX::XMVECTOR A = DirectX::XMLoadFloat4(&nodeAnim.rotationKeyframes.at(0).value);
+				Quaternion A = nodeAnim.rotationKeyframes.at(0).value;
 				for (size_t i = 1; i < nodeAnim.rotationKeyframes.size(); ++i)
 				{
-					DirectX::XMVECTOR B = DirectX::XMLoadFloat4(&nodeAnim.rotationKeyframes.at(i).value);
+					Quaternion B = nodeAnim.rotationKeyframes.at(i).value;
 					if (!DirectX::XMVector4NearEqual(A, B, Epsilon))
 					{
 						result = false;
@@ -614,10 +610,10 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 
 				// キーフレームの値が全て同じなら最初のキーフレーム以外省く
 				bool result = true;
-				DirectX::XMVECTOR A = DirectX::XMLoadFloat3(&nodeAnim.positionKeyframes.at(0).value);
+				Vector3 A = nodeAnim.positionKeyframes.at(0).value;
 				for (size_t i = 1; i < nodeAnim.positionKeyframes.size(); ++i)
 				{
-					DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&nodeAnim.positionKeyframes.at(i).value);
+					Vector3 B = nodeAnim.positionKeyframes.at(i).value;
 					if (!DirectX::XMVector3NearEqual(A, B, Epsilon))
 					{
 						result = false;
@@ -701,62 +697,18 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 	}
 }
 
-// gltfVector3 → XMFLOAT3
-DirectX::XMFLOAT3 GLTFImporter::gltfVector3ToXMFLOAT3(const std::vector<double>& gltfValue)
-{
-	return DirectX::XMFLOAT3(
-		static_cast<float>(gltfValue.at(0)),
-		static_cast<float>(gltfValue.at(1)),
-		static_cast<float>(gltfValue.at(2))
-	);
-}
-
-// gltfQuaternion → XMFLOAT4
-DirectX::XMFLOAT4 GLTFImporter::gltfQuaternionToXMFLOAT4(const std::vector<double>& gltfValue)
-{
-	return DirectX::XMFLOAT4(
-		static_cast<float>(gltfValue.at(0)),
-		static_cast<float>(gltfValue.at(1)),
-		static_cast<float>(gltfValue.at(2)),
-		static_cast<float>(gltfValue.at(3))
-	);
-}
-
-// gltfMatrix → XMFLOAT4X4
-DirectX::XMFLOAT4X4 GLTFImporter::gltfMatrixToXMFLOAT4X4(const std::vector<double>& gltfValue)
-{
-	return DirectX::XMFLOAT4X4(
-		static_cast<float>(gltfValue.at(0)),
-		static_cast<float>(gltfValue.at(1)),
-		static_cast<float>(gltfValue.at(2)),
-		static_cast<float>(gltfValue.at(3)),
-		static_cast<float>(gltfValue.at(4)),
-		static_cast<float>(gltfValue.at(5)),
-		static_cast<float>(gltfValue.at(6)),
-		static_cast<float>(gltfValue.at(7)),
-		static_cast<float>(gltfValue.at(8)),
-		static_cast<float>(gltfValue.at(9)),
-		static_cast<float>(gltfValue.at(10)),
-		static_cast<float>(gltfValue.at(11)),
-		static_cast<float>(gltfValue.at(12)),
-		static_cast<float>(gltfValue.at(13)),
-		static_cast<float>(gltfValue.at(14)),
-		static_cast<float>(gltfValue.at(15))
-	);
-}
-
 // 座標系変換
-void GLTFImporter::ConvertPositionAxisSystem(DirectX::XMFLOAT3& v)
+void GLTFImporter::ConvertPositionAxisSystem(Vector3& v)
 {
 	v.x = -v.x;
 }
 
-void GLTFImporter::ConvertPositionAxisSystem(DirectX::XMFLOAT4& v)
+void GLTFImporter::ConvertPositionAxisSystem(Vector4& v)
 {
 	v.x = -v.x;
 }
 
-void GLTFImporter::ConvertRotationAxisSystem(DirectX::XMFLOAT4& q)
+void GLTFImporter::ConvertRotationAxisSystem(Quaternion& q)
 {
 	q.x = -q.x;
 	q.w = -q.w;
@@ -858,15 +810,16 @@ void GLTFImporter::ComputeTangents(std::vector<Model::Vertex>& vertices, const s
 	{
 		Model::Vertex& v = vertices[i];
 
-		DirectX::XMVECTOR N = DirectX::XMLoadFloat3(&v.normal);
-		DirectX::XMVECTOR T1 = DirectX::XMLoadFloat3(&tan1[i]);
+		Vector3 N = v.normal;
+		Vector3 T1 = tan1[i];
 
 		// Gram-Schmidt orthogonalize        
-		DirectX::XMVECTOR T = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(T1, DirectX::XMVectorScale(N, DirectX::XMVectorGetX(DirectX::XMVector3Dot(N, T1)))));
+		Vector3 T = T1 - (N * N.Dot(T1));
+		T.Normalize();
 
 		// Calculate handedness        
 		DirectX::XMVECTOR T2 = DirectX::XMLoadFloat3(&tan2[i]);
-		float handedness = (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVector3Cross(N, T1), T2)) < 0.0f) ? -1.0f : 1.0f;
-		DirectX::XMStoreFloat4(&v.tangent, DirectX::XMVectorSetW(T, handedness));
+		float handedness = N.Cross(T1).Dot(T2) < 0.0f ? -1.0f : 1.0f;
+		v.tangent = DirectX::XMVectorSetW(T, handedness);
 	}
 }

@@ -45,7 +45,30 @@ ModelViewerScene::ModelViewerScene()
 		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_Japan_Infantry.tga",
 		model_player->GetMaterials()[0].baseMap.GetAddressOf()
 	);
+	GpuResourceUtils::LoadTexture(
+		Graphics::Instance().GetDevice(),
+		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_weapons.tga",
+		model_player->GetMaterials()[1].baseMap.GetAddressOf()
+	);
 
+	model_player->GetMeshes()[2].isDraw = false;
+	model_player->GetMeshes()[4].isDraw = false;
+	model_player->GetMeshes()[5].isDraw = false;
+	model_player->GetMeshes()[6].isDraw = false;
+	model_player->GetMeshes()[7].isDraw = false;
+	model_player->GetMeshes()[8].isDraw = false;
+	model_player->GetMeshes()[9].isDraw = false;
+	model_player->GetMeshes()[10].isDraw = false; // ガスマスク
+	model_player->GetMeshes()[11].isDraw = false; // ガスマスク
+
+	// アニメーション追加
+	model_player->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_walk.glb");
+
+	// アニメーター生成
+	animator_player = std::make_shared<Animator>(model_player.get());
+	animator_player->Play(0, true);
+
+	// デバッグ用モデルリストに追加
 	debug_models.push_back(model_stage.get());
 	debug_models.push_back(model_player.get());
 }
@@ -82,17 +105,13 @@ void ModelViewerScene::Update(float elapsedTime)
 				}
 			}
 		}
-
-		// トランスフォーム更新
-		Matrix worldTransform;
-		worldTransform = Matrix::Identity;
-		model->UpdateTransform(worldTransform);
 	}
 #endif
 
 	if (model_stage)
 	{
 		// トランスフォーム更新
+		animator_player->Update(elapsedTime);
 		Matrix worldTransform;
 		worldTransform = Matrix::CreateScale(100, 100, 100);
 		model_stage->UpdateTransform(worldTransform);
@@ -116,8 +135,12 @@ void ModelViewerScene::Render(float elapsedTime)
 	ModelRenderer* modelRenderer = Graphics::Instance().GetModelRenderer();
 
 	// グリッド描画
-	primitiveRenderer->DrawGrid(20, 1);
-	primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+#ifdef _DEBUG
+	if (GetKeyState(VK_CONTROL) & 0x8000) {
+		primitiveRenderer->DrawGrid(100, 1);
+		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	}
+#endif
 
 	// 描画コンテキスト設定
 	RenderContext rc;
@@ -126,55 +149,17 @@ void ModelViewerScene::Render(float elapsedTime)
 	rc.camera = &camera;
 	rc.lightManager = &lightManager;
 
-	// 描画
-#ifndef DISABLE_MODEL_LOAD
-	if (model != nullptr)
-	{
-		// モデル描画
-		modelRenderer->Draw(static_cast<ShaderId>(shaderId), model);
-		modelRenderer->Render(rc);
-
-		// レンダーステート設定
-		dc->OMSetBlendState(renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
-		dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
-		dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
-
-		// 軸描画
-		const std::vector<Model::Node>& nodes = model->GetNodes();
-		if (selectionNode != nullptr)
-		{
-			Vector3 p, x, y, z;
-			const float length = 0.1f;
-			DirectX::XMMATRIX W = selectionNode->worldTransform;
-			DirectX::XMVECTOR X = Vector3::Transform(Vector3(length, 0, 0), W);
-			DirectX::XMVECTOR Y = Vector3::Transform(Vector3(0, length, 0), W);
-			DirectX::XMVECTOR Z = Vector3::Transform(Vector3(0, 0, length), W);
-			p = W.r[3];
-			x = X;
-			y = Y;
-			z = Z;
-			primitiveRenderer->AddVertex(p, { 1, 0, 0, 1 });
-			primitiveRenderer->AddVertex(x, { 1, 0, 0, 1 });
-			primitiveRenderer->AddVertex(p, { 0, 1, 0, 1 });
-			primitiveRenderer->AddVertex(y, { 0, 1, 0, 1 });
-			primitiveRenderer->AddVertex(p, { 0, 0, 1, 1 });
-			primitiveRenderer->AddVertex(z, { 0, 0, 1, 1 });
-		}
-		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	}
-#endif
-
 	if (model_stage != nullptr)
 	{
 		// モデル描画
-		modelRenderer->Draw(static_cast<ShaderId>(shaderId), model_stage);
+		modelRenderer->Draw(ShaderId::Lambert, model_stage);
 		modelRenderer->Render(rc);
 	}
 
 	if (model_player != nullptr)
 	{
 		// モデル描画
-		modelRenderer->Draw(static_cast<ShaderId>(shaderId), model_player);
+		modelRenderer->Draw(ShaderId::Lambert, model_player);
 		modelRenderer->Render(rc);
 	}
 }
@@ -186,43 +171,6 @@ void ModelViewerScene::DrawGUI()
 	DrawPropertyGUI();
 	DrawAnimationGUI();
 	DrawMaterialGUI();
-
-#ifndef DISABLE_MODEL_LOAD
-	DrawMenuGUI();
-#endif
-}
-
-// メニューGUI描画
-void ModelViewerScene::DrawMenuGUI()
-{
-	if (ImGui::BeginMainMenuBar())
-	{
-		// ファイルメニュー
-		if (ImGui::BeginMenu("File"))
-		{
-			bool check = false;
-			if (ImGui::MenuItem("Open Model", "", &check))
-			{
-				static const char* filter = "Model Files(*.gltf;*.glb)\0*.gltf;*.glb;\0All Files(*.*)\0*.*;\0\0";
-
-				char filename[256] = { 0 };
-				HWND hWnd = Graphics::Instance().GetWindowHandle();
-				DialogResult result = Dialog::OpenFileName(filename, sizeof(filename), filter, nullptr, hWnd);
-				if (result == DialogResult::OK)
-				{
-					ID3D11Device* device = Graphics::Instance().GetDevice();
-					model = std::make_shared<Model>(device, filename, animationSamplingRate);
-					animationSpeed = 1.0f;
-					currentAnimationSeconds = 0.0f;
-					currentAnimationIndex = -1;
-				}
-			}
-
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMainMenuBar();
-	}
 }
 
 // ヒエラルキーGUI描画
@@ -257,8 +205,34 @@ void ModelViewerScene::DrawHierarchyGUI()
 							nodeFlags |= ImGuiTreeNodeFlags_Selected;
 						}
 
+						bool isAnyMeshHidden = false;
+						std::string meshIndices = "";
+
+						// このノードに関連するメッシュを探す
+						for (int i = 0; i < debug_model->GetMeshes().size(); i++)
+						{
+							const Model::Mesh& mesh = debug_model->GetMeshes()[i];
+							if (mesh.node == node)
+							{
+								if (!meshIndices.empty()) meshIndices += ",";
+								meshIndices += std::to_string(i);
+
+								if (!mesh.isDraw)
+									isAnyMeshHidden = true;
+							}
+						}
+
 						// ツリーノードを表示
-						bool opened = ImGui::TreeNodeEx(node, nodeFlags, node->name.c_str());
+						ImGui::PushStyleColor(ImGuiCol_Text,
+							IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
+
+						int nodeIndex = static_cast<int>(node - debug_model->GetNodes().data());
+						bool opened = ImGui::TreeNodeEx(node, nodeFlags,
+							("[" + std::to_string(nodeIndex) + "]"
+								+ (meshIndices.empty() ? "" : "{" + meshIndices + "}")
+								+ node->name).c_str());
+
+						ImGui::PopStyleColor();
 
 						// フォーカスされたノードを選択する
 						if (ImGui::IsItemFocused())
@@ -442,13 +416,6 @@ void ModelViewerScene::DrawMaterialGUI()
 	{
 		if (model != nullptr)
 		{
-			const char* shaderNames[] =
-			{
-				"Basic",
-				"Lambert",
-			};
-			ImGui::Combo("Shader", &shaderId, shaderNames, _countof(shaderNames));
-
 			int index = 0;
 			for (const Model::Material& material : model->GetMaterials())
 			{

@@ -1,3 +1,5 @@
+// LambertVS.hlsl
+
 #include "Skinning.hlsli"
 #include "Lambert.hlsli"
 

@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\BasicShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Dialog.cpp" />
@@ -25,6 +26,7 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\ModelViewerScene.cpp" />
+    <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
@@ -32,6 +34,7 @@
     <ClCompile Include="Source\Sprite.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\BasicShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\Common.h" />
@@ -49,6 +52,7 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelViewerScene.h" />
+    <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\PrimitiveRenderer.h" />
     <ClInclude Include="Source\RenderContext.h" />
     <ClInclude Include="Source\RenderState.h" />
@@ -157,7 +161,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -190,7 +194,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

@@ -123,6 +123,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 		for (const Model::Mesh& mesh : drawInfo.model->GetMeshes())
 		{
+			// 描画しないメッシュはスキップ
+			if (!mesh.isDraw)
+				continue;
+
 			// 半透明メッシュ登録
 			if (mesh.material->alphaMode == Model::AlphaMode::Blend ||
 				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f))
