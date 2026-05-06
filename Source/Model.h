@@ -15,8 +15,8 @@ public:
 	{
 		std::string			name;
 		int					parentIndex = -1;
-		Vector3				position;
-		Quaternion			rotation;
+		Vector3				position = Vector3::Zero;
+		Quaternion			rotation = Quaternion::Identity;
 		Vector3				scale = Vector3::One;
 
 		Matrix				localTransform;
@@ -67,8 +67,8 @@ public:
 
 	struct Vertex
 	{
-		Vector3				position = { 0, 0, 0 };
-		Vector3				normal = { 0, 0, 0 };
+		Vector3				position = Vector3::Zero;
+		Vector3				normal = Vector3::Zero;
 		Vector4				tangent = { 0, 0, 0, 1 };
 		Vector2				texcoord = { 0, 0 };
 		Vector4				boneWeight = { 1, 0, 0, 0 };
@@ -111,7 +111,7 @@ public:
 	struct VectorKeyframe
 	{
 		float					seconds;
-		Vector3					value;
+		Vector3					value = Vector3::Zero;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -120,7 +120,7 @@ public:
 	struct QuaternionKeyframe
 	{
 		float					seconds;
-		Quaternion				value;
+		Quaternion				value = Quaternion::Identity;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -148,9 +148,9 @@ public:
 
 	struct NodePose
 	{
-		Vector3						position;
-		Quaternion					rotation;
-		Vector3						scale = Vector3::One;
+		Vector3    position = Vector3::Zero;
+		Quaternion rotation = Quaternion::Identity;
+		Vector3    scale = Vector3::One;
 	};
 
 	// アニメーション追加読み込み

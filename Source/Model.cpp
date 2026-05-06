@@ -365,16 +365,69 @@ Model::Model(ID3D11Device* device, const char* filename, float sampleRate, bool 
 void Model::AppendAnimations(const char* filename)
 {
 	std::filesystem::path filepath(filename);
-	std::filesystem::path dirpath(filepath.parent_path());
 
 	if (filepath.extension() == ".gltf" ||
 		filepath.extension() == ".glb")
 	{
-		// 汎用モデルファイルの読み込み
 		GLTFImporter importer(filename);
 
-		// アニメーションデータ読み取り
-		importer.LoadAnimations(animations, nodes);
+		// アニメーションファイル側のノードを取得
+		std::vector<Node> animNodes;
+		importer.LoadNodes(animNodes);
+
+		// アニメーションをアニメファイルのノード基準で読み込む
+		std::vector<Animation> newAnims;
+		importer.LoadAnimations(newAnims, animNodes);
+
+		// モデル側のノード名→インデックスのマップ作成
+		std::unordered_map<std::string, int> modelNodeMap;
+		for (int i = 0; i < (int)nodes.size(); ++i)
+			modelNodeMap[nodes[i].name] = i;
+
+		// nodeAnimsをモデルのノード順に並べ替える
+		for (Animation& anim : newAnims)
+		{
+			Animation remapped;
+			remapped.name = anim.name;
+			remapped.secondsLength = anim.secondsLength;
+			remapped.nodeAnims.resize(nodes.size());
+
+			// まずモデルのノードの初期姿勢で初期化
+			for (int i = 0; i < (int)nodes.size(); ++i)
+			{
+				Model::VectorKeyframe pk;
+				pk.seconds = 0.0f;
+				pk.value = nodes[i].position;
+				remapped.nodeAnims[i].positionKeyframes.push_back(pk);
+				pk.seconds = anim.secondsLength;
+				remapped.nodeAnims[i].positionKeyframes.push_back(pk);
+
+				Model::QuaternionKeyframe rk;
+				rk.seconds = 0.0f;
+				rk.value = nodes[i].rotation;
+				remapped.nodeAnims[i].rotationKeyframes.push_back(rk);
+				rk.seconds = anim.secondsLength;
+				remapped.nodeAnims[i].rotationKeyframes.push_back(rk);
+
+				Model::VectorKeyframe sk;
+				sk.seconds = 0.0f;
+				sk.value = nodes[i].scale;
+				remapped.nodeAnims[i].scaleKeyframes.push_back(sk);
+				sk.seconds = anim.secondsLength;
+				remapped.nodeAnims[i].scaleKeyframes.push_back(sk);
+			}
+
+			// アニメーションノードをモデルのノードインデックスに対応付け
+			for (int animIdx = 0; animIdx < (int)animNodes.size(); ++animIdx)
+			{
+				auto it = modelNodeMap.find(animNodes[animIdx].name);
+				if (it != modelNodeMap.end())
+				{
+					remapped.nodeAnims[it->second] = anim.nodeAnims[animIdx];
+				}
+			}
+			animations.push_back(std::move(remapped));
+		}
 	}
 	else
 	{
