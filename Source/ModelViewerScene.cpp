@@ -54,6 +54,9 @@ void ModelViewerScene::Update(float elapsedTime)
 	// 更新
 	stage->Update(elapsedTime);
 	player->Update(elapsedTime);
+
+	// 物理シミュレーション更新
+	GetPhysicsSceneContext().Simulate(elapsedTime);
 }
 
 // 描画処理

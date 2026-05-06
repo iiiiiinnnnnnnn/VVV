@@ -4,17 +4,15 @@
 #include <Graphics.h>
 #include <GpuResourceUtils.h>
 
-Stage::Stage()
+Stage::Stage() : RenderActor("Data/Model/Stage/Stage00.glb")
 {
-	auto device = Graphics::Instance().GetDevice();
 
-	// モデル生成
-	model = std::make_shared<Model>(device, "Data/Model/Stage/Stage00.glb");
 }
 
 void Stage::Update(float elapsedTime)
 {
 	// トランスフォーム更新
+	transform.Update();
 	model->UpdateTransform(Matrix::CreateScale(100, 100, 100));
 }
 

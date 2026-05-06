@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PhysicsManager.h"
+
 // ƒV[ƒ“Šî’ê
 class Scene
 {
@@ -15,4 +17,9 @@ public:
 
 	// GUI•`‰æˆ—
 	virtual void DrawGUI() {}
+
+	const PhysicsSceneContext& GetPhysicsSceneContext() const { return psc; }
+
+protected:
+	PhysicsSceneContext psc;
 };

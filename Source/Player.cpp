@@ -5,13 +5,8 @@
 #include <GpuResourceUtils.h>
 #include <Input.h>
 
-Player::Player()
+Player::Player() : AnimatedRenderActor("Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb")
 {
-	auto device = Graphics::Instance().GetDevice();
-
-	// モデル生成
-	model = std::make_shared<Model>(device, "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb");
-
 	// オプションのメッシュを非表示にする
 	{
 		model->GetMeshes()[0].isDraw = true;   // Japan_body_infantry
@@ -404,7 +399,6 @@ Player::Player()
 	}
 
 	// アニメーター生成
-	animator = std::make_shared<Animator>(model.get());
 	animator->Play(0, true);
 }
 

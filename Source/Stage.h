@@ -3,28 +3,17 @@
 #pragma once
 
 #include "Common.h"
-#include "RenderContext.h"
-#include "Model.h"
-#include "ModelRenderer.h"
+#include "StaticActor.h"
+#include "RenderActor.h"
 
-class Stage
+class Stage : public StaticActor, public RenderActor
 {
 public:
 	Stage();
 	~Stage() = default;
-	void Update(float elapsedTime);
-	void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer);
-
-	struct Transform
-	{
-		Vector3 position;
-		Quaternion rotation;
-		Vector3 scale;
-		Vector3 forward;
-	} transform;
-
-	Model* GetModel() const { return model.get(); }
+	void Update(float elapsedTime) override;
+	void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) override;
 
 private:
-	std::shared_ptr<Model> model;
+
 };

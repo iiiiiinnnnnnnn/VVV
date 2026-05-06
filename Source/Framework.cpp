@@ -1,3 +1,5 @@
+// Framework.cpp
+
 #include <memory>
 #include <sstream>
 #include <imgui.h>
@@ -6,6 +8,8 @@
 #include "Input.h"
 #include "Graphics.h"
 #include "ImGuiRenderer.h"
+
+#include "PhysicsManager.h"
 
 #include "ModelViewerScene.h"
 
@@ -35,6 +39,9 @@ Framework::Framework(HWND hWnd)
 	// IMGUI初期化
 	ImGuiRenderer::Initialize(hWnd, Graphics::Instance().GetDevice(), Graphics::Instance().GetDeviceContext());
 
+	// 物理マネージャ初期化
+	PhysicsManager::Instance().Initialize();
+
 	// シーン初期化
 	scene = std::make_unique<ModelViewerScene>();
 }
@@ -44,6 +51,12 @@ Framework::~Framework()
 {
 	// IMGUI終了化
 	ImGuiRenderer::Finalize();
+
+	// シーン終了化
+	scene.reset();
+
+	// 物理マネージャ終了化
+	PhysicsManager::Instance().Finalize();
 }
 
 // 更新処理
