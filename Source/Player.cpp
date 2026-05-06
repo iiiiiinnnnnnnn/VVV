@@ -3,6 +3,7 @@
 #include "Player.h"
 #include <Graphics.h>
 #include <GpuResourceUtils.h>
+#include <Input.h>
 
 Player::Player()
 {
@@ -409,10 +410,23 @@ Player::Player()
 
 void Player::Update(float elapsedTime)
 {
+	GamePad& gamePad = Input::Instance().GetGamePad();
+	Mouse& mouse = Input::Instance().GetMouse();
+
 	if (animator)
 		animator->Update(elapsedTime);
 
-	model->UpdateTransform(Matrix::Identity);
+	// ‰¼ˆÚ“®
+	if (gamePad.GetButton() & gamePad.BTN_A) {
+		transform.position += transform.forward * 0.1f;
+	}
+	// ‰¼‰ñ“]
+	if(gamePad.GetAxisLX() > 0.1f || gamePad.GetAxisLX() < -0.1f) {
+		transform.rotation *= Quaternion::CreateFromAxisAngle(Vector3::UnitY, gamePad.GetAxisLX() * 0.05f);
+	}
+
+	transform.Update();
+	model->UpdateTransform(transform.matrix);
 }
 
 void Player::Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer)
