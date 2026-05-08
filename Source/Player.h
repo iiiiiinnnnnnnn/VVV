@@ -3,18 +3,25 @@
 #pragma once
 
 #include "Common.h"
-#include "DynamicActor.h"
-#include "AnimatedRenderActor.h"
+#include "Components.h"
+#include "Actor.h"
 #include "Animator.h"
+#include "Weapon.h"
+#include "Model.h"
 
-class Player : public DynamicActor, public AnimatedRenderActor
+class Player : public Actor
 {
 public:
 	Player();
 	~Player() = default;
-	void Update(float elapsedTime) override;
-	void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) override;
+	void OnUpdate(float elapsedTime) override;
+	void OnRender(const RenderContext& rc, float elapsedTime) override;
+
+	Model::Node* GetHandNode() const { return handNode; }
+
+	void SetWeapon(Weapon* newWeapon) { weapon = newWeapon; }
 
 private:
-
+	Model::Node* handNode = nullptr;
+	Weapon* weapon = nullptr;
 };

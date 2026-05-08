@@ -1,24 +1,24 @@
 // Stage.cpp
 
 #include "Stage.h"
-#include <Graphics.h>
-#include <GpuResourceUtils.h>
+#include "Components.h"
 
-Stage::Stage() : RenderActor("Data/Model/Stage/Stage00.glb")
+Stage::Stage()
+{
+	std::shared_ptr<Model> model = std::make_shared<Model>(
+		"Data/Model/Stage/Stage00.glb");
+
+	AddComponent<ModelRender>(model);
+
+	transform.scale = { 100, 100, 100 };
+}
+
+void Stage::OnUpdate(float elapsedTime)
 {
 
 }
 
-void Stage::Update(float elapsedTime)
+void Stage::OnRender(const RenderContext& rc, float elapsedTime)
 {
-	// トランスフォーム更新
-	transform.Update();
-	model->UpdateTransform(Matrix::CreateScale(100, 100, 100));
-}
 
-void Stage::Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer)
-{
-	// モデル描画
-	renderer->Draw(ShaderId::Lambert, model);
-	renderer->Render(rc);
 }

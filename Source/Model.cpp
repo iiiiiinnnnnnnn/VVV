@@ -10,6 +10,7 @@
 #include "GLTFImporter.h"
 #include "GpuResourceUtils.h"
 #include "Model.h"
+#include <Graphics.h>
 
 const std::vector<D3D11_INPUT_ELEMENT_DESC> Model::InputElementDescs =
 {
@@ -195,8 +196,10 @@ void Model::Animation::serialize(Archive& archive)
 #endif
 
 // コンストラクタ
-Model::Model(ID3D11Device* device, const char* filename, float sampleRate, bool importRawModel)
+Model::Model(const char* filename, float sampleRate, bool importRawModel)
 {
+	auto device = Graphics::Instance().GetDevice();
+
 	std::filesystem::path filepath(filename);
 	std::filesystem::path dirpath(filepath.parent_path());
 
@@ -214,7 +217,7 @@ Model::Model(ID3D11Device* device, const char* filename, float sampleRate, bool 
 			uint16_t fileLastWriteTime = std::filesystem::last_write_time(filename).time_since_epoch().count();
 			if (fileLastWriteTime != lastWriteTime)
 			{
-				Model tmpModel(device, filename, sampleRate, true);
+				Model tmpModel(filename, sampleRate, true);
 				*this = std::move(tmpModel);
 				return;
 			}
@@ -388,7 +391,8 @@ void Model::AppendAnimations(const char* filename)
 		for (Animation& anim : newAnims)
 		{
 			Animation remapped;
-			remapped.name = anim.name;
+			//remapped.name = anim.name;
+			remapped.name = filepath.stem().string();
 			remapped.secondsLength = anim.secondsLength;
 			remapped.nodeAnims.resize(nodes.size());
 

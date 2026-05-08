@@ -14,6 +14,7 @@
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\BasicShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="Source\Collider.cpp" />
     <ClCompile Include="Source\Dialog.cpp" />
     <ClCompile Include="Source\Framework.cpp" />
     <ClCompile Include="Source\FreeCameraController.cpp" />
@@ -26,6 +27,7 @@
     <ClCompile Include="Source\LambertShader.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Model.cpp" />
+    <ClCompile Include="Source\ModelRender.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\ModelViewerScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
@@ -33,20 +35,24 @@
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
+    <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
     <ClCompile Include="Source\ShapeRenderer.cpp" />
     <ClCompile Include="Source\Sprite.cpp" />
     <ClCompile Include="Source\Stage.cpp" />
+    <ClCompile Include="Source\Transform.cpp" />
+    <ClCompile Include="Source\Weapon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Actor.h" />
-    <ClInclude Include="Source\AnimatedRenderActor.h" />
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\BasicShader.h" />
     <ClInclude Include="Source\Camera.h" />
+    <ClInclude Include="Source\Collider.h" />
     <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\Component.h" />
+    <ClInclude Include="Source\Components.h" />
     <ClInclude Include="Source\Dialog.h" />
-    <ClInclude Include="Source\DynamicActor.h" />
     <ClInclude Include="Source\Framework.h" />
     <ClInclude Include="Source\FreeCameraController.h" />
     <ClInclude Include="Source\GamePad.h" />
@@ -60,14 +66,14 @@
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\Misc.h" />
     <ClInclude Include="Source\Model.h" />
+    <ClInclude Include="Source\ModelRender.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelViewerScene.h" />
     <ClInclude Include="Source\Mouse.h" />
-    <ClInclude Include="Source\PhysicsActor.h" />
+    <ClInclude Include="Source\Rigidbody.h" />
     <ClInclude Include="Source\PhysicsManager.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\PrimitiveRenderer.h" />
-    <ClInclude Include="Source\RenderActor.h" />
     <ClInclude Include="Source\RenderContext.h" />
     <ClInclude Include="Source\RenderState.h" />
     <ClInclude Include="Source\Scene.h" />
@@ -75,7 +81,8 @@
     <ClInclude Include="Source\ShapeRenderer.h" />
     <ClInclude Include="Source\Sprite.h" />
     <ClInclude Include="Source\Stage.h" />
-    <ClInclude Include="Source\StaticActor.h" />
+    <ClInclude Include="Source\Transform.h" />
+    <ClInclude Include="Source\Weapon.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -128,6 +135,9 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Source\ザ・メモ.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D22095F2-0FC3-424B-97D6-074B973AB293}</ProjectGuid>

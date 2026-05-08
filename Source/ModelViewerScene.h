@@ -1,13 +1,15 @@
+// ModelViewerScene.h
+
 #pragma once
 
-#include <memory>
+#include "Common.h"
 #include "Scene.h"
 #include "Camera.h"
 #include "FreeCameraController.h"
 #include "Model.h"
 #include "Light.h"
-#include "Player.h"
-#include "Stage.h"
+#include "Actor.h"
+#include "RenderContext.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene
@@ -23,29 +25,33 @@ public:
 	void Render(float elapsedTime) override;
 
 	// GUI描画処理
-	void DrawGUI() override;
-
-private:
-	// ヒエラルキーGUI描画
-	void DrawHierarchyGUI();
-
-	// プロパティGUI描画
-	void DrawPropertyGUI();
-
-	// アニメーションGUI描画
-	void DrawAnimationGUI();
-
-	// マテリアルGUI描画
-	void DrawMaterialGUI();
+	void DrawGUI(float elapsedTime) override;
 
 private:
 	Camera								camera;
 	FreeCameraController				cameraController;
 	LightManager						lightManager;
 	RenderSettings 						renderSettings;
-	std::shared_ptr<Player>				player;
-	std::shared_ptr<Stage>				stage;
-	std::vector<Model*> 				debug_models;
+	struct Actors
+	{
+		std::vector<std::shared_ptr<Actor>> data;
+		void push_back(std::shared_ptr<Actor> actor) { data.push_back(actor); }
+		void Update(float elapsedTime) {
+			for (auto& a : data) {
+				a->Update(elapsedTime);
+			}
+		}
+		void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) {
+			for (auto& a : data) {
+				a->Render(rc, elapsedTime, renderer);
+			}
+		}
+		void DrawGUI(float elapsedTime) {
+			for(auto& a : data) {
+				a->DrawGUI(elapsedTime);
+			}
+		}
+	} actors;
 	Model::Node*						selectionNode = nullptr;
 	std::vector<Model::NodePose>		nodePoses;
 };

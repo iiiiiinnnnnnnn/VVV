@@ -3,16 +3,15 @@
 #pragma once
 
 #include "Common.h"
-#include "StaticActor.h"
-#include "RenderActor.h"
+#include "Actor.h"
 
-class Stage : public StaticActor, public RenderActor
+class Stage : public Actor
 {
 public:
 	Stage();
 	~Stage() = default;
-	void Update(float elapsedTime) override;
-	void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) override;
+	void OnUpdate(float elapsedTime) override;
+	void OnRender(const RenderContext& rc, float elapsedTime) override;
 
 private:
 

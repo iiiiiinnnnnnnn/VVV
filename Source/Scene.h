@@ -16,7 +16,7 @@ public:
 	virtual void Render(float elapsedTime) {}
 
 	// GUI•`‰æˆ—
-	virtual void DrawGUI() {}
+	virtual void DrawGUI(float elapsedTime) {}
 
 	const PhysicsSceneContext& GetPhysicsSceneContext() const { return psc; }
 

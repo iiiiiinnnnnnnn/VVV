@@ -64,6 +64,28 @@ public:
     PxMaterial* GetDefaultMaterial() { return gDefaultMaterial; }
 	PxDefaultCpuDispatcher* GetDispatcher() { return gDispatcher; }
 
+    PxRigidStatic* CreateStatic(const Matrix& transform) {
+        PxMat44 mat(
+            PxVec4(transform._11, transform._12, transform._13, transform._14),
+            PxVec4(transform._21, transform._22, transform._23, transform._24),
+            PxVec4(transform._31, transform._32, transform._33, transform._34),
+            PxVec4(transform._41, transform._42, transform._43, transform._44)
+        );
+        return gPhysics->createRigidStatic(PxTransform(mat));
+    }
+
+    PxRigidDynamic* CreateDynamic(const Matrix& transform) {
+        PxMat44 mat(
+            PxVec4(transform._11, transform._12, transform._13, transform._14),
+            PxVec4(transform._21, transform._22, transform._23, transform._24),
+            PxVec4(transform._31, transform._32, transform._33, transform._34),
+            PxVec4(transform._41, transform._42, transform._43, transform._44)
+        );
+        PxRigidDynamic* body = gPhysics->createRigidDynamic(PxTransform(mat));
+        PxRigidBodyExt::updateMassAndInertia(*body, 1.0f);
+        return body;
+    }
+
 private:
     PhysicsManager() = default;
     ~PhysicsManager() = default;

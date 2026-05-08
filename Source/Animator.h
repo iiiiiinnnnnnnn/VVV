@@ -4,18 +4,23 @@
 
 #include "Common.h"
 #include "Model.h"
+#include "Component.h"
 
-class Animator
+class Animator : public Component
 {
 public:
-    Animator(Model* m);
+    Animator(Actor* owner, std::shared_ptr<Model> model);
 
-    void Update(float elapsedTime);
+    void Update(float elapsedTime) override;
+
+    void DrawGUI(float elapsedTime) override;
 
     void Play(int index, bool loop = true);
+
     void Stop();
 
-    const std::vector<Model::NodePose>& GetPoses() const;
+	Model* GetModel() const { return model.get(); }
+    const std::vector<Model::NodePose>& GetPoses() const { return nodePoses; }
 	bool IsPlaying() const { return playing; }
 	bool IsLoop() const { return loop; }
 	void SetSpeed(float s) { speed = s; }
@@ -25,7 +30,7 @@ public:
 	void SetLoop(bool lp) { loop = lp; }
 
 private:
-    Model* model = nullptr;
+    std::shared_ptr<Model> model = nullptr;
 
     std::vector<Model::NodePose> nodePoses;
 

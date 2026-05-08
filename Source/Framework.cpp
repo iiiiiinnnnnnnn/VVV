@@ -13,6 +13,7 @@
 
 #include "ModelViewerScene.h"
 
+
 // ‚’¼“¯ŠúŠÔŠuÝ’è
 static const int syncInterval = 1;
 
@@ -87,7 +88,7 @@ void Framework::Render(float elapsedTime)
 	scene->Render(elapsedTime);
 
 	// ƒV[ƒ“GUI•`‰æˆ—
-	scene->DrawGUI();
+	scene->DrawGUI(elapsedTime);
 
 	// IMGUI•`‰æ
 	ImGuiRenderer::Render(dc);

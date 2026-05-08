@@ -46,6 +46,9 @@
     <Filter Include="ソースファイル\描画\レンダラー">
       <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\アクタ\コンポーネント">
+      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -108,9 +111,6 @@
     <ClCompile Include="Source\Model.cpp">
       <Filter>ソースファイル\モデル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\モデル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Input.cpp">
       <Filter>ソースファイル\入力</Filter>
     </ClCompile>
@@ -125,6 +125,24 @@
     </ClCompile>
     <ClCompile Include="Source\PhysicsManager.cpp">
       <Filter>ソースファイル\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Weapon.cpp">
+      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ModelRender.cpp">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rigidbody.cpp">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Transform.cpp">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Collider.cpp">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animator.cpp">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -203,9 +221,6 @@
     <ClInclude Include="Source\Model.h">
       <Filter>ソースファイル\モデル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\モデル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GamePad.h">
       <Filter>ソースファイル\入力</Filter>
     </ClInclude>
@@ -224,20 +239,29 @@
     <ClInclude Include="Source\Actor.h">
       <Filter>ソースファイル\アクタ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\PhysicsActor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+    <ClInclude Include="Source\Component.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\DynamicActor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+    <ClInclude Include="Source\ModelRender.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\StaticActor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+    <ClInclude Include="Source\Components.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\RenderActor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+    <ClInclude Include="Source\Rigidbody.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\AnimatedRenderActor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+    <ClInclude Include="Source\Animator.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Transform.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Weapon.h">
+      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Collider.h">
+      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -295,5 +319,8 @@
     <FxCompile Include="Shader\SpriteVS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Source\ザ・メモ.txt" />
   </ItemGroup>
 </Project>
