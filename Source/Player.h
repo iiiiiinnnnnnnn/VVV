@@ -19,7 +19,10 @@ public:
 
 	void SetWeapon(Weapon* newWeapon) { weapon = newWeapon; }
 
+	Model* GetModel() const { return model.get(); }
+
 private:
 	Model::Node* handNode = nullptr;
+	std::shared_ptr<Model> model = nullptr;
 	Weapon* weapon = nullptr;
 };

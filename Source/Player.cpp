@@ -1,14 +1,13 @@
 // Player.cpp
 
 #include "Player.h"
-#include <Graphics.h>
 #include <GpuResourceUtils.h>
 #include <Input.h>
 
 Player::Player()
 {
 	// プレイヤー
-	std::shared_ptr<Model> model = std::make_shared<Model>(
+	model = std::make_shared<Model>(
 		"Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb");
 
 	// オプションのメッシュを非表示にする

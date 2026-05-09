@@ -4,6 +4,8 @@
 class CameraController
 {
 public:
+	virtual ~CameraController() = default;
+
 	// カメラからコントローラーへパラメータを同期する
 	virtual void SyncCameraToController(const Camera& camera) = 0;
 
@@ -21,9 +23,9 @@ public:
 		OnUpdate(elapsedTime);
 	}
 
-	virtual void OnUpdate(float elapsedTime) = 0;
-
 protected:
+	virtual void OnUpdate(float elapsedTime) = 0;
+	
 	Vector3		eye;
 	Vector3		focus;
 	Vector3		up;

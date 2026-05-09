@@ -14,7 +14,7 @@ public:
     ModelRender(Actor* owner, std::shared_ptr<Model> model, ShaderId shaderId = ShaderId::Lambert);
 
     void Update(float elapsedTime) override;
-    void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) override;
+    void Render(const RenderContext& rc, float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 
     void SetModel(std::shared_ptr<Model> model) { this->model = model; }

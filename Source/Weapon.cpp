@@ -4,6 +4,7 @@
 #include <Graphics.h>
 #include <GpuResourceUtils.h>
 #include <Input.h>
+#include "Model.h"
 
 #include "Player.h"
 

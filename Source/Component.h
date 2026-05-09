@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ModelRenderer.h"
+#include "RenderContext.h"
 
 class Actor;
 
@@ -11,7 +11,7 @@ public:
     Component(Actor* owner) : owner(owner) {}
     virtual ~Component() = default;
     virtual void Update(float elapsedTime) {}
-	virtual void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) {}
+	virtual void Render(const RenderContext& rc, float elapsedTime) {}
 	virtual void DrawGUI(float elapsedTime) {}
 
 protected:

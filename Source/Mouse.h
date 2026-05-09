@@ -58,6 +58,10 @@ public:
 	// ƒXƒNƒŠ[ƒ“‚‚³æ“¾
 	int GetScreenHeight() const { return screenHeight; }
 
+	// ˆÚ“®—Êæ“¾
+	int GetAxisX() const { return positionX[0] - positionX[1]; }
+	int GetAxisY() const { return positionY[0] - positionY[1]; }
+
 private:
 	MouseButton		buttonState[2] = { 0 };
 	MouseButton		buttonDown = 0;

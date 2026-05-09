@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Common.h"
-#include "RenderContext.h"
 #include "Component.h"
 #include "Transform.h"
 
@@ -15,14 +14,14 @@ public:
         std::vector<std::unique_ptr<Component>> data;
         void push_back(std::unique_ptr<Component> component);
         void Update(float elapsedTime);
-        void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer);
+        void Render(const RenderContext& rc, float elapsedTime);
         void DrawGUI(float elapsedTime);
     } componentList;
 
     virtual ~Actor() = default;
 
     void Update(float elapsedTime);
-    void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer);
+    void Render(const RenderContext& rc, float elapsedTime);
     void DrawGUI(float elapsedTime);
 
     template<typename T, typename... Args>

@@ -28,8 +28,9 @@ void ModelRender::Update(float elapsedTime)
     }
 }
 
-void ModelRender::Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer)
+void ModelRender::Render(const RenderContext& rc, float elapsedTime)
 {
+    ModelRenderer* renderer = Graphics::Instance().GetModelRenderer();
     renderer->Draw(shaderId, model);
     renderer->Render(rc);
 }

@@ -117,15 +117,19 @@ void FreeCameraController::OnUpdate(float elapsedTime)
 	Vector3 Front = Vector3(-cx * sy, -sx, -cx * cy);
 	Vector3 Right = Vector3(cy, 0, -sy);
 	Vector3 Up = Right.Cross(Front);
+
 	// カメラの視点＆注視点を算出
 	Vector3 Focus = focus;
 	Vector3 Eye = Focus - (Front * distance);
+
 	// ビュー行列からワールド行列を算出
 	Matrix View = Matrix::CreateLookAt(Eye, Focus, Up);
 	Matrix World = DirectX::XMMatrixTranspose(View);
+
 	// ワールド行列から方向を算出
 	Right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
 	Up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
+
 	// 結果を格納
 	eye = Eye;
 	up = Up;

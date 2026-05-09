@@ -5,11 +5,11 @@
 #include "Common.h"
 #include "Scene.h"
 #include "Camera.h"
-#include "FreeCameraController.h"
 #include "Model.h"
 #include "Light.h"
 #include "Actor.h"
 #include "RenderContext.h"
+#include "CameraController.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene
@@ -42,9 +42,9 @@ private:
 				a->Update(elapsedTime);
 			}
 		}
-		void Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer) {
+		void Render(const RenderContext& rc, float elapsedTime) {
 			for (auto& a : data) {
-				a->Render(rc, elapsedTime, renderer);
+				a->Render(rc, elapsedTime);
 			}
 		}
 		void DrawGUI(float elapsedTime) {

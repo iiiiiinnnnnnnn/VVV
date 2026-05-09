@@ -147,6 +147,9 @@
     <ClCompile Include="Source\Actor.cpp">
       <Filter>ソースファイル\アクタ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\FpsCameraController.cpp">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -271,6 +274,9 @@
     </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>ソースファイル\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FpsCameraController.h">
+      <Filter>ソースファイル\カメラ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -15,10 +15,10 @@ void Actor::Components::Update(float elapsedTime)
     }
 }
 
-void Actor::Components::Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer)
+void Actor::Components::Render(const RenderContext& rc, float elapsedTime)
 {
     for (auto& c : data) {
-        c->Render(rc, elapsedTime, renderer);
+        c->Render(rc, elapsedTime);
     }
 }
 
@@ -38,9 +38,9 @@ void Actor::Update(float elapsedTime)
     OnUpdate(elapsedTime);
 }
 
-void Actor::Render(const RenderContext& rc, float elapsedTime, ModelRenderer* renderer)
+void Actor::Render(const RenderContext& rc, float elapsedTime)
 {
-    componentList.Render(rc, elapsedTime, renderer);
+    componentList.Render(rc, elapsedTime);
     OnRender(rc, elapsedTime);
 }
 
