@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Actor.cpp" />
+    <ClCompile Include="Source\AIPlayer.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\BasicShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
@@ -27,6 +28,7 @@
     <ClCompile Include="Source\ImGuiRenderer.cpp" />
     <ClCompile Include="Source\Input.cpp" />
     <ClCompile Include="Source\LambertShader.cpp" />
+    <ClCompile Include="Source\LocalPlayer.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelRender.cpp" />
@@ -36,6 +38,7 @@
     <ClCompile Include="Source\PhysicsManager.cpp" />
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
+    <ClCompile Include="Source\RemotePlayer.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
     <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
@@ -48,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Actor.h" />
+    <ClInclude Include="Source\AIPlayer.h" />
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\BasicShader.h" />
     <ClInclude Include="Source\Camera.h" />
@@ -69,12 +73,15 @@
     <ClInclude Include="Source\Input.h" />
     <ClInclude Include="Source\LambertShader.h" />
     <ClInclude Include="Source\Light.h" />
+    <ClInclude Include="Source\LocalPlayer.h" />
     <ClInclude Include="Source\Misc.h" />
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRender.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelViewerScene.h" />
     <ClInclude Include="Source\Mouse.h" />
+    <ClInclude Include="Source\PlayerController.h" />
+    <ClInclude Include="Source\RemotePlayer.h" />
     <ClInclude Include="Source\Rigidbody.h" />
     <ClInclude Include="Source\PhysicsManager.h" />
     <ClInclude Include="Source\Player.h" />

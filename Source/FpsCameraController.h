@@ -13,9 +13,11 @@ public:
     void SyncControllerToCamera(Camera& camera) override;
     void OnUpdate(float elapsedTime) override;
     void OnFocusLost() override;
+    void OnDrawGUI(float elapsedTime) override;
 
 	void SetPlayer(std::shared_ptr<Player> newPlayer) { player = newPlayer; }
 
 private:
     std::shared_ptr<Player> player = nullptr;
+    Vector3 eyeOffset = {0, 0.09f, 0};
 };

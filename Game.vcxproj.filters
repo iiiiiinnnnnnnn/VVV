@@ -46,6 +46,9 @@
     <Filter Include="ソースファイル\ウィジェット">
       <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\プレイヤー">
+      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -149,6 +152,15 @@
     </ClCompile>
     <ClCompile Include="Source\FpsCameraController.cpp">
       <Filter>ソースファイル\カメラ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\LocalPlayer.cpp">
+      <Filter>ソースファイル\プレイヤー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RemotePlayer.cpp">
+      <Filter>ソースファイル\プレイヤー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AIPlayer.cpp">
+      <Filter>ソースファイル\プレイヤー</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -277,6 +289,18 @@
     </ClInclude>
     <ClInclude Include="Source\FpsCameraController.h">
       <Filter>ソースファイル\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PlayerController.h">
+      <Filter>ソースファイル\プレイヤー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LocalPlayer.h">
+      <Filter>ソースファイル\プレイヤー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RemotePlayer.h">
+      <Filter>ソースファイル\プレイヤー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\AIPlayer.h">
+      <Filter>ソースファイル\プレイヤー</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

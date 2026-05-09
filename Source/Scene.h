@@ -77,7 +77,6 @@ public:
 	// GUIï`âÊèàóù
 	virtual void DrawGUI(float elapsedTime) {
 		if (!renderSettings.showDebug) return;
-		OnDrawGUI(elapsedTime);
 
 		if (!actors.data.empty()) {
 			ImGui::Begin("Actors");
@@ -93,11 +92,22 @@ public:
 
 		ImGui::Begin("ModelViewerScene", nullptr, ImGuiWindowFlags_None);
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+		
+		ImGui::Separator();
 		ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
+		GetNowCameraController()->DrawGUI(elapsedTime);
+
+		OnDrawGUI(elapsedTime);
+
 		ImGui::End();
 	}
 
 	const PhysicsSceneContext& GetPhysicsSceneContext() const { return psc; }
+
+	CameraController* GetNowCameraController() const {
+		if (cameraControllers.empty()) return nullptr;
+		return cameraControllers[nowCameraControllerIndex].get();
+	}
 
 protected:
 	virtual void OnUpdate(float elapsedTime) {}

@@ -3,6 +3,7 @@
 #include "Player.h"
 #include <GpuResourceUtils.h>
 #include <Input.h>
+#include "RemotePlayer.h"
 
 Player::Player() : Actor("Player", "Player", "Default")
 {
@@ -124,16 +125,23 @@ Player::Player() : Actor("Player", "Player", "Default")
 
 void Player::OnUpdate(float elapsedTime)
 {
-	GamePad& gamePad = Input::Instance().GetGamePad();
-	Mouse& mouse = Input::Instance().GetMouse();
+	if (!controller) return;
 
-	// 仮移動
-	if (gamePad.GetButton() & gamePad.BTN_A) {
-		transform.position += transform.forward * 0.1f;
-	}
-	// 仮回転
-	if (gamePad.GetAxisLX() > 0.1f || gamePad.GetAxisLX() < -0.1f) {
-		transform.rotation *= Quaternion::CreateFromAxisAngle(Vector3::UnitY, gamePad.GetAxisLX() * 0.05f);
+	// 入力から移動
+	float moveX = controller->GetMoveX();
+	float moveZ = controller->GetMoveZ();
+	transform.position += Vector3(moveX, 0, moveZ) * speed * elapsedTime;
+
+	// RemotePlayerなら位置補正をLerpで適用
+	if (auto* remote = dynamic_cast<RemotePlayer*>(controller.get()))
+	{
+		Vector3 serverPos = remote->GetServerPosition();
+		float diff = Vector3::Distance(transform.position, serverPos);
+		if (diff > 0.5f) // ズレが大きい場合だけ補正
+		{
+			transform.position = Vector3::Lerp(
+				transform.position, serverPos, 10.0f * elapsedTime);
+		}
 	}
 }
 

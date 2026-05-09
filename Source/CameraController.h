@@ -36,8 +36,13 @@ public:
 	// フォーカスを失ったときの処理
 	virtual void OnFocusLost() {}
 
+	void DrawGUI(float elapsedTime) {
+		OnDrawGUI(elapsedTime);
+	}
+
 protected:
-	virtual void OnUpdate(float elapsedTime) = 0;
+	virtual void OnUpdate(float elapsedTime) {}
+	virtual void OnDrawGUI(float elapsedTime) {}
 	
 	Vector3		eye;
 	Vector3		focus;
