@@ -369,3 +369,5 @@ FodyWeavers.xsd
 
 /imgui.ini
 *.cereal
+
+/External
