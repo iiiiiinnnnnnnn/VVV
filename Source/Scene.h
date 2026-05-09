@@ -122,6 +122,7 @@ protected:
 			}
 		}
 	} actors;
+
 	struct Widgets
 	{
 		std::vector<std::shared_ptr<Widget>> data;
