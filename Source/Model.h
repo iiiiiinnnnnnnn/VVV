@@ -4,6 +4,12 @@
 
 #include "Common.h"
 
+// Cereal
+#include <cereal/cereal.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+
 class Model
 {
 public:

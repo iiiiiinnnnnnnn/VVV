@@ -1,6 +1,11 @@
 #include <imgui.h>
 #include "FreeCameraController.h"
 
+FreeCameraController::FreeCameraController(const Camera& camera)
+{
+	SyncCameraToController(camera);
+}
+
 // カメラからコントローラーへパラメータを同期する
 void FreeCameraController::SyncCameraToController(const Camera& camera)
 {
@@ -41,14 +46,8 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 }
 
 // 更新処理
-void FreeCameraController::Update()
+void FreeCameraController::OnUpdate(float elapsedTime)
 {
-	// デバッグウインドウ操作中は処理しない
-	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
-	{
-		return;
-	}
-
 	// IMGUIのマウス入力値を使ってカメラ操作する
 	ImGuiIO io = ImGui::GetIO();
 

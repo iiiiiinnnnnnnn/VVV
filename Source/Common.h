@@ -22,12 +22,10 @@
 
 // microsoft
 #include <windows.h>
-#include <shellapi.h>
 #include <wrl.h>
 
 // imgui
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
 // Shader
@@ -35,20 +33,11 @@
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define DUMMY CONCAT(__DUMMY__, __LINE__)
 
-// Cereal
-#include <cereal/cereal.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
-
 // Json
-#include <json.hpp>
-using namespace nlohmann;
+//#include <json.hpp>
+//using namespace nlohmann;
 
 // DirectX
-#include <DirectXTex.h>
-#include <WICTextureLoader.h>
-#include <DDSTextureLoader.h>
 #include <d3d11.h> // directx
 #include <d3dcompiler.h> // cso compiler
 #include <DirectXMath.h> // direct x math

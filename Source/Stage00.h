@@ -1,15 +1,15 @@
-// Stage.h
+// Stage00.h
 
 #pragma once
 
-#include "Common.h"
+#include "Components.h"
 #include "Actor.h"
 
-class Stage : public Actor
+class Stage00 : public Actor
 {
 public:
-	Stage();
-	~Stage() = default;
+	Stage00();
+	~Stage00() = default;
 	void OnUpdate(float elapsedTime) override;
 	void OnRender(const RenderContext& rc, float elapsedTime) override;
 

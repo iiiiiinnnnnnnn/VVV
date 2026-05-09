@@ -1,9 +1,8 @@
-// Stage.cpp
+// Stage00.cpp
 
-#include "Stage.h"
-#include "Components.h"
+#include "Stage00.h"
 
-Stage::Stage()
+Stage00::Stage00()
 {
 	std::shared_ptr<Model> model = std::make_shared<Model>(
 		"Data/Model/Stage/Stage00.glb");
@@ -13,12 +12,12 @@ Stage::Stage()
 	transform.scale = { 100, 100, 100 };
 }
 
-void Stage::OnUpdate(float elapsedTime)
+void Stage00::OnUpdate(float elapsedTime)
 {
 
 }
 
-void Stage::OnRender(const RenderContext& rc, float elapsedTime)
+void Stage00::OnRender(const RenderContext& rc, float elapsedTime)
 {
 
 }

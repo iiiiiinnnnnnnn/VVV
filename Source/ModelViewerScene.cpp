@@ -4,7 +4,7 @@
 #include "Graphics.h"
 #include "Input.h"
 #include "Player.h"
-#include "Stage.h"
+#include "Stage00.h"
 #include "Weapon.h"
 
 // コンストラクタ
@@ -26,7 +26,9 @@ ModelViewerScene::ModelViewerScene()
 		{ 0, 0, 0 },		// 注視点
 		{ 0, 1, 0 }			// 上ベクトル
 	);
-	cameraController.SyncCameraToController(camera);
+
+	// カメラからコントローラー生成
+	cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
 
 	// ライト設定
 	DirectionalLight directionalLight;
@@ -35,7 +37,7 @@ ModelViewerScene::ModelViewerScene()
 	lightManager.SetDirectionalLight(directionalLight);
 
 	// 生成
-	actors.push_back(std::make_shared<Stage>());
+	actors.push_back(std::make_shared<Stage00>());
 	auto pl = std::make_shared<Player>();
 	auto wp = std::make_shared<Weapon>(pl.get());
 	pl->SetWeapon(wp.get());
@@ -47,8 +49,9 @@ ModelViewerScene::ModelViewerScene()
 void ModelViewerScene::Update(float elapsedTime)
 {
 	// カメラ更新処理
-	cameraController.Update();
-	cameraController.SyncControllerToCamera(camera);
+	cameraControllers[nowCameraControllerIndex]->Update(elapsedTime);
+	// カメラコントローラーからカメラへ反映
+	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
 	// 更新
 	actors.Update(elapsedTime);

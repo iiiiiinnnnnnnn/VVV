@@ -37,17 +37,14 @@
     <Filter Include="ソースファイル\アクタ">
       <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アクタ\プレイヤー">
-      <UniqueIdentifier>{0691efca-b459-4402-9bd9-ddf5c160be61}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\アクタ\ステージ">
-      <UniqueIdentifier>{1fd1280e-963f-407d-99a2-64ff85eaeefd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\描画\レンダラー">
       <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソースファイル\アクタ\コンポーネント">
       <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ウィジェット">
+      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -105,9 +102,6 @@
     <ClCompile Include="Source\ModelViewerScene.cpp">
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Player.cpp">
-      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Model.cpp">
       <Filter>ソースファイル\モデル</Filter>
     </ClCompile>
@@ -120,14 +114,8 @@
     <ClCompile Include="Source\GamePad.cpp">
       <Filter>ソースファイル\入力</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Stage.cpp">
-      <Filter>ソースファイル\アクタ\ステージ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\PhysicsManager.cpp">
       <Filter>ソースファイル\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Weapon.cpp">
-      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRender.cpp">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
@@ -143,6 +131,21 @@
     </ClCompile>
     <ClCompile Include="Source\Animator.cpp">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Player.cpp">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Weapon.cpp">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Stage00.cpp">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Widget.cpp">
+      <Filter>ソースファイル\ウィジェット</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Actor.cpp">
+      <Filter>ソースファイル\アクタ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -212,12 +215,6 @@
     <ClInclude Include="Source\ModelViewerScene.h">
       <Filter>ソースファイル\シーン</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Player.h">
-      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Common.h">
-      <Filter>ソースファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Model.h">
       <Filter>ソースファイル\モデル</Filter>
     </ClInclude>
@@ -230,14 +227,8 @@
     <ClInclude Include="Source\Mouse.h">
       <Filter>ソースファイル\入力</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Stage.h">
-      <Filter>ソースファイル\アクタ\ステージ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\PhysicsManager.h">
       <Filter>ソースファイル\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Actor.h">
-      <Filter>ソースファイル\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component.h">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
@@ -257,11 +248,29 @@
     <ClInclude Include="Source\Transform.h">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Weapon.h">
-      <Filter>ソースファイル\アクタ\プレイヤー</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Collider.h">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Player.h">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Weapon.h">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage00.h">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CameraController.h">
+      <Filter>ソースファイル\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Widget.h">
+      <Filter>ソースファイル\ウィジェット</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Actor.h">
+      <Filter>ソースファイル\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Common.h">
+      <Filter>ソースファイル\アプリ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

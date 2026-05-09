@@ -28,10 +28,11 @@ public:
 	void DrawGUI(float elapsedTime) override;
 
 private:
-	Camera								camera;
-	FreeCameraController				cameraController;
-	LightManager						lightManager;
-	RenderSettings 						renderSettings;
+	Camera											camera;
+	std::vector<std::unique_ptr<CameraController>>	cameraControllers;
+	int 											nowCameraControllerIndex = 0;
+	LightManager									lightManager;
+	RenderSettings 									renderSettings;
 	struct Actors
 	{
 		std::vector<std::shared_ptr<Actor>> data;
@@ -52,6 +53,4 @@ private:
 			}
 		}
 	} actors;
-	Model::Node*						selectionNode = nullptr;
-	std::vector<Model::NodePose>		nodePoses;
 };

@@ -13,16 +13,16 @@ Player::Player()
 
 	// オプションのメッシュを非表示にする
 	{
-		model->GetMeshes()[0].isDraw = true;   // Japan_body_infantry
-		model->GetMeshes()[1].isDraw = true;   // Japan_head_soldier_B
-		model->GetMeshes()[2].isDraw = false;  // Japan_head_soldier_A
-		model->GetMeshes()[3].isDraw = true;   // Japan_head
-		model->GetMeshes()[4].isDraw = false;  // Japan_head_brass
-		model->GetMeshes()[5].isDraw = false;  // Japan_head_officer
-		model->GetMeshes()[6].isDraw = false;  // Japan_head_medic
-		model->GetMeshes()[7].isDraw = false;  // Japan_equip_infantry
-		model->GetMeshes()[8].isDraw = false;  // Japan_equip_medic
-		model->GetMeshes()[9].isDraw = false;  // Japan_body_medic
+		model->GetMeshes()[0].isDraw  = true;  // Japan_body_infantry
+		model->GetMeshes()[1].isDraw  = true;  // Japan_head_soldier_B
+		model->GetMeshes()[2].isDraw  = false; // Japan_head_soldier_A
+		model->GetMeshes()[3].isDraw  = true;  // Japan_head
+		model->GetMeshes()[4].isDraw  = false; // Japan_head_brass
+		model->GetMeshes()[5].isDraw  = false; // Japan_head_officer
+		model->GetMeshes()[6].isDraw  = false; // Japan_head_medic
+		model->GetMeshes()[7].isDraw  = false; // Japan_equip_infantry
+		model->GetMeshes()[8].isDraw  = false; // Japan_equip_medic
+		model->GetMeshes()[9].isDraw  = false; // Japan_body_medic
 		model->GetMeshes()[10].isDraw = false; // Japan_head_gasmask
 		model->GetMeshes()[11].isDraw = false; // Japan_head_gasmask
 	}
