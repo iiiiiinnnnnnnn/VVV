@@ -3,14 +3,15 @@
 #include "FpsCameraController.h"
 #include <Input.h>
 
-FpsCameraController::FpsCameraController(std::shared_ptr<Player> player) : player(player)
+FpsCameraController::FpsCameraController(std::shared_ptr<Player> player)
 {
+    SetPlayer(player);
 }
 
 void FpsCameraController::SyncControllerToCamera(Camera& camera)
 {
     // 目のノードのワールド位置を取得
-    Model::Node* eyeNode = &player->GetModel()->GetNodes()[10];
+    Model::Node* eyeNode = &player->GetModel()->GetNodes()[6];
     Vector3 eye(
         eyeNode->worldTransform._41,
         eyeNode->worldTransform._42,
@@ -32,6 +33,8 @@ void FpsCameraController::SyncControllerToCamera(Camera& camera)
 void FpsCameraController::OnUpdate(float elapsedTime)
 {
     Mouse& mouse = Input::Instance().GetMouse();
+    mouse.SetCursorLock(true);
+    mouse.SetCursorVisible(false);
 
     float moveX = mouse.GetAxisX() * 0.003f;
     float moveY = mouse.GetAxisY() * 0.003f;
@@ -45,15 +48,13 @@ void FpsCameraController::OnUpdate(float elapsedTime)
         -DirectX::XMConvertToRadians(80.0f),
         DirectX::XMConvertToRadians(80.0f));
 
-    // プレイヤーをカメラのY角度に合わせて回転
     player->transform.rotation = Quaternion::CreateFromAxisAngle(
         Vector3::UnitY, angleY);
+}
 
-    // マウスを画面中央に固定
-    HWND hWnd = GetActiveWindow();
-    RECT rc;
-    GetClientRect(hWnd, &rc);
-    POINT center = { (rc.right - rc.left) / 2, (rc.bottom - rc.top) / 2 };
-    ClientToScreen(hWnd, &center);
-    SetCursorPos(center.x, center.y);
+void FpsCameraController::OnFocusLost()
+{
+    Mouse& mouse = Input::Instance().GetMouse();
+    mouse.SetCursorLock(false);
+    mouse.SetCursorVisible(true);
 }

@@ -60,4 +60,46 @@ void Mouse::Update()
 	positionY[1] = positionY[0];
 	positionX[0] = (LONG)(cursor.x / static_cast<float>(viewportW) * static_cast<float>(screenW));
 	positionY[0] = (LONG)(cursor.y / static_cast<float>(viewportH) * static_cast<float>(screenH));
+
+	// カーソルロック処理
+	if (cursorLocked)
+	{
+		RECT rc;
+		GetClientRect(hWnd, &rc);
+		POINT center = { (rc.right - rc.left) / 2, (rc.bottom - rc.top) / 2 };
+
+		// 中央からの差分をaxisに保存
+		axisX = positionX[0] - center.x;
+		axisY = positionY[0] - center.y;
+
+		// カーソルを中央に戻す
+		POINT screenCenter = center;
+		ClientToScreen(hWnd, &screenCenter);
+		SetCursorPos(screenCenter.x, screenCenter.y);
+
+		// 次フレーム用に両方中央にリセット
+		positionX[0] = center.x;
+		positionX[1] = center.x;
+		positionY[0] = center.y;
+		positionY[1] = center.y;
+	}
+	else
+	{
+		axisX = positionX[0] - positionX[1];
+		axisY = positionY[0] - positionY[1];
+	}
+}
+
+void Mouse::SetCursorLock(bool lock)
+{
+	cursorLocked = lock;
+}
+
+void Mouse::SetCursorVisible(bool visible)
+{
+	if (cursorVisible != visible)
+	{
+		ShowCursor(visible);
+		cursorVisible = visible;
+	}
 }

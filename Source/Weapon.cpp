@@ -8,7 +8,7 @@
 
 #include "Player.h"
 
-Weapon::Weapon(Player* player) : Actor(), player(player)
+Weapon::Weapon(Player* player) : Actor("Weapon", "Weapon", "Default"), player(player)
 {
 	// •Ší
 	std::shared_ptr<Model> model = std::make_shared<Model>(

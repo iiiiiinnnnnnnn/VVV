@@ -87,11 +87,13 @@ void Framework::Render(float elapsedTime)
 	// ƒV[ƒ“•`‰æˆ—
 	scene->Render(elapsedTime);
 
+#ifdef _DEBUG
 	// ƒV[ƒ“GUI•`‰æˆ—
 	scene->DrawGUI(elapsedTime);
 
 	// IMGUI•`‰æ
 	ImGuiRenderer::Render(dc);
+#endif
 
 	// ‰æ–Ê•\Ž¦
 	Graphics::Instance().Present(syncInterval);

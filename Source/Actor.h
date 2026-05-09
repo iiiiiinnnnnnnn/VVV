@@ -8,6 +8,13 @@
 
 class Actor {
 public:
+	Actor(std::string name = "", std::string tag = "", std::string layer = "") : name(name), tag(tag), layer(layer) {}
+    virtual ~Actor() = default;
+
+    void Update(float elapsedTime);
+    void Render(const RenderContext& rc, float elapsedTime);
+    void DrawGUI(float elapsedTime);
+
     Transform transform;
 
     struct Components {
@@ -17,12 +24,6 @@ public:
         void Render(const RenderContext& rc, float elapsedTime);
         void DrawGUI(float elapsedTime);
     } componentList;
-
-    virtual ~Actor() = default;
-
-    void Update(float elapsedTime);
-    void Render(const RenderContext& rc, float elapsedTime);
-    void DrawGUI(float elapsedTime);
 
     template<typename T, typename... Args>
     T* AddComponent(Args&&... args) {
@@ -49,4 +50,8 @@ protected:
     virtual void OnUpdate(float elapsedTime) {}
     virtual void OnRender(const RenderContext& rc, float elapsedTime) {}
     virtual void OnDrawGUI(float elapsedTime) {}
+
+    std::string name;
+	std::string tag;
+	std::string layer;
 };

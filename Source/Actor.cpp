@@ -47,9 +47,8 @@ void Actor::Render(const RenderContext& rc, float elapsedTime)
 void Actor::DrawGUI(float elapsedTime)
 {
     ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
-    char title[64];
-    sprintf(title, "Actor##%p", this);
-    ImGui::Begin(title);
+	std::string displayName = name.empty() ? "Unnamed Actor" : name;
+    ImGui::Begin(displayName.c_str());
     if (ImGui::CollapsingHeader("Transform")) {
         ImGui::InputFloat3("Position", &transform.position.x);
         ImGui::InputFloat4("Rotation", &transform.rotation.x);

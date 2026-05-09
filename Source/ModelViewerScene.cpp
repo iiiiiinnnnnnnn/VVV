@@ -1,8 +1,6 @@
 // ModelViewerScene.cpp
 
 #include "ModelViewerScene.h"
-#include "Graphics.h"
-#include "Input.h"
 #include "Player.h"
 #include "Stage00.h"
 #include "Weapon.h"
@@ -15,12 +13,6 @@ ModelViewerScene::ModelViewerScene()
 	ID3D11Device* device = Graphics::Instance().GetDevice();
 	float screenWidth = Graphics::Instance().GetScreenWidth();
 	float screenHeight = Graphics::Instance().GetScreenHeight();
-
-	// ライト設定
-	DirectionalLight directionalLight;
-	directionalLight.direction = { 0, -1, -1 };
-	directionalLight.color = { 1, 1, 1 };
-	lightManager.SetDirectionalLight(directionalLight);
 
 	// アクタ生成
 	actors.push_back(std::make_shared<Stage00>());
@@ -51,63 +43,21 @@ ModelViewerScene::ModelViewerScene()
 }
 
 // 更新処理
-void ModelViewerScene::Update(float elapsedTime)
+void ModelViewerScene::OnUpdate(float elapsedTime)
 {
-	// カメラ更新処理
-	for(auto& cc : cameraControllers) {
-		cc->Update(elapsedTime);
-	}
-	// カメラコントローラーからカメラへ反映
-	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
-	// 更新
-	actors.Update(elapsedTime);
-
-	// 物理シミュレーション更新
-	GetPhysicsSceneContext().Simulate(elapsedTime);
 }
 
 // 描画処理
-void ModelViewerScene::Render(float elapsedTime)
+void ModelViewerScene::OnRender(RenderContext& rc, float elapsedTime)
 {
-	ID3D11DeviceContext* dc = Graphics::Instance().GetDeviceContext();
-	RenderState* renderState = Graphics::Instance().GetRenderState();
-	PrimitiveRenderer* primitiveRenderer = Graphics::Instance().GetPrimitiveRenderer();
 
-	// 描画コンテキスト設定
-	RenderContext rc;
-	rc.deviceContext = dc;
-	rc.renderState = renderState;
-	rc.camera = &camera;
-	rc.lightManager = &lightManager;
-	rc.renderSettings = &renderSettings;
-
-	// グリッド描画
-#ifdef _DEBUG
-	if (Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3) renderSettings.showDebug = !renderSettings.showDebug;
-	if (renderSettings.showDebug) {
-		primitiveRenderer->DrawGrid(100, 1);
-		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	}
-#endif
-
-	// 描画
-	actors.Render(rc, elapsedTime);
 }
 
 // GUI描画処理
-void ModelViewerScene::DrawGUI(float elapsedTime)
+void ModelViewerScene::OnDrawGUI(float elapsedTime)
 {
-#ifdef _DEBUG
-	if (!renderSettings.showDebug) return;
 
-	actors.DrawGUI(elapsedTime);
-
-	ImGui::Begin("ModelViewerScene", nullptr, ImGuiWindowFlags_None);
-	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-	ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
-	ImGui::End();
-#endif
 }
 
 //// プロパティGUI描画

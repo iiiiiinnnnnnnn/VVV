@@ -59,8 +59,14 @@ public:
 	int GetScreenHeight() const { return screenHeight; }
 
 	// 移動量取得
-	int GetAxisX() const { return positionX[0] - positionX[1]; }
-	int GetAxisY() const { return positionY[0] - positionY[1]; }
+	int GetAxisX() const { return axisX; }
+	int GetAxisY() const { return axisY; }
+
+	// カーソルロック設定
+	void SetCursorLock(bool lock);
+
+	// カーソル可視設定
+	void SetCursorVisible(bool visible);
 
 private:
 	MouseButton		buttonState[2] = { 0 };
@@ -71,5 +77,9 @@ private:
 	int				wheel[2];
 	int				screenWidth = 0;
 	int				screenHeight = 0;
+	int				axisX = 0;
+	int				axisY = 0;
+	bool			cursorLocked = false;
+	bool			cursorVisible = true;
 	HWND			hWnd = nullptr;
 };

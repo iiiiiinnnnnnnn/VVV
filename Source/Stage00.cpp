@@ -2,7 +2,7 @@
 
 #include "Stage00.h"
 
-Stage00::Stage00()
+Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 {
 	std::shared_ptr<Model> model = std::make_shared<Model>(
 		"Data/Model/Stage/Stage00.glb");

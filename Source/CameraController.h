@@ -13,15 +13,28 @@ public:
 	virtual void SyncControllerToCamera(Camera& camera) = 0;
 
 	// 更新処理
-	void Update(float elapsedTime) {
-
+	void Update(float elapsedTime)
+	{
 		// デバッグウインドウ操作中は処理しない
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
 		{
+			OnFocusLost();
 			return;
 		}
+
+		// ウィンドウが最前面でない場合は処理しない
+		HWND hWnd = GetActiveWindow();
+		if (hWnd == nullptr)
+		{
+			OnFocusLost();
+			return;
+		}
+
 		OnUpdate(elapsedTime);
 	}
+
+	// フォーカスを失ったときの処理
+	virtual void OnFocusLost() {}
 
 protected:
 	virtual void OnUpdate(float elapsedTime) = 0;

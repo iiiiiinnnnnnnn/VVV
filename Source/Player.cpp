@@ -4,7 +4,7 @@
 #include <GpuResourceUtils.h>
 #include <Input.h>
 
-Player::Player()
+Player::Player() : Actor("Player", "Player", "Default")
 {
 	// ƒvƒŒƒCƒ„[
 	model = std::make_shared<Model>(
