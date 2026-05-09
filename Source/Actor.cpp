@@ -46,17 +46,24 @@ void Actor::Render(const RenderContext& rc, float elapsedTime)
 
 void Actor::DrawGUI(float elapsedTime)
 {
-    ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
-	std::string displayName = name.empty() ? "Unnamed Actor" : name;
-    ImGui::Begin(displayName.c_str());
-    if (ImGui::CollapsingHeader("Transform")) {
-        ImGui::InputFloat3("Position", &transform.position.x);
-        ImGui::InputFloat4("Rotation", &transform.rotation.x);
-        ImGui::InputFloat3("Scale", &transform.scale.x);
+    ImGui::PushID(this);
+    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Actor" : name.c_str()))
+    {
+        if (ImGui::TreeNode("Transform"))
+        {
+            ImGui::InputFloat3("Position", &transform.position.x);
+            ImGui::InputFloat4("Rotation", &transform.rotation.x);
+            ImGui::InputFloat3("Scale", &transform.scale.x);
+            ImGui::TreePop();
+        }
+        componentList.DrawGUI(elapsedTime);
+        if (ImGui::TreeNode("User param"))
+        {
+            OnDrawGUI(elapsedTime);
+            ImGui::TreePop();
+        }
     }
-    componentList.DrawGUI(elapsedTime);
-    if (ImGui::CollapsingHeader("User param")) {
-        OnDrawGUI(elapsedTime);
-    }
-    ImGui::End();
+    ImGui::PopID();
+
+    ImGui::Separator();
 }

@@ -38,6 +38,21 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
+	// ImGuiスタイル設定
+	{
+		style.Alpha = 0.8f; // 全体の透明度
+		style.WindowRounding = 8.0f;
+		style.FrameRounding = 4.0f;
+
+		// 背景色を半透明に
+		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.7f);
+		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.6f);
+		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.8f);
+		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.2f, 0.2f, 0.4f, 0.9f);
+		style.Colors[ImGuiCol_Header] = ImVec4(0.3f, 0.3f, 0.5f, 0.6f);
+		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.4f, 0.4f, 0.6f, 0.7f);
+	}
+
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX11_Init(device, dc);

@@ -15,13 +15,15 @@ void Rigidbody::Update(float elapsedTime)
 
 void Rigidbody::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("Rigidbody")) {
+    if (ImGui::TreeNode("Rigidbody"))
+    {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
         if (rigidActor) {
             Vector3 pos = VEC(rigidActor->getGlobalPose().p);
             ImGui::Text("Rigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         }
+        ImGui::TreePop();
     }
 }
 

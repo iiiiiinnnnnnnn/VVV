@@ -21,9 +21,10 @@ void BoxCollider::Update(float elapsedTime)
 
 void BoxCollider::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("BoxCollider"))
+    if (ImGui::TreeNode("BoxCollider"))
     {
         ImGui::InputFloat3("Size", &size.x);
+        ImGui::TreePop();
     }
 }
 
@@ -37,11 +38,12 @@ void CapsuleCollider::Update(float elapsedTime)
 
 void CapsuleCollider::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("CapsuleCollider"))
+    if (ImGui::TreeNode("BoxCollider"))
     {
         ImGui::InputFloat("Radius", &radius);
         ImGui::InputFloat("Height", &height);
-	}
+        ImGui::TreePop();
+    }
 }
 
 SphereCollider::SphereCollider(Actor* owner, float radius) : Collider(owner), radius(radius)
@@ -54,4 +56,9 @@ void SphereCollider::Update(float elapsedTime)
 
 void SphereCollider::DrawGUI(float elapsedTime)
 {
+    if (ImGui::TreeNode("SphereCollider"))
+    {
+        ImGui::InputFloat("Radius", &radius);
+        ImGui::TreePop();
+	}
 }

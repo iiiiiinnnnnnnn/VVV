@@ -29,7 +29,7 @@ void Animator::Update(float elapsedTime)
 
 void Animator::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("Animator"))
+    if (ImGui::TreeNode("Animator"))
     {
         ImGui::Checkbox("Loop", &loop); ImGui::SameLine();
         ImGui::SetNextItemWidth(70);
@@ -84,6 +84,7 @@ void Animator::DrawGUI(float elapsedTime)
                 index++;
             }
         }
+        ImGui::TreePop();
     }
 }
 

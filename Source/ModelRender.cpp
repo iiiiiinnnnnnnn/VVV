@@ -37,7 +37,7 @@ void ModelRender::Render(const RenderContext& rc, float elapsedTime)
 
 void ModelRender::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("ModelRender"))
+    if (ImGui::TreeNode("ModelRender"))
     {
         if (model)
         {
@@ -109,5 +109,6 @@ void ModelRender::DrawGUI(float elapsedTime)
             // Ä‹A“I‚Éƒm[ƒh‚ð•`‰æ
             drawNodeTree(model->GetRootNode());
         }
+        ImGui::TreePop();
     }
 }

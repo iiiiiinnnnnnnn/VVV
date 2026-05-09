@@ -79,7 +79,17 @@ public:
 		if (!renderSettings.showDebug) return;
 		OnDrawGUI(elapsedTime);
 
-		actors.DrawGUI(elapsedTime);
+		if (!actors.data.empty()) {
+			ImGui::Begin("Actors");
+			actors.DrawGUI(elapsedTime);
+			ImGui::End();
+		}
+
+		if (!widgets.data.empty()) {
+			ImGui::Begin("Widgets");
+			widgets.DrawGUI(elapsedTime);
+			ImGui::End();
+		}
 
 		ImGui::Begin("ModelViewerScene", nullptr, ImGuiWindowFlags_None);
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
