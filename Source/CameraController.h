@@ -1,5 +1,6 @@
 #pragma once
 #include "Camera.h"
+#include "Input.h"
 
 class CameraController
 {
@@ -15,22 +16,12 @@ public:
 	// 更新処理
 	void Update(float elapsedTime)
 	{
-		// デバッグウインドウ操作中は処理しない
-		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
-		{
-			OnFocusLost();
-			return;
+		if (Input::IsFocusedWindow()) {
+			OnUpdate(elapsedTime);
 		}
-
-		// ウィンドウが最前面でない場合は処理しない
-		HWND hWnd = GetActiveWindow();
-		if (hWnd == nullptr)
-		{
+		else {
 			OnFocusLost();
-			return;
 		}
-
-		OnUpdate(elapsedTime);
 	}
 
 	// フォーカスを失ったときの処理

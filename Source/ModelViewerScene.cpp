@@ -1,7 +1,8 @@
 // ModelViewerScene.cpp
 
 #include "ModelViewerScene.h"
-#include "Player.h"
+#include "Commander.h"
+#include "Soldier.h"
 #include "Stage00.h"
 #include "Weapon.h"
 #include "FreeCameraController.h"
@@ -17,14 +18,9 @@ ModelViewerScene::ModelViewerScene()
 
 	// アクタ生成
 	actors.push_back(std::make_shared<Stage00>());
-	auto pl = std::make_shared<Player>();
-	auto wp = std::make_shared<Weapon>(pl.get());
-	pl->SetWeapon(wp.get());
-	actors.push_back(pl);
-	actors.push_back(wp);
-
-	// ローカルプレイヤーコントローラー
-	pl->SetController(std::make_unique<LocalPlayer>());
+	std::shared_ptr<Commander> localCommander = std::make_shared<Commander>();
+	localCommander->SetController(std::make_unique<LocalPlayer>());
+	actors.push_back(localCommander);
 
 	// カメラ設定
 	camera.SetPerspectiveFov(
@@ -43,7 +39,7 @@ ModelViewerScene::ModelViewerScene()
 	cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
 
 	// コントローラー1生成
-	cameraControllers.push_back(std::make_unique<FpsCameraController>(pl));
+	cameraControllers.push_back(std::make_unique<FpsCameraController>(localCommander));
 }
 
 // 更新処理

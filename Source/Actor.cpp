@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include "imgui.h"
+#include "Components.h"
 
 void Actor::Components::push_back(std::unique_ptr<Component> component)
 {
@@ -51,12 +52,41 @@ void Actor::DrawGUI(float elapsedTime)
     {
         if (ImGui::TreeNode("Transform"))
         {
-            ImGui::InputFloat3("Position", &transform.position.x);
-            ImGui::InputFloat4("Rotation", &transform.rotation.x);
-            ImGui::InputFloat3("Scale", &transform.scale.x);
+            if (ImGui::DragFloat3("Position", &transform.position.x)) {
+                auto rb = GetComponent<Rigidbody>();
+                if (rb)
+                    rb->SetPosition(transform.position);
+                else {
+                    auto cc = GetComponent<CharacterController>();
+                    if (cc)
+                        cc->SetPosition(transform.position);
+                }
+            }
+            if (ImGui::DragFloat4("Rotation", &transform.rotation.x)) {
+                auto rb = GetComponent<Rigidbody>();
+                if (rb)
+                    rb->SetPosition(transform.position);
+                else {
+                    auto cc = GetComponent<CharacterController>();
+                    if (cc)
+                        cc->SetPosition(transform.position);
+                }
+            }
+            if (ImGui::DragFloat3("Scale", &transform.scale.x)) {
+                auto rb = GetComponent<Rigidbody>();
+                if (rb)
+                    rb->SetPosition(transform.position);
+                else {
+                    auto cc = GetComponent<CharacterController>();
+                    if (cc)
+                        cc->SetPosition(transform.position);
+                }
+            }
             ImGui::TreePop();
         }
+
         componentList.DrawGUI(elapsedTime);
+
         if (ImGui::TreeNode("User param"))
         {
             OnDrawGUI(elapsedTime);

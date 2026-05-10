@@ -5,14 +5,13 @@
 #include "Common.h"
 #include "Components.h"
 #include "Actor.h"
-#include "Animator.h"
 
-class Player;
+class Character;
 
 class Weapon : public Actor
 {
 public:
-	Weapon(Player* player);
+	Weapon(Character* character);
 	~Weapon() = default;
 	void OnUpdate(float elapsedTime) override;
 	void OnRender(const RenderContext& rc, float elapsedTime) override;
@@ -20,5 +19,5 @@ public:
 
 private:
 
-	Player* player = nullptr;
+	Character* character = nullptr;
 };

@@ -2,7 +2,10 @@
 
 #include "Rigidbody.h"
 
-Rigidbody::Rigidbody(Actor* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor) {
+Rigidbody::Rigidbody(Actor* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor)
+{
+    // ƒV[ƒ“‚É“o˜^
+    PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
 
 void Rigidbody::Update(float elapsedTime)
@@ -34,42 +37,46 @@ void Rigidbody::SetPosition(const Vector3& pos)
     rigidActor->setGlobalPose(t);
 }
 
-StaticRigidbody::StaticRigidbody(Actor* owner)
+RigidbodyStatic::RigidbodyStatic(Actor* owner)
     : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(owner->transform.matrix)) {
 }
 
-void StaticRigidbody::DrawGUI(float elapsedTime)
+void RigidbodyStatic::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("StaticRigidbody")) {
+    if (ImGui::TreeNode("RigidbodyStatic"))
+    {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
         if (rigidActor) {
             Vector3 pos = VEC(rigidActor->getGlobalPose().p);
-            ImGui::Text("StaticRigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+            ImGui::Text("RigidbodyStatic Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         }
+        ImGui::TreePop();
     }
 }
 
-DynamicRigidbody::DynamicRigidbody(Actor* owner)
+RigidbodyDynamic::RigidbodyDynamic(Actor* owner)
     : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(owner->transform.matrix)) {
 }
 
-void DynamicRigidbody::DrawGUI(float elapsedTime)
+void RigidbodyDynamic::DrawGUI(float elapsedTime)
 {
-    if (ImGui::CollapsingHeader("DynamicRigidbody")) {
+    if (ImGui::TreeNode("RigidbodyDynamic"))
+    {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
         if (rigidActor) {
             Vector3 pos = VEC(rigidActor->getGlobalPose().p);
-            ImGui::Text("DynamicRigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+            ImGui::Text("RigidbodyDynamic Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         }
+        ImGui::TreePop();
     }
 }
 
-void DynamicRigidbody::AddForce(const Vector3& force)
+void RigidbodyDynamic::AddForce(const Vector3& force)
 {
     static_cast<PxRigidDynamic*>(rigidActor)->addForce({ force.x, force.y, force.z });
 }
 
-void DynamicRigidbody::SetVelocity(const Vector3& v)
+void RigidbodyDynamic::SetVelocity(const Vector3& v)
 {
     static_cast<PxRigidDynamic*>(rigidActor)->setLinearVelocity({ v.x, v.y, v.z });
 }

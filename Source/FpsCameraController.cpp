@@ -3,15 +3,15 @@
 #include "FpsCameraController.h"
 #include <Input.h>
 
-FpsCameraController::FpsCameraController(std::shared_ptr<Player> player)
+FpsCameraController::FpsCameraController(std::shared_ptr<Character> character)
 {
-    SetPlayer(player);
+    SetPlayer(character);
 }
 
 void FpsCameraController::SyncControllerToCamera(Camera& camera)
 {
     // 目のノードのワールド位置を取得
-    Model::Node* eyeNode = &player->GetModel()->GetNodes()[6];
+    Model::Node* eyeNode = &character->GetModel()->GetNodes()[6];
     Matrix world = Matrix::CreateTranslation(eyeOffset) * eyeNode->worldTransform;
     Vector3 eye(world._41, world._42, world._43);
 
@@ -48,7 +48,7 @@ void FpsCameraController::OnUpdate(float elapsedTime)
         -DirectX::XMConvertToRadians(80.0f),
         DirectX::XMConvertToRadians(80.0f));
 
-    player->transform.rotation = Quaternion::CreateFromAxisAngle(
+    character->transform.rotation = Quaternion::CreateFromAxisAngle(
         Vector3::UnitY, angleY);
 }
 

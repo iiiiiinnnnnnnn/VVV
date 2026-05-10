@@ -4,6 +4,8 @@
 
 #include "Common.h"
 
+class Actor;
+
 struct Transform
 {
 	Vector3 position = Vector3::Zero;
@@ -12,6 +14,8 @@ struct Transform
 	Vector3 forward = Vector3::Zero;
 	Vector3 right = Vector3::Zero;
 	Matrix matrix = Matrix::Identity;
+
+	Actor* owner = nullptr;
 
 	Transform(const Vector3& pos = Vector3::Zero, const Quaternion& rot = Quaternion::Identity, const Vector3& sca = Vector3::One);
 

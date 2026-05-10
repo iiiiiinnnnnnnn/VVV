@@ -2,6 +2,8 @@
 
 #include "PhysicsManager.h"
 
+// PhysicsSceneContext
+
 PhysicsSceneContext::PhysicsSceneContext(PxVec3 gravity)
 {
 	PhysicsManager& manager = PhysicsManager::Instance();
@@ -27,6 +29,8 @@ void PhysicsSceneContext::Simulate(float elapsedTime) const
     scene->simulate(elapsedTime);
     scene->fetchResults(true);
 }
+
+// PhysicsManager
 
 void PhysicsManager::Initialize()
 {
@@ -59,10 +63,15 @@ void PhysicsManager::Initialize()
 
     // デフォルトの物理材質（摩擦0.5, 反発0.5）
     gDefaultMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
+
+	// シーン生成
+    sceneContext = std::make_unique<PhysicsSceneContext>(PxVec3(0, -9.81f, 0));
 }
 
 void PhysicsManager::Finalize()
 {
+    sceneContext.reset();
+
     if (gDispatcher)        gDispatcher->release();
     if (gCookingParams)     delete gCookingParams;
     if (gDefaultMaterial)   gDefaultMaterial->release();

@@ -7,3 +7,4 @@
 #include "RigidBody.h"
 #include "Animator.h"
 #include "Collider.h"
+#include "CharacterController.h"

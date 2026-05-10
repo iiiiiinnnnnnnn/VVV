@@ -24,16 +24,16 @@ protected:
     PxRigidActor* rigidActor = nullptr;
 };
 
-class StaticRigidbody : public Rigidbody {
+class RigidbodyStatic : public Rigidbody {
 public:
-    StaticRigidbody(Actor* owner);
+    RigidbodyStatic(Actor* owner);
 
     void DrawGUI(float elapsedTime) override;
 };
 
-class DynamicRigidbody : public Rigidbody {
+class RigidbodyDynamic : public Rigidbody {
 public:
-    DynamicRigidbody(Actor* owner);
+    RigidbodyDynamic(Actor* owner);
 
     void DrawGUI(float elapsedTime) override;
 

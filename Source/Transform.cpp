@@ -1,6 +1,8 @@
 // Transform.cpp
 
 #include "Transform.h"
+#include "Components.h"
+#include "Actor.h"
 
 Transform::Transform(const Vector3& pos, const Quaternion& rot, const Vector3& sca)
 	: position(pos), rotation(rot), scale(sca) {

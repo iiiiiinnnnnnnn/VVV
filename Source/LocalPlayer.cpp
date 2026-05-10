@@ -1,15 +1,26 @@
 // LocalPlayer.cpp
 
 #include "LocalPlayer.h"
+#include "Input.h"
 
 float LocalPlayer::GetMoveX()
 {
-	return 0.0f;
+	if (Input::IsFocusedWindow()) {
+		return Input::Instance().GetGamePad().GetAxisLX();
+	}
+	else {
+		return 0.0f;
+	}
 }
 
 float LocalPlayer::GetMoveZ()
 {
-	return 0.0f;
+	if (Input::IsFocusedWindow()) {
+		return Input::Instance().GetGamePad().GetAxisLY();
+	}
+	else {
+		return 0.0f;
+	}
 }
 
 bool LocalPlayer::GetJump()

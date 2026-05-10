@@ -3,21 +3,21 @@
 #pragma once
 
 #include "CameraController.h"
-#include "Player.h"
+#include "Character.h"
 
 class FpsCameraController : public CameraController
 {
 public:
-    FpsCameraController(std::shared_ptr<Player> player);
+    FpsCameraController(std::shared_ptr<Character> chara);
     void SyncCameraToController(const Camera& camera) override {}
     void SyncControllerToCamera(Camera& camera) override;
     void OnUpdate(float elapsedTime) override;
     void OnFocusLost() override;
     void OnDrawGUI(float elapsedTime) override;
 
-	void SetPlayer(std::shared_ptr<Player> newPlayer) { player = newPlayer; }
+	void SetPlayer(std::shared_ptr<Character> character) { this->character = character; }
 
 private:
-    std::shared_ptr<Player> player = nullptr;
+    std::shared_ptr<Character> character = nullptr;
     Vector3 eyeOffset = {0, 0.09f, 0};
 };

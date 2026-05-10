@@ -1,33 +1,28 @@
-// Player.cpp
+// Character.cpp
 
-#include "Player.h"
-#include <GpuResourceUtils.h>
-#include <Input.h>
+#include "Character.h"
 #include "RemotePlayer.h"
 
-Player::Player() : Actor("Player", "Player", "Default")
+void Character::SetSkin(uint32_t parts)
 {
-	// プレイヤー
-	model = std::make_shared<Model>(
-		"Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb");
+	auto& meshes = model->GetMeshes();
+	meshes[0].isDraw = true;
+	meshes[1].isDraw = parts & (uint32_t)SkinParts::Head_SoldierB;
+	meshes[2].isDraw = parts & (uint32_t)SkinParts::Head_SoldierA;
+	meshes[3].isDraw = parts & (uint32_t)SkinParts::Head;
+	meshes[4].isDraw = parts & (uint32_t)SkinParts::Head_Brass;
+	meshes[5].isDraw = parts & (uint32_t)SkinParts::Head_Officer;
+	meshes[6].isDraw = parts & (uint32_t)SkinParts::Head_Medic;
+	meshes[7].isDraw = parts & (uint32_t)SkinParts::Equip_Infantry;
+	meshes[8].isDraw = parts & (uint32_t)SkinParts::Equip_Medic;
+	meshes[9].isDraw = parts & (uint32_t)SkinParts::Body_Medic;
+	meshes[10].isDraw = parts & (uint32_t)SkinParts::Head_GasMask;
+	meshes[11].isDraw = parts & (uint32_t)SkinParts::Head_GasMask;
+}
 
-	// オプションのメッシュを非表示にする
-	{
-		model->GetMeshes()[0].isDraw  = true;  // Japan_body_infantry
-		model->GetMeshes()[1].isDraw  = true;  // Japan_head_soldier_B
-		model->GetMeshes()[2].isDraw  = false; // Japan_head_soldier_A
-		model->GetMeshes()[3].isDraw  = true;  // Japan_head
-		model->GetMeshes()[4].isDraw  = false; // Japan_head_brass
-		model->GetMeshes()[5].isDraw  = false; // Japan_head_officer
-		model->GetMeshes()[6].isDraw  = false; // Japan_head_medic
-		model->GetMeshes()[7].isDraw  = false; // Japan_equip_infantry
-		model->GetMeshes()[8].isDraw  = false; // Japan_equip_medic
-		model->GetMeshes()[9].isDraw  = false; // Japan_body_medic
-		model->GetMeshes()[10].isDraw = false; // Japan_head_gasmask
-		model->GetMeshes()[11].isDraw = false; // Japan_head_gasmask
-	}
-
-	// アニメーション追加
+void Character::InitCharacter()
+{
+	// アニメーション読み込み
 	{
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_bayonet.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_draw.glb");
@@ -46,8 +41,6 @@ Player::Player() : Actor("Player", "Player", "Default")
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_interact_B.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_take_damage.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_throw_grenade.glb");
-		/*model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/aim_poses/infantry_combat_aim_down.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/aim_poses/infantry_combat_aim_up.glb");*/
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_draw.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_idle.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_reload.glb");
@@ -93,59 +86,53 @@ Player::Player() : Actor("Player", "Player", "Default")
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_standup.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_take_damage.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_throw_grenade.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_roll.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_run.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_run_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_run_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_run_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_walk_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_walk_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_combat_walk_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_crouch_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_crouch_walk_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_crouch_walk_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_crouch_walk_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_guard_run.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_guard_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_prone_move.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/root_motion/infantry_RM_sprint.glb");
 	}
 
+	// キャラコン生成
+	cc = AddComponent<CharacterController>(0.5f, 1.5f);
+
 	// アニメーター生成
-	auto anim = AddComponent<Animator>(model);
-	anim->Play(2, true);
+	anim = AddComponent<Animator>(model);
 
 	// モデルレンダラー生成
 	AddComponent<ModelRender>(model);
 
 	// 手のノードを保存
 	handNode = &model->GetNodes()[17];
+
+	// 武器生成
+	weapon = std::make_shared<Weapon>(this);
 }
 
-void Player::OnUpdate(float elapsedTime)
+void Character::OnUpdate(float elapsedTime)
 {
 	if (!controller) return;
+	if (!cc) return;
 
-	// 入力から移動
 	float moveX = controller->GetMoveX();
 	float moveZ = controller->GetMoveZ();
-	transform.position += Vector3(moveX, 0, moveZ) * speed * elapsedTime;
 
-	// RemotePlayerなら位置補正をLerpで適用
-	if (auto* remote = dynamic_cast<RemotePlayer*>(controller.get()))
-	{
-		Vector3 serverPos = remote->GetServerPosition();
-		float diff = Vector3::Distance(transform.position, serverPos);
-		if (diff > 0.5f) // ズレが大きい場合だけ補正
-		{
-			transform.position = Vector3::Lerp(
-				transform.position, serverPos, 10.0f * elapsedTime);
-		}
-	}
+	Vector3 move = Vector3::TransformNormal(
+		Vector3(moveX, 0, moveZ),
+		Matrix::CreateFromQuaternion(transform.rotation)
+	);
+	move *= speed * elapsedTime;
+
+	if (cc->IsGrounded())
+		verticalVelocity = 0.0f;
+	else
+		verticalVelocity -= 9.81f * elapsedTime;
+
+	move.y = verticalVelocity * elapsedTime;
+
+	cc->Move(move);
+
+	if (weapon) weapon->Update(elapsedTime);
 }
 
-void Player::OnRender(const RenderContext& rc, float elapsedTime)
+void Character::OnRender(const RenderContext& rc, float elapsedTime)
 {
-
+	if (weapon) {
+		weapon->Render(rc, elapsedTime);
+	}
 }

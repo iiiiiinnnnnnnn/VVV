@@ -6,9 +6,9 @@
 #include <Input.h>
 #include "Model.h"
 
-#include "Player.h"
+#include "Character.h"
 
-Weapon::Weapon(Player* player) : Actor("Weapon", "Weapon", "Default"), player(player)
+Weapon::Weapon(Character* character) : Actor("Weapon", "Weapon", "Default"), character(character)
 {
 	// 武器
 	std::shared_ptr<Model> model = std::make_shared<Model>(
@@ -24,7 +24,7 @@ Weapon::Weapon(Player* player) : Actor("Weapon", "Weapon", "Default"), player(pl
 	auto mdlRender = AddComponent<ModelRender>(model);
 	
 	// プレイヤーの手に武器を接続
-	mdlRender->AppendNode(player->GetHandNode());
+	mdlRender->AppendNode(character->GetHandNode());
 
 	// 武器の初期回転オフセット
 	transform.rotation = Quaternion::CreateFromYawPitchRoll(0, DirectX::XMConvertToRadians(90), 0);

@@ -31,6 +31,9 @@ public:
 	// マウス取得
 	Mouse& GetMouse() { return *mouse; }
 
+	// フォーカスが当たっているか
+	static bool IsFocusedWindow();
+
 private:
 	std::unique_ptr<GamePad>	gamePad;
 	std::unique_ptr<Mouse>		mouse;
