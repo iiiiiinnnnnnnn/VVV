@@ -352,7 +352,8 @@ bool Animator::EvaluateCondition(const Condition& c) const
 
 bool Animator::EvaluateTransition(const Transition& t) const
 {
-    if (t.conditions.empty()) return false;
+    // 条件が空の場合: hasExitTime トランジションなら条件なしで通過
+    if (t.conditions.empty()) return t.hasExitTime;
     for (const Condition& c : t.conditions)
         if (!EvaluateCondition(c)) return false;
     return true;
