@@ -1,12 +1,15 @@
-// Animator.cpp
+ï»¿// Animator.cpp
+
 #include "Animator.h"
+#include "AnimEditorWindow.h"
+#include "AnimatorSerializer.h"
 
 Animator::Animator(Actor* owner, std::shared_ptr<Model> model)
     : Component(owner), model(model) {
 }
 
 // =========================================================
-// ƒŒƒCƒ„[‘€ì
+// ãƒ¬ã‚¤ãƒ¤ãƒ¼æ“ä½œ
 // =========================================================
 int Animator::AddLayer(const std::string& name, BlendMode blendMode, float weight, AvatarMask mask)
 {
@@ -23,7 +26,7 @@ void Animator::SetLayerWeight(int li, float weight) { layers[li].weight = weight
 void Animator::SetLayerMask(int li, AvatarMask mask) { layers[li].mask = mask; }
 
 // =========================================================
-// ƒXƒe[ƒg‘€ì
+// ã‚¹ãƒ†ãƒ¼ãƒˆæ“ä½œ
 // =========================================================
 int Animator::AddState(int li, const std::string& name, int animIndex, bool loop, float speed)
 {
@@ -76,7 +79,7 @@ void Animator::SetDefaultState(int li, int stateIndex)
 }
 
 // =========================================================
-// ƒpƒ‰ƒ[ƒ^i‘SƒŒƒCƒ„[‹¤—Lj
+// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼ˆå…¨ãƒ¬ã‚¤ãƒ¤ãƒ¼å…±æœ‰ï¼‰
 // =========================================================
 void Animator::AddFloat(const std::string& name, float v) { parameters[name] = v; }
 void Animator::AddInt(const std::string& name, int v) { parameters[name] = v; }
@@ -97,18 +100,15 @@ void Animator::ResetTriggers()
     for (auto& [name, val] : triggers) val = false;
 }
 
-// =========================================================
-// Update
-// =========================================================
 void Animator::Update(float elapsedTime)
 {
     if (!model) return;
 
-    // ƒx[ƒXƒ|[ƒY‰Šú‰»i‘Sƒm[ƒh‚ğƒoƒCƒ“ƒhƒ|[ƒY‚Éj
+    // ãƒ™ãƒ¼ã‚¹ãƒãƒ¼ã‚ºåˆæœŸåŒ–ï¼ˆå…¨ãƒãƒ¼ãƒ‰ã‚’ãƒã‚¤ãƒ³ãƒ‰ãƒãƒ¼ã‚ºã«ï¼‰
     int nodeCount = (int)model->GetNodes().size();
     std::vector<Model::NodePose> finalPoses(nodeCount);
 
-    // ƒŒƒCƒ„[‚ğ‡”Ô‚É•]‰¿‚µ‚ÄfinalPoses‚É‘‚«‚Ş
+    // ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’é †ç•ªã«è©•ä¾¡ã—ã¦finalPosesã«æ›¸ãè¾¼ã‚€
     for (auto& layer : layers)
     {
         if (layer.currentStateIndex < 0) continue;
@@ -125,11 +125,35 @@ void Animator::DrawGUI(float elapsedTime)
 {
     if (ImGui::TreeNode("Animator"))
     {
-        if (ImGui::Button("Go AnimEditor")) {
-
+        // ãƒ¬ã‚¤ãƒ¤ãƒ¼æƒ…å ±ã‚’ç°¡æ˜“è¡¨ç¤º
+        for (int li = 0; li < (int)layers.size(); ++li)
+        {
+            const AnimatorLayer& layer = layers[li];
+            ImGui::TextDisabled("[%d] %s  w=%.2f", li, layer.name.c_str(), layer.weight);
+            if (layer.currentStateIndex >= 0)
+            {
+                const State& cur = layer.states[layer.currentStateIndex];
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f),
+                    "  -> %s", cur.name.c_str());
+            }
         }
+
+        if (ImGui::Button("Go AnimEditor"))
+            OpenAnimEditor();
+
+        if (animEditor && animEditorOpen)
+            animEditor->Draw(&animEditorOpen);
+
         ImGui::TreePop();
     }
+}
+
+void Animator::OpenAnimEditor()
+{
+    if (!animEditor)
+        animEditor = std::make_unique<AnimEditorWindow>(this);
+    animEditorOpen = true;
 }
 
 void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
@@ -138,7 +162,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
     State& curState = layer.states[layer.currentStateIndex];
     const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
 
-    // ŠÔXV
+    // æ™‚é–“æ›´æ–°
     layer.currentTime += elapsedTime * curState.speed;
     if (layer.currentTime > curAnim.secondsLength)
     {
@@ -146,10 +170,10 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         else               layer.currentTime = curAnim.secondsLength;
     }
 
-    // ‚±‚ÌƒŒƒCƒ„[‚Ìƒ|[ƒYŒvZ
+    // ã“ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ãƒãƒ¼ã‚ºè¨ˆç®—
     model->ComputeAnimation(curState.animationIndex, layer.currentTime, nodePoses);
 
-    // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“’†‚ÍƒuƒŒƒ“ƒh
+    // ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸­ã¯ãƒ–ãƒ¬ãƒ³ãƒ‰
     if (layer.isTransitioning)
     {
         State& nxtState = layer.states[layer.nextStateIndex];
@@ -169,7 +193,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
 
         if (w >= 1.0f)
         {
-            // ‘JˆÚŠ®—¹
+            // é·ç§»å®Œäº†
             layer.currentStateIndex = layer.nextStateIndex;
             layer.currentTime = layer.nextTime;
             layer.nextStateIndex = -1;
@@ -178,7 +202,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         }
         else
         {
-            // cur ‚Æ nxt ‚ğƒuƒŒƒ“ƒh
+            // cur ã¨ nxt ã‚’ãƒ–ãƒ¬ãƒ³ãƒ‰
             for (size_t i = 0; i < nodePoses.size(); ++i)
             {
                 nodePoses[i].position = Vector3::Lerp(nodePoses[i].position, nextNodePoses[i].position, w);
@@ -187,7 +211,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
             }
         }
 
-        // Š„‚è‚İƒ`ƒFƒbƒN
+        // å‰²ã‚Šè¾¼ã¿ãƒã‚§ãƒƒã‚¯
         for (const Transition& tr : curState.transitions)
         {
             if (!tr.canInterrupt) continue;
@@ -204,7 +228,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
     }
     else
     {
-        // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“•]‰¿
+        // ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³è©•ä¾¡
         float normalizedTime = curAnim.secondsLength > 0.0f
             ? layer.currentTime / curAnim.secondsLength : 0.0f;
 
@@ -230,14 +254,14 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         }
     }
 
-    // ƒ}ƒXƒN‚É]‚Á‚Ä finalPoses ‚É‘‚«‚Ş
+    // ãƒã‚¹ã‚¯ã«å¾“ã£ã¦ finalPoses ã«æ›¸ãè¾¼ã‚€
     for (int ni = 0; ni < (int)nodePoses.size(); ++ni)
     {
         if (!layer.mask.Contains(ni)) continue;
 
         if (layer.blendMode == BlendMode::Override)
         {
-            // weight‚Å‰º‚ÌƒŒƒCƒ„[‚ÆƒuƒŒƒ“ƒh
+            // weightã§ä¸‹ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¨ãƒ–ãƒ¬ãƒ³ãƒ‰
             finalPoses[ni].position = Vector3::Lerp(
                 finalPoses[ni].position, nodePoses[ni].position, layer.weight);
             finalPoses[ni].rotation = Quaternion::Slerp(
@@ -340,4 +364,14 @@ const std::string& Animator::GetCurrentStateName(int li) const
     const auto& layer = layers[li];
     if (layer.currentStateIndex < 0) return empty;
     return layer.states[layer.currentStateIndex].name;
+}
+
+bool Animator::Save(const std::string& path) const
+{
+    return AnimatorSerializer::Save(*this, path);
+}
+
+bool Animator::Load(const std::string& path)
+{
+    return AnimatorSerializer::Load(*this, path);
 }

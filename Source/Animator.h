@@ -7,6 +7,8 @@
 
 #define ANIM(name) model->GetAnimationIndex(name)
 
+class AnimEditorWindow;
+
 class Animator : public Component
 {
 public:
@@ -89,6 +91,18 @@ public:
         bool  isTransitioning = false;
     };
 
+    // エディタウィンドウを開く
+    void OpenAnimEditor();
+
+    // AnimEditorWindow から内部データへアクセスするためのゲッター
+    int GetLayerCount() const { return (int)layers.size(); }
+
+    const std::unordered_map<std::string, ParamValue>& GetParameters() const { return parameters; }
+    const std::unordered_map<std::string, bool>&       GetTriggers()   const { return triggers; }
+
+    // モデルへのアクセス (進捗バー描画用)
+    std::shared_ptr<Model> GetModel() const { return model; }
+
     // =========================================================
     // レイヤー操作
     // =========================================================
@@ -120,7 +134,7 @@ public:
     void SetDefaultState(int layerIndex, int stateIndex);
 
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
-    int  GetCurrentStateIndex(int layerIndex = 0) const;
+	int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
 
     // =========================================================
     // パラメータ（Animator全体で共有）
@@ -145,6 +159,18 @@ public:
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
+    bool Save(const std::string& path) const;   // AnimatorSerializer::Save を呼ぶ
+    bool Load(const std::string& path);          // AnimatorSerializer::Load を呼ぶ
+
+    void ClearAll()
+    {
+        layers.clear();
+        parameters.clear();
+        triggers.clear();
+        nodePoses.clear();
+        nextNodePoses.clear();
+    }
+
 private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
@@ -163,4 +189,7 @@ private:
 
     std::vector<Model::NodePose> nodePoses;
     std::vector<Model::NodePose> nextNodePoses;
+
+    std::unique_ptr<AnimEditorWindow> animEditor;
+    bool animEditorOpen = false;
 };

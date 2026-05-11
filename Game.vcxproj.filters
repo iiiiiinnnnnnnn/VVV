@@ -52,6 +52,9 @@
     <Filter Include="ソースファイル\分隊">
       <UniqueIdentifier>{62e1d4dc-dbf4-41e0-a708-747263f7442c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\エディト">
+      <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -334,6 +337,12 @@
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\AnimEditorWindow.h">
+      <Filter>ソースファイル\エディト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\AnimatorSerializer.h">
+      <Filter>ソースファイル\エディト</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

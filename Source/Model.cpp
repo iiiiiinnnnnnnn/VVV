@@ -214,7 +214,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		Deserialize(filepath.string().c_str(), lastWriteTime);
 		// cerealが古いなら、元のモデルファイルから再構築する
 		if (std::filesystem::exists(filename)) {
-			uint16_t fileLastWriteTime = std::filesystem::last_write_time(filename).time_since_epoch().count();
+			uint16_t fileLastWriteTime = static_cast<uint16_t>(std::filesystem::last_write_time(filename).time_since_epoch().count());
 			if (fileLastWriteTime != lastWriteTime)
 			{
 				Model tmpModel(filename, sampleRate, true);
