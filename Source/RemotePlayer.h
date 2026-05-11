@@ -9,13 +9,15 @@ public:
     float GetMoveX() override { return receivedMoveX; }
     float GetMoveZ() override { return receivedMoveZ; }
     bool GetJump() override { return receivedJump; }
-    bool GetAttack() override { return receivedAttack; }
+    bool GetShoot() override { return receivedReload; }
+    bool GetReload() override { return receivedReload; }
 
-    void ReceiveInput(float moveX, float moveZ, bool jump, bool attack) {
+    void ReceiveInput(float moveX, float moveZ, bool jump, bool shoot, bool reload) {
         receivedMoveX = moveX;
         receivedMoveZ = moveZ;
         receivedJump = jump;
-        receivedAttack = attack;
+        receivedShoot = shoot;
+        receivedReload = reload;
     }
 
     void ReceivePositionCorrection(Vector3 pos) { serverPosition = pos; }
@@ -25,6 +27,7 @@ private:
     float receivedMoveX = 0.0f;
     float receivedMoveZ = 0.0f;
     bool receivedJump = false;
-    bool receivedAttack = false;
+    bool receivedShoot = false;
+    bool receivedReload = false;
     Vector3 serverPosition;
 };

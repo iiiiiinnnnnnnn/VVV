@@ -17,7 +17,12 @@ bool AIPlayer::GetJump()
 	return false;
 }
 
-bool AIPlayer::GetAttack()
+bool AIPlayer::GetShoot()
+{
+	return false;
+}
+
+bool AIPlayer::GetReload()
 {
 	return false;
 }

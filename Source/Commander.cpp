@@ -13,6 +13,14 @@ Commander::Commander() : Character("Commander", "Commander", "Default")
 
 	// wŠöŠ¯F•à•º‘Ì{«Z–X{“ª
 	SetSkin((uint32_t)SkinParts::Head_Officer);
+
+	printf("Commander animations:\n");
+	for (int i = 0; i < model->GetAnimations().size(); ++i)
+		printf((std::to_string(i) + " : " + model->GetAnimations()[i].name + "\n").c_str());
+
+	printf("Commander Bones:\n");
+	for (int i = 0; i < model->GetNodes().size(); ++i)
+		printf((std::to_string(i) + " : " + model->GetNodes()[i].name + "\n").c_str());
 }
 
 void Commander::OnUpdate(float elapsedTime)

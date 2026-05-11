@@ -212,7 +212,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;.\External\json;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -245,7 +245,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External\imgui-docking;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\PhysX\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\dearImgui\include;.\External\tinygltf;.\External\json;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>

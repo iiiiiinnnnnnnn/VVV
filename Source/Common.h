@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <tchar.h>
 #include <iostream>
+#include <variant>
 
 // microsoft
 #include <windows.h>

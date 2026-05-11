@@ -9,5 +9,6 @@ public:
     float GetMoveX() override;
     float GetMoveZ() override;
     bool GetJump() override;
-    bool GetAttack() override;
+    bool GetShoot() override;
+    bool GetReload() override;
 };

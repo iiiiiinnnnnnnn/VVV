@@ -1,43 +1,166 @@
 // Animator.h
 
 #pragma once
-
 #include "Common.h"
 #include "Model.h"
 #include "Component.h"
+
+#define ANIM(name) model->GetAnimationIndex(name)
 
 class Animator : public Component
 {
 public:
     Animator(Actor* owner, std::shared_ptr<Model> model);
-
     void Update(float elapsedTime) override;
-
     void DrawGUI(float elapsedTime) override;
 
-    void Play(int index, bool loop = true);
+    // =========================================================
+    // 型定義
+    // =========================================================
+    using ParamValue = std::variant<float, int, bool>;
 
-    void Stop();
+    enum class ConditionMode
+    {
+        Greater, Less, Equals, NotEquals,
+        IsTrue, IsFalse, Trigger,
+    };
 
-	Model* GetModel() const { return model.get(); }
-    const std::vector<Model::NodePose>& GetPoses() const { return nodePoses; }
-	bool IsPlaying() const { return playing; }
-	bool IsLoop() const { return loop; }
-	void SetSpeed(float s) { speed = s; }
-	void SetTime(float t) { currentTime = t; }
-	void SetAnimationIndex(int index) { currentAnimationIndex = index; }
-	void Reset() { currentTime = 0.0f; currentAnimationIndex = -1; playing = false; }
-	void SetLoop(bool lp) { loop = lp; }
+    enum class BlendMode
+    {
+        Override,   // 下のレイヤーを上書き（通常）
+        Additive,   // 下のレイヤーに加算
+    };
+
+    struct Condition
+    {
+        std::string   paramName;
+        ConditionMode mode;
+        ParamValue    threshold = 0.0f;
+    };
+
+    struct Transition
+    {
+        int                    toStateIndex = -1;
+        std::vector<Condition> conditions;
+        float                  exitTime = 1.0f;
+        float                  transitionDuration = 0.1f;
+        bool                   hasExitTime = false;
+        int                    priority = 0;
+        bool                   canInterrupt = false;
+    };
+
+    struct State
+    {
+        std::string             name;
+        int                     animationIndex = -1;
+        float                   speed = 1.0f;
+        bool                    loop = true;
+        std::vector<Transition> transitions;
+    };
+
+    // AvatarMask : 適用するノードIndexのセット（空 = 全ノード）
+    struct AvatarMask
+    {
+        std::vector<int> nodes; // 空なら全身
+        bool Contains(int nodeIndex) const
+        {
+            if (nodes.empty()) return true;
+            for (int n : nodes) if (n == nodeIndex) return true;
+            return false;
+        }
+    };
+
+    // レイヤー本体
+    struct AnimatorLayer
+    {
+        std::string  name;
+        float        weight = 1.0f;
+        BlendMode    blendMode = BlendMode::Override;
+        AvatarMask   mask;                     // 空=全身
+
+        // 独立したステートマシン
+        std::vector<State> states;
+        int   currentStateIndex = -1;
+        int   nextStateIndex = -1;
+        float currentTime = 0.0f;
+        float nextTime = 0.0f;
+        float blendTime = 0.0f;
+        float blendDuration = 0.0f;
+        bool  isTransitioning = false;
+    };
+
+    // =========================================================
+    // レイヤー操作
+    // =========================================================
+    // レイヤー追加、追加したレイヤーのIndexを返す
+    int  AddLayer(const std::string& name,
+        BlendMode blendMode = BlendMode::Override,
+        float weight = 1.0f,
+        AvatarMask mask = {});
+
+    void SetLayerWeight(int layerIndex, float weight);
+    void SetLayerMask(int layerIndex, AvatarMask mask);
+    AnimatorLayer& GetLayer(int layerIndex) { return layers[layerIndex]; }
+
+    // =========================================================
+    // ステート操作（レイヤーIndex指定）
+    // =========================================================
+    int  AddState(int layerIndex, const std::string& name,
+        int animationIndex, bool loop = true, float speed = 1.0f);
+
+    int  AddTransition(int layerIndex, int fromState, int toState,
+        float transitionDuration = 0.1f,
+        bool hasExitTime = false, float exitTime = 1.0f,
+        int priority = 0, bool canInterrupt = false);
+
+    void AddCondition(int layerIndex, int fromState, int transitionIndex,
+        const std::string& paramName, ConditionMode mode,
+        ParamValue threshold = 0.0f);
+
+    void SetDefaultState(int layerIndex, int stateIndex);
+
+    const std::string& GetCurrentStateName(int layerIndex = 0) const;
+    int  GetCurrentStateIndex(int layerIndex = 0) const;
+
+    // =========================================================
+    // パラメータ（Animator全体で共有）
+    // =========================================================
+    void AddFloat(const std::string& name, float defaultValue = 0.0f);
+    void AddInt(const std::string& name, int defaultValue = 0);
+    void AddBool(const std::string& name, bool defaultValue = false);
+    void AddTrigger(const std::string& name);
+
+    void SetFloat(const std::string& name, float value);
+    void SetInt(const std::string& name, int value);
+    void SetBool(const std::string& name, bool value);
+    void SetTrigger(const std::string& name);
+
+	float GetFloat(const std::string& name) const { return parameters.find(name) != parameters.end() ? std::get<float>(parameters.at(name)) : 0.0f; }
+    int   GetInt(const std::string& name)   const { return parameters.find(name) != parameters.end() ? std::get<int>(parameters.at(name)) : 0; }
+	bool  GetBool(const std::string& name)  const { return parameters.find(name) != parameters.end() ? std::get<bool>(parameters.at(name)) : false; }
+
+    // =========================================================
+    // 直接再生（ステートマシンを使わない場合）
+    // =========================================================
+    void Play(int layerIndex, int animationIndex, bool loop = true);
+    void Stop(int layerIndex);
 
 private:
-    std::shared_ptr<Model> model = nullptr;
+    bool EvaluateCondition(const Condition& c) const;
+    bool EvaluateTransition(const Transition& t) const;
+    void ResetTriggers();
+    void UpdateLayer(AnimatorLayer& layer, float elapsedTime,
+        std::vector<Model::NodePose>& finalPoses);
+
+    std::shared_ptr<Model> model;
+
+    // レイヤーリスト（追加順に評価）
+    std::vector<AnimatorLayer> layers;
+
+    // Animator全体で共有するパラメータ
+    std::unordered_map<std::string, ParamValue> parameters;
+    std::unordered_map<std::string, bool>       triggers;
 
     std::vector<Model::NodePose> nodePoses;
-
-    float currentTime = 0.0f;
-    int currentAnimationIndex = -1;
-
-    bool playing = false;
-    bool loop = true;
-    float speed = 1.0f;
+    std::vector<Model::NodePose> nextNodePoses;
 };

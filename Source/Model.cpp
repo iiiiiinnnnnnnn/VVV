@@ -449,6 +449,9 @@ int Model::GetAnimationIndex(const char* name) const
 			return static_cast<int>(animationIndex);
 		}
 	}
+	char buffer[256];
+	sprintf_s(buffer, "animation not found: %s", name);
+	_ASSERT(buffer);
 	return -1;
 }
 

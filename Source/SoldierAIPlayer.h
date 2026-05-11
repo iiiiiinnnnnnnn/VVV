@@ -13,9 +13,6 @@ public:
         Combat,   // í“¬
     };
 
-    float GetMoveX() override;
-    float GetMoveZ() override;
-
 private:
     void UpdateFollow();
     void UpdateScout();

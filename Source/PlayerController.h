@@ -9,5 +9,6 @@ public:
     virtual float GetMoveX() = 0;
     virtual float GetMoveZ() = 0;
     virtual bool GetJump() = 0;
-    virtual bool GetAttack() = 0;
+    virtual bool GetShoot() = 0;
+    virtual bool GetReload() = 0;
 };
