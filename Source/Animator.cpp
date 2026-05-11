@@ -74,6 +74,7 @@ void Animator::AddCondition(int li, int from, int ti,
 void Animator::SetDefaultState(int li, int stateIndex)
 {
     auto& layer = layers[li];
+    layer.defaultStateIndex = stateIndex;
     layer.currentStateIndex = stateIndex;
     layer.currentTime = 0.0f;
 }
@@ -245,8 +246,9 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
 
                 if (!layer.isTransitioning)
                 {
+                    // 遷移完了時
                     layer.currentStateIndex = layer.nextStateIndex;
-                    layer.currentTime = 0.0f;
+                    layer.currentTime = layer.nextTime;
                     layer.nextStateIndex = -1;
                 }
                 break;

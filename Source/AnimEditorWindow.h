@@ -145,6 +145,10 @@ private:
     };
     SelectedTransition selectedTrans;
 
+    // 選択中のステート
+    struct SelectedState { int layerIndex = -1; int stateIndex = -1; };
+    SelectedState selectedState;
+
     // ノードの初期配置オフセット (初回のみ使う)
     std::unordered_map<int /*nodeId*/, bool> positionSet;
 
@@ -152,6 +156,8 @@ private:
     ImVec2 m_canvasMousePos = { 0.0f, 0.0f };
     bool   m_pendingNodePlace = false;
     int    m_pendingNodeSi = -1;
+    ed::NodeId m_deleteNodeId;
+    ed::LinkId m_deleteLinkId;
 
     // -------------------------------------------------------------------
     // ID ヘルパー
@@ -185,6 +191,8 @@ private:
         ImGui::Separator();
         if (selectedTrans.layerIndex == li)
             DrawTransitionDetail(layer);
+        else if (selectedState.layerIndex == li)
+            DrawStateDetail(layer, li);
         ImGui::PopID();
 
         ImGui::EndChild();
@@ -192,12 +200,20 @@ private:
 
         ed::SetCurrentEditor(context);
         ed::Begin("NodeEditor", ImVec2(0, 0));
-
         m_canvasMousePos = ImGui::GetMousePos();
+        if (m_deleteNodeId)
+        {
+            ed::DeleteNode(m_deleteNodeId);
+            m_deleteNodeId = ed::NodeId();
+        }
+        if (m_deleteLinkId)
+        {
+            ed::DeleteLink(m_deleteLinkId);
+            m_deleteLinkId = ed::LinkId();
+        }
         DrawNodes(layer, li);
         DrawLinks(layer, li);
         HandleInteractions(layer, li);
-
         ed::End();
         ed::SetCurrentEditor(nullptr);
     }
@@ -251,18 +267,12 @@ private:
             ImGui::TextUnformatted(state.name.c_str());
             ImGui::PopStyleColor();
 
-            ImGui::TextDisabled("Anim: %d", state.animationIndex);
-
-            char spdId[32], loopId[32];
-            sprintf_s(spdId, "##spd%d_%d", li, si);
-            sprintf_s(loopId, "##loop%d_%d", li, si);
-
-            ImGui::SetNextItemWidth(80.0f);
-            ImGui::DragFloat(spdId, &state.speed, 0.01f, 0.0f, 10.0f, "Spd %.2f");
-            ImGui::SameLine();
-            ImGui::Checkbox(loopId, &state.loop);
-            ImGui::SameLine();
-            ImGui::TextUnformatted("Loop");
+            // アニメ名を表示
+            const auto& anims = animator->GetModel()->GetAnimations();
+            const char* animName = (state.animationIndex >= 0 &&
+                state.animationIndex < (int)anims.size())
+                ? anims[state.animationIndex].name.c_str() : "(none)";
+            ImGui::TextDisabled("%s", animName);
 
             if (isCurrent)
             {
@@ -299,6 +309,12 @@ private:
 
             if (isCurrent || isNext)
                 ax::NodeEditor::PopStyleColor();
+
+            if (ed::IsNodeSelected(nid) && !ImGui::IsMouseDragging(0))
+            {
+                selectedState = { li, si };
+                selectedTrans = {};
+            }
         }
     }
 
@@ -470,11 +486,23 @@ private:
             ImGui::EndPopup();
         }
 
+        if (ImGui::BeginPopup("NodeContextMenu"))
+        {
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("LinkContextMenu"))
+        {
+            ImGui::EndPopup();
+        }
         ed::Resume();
 
         // ---- リンクシングルクリック → 詳細パネルに表示 ---------------
         if (ed::IsBackgroundClicked())
-            selectedTrans = {};   // 背景クリックで選択解除
+        {
+            selectedTrans = {};
+            selectedState = {};
+        }
 
         // ダブルクリックしたリンクを選択
         ed::LinkId clickedLink = ed::GetDoubleClickedLink();
@@ -543,6 +571,61 @@ private:
     }
 
     // -------------------------------------------------------------------
+    // 選択中ステート詳細パネル
+    // -------------------------------------------------------------------
+    void DrawStateDetail(Animator::AnimatorLayer& layer, int li)
+    {
+        int si = selectedState.stateIndex;
+        if (si < 0 || si >= (int)layer.states.size()) return;
+
+        Animator::State& state = layer.states[si];
+        const auto& anims = animator->GetModel()->GetAnimations();
+
+        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "State");
+        ImGui::Separator();
+
+        // ステート名
+        char nameBuf[128];
+        strncpy_s(nameBuf, state.name.c_str(), sizeof(nameBuf));
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputText("##statename", nameBuf, sizeof(nameBuf)))
+            state.name = nameBuf;
+
+        ImGui::Spacing();
+
+        // アニメーション選択
+        const char* currentAnimName = (state.animationIndex >= 0 &&
+            state.animationIndex < (int)anims.size())
+            ? anims[state.animationIndex].name.c_str() : "(none)";
+
+        ImGui::Text("Animation");
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::BeginCombo("##anim", currentAnimName))
+        {
+            for (int ai = 0; ai < (int)anims.size(); ++ai)
+            {
+                bool sel = (state.animationIndex == ai);
+                if (ImGui::Selectable(anims[ai].name.c_str(), sel))
+                    state.animationIndex = ai;
+                if (sel) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Spacing();
+        ImGui::DragFloat("Speed", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
+        ImGui::Checkbox("Loop", &state.loop);
+
+        ImGui::Spacing();
+        bool isDefault = (layer.defaultStateIndex == si);
+        if (isDefault)
+            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "* Default State");
+        else
+            if (ImGui::Button("Set as Default"))
+                animator->SetDefaultState(li, si);
+    }
+
+    // -------------------------------------------------------------------
     // 選択中トランジション詳細パネル
     // -------------------------------------------------------------------
     void DrawTransitionDetail(Animator::AnimatorLayer& layer)
@@ -562,7 +645,7 @@ private:
         ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
         ImGui::Separator();
 
-        ImGui::DragFloat("Duration",  &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
+        ImGui::DragFloat("Blend Duration", &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
         ImGui::Checkbox("Has Exit Time", &tr.hasExitTime);
         if (tr.hasExitTime)
             ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);

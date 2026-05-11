@@ -82,6 +82,7 @@ public:
 
         // 独立したステートマシン
         std::vector<State> states;
+        int   defaultStateIndex = 0;
         int   currentStateIndex = -1;
         int   nextStateIndex = -1;
         float currentTime = 0.0f;
