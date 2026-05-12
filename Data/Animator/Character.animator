@@ -1,0 +1,225 @@
+{
+    "layers": [
+        {
+            "blendMode": 0,
+            "defaultState": 0,
+            "mask": [],
+            "name": "Base",
+            "states": [
+                {
+                    "animationIndex": 2,
+                    "loop": true,
+                    "name": "Idle",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 38,
+                    "loop": true,
+                    "name": "Walk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 34,
+                    "loop": true,
+                    "name": "Run",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                }
+            ],
+            "weight": 1.0
+        },
+        {
+            "blendMode": 0,
+            "defaultState": 0,
+            "mask": [
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18
+            ],
+            "name": "Upper",
+            "states": [
+                {
+                    "animationIndex": 2,
+                    "loop": true,
+                    "name": "Idle",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "shoot",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 10,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.05000000074505806
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "reload",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 10,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.05000000074505806
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 4,
+                    "loop": false,
+                    "name": "Shoot",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 0.949999988079071,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 3,
+                    "loop": false,
+                    "name": "Reload",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 0.949999988079071,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [
+        {
+            "name": "speed",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "isCrouching",
+            "type": "bool",
+            "value": false
+        }
+    ],
+    "triggers": [
+        "shoot",
+        "reload"
+    ]
+}

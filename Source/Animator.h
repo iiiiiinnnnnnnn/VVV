@@ -116,6 +116,8 @@ public:
     void SetLayerWeight(int layerIndex, float weight);
     void SetLayerMask(int layerIndex, AvatarMask mask);
     AnimatorLayer& GetLayer(int layerIndex) { return layers[layerIndex]; }
+    void RemoveLayer(int layerIndex);
+    void SwapLayers(int a, int b);
 
     // =========================================================
     // ステート操作（レイヤーIndex指定）
@@ -160,8 +162,9 @@ public:
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
-    bool Save(const std::string& path) const;   // AnimatorSerializer::Save を呼ぶ
-    bool Load(const std::string& path);          // AnimatorSerializer::Load を呼ぶ
+    bool Save(const std::string& path);   // AnimatorSerializer::Save を呼ぶ
+    void Load(const std::string& path);   // AnimatorSerializer::Load を呼ぶ
+    const std::string& GetLastPath() const { return m_lastPath; }
 
     void ClearAll()
     {
@@ -191,6 +194,7 @@ private:
     std::vector<Model::NodePose> nodePoses;
     std::vector<Model::NodePose> nextNodePoses;
 
+    std::string m_lastPath;
     std::unique_ptr<AnimEditorWindow> animEditor;
     bool animEditorOpen = false;
 };

@@ -42,10 +42,17 @@ public:
     {
         if (!pOpen || !*pOpen) return;
 
+        // cpp側からロードされた場合、パスを同期
+        if (!animator->GetLastPath().empty() &&
+            m_currentFilePath[0] == '\0')
+        {
+            strcpy_s(m_currentFilePath, animator->GetLastPath().c_str());
+        }
+
         ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("Animator Editor", pOpen,
-                          ImGuiWindowFlags_NoScrollbar |
-                          ImGuiWindowFlags_NoScrollWithMouse))
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse))
         {
             ImGui::End();
             return;
@@ -100,7 +107,7 @@ public:
                 "Open Animator") == DialogResult::OK)
             {
                 strcpy_s(m_currentFilePath, buf);
-                if (animator->Load(m_currentFilePath))
+                animator->Load(m_currentFilePath);
                 {
                     positionSet.clear();
                     selectedTrans = {};
@@ -112,36 +119,89 @@ public:
         ImGui::TextDisabled(m_currentFilePath[0] ? m_currentFilePath : "(unsaved)");
         ImGui::Separator();
 
+        // ---- レイヤータブ + 管理ボタン ---------------------------------
         if (ImGui::BeginTabBar("Layers"))
         {
             for (int li = 0; li < layerCount; ++li)
             {
                 Animator::AnimatorLayer& layer = animator->GetLayer(li);
-                if (ImGui::BeginTabItem(layer.name.c_str()))
+                char tabLabel[80];
+                sprintf_s(tabLabel, "%s##tab%d", layer.name.c_str(), li);
+                bool tabOpen = ImGui::BeginTabItem(tabLabel);
+                if (tabOpen)
                 {
                     currentLayer = li;
                     DrawLayerEditor(layer, li);
                     ImGui::EndTabItem();
                 }
             }
+
+            // + ボタンでレイヤー追加
+            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing))
+                animator->AddLayer("New Layer", Animator::BlendMode::Override, 1.0f, {});
+
             ImGui::EndTabBar();
+        }
+
+        // ---- レイヤー追加モーダル ---------------------------------------
+        ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Always);
+        if (ImGui::BeginPopupModal("AddLayerModal", nullptr,
+            ImGuiWindowFlags_NoResize))
+        {
+            ImGui::Text("Layer Name:");
+            ImGui::SetNextItemWidth(-1.0f);
+            ImGui::InputText("##layername", m_addLayerName, sizeof(m_addLayerName));
+
+            ImGui::Spacing();
+            ImGui::Text("Bone Mask (unchecked = all bones):");
+            ImGui::Separator();
+
+            const auto& nodes = animator->GetModel()->GetNodes();
+            ImGui::BeginChild("BoneList", ImVec2(0, 300), true);
+            for (int ni = 0; ni < (int)nodes.size(); ++ni)
+            {
+                if (ni >= (int)m_maskSelection.size())
+                    m_maskSelection.resize(ni + 1, false);
+                ImGui::PushID(ni);
+                bool bsel = m_maskSelection[ni];
+                if (ImGui::Checkbox(nodes[ni].name.c_str(), &bsel))
+                    m_maskSelection[ni] = bsel;
+                ImGui::PopID();
+            }
+            ImGui::EndChild();
+
+            ImGui::Spacing();
+            if (ImGui::Button("Add", ImVec2(120, 0)))
+            {
+                Animator::AvatarMask mask;
+                for (int ni = 0; ni < (int)m_maskSelection.size(); ++ni)
+                    if (m_maskSelection[ni]) mask.nodes.push_back(ni);
+                animator->AddLayer(m_addLayerName,
+                    Animator::BlendMode::Override, 1.0f, mask);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                ImGui::CloseCurrentPopup();
+
+            ImGui::EndPopup();
         }
 
         ImGui::End();
     }
 
 private:
-    Animator*    animator     = nullptr;
+    Animator* animator = nullptr;
     ed::EditorContext* context = nullptr;
-    int          currentLayer  = 0;
+    int          currentLayer = 0;
     char m_currentFilePath[MAX_PATH] = {};
 
     // 選択中のリンク (遷移) を覚えておくための情報
     struct SelectedTransition
     {
-        int layerIndex     = -1;
+        int layerIndex = -1;
         int fromStateIndex = -1;
-        int transIndex     = -1;
+        int transIndex = -1;
     };
     SelectedTransition selectedTrans;
 
@@ -158,6 +218,14 @@ private:
     int    m_pendingNodeSi = -1;
     ed::NodeId m_deleteNodeId;
     ed::LinkId m_deleteLinkId;
+
+    float  m_leftPanelWidth = 230.0f;  // 左パネル幅（ドラッグで変更可能）
+
+    // レイヤー追加用マスク選択
+    bool                m_addLayerPopupOpen = false;
+    char                m_addLayerName[64]  = "New Layer";
+    std::vector<bool>   m_maskSelection;      // ボーンごとの選択状態
+    int                 m_contextLayerIndex = -1; // 右クリックしたタブのレイヤーIndex
 
     // -------------------------------------------------------------------
     // ID ヘルパー
@@ -184,18 +252,37 @@ private:
     // -------------------------------------------------------------------
     void DrawLayerEditor(Animator::AnimatorLayer& layer, int li)
     {
-        ImGui::BeginChild("LeftPanel", ImVec2(230.0f, 0), true);
+        ImGui::BeginChild("LeftPanel", ImVec2(m_leftPanelWidth, 0), true);
 
         ImGui::PushID(li);
-        DrawParameterPanel();
-        ImGui::Separator();
         if (selectedTrans.layerIndex == li)
             DrawTransitionDetail(layer);
         else if (selectedState.layerIndex == li)
             DrawStateDetail(layer, li);
+        else
+        {
+            DrawLayerSettings(layer, li);
+            ImGui::Separator();
+            DrawParameterPanel();
+        }
         ImGui::PopID();
 
         ImGui::EndChild();
+
+        // スプリッタ（ドラッグで左パネル幅を変更）
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.3f,0.3f,0.3f,0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f,0.5f,0.5f,0.8f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.6f,0.6f,0.6f,1.0f));
+        ImGui::Button("##splitter", ImVec2(4.0f, -1.0f));
+        ImGui::PopStyleColor(3);
+        if (ImGui::IsItemActive())
+        {
+            m_leftPanelWidth += ImGui::GetIO().MouseDelta.x;
+            m_leftPanelWidth = std::clamp(m_leftPanelWidth, 150.0f, 500.0f);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         ImGui::SameLine();
 
         ed::SetCurrentEditor(context);
@@ -334,18 +421,18 @@ private:
 
                 // 選択中は色を変える
                 bool isSelected =
-                    (selectedTrans.layerIndex     == li &&
-                     selectedTrans.fromStateIndex == si &&
-                     selectedTrans.transIndex     == ti);
+                    (selectedTrans.layerIndex == li &&
+                        selectedTrans.fromStateIndex == si &&
+                        selectedTrans.transIndex == ti);
 
                 ImVec4 col = isSelected
                     ? ImVec4(1.0f, 0.8f, 0.0f, 1.0f)
                     : ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
 
                 ed::Link(LinkId(li, si, ti),
-                         OutPin(li, si),
-                         InPin(li, tr.toStateIndex),
-                         col, 2.0f);
+                    OutPin(li, si),
+                    InPin(li, tr.toStateIndex),
+                    col, 2.0f);
             }
         }
     }
@@ -365,7 +452,7 @@ private:
                 {
                     // ピンIDから stateIndex を逆引き
                     int fromSi = DecodeOutPin(li, startPin);
-                    int toSi   = DecodeInPin(li, endPin);
+                    int toSi = DecodeInPin(li, endPin);
 
                     if (fromSi >= 0 && toSi >= 0 && fromSi != toSi)
                     {
@@ -374,11 +461,11 @@ private:
                         for (const auto& t : layer.states[fromSi].transitions)
                             if (t.toStateIndex == toSi) { exists = true; break; }
 
-                        if (!exists && ed::AcceptNewItem(ImVec4(0.2f,0.8f,0.2f,1), 2.0f))
+                        if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1), 2.0f))
                         {
                             // 遷移追加
                             animator->AddTransition(li, fromSi, toSi,
-                                                    0.1f, false, 1.0f, 0, false);
+                                0.1f, false, 1.0f, 0, false);
                             // 選択状態に
                             selectedTrans = { li, fromSi,
                                 (int)layer.states[fromSi].transitions.size() - 1 };
@@ -386,7 +473,7 @@ private:
                     }
                     else
                     {
-                        ed::RejectNewItem(ImVec4(1,0,0,1), 2.0f);
+                        ed::RejectNewItem(ImVec4(1, 0, 0, 1), 2.0f);
                     }
                 }
             }
@@ -405,7 +492,7 @@ private:
                     DecodeLinkId(delLink, dli, dfrom, dti);
                     if (dli == li &&
                         dfrom < (int)layer.states.size() &&
-                        dti   < (int)layer.states[dfrom].transitions.size())
+                        dti < (int)layer.states[dfrom].transitions.size())
                     {
                         layer.states[dfrom].transitions.erase(
                             layer.states[dfrom].transitions.begin() + dti);
@@ -452,29 +539,17 @@ private:
         ed::EndDelete();
 
         bool openContextMenu = false;
-        bool openNodeContextMenu = false;
-        bool openLinkContextMenu = false;
-        ed::NodeId contextNodeId;
-        ed::LinkId contextLinkId;
+        ed::NodeId contextNodeId;  // 将来のノードメニュー用
 
         if (ed::ShowBackgroundContextMenu())
         {
             openContextMenu = true;
             m_contextMenuPos = m_canvasMousePos;
         }
-        if (ed::ShowNodeContextMenu(&contextNodeId))
-        {
-            openNodeContextMenu = true;
-        }
-        if (ed::ShowLinkContextMenu(&contextLinkId))
-        {
-            openLinkContextMenu = true;
-        }
+        // ノード・リンクのコンテキストメニューは現在未使用
 
         ed::Suspend();
-        if (openContextMenu)      ImGui::OpenPopup("BackgroundContextMenu");
-        if (openNodeContextMenu)  ImGui::OpenPopup("NodeContextMenu");
-        if (openLinkContextMenu)  ImGui::OpenPopup("LinkContextMenu");
+        if (openContextMenu) ImGui::OpenPopup("BackgroundContextMenu");
 
         if (ImGui::BeginPopup("BackgroundContextMenu"))
         {
@@ -486,15 +561,7 @@ private:
             ImGui::EndPopup();
         }
 
-        if (ImGui::BeginPopup("NodeContextMenu"))
-        {
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("LinkContextMenu"))
-        {
-            ImGui::EndPopup();
-        }
+        // NodeContextMenu / LinkContextMenu は現在メニュー項目なし → 表示しない
         ed::Resume();
 
         // ---- リンクシングルクリック → 詳細パネルに表示 ---------------
@@ -508,8 +575,8 @@ private:
         ed::LinkId clickedLink = ed::GetDoubleClickedLink();
         if (clickedLink ||
             (ImGui::IsMouseClicked(0) &&
-             ed::GetHoveredLink().Get() != 0 &&
-             (clickedLink = ed::GetHoveredLink(), true)))
+                ed::GetHoveredLink().Get() != 0 &&
+                (clickedLink = ed::GetHoveredLink(), true)))
         {
             int dli, dfrom, dti;
             DecodeLinkId(clickedLink, dli, dfrom, dti);
@@ -525,7 +592,7 @@ private:
     {
         ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "Parameters");
 
-        const auto& params   = animator->GetParameters();
+        const auto& params = animator->GetParameters();
         const auto& triggers = animator->GetTriggers();
 
         for (const auto& [name, val] : params)
@@ -562,11 +629,79 @@ private:
             ImGui::PushID(("trigger_" + name).c_str());
             ImGui::PushStyleColor(ImGuiCol_Button,
                 fired ? ImVec4(0.8f, 0.3f, 0.1f, 1.0f)
-                      : ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+                : ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
             if (ImGui::Button(name.c_str(), ImVec2(80, 0)))
                 animator->SetTrigger(name);
             ImGui::PopStyleColor();
             ImGui::PopID();
+        }
+    }
+
+    // -------------------------------------------------------------------
+    // レイヤー設定パネル（常時表示）
+    // -------------------------------------------------------------------
+    void DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
+    {
+        ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Layer Settings");
+
+        // レイヤー名
+        char nameBuf[64];
+        strncpy_s(nameBuf, layer.name.c_str(), sizeof(nameBuf));
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputText("##layername", nameBuf, sizeof(nameBuf)))
+            layer.name = nameBuf;
+
+        // Weight
+        ImGui::TextDisabled("Weight");
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::DragFloat("##weight", &layer.weight, 0.01f, 0.0f, 1.0f, "%.2f");
+
+        // BlendMode
+        ImGui::TextDisabled("Blend Mode");
+        const char* blendModes[] = { "Override", "Additive" };
+        int bm = (int)layer.blendMode;
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::Combo("##blendmode", &bm, blendModes, 2))
+            layer.blendMode = (Animator::BlendMode)bm;
+
+        // ボーンマスク
+        ImGui::Spacing();
+        ImGui::TextDisabled("Bone Mask");
+        const auto& nodes = animator->GetModel()->GetNodes();
+        ImGui::BeginChild("BoneMask", ImVec2(0, 120), true);
+        for (int ni = 0; ni < (int)nodes.size(); ++ni)
+        {
+            ImGui::PushID(ni);
+            bool inMask = layer.mask.Contains(ni) && !layer.mask.nodes.empty();
+            if (ImGui::Checkbox(nodes[ni].name.c_str(), &inMask))
+            {
+                if (inMask)
+                {
+                    // 追加
+                    if (std::find(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni)
+                        == layer.mask.nodes.end())
+                        layer.mask.nodes.push_back(ni);
+                }
+                else
+                {
+                    // 削除
+                    layer.mask.nodes.erase(
+                        std::remove(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni),
+                        layer.mask.nodes.end());
+                }
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+
+        // レイヤー削除（2つ以上あるとき）
+        if (animator->GetLayerCount() > 1)
+        {
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
+            if (ImGui::Button("Delete Layer", ImVec2(-1, 0)))
+                animator->RemoveLayer(li);
+            ImGui::PopStyleColor();
         }
     }
 
@@ -637,11 +772,11 @@ private:
 
         Animator::Transition& tr = layer.states[si].transitions[ti];
         const std::string& fromName = layer.states[si].name;
-        const std::string& toName   =
+        const std::string& toName =
             (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
             ? layer.states[tr.toStateIndex].name : "???";
 
-        ImGui::TextColored(ImVec4(1,0.8f,0.2f,1), "Transition");
+        ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Transition");
         ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
         ImGui::Separator();
 
@@ -653,9 +788,9 @@ private:
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.8f,0.8f,1,1), "Conditions");
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 1, 1), "Conditions");
 
-        const auto& params   = animator->GetParameters();
+        const auto& params = animator->GetParameters();
         const auto& triggers = animator->GetTriggers();
 
         // 条件一覧
@@ -665,6 +800,7 @@ private:
             ImGui::PushID(ci);
 
             // パラメータ名コンボ
+            ImGui::SetNextItemWidth(100.0f);
             if (ImGui::BeginCombo("##param", c.paramName.c_str()))
             {
                 for (const auto& [n, v] : params)
@@ -727,8 +863,8 @@ private:
 
             // しきい値 (Trigger/Bool 以外)
             if (c.mode == Animator::ConditionMode::Greater ||
-                c.mode == Animator::ConditionMode::Less    ||
-                c.mode == Animator::ConditionMode::Equals  ||
+                c.mode == Animator::ConditionMode::Less ||
+                c.mode == Animator::ConditionMode::Equals ||
                 c.mode == Animator::ConditionMode::NotEquals)
             {
                 ImGui::SameLine();
@@ -772,8 +908,10 @@ private:
         {
             Animator::Condition newC;
             if (!params.empty())   newC.paramName = params.begin()->first;
-            else if (!triggers.empty()) { newC.paramName = triggers.begin()->first;
-                                          newC.mode = Animator::ConditionMode::Trigger; }
+            else if (!triggers.empty()) {
+                newC.paramName = triggers.begin()->first;
+                newC.mode = Animator::ConditionMode::Trigger;
+            }
             tr.conditions.push_back(newC);
         }
     }

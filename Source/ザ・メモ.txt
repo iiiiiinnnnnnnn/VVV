@@ -383,72 +383,7 @@
 //
 //	ImGui::End();
 //}
-//
-//// アニメーションGUI描画
-//void ModelViewerScene::DrawAnimationGUI()
-//{
-//	//if (ImGui::Begin("Animation", nullptr, ImGuiWindowFlags_None))
-//	//{
-//	//	ImGui::Checkbox("Loop", &animationLoop); ImGui::SameLine();
-//	//	ImGui::SetNextItemWidth(70);
-//	//	ImGui::InputFloat("SamplingRate", &animationSamplingRate);
-//	//	ImGui::DragFloat("BlendSeconds", &animationBlendSeconds, 0.01f);
-//
-//	//	if (model != nullptr)
-//	//	{
-//	//		float secondsLength = currentAnimationIndex >= 0 ? model->GetAnimations().at(currentAnimationIndex).secondsLength : 0;
-//	//		int currentFrame = static_cast<int>(currentAnimationSeconds * 60.0f);
-//	//		int frameLength = static_cast<int>(secondsLength * 60);
-//
-//	//		ImGui::SetNextItemWidth(50);
-//	//		ImGui::PushID(u8"フレーム");
-//	//		if (ImGui::DragInt("##v", &currentFrame, 1, 0, frameLength))
-//	//		{
-//	//			animationPlaying = true;
-//	//			currentAnimationSeconds = currentFrame / 60.0f;
-//	//			animationSpeed = 0.0f;
-//	//		}
-//	//		ImGui::PopID();
-//
-//	//		ImGui::SameLine();
-//	//		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-//	//		ImGui::PushID(u8"タイムライン");
-//	//		if (ImGui::SliderFloat("##v", &currentAnimationSeconds, 0, secondsLength, "%.3f"))
-//	//		{
-//	//			animationPlaying = true;
-//	//			animationSpeed = 0.0f;
-//	//		}
-//	//		ImGui::PopID();
-//
-//	//		int index = 0;
-//	//		for (const Model::Animation& animation : model->GetAnimations())
-//	//		{
-//	//			ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_Leaf;
-//
-//	//			ImGui::TreeNodeEx(&animation, nodeFlags, animation.name.c_str());
-//
-//	//			// ダブルクリックでアニメーション再生
-//	//			if (ImGui::IsItemClicked())
-//	//			{
-//	//				if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-//	//				{
-//	//					animationPlaying = true;
-//	//					currentAnimationIndex = index;
-//	//					currentAnimationSeconds = 0.0f;
-//	//					animationSpeed = 1.0f;
-//	//				}
-//	//			}
-//
-//	//			ImGui::TreePop();
-//
-//	//			index++;
-//	//		}
-//	//	}
-//	//}
-//
-//	//ImGui::End();
-//}
-//
+
 //// マテリアルGUI描画
 //void ModelViewerScene::DrawMaterialGUI()
 //{
@@ -492,3 +427,65 @@
 //
 //	ImGui::End();
 //}
+
+
+
+	// AvatarMask定義
+	Animator::AvatarMask fullBody = {};  // 空=全身
+	Animator::AvatarMask upperBody = { { 4,5,6,7, 8,9,10,11,12, 13,14,15,16,17, 18 } };
+
+	// レイヤー追加
+	int lBase = anim->AddLayer("Base", Animator::BlendMode::Override, 1.0f, fullBody);
+	int lUpper = anim->AddLayer("Upper", Animator::BlendMode::Override, 1.0f, upperBody);
+
+	// パラメータ（全レイヤーで共有）
+	anim->AddFloat("speed");
+	anim->AddBool("isCrouching");
+	anim->AddTrigger("shoot");
+	anim->AddTrigger("reload");
+
+	// --- Base レイヤー ---
+	int bIdle = anim->AddState(lBase, "Idle", ANIM("infantry_combat_idle"), true);
+	int bWalk = anim->AddState(lBase, "Walk", ANIM("infantry_combat_walk"), true);
+	int bRun = anim->AddState(lBase, "Run", ANIM("infantry_combat_run"), true);
+
+	// Idle → Walk
+	int t0 = anim->AddTransition(lBase, bIdle, bWalk, 0.1f);
+	anim->AddCondition(lBase, bIdle, t0, "speed", Animator::ConditionMode::Greater, 0.1f);
+
+	// Walk → Idle
+	int t1 = anim->AddTransition(lBase, bWalk, bIdle, 0.1f);
+	anim->AddCondition(lBase, bWalk, t1, "speed", Animator::ConditionMode::Less, 0.1f);
+
+	// Walk → Run
+	int t2 = anim->AddTransition(lBase, bWalk, bRun, 0.1f);
+	anim->AddCondition(lBase, bWalk, t2, "speed", Animator::ConditionMode::Greater, 0.8f);
+
+	// Run → Walk
+	int t3 = anim->AddTransition(lBase, bRun, bWalk, 0.1f);
+	anim->AddCondition(lBase, bRun, t3, "speed", Animator::ConditionMode::Less, 0.8f);
+
+	// Run → Idle
+	int t4 = anim->AddTransition(lBase, bRun, bIdle, 0.1f);
+	anim->AddCondition(lBase, bRun, t4, "speed", Animator::ConditionMode::Less, 0.1f);
+
+	anim->SetDefaultState(lBase, bIdle);
+
+	// --- Upper レイヤー ---
+	int uIdle = anim->AddState(lUpper, "Idle", ANIM("infantry_combat_idle"), true);
+	int uShoot = anim->AddState(lUpper, "Shoot", ANIM("infantry_combat_shoot"), false);
+	int uReload = anim->AddState(lUpper, "Reload", ANIM("infantry_combat_reload"), false);
+
+	// Idle → Shoot/Reload
+	int t5 = anim->AddTransition(lUpper, uIdle, uShoot, 0.05f, false, 1.0f, 10);
+	anim->AddCondition(lUpper, uIdle, t5, "shoot", Animator::ConditionMode::Trigger);
+
+	// Idle → Shoot/Reload
+	int t6 = anim->AddTransition(lUpper, uIdle, uReload, 0.05f, false, 1.0f, 10);
+	anim->AddCondition(lUpper, uIdle, t6, "reload", Animator::ConditionMode::Trigger);
+
+	// Shoot/Reload → Idle はアニメ終端で戻る
+	int t7 = anim->AddTransition(lUpper, uShoot, uIdle, 0.1f, true, 0.95f);
+	int t8 = anim->AddTransition(lUpper, uReload, uIdle, 0.1f, true, 0.95f);
+
+	anim->SetDefaultState(lUpper, uIdle);
