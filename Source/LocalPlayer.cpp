@@ -5,29 +5,37 @@
 
 float LocalPlayer::GetMoveX()
 {
-	if (Input::IsFocusedWindow()) {
-		float axisLX = Input::Instance().GetGamePad().GetAxisLX();
-		return axisLX;
-	}
-	else {
-		return 0.0f;
-	}
+	if (!Input::IsFocusedWindow()) return 0.0f;
+
+	float axisLX = Input::Instance().GetGamePad().GetAxisLX();
+	return axisLX;
 }
 
 float LocalPlayer::GetMoveZ()
 {
-	if (Input::IsFocusedWindow()) {
-		float axisLY = Input::Instance().GetGamePad().GetAxisLY();
-		return axisLY;
-	}
-	else {
-		return 0.0f;
-	}
+	if (!Input::IsFocusedWindow()) return 0.0f;
+
+	float axisLY = Input::Instance().GetGamePad().GetAxisLY();
+	return axisLY;
 }
 
 bool LocalPlayer::GetJump()
 {
 	return false;
+}
+
+bool LocalPlayer::GetCrouch()
+{
+	return false;
+}
+
+bool LocalPlayer::GetReady()
+{
+	if (!Input::IsFocusedWindow()) return false;
+
+	bool ready = Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT;
+	ready |= (Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
+	return ready;
 }
 
 bool LocalPlayer::GetShoot()

@@ -36,7 +36,7 @@ public:
     struct Condition
     {
         std::string   paramName;
-        ConditionMode mode;
+        ConditionMode mode = ConditionMode::IsTrue;
         ParamValue    threshold = 0.0f;
     };
 
@@ -100,6 +100,9 @@ public:
 
     const std::unordered_map<std::string, ParamValue>& GetParameters() const { return parameters; }
     const std::unordered_map<std::string, bool>&       GetTriggers()   const { return triggers; }
+    // エディタ用：直接削除できるよう非const参照を返す
+    std::unordered_map<std::string, ParamValue>& GetParameters_Mutable() { return parameters; }
+    std::unordered_map<std::string, bool>&       GetTriggers_Mutable()   { return triggers; }
 
     // モデルへのアクセス (進捗バー描画用)
     std::shared_ptr<Model> GetModel() const { return model; }
@@ -118,6 +121,7 @@ public:
     AnimatorLayer& GetLayer(int layerIndex) { return layers[layerIndex]; }
     void RemoveLayer(int layerIndex);
     void SwapLayers(int a, int b);
+    void DuplicateLayer(int layerIndex);
 
     // =========================================================
     // ステート操作（レイヤーIndex指定）

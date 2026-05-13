@@ -157,6 +157,15 @@ public:
 		Vector3    position = Vector3::Zero;
 		Quaternion rotation = Quaternion::Identity;
 		Vector3    scale = Vector3::One;
+
+		NodePose Lerp(const NodePose& other, float t) const
+		{
+			NodePose result;
+			result.position = Vector3::Lerp(position, other.position, t);
+			result.rotation = Quaternion::Slerp(rotation, other.rotation, t);
+			result.scale = Vector3::Lerp(scale, other.scale, t);
+			return result;
+		}
 	};
 
 	// アニメーション追加読み込み

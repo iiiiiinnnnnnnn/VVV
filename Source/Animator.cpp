@@ -37,6 +37,19 @@ void Animator::SwapLayers(int a, int b)
     std::swap(layers[a], layers[b]);
 }
 
+void Animator::DuplicateLayer(int layerIndex)
+{
+    AnimatorLayer copy = layers[layerIndex];
+    copy.name += " (Copy)";
+    // ランタイム状態はリセット
+    copy.currentStateIndex = copy.defaultStateIndex;
+    copy.currentTime = 0.0f;
+    copy.isTransitioning = false;
+    copy.nextStateIndex = -1;
+    copy.blendTime = 0.0f;
+    layers.insert(layers.begin() + layerIndex + 1, std::move(copy));
+}
+
 // =========================================================
 // ステート操作
 // =========================================================
@@ -182,7 +195,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         else               layer.currentTime = curAnim.secondsLength;
     }
 
-    // このレイヤーのポーズ計算
+    // cur ポーズ計算
     model->ComputeAnimation(curState.animationIndex, layer.currentTime, nodePoses);
 
     // トランジション中はブレンド
@@ -202,39 +215,39 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
 
         layer.blendTime += elapsedTime;
         float w = layer.blendDuration > 0.0f ? layer.blendTime / layer.blendDuration : 1.0f;
+        if (w > 1.0f) w = 1.0f;
+
+        // cur(w=0) → nxt(w=1) でブレンド（w=1 でも必ずブレンドしてから完了判定）
+        for (size_t i = 0; i < nodePoses.size(); ++i)
+        {
+            nodePoses[i] = nodePoses[i].Lerp(nextNodePoses[i], w);
+        }
 
         if (w >= 1.0f)
         {
-            // 遷移完了
+            // ブレンド済みポーズのまま遷移完了
             layer.currentStateIndex = layer.nextStateIndex;
-            layer.currentTime = layer.nextTime;
-            layer.nextStateIndex = -1;
-            layer.isTransitioning = false;
-            layer.blendTime = 0.0f;
+            layer.currentTime       = layer.nextTime;
+            layer.nextStateIndex    = -1;
+            layer.isTransitioning   = false;
+            layer.blendTime         = 0.0f;
         }
         else
         {
-            // cur と nxt をブレンド
-            for (size_t i = 0; i < nodePoses.size(); ++i)
+            // 割り込みチェック（canInterrupt なトランジションが成立したら nxt を差し替え）
+            for (const Transition& tr : curState.transitions)
             {
-                nodePoses[i].position = Vector3::Lerp(nodePoses[i].position, nextNodePoses[i].position, w);
-                nodePoses[i].rotation = Quaternion::Slerp(nodePoses[i].rotation, nextNodePoses[i].rotation, w);
-                nodePoses[i].scale = Vector3::Lerp(nodePoses[i].scale, nextNodePoses[i].scale, w);
-            }
-        }
-
-        // 割り込みチェック
-        for (const Transition& tr : curState.transitions)
-        {
-            if (!tr.canInterrupt) continue;
-            if (tr.toStateIndex == layer.nextStateIndex) continue;
-            if (EvaluateTransition(tr))
-            {
-                layer.nextStateIndex = tr.toStateIndex;
-                layer.nextTime = 0.0f;
-                layer.blendTime = 0.0f;
-                layer.blendDuration = tr.transitionDuration;
-                break;
+                if (!tr.canInterrupt) continue;
+                if (tr.toStateIndex == layer.nextStateIndex) continue;
+                if (EvaluateTransition(tr))
+                {
+                    layer.nextStateIndex  = tr.toStateIndex;
+                    layer.nextTime        = 0.0f;
+                    layer.blendTime       = 0.0f;
+                    layer.blendDuration   = tr.transitionDuration;
+                    // isTransitioning は既に true なので変更不要
+                    break;
+                }
             }
         }
     }
@@ -246,20 +259,20 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
 
         for (const Transition& tr : curState.transitions)
         {
-            if (tr.hasExitTime&& normalizedTime < tr.exitTime) continue;
+            if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
             if (EvaluateTransition(tr))
             {
-                layer.nextStateIndex = tr.toStateIndex;
-                layer.nextTime = 0.0f;
-                layer.blendTime = 0.0f;
-                layer.blendDuration = tr.transitionDuration;
+                layer.nextStateIndex  = tr.toStateIndex;
+                layer.nextTime        = 0.0f;
+                layer.blendTime       = 0.0f;
+                layer.blendDuration   = tr.transitionDuration;
                 layer.isTransitioning = tr.transitionDuration > 0.0f;
 
                 if (!layer.isTransitioning)
                 {
                     layer.currentStateIndex = layer.nextStateIndex;
-                    layer.currentTime = 0.0f;
-                    layer.nextStateIndex = -1;
+                    layer.currentTime       = 0.0f;
+                    layer.nextStateIndex    = -1;
                 }
                 break;
             }
@@ -274,12 +287,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         if (layer.blendMode == BlendMode::Override)
         {
             // weightで下のレイヤーとブレンド
-            finalPoses[ni].position = Vector3::Lerp(
-                finalPoses[ni].position, nodePoses[ni].position, layer.weight);
-            finalPoses[ni].rotation = Quaternion::Slerp(
-                finalPoses[ni].rotation, nodePoses[ni].rotation, layer.weight);
-            finalPoses[ni].scale = Vector3::Lerp(
-                finalPoses[ni].scale, nodePoses[ni].scale, layer.weight);
+			finalPoses[ni] = finalPoses[ni].Lerp(nodePoses[ni], layer.weight);
         }
         else // Additive
         {

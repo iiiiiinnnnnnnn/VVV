@@ -120,6 +120,8 @@ public:
         ImGui::Separator();
 
         // ---- レイヤータブ + 管理ボタン ---------------------------------
+        // 左にあるレイヤーほど優先度が高い（Updateの評価順）
+        // < > ボタンで隣のレイヤーと入れ替え
         if (ImGui::BeginTabBar("Layers"))
         {
             for (int li = 0; li < layerCount; ++li)
@@ -131,6 +133,45 @@ public:
                 if (tabOpen)
                 {
                     currentLayer = li;
+
+                    // 並び替えボタン（タブ内に表示）
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 1));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.6f));
+
+                    bool canLeft  = (li > 0);
+                    bool canRight = (li < layerCount - 1);
+
+                    if (!canLeft)  ImGui::BeginDisabled();
+                    if (ImGui::SmallButton("<"))
+                    {
+                        animator->SwapLayers(li, li - 1);
+                        // selectedTrans / selectedState の layerIndex を追従
+                        if (selectedTrans.layerIndex == li)       selectedTrans.layerIndex = li - 1;
+                        else if (selectedTrans.layerIndex == li - 1) selectedTrans.layerIndex = li;
+                        if (selectedState.layerIndex == li)       selectedState.layerIndex = li - 1;
+                        else if (selectedState.layerIndex == li - 1) selectedState.layerIndex = li;
+                    }
+                    if (!canLeft)  ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+
+                    if (!canRight) ImGui::BeginDisabled();
+                    if (ImGui::SmallButton(">"))
+                    {
+                        animator->SwapLayers(li, li + 1);
+                        if (selectedTrans.layerIndex == li)       selectedTrans.layerIndex = li + 1;
+                        else if (selectedTrans.layerIndex == li + 1) selectedTrans.layerIndex = li;
+                        if (selectedState.layerIndex == li)       selectedState.layerIndex = li + 1;
+                        else if (selectedState.layerIndex == li + 1) selectedState.layerIndex = li;
+                    }
+                    if (!canRight) ImGui::EndDisabled();
+
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar();
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("Layer %d (left = higher priority)", li);
+                    ImGui::Separator();
+
                     DrawLayerEditor(layer, li);
                     ImGui::EndTabItem();
                 }
@@ -223,7 +264,7 @@ private:
 
     // レイヤー追加用マスク選択
     bool                m_addLayerPopupOpen = false;
-    char                m_addLayerName[64]  = "New Layer";
+    char                m_addLayerName[64] = "New Layer";
     std::vector<bool>   m_maskSelection;      // ボーンごとの選択状態
     int                 m_contextLayerIndex = -1; // 右クリックしたタブのレイヤーIndex
 
@@ -271,9 +312,9 @@ private:
 
         // スプリッタ（ドラッグで左パネル幅を変更）
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.3f,0.3f,0.3f,0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f,0.5f,0.5f,0.8f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.6f,0.6f,0.6f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.5f, 0.5f, 0.8f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
         ImGui::Button("##splitter", ImVec2(4.0f, -1.0f));
         ImGui::PopStyleColor(3);
         if (ImGui::IsItemActive())
@@ -592,19 +633,56 @@ private:
     {
         ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "Parameters");
 
-        const auto& params = animator->GetParameters();
+        // --- 追加UI ---
+        static char newParamName[64] = "";
+        static int  newParamType = 0; // 0=Float 1=Int 2=Bool 3=Trigger
+        const char* typeLabels[] = { "Float", "Int", "Bool", "Trigger" };
+
+        ImGui::SetNextItemWidth(100.0f);
+        ImGui::InputText("##newname", newParamName, sizeof(newParamName));
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(70.0f);
+        ImGui::Combo("##newtype", &newParamType, typeLabels, 4);
+        ImGui::SameLine();
+        if (ImGui::SmallButton("+ Add") && newParamName[0] != '\0')
+        {
+            std::string n(newParamName);
+            switch (newParamType)
+            {
+            case 0: animator->AddFloat(n);   break;
+            case 1: animator->AddInt(n);     break;
+            case 2: animator->AddBool(n);    break;
+            case 3: animator->AddTrigger(n); break;
+            }
+            newParamName[0] = '\0';
+        }
+
+        ImGui::Separator();
+
+        // --- パラメータ一覧（削除ボタン付き）---
+        const auto& params   = animator->GetParameters();
         const auto& triggers = animator->GetTriggers();
+
+        std::string toDelete;
 
         for (const auto& [name, val] : params)
         {
             ImGui::PushID(name.c_str());
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+            if (ImGui::SmallButton("x")) toDelete = name;
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+
             if (std::holds_alternative<float>(val))
             {
                 float v = std::get<float>(val);
                 ImGui::SetNextItemWidth(80.0f);
                 if (ImGui::DragFloat("##v", &v, 0.01f))
                     animator->SetFloat(name, v);
-                ImGui::SameLine(); ImGui::TextUnformatted(name.c_str());
+                ImGui::SameLine();
+                ImGui::TextDisabled("[F]"); ImGui::SameLine();
+                ImGui::TextUnformatted(name.c_str());
             }
             else if (std::holds_alternative<int>(val))
             {
@@ -612,29 +690,50 @@ private:
                 ImGui::SetNextItemWidth(80.0f);
                 if (ImGui::DragInt("##v", &v))
                     animator->SetInt(name, v);
-                ImGui::SameLine(); ImGui::TextUnformatted(name.c_str());
+                ImGui::SameLine();
+                ImGui::TextDisabled("[I]"); ImGui::SameLine();
+                ImGui::TextUnformatted(name.c_str());
             }
             else if (std::holds_alternative<bool>(val))
             {
                 bool v = std::get<bool>(val);
                 if (ImGui::Checkbox("##v", &v))
                     animator->SetBool(name, v);
-                ImGui::SameLine(); ImGui::TextUnformatted(name.c_str());
+                ImGui::SameLine();
+                ImGui::TextDisabled("[B]"); ImGui::SameLine();
+                ImGui::TextUnformatted(name.c_str());
             }
             ImGui::PopID();
         }
 
+        if (!toDelete.empty())
+            animator->GetParameters_Mutable().erase(toDelete);
+
+        std::string toDeleteTrigger;
+
         for (const auto& [name, fired] : triggers)
         {
             ImGui::PushID(("trigger_" + name).c_str());
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+            if (ImGui::SmallButton("x")) toDeleteTrigger = name;
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+
             ImGui::PushStyleColor(ImGuiCol_Button,
                 fired ? ImVec4(0.8f, 0.3f, 0.1f, 1.0f)
-                : ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+                      : ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
             if (ImGui::Button(name.c_str(), ImVec2(80, 0)))
                 animator->SetTrigger(name);
             ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::TextDisabled("[T]");
+
             ImGui::PopID();
         }
+
+        if (!toDeleteTrigger.empty())
+            animator->GetTriggers_Mutable().erase(toDeleteTrigger);
     }
 
     // -------------------------------------------------------------------
@@ -758,6 +857,102 @@ private:
         else
             if (ImGui::Button("Set as Default"))
                 animator->SetDefaultState(li, si);
+
+        // ---- このステートから出るトランジションの優先順位（ドラッグで並び替え）----
+        if (!state.transitions.empty())
+        {
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Transition Order");
+
+            int dragFrom = -1, dragTo = -1;
+            for (int ti = 0; ti < (int)state.transitions.size(); ++ti)
+            {
+                const Animator::Transition& tr = state.transitions[ti];
+                const std::string& toName =
+                    (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
+                    ? layer.states[tr.toStateIndex].name : "???";
+
+                ImGui::PushID(ti);
+
+                // ドラッグハンドル（ :: アイコン風）
+                ImGui::TextDisabled("::");
+                ImGui::SameLine();
+
+                // 選択中なら色を変える
+                bool isSelected = (selectedTrans.layerIndex == li &&
+                    selectedTrans.fromStateIndex == si &&
+                    selectedTrans.transIndex == ti);
+                if (isSelected)
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0.8f, 0.2f, 1));
+
+                // 行全体をドラッグソースにする
+                char label[128];
+                snprintf(label, sizeof(label), "%d. -> %s", ti + 1, toName.c_str());
+                ImGui::Selectable(label, isSelected, ImGuiSelectableFlags_None, ImVec2(0, 0));
+
+                if (isSelected)
+                    ImGui::PopStyleColor();
+
+                // クリックで選択
+                if (ImGui::IsItemClicked())
+                {
+                    selectedTrans = { li, si, ti };
+                    selectedState = {};
+                }
+
+                // ドラッグソース
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                {
+                    ImGui::SetDragDropPayload("TRANS_REORDER", &ti, sizeof(int));
+                    ImGui::Text("-> %s", toName.c_str());
+                    ImGui::EndDragDropSource();
+                }
+
+                // ドロップターゲット
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload =
+                        ImGui::AcceptDragDropPayload("TRANS_REORDER"))
+                    {
+                        dragFrom = *(const int*)payload->Data;
+                        dragTo = ti;
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::PopID();
+            }
+
+            // ドラッグ&ドロップ後に並び替え実行
+            if (dragFrom >= 0 && dragTo >= 0 && dragFrom != dragTo)
+            {
+                // 選択中トランジションのインデックスを追跡
+                int selectedTi = (selectedTrans.layerIndex == li &&
+                    selectedTrans.fromStateIndex == si)
+                    ? selectedTrans.transIndex : -1;
+
+                Animator::Transition moved = state.transitions[dragFrom];
+                state.transitions.erase(state.transitions.begin() + dragFrom);
+                int insertAt = (dragTo > dragFrom) ? dragTo : dragTo;
+                state.transitions.insert(state.transitions.begin() + insertAt, moved);
+
+                // priority値を配列順に振り直す（内部整合性のため）
+                for (int i = 0; i < (int)state.transitions.size(); ++i)
+                    state.transitions[i].priority = (int)state.transitions.size() - 1 - i;
+
+                // selectedTrans インデックスを新しい位置に追従
+                if (selectedTi >= 0)
+                {
+                    if (selectedTi == dragFrom)
+                        selectedTrans.transIndex = insertAt;
+                    else if (dragFrom < dragTo && selectedTi > dragFrom && selectedTi <= dragTo)
+                        selectedTrans.transIndex = selectedTi - 1;
+                    else if (dragFrom > dragTo && selectedTi >= dragTo && selectedTi < dragFrom)
+                        selectedTrans.transIndex = selectedTi + 1;
+                }
+            }
+        }
     }
 
     // -------------------------------------------------------------------
@@ -784,7 +979,8 @@ private:
         ImGui::Checkbox("Has Exit Time", &tr.hasExitTime);
         if (tr.hasExitTime)
             ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
-        ImGui::DragInt("Priority", &tr.priority, 1, -99, 99);
+        // Priority は ステート詳細の "Transition Order" リストで並び替えて変更する
+        ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
 
         ImGui::Separator();

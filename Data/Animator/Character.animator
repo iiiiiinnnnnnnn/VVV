@@ -7,7 +7,7 @@
             "name": "Base",
             "states": [
                 {
-                    "animationIndex": 2,
+                    "animationIndex": 30,
                     "loop": true,
                     "name": "Idle",
                     "speed": 1.0,
@@ -30,7 +30,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 38,
+                    "animationIndex": 32,
                     "loop": true,
                     "name": "Walk",
                     "speed": 1.0,
@@ -68,7 +68,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 34,
+                    "animationIndex": 31,
                     "loop": true,
                     "name": "Run",
                     "speed": 1.0,
@@ -131,7 +131,7 @@
             "name": "Upper",
             "states": [
                 {
-                    "animationIndex": 2,
+                    "animationIndex": 30,
                     "loop": true,
                     "name": "Idle",
                     "speed": 1.0,
@@ -165,6 +165,21 @@
                             "priority": 10,
                             "toStateIndex": 2,
                             "transitionDuration": 0.05000000074505806
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "ready",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 3,
+                            "transitionDuration": 0.25
                         }
                     ]
                 },
@@ -181,6 +196,15 @@
                             "hasExitTime": true,
                             "priority": 0,
                             "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 0.949999988079071,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 3,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
@@ -199,6 +223,68 @@
                             "priority": 0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 0.949999988079071,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 3,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 2,
+                    "loop": true,
+                    "name": "Idle(Ready)",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "shoot",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.05000000074505806
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "reload",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.05000000074505806
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "ready",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.25
                         }
                     ]
                 }
@@ -213,7 +299,17 @@
             "value": 0.0
         },
         {
-            "name": "isCrouching",
+            "name": "jump",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "crouch",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "ready",
             "type": "bool",
             "value": false
         }

@@ -17,6 +17,16 @@ bool AIPlayer::GetJump()
 	return false;
 }
 
+bool AIPlayer::GetCrouch()
+{
+	return false;
+}
+
+bool AIPlayer::GetReady()
+{
+	return false;
+}
+
 bool AIPlayer::GetShoot()
 {
 	return false;

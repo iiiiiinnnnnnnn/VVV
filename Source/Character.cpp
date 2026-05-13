@@ -117,9 +117,12 @@ void Character::OnUpdate(float elapsedTime)
 	// 入力の大きさ(animatorに入れる)
 	float inputLength = Vector3(moveX, 0, moveZ).Length();
 	anim->SetFloat("speed", inputLength);
-
-	if (controller->GetShoot())  anim->SetTrigger("shoot");
-	if (controller->GetReload()) anim->SetTrigger("reload");
+	anim->SetBool("crouch", controller->GetCrouch());
+	anim->SetBool("jump", controller->GetJump());
+	anim->SetBool("ready", controller->GetReady());
+	
+	/*if (controller->GetShoot())  anim->SetTrigger("shoot");
+	if (controller->GetReload()) anim->SetTrigger("reload");*/
 
 	// 移動ベクトル（speed メンバ変数で実際の速さをスケール）
 	Vector3 move = Vector3::TransformNormal(
