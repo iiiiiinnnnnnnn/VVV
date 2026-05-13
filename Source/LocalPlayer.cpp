@@ -21,7 +21,10 @@ float LocalPlayer::GetMoveZ()
 
 bool LocalPlayer::GetJump()
 {
-	return false;
+	if (!Input::IsFocusedWindow()) return false;
+
+	bool jump = Input::Instance().GetGamePad().GetButton() & GamePad::BTN_A;
+	return jump;
 }
 
 bool LocalPlayer::GetCrouch()
