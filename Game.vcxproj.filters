@@ -55,6 +55,9 @@
     <Filter Include="ソースファイル\エディト">
       <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\オーディオ">
+      <UniqueIdentifier>{a5ee6f23-df6d-407f-9634-387fab3db889}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -182,6 +185,18 @@
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Texture.cpp">
+      <Filter>ソースファイル\描画</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AudioSource.cpp">
+      <Filter>ソースファイル\オーディオ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Audio.cpp">
+      <Filter>ソースファイル\オーディオ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AudioResource.cpp">
+      <Filter>ソースファイル\オーディオ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -343,6 +358,18 @@
     </ClInclude>
     <ClInclude Include="Source\AnimatorSerializer.h">
       <Filter>ソースファイル\エディト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Texture.h">
+      <Filter>ソースファイル\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\AudioSource.h">
+      <Filter>ソースファイル\オーディオ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio.h">
+      <Filter>ソースファイル\オーディオ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\AudioResource.h">
+      <Filter>ソースファイル\オーディオ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

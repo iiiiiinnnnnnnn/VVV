@@ -14,6 +14,9 @@
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\AIPlayer.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
+    <ClCompile Include="Source\Audio.cpp" />
+    <ClCompile Include="Source\AudioResource.cpp" />
+    <ClCompile Include="Source\AudioSource.cpp" />
     <ClCompile Include="Source\BasicShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Character.cpp" />
@@ -50,6 +53,7 @@
     <ClCompile Include="Source\Sprite.cpp" />
     <ClCompile Include="Source\Squad.cpp" />
     <ClCompile Include="Source\Stage00.cpp" />
+    <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\Weapon.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
@@ -60,6 +64,9 @@
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
+    <ClInclude Include="Source\Audio.h" />
+    <ClInclude Include="Source\AudioResource.h" />
+    <ClInclude Include="Source\AudioSource.h" />
     <ClInclude Include="Source\BasicShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
@@ -105,6 +112,7 @@
     <ClInclude Include="Source\Sprite.h" />
     <ClInclude Include="Source\Squad.h" />
     <ClInclude Include="Source\Stage00.h" />
+    <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\Weapon.h" />
     <ClInclude Include="Source\Widget.h" />

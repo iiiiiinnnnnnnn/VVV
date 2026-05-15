@@ -2,11 +2,10 @@
 
 #include "Weapon.h"
 #include <Graphics.h>
-#include <GpuResourceUtils.h>
 #include <Input.h>
 #include "Model.h"
-
 #include "Character.h"
+#include "Texture.h"
 
 Weapon::Weapon(Character* character) : Actor("Weapon", "Weapon", "Default"), character(character)
 {
@@ -15,7 +14,7 @@ Weapon::Weapon(Character* character) : Actor("Weapon", "Weapon", "Default"), cha
 		"Data/Model/ToonSoldiers_WW2/models/weapons/weapon_arisaka.glb");
 
 	// テクスチャ読み込み
-	GpuResourceUtils::LoadTexture(
+	Texture::LoadTexture(
 		Graphics::Instance().GetDevice(),
 		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_weapons.tga",
 		model->GetMaterials()[0].baseMap.GetAddressOf());
