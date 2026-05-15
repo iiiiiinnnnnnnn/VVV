@@ -7,369 +7,393 @@
     <Filter Include="シェーダー">
       <UniqueIdentifier>{15a18324-c569-44a5-860e-70b29ab50491}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\カメラ">
-      <UniqueIdentifier>{4561f66d-646b-410b-8980-6e0d0e83782d}</UniqueIdentifier>
+    <Filter Include="ソースファイル\ゲーム">
+      <UniqueIdentifier>{78401075-188d-498d-9117-f85999eb7ecc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\シーン">
-      <UniqueIdentifier>{d200445d-b38a-4cfe-afb0-822a19aa506d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\アプリ">
-      <UniqueIdentifier>{3084c246-b69a-4652-8a81-096e9c7ab090}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\シェーダー">
-      <UniqueIdentifier>{f47cc0d1-a12e-469d-b7ea-389cc1b7d144}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\リソース">
-      <UniqueIdentifier>{9bbcc62a-8dc0-41e6-855c-50271dfd7fbc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\描画">
-      <UniqueIdentifier>{ceab042a-835d-40bc-a5bc-816c0c37d9a9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\モデル">
-      <UniqueIdentifier>{8df532a5-1bd4-4c9e-b5a3-cd098dc25cb8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\入力">
-      <UniqueIdentifier>{54aafe05-06b6-40a0-87fc-65221ee22d61}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\物理">
-      <UniqueIdentifier>{afdc2c92-edcc-45c3-819a-3fc4a44b8e8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\アクタ">
-      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー">
-      <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\アクタ\コンポーネント">
-      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\ウィジェット">
-      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\プレイヤー">
-      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\分隊">
+    <Filter Include="ソースファイル\ゲーム\分隊">
       <UniqueIdentifier>{62e1d4dc-dbf4-41e0-a708-747263f7442c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\エディト">
+    <Filter Include="ソースファイル\ゲーム\プレイヤー">
+      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム">
+      <UniqueIdentifier>{96030d6c-8f52-46ef-a361-4cc2c088daea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\オーディオ">
+      <UniqueIdentifier>{a5ee6f23-df6d-407f-9634-387fab3db889}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\アクタ">
+      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\アクタ\コンポーネント">
+      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\アプリ">
+      <UniqueIdentifier>{3084c246-b69a-4652-8a81-096e9c7ab090}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\ウィジェット">
+      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\エディト">
       <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オーディオ">
-      <UniqueIdentifier>{a5ee6f23-df6d-407f-9634-387fab3db889}</UniqueIdentifier>
+    <Filter Include="ソースファイル\システム\カメラ">
+      <UniqueIdentifier>{4561f66d-646b-410b-8980-6e0d0e83782d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\シーン">
+      <UniqueIdentifier>{d200445d-b38a-4cfe-afb0-822a19aa506d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\モデル">
+      <UniqueIdentifier>{8df532a5-1bd4-4c9e-b5a3-cd098dc25cb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\リソース">
+      <UniqueIdentifier>{9bbcc62a-8dc0-41e6-855c-50271dfd7fbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\入力">
+      <UniqueIdentifier>{54aafe05-06b6-40a0-87fc-65221ee22d61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\描画">
+      <UniqueIdentifier>{ceab042a-835d-40bc-a5bc-816c0c37d9a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\描画\レンダラー">
+      <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\描画\エフェクト">
+      <UniqueIdentifier>{be58181d-cee9-438c-9d64-b012a9380a4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\描画\シェーダー">
+      <UniqueIdentifier>{f47cc0d1-a12e-469d-b7ea-389cc1b7d144}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム\物理">
+      <UniqueIdentifier>{afdc2c92-edcc-45c3-819a-3fc4a44b8e8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\カメラ">
+      <UniqueIdentifier>{87a91572-ce15-4886-922d-49746dfb9de8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\カメラ</Filter>
     </ClCompile>
     <ClCompile Include="Source\FreeCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\カメラ</Filter>
     </ClCompile>
     <ClCompile Include="Source\GLTFImporter.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>ソースファイル\システム\リソース</Filter>
     </ClCompile>
     <ClCompile Include="Source\GpuResourceUtils.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>ソースファイル\システム\リソース</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics.cpp">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\Framework.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Main.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Dialog.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClCompile>
     <ClCompile Include="Source\ImGuiRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\ShapeRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\PrimitiveRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\BasicShader.cpp">
-      <Filter>ソースファイル\シェーダー</Filter>
+      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClCompile>
     <ClCompile Include="Source\LambertShader.cpp">
-      <Filter>ソースファイル\シェーダー</Filter>
+      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>ソースファイル\システム\シーン</Filter>
     </ClCompile>
     <ClCompile Include="Source\RenderState.cpp">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\Sprite.cpp">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelViewerScene.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>ソースファイル\システム\シーン</Filter>
     </ClCompile>
     <ClCompile Include="Source\Model.cpp">
-      <Filter>ソースファイル\モデル</Filter>
+      <Filter>ソースファイル\システム\モデル</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input.cpp">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClCompile>
     <ClCompile Include="Source\Mouse.cpp">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClCompile>
     <ClCompile Include="Source\GamePad.cpp">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClCompile>
     <ClCompile Include="Source\PhysicsManager.cpp">
-      <Filter>ソースファイル\物理</Filter>
+      <Filter>ソースファイル\システム\物理</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRender.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rigidbody.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Commander.cpp">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Weapon.cpp">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Stage00.cpp">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Widget.cpp">
-      <Filter>ソースファイル\ウィジェット</Filter>
+      <Filter>ソースファイル\システム\ウィジェット</Filter>
     </ClCompile>
     <ClCompile Include="Source\Actor.cpp">
-      <Filter>ソースファイル\アクタ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\FpsCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\LocalPlayer.cpp">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\RemotePlayer.cpp">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\AIPlayer.cpp">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\Soldier.cpp">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Squad.cpp">
-      <Filter>ソースファイル\分隊</Filter>
+      <Filter>ソースファイル\ゲーム\分隊</Filter>
     </ClCompile>
     <ClCompile Include="Source\SoldierAIPlayer.cpp">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\Character.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Texture.cpp">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\AudioSource.cpp">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Audio.cpp">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
     </ClCompile>
     <ClCompile Include="Source\AudioResource.cpp">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EffectManager.cpp">
+      <Filter>ソースファイル\システム\描画\エフェクト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Effect.cpp">
+      <Filter>ソースファイル\システム\描画\エフェクト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FpsCameraController.cpp">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\FreeCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\GLTFImporter.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>ソースファイル\システム\リソース</Filter>
     </ClInclude>
     <ClInclude Include="Source\GpuResourceUtils.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>ソースファイル\システム\リソース</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\HighResolutionTimer.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>ソースファイル\システム\リソース</Filter>
     </ClInclude>
     <ClInclude Include="Source\Framework.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Misc.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Dialog.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderContext.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\Light.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\ImGuiRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\ShapeRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\PrimitiveRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー</Filter>
+      <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\BasicShader.h">
-      <Filter>ソースファイル\シェーダー</Filter>
+      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClInclude>
     <ClInclude Include="Source\LambertShader.h">
-      <Filter>ソースファイル\シェーダー</Filter>
+      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>ソースファイル\システム\シーン</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderState.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\Shader.h">
-      <Filter>ソースファイル\シェーダー</Filter>
+      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClInclude>
     <ClInclude Include="Source\Sprite.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelViewerScene.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>ソースファイル\システム\シーン</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model.h">
-      <Filter>ソースファイル\モデル</Filter>
+      <Filter>ソースファイル\システム\モデル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GamePad.h">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClInclude>
     <ClInclude Include="Source\Input.h">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClInclude>
     <ClInclude Include="Source\Mouse.h">
-      <Filter>ソースファイル\入力</Filter>
+      <Filter>ソースファイル\システム\入力</Filter>
     </ClInclude>
     <ClInclude Include="Source\PhysicsManager.h">
-      <Filter>ソースファイル\物理</Filter>
+      <Filter>ソースファイル\システム\物理</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRender.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Components.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rigidbody.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Commander.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Weapon.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage00.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\CameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Widget.h">
-      <Filter>ソースファイル\ウィジェット</Filter>
+      <Filter>ソースファイル\システム\ウィジェット</Filter>
     </ClInclude>
     <ClInclude Include="Source\Actor.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Common.h">
-      <Filter>ソースファイル\アプリ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\FpsCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\PlayerController.h">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\LocalPlayer.h">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\RemotePlayer.h">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\AIPlayer.h">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\Soldier.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Character.h">
-      <Filter>ソースファイル\アクタ</Filter>
+      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Squad.h">
-      <Filter>ソースファイル\分隊</Filter>
+      <Filter>ソースファイル\ゲーム\分隊</Filter>
     </ClInclude>
     <ClInclude Include="Source\SoldierAIPlayer.h">
-      <Filter>ソースファイル\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimEditorWindow.h">
-      <Filter>ソースファイル\エディト</Filter>
+      <Filter>ソースファイル\システム\エディト</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimatorSerializer.h">
-      <Filter>ソースファイル\エディト</Filter>
+      <Filter>ソースファイル\システム\エディト</Filter>
     </ClInclude>
     <ClInclude Include="Source\Texture.h">
-      <Filter>ソースファイル\描画</Filter>
+      <Filter>ソースファイル\システム\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\AudioSource.h">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio.h">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
     </ClInclude>
     <ClInclude Include="Source\AudioResource.h">
-      <Filter>ソースファイル\オーディオ</Filter>
+      <Filter>ソースファイル\システム\オーディオ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EffectManager.h">
+      <Filter>ソースファイル\システム\描画\エフェクト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Effect.h">
+      <Filter>ソースファイル\システム\描画\エフェクト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FpsCameraController.h">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

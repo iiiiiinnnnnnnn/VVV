@@ -23,6 +23,8 @@
     <ClCompile Include="Source\CharacterController.cpp" />
     <ClCompile Include="Source\Collider.cpp" />
     <ClCompile Include="Source\Dialog.cpp" />
+    <ClCompile Include="Source\Effect.cpp" />
+    <ClCompile Include="Source\EffectManager.cpp" />
     <ClCompile Include="Source\FpsCameraController.cpp" />
     <ClCompile Include="Source\Framework.cpp" />
     <ClCompile Include="Source\FreeCameraController.cpp" />
@@ -77,6 +79,8 @@
     <ClInclude Include="Source\Component.h" />
     <ClInclude Include="Source\Components.h" />
     <ClInclude Include="Source\Dialog.h" />
+    <ClInclude Include="Source\Effect.h" />
+    <ClInclude Include="Source\EffectManager.h" />
     <ClInclude Include="Source\FpsCameraController.h" />
     <ClInclude Include="Source\Framework.h" />
     <ClInclude Include="Source\FreeCameraController.h" />
