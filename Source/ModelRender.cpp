@@ -30,8 +30,7 @@ void ModelRender::Update(float elapsedTime)
 
 void ModelRender::Render(const RenderContext& rc, float elapsedTime)
 {
-    ModelRenderer* renderer = Graphics::Instance().GetModelRenderer();
-    renderer->Draw(shaderId, model);
+    Graphics::Instance().GetModelRenderer()->Draw(shaderId, model);
 }
 
 void ModelRender::DrawGUI(float elapsedTime)
