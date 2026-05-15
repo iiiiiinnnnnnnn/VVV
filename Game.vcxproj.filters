@@ -183,6 +183,9 @@
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\アクタ\コンポーネント</Filter>
     </ClCompile>
+    <ClCompile Include="Source\PBRShader.cpp">
+      <Filter>ソースファイル\シェーダー</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -344,6 +347,9 @@
     <ClInclude Include="Source\AnimatorSerializer.h">
       <Filter>ソースファイル\エディト</Filter>
     </ClInclude>
+    <ClInclude Include="Source\PBRShader.h">
+      <Filter>ソースファイル\シェーダー</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\Basic.hlsli">
@@ -368,6 +374,12 @@
       <Filter>シェーダー</Filter>
     </None>
     <None Include=".gitignore" />
+    <None Include="Shader\PBR.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\ShadowmapCaster.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicPS.hlsl">
@@ -398,6 +410,15 @@
       <Filter>シェーダー</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SpriteVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRPS.hlsl">
+      <Filter>シェーダー</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>
   </ItemGroup>
