@@ -70,6 +70,9 @@
     <Filter Include="ソースファイル\ゲーム\カメラ">
       <UniqueIdentifier>{87a91572-ce15-4886-922d-49746dfb9de8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\ゲーム\アクタ">
+      <UniqueIdentifier>{05d16d2a-ae13-4e92-bdd8-a420fea8a7d9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -156,15 +159,6 @@
     <ClCompile Include="Source\Animator.cpp">
       <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Commander.cpp">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Weapon.cpp">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Stage00.cpp">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Widget.cpp">
       <Filter>ソースファイル\システム\ウィジェット</Filter>
     </ClCompile>
@@ -180,17 +174,11 @@
     <ClCompile Include="Source\AIPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Soldier.cpp">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Squad.cpp">
       <Filter>ソースファイル\ゲーム\分隊</Filter>
     </ClCompile>
     <ClCompile Include="Source\SoldierAIPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Character.cpp">
-      <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
@@ -216,6 +204,21 @@
     <ClCompile Include="Source\FpsCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Commander.cpp">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Soldier.cpp">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Stage00.cpp">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Weapon.cpp">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Character.cpp">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -232,9 +235,6 @@
     </ClInclude>
     <ClInclude Include="Source\Graphics.h">
       <Filter>ソースファイル\システム\描画</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\HighResolutionTimer.h">
-      <Filter>ソースファイル\システム\リソース</Filter>
     </ClInclude>
     <ClInclude Include="Source\Framework.h">
       <Filter>ソースファイル\システム\アプリ</Filter>
@@ -320,15 +320,6 @@
     <ClInclude Include="Source\Collider.h">
       <Filter>ソースファイル\システム\アクタ\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Commander.h">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Weapon.h">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Stage00.h">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\CameraController.h">
       <Filter>ソースファイル\システム\カメラ</Filter>
     </ClInclude>
@@ -352,12 +343,6 @@
     </ClInclude>
     <ClInclude Include="Source\AIPlayer.h">
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Soldier.h">
-      <Filter>ソースファイル\システム\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Character.h">
-      <Filter>ソースファイル\システム\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Squad.h">
       <Filter>ソースファイル\ゲーム\分隊</Filter>
@@ -394,6 +379,24 @@
     </ClInclude>
     <ClInclude Include="Source\FpsCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Commander.h">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Soldier.h">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage00.h">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Weapon.h">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Character.h">
+      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\HighResolutionTimer.h">
+      <Filter>ソースファイル\システム\アプリ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
