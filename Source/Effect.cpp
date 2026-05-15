@@ -1,6 +1,7 @@
-#include "Graphics/Graphics.h"
+#include "Graphics.h"
 #include "Effect.h"
 #include "EffectManager.h"
+#include <mutex>
 
 // コンストラクタ
 Effect::Effect(const char* filename)
@@ -8,7 +9,7 @@ Effect::Effect(const char* filename)
 	// エフェクトを読み込みする前にロックする
 	// ※マルチスレッドでEffectを作成するとDeviceContextを同時アクセスして
 	// 　フリーズする可能性があるので排他制御する
-	std::lock_guard<std::mutex> lock(Graphics::Instance().GetMutex());
+	//std::lock_guard<std::mutex> lock(Graphics::Instance().());
 
 	// Effekseerのリソースを読み込む
 	// EffekseerはUTF-16のファイルパス以外は対応していないため文字コード変換が必要
