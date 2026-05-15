@@ -37,7 +37,6 @@
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\ModelViewerScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
-    <ClCompile Include="Source\PBRShader.cpp" />
     <ClCompile Include="Source\PhysicsManager.cpp" />
     <ClCompile Include="Source\Commander.cpp" />
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
@@ -90,7 +89,6 @@
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelViewerScene.h" />
     <ClInclude Include="Source\Mouse.h" />
-    <ClInclude Include="Source\PBRShader.h" />
     <ClInclude Include="Source\PlayerController.h" />
     <ClInclude Include="Source\RemotePlayer.h" />
     <ClInclude Include="Source\Rigidbody.h" />
@@ -115,10 +113,8 @@
     <None Include=".gitignore" />
     <None Include="Shader\Basic.hlsli" />
     <None Include="Shader\Lambert.hlsli" />
-    <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
     <None Include="Shader\Scene.hlsli" />
-    <None Include="Shader\ShadowmapCaster.hlsli" />
     <None Include="Shader\ShapeRenderer.hlsli" />
     <None Include="Shader\Skinning.hlsli" />
     <None Include="Shader\Sprite.hlsli" />
@@ -140,23 +136,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\PBRPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\PBRVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
