@@ -13,7 +13,7 @@ void TestWidget::OnUpdate(float elapsedTime)
 void TestWidget::OnRender(float elapsedTime)
 {
     Graphics::Instance().GetSpriteRenderer()->Draw(
-        SpriteShaderID::Basic, texture,
+        SpriteShaderID::GaussianFilter, texture,
         posX, posY, 0.0f,           // dx, dy, dz
         width * 2, height * 2,               // dw, dh
         0.0f, 0.0f,                  // sx, sy

@@ -30,6 +30,7 @@
     <ClCompile Include="Source\Framework.cpp" />
     <ClCompile Include="Source\FreeCameraController.cpp" />
     <ClCompile Include="Source\GamePad.cpp" />
+    <ClCompile Include="Source\GaussianFilterShader.cpp" />
     <ClCompile Include="Source\GLTFImporter.cpp" />
     <ClCompile Include="Source\GpuResourceUtils.cpp" />
     <ClCompile Include="Source\Graphics.cpp" />
@@ -50,6 +51,7 @@
     <ClCompile Include="Source\RenderState.cpp" />
     <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
+    <ClCompile Include="Source\Shader.cpp" />
     <ClCompile Include="Source\ShapeRenderer.cpp" />
     <ClCompile Include="Source\Soldier.cpp" />
     <ClCompile Include="Source\SoldierAIPlayer.cpp" />
@@ -88,6 +90,7 @@
     <ClInclude Include="Source\Framework.h" />
     <ClInclude Include="Source\FreeCameraController.h" />
     <ClInclude Include="Source\GamePad.h" />
+    <ClInclude Include="Source\GaussianFilterShader.h" />
     <ClInclude Include="Source\GLTFImporter.h" />
     <ClInclude Include="Source\GpuResourceUtils.h" />
     <ClInclude Include="Source\Graphics.h" />

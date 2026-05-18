@@ -8,8 +8,8 @@ PBRShader::PBRShader(ID3D11Device* device)
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/PBR_VS.cso",
-		Model::InputElementDescs.data(),
-		static_cast<UINT>(Model::InputElementDescs.size()),
+		ModelShader::InputElementDescs.data(),
+		static_cast<UINT>(ModelShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 

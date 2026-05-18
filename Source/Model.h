@@ -15,8 +15,6 @@ class Model
 public:
 	Model(const char* filename, float sampleRate = 60, bool importRawModel = false);
 
-	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
-
 	struct Node
 	{
 		std::string			name;

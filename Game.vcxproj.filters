@@ -76,9 +76,6 @@
     <Filter Include="ソースファイル\システム%28基底%29\物理">
       <UniqueIdentifier>{afdc2c92-edcc-45c3-819a-3fc4a44b8e8a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\リソース\モデル">
-      <UniqueIdentifier>{8df532a5-1bd4-4c9e-b5a3-cd098dc25cb8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\エディト">
       <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
     </Filter>
@@ -140,9 +137,6 @@
     </ClCompile>
     <ClCompile Include="Source\RenderState.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Model.cpp">
-      <Filter>ソースファイル\システム%28基底%29\リソース\モデル</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input.cpp">
       <Filter>ソースファイル\システム%28基底%29\入力</Filter>
@@ -249,6 +243,15 @@
     <ClCompile Include="Source\TestWIdget.cpp">
       <Filter>ソースファイル\ゲーム\ウィジェット</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GaussianFilterShader.cpp">
+      <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Model.cpp">
+      <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shader.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -301,9 +304,6 @@
     </ClInclude>
     <ClInclude Include="Source\Shader.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Model.h">
-      <Filter>ソースファイル\システム%28基底%29\リソース\モデル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GamePad.h">
       <Filter>ソースファイル\システム%28基底%29\入力</Filter>
@@ -433,6 +433,12 @@
     </ClInclude>
     <ClInclude Include="Source\TestWIdget.h">
       <Filter>ソースファイル\ゲーム\ウィジェット</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GaussianFilterShader.h">
+      <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model.h">
+      <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
