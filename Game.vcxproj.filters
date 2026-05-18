@@ -111,9 +111,6 @@
     <ClCompile Include="Source\PrimitiveRenderer.cpp">
       <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\BasicShader.cpp">
-      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
-    </ClCompile>
     <ClCompile Include="Source\LambertShader.cpp">
       <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClCompile>
@@ -263,9 +260,6 @@
     <ClInclude Include="Source\PrimitiveRenderer.h">
       <Filter>ソースファイル\システム\描画\レンダラー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\BasicShader.h">
-      <Filter>ソースファイル\システム\描画\シェーダー</Filter>
-    </ClInclude>
     <ClInclude Include="Source\LambertShader.h">
       <Filter>ソースファイル\システム\描画\シェーダー</Filter>
     </ClInclude>
@@ -400,9 +394,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\Basic.hlsli">
-      <Filter>シェーダー</Filter>
-    </None>
     <None Include="Shader\Lambert.hlsli">
       <Filter>シェーダー</Filter>
     </None>
@@ -426,12 +417,6 @@
     <None Include="imgui.ini" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\BasicPS.hlsl">
-      <Filter>シェーダー</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicVS.hlsl">
-      <Filter>シェーダー</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\LambertPS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>

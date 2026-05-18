@@ -6,7 +6,6 @@
 
 enum class ShaderId
 {
-	Basic,
 	Lambert,
 
 	EnumCount
@@ -25,15 +24,65 @@ public:
 	void Render(const RenderContext& rc);
 
 private:
+	struct CbDirectionalLight
+	{
+		Vector3		direction;
+		float DUMMY;
+		Color		color;
+	};
+	struct CbPointLight
+	{
+		Vector3		position;
+		float		range;
+		Color		color;
+	};
+	struct CbSpotLight
+	{
+		Vector3	position;
+		float DUMMY;
+		Vector3	direction;
+		float DUMMY;
+		Color	color;
+		float	range;
+		float	innerConeAngle;
+		float	outerConeAngle;
+		float DUMMY;
+	};;
+	struct CbLightManager {
+		CbDirectionalLight directionalLight;
+		CbPointLight pointLights[LightManager::MaxPointLights];
+		CbSpotLight spotLights[LightManager::MaxSpotLights];
+		Color ambientColor;
+		unsigned int pointLightCount;
+		unsigned int spotLightCount;
+		float DUMMY;
+		float DUMMY;
+		CbLightManager() {}
+		CbLightManager(const LightManager* lm) {
+			directionalLight.direction = lm->GetDirectionalLight().direction;
+			directionalLight.color = lm->GetDirectionalLight().color;
+			for (int i = 0; i < LightManager::MaxPointLights; i++) {
+				pointLights[i].position = lm->GetPointLights()[i].position;
+				pointLights[i].range = lm->GetPointLights()[i].range;
+				pointLights[i].color = lm->GetPointLights()[i].color;
+			}
+			for (int i = 0; i < LightManager::MaxSpotLights; i++) {
+				spotLights[i].position = lm->GetSpotLights()[i].position;
+				spotLights[i].direction = lm->GetSpotLights()[i].direction;
+				spotLights[i].range = lm->GetSpotLights()[i].range;
+				spotLights[i].innerConeAngle = lm->GetSpotLights()[i].innerConeAngle;
+				spotLights[i].outerConeAngle = lm->GetSpotLights()[i].outerConeAngle;
+				spotLights[i].color = lm->GetSpotLights()[i].color;
+			}
+			ambientColor = lm->GetAmbientColor();
+		}
+	};
 	struct CbScene
 	{
 		Matrix		viewProjection;
-		Vector3		lightDirection;
+		Vector3		viewPosition;
 		float DUMMY;
-		Vector3		lightColor;
-		float DUMMY;
-		Vector3		cameraPosition;
-		float DUMMY;
+		CbLightManager lightManager;
 	};
 
 	struct CbSkeleton

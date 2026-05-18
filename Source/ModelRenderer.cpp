@@ -2,7 +2,6 @@
 #include "Misc.h"
 #include "GpuResourceUtils.h"
 #include "ModelRenderer.h"
-#include "BasicShader.h"
 #include "LambertShader.h"
 
 // コンストラクタ
@@ -21,7 +20,6 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 		skeletonConstantBuffer.GetAddressOf());
 
 	// シェーダー生成
-	shaders[static_cast<int>(ShaderId::Basic)] = std::make_unique<BasicShader>(device);
 	shaders[static_cast<int>(ShaderId::Lambert)] = std::make_unique<LambertShader>(device);
 }
 
@@ -47,10 +45,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 		Matrix V = rc.camera->GetView();
 		Matrix P = rc.camera->GetProjection();
 		cbScene.viewProjection = V * P;
-		const DirectionalLight& directionalLight = lightManager->GetDirectionalLight();
-		cbScene.lightDirection = directionalLight.direction;
-		cbScene.lightColor = directionalLight.color;
-		cbScene.cameraPosition = rc.camera->GetEye();
+		cbScene.viewPosition = rc.camera->GetEye();
+		cbScene.lightManager = CbLightManager(lightManager);
 		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 	}
 

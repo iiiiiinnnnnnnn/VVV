@@ -17,7 +17,6 @@
     <ClCompile Include="Source\Audio.cpp" />
     <ClCompile Include="Source\AudioResource.cpp" />
     <ClCompile Include="Source\AudioSource.cpp" />
-    <ClCompile Include="Source\BasicShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Character.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
@@ -69,7 +68,6 @@
     <ClInclude Include="Source\Audio.h" />
     <ClInclude Include="Source\AudioResource.h" />
     <ClInclude Include="Source\AudioSource.h" />
-    <ClInclude Include="Source\BasicShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\Character.h" />
@@ -125,7 +123,6 @@
     <None Include=".gitignore" />
     <None Include="imgui.ini" />
     <None Include="README.md" />
-    <None Include="Shader\Basic.hlsli" />
     <None Include="Shader\Lambert.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
     <None Include="Shader\Scene.hlsli" />
@@ -134,14 +131,6 @@
     <None Include="Shader\Sprite.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\BasicPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
     <FxCompile Include="Shader\LambertPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
