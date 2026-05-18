@@ -123,6 +123,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="imgui.ini" />
+    <None Include="README.md" />
     <None Include="Shader\Basic.hlsli" />
     <None Include="Shader\Lambert.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
@@ -174,7 +176,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Source\ザ・メモ.txt" />
+    <Text Include="ザ・メモ.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D22095F2-0FC3-424B-97D6-074B973AB293}</ProjectGuid>

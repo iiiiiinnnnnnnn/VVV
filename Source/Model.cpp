@@ -469,9 +469,9 @@ int Model::GetNodeIndex(const char* name) const
 }
 
 // トランスフォーム更新処理
-void Model::UpdateTransform(const DirectX::XMFLOAT4X4& worldTransform)
+void Model::UpdateTransform(const Matrix& worldTransform)
 {
-	Matrix ParentWorldTransform = DirectX::XMLoadFloat4x4(&worldTransform);
+	Matrix ParentWorldTransform = worldTransform;
 
 	for (Node& node : nodes)
 	{

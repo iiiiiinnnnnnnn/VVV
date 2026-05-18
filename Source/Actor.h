@@ -21,6 +21,7 @@ public:
         std::vector<std::unique_ptr<Component>> data;
         void push_back(std::unique_ptr<Component> component);
         void Update(float elapsedTime);
+        void LateUpdate(float elapsedTime);
         void Render(const RenderContext& rc, float elapsedTime);
         void DrawGUI(float elapsedTime);
     } componentList;
@@ -48,6 +49,7 @@ public:
 
 protected:
     virtual void OnUpdate(float elapsedTime) {}
+    virtual void OnLateUpdate(float elapsedTime) {}
     virtual void OnRender(const RenderContext& rc, float elapsedTime) {}
     virtual void OnDrawGUI(float elapsedTime) {}
 

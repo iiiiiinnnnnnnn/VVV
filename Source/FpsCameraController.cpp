@@ -50,6 +50,9 @@ void FpsCameraController::OnUpdate(float elapsedTime)
 
     character->transform.rotation = Quaternion::CreateFromAxisAngle(
         Vector3::UnitY, angleY);
+
+	character->SetFirstPerson(true);
+    character->SetSpineAngleX(angleX);
 }
 
 void FpsCameraController::OnFocusLost()

@@ -34,6 +34,11 @@ void Weapon::OnUpdate(float elapsedTime)
 
 }
 
+void Weapon::OnLateUpdate(float elapsedTime)
+{
+
+}
+
 void Weapon::OnRender(const RenderContext& rc, float elapsedTime)
 {
 

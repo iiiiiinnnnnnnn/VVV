@@ -197,7 +197,7 @@ public:
 	int GetNodeIndex(const char* name) const;
 
 	// トランスフォーム更新処理
-	void UpdateTransform(const DirectX::XMFLOAT4X4& worldTransform);
+	void UpdateTransform(const Matrix& worldTransform);
 
 	// アニメーション計算
 	void ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const;

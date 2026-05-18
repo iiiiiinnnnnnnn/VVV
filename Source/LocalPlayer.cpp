@@ -37,7 +37,7 @@ bool LocalPlayer::GetReady()
 	if (!Input::IsFocusedWindow()) return false;
 
 	bool ready = Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT;
-	ready |= (Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
+	ready |= (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
 	return ready;
 }
 

@@ -44,7 +44,7 @@ protected:
 	struct Actors
 	{
 		std::vector<std::shared_ptr<Actor>> data;
-		void push_back(std::shared_ptr<Actor> actor) { data.push_back(actor); }
+		void Register(std::shared_ptr<Actor> actor) { data.push_back(actor); }
 		void Update(float elapsedTime) {
 			for (auto& a : data) {
 				a->Update(elapsedTime);
@@ -65,7 +65,7 @@ protected:
 	struct Widgets
 	{
 		std::vector<std::shared_ptr<Widget>> data;
-		void push_back(std::shared_ptr<Widget> widget) { data.push_back(widget); }
+		void Register(std::shared_ptr<Widget> widget) { data.push_back(widget); }
 		void Update(float elapsedTime) {
 			for (auto& a : data) {
 				a->Update(elapsedTime);

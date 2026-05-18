@@ -4,6 +4,8 @@
 #include "imgui.h"
 #include "Components.h"
 
+// Actor::Components
+
 void Actor::Components::push_back(std::unique_ptr<Component> component)
 {
     data.push_back(std::move(component));
@@ -13,6 +15,13 @@ void Actor::Components::Update(float elapsedTime)
 {
     for (auto& c : data) {
         c->Update(elapsedTime);
+    }
+}
+
+void Actor::Components::LateUpdate(float elapsedTime)
+{
+    for (auto& c : data) {
+        c->LateUpdate(elapsedTime);
     }
 }
 
@@ -32,11 +41,17 @@ void Actor::Components::DrawGUI(float elapsedTime)
     }
 }
 
+// Actor
+
 void Actor::Update(float elapsedTime)
 {
     transform.Update();
+
     componentList.Update(elapsedTime);
     OnUpdate(elapsedTime);
+
+	componentList.LateUpdate(elapsedTime);
+    OnLateUpdate(elapsedTime);
 }
 
 void Actor::Render(const RenderContext& rc, float elapsedTime)

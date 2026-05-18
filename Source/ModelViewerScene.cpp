@@ -4,7 +4,6 @@
 #include "Commander.h"
 #include "Soldier.h"
 #include "Stage00.h"
-#include "Weapon.h"
 #include "FreeCameraController.h"
 #include "FpsCameraController.h"
 #include "LocalPlayer.h"
@@ -17,10 +16,12 @@ ModelViewerScene::ModelViewerScene()
 	float screenHeight = Graphics::Instance().GetScreenHeight();
 
 	// アクタ生成
-	actors.push_back(std::make_shared<Stage00>());
+
+	actors.Register(std::make_shared<Stage00>());
+
 	std::shared_ptr<Commander> localCommander = std::make_shared<Commander>();
 	localCommander->SetController(std::make_unique<LocalPlayer>());
-	actors.push_back(localCommander);
+	actors.Register(localCommander);
 
 	// カメラ設定
 	camera.SetPerspectiveFov(

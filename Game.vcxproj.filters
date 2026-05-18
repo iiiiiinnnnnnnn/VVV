@@ -422,6 +422,8 @@
       <Filter>シェーダー</Filter>
     </None>
     <None Include=".gitignore" />
+    <None Include="README.md" />
+    <None Include="imgui.ini" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicPS.hlsl">
@@ -456,6 +458,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Source\ザ・メモ.txt" />
+    <Text Include="ザ・メモ.txt" />
   </ItemGroup>
 </Project>

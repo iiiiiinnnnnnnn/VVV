@@ -4,16 +4,14 @@
 
 #include "Model.h"
 #include "ModelRenderer.h"
-#include "Graphics.h"
 #include "Component.h"
 #include "Actor.h"
-#include "Transform.h"
 
 class ModelRender : public Component {
 public:
     ModelRender(Actor* owner, std::shared_ptr<Model> model, ShaderId shaderId = ShaderId::Lambert);
 
-    void Update(float elapsedTime) override;
+    void LateUpdate(float elapsedTime) override;
     void Render(const RenderContext& rc, float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 

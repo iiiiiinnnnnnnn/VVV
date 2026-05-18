@@ -14,6 +14,7 @@ public:
 
 	void InitCharacter();
 	void OnUpdate(float elapsedTime) override;
+	void OnLateUpdate(float elapsedTime) override;
 	void OnRender(const RenderContext& rc, float elapsedTime) override;
 
 	enum class SkinParts : uint32_t {
@@ -45,6 +46,12 @@ public:
 
     Model* GetModel() const { return model.get(); }
 
+	void SetSpineAngleX(float angleX) { spineAngleX = angleX; }
+	float GetSpinAngleX() const { return spineAngleX; }
+
+	void SetFirstPerson(bool firstPerson) { isFirstPerson = firstPerson; }
+	bool IsFirstPerson() const { return isFirstPerson; }
+
 protected:
     std::unique_ptr<PlayerController> controller;
     std::shared_ptr<Model> model = nullptr;
@@ -52,6 +59,11 @@ protected:
 	Animator* anim = nullptr;
 	Model::Node* handNode = nullptr;
 	CharacterController* cc = nullptr;
+
+	bool isFirstPerson = false;
+	float spineAngleX = 0.0f;
+	const Vector2 idleSpineAngle = { 0.8f, 0 };
+	const Vector2 readySpineAngle = { -0.25f, -0.38f };
 
 	float verticalVelocity = 0.0f; // èdóÕ
     float hp = 100.0f;

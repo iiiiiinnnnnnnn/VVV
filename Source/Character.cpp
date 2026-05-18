@@ -1,7 +1,6 @@
 // Character.cpp
 
 #include "Character.h"
-#include "RemotePlayer.h"
 
 void Character::SetSkin(uint32_t parts)
 {
@@ -111,34 +110,54 @@ void Character::OnUpdate(float elapsedTime)
 	if (!controller) return;
 	if (!cc) return;
 
-	float moveX = controller->GetMoveX();
-	float moveZ = controller->GetMoveZ();
+	// 入力周り
+	{
+		float moveX = controller->GetMoveX();
+		float moveZ = controller->GetMoveZ();
 
-	// 入力の大きさ(animatorに入れる)
-	float inputLength = Vector3(moveX, 0, moveZ).Length();
-	anim->SetFloat("speed", inputLength);
-	anim->SetBool("crouch", controller->GetCrouch());
-	anim->SetBool("jump", controller->GetJump());
-	anim->SetBool("ready", controller->GetReady());
-	
-	/*if (controller->GetShoot())  anim->SetTrigger("shoot");
-	if (controller->GetReload()) anim->SetTrigger("reload");*/
+		// 入力の大きさ(animatorに入れる)
+		float inputLength = Vector3(moveX, 0, moveZ).Length();
+		anim->SetFloat("speed", inputLength);
+		anim->SetBool("crouch", controller->GetCrouch());
+		anim->SetBool("jump", controller->GetJump());
+		anim->SetBool("ready", controller->GetReady());
 
-	// 移動ベクトル（speed メンバ変数で実際の速さをスケール）
-	Vector3 move = Vector3::TransformNormal(
-		Vector3(moveX, 0, moveZ),
-		Matrix::CreateFromQuaternion(transform.rotation)
-	);
-	move *= speed * elapsedTime;  // speed は Character のメンバ変数(5.0f)
+		/*if (controller->GetShoot())  anim->SetTrigger("shoot");
+		if (controller->GetReload()) anim->SetTrigger("reload");*/
 
-	if (cc->IsGrounded())
-		verticalVelocity = 0.0f;
-	else
-		verticalVelocity -= 9.81f * elapsedTime;
+		// 移動ベクトル（speed メンバ変数で実際の速さをスケール）
+		Vector3 move = Vector3::TransformNormal(
+			Vector3(moveX, 0, moveZ),
+			Matrix::CreateFromQuaternion(transform.rotation)
+		);
+		move *= speed * elapsedTime;  // speed は Character のメンバ変数(5.0f)
 
-	move.y = verticalVelocity * elapsedTime;
-	cc->Move(move);
+		if (cc->IsGrounded())
+			verticalVelocity = 0.0f;
+		else
+			verticalVelocity -= 9.81f * elapsedTime;
 
+		move.y = verticalVelocity * elapsedTime;
+		cc->Move(move);
+	}
+}
+
+void Character::OnLateUpdate(float elapsedTime)
+{
+	// スパインの回転
+	if (isFirstPerson)
+	{
+		Vector2 targetSpineAngleX = controller->GetReady() ? readySpineAngle : idleSpineAngle;
+
+		Model::Node* spineNode = &model->GetNodes()[4];
+		Quaternion baseRot = spineNode->rotation;
+		Quaternion aimRot = Quaternion::CreateFromAxisAngle(Vector3::UnitZ, -spineAngleX + targetSpineAngleX.x);
+		Quaternion aimRot2 = Quaternion::CreateFromAxisAngle(Vector3::UnitX, targetSpineAngleX.y);
+		spineNode->rotation = baseRot * aimRot * aimRot2;
+		model->UpdateTransform(transform.matrix);
+	}
+
+	// 武器
 	if (weapon) weapon->Update(elapsedTime);
 }
 
