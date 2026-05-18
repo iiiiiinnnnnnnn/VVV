@@ -252,6 +252,9 @@
     <ClCompile Include="Source\Shader.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
     </ClCompile>
+    <ClCompile Include="Source\RenderTarget.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -439,6 +442,9 @@
     </ClInclude>
     <ClInclude Include="Source\Model.h">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RenderTarget.h">
+      <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

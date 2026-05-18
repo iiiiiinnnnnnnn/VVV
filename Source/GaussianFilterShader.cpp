@@ -21,7 +21,7 @@ GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 	// ガウスフィルター用定数バッファ
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
-		sizeof(gaussian_filter_constants),
+		sizeof(CbGaussianFilter),
 		gaussianFilterConstantBuffer.GetAddressOf());
 }
 
@@ -39,7 +39,7 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	//	ガウスフィルター用の定数バッファを算出
-	gaussian_filter_constants gaussian_filter_constant;
+	CbGaussianFilter gaussian_filter_constant;
 	CalculateGaussianFilterConstant(gaussian_filter_constant, gaussianFilterData);
 
 	//	定数バッファを設定
@@ -53,8 +53,13 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	};
 	dc->PSSetConstantBuffers(2, _countof(cbs), cbs);
 
-
 	dc->PSSetShaderResources(0, 1, &srv);
+}
+
+void GaussianFilterShader::ApplyParams(std::shared_ptr<void> params)
+{
+	if (!params) return;
+	gaussianFilterData = *static_cast<GaussianFilterData*>(params.get());
 }
 
 void GaussianFilterShader::End(const RenderContext& rc)
@@ -69,7 +74,7 @@ void GaussianFilterShader::End(const RenderContext& rc)
 	dc->PSSetShaderResources(0, 1, &nullSrv);
 }
 
-void GaussianFilterShader::CalculateGaussianFilterConstant(gaussian_filter_constants& constant, const gaussian_filter_datas& data)
+void GaussianFilterShader::CalculateGaussianFilterConstant(CbGaussianFilter& constant, const GaussianFilterData& data)
 {
 	//	偶数の場合は奇数に直す
 	int kernel_size = data.kernel_size;

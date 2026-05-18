@@ -25,5 +25,14 @@ void Widget::Render(float elapsedTime)
 
 void Widget::DrawGUI(float elapsedTime)
 {
-    OnDrawGUI(elapsedTime);
+    ImGui::PushID(this);
+    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Widget" : name.c_str()))
+    {
+        ImGui::TreePush(this);
+		OnDrawGUI(elapsedTime);
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+
+    ImGui::Separator();
 }

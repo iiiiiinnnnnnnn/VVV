@@ -8,6 +8,7 @@
 class Widget
 {
 public:
+	Widget(const std::string& name = "") : name(name) {}
     virtual ~Widget() = default;
     virtual void Update(float elapsedTime);
     virtual void Render(float elapsedTime);
@@ -20,14 +21,13 @@ public:
     void SetVisible(bool visibility, float speed) { targetAlpha = visibility ? 1.0f : 0.0f; fadeSpeed = speed; }
     void SetActive(bool a) { active = a; }
 
-    void SetPosition(float x, float y) { posX = x; posY = y; }
-    void SetSize(float w, float h) { width = w; height = h; }
-    void SetAnchor(float x, float y) { anchorX = x; anchorY = y; }
-
-    float GetPosX() const { return posX; }
-    float GetPosY() const { return posY; }
-    float GetWidth() const { return width; }
-    float GetHeight() const { return height; }
+    void SetPosition(const Vector2 pos) { this->pos = pos; }
+	void SetSize(const Vector2 size) { this->size = size; }
+	void SetAnchor(const Vector2 anchor) { this->anchor = anchor; }
+    
+	Vector2 GetPosition() const { return pos; }
+	Vector2 GetSize() const { return size; }
+	Vector2 GetAnchor() const { return anchor; }
     float GetAlpha() const { return alpha; }
 
 protected:
@@ -35,18 +35,17 @@ protected:
     virtual void OnRender(float elapsedTime) {}
     virtual void OnDrawGUI(float elapsedTime) {}
 
-    float posX = 0.0f;
-    float posY = 0.0f;
-    float width = 100.0f;
-    float height = 100.0f;
+	Vector2 pos = Vector2::Zero; // 位置
+    Vector2 size = {100, 100}; // サイズ
 
     // アンカー（0.0=左/上, 0.5=中央, 1.0=右/下）
-    float anchorX = 0.0f;
-    float anchorY = 0.0f;
+    Vector2 anchor = Vector2::Zero;
 
     float alpha = 1.0f;
     float targetAlpha = 1.0f;
     float fadeSpeed = 1.0f;
 
     bool active = true;
+
+    std::string name;
 };

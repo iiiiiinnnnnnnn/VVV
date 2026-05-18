@@ -49,6 +49,7 @@
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\RemotePlayer.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
+    <ClCompile Include="Source\RenderTarget.cpp" />
     <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
     <ClCompile Include="Source\Shader.cpp" />
@@ -108,6 +109,7 @@
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\PlayerController.h" />
     <ClInclude Include="Source\RemotePlayer.h" />
+    <ClInclude Include="Source\RenderTarget.h" />
     <ClInclude Include="Source\Rigidbody.h" />
     <ClInclude Include="Source\PhysicsManager.h" />
     <ClInclude Include="Source\Commander.h" />

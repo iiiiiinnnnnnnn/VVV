@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Scene.h"
+#include "RenderTarget.h"
 
 // モデルビューアシーン
 class ModelViewerScene : public Scene

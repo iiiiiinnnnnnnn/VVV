@@ -26,7 +26,8 @@ ModelViewerScene::ModelViewerScene()
 
 	// ウィジェット生成
 
-	widgets.Register(std::make_shared<TestWidget>());
+	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 0)));
+	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 100)));
 
 	// カメラ設定
 	camera.SetPerspectiveFov(
