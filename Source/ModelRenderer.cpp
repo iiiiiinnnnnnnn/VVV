@@ -2,7 +2,10 @@
 #include "Misc.h"
 #include "GpuResourceUtils.h"
 #include "ModelRenderer.h"
-#include "LambertShader.h"
+#include "BasicModelShader.h"
+
+// 追加シェーダー
+#include "PBRShader.h"
 
 // コンストラクタ
 ModelRenderer::ModelRenderer(ID3D11Device* device)
@@ -19,12 +22,14 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 		sizeof(CbSkeleton),
 		skeletonConstantBuffer.GetAddressOf());
 
-	// シェーダー生成
-	shaders[static_cast<int>(ShaderId::Lambert)] = std::make_unique<LambertShader>(device);
+	shaders[static_cast<int>(ModelShaderId::Basic)] = std::make_unique<BasicModelShader>(device);
+
+	// 追加シェーダー
+	shaders[static_cast<int>(ModelShaderId::PBR)] = std::make_unique<PBRShader>(device);
 }
 
 // 箱描画
-void ModelRenderer::Draw(ShaderId shaderId, std::shared_ptr<Model> model)
+void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
@@ -32,7 +37,7 @@ void ModelRenderer::Draw(ShaderId shaderId, std::shared_ptr<Model> model)
 }
 
 // 描画実行
-void ModelRenderer::Render(const RenderContext& rc)
+void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -75,7 +80,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const Model::Mesh& mesh, Shader* shader)
+	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(Model::Vertex);
@@ -102,7 +107,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
 		// 更新
-		shader->Update(rc, mesh);
+		shader->Update(rc, mesh, elapsedTime);
 
 		// 描画
 		dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
@@ -114,7 +119,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	// 不透明描画処理
 	for (DrawInfo& drawInfo : drawInfos)
 	{
-		Shader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
+		ModelShader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
 		shader->Begin(rc);
 
 		for (const Model::Mesh& mesh : drawInfo.model->GetMeshes())
@@ -162,7 +167,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	// 半透明描画処理
 	for (const TransparencyDrawInfo& transparencyDrawInfo : transparencyDrawInfos)
 	{
-		Shader* shader = shaders[static_cast<int>(transparencyDrawInfo.shaderId)].get();
+		ModelShader* shader = shaders[static_cast<int>(transparencyDrawInfo.shaderId)].get();
 
 		shader->Begin(rc);
 

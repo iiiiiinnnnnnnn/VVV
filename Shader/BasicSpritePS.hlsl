@@ -1,4 +1,4 @@
-#include "sprite.hlsli"
+#include "BasicSprite.hlsli"
 
 Texture2D spriteTexture : register(t0);
 SamplerState spriteSampler : register(s0);

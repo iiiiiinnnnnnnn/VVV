@@ -1,6 +1,9 @@
 #include "Misc.h"
 #include "Graphics.h"
 
+float Graphics::ScreenWidth = 0.0f;
+float Graphics::ScreenHeight = 0.0f;
+
 // èâä˙âª
 void Graphics::Initialize(HWND hWnd)
 {
@@ -11,8 +14,8 @@ void Graphics::Initialize(HWND hWnd)
 	UINT screenWidth = rc.right - rc.left;
 	UINT screenHeight = rc.bottom - rc.top;
 
-	this->screenWidth = static_cast<float>(screenWidth);
-	this->screenHeight = static_cast<float>(screenHeight);
+	ScreenWidth = static_cast<float>(screenWidth);
+	ScreenHeight = static_cast<float>(screenHeight);
 
 	HRESULT hr = S_OK;
 
@@ -129,7 +132,7 @@ void Graphics::Initialize(HWND hWnd)
 	primitiveRenderer = std::make_unique<PrimitiveRenderer>(device.Get());
 	shapeRenderer = std::make_unique<ShapeRenderer>(device.Get());
 	modelRenderer = std::make_unique<ModelRenderer>(device.Get());
-
+	spriteRenderer = std::make_unique<SpriteRenderer>(device.Get());
 }
 
 // ÉNÉäÉA

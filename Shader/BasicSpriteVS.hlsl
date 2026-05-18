@@ -1,4 +1,4 @@
-#include "Sprite.hlsli"
+#include "BasicSprite.hlsli"
 
 // 頂点シェーダーエントリポイント
 VS_OUT main(float4 position : POSITION, float4 color : COLOR, float2 texcoord : TEXCOORD)

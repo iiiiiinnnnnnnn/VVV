@@ -1,4 +1,4 @@
-#include "Lambert.hlsli"
+#include "BasicModel.hlsli"
 
 cbuffer CbMesh : register(b0)
 {

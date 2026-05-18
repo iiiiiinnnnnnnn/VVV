@@ -57,7 +57,8 @@ void Scene::Render(float elapsedTime)
 	actors.Render(rc, elapsedTime);
 	widgets.Render(rc, elapsedTime);
 
-	Graphics::Instance().GetModelRenderer()->Render(rc);
+	Graphics::Instance().GetModelRenderer()->Render(rc, elapsedTime);
+	Graphics::Instance().GetSpriteRenderer()->Render(rc, elapsedTime);
 }
 
 void Scene::DrawGUI(float elapsedTime)

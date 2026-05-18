@@ -7,13 +7,14 @@
 #include "FreeCameraController.h"
 #include "FpsCameraController.h"
 #include "LocalPlayer.h"
+#include "TestWIdget.h"
 
 // コンストラクタ
 ModelViewerScene::ModelViewerScene()
 {
 	ID3D11Device* device = Graphics::Instance().GetDevice();
-	float screenWidth = Graphics::Instance().GetScreenWidth();
-	float screenHeight = Graphics::Instance().GetScreenHeight();
+	float screenWidth = Graphics::ScreenWidth;
+	float screenHeight = Graphics::ScreenHeight;
 
 	// アクタ生成
 
@@ -22,6 +23,10 @@ ModelViewerScene::ModelViewerScene()
 	std::shared_ptr<Commander> localCommander = std::make_shared<Commander>();
 	localCommander->SetController(std::make_unique<LocalPlayer>());
 	actors.Register(localCommander);
+
+	// ウィジェット生成
+
+	widgets.Register(std::make_shared<TestWidget>());
 
 	// カメラ設定
 	camera.SetPerspectiveFov(

@@ -3,14 +3,15 @@
 #pragma once
 
 #include "Common.h"
+#include "Texture.h"
 
 class Widget
 {
 public:
     virtual ~Widget() = default;
     virtual void Update(float elapsedTime);
-    virtual void Render(float elapsedTime) = 0;
-    virtual void DrawGUI(float elapsedTime) = 0;
+    virtual void Render(float elapsedTime);
+    virtual void DrawGUI(float elapsedTime);
 
     bool IsVisible() const { return alpha > 0.0f; }
     bool IsActive() const { return active; }
@@ -30,10 +31,14 @@ public:
     float GetAlpha() const { return alpha; }
 
 protected:
+    virtual void OnUpdate(float elapsedTime) {}
+    virtual void OnRender(float elapsedTime) {}
+    virtual void OnDrawGUI(float elapsedTime) {}
+
     float posX = 0.0f;
     float posY = 0.0f;
-    float width = 0.0f;
-    float height = 0.0f;
+    float width = 100.0f;
+    float height = 100.0f;
 
     // アンカー（0.0=左/上, 0.5=中央, 1.0=右/下）
     float anchorX = 0.0f;

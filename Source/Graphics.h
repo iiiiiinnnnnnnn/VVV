@@ -7,6 +7,7 @@
 #include "PrimitiveRenderer.h"
 #include "ShapeRenderer.h"
 #include "ModelRenderer.h"
+#include "SpriteRenderer.h"
 
 // グラフィックス
 class Graphics
@@ -44,12 +45,6 @@ public:
 	// デバイスコンテキスト取得
 	ID3D11DeviceContext* GetDeviceContext() { return immediateContext.Get(); }
 
-	// スクリーン幅取得
-	float GetScreenWidth() const { return screenWidth; }
-
-	// スクリーン高さ取得
-	float GetScreenHeight() const { return screenHeight; }
-
 	// レンダーステート取得
 	RenderState* GetRenderState() { return renderState.get(); }
 
@@ -62,6 +57,12 @@ public:
 	// モデルレンダラ取得
 	ModelRenderer* GetModelRenderer() const { return modelRenderer.get(); }
 
+	// スプライトレンダラ取得
+	SpriteRenderer* GetSpriteRenderer() const { return spriteRenderer.get(); }
+
+	static float ScreenWidth;
+	static float ScreenHeight;
+
 private:
 	HWND											hWnd = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11Device>			device;
@@ -71,11 +72,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	depthStencilView;
 	D3D11_VIEWPORT									viewport;
 
-	float	screenWidth = 0;
-	float	screenHeight = 0;
-
 	std::unique_ptr<RenderState>					renderState;
 	std::unique_ptr<PrimitiveRenderer>				primitiveRenderer;
 	std::unique_ptr<ShapeRenderer>					shapeRenderer;
 	std::unique_ptr<ModelRenderer>					modelRenderer;
+	std::unique_ptr<SpriteRenderer>					spriteRenderer;
 };

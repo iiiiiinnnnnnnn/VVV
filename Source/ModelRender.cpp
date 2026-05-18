@@ -3,9 +3,9 @@
 #include "ModelRender.h"
 #include <Graphics.h>
 
-ModelRender::ModelRender(Actor* owner, std::shared_ptr<Model> model, ShaderId shaderId) : Component(owner) {
+ModelRender::ModelRender(Actor* owner, std::shared_ptr<Model> model, ModelShaderId shaderId) : Component(owner) {
     SetModel(model);
-    SetShaderId(shaderId);
+    SetModelShaderId(shaderId);
 }
 
 void ModelRender::LateUpdate(float elapsedTime)

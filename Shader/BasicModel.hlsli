@@ -1,4 +1,3 @@
-
 struct CbDirectionalLight
 {
     float3 direction;
@@ -39,8 +38,17 @@ struct CbLightManager
 
 cbuffer CbScene : register(b7)
 {
-    row_major float4x4  viewProjection;
-    float3              viewPosition;
+    row_major float4x4 viewProjection;
+    float3 viewPosition;
     float _dummyCbScene;
-    CbLightManager      lightManager;
+    CbLightManager lightManager;
+};
+
+struct VS_OUT
+{
+	float4 vertex	: SV_POSITION;
+	float2 texcoord	: TEXCOORD;
+	float3 normal	: NORMAL;
+	float3 position : POSITION;
+	float3 tangent	: TANGENT;
 };

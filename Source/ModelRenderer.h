@@ -4,9 +4,10 @@
 #include "Model.h"
 #include "Shader.h"
 
-enum class ShaderId
+enum class ModelShaderId
 {
-	Lambert,
+	Basic,
+	PBR,
 
 	EnumCount
 };
@@ -18,10 +19,10 @@ public:
 	~ModelRenderer() {}
 
 	// î†ï`âÊ
-	void Draw(ShaderId shaderId, std::shared_ptr<Model> model);
+	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model);
 
 	// ï`âÊé¿çs
-	void Render(const RenderContext& rc);
+	void Render(const RenderContext& rc, float elapsedTime);
 
 private:
 	struct CbDirectionalLight
@@ -92,18 +93,18 @@ private:
 
 	struct DrawInfo
 	{
-		ShaderId				shaderId;
+		ModelShaderId				shaderId;
 		std::shared_ptr<Model>	model;
 	};
 
 	struct TransparencyDrawInfo
 	{
-		ShaderId				shaderId;
+		ModelShaderId				shaderId;
 		const Model::Mesh*		mesh;
 		float					distance;
 	};
 
-	std::unique_ptr<Shader>					shaders[static_cast<int>(ShaderId::EnumCount)];
+	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];
 	std::vector<DrawInfo>					drawInfos;
 	std::vector<TransparencyDrawInfo>		transparencyDrawInfos;
 

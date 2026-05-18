@@ -4,18 +4,32 @@
 #include "RenderContext.h"
 #include "Model.h"
 
-class Shader
+class SpriteShader
 {
 public:
-	Shader() {}
-	virtual ~Shader() {}
+	SpriteShader() {}
+	virtual ~SpriteShader() {}
 
-	// 開始処理
 	virtual void Begin(const RenderContext& rc) = 0;
-
-	// 更新処理
-	virtual void Update(const RenderContext& rc, const Model::Mesh& mesh) = 0;
-
-	// 終了処理
+	virtual void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, float r, float g, float b, float a, float elapsedTime) = 0;
 	virtual void End(const RenderContext& rc) = 0;
+
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>		vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>		pixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>		inputLayout;
+};
+
+class ModelShader
+{
+public:
+	ModelShader() {}
+	virtual ~ModelShader() {}
+
+	virtual void Begin(const RenderContext& rc) = 0;
+	virtual void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) = 0;
+	virtual void End(const RenderContext& rc) = 0;
+
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>		vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>		pixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>		inputLayout;
 };

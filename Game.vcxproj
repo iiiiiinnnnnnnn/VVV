@@ -17,6 +17,8 @@
     <ClCompile Include="Source\Audio.cpp" />
     <ClCompile Include="Source\AudioResource.cpp" />
     <ClCompile Include="Source\AudioSource.cpp" />
+    <ClCompile Include="Source\BasicModelShader.cpp" />
+    <ClCompile Include="Source\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Character.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
@@ -33,7 +35,7 @@
     <ClCompile Include="Source\Graphics.cpp" />
     <ClCompile Include="Source\ImGuiRenderer.cpp" />
     <ClCompile Include="Source\Input.cpp" />
-    <ClCompile Include="Source\LambertShader.cpp" />
+    <ClCompile Include="Source\PBRShader.cpp" />
     <ClCompile Include="Source\LocalPlayer.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Model.cpp" />
@@ -51,9 +53,10 @@
     <ClCompile Include="Source\ShapeRenderer.cpp" />
     <ClCompile Include="Source\Soldier.cpp" />
     <ClCompile Include="Source\SoldierAIPlayer.cpp" />
-    <ClCompile Include="Source\Sprite.cpp" />
+    <ClCompile Include="Source\SpriteRenderer.cpp" />
     <ClCompile Include="Source\Squad.cpp" />
     <ClCompile Include="Source\Stage00.cpp" />
+    <ClCompile Include="Source\TestWIdget.cpp" />
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\Weapon.cpp" />
@@ -68,6 +71,8 @@
     <ClInclude Include="Source\Audio.h" />
     <ClInclude Include="Source\AudioResource.h" />
     <ClInclude Include="Source\AudioSource.h" />
+    <ClInclude Include="Source\BasicModelShader.h" />
+    <ClInclude Include="Source\BasicSpriteShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\Character.h" />
@@ -89,7 +94,7 @@
     <ClInclude Include="Source\HighResolutionTimer.h" />
     <ClInclude Include="Source\ImGuiRenderer.h" />
     <ClInclude Include="Source\Input.h" />
-    <ClInclude Include="Source\LambertShader.h" />
+    <ClInclude Include="Source\PBRShader.h" />
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LocalPlayer.h" />
     <ClInclude Include="Source\Misc.h" />
@@ -111,9 +116,10 @@
     <ClInclude Include="Source\ShapeRenderer.h" />
     <ClInclude Include="Source\Soldier.h" />
     <ClInclude Include="Source\SoldierAIPlayer.h" />
-    <ClInclude Include="Source\Sprite.h" />
+    <ClInclude Include="Source\SpriteRenderer.h" />
     <ClInclude Include="Source\Squad.h" />
     <ClInclude Include="Source\Stage00.h" />
+    <ClInclude Include="Source\TestWIdget.h" />
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\Weapon.h" />
@@ -123,19 +129,32 @@
     <None Include=".gitignore" />
     <None Include="imgui.ini" />
     <None Include="README.md" />
-    <None Include="Shader\Lambert.hlsli" />
+    <None Include="Shader\GaussianFiltering.hlsli" />
+    <None Include="Shader\BasicModel.hlsli" />
+    <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
-    <None Include="Shader\Scene.hlsli" />
     <None Include="Shader\ShapeRenderer.hlsli" />
     <None Include="Shader\Skinning.hlsli" />
-    <None Include="Shader\Sprite.hlsli" />
+    <None Include="Shader\BasicSprite.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\LambertPS.hlsl">
+    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\LambertVS.hlsl">
+    <FxCompile Include="Shader\BasicModelPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\BasicModelVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\PBR_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\PBR_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -155,11 +174,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\SpritePS.hlsl">
+    <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\SpriteVS.hlsl">
+    <FxCompile Include="Shader\BasicSpriteVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -221,6 +240,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <DisableSpecificWarnings>26495;26494</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
