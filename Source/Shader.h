@@ -4,8 +4,8 @@
 #include "RenderContext.h"
 #include "Model.h"
 
-class Shader {
-
+class Shader
+{
 public:
 	virtual void Begin(const RenderContext& rc) = 0;
 	virtual void End(const RenderContext& rc) = 0;
