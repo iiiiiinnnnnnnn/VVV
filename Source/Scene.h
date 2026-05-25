@@ -46,18 +46,18 @@ protected:
 		std::vector<std::shared_ptr<Actor>> data;
 		void Register(std::shared_ptr<Actor> actor) { data.push_back(actor); }
 		void Update(float elapsedTime) {
-			for (auto& a : data) {
-				a->Update(elapsedTime);
+			for (auto& d : data) {
+				d->Update(elapsedTime);
 			}
 		}
 		void Render(const RenderContext& rc, float elapsedTime) {
-			for (auto& a : data) {
-				a->Render(rc, elapsedTime);
+			for (auto& d : data) {
+				d->Render(rc, elapsedTime);
 			}
 		}
 		void DrawGUI(float elapsedTime) {
-			for (auto& a : data) {
-				a->DrawGUI(elapsedTime);
+			for (auto& d : data) {
+				d->DrawGUI(elapsedTime);
 			}
 		}
 	} actors;
@@ -67,18 +67,18 @@ protected:
 		std::vector<std::shared_ptr<Widget>> data;
 		void Register(std::shared_ptr<Widget> widget) { data.push_back(widget); }
 		void Update(float elapsedTime) {
-			for (auto& a : data) {
-				a->Update(elapsedTime);
+			for (auto& d : data) {
+				d->Update(elapsedTime);
 			}
 		}
 		void Render(const RenderContext& rc, float elapsedTime) {
-			for (auto& a : data) {
-				a->Render(elapsedTime);
+			for (auto& d : data) {
+				d->Render(rc, elapsedTime);
 			}
 		}
 		void DrawGUI(float elapsedTime) {
-			for (auto& a : data) {
-				a->DrawGUI(elapsedTime);
+			for (auto& d : data) {
+				d->DrawGUI(elapsedTime);
 			}
 		}
 	} widgets;

@@ -21,5 +21,11 @@ struct Transform
 
 	Transform(Matrix m);
 
+	static Transform FromPosition(const Vector3& position);
+	static Transform FromRotation(const Quaternion& rotation);
+	static Transform FromAngle(const Vector3& euler);
+	static Transform FromScale(const Vector3& scale);
+	static Transform FromScale(float scale);
+
 	void Update();
 };

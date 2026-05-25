@@ -19,9 +19,6 @@
     <Filter Include="ソースファイル\ゲーム\カメラ">
       <UniqueIdentifier>{87a91572-ce15-4886-922d-49746dfb9de8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\ゲーム\アクタ">
-      <UniqueIdentifier>{05d16d2a-ae13-4e92-bdd8-a420fea8a7d9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\ゲーム\シーン">
       <UniqueIdentifier>{c845b1e1-b5a0-4795-b61a-fd73cb92cb94}</UniqueIdentifier>
     </Filter>
@@ -31,17 +28,8 @@
     <Filter Include="ソースファイル\システム%28基底%29\オーディオ">
       <UniqueIdentifier>{a5ee6f23-df6d-407f-9634-387fab3db889}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\アクタ">
-      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\アクタ\コンポーネント">
-      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\アプリ">
       <UniqueIdentifier>{3084c246-b69a-4652-8a81-096e9c7ab090}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\ウィジェット">
-      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\カメラ">
       <UniqueIdentifier>{4561f66d-646b-410b-8980-6e0d0e83782d}</UniqueIdentifier>
@@ -91,8 +79,26 @@
     <Filter Include="ソースファイル\ゲーム\シェーダー\スプライト">
       <UniqueIdentifier>{268e9b85-707d-4075-bbdc-b99004b2d2dc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\ゲーム\ウィジェット">
+    <Filter Include="ソースファイル\ゲーム\オブジェクト">
+      <UniqueIdentifier>{7d54603e-4f5c-4ea8-ad87-3c9f6eafb2fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\アクタ">
+      <UniqueIdentifier>{05d16d2a-ae13-4e92-bdd8-a420fea8a7d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\ウィジェット">
       <UniqueIdentifier>{63c65a0e-f736-4abb-8bed-f91687e2b6d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト">
+      <UniqueIdentifier>{6a4c50f1-85ce-4674-9620-088cc6c16290}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\アクタ">
+      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\ウィジェット">
+      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント">
+      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -150,26 +156,23 @@
     <ClCompile Include="Source\PhysicsManager.cpp">
       <Filter>ソースファイル\システム%28基底%29\物理</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ModelRender.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+    <ClCompile Include="Source\ModelRenderComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rigidbody.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Widget.cpp">
-      <Filter>ソースファイル\システム%28基底%29\ウィジェット</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
     </ClCompile>
     <ClCompile Include="Source\Actor.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\LocalPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
@@ -187,7 +190,7 @@
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\Texture.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
@@ -211,19 +214,19 @@
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Commander.cpp">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Soldier.cpp">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Stage00.cpp">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Weapon.cpp">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Character.cpp">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteRenderer.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
@@ -241,7 +244,7 @@
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
     </ClCompile>
     <ClCompile Include="Source\TestWIdget.cpp">
-      <Filter>ソースファイル\ゲーム\ウィジェット</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClCompile>
     <ClCompile Include="Source\GaussianFilterShader.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
@@ -254,6 +257,18 @@
     </ClCompile>
     <ClCompile Include="Source\RenderTarget.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpriteRenderComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animator.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RectTransform.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Object.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -321,34 +336,31 @@
       <Filter>ソースファイル\システム%28基底%29\物理</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ModelRender.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+    <ClInclude Include="Source\ModelRenderComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Components.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rigidbody.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\CameraController.h">
       <Filter>ソースファイル\システム%28基底%29\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Widget.h">
-      <Filter>ソースファイル\システム%28基底%29\ウィジェット</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
     </ClInclude>
     <ClInclude Include="Source\Actor.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
@@ -372,7 +384,7 @@
       <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\システム%28基底%29\アクタ\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimEditorWindow.h">
       <Filter>ソースファイル\システム%28基底%29\エディト</Filter>
@@ -402,19 +414,19 @@
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Commander.h">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Soldier.h">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage00.h">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Weapon.h">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Character.h">
-      <Filter>ソースファイル\ゲーム\アクタ</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\HighResolutionTimer.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
@@ -435,7 +447,7 @@
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
     </ClInclude>
     <ClInclude Include="Source\TestWIdget.h">
-      <Filter>ソースファイル\ゲーム\ウィジェット</Filter>
+      <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClInclude>
     <ClInclude Include="Source\GaussianFilterShader.h">
       <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
@@ -445,6 +457,18 @@
     </ClInclude>
     <ClInclude Include="Source\RenderTarget.h">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpriteRenderComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Object.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animator.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RectTransform.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

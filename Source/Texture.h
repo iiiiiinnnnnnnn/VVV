@@ -8,7 +8,10 @@
 class Texture
 {
 public:
+	// ファイルから
 	Texture(const char* filename);
+	// シェーダーリソースビューから
+	Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc);
 	~Texture() {}
 
 	// シェーダーリソースビュー取得

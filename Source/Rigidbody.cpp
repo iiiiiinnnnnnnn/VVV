@@ -1,18 +1,25 @@
 // Rigidbody.cpp
 
 #include "Rigidbody.h"
+#include "Actor.h"
 
-Rigidbody::Rigidbody(Actor* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor)
+Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor)
 {
+    Actor* ownerActor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+
     // ƒV[ƒ“‚É“o˜^
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
 
 void Rigidbody::Update(float elapsedTime)
 {
+    Actor* ownerActor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+
     if (rigidActor) {
         Vector3 pos = VEC(rigidActor->getGlobalPose().p);
-        owner->transform.position = pos;
+        ownerActor->transform.position = pos;
     }
 }
 
@@ -37,8 +44,11 @@ void Rigidbody::SetPosition(const Vector3& pos)
     rigidActor->setGlobalPose(t);
 }
 
-RigidbodyStatic::RigidbodyStatic(Actor* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(owner->transform.matrix)) {
+RigidbodyStatic::RigidbodyStatic(Object* owner)
+    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(dynamic_cast<Actor*>(owner)->transform.matrix))
+{
+    Actor* ownerActor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 }
 
 void RigidbodyStatic::DrawGUI(float elapsedTime)
@@ -54,8 +64,11 @@ void RigidbodyStatic::DrawGUI(float elapsedTime)
     }
 }
 
-RigidbodyDynamic::RigidbodyDynamic(Actor* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(owner->transform.matrix)) {
+RigidbodyDynamic::RigidbodyDynamic(Object* owner)
+    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(dynamic_cast<Actor*>(owner)->transform.matrix))
+{
+    Actor* ownerActor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 }
 
 void RigidbodyDynamic::DrawGUI(float elapsedTime)

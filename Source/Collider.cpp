@@ -1,10 +1,14 @@
 // Collider.cpp
 
 #include "Collider.h"
+#include "Actor.h"
 
-BoxCollider::BoxCollider(Actor* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
+BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : Component(owner), material(material), size(size), rigidbody(rigidbody)
 {
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
 }
@@ -55,7 +59,7 @@ void BoxCollider::DrawGUI(float elapsedTime)
     }
 }
 
-CapsuleCollider::CapsuleCollider(Actor* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material)
+CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material)
     : Component(owner), rigidbody(rigidbody), material(material), radius(radius), height(height)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
@@ -114,7 +118,7 @@ void CapsuleCollider::DrawGUI(float elapsedTime)
     }
 }
 
-SphereCollider::SphereCollider(Actor* owner, Rigidbody* rigidbody, float radius, PxMaterial* material)
+SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material)
     : Component(owner), rigidbody(rigidbody), material(material), radius(radius)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
@@ -168,7 +172,7 @@ void SphereCollider::DrawGUI(float elapsedTime)
     }
 }
 
-MeshCollider::MeshCollider(Actor* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
+MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
 	: Component(owner), rigidbody(rigidbody), model(model), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();

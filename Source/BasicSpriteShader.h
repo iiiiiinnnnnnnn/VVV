@@ -9,6 +9,6 @@ public:
 	~BasicSpriteShader() {}
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, float r, float g, float b, float a, float elapsedTime) override;
+	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, Color color, float elapsedTime) override;
 	void End(const RenderContext& rc) override;
 };

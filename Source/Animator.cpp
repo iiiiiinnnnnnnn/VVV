@@ -3,9 +3,13 @@
 #include "Animator.h"
 #include "AnimEditorWindow.h"
 #include "AnimatorSerializer.h"
+#include "Actor.h"
 
-Animator::Animator(Actor* owner, std::shared_ptr<Model> model)
-    : Component(owner), model(model) {
+Animator::Animator(Object* owner, std::shared_ptr<Model> model)
+    : Component(owner), model(model)
+{
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 }
 
 // =========================================================

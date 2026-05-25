@@ -7,8 +7,8 @@ Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 	std::shared_ptr<Model> model = std::make_shared<Model>(
 		"Data/Model/Stage/Stage00.glb");
 
-	transform.scale = { 100, 100, 100 };
-	transform.Update();
+	transform = Transform::FromScale(100);
+
 	model->UpdateTransform(transform.matrix);
 
 	// Rigidbody¶¬
@@ -18,7 +18,7 @@ Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 	AddComponent<MeshCollider>(rb, model.get());
 
 	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
-	AddComponent<ModelRender>(model);
+	AddComponent<ModelRenderComponent>(model);
 }
 
 void Stage00::OnUpdate(float elapsedTime)

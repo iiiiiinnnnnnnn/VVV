@@ -1,16 +1,23 @@
-// ModelRender.cpp
+// ModelRenderComponent.cpp
 
-#include "ModelRender.h"
+#include "ModelRenderComponent.h"
 #include <Graphics.h>
+#include "Actor.h"
 
-ModelRender::ModelRender(Actor* owner, std::shared_ptr<Model> model, ModelShaderId shaderId) : Component(owner) {
-    SetModel(model);
-    SetModelShaderId(shaderId);
+ModelRenderComponent::ModelRenderComponent(Object* owner, std::shared_ptr<Model> model, ModelShaderId shaderId)
+    : Component(owner), model(model), shaderId(shaderId)
+{
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 }
 
-void ModelRender::LateUpdate(float elapsedTime)
+void ModelRenderComponent::LateUpdate(float elapsedTime)
 {
-    if (appendNode) {
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
+    if (appendNode)
+    {
         // worldTransform‚ðDecompose‚µ‚Ä³‹K‰»‚·‚é
         Matrix world = appendNode->worldTransform;
         Vector3 scale, position;
@@ -21,22 +28,23 @@ void ModelRender::LateUpdate(float elapsedTime)
         Matrix normalizedWorld = Matrix::CreateFromQuaternion(rotation)
             * Matrix::CreateTranslation(position);
 
-        Matrix finalWorld = owner->transform.matrix * normalizedWorld;
+        Matrix finalWorld = actor->transform.matrix * normalizedWorld;
         model->UpdateTransform(finalWorld);
     }
     else {
-        model->UpdateTransform(owner->transform.matrix);
+        model->UpdateTransform(actor->transform.matrix);
     }
 }
 
-void ModelRender::Render(const RenderContext& rc, float elapsedTime)
+void ModelRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 {
-    Graphics::Instance().GetModelRenderer()->Draw(shaderId, model);
+    if(model)
+        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model);
 }
 
-void ModelRender::DrawGUI(float elapsedTime)
+void ModelRenderComponent::DrawGUI(float elapsedTime)
 {
-    if (ImGui::TreeNode("ModelRender"))
+    if (ImGui::TreeNode("ModelRenderComponent"))
     {
         if (model)
         {

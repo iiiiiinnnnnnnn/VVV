@@ -98,3 +98,7 @@ Texture::Texture(const char* filename)
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }
 
+Texture::Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc)
+	: shaderResourceView(shaderResourceView), texture2dDesc(texture2dDesc)
+{
+}

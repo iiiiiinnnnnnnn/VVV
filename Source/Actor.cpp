@@ -4,66 +4,17 @@
 #include "imgui.h"
 #include "Components.h"
 
-// Actor::Components
-
-void Actor::Components::push_back(std::unique_ptr<Component> component)
-{
-    data.push_back(std::move(component));
-}
-
-void Actor::Components::Update(float elapsedTime)
-{
-    for (auto& c : data) {
-        c->Update(elapsedTime);
-    }
-}
-
-void Actor::Components::LateUpdate(float elapsedTime)
-{
-    for (auto& c : data) {
-        c->LateUpdate(elapsedTime);
-    }
-}
-
-void Actor::Components::Render(const RenderContext& rc, float elapsedTime)
-{
-    for (auto& c : data) {
-        c->Render(rc, elapsedTime);
-    }
-}
-
-void Actor::Components::DrawGUI(float elapsedTime)
-{
-    for (auto& c : data) {
-        ImGui::PushID((void*)((uintptr_t)c.get() ^ (uintptr_t)this));
-        c->DrawGUI(elapsedTime);
-        ImGui::PopID();
-    }
-}
-
-// Actor
-
 void Actor::Update(float elapsedTime)
 {
     transform.Update();
 
-    componentList.Update(elapsedTime);
-    OnUpdate(elapsedTime);
-
-	componentList.LateUpdate(elapsedTime);
-    OnLateUpdate(elapsedTime);
-}
-
-void Actor::Render(const RenderContext& rc, float elapsedTime)
-{
-    componentList.Render(rc, elapsedTime);
-    OnRender(rc, elapsedTime);
+    Object::Update(elapsedTime);
 }
 
 void Actor::DrawGUI(float elapsedTime)
 {
     ImGui::PushID(this);
-    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Actor" : name.c_str()))
+    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
     {
         if (ImGui::TreeNode("Transform"))
         {
@@ -75,6 +26,8 @@ void Actor::DrawGUI(float elapsedTime)
                     auto cc = GetComponent<CharacterController>();
                     if (cc)
                         cc->SetPosition(transform.position);
+                    else
+						transform.position = transform.position;
                 }
             }
             if (ImGui::DragFloat4("Rotation", &transform.rotation.x)) {
@@ -85,6 +38,8 @@ void Actor::DrawGUI(float elapsedTime)
                     auto cc = GetComponent<CharacterController>();
                     if (cc)
                         cc->SetPosition(transform.position);
+                    else
+						transform.rotation = transform.rotation;
                 }
             }
             if (ImGui::DragFloat3("Scale", &transform.scale.x)) {
@@ -95,6 +50,8 @@ void Actor::DrawGUI(float elapsedTime)
                     auto cc = GetComponent<CharacterController>();
                     if (cc)
                         cc->SetPosition(transform.position);
+                    else
+						transform.scale = transform.scale;
                 }
             }
             ImGui::TreePop();

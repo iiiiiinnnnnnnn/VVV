@@ -12,7 +12,7 @@ class AnimEditorWindow;
 class Animator : public Component
 {
 public:
-    Animator(Actor* owner, std::shared_ptr<Model> model);
+    Animator(Object* owner, std::shared_ptr<Model> model);
     void Update(float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 

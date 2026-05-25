@@ -13,10 +13,9 @@ public:
 	void End(const RenderContext& rc) override;
 
 private:
-	struct CbMesh
+	struct CbBasic
 	{
 		Color		materialColor;
 	};
-
-	Microsoft::WRL::ComPtr<ID3D11Buffer>			meshConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };

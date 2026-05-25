@@ -4,13 +4,14 @@
 
 #include "Component.h"
 #include "PhysicsManager.h"
-#include "Actor.h"
+#include "Object.h"
 #include "Model.h"
-#include "Rigidbody.h"
+
+class Rigidbody;
 
 class BoxCollider : public Component {
 public:
-    BoxCollider(Actor* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
+    BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
     void DrawGUI(float elapsedTime) override;
 
 	const Vector3& GetSize() const { return size; }
@@ -24,7 +25,7 @@ private:
 
 class CapsuleCollider : public Component {
 public:
-    CapsuleCollider(Actor* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
+    CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
     void DrawGUI(float elapsedTime) override;
 
     const float GetRadius() const { return radius; }
@@ -40,7 +41,7 @@ private:
 
 class SphereCollider : public Component {
 public:
-    SphereCollider(Actor* owner, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
+    SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
     void DrawGUI(float elapsedTime) override;
 
     const float GetRadius() const { return radius; }
@@ -54,7 +55,7 @@ private:
 
 class MeshCollider : public Component {
 public:
-    MeshCollider(Actor* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material = nullptr);
     void DrawGUI(float elapsedTime) override;
 private:
     void UpdateShape();

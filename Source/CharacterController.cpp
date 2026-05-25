@@ -1,18 +1,22 @@
 // CharacterController.cpp
 
 #include "CharacterController.h"
+#include "Actor.h"
 
-CharacterController::CharacterController(Actor* owner, float radius, float height)
+CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
 {
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
     PxCapsuleControllerDesc desc;
     desc.radius = radius;
     desc.height = height;
     desc.material = PhysicsManager::Instance().GetDefaultMaterial();
     desc.position = PxExtendedVec3(
-        owner->transform.position.x,
-        owner->transform.position.y,
-        owner->transform.position.z
+        actor->transform.position.x,
+        actor->transform.position.y,
+        actor->transform.position.z
     );
     desc.upDirection = PxVec3(0, 1, 0);
     desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
@@ -30,12 +34,15 @@ CharacterController::~CharacterController()
 
 void CharacterController::Update(float elapsedTime)
 {
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
     if (!controller) return;
     PxExtendedVec3 pos = controller->getPosition();
     // カプセルの中心から足元に補正
     float halfHeight = (static_cast<PxCapsuleController*>(controller)->getHeight() * 0.5f)
         + static_cast<PxCapsuleController*>(controller)->getRadius();
-    owner->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);
+    actor->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);
 }
 
 void CharacterController::Move(const Vector3& velocity)

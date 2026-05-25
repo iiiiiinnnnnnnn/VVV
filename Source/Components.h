@@ -3,7 +3,8 @@
 #pragma once
 
 #include "Transform.h"
-#include "ModelRender.h"
+#include "ModelRenderComponent.h"
+#include "SpriteRenderComponent.h"
 #include "RigidBody.h"
 #include "Animator.h"
 #include "Collider.h"

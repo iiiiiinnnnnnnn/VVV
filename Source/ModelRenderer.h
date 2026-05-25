@@ -18,10 +18,8 @@ public:
 	ModelRenderer(ID3D11Device* device);
 	~ModelRenderer() {}
 
-	// î†ï`âÊ
 	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model);
 
-	// ï`âÊé¿çs
 	void Render(const RenderContext& rc, float elapsedTime);
 
 private:

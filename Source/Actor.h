@@ -2,58 +2,30 @@
 
 #pragma once
 
-#include "Common.h"
-#include "Component.h"
 #include "Transform.h"
+#include "Object.h"
 
-class Actor {
+class Actor : public Object
+{
 public:
-	Actor(std::string name = "", std::string tag = "", std::string layer = "") : name(name), tag(tag), layer(layer) {}
+    Actor(std::string name = "", std::string tag = "", bool isActive = true, std::string layer = "")
+        : Object(name, tag, isActive), layer(layer) {}
     virtual ~Actor() = default;
-
-    void Update(float elapsedTime);
-    void Render(const RenderContext& rc, float elapsedTime);
-    void DrawGUI(float elapsedTime);
 
     Transform transform;
 
-    struct Components {
-        std::vector<std::unique_ptr<Component>> data;
-        void push_back(std::unique_ptr<Component> component);
-        void Update(float elapsedTime);
-        void LateUpdate(float elapsedTime);
-        void Render(const RenderContext& rc, float elapsedTime);
-        void DrawGUI(float elapsedTime);
-    } componentList;
-
-    template<typename T, typename... Args>
-    T* AddComponent(Args&&... args) {
-        componentList.push_back(std::make_unique<T>(this, std::forward<Args>(args)...));
-        return static_cast<T*>(componentList.data.back().get());
-    }
-
-    template<typename T>
-    T* GetComponent() {
-        for (auto& c : componentList.data) {
-            if (auto* p = dynamic_cast<T*>(c.get())) {
-                return p;
-            }
-        }
-        return nullptr;
-    }
+    // オーバーライドする必要があるやつだけ(transform割り込み)
+	void Update(float elapsedTime) override;
+	void DrawGUI(float elapsedTime) override;
 
     virtual void OnCollisionEnter(Actor* other) {}
     virtual void OnCollisionExit(Actor* other) {}
     virtual void OnTriggerEnter(Actor* other) {}
     virtual void OnTriggerExit(Actor* other) {}
 
-protected:
-    virtual void OnUpdate(float elapsedTime) {}
-    virtual void OnLateUpdate(float elapsedTime) {}
-    virtual void OnRender(const RenderContext& rc, float elapsedTime) {}
-    virtual void OnDrawGUI(float elapsedTime) {}
+    void SetLayer(const std::string& layer) { this->layer = layer; }
+	const std::string& GetLayer() const { return layer; }
 
-    std::string name;
-	std::string tag;
+protected:
 	std::string layer;
 };

@@ -22,8 +22,8 @@ PBRShader::PBRShader(ID3D11Device* device)
 	// メッシュ用定数バッファ
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
-		sizeof(CbMesh),
-		meshConstantBuffer.GetAddressOf());
+		sizeof(CbPBR),
+		constantBuffer.GetAddressOf());
 }
 
 // 開始処理
@@ -39,7 +39,7 @@ void PBRShader::Begin(const RenderContext& rc)
 	// 定数バッファ設定
 	ID3D11Buffer* cbs[] =
 	{
-		meshConstantBuffer.Get(), 
+		constantBuffer.Get(), 
 	};
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 }
@@ -50,9 +50,9 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	// メッシュ用定数バッファ更新
-	CbMesh cbMesh{};
-	cbMesh.materialColor = mesh.material->baseColor;
-	dc->UpdateSubresource(meshConstantBuffer.Get(), 0, 0, &cbMesh, 0, 0);
+	CbPBR cb{};
+	cb.materialColor = mesh.material->baseColor;
+	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 	// シェーダーリソースビュー設定
 	ID3D11ShaderResourceView* srvs[] =
@@ -60,6 +60,11 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 		mesh.material->baseMap.Get(),
 	};
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+}
+
+void PBRShader::ApplyParams(ShaderParamPtr params)
+{
+	pbrData = *static_cast<const PBRData*>(params);
 }
 
 // 描画終了

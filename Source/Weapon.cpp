@@ -7,7 +7,8 @@
 #include "Character.h"
 #include "Texture.h"
 
-Weapon::Weapon(Character* character) : Actor("Weapon", "Weapon", "Default"), character(character)
+Weapon::Weapon(Character* character)
+	: Actor("Weapon", "Weapon", "Default"), character(character)
 {
 	// 武器
 	std::shared_ptr<Model> model = std::make_shared<Model>(
@@ -20,13 +21,12 @@ Weapon::Weapon(Character* character) : Actor("Weapon", "Weapon", "Default"), cha
 		model->GetMaterials()[0].baseMap.GetAddressOf());
 
 	// モデルレンダラー生成
-	auto mdlRender = AddComponent<ModelRender>(model);
+	auto mdlRender = AddComponent<ModelRenderComponent>(model);
 	
 	// プレイヤーの手に武器を接続
 	mdlRender->AppendNode(character->GetHandNode());
 
-	// 武器の初期回転オフセット
-	transform.rotation = Quaternion::CreateFromYawPitchRoll(0, DirectX::XMConvertToRadians(90), 0);
+	transform = Transform::FromAngle({ DirectX::XMConvertToRadians(90), 0, 0});
 }
 
 void Weapon::OnUpdate(float elapsedTime)

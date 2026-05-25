@@ -6,11 +6,11 @@
 #include "PlayerController.h"
 #include "Model.h"
 #include "Weapon.h"
-#include "Components.h"
 
 class Character : public Actor {
 public:
-	Character(std::string name = "", std::string tag = "", std::string layer = "") : Actor(name, tag, layer) {}
+	using Actor::Actor;
+	~Character() override = default;
 
 	void InitCharacter();
 	void OnUpdate(float elapsedTime) override;

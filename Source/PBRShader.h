@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shader.h"
-#include "Graphics.h"
 
 class PBRShader : public ModelShader
 {
@@ -11,13 +10,20 @@ public:
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) override;
+	void ApplyParams(ShaderParamPtr params) override;
 	void End(const RenderContext& rc) override;
 
 private:
-	struct CbMesh
+
+	// シェーダー用
+	struct CbPBR
 	{
 		Color		materialColor;
 	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer>			constantBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer>			meshConstantBuffer;
+	// 調整用
+	struct PBRData {
+		Color		materialColor;
+	} pbrData;
 };

@@ -4,11 +4,11 @@
 
 #include "RenderContext.h"
 
-class Actor;
+class Object;
 
 class Component {
 public:
-    Component(Actor* owner) : owner(owner) {}
+    Component(Object* owner) : owner(owner) {}
     virtual ~Component() = default;
     virtual void Update(float elapsedTime) {}
     virtual void LateUpdate(float elapsedTime) {}
@@ -16,5 +16,5 @@ public:
 	virtual void DrawGUI(float elapsedTime) {}
 
 protected:
-    Actor* owner;
+    Object* owner;
 };

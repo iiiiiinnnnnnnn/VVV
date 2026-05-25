@@ -4,11 +4,11 @@
 
 #include "Component.h"
 #include "PhysicsManager.h"
-#include "Actor.h"
+#include "Object.h"
 
 class CharacterController : public Component {
 public:
-    CharacterController(Actor* owner, float radius, float height);
+    CharacterController(Object* owner, float radius, float height);
     ~CharacterController();
     void Update(float elapsedTime) override;
     void Move(const Vector3& velocity);

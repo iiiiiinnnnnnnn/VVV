@@ -94,7 +94,7 @@ void Character::InitCharacter()
 	anim = AddComponent<Animator>(model);
 
 	// モデルレンダラー生成
-	AddComponent<ModelRender>(model);
+	AddComponent<ModelRenderComponent>(model);
 
 	// 手のノードを保存
 	handNode = &model->GetNodes()[17];
