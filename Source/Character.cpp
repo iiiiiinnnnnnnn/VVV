@@ -1,26 +1,30 @@
 // Character.cpp
 
 #include "Character.h"
+#include "ResourceManager.h"
 
-void Character::SetSkin(uint32_t parts)
+Character::Character(std::string name, std::string tag, bool isActive, std::string layer, Country country, SkinParts skinParts)
+	: Actor(name, tag, isActive, layer), country(country)
 {
-	auto& meshes = model->GetMeshes();
-	meshes[0].isDraw = true;
-	meshes[1].isDraw = parts & (uint32_t)SkinParts::Head_SoldierB;
-	meshes[2].isDraw = parts & (uint32_t)SkinParts::Head_SoldierA;
-	meshes[3].isDraw = parts & (uint32_t)SkinParts::Head;
-	meshes[4].isDraw = parts & (uint32_t)SkinParts::Head_Brass;
-	meshes[5].isDraw = parts & (uint32_t)SkinParts::Head_Officer;
-	meshes[6].isDraw = parts & (uint32_t)SkinParts::Head_Medic;
-	meshes[7].isDraw = parts & (uint32_t)SkinParts::Equip_Infantry;
-	meshes[8].isDraw = parts & (uint32_t)SkinParts::Equip_Medic;
-	meshes[9].isDraw = parts & (uint32_t)SkinParts::Body_Medic;
-	meshes[10].isDraw = parts & (uint32_t)SkinParts::Head_GasMask;
-	meshes[11].isDraw = parts & (uint32_t)SkinParts::Head_GasMask;
-}
+	model = ResourceManager::Instance().LoadModel(GetModel(country));
 
-void Character::InitCharacter()
-{
+	// スキン設定
+	{
+		auto& meshes = model->GetMeshes();
+		meshes[0].isDraw = true;
+		meshes[1].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_SoldierB;
+		meshes[2].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_SoldierA;
+		meshes[3].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head;
+		meshes[4].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Brass;
+		meshes[5].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Officer;
+		meshes[6].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Medic;
+		meshes[7].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Equip_Infantry;
+		meshes[8].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Equip_Medic;
+		meshes[9].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Body_Medic;
+		meshes[10].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_GasMask;
+		meshes[11].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_GasMask;
+	}
+
 	// アニメーション読み込み
 	{
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_bayonet.glb");
@@ -122,8 +126,8 @@ void Character::OnUpdate(float elapsedTime)
 		anim->SetBool("jump", controller->GetJump());
 		anim->SetBool("ready", controller->GetReady());
 
-		/*if (controller->GetShoot())  anim->SetTrigger("shoot");
-		if (controller->GetReload()) anim->SetTrigger("reload");*/
+		if (controller->GetShoot())  anim->SetTrigger("shoot");
+		if (controller->GetReload()) anim->SetTrigger("reload");
 
 		// 移動ベクトル（speed メンバ変数で実際の速さをスケール）
 		Vector3 move = Vector3::TransformNormal(
@@ -177,4 +181,27 @@ void Character::OnDrawGUI(float elapsedTime)
 	}
 	ImGui::TreePop();
 	ImGui::PopID();
+}
+
+void Character::Print()
+{
+	printf("\nCommander animations:\n");
+	for (int i = 0; i < model->GetAnimations().size(); ++i)
+		printf("%d : %s\n", i, model->GetAnimations()[i].name);
+
+	printf("\nCommander Bones:\n");
+	for (int i = 0; i < model->GetNodes().size(); ++i)
+		printf("%d : %s\n", i, model->GetNodes()[i].name);
+}
+
+std::string Character::GetModel(Country type)
+{
+	switch (type)
+	{
+		case Country::Japan:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb";
+		case Country::US:		return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_US_Soldier.glb";
+		case Country::German:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_German_Soldier.glb";
+		case Country::Soviet:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Soviet_Soldier.glb";
+		case Country::British:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_British_Soldier.glb";
+	}
 }

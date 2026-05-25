@@ -37,6 +37,8 @@ public:
         EnumCount
     };
 
+	static std::string GetModel(WeaponType type);
+
 private:
 	Character* owner = nullptr;
 	uint32_t ammo = 30;

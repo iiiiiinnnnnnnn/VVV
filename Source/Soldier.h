@@ -4,9 +4,9 @@
 
 #include "AIPlayer.h"
 #include "Squad.h"
-#include "Actor.h"
+#include "Character.h"
 
-class Soldier : public Actor {
+class Soldier : public Character {
 public:
     Soldier(Squad* squad);
 

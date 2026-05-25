@@ -7,28 +7,31 @@ float LocalPlayer::GetMoveX()
 {
 	if (!Input::IsFocusedWindow()) return 0.0f;
 
-	float axisLX = Input::Instance().GetGamePad().GetAxisLX();
-	return axisLX;
+	float i = Input::Instance().GetGamePad().GetAxisLX();
+	return i;
 }
 
 float LocalPlayer::GetMoveZ()
 {
 	if (!Input::IsFocusedWindow()) return 0.0f;
 
-	float axisLY = Input::Instance().GetGamePad().GetAxisLY();
-	return axisLY;
+	float i = Input::Instance().GetGamePad().GetAxisLY();
+	return i;
 }
 
 bool LocalPlayer::GetJump()
 {
 	if (!Input::IsFocusedWindow()) return false;
 
-	bool jump = Input::Instance().GetGamePad().GetButton() & GamePad::BTN_A;
-	return jump;
+	bool i = Input::Instance().GetGamePad().GetButton() & GamePad::BTN_A;
+	return i;
 }
 
 bool LocalPlayer::GetCrouch()
 {
+	if (!Input::IsFocusedWindow()) return false;
+
+	bool i = (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_B);
 	return false;
 }
 
@@ -36,17 +39,24 @@ bool LocalPlayer::GetReady()
 {
 	if (!Input::IsFocusedWindow()) return false;
 
-	bool ready = Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT;
-	ready |= (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
-	return ready;
+	bool i = Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT;
+	i |= (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
+	return i;
 }
 
 bool LocalPlayer::GetShoot()
 {
-	return false;
+	if (!Input::IsFocusedWindow()) return false;
+
+	bool i = Input::Instance().GetMouse().GetButton() & Mouse::BTN_LEFT;
+	i |= (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_LEFT_SHOULDER);
+	return i;
 }
 
 bool LocalPlayer::GetReload()
 {
+	if (!Input::IsFocusedWindow()) return false;
+
+	bool i = (bool)(Input::Instance().GetGamePad().GetButton() & GamePad::BTN_Y);
 	return false;
 }
