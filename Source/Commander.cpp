@@ -1,11 +1,12 @@
 // Commander.cpp
 
 #include "Commander.h"
+#include "ResourceManager.h"
 
 Commander::Commander() : Character("Commander", "Commander", "Default")
 {
 	// プレイヤー
-	model = std::make_shared<Model>(
+	model = ResourceManager::Instance().LoadModel(
 		"Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb");
 
 	// キャラクター初期化
@@ -36,4 +37,9 @@ void Commander::OnLateUpdate(float elapsedTime)
 void Commander::OnRender(const RenderContext& rc, float elapsedTime)
 {
 	Character::OnRender(rc, elapsedTime);
+}
+
+void Commander::OnDrawGUI(float elapsedTime)
+{
+	Character::OnDrawGUI(elapsedTime);
 }

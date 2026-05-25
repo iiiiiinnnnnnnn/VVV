@@ -192,9 +192,6 @@
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Texture.cpp">
-      <Filter>ソースファイル\システム%28基底%29\描画</Filter>
-    </ClCompile>
     <ClCompile Include="Source\AudioSource.cpp">
       <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
     </ClCompile>
@@ -269,6 +266,9 @@
     </ClCompile>
     <ClCompile Include="Source\Object.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Texture.cpp">
+      <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -392,9 +392,6 @@
     <ClInclude Include="Source\AnimatorSerializer.h">
       <Filter>ソースファイル\システム%28基底%29\エディト</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Texture.h">
-      <Filter>ソースファイル\システム%28基底%29\描画</Filter>
-    </ClInclude>
     <ClInclude Include="Source\AudioSource.h">
       <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
     </ClInclude>
@@ -469,6 +466,12 @@
     </ClInclude>
     <ClInclude Include="Source\RectTransform.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ResourceManager.h">
+      <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Texture.h">
+      <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

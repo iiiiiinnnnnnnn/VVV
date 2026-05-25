@@ -71,7 +71,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	// サンプラステート設定
 	ID3D11SamplerState* samplerStates[] =
 	{
-		rc.renderState->GetSamplerState(SamplerState::LinearWrap)
+		rc.renderState->GetSamplerState(SamplerState::PointClamp)
 	};
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
 

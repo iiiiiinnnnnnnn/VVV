@@ -13,6 +13,7 @@ public:
 	void OnUpdate(float elapsedTime) override;
 	void OnLateUpdate(float elapsedTime) override;
 	void OnRender(const RenderContext& rc, float elapsedTime) override;
+	void OnDrawGUI(float elapsedTime) override;
 private:
 	std::unique_ptr<Squad> squad;
 };

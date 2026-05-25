@@ -16,6 +16,7 @@ public:
 	void OnUpdate(float elapsedTime) override;
 	void OnLateUpdate(float elapsedTime) override;
 	void OnRender(const RenderContext& rc, float elapsedTime) override;
+	void OnDrawGUI(float elapsedTime) override;
 
 	enum class SkinParts : uint32_t {
 		// ‘Ì

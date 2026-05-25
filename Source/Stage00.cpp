@@ -1,11 +1,11 @@
 // Stage00.cpp
 
 #include "Stage00.h"
+#include "ResourceManager.h"
 
 Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 {
-	std::shared_ptr<Model> model = std::make_shared<Model>(
-		"Data/Model/Stage/Stage00.glb");
+	std::shared_ptr<Model> model = ResourceManager::Instance().LoadModel("Data/Model/Stage/Stage00.glb");
 
 	transform = Transform::FromScale(100);
 

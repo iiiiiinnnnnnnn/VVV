@@ -167,3 +167,14 @@ void Character::OnRender(const RenderContext& rc, float elapsedTime)
 		weapon->Render(rc, elapsedTime);
 	}
 }
+
+void Character::OnDrawGUI(float elapsedTime)
+{
+	ImGui::PushID(this);
+	ImGui::TreePush("Character");
+	if (weapon) {
+		weapon->OnDrawGUI(elapsedTime);
+	}
+	ImGui::TreePop();
+	ImGui::PopID();
+}
