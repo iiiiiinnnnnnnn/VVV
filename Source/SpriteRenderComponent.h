@@ -8,23 +8,24 @@
 
 class SpriteRenderComponent : public Component {
 public:
-    SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderID shaderId = SpriteShaderID::Basic, ShaderParamPtr shaderParam = nullptr);
+    SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture,
+                          SpriteShaderId shaderId = SpriteShaderId::Basic, ShaderParamPtr shaderParam = nullptr);
     
     void Update(float elapsedTime) override;
     void Render(const RenderContext& rc, float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 
-    void SetTexture(std::shared_ptr<Texture> texture) { this->texture = texture; }
-    void SetShaderId(SpriteShaderID id) { shaderId = id; }
-
     Texture* GetTexture() const { return texture.get(); }
-    const SpriteShaderID& GetShaderId() const { return shaderId; }
+    void SetTexture(std::shared_ptr<Texture> texture) { this->texture = texture; }
+
+    const SpriteShaderId& GetShaderId() const { return shaderId; }
+    void SetShaderId(SpriteShaderId id) { shaderId = id; }
 
 	const ShaderParamPtr& GetShaderParam() const { return shaderParam; }
 	void SetShaderParam(ShaderParamPtr param) { shaderParam = param; }
 
 private:
     std::shared_ptr<Texture> texture;
-    SpriteShaderID shaderId;
+    SpriteShaderId shaderId;
     ShaderParamPtr shaderParam;
 };

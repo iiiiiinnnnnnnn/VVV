@@ -13,8 +13,12 @@ public:
 	void ApplyParams(ShaderParamPtr params) override;
 	void End(const RenderContext& rc) override;
 
-private:
+	struct PBRData
+	{
+		Color		materialColor;
+	};
 
+private:
 	// シェーダー用
 	struct CbPBR
 	{
@@ -23,7 +27,5 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer>			constantBuffer;
 
 	// 調整用
-	struct PBRData {
-		Color		materialColor;
-	} pbrData;
+	PBRData pbrData;
 };

@@ -98,7 +98,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	anim = AddComponent<Animator>(model);
 
 	// モデルレンダラー生成
-	AddComponent<ModelRenderComponent>(model);
+	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, &pbrData);
 
 	// 手のノードを保存
 	handNode = &model->GetNodes()[17];
@@ -176,6 +176,7 @@ void Character::OnDrawGUI(float elapsedTime)
 {
 	ImGui::PushID(this);
 	ImGui::TreePush("Character");
+	ImGui::ColorEdit4("PBR", &pbrData.materialColor.x);
 	if (weapon) {
 		weapon->OnDrawGUI(elapsedTime);
 	}
@@ -187,11 +188,11 @@ void Character::Print()
 {
 	printf("\nCommander animations:\n");
 	for (int i = 0; i < model->GetAnimations().size(); ++i)
-		printf("%d : %s\n", i, model->GetAnimations()[i].name);
+		printf("%d : %s\n", i, model->GetAnimations()[i].name.c_str());
 
 	printf("\nCommander Bones:\n");
 	for (int i = 0; i < model->GetNodes().size(); ++i)
-		printf("%d : %s\n", i, model->GetNodes()[i].name);
+		printf("%d : %s\n", i, model->GetNodes()[i].name.c_str());
 }
 
 std::string Character::GetModel(Country type)
@@ -203,5 +204,6 @@ std::string Character::GetModel(Country type)
 		case Country::German:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_German_Soldier.glb";
 		case Country::Soviet:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Soviet_Soldier.glb";
 		case Country::British:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_British_Soldier.glb";
+		default:				return "";
 	}
 }

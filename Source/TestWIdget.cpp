@@ -3,7 +3,7 @@
 TestWidget::TestWidget(Vector2 pos) : Widget("TestWidget")
 {
     rect.position = pos;
-    AddComponent<SpriteRenderComponent>(std::make_shared<Texture>("Data/Image/Test.png"), SpriteShaderID::GaussianFilter, &gaussianParams);
+    AddComponent<SpriteRenderComponent>(std::make_shared<Texture>("Data/Image/Test.png"), SpriteShaderId::GaussianFilter, &gaussianParams);
 }
 
 void TestWidget::OnUpdate(float elapsedTime)

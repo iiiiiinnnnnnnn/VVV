@@ -4,8 +4,8 @@
 #include <Graphics.h>
 #include "Actor.h"
 
-ModelRenderComponent::ModelRenderComponent(Object* owner, std::shared_ptr<Model> model, ModelShaderId shaderId)
-    : Component(owner), model(model), shaderId(shaderId)
+ModelRenderComponent::ModelRenderComponent(Object* owner, std::shared_ptr<Model> model, ModelShaderId shaderId, ShaderParamPtr shaderParam)
+    : Component(owner), model(model), shaderId(shaderId), shaderParam(shaderParam)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -38,8 +38,8 @@ void ModelRenderComponent::LateUpdate(float elapsedTime)
 
 void ModelRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 {
-    if(model)
-        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model);
+    if (model)
+        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, shaderParam);
 }
 
 void ModelRenderComponent::DrawGUI(float elapsedTime)

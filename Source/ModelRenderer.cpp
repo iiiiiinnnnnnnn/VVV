@@ -29,11 +29,12 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 }
 
 // 箱描画
-void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model)
+void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, ShaderParamPtr shaderParam)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
 	drawInfo.model = model;
+	drawInfo.shaderParam = shaderParam;
 }
 
 // 描画実行
@@ -80,7 +81,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader)
+	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, ShaderParamPtr shaderParam)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(Model::Vertex);
@@ -105,6 +106,8 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			cbSkeleton.boneTransforms[0] = mesh.node->worldTransform;
 		}
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
+
+		shader->ApplyParams(shaderParam);
 
 		// 更新
 		shader->Update(rc, mesh, elapsedTime);
@@ -134,6 +137,8 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
+				transparencyDrawInfo.shaderParam = drawInfo.shaderParam;
+				transparencyDrawInfo.shaderId = drawInfo.shaderId;
 				// カメラとの距離を算出
 				DirectX::XMVECTOR Position = DirectX::XMVectorSet(
 					mesh.node->worldTransform._41,
@@ -147,7 +152,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			}
 
 			// 描画
-			drawMesh(mesh, shader);
+			drawMesh(mesh, shader, drawInfo.shaderParam);
 		}
 
 		shader->End(rc);
@@ -171,7 +176,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 
 		shader->Begin(rc);
 
-		drawMesh(*transparencyDrawInfo.mesh, shader);
+		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.shaderParam);
 
 		shader->End(rc);
 	}

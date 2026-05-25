@@ -4,7 +4,7 @@
 #include <Graphics.h>
 #include "Widget.h"
 
-SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderID shaderId, ShaderParamPtr shaderParam)
+SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamPtr shaderParam)
 	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
 {
 	Widget* widget = dynamic_cast<Widget*>(owner);

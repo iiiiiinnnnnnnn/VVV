@@ -18,7 +18,7 @@ public:
 	ModelRenderer(ID3D11Device* device);
 	~ModelRenderer() {}
 
-	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model);
+	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, ShaderParamPtr shaderParam);
 
 	void Render(const RenderContext& rc, float elapsedTime);
 
@@ -93,6 +93,7 @@ private:
 	{
 		ModelShaderId				shaderId;
 		std::shared_ptr<Model>	model;
+		ShaderParamPtr shaderParam;
 	};
 
 	struct TransparencyDrawInfo
@@ -100,6 +101,7 @@ private:
 		ModelShaderId				shaderId;
 		const Model::Mesh*		mesh;
 		float					distance;
+		ShaderParamPtr shaderParam;
 	};
 
 	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];

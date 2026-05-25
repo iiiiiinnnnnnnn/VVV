@@ -184,7 +184,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 4,
+                    "animationIndex": 5,
                     "loop": false,
                     "name": "Shoot",
                     "speed": 1.0,

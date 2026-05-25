@@ -6,6 +6,7 @@
 #include "PlayerController.h"
 #include "Model.h"
 #include "Weapon.h"
+#include <PBRShader.h>
 
 class Character : public Actor
 {
@@ -85,4 +86,5 @@ protected:
 	float speed = 5.0f;
 
 	Country country;
+	PBRShader::PBRData pbrData;
 };

@@ -51,7 +51,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 
 	// メッシュ用定数バッファ更新
 	CbPBR cb{};
-	cb.materialColor = mesh.material->baseColor;
+	cb.materialColor = pbrData.materialColor/*mesh.material->baseColor*/;
 	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 	// シェーダーリソースビュー設定

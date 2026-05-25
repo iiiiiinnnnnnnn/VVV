@@ -8,22 +8,25 @@
 
 class ModelRenderComponent : public Component {
 public:
-    ModelRenderComponent(Object* owner, std::shared_ptr<Model> model, ModelShaderId shaderId = ModelShaderId::Basic);
+    ModelRenderComponent(Object* owner, std::shared_ptr<Model> model,
+                         ModelShaderId shaderId = ModelShaderId::Basic, ShaderParamPtr shaderParam = nullptr);
 
     void LateUpdate(float elapsedTime) override;
     void Render(const RenderContext& rc, float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 
-    void SetModel(std::shared_ptr<Model> model) { this->model = model; }
-    void SetShaderId(ModelShaderId id) { shaderId = id; }
-    void AppendNode(const Model::Node* node) { appendNode = node; }
-
     Model* GetModel() const { return model.get(); }
+    void SetModel(std::shared_ptr<Model> model) { this->model = model; }
+
 	const ModelShaderId& GetShaderId() const { return shaderId; }
+    void SetShaderId(ModelShaderId id) { shaderId = id; }
+
+    void AppendNode(const Model::Node* node) { appendNode = node; }
 	const Model::Node* GetAppendNode() const { return appendNode; }
 
 private:
     std::shared_ptr<Model> model;
 	ModelShaderId shaderId;
+    ShaderParamPtr shaderParam;
     const Model::Node* appendNode = nullptr;
 };
