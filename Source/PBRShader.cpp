@@ -19,11 +19,16 @@ PBRShader::PBRShader(ID3D11Device* device)
 		"Data/Shader/PBR_PS.cso",
 		pixelShader.GetAddressOf());
 
-	// メッシュ用定数バッファ
+	// 定数バッファ作成
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbShadowMap),
+		shadowMapBuffer.GetAddressOf());
+
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbPBR),
-		constantBuffer.GetAddressOf());
+		pbrBuffer.GetAddressOf());
 }
 
 // 開始処理
@@ -35,13 +40,6 @@ void PBRShader::Begin(const RenderContext& rc)
 	dc->IASetInputLayout(inputLayout.Get());
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-
-	// 定数バッファ設定
-	ID3D11Buffer* cbs[] =
-	{
-		constantBuffer.Get(), 
-	};
-	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 }
 
 // 更新処理
@@ -49,14 +47,28 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// メッシュ用定数バッファ更新
-	CbPBR cb{};
-	cb.materialColor = pbrData.materialColor/*mesh.material->baseColor*/;
-	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
+	CbPBR cbPBR;
+	cbPBR.materialColor = mesh.material->baseColor;
+	cbPBR.adjustMetalness = pbrData.metalness;
+	cbPBR.adjustRoughness = pbrData.roughness;
+	dc->UpdateSubresource(pbrBuffer.Get(), 0, 0, &cbPBR, 0, 0);
 
-	// シェーダーリソースビュー設定
-	ID3D11ShaderResourceView* srvs[] =
+	CbShadowMap cbShadow;
+	cbShadow.lightViewProjection = Matrix::Identity; // TODO: シャドウマップの view-projection 行列を設定
+	cbShadow.shadowAttenuation = 0.5f;
+	cbShadow.shadowBias = 0.0001f;
+	dc->UpdateSubresource(shadowMapBuffer.Get(), 0, 0, &cbShadow, 0, 0);
+
+	// 定数バッファ設定
+	ID3D11Buffer* cbs[] =
 	{
+		pbrBuffer.Get(),
+		shadowMapBuffer.Get()
+	};
+	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
+	dc->VSSetConstantBuffers(0, _countof(cbs), cbs);
+
+	ID3D11ShaderResourceView* srvs[] = {
 		mesh.material->baseMap.Get(),
 	};
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
@@ -64,7 +76,10 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 
 void PBRShader::ApplyParams(ShaderParamPtr params)
 {
-	pbrData = *static_cast<const PBRData*>(params);
+	if (params)
+	{
+		pbrData = *static_cast<const PBRData*>(params);
+	}
 }
 
 // 描画終了
@@ -78,10 +93,10 @@ void PBRShader::End(const RenderContext& rc)
 	dc->IASetInputLayout(nullptr);
 
 	// 定数バッファ設定解除
-	ID3D11Buffer* cbs[] = { nullptr };
-	dc->PSSetConstantBuffers(1, _countof(cbs), cbs);
+	ID3D11Buffer* cbs[] = {nullptr, nullptr, nullptr};
+	dc->PSSetConstantBuffers(8, _countof(cbs), cbs);
 
 	// シェーダーリソースビュー設定解除
-	ID3D11ShaderResourceView* srvs[] = { nullptr, nullptr };
+	ID3D11ShaderResourceView* srvs[] = {nullptr};
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 }

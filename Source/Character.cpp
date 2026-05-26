@@ -176,7 +176,8 @@ void Character::OnDrawGUI(float elapsedTime)
 {
 	ImGui::PushID(this);
 	ImGui::TreePush("Character");
-	ImGui::ColorEdit4("PBR", &pbrData.materialColor.x);
+	ImGui::DragFloat("metalness", &pbrData.metalness, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("roughness", &pbrData.roughness, 0.01f, 0.0f, 1.0f);
 	if (weapon) {
 		weapon->OnDrawGUI(elapsedTime);
 	}

@@ -137,16 +137,12 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
-				transparencyDrawInfo.shaderParam = drawInfo.shaderParam;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
+				transparencyDrawInfo.shaderParam = drawInfo.shaderParam;
 				// ƒJƒƒ‰‚Æ‚Ì‹——£‚ðŽZo
-				DirectX::XMVECTOR Position = DirectX::XMVectorSet(
-					mesh.node->worldTransform._41,
-					mesh.node->worldTransform._42,
-					mesh.node->worldTransform._43,
-					0.0f);
-				DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(Position, rc.camera->GetEye());
-				transparencyDrawInfo.distance = DirectX::XMVectorGetX(DirectX::XMVector3Dot(rc.camera->GetFront(), Vec));
+				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
+				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
+				transparencyDrawInfo.distance = rc.camera->GetFront().Dot(Vec);
 
 				continue;
 			}

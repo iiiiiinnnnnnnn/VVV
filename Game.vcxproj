@@ -144,7 +144,10 @@
     <None Include="Shader\GaussianFiltering.hlsli" />
     <None Include="Shader\BasicModel.hlsli" />
     <None Include="Shader\PBR.hlsli" />
+    <None Include="Shader\PBRFunctions.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
+    <None Include="Shader\Scene.hlsli" />
+    <None Include="Shader\ShadingFunctions.hlsli" />
     <None Include="Shader\ShapeRenderer.hlsli" />
     <None Include="Shader\Skinning.hlsli" />
     <None Include="Shader\BasicSprite.hlsli" />

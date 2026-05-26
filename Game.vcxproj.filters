@@ -499,6 +499,15 @@
     <None Include="Shader\PrimitiveRenderer.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
+    <None Include="Shader\PBRFunctions.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\Scene.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
+    <None Include="Shader\ShadingFunctions.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\GaussianFilteringPS.hlsl">

@@ -15,16 +15,34 @@ public:
 
 	struct PBRData
 	{
-		Color		materialColor;
+		float metalness;;
+		float roughness;
 	};
 
 private:
 	// シェーダー用
 	struct CbPBR
 	{
-		Color		materialColor;
+		Color materialColor;
+		float adjustMetalness;
+		float adjustRoughness;
+		float DUMMY;
+		float DUMMY;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer>			constantBuffer;
+
+	// シャドウマップ用定数バッファ
+	struct CbShadowMap
+	{
+		Matrix lightViewProjection;
+		float shadowAttenuation;
+		float shadowBias;
+		float DUMMY;
+		float DUMMY;
+	};
+
+	// 定数バッファ
+	Microsoft::WRL::ComPtr<ID3D11Buffer> pbrBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapBuffer;
 
 	// 調整用
 	PBRData pbrData;
