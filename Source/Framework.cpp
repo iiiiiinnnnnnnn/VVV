@@ -11,7 +11,7 @@
 
 #include "PhysicsManager.h"
 
-#include "ModelViewerScene.h"
+#include "TestPlayScene.h"
 
 
 // 垂直同期間隔設定
@@ -44,7 +44,7 @@ Framework::Framework(HWND hWnd)
 	PhysicsManager::Instance().Initialize();
 
 	// シーン初期化
-	scene = std::make_unique<ModelViewerScene>();
+	scene = std::make_unique<TestPlayScene>();
 }
 
 // デストラクタ

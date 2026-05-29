@@ -75,7 +75,7 @@ void Scene::Render(float elapsedTime)
 		// 先にワールド行列確定させるためにDrawしとく
 		actors.Render(rc, elapsedTime);
 
-		// シャドウマップ生成
+		// シャドウマップ描画
 		{
 			for (auto& actor : actors.data)
 			{
@@ -85,7 +85,7 @@ void Scene::Render(float elapsedTime)
 			graphics.GetShadowMapRenderer()->Render(
 				rc,
 				lightData.GetDirectionalLight().direction,
-				Vector3(0, 0, 0), 50.0f, 30.0f, 0.1f, 200.0f
+				Vector3(0, 0, 0), 50.0f, 300.0f, 0.1f, 200.0f
 			);
 			shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 			shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();

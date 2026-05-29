@@ -43,7 +43,7 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelRenderComponent.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
-    <ClCompile Include="Source\ModelViewerScene.cpp" />
+    <ClCompile Include="Source\TestPlayScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="Source\PhysicsManager.cpp" />
     <ClCompile Include="Source\Commander.cpp" />
@@ -110,7 +110,7 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderComponent.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
-    <ClInclude Include="Source\ModelViewerScene.h" />
+    <ClInclude Include="Source\TestPlayScene.h" />
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\PlayerController.h" />
     <ClInclude Include="Source\RectTransform.h" />

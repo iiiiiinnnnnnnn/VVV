@@ -228,7 +228,7 @@
     <ClCompile Include="Source\SpriteRenderer.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ModelViewerScene.cpp">
+    <ClCompile Include="Source\TestPlayScene.cpp">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClCompile>
     <ClCompile Include="Source\BasicModelShader.cpp">
@@ -434,7 +434,7 @@
     <ClInclude Include="Source\SpriteRenderer.h">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ModelViewerScene.h">
+    <ClInclude Include="Source\TestPlayScene.h">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClInclude>
     <ClInclude Include="Source\BasicModelShader.h">

@@ -1,6 +1,6 @@
-﻿// ModelViewerScene.cpp
+﻿// TestPlayScene.cpp
 
-#include "ModelViewerScene.h"
+#include "TestPlayScene.h"
 #include "Commander.h"
 #include "Soldier.h"
 #include "Stage00.h"
@@ -9,7 +9,7 @@
 #include "LocalPlayer.h"
 #include "TestWIdget.h"
 
-ModelViewerScene::ModelViewerScene()
+TestPlayScene::TestPlayScene()
 {
 	ID3D11Device* device = Graphics::Instance().GetDevice();
 	float screenWidth = Graphics::ScreenWidth;
@@ -36,11 +36,11 @@ ModelViewerScene::ModelViewerScene()
 	cameraControllers.push_back(std::make_unique<FpsCameraController>(localCommander));
 }
 
-void ModelViewerScene::OnUpdate(float elapsedTime)
+void TestPlayScene::OnUpdate(float elapsedTime)
 {
 }
 
-void ModelViewerScene::OnDrawGUI(float elapsedTime)
+void TestPlayScene::OnDrawGUI(float elapsedTime)
 {
 
 }

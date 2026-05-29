@@ -1,16 +1,15 @@
-﻿// ModelViewerScene.h
+﻿// TestPlayScene.h
 
 #pragma once
 
 #include "Scene.h"
 #include "RenderTarget.h"
 
-// モデルビューアシーン
-class ModelViewerScene : public Scene
+class TestPlayScene : public Scene
 {
 public:
-	ModelViewerScene();
-	~ModelViewerScene() override = default;
+	TestPlayScene();
+	~TestPlayScene() override = default;
 
 	// 更新処理
 	void OnUpdate(float elapsedTime) override;
