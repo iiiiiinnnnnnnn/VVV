@@ -1,4 +1,4 @@
-// Soldier.cpp
+﻿// Soldier.cpp
 
 #include "Soldier.h"
 

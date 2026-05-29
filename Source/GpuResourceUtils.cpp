@@ -1,10 +1,11 @@
-#include <filesystem>
+ï»¿#include <filesystem>
 #include <wrl.h>
 #include <DirectXTex.h>
+#include <WICTextureLoader.h> 
 #include "Misc.h"
 #include "GpuResourceUtils.h"
 
-// ’¸“_ƒVƒF[ƒ_[“Ç‚İ‚İ
+// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼èª­ã¿è¾¼ã¿
 HRESULT GpuResourceUtils::LoadVertexShader(
 	ID3D11Device* device,
 	const char* filename,
@@ -13,26 +14,26 @@ HRESULT GpuResourceUtils::LoadVertexShader(
 	ID3D11InputLayout** inputLayout,
 	ID3D11VertexShader** vertexShader)
 {
-	// ƒtƒ@ƒCƒ‹‚ğŠJ‚­
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
 	FILE* fp = nullptr;
 	fopen_s(&fp, filename, "rb");
 	_ASSERT_EXPR_A(fp, "Vertex Shader File not found");
 
-	// ƒtƒ@ƒCƒ‹‚ÌƒTƒCƒY‚ğ‹‚ß‚é
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚µã‚¤ã‚ºã‚’æ±‚ã‚ã‚‹
 	fseek(fp, 0, SEEK_END);
 	long size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	// ƒƒ‚ƒŠã‚É’¸“_ƒVƒF[ƒ_[ƒf[ƒ^‚ğŠi”[‚·‚é—Ìˆæ‚ğ—pˆÓ‚·‚é
+	// ãƒ¡ãƒ¢ãƒªä¸Šã«é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ‡ãƒ¼ã‚¿ã‚’æ ¼ç´ã™ã‚‹é ˜åŸŸã‚’ç”¨æ„ã™ã‚‹
 	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
 	fread(data.get(), size, 1, fp);
 	fclose(fp);
 
-	// ’¸“_ƒVƒF[ƒ_[¶¬
+	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ç”Ÿæˆ
 	HRESULT hr = device->CreateVertexShader(data.get(), size, nullptr, vertexShader);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	// “ü—ÍƒŒƒCƒAƒEƒg
+	// å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
 	if (inputLayout != nullptr)
 	{
 		hr = device->CreateInputLayout(inputElementDescs, inputElementCount, data.get(), size, inputLayout);
@@ -42,50 +43,50 @@ HRESULT GpuResourceUtils::LoadVertexShader(
 	return hr;
 }
 
-// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[“Ç‚İ‚İ
+// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼èª­ã¿è¾¼ã¿
 HRESULT GpuResourceUtils::LoadPixelShader(
 	ID3D11Device* device,
 	const char* filename,
 	ID3D11PixelShader** pixelShader)
 {
-	// ƒtƒ@ƒCƒ‹‚ğŠJ‚­
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
 	FILE* fp = nullptr;
 	fopen_s(&fp, filename, "rb");
 	_ASSERT_EXPR_A(fp, "Pixel Shader File not found");
 
-	// ƒtƒ@ƒCƒ‹‚ÌƒTƒCƒY‚ğ‹‚ß‚é
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚µã‚¤ã‚ºã‚’æ±‚ã‚ã‚‹
 	fseek(fp, 0, SEEK_END);
 	long size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	// ƒƒ‚ƒŠã‚É’¸“_ƒVƒF[ƒ_[ƒf[ƒ^‚ğŠi”[‚·‚é—Ìˆæ‚ğ—pˆÓ‚·‚é
+	// ãƒ¡ãƒ¢ãƒªä¸Šã«é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒ‡ãƒ¼ã‚¿ã‚’æ ¼ç´ã™ã‚‹é ˜åŸŸã‚’ç”¨æ„ã™ã‚‹
 	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
 	fread(data.get(), size, 1, fp);
 	fclose(fp);
 
-	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[¶¬
+	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ç”Ÿæˆ
 	HRESULT hr = device->CreatePixelShader(data.get(), size, nullptr, pixelShader);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
 	return hr;
 }
 
-// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 HRESULT GpuResourceUtils::LoadTexture(
 	ID3D11Device* device,
 	const char* filename,
 	ID3D11ShaderResourceView** shaderResourceView,
 	D3D11_TEXTURE2D_DESC* texture2dDesc)
 {
-	// Šg’£q‚ğæ“¾
+	// æ‹¡å¼µå­ã‚’å–å¾—
 	std::filesystem::path filepath(filename);
 	std::string extension = filepath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// ¬•¶š‰»
+	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// å°æ–‡å­—åŒ–
 
-	// ƒƒCƒh•¶š‚É•ÏŠ·
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—ã«å¤‰æ›
 	std::wstring wfilename = filepath.wstring();
 
-	// ƒtƒH[ƒ}ƒbƒg–ˆ‚É‰æ‘œ“Ç‚İ‚İˆ—
+	// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆæ¯ã«ç”»åƒèª­ã¿è¾¼ã¿å‡¦ç†
 	HRESULT hr;
 	DirectX::TexMetadata metadata;
 	DirectX::ScratchImage scratch_image;
@@ -122,12 +123,12 @@ HRESULT GpuResourceUtils::LoadTexture(
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
-	// ƒVƒF[ƒ_[ƒŠƒ\[ƒXƒrƒ…[ì¬
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ãƒ“ãƒ¥ãƒ¼ä½œæˆ
 	hr = DirectX::CreateShaderResourceView(device, scratch_image.GetImages(), scratch_image.GetImageCount(),
 		metadata, shaderResourceView);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	// ƒeƒNƒXƒ`ƒƒî•ñæ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±å–å¾—
 	if (texture2dDesc != nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
@@ -141,15 +142,15 @@ HRESULT GpuResourceUtils::LoadTexture(
 	return hr;
 }
 
-// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 HRESULT GpuResourceUtils::LoadTexture(
 	ID3D11Device* device,
-	const void* data,
+	const uint8_t* data,
 	size_t size,
 	ID3D11ShaderResourceView** shaderResourceView,
 	D3D11_TEXTURE2D_DESC* texture2dDesc)
 {
-	// ƒtƒH[ƒ}ƒbƒg–ˆ‚É‰æ‘œ“Ç‚İ‚İˆ—
+	// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆæ¯ã«ç”»åƒèª­ã¿è¾¼ã¿å‡¦ç†
 	HRESULT hr = E_FAIL;
 	DirectX::TexMetadata metadata;
 	DirectX::ScratchImage scratch_image;
@@ -193,12 +194,12 @@ HRESULT GpuResourceUtils::LoadTexture(
 		return hr;
 	}
 
-	// ƒVƒF[ƒ_[ƒŠƒ\[ƒXƒrƒ…[ì¬
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ãƒ“ãƒ¥ãƒ¼ä½œæˆ
 	hr = DirectX::CreateShaderResourceView(device, scratch_image.GetImages(), scratch_image.GetImageCount(),
 		metadata, shaderResourceView);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	// ƒeƒNƒXƒ`ƒƒî•ñæ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±å–å¾—
 	if (texture2dDesc != nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
@@ -212,7 +213,7 @@ HRESULT GpuResourceUtils::LoadTexture(
 	return hr;
 }
 
-// ƒ_ƒ~[ƒeƒNƒXƒ`ƒƒì¬
+// ãƒ€ãƒŸãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ä½œæˆ
 HRESULT GpuResourceUtils::CreateDummyTexture(
 	ID3D11Device* device,
 	UINT color,
@@ -242,7 +243,7 @@ HRESULT GpuResourceUtils::CreateDummyTexture(
 	hr = device->CreateShaderResourceView(texture.Get(), nullptr, shaderResourceView);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	// ƒeƒNƒXƒ`ƒƒî•ñæ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±å–å¾—
 	if (texture2dDesc != nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
@@ -257,7 +258,7 @@ HRESULT GpuResourceUtils::CreateDummyTexture(
 	return hr;
 }
 
-// ’è”ƒoƒbƒtƒ@ì¬
+// å®šæ•°ãƒãƒƒãƒ•ã‚¡ä½œæˆ
 HRESULT GpuResourceUtils::CreateConstantBuffer(
 	ID3D11Device* device,
 	UINT bufferSize,

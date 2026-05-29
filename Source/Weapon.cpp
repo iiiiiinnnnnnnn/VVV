@@ -1,4 +1,4 @@
-// Weapon.cpp
+ï»¿// Weapon.cpp
 
 #include "Weapon.h"
 #include "Model.h"
@@ -9,19 +9,19 @@
 Weapon::Weapon(Character* owner)
 	: Actor("Weapon", "Weapon", "Default"), owner(owner)
 {
-	// •Ší
+	// æ­¦å™¨
 	std::shared_ptr<Model> model = ResourceManager::Instance().LoadModel(
 		"Data/Model/ToonSoldiers_WW2/models/weapons/weapon_arisaka.glb");
 
-	// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 	std::shared_ptr<Texture> texture = ResourceManager::Instance().LoadTexture(
 		"Data/Model/ToonSoldiers_WW2/models/textures/TS_WW2_weapons.tga");
 	model->GetMaterials()[0].baseMap = texture->GetShaderResourceView();
 
-	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
-	auto mdlRender = AddComponent<ModelRenderComponent>(model);
+	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
+	auto mdlRender = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);
 	
-	// ƒvƒŒƒCƒ„[‚Ìè‚É•Ší‚ğÚ‘±
+	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ‰‹ã«æ­¦å™¨ã‚’æ¥ç¶š
 	mdlRender->AppendNode(owner->GetHandNode());
 
 	transform = Transform::FromAngle({ DirectX::XMConvertToRadians(90), 0, 0});

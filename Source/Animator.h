@@ -1,4 +1,4 @@
-// Animator.h
+ï»¿// Animator.h
 
 #pragma once
 #include "Common.h"
@@ -17,7 +17,7 @@ public:
     void DrawGUI(float elapsedTime) override;
 
     // =========================================================
-    // Œ^’è‹`
+    // å‹å®šç¾©
     // =========================================================
     using ParamValue = std::variant<float, int, bool>;
 
@@ -29,8 +29,8 @@ public:
 
     enum class BlendMode
     {
-        Override,   // ‰º‚ÌƒŒƒCƒ„[‚ğã‘‚«i’Êíj
-        Additive,   // ‰º‚ÌƒŒƒCƒ„[‚É‰ÁZ
+        Override,   // ä¸‹ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’ä¸Šæ›¸ãï¼ˆé€šå¸¸ï¼‰
+        Additive,   // ä¸‹ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«åŠ ç®—
     };
 
     struct Condition
@@ -60,10 +60,10 @@ public:
         std::vector<Transition> transitions;
     };
 
-    // AvatarMask : “K—p‚·‚éƒm[ƒhIndex‚ÌƒZƒbƒgi‹ó = ‘Sƒm[ƒhj
+    // AvatarMask : é©ç”¨ã™ã‚‹ãƒãƒ¼ãƒ‰Indexã®ã‚»ãƒƒãƒˆï¼ˆç©º = å…¨ãƒãƒ¼ãƒ‰ï¼‰
     struct AvatarMask
     {
-        std::vector<int> nodes; // ‹ó‚È‚ç‘Sg
+        std::vector<int> nodes; // ç©ºãªã‚‰å…¨èº«
         bool Contains(int nodeIndex) const
         {
             if (nodes.empty()) return true;
@@ -72,15 +72,15 @@ public:
         }
     };
 
-    // ƒŒƒCƒ„[–{‘Ì
+    // ãƒ¬ã‚¤ãƒ¤ãƒ¼æœ¬ä½“
     struct AnimatorLayer
     {
         std::string  name;
         float        weight = 1.0f;
         BlendMode    blendMode = BlendMode::Override;
-        AvatarMask   mask;                     // ‹ó=‘Sg
+        AvatarMask   mask;                     // ç©º=å…¨èº«
 
-        // “Æ—§‚µ‚½ƒXƒe[ƒgƒ}ƒVƒ“
+        // ç‹¬ç«‹ã—ãŸã‚¹ãƒ†ãƒ¼ãƒˆãƒã‚·ãƒ³
         std::vector<State> states;
         int   defaultStateIndex = 0;
         int   currentStateIndex = -1;
@@ -92,25 +92,25 @@ public:
         bool  isTransitioning = false;
     };
 
-    // ƒGƒfƒBƒ^ƒEƒBƒ“ƒhƒE‚ğŠJ‚­
+    // ã‚¨ãƒ‡ã‚£ã‚¿ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’é–‹ã
     void OpenAnimEditor();
 
-    // AnimEditorWindow ‚©‚ç“à•”ƒf[ƒ^‚ÖƒAƒNƒZƒX‚·‚é‚½‚ß‚ÌƒQƒbƒ^[
+    // AnimEditorWindow ã‹ã‚‰å†…éƒ¨ãƒ‡ãƒ¼ã‚¿ã¸ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ãŸã‚ã®ã‚²ãƒƒã‚¿ãƒ¼
     int GetLayerCount() const { return (int)layers.size(); }
 
     const std::unordered_map<std::string, ParamValue>& GetParameters() const { return parameters; }
     const std::unordered_map<std::string, bool>&       GetTriggers()   const { return triggers; }
-    // ƒGƒfƒBƒ^—pF’¼Úíœ‚Å‚«‚é‚æ‚¤”ñconstQÆ‚ğ•Ô‚·
+    // ã‚¨ãƒ‡ã‚£ã‚¿ç”¨ï¼šç›´æ¥å‰Šé™¤ã§ãã‚‹ã‚ˆã†éconstå‚ç…§ã‚’è¿”ã™
     std::unordered_map<std::string, ParamValue>& GetParameters_Mutable() { return parameters; }
     std::unordered_map<std::string, bool>&       GetTriggers_Mutable()   { return triggers; }
 
-    // ƒ‚ƒfƒ‹‚Ö‚ÌƒAƒNƒZƒX (i’»ƒo[•`‰æ—p)
+    // ãƒ¢ãƒ‡ãƒ«ã¸ã®ã‚¢ã‚¯ã‚»ã‚¹ (é€²æ—ãƒãƒ¼æç”»ç”¨)
     std::shared_ptr<Model> GetModel() const { return model; }
 
     // =========================================================
-    // ƒŒƒCƒ„[‘€ì
+    // ãƒ¬ã‚¤ãƒ¤ãƒ¼æ“ä½œ
     // =========================================================
-    // ƒŒƒCƒ„[’Ç‰ÁA’Ç‰Á‚µ‚½ƒŒƒCƒ„[‚ÌIndex‚ğ•Ô‚·
+    // ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ ã€è¿½åŠ ã—ãŸãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Indexã‚’è¿”ã™
     int  AddLayer(const std::string& name,
         BlendMode blendMode = BlendMode::Override,
         float weight = 1.0f,
@@ -124,7 +124,7 @@ public:
     void DuplicateLayer(int layerIndex);
 
     // =========================================================
-    // ƒXƒe[ƒg‘€ìiƒŒƒCƒ„[Indexw’èj
+    // ã‚¹ãƒ†ãƒ¼ãƒˆæ“ä½œï¼ˆãƒ¬ã‚¤ãƒ¤ãƒ¼IndexæŒ‡å®šï¼‰
     // =========================================================
     int  AddState(int layerIndex, const std::string& name,
         int animationIndex, bool loop = true, float speed = 1.0f);
@@ -144,7 +144,7 @@ public:
 	int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
 
     // =========================================================
-    // ƒpƒ‰ƒ[ƒ^iAnimator‘S‘Ì‚Å‹¤—Lj
+    // ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼ˆAnimatorå…¨ä½“ã§å…±æœ‰ï¼‰
     // =========================================================
     void AddFloat(const std::string& name, float defaultValue = 0.0f);
     void AddInt(const std::string& name, int defaultValue = 0);
@@ -161,13 +161,13 @@ public:
 	bool  GetBool(const std::string& name)  const { return parameters.find(name) != parameters.end() ? std::get<bool>(parameters.at(name)) : false; }
 
     // =========================================================
-    // ’¼ÚÄ¶iƒXƒe[ƒgƒ}ƒVƒ“‚ğg‚í‚È‚¢ê‡j
+    // ç›´æ¥å†ç”Ÿï¼ˆã‚¹ãƒ†ãƒ¼ãƒˆãƒã‚·ãƒ³ã‚’ä½¿ã‚ãªã„å ´åˆï¼‰
     // =========================================================
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
-    bool Save(const std::string& path);   // AnimatorSerializer::Save ‚ğŒÄ‚Ô
-    void Load(const std::string& path);   // AnimatorSerializer::Load ‚ğŒÄ‚Ô
+    bool Save(const std::string& path);   // AnimatorSerializer::Save ã‚’å‘¼ã¶
+    void Load(const std::string& path);   // AnimatorSerializer::Load ã‚’å‘¼ã¶
     const std::string& GetLastPath() const { return m_lastPath; }
 
     void ClearAll()
@@ -188,10 +188,10 @@ private:
 
     std::shared_ptr<Model> model;
 
-    // ƒŒƒCƒ„[ƒŠƒXƒgi’Ç‰Á‡‚É•]‰¿j
+    // ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒªã‚¹ãƒˆï¼ˆè¿½åŠ é †ã«è©•ä¾¡ï¼‰
     std::vector<AnimatorLayer> layers;
 
-    // Animator‘S‘Ì‚Å‹¤—L‚·‚éƒpƒ‰ƒ[ƒ^
+    // Animatorå…¨ä½“ã§å…±æœ‰ã™ã‚‹ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
     std::unordered_map<std::string, ParamValue> parameters;
     std::unordered_map<std::string, bool>       triggers;
 

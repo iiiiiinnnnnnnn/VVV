@@ -55,7 +55,9 @@
     <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
     <ClCompile Include="Source\Shader.cpp" />
+    <ClCompile Include="Source\ShadowMapRenderer.cpp" />
     <ClCompile Include="Source\ShapeRenderer.cpp" />
+    <ClCompile Include="Source\SkyBoxRenderer.cpp" />
     <ClCompile Include="Source\Soldier.cpp" />
     <ClCompile Include="Source\SoldierAIPlayer.cpp" />
     <ClCompile Include="Source\SpriteRenderComponent.cpp" />
@@ -103,7 +105,6 @@
     <ClInclude Include="Source\Input.h" />
     <ClInclude Include="Source\Object.h" />
     <ClInclude Include="Source\PBRShader.h" />
-    <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LocalPlayer.h" />
     <ClInclude Include="Source\Misc.h" />
     <ClInclude Include="Source\Model.h" />
@@ -124,7 +125,9 @@
     <ClInclude Include="Source\RenderState.h" />
     <ClInclude Include="Source\Scene.h" />
     <ClInclude Include="Source\Shader.h" />
+    <ClInclude Include="Source\ShadowMapRenderer.h" />
     <ClInclude Include="Source\ShapeRenderer.h" />
+    <ClInclude Include="Source\SkyBoxRenderer.h" />
     <ClInclude Include="Source\Soldier.h" />
     <ClInclude Include="Source\SoldierAIPlayer.h" />
     <ClInclude Include="Source\SpriteRenderComponent.h" />
@@ -148,6 +151,7 @@
     <None Include="Shader\PrimitiveRenderer.hlsli" />
     <None Include="Shader\Scene.hlsli" />
     <None Include="Shader\ShadingFunctions.hlsli" />
+    <None Include="Shader\ShadowmapCaster.hlsli" />
     <None Include="Shader\ShapeRenderer.hlsli" />
     <None Include="Shader\Skinning.hlsli" />
     <None Include="Shader\BasicSprite.hlsli" />
@@ -165,11 +169,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\PBR_PS.hlsl">
+    <FxCompile Include="Shader\PBRPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\PBR_VS.hlsl">
+    <FxCompile Include="Shader\PBRVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -178,6 +182,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -194,6 +202,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>

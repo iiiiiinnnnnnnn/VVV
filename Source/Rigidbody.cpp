@@ -1,4 +1,4 @@
-// Rigidbody.cpp
+ï»¿// Rigidbody.cpp
 
 #include "Rigidbody.h"
 #include "Actor.h"
@@ -8,7 +8,7 @@ Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rig
     Actor* ownerActor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 
-    // ƒV[ƒ“‚É“o˜^
+    // ã‚·ãƒ¼ãƒ³ã«ç™»éŒ²
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
 

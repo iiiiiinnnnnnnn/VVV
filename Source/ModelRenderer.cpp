@@ -1,22 +1,22 @@
-#include <algorithm>
+ï»¿#include <algorithm>
 #include "Misc.h"
 #include "GpuResourceUtils.h"
 #include "ModelRenderer.h"
 #include "BasicModelShader.h"
 
-// ’Ç‰ÁƒVƒF[ƒ_[
+// è¿½åŠ ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 #include "PBRShader.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 ModelRenderer::ModelRenderer(ID3D11Device* device)
 {
-	// ƒV[ƒ“—p’è”ƒoƒbƒtƒ@
+	// ã‚·ãƒ¼ãƒ³ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbScene),
 		sceneConstantBuffer.GetAddressOf());
 
-	// ƒXƒPƒ‹ƒgƒ“—p’è”ƒoƒbƒtƒ@
+	// ã‚¹ã‚±ãƒ«ãƒˆãƒ³ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbSkeleton),
@@ -24,11 +24,11 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 
 	shaders[static_cast<int>(ModelShaderId::Basic)] = std::make_unique<BasicModelShader>(device);
 
-	// ’Ç‰ÁƒVƒF[ƒ_[
+	// è¿½åŠ ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	shaders[static_cast<int>(ModelShaderId::PBR)] = std::make_unique<PBRShader>(device);
 }
 
-// ” •`‰æ
+// ç®±æç”»
 void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, ShaderParamPtr shaderParam)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
@@ -37,26 +37,23 @@ void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, S
 	drawInfo.shaderParam = shaderParam;
 }
 
-// •`‰æÀs
+// æç”»å®Ÿè¡Œ
 void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ƒV[ƒ“—p’è”ƒoƒbƒtƒ@XV
+	// ã‚·ãƒ¼ãƒ³ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡æ›´æ–°
 	{
-		static LightManager defaultLightManager;
-		const LightManager* lightManager = rc.lightManager ? rc.lightManager : &defaultLightManager;
-
 		CbScene cbScene{};
 		Matrix V = rc.camera->GetView();
 		Matrix P = rc.camera->GetProjection();
 		cbScene.viewProjection = V * P;
 		cbScene.viewPosition = rc.camera->GetEye();
-		cbScene.lightManager = CbLightManager(lightManager);
+		cbScene.lightManager = CbLightManager(rc.lightData);
 		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 	}
 
-	// ’è”ƒoƒbƒtƒ@İ’è
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	ID3D11Buffer* vsConstantBuffers[] =
 	{
 		skeletonConstantBuffer.Get(),
@@ -69,28 +66,31 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
 	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
 
-	// ƒTƒ“ƒvƒ‰ƒXƒe[ƒgİ’è
+	// ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®š
+	// s0 = LinearWrap  : ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ†ã‚¯ã‚¹ãƒãƒ£ & IBLç”¨
+	// s1 = LinearClamp : ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—ç”¨
 	ID3D11SamplerState* samplerStates[] =
 	{
-		rc.renderState->GetSamplerState(SamplerState::PointClamp)
+		rc.renderState->GetSamplerState(SamplerState::LinearWrap),
+		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
 	};
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
 
-	// ƒŒƒ“ƒ_[ƒXƒe[ƒgİ’è
+	// ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®š
 	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 
-	// ƒƒbƒVƒ…•`‰æŠÖ”
+	// ãƒ¡ãƒƒã‚·ãƒ¥æç”»é–¢æ•°
 	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, ShaderParamPtr shaderParam)
 	{
-		// ’¸“_ƒoƒbƒtƒ@İ’è
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
 		UINT stride = sizeof(Model::Vertex);
 		UINT offset = 0;
 		dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 		dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 		dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		// ƒXƒPƒ‹ƒgƒ“—p’è”ƒoƒbƒtƒ@XV
+		// ã‚¹ã‚±ãƒ«ãƒˆãƒ³ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡æ›´æ–°
 		CbSkeleton cbSkeleton{};
 		if (mesh.bones.size() > 0)
 		{
@@ -109,17 +109,17 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 
 		shader->ApplyParams(shaderParam);
 
-		// XV
+		// æ›´æ–°
 		shader->Update(rc, mesh, elapsedTime);
 
-		// •`‰æ
+		// æç”»
 		dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
 	};
 
-	// ƒuƒŒƒ“ƒhƒXƒe[ƒgİ’è
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®š
 	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
 
-	// •s“§–¾•`‰æˆ—
+	// ä¸é€æ˜æç”»å‡¦ç†
 	for (DrawInfo& drawInfo : drawInfos)
 	{
 		ModelShader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
@@ -127,11 +127,11 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 
 		for (const Model::Mesh& mesh : drawInfo.model->GetMeshes())
 		{
-			// •`‰æ‚µ‚È‚¢ƒƒbƒVƒ…‚ÍƒXƒLƒbƒv
+			// æç”»ã—ãªã„ãƒ¡ãƒƒã‚·ãƒ¥ã¯ã‚¹ã‚­ãƒƒãƒ—
 			if (!mesh.isDraw)
 				continue;
 
-			// ”¼“§–¾ƒƒbƒVƒ…“o˜^
+			// åŠé€æ˜ãƒ¡ãƒƒã‚·ãƒ¥ç™»éŒ²
 			if (mesh.material->alphaMode == Model::AlphaMode::Blend ||
 				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f))
 			{
@@ -139,7 +139,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
 				transparencyDrawInfo.shaderParam = drawInfo.shaderParam;
-				// ƒJƒƒ‰‚Æ‚Ì‹——£‚ğZo
+				// ã‚«ãƒ¡ãƒ©ã¨ã®è·é›¢ã‚’ç®—å‡º
 				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
 				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
 				transparencyDrawInfo.distance = rc.camera->GetFront().Dot(Vec);
@@ -147,7 +147,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 				continue;
 			}
 
-			// •`‰æ
+			// æç”»
 			drawMesh(mesh, shader, drawInfo.shaderParam);
 		}
 
@@ -155,17 +155,17 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	}
 	drawInfos.clear();
 
-	// ƒuƒŒƒ“ƒhƒXƒe[ƒgİ’è
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®š
 	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
 
-	// ƒJƒƒ‰‚©‚ç‰“‚¢‡‚Éƒ\[ƒg
+	// ã‚«ãƒ¡ãƒ©ã‹ã‚‰é ã„é †ã«ã‚½ãƒ¼ãƒˆ
 	std::sort(transparencyDrawInfos.begin(), transparencyDrawInfos.end(),
 		[](const TransparencyDrawInfo& lhs, const TransparencyDrawInfo& rhs)
 		{
 			return lhs.distance > rhs.distance;
 		});
 
-	// ”¼“§–¾•`‰æˆ—
+	// åŠé€æ˜æç”»å‡¦ç†
 	for (const TransparencyDrawInfo& transparencyDrawInfo : transparencyDrawInfos)
 	{
 		ModelShader* shader = shaders[static_cast<int>(transparencyDrawInfo.shaderId)].get();
@@ -178,13 +178,13 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	}
 	transparencyDrawInfos.clear();
 
-	// ’è”ƒoƒbƒtƒ@İ’è‰ğœ
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®šè§£é™¤
 	for (ID3D11Buffer*& vsConstantBuffer : vsConstantBuffers) { vsConstantBuffer = nullptr; }
 	for (ID3D11Buffer*& psConstantBuffer : psConstantBuffers) { psConstantBuffer = nullptr; }
 	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
 	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
 
-	// ƒTƒ“ƒvƒ‰ƒXƒe[ƒgİ’è‰ğœ
+	// ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®šè§£é™¤
 	for (ID3D11SamplerState*& samplerState : samplerStates) { samplerState = nullptr; }
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
 }

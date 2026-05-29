@@ -1,13 +1,13 @@
-#include "Mouse.h"
+ï»¿#include "Mouse.h"
 
 static const int KeyMap[] =
 {
-	VK_LBUTTON,		// ¶ƒ{ƒ^ƒ“
-	VK_MBUTTON,		// ’†ƒ{ƒ^ƒ“
-	VK_RBUTTON,		// ‰Eƒ{ƒ^ƒ“
+	VK_LBUTTON,		// å·¦ãƒœã‚¿ãƒ³
+	VK_MBUTTON,		// ä¸­ãƒœã‚¿ãƒ³
+	VK_RBUTTON,		// å³ãƒœã‚¿ãƒ³
 };
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Mouse::Mouse(HWND hWnd)
 	: hWnd(hWnd)
 {
@@ -17,10 +17,10 @@ Mouse::Mouse(HWND hWnd)
 	screenHeight = rc.bottom - rc.top;
 }
 
-// XV
+// æ›´æ–°
 void Mouse::Update()
 {
-	// ƒXƒCƒbƒ`î•ñ
+	// ã‚¹ã‚¤ãƒƒãƒæƒ…å ±
 	MouseButton newButtonState = 0;
 
 	for (int i = 0; i < ARRAYSIZE(KeyMap); ++i)
@@ -31,23 +31,23 @@ void Mouse::Update()
 		}
 	}
 
-	// ƒzƒC[ƒ‹
+	// ãƒ›ã‚¤ãƒ¼ãƒ«
 	wheel[1] = wheel[0];
 	wheel[0] = 0;
 
-	// ƒ{ƒ^ƒ“î•ñXV
-	buttonState[1] = buttonState[0];	// ƒXƒCƒbƒ`—š—ğ
+	// ãƒœã‚¿ãƒ³æƒ…å ±æ›´æ–°
+	buttonState[1] = buttonState[0];	// ã‚¹ã‚¤ãƒƒãƒå±¥æ­´
 	buttonState[0] = newButtonState;
 
-	buttonDown = ~buttonState[1] & newButtonState;	// ‰Ÿ‚µ‚½uŠÔ
-	buttonUp = ~newButtonState & buttonState[1];	// —£‚µ‚½uŠÔ
+	buttonDown = ~buttonState[1] & newButtonState;	// æŠ¼ã—ãŸç¬é–“
+	buttonUp = ~newButtonState & buttonState[1];	// é›¢ã—ãŸç¬é–“
 
-	// ƒJ[ƒ\ƒ‹ˆÊ’u‚Ìæ“¾
+	// ã‚«ãƒ¼ã‚½ãƒ«ä½ç½®ã®å–å¾—
 	POINT cursor;
 	::GetCursorPos(&cursor);
 	::ScreenToClient(hWnd, &cursor);
 
-	// ‰æ–Ê‚ÌƒTƒCƒY‚ğæ“¾‚·‚éB
+	// ç”»é¢ã®ã‚µã‚¤ã‚ºã‚’å–å¾—ã™ã‚‹ã€‚
 	RECT rc;
 	GetClientRect(hWnd, &rc);
 	UINT screenW = rc.right - rc.left;
@@ -55,29 +55,29 @@ void Mouse::Update()
 	UINT viewportW = screenWidth;
 	UINT viewportH = screenHeight;
 
-	// ‰æ–Ê•â³
+	// ç”»é¢è£œæ­£
 	positionX[1] = positionX[0];
 	positionY[1] = positionY[0];
 	positionX[0] = (LONG)(cursor.x / static_cast<float>(viewportW) * static_cast<float>(screenW));
 	positionY[0] = (LONG)(cursor.y / static_cast<float>(viewportH) * static_cast<float>(screenH));
 
-	// ƒJ[ƒ\ƒ‹ƒƒbƒNˆ—
+	// ã‚«ãƒ¼ã‚½ãƒ«ãƒ­ãƒƒã‚¯å‡¦ç†
 	if (cursorLocked)
 	{
 		RECT rc;
 		GetClientRect(hWnd, &rc);
 		POINT center = { (rc.right - rc.left) / 2, (rc.bottom - rc.top) / 2 };
 
-		// ’†‰›‚©‚ç‚Ì·•ª‚ğaxis‚É•Û‘¶
+		// ä¸­å¤®ã‹ã‚‰ã®å·®åˆ†ã‚’axisã«ä¿å­˜
 		axisX = positionX[0] - center.x;
 		axisY = positionY[0] - center.y;
 
-		// ƒJ[ƒ\ƒ‹‚ğ’†‰›‚É–ß‚·
+		// ã‚«ãƒ¼ã‚½ãƒ«ã‚’ä¸­å¤®ã«æˆ»ã™
 		POINT screenCenter = center;
 		ClientToScreen(hWnd, &screenCenter);
 		SetCursorPos(screenCenter.x, screenCenter.y);
 
-		// ŸƒtƒŒ[ƒ€—p‚É—¼•û’†‰›‚ÉƒŠƒZƒbƒg
+		// æ¬¡ãƒ•ãƒ¬ãƒ¼ãƒ ç”¨ã«ä¸¡æ–¹ä¸­å¤®ã«ãƒªã‚»ãƒƒãƒˆ
 		positionX[0] = center.x;
 		positionX[1] = center.x;
 		positionY[0] = center.y;

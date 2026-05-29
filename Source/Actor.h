@@ -1,4 +1,4 @@
-// Actor.h
+ï»¿// Actor.h
 
 #pragma once
 
@@ -14,7 +14,7 @@ public:
 
     Transform transform;
 
-    // ƒI[ƒo[ƒ‰ƒCƒh‚·‚é•K—v‚ª‚ ‚é‚â‚Â‚¾‚¯(transformŠ„‚è‚İ)
+    // ã‚ªãƒ¼ãƒãƒ¼ãƒ©ã‚¤ãƒ‰ã™ã‚‹å¿…è¦ãŒã‚ã‚‹ã‚„ã¤ã ã‘(transformå‰²ã‚Šè¾¼ã¿)
 	void Update(float elapsedTime) override;
 	void DrawGUI(float elapsedTime) override;
 

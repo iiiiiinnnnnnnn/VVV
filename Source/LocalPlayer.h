@@ -1,4 +1,4 @@
-// LocalPlayer.h
+﻿// LocalPlayer.h
 
 #pragma once
 

@@ -1,38 +1,38 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Common.h"
 
-// ƒJƒƒ‰
+// ã‚«ãƒ¡ãƒ©
 class Camera
 {
 public:
 	Camera();
 
-	// w’è•ûŒü‚ğŒü‚­
+	// æŒ‡å®šæ–¹å‘ã‚’å‘ã
 	void SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& up);
 
-	// ƒp[ƒXƒyƒNƒeƒBƒuİ’è
+	// ãƒ‘ãƒ¼ã‚¹ãƒšã‚¯ãƒ†ã‚£ãƒ–è¨­å®š
 	void SetPerspectiveFov(float fovY, float aspect, float nearZ, float farZ);
 
-	// ƒrƒ…[s—ñæ“¾
+	// ãƒ“ãƒ¥ãƒ¼è¡Œåˆ—å–å¾—
 	const Matrix& GetView() const { return view; }
 
-	// ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñæ“¾
+	// ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—å–å¾—
 	const Matrix& GetProjection() const { return projection; }
 
-	// ‹“_æ“¾
+	// è¦–ç‚¹å–å¾—
 	const Vector3& GetEye() const { return eye; }
 
-	// ’‹“_æ“¾
+	// æ³¨è¦–ç‚¹å–å¾—
 	const Vector3& GetFocus() const { return focus; }
 
-	// ã•ûŒüæ“¾
+	// ä¸Šæ–¹å‘å–å¾—
 	const Vector3& GetUp() const { return up; }
 
-	// ‘O•ûŒüæ“¾
+	// å‰æ–¹å‘å–å¾—
 	const Vector3& GetFront() const { return front; }
 
-	// ‰E•ûŒüæ“¾
+	// å³æ–¹å‘å–å¾—
 	const Vector3& GetRight() const { return right; }
 
 private:

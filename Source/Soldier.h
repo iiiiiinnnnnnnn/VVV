@@ -1,4 +1,4 @@
-// Soldier.h
+﻿// Soldier.h
 
 #pragma once
 

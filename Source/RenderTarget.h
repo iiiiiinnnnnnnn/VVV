@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Common.h"
 
@@ -9,13 +9,13 @@ public:
         DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
     ~RenderTarget() = default;
 
-    // •`‰ææØ‚è‘Ö‚¦
+    // æç”»å…ˆåˆ‡ã‚Šæ›¿ãˆ
     void Activate(ID3D11DeviceContext* dc);
 
-    // Œ³‚ÌRT‚É–ß‚·
+    // å…ƒã®RTã«æˆ»ã™
     void Deactivate(ID3D11DeviceContext* dc);
 
-    // ƒNƒŠƒA
+    // ã‚¯ãƒªã‚¢
     void Clear(ID3D11DeviceContext* dc, float r = 0, float g = 0, float b = 0, float a = 1);
 
     ID3D11ShaderResourceView* GetSRV() const { return srv.Get(); }
@@ -27,7 +27,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   dsv;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
 
-    // Œ³‚ÌRT‚É–ß‚·‚½‚ß‚É•Û‘¶
+    // å…ƒã®RTã«æˆ»ã™ãŸã‚ã«ä¿å­˜
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   prevRtv;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   prevDsv;
     D3D11_VIEWPORT prevViewport = {};

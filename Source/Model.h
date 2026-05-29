@@ -1,4 +1,4 @@
-// Model.h
+ï»¿// Model.h
 
 #pragma once
 
@@ -43,7 +43,7 @@ public:
 
 	struct Material
 	{
-		// •Û‘¶‚·‚é
+		// ä¿å­˜ã™ã‚‹
 		std::string			name;
 		std::string			baseTextureFileName;
 		std::string			normalTextureFileName;
@@ -58,7 +58,7 @@ public:
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
 
-		// •Û‘¶‚µ‚È‚¢
+		// ä¿å­˜ã—ãªã„
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	emissiveMap;
@@ -94,14 +94,14 @@ public:
 
 	struct Mesh
 	{
-		// •Û‘¶‚·‚é
+		// ä¿å­˜ã™ã‚‹
 		std::vector<Vertex>		vertices;
 		std::vector<uint32_t>	indices;
 		std::vector<Bone>		bones;
 		int			nodeIndex = 0;
 		int			materialIndex = 0;
 
-		// •Û‘¶‚µ‚È‚¢
+		// ä¿å­˜ã—ãªã„
 		Material*	material = nullptr;
 		Node*		node = nullptr;
 		bool		isDraw = true;
@@ -166,52 +166,52 @@ public:
 		}
 	};
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“’Ç‰Á“Ç‚İ‚İ
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¿½åŠ èª­ã¿è¾¼ã¿
 	void AppendAnimations(const char* filename);
 
-	// ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^æ“¾
+	// ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿å–å¾—
 	const std::vector<Material>& GetMaterials() const { return materials; }
 	std::vector<Material>& GetMaterials() { return materials; }
 
-	// ƒƒbƒVƒ…ƒf[ƒ^æ“¾
+	// ãƒ¡ãƒƒã‚·ãƒ¥ãƒ‡ãƒ¼ã‚¿å–å¾—
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^æ“¾
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‡ãƒ¼ã‚¿å–å¾—
 	const std::vector<Animation>& GetAnimations() const { return animations; }
 	std::vector<Animation>& GetAnimations() { return animations; }
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“ƒCƒ“ƒfƒbƒNƒXæ“¾
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
 	int GetAnimationIndex(const char* name) const;
 
-	// ƒm[ƒhƒf[ƒ^æ“¾
+	// ãƒãƒ¼ãƒ‰ãƒ‡ãƒ¼ã‚¿å–å¾—
 	const std::vector<Node>& GetNodes() const { return nodes; }
 	std::vector<Node>& GetNodes() { return nodes; }
 
-	// ƒ‹[ƒgƒm[ƒhæ“¾
+	// ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰å–å¾—
 	Node* GetRootNode() { return nodes.data(); }
 
-	// ƒm[ƒhƒCƒ“ƒfƒbƒNƒXæ“¾
+	// ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
 	int GetNodeIndex(const char* name) const;
 
-	// ƒgƒ‰ƒ“ƒXƒtƒH[ƒ€XVˆ—
+	// ãƒˆãƒ©ãƒ³ã‚¹ãƒ•ã‚©ãƒ¼ãƒ æ›´æ–°å‡¦ç†
 	void UpdateTransform(const Matrix& worldTransform);
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“ŒvZ
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—
 	void ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const;
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
 
-	// ƒm[ƒhƒ|[ƒYİ’è
+	// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºè¨­å®š
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
-	// ƒm[ƒhƒ|[ƒYæ“¾
+	// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºå–å¾—
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
 
 private:
-	// ƒVƒŠƒAƒ‰ƒCƒY
+	// ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 	void Serialize(const char* filename, uint16_t lastWrite);
 
-	// ƒfƒVƒŠƒAƒ‰ƒCƒY
+	// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 	void Deserialize(const char* filename, uint16_t& lastWrite);
 
 private:

@@ -1,102 +1,136 @@
-#include "Misc.h"
-#include "GpuResourceUtils.h"
+Ôªø// PBRShader.cpp
+
 #include "PBRShader.h"
+#include "GpuResourceUtils.h"
 
 PBRShader::PBRShader(ID3D11Device* device)
 {
-	// í∏ì_ÉVÉFÅ[É_Å[
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/PBR_VS.cso",
+		"Data/Shader/PBRVS.cso",
 		ModelShader::InputElementDescs.data(),
 		static_cast<UINT>(ModelShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
-	// ÉsÉNÉZÉãÉVÉFÅ[É_Å[
+	// „Éî„ÇØ„Çª„É´„Ç∑„Çß„Éº„ÉÄ„Éº
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/PBR_PS.cso",
+		"Data/Shader/PBRPS.cso",
 		pixelShader.GetAddressOf());
 
-	// íËêîÉoÉbÉtÉ@çÏê¨
+	// „Ç∑„É£„Éâ„Ç¶„Éû„ÉÉ„ÉóÁî®ÂÆöÊï∞„Éê„ÉÉ„Éï„Ç° (PS„Çπ„É≠„ÉÉ„Éà0)
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbShadowMap),
-		shadowMapBuffer.GetAddressOf());
+		shadowMapConstantBuffer.GetAddressOf());
 
+	// „Éû„ÉÜ„É™„Ç¢„É´Áî®ÂÆöÊï∞„Éê„ÉÉ„Éï„Ç° (PS„Çπ„É≠„ÉÉ„Éà1)
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
-		sizeof(CbPBR),
-		pbrBuffer.GetAddressOf());
+		sizeof(CbMaterial),
+		materialConstantBuffer.GetAddressOf());
 }
 
-// äJénèàóù
+// ÊèèÁîªÈñãÂßã
 void PBRShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ÉVÉFÅ[É_Å[ê›íË
+	// „Ç∑„Çß„Éº„ÉÄ„Éº„Çª„ÉÉ„Éà„Å†„Åë
 	dc->IASetInputLayout(inputLayout.Get());
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
+
+	// SRV„Å†„Åë„Åì„Åì„Åß„Çª„ÉÉ„Éà
+	dc->PSSetShaderResources(8, 1, &rc.shadowMapData.shadowMap);
+
+	ID3D11ShaderResourceView* iblSrvs[] =
+	{
+		rc.iblData.ggxLookUpTableMap,
+		rc.iblData.specularPremappingRadianceEnvironmentMap,
+		rc.iblData.diffuseIrradianceEnvironmentMap,
+	};
+	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 }
 
-// çXêVèàóù
 void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	CbPBR cbPBR;
-	cbPBR.materialColor = mesh.material->baseColor;
-	cbPBR.adjustMetalness = pbrData.metalness;
-	cbPBR.adjustRoughness = pbrData.roughness;
-	dc->UpdateSubresource(pbrBuffer.Get(), 0, 0, &cbPBR, 0, 0);
-
-	CbShadowMap cbShadow;
-	cbShadow.lightViewProjection = Matrix::Identity; // TODO: ÉVÉÉÉhÉEÉ}ÉbÉvÇÃ view-projection çsóÒÇê›íË
-	cbShadow.shadowAttenuation = 0.5f;
-	cbShadow.shadowBias = 0.0001f;
-	dc->UpdateSubresource(shadowMapBuffer.Get(), 0, 0, &cbShadow, 0, 0);
-
-	// íËêîÉoÉbÉtÉ@ê›íË
-	ID3D11Buffer* cbs[] =
+	// „Ç∑„É£„Éâ„Ç¶CBÊõ¥Êñ∞
 	{
-		pbrBuffer.Get(),
-		shadowMapBuffer.Get()
-	};
-	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
-	dc->VSSetConstantBuffers(0, _countof(cbs), cbs);
+		CbShadowMap cb{};
+		cb.lightViewProjection = rc.shadowMapData.lightViewProjection;
+		cb.shadowColor = rc.shadowMapData.shadowColor;
+		cb.shadowBias = rc.shadowMapData.shadowBias;
+		cb.pcfKernelSize = rc.shadowMapData.pcfKernelSize;
+		dc->UpdateSubresource(shadowMapConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+	}
 
-	ID3D11ShaderResourceView* srvs[] = {
+	// „Éû„ÉÜ„É™„Ç¢„É´CBÊõ¥Êñ∞
+	{
+		CbMaterial cb{};
+		cb.baseColor = mesh.material->baseColor;
+		cb.emissiveColor = mesh.material->emissiveColor;
+		bool hasMetalnessRoughnessMap = mesh.material->metalnessRoughnessMap != nullptr;
+		if (hasMetalnessRoughnessMap)
+		{
+			cb.metalness = mesh.material->metalness * params.metalness;
+			cb.roughness = mesh.material->roughness * params.roughness;
+			cb.occlusionStrength = mesh.material->occlusionStrength * params.occlusionStrength;
+		}
+		else
+		{
+			cb.metalness = params.metalness;
+			cb.roughness = params.roughness;
+			cb.occlusionStrength = params.occlusionStrength;
+		}
+		dc->UpdateSubresource(materialConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+	}
+
+	// CB„Çª„ÉÉ„Éà
+	ID3D11Buffer* cbs[] = {shadowMapConstantBuffer.Get(), materialConstantBuffer.Get()};
+	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
+	dc->VSSetConstantBuffers(0, 1, shadowMapConstantBuffer.GetAddressOf());
+
+	// „Éû„ÉÜ„É™„Ç¢„É´SRV
+	ID3D11ShaderResourceView* srvs[] =
+	{
 		mesh.material->baseMap.Get(),
+		mesh.material->normalMap.Get(),
+		mesh.material->metalnessRoughnessMap.Get(),
+		mesh.material->occlusionMap.Get(),
+		mesh.material->emissiveMap.Get(),
 	};
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 }
 
-void PBRShader::ApplyParams(ShaderParamPtr params)
-{
-	if (params)
-	{
-		pbrData = *static_cast<const PBRData*>(params);
-	}
-}
-
-// ï`âÊèIóπ
+// ÊèèÁîªÁµÇ‰∫Ü
 void PBRShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ÉVÉFÅ[É_Å[ê›íËâèú
+	// „Ç∑„Çß„Éº„ÉÄ„ÉºËß£Èô§
 	dc->VSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(nullptr, nullptr, 0);
 	dc->IASetInputLayout(nullptr);
 
-	// íËêîÉoÉbÉtÉ@ê›íËâèú
-	ID3D11Buffer* cbs[] = {nullptr, nullptr, nullptr};
-	dc->PSSetConstantBuffers(8, _countof(cbs), cbs);
+	// ÂÆöÊï∞„Éê„ÉÉ„Éï„Ç°Ëß£Èô§
+	ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
+	dc->PSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
+	dc->VSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 
-	// ÉVÉFÅ[É_Å[ÉäÉ\Å[ÉXÉrÉÖÅ[ê›íËâèú
-	ID3D11ShaderResourceView* srvs[] = {nullptr};
-	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+	// SRVËß£Èô§
+	// slot 0„Äú4: „Éû„ÉÜ„É™„Ç¢„É´„ÉÜ„ÇØ„Çπ„ÉÅ„É£
+	// slot 8   : „Ç∑„É£„Éâ„Ç¶„Éû„ÉÉ„Éó
+	// slot 17„Äú19: IBL
+	ID3D11ShaderResourceView* nullSrvs[5] = {};
+	dc->PSSetShaderResources(0, _countof(nullSrvs), nullSrvs);
+
+	ID3D11ShaderResourceView* nullSrv8 = nullptr;
+	dc->PSSetShaderResources(8, 1, &nullSrv8);
+
+	ID3D11ShaderResourceView* nullIblSrvs[3] = {};
+	dc->PSSetShaderResources(17, _countof(nullIblSrvs), nullIblSrvs);
 }

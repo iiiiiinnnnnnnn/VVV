@@ -1,12 +1,13 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
+#include <cstdint>
 
-// GPUƒŠƒ\[ƒXƒ†[ƒeƒBƒŠƒeƒB
+// GPUãƒªã‚½ãƒ¼ã‚¹ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£
 class GpuResourceUtils
 {
 public:
-	// ’¸“_ƒVƒF[ƒ_[“Ç‚İ‚İ
+	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼èª­ã¿è¾¼ã¿
 	static HRESULT LoadVertexShader(
 		ID3D11Device* device,
 		const char* filename,
@@ -15,35 +16,35 @@ public:
 		ID3D11InputLayout** inputLayout,
 		ID3D11VertexShader** vertexShader);
 
-	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[“Ç‚İ‚İ
+	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼èª­ã¿è¾¼ã¿
 	static HRESULT LoadPixelShader(
 		ID3D11Device* device,
 		const char* filename,
 		ID3D11PixelShader** pixelShader);
 
-	// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 	static HRESULT LoadTexture(
 		ID3D11Device* device,
 		const char* filename,
 		ID3D11ShaderResourceView** shaderResourceView,
 		D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr);
 
-	// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 	static HRESULT LoadTexture(
 		ID3D11Device* device,
-		const void* data,
+		const uint8_t* data,
 		size_t size,
 		ID3D11ShaderResourceView** shaderResourceView,
 		D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr);
 
-	// ƒ_ƒ~[ƒeƒNƒXƒ`ƒƒì¬
+	// ãƒ€ãƒŸãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ä½œæˆ
 	static HRESULT CreateDummyTexture(
 		ID3D11Device* device,
 		UINT color,
 		ID3D11ShaderResourceView** shaderResourceView,
 		D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr);
 
-	// ’è”ƒoƒbƒtƒ@ì¬
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡ä½œæˆ
 	static HRESULT CreateConstantBuffer(
 		ID3D11Device* device,
 		UINT bufferSize,

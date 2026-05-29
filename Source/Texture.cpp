@@ -1,4 +1,4 @@
-// Texture.cpp
+ï»¿// Texture.cpp
 
 #include "Texture.h"
 
@@ -9,22 +9,22 @@
 #include "Graphics.h"
 #include "Misc.h"
 
-// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 HRESULT Texture::LoadTexture(
 	ID3D11Device* device,
 	const char* filename,
 	ID3D11ShaderResourceView** shaderResourceView,
 	D3D11_TEXTURE2D_DESC* texture2dDesc)
 {
-	// Šg’£q‚ğæ“¾
+	// æ‹¡å¼µå­ã‚’å–å¾—
 	std::filesystem::path filepath(filename);
 	std::string extension = filepath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// ¬•¶š‰»
+	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// å°æ–‡å­—åŒ–
 
-	// ƒƒCƒh•¶š‚É•ÏŠ·
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—ã«å¤‰æ›
 	std::wstring wfilename = filepath.wstring();
 
-	// ƒtƒH[ƒ}ƒbƒg–ˆ‚É‰æ‘œ“Ç‚İ‚İˆ—
+	// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆæ¯ã«ç”»åƒèª­ã¿è¾¼ã¿å‡¦ç†
 	HRESULT hr;
 	DirectX::TexMetadata metadata;
 	DirectX::ScratchImage scratch_image;
@@ -61,12 +61,12 @@ HRESULT Texture::LoadTexture(
 		if (FAILED(hr)) return hr;
 	}
 
-	// ƒVƒF[ƒ_[ƒŠƒ\[ƒXƒrƒ…[ì¬
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ãƒ“ãƒ¥ãƒ¼ä½œæˆ
 	hr = DirectX::CreateShaderResourceView(device, scratch_image.GetImages(), scratch_image.GetImageCount(),
 		metadata, shaderResourceView);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	// ƒeƒNƒXƒ`ƒƒî•ñæ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±å–å¾—
 	if (texture2dDesc != nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
@@ -85,15 +85,15 @@ Texture::Texture(const char* filename)
 {
 	ID3D11Device* device = Graphics::Instance().GetDevice();
 
-	// Šg’£q‚ğæ“¾
+	// æ‹¡å¼µå­ã‚’å–å¾—
 	std::filesystem::path filepath(filename);
 	std::string extension = filepath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// ¬•¶š‰»
+	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// å°æ–‡å­—åŒ–
 
-	// ƒƒCƒh•¶š‚É•ÏŠ·
+	// ãƒ¯ã‚¤ãƒ‰æ–‡å­—ã«å¤‰æ›
 	std::wstring wfilename = filepath.wstring();
 
-	// ƒtƒH[ƒ}ƒbƒg–ˆ‚É‰æ‘œ“Ç‚İ‚İˆ—
+	// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆæ¯ã«ç”»åƒèª­ã¿è¾¼ã¿å‡¦ç†
 	HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }

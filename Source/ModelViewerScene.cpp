@@ -1,4 +1,4 @@
-// ModelViewerScene.cpp
+ï»¿// ModelViewerScene.cpp
 
 #include "ModelViewerScene.h"
 #include "Commander.h"
@@ -9,14 +9,11 @@
 #include "LocalPlayer.h"
 #include "TestWIdget.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
 ModelViewerScene::ModelViewerScene()
 {
 	ID3D11Device* device = Graphics::Instance().GetDevice();
 	float screenWidth = Graphics::ScreenWidth;
 	float screenHeight = Graphics::ScreenHeight;
-
-	// ƒAƒNƒ^¶¬
 
 	actors.Register(std::make_shared<Stage00>());
 
@@ -24,44 +21,25 @@ ModelViewerScene::ModelViewerScene()
 	localCommander->SetController(std::make_unique<LocalPlayer>());
 	actors.Register(localCommander);
 
-	// ƒEƒBƒWƒFƒbƒg¶¬
-
 	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 0)));
 	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 100)));
 
-	// ƒJƒƒ‰İ’è
 	camera.SetPerspectiveFov(
-		DirectX::XMConvertToRadians(45),	// ‰æŠp
-		screenWidth / screenHeight,			// ‰æ–ÊƒAƒXƒyƒNƒg”ä
-		0.1f,								// ƒjƒAƒNƒŠƒbƒv
-		1000.0f								// ƒtƒ@[ƒNƒŠƒbƒv
+		DirectX::XMConvertToRadians(45),
+		screenWidth / screenHeight,
+		0.1f,
+		1000.0f
 	);
-	camera.SetLookAt(
-		{ 0, 3, 5 },		// ‹“_
-		{ 0, 0, 0 },		// ’‹“_
-		{ 0, 1, 0 }			// ãƒxƒNƒgƒ‹
-	);
+	camera.SetLookAt({0, 3, 5}, {0, 0, 0}, {0, 1, 0});
 
-	// ƒJƒƒ‰‚©‚çƒRƒ“ƒgƒ[ƒ‰[0¶¬
 	cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
-
-	// ƒRƒ“ƒgƒ[ƒ‰[1¶¬
 	cameraControllers.push_back(std::make_unique<FpsCameraController>(localCommander));
 }
 
-// XVˆ—
 void ModelViewerScene::OnUpdate(float elapsedTime)
 {
-
 }
 
-// •`‰æˆ—
-void ModelViewerScene::OnRender(RenderContext& rc, float elapsedTime)
-{
-
-}
-
-// GUI•`‰æˆ—
 void ModelViewerScene::OnDrawGUI(float elapsedTime)
 {
 

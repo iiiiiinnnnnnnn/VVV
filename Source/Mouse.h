@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 #include <windows.h>
 
 using MouseButton = unsigned int;
 
-// ƒ}ƒEƒX
+// ãƒã‚¦ã‚¹
 class Mouse
 {
 public:
@@ -16,56 +16,56 @@ public:
 	Mouse(HWND hWnd);
 	~Mouse() {}
 
-	// XV
+	// æ›´æ–°
 	void Update();
 
-	// ƒ{ƒ^ƒ““ü—Íó‘Ô‚Ìæ“¾
+	// ãƒœã‚¿ãƒ³å…¥åŠ›çŠ¶æ…‹ã®å–å¾—
 	MouseButton GetButton() const { return buttonState[0]; }
 
-	// ƒ{ƒ^ƒ“‰Ÿ‰ºó‘Ô‚Ìæ“¾
+	// ãƒœã‚¿ãƒ³æŠ¼ä¸‹çŠ¶æ…‹ã®å–å¾—
 	MouseButton GetButtonDown() const { return buttonDown; }
 
-	// ƒ{ƒ^ƒ“‰Ÿãó‘Ô‚Ìæ“¾
+	// ãƒœã‚¿ãƒ³æŠ¼ä¸ŠçŠ¶æ…‹ã®å–å¾—
 	MouseButton GetButtonUp() const { return buttonUp; }
 
-	// ƒzƒC[ƒ‹’l‚Ìİ’è
+	// ãƒ›ã‚¤ãƒ¼ãƒ«å€¤ã®è¨­å®š
 	void SetWheel(int wheel) { this->wheel[0] += wheel; }
 
-	// ƒzƒC[ƒ‹’l‚Ìæ“¾
+	// ãƒ›ã‚¤ãƒ¼ãƒ«å€¤ã®å–å¾—
 	int GetWheel() const { return wheel[1]; }
 
-	// ƒ}ƒEƒXƒJ[ƒ\ƒ‹XÀ•Wæ“¾
+	// ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«Xåº§æ¨™å–å¾—
 	int GetPositionX() const { return positionX[0]; }
 
-	// ƒ}ƒEƒXƒJ[ƒ\ƒ‹YÀ•Wæ“¾
+	// ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«Yåº§æ¨™å–å¾—
 	int GetPositionY() const { return positionY[0]; }
 
-	// ‘O‰ñ‚Ìƒ}ƒEƒXƒJ[ƒ\ƒ‹XÀ•Wæ“¾
+	// å‰å›ã®ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«Xåº§æ¨™å–å¾—
 	int GetOldPositionX() const { return positionX[1]; }
 
-	// ‘O‰ñ‚Ìƒ}ƒEƒXƒJ[ƒ\ƒ‹YÀ•Wæ“¾
+	// å‰å›ã®ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«Yåº§æ¨™å–å¾—
 	int GetOldPositionY() const { return positionY[1]; }
 
-	// ƒXƒNƒŠ[ƒ“•İ’è
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³å¹…è¨­å®š
 	void SetScreenWidth(int width) { screenWidth = width; }
 
-	// ƒXƒNƒŠ[ƒ“‚‚³İ’è
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³é«˜ã•è¨­å®š
 	void SetScreenHeight(int height) { screenHeight = height; }
 
-	// ƒXƒNƒŠ[ƒ“•æ“¾
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³å¹…å–å¾—
 	int GetScreenWidth() const { return screenWidth; }
 
-	// ƒXƒNƒŠ[ƒ“‚‚³æ“¾
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³é«˜ã•å–å¾—
 	int GetScreenHeight() const { return screenHeight; }
 
-	// ˆÚ“®—Êæ“¾
+	// ç§»å‹•é‡å–å¾—
 	int GetAxisX() const { return axisX; }
 	int GetAxisY() const { return axisY; }
 
-	// ƒJ[ƒ\ƒ‹ƒƒbƒNİ’è
+	// ã‚«ãƒ¼ã‚½ãƒ«ãƒ­ãƒƒã‚¯è¨­å®š
 	void SetCursorLock(bool lock);
 
-	// ƒJ[ƒ\ƒ‹‰Â‹İ’è
+	// ã‚«ãƒ¼ã‚½ãƒ«å¯è¦–è¨­å®š
 	void SetCursorVisible(bool visible);
 
 private:

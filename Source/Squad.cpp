@@ -1,4 +1,4 @@
-// Squad.cpp
+﻿// Squad.cpp
 
 #include "Squad.h"
 #include "Commander.h"

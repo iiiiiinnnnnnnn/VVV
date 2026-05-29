@@ -1,7 +1,7 @@
-// Common.h
+﻿// Common.h
 #pragma once
 
-// ��{
+// 基本
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -52,7 +52,7 @@ constexpr float eps = 1e-6f;
 constexpr float RAD2DEG = 180.0f / DirectX::XM_PI;
 constexpr float DEG2RAD = DirectX::XM_PI / 180.0f;
 
-// ���ˑ��Öٕϊ�
+// 環境依存暗黙変換
 #define VEC(v) { \
     static_cast<float>(((v)[0])), static_cast<float>(((v))[1]), static_cast<float>(((v)[2])) \
 }

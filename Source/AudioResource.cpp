@@ -1,33 +1,33 @@
-#include "Misc.h"
+ï»¿#include "Misc.h"
 #include "AudioResource.h"
 
-// WAVEƒ^ƒOì¬ƒ}ƒNƒ
+// WAVEã‚¿ã‚°ä½œæˆãƒã‚¯ãƒ­
 #define MAKE_WAVE_TAG_VALUE(c1, c2, c3, c4)  ( c1 | (c2<<8) | (c3<<16) | (c4<<24) )
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 AudioResource::AudioResource(const char* filename)
 {
-	// WAVƒtƒ@ƒCƒ‹“Ç‚İ‚İ
+	// WAVãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿
 	{
 		FILE* fp = nullptr;
 		errno_t error = fopen_s(&fp, filename, "rb");
 		_ASSERT_EXPR_A(error == 0, "WAV File not found");
 
-		// ƒtƒ@ƒCƒ‹‚ÌƒTƒCƒY‚ğ‹‚ß‚é
+		// ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚µã‚¤ã‚ºã‚’æ±‚ã‚ã‚‹
 		fseek(fp, 0, SEEK_END);
 		size_t size = static_cast<size_t>(ftell(fp));
 		fseek(fp, 0, SEEK_SET);
 
 		size_t readBytes = 0;
 
-		// RIFFƒwƒbƒ_
+		// RIFFãƒ˜ãƒƒãƒ€
 		fread(&riff, sizeof(riff), 1, fp);
 		readBytes += sizeof(riff);
 
-		// "RIFF" ‚Æ‚Ìˆê’v‚ğŠm”F
+		// "RIFF" ã¨ã®ä¸€è‡´ã‚’ç¢ºèª
 		_ASSERT_EXPR_A(riff.tag == MAKE_WAVE_TAG_VALUE('R', 'I', 'F', 'F'), "not in RIFF format");
 
-		// "WAVE" ‚Æ‚Ìˆê’v‚ğŠm”F
+		// "WAVE" ã¨ã®ä¸€è‡´ã‚’ç¢ºèª
 		_ASSERT_EXPR_A(riff.type == MAKE_WAVE_TAG_VALUE('W', 'A', 'V', 'E'), "not in WAVE format");
 
 		while (size > readBytes)
@@ -42,7 +42,7 @@ AudioResource::AudioResource(const char* filename)
 				fread(&fmt, sizeof(fmt), 1, fp);
 				readBytes += sizeof(fmt);
 
-				// Šg’£—Ìˆæ‚ª‚ ‚ê‚Î“Ç‚İÌ‚Ä
+				// æ‹¡å¼µé ˜åŸŸãŒã‚ã‚Œã°èª­ã¿æ¨ã¦
 				if (chunk.size > sizeof(Fmt))
 				{
 					UINT16 extSize;
@@ -65,7 +65,7 @@ AudioResource::AudioResource(const char* filename)
 				fread(data.data(), chunk.size, 1, fp);
 				readBytes += chunk.size;
 
-				// 8-bit wav ƒtƒ@ƒCƒ‹‚Ìê‡‚Í unsigned -> signed ‚Ì•ÏŠ·‚ª•K—v
+				// 8-bit wav ãƒ•ã‚¡ã‚¤ãƒ«ã®å ´åˆã¯ unsigned -> signed ã®å¤‰æ›ãŒå¿…è¦
 				if (fmt.quantumBits == 8)
 				{
 					for (UINT32 i = 0; i < chunk.size; ++i)
@@ -74,12 +74,12 @@ AudioResource::AudioResource(const char* filename)
 					}
 				}
 			}
-			// ‚»‚êˆÈŠO
+			// ãã‚Œä»¥å¤–
 			else
 			{
 				if (readBytes + chunk.size == size) break;
 
-				// “Ç‚İ”ò‚Î‚·
+				// èª­ã¿é£›ã°ã™
 				fseek(fp, chunk.size, SEEK_CUR);
 				readBytes += chunk.size;
 			}
@@ -88,7 +88,7 @@ AudioResource::AudioResource(const char* filename)
 		fclose(fp);
 	}
 
-	// WAV ƒtƒH[ƒ}ƒbƒg‚ğƒZƒbƒgƒAƒbƒv
+	// WAV ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã‚’ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
 	{
 		wfx.wFormatTag = WAVE_FORMAT_PCM;
 		wfx.nChannels = fmt.channel;
@@ -100,7 +100,7 @@ AudioResource::AudioResource(const char* filename)
 	}
 }
 
-// ƒfƒXƒgƒ‰ƒNƒ^
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 AudioResource::~AudioResource()
 {
 

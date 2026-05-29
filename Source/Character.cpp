@@ -1,4 +1,4 @@
-// Character.cpp
+ï»¿// Character.cpp
 
 #include "Character.h"
 #include "ResourceManager.h"
@@ -8,7 +8,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 {
 	model = ResourceManager::Instance().LoadModel(GetModel(country));
 
-	// ƒXƒLƒ“İ’è
+	// ã‚¹ã‚­ãƒ³è¨­å®š
 	{
 		auto& meshes = model->GetMeshes();
 		meshes[0].isDraw = true;
@@ -25,7 +25,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 		meshes[11].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_GasMask;
 	}
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ““Ç‚İ‚İ
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³èª­ã¿è¾¼ã¿
 	{
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_bayonet.glb");
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_draw.glb");
@@ -91,19 +91,19 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_throw_grenade.glb");
 	}
 
-	// ƒLƒƒƒ‰ƒRƒ“¶¬
+	// ã‚­ãƒ£ãƒ©ã‚³ãƒ³ç”Ÿæˆ
 	cc = AddComponent<CharacterController>(0.5f, 1.5f);
 
-	// ƒAƒjƒ[ƒ^[¶¬
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿ãƒ¼ç”Ÿæˆ
 	anim = AddComponent<Animator>(model);
 
-	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
-	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, &pbrData);
+	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
+	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, &shaderParams);
 
-	// è‚Ìƒm[ƒh‚ğ•Û‘¶
+	// æ‰‹ã®ãƒãƒ¼ãƒ‰ã‚’ä¿å­˜
 	handNode = &model->GetNodes()[17];
 
-	// •Ší¶¬
+	// æ­¦å™¨ç”Ÿæˆ
 	weapon = std::make_shared<Weapon>(this);
 
 	anim->Load("Data/Animator/Character.animator");
@@ -114,12 +114,12 @@ void Character::OnUpdate(float elapsedTime)
 	if (!controller) return;
 	if (!cc) return;
 
-	// “ü—Íü‚è
+	// å…¥åŠ›å‘¨ã‚Š
 	{
 		float moveX = controller->GetMoveX();
 		float moveZ = controller->GetMoveZ();
 
-		// “ü—Í‚Ì‘å‚«‚³(animator‚É“ü‚ê‚é)
+		// å…¥åŠ›ã®å¤§ãã•(animatorã«å…¥ã‚Œã‚‹)
 		float inputLength = Vector3(moveX, 0, moveZ).Length();
 		anim->SetFloat("speed", inputLength);
 		anim->SetBool("crouch", controller->GetCrouch());
@@ -129,12 +129,12 @@ void Character::OnUpdate(float elapsedTime)
 		if (controller->GetShoot())  anim->SetTrigger("shoot");
 		if (controller->GetReload()) anim->SetTrigger("reload");
 
-		// ˆÚ“®ƒxƒNƒgƒ‹ispeed ƒƒ“ƒo•Ï”‚ÅÀÛ‚Ì‘¬‚³‚ğƒXƒP[ƒ‹j
+		// ç§»å‹•ãƒ™ã‚¯ãƒˆãƒ«ï¼ˆspeed ãƒ¡ãƒ³ãƒå¤‰æ•°ã§å®Ÿéš›ã®é€Ÿã•ã‚’ã‚¹ã‚±ãƒ¼ãƒ«ï¼‰
 		Vector3 move = Vector3::TransformNormal(
 			Vector3(moveX, 0, moveZ),
 			Matrix::CreateFromQuaternion(transform.rotation)
 		);
-		move *= speed * elapsedTime;  // speed ‚Í Character ‚Ìƒƒ“ƒo•Ï”(5.0f)
+		move *= speed * elapsedTime;  // speed ã¯ Character ã®ãƒ¡ãƒ³ãƒå¤‰æ•°(5.0f)
 
 		if (cc->IsGrounded())
 			verticalVelocity = 0.0f;
@@ -148,7 +148,7 @@ void Character::OnUpdate(float elapsedTime)
 
 void Character::OnLateUpdate(float elapsedTime)
 {
-	// ƒXƒpƒCƒ“‚Ì‰ñ“]
+	// ã‚¹ãƒ‘ã‚¤ãƒ³ã®å›è»¢
 	if (isFirstPerson)
 	{
 		Vector2 targetSpineAngleX = controller->GetReady() ? readySpineAngle : idleSpineAngle;
@@ -161,7 +161,7 @@ void Character::OnLateUpdate(float elapsedTime)
 		model->UpdateTransform(transform.matrix);
 	}
 
-	// •Ší
+	// æ­¦å™¨
 	if (weapon) weapon->Update(elapsedTime);
 }
 
@@ -176,24 +176,15 @@ void Character::OnDrawGUI(float elapsedTime)
 {
 	ImGui::PushID(this);
 	ImGui::TreePush("Character");
-	ImGui::DragFloat("metalness", &pbrData.metalness, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("roughness", &pbrData.roughness, 0.01f, 0.0f, 1.0f);
+	ImGui::TextUnformatted("ShaderParam");
+	ImGui::DragFloat("Metallic", &shaderParams.metalness, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Roughness", &shaderParams.roughness, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("AO", &shaderParams.occlusionStrength, 0.01f, 0.0f, 1.0f);
 	if (weapon) {
 		weapon->OnDrawGUI(elapsedTime);
 	}
 	ImGui::TreePop();
 	ImGui::PopID();
-}
-
-void Character::Print()
-{
-	printf("\nCommander animations:\n");
-	for (int i = 0; i < model->GetAnimations().size(); ++i)
-		printf("%d : %s\n", i, model->GetAnimations()[i].name.c_str());
-
-	printf("\nCommander Bones:\n");
-	for (int i = 0; i < model->GetNodes().size(); ++i)
-		printf("%d : %s\n", i, model->GetNodes()[i].name.c_str());
 }
 
 std::string Character::GetModel(Country type)

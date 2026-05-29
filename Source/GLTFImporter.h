@@ -1,4 +1,4 @@
-// GLTFImporter.h
+ï»¿// GLTFImporter.h
 
 #pragma once
 
@@ -18,20 +18,20 @@ private:
 public:
 	GLTFImporter(const char* filename);
 
-	// ƒm[ƒhƒf[ƒ^‚ğ“Ç‚İ‚İ
+	// ãƒãƒ¼ãƒ‰ãƒ‡ãƒ¼ã‚¿ã‚’èª­ã¿è¾¼ã¿
 	void LoadNodes(NodeList& nodes);
 
-	// ƒƒbƒVƒ…ƒf[ƒ^‚ğ“Ç‚İ‚İ
+	// ãƒ¡ãƒƒã‚·ãƒ¥ãƒ‡ãƒ¼ã‚¿ã‚’èª­ã¿è¾¼ã¿
 	void LoadMeshes(MeshList& meshes, const NodeList& nodes);
 
-	// ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^‚ğ“Ç‚İ‚İ
+	// ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿ã‚’èª­ã¿è¾¼ã¿
 	void LoadMaterials(MaterialList& materials, ID3D11Device* device = nullptr);
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^‚ğ“Ç‚İ‚İ
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‡ãƒ¼ã‚¿ã‚’èª­ã¿è¾¼ã¿
 	void LoadAnimations(AnimationList& animations, const NodeList& nodes, float sampleRate = 60);
 
 private:
-	// À•WŒn•ÏŠ·
+	// åº§æ¨™ç³»å¤‰æ›
 	static void ConvertPositionAxisSystem(Vector3& v);
 	static void ConvertPositionAxisSystem(Vector4& v);
 	static void ConvertRotationAxisSystem(Quaternion& q);
@@ -40,7 +40,7 @@ private:
 	static void ConvertMeshAxisSystem(Model::Mesh& mesh);
 	static void ConvertAnimationAxisSystem(Model::Animation& animation);
 
-	// ƒ^ƒ“ƒWƒFƒ“ƒgŒvZ
+	// ã‚¿ãƒ³ã‚¸ã‚§ãƒ³ãƒˆè¨ˆç®—
 	static void ComputeTangents(std::vector<Model::Vertex>& vertices, const std::vector<uint32_t>& indices);
 
 private:

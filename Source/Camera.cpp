@@ -1,35 +1,35 @@
-#include "Camera.h"
+ï»¿#include "Camera.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Camera::Camera()
 {
-	// ƒJƒƒ‰İ’è
+	// ã‚«ãƒ¡ãƒ©è¨­å®š
 	SetPerspectiveFov(
-		DirectX::XMConvertToRadians(45),	// ‰æŠp
-		1280.0f / 720.0f,					// ‰æ–ÊƒAƒXƒyƒNƒg”ä
-		0.1f,								// ƒjƒAƒNƒŠƒbƒv
-		1000.0f								// ƒtƒ@[ƒNƒŠƒbƒv
+		DirectX::XMConvertToRadians(45),	// ç”»è§’
+		1280.0f / 720.0f,					// ç”»é¢ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+		0.1f,								// ãƒ‹ã‚¢ã‚¯ãƒªãƒƒãƒ—
+		1000.0f								// ãƒ•ã‚¡ãƒ¼ã‚¯ãƒªãƒƒãƒ—
 	);
 	SetLookAt(
-		{ 0, 0, -5 },		// ‹“_
-		{ 0, 0, 0 },		// ’‹“_
-		{ 0, 1, 0 }			// ãƒxƒNƒgƒ‹
+		{ 0, 0, -5 },		// è¦–ç‚¹
+		{ 0, 0, 0 },		// æ³¨è¦–ç‚¹
+		{ 0, 1, 0 }			// ä¸Šãƒ™ã‚¯ãƒˆãƒ«
 	);
 }
 
-// w’è•ûŒü‚ğŒü‚­
+// æŒ‡å®šæ–¹å‘ã‚’å‘ã
 void Camera::SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& up)
 {
-	// ‹“_A’‹“_Aã•ûŒü‚©‚çƒrƒ…[s—ñ‚ğì¬
+	// è¦–ç‚¹ã€æ³¨è¦–ç‚¹ã€ä¸Šæ–¹å‘ã‹ã‚‰ãƒ“ãƒ¥ãƒ¼è¡Œåˆ—ã‚’ä½œæˆ
 	Matrix View = DirectX::XMMatrixLookAtLH(eye, focus, up);
 	view = View;
 
-	// ƒrƒ…[‚ğ‹ts—ñ‰»‚µAƒ[ƒ‹ƒhs—ñ‚É–ß‚·
+	// ãƒ“ãƒ¥ãƒ¼ã‚’é€†è¡Œåˆ—åŒ–ã—ã€ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã«æˆ»ã™
 	Matrix World = DirectX::XMMatrixInverse(nullptr, View);
 	Matrix world;
 	world = World;
 
-	// ƒJƒƒ‰‚Ì•ûŒü‚ğæ‚èo‚·
+	// ã‚«ãƒ¡ãƒ©ã®æ–¹å‘ã‚’å–ã‚Šå‡ºã™
 	this->right.x = world._11;
 	this->right.y = world._12;
 	this->right.z = world._13;
@@ -42,15 +42,15 @@ void Camera::SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& 
 	this->front.y = world._32;
 	this->front.z = world._33;
 
-	// ‹“_A’‹“_‚ğ•Û‘¶
+	// è¦–ç‚¹ã€æ³¨è¦–ç‚¹ã‚’ä¿å­˜
 	this->eye = eye;
 	this->focus = focus;
 }
 
-// ƒp[ƒXƒyƒNƒeƒBƒuİ’è
+// ãƒ‘ãƒ¼ã‚¹ãƒšã‚¯ãƒ†ã‚£ãƒ–è¨­å®š
 void Camera::SetPerspectiveFov(float fovY, float aspect, float nearZ, float farZ)
 {
-	// ‰æŠpA‰æ–Ê”ä—¦AƒNƒŠƒbƒv‹——£‚©‚çƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ‚ğì¬
+	// ç”»è§’ã€ç”»é¢æ¯”ç‡ã€ã‚¯ãƒªãƒƒãƒ—è·é›¢ã‹ã‚‰ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’ä½œæˆ
 	Matrix Projection = DirectX::XMMatrixPerspectiveFovLH(fovY, aspect, nearZ, farZ);
 	projection = Projection;
 }

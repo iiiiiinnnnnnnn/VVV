@@ -1,18 +1,18 @@
-#include "Misc.h"
+ï»¿#include "Misc.h"
 #include "AudioSource.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 AudioSource::AudioSource(IXAudio2* xaudio, std::shared_ptr<AudioResource>& resource)
 	: resource(resource)
 {
 	HRESULT hr;
 
-	// ƒ\[ƒXƒ{ƒCƒX‚ð¶¬
+	// ã‚½ãƒ¼ã‚¹ãƒœã‚¤ã‚¹ã‚’ç”Ÿæˆ
 	hr = xaudio->CreateSourceVoice(&sourceVoice, &resource->GetWaveFormat());
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }
 
-// ƒfƒXƒgƒ‰ƒNƒ^
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 AudioSource::~AudioSource()
 {
 	if (sourceVoice != nullptr)
@@ -22,12 +22,12 @@ AudioSource::~AudioSource()
 	}
 }
 
-// Ä¶
+// å†ç”Ÿ
 void AudioSource::Play(bool loop)
 {
 	Stop();
 
-	// ƒ\[ƒXƒ{ƒCƒX‚Éƒf[ƒ^‚ð‘—M
+	// ã‚½ãƒ¼ã‚¹ãƒœã‚¤ã‚¹ã«ãƒ‡ãƒ¼ã‚¿ã‚’é€ä¿¡
 	XAUDIO2_BUFFER buffer = { 0 };
 	buffer.AudioBytes = resource->GetAudioBytes();
 	buffer.pAudioData = resource->GetAudioData();
@@ -41,7 +41,7 @@ void AudioSource::Play(bool loop)
 	sourceVoice->SetVolume(1.0f);
 }
 
-// ’âŽ~
+// åœæ­¢
 void AudioSource::Stop()
 {
 	sourceVoice->FlushSourceBuffers();

@@ -1,4 +1,4 @@
-// Squad.h
+﻿// Squad.h
 
 #pragma once
 

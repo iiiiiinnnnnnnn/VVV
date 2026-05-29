@@ -1,14 +1,15 @@
-// Scene.cpp
+ï»¿// Scene.cpp
 
 #include "Scene.h"
 
-Scene::Scene()
+Scene::Scene(const std::string& name) : name(name)
 {
-	// ƒ‰ƒCƒgÝ’è
+	// ãƒ©ã‚¤ãƒˆè¨­å®š
 	DirectionalLight directionalLight;
-	directionalLight.direction = { 0, -1, -1 };
-	directionalLight.color = { 1, 1, 1 };
-	lightManager.SetDirectionalLight(directionalLight);
+	directionalLight.direction = {0, -1, -1};
+	directionalLight.color = {1, 1, 1};
+	lightData.SetDirectionalLight(directionalLight);
+	lightData.SetAmbientColor({1, 1, 1, 1});
 }
 
 void Scene::Update(float elapsedTime)
@@ -17,78 +18,171 @@ void Scene::Update(float elapsedTime)
 
 	_ASSERT_EXPR(!cameraControllers.empty(), "CameraController is empty.");
 
-	// ƒJƒƒ‰XVˆ—
+	// ã‚«ãƒ¡ãƒ©æ›´æ–°å‡¦ç†
 	cameraControllers[nowCameraControllerIndex]->Update(elapsedTime);
 
-	// ƒJƒƒ‰ƒRƒ“ƒgƒ[ƒ‰[‚©‚çƒJƒƒ‰‚Ö”½‰f
+	// ã‚«ãƒ¡ãƒ©ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã‹ã‚‰ã‚«ãƒ¡ãƒ©ã¸åæ˜ 
 	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
 	actors.Update(elapsedTime);
 	widgets.Update(elapsedTime);
 
-	// •¨—ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“
+	// ç‰©ç†ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³
 	PhysicsManager::Instance().GetSceneContext().Simulate(elapsedTime);
 }
 
 void Scene::Render(float elapsedTime)
 {
-	ID3D11DeviceContext* dc = Graphics::Instance().GetDeviceContext();
-	RenderState* renderState = Graphics::Instance().GetRenderState();
-	PrimitiveRenderer* primitiveRenderer = Graphics::Instance().GetPrimitiveRenderer();
+	Graphics& graphics = Graphics::Instance();
+	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
+	RenderState* renderState = graphics.GetRenderState();
+	PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
 
-	// •`‰æƒRƒ“ƒeƒLƒXƒgÝ’è
+	// æç”»ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆè¨­å®š
 	RenderContext rc;
-	rc.deviceContext = dc;
-	rc.renderState = renderState;
-	rc.camera = &camera;
-	rc.lightManager = &lightManager;
-	rc.renderSettings = &renderSettings;
-
-	// ƒOƒŠƒbƒh•`‰æ
-#ifdef _DEBUG
-	if (Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3) renderSettings.showDebug = !renderSettings.showDebug;
-	if (renderSettings.showDebug) {
-		primitiveRenderer->DrawGrid(100, 1);
-		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	{
+		rc.deviceContext = dc;
+		rc.renderState = renderState;
+		rc.camera = &camera;
+		rc.lightData = lightData;
+		rc.renderSettings = renderSettings;
+		rc.shadowMapData = shadowMapData;
+		rc.iblData = iblData;
 	}
-#endif
-	OnRender(rc, elapsedTime);
 
-	actors.Render(rc, elapsedTime);
-	widgets.Render(rc, elapsedTime);
+	// ãƒ‡ãƒãƒƒã‚°åˆ‡ã‚Šæ›¿ãˆ
+	{
+		#ifdef _DEBUG
+		if (Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+			renderSettings.showDebug = !renderSettings.showDebug;
+		#endif
+	}
 
-	Graphics::Instance().GetModelRenderer()->Render(rc, elapsedTime);
-	Graphics::Instance().GetSpriteRenderer()->Render(rc, elapsedTime);
+	// æç”»
+	{
+		// ã‚°ãƒªãƒƒãƒ‰
+		/*if (renderSettings.showDebug)
+		{
+			primitiveRenderer->DrawGrid(100, 1);
+			primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		}*/
+
+		// IBLãƒ‡ãƒ¼ã‚¿ã‚’RenderContextã«è©°ã‚ã‚‹
+		iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
+		iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
+		iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
+
+		// å…ˆã«ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ç¢ºå®šã•ã›ã‚‹ãŸã‚ã«Drawã—ã¨ã
+		actors.Render(rc, elapsedTime);
+
+		// ã‚·ãƒ£ãƒ‰ã‚¦ãƒžãƒƒãƒ—ç”Ÿæˆ
+		{
+			for (auto& actor : actors.data)
+			{
+				auto* mrc = actor->GetComponent<ModelRenderComponent>();
+				if (mrc) graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+			}
+			graphics.GetShadowMapRenderer()->Render(
+				rc,
+				lightData.GetDirectionalLight().direction,
+				Vector3(0, 0, 0), 50.0f, 30.0f, 0.1f, 200.0f
+			);
+			shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
+			shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
+			graphics.SetRenderTargets();
+		}
+
+		// ã‚¹ã‚«ã‚¤ãƒœãƒƒã‚¯ã‚¹
+		graphics.GetSkyBoxRenderer()->Render(
+			rc.deviceContext, renderState, *rc.camera,
+			graphics.GetIBLSpecularPMREM(), 1.0f
+		);
+
+		// é€šå¸¸æç”»
+		graphics.GetModelRenderer()->Render(rc, elapsedTime);
+
+		// ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆ
+		widgets.Render(rc, elapsedTime);
+		graphics.GetSpriteRenderer()->Render(rc, elapsedTime);
+	}
+
+	// GUI
+	{
+		#ifdef _DEBUG
+		if (!renderSettings.showDebug)
+		{
+			if (!actors.data.empty())
+			{
+				ImGui::Begin("Actors");
+				actors.DrawGUI(elapsedTime);
+				ImGui::End();
+			}
+
+			if (!widgets.data.empty())
+			{
+				ImGui::Begin("Widgets");
+				widgets.DrawGUI(elapsedTime);
+				ImGui::End();
+			}
+
+			ImGui::Begin(name.empty() ? "Unnamed Scene" : name.c_str(), nullptr, ImGuiWindowFlags_None);
+
+			// ãƒ‘ãƒ•ã‚©ãƒ¼ãƒžãƒ³ã‚¹
+			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			}
+
+			// ã‚«ãƒ¡ãƒ©
+			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
+				auto nowCameraController = GetNowCameraController();
+				if (nowCameraController)
+					nowCameraController->DrawGUI(elapsedTime);
+			}
+
+			// RenderContext
+			if (ImGui::CollapsingHeader("RenderContext", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				if (ImGui::TreeNode("LightData"))
+				{
+					rc.lightData.DrawGUI();
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("RenderSettings"))
+				{
+					ImGui::Checkbox("Show Debug", &renderSettings.showDebug);
+					ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("ShadowMapData"))
+				{
+					ImGui::Image(shadowMapData.shadowMap, ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::ColorEdit4("Shadow Color", &shadowMapData.shadowColor.x);
+					ImGui::DragFloat("Shadow Bias", &shadowMapData.shadowBias, 0.001f, 0.0f, 1.0f);
+					ImGui::DragInt("PCF Kernel Size", &shadowMapData.pcfKernelSize, 1, 1, 15);
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("IBLData"))
+				{
+					ImGui::Image(iblData.diffuseIrradianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::Image(iblData.specularPremappingRadianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::Image(iblData.ggxLookUpTableMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::TreePop();
+				}
+			}
+
+			OnDrawGUI(elapsedTime);
+
+			ImGui::End();
+		}
+		#endif
+	}
 }
-
-void Scene::DrawGUI(float elapsedTime)
-{
-	if (!renderSettings.showDebug) return;
-
-	if (!actors.data.empty()) {
-		ImGui::Begin("Actors");
-		actors.DrawGUI(elapsedTime);
-		ImGui::End();
-	}
-
-	if (!widgets.data.empty()) {
-		ImGui::Begin("Widgets");
-		widgets.DrawGUI(elapsedTime);
-		ImGui::End();
-	}
-
-	ImGui::Begin("ModelViewerScene", nullptr, ImGuiWindowFlags_None);
-	ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-
-	ImGui::Separator();
-	ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
-	GetNowCameraController()->DrawGUI(elapsedTime);
-
-	OnDrawGUI(elapsedTime);
-
-	ImGui::End();
-}
-
 CameraController* Scene::GetNowCameraController() const
 {
 	if (cameraControllers.empty()) return nullptr;

@@ -1,31 +1,31 @@
 #include "ShadingFunctions.hlsli"
 
 //--------------------------------------------
-//	ƒtƒŒƒlƒ‹€
+//	ãƒ•ãƒ¬ãƒãƒ«é …
 //--------------------------------------------
-//F0	: ‚’¼“üË‚Ì”½Ë—¦
-//VdotH	: ‹üƒxƒNƒgƒ‹‚Æƒn[ƒtƒxƒNƒgƒ‹iŒõŒ¹‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‹“_‚Ö‚ÌƒxƒNƒgƒ‹‚Ì’†ŠÔƒxƒNƒgƒ‹
+//F0	: å‚ç›´å…¥å°„æ™‚ã®åå°„ç‡
+//VdotH	: è¦–ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨ãƒãƒ¼ãƒ•ãƒ™ã‚¯ãƒˆãƒ«ï¼ˆå…‰æºã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨è¦–ç‚¹ã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã®ä¸­é–“ãƒ™ã‚¯ãƒˆãƒ«
 float3 CalcFresnel(float3 F0, float VdotH)
 {
     return F0 + (1.0f - F0) * pow(clamp(1.0f - VdotH, 0.0f, 1.0f), 5.0f);
 }
 
 //--------------------------------------------
-//	ŠgU”½ËBRDF(³‹K‰»ƒ‰ƒ“ƒo[ƒg‚ÌŠgU”½Ë)
+//	æ‹¡æ•£åå°„BRDF(æ­£è¦åŒ–ãƒ©ãƒ³ãƒãƒ¼ãƒˆã®æ‹¡æ•£åå°„)
 //--------------------------------------------
-//VdotH		: ‹ü‚Ö‚ÌƒxƒNƒgƒ‹‚Æƒn[ƒtƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//fresnelF0	: ‚’¼“üË‚ÌƒtƒŒƒlƒ‹”½ËF
-//diffuse_reflectance	: “üËŒõ‚Ì‚¤‚¿ŠgU”½Ë‚É‚È‚éŠ„‡
+//VdotH		: è¦–ç·šã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ãƒãƒ¼ãƒ•ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//fresnelF0	: å‚ç›´å…¥å°„æ™‚ã®ãƒ•ãƒ¬ãƒãƒ«åå°„è‰²
+//diffuse_reflectance	: å…¥å°„å…‰ã®ã†ã¡æ‹¡æ•£åå°„ã«ãªã‚‹å‰²åˆ
 float3 DiffuseBRDF(float VdotH, float3 fresnelF0, float3 diffuse_reflectance)
 {
     return (1.0f - CalcFresnel(fresnelF0, VdotH)) * (diffuse_reflectance / PI);
 }
 
 //--------------------------------------------
-//	–@ü•ª•zŠÖ”
+//	æ³•ç·šåˆ†å¸ƒé–¢æ•°
 //--------------------------------------------
-//NdotH		: –@üƒxƒNƒgƒ‹‚Æƒn[ƒtƒxƒNƒgƒ‹iŒõŒ¹‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‹“_‚Ö‚ÌƒxƒNƒgƒ‹‚Ì’†ŠÔƒxƒNƒgƒ‹j‚Ì“àÏ
-//roughness : ‘e‚³
+//NdotH		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨ãƒãƒ¼ãƒ•ãƒ™ã‚¯ãƒˆãƒ«ï¼ˆå…‰æºã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨è¦–ç‚¹ã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã®ä¸­é–“ãƒ™ã‚¯ãƒˆãƒ«ï¼‰ã®å†…ç©
+//roughness : ç²—ã•
 float CalcNormalDistributionFunction(float NdotH, float roughness)
 {
     float a = roughness * roughness;
@@ -34,11 +34,11 @@ float CalcNormalDistributionFunction(float NdotH, float roughness)
 }
 
 //--------------------------------------------
-//	Šô‰½Œ¸Š€‚ÌZo
+//	å¹¾ä½•æ¸›è¡°é …ã®ç®—å‡º
 //--------------------------------------------
-//NdotL		: –@üƒxƒNƒgƒ‹‚ÆŒõŒ¹‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//NdotV		: –@üƒxƒNƒgƒ‹‚Æ‹ü‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//roughness : ‘e‚³
+//NdotL		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨å…‰æºã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//NdotV		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨è¦–ç·šã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//roughness : ç²—ã•
 float CalcGeometryFunction(float NdotL, float NdotV, float roughness)
 {
     float r = roughness * 0.5f;
@@ -48,36 +48,37 @@ float CalcGeometryFunction(float NdotL, float NdotV, float roughness)
 }
 
 //--------------------------------------------
-//	‹¾–Ê”½ËBRDFiƒNƒbƒNEƒgƒ‰ƒ“ƒX‚Ìƒ}ƒCƒNƒƒtƒ@ƒZƒbƒgƒ‚ƒfƒ‹j
+//	é¡é¢åå°„BRDFï¼ˆã‚¯ãƒƒã‚¯ãƒ»ãƒˆãƒ©ãƒ³ã‚¹ã®ãƒã‚¤ã‚¯ãƒ­ãƒ•ã‚¡ã‚»ãƒƒãƒˆãƒ¢ãƒ‡ãƒ«ï¼‰
 //--------------------------------------------
-//NdotV		: –@üƒxƒNƒgƒ‹‚Æ‹ü‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//NdotL		: –@üƒxƒNƒgƒ‹‚ÆŒõŒ¹‚Ö‚ÌƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//NdotH		: –@üƒxƒNƒgƒ‹‚Æƒn[ƒtƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//VdotH		: ‹ü‚Ö‚ÌƒxƒNƒgƒ‹‚Æƒn[ƒtƒxƒNƒgƒ‹‚Æ‚Ì“àÏ
-//fresnelF0	: ‚’¼“üË‚ÌƒtƒŒƒlƒ‹”½ËF
-//roughness	: ‘e‚³
+//NdotV		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨è¦–ç·šã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//NdotL		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨å…‰æºã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//NdotH		: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«ã¨ãƒãƒ¼ãƒ•ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//VdotH		: è¦–ç·šã¸ã®ãƒ™ã‚¯ãƒˆãƒ«ã¨ãƒãƒ¼ãƒ•ãƒ™ã‚¯ãƒˆãƒ«ã¨ã®å†…ç©
+//fresnelF0	: å‚ç›´å…¥å°„æ™‚ã®ãƒ•ãƒ¬ãƒãƒ«åå°„è‰²
+//roughness	: ç²—ã•
 float3 SpecularBRDF(float NdotV, float NdotL, float NdotH, float VdotH, float3 fresnelF0, float roughness)
 {
-	//	D€(–@ü•ª•z)
+	//	Dé …(æ³•ç·šåˆ†å¸ƒ)
     float D = CalcNormalDistributionFunction(NdotH, roughness);
-	//	G€(Šô‰½Œ¸Š€)
+	//	Gé …(å¹¾ä½•æ¸›è¡°é …)
     float G = CalcGeometryFunction(NdotL, NdotV, roughness);
-	//	F€(ƒtƒŒƒlƒ‹”½Ë)
+	//	Fé …(ãƒ•ãƒ¬ãƒãƒ«åå°„)
     float3 F = CalcFresnel(fresnelF0, VdotH);
 
-    return D * G * F / (NdotL * NdotV * 4.0f);
+    //return D * G * F / (NdotL * NdotV * 4.0f);
+    return D * G * F / (4.0f * NdotV);
 }
 
 //--------------------------------------------
-//	’¼ÚŒõ‚Ì•¨—ƒx[ƒXƒ‰ƒCƒeƒBƒ“ƒO
+//	ç›´æ¥å…‰ã®ç‰©ç†ãƒ™ãƒ¼ã‚¹ãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°
 //--------------------------------------------
-//diffuse_reflectance	: “üËŒõ‚Ì‚¤‚¿ŠgU”½Ë‚É‚È‚éŠ„‡
-//F0					: ‚’¼“üË‚ÌƒtƒŒƒlƒ‹”½ËF
-//normal				: –@üƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-//eye_vector			: ‹“_‚ÉŒü‚©‚¤ƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-//light_vector			: ŒõŒ¹‚ÉŒü‚©‚¤ƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-//light_color			: ƒ‰ƒCƒgƒJƒ‰[
-//roughness				: ‘e‚³
+//diffuse_reflectance	: å…¥å°„å…‰ã®ã†ã¡æ‹¡æ•£åå°„ã«ãªã‚‹å‰²åˆ
+//F0					: å‚ç›´å…¥å°„æ™‚ã®ãƒ•ãƒ¬ãƒãƒ«åå°„è‰²
+//normal				: æ³•ç·šãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+//eye_vector			: è¦–ç‚¹ã«å‘ã‹ã†ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+//light_vector			: å…‰æºã«å‘ã‹ã†ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+//light_color			: ãƒ©ã‚¤ãƒˆã‚«ãƒ©ãƒ¼
+//roughness				: ç²—ã•
 void DirectBRDF(float3 diffuse_reflectance,
 				float3 F0,
 				float3 normal,
@@ -89,8 +90,8 @@ void DirectBRDF(float3 diffuse_reflectance,
 				out float3 out_specular)
 {
     float3 N = normal;
-    float3 L = -light_vector;
-    float3 V = -eye_vector;
+    float3 L = light_vector;
+    float3 V = eye_vector;
     float3 H = normalize(L + V);
 
     float NdotV = max(0.0001f, dot(N, V));
@@ -100,9 +101,54 @@ void DirectBRDF(float3 diffuse_reflectance,
 
     float3 irradiance = light_color * NdotL;
 
-	//	ŠgU”½ËBRDF
+	//	æ‹¡æ•£åå°„BRDF
     out_diffuse = DiffuseBRDF(VdotH, F0, diffuse_reflectance) * irradiance;
 
-	//	‹¾–Ê”½ËBRDF
+	//	é¡é¢åå°„BRDF
     out_specular = SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughness) * irradiance;
+}
+
+//--------------------------------------------
+//	ç²—ã•ã‚’è€ƒæ…®ã—ãŸãƒ•ãƒ¬ãƒãƒ«é …ã®è¿‘ä¼¼å¼
+//--------------------------------------------
+float3 CalcFresnelRoughness(float3 f0, float NdotV, float roughness)
+{
+    return f0 + (max((float3)(1.0f - roughness), f0) - f0) * pow(saturate(1.0f - NdotV), 5.0f);
+}
+
+//--------------------------------------------
+//	æ‹¡æ•£åå°„IBL
+//--------------------------------------------
+float3 DiffuseIBL(float3 normal, float3 eye_vector, float roughness,
+                  float3 diffuse_reflectance, float3 f0,
+                  TextureCube diffuse_iem_cube_map, SamplerState state)
+{
+    float3 N = normal;
+    float3 V = eye_vector;
+    float NdotV = max(0.0001f, dot(N, V));
+    float3 kD = 1.0f - CalcFresnelRoughness(f0, NdotV, roughness);
+    float3 irradiance = diffuse_iem_cube_map.Sample(state, normal).rgb;
+    return diffuse_reflectance * irradiance * kD;
+}
+
+//--------------------------------------------
+//	é¡é¢åå°„IBL
+//--------------------------------------------
+float3 SpecularIBL(float3 normal, float3 eye_vector, float roughness, float3 f0,
+                   Texture2D lut_ggx_map, TextureCube specular_pmrem_cube_map, SamplerState state)
+{
+    float3 N = normal;
+    float3 V = eye_vector;
+    float NdotV = max(0.0001f, dot(N, V));
+    float3 R = normalize(reflect(-V, N));
+
+    uint width, height, mip_maps;
+    specular_pmrem_cube_map.GetDimensions(0, width, height, mip_maps);
+    float lod = roughness * float(mip_maps - 1);
+    float3 specular_light = specular_pmrem_cube_map.SampleLevel(state, R, lod).rgb;
+
+    float2 brdf_sample_point = saturate(float2(NdotV, roughness));
+    float2 env_brdf = lut_ggx_map.Sample(state, brdf_sample_point).rg;
+
+    return specular_light * (f0 * env_brdf.x + env_brdf.y);
 }

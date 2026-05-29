@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 
 #include "Shader.h"
 #include "Graphics.h"
@@ -11,13 +11,18 @@ public:
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, Color color, float elapsedTime) override;
-	void ApplyParams(ShaderParamPtr params) override;
 	void End(const RenderContext& rc) override;
 
-	//	ÉKÉEÉXÉtÉBÉãÉ^Å[
 	static constexpr int KernelMax = 25;
 
-	//	ÉVÉFÅ[É_Å[óp
+	SHADER_PARAMS
+	(
+		int					kernel_size{20};
+		float				sigma{20.0f};
+	);
+
+private:
+	//	„Ç∑„Çß„Éº„ÉÄ„ÉºÁî®
 	struct CbGaussianFilter
 	{
 		Vector4				weights[KernelMax * KernelMax];
@@ -26,11 +31,4 @@ public:
 		float				dummy;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-
-	//	í≤êÆóp
-	struct GaussianFilterData
-	{
-		int					kernel_size{ 20 };
-		float				sigma{ 20.0f };
-	} gaussianFilterData;
 };

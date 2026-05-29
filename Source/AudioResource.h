@@ -1,49 +1,49 @@
-#pragma once
+ï»¿#pragma once
 
 #include <vector>
 #include <Windows.h>
 
-// ƒI[ƒfƒBƒIƒŠƒ\[ƒX
+// ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªãƒªã‚½ãƒ¼ã‚¹
 class AudioResource
 {
 public:
 	AudioResource(const char* filename);
 	~AudioResource();
 
-	// ƒf[ƒ^æ“¾
+	// ãƒ‡ãƒ¼ã‚¿å–å¾—
 	UINT8* GetAudioData() { return data.data(); }
 
-	// ƒf[ƒ^ƒTƒCƒYæ“¾
+	// ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚ºå–å¾—
 	UINT32 GetAudioBytes() const { return static_cast<UINT32>(data.size()); }
 
-	// WAVEƒtƒH[ƒ}ƒbƒgæ“¾
+	// WAVEãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆå–å¾—
 	const WAVEFORMATEX& GetWaveFormat() const { return wfx; }
 
 private:
-	// RIFFƒwƒbƒ_
+	// RIFFãƒ˜ãƒƒãƒ€
 	struct Riff
 	{
-		UINT32				tag;			// RIFFŒ`®‚Ì¯•Êq 'RIFF'
-		UINT32				size;			// ‚±‚êˆÈ~‚Ìƒtƒ@ƒCƒ‹ƒTƒCƒY(ƒtƒ@ƒCƒ‹ƒTƒCƒY - 8)
-		UINT32				type;			// RIFF‚Ìí—Ş‚ğ•\‚·¯•Êq 'WAVE'
+		UINT32				tag;			// RIFFå½¢å¼ã®è­˜åˆ¥å­ 'RIFF'
+		UINT32				size;			// ã“ã‚Œä»¥é™ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚º(ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚º - 8)
+		UINT32				type;			// RIFFã®ç¨®é¡ã‚’è¡¨ã™è­˜åˆ¥å­ 'WAVE'
 	};
 
-	// ƒ`ƒƒƒ“ƒN
+	// ãƒãƒ£ãƒ³ã‚¯
 	struct Chunk
 	{
-		UINT32				tag;			// ƒ`ƒƒƒ“ƒNŒ`®‚Ì¯•Êq 'fmt ' 'data'
-		UINT32				size;			// ƒf[ƒ^ƒTƒCƒY('fmt 'ƒŠƒjƒAPCM‚È‚ç‚Î16 'data'”gŒ`ƒf[ƒ^ƒTƒCƒY)
+		UINT32				tag;			// ãƒãƒ£ãƒ³ã‚¯å½¢å¼ã®è­˜åˆ¥å­ 'fmt ' 'data'
+		UINT32				size;			// ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º('fmt 'ãƒªãƒ‹ã‚¢PCMãªã‚‰ã°16 'data'æ³¢å½¢ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º)
 	};
 
-	// fmt ƒ`ƒƒƒ“ƒN
+	// fmt ãƒãƒ£ãƒ³ã‚¯
 	struct Fmt
 	{
-		UINT16				fmtId;			// ƒtƒH[ƒ}ƒbƒgID(ƒŠƒjƒAPCM‚È‚ç‚Î1)
-		UINT16				channel;		// ƒ`ƒƒƒ“ƒlƒ‹”(ƒ‚ƒmƒ‰ƒ‹:1 ƒXƒeƒŒƒI:2)
-		UINT32				sampleRate;		// ƒTƒ“ƒvƒŠƒ“ƒOƒŒ[ƒg(44.1kHz‚È‚ç44100)
-		UINT32				transRate;		// ƒf[ƒ^‘¬“x(Byte/sec) [ 44.1kHz 16bit ƒXƒeƒŒƒI 44100~2~2 ]
-		UINT16				blockSize;		// ƒuƒƒbƒNƒTƒCƒY(Byte/sample~ƒ`ƒƒƒ“ƒlƒ‹”)
-		UINT16				quantumBits;	// ƒTƒ“ƒvƒ‹‚ ‚½‚è‚Ìƒrƒbƒg”(bit/sample)
+		UINT16				fmtId;			// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆID(ãƒªãƒ‹ã‚¢PCMãªã‚‰ã°1)
+		UINT16				channel;		// ãƒãƒ£ãƒ³ãƒãƒ«æ•°(ãƒ¢ãƒãƒ©ãƒ«:1 ã‚¹ãƒ†ãƒ¬ã‚ª:2)
+		UINT32				sampleRate;		// ã‚µãƒ³ãƒ—ãƒªãƒ³ã‚°ãƒ¬ãƒ¼ãƒˆ(44.1kHzãªã‚‰44100)
+		UINT32				transRate;		// ãƒ‡ãƒ¼ã‚¿é€Ÿåº¦(Byte/sec) [ 44.1kHz 16bit ã‚¹ãƒ†ãƒ¬ã‚ª 44100Ã—2Ã—2 ]
+		UINT16				blockSize;		// ãƒ–ãƒ­ãƒƒã‚¯ã‚µã‚¤ã‚º(Byte/sampleÃ—ãƒãƒ£ãƒ³ãƒãƒ«æ•°)
+		UINT16				quantumBits;	// ã‚µãƒ³ãƒ—ãƒ«ã‚ãŸã‚Šã®ãƒ“ãƒƒãƒˆæ•°(bit/sample)
 	};
 
 	Riff					riff;

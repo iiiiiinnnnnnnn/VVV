@@ -1,16 +1,16 @@
-// Input.cpp
+ï»¿// Input.cpp
 
 #include "Input.h"
 #include "imgui.h"
 
-// ‰Šú‰»
+// åˆæœŸåŒ–
 void Input::Initialize(HWND hWnd)
 {
 	gamePad = std::make_unique<GamePad>();
 	mouse = std::make_unique<Mouse>(hWnd);
 }
 
-// XVˆ—
+// æ›´æ–°å‡¦ç†
 void Input::Update()
 {
 	gamePad->Update();
@@ -19,13 +19,13 @@ void Input::Update()
 
 bool Input::IsFocusedWindow()
 {
-	// ƒfƒoƒbƒOƒEƒCƒ“ƒhƒE‘€ì’†‚Íˆ—‚µ‚È‚¢
+	// ãƒ‡ãƒãƒƒã‚°ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦æ“ä½œä¸­ã¯å‡¦ç†ã—ãªã„
 	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
 	{
 		return false;
 	}
 
-	// ƒEƒBƒ“ƒhƒE‚ªÅ‘O–Ê‚Å‚È‚¢ê‡‚Íˆ—‚µ‚È‚¢
+	// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒæœ€å‰é¢ã§ãªã„å ´åˆã¯å‡¦ç†ã—ãªã„
 	HWND hWnd = GetActiveWindow();
 	if (hWnd == nullptr)
 	{

@@ -1,32 +1,32 @@
-// Texture.h
+ï»¿// Texture.h
 
 #pragma once
 
 #include "Common.h"
 
-// ƒeƒNƒXƒ`ƒƒ
+// ãƒ†ã‚¯ã‚¹ãƒãƒ£
 class Texture
 {
 public:
-	// ƒtƒ@ƒCƒ‹‚©‚ç
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰
 	Texture(const char* filename);
-	// ƒVƒF[ƒ_[ƒŠƒ\[ƒXƒrƒ…[‚©‚ç
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ãƒ“ãƒ¥ãƒ¼ã‹ã‚‰
 	Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc);
 	~Texture() {}
 
-	// ƒVƒF[ƒ_[ƒŠƒ\[ƒXƒrƒ…[æ“¾
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ãƒ“ãƒ¥ãƒ¼å–å¾—
 	inline const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& GetShaderResourceView() const { return shaderResourceView; }
 
-	// ƒeƒNƒXƒ`ƒƒ‚Ìî•ñæ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®æƒ…å ±å–å¾—
 	inline const D3D11_TEXTURE2D_DESC& GetTexture2dDesc() const { return texture2dDesc; }
 
-	// ƒeƒNƒXƒ`ƒƒ•æ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£å¹…å–å¾—
 	inline int GetWidth() const { return texture2dDesc.Width; }
 
-	// ƒeƒNƒXƒ`ƒƒ‚‚³æ“¾
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£é«˜ã•å–å¾—
 	inline int GetHeight() const { return texture2dDesc.Height; }
 
-	// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İŠÖ”
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿é–¢æ•°
 	static HRESULT LoadTexture(ID3D11Device* device, const char* filename, ID3D11ShaderResourceView** shaderResourceView, D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr);
 
 private:

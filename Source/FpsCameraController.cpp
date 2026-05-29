@@ -1,4 +1,4 @@
-// FpsCameraController.cpp
+ï»¿// FpsCameraController.cpp
 
 #include "FpsCameraController.h"
 #include <Input.h>
@@ -10,12 +10,12 @@ FpsCameraController::FpsCameraController(std::shared_ptr<Character> character)
 
 void FpsCameraController::SyncControllerToCamera(Camera& camera)
 {
-    // –Ú‚Ìƒm[ƒh‚Ìƒ[ƒ‹ƒhˆÊ’u‚ğæ“¾
+    // ç›®ã®ãƒãƒ¼ãƒ‰ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰ä½ç½®ã‚’å–å¾—
     Model::Node* eyeNode = &character->GetModel()->GetNodes()[6];
     Matrix world = Matrix::CreateTranslation(eyeOffset) * eyeNode->worldTransform;
     Vector3 eye(world._41, world._42, world._43);
 
-    // ƒJƒƒ‰‚ÌŒü‚«‚©‚ç’‹“_‚ğŒvZ
+    // ã‚«ãƒ¡ãƒ©ã®å‘ãã‹ã‚‰æ³¨è¦–ç‚¹ã‚’è¨ˆç®—
     float sx = sinf(angleX);
     float cx = cosf(angleX);
     float sy = sinf(angleY);

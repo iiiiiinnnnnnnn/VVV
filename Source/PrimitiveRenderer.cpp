@@ -1,8 +1,8 @@
-#include "Misc.h"
+ï»¿#include "Misc.h"
 #include "GpuResourceUtils.h"
 #include "PrimitiveRenderer.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 {
 	D3D11_INPUT_ELEMENT_DESC inputElementDesc[]
@@ -10,7 +10,7 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	// ’¸“_ƒVƒF[ƒ_[
+	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/PrimitiveRendererVS.cso",
@@ -19,19 +19,19 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
-	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
+	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/PrimitiveRendererPS.cso",
 		pixelShader.GetAddressOf());
 
-	// ’è”ƒoƒbƒtƒ@
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbScene),
 		constantBuffer.GetAddressOf());
 
-	// ’¸“_ƒoƒbƒtƒ@
+	// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
 	D3D11_BUFFER_DESC desc;
 	desc.ByteWidth = sizeof(Vertex) * VertexCapacity;
 	desc.Usage = D3D11_USAGE_DYNAMIC;
@@ -43,7 +43,7 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }
 
-// ’¸“_’Ç‰Á
+// é ‚ç‚¹è¿½åŠ 
 void PrimitiveRenderer::AddVertex(const Vector3& position, const Color& color)
 {
 	Vertex& v = vertices.emplace_back();
@@ -51,7 +51,7 @@ void PrimitiveRenderer::AddVertex(const Vector3& position, const Color& color)
 	v.color = color;
 }
 
-// ²•`‰æ
+// è»¸æç”»
 void PrimitiveRenderer::DrawAxis(const Matrix& transform, const Color& color)
 {
 	DirectX::XMMATRIX W = transform;
@@ -68,7 +68,7 @@ void PrimitiveRenderer::DrawAxis(const Matrix& transform, const Color& color)
 	AddVertex(z, { 0, 0, 1, 1 });
 }
 
-// ƒOƒŠƒbƒh•`‰æ
+// ã‚°ãƒªãƒƒãƒ‰æç”»
 void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 {
 	int numLines = (subdivisions + 1) * 2;
@@ -119,7 +119,7 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 		s += step;
 	}
 
-	// X²
+	// Xè»¸
 	{
 		const Color red = Color(1, 0, 0, 1);
 		V = Vector3(0, 0, 0);
@@ -133,7 +133,7 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 		AddVertex(position, red);
 	}
 
-	// Y²
+	// Yè»¸
 	{
 		const Color green = Color(0, 1, 0, 1);
 		V = Vector3(0, 0, 0);
@@ -147,7 +147,7 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 		AddVertex(position, green);
 	}
 
-	// Z²
+	// Zè»¸
 	{
 		const Color blue = Color(0, 0, 1, 1);
 		V = Vector3(0, 0, 0);
@@ -162,39 +162,39 @@ void PrimitiveRenderer::DrawGrid(int subdivisions, float scale)
 	}
 }
 
-// •`‰æÀs
+// æç”»å®Ÿè¡Œ
 void PrimitiveRenderer::Render(
 	ID3D11DeviceContext* dc,
 	const Matrix& view,
 	const Matrix& projection,
 	D3D11_PRIMITIVE_TOPOLOGY primitiveTopology)
 {
-	// ƒVƒF[ƒ_[İ’è
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼è¨­å®š
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(inputLayout.Get());
 
-	// ’è”ƒoƒbƒtƒ@İ’è
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	dc->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-	// ƒrƒ…[ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñì¬
+	// ãƒ“ãƒ¥ãƒ¼ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ä½œæˆ
 	DirectX::XMMATRIX V = DirectX::XMLoadFloat4x4(&view);
 	DirectX::XMMATRIX P = DirectX::XMLoadFloat4x4(&projection);
 	DirectX::XMMATRIX VP = V * P;
 
-	// ’è”ƒoƒbƒtƒ@XV
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡æ›´æ–°
 	CbScene cbScene;
 	DirectX::XMStoreFloat4x4(&cbScene.viewProjection, VP);
 	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 
-	// ’¸“_ƒoƒbƒtƒ@İ’è
+	// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	dc->IASetPrimitiveTopology(primitiveTopology);
 	dc->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 	dc->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 
-	// •`‰æ
+	// æç”»
 	UINT totalVertexCount = static_cast<UINT>(vertices.size());
 	UINT start = 0;
 	UINT count = (totalVertexCount < VertexCapacity) ? totalVertexCount : VertexCapacity;

@@ -1,24 +1,21 @@
-// ModelViewerScene.h
+ï»¿// ModelViewerScene.h
 
 #pragma once
 
 #include "Scene.h"
 #include "RenderTarget.h"
 
-// ƒ‚ƒfƒ‹ƒrƒ…[ƒAƒV[ƒ“
+// ãƒ¢ãƒ‡ãƒ«ãƒ“ãƒ¥ãƒ¼ã‚¢ã‚·ãƒ¼ãƒ³
 class ModelViewerScene : public Scene
 {
 public:
 	ModelViewerScene();
 	~ModelViewerScene() override = default;
 
-	// XVˆ—
+	// æ›´æ–°å‡¦ç†
 	void OnUpdate(float elapsedTime) override;
 
-	// •`‰æˆ—
-	void OnRender(RenderContext& rc, float elapsedTime) override;
-
-	// GUI•`‰æˆ—
+	// GUIæç”»å‡¦ç†
 	void OnDrawGUI(float elapsedTime) override;
 
 private:

@@ -1,4 +1,4 @@
-// Scene.h
+﻿// Scene.h
 
 #pragma once
 
@@ -6,7 +6,6 @@
 #include "Graphics.h"
 #include "Input.h"
 #include "Camera.h"
-#include "Light.h"
 #include "Actor.h"
 #include "Widget.h"
 #include "CameraController.h"
@@ -16,30 +15,33 @@
 class Scene
 {
 public:
-	Scene();
+	Scene(const std::string& name = "");
 
 	virtual ~Scene() = default;
 
 	virtual void Update(float elapsedTime);
 	virtual void Render(float elapsedTime);
-	virtual void DrawGUI(float elapsedTime);
 
 	Camera* GetCamera() { return &camera; }
 	CameraController* GetNowCameraController() const;
 	int GetNowCameraControllerIndex() const { return nowCameraControllerIndex; }
-	const LightManager& GetLightManager() const { return lightManager; }
+	const LightData& GetLightManager() const { return lightData; }
 	const RenderSettings& GetRenderSettings() const { return renderSettings; }
 
 protected:
 	virtual void OnUpdate(float elapsedTime) {}
-	virtual void OnRender(RenderContext& rc, float elapsedTime) {}
 	virtual void OnDrawGUI(float elapsedTime) {}
+
+	std::string										name;
 
 	Camera											camera;
 	std::vector<std::unique_ptr<CameraController>>	cameraControllers;
 	int 											nowCameraControllerIndex = 0;
-	LightManager									lightManager;
+
+	LightData										lightData;
 	RenderSettings 									renderSettings;
+	ShadowMapData									shadowMapData;
+	IBLData											iblData;
 
 	struct Actors
 	{

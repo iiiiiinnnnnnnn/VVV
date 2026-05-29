@@ -1,4 +1,4 @@
-// SpriteRenderComponent.cpp
+﻿// SpriteRenderComponent.cpp
 
 #include "SpriteRenderComponent.h"
 #include <Graphics.h>

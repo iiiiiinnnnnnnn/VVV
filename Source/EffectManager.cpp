@@ -1,61 +1,61 @@
-#include "Graphics.h"
+ï»¿#include "Graphics.h"
 #include "EffectManager.h"
 
-// ‰Šú‰»
+// åˆæœŸåŒ–
 void EffectManager::Initialize()
 {
 	Graphics& graphics = Graphics::Instance();
 
-	// EffekseerƒŒƒ“ƒ_ƒ‰¶¬
+	// Effekseerãƒ¬ãƒ³ãƒ€ãƒ©ç”Ÿæˆ
 	effekseerRenderer = EffekseerRendererDX11::Renderer::Create(graphics.GetDevice(),
 		graphics.GetDeviceContext(), 2048);
 
-	// Effekseerƒ}ƒl[ƒWƒƒ[¶¬
+	// Effekseerãƒžãƒãƒ¼ã‚¸ãƒ£ãƒ¼ç”Ÿæˆ
 	effekseerManager = Effekseer::Manager::Create(2048);
 
-	// EffekseerƒŒƒ“ƒ_ƒ‰‚ÌŠeŽíÝ’èi“Á•Ê‚ÈƒJƒXƒ^ƒ}ƒCƒY‚ð‚µ‚È‚¢ê‡‚Í’èŒ^“I‚ÉˆÈ‰º‚ÌÝ’è‚ÅOKj
+	// Effekseerãƒ¬ãƒ³ãƒ€ãƒ©ã®å„ç¨®è¨­å®šï¼ˆç‰¹åˆ¥ãªã‚«ã‚¹ã‚¿ãƒžã‚¤ã‚ºã‚’ã—ãªã„å ´åˆã¯å®šåž‹çš„ã«ä»¥ä¸‹ã®è¨­å®šã§OKï¼‰
 	effekseerManager->SetSpriteRenderer(effekseerRenderer->CreateSpriteRenderer());
 	effekseerManager->SetRibbonRenderer(effekseerRenderer->CreateRibbonRenderer());
 	effekseerManager->SetRingRenderer(effekseerRenderer->CreateRingRenderer());
 	effekseerManager->SetTrackRenderer(effekseerRenderer->CreateTrackRenderer());
 	effekseerManager->SetModelRenderer(effekseerRenderer->CreateModelRenderer());
-	// Effekseer“à‚Å‚Ìƒ[ƒ_[‚ÌÝ’èi“Á•Ê‚ÈƒJƒXƒ^ƒ}ƒCƒY‚ð‚µ‚È‚¢ê‡‚ÍˆÈ‰º‚ÌÝ’è‚ÅOKj
+	// Effekseerå†…ã§ã®ãƒ­ãƒ¼ãƒ€ãƒ¼ã®è¨­å®šï¼ˆç‰¹åˆ¥ãªã‚«ã‚¹ã‚¿ãƒžã‚¤ã‚ºã‚’ã—ãªã„å ´åˆã¯ä»¥ä¸‹ã®è¨­å®šã§OKï¼‰
 	effekseerManager->SetTextureLoader(effekseerRenderer->CreateTextureLoader());
 	effekseerManager->SetModelLoader(effekseerRenderer->CreateModelLoader());
 	effekseerManager->SetMaterialLoader(effekseerRenderer->CreateMaterialLoader());
 
-	// Effekseer‚ð¶ŽèÀ•WŒn‚ÅŒvŽZ‚·‚é
+	// Effekseerã‚’å·¦æ‰‹åº§æ¨™ç³»ã§è¨ˆç®—ã™ã‚‹
 	effekseerManager->SetCoordinateSystem(Effekseer::CoordinateSystem::LH);
 }
 
-// I—¹‰»
+// çµ‚äº†åŒ–
 void EffectManager::Finalize()
 {
-	// EffekseerManager‚È‚Ç‚ÍƒXƒ}[ƒgƒ|ƒCƒ“ƒ^‚É‚æ‚Á‚Ä”jŠü‚³‚ê‚é‚Ì‚Å‰½‚à‚µ‚È‚¢
+	// EffekseerManagerãªã©ã¯ã‚¹ãƒžãƒ¼ãƒˆãƒã‚¤ãƒ³ã‚¿ã«ã‚ˆã£ã¦ç ´æ£„ã•ã‚Œã‚‹ã®ã§ä½•ã‚‚ã—ãªã„
 }
 
-// XVˆ—
+// æ›´æ–°å‡¦ç†
 void EffectManager::Update(float elapsedTime)
 {
-	// ƒGƒtƒFƒNƒgXVˆ—iˆø”‚É‚ÍƒtƒŒ[ƒ€‚ÌŒo‰ßŽžŠÔ‚ð“n‚·j
+	// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆæ›´æ–°å‡¦ç†ï¼ˆå¼•æ•°ã«ã¯ãƒ•ãƒ¬ãƒ¼ãƒ ã®çµŒéŽæ™‚é–“ã‚’æ¸¡ã™ï¼‰
 	effekseerManager->Update(elapsedTime * 60.0f);
 }
 
-// •`‰æˆ—
+// æç”»å‡¦ç†
 void EffectManager::Render(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection)
 {
-	// ƒrƒ…[•ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ‚ðEffekseerƒŒƒ“ƒ_ƒ‰‚ÉÝ’è
+	// ãƒ“ãƒ¥ãƒ¼ï¼†ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’Effekseerãƒ¬ãƒ³ãƒ€ãƒ©ã«è¨­å®š
 	effekseerRenderer->SetCameraMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&view));
 	effekseerRenderer->SetProjectionMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&projection));
 
-	// Effekseer•`‰æŠJŽn
+	// Effekseeræç”»é–‹å§‹
 	effekseerRenderer->BeginRendering();
 
-	// Effekseer•`‰æŽÀs
-	// ƒ}ƒl[ƒWƒƒ[’PˆÊ‚Å•`‰æ‚·‚é‚Ì‚Å•`‰æ‡‚ð§Œä‚·‚éê‡‚Íƒ}ƒl[ƒWƒƒ[‚ð•¡”ŒÂì¬‚µA
-	// Draw()ŠÖ”‚ðŽÀs‚·‚é‡˜‚Å§Œä‚Å‚«‚»‚¤
+	// Effekseeræç”»å®Ÿè¡Œ
+	// ãƒžãƒãƒ¼ã‚¸ãƒ£ãƒ¼å˜ä½ã§æç”»ã™ã‚‹ã®ã§æç”»é †ã‚’åˆ¶å¾¡ã™ã‚‹å ´åˆã¯ãƒžãƒãƒ¼ã‚¸ãƒ£ãƒ¼ã‚’è¤‡æ•°å€‹ä½œæˆã—ã€
+	// Draw()é–¢æ•°ã‚’å®Ÿè¡Œã™ã‚‹é †åºã§åˆ¶å¾¡ã§ããã†
 	effekseerManager->Draw();
 
-	// Effekseer•`‰æI—¹
+	// Effekseeræç”»çµ‚äº†
 	effekseerRenderer->EndRendering();
 }

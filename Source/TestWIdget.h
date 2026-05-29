@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Widget.h"
 #include "GaussianFilterShader.h"
@@ -16,7 +16,7 @@ public:
     void SetGaussianSigma(float sigma) { gaussianParams.sigma = sigma; }
 
 private:
-    GaussianFilterShader::GaussianFilterData gaussianParams {
+    GaussianFilterShader::Params gaussianParams {
         25,     // kernel_size
         20.0f,  // sigma
     };

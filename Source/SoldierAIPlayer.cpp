@@ -1,4 +1,4 @@
-// SoldierAIPlayer.cpp
+﻿// SoldierAIPlayer.cpp
 
 #include "SoldierAIPlayer.h"
 

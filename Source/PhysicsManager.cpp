@@ -1,4 +1,4 @@
-// PhysicsManager.cpp
+ï»¿// PhysicsManager.cpp
 
 #include "PhysicsManager.h"
 
@@ -40,10 +40,10 @@ void PhysicsManager::Initialize()
     // PVD
     gPvd = PxCreatePvd(*gFoundation);
 
-    // Ú‘±İ’è(5425”Ôƒ|[ƒg)
+    // æ¥ç¶šè¨­å®š(5425ç•ªãƒãƒ¼ãƒˆ)
     gPvdTransport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 
-    // Ú‘±
+    // æ¥ç¶š
     if(gPvd->connect(*gPvdTransport, PxPvdInstrumentationFlag::eALL)) {
         printf("[PhysicsManager] PVD Connected!");
     }
@@ -52,19 +52,19 @@ void PhysicsManager::Initialize()
     PxTolerancesScale scale;
     gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, scale, true, gPvd);
 
-    // Extensions‰Šú‰»
+    // ExtensionsåˆæœŸåŒ–
     PxInitExtensions(*gPhysics, gPvd);
 
     // Cooking
     gCookingParams =  new PxCookingParams(PxTolerancesScale());
 
-    // CPUƒfƒBƒXƒpƒbƒ`ƒƒ
+    // CPUãƒ‡ã‚£ã‚¹ãƒ‘ãƒƒãƒãƒ£
     gDispatcher = PxDefaultCpuDispatcherCreate(1);
 
-    // ƒfƒtƒHƒ‹ƒg‚Ì•¨—Ş¿i–€C0.5, ”½”­0.5j
+    // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ç‰©ç†æè³ªï¼ˆæ‘©æ“¦0.5, åç™º0.5ï¼‰
     gDefaultMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 
-	// ƒV[ƒ“¶¬
+	// ã‚·ãƒ¼ãƒ³ç”Ÿæˆ
     sceneContext = std::make_unique<PhysicsSceneContext>(PxVec3(0, -9.81f, 0));
 }
 

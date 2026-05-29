@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 #include <DirectXMath.h>
 #include <Effekseer.h>
 #include <EffekseerRendererDX11.h>
 
-// ƒGƒtƒFƒNƒgƒ}ƒl[ƒWƒƒ[
+// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼
 class EffectManager
 {
 private:
@@ -12,26 +12,26 @@ private:
 	~EffectManager() {}
 
 public:
-	// —Bˆê‚ÌƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+	// å”¯ä¸€ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
 	static EffectManager& Instance()
 	{
 		static EffectManager instance;
 		return instance;
 	}
 
-	// ‰Šú‰»
+	// åˆæœŸåŒ–
 	void Initialize();
 
-	// I—¹‰»
+	// çµ‚äº†åŒ–
 	void Finalize();
 
-	// XVˆ—
+	// æ›´æ–°å‡¦ç†
 	void Update(float elapsedTime);
 
-	// •`‰æˆ—
+	// æç”»å‡¦ç†
 	void Render(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
 
-	// Effeckseerƒ}ƒl[ƒWƒƒ[‚Ìæ“¾
+	// Effeckseerãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ã®å–å¾—
 	Effekseer::ManagerRef GetEffekseerManager() { return effekseerManager; }
 
 private:

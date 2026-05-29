@@ -1,4 +1,4 @@
-// LocalPlayer.cpp
+﻿// LocalPlayer.cpp
 
 #include "LocalPlayer.h"
 #include "Input.h"

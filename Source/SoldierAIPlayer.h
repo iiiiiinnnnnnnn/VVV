@@ -1,4 +1,4 @@
-// SoldierAIPlayer.h
+ï»¿// SoldierAIPlayer.h
 
 #pragma once
 
@@ -8,9 +8,9 @@
 class SoldierAIPlayer : public AIPlayer {
 public:
     enum class State {
-        Follow,   // wŠöŠ¯‚É‚Â‚¢‚Ä‚¢‚­
-        Scout,    // õ“G
-        Combat,   // í“¬
+        Follow,   // æŒ‡æ®å®˜ã«ã¤ã„ã¦ã„ã
+        Scout,    // ç´¢æ•µ
+        Combat,   // æˆ¦é—˜
     };
 
 private:

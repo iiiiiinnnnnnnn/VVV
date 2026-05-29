@@ -1,4 +1,4 @@
-// Character.h
+ï»¿// Character.h
 
 #pragma once
 
@@ -22,21 +22,21 @@ public:
 
 	enum class SkinParts : uint32_t
 	{
-		// ‘Ì
-		Body_Medic = (1 << 1),			// body_medic ‹~‹}
+		// ä½“
+		Body_Medic = (1 << 1),			// body_medic æ•‘æ€¥
 
-		// “ª
-		Head = (1 << 2),				// head “ª
-		Head_SoldierB = (1 << 3),		// head_soldier_B •ºŽmB
-		Head_SoldierA = (1 << 4),		// head_soldier_A •ºŽmA
-		Head_Brass = (1 << 5),			// head_brass «Z
-		Head_Officer = (1 << 6),		// head_officer «Z
-		Head_Medic = (1 << 7),			// head_medic ‹~‹}
-		Head_GasMask = (1 << 8),		// head_gasmask ƒKƒXƒ}ƒXƒN
+		// é ­
+		Head = (1 << 2),				// head é ­
+		Head_SoldierB = (1 << 3),		// head_soldier_B å…µå£«B
+		Head_SoldierA = (1 << 4),		// head_soldier_A å…µå£«A
+		Head_Brass = (1 << 5),			// head_brass å°†æ ¡
+		Head_Officer = (1 << 6),		// head_officer å°†æ ¡
+		Head_Medic = (1 << 7),			// head_medic æ•‘æ€¥
+		Head_GasMask = (1 << 8),		// head_gasmask ã‚¬ã‚¹ãƒžã‚¹ã‚¯
 
-		// ‘•”õ
-		Equip_Infantry = (1 << 9),		// equip_infantry •à•º
-		Equip_Medic = (1 << 10),		// equip_medic ‹~‹}
+		// è£…å‚™
+		Equip_Infantry = (1 << 9),		// equip_infantry æ­©å…µ
+		Equip_Medic = (1 << 10),		// equip_medic æ•‘æ€¥
 	};
 
 	Character(std::string name = "", std::string tag = "", bool isActive = true, std::string layer = "", Country country = Country::Japan, SkinParts skinParts = SkinParts::Head);
@@ -63,8 +63,6 @@ public:
 	void SetFirstPerson(bool firstPerson) { isFirstPerson = firstPerson; }
 	bool IsFirstPerson() const { return isFirstPerson; }
 
-	void Print();
-
 	static std::string GetModel(Country type);
 
 protected:
@@ -81,10 +79,11 @@ protected:
 	const Vector2 idleSpineAngle = {0.8f, 0};
 	const Vector2 readySpineAngle = {-0.25f, -0.38f};
 
-	float verticalVelocity = 0.0f; // d—Í
+	PBRShader::Params shaderParams;
+
+	float verticalVelocity = 0.0f; // é‡åŠ›
 	float hp = 100.0f;
 	float speed = 5.0f;
 
 	Country country;
-	PBRShader::PBRData pbrData;
 };

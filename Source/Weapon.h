@@ -1,4 +1,4 @@
-// Weapon.h
+﻿// Weapon.h
 
 #pragma once
 

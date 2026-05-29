@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Common.h"
 
@@ -8,33 +8,33 @@ public:
 	ShapeRenderer(ID3D11Device* device);
 	~ShapeRenderer() {}
 
-	// ” •`‰æ
+	// ç®±æç”»
 	void DrawBox(
 		const Vector3& position,
 		const Vector3& angle,
 		const Vector3& size,
 		const Color& color);
 
-	// ‹…•`‰æ
+	// çƒæç”»
 	void DrawSphere(
 		const Vector3& position,
 		float radius,
 		const Color& color);
 
-	// ƒJƒvƒZƒ‹•`‰æ
+	// ã‚«ãƒ—ã‚»ãƒ«æç”»
 	void DrawCapsule(
 		const Matrix& transform,
 		float radius,
 		float height,
 		const Color& color);
 
-	// œ•`‰æ
+	// éª¨æç”»
 	void DrawBone(
 		const Matrix& transform,
 		float length,
 		const Color& color);
 
-	// •`‰æÀs
+	// æç”»å®Ÿè¡Œ
 	void Render(
 		ID3D11DeviceContext* dc,
 		const Matrix& view,
@@ -60,22 +60,22 @@ private:
 		Color		color;
 	};
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	void CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh);
 
-	// ” ƒƒbƒVƒ…ì¬
+	// ç®±ãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 	void CreateBoxMesh(ID3D11Device* device, float width, float height, float depth);
 
-	// ‹…ƒƒbƒVƒ…ì¬
+	// çƒãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 	void CreateSphereMesh(ID3D11Device* device, float radius, int subdivisions);
 
-	// ”¼‹…ƒƒbƒVƒ…ì¬
+	// åŠçƒãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 	void CreateHalfSphereMesh(ID3D11Device* device, float radius, int subdivisions);
 
-	// ‰~’Œ
+	// å††æŸ±
 	void CreateCylinderMesh(ID3D11Device* device, float radius1, float radius2, float start, float height, int subdivisions);
 
-	// œƒƒbƒVƒ…ì¬
+	// éª¨ãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 	void CreateBoneMesh(ID3D11Device* device, float length);
 
 private:

@@ -1,11 +1,11 @@
-// GaussianFilterShader.cpp
+ï»¿// GaussianFilterShader.cpp
 
 #include "GaussianFilterShader.h"
 #include "GpuResourceUtils.h"
 
 GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 {
-	// ’¸“_ƒVƒF[ƒ_[
+	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/SpriteVS.cso",
@@ -14,13 +14,13 @@ GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
-	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
+	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/GaussianFilteringPS.cso",
 		pixelShader.GetAddressOf());
 
-	// ƒKƒEƒXƒtƒBƒ‹ƒ^[—p’è”ƒoƒbƒtƒ@
+	// ã‚¬ã‚¦ã‚¹ãƒ•ã‚£ãƒ«ã‚¿ãƒ¼ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbGaussianFilter),
@@ -40,18 +40,18 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	//	ƒKƒEƒXƒtƒBƒ‹ƒ^[—p‚Ì’è”ƒoƒbƒtƒ@‚ğZo
+	//	ã‚¬ã‚¦ã‚¹ãƒ•ã‚£ãƒ«ã‚¿ãƒ¼ç”¨ã®å®šæ•°ãƒãƒƒãƒ•ã‚¡ã‚’ç®—å‡º
 	CbGaussianFilter constant;
 	{
-		//	‹ô”‚Ìê‡‚ÍŠï”‚É’¼‚·
-		int kernel_size = gaussianFilterData.kernel_size;
+		//	å¶æ•°ã®å ´åˆã¯å¥‡æ•°ã«ç›´ã™
+		int kernel_size = params.kernel_size;
 		if (kernel_size % 2 == 0)
 			kernel_size++;
 
 		constant.kernelSize = static_cast<float>(kernel_size);
 		constant.texcel.x = 1.0f / textureSize.x;
 		constant.texcel.y = 1.0f / textureSize.y;
-		//	d‚İ‚ğZo
+		//	é‡ã¿ã‚’ç®—å‡º
 		float sum = 0.0f;
 		int id = 0;
 		for (int y = -kernel_size / 2; y <= kernel_size / 2; y++)
@@ -60,22 +60,22 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 			{
 				constant.weights[id].x = (float)x;
 				constant.weights[id].y = (float)y;
-				constant.weights[id].z = (float)exp(-(x * x + y * y) / (2.0f * gaussianFilterData.sigma * gaussianFilterData.sigma)) / (2.0f * DirectX::XM_PI * gaussianFilterData.sigma);
+				constant.weights[id].z = (float)exp(-(x * x + y * y) / (2.0f * params.sigma * params.sigma)) / (2.0f * DirectX::XM_PI * params.sigma);
 				sum += constant.weights[id].z;
 				id++;
 			}
 		}
-		//	•½‹Ï‰»
+		//	å¹³å‡åŒ–
 		for (int i = 0; i < kernel_size * kernel_size; i++)
 		{
 			constant.weights[i].z /= sum;
 		}
 	}
 
-	//	’è”ƒoƒbƒtƒ@‚ğİ’è
+	//	å®šæ•°ãƒãƒƒãƒ•ã‚¡ã‚’è¨­å®š
 	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &constant, 0, 0);
 
-	// ’è”ƒoƒbƒtƒ@İ’è
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	ID3D11Buffer* cbs[] =
 	{
 		constantBuffer.Get()
@@ -83,11 +83,6 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	dc->PSSetConstantBuffers(2, _countof(cbs), cbs);
 
 	dc->PSSetShaderResources(0, 1, &srv);
-}
-
-void GaussianFilterShader::ApplyParams(ShaderParamPtr params)
-{
-	gaussianFilterData = *static_cast<const GaussianFilterData*>(params);
 }
 
 void GaussianFilterShader::End(const RenderContext& rc)

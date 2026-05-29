@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 
 #include <wrl.h>
 #include <d3d11.h>
 
-// ƒTƒ“ƒvƒ‰ƒXƒe[ƒg
+// ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class SamplerState
 {
 	PointWrap,
@@ -14,7 +14,7 @@ enum class SamplerState
 	EnumCount
 };
 
-// ƒfƒvƒXƒXƒe[ƒg
+// ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class DepthState
 {
 	TestAndWrite,
@@ -25,7 +25,7 @@ enum class DepthState
 	EnumCount
 };
 
-// ƒuƒŒƒ“ƒhƒXƒe[ƒg
+// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class BlendState
 {
 	Opaque,
@@ -37,7 +37,7 @@ enum class BlendState
 	EnumCount
 };
 
-// ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒg
+// ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class RasterizerState
 {
 	SolidCullNone,
@@ -48,32 +48,32 @@ enum class RasterizerState
 	EnumCount
 };
 
-// ƒŒƒ“ƒ_[ƒXƒe[ƒg
+// ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆ
 class RenderState
 {
 public:
 	RenderState(ID3D11Device* device);
 	~RenderState() = default;
 
-	// ƒTƒ“ƒvƒ‰ƒXƒe[ƒgæ“¾
+	// ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆå–å¾—
 	ID3D11SamplerState* GetSamplerState(SamplerState state) const
 	{
 		return samplerStates[static_cast<int>(state)].Get();
 	}
 
-	// ƒfƒvƒXƒXƒe[ƒgæ“¾
+	// ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ¼ãƒˆå–å¾—
 	ID3D11DepthStencilState* GetDepthStencilState(DepthState state) const
 	{
 		return depthStencilStates[static_cast<int>(state)].Get();
 	}
 
-	// ƒuƒŒƒ“ƒhƒXƒe[ƒgæ“¾
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆå–å¾—
 	ID3D11BlendState* GetBlendState(BlendState state) const
 	{
 		return blendStates[static_cast<int>(state)].Get();
 	}
 
-	// ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒgæ“¾
+	// ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆå–å¾—
 	ID3D11RasterizerState* GetRasterizerState(RasterizerState state) const
 	{
 		return rasterizerStates[static_cast<int>(state)].Get();

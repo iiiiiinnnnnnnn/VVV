@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 
 #include <xaudio2.h>
 #include "AudioSource.h"
 
-// ƒI[ƒfƒBƒI
+// ã‚ªãƒ¼ãƒ‡ã‚£ã‚ª
 class Audio
 {
 public:
@@ -11,10 +11,10 @@ public:
 	~Audio();
 
 public:
-	// ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
 	static Audio& Instance() { return *instance; }
 
-	// ƒI[ƒfƒBƒIƒ\[ƒX“Ç‚İ‚İ
+	// ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªã‚½ãƒ¼ã‚¹èª­ã¿è¾¼ã¿
 	std::unique_ptr<AudioSource> LoadAudioSource(const char* filename);
 
 private:

@@ -1,4 +1,4 @@
-// ResourceManager.h
+﻿// ResourceManager.h
 
 #pragma once
 

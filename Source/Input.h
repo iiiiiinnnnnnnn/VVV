@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 #include <memory>
 #include "GamePad.h"
 #include "Mouse.h"
 
-// ƒCƒ“ƒvƒbƒg
+// ã‚¤ãƒ³ãƒ—ãƒƒãƒˆ
 class Input
 {
 private:
@@ -12,26 +12,26 @@ private:
 	~Input() = default;
 
 public:
-	// ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
 	static Input& Instance()
 	{
 		static Input instance;
 		return instance;
 	}
 
-	// ‰Šú‰»
+	// åˆæœŸåŒ–
 	void Initialize(HWND hWnd);
 
-	// XVˆ—
+	// æ›´æ–°å‡¦ç†
 	void Update();
 
-	// ƒQ[ƒ€ƒpƒbƒhæ“¾
+	// ã‚²ãƒ¼ãƒ ãƒ‘ãƒƒãƒ‰å–å¾—
 	GamePad& GetGamePad() { return *gamePad; }
 
-	// ƒ}ƒEƒXæ“¾
+	// ãƒã‚¦ã‚¹å–å¾—
 	Mouse& GetMouse() { return *mouse; }
 
-	// ƒtƒH[ƒJƒX‚ª“–‚½‚Á‚Ä‚¢‚é‚©
+	// ãƒ•ã‚©ãƒ¼ã‚«ã‚¹ãŒå½“ãŸã£ã¦ã„ã‚‹ã‹
 	static bool IsFocusedWindow();
 
 private:

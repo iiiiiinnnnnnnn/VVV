@@ -1,3 +1,5 @@
+﻿// PBRShader.h
+
 #pragma once
 
 #include "Shader.h"
@@ -10,40 +12,37 @@ public:
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) override;
-	void ApplyParams(ShaderParamPtr params) override;
 	void End(const RenderContext& rc) override;
 
-	struct PBRData
-	{
-		float metalness;;
-		float roughness;
-	};
+	SHADER_PARAMS
+	(
+		// PBR
+		float metalness = 0.5f;
+		float roughness = 0.5f;
+		float occlusionStrength = 1.0f;
+	);
 
 private:
-	// �V�F�[�_�[�p
-	struct CbPBR
-	{
-		Color materialColor;
-		float adjustMetalness;
-		float adjustRoughness;
-		float DUMMY;
-		float DUMMY;
-	};
-
-	// �V���h�E�}�b�v�p�萔�o�b�t�@
+	// b0
 	struct CbShadowMap
 	{
-		Matrix lightViewProjection;
-		float shadowAttenuation;
-		float shadowBias;
-		float DUMMY;
-		float DUMMY;
+		Matrix	lightViewProjection;	// ライトビュープロジェクション行列
+		Color	shadowColor;			// 影の色
+		float	shadowBias;				// 深度比較用のオフセット値
+		int		pcfKernelSize;			// ソフトシャドウの行列サイズ
+		float	DUMMY[2];
 	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer>	shadowMapConstantBuffer;
 
-	// �萔�o�b�t�@
-	Microsoft::WRL::ComPtr<ID3D11Buffer> pbrBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapBuffer;
-
-	// �����p
-	PBRData pbrData;
+	// b1
+	struct CbMaterial
+	{
+		Color	baseColor;		// ベースカラー
+		Color	emissiveColor;	// エミッシブカラー
+		float	metalness;		// メタルネス
+		float	roughness;		// ラフネス
+		float	occlusionStrength;	// オクルージョン強度
+		BOOL    hasMetalRoughTexture;	// ベースカラーテクスチャの有無
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 };

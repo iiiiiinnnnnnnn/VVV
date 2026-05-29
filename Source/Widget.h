@@ -1,4 +1,4 @@
-// Widget.h
+ï»¿// Widget.h
 
 #pragma once
 
@@ -15,7 +15,7 @@ public:
 
     RectTransform rect;
 
-	// ƒI[ƒo[ƒ‰ƒCƒh‚·‚é•K—v‚ª‚ ‚é‚â‚Â‚¾‚¯(rect transformŠ„‚è‚İ)
+	// ã‚ªãƒ¼ãƒãƒ¼ãƒ©ã‚¤ãƒ‰ã™ã‚‹å¿…è¦ãŒã‚ã‚‹ã‚„ã¤ã ã‘(rect transformå‰²ã‚Šè¾¼ã¿)
     void Update(float elapsedTime) override;
     void DrawGUI(float elapsedTime) override;
 };

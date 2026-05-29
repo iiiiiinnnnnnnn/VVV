@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Camera.h"
 #include "Input.h"
 
@@ -7,13 +7,13 @@ class CameraController
 public:
 	virtual ~CameraController() = default;
 
-	// ƒJƒƒ‰‚©‚çƒRƒ“ƒgƒ[ƒ‰[‚Öƒpƒ‰ƒ[ƒ^‚ğ“¯Šú‚·‚é
+	// ã‚«ãƒ¡ãƒ©ã‹ã‚‰ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã¸ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’åŒæœŸã™ã‚‹
 	virtual void SyncCameraToController(const Camera& camera) = 0;
 
-	// ƒRƒ“ƒgƒ[ƒ‰[‚©‚çƒJƒƒ‰‚Öƒpƒ‰ƒ[ƒ^‚ğ“¯Šú‚·‚é
+	// ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã‹ã‚‰ã‚«ãƒ¡ãƒ©ã¸ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’åŒæœŸã™ã‚‹
 	virtual void SyncControllerToCamera(Camera& camera) = 0;
 
-	// XVˆ—
+	// æ›´æ–°å‡¦ç†
 	void Update(float elapsedTime)
 	{
 		if (Input::IsFocusedWindow()) {
@@ -24,7 +24,7 @@ public:
 		}
 	}
 
-	// ƒtƒH[ƒJƒX‚ğ¸‚Á‚½‚Æ‚«‚Ìˆ—
+	// ãƒ•ã‚©ãƒ¼ã‚«ã‚¹ã‚’å¤±ã£ãŸã¨ãã®å‡¦ç†
 	virtual void OnFocusLost() {}
 
 	void DrawGUI(float elapsedTime) {

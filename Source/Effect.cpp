@@ -1,34 +1,34 @@
-#include "Graphics.h"
+ï»¿#include "Graphics.h"
 #include "Effect.h"
 #include "EffectManager.h"
 #include <mutex>
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Effect::Effect(const char* filename)
 {
-	// ƒGƒtƒFƒNƒg‚ğ“Ç‚İ‚İ‚·‚é‘O‚ÉƒƒbƒN‚·‚é
-	// ¦ƒ}ƒ‹ƒ`ƒXƒŒƒbƒh‚ÅEffect‚ğì¬‚·‚é‚ÆDeviceContext‚ğ“¯ƒAƒNƒZƒX‚µ‚Ä
-	// @ƒtƒŠ[ƒY‚·‚é‰Â”\«‚ª‚ ‚é‚Ì‚Å”r‘¼§Œä‚·‚é
+	// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’èª­ã¿è¾¼ã¿ã™ã‚‹å‰ã«ãƒ­ãƒƒã‚¯ã™ã‚‹
+	// â€»ãƒãƒ«ãƒã‚¹ãƒ¬ãƒƒãƒ‰ã§Effectã‚’ä½œæˆã™ã‚‹ã¨DeviceContextã‚’åŒæ™‚ã‚¢ã‚¯ã‚»ã‚¹ã—ã¦
+	// ã€€ãƒ•ãƒªãƒ¼ã‚ºã™ã‚‹å¯èƒ½æ€§ãŒã‚ã‚‹ã®ã§æ’ä»–åˆ¶å¾¡ã™ã‚‹
 	//std::lock_guard<std::mutex> lock(Graphics::Instance().());
 
-	// Effekseer‚ÌƒŠƒ\[ƒX‚ğ“Ç‚İ‚Ş
-	// Effekseer‚ÍUTF-16‚Ìƒtƒ@ƒCƒ‹ƒpƒXˆÈŠO‚Í‘Î‰‚µ‚Ä‚¢‚È‚¢‚½‚ß•¶šƒR[ƒh•ÏŠ·‚ª•K—v
+	// Effekseerã®ãƒªã‚½ãƒ¼ã‚¹ã‚’èª­ã¿è¾¼ã‚€
+	// Effekseerã¯UTF-16ã®ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ä»¥å¤–ã¯å¯¾å¿œã—ã¦ã„ãªã„ãŸã‚æ–‡å­—ã‚³ãƒ¼ãƒ‰å¤‰æ›ãŒå¿…è¦
 	char16_t utf16Filename[256];
 	Effekseer::ConvertUtf8ToUtf16(utf16Filename, 256, filename);
 
-	// Effekseer::Manager‚ğæ“¾
+	// Effekseer::Managerã‚’å–å¾—
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
 
-	// EffekseerƒGƒtƒFƒNƒg‚ğ“Ç‚İ‚İ
+	// Effekseerã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’èª­ã¿è¾¼ã¿
 	effekseerEffect = Effekseer::Effect::Create(effekseerManager, (EFK_CHAR*)utf16Filename);
 }
 
-// ƒfƒXƒgƒ‰ƒNƒ^
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Effect::~Effect()
 {
 }
 
-// Ä¶
+// å†ç”Ÿ
 Effekseer::Handle Effect::Play(const DirectX::XMFLOAT3& position, float scale)
 {
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
@@ -38,7 +38,7 @@ Effekseer::Handle Effect::Play(const DirectX::XMFLOAT3& position, float scale)
 	return handle;
 }
 
-// ’â~
+// åœæ­¢
 void Effect::Stop(Effekseer::Handle handle)
 {
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
@@ -46,7 +46,7 @@ void Effect::Stop(Effekseer::Handle handle)
 	effekseerManager->StopEffect(handle);
 }
 
-// À•Wİ’è
+// åº§æ¨™è¨­å®š
 void Effect::SetPosition(Effekseer::Handle handle, const DirectX::XMFLOAT3& position)
 {
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
@@ -54,7 +54,7 @@ void Effect::SetPosition(Effekseer::Handle handle, const DirectX::XMFLOAT3& posi
 	effekseerManager->SetLocation(handle, position.x, position.y, position.z);
 }
 
-// ƒXƒP[ƒ‹İ’è
+// ã‚¹ã‚±ãƒ¼ãƒ«è¨­å®š
 void Effect::SetScale(Effekseer::Handle handle, const DirectX::XMFLOAT3& scale)
 {
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();

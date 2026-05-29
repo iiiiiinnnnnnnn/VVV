@@ -1,14 +1,14 @@
+ï»¿// Graphics.cpp
 #include "Misc.h"
 #include "Graphics.h"
+#include "GpuResourceUtils.h"
 
 float Graphics::ScreenWidth = 0.0f;
 float Graphics::ScreenHeight = 0.0f;
 
-// ‰Šú‰»
 void Graphics::Initialize(HWND hWnd)
 {
 	this->hWnd = hWnd;
-	// ‰æ–Ê‚ÌƒTƒCƒY‚ğæ“¾‚·‚éB
 	RECT rc;
 	GetClientRect(hWnd, &rc);
 	UINT screenWidth = rc.right - rc.left;
@@ -19,12 +19,12 @@ void Graphics::Initialize(HWND hWnd)
 
 	HRESULT hr = S_OK;
 
-	// ƒfƒoƒCƒX•ƒXƒƒbƒvƒ`ƒF[ƒ“‚Ì¶¬
+	// ãƒ‡ãƒã‚¤ã‚¹ï¼†ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³ã®ç”Ÿæˆ
 	{
 		UINT createDeviceFlags = 0;
-#if defined(DEBUG) || defined(_DEBUG)
+		#if defined(DEBUG) || defined(_DEBUG)
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
+		#endif
 		D3D_FEATURE_LEVEL featureLevels[] =
 		{
 			D3D_FEATURE_LEVEL_11_0,
@@ -35,7 +35,6 @@ void Graphics::Initialize(HWND hWnd)
 			D3D_FEATURE_LEVEL_9_1,
 		};
 
-		// ƒXƒƒbƒvƒ`ƒF[ƒ“‚ğì¬‚·‚é‚½‚ß‚Ìİ’èƒIƒvƒVƒ‡ƒ“
 		DXGI_SWAP_CHAIN_DESC swapchainDesc;
 		{
 			swapchainDesc.BufferDesc.Width = screenWidth;
@@ -56,8 +55,6 @@ void Graphics::Initialize(HWND hWnd)
 		}
 
 		D3D_FEATURE_LEVEL featureLevel;
-
-		// ƒfƒoƒCƒX•ƒXƒƒbƒvƒ`ƒF[ƒ“‚Ì¶¬
 		hr = D3D11CreateDeviceAndSwapChain(
 			nullptr,
 			D3D_DRIVER_TYPE_HARDWARE,
@@ -75,25 +72,19 @@ void Graphics::Initialize(HWND hWnd)
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
-	// ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgƒrƒ…[‚Ì¶¬
+	// ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ“ãƒ¥ãƒ¼ã®ç”Ÿæˆ
 	{
-		// ƒXƒƒbƒvƒ`ƒF[ƒ“‚©‚çƒoƒbƒNƒoƒbƒtƒ@ƒeƒNƒXƒ`ƒƒ‚ğæ“¾‚·‚éB
-		// ¦ƒXƒƒbƒvƒ`ƒF[ƒ“‚É“à•ï‚³‚ê‚Ä‚¢‚éƒoƒbƒNƒoƒbƒtƒ@ƒeƒNƒXƒ`ƒƒ‚Í'F'‚ğ‘‚«‚ŞƒeƒNƒXƒ`ƒƒB
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d;
-		hr = swapchain->GetBuffer(
-			0,
-			__uuidof(ID3D11Texture2D),
-			reinterpret_cast<void**>(texture2d.GetAddressOf()));
+		hr = swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+								  reinterpret_cast<void**>(texture2d.GetAddressOf()));
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-		// ƒoƒbƒNƒoƒbƒtƒ@ƒeƒNƒXƒ`ƒƒ‚Ö‚Ì‘‚«‚İ‚Ì‘‹Œû‚Æ‚È‚éƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgƒrƒ…[‚ğ¶¬‚·‚éB
 		hr = device->CreateRenderTargetView(texture2d.Get(), nullptr, renderTargetView.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
-	// [“xƒXƒeƒ“ƒVƒ‹ƒrƒ…[‚Ì¶¬
+	// æ·±åº¦ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ãƒ“ãƒ¥ãƒ¼ã®ç”Ÿæˆ
 	{
-		// [“xƒXƒeƒ“ƒVƒ‹î•ñ‚ğ‘‚«‚Ş‚½‚ß‚ÌƒeƒNƒXƒ`ƒƒ‚ğì¬‚·‚éB
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d;
 		D3D11_TEXTURE2D_DESC texture2dDesc;
 		texture2dDesc.Width = screenWidth;
@@ -110,12 +101,11 @@ void Graphics::Initialize(HWND hWnd)
 		hr = device->CreateTexture2D(&texture2dDesc, nullptr, texture2d.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-		// [“xƒXƒeƒ“ƒVƒ‹ƒeƒNƒXƒ`ƒƒ‚Ö‚Ì‘‚«‚İ‚É‘‹Œû‚É‚È‚é[“xƒXƒeƒ“ƒVƒ‹ƒrƒ…[‚ğì¬‚·‚éB
 		hr = device->CreateDepthStencilView(texture2d.Get(), nullptr, depthStencilView.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
-	// ƒrƒ…[ƒ|[ƒg
+	// ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆ
 	{
 		viewport.Width = static_cast<float>(screenWidth);
 		viewport.Height = static_cast<float>(screenHeight);
@@ -125,32 +115,37 @@ void Graphics::Initialize(HWND hWnd)
 		viewport.TopLeftY = 0.0f;
 	}
 
-	// ƒŒƒ“ƒ_[ƒXƒe[ƒg¶¬
+	// å„ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
 	renderState = std::make_unique<RenderState>(device.Get());
-
-	// ƒŒƒ“ƒ_ƒ‰¶¬
 	primitiveRenderer = std::make_unique<PrimitiveRenderer>(device.Get());
 	shapeRenderer = std::make_unique<ShapeRenderer>(device.Get());
 	modelRenderer = std::make_unique<ModelRenderer>(device.Get());
 	spriteRenderer = std::make_unique<SpriteRenderer>(device.Get());
+	shadowMapRenderer = std::make_unique<ShadowMapRenderer>(device.Get());
+	skyBoxRenderer    = std::make_unique<SkyBoxRenderer>(device.Get());
+
+	// IBLãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
+	// Data/lut_ggx.dds        : GGXãƒ«ãƒƒã‚¯ã‚¢ãƒƒãƒ—ãƒ†ãƒ¼ãƒ–ãƒ« (Texture2D)
+	// Data/specular_pmrem.dds : äº‹å‰è¨ˆç®—é¡é¢åå°„ã‚­ãƒ¥ãƒ¼ãƒ–ãƒãƒƒãƒ— (TextureCube)
+	// Data/diffuse_iem.dds    : äº‹å‰è¨ˆç®—æ‹¡æ•£åå°„ã‚­ãƒ¥ãƒ¼ãƒ–ãƒãƒƒãƒ— (TextureCube)
+	GpuResourceUtils::LoadTexture(device.Get(), "Data/lut_ggx.dds",         iblGGXLUT.GetAddressOf());
+	GpuResourceUtils::LoadTexture(device.Get(), "Data/specular_pmrem.dds",  iblSpecularPMREM.GetAddressOf());
+	GpuResourceUtils::LoadTexture(device.Get(), "Data/diffuse_iem.dds",     iblDiffuseIEM.GetAddressOf()); // è¿½åŠ 
 }
 
-// ƒNƒŠƒA
 void Graphics::Clear(float r, float g, float b, float a)
 {
-	float color[4]{ r, g, b, a };
+	float color[4]{r, g, b, a};
 	immediateContext->ClearRenderTargetView(renderTargetView.Get(), color);
 	immediateContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
-// ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgİ’è
 void Graphics::SetRenderTargets()
 {
 	immediateContext->RSSetViewports(1, &viewport);
 	immediateContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
 }
 
-// ‰æ–Ê•\¦
 void Graphics::Present(UINT syncInterval)
 {
 	swapchain->Present(syncInterval, 0);

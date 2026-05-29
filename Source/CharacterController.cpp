@@ -1,4 +1,4 @@
-// CharacterController.cpp
+ï»¿// CharacterController.cpp
 
 #include "CharacterController.h"
 #include "Actor.h"
@@ -39,7 +39,7 @@ void CharacterController::Update(float elapsedTime)
 
     if (!controller) return;
     PxExtendedVec3 pos = controller->getPosition();
-    // ƒJƒvƒZƒ‹‚Ì’†S‚©‚ç‘«Œ³‚É•â³
+    // ã‚«ãƒ—ã‚»ãƒ«ã®ä¸­å¿ƒã‹ã‚‰è¶³å…ƒã«è£œæ­£
     float halfHeight = (static_cast<PxCapsuleController*>(controller)->getHeight() * 0.5f)
         + static_cast<PxCapsuleController*>(controller)->getRadius();
     actor->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);

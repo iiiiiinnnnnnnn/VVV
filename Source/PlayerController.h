@@ -1,4 +1,4 @@
-// PlayerController.h
+ï»¿// PlayerController.h
 
 #pragma once
 
@@ -6,11 +6,11 @@
 
 class PlayerController {
 public:
-    virtual float GetMoveX() = 0; // ˆÚ“®X
-	virtual float GetMoveZ() = 0; // ˆÚ“®Z
-	virtual bool GetJump() = 0; // ƒWƒƒƒ“ƒv
-	virtual bool GetCrouch() = 0; // ‚µ‚á‚ª‚İ
-	virtual bool GetReady() = 0; // \‚¦
-	virtual bool GetShoot() = 0; // ËŒ‚
-	virtual bool GetReload() = 0; // ƒŠƒ[ƒh
+    virtual float GetMoveX() = 0; // ç§»å‹•X
+	virtual float GetMoveZ() = 0; // ç§»å‹•Z
+	virtual bool GetJump() = 0; // ã‚¸ãƒ£ãƒ³ãƒ—
+	virtual bool GetCrouch() = 0; // ã—ã‚ƒãŒã¿
+	virtual bool GetReady() = 0; // æ§‹ãˆ
+	virtual bool GetShoot() = 0; // å°„æ’ƒ
+	virtual bool GetReload() = 0; // ãƒªãƒ­ãƒ¼ãƒ‰
 };

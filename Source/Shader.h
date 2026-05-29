@@ -1,10 +1,20 @@
-#pragma once
+﻿#pragma once
 
 #include "Common.h"
 #include "RenderContext.h"
 #include "Model.h"
 
 using ShaderParamPtr = const void*;
+
+#define SHADER_PARAMS(...)                                      \
+struct Params { __VA_ARGS__ };                                  \
+void ApplyParams(ShaderParamPtr p) override {					\
+    if (p)														\
+		params = *static_cast<const Params*>(p);                \
+    else 														\
+		params = Params();										\
+}                                                               \
+Params params
 
 class Shader
 {

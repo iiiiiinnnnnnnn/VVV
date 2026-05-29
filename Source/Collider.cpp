@@ -1,4 +1,4 @@
-// Collider.cpp
+ï»¿// Collider.cpp
 
 #include "Collider.h"
 #include "Actor.h"
@@ -18,7 +18,7 @@ void BoxCollider::UpdateShape()
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
 
-    // ŒÃ‚¢ƒVƒFƒCƒv‚ðíœ
+    // å¤ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’å‰Šé™¤
     if (shape)
     {
         rigidActor->detachShape(*shape);
@@ -26,7 +26,7 @@ void BoxCollider::UpdateShape()
         shape = nullptr;
     }
 
-    // V‚µ‚¢ƒVƒFƒCƒv‚ð¶¬
+    // æ–°ã—ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’ç”Ÿæˆ
     shape = physics->createShape(
         PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
     shape->setLocalPose(PxTransform(PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))));
@@ -71,7 +71,7 @@ void CapsuleCollider::UpdateShape()
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
 
-    // ŒÃ‚¢ƒVƒFƒCƒv‚ðíœ
+    // å¤ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’å‰Šé™¤
     if (shape)
     {
         rigidActor->detachShape(*shape);
@@ -79,7 +79,7 @@ void CapsuleCollider::UpdateShape()
         shape = nullptr;
     }
 
-    // V‚µ‚¢ƒVƒFƒCƒv‚ð¶¬
+    // æ–°ã—ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’ç”Ÿæˆ
     shape = physics->createShape(
         PxCapsuleGeometry(radius, height * 0.5f), *material);
     PxTransform localPose(
@@ -130,7 +130,7 @@ void SphereCollider::UpdateShape()
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
 
-    // ŒÃ‚¢ƒVƒFƒCƒv‚ðíœ
+    // å¤ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’å‰Šé™¤
     if (shape)
     {
         rigidActor->detachShape(*shape);
@@ -138,7 +138,7 @@ void SphereCollider::UpdateShape()
         shape = nullptr;
     }
 
-    // V‚µ‚¢ƒVƒFƒCƒv‚ð¶¬
+    // æ–°ã—ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’ç”Ÿæˆ
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
     shape->setLocalPose(PxTransform(PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))));
@@ -192,7 +192,7 @@ void MeshCollider::UpdateShape()
         std::vector<PxVec3> vertices;
         for (const Model::Vertex& v : mesh.vertices)
         {
-            // ƒm[ƒh‚Ìƒ[ƒ‹ƒhs—ñ‚ð“K—p
+            // ãƒŽãƒ¼ãƒ‰ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã‚’é©ç”¨
             Vector3 pos = Vector3::Transform(v.position, mesh.node->worldTransform);
             vertices.push_back(PxVec3(pos.x, pos.y, pos.z));
         }

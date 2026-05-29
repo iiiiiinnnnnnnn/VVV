@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Common.h"
 #include "Model.h"
@@ -49,31 +49,31 @@ private:
 	};;
 	struct CbLightManager {
 		CbDirectionalLight directionalLight;
-		CbPointLight pointLights[LightManager::MaxPointLights];
-		CbSpotLight spotLights[LightManager::MaxSpotLights];
+		CbPointLight pointLights[LightData::MaxPointLights];
+		CbSpotLight spotLights[LightData::MaxSpotLights];
 		Color ambientColor;
 		unsigned int pointLightCount;
 		unsigned int spotLightCount;
 		float DUMMY;
 		float DUMMY;
 		CbLightManager() {}
-		CbLightManager(const LightManager* lm) {
-			directionalLight.direction = lm->GetDirectionalLight().direction;
-			directionalLight.color = lm->GetDirectionalLight().color;
-			for (int i = 0; i < LightManager::MaxPointLights; i++) {
-				pointLights[i].position = lm->GetPointLights()[i].position;
-				pointLights[i].range = lm->GetPointLights()[i].range;
-				pointLights[i].color = lm->GetPointLights()[i].color;
+		CbLightManager(const LightData& lm) {
+			directionalLight.direction = lm.GetDirectionalLight().direction;
+			directionalLight.color = lm.GetDirectionalLight().color;
+			for (int i = 0; i < LightData::MaxPointLights; i++) {
+				pointLights[i].position = lm.GetPointLights()[i].position;
+				pointLights[i].range = lm.GetPointLights()[i].range;
+				pointLights[i].color = lm.GetPointLights()[i].color;
 			}
-			for (int i = 0; i < LightManager::MaxSpotLights; i++) {
-				spotLights[i].position = lm->GetSpotLights()[i].position;
-				spotLights[i].direction = lm->GetSpotLights()[i].direction;
-				spotLights[i].range = lm->GetSpotLights()[i].range;
-				spotLights[i].innerConeAngle = lm->GetSpotLights()[i].innerConeAngle;
-				spotLights[i].outerConeAngle = lm->GetSpotLights()[i].outerConeAngle;
-				spotLights[i].color = lm->GetSpotLights()[i].color;
+			for (int i = 0; i < LightData::MaxSpotLights; i++) {
+				spotLights[i].position = lm.GetSpotLights()[i].position;
+				spotLights[i].direction = lm.GetSpotLights()[i].direction;
+				spotLights[i].range = lm.GetSpotLights()[i].range;
+				spotLights[i].innerConeAngle = lm.GetSpotLights()[i].innerConeAngle;
+				spotLights[i].outerConeAngle = lm.GetSpotLights()[i].outerConeAngle;
+				spotLights[i].color = lm.GetSpotLights()[i].color;
 			}
-			ambientColor = lm->GetAmbientColor();
+			ambientColor = lm.GetAmbientColor();
 		}
 	};
 	struct CbScene

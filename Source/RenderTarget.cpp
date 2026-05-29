@@ -1,4 +1,4 @@
-#include "RenderTarget.h"
+ï»¿#include "RenderTarget.h"
 #include "Misc.h"
 
 RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format)
@@ -6,7 +6,7 @@ RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_F
 {
     HRESULT hr;
 
-    // ƒJƒ‰[ƒeƒNƒXƒ`ƒƒiRTV + SRV Œ“—pj
+    // ã‚«ãƒ©ãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ï¼ˆRTV + SRV å…¼ç”¨ï¼‰
     {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
         D3D11_TEXTURE2D_DESC desc = {};
@@ -28,7 +28,7 @@ RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_F
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
-    // [“xƒXƒeƒ“ƒVƒ‹ƒeƒNƒXƒ`ƒƒ
+    // æ·±åº¦ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ãƒ†ã‚¯ã‚¹ãƒãƒ£
     {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
         D3D11_TEXTURE2D_DESC desc = {};
@@ -47,7 +47,7 @@ RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_F
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
-    // ƒrƒ…[ƒ|[ƒg
+    // ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆ
     viewport.Width = static_cast<float>(width);
     viewport.Height = static_cast<float>(height);
     viewport.MinDepth = 0.0f;
@@ -58,19 +58,19 @@ RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_F
 
 void RenderTarget::Activate(ID3D11DeviceContext* dc)
 {
-    // Œ»İ‚ÌRTEƒrƒ…[ƒ|[ƒg‚ğ‘Ş”ğ
+    // ç¾åœ¨ã®RTãƒ»ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆã‚’é€€é¿
     UINT numVp = 1;
     dc->RSGetViewports(&numVp, &prevViewport);
     dc->OMGetRenderTargets(1, prevRtv.ReleaseAndGetAddressOf(), prevDsv.ReleaseAndGetAddressOf());
 
-    // ‚±‚ÌRT‚ÉØ‚è‘Ö‚¦
+    // ã“ã®RTã«åˆ‡ã‚Šæ›¿ãˆ
     dc->RSSetViewports(1, &viewport);
     dc->OMSetRenderTargets(1, rtv.GetAddressOf(), dsv.Get());
 }
 
 void RenderTarget::Deactivate(ID3D11DeviceContext* dc)
 {
-    // ‘Ş”ğ‚µ‚Ä‚¢‚½RT‚É–ß‚·
+    // é€€é¿ã—ã¦ã„ãŸRTã«æˆ»ã™
     dc->RSSetViewports(1, &prevViewport);
     dc->OMSetRenderTargets(1, prevRtv.GetAddressOf(), prevDsv.Get());
 

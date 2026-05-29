@@ -1,17 +1,17 @@
-#include "Misc.h"
+ï»¿#include "Misc.h"
 #include "GpuResourceUtils.h"
 #include "ShapeRenderer.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 {
-	// “ü—ÍƒŒƒCƒAƒEƒg
+	// å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
 	D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
-	// ’¸“_ƒVƒF[ƒ_[
+	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/ShapeRendererVS.cso",
@@ -20,35 +20,35 @@ ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
-	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
+	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/ShapeRendererPS.cso",
 		pixelShader.GetAddressOf());
 
-	// ’è”ƒoƒbƒtƒ@
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbMesh),
 		constantBuffer.GetAddressOf());
 
-	// ” ƒƒbƒVƒ…¶¬
+	// ç®±ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateBoxMesh(device, 1.0f, 1.0f, 1.0f);
 
-	// ‹…ƒƒbƒVƒ…¶¬
+	// çƒãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateSphereMesh(device, 1.0f, 32);
 
-	// ”¼‹…ƒƒbƒVƒ…¶¬
+	// åŠçƒãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateHalfSphereMesh(device, 1.0f, 32);
 
-	// ‰~’ŒƒƒbƒVƒ…¶¬
+	// å††æŸ±ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateCylinderMesh(device, 1.0f, 1.0f, -0.5f, 1.0f, 32);
 
-	// œƒƒbƒVƒ…¶¬
+	// éª¨ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateBoneMesh(device, 1.0f);
 }
 
-// ” •`‰æ
+// ç®±æç”»
 void ShapeRenderer::DrawBox(
 	const Vector3& position,
 	const Vector3& angle,
@@ -65,7 +65,7 @@ void ShapeRenderer::DrawBox(
 	DirectX::XMStoreFloat4x4(&instance.worldTransform, S * R * T);
 }
 
-// ‹…•`‰æ
+// çƒæç”»
 void ShapeRenderer::DrawSphere(
 	const Vector3& position,
 	float radius,
@@ -80,7 +80,7 @@ void ShapeRenderer::DrawSphere(
 	DirectX::XMStoreFloat4x4(&instance.worldTransform, S * T);
 }
 
-// ƒJƒvƒZƒ‹•`‰æ
+// ã‚«ãƒ—ã‚»ãƒ«æç”»
 void ShapeRenderer::DrawCapsule(
 	const Matrix& transform,
 	float radius,
@@ -89,7 +89,7 @@ void ShapeRenderer::DrawCapsule(
 {
 	DirectX::XMMATRIX Transform = DirectX::XMLoadFloat4x4(&transform);
 
-	// ã”¼‹…
+	// ä¸ŠåŠçƒ
 	{
 		Instance& instance = instances.emplace_back();
 		instance.mesh = &halfSphereMesh;
@@ -99,7 +99,7 @@ void ShapeRenderer::DrawCapsule(
 		DirectX::XMStoreFloat4x4(&instance.worldTransform, World);
 		instance.color = color;
 	}
-	// ‰~’Œ
+	// å††æŸ±
 	{
 		Instance& instance = instances.emplace_back();
 		instance.mesh = &cylinderMesh;
@@ -111,7 +111,7 @@ void ShapeRenderer::DrawCapsule(
 		DirectX::XMStoreFloat4x4(&instance.worldTransform, World);
 		instance.color = color;
 	}
-	// ‰º”¼‹…
+	// ä¸‹åŠçƒ
 	{
 		Instance& instance = instances.emplace_back();
 		instance.mesh = &halfSphereMesh;
@@ -128,7 +128,7 @@ void ShapeRenderer::DrawCapsule(
 	}
 }
 
-// œ•`‰æ
+// éª¨æç”»
 void ShapeRenderer::DrawBone(
 	const Matrix& transform,
 	float length,
@@ -145,7 +145,7 @@ void ShapeRenderer::DrawBone(
 	DirectX::XMStoreFloat4x4(&instance.worldTransform, W);
 }
 
-// ƒƒbƒVƒ…¶¬
+// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh)
 {
 	D3D11_BUFFER_DESC desc = {};
@@ -166,7 +166,7 @@ void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<Vector3>&
 	mesh.vertexCount = static_cast<UINT>(vertices.size());
 }
 
-// ” ƒƒbƒVƒ…ì¬
+// ç®±ãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 void ShapeRenderer::CreateBoxMesh(ID3D11Device* device, float width, float height, float depth)
 {
 	Vector3 positions[8] =
@@ -214,18 +214,18 @@ void ShapeRenderer::CreateBoxMesh(ID3D11Device* device, float width, float heigh
 	vertices.emplace_back(positions[3]);
 	vertices.emplace_back(positions[7]);
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateMesh(device, vertices, boxMesh);
 }
 
-// ‹…ƒƒbƒVƒ…ì¬
+// çƒãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int subdivisions)
 {
 	float step = DirectX::XM_2PI / subdivisions;
 
 	std::vector<Vector3> vertices;
 
-	// XZ•½–Ê
+	// XZå¹³é¢
 	for (int i = 0; i < subdivisions; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -238,7 +238,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 			p.z = cosf(theta) * radius;
 		}
 	}
-	// XY•½–Ê
+	// XYå¹³é¢
 	for (int i = 0; i < subdivisions; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -251,7 +251,7 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 			p.z = 0.0f;
 		}
 	}
-	// YZ•½–Ê
+	// YZå¹³é¢
 	for (int i = 0; i < subdivisions; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -265,18 +265,18 @@ void ShapeRenderer::CreateSphereMesh(ID3D11Device* device, float radius, int sub
 		}
 	}
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateMesh(device, vertices, sphereMesh);
 }
 
-// ”¼‹…ƒƒbƒVƒ…ì¬
+// åŠçƒãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int subdivisions)
 {
 	std::vector<Vector3> vertices;
 
 	float theta_step = DirectX::XM_2PI / subdivisions;
 
-	// XZ•½–Ê
+	// XZå¹³é¢
 	for (int i = 0; i < subdivisions; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -290,7 +290,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 			v.z = cosf(theta) * radius;
 		}
 	}
-	// XY•½–Ê
+	// XYå¹³é¢
 	for (int i = 0; i < subdivisions / 2; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -304,7 +304,7 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 			v.z = 0.0f;
 		}
 	}
-	// YZ•½–Ê
+	// YZå¹³é¢
 	for (int i = 0; i < subdivisions / 2; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -319,18 +319,18 @@ void ShapeRenderer::CreateHalfSphereMesh(ID3D11Device* device, float radius, int
 		}
 	}
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateMesh(device, vertices, halfSphereMesh);
 }
 
-// ‰~’Œ
+// å††æŸ±
 void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, float radius2, float start, float height, int subdivisions)
 {
 	std::vector<Vector3> vertices;
 
 	float theta_step = DirectX::XM_2PI / subdivisions;
 
-	// XZ•½–Ê
+	// XZå¹³é¢
 	for (int i = 0; i < subdivisions; ++i)
 	{
 		for (int j = 0; j < 2; ++j)
@@ -357,14 +357,14 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 			v.z = cosf(theta) * radius2;
 		}
 	}
-	// XY•½–Ê
+	// XYå¹³é¢
 	{
 		vertices.emplace_back(Vector3(0.0f, start, radius1));
 		vertices.emplace_back(Vector3(0.0f, start + height, radius2));
 		vertices.emplace_back(Vector3(0.0f, start, -radius1));
 		vertices.emplace_back(Vector3(0.0f, start + height, -radius2));
 	}
-	// YZ•½–Ê
+	// YZå¹³é¢
 	{
 		vertices.emplace_back(Vector3(radius1, start, 0.0f));
 		vertices.emplace_back(Vector3(radius2, start + height, 0.0f));
@@ -372,11 +372,11 @@ void ShapeRenderer::CreateCylinderMesh(ID3D11Device* device, float radius1, floa
 		vertices.emplace_back(Vector3(-radius2, start + height, 0.0f));
 	}
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateMesh(device, vertices, cylinderMesh);
 }
 
-// œƒƒbƒVƒ…ì¬
+// éª¨ãƒ¡ãƒƒã‚·ãƒ¥ä½œæˆ
 void ShapeRenderer::CreateBoneMesh(ID3D11Device* device, float length)
 {
 	float width = length * 0.25f;
@@ -421,51 +421,51 @@ void ShapeRenderer::CreateBoneMesh(ID3D11Device* device, float length)
 	vertices.emplace_back(positions[5]);
 	vertices.emplace_back(positions[1]);
 
-	// ƒƒbƒVƒ…¶¬
+	// ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆ
 	CreateMesh(device, vertices, boneMesh);
 }
 
-// •`‰æÀs
+// æç”»å®Ÿè¡Œ
 void ShapeRenderer::Render(
 	ID3D11DeviceContext* dc,
 	const Matrix& view,
 	const Matrix& projection)
 {
-	// ƒVƒF[ƒ_[İ’è
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼è¨­å®š
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(inputLayout.Get());
 
-	// ’è”ƒoƒbƒtƒ@İ’è
+	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®š
 	dc->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-	// ƒrƒ…[ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñì¬
+	// ãƒ“ãƒ¥ãƒ¼ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ä½œæˆ
 	DirectX::XMMATRIX V = DirectX::XMLoadFloat4x4(&view);
 	DirectX::XMMATRIX P = DirectX::XMLoadFloat4x4(&projection);
 	DirectX::XMMATRIX VP = V * P;
 
-	// ƒvƒŠƒ~ƒeƒBƒuİ’è
+	// ãƒ—ãƒªãƒŸãƒ†ã‚£ãƒ–è¨­å®š
 	UINT stride = sizeof(Vector3);
 	UINT offset = 0;
 	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	for (const Instance& instance : instances)
 	{
-		// ’¸“_ƒoƒbƒtƒ@İ’è
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
 		dc->IASetVertexBuffers(0, 1, instance.mesh->vertexBuffer.GetAddressOf(), &stride, &offset);
 
-		// ƒ[ƒ‹ƒhƒrƒ…[ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñì¬
+		// ãƒ¯ãƒ¼ãƒ«ãƒ‰ãƒ“ãƒ¥ãƒ¼ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ä½œæˆ
 		DirectX::XMMATRIX W = DirectX::XMLoadFloat4x4(&instance.worldTransform);
 		DirectX::XMMATRIX WVP = W * VP;
 
-		// ’è”ƒoƒbƒtƒ@XV
+		// å®šæ•°ãƒãƒƒãƒ•ã‚¡æ›´æ–°
 		CbMesh cbMesh;
 		DirectX::XMStoreFloat4x4(&cbMesh.worldViewProjection, WVP);
 		cbMesh.color = instance.color;
 
 		dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cbMesh, 0, 0);
 
-		// •`‰æ
+		// æç”»
 		dc->Draw(instance.mesh->vertexCount, 0);
 	}
 	instances.clear();

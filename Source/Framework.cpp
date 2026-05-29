@@ -1,4 +1,4 @@
-// Framework.cpp
+ï»¿// Framework.cpp
 
 #include <memory>
 #include <sstream>
@@ -14,14 +14,14 @@
 #include "ModelViewerScene.h"
 
 
-// ‚’¼“¯ŠúŠÔŠuİ’è
+// å‚ç›´åŒæœŸé–“éš”è¨­å®š
 static const int syncInterval = 1;
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
-	// ƒVƒtƒgƒL[‚ª‰Ÿ‚³‚ê‚Ä‚¢‚éê‡‚ÍƒRƒ“ƒ\[ƒ‹‚ğ•\¦
+	// ã‚·ãƒ•ãƒˆã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¦ã„ã‚‹å ´åˆã¯ã‚³ãƒ³ã‚½ãƒ¼ãƒ«ã‚’è¡¨ç¤º
 #if _DEBUG
 	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
 	{
@@ -31,75 +31,71 @@ Framework::Framework(HWND hWnd)
 	}
 #endif
 
-	// “ü—Í‰Šú‰»
+	// å…¥åŠ›åˆæœŸåŒ–
 	Input::Instance().Initialize(hWnd);
 
-	// ƒOƒ‰ƒtƒBƒbƒNƒX‰Šú‰»
+	// ã‚°ãƒ©ãƒ•ã‚£ãƒƒã‚¯ã‚¹åˆæœŸåŒ–
 	Graphics::Instance().Initialize(hWnd);
 
-	// IMGUI‰Šú‰»
+	// IMGUIåˆæœŸåŒ–
 	ImGuiRenderer::Initialize(hWnd, Graphics::Instance().GetDevice(), Graphics::Instance().GetDeviceContext());
 
-	// •¨—ƒ}ƒl[ƒWƒƒ‰Šú‰»
+	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£åˆæœŸåŒ–
 	PhysicsManager::Instance().Initialize();
 
-	// ƒV[ƒ“‰Šú‰»
+	// ã‚·ãƒ¼ãƒ³åˆæœŸåŒ–
 	scene = std::make_unique<ModelViewerScene>();
 }
 
-// ƒfƒXƒgƒ‰ƒNƒ^
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Framework::~Framework()
 {
-	// IMGUII—¹‰»
+	// IMGUIçµ‚äº†åŒ–
 	ImGuiRenderer::Finalize();
 
-	// ƒV[ƒ“I—¹‰»
+	// ã‚·ãƒ¼ãƒ³çµ‚äº†åŒ–
 	scene.reset();
 
-	// •¨—ƒ}ƒl[ƒWƒƒI—¹‰»
+	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£çµ‚äº†åŒ–
 	PhysicsManager::Instance().Finalize();
 }
 
-// XVˆ—
+// æ›´æ–°å‡¦ç†
 void Framework::Update(float elapsedTime)
 {
-	// “ü—ÍXVˆ—
+	// å…¥åŠ›æ›´æ–°å‡¦ç†
 	Input::Instance().Update();
 
-	// IMGUIƒtƒŒ[ƒ€ŠJnˆ—	
+	// IMGUIãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†	
 	ImGuiRenderer::NewFrame();
 
-	// ƒV[ƒ“XVˆ—
+	// ã‚·ãƒ¼ãƒ³æ›´æ–°å‡¦ç†
 	scene->Update(elapsedTime);
 }
 
-// •`‰æˆ—
+// æç”»å‡¦ç†
 void Framework::Render(float elapsedTime)
 {
 	ID3D11DeviceContext* dc = Graphics::Instance().GetDeviceContext();
 
-	// ‰æ–ÊƒNƒŠƒA
+	// ç”»é¢ã‚¯ãƒªã‚¢
 	Graphics::Instance().Clear(0.5f, 0.5f, 0.5f, 1);
 
-	// ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgİ’è
+	// ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š
 	Graphics::Instance().SetRenderTargets();
 
-	// ƒV[ƒ“•`‰æˆ—
+	// ã‚·ãƒ¼ãƒ³é€šå¸¸æç”»ï¼†GUIæç”»å‡¦ç†
+	// GUIæç”»ã‚‚Sceneã«ä»»ã›ã¡ã‚ƒã†ãŠ(rcæ‹¾ãˆã‚‹ã‚ˆã†ã«ã™ã‚‹ãŸã‚)
 	scene->Render(elapsedTime);
 
-#ifdef _DEBUG
-	// ƒV[ƒ“GUI•`‰æˆ—
-	scene->DrawGUI(elapsedTime);
-
-	// IMGUI•`‰æ
+	// IMGUIæç”»
 	ImGuiRenderer::Render(dc);
-#endif
 
-	// ‰æ–Ê•\¦
+	// ç”»é¢è¡¨ç¤º
 	Graphics::Instance().Present(syncInterval);
 }
 
-// ƒtƒŒ[ƒ€ƒŒ[ƒgŒvZ
+// ãƒ•ãƒ¬ãƒ¼ãƒ ãƒ¬ãƒ¼ãƒˆè¨ˆç®—
 void Framework::CalculateFrameStats()
 {
 	// Code computes the average frames per second, and also the 
@@ -126,7 +122,7 @@ void Framework::CalculateFrameStats()
 	}
 }
 
-// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒ‹[ƒv
+// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãƒ«ãƒ¼ãƒ—
 int Framework::Run()
 {
 	MSG msg = {};
@@ -151,7 +147,7 @@ int Framework::Run()
 	return static_cast<int>(msg.wParam);
 }
 
-// ƒƒbƒZ[ƒWƒnƒ“ƒhƒ‰
+// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒãƒ³ãƒ‰ãƒ©
 LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGuiRenderer::HandleMessage(hWnd, msg, wParam, lParam))

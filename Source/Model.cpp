@@ -1,4 +1,4 @@
-// Model.cpp
+ï»¿// Model.cpp
 
 #include <filesystem>
 #include <fstream>
@@ -12,7 +12,7 @@
 #include "Model.h"
 #include <Graphics.h>
 
-#if 1 // ƒVƒŠƒAƒ‰ƒCƒY•Â‚¶‚é—p
+#if 1 // ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºé–‰ã˜ã‚‹ç”¨
 namespace DirectX
 {
 	template<class Archive>
@@ -185,7 +185,7 @@ void Model::Animation::serialize(Archive& archive)
 }
 #endif
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Model::Model(const char* filename, float sampleRate, bool importRawModel)
 {
 	auto device = Graphics::Instance().GetDevice();
@@ -195,14 +195,14 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 
 	std::filesystem::path extension = filepath.extension();
 
-	// “Æ©Œ`®‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì‘¶İŠm”F
+	// ç‹¬è‡ªå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®å­˜åœ¨ç¢ºèª
 	filepath.replace_extension(".cereal");
 	if (std::filesystem::exists(filepath) && !importRawModel)
 	{
-		// “Æ©Œ`®‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ
+		// ç‹¬è‡ªå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿
 		uint16_t lastWriteTime;
 		Deserialize(filepath.string().c_str(), lastWriteTime);
-		// cereal‚ªŒÃ‚¢‚È‚çAŒ³‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚©‚çÄ\’z‚·‚é
+		// cerealãŒå¤ã„ãªã‚‰ã€å…ƒã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰å†æ§‹ç¯‰ã™ã‚‹
 		if (std::filesystem::exists(filename)) {
 			uint16_t fileLastWriteTime = static_cast<uint16_t>(std::filesystem::last_write_time(filename).time_since_epoch().count());
 			if (fileLastWriteTime != lastWriteTime)
@@ -215,45 +215,45 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	}
 	else if (extension == ".gltf" || extension == ".glb")
 	{
-		// ”Ä—pƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ
+		// æ±ç”¨ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿
 		GLTFImporter importer(filename);
 
-		// ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^“Ç‚İæ‚è
+		// ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
 		importer.LoadMaterials(materials, device);
 
-		// ƒm[ƒhƒf[ƒ^“Ç‚İæ‚è
+		// ãƒãƒ¼ãƒ‰ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
 		importer.LoadNodes(nodes);
 
-		// ƒƒbƒVƒ…ƒf[ƒ^“Ç‚İæ‚è
+		// ãƒ¡ãƒƒã‚·ãƒ¥ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
 		importer.LoadMeshes(meshes, nodes);
 
-		// ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^“Ç‚İæ‚è
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
 		importer.LoadAnimations(animations, nodes, sampleRate);
 
-		// “Æ©Œ`®‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚ğ•Û‘¶
+		// ç‹¬è‡ªå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ä¿å­˜
 		//Serialize(filepath.string().c_str(), std::filesystem::last_write_time(filename).time_since_epoch().count());
-		// ª–{“–‚Í•Û‘¶‚Å‚«‚é‚¯‚ÇAƒeƒNƒXƒ`ƒƒ–„‚ß‚ß‚È‚¢‚Ì‚ª³’¼ƒLƒcƒC‚Ì‚Åglb‚Á‚ÄŒ³X‘‚¢‚µglb‚Å‚¢‚¢‚Å‚·
+		// â†‘æœ¬å½“ã¯ä¿å­˜ã§ãã‚‹ã‘ã©ã€ãƒ†ã‚¯ã‚¹ãƒãƒ£åŸ‹ã‚è¾¼ã‚ãªã„ã®ãŒæ­£ç›´ã‚­ãƒ„ã‚¤ã®ã§glbã£ã¦å…ƒã€…æ—©ã„ã—glbã§ã„ã„ã§ã™
 	}
 	else
 	{
 		_ASSERT_EXPR_A(false, "found not model file");
 	}
 
-	// ƒ}ƒeƒŠƒAƒ‹\’z
+	// ãƒãƒ†ãƒªã‚¢ãƒ«æ§‹ç¯‰
 	for (Material& material : materials)
 	{
 		if (material.baseMap == nullptr)
 		{
 			if (material.baseTextureFileName.empty())
 			{
-				// ƒ_ƒ~[ƒeƒNƒXƒ`ƒƒì¬
+				// ãƒ€ãƒŸãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ä½œæˆ
 				HRESULT hr = GpuResourceUtils::CreateDummyTexture(device, 0xFFFFFFFF,
 					material.baseMap.GetAddressOf());
 				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 			}
 			else
 			{
-				// ƒx[ƒXƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+				// ãƒ™ãƒ¼ã‚¹ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 				std::filesystem::path diffuseTexturePath(dirpath / material.baseTextureFileName);
 				HRESULT hr = GpuResourceUtils::LoadTexture(device, diffuseTexturePath.string().c_str(),
 					material.baseMap.GetAddressOf());
@@ -265,14 +265,14 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		{
 			if (material.normalTextureFileName.empty())
 			{
-				// –@üƒ_ƒ~[ƒeƒNƒXƒ`ƒƒì¬
+				// æ³•ç·šãƒ€ãƒŸãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ä½œæˆ
 				HRESULT hr = GpuResourceUtils::CreateDummyTexture(device, 0xFFFF7F7F,
 					material.normalMap.GetAddressOf());
 				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 			}
 			else
 			{
-				// –@üƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+				// æ³•ç·šãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 				std::filesystem::path texturePath(dirpath / material.normalTextureFileName);
 				HRESULT hr = GpuResourceUtils::LoadTexture(device, texturePath.string().c_str(),
 					material.normalMap.GetAddressOf());
@@ -281,12 +281,12 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		}
 	}
 
-	// ƒm[ƒh\’z
+	// ãƒãƒ¼ãƒ‰æ§‹ç¯‰
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
 	{
 		Node& node = nodes.at(nodeIndex);
 
-		// eqŠÖŒW‚ğ\’z
+		// è¦ªå­é–¢ä¿‚ã‚’æ§‹ç¯‰
 		node.parent = node.parentIndex >= 0 ? &nodes.at(node.parentIndex) : nullptr;
 		if (node.parent != nullptr)
 		{
@@ -294,16 +294,16 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		}
 	}
 
-	// ƒƒbƒVƒ…\’z
+	// ãƒ¡ãƒƒã‚·ãƒ¥æ§‹ç¯‰
 	for (Mesh& mesh : meshes)
 	{
-		// QÆƒ}ƒeƒŠƒAƒ‹İ’è
+		// å‚ç…§ãƒãƒ†ãƒªã‚¢ãƒ«è¨­å®š
 		mesh.material = &materials.at(mesh.materialIndex);
 
-		// QÆƒm[ƒhİ’è
+		// å‚ç…§ãƒãƒ¼ãƒ‰è¨­å®š
 		mesh.node = &nodes.at(mesh.nodeIndex);
 
-		// ’¸“_ƒoƒbƒtƒ@
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
 		{
 			D3D11_BUFFER_DESC bufferDesc = {};
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
@@ -322,7 +322,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@
+		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡
 		{
 			D3D11_BUFFER_DESC bufferDesc = {};
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
@@ -340,21 +340,21 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ƒ{[ƒ“\’z
+		// ãƒœãƒ¼ãƒ³æ§‹ç¯‰
 		for (Bone& bone : mesh.bones)
 		{
-			// QÆƒm[ƒhİ’è
+			// å‚ç…§ãƒãƒ¼ãƒ‰è¨­å®š
 			bone.node = &nodes.at(bone.nodeIndex);
 		}
 	}
 
-	// s—ñ‰Šú‰»
+	// è¡Œåˆ—åˆæœŸåŒ–
 	DirectX::XMFLOAT4X4 worldTransform;
 	DirectX::XMStoreFloat4x4(&worldTransform, DirectX::XMMatrixIdentity());
 	UpdateTransform(worldTransform);
 }
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“’Ç‰Á“Ç‚İ‚İ
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¿½åŠ èª­ã¿è¾¼ã¿
 void Model::AppendAnimations(const char* filename)
 {
 	std::filesystem::path filepath(filename);
@@ -364,20 +364,20 @@ void Model::AppendAnimations(const char* filename)
 	{
 		GLTFImporter importer(filename);
 
-		// ƒAƒjƒ[ƒVƒ‡ƒ“ƒtƒ@ƒCƒ‹‘¤‚Ìƒm[ƒh‚ğæ“¾
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ•ã‚¡ã‚¤ãƒ«å´ã®ãƒãƒ¼ãƒ‰ã‚’å–å¾—
 		std::vector<Node> animNodes;
 		importer.LoadNodes(animNodes);
 
-		// ƒAƒjƒ[ƒVƒ‡ƒ“‚ğƒAƒjƒƒtƒ@ƒCƒ‹‚Ìƒm[ƒhŠî€‚Å“Ç‚İ‚Ş
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ã‚¢ãƒ‹ãƒ¡ãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒ¼ãƒ‰åŸºæº–ã§èª­ã¿è¾¼ã‚€
 		std::vector<Animation> newAnims;
 		importer.LoadAnimations(newAnims, animNodes);
 
-		// ƒ‚ƒfƒ‹‘¤‚Ìƒm[ƒh–¼¨ƒCƒ“ƒfƒbƒNƒX‚Ìƒ}ƒbƒvì¬
+		// ãƒ¢ãƒ‡ãƒ«å´ã®ãƒãƒ¼ãƒ‰åâ†’ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ãƒãƒƒãƒ—ä½œæˆ
 		std::unordered_map<std::string, int> modelNodeMap;
 		for (int i = 0; i < (int)nodes.size(); ++i)
 			modelNodeMap[nodes[i].name] = i;
 
-		// nodeAnims‚ğƒ‚ƒfƒ‹‚Ìƒm[ƒh‡‚É•À‚×‘Ö‚¦‚é
+		// nodeAnimsã‚’ãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰é †ã«ä¸¦ã¹æ›¿ãˆã‚‹
 		for (Animation& anim : newAnims)
 		{
 			Animation remapped;
@@ -386,7 +386,7 @@ void Model::AppendAnimations(const char* filename)
 			remapped.secondsLength = anim.secondsLength;
 			remapped.nodeAnims.resize(nodes.size());
 
-			// ‚Ü‚¸ƒ‚ƒfƒ‹‚Ìƒm[ƒh‚Ì‰Šúp¨‚Å‰Šú‰»
+			// ã¾ãšãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰ã®åˆæœŸå§¿å‹¢ã§åˆæœŸåŒ–
 			for (int i = 0; i < (int)nodes.size(); ++i)
 			{
 				Model::VectorKeyframe pk;
@@ -411,7 +411,7 @@ void Model::AppendAnimations(const char* filename)
 				remapped.nodeAnims[i].scaleKeyframes.push_back(sk);
 			}
 
-			// ƒAƒjƒ[ƒVƒ‡ƒ“ƒm[ƒh‚ğƒ‚ƒfƒ‹‚Ìƒm[ƒhƒCƒ“ƒfƒbƒNƒX‚É‘Î‰•t‚¯
+			// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ¼ãƒ‰ã‚’ãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã«å¯¾å¿œä»˜ã‘
 			for (int animIdx = 0; animIdx < (int)animNodes.size(); ++animIdx)
 			{
 				auto it = modelNodeMap.find(animNodes[animIdx].name);
@@ -429,7 +429,7 @@ void Model::AppendAnimations(const char* filename)
 	}
 }
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“ƒCƒ“ƒfƒbƒNƒXæ“¾
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
 int Model::GetAnimationIndex(const char* name) const
 {
 	for (size_t animationIndex = 0; animationIndex < animations.size(); ++animationIndex)
@@ -445,7 +445,7 @@ int Model::GetAnimationIndex(const char* name) const
 	return -1;
 }
 
-// ƒm[ƒhƒCƒ“ƒfƒbƒNƒXæ“¾
+// ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
 int Model::GetNodeIndex(const char* name) const
 {
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
@@ -458,20 +458,20 @@ int Model::GetNodeIndex(const char* name) const
 	return -1;
 }
 
-// ƒgƒ‰ƒ“ƒXƒtƒH[ƒ€XVˆ—
+// ãƒˆãƒ©ãƒ³ã‚¹ãƒ•ã‚©ãƒ¼ãƒ æ›´æ–°å‡¦ç†
 void Model::UpdateTransform(const Matrix& worldTransform)
 {
 	Matrix ParentWorldTransform = worldTransform;
 
 	for (Node& node : nodes)
 	{
-		// ƒ[ƒJƒ‹s—ñZo
+		// ãƒ­ãƒ¼ã‚«ãƒ«è¡Œåˆ—ç®—å‡º
 		Matrix S = Matrix::CreateScale(node.scale);
 		Matrix R = Matrix::CreateFromQuaternion(node.rotation);
 		Matrix T = Matrix::CreateTranslation(node.position);
 		Matrix LocalTransform = S * R * T;
 
-		// ƒOƒ[ƒoƒ‹s—ñZo
+		// ã‚°ãƒ­ãƒ¼ãƒãƒ«è¡Œåˆ—ç®—å‡º
 		Matrix ParentGlobalTransform;
 		if (node.parent != nullptr)
 		{
@@ -483,10 +483,10 @@ void Model::UpdateTransform(const Matrix& worldTransform)
 		}
 		Matrix GlobalTransform = LocalTransform * ParentGlobalTransform;
 
-		// ƒ[ƒ‹ƒhs—ñZo
+		// ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ç®—å‡º
 		Matrix WorldTransform = GlobalTransform * ParentWorldTransform;
 
-		// ŒvZŒ‹‰Ê‚ğŠi”[
+		// è¨ˆç®—çµæœã‚’æ ¼ç´
 		node.localTransform = LocalTransform;
 		node.globalTransform = GlobalTransform;
 		node.worldTransform = WorldTransform;
@@ -498,54 +498,54 @@ void Model::ComputeAnimation(int animationIndex, int nodeIndex, float time, Node
 	const Animation& animation = animations.at(animationIndex);
 	const NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
 
-	// ˆÊ’u
+	// ä½ç½®
 	for (size_t index = 0; index < nodeAnim.positionKeyframes.size() - 1; ++index)
 	{
-		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
+		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
 		const VectorKeyframe& keyframe0 = nodeAnim.positionKeyframes.at(index);
 		const VectorKeyframe& keyframe1 = nodeAnim.positionKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
+			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
+			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
 			nodePose.position = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
-	// ‰ñ“]
+	// å›è»¢
 	for (size_t index = 0; index < nodeAnim.rotationKeyframes.size() - 1; ++index)
 	{
-		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
+		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
 		const QuaternionKeyframe& keyframe0 = nodeAnim.rotationKeyframes.at(index);
 		const QuaternionKeyframe& keyframe1 = nodeAnim.rotationKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
+			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
+			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
 			nodePose.rotation = Quaternion::Slerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
-	// ƒXƒP[ƒ‹
+	// ã‚¹ã‚±ãƒ¼ãƒ«
 	for (size_t index = 0; index < nodeAnim.scaleKeyframes.size() - 1; ++index)
 	{
-		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
+		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
 		const VectorKeyframe& keyframe0 = nodeAnim.scaleKeyframes.at(index);
 		const VectorKeyframe& keyframe1 = nodeAnim.scaleKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
+			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
+			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
 			nodePose.scale = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
 }
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“ŒvZ
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—
 void Model::ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const
 {
 	if (nodePoses.size() != nodes.size())
@@ -558,7 +558,7 @@ void Model::ComputeAnimation(int animationIndex, float time, std::vector<NodePos
 	}
 }
 
-// ƒm[ƒhƒ|[ƒYİ’è
+// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºè¨­å®š
 void Model::SetNodePoses(const std::vector<NodePose>& nodePoses)
 {
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
@@ -572,7 +572,7 @@ void Model::SetNodePoses(const std::vector<NodePose>& nodePoses)
 	}
 }
 
-// ƒm[ƒhƒ|[ƒYæ“¾
+// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºå–å¾—
 void Model::GetNodePoses(std::vector<NodePose>& nodePoses) const
 {
 	if (nodePoses.size() != nodes.size())
@@ -590,7 +590,7 @@ void Model::GetNodePoses(std::vector<NodePose>& nodePoses) const
 	}
 }
 
-// ƒVƒŠƒAƒ‰ƒCƒY
+// ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 void Model::Serialize(const char* filename, uint16_t lastWrite)
 {
 	std::ofstream ostream(filename, std::ios::binary);
@@ -615,7 +615,7 @@ void Model::Serialize(const char* filename, uint16_t lastWrite)
 	}
 }
 
-// ƒfƒVƒŠƒAƒ‰ƒCƒY
+// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
 void Model::Deserialize(const char* filename, uint16_t& lastWrite)
 {
 	std::ifstream istream(filename, std::ios::binary);

@@ -1,24 +1,25 @@
-// Stage00.cpp
+ï»¿// Stage00.cpp
 
 #include "Stage00.h"
 #include "ResourceManager.h"
 
 Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 {
-	std::shared_ptr<Model> model = ResourceManager::Instance().LoadModel("Data/Model/Stage/Stage00.glb");
+	std::shared_ptr<Model> model =
+		ResourceManager::Instance().LoadModel("Data/Model/Stage/Stage00.glb");
 
 	transform = Transform::FromScale(100);
 
 	model->UpdateTransform(transform.matrix);
 
-	// Rigidbody¶¬
+	// Rigidbodyç”Ÿæˆ
 	auto* rb = AddComponent<RigidbodyStatic>();
 
-	// ƒRƒ‰ƒCƒ_[¶¬
+	// ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ç”Ÿæˆ
 	AddComponent<MeshCollider>(rb, model.get());
 
-	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
-	AddComponent<ModelRenderComponent>(model);
+	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
+	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, &shaderParam);
 }
 
 void Stage00::OnUpdate(float elapsedTime)
@@ -29,4 +30,11 @@ void Stage00::OnUpdate(float elapsedTime)
 void Stage00::OnRender(const RenderContext& rc, float elapsedTime)
 {
 
+}
+
+void Stage00::OnDrawGUI(float elapsedTime)
+{
+	ImGui::DragFloat("Metalness", &shaderParam.metalness, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Roughness", &shaderParam.roughness, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Occlusion Strength", &shaderParam.occlusionStrength, 0.01f, 0.0f, 5.0f);
 }

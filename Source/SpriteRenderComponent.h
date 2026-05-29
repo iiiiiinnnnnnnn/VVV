@@ -1,4 +1,4 @@
-// SpriteRenderComponent.h
+﻿// SpriteRenderComponent.h
 
 #pragma once
 

@@ -270,6 +270,12 @@
     <ClCompile Include="Source\Texture.cpp">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ShadowMapRenderer.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SkyBoxRenderer.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -297,9 +303,6 @@
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderContext.h">
-      <Filter>ソースファイル\システム%28基底%29\描画</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Light.h">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\ImGuiRenderer.h">
@@ -473,6 +476,12 @@
     <ClInclude Include="Source\Texture.h">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ShadowMapRenderer.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SkyBoxRenderer.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -505,6 +514,9 @@
     <None Include="Shader\Scene.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
+    <None Include="Shader\ShadowmapCaster.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
     <None Include="Shader\ShadingFunctions.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
@@ -513,10 +525,10 @@
     <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\PBR_VS.hlsl">
+    <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\PBR_PS.hlsl">
+    <FxCompile Include="Shader\PBRPS.hlsl">
       <Filter>シェーダー</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicModelPS.hlsl">
@@ -541,6 +553,15 @@
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxVS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
   </ItemGroup>

@@ -1,4 +1,4 @@
-// ModelRenderComponent.cpp
+ï»¿// ModelRenderComponent.cpp
 
 #include "ModelRenderComponent.h"
 #include <Graphics.h>
@@ -18,13 +18,13 @@ void ModelRenderComponent::LateUpdate(float elapsedTime)
 
     if (appendNode)
     {
-        // worldTransform‚ğDecompose‚µ‚Ä³‹K‰»‚·‚é
+        // worldTransformã‚’Decomposeã—ã¦æ­£è¦åŒ–ã™ã‚‹
         Matrix world = appendNode->worldTransform;
         Vector3 scale, position;
         Quaternion rotation;
         world.Decompose(scale, rotation, position);
 
-        // ƒXƒP[ƒ‹‚ğ³‹K‰»i•„†‚àC³j
+        // ã‚¹ã‚±ãƒ¼ãƒ«ã‚’æ­£è¦åŒ–ï¼ˆç¬¦å·ã‚‚ä¿®æ­£ï¼‰
         Matrix normalizedWorld = Matrix::CreateFromQuaternion(rotation)
             * Matrix::CreateTranslation(position);
 
@@ -48,14 +48,14 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
     {
         if (model)
         {
-            // ƒm[ƒhƒcƒŠ[‚ğÄ‹A“I‚É•`‰æ‚·‚éŠÖ”
+            // ãƒãƒ¼ãƒ‰ãƒ„ãƒªãƒ¼ã‚’å†å¸°çš„ã«æç”»ã™ã‚‹é–¢æ•°
             std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
                 {
-                    // –îˆó‚ğƒNƒŠƒbƒNA‚Ü‚½‚Íƒm[ƒh‚ğƒ_ƒuƒ‹ƒNƒŠƒbƒN‚ÅŠK‘w‚ğŠJ‚­
+                    // çŸ¢å°ã‚’ã‚¯ãƒªãƒƒã‚¯ã€ã¾ãŸã¯ãƒãƒ¼ãƒ‰ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã§éšå±¤ã‚’é–‹ã
                     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
                         | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-                    // q‚ª‚¢‚È‚¢ê‡‚Í–îˆó‚ğ‚Â‚¯‚È‚¢
+                    // å­ãŒã„ãªã„å ´åˆã¯çŸ¢å°ã‚’ã¤ã‘ãªã„
                     size_t childCount = node->children.size();
                     if (childCount == 0)
                     {
@@ -65,7 +65,7 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
                     bool isAnyMeshHidden = false;
                     std::string meshIndices = "";
 
-                    // ‚±‚Ìƒm[ƒh‚ÉŠÖ˜A‚·‚éƒƒbƒVƒ…‚ğ’T‚·
+                    // ã“ã®ãƒãƒ¼ãƒ‰ã«é–¢é€£ã™ã‚‹ãƒ¡ãƒƒã‚·ãƒ¥ã‚’æ¢ã™
                     for (int i = 0; i < model->GetMeshes().size(); i++)
                     {
                         const Model::Mesh& mesh = model->GetMeshes()[i];
@@ -79,7 +79,7 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
                         }
                     }
 
-                    // ƒcƒŠ[ƒm[ƒh‚ğ•\¦
+                    // ãƒ„ãƒªãƒ¼ãƒãƒ¼ãƒ‰ã‚’è¡¨ç¤º
                     ImGui::PushStyleColor(ImGuiCol_Text,
                         IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
 
@@ -102,7 +102,7 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
                         }
                     }
 
-                    // ŠJ‚©‚ê‚Ä‚¢‚éê‡AqŠK‘w‚à“¯‚¶ˆ—‚ğs‚¤
+                    // é–‹ã‹ã‚Œã¦ã„ã‚‹å ´åˆã€å­éšå±¤ã‚‚åŒã˜å‡¦ç†ã‚’è¡Œã†
                     if (opened && childCount > 0)
                     {
                         for (Model::Node* child : node->children)
@@ -113,7 +113,7 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
                     }
                 };
 
-            // Ä‹A“I‚Éƒm[ƒh‚ğ•`‰æ
+            // å†å¸°çš„ã«ãƒãƒ¼ãƒ‰ã‚’æç”»
             drawNodeTree(model->GetRootNode());
         }
         ImGui::TreePop();
