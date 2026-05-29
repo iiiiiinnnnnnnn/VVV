@@ -8,7 +8,7 @@ GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 	// 頂点シェーダー
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/SpriteVS.cso",
+		"Data/Shader/BasicSpriteVS.cso",
 		SpriteShader::InputElementDescs.data(),
 		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
@@ -36,7 +36,7 @@ void GaussianFilterShader::Begin(const RenderContext& rc)
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 }
 
-void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, Color color, float elapsedTime)
+void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params, float elapsedTime)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -44,7 +44,9 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	CbGaussianFilter constant;
 	{
 		//	偶数の場合は奇数に直す
-		int kernel_size = params.kernel_size;
+		int kernel_size = GetParam<int>(params, "kernel_size", 20);
+		float sigma = GetParam<float>(params, "sigma", 20);
+
 		if (kernel_size % 2 == 0)
 			kernel_size++;
 
@@ -60,7 +62,7 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 			{
 				constant.weights[id].x = (float)x;
 				constant.weights[id].y = (float)y;
-				constant.weights[id].z = (float)exp(-(x * x + y * y) / (2.0f * params.sigma * params.sigma)) / (2.0f * DirectX::XM_PI * params.sigma);
+				constant.weights[id].z = (float)exp(-(x * x + y * y) / (2.0f * sigma * sigma)) / (2.0f * DirectX::XM_PI * sigma);
 				sum += constant.weights[id].z;
 				id++;
 			}

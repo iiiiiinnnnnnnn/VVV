@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Common.h"
+#include "ShaderParam.h"
 
 // Cereal
 #include <cereal/cereal.hpp>
@@ -57,6 +58,7 @@ public:
 		float				occlusionStrength = 0.0f;
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
+		ShaderParamList		shaderParams = {}; // カスタムパラメータ
 
 		// 保存しない
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;

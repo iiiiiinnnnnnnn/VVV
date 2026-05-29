@@ -79,11 +79,11 @@ protected:
 	const Vector2 idleSpineAngle = {0.8f, 0};
 	const Vector2 readySpineAngle = {-0.25f, -0.38f};
 
-	PBRShader::Params shaderParams;
-
 	float verticalVelocity = 0.0f; // 重力
 	float hp = 100.0f;
 	float speed = 5.0f;
 
 	Country country;
+
+	ShaderParamListWithMeshName shaderParamWithMeshName;
 };

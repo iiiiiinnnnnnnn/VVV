@@ -85,7 +85,7 @@ void Scene::Render(float elapsedTime)
 			graphics.GetShadowMapRenderer()->Render(
 				rc,
 				lightData.GetDirectionalLight().direction,
-				Vector3(0, 0, 0), 50.0f, 300.0f, 0.1f, 200.0f
+				Vector3(0, 0, 0), 20.0f, 100.0f, 0.01f, 200.0f
 			);
 			shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 			shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();

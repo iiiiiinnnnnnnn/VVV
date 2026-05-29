@@ -4,7 +4,7 @@
 #include <Graphics.h>
 #include "Widget.h"
 
-SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamPtr shaderParam)
+SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamList shaderParam)
 	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
 {
 	Widget* widget = dynamic_cast<Widget*>(owner);
@@ -29,23 +29,34 @@ void SpriteRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 			{ 0.0f, 0.0f },
 			{ (float)texture->GetWidth(), (float)texture->GetHeight() },
 			0.0f,
-			{ 1.0f, 1.0f, 1.0f, 1.0f },
 			shaderParam);
 	}
 }
 
 void SpriteRenderComponent::DrawGUI(float elapsedTime)
 {
-    if (ImGui::TreeNode("SpriteRenderComponent"))
-    {
-        if (texture)
-        {
+	if (ImGui::TreeNode("SpriteRenderComponent"))
+	{
+		if (texture)
+		{
 			ImGui::Text("Texture: %s", texture->GetShaderResourceView() ? "Loaded" : "Not Loaded");
 		}
 		else
 		{
 			ImGui::Text("Texture: None");
-        }
-        ImGui::TreePop();
-    }
+		}
+
+		// シェーダーパラメータ
+		if (ImGui::TreeNode("ShaderParams"))
+		{
+			for (ShaderParam& p : shaderParam)
+			{
+				std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
+			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::TreePop();
+	}
 }

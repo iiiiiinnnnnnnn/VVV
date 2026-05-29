@@ -45,93 +45,126 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 	camera.SetLookAt(eye, focus, up);
 }
 
-// 更新処理
 void FreeCameraController::OnUpdate(float elapsedTime)
 {
-	// IMGUIのマウス入力値を使ってカメラ操作する
-	ImGuiIO io = ImGui::GetIO();
+    // 1. ImGuiがマウスやキーボード入力を欲しがっている（UI操作中）ときはカメラを動かさない
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+    {
+        return;
+    }
 
-	// マウスカーソルの移動量を求める
-	float moveX = io.MouseDelta.x * 0.02f;
-	float moveY = io.MouseDelta.y * 0.02f;
+    // マウスカーソルの移動量（感度は必要に応じて調整してください）
+    float moveX = io.MouseDelta.x * 0.01f;
+    float moveY = io.MouseDelta.y * 0.01f;
 
-	// マウス左ボタン押下中
-	if (io.MouseDown[ImGuiMouseButton_Right])
-	{
-		// Y軸回転
-		angleY += moveX * 0.5f;
-		if (angleY > DirectX::XM_PI)
-		{
-			angleY -= DirectX::XM_2PI;
-		}
-		else if (angleY < -DirectX::XM_PI)
-		{
-			angleY += DirectX::XM_2PI;
-		}
-		// X軸回転
-		angleX += moveY * 0.5f;
-		if (angleX > DirectX::XM_PI)
-		{
-			angleX -= DirectX::XM_2PI;
-		}
-		else if (angleX < -DirectX::XM_PI)
-		{
-			angleX += DirectX::XM_2PI;
-		}
-	}
-	// マウス中ボタン押下中
-	else if (io.MouseDown[ImGuiMouseButton_Middle])
-	{
-		// 平行移動
-		float s = distance * 0.035f;
-		float x = moveX * s;
-		float y = moveY * s;
+    // 現在の入力状態を取得
+    bool isAltPressed = io.KeyAlt;
+    bool isShiftPressed = io.KeyShift;
+    bool isRightMouseDown = io.MouseDown[ImGuiMouseButton_Right];
+    bool isLeftMouseDown = io.MouseDown[ImGuiMouseButton_Left];
 
-		focus.x += right.x * x;
-		focus.y += right.y * x;
-		focus.z += right.z * x;
+    // ----------------------------------------------------
+    // A. カメラの回転制御
+    // ----------------------------------------------------
+    bool isOrbitMode = isAltPressed && isLeftMouseDown; // ALT + 左ドラッグ
+    bool isFPSMode = !isAltPressed && isRightMouseDown; // ALTなし + 右ドラッグ
 
-		focus.x += up.x * y;
-		focus.y += up.y * y;
-		focus.z += up.z * y;
-	}
-	// マウス右ボタン押下中
-	else if (io.MouseDown[ImGuiMouseButton_Left] && io.MouseDown[ImGuiMouseButton_Right])
-	{
-		// ズーム
-		distance += (-moveY - moveX) * distance * 0.1f;
-	}
-	// マウスホイール
-	else if (io.MouseWheel != 0)
-	{
-		// ズーム
-		distance -= io.MouseWheel * distance * 0.1f;
-	}
+    if (isOrbitMode || isFPSMode)
+    {
+        // Y軸回転（左右見渡し）
+        angleY += moveX * 0.5f;
 
-	float sx = ::sinf(angleX);
-	float cx = ::cosf(angleX);
-	float sy = ::sinf(angleY);
-	float cy = ::cosf(angleY);
+        // X軸回転（上下見渡し）
+        angleX += moveY * 0.5f;
 
-	// カメラの方向を算出
-	Vector3 Front = Vector3(-cx * sy, -sx, -cx * cy);
-	Vector3 Right = Vector3(cy, 0, -sy);
-	Vector3 Up = Right.Cross(Front);
+        // ジンバルロック（真上・真下での反転）を防ぐためにピッチ角を制限 (-89°〜 +89°)
+        const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
+        if (angleX > pitchLimit)  angleX = pitchLimit;
+        if (angleX < -pitchLimit) angleX = -pitchLimit;
 
-	// カメラの視点＆注視点を算出
-	Vector3 Focus = focus;
-	Vector3 Eye = Focus - (Front * distance);
+        // angleY の値を -PI 〜 +PI の範囲に丸める
+        if (angleY > DirectX::XM_PI)       angleY -= DirectX::XM_2PI;
+        else if (angleY < -DirectX::XM_PI) angleY += DirectX::XM_2PI;
+    }
 
-	// ビュー行列からワールド行列を算出
-	Matrix View = Matrix::CreateLookAt(Eye, Focus, Up);
-	Matrix World = DirectX::XMMatrixTranspose(View);
+    // 回転を反映した各方向ベクトルを計算
+    float sx = ::sinf(angleX);
+    float cx = ::cosf(angleX);
+    float sy = ::sinf(angleY);
+    float cy = ::cosf(angleY);
 
-	// ワールド行列から方向を算出
-	Right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
-	Up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
+    // 新しい前方・右・上ベクトル
+    Vector3 Front = Vector3(-cx * sy, -sx, -cx * cy);
+    Front.Normalize();
+    Vector3 Right = Vector3(cy, 0, -sy);
+    Right.Normalize();
+    Vector3 Up = Right.Cross(Front);
 
-	// 結果を格納
-	eye = Eye;
-	up = Up;
-	right = Right;
+    // ----------------------------------------------------
+    // B. カメラの位置・注視点移動の計算
+    // ----------------------------------------------------
+    if (isFPSMode)
+    {
+        // ALTなし右ドラッグ中のみ、WASDキーによるFPS移動を許可
+        float speed = 5.0f; // 基本移動速度（1秒間の移動距離）
+        if (isShiftPressed)
+        {
+            speed *= 3.0f; // SHIFTでダッシュ（Unityのデフォルトに近い3倍）
+        }
+
+        Vector3 moveDir = Vector3::Zero;
+
+        // ImGuiのキーマップ（ImGuiKey_Wなど）を使用して判定
+        if (ImGui::IsKeyDown(ImGuiKey_W)) moveDir += Front;
+        if (ImGui::IsKeyDown(ImGuiKey_S)) moveDir -= Front;
+        if (ImGui::IsKeyDown(ImGuiKey_A)) moveDir += Right;
+        if (ImGui::IsKeyDown(ImGuiKey_D)) moveDir -= Right;
+        if (ImGui::IsKeyDown(ImGuiKey_E)) moveDir += Up;
+        if (ImGui::IsKeyDown(ImGuiKey_Q)) moveDir -= Up;
+
+        if (moveDir.LengthSquared() > 0.0f)
+        {
+            moveDir.Normalize();
+            // 経過時間を掛けて位置（eye）を移動
+            eye += moveDir * speed * elapsedTime;
+        }
+
+        // FPSモードは「自分の位置（eye）」が主役なので、現在の向きから注視点（focus）を逆算する
+        focus = eye + (Front * distance);
+    }
+    else if (isOrbitMode)
+    {
+        // オービットモードは「注視点（focus）」が主役なので、位置（eye）を逆算する
+        eye = focus - (Front * distance);
+    }
+    else
+    {
+        // マウスホイールによるズーム（Unityはいつでもホイールズームが可能）
+        if (io.MouseWheel != 0.0f)
+        {
+            distance -= io.MouseWheel * distance * 0.1f;
+            if (distance < 0.1f) distance = 0.1f; // めり込み防止
+        }
+
+        // 通常時は注視点をベースに位置を確定
+        eye = focus - (Front * distance);
+    }
+
+    // ----------------------------------------------------
+    // C. 最終的な行列計算とパラメータ同期
+    // ----------------------------------------------------
+    Matrix View = Matrix::CreateLookAt(eye, focus, Up);
+    Matrix World = DirectX::XMMatrixTranspose(View);
+
+    // 次フレーム用に軸を更新
+    right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
+    up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
+}
+
+void FreeCameraController::OnFocusLost()
+{
+    // ウィンドウのフォーカスが外れた際、ImGuiの入力状態（押しっぱなし判定など）が
+    // 残ってカメラが暴走するのを防ぐため、内部の入力を一度リセットする
+    ImGui::GetIO().ClearEventsQueue();
 }

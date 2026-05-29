@@ -14,14 +14,6 @@ public:
 	void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) override;
 	void End(const RenderContext& rc) override;
 
-	SHADER_PARAMS
-	(
-		// PBR
-		float metalness = 0.5f;
-		float roughness = 0.5f;
-		float occlusionStrength = 1.0f;
-	);
-
 private:
 	// b0
 	struct CbShadowMap

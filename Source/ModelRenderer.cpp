@@ -29,12 +29,12 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 }
 
 // 箱描画
-void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, ShaderParamPtr shaderParam)
+void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMesh)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
 	drawInfo.model = model;
-	drawInfo.shaderParam = shaderParam;
+	drawInfo.paramsWithMesh = paramsWithMesh;
 }
 
 // 描画実行
@@ -81,7 +81,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, ShaderParamPtr shaderParam)
+	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMesh)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(Model::Vertex);
@@ -107,7 +107,10 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 		}
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
-		shader->ApplyParams(shaderParam);
+		// マテリアル名でパラメータを引いてシェーダーに渡す
+		auto it = paramsWithMesh.find(mesh.material->name);
+		const ShaderParamList& params = (it != paramsWithMesh.end()) ? it->second : ShaderParamList{};
+		shader->ApplyShaderParams(params);
 
 		// 更新
 		shader->Update(rc, mesh, elapsedTime);
@@ -138,7 +141,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
-				transparencyDrawInfo.shaderParam = drawInfo.shaderParam;
+				transparencyDrawInfo.paramsWithMesh = drawInfo.paramsWithMesh;
 				// カメラとの距離を算出
 				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
 				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
@@ -148,7 +151,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			}
 
 			// 描画
-			drawMesh(mesh, shader, drawInfo.shaderParam);
+			drawMesh(mesh, shader, drawInfo.paramsWithMesh);
 		}
 
 		shader->End(rc);
@@ -172,7 +175,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 
 		shader->Begin(rc);
 
-		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.shaderParam);
+		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.paramsWithMesh);
 
 		shader->End(rc);
 	}

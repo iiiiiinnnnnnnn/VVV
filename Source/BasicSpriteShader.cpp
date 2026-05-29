@@ -3,27 +3,19 @@
 
 BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 {
-	// 入力レイアウト
-	D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-
 	// 頂点シェーダー
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/SpriteVS.cso",
-		inputElementDesc,
-		ARRAYSIZE(inputElementDesc),
+		"Data/Shader/BasicSpriteVS.cso",
+		SpriteShader::InputElementDescs.data(),
+		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
 	// ピクセルシェーダー
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/SpritePS.cso",
+		"Data/Shader/BasicSpritePS.cso",
 		pixelShader.GetAddressOf());
 }
 
@@ -36,7 +28,7 @@ void BasicSpriteShader::Begin(const RenderContext& rc)
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 }
 
-void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, Color color, float elapsedTime)
+void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderparam, float elapsedTime)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

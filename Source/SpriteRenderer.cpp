@@ -32,15 +32,13 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	Color color,
-	ShaderParamPtr shaderParams)
+	const ShaderParamList& shaderParams)
 {
 	return BuildDrawInfo(
 		shaderId,
 		texture->GetShaderResourceView().Get(),
 		{ static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight()) },
-		dxyz, dwh, sxy, swh, angle, color,
-		shaderParams);
+		dxyz, dwh, sxy, swh, angle, shaderParams);
 }
 
 SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
@@ -52,13 +50,11 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	Color color,
-	ShaderParamPtr shaderParams)
+	const ShaderParamList& shaderParams)
 {
 	DrawInfo info = {};
 	info.shaderId = shaderId;
 	info.srv = srv;
-	info.color = color;
 	info.shaderParams = shaderParams;
 	info.textureSize = textureSize;
 
@@ -98,7 +94,6 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	for (int i = 0; i < 4; ++i)
 	{
 		info.vertices[i].position = { positions[i].x, positions[i].y, dxyz.z };
-		info.vertices[i].color = color;
 		info.vertices[i].texcoord = {
 			texcoords[i].x / textureSize.x,
 			texcoords[i].y / textureSize.y
@@ -116,10 +111,9 @@ void SpriteRenderer::Draw(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	Color color,
-	ShaderParamPtr shaderParams)
+	const ShaderParamList& shaderParams)
 {
-	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, color, shaderParams));
+	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, shaderParams));
 }
 
 void SpriteRenderer::Render(const RenderContext& rc, float elapsedTime)
@@ -176,9 +170,7 @@ void SpriteRenderer::Render(const RenderContext& rc, float elapsedTime)
 		memcpy(mapped.pData, verts, sizeof(verts));
 		dc->Unmap(vertexBuffer.Get(), 0);
 
-		// シェーダー固有パラメータを適用してから描画
-		shader->ApplyParams(call.shaderParams);
-		shader->Update(rc, call.srv.Get(), call.textureSize, call.color, elapsedTime);
+		shader->Update(rc, call.srv.Get(), call.textureSize, call.shaderParams, elapsedTime);
 
 		// 描画
 		dc->Draw(4, 0);

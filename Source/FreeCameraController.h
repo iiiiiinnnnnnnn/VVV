@@ -8,4 +8,5 @@ public:
 	void SyncCameraToController(const Camera& camera) override;
 	void SyncControllerToCamera(Camera& camera) override;
 	void OnUpdate(float elapsedTime) override;
+	void OnFocusLost() override;
 };

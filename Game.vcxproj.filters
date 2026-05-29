@@ -482,6 +482,9 @@
     <ClInclude Include="Source\SkyBoxRenderer.h">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ShaderParam.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

@@ -10,16 +10,10 @@ public:
 	~GaussianFilterShader() {}
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, Color color, float elapsedTime) override;
+	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params, float elapsedTime) override;
 	void End(const RenderContext& rc) override;
 
 	static constexpr int KernelMax = 25;
-
-	SHADER_PARAMS
-	(
-		int					kernel_size{20};
-		float				sigma{20.0f};
-	);
 
 private:
 	//	シェーダー用

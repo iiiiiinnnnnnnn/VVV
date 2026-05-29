@@ -15,5 +15,5 @@ float4 main(VS_OUT pin) : SV_TARGET
         color.rgb += texture0.Sample(sampler0, pin.texcoord + offset).rgb * weight;
     }
     
-    return color * pin.color;
+    return color;
 }

@@ -4,7 +4,6 @@
 
 #include "Components.h"
 #include "Actor.h"
-#include "PBRShader.h"
 
 class Stage00 : public Actor
 {
@@ -16,5 +15,5 @@ public:
 	void OnDrawGUI(float elapsedTime) override;
 
 private:
-	PBRShader::Params shaderParam;
+	ShaderParamListWithMeshName shaderParamWithMeshName;
 };

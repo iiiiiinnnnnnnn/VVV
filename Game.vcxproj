@@ -110,6 +110,7 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderComponent.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
+    <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\TestPlayScene.h" />
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\PlayerController.h" />

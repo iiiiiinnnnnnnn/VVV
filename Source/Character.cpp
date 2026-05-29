@@ -98,7 +98,18 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	anim = AddComponent<Animator>(model);
 
 	// モデルレンダラー生成
-	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, &shaderParams);
+	shaderParamWithMeshName =
+	{
+		{
+			"Japan_body_infantry",
+			{
+				{"metalness", 0.5f},
+				{"roughness", 0.5f},
+				{"occlusionStrength", 1.0f}
+			}
+		},
+	};
+	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMeshName);
 
 	// 手のノードを保存
 	handNode = &model->GetNodes()[17];
@@ -176,10 +187,6 @@ void Character::OnDrawGUI(float elapsedTime)
 {
 	ImGui::PushID(this);
 	ImGui::TreePush("Character");
-	ImGui::TextUnformatted("ShaderParam");
-	ImGui::DragFloat("Metallic", &shaderParams.metalness, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Roughness", &shaderParams.roughness, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("AO", &shaderParams.occlusionStrength, 0.01f, 0.0f, 1.0f);
 	if (weapon) {
 		weapon->OnDrawGUI(elapsedTime);
 	}

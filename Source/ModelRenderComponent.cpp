@@ -4,8 +4,10 @@
 #include <Graphics.h>
 #include "Actor.h"
 
-ModelRenderComponent::ModelRenderComponent(Object* owner, std::shared_ptr<Model> model, ModelShaderId shaderId, ShaderParamPtr shaderParam)
-    : Component(owner), model(model), shaderId(shaderId), shaderParam(shaderParam)
+ModelRenderComponent::ModelRenderComponent(
+    Object* owner, std::shared_ptr<Model> model,
+    ModelShaderId shaderId, ShaderParamListWithMeshName paramsWithMesh)
+    : Component(owner), model(model), shaderId(shaderId), paramsWithMesh(paramsWithMesh)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -39,7 +41,9 @@ void ModelRenderComponent::LateUpdate(float elapsedTime)
 void ModelRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 {
     if (model)
-        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, shaderParam);
+    {
+        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMesh);
+    }
 }
 
 void ModelRenderComponent::DrawGUI(float elapsedTime)
@@ -115,6 +119,21 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
 
             // 再帰的にノードを描画
             drawNodeTree(model->GetRootNode());
+
+            // シェーダーパラメータ
+            if (ImGui::TreeNode("ShaderParams"))
+            {
+                for (auto& [matName, params] : paramsWithMesh)
+                {
+                    if (ImGui::TreeNode(matName.c_str()))
+                    {
+                        for (ShaderParam& p : params)
+                            std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            }
         }
         ImGui::TreePop();
     }
