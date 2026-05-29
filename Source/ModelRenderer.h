@@ -18,7 +18,7 @@ public:
 	ModelRenderer(ID3D11Device* device);
 	~ModelRenderer() {}
 
-	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMesh);
+	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial);
 
 	void Render(const RenderContext& rc, float elapsedTime);
 
@@ -93,7 +93,7 @@ private:
 	{
 		ModelShaderId				shaderId;
 		std::shared_ptr<Model>	model;
-		std::unordered_map<std::string, ShaderParamList> paramsWithMesh;
+		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
 	};
 
 	struct TransparencyDrawInfo
@@ -101,7 +101,7 @@ private:
 		ModelShaderId				shaderId;
 		const Model::Mesh*		mesh;
 		float					distance;
-		std::unordered_map<std::string, ShaderParamList> paramsWithMesh;
+		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
 	};
 
 	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];

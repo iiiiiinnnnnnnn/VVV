@@ -59,18 +59,11 @@ void FreeCameraController::OnUpdate(float elapsedTime)
     float moveY = io.MouseDelta.y * 0.01f;
 
     // 現在の入力状態を取得
-    bool isAltPressed = io.KeyAlt;
     bool isShiftPressed = io.KeyShift;
     bool isRightMouseDown = io.MouseDown[ImGuiMouseButton_Right];
     bool isLeftMouseDown = io.MouseDown[ImGuiMouseButton_Left];
 
-    // ----------------------------------------------------
-    // A. カメラの回転制御
-    // ----------------------------------------------------
-    bool isOrbitMode = isAltPressed && isLeftMouseDown; // ALT + 左ドラッグ
-    bool isFPSMode = !isAltPressed && isRightMouseDown; // ALTなし + 右ドラッグ
-
-    if (isOrbitMode || isFPSMode)
+    if (isLeftMouseDown || isRightMouseDown)
     {
         // Y軸回転（左右見渡し）
         angleY += moveX * 0.5f;
@@ -104,7 +97,7 @@ void FreeCameraController::OnUpdate(float elapsedTime)
     // ----------------------------------------------------
     // B. カメラの位置・注視点移動の計算
     // ----------------------------------------------------
-    if (isFPSMode)
+    if (isRightMouseDown)
     {
         // ALTなし右ドラッグ中のみ、WASDキーによるFPS移動を許可
         float speed = 5.0f; // 基本移動速度（1秒間の移動距離）
@@ -133,7 +126,7 @@ void FreeCameraController::OnUpdate(float elapsedTime)
         // FPSモードは「自分の位置（eye）」が主役なので、現在の向きから注視点（focus）を逆算する
         focus = eye + (Front * distance);
     }
-    else if (isOrbitMode)
+    else if (isLeftMouseDown)
     {
         // オービットモードは「注視点（focus）」が主役なので、位置（eye）を逆算する
         eye = focus - (Front * distance);

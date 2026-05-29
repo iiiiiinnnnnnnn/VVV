@@ -6,8 +6,8 @@
 
 ModelRenderComponent::ModelRenderComponent(
     Object* owner, std::shared_ptr<Model> model,
-    ModelShaderId shaderId, ShaderParamListWithMeshName paramsWithMesh)
-    : Component(owner), model(model), shaderId(shaderId), paramsWithMesh(paramsWithMesh)
+    ModelShaderId shaderId, ShaderParamListWithMaterialName paramsWithMaterial)
+    : Component(owner), model(model), shaderId(shaderId), paramsWithMaterial(paramsWithMaterial)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -42,7 +42,7 @@ void ModelRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 {
     if (model)
     {
-        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMesh);
+        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMaterial);
     }
 }
 
@@ -120,15 +120,19 @@ void ModelRenderComponent::DrawGUI(float elapsedTime)
             // 再帰的にノードを描画
             drawNodeTree(model->GetRootNode());
 
-            // シェーダーパラメータ
-            if (ImGui::TreeNode("ShaderParams"))
+            if (ImGui::TreeNode("Materials"))
             {
-                for (auto& [matName, params] : paramsWithMesh)
+                for (const Model::Material& material : model->GetMaterials())
                 {
-                    if (ImGui::TreeNode(matName.c_str()))
+                    if (ImGui::TreeNode(material.name.c_str()))
                     {
-                        for (ShaderParam& p : params)
-                            std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
+                        // paramsWithMaterial にあれば表示
+                        auto it = paramsWithMaterial.find(material.name);
+                        if (it != paramsWithMaterial.end())
+                        {
+                            for (ShaderParam& p : it->second)
+                                std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
+                        }
                         ImGui::TreePop();
                     }
                 }

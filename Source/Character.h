@@ -85,5 +85,5 @@ protected:
 
 	Country country;
 
-	ShaderParamListWithMeshName shaderParamWithMeshName;
+	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 };

@@ -9,7 +9,7 @@ struct ShaderParam
 	ParamValue  value;
 };
 using ShaderParamList = std::vector<ShaderParam>;
-using ShaderParamListWithMeshName = std::unordered_map<std::string, ShaderParamList>;
+using ShaderParamListWithMaterialName = std::unordered_map<std::string, ShaderParamList>;
 
 struct ParamGUIVisitor
 {

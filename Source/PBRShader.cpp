@@ -73,9 +73,10 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float e
 		CbMaterial cb{};
 		cb.baseColor = mesh.material->baseColor;
 		cb.emissiveColor = mesh.material->emissiveColor;
-		cb.metalness = GetParam<float>(mesh.material->shaderParams, "metalness", 0.5f);
-		cb.roughness = GetParam<float>(mesh.material->shaderParams, "roughness", 0.5f);
-		cb.occlusionStrength = GetParam<float>(mesh.material->shaderParams, "occlusionStrength", 1.0f);
+		
+		cb.metalness = GetParam<float>(cachedParams, "metalness", mesh.material->metalness);
+		cb.roughness = GetParam<float>(cachedParams, "roughness", mesh.material->roughness);
+		cb.occlusionStrength = GetParam<float>(cachedParams, "occlusionStrength", mesh.material->occlusionStrength);
 
 		// テクスチャがある場合は、テクスチャの値を乗算
 		if (mesh.material->metalnessRoughnessMap != nullptr)

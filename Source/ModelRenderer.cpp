@@ -29,12 +29,12 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 }
 
 // 箱描画
-void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMesh)
+void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
 	drawInfo.model = model;
-	drawInfo.paramsWithMesh = paramsWithMesh;
+	drawInfo.paramsWithMaterial = paramsWithMaterial;
 }
 
 // 描画実行
@@ -81,7 +81,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMesh)
+	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(Model::Vertex);
@@ -108,8 +108,8 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
 		// マテリアル名でパラメータを引いてシェーダーに渡す
-		auto it = paramsWithMesh.find(mesh.material->name);
-		const ShaderParamList& params = (it != paramsWithMesh.end()) ? it->second : ShaderParamList{};
+		auto it = paramsWithMaterial.find(mesh.material->name);
+		const ShaderParamList& params = (it != paramsWithMaterial.end()) ? it->second : ShaderParamList{};
 		shader->ApplyShaderParams(params);
 
 		// 更新
@@ -141,7 +141,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
-				transparencyDrawInfo.paramsWithMesh = drawInfo.paramsWithMesh;
+				transparencyDrawInfo.paramsWithMaterial = drawInfo.paramsWithMaterial;
 				// カメラとの距離を算出
 				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
 				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
@@ -151,7 +151,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 			}
 
 			// 描画
-			drawMesh(mesh, shader, drawInfo.paramsWithMesh);
+			drawMesh(mesh, shader, drawInfo.paramsWithMaterial);
 		}
 
 		shader->End(rc);
@@ -175,7 +175,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 
 		shader->Begin(rc);
 
-		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.paramsWithMesh);
+		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.paramsWithMaterial);
 
 		shader->End(rc);
 	}

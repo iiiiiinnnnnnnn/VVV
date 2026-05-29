@@ -10,7 +10,7 @@ class ModelRenderComponent : public Component {
 public:
     ModelRenderComponent(Object* owner, std::shared_ptr<Model> model,
                          ModelShaderId shaderId = ModelShaderId::Basic,
-                         ShaderParamListWithMeshName paramsWithMesh = {});
+                         ShaderParamListWithMaterialName paramsWithMaterial = {});
 
     void LateUpdate(float elapsedTime) override;
     void Render(const RenderContext& rc, float elapsedTime) override;
@@ -28,6 +28,6 @@ public:
 private:
     std::shared_ptr<Model> model;
 	ModelShaderId shaderId;
-    ShaderParamListWithMeshName paramsWithMesh;
+    ShaderParamListWithMaterialName paramsWithMaterial;
     const Model::Node* appendNode = nullptr;
 };

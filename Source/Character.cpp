@@ -98,7 +98,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	anim = AddComponent<Animator>(model);
 
 	// モデルレンダラー生成
-	shaderParamWithMeshName =
+	shaderParamWithMaterialName =
 	{
 		{
 			"Japan_body_infantry",
@@ -109,7 +109,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 			}
 		},
 	};
-	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMeshName);
+	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
 	// 手のノードを保存
 	handNode = &model->GetNodes()[17];

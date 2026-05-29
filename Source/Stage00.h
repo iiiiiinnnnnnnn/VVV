@@ -15,5 +15,5 @@ public:
 	void OnDrawGUI(float elapsedTime) override;
 
 private:
-	ShaderParamListWithMeshName shaderParamWithMeshName;
+	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 };

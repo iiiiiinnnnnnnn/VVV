@@ -12,7 +12,7 @@
 class ShadowMapRenderer
 {
 public:
-    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048);
+    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048 * 4);
     ~ShadowMapRenderer() = default;
 
     // 描画登録
