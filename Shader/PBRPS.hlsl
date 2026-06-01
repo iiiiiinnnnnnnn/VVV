@@ -108,6 +108,39 @@ float4 main(VS_OUT pin) : SV_TARGET
             totalSpecular += s;
         }
     }
+    
+    // エリアライト（矩形面光源の近似：最近傍点法）
+    for (uint k = 0; k < lightManager.areaLightCount && k < MaxAreaLights; ++k)
+    {
+        float3 up = normalize(lightManager.areaLights[k].direction);
+        float3 right = normalize(lightManager.areaLights[k].right);
+        float3 toSurf = pin.position - lightManager.areaLights[k].position;
+
+        // 面上の最近傍点へのベクトルを求める
+        float2 proj = float2(dot(toSurf, right), dot(toSurf, up));
+        float hw = lightManager.areaLights[k].width * 0.5f;
+        float hh = lightManager.areaLights[k].height * 0.5f;
+        float2 clamped = float2(clamp(proj.x, -hw, hw), clamp(proj.y, -hh, hh));
+        float3 nearest = lightManager.areaLights[k].position
+                   + right * clamped.x + up * clamped.y;
+
+        float3 toLight = nearest - pin.position;
+        float len = length(toLight);
+        if (len < lightManager.areaLights[k].range)
+        {
+            float atten = 1.0f - (len / lightManager.areaLights[k].range);
+            atten *= atten;
+            // 面の向きと入射角による減衰
+            atten *= saturate(dot(normalize(-toSurf), up));
+            float3 L = normalize(toLight);
+            float3 LC = lightManager.areaLights[k].color.rgb
+                  * lightManager.areaLights[k].color.a * atten;
+            float3 d, s;
+            DirectBRDF(diffuse_reflectance, F0, N, V, L, LC, finalRoughness, d, s);
+            totalDiffuse += d;
+            totalSpecular += s;
+        }
+    }
 
     // シャドウ（PCFソフトシャドウ）
     float3 shadow = CalcShadowColorPCFFilter(
@@ -119,9 +152,9 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     // IBL（間接光）
     float iblIntensity = lightManager.ambientColor.a;
-    float3 iblDiffuse  = DiffuseIBL(N, -V, finalRoughness, diffuse_reflectance, F0,
+    float3 iblDiffuse  = DiffuseIBL(N, V, finalRoughness, diffuse_reflectance, F0,
                                      diffuse_iem, linearSampler) * iblIntensity;
-    float3 iblSpecular = SpecularIBL(N, -V, finalRoughness, F0,
+    float3 iblSpecular = SpecularIBL(N, V, finalRoughness, F0,
                                      lut_ggx, specular_pmrem, linearSampler) * iblIntensity;
 
     // AO適用

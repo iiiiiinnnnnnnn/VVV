@@ -25,17 +25,31 @@ struct CbSpotLight
     float _dummyCbSpotLight3;
 };
 
-#define MaxPointLights 4
-#define MaxSpotLights 4
+struct CbAreaLight
+{
+    float3 position;
+    float width;
+    float3 direction; // ñ@ê¸
+    float height;
+    float3 right; // ãÈå`Xé≤
+    float range;
+    float4 color;
+};
+
+#define MaxPointLights 32
+#define MaxSpotLights 32
+#define MaxAreaLights 32
 struct CbLightManager
 {
     CbDirectionalLight directionalLight;
     CbPointLight pointLights[MaxPointLights];
     CbSpotLight spotLights[MaxSpotLights];
+    CbAreaLight areaLights[MaxAreaLights];
     float4 ambientColor;
-    unsigned int pointLightCount;
-    unsigned int spotLightCount;
-    float _dummyCbLightManager[2];
+    int pointLightCount;
+    int spotLightCount;
+    int areaLightCount;
+    float _dummyCbLightManager;
 };
 
 cbuffer CbScene : register(b7)

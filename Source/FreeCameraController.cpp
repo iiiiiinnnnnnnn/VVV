@@ -40,19 +40,27 @@ void FreeCameraController::SyncCameraToController(const Camera& camera)
 }
 
 // コントローラーからカメラへパラメータを同期する
-void FreeCameraController::SyncControllerToCamera(Camera& camera)
+void FreeCameraController::SyncControllerToCamera(Camera& camera, float elapsedTime)
 {
-	camera.SetLookAt(eye, focus, up);
+    #if 1 // lerp
+	const float lerpSpeed = 5.0f;
+    camera.SetLookAt(
+        Vector3::Lerp(camera.GetEye(), eye, elapsedTime * lerpSpeed),
+        Vector3::Lerp(camera.GetFocus(), focus, elapsedTime * lerpSpeed),
+        Vector3::Lerp(camera.GetUp(), up, elapsedTime * lerpSpeed)
+	);
+    #else
+    // 直接反映
+    camera.SetLookAt(eye, focus, up);
+	#endif
 }
 
 void FreeCameraController::OnUpdate(float elapsedTime)
 {
-    // 1. ImGuiがマウスやキーボード入力を欲しがっている（UI操作中）ときはカメラを動かさない
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-    {
+    if (!Input::Instance().IsFocusedWindow())
         return;
-    }
+
+    ImGuiIO& io = ImGui::GetIO();
 
     // マウスカーソルの移動量（感度は必要に応じて調整してください）
     float moveX = io.MouseDelta.x * 0.01f;
@@ -138,6 +146,15 @@ void FreeCameraController::OnUpdate(float elapsedTime)
         {
             distance -= io.MouseWheel * distance * 0.1f;
             if (distance < 0.1f) distance = 0.1f; // めり込み防止
+        }
+
+        // 中ボタンドラッグでパン
+        if (io.MouseDown[ImGuiMouseButton_Middle])
+        {
+            float panSpeed = distance * 0.2f;
+            Vector3 pan = Right * moveX * panSpeed + Up * moveY * panSpeed;
+            eye += pan;
+            focus += pan;
         }
 
         // 通常時は注視点をベースに位置を確定

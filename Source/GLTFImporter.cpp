@@ -33,6 +33,9 @@ GLTFImporter::GLTFImporter(const char* filename)
 	// 勝手にイメージを読み込まないようにする
 	gltf.SetImageLoader(LoadImageData, this);
 
+	// KHR_lights_punctual を有効化
+	gltf.SetStoreOriginalJSONForExtrasAndExtensions(true);
+
 	std::string error, warning;
 	bool result = false;
 	if (extension == ".glb")
@@ -695,6 +698,85 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 				keyframe.seconds = animation.secondsLength;
 				keyframe.value = nodeAnim.scaleKeyframes.at(0).value;
 			}
+		}
+	}
+}
+
+void GLTFImporter::LoadLights(LightData& lightData, const NodeList& nodes)
+{
+	// KHR_lights_punctual がなければスキップ
+	if (gltfModel.lights.empty()) return;
+
+	// ノードのglobalTransformを計算する
+	std::vector<Matrix> globalTransforms(nodes.size());
+	for (int i = 0; i < (int)nodes.size(); ++i)
+	{
+		Matrix local = Matrix::CreateScale(nodes[i].scale)
+			* Matrix::CreateFromQuaternion(nodes[i].rotation)
+			* Matrix::CreateTranslation(nodes[i].position);
+
+		if (nodes[i].parentIndex >= 0)
+			globalTransforms[i] = local * globalTransforms[nodes[i].parentIndex];
+		else
+			globalTransforms[i] = local;
+	}
+
+	for (auto& l : gltfModel.lights)
+		printf(("light: " + l.name + " type: " + l.type + " intensity: " + std::to_string(l.intensity) + "\n").c_str());
+
+	for (int nodeIdx = 0; nodeIdx < (int)gltfModel.nodes.size(); ++nodeIdx)
+	{
+		const tinygltf::Node& gltfNode = gltfModel.nodes[nodeIdx];
+		auto extIt = gltfNode.extensions.find("KHR_lights_punctual");
+		if (extIt == gltfNode.extensions.end()) continue;
+
+		int lightIdx = extIt->second.Get("light").GetNumberAsInt();
+		const tinygltf::Light& l = gltfModel.lights[lightIdx];
+
+		// ノードのワールド座標・向きを取得
+		Vector3 position = {globalTransforms[nodeIdx]._41,
+							 globalTransforms[nodeIdx]._42,
+							 globalTransforms[nodeIdx]._43};
+		// GLTFのライトはZ-方向を向くので、globalTransformの-Z軸が向き
+		Vector3 direction = {-globalTransforms[nodeIdx]._31,
+							  -globalTransforms[nodeIdx]._32,
+							  -globalTransforms[nodeIdx]._33};
+
+		// intensityはKHR_lights_punctual準拠のカンデラ値。
+		// 適当なスケールで正規化（環境に合わせて調整）
+		Color color = {
+					static_cast<float>(l.color[0]),
+					static_cast<float>(l.color[1]),
+					static_cast<float>(l.color[2]),
+					static_cast<float>(l.intensity) * 0.01f
+		};
+		float range = (l.range > 0.0) ? static_cast<float>(l.range) : 10.0f;
+
+		if (l.type == "point")
+		{
+			PointLight light;
+			light.position = position;
+			light.color = color;
+			light.range = range;
+			lightData.AddPointLight(light);
+		}
+		else if (l.type == "spot")
+		{
+			SpotLight light;
+			light.position = position;
+			light.direction = direction;
+			light.color = color;
+			light.range = range;
+			light.innerConeAngle = static_cast<float>(l.spot.innerConeAngle);
+			light.outerConeAngle = static_cast<float>(l.spot.outerConeAngle);
+			lightData.AddSpotLight(light);
+		}
+		else if (l.type == "directional")
+		{
+			DirectionalLight light;
+			light.direction = direction;
+			light.color = color;
+			lightData.SetDirectionalLight(light);
 		}
 	}
 }

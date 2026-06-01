@@ -8,6 +8,7 @@
 #include "FpsCameraController.h"
 #include "LocalPlayer.h"
 #include "TestWIdget.h"
+#include "GLTFImporter.h"
 
 TestPlayScene::TestPlayScene()
 {
@@ -16,6 +17,14 @@ TestPlayScene::TestPlayScene()
 	float screenHeight = Graphics::ScreenHeight;
 
 	actors.Register(std::make_shared<Stage00>());
+
+	// ステージGLBからライトを読み込む
+	#if 0
+	GLTFImporter importer("Data/Model/Church_cathedral.glb");
+	std::vector<Model::Node> nodes;
+	importer.LoadNodes(nodes);
+	importer.LoadLights(lightData, nodes);
+	#endif
 
 	std::shared_ptr<Commander> localCommander = std::make_shared<Commander>();
 	localCommander->SetController(std::make_unique<LocalPlayer>());

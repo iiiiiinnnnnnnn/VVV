@@ -101,10 +101,18 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	shaderParamWithMaterialName =
 	{
 		{
-			"Japan_body_infantry",
+			"TS_ww2_Japan_soldier",
 			{
-				{"metalness", 0.5f},
-				{"roughness", 0.5f},
+				{"metalness", 0},
+				{"roughness", 100},
+				{"occlusionStrength", 1.0f}
+			}
+		},
+		{
+			"TS_ww2_weapons",
+			{
+				{"metalness", 0},
+				{"roughness", 100},
 				{"occlusionStrength", 1.0f}
 			}
 		},

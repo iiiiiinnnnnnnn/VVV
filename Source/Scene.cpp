@@ -22,7 +22,7 @@ void Scene::Update(float elapsedTime)
 	cameraControllers[nowCameraControllerIndex]->Update(elapsedTime);
 
 	// カメラコントローラーからカメラへ反映
-	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
+	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera, elapsedTime);
 
 	actors.Update(elapsedTime);
 	widgets.Update(elapsedTime);

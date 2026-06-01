@@ -25,6 +25,11 @@ bool Input::IsFocusedWindow()
 		return false;
 	}
 
+	if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
+	{
+		return false;
+	}
+
 	// ウィンドウが最前面でない場合は処理しない
 	HWND hWnd = GetActiveWindow();
 	if (hWnd == nullptr)

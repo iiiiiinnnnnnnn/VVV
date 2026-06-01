@@ -6,7 +6,7 @@
 Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 {
 	std::shared_ptr<Model> model =
-		ResourceManager::Instance().LoadModel("Data/Model/Stage/Stage00.glb");
+		ResourceManager::Instance().LoadModel("Data/Model/Stage00.glb");
 
 	transform = Transform::FromScale(100);
 
@@ -43,11 +43,6 @@ Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 }
 
 void Stage00::OnUpdate(float elapsedTime)
-{
-
-}
-
-void Stage00::OnRender(const RenderContext& rc, float elapsedTime)
 {
 
 }

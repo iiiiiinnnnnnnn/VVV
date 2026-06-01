@@ -4,6 +4,7 @@
 
 #include "Common.h"
 #include "ShaderParam.h"
+#include "RenderContext.h"
 
 // Cereal
 #include <cereal/cereal.hpp>

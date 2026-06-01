@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <tiny_gltf.h>
 #include "Model.h"
+#include "RenderContext.h"
 
 class GLTFImporter
 {
@@ -29,6 +30,9 @@ public:
 
 	// アニメーションデータを読み込み
 	void LoadAnimations(AnimationList& animations, const NodeList& nodes, float sampleRate = 60);
+
+	// ライトデータを読み込み
+	void LoadLights(LightData& lightData, const NodeList& nodes);
 
 private:
 	// 座標系変換

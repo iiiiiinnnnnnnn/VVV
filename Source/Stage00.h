@@ -11,7 +11,6 @@ public:
 	Stage00();
 	~Stage00() = default;
 	void OnUpdate(float elapsedTime) override;
-	void OnRender(const RenderContext& rc, float elapsedTime) override;
 	void OnDrawGUI(float elapsedTime) override;
 
 private:

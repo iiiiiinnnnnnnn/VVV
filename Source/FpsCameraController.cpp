@@ -8,7 +8,7 @@ FpsCameraController::FpsCameraController(std::shared_ptr<Character> character)
     SetPlayer(character);
 }
 
-void FpsCameraController::SyncControllerToCamera(Camera& camera)
+void FpsCameraController::SyncControllerToCamera(Camera& camera, float elapsedTime)
 {
     // 目のノードのワールド位置を取得
     Model::Node* eyeNode = &character->GetModel()->GetNodes()[6];
