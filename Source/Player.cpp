@@ -1,17 +1,28 @@
-﻿// Character.cpp
+﻿// Player.cpp
 
-#include "Character.h"
+#include "Player.h"
 #include "ResourceManager.h"
 #include "GameTime.h"
 #include "Graphics.h"
 
-Character::Character(std::string name, std::string tag, bool isActive, std::string layer)
-	: Actor(name, tag, isActive, layer)
+Player::Player() : Actor("Player", "Player", true, "Default")
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
+	model->GetMeshes()[0].isDraw = false; // 盾
+	model->GetMeshes()[2].isDraw = false; // アックス
+	model->GetMeshes()[8].isDraw = false; // 服
+	model->GetMeshes()[15].isDraw = false;
 
-	// キャラコン生成
-	cc = AddComponent<CharacterController>(0.5f, 1.5f);
+	model->GetMeshes()[9].isDraw = false; // 素手
+
+	model->GetMeshes()[4].isDraw = false; // 顔
+	model->GetMeshes()[5].isDraw = false;
+	model->GetMeshes()[16].isDraw = false;
+	model->GetMeshes()[17].isDraw = false;
+	model->GetMeshes()[18].isDraw = false;
+	model->GetMeshes()[19].isDraw = false;
+	model->GetMeshes()[20].isDraw = false;
+	model->GetMeshes()[21].isDraw = false; 
 
 	// モデルレンダラー生成
 	shaderParamWithMaterialName = {};
@@ -23,6 +34,9 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 
 	// ルートモーションボーンを設定
 	anim->SetRootMotionBone(116);
+
+	// キャラコン生成
+	cc = AddComponent<CharacterController>(0.5f, 1.5f);
 
 	// テク変
 	#if 0
@@ -78,50 +92,44 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	#endif
 }
 
-void Character::OnUpdate()
+void Player::OnUpdate()
 {
-	if (!controller) return;
-	if (!cc) return;
+	if (!controller || !cc) return;
 
-	// 入力周り
-	{
-		float moveX = controller->GetMoveX();
-		float moveZ = controller->GetMoveZ();
+	InputContext ctx = controller->Poll();
 
-		// 移動ベクトル
-		Vector3 move = Vector3::TransformNormal(
-			Vector3(moveX, 0, moveZ),
-			Matrix::CreateFromQuaternion(transform.rotation)
-		);
-		move *= speed * Game::Time::deltaTime;
+	// 入力をアニメーターに渡す
+	anim->SetFloat("MoveX", ctx.moveX);
+	anim->SetFloat("MoveZ", ctx.moveZ);
+	anim->SetBool("Jump", ctx.jump);
+	anim->SetBool("Ready", ctx.ready);
+	anim->SetBool("Shoot", ctx.shoot);
 
-		if (cc->IsGrounded())
-			verticalVelocity = 0.0f;
-		else
-			verticalVelocity -= 9.81f * Game::Time::deltaTime;
+	// 重力
+	if (cc->IsGrounded())
+		verticalVelocity = 0.0f;
+	else
+		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
-		move.y = verticalVelocity * Game::Time::deltaTime;
+	// 水平移動はrootMotionに任せる、垂直は重力のみ
+	Vector3 rootDelta = anim->ConsumeRootMotionDelta();
+	Vector3 worldDelta = Vector3::TransformNormal(rootDelta, transform.matrix);
+	worldDelta.y = verticalVelocity * Game::Time::deltaTime;
 
-		// アクターの向きを加味して、ルートモーションの移動量をワールド空間のベクトルに変換
-		Vector3 rawDelta = anim->ConsumeRootMotionDelta();
-		Vector3 worldDelta = Vector3::TransformNormal(rawDelta, transform.matrix);
-
-		// 最終的にControllerで移動
-		cc->Move(worldDelta + move);
-	}
+	cc->Move(worldDelta);
 }
 
-void Character::OnLateUpdate()
+void Player::OnLateUpdate()
 {
 
 }
 
-void Character::OnRender(const RenderContext& rc)
+void Player::OnRender(const RenderContext& rc)
 {
 
 }
 
-void Character::OnDrawGUI()
+void Player::OnDrawGUI()
 {
 
 }

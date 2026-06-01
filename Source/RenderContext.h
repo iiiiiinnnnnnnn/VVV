@@ -149,7 +149,7 @@ struct ShadowMapData
 {
 	ID3D11ShaderResourceView* shadowMap = nullptr;
 	Matrix lightViewProjection;
-	Color shadowColor = {0, 0, 0, 0.5f};
+	Color shadowColor = {0.2f, 0.2f, 0.2f, 1.0f};
 	float shadowBias = 0.001f;
 	int pcfKernelSize = 2;
 };

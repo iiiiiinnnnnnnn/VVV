@@ -1,8 +1,7 @@
 ﻿// TestPlayScene.cpp
 
 #include "TestPlayScene.h"
-#include "Commander.h"
-#include "Soldier.h"
+#include "Player.h"
 #include "Stage00.h"
 #include "FreeCameraController.h"
 #include "FpsCameraController.h"
@@ -25,9 +24,9 @@ TestPlayScene::TestPlayScene()
 	importer.LoadLights(lightData, nodes);
 	#endif
 
-	std::shared_ptr<Commander> localCommander = std::make_shared<Commander>();
-	localCommander->SetController(std::make_unique<LocalPlayer>());
-	actors.Register(localCommander);
+	std::shared_ptr<Player> player = std::make_shared<Player>();
+	player->SetController(std::make_unique<LocalPlayer>());
+	actors.Register(player);
 
 	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 0)));
 	widgets.Register(std::make_shared<TestWidget>(Vector2(0, 100)));
@@ -41,7 +40,7 @@ TestPlayScene::TestPlayScene()
 	camera.SetLookAt({0, 3, 5}, {0, 0, 0}, {0, 1, 0});
 
 	cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
-	cameraControllers.push_back(std::make_unique<FpsCameraController>(localCommander));
+	cameraControllers.push_back(std::make_unique<FpsCameraController>(player));
 }
 
 void TestPlayScene::OnUpdate()

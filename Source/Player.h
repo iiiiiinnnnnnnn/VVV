@@ -1,4 +1,4 @@
-﻿// Character.h
+﻿// Player.h
 
 #pragma once
 
@@ -6,12 +6,11 @@
 #include "PlayerController.h"
 #include "Model.h"
 
-class Character : public Actor
+class Player : public Actor
 {
 public:
-	Character(std::string name = "", std::string tag = "", bool isActive = true,
-			  std::string layer = "");
-	~Character() override = default;
+	Player();
+	~Player() override = default;
 
 	void OnUpdate() override;
 	void OnLateUpdate() override;

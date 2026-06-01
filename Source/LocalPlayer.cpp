@@ -1,62 +1,20 @@
-﻿// LocalPlayer.cpp
-
-#include "LocalPlayer.h"
+﻿#include "LocalPlayer.h"
 #include "Input.h"
 
-float LocalPlayer::GetMoveX()
+InputContext LocalPlayer::Poll()
 {
-	if (!Game::Input::IsFocusedWindow()) return 0.0f;
+    if (!Game::Input::IsFocusedWindow()) return {};
 
-	float i = Game::Input::Instance().GetGamePad().GetAxisLX();
-	return i;
-}
+    auto& pad = Game::Input::Instance().GetGamePad();
+    auto& mouse = Game::Input::Instance().GetMouse();
 
-float LocalPlayer::GetMoveZ()
-{
-	if (!Game::Input::IsFocusedWindow()) return 0.0f;
-
-	float i = Game::Input::Instance().GetGamePad().GetAxisLY();
-	return i;
-}
-
-bool LocalPlayer::GetJump()
-{
-	if (!Game::Input::IsFocusedWindow()) return false;
-
-	bool i = Game::Input::Instance().GetGamePad().GetButton() & GamePad::BTN_A;
-	return i;
-}
-
-bool LocalPlayer::GetCrouch()
-{
-	if (!Game::Input::IsFocusedWindow()) return false;
-
-	bool i = (bool)(Game::Input::Instance().GetGamePad().GetButton() & GamePad::BTN_B);
-	return false;
-}
-
-bool LocalPlayer::GetReady()
-{
-	if (!Game::Input::IsFocusedWindow()) return false;
-
-	bool i = Game::Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT;
-	i |= (bool)(Game::Input::Instance().GetGamePad().GetButton() & GamePad::BTN_RIGHT_SHOULDER);
-	return i;
-}
-
-bool LocalPlayer::GetShoot()
-{
-	if (!Game::Input::IsFocusedWindow()) return false;
-
-	bool i = Game::Input::Instance().GetMouse().GetButton() & Mouse::BTN_LEFT;
-	i |= (bool)(Game::Input::Instance().GetGamePad().GetButton() & GamePad::BTN_LEFT_SHOULDER);
-	return i;
-}
-
-bool LocalPlayer::GetReload()
-{
-	if (!Game::Input::IsFocusedWindow()) return false;
-
-	bool i = (bool)(Game::Input::Instance().GetGamePad().GetButton() & GamePad::BTN_Y);
-	return false;
+    InputContext ctx;
+    ctx.moveX = pad.GetAxisLX();
+    ctx.moveZ = pad.GetAxisLY();
+    ctx.jump = pad.GetButton() & GamePad::BTN_A;
+    ctx.ready = (mouse.GetButton() & Mouse::BTN_RIGHT)
+        | (pad.GetButton() & GamePad::BTN_RIGHT_SHOULDER);
+    ctx.shoot = (mouse.GetButton() & Mouse::BTN_LEFT)
+        | (pad.GetButton() & GamePad::BTN_LEFT_SHOULDER);
+    return ctx;
 }

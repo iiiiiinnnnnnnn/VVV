@@ -10,9 +10,6 @@
     <Filter Include="ソースファイル\ゲーム">
       <UniqueIdentifier>{78401075-188d-498d-9117-f85999eb7ecc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\ゲーム\分隊">
-      <UniqueIdentifier>{62e1d4dc-dbf4-41e0-a708-747263f7442c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\ゲーム\カメラ">
       <UniqueIdentifier>{87a91572-ce15-4886-922d-49746dfb9de8}</UniqueIdentifier>
     </Filter>
@@ -165,18 +162,6 @@
     <ClCompile Include="Source\LocalPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\RemotePlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\AIPlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Squad.cpp">
-      <Filter>ソースファイル\ゲーム\分隊</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SoldierAIPlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
@@ -198,19 +183,10 @@
     <ClCompile Include="Source\FpsCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Commander.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Soldier.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Stage00.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Weapon.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Character.cpp">
+    <ClCompile Include="Source\Player.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteRenderer.cpp">
@@ -365,18 +341,6 @@
     <ClInclude Include="Source\LocalPlayer.h">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\RemotePlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\AIPlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Squad.h">
-      <Filter>ソースファイル\ゲーム\分隊</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\SoldierAIPlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
@@ -404,19 +368,10 @@
     <ClInclude Include="Source\FpsCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Commander.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Soldier.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Stage00.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Weapon.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Character.h">
+    <ClInclude Include="Source\Player.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\HighResolutionTimer.h">
@@ -487,6 +442,9 @@
     </ClInclude>
     <ClInclude Include="Source\Mouse.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EnemyAIController.h">
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

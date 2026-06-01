@@ -12,7 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Actor.cpp" />
-    <ClCompile Include="Source\AIPlayer.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\Audio.cpp" />
     <ClCompile Include="Source\AudioResource.cpp" />
@@ -20,7 +19,7 @@
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
-    <ClCompile Include="Source\Character.cpp" />
+    <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
     <ClCompile Include="Source\Collider.cpp" />
     <ClCompile Include="Source\Dialog.cpp" />
@@ -46,10 +45,8 @@
     <ClCompile Include="Source\TestPlayScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="Source\PhysicsManager.cpp" />
-    <ClCompile Include="Source\Commander.cpp" />
     <ClCompile Include="Source\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\RectTransform.cpp" />
-    <ClCompile Include="Source\RemotePlayer.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
     <ClCompile Include="Source\RenderTarget.cpp" />
     <ClCompile Include="Source\Rigidbody.cpp" />
@@ -58,11 +55,8 @@
     <ClCompile Include="Source\ShadowMapRenderer.cpp" />
     <ClCompile Include="Source\ShapeRenderer.cpp" />
     <ClCompile Include="Source\SkyBoxRenderer.cpp" />
-    <ClCompile Include="Source\Soldier.cpp" />
-    <ClCompile Include="Source\SoldierAIPlayer.cpp" />
     <ClCompile Include="Source\SpriteRenderComponent.cpp" />
     <ClCompile Include="Source\SpriteRenderer.cpp" />
-    <ClCompile Include="Source\Squad.cpp" />
     <ClCompile Include="Source\Stage00.cpp" />
     <ClCompile Include="Source\TestWIdget.cpp" />
     <ClCompile Include="Source\Texture.cpp" />
@@ -72,7 +66,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Actor.h" />
-    <ClInclude Include="Source\AIPlayer.h" />
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
@@ -83,7 +76,7 @@
     <ClInclude Include="Source\BasicSpriteShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
-    <ClInclude Include="Source\Character.h" />
+    <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
     <ClInclude Include="Source\Collider.h" />
     <ClInclude Include="Source\Common.h" />
@@ -92,6 +85,7 @@
     <ClInclude Include="Source\Dialog.h" />
     <ClInclude Include="Source\Effect.h" />
     <ClInclude Include="Source\EffectManager.h" />
+    <ClInclude Include="Source\EnemyAIController.h" />
     <ClInclude Include="Source\FpsCameraController.h" />
     <ClInclude Include="Source\Framework.h" />
     <ClInclude Include="Source\FreeCameraController.h" />
@@ -115,12 +109,10 @@
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\PlayerController.h" />
     <ClInclude Include="Source\RectTransform.h" />
-    <ClInclude Include="Source\RemotePlayer.h" />
     <ClInclude Include="Source\RenderTarget.h" />
     <ClInclude Include="Source\ResourceManager.h" />
     <ClInclude Include="Source\Rigidbody.h" />
     <ClInclude Include="Source\PhysicsManager.h" />
-    <ClInclude Include="Source\Commander.h" />
     <ClInclude Include="Source\PrimitiveRenderer.h" />
     <ClInclude Include="Source\RenderContext.h" />
     <ClInclude Include="Source\RenderState.h" />
@@ -129,11 +121,8 @@
     <ClInclude Include="Source\ShadowMapRenderer.h" />
     <ClInclude Include="Source\ShapeRenderer.h" />
     <ClInclude Include="Source\SkyBoxRenderer.h" />
-    <ClInclude Include="Source\Soldier.h" />
-    <ClInclude Include="Source\SoldierAIPlayer.h" />
     <ClInclude Include="Source\SpriteRenderComponent.h" />
     <ClInclude Include="Source\SpriteRenderer.h" />
-    <ClInclude Include="Source\Squad.h" />
     <ClInclude Include="Source\Stage00.h" />
     <ClInclude Include="Source\TestWIdget.h" />
     <ClInclude Include="Source\Texture.h" />

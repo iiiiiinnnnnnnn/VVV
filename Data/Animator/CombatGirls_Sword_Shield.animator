@@ -7,7 +7,7 @@
             "name": "Base Layer",
             "states": [
                 {
-                    "animationIndex": 0,
+                    "animationIndex": 11,
                     "loop": true,
                     "name": "New State",
                     "speed": 1.0,
@@ -17,6 +17,32 @@
             "weight": 1.0
         }
     ],
-    "parameters": [],
+    "parameters": [
+        {
+            "name": "Ready",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "MoveX",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "MoveZ",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "Jump",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "Shoot",
+            "type": "bool",
+            "value": false
+        }
+    ],
     "triggers": []
 }

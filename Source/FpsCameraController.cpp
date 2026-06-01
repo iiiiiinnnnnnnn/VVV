@@ -3,7 +3,7 @@
 #include "FpsCameraController.h"
 #include <Input.h>
 
-FpsCameraController::FpsCameraController(std::shared_ptr<Character> character)
+FpsCameraController::FpsCameraController(std::shared_ptr<Player> character)
 {
     SetPlayer(character);
 }
