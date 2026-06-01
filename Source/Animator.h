@@ -15,6 +15,7 @@ public:
     Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime = false);
     void Update() override;
     void DrawGUI() override;
+	void _print() const; // デバッグ用
 
     // =========================================================
     // 型定義

@@ -204,6 +204,14 @@ void Animator::DrawGUI()
     }
 }
 
+void Animator::_print() const
+{
+    for(auto& anim : model->GetAnimations())
+    {
+        printf("Anim: %s, length=%.2f\n", anim.name.c_str(), anim.secondsLength);
+	}
+}
+
 void Animator::OpenAnimEditor()
 {
     if (!animEditor)
