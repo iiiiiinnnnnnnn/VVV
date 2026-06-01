@@ -20,8 +20,8 @@ Framework::Framework(HWND hWnd)
 	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
 	{
 		AllocConsole();
-		freopen("CONOUT$", "w", stdout);
-		freopen("CONOUT$", "w", stderr);
+		if (freopen("CONOUT$", "w", stdout)) {}
+		if (freopen("CONOUT$", "w", stderr)) {}
 	}
 #endif
 
@@ -52,6 +52,9 @@ Framework::~Framework()
 
 	// 物理マネージャ終了化
 	PhysicsManager::Instance().Finalize();
+
+	// コンソール解放
+	FreeConsole();
 }
 
 // 更新処理
@@ -67,6 +70,9 @@ void Framework::Update(float elapsedTime)
 
 	// IMGUIフレーム開始処理
 	ImGuiRenderer::NewFrame();
+
+	// 物理シミュレーション
+	PhysicsManager::Instance().GetSceneContext().Simulate();
 
 	// シーン更新処理
 	scene->Update();

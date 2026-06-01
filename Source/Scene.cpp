@@ -1,6 +1,7 @@
 ﻿// Scene.cpp
 
 #include "Scene.h"
+#include "GameTime.h"
 
 Scene::Scene(const std::string& name) : name(name)
 {
@@ -26,9 +27,6 @@ void Scene::Update()
 
 	actors.Update();
 	widgets.Update();
-
-	// 物理シミュレーション
-	PhysicsManager::Instance().GetSceneContext().Simulate();
 }
 
 void Scene::Render()
@@ -174,6 +172,15 @@ void Scene::Render()
 					ImGui::Image(iblData.ggxLookUpTableMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
 					ImGui::TreePop();
 				}
+			}
+
+			// Time
+			if (ImGui::CollapsingHeader("Time"))
+			{
+				ImGui::Text("Time: %.4f", Game::Time::time);
+				ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
+				ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
+				ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 			}
 
 			OnDrawGUI();
