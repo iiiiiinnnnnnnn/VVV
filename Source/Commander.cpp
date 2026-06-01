@@ -2,7 +2,7 @@
 
 #include "Commander.h"
 
-Commander::Commander() : Character("Commander", "Commander", true, "Default", Country::Japan, SkinParts::Head_Officer)
+Commander::Commander() : Character("Commander", "Commander", true, "Default")
 {
 }
 

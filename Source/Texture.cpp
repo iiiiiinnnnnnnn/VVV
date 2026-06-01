@@ -23,6 +23,10 @@ HRESULT Texture::LoadTexture(
 
 	// ワイド文字に変換
 	std::wstring wfilename = filepath.wstring();
+	if(!std::filesystem::exists(wfilename))
+	{
+		return E_FAIL;
+	}
 
 	// フォーマット毎に画像読み込み処理
 	HRESULT hr;

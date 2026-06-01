@@ -145,6 +145,31 @@ void Animator::Update()
         UpdateLayer(layer, finalPoses);
     }
 
+    // --- ここからルートモーションの抽出のみ ---
+    if (rootMotionBoneIndex >= 0 && rootMotionBoneIndex < nodeCount)
+    {
+        Vector3 currentRootPos = finalPoses[rootMotionBoneIndex].position;
+        if (!isFirstRootMotion)
+        {
+            Vector3 delta = currentRootPos - lastRootPosition;
+            
+            // アニメーションループ等による急激な座標リセット（巨大なジャンプ）を除外
+            if (delta.LengthSquared() < 1.0f) 
+            {
+                // ここでは加算するだけ。具体的な適用は外部（Character側）で行う
+                currentRootMotionDelta += delta;
+            }
+        }
+        lastRootPosition = currentRootPos;
+        isFirstRootMotion = false;
+
+        // モデルのメッシュが勝手に親から離れていかないように、ルートモーション対象ボーンの空間移動をキャンセル
+        finalPoses[rootMotionBoneIndex].position.x = 0.0f;
+        finalPoses[rootMotionBoneIndex].position.z = 0.0f;
+        // ※ y も対象にしたい（空中制御もアニメ側に任せたい）場合は y = 0.0f も追加してください
+    }
+    // --- 抽出ここまで ---
+
     model->SetNodePoses(finalPoses);
     model->UpdateTransform(Matrix::Identity);
 
@@ -189,7 +214,14 @@ void Animator::OpenAnimEditor()
 void Animator::UpdateLayer(AnimatorLayer& layer,
     std::vector<Model::NodePose>& finalPoses)
 {
+    // 範囲外
+	_ASSERT_EXPR(layer.currentStateIndex >= 0 && layer.currentStateIndex < (int)layer.states.size(), L"Invalid current state index in layer");
+
     State& curState = layer.states[layer.currentStateIndex];
+
+    // 範囲外
+    _ASSERT_EXPR(model->GetAnimations().size() > curState.animationIndex, L"Invalid animation index in state");
+
     const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
 
     // 時間更新
@@ -304,6 +336,9 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
 
 void Animator::Play(int layerIndex, int animationIndex, bool loop)
 {
+    // 範囲外
+	_ASSERT_EXPR(layerIndex >= 0 && layerIndex < (int)layers.size(), L"Invalid layer index");
+
     auto& layer = layers[layerIndex];
     int stateIndex = -1;
     for (size_t i = 0; i < layer.states.size(); ++i)

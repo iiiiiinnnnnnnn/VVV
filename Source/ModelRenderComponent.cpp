@@ -11,6 +11,11 @@ ModelRenderComponent::ModelRenderComponent(
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
+    if (model)
+    {
+        model->UpdateTransform(Matrix::Identity);
+    }
 }
 
 void ModelRenderComponent::LateUpdate()
@@ -18,24 +23,11 @@ void ModelRenderComponent::LateUpdate()
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 
-    if (appendNode)
-    {
-        // worldTransformをDecomposeして正規化する
-        Matrix world = appendNode->worldTransform;
-        Vector3 scale, position;
-        Quaternion rotation;
-        world.Decompose(scale, rotation, position);
+    if (!model)
+        return;
 
-        // スケールを正規化（符号も修正）
-        Matrix normalizedWorld = Matrix::CreateFromQuaternion(rotation)
-            * Matrix::CreateTranslation(position);
-
-        Matrix finalWorld = actor->transform.matrix * normalizedWorld;
-        model->UpdateTransform(finalWorld);
-    }
-    else {
-        model->UpdateTransform(actor->transform.matrix);
-    }
+    // アクターの変換行列でモデルを更新
+    model->UpdateTransform(actor->transform.matrix);
 }
 
 void ModelRenderComponent::Render(const RenderContext& rc)
@@ -54,71 +46,82 @@ void ModelRenderComponent::DrawGUI()
         {
             // ノードツリーを再帰的に描画する関数
             std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
+            {
+                // 矢印をクリック、またはノードをダブルクリックで階層を開く
+                ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
+                    | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+                // 子がいない場合は矢印をつけない
+                size_t childCount = node->children.size();
+                if (childCount == 0)
                 {
-                    // 矢印をクリック、またはノードをダブルクリックで階層を開く
-                    ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
-                        | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+                    nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                }
 
-                    // 子がいない場合は矢印をつけない
-                    size_t childCount = node->children.size();
-                    if (childCount == 0)
+                bool isAnyMeshHidden = false;
+                std::string meshIndices = "";
+                
+                // このノードに関連するメッシュを探す
+                for (int i = 0; i < model->GetMeshes().size(); i++)
+                {
+                    const Model::Mesh& mesh = model->GetMeshes()[i];
+                    if (mesh.node == node)
                     {
-                        nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                        if (!meshIndices.empty()) meshIndices += ",";
+                        meshIndices += std::to_string(i);
+
+                        if (!mesh.isDraw)
+                            isAnyMeshHidden = true;
                     }
+                }
 
-                    bool isAnyMeshHidden = false;
-                    std::string meshIndices = "";
+                // ツリーノードを表示
+                ImGui::PushStyleColor(ImGuiCol_Text,
+                    IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
 
-                    // このノードに関連するメッシュを探す
-                    for (int i = 0; i < model->GetMeshes().size(); i++)
+                std::string meshStr = meshIndices.empty() ? "" : "{" + meshIndices + "}";
+                int nodeIndex = static_cast<int>(node - model->GetNodes().data());
+
+                // ノード名とインデックスに続けて、[x, y, z] 形式でポジションを表示
+                bool opened = ImGui::TreeNodeEx(node, nodeFlags,
+                    "[%d]%s%s [%.2f, %.2f, %.2f]",
+                    nodeIndex,
+                    meshStr.c_str(),
+                    node->name.c_str(),
+                    node->position.x, node->position.y, node->position.z);
+
+                ImGui::PopStyleColor();
+
+                if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    for (Model::Mesh& mesh : model->GetMeshes())
                     {
-                        const Model::Mesh& mesh = model->GetMeshes()[i];
                         if (mesh.node == node)
                         {
-                            if (!meshIndices.empty()) meshIndices += ",";
-                            meshIndices += std::to_string(i);
-
-                            if (!mesh.isDraw)
-                                isAnyMeshHidden = true;
+                            mesh.isDraw = !mesh.isDraw;
                         }
                     }
+                }
 
-                    // ツリーノードを表示
-                    ImGui::PushStyleColor(ImGuiCol_Text,
-                        IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
-
-                    int nodeIndex = static_cast<int>(node - model->GetNodes().data());
-                    bool opened = ImGui::TreeNodeEx(node, nodeFlags,
-                        ("[" + std::to_string(nodeIndex) + "]"
-                            + (meshIndices.empty() ? "" : "{" + meshIndices + "}")
-                            + node->name).c_str());
-
-                    ImGui::PopStyleColor();
-
-                    if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                // 開かれている場合、子階層も同じ処理を行う
+                if (opened && childCount > 0)
+                {
+                    for (Model::Node* child : node->children)
                     {
-                        for (Model::Mesh& mesh : model->GetMeshes())
-                        {
-                            if (mesh.node == node)
-                            {
-                                mesh.isDraw = !mesh.isDraw;
-                            }
-                        }
+                        drawNodeTree(child);
                     }
+                    ImGui::TreePop();
+                }
+            };
 
-                    // 開かれている場合、子階層も同じ処理を行う
-                    if (opened && childCount > 0)
-                    {
-                        for (Model::Node* child : node->children)
-                        {
-                            drawNodeTree(child);
-                        }
-                        ImGui::TreePop();
-                    }
-                };
-
-            // 再帰的にノードを描画
-            drawNodeTree(model->GetRootNode());
+            // すべてのルートノード（親を持たないノード）を起点に描画
+            for (Model::Node& node : model->GetNodes())
+            {
+                if (node.parent == nullptr)
+                {
+                    drawNodeTree(&node);
+                }
+            }
 
             if (ImGui::TreeNode("Materials"))
             {

@@ -3,130 +3,79 @@
 #include "Character.h"
 #include "ResourceManager.h"
 #include "GameTime.h"
+#include "Graphics.h"
 
-Character::Character(std::string name, std::string tag, bool isActive, std::string layer, Country country, SkinParts skinParts)
-	: Actor(name, tag, isActive, layer), country(country)
+Character::Character(std::string name, std::string tag, bool isActive, std::string layer)
+	: Actor(name, tag, isActive, layer)
 {
-	model = ResourceManager::Instance().LoadModel(GetModel(country));
-
-	// スキン設定
-	{
-		auto& meshes = model->GetMeshes();
-		meshes[0].isDraw = true;
-		meshes[1].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_SoldierB;
-		meshes[2].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_SoldierA;
-		meshes[3].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head;
-		meshes[4].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Brass;
-		meshes[5].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Officer;
-		meshes[6].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_Medic;
-		meshes[7].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Equip_Infantry;
-		meshes[8].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Equip_Medic;
-		meshes[9].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Body_Medic;
-		meshes[10].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_GasMask;
-		meshes[11].isDraw = (uint32_t)skinParts & (uint32_t)SkinParts::Head_GasMask;
-	}
-
-	// アニメーション読み込み
-	{
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_bayonet.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_draw.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_idle.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_reload.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_shoot.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_shoot_bolt.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_shoot_burst.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_combat_shoot_shotgun.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_death_A.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_death_B.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_death_C.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_death_D.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_death_E.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_interact_A.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_interact_B.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_take_damage.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/infantry_throw_grenade.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_draw.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_idle.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_reload.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_shoot.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_shoot_bolt.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_shoot_burst.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_shoot_shotgun.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_take_damage.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_throw_grenade.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_walk_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_walk_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/crouch/infantry_crouch_walk_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/guard/infantry_guard_idle.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/guard/infantry_guard_run.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/guard/infantry_guard_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_roll.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_run.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_run_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_run_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_run_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_walk.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_walk_back.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_walk_left.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_combat_walk_right.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_jump_1_start.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_jump_2_air.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_jump_3_land.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_ladder_climb_down.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_ladder_climb_idle.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_ladder_climb_up.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/movement/infantry_sprint.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_death.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_draw.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_goto.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_idle.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_move.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_reload.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_shoot.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_shoot_bolt.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_shoot_burst.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_shoot_shotgun.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_standup.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_take_damage.glb");
-		model->AppendAnimations("Data/Model/ToonSoldiers_WW2/animation/Infantry/prone/infantry_prone_throw_grenade.glb");
-	}
+	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
 
 	// キャラコン生成
 	cc = AddComponent<CharacterController>(0.5f, 1.5f);
 
-	// アニメーター生成
-	anim = AddComponent<Animator>(model);
-
 	// モデルレンダラー生成
-	shaderParamWithMaterialName =
-	{
-		{
-			"TS_ww2_Japan_soldier",
-			{
-				{"metalness", 0.0f},
-				{"roughness", 100.0f},
-				{"occlusionStrength", 1.0f}
-			}
-		},
-		{
-			"TS_ww2_weapons",
-			{
-				{"metalness", 0.0f},
-				{"roughness", 100.0f},
-				{"occlusionStrength", 1.0f}
-			}
-		},
-	};
+	shaderParamWithMaterialName = {};
 	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
-	// 手のノードを保存
-	handNode = &model->GetNodes()[17];
+	// アニメーター生成
+	anim = AddComponent<Animator>(model);
+	anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
 
-	// 武器生成
-	weapon = std::make_shared<Weapon>(this);
+	// ルートモーションボーンを設定
+	anim->SetRootMotionBone(116);
 
-	anim->Load("Data/Animator/Character.animator");
+	// テク変
+	#if 0
+	//HRESULT hr;
+
+	//// Body
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Body/Body.png",
+	//	&model->GetMaterials()[0].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Body.png");
+
+	//// Weapon_Axe_Shield
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Weapon/Weapon_Shield_Axe_01.png",
+	//	&model->GetMaterials()[1].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Weapon_Shield_Axe_01.png");
+
+	//// Weapon_Sword_shield
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Weapon/Weapon_Shield_Sword_01.png",
+	//	&model->GetMaterials()[2].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Weapon_Shield_Sword_01.png");
+
+	//// Face
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Body/Face.png",
+	//	&model->GetMaterials()[3].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Face.png");
+
+	//// Eye
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Body/Eye.png",
+	//	&model->GetMaterials()[4].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Eye.png");
+
+	//// Squire_Cloth
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Squire_Cloth/Squire_Cloth.png",
+	//	&model->GetMaterials()[5].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Squire_Cloth.png");
+
+	//// Shield_Cloth
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Cloth/Shiled_Sword_Cloth_01.png",
+	//	&model->GetMaterials()[6].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Shiled_Sword_Cloth_01.png");
+
+	//// Shield_Hair
+	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
+	//	"Data/Model/CombatGirl_Shield/Texture/Hair/Hair_t.png",
+	//	&model->GetMaterials()[7].baseMap);
+	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Hair_t.png");
+	#endif
 }
 
 void Character::OnUpdate()
@@ -139,17 +88,7 @@ void Character::OnUpdate()
 		float moveX = controller->GetMoveX();
 		float moveZ = controller->GetMoveZ();
 
-		// 入力の大きさ(animatorに入れる)
-		float inputLength = Vector3(moveX, 0, moveZ).Length();
-		anim->SetFloat("speed", inputLength);
-		anim->SetBool("crouch", controller->GetCrouch());
-		anim->SetBool("jump", controller->GetJump());
-		anim->SetBool("ready", controller->GetReady());
-
-		if (controller->GetShoot())  anim->SetTrigger("shoot");
-		if (controller->GetReload()) anim->SetTrigger("reload");
-
-		// 移動ベクトル（speed メンバ変数で実際の速さをスケール）
+		// 移動ベクトル
 		Vector3 move = Vector3::TransformNormal(
 			Vector3(moveX, 0, moveZ),
 			Matrix::CreateFromQuaternion(transform.rotation)
@@ -162,56 +101,27 @@ void Character::OnUpdate()
 			verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
 		move.y = verticalVelocity * Game::Time::deltaTime;
-		cc->Move(move);
+
+		// アクターの向きを加味して、ルートモーションの移動量をワールド空間のベクトルに変換
+		Vector3 rawDelta = anim->ConsumeRootMotionDelta();
+		Vector3 worldDelta = Vector3::TransformNormal(rawDelta, transform.matrix);
+
+		// 最終的にControllerで移動
+		cc->Move(worldDelta + move);
 	}
 }
 
 void Character::OnLateUpdate()
 {
-	// スパインの回転
-	if (isFirstPerson)
-	{
-		Vector2 targetSpineAngleX = controller->GetReady() ? readySpineAngle : idleSpineAngle;
 
-		Model::Node* spineNode = &model->GetNodes()[4];
-		Quaternion baseRot = spineNode->rotation;
-		Quaternion aimRot = Quaternion::CreateFromAxisAngle(Vector3::UnitZ, -spineAngleX + targetSpineAngleX.x);
-		Quaternion aimRot2 = Quaternion::CreateFromAxisAngle(Vector3::UnitX, targetSpineAngleX.y);
-		spineNode->rotation = baseRot * aimRot * aimRot2;
-		model->UpdateTransform(transform.matrix);
-	}
-
-	// 武器
-	if (weapon) weapon->Update();
 }
 
 void Character::OnRender(const RenderContext& rc)
 {
-	if (weapon) {
-		weapon->Render(rc);
-	}
+
 }
 
 void Character::OnDrawGUI()
 {
-	ImGui::PushID(this);
-	ImGui::TreePush("Character");
-	if (weapon) {
-		weapon->OnDrawGUI();
-	}
-	ImGui::TreePop();
-	ImGui::PopID();
-}
 
-std::string Character::GetModel(Country type)
-{
-	switch (type)
-	{
-		case Country::Japan:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Japan_Soldier.glb";
-		case Country::US:		return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_US_Soldier.glb";
-		case Country::German:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_German_Soldier.glb";
-		case Country::Soviet:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_Soviet_Soldier.glb";
-		case Country::British:	return "Data/Model/ToonSoldiers_WW2/models/ToonSoldier_WW2_British_Soldier.glb";
-		default:				return "";
-	}
 }

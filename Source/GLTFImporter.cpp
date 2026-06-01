@@ -62,8 +62,8 @@ GLTFImporter::GLTFImporter(const char* filename)
 // ノードデータを読み込み
 void GLTFImporter::LoadNodes(NodeList& nodes)
 {
-	Model::Node& node = nodes.emplace_back();
-	node.name = filepath.filename().stem().string();
+	/*Model::Node& node = nodes.emplace_back();
+	node.name = filepath.filename().stem().string();*/
 
 	nodes.resize(gltfModel.nodes.size());
 	for (size_t gltfNodeIndex = 0; gltfNodeIndex < nodes.size(); ++gltfNodeIndex)

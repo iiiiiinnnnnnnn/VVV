@@ -63,6 +63,8 @@ public:
         if (layerCount == 0)
         {
             ImGui::TextDisabled("No layers.");
+            if (ImGui::Button("+ Add Layer"))
+                animator->AddLayer("Base Layer", Animator::BlendMode::Override, 1.0f, {});
             ImGui::End();
             return;
         }

@@ -179,6 +179,25 @@ public:
         nextNodePoses.clear();
     }
 
+    // =========================================================
+    // ルートモーション
+    // =========================================================
+    // ルートボーンのインデックスを指定する
+    void SetRootMotionBone(int rootBone = 116)
+    {
+        rootMotionBoneIndex = rootBone;
+        isFirstRootMotion = true;
+        currentRootMotionDelta = Vector3::Zero;
+    }
+
+    // 更新された分の移動量を取得し、値をリセットする
+    Vector3 ConsumeRootMotionDelta()
+    {
+        Vector3 delta = currentRootMotionDelta;
+        currentRootMotionDelta = Vector3::Zero;
+        return delta;
+    }
+
 private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
@@ -202,4 +221,10 @@ private:
     std::string m_lastPath;
     std::unique_ptr<AnimEditorWindow> animEditor;
     bool animEditorOpen = false;
+
+    // ルートモーション用
+    int rootMotionBoneIndex = -1; 
+    Vector3 lastRootPosition = Vector3::Zero;
+    Vector3 currentRootMotionDelta = Vector3::Zero;
+    bool isFirstRootMotion = true;
 };

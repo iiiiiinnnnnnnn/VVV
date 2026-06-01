@@ -196,24 +196,25 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	std::filesystem::path extension = filepath.extension();
 
 	// 独自形式のモデルファイルの存在確認
-	filepath.replace_extension(".cereal");
-	if (std::filesystem::exists(filepath) && !importRawModel)
-	{
-		// 独自形式のモデルファイルの読み込み
-		uint16_t lastWriteTime;
-		Deserialize(filepath.string().c_str(), lastWriteTime);
-		// cerealが古いなら、元のモデルファイルから再構築する
-		if (std::filesystem::exists(filename)) {
-			uint16_t fileLastWriteTime = static_cast<uint16_t>(std::filesystem::last_write_time(filename).time_since_epoch().count());
-			if (fileLastWriteTime != lastWriteTime)
-			{
-				Model tmpModel(filename, sampleRate, true);
-				*this = std::move(tmpModel);
-				return;
-			}
-		}
-	}
-	else if (extension == ".gltf" || extension == ".glb")
+	//filepath.replace_extension(".cereal");
+	//if (std::filesystem::exists(filepath) && !importRawModel)
+	//{
+	//	// 独自形式のモデルファイルの読み込み
+	//	uint16_t lastWriteTime;
+	//	Deserialize(filepath.string().c_str(), lastWriteTime);
+	//	// cerealが古いなら、元のモデルファイルから再構築する
+	//	if (std::filesystem::exists(filename)) {
+	//		uint16_t fileLastWriteTime = static_cast<uint16_t>(std::filesystem::last_write_time(filename).time_since_epoch().count());
+	//		if (fileLastWriteTime != lastWriteTime)
+	//		{
+	//			Model tmpModel(filename, sampleRate, true);
+	//			*this = std::move(tmpModel);
+	//			return;
+	//		}
+	//	}
+	//}
+	//else
+	if (extension == ".gltf" || extension == ".glb")
 	{
 		// 汎用モデルファイルの読み込み
 		GLTFImporter importer(filename);

@@ -22,12 +22,8 @@ public:
 	const ModelShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(ModelShaderId id) { shaderId = id; }
 
-    void AppendNode(const Model::Node* node) { appendNode = node; }
-	const Model::Node* GetAppendNode() const { return appendNode; }
-
 private:
     std::shared_ptr<Model> model;
 	ModelShaderId shaderId;
     ShaderParamListWithMaterialName paramsWithMaterial;
-    const Model::Node* appendNode = nullptr;
 };

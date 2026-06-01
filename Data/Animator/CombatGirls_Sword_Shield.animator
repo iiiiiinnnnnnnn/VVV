@@ -1,0 +1,22 @@
+{
+    "layers": [
+        {
+            "blendMode": 0,
+            "defaultState": 0,
+            "mask": [],
+            "name": "Base Layer",
+            "states": [
+                {
+                    "animationIndex": 0,
+                    "loop": true,
+                    "name": "New State",
+                    "speed": 1.0,
+                    "transitions": []
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [],
+    "triggers": []
+}
