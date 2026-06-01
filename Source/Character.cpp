@@ -104,16 +104,16 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 		{
 			"TS_ww2_Japan_soldier",
 			{
-				{"metalness", 0},
-				{"roughness", 100},
+				{"metalness", 0.0f},
+				{"roughness", 100.0f},
 				{"occlusionStrength", 1.0f}
 			}
 		},
 		{
 			"TS_ww2_weapons",
 			{
-				{"metalness", 0},
-				{"roughness", 100},
+				{"metalness", 0.0f},
+				{"roughness", 100.0f},
 				{"occlusionStrength", 1.0f}
 			}
 		},
