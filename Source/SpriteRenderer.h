@@ -20,13 +20,13 @@ public:
 
 	void Draw(SpriteShaderId shaderId, std::shared_ptr<Texture> texture, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const ShaderParamList& shaderParams);
 
-	void Render(const RenderContext& rc, float elapsedTime);
+	void Render(const RenderContext& rc);
 
 private:
 	struct SpriteVertex
 	{
-		DirectX::XMFLOAT3	position;
-		DirectX::XMFLOAT2	texcoord;
+		Vector3	position;
+		Vector2	texcoord;
 	};
 
 	struct DrawInfo

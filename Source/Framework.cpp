@@ -2,8 +2,8 @@
 #include "Framework.h"
 #include "Graphics.h"
 #include "ImGuiRenderer.h"
-#include "Input.h"
-#include "Time.h"
+#include "GameInput.h"
+#include "GameTime.h"
 
 #include "PhysicsManager.h"
 #include "TestPlayScene.h"
@@ -26,13 +26,13 @@ Framework::Framework(HWND hWnd)
 #endif
 
 	// 入力初期化
-	Input::Instance().Initialize(hWnd);
+	Game::Input::Instance().Initialize(hWnd);
 
 	// グラフィックス初期化
-	Graphics::Instance().Initialize(hWnd);
+	Game::Graphics::Instance().Initialize(hWnd);
 
 	// IMGUI初期化
-	ImGuiRenderer::Initialize(hWnd, Graphics::Instance().GetDevice(), Graphics::Instance().GetDeviceContext());
+	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(), Game::Graphics::Instance().GetDeviceContext());
 
 	// 物理マネージャ初期化
 	PhysicsManager::Instance().Initialize();
@@ -58,40 +58,40 @@ Framework::~Framework()
 void Framework::Update(float elapsedTime)
 {
 	// 時間更新処理
-	Time::time += elapsedTime;
-	Time::deltaTime = elapsedTime * Time::scale;
-	Time::unscaledDeltaTime = elapsedTime;
+	Game::Time::time += elapsedTime;
+	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
+	Game::Time::unscaledDeltaTime = elapsedTime;
 
 	// 入力更新処理
-	Input::Instance().Update();
+	Game::Input::Instance().Update();
 
-	// IMGUIフレーム開始処理	
+	// IMGUIフレーム開始処理
 	ImGuiRenderer::NewFrame();
 
 	// シーン更新処理
-	scene->Update(elapsedTime);
+	scene->Update();
 }
 
 // 描画処理
 void Framework::Render(float elapsedTime)
 {
-	ID3D11DeviceContext* dc = Graphics::Instance().GetDeviceContext();
+	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
 	// 画面クリア
-	Graphics::Instance().Clear(0.5f, 0.5f, 0.5f, 1);
+	Game::Graphics::Instance().Clear(0.5f, 0.5f, 0.5f, 1);
 
 	// レンダーターゲット設定
-	Graphics::Instance().SetRenderTargets();
+	Game::Graphics::Instance().SetRenderTargets();
 
 	// シーン通常描画＆GUI描画処理
 	// GUI描画もSceneに任せちゃうお(rc拾えるようにするため)
-	scene->Render(elapsedTime);
+	scene->Render();
 
 	// IMGUI描画
 	ImGuiRenderer::Render(dc);
 
 	// 画面表示
-	Graphics::Instance().Present(syncInterval);
+	Game::Graphics::Instance().Present(syncInterval);
 }
 
 // フレームレート計算

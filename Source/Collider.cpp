@@ -33,7 +33,7 @@ void BoxCollider::UpdateShape()
 	rigidActor->attachShape(*shape);
 }
 
-void BoxCollider::DrawGUI(float elapsedTime)
+void BoxCollider::DrawGUI()
 {
     if (ImGui::TreeNode("BoxCollider"))
     {
@@ -90,7 +90,7 @@ void CapsuleCollider::UpdateShape()
     rigidActor->attachShape(*shape);
 }
 
-void CapsuleCollider::DrawGUI(float elapsedTime)
+void CapsuleCollider::DrawGUI()
 {
     if (ImGui::TreeNode("CapsuleCollider"))
     {
@@ -145,7 +145,7 @@ void SphereCollider::UpdateShape()
     rigidActor->attachShape(*shape);
 }
 
-void SphereCollider::DrawGUI(float elapsedTime)
+void SphereCollider::DrawGUI()
 {
     if (ImGui::TreeNode("SphereCollider"))
     {
@@ -220,7 +220,7 @@ void MeshCollider::UpdateShape()
     }
 }
 
-void MeshCollider::DrawGUI(float elapsedTime)
+void MeshCollider::DrawGUI()
 {
     if (ImGui::TreeNode("MeshCollider"))
     {

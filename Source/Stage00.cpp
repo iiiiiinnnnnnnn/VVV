@@ -42,12 +42,12 @@ Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 		model, ModelShaderId::PBR, shaderParamWithMaterialName);
 }
 
-void Stage00::OnUpdate(float elapsedTime)
+void Stage00::OnUpdate()
 {
 
 }
 
-void Stage00::OnDrawGUI(float elapsedTime)
+void Stage00::OnDrawGUI()
 {
 
 }

@@ -2,14 +2,14 @@
 
 #include "Widget.h"
 
-void Widget::Update(float elapsedTime)
+void Widget::Update()
 {
     rect.Update();
 
-    OnUpdate(elapsedTime);
+    OnUpdate();
 }
 
-void Widget::DrawGUI(float elapsedTime)
+void Widget::DrawGUI()
 {
     ImGui::PushID(this);
     if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
@@ -22,11 +22,11 @@ void Widget::DrawGUI(float elapsedTime)
             ImGui::TreePop();
         }
 
-        componentList.DrawGUI(elapsedTime);
+        componentList.DrawGUI();
 
         if (ImGui::TreeNode("User param"))
         {
-            OnDrawGUI(elapsedTime);
+            OnDrawGUI();
             ImGui::TreePop();
         }
     }

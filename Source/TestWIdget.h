@@ -9,8 +9,8 @@ class TestWidget : public Widget
 public:
     TestWidget(Vector2 pos);
     
-    void OnUpdate(float elapsedTime) override;
-	void OnDrawGUI(float elapsedTime) override;
+    void OnUpdate() override;
+	void OnDrawGUI() override;
 
 private:
     ShaderParamList shaderParam;

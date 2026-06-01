@@ -12,10 +12,10 @@ public:
 	~TestPlayScene() override = default;
 
 	// 更新処理
-	void OnUpdate(float elapsedTime) override;
+	void OnUpdate() override;
 
 	// GUI描画処理
-	void OnDrawGUI(float elapsedTime) override;
+	void OnDrawGUI() override;
 
 private:
 

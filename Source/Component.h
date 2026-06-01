@@ -10,10 +10,10 @@ class Component {
 public:
     Component(Object* owner) : owner(owner) {}
     virtual ~Component() = default;
-    virtual void Update(float elapsedTime) {}
-    virtual void LateUpdate(float elapsedTime) {}
-	virtual void Render(const RenderContext& rc, float elapsedTime) {}
-	virtual void DrawGUI(float elapsedTime) {}
+    virtual void Update() {}
+    virtual void LateUpdate() {}
+	virtual void Render(const RenderContext& rc) {}
+	virtual void DrawGUI() {}
 
 protected:
     Object* owner;

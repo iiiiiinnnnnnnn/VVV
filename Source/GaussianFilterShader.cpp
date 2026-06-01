@@ -36,7 +36,7 @@ void GaussianFilterShader::Begin(const RenderContext& rc)
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 }
 
-void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params, float elapsedTime)
+void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

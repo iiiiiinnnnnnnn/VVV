@@ -54,7 +54,7 @@ void PBRShader::Begin(const RenderContext& rc)
 	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 }
 
-void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime)
+void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

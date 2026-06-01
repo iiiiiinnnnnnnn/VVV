@@ -116,7 +116,7 @@ void SpriteRenderer::Draw(
 	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, shaderParams));
 }
 
-void SpriteRenderer::Render(const RenderContext& rc, float elapsedTime)
+void SpriteRenderer::Render(const RenderContext& rc)
 {
 	if (drawCalls.empty()) return;
 
@@ -170,7 +170,7 @@ void SpriteRenderer::Render(const RenderContext& rc, float elapsedTime)
 		memcpy(mapped.pData, verts, sizeof(verts));
 		dc->Unmap(vertexBuffer.Get(), 0);
 
-		shader->Update(rc, call.srv.Get(), call.textureSize, call.shaderParams, elapsedTime);
+		shader->Update(rc, call.srv.Get(), call.textureSize, call.shaderParams);
 
 		// 描画
 		dc->Draw(4, 0);

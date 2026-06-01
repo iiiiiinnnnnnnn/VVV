@@ -26,10 +26,10 @@ public:
 	void Finalize();
 
 	// 更新処理
-	void Update(float elapsedTime);
+	void Update();
 
 	// 描画処理
-	void Render(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection);
+	void Render(const Matrix& view, const Matrix& projection);
 
 	// Effeckseerマネージャーの取得
 	Effekseer::ManagerRef GetEffekseerManager() { return effekseerManager; }

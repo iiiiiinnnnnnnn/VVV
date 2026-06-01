@@ -13,9 +13,6 @@
     <Filter Include="ソースファイル\ゲーム\分隊">
       <UniqueIdentifier>{62e1d4dc-dbf4-41e0-a708-747263f7442c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\ゲーム\プレイヤー">
-      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\ゲーム\カメラ">
       <UniqueIdentifier>{87a91572-ce15-4886-922d-49746dfb9de8}</UniqueIdentifier>
     </Filter>
@@ -39,9 +36,6 @@
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\リソース">
       <UniqueIdentifier>{9bbcc62a-8dc0-41e6-855c-50271dfd7fbc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\入力">
-      <UniqueIdentifier>{54aafe05-06b6-40a0-87fc-65221ee22d61}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\描画">
       <UniqueIdentifier>{ceab042a-835d-40bc-a5bc-816c0c37d9a9}</UniqueIdentifier>
@@ -100,6 +94,9 @@
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント">
       <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\ゲーム\プレイヤーコントローラー">
+      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -144,15 +141,6 @@
     <ClCompile Include="Source\RenderState.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Input.cpp">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Mouse.cpp">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GamePad.cpp">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClCompile>
     <ClCompile Include="Source\PhysicsManager.cpp">
       <Filter>ソースファイル\システム%28基底%29\物理</Filter>
     </ClCompile>
@@ -175,19 +163,19 @@
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\LocalPlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\RemotePlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\AIPlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\Squad.cpp">
       <Filter>ソースファイル\ゲーム\分隊</Filter>
     </ClCompile>
     <ClCompile Include="Source\SoldierAIPlayer.cpp">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
@@ -276,7 +264,16 @@
     <ClCompile Include="Source\SkyBoxRenderer.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Time.cpp">
+    <ClCompile Include="Source\GameTime.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GamePad.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mouse.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClCompile>
   </ItemGroup>
@@ -329,15 +326,6 @@
     <ClInclude Include="Source\Shader.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GamePad.h">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Input.h">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Mouse.h">
-      <Filter>ソースファイル\システム%28基底%29\入力</Filter>
-    </ClInclude>
     <ClInclude Include="Source\PhysicsManager.h">
       <Filter>ソースファイル\システム%28基底%29\物理</Filter>
     </ClInclude>
@@ -372,22 +360,22 @@
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\PlayerController.h">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\LocalPlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\RemotePlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\AIPlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\Squad.h">
       <Filter>ソースファイル\ゲーム\分隊</Filter>
     </ClInclude>
     <ClInclude Include="Source\SoldierAIPlayer.h">
-      <Filter>ソースファイル\ゲーム\プレイヤー</Filter>
+      <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
@@ -488,7 +476,16 @@
     <ClInclude Include="Source\ShaderParam.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Time.h">
+    <ClInclude Include="Source\GameTime.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GamePad.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Mouse.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
   </ItemGroup>

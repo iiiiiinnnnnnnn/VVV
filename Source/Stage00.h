@@ -10,8 +10,8 @@ class Stage00 : public Actor
 public:
 	Stage00();
 	~Stage00() = default;
-	void OnUpdate(float elapsedTime) override;
-	void OnDrawGUI(float elapsedTime) override;
+	void OnUpdate() override;
+	void OnDrawGUI() override;
 
 private:
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

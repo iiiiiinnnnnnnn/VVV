@@ -8,7 +8,7 @@ FpsCameraController::FpsCameraController(std::shared_ptr<Character> character)
     SetPlayer(character);
 }
 
-void FpsCameraController::SyncControllerToCamera(Camera& camera, float elapsedTime)
+void FpsCameraController::SyncControllerToCamera(Camera& camera)
 {
     // 目のノードのワールド位置を取得
     Model::Node* eyeNode = &character->GetModel()->GetNodes()[6];
@@ -27,9 +27,9 @@ void FpsCameraController::SyncControllerToCamera(Camera& camera, float elapsedTi
     camera.SetLookAt(eye, focus, Vector3::Up);
 }
 
-void FpsCameraController::OnUpdate(float elapsedTime)
+void FpsCameraController::OnUpdate()
 {
-    Mouse& mouse = Input::Instance().GetMouse();
+    Mouse& mouse = Game::Input::Instance().GetMouse();
     mouse.SetCursorLock(true);
     mouse.SetCursorVisible(false);
 
@@ -57,12 +57,12 @@ void FpsCameraController::OnUpdate(float elapsedTime)
 
 void FpsCameraController::OnFocusLost()
 {
-    Mouse& mouse = Input::Instance().GetMouse();
+    Mouse& mouse = Game::Input::Instance().GetMouse();
     mouse.SetCursorLock(false);
     mouse.SetCursorVisible(true);
 }
 
-void FpsCameraController::OnDrawGUI(float elapsedTime)
+void FpsCameraController::OnDrawGUI()
 {
 	ImGui::DragFloat3("Eye Offset", &eyeOffset.x, 0.01f);
 }

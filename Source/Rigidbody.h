@@ -10,8 +10,8 @@ class Rigidbody : public Component {
 public:
     Rigidbody(Object* owner, PxRigidActor* actor);
 
-    void Update(float elapsedTime) override;
-    void DrawGUI(float elapsedTime) override;
+    void Update() override;
+    void DrawGUI() override;
 
     void SetPosition(const Vector3& pos);
     Vector3 GetPosition() const { return VEC(rigidActor->getGlobalPose().p); }
@@ -26,14 +26,14 @@ class RigidbodyStatic : public Rigidbody {
 public:
     RigidbodyStatic(Object* owner);
 
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 };
 
 class RigidbodyDynamic : public Rigidbody {
 public:
     RigidbodyDynamic(Object* owner);
 
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 
     void AddForce(const Vector3& force);
     void SetVelocity(const Vector3& v);

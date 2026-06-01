@@ -4,14 +4,14 @@
 #include "imgui.h"
 #include "Components.h"
 
-void Actor::Update(float elapsedTime)
+void Actor::Update()
 {
     transform.Update();
 
-    Object::Update(elapsedTime);
+    Object::Update();
 }
 
-void Actor::DrawGUI(float elapsedTime)
+void Actor::DrawGUI()
 {
     ImGui::PushID(this);
     if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
@@ -57,11 +57,11 @@ void Actor::DrawGUI(float elapsedTime)
             ImGui::TreePop();
         }
 
-        componentList.DrawGUI(elapsedTime);
+        componentList.DrawGUI();
 
         if (ImGui::TreeNode("User param"))
         {
-            OnDrawGUI(elapsedTime);
+            OnDrawGUI();
             ImGui::TreePop();
         }
     }

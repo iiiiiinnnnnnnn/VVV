@@ -16,6 +16,6 @@ public:
     RectTransform rect;
 
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
-    void Update(float elapsedTime) override;
-    void DrawGUI(float elapsedTime) override;
+    void Update() override;
+    void DrawGUI() override;
 };

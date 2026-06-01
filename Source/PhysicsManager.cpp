@@ -1,6 +1,7 @@
 ﻿// PhysicsManager.cpp
 
 #include "PhysicsManager.h"
+#include "GameTime.h"
 
 // PhysicsSceneContext
 
@@ -24,9 +25,9 @@ PhysicsSceneContext::~PhysicsSceneContext()
     if (scene) scene->release();
 }
 
-void PhysicsSceneContext::Simulate(float elapsedTime) const
+void PhysicsSceneContext::Simulate() const
 {
-    scene->simulate(elapsedTime);
+    scene->simulate(Game::Time::deltaTime);
     scene->fetchResults(true);
 }
 

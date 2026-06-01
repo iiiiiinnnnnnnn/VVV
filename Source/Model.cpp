@@ -188,7 +188,7 @@ void Model::Animation::serialize(Archive& archive)
 // コンストラクタ
 Model::Model(const char* filename, float sampleRate, bool importRawModel)
 {
-	auto device = Graphics::Instance().GetDevice();
+	auto device = Game::Graphics::Instance().GetDevice();
 
 	std::filesystem::path filepath(filename);
 	std::filesystem::path dirpath(filepath.parent_path());

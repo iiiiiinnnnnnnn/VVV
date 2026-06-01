@@ -4,9 +4,10 @@
 #include "AnimEditorWindow.h"
 #include "AnimatorSerializer.h"
 #include "Actor.h"
+#include "GameTime.h"
 
-Animator::Animator(Object* owner, std::shared_ptr<Model> model)
-    : Component(owner), model(model)
+Animator::Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime)
+	: Component(owner), model(model), unscaledTime(unscaledTime)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -129,7 +130,7 @@ void Animator::ResetTriggers()
     for (auto& [name, val] : triggers) val = false;
 }
 
-void Animator::Update(float elapsedTime)
+void Animator::Update()
 {
     if (!model) return;
 
@@ -141,7 +142,7 @@ void Animator::Update(float elapsedTime)
     for (auto& layer : layers)
     {
         if (layer.currentStateIndex < 0) continue;
-        UpdateLayer(layer, elapsedTime, finalPoses);
+        UpdateLayer(layer, finalPoses);
     }
 
     model->SetNodePoses(finalPoses);
@@ -150,7 +151,7 @@ void Animator::Update(float elapsedTime)
     ResetTriggers();
 }
 
-void Animator::DrawGUI(float elapsedTime)
+void Animator::DrawGUI()
 {
     if (ImGui::TreeNode("Animator"))
     {
@@ -185,14 +186,14 @@ void Animator::OpenAnimEditor()
     animEditorOpen = true;
 }
 
-void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
+void Animator::UpdateLayer(AnimatorLayer& layer,
     std::vector<Model::NodePose>& finalPoses)
 {
     State& curState = layer.states[layer.currentStateIndex];
     const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
 
     // 時間更新
-    layer.currentTime += elapsedTime * curState.speed;
+    layer.currentTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * curState.speed;
     if (layer.currentTime > curAnim.secondsLength)
     {
         if (curState.loop) layer.currentTime -= curAnim.secondsLength;
@@ -208,7 +209,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
         State& nxtState = layer.states[layer.nextStateIndex];
         const Model::Animation& nxtAnim = model->GetAnimations()[nxtState.animationIndex];
 
-        layer.nextTime += elapsedTime * nxtState.speed;
+        layer.nextTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * nxtState.speed;
         if (layer.nextTime > nxtAnim.secondsLength)
         {
             if (nxtState.loop) layer.nextTime -= nxtAnim.secondsLength;
@@ -217,7 +218,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer, float elapsedTime,
 
         model->ComputeAnimation(nxtState.animationIndex, layer.nextTime, nextNodePoses);
 
-        layer.blendTime += elapsedTime;
+        layer.blendTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime);
         float w = layer.blendDuration > 0.0f ? layer.blendTime / layer.blendDuration : 1.0f;
         if (w > 1.0f) w = 1.0f;
 

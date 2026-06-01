@@ -1,40 +1,44 @@
-﻿#pragma once
+﻿// Input.h
+
+#pragma once
 
 #include <memory>
 #include "GamePad.h"
 #include "Mouse.h"
 
-// インプット
-class Input
+namespace Game
 {
-private:
-	Input() = default;
-	~Input() = default;
-
-public:
-	// インスタンス取得
-	static Input& Instance()
+	class Input
 	{
-		static Input instance;
-		return instance;
-	}
+	private:
+		Input() = default;
+		~Input() = default;
 
-	// 初期化
-	void Initialize(HWND hWnd);
+	public:
+		// インスタンス取得
+		static Input& Instance()
+		{
+			static Input instance;
+			return instance;
+		}
 
-	// 更新処理
-	void Update();
+		// 初期化
+		void Initialize(HWND hWnd);
 
-	// ゲームパッド取得
-	GamePad& GetGamePad() { return *gamePad; }
+		// 更新処理
+		void Update();
 
-	// マウス取得
-	Mouse& GetMouse() { return *mouse; }
+		// ゲームパッド取得
+		GamePad& GetGamePad() { return *gamePad; }
 
-	// フォーカスが当たっているか
-	static bool IsFocusedWindow();
+		// マウス取得
+		Mouse& GetMouse() { return *mouse; }
 
-private:
-	std::unique_ptr<GamePad>	gamePad;
-	std::unique_ptr<Mouse>		mouse;
-};
+		// フォーカスが当たっているか
+		static bool IsFocusedWindow();
+
+	private:
+		std::unique_ptr<GamePad>	gamePad;
+		std::unique_ptr<Mouse>		mouse;
+	};
+}

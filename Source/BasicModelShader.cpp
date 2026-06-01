@@ -45,7 +45,7 @@ void BasicModelShader::Begin(const RenderContext& rc)
 }
 
 // 更新処理
-void BasicModelShader::Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime)
+void BasicModelShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

@@ -12,9 +12,9 @@ public:
                          ModelShaderId shaderId = ModelShaderId::Basic,
                          ShaderParamListWithMaterialName paramsWithMaterial = {});
 
-    void LateUpdate(float elapsedTime) override;
-    void Render(const RenderContext& rc, float elapsedTime) override;
-    void DrawGUI(float elapsedTime) override;
+    void LateUpdate() override;
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
 
     Model* GetModel() const { return model.get(); }
     void SetModel(std::shared_ptr<Model> model) { this->model = model; }

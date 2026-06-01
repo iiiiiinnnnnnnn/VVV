@@ -12,28 +12,28 @@ Scene::Scene(const std::string& name) : name(name)
 	lightData.SetAmbientColor({1, 1, 1, 1});
 }
 
-void Scene::Update(float elapsedTime)
+void Scene::Update()
 {
-	OnUpdate(elapsedTime);
+	OnUpdate();
 
 	_ASSERT_EXPR(!cameraControllers.empty(), "CameraController is empty.");
 
 	// カメラ更新処理
-	cameraControllers[nowCameraControllerIndex]->Update(elapsedTime);
+	cameraControllers[nowCameraControllerIndex]->Update();
 
 	// カメラコントローラーからカメラへ反映
-	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera, elapsedTime);
+	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
-	actors.Update(elapsedTime);
-	widgets.Update(elapsedTime);
+	actors.Update();
+	widgets.Update();
 
 	// 物理シミュレーション
-	PhysicsManager::Instance().GetSceneContext().Simulate(elapsedTime);
+	PhysicsManager::Instance().GetSceneContext().Simulate();
 }
 
-void Scene::Render(float elapsedTime)
+void Scene::Render()
 {
-	Graphics& graphics = Graphics::Instance();
+	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
 	RenderState* renderState = graphics.GetRenderState();
 	PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
@@ -53,7 +53,7 @@ void Scene::Render(float elapsedTime)
 	// デバッグ切り替え
 	{
 		#ifdef _DEBUG
-		if (Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+		if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
 			renderSettings.showDebug = !renderSettings.showDebug;
 		#endif
 	}
@@ -73,7 +73,7 @@ void Scene::Render(float elapsedTime)
 		iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 
 		// 先にワールド行列確定させるためにDrawしとく
-		actors.Render(rc, elapsedTime);
+		actors.Render(rc);
 
 		// シャドウマップ描画
 		{
@@ -99,11 +99,11 @@ void Scene::Render(float elapsedTime)
 		);
 
 		// 通常描画
-		graphics.GetModelRenderer()->Render(rc, elapsedTime);
+		graphics.GetModelRenderer()->Render(rc);
 
 		// スプライト
-		widgets.Render(rc, elapsedTime);
-		graphics.GetSpriteRenderer()->Render(rc, elapsedTime);
+		widgets.Render(rc);
+		graphics.GetSpriteRenderer()->Render(rc);
 	}
 
 	// GUI
@@ -114,14 +114,14 @@ void Scene::Render(float elapsedTime)
 			if (!actors.data.empty())
 			{
 				ImGui::Begin("Actors");
-				actors.DrawGUI(elapsedTime);
+				actors.DrawGUI();
 				ImGui::End();
 			}
 
 			if (!widgets.data.empty())
 			{
 				ImGui::Begin("Widgets");
-				widgets.DrawGUI(elapsedTime);
+				widgets.DrawGUI();
 				ImGui::End();
 			}
 
@@ -139,7 +139,7 @@ void Scene::Render(float elapsedTime)
 				ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
 				auto nowCameraController = GetNowCameraController();
 				if (nowCameraController)
-					nowCameraController->DrawGUI(elapsedTime);
+					nowCameraController->DrawGUI();
 			}
 
 			// RenderContext
@@ -176,7 +176,7 @@ void Scene::Render(float elapsedTime)
 				}
 			}
 
-			OnDrawGUI(elapsedTime);
+			OnDrawGUI();
 
 			ImGui::End();
 		}

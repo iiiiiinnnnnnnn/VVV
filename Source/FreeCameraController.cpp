@@ -1,5 +1,6 @@
 ﻿#include <imgui.h>
 #include "FreeCameraController.h"
+#include "GameTime.h"
 
 FreeCameraController::FreeCameraController(const Camera& camera)
 {
@@ -40,14 +41,14 @@ void FreeCameraController::SyncCameraToController(const Camera& camera)
 }
 
 // コントローラーからカメラへパラメータを同期する
-void FreeCameraController::SyncControllerToCamera(Camera& camera, float elapsedTime)
+void FreeCameraController::SyncControllerToCamera(Camera& camera)
 {
     #if 1 // lerp
 	const float lerpSpeed = 5.0f;
     camera.SetLookAt(
-        Vector3::Lerp(camera.GetEye(), eye, elapsedTime * lerpSpeed),
-        Vector3::Lerp(camera.GetFocus(), focus, elapsedTime * lerpSpeed),
-        Vector3::Lerp(camera.GetUp(), up, elapsedTime * lerpSpeed)
+        Vector3::Lerp(camera.GetEye(), eye, Game::Time::deltaTime * lerpSpeed),
+        Vector3::Lerp(camera.GetFocus(), focus, Game::Time::deltaTime * lerpSpeed),
+        Vector3::Lerp(camera.GetUp(), up, Game::Time::deltaTime * lerpSpeed)
 	);
     #else
     // 直接反映
@@ -55,9 +56,9 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera, float elapsedT
 	#endif
 }
 
-void FreeCameraController::OnUpdate(float elapsedTime)
+void FreeCameraController::OnUpdate()
 {
-    if (!Input::Instance().IsFocusedWindow())
+    if (!Game::Input::Instance().IsFocusedWindow())
         return;
 
     ImGuiIO& io = ImGui::GetIO();
@@ -128,7 +129,7 @@ void FreeCameraController::OnUpdate(float elapsedTime)
         {
             moveDir.Normalize();
             // 経過時間を掛けて位置（eye）を移動
-            eye += moveDir * speed * elapsedTime;
+            eye += moveDir * speed * Game::Time::deltaTime;
         }
 
         // FPSモードは「自分の位置（eye）」が主役なので、現在の向きから注視点（focus）を逆算する

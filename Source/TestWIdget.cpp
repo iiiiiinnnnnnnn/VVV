@@ -15,12 +15,12 @@ TestWidget::TestWidget(Vector2 pos) : Widget("TestWidget")
         SpriteShaderId::GaussianFilter, shaderParam);
 }
 
-void TestWidget::OnUpdate(float elapsedTime)
+void TestWidget::OnUpdate()
 {
     
 }
 
-void TestWidget::OnDrawGUI(float elapsedTime)
+void TestWidget::OnDrawGUI()
 {
 
 }

@@ -42,10 +42,10 @@ public:
 	Character(std::string name = "", std::string tag = "", bool isActive = true, std::string layer = "", Country country = Country::Japan, SkinParts skinParts = SkinParts::Head);
 	~Character() override = default;
 
-	void OnUpdate(float elapsedTime) override;
-	void OnLateUpdate(float elapsedTime) override;
-	void OnRender(const RenderContext& rc, float elapsedTime) override;
-	void OnDrawGUI(float elapsedTime) override;
+	void OnUpdate() override;
+	void OnLateUpdate() override;
+	void OnRender(const RenderContext& rc) override;
+	void OnDrawGUI() override;
 
 	void SetController(std::unique_ptr<PlayerController> ctrl) { controller = std::move(ctrl); }
 	PlayerController* GetController() const { return controller.get(); }

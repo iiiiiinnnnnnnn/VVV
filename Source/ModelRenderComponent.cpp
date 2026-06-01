@@ -13,7 +13,7 @@ ModelRenderComponent::ModelRenderComponent(
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 }
 
-void ModelRenderComponent::LateUpdate(float elapsedTime)
+void ModelRenderComponent::LateUpdate()
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -38,15 +38,15 @@ void ModelRenderComponent::LateUpdate(float elapsedTime)
     }
 }
 
-void ModelRenderComponent::Render(const RenderContext& rc, float elapsedTime)
+void ModelRenderComponent::Render(const RenderContext& rc)
 {
     if (model)
     {
-        Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMaterial);
+        Game::Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMaterial);
     }
 }
 
-void ModelRenderComponent::DrawGUI(float elapsedTime)
+void ModelRenderComponent::DrawGUI()
 {
     if (ImGui::TreeNode("ModelRenderComponent"))
     {

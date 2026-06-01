@@ -6,22 +6,22 @@ Commander::Commander() : Character("Commander", "Commander", true, "Default", Co
 {
 }
 
-void Commander::OnUpdate(float elapsedTime)
+void Commander::OnUpdate()
 {
-	Character::OnUpdate(elapsedTime);
+	Character::OnUpdate();
 }
 
-void Commander::OnLateUpdate(float elapsedTime)
+void Commander::OnLateUpdate()
 {
-	Character::OnLateUpdate(elapsedTime);
+	Character::OnLateUpdate();
 }
 
-void Commander::OnRender(const RenderContext& rc, float elapsedTime)
+void Commander::OnRender(const RenderContext& rc)
 {
-	Character::OnRender(rc, elapsedTime);
+	Character::OnRender(rc);
 }
 
-void Commander::OnDrawGUI(float elapsedTime)
+void Commander::OnDrawGUI()
 {
-	Character::OnDrawGUI(elapsedTime);
+	Character::OnDrawGUI();
 }

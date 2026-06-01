@@ -1,7 +1,9 @@
 ﻿// Common.h
 #pragma once
 
-// 基本
+// standard
+#include <time.h> 
+#include <ctime>
 #include <vector>
 #include <fstream>
 #include <sstream>

@@ -15,8 +15,8 @@ public:
     Transform transform;
 
     // オーバーライドする必要があるやつだけ(transform割り込み)
-	void Update(float elapsedTime) override;
-	void DrawGUI(float elapsedTime) override;
+	void Update() override;
+	void DrawGUI() override;
 
     virtual void OnCollisionEnter(Actor* other) {}
     virtual void OnCollisionExit(Actor* other) {}

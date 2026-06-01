@@ -19,8 +19,8 @@ public:
 
 	virtual ~Scene() = default;
 
-	virtual void Update(float elapsedTime);
-	virtual void Render(float elapsedTime);
+	virtual void Update();
+	virtual void Render();
 
 	Camera* GetCamera() { return &camera; }
 	CameraController* GetNowCameraController() const;
@@ -29,8 +29,8 @@ public:
 	const RenderSettings& GetRenderSettings() const { return renderSettings; }
 
 protected:
-	virtual void OnUpdate(float elapsedTime) {}
-	virtual void OnDrawGUI(float elapsedTime) {}
+	virtual void OnUpdate() {}
+	virtual void OnDrawGUI() {}
 
 	std::string										name;
 
@@ -47,19 +47,19 @@ protected:
 	{
 		std::vector<std::shared_ptr<Actor>> data;
 		void Register(std::shared_ptr<Actor> actor) { data.push_back(actor); }
-		void Update(float elapsedTime) {
+		void Update() {
 			for (auto& d : data) {
-				d->Update(elapsedTime);
+				d->Update();
 			}
 		}
-		void Render(const RenderContext& rc, float elapsedTime) {
+		void Render(const RenderContext& rc) {
 			for (auto& d : data) {
-				d->Render(rc, elapsedTime);
+				d->Render(rc);
 			}
 		}
-		void DrawGUI(float elapsedTime) {
+		void DrawGUI() {
 			for (auto& d : data) {
-				d->DrawGUI(elapsedTime);
+				d->DrawGUI();
 			}
 		}
 	} actors;
@@ -68,19 +68,19 @@ protected:
 	{
 		std::vector<std::shared_ptr<Widget>> data;
 		void Register(std::shared_ptr<Widget> widget) { data.push_back(widget); }
-		void Update(float elapsedTime) {
+		void Update() {
 			for (auto& d : data) {
-				d->Update(elapsedTime);
+				d->Update();
 			}
 		}
-		void Render(const RenderContext& rc, float elapsedTime) {
+		void Render(const RenderContext& rc) {
 			for (auto& d : data) {
-				d->Render(rc, elapsedTime);
+				d->Render(rc);
 			}
 		}
-		void DrawGUI(float elapsedTime) {
+		void DrawGUI() {
 			for (auto& d : data) {
-				d->DrawGUI(elapsedTime);
+				d->DrawGUI();
 			}
 		}
 	} widgets;

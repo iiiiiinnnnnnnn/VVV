@@ -25,13 +25,13 @@ protected:
 class SpriteShader : public Shader
 {
 public:
-	virtual void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params, float elapsedTime) = 0;
+	virtual void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params) = 0;
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 };
 
 class ModelShader : public Shader
 {
 public:
-	virtual void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) = 0;
+	virtual void Update(const RenderContext& rc, const Model::Mesh& mesh) = 0;
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 };

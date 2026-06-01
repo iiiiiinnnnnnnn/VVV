@@ -27,22 +27,22 @@ Weapon::Weapon(Character* owner)
 	transform = Transform::FromAngle({ DirectX::XMConvertToRadians(90), 0, 0});
 }
 
-void Weapon::OnUpdate(float elapsedTime)
+void Weapon::OnUpdate()
 {
 
 }
 
-void Weapon::OnLateUpdate(float elapsedTime)
+void Weapon::OnLateUpdate()
 {
 
 }
 
-void Weapon::OnRender(const RenderContext& rc, float elapsedTime)
+void Weapon::OnRender(const RenderContext& rc)
 {
 
 }
 
-void Weapon::OnDrawGUI(float elapsedTime)
+void Weapon::OnDrawGUI()
 {
 
 }

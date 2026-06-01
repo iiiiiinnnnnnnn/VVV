@@ -32,7 +32,7 @@ CharacterController::~CharacterController()
     if (controller) controller->release();
 }
 
-void CharacterController::Update(float elapsedTime)
+void CharacterController::Update()
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");

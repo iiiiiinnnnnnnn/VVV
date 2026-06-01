@@ -2,6 +2,7 @@
 
 #include "Character.h"
 #include "ResourceManager.h"
+#include "GameTime.h"
 
 Character::Character(std::string name, std::string tag, bool isActive, std::string layer, Country country, SkinParts skinParts)
 	: Actor(name, tag, isActive, layer), country(country)
@@ -128,7 +129,7 @@ Character::Character(std::string name, std::string tag, bool isActive, std::stri
 	anim->Load("Data/Animator/Character.animator");
 }
 
-void Character::OnUpdate(float elapsedTime)
+void Character::OnUpdate()
 {
 	if (!controller) return;
 	if (!cc) return;
@@ -153,19 +154,19 @@ void Character::OnUpdate(float elapsedTime)
 			Vector3(moveX, 0, moveZ),
 			Matrix::CreateFromQuaternion(transform.rotation)
 		);
-		move *= speed * elapsedTime;  // speed は Character のメンバ変数(5.0f)
+		move *= speed * Game::Time::deltaTime;
 
 		if (cc->IsGrounded())
 			verticalVelocity = 0.0f;
 		else
-			verticalVelocity -= 9.81f * elapsedTime;
+			verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
-		move.y = verticalVelocity * elapsedTime;
+		move.y = verticalVelocity * Game::Time::deltaTime;
 		cc->Move(move);
 	}
 }
 
-void Character::OnLateUpdate(float elapsedTime)
+void Character::OnLateUpdate()
 {
 	// スパインの回転
 	if (isFirstPerson)
@@ -181,22 +182,22 @@ void Character::OnLateUpdate(float elapsedTime)
 	}
 
 	// 武器
-	if (weapon) weapon->Update(elapsedTime);
+	if (weapon) weapon->Update();
 }
 
-void Character::OnRender(const RenderContext& rc, float elapsedTime)
+void Character::OnRender(const RenderContext& rc)
 {
 	if (weapon) {
-		weapon->Render(rc, elapsedTime);
+		weapon->Render(rc);
 	}
 }
 
-void Character::OnDrawGUI(float elapsedTime)
+void Character::OnDrawGUI()
 {
 	ImGui::PushID(this);
 	ImGui::TreePush("Character");
 	if (weapon) {
-		weapon->OnDrawGUI(elapsedTime);
+		weapon->OnDrawGUI();
 	}
 	ImGui::TreePop();
 	ImGui::PopID();

@@ -8,13 +8,12 @@
 #include "FpsCameraController.h"
 #include "LocalPlayer.h"
 #include "TestWIdget.h"
-#include "GLTFImporter.h"
 
 TestPlayScene::TestPlayScene()
 {
-	ID3D11Device* device = Graphics::Instance().GetDevice();
-	float screenWidth = Graphics::ScreenWidth;
-	float screenHeight = Graphics::ScreenHeight;
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+	float screenWidth = Game::Graphics::ScreenWidth;
+	float screenHeight = Game::Graphics::ScreenHeight;
 
 	actors.Register(std::make_shared<Stage00>());
 
@@ -45,11 +44,11 @@ TestPlayScene::TestPlayScene()
 	cameraControllers.push_back(std::make_unique<FpsCameraController>(localCommander));
 }
 
-void TestPlayScene::OnUpdate(float elapsedTime)
+void TestPlayScene::OnUpdate()
 {
 }
 
-void TestPlayScene::OnDrawGUI(float elapsedTime)
+void TestPlayScene::OnDrawGUI()
 {
 
 }

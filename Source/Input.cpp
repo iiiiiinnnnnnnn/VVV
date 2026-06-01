@@ -3,39 +3,42 @@
 #include "Input.h"
 #include "imgui.h"
 
-// 初期化
-void Input::Initialize(HWND hWnd)
+namespace Game
 {
-	gamePad = std::make_unique<GamePad>();
-	mouse = std::make_unique<Mouse>(hWnd);
-}
-
-// 更新処理
-void Input::Update()
-{
-	gamePad->Update();
-	mouse->Update();
-}
-
-bool Input::IsFocusedWindow()
-{
-	// デバッグウインドウ操作中は処理しない
-	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
+	// 初期化
+	void Input::Initialize(HWND hWnd)
 	{
-		return false;
+		gamePad = std::make_unique<GamePad>();
+		mouse = std::make_unique<Mouse>(hWnd);
 	}
 
-	if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
+	// 更新処理
+	void Input::Update()
 	{
-		return false;
+		gamePad->Update();
+		mouse->Update();
 	}
 
-	// ウィンドウが最前面でない場合は処理しない
-	HWND hWnd = GetActiveWindow();
-	if (hWnd == nullptr)
+	bool Input::IsFocusedWindow()
 	{
-		return false;
-	}
+		// デバッグウインドウ操作中は処理しない
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
+		{
+			return false;
+		}
 
-	return true;
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
+		{
+			return false;
+		}
+
+		// ウィンドウが最前面でない場合は処理しない
+		HWND hWnd = GetActiveWindow();
+		if (hWnd == nullptr)
+		{
+			return false;
+		}
+
+		return true;
+	}
 }

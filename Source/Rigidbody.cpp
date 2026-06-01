@@ -12,7 +12,7 @@ Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rig
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
 
-void Rigidbody::Update(float elapsedTime)
+void Rigidbody::Update()
 {
     Actor* ownerActor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
@@ -23,7 +23,7 @@ void Rigidbody::Update(float elapsedTime)
     }
 }
 
-void Rigidbody::DrawGUI(float elapsedTime)
+void Rigidbody::DrawGUI()
 {
     if (ImGui::TreeNode("Rigidbody"))
     {
@@ -51,7 +51,7 @@ RigidbodyStatic::RigidbodyStatic(Object* owner)
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 }
 
-void RigidbodyStatic::DrawGUI(float elapsedTime)
+void RigidbodyStatic::DrawGUI()
 {
     if (ImGui::TreeNode("RigidbodyStatic"))
     {
@@ -71,7 +71,7 @@ RigidbodyDynamic::RigidbodyDynamic(Object* owner)
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 }
 
-void RigidbodyDynamic::DrawGUI(float elapsedTime)
+void RigidbodyDynamic::DrawGUI()
 {
     if (ImGui::TreeNode("RigidbodyDynamic"))
     {

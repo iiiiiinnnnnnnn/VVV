@@ -20,7 +20,7 @@ public:
 
 	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial);
 
-	void Render(const RenderContext& rc, float elapsedTime);
+	void Render(const RenderContext& rc);
 
 private:
 	struct CbDirectionalLight

@@ -11,18 +11,18 @@ SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Text
 	_ASSERT_EXPR(widget != nullptr, L"Object is not Widget");
 }
 
-void SpriteRenderComponent::Update(float elapsedTime)
+void SpriteRenderComponent::Update()
 {
 }
 
-void SpriteRenderComponent::Render(const RenderContext& rc, float elapsedTime)
+void SpriteRenderComponent::Render(const RenderContext& rc)
 {
 	Widget* widget = dynamic_cast<Widget*>(owner);
 	_ASSERT_EXPR(widget != nullptr, L"Object is not Widget");
 
 	if (texture)
 	{
-		Graphics::Instance().GetSpriteRenderer()->Draw(
+		Game::Graphics::Instance().GetSpriteRenderer()->Draw(
 			shaderId, texture,
 			{ widget->rect.position.x, widget->rect.position.y, 0.0f },
 			widget->rect.size,
@@ -33,7 +33,7 @@ void SpriteRenderComponent::Render(const RenderContext& rc, float elapsedTime)
 	}
 }
 
-void SpriteRenderComponent::DrawGUI(float elapsedTime)
+void SpriteRenderComponent::DrawGUI()
 {
 	if (ImGui::TreeNode("SpriteRenderComponent"))
 	{

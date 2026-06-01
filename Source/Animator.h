@@ -12,9 +12,9 @@ class AnimEditorWindow;
 class Animator : public Component
 {
 public:
-    Animator(Object* owner, std::shared_ptr<Model> model);
-    void Update(float elapsedTime) override;
-    void DrawGUI(float elapsedTime) override;
+    Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime = false);
+    void Update() override;
+    void DrawGUI() override;
 
     // =========================================================
     // 型定義
@@ -183,10 +183,11 @@ private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
     void ResetTriggers();
-    void UpdateLayer(AnimatorLayer& layer, float elapsedTime,
+    void UpdateLayer(AnimatorLayer& layer,
         std::vector<Model::NodePose>& finalPoses);
 
     std::shared_ptr<Model> model;
+	bool unscaledTime = false;
 
     // レイヤーリスト（追加順に評価）
     std::vector<AnimatorLayer> layers;

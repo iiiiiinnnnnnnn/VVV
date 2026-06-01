@@ -12,7 +12,7 @@ class Rigidbody;
 class BoxCollider : public Component {
 public:
     BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 
 	const Vector3& GetSize() const { return size; }
 private:
@@ -26,7 +26,7 @@ private:
 class CapsuleCollider : public Component {
 public:
     CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 
     const float GetRadius() const { return radius; }
     const float GetHeight() const { return height; }
@@ -42,7 +42,7 @@ private:
 class SphereCollider : public Component {
 public:
     SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 
     const float GetRadius() const { return radius; }
 private:
@@ -56,7 +56,7 @@ private:
 class MeshCollider : public Component {
 public:
     MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material = nullptr);
-    void DrawGUI(float elapsedTime) override;
+    void DrawGUI() override;
 private:
     void UpdateShape();
     PxShape* shape = nullptr;

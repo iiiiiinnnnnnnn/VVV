@@ -1,10 +1,11 @@
 ﻿#include "Graphics.h"
 #include "EffectManager.h"
+#include "GameTime.h"
 
 // 初期化
 void EffectManager::Initialize()
 {
-	Graphics& graphics = Graphics::Instance();
+	Game::Graphics& graphics = Game::Graphics::Instance();
 
 	// Effekseerレンダラ生成
 	effekseerRenderer = EffekseerRendererDX11::Renderer::Create(graphics.GetDevice(),
@@ -35,14 +36,14 @@ void EffectManager::Finalize()
 }
 
 // 更新処理
-void EffectManager::Update(float elapsedTime)
+void EffectManager::Update()
 {
 	// エフェクト更新処理（引数にはフレームの経過時間を渡す）
-	effekseerManager->Update(elapsedTime * 60.0f);
+	effekseerManager->Update(Game::Time::deltaTime * 60.0f);
 }
 
 // 描画処理
-void EffectManager::Render(const DirectX::XMFLOAT4X4& view, const DirectX::XMFLOAT4X4& projection)
+void EffectManager::Render(const Matrix& view, const Matrix& projection)
 {
 	// ビュー＆プロジェクション行列をEffekseerレンダラに設定
 	effekseerRenderer->SetCameraMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&view));

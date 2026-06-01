@@ -28,7 +28,7 @@ void BasicSpriteShader::Begin(const RenderContext& rc)
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 }
 
-void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderparam, float elapsedTime)
+void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderparam)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

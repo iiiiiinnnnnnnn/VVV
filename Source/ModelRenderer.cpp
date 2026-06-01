@@ -38,7 +38,7 @@ void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, s
 }
 
 // 描画実行
-void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
+void ModelRenderer::Render(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -113,7 +113,7 @@ void ModelRenderer::Render(const RenderContext& rc, float elapsedTime)
 		shader->ApplyShaderParams(params);
 
 		// 更新
-		shader->Update(rc, mesh, elapsedTime);
+		shader->Update(rc, mesh);
 
 		// 描画
 		dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);

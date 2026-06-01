@@ -10,7 +10,7 @@ class CharacterController : public Component {
 public:
     CharacterController(Object* owner, float radius, float height);
     ~CharacterController();
-    void Update(float elapsedTime) override;
+    void Update() override;
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
     bool IsGrounded() const { return grounded; }

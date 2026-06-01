@@ -45,7 +45,7 @@ class PhysicsSceneContext {
 public:
     PhysicsSceneContext(PxVec3 gravity = PxVec3(0, -9.81f, 0));
     ~PhysicsSceneContext();
-    void Simulate(float elapsedTime) const;
+    void Simulate() const;
 
     PxScene* GetScene() const { return scene; }
     PxControllerManager* GetControllerManager() const { return controllerManager; }

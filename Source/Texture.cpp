@@ -83,7 +83,7 @@ HRESULT Texture::LoadTexture(
 
 Texture::Texture(const char* filename)
 {
-	ID3D11Device* device = Graphics::Instance().GetDevice();
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 
 	// 拡張子を取得
 	std::filesystem::path filepath(filename);

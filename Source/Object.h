@@ -19,9 +19,9 @@ public:
 	const std::string& GetName() const { return name; }
 	const std::string& GetTag() const { return tag; }
 
-	virtual void Update(float elapsedTime);
-	virtual void Render(const RenderContext& rc, float elapsedTime);
-	virtual void DrawGUI(float elapsedTime);
+	virtual void Update();
+	virtual void Render(const RenderContext& rc);
+	virtual void DrawGUI();
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args) {
@@ -40,10 +40,10 @@ public:
 	}
 
 protected:
-	virtual void OnUpdate(float elapsedTime) {}
-	virtual void OnLateUpdate(float elapsedTime) {}
-	virtual void OnRender(const RenderContext& rc, float elapsedTime) {}
-	virtual void OnDrawGUI(float elapsedTime) {}
+	virtual void OnUpdate() {}
+	virtual void OnLateUpdate() {}
+	virtual void OnRender(const RenderContext& rc) {}
+	virtual void OnDrawGUI() {}
 
 	bool isActive;
 	std::string name;
@@ -52,9 +52,9 @@ protected:
 	struct Components {
 		std::vector<std::unique_ptr<Component>> data;
 		void push_back(std::unique_ptr<Component> component);
-		void Update(float elapsedTime);
-		void LateUpdate(float elapsedTime);
-		void Render(const RenderContext& rc, float elapsedTime);
-		void DrawGUI(float elapsedTime);
+		void Update();
+		void LateUpdate();
+		void Render(const RenderContext& rc);
+		void DrawGUI();
 	} componentList;
 };

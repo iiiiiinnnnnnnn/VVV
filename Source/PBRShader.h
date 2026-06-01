@@ -11,7 +11,7 @@ public:
 	~PBRShader() override = default;
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, const Model::Mesh& mesh, float elapsedTime) override;
+	void Update(const RenderContext& rc, const Model::Mesh& mesh) override;
 	void End(const RenderContext& rc) override;
 
 private:

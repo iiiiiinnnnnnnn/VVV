@@ -10,10 +10,10 @@ class Commander : public Character
 public:
 	Commander();
 	~Commander() = default;
-	void OnUpdate(float elapsedTime) override;
-	void OnLateUpdate(float elapsedTime) override;
-	void OnRender(const RenderContext& rc, float elapsedTime) override;
-	void OnDrawGUI(float elapsedTime) override;
+	void OnUpdate() override;
+	void OnLateUpdate() override;
+	void OnRender(const RenderContext& rc) override;
+	void OnDrawGUI() override;
 private:
 	std::unique_ptr<Squad> squad;
 };
