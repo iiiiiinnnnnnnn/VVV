@@ -1,18 +1,12 @@
 ﻿// Framework.cpp
-
-#include <memory>
-#include <sstream>
-#include <imgui.h>
-
 #include "Framework.h"
-#include "Input.h"
 #include "Graphics.h"
 #include "ImGuiRenderer.h"
+#include "Input.h"
+#include "Time.h"
 
 #include "PhysicsManager.h"
-
 #include "TestPlayScene.h"
-
 
 // 垂直同期間隔設定
 static const int syncInterval = 1;
@@ -63,6 +57,11 @@ Framework::~Framework()
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
+	// 時間更新処理
+	Time::time += elapsedTime;
+	Time::deltaTime = elapsedTime * Time::scale;
+	Time::unscaledDeltaTime = elapsedTime;
+
 	// 入力更新処理
 	Input::Instance().Update();
 

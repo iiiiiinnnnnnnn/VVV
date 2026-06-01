@@ -3,7 +3,6 @@
 #include "Common.h"
 #include "HighResolutionTimer.h"
 #include "Scene.h"
-#include "GamePad.h"
 
 class Framework
 {

@@ -66,6 +66,7 @@
     <ClCompile Include="Source\Stage00.cpp" />
     <ClCompile Include="Source\TestWIdget.cpp" />
     <ClCompile Include="Source\Texture.cpp" />
+    <ClCompile Include="Source\Time.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\Weapon.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
@@ -137,6 +138,7 @@
     <ClInclude Include="Source\Stage00.h" />
     <ClInclude Include="Source\TestWIdget.h" />
     <ClInclude Include="Source\Texture.h" />
+    <ClInclude Include="Source\Time.h" />
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\Weapon.h" />
     <ClInclude Include="Source\Widget.h" />

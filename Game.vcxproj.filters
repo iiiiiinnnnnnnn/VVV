@@ -276,6 +276,9 @@
     <ClCompile Include="Source\SkyBoxRenderer.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Time.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -484,6 +487,9 @@
     </ClInclude>
     <ClInclude Include="Source\ShaderParam.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Time.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
