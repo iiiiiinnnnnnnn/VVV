@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Scene.h"
-#include "RenderTarget.h"
+#include "ThirdPersonCameraController.h"
 
 class TestPlayScene : public Scene
 {

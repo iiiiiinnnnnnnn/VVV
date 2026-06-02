@@ -18,16 +18,23 @@ public:
 
     void SetPlayer(std::shared_ptr<Player> character) { this->character = character; }
 
+    float GetCameraYaw() const { return -angleY; }
+
 private:
     std::shared_ptr<Player> character = nullptr;
 
-    // カメラ設定
-    float armLength     = 2.5f;   // プレイヤーからカメラまでの距離
-    float heightOffset  = 1.2f;   // 注視点の高さオフセット（プレイヤー原点から）
-    float mouseSensX    = 0.003f;
-    float mouseSensY    = 0.003f;
+    float armLength    = 2.5f;
+    float heightOffset = 1.2f;
+    float mouseSensX   = 0.003f;
+    float mouseSensY   = 0.003f;
+    float minArmLength = 0.5f;
+    float maxArmLength = 5.0f;
 
-    // 障害物検出用の最小・最大距離
-    float minArmLength  = 0.5f;
-    float maxArmLength  = 5.0f;
+    // Lerp追従の速さ（大きいほど即時追従、小さいほどふわっと遅れる）
+    float followSpeed  = 10.0f;
+
+    // 現在のカメラ位置・注視点（Lerpの現在値）
+    Vector3 currentEye   = Vector3::Zero;
+    Vector3 currentFocus = Vector3::Zero;
+    bool    initialized  = false;
 };
