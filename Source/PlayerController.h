@@ -10,6 +10,7 @@ struct InputContext
     bool ready = false;
     bool shoot = false;
     bool reload = false;
+    bool sprint = false;
 };
 
 class PlayerController

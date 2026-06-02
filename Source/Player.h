@@ -45,4 +45,9 @@ protected:
 	float speed = 5.0f;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
+
+	int stIdle = -1;
+	int stWalk = -1;
+	int stRun = -1;
+	int stSprint = -1;
 };

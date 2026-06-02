@@ -16,5 +16,6 @@ InputContext LocalPlayer::Poll()
         | (pad.GetButton() & GamePad::BTN_RIGHT_SHOULDER);
     ctx.shoot = (mouse.GetButton() & Mouse::BTN_LEFT)
         | (pad.GetButton() & GamePad::BTN_LEFT_SHOULDER);
+    ctx.sprint = pad.GetButton() & GamePad::BTN_LEFT_THUMB; // スティック押し込み
     return ctx;
 }

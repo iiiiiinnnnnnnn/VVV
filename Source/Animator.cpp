@@ -145,7 +145,7 @@ void Animator::Update()
         UpdateLayer(layer, finalPoses);
     }
 
-    // --- ここからルートモーションの抽出のみ ---
+    // ルートモーションの抽出
     if (rootMotionBoneIndex >= 0 && rootMotionBoneIndex < nodeCount)
     {
         Vector3 currentRootPos = finalPoses[rootMotionBoneIndex].position;
@@ -163,12 +163,10 @@ void Animator::Update()
         lastRootPosition = currentRootPos;
         isFirstRootMotion = false;
 
-        // モデルのメッシュが勝手に親から離れていかないように、ルートモーション対象ボーンの空間移動をキャンセル
+        // ルートモーションの空間移動をキャンセル
         finalPoses[rootMotionBoneIndex].position.x = 0.0f;
         finalPoses[rootMotionBoneIndex].position.z = 0.0f;
-        // ※ y も対象にしたい（空中制御もアニメ側に任せたい）場合は y = 0.0f も追加してください
     }
-    // --- 抽出ここまで ---
 
     model->SetNodePoses(finalPoses);
     model->UpdateTransform(Matrix::Identity);
