@@ -262,6 +262,7 @@ private:
     ImVec2 m_canvasMousePos = { 0.0f, 0.0f };
     bool   m_pendingNodePlace = false;
     int    m_pendingNodeSi = -1;
+    ImVec2 m_pendingNodePos = { 0.0f, 0.0f };
     ed::NodeId m_deleteNodeId;
     ed::LinkId m_deleteLinkId;
 
@@ -362,7 +363,10 @@ private:
         {
             ax::NodeEditor::NodeId nid = NodeId(li, m_pendingNodeSi);
             positionSet[(int)nid.Get()] = true;
-            ed::SetNodePosition(nid, m_contextMenuPos);
+            ed::SetNodePosition(nid, m_pendingNodePos);
+            layer.states[m_pendingNodeSi].hasEditorPosition = true;
+            layer.states[m_pendingNodeSi].editorPosX = m_pendingNodePos.x;
+            layer.states[m_pendingNodeSi].editorPosY = m_pendingNodePos.y;
             m_pendingNodePlace = false;
             m_pendingNodeSi = -1;
         }
@@ -374,7 +378,18 @@ private:
             if (positionSet.find(nidInt) == positionSet.end())
             {
                 positionSet[nidInt] = true;
-                ax::NodeEditor::SetNodePosition(nid, ImVec2(60.0f, 100.0f));
+                if (layer.hasAnyStateEditorPosition)
+                {
+                    ax::NodeEditor::SetNodePosition(nid,
+                        ImVec2(layer.anyStateEditorPosX, layer.anyStateEditorPosY));
+                }
+                else
+                {
+                    ax::NodeEditor::SetNodePosition(nid, ImVec2(60.0f, 100.0f));
+                    layer.hasAnyStateEditorPosition = true;
+                    layer.anyStateEditorPosX = 60.0f;
+                    layer.anyStateEditorPosY = 100.0f;
+                }
             }
 
             // AnyState を目立たせる色
@@ -409,6 +424,11 @@ private:
                 selectedState = {};
                 selectedTrans = {};
             }
+
+            ImVec2 anyPos = ed::GetNodePosition(nid);
+            layer.hasAnyStateEditorPosition = true;
+            layer.anyStateEditorPosX = anyPos.x;
+            layer.anyStateEditorPosY = anyPos.y;
         }
 
         for (int si = 0; si < (int)layer.states.size(); ++si)
@@ -420,8 +440,18 @@ private:
             if (positionSet.find(nidInt) == positionSet.end())
             {
                 positionSet[nidInt] = true;
-                ax::NodeEditor::SetNodePosition(nid,
-                    ImVec2(200.0f + si * 180.0f, 100.0f + (si % 3) * 130.0f));
+                if (state.hasEditorPosition)
+                {
+                    ax::NodeEditor::SetNodePosition(nid, ImVec2(state.editorPosX, state.editorPosY));
+                }
+                else
+                {
+                    const ImVec2 defaultPos(200.0f + si * 180.0f, 100.0f + (si % 3) * 130.0f);
+                    ax::NodeEditor::SetNodePosition(nid, defaultPos);
+                    state.hasEditorPosition = true;
+                    state.editorPosX = defaultPos.x;
+                    state.editorPosY = defaultPos.y;
+                }
             }
 
             bool isCurrent = (layer.currentStateIndex == si);
@@ -492,6 +522,11 @@ private:
                 selectedState = { li, si };
                 selectedTrans = {};
             }
+
+            ImVec2 pos = ed::GetNodePosition(nid);
+            state.hasEditorPosition = true;
+            state.editorPosX = pos.x;
+            state.editorPosY = pos.y;
         }
     }
 
@@ -709,6 +744,7 @@ private:
             {
                 m_pendingNodePlace = true;
                 m_pendingNodeSi = animator->AddState(li, "New State", 0, true, 1.0f);
+                m_pendingNodePos = m_contextMenuPos;
             }
             ImGui::EndPopup();
         }
@@ -1060,6 +1096,7 @@ private:
         ImGui::Spacing();
         ImGui::DragFloat("Speed", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
         ImGui::Checkbox("Loop", &state.loop);
+        ImGui::Checkbox("Block AnyState Transition", &state.blockAnyStateTransitions);
 
         ImGui::Spacing();
         bool isDefault = (layer.defaultStateIndex == si);
@@ -1201,6 +1238,11 @@ private:
         ImGui::Checkbox("Has Exit Time", &tr.hasExitTime);
         if (tr.hasExitTime)
             ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
+        ImGui::Checkbox("Is Any", &tr.isAny);
+        if (!tr.isAny)
+        {
+            ImGui::DragFloat("From Progress", &tr.sourceProgressThreshold, 0.01f, 0.0f, 1.0f, "%.2f");
+        }
         // Priority は ステート詳細の "Transition Order" リストで並び替えして変更する
         ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);

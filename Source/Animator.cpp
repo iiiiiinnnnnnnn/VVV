@@ -366,26 +366,29 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
             ? layer.currentTime / curAnim.secondsLength : 0.0f;
 
         // --- AnyState トランジション（優先評価） ---
-        for (const Transition& tr : layer.anyStateTransitions)
+        if (!curState.blockAnyStateTransitions)
         {
-            // 既に同じステートに遷移中の場合はスキップ
-            if (tr.toStateIndex == layer.currentStateIndex) continue;
-            if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
-            if (EvaluateTransition(tr))
+            for (const Transition& tr : layer.anyStateTransitions)
             {
-                layer.nextStateIndex  = tr.toStateIndex;
-                layer.nextTime        = 0.0f;
-                layer.blendTime       = 0.0f;
-                layer.blendDuration   = tr.transitionDuration;
-                layer.isTransitioning = tr.transitionDuration > 0.0f;
-
-                if (!layer.isTransitioning)
+                // 既に同じステートに遷移中の場合はスキップ
+                if (tr.toStateIndex == layer.currentStateIndex) continue;
+                if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
+                if (EvaluateTransition(tr, normalizedTime))
                 {
-                    layer.currentStateIndex = layer.nextStateIndex;
-                    layer.currentTime       = 0.0f;
-                    layer.nextStateIndex    = -1;
+                    layer.nextStateIndex  = tr.toStateIndex;
+                    layer.nextTime        = 0.0f;
+                    layer.blendTime       = 0.0f;
+                    layer.blendDuration   = tr.transitionDuration;
+                    layer.isTransitioning = tr.transitionDuration > 0.0f;
+
+                    if (!layer.isTransitioning)
+                    {
+                        layer.currentStateIndex = layer.nextStateIndex;
+                        layer.currentTime       = 0.0f;
+                        layer.nextStateIndex    = -1;
+                    }
+                    break;
                 }
-                break;
             }
         }
 
@@ -395,7 +398,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         for (const Transition& tr : curState.transitions)
         {
             if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
-            if (EvaluateTransition(tr))
+            if (EvaluateTransition(tr, normalizedTime))
             {
                 layer.nextStateIndex  = tr.toStateIndex;
                 layer.nextTime        = 0.0f;
@@ -552,6 +555,13 @@ bool Animator::EvaluateCondition(const Condition& c) const
 
 bool Animator::EvaluateTransition(const Transition& t) const
 {
+    return EvaluateTransition(t, 0.0f);
+}
+
+bool Animator::EvaluateTransition(const Transition& t, float normalizedTime) const
+{
+    if (!t.isAny && normalizedTime < std::clamp(t.sourceProgressThreshold, 0.0f, 1.0f)) return false;
+
     // 条件が空の場合: hasExitTime トランジションなら条件なしで通過
     if (t.conditions.empty()) return t.hasExitTime;
     for (const Condition& c : t.conditions)

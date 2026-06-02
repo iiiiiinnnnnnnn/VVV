@@ -1,6 +1,8 @@
 {
     "layers": [
         {
+            "anyStateEditorPosX": -29.0,
+            "anyStateEditorPosY": 179.0,
             "anyStateTransitions": [
                 {
                     "canInterrupt": false,
@@ -13,18 +15,25 @@
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
+                    "isAny": true,
                     "priority": 0,
+                    "sourceProgressThreshold": 0.0,
                     "toStateIndex": 4,
                     "transitionDuration": 0.10000000149011612
                 }
             ],
             "blendMode": 0,
             "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
             "mask": [],
             "name": "Base",
             "states": [
                 {
                     "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 84.0,
+                    "editorPosY": 26.0,
+                    "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
                     "speed": 1.0,
@@ -40,7 +49,9 @@
                             ],
                             "exitTime": 0.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 1,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -55,7 +66,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 1,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -63,6 +76,10 @@
                 },
                 {
                     "animationIndex": 29,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 216.0,
+                    "editorPosY": -237.0,
+                    "hasEditorPosition": true,
                     "loop": true,
                     "name": "Walk",
                     "speed": 1.0,
@@ -78,7 +95,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -93,7 +112,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -101,6 +122,10 @@
                 },
                 {
                     "animationIndex": 17,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 472.0,
+                    "editorPosY": -109.0,
+                    "hasEditorPosition": true,
                     "loop": true,
                     "name": "Run",
                     "speed": 1.0,
@@ -116,7 +141,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 2,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.15000000596046448
                         },
@@ -131,7 +158,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 1,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 1,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -146,7 +175,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 3,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -154,6 +185,10 @@
                 },
                 {
                     "animationIndex": 26,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 612.0,
+                    "editorPosY": 51.0,
+                    "hasEditorPosition": true,
                     "loop": true,
                     "name": "Sprint",
                     "speed": 1.0,
@@ -169,7 +204,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 1,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.15000000596046448
                         },
@@ -184,7 +221,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -192,6 +231,10 @@
                 },
                 {
                     "animationIndex": 0,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 152.0,
+                    "editorPosY": 291.0,
+                    "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack1",
                     "speed": 1.0,
@@ -207,7 +250,9 @@
                             ],
                             "exitTime": 1.0,
                             "hasExitTime": false,
+                            "isAny": false,
                             "priority": 1,
+                            "sourceProgressThreshold": 0.4000000059604645,
                             "toStateIndex": 5,
                             "transitionDuration": 0.30000001192092896
                         },
@@ -216,7 +261,9 @@
                             "conditions": [],
                             "exitTime": 1.0,
                             "hasExitTime": true,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -224,6 +271,10 @@
                 },
                 {
                     "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "editorPosX": 328.0,
+                    "editorPosY": 163.0,
+                    "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack2",
                     "speed": 1.0,
@@ -233,7 +284,9 @@
                             "conditions": [],
                             "exitTime": 1.0,
                             "hasExitTime": true,
+                            "isAny": true,
                             "priority": 0,
+                            "sourceProgressThreshold": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }

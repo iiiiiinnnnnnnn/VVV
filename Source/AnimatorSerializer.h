@@ -64,6 +64,9 @@ public:
             jLayer["blendMode"] = (int)layer.blendMode;
             jLayer["mask"]      = layer.mask.nodes;
             jLayer["defaultState"] = layer.defaultStateIndex;
+            jLayer["hasAnyStateEditorPosition"] = layer.hasAnyStateEditorPosition;
+            jLayer["anyStateEditorPosX"] = layer.anyStateEditorPosX;
+            jLayer["anyStateEditorPosY"] = layer.anyStateEditorPosY;
 
             // States
             json jStates = json::array();
@@ -74,6 +77,10 @@ public:
                 jState["animationIndex"] = state.animationIndex;
                 jState["speed"]          = state.speed;
                 jState["loop"]           = state.loop;
+                jState["blockAnyStateTransitions"] = state.blockAnyStateTransitions;
+                jState["hasEditorPosition"] = state.hasEditorPosition;
+                jState["editorPosX"] = state.editorPosX;
+                jState["editorPosY"] = state.editorPosY;
 
                 // Transitions
                 json jTrans = json::array();
@@ -84,6 +91,8 @@ public:
                     jTr["exitTime"]           = tr.exitTime;
                     jTr["transitionDuration"] = tr.transitionDuration;
                     jTr["hasExitTime"]        = tr.hasExitTime;
+                    jTr["isAny"]              = tr.isAny;
+                    jTr["sourceProgressThreshold"] = tr.sourceProgressThreshold;
                     jTr["priority"]           = tr.priority;
                     jTr["canInterrupt"]       = tr.canInterrupt;
 
@@ -119,6 +128,8 @@ public:
                 jTr["exitTime"]           = tr.exitTime;
                 jTr["transitionDuration"] = tr.transitionDuration;
                 jTr["hasExitTime"]        = tr.hasExitTime;
+                jTr["isAny"]              = tr.isAny;
+                jTr["sourceProgressThreshold"] = tr.sourceProgressThreshold;
                 jTr["priority"]           = tr.priority;
                 jTr["canInterrupt"]       = tr.canInterrupt;
 
@@ -190,6 +201,9 @@ public:
                 (Animator::BlendMode)jLayer["blendMode"].get<int>(),
                 jLayer["weight"].get<float>(),
                 mask);
+            anim.GetLayer(li).hasAnyStateEditorPosition = jLayer.value("hasAnyStateEditorPosition", false);
+            anim.GetLayer(li).anyStateEditorPosX = jLayer.value("anyStateEditorPosX", 0.0f);
+            anim.GetLayer(li).anyStateEditorPosY = jLayer.value("anyStateEditorPosY", 0.0f);
 
             // States
             for (const auto& jState : jLayer["states"])
@@ -200,6 +214,14 @@ public:
                     jState["animationIndex"].get<int>(),
                     jState["loop"].get<bool>(),
                     jState["speed"].get<float>());
+                anim.GetLayer(li).states[si].blockAnyStateTransitions =
+                    jState.value("blockAnyStateTransitions", false);
+                anim.GetLayer(li).states[si].hasEditorPosition =
+                    jState.value("hasEditorPosition", false);
+                anim.GetLayer(li).states[si].editorPosX =
+                    jState.value("editorPosX", 0.0f);
+                anim.GetLayer(li).states[si].editorPosY =
+                    jState.value("editorPosY", 0.0f);
 
                 // Transitions
                 // AddTransition は内部でソートするため、JSONの順番が崩れる。
@@ -211,6 +233,8 @@ public:
                     tr.toStateIndex       = jTr["toStateIndex"].get<int>();
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
+                    tr.isAny              = jTr.value("isAny", true);
+                    tr.sourceProgressThreshold = jTr.value("sourceProgressThreshold", 0.0f);
                     tr.exitTime           = jTr["exitTime"].get<float>();
                     tr.priority           = jTr["priority"].get<int>();
                     tr.canInterrupt       = jTr["canInterrupt"].get<bool>();
@@ -255,6 +279,8 @@ public:
                     tr.toStateIndex       = jTr["toStateIndex"].get<int>();
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
+                    tr.isAny              = jTr.value("isAny", true);
+                    tr.sourceProgressThreshold = jTr.value("sourceProgressThreshold", 0.0f);
                     tr.exitTime           = jTr["exitTime"].get<float>();
                     tr.priority           = jTr["priority"].get<int>();
                     tr.canInterrupt       = jTr["canInterrupt"].get<bool>();

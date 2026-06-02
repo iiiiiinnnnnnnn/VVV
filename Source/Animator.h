@@ -48,6 +48,10 @@ public:
         float                  exitTime = 1.0f;
         float                  transitionDuration = 0.1f;
         bool                   hasExitTime = false;
+        // true のときは遷移元再生率の条件を使わない（デフォルト）
+        bool                   isAny = true;
+        // isAny == false のとき、遷移元アニメの再生率がこの値以上なら遷移可能（0.0 - 1.0）
+        float                  sourceProgressThreshold = 0.0f;
         int                    priority = 0;
         bool                   canInterrupt = false;
     };
@@ -58,6 +62,12 @@ public:
         int                     animationIndex = -1;
         float                   speed = 1.0f;
         bool                    loop = true;
+        // true の場合、このステート滞在中は AnyState 遷移を評価しない
+        bool                    blockAnyStateTransitions = false;
+        // AnimEditor ノード座標（保存用）
+        bool                    hasEditorPosition = false;
+        float                   editorPosX = 0.0f;
+        float                   editorPosY = 0.0f;
         std::vector<Transition> transitions;
     };
 
@@ -94,6 +104,10 @@ public:
 
         // AnyState トランジション（どのステートからでも遷移できる）
         std::vector<Transition> anyStateTransitions;
+        // AnimEditor AnyState ノード座標（保存用）
+        bool  hasAnyStateEditorPosition = false;
+        float anyStateEditorPosX = 0.0f;
+        float anyStateEditorPosY = 0.0f;
     };
 
     // エディタウィンドウを開く
@@ -217,6 +231,7 @@ public:
 private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
+    bool EvaluateTransition(const Transition& t, float normalizedTime) const;
     void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer,
         std::vector<Model::NodePose>& finalPoses);
