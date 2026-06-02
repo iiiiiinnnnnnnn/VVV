@@ -1247,6 +1247,38 @@ private:
         ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
 
+        if (si == ANY_STATE_INDEX)
+        {
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), "Do Not Transition From");
+            ImGui::BeginChild("ExcludedAnyStateSources", ImVec2(0, 120), true);
+            for (int st = 0; st < (int)layer.states.size(); ++st)
+            {
+                const std::string& stName = layer.states[st].name;
+                bool excluded = (std::find(tr.excludedFromStateIndices.begin(),
+                    tr.excludedFromStateIndices.end(), st) != tr.excludedFromStateIndices.end());
+                if (ImGui::Checkbox(stName.c_str(), &excluded))
+                {
+                    if (excluded)
+                    {
+                        if (std::find(tr.excludedFromStateIndices.begin(),
+                            tr.excludedFromStateIndices.end(), st) == tr.excludedFromStateIndices.end())
+                        {
+                            tr.excludedFromStateIndices.push_back(st);
+                        }
+                    }
+                    else
+                    {
+                        tr.excludedFromStateIndices.erase(
+                            std::remove(tr.excludedFromStateIndices.begin(),
+                                tr.excludedFromStateIndices.end(), st),
+                            tr.excludedFromStateIndices.end());
+                    }
+                }
+            }
+            ImGui::EndChild();
+        }
+
         ImGui::Separator();
         ImGui::TextColored(ImVec4(0.8f, 0.8f, 1, 1), "Conditions");
 

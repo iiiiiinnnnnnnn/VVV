@@ -88,6 +88,7 @@ public:
                 {
                     json jTr;
                     jTr["toStateIndex"]       = tr.toStateIndex;
+                    jTr["excludedFromStateIndices"] = tr.excludedFromStateIndices;
                     jTr["exitTime"]           = tr.exitTime;
                     jTr["transitionDuration"] = tr.transitionDuration;
                     jTr["hasExitTime"]        = tr.hasExitTime;
@@ -125,6 +126,7 @@ public:
             {
                 json jTr;
                 jTr["toStateIndex"]       = tr.toStateIndex;
+                jTr["excludedFromStateIndices"] = tr.excludedFromStateIndices;
                 jTr["exitTime"]           = tr.exitTime;
                 jTr["transitionDuration"] = tr.transitionDuration;
                 jTr["hasExitTime"]        = tr.hasExitTime;
@@ -231,6 +233,8 @@ public:
                 {
                     Animator::Transition tr;
                     tr.toStateIndex       = jTr["toStateIndex"].get<int>();
+                    tr.excludedFromStateIndices =
+                        jTr.value("excludedFromStateIndices", std::vector<int>{});
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
                     tr.isAny              = jTr.value("isAny", true);
@@ -277,6 +281,8 @@ public:
                 {
                     Animator::Transition tr;
                     tr.toStateIndex       = jTr["toStateIndex"].get<int>();
+                    tr.excludedFromStateIndices =
+                        jTr.value("excludedFromStateIndices", std::vector<int>{});
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
                     tr.isAny              = jTr.value("isAny", true);

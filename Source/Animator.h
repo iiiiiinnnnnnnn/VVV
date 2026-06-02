@@ -45,6 +45,8 @@ public:
     {
         int                    toStateIndex = -1;
         std::vector<Condition> conditions;
+        // AnyState 遷移用: この配列に含まれるステートIndexにいる間は遷移しない
+        std::vector<int>       excludedFromStateIndices;
         float                  exitTime = 1.0f;
         float                  transitionDuration = 0.1f;
         bool                   hasExitTime = false;

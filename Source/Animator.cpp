@@ -372,6 +372,10 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
             {
                 // 既に同じステートに遷移中の場合はスキップ
                 if (tr.toStateIndex == layer.currentStateIndex) continue;
+                if (std::find(tr.excludedFromStateIndices.begin(),
+                    tr.excludedFromStateIndices.end(),
+                    layer.currentStateIndex) != tr.excludedFromStateIndices.end())
+                    continue;
                 if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
                 if (EvaluateTransition(tr, normalizedTime))
                 {

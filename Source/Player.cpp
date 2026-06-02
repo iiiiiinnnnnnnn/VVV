@@ -110,12 +110,7 @@ void Player::OnUpdate()
 	anim->SetBool ("IsSprinting", sprinting);
 
 	if (ctx.attackPressed)
-	{
-		/*if (anim->GetCurrentStateName(0).find("Attack2") == std::string::npos &&
-			anim->GetCurrentStateName(0).find("Attack3") == std::string::npos &&
-			anim->GetCurrentStateName(0).find("Attack4") == std::string::npos)*/
-			anim->SetTrigger("Attack");
-	}
+		anim->SetTrigger("Attack");
 
 	// 重力
 	if (cc->IsGrounded())

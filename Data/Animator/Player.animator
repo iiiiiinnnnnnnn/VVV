@@ -13,6 +13,7 @@
                             "threshold": 0.0
                         }
                     ],
+                    "excludedFromStateIndices": [],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
@@ -47,6 +48,7 @@
                                     "threshold": 0.800000011920929
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 0.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -64,6 +66,7 @@
                                     "threshold": 0.10000000149011612
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -93,6 +96,7 @@
                                     "threshold": 0.10000000149011612
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -110,6 +114,7 @@
                                     "threshold": 0.800000011920929
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -139,6 +144,7 @@
                                     "threshold": 0.10000000149011612
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -156,6 +162,7 @@
                                     "threshold": 0.800000011920929
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -173,6 +180,7 @@
                                     "threshold": 0.0
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -202,6 +210,7 @@
                                     "threshold": 0.10000000149011612
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -219,6 +228,7 @@
                                     "threshold": 0.0
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": true,
@@ -248,6 +258,7 @@
                                     "threshold": 0.0
                                 }
                             ],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": false,
                             "isAny": false,
@@ -259,6 +270,7 @@
                         {
                             "canInterrupt": false,
                             "conditions": [],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": true,
                             "isAny": true,
@@ -271,7 +283,7 @@
                 },
                 {
                     "animationIndex": 1,
-                    "blockAnyStateTransitions": false,
+                    "blockAnyStateTransitions": true,
                     "editorPosX": 328.0,
                     "editorPosY": 163.0,
                     "hasEditorPosition": true,
@@ -282,6 +294,7 @@
                         {
                             "canInterrupt": false,
                             "conditions": [],
+                            "excludedFromStateIndices": [],
                             "exitTime": 1.0,
                             "hasExitTime": true,
                             "isAny": true,
