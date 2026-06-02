@@ -48,6 +48,55 @@ Transform Transform::FromScale(float scale)
 	return res;
 }
 
+void Transform::SetPosition(const Vector3& position)
+{
+	this->position = position;
+	Update();
+}
+
+void Transform::SetRotation(const Quaternion& rotation)
+{
+	this->rotation = rotation;
+	Update();
+}
+
+void Transform::SetAngle(const Vector3& euler)
+{
+	this->rotation = Quaternion::CreateFromYawPitchRoll(euler.y, euler.x, euler.z);
+	Update();
+}
+
+void Transform::SetScale(const Vector3& scale)
+{
+	this->scale = scale;
+	Update();
+}
+
+void Transform::SetPosition(float x, float y, float z)
+{
+	SetPosition(Vector3(x, y, z));
+}
+
+void Transform::SetRotation(float x, float y, float z, float w)
+{
+	SetRotation(Quaternion(x, y, z, w));
+}
+
+void Transform::SetAngle(float x, float y, float z)
+{
+	SetAngle(Vector3(x, y, z));
+}
+
+void Transform::SetScale(float x, float y, float z)
+{
+	SetScale(Vector3(x, y, z));
+}
+
+void Transform::SetScale(float scale)
+{
+	SetScale(Vector3(scale, scale, scale));
+}
+
 void Transform::Update() {
 	matrix = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
 	forward = Vector3::TransformNormal(Vector3::UnitZ, matrix);

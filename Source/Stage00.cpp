@@ -8,8 +8,8 @@ Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
 	std::shared_ptr<Model> model =
 		ResourceManager::Instance().LoadModel("Data/Model/Stage00.glb");
 
-	transform = Transform::FromScale(100);
-
+	transform.SetScale(100.0f, 100.0f, 100.0f);
+	transform.SetAngle(0, RAD(-90.0f), 0);
 	model->UpdateTransform(transform.matrix);
 
 	// Rigidbody生成

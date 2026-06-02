@@ -145,29 +145,6 @@ void Animator::Update()
         UpdateLayer(layer, finalPoses);
     }
 
-    // ルートモーションの抽出
-    if (rootMotionBoneIndex >= 0 && rootMotionBoneIndex < nodeCount)
-    {
-        Vector3 currentRootPos = finalPoses[rootMotionBoneIndex].position;
-        if (!isFirstRootMotion)
-        {
-            Vector3 delta = currentRootPos - lastRootPosition;
-            
-            // アニメーションループ等による急激な座標リセット（巨大なジャンプ）を除外
-            if (delta.LengthSquared() < 1.0f) 
-            {
-                // ここでは加算するだけ。具体的な適用は外部（Character側）で行う
-                currentRootMotionDelta += delta;
-            }
-        }
-        lastRootPosition = currentRootPos;
-        isFirstRootMotion = false;
-
-        // ルートモーションの空間移動をキャンセル
-        finalPoses[rootMotionBoneIndex].position.x = 0.0f;
-        finalPoses[rootMotionBoneIndex].position.z = 0.0f;
-    }
-
     model->SetNodePoses(finalPoses);
     model->UpdateTransform(Matrix::Identity);
 

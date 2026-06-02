@@ -12,9 +12,7 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	model->GetMeshes()[2].isDraw = false; // アックス
 	model->GetMeshes()[8].isDraw = false; // 服
 	model->GetMeshes()[15].isDraw = false;
-
 	model->GetMeshes()[9].isDraw = false; // 素手
-
 	model->GetMeshes()[4].isDraw = false; // 顔
 	model->GetMeshes()[5].isDraw = false;
 	model->GetMeshes()[16].isDraw = false;
@@ -32,11 +30,8 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim = AddComponent<Animator>(model);
 	//anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
 
-	// ルートモーションボーンを設定
-	anim->SetRootMotionBone(116);
-
 	// パラメータ登録
-	anim->AddFloat("Speed");          // 0=Idle 0.5=Walk 1.0=Run 1.5=Sprint
+	anim->AddFloat("Speed"); // 0=Idle 0.5=Walk 1.0=Run 1.5=Sprint
 	anim->AddBool("IsSprinting");
 
 	int L0 = anim->AddLayer("Base", Animator::BlendMode::Override, 1.0f);
@@ -95,7 +90,8 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	}
 
 	// --- CharacterController ---
-	cc = AddComponent<CharacterController>(0.5f, 1.5f);
+	cc = AddComponent<CharacterController>(0.18f, 1.18f);
+	cc->SetPosition({0, 0.6f, 0});
 }
 
 void Player::OnUpdate()
@@ -120,11 +116,7 @@ void Player::OnUpdate()
 	else
 		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
-	// ルートモーション適用（既存のまま）
-	Vector3 rootDelta = anim->ConsumeRootMotionDelta();
-	Vector3 worldDelta = Vector3::TransformNormal(rootDelta, transform.matrix);
-	worldDelta.y = verticalVelocity * Game::Time::deltaTime;
-	cc->Move(worldDelta);
+	cc->Move({0, verticalVelocity * Game::Time::deltaTime, 0});
 }
 
 void Player::OnLateUpdate()

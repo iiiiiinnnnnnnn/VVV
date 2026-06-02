@@ -39,10 +39,11 @@ void CharacterController::Update()
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 
     if (!controller) return;
+
     PxExtendedVec3 pos = controller->getPosition();
-    // カプセルの中心から足元に補正
     float halfHeight = (static_cast<PxCapsuleController*>(controller)->getHeight() * 0.5f)
-        + static_cast<PxCapsuleController*>(controller)->getRadius();
+        + static_cast<PxCapsuleController*>(controller)->getRadius()
+        + controller->getContactOffset();
     actor->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);
 }
 
@@ -57,7 +58,7 @@ void CharacterController::Render(const RenderContext& rc)
 
         Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
             PX_TRANSFORM_TO_MATRIX(corrected),
-            static_cast<PxCapsuleController*>(controller)->getRadius(),
+            static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
             static_cast<PxCapsuleController*>(controller)->getHeight(),
             Color(1.0f, 1.0f, 0.0f, 1.0f)
         );
@@ -68,7 +69,45 @@ void CharacterController::DrawGUI()
 {
     if (ImGui::TreeNode("CharacterController"))
     {
+        PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
 
+        // --- 状態表示 ---
+        ImGui::Text("Grounded : %s", grounded ? "true" : "false");
+
+        PxExtendedVec3 pos = controller->getPosition();
+        ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
+
+        // --- カプセル形状 ---
+        if (ImGui::TreeNode("Shape"))
+        {
+            float radius = capsule->getRadius();
+            float height = capsule->getHeight();
+
+            if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
+                capsule->setRadius(radius);
+            if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
+                capsule->setHeight(height);
+
+            ImGui::TreePop();
+        }
+
+        // --- コントローラ設定 ---
+        if (ImGui::TreeNode("Settings"))
+        {
+            float stepOffset = controller->getStepOffset();
+            if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.0f))
+                controller->setStepOffset(stepOffset);
+
+            float contactOffset = controller->getContactOffset();
+            ImGui::Text("Contact Offset : %.3f", contactOffset);
+
+            // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
+            float slopeDeg = acosf(controller->getSlopeLimit()) * RAD2DEG;
+            if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
+                controller->setSlopeLimit(cosf(slopeDeg * DEG2RAD));
+
+            ImGui::TreePop();
+        }
 
         ImGui::TreePop();
     }
