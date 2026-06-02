@@ -1060,10 +1060,15 @@ private:
             }
 
             // しきい値 (Trigger/Bool 以外)
-            if (c.mode == Animator::ConditionMode::Greater ||
-                c.mode == Animator::ConditionMode::Less ||
-                c.mode == Animator::ConditionMode::Equals ||
-                c.mode == Animator::ConditionMode::NotEquals)
+            auto pit2 = params.find(c.paramName);
+            bool isBoolParam = (pit2 != params.end() && std::holds_alternative<bool>(pit2->second));
+            bool isTriggerParam = (triggers.find(c.paramName) != triggers.end());
+
+            if (!isBoolParam && !isTriggerParam &&
+                (c.mode == Animator::ConditionMode::Greater ||
+                 c.mode == Animator::ConditionMode::Less ||
+                 c.mode == Animator::ConditionMode::Equals ||
+                 c.mode == Animator::ConditionMode::NotEquals))
             {
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(60.0f);
@@ -1105,8 +1110,29 @@ private:
         if (ImGui::Button("+ Condition"))
         {
             Animator::Condition newC;
-            if (!params.empty())   newC.paramName = params.begin()->first;
-            else if (!triggers.empty()) {
+            if (!params.empty())
+            {
+                newC.paramName = params.begin()->first;
+                const auto& val = params.begin()->second;
+
+                // パラメータの型に合わせてmodeとthresholdの初期値を設定
+                if (std::holds_alternative<float>(val))
+                {
+                    newC.mode = Animator::ConditionMode::Greater;
+                    newC.threshold = 0.0f;
+                }
+                else if (std::holds_alternative<int>(val))
+                {
+                    newC.mode = Animator::ConditionMode::Greater;
+                    newC.threshold = 0;
+                }
+                else if (std::holds_alternative<bool>(val))
+                {
+                    newC.mode = Animator::ConditionMode::IsTrue;
+                }
+            }
+            else if (!triggers.empty())
+            {
                 newC.paramName = triggers.begin()->first;
                 newC.mode = Animator::ConditionMode::Trigger;
             }

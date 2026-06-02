@@ -3,7 +3,6 @@
 #include "Player.h"
 #include "ResourceManager.h"
 #include "GameTime.h"
-#include "Graphics.h"
 
 Player::Player() : Actor("Player", "Player", true, "Default")
 {
