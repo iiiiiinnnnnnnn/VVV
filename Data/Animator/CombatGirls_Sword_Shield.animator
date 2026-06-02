@@ -4,14 +4,129 @@
             "blendMode": 0,
             "defaultState": 0,
             "mask": [],
-            "name": "Base Layer",
+            "name": "Base",
             "states": [
                 {
                     "animationIndex": 11,
                     "loop": true,
-                    "name": "New State",
+                    "name": "Idle",
                     "speed": 1.0,
-                    "transitions": []
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.20000000298023224
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 29,
+                    "loop": true,
+                    "name": "Walk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.20000000298023224
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.15000000596046448
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 17,
+                    "loop": true,
+                    "name": "Run",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.15000000596046448
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "IsSprinting",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 3,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 26,
+                    "loop": true,
+                    "name": "Sprint",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsSprinting",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -19,27 +134,12 @@
     ],
     "parameters": [
         {
-            "name": "Ready",
-            "type": "bool",
-            "value": false
-        },
-        {
-            "name": "MoveX",
+            "name": "Speed",
             "type": "float",
             "value": 0.0
         },
         {
-            "name": "MoveZ",
-            "type": "float",
-            "value": 0.0
-        },
-        {
-            "name": "Jump",
-            "type": "bool",
-            "value": false
-        },
-        {
-            "name": "Shoot",
+            "name": "IsSprinting",
             "type": "bool",
             "value": false
         }

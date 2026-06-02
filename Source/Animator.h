@@ -180,6 +180,13 @@ public:
         nextNodePoses.clear();
     }
 
+    // ルートモーションを有効化し、対象のノード名を設定する
+    void SetRootMotion(const std::string& rootNodeName);
+
+    // プレイヤーが毎フレーム取得して移動に利用する「ローカル空間の移動差分」
+    Vector3 GetRootMotionVec() const { return rootMotionVec; }
+    Quaternion GetRootMotionRot() const { return rootMotionRot; }
+
 private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
@@ -203,4 +210,16 @@ private:
     std::string m_lastPath;
     std::unique_ptr<AnimEditorWindow> animEditor;
     bool animEditorOpen = false;
+
+    // root motion
+
+    bool useRootMotion = false;
+    std::string rootNodeName = "";
+    int rootNodeIndex = -1; // キャッシュされたルートノードのインデックス
+
+    Vector3 rootMotionVec = Vector3::Zero;
+    Quaternion rootMotionRot = Quaternion::Identity;
+
+    // 1つのノードのポーズを特定時間からサンプリングするヘルパー
+    Model::NodePose SampleNodePose(int animIndex, float time, int nodeIdx);
 };

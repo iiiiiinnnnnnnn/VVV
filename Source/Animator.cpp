@@ -134,11 +134,21 @@ void Animator::Update()
 {
     if (!model) return;
 
-    // ベースポーズ初期化（全ノードをバインドポーズに）
+    // ルートモーションの差分をリセット（プレイヤーに毎フレーム新鮮な差分を渡すため）
+    rootMotionVec = Vector3::Zero;
+    rootMotionRot = Quaternion::Identity;
+
+    // 遅延対策：初期化時にインデックスが見つかっていなければ再検索
+    if (useRootMotion && rootNodeIndex == -1)
+    {
+        SetRootMotion(rootNodeName);
+    }
+
+    // ベースポーズ初期化
     int nodeCount = (int)model->GetNodes().size();
     std::vector<Model::NodePose> finalPoses(nodeCount);
 
-    // レイヤーを順番に評価してfinalPosesに書き込む
+    // レイヤー評価（この内部で rootMotionVec / rot が蓄積される）
     for (auto& layer : layers)
     {
         if (layer.currentStateIndex < 0) continue;
@@ -201,21 +211,64 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
 	_ASSERT_EXPR(layer.currentStateIndex >= 0 && layer.currentStateIndex < (int)layer.states.size(), L"Invalid current state index in layer");
 
     State& curState = layer.states[layer.currentStateIndex];
-
-    // 範囲外
-    _ASSERT_EXPR(model->GetAnimations().size() > curState.animationIndex, L"Invalid animation index in state");
-
     const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
+
+    float prevTime = layer.currentTime;
 
     // 時間更新
     layer.currentTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * curState.speed;
+    bool looped = false;
     if (layer.currentTime > curAnim.secondsLength)
     {
-        if (curState.loop) layer.currentTime -= curAnim.secondsLength;
-        else               layer.currentTime = curAnim.secondsLength;
+        if (curState.loop) {
+            layer.currentTime -= curAnim.secondsLength;
+            looped = true;
+        }
+        else {
+            layer.currentTime = curAnim.secondsLength;
+        }
     }
 
-    // cur ポーズ計算
+    // --- 【ルートモーションの抽出】 ---
+    if (useRootMotion && rootNodeIndex != -1)
+    {
+        Model::NodePose posePrev = SampleNodePose(curState.animationIndex, prevTime, rootNodeIndex);
+        Model::NodePose poseCur  = SampleNodePose(curState.animationIndex, layer.currentTime, rootNodeIndex);
+
+        Vector3 deltaPos;
+        Quaternion deltaRot;
+
+        if (!looped)
+        {
+            deltaPos = poseCur.position - posePrev.position;
+
+            // posePrev.rotation の逆クォータニオンを invPrev に取得
+            Quaternion invPrev;
+            posePrev.rotation.Inverse(invPrev); 
+
+            deltaRot = invPrev * poseCur.rotation;
+        }
+        else
+        {
+            Model::NodePose poseEnd   = SampleNodePose(curState.animationIndex, curAnim.secondsLength, rootNodeIndex);
+            Model::NodePose poseStart = SampleNodePose(curState.animationIndex, 0.0f, rootNodeIndex);
+
+            deltaPos = (poseEnd.position - posePrev.position) + (poseCur.position - poseStart.position);
+
+            // それぞれの逆クォータニオンを計算
+            Quaternion invPrev, invStart;
+            posePrev.rotation.Inverse(invPrev);
+            poseStart.rotation.Inverse(invStart);
+
+            deltaRot = (invPrev * poseEnd.rotation) * (invStart * poseCur.rotation);
+        }
+
+        // レイヤーウェイトを乗算してメンバ変数に蓄積
+        rootMotionVec += deltaPos * layer.weight;
+        rootMotionRot = rootMotionRot * Quaternion::Lerp(Quaternion::Identity, deltaRot, layer.weight);
+    }
+
+    // カレントポーズの計算
     model->ComputeAnimation(curState.animationIndex, layer.currentTime, nodePoses);
 
     // トランジション中はブレンド
@@ -304,17 +357,36 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
     {
         if (!layer.mask.Contains(ni)) continue;
 
+        // 【重要】ルートモーション対象ノードはメッシュを動かさないよう原点に縛り付ける
+        if (useRootMotion && ni == rootNodeIndex)
+        {
+            finalPoses[ni].position = Vector3::Zero;
+            finalPoses[ni].rotation = Quaternion::Identity;
+            continue;
+        }
+
         if (layer.blendMode == BlendMode::Override)
         {
-            // weightで下のレイヤーとブレンド
-			finalPoses[ni] = finalPoses[ni].Lerp(nodePoses[ni], layer.weight);
+            finalPoses[ni] = finalPoses[ni].Lerp(nodePoses[ni], layer.weight);
         }
-        else // Additive
+        else
         {
             finalPoses[ni].position += nodePoses[ni].position * layer.weight;
             finalPoses[ni].rotation = finalPoses[ni].rotation * nodePoses[ni].rotation;
         }
     }
+}
+
+// 特定ボーンのサンプリング用ヘルパー
+Model::NodePose Animator::SampleNodePose(int animIndex, float time, int nodeIdx)
+{
+    static std::vector<Model::NodePose> tempPoses;
+    model->ComputeAnimation(animIndex, time, tempPoses);
+    if (nodeIdx >= 0 && nodeIdx < (int)tempPoses.size())
+    {
+        return tempPoses[nodeIdx];
+    }
+    return Model::NodePose{}; // Identity
 }
 
 void Animator::Play(int layerIndex, int animationIndex, bool loop)
@@ -344,6 +416,28 @@ void Animator::Stop(int layerIndex)
     layer.blendTime = 0.0f;
     layer.blendDuration = 0.0f;
 	layer.isTransitioning = false;
+}
+
+void Animator::SetRootMotion(const std::string& name)
+{
+    rootNodeName = name;
+    useRootMotion = true;
+    rootNodeIndex = -1;
+
+    if (!model) return;
+
+    // モデルのノード群から名前が一致するインデックスを検索
+    const auto& nodes = model->GetNodes();
+    for (int i = 0; i < (int)nodes.size(); ++i)
+    {
+        if (nodes[i].name == rootNodeName)
+        {
+            rootNodeIndex = i;
+            break;
+        }
+    }
+
+    _ASSERT_EXPR(rootNodeIndex != -1, L"Root Motion node not found in Model!");
 }
 
 bool Animator::EvaluateCondition(const Condition& c) const

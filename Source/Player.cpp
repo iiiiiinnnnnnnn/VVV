@@ -8,19 +8,28 @@
 Player::Player() : Actor("Player", "Player", true, "Default")
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
-	model->GetMeshes()[0].isDraw = false; // 盾
-	model->GetMeshes()[2].isDraw = false; // アックス
-	model->GetMeshes()[8].isDraw = false; // 服
-	model->GetMeshes()[15].isDraw = false;
-	model->GetMeshes()[9].isDraw = false; // 素手
-	model->GetMeshes()[4].isDraw = false; // 顔
-	model->GetMeshes()[5].isDraw = false;
-	model->GetMeshes()[16].isDraw = false;
-	model->GetMeshes()[17].isDraw = false;
-	model->GetMeshes()[18].isDraw = false;
-	model->GetMeshes()[19].isDraw = false;
-	model->GetMeshes()[20].isDraw = false;
-	model->GetMeshes()[21].isDraw = false; 
+	// メッシュ表示/非表示
+	{
+		auto& meshes = model->GetMeshes();
+		// 盾
+		meshes[0].isDraw = false;
+		// アックス
+		meshes[2].isDraw = false;
+		// 服
+		meshes[8].isDraw =
+			meshes[15].isDraw = false;
+		// 素手
+		meshes[9].isDraw = false;
+		// 顔
+		meshes[4].isDraw =
+			meshes[5].isDraw =
+			meshes[16].isDraw =
+			meshes[17].isDraw =
+			meshes[18].isDraw =
+			meshes[19].isDraw =
+			meshes[20].isDraw =
+			meshes[21].isDraw = false;
+	}
 
 	// モデルレンダラー生成
 	shaderParamWithMaterialName = {};
@@ -28,68 +37,10 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 
 	// アニメーター生成
 	anim = AddComponent<Animator>(model);
-	//anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
+	anim->SetRootMotion("root");
+	anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
 
-	// パラメータ登録
-	anim->AddFloat("Speed"); // 0=Idle 0.5=Walk 1.0=Run 1.5=Sprint
-	anim->AddBool("IsSprinting");
-
-	int L0 = anim->AddLayer("Base", Animator::BlendMode::Override, 1.0f);
-
-	// ステートを登録（animationIndex は ANIM() マクロで名前→Index変換）
-	stIdle = anim->AddState(L0, "Idle", ANIM("SS_Idle"), true);
-	stWalk = anim->AddState(L0, "Walk", ANIM("SS_Walk"), true);
-	stRun = anim->AddState(L0, "Run", ANIM("SS_Run"), true);
-	stSprint = anim->AddState(L0, "Sprint", ANIM("SS_Sprint"), true);
-
-	// デフォルトをIdleに
-	anim->SetDefaultState(L0, stIdle);
-
-	// トランジション：Idle <-> Walk <-> Run <-> Sprint
-	// --- Idle → Walk ---
-	{
-		int ti = anim->AddTransition(L0, stIdle, stWalk,
-			/*duration*/0.2f, /*hasExitTime*/false);
-		anim->AddCondition(L0, stIdle, ti,
-			"Speed", Animator::ConditionMode::Greater, 0.1f);
-	}
-	// --- Walk → Idle ---
-	{
-		int ti = anim->AddTransition(L0, stWalk, stIdle,
-			0.2f, false);
-		anim->AddCondition(L0, stWalk, ti,
-			"Speed", Animator::ConditionMode::Less, 0.1f);
-	}
-	// --- Walk → Run ---
-	{
-		int ti = anim->AddTransition(L0, stWalk, stRun,
-			0.15f, false);
-		anim->AddCondition(L0, stWalk, ti,
-			"Speed", Animator::ConditionMode::Greater, 0.8f);
-	}
-	// --- Run → Walk ---
-	{
-		int ti = anim->AddTransition(L0, stRun, stWalk,
-			0.15f, false);
-		anim->AddCondition(L0, stRun, ti,
-			"Speed", Animator::ConditionMode::Less, 0.8f);
-	}
-	// --- Run → Sprint ---
-	{
-		int ti = anim->AddTransition(L0, stRun, stSprint,
-			0.1f, false);
-		anim->AddCondition(L0, stRun, ti,
-			"IsSprinting", Animator::ConditionMode::IsTrue);
-	}
-	// --- Sprint → Run ---
-	{
-		int ti = anim->AddTransition(L0, stSprint, stRun,
-			0.1f, false);
-		anim->AddCondition(L0, stSprint, ti,
-			"IsSprinting", Animator::ConditionMode::IsFalse);
-	}
-
-	// --- CharacterController ---
+	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.18f, 1.18f);
 	cc->SetPosition({0, 0.6f, 0});
 }
@@ -121,7 +72,20 @@ void Player::OnUpdate()
 
 void Player::OnLateUpdate()
 {
+	// 1. Animatorから最新フレームのルートモーション（ローカル差分）を回収
+	Vector3 localMoveVec = anim->GetRootMotionVec();
+	Quaternion deltaRot  = anim->GetRootMotionRot();
 
+	// 2. 回転の適用（現在の向きにアニメーションの回転差分を乗算）
+	Quaternion currentRot = transform.rotation;
+	transform.SetRotation(currentRot * deltaRot);
+
+	// 3. ローカルの移動量を、プレイヤーの最新の向きに合わせて「ワールド空間」に変換
+	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
+
+	// 4. 移動の適用
+	Vector3 currentPos = transform.position;
+	cc->Move(worldMoveVec);
 }
 
 void Player::OnRender(const RenderContext& rc)
@@ -131,7 +95,5 @@ void Player::OnRender(const RenderContext& rc)
 
 void Player::OnDrawGUI()
 {
-	ImGui::Text("State: %s", anim->GetCurrentStateName(0).c_str());
-	ImGui::Text("Speed param: %.3f", anim->GetFloat("Speed"));
-	ImGui::Text("LayerCount: %d", anim->GetLayerCount());
+
 }
