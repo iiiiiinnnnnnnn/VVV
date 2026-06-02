@@ -38,6 +38,7 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
+	anim->_print();
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.18f, 1.18f);
