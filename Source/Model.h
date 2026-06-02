@@ -210,6 +210,8 @@ public:
 	// ノードポーズ取得
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
 
+	void _print() const;
+
 private:
 	// シリアライズ
 	void Serialize(const char* filename, uint16_t lastWrite);

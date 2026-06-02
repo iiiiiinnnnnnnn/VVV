@@ -591,6 +591,63 @@ void Model::GetNodePoses(std::vector<NodePose>& nodePoses) const
 	}
 }
 
+void Model::_print() const
+{
+	char buf[512];
+
+	printf("========== Model::_print ==========\n");
+
+	// --- ノード一覧 ---
+	printf("[Nodes] count=%zu\n", nodes.size());
+	for (int i = 0; i < static_cast<int>(nodes.size()); ++i)
+	{
+		const Node& n = nodes[i];
+		snprintf(buf, sizeof(buf),
+			"  [%2d] name=%-40s parentIndex=%2d\n",
+			i, n.name.c_str(), n.parentIndex);
+		printf("%s", buf);
+		OutputDebugStringA(buf);
+	}
+
+	// --- ボーン一覧（メッシュごと）---
+	printf("[Meshes] count=%zu\n", meshes.size());
+	for (int mi = 0; mi < static_cast<int>(meshes.size()); ++mi)
+	{
+		const Mesh& mesh = meshes[mi];
+		snprintf(buf, sizeof(buf),
+			"  Mesh[%d] nodeIndex=%d  bones=%zu\n",
+			mi, mesh.nodeIndex, mesh.bones.size());
+		printf("%s", buf);
+		OutputDebugStringA(buf);
+
+		for (int bi = 0; bi < static_cast<int>(mesh.bones.size()); ++bi)
+		{
+			const Bone& bone = mesh.bones[bi];
+			const char* boneName = (bone.nodeIndex >= 0 && bone.nodeIndex < static_cast<int>(nodes.size()))
+				? nodes[bone.nodeIndex].name.c_str()
+				: "(invalid)";
+			snprintf(buf, sizeof(buf),
+				"    Bone[%2d] nodeIndex=%2d  nodeName=%s\n",
+				bi, bone.nodeIndex, boneName);
+			printf("%s", buf);
+			OutputDebugStringA(buf);
+		}
+	}
+
+	// --- アニメーション一覧 ---
+	printf("[Animations] count=%zu\n", animations.size());
+	for (int i = 0; i < static_cast<int>(animations.size()); ++i)
+	{
+		snprintf(buf, sizeof(buf),
+			"  [%2d] name=%-30s  length=%.3fs\n",
+			i, animations[i].name.c_str(), animations[i].secondsLength);
+		printf("%s", buf);
+		OutputDebugStringA(buf);
+	}
+
+	printf("====================================\n");
+}
+
 // シリアライズ
 void Model::Serialize(const char* filename, uint16_t lastWrite)
 {

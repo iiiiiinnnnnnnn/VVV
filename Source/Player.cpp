@@ -5,40 +5,10 @@
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 
-/*Anim: SS_Attack1, length=1.50
-Anim: SS_Attack2, length=2.08
-Anim: SS_Attack3, length=1.50
-Anim: SS_Attack4, length=1.83
-Anim: SS_CrouchIdle, length=2.21
-Anim: SS_CrouchJog, length=0.83
-Anim: SS_CrouchWalk, length=1.12
-Anim: SS_Die, length=2.00
-Anim: SS_Evade, length=1.33
-Anim: SS_Hit_L, length=1.46
-Anim: SS_Hit_R, length=1.46
-Anim: SS_Idle, length=3.00
-Anim: SS_Put, length=2.00
-Anim: SS_Quickshift_B, length=1.00
-Anim: SS_Quickshift_F, length=1.00
-Anim: SS_Quickshift_L, length=1.00
-Anim: SS_Quickshift_R, length=1.00
-Anim: SS_Run, length=0.67
-Anim: SS_SP_Idle, length=3.00
-Anim: SS_SP_Run, length=0.83
-Anim: SS_Sp_Skill1, length=2.33
-Anim: SS_Sp_Skill2, length=2.12
-Anim: SS_Sp_Skill3, length=2.50
-Anim: SS_Sp_TurnL, length=0.67
-Anim: SS_Sp_TurnR, length=0.67
-Anim: SS_SP_Walk, length=1.12
-Anim: SS_Sprint, length=0.58
-Anim: SS_Stun, length=2.00
-Anim: SS_Take, length=3.67
-Anim: SS_Walk, length=1.12*/
-
 Player::Player() : Actor("Player", "Player", true, "Default")
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
+	model->_print(); // デバッグ用：モデルの内容をコンソールに表示
 
 	// メッシュ表示/非表示
 	{
