@@ -16,6 +16,12 @@ public:
 	// グリッド描画(D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
 	void DrawGrid(int subdivisions, float scale);
 
+	void DrawLine(const Vector3& start, const Vector3& end, const Color& startColor, const Color& endColor)
+	{
+		AddVertex(start, startColor);
+		AddVertex(end, endColor);
+	}
+
 	// 描画実行
 	void Render(
 		ID3D11DeviceContext* dc,

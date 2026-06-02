@@ -140,7 +140,7 @@ private:
 // レンダリング設定
 struct RenderSettings
 {
-	bool showDebug = false;
+	bool showDebug = true;
 	bool wireframe = false;
 };
 

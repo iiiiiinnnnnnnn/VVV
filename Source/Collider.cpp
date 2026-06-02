@@ -2,6 +2,8 @@
 
 #include "Collider.h"
 #include "Actor.h"
+#include "Graphics.h"
+#include "ShapeRenderer.h"
 
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : Component(owner), material(material), size(size), rigidbody(rigidbody)
@@ -11,6 +13,14 @@ BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& siz
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
+}
+
+void BoxCollider::Render(const RenderContext& rc)
+{
+    if (!rc.renderSettings.showDebug) return;
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+        rigidbody->GetPosition(), Vector3::Zero, size, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void BoxCollider::UpdateShape()
@@ -64,6 +74,14 @@ CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radi
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
+}
+
+void CapsuleCollider::Render(const RenderContext& rc)
+{
+    if (!rc.renderSettings.showDebug) return;
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+        PX_TRANSFORM_TO_MATRIX(rigidbody->GetRigidActor()->getGlobalPose()), radius, height, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void CapsuleCollider::UpdateShape()
@@ -125,6 +143,14 @@ SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius
     UpdateShape();
 }
 
+void SphereCollider::Render(const RenderContext& rc)
+{
+	if (!rc.renderSettings.showDebug) return;
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
+        rigidbody->GetPosition(), radius, {0.0f, 1.0f, 0.0f, 1.0f});
+}
+
 void SphereCollider::UpdateShape()
 {
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
@@ -177,6 +203,40 @@ MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, Px
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
+}
+
+void MeshCollider::Render(const RenderContext& rc)
+{
+    if (!rc.renderSettings.showDebug) return;
+
+    PrimitiveRenderer* pr = Game::Graphics::Instance().GetPrimitiveRenderer();
+    Color color(0.0f, 1.0f, 1.0f, 1.0f);
+
+    for (const Model::Mesh& mesh : model->GetMeshes())
+    {
+        if (!mesh.isDraw) continue;
+
+        const auto& verts   = mesh.vertices;
+        const auto& indices = mesh.indices;
+
+        for (size_t i = 0; i < indices.size(); i += 3)
+        {
+            Vector3 v0 = Vector3::Transform(verts[indices[i + 0]].position, mesh.node->worldTransform);
+            Vector3 v1 = Vector3::Transform(verts[indices[i + 1]].position, mesh.node->worldTransform);
+            Vector3 v2 = Vector3::Transform(verts[indices[i + 2]].position, mesh.node->worldTransform);
+
+            pr->DrawLine(v0, v1, color, color);
+            pr->DrawLine(v1, v2, color, color);
+            pr->DrawLine(v2, v0, color, color);
+        }
+    }
+
+    pr->Render(
+        rc.deviceContext,
+        rc.camera->GetView(),
+        rc.camera->GetProjection(),
+        D3D11_PRIMITIVE_TOPOLOGY_LINELIST
+    );
 }
 
 void MeshCollider::UpdateShape()

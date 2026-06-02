@@ -99,6 +99,16 @@ void Scene::Render()
 		// 通常描画
 		graphics.GetModelRenderer()->Render(rc);
 
+		// デバッグ描画
+		if (renderSettings.showDebug)
+		{
+			graphics.GetShapeRenderer()->Render(
+				dc,
+				camera.GetView(),
+				camera.GetProjection()
+			);
+		}
+
 		// スプライト
 		widgets.Render(rc);
 		graphics.GetSpriteRenderer()->Render(rc);
@@ -107,7 +117,7 @@ void Scene::Render()
 	// GUI
 	{
 		#ifdef _DEBUG
-		if (!renderSettings.showDebug)
+		if (renderSettings.showDebug)
 		{
 			if (!actors.data.empty())
 			{

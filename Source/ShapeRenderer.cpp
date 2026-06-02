@@ -93,8 +93,17 @@ void ShapeRenderer::DrawCapsule(
 	{
 		Instance& instance = instances.emplace_back();
 		instance.mesh = &halfSphereMesh;
-		DirectX::XMVECTOR Position = DirectX::XMVector3Transform(DirectX::XMVectorSet(0, height * 0.5f, 0, 0), Transform);
-		DirectX::XMMATRIX World = DirectX::XMMatrixScaling(radius, radius, radius);
+
+		DirectX::XMVECTOR Position = DirectX::XMVector3Transform(
+			DirectX::XMVectorSet(0, height * 0.5f, 0, 0), Transform);
+
+		DirectX::XMMATRIX RotOnly = Transform;
+		RotOnly.r[3] = DirectX::XMVectorSet(0, 0, 0, 1);
+
+		DirectX::XMMATRIX World = RotOnly;
+		World.r[0] = DirectX::XMVectorScale(World.r[0], radius);
+		World.r[1] = DirectX::XMVectorScale(World.r[1], radius);
+		World.r[2] = DirectX::XMVectorScale(World.r[2], radius);
 		World.r[3] = DirectX::XMVectorSetW(Position, 1.0f);
 		DirectX::XMStoreFloat4x4(&instance.worldTransform, World);
 		instance.color = color;

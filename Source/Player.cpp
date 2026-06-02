@@ -96,59 +96,6 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 
 	// --- CharacterController ---
 	cc = AddComponent<CharacterController>(0.5f, 1.5f);
-
-	// テク変
-	#if 0
-	//HRESULT hr;
-
-	//// Body
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Body/Body.png",
-	//	&model->GetMaterials()[0].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Body.png");
-
-	//// Weapon_Axe_Shield
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Weapon/Weapon_Shield_Axe_01.png",
-	//	&model->GetMaterials()[1].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Weapon_Shield_Axe_01.png");
-
-	//// Weapon_Sword_shield
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Weapon/Weapon_Shield_Sword_01.png",
-	//	&model->GetMaterials()[2].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Weapon_Shield_Sword_01.png");
-
-	//// Face
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Body/Face.png",
-	//	&model->GetMaterials()[3].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Face.png");
-
-	//// Eye
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Body/Eye.png",
-	//	&model->GetMaterials()[4].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Eye.png");
-
-	//// Squire_Cloth
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Squire_Cloth/Squire_Cloth.png",
-	//	&model->GetMaterials()[5].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Squire_Cloth.png");
-
-	//// Shield_Cloth
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Cloth/Shiled_Sword_Cloth_01.png",
-	//	&model->GetMaterials()[6].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Shiled_Sword_Cloth_01.png");
-
-	//// Shield_Hair
-	//hr = Texture::LoadTexture(Game::Graphics::Instance().GetDevice(),
-	//	"Data/Model/CombatGirl_Shield/Texture/Hair/Hair_t.png",
-	//	&model->GetMaterials()[7].baseMap);
-	//_ASSERT_EXPR(SUCCEEDED(hr), L"Failed to load texture: Hair_t.png");
-	#endif
 }
 
 void Player::OnUpdate()

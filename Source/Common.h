@@ -67,3 +67,6 @@ constexpr float DEG2RAD = DirectX::XM_PI / 180.0f;
     static_cast<float>((m)[8]),  static_cast<float>((m)[9]),  static_cast<float>((m)[10]), static_cast<float>((m)[11]), \
     static_cast<float>((m)[12]), static_cast<float>((m)[13]), static_cast<float>((m)[14]), static_cast<float>((m)[15]) \
 }
+#define PX_TRANSFORM_TO_MATRIX(t) \
+    (Matrix::CreateFromQuaternion(Quaternion((t).q.x, (t).q.y, (t).q.z, (t).q.w)) \
+    * Matrix::CreateTranslation((t).p.x, (t).p.y, (t).p.z))
