@@ -4,7 +4,7 @@
 #include "Player.h"
 #include "Stage00.h"
 #include "FreeCameraController.h"
-#include "FpsCameraController.h"
+#include "ThirdPersonCameraController.h"
 #include "LocalPlayer.h"
 #include "TestWIdget.h"
 
@@ -40,7 +40,7 @@ TestPlayScene::TestPlayScene()
 	camera.SetLookAt({0, 3, 5}, {0, 0, 0}, {0, 1, 0});
 
 	cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
-	cameraControllers.push_back(std::make_unique<FpsCameraController>(player));
+	cameraControllers.push_back(std::make_unique<ThirdPersonCameraController>(player));
 }
 
 void TestPlayScene::OnUpdate()

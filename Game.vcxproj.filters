@@ -94,6 +94,12 @@
     <Filter Include="ソースファイル\ゲーム\プレイヤーコントローラー">
       <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="データ">
+      <UniqueIdentifier>{e955192f-b92c-4453-b534-ee80f6884346}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="データ\アニメーター">
+      <UniqueIdentifier>{86638134-a164-4c79-9d6f-06b399dc4842}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -251,6 +257,9 @@
     </ClCompile>
     <ClCompile Include="Source\Mouse.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdPersonCameraController.cpp">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -446,6 +455,9 @@
     <ClInclude Include="Source\EnemyAIController.h">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ThirdPersonCameraController.h">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -483,6 +495,9 @@
     </None>
     <None Include="Shader\ShadingFunctions.hlsli">
       <Filter>シェーダー\システム</Filter>
+    </None>
+    <None Include="Data\Animator\Player.animator">
+      <Filter>データ\アニメーター</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -531,5 +546,8 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />
+    <Text Include="Data\Animator\Player.txt">
+      <Filter>データ\アニメーター</Filter>
+    </Text>
   </ItemGroup>
 </Project>

@@ -7,27 +7,23 @@
 Player::Player() : Actor("Player", "Player", true, "Default")
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
+
 	// メッシュ表示/非表示
 	{
 		auto& meshes = model->GetMeshes();
-		// 盾
-		meshes[0].isDraw = false;
-		// アックス
-		meshes[2].isDraw = false;
-		// 服
-		meshes[8].isDraw =
-			meshes[15].isDraw = false;
-		// 素手
-		meshes[9].isDraw = false;
-		// 顔
-		meshes[4].isDraw =
-			meshes[5].isDraw =
+		meshes[0].isDraw  = false; // 盾
+		meshes[2].isDraw  = false; // アックス
+		meshes[8].isDraw  =
+			meshes[15].isDraw = false; // 服
+		meshes[9].isDraw  = false; // 素手
+		meshes[4].isDraw  =
+			meshes[5].isDraw  =
 			meshes[16].isDraw =
 			meshes[17].isDraw =
 			meshes[18].isDraw =
 			meshes[19].isDraw =
 			meshes[20].isDraw =
-			meshes[21].isDraw = false;
+			meshes[21].isDraw = false; // 顔
 	}
 
 	// モデルレンダラー生成
@@ -37,8 +33,7 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	// アニメーター生成
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
-	anim->Load("Data/Animator/CombatGirls_Sword_Shield.animator");
-	anim->_print();
+	anim->Load("Data/Animator/Player.animator");
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.18f, 1.18f);
@@ -51,17 +46,41 @@ void Player::OnUpdate()
 
 	InputContext ctx = controller->Poll();
 
-	// Speed を計算（入力ベクトルの長さ）
+	// ---- 入力ベクトルの長さ（0〜1） ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
-	// Sprint中は1.5、通常は最大1.0にスケール
+
+	// Sprint 判定（入力がある && Shiftまたはスティック押し込み）
 	bool sprinting = ctx.sprint && inputLen > 0.1f;
-	float speed = sprinting ? 1.5f : inputLen;      // 0.0〜1.0 or 1.5
 
-	// Animatorに渡す
-	anim->SetFloat("Speed", speed);
-	anim->SetBool("IsSprinting", sprinting);
+	// Speed: 停止=0 / 歩き=入力量(0〜0.8) / 走り=1.0 / スプリント=1.5
+	float speedParam;
+	if (inputLen < 0.1f)
+		speedParam = 0.0f;
+	else if (sprinting)
+		speedParam = 1.5f;
+	else
+		speedParam = inputLen; // 0.1〜1.0
 
-	// 重力（既存のまま）
+	// Animator パラメータを更新
+	anim->SetFloat("Speed",       speedParam);
+	anim->SetFloat("MoveX",       ctx.moveX);
+	anim->SetBool ("IsSprinting", sprinting);
+
+	// ---- プレイヤーの向きを入力方向に回転させる ----
+	if (inputLen > 0.1f)
+	{
+		// moveX/Z はカメラ空間の入力と仮定（前方=+Z, 右=+X）
+		// 入力方向のヨー角を求め、Quaternion に変換
+		float targetYaw = atan2f(ctx.moveX, ctx.moveZ); // ラジアン
+		Quaternion targetRot = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
+
+		// 現在の向きから滑らかに回転（スラープ係数は好みで調整）
+		float turnSpeed = sprinting ? 8.0f : 12.0f;
+		float t = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
+		transform.SetRotation(Quaternion::Slerp(transform.rotation, targetRot, t));
+	}
+
+	// ---- 重力 ----
 	if (cc->IsGrounded())
 		verticalVelocity = 0.0f;
 	else
@@ -72,28 +91,25 @@ void Player::OnUpdate()
 
 void Player::OnLateUpdate()
 {
-	// 1. Animatorから最新フレームのルートモーション（ローカル差分）を回収
-	Vector3 localMoveVec = anim->GetRootMotionVec();
-	Quaternion deltaRot  = anim->GetRootMotionRot();
+	// 1. ルートモーション差分を回収
+	Vector3    localMoveVec = anim->GetRootMotionVec();
+	Quaternion deltaRot     = anim->GetRootMotionRot();
 
-	// 2. 回転の適用（現在の向きにアニメーションの回転差分を乗算）
-	Quaternion currentRot = transform.rotation;
-	transform.SetRotation(currentRot * deltaRot);
+	// 2. アニメーション由来の回転差分を適用（通常は歩き/走りには含まれないが念のため）
+	transform.SetRotation(transform.rotation * deltaRot);
 
-	// 3. ローカルの移動量を、プレイヤーの最新の向きに合わせて「ワールド空間」に変換
+	// 3. ローカル移動ベクトルをプレイヤーの向きに合わせてワールド変換して移動
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
-
-	// 4. 移動の適用
-	Vector3 currentPos = transform.position;
 	cc->Move(worldMoveVec);
 }
 
 void Player::OnRender(const RenderContext& rc)
 {
-
 }
 
 void Player::OnDrawGUI()
 {
-
+	// デバッグ情報
+	ImGui::Text("State: %s", anim->GetCurrentStateName(0).c_str());
+	ImGui::Text("Speed: %.2f", anim->GetFloat("Speed"));
 }
