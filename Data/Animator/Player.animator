@@ -194,5 +194,7 @@
             "value": false
         }
     ],
-    "triggers": []
+    "triggers": [
+        "Attack"
+    ]
 }
