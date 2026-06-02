@@ -241,9 +241,9 @@
                 },
                 {
                     "animationIndex": 0,
-                    "blockAnyStateTransitions": false,
-                    "editorPosX": 152.0,
-                    "editorPosY": 291.0,
+                    "blockAnyStateTransitions": true,
+                    "editorPosX": 56.0,
+                    "editorPosY": 323.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack1",
@@ -284,11 +284,95 @@
                 {
                     "animationIndex": 1,
                     "blockAnyStateTransitions": true,
-                    "editorPosX": 328.0,
-                    "editorPosY": 163.0,
+                    "editorPosX": 280.0,
+                    "editorPosY": 291.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack2",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": false,
+                            "priority": 1,
+                            "sourceProgressThreshold": 0.30000001192092896,
+                            "toStateIndex": 6,
+                            "transitionDuration": 0.4000000059604645
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressThreshold": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 2,
+                    "blockAnyStateTransitions": true,
+                    "editorPosX": 456.0,
+                    "editorPosY": 243.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack3",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": false,
+                            "priority": 1,
+                            "sourceProgressThreshold": 0.30000001192092896,
+                            "toStateIndex": 7,
+                            "transitionDuration": 0.4000000059604645
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressThreshold": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 3,
+                    "blockAnyStateTransitions": true,
+                    "editorPosX": 632.0,
+                    "editorPosY": 211.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack4",
                     "speed": 1.0,
                     "transitions": [
                         {

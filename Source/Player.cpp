@@ -79,6 +79,8 @@ void Player::OnUpdate()
 
 	// ---- 入力ベクトルをカメラYaw基準のワールド方向に変換 ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
+	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
+	const bool isAttackState = (currentStateName.find("Attack") != std::string::npos);
 
 	Vector3 worldMoveDir = Vector3::Zero;
 	if (inputLen > 0.1f)
@@ -94,13 +96,16 @@ void Player::OnUpdate()
 		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
 		worldMoveDir.Normalize();
 
-		// プレイヤーをその方向に滑らかに向かせる
-		bool sprinting = ctx.sprint && inputLen > 0.1f;
-		float turnSpeed = sprinting ? 8.0f : 12.0f;
-		float targetYaw = atan2f(worldMoveDir.x, worldMoveDir.z);
-		Quaternion targetRot = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
-		float t = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
-		transform.SetRotation(Quaternion::Slerp(transform.rotation, targetRot, t));
+		// 攻撃中は入力による方向転換を止める
+		if (!isAttackState)
+		{
+			bool sprinting = ctx.sprint && inputLen > 0.1f;
+			float turnSpeed = sprinting ? 8.0f : 12.0f;
+			float targetYaw = atan2f(worldMoveDir.x, worldMoveDir.z);
+			Quaternion targetRot = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
+			float t = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
+			transform.SetRotation(Quaternion::Slerp(transform.rotation, targetRot, t));
+		}
 	}
 
 	// Speed / Sprint パラメータをAnimatorへ
