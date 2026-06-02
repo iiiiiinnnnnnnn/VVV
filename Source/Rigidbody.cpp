@@ -51,6 +51,13 @@ RigidbodyStatic::RigidbodyStatic(Object* owner)
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 }
 
+RigidbodyStatic::RigidbodyStatic(Object* owner, Matrix matrix)
+    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(matrix))
+{
+    Actor* ownerActor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+}
+
 void RigidbodyStatic::DrawGUI()
 {
     if (ImGui::TreeNode("RigidbodyStatic"))

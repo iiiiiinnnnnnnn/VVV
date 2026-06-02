@@ -24,7 +24,11 @@ protected:
 
 class RigidbodyStatic : public Rigidbody {
 public:
+    // デフォルト: ownerのtransform.matrixから位置・回転を使う
     RigidbodyStatic(Object* owner);
+
+    // 明示的にMatrixを渡すオーバーロード（Identityを渡すとワールド原点に配置できる）
+    RigidbodyStatic(Object* owner, Matrix matrix);
 
     void DrawGUI() override;
 };
@@ -37,5 +41,5 @@ public:
 
     void AddForce(const Vector3& force);
     void SetVelocity(const Vector3& v);
-	const Vector3 GetVelocity() const { return VEC(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
+    const Vector3 GetVelocity() const { return VEC(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
 };
