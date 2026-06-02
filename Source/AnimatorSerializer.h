@@ -109,6 +109,38 @@ public:
                 jStates.push_back(jState);
             }
             jLayer["states"] = jStates;
+
+            // AnyState Transitions
+            json jAnyTrans = json::array();
+            for (const auto& tr : layer.anyStateTransitions)
+            {
+                json jTr;
+                jTr["toStateIndex"]       = tr.toStateIndex;
+                jTr["exitTime"]           = tr.exitTime;
+                jTr["transitionDuration"] = tr.transitionDuration;
+                jTr["hasExitTime"]        = tr.hasExitTime;
+                jTr["priority"]           = tr.priority;
+                jTr["canInterrupt"]       = tr.canInterrupt;
+
+                json jConds = json::array();
+                for (const auto& c : tr.conditions)
+                {
+                    json jC;
+                    jC["paramName"] = c.paramName;
+                    jC["mode"]      = (int)c.mode;
+                    if (std::holds_alternative<float>(c.threshold))
+                        jC["threshold"] = std::get<float>(c.threshold);
+                    else if (std::holds_alternative<int>(c.threshold))
+                        jC["threshold"] = std::get<int>(c.threshold);
+                    else
+                        jC["threshold"] = std::get<bool>(c.threshold);
+                    jConds.push_back(jC);
+                }
+                jTr["conditions"] = jConds;
+                jAnyTrans.push_back(jTr);
+            }
+            jLayer["anyStateTransitions"] = jAnyTrans;
+
             jLayers.push_back(jLayer);
         }
         root["layers"] = jLayers;
@@ -212,6 +244,42 @@ public:
             int defState = jLayer["defaultState"].get<int>();
             if (defState >= 0)
                 anim.SetDefaultState(li, defState);
+
+            // AnyState Transitions
+            if (jLayer.contains("anyStateTransitions"))
+            {
+                auto& anyTrans = anim.GetAnyStateTransitions_Mutable(li);
+                for (const auto& jTr : jLayer["anyStateTransitions"])
+                {
+                    Animator::Transition tr;
+                    tr.toStateIndex       = jTr["toStateIndex"].get<int>();
+                    tr.transitionDuration = jTr["transitionDuration"].get<float>();
+                    tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
+                    tr.exitTime           = jTr["exitTime"].get<float>();
+                    tr.priority           = jTr["priority"].get<int>();
+                    tr.canInterrupt       = jTr["canInterrupt"].get<bool>();
+
+                    for (const auto& jC : jTr["conditions"])
+                    {
+                        Animator::Condition c;
+                        c.paramName = jC["paramName"].get<std::string>();
+                        c.mode      = (Animator::ConditionMode)jC["mode"].get<int>();
+
+                        if (jC["threshold"].is_number_float())
+                            c.threshold = jC["threshold"].get<float>();
+                        else if (jC["threshold"].is_number_integer())
+                            c.threshold = jC["threshold"].get<int>();
+                        else
+                            c.threshold = jC["threshold"].get<bool>();
+
+                        tr.conditions.push_back(c);
+                    }
+                    anyTrans.push_back(tr);
+                }
+                std::sort(anyTrans.begin(), anyTrans.end(),
+                    [](const Animator::Transition& a, const Animator::Transition& b)
+                    { return a.priority > b.priority; });
+            }
         }
     }
 };

@@ -1,4 +1,6 @@
-﻿#include "LocalPlayer.h"
+﻿// LocalPlayer.cpp
+
+#include "LocalPlayer.h"
 #include "Input.h"
 #include <windows.h>
 
@@ -34,15 +36,13 @@ InputContext LocalPlayer::Poll()
     }
 
     // ---- ボタン入力 ----
-    ctx.jump    = (pad.GetButton() & GamePad::BTN_A)
-        | (GetAsyncKeyState(VK_SPACE) & 0x8000 ? 1 : 0);
     ctx.sprint  = (pad.GetButton() & GamePad::BTN_LEFT_THUMB)
         | (GetAsyncKeyState(VK_LSHIFT) & 0x8000 ? 1 : 0);
+
     ctx.crouch  = (GetAsyncKeyState(VK_LCONTROL) & 0x8000 ? 1 : 0);
-    ctx.ready   = (mouse.GetButton() & Mouse::BTN_RIGHT)
-        | (pad.GetButton() & GamePad::BTN_RIGHT_SHOULDER);
-    ctx.shoot   = (mouse.GetButton() & Mouse::BTN_LEFT)
-        | (pad.GetButton() & GamePad::BTN_LEFT_SHOULDER);
+
+    ctx.attackPressed = (pad.GetButtonDown() & GamePad::BTN_A)
+		| (mouse.GetButtonDown() & Mouse::BTN_LEFT);
 
     return ctx;
 }

@@ -1,6 +1,23 @@
 {
     "layers": [
         {
+            "anyStateTransitions": [
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Attack",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "priority": 0,
+                    "toStateIndex": 4,
+                    "transitionDuration": 0.10000000149011612
+                }
+            ],
             "blendMode": 0,
             "defaultState": 0,
             "mask": [],
@@ -169,6 +186,55 @@
                             "hasExitTime": false,
                             "priority": 0,
                             "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 0,
+                    "loop": false,
+                    "name": "Attack1",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "priority": 1,
+                            "toStateIndex": 5,
+                            "transitionDuration": 0.30000001192092896
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 1,
+                    "loop": false,
+                    "name": "Attack2",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "priority": 0,
+                            "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]

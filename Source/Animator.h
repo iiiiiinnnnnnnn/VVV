@@ -91,6 +91,9 @@ public:
         float blendTime = 0.0f;
         float blendDuration = 0.0f;
         bool  isTransitioning = false;
+
+        // AnyState トランジション（どのステートからでも遷移できる）
+        std::vector<Transition> anyStateTransitions;
     };
 
     // エディタウィンドウを開く
@@ -140,6 +143,30 @@ public:
         ParamValue threshold = 0.0f);
 
     void SetDefaultState(int layerIndex, int stateIndex);
+
+    // =========================================================
+    // AnyState トランジション（どのステートからでも遷移できる）
+    // =========================================================
+    // AnyState から指定ステートへのトランジションを追加する。
+    // 戻り値はそのレイヤーの anyStateTransitions 配列内のインデックス。
+    int  AddAnyStateTransition(int layerIndex, int toState,
+        float transitionDuration = 0.1f,
+        bool hasExitTime = false, float exitTime = 1.0f,
+        int priority = 0, bool canInterrupt = false);
+
+    void AddAnyStateCondition(int layerIndex, int transitionIndex,
+        const std::string& paramName, ConditionMode mode,
+        ParamValue threshold = 0.0f);
+
+    // AnyState トランジション一覧を取得（エディタ用）
+    const std::vector<Transition>& GetAnyStateTransitions(int layerIndex) const
+    {
+        return layers[layerIndex].anyStateTransitions;
+    }
+    std::vector<Transition>& GetAnyStateTransitions_Mutable(int layerIndex)
+    {
+        return layers[layerIndex].anyStateTransitions;
+    }
 
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
 	int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }

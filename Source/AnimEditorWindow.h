@@ -239,6 +239,9 @@ private:
     int          currentLayer = 0;
     char m_currentFilePath[MAX_PATH] = {};
 
+    // AnyState の内部表現用インデックス（ステートと衝突しない大きな値を使用）
+    static constexpr int ANY_STATE_INDEX = 999;
+
     // 選択中のリンク (遷移) を覚えておくための情報
     struct SelectedTransition
     {
@@ -364,6 +367,50 @@ private:
             m_pendingNodeSi = -1;
         }
 
+        // ---- AnyState ノードを先に表示 ----
+        {
+            ax::NodeEditor::NodeId nid = NodeId(li, ANY_STATE_INDEX);
+            int nidInt = (int)nid.Get();
+            if (positionSet.find(nidInt) == positionSet.end())
+            {
+                positionSet[nidInt] = true;
+                ax::NodeEditor::SetNodePosition(nid, ImVec2(60.0f, 100.0f));
+            }
+
+            // AnyState を目立たせる色
+            ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBorder,
+                ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
+
+            ax::NodeEditor::BeginNode(nid);
+            ImGui::PushID(li * 10000 + ANY_STATE_INDEX);
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.3f, 1.0f));
+            ImGui::TextUnformatted("AnyState");
+            ImGui::PopStyleColor();
+
+            ImGui::TextDisabled("From any state");
+
+            // 出力ピンのみ
+            ax::NodeEditor::BeginPin(OutPin(li, ANY_STATE_INDEX), ax::NodeEditor::PinKind::Output);
+            ImGui::PushID((int)OutPin(li, ANY_STATE_INDEX).Get());
+            ImGui::TextUnformatted("A");
+            ImGui::PopID();
+            ax::NodeEditor::EndPin();
+
+            ImGui::PopID();
+            ax::NodeEditor::EndNode();
+
+            ax::NodeEditor::PopStyleColor();
+
+            // AnyState ノード選択時の挙動：左パネルで AnyState トランジション一覧が見えるよう
+            if (ed::IsNodeSelected(nid) && !ImGui::IsMouseDragging(0))
+            {
+                // 選択状態は左パネルの AnyState トランジション一覧で扱う。
+                selectedState = {};
+                selectedTrans = {};
+            }
+        }
+
         for (int si = 0; si < (int)layer.states.size(); ++si)
         {
             Animator::State& state = layer.states[si];
@@ -478,6 +525,28 @@ private:
                     col, 2.0f);
             }
         }
+
+        // AnyState からの遷移を描画
+        for (int ti = 0; ti < (int)layer.anyStateTransitions.size(); ++ti)
+        {
+            const Animator::Transition& tr = layer.anyStateTransitions[ti];
+            if (tr.toStateIndex < 0 ||
+                tr.toStateIndex >= (int)layer.states.size()) continue;
+
+            bool isSelected =
+                (selectedTrans.layerIndex == li &&
+                    selectedTrans.fromStateIndex == ANY_STATE_INDEX &&
+                    selectedTrans.transIndex == ti);
+
+            ImVec4 col = isSelected
+                ? ImVec4(1.0f, 0.8f, 0.0f, 1.0f)
+                : ImVec4(0.9f, 0.6f, 0.3f, 1.0f); // AnyState 色
+
+            ed::Link(LinkId(li, ANY_STATE_INDEX, ti),
+                OutPin(li, ANY_STATE_INDEX),
+                InPin(li, tr.toStateIndex),
+                col, 2.0f);
+        }
     }
 
     // -------------------------------------------------------------------
@@ -499,19 +568,35 @@ private:
 
                     if (fromSi >= 0 && toSi >= 0 && fromSi != toSi)
                     {
-                        // 既存チェック
+                        // AnyState からの遷移か通常遷移かで処理を分ける
                         bool exists = false;
-                        for (const auto& t : layer.states[fromSi].transitions)
-                            if (t.toStateIndex == toSi) { exists = true; break; }
-
-                        if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1), 2.0f))
+                        if (fromSi == ANY_STATE_INDEX)
                         {
-                            // 遷移追加
-                            animator->AddTransition(li, fromSi, toSi,
-                                0.1f, false, 1.0f, 0, false);
-                            // 選択状態に
-                            selectedTrans = { li, fromSi,
-                                (int)layer.states[fromSi].transitions.size() - 1 };
+                            for (const auto& t : layer.anyStateTransitions)
+                                if (t.toStateIndex == toSi) { exists = true; break; }
+
+                            if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1), 2.0f))
+                            {
+                                // AnyState 遷移追加
+                                animator->AddAnyStateTransition(li, toSi,
+                                    0.1f, false, 1.0f, 0, false);
+                                selectedTrans = { li, ANY_STATE_INDEX,
+                                    (int)layer.anyStateTransitions.size() - 1 };
+                            }
+                        }
+                        else
+                        {
+                            for (const auto& t : layer.states[fromSi].transitions)
+                                if (t.toStateIndex == toSi) { exists = true; break; }
+
+                            if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f))
+                            {
+                                // 通常遷移追加
+                                animator->AddTransition(li, fromSi, toSi,
+                                    0.1f, false, 1.0f, 0, false);
+                                selectedTrans = { li, fromSi,
+                                    (int)layer.states[fromSi].transitions.size() - 1 };
+                            }
                         }
                     }
                     else
@@ -533,16 +618,30 @@ private:
                 {
                     int dli, dfrom, dti;
                     DecodeLinkId(delLink, dli, dfrom, dti);
-                    if (dli == li &&
-                        dfrom < (int)layer.states.size() &&
-                        dti < (int)layer.states[dfrom].transitions.size())
+                    if (dli == li)
                     {
-                        layer.states[dfrom].transitions.erase(
-                            layer.states[dfrom].transitions.begin() + dti);
-                        if (selectedTrans.layerIndex == li &&
-                            selectedTrans.fromStateIndex == dfrom &&
-                            selectedTrans.transIndex == dti)
-                            selectedTrans = {};
+                        if (dfrom == ANY_STATE_INDEX)
+                        {
+                            if (dti < (int)layer.anyStateTransitions.size())
+                            {
+                                layer.anyStateTransitions.erase(
+                                    layer.anyStateTransitions.begin() + dti);
+                                if (selectedTrans.layerIndex == li &&
+                                    selectedTrans.fromStateIndex == dfrom &&
+                                    selectedTrans.transIndex == dti)
+                                    selectedTrans = {};
+                            }
+                        }
+                        else if (dfrom < (int)layer.states.size() &&
+                            dti < (int)layer.states[dfrom].transitions.size())
+                        {
+                            layer.states[dfrom].transitions.erase(
+                                layer.states[dfrom].transitions.begin() + dti);
+                            if (selectedTrans.layerIndex == li &&
+                                selectedTrans.fromStateIndex == dfrom &&
+                                selectedTrans.transIndex == dti)
+                                selectedTrans = {};
+                        }
                     }
                 }
             }
@@ -570,6 +669,16 @@ private:
                             for (auto& t : s.transitions)
                                 if (t.toStateIndex > nv) --t.toStateIndex;
                         }
+                        // AnyState 側の toStateIndex も詰める
+                        layer.anyStateTransitions.erase(
+                            std::remove_if(layer.anyStateTransitions.begin(), layer.anyStateTransitions.end(),
+                                [nv](const Animator::Transition& t) {
+                                    return t.toStateIndex == nv;
+                                }),
+                            layer.anyStateTransitions.end());
+                        for (auto& t : layer.anyStateTransitions)
+                            if (t.toStateIndex > nv) --t.toStateIndex;
+
                         // currentState も補正
                         if (layer.currentStateIndex == nv) layer.currentStateIndex = 0;
                         else if (layer.currentStateIndex > nv) --layer.currentStateIndex;
@@ -795,6 +904,106 @@ private:
         }
         ImGui::EndChild();
 
+        // ---- AnyState トランジション一覧（編集可能） ----
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), "AnyState Transitions");
+
+        int anyDragFrom = -1, anyDragTo = -1;
+        for (int ti = 0; ti < (int)layer.anyStateTransitions.size(); ++ti)
+        {
+            const Animator::Transition& tr = layer.anyStateTransitions[ti];
+            const std::string& toName =
+                (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
+                ? layer.states[tr.toStateIndex].name : "???";
+
+            ImGui::PushID(1000 + ti); // 1000 適当なオフセット
+
+            ImGui::TextDisabled("::");
+            ImGui::SameLine();
+
+            bool isSelected = (selectedTrans.layerIndex == li &&
+                selectedTrans.fromStateIndex == ANY_STATE_INDEX &&
+                selectedTrans.transIndex == ti);
+            if (isSelected)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0.8f, 0.2f, 1));
+
+            char label[128];
+            snprintf(label, sizeof(label), "%d. -> %s", ti + 1, toName.c_str());
+            ImGui::Selectable(label, isSelected, ImGuiSelectableFlags_None, ImVec2(0, 0));
+
+            if (isSelected)
+                ImGui::PopStyleColor();
+
+            if (ImGui::IsItemClicked())
+            {
+                selectedTrans = { li, ANY_STATE_INDEX, ti };
+                selectedState = {};
+            }
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            {
+                ImGui::SetDragDropPayload("ANYTRANS_REORDER", &ti, sizeof(int));
+                ImGui::Text("-> %s", toName.c_str());
+                ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ANYTRANS_REORDER"))
+                {
+                    anyDragFrom = *(const int*)payload->Data;
+                    anyDragTo = ti;
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x"))
+            {
+                layer.anyStateTransitions.erase(layer.anyStateTransitions.begin() + ti);
+                if (selectedTrans.layerIndex == li &&
+                    selectedTrans.fromStateIndex == ANY_STATE_INDEX &&
+                    selectedTrans.transIndex == ti)
+                    selectedTrans = {};
+                --ti;
+            }
+
+            ImGui::PopID();
+        }
+
+        if (anyDragFrom >= 0 && anyDragTo >= 0 && anyDragFrom != anyDragTo)
+        {
+            Animator::Transition moved = layer.anyStateTransitions[anyDragFrom];
+            layer.anyStateTransitions.erase(layer.anyStateTransitions.begin() + anyDragFrom);
+            int insertAt = (anyDragTo > anyDragFrom) ? anyDragTo : anyDragTo;
+            layer.anyStateTransitions.insert(layer.anyStateTransitions.begin() + insertAt, moved);
+
+            // priority値を配列順に振り直す
+            for (int i = 0; i < (int)layer.anyStateTransitions.size(); ++i)
+                layer.anyStateTransitions[i].priority = (int)layer.anyStateTransitions.size() - 1 - i;
+
+            // 選択追従
+            if (selectedTrans.layerIndex == li && selectedTrans.fromStateIndex == ANY_STATE_INDEX)
+            {
+                int sel = selectedTrans.transIndex;
+                if (sel == anyDragFrom) selectedTrans.transIndex = insertAt;
+                else if (anyDragFrom < anyDragTo && sel > anyDragFrom && sel <= anyDragTo) selectedTrans.transIndex = sel - 1;
+                else if (anyDragFrom > anyDragTo && sel >= anyDragTo && sel < anyDragFrom) selectedTrans.transIndex = sel + 1;
+            }
+        }
+
+        // 追加ボタン（ターゲットを選んで追加）
+        ImGui::Spacing();
+        if (ImGui::Button("+ AnyState Transition", ImVec2(160, 0)))
+        {
+            if (!layer.states.empty())
+            {
+                // デフォルトで最初のステートへ遷移を追加
+                animator->AddAnyStateTransition(li, 0, 0.1f, false, 1.0f, 0, false);
+            }
+        }
+
         // レイヤー削除（2つ以上あるとき）
         if (animator->GetLayerCount() > 1)
         {
@@ -964,11 +1173,22 @@ private:
     {
         int si = selectedTrans.fromStateIndex;
         int ti = selectedTrans.transIndex;
-        if (si < 0 || si >= (int)layer.states.size()) return;
-        if (ti < 0 || ti >= (int)layer.states[si].transitions.size()) return;
+        // AnyState の場合は layer.anyStateTransitions を参照する
+        if (si == ANY_STATE_INDEX)
+        {
+            if (ti < 0 || ti >= (int)layer.anyStateTransitions.size()) return;
+        }
+        else
+        {
+            if (si < 0 || si >= (int)layer.states.size()) return;
+            if (ti < 0 || ti >= (int)layer.states[si].transitions.size()) return;
+        }
 
-        Animator::Transition& tr = layer.states[si].transitions[ti];
-        const std::string& fromName = layer.states[si].name;
+        Animator::Transition& tr = (si == ANY_STATE_INDEX)
+            ? layer.anyStateTransitions[ti]
+            : layer.states[si].transitions[ti];
+
+        const std::string& fromName = (si == ANY_STATE_INDEX) ? "AnyState" : layer.states[si].name;
         const std::string& toName =
             (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
             ? layer.states[tr.toStateIndex].name : "???";
@@ -981,7 +1201,7 @@ private:
         ImGui::Checkbox("Has Exit Time", &tr.hasExitTime);
         if (tr.hasExitTime)
             ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
-        // Priority は ステート詳細の "Transition Order" リストで並び替えて変更する
+        // Priority は ステート詳細の "Transition Order" リストで並び替えして変更する
         ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
 

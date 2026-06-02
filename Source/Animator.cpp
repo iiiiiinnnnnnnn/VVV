@@ -109,6 +109,41 @@ void Animator::SetDefaultState(int li, int stateIndex)
 }
 
 // =========================================================
+// AnyState トランジション
+// =========================================================
+int Animator::AddAnyStateTransition(int li, int to, float duration,
+    bool hasExitTime, float exitTime, int priority, bool canInterrupt)
+{
+    Transition t;
+    t.toStateIndex       = to;
+    t.transitionDuration = duration;
+    t.hasExitTime        = hasExitTime;
+    t.exitTime           = exitTime;
+    t.priority           = priority;
+    t.canInterrupt       = canInterrupt;
+
+    auto& anyTrans = layers[li].anyStateTransitions;
+    anyTrans.push_back(t);
+    std::sort(anyTrans.begin(), anyTrans.end(),
+        [](const Transition& a, const Transition& b) { return a.priority > b.priority; });
+
+    for (int i = 0; i < (int)anyTrans.size(); ++i)
+        if (anyTrans[i].toStateIndex == to && anyTrans[i].priority == priority)
+            return i;
+    return (int)anyTrans.size() - 1;
+}
+
+void Animator::AddAnyStateCondition(int li, int ti,
+    const std::string& paramName, ConditionMode mode, ParamValue threshold)
+{
+    Condition c;
+    c.paramName = paramName;
+    c.mode      = mode;
+    c.threshold = threshold;
+    layers[li].anyStateTransitions[ti].conditions.push_back(c);
+}
+
+// =========================================================
 // パラメータ（全レイヤー共有）
 // =========================================================
 void Animator::AddFloat(const std::string& name, float v) { parameters[name] = v; }
@@ -330,6 +365,33 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         float normalizedTime = curAnim.secondsLength > 0.0f
             ? layer.currentTime / curAnim.secondsLength : 0.0f;
 
+        // --- AnyState トランジション（優先評価） ---
+        for (const Transition& tr : layer.anyStateTransitions)
+        {
+            // 既に同じステートに遷移中の場合はスキップ
+            if (tr.toStateIndex == layer.currentStateIndex) continue;
+            if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
+            if (EvaluateTransition(tr))
+            {
+                layer.nextStateIndex  = tr.toStateIndex;
+                layer.nextTime        = 0.0f;
+                layer.blendTime       = 0.0f;
+                layer.blendDuration   = tr.transitionDuration;
+                layer.isTransitioning = tr.transitionDuration > 0.0f;
+
+                if (!layer.isTransitioning)
+                {
+                    layer.currentStateIndex = layer.nextStateIndex;
+                    layer.currentTime       = 0.0f;
+                    layer.nextStateIndex    = -1;
+                }
+                break;
+            }
+        }
+
+        // AnyState で既に遷移が決まっていなければ通常トランジションを評価
+        if (!layer.isTransitioning && layer.nextStateIndex < 0)
+        {
         for (const Transition& tr : curState.transitions)
         {
             if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
@@ -349,6 +411,7 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
                 }
                 break;
             }
+        }
         }
     }
 
