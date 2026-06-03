@@ -197,6 +197,11 @@ public:
 	// ノードインデックス取得
 	int GetNodeIndex(const char* name) const;
 
+	// 指定ノードのglobalTransformを毎フレーム別ノードのglobalTransformに追従させる
+	// ReparentNode の代わりにこちらを使う
+	void AttachNodeToNode(int childIndex, int targetIndex);
+	void ClearAttachments();
+
 	// トランスフォーム更新処理
 	void UpdateTransform(const Matrix& worldTransform);
 
@@ -225,4 +230,7 @@ private:
 	std::vector<Mesh>		meshes;
 	std::vector<Node>		nodes;
 	std::vector<Animation>	animations;
+
+	// アタッチメント情報（childIndex → targetIndex）
+	std::vector<std::pair<int, int>> attachments;
 };

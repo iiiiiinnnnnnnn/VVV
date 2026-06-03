@@ -446,6 +446,24 @@ int Model::GetAnimationIndex(const char* name) const
 	return -1;
 }
 
+static void UpdateNodeTransform(Model::Node& node, const Matrix& parentGlobal, const Matrix& worldTransform)
+{
+	Matrix S = Matrix::CreateScale(node.scale);
+	Matrix R = Matrix::CreateFromQuaternion(node.rotation);
+	Matrix T = Matrix::CreateTranslation(node.position);
+	Matrix localTransform = S * R * T;
+	Matrix globalTransform = localTransform * parentGlobal;
+
+	node.localTransform = localTransform;
+	node.globalTransform = globalTransform;
+	node.worldTransform = globalTransform * worldTransform;
+
+	for (Model::Node* child : node.children)
+	{
+		UpdateNodeTransform(*child, globalTransform, worldTransform);
+	}
+}
+
 // ノードインデックス取得
 int Model::GetNodeIndex(const char* name) const
 {
@@ -459,38 +477,31 @@ int Model::GetNodeIndex(const char* name) const
 	return -1;
 }
 
+void Model::AttachNodeToNode(int childIndex, int targetIndex)
+{
+	attachments.push_back({ childIndex, targetIndex });
+}
+
+void Model::ClearAttachments()
+{
+	attachments.clear();
+}
+
 // トランスフォーム更新処理
 void Model::UpdateTransform(const Matrix& worldTransform)
 {
-	Matrix ParentWorldTransform = worldTransform;
-
 	for (Node& node : nodes)
 	{
-		// ローカル行列算出
-		Matrix S = Matrix::CreateScale(node.scale);
-		Matrix R = Matrix::CreateFromQuaternion(node.rotation);
-		Matrix T = Matrix::CreateTranslation(node.position);
-		Matrix LocalTransform = S * R * T;
-
-		// グローバル行列算出
-		Matrix ParentGlobalTransform;
-		if (node.parent != nullptr)
+		if (node.parent == nullptr)
 		{
-			ParentGlobalTransform = node.parent->globalTransform;
+			UpdateNodeTransform(node, Matrix::Identity, worldTransform);
 		}
-		else
-		{
-			ParentGlobalTransform = Matrix::Identity;
-		}
-		Matrix GlobalTransform = LocalTransform * ParentGlobalTransform;
+	}
 
-		// ワールド行列算出
-		Matrix WorldTransform = GlobalTransform * ParentWorldTransform;
-
-		// 計算結果を格納
-		node.localTransform = LocalTransform;
-		node.globalTransform = GlobalTransform;
-		node.worldTransform = WorldTransform;
+	// アタッチされたノードは毎フレーム対象ノードのworldTransformを上書き
+	for (auto& [childIdx, targetIdx] : attachments)
+	{
+		nodes[childIdx].worldTransform = nodes[targetIdx].worldTransform;
 	}
 }
 
