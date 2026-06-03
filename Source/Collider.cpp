@@ -167,10 +167,9 @@ void SphereCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
-    shape->setLocalPose(PxTransform(
-        PxVec3(0, radius, 0),
-        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
-    ));
+    shape->setLocalPose(
+        PxTransform(PxVec3(0, radius, 0))
+    );
     rigidActor->attachShape(*shape);
 }
 
