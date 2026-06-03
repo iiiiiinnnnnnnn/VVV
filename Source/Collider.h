@@ -56,15 +56,21 @@ private:
     float radius;
 };
 
-class MeshCollider : public Component {
+class MeshCollider : public Component
+{
 public:
+    // TriangleMesh（Static用）
     MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material = nullptr);
+    // ConvexMesh（Dynamic用）
+    MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
+
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 private:
     void UpdateShape();
-    PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
     Model* model = nullptr;
+    bool useConvex = false;
+    unsigned int quantizedCount = 32;
 };

@@ -47,11 +47,11 @@ TestPlayScene::TestPlayScene()
     );
     camera.SetLookAt({0, 3, 5}, {0, 0, 0}, {0, 1, 0});
 
-    cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
-
-	std::unique_ptr<ThirdPersonCameraController> third = std::make_unique<ThirdPersonCameraController>(player);
+    std::unique_ptr<ThirdPersonCameraController> third = std::make_unique<ThirdPersonCameraController>(player);
     player->SetCameraController(third.get());
-	cameraControllers.push_back(std::move(third));
+    cameraControllers.push_back(std::move(third));
+
+    cameraControllers.push_back(std::make_unique<FreeCameraController>(camera));
 }
 
 void TestPlayScene::OnUpdate()

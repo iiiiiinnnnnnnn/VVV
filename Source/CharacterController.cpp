@@ -3,6 +3,7 @@
 #include "CharacterController.h"
 #include "Actor.h"
 #include "Graphics.h"
+#include "GameTime.h"
 
 CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
@@ -118,7 +119,7 @@ void CharacterController::Move(const Vector3& velocity)
     PxControllerFilters filters;
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),
-        0.001f, 0.016f, filters
+        0.001f, Game::Time::deltaTime, filters
     );
     grounded = (flags & PxControllerCollisionFlag::eCOLLISION_DOWN) != PxControllerCollisionFlags(0);
 }

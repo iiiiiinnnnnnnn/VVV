@@ -200,13 +200,6 @@ void SphereCollider::DrawGUI()
     }
 }
 
-MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
-	: Component(owner), rigidbody(rigidbody), model(model), material(material)
-{
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
-    UpdateShape();
-}
-
 void MeshCollider::Render(const RenderContext& rc)
 {
     if (!rc.renderSettings.showDebug) return;
@@ -241,11 +234,33 @@ void MeshCollider::Render(const RenderContext& rc)
     );
 }
 
+// Collider.cpp
+MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
+    : Component(owner), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
+{
+    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+    UpdateShape();
+}
+
+MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+    : Component(owner), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
+{
+    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+    UpdateShape();
+}
+
 void MeshCollider::UpdateShape()
 {
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxCookingParams* cookingParams = PhysicsManager::Instance().GetCooking();
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+
+    // 既存シェイプを全部外す
+    PxU32 shapeCount = rigidActor->getNbShapes();
+    std::vector<PxShape*> shapes(shapeCount);
+    rigidActor->getShapes(shapes.data(), shapeCount);
+    for (PxShape* s : shapes)
+        rigidActor->detachShape(*s);
 
     for (const Model::Mesh& mesh : model->GetMeshes())
     {
@@ -254,31 +269,50 @@ void MeshCollider::UpdateShape()
         std::vector<PxVec3> vertices;
         for (const Model::Vertex& v : mesh.vertices)
         {
-            // ノードのワールド行列を適用
             Vector3 pos = Vector3::Transform(v.position, mesh.node->worldTransform);
             vertices.push_back(PxVec3(pos.x, pos.y, pos.z));
         }
 
-        PxTriangleMeshDesc meshDesc;
-        meshDesc.points.count = (PxU32)vertices.size();
-        meshDesc.points.stride = sizeof(PxVec3);
-        meshDesc.points.data = vertices.data();
-        meshDesc.triangles.count = (PxU32)(mesh.indices.size() / 3);
-        meshDesc.triangles.stride = 3 * sizeof(PxU32);
-        meshDesc.triangles.data = mesh.indices.data();
+        PxShape* shape = nullptr;
 
-        PxDefaultMemoryOutputStream writeBuffer;
-        PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
+        if (useConvex)
+        {
+            PxConvexMeshDesc convexDesc;
+            convexDesc.points.count  = (PxU32)vertices.size();
+            convexDesc.points.stride = sizeof(PxVec3);
+            convexDesc.points.data   = vertices.data();
+            convexDesc.flags         = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eQUANTIZE_INPUT;
+            convexDesc.quantizedCount = quantizedCount;
 
-        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-        PxTriangleMesh* triangleMesh = physics->createTriangleMesh(readBuffer);
+            PxDefaultMemoryOutputStream writeBuffer;
+            PxCookConvexMesh(*cookingParams, convexDesc, writeBuffer);
+            PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+            PxConvexMesh* convexMesh = physics->createConvexMesh(readBuffer);
 
-        PxShape* shape = physics->createShape(
-            PxTriangleMeshGeometry(triangleMesh), *material);
+            shape = physics->createShape(PxConvexMeshGeometry(convexMesh), *material);
+            convexMesh->release();
+        }
+        else
+        {
+            PxTriangleMeshDesc meshDesc;
+            meshDesc.points.count     = (PxU32)vertices.size();
+            meshDesc.points.stride    = sizeof(PxVec3);
+            meshDesc.points.data      = vertices.data();
+            meshDesc.triangles.count  = (PxU32)(mesh.indices.size() / 3);
+            meshDesc.triangles.stride = 3 * sizeof(PxU32);
+            meshDesc.triangles.data   = mesh.indices.data();
+
+            PxDefaultMemoryOutputStream writeBuffer;
+            PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
+            PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+            PxTriangleMesh* triangleMesh = physics->createTriangleMesh(readBuffer);
+
+            shape = physics->createShape(PxTriangleMeshGeometry(triangleMesh), *material);
+            triangleMesh->release();
+        }
 
         rigidActor->attachShape(*shape);
         shape->release();
-        triangleMesh->release();
     }
 }
 
@@ -286,7 +320,15 @@ void MeshCollider::DrawGUI()
 {
     if (ImGui::TreeNode("MeshCollider"))
     {
-        ImGui::Text("TriangleMesh");
+        if (useConvex)
+        {
+            ImGui::Text("ConvexMesh");
+			ImGui::Text("Quantized Count: %u", quantizedCount);
+        }
+        else
+        {
+            ImGui::Text("TriangleMesh");
+        }
         ImGui::TreePop();
     }
 }

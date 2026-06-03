@@ -49,7 +49,7 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim->_print(); // デバッグ用
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(0.18f, 1.18f);
+	cc = AddComponent<CharacterController>(0.49f, 0.8f);
 	cc->SetPosition({0, 0.6f, 0});
 }
 
@@ -103,20 +103,19 @@ void Player::OnUpdate()
 	else
 		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
-	cc->Move({0, verticalVelocity, 0});
+	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
 }
 
 void Player::OnLateUpdate()
 {
-	// ルートモーション差分を回収
 	Vector3    localMoveVec = anim->GetRootMotionVec();
-	Quaternion deltaRot     = anim->GetRootMotionRot();
-
-	// アニメーション由来の回転差分を適用（通常は歩き/走りには含まれないが念のため）
+	Quaternion deltaRot = anim->GetRootMotionRot();
 	transform.SetRotation(transform.rotation * deltaRot);
 
-	// ローカル移動ベクトルをプレイヤーの向きに合わせてワールド変換して移動
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
+
+	// 垂直速度を合算して1回だけMove
+	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
 }
 

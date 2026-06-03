@@ -60,6 +60,8 @@ Framework::~Framework()
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
+	elapsedTime = min(elapsedTime, 1.0f / 60.0f);
+
 	// 時間更新処理
 	Game::Time::time += elapsedTime;
 	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
