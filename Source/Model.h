@@ -230,7 +230,5 @@ private:
 	std::vector<Mesh>		meshes;
 	std::vector<Node>		nodes;
 	std::vector<Animation>	animations;
-
-	// アタッチメント情報（childIndex → targetIndex）
 	std::vector<std::pair<int, int>> attachments;
 };
