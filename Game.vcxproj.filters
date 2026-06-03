@@ -210,7 +210,7 @@
     <ClCompile Include="Source\PBRShader.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\TestWIdget.cpp">
+    <ClCompile Include="Source\TestWidget.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClCompile>
     <ClCompile Include="Source\GaussianFilterShader.cpp">
@@ -260,6 +260,9 @@
     </ClCompile>
     <ClCompile Include="Source\ThirdPersonCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -401,7 +404,7 @@
     <ClInclude Include="Source\PBRShader.h">
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\TestWIdget.h">
+    <ClInclude Include="Source\TestWidget.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClInclude>
     <ClInclude Include="Source\GaussianFilterShader.h">
@@ -457,6 +460,9 @@
     </ClInclude>
     <ClInclude Include="Source\ThirdPersonCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

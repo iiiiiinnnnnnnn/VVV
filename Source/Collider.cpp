@@ -148,7 +148,7 @@ void SphereCollider::Render(const RenderContext& rc)
 	if (!rc.renderSettings.showDebug) return;
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-        rigidbody->GetPosition(), radius, {0.0f, 1.0f, 0.0f, 1.0f});
+        rigidbody->GetPosition() + Vector3(0, radius, 0), radius, { 0.0f, 1.0f, 0.0f, 1.0f });
 }
 
 void SphereCollider::UpdateShape()
@@ -167,7 +167,10 @@ void SphereCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
-    shape->setLocalPose(PxTransform(PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))));
+    shape->setLocalPose(PxTransform(
+        PxVec3(0, radius, 0),
+        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
+    ));
     rigidActor->attachShape(*shape);
 }
 

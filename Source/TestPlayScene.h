@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Scene.h"
-#include "ThirdPersonCameraController.h"
 
 class TestPlayScene : public Scene
 {
@@ -18,5 +17,5 @@ public:
 	void OnDrawGUI() override;
 
 private:
-
+	
 };

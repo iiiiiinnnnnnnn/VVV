@@ -19,6 +19,7 @@
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="Source\Enemy.cpp" />
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
     <ClCompile Include="Source\Collider.cpp" />
@@ -58,7 +59,7 @@
     <ClCompile Include="Source\SpriteRenderComponent.cpp" />
     <ClCompile Include="Source\SpriteRenderer.cpp" />
     <ClCompile Include="Source\Stage00.cpp" />
-    <ClCompile Include="Source\TestWIdget.cpp" />
+    <ClCompile Include="Source\TestWidget.cpp" />
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\GameTime.cpp" />
     <ClCompile Include="Source\ThirdPersonCameraController.cpp" />
@@ -77,6 +78,7 @@
     <ClInclude Include="Source\BasicSpriteShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
+    <ClInclude Include="Source\Enemy.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
     <ClInclude Include="Source\Collider.h" />
@@ -125,7 +127,7 @@
     <ClInclude Include="Source\SpriteRenderComponent.h" />
     <ClInclude Include="Source\SpriteRenderer.h" />
     <ClInclude Include="Source\Stage00.h" />
-    <ClInclude Include="Source\TestWIdget.h" />
+    <ClInclude Include="Source\TestWidget.h" />
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\GameTime.h" />
     <ClInclude Include="Source\ThirdPersonCameraController.h" />

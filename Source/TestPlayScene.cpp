@@ -1,11 +1,21 @@
 ﻿// TestPlayScene.cpp
 
 #include "TestPlayScene.h"
+
+// actor
 #include "Player.h"
 #include "Stage00.h"
+#include "Enemy.h"
+
+// widget
+#include "TestWidget.h"
+
+// camera
 #include "FreeCameraController.h"
+#include "ThirdPersonCameraController.h"
+
+// player controll
 #include "LocalPlayer.h"
-#include "TestWIdget.h"
 
 TestPlayScene::TestPlayScene()
 {
@@ -13,15 +23,22 @@ TestPlayScene::TestPlayScene()
     float screenWidth  = Game::Graphics::ScreenWidth;
     float screenHeight = Game::Graphics::ScreenHeight;
 
+    // stage
     actors.Register(std::make_shared<Stage00>());
 
+    // player
     std::shared_ptr<Player> player = std::make_shared<Player>();
     player->SetController(std::make_unique<LocalPlayer>());
     actors.Register(player);
 
+    // enem
+    actors.Register(std::make_shared<Enemy>());
+
+    // widget
     widgets.Register(std::make_shared<TestWidget>(Vector2(0, 0)));
     widgets.Register(std::make_shared<TestWidget>(Vector2(0, 100)));
 
+    // camera
     camera.SetPerspectiveFov(
         DirectX::XMConvertToRadians(45),
         screenWidth / screenHeight,

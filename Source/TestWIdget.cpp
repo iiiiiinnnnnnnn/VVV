@@ -1,6 +1,6 @@
 ﻿// TestWidget.cpp
 
-#include "TestWIdget.h"
+#include "TestWidget.h"
 
 TestWidget::TestWidget(Vector2 pos) : Widget("TestWidget")
 {

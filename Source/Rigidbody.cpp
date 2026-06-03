@@ -63,10 +63,6 @@ void RigidbodyStatic::DrawGUI()
     if (ImGui::TreeNode("RigidbodyStatic"))
     {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
-        if (rigidActor) {
-            Vector3 pos = VEC(rigidActor->getGlobalPose().p);
-            ImGui::Text("RigidbodyStatic Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
-        }
         ImGui::TreePop();
     }
 }
@@ -83,9 +79,24 @@ void RigidbodyDynamic::DrawGUI()
     if (ImGui::TreeNode("RigidbodyDynamic"))
     {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
-        if (rigidActor) {
-            Vector3 pos = VEC(rigidActor->getGlobalPose().p);
-            ImGui::Text("RigidbodyDynamic Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+        if (rigidActor)
+        {
+            PxRigidDynamic* dynamic = rigidActor->is<PxRigidDynamic>();
+
+            // velocity 表示＆編集
+            PxVec3 pxVel = dynamic->getLinearVelocity();
+            float vel[3] = { pxVel.x, pxVel.y, pxVel.z };
+            if (ImGui::DragFloat3("Velocity", vel, 0.1f))
+            {
+                dynamic->setLinearVelocity({ vel[0], vel[1], vel[2] });
+            }
+
+            // リセット
+            if (ImGui::Button("Reset Velocity"))
+            {
+                dynamic->setLinearVelocity({ 0, 0, 0 });
+                dynamic->setAngularVelocity({ 0, 0, 0 });
+            }
         }
         ImGui::TreePop();
     }
