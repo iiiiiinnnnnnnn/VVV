@@ -8,24 +8,24 @@
 Player::Player() : Actor("Player", "Player", true, "Default")
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
-	model->_print(); // デバッグ用：モデルの内容をコンソールに表示
+	model->_print(); // デバッグ用
 
 	// メッシュ表示/非表示
 	{
 		auto& meshes = model->GetMeshes();
 		meshes[0].isDraw  = false; // 盾
 		meshes[2].isDraw  = false; // アックス
-		meshes[8].isDraw  =
-			meshes[15].isDraw = false; // 服
+		meshes[8].isDraw = false;// 素足
+		meshes[15].isDraw = false; // 私服
 		meshes[9].isDraw  = false; // 素手
-		meshes[4].isDraw  =
+		meshes[4].isDraw  =  // 顔
 			meshes[5].isDraw  =
 			meshes[16].isDraw =
 			meshes[17].isDraw =
 			meshes[18].isDraw =
 			meshes[19].isDraw =
 			meshes[20].isDraw =
-			meshes[21].isDraw = false; // 顔
+			meshes[21].isDraw = false;
 	}
 
 	// モデルレンダラー生成
@@ -36,7 +36,7 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
-	anim->_print(); // デバッグ用：アニメーターの内容をコンソールに表示
+	anim->_print(); // デバッグ用
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.18f, 1.18f);
