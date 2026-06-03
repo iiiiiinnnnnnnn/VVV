@@ -71,11 +71,11 @@ void Framework::Update(float elapsedTime)
 	// IMGUIフレーム開始処理
 	ImGuiRenderer::NewFrame();
 
-	// 物理シミュレーション
-	PhysicsManager::Instance().GetSceneContext().Simulate();
-
 	// シーン更新処理
 	scene->Update();
+
+	// 物理シミュレーション
+	PhysicsManager::Instance().GetSceneContext().Simulate();
 }
 
 // 描画処理

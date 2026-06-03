@@ -62,7 +62,17 @@ void RigidbodyStatic::DrawGUI()
 {
     if (ImGui::TreeNode("RigidbodyStatic"))
     {
-        ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
+        if (rigidActor)
+        {
+            PxRigidStatic* static_ = rigidActor->is<PxRigidStatic>();
+
+            ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
+
+            // 位置表示
+            Vector3 pos = VEC(static_->getGlobalPose().p);
+            ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+        }
+
         ImGui::TreePop();
     }
 }
@@ -78,10 +88,15 @@ void RigidbodyDynamic::DrawGUI()
 {
     if (ImGui::TreeNode("RigidbodyDynamic"))
     {
-        ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
         if (rigidActor)
         {
             PxRigidDynamic* dynamic = rigidActor->is<PxRigidDynamic>();
+
+            ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
+
+            // 位置表示
+            Vector3 pos = VEC(dynamic->getGlobalPose().p);
+            ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
 
             // velocity 表示＆編集
             PxVec3 pxVel = dynamic->getLinearVelocity();
@@ -90,6 +105,9 @@ void RigidbodyDynamic::DrawGUI()
             {
                 dynamic->setLinearVelocity({ vel[0], vel[1], vel[2] });
             }
+
+            // 速度の大きさ表示
+            ImGui::Text("Speed: %.2f", sqrtf(pxVel.x * pxVel.x + pxVel.y * pxVel.y + pxVel.z * pxVel.z));
 
             // リセット
             if (ImGui::Button("Reset Velocity"))

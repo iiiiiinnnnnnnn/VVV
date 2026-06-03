@@ -12,9 +12,8 @@ Enemy::Enemy() : Actor("Enemy", "Enemy", "Default")
     model->UpdateTransform(transform.matrix);
 
     auto* rb = AddComponent<RigidbodyDynamic>();
-    rb->SetPosition({0.0f, 600.0f, 7.0f});
-
     AddComponent<SphereCollider>(rb, 2.7f);
+    rb->SetPosition({ 8.0f, 0.0f, 8.0f });
 
     // ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
     AddComponent<ModelRenderComponent>(
