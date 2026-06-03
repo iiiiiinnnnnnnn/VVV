@@ -14,6 +14,26 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     Vector3 playerPos = character->transform.position;
     Vector3 targetFocus = playerPos + Vector3(0, heightOffset, 0);
 
+    // 最初のフレームの初期化
+    if (!initialized)
+    {
+        // 角度から初期のオフセットを計算
+        float sx = sinf(angleX); float cx = cosf(angleX);
+        float sy = sinf(angleY); float cy = cosf(angleY);
+        Vector3 offset(cx * sy * armLength, -sx * armLength, cx * -cy * armLength);
+
+        currentFocus = targetFocus;
+        currentEye = targetFocus + offset;
+        initialized = true;
+    }
+
+    // 1. まず注視点（Focus）を Lerp させる
+    float t = 1.0f - expf(-followSpeed * Game::Time::deltaTime);
+    currentFocus = Vector3::Lerp(currentFocus, targetFocus, t);
+
+    // 2. 現在の角度から「理想のカメラ位置（めり込み前）」を計算する
+    // ※ 角度の変更は OnUpdate で即座に反映されているため、
+    //    もしカメラの回転自体もヌルッとさせたい場合は、angleX/Y 自体も Lerp してください。
     float sx = sinf(angleX);
     float cx = cosf(angleX);
     float sy = sinf(angleY);
@@ -25,42 +45,37 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         cx * -cy * armLength
     );
 
-    Vector3 targetEye = targetFocus + offset;
+    // Lerp 済みの currentFocus を基準に、理想のカメラ位置を決める
+    Vector3 idealEye = currentFocus + offset;
 
-    // ---- カメラめり込み防止 ----
-    Vector3 dir = targetEye - targetFocus;
+    // 3. 最後にレイキャスト（めり込み防止）を行う
+    Vector3 dir = idealEye - currentFocus;
     float maxDist = dir.Length();
     dir.Normalize();
 
     PxScene* scene = PhysicsManager::Instance().GetSceneContext().GetScene();
-    PxVec3 origin(targetFocus.x, targetFocus.y, targetFocus.z);
+    PxVec3 origin(currentFocus.x, currentFocus.y, currentFocus.z);
     PxVec3 unitDir(dir.x, dir.y, dir.z);
 
     PxRaycastBuffer hit;
     PxQueryFilterData filterData;
-    filterData.flags = PxQueryFlag::eSTATIC;  // 静的コライダーのみ（壁・床）
+    filterData.flags = PxQueryFlag::eSTATIC;
+
+    // 最終的な表示位置を決定する変数
+    Vector3 finalEye = idealEye;
 
     if (scene->raycast(origin, unitDir, maxDist, hit, PxHitFlag::eDEFAULT, filterData))
     {
-        // 当たった位置より少し手前にカメラを引く
         float hitDist = hit.block.distance - 0.1f;
         if (hitDist < 0.1f) hitDist = 0.1f;
-        targetEye = targetFocus + dir * hitDist;
-    }
-    // ----------------------------
-
-    if (!initialized)
-    {
-        currentEye = targetEye;
-        currentFocus = targetFocus;
-        initialized = true;
+        finalEye = currentFocus + dir * hitDist;
     }
 
-    float t = 1.0f - expf(-followSpeed * Game::Time::deltaTime);
-    currentEye = Vector3::Lerp(currentEye, targetEye, t);
-    currentFocus = Vector3::Lerp(currentFocus, targetFocus, t);
+    // 4. カメラに適用
+    camera.SetLookAt(finalEye, currentFocus, Vector3::Up);
 
-    camera.SetLookAt(currentEye, currentFocus, Vector3::Up);
+    // 次フレームの Lerp 用に現在の「理想位置」を保存しておく（必要に応じて）
+    currentEye = finalEye;
 }
 
 void ThirdPersonCameraController::OnUpdate()
