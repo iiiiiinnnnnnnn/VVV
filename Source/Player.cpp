@@ -67,6 +67,26 @@ void Player::OnExitAnim(const Animator::State& state)
 	printf("Exit Anim: %s\n", state.name.c_str());
 }
 
+void Player::OnCollisionEnter(Actor* other)
+{
+	printf("OnCollisionEnter: %s\n", other->GetName().c_str());
+}
+
+void Player::OnCollisionExit(Actor* other)
+{
+	printf("OnCollisionExit: %s\n", other->GetName().c_str());
+}
+
+void Player::OnTriggerEnter(Actor* other)
+{
+	printf("OnTriggerEnter: %s\n", other->GetName().c_str());
+}
+
+void Player::OnTriggerExit(Actor* other)
+{
+	printf("OnTriggerExit: %s\n", other->GetName().c_str());
+}
+
 void Player::OnUpdate()
 {
 	if (!controller) return;

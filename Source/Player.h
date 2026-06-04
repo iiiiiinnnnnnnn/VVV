@@ -36,6 +36,11 @@ public:
     void OnEnterAnim(const Animator::State& state);
     void OnExitAnim(const Animator::State& state);
 
+	void OnCollisionEnter(Actor* other) override;
+	void OnCollisionExit(Actor* other) override;
+	void OnTriggerEnter(Actor* other) override;
+	void OnTriggerExit(Actor* other) override;
+
 protected:
     std::unique_ptr<PlayerController> controller;
     std::shared_ptr<Model> model = nullptr;
