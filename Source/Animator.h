@@ -60,6 +60,14 @@ public:
 
     struct State
     {
+        struct Callback {
+            float enterTimePer;
+            float exitTimePer;
+            std::function<void(const State& state)> onEnter;
+            std::function<void(const State& state)> onExit;
+            bool entering = false;
+        };
+
         std::string             name;
         int                     animationIndex = -1;
         float                   speed = 1.0f;
@@ -71,6 +79,17 @@ public:
         float                   editorPosX = 0.0f;
         float                   editorPosY = 0.0f;
         std::vector<Transition> transitions;
+
+        std::vector<Callback> callbacks;
+        void AddCallback(const Callback& cb)
+        {
+            callbacks.push_back(cb);
+
+            // 開始時間が早い順に自動でソート(チェック時短縮のため)
+            std::sort(callbacks.begin(), callbacks.end(), [](const Callback& a, const Callback& b) {
+                return a.enterTimePer < b.exitTimePer;
+            });
+        }
     };
 
     // AvatarMask : 適用するノードIndexのセット（空 = 全ノード）
@@ -235,8 +254,7 @@ private:
     bool EvaluateTransition(const Transition& t) const;
     bool EvaluateTransition(const Transition& t, float normalizedTime) const;
     void ResetTriggers();
-    void UpdateLayer(AnimatorLayer& layer,
-        std::vector<Model::NodePose>& finalPoses);
+    void UpdateLayer(AnimatorLayer& layer, std::vector<Model::NodePose>& finalPoses);
 
     std::shared_ptr<Model> model;
 	bool unscaledTime = false;

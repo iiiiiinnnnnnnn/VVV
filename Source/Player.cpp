@@ -48,9 +48,26 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim->Load("Data/Animator/Player.animator");
 	anim->_print(); // デバッグ用
 
+	anim->GetLayer(0).states[0].AddCallback({ 
+		0.2f, 
+		0.3f, 
+		[this](const Animator::State& state) { OnEnterAttackAnim(state); },
+		[this](const Animator::State& state) { OnExitAttackAnim(state); }
+	});
+
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.49f, 0.8f);
 	cc->SetPosition({0, 0.6f, 0});
+}
+
+void Player::OnEnterAttackAnim(const Animator::State& state)
+{
+	printf("Enter Attack Anim: %s\n", state.name.c_str());
+}
+
+void Player::OnExitAttackAnim(const Animator::State& state)
+{
+	printf("Exit Attack Anim: %s\n", state.name.c_str());
 }
 
 void Player::OnUpdate()

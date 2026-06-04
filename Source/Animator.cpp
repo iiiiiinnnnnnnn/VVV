@@ -252,7 +252,29 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
 
     // 時間更新
     layer.currentTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * curState.speed;
+    for (auto& callback : curState.callbacks)
+    {
+        float nowPer = layer.currentTime / curAnim.secondsLength;
+        if (nowPer > callback.enterTimePer && nowPer < callback.exitTimePer)
+        {
+            if (!callback.entering)
+            {
+                callback.onEnter(curState);
+                callback.entering = true;
+            }
+        }
+        else if (nowPer > callback.exitTimePer)
+        {
+            if (callback.entering)
+            {
+                callback.onExit(curState);
+                callback.entering = false;
+            }
+        }
+    }
+
     bool looped = false;
+    // 再生終了
     if (layer.currentTime > curAnim.secondsLength)
     {
         if (curState.loop) {
@@ -333,7 +355,15 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
 
         if (w >= 1.0f)
         {
-            // ブレンド済みポーズのまま遷移完了
+            // onExit を呼ぶ
+            for (auto& cb : curState.callbacks)
+            {
+                if (cb.entering)
+                {
+                    cb.onExit(curState);
+                    cb.entering = false;
+                }
+            }
             layer.currentStateIndex = layer.nextStateIndex;
             layer.currentTime       = layer.nextTime;
             layer.nextStateIndex    = -1;
