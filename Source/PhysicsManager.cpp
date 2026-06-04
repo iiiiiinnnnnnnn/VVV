@@ -3,6 +3,21 @@
 #include "PhysicsManager.h"
 #include "GameTime.h"
 
+static PxFilterFlags LayerFilterShader(
+    PxFilterObjectAttributes attr0, PxFilterData fd0,
+    PxFilterObjectAttributes attr1, PxFilterData fd1,
+    PxPairFlags& pairFlags, const void*, PxU32)
+{
+    // word0同士のANDが立っていたら同じレイヤー → 無視
+    if (fd0.word0 & fd1.word0)
+        return PxFilterFlag::eSUPPRESS;
+
+    pairFlags = PxPairFlag::eCONTACT_DEFAULT
+        | PxPairFlag::eNOTIFY_TOUCH_FOUND
+        | PxPairFlag::eNOTIFY_TOUCH_LOST;
+    return PxFilterFlag::eDEFAULT;
+}
+
 // PhysicsSceneContext
 
 PhysicsSceneContext::PhysicsSceneContext(PxVec3 gravity)
@@ -12,7 +27,7 @@ PhysicsSceneContext::PhysicsSceneContext(PxVec3 gravity)
     PxSceneDesc sceneDesc(manager.GetPhysics()->getTolerancesScale());
     sceneDesc.gravity = gravity;
     sceneDesc.cpuDispatcher = manager.GetDispatcher();
-    sceneDesc.filterShader = PxDefaultSimulationFilterShader;
+    sceneDesc.filterShader = LayerFilterShader;
     sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD;
     scene = manager.GetPhysics()->createScene(sceneDesc);
 

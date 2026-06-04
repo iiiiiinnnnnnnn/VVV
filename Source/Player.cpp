@@ -5,7 +5,7 @@
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 
-Player::Player() : Actor("Player", "Player", true, "Default")
+Player::Player() : Actor("Player", "Player", true, Layer::Player)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
 	model->_print(); // デバッグ用
@@ -65,6 +65,8 @@ void Player::OnExitAnim(const Animator::State& state)
 
 void Player::OnUpdate()
 {
+	if (!controller) return;
+
 	InputContext ctx = controller->Poll();
 
 	// ---- 入力ベクトルをカメラYaw基準のワールド方向に変換 ----

@@ -41,6 +41,8 @@
 
 using namespace physx;
 
+static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
+
 class PhysicsSceneContext {
 public:
     PhysicsSceneContext(PxVec3 gravity = PxVec3(0, -9.81f, 0));
@@ -89,6 +91,14 @@ public:
         PxRigidDynamic* body = gPhysics->createRigidDynamic(t);
         PxRigidBodyExt::updateMassAndInertia(*body, 1.0f);
         return body;
+    }
+
+    static void SetLayerToShape(PxShape* shape, int layer)
+    {
+        PxFilterData fd;
+        fd.word0 = (1u << layer); // 自分のレイヤービット
+        shape->setSimulationFilterData(fd);
+        shape->setQueryFilterData(fd);
     }
 
 private:

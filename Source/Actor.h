@@ -4,11 +4,12 @@
 
 #include "Transform.h"
 #include "Object.h"
+#include "GameDefine.h"
 
 class Actor : public Object
 {
 public:
-    Actor(std::string name = "", std::string tag = "", bool isActive = true, std::string layer = "")
+    Actor(std::string name = "", std::string tag = "", bool isActive = true, int layer = Layer::Default)
         : Object(name, tag, isActive), layer(layer) {}
     virtual ~Actor() = default;
 
@@ -23,9 +24,9 @@ public:
     virtual void OnTriggerEnter(Actor* other) {}
     virtual void OnTriggerExit(Actor* other) {}
 
-    void SetLayer(const std::string& layer) { this->layer = layer; }
-	const std::string& GetLayer() const { return layer; }
+    void SetLayer(int layer) { this->layer = layer; }
+	const int GetLayer() const { return layer; }
 
 protected:
-	std::string layer;
+	int layer;
 };

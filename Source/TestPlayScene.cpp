@@ -31,6 +31,11 @@ TestPlayScene::TestPlayScene()
     player->SetController(std::make_unique<LocalPlayer>());
     actors.Register(player);
 
+    // player(2)(test)
+    std::shared_ptr<Player> player2 = std::make_shared<Player>();
+	player2->transform.SetPosition(2, 2, 0);
+    actors.Register(player2);
+
     // enem
     actors.Register(std::make_shared<Enemy>());
 

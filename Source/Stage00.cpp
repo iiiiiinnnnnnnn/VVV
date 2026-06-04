@@ -3,7 +3,7 @@
 #include "Stage00.h"
 #include "ResourceManager.h"
 
-Stage00::Stage00() : Actor("Stage00", "Stage00", "Default")
+Stage00::Stage00() : Actor("Stage00", "Stage00", Layer::Stage)
 {
     std::shared_ptr<Model> model =
         ResourceManager::Instance().LoadModel("Data/Model/Stage00.glb");

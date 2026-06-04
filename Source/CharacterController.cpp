@@ -27,6 +27,12 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
 
     controller = PhysicsManager::Instance()
         .GetSceneContext().GetControllerManager()->createController(desc);
+
+    // 内部シェイプにlayerをセット
+    PxRigidDynamic* act = controller->getActor();
+    PxShape* shape = nullptr;
+    act->getShapes(&shape, 1);
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 CharacterController::~CharacterController()
@@ -116,7 +122,14 @@ void CharacterController::DrawGUI()
 
 void CharacterController::Move(const Vector3& velocity)
 {
+    PxRigidDynamic* act = controller->getActor();
+    PxShape* shape = nullptr;
+    act->getShapes(&shape, 1);
+    PxFilterData fd = shape->getSimulationFilterData();
+
     PxControllerFilters filters;
+    filters.mFilterData = &fd;
+
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),
         0.001f, Game::Time::deltaTime, filters

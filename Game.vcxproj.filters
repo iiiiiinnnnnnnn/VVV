@@ -464,6 +464,9 @@
     <ClInclude Include="Source\Enemy.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameDefine.h">
+      <Filter>ソースファイル\ゲーム</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
