@@ -13,9 +13,6 @@ BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& siz
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
-
-    // ownerのlayerをシェイプに反映
-    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void BoxCollider::Render(const RenderContext& rc)
@@ -44,6 +41,11 @@ void BoxCollider::UpdateShape()
         PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
     shape->setLocalPose(PxTransform(PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))));
 	rigidActor->attachShape(*shape);
+
+    // ownerのlayerをシェイプに反映
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void BoxCollider::DrawGUI()
@@ -80,9 +82,6 @@ CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radi
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
-
-    // ownerのlayerをシェイプに反映
-    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void CapsuleCollider::Render(const RenderContext& rc)
@@ -115,6 +114,11 @@ void CapsuleCollider::UpdateShape()
     );
     shape->setLocalPose(localPose);
     rigidActor->attachShape(*shape);
+
+    // ownerのlayerをシェイプに反映
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void CapsuleCollider::DrawGUI()
@@ -153,9 +157,6 @@ SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
-
-    // ownerのlayerをシェイプに反映
-    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void SphereCollider::Render(const RenderContext& rc)
@@ -186,6 +187,11 @@ void SphereCollider::UpdateShape()
         PxTransform(PxVec3(0, radius, 0))
     );
     rigidActor->attachShape(*shape);
+
+    // ownerのlayerをシェイプに反映
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
 void SphereCollider::DrawGUI()
@@ -327,7 +333,9 @@ void MeshCollider::UpdateShape()
 
         rigidActor->attachShape(*shape);
 
+        // ownerのlayerをシェイプに反映
         Actor* actor = dynamic_cast<Actor*>(owner);
+        _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
         PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 
         shape->release();
@@ -374,12 +382,14 @@ BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeInde
     ghostActor = physics->createRigidDynamic(t);
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
+	ghostActor->userData = owner;
+
     // Triggerシェイプ（物理応答なし → プレイヤーが飛ばない）
     shape = physics->createShape(PxSphereGeometry(radius), *this->material, true);
     shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
     shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
 
-    // ownerのlayerをセット
+    // ownerのlayerをシェイプに反映
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 
     ghostActor->attachShape(*shape);

@@ -8,6 +8,9 @@ Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rig
     Actor* ownerActor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
 
+    // ユーザーデータにActorのポインタをセット
+    rigidActor->userData = ownerActor;
+
     // シーンに登録
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
