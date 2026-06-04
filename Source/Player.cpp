@@ -23,13 +23,13 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	// メッシュ表示/非表示
 	{
 		auto& meshes = model->GetMeshes();
-		meshes[0].isDraw  = false; // 盾
-		meshes[2].isDraw  = false; // アックス
+		meshes[0].isDraw = false; // 盾
+		meshes[2].isDraw = false; // アックス
 		meshes[8].isDraw = false;// 素足
 		meshes[15].isDraw = false; // 私服
-		meshes[9].isDraw  = false; // 素手
-		meshes[4].isDraw  =  // 顔
-			meshes[5].isDraw  =
+		meshes[9].isDraw = false; // 素手
+		meshes[4].isDraw =  // 顔
+			meshes[5].isDraw =
 			meshes[16].isDraw =
 			meshes[17].isDraw =
 			meshes[18].isDraw =
@@ -46,28 +46,21 @@ Player::Player() : Actor("Player", "Player", true, "Default")
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
-	anim->_print(); // デバッグ用
-
-	anim->GetLayer(0).states[0].AddCallback({ 
-		0.2f, 
-		0.3f, 
-		[this](const Animator::State& state) { OnEnterAttackAnim(state); },
-		[this](const Animator::State& state) { OnExitAttackAnim(state); }
-	});
+	anim->AddCallbackFunc("OnAnim", [this](const Animator::State& s) { OnEnterAnim(s); }, [this](const Animator::State& s) { OnExitAnim(s); });
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.49f, 0.8f);
 	cc->SetPosition({0, 0.6f, 0});
 }
 
-void Player::OnEnterAttackAnim(const Animator::State& state)
+void Player::OnEnterAnim(const Animator::State& state)
 {
-	printf("Enter Attack Anim: %s\n", state.name.c_str());
+	printf("Enter Anim: %s\n", state.name.c_str());
 }
 
-void Player::OnExitAttackAnim(const Animator::State& state)
+void Player::OnExitAnim(const Animator::State& state)
 {
-	printf("Exit Attack Anim: %s\n", state.name.c_str());
+	printf("Exit Anim: %s\n", state.name.c_str());
 }
 
 void Player::OnUpdate()

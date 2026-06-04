@@ -71,3 +71,8 @@
 
 	// デフォルトステートを Idle にセット
 	anim->SetDefaultState(li, stIdle);
+
+	auto state = anim->GetLayer(0).GetState("Attack1");
+	_ASSERT_EXPR(state != nullptr, "Attack1ステートが見つかりません");
+	state->AddCallback("OnAnim", 0.2f, 0.3f);
+	anim->BindCallbacks();

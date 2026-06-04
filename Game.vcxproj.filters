@@ -552,7 +552,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />
-    <Text Include="Data\Animator\Player.txt">
+    <Text Include="Data\Animator\Player.animator.txt">
       <Filter>データ\アニメーター</Filter>
     </Text>
   </ItemGroup>

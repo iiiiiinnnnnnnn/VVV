@@ -210,7 +210,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Data\Animator\Player.txt" />
+    <Text Include="Data\Animator\Player.animator.txt" />
     <Text Include="ザ・メモ.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

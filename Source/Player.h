@@ -33,8 +33,8 @@ public:
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 
-    void OnEnterAttackAnim(const Animator::State& state);
-    void OnExitAttackAnim(const Animator::State& state);
+    void OnEnterAnim(const Animator::State& state);
+    void OnExitAnim(const Animator::State& state);
 
 protected:
     std::unique_ptr<PlayerController> controller;

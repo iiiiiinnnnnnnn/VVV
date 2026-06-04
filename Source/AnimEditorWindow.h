@@ -1201,6 +1201,59 @@ private:
                 }
             }
         }
+
+        // ---- Callbacks ----
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Callbacks");
+
+        auto& callbacks = state.callbacks;
+        int removeIdx = -1;
+
+        for (int ci = 0; ci < (int)callbacks.size(); ++ci)
+        {
+            auto& cb = callbacks[ci];
+            ImGui::PushID(ci);
+
+            // ラベル
+            char labelBuf[64];
+            strncpy_s(labelBuf, cb.label.c_str(), sizeof(labelBuf));
+            ImGui::SetNextItemWidth(120.0f);
+            if (ImGui::InputText("Label##cblabel", labelBuf, sizeof(labelBuf)))
+                cb.label = labelBuf;
+
+            ImGui::SameLine();
+
+            // 区間スライダー
+            float range[2] = { cb.enterTimePer, cb.exitTimePer };
+            ImGui::SetNextItemWidth(150.0f);
+            if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, 1.0f, "%.2f"))
+            {
+                cb.enterTimePer = range[0];
+                cb.exitTimePer  = max(range[1], range[0] + 0.01f);
+            }
+
+            ImGui::SameLine();
+
+            // 削除ボタン
+            if (ImGui::SmallButton("x"))
+                removeIdx = ci;
+
+            // 関数バインド状況を表示
+            ImGui::Indent();
+            ImGui::TextDisabled("onEnter: %s", cb.onEnter ? "bound" : "(none)");
+            ImGui::SameLine();
+            ImGui::TextDisabled("onExit: %s",  cb.onExit  ? "bound" : "(none)");
+            ImGui::Unindent();
+
+            ImGui::PopID();
+        }
+
+        if (removeIdx >= 0)
+            callbacks.erase(callbacks.begin() + removeIdx);
+
+        if (ImGui::Button("+ Add Callback"))
+            state.callbacks.push_back({ "(unnamed)", 0.0f, 1.0f, nullptr, nullptr });
     }
 
     // -------------------------------------------------------------------
@@ -1432,6 +1485,8 @@ private:
             }
             tr.conditions.push_back(newC);
         }
+
+
     }
 
     // -------------------------------------------------------------------

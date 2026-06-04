@@ -1,8 +1,8 @@
 {
     "layers": [
         {
-            "anyStateEditorPosX": -29.0,
-            "anyStateEditorPosY": 179.0,
+            "anyStateEditorPosX": -77.0,
+            "anyStateEditorPosY": 211.0,
             "anyStateTransitions": [
                 {
                     "canInterrupt": false,
@@ -32,6 +32,7 @@
                 {
                     "animationIndex": 11,
                     "blockAnyStateTransitions": false,
+                    "callbacks": [],
                     "editorPosX": 84.0,
                     "editorPosY": 26.0,
                     "hasEditorPosition": true,
@@ -80,6 +81,7 @@
                 {
                     "animationIndex": 29,
                     "blockAnyStateTransitions": false,
+                    "callbacks": [],
                     "editorPosX": 216.0,
                     "editorPosY": -237.0,
                     "hasEditorPosition": true,
@@ -128,6 +130,7 @@
                 {
                     "animationIndex": 17,
                     "blockAnyStateTransitions": false,
+                    "callbacks": [],
                     "editorPosX": 472.0,
                     "editorPosY": -109.0,
                     "hasEditorPosition": true,
@@ -194,6 +197,7 @@
                 {
                     "animationIndex": 26,
                     "blockAnyStateTransitions": false,
+                    "callbacks": [],
                     "editorPosX": 612.0,
                     "editorPosY": 51.0,
                     "hasEditorPosition": true,
@@ -242,6 +246,13 @@
                 {
                     "animationIndex": 0,
                     "blockAnyStateTransitions": true,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.0,
+                            "exitTimePer": 1.0,
+                            "label": "OnAnim"
+                        }
+                    ],
                     "editorPosX": 56.0,
                     "editorPosY": 323.0,
                     "hasEditorPosition": true,
@@ -284,6 +295,13 @@
                 {
                     "animationIndex": 1,
                     "blockAnyStateTransitions": true,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.0,
+                            "exitTimePer": 1.0,
+                            "label": "OnAnim"
+                        }
+                    ],
                     "editorPosX": 280.0,
                     "editorPosY": 291.0,
                     "hasEditorPosition": true,
@@ -326,6 +344,13 @@
                 {
                     "animationIndex": 2,
                     "blockAnyStateTransitions": true,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.0,
+                            "exitTimePer": 1.0,
+                            "label": "OnAnim"
+                        }
+                    ],
                     "editorPosX": 456.0,
                     "editorPosY": 243.0,
                     "hasEditorPosition": true,
@@ -368,6 +393,13 @@
                 {
                     "animationIndex": 3,
                     "blockAnyStateTransitions": true,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.0,
+                            "exitTimePer": 1.0,
+                            "label": "OnAnim"
+                        }
+                    ],
                     "editorPosX": 632.0,
                     "editorPosY": 211.0,
                     "hasEditorPosition": true,

@@ -259,16 +259,22 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         {
             if (!callback.entering)
             {
-                callback.onEnter(curState);
-                callback.entering = true;
+                if (callback.onEnter)
+                {
+                    callback.onEnter(curState);
+                    callback.entering = true;
+                }
             }
         }
         else if (nowPer > callback.exitTimePer)
         {
             if (callback.entering)
             {
-                callback.onExit(curState);
-                callback.entering = false;
+                if (callback.onExit)
+                {
+                    callback.onExit(curState);
+                    callback.entering = false;
+                }
             }
         }
     }
@@ -360,8 +366,11 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
             {
                 if (cb.entering)
                 {
-                    cb.onExit(curState);
-                    cb.entering = false;
+                    if (cb.onExit)
+                    {
+                        cb.onExit(curState);
+                        cb.entering = false;
+                    }
                 }
             }
             layer.currentStateIndex = layer.nextStateIndex;
@@ -487,6 +496,21 @@ Model::NodePose Animator::SampleNodePose(int animIndex, float time, int nodeIdx)
         return tempPoses[nodeIdx];
     }
     return Model::NodePose{}; // Identity
+}
+
+void Animator::BindCallbacks()
+{
+    for (auto& layer : layers)
+        for (auto& state : layer.states)
+            for (auto& cb : state.callbacks)
+            {
+                auto it = g_AnimCallbackRegistry.find(cb.label);
+                if (it != g_AnimCallbackRegistry.end())
+                {
+                    cb.onEnter = it->second.a;
+                    cb.onExit  = it->second.b;
+                }
+            }
 }
 
 void Animator::Play(int layerIndex, int animationIndex, bool loop)

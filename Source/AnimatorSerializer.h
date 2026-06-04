@@ -116,6 +116,19 @@ public:
                     jTrans.push_back(jTr);
                 }
                 jState["transitions"] = jTrans;
+
+                // Callbacks (label / enterTimePer / exitTimePer のみ保存。std::function は保存不可)
+                json jCallbacks = json::array();
+                for (const auto& cb : state.callbacks)
+                {
+                    json jCb;
+                    jCb["label"]        = cb.label;
+                    jCb["enterTimePer"] = cb.enterTimePer;
+                    jCb["exitTimePer"]  = cb.exitTimePer;
+                    jCallbacks.push_back(jCb);
+                }
+                jState["callbacks"] = jCallbacks;
+
                 jStates.push_back(jState);
             }
             jLayer["states"] = jStates;
@@ -264,8 +277,20 @@ public:
                 // JSON の並び順 = priority 順として保存されているのでソート不要だが、
                 // 念のため priority 値でソートして整合性を保つ
                 std::sort(stateRef.transitions.begin(), stateRef.transitions.end(),
-                    [](const Animator::Transition& a, const Animator::Transition& b)
-                    { return a.priority > b.priority; });
+                          [](const Animator::Transition& a, const Animator::Transition& b)
+                { return a.priority > b.priority; });
+
+                // Callbacks の復元（label / enter / exit のみ。std::function は BindCallbacks() で再バインドする）
+                if (jState.contains("callbacks"))
+                {
+                    for (const auto& jCb : jState["callbacks"])
+                    {
+                        stateRef.AddCallback(
+                            jCb["label"].get<std::string>(),
+                            jCb["enterTimePer"].get<float>(),
+                            jCb["exitTimePer"].get<float>());
+                    }
+                }
             }
 
             // DefaultState
@@ -309,8 +334,8 @@ public:
                     anyTrans.push_back(tr);
                 }
                 std::sort(anyTrans.begin(), anyTrans.end(),
-                    [](const Animator::Transition& a, const Animator::Transition& b)
-                    { return a.priority > b.priority; });
+                          [](const Animator::Transition& a, const Animator::Transition& b)
+                { return a.priority > b.priority; });
             }
         }
     }

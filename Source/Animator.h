@@ -60,7 +60,9 @@ public:
 
     struct State
     {
-        struct Callback {
+        struct Callback
+        {
+            std::string label;
             float enterTimePer;
             float exitTimePer;
             std::function<void(const State& state)> onEnter;
@@ -81,14 +83,9 @@ public:
         std::vector<Transition> transitions;
 
         std::vector<Callback> callbacks;
-        void AddCallback(const Callback& cb)
+        void AddCallback(const std::string& label, float enterPer, float exitPer)
         {
-            callbacks.push_back(cb);
-
-            // 開始時間が早い順に自動でソート(チェック時短縮のため)
-            std::sort(callbacks.begin(), callbacks.end(), [](const Callback& a, const Callback& b) {
-                return a.enterTimePer < b.exitTimePer;
-            });
+            callbacks.push_back({label, enterPer, exitPer});
         }
     };
 
@@ -129,6 +126,13 @@ public:
         bool  hasAnyStateEditorPosition = false;
         float anyStateEditorPosX = 0.0f;
         float anyStateEditorPosY = 0.0f;
+
+        State* GetState(const std::string& name)
+        {
+            for (auto& s : states)
+                if (s.name == name) return &s;
+            return nullptr;
+        }
     };
 
     // エディタウィンドウを開く
@@ -249,6 +253,13 @@ public:
     Vector3 GetRootMotionVec() const { return rootMotionVec; }
     Quaternion GetRootMotionRot() const { return rootMotionRot; }
 
+    // コールバック
+    void BindCallbacks();
+    void AddCallbackFunc(const std::string& label, std::function<void(const Animator::State&)> enter, std::function<void(const Animator::State&)> exit)
+    {
+        g_AnimCallbackRegistry[label] = {enter, exit};
+	}
+
 private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
@@ -272,6 +283,9 @@ private:
     std::string m_lastPath;
     std::unique_ptr<AnimEditorWindow> animEditor;
     bool animEditorOpen = false;
+
+    struct two { std::function<void(const Animator::State&)> a, b; };
+    std::unordered_map<std::string, two> g_AnimCallbackRegistry;
 
     // root motion
 
