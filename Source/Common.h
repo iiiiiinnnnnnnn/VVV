@@ -70,5 +70,13 @@ constexpr float DEG2RAD = DirectX::XM_PI / 180.0f;
 #define PX_TRANSFORM_TO_MATRIX(t) \
     (Matrix::CreateFromQuaternion(Quaternion((t).q.x, (t).q.y, (t).q.z, (t).q.w)) \
     * Matrix::CreateTranslation((t).p.x, (t).p.y, (t).p.z))
+#define MATRIX_TO_PX_TRANSFORM(m) \
+    [&]() { \
+        Matrix _m = (m); \
+        Vector3 _scale, _pos; \
+        Quaternion _rot; \
+        _m.Decompose(_scale, _rot, _pos); \
+        return PxTransform(PxVec3(_pos.x, _pos.y, _pos.z), PxQuat(_rot.x, _rot.y, _rot.z, _rot.w)); \
+    }()
 #define RAD(x) DirectX::XMConvertToRadians(x)
 #define DEG(x) DirectX::XMConvertToDegrees(x)

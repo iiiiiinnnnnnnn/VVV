@@ -120,15 +120,13 @@ void CharacterController::DrawGUI()
     }
 }
 
+// CharacterController.cpp
 void CharacterController::Move(const Vector3& velocity)
 {
-    PxRigidDynamic* act = controller->getActor();
-    PxShape* shape = nullptr;
-    act->getShapes(&shape, 1);
-    PxFilterData fd = shape->getSimulationFilterData();
+    static CCFilterCallback ccFilter;
 
     PxControllerFilters filters;
-    filters.mFilterData = &fd;
+    filters.mCCTFilterCallback = &ccFilter; // CC同士のフィルター
 
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),

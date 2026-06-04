@@ -60,4 +60,6 @@ protected:
     int stWalk   = -1;
     int stRun    = -1;
     int stSprint = -1;
+
+    Vector3 offsetPos = Vector3::Zero;
 };

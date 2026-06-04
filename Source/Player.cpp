@@ -50,7 +50,11 @@ Player::Player() : Actor("Player", "Player", true, Layer::Player)
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.49f, 0.8f);
-	cc->SetPosition({0, 0.6f, 0});
+	cc->SetPosition({0, 2.0f, 0});
+
+	// add_weapon_r のノードインデックスを取得してコライダーを追加
+	int weaponNodeIndex = model->GetNodeIndex("add_weapon_r");
+	AddComponent<BoneSphereCollider>(model.get(), weaponNodeIndex, 0.3f, Matrix::CreateTranslation({-0.56f, 0, 0}));
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -137,7 +141,4 @@ void Player::OnRender(const RenderContext& rc)
 
 void Player::OnDrawGUI()
 {
-	// デバッグ情報
-	ImGui::Text("State: %s", anim->GetCurrentStateName(0).c_str());
-	ImGui::Text("Speed: %.2f", anim->GetFloat("Speed"));
 }

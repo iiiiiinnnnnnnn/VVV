@@ -79,16 +79,18 @@ private:
 class BoneSphereCollider : public Component
 {
 public:
-    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, PxMaterial* material = nullptr);
+    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr);
+    ~BoneSphereCollider();
+    void LateUpdate() override;         // 毎フレームボーン追従
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 private:
     void UpdateShape();
     PxShape* shape = nullptr;
-	Rigidbody* ghostRigidbody = nullptr;
+    PxRigidDynamic* ghostActor = nullptr;  // Rigidbody*からPxRigidDynamic*に変更
     PxMaterial* material = nullptr;
-	Model* model = nullptr;
+    Model* model = nullptr;
     int nodeIndex = -1;
-    float radius;
-    float height;
+    Matrix offset;
+    float radius = 0.5f;
 };

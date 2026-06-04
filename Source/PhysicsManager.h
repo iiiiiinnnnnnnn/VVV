@@ -57,6 +57,21 @@ private:
     PxControllerManager* controllerManager = nullptr;
 };
 
+
+class CCFilterCallback : public PxControllerFilterCallback
+{
+public:
+    bool filter(const PxController& a, const PxController& b) override
+    {
+        // 同じレイヤーなら衝突しない
+        PxShape* shapeA = nullptr; a.getActor()->getShapes(&shapeA, 1);
+        PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
+        PxFilterData fdA = shapeA->getSimulationFilterData();
+        PxFilterData fdB = shapeB->getSimulationFilterData();
+        return !(fdA.word0 & fdB.word0); // 同じレイヤーならfalse（衝突しない）
+    }
+};
+
 class PhysicsManager {
 public:
     static PhysicsManager& Instance() { static PhysicsManager instance; return instance; }
