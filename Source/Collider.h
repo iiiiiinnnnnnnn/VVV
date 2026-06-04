@@ -74,3 +74,21 @@ private:
     bool useConvex = false;
     unsigned int quantizedCount = 32;
 };
+
+// ボーンを指定して追従　行列オフセットも設定できる。
+class BoneSphereCollider : public Component
+{
+public:
+    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, PxMaterial* material = nullptr);
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
+private:
+    void UpdateShape();
+    PxShape* shape = nullptr;
+	Rigidbody* ghostRigidbody = nullptr;
+    PxMaterial* material = nullptr;
+	Model* model = nullptr;
+    int nodeIndex = -1;
+    float radius;
+    float height;
+};

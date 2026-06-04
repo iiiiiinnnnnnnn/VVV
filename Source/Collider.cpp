@@ -234,7 +234,6 @@ void MeshCollider::Render(const RenderContext& rc)
     );
 }
 
-// Collider.cpp
 MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
     : Component(owner), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
 {
@@ -331,4 +330,21 @@ void MeshCollider::DrawGUI()
         }
         ImGui::TreePop();
     }
+}
+
+BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, PxMaterial* material)
+	: Component(owner), model(model), nodeIndex(nodeIndex), radius(radius), material(material)
+{
+}
+
+void BoneSphereCollider::Render(const RenderContext& rc)
+{
+}
+
+void BoneSphereCollider::DrawGUI()
+{
+}
+
+void BoneSphereCollider::UpdateShape()
+{
 }
