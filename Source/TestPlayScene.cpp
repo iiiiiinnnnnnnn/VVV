@@ -17,6 +17,8 @@
 // player controll
 #include "LocalPlayer.h"
 
+#include "HitEffect.h"
+
 TestPlayScene::TestPlayScene()
 {
     ID3D11Device* device = Game::Graphics::Instance().GetDevice();
@@ -56,6 +58,8 @@ TestPlayScene::TestPlayScene()
 
 void TestPlayScene::OnUpdate()
 {
+    // HitStop 更新処理
+    HitStop::Update();
 }
 
 void TestPlayScene::OnDrawGUI()

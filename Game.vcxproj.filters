@@ -471,6 +471,12 @@
     <ClInclude Include="Source\Entity.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
+    <ClInclude Include="Source\HitEffect.h">
+      <Filter>ソースファイル\ゲーム</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Random.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

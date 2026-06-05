@@ -58,7 +58,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	weaponCollider = AddComponent<BoneSphereCollider>(
 		model.get(),
 		model->GetNodeIndex("add_weapon_r"),
-		0.3f,
+		0.5f,
 		Matrix::CreateTranslation({-0.56f, 0, 0}));
 	weaponCollider->SetActive(false);
 
@@ -66,7 +66,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	footCollider = AddComponent<BoneSphereCollider>(
 		model.get(),
 		model->GetNodeIndex("foot_l"),
-		0.3f,
+		0.5f,
 		Matrix::CreateTranslation({0, 0, 0}));
 	footCollider->SetActive(false);
 }

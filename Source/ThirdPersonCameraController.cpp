@@ -3,6 +3,7 @@
 #include "ThirdPersonCameraController.h"
 #include "Input.h"
 #include "GameTime.h"
+#include "HitEffect.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(std::shared_ptr<Player> character)
 {
@@ -72,7 +73,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     }
 
     // 4. カメラに適用
-    camera.SetLookAt(finalEye, currentFocus, Vector3::Up);
+    CameraShake::Update(camera, finalEye, currentFocus, Vector3::Up);
 
     // 次フレームの Lerp 用に現在の「理想位置」を保存しておく（必要に応じて）
     currentEye = finalEye;
