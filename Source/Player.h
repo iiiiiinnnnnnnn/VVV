@@ -50,6 +50,7 @@ protected:
     Animator*             anim = nullptr;
     CharacterController*  cc   = nullptr;
     ThirdPersonCameraController* cameraController = nullptr;
+    BoneSphereCollider* weaponCollider = nullptr;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;

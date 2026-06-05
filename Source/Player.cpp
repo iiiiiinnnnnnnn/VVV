@@ -47,6 +47,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
 	anim->AddCallbackFunc("OnAnim", [this](const Animator::State& s) { OnEnterAnim(s); }, [this](const Animator::State& s) { OnExitAnim(s); });
+	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.49f, 0.8f);
@@ -54,17 +55,24 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// add_weapon_r のノードインデックスを取得してコライダーを追加
 	int weaponNodeIndex = model->GetNodeIndex("add_weapon_r");
-	AddComponent<BoneSphereCollider>(model.get(), weaponNodeIndex, 0.3f, Matrix::CreateTranslation({-0.56f, 0, 0}));
+	weaponCollider = AddComponent<BoneSphereCollider>(model.get(), weaponNodeIndex, 0.3f, Matrix::CreateTranslation({-0.56f, 0, 0}));
+	weaponCollider->SetActive(false);
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
 {
-	//printf("Enter Anim: %s\n", state.name.c_str());
+	if (state.name.compare("Attack"))
+	{
+		weaponCollider->SetActive(true);
+	}
 }
 
 void Player::OnExitAnim(const Animator::State& state)
 {
-	//printf("Exit Anim: %s\n", state.name.c_str());
+	if (state.name.compare("Attack"))
+	{
+		weaponCollider->SetActive(false);
+	}
 }
 
 void Player::OnCollisionEnter(Actor* other)
