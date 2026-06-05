@@ -78,7 +78,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 	// レンダーステート設定
 	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
+	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 
 	// メッシュ描画関数
 	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
