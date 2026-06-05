@@ -151,7 +151,20 @@ void GamePad::Update()
 		if (GetAsyncKeyState(VK_RIGHT) & 0x8000)	newButtonState |= BTN_RIGHT;
 		if (GetAsyncKeyState(VK_DOWN) & 0x8000)	newButtonState |= BTN_DOWN;
 		if (GetAsyncKeyState(VK_LEFT) & 0x8000)	newButtonState |= BTN_LEFT;
+
+		// デバッグ用のF1～F12
+		if (GetAsyncKeyState(VK_F1) & 0x8000) newButtonState |= BTN_F1;
+		if (GetAsyncKeyState(VK_F2) & 0x8000) newButtonState |= BTN_F2;
 		if (GetAsyncKeyState(VK_F3) & 0x8000) newButtonState |= BTN_F3;
+		if (GetAsyncKeyState(VK_F4) & 0x8000) newButtonState |= BTN_F4;
+		if (GetAsyncKeyState(VK_F5) & 0x8000) newButtonState |= BTN_F5;
+		if (GetAsyncKeyState(VK_F6) & 0x8000) newButtonState |= BTN_F6;
+		if (GetAsyncKeyState(VK_F7) & 0x8000) newButtonState |= BTN_F7;
+		if (GetAsyncKeyState(VK_F8) & 0x8000) newButtonState |= BTN_F8;
+		if (GetAsyncKeyState(VK_F9) & 0x8000) newButtonState |= BTN_F9;
+		if (GetAsyncKeyState(VK_F10) & 0x8000) newButtonState |= BTN_F10;
+		if (GetAsyncKeyState(VK_F11) & 0x8000) newButtonState |= BTN_F11;
+		if (GetAsyncKeyState(VK_F12) & 0x8000) newButtonState |= BTN_F12;
 
 #if 1
 		if (newButtonState & BTN_UP)    ly = 1.0f;

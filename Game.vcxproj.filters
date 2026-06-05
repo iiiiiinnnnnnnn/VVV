@@ -264,6 +264,7 @@
     <ClCompile Include="Source\Enemy.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Entity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -466,6 +467,9 @@
     </ClInclude>
     <ClInclude Include="Source\GameDefine.h">
       <Filter>ソースファイル\ゲーム</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Entity.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

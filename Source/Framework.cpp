@@ -8,6 +8,12 @@
 #include "PhysicsManager.h"
 #include "TestPlayScene.h"
 
+#if _DEBUG
+#define SHOW_CONSOLE() if(!showedConsole){ AllocConsole(); freopen("CONOUT$", "w", stdout); freopen("CONOUT$", "w", stderr); showedConsole = true; }
+#else
+#define SHOW_CONSOLE()
+#endif
+
 // 垂直同期間隔設定
 static const int syncInterval = 1;
 
@@ -15,6 +21,11 @@ static const int syncInterval = 1;
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
+	if (GetAsyncKeyState(VK_F2) & 0x8000)
+	{
+		SHOW_CONSOLE();
+	}
+
 	// 入力初期化
 	Game::Input::Instance().Initialize(hWnd);
 
@@ -50,6 +61,11 @@ Framework::~Framework()
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
+	if (GetAsyncKeyState(VK_F2) & 0x8000)
+	{
+		SHOW_CONSOLE();
+	}
+
 	elapsedTime = min(elapsedTime, 1.0f / 60.0f);
 
 	// 時間更新処理
@@ -68,15 +84,6 @@ void Framework::Update(float elapsedTime)
 
 	// 物理シミュレーション
 	PhysicsManager::Instance().GetSceneContext().Simulate();
-
-	#if _DEBUG
-	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
-	{
-		AllocConsole();
-		if (freopen("CONOUT$", "w", stdout)) {}
-		if (freopen("CONOUT$", "w", stderr)) {}
-	}
-	#endif
 }
 
 // 描画処理

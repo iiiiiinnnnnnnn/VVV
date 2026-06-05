@@ -10,14 +10,14 @@ namespace Layer {
     constexpr int Stage   = 4;
     constexpr int Count   = 5;
 
-    // 衝突マトリックス（上三角のみ定義、片方設定すれば対称になる）
-    //                 Default  Player  Weapon  Enemy   Stage
+    // 衝突マトリックス
     constexpr bool CollisionMatrix[Count][Count] = {
+        //              Default  Player  Weapon  Enemy   Stage
         /* Default */ {  true,   true,   true,   true,   true  },
-        /* Player  */ {          true,   false,  true,   true  },
-        /* Weapon  */ {                  true,   true,   false },
-        /* Enemy   */ {                          true,   false },
-        /* Stage   */ {                                  true  },
+        /* Player  */ {  true,   true,   false,  true,   true  },
+        /* Weapon  */ {  true,           true,   true,   false },
+        /* Enemy   */ {  true,                   true,   false },
+        /* Stage   */ {  true,                           true  },
     };
 
     // A と B が衝突するか（対称参照）

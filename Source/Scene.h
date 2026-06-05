@@ -28,6 +28,9 @@ public:
 	const LightData& GetLightManager() const { return lightData; }
 	const RenderSettings& GetRenderSettings() const { return renderSettings; }
 
+private:
+	void DrawGUI(RenderContext& rc);
+
 protected:
 	virtual void OnUpdate() {}
 	virtual void OnDrawGUI() {}

@@ -22,7 +22,19 @@ public:
 	static const GamePadButton BTN_RIGHT_SHOULDER	= (1 << 13);
 	static const GamePadButton BTN_LEFT_TRIGGER		= (1 << 14);
 	static const GamePadButton BTN_RIGHT_TRIGGER	= (1 << 15);
-	static const GamePadButton BTN_F3				= (1 << 16); // デバッグ
+
+	static const GamePadButton BTN_F1				= (1 << 16); // デバッグ
+	static const GamePadButton BTN_F2				= (1 << 17); // デバッグ
+	static const GamePadButton BTN_F3				= (1 << 18); // デバッグ
+	static const GamePadButton BTN_F4				= (1 << 19); // デバッグ
+	static const GamePadButton BTN_F5				= (1 << 20); // デバッグ
+	static const GamePadButton BTN_F6				= (1 << 21); // デバッグ
+	static const GamePadButton BTN_F7				= (1 << 22); // デバッグ
+	static const GamePadButton BTN_F8				= (1 << 23); // デバッグ
+	static const GamePadButton BTN_F9				= (1 << 24); // デバッグ
+	static const GamePadButton BTN_F10				= (1 << 25); // デバッグ
+	static const GamePadButton BTN_F11				= (1 << 26); // デバッグ
+	static const GamePadButton BTN_F12				= (1 << 27); // デバッグ
 
 public:
 	GamePad() {}

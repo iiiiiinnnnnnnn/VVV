@@ -18,6 +18,7 @@ public:
 	bool IsActive() const { return isActive; }
 	const std::string& GetName() const { return name; }
 	const std::string& GetTag() const { return tag; }
+	bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
 
 	virtual void Update();
 	virtual void Render(const RenderContext& rc);

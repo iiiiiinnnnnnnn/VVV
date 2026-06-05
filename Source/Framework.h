@@ -28,5 +28,6 @@ private:
 	std::unique_ptr<Scene>	scene;
 
 	bool vsyncEnabled = true;
+	bool showedConsole = false;
 };
 

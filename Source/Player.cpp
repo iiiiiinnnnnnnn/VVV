@@ -5,7 +5,7 @@
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 
-Player::Player() : Actor("Player", "Player", true, Layer::Player)
+Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0f)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
 	model->_print(); // デバッグ用
@@ -59,42 +59,42 @@ Player::Player() : Actor("Player", "Player", true, Layer::Player)
 
 void Player::OnEnterAnim(const Animator::State& state)
 {
-	printf("Enter Anim: %s\n", state.name.c_str());
+	//printf("Enter Anim: %s\n", state.name.c_str());
 }
 
 void Player::OnExitAnim(const Animator::State& state)
 {
-	printf("Exit Anim: %s\n", state.name.c_str());
+	//printf("Exit Anim: %s\n", state.name.c_str());
 }
 
 void Player::OnCollisionEnter(Actor* other)
 {
-	printf("OnCollisionEnter: %s\n", other->GetName().c_str());
+	//printf("OnCollisionEnter: %s\n", other->GetName().c_str());
 }
 
 void Player::OnCollisionStay(Actor* other)
 {
-	printf("OnCollisionStay: %s\n", other->GetName().c_str());
+	//printf("OnCollisionStay: %s\n", other->GetName().c_str());
 }
 
 void Player::OnCollisionExit(Actor* other)
 {
-	printf("OnCollisionExit: %s\n", other->GetName().c_str());
+	//printf("OnCollisionExit: %s\n", other->GetName().c_str());
 }
 
 void Player::OnTriggerEnter(Actor* other)
 {
-	printf("OnTriggerEnter: %s\n", other->GetName().c_str());
+	//printf("OnTriggerEnter: %s\n", other->GetName().c_str());
 }
 
 void Player::OnTriggerStay(Actor* other)
 {
-	printf("OnTriggerStay: %s\n", other->GetName().c_str());
+	//printf("OnTriggerStay: %s\n", other->GetName().c_str());
 }
 
 void Player::OnTriggerExit(Actor* other)
 {
-	printf("OnTriggerExit: %s\n", other->GetName().c_str());
+	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
 }
 
 void Player::OnUpdate()
@@ -171,4 +171,5 @@ void Player::OnRender(const RenderContext& rc)
 
 void Player::OnDrawGUI()
 {
+	Entity::OnDrawGUI();
 }

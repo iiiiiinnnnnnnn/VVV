@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "Actor.h"
+#include "Entity.h"
 #include "PlayerController.h"
 #include "Model.h"
 
 class ThirdPersonCameraController;
 
-class Player : public Actor
+class Player : public Entity
 {
 public:
     Player();
