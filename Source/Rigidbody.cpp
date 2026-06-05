@@ -15,6 +15,17 @@ Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rig
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
 }
 
+Rigidbody::~Rigidbody()
+{
+    if (rigidActor)
+    {
+        // PhysXシーンから除去してから解放
+        PhysicsManager::Instance().GetSceneContext().GetScene()->removeActor(*rigidActor);
+        rigidActor->release();
+        rigidActor = nullptr;
+    }
+}
+
 void Rigidbody::Update()
 {
     Actor* ownerActor = dynamic_cast<Actor*>(owner);

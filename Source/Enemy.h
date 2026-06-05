@@ -13,11 +13,11 @@ public:
 	void OnDrawGUI() override;
 
 	void OnCollisionEnter(Actor* other) override;
-	void OnCollisionStay(Actor* other) override;
 	void OnCollisionExit(Actor* other) override;
 	void OnTriggerEnter(Actor* other) override;
-	void OnTriggerStay(Actor* other) override;
 	void OnTriggerExit(Actor* other) override;
+
+	void OnDead() override;
 
 private:
 

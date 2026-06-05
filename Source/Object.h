@@ -24,6 +24,9 @@ public:
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
 
+	void Destroy() { pendingDestroy = true; }
+	bool IsPendingDestroy() const { return pendingDestroy; }
+
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args) {
 		componentList.push_back(std::make_unique<T>(this, std::forward<Args>(args)...));
@@ -49,6 +52,8 @@ protected:
 	bool isActive;
 	std::string name;
 	std::string tag;
+
+	bool pendingDestroy = false;
 
 	struct Components {
 		std::vector<std::unique_ptr<Component>> data;

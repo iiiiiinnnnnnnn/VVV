@@ -9,6 +9,7 @@
 class Rigidbody : public Component {
 public:
     Rigidbody(Object* owner, PxRigidActor* actor);
+    virtual ~Rigidbody();
 
     void Update() override;
     void DrawGUI() override;

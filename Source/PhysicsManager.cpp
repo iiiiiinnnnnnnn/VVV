@@ -31,7 +31,9 @@ static PxFilterFlags LayerFilterShader(
 static Actor* ToActor(PxActor* pxActor)
 {
     if (!pxActor) return nullptr;
-    return static_cast<Actor*>(pxActor->userData);
+    Actor* actor = static_cast<Actor*>(pxActor->userData);
+    if (!actor || actor->IsPendingDestroy()) return nullptr;
+    return actor;
 }
 
 void CollisionEventCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
@@ -87,6 +89,14 @@ void CollisionEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 nbPairs)
 
 void CollisionEventCallback::DispatchStayEvents()
 {
+    // 削除済みActorをペアセットから除去
+    std::erase_if(currentCollisionPairs, [](const auto& pair) {
+        return pair.first->IsPendingDestroy() || pair.second->IsPendingDestroy();
+    });
+    std::erase_if(currentTriggerPairs, [](const auto& pair) {
+        return pair.first->IsPendingDestroy() || pair.second->IsPendingDestroy();
+    });
+
     for (auto& [a, b] : currentCollisionPairs)
     {
         a->OnCollisionStay(b);
@@ -203,6 +213,10 @@ void CCHitReport::DispatchEvents()
 {
     if (dispatchedThisFrame) return;
     dispatchedThisFrame = true;
+
+    // 削除済みを除去
+    std::erase_if(currentFrameActors, [](Actor* a) { return a->IsPendingDestroy(); });
+    std::erase_if(prevFrameActors,    [](Actor* a) { return a->IsPendingDestroy(); });
 
     // Enter: 今フレームにいて前フレームにいなかった
     for (Actor* other : currentFrameActors)

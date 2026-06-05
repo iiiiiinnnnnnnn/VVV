@@ -50,19 +50,36 @@ protected:
 	{
 		std::vector<std::shared_ptr<Actor>> data;
 		void Register(std::shared_ptr<Actor> actor) { data.push_back(actor); }
-		void Update() {
-			for (auto& d : data) {
+		void Update()
+		{
+			for (auto& d : data)
+			{
 				d->Update();
 			}
+			// 削除フラグありのオブジェクトを削除
+			data.erase(
+				std::remove_if(data.begin(), data.end(),
+				[](const std::shared_ptr<Actor>& a)
+			{
+				return a->IsPendingDestroy();
+			}),
+				data.end()
+			);
 		}
-		void Render(const RenderContext& rc) {
-			for (auto& d : data) {
-				d->Render(rc);
+		void Render(const RenderContext& rc)
+		{
+			for (auto& d : data)
+			{
+				if (!d->IsPendingDestroy())
+					d->Render(rc);
 			}
 		}
-		void DrawGUI() {
-			for (auto& d : data) {
-				d->DrawGUI();
+		void DrawGUI()
+		{
+			for (auto& d : data)
+			{
+				if (!d->IsPendingDestroy())
+					d->DrawGUI();
 			}
 		}
 	} actors;
@@ -71,19 +88,36 @@ protected:
 	{
 		std::vector<std::shared_ptr<Widget>> data;
 		void Register(std::shared_ptr<Widget> widget) { data.push_back(widget); }
-		void Update() {
-			for (auto& d : data) {
+		void Update()
+		{
+			for (auto& d : data)
+			{
 				d->Update();
 			}
+			// 削除フラグありのオブジェクトを削除
+			data.erase(
+				std::remove_if(data.begin(), data.end(),
+				[](const std::shared_ptr<Widget>& a)
+			{
+				return a->IsPendingDestroy();
+			}),
+				data.end()
+			);
 		}
-		void Render(const RenderContext& rc) {
-			for (auto& d : data) {
-				d->Render(rc);
+		void Render(const RenderContext& rc)
+		{
+			for (auto& d : data)
+			{
+				if (!d->IsPendingDestroy())
+					d->Render(rc);
 			}
 		}
-		void DrawGUI() {
-			for (auto& d : data) {
-				d->DrawGUI();
+		void DrawGUI()
+		{
+			for (auto& d : data)
+			{
+				if (!d->IsPendingDestroy())
+					d->DrawGUI();
 			}
 		}
 	} widgets;
