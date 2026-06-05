@@ -5,11 +5,15 @@
 #include "Graphics.h"
 #include "GameTime.h"
 
+// CharacterController -----------------------------------------------
+
 CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+
+    hitReport = new CCHitReport(actor, actor->GetLayer());
 
     PxCapsuleControllerDesc desc;
     desc.radius = radius;
@@ -24,12 +28,14 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
     desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
     desc.stepOffset = 0.3f;
     desc.contactOffset = 0.1f;
+    desc.reportCallback = hitReport;
 
     controller = PhysicsManager::Instance()
         .GetSceneContext().GetControllerManager()->createController(desc);
 
-    // 内部シェイプにlayerをセット
+    // 内部シェイプにlayerをセット＆userDataにActor*を格納（コールバック用）
     PxRigidDynamic* act = controller->getActor();
+    act->userData = actor;
     PxShape* shape = nullptr;
     act->getShapes(&shape, 1);
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
@@ -38,6 +44,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
 CharacterController::~CharacterController()
 {
     if (controller) controller->release();
+    delete hitReport;
 }
 
 void CharacterController::Update()
@@ -120,19 +127,29 @@ void CharacterController::DrawGUI()
     }
 }
 
-// CharacterController.cpp
 void CharacterController::Move(const Vector3& velocity)
 {
     static CCFilterCallback ccFilter;
 
+    // 新フレームの開始としてフラグをリセット（LateUpdateより先にMoveが呼ばれる想定）
+    hitReport->dispatchedThisFrame = false;
+
     PxControllerFilters filters;
-    filters.mCCTFilterCallback = &ccFilter; // CC同士のフィルター
+    filters.mCCTFilterCallback = &ccFilter;
 
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),
         0.001f, Game::Time::deltaTime, filters
     );
     grounded = (flags & PxControllerCollisionFlag::eCOLLISION_DOWN) != PxControllerCollisionFlags(0);
+
+    hitReport->DispatchEvents();
+}
+
+void CharacterController::LateUpdate()
+{
+    // Move()はOnLateUpdateで呼ばれるため、その後に判定する
+    hitReport->DispatchEvents();
 }
 
 void CharacterController::SetPosition(const Vector3& position)

@@ -72,6 +72,11 @@ void Player::OnCollisionEnter(Actor* other)
 	printf("OnCollisionEnter: %s\n", other->GetName().c_str());
 }
 
+void Player::OnCollisionStay(Actor* other)
+{
+	printf("OnCollisionStay: %s\n", other->GetName().c_str());
+}
+
 void Player::OnCollisionExit(Actor* other)
 {
 	printf("OnCollisionExit: %s\n", other->GetName().c_str());
@@ -80,6 +85,11 @@ void Player::OnCollisionExit(Actor* other)
 void Player::OnTriggerEnter(Actor* other)
 {
 	printf("OnTriggerEnter: %s\n", other->GetName().c_str());
+}
+
+void Player::OnTriggerStay(Actor* other)
+{
+	printf("OnTriggerStay: %s\n", other->GetName().c_str());
 }
 
 void Player::OnTriggerExit(Actor* other)

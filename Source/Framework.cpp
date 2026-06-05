@@ -15,16 +15,6 @@ static const int syncInterval = 1;
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
-	// シフトキーが押されている場合はコンソールを表示
-#if _DEBUG
-	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
-	{
-		AllocConsole();
-		if (freopen("CONOUT$", "w", stdout)) {}
-		if (freopen("CONOUT$", "w", stderr)) {}
-	}
-#endif
-
 	// 入力初期化
 	Game::Input::Instance().Initialize(hWnd);
 
@@ -78,6 +68,15 @@ void Framework::Update(float elapsedTime)
 
 	// 物理シミュレーション
 	PhysicsManager::Instance().GetSceneContext().Simulate();
+
+	#if _DEBUG
+	if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
+	{
+		AllocConsole();
+		if (freopen("CONOUT$", "w", stdout)) {}
+		if (freopen("CONOUT$", "w", stderr)) {}
+	}
+	#endif
 }
 
 // 描画処理

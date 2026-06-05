@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Common.h"
+#include <set>
 
 // px
 #include "PxPhysicsAPI.h"
@@ -39,9 +40,72 @@
 #include "pvd/PxPvdTransport.h"
 #include "pvd/PxPvdSceneClient.h"
 
+#include "GameDefine.h"
+
 using namespace physx;
 
 static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
+
+class Actor;
+
+// 衝突イベントコールバック
+class CollisionEventCallback : public PxSimulationEventCallback
+{
+public:
+    void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
+    void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
+    void DispatchStayEvents();
+
+    void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
+    void onWake(PxActor**, PxU32) override {}
+    void onSleep(PxActor**, PxU32) override {}
+    void onAdvance(const PxRigidBody* const*, const PxTransform*, PxU32) override {}
+
+private:
+    using ActorPair = std::pair<Actor*, Actor*>;
+    std::set<ActorPair> currentCollisionPairs;
+    std::set<ActorPair> currentTriggerPairs;
+    static ActorPair MakePair(Actor* a, Actor* b)
+    {
+        return (a <= b) ? ActorPair(a, b) : ActorPair(b, a);
+    }
+};
+
+// CharacterController の接触コールバック（CC対Rigidbody）
+class CCHitReport : public PxUserControllerHitReport
+{
+public:
+    CCHitReport(Actor* owner, int layer) : owner(owner), ownerLayer(layer) {}
+
+    void onShapeHit(const PxControllerShapeHit& hit) override;
+    void onControllerHit(const PxControllersHit& hit) override {}
+    void onObstacleHit(const PxControllerObstacleHit& hit) override {}
+
+    // Framework の Simulate 後に毎フレーム呼ぶ
+    void DispatchEvents();
+
+private:
+    Actor* owner = nullptr;
+    int ownerLayer = 0;
+    std::set<Actor*> currentFrameActors;
+    std::set<Actor*> prevFrameActors;
+public:
+    bool dispatchedThisFrame = false;
+};
+
+// CharacterController同士の衝突フィルタ
+class CCFilterCallback : public PxControllerFilterCallback
+{
+public:
+    bool filter(const PxController& a, const PxController& b) override
+    {
+        PxShape* shapeA = nullptr; a.getActor()->getShapes(&shapeA, 1);
+        PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
+        int layerA = (int)shapeA->getSimulationFilterData().word1;
+        int layerB = (int)shapeB->getSimulationFilterData().word1;
+        return Layer::Collides(layerA, layerB);
+    }
+};
 
 class PhysicsSceneContext {
 public:
@@ -51,25 +115,12 @@ public:
 
     PxScene* GetScene() const { return scene; }
     PxControllerManager* GetControllerManager() const { return controllerManager; }
+    CollisionEventCallback& GetEventCallback() { return eventCallback; }
 
 private:
     PxScene* scene = nullptr;
     PxControllerManager* controllerManager = nullptr;
-};
-
-
-class CCFilterCallback : public PxControllerFilterCallback
-{
-public:
-    bool filter(const PxController& a, const PxController& b) override
-    {
-        // 同じレイヤーなら衝突しない
-        PxShape* shapeA = nullptr; a.getActor()->getShapes(&shapeA, 1);
-        PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
-        PxFilterData fdA = shapeA->getSimulationFilterData();
-        PxFilterData fdB = shapeB->getSimulationFilterData();
-        return !(fdA.word0 & fdB.word0); // 同じレイヤーならfalse（衝突しない）
-    }
+    CollisionEventCallback eventCallback;
 };
 
 class PhysicsManager {
@@ -84,7 +135,7 @@ public:
     PxPhysics* GetPhysics() { return gPhysics; }
     PxCookingParams* GetCooking() { return gCookingParams; }
     PxMaterial* GetDefaultMaterial() { return gDefaultMaterial; }
-	PxDefaultCpuDispatcher* GetDispatcher() { return gDispatcher; }
+    PxDefaultCpuDispatcher* GetDispatcher() { return gDispatcher; }
 
     PxRigidStatic* CreateStatic(Matrix& transform) {
         PxTransform t;
@@ -112,6 +163,7 @@ public:
     {
         PxFilterData fd;
         fd.word0 = (1u << layer); // 自分のレイヤービット
+        fd.word1 = (PxU32)layer;  // レイヤー番号（FilterShaderで参照）
         shape->setSimulationFilterData(fd);
         shape->setQueryFilterData(fd);
     }
