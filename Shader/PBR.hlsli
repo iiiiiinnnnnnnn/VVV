@@ -32,6 +32,8 @@ cbuffer CbMaterial : register(b1)
     float  roughness;           // ラフネス
     float  occlusionStrength;   // AO強度
     bool   hasMetalRoughTexture; // メタルネスラフネステクスチャの有無
+    bool   isFace;
+    float3 _dummyCbMaterial;
 };
 
 #endif // __PBR_HLSLI__

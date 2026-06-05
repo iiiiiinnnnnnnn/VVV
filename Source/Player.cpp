@@ -39,7 +39,15 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	}
 
 	// モデルレンダラー生成
-	shaderParamWithMaterialName = {};
+	shaderParamWithMaterialName =
+	{
+		{
+			"Face",
+		{
+			{ "isFace", true }
+	}
+		}
+	};
 	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
 	// アニメーター生成

@@ -141,12 +141,18 @@ float4 main(VS_OUT pin) : SV_TARGET
             totalSpecular += s;
         }
     }
+    
+    float4 sc = shadowColor;
+    if (isFace)
+    {
+        sc = float4(1.0f, 1.0f, 1.0f, 1.0f); // 表面は影なし（両面描画の裏面対策）
+    }
 
     // シャドウ（PCFソフトシャドウ）
     float3 shadow = CalcShadowColorPCFFilter(
         shadowMap, shadowSampler,
         pin.shadowTexcoord,
-        shadowColor.rgb,
+        sc.rgb,
         shadowBias,
         pcfKernelSize);
 

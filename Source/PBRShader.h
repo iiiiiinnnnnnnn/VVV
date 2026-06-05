@@ -35,6 +35,8 @@ private:
 		float	roughness;		// ラフネス
 		float	occlusionStrength;	// オクルージョン強度
 		BOOL    hasMetalRoughTexture;	// ベースカラーテクスチャの有無
+		BOOL    isFace;
+		float   DUMMY[3];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 };

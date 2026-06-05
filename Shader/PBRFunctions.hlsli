@@ -99,12 +99,16 @@ void DirectBRDF(float3 diffuse_reflectance,
     float NdotH = max(0.0001f, dot(N, H));
     float VdotH = max(0.0001f, dot(V, H));
 
+    // ★なだらかなリアル光（NdotL）を、グラデーションのないパキッとした明暗（0.2 or 1.0）に変換
+    float toonThreshold = step(0.25f, NdotL);
+    float toonFactor = lerp(0.2f, 1.0f, toonThreshold);
+
     float3 irradiance = light_color * NdotL;
 
-	//	拡散反射BRDF
-    out_diffuse = DiffuseBRDF(VdotH, F0, diffuse_reflectance) * irradiance;
+    // ★拡散反射（ベースの色）にだけ適用して、色ボケを防ぐ
+    out_diffuse = DiffuseBRDF(VdotH, F0, diffuse_reflectance) * light_color * toonFactor;
 
-	//	鏡面反射BRDF
+    // ★鏡面反射（ツヤ）とリアルな質感はPBRのまま維持
     out_specular = SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughness) * irradiance;
 }
 

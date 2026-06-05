@@ -78,6 +78,8 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		cb.roughness = GetParam<float>(cachedParams, "roughness", mesh.material->roughness);
 		cb.occlusionStrength = GetParam<float>(cachedParams, "occlusionStrength", mesh.material->occlusionStrength);
 
+		cb.isFace = GetParam<float>(cachedParams, "isFace", mesh.material->occlusionStrength);
+
 		// テクスチャがある場合は、テクスチャの値を乗算
 		if (mesh.material->metalnessRoughnessMap != nullptr)
 		{
