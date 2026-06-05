@@ -99,6 +99,8 @@ void Player::OnTriggerExit(Actor* other)
 
 void Player::OnUpdate()
 {
+	Entity::OnUpdate();
+
 	if (!controller) return;
 
 	InputContext ctx = controller->Poll();

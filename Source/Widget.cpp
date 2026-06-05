@@ -14,6 +14,8 @@ void Widget::DrawGUI()
     ImGui::PushID(this);
     if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
     {
+		Object::DrawGUI();
+
         if (ImGui::TreeNode("RectTransform"))
         {
             ImGui::DragFloat3("Position", &rect.position.x);

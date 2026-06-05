@@ -11,6 +11,8 @@ public:
 
 	void OnDrawGUI() override;
 
+    virtual void OnUpdate() override;
+
     // HPëÄçÏ
     void TakeDamage(float damage);
     void Heal(float amount);
@@ -26,4 +28,9 @@ protected:
 
     float life    = 100.0f;
     float maxLife = 100.0f;
+    struct Cooldowns
+    {
+        float damageCooldown = 0.0f;
+        void Update();
+    } cooldowns;
 };
