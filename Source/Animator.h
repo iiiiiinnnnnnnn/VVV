@@ -264,6 +264,7 @@ private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
     bool EvaluateTransition(const Transition& t, float normalizedTime) const;
+    void EvaluateCallbacks(State& state, float currentTime, float animLength);
     void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer, std::vector<Model::NodePose>& finalPoses);
 

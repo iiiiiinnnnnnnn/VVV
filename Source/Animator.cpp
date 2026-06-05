@@ -240,47 +240,21 @@ void Animator::OpenAnimEditor()
 }
 
 void Animator::UpdateLayer(AnimatorLayer& layer,
-    std::vector<Model::NodePose>& finalPoses)
+                           std::vector<Model::NodePose>& finalPoses)
 {
-    // 範囲外
-	_ASSERT_EXPR(layer.currentStateIndex >= 0 && layer.currentStateIndex < (int)layer.states.size(), L"Invalid current state index in layer");
+    _ASSERT_EXPR(layer.currentStateIndex >= 0 && layer.currentStateIndex < (int)layer.states.size(), L"Invalid current state index in layer");
 
     State& curState = layer.states[layer.currentStateIndex];
     const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
 
     float prevTime = layer.currentTime;
+    float dt = unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime;
 
     // 時間更新
-    layer.currentTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * curState.speed;
-    for (auto& callback : curState.callbacks)
-    {
-        float nowPer = layer.currentTime / curAnim.secondsLength;
-        if (nowPer > callback.enterTimePer && nowPer < callback.exitTimePer)
-        {
-            if (!callback.entering)
-            {
-                if (callback.onEnter)
-                {
-                    callback.onEnter(curState);
-                    callback.entering = true;
-                }
-            }
-        }
-        else if (nowPer > callback.exitTimePer)
-        {
-            if (callback.entering)
-            {
-                if (callback.onExit)
-                {
-                    callback.onExit(curState);
-                    callback.entering = false;
-                }
-            }
-        }
-    }
+    layer.currentTime += dt * curState.speed;
+    EvaluateCallbacks(curState, layer.currentTime, curAnim.secondsLength);
 
     bool looped = false;
-    // 再生終了
     if (layer.currentTime > curAnim.secondsLength)
     {
         if (curState.loop) {
@@ -304,11 +278,8 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         if (!looped)
         {
             deltaPos = poseCur.position - posePrev.position;
-
-            // posePrev.rotation の逆クォータニオンを invPrev に取得
             Quaternion invPrev;
-            posePrev.rotation.Inverse(invPrev); 
-
+            posePrev.rotation.Inverse(invPrev);
             deltaRot = invPrev * poseCur.rotation;
         }
         else
@@ -318,15 +289,12 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
 
             deltaPos = (poseEnd.position - posePrev.position) + (poseCur.position - poseStart.position);
 
-            // それぞれの逆クォータニオンを計算
             Quaternion invPrev, invStart;
             posePrev.rotation.Inverse(invPrev);
             poseStart.rotation.Inverse(invStart);
-
             deltaRot = (invPrev * poseEnd.rotation) * (invStart * poseCur.rotation);
         }
 
-        // レイヤーウェイトを乗算してメンバ変数に蓄積
         rootMotionVec += deltaPos * layer.weight;
         rootMotionRot = rootMotionRot * Quaternion::Lerp(Quaternion::Identity, deltaRot, layer.weight);
     }
@@ -340,37 +308,33 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         State& nxtState = layer.states[layer.nextStateIndex];
         const Model::Animation& nxtAnim = model->GetAnimations()[nxtState.animationIndex];
 
-        layer.nextTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime) * nxtState.speed;
+        layer.nextTime += dt * nxtState.speed;
         if (layer.nextTime > nxtAnim.secondsLength)
         {
             if (nxtState.loop) layer.nextTime -= nxtAnim.secondsLength;
             else               layer.nextTime = nxtAnim.secondsLength;
         }
 
+        EvaluateCallbacks(nxtState, layer.nextTime, nxtAnim.secondsLength);
+
         model->ComputeAnimation(nxtState.animationIndex, layer.nextTime, nextNodePoses);
 
-        layer.blendTime += (unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime);
+        layer.blendTime += dt;
         float w = layer.blendDuration > 0.0f ? layer.blendTime / layer.blendDuration : 1.0f;
         if (w > 1.0f) w = 1.0f;
 
-        // cur(w=0) → nxt(w=1) でブレンド（w=1 でも必ずブレンドしてから完了判定）
         for (size_t i = 0; i < nodePoses.size(); ++i)
-        {
             nodePoses[i] = nodePoses[i].Lerp(nextNodePoses[i], w);
-        }
 
         if (w >= 1.0f)
         {
-            // onExit を呼ぶ
+            // curState の残存コールバックを強制 onExit
             for (auto& cb : curState.callbacks)
             {
                 if (cb.entering)
                 {
-                    if (cb.onExit)
-                    {
-                        cb.onExit(curState);
-                        cb.entering = false;
-                    }
+                    if (cb.onExit) cb.onExit(curState);
+                    cb.entering = false;
                 }
             }
             layer.currentStateIndex = layer.nextStateIndex;
@@ -381,18 +345,25 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
         }
         else
         {
-            // 割り込みチェック（canInterrupt なトランジションが成立したら nxt を差し替え）
+            // 割り込みチェック
             for (const Transition& tr : curState.transitions)
             {
                 if (!tr.canInterrupt) continue;
                 if (tr.toStateIndex == layer.nextStateIndex) continue;
                 if (EvaluateTransition(tr))
                 {
-                    layer.nextStateIndex  = tr.toStateIndex;
-                    layer.nextTime        = 0.0f;
-                    layer.blendTime       = 0.0f;
-                    layer.blendDuration   = tr.transitionDuration;
-                    // isTransitioning は既に true なので変更不要
+                    // 差し替え前に古い nextState の entering をリセット
+                    for (auto& cb : layer.states[layer.nextStateIndex].callbacks)
+                        cb.entering = false;
+
+                    layer.nextStateIndex = tr.toStateIndex;
+                    layer.nextTime       = 0.0f;
+                    layer.blendTime      = 0.0f;
+                    layer.blendDuration  = tr.transitionDuration;
+
+                    // 新しい nextState の entering をリセット
+                    for (auto& cb : layer.states[layer.nextStateIndex].callbacks)
+                        cb.entering = false;
                     break;
                 }
             }
@@ -400,16 +371,14 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
     }
     else
     {
-        // トランジション評価
         float normalizedTime = curAnim.secondsLength > 0.0f
             ? layer.currentTime / curAnim.secondsLength : 0.0f;
 
-        // --- AnyState トランジション（優先評価） ---
+        // AnyState トランジション（優先評価）
         if (!curState.blockAnyStateTransitions)
         {
             for (const Transition& tr : layer.anyStateTransitions)
             {
-                // 既に同じステートに遷移中の場合はスキップ
                 if (tr.toStateIndex == layer.currentStateIndex) continue;
                 if (std::find(tr.excludedFromStateIndices.begin(),
                     tr.excludedFromStateIndices.end(),
@@ -418,6 +387,10 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
                 if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
                 if (EvaluateTransition(tr, normalizedTime))
                 {
+                    // nextState の entering をリセット
+                    for (auto& cb : layer.states[tr.toStateIndex].callbacks)
+                        cb.entering = false;
+
                     layer.nextStateIndex  = tr.toStateIndex;
                     layer.nextTime        = 0.0f;
                     layer.blendTime       = 0.0f;
@@ -435,29 +408,33 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
             }
         }
 
-        // AnyState で既に遷移が決まっていなければ通常トランジションを評価
+        // 通常トランジション
         if (!layer.isTransitioning && layer.nextStateIndex < 0)
         {
-        for (const Transition& tr : curState.transitions)
-        {
-            if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
-            if (EvaluateTransition(tr, normalizedTime))
+            for (const Transition& tr : curState.transitions)
             {
-                layer.nextStateIndex  = tr.toStateIndex;
-                layer.nextTime        = 0.0f;
-                layer.blendTime       = 0.0f;
-                layer.blendDuration   = tr.transitionDuration;
-                layer.isTransitioning = tr.transitionDuration > 0.0f;
-
-                if (!layer.isTransitioning)
+                if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
+                if (EvaluateTransition(tr, normalizedTime))
                 {
-                    layer.currentStateIndex = layer.nextStateIndex;
-                    layer.currentTime       = 0.0f;
-                    layer.nextStateIndex    = -1;
+                    // nextState の entering をリセット
+                    for (auto& cb : layer.states[tr.toStateIndex].callbacks)
+                        cb.entering = false;
+
+                    layer.nextStateIndex  = tr.toStateIndex;
+                    layer.nextTime        = 0.0f;
+                    layer.blendTime       = 0.0f;
+                    layer.blendDuration   = tr.transitionDuration;
+                    layer.isTransitioning = tr.transitionDuration > 0.0f;
+
+                    if (!layer.isTransitioning)
+                    {
+                        layer.currentStateIndex = layer.nextStateIndex;
+                        layer.currentTime       = 0.0f;
+                        layer.nextStateIndex    = -1;
+                    }
+                    break;
                 }
-                break;
             }
-        }
         }
     }
 
@@ -466,7 +443,6 @@ void Animator::UpdateLayer(AnimatorLayer& layer,
     {
         if (!layer.mask.Contains(ni)) continue;
 
-        // 【重要】ルートモーション対象ノードはメッシュを動かさないよう原点に縛り付ける
         if (useRootMotion && ni == rootNodeIndex)
         {
             finalPoses[ni].position = Vector3::Zero;
@@ -625,6 +601,30 @@ bool Animator::EvaluateTransition(const Transition& t, float normalizedTime) con
     for (const Condition& c : t.conditions)
         if (!EvaluateCondition(c)) return false;
     return true;
+}
+
+void Animator::EvaluateCallbacks(State& state, float currentTime, float animLength)
+{
+    for (auto& callback : state.callbacks)
+    {
+        float nowPer = animLength > 0.0f ? currentTime / animLength : 0.0f;
+        if (nowPer > callback.enterTimePer && nowPer < callback.exitTimePer)
+        {
+            if (!callback.entering)
+            {
+                if (callback.onEnter) callback.onEnter(state);
+                callback.entering = true;
+            }
+        }
+        else if (nowPer >= callback.exitTimePer)
+        {
+            if (callback.entering)
+            {
+                if (callback.onExit) callback.onExit(state);
+                callback.entering = false;
+            }
+        }
+    }
 }
 
 const std::string& Animator::GetCurrentStateName(int li) const

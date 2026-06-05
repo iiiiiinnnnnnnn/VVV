@@ -297,7 +297,7 @@
                     "blockAnyStateTransitions": true,
                     "callbacks": [
                         {
-                            "enterTimePer": 0.0,
+                            "enterTimePer": 0.10000000149011612,
                             "exitTimePer": 0.20000000298023224,
                             "label": "OnAnim"
                         }
@@ -346,7 +346,7 @@
                     "blockAnyStateTransitions": true,
                     "callbacks": [
                         {
-                            "enterTimePer": 0.0,
+                            "enterTimePer": 0.20000000298023224,
                             "exitTimePer": 0.4000000059604645,
                             "label": "OnAnim"
                         }
@@ -395,7 +395,7 @@
                     "blockAnyStateTransitions": true,
                     "callbacks": [
                         {
-                            "enterTimePer": 0.0,
+                            "enterTimePer": 0.20000000298023224,
                             "exitTimePer": 0.25,
                             "label": "OnAnim"
                         }
