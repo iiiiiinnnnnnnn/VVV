@@ -2,6 +2,7 @@
 
 #include "Object.h"
 #include "imgui.h"
+#include "GameTime.h"
 
 void Object::Components::DrawGUI()
 {
@@ -14,6 +15,10 @@ void Object::Components::DrawGUI()
 
 void Object::Update()
 {
+    // Destroy timer
+    if (destroyTimer.has_value() && destroyTimer.value() > 0.0f)
+        destroyTimer.value() -= Game::Time::deltaTime;
+
     componentList.Update();
     OnUpdate();
 
@@ -29,20 +34,15 @@ void Object::Render(const RenderContext& rc)
 
 void Object::DrawGUI()
 {
-    ImGui::PushID(this);
-    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
+    if (ImGui::TreeNode("Object Info"))
     {
-        componentList.DrawGUI();
-
-        if (ImGui::TreeNode("User param"))
-        {
-            OnDrawGUI();
-            ImGui::TreePop();
-        }
+        ImGui::Text("Name: %s", name.c_str());
+        ImGui::Text("Tag: %s", tag.c_str());
+        ImGui::Checkbox("Active", &isActive);
+        ImGui::Text("Components: %d", (int)componentList.data.size());
+        ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
+        ImGui::TreePop();
     }
-    ImGui::PopID();
-
-    ImGui::Separator();
 }
 
 // Components

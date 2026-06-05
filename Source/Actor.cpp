@@ -16,6 +16,8 @@ void Actor::DrawGUI()
     ImGui::PushID(this);
     if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
     {
+        Object::DrawGUI();
+
         if (ImGui::TreeNode("Transform"))
         {
             if (ImGui::DragFloat3("Position", &transform.position.x)) {

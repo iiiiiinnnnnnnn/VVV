@@ -104,7 +104,7 @@ void Scene::Render()
 		camera.GetProjection()
 	);
 
-	// PrimitiveRenderer描画(一応)
+	// PrimitiveRenderer描画
 	primitiveRenderer->Render(
 		dc,
 		camera.GetView(),
@@ -115,6 +115,7 @@ void Scene::Render()
 	widgets.Render(rc);
 	graphics.GetSpriteRenderer()->Render(rc);
 
+	// GUI
 	DrawGUI(rc);
 }
 

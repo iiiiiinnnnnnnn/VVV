@@ -24,8 +24,8 @@ public:
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
 
-	void Destroy() { pendingDestroy = true; }
-	bool IsPendingDestroy() const { return pendingDestroy; }
+	void Destroy(float delay = 0.0f) { destroyTimer = delay; }
+	bool IsPendingDestroy() const { return destroyTimer.has_value() && destroyTimer.value() <= 0.0f; }
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args) {
@@ -53,7 +53,7 @@ protected:
 	std::string name;
 	std::string tag;
 
-	bool pendingDestroy = false;
+	std::optional<float> destroyTimer;
 
 	struct Components {
 		std::vector<std::unique_ptr<Component>> data;
