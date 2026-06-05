@@ -35,6 +35,8 @@ public:
 
     void OnEnterAnim(const Animator::State& state);
     void OnExitAnim(const Animator::State& state);
+    void OnEnterAnimAttack4B(const Animator::State& state);
+    void OnExitAnimAttack4B(const Animator::State& state);
 
 	void OnCollisionEnter(Actor* other) override;
 	void OnCollisionStay(Actor* other) override;
@@ -51,6 +53,7 @@ protected:
     CharacterController*  cc   = nullptr;
     ThirdPersonCameraController* cameraController = nullptr;
     BoneSphereCollider* weaponCollider = nullptr;
+    BoneSphereCollider* footCollider = nullptr;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;
