@@ -100,6 +100,9 @@
     <Filter Include="データ\アニメーター">
       <UniqueIdentifier>{86638134-a164-4c79-9d6f-06b399dc4842}</UniqueIdentifier>
     </Filter>
+    <Filter Include="シェーダー\ゲーム">
+      <UniqueIdentifier>{b6729ec8-2454-468e-afa2-59cd699e36fd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -265,6 +268,9 @@
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Entity.cpp" />
+    <ClCompile Include="Source\PostEffect.cpp">
+      <Filter>ソースファイル\ゲーム\シェーダー</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -477,17 +483,14 @@
     <ClInclude Include="Source\Random.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
+    <ClInclude Include="Source\PostEffect.h">
+      <Filter>ソースファイル\ゲーム\シェーダー</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="imgui.ini" />
-    <None Include="Shader\GaussianFiltering.hlsli">
-      <Filter>シェーダー</Filter>
-    </None>
-    <None Include="Shader\PBR.hlsli">
-      <Filter>シェーダー</Filter>
-    </None>
     <None Include="Shader\Skinning.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
@@ -503,9 +506,6 @@
     <None Include="Shader\PrimitiveRenderer.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
-    <None Include="Shader\PBRFunctions.hlsli">
-      <Filter>シェーダー</Filter>
-    </None>
     <None Include="Shader\Scene.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
@@ -518,17 +518,17 @@
     <None Include="Data\Animator\Player.animator">
       <Filter>データ\アニメーター</Filter>
     </None>
+    <None Include="Shader\GaussianFiltering.hlsli">
+      <Filter>シェーダー\ゲーム</Filter>
+    </None>
+    <None Include="Shader\PBR.hlsli">
+      <Filter>シェーダー\ゲーム</Filter>
+    </None>
+    <None Include="Shader\PBRFunctions.hlsli">
+      <Filter>シェーダー\ゲーム</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
-      <Filter>シェーダー</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PBRVS.hlsl">
-      <Filter>シェーダー</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PBRPS.hlsl">
-      <Filter>シェーダー</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\BasicModelPS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
@@ -561,6 +561,15 @@
     </FxCompile>
     <FxCompile Include="Shader\SkyBoxVS.hlsl">
       <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRVS.hlsl">
+      <Filter>シェーダー\ゲーム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
+      <Filter>シェーダー\ゲーム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRPS.hlsl">
+      <Filter>シェーダー\ゲーム</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

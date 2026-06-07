@@ -44,6 +44,7 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelRenderComponent.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
+    <ClCompile Include="Source\PostEffect.cpp" />
     <ClCompile Include="Source\TestPlayScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="Source\PhysicsManager.cpp" />
@@ -111,6 +112,7 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderComponent.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
+    <ClInclude Include="Source\PostEffect.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\TestPlayScene.h" />

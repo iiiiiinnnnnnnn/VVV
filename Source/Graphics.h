@@ -5,6 +5,7 @@
 #include <wrl.h>
 #include <memory>
 #include "RenderState.h"
+#include "RenderTarget.h"
 #include "PrimitiveRenderer.h"
 #include "ShapeRenderer.h"
 #include "ModelRenderer.h"
@@ -14,6 +15,15 @@
 
 namespace Game
 {
+	enum class FrameBufferId
+	{
+		Display,
+		Scene,
+		Luminance,
+
+		EnumCount
+	};
+
 	class Graphics
 	{
 	private:
@@ -28,14 +38,13 @@ namespace Game
 		}
 
 		void Initialize(HWND hWnd);
-		void Clear(float r, float g, float b, float a);
-		void SetRenderTargets();
 		void Present(UINT syncInterval);
 
 		HWND GetWindowHandle() { return hWnd; }
 		ID3D11Device* GetDevice() { return device.Get(); }
 		ID3D11DeviceContext* GetDeviceContext() { return immediateContext.Get(); }
 		RenderState* GetRenderState() { return renderState.get(); }
+		RenderTarget* GetFrameBuffer(FrameBufferId frameBufferId) { return frameBuffers[static_cast<int>(frameBufferId)].get(); }
 		PrimitiveRenderer* GetPrimitiveRenderer() const { return primitiveRenderer.get(); }
 		ShapeRenderer* GetShapeRenderer() const { return shapeRenderer.get(); }
 		ModelRenderer* GetModelRenderer() const { return modelRenderer.get(); }
@@ -53,13 +62,11 @@ namespace Game
 
 	private:
 		HWND hWnd = nullptr;
-		Microsoft::WRL::ComPtr<ID3D11Device>			device;
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext>		immediateContext;
-		Microsoft::WRL::ComPtr<IDXGISwapChain>			swapchain;
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	renderTargetView;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	depthStencilView;
-		D3D11_VIEWPORT									viewport;
+		Microsoft::WRL::ComPtr<ID3D11Device>		device;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext>	immediateContext;
+		Microsoft::WRL::ComPtr<IDXGISwapChain>		swapchain;
 
+		std::unique_ptr<RenderTarget> frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
 		std::unique_ptr<RenderState>		renderState;
 		std::unique_ptr<PrimitiveRenderer>	primitiveRenderer;
 		std::unique_ptr<ShapeRenderer>		shapeRenderer;

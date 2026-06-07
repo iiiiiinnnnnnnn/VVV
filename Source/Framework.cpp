@@ -90,11 +90,11 @@ void Framework::Render(float elapsedTime)
 {
 	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
-	// 画面クリア
-	Game::Graphics::Instance().Clear(0.5f, 0.5f, 0.5f, 1);
-
-	// レンダーターゲット設定
-	Game::Graphics::Instance().SetRenderTargets();
+	// 画面クリア＆レンダーターゲット設定
+	RenderTarget* backBuffer = Game::Graphics::Instance().
+		GetFrameBuffer(Game::FrameBufferId::Display);
+	backBuffer->Clear(dc, 0.5f, 0.5f, 0.5f, 1);
+	backBuffer->Activate(dc);
 
 	// シーン通常描画＆GUI描画処理
 	// GUI描画もSceneに任せちゃうお(rc拾えるようにするため)

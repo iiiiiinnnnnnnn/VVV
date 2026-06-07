@@ -85,7 +85,7 @@ void Scene::Render()
 		);
 		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 		shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
-		graphics.SetRenderTargets();
+		graphics.GetFrameBuffer(Game::FrameBufferId::Display)->Activate(rc.deviceContext);
 	}
 
 	// スカイボックス
