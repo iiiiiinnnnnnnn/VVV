@@ -1,9 +1,12 @@
 #include "PostEffect.h"
 #include "GpuResourceUtils.h"
-#include <imgui.h>
+#include "imgui.h"
+#include "Graphics.h"
 
-PostEffect::PostEffect(ID3D11Device* device)
+PostEffect::PostEffect()
 {
+	auto device = Game::Graphics::Instance().GetDevice();
+
 	// フルクリーンクアッド頂点シェーダー読み込み
 	GpuResourceUtils::LoadVertexShader(
 		device,
@@ -112,7 +115,7 @@ void PostEffect::End(const RenderContext& rc)
 }
 
 // デバッグGUI描画
-void PostEffect::DrawDebugGUI()
+void PostEffect::DrawGUI()
 {
 	ImGui::DragFloat("LuminanceLowerEdge", &cbPostEffect.luminanceExtractionLowerEdge, 0.01f, 0, 1.0f);
 	ImGui::DragFloat("LuminanceHigherEdge", &cbPostEffect.luminanceExtractionHigherEdge, 0.01f, 0, 1.0f);

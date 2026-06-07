@@ -527,6 +527,9 @@
     <None Include="Shader\PBRFunctions.hlsli">
       <Filter>シェーダー\ゲーム</Filter>
     </None>
+    <None Include="Shader\PostEffect.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicModelPS.hlsl">
@@ -570,6 +573,15 @@
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
       <Filter>シェーダー\ゲーム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\FullScreenQuadVS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BloomPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

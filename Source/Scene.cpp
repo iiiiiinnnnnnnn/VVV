@@ -7,10 +7,10 @@ Scene::Scene(const std::string& name) : name(name)
 {
 	// ライト設定
 	DirectionalLight directionalLight;
-	directionalLight.direction = {0, -1, -1};
-	directionalLight.color = {1, 1, 1};
+	directionalLight.direction = { 0, -1, -1 };
+	directionalLight.color = { 1, 1, 1 };
 	lightData.SetDirectionalLight(directionalLight);
-	lightData.SetAmbientColor({1, 1, 1, 1});
+	lightData.SetAmbientColor({ 1, 1, 1, 1 });
 }
 
 void Scene::Update()
@@ -36,6 +36,10 @@ void Scene::Render()
 	RenderState* renderState = graphics.GetRenderState();
 	PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
 
+	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
+	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
+	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
+
 	// 描画コンテキスト設定
 	RenderContext rc;
 	{
@@ -55,13 +59,6 @@ void Scene::Render()
 			renderSettings.showDebug = !renderSettings.showDebug;
 		#endif
 	}
-
-	// グリッド
-	/*if (renderSettings.showDebug)
-	{
-		primitiveRenderer->DrawGrid(100, 1);
-		primitiveRenderer->Render(dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	}*/
 
 	// IBLデータをRenderContextに詰める
 	iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
@@ -85,32 +82,58 @@ void Scene::Render()
 		);
 		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 		shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
-		graphics.GetFrameBuffer(Game::FrameBufferId::Display)->Activate(rc.deviceContext);
 	}
 
-	// スカイボックス
-	graphics.GetSkyBoxRenderer()->Render(
-		rc.deviceContext, renderState, *rc.camera,
-		graphics.GetIBLSpecularPMREM(), 1.0f
-	);
+	// ---- シーン描画 → sceneBuffer ----------------------------------------
+	sceneBuffer->Clear(dc);
+	sceneBuffer->Activate(dc);
+	{
+		// スカイボックス
+		graphics.GetSkyBoxRenderer()->Render(
+			rc.deviceContext, renderState, *rc.camera,
+			graphics.GetIBLSpecularPMREM(), 1.0f
+		);
 
-	// 通常描画
-	graphics.GetModelRenderer()->Render(rc);
+		// 通常描画
+		graphics.GetModelRenderer()->Render(rc);
 
-	// ShapeRenderer描画
-	graphics.GetShapeRenderer()->Render(
-		dc,
-		camera.GetView(),
-		camera.GetProjection()
-	);
+		// ShapeRenderer描画
+		graphics.GetShapeRenderer()->Render(
+			dc,
+			camera.GetView(),
+			camera.GetProjection()
+		);
 
-	// PrimitiveRenderer描画
-	primitiveRenderer->Render(
-		dc,
-		camera.GetView(),
-		camera.GetProjection(),
-		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		// PrimitiveRenderer描画
+		primitiveRenderer->Render(
+			dc,
+			camera.GetView(),
+			camera.GetProjection(),
+			D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	}
+	sceneBuffer->Deactivate(dc);
 
+	// ---- PostEffect -------------------------------------------------------
+
+	// 輝度抽出: sceneBuffer → luminanceBuffer
+	luminanceBuffer->Clear(dc);
+	luminanceBuffer->Activate(dc);
+	{
+		postEffect.Begin(rc);
+		postEffect.LuminanceExtraction(rc, sceneBuffer->GetSRV());
+		postEffect.End(rc);
+	}
+	luminanceBuffer->Deactivate(dc);
+
+	// Bloom合成: (sceneBuffer + luminanceBuffer) → displayBuffer
+	displayBuffer->Activate(dc);
+	{
+		postEffect.Begin(rc);
+		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
+		postEffect.End(rc);
+	}
+
+	// ---- スプライト・GUIはdisplayBufferのまま描画 ------------------------
 	// スプライト
 	widgets.Render(rc);
 	graphics.GetSpriteRenderer()->Render(rc);
@@ -196,6 +219,12 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
 			ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
 			ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
+		}
+
+		// PostEffect
+		if (ImGui::CollapsingHeader("PostEffect"))
+		{
+			postEffect.DrawGUI();
 		}
 
 		OnDrawGUI();

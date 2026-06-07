@@ -11,6 +11,7 @@
 #include "CameraController.h"
 #include "RenderContext.h"
 #include "PhysicsManager.h"
+#include "PostEffect.h"
 
 class Scene
 {
@@ -40,6 +41,7 @@ protected:
 	Camera											camera;
 	std::vector<std::unique_ptr<CameraController>>	cameraControllers;
 	int 											nowCameraControllerIndex = 0;
+	PostEffect										postEffect;
 
 	LightData										lightData;
 	RenderSettings 									renderSettings;
