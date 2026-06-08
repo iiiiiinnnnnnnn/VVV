@@ -54,8 +54,7 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
                              const RenderState* renderState,
                              const Camera& camera,
-                             ID3D11ShaderResourceView* skyTex,
-                             float skyIntensity)
+                             ID3D11ShaderResourceView* skyTex)
 {
     if (!skyTex) return;
 
@@ -68,7 +67,7 @@ void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
         CbSkyBox cb{};
         cb.inverseViewProjection = invVP;
         cb.viewPos               = camera.GetEye();
-        cb.skyIntensity          = skyIntensity;
+        cb.skyIntensity          = skyboxData.skyIntensity;
         dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
     }
 
@@ -102,4 +101,9 @@ void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
     dc->PSSetShaderResources(0, 1, &nullSrv);
     ID3D11Buffer* nullCb = nullptr;
     dc->PSSetConstantBuffers(0, 1, &nullCb);
+}
+
+void SkyBoxRenderer::DrawGUI()
+{
+    ImGui::DragFloat("Sky Intensity", &skyboxData.skyIntensity, 0.1f, 0.0f, 10.0f);
 }

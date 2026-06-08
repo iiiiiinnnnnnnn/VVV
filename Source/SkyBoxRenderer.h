@@ -19,8 +19,9 @@ public:
     void Render(ID3D11DeviceContext* dc,
                 const RenderState* renderState,
                 const Camera& camera,
-                ID3D11ShaderResourceView* skyTex,
-                float skyIntensity = 1.0f);
+                ID3D11ShaderResourceView* skyTex);
+
+    void DrawGUI();
 
 private:
     struct CbSkyBox
@@ -29,6 +30,11 @@ private:
         Vector3 viewPos;
         float   skyIntensity;
     };
+
+    struct SkyboxData
+    {
+        float skyIntensity = 1.0f;
+    } skyboxData;
 
     Microsoft::WRL::ComPtr<ID3D11VertexShader>   vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader>    pixelShader;

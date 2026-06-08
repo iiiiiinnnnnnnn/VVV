@@ -27,11 +27,15 @@ PostEffect::PostEffect()
 		sizeof(CbPostEffect),
 		constantBuffer.GetAddressOf());
 
-	// ブルームピクセルシェーダー読み込み
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/BloomPS.cso",
 		bloomPS.GetAddressOf());
+
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/ToneMappingPS.cso",
+		toneMappingPS.GetAddressOf());
 }
 
 // 開始処理
@@ -104,6 +108,22 @@ void PostEffect::Bloom(const RenderContext& rc, ID3D11ShaderResourceView* colorM
 	dc->Draw(4, 0);
 }
 
+void PostEffect::ToneMapping(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+{
+	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	// シェーダー設定
+	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
+	dc->PSSetShader(toneMappingPS.Get(), 0, 0);
+
+	// シェーダーリソース設定
+	ID3D11ShaderResourceView* srvs[] = { colorMap };
+	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+
+	// 描画
+	dc->Draw(4, 0);
+}
+
 // 終了処理
 void PostEffect::End(const RenderContext& rc)
 {
@@ -121,4 +141,6 @@ void PostEffect::DrawGUI()
 	ImGui::DragFloat("LuminanceHigherEdge", &cbPostEffect.luminanceExtractionHigherEdge, 0.01f, 0, 1.0f);
 	ImGui::DragFloat("GaussianSigma", &cbPostEffect.gaussianSigma, 0.01f, 0, 10.0f);
 	ImGui::DragFloat("BloomIntensity", &cbPostEffect.bloomIntensity, 0.1f, 0, 10.0f);
+	ImGui::DragFloat("Saturation", &cbPostEffect.saturation, 0.01f, 0, 10.0f);
+	ImGui::DragFloat("Exposure", &cbPostEffect.exposure, 0.01f, 0, 10.0f);
 }

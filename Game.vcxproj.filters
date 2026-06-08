@@ -583,6 +583,9 @@
     <FxCompile Include="Shader\BloomPS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\ToneMappingPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />

@@ -91,8 +91,7 @@ void Scene::Render()
 		// スカイボックス
 		graphics.GetSkyBoxRenderer()->Render(
 			rc.deviceContext, renderState, *rc.camera,
-			graphics.GetIBLSpecularPMREM(), 1.0f
-		);
+			graphics.GetIBLSpecularPMREM());
 
 		// 通常描画
 		graphics.GetModelRenderer()->Render(rc);
@@ -125,11 +124,21 @@ void Scene::Render()
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	// Bloom合成: (sceneBuffer + luminanceBuffer) → displayBuffer
-	displayBuffer->Activate(dc);
+	// Bloom合成: (sceneBuffer + luminanceBuffer) → sceneBuffer に戻す
+	sceneBuffer->Clear(dc);
+	sceneBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
 		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
+		postEffect.End(rc);
+	}
+	sceneBuffer->Deactivate(dc);
+
+	// トーンマッピング: sceneBuffer → displayBuffer
+	displayBuffer->Activate(dc);
+	{
+		postEffect.Begin(rc);
+		postEffect.ToneMapping(rc, sceneBuffer->GetSRV());
 		postEffect.End(rc);
 	}
 
@@ -219,6 +228,11 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
 			ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
 			ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Skybox"))
+		{
+			Game::Graphics::Instance().GetSkyBoxRenderer()->DrawGUI();
 		}
 
 		// PostEffect

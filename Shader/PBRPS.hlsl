@@ -172,10 +172,8 @@ float4 main(VS_OUT pin) : SV_TARGET
                  + iblDiffuse + iblSpecular
                  + emissive;
 
-    // -------------------------------------------------------------------------
     // リニア → sRGB (ガンマ補正)
-    // -------------------------------------------------------------------------
-    color = pow(max(color, 0.0f), 1.0f / GammaFactor);
+    //color = pow(max(color, 0.0f), 1.0f / GammaFactor);
 
     return float4(color, albedo.a);
 }
