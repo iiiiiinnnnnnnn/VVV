@@ -16,7 +16,6 @@ public:
 
     void OnUpdate() override;
     void OnLateUpdate() override;
-    void OnRender(const RenderContext& rc) override;
     void OnDrawGUI() override;
 
     void OnDamaged(float damage, KnockBackData knockBackData) override;
@@ -57,6 +56,7 @@ protected:
     ThirdPersonCameraController* cameraController = nullptr;
     BoneSphereCollider* weaponCollider = nullptr;
     BoneSphereCollider* footCollider = nullptr;
+    TrailRenderComponent* trail = nullptr;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;
@@ -75,15 +75,4 @@ protected:
     int stSprint = -1;
 
     Vector3 offsetPos = Vector3::Zero;
-
-    // ---- 剣の軌跡 ----
-    static constexpr int   TRAIL_MAX            = 20;
-    static constexpr float TRAIL_FRAME_INTERVAL = 0.01f;
-    Vector3 trailPositions[2][TRAIL_MAX] = {};
-    float   trailFrameTimer = 0.0f;
-
-    void UpdateSwordTrail();  // OnLateUpdateから呼ぶ
-
-public:
-    void DrawSwordTrail(const RenderContext& rc) const;
 };

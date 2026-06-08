@@ -282,6 +282,12 @@
     <ClCompile Include="Source\Entity.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\TrailRenderer.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TrailRenderComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -339,9 +345,6 @@
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Components.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rigidbody.h">
@@ -500,6 +503,15 @@
     <ClInclude Include="Source\VignetteSpriteShader.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClInclude>
+    <ClInclude Include="Source\TrailRenderer.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TrailRenderComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Components.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -542,6 +554,9 @@
       <Filter>シェーダー\システム</Filter>
     </None>
     <None Include="Shader\GaussianFiltering.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
+    <None Include="Shader\TrailRenderer.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
   </ItemGroup>
@@ -601,6 +616,12 @@
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\VignetteSpritePS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererVS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
   </ItemGroup>

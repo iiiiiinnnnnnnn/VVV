@@ -65,6 +65,8 @@
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\GameTime.cpp" />
     <ClCompile Include="Source\ThirdPersonCameraController.cpp" />
+    <ClCompile Include="Source\TrailRenderComponent.cpp" />
+    <ClCompile Include="Source\TrailRenderer.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
@@ -139,6 +141,8 @@
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\GameTime.h" />
     <ClInclude Include="Source\ThirdPersonCameraController.h" />
+    <ClInclude Include="Source\TrailRenderComponent.h" />
+    <ClInclude Include="Source\TrailRenderer.h" />
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
@@ -160,6 +164,7 @@
     <None Include="Shader\ShapeRenderer.hlsli" />
     <None Include="Shader\Skinning.hlsli" />
     <None Include="Shader\BasicSprite.hlsli" />
+    <None Include="Shader\TrailRenderer.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BloomPS.hlsl">
@@ -233,6 +238,14 @@
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

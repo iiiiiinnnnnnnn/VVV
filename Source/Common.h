@@ -22,6 +22,9 @@
 #include <tchar.h>
 #include <iostream>
 #include <variant>
+#include <stack>
+#include <queue>
+#include <deque>
 
 // microsoft
 #include <windows.h>

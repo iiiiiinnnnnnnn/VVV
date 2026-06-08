@@ -12,6 +12,7 @@
 #include "SpriteRenderer.h"
 #include "ShadowMapRenderer.h"
 #include "SkyBoxRenderer.h"
+#include "TrailRenderer.h"
 
 namespace Game
 {
@@ -46,6 +47,7 @@ namespace Game
 		RenderState* GetRenderState() { return renderState.get(); }
 		RenderTarget* GetFrameBuffer(FrameBufferId frameBufferId) { return frameBuffers[static_cast<int>(frameBufferId)].get(); }
 		PrimitiveRenderer* GetPrimitiveRenderer() const { return primitiveRenderer.get(); }
+		TrailRenderer* GetTrailRenderer() const { return trailRenderer.get(); }
 		ShapeRenderer* GetShapeRenderer() const { return shapeRenderer.get(); }
 		ModelRenderer* GetModelRenderer() const { return modelRenderer.get(); }
 		SpriteRenderer* GetSpriteRenderer() const { return spriteRenderer.get(); }
@@ -69,6 +71,7 @@ namespace Game
 		std::unique_ptr<RenderTarget> frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
 		std::unique_ptr<RenderState>		renderState;
 		std::unique_ptr<PrimitiveRenderer>	primitiveRenderer;
+		std::unique_ptr<TrailRenderer>	trailRenderer;
 		std::unique_ptr<ShapeRenderer>		shapeRenderer;
 		std::unique_ptr<ModelRenderer>		modelRenderer;
 		std::unique_ptr<SpriteRenderer>		spriteRenderer;

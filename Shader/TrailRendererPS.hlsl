@@ -1,0 +1,14 @@
+// TrailRendererPS.hlsl
+
+#include "TrailRenderer.hlsli"
+
+float4 main(VS_OUT pin) : SV_TARGET
+{
+    // UV.y : 0=êVÇµÇ¢í[, 1=å√Ç¢í[ Å® å√Ç¢ÇŸÇ«ìßñæ
+    float alpha = pow(saturate(1.0 - pin.uv.y), 2.0);
+
+    // UV.x : 0=root, 1=tip Å® tipë§Çè≠Çµç◊Ç≠
+    alpha *= lerp(1.0, 0.3, pin.uv.x);
+
+    return float4(1.0, 0.9, 0.3, alpha);
+}

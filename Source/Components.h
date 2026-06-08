@@ -9,3 +9,4 @@
 #include "Animator.h"
 #include "Collider.h"
 #include "CharacterController.h"
+#include "TrailRenderComponent.h"

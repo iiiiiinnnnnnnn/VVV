@@ -66,9 +66,6 @@ void Scene::Render()
 	iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
 	iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 
-	// 先にワールド行列確定させるためにDrawしとく
-	actors.Render(rc);
-
 	// シャドウマップ描画
 	{
 		for (auto& actor : actors.data)
@@ -97,26 +94,8 @@ void Scene::Render()
 		// 通常描画
 		graphics.GetModelRenderer()->Render(rc);
 
-		// ShapeRenderer描画
-		graphics.GetShapeRenderer()->Render(
-			dc,
-			camera.GetView(),
-			camera.GetProjection()
-		);
-
-		// PrimitiveRenderer描画
-		primitiveRenderer->Render(
-			dc,
-			camera.GetView(),
-			camera.GetProjection(),
-			D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-		// 剣の軌跡描画（sceneBufferアクティブ中・LINELIST後に行う）
-		for (auto& actor : actors.data)
-		{
-			if (auto* player = dynamic_cast<Player*>(actor.get()))
-				player->DrawSwordTrail(rc);
-		}
+		// 先にワールド行列確定させるためにDrawしとく
+		actors.Render(rc);
 	}
 	sceneBuffer->Deactivate(dc);
 
@@ -149,6 +128,20 @@ void Scene::Render()
 		postEffect.ToneMapping(rc, sceneBuffer->GetSRV());
 		postEffect.End(rc);
 	}
+
+	// ShapeRenderer描画
+	graphics.GetShapeRenderer()->Render(
+		dc,
+		camera.GetView(),
+		camera.GetProjection()
+	);
+
+	// PrimitiveRenderer描画
+	primitiveRenderer->Render(
+		dc,
+		camera.GetView(),
+		camera.GetProjection(),
+		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	// ---- スプライト・GUIはdisplayBufferのまま描画 ------------------------
 	// スプライト

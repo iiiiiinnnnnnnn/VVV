@@ -79,6 +79,11 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		0.5f,
 		Matrix::CreateTranslation({0, 0, 0}));
 	footCollider->SetActive(false);
+
+	trail = AddComponent<TrailRenderComponent>(
+		model.get(),
+		model->GetNodeIndex("add_weapon_r"));
+	trail->StopTrail();
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -200,6 +205,12 @@ void Player::OnUpdate()
 		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
 	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
+
+	// trail
+	if(weaponCollider->IsActive())
+		trail->StartTrail();
+	else
+		trail->StopTrail();
 }
 
 void Player::OnLateUpdate()
@@ -212,12 +223,6 @@ void Player::OnLateUpdate()
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
-
-	UpdateSwordTrail();
-}
-
-void Player::OnRender(const RenderContext& rc)
-{
 }
 
 void Player::OnDrawGUI()
@@ -255,70 +260,4 @@ void Player::OnDamaged(float damage, KnockBackData knockBackData)
 
 void Player::OnDead()
 {
-}
-
-// ========== 剣の軌跡 ==========
-
-void Player::UpdateSwordTrail()
-{
-	// LateUpdate後に呼ぶことでModelRenderComponent::LateUpdate(UpdateTransform)済みの
-	// 正しいworldTransformが取れる
-
-	trailFrameTimer += Game::Time::deltaTime;
-	if (trailFrameTimer < TRAIL_FRAME_INTERVAL)
-		return;
-	trailFrameTimer = 0.0f;
-
-	for (int i = TRAIL_MAX - 1; i > 0; --i)
-	{
-		trailPositions[0][i] = trailPositions[0][i - 1];
-		trailPositions[1][i] = trailPositions[1][i - 1];
-
-		// 配列のインデックスから 0.0 ～ 1.0 の割合（t）を作る
-		// （過去に遡るほど 1.0 に近づく）
-		float t = (float)i / (float)TRAIL_MAX;
-
-		// イージング（2乗して最初は遅く、後で一気に大きくする）
-		float easedT = t * t; 
-
-		// 基本の補間強度に、イージングされた割合を掛け合わせる
-		float finalT = 0.5f * easedT;
-
-		trailPositions[1][i] = Vector3::Lerp(trailPositions[1][i], trailPositions[0][i], finalT);
-	}
-
-	const Model::Node& weaponNode = model->GetNodes().at(model->GetNodeIndex("add_weapon_r"));
-
-	Matrix rootMat = Matrix::CreateTranslation(0.0f, 0.0f, 0.0f) * weaponNode.worldTransform;
-	Matrix tipMat  = Matrix::CreateTranslation(-1.0f, 0.0f, 0.0f) * weaponNode.worldTransform;
-
-	trailPositions[0][0] = { rootMat._41, rootMat._42, rootMat._43 };
-	trailPositions[1][0] = { tipMat._41,  tipMat._42,  tipMat._43  };
-}
-
-void Player::DrawSwordTrail(const RenderContext& rc) const
-{
-	if (!weaponCollider->IsActive())
-		return;
-
-	Game::Graphics& graphics = Game::Graphics::Instance();
-	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
-	RenderState* rs = graphics.GetRenderState();
-	PrimitiveRenderer* prim = graphics.GetPrimitiveRenderer();
-
-	dc->OMSetBlendState(rs->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
-	dc->OMSetDepthStencilState(rs->GetDepthStencilState(DepthState::TestOnly), 0);
-	dc->RSSetState(rs->GetRasterizerState(RasterizerState::SolidCullNone));
-
-	Color color = { 1.0f, 1.0f, 0.0f, 0.1f };
-	for (int i = 0; i < TRAIL_MAX; ++i)
-	{
-		prim->AddVertex(trailPositions[0][i], color);
-		prim->AddVertex(trailPositions[1][i], color);
-	}
-
-	prim->Render(dc,
-				 rc.camera->GetView(),
-				 rc.camera->GetProjection(),
-				 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 }

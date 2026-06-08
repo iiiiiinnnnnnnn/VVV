@@ -35,7 +35,6 @@ private:
 	struct CbScene
 	{
 		Matrix		viewProjection;
-		Color		color;
 	};
 
 	struct Vertex
