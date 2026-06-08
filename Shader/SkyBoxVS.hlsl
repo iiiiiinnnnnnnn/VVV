@@ -1,4 +1,5 @@
 // SkyBoxVS.hlsl
+
 // フルスクリーントライアングル1枚で描画（頂点バッファ不要）
 
 struct VS_OUT

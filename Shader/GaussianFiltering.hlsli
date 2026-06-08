@@ -1,3 +1,5 @@
+// GaussianFiltering.hlsli
+
 #include "BasicSprite.hlsli"
 
 //  カーネル最大サイズ

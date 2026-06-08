@@ -21,6 +21,42 @@
                     "sourceProgressThreshold": 0.0,
                     "toStateIndex": 4,
                     "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_R",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressThreshold": 0.0,
+                    "toStateIndex": 8,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_L",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressThreshold": 0.0,
+                    "toStateIndex": 9,
+                    "transitionDuration": 0.10000000149011612
                 }
             ],
             "blendMode": 0,
@@ -257,7 +293,7 @@
                     "editorPosY": 323.0,
                     "hasEditorPosition": true,
                     "loop": false,
-                    "name": "Attack1",
+                    "name": "Attack1Freeze",
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -306,7 +342,7 @@
                     "editorPosY": 291.0,
                     "hasEditorPosition": true,
                     "loop": false,
-                    "name": "Attack2",
+                    "name": "Attack2Freeze",
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -355,7 +391,7 @@
                     "editorPosY": 243.0,
                     "hasEditorPosition": true,
                     "loop": false,
-                    "name": "Attack3",
+                    "name": "Attack3Freeze",
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -409,7 +445,57 @@
                     "editorPosY": 211.0,
                     "hasEditorPosition": true,
                     "loop": false,
-                    "name": "Attack4",
+                    "name": "Attack4Freeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressThreshold": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 10,
+                    "blockAnyStateTransitions": true,
+                    "callbacks": [],
+                    "editorPosX": -184.0,
+                    "editorPosY": 355.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Hit_RFreeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressThreshold": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 9,
+                    "blockAnyStateTransitions": true,
+                    "callbacks": [],
+                    "editorPosX": -268.0,
+                    "editorPosY": 227.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Hit_LFreeze",
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -448,6 +534,8 @@
         }
     ],
     "triggers": [
-        "Attack"
+        "Attack",
+        "Hit_R",
+        "Hit_L"
     ]
 }

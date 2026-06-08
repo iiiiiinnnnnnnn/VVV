@@ -555,7 +555,10 @@ bool Animator::EvaluateCondition(const Condition& c) const
 
     if (std::holds_alternative<float>(val))
     {
-        float v = std::get<float>(val), t = std::get<float>(thr);
+        float v = std::get<float>(val);
+        float t = std::holds_alternative<float>(thr) ? std::get<float>(thr)
+            : std::holds_alternative<int>(thr)   ? (float)std::get<int>(thr)
+            : 0.0f;
         switch (c.mode) {
         case ConditionMode::Greater:   return v > t;
         case ConditionMode::Less:      return v < t;
@@ -566,13 +569,17 @@ bool Animator::EvaluateCondition(const Condition& c) const
     }
     else if (std::holds_alternative<int>(val))
     {
-        int v = std::get<int>(val), t = std::get<int>(thr);
+        int v = std::get<int>(val);
+        // threshold が float で保存されている場合も安全に取り出す
+        int t = std::holds_alternative<int>(thr) ? std::get<int>(thr)
+            : std::holds_alternative<float>(thr) ? (int)std::get<float>(thr)
+            : 0;
         switch (c.mode) {
-        case ConditionMode::Greater:   return v > t;
-        case ConditionMode::Less:      return v < t;
-        case ConditionMode::Equals:    return v == t;
-        case ConditionMode::NotEquals: return v != t;
-        default: return false;
+            case ConditionMode::Greater:   return v > t;
+            case ConditionMode::Less:      return v < t;
+            case ConditionMode::Equals:    return v == t;
+            case ConditionMode::NotEquals: return v != t;
+            default: return false;
         }
     }
     else if (std::holds_alternative<bool>(val))

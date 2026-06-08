@@ -8,6 +8,7 @@
 
 #include "Graphics.h"
 #include "Misc.h"
+#include "GpuResourceUtils.h"
 
 // テクスチャ読み込み
 HRESULT Texture::LoadTexture(
@@ -99,6 +100,23 @@ Texture::Texture(const char* filename)
 
 	// フォーマット毎に画像読み込み処理
 	HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
+	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+}
+
+Texture::Texture(const Color& color)
+{
+	UINT packedColor =
+		(static_cast<UINT>(color.A() * 255) << 24) |
+		(static_cast<UINT>(color.B() * 255) << 16) |
+		(static_cast<UINT>(color.G() * 255) << 8)  |
+		(static_cast<UINT>(color.R() * 255));
+
+	auto device = Game::Graphics::Instance().GetDevice();
+	HRESULT hr = GpuResourceUtils::CreateDummyTexture(
+		device,
+		packedColor,
+		shaderResourceView.GetAddressOf(),
+		&texture2dDesc);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }
 

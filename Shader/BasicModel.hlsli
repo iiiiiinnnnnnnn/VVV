@@ -1,3 +1,5 @@
+// BasicModel.hlsli
+
 #include "ShadingFunctions.hlsli"
 #include "Scene.hlsli"
 

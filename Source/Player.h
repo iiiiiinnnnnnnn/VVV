@@ -19,6 +19,21 @@ public:
     void OnRender(const RenderContext& rc) override;
     void OnDrawGUI() override;
 
+	void OnDamaged(float damage, KnockBackData knockBackData) override;
+	void OnDead() override;
+
+    void OnEnterAnim(const Animator::State& state);
+    void OnExitAnim(const Animator::State& state);
+    void OnEnterAnimAttack4B(const Animator::State& state);
+    void OnExitAnimAttack4B(const Animator::State& state);
+
+    void OnCollisionEnter(Actor* other) override;
+    void OnCollisionStay(Actor* other) override;
+    void OnCollisionExit(Actor* other) override;
+    void OnTriggerEnter(Actor* other) override;
+    void OnTriggerStay(Actor* other) override;
+    void OnTriggerExit(Actor* other) override;
+
     void SetController(std::unique_ptr<PlayerController> ctrl) { controller = std::move(ctrl); }
     PlayerController* GetController() const { return controller.get(); }
 
@@ -32,18 +47,6 @@ public:
 
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
-
-    void OnEnterAnim(const Animator::State& state);
-    void OnExitAnim(const Animator::State& state);
-    void OnEnterAnimAttack4B(const Animator::State& state);
-    void OnExitAnimAttack4B(const Animator::State& state);
-
-	void OnCollisionEnter(Actor* other) override;
-	void OnCollisionStay(Actor* other) override;
-	void OnCollisionExit(Actor* other) override;
-	void OnTriggerEnter(Actor* other) override;
-	void OnTriggerStay(Actor* other) override;
-	void OnTriggerExit(Actor* other) override;
 
 protected:
     std::unique_ptr<PlayerController> controller;

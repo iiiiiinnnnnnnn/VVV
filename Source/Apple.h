@@ -1,14 +1,14 @@
-// Enemy.h
+// Apple.h
 
 #pragma once
 
 #include "Entity.h"
 
-class Enemy : public Entity
+class Apple : public Entity
 {
 public:
-	Enemy();
-	~Enemy() = default;
+	Apple();
+	~Apple() = default;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
@@ -19,6 +19,12 @@ public:
 
 	void OnDead() override;
 
-private:
+	void SetAggressive(bool aggressive) { isAggressive = aggressive; }
+	bool IsAggressive() const { return isAggressive; }
 
+	void SetPosition(const Vector3& pos);
+
+private:
+	bool isAggressive = false;
+	Rigidbody* rb;
 };

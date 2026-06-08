@@ -1,3 +1,5 @@
+// Scene.hlsli
+
 struct CbDirectionalLight
 {
     float3 direction;

@@ -19,7 +19,7 @@
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
-    <ClCompile Include="Source\Enemy.cpp" />
+    <ClCompile Include="Source\Apple.cpp" />
     <ClCompile Include="Source\Entity.cpp" />
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
@@ -66,6 +66,7 @@
     <ClCompile Include="Source\GameTime.cpp" />
     <ClCompile Include="Source\ThirdPersonCameraController.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
+    <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -80,7 +81,7 @@
     <ClInclude Include="Source\BasicSpriteShader.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
-    <ClInclude Include="Source\Enemy.h" />
+    <ClInclude Include="Source\Apple.h" />
     <ClInclude Include="Source\Entity.h" />
     <ClInclude Include="Source\GameDefine.h" />
     <ClInclude Include="Source\HitEffect.h" />
@@ -139,6 +140,7 @@
     <ClInclude Include="Source\GameTime.h" />
     <ClInclude Include="Source\ThirdPersonCameraController.h" />
     <ClInclude Include="Source\Transform.h" />
+    <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
   </ItemGroup>
   <ItemGroup>
@@ -229,6 +231,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>

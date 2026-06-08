@@ -1,3 +1,5 @@
+// PrimitiveRenderer.hlsli
+
 struct VS_IN
 {
 	float4 position : POSITION;

@@ -1,3 +1,5 @@
+// GaussianFilteringPS.hlsl
+
 #include "GaussianFiltering.hlsli"
 
 Texture2D texture0 : register(t0);

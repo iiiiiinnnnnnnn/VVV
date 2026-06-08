@@ -1,3 +1,5 @@
+// FullScreenQuadVS.hlsl
+
 #include "BasicSprite.hlsli"
 
 VS_OUT main(uint vertexId : SV_VERTEXID)

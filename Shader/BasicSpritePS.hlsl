@@ -1,3 +1,5 @@
+// BasicSpritePS.hlsl
+
 #include "BasicSprite.hlsli"
 
 Texture2D spriteTexture : register(t0);

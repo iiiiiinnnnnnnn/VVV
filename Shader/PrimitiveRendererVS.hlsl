@@ -1,3 +1,5 @@
+// PrimitiveRendererVS.hlsl
+
 #include "PrimitiveRenderer.hlsli"
 
 VS_OUT main(VS_IN vin)

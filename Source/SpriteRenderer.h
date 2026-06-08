@@ -8,6 +8,7 @@ enum class SpriteShaderId
 {
 	Basic,
 	GaussianFilter,
+	Vignette,
 
 	EnumCount
 };

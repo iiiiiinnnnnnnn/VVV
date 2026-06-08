@@ -1,3 +1,5 @@
+// BasicSpriteVS.hlsl
+
 #include "BasicSprite.hlsli"
 
 // 頂点シェーダーエントリポイント

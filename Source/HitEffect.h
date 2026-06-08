@@ -1,15 +1,11 @@
+// HitEffect.h
+
 #pragma once
 
 #include "GameTime.h"
 #include "Camera.h"
 #include "Random.h"
 
-// ─────────────────────────────────────────────────────────────────
-// ヒットストップ
-// 使い方：
-//   HitStop::Request(0.1f);          // 0.1秒止める
-//   HitStop::Update();               // 毎フレーム Update() で呼ぶ
-// ─────────────────────────────────────────────────────────────────
 class HitStop
 {
 public:
@@ -26,7 +22,6 @@ public:
         }
     }
 
-    // 毎フレーム呼ぶ
     static void Update()
     {
         if (!active) return;
@@ -48,13 +43,6 @@ private:
 };
 
 
-// ─────────────────────────────────────────────────────────────────
-// カメラシェイク
-// 使い方：
-//   CameraShake::Request(0.3f, 0.2f);         // 0.3秒、強度0.2
-//   CameraShake::Update(camera, eye, focus);   // 毎フレーム呼ぶ
-//   // ↑ eye/focus はカメラコントローラーが計算した「本来の値」を渡す
-// ─────────────────────────────────────────────────────────────────
 class CameraShake
 {
 public:
@@ -68,11 +56,6 @@ public:
         active        = true;
     }
 
-    // 毎フレーム呼ぶ
-    // camera  : シーンのカメラ
-    // eye     : カメラコントローラーが決めた本来の視点
-    // focus   : カメラコントローラーが決めた本来の注視点
-    // up      : 上ベクトル（通常 {0,1,0}）
     static void Update(Camera& camera,
                        const Vector3& eye,
                        const Vector3& focus,
@@ -114,4 +97,57 @@ private:
     inline static bool  active       = false;
     inline static float timer        = 0.0f;
     inline static float maxIntensity = 0.0f;
+};
+
+class DamageVignette
+{
+public:
+    static void Init(ID3D11Device* device)
+    {
+        // 1x1の白テクスチャを作成
+        dummyTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+    }
+
+    static void Request(float duration)
+    {
+        timer = max(timer, duration);
+        active = true;
+    }
+
+    static void Update(SpriteRenderer* renderer,
+                       float screenW = 1280.0f, float screenH = 720.0f)
+    {
+        if (!active) return;
+
+        timer -= Game::Time::unscaledDeltaTime;
+        if (timer <= 0.0f)
+        {
+            timer  = 0.0f;
+            active = false;
+            return;
+        }
+
+        float alpha = std::clamp(timer / 0.5f, 0.0f, 1.0f);
+
+        ShaderParamList params;
+        params.push_back({ "color", Vector4(1, 0, 0, alpha) });
+
+        renderer->Draw(
+            SpriteShaderId::Vignette,
+            dummyTexture,
+            Vector3(0, 0, 0),
+            Vector2(screenW, screenH),
+            Vector2(0, 0),
+            Vector2(1, 1),
+            0.0f,
+            params);
+    }
+
+    static bool IsActive() { return active; }
+
+private:
+    inline static bool  active = false;
+    inline static float timer  = 0.0f;
+
+    inline static std::shared_ptr<Texture> dummyTexture;
 };

@@ -17,21 +17,37 @@ void Entity::OnDrawGUI()
 
 void Entity::OnUpdate()
 {
-	cooldowns.Update();
+    cooldowns.Update();
+
+    knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
+
+    if (knockBackVelocity.LengthSquared() < 0.01f)
+        knockBackVelocity = Vector3::Zero;
 }
 
-void Entity::TakeDamage(float damage)
+void Entity::TakeDamage(float damage, KnockBackData knockBackData)
 {
-	if (cooldowns.damageCooldown > 0.0f) return; // ダメージクールタイム中は無効
+    if (cooldowns.damageCooldown > 0.0f) return;
     if (IsDead()) return;
 
+    if (knockBackData.HasData())
+    {
+        Vector3 dir = knockBackData.GetSource()->transform.position - transform.position;
+        dir.y = 0;
+        dir.Normalize();
+
+        AddKnockBack(-dir * knockBackData.GetPower());
+    }
+
     life -= damage;
-    life  = max(life, 0.0f);
+    life = max(life, 0.0f);
+
     cooldowns.damageCooldown = 0.6f;
 
-    OnDamaged(damage);
+    OnDamaged(damage, knockBackData);
 
-    if (IsDead()) OnDead();
+    if (IsDead())
+        OnDead();
 }
 
 void Entity::Heal(float amount)

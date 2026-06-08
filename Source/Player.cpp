@@ -142,7 +142,7 @@ void Player::OnUpdate()
 	// ---- 入力ベクトルをカメラYaw基準のワールド方向に変換 ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
 	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
-	const bool isAttackState = (currentStateName.find("Attack") != std::string::npos);
+	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // 動けない
 
 	Vector3 worldMoveDir = Vector3::Zero;
 	if (inputLen > 0.1f)
@@ -159,7 +159,7 @@ void Player::OnUpdate()
 		worldMoveDir.Normalize();
 
 		// 攻撃中は入力による方向転換を止める
-		if (!isAttackState)
+		if (!isFreeze)
 		{
 			bool sprinting = ctx.sprint && inputLen > 0.1f;
 			float turnSpeed = sprinting ? 8.0f : 12.0f;
@@ -195,8 +195,7 @@ void Player::OnLateUpdate()
 	transform.SetRotation(transform.rotation * deltaRot);
 
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
-
-	// 垂直速度を合算して1回だけMove
+	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
 }
@@ -208,4 +207,33 @@ void Player::OnRender(const RenderContext& rc)
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
+}
+
+void Player::OnDamaged(float damage, KnockBackData knockBackData)
+{
+	if (knockBackData.HasData())
+	{
+		// 敵の位置に応じてアニメーション再生
+		Vector3 dir = knockBackData.GetSource()->transform.position - transform.position;
+		dir.Normalize();
+
+		float dot = transform.right.Dot(dir);
+
+		if (dot >= 0.0f)
+		{
+			anim->SetTrigger("Hit_R");
+		}
+		else
+		{
+			anim->SetTrigger("Hit_L");
+		}
+	}
+	else
+	{
+		anim->SetTrigger("Hit_R");
+	}
+}
+
+void Player::OnDead()
+{
 }

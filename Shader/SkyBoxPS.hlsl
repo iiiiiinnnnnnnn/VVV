@@ -1,4 +1,5 @@
 // SkyBoxPS.hlsl
+
 // IBLのスペキュラーキューブマップをスカイとして表示する
 
 TextureCube  skyTex       : register(t0);  // specular_pmrem (mip0 = 高解像度)

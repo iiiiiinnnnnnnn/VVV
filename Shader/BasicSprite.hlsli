@@ -1,3 +1,5 @@
+// BasicSprite.hlsli
+
 // 頂点シェーダー出力データ
 struct VS_OUT
 {

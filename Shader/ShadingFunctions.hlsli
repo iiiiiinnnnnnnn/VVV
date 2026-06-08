@@ -1,3 +1,5 @@
+// ShadingFunctions.hlsli
+
 #ifndef __SHADING_FUNCTIONS_HLSLI__
 #define __SHADING_FUNCTIONS_HLSLI__
 

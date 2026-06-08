@@ -2,8 +2,9 @@
 #include "Misc.h"
 #include "BasicSpriteShader.h"
 
-// 追加シェーダー
+// 追加
 #include "GaussianFilterShader.h"
+#include "VignetteSpriteShader.h"
 
 // コンストラクタ
 SpriteRenderer::SpriteRenderer(ID3D11Device* device)
@@ -19,8 +20,9 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 
 	shaders[static_cast<int>(SpriteShaderId::Basic)] = std::make_unique<BasicSpriteShader>(device);
 
-	// 追加シェーダー
+	// 追加
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);
+	shaders[static_cast<int>(SpriteShaderId::Vignette)] = std::make_unique<VignetteSpriteShader>(device);
 }
 
 // 頂点計算（Texture版）

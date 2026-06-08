@@ -1350,7 +1350,13 @@ private:
             {
                 for (const auto& [n, v] : params)
                     if (ImGui::Selectable(n.c_str(), c.paramName == n))
+                    {
                         c.paramName = n;
+                        if (std::holds_alternative<bool>(v))
+                            c.mode = Animator::ConditionMode::IsTrue;
+                        else
+                            c.mode = Animator::ConditionMode::Greater;
+                    }
                 for (const auto& [n, v] : triggers)
                     if (ImGui::Selectable(n.c_str(), c.paramName == n))
                     {

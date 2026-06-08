@@ -1,3 +1,5 @@
+// BasicModelPS.hlsl
+
 #include "BasicModel.hlsli"
 
 cbuffer CbMesh : register(b0)

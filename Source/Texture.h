@@ -10,6 +10,7 @@ class Texture
 public:
 	// ファイルから
 	Texture(const char* filename);
+	Texture(const Color& color);
 	// シェーダーリソースビューから
 	Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc);
 	~Texture() {}

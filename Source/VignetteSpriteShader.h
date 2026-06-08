@@ -1,30 +1,25 @@
-Ôªø// GaussianFilterShader.h
+// VignetteSpriteShader.h
 
 #pragma once
 
 #include "Shader.h"
 #include "Graphics.h"
 
-class GaussianFilterShader : public SpriteShader
+class VignetteSpriteShader : public SpriteShader
 {
 public:
-	GaussianFilterShader(ID3D11Device* device);
-	~GaussianFilterShader() {}
+	VignetteSpriteShader(ID3D11Device* device);
+	~VignetteSpriteShader() {}
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params) override;
 	void End(const RenderContext& rc) override;
 
-	static constexpr int KernelMax = 25;
-
 private:
-	//	„Ç∑„Çß„Éº„ÉÄ„ÉºÁî®
-	struct CbGaussianFilter
+	//	ÉVÉFÅ[É_Å[óp
+	struct CbVignette
 	{
-		Vector4				weights[KernelMax * KernelMax];
-		float				kernelSize;
-		Vector2				texcel;
-		float				dummy;
+		Vector4 color;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };

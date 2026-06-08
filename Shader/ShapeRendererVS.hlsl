@@ -1,3 +1,5 @@
+// ShapeRendererVS.hlsl
+
 #include "ShapeRenderer.hlsli"
 
 VS_OUT main(float4 position : POSITION)

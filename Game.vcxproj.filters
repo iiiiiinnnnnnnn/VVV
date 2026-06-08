@@ -216,9 +216,6 @@
     <ClCompile Include="Source\TestWidget.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GaussianFilterShader.cpp">
-      <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Model.cpp">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClCompile>
@@ -264,12 +261,18 @@
     <ClCompile Include="Source\ThirdPersonCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Enemy.cpp">
+    <ClCompile Include="Source\Apple.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Entity.cpp" />
     <ClCompile Include="Source\PostEffect.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GaussianFilterShader.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\VignetteSpriteShader.cpp">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -414,9 +417,6 @@
     <ClInclude Include="Source\TestWidget.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GaussianFilterShader.h">
-      <Filter>ソースファイル\ゲーム\シェーダー\スプライト</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Model.h">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
     </ClInclude>
@@ -468,7 +468,7 @@
     <ClInclude Include="Source\ThirdPersonCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Enemy.h">
+    <ClInclude Include="Source\Apple.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameDefine.h">
@@ -485,6 +485,12 @@
     </ClInclude>
     <ClInclude Include="Source\PostEffect.h">
       <Filter>ソースファイル\ゲーム\シェーダー</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GaussianFilterShader.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\VignetteSpriteShader.h">
+      <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -518,9 +524,6 @@
     <None Include="Data\Animator\Player.animator">
       <Filter>データ\アニメーター</Filter>
     </None>
-    <None Include="Shader\GaussianFiltering.hlsli">
-      <Filter>シェーダー\ゲーム</Filter>
-    </None>
     <None Include="Shader\PBR.hlsli">
       <Filter>シェーダー\ゲーム</Filter>
     </None>
@@ -528,6 +531,9 @@
       <Filter>シェーダー\ゲーム</Filter>
     </None>
     <None Include="Shader\PostEffect.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
+    <None Include="Shader\GaussianFiltering.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
   </ItemGroup>
@@ -568,9 +574,6 @@
     <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>シェーダー\ゲーム</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
-      <Filter>シェーダー\ゲーム</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
       <Filter>シェーダー\ゲーム</Filter>
     </FxCompile>
@@ -584,6 +587,12 @@
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
   </ItemGroup>
