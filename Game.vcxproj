@@ -21,6 +21,7 @@
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Apple.cpp" />
     <ClCompile Include="Source\Entity.cpp" />
+    <ClCompile Include="Source\HairPhysicsComponent.cpp" />
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
     <ClCompile Include="Source\Collider.cpp" />
@@ -86,6 +87,7 @@
     <ClInclude Include="Source\Apple.h" />
     <ClInclude Include="Source\Entity.h" />
     <ClInclude Include="Source\GameDefine.h" />
+    <ClInclude Include="Source\HairPhysicsComponent.h" />
     <ClInclude Include="Source\HitEffect.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />

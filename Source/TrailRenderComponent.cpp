@@ -113,8 +113,13 @@ void TrailRenderComponent::Render(const RenderContext& rc)
 
 void TrailRenderComponent::DrawGUI()
 {
-    ImGui::Text("Node Index : %d", nodeIndex);
-    ImGui::Text("Life Time  : %.2f", lifeTime);
-    ImGui::Text("Max Points : %d", maxPoints);
-    ImGui::Text("Points     : %d", (int)points.size());
+    if (ImGui::TreeNode("TrailRenderComponent"))
+    {
+        ImGui::Text("Node Index : %d", nodeIndex);
+        ImGui::Text("Life Time  : %.2f", lifeTime);
+        ImGui::Text("Max Points : %d", maxPoints);
+        ImGui::Text("Points     : %d", (int)points.size());
+
+        ImGui::TreePop();
+    }
 }

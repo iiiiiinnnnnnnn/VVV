@@ -80,10 +80,23 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		Matrix::CreateTranslation({0, 0, 0}));
 	footCollider->SetActive(false);
 
+	// Trail
 	trail = AddComponent<TrailRenderComponent>(
 		model.get(),
 		model->GetNodeIndex("add_weapon_r"));
 	trail->StopTrail();
+
+	// HairPhysics
+	AddComponent<HairPhysicsComponent>(
+		model.get(),
+		std::vector<std::string>{
+		"Bone_hair_L01", "Bone_hair_L02",
+			"Bone_hair_B01", "Bone_hair_B02", "Bone_hair_B03", "Bone_hair_B04", "Bone_hair_B05",
+			"Bone_hair_R01", "Bone_hair_R02",
+			"Bone_hair_B_R_01", "Bone_hair_B_R_02", "Bone_hair_B_R_03", "Bone_hair_B_R_04", "Bone_hair_B_R_05",
+			"Bone_hair_B_L_01", "Bone_hair_B_L_02", "Bone_hair_B_L_03", "Bone_hair_B_L_04", "Bone_hair_B_L_05"
+	}
+	);
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
