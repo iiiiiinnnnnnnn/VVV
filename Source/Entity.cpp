@@ -4,6 +4,8 @@
 #include "imgui.h"
 #include "GameTime.h"
 
+const float Entity::Cooldowns::DamageCooldownDuration = 0.2f;
+
 void Entity::Cooldowns::Update()
 {
     if (damageCooldown >= 0.0f)
@@ -13,6 +15,8 @@ void Entity::Cooldowns::Update()
 void Entity::OnDrawGUI()
 {
     ImGui::Text("Life: %.1f / %.1f", life, maxLife);
+	ImGui::Text("Damage Cooldown: %.2f", cooldowns.damageCooldown);
+	ImGui::Text("IsDead: %s", IsDead() ? "Yes" : "No");
 }
 
 void Entity::OnUpdate()
@@ -42,7 +46,7 @@ void Entity::TakeDamage(float damage, KnockBackData knockBackData)
     life -= damage;
     life = max(life, 0.0f);
 
-    cooldowns.damageCooldown = 0.6f;
+    cooldowns.damageCooldown = Cooldowns::DamageCooldownDuration;
 
     OnDamaged(damage, knockBackData);
 

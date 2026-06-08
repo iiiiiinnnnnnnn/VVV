@@ -1,25 +1,28 @@
 {
     "layers": [
         {
-            "anyStateEditorPosX": -77.0,
-            "anyStateEditorPosY": 211.0,
+            "anyStateEditorPosX": -189.0,
+            "anyStateEditorPosY": 67.0,
             "anyStateTransitions": [
                 {
                     "canInterrupt": false,
                     "conditions": [
                         {
-                            "mode": 6,
-                            "paramName": "Attack",
+                            "mode": 4,
+                            "paramName": "IsDead",
                             "threshold": 0.0
                         }
                     ],
-                    "excludedFromStateIndices": [],
+                    "excludedFromStateIndices": [
+                        10
+                    ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
-                    "sourceProgressThreshold": 0.0,
-                    "toStateIndex": 4,
+                    "priority": 3,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 10,
                     "transitionDuration": 0.10000000149011612
                 },
                 {
@@ -31,12 +34,17 @@
                             "threshold": 0.0
                         }
                     ],
-                    "excludedFromStateIndices": [],
+                    "excludedFromStateIndices": [
+                        9,
+                        10,
+                        8
+                    ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
-                    "sourceProgressThreshold": 0.0,
+                    "priority": 2,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
                     "toStateIndex": 8,
                     "transitionDuration": 0.10000000149011612
                 },
@@ -49,13 +57,45 @@
                             "threshold": 0.0
                         }
                     ],
-                    "excludedFromStateIndices": [],
+                    "excludedFromStateIndices": [
+                        8,
+                        10,
+                        9
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 1,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 9,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Attack",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        4,
+                        5,
+                        6,
+                        7,
+                        10,
+                        9,
+                        8
+                    ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
                     "priority": 0,
-                    "sourceProgressThreshold": 0.0,
-                    "toStateIndex": 9,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 4,
                     "transitionDuration": 0.10000000149011612
                 }
             ],
@@ -70,7 +110,7 @@
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "editorPosX": 84.0,
-                    "editorPosY": 26.0,
+                    "editorPosY": 10.0,
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
@@ -90,7 +130,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -108,7 +149,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -139,7 +181,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -157,7 +200,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -188,7 +232,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 2,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.15000000596046448
                         },
@@ -206,7 +251,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
                             "transitionDuration": 0.10000000149011612
                         },
@@ -224,7 +270,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 3,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -255,7 +302,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.15000000596046448
                         },
@@ -273,7 +321,8 @@
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -281,7 +330,7 @@
                 },
                 {
                     "animationIndex": 0,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [
                         {
                             "enterTimePer": 0.25,
@@ -310,7 +359,8 @@
                             "hasExitTime": false,
                             "isAny": false,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.4000000059604645,
+                            "sourceProgressMax": 0.699999988079071,
+                            "sourceProgressMin": 0.30000001192092896,
                             "toStateIndex": 5,
                             "transitionDuration": 0.30000001192092896
                         },
@@ -322,7 +372,8 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -330,7 +381,7 @@
                 },
                 {
                     "animationIndex": 1,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [
                         {
                             "enterTimePer": 0.10000000149011612,
@@ -338,7 +389,7 @@
                             "label": "OnAnim"
                         }
                     ],
-                    "editorPosX": 280.0,
+                    "editorPosX": 248.0,
                     "editorPosY": 291.0,
                     "hasEditorPosition": true,
                     "loop": false,
@@ -359,7 +410,8 @@
                             "hasExitTime": false,
                             "isAny": false,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.30000001192092896,
+                            "sourceProgressMax": 0.6000000238418579,
+                            "sourceProgressMin": 0.20000000298023224,
                             "toStateIndex": 6,
                             "transitionDuration": 0.4000000059604645
                         },
@@ -371,7 +423,8 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -379,7 +432,7 @@
                 },
                 {
                     "animationIndex": 2,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [
                         {
                             "enterTimePer": 0.20000000298023224,
@@ -408,7 +461,8 @@
                             "hasExitTime": false,
                             "isAny": false,
                             "priority": 1,
-                            "sourceProgressThreshold": 0.30000001192092896,
+                            "sourceProgressMax": 0.800000011920929,
+                            "sourceProgressMin": 0.30000001192092896,
                             "toStateIndex": 7,
                             "transitionDuration": 0.4000000059604645
                         },
@@ -420,7 +474,8 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -428,7 +483,7 @@
                 },
                 {
                     "animationIndex": 3,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [
                         {
                             "enterTimePer": 0.20000000298023224,
@@ -442,7 +497,7 @@
                         }
                     ],
                     "editorPosX": 632.0,
-                    "editorPosY": 211.0,
+                    "editorPosY": 179.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack4Freeze",
@@ -456,7 +511,8 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -464,7 +520,7 @@
                 },
                 {
                     "animationIndex": 10,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "editorPosX": -184.0,
                     "editorPosY": 355.0,
@@ -481,7 +537,8 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -489,7 +546,7 @@
                 },
                 {
                     "animationIndex": 9,
-                    "blockAnyStateTransitions": true,
+                    "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "editorPosX": -268.0,
                     "editorPosY": 227.0,
@@ -506,11 +563,24 @@
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressThreshold": 0.0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
+                },
+                {
+                    "animationIndex": 7,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": -8.0,
+                    "editorPosY": 467.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "DeadFreeze",
+                    "speed": 1.0,
+                    "transitions": []
                 }
             ],
             "weight": 1.0
@@ -529,6 +599,11 @@
         },
         {
             "name": "IsSprinting",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "IsDead",
             "type": "bool",
             "value": false
         }

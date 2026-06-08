@@ -5,6 +5,7 @@
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 #include "Graphics.h"
+#include "HitEffect.h"
 
 Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0f)
 {
@@ -60,7 +61,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(0.49f, 0.8f);
+	cc = AddComponent<CharacterController>(0.3f, 0.9f);
 	cc->SetPosition({0, 2.0f, 0});
 
 	// add_weapon_r のノードインデックスを取得してコライダーを追加
@@ -83,13 +84,17 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 void Player::OnEnterAnim(const Animator::State& state)
 {
 	if (state.name.compare("Attack"))
+	{
 		weaponCollider->SetActive(true);
+	}
 }
 
 void Player::OnExitAnim(const Animator::State& state)
 {
 	if (state.name.compare("Attack"))
+	{
 		weaponCollider->SetActive(false);
+	}
 }
 
 void Player::OnEnterAnimAttack4B(const Animator::State& state)
@@ -119,7 +124,14 @@ void Player::OnCollisionExit(Actor* other)
 
 void Player::OnTriggerEnter(Actor* other)
 {
-	//printf("OnTriggerEnter: %s\n", other->GetName().c_str());
+	if (other->CompareTag("Enemy"))
+	{
+		Entity* entity = static_cast<Entity*>(other);
+		bool footAtk = footCollider->IsActive();
+		entity->TakeDamage(
+			footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
+			{this, 50.0f});
+	}
 }
 
 void Player::OnTriggerStay(Actor* other)
@@ -176,6 +188,7 @@ void Player::OnUpdate()
 	float speedParam = (inputLen < 0.1f) ? 0.0f : (sprinting ? 1.5f : inputLen);
 	anim->SetFloat("Speed",       speedParam);
 	anim->SetBool ("IsSprinting", sprinting);
+	anim->SetBool ("IsDead", IsDead());
 
 	if (ctx.attackPressed)
 		anim->SetTrigger("Attack");
@@ -214,6 +227,9 @@ void Player::OnDrawGUI()
 
 void Player::OnDamaged(float damage, KnockBackData knockBackData)
 {
+	CameraShake::Request(0.13f, 0.07f);
+	DamageVignette::Request(3.0f * (1 - (life / maxLife)));
+
 	if (knockBackData.HasData())
 	{
 		// 敵の位置に応じてアニメーション再生
@@ -257,6 +273,18 @@ void Player::UpdateSwordTrail()
 	{
 		trailPositions[0][i] = trailPositions[0][i - 1];
 		trailPositions[1][i] = trailPositions[1][i - 1];
+
+		// 配列のインデックスから 0.0 ～ 1.0 の割合（t）を作る
+		// （過去に遡るほど 1.0 に近づく）
+		float t = (float)i / (float)TRAIL_MAX;
+
+		// イージング（2乗して最初は遅く、後で一気に大きくする）
+		float easedT = t * t; 
+
+		// 基本の補間強度に、イージングされた割合を掛け合わせる
+		float finalT = 0.5f * easedT;
+
+		trailPositions[1][i] = Vector3::Lerp(trailPositions[1][i], trailPositions[0][i], finalT);
 	}
 
 	const Model::Node& weaponNode = model->GetNodes().at(model->GetNodeIndex("add_weapon_r"));
@@ -270,6 +298,9 @@ void Player::UpdateSwordTrail()
 
 void Player::DrawSwordTrail(const RenderContext& rc) const
 {
+	if (!weaponCollider->IsActive())
+		return;
+
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
 	RenderState* rs = graphics.GetRenderState();
@@ -279,7 +310,7 @@ void Player::DrawSwordTrail(const RenderContext& rc) const
 	dc->OMSetDepthStencilState(rs->GetDepthStencilState(DepthState::TestOnly), 0);
 	dc->RSSetState(rs->GetRasterizerState(RasterizerState::SolidCullNone));
 
-	Color color = { 1.0f, 1.0f, 1.0f, 0.1f };
+	Color color = { 1.0f, 1.0f, 0.0f, 0.1f };
 	for (int i = 0; i < TRAIL_MAX; ++i)
 	{
 		prim->AddVertex(trailPositions[0][i], color);

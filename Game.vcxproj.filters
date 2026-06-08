@@ -103,6 +103,12 @@
     <Filter Include="シェーダー\ゲーム">
       <UniqueIdentifier>{b6729ec8-2454-468e-afa2-59cd699e36fd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\エフェクト">
+      <UniqueIdentifier>{809840d9-478b-448c-99c3-edd02250dc20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\エフェクト">
+      <UniqueIdentifier>{7d23d410-22ea-4e50-80f9-4d321df9b932}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -264,7 +270,6 @@
     <ClCompile Include="Source\Apple.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Entity.cpp" />
     <ClCompile Include="Source\PostEffect.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー</Filter>
     </ClCompile>
@@ -273,6 +278,9 @@
     </ClCompile>
     <ClCompile Include="Source\VignetteSpriteShader.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Entity.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

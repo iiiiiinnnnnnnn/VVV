@@ -49,6 +49,7 @@ protected:
     float maxLife = 100.0f;
     struct Cooldowns
     {
+		static const float DamageCooldownDuration;
         float damageCooldown = 0.0f;
         void Update();
     } cooldowns;

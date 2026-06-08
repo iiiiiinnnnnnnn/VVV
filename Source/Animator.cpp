@@ -7,7 +7,7 @@
 #include "GameTime.h"
 
 Animator::Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime)
-	: Component(owner), model(model), unscaledTime(unscaledTime)
+    : Component(owner), model(model), unscaledTime(unscaledTime)
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
     _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
@@ -70,7 +70,7 @@ int Animator::AddState(int li, const std::string& name, int animIndex, bool loop
 }
 
 int Animator::AddTransition(int li, int from, int to, float duration,
-    bool hasExitTime, float exitTime, int priority, bool canInterrupt)
+                            bool hasExitTime, float exitTime, int priority, bool canInterrupt)
 {
     Transition t;
     t.toStateIndex = to;
@@ -83,7 +83,7 @@ int Animator::AddTransition(int li, int from, int to, float duration,
     auto& transitions = layers[li].states[from].transitions;
     transitions.push_back(t);
     std::sort(transitions.begin(), transitions.end(),
-        [](const Transition& a, const Transition& b) { return a.priority > b.priority; });
+              [](const Transition& a, const Transition& b) { return a.priority > b.priority; });
 
     for (int i = 0; i < (int)transitions.size(); ++i)
         if (transitions[i].toStateIndex == to && transitions[i].priority == priority)
@@ -92,7 +92,7 @@ int Animator::AddTransition(int li, int from, int to, float duration,
 }
 
 void Animator::AddCondition(int li, int from, int ti,
-    const std::string& paramName, ConditionMode mode, ParamValue threshold)
+                            const std::string& paramName, ConditionMode mode, ParamValue threshold)
 {
     Condition c;
     c.paramName = paramName;
@@ -112,7 +112,7 @@ void Animator::SetDefaultState(int li, int stateIndex)
 // AnyState トランジション
 // =========================================================
 int Animator::AddAnyStateTransition(int li, int to, float duration,
-    bool hasExitTime, float exitTime, int priority, bool canInterrupt)
+                                    bool hasExitTime, float exitTime, int priority, bool canInterrupt)
 {
     Transition t;
     t.toStateIndex       = to;
@@ -125,7 +125,7 @@ int Animator::AddAnyStateTransition(int li, int to, float duration,
     auto& anyTrans = layers[li].anyStateTransitions;
     anyTrans.push_back(t);
     std::sort(anyTrans.begin(), anyTrans.end(),
-        [](const Transition& a, const Transition& b) { return a.priority > b.priority; });
+              [](const Transition& a, const Transition& b) { return a.priority > b.priority; });
 
     for (int i = 0; i < (int)anyTrans.size(); ++i)
         if (anyTrans[i].toStateIndex == to && anyTrans[i].priority == priority)
@@ -134,7 +134,7 @@ int Animator::AddAnyStateTransition(int li, int to, float duration,
 }
 
 void Animator::AddAnyStateCondition(int li, int ti,
-    const std::string& paramName, ConditionMode mode, ParamValue threshold)
+                                    const std::string& paramName, ConditionMode mode, ParamValue threshold)
 {
     Condition c;
     c.paramName = paramName;
@@ -204,13 +204,13 @@ void Animator::DrawGUI()
         for (int li = 0; li < (int)layers.size(); ++li)
         {
             const AnimatorLayer& layer = layers[li];
-            ImGui::TextDisabled("[%d] %s  w=%.2f", li, layer.name.c_str(), layer.weight);
+            ImGui::Text("[%d] %s  w=%.2f", li, layer.name.c_str(), layer.weight);
             if (layer.currentStateIndex >= 0)
             {
                 const State& cur = layer.states[layer.currentStateIndex];
                 ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f),
-                    "  -> %s", cur.name.c_str());
+                                   "  -> %s", cur.name.c_str());
             }
         }
 
@@ -229,7 +229,7 @@ void Animator::_print() const
     for(auto& anim : model->GetAnimations())
     {
         printf("Anim: %s, length=%.2f\n", anim.name.c_str(), anim.secondsLength);
-	}
+    }
 }
 
 void Animator::OpenAnimEditor()
@@ -492,7 +492,7 @@ void Animator::BindCallbacks()
 void Animator::Play(int layerIndex, int animationIndex, bool loop)
 {
     // 範囲外
-	_ASSERT_EXPR(layerIndex >= 0 && layerIndex < (int)layers.size(), L"Invalid layer index");
+    _ASSERT_EXPR(layerIndex >= 0 && layerIndex < (int)layers.size(), L"Invalid layer index");
 
     auto& layer = layers[layerIndex];
     int stateIndex = -1;
@@ -503,7 +503,7 @@ void Animator::Play(int layerIndex, int animationIndex, bool loop)
             break;
         }
     if (stateIndex < 0) return;
-	SetDefaultState(layerIndex, stateIndex);
+    SetDefaultState(layerIndex, stateIndex);
 }
 
 void Animator::Stop(int layerIndex)
@@ -515,7 +515,7 @@ void Animator::Stop(int layerIndex)
     layer.nextTime = 0.0f;
     layer.blendTime = 0.0f;
     layer.blendDuration = 0.0f;
-	layer.isTransitioning = false;
+    layer.isTransitioning = false;
 }
 
 void Animator::SetRootMotion(const std::string& name)
@@ -560,11 +560,11 @@ bool Animator::EvaluateCondition(const Condition& c) const
             : std::holds_alternative<int>(thr)   ? (float)std::get<int>(thr)
             : 0.0f;
         switch (c.mode) {
-        case ConditionMode::Greater:   return v > t;
-        case ConditionMode::Less:      return v < t;
-        case ConditionMode::Equals:    return v == t;
-        case ConditionMode::NotEquals: return v != t;
-        default: return false;
+            case ConditionMode::Greater:   return v > t;
+            case ConditionMode::Less:      return v < t;
+            case ConditionMode::Equals:    return v == t;
+            case ConditionMode::NotEquals: return v != t;
+            default: return false;
         }
     }
     else if (std::holds_alternative<int>(val))
@@ -586,9 +586,9 @@ bool Animator::EvaluateCondition(const Condition& c) const
     {
         bool v = std::get<bool>(val);
         switch (c.mode) {
-        case ConditionMode::IsTrue:  return v;
-        case ConditionMode::IsFalse: return !v;
-        default: return false;
+            case ConditionMode::IsTrue:  return v;
+            case ConditionMode::IsFalse: return !v;
+            default: return false;
         }
     }
     return false;
@@ -601,7 +601,12 @@ bool Animator::EvaluateTransition(const Transition& t) const
 
 bool Animator::EvaluateTransition(const Transition& t, float normalizedTime) const
 {
-    if (!t.isAny && normalizedTime < std::clamp(t.sourceProgressThreshold, 0.0f, 1.0f)) return false;
+    if (!t.isAny)
+    {
+        float progress = std::clamp(normalizedTime, 0.0f, 1.0f);
+        if (progress < t.sourceProgressMin) return false;
+        if (t.sourceProgressMax < 1.0f && progress > t.sourceProgressMax) return false;
+    }
 
     // 条件が空の場合: hasExitTime トランジションなら条件なしで通過
     if (t.conditions.empty()) return t.hasExitTime;

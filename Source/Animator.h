@@ -15,7 +15,7 @@ public:
     Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime = false);
     void Update() override;
     void DrawGUI() override;
-	void _print() const; // デバッグ用
+    void _print() const; // デバッグ用
 
     // =========================================================
     // 型定義
@@ -53,7 +53,8 @@ public:
         // true のときは遷移元再生率の条件を使わない（デフォルト）
         bool                   isAny = true;
         // isAny == false のとき、遷移元アニメの再生率がこの値以上なら遷移可能（0.0 - 1.0）
-        float                  sourceProgressThreshold = 0.0f;
+        float                  sourceProgressMin = 0.0f;  // 遷移可能な再生率の下限
+        float                  sourceProgressMax = 1.0f;  // 遷移可能な再生率の上限（1.0=制限なし）
         int                    priority = 0;
         bool                   canInterrupt = false;
     };
@@ -155,9 +156,9 @@ public:
     // =========================================================
     // レイヤー追加、追加したレイヤーのIndexを返す
     int  AddLayer(const std::string& name,
-        BlendMode blendMode = BlendMode::Override,
-        float weight = 1.0f,
-        AvatarMask mask = {});
+                  BlendMode blendMode = BlendMode::Override,
+                  float weight = 1.0f,
+                  AvatarMask mask = {});
 
     void SetLayerWeight(int layerIndex, float weight);
     void SetLayerMask(int layerIndex, AvatarMask mask);
@@ -170,16 +171,16 @@ public:
     // ステート操作（レイヤーIndex指定）
     // =========================================================
     int  AddState(int layerIndex, const std::string& name,
-        int animationIndex, bool loop = true, float speed = 1.0f);
+                  int animationIndex, bool loop = true, float speed = 1.0f);
 
     int  AddTransition(int layerIndex, int fromState, int toState,
-        float transitionDuration = 0.1f,
-        bool hasExitTime = false, float exitTime = 1.0f,
-        int priority = 0, bool canInterrupt = false);
+                       float transitionDuration = 0.1f,
+                       bool hasExitTime = false, float exitTime = 1.0f,
+                       int priority = 0, bool canInterrupt = false);
 
     void AddCondition(int layerIndex, int fromState, int transitionIndex,
-        const std::string& paramName, ConditionMode mode,
-        ParamValue threshold = 0.0f);
+                      const std::string& paramName, ConditionMode mode,
+                      ParamValue threshold = 0.0f);
 
     void SetDefaultState(int layerIndex, int stateIndex);
 
@@ -189,13 +190,13 @@ public:
     // AnyState から指定ステートへのトランジションを追加する。
     // 戻り値はそのレイヤーの anyStateTransitions 配列内のインデックス。
     int  AddAnyStateTransition(int layerIndex, int toState,
-        float transitionDuration = 0.1f,
-        bool hasExitTime = false, float exitTime = 1.0f,
-        int priority = 0, bool canInterrupt = false);
+                               float transitionDuration = 0.1f,
+                               bool hasExitTime = false, float exitTime = 1.0f,
+                               int priority = 0, bool canInterrupt = false);
 
     void AddAnyStateCondition(int layerIndex, int transitionIndex,
-        const std::string& paramName, ConditionMode mode,
-        ParamValue threshold = 0.0f);
+                              const std::string& paramName, ConditionMode mode,
+                              ParamValue threshold = 0.0f);
 
     // AnyState トランジション一覧を取得（エディタ用）
     const std::vector<Transition>& GetAnyStateTransitions(int layerIndex) const
@@ -208,7 +209,7 @@ public:
     }
 
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
-	int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
+    int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
 
     // =========================================================
     // パラメータ（Animator全体で共有）
@@ -223,9 +224,9 @@ public:
     void SetBool(const std::string& name, bool value);
     void SetTrigger(const std::string& name);
 
-	float GetFloat(const std::string& name) const { return parameters.find(name) != parameters.end() ? std::get<float>(parameters.at(name)) : 0.0f; }
+    float GetFloat(const std::string& name) const { return parameters.find(name) != parameters.end() ? std::get<float>(parameters.at(name)) : 0.0f; }
     int   GetInt(const std::string& name)   const { return parameters.find(name) != parameters.end() ? std::get<int>(parameters.at(name)) : 0; }
-	bool  GetBool(const std::string& name)  const { return parameters.find(name) != parameters.end() ? std::get<bool>(parameters.at(name)) : false; }
+    bool  GetBool(const std::string& name)  const { return parameters.find(name) != parameters.end() ? std::get<bool>(parameters.at(name)) : false; }
 
     // =========================================================
     // 直接再生（ステートマシンを使わない場合）
@@ -258,7 +259,7 @@ public:
     void AddCallbackFunc(const std::string& label, std::function<void(const Animator::State&)> enter, std::function<void(const Animator::State&)> exit)
     {
         g_AnimCallbackRegistry[label] = {enter, exit};
-	}
+    }
 
 private:
     bool EvaluateCondition(const Condition& c) const;
@@ -269,7 +270,7 @@ private:
     void UpdateLayer(AnimatorLayer& layer, std::vector<Model::NodePose>& finalPoses);
 
     std::shared_ptr<Model> model;
-	bool unscaledTime = false;
+    bool unscaledTime = false;
 
     // レイヤーリスト（追加順に評価）
     std::vector<AnimatorLayer> layers;

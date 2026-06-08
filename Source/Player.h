@@ -65,7 +65,6 @@ protected:
 
     Vector3 frameVelocity = Vector3::Zero;
     float verticalVelocity = 0.0f;
-    float hp    = 100.0f;
     float speed = 5.0f;
 
     ShaderParamListWithMaterialName shaderParamWithMaterialName;
@@ -78,8 +77,8 @@ protected:
     Vector3 offsetPos = Vector3::Zero;
 
     // ---- 剣の軌跡 ----
-    static constexpr int   TRAIL_MAX            = 16;
-    static constexpr float TRAIL_FRAME_INTERVAL = 0.016f;
+    static constexpr int   TRAIL_MAX            = 20;
+    static constexpr float TRAIL_FRAME_INTERVAL = 0.01f;
     Vector3 trailPositions[2][TRAIL_MAX] = {};
     float   trailFrameTimer = 0.0f;
 

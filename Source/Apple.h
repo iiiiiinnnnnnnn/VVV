@@ -12,6 +12,8 @@ public:
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
+	void OnDamaged(float damage, KnockBackData knockBackData) override;
+
 	void OnCollisionEnter(Actor* other) override;
 	void OnCollisionExit(Actor* other) override;
 	void OnTriggerEnter(Actor* other) override;

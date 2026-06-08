@@ -93,7 +93,8 @@ public:
                     jTr["transitionDuration"] = tr.transitionDuration;
                     jTr["hasExitTime"]        = tr.hasExitTime;
                     jTr["isAny"]              = tr.isAny;
-                    jTr["sourceProgressThreshold"] = tr.sourceProgressThreshold;
+                    jTr["sourceProgressMin"] = tr.sourceProgressMin;
+                    jTr["sourceProgressMax"] = tr.sourceProgressMax;
                     jTr["priority"]           = tr.priority;
                     jTr["canInterrupt"]       = tr.canInterrupt;
 
@@ -144,7 +145,8 @@ public:
                 jTr["transitionDuration"] = tr.transitionDuration;
                 jTr["hasExitTime"]        = tr.hasExitTime;
                 jTr["isAny"]              = tr.isAny;
-                jTr["sourceProgressThreshold"] = tr.sourceProgressThreshold;
+                jTr["sourceProgressMin"] = tr.sourceProgressMin;
+                jTr["sourceProgressMax"] = tr.sourceProgressMax;
                 jTr["priority"]           = tr.priority;
                 jTr["canInterrupt"]       = tr.canInterrupt;
 
@@ -251,7 +253,8 @@ public:
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
                     tr.isAny              = jTr.value("isAny", true);
-                    tr.sourceProgressThreshold = jTr.value("sourceProgressThreshold", 0.0f);
+                    tr.sourceProgressMin = jTr.contains("sourceProgressMin") ? jTr["sourceProgressMin"].get<float>() : jTr.value("sourceProgressThreshold", 0.0f);
+                    tr.sourceProgressMax = jTr.value("sourceProgressMax", 1.0f);
                     tr.exitTime           = jTr["exitTime"].get<float>();
                     tr.priority           = jTr["priority"].get<int>();
                     tr.canInterrupt       = jTr["canInterrupt"].get<bool>();
@@ -311,7 +314,8 @@ public:
                     tr.transitionDuration = jTr["transitionDuration"].get<float>();
                     tr.hasExitTime        = jTr["hasExitTime"].get<bool>();
                     tr.isAny              = jTr.value("isAny", true);
-                    tr.sourceProgressThreshold = jTr.value("sourceProgressThreshold", 0.0f);
+                    tr.sourceProgressMin = jTr.contains("sourceProgressMin") ? jTr["sourceProgressMin"].get<float>() : jTr.value("sourceProgressThreshold", 0.0f);
+                    tr.sourceProgressMax = jTr.value("sourceProgressMax", 1.0f);
                     tr.exitTime           = jTr["exitTime"].get<float>();
                     tr.priority           = jTr["priority"].get<int>();
                     tr.canInterrupt       = jTr["canInterrupt"].get<bool>();
