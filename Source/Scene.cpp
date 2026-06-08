@@ -2,6 +2,7 @@
 
 #include "Scene.h"
 #include "GameTime.h"
+#include "Player.h"
 
 Scene::Scene(const std::string& name) : name(name)
 {
@@ -109,6 +110,13 @@ void Scene::Render()
 			camera.GetView(),
 			camera.GetProjection(),
 			D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		// 剣の軌跡描画（sceneBufferアクティブ中・LINELIST後に行う）
+		for (auto& actor : actors.data)
+		{
+			if (auto* player = dynamic_cast<Player*>(actor.get()))
+				player->DrawSwordTrail(rc);
+		}
 	}
 	sceneBuffer->Deactivate(dc);
 

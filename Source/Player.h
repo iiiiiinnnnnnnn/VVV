@@ -19,8 +19,8 @@ public:
     void OnRender(const RenderContext& rc) override;
     void OnDrawGUI() override;
 
-	void OnDamaged(float damage, KnockBackData knockBackData) override;
-	void OnDead() override;
+    void OnDamaged(float damage, KnockBackData knockBackData) override;
+    void OnDead() override;
 
     void OnEnterAnim(const Animator::State& state);
     void OnExitAnim(const Animator::State& state);
@@ -76,4 +76,15 @@ protected:
     int stSprint = -1;
 
     Vector3 offsetPos = Vector3::Zero;
+
+    // ---- 剣の軌跡 ----
+    static constexpr int   TRAIL_MAX            = 16;
+    static constexpr float TRAIL_FRAME_INTERVAL = 0.016f;
+    Vector3 trailPositions[2][TRAIL_MAX] = {};
+    float   trailFrameTimer = 0.0f;
+
+    void UpdateSwordTrail();  // OnLateUpdateから呼ぶ
+
+public:
+    void DrawSwordTrail(const RenderContext& rc) const;
 };

@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
+#include "Graphics.h"
 
 Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0f)
 {
@@ -198,6 +199,8 @@ void Player::OnLateUpdate()
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
+
+	UpdateSwordTrail();
 }
 
 void Player::OnRender(const RenderContext& rc)
@@ -236,4 +239,55 @@ void Player::OnDamaged(float damage, KnockBackData knockBackData)
 
 void Player::OnDead()
 {
+}
+
+// ========== 剣の軌跡 ==========
+
+void Player::UpdateSwordTrail()
+{
+	// LateUpdate後に呼ぶことでModelRenderComponent::LateUpdate(UpdateTransform)済みの
+	// 正しいworldTransformが取れる
+
+	trailFrameTimer += Game::Time::deltaTime;
+	if (trailFrameTimer < TRAIL_FRAME_INTERVAL)
+		return;
+	trailFrameTimer = 0.0f;
+
+	for (int i = TRAIL_MAX - 1; i > 0; --i)
+	{
+		trailPositions[0][i] = trailPositions[0][i - 1];
+		trailPositions[1][i] = trailPositions[1][i - 1];
+	}
+
+	const Model::Node& weaponNode = model->GetNodes().at(model->GetNodeIndex("add_weapon_r"));
+
+	Matrix rootMat = Matrix::CreateTranslation(0.0f, 0.0f, 0.0f) * weaponNode.worldTransform;
+	Matrix tipMat  = Matrix::CreateTranslation(-1.0f, 0.0f, 0.0f) * weaponNode.worldTransform;
+
+	trailPositions[0][0] = { rootMat._41, rootMat._42, rootMat._43 };
+	trailPositions[1][0] = { tipMat._41,  tipMat._42,  tipMat._43  };
+}
+
+void Player::DrawSwordTrail(const RenderContext& rc) const
+{
+	Game::Graphics& graphics = Game::Graphics::Instance();
+	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
+	RenderState* rs = graphics.GetRenderState();
+	PrimitiveRenderer* prim = graphics.GetPrimitiveRenderer();
+
+	dc->OMSetBlendState(rs->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
+	dc->OMSetDepthStencilState(rs->GetDepthStencilState(DepthState::TestOnly), 0);
+	dc->RSSetState(rs->GetRasterizerState(RasterizerState::SolidCullNone));
+
+	Color color = { 1.0f, 1.0f, 1.0f, 0.1f };
+	for (int i = 0; i < TRAIL_MAX; ++i)
+	{
+		prim->AddVertex(trailPositions[0][i], color);
+		prim->AddVertex(trailPositions[1][i], color);
+	}
+
+	prim->Render(dc,
+				 rc.camera->GetView(),
+				 rc.camera->GetProjection(),
+				 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 }
