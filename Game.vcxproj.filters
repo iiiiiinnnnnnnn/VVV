@@ -55,9 +55,6 @@
     <Filter Include="ソースファイル\システム%28基底%29\物理">
       <UniqueIdentifier>{afdc2c92-edcc-45c3-819a-3fc4a44b8e8a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\エディト">
-      <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\ゲーム\シェーダー">
       <UniqueIdentifier>{c3c58ff3-d994-4673-ba09-717254a384eb}</UniqueIdentifier>
     </Filter>
@@ -109,6 +106,18 @@
     <Filter Include="ソースファイル\ゲーム\オブジェクト\エフェクト">
       <UniqueIdentifier>{7d23d410-22ea-4e50-80f9-4d321df9b932}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系">
+      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系">
+      <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\アプリ\エディト">
+      <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\アプリ\入力">
+      <UniqueIdentifier>{de4e9ff2-75ac-4a10-9d16-751ed615f21b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -156,18 +165,6 @@
     <ClCompile Include="Source\PhysicsManager.cpp">
       <Filter>ソースファイル\システム%28基底%29\物理</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ModelRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rigidbody.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Widget.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
     </ClCompile>
@@ -176,9 +173,6 @@
     </ClCompile>
     <ClCompile Include="Source\LocalPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\AudioSource.cpp">
       <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
@@ -231,15 +225,6 @@
     <ClCompile Include="Source\RenderTarget.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SpriteRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\RectTransform.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Object.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
     </ClCompile>
@@ -253,15 +238,6 @@
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameTime.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GamePad.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Input.cpp">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Mouse.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClCompile>
     <ClCompile Include="Source\ThirdPersonCameraController.cpp">
@@ -285,8 +261,41 @@
     <ClCompile Include="Source\TrailRenderer.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Rigidbody.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RectTransform.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Collider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CharacterController.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Transform.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animator.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ModelRenderComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpriteRenderComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClCompile>
     <ClCompile Include="Source\TrailRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mouse.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GamePad.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -344,18 +353,6 @@
     <ClInclude Include="Source\Component.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ModelRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rigidbody.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\CameraController.h">
       <Filter>ソースファイル\システム%28基底%29\カメラ</Filter>
     </ClInclude>
@@ -374,14 +371,11 @@
     <ClInclude Include="Source\LocalPlayer.h">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClInclude>
-    <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\AnimEditorWindow.h">
-      <Filter>ソースファイル\システム%28基底%29\エディト</Filter>
+      <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimatorSerializer.h">
-      <Filter>ソースファイル\システム%28基底%29\エディト</Filter>
+      <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
     </ClInclude>
     <ClInclude Include="Source\AudioSource.h">
       <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
@@ -434,17 +428,8 @@
     <ClInclude Include="Source\RenderTarget.h">
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClInclude>
-    <ClInclude Include="Source\SpriteRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Object.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\RectTransform.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\ResourceManager.h">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
@@ -462,15 +447,6 @@
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameTime.h">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GamePad.h">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Input.h">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Mouse.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\EnemyAIController.h">
@@ -506,11 +482,44 @@
     <ClInclude Include="Source\TrailRenderer.h">
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rigidbody.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RectTransform.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Collider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CharacterController.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Transform.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animator.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ModelRenderComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpriteRenderComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClInclude>
     <ClInclude Include="Source\TrailRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
     </ClInclude>
     <ClInclude Include="Source\Components.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Mouse.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GamePad.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
