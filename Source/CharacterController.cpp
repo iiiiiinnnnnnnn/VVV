@@ -127,15 +127,35 @@ void CharacterController::DrawGUI()
     }
 }
 
+// CCが衝突するシェイプをレイヤーでフィルタリングするコールバック
+// Layer::Body (髪刑体など) はCCの物理押し出し対象から除外する
+struct CCShapeFilterCallback : public PxQueryFilterCallback
+{
+    PxQueryHitType::Enum preFilter(
+        const PxFilterData& filterData, const PxShape* shape,
+        const PxRigidActor*, PxHitFlags&) override
+    {
+        int layer = (int)shape->getSimulationFilterData().word1;
+        if (layer == Layer::Body) return PxQueryHitType::eNONE;
+        return PxQueryHitType::eBLOCK;
+    }
+    PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override
+    {
+        return PxQueryHitType::eBLOCK;
+    }
+};
+
 void CharacterController::Move(const Vector3& velocity)
 {
-    static CCFilterCallback ccFilter;
+    static CCFilterCallback      ccFilter;
+    static CCShapeFilterCallback shapeFilter;
 
     // 新フレームの開始としてフラグをリセット（LateUpdateより先にMoveが呼ばれる想定）
     hitReport->dispatchedThisFrame = false;
 
     PxControllerFilters filters;
     filters.mCCTFilterCallback = &ccFilter;
+    filters.mFilterCallback = &shapeFilter;
 
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),

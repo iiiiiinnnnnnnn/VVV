@@ -91,11 +91,11 @@ void Scene::Render()
 			rc.deviceContext, renderState, *rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
-		// 通常描画
-		graphics.GetModelRenderer()->Render(rc);
-
-		// 先にワールド行列確定させるためにDrawしとく
+		// HairPhysics: Simulate後にボーンを確定させる (ModelRenderer->Renderの前に実行)
 		actors.Render(rc);
+
+		// 通常描画 (ボーン確定後)
+		graphics.GetModelRenderer()->Render(rc);
 	}
 	sceneBuffer->Deactivate(dc);
 
