@@ -8,5 +8,5 @@ float4 main(VS_OUT pin) : SV_TARGET
     alpha *= lerp(1.0, 0.3, pin.uv.x);
     alpha *= 3.0; // ‚±‚­‚·‚é
     alpha = saturate(alpha);
-    return float4(1.0, 0.9, 0.3, alpha);
+    return float4(color.rgb, alpha);
 }

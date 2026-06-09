@@ -31,8 +31,8 @@ TrailRenderer::TrailRenderer(ID3D11Device* device)
 	// 定数バッファ
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
-		sizeof(CbScene),
-		sceneConstant.GetAddressOf());
+		sizeof(CbTrail),
+		constant.GetAddressOf());
 
 	// 頂点バッファ
 	D3D11_BUFFER_DESC desc;
@@ -61,7 +61,8 @@ void TrailRenderer::AddPoint(const Vector3& root, const Vector3& tip, float uvY)
 void TrailRenderer::Render(
 	ID3D11DeviceContext* dc,
 	const Matrix& view,
-	const Matrix& projection)
+	const Matrix& projection,
+	Color color)
 {
 	// シェーダー設定
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
@@ -71,15 +72,16 @@ void TrailRenderer::Render(
 	// 定数バッファ設定
 	ID3D11Buffer* constantBuffers[] =
 	{
-		sceneConstant.Get(),
+		constant.Get(),
 	};
 	dc->VSSetConstantBuffers(0, _countof(constantBuffers), constantBuffers);
 	dc->PSSetConstantBuffers(0, _countof(constantBuffers), constantBuffers);
 
 	// 定数バッファ更新
-	CbScene cbScene;
-	cbScene.viewProjection = view * projection;
-	dc->UpdateSubresource(sceneConstant.Get(), 0, 0, &cbScene, 0, 0);
+	CbTrail cbTrail;
+	cbTrail.viewProjection = view * projection;
+	cbTrail.color = color;
+	dc->UpdateSubresource(constant.Get(), 0, 0, &cbTrail, 0, 0);
 
 	// 頂点バッファ設定
 	UINT stride = sizeof(Vertex);

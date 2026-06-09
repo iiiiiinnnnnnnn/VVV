@@ -12,7 +12,8 @@ struct VS_OUT
     float2 uv : TEXCOORD;
 };
 
-cbuffer CbScene : register(b0)
+cbuffer CbTrail : register(b0)
 {
     row_major float4x4 viewProjection;
+    float4 color;
 };

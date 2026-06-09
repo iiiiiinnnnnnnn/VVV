@@ -46,7 +46,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		{
 			"Face",
 		{
-			{ "isFace", true }
+			{"isFace", true}
 	}
 		}
 	};
@@ -64,7 +64,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	cc = AddComponent<CharacterController>(0.3f, 0.9f);
 	cc->SetPosition({0, 2.0f, 0});
 
-	// add_weapon_r のノードインデックスを取得してコライダーを追加
+	// 武器判定
 	weaponCollider = AddComponent<BoneSphereCollider>(
 		model.get(),
 		model->GetNodeIndex("add_weapon_r"),
@@ -72,7 +72,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		Matrix::CreateTranslation({-0.56f, 0, 0}));
 	weaponCollider->SetActive(false);
 
-	// foot_l のノードインデックスを取得してコライダーを追加
+	// キック判定
 	footCollider = AddComponent<BoneSphereCollider>(
 		model.get(),
 		model->GetNodeIndex("foot_l"),

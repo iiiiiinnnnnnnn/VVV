@@ -5,8 +5,6 @@
 #include "Graphics.h"
 #include "GameTime.h"
 
-// CharacterController -----------------------------------------------
-
 CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
 {
@@ -127,8 +125,8 @@ void CharacterController::DrawGUI()
     }
 }
 
-// CCが衝突するシェイプをレイヤーでフィルタリングするコールバック
-// Layer::Body (髪刑体など) はCCの物理押し出し対象から除外する
+// CCShape filter: uses Layer::CollisionMatrix to automatically exclude layers
+// that should not block the player (e.g. Hair, Body). No hardcoding needed.
 struct CCShapeFilterCallback : public PxQueryFilterCallback
 {
     PxQueryHitType::Enum preFilter(
@@ -136,7 +134,7 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
         const PxRigidActor*, PxHitFlags&) override
     {
         int layer = (int)shape->getSimulationFilterData().word1;
-        if (layer == Layer::Body) return PxQueryHitType::eNONE;
+        if (!Layer::Collides(Layer::Player, layer)) return PxQueryHitType::eNONE;
         return PxQueryHitType::eBLOCK;
     }
     PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override

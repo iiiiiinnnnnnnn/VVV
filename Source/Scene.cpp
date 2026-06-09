@@ -86,16 +86,23 @@ void Scene::Render()
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
-		// スカイボックス
+		// スカイボックス描画
 		graphics.GetSkyBoxRenderer()->Render(
 			rc.deviceContext, renderState, *rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
-		// HairPhysics: Simulate後にボーンを確定させる (ModelRenderer->Renderの前に実行)
+		// actors.Render: HairPhysics書き戻し + TrailのAddPointまで実行
 		actors.Render(rc);
 
-		// 通常描画 (ボーン確定後)
+		// 不透明モデルをDepthBufferに確定
 		graphics.GetModelRenderer()->Render(rc);
+
+		// 変更: TrailをModelRenderer後に描画（Depthテストで埋もれないよう順番を後ろに移動）
+		for (auto& actor : actors.data)
+		{
+			auto* trail = actor->GetComponent<TrailRenderComponent>();
+			if (trail) trail->RenderTrail(rc);
+		}
 	}
 	sceneBuffer->Deactivate(dc);
 

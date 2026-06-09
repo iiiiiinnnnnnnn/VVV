@@ -17,6 +17,7 @@ public:
         Object* owner,
         Model* model,
         int   nodeIndex,
+        Color color = {1.0f, 0.9f, 0.3f, 1.0f},
         float rootOffset = 0.0f,
         float tipOffset = -1.0f,
         float tipRatio = 1.0f,
@@ -25,6 +26,7 @@ public:
 
     void LateUpdate() override;
     void Render(const RenderContext& rc);
+    void RenderTrail(const RenderContext& rc);
     void DrawGUI() override;
 
     struct TrailPoint
@@ -49,6 +51,9 @@ private:
     float tipRatio;
     float lifeTime;
     int   maxPoints;
+
+    // trail cbuffer data
+    Color color;
 
     bool stopping = false;
 

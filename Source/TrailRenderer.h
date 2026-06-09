@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// TrailRenderer.h
+
+#pragma once
 
 #include "Common.h"
 
@@ -13,16 +15,18 @@ public:
 	void Render(
 		ID3D11DeviceContext* dc,
 		const Matrix& view,
-		const Matrix& projection);
+		const Matrix& projection,
+		Color color);
 
 private:
 	static const UINT VertexCapacity = 3 * 1024;
 
-	struct CbScene
+	struct CbTrail
 	{
 		Matrix		viewProjection;
+		Color color;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> sceneConstant;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constant;
 
 	struct Vertex
 	{
