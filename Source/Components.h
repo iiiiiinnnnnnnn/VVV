@@ -10,4 +10,4 @@
 #include "Collider.h"
 #include "CharacterController.h"
 #include "TrailRenderComponent.h"
-#include "HairPhysicsComponent.h"
+#include "SpringBone.h"

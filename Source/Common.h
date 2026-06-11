@@ -58,9 +58,10 @@ constexpr float RAD2DEG = 180.0f / DirectX::XM_PI;
 constexpr float DEG2RAD = DirectX::XM_PI / 180.0f;
 
 // 環境依存暗黙変換
-#define VEC(v) { \
+#define VEC3(v) { \
     static_cast<float>(((v)[0])), static_cast<float>(((v))[1]), static_cast<float>(((v)[2])) \
 }
+#define VEC4(v, w) {(v).x, (v).y, (v).z, (w)}
 #define QUAT(q) { \
     static_cast<float>(((q)[0])), static_cast<float>(((q))[1]), static_cast<float>(((q))[2]), static_cast<float>(((q))[3]) \
 }

@@ -87,9 +87,9 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	trail->StopTrail();
 
 	// HairPhysics
-	AddComponent<HairPhysicsComponent>(
+	AddComponent<SpringBone>(
 		model.get(),
-		std::vector<std::string>{"Hair"}
+		std::vector<std::string>{"Hair", "hair"}
 	);
 }
 

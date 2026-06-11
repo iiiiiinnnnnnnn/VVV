@@ -15,7 +15,7 @@ public:
     void DrawGUI() override;
 
     void SetPosition(const Vector3& pos);
-    Vector3 GetPosition() const { return VEC(rigidActor->getGlobalPose().p); }
+    Vector3 GetPosition() const { return VEC3(rigidActor->getGlobalPose().p); }
 
     PxRigidActor* GetRigidActor() const { return rigidActor; }
 
@@ -42,5 +42,5 @@ public:
 
     void AddForce(const Vector3& force);
     void SetVelocity(const Vector3& v);
-    const Vector3 GetVelocity() const { return VEC(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
+    const Vector3 GetVelocity() const { return VEC3(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
 };

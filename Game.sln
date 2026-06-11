@@ -7,6 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Game", "Game.vcxproj", "{D2
 	ProjectSection(ProjectDependencies) = postProject
 		{3CB235DA-E759-44E2-8314-429BBFF8A110} = {3CB235DA-E759-44E2-8314-429BBFF8A110}
 		{C0E751BF-52E2-4CF7-A49C-F2236A2FD940} = {C0E751BF-52E2-4CF7-A49C-F2236A2FD940}
+		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E} = {E0B52AE7-E160-4D32-BF3F-910B785E5A8E}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nodeeditor", "External\nodeeditor\nodeeditor.vcxproj", "{3CB235DA-E759-44E2-8314-429BBFF8A110}"
@@ -15,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nodeeditor", "External\node
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dearImgui", "External\nodeeditor\dearImgui\dearImgui.vcxproj", "{C0E751BF-52E2-4CF7-A49C-F2236A2FD940}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTK_Desktop_2022", "External\DirectXTK\DirectXTK_Desktop_2022.vcxproj", "{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +37,10 @@ Global
 		{C0E751BF-52E2-4CF7-A49C-F2236A2FD940}.Debug|x64.Build.0 = Debug|x64
 		{C0E751BF-52E2-4CF7-A49C-F2236A2FD940}.Release|x64.ActiveCfg = Release|x64
 		{C0E751BF-52E2-4CF7-A49C-F2236A2FD940}.Release|x64.Build.0 = Release|x64
+		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Debug|x64.ActiveCfg = Debug|x64
+		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Debug|x64.Build.0 = Debug|x64
+		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Release|x64.ActiveCfg = Release|x64
+		{E0B52AE7-E160-4D32-BF3F-910B785E5A8E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

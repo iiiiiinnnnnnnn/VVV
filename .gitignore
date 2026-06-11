@@ -367,9 +367,16 @@ FodyWeavers.xsd
 *.cod
 # ImGui 
 
+# imgui config file
 /imgui.ini
-*.cereal
 
-/External
+# cereal
+*.cereal
+*.mdl
+
+# for ai send
 *.zip
 *.7z
+
+# lib file
+*.lib

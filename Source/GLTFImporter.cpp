@@ -88,7 +88,7 @@ void GLTFImporter::LoadNodes(NodeList& nodes)
 		{
 			if (gltfNode.scale.size() > 0)
 			{
-				node.scale = VEC(gltfNode.scale);
+				node.scale = VEC3(gltfNode.scale);
 			}
 			if (gltfNode.rotation.size() > 0)
 			{
@@ -96,7 +96,7 @@ void GLTFImporter::LoadNodes(NodeList& nodes)
 			}
 			if (gltfNode.translation.size() > 0)
 			{
-				node.position = VEC(gltfNode.translation);
+				node.position = VEC3(gltfNode.translation);
 			}
 		}
 		// 座標系変換

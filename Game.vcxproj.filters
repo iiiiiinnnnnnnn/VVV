@@ -297,7 +297,7 @@
     <ClCompile Include="Source\GamePad.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClCompile>
-    <ClCompile Include="Source\HairPhysicsComponent.cpp">
+    <ClCompile Include="Source\SpringBone.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
     </ClCompile>
   </ItemGroup>
@@ -524,7 +524,7 @@
     <ClInclude Include="Source\GamePad.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClInclude>
-    <ClInclude Include="Source\HairPhysicsComponent.h">
+    <ClInclude Include="Source\SpringBone.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
     </ClInclude>
   </ItemGroup>
