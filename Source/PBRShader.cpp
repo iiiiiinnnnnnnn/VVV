@@ -65,33 +65,123 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		cb.shadowColor = rc.shadowMapData.shadowColor;
 		cb.shadowBias = rc.shadowMapData.shadowBias;
 		cb.pcfKernelSize = rc.shadowMapData.pcfKernelSize;
-		dc->UpdateSubresource(shadowMapConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+
+		dc->UpdateSubresource(
+			shadowMapConstantBuffer.Get(),
+			0,
+			nullptr,
+			&cb,
+			0,
+			0);
 	}
 
 	// マテリアルCB更新
 	{
 		CbMaterial cb{};
+
 		cb.baseColor = mesh.material->baseColor;
 		cb.emissiveColor = mesh.material->emissiveColor;
-		
-		cb.metalness = GetParam<float>(cachedParams, "metalness", mesh.material->metalness);
-		cb.roughness = GetParam<float>(cachedParams, "roughness", mesh.material->roughness);
-		cb.occlusionStrength = GetParam<float>(cachedParams, "occlusionStrength", mesh.material->occlusionStrength);
 
-		cb.isFace = GetParam<float>(cachedParams, "isFace", false);
+		const bool hasMetalnessParam = HasParam<float>(cachedParams, "metalness");
+		const bool hasRoughnessParam = HasParam<float>(cachedParams, "roughness");
+		const bool hasOcclusionParam = HasParam<float>(cachedParams, "occlusion");
 
-		// テクスチャがある場合は、テクスチャの値を乗算
-		if (mesh.material->metalnessRoughnessMap != nullptr)
+		const bool hasMetalRoughTexture = mesh.material->metalnessRoughnessMap != nullptr;
+		const bool hasOcclusionTexture = mesh.material->occlusionMap != nullptr;
+
+		// ------------------------------------------------------------
+		// metalness
+		// パラメーターあり  : その値を使う
+		// パラメーターなし + テクスチャあり : HLSL側でテクスチャを使う
+		// どちらもなし : モデル側の値を使う
+		// ------------------------------------------------------------
+		if (hasMetalnessParam)
 		{
-			cb.metalness *= mesh.material->metalness;
-			cb.roughness *= mesh.material->roughness;
-			cb.occlusionStrength *= mesh.material->occlusionStrength;
+			cb.metalness = GetParam<float>(cachedParams, "metalness", 0.0f);
+			cb.useMetalnessTexture = 0;
 		}
-		dc->UpdateSubresource(materialConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+		else if (hasMetalRoughTexture)
+		{
+			cb.metalness = 0.0f;
+			cb.useMetalnessTexture = 1;
+		}
+		else
+		{
+			cb.metalness = mesh.material->metalness;
+			cb.useMetalnessTexture = 0;
+		}
+
+		// ------------------------------------------------------------
+		// roughness
+		// ------------------------------------------------------------
+		if (hasRoughnessParam)
+		{
+			cb.roughness = GetParam<float>(cachedParams, "roughness", 0.5f);
+			cb.useRoughnessTexture = 0;
+		}
+		else if (hasMetalRoughTexture)
+		{
+			cb.roughness = 0.5f;
+			cb.useRoughnessTexture = 1;
+		}
+		else
+		{
+			cb.roughness = mesh.material->roughness;
+			cb.useRoughnessTexture = 0;
+		}
+
+		// ------------------------------------------------------------
+		// occlusion
+		// occlusionStrengthは「AOそのもの」ではなく「AOの効き具合」
+		// 手動でAO値を指定したい場合は "occlusion" を使う
+		// ------------------------------------------------------------
+		if (hasOcclusionParam)
+		{
+			cb.occlusion = GetParam<float>(cachedParams, "occlusion", 1.0f);
+			cb.useOcclusionTexture = 0;
+		}
+		else if (hasOcclusionTexture)
+		{
+			cb.occlusion = 1.0f;
+			cb.useOcclusionTexture = 1;
+		}
+		else
+		{
+			cb.occlusion = 1.0f;
+			cb.useOcclusionTexture = 0;
+		}
+
+		cb.occlusionStrength = GetParam<float>(
+			cachedParams,
+			"occlusionStrength",
+			mesh.material->occlusionStrength);
+
+		cb.isFace = GetParam<bool>(
+			cachedParams,
+			"isFace",
+			false) ? 1 : 0;
+
+		cb.metalness = std::clamp(cb.metalness, 0.0f, 1.0f);
+		cb.roughness = std::clamp(cb.roughness, 0.0001f, 1.0f);
+		cb.occlusion = std::clamp(cb.occlusion, 0.0f, 1.0f);
+		cb.occlusionStrength = std::clamp(cb.occlusionStrength, 0.0f, 1.0f);
+
+		dc->UpdateSubresource(
+			materialConstantBuffer.Get(),
+			0,
+			nullptr,
+			&cb,
+			0,
+			0);
 	}
 
 	// CBセット
-	ID3D11Buffer* cbs[] = {shadowMapConstantBuffer.Get(), materialConstantBuffer.Get()};
+	ID3D11Buffer* cbs[] =
+	{
+		shadowMapConstantBuffer.Get(),
+		materialConstantBuffer.Get()
+	};
+
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 	dc->VSSetConstantBuffers(0, 1, shadowMapConstantBuffer.GetAddressOf());
 
@@ -104,6 +194,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		mesh.material->occlusionMap.Get(),
 		mesh.material->emissiveMap.Get(),
 	};
+
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 }
 

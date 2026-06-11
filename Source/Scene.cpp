@@ -40,6 +40,7 @@ void Scene::Render()
 	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
 	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
+	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 
 	// 描画コンテキスト設定
 	RenderContext rc;
@@ -73,11 +74,13 @@ void Scene::Render()
 			auto* mrc = actor->GetComponent<ModelRenderComponent>();
 			if (mrc) graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
 		}
+
 		graphics.GetShadowMapRenderer()->Render(
 			rc,
 			lightData.GetDirectionalLight().direction,
 			Vector3(0, 0, 0), 20.0f, 100.0f, 0.01f, 200.0f
 		);
+
 		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 		shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
 	}
@@ -88,7 +91,9 @@ void Scene::Render()
 	{
 		// スカイボックス描画
 		graphics.GetSkyBoxRenderer()->Render(
-			rc.deviceContext, renderState, *rc.camera,
+			rc.deviceContext,
+			renderState,
+			*rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
 		// actors.Render: HairPhysics書き戻し + TrailのAddPointまで実行
@@ -97,7 +102,7 @@ void Scene::Render()
 		// 不透明モデルをDepthBufferに確定
 		graphics.GetModelRenderer()->Render(rc);
 
-		// 変更: TrailをModelRenderer後に描画（Depthテストで埋もれないよう順番を後ろに移動）
+		// TrailをModelRenderer後に描画
 		for (auto& actor : actors.data)
 		{
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
@@ -118,21 +123,21 @@ void Scene::Render()
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	// Bloom合成: (sceneBuffer + luminanceBuffer) → sceneBuffer に戻す
-	sceneBuffer->Clear(dc);
-	sceneBuffer->Activate(dc);
+	// Bloom合成: sceneBuffer + luminanceBuffer → postProcessBuffer
+	postProcessBuffer->Clear(dc);
+	postProcessBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
 		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
 		postEffect.End(rc);
 	}
-	sceneBuffer->Deactivate(dc);
+	postProcessBuffer->Deactivate(dc);
 
-	// トーンマッピング: sceneBuffer → displayBuffer
+	// トーンマッピング: postProcessBuffer → displayBuffer
 	displayBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
-		postEffect.ToneMapping(rc, sceneBuffer->GetSRV());
+		postEffect.ToneMapping(rc, postProcessBuffer->GetSRV());
 		postEffect.End(rc);
 	}
 
@@ -151,7 +156,6 @@ void Scene::Render()
 		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	// ---- スプライト・GUIはdisplayBufferのまま描画 ------------------------
-	// スプライト
 	widgets.Render(rc);
 	graphics.GetSpriteRenderer()->Render(rc);
 

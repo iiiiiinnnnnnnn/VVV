@@ -25,10 +25,30 @@ struct ParamGUIVisitor
 };
 
 template<typename T>
+static bool HasParam(const ShaderParamList& list, const std::string& name)
+{
+	for (const ShaderParam& p : list)
+	{
+		if (p.name == name)
+		{
+			return std::holds_alternative<T>(p.value);
+		}
+	}
+	return false;
+}
+
+template<typename T>
 static T GetParam(const ShaderParamList& list, const std::string& name, T defaultValue = {})
 {
 	for (const ShaderParam& p : list)
+	{
 		if (p.name == name)
-			if (const T* v = std::get_if<T>(&p.value)) return *v;
+		{
+			if (const T* v = std::get_if<T>(&p.value))
+			{
+				return *v;
+			}
+		}
+	}
 	return defaultValue;
 }

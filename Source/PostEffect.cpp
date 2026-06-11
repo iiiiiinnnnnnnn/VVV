@@ -156,12 +156,33 @@ void PostEffect::End(const RenderContext& rc)
 // デバッグGUI描画
 void PostEffect::DrawGUI()
 {
-	ImGui::DragFloat("LuminanceLowerEdge", &cbPostEffect.luminanceExtractionLowerEdge, 0.01f, 0, 1.0f);
-	ImGui::DragFloat("LuminanceHigherEdge", &cbPostEffect.luminanceExtractionHigherEdge, 0.01f, 0, 1.0f);
-	ImGui::DragFloat("GaussianSigma", &cbPostEffect.gaussianSigma, 0.01f, 0, 10.0f);
-	ImGui::DragFloat("BloomIntensity", &cbPostEffect.bloomIntensity, 0.1f, 0, 10.0f);
-	ImGui::DragFloat("Saturation", &cbPostEffect.saturation, 0.01f, 0, 10.0f);
-	ImGui::DragFloat("Exposure", &cbPostEffect.exposure, 0.01f, 0, 10.0f);
+	ImGui::Text("Bloom Threshold");
+
+	ImGui::DragFloat(
+		"LuminanceLowerEdge",
+		&cbPostEffect.luminanceExtractionLowerEdge,
+		0.01f,
+		0.0f,
+		10.0f);
+
+	ImGui::DragFloat(
+		"LuminanceHigherEdge",
+		&cbPostEffect.luminanceExtractionHigherEdge,
+		0.01f,
+		0.0f,
+		10.0f);
+
+	if (cbPostEffect.luminanceExtractionHigherEdge < cbPostEffect.luminanceExtractionLowerEdge)
+	{
+		cbPostEffect.luminanceExtractionHigherEdge = cbPostEffect.luminanceExtractionLowerEdge;
+	}
+
+	ImGui::Separator();
+
+	ImGui::DragFloat("GaussianSigma", &cbPostEffect.gaussianSigma, 0.01f, 0.01f, 10.0f);
+	ImGui::DragFloat("BloomIntensity", &cbPostEffect.bloomIntensity, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("Saturation", &cbPostEffect.saturation, 0.01f, 0.0f, 3.0f);
+	ImGui::DragFloat("Exposure", &cbPostEffect.exposure, 0.01f, 0.0f, 5.0f);
 
 	ImGui::Separator();
 

@@ -29,14 +29,18 @@ private:
 	// b1
 	struct CbMaterial
 	{
-		Color	baseColor;		// ベースカラー
-		Color	emissiveColor;	// エミッシブカラー
-		float	metalness;		// メタルネス
-		float	roughness;		// ラフネス
-		float	occlusionStrength;	// オクルージョン強度
-		BOOL    hasMetalRoughTexture = false;	// ベースカラーテクスチャの有無
-		BOOL    isFace = false;
-		float   DUMMY[3];
+		Color	baseColor;
+		Color	emissiveColor;
+
+		float	metalness;
+		float	roughness;
+		float	occlusion;
+		float	occlusionStrength;
+
+		int		useMetalnessTexture;
+		int		useRoughnessTexture;
+		int		useOcclusionTexture;
+		int		isFace;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 };

@@ -26,14 +26,18 @@ cbuffer CbShadowMap : register(b0)
 
 cbuffer CbMaterial : register(b1)
 {
-    float4 baseColor;           // ベースカラー
-    float4 emissiveColor;       // エミッシブカラー
-    float  metalness;           // メタルネス
-    float  roughness;           // ラフネス
-    float  occlusionStrength;   // AO強度
-    bool   hasMetalRoughTexture; // メタルネスラフネステクスチャの有無
-    bool   isFace;
-    float3 _dummyCbMaterial;
+    float4 baseColor;
+    float4 emissiveColor;
+
+    float metalness;
+    float roughness;
+    float occlusion;
+    float occlusionStrength;
+
+    int useMetalnessTexture;
+    int useRoughnessTexture;
+    int useOcclusionTexture;
+    int isFace;
 };
 
 #endif // __PBR_HLSLI__

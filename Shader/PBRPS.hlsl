@@ -38,13 +38,33 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 emissiveSRGB = emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
     float3 emissive = pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb;
     
+    float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);
-    float finalMetalness = clamp(metalness, 0.0001f, 1.0f);
-    if (hasMetalRoughTexture)
+
+    if (useMetalnessTexture != 0 || useRoughnessTexture != 0)
     {
-        finalRoughness = clamp(roughness * mrSample.x, 0.0001f, 1.0f);
-        finalMetalness = clamp(metalness * mrSample.y, 0.0001f, 1.0f);
+        // glTF系は G = roughness, B = metalness
+        float2 mrSample = metalnessRoughnessMap.Sample(linearSampler, pin.texcoord).gb;
+
+        if (useRoughnessTexture != 0)
+        {
+            finalRoughness = clamp(mrSample.x, 0.0001f, 1.0f);
+        }
+
+        if (useMetalnessTexture != 0)
+        {
+            finalMetalness = clamp(mrSample.y, 0.0f, 1.0f);
+        }
     }
+
+    float finalAO = clamp(occlusion, 0.0f, 1.0f);
+
+    if (useOcclusionTexture != 0)
+    {
+        finalAO = occlusionMap.Sample(linearSampler, pin.texcoord).r;
+    }
+
+    finalAO = lerp(1.0f, finalAO, occlusionStrength);
 
     // PBRパラメーター
     float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, finalMetalness);
@@ -164,8 +184,8 @@ float4 main(VS_OUT pin) : SV_TARGET
                                      lut_ggx, specular_pmrem, linearSampler) * iblIntensity;
 
     // AO適用
-    iblDiffuse = lerp(iblDiffuse, iblDiffuse * ao, occlusionStrength);
-    iblSpecular = lerp(iblSpecular, iblSpecular * ao, occlusionStrength);
+    iblDiffuse *= finalAO;
+    iblSpecular *= finalAO;
 
     // 合成（リニア空間）
     float3 color = (totalDiffuse + totalSpecular) * shadow

@@ -11,31 +11,39 @@ float4 main(VS_OUT pin) : SV_TARGET
 {
     uint width, height;
     luminanceMap.GetDimensions(width, height);
+
     float4 color = colorMap.Sample(linearSampler, pin.texcoord);
-    float alpha = color.a;
-    float3 blurColor = 0;
-    float gaussianKernelTotal = 0;
+
+    float3 blurColor = 0.0f;
+    float gaussianKernelTotal = 0.0f;
+
     const float PI = 3.14159265358979f;
     const int gaussianHalfKernelSize = 3;
-    [unroll]
-    for (int x = -gaussianHalfKernelSize; x <= +gaussianHalfKernelSize; x += 1)
+
+    float sigma = max(gaussianSigma, 0.0001f);
+
+	[unroll]
+    for (int x = -gaussianHalfKernelSize; x <= gaussianHalfKernelSize; x++)
     {
-    [unroll]
-        for (int y = -gaussianHalfKernelSize; y <= +gaussianHalfKernelSize; y += 1)
+		[unroll]
+        for (int y = -gaussianHalfKernelSize; y <= gaussianHalfKernelSize; y++)
         {
-            float gaussianKernel = exp(-(x * x + y * y) / (2.0 * gaussianSigma * gaussianSigma)) /
-                (2 * PI * gaussianSigma * gaussianSigma);
-            blurColor += luminanceMap.Sample(linearSampler, pin.texcoord + float2(x * 1.0 / width, y * 1.0 /
-                height)).rgb * gaussianKernel;
+            float distSq = x * x + y * y;
+            float gaussianKernel = exp(-distSq / (2.0f * sigma * sigma)) / (2.0f * PI * sigma * sigma);
+
+            float2 offset = float2(
+				x / (float) width,
+				y / (float) height
+			);
+
+            blurColor += luminanceMap.Sample(linearSampler, pin.texcoord + offset).rgb * gaussianKernel;
             gaussianKernelTotal += gaussianKernel;
         }
     }
-    blurColor /= gaussianKernelTotal;
+
+    blurColor /= max(gaussianKernelTotal, 0.0001f);
+
     color.rgb += blurColor * bloomIntensity;
-    
-    // トーンマッピング
-    const float exposure = 1.2;
-    color.rgb = 1 - exp(-color.rgb * exposure);
-    
+
     return color;
 }

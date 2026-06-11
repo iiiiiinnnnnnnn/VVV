@@ -4,7 +4,7 @@
 #define __SHADING_FUNCTIONS_HLSLI__
 
 //	ƒKƒ“ƒ}ŒW”
-static const float GammaFactor = 5.2f;
+static const float GammaFactor = 2.2f;
 
 //	‰~ü—¦
 static const float PI = 3.141592654f;

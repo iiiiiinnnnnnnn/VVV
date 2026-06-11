@@ -27,6 +27,7 @@ namespace Game
 			#if defined(DEBUG) || defined(_DEBUG)
 			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 			#endif
+
 			D3D_FEATURE_LEVEL featureLevels[] =
 			{
 				D3D_FEATURE_LEVEL_11_0,
@@ -75,9 +76,18 @@ namespace Game
 		}
 
 		// バックバッファ用 RenderTarget を生成
-		frameBuffers[static_cast<int>(FrameBufferId::Display)] = std::make_unique<RenderTarget>(device.Get(), swapchain.Get(), screenWidth, screenHeight);
-		frameBuffers[static_cast<int>(FrameBufferId::Scene)] = std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight);
-		frameBuffers[static_cast<int>(FrameBufferId::Luminance)] = std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight);
+		frameBuffers[static_cast<int>(FrameBufferId::Display)] =
+			std::make_unique<RenderTarget>(device.Get(), swapchain.Get(), screenWidth, screenHeight);
+
+		// HDR用オフスクリーンバッファ
+		frameBuffers[static_cast<int>(FrameBufferId::Scene)] =
+			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::Luminance)] =
+			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
+			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
 		// 各レンダラー生成
 		renderState       = std::make_unique<RenderState>(device.Get());

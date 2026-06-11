@@ -25,6 +25,7 @@ Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
         {
             {"metalness", 0.0f},
         {"roughness", 0.0f},
+        {"occlusion", 0.5f},
         {"occlusionStrength", 0.8f}
     }
         },
@@ -33,6 +34,7 @@ Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
         {
             {"metalness", 1.0f},
         {"roughness", 0.1f},
+        {"occlusion", 0.5f},
         {"occlusionStrength", 1.0f}
     }
         }

@@ -21,6 +21,7 @@ namespace Game
 		Display,
 		Scene,
 		Luminance,
+		PostProcess,
 
 		EnumCount
 	};
