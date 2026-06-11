@@ -21,8 +21,6 @@ namespace Game
 		Display,
 		Scene,
 		Luminance,
-		BloomTemp,
-		BloomBlur,
 		PostProcess,
 
 		EnumCount

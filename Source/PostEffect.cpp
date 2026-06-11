@@ -18,7 +18,8 @@ PostEffect::PostEffect()
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/FullScreenQuadVS.cso",
-		nullptr, 0,
+		nullptr,
+		0,
 		nullptr,
 		fullscreenQuadVS.GetAddressOf());
 
@@ -28,19 +29,7 @@ PostEffect::PostEffect()
 		"Data/Shader/LuminanceExtractionPS.cso",
 		luminanceExtractionPS.GetAddressOf());
 
-	// Bloom ‰¡‚Ú‚©‚µ
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Data/Shader/BloomBlurHorizontalPS.cso",
-		bloomBlurHorizontalPS.GetAddressOf());
-
-	// Bloom c‚Ú‚©‚µ
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Data/Shader/BloomBlurVerticalPS.cso",
-		bloomBlurVerticalPS.GetAddressOf());
-
-	// Bloom ‡¬
+	// Bloom
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/BloomPS.cso",
@@ -128,32 +117,6 @@ void PostEffect::Bloom(const RenderContext& rc, ID3D11ShaderResourceView* colorM
 	dc->PSSetShader(bloomPS.Get(), 0, 0);
 
 	ID3D11ShaderResourceView* srvs[] = { colorMap, bloomMap };
-	dc->PSSetShaderResources(0, _countof(srvs), srvs);
-
-	dc->Draw(4, 0);
-}
-
-void PostEffect::BloomBlurHorizontal(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
-{
-	ID3D11DeviceContext* dc = rc.deviceContext;
-
-	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
-	dc->PSSetShader(bloomBlurHorizontalPS.Get(), 0, 0);
-
-	ID3D11ShaderResourceView* srvs[] = { colorMap };
-	dc->PSSetShaderResources(0, _countof(srvs), srvs);
-
-	dc->Draw(4, 0);
-}
-
-void PostEffect::BloomBlurVertical(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
-{
-	ID3D11DeviceContext* dc = rc.deviceContext;
-
-	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
-	dc->PSSetShader(bloomBlurVerticalPS.Get(), 0, 0);
-
-	ID3D11ShaderResourceView* srvs[] = { colorMap };
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 
 	dc->Draw(4, 0);

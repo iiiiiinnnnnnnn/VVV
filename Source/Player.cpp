@@ -101,10 +101,10 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		{
 			"Shiled_Cloth",
 		{
-			{"metalness", 0.0f},
+			{"metalness", 0.1f},
 		{"roughness", 0.0f},
 		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f}
+		{"occlusionStrength", 0.8f}
 	}
 		},
 		{
@@ -113,7 +113,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 			{"metalness", 0.0f},
 		{"roughness", 0.0f},
 		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f}
+		{"occlusionStrength", 0.08f}
 	}
 		},
 	};

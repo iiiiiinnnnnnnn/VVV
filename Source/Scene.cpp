@@ -40,8 +40,6 @@ void Scene::Render()
 	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
 	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
-	RenderTarget* bloomTempBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomTemp);
-	RenderTarget* bloomBlurBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomBlur);
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 
 	// 描画コンテキスト設定
@@ -60,7 +58,9 @@ void Scene::Render()
 	{
 		#ifdef _DEBUG
 		if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+		{
 			renderSettings.showDebug = !renderSettings.showDebug;
+		}
 		#endif
 	}
 
@@ -74,13 +74,20 @@ void Scene::Render()
 		for (auto& actor : actors.data)
 		{
 			auto* mrc = actor->GetComponent<ModelRenderComponent>();
-			if (mrc) graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+			if (mrc)
+			{
+				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+			}
 		}
 
 		graphics.GetShadowMapRenderer()->Render(
 			rc,
 			lightData.GetDirectionalLight().direction,
-			Vector3(0, 0, 0), 20.0f, 100.0f, 0.01f, 200.0f
+			Vector3(0, 0, 0),
+			20.0f,
+			100.0f,
+			0.01f,
+			200.0f
 		);
 
 		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
@@ -104,7 +111,10 @@ void Scene::Render()
 		for (auto& actor : actors.data)
 		{
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
-			if (trail) trail->RenderTrail(rc);
+			if (trail)
+			{
+				trail->RenderTrail(rc);
+			}
 		}
 	}
 	sceneBuffer->Deactivate(dc);
@@ -119,32 +129,12 @@ void Scene::Render()
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	// ---- Bloom 横ぼかし: luminanceBuffer → bloomTempBuffer ----------------
-	bloomTempBuffer->Clear(dc);
-	bloomTempBuffer->Activate(dc);
-	{
-		postEffect.Begin(rc);
-		postEffect.BloomBlurHorizontal(rc, luminanceBuffer->GetSRV());
-		postEffect.End(rc);
-	}
-	bloomTempBuffer->Deactivate(dc);
-
-	// ---- Bloom 縦ぼかし: bloomTempBuffer → bloomBlurBuffer ----------------
-	bloomBlurBuffer->Clear(dc);
-	bloomBlurBuffer->Activate(dc);
-	{
-		postEffect.Begin(rc);
-		postEffect.BloomBlurVertical(rc, bloomTempBuffer->GetSRV());
-		postEffect.End(rc);
-	}
-	bloomBlurBuffer->Deactivate(dc);
-
-	// ---- Bloom合成: sceneBuffer + bloomBlurBuffer → postProcessBuffer -----
+	// ---- Bloom合成: sceneBuffer + luminanceBuffer → postProcessBuffer -----
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
-		postEffect.Bloom(rc, sceneBuffer->GetSRV(), bloomBlurBuffer->GetSRV());
+		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
 		postEffect.End(rc);
 	}
 	postProcessBuffer->Deactivate(dc);

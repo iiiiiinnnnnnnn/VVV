@@ -3,8 +3,8 @@
   "postEffect": {
     "luminanceExtractionLowerEdge": 1.5,
     "luminanceExtractionHigherEdge": 2,
-    "gaussianSigma": 1.5,
-    "bloomIntensity": 1.2,
+    "gaussianSigma": 0.8,
+    "bloomIntensity": 0.44,
     "saturation": 3,
     "exposure": 2
   }
