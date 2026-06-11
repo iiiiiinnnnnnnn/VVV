@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "postEffect": {
+    "luminanceExtractionLowerEdge": 0,
+    "luminanceExtractionHigherEdge": 0.05,
+    "gaussianSigma": 0.33,
+    "bloomIntensity": 0.3,
+    "saturation": 4.45,
+    "exposure": 2.08
+  }
+}

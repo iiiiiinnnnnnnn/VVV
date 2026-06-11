@@ -11,6 +11,10 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
+
+#include <DirectXTex.h>
+#include <DDSTextureLoader.h>
 
 class Model
 {
@@ -29,7 +33,7 @@ public:
 		Matrix				globalTransform;
 		Matrix				worldTransform;
 
-		Node*				parent = nullptr; 
+		Node* parent = nullptr;
 		std::vector<Node*>	children;
 
 		template<class Archive>
@@ -52,8 +56,16 @@ public:
 		std::string			emissiveTextureFileName;
 		std::string			occlusionTextureFileName;
 		std::string			metalnessRoughnessTextureFileName;
-		Color				baseColor = { 1, 1, 1, 1 };
-		Color				emissiveColor = { 1, 1, 1, 1 };
+
+		// 埋め込むDDSデータ
+		std::vector<uint8_t>	baseTextureDDS;
+		std::vector<uint8_t>	normalTextureDDS;
+		std::vector<uint8_t>	emissiveTextureDDS;
+		std::vector<uint8_t>	occlusionTextureDDS;
+		std::vector<uint8_t>	metalnessRoughnessTextureDDS;
+
+		Color				baseColor = {1, 1, 1, 1};
+		Color				emissiveColor = {1, 1, 1, 1};
 		float				metalness = 0.0f;
 		float				roughness = 0.0f;
 		float				occlusionStrength = 0.0f;
@@ -76,10 +88,10 @@ public:
 	{
 		Vector3				position = Vector3::Zero;
 		Vector3				normal = Vector3::Zero;
-		Vector4				tangent = { 0, 0, 0, 1 };
-		Vector2				texcoord = { 0, 0 };
-		Vector4				boneWeight = { 1, 0, 0, 0 };
-		DirectX::XMUINT4	boneIndex = { 0, 0, 0, 0 };
+		Vector4				tangent = {0, 0, 0, 1};
+		Vector2				texcoord = {0, 0};
+		Vector4				boneWeight = {1, 0, 0, 0};
+		DirectX::XMUINT4	boneIndex = {0, 0, 0, 0};
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -89,7 +101,7 @@ public:
 	{
 		int					nodeIndex;
 		Matrix				offsetTransform;
-		Node*				node = nullptr;
+		Node* node = nullptr;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -105,8 +117,8 @@ public:
 		int			materialIndex = 0;
 
 		// 保存しない
-		Material*	material = nullptr;
-		Node*		node = nullptr;
+		Material* material = nullptr;
+		Node* node = nullptr;
 		bool		isDraw = true;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>	vertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
@@ -219,12 +231,21 @@ public:
 
 private:
 	// シリアライズ
-	void Serialize(const char* filename, uint16_t lastWrite);
+	void Serialize(const char* filename, uint64_t lastWrite);
 
 	// デシリアライズ
-	void Deserialize(const char* filename, uint16_t& lastWrite);
+	void Deserialize(const char* filename, uint64_t& lastWrite);
 
-private:
+	uint64_t GetFileLastWriteTime64(const std::filesystem::path& path);
+	std::wstring ToLowerWString(std::wstring text);
+	bool ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData);
+	HRESULT SaveScratchImageToDDSBytes(const DirectX::ScratchImage& sourceImage, std::vector<uint8_t>& outDDS);
+	HRESULT ConvertTextureFileToDDSBytes(const std::filesystem::path& texturePath, std::vector<uint8_t>& outDDS);
+	HRESULT ConvertSRVToDDSBytes(ID3D11Device* device, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
+	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
+	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Model::Material& material);
+	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
+	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Model::Material& material);
 
 	std::vector<Material>	materials;
 	std::vector<Mesh>		meshes;

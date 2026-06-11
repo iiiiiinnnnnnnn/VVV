@@ -25,6 +25,8 @@
 #include <stack>
 #include <queue>
 #include <deque>
+#include <cstring>
+#include <cwctype>
 
 // microsoft
 #include <windows.h>
@@ -38,10 +40,6 @@
 #define CONCAT_INNER(a, b) a##b
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define DUMMY CONCAT(__DUMMY__, __LINE__)
-
-// Json
-//#include <json.hpp>
-//using namespace nlohmann;
 
 // DirectX
 #include <d3d11.h> // directx
@@ -84,3 +82,15 @@ constexpr float DEG2RAD = DirectX::XM_PI / 180.0f;
     }()
 #define RAD(x) DirectX::XMConvertToRadians(x)
 #define DEG(x) DirectX::XMConvertToDegrees(x)
+
+static std::wstring ToLowerWString(std::wstring text)
+{
+    std::transform(
+        text.begin(),
+        text.end(),
+        text.begin(),
+        [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }
+    );
+
+    return text;
+}

@@ -1,16 +1,15 @@
 ﻿// Model.cpp
 
-#include <filesystem>
-#include <fstream>
+#include "Model.h"
+#include "Misc.h"
+#include "GLTFImporter.h"
+#include "GpuResourceUtils.h"
+#include "Graphics.h"
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
-#include "Misc.h"
-#include "GLTFImporter.h"
-#include "GpuResourceUtils.h"
-#include "Model.h"
-#include <Graphics.h>
+#include <cereal/types/utility.hpp>
 
 #if 1 // シリアライズ閉じる用
 namespace DirectX
@@ -102,6 +101,13 @@ void Model::Material::serialize(Archive& archive)
 		CEREAL_NVP(emissiveTextureFileName),
 		CEREAL_NVP(occlusionTextureFileName),
 		CEREAL_NVP(metalnessRoughnessTextureFileName),
+
+		CEREAL_NVP(baseTextureDDS),
+		CEREAL_NVP(normalTextureDDS),
+		CEREAL_NVP(emissiveTextureDDS),
+		CEREAL_NVP(occlusionTextureDDS),
+		CEREAL_NVP(metalnessRoughnessTextureDDS),
+
 		CEREAL_NVP(baseColor),
 		CEREAL_NVP(emissiveColor),
 		CEREAL_NVP(metalness),
@@ -185,36 +191,441 @@ void Model::Animation::serialize(Archive& archive)
 }
 #endif
 
-// コンストラクタ
+uint64_t Model::GetFileLastWriteTime64(const std::filesystem::path& path)
+{
+	return static_cast<uint64_t>(
+		std::filesystem::last_write_time(path).time_since_epoch().count()
+		);
+}
+
+std::wstring Model::ToLowerWString(std::wstring text)
+{
+	std::transform(
+		text.begin(),
+		text.end(),
+		text.begin(),
+		[](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }
+	);
+
+	return text;
+}
+
+bool Model::ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData)
+{
+	outData.clear();
+
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	if (!file)
+	{
+		return false;
+	}
+
+	std::streamsize size = file.tellg();
+	if (size <= 0)
+	{
+		return false;
+	}
+
+	outData.resize(static_cast<size_t>(size));
+
+	file.seekg(0, std::ios::beg);
+	file.read(reinterpret_cast<char*>(outData.data()), size);
+
+	if (!file)
+	{
+		outData.clear();
+		return false;
+	}
+
+	return true;
+}
+
+HRESULT Model::SaveScratchImageToDDSBytes(
+	const DirectX::ScratchImage& sourceImage,
+	std::vector<uint8_t>& outDDS)
+{
+	outDDS.clear();
+
+	const DirectX::TexMetadata& sourceMetadata = sourceImage.GetMetadata();
+
+	DirectX::ScratchImage rgbaImage;
+	HRESULT hr = S_OK;
+
+	// DDSとして扱いやすいRGBA8へ変換する
+	if (sourceMetadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
+	{
+		hr = DirectX::Convert(
+			sourceImage.GetImages(),
+			sourceImage.GetImageCount(),
+			sourceMetadata,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			DirectX::TEX_FILTER_DEFAULT,
+			DirectX::TEX_THRESHOLD_DEFAULT,
+			rgbaImage
+		);
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+	else
+	{
+		hr = rgbaImage.InitializeFromImage(*sourceImage.GetImage(0, 0, 0));
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+	const DirectX::ScratchImage* saveSource = &rgbaImage;
+
+	// ミップマップ生成
+	// 軽さ最優先ならここも消していい
+	DirectX::ScratchImage mipImage;
+	hr = DirectX::GenerateMipMaps(
+		rgbaImage.GetImages(),
+		rgbaImage.GetImageCount(),
+		rgbaImage.GetMetadata(),
+		DirectX::TEX_FILTER_DEFAULT,
+		0,
+		mipImage
+	);
+
+	if (SUCCEEDED(hr))
+	{
+		saveSource = &mipImage;
+	}
+
+	// 圧縮せずDDSメモリへ保存
+	DirectX::Blob blob;
+	hr = DirectX::SaveToDDSMemory(
+		saveSource->GetImages(),
+		saveSource->GetImageCount(),
+		saveSource->GetMetadata(),
+		DirectX::DDS_FLAGS_NONE,
+		blob
+	);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	outDDS.resize(blob.GetBufferSize());
+	memcpy(outDDS.data(), blob.GetBufferPointer(), blob.GetBufferSize());
+
+	return S_OK;
+}
+
+HRESULT Model::ConvertTextureFileToDDSBytes(
+	const std::filesystem::path& texturePath,
+	std::vector<uint8_t>& outDDS)
+{
+	outDDS.clear();
+
+	if (!std::filesystem::exists(texturePath))
+	{
+		return E_FAIL;
+	}
+
+	std::wstring extension = ToLowerWString(texturePath.extension().wstring());
+
+	// 元がDDSなら再圧縮せず、そのまま埋め込む
+	if (extension == L".dds")
+	{
+		return ReadBinaryFile(texturePath, outDDS) ? S_OK : E_FAIL;
+	}
+
+	DirectX::ScratchImage image;
+	DirectX::TexMetadata metadata = {};
+	HRESULT hr = E_FAIL;
+
+	if (extension == L".tga")
+	{
+		hr = DirectX::LoadFromTGAFile(
+			texturePath.wstring().c_str(),
+			&metadata,
+			image
+		);
+	}
+	else
+	{
+		hr = DirectX::LoadFromWICFile(
+			texturePath.wstring().c_str(),
+			DirectX::WIC_FLAGS_FORCE_RGB,
+			&metadata,
+			image
+		);
+	}
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	return SaveScratchImageToDDSBytes(image, outDDS);
+}
+
+HRESULT Model::ConvertSRVToDDSBytes(
+	ID3D11Device* device,
+	ID3D11ShaderResourceView* srv,
+	std::vector<uint8_t>& outDDS)
+{
+	outDDS.clear();
+
+	if (device == nullptr || srv == nullptr)
+	{
+		return E_FAIL;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11Resource> resource;
+	srv->GetResource(resource.GetAddressOf());
+
+	if (resource == nullptr)
+	{
+		return E_FAIL;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+	device->GetImmediateContext(context.GetAddressOf());
+
+	if (context == nullptr)
+	{
+		return E_FAIL;
+	}
+
+	DirectX::ScratchImage image;
+	HRESULT hr = DirectX::CaptureTexture(
+		device,
+		context.Get(),
+		resource.Get(),
+		image
+	);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	return SaveScratchImageToDDSBytes(image, outDDS);
+}
+
+void Model::BuildEmbeddedDDSFromFileOrSRV(
+	ID3D11Device* device,
+	const std::filesystem::path& dirpath,
+	const std::string& textureFileName,
+	ID3D11ShaderResourceView* srv,
+	std::vector<uint8_t>& outDDS)
+{
+	outDDS.clear();
+
+	if (!textureFileName.empty())
+	{
+		std::filesystem::path texturePath = dirpath / textureFileName;
+
+		HRESULT hr = ConvertTextureFileToDDSBytes(texturePath, outDDS);
+		if (SUCCEEDED(hr) && !outDDS.empty())
+		{
+			return;
+		}
+	}
+
+	// glb内蔵テクスチャなど、ファイル名が取れない場合の保険。
+	// importer.LoadMaterials がSRVを作っているなら、GPUから捕まえてDDS化する。
+	if (srv != nullptr)
+	{
+		HRESULT hr = ConvertSRVToDDSBytes(device, srv, outDDS);
+		if (SUCCEEDED(hr) && !outDDS.empty())
+		{
+			return;
+		}
+	}
+
+	outDDS.clear();
+}
+
+void Model::BuildMaterialEmbeddedDDS(
+	ID3D11Device* device,
+	const std::filesystem::path& dirpath,
+	Model::Material& material)
+{
+	BuildEmbeddedDDSFromFileOrSRV(
+		device,
+		dirpath,
+		material.baseTextureFileName,
+		material.baseMap.Get(),
+		material.baseTextureDDS
+	);
+
+	BuildEmbeddedDDSFromFileOrSRV(
+		device,
+		dirpath,
+		material.normalTextureFileName,
+		material.normalMap.Get(),
+		material.normalTextureDDS
+	);
+
+	BuildEmbeddedDDSFromFileOrSRV(
+		device,
+		dirpath,
+		material.emissiveTextureFileName,
+		material.emissiveMap.Get(),
+		material.emissiveTextureDDS
+	);
+
+	BuildEmbeddedDDSFromFileOrSRV(
+		device,
+		dirpath,
+		material.occlusionTextureFileName,
+		material.occlusionMap.Get(),
+		material.occlusionTextureDDS
+	);
+
+	BuildEmbeddedDDSFromFileOrSRV(
+		device,
+		dirpath,
+		material.metalnessRoughnessTextureFileName,
+		material.metalnessRoughnessMap.Get(),
+		material.metalnessRoughnessTextureDDS
+	);
+}
+
+void Model::CreateSRVFromEmbeddedDDSOrFile(
+	ID3D11Device* device,
+	const std::filesystem::path& dirpath,
+	const std::string& textureFileName,
+	const std::vector<uint8_t>& embeddedDDS,
+	uint32_t dummyColor,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
+{
+	if (srv != nullptr)
+	{
+		return;
+	}
+
+	HRESULT hr = S_OK;
+
+	if (!embeddedDDS.empty())
+	{
+		hr = DirectX::CreateDDSTextureFromMemory(
+			device,
+			embeddedDDS.data(),
+			embeddedDDS.size(),
+			nullptr,
+			srv.GetAddressOf()
+		);
+
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		return;
+	}
+
+	if (textureFileName.empty())
+	{
+		hr = GpuResourceUtils::CreateDummyTexture(
+			device,
+			dummyColor,
+			srv.GetAddressOf()
+		);
+
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		return;
+	}
+
+	std::filesystem::path texturePath = dirpath / textureFileName;
+
+	hr = GpuResourceUtils::LoadTexture(
+		device,
+		texturePath.string().c_str(),
+		srv.GetAddressOf()
+	);
+
+	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+}
+
+void Model::BuildMaterialTextureResources(
+	ID3D11Device* device,
+	const std::filesystem::path& dirpath,
+	Model::Material& material)
+{
+	CreateSRVFromEmbeddedDDSOrFile(
+		device,
+		dirpath,
+		material.baseTextureFileName,
+		material.baseTextureDDS,
+		0xFFFFFFFF,
+		material.baseMap
+	);
+
+	CreateSRVFromEmbeddedDDSOrFile(
+		device,
+		dirpath,
+		material.normalTextureFileName,
+		material.normalTextureDDS,
+		0xFFFF7F7F,
+		material.normalMap
+	);
+
+	CreateSRVFromEmbeddedDDSOrFile(
+		device,
+		dirpath,
+		material.emissiveTextureFileName,
+		material.emissiveTextureDDS,
+		0xFF000000,
+		material.emissiveMap
+	);
+
+	CreateSRVFromEmbeddedDDSOrFile(
+		device,
+		dirpath,
+		material.occlusionTextureFileName,
+		material.occlusionTextureDDS,
+		0xFFFFFFFF,
+		material.occlusionMap
+	);
+
+	CreateSRVFromEmbeddedDDSOrFile(
+		device,
+		dirpath,
+		material.metalnessRoughnessTextureFileName,
+		material.metalnessRoughnessTextureDDS,
+		0xFF00FF00,
+		material.metalnessRoughnessMap
+	);
+}
+
 Model::Model(const char* filename, float sampleRate, bool importRawModel)
 {
 	auto device = Game::Graphics::Instance().GetDevice();
 
-	std::filesystem::path filepath(filename);
-	std::filesystem::path dirpath(filepath.parent_path());
+	std::filesystem::path sourceFilepath(filename);
+	std::filesystem::path dirpath(sourceFilepath.parent_path());
+	std::filesystem::path extension = sourceFilepath.extension();
 
-	std::filesystem::path extension = filepath.extension();
+	std::filesystem::path cerealFilepath = sourceFilepath;
+	cerealFilepath.replace_extension(".cereal");
 
 	// 独自形式のモデルファイルの存在確認
-	//filepath.replace_extension(".cereal");
-	//if (std::filesystem::exists(filepath) && !importRawModel)
-	//{
-	//	// 独自形式のモデルファイルの読み込み
-	//	uint16_t lastWriteTime;
-	//	Deserialize(filepath.string().c_str(), lastWriteTime);
-	//	// cerealが古いなら、元のモデルファイルから再構築する
-	//	if (std::filesystem::exists(filename)) {
-	//		uint16_t fileLastWriteTime = static_cast<uint16_t>(std::filesystem::last_write_time(filename).time_since_epoch().count());
-	//		if (fileLastWriteTime != lastWriteTime)
-	//		{
-	//			Model tmpModel(filename, sampleRate, true);
-	//			*this = std::move(tmpModel);
-	//			return;
-	//		}
-	//	}
-	//}
-	//else
-	if (extension == ".gltf" || extension == ".glb")
+	if (std::filesystem::exists(cerealFilepath) && !importRawModel)
+	{
+		uint64_t lastWriteTime = 0;
+		Deserialize(cerealFilepath.string().c_str(), lastWriteTime);
+
+		// cerealが古いなら、元のモデルファイルから再構築する
+		if (std::filesystem::exists(filename))
+		{
+			uint64_t fileLastWriteTime = GetFileLastWriteTime64(filename);
+
+			if (fileLastWriteTime != lastWriteTime)
+			{
+				Model tmpModel(filename, sampleRate, true);
+				*this = std::move(tmpModel);
+				return;
+			}
+		}
+	}
+	else if (extension == ".gltf" || extension == ".glb")
 	{
 		// 汎用モデルファイルの読み込み
 		GLTFImporter importer(filename);
@@ -231,9 +642,17 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		// アニメーションデータ読み取り
 		importer.LoadAnimations(animations, nodes, sampleRate);
 
+		// テクスチャをDDS化してcerealに埋め込む
+		for (Material& material : materials)
+		{
+			BuildMaterialEmbeddedDDS(device, dirpath, material);
+		}
+
 		// 独自形式のモデルファイルを保存
-		//Serialize(filepath.string().c_str(), std::filesystem::last_write_time(filename).time_since_epoch().count());
-		// ↑本当は保存できるけど、テクスチャ埋め込めないのが正直キツイのでglbって元々早いしglbでいいです
+		Serialize(
+			cerealFilepath.string().c_str(),
+			GetFileLastWriteTime64(filename)
+		);
 	}
 	else
 	{
@@ -243,43 +662,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	// マテリアル構築
 	for (Material& material : materials)
 	{
-		if (material.baseMap == nullptr)
-		{
-			if (material.baseTextureFileName.empty())
-			{
-				// ダミーテクスチャ作成
-				HRESULT hr = GpuResourceUtils::CreateDummyTexture(device, 0xFFFFFFFF,
-					material.baseMap.GetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-			}
-			else
-			{
-				// ベーステクスチャ読み込み
-				std::filesystem::path diffuseTexturePath(dirpath / material.baseTextureFileName);
-				HRESULT hr = GpuResourceUtils::LoadTexture(device, diffuseTexturePath.string().c_str(),
-					material.baseMap.GetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-			}
-		}
-
-		if (material.normalMap == nullptr)
-		{
-			if (material.normalTextureFileName.empty())
-			{
-				// 法線ダミーテクスチャ作成
-				HRESULT hr = GpuResourceUtils::CreateDummyTexture(device, 0xFFFF7F7F,
-					material.normalMap.GetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-			}
-			else
-			{
-				// 法線テクスチャ読み込み
-				std::filesystem::path texturePath(dirpath / material.normalTextureFileName);
-				HRESULT hr = GpuResourceUtils::LoadTexture(device, texturePath.string().c_str(),
-					material.normalMap.GetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-			}
-		}
+		BuildMaterialTextureResources(device, dirpath, material);
 	}
 
 	// ノード構築
@@ -289,6 +672,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 
 		// 親子関係を構築
 		node.parent = node.parentIndex >= 0 ? &nodes.at(node.parentIndex) : nullptr;
+
 		if (node.parent != nullptr)
 		{
 			node.parent->children.emplace_back(&node);
@@ -315,11 +699,17 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			bufferDesc.CPUAccessFlags = 0;
 			bufferDesc.MiscFlags = 0;
 			bufferDesc.StructureByteStride = 0;
+
 			subresourceData.pSysMem = mesh.vertices.data();
 			subresourceData.SysMemPitch = 0;
 			subresourceData.SysMemSlicePitch = 0;
 
-			HRESULT hr = device->CreateBuffer(&bufferDesc, &subresourceData, mesh.vertexBuffer.GetAddressOf());
+			HRESULT hr = device->CreateBuffer(
+				&bufferDesc,
+				&subresourceData,
+				mesh.vertexBuffer.GetAddressOf()
+			);
+
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
@@ -334,25 +724,29 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			bufferDesc.CPUAccessFlags = 0;
 			bufferDesc.MiscFlags = 0;
 			bufferDesc.StructureByteStride = 0;
+
 			subresourceData.pSysMem = mesh.indices.data();
 			subresourceData.SysMemPitch = 0;
 			subresourceData.SysMemSlicePitch = 0;
-			HRESULT hr = device->CreateBuffer(&bufferDesc, &subresourceData, mesh.indexBuffer.GetAddressOf());
+
+			HRESULT hr = device->CreateBuffer(
+				&bufferDesc,
+				&subresourceData,
+				mesh.indexBuffer.GetAddressOf()
+			);
+
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
 		// ボーン構築
 		for (Bone& bone : mesh.bones)
 		{
-			// 参照ノード設定
 			bone.node = &nodes.at(bone.nodeIndex);
 		}
 	}
 
 	// 行列初期化
-	DirectX::XMFLOAT4X4 worldTransform;
-	DirectX::XMStoreFloat4x4(&worldTransform, DirectX::XMMatrixIdentity());
-	UpdateTransform(worldTransform);
+	UpdateTransform(Matrix::Identity);
 }
 
 // アニメーション追加読み込み
@@ -660,7 +1054,7 @@ void Model::_print() const
 }
 
 // シリアライズ
-void Model::Serialize(const char* filename, uint16_t lastWrite)
+void Model::Serialize(const char* filename, uint64_t lastWrite)
 {
 	std::ofstream ostream(filename, std::ios::binary);
 	if (ostream.is_open())
@@ -674,7 +1068,8 @@ void Model::Serialize(const char* filename, uint16_t lastWrite)
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations)
+				CEREAL_NVP(animations),
+				CEREAL_NVP(attachments)
 			);
 		}
 		catch (...)
@@ -685,7 +1080,7 @@ void Model::Serialize(const char* filename, uint16_t lastWrite)
 }
 
 // デシリアライズ
-void Model::Deserialize(const char* filename, uint16_t& lastWrite)
+void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 {
 	std::ifstream istream(filename, std::ios::binary);
 	if (istream.is_open())
@@ -699,7 +1094,8 @@ void Model::Deserialize(const char* filename, uint16_t& lastWrite)
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations)
+				CEREAL_NVP(animations),
+				CEREAL_NVP(attachments)
 			);
 		}
 		catch (...)
