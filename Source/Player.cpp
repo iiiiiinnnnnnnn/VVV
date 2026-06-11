@@ -89,20 +89,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	// HairPhysics
 	AddComponent<HairPhysicsComponent>(
 		model.get(),
-		std::vector<std::string>{
-		"Bone_hair_L01", "Bone_hair_L02",
-			"Bone_hair_B01", "Bone_hair_B02", "Bone_hair_B03", "Bone_hair_B04", "Bone_hair_B05",
-			"Bone_hair_R01", "Bone_hair_R02",
-			"Bone_hair_B_R_01", "Bone_hair_B_R_02", "Bone_hair_B_R_03", "Bone_hair_B_R_04", "Bone_hair_B_R_05",
-			"Bone_hair_B_L_01", "Bone_hair_B_L_02", "Bone_hair_B_L_03", "Bone_hair_B_L_04", "Bone_hair_B_L_05"
-	},
-		std::vector<HairPhysicsComponent::BodySphere>{
-			{ "head", {0.0f, 0.045f, 0.0f}, 0.068f },
-			{"spine_01", {0.0f, 0.005f, 0.388f}, 0.5f}
-	},
-		std::vector<HairPhysicsComponent::InnerSphere>{
-			{ "head", {0.0f, 0.0f, 0.0f},   0.6f}
-	}
+		std::vector<std::string>{"Hair"}
 	);
 }
 
