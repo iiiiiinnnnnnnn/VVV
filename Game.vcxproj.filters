@@ -639,6 +639,12 @@
     <FxCompile Include="Shader\TrailRendererVS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\BloomBlurHorizontalPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BloomBlurVerticalPS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />

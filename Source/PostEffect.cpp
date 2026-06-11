@@ -10,12 +10,11 @@
 #include <fstream>
 #include <sstream>
 
-// コンストラクタ
 PostEffect::PostEffect()
 {
 	auto device = Game::Graphics::Instance().GetDevice();
 
-	// フルクリーンクアッド頂点シェーダー読み込み
+	// フルスクリーンクアッド頂点シェーダー読み込み
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Data/Shader/FullScreenQuadVS.cso",
@@ -29,31 +28,43 @@ PostEffect::PostEffect()
 		"Data/Shader/LuminanceExtractionPS.cso",
 		luminanceExtractionPS.GetAddressOf());
 
+	// Bloom 横ぼかし
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/BloomBlurHorizontalPS.cso",
+		bloomBlurHorizontalPS.GetAddressOf());
+
+	// Bloom 縦ぼかし
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/BloomBlurVerticalPS.cso",
+		bloomBlurVerticalPS.GetAddressOf());
+
+	// Bloom 合成
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/BloomPS.cso",
+		bloomPS.GetAddressOf());
+
+	// ToneMapping
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/ToneMappingPS.cso",
+		toneMappingPS.GetAddressOf());
+
 	// 定数バッファ作成
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbPostEffect),
 		constantBuffer.GetAddressOf());
 
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Data/Shader/BloomPS.cso",
-		bloomPS.GetAddressOf());
-
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Data/Shader/ToneMappingPS.cso",
-		toneMappingPS.GetAddressOf());
-
-	// Default.json があれば読む。
-	// なければ現在の初期値で作る。
+	// Default.json があれば読む。なければ現在の初期値で作る。
 	if (!Load("Default"))
 	{
 		Save("Default");
 	}
 }
 
-// 開始処理
 void PostEffect::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
@@ -72,15 +83,15 @@ void PostEffect::Begin(const RenderContext& rc)
 	// ラスタライザーステート設定
 	dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 
-	// 頂点バッファ設定（使用しない）
+	// 頂点バッファ設定
 	dc->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
 	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	dc->IASetInputLayout(nullptr);
 
-	// サンプラステート設定
+	// PostEffectでは画面端を回り込ませたくないのでClamp
 	ID3D11SamplerState* samplers[] =
 	{
-		renderState->GetSamplerState(SamplerState::LinearWrap)
+		renderState->GetSamplerState(SamplerState::LinearClamp)
 	};
 	dc->PSSetSamplers(0, _countof(samplers), samplers);
 
@@ -108,21 +119,43 @@ void PostEffect::LuminanceExtraction(const RenderContext& rc, ID3D11ShaderResour
 	dc->Draw(4, 0);
 }
 
-// ブルーム処理
 void PostEffect::Bloom(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
-					   ID3D11ShaderResourceView* luminanceMap)
+					   ID3D11ShaderResourceView* bloomMap)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// シェーダー設定
 	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
 	dc->PSSetShader(bloomPS.Get(), 0, 0);
 
-	// シェーダーリソース設定
-	ID3D11ShaderResourceView* srvs[] = { colorMap, luminanceMap };
+	ID3D11ShaderResourceView* srvs[] = { colorMap, bloomMap };
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 
-	// 描画
+	dc->Draw(4, 0);
+}
+
+void PostEffect::BloomBlurHorizontal(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+{
+	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
+	dc->PSSetShader(bloomBlurHorizontalPS.Get(), 0, 0);
+
+	ID3D11ShaderResourceView* srvs[] = { colorMap };
+	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+
+	dc->Draw(4, 0);
+}
+
+void PostEffect::BloomBlurVertical(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+{
+	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	dc->VSSetShader(fullscreenQuadVS.Get(), 0, 0);
+	dc->PSSetShader(bloomBlurVerticalPS.Get(), 0, 0);
+
+	ID3D11ShaderResourceView* srvs[] = { colorMap };
+	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+
 	dc->Draw(4, 0);
 }
 

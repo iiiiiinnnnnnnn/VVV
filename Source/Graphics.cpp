@@ -19,6 +19,19 @@ namespace Game
 		ScreenWidth  = static_cast<float>(screenWidth);
 		ScreenHeight = static_cast<float>(screenHeight);
 
+		UINT bloomWidth = screenWidth / 4;
+		UINT bloomHeight = screenHeight / 4;
+
+		if (bloomWidth < 1)
+		{
+			bloomWidth = 1;
+		}
+
+		if (bloomHeight < 1)
+		{
+			bloomHeight = 1;
+		}
+
 		HRESULT hr = S_OK;
 
 		// デバイス＆スワップチェーンの生成
@@ -77,17 +90,50 @@ namespace Game
 
 		// バックバッファ用 RenderTarget を生成
 		frameBuffers[static_cast<int>(FrameBufferId::Display)] =
-			std::make_unique<RenderTarget>(device.Get(), swapchain.Get(), screenWidth, screenHeight);
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			swapchain.Get(),
+			screenWidth,
+			screenHeight);
 
-		// HDR用オフスクリーンバッファ
+		// HDR用シーンバッファはフル解像度
 		frameBuffers[static_cast<int>(FrameBufferId::Scene)] =
-			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			screenWidth,
+			screenHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
 
+		// Bloom系は低解像度にする
+		// ここが重要。フル解像度のままだと小さい丸が大量に見えやすい。
 		frameBuffers[static_cast<int>(FrameBufferId::Luminance)] =
-			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			bloomWidth,
+			bloomHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
 
+		frameBuffers[static_cast<int>(FrameBufferId::BloomTemp)] =
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			bloomWidth,
+			bloomHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::BloomBlur)] =
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			bloomWidth,
+			bloomHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		// 最終PostProcessはフル解像度
 		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
-			std::make_unique<RenderTarget>(device.Get(), screenWidth, screenHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			screenWidth,
+			screenHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
 
 		// 各レンダラー生成
 		renderState       = std::make_unique<RenderState>(device.Get());

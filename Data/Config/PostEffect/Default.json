@@ -1,10 +1,10 @@
 {
   "version": 1,
   "postEffect": {
-    "luminanceExtractionLowerEdge": 0,
-    "luminanceExtractionHigherEdge": 10,
-    "gaussianSigma": 1,
-    "bloomIntensity": 1,
+    "luminanceExtractionLowerEdge": 1.5,
+    "luminanceExtractionHigherEdge": 2,
+    "gaussianSigma": 1.5,
+    "bloomIntensity": 1.2,
     "saturation": 3,
     "exposure": 2
   }

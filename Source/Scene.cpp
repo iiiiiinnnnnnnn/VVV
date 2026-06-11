@@ -40,6 +40,8 @@ void Scene::Render()
 	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
 	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
+	RenderTarget* bloomTempBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomTemp);
+	RenderTarget* bloomBlurBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomBlur);
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 
 	// 描画コンテキスト設定
@@ -89,20 +91,16 @@ void Scene::Render()
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
-		// スカイボックス描画
 		graphics.GetSkyBoxRenderer()->Render(
 			rc.deviceContext,
 			renderState,
 			*rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
-		// actors.Render: HairPhysics書き戻し + TrailのAddPointまで実行
 		actors.Render(rc);
 
-		// 不透明モデルをDepthBufferに確定
 		graphics.GetModelRenderer()->Render(rc);
 
-		// TrailをModelRenderer後に描画
 		for (auto& actor : actors.data)
 		{
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
@@ -111,9 +109,7 @@ void Scene::Render()
 	}
 	sceneBuffer->Deactivate(dc);
 
-	// ---- PostEffect -------------------------------------------------------
-
-	// 輝度抽出: sceneBuffer → luminanceBuffer
+	// ---- 輝度抽出: sceneBuffer → luminanceBuffer --------------------------
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
@@ -123,17 +119,37 @@ void Scene::Render()
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	// Bloom合成: sceneBuffer + luminanceBuffer → postProcessBuffer
+	// ---- Bloom 横ぼかし: luminanceBuffer → bloomTempBuffer ----------------
+	bloomTempBuffer->Clear(dc);
+	bloomTempBuffer->Activate(dc);
+	{
+		postEffect.Begin(rc);
+		postEffect.BloomBlurHorizontal(rc, luminanceBuffer->GetSRV());
+		postEffect.End(rc);
+	}
+	bloomTempBuffer->Deactivate(dc);
+
+	// ---- Bloom 縦ぼかし: bloomTempBuffer → bloomBlurBuffer ----------------
+	bloomBlurBuffer->Clear(dc);
+	bloomBlurBuffer->Activate(dc);
+	{
+		postEffect.Begin(rc);
+		postEffect.BloomBlurVertical(rc, bloomTempBuffer->GetSRV());
+		postEffect.End(rc);
+	}
+	bloomBlurBuffer->Deactivate(dc);
+
+	// ---- Bloom合成: sceneBuffer + bloomBlurBuffer → postProcessBuffer -----
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
-		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
+		postEffect.Bloom(rc, sceneBuffer->GetSRV(), bloomBlurBuffer->GetSRV());
 		postEffect.End(rc);
 	}
 	postProcessBuffer->Deactivate(dc);
 
-	// トーンマッピング: postProcessBuffer → displayBuffer
+	// ---- トーンマッピング: postProcessBuffer → displayBuffer --------------
 	displayBuffer->Activate(dc);
 	{
 		postEffect.Begin(rc);
