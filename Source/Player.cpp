@@ -87,7 +87,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	trail->StopTrail();
 
 	// HairPhysics
-	AddComponent<SpringBone>(
+	hairSpringBone = AddComponent<SpringBone>(
 		model.get(),
 		std::vector<std::string>{"Hair", "hair"}
 	);
@@ -230,6 +230,8 @@ void Player::OnLateUpdate()
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
+
+	hairSpringBone->moveVelocity = worldMoveVec;
 }
 
 void Player::OnDrawGUI()

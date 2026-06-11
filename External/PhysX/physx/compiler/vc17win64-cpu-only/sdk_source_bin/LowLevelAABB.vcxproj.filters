@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpAABBManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpAABBManagerBase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseUpdate.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseABP.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseMBP.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseSap.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseSapAux.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseShared.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpFiltering.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpAABBManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpVolumeData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpAABBManagerBase.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpAABBManagerTasks.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpBroadPhase.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpBroadPhaseUpdate.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\include\BpFiltering.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseABP.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseMBP.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseMBPCommon.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseSap.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseSapAux.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseShared.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\lowlevelaabb\src\BpBroadPhaseIntegerAABB.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\source\compiler\cmake\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{B1129707-8A02-3127-BD29-A3F1D71BF0C9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{0E8DD09B-DAED-396A-94DC-35CB167CA720}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -39,10 +39,11 @@ public:
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
-private:
-    std::vector<Bone>					bones;
     float 								damping = 0.98f;
     Vector3								moveVelocity = {};
+
+private:
+    std::vector<Bone>					bones;
     float								maxVelocity = 0.3f;
 
     Model* model = nullptr;

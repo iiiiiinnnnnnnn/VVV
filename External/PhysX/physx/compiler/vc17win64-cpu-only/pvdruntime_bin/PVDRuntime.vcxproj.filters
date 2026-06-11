@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdHelpers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdLibraryFunctionsImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdLog.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdReaderImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdWriterImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdFileReadStreamImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdFileWriteStreamImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryStreamImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryReadStreamImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryWriteStreamImpl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdLibraryFunctions.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdCommands.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdDefines.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdReader.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdWriter.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdReadStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdWriteStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdFileReadStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdFileWriteStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdMemoryStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdLibraryHelpers.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\include\OmniPvdLoader.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdDefinesInternal.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdHelpers.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdLog.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdReaderImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdWriterImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdFileReadStreamImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdFileWriteStreamImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryStreamImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryReadStreamImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\src\OmniPvdMemoryWriteStreamImpl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\2250183\Desktop\VVV\External\PhysX\physx\pvdruntime\compiler\cmake\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{B1129707-8A02-3127-BD29-A3F1D71BF0C9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{0E8DD09B-DAED-396A-94DC-35CB167CA720}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
