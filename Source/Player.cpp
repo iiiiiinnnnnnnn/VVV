@@ -44,11 +44,78 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	shaderParamWithMaterialName =
 	{
 		{
+			"Weapon_Axe_Shiled",
+		{
+			{"metalness", 0.8f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.5f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
+			"Weapon_Sword_Shiled",
+		{
+			{"metalness", 0.8f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.5f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
 			"Face",
 		{
-			{"isFace", true}
+			{"isFace", true},
+		{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.0f},
+		{"occlusionStrength", 1.0f}
 	}
-		}
+		},
+		{
+			"Eye",
+		{
+			{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 1.0f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
+			"Body",
+		{
+			{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.0f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
+			"Shiled_Hair",
+		{
+			{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.0f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
+			"Shiled_Cloth",
+		{
+			{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.0f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
+		{
+			"Squire_Cloth",
+		{
+			{"metalness", 0.0f},
+		{"roughness", 0.0f},
+		{"occlusion", 0.0f},
+		{"occlusionStrength", 1.0f}
+	}
+		},
 	};
 	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 

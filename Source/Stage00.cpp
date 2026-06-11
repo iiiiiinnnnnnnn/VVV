@@ -23,9 +23,9 @@ Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
         {
             "planem",
         {
-            {"metalness", 0.0f},
+            {"metalness", 0.5f},
         {"roughness", 0.0f},
-        {"occlusion", 0.5f},
+        {"occlusion", 0.0f},
         {"occlusionStrength", 0.8f}
     }
         },
