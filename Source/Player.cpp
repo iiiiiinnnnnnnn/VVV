@@ -231,7 +231,7 @@ void Player::OnLateUpdate()
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
 
-	hairSpringBone->moveVelocity = worldMoveVec;
+	//hairSpringBone->moveVelocity = worldMoveVec;
 }
 
 void Player::OnDrawGUI()

@@ -26,7 +26,6 @@ public:
         int     nodeIndex;
     };
 
-    // bodySpheres‚Í‹ó‚Å‚à\‚í‚È‚¢
     SpringBone(
         Object* owner,
         Model* model,
@@ -39,15 +38,9 @@ public:
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
-    float 								damping = 0.98f;
-    Vector3								moveVelocity = {};
-
 private:
     std::vector<Bone>					bones;
-    float								maxVelocity = 0.3f;
+    std::vector<SpringCapsule>			springCapsules;
 
     Model* model = nullptr;
-
-    // ƒƒ“ƒo•Ï”‚É’Ç‰Á
-    std::vector<SpringCapsule>			springCapsules;
 };
