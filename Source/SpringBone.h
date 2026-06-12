@@ -66,7 +66,7 @@ private:
     float collisionRadius = 0.03f;
     float stiffness = 0.15f;
     float maxSubStepTime = 1.0f / 120.0f;
-    int maxSubSteps = 4;
+    int maxSubSteps = 16;
     int solverIterations = 4;
 
     bool drawBones = true;
