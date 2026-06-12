@@ -15,6 +15,7 @@ public:
         Quaternion localRotation = Quaternion::Identity;
 
         Matrix worldTransform = Matrix::Identity;
+        Vector3 currentWorldPosition = Vector3::Zero;
         Vector3 oldWorldPosition = Vector3::Zero;
     };
 
@@ -61,6 +62,12 @@ private:
     Vector3 gravity = { 0.0f, -0.3f, 0.0f };
     float damping = 0.5f;
     float maxVelocity = 0.3f;
+
+    float collisionRadius = 0.03f;
+    float stiffness = 0.15f;
+    float maxSubStepTime = 0.001f;
+    int maxSubSteps = 6;
+    int solverIterations = 4;
 
     bool drawBones = true;
     bool drawCapsules = true;

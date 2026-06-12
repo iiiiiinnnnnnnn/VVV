@@ -162,9 +162,9 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		std::vector<SpringBone::SpringCapsule>(
 		{
 			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.076f, model->GetNodeIndex("head")},
-			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.130f, model->GetNodeIndex("spine_02")},
-			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.170f, model->GetNodeIndex("spine_02")},
-			{Vector3::Zero, {0.0f, 0.16f, 0.0f}, 0.120f, model->GetNodeIndex("spine_03")}
+			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.130f, model->GetNodeIndex("spine_01")},
+			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.155f, model->GetNodeIndex("spine_02")},
+			{Vector3::Zero, {0.0f, 0.16f, 0.0f}, 0.100f, model->GetNodeIndex("spine_03")}
 		})
 	);
 }
