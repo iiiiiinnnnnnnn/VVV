@@ -2,12 +2,17 @@
 
 #pragma once
 
+// for 3d
 #include "Transform.h"
 #include "ModelRenderComponent.h"
-#include "SpriteRenderComponent.h"
+#include "TrailRenderComponent.h"
 #include "RigidBody.h"
-#include "Animator.h"
+#include "SpringBone.h"
 #include "Collider.h"
 #include "CharacterController.h"
-#include "TrailRenderComponent.h"
-#include "SpringBone.h"
+#include "Animator.h"
+#include "Terrain.h"
+
+// for 2d
+#include "RectTransform.h"
+#include "SpriteRenderComponent.h"
