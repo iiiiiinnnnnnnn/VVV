@@ -131,6 +131,11 @@ Terrain::Terrain(Object* owner)
 	{
 		SetBrushTexture(0);
 	}
+
+	if (LoadTerrainTexture(terrainFilePath))
+	{
+		RebuildTerrainCollider();
+	}
 }
 
 void Terrain::InitializeGpuResources()

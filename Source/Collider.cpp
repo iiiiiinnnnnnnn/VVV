@@ -696,7 +696,7 @@ void TerrainMeshCollider::DrawGUI()
         return;
     }
 
-    ImGui::DragInt("collision resolution", &resolution, 1, 1, 512);
+    ImGui::DragInt("collision resolution", &resolution, 1, 1, 2048);
 
     if (ImGui::Button("Rebuild Terrain MeshCollider"))
     {

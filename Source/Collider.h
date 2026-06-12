@@ -116,7 +116,7 @@ private:
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 
-    int resolution = 128;
+    int resolution = 2048;
 
     std::vector<Vector3> debugVertices;
     std::vector<uint32_t> debugIndices;
