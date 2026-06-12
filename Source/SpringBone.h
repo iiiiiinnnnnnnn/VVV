@@ -59,7 +59,7 @@ private:
     std::vector<SpringCapsule> springCapsules;
 
     Vector3 gravity = { 0.0f, -0.3f, 0.0f };
-    float damping = 0.9f;
+    float damping = 0.5f;
     float maxVelocity = 0.3f;
 
     bool drawBones = true;
