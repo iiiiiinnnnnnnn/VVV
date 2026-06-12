@@ -57,7 +57,7 @@ void Rigidbody::SetPosition(const Vector3& pos)
 }
 
 RigidbodyStatic::RigidbodyStatic(Object* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(Component::GetOwnerAsActor()->transform.matrix))
+    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(Component::GetOwnerAsActor(owner)->transform.matrix))
 {
 
 }
@@ -89,7 +89,7 @@ void RigidbodyStatic::DrawGUI()
 }
 
 RigidbodyDynamic::RigidbodyDynamic(Object* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(Component::GetOwnerAsActor()->transform.matrix))
+    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(Component::GetOwnerAsActor(owner)->transform.matrix))
 {
 
 }

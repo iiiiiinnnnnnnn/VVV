@@ -24,8 +24,8 @@ public:
     virtual void Render(const RenderContext& rc) {}
     virtual void DrawGUI() {}
 
-    Actor* GetOwnerAsActor();
-    Widget* GetOwnerAsWidget();
+    Actor* GetOwnerAsActor(Object* owner_sub = nullptr);
+    Widget* GetOwnerAsWidget(Object* owner_sub = nullptr);
 
 protected:
     Object* owner;

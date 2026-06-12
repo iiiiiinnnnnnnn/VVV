@@ -4,16 +4,24 @@
 #include "Actor.h"
 #include "Widget.h"
 
-Actor* Component::GetOwnerAsActor()
+Actor* Component::GetOwnerAsActor(Object* owner_sub)
 {
-    Actor* actor = dynamic_cast<Actor*>(this->owner);
-    _ASSERT_EXPR(actor, "This component can only be attached to Actor.");
-    return actor;
+    Actor* ptr;
+    if (this->owner)
+        ptr = dynamic_cast<Actor*>(this->owner);
+    else
+        ptr = dynamic_cast<Actor*>(owner_sub);
+    _ASSERT_EXPR(ptr, "This component can only be attached to Actor.");
+    return ptr;
 }
 
-Widget* Component::GetOwnerAsWidget()
+Widget* Component::GetOwnerAsWidget(Object* owner_sub)
 {
-    Widget* widget = dynamic_cast<Widget*>(this->owner);
-    _ASSERT_EXPR(widget, "This component can only be attached to Widget.");
-    return widget;
+    Widget* ptr;
+    if (this->owner)
+        ptr = dynamic_cast<Widget*>(this->owner);
+    else
+        ptr = dynamic_cast<Widget*>(owner_sub);
+    _ASSERT_EXPR(ptr, "This component can only be attached to Widget.");
+    return ptr;
 }
