@@ -592,6 +592,9 @@
     <None Include="Data\Config\PostEffect\Default.json">
       <Filter>データ\設定ファイル\ポストエフェクト</Filter>
     </None>
+    <None Include="Shader\TerrainPrimitive.hlsli">
+      <Filter>シェーダー\システム</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\BasicModelPS.hlsl">
@@ -655,6 +658,18 @@
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererVS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveHS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveDS.hlsl">
+      <Filter>シェーダー\システム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
       <Filter>シェーダー\システム</Filter>
     </FxCompile>
   </ItemGroup>

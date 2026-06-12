@@ -3,54 +3,112 @@
 #pragma once
 
 #include "Component.h"
-#include "Model.h"
-#include "Transform.h"
+#include "Common.h"
 
 class Terrain : public Component
 {
 public:
 	Terrain(Object* owner);
-	~Terrain();
+	~Terrain() override = default;
 
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
 
+	float GetHeightByUV(float u, float v) const;
+
 private:
-	//	テクスチャ書き込み情報
-	bool	use_brush{true};
-	int		brush_size{50};	//	ブラシサイズ
-	Color	brush_color{1, 1, 1, 0.005f};
-	float	brush_intensity{10};
-	Microsoft::WRL::ComPtr<ID3D11BlendState> brush_blend_states;
-
-	//	地形関係
-	bool		is_terrain_texture_clear_color{true};
-	Quaternion	terrain_texture_clear_color{0, 0, 0, 1};
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> terrain_texture;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> terrain_texture_render_target_view;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrain_texture_shader_resource_view;
-
-	Model* model;
-	Transform modelTransform;
-
-	// テッセレーションの定数バッファ
-	struct tesselation_constants
+	enum class BrushMode
 	{
-		float	edge_factor{64};		//	エッジ分割数
-		float	inner_factor{64};		//	内部分割数
-		float	height_scaler{+0.5f};	//	高さ係数
-		float	tilling_scale{1.0f};	//	タイリング係数
+		Height,
+		Blend,
 	};
-	bool	use_wire{false};
-	tesselation_constants tesselation_constant;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> tesselation_constant_buffer;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrain_primitive_vertex_shader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> terrain_primitive_input_layout;
-	Microsoft::WRL::ComPtr<ID3D11HullShader> terrain_primitive_hull_shader;
-	Microsoft::WRL::ComPtr<ID3D11DomainShader> terrain_primitive_domain_shader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> terrain_primitive_pixel_shader;
 
-	//	地形用テクスチャ
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrain_base_color_shader_resource_view[3];
+	struct TerrainVertex
+	{
+		Vector3 position;
+		Vector3 normal;
+		Vector2 texcoord;
+	};
+
+	struct CbTerrainObject
+	{
+		Matrix world;
+		float terrainSize;
+		float heightMapTexelSize;
+		float dummy[2];
+	};
+
+	struct CbTerrainScene
+	{
+		Matrix viewProjection;
+		Vector3 viewPosition;
+		float dummy0;
+
+		Vector3 directionalLightDirection;
+		float dummy1;
+
+		Color directionalLightColor;
+		Color ambientColor;
+	};
+
+	struct CbTessellation
+	{
+		float edge_factor = 4.0f;
+		float inner_factor = 4.0f;
+		float height_scaler = 25.0f;
+		float tilling_scale = 80.0f;
+	};
+
+	static constexpr int TerrainTextureWidth = 1024;
+	static constexpr int TerrainTextureHeight = 1024;
+
+private:
+	void InitializeGpuResources();
+	void CreateGridMesh(ID3D11Device* device);
+	void CreateTerrainTexture(ID3D11Device* device);
+	void UploadTerrainTexture(ID3D11DeviceContext* dc);
+	void ClearTerrainTexture();
+
+	void PaintByMouse(const RenderContext& rc);
+	bool ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const;
+	void ApplyBrush(float u, float v, float heightSign);
+
+private:
+	float terrainSize = 500.0f;
+	int gridResolution = 64;
+	UINT indexCount = 0;
+
+	bool use_wire = false;
+	CbTessellation tesselation_constant;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainObjectConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainSceneConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> tesselationConstantBuffer;
+
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrainVertexShader;
+	Microsoft::WRL::ComPtr<ID3D11HullShader> terrainHullShader;
+	Microsoft::WRL::ComPtr<ID3D11DomainShader> terrainDomainShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> terrainPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> terrainInputLayout;
+
+	std::vector<Vector4> terrainPixels;
+	bool terrainTextureDirty = true;
+	bool is_terrain_texture_clear_color = true;
+	Color terrain_texture_clear_color = {0.0f, 1.0f, 0.0f, 1.0f};
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> terrainTexture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainTextureShaderResourceView;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainBaseColorShaderResourceView[3];
+
+	bool use_brush = true;
+	BrushMode brushMode = BrushMode::Height;
+	int brush_size = 32;
+	float heightBrushStrength = 0.02f;
+	float blendBrushStrength = 0.08f;
+	float blendTarget = 1.0f;
 };

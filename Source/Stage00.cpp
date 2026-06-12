@@ -41,8 +41,6 @@ Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
     };
     AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
-
-    AddComponent<Terrain>();
 }
 
 void Stage00::OnUpdate()

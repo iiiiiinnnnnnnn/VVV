@@ -26,6 +26,14 @@ TestPlayScene::TestPlayScene()
     ID3D11Device* device = Game::Graphics::Instance().GetDevice();
     float screenWidth  = Game::Graphics::ScreenWidth;
     float screenHeight = Game::Graphics::ScreenHeight;
+    
+    // terrain
+    {
+        auto terrain = std::make_shared<Actor>("Terrain", "Stage", true, Layer::Stage);
+        terrain->transform.SetPosition(0.0f, -2.0f, 0.0f);
+        terrain->AddComponent<Terrain>();
+        actors.Register(terrain);
+    }
 
     // stage
     {
