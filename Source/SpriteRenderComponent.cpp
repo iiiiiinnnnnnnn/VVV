@@ -18,12 +18,15 @@ void SpriteRenderComponent::Update()
 void SpriteRenderComponent::Render(const RenderContext& rc)
 {
 	Widget* widget = Component::GetOwnerAsWidget();
-
 	if (texture)
 	{
+		// anchor分だけpositionをオフセット
+		float x = widget->rect.position.x - widget->rect.size.x * widget->rect.anchor.x;
+		float y = widget->rect.position.y - widget->rect.size.y * widget->rect.anchor.y;
+
 		Game::Graphics::Instance().GetSpriteRenderer()->Draw(
 			shaderId, texture,
-			{ widget->rect.position.x, widget->rect.position.y, 0.0f },
+			{ x, y, 0.0f },
 			widget->rect.size,
 			{ 0.0f, 0.0f },
 			{ (float)texture->GetWidth(), (float)texture->GetHeight() },

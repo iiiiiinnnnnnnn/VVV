@@ -23,7 +23,6 @@ public:
 private:
 	const HWND				hWnd;
 	HighResolutionTimer		timer;
-	std::unique_ptr<Scene>	scene;
 
 	bool showedConsole = false;
 };

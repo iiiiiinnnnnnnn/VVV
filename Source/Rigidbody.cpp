@@ -18,8 +18,12 @@ Rigidbody::~Rigidbody()
 {
     if (rigidActor)
     {
-        // PhysXシーンから除去してから解放
-        PhysicsManager::Instance().GetSceneContext().GetScene()->removeActor(*rigidActor);
+        // 自分が所属しているPhysXシーンから除去してから解放する。
+        // 非同期ロード用の別シーンで生成された場合でも正しい側から外せる。
+        if (PxScene* scene = rigidActor->getScene())
+        {
+            scene->removeActor(*rigidActor);
+        }
         rigidActor->release();
         rigidActor = nullptr;
     }

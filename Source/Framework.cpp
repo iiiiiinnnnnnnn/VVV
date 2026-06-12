@@ -5,7 +5,7 @@
 #include "GameInput.h"
 #include "GameTime.h"
 #include "PhysicsManager.h"
-#include "TestPlayScene.h"
+#include "SceneManager.h"
 
 #if _DEBUG
 #define SHOW_CONSOLE() if(!showedConsole){ AllocConsole(); freopen("CONOUT$", "w", stdout); freopen("CONOUT$", "w", stderr); showedConsole = true; }
@@ -37,8 +37,8 @@ Framework::Framework(HWND hWnd)
 	// 物理マネージャ初期化
 	PhysicsManager::Instance().Initialize();
 
-	// シーン初期化
-	scene = std::make_unique<TestPlayScene>();
+	// シーンマネージャー初期化
+	SceneManager::Instance().Initialize();
 }
 
 // デストラクタ
@@ -47,8 +47,8 @@ Framework::~Framework()
 	// IMGUI終了化
 	ImGuiRenderer::Finalize();
 
-	// シーン終了化
-	scene.reset();
+	// シーンマネージャー終了化
+	SceneManager::Instance().Finalize();
 
 	// 物理マネージャ終了化
 	PhysicsManager::Instance().Finalize();
@@ -79,7 +79,7 @@ void Framework::Update(float elapsedTime)
 	ImGuiRenderer::NewFrame();
 
 	// シーン更新処理
-	scene->Update();
+	SceneManager::Instance().Update();
 
 	// 物理シミュレーション
 	PhysicsManager::Instance().GetSceneContext().Simulate();
@@ -98,7 +98,7 @@ void Framework::Render(float elapsedTime)
 
 	// シーン通常描画＆GUI描画処理
 	// GUI描画もSceneに任せちゃうお(rc拾えるようにするため)
-	scene->Render();
+	SceneManager::Instance().Render();
 
 	// IMGUI描画
 	ImGuiRenderer::Render(dc);

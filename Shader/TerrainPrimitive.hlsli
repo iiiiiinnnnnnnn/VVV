@@ -1,5 +1,10 @@
 // TerrainPrimitive.hlsli
 
+#ifndef __TERRAIN_PRIMITIVE_HLSLI__
+#define __TERRAIN_PRIMITIVE_HLSLI__
+
+#include "PBR.hlsli"
+
 struct HS_IN
 {
     float3 position : POSITION;
@@ -16,22 +21,6 @@ struct HS_CONSTANT_OUT
 #define HS_OUT HS_IN
 #define DS_IN HS_IN
 
-struct DS_OUT
-{
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 texcoord : TEXCOORD0;
-    float3 worldPosition : TEXCOORD1;
-};
-
-cbuffer CbTerrainObject : register(b0)
-{
-    row_major float4x4 world;
-    float terrain_size;
-    float height_map_texel_size;
-    float2 object_dummy;
-};
-
 cbuffer CbTerrainTessellation : register(b2)
 {
     float edge_factor;
@@ -40,21 +29,18 @@ cbuffer CbTerrainTessellation : register(b2)
     float tilling_scale;
 };
 
-cbuffer CbTerrainScene : register(b7)
+cbuffer CbTerrainObject : register(b3)
 {
-    row_major float4x4 viewProjection;
-    float3 viewPosition;
-    float scene_dummy0;
-
-    float3 directionalLightDirection;
-    float scene_dummy1;
-
-    float4 directionalLightColor;
-    float4 ambientColor;
+    row_major float4x4 world;
+    float terrain_size;
+    float height_map_texel_size;
+    float2 object_dummy;
 };
 
 Texture2D<float4> terrainDataMap : register(t0);
 
-SamplerState pointClampSampler : register(s0);
-SamplerState linearClampSampler : register(s1);
-SamplerState linearWrapSampler : register(s2);
+SamplerState terrainPointClampSampler : register(s0);
+SamplerState shadowSampler : register(s1);
+SamplerState linearSampler : register(s2);
+
+#endif

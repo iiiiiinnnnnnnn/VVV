@@ -53,22 +53,6 @@ namespace
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
-	void LoadTextureOrDummy(
-		ID3D11Device* device,
-		const char* filename,
-		UINT dummyColor,
-		ID3D11ShaderResourceView** shaderResourceView)
-	{
-		if (std::filesystem::exists(filename))
-		{
-			GpuResourceUtils::LoadTexture(device, filename, shaderResourceView);
-		}
-		else
-		{
-			GpuResourceUtils::CreateDummyTexture(device, dummyColor, shaderResourceView);
-		}
-	}
-
 	HRESULT LoadImageFile(
 		const std::filesystem::path& filepath,
 		DirectX::TexMetadata& metadata,
@@ -144,6 +128,16 @@ void Terrain::InitializeGpuResources()
 
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
+		sizeof(CbShadowMap),
+		shadowMapConstantBuffer.GetAddressOf());
+
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbMaterial),
+		materialConstantBuffer.GetAddressOf());
+
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
 		sizeof(CbTerrainObject),
 		terrainObjectConstantBuffer.GetAddressOf());
 
@@ -162,9 +156,9 @@ void Terrain::InitializeGpuResources()
 
 	D3D11_INPUT_ELEMENT_DESC inputElementDescs[]
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 
 	GpuResourceUtils::LoadVertexShader(
@@ -190,23 +184,44 @@ void Terrain::InitializeGpuResources()
 		"Data/Shader/TerrainPrimitivePS.cso",
 		terrainPixelShader.GetAddressOf());
 
-	LoadTextureOrDummy(
-		device,
-		"Data/Terrain/layered-rock1-albedo.png",
-		0xFF777777,
-		terrainBaseColorShaderResourceView[0].GetAddressOf());
+	// 石
+	{
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_stone.png",
+			terrainLayer_Stone.GetAddressOf());
 
-	LoadTextureOrDummy(
-		device,
-		"Data/Terrain/rocky_dirt1-albedo.png",
-		0xFF2E4A6B,
-		terrainBaseColorShaderResourceView[1].GetAddressOf());
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_stone_n.png",
+			terrainLayer_Stone_n.GetAddressOf());
+	}
 
-	LoadTextureOrDummy(
-		device,
-		"Data/Terrain/wispy-grass-meadow_albedo.png",
-		0xFF3A8A4A,
-		terrainBaseColorShaderResourceView[2].GetAddressOf());
+	// 土
+	{
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_dirt.png",
+			terrainLayer_Dirt.GetAddressOf());
+
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_dirt_n.png",
+			terrainLayer_Dirt_n.GetAddressOf());
+	}
+
+	// 草
+	{
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_grass.png",
+			terrainLayer_Grass.GetAddressOf());
+
+		GpuResourceUtils::LoadTexture(
+			device,
+			"Data/Terrain/layer_grass_n.png",
+			terrainLayer_Grass_n.GetAddressOf());
+	}
 }
 
 void Terrain::CreateGridMesh(ID3D11Device* device)
@@ -363,6 +378,126 @@ void Terrain::ClearTerrainTexture()
 	is_terrain_texture_clear_color = false;
 }
 
+void Terrain::UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc)
+{
+	Actor* actor = GetOwnerAsActor();
+
+	CbTerrainObject cbObject{};
+	cbObject.world = actor->transform.matrix;
+	cbObject.terrainSize = terrainSize;
+	cbObject.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
+
+	dc->UpdateSubresource(
+		terrainObjectConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbObject,
+		0,
+		0);
+}
+
+void Terrain::UpdateTerrainSceneConstantBuffer(
+	ID3D11DeviceContext* dc,
+	const RenderContext& rc)
+{
+	CbTerrainScene cbScene{};
+	cbScene.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
+	cbScene.viewPosition = rc.camera->GetEye();
+
+	const DirectionalLight& directionalLight = rc.lightData.GetDirectionalLight();
+	cbScene.lightManager.directionalLight.direction = directionalLight.direction;
+	cbScene.lightManager.directionalLight.color = directionalLight.color;
+
+	const std::vector<PointLight>& pointLights = rc.lightData.GetPointLights();
+	cbScene.lightManager.pointLightCount = static_cast<int>(pointLights.size());
+	for (int i = 0; i < cbScene.lightManager.pointLightCount; ++i)
+	{
+		cbScene.lightManager.pointLights[i].position = pointLights[i].position;
+		cbScene.lightManager.pointLights[i].range = pointLights[i].range;
+		cbScene.lightManager.pointLights[i].color = pointLights[i].color;
+	}
+
+	const std::vector<SpotLight>& spotLights = rc.lightData.GetSpotLights();
+	cbScene.lightManager.spotLightCount = static_cast<int>(spotLights.size());
+	for (int i = 0; i < cbScene.lightManager.spotLightCount; ++i)
+	{
+		cbScene.lightManager.spotLights[i].position = spotLights[i].position;
+		cbScene.lightManager.spotLights[i].direction = spotLights[i].direction;
+		cbScene.lightManager.spotLights[i].color = spotLights[i].color;
+		cbScene.lightManager.spotLights[i].range = spotLights[i].range;
+		cbScene.lightManager.spotLights[i].innerConeAngle = spotLights[i].innerConeAngle;
+		cbScene.lightManager.spotLights[i].outerConeAngle = spotLights[i].outerConeAngle;
+	}
+
+	const std::vector<AreaLight>& areaLights = rc.lightData.GetAreaLights();
+	cbScene.lightManager.areaLightCount = static_cast<int>(areaLights.size());
+	for (int i = 0; i < cbScene.lightManager.areaLightCount; ++i)
+	{
+		cbScene.lightManager.areaLights[i].position = areaLights[i].position;
+		cbScene.lightManager.areaLights[i].direction = areaLights[i].direction;
+		cbScene.lightManager.areaLights[i].right = areaLights[i].right;
+		cbScene.lightManager.areaLights[i].width = areaLights[i].width;
+		cbScene.lightManager.areaLights[i].height = areaLights[i].height;
+		cbScene.lightManager.areaLights[i].range = areaLights[i].range;
+		cbScene.lightManager.areaLights[i].color = areaLights[i].color;
+	}
+
+	cbScene.lightManager.ambientColor = rc.lightData.GetAmbientColor();
+
+	dc->UpdateSubresource(
+		terrainSceneConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbScene,
+		0,
+		0);
+}
+
+void Terrain::UpdateShadowConstantBuffer(
+	ID3D11DeviceContext* dc,
+	const Matrix& lightViewProjection,
+	const Color& shadowColor,
+	float shadowBias,
+	int pcfKernelSize)
+{
+	CbShadowMap cbShadow{};
+	cbShadow.lightViewProjection = lightViewProjection;
+	cbShadow.shadowColor = shadowColor;
+	cbShadow.shadowBias = shadowBias;
+	cbShadow.pcfKernelSize = pcfKernelSize;
+
+	dc->UpdateSubresource(
+		shadowMapConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbShadow,
+		0,
+		0);
+}
+
+void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
+{
+	CbMaterial cbMaterial{};
+	cbMaterial.baseColor = baseColor;
+	cbMaterial.emissiveColor = emissiveColor;
+	cbMaterial.metalness = std::clamp(metalness, 0.0f, 1.0f);
+	cbMaterial.roughness = std::clamp(roughness, 0.0001f, 1.0f);
+	cbMaterial.occlusion = std::clamp(occlusion, 0.0f, 1.0f);
+	cbMaterial.occlusionStrength = std::clamp(occlusionStrength, 0.0f, 1.0f);
+	cbMaterial.shadowStrength = std::clamp(shadowStrength, 0.0f, 1.0f);
+	cbMaterial.useMetalnessTexture = 0;
+	cbMaterial.useRoughnessTexture = 0;
+	cbMaterial.useOcclusionTexture = 0;
+
+	dc->UpdateSubresource(
+		materialConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbMaterial,
+		0,
+		0);
+}
+
 void Terrain::Update()
 {
 	if (pendingColliderRebuild)
@@ -383,35 +518,15 @@ void Terrain::Render(const RenderContext& rc)
 	PaintByMouse(rc);
 	UploadTerrainTexture(dc);
 
-	Actor* actor = GetOwnerAsActor();
-
-	CbTerrainObject cbObject{};
-	cbObject.world = actor->transform.matrix;
-	cbObject.terrainSize = terrainSize;
-	cbObject.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
-
-	dc->UpdateSubresource(
-		terrainObjectConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbObject,
-		0,
-		0);
-
-	CbTerrainScene cbScene{};
-	cbScene.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
-	cbScene.viewPosition = rc.camera->GetEye();
-	cbScene.directionalLightDirection = rc.lightData.GetDirectionalLight().direction;
-	cbScene.directionalLightColor = rc.lightData.GetDirectionalLight().color;
-	cbScene.ambientColor = rc.lightData.GetAmbientColor();
-
-	dc->UpdateSubresource(
-		terrainSceneConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbScene,
-		0,
-		0);
+	UpdateTerrainObjectConstantBuffer(dc);
+	UpdateTerrainSceneConstantBuffer(dc, rc);
+	UpdateShadowConstantBuffer(
+		dc,
+		rc.shadowMapData.lightViewProjection,
+		rc.shadowMapData.shadowColor,
+		rc.shadowMapData.shadowBias,
+		rc.shadowMapData.pcfKernelSize);
+	UpdateMaterialConstantBuffer(dc);
 
 	dc->UpdateSubresource(
 		tesselationConstantBuffer.Get(),
@@ -448,35 +563,55 @@ void Terrain::Render(const RenderContext& rc)
 	dc->DSSetShader(terrainDomainShader.Get(), nullptr, 0);
 	dc->PSSetShader(terrainPixelShader.Get(), nullptr, 0);
 
-	ID3D11Buffer* objectCbs[] = {terrainObjectConstantBuffer.Get()};
-	ID3D11Buffer* tessCbs[] = {tesselationConstantBuffer.Get()};
-	ID3D11Buffer* sceneCbs[] = {terrainSceneConstantBuffer.Get()};
+	ID3D11Buffer* objectCb = terrainObjectConstantBuffer.Get();
+	ID3D11Buffer* tessCb = tesselationConstantBuffer.Get();
+	ID3D11Buffer* shadowCb = shadowMapConstantBuffer.Get();
+	ID3D11Buffer* sceneCb = terrainSceneConstantBuffer.Get();
 
-	dc->VSSetConstantBuffers(0, 1, objectCbs);
-	dc->DSSetConstantBuffers(0, 1, objectCbs);
-
-	dc->HSSetConstantBuffers(2, 1, tessCbs);
-	dc->DSSetConstantBuffers(2, 1, tessCbs);
-	dc->PSSetConstantBuffers(2, 1, tessCbs);
-
-	dc->DSSetConstantBuffers(7, 1, sceneCbs);
-	dc->PSSetConstantBuffers(7, 1, sceneCbs);
-
-	ID3D11ShaderResourceView* terrainSrvs[] =
+	ID3D11Buffer* dsTerrainCbs[] =
 	{
-		terrainTextureShaderResourceView.Get()
+		tesselationConstantBuffer.Get(),
+		terrainObjectConstantBuffer.Get(),
 	};
 
-	dc->DSSetShaderResources(0, 1, terrainSrvs);
-	dc->PSSetShaderResources(0, 1, terrainSrvs);
+	ID3D11Buffer* psPbrCbs[] =
+	{
+		shadowMapConstantBuffer.Get(),
+		materialConstantBuffer.Get(),
+		tesselationConstantBuffer.Get(),
+	};
+
+	dc->VSSetConstantBuffers(3, 1, &objectCb);
+	dc->HSSetConstantBuffers(2, 1, &tessCb);
+	dc->DSSetConstantBuffers(0, 1, &shadowCb);
+	dc->DSSetConstantBuffers(2, _countof(dsTerrainCbs), dsTerrainCbs);
+	dc->DSSetConstantBuffers(7, 1, &sceneCb);
+	dc->PSSetConstantBuffers(0, _countof(psPbrCbs), psPbrCbs);
+	dc->PSSetConstantBuffers(7, 1, &sceneCb);
+
+	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
+	dc->DSSetShaderResources(0, 1, &terrainSrv);
+	dc->PSSetShaderResources(0, 1, &terrainSrv);
+
+	dc->PSSetShaderResources(8, 1, &rc.shadowMapData.shadowMap);
+
+	ID3D11ShaderResourceView* iblSrvs[] =
+	{
+		rc.iblData.ggxLookUpTableMap,
+		rc.iblData.specularPremappingRadianceEnvironmentMap,
+		rc.iblData.diffuseIrradianceEnvironmentMap,
+	};
+	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 
 	ID3D11ShaderResourceView* baseColorSrvs[] =
 	{
-		terrainBaseColorShaderResourceView[0].Get(),
-		terrainBaseColorShaderResourceView[1].Get(),
-		terrainBaseColorShaderResourceView[2].Get(),
+		terrainLayer_Stone.Get(),
+		terrainLayer_Stone_n.Get(),
+		terrainLayer_Dirt.Get(),
+		terrainLayer_Dirt_n.Get(),
+		terrainLayer_Grass.Get(),
+		terrainLayer_Grass_n.Get(),
 	};
-
 	dc->PSSetShaderResources(20, _countof(baseColorSrvs), baseColorSrvs);
 
 	ID3D11SamplerState* samplerStates[] =
@@ -491,29 +626,131 @@ void Terrain::Render(const RenderContext& rc)
 
 	dc->DrawIndexed(indexCount, 0, 0);
 
-	ID3D11Buffer* nullBuffer = nullptr;
-	dc->VSSetConstantBuffers(0, 1, &nullBuffer);
-	dc->HSSetConstantBuffers(2, 1, &nullBuffer);
-	dc->DSSetConstantBuffers(0, 1, &nullBuffer);
-	dc->DSSetConstantBuffers(2, 1, &nullBuffer);
-	dc->DSSetConstantBuffers(7, 1, &nullBuffer);
-	dc->PSSetConstantBuffers(2, 1, &nullBuffer);
-	dc->PSSetConstantBuffers(7, 1, &nullBuffer);
+	ID3D11Buffer* nullCb = nullptr;
+	ID3D11Buffer* nullCbs2[] = {nullptr, nullptr};
+	ID3D11Buffer* nullCbs3[] = {nullptr, nullptr, nullptr};
+
+	dc->VSSetConstantBuffers(3, 1, &nullCb);
+	dc->HSSetConstantBuffers(2, 1, &nullCb);
+	dc->DSSetConstantBuffers(0, 1, &nullCb);
+	dc->DSSetConstantBuffers(2, _countof(nullCbs2), nullCbs2);
+	dc->DSSetConstantBuffers(7, 1, &nullCb);
+	dc->PSSetConstantBuffers(0, _countof(nullCbs3), nullCbs3);
+	dc->PSSetConstantBuffers(7, 1, &nullCb);
 
 	ID3D11ShaderResourceView* nullSrv = nullptr;
 	ID3D11ShaderResourceView* nullSrvs3[] = {nullptr, nullptr, nullptr};
+
 	dc->DSSetShaderResources(0, 1, &nullSrv);
 	dc->PSSetShaderResources(0, 1, &nullSrv);
-	dc->PSSetShaderResources(20, 3, nullSrvs3);
+	dc->PSSetShaderResources(8, 1, &nullSrv);
+	dc->PSSetShaderResources(17, _countof(nullSrvs3), nullSrvs3);
+	dc->PSSetShaderResources(20, _countof(nullSrvs3), nullSrvs3);
 
 	ID3D11SamplerState* nullSamplers3[] = {nullptr, nullptr, nullptr};
-	dc->DSSetSamplers(0, 3, nullSamplers3);
-	dc->PSSetSamplers(0, 3, nullSamplers3);
+	dc->DSSetSamplers(0, _countof(nullSamplers3), nullSamplers3);
+	dc->PSSetSamplers(0, _countof(nullSamplers3), nullSamplers3);
 
 	dc->VSSetShader(nullptr, nullptr, 0);
 	dc->HSSetShader(nullptr, nullptr, 0);
 	dc->DSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(nullptr, nullptr, 0);
+	dc->IASetInputLayout(nullptr);
+}
+
+void Terrain::RenderShadowMap(
+	ID3D11DeviceContext* dc,
+	const Matrix& lightViewProjection)
+{
+	if (is_terrain_texture_clear_color)
+	{
+		ClearTerrainTexture();
+	}
+
+	UploadTerrainTexture(dc);
+	UpdateTerrainObjectConstantBuffer(dc);
+	UpdateShadowConstantBuffer(
+		dc,
+		lightViewProjection,
+		Color(0.0f, 0.0f, 0.0f, 1.0f),
+		0.0f,
+		1);
+
+	CbTerrainScene cbScene{};
+	cbScene.viewProjection = lightViewProjection;
+
+	dc->UpdateSubresource(
+		terrainSceneConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbScene,
+		0,
+		0);
+
+	dc->UpdateSubresource(
+		tesselationConstantBuffer.Get(),
+		0,
+		nullptr,
+		&tesselation_constant,
+		0,
+		0);
+
+	UINT stride = sizeof(TerrainVertex);
+	UINT offset = 0;
+	ID3D11Buffer* vertexBuffers[] = {vertexBuffer.Get()};
+
+	dc->IASetInputLayout(terrainInputLayout.Get());
+	dc->IASetVertexBuffers(0, 1, vertexBuffers, &stride, &offset);
+	dc->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	dc->VSSetShader(terrainVertexShader.Get(), nullptr, 0);
+	dc->HSSetShader(terrainHullShader.Get(), nullptr, 0);
+	dc->DSSetShader(terrainDomainShader.Get(), nullptr, 0);
+	dc->PSSetShader(nullptr, nullptr, 0);
+
+	ID3D11Buffer* objectCb = terrainObjectConstantBuffer.Get();
+	ID3D11Buffer* tessCb = tesselationConstantBuffer.Get();
+	ID3D11Buffer* shadowCb = shadowMapConstantBuffer.Get();
+	ID3D11Buffer* sceneCb = terrainSceneConstantBuffer.Get();
+
+	ID3D11Buffer* dsTerrainCbs[] =
+	{
+		tesselationConstantBuffer.Get(),
+		terrainObjectConstantBuffer.Get(),
+	};
+
+	dc->VSSetConstantBuffers(3, 1, &objectCb);
+	dc->HSSetConstantBuffers(2, 1, &tessCb);
+	dc->DSSetConstantBuffers(0, 1, &shadowCb);
+	dc->DSSetConstantBuffers(2, _countof(dsTerrainCbs), dsTerrainCbs);
+	dc->DSSetConstantBuffers(7, 1, &sceneCb);
+
+	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
+	dc->DSSetShaderResources(0, 1, &terrainSrv);
+
+	ID3D11SamplerState* pointSampler =
+		Game::Graphics::Instance().GetRenderState()->GetSamplerState(SamplerState::PointClamp);
+	dc->DSSetSamplers(0, 1, &pointSampler);
+
+	dc->DrawIndexed(indexCount, 0, 0);
+
+	ID3D11Buffer* nullCb = nullptr;
+	ID3D11Buffer* nullCbs2[] = {nullptr, nullptr};
+	ID3D11ShaderResourceView* nullSrv = nullptr;
+	ID3D11SamplerState* nullSampler = nullptr;
+
+	dc->VSSetConstantBuffers(3, 1, &nullCb);
+	dc->HSSetConstantBuffers(2, 1, &nullCb);
+	dc->DSSetConstantBuffers(0, 1, &nullCb);
+	dc->DSSetConstantBuffers(2, _countof(nullCbs2), nullCbs2);
+	dc->DSSetConstantBuffers(7, 1, &nullCb);
+	dc->DSSetShaderResources(0, 1, &nullSrv);
+	dc->DSSetSamplers(0, 1, &nullSampler);
+
+	dc->VSSetShader(nullptr, nullptr, 0);
+	dc->HSSetShader(nullptr, nullptr, 0);
+	dc->DSSetShader(nullptr, nullptr, 0);
 	dc->IASetInputLayout(nullptr);
 }
 
@@ -1190,6 +1427,18 @@ void Terrain::DrawGUI()
 	}
 
 	DrawBrushGUI();
+
+	if (ImGui::TreeNode("Terrain PBR"))
+	{
+		ImGui::ColorEdit4("base color", &baseColor.x);
+		ImGui::ColorEdit4("emissive color", &emissiveColor.x);
+		ImGui::SliderFloat("metalness", &metalness, 0.0f, 1.0f);
+		ImGui::SliderFloat("roughness", &roughness, 0.0001f, 1.0f);
+		ImGui::SliderFloat("occlusion", &occlusion, 0.0f, 1.0f);
+		ImGui::SliderFloat("occlusion strength", &occlusionStrength, 0.0f, 1.0f);
+		ImGui::SliderFloat("shadow strength", &shadowStrength, 0.0f, 1.0f);
+		ImGui::TreePop();
+	}
 
 	if (ImGui::TreeNode("Terrain Data"))
 	{

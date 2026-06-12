@@ -1,29 +1,411 @@
 // TerrainPrimitivePS.hlsl
 
 #include "TerrainPrimitive.hlsli"
+#include "PBRFunctions.hlsli"
+
+Texture2D shadowMap : register(t8);
+
+Texture2D lut_ggx : register(t17);
+TextureCube specular_pmrem : register(t18);
+TextureCube diffuse_iem : register(t19);
 
 Texture2D<float4> rockTexture : register(t20);
-Texture2D<float4> dirtTexture : register(t21);
-Texture2D<float4> grassTexture : register(t22);
+Texture2D<float4> rockTextureNormal : register(t21);
+Texture2D<float4> dirtTexture : register(t22);
+Texture2D<float4> dirtTextureNormal : register(t23);
+Texture2D<float4> grassTexture : register(t24);
+Texture2D<float4> grassTextureNormal : register(t25);
 
-float4 main(DS_OUT input) : SV_TARGET
+// Terrain PBR FUnction
+#define TERRAIN_PBR
+#ifdef TERRAIN_PBR
+void DirectBRDFShadowStrength(
+    float3 diffuse_reflectance,
+    float3 F0,
+    float3 normal,
+    float3 eye_vector,
+    float3 light_vector,
+    float3 light_color,
+    float roughnessValue,
+    float shadow_strength,
+    out float3 out_diffuse,
+    out float3 out_specular)
 {
-    float2 tilingCoord = input.texcoord * tilling_scale;
+    float3 N = normal;
+    float3 L = light_vector;
+    float3 V = eye_vector;
+    float3 H = normalize(L + V);
 
-    float4 rockColor = rockTexture.Sample(linearWrapSampler, tilingCoord);
-    float4 dirtColor = dirtTexture.Sample(linearWrapSampler, tilingCoord);
-    float4 grassColor = grassTexture.Sample(linearWrapSampler, tilingCoord);
+    float rawNdotL = dot(N, L);
 
-    float blendRate = saturate(terrainDataMap.Sample(linearClampSampler, input.texcoord).g);
+    float NdotV = max(0.0001f, dot(N, V));
+    float NdotL = max(0.0001f, rawNdotL);
+    float NdotH = max(0.0001f, dot(N, H));
+    float VdotH = max(0.0001f, dot(V, H));
 
-    float4 color = lerp(rockColor, dirtColor, smoothstep(0.0f, 0.5f, blendRate));
-    color = lerp(color, grassColor, smoothstep(0.5f, 1.0f, blendRate));
+    float s = saturate(shadow_strength);
 
-    float3 normal = normalize(input.normal);
-    float3 lightDirection = normalize(-directionalLightDirection);
+    float hardThreshold = step(0.25f, NdotL);
+    float hardToonFactor = lerp(0.2f, 1.0f, hardThreshold);
 
-    float diffuse = saturate(dot(normal, lightDirection));
-    float3 lighting = ambientColor.rgb * 0.35f + directionalLightColor.rgb * (0.35f + diffuse * 0.65f);
+    float softLight = smoothstep(-0.30f, 0.45f, rawNdotL);
+    float softToonFactor = lerp(0.60f, 1.0f, softLight);
 
-    return float4(color.rgb * lighting, color.a);
+    float toonFactor = lerp(softToonFactor, hardToonFactor, s);
+    float3 irradiance = light_color * NdotL;
+
+    out_diffuse =
+        DiffuseBRDF(VdotH, F0, diffuse_reflectance)
+        * light_color
+        * toonFactor;
+
+    out_specular =
+        SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughnessValue)
+        * irradiance;
+}
+
+
+float3 TerrainCalcShadowColorPCF(
+    Texture2D tex,
+    SamplerState samplerState,
+    float3 shadowTexcoord,
+    float3 shadowColor,
+    float shadowBias,
+    int kernelSize)
+{
+    uint width;
+    uint height;
+    tex.GetDimensions(width, height);
+
+    float2 texelSize = 1.0f / float2(width, height);
+
+    int k = clamp(kernelSize, 1, 9);
+    if ((k % 2) == 0)
+    {
+        k += 1;
+    }
+
+    int halfKernel = k / 2;
+
+    float factor = 0.0f;
+    float count = 0.0f;
+
+    [unroll]
+    for (int x = -4; x <= 4; ++x)
+    {
+        [unroll]
+        for (int y = -4; y <= 4; ++y)
+        {
+            if (abs(x) <= halfKernel && abs(y) <= halfKernel)
+            {
+                float depth = tex.SampleLevel(
+                    samplerState,
+                    shadowTexcoord.xy + texelSize * float2(x, y),
+                    0.0f).r;
+
+                factor += step(shadowTexcoord.z - depth, shadowBias);
+                count += 1.0f;
+            }
+        }
+    }
+
+    return lerp(shadowColor, 1.0f.xxx, factor / max(count, 1.0f));
+}
+#endif
+
+float4 main(VS_OUT pin) : SV_TARGET
+{
+    float2 tilingCoord = pin.texcoord * tilling_scale;
+
+    float4 rockSRGB = rockTexture.Sample(linearSampler, tilingCoord);
+    float4 dirtSRGB = dirtTexture.Sample(linearSampler, tilingCoord);
+    float4 grassSRGB = grassTexture.Sample(linearSampler, tilingCoord);
+
+    float blendRate = saturate(
+        terrainDataMap.Sample(shadowSampler, pin.texcoord).g);
+
+    float4 albedoSRGB = lerp(
+        rockSRGB,
+        dirtSRGB,
+        smoothstep(0.0f, 0.5f, blendRate));
+
+    albedoSRGB = lerp(
+        albedoSRGB,
+        grassSRGB,
+        smoothstep(0.5f, 1.0f, blendRate));
+
+    float4 albedo =
+        float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a)
+        * baseColor;
+
+    float3 emissive = emissiveColor.rgb;
+
+    float finalMetalness = clamp(metalness, 0.0f, 1.0f);
+    float finalRoughness = clamp(roughness, 0.0001f, 1.0f);
+    float finalAO = lerp(
+        1.0f,
+        clamp(occlusion, 0.0f, 1.0f),
+        clamp(occlusionStrength, 0.0f, 1.0f));
+
+    float3 diffuse_reflectance = lerp(
+        albedo.rgb,
+        0.0f,
+        finalMetalness);
+
+    float3 F0 = lerp(
+        0.04f,
+        albedo.rgb,
+        finalMetalness);
+
+    float3 rockNormalTex = rockTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
+    float3 dirtNormalTex = dirtTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
+    float3 grassNormalTex = grassTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
+
+    float dirtBlend = smoothstep(0.0f, 0.5f, blendRate);
+    float grassBlend = smoothstep(0.5f, 1.0f, blendRate);
+
+    float3 normalTex = normalize(lerp(rockNormalTex, dirtNormalTex, dirtBlend));
+    normalTex = normalize(lerp(normalTex, grassNormalTex, grassBlend));
+
+    float3 baseN = normalize(pin.normal);
+
+    float3 T = normalize(float3(1, 0, 0));
+    T = normalize(T - baseN * dot(baseN, T));
+
+    float3 B = normalize(cross(baseN, T));
+
+    float3 N = normalize(
+        normalTex.x * T +
+        normalTex.y * B +
+        normalTex.z * baseN
+    );
+    
+    float3 V = normalize(viewPosition - pin.position);
+
+    float3 totalDiffuse = 0.0f;
+    float3 totalSpecular = 0.0f;
+
+    {
+        float3 L = normalize(-lightManager.directionalLight.direction);
+        float3 LC =
+            lightManager.directionalLight.color.rgb
+            * lightManager.directionalLight.color.a;
+
+        float3 d;
+        float3 s;
+
+        DirectBRDFShadowStrength(
+            diffuse_reflectance,
+            F0,
+            N,
+            V,
+            L,
+            LC,
+            finalRoughness,
+            shadowStrength,
+            d,
+            s);
+
+        totalDiffuse += d;
+        totalSpecular += s;
+    }
+
+    for (uint i = 0; i < lightManager.pointLightCount && i < MaxPointLights; ++i)
+    {
+        float3 toLight = lightManager.pointLights[i].position - pin.position;
+        float len = length(toLight);
+
+        if (len < lightManager.pointLights[i].range)
+        {
+            float atten = 1.0f - len / lightManager.pointLights[i].range;
+            atten *= atten;
+
+            float3 L = normalize(toLight);
+            float3 LC =
+                lightManager.pointLights[i].color.rgb
+                * lightManager.pointLights[i].color.a
+                * atten;
+
+            float3 d;
+            float3 s;
+
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
+            totalDiffuse += d;
+            totalSpecular += s;
+        }
+    }
+
+    for (uint j = 0; j < lightManager.spotLightCount && j < MaxSpotLights; ++j)
+    {
+        float3 toLight = lightManager.spotLights[j].position - pin.position;
+        float len = length(toLight);
+
+        if (len < lightManager.spotLights[j].range)
+        {
+            float atten = 1.0f - len / lightManager.spotLights[j].range;
+            atten *= atten;
+
+            float3 L = normalize(toLight);
+            float3 spotDir = normalize(lightManager.spotLights[j].direction);
+            float angle = dot(spotDir, -L);
+
+            float area =
+                lightManager.spotLights[j].innerConeAngle
+                - lightManager.spotLights[j].outerConeAngle;
+
+            atten *= saturate(
+                1.0f
+                - (lightManager.spotLights[j].innerConeAngle - angle)
+                / area);
+
+            float3 LC =
+                lightManager.spotLights[j].color.rgb
+                * lightManager.spotLights[j].color.a
+                * atten;
+
+            float3 d;
+            float3 s;
+
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
+            totalDiffuse += d;
+            totalSpecular += s;
+        }
+    }
+
+    for (uint k = 0; k < lightManager.areaLightCount && k < MaxAreaLights; ++k)
+    {
+        float3 up = normalize(lightManager.areaLights[k].direction);
+        float3 right = normalize(lightManager.areaLights[k].right);
+        float3 toSurface = pin.position - lightManager.areaLights[k].position;
+
+        float2 projection = float2(
+            dot(toSurface, right),
+            dot(toSurface, up));
+
+        float halfWidth = lightManager.areaLights[k].width * 0.5f;
+        float halfHeight = lightManager.areaLights[k].height * 0.5f;
+
+        float2 clampedProjection = float2(
+            clamp(projection.x, -halfWidth, halfWidth),
+            clamp(projection.y, -halfHeight, halfHeight));
+
+        float3 nearest =
+            lightManager.areaLights[k].position
+            + right * clampedProjection.x
+            + up * clampedProjection.y;
+
+        float3 toLight = nearest - pin.position;
+        float len = length(toLight);
+
+        if (len < lightManager.areaLights[k].range)
+        {
+            float atten = 1.0f - len / lightManager.areaLights[k].range;
+            atten *= atten;
+            atten *= saturate(dot(normalize(-toSurface), up));
+
+            float3 L = normalize(toLight);
+            float3 LC =
+                lightManager.areaLights[k].color.rgb
+                * lightManager.areaLights[k].color.a
+                * atten;
+
+            float3 d;
+            float3 s;
+
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
+            totalDiffuse += d;
+            totalSpecular += s;
+        }
+    }
+
+    float3 shadow = 1.0f.xxx;
+
+    if (pin.shadowTexcoord.x >= 0.0f &&
+        pin.shadowTexcoord.x <= 1.0f &&
+        pin.shadowTexcoord.y >= 0.0f &&
+        pin.shadowTexcoord.y <= 1.0f &&
+        pin.shadowTexcoord.z >= 0.0f &&
+        pin.shadowTexcoord.z <= 1.0f)
+    {
+        shadow = TerrainCalcShadowColorPCF(
+            shadowMap,
+            shadowSampler,
+            pin.shadowTexcoord,
+            shadowColor.rgb,
+            shadowBias,
+            pcfKernelSize);
+    }
+
+    shadow = lerp(
+        1.0f.xxx,
+        shadow,
+        saturate(shadowStrength));
+
+    float iblIntensity = lightManager.ambientColor.a;
+
+    float3 iblDiffuse =
+        DiffuseIBL(
+            N,
+            V,
+            finalRoughness,
+            diffuse_reflectance,
+            F0,
+            diffuse_iem,
+            linearSampler)
+        * iblIntensity;
+
+    float3 iblSpecular =
+        SpecularIBL(
+            N,
+            V,
+            finalRoughness,
+            F0,
+            lut_ggx,
+            specular_pmrem,
+            linearSampler)
+        * iblIntensity;
+
+    iblDiffuse *= finalAO;
+    iblSpecular *= finalAO;
+
+    float3 color =
+        (totalDiffuse + totalSpecular) * shadow
+        + iblDiffuse
+        + iblSpecular
+        + emissive;
+
+    return float4(color, albedo.a);
 }

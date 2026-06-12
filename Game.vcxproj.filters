@@ -180,15 +180,6 @@
     <ClCompile Include="Source\LocalPlayer.cpp">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
     </ClCompile>
-    <ClCompile Include="Source\AudioSource.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Audio.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\AudioResource.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\EffectManager.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\エフェクト</Filter>
     </ClCompile>
@@ -218,9 +209,6 @@
     </ClCompile>
     <ClCompile Include="Source\PBRShader.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\TestWidget.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClCompile>
     <ClCompile Include="Source\Model.cpp">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
@@ -315,6 +303,13 @@
     <ClCompile Include="Source\Stage01.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\LoadingScene.cpp">
+      <Filter>ソースファイル\ゲーム\シーン</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SceneManager.cpp" />
+    <ClCompile Include="Source\SpriteWidget.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -395,15 +390,6 @@
     <ClInclude Include="Source\AnimatorSerializer.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
     </ClInclude>
-    <ClInclude Include="Source\AudioSource.h">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Audio.h">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\AudioResource.h">
-      <Filter>ソースファイル\システム%28基底%29\オーディオ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\EffectManager.h">
       <Filter>ソースファイル\システム%28基底%29\描画\エフェクト</Filter>
     </ClInclude>
@@ -436,9 +422,6 @@
     </ClInclude>
     <ClInclude Include="Source\PBRShader.h">
       <Filter>ソースファイル\ゲーム\シェーダー\モデル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\TestWidget.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\ウィジェット</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model.h">
       <Filter>ソースファイル\システム%28基底%29\リソース</Filter>
@@ -547,6 +530,15 @@
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LoadingScene.h">
+      <Filter>ソースファイル\ゲーム\シーン</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SceneManager.h">
+      <Filter>ソースファイル\システム%28基底%29\シーン</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpriteWidget.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

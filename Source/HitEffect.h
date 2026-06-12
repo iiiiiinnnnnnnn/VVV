@@ -6,6 +6,8 @@
 #include "Camera.h"
 #include "Random.h"
 
+#include <mutex>
+
 class HitStop
 {
 public:
@@ -104,8 +106,10 @@ class DamageVignette
 public:
     static void Init(ID3D11Device* device)
     {
-        // 1x1の白テクスチャを作成
-        dummyTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+        std::call_once(initFlag, []()
+        {
+            dummyTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+        });
     }
 
     static void Request(float duration)
@@ -149,5 +153,6 @@ private:
     inline static bool  active = false;
     inline static float timer  = 0.0f;
 
+    inline static std::once_flag initFlag;
     inline static std::shared_ptr<Texture> dummyTexture;
 };

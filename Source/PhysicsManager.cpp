@@ -147,6 +147,19 @@ void PhysicsSceneContext::Simulate() const
 
 // PhysicsManager
 
+std::unique_ptr<PhysicsSceneContext> PhysicsManager::CreateSceneContext(
+    PxVec3 gravity)
+{
+    return std::make_unique<PhysicsSceneContext>(gravity);
+}
+
+void PhysicsManager::SetCurrentSceneContext(
+    std::unique_ptr<PhysicsSceneContext> context)
+{
+    _ASSERT_EXPR(context != nullptr, L"PhysicsSceneContext is null.");
+    sceneContext = std::move(context);
+}
+
 void PhysicsManager::Initialize()
 {
     // Foundation
@@ -180,7 +193,7 @@ void PhysicsManager::Initialize()
     gDefaultMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 
     // シーン生成
-    sceneContext = std::make_unique<PhysicsSceneContext>(PxVec3(0, -9.81f, 0));
+    sceneContext = CreateSceneContext(PxVec3(0, -9.81f, 0));
 }
 
 void PhysicsManager::Finalize()

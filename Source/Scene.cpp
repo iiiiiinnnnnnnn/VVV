@@ -3,13 +3,16 @@
 #include "Scene.h"
 #include "GameTime.h"
 #include "Player.h"
+#include "Terrain.h"
 
-Scene::Scene(const std::string& name) : name(name)
+Scene::Scene(const std::string& name, SceneMessage message)
+	: name(name), message(message)
 {
 	// ライト設定
 	DirectionalLight directionalLight;
 	directionalLight.direction = { 0, -1, -1 };
 	directionalLight.color = { 1, 1, 1 };
+
 	lightData.SetDirectionalLight(directionalLight);
 	lightData.SetAmbientColor({ 1, 1, 1, 1 });
 }
@@ -18,15 +21,18 @@ void Scene::Update()
 {
 	OnUpdate();
 
-	_ASSERT_EXPR(!cameraControllers.empty(), "CameraController is empty.");
+	// カメラコントローラーがないとアクターは動けないよ！
+	if (cameraControllers.size() > 0)
+	{
+		// カメラ更新処理
+		cameraControllers[nowCameraControllerIndex]->Update();
 
-	// カメラ更新処理
-	cameraControllers[nowCameraControllerIndex]->Update();
+		// カメラコントローラーからカメラへ反映
+		cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
-	// カメラコントローラーからカメラへ反映
-	cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
+		actors.Update();
+	}
 
-	actors.Update();
 	widgets.Update();
 }
 
@@ -68,6 +74,7 @@ void Scene::Render()
 	iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
 	iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
 	iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
+	rc.iblData = iblData;
 
 	// シャドウマップ描画
 	{
@@ -77,6 +84,12 @@ void Scene::Render()
 			if (mrc)
 			{
 				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+			}
+
+			auto* terrain = actor->GetComponent<Terrain>();
+			if (terrain)
+			{
+				graphics.GetShadowMapRenderer()->Draw(terrain);
 			}
 		}
 
@@ -92,6 +105,7 @@ void Scene::Render()
 
 		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
 		shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
+		rc.shadowMapData = shadowMapData;
 	}
 
 	// ---- シーン描画 → sceneBuffer ----------------------------------------

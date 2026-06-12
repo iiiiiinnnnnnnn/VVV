@@ -3,6 +3,7 @@
 #include "ShadowMapRenderer.h"
 #include "Misc.h"
 #include "GpuResourceUtils.h"
+#include "Terrain.h"
 
 ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     : shadowMapSize(shadowMapSize)
@@ -75,19 +76,20 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         shadowSceneConstantBuffer.GetAddressOf());
 
     // ----- ラスタライザーステート -----
-    // DepthBias: シャドウアクネ（自己シャドウのノイズ）を防ぐためのオフセット
-    // SlopeScaledDepthBias: 斜め面の精度補正
-    // CullFront: ピーターパン問題（影がオブジェクトから浮く）を軽減するため表面カリング
     {
         D3D11_RASTERIZER_DESC desc = {};
         desc.FillMode = D3D11_FILL_SOLID;
-        desc.CullMode = D3D11_CULL_FRONT; // 裏面からデプスを焼く
+        desc.CullMode = D3D11_CULL_FRONT;
         desc.FrontCounterClockwise = false;
-        desc.DepthBias = 1000;   // 整数値。フォーマット依存（R32_FLOATの場合は小さくてよい）
+        desc.DepthBias = 1000;
         desc.SlopeScaledDepthBias = 2.0f;
         desc.DepthBiasClamp = 0.0f;
         desc.DepthClipEnable = true;
         hr = device->CreateRasterizerState(&desc, rasterizerState.GetAddressOf());
+        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+
+        desc.CullMode = D3D11_CULL_NONE;
+        hr = device->CreateRasterizerState(&desc, terrainRasterizerState.GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
@@ -105,6 +107,11 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
 void ShadowMapRenderer::Draw(Model* model)
 {
     drawList.emplace_back(model);
+}
+
+void ShadowMapRenderer::Draw(Terrain* terrain)
+{
+    terrainDrawList.emplace_back(terrain);
 }
 
 void ShadowMapRenderer::Render(const RenderContext& rc,
@@ -197,6 +204,17 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
         }
     }
     drawList.clear();
+
+    dc->RSSetState(terrainRasterizerState.Get());
+
+    for (Terrain* terrain : terrainDrawList)
+    {
+        if (terrain != nullptr)
+        {
+            terrain->RenderShadowMap(dc, lightViewProjection);
+        }
+    }
+    terrainDrawList.clear();
 
     // ----- 後始末 -----
     // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）

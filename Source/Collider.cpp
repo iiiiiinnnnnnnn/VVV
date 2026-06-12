@@ -398,7 +398,10 @@ BoneSphereCollider::~BoneSphereCollider()
 {
     if (ghostActor)
     {
-        PhysicsManager::Instance().GetSceneContext().GetScene()->removeActor(*ghostActor);
+        if (PxScene* scene = ghostActor->getScene())
+        {
+            scene->removeActor(*ghostActor);
+        }
         ghostActor->release();
         ghostActor = nullptr;
     }

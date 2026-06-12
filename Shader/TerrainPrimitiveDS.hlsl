@@ -1,20 +1,21 @@
 // TerrainPrimitiveDS.hlsl
 
 #include "TerrainPrimitive.hlsli"
+#include "ShadowmapFunctions.hlsli"
 
 float SampleTerrainHeight(float2 uv)
 {
     uv = saturate(uv);
-    return terrainDataMap.SampleLevel(pointClampSampler, uv, 0).r * height_scaler;
+    return terrainDataMap.SampleLevel(terrainPointClampSampler, uv, 0).r * height_scaler;
 }
 
 [domain("tri")]
-DS_OUT main(
+VS_OUT main(
     HS_CONSTANT_OUT input,
     float3 barycentric : SV_DomainLocation,
     const OutputPatch<DS_IN, 3> patch)
 {
-    DS_OUT output = (DS_OUT) 0;
+    VS_OUT output = (VS_OUT)0;
 
     float3 localPosition =
         patch[0].position * barycentric.x +
@@ -26,8 +27,7 @@ DS_OUT main(
         patch[1].texcoord * barycentric.y +
         patch[2].texcoord * barycentric.z;
 
-    float height = SampleTerrainHeight(texcoord);
-    localPosition.y += height;
+    localPosition.y += SampleTerrainHeight(texcoord);
 
     float texel = height_map_texel_size;
     float hL = SampleTerrainHeight(texcoord - float2(texel, 0.0f));
@@ -36,19 +36,29 @@ DS_OUT main(
     float hU = SampleTerrainHeight(texcoord + float2(0.0f, texel));
 
     float texelWorldSize = terrain_size * texel;
+
     float3 localNormal = normalize(float3(
         hL - hR,
         2.0f * texelWorldSize,
-        hD - hU
-    ));
+        hD - hU));
+
+    float3 localTangent = normalize(float3(
+        2.0f * texelWorldSize,
+        hR - hL,
+        0.0f));
 
     float4 worldPosition = mul(float4(localPosition, 1.0f), world);
-    float3 worldNormal = normalize(mul(localNormal, (float3x3) world));
+    float3 worldNormal = normalize(mul(localNormal, (float3x3)world));
+    float3 worldTangent = normalize(mul(localTangent, (float3x3)world));
 
-    output.position = mul(worldPosition, viewProjection);
-    output.normal = worldNormal;
+    output.vertex = mul(worldPosition, viewProjection);
     output.texcoord = texcoord;
-    output.worldPosition = worldPosition.xyz;
+    output.normal = worldNormal;
+    output.position = worldPosition.xyz;
+    output.tangent = worldTangent;
+    output.shadowTexcoord = CalcShadowTexcoord(
+        worldPosition.xyz,
+        light_view_projection);
 
     return output;
 }

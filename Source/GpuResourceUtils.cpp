@@ -116,10 +116,10 @@ HRESULT GpuResourceUtils::LoadTexture(
 	}
 	else
 	{
-		hr = DirectX::GetMetadataFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_NONE, metadata);
+		hr = DirectX::GetMetadataFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_FORCE_RGB, metadata);
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-		hr = DirectX::LoadFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, scratch_image);
+		hr = DirectX::LoadFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_FORCE_RGB, &metadata, scratch_image);
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 

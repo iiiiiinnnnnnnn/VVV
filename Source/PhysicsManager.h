@@ -130,7 +130,28 @@ public:
     void Initialize();
     void Finalize();
 
-    PhysicsSceneContext& GetSceneContext() { return *sceneContext; }
+    PhysicsSceneContext& GetSceneContext()
+    {
+        PhysicsSceneContext* context = threadSceneContext
+            ? threadSceneContext
+            : sceneContext.get();
+
+        _ASSERT_EXPR(context != nullptr, L"PhysicsSceneContext is null.");
+        return *context;
+    }
+
+    std::unique_ptr<PhysicsSceneContext> CreateSceneContext(
+        PxVec3 gravity = PxVec3(0, -9.81f, 0));
+
+    void SetCurrentSceneContext(
+        std::unique_ptr<PhysicsSceneContext> context);
+
+    // 非同期ロードスレッドだけが使用するPhysXシーンを指定する。
+    // nullptrを渡すと通常のカレントシーンへ戻る。
+    void SetThreadSceneContext(PhysicsSceneContext* context)
+    {
+        threadSceneContext = context;
+    }
 
     PxPhysics* GetPhysics() { return gPhysics; }
     PxCookingParams* GetCooking() { return gCookingParams; }
@@ -178,6 +199,7 @@ private:
     PxDefaultCpuDispatcher* gDispatcher = nullptr;
 
     std::unique_ptr<PhysicsSceneContext> sceneContext;
+    inline static thread_local PhysicsSceneContext* threadSceneContext = nullptr;
 
     PxPhysics* gPhysics = nullptr;
     PxCookingParams* gCookingParams = nullptr;
