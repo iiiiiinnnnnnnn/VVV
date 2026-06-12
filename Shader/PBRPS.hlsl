@@ -22,6 +22,68 @@ Texture2D lut_ggx : register(t17); // GGXルックアップテーブル
 TextureCube specular_pmrem : register(t18); // 事前計算鏡面反射キューブマップ
 TextureCube diffuse_iem : register(t19); // 事前計算拡散反射キューブマップ
 
+// -----------------------------------------------------------------------------
+// 影の付きやすさを調整できる直接光BRDF
+//
+// shadowStrength:
+//   1.0 = 通常のトゥーン影
+//   0.0 = 影がかなり付きにくい、肌向け
+//
+// 重要:
+//   完全にNdotLを消すと顔だけ白く浮くので、
+//   shadowStrengthが低い時は「柔らかい肌用陰影」に寄せる。
+// -----------------------------------------------------------------------------
+void DirectBRDFShadowStrength(
+    float3 diffuse_reflectance,
+    float3 F0,
+    float3 normal,
+    float3 eye_vector,
+    float3 light_vector,
+    float3 light_color,
+    float roughness,
+    float shadow_strength,
+    out float3 out_diffuse,
+    out float3 out_specular)
+{
+    float3 N = normal;
+    float3 L = light_vector;
+    float3 V = eye_vector;
+    float3 H = normalize(L + V);
+
+    float rawNdotL = dot(N, L);
+
+    float NdotV = max(0.0001f, dot(N, V));
+    float NdotL = max(0.0001f, rawNdotL);
+    float NdotH = max(0.0001f, dot(N, H));
+    float VdotH = max(0.0001f, dot(V, H));
+
+    float s = saturate(shadow_strength);
+
+    // 通常のトゥーン影
+    float hardThreshold = step(0.25f, NdotL);
+    float hardToonFactor = lerp(0.2f, 1.0f, hardThreshold);
+
+    // 肌用の柔らかい陰影
+    // 鼻や頬の変な黒い段差を減らす。
+    // ただし完全に1.0にはしないので、顔だけ白く浮きにくい。
+    float softLight = smoothstep(-0.30f, 0.45f, rawNdotL);
+    float softToonFactor = lerp(0.60f, 1.0f, softLight);
+
+    // shadowStrengthが低いほど肌用の柔らかい陰影に近づく
+    float toonFactor = lerp(softToonFactor, hardToonFactor, s);
+
+    float3 irradiance = light_color * NdotL;
+
+    out_diffuse =
+        DiffuseBRDF(VdotH, F0, diffuse_reflectance)
+        * light_color
+        * toonFactor;
+
+    out_specular =
+        SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughness)
+        * irradiance;
+}
+
 float4 main(VS_OUT pin) : SV_TARGET
 {
     // -------------------------------------------------------------------------
@@ -32,12 +94,9 @@ float4 main(VS_OUT pin) : SV_TARGET
     float4 albedoSRGB = baseMap.Sample(linearSampler, pin.texcoord);
     float4 albedo = float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a) * baseColor;
 
-    float2 mrSample = metalnessRoughnessMap.Sample(linearSampler, pin.texcoord).gb;
-    float ao = occlusionMap.Sample(linearSampler, pin.texcoord).r;
-
     float3 emissiveSRGB = emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
     float3 emissive = pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb;
-    
+
     float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);
 
@@ -73,15 +132,27 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 N = normalize(pin.normal);
     float3 V = normalize(viewPosition - pin.position);
 
-    float3 totalDiffuse = 0;
-    float3 totalSpecular = 0;
+    float3 totalDiffuse = 0.0f;
+    float3 totalSpecular = 0.0f;
 
     // ディレクショナルライト
     {
         float3 L = normalize(-lightManager.directionalLight.direction);
         float3 LC = lightManager.directionalLight.color.rgb * lightManager.directionalLight.color.a;
+
         float3 d, s;
-        DirectBRDF(diffuse_reflectance, F0, N, V, L, LC, finalRoughness, d, s);
+        DirectBRDFShadowStrength(
+            diffuse_reflectance,
+            F0,
+            N,
+            V,
+            L,
+            LC,
+            finalRoughness,
+            shadowStrength,
+            d,
+            s);
+
         totalDiffuse += d;
         totalSpecular += s;
     }
@@ -91,15 +162,31 @@ float4 main(VS_OUT pin) : SV_TARGET
     {
         float3 toLight = lightManager.pointLights[i].position - pin.position;
         float len = length(toLight);
+
         if (len < lightManager.pointLights[i].range)
         {
             float atten = 1.0f - (len / lightManager.pointLights[i].range);
             atten *= atten;
+
             float3 L = normalize(toLight);
-            float3 LC = lightManager.pointLights[i].color.rgb
-                      * lightManager.pointLights[i].color.a * atten;
+            float3 LC =
+                lightManager.pointLights[i].color.rgb
+                * lightManager.pointLights[i].color.a
+                * atten;
+
             float3 d, s;
-            DirectBRDF(diffuse_reflectance, F0, N, V, L, LC, finalRoughness, d, s);
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
             totalDiffuse += d;
             totalSpecular += s;
         }
@@ -110,25 +197,48 @@ float4 main(VS_OUT pin) : SV_TARGET
     {
         float3 toLight = lightManager.spotLights[j].position - pin.position;
         float len = length(toLight);
+
         if (len < lightManager.spotLights[j].range)
         {
             float atten = 1.0f - (len / lightManager.spotLights[j].range);
             atten *= atten;
+
             float3 L = normalize(toLight);
             float3 spotDir = normalize(lightManager.spotLights[j].direction);
             float angle = dot(spotDir, -L);
-            float area = lightManager.spotLights[j].innerConeAngle
-                            - lightManager.spotLights[j].outerConeAngle;
-            atten *= saturate(1.0f - (lightManager.spotLights[j].innerConeAngle - angle) / area);
-            float3 LC = lightManager.spotLights[j].color.rgb
-                      * lightManager.spotLights[j].color.a * atten;
+
+            float area =
+                lightManager.spotLights[j].innerConeAngle
+                - lightManager.spotLights[j].outerConeAngle;
+
+            atten *= saturate(
+                1.0f
+                - (lightManager.spotLights[j].innerConeAngle - angle)
+                / area);
+
+            float3 LC =
+                lightManager.spotLights[j].color.rgb
+                * lightManager.spotLights[j].color.a
+                * atten;
+
             float3 d, s;
-            DirectBRDF(diffuse_reflectance, F0, N, V, L, LC, finalRoughness, d, s);
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
             totalDiffuse += d;
             totalSpecular += s;
         }
     }
-    
+
     // エリアライト（矩形面光源の近似：最近傍点法）
     for (uint k = 0; k < lightManager.areaLightCount && k < MaxAreaLights; ++k)
     {
@@ -140,60 +250,100 @@ float4 main(VS_OUT pin) : SV_TARGET
         float2 proj = float2(dot(toSurf, right), dot(toSurf, up));
         float hw = lightManager.areaLights[k].width * 0.5f;
         float hh = lightManager.areaLights[k].height * 0.5f;
-        float2 clamped = float2(clamp(proj.x, -hw, hw), clamp(proj.y, -hh, hh));
-        float3 nearest = lightManager.areaLights[k].position
-                   + right * clamped.x + up * clamped.y;
+
+        float2 clamped = float2(
+            clamp(proj.x, -hw, hw),
+            clamp(proj.y, -hh, hh));
+
+        float3 nearest =
+            lightManager.areaLights[k].position
+            + right * clamped.x
+            + up * clamped.y;
 
         float3 toLight = nearest - pin.position;
         float len = length(toLight);
+
         if (len < lightManager.areaLights[k].range)
         {
             float atten = 1.0f - (len / lightManager.areaLights[k].range);
             atten *= atten;
+
             // 面の向きと入射角による減衰
             atten *= saturate(dot(normalize(-toSurf), up));
+
             float3 L = normalize(toLight);
-            float3 LC = lightManager.areaLights[k].color.rgb
-                  * lightManager.areaLights[k].color.a * atten;
+            float3 LC =
+                lightManager.areaLights[k].color.rgb
+                * lightManager.areaLights[k].color.a
+                * atten;
+
             float3 d, s;
-            DirectBRDF(diffuse_reflectance, F0, N, V, L, LC, finalRoughness, d, s);
+            DirectBRDFShadowStrength(
+                diffuse_reflectance,
+                F0,
+                N,
+                V,
+                L,
+                LC,
+                finalRoughness,
+                shadowStrength,
+                d,
+                s);
+
             totalDiffuse += d;
             totalSpecular += s;
         }
     }
-    
-    float4 sc = shadowColor;
-    if (isFace)
-    {
-        sc = float4(1.0f, 1.0f, 1.0f, 1.0f); // 表面は影なし（両面描画の裏面対策）
-    }
 
     // シャドウ（PCFソフトシャドウ）
     float3 shadow = CalcShadowColorPCFFilter(
-        shadowMap, shadowSampler,
+        shadowMap,
+        shadowSampler,
         pin.shadowTexcoord,
-        sc.rgb,
+        shadowColor.rgb,
         shadowBias,
         pcfKernelSize);
 
+    // shadowStrengthが低いほど、シャドウマップの影も薄くする。
+    // 「鼻などの変な影だけ薄くしたい、外部の影は残したい」場合は、
+    // 下の1行をコメントアウトしてください。
+    shadow = lerp(1.0f.xxx, shadow, saturate(shadowStrength));
+
     // IBL（間接光）
     float iblIntensity = lightManager.ambientColor.a;
-    float3 iblDiffuse = DiffuseIBL(N, V, finalRoughness, diffuse_reflectance, F0,
-                                     diffuse_iem, linearSampler) * iblIntensity;
-    float3 iblSpecular = SpecularIBL(N, V, finalRoughness, F0,
-                                     lut_ggx, specular_pmrem, linearSampler) * iblIntensity;
+
+    float3 iblDiffuse =
+        DiffuseIBL(
+            N,
+            V,
+            finalRoughness,
+            diffuse_reflectance,
+            F0,
+            diffuse_iem,
+            linearSampler)
+        * iblIntensity;
+
+    float3 iblSpecular =
+        SpecularIBL(
+            N,
+            V,
+            finalRoughness,
+            F0,
+            lut_ggx,
+            specular_pmrem,
+            linearSampler)
+        * iblIntensity;
 
     // AO適用
     iblDiffuse *= finalAO;
     iblSpecular *= finalAO;
 
     // 合成（リニア空間）
-    float3 color = (totalDiffuse + totalSpecular) * shadow
-                 + iblDiffuse + iblSpecular
-                 + emissive;
-
-    // リニア → sRGB (ガンマ補正)
-    //color = pow(max(color, 0.0f), 1.0f / GammaFactor);
+    float3 color =
+        (totalDiffuse + totalSpecular) * shadow
+        + iblDiffuse
+        + iblSpecular
+        + emissive;
 
     return float4(color, albedo.a);
 }

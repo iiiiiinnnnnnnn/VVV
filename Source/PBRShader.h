@@ -37,10 +37,10 @@ private:
 		float	occlusion;
 		float	occlusionStrength;
 
+		float	shadowStrength;
 		int		useMetalnessTexture;
 		int		useRoughnessTexture;
 		int		useOcclusionTexture;
-		int		isFace;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 };

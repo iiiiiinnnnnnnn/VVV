@@ -64,11 +64,11 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 		{
 			"Face",
 		{
-			{"isFace", true},
 		{"metalness", 0.0f},
 		{"roughness", 0.0f},
 		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f}
+		{"occlusionStrength", 1.0f},
+		{"shadowStrength", 0.65f}
 	}
 		},
 		{
@@ -77,7 +77,8 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 			{"metalness", 0.0f},
 		{"roughness", 0.0f},
 		{"occlusion", 1.0f},
-		{"occlusionStrength", 1.0f}
+		{"occlusionStrength", 1.0f},
+		{"shadowStrength", 0.65f}
 	}
 		},
 		{
@@ -86,7 +87,8 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 			{"metalness", 0.0f},
 		{"roughness", 0.0f},
 		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f}
+		{"occlusionStrength", 1.0f},
+		{"shadowStrength", 0.65f}
 	}
 		},
 		{

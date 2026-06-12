@@ -156,15 +156,19 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			"occlusionStrength",
 			mesh.material->occlusionStrength);
 
-		cb.isFace = GetParam<bool>(
+		// 1.0 = 通常の影
+		// 0.0 = 影がかなり付きにくい
+		// 肌は 0.5〜0.75 くらいがおすすめ
+		cb.shadowStrength = GetParam<float>(
 			cachedParams,
-			"isFace",
-			false) ? 1 : 0;
+			"shadowStrength",
+			1.0f);
 
 		cb.metalness = std::clamp(cb.metalness, 0.0f, 1.0f);
 		cb.roughness = std::clamp(cb.roughness, 0.0001f, 1.0f);
 		cb.occlusion = std::clamp(cb.occlusion, 0.0f, 1.0f);
 		cb.occlusionStrength = std::clamp(cb.occlusionStrength, 0.0f, 1.0f);
+		cb.shadowStrength = std::clamp(cb.shadowStrength, 0.0f, 1.0f);
 
 		dc->UpdateSubresource(
 			materialConstantBuffer.Get(),
@@ -209,7 +213,7 @@ void PBRShader::End(const RenderContext& rc)
 	dc->IASetInputLayout(nullptr);
 
 	// 定数バッファ解除
-	ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
+	ID3D11Buffer* nullCbs[] = { nullptr, nullptr };
 	dc->PSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->VSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 

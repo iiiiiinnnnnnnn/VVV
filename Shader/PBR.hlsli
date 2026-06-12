@@ -33,11 +33,11 @@ cbuffer CbMaterial : register(b1)
     float roughness;
     float occlusion;
     float occlusionStrength;
-
+    
+    float shadowStrength;
     int useMetalnessTexture;
     int useRoughnessTexture;
     int useOcclusionTexture;
-    int isFace;
 };
 
 #endif // __PBR_HLSLI__
