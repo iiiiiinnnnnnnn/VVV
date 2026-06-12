@@ -17,6 +17,8 @@ public:
 
 	float GetHeightByUV(float u, float v) const;
 
+	float GetTerrainSize() const { return terrainSize; }
+
 private:
 	enum class BrushMode
 	{
@@ -63,7 +65,6 @@ private:
 	static constexpr int TerrainTextureWidth = 1024;
 	static constexpr int TerrainTextureHeight = 1024;
 
-private:
 	void InitializeGpuResources();
 	void CreateGridMesh(ID3D11Device* device);
 	void CreateTerrainTexture(ID3D11Device* device);
@@ -74,7 +75,6 @@ private:
 	bool ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const;
 	void ApplyBrush(float u, float v, float heightSign);
 
-private:
 	float terrainSize = 500.0f;
 	int gridResolution = 64;
 	UINT indexCount = 0;
@@ -105,7 +105,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainBaseColorShaderResourceView[3];
 
-	bool use_brush = true;
+	bool use_brush = false;
 	BrushMode brushMode = BrushMode::Height;
 	int brush_size = 32;
 	float heightBrushStrength = 0.02f;

@@ -35,7 +35,7 @@ namespace Game
 		Mouse& GetMouse() { return *mouse; }
 
 		// フォーカスが当たっているか
-		static bool IsFocusedWindow();
+		static bool IsFocusedWindow(bool dontCheckImgui = false);
 
 	private:
 		std::unique_ptr<GamePad>	gamePad;

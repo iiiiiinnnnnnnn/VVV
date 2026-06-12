@@ -4,8 +4,9 @@
 
 // actor
 #include "Player.h"
-#include "Stage00.h"
 #include "Apple.h"
+#include "Stage00.h"
+#include "Stage01.h"
 
 // widget
 #include "TestWidget.h"
@@ -27,17 +28,9 @@ TestPlayScene::TestPlayScene()
     float screenWidth  = Game::Graphics::ScreenWidth;
     float screenHeight = Game::Graphics::ScreenHeight;
     
-    // terrain
-    {
-        auto terrain = std::make_shared<Actor>("Terrain", "Stage", true, Layer::Stage);
-        terrain->transform.SetPosition(0.0f, -2.0f, 0.0f);
-        terrain->AddComponent<Terrain>();
-        actors.Register(terrain);
-    }
-
     // stage
     {
-        actors.Register(std::make_shared<Stage00>());
+        actors.Register(std::make_shared<Stage01>());
     }
 
     // player & camera

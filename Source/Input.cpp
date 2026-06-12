@@ -19,7 +19,7 @@ namespace Game
 		mouse->Update();
 	}
 
-	bool Input::IsFocusedWindow()
+	bool Input::IsFocusedWindow(bool dontCheckImgui)
 	{
 		// デバッグウインドウ操作中は処理しない
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))

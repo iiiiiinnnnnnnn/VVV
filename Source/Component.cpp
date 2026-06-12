@@ -4,7 +4,7 @@
 #include "Actor.h"
 #include "Widget.h"
 
-Actor* Component::GetOwnerAsActor(Object* owner_sub)
+Actor* Component::GetOwnerAsActor(Object* owner_sub) const
 {
     Actor* ptr;
     if (this->owner)
@@ -15,7 +15,7 @@ Actor* Component::GetOwnerAsActor(Object* owner_sub)
     return ptr;
 }
 
-Widget* Component::GetOwnerAsWidget(Object* owner_sub)
+Widget* Component::GetOwnerAsWidget(Object* owner_sub) const
 {
     Widget* ptr;
     if (this->owner)

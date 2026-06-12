@@ -94,3 +94,28 @@ private:
     Matrix offset;
     float radius = 0.5f;
 };
+
+class TerrainMeshCollider : public Component
+{
+public:
+    TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, PxMaterial* material = nullptr);
+
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
+
+    void RebuildFromTerrain();
+
+private:
+    void BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices) const;
+    void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
+
+private:
+    PxShape* shape = nullptr;
+    Rigidbody* rigidbody = nullptr;
+    PxMaterial* material = nullptr;
+
+    int resolution = 128;
+
+    std::vector<Vector3> debugVertices;
+    std::vector<uint32_t> debugIndices;
+};

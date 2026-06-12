@@ -312,6 +312,9 @@
     <ClCompile Include="Source\Component.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Stage01.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -541,6 +544,9 @@
     </ClInclude>
     <ClInclude Include="Source\Terrain.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage01.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

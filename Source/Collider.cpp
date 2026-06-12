@@ -4,6 +4,7 @@
 #include "Actor.h"
 #include "Graphics.h"
 #include "ShapeRenderer.h"
+#include "Terrain.h"
 
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : Component(owner), material(material), size(size), rigidbody(rigidbody)
@@ -458,6 +459,216 @@ void BoneSphereCollider::DrawGUI()
                 Matrix::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z)) *
                 Matrix::CreateTranslation(pos);
         }
+        ImGui::TreePop();
+    }
+}
+
+TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, PxMaterial* material)
+    : Component(owner), rigidbody(rigidbody), resolution(resolution), material(material)
+{
+    Component::GetOwnerAsActor();
+
+    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+
+    RebuildFromTerrain();
+}
+
+void TerrainMeshCollider::RebuildFromTerrain()
+{
+    std::vector<Vector3> vertices;
+    std::vector<uint32_t> indices;
+
+    BuildMeshFromTerrain(vertices, indices);
+    UpdateShape(vertices, indices);
+
+    debugVertices = vertices;
+    debugIndices = indices;
+}
+
+void TerrainMeshCollider::BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices) const
+{
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    _ASSERT_EXPR(terrain != nullptr, L"TerrainMeshCollider requires Terrain component.");
+
+    Actor* actor = Component::GetOwnerAsActor();
+
+    int r = std::clamp(resolution, 1, 512);
+    float terrainSize = terrain->GetTerrainSize();
+
+    vertices.clear();
+    indices.clear();
+
+    vertices.reserve((r + 1) * (r + 1));
+    indices.reserve(r * r * 6);
+
+    for (int z = 0; z <= r; ++z)
+    {
+        for (int x = 0; x <= r; ++x)
+        {
+            float u = static_cast<float>(x) / static_cast<float>(r);
+            float v = static_cast<float>(z) / static_cast<float>(r);
+
+            Vector3 localPosition;
+            localPosition.x = (u - 0.5f) * terrainSize;
+            localPosition.y = terrain->GetHeightByUV(u, v);
+            localPosition.z = (v - 0.5f) * terrainSize;
+
+            Vector3 worldPosition = Vector3::Transform(localPosition, actor->transform.matrix);
+            vertices.push_back(worldPosition);
+        }
+    }
+
+    int vertexLineCount = r + 1;
+
+    for (int z = 0; z < r; ++z)
+    {
+        for (int x = 0; x < r; ++x)
+        {
+            uint32_t i0 = static_cast<uint32_t>(z * vertexLineCount + x);
+            uint32_t i1 = i0 + 1;
+            uint32_t i2 = i0 + static_cast<uint32_t>(vertexLineCount);
+            uint32_t i3 = i2 + 1;
+
+            indices.push_back(i0);
+            indices.push_back(i2);
+            indices.push_back(i1);
+
+            indices.push_back(i1);
+            indices.push_back(i2);
+            indices.push_back(i3);
+        }
+    }
+}
+
+void TerrainMeshCollider::UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices)
+{
+    if (vertices.empty() || indices.empty())
+    {
+        return;
+    }
+
+    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+    PxCookingParams* cookingParams = PhysicsManager::Instance().GetCooking();
+    PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+
+    _ASSERT_EXPR(rigidActor->is<PxRigidStatic>() != nullptr, L"TerrainMeshCollider requires RigidbodyStatic.");
+
+    if (shape)
+    {
+        rigidActor->detachShape(*shape);
+        shape = nullptr;
+    }
+
+    std::vector<PxVec3> pxVertices;
+    pxVertices.reserve(vertices.size());
+
+    for (const Vector3& v : vertices)
+    {
+        pxVertices.push_back(PxVec3(v.x, v.y, v.z));
+    }
+
+    PxTriangleMeshDesc meshDesc;
+    meshDesc.points.count = static_cast<PxU32>(pxVertices.size());
+    meshDesc.points.stride = sizeof(PxVec3);
+    meshDesc.points.data = pxVertices.data();
+
+    meshDesc.triangles.count = static_cast<PxU32>(indices.size() / 3);
+    meshDesc.triangles.stride = 3 * sizeof(uint32_t);
+    meshDesc.triangles.data = indices.data();
+
+    PxDefaultMemoryOutputStream writeBuffer;
+    bool result = PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
+    _ASSERT_EXPR(result, L"Failed to cook Terrain TriangleMesh.");
+
+    PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+    PxTriangleMesh* triangleMesh = physics->createTriangleMesh(readBuffer);
+    _ASSERT_EXPR(triangleMesh != nullptr, L"Failed to create Terrain TriangleMesh.");
+
+    shape = physics->createShape(PxTriangleMeshGeometry(triangleMesh), *material);
+    _ASSERT_EXPR(shape != nullptr, L"Failed to create TerrainMeshCollider shape.");
+
+    triangleMesh->release();
+
+    rigidActor->attachShape(*shape);
+
+    Actor* actor = Component::GetOwnerAsActor();
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+
+    shape->release();
+}
+
+void TerrainMeshCollider::Render(const RenderContext& rc)
+{
+    if (!rc.renderSettings.showDebug)
+    {
+        return;
+    }
+
+    if (debugVertices.empty() || debugIndices.empty())
+    {
+        return;
+    }
+
+    PrimitiveRenderer* pr = Game::Graphics::Instance().GetPrimitiveRenderer();
+    Color color(0.0f, 1.0f, 1.0f, 1.0f);
+
+    for (size_t i = 0; i + 2 < debugIndices.size(); i += 3)
+    {
+        Vector3 v0 = debugVertices[debugIndices[i + 0]];
+        Vector3 v1 = debugVertices[debugIndices[i + 1]];
+        Vector3 v2 = debugVertices[debugIndices[i + 2]];
+
+        pr->DrawLine(v0, v1, color, color);
+        pr->DrawLine(v1, v2, color, color);
+        pr->DrawLine(v2, v0, color, color);
+    }
+
+    pr->Render(
+        rc.deviceContext,
+        rc.camera->GetView(),
+        rc.camera->GetProjection(),
+        D3D11_PRIMITIVE_TOPOLOGY_LINELIST
+    );
+}
+
+void TerrainMeshCollider::DrawGUI()
+{
+    if (ImGui::TreeNode("TerrainMeshCollider"))
+    {
+        ImGui::DragInt("collision resolution", &resolution, 1, 1, 512);
+
+        if (ImGui::Button("Rebuild Terrain MeshCollider"))
+        {
+            RebuildFromTerrain();
+        }
+
+        ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
+        ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
+
+        if (ImGui::TreeNode("Material"))
+        {
+            float sfriction = material->getStaticFriction();
+            float dfriction = material->getDynamicFriction();
+            float restitution = material->getRestitution();
+
+            if (ImGui::DragFloat("Static Friction", &sfriction, 0.01f, 0.0f, 1.0f))
+            {
+                material->setStaticFriction(sfriction);
+            }
+
+            if (ImGui::DragFloat("Dynamic Friction", &dfriction, 0.01f, 0.0f, 1.0f))
+            {
+                material->setDynamicFriction(dfriction);
+            }
+
+            if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
+            {
+                material->setRestitution(restitution);
+            }
+
+            ImGui::TreePop();
+        }
+
         ImGui::TreePop();
     }
 }
