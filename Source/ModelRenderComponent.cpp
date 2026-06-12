@@ -9,8 +9,8 @@ ModelRenderComponent::ModelRenderComponent(
     ModelShaderId shaderId, ShaderParamListWithMaterialName paramsWithMaterial)
     : Component(owner), model(model), shaderId(shaderId), paramsWithMaterial(paramsWithMaterial)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    // エラー用
+    Component::GetOwnerAsActor();
 
     if (model)
     {
@@ -21,7 +21,6 @@ ModelRenderComponent::ModelRenderComponent(
 void ModelRenderComponent::LateUpdate()
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
 
     if (!model)
         return;

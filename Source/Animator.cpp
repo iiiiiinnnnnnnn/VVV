@@ -9,8 +9,8 @@
 Animator::Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime)
     : Component(owner), model(model), unscaledTime(unscaledTime)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    // エラー用
+    Component::GetOwnerAsActor();
 }
 
 // =========================================================

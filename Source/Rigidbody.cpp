@@ -5,8 +5,7 @@
 
 Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor)
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+    Actor* ownerActor = Component::GetOwnerAsActor();
 
     // ユーザーデータにActorのポインタをセット
     rigidActor->userData = ownerActor;
@@ -28,8 +27,7 @@ Rigidbody::~Rigidbody()
 
 void Rigidbody::Update()
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+    Actor* ownerActor = Component::GetOwnerAsActor();
 
     if (rigidActor) {
         Vector3 pos = VEC3(rigidActor->getGlobalPose().p);
@@ -59,17 +57,16 @@ void Rigidbody::SetPosition(const Vector3& pos)
 }
 
 RigidbodyStatic::RigidbodyStatic(Object* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(dynamic_cast<Actor*>(owner)->transform.matrix))
+    : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(Component::GetOwnerAsActor()->transform.matrix))
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+
 }
 
 RigidbodyStatic::RigidbodyStatic(Object* owner, Matrix matrix)
     : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(matrix))
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+	// エラー用
+    Component::GetOwnerAsActor();
 }
 
 void RigidbodyStatic::DrawGUI()
@@ -92,10 +89,9 @@ void RigidbodyStatic::DrawGUI()
 }
 
 RigidbodyDynamic::RigidbodyDynamic(Object* owner)
-    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(dynamic_cast<Actor*>(owner)->transform.matrix))
+    : Rigidbody(owner, PhysicsManager::Instance().CreateDynamic(Component::GetOwnerAsActor()->transform.matrix))
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(ownerActor != nullptr, L"Object is not Actor");
+
 }
 
 void RigidbodyDynamic::DrawGUI()

@@ -303,6 +303,9 @@
     <ClCompile Include="Source\Terrain.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Component.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">

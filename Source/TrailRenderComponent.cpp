@@ -24,6 +24,8 @@ TrailRenderComponent::TrailRenderComponent(
     , lifeTime(lifeTime)
     , maxPoints(maxPoints)
 {
+    // ÉGÉâÅ[óp
+    Component::GetOwnerAsActor();
 }
 
 void TrailRenderComponent::LateUpdate()

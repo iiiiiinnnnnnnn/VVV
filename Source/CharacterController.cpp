@@ -8,8 +8,7 @@
 CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
 
     hitReport = new CCHitReport(actor, actor->GetLayer());
 
@@ -47,8 +46,7 @@ CharacterController::~CharacterController()
 
 void CharacterController::Update()
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
 
     if (!controller) return;
 

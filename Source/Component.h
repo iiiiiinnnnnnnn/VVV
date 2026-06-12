@@ -4,7 +4,12 @@
 
 #include "RenderContext.h"
 
+// コンポーネントにはWidget、Actorどちらかしかアタッチできないものがある
+// その場合はActorにdynamic_castした時にエラー吐くために変換&エラー関数がある
+
 class Object;
+class Actor;
+class Widget;
 
 class Component {
 public:
@@ -18,6 +23,9 @@ public:
     virtual void LateUpdate() {}
     virtual void Render(const RenderContext& rc) {}
     virtual void DrawGUI() {}
+
+    Actor* GetOwnerAsActor();
+    Widget* GetOwnerAsWidget();
 
 protected:
     Object* owner;

@@ -7,8 +7,8 @@
 SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamList shaderParam)
 	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
 {
-	Widget* widget = dynamic_cast<Widget*>(owner);
-	_ASSERT_EXPR(widget != nullptr, L"Object is not Widget");
+	// エラー用
+	Component::GetOwnerAsWidget();
 }
 
 void SpriteRenderComponent::Update()
@@ -17,8 +17,7 @@ void SpriteRenderComponent::Update()
 
 void SpriteRenderComponent::Render(const RenderContext& rc)
 {
-	Widget* widget = dynamic_cast<Widget*>(owner);
-	_ASSERT_EXPR(widget != nullptr, L"Object is not Widget");
+	Widget* widget = Component::GetOwnerAsWidget();
 
 	if (texture)
 	{

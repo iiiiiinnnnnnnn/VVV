@@ -1,9 +1,12 @@
 // Terrain.cpp
 
 #include "Terrain.h"
+#include "Actor.h"
 
-Terrain::Terrain()
+Terrain::Terrain(Object* owner) : Component(owner)
 {
+	// ƒGƒ‰[—p
+	Component::GetOwnerAsActor();
 }
 
 Terrain::~Terrain()

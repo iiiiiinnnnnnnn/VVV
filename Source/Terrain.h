@@ -7,7 +7,7 @@
 class Terrain : public Component
 {
 public:
-	Terrain();
+	Terrain(Object* owner);
 	~Terrain();
 
 	void Update() override;

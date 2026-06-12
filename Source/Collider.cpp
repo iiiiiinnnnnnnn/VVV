@@ -8,8 +8,8 @@
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : Component(owner), material(material), size(size), rigidbody(rigidbody)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    // エラー用
+    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
@@ -43,8 +43,7 @@ void BoxCollider::UpdateShape()
 	rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
@@ -77,8 +76,8 @@ void BoxCollider::DrawGUI()
 CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material)
     : Component(owner), rigidbody(rigidbody), material(material), radius(radius), height(height)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+	// エラー用
+    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
@@ -116,8 +115,7 @@ void CapsuleCollider::UpdateShape()
     rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
@@ -152,8 +150,8 @@ void CapsuleCollider::DrawGUI()
 SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material)
     : Component(owner), rigidbody(rigidbody), material(material), radius(radius)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+	// エラー用
+    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
@@ -189,8 +187,7 @@ void SphereCollider::UpdateShape()
     rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 
@@ -334,8 +331,7 @@ void MeshCollider::UpdateShape()
         rigidActor->attachShape(*shape);
 
         // ownerのlayerをシェイプに反映
-        Actor* actor = dynamic_cast<Actor*>(owner);
-        _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+        Actor* actor = Component::GetOwnerAsActor();
         PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 
         shape->release();
@@ -362,8 +358,7 @@ void MeshCollider::DrawGUI()
 BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset, PxMaterial* material)
     : Component(owner), model(model), nodeIndex(nodeIndex), radius(radius), offset(offset), material(material)
 {
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    _ASSERT_EXPR(actor != nullptr, L"Object is not Actor");
+    Actor* actor = Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 
