@@ -118,6 +118,12 @@
     <Filter Include="ソースファイル\システム%28基底%29\アプリ\入力">
       <UniqueIdentifier>{de4e9ff2-75ac-4a10-9d16-751ed615f21b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="データ\設定ファイル">
+      <UniqueIdentifier>{4f52ed13-8b86-41ea-a9af-ac4880db709c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="データ\設定ファイル\ポストエフェクト">
+      <UniqueIdentifier>{b05418b5-73e6-40f4-8e3f-e12142a533cf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -582,6 +588,9 @@
     </None>
     <None Include="Shader\TrailRenderer.hlsli">
       <Filter>シェーダー\システム</Filter>
+    </None>
+    <None Include="Data\Config\PostEffect\Default.json">
+      <Filter>データ\設定ファイル\ポストエフェクト</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

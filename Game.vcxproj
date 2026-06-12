@@ -155,6 +155,7 @@
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="Data\Animator\Player.animator" />
+    <None Include="Data\Config\PostEffect\Default.json" />
     <None Include="imgui.ini" />
     <None Include="README.md" />
     <None Include="Shader\GaussianFiltering.hlsli" />
@@ -332,6 +333,12 @@
       </AssemblerOutputFile>
     </FxCompile>
     <PreBuildEvent />
+    <PreLinkEvent>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.lib" "$(SolutionDir)x64\"</Command>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -365,8 +372,15 @@
       </AssemblerOutputFile>
     </FxCompile>
     <PreBuildEvent>
-      <Command>xcopy /Y /D "$(ProjectDir)External\PhysX\dll\x64\Release\*.dll" "$(TargetDir)"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
+    <PreLinkEvent>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.lib" "$(SolutionDir)x64\"</Command>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

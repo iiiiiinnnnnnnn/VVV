@@ -340,7 +340,6 @@ void SpringBone::LateUpdate()
         ? actor->transform.matrix
         : Matrix::Identity;
 
-    // 現在のアニメーション姿勢を基準として保存する
     model->UpdateTransform(ownerWorldTransform);
 
     std::vector<Vector3> baseLocalPositions(nodeCount);
@@ -362,6 +361,19 @@ void SpringBone::LateUpdate()
     }
 
     const float stepTime = elapsedTime / static_cast<float>(subStepCount);
+
+    const float referenceDeltaTime = 1.0f / 60.0f;
+    const float stepRate = stepTime / referenceDeltaTime;
+
+    const float dampingBase = std::clamp(damping, 0.0f, 1.0f);
+    const float stiffnessBase = std::clamp(stiffness, 0.0f, 1.0f);
+
+    const float stepDamping = powf(dampingBase, stepRate);
+    const float stepStiffness = 1.0f - powf(1.0f - stiffnessBase, stepRate);
+
+    const float stepMaxVelocity = maxVelocity > 0.0f
+        ? maxVelocity * stepRate
+        : 0.0f;
 
     for (int subStep = 0; subStep < subStepCount; ++subStep)
     {
@@ -443,24 +455,23 @@ void SpringBone::LateUpdate()
             Vector3 velocity = currentChildWorldPosition - childBone->oldWorldPosition;
             childBone->oldWorldPosition = currentChildWorldPosition;
 
-            velocity *= damping;
+            velocity *= stepDamping;
             velocity += gravity * stepTime;
 
-            if (maxVelocity > 0.0f)
+            if (stepMaxVelocity > 0.0f)
             {
-                const float maxVelocitySq = maxVelocity * maxVelocity;
+                const float maxVelocitySq = stepMaxVelocity * stepMaxVelocity;
                 if (velocity.LengthSquared() > maxVelocitySq)
                 {
                     velocity.Normalize();
-                    velocity *= maxVelocity;
+                    velocity *= stepMaxVelocity;
                 }
             }
 
             Vector3 nextChildWorldPosition = currentChildWorldPosition + velocity;
 
-            // アニメーション姿勢へ少し戻すことで、キャラ移動や激しいアニメで流れすぎるのを抑える
             nextChildWorldPosition +=
-                (animatedChildWorldPosition - nextChildWorldPosition) * stiffness;
+                (animatedChildWorldPosition - nextChildWorldPosition) * stepStiffness;
 
             const int iterations = max(solverIterations, 1);
             for (int iteration = 0; iteration < iterations; ++iteration)
@@ -478,7 +489,6 @@ void SpringBone::LateUpdate()
                 ApplyCapsuleCollision(nextChildWorldPosition);
             }
 
-            // 最後は衝突を優先して、体へのめり込みを抑える
             ApplyCapsuleCollision(nextChildWorldPosition);
 
             childBone->currentWorldPosition = nextChildWorldPosition;
@@ -634,7 +644,7 @@ void SpringBone::DrawGUI()
         ImGui::Text("Collision / Solver");
         ImGui::DragFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
         ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
-        ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.001f, 0.001f, 0.1f, "%.4f");
+        ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
         ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
         ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
 
