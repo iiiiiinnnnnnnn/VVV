@@ -16,8 +16,15 @@ public:
 	void DrawGUI() override;
 
 	float GetHeightByUV(float u, float v) const;
-
 	float GetTerrainSize() const { return terrainSize; }
+
+	bool SaveTerrainTexture(const std::string& filename);
+	bool LoadTerrainTexture(const std::string& filename);
+
+	bool AddBrushTexture(const std::string& filename);
+	bool SetBrushTexture(int index);
+	int GetBrushTextureIndex() const { return currentBrushIndex; }
+	int GetBrushTextureCount() const { return static_cast<int>(brushes.size()); }
 
 private:
 	enum class BrushMode
@@ -62,6 +69,16 @@ private:
 		float tilling_scale = 80.0f;
 	};
 
+	struct TerrainBrush
+	{
+		std::string name;
+		std::string filepath;
+		int width = 0;
+		int height = 0;
+		std::vector<float> mask;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+	};
+
 	static constexpr int TerrainTextureWidth = 1024;
 	static constexpr int TerrainTextureHeight = 1024;
 
@@ -75,6 +92,12 @@ private:
 	bool ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const;
 	void ApplyBrush(float u, float v, float heightSign);
 
+	const TerrainBrush* GetCurrentBrush() const;
+	float SampleBrushMask(float u, float v) const;
+	void DrawBrushGUI();
+	void RebuildTerrainCollider();
+
+private:
 	float terrainSize = 500.0f;
 	int gridResolution = 64;
 	UINT indexCount = 0;
@@ -111,4 +134,13 @@ private:
 	float heightBrushStrength = 0.02f;
 	float blendBrushStrength = 0.08f;
 	float blendTarget = 1.0f;
+	bool invertBrushMask = false;
+
+	std::vector<TerrainBrush> brushes;
+	int currentBrushIndex = -1;
+	std::string brushAddPath = "Data/Terrain/brush_default.png";
+
+	std::string terrainFilePath = "Data/Terrain/Maps/Default.dds";
+	std::string terrainIoMessage;
+	bool pendingColliderRebuild = false;
 };

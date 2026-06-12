@@ -99,6 +99,7 @@ class TerrainMeshCollider : public Component
 {
 public:
     TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, PxMaterial* material = nullptr);
+    ~TerrainMeshCollider() override;
 
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
@@ -106,8 +107,9 @@ public:
     void RebuildFromTerrain();
 
 private:
-    void BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices) const;
+    void BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices);
     void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
+    void ReleaseShape();
 
 private:
     PxShape* shape = nullptr;
