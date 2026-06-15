@@ -18,9 +18,7 @@
 
 #include "HitEffect.h"
 #include "Graphics.h"
-#include "ResourceManager.h"
 #include "SpriteWidget.h"
-#include "LoadingScene.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message)
 	: Scene("TestPlayScene", message)
@@ -119,5 +117,11 @@ void TestPlayScene::OnUpdate()
 
 void TestPlayScene::OnDrawGUI()
 {
-
+	if (ImGui::CollapsingHeader("SceneManager"))
+	{
+		if (ImGui::Button("ReloadScene"))
+		{
+			SceneManager::Instance().LoadScene<TestPlayScene>();
+		}
+	}
 }

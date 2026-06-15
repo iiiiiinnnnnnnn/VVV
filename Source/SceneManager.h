@@ -26,25 +26,37 @@ public:
 	void Update();
 	void Render();
 
-	// 現在のSceneを進行させたまま、
-	// 指定したSceneを別スレッドで生成する。
+	// 次のフレームでLoadingSceneへ切り替え、
+	// 指定Sceneをロード用スレッド内で生成する。
 	template<typename T>
-	bool LoadSceneAsync(SceneMessage message = nullptr)
+	bool LoadScene(SceneMessage message = nullptr)
 	{
 		static_assert(
 			std::is_base_of_v<Scene, T>,
 			"T must inherit from Scene.");
 
-		return StartLoadSceneAsync(
+		return RequestLoadScene(
 			[message]() -> std::unique_ptr<Scene>
-		{
-			return std::make_unique<T>(message);
-		});
+			{
+				return std::make_unique<T>(message);
+			});
+	}
+
+	// 旧呼び出しとの互換用。
+	template<typename T>
+	bool LoadSceneAsync(SceneMessage message = nullptr)
+	{
+		return LoadScene<T>(message);
 	}
 
 	bool IsLoading() const
 	{
 		return loading.load(std::memory_order_acquire);
+	}
+
+	float GetLoadProgress() const
+	{
+		return loadProgress;
 	}
 
 	std::string GetLastLoadError() const;
@@ -66,16 +78,23 @@ private:
 		std::unique_ptr<Scene> scene;
 	};
 
-	bool StartLoadSceneAsync(SceneFactory sceneFactory);
-
+	bool RequestLoadScene(SceneFactory sceneFactory);
+	void BeginPendingLoad();
+	bool StartLoadThread(SceneFactory sceneFactory);
+	void UpdateLoadProgress();
 	void ApplyLoadedScene();
 	void JoinLoadThread();
 
 	std::unique_ptr<Scene> currentScene;
 
+	SceneFactory pendingSceneFactory;
+	std::atomic_bool loadRequested = false;
+
 	std::thread loadThread;
 	std::atomic_bool loading = false;
 	std::atomic_bool loadFinished = false;
+
+	float loadProgress = 0.0f;
 
 	mutable std::mutex loadMutex;
 	std::unique_ptr<LoadedScene> loadedScene;

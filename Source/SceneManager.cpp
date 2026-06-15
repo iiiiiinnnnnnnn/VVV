@@ -2,8 +2,9 @@
 
 #include "SceneManager.h"
 
-#include "PhysicsManager.h"
+#include "GameTime.h"
 #include "LoadingScene.h"
+#include "PhysicsManager.h"
 
 #include <stdexcept>
 
@@ -64,10 +65,20 @@ SceneManager::~SceneManager()
 void SceneManager::Initialize()
 {
 	currentScene = std::make_unique<LoadingScene>();
+	loadProgress = 0.0f;
 }
 
 void SceneManager::Finalize()
 {
+	loadRequested.store(
+		false,
+		std::memory_order_release);
+
+	{
+		std::lock_guard<std::mutex> lock(loadMutex);
+		pendingSceneFactory = {};
+	}
+
 	JoinLoadThread();
 
 	std::unique_ptr<LoadedScene> sceneWaitingForDestruction;
@@ -90,18 +101,22 @@ void SceneManager::Finalize()
 		false,
 		std::memory_order_release);
 
-	// 現在のPhysXシーンが有効な間に、
-	// 現在のScene内の物理オブジェクトを破棄する。
-	currentScene.reset();
+	loadProgress = 0.0f;
 
-	// LoadedScene内のSceneを先に破棄し、
-	// その後ロード用PhysicsSceneContextを破棄する。
+	currentScene.reset();
 	sceneWaitingForDestruction.reset();
 }
 
 void SceneManager::Update()
 {
+	// 前フレームまでに完了したSceneを適用する。
 	ApplyLoadedScene();
+
+	// Scene内からLoadSceneされた場合でも、
+	// 呼び出し元SceneのUpdate終了後となる次フレームに開始する。
+	BeginPendingLoad();
+
+	UpdateLoadProgress();
 
 	if (currentScene)
 	{
@@ -117,21 +132,56 @@ void SceneManager::Render()
 	}
 }
 
-bool SceneManager::StartLoadSceneAsync(
+bool SceneManager::RequestLoadScene(
 	SceneFactory sceneFactory)
 {
-	bool expected = false;
-
-	if (!loading.compare_exchange_strong(
-		expected,
-		true,
-		std::memory_order_acq_rel))
+	if (!sceneFactory)
 	{
-		// すでにロード中。
 		return false;
 	}
 
-	// 前回のロードスレッドが残っていれば終了を確定させる。
+	if (loading.load(std::memory_order_acquire) ||
+		loadRequested.load(std::memory_order_acquire))
+	{
+		return false;
+	}
+
+	{
+		std::lock_guard<std::mutex> lock(loadMutex);
+
+		pendingSceneFactory = std::move(sceneFactory);
+		lastLoadError.clear();
+	}
+
+	loadRequested.store(
+		true,
+		std::memory_order_release);
+
+	return true;
+}
+
+void SceneManager::BeginPendingLoad()
+{
+	if (!loadRequested.exchange(
+		false,
+		std::memory_order_acq_rel))
+	{
+		return;
+	}
+
+	SceneFactory sceneFactory;
+
+	{
+		std::lock_guard<std::mutex> lock(loadMutex);
+		sceneFactory = std::move(pendingSceneFactory);
+		pendingSceneFactory = {};
+	}
+
+	if (!sceneFactory)
+	{
+		return;
+	}
+
 	JoinLoadThread();
 
 	{
@@ -146,6 +196,28 @@ bool SceneManager::StartLoadSceneAsync(
 		false,
 		std::memory_order_release);
 
+	loading.store(
+		true,
+		std::memory_order_release);
+
+	loadProgress = 0.0f;
+
+	// 遷移元Sceneを安全なタイミングで破棄し、
+	// ロード中表示専用Sceneへ切り替える。
+	currentScene.reset();
+	currentScene = std::make_unique<LoadingScene>();
+
+	if (!StartLoadThread(std::move(sceneFactory)))
+	{
+		loading.store(
+			false,
+			std::memory_order_release);
+	}
+}
+
+bool SceneManager::StartLoadThread(
+	SceneFactory sceneFactory)
+{
 	try
 	{
 		loadThread = std::thread(
@@ -159,17 +231,16 @@ bool SceneManager::StartLoadSceneAsync(
 				result =
 					std::make_unique<LoadedScene>();
 
-				// 次のScene専用のPhysXシーンを生成する。
 				result->physicsContext =
 					PhysicsManager::Instance().
 					CreateSceneContext();
 
 				{
-					// このスレッド内で生成される物理オブジェクトを
-					// 次のScene専用のPhysXシーンへ登録する。
 					ThreadSceneContextScope contextScope(
 						result->physicsContext.get());
 
+					// ロード用スレッド内では通常どおり同期的に
+					// Sceneのコンストラクタを最後まで実行する。
 					result->scene = sceneFactory();
 				}
 
@@ -212,10 +283,6 @@ bool SceneManager::StartLoadSceneAsync(
 				GetExceptionMessage(exception);
 		}
 
-		loading.store(
-			false,
-			std::memory_order_release);
-
 		loadFinished.store(
 			false,
 			std::memory_order_release);
@@ -224,6 +291,26 @@ bool SceneManager::StartLoadSceneAsync(
 	}
 
 	return true;
+}
+
+void SceneManager::UpdateLoadProgress()
+{
+	if (!loading.load(std::memory_order_acquire))
+	{
+		return;
+	}
+
+	// Scene側へ進捗報告を書かせないため、表示用の進捗値を作る。
+	// 実際の完了判定はloadFinishedで行う。
+	const float target = 0.9f;
+	const float interpolation = min(
+		Game::Time::unscaledDeltaTime * 1.5f,
+		1.0f);
+
+	loadProgress +=
+		(target - loadProgress) * interpolation;
+
+	loadProgress = min(loadProgress, target);
 }
 
 std::string SceneManager::GetLastLoadError() const
@@ -271,7 +358,7 @@ void SceneManager::ApplyLoadedScene()
 		}
 
 		const std::string output =
-			"[SceneManager] LoadSceneAsync failed: " +
+			"[SceneManager] LoadScene failed: " +
 			errorMessage +
 			"\n";
 
@@ -291,16 +378,14 @@ void SceneManager::ApplyLoadedScene()
 		return;
 	}
 
-	// 旧Sceneのデストラクタが旧PhysXシーンを
-	// 参照できる状態で破棄する。
+	loadProgress = 1.0f;
+
 	currentScene.reset();
 
-	// 新しいPhysXシーンへ切り替える。
 	PhysicsManager::Instance().
 		SetCurrentSceneContext(
-		std::move(result->physicsContext));
+			std::move(result->physicsContext));
 
-	// 新しいSceneへ切り替える。
 	currentScene =
 		std::move(result->scene);
 }

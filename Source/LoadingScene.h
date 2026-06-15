@@ -1,4 +1,4 @@
-// LoadingScene.h
+﻿// LoadingScene.h
 
 #pragma once
 
@@ -20,5 +20,8 @@ private:
 	Vector2 bgVelocity{};
 	bool cursorInit = false;
 
+	float progressBarWidth = 380.0f;
+
 	std::shared_ptr<SpriteWidget> BG_Illust;
+	std::shared_ptr<SpriteWidget> progressBarFill;
 };
