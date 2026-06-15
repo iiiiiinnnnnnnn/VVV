@@ -132,9 +132,9 @@ namespace Game
 		skyBoxRenderer    = std::make_unique<SkyBoxRenderer>(device.Get());
 
 		// IBLテクスチャ読み込み
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/lut_ggx.dds",        iblGGXLUT.GetAddressOf());
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/specular_pmrem.dds", iblSpecularPMREM.GetAddressOf());
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/diffuse_iem.dds",    iblDiffuseIEM.GetAddressOf());
+		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_lut_ggx.dds",        iblGGXLUT.GetAddressOf());
+		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_specular_pmrem.dds", iblSpecularPMREM.GetAddressOf());
+		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_diffuse_iem.dds",    iblDiffuseIEM.GetAddressOf());
 	}
 
 	void Graphics::Present(UINT syncInterval)

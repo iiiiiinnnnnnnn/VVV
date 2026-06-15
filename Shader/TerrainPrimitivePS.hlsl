@@ -16,6 +16,13 @@ Texture2D<float4> dirtTextureNormal : register(t23);
 Texture2D<float4> grassTexture : register(t24);
 Texture2D<float4> grassTextureNormal : register(t25);
 
+float3 UnpackNormalBC5(Texture2D<float4> tex, float2 uv)
+{
+    float2 xy = tex.Sample(linearSampler, uv).rg * 2.0f - 1.0f;
+    float z = sqrt(saturate(1.0f - dot(xy, xy)));
+    return float3(xy, z);
+}
+
 // Terrain PBR FUnction
 #define TERRAIN_PBR
 #ifdef TERRAIN_PBR
@@ -157,9 +164,9 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedo.rgb,
         finalMetalness);
 
-    float3 rockNormalTex = rockTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
-    float3 dirtNormalTex = dirtTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
-    float3 grassNormalTex = grassTextureNormal.Sample(linearSampler, tilingCoord).xyz * 2.0f - 1.0f;
+    float3 rockNormalTex = UnpackNormalBC5(rockTextureNormal, tilingCoord);
+    float3 dirtNormalTex = UnpackNormalBC5(dirtTextureNormal, tilingCoord);
+    float3 grassNormalTex = UnpackNormalBC5(grassTextureNormal, tilingCoord);
 
     float dirtBlend = smoothstep(0.0f, 0.5f, blendRate);
     float grassBlend = smoothstep(0.5f, 1.0f, blendRate);
@@ -400,6 +407,10 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     iblDiffuse *= finalAO;
     iblSpecular *= finalAO;
+
+    float ambientShadow = lerp(0.0f, 1.0f, saturate(shadowStrength));
+    iblDiffuse *= lerp(1.0f.xxx, shadow, ambientShadow);
+    iblSpecular *= lerp(1.0f.xxx, shadow, ambientShadow);
 
     float3 color =
         (totalDiffuse + totalSpecular) * shadow

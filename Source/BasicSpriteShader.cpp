@@ -17,6 +17,12 @@ BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 		device,
 		"Data/Shader/BasicSpritePS.cso",
 		pixelShader.GetAddressOf());
+
+	// 定数バッファ
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbBasic),
+		cbBasic.GetAddressOf());
 }
 
 void BasicSpriteShader::Begin(const RenderContext& rc)
@@ -31,6 +37,19 @@ void BasicSpriteShader::Begin(const RenderContext& rc)
 void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderparam)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	CbBasic cb{};
+	cb.color = GetParam<Vector4>(shaderparam, "color", Vector4(1, 1, 1, 1));
+
+	//	定数バッファを設定
+	dc->UpdateSubresource(cbBasic.Get(), 0, 0, &cb, 0, 0);
+
+	// 定数バッファ設定
+	ID3D11Buffer* cbs[] =
+	{
+		cbBasic.Get()
+	};
+	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 
 	dc->PSSetShaderResources(0, 1, &srv);
 }

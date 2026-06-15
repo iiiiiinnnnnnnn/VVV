@@ -188,12 +188,12 @@ void Terrain::InitializeGpuResources()
 	{
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_stone.png",
+			"Data/Terrain/layer_stone.dds",
 			terrainLayer_Stone.GetAddressOf());
 
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_stone_n.png",
+			"Data/Terrain/layer_stone_n.dds",
 			terrainLayer_Stone_n.GetAddressOf());
 	}
 
@@ -201,12 +201,12 @@ void Terrain::InitializeGpuResources()
 	{
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_dirt.png",
+			"Data/Terrain/layer_dirt.dds",
 			terrainLayer_Dirt.GetAddressOf());
 
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_dirt_n.png",
+			"Data/Terrain/layer_dirt_n.dds",
 			terrainLayer_Dirt_n.GetAddressOf());
 	}
 
@@ -214,12 +214,12 @@ void Terrain::InitializeGpuResources()
 	{
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_grass.png",
+			"Data/Terrain/layer_grass.dds",
 			terrainLayer_Grass.GetAddressOf());
 
 		GpuResourceUtils::LoadTexture(
 			device,
-			"Data/Terrain/layer_grass_n.png",
+			"Data/Terrain/layer_grass_n.dds",
 			terrainLayer_Grass_n.GetAddressOf());
 	}
 }
@@ -618,7 +618,7 @@ void Terrain::Render(const RenderContext& rc)
 	{
 		rc.renderState->GetSamplerState(SamplerState::PointClamp),
 		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
-		rc.renderState->GetSamplerState(SamplerState::LinearWrap),
+		rc.renderState->GetSamplerState(SamplerState::AnisotropicWrap),
 	};
 
 	dc->DSSetSamplers(0, _countof(samplerStates), samplerStates);

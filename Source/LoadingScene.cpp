@@ -14,7 +14,10 @@ LoadingScene::LoadingScene(SceneMessage message)
 
     // widget
     {
-        BG = std::make_shared<SpriteWidget>("Data/Image/loading.png");
+        ShaderParamList params;
+        params.push_back({"color", Color(1.0f, 1.0f, 1.0f, 0.5f)});
+
+        BG = std::make_shared<SpriteWidget>("Data/Image/loading.png", SpriteShaderId::Basic, params);
 		BG->rect.position = {screenWidth * 0.5f, screenHeight * 0.5f};
 		BG->rect.anchor = {0.5f, 0.5f};
         BG->rect.size = {Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight};

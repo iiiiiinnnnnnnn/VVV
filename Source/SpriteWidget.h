@@ -7,5 +7,6 @@
 class SpriteWidget : public Widget
 {
 public:
-    SpriteWidget(std::filesystem::path spritePath);
+    SpriteWidget(std::filesystem::path spritePath,
+                 SpriteShaderId shaderId = SpriteShaderId::Basic, ShaderParamList shaderParam = {});
 };
