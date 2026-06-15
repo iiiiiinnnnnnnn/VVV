@@ -40,7 +40,7 @@ void VignetteSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	CbVignette constant = {};
-	constant.color = GetParam<Vector4>(params, "color", Vector4(1, 0, 0, 1));
+	constant.color = GetParam<Color>(params, "color", Color(0, 0, 0, 1));
 	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &constant, 0, 0);
 
 	//	定数バッファを設定

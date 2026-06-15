@@ -39,7 +39,7 @@ void BasicSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	CbBasic cb{};
-	cb.color = GetParam<Vector4>(shaderparam, "color", Vector4(1, 1, 1, 1));
+	cb.color = GetParam<Color>(shaderparam, "color", Color(1, 1, 1, 1));
 
 	//	定数バッファを設定
 	dc->UpdateSubresource(cbBasic.Get(), 0, 0, &cb, 0, 0);

@@ -20,5 +20,5 @@ private:
 	Vector2 bgVelocity{};
 	bool cursorInit = false;
 
-	std::shared_ptr<SpriteWidget> BG;
+	std::shared_ptr<SpriteWidget> BG_Illust;
 };

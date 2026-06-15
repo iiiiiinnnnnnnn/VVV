@@ -90,17 +90,29 @@ Texture::Texture(const char* filename)
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 
-	// 拡張子を取得
-	std::filesystem::path filepath(filename);
-	std::string extension = filepath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
+	if (std::filesystem::exists(filename))
+	{
+		// 拡張子を取得
+		std::filesystem::path filepath(filename);
+		std::string extension = filepath.extension().string();
+		std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
 
-	// ワイド文字に変換
-	std::wstring wfilename = filepath.wstring();
+		// ワイド文字に変換
+		std::wstring wfilename = filepath.wstring();
 
-	// フォーマット毎に画像読み込み処理
-	HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		// フォーマット毎に画像読み込み処理
+		HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	}
+	else
+	{
+		// ダミーテクスチャ
+		GpuResourceUtils::CreateDummyTexture(
+			device,
+			0xFFFFFFFF,
+			shaderResourceView.GetAddressOf(),
+			&texture2dDesc);
+	}
 }
 
 Texture::Texture(const Color& color)
