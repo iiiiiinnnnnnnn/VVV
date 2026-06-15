@@ -51,7 +51,7 @@ LoadingScene::LoadingScene(SceneMessage message)
 		widgets.Register(vignette);
     }
 
-    //SceneManager::Instance().LoadSceneAsync<TestPlayScene>();
+    SceneManager::Instance().LoadSceneAsync<TestPlayScene>();
 }
 
 void LoadingScene::OnUpdate()

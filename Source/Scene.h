@@ -55,7 +55,7 @@ public:
 		return name;
 	}
 
-	SceneMessage GetMessage() const
+	SceneMessage GetSceneMessage() const
 	{
 		return message;
 	}

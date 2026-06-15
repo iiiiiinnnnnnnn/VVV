@@ -134,7 +134,7 @@ public:
         float alpha = std::clamp(timer / 0.5f, 0.0f, 1.0f);
 
         ShaderParamList params;
-        params.push_back({ "color", Vector4(1, 0, 0, alpha) });
+        params.push_back({ "color", Color(1, 0, 0, alpha) });
 
         renderer->Draw(
             SpriteShaderId::Vignette,

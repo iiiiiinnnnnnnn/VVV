@@ -18,6 +18,7 @@
 #include "HitEffect.h"
 #include "Graphics.h"
 #include "ResourceManager.h"
+#include "SpriteWidget.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message)
 	: Scene("TestPlayScene", message)
@@ -92,8 +93,12 @@ TestPlayScene::TestPlayScene(SceneMessage message)
 		actors.Register(apple);
 	}
 
-	// widget
+	// test widget
 	{
+		auto sw = std::make_shared<SpriteWidget>("Data/Image/Test.png");
+		sw->rect.size = {50.0f, 50.0f};
+		sw->rect.position = {10, 10};
+		widgets.Register(sw);
 	}
 
 	DamageVignette::Init(device);
