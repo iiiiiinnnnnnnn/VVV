@@ -27,6 +27,9 @@ void Entity::OnUpdate()
 
     if (knockBackVelocity.LengthSquared() < 0.01f)
         knockBackVelocity = Vector3::Zero;
+
+    if(transform.position.y < -50.0f)
+		TakeDamage(9999.0f, {});
 }
 
 void Entity::TakeDamage(float damage, KnockBackData knockBackData)

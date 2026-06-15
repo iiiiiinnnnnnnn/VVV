@@ -21,7 +21,7 @@ using SceneMessage = void*;
 class Scene
 {
 public:
-	Scene(const std::string& name, SceneMessage message = nullptr);
+	Scene(SceneMessage message = nullptr);
 
 	virtual ~Scene() = default;
 
@@ -50,11 +50,6 @@ public:
 		return renderSettings;
 	}
 
-	const std::string& GetName() const
-	{
-		return name;
-	}
-
 	SceneMessage GetSceneMessage() const
 	{
 		return message;
@@ -67,7 +62,6 @@ protected:
 	virtual void OnUpdate() {}
 	virtual void OnDrawGUI() {}
 
-	std::string name;
 	SceneMessage message = nullptr;
 
 	bool showDynamicAnimationEditorWindow = false;

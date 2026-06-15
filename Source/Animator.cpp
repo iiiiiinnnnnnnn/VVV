@@ -361,229 +361,456 @@ void Animator::OpenAnimEditor()
     animEditorOpen = true;
 }
 
-void Animator::UpdateLayer(AnimatorLayer& layer,
-                           std::vector<Model::NodePose>& finalPoses)
+void Animator::UpdateLayer(
+    AnimatorLayer& layer,
+    std::vector<Model::NodePose>& finalPoses)
 {
-    _ASSERT_EXPR(layer.currentStateIndex >= 0 && layer.currentStateIndex < (int)layer.states.size(), L"Invalid current state index in layer");
+    _ASSERT_EXPR(
+        layer.currentStateIndex >= 0 &&
+        layer.currentStateIndex < static_cast<int>(layer.states.size()),
+        L"Invalid current state index in layer");
 
-    State& curState = layer.states[layer.currentStateIndex];
-    const Model::Animation& curAnim = model->GetAnimations()[curState.animationIndex];
+    State& curState =
+        layer.states[layer.currentStateIndex];
+
+    const Model::Animation& curAnim =
+        model->GetAnimations()[curState.animationIndex];
 
     float prevTime = layer.currentTime;
-    float dt = unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime;
+
+    float dt = unscaledTime
+        ? Game::Time::unscaledDeltaTime
+        : Game::Time::deltaTime;
 
     // 時間更新
     layer.currentTime += dt * curState.speed;
-    EvaluateCallbacks(curState, layer.currentTime, curAnim.secondsLength);
+
+    // ループで時間を戻す前の再生率を遷移判定に使う
+    float transitionNormalizedTime =
+        curAnim.secondsLength > 0.0f
+        ? layer.currentTime / curAnim.secondsLength
+        : 0.0f;
+
+    EvaluateCallbacks(
+        curState,
+        layer.currentTime,
+        curAnim.secondsLength);
 
     bool looped = false;
+
     if (layer.currentTime > curAnim.secondsLength)
     {
-        if (curState.loop) {
+        if (curState.loop)
+        {
             layer.currentTime -= curAnim.secondsLength;
             looped = true;
         }
-        else {
-            layer.currentTime = curAnim.secondsLength;
+        else
+        {
+            layer.currentTime =
+                curAnim.secondsLength;
         }
     }
 
-    // --- 【ルートモーションの抽出】 ---
-    if (useRootMotion && rootNodeIndex != -1)
+    // ルートモーションの抽出
+    if (useRootMotion &&
+        rootNodeIndex != -1)
     {
-        Model::NodePose posePrev = SampleNodePose(curState.animationIndex, prevTime, rootNodeIndex);
-        Model::NodePose poseCur  = SampleNodePose(curState.animationIndex, layer.currentTime, rootNodeIndex);
+        Model::NodePose posePrev =
+            SampleNodePose(
+            curState.animationIndex,
+            prevTime,
+            rootNodeIndex);
+
+        Model::NodePose poseCur =
+            SampleNodePose(
+            curState.animationIndex,
+            layer.currentTime,
+            rootNodeIndex);
 
         Vector3 deltaPos;
         Quaternion deltaRot;
 
         if (!looped)
         {
-            deltaPos = poseCur.position - posePrev.position;
+            deltaPos =
+                poseCur.position -
+                posePrev.position;
+
             Quaternion invPrev;
             posePrev.rotation.Inverse(invPrev);
-            deltaRot = invPrev * poseCur.rotation;
+
+            deltaRot =
+                invPrev *
+                poseCur.rotation;
         }
         else
         {
-            Model::NodePose poseEnd   = SampleNodePose(curState.animationIndex, curAnim.secondsLength, rootNodeIndex);
-            Model::NodePose poseStart = SampleNodePose(curState.animationIndex, 0.0f, rootNodeIndex);
+            Model::NodePose poseEnd =
+                SampleNodePose(
+                curState.animationIndex,
+                curAnim.secondsLength,
+                rootNodeIndex);
 
-            deltaPos = (poseEnd.position - posePrev.position) + (poseCur.position - poseStart.position);
+            Model::NodePose poseStart =
+                SampleNodePose(
+                curState.animationIndex,
+                0.0f,
+                rootNodeIndex);
 
-            Quaternion invPrev, invStart;
+            deltaPos =
+                (poseEnd.position -
+                posePrev.position) +
+                (poseCur.position -
+                poseStart.position);
+
+            Quaternion invPrev;
+            Quaternion invStart;
+
             posePrev.rotation.Inverse(invPrev);
             poseStart.rotation.Inverse(invStart);
-            deltaRot = (invPrev * poseEnd.rotation) * (invStart * poseCur.rotation);
+
+            deltaRot =
+                (invPrev * poseEnd.rotation) *
+                (invStart * poseCur.rotation);
         }
 
-        rootMotionVec += deltaPos * layer.weight;
-        rootMotionRot = rootMotionRot * Quaternion::Lerp(Quaternion::Identity, deltaRot, layer.weight);
+        rootMotionVec +=
+            deltaPos * layer.weight;
+
+        rootMotionRot =
+            rootMotionRot *
+            Quaternion::Lerp(
+            Quaternion::Identity,
+            deltaRot,
+            layer.weight);
     }
 
-    // カレントポーズの計算
-    model->ComputeAnimation(curState.animationIndex, layer.currentTime, nodePoses);
+    // 現在ステートのポーズ
+    model->ComputeAnimation(
+        curState.animationIndex,
+        layer.currentTime,
+        nodePoses);
 
-    // トランジション中はブレンド
+    // トランジション中
     if (layer.isTransitioning)
     {
-        State& nxtState = layer.states[layer.nextStateIndex];
-        const Model::Animation& nxtAnim = model->GetAnimations()[nxtState.animationIndex];
+        State& nextState =
+            layer.states[layer.nextStateIndex];
 
-        layer.nextTime += dt * nxtState.speed;
-        if (layer.nextTime > nxtAnim.secondsLength)
+        const Model::Animation& nextAnim =
+            model->GetAnimations()[
+                nextState.animationIndex];
+
+        layer.nextTime +=
+            dt * nextState.speed;
+
+        if (layer.nextTime >
+            nextAnim.secondsLength)
         {
-            if (nxtState.loop) layer.nextTime -= nxtAnim.secondsLength;
-            else               layer.nextTime = nxtAnim.secondsLength;
+            if (nextState.loop)
+            {
+                layer.nextTime -=
+                    nextAnim.secondsLength;
+            }
+            else
+            {
+                layer.nextTime =
+                    nextAnim.secondsLength;
+            }
         }
 
-        EvaluateCallbacks(nxtState, layer.nextTime, nxtAnim.secondsLength);
+        EvaluateCallbacks(
+            nextState,
+            layer.nextTime,
+            nextAnim.secondsLength);
 
-        model->ComputeAnimation(nxtState.animationIndex, layer.nextTime, nextNodePoses);
+        model->ComputeAnimation(
+            nextState.animationIndex,
+            layer.nextTime,
+            nextNodePoses);
 
         layer.blendTime += dt;
-        float w = layer.blendDuration > 0.0f ? layer.blendTime / layer.blendDuration : 1.0f;
-        if (w > 1.0f) w = 1.0f;
 
-        for (size_t i = 0; i < nodePoses.size(); ++i)
-            nodePoses[i] = nodePoses[i].Lerp(nextNodePoses[i], w);
+        float weight =
+            layer.blendDuration > 0.0f
+            ? layer.blendTime /
+            layer.blendDuration
+            : 1.0f;
 
-        if (w >= 1.0f)
+        if (weight > 1.0f)
         {
-            // curState の残存コールバックを強制 onExit
-            for (auto& cb : curState.callbacks)
+            weight = 1.0f;
+        }
+
+        for (size_t i = 0;
+            i < nodePoses.size();
+            ++i)
+        {
+            nodePoses[i] =
+                nodePoses[i].Lerp(
+                nextNodePoses[i],
+                weight);
+        }
+
+        if (weight >= 1.0f)
+        {
+            for (auto& callback :
+                curState.callbacks)
             {
-                if (cb.entering)
+                if (!callback.entering)
+                    continue;
+
+                if (callback.onExit)
                 {
-                    if (cb.onExit) cb.onExit(curState);
-                    cb.entering = false;
+                    callback.onExit(curState);
                 }
+
+                callback.entering = false;
             }
-            layer.currentStateIndex = layer.nextStateIndex;
-            layer.currentTime       = layer.nextTime;
-            layer.nextStateIndex    = -1;
-            layer.isTransitioning   = false;
-            layer.blendTime         = 0.0f;
+
+            layer.currentStateIndex =
+                layer.nextStateIndex;
+
+            layer.currentTime =
+                layer.nextTime;
+
+            layer.nextStateIndex = -1;
+            layer.isTransitioning = false;
+            layer.blendTime = 0.0f;
         }
         else
         {
-            // 割り込みチェック
-            for (const Transition& tr : curState.transitions)
+            // トランジション中の割り込み
+            for (const Transition& transition :
+                curState.transitions)
             {
-                if (!tr.canInterrupt) continue;
-                if (tr.toStateIndex == layer.nextStateIndex) continue;
-                if (EvaluateTransition(tr))
+                if (!transition.canInterrupt)
+                    continue;
+
+                if (transition.toStateIndex ==
+                    layer.nextStateIndex)
                 {
-                    // 差し替え前に古い nextState の entering をリセット
-                    for (auto& cb : layer.states[layer.nextStateIndex].callbacks)
-                        cb.entering = false;
-
-                    layer.nextStateIndex = tr.toStateIndex;
-                    layer.nextTime       = 0.0f;
-                    layer.blendTime      = 0.0f;
-                    layer.blendDuration  = tr.transitionDuration;
-
-                    // 新しい nextState の entering をリセット
-                    for (auto& cb : layer.states[layer.nextStateIndex].callbacks)
-                        cb.entering = false;
-                    break;
+                    continue;
                 }
+
+                if (transition.hasExitTime &&
+                    transitionNormalizedTime <
+                    transition.exitTime)
+                {
+                    continue;
+                }
+
+                if (!EvaluateTransition(
+                    transition,
+                    transitionNormalizedTime))
+                {
+                    continue;
+                }
+
+                for (auto& callback :
+                    layer.states[
+                        layer.nextStateIndex]
+                    .callbacks)
+                {
+                    callback.entering = false;
+                }
+
+                layer.nextStateIndex =
+                    transition.toStateIndex;
+
+                layer.nextTime = 0.0f;
+                layer.blendTime = 0.0f;
+
+                layer.blendDuration =
+                    transition.transitionDuration;
+
+                for (auto& callback :
+                    layer.states[
+                        layer.nextStateIndex]
+                    .callbacks)
+                {
+                    callback.entering = false;
+                }
+
+                break;
             }
         }
     }
     else
     {
-        float normalizedTime = curAnim.secondsLength > 0.0f
-            ? layer.currentTime / curAnim.secondsLength : 0.0f;
-
-        // AnyState トランジション（優先評価）
+        // AnyStateトランジション
         if (!curState.blockAnyStateTransitions)
         {
-            for (const Transition& tr : layer.anyStateTransitions)
+            for (const Transition& transition :
+                layer.anyStateTransitions)
             {
-                if (tr.toStateIndex == layer.currentStateIndex) continue;
-                if (std::find(tr.excludedFromStateIndices.begin(),
-                    tr.excludedFromStateIndices.end(),
-                    layer.currentStateIndex) != tr.excludedFromStateIndices.end())
-                    continue;
-                if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
-                if (EvaluateTransition(tr, normalizedTime))
+                if (transition.toStateIndex ==
+                    layer.currentStateIndex)
                 {
-                    // nextState の entering をリセット
-                    for (auto& cb : layer.states[tr.toStateIndex].callbacks)
-                        cb.entering = false;
-
-                    layer.nextStateIndex  = tr.toStateIndex;
-                    layer.nextTime        = 0.0f;
-                    layer.blendTime       = 0.0f;
-                    layer.blendDuration   = tr.transitionDuration;
-                    layer.isTransitioning = tr.transitionDuration > 0.0f;
-
-                    if (!layer.isTransitioning)
-                    {
-                        layer.currentStateIndex = layer.nextStateIndex;
-                        layer.currentTime       = 0.0f;
-                        layer.nextStateIndex    = -1;
-                    }
-                    break;
+                    continue;
                 }
+
+                if (std::find(
+                    transition
+                    .excludedFromStateIndices
+                    .begin(),
+                    transition
+                    .excludedFromStateIndices
+                    .end(),
+                    layer.currentStateIndex) !=
+                    transition
+                    .excludedFromStateIndices
+                    .end())
+                {
+                    continue;
+                }
+
+                if (transition.hasExitTime &&
+                    transitionNormalizedTime <
+                    transition.exitTime)
+                {
+                    continue;
+                }
+
+                if (!EvaluateTransition(
+                    transition,
+                    transitionNormalizedTime))
+                {
+                    continue;
+                }
+
+                for (auto& callback :
+                    layer.states[
+                        transition.toStateIndex]
+                    .callbacks)
+                {
+                    callback.entering = false;
+                }
+
+                layer.nextStateIndex =
+                    transition.toStateIndex;
+
+                layer.nextTime = 0.0f;
+                layer.blendTime = 0.0f;
+
+                layer.blendDuration =
+                    transition.transitionDuration;
+
+                layer.isTransitioning =
+                    transition.transitionDuration >
+                    0.0f;
+
+                if (!layer.isTransitioning)
+                {
+                    layer.currentStateIndex =
+                        layer.nextStateIndex;
+
+                    layer.currentTime = 0.0f;
+                    layer.nextStateIndex = -1;
+                }
+
+                break;
             }
         }
 
         // 通常トランジション
-        if (!layer.isTransitioning && layer.nextStateIndex < 0)
+        if (!layer.isTransitioning &&
+            layer.nextStateIndex < 0)
         {
-            for (const Transition& tr : curState.transitions)
+            for (const Transition& transition :
+                curState.transitions)
             {
-                if (tr.hasExitTime && normalizedTime < tr.exitTime) continue;
-                if (EvaluateTransition(tr, normalizedTime))
+                if (transition.hasExitTime &&
+                    transitionNormalizedTime <
+                    transition.exitTime)
                 {
-                    // nextState の entering をリセット
-                    for (auto& cb : layer.states[tr.toStateIndex].callbacks)
-                        cb.entering = false;
-
-                    layer.nextStateIndex  = tr.toStateIndex;
-                    layer.nextTime        = 0.0f;
-                    layer.blendTime       = 0.0f;
-                    layer.blendDuration   = tr.transitionDuration;
-                    layer.isTransitioning = tr.transitionDuration > 0.0f;
-
-                    if (!layer.isTransitioning)
-                    {
-                        layer.currentStateIndex = layer.nextStateIndex;
-                        layer.currentTime       = 0.0f;
-                        layer.nextStateIndex    = -1;
-                    }
-                    break;
+                    continue;
                 }
+
+                if (!EvaluateTransition(
+                    transition,
+                    transitionNormalizedTime))
+                {
+                    continue;
+                }
+
+                for (auto& callback :
+                    layer.states[
+                        transition.toStateIndex]
+                    .callbacks)
+                {
+                    callback.entering = false;
+                }
+
+                layer.nextStateIndex =
+                    transition.toStateIndex;
+
+                layer.nextTime = 0.0f;
+                layer.blendTime = 0.0f;
+
+                layer.blendDuration =
+                    transition.transitionDuration;
+
+                layer.isTransitioning =
+                    transition.transitionDuration >
+                    0.0f;
+
+                if (!layer.isTransitioning)
+                {
+                    layer.currentStateIndex =
+                        layer.nextStateIndex;
+
+                    layer.currentTime = 0.0f;
+                    layer.nextStateIndex = -1;
+                }
+
+                break;
             }
         }
     }
 
-    // マスクに従って finalPoses に書き込む
-    for (int ni = 0; ni < (int)nodePoses.size(); ++ni)
+    // 最終ポーズへ適用
+    for (int nodeIndex = 0;
+        nodeIndex <
+        static_cast<int>(nodePoses.size());
+        ++nodeIndex)
     {
-        if (!layer.mask.Contains(ni)) continue;
+        if (!layer.mask.Contains(nodeIndex))
+            continue;
 
-        if (useRootMotion && ni == rootNodeIndex)
+        if (useRootMotion &&
+            nodeIndex == rootNodeIndex)
         {
-            finalPoses[ni].position = Vector3::Zero;
-            finalPoses[ni].rotation = Quaternion::Identity;
+            finalPoses[nodeIndex].position =
+                Vector3::Zero;
+
+            finalPoses[nodeIndex].rotation =
+                Quaternion::Identity;
+
             continue;
         }
 
-        if (layer.blendMode == BlendMode::Override)
+        if (layer.blendMode ==
+            BlendMode::Override)
         {
-            finalPoses[ni] = finalPoses[ni].Lerp(nodePoses[ni], layer.weight);
+            finalPoses[nodeIndex] =
+                finalPoses[nodeIndex].Lerp(
+                nodePoses[nodeIndex],
+                layer.weight);
         }
         else
         {
-            finalPoses[ni].position += nodePoses[ni].position * layer.weight;
-            finalPoses[ni].rotation = finalPoses[ni].rotation * nodePoses[ni].rotation;
+            finalPoses[nodeIndex].position +=
+                nodePoses[nodeIndex].position *
+                layer.weight;
+
+            finalPoses[nodeIndex].rotation =
+                finalPoses[nodeIndex].rotation *
+                nodePoses[nodeIndex].rotation;
         }
     }
 }
-
 
 void Animator::UpdateDynamicLayer(AnimatorLayer& layer)
 {
@@ -1294,24 +1521,43 @@ bool Animator::EvaluateCondition(const Condition& c) const
     return false;
 }
 
-bool Animator::EvaluateTransition(const Transition& t) const
+bool Animator::EvaluateTransition(
+    const Transition& t) const
 {
     return EvaluateTransition(t, 0.0f);
 }
 
-bool Animator::EvaluateTransition(const Transition& t, float normalizedTime) const
+bool Animator::EvaluateTransition(
+    const Transition& t,
+    float normalizedTime) const
 {
     if (!t.isAny)
     {
-        float progress = std::clamp(normalizedTime, 0.0f, 1.0f);
-        if (progress < t.sourceProgressMin) return false;
-        if (t.sourceProgressMax < 1.0f && progress > t.sourceProgressMax) return false;
+        float progress = std::clamp(
+            normalizedTime,
+            0.0f,
+            1.0f);
+
+        if (progress < t.sourceProgressMin)
+        {
+            return false;
+        }
+
+        if (t.sourceProgressMax < 1.0f &&
+            progress > t.sourceProgressMax)
+        {
+            return false;
+        }
     }
 
-    // 条件が空の場合: hasExitTime トランジションなら条件なしで通過
-    if (t.conditions.empty()) return t.hasExitTime;
-    for (const Condition& c : t.conditions)
-        if (!EvaluateCondition(c)) return false;
+    for (const Condition& condition : t.conditions)
+    {
+        if (!EvaluateCondition(condition))
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 

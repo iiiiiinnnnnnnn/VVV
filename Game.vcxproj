@@ -159,8 +159,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="Data\Animator\Player.animator" />
-    <None Include="Data\Config\PostEffect\Default.json" />
     <None Include="imgui.ini" />
     <None Include="README.md" />
     <None Include="Shader\GaussianFiltering.hlsli" />
@@ -285,7 +283,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Data\Animator\Player.animator.txt" />
     <Text Include="ザ・メモ.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

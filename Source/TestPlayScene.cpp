@@ -20,8 +20,7 @@
 #include "Graphics.h"
 #include "SpriteWidget.h"
 
-TestPlayScene::TestPlayScene(SceneMessage message)
-	: Scene("TestPlayScene", message)
+TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
 	ID3D11Device* device =
 		Game::Graphics::Instance().GetDevice();

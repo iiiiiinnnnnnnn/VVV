@@ -4,8 +4,7 @@
 #include "GameTime.h"
 #include "SceneManager.h"
 
-LoadingScene::LoadingScene(SceneMessage message)
-	: Scene("LoadingScene", message)
+LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 {
 	float& screenWidth = Game::Graphics::ScreenWidth;
 	float& screenHeight = Game::Graphics::ScreenHeight;

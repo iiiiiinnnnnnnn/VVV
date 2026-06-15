@@ -1,7 +1,6 @@
 // Stage01.cpp
 
 #include "Stage01.h"
-#include "ResourceManager.h"
 
 Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
 {

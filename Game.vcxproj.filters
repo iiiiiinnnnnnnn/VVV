@@ -91,12 +91,6 @@
     <Filter Include="ソースファイル\ゲーム\プレイヤーコントローラー">
       <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="データ">
-      <UniqueIdentifier>{e955192f-b92c-4453-b534-ee80f6884346}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="データ\アニメーター">
-      <UniqueIdentifier>{86638134-a164-4c79-9d6f-06b399dc4842}</UniqueIdentifier>
-    </Filter>
     <Filter Include="シェーダー\ゲーム">
       <UniqueIdentifier>{b6729ec8-2454-468e-afa2-59cd699e36fd}</UniqueIdentifier>
     </Filter>
@@ -117,12 +111,6 @@
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\アプリ\入力">
       <UniqueIdentifier>{de4e9ff2-75ac-4a10-9d16-751ed615f21b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="データ\設定ファイル">
-      <UniqueIdentifier>{4f52ed13-8b86-41ea-a9af-ac4880db709c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="データ\設定ファイル\ポストエフェクト">
-      <UniqueIdentifier>{b05418b5-73e6-40f4-8e3f-e12142a533cf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -586,9 +574,6 @@
     <None Include="Shader\ShadingFunctions.hlsli">
       <Filter>シェーダー\システム</Filter>
     </None>
-    <None Include="Data\Animator\Player.animator">
-      <Filter>データ\アニメーター</Filter>
-    </None>
     <None Include="Shader\PBR.hlsli">
       <Filter>シェーダー\ゲーム</Filter>
     </None>
@@ -603,9 +588,6 @@
     </None>
     <None Include="Shader\TrailRenderer.hlsli">
       <Filter>シェーダー\システム</Filter>
-    </None>
-    <None Include="Data\Config\PostEffect\Default.json">
-      <Filter>データ\設定ファイル\ポストエフェクト</Filter>
     </None>
     <None Include="Shader\TerrainPrimitive.hlsli">
       <Filter>シェーダー\システム</Filter>
@@ -690,8 +672,5 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />
-    <Text Include="Data\Animator\Player.animator.txt">
-      <Filter>データ\アニメーター</Filter>
-    </Text>
   </ItemGroup>
 </Project>

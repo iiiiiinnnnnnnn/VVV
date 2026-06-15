@@ -368,7 +368,7 @@ FodyWeavers.xsd
 # ImGui 
 
 # imgui config file
-/imgui.ini
+imgui.ini
 
 # cereal
 *.cereal
@@ -380,4 +380,3 @@ FodyWeavers.xsd
 
 # lib file
 *.lib
-*.ini

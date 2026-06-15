@@ -5,8 +5,7 @@
 #include "Player.h"
 #include "Terrain.h"
 
-Scene::Scene(const std::string& name, SceneMessage message)
-	: name(name), message(message)
+Scene::Scene(SceneMessage message) : message(message)
 {
 	// ライト設定
 	DirectionalLight directionalLight;
@@ -202,7 +201,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::End();
 		}
 
-		ImGui::Begin(name.empty() ? "Unnamed Scene" : name.c_str(), nullptr, ImGuiWindowFlags_None);
+		ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None);
 
 		// パフォーマンス
 		if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
