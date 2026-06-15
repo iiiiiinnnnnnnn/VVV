@@ -380,3 +380,4 @@ FodyWeavers.xsd
 
 # lib file
 *.lib
+*.ini
