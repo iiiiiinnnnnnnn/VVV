@@ -18,6 +18,7 @@ public:
     static bool Save(const Animator& anim, const std::string& path)
     {
         json root;
+        root["animationMode"] = anim.IsDynamicMode() ? "Dynamic" : "Model";
 
         // Parameters
         json jParams = json::array();
@@ -75,6 +76,7 @@ public:
                 json jState;
                 jState["name"]           = state.name;
                 jState["animationIndex"] = state.animationIndex;
+                jState["dynamicClipPath"] = state.dynamicClipPath;
                 jState["speed"]          = state.speed;
                 jState["loop"]           = state.loop;
                 jState["blockAnyStateTransitions"] = state.blockAnyStateTransitions;
@@ -191,6 +193,14 @@ public:
         try { root = json::parse(ifs); }
         catch (...) { _ASSERT_EXPR(false, "Failed to parse animator: " + path); }
 
+        const std::string expectedMode = anim.IsDynamicMode() ? "Dynamic" : "Model";
+        const std::string fileMode = root.value("animationMode", expectedMode);
+        if (fileMode != expectedMode)
+        {
+            _ASSERT_EXPR(false, L"Animator mode does not match the loaded file.");
+            return;
+        }
+
         anim.ClearAll();
 
         // Parameters
@@ -211,7 +221,7 @@ public:
         for (const auto& jLayer : root["layers"])
         {
             Animator::AvatarMask mask;
-            mask.nodes = jLayer["mask"].get<std::vector<int>>();
+            mask.nodes = jLayer.value("mask", std::vector<int>{});
 
             int li = anim.AddLayer(
                 jLayer["name"].get<std::string>(),
@@ -225,12 +235,25 @@ public:
             // States
             for (const auto& jState : jLayer["states"])
             {
-                int si = anim.AddState(
-                    li,
-                    jState["name"].get<std::string>(),
-                    jState["animationIndex"].get<int>(),
-                    jState["loop"].get<bool>(),
-                    jState["speed"].get<float>());
+                int si = -1;
+                if (anim.IsDynamicMode())
+                {
+                    si = anim.AddDynamicState(
+                        li,
+                        jState["name"].get<std::string>(),
+                        jState.value("dynamicClipPath", std::string()),
+                        jState["loop"].get<bool>(),
+                        jState["speed"].get<float>());
+                }
+                else
+                {
+                    si = anim.AddState(
+                        li,
+                        jState["name"].get<std::string>(),
+                        jState.value("animationIndex", -1),
+                        jState["loop"].get<bool>(),
+                        jState["speed"].get<float>());
+                }
                 anim.GetLayer(li).states[si].blockAnyStateTransitions =
                     jState.value("blockAnyStateTransitions", false);
                 anim.GetLayer(li).states[si].hasEditorPosition =

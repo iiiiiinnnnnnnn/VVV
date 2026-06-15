@@ -306,7 +306,6 @@
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SpriteWidget.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
     </ClCompile>
@@ -315,6 +314,9 @@
     </ClCompile>
     <ClCompile Include="Source\DynamicAnimation.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SceneManager.cpp">
+      <Filter>ソースファイル\システム%28基底%29\シーン</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

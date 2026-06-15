@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "Model.h"
 #include "Component.h"
+#include "DynamicAnimation.h"
 
 #define ANIM(name) model->GetAnimationIndex(name)
 
@@ -12,7 +13,14 @@ class AnimEditorWindow;
 class Animator : public Component
 {
 public:
+    enum class AnimationMode
+    {
+        Model,
+        Dynamic
+    };
+
     Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime = false);
+    Animator(Object* owner, bool unscaledTime = true);
     void Update() override;
     void DrawGUI() override;
     void _print() const; // デバッグ用
@@ -73,6 +81,7 @@ public:
 
         std::string             name;
         int                     animationIndex = -1;
+        std::string             dynamicClipPath;
         float                   speed = 1.0f;
         bool                    loop = true;
         // true の場合、このステート滞在中は AnyState 遷移を評価しない
@@ -150,6 +159,14 @@ public:
 
     // モデルへのアクセス (進捗バー描画用)
     std::shared_ptr<Model> GetModel() const { return model; }
+    AnimationMode GetAnimationMode() const { return animationMode; }
+    bool IsDynamicMode() const { return animationMode == AnimationMode::Dynamic; }
+
+    float GetStateLength(const State& state) const;
+    std::string GetStateAnimationName(const State& state) const;
+    bool SetDynamicClipPath(int layerIndex, int stateIndex, const std::string& path);
+    void ReloadDynamicClips();
+    const std::string& GetDynamicAnimationError() const { return dynamicAnimationError; }
 
     // =========================================================
     // レイヤー操作
@@ -172,6 +189,10 @@ public:
     // =========================================================
     int  AddState(int layerIndex, const std::string& name,
                   int animationIndex, bool loop = true, float speed = 1.0f);
+
+    int  AddDynamicState(int layerIndex, const std::string& name,
+                         const std::string& clipPath = "",
+                         bool loop = true, float speed = 1.0f);
 
     int  AddTransition(int layerIndex, int fromState, int toState,
                        float transitionDuration = 0.1f,
@@ -245,6 +266,7 @@ public:
         triggers.clear();
         nodePoses.clear();
         nextNodePoses.clear();
+        dynamicClipCache.clear();
     }
 
     // ルートモーションを有効化し、対象のノード名を設定する
@@ -268,9 +290,26 @@ private:
     void EvaluateCallbacks(State& state, float currentTime, float animLength);
     void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer, std::vector<Model::NodePose>& finalPoses);
+    void UpdateDynamicLayer(AnimatorLayer& layer);
+    void ApplyDynamicState(const State& state, float time);
+    void ApplyDynamicTransition(const State& currentState, float currentTime,
+                                const State& nextState, float nextTime, float blendWeight);
+    void ApplyDynamicTrack(const DynamicAnimationTrack& track, const ::ParamValue& value);
+    std::shared_ptr<DynamicAnimationClip> GetDynamicClip(const std::string& path) const;
+    void ReloadActiveDynamicClipsIfChanged();
+    bool ReloadDynamicClipIfChanged(const std::string& path);
+    const DynamicAnimationTrack* FindMatchingTrack(
+        const DynamicAnimationClip& clip,
+        const DynamicAnimationTrack& sourceTrack) const;
 
+    AnimationMode animationMode = AnimationMode::Model;
     std::shared_ptr<Model> model;
     bool unscaledTime = false;
+    mutable std::unordered_map<std::string, std::shared_ptr<DynamicAnimationClip>> dynamicClipCache;
+    mutable std::unordered_map<std::string, long long> dynamicClipWriteStamps;
+    mutable std::string dynamicAnimationError;
+    float dynamicClipWatchTimer = 0.0f;
+    static constexpr float DynamicClipWatchInterval = 0.25f;
 
     // レイヤーリスト（追加順に評価）
     std::vector<AnimatorLayer> layers;

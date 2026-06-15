@@ -345,6 +345,23 @@ bool IsDynamicValueInterpolatable(DynamicValueType type)
 		type == DynamicValueType::Vector4;
 }
 
+ParamValue BlendDynamicAnimationValue(
+	const ParamValue& from,
+	const ParamValue& to,
+	float t)
+{
+	t = std::clamp(t, 0.0f, 1.0f);
+
+	if (from.index() != to.index())
+		return t < 0.5f ? from : to;
+
+	const DynamicValueType type = GetDynamicValueType(from);
+	if (!IsDynamicValueInterpolatable(type))
+		return t < 0.5f ? from : to;
+
+	return InterpolateValue(from, to, t);
+}
+
 ParamValue EvaluateDynamicAnimationTrack(
 	const DynamicAnimationTrack& track,
 	float time)

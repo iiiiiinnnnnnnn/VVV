@@ -5,7 +5,39 @@
         {
             "keys": [
                 {
-                    "interpolation": "Linear",
+                    "interpolation": "EaseIn",
+                    "time": 0.0,
+                    "value": [
+                        100.0,
+                        100.0
+                    ]
+                },
+                {
+                    "interpolation": "EaseOut",
+                    "time": 0.5,
+                    "value": [
+                        100.0,
+                        80.0
+                    ]
+                },
+                {
+                    "interpolation": "EaseIn",
+                    "time": 1.0,
+                    "value": [
+                        100.0,
+                        100.0
+                    ]
+                }
+            ],
+            "shaderParamName": "color",
+            "target": "WidgetProperty",
+            "valueType": "Vector2",
+            "widgetProperty": "Size"
+        },
+        {
+            "keys": [
+                {
+                    "interpolation": "EaseIn",
                     "time": 0.0,
                     "value": [
                         0.0,
@@ -13,10 +45,18 @@
                     ]
                 },
                 {
-                    "interpolation": "Linear",
-                    "time": 0.10000000149011612,
+                    "interpolation": "EaseOut",
+                    "time": 0.5,
                     "value": [
-                        50.0,
+                        0.0,
+                        40.0
+                    ]
+                },
+                {
+                    "interpolation": "EaseIn",
+                    "time": 1.0,
+                    "value": [
+                        0.0,
                         0.0
                     ]
                 }

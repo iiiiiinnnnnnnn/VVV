@@ -7,6 +7,7 @@
 #include "Apple.h"
 #include "Stage00.h"
 #include "Stage01.h"
+#include "SceneManager.h"
 
 // camera
 #include "FreeCameraController.h"
@@ -19,6 +20,7 @@
 #include "Graphics.h"
 #include "ResourceManager.h"
 #include "SpriteWidget.h"
+#include "LoadingScene.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message)
 	: Scene("TestPlayScene", message)
@@ -98,6 +100,7 @@ TestPlayScene::TestPlayScene(SceneMessage message)
 		auto sw = std::make_shared<SpriteWidget>("Data/Image/Test.png");
 		sw->rect.size = {50.0f, 50.0f};
 		sw->rect.position = {10, 10};
+		sw->AddComponent<Animator>()->Load("Data/Animator/Test2D.animator");
 		widgets.Register(sw);
 	}
 
@@ -116,4 +119,5 @@ void TestPlayScene::OnUpdate()
 
 void TestPlayScene::OnDrawGUI()
 {
+
 }

@@ -11,89 +11,6 @@
 #include "Input.h"
 #include "Misc.h"
 
-namespace
-{
-	std::vector<uint8_t> LoadBinaryFile(const char* filename)
-	{
-		std::ifstream file(filename, std::ios::binary | std::ios::ate);
-		_ASSERT_EXPR_A(file.is_open(), filename);
-
-		std::streamsize size = file.tellg();
-		file.seekg(0, std::ios::beg);
-
-		std::vector<uint8_t> buffer(static_cast<size_t>(size));
-		file.read(reinterpret_cast<char*>(buffer.data()), size);
-
-		return buffer;
-	}
-
-	void LoadHullShader(ID3D11Device* device, const char* filename, ID3D11HullShader** shader)
-	{
-		std::vector<uint8_t> data = LoadBinaryFile(filename);
-
-		HRESULT hr = device->CreateHullShader(
-			data.data(),
-			data.size(),
-			nullptr,
-			shader);
-
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-	}
-
-	void LoadDomainShader(ID3D11Device* device, const char* filename, ID3D11DomainShader** shader)
-	{
-		std::vector<uint8_t> data = LoadBinaryFile(filename);
-
-		HRESULT hr = device->CreateDomainShader(
-			data.data(),
-			data.size(),
-			nullptr,
-			shader);
-
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-	}
-
-	HRESULT LoadImageFile(
-		const std::filesystem::path& filepath,
-		DirectX::TexMetadata& metadata,
-		DirectX::ScratchImage& image)
-	{
-		const std::wstring extension = ToLowerWString(filepath.extension().wstring());
-		const std::wstring filename = filepath.wstring();
-
-		if (extension == L".dds")
-		{
-			return DirectX::LoadFromDDSFile(
-				filename.c_str(),
-				DirectX::DDS_FLAGS_NONE,
-				&metadata,
-				image);
-		}
-
-		if (extension == L".tga")
-		{
-			return DirectX::LoadFromTGAFile(
-				filename.c_str(),
-				&metadata,
-				image);
-		}
-
-		if (extension == L".hdr")
-		{
-			return DirectX::LoadFromHDRFile(
-				filename.c_str(),
-				&metadata,
-				image);
-		}
-
-		return DirectX::LoadFromWICFile(
-			filename.c_str(),
-			DirectX::WIC_FLAGS_NONE,
-			&metadata,
-			image);
-	}
-}
-
 Terrain::Terrain(Object* owner)
 	: Component(owner)
 {
@@ -169,12 +86,12 @@ void Terrain::InitializeGpuResources()
 		terrainInputLayout.GetAddressOf(),
 		terrainVertexShader.GetAddressOf());
 
-	LoadHullShader(
+	GpuResourceUtils::LoadHullShader(
 		device,
 		"Data/Shader/TerrainPrimitiveHS.cso",
 		terrainHullShader.GetAddressOf());
 
-	LoadDomainShader(
+	GpuResourceUtils::LoadDomainShader(
 		device,
 		"Data/Shader/TerrainPrimitiveDS.cso",
 		terrainDomainShader.GetAddressOf());
@@ -953,7 +870,7 @@ bool Terrain::AddBrushTexture(const std::string& filename)
 	DirectX::TexMetadata sourceMetadata{};
 	DirectX::ScratchImage sourceImage;
 
-	HRESULT hr = LoadImageFile(filepath, sourceMetadata, sourceImage);
+	HRESULT hr = GpuResourceUtils::LoadImageFile(filepath, sourceMetadata, sourceImage);
 	if (FAILED(hr))
 	{
 		terrainIoMessage = "Brush image load failed: " + normalizedPath;
@@ -1226,7 +1143,7 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 	DirectX::TexMetadata sourceMetadata{};
 	DirectX::ScratchImage sourceImage;
 
-	HRESULT hr = LoadImageFile(filepath, sourceMetadata, sourceImage);
+	HRESULT hr = GpuResourceUtils::LoadImageFile(filepath, sourceMetadata, sourceImage);
 	if (FAILED(hr))
 	{
 		terrainIoMessage = "Terrain load failed: image load error.";

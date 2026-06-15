@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include <d3d11.h>
-#include <cstdint>
+#include "Common.h"
+#include "DirectXTex.h"
 
 // GPUリソースユーティリティ
 class GpuResourceUtils
@@ -50,4 +50,25 @@ public:
 		UINT bufferSize,
 		ID3D11Buffer** constantBuffer);
 
+	// バイナリファイル読み込み
+	static std::vector<uint8_t> LoadBinaryFile(
+		const char* filename);
+
+	//ハル シェーダー読み込み
+	static void LoadHullShader(
+		ID3D11Device* device,
+		const char* filename,
+		ID3D11HullShader** shader);
+
+	// ドメインシェーダー読み込み
+	static void LoadDomainShader(
+		ID3D11Device* device,
+		const char* filename,
+		ID3D11DomainShader** shader);
+
+	// 画像ファイル読み込み
+	static HRESULT LoadImageFile(
+		const std::filesystem::path& filepath,
+		DirectX::TexMetadata& metadata,
+		DirectX::ScratchImage& image);
 };

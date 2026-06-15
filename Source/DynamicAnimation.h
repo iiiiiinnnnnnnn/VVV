@@ -99,3 +99,8 @@ bool IsDynamicValueInterpolatable(DynamicValueType type);
 ParamValue EvaluateDynamicAnimationTrack(
 	const DynamicAnimationTrack& track,
 	float time);
+
+ParamValue BlendDynamicAnimationValue(
+	const ParamValue& from,
+	const ParamValue& to,
+	float t);
