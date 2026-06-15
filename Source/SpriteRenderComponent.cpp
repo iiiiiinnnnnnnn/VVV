@@ -30,7 +30,7 @@ void SpriteRenderComponent::Render(const RenderContext& rc)
 			widget->rect.size,
 			{ 0.0f, 0.0f },
 			{ (float)texture->GetWidth(), (float)texture->GetHeight() },
-			0.0f,
+			widget->rect.angle,
 			shaderParam);
 	}
 }
@@ -61,4 +61,43 @@ void SpriteRenderComponent::DrawGUI()
 
 		ImGui::TreePop();
 	}
+}
+
+ShaderParam* SpriteRenderComponent::FindShaderParam(const std::string& name)
+{
+	for (ShaderParam& param : shaderParam)
+	{
+		if (param.name == name)
+		{
+			return &param;
+		}
+	}
+
+	return nullptr;
+}
+
+const ShaderParam* SpriteRenderComponent::FindShaderParam(const std::string& name) const
+{
+	for (const ShaderParam& param : shaderParam)
+	{
+		if (param.name == name)
+		{
+			return &param;
+		}
+	}
+
+	return nullptr;
+}
+
+void SpriteRenderComponent::SetShaderParam(
+	const std::string& name,
+	const ParamValue& value)
+{
+	if (ShaderParam* param = FindShaderParam(name))
+	{
+		param->value = value;
+		return;
+	}
+
+	shaderParam.push_back({ name, value });
 }

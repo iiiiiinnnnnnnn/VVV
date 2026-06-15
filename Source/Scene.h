@@ -12,6 +12,7 @@
 #include "RenderContext.h"
 #include "PhysicsManager.h"
 #include "PostEffect.h"
+#include "DynamicAnimationEditorWindow.h"
 
 // Sceneへ渡す任意のデータ。
 // 使用するScene側で必要な型へキャストして使う。
@@ -68,6 +69,9 @@ protected:
 
 	std::string name;
 	SceneMessage message = nullptr;
+
+	bool showDynamicAnimationEditorWindow = false;
+	DynamicAnimationEditorWindow dynamicAnimationEditorWindow;
 
 	Camera camera;
 	std::vector<std::unique_ptr<CameraController>> cameraControllers;

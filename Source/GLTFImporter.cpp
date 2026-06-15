@@ -539,8 +539,8 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 			const tinygltf::BufferView& gltfOutputBufferView = gltfModel.bufferViews.at(gltfOutputAccessor.bufferView);
 
 			const float* gltfKeyframeTimes = reinterpret_cast<const float*>(gltfModel.buffers.at(gltfInputBufferView.buffer).data.data() + gltfInputBufferView.byteOffset + gltfInputAccessor.byteOffset);
-			minTime = (std::min)(minTime, gltfKeyframeTimes[0]);
-			maxTime = (std::max)(animation.secondsLength, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
+			minTime = min(minTime, gltfKeyframeTimes[0]);
+			maxTime = max(animation.secondsLength, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
 
 			if (gltfAnimationChannel.target_path == "scale")
 			{

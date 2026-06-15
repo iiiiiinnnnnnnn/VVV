@@ -273,9 +273,20 @@ void Scene::DrawGUI(RenderContext& rc)
 			postEffect.DrawGUI();
 		}
 
+		// Editor
+		if (ImGui::CollapsingHeader("Editor"))
+		{
+			if (ImGui::Button("Dynamic Animation Editor"))
+			{
+				showDynamicAnimationEditorWindow = true;
+			}
+		}
+
 		OnDrawGUI();
 
 		ImGui::End();
+
+		dynamicAnimationEditorWindow.Draw(&showDynamicAnimationEditorWindow);
 	}
 	#endif
 }

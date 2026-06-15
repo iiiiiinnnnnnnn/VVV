@@ -1,0 +1,30 @@
+{
+    "length": 1.0,
+    "name": "Test",
+    "tracks": [
+        {
+            "keys": [
+                {
+                    "interpolation": "Linear",
+                    "time": 0.0,
+                    "value": [
+                        0.0,
+                        0.0
+                    ]
+                },
+                {
+                    "interpolation": "Linear",
+                    "time": 0.10000000149011612,
+                    "value": [
+                        50.0,
+                        0.0
+                    ]
+                }
+            ],
+            "shaderParamName": "color",
+            "target": "WidgetProperty",
+            "valueType": "Vector2",
+            "widgetProperty": "Position"
+        }
+    ]
+}

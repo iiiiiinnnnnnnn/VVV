@@ -4,9 +4,10 @@
 
 void Widget::Update()
 {
-    rect.Update();
+    if (!isActive) return;
 
-    OnUpdate();
+    rect.Update();
+    Object::Update();
 }
 
 void Widget::DrawGUI()
@@ -18,9 +19,10 @@ void Widget::DrawGUI()
 
         if (ImGui::TreeNode("RectTransform"))
         {
-            ImGui::DragFloat3("Position", &rect.position.x);
+            ImGui::DragFloat2("Position", &rect.position.x);
             ImGui::DragFloat("Angle", &rect.angle);
-            ImGui::DragFloat3("Size", &rect.size.x);
+            ImGui::DragFloat2("Size", &rect.size.x);
+            ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
             ImGui::TreePop();
         }
 

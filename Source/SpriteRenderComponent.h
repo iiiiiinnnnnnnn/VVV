@@ -21,6 +21,13 @@ public:
     const SpriteShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(SpriteShaderId id) { shaderId = id; }
 
+    ShaderParamList& GetShaderParams() { return shaderParam; }
+    const ShaderParamList& GetShaderParams() const { return shaderParam; }
+
+    ShaderParam* FindShaderParam(const std::string& name);
+    const ShaderParam* FindShaderParam(const std::string& name) const;
+    void SetShaderParam(const std::string& name, const ParamValue& value);
+
 private:
     std::shared_ptr<Texture> texture;
     SpriteShaderId shaderId;
