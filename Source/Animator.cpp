@@ -812,10 +812,12 @@ void Animator::UpdateLayer(
     }
 }
 
-void Animator::UpdateDynamicLayer(AnimatorLayer& layer)
+void Animator::UpdateDynamicLayer(
+    AnimatorLayer& layer)
 {
     if (layer.currentStateIndex < 0 ||
-        layer.currentStateIndex >= static_cast<int>(layer.states.size()))
+        layer.currentStateIndex >=
+        static_cast<int>(layer.states.size()))
     {
         return;
     }
@@ -824,24 +826,52 @@ void Animator::UpdateDynamicLayer(AnimatorLayer& layer)
         ? Game::Time::unscaledDeltaTime
         : Game::Time::deltaTime;
 
-    State& currentState = layer.states[layer.currentStateIndex];
-    const float loadedCurrentLength = GetStateLength(currentState);
-    const float currentLength = loadedCurrentLength > 0.0f
+    State& currentState =
+        layer.states[layer.currentStateIndex];
+
+    const float loadedCurrentLength =
+        GetStateLength(currentState);
+
+    const float currentLength =
+        loadedCurrentLength > 0.0f
         ? loadedCurrentLength
         : 1.0f;
 
-    layer.currentTime += dt * currentState.speed;
-    EvaluateCallbacks(currentState, layer.currentTime, currentLength);
+    const float advancedCurrentTime =
+        layer.currentTime +
+        dt * currentState.speed;
+
+    // ループで時間を戻す前の再生率。
+    // Has Exit Time判定では必ずこちらを使う。
+    const float transitionNormalizedTime =
+        currentLength > 0.0f
+        ? advancedCurrentTime / currentLength
+        : 1.0f;
+
+    layer.currentTime = advancedCurrentTime;
+
+    EvaluateCallbacks(
+        currentState,
+        layer.currentTime,
+        currentLength);
+
+    bool currentLooped = false;
 
     if (layer.currentTime > currentLength)
     {
         if (currentState.loop)
         {
-            layer.currentTime = std::fmod(layer.currentTime, currentLength);
+            layer.currentTime =
+                std::fmod(
+                layer.currentTime,
+                currentLength);
+
+            currentLooped = true;
         }
         else
         {
-            layer.currentTime = currentLength;
+            layer.currentTime =
+                currentLength;
         }
     }
     else if (layer.currentTime < 0.0f)
@@ -849,81 +879,164 @@ void Animator::UpdateDynamicLayer(AnimatorLayer& layer)
         layer.currentTime = 0.0f;
     }
 
-    auto beginTransition = [&](const Transition& transition) -> bool
+    auto BeginTransition =
+        [&](const Transition& transition) -> bool
     {
         if (transition.toStateIndex < 0 ||
-            transition.toStateIndex >= static_cast<int>(layer.states.size()))
+            transition.toStateIndex >=
+            static_cast<int>(layer.states.size()))
         {
             return false;
         }
 
-        State& nextState = layer.states[transition.toStateIndex];
-        for (auto& callback : nextState.callbacks)
-            callback.entering = false;
+        State& nextState =
+            layer.states[transition.toStateIndex];
 
-        layer.nextStateIndex = transition.toStateIndex;
+        for (auto& callback : nextState.callbacks)
+        {
+            callback.entering = false;
+        }
+
+        layer.nextStateIndex =
+            transition.toStateIndex;
+
         layer.nextTime = 0.0f;
         layer.blendTime = 0.0f;
-        layer.blendDuration = max(transition.transitionDuration, 0.0f);
-        layer.isTransitioning = layer.blendDuration > 0.0f;
+
+        layer.blendDuration =
+            transition.transitionDuration;
+
+        if (layer.blendDuration < 0.0f)
+        {
+            layer.blendDuration = 0.0f;
+        }
+
+        layer.isTransitioning =
+            layer.blendDuration > 0.0f;
 
         if (!layer.isTransitioning)
         {
-            for (auto& callback : currentState.callbacks)
+            for (auto& callback :
+                currentState.callbacks)
             {
-                if (callback.entering)
+                if (!callback.entering)
+                    continue;
+
+                if (callback.onExit)
                 {
-                    if (callback.onExit)
-                        callback.onExit(currentState);
-                    callback.entering = false;
+                    callback.onExit(
+                        currentState);
                 }
+
+                callback.entering = false;
             }
 
-            layer.currentStateIndex = layer.nextStateIndex;
+            layer.currentStateIndex =
+                layer.nextStateIndex;
+
             layer.currentTime = 0.0f;
             layer.nextStateIndex = -1;
-            ApplyDynamicState(layer.states[layer.currentStateIndex], 0.0f);
+
+            ApplyDynamicState(
+                layer.states[
+                    layer.currentStateIndex],
+                    0.0f);
         }
 
         return true;
     };
 
+    auto CanTransition =
+        [&](
+        const Transition& transition,
+        float normalizedTime) -> bool
+    {
+        if (transition.hasExitTime &&
+            normalizedTime <
+            transition.exitTime)
+        {
+            return false;
+        }
+
+        return EvaluateTransition(
+            transition,
+            normalizedTime);
+    };
+
     if (layer.isTransitioning)
     {
         if (layer.nextStateIndex < 0 ||
-            layer.nextStateIndex >= static_cast<int>(layer.states.size()))
+            layer.nextStateIndex >=
+            static_cast<int>(layer.states.size()))
         {
             layer.isTransitioning = false;
             layer.nextStateIndex = -1;
-            ApplyDynamicState(currentState, layer.currentTime);
+
+            ApplyDynamicState(
+                currentState,
+                layer.currentTime);
+
             return;
         }
 
-        State& nextState = layer.states[layer.nextStateIndex];
-        const float loadedNextLength = GetStateLength(nextState);
-        const float nextLength = loadedNextLength > 0.0f
+        State& nextState =
+            layer.states[layer.nextStateIndex];
+
+        const float loadedNextLength =
+            GetStateLength(nextState);
+
+        const float nextLength =
+            loadedNextLength > 0.0f
             ? loadedNextLength
             : 1.0f;
 
-        layer.nextTime += dt * nextState.speed;
-        EvaluateCallbacks(nextState, layer.nextTime, nextLength);
+        layer.nextTime +=
+            dt * nextState.speed;
+
+        EvaluateCallbacks(
+            nextState,
+            layer.nextTime,
+            nextLength);
 
         if (layer.nextTime > nextLength)
         {
             if (nextState.loop)
-                layer.nextTime = std::fmod(layer.nextTime, nextLength);
+            {
+                layer.nextTime =
+                    std::fmod(
+                    layer.nextTime,
+                    nextLength);
+            }
             else
-                layer.nextTime = nextLength;
+            {
+                layer.nextTime =
+                    nextLength;
+            }
         }
         else if (layer.nextTime < 0.0f)
         {
             layer.nextTime = 0.0f;
         }
 
-        layer.blendTime += max(dt, 0.0f);
-        const float blendWeight = layer.blendDuration > 0.0f
-            ? std::clamp(layer.blendTime / layer.blendDuration, 0.0f, 1.0f)
+        if (dt > 0.0f)
+        {
+            layer.blendTime += dt;
+        }
+
+        float blendWeight =
+            layer.blendDuration > 0.0f
+            ? layer.blendTime /
+            layer.blendDuration
             : 1.0f;
+
+        if (blendWeight < 0.0f)
+        {
+            blendWeight = 0.0f;
+        }
+        else if (blendWeight > 1.0f)
+        {
+            blendWeight = 1.0f;
+        }
 
         ApplyDynamicTransition(
             currentState,
@@ -934,110 +1047,238 @@ void Animator::UpdateDynamicLayer(AnimatorLayer& layer)
 
         if (blendWeight >= 1.0f)
         {
-            for (auto& callback : currentState.callbacks)
+            for (auto& callback :
+                currentState.callbacks)
             {
-                if (callback.entering)
+                if (!callback.entering)
+                    continue;
+
+                if (callback.onExit)
                 {
-                    if (callback.onExit)
-                        callback.onExit(currentState);
-                    callback.entering = false;
+                    callback.onExit(
+                        currentState);
                 }
+
+                callback.entering = false;
             }
 
-            layer.currentStateIndex = layer.nextStateIndex;
-            layer.currentTime = layer.nextTime;
+            layer.currentStateIndex =
+                layer.nextStateIndex;
+
+            layer.currentTime =
+                layer.nextTime;
+
             layer.nextStateIndex = -1;
             layer.isTransitioning = false;
             layer.blendTime = 0.0f;
+
             return;
         }
 
-        for (const Transition& transition : currentState.transitions)
+        for (const Transition& transition :
+            currentState.transitions)
         {
             if (!transition.canInterrupt)
-                continue;
-            if (transition.toStateIndex == layer.nextStateIndex)
-                continue;
-            if (transition.toStateIndex < 0 ||
-                transition.toStateIndex >= static_cast<int>(layer.states.size()))
             {
                 continue;
             }
-            if (!EvaluateTransition(transition))
+
+            if (transition.toStateIndex ==
+                layer.nextStateIndex)
+            {
                 continue;
+            }
+
+            if (transition.toStateIndex < 0 ||
+                transition.toStateIndex >=
+                static_cast<int>(
+                layer.states.size()))
+            {
+                continue;
+            }
+
+            if (!CanTransition(
+                transition,
+                transitionNormalizedTime))
+            {
+                continue;
+            }
 
             if (layer.nextStateIndex >= 0 &&
-                layer.nextStateIndex < static_cast<int>(layer.states.size()))
+                layer.nextStateIndex <
+                static_cast<int>(
+                layer.states.size()))
             {
-                for (auto& callback : layer.states[layer.nextStateIndex].callbacks)
+                for (auto& callback :
+                    layer.states[
+                        layer.nextStateIndex]
+                    .callbacks)
+                {
                     callback.entering = false;
+                }
             }
 
-            layer.nextStateIndex = transition.toStateIndex;
+            layer.nextStateIndex =
+                transition.toStateIndex;
+
             layer.nextTime = 0.0f;
             layer.blendTime = 0.0f;
-            layer.blendDuration = max(transition.transitionDuration, 0.0f);
 
-            for (auto& callback : layer.states[layer.nextStateIndex].callbacks)
+            layer.blendDuration =
+                transition.transitionDuration;
+
+            if (layer.blendDuration < 0.0f)
+            {
+                layer.blendDuration = 0.0f;
+            }
+
+            for (auto& callback :
+                layer.states[
+                    layer.nextStateIndex]
+                .callbacks)
+            {
                 callback.entering = false;
+            }
 
             if (layer.blendDuration <= 0.0f)
             {
-                for (auto& callback : currentState.callbacks)
+                for (auto& callback :
+                    currentState.callbacks)
                 {
-                    if (callback.entering)
+                    if (!callback.entering)
+                        continue;
+
+                    if (callback.onExit)
                     {
-                        if (callback.onExit)
-                            callback.onExit(currentState);
-                        callback.entering = false;
+                        callback.onExit(
+                            currentState);
                     }
+
+                    callback.entering = false;
                 }
 
-                layer.currentStateIndex = layer.nextStateIndex;
+                layer.currentStateIndex =
+                    layer.nextStateIndex;
+
                 layer.currentTime = 0.0f;
                 layer.nextStateIndex = -1;
                 layer.isTransitioning = false;
-                ApplyDynamicState(layer.states[layer.currentStateIndex], 0.0f);
+
+                ApplyDynamicState(
+                    layer.states[
+                        layer.currentStateIndex],
+                        0.0f);
             }
+
             break;
         }
 
         return;
     }
 
-    ApplyDynamicState(currentState, layer.currentTime);
-
-    const float normalizedTime = currentLength > 0.0f
-        ? layer.currentTime / currentLength
-        : 0.0f;
-
+    // AnyStateをループ処理後ではなく、
+    // ループ前の再生率で判定する。
     if (!currentState.blockAnyStateTransitions)
     {
-        for (const Transition& transition : layer.anyStateTransitions)
+        for (const Transition& transition :
+            layer.anyStateTransitions)
         {
-            if (transition.toStateIndex == layer.currentStateIndex)
-                continue;
-            if (std::find(
-                transition.excludedFromStateIndices.begin(),
-                transition.excludedFromStateIndices.end(),
-                layer.currentStateIndex) != transition.excludedFromStateIndices.end())
+            if (transition.toStateIndex ==
+                layer.currentStateIndex)
             {
                 continue;
             }
-            if (transition.hasExitTime && normalizedTime < transition.exitTime)
+
+            if (std::find(
+                transition
+                .excludedFromStateIndices
+                .begin(),
+                transition
+                .excludedFromStateIndices
+                .end(),
+                layer.currentStateIndex) !=
+                transition
+                .excludedFromStateIndices
+                .end())
+            {
                 continue;
-            if (EvaluateTransition(transition, normalizedTime) && beginTransition(transition))
+            }
+
+            if (!CanTransition(
+                transition,
+                transitionNormalizedTime))
+            {
+                continue;
+            }
+
+            // Exit Time到達で遷移するときは、
+            // ループ後の先頭ではなく末尾を使う。
+            if (currentLooped &&
+                transition.hasExitTime)
+            {
+                layer.currentTime =
+                    currentLength;
+            }
+
+            if (BeginTransition(transition))
+            {
+                if (layer.isTransitioning)
+                {
+                    ApplyDynamicTransition(
+                        currentState,
+                        layer.currentTime,
+                        layer.states[
+                            layer.nextStateIndex],
+                            0.0f,
+                            0.0f);
+                }
+
                 return;
+            }
         }
     }
 
-    for (const Transition& transition : currentState.transitions)
+    for (const Transition& transition :
+        currentState.transitions)
     {
-        if (transition.hasExitTime && normalizedTime < transition.exitTime)
+        if (!CanTransition(
+            transition,
+            transitionNormalizedTime))
+        {
             continue;
-        if (EvaluateTransition(transition, normalizedTime) && beginTransition(transition))
+        }
+
+        // Exit Time到達で遷移するときは、
+        // ループ後の先頭ではなく末尾を使う。
+        if (currentLooped &&
+            transition.hasExitTime)
+        {
+            layer.currentTime =
+                currentLength;
+        }
+
+        if (BeginTransition(transition))
+        {
+            if (layer.isTransitioning)
+            {
+                ApplyDynamicTransition(
+                    currentState,
+                    layer.currentTime,
+                    layer.states[
+                        layer.nextStateIndex],
+                        0.0f,
+                        0.0f);
+            }
+
             return;
+        }
     }
+
+    // 遷移しなかった場合だけ、
+    // ループ後または停止後の現在値を適用する。
+    ApplyDynamicState(
+        currentState,
+        layer.currentTime);
 }
 
 void Animator::ApplyDynamicState(const State& state, float time)
@@ -1522,35 +1763,43 @@ bool Animator::EvaluateCondition(const Condition& c) const
 }
 
 bool Animator::EvaluateTransition(
-    const Transition& t) const
+    const Transition& transition) const
 {
-    return EvaluateTransition(t, 0.0f);
+    return EvaluateTransition(
+        transition,
+        0.0f);
 }
 
 bool Animator::EvaluateTransition(
-    const Transition& t,
+    const Transition& transition,
     float normalizedTime) const
 {
-    if (!t.isAny)
+    if (!transition.isAny)
     {
-        float progress = std::clamp(
-            normalizedTime,
-            0.0f,
-            1.0f);
+        float progress = normalizedTime;
 
-        if (progress < t.sourceProgressMin)
+        if (progress < 0.0f)
+        {
+            progress = 0.0f;
+        }
+        else if (progress > 1.0f)
+        {
+            progress = 1.0f;
+        }
+
+        if (progress < transition.sourceProgressMin)
         {
             return false;
         }
 
-        if (t.sourceProgressMax < 1.0f &&
-            progress > t.sourceProgressMax)
+        if (transition.sourceProgressMax < 1.0f &&
+            progress > transition.sourceProgressMax)
         {
             return false;
         }
     }
 
-    for (const Condition& condition : t.conditions)
+    for (const Condition& condition : transition.conditions)
     {
         if (!EvaluateCondition(condition))
         {

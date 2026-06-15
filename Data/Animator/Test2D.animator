@@ -34,7 +34,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.0
                         }
                     ]
                 },
@@ -61,7 +61,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.0
                         }
                     ]
                 }

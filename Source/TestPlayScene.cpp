@@ -96,7 +96,8 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 	{
 		auto sw = std::make_shared<SpriteWidget>("Data/Image/Test.png");
 		sw->rect.size = {50.0f, 50.0f};
-		sw->rect.position = {10, 10};
+		sw->rect.position = {50, 50};
+		sw->rect.anchor = {0.5f, 0.5f};
 		sw->AddComponent<Animator>()->Load("Data/Animator/Test2D.animator");
 		widgets.Register(sw);
 	}

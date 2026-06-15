@@ -40,24 +40,24 @@
                     "interpolation": "EaseIn",
                     "time": 0.0,
                     "value": [
-                        0.0,
-                        0.0
+                        50.0,
+                        50.0
                     ]
                 },
                 {
                     "interpolation": "EaseOut",
                     "time": 0.5,
                     "value": [
-                        0.0,
-                        40.0
+                        50.0,
+                        90.0
                     ]
                 },
                 {
                     "interpolation": "EaseIn",
                     "time": 1.0,
                     "value": [
-                        0.0,
-                        0.0
+                        50.0,
+                        50.0
                     ]
                 }
             ],
