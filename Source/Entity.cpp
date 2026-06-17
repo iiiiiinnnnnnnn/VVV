@@ -23,15 +23,24 @@ void Entity::OnUpdate()
 {
     cooldowns.Update();
 
-    knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
+    // ノックバック
+    #if 1
+    {
+        knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
+        if (knockBackVelocity.LengthSquared() < 0.01f)
+            knockBackVelocity = Vector3::Zero;
+    }
+    #endif
 
-    if (knockBackVelocity.LengthSquared() < 0.01f)
-        knockBackVelocity = Vector3::Zero;
-
-    if(transform.position.y < -50.0f)
-		TakeDamage(9999.0f, {});
+    #if 0 // 落下死
+    {
+        if (transform.position.y < -50.0f)
+            TakeDamage(9999.0f, {});
+    }
+    #endif
 }
 
+// ダメージを受ける
 void Entity::TakeDamage(float damage, KnockBackData knockBackData)
 {
     if (cooldowns.damageCooldown > 0.0f) return;
@@ -57,6 +66,7 @@ void Entity::TakeDamage(float damage, KnockBackData knockBackData)
         OnDead();
 }
 
+// 回復する
 void Entity::Heal(float amount)
 {
     life = min(life + amount, maxLife);

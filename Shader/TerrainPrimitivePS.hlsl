@@ -381,7 +381,9 @@ float4 main(VS_OUT pin) : SV_TARGET
         shadow,
         saturate(shadowStrength));
 
-    float iblIntensity = lightData.ambientColor.a;
+    float3 ambient =
+    lightData.ambientColor.rgb
+    * lightData.ambientColor.a;
 
     float3 iblDiffuse =
         DiffuseIBL(
@@ -392,7 +394,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             F0,
             diffuse_iem,
             linearSampler)
-        * iblIntensity;
+        * ambient;
 
     float3 iblSpecular =
         SpecularIBL(
@@ -403,7 +405,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             lut_ggx,
             specular_pmrem,
             linearSampler)
-        * iblIntensity;
+        * ambient;
 
     iblDiffuse *= finalAO;
     iblSpecular *= finalAO;
