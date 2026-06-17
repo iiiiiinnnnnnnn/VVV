@@ -34,8 +34,10 @@ private:
 	enum class BrushMode
 	{
 		Height,
-		Blend,
+		Paint,
 	};
+
+	static constexpr int MaxTerrainLayers = 16;
 
 	struct TerrainVertex
 	{
@@ -103,6 +105,21 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 	};
 
+	struct TerrainLayer
+	{
+		std::string name;
+		std::string baseColorPath;
+		std::string normalPath;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> baseColorView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalView;
+	};
+
+	struct CbTerrainLayer
+	{
+		int layerCount = 0;
+		int dummy[3] = {};
+	};
+
 	static constexpr int TerrainTextureWidth = 1024;
 	static constexpr int TerrainTextureHeight = 1024;
 
@@ -131,6 +148,9 @@ private:
 	const TerrainBrush* GetCurrentBrush() const;
 	float SampleBrushMask(float u, float v) const;
 	void DrawBrushGUI();
+	bool AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath);
+	void DrawTerrainLayerGUI();
+	float GetTerrainLayerValue(int layerIndex) const;
 	void RebuildTerrainCollider();
 
 private:
@@ -149,6 +169,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainObjectConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainSceneConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> tesselationConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainLayerConstantBuffer;
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrainVertexShader;
 	Microsoft::WRL::ComPtr<ID3D11HullShader> terrainHullShader;
@@ -159,19 +180,13 @@ private:
 	std::vector<Vector4> terrainPixels;
 	bool terrainTextureDirty = true;
 	bool is_terrain_texture_clear_color = true;
-	Color terrain_texture_clear_color = {0.0f, 1.0f, 0.0f, 1.0f};
+	Color terrain_texture_clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> terrainTexture;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainTextureShaderResourceView;
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Stone;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Stone_n;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Dirt;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Dirt_n;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Grass;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainLayer_Grass_n;
+	std::vector<TerrainLayer> terrainLayers;
+	int currentTerrainLayerIndex = 0;
 
 	Color baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	Color emissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -185,13 +200,11 @@ private:
 	BrushMode brushMode = BrushMode::Height;
 	int brush_size = 32;
 	float heightBrushStrength = 0.02f;
-	float blendBrushStrength = 0.08f;
-	float blendTarget = 1.0f;
+	float paintOpacity = 0.08f;
 	bool invertBrushMask = false;
 
 	std::vector<TerrainBrush> brushes;
 	int currentBrushIndex = -1;
-	std::string brushAddPath = "Data/Terrain/brush_default.png";
 
 	std::string terrainFilePath = "Data/Terrain/Maps/Default.dds";
 	std::string terrainIoMessage;

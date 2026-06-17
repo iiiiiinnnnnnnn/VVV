@@ -21,15 +21,14 @@ Terrain::Terrain(Object* owner)
 	std::error_code error;
 	std::filesystem::create_directories("Data/Terrain/Maps", error);
 
-	AddBrushTexture("Data/Terrain/brush_default.png");
-	AddBrushTexture("Data/Terrain/brush_pen.png");
-	AddBrushTexture("Data/Terrain/brush_square.png");
-	AddBrushTexture("Data/Terrain/brush_triangle.png");
-	AddBrushTexture("Data/Terrain/brush_manji.png");
-
-	if (!brushes.empty())
+	AddBrushTexture("Data/Terrain/Brushes/brush_default.png");
+	AddBrushTexture("Data/Terrain/Brushes/brush_pen.png");
+	AddBrushTexture("Data/Terrain/Brushes/brush_square.png");
+	AddBrushTexture("Data/Terrain/Brushes/brush_triangle.png");
+	AddBrushTexture("Data/Terrain/Brushes/brush_manji.png");
+	if (brushes.empty())
 	{
-		SetBrushTexture(0);
+		AddBrushTexture("Data/Image/bugTex.png");
 	}
 
 	if (LoadTerrainTexture(terrainFilePath))
@@ -67,6 +66,11 @@ void Terrain::InitializeGpuResources()
 		sizeof(CbTessellation),
 		tesselationConstantBuffer.GetAddressOf());
 
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbTerrainLayer),
+		terrainLayerConstantBuffer.GetAddressOf());
+
 	CreateGridMesh(device);
 	CreateTerrainTexture(device);
 
@@ -100,43 +104,18 @@ void Terrain::InitializeGpuResources()
 		"Data/Shader/TerrainPrimitivePS.cso",
 		terrainPixelShader.GetAddressOf());
 
-	// 石
+	// レイヤー追加
+	// ブレンドで違和感のない順番で追加する
+
+	AddTerrainLayer("Data/Terrain/Layers/stone.dds", "Data/Terrain/Layers/stone_n.dds");
+	AddTerrainLayer("Data/Terrain/Layers/rock.dds", "Data/Terrain/Layers/rock_n.dds");
+	AddTerrainLayer("Data/Terrain/Layers/dirt.dds", "Data/Terrain/Layers/dirt_n.dds");
+	AddTerrainLayer("Data/Terrain/Layers/grass.dds", "Data/Terrain/Layers/grass_n.dds");
+
+	// エラー用
+	if (terrainLayers.empty())
 	{
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_stone.dds",
-			terrainLayer_Stone.GetAddressOf());
-
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_stone_n.dds",
-			terrainLayer_Stone_n.GetAddressOf());
-	}
-
-	// 土
-	{
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_dirt.dds",
-			terrainLayer_Dirt.GetAddressOf());
-
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_dirt_n.dds",
-			terrainLayer_Dirt_n.GetAddressOf());
-	}
-
-	// 草
-	{
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_grass.dds",
-			terrainLayer_Grass.GetAddressOf());
-
-		GpuResourceUtils::LoadTexture(
-			device,
-			"Data/Terrain/layer_grass_n.dds",
-			terrainLayer_Grass_n.GetAddressOf());
+		AddTerrainLayer("Data/Image/bugtex.dds", "Data/Image/bugtex.dds");
 	}
 }
 
@@ -412,6 +391,16 @@ void Terrain::Render(const RenderContext& rc)
 		0,
 		0);
 
+	CbTerrainLayer cbTerrainLayer{};
+	cbTerrainLayer.layerCount = static_cast<int>(terrainLayers.size());
+	dc->UpdateSubresource(
+		terrainLayerConstantBuffer.Get(),
+		0,
+		nullptr,
+		&cbTerrainLayer,
+		0,
+		0);
+
 	dc->OMSetBlendState(
 		rc.renderState->GetBlendState(BlendState::Opaque),
 		nullptr,
@@ -443,6 +432,7 @@ void Terrain::Render(const RenderContext& rc)
 	ID3D11Buffer* tessCb = tesselationConstantBuffer.Get();
 	ID3D11Buffer* shadowCb = shadowMapConstantBuffer.Get();
 	ID3D11Buffer* sceneCb = terrainSceneConstantBuffer.Get();
+	ID3D11Buffer* layerCb = terrainLayerConstantBuffer.Get();
 
 	ID3D11Buffer* dsTerrainCbs[] =
 	{
@@ -463,6 +453,7 @@ void Terrain::Render(const RenderContext& rc)
 	dc->DSSetConstantBuffers(2, _countof(dsTerrainCbs), dsTerrainCbs);
 	dc->DSSetConstantBuffers(7, 1, &sceneCb);
 	dc->PSSetConstantBuffers(0, _countof(psPbrCbs), psPbrCbs);
+	dc->PSSetConstantBuffers(4, 1, &layerCb);
 	dc->PSSetConstantBuffers(7, 1, &sceneCb);
 
 	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
@@ -479,16 +470,16 @@ void Terrain::Render(const RenderContext& rc)
 	};
 	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 
-	ID3D11ShaderResourceView* baseColorSrvs[] =
+	ID3D11ShaderResourceView* terrainBaseColorSrvs[MaxTerrainLayers] = {};
+	ID3D11ShaderResourceView* terrainNormalSrvs[MaxTerrainLayers] = {};
+	for (int i = 0; i < static_cast<int>(terrainLayers.size()) && i < MaxTerrainLayers; ++i)
 	{
-		terrainLayer_Stone.Get(),
-		terrainLayer_Stone_n.Get(),
-		terrainLayer_Dirt.Get(),
-		terrainLayer_Dirt_n.Get(),
-		terrainLayer_Grass.Get(),
-		terrainLayer_Grass_n.Get(),
-	};
-	dc->PSSetShaderResources(20, _countof(baseColorSrvs), baseColorSrvs);
+		terrainBaseColorSrvs[i] = terrainLayers[i].baseColorView.Get();
+		terrainNormalSrvs[i] = terrainLayers[i].normalView.Get();
+	}
+
+	dc->PSSetShaderResources(20, MaxTerrainLayers, terrainBaseColorSrvs);
+	dc->PSSetShaderResources(36, MaxTerrainLayers, terrainNormalSrvs);
 
 	ID3D11SamplerState* samplerStates[] =
 	{
@@ -512,16 +503,19 @@ void Terrain::Render(const RenderContext& rc)
 	dc->DSSetConstantBuffers(2, _countof(nullCbs2), nullCbs2);
 	dc->DSSetConstantBuffers(7, 1, &nullCb);
 	dc->PSSetConstantBuffers(0, _countof(nullCbs3), nullCbs3);
+	dc->PSSetConstantBuffers(4, 1, &nullCb);
 	dc->PSSetConstantBuffers(7, 1, &nullCb);
 
 	ID3D11ShaderResourceView* nullSrv = nullptr;
 	ID3D11ShaderResourceView* nullSrvs3[] = {nullptr, nullptr, nullptr};
+	ID3D11ShaderResourceView* nullTerrainSrvs[MaxTerrainLayers] = {};
 
 	dc->DSSetShaderResources(0, 1, &nullSrv);
 	dc->PSSetShaderResources(0, 1, &nullSrv);
 	dc->PSSetShaderResources(8, 1, &nullSrv);
 	dc->PSSetShaderResources(17, _countof(nullSrvs3), nullSrvs3);
-	dc->PSSetShaderResources(20, _countof(nullSrvs3), nullSrvs3);
+	dc->PSSetShaderResources(20, MaxTerrainLayers, nullTerrainSrvs);
+	dc->PSSetShaderResources(36, MaxTerrainLayers, nullTerrainSrvs);
 
 	ID3D11SamplerState* nullSamplers3[] = {nullptr, nullptr, nullptr};
 	dc->DSSetSamplers(0, _countof(nullSamplers3), nullSamplers3);
@@ -784,12 +778,13 @@ void Terrain::ApplyBrush(float u, float v, float heightSign)
 			}
 			else
 			{
-				const float blendAmount = std::clamp(
-					blendBrushStrength * mask,
+				const float paintAmount = std::clamp(
+					paintOpacity * mask,
 					0.0f,
 					1.0f);
+				const float targetLayer = GetTerrainLayerValue(currentTerrainLayerIndex);
 
-				pixel.y += (blendTarget - pixel.y) * blendAmount;
+				pixel.y += (targetLayer - pixel.y) * paintAmount;
 				pixel.y = std::clamp(pixel.y, 0.0f, 1.0f);
 			}
 		}
@@ -1028,6 +1023,100 @@ float Terrain::SampleBrushMask(float u, float v) const
 	return upper + (lower - upper) * ty;
 }
 
+bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath)
+{
+	if (terrainLayers.size() >= MaxTerrainLayers)
+	{
+		terrainIoMessage = "Terrain layer add failed: max layer count reached.";
+		return false;
+	}
+
+	if (baseColorPath.empty() || normalPath.empty())
+	{
+		terrainIoMessage = "Terrain layer add failed: path is empty.";
+		return false;
+	}
+
+	const std::filesystem::path basePath =
+		std::filesystem::path(baseColorPath).lexically_normal();
+	const std::filesystem::path normalMapPath =
+		std::filesystem::path(normalPath).lexically_normal();
+
+	if (!std::filesystem::exists(basePath))
+	{
+		terrainIoMessage = "Terrain layer base color not found: " + basePath.generic_string();
+		return false;
+	}
+
+	if (!std::filesystem::exists(normalMapPath))
+	{
+		terrainIoMessage = "Terrain layer normal not found: " + normalMapPath.generic_string();
+		return false;
+	}
+
+	const std::string normalizedBasePath = basePath.generic_string();
+	const std::string normalizedNormalPath = normalMapPath.generic_string();
+
+	for (int i = 0; i < static_cast<int>(terrainLayers.size()); ++i)
+	{
+		if (terrainLayers[i].baseColorPath == normalizedBasePath)
+		{
+			currentTerrainLayerIndex = i;
+			terrainIoMessage = "Terrain layer selected: " + terrainLayers[i].name;
+			return true;
+		}
+	}
+
+	TerrainLayer layer;
+	layer.name = basePath.stem().string();
+	layer.baseColorPath = normalizedBasePath;
+	layer.normalPath = normalizedNormalPath;
+
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+	HRESULT hr = GpuResourceUtils::LoadTexture(
+		device,
+		layer.baseColorPath.c_str(),
+		layer.baseColorView.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain layer base color load failed: " + layer.baseColorPath;
+		return false;
+	}
+
+	hr = GpuResourceUtils::LoadTexture(
+		device,
+		layer.normalPath.c_str(),
+		layer.normalView.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain layer normal load failed: " + layer.normalPath;
+		return false;
+	}
+
+	terrainLayers.push_back(std::move(layer));
+	currentTerrainLayerIndex = static_cast<int>(terrainLayers.size()) - 1;
+	terrainIoMessage = "Terrain layer added: " + terrainLayers.back().name;
+	return true;
+}
+
+float Terrain::GetTerrainLayerValue(int layerIndex) const
+{
+	if (terrainLayers.size() <= 1)
+	{
+		return 0.0f;
+	}
+
+	const int clampedIndex = std::clamp(
+		layerIndex,
+		0,
+		static_cast<int>(terrainLayers.size()) - 1);
+
+	return static_cast<float>(clampedIndex) /
+		static_cast<float>(terrainLayers.size() - 1);
+}
+
 bool Terrain::SaveTerrainTexture(const std::string& filename)
 {
 	if (filename.empty())
@@ -1207,6 +1296,85 @@ void Terrain::RebuildTerrainCollider()
 	pendingColliderRebuild = false;
 }
 
+void Terrain::DrawTerrainLayerGUI()
+{
+	if (!ImGui::TreeNode("Terrain Paint Layers"))
+	{
+		return;
+	}
+
+	ImGui::Text("Selected: %s",
+		terrainLayers.empty()
+			? "None"
+			: terrainLayers[currentTerrainLayerIndex].name.c_str());
+
+	{
+		const float thumbnailSize = 72.0f;
+		const float childHeight =
+			thumbnailSize +
+			ImGui::GetStyle().ScrollbarSize +
+			ImGui::GetStyle().WindowPadding.y * 2.0f;
+
+		ImGui::BeginChild(
+			"terrain layer palette",
+			ImVec2(0.0f, childHeight),
+			true,
+			ImGuiWindowFlags_HorizontalScrollbar);
+
+		for (int i = 0; i < static_cast<int>(terrainLayers.size()); ++i)
+		{
+			ImGui::PushID(i);
+
+			const bool selected = i == currentTerrainLayerIndex;
+			if (selected)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.95f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.65f, 1.0f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.45f, 0.85f, 1.0f));
+			}
+
+			if (ImGui::ImageButton(
+				"terrain layer",
+				terrainLayers[i].baseColorView.Get(),
+				ImVec2(thumbnailSize, thumbnailSize),
+				ImVec2(0.0f, 0.0f),
+				ImVec2(1.0f, 1.0f)))
+			{
+				currentTerrainLayerIndex = i;
+			}
+
+			if (selected)
+			{
+				ImGui::PopStyleColor(3);
+			}
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip(
+					"%s\n%s\n%s",
+					terrainLayers[i].name.c_str(),
+					terrainLayers[i].baseColorPath.c_str(),
+					terrainLayers[i].normalPath.c_str());
+			}
+
+			if (i + 1 < static_cast<int>(terrainLayers.size()))
+			{
+				ImGui::SameLine();
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::EndChild();
+	}
+
+	ImGui::Text("Layers: %d / %d",
+		static_cast<int>(terrainLayers.size()),
+		MaxTerrainLayers);
+
+	ImGui::TreePop();
+}
+
 void Terrain::DrawBrushGUI()
 {
 	if (!ImGui::TreeNode("Brush Texture"))
@@ -1215,48 +1383,71 @@ void Terrain::DrawBrushGUI()
 	}
 
 	const TerrainBrush* currentBrush = GetCurrentBrush();
-	const char* previewName = currentBrush != nullptr ? currentBrush->name.c_str() : "None";
+	ImGui::Text("Selected: %s",
+		currentBrush != nullptr ? currentBrush->name.c_str() : "None");
 
-	if (ImGui::BeginCombo("brush", previewName))
 	{
+		const float thumbnailSize = 72.0f;
+		const float childHeight =
+			thumbnailSize +
+			ImGui::GetStyle().ScrollbarSize +
+			ImGui::GetStyle().WindowPadding.y * 2.0f;
+
+		ImGui::BeginChild(
+			"brush texture palette",
+			ImVec2(0.0f, childHeight),
+			true,
+			ImGuiWindowFlags_HorizontalScrollbar);
+
 		for (int i = 0; i < static_cast<int>(brushes.size()); ++i)
 		{
-			const bool selected = i == currentBrushIndex;
+			ImGui::PushID(i);
 
-			if (ImGui::Selectable(brushes[i].name.c_str(), selected))
+			const bool selected = i == currentBrushIndex;
+			if (selected)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.95f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.65f, 1.0f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.45f, 0.85f, 1.0f));
+			}
+
+			if (ImGui::ImageButton(
+				"brush texture",
+				brushes[i].shaderResourceView.Get(),
+				ImVec2(thumbnailSize, thumbnailSize),
+				ImVec2(0.0f, 0.0f),
+				ImVec2(1.0f, 1.0f)))
 			{
 				SetBrushTexture(i);
 			}
 
 			if (selected)
 			{
-				ImGui::SetItemDefaultFocus();
+				ImGui::PopStyleColor(3);
 			}
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip(
+					"%s\n%d x %d\n%s",
+					brushes[i].name.c_str(),
+					brushes[i].width,
+					brushes[i].height,
+					brushes[i].filepath.c_str());
+			}
+
+			if (i + 1 < static_cast<int>(brushes.size()))
+			{
+				ImGui::SameLine();
+			}
+
+			ImGui::PopID();
 		}
 
-		ImGui::EndCombo();
-	}
-
-	currentBrush = GetCurrentBrush();
-	if (currentBrush != nullptr && currentBrush->shaderResourceView)
-	{
-		ImGui::Image(
-			currentBrush->shaderResourceView.Get(),
-			ImVec2(128.0f, 128.0f),
-			ImVec2(0.0f, 0.0f),
-			ImVec2(1.0f, 1.0f));
-
-		ImGui::Text("%d x %d", currentBrush->width, currentBrush->height);
-		ImGui::TextWrapped("%s", currentBrush->filepath.c_str());
+		ImGui::EndChild();
 	}
 
 	ImGui::Checkbox("invert brush mask", &invertBrushMask);
-
-	ImGui::InputText("add brush path", &brushAddPath);
-	if (ImGui::Button("Add Brush Texture"))
-	{
-		AddBrushTexture(brushAddPath);
-	}
 
 	ImGui::Text("Brush count: %d", static_cast<int>(brushes.size()));
 	ImGui::TreePop();
@@ -1303,6 +1494,7 @@ void Terrain::DrawGUI()
 	}
 
 	DrawBrushGUI();
+	DrawTerrainLayerGUI();
 
 	if (ImGui::TreeNode("Terrain PBR"))
 	{
@@ -1325,7 +1517,7 @@ void Terrain::DrawGUI()
 			RebuildTerrainCollider();
 		}
 
-		ImGui::Text("R = height, G = material blend");
+		ImGui::Text("R = height, G = paint layer");
 		ImGui::DragFloat4("terrain data clear RGBA", &terrain_texture_clear_color.x, 0.01f);
 
 		if (terrainTextureShaderResourceView)
@@ -1348,7 +1540,7 @@ void Terrain::DrawGUI()
 		const char* brushModeItems[] =
 		{
 			"Height",
-			"Blend",
+			"Paint",
 		};
 
 		if (ImGui::Combo("brush mode", &brushModeIndex, brushModeItems, _countof(brushModeItems)))
@@ -1358,8 +1550,7 @@ void Terrain::DrawGUI()
 
 		ImGui::SliderInt("brush size", &brush_size, 1, 256);
 		ImGui::DragFloat("height brush strength", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
-		ImGui::DragFloat("blend brush strength", &blendBrushStrength, 0.001f, 0.0f, 1.0f);
-		ImGui::SliderFloat("blend target", &blendTarget, 0.0f, 1.0f);
+		ImGui::DragFloat("paint opacity", &paintOpacity, 0.001f, 0.0f, 1.0f);
 		ImGui::Text("Left drag: paint");
 		ImGui::Text("Shift + left drag: lower height");
 		ImGui::Text("Alt + left drag: camera orbit only");

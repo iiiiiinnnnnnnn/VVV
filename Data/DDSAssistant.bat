@@ -32,7 +32,7 @@ goto INPUT
 :INPUT
 echo.
 echo %KIND% Ç %FORMAT% Ç≈ïœä∑ÇµÇ‹Ç∑ÅB
-echo Example: Terrain\layer_grass.png
+echo Example: Terrain/Layers/grass(_n).png
 echo.
 
 set "SRC="

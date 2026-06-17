@@ -9,12 +9,16 @@ Texture2D lut_ggx : register(t17);
 TextureCube specular_pmrem : register(t18);
 TextureCube diffuse_iem : register(t19);
 
-Texture2D<float4> rockTexture : register(t20);
-Texture2D<float4> rockTextureNormal : register(t21);
-Texture2D<float4> dirtTexture : register(t22);
-Texture2D<float4> dirtTextureNormal : register(t23);
-Texture2D<float4> grassTexture : register(t24);
-Texture2D<float4> grassTextureNormal : register(t25);
+#define MAX_TERRAIN_LAYERS 16
+
+cbuffer CbTerrainLayer : register(b4)
+{
+    int terrain_layer_count;
+    int3 terrain_layer_dummy;
+};
+
+Texture2D<float4> terrainBaseTextures[MAX_TERRAIN_LAYERS] : register(t20);
+Texture2D<float4> terrainNormalTextures[MAX_TERRAIN_LAYERS] : register(t36);
 
 float3 UnpackNormalBC5(Texture2D<float4> tex, float2 uv)
 {
@@ -84,6 +88,54 @@ float3 SampleAntiTileNormal(Texture2D<float4> tex, float2 baseUV, float2 worldXZ
     float3 normalA = UnpackNormalBC5(tex, uvA);
     float3 normalB = UnpackNormalBC5(tex, uvB);
     return normalize(lerp(normalA, normalB, smoothstep(0.25f, 0.75f, n)));
+}
+
+float4 SampleTerrainBaseLayer(int layerIndex, float2 baseUV, float2 worldXZ)
+{
+    layerIndex = clamp(layerIndex, 0, max(terrain_layer_count - 1, 0));
+    switch (layerIndex)
+    {
+    case 0: return SampleAntiTile(terrainBaseTextures[0], baseUV, worldXZ, 3.1f);
+    case 1: return SampleAntiTile(terrainBaseTextures[1], baseUV, worldXZ, 16.47f);
+    case 2: return SampleAntiTile(terrainBaseTextures[2], baseUV, worldXZ, 29.84f);
+    case 3: return SampleAntiTile(terrainBaseTextures[3], baseUV, worldXZ, 43.21f);
+    case 4: return SampleAntiTile(terrainBaseTextures[4], baseUV, worldXZ, 56.58f);
+    case 5: return SampleAntiTile(terrainBaseTextures[5], baseUV, worldXZ, 69.95f);
+    case 6: return SampleAntiTile(terrainBaseTextures[6], baseUV, worldXZ, 83.32f);
+    case 7: return SampleAntiTile(terrainBaseTextures[7], baseUV, worldXZ, 96.69f);
+    case 8: return SampleAntiTile(terrainBaseTextures[8], baseUV, worldXZ, 110.06f);
+    case 9: return SampleAntiTile(terrainBaseTextures[9], baseUV, worldXZ, 123.43f);
+    case 10: return SampleAntiTile(terrainBaseTextures[10], baseUV, worldXZ, 136.8f);
+    case 11: return SampleAntiTile(terrainBaseTextures[11], baseUV, worldXZ, 150.17f);
+    case 12: return SampleAntiTile(terrainBaseTextures[12], baseUV, worldXZ, 163.54f);
+    case 13: return SampleAntiTile(terrainBaseTextures[13], baseUV, worldXZ, 176.91f);
+    case 14: return SampleAntiTile(terrainBaseTextures[14], baseUV, worldXZ, 190.28f);
+    default: return SampleAntiTile(terrainBaseTextures[15], baseUV, worldXZ, 203.65f);
+    }
+}
+
+float3 SampleTerrainNormalLayer(int layerIndex, float2 baseUV, float2 worldXZ)
+{
+    layerIndex = clamp(layerIndex, 0, max(terrain_layer_count - 1, 0));
+    switch (layerIndex)
+    {
+    case 0: return SampleAntiTileNormal(terrainNormalTextures[0], baseUV, worldXZ, 3.1f);
+    case 1: return SampleAntiTileNormal(terrainNormalTextures[1], baseUV, worldXZ, 16.47f);
+    case 2: return SampleAntiTileNormal(terrainNormalTextures[2], baseUV, worldXZ, 29.84f);
+    case 3: return SampleAntiTileNormal(terrainNormalTextures[3], baseUV, worldXZ, 43.21f);
+    case 4: return SampleAntiTileNormal(terrainNormalTextures[4], baseUV, worldXZ, 56.58f);
+    case 5: return SampleAntiTileNormal(terrainNormalTextures[5], baseUV, worldXZ, 69.95f);
+    case 6: return SampleAntiTileNormal(terrainNormalTextures[6], baseUV, worldXZ, 83.32f);
+    case 7: return SampleAntiTileNormal(terrainNormalTextures[7], baseUV, worldXZ, 96.69f);
+    case 8: return SampleAntiTileNormal(terrainNormalTextures[8], baseUV, worldXZ, 110.06f);
+    case 9: return SampleAntiTileNormal(terrainNormalTextures[9], baseUV, worldXZ, 123.43f);
+    case 10: return SampleAntiTileNormal(terrainNormalTextures[10], baseUV, worldXZ, 136.8f);
+    case 11: return SampleAntiTileNormal(terrainNormalTextures[11], baseUV, worldXZ, 150.17f);
+    case 12: return SampleAntiTileNormal(terrainNormalTextures[12], baseUV, worldXZ, 163.54f);
+    case 13: return SampleAntiTileNormal(terrainNormalTextures[13], baseUV, worldXZ, 176.91f);
+    case 14: return SampleAntiTileNormal(terrainNormalTextures[14], baseUV, worldXZ, 190.28f);
+    default: return SampleAntiTileNormal(terrainNormalTextures[15], baseUV, worldXZ, 203.65f);
+    }
 }
 
 // Terrain PBR FUnction
@@ -189,22 +241,18 @@ float4 main(VS_OUT pin) : SV_TARGET
     float2 worldXZ = pin.position.xz;
     float terrainDistanceFade = saturate(DistanceFogFactor(pin.position) / 0.82f);
 
-    float4 rockSRGB = SampleAntiTile(rockTexture, tilingCoord, worldXZ, 3.1f);
-    float4 dirtSRGB = SampleAntiTile(dirtTexture, tilingCoord, worldXZ, 17.7f);
-    float4 grassSRGB = SampleAntiTile(grassTexture, tilingCoord, worldXZ, 42.4f);
-
-    float blendRate = saturate(
+    int layerCount = max(terrain_layer_count, 1);
+    float layerRate = saturate(
         terrainDataMap.Sample(shadowSampler, pin.texcoord).g);
+    float layerPosition = layerRate * (float)(layerCount - 1);
+    int layer0 = (int)floor(layerPosition);
+    int layer1 = min(layer0 + 1, layerCount - 1);
+    float layerBlend = frac(layerPosition);
 
     float4 albedoSRGB = lerp(
-        rockSRGB,
-        dirtSRGB,
-        smoothstep(0.0f, 0.5f, blendRate));
-
-    albedoSRGB = lerp(
-        albedoSRGB,
-        grassSRGB,
-        smoothstep(0.5f, 1.0f, blendRate));
+        SampleTerrainBaseLayer(layer0, tilingCoord, worldXZ),
+        SampleTerrainBaseLayer(layer1, tilingCoord, worldXZ),
+        layerBlend);
 
     float4 albedo =
         float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a)
@@ -235,15 +283,10 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedo.rgb,
         finalMetalness);
 
-    float3 rockNormalTex = SampleAntiTileNormal(rockTextureNormal, tilingCoord, worldXZ, 3.1f);
-    float3 dirtNormalTex = SampleAntiTileNormal(dirtTextureNormal, tilingCoord, worldXZ, 17.7f);
-    float3 grassNormalTex = SampleAntiTileNormal(grassTextureNormal, tilingCoord, worldXZ, 42.4f);
-
-    float dirtBlend = smoothstep(0.0f, 0.5f, blendRate);
-    float grassBlend = smoothstep(0.5f, 1.0f, blendRate);
-
-    float3 normalTex = normalize(lerp(rockNormalTex, dirtNormalTex, dirtBlend));
-    normalTex = normalize(lerp(normalTex, grassNormalTex, grassBlend));
+    float3 normalTex = normalize(lerp(
+        SampleTerrainNormalLayer(layer0, tilingCoord, worldXZ),
+        SampleTerrainNormalLayer(layer1, tilingCoord, worldXZ),
+        layerBlend));
     normalTex = normalize(lerp(normalTex, float3(0.0f, 0.0f, 1.0f), terrainDistanceFade * 0.65f));
 
     float3 baseN = normalize(pin.normal);
