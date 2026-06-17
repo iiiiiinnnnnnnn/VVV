@@ -2,6 +2,7 @@
 
 #include "Stage01.h"
 #include "Graphics.h"
+#include "LightManager.h"
 
 Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
 {
@@ -15,14 +16,21 @@ Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 }
 
+void Stage01::ApplyEnvironment(LightManager& lightManager) const
+{
+	DirectionalLight directionalLight{"Cave Sun", true, {0.72f, 0.82f, 1.0f, 1.0f}};
+	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
+		DirectX::XMConvertToRadians(-35.0f),
+		DirectX::XMConvertToRadians(35.0f),
+		0.0f);
+
+	lightManager.SetDirectionalLight(directionalLight);
+	lightManager.SetAmbientColor(ColorFromRGBA(0x344967FF));
+}
+
 void Stage01::OnUpdate()
 {
 
-}
-
-void Stage01::OnRender(const RenderContext& rc)
-{
-	
 }
 
 void Stage01::OnDrawGUI()

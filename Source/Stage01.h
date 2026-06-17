@@ -10,8 +10,8 @@ class Stage01 : public Actor
 public:
 	Stage01();
 	~Stage01() = default;
+	void ApplyEnvironment(class LightManager& lightManager) const;
 	void OnUpdate() override;
-	void OnRender(const RenderContext& rc);
 	void OnDrawGUI() override;
 
 private:
