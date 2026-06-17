@@ -5,6 +5,8 @@
 
 Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
 {
+    // 参考用に残しているがStage00.glbを消したのでこのステージは無意味
+    #if 0
     std::shared_ptr<Model> model =
         ResourceManager::Instance().LoadModel("Data/Model/Stage00.glb");
 
@@ -41,6 +43,7 @@ Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
     };
     AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
+    #endif
 }
 
 void Stage00::OnUpdate()

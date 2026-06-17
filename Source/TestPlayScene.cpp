@@ -73,6 +73,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 	}
 
 	// Apple normal
+	#if 0
 	{
 		auto apple = std::make_shared<Apple>();
 
@@ -81,8 +82,10 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 		actorManager.Register(apple);
 	}
+	#endif
 
 	// Apple aggressive
+	#if 0
 	{
 		auto apple = std::make_shared<Apple>();
 
@@ -91,6 +94,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 		actorManager.Register(apple);
 	}
+	#endif
 
 	// test widget
 	{
