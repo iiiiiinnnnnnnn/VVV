@@ -347,5 +347,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         + iblSpecular
         + emissive;
 
+    color = ApplyDistanceFog(color, pin.position);
+
     return float4(color, albedo.a);
 }

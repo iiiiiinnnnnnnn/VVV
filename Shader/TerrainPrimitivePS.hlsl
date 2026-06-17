@@ -187,6 +187,7 @@ float4 main(VS_OUT pin) : SV_TARGET
 {
     float2 tilingCoord = pin.texcoord * tilling_scale;
     float2 worldXZ = pin.position.xz;
+    float terrainDistanceFade = saturate(DistanceFogFactor(pin.position) / 0.82f);
 
     float4 rockSRGB = SampleAntiTile(rockTexture, tilingCoord, worldXZ, 3.1f);
     float4 dirtSRGB = SampleAntiTile(dirtTexture, tilingCoord, worldXZ, 17.7f);
@@ -208,6 +209,12 @@ float4 main(VS_OUT pin) : SV_TARGET
     float4 albedo =
         float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a)
         * baseColor;
+
+    float albedoLuminance = dot(albedo.rgb, float3(0.2126f, 0.7152f, 0.0722f));
+    albedo.rgb = lerp(
+        albedo.rgb,
+        lerp(albedoLuminance.xxx, albedo.rgb, 0.55f),
+        terrainDistanceFade * 0.45f);
 
     float3 emissive = emissiveColor.rgb;
 
@@ -237,6 +244,7 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float3 normalTex = normalize(lerp(rockNormalTex, dirtNormalTex, dirtBlend));
     normalTex = normalize(lerp(normalTex, grassNormalTex, grassBlend));
+    normalTex = normalize(lerp(normalTex, float3(0.0f, 0.0f, 1.0f), terrainDistanceFade * 0.65f));
 
     float3 baseN = normalize(pin.normal);
 
@@ -483,6 +491,8 @@ float4 main(VS_OUT pin) : SV_TARGET
         + iblDiffuse
         + iblSpecular
         + emissive;
+
+    color = ApplyDistanceFog(color, pin.position);
 
     return float4(color, albedo.a);
 }

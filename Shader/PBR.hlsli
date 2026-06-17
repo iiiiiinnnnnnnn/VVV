@@ -40,4 +40,26 @@ cbuffer CbMaterial : register(b1)
     int useOcclusionTexture;
 };
 
+float DistanceFogFactor(float3 worldPosition)
+{
+    const float fogStart = 85.0f;
+    const float fogEnd = 360.0f;
+
+    float distanceFromCamera = distance(viewPosition, worldPosition);
+    float fog = smoothstep(fogStart, fogEnd, distanceFromCamera);
+    return fog * fog * 0.82f;
+}
+
+float3 DistanceFogColor()
+{
+    const float3 skyFogColor = float3(0.76f, 0.91f, 1.0f);
+    float3 ambient = lightData.ambientColor.rgb * lightData.ambientColor.a;
+    return lerp(ambient, skyFogColor, 0.65f);
+}
+
+float3 ApplyDistanceFog(float3 color, float3 worldPosition)
+{
+    return lerp(color, DistanceFogColor(), DistanceFogFactor(worldPosition));
+}
+
 #endif // __PBR_HLSLI__
