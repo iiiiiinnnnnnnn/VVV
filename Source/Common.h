@@ -97,3 +97,13 @@ static std::wstring ToLowerWString(std::wstring text)
 
     return text;
 }
+
+inline Color ColorFromRGBA(uint32_t rgba)
+{
+    return Color(
+        ((rgba >> 24) & 0xFF) / 255.0f,
+        ((rgba >> 16) & 0xFF) / 255.0f,
+        ((rgba >>  8) & 0xFF) / 255.0f,
+        ((rgba >>  0) & 0xFF) / 255.0f
+    );
+}

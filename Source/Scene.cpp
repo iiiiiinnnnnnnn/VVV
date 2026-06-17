@@ -10,7 +10,8 @@ Scene::Scene(SceneMessage message) : message(message)
 	DirectionalLight dl{"Sun", true, {1, 1, 1, 1}};
 	dl.transform.rotation = {1, 0, 1, 1};
 	lightManager.SetDirectionalLight(dl);
-	lightManager.SetAmbientColor({0.686f, 0.87f, 1.0f, 1.0f});
+
+	lightManager.SetAmbientColor(ColorFromRGBA(0x50BDFFFF));
 }
 
 void Scene::Update()
@@ -94,7 +95,7 @@ void Scene::Render()
 		graphics.GetShadowMapRenderer()->Render(
 			rc,
 			lightManager.GetDirectionalLight().GetDirection(),
-			Vector3(0, 0, 0),
+			camera.GetFocus(),
 			20.0f,
 			100.0f,
 			0.01f,
