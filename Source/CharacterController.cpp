@@ -172,3 +172,17 @@ void CharacterController::SetPosition(const Vector3& position)
 {
     controller->setPosition(PxExtendedVec3(position.x, position.y, position.z));
 }
+
+void CharacterController::SetFootPosition(const Vector3& position)
+{
+    PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
+    const float halfHeight =
+        (capsule->getHeight() * 0.5f) +
+        capsule->getRadius() +
+        controller->getContactOffset();
+
+    controller->setPosition(PxExtendedVec3(
+        position.x,
+        position.y + halfHeight,
+        position.z));
+}

@@ -44,9 +44,9 @@ struct Transform
 
 	struct TransformChangedResult
 	{
-		bool positionChanged;
-		bool rotationChanged;
-		bool scaleChanged;
+		bool positionChanged = false;
+		bool rotationChanged = false;
+		bool scaleChanged = false;
 	};
 	TransformChangedResult DrawGUI();
 };

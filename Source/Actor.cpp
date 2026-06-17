@@ -35,7 +35,7 @@ void Actor::DrawGUI()
             {
                 auto cc = GetComponent<CharacterController>();
                 if (cc)
-                    cc->SetPosition(transform.position);
+                    cc->SetFootPosition(transform.position);
             }
         }
         if (res.rotationChanged)

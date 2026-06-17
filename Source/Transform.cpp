@@ -152,7 +152,7 @@ void Transform::Update() {
 
 Transform::TransformChangedResult Transform::DrawGUI()
 {
-	TransformChangedResult res;
+	TransformChangedResult res{};
 
 	if (ImGui::TreeNode("Transform"))
 	{

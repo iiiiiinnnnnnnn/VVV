@@ -18,11 +18,33 @@ void Scene::Update()
 {
 	OnUpdate();
 
+	#ifdef _DEBUG
+	GamePad& gamePad = Game::Input::Instance().GetGamePad();
+	if (gamePad.GetButtonDown() & GamePad::BTN_F1)
+	{
+		isCursorReleased = true;
+	}
+
+	if (isCursorReleased &&
+		Game::Input::IsFocusedWindow() &&
+		(Game::Input::Instance().GetMouse().GetButtonDown() & Mouse::BTN_LEFT))
+	{
+		isCursorReleased = false;
+	}
+	#endif
+
 	// カメラコントローラーがないとアクターは動けないよ！
 	if (cameraControllers.size() > 0)
 	{
 		// カメラ更新処理
-		cameraControllers[nowCameraControllerIndex]->Update();
+		if (isCursorReleased)
+		{
+			cameraControllers[nowCameraControllerIndex]->OnFocusLost();
+		}
+		else
+		{
+			cameraControllers[nowCameraControllerIndex]->Update();
+		}
 
 		// カメラコントローラーからカメラへ反映
 		cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);

@@ -73,6 +73,7 @@ protected:
 	Camera camera;
 	std::vector<std::unique_ptr<CameraController>> cameraControllers;
 	int nowCameraControllerIndex = 0;
+	bool isCursorReleased = false;
 
 	PostEffect postEffect;
 	RenderSettings renderSettings;

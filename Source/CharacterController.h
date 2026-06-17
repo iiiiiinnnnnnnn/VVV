@@ -16,6 +16,7 @@ public:
     void DrawGUI() override;
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
+    void SetFootPosition(const Vector3& pos);
     bool IsGrounded() const { return grounded; }
 private:
     PxController* controller = nullptr;
