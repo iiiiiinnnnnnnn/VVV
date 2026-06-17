@@ -21,6 +21,8 @@
     <ClCompile Include="Source\DynamicAnimation.cpp" />
     <ClCompile Include="Source\DynamicAnimationSerializer.cpp" />
     <ClCompile Include="Source\Entity.cpp" />
+    <ClCompile Include="Source\Light.cpp" />
+    <ClCompile Include="Source\LightManager.cpp" />
     <ClCompile Include="Source\LoadingScene.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SpringBone.cpp" />
@@ -78,6 +80,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Actor.h" />
+    <ClInclude Include="Source\ActorManager.h" />
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
@@ -86,11 +89,14 @@
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\Apple.h" />
+    <ClInclude Include="Source\CbLightData.h" />
     <ClInclude Include="Source\DynamicAnimation.h" />
     <ClInclude Include="Source\DynamicAnimationEditorWindow.h" />
     <ClInclude Include="Source\DynamicAnimationSerializer.h" />
     <ClInclude Include="Source\Entity.h" />
     <ClInclude Include="Source\GameDefine.h" />
+    <ClInclude Include="Source\Light.h" />
+    <ClInclude Include="Source\LightManager.h" />
     <ClInclude Include="Source\LoadingScene.h" />
     <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SpringBone.h" />
@@ -156,6 +162,7 @@
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
+    <ClInclude Include="Source\WidgetManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

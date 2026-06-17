@@ -36,7 +36,7 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 		};
 		BG_Illust->rect.size *= 1.2f;
 
-		widgets.Register(BG_Illust);
+		widgetManager.Register(BG_Illust);
 	}
 
 	// Vignette
@@ -67,7 +67,7 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 			screenHeight * size
 		};
 
-		widgets.Register(vignette);
+		widgetManager.Register(vignette);
 	}
 
 	// 進捗バー背景
@@ -97,7 +97,7 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 			6.0f
 		};
 
-		widgets.Register(progressBarBack);
+		widgetManager.Register(progressBarBack);
 	}
 
 	// 進捗バー本体
@@ -123,7 +123,7 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 		progressBarFill->rect.anchor = { 0.0f, 0.5f };
 		progressBarFill->rect.size = { 0.0f, 2.0f };
 
-		widgets.Register(progressBarFill);
+		widgetManager.Register(progressBarFill);
 	}
 }
 

@@ -79,12 +79,6 @@
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト">
       <UniqueIdentifier>{6a4c50f1-85ce-4674-9620-088cc6c16290}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\アクタ">
-      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\ウィジェット">
-      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント">
       <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
     </Filter>
@@ -111,6 +105,15 @@
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\アプリ\入力">
       <UniqueIdentifier>{de4e9ff2-75ac-4a10-9d16-751ed615f21b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\アクタ">
+      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\ウィジェット">
+      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\ライト">
+      <UniqueIdentifier>{95ce1ff2-b85f-4658-9f05-0c6fcb30ed56}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -305,6 +308,12 @@
     </ClCompile>
     <ClCompile Include="Source\SceneManager.cpp">
       <Filter>ソースファイル\システム%28基底%29\シーン</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\LightManager.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Light.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -544,6 +553,21 @@
     </ClInclude>
     <ClInclude Include="Source\DynamicAnimation.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Light.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ActorManager.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\WidgetManager.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ウィジェット</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LightManager.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CbLightData.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

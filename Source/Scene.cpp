@@ -2,18 +2,15 @@
 
 #include "Scene.h"
 #include "GameTime.h"
-#include "Player.h"
-#include "Terrain.h"
+#include "Light.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
 	// ライト設定
-	DirectionalLight directionalLight;
-	directionalLight.direction = { 0, -1, -1 };
-	directionalLight.color = { 1, 1, 1 };
-
-	lightData.SetDirectionalLight(directionalLight);
-	lightData.SetAmbientColor({ 1, 1, 1, 1 });
+	DirectionalLight dl{"Sun", true, {1, 1, 1, 1}};
+	dl.transform.rotation = {1, 0, 1, 1};
+	lightManager.SetDirectionalLight(dl);
+	lightManager.SetAmbientColor({0.686f, 0.87f, 1.0f, 1.0f});
 }
 
 void Scene::Update()
@@ -29,10 +26,12 @@ void Scene::Update()
 		// カメラコントローラーからカメラへ反映
 		cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
-		actors.Update();
+		actorManager.Update();
 	}
 
-	widgets.Update();
+	widgetManager.Update();
+
+	lightManager.Update();
 }
 
 void Scene::Render()
@@ -53,7 +52,7 @@ void Scene::Render()
 		rc.deviceContext = dc;
 		rc.renderState = renderState;
 		rc.camera = &camera;
-		rc.lightData = lightData;
+		rc.lightManager = &lightManager;
 		rc.renderSettings = renderSettings;
 		rc.shadowMapData = shadowMapData;
 		rc.iblData = iblData;
@@ -77,7 +76,7 @@ void Scene::Render()
 
 	// シャドウマップ描画
 	{
-		for (auto& actor : actors.data)
+		for (auto& actor : actorManager.data)
 		{
 			auto* mrc = actor->GetComponent<ModelRenderComponent>();
 			if (mrc)
@@ -94,7 +93,7 @@ void Scene::Render()
 
 		graphics.GetShadowMapRenderer()->Render(
 			rc,
-			lightData.GetDirectionalLight().direction,
+			lightManager.GetDirectionalLight().GetDirection(),
 			Vector3(0, 0, 0),
 			20.0f,
 			100.0f,
@@ -117,11 +116,11 @@ void Scene::Render()
 			*rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
-		actors.Render(rc);
+		actorManager.Render(rc);
 
 		graphics.GetModelRenderer()->Render(rc);
 
-		for (auto& actor : actors.data)
+		for (auto& actor : actorManager.data)
 		{
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
 			if (trail)
@@ -175,7 +174,7 @@ void Scene::Render()
 		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	// ---- スプライト・GUIはdisplayBufferのまま描画 ------------------------
-	widgets.Render(rc);
+	widgetManager.Render(rc);
 	graphics.GetSpriteRenderer()->Render(rc);
 
 	// GUI
@@ -187,19 +186,23 @@ void Scene::DrawGUI(RenderContext& rc)
 	#ifdef _DEBUG
 	if (renderSettings.showDebug)
 	{
-		if (!actors.data.empty())
+		if (ImGui::Begin("Actors"))
 		{
-			ImGui::Begin("Actors");
-			actors.DrawGUI();
-			ImGui::End();
+			actorManager.DrawGUI();
 		}
+		ImGui::End();
 
-		if (!widgets.data.empty())
+		if (ImGui::Begin("Widgets"))
 		{
-			ImGui::Begin("Widgets");
-			widgets.DrawGUI();
-			ImGui::End();
+			widgetManager.DrawGUI();
 		}
+		ImGui::End();
+
+		if (ImGui::Begin("Lights"))
+		{
+			lightManager.DrawGUI();
+		}
+		ImGui::End();
 
 		ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None);
 
@@ -223,7 +226,7 @@ void Scene::DrawGUI(RenderContext& rc)
 		{
 			if (ImGui::TreeNode("LightData"))
 			{
-				rc.lightData.DrawGUI();
+				ImGui::TextDisabled("Light data is moved");
 				ImGui::TreePop();
 			}
 

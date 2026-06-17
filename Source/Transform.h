@@ -4,7 +4,7 @@
 
 #include "Common.h"
 
-class Actor;
+class Object;
 
 struct Transform
 {
@@ -14,8 +14,6 @@ struct Transform
 	Vector3 forward = Vector3::Zero;
 	Vector3 right = Vector3::Zero;
 	Matrix matrix = Matrix::Identity;
-
-	Actor* owner = nullptr;
 
 	Transform(const Vector3& pos = Vector3::Zero, const Quaternion& rot = Quaternion::Identity, const Vector3& sca = Vector3::One);
 
@@ -38,5 +36,17 @@ struct Transform
 	void SetScale(float x, float y, float z);
 	void SetScale(float scale);
 
+	void SetDirection(
+		const Vector3& direction,
+		const Vector3& up = Vector3::Up);
+
 	void Update();
+
+	struct TransformChangedResult
+	{
+		bool positionChanged;
+		bool rotationChanged;
+		bool scaleChanged;
+	};
+	TransformChangedResult DrawGUI();
 };

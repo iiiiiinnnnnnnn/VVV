@@ -3,14 +3,15 @@
 #pragma once
 
 #include "Object.h"
-#include "Texture.h"
 #include "RectTransform.h"
+#include "Components.h"
+#include "Texture.h"
 
 class Widget : public Object
 {
 public:
-	Widget(const std::string& name = "", const std::string& tag = "", bool isActive = true)
-        : Object(name, tag, isActive) {}
+	Widget(const std::string& name = "", bool isActive = true)
+        : Object(name, isActive) {}
     virtual ~Widget() = default;
 
     RectTransform rect;

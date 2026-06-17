@@ -60,6 +60,13 @@ void Rigidbody::SetPosition(const Vector3& pos)
     rigidActor->setGlobalPose(t);
 }
 
+void Rigidbody::SetRotation(const Quaternion& rot)
+{
+    PxTransform t = rigidActor->getGlobalPose();
+    t.q = { rot.x, rot.y, rot.z, rot.w };
+	rigidActor->setGlobalPose(t);
+}
+
 RigidbodyStatic::RigidbodyStatic(Object* owner)
     : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(Component::GetOwnerAsActor(owner)->transform.matrix))
 {

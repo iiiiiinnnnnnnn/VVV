@@ -17,6 +17,12 @@ void Widget::DrawGUI()
     {
 		Object::DrawGUI();
 
+        if(ImGui::TreeNode("Widget Info"))
+        {
+			ImGui::TextDisabled("Widget info is void");
+            ImGui::TreePop();
+		}
+
         if (ImGui::TreeNode("RectTransform"))
         {
             ImGui::DragFloat2("Position", &rect.position.x);

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Component.h"
-#include "Common.h"
+#include "CbLightData.h"
 
 class Terrain : public Component
 {
@@ -82,58 +82,7 @@ private:
 		float edge_factor = 4.0f;
 		float inner_factor = 4.0f;
 		float height_scaler = 25.0f;
-		float tilling_scale = 12.0f;
-	};
-
-	struct CbDirectionalLight
-	{
-		Vector3 direction;
-		float dummy;
-		Color color;
-	};
-
-	struct CbPointLight
-	{
-		Vector3 position;
-		float range;
-		Color color;
-	};
-
-	struct CbSpotLight
-	{
-		Vector3 position;
-		float dummy0;
-		Vector3 direction;
-		float dummy1;
-		Color color;
-		float range;
-		float innerConeAngle;
-		float outerConeAngle;
-		float dummy2;
-	};
-
-	struct CbAreaLight
-	{
-		Vector3 position;
-		float width;
-		Vector3 direction;
-		float height;
-		Vector3 right;
-		float range;
-		Color color;
-	};
-
-	struct CbLightManager
-	{
-		CbDirectionalLight directionalLight;
-		CbPointLight pointLights[LightData::MaxPointLights];
-		CbSpotLight spotLights[LightData::MaxSpotLights];
-		CbAreaLight areaLights[LightData::MaxAreaLights];
-		Color ambientColor;
-		int pointLightCount;
-		int spotLightCount;
-		int areaLightCount;
-		float dummy;
+		float tilling_scale = 140.0f;
 	};
 
 	struct CbTerrainScene
@@ -141,7 +90,7 @@ private:
 		Matrix viewProjection;
 		Vector3 viewPosition;
 		float dummy;
-		CbLightManager lightManager;
+		CbLightData lightData;
 	};
 
 	struct TerrainBrush

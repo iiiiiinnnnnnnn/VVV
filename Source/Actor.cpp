@@ -18,45 +18,35 @@ void Actor::DrawGUI()
     {
         Object::DrawGUI();
 
-        if (ImGui::TreeNode("Transform"))
+        if (ImGui::TreeNode("Actor Info"))
         {
-            if (ImGui::DragFloat3("Position", &transform.position.x)) {
-                auto rb = GetComponent<Rigidbody>();
-                if (rb)
-                    rb->SetPosition(transform.position);
-                else {
-                    auto cc = GetComponent<CharacterController>();
-                    if (cc)
-                        cc->SetPosition(transform.position);
-                    else
-						transform.position = transform.position;
-                }
+            ImGui::Text("Tag: %s", tag.c_str());
+			ImGui::Text("Layer: %d", layer);
+			ImGui::TreePop();
+        }
+
+        Transform::TransformChangedResult res = transform.DrawGUI();
+        if (res.positionChanged)
+        {
+            auto rb = GetComponent<Rigidbody>();
+            if (rb)
+                rb->SetPosition(transform.position);
+            else
+            {
+                auto cc = GetComponent<CharacterController>();
+                if (cc)
+                    cc->SetPosition(transform.position);
             }
-            if (ImGui::DragFloat4("Rotation", &transform.rotation.x)) {
-                auto rb = GetComponent<Rigidbody>();
-                if (rb)
-                    rb->SetPosition(transform.position);
-                else {
-                    auto cc = GetComponent<CharacterController>();
-                    if (cc)
-                        cc->SetPosition(transform.position);
-                    else
-						transform.rotation = transform.rotation;
-                }
-            }
-            if (ImGui::DragFloat3("Scale", &transform.scale.x)) {
-                auto rb = GetComponent<Rigidbody>();
-                if (rb)
-                    rb->SetPosition(transform.position);
-                else {
-                    auto cc = GetComponent<CharacterController>();
-                    if (cc)
-                        cc->SetPosition(transform.position);
-                    else
-						transform.scale = transform.scale;
-                }
-            }
-            ImGui::TreePop();
+        }
+        if (res.rotationChanged)
+        {
+            auto rb = GetComponent<Rigidbody>();
+            if (rb)
+                rb->SetRotation(transform.rotation);
+        }
+        if (res.scaleChanged)
+        {
+            // you have no idea what's come
         }
 
         componentList.DrawGUI();

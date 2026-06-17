@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "Component.h"
 #include "Model.h"
 #include "ModelRenderer.h"
-#include "Component.h"
 
 class ModelRenderComponent : public Component {
 public:

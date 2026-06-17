@@ -2,7 +2,7 @@
 
 #include "Transform.h"
 #include "Components.h"
-#include "Actor.h"
+#include "Object.h"
 
 Transform::Transform(const Vector3& pos, const Quaternion& rot, const Vector3& sca)
 	: position(pos), rotation(rot), scale(sca) {
@@ -97,8 +97,70 @@ void Transform::SetScale(float scale)
 	SetScale(Vector3(scale, scale, scale));
 }
 
+void Transform::SetDirection(
+	const Vector3& direction,
+	const Vector3& up)
+{
+	if (direction.LengthSquared() < 0.000001f)
+	{
+		return;
+	}
+
+	Vector3 forward = direction;
+	forward.Normalize();
+
+	Vector3 upDirection = up;
+
+	if (upDirection.LengthSquared() < 0.000001f)
+	{
+		upDirection = Vector3::Up;
+	}
+
+	upDirection.Normalize();
+
+	// 上方向と進行方向がほぼ平行だと回転行列を作れないので、
+	// 別の上方向を使用する
+	float dot = fabsf(
+		forward.Dot(upDirection));
+
+	if (dot > 0.999f)
+	{
+		upDirection =
+			fabsf(forward.y) < 0.999f
+			? Vector3::Up
+			: Vector3::Right;
+	}
+
+	Matrix world =
+		Matrix::CreateWorld(
+		Vector3::Zero,
+		forward,
+		upDirection);
+
+	rotation =
+		Quaternion::CreateFromRotationMatrix(
+		world);
+
+	Update();
+}
+
 void Transform::Update() {
 	matrix = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
 	forward = Vector3::TransformNormal(Vector3::UnitZ, matrix);
 	right = Vector3::TransformNormal(Vector3::UnitX, matrix);
+}
+
+Transform::TransformChangedResult Transform::DrawGUI()
+{
+	TransformChangedResult res;
+
+	if (ImGui::TreeNode("Transform"))
+	{
+		res.positionChanged = ImGui::DragFloat3("Position", &position.x);
+		res.rotationChanged = ImGui::DragFloat4("Rotation", &rotation.x);
+		res.scaleChanged = ImGui::DragFloat3("Scale", &scale.x);
+		ImGui::TreePop();
+	}
+
+	return res;
 }

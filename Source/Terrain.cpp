@@ -1,13 +1,12 @@
 ﻿// Terrain.cpp
 
 #include "Terrain.h"
-
 #include <DirectXTex.h>
-
 #include "Actor.h"
 #include "Collider.h"
 #include "Graphics.h"
 #include "GpuResourceUtils.h"
+#include "LightManager.h"
 #include "Input.h"
 #include "Misc.h"
 
@@ -320,47 +319,7 @@ void Terrain::UpdateTerrainSceneConstantBuffer(
 	CbTerrainScene cbScene{};
 	cbScene.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	cbScene.viewPosition = rc.camera->GetEye();
-
-	const DirectionalLight& directionalLight = rc.lightData.GetDirectionalLight();
-	cbScene.lightManager.directionalLight.direction = directionalLight.direction;
-	cbScene.lightManager.directionalLight.color = directionalLight.color;
-
-	const std::vector<PointLight>& pointLights = rc.lightData.GetPointLights();
-	cbScene.lightManager.pointLightCount = static_cast<int>(pointLights.size());
-	for (int i = 0; i < cbScene.lightManager.pointLightCount; ++i)
-	{
-		cbScene.lightManager.pointLights[i].position = pointLights[i].position;
-		cbScene.lightManager.pointLights[i].range = pointLights[i].range;
-		cbScene.lightManager.pointLights[i].color = pointLights[i].color;
-	}
-
-	const std::vector<SpotLight>& spotLights = rc.lightData.GetSpotLights();
-	cbScene.lightManager.spotLightCount = static_cast<int>(spotLights.size());
-	for (int i = 0; i < cbScene.lightManager.spotLightCount; ++i)
-	{
-		cbScene.lightManager.spotLights[i].position = spotLights[i].position;
-		cbScene.lightManager.spotLights[i].direction = spotLights[i].direction;
-		cbScene.lightManager.spotLights[i].color = spotLights[i].color;
-		cbScene.lightManager.spotLights[i].range = spotLights[i].range;
-		cbScene.lightManager.spotLights[i].innerConeAngle = spotLights[i].innerConeAngle;
-		cbScene.lightManager.spotLights[i].outerConeAngle = spotLights[i].outerConeAngle;
-	}
-
-	const std::vector<AreaLight>& areaLights = rc.lightData.GetAreaLights();
-	cbScene.lightManager.areaLightCount = static_cast<int>(areaLights.size());
-	for (int i = 0; i < cbScene.lightManager.areaLightCount; ++i)
-	{
-		cbScene.lightManager.areaLights[i].position = areaLights[i].position;
-		cbScene.lightManager.areaLights[i].direction = areaLights[i].direction;
-		cbScene.lightManager.areaLights[i].right = areaLights[i].right;
-		cbScene.lightManager.areaLights[i].width = areaLights[i].width;
-		cbScene.lightManager.areaLights[i].height = areaLights[i].height;
-		cbScene.lightManager.areaLights[i].range = areaLights[i].range;
-		cbScene.lightManager.areaLights[i].color = areaLights[i].color;
-	}
-
-	cbScene.lightManager.ambientColor = rc.lightData.GetAmbientColor();
-
+	cbScene.lightData = rc.lightManager->ConvertToCb();
 	dc->UpdateSubresource(
 		terrainSceneConstantBuffer.Get(),
 		0,

@@ -15,7 +15,9 @@ public:
     void DrawGUI() override;
 
     void SetPosition(const Vector3& pos);
+    void SetRotation(const Quaternion& rot);
     Vector3 GetPosition() const { return VEC3(rigidActor->getGlobalPose().p); }
+	Quaternion GetRotation() const { return QUATPX(rigidActor->getGlobalPose().q); }
 
     PxRigidActor* GetRigidActor() const { return rigidActor; }
 

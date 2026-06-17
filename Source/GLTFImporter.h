@@ -8,6 +8,8 @@
 #include "Model.h"
 #include "RenderContext.h"
 
+class LightManager;
+
 class GLTFImporter
 {
 private:
@@ -32,7 +34,7 @@ public:
 	void LoadAnimations(AnimationList& animations, const NodeList& nodes, float sampleRate = 60);
 
 	// ライトデータを読み込み
-	void LoadLights(LightData& lightData, const NodeList& nodes);
+	void LoadLights(LightManager& lightData, const NodeList& nodes);
 
 private:
 	// 座標系変換

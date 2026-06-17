@@ -3,22 +3,21 @@
 #pragma once
 
 #include "Common.h"
-#include "Components.h"
+#include "Component.h"
+
+struct RenderContext;
 
 class Object
 {
 public:
-	Object(const std::string& name = "", const std::string& tag = "", bool isActive = true)
-		: name(name), tag(tag), isActive(isActive) {}
+	Object(const std::string& name = "", bool isActive = true)
+		: name(name), isActive(isActive) {}
 	
 	void SetActive(bool active) { isActive = active; }
 	void SetName(const std::string& name) { this->name = name; }
-	void SetTag(const std::string& tag) { this->tag = tag; }
 
 	bool IsActive() const { return isActive; }
 	const std::string& GetName() const { return name; }
-	const std::string& GetTag() const { return tag; }
-	bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
 
 	virtual void Update();
 	virtual void Render(const RenderContext& rc);
@@ -51,7 +50,6 @@ protected:
 
 	bool isActive;
 	std::string name;
-	std::string tag;
 
 	std::optional<float> destroyTimer;
 

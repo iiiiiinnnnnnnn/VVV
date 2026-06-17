@@ -4,6 +4,7 @@ struct CbDirectionalLight
 {
     float3 direction;
     float _dummyCbDirectionalLight;
+    
     float4 color;
 };
 
@@ -11,6 +12,7 @@ struct CbPointLight
 {
     float3 position;
     float range;
+    
     float4 color;
 };
 
@@ -18,9 +20,12 @@ struct CbSpotLight
 {
     float3 position;
     float _dummyCbSpotLight1;
+    
     float3 direction;
     float _dummyCbSpotLight2;
+    
     float4 color;
+    
     float range;
     float innerConeAngle;
     float outerConeAngle;
@@ -31,17 +36,20 @@ struct CbAreaLight
 {
     float3 position;
     float width;
+    
     float3 direction; // ñ@ê¸
     float height;
+    
     float3 right; // ãÈå`Xé≤
     float range;
+    
     float4 color;
 };
 
 #define MaxPointLights 32
 #define MaxSpotLights 32
 #define MaxAreaLights 32
-struct CbLightManager
+struct CbLightData
 {
     CbDirectionalLight directionalLight;
     CbPointLight pointLights[MaxPointLights];
@@ -59,5 +67,5 @@ cbuffer CbScene : register(b7)
     row_major float4x4 viewProjection;
     float3 viewPosition;
     float _dummyCbScene;
-    CbLightManager lightManager;
+    CbLightData lightData;
 };

@@ -10,6 +10,8 @@
 #include "GpuResourceUtils.h"
 #include "GLTFImporter.h"
 
+#include "LightManager.h"
+
 bool LoadImageData(tinygltf::Image*, const int, std::string*,
 	std::string*, int, int,
 	const unsigned char*, int,
@@ -702,7 +704,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 	}
 }
 
-void GLTFImporter::LoadLights(LightData& lightData, const NodeList& nodes)
+void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 {
 	// KHR_lights_punctual がなければスキップ
 	if (gltfModel.lights.empty()) return;
@@ -754,29 +756,31 @@ void GLTFImporter::LoadLights(LightData& lightData, const NodeList& nodes)
 
 		if (l.type == "point")
 		{
-			PointLight light;
-			light.position = position;
-			light.color = color;
-			light.range = range;
-			lightData.AddPointLight(light);
+			auto& light = lightData.AddPointLight();
+			light.SetName(l.name);
+			light.transform.position = position;
+			light.SetColor(color);
+			light.SetRange(range);
 		}
 		else if (l.type == "spot")
 		{
-			SpotLight light;
-			light.position = position;
-			light.direction = direction;
-			light.color = color;
-			light.range = range;
-			light.innerConeAngle = static_cast<float>(l.spot.innerConeAngle);
-			light.outerConeAngle = static_cast<float>(l.spot.outerConeAngle);
-			lightData.AddSpotLight(light);
+			auto& light = lightData.AddSpotLight();
+			light.SetName(l.name);
+			light.transform.position = position;
+			light.transform.SetDirection(direction);
+			light.SetColor(color);
+			light.SetRange(range);
+			light.SetInnerConeAngle(static_cast<float>(l.spot.innerConeAngle));
+			light.SetOuterConeAngle(static_cast<float>(l.spot.outerConeAngle));
 		}
 		else if (l.type == "directional")
 		{
-			DirectionalLight light;
-			light.direction = direction;
-			light.color = color;
-			lightData.SetDirectionalLight(light);
+			DirectionalLight& light =
+				lightData.GetDirectionalLight();
+
+			light.SetName(l.name);
+			light.transform.SetDirection(direction);
+			light.SetColor(color);
 		}
 	}
 }

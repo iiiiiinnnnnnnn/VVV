@@ -33,7 +33,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 	// stage
 	{
-		actors.Register(
+		actorManager.Register(
 			std::make_shared<Stage01>());
 	}
 
@@ -45,7 +45,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		player->SetController(
 			std::make_unique<LocalPlayer>());
 
-		actors.Register(player);
+		actorManager.Register(player);
 
 		camera.SetPerspectiveFov(
 			DirectX::XMConvertToRadians(45),
@@ -79,7 +79,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		apple->SetAggressive(false);
 		apple->SetPosition({ 8, 0, 8 });
 
-		actors.Register(apple);
+		actorManager.Register(apple);
 	}
 
 	// Apple aggressive
@@ -89,7 +89,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		apple->SetAggressive(true);
 		apple->SetPosition({ -8, 0, 8 });
 
-		actors.Register(apple);
+		actorManager.Register(apple);
 	}
 
 	// test widget
@@ -99,7 +99,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		sw->rect.position = {50, 50};
 		sw->rect.anchor = {0.5f, 0.5f};
 		sw->AddComponent<Animator>()->Load("Data/Animator/Test2D.animator");
-		widgets.Register(sw);
+		widgetManager.Register(sw);
 	}
 
 	DamageVignette::Init(device);

@@ -1,6 +1,7 @@
 ﻿#include <algorithm>
 #include "Misc.h"
 #include "GpuResourceUtils.h"
+#include "LightManager.h"
 #include "ModelRenderer.h"
 #include "BasicModelShader.h"
 
@@ -49,7 +50,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		Matrix P = rc.camera->GetProjection();
 		cbScene.viewProjection = V * P;
 		cbScene.viewPosition = rc.camera->GetEye();
-		cbScene.lightManager = CbLightManager(rc.lightData);
+		cbScene.lightData = rc.lightManager->ConvertToCb();
 		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 	}
 

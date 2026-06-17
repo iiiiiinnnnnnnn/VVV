@@ -193,10 +193,10 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 totalSpecular = 0.0f;
 
     {
-        float3 L = normalize(-lightManager.directionalLight.direction);
+        float3 L = normalize(-lightData.directionalLight.direction);
         float3 LC =
-            lightManager.directionalLight.color.rgb
-            * lightManager.directionalLight.color.a;
+            lightData.directionalLight.color.rgb
+            * lightData.directionalLight.color.a;
 
         float3 d;
         float3 s;
@@ -217,20 +217,20 @@ float4 main(VS_OUT pin) : SV_TARGET
         totalSpecular += s;
     }
 
-    for (uint i = 0; i < lightManager.pointLightCount && i < MaxPointLights; ++i)
+    for (uint i = 0; i < lightData.pointLightCount && i < MaxPointLights; ++i)
     {
-        float3 toLight = lightManager.pointLights[i].position - pin.position;
+        float3 toLight = lightData.pointLights[i].position - pin.position;
         float len = length(toLight);
 
-        if (len < lightManager.pointLights[i].range)
+        if (len < lightData.pointLights[i].range)
         {
-            float atten = 1.0f - len / lightManager.pointLights[i].range;
+            float atten = 1.0f - len / lightData.pointLights[i].range;
             atten *= atten;
 
             float3 L = normalize(toLight);
             float3 LC =
-                lightManager.pointLights[i].color.rgb
-                * lightManager.pointLights[i].color.a
+                lightData.pointLights[i].color.rgb
+                * lightData.pointLights[i].color.a
                 * atten;
 
             float3 d;
@@ -253,32 +253,32 @@ float4 main(VS_OUT pin) : SV_TARGET
         }
     }
 
-    for (uint j = 0; j < lightManager.spotLightCount && j < MaxSpotLights; ++j)
+    for (uint j = 0; j < lightData.spotLightCount && j < MaxSpotLights; ++j)
     {
-        float3 toLight = lightManager.spotLights[j].position - pin.position;
+        float3 toLight = lightData.spotLights[j].position - pin.position;
         float len = length(toLight);
 
-        if (len < lightManager.spotLights[j].range)
+        if (len < lightData.spotLights[j].range)
         {
-            float atten = 1.0f - len / lightManager.spotLights[j].range;
+            float atten = 1.0f - len / lightData.spotLights[j].range;
             atten *= atten;
 
             float3 L = normalize(toLight);
-            float3 spotDir = normalize(lightManager.spotLights[j].direction);
+            float3 spotDir = normalize(lightData.spotLights[j].direction);
             float angle = dot(spotDir, -L);
 
             float area =
-                lightManager.spotLights[j].innerConeAngle
-                - lightManager.spotLights[j].outerConeAngle;
+                lightData.spotLights[j].innerConeAngle
+                - lightData.spotLights[j].outerConeAngle;
 
             atten *= saturate(
                 1.0f
-                - (lightManager.spotLights[j].innerConeAngle - angle)
+                - (lightData.spotLights[j].innerConeAngle - angle)
                 / area);
 
             float3 LC =
-                lightManager.spotLights[j].color.rgb
-                * lightManager.spotLights[j].color.a
+                lightData.spotLights[j].color.rgb
+                * lightData.spotLights[j].color.a
                 * atten;
 
             float3 d;
@@ -301,41 +301,41 @@ float4 main(VS_OUT pin) : SV_TARGET
         }
     }
 
-    for (uint k = 0; k < lightManager.areaLightCount && k < MaxAreaLights; ++k)
+    for (uint k = 0; k < lightData.areaLightCount && k < MaxAreaLights; ++k)
     {
-        float3 up = normalize(lightManager.areaLights[k].direction);
-        float3 right = normalize(lightManager.areaLights[k].right);
-        float3 toSurface = pin.position - lightManager.areaLights[k].position;
+        float3 up = normalize(lightData.areaLights[k].direction);
+        float3 right = normalize(lightData.areaLights[k].right);
+        float3 toSurface = pin.position - lightData.areaLights[k].position;
 
         float2 projection = float2(
             dot(toSurface, right),
             dot(toSurface, up));
 
-        float halfWidth = lightManager.areaLights[k].width * 0.5f;
-        float halfHeight = lightManager.areaLights[k].height * 0.5f;
+        float halfWidth = lightData.areaLights[k].width * 0.5f;
+        float halfHeight = lightData.areaLights[k].height * 0.5f;
 
         float2 clampedProjection = float2(
             clamp(projection.x, -halfWidth, halfWidth),
             clamp(projection.y, -halfHeight, halfHeight));
 
         float3 nearest =
-            lightManager.areaLights[k].position
+            lightData.areaLights[k].position
             + right * clampedProjection.x
             + up * clampedProjection.y;
 
         float3 toLight = nearest - pin.position;
         float len = length(toLight);
 
-        if (len < lightManager.areaLights[k].range)
+        if (len < lightData.areaLights[k].range)
         {
-            float atten = 1.0f - len / lightManager.areaLights[k].range;
+            float atten = 1.0f - len / lightData.areaLights[k].range;
             atten *= atten;
             atten *= saturate(dot(normalize(-toSurface), up));
 
             float3 L = normalize(toLight);
             float3 LC =
-                lightManager.areaLights[k].color.rgb
-                * lightManager.areaLights[k].color.a
+                lightData.areaLights[k].color.rgb
+                * lightData.areaLights[k].color.a
                 * atten;
 
             float3 d;
@@ -381,7 +381,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         shadow,
         saturate(shadowStrength));
 
-    float iblIntensity = lightManager.ambientColor.a;
+    float iblIntensity = lightData.ambientColor.a;
 
     float3 iblDiffuse =
         DiffuseIBL(

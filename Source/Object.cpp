@@ -41,7 +41,6 @@ void Object::DrawGUI()
     if (ImGui::TreeNode("Object Info"))
     {
         ImGui::Text("Name: %s", name.c_str());
-        ImGui::Text("Tag: %s", tag.c_str());
         ImGui::Checkbox("Active", &isActive);
         ImGui::Text("Components: %d", (int)componentList.data.size());
         ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
