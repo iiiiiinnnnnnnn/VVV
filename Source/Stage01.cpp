@@ -7,7 +7,7 @@ Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
     auto* rb = AddComponent<RigidbodyStatic>();
 
     AddComponent<Terrain>();
-    AddComponent<TerrainMeshCollider>(rb, 128 * 4);
+    AddComponent<TerrainMeshCollider>(rb, 1024);
 }
 
 void Stage01::OnUpdate()

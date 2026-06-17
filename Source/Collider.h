@@ -98,6 +98,8 @@ private:
 class TerrainMeshCollider : public Component
 {
 public:
+    static constexpr int MaxResolution = 2048;
+
     TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, PxMaterial* material = nullptr);
     ~TerrainMeshCollider() override;
 
@@ -116,7 +118,7 @@ private:
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 
-    int resolution = 2048;
+    int resolution = 128;
 
     std::vector<Vector3> debugVertices;
     std::vector<uint32_t> debugIndices;

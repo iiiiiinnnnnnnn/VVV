@@ -33,7 +33,8 @@ public:
 private:
 	enum class BrushMode
 	{
-		Height,
+		RaiseLower,
+		SetHeight,
 		Paint,
 	};
 
@@ -197,9 +198,10 @@ private:
 	float shadowStrength = 1.0f;
 
 	bool use_brush = false;
-	BrushMode brushMode = BrushMode::Height;
+	BrushMode brushMode = BrushMode::RaiseLower;
 	int brush_size = 32;
 	float heightBrushStrength = 0.02f;
+	float setHeightValue = 0.0f;
 	float paintOpacity = 0.08f;
 	bool invertBrushMask = false;
 

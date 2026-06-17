@@ -467,7 +467,7 @@ void BoneSphereCollider::DrawGUI()
 }
 
 TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), resolution(resolution), material(material)
+    : Component(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), material(material)
 {
     GetOwnerAsActor();
 
@@ -524,7 +524,7 @@ void TerrainMeshCollider::BuildMeshFromTerrain(
 
     Actor* actor = GetOwnerAsActor();
 
-    const int r = std::clamp(resolution, 1, 512);
+    const int r = std::clamp(resolution, 1, MaxResolution);
     const float terrainSize = terrain->GetTerrainSize();
     const Vector3 ownerScale = actor->transform.scale;
 
@@ -699,13 +699,15 @@ void TerrainMeshCollider::DrawGUI()
         return;
     }
 
-    ImGui::DragInt("collision resolution", &resolution, 1, 1, 2048);
+    ImGui::DragInt("collision resolution", &resolution, 1, 1, MaxResolution);
+    resolution = std::clamp(resolution, 1, MaxResolution);
 
     if (ImGui::Button("Rebuild Terrain MeshCollider"))
     {
         RebuildFromTerrain();
     }
 
+    ImGui::Text("Effective Resolution: %d / %d", resolution, MaxResolution);
     ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
     ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
 
@@ -735,4 +737,3 @@ void TerrainMeshCollider::DrawGUI()
 
     ImGui::TreePop();
 }
-

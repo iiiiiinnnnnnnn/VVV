@@ -772,11 +772,16 @@ void Terrain::ApplyBrush(float u, float v, float heightSign)
 				static_cast<size_t>(y) * TerrainTextureWidth +
 				static_cast<size_t>(x)];
 
-			if (brushMode == BrushMode::Height)
+			if (brushMode == BrushMode::RaiseLower)
 			{
 				pixel.x += heightBrushStrength * heightSign * mask;
 			}
-			else
+			else if (brushMode == BrushMode::SetHeight)
+			{
+				const float setAmount = std::clamp(mask, 0.0f, 1.0f);
+				pixel.x += (setHeightValue - pixel.x) * setAmount;
+			}
+			else if (brushMode == BrushMode::Paint)
 			{
 				const float paintAmount = std::clamp(
 					paintOpacity * mask,
@@ -791,6 +796,10 @@ void Terrain::ApplyBrush(float u, float v, float heightSign)
 	}
 
 	terrainTextureDirty = true;
+	if (brushMode == BrushMode::RaiseLower || brushMode == BrushMode::SetHeight)
+	{
+		pendingColliderRebuild = true;
+	}
 }
 
 bool Terrain::AddBrushTexture(const std::string& filename)
@@ -1539,7 +1548,8 @@ void Terrain::DrawGUI()
 		int brushModeIndex = static_cast<int>(brushMode);
 		const char* brushModeItems[] =
 		{
-			"Height",
+			"Raise/Lower",
+			"Set Height",
 			"Paint",
 		};
 
@@ -1549,10 +1559,22 @@ void Terrain::DrawGUI()
 		}
 
 		ImGui::SliderInt("brush size", &brush_size, 1, 256);
-		ImGui::DragFloat("height brush strength", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
-		ImGui::DragFloat("paint opacity", &paintOpacity, 0.001f, 0.0f, 1.0f);
-		ImGui::Text("Left drag: paint");
-		ImGui::Text("Shift + left drag: lower height");
+		if (brushMode == BrushMode::RaiseLower)
+		{
+			ImGui::DragFloat("raise/lower strength", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
+			ImGui::Text("Left drag: raise");
+			ImGui::Text("Shift + left drag: lower");
+		}
+		else if (brushMode == BrushMode::SetHeight)
+		{
+			ImGui::DragFloat("set height", &setHeightValue, 0.001f, -10.0f, 10.0f);
+			ImGui::Text("Left drag: set height");
+		}
+		else if (brushMode == BrushMode::Paint)
+		{
+			ImGui::DragFloat("paint opacity", &paintOpacity, 0.001f, 0.0f, 1.0f);
+			ImGui::Text("Left drag: paint");
+		}
 		ImGui::Text("Alt + left drag: camera orbit only");
 
 		ImGui::TreePop();
@@ -1596,8 +1618,15 @@ float Terrain::GetHeightByUV(float u, float v) const
 	u = std::clamp(u, 0.0f, 1.0f);
 	v = std::clamp(v, 0.0f, 1.0f);
 
-	int x = static_cast<int>(u * static_cast<float>(TerrainTextureWidth - 1));
-	int y = static_cast<int>(v * static_cast<float>(TerrainTextureHeight - 1));
+	int x = std::clamp(
+		static_cast<int>(std::floor(u * static_cast<float>(TerrainTextureWidth))),
+		0,
+		TerrainTextureWidth - 1);
+
+	int y = std::clamp(
+		static_cast<int>(std::floor(v * static_cast<float>(TerrainTextureHeight))),
+		0,
+		TerrainTextureHeight - 1);
 
 	const Vector4& pixel = terrainPixels[
 		static_cast<size_t>(y) * TerrainTextureWidth +
