@@ -73,13 +73,13 @@ protected:
 	Camera camera;
 	std::vector<std::unique_ptr<CameraController>> cameraControllers;
 	int nowCameraControllerIndex = 0;
-	PostEffect postEffect;
 
-	LightManager lightManager;
+	PostEffect postEffect;
 	RenderSettings renderSettings;
 	ShadowMapData shadowMapData;
 	IBLData iblData;
 
 	ActorManager actorManager;
 	WidgetManager widgetManager;
+	LightManager lightManager;
 };
