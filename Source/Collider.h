@@ -100,7 +100,12 @@ class TerrainMeshCollider : public Component
 public:
     static constexpr int MaxResolution = 2048;
 
-    TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, PxMaterial* material = nullptr);
+    struct CollisionArea
+    {
+        float minX = 0.0f, maxX = 1.0f, minZ = 0.0f, maxZ = 1.0f;
+    };
+
+    TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, const CollisionArea& collisionArea = {}, PxMaterial* material = nullptr);
     ~TerrainMeshCollider() override;
 
     void Render(const RenderContext& rc) override;
@@ -112,13 +117,14 @@ private:
     void BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices);
     void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
     void ReleaseShape();
+    void ClampCollisionArea();
 
-private:
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 
     int resolution = 128;
+    CollisionArea collisionArea;
 
     std::vector<Vector3> debugVertices;
     std::vector<uint32_t> debugIndices;

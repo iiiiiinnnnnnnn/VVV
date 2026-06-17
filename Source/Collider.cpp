@@ -466,8 +466,8 @@ void BoneSphereCollider::DrawGUI()
     }
 }
 
-TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), material(material)
+TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, const CollisionArea& collisionArea, PxMaterial* material)
+    : Component(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), collisionArea(collisionArea), material(material)
 {
     GetOwnerAsActor();
 
@@ -503,6 +503,37 @@ void TerrainMeshCollider::ReleaseShape()
     shape = nullptr;
 }
 
+void TerrainMeshCollider::ClampCollisionArea()
+{
+    collisionArea.minX = std::clamp(collisionArea.minX, 0.0f, 1.0f);
+    collisionArea.minZ = std::clamp(collisionArea.minZ, 0.0f, 1.0f);
+    collisionArea.maxX = std::clamp(collisionArea.maxX, 0.0f, 1.0f);
+    collisionArea.maxZ = std::clamp(collisionArea.maxZ, 0.0f, 1.0f);
+
+    if (collisionArea.minX > collisionArea.maxX)
+    {
+        std::swap(collisionArea.minX, collisionArea.maxX);
+    }
+
+    if (collisionArea.minZ > collisionArea.maxZ)
+    {
+        std::swap(collisionArea.minZ, collisionArea.maxZ);
+    }
+
+    constexpr float minRange = 0.001f;
+    if (collisionArea.maxX - collisionArea.minX < minRange)
+    {
+        collisionArea.maxX = min(collisionArea.minX + minRange, 1.0f);
+        collisionArea.minX = max(collisionArea.maxX - minRange, 0.0f);
+    }
+
+    if (collisionArea.maxZ - collisionArea.minZ < minRange)
+    {
+        collisionArea.maxZ = min(collisionArea.minZ + minRange, 1.0f);
+        collisionArea.minZ = max(collisionArea.maxZ - minRange, 0.0f);
+    }
+}
+
 void TerrainMeshCollider::RebuildFromTerrain()
 {
     std::vector<Vector3> vertices;
@@ -524,6 +555,8 @@ void TerrainMeshCollider::BuildMeshFromTerrain(
 
     Actor* actor = GetOwnerAsActor();
 
+    ClampCollisionArea();
+
     const int r = std::clamp(resolution, 1, MaxResolution);
     const float terrainSize = terrain->GetTerrainSize();
     const Vector3 ownerScale = actor->transform.scale;
@@ -543,8 +576,10 @@ void TerrainMeshCollider::BuildMeshFromTerrain(
     {
         for (int x = 0; x <= r; ++x)
         {
-            const float u = static_cast<float>(x) / static_cast<float>(r);
-            const float v = static_cast<float>(z) / static_cast<float>(r);
+            const float tx = static_cast<float>(x) / static_cast<float>(r);
+            const float tz = static_cast<float>(z) / static_cast<float>(r);
+            const float u = collisionArea.minX + (collisionArea.maxX - collisionArea.minX) * tx;
+            const float v = collisionArea.minZ + (collisionArea.maxZ - collisionArea.minZ) * tz;
 
             Vector3 localPosition;
             localPosition.x = (u - 0.5f) * terrainSize * ownerScale.x;
@@ -650,12 +685,31 @@ void TerrainMeshCollider::UpdateShape(
 
 void TerrainMeshCollider::Render(const RenderContext& rc)
 {
-    // 重すぎ
-    #if 0
     if (!rc.renderSettings.showDebug)
-    {
         return;
+
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    if (terrain != nullptr)
+    {
+        const float terrainSize = terrain->GetTerrainSize();
+        const float halfTerrainSize = terrainSize * 0.5f;
+
+        // collision range
+        Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+            Vector3(
+            (collisionArea.minX + collisionArea.maxX - 1.0f) * 0.5f * halfTerrainSize,
+            0.0f,
+            (collisionArea.minZ + collisionArea.maxZ - 1.0f) * 0.5f * halfTerrainSize),
+            Vector3::Zero,
+            Vector3(
+            (collisionArea.maxX - collisionArea.minX) * halfTerrainSize,
+            0.1f,
+            (collisionArea.maxZ - collisionArea.minZ) * halfTerrainSize),
+            Color(0.0f, 1.0f, 0.0f, 1.0f));
     }
+
+    // mesh
+    #if 0
 
     if (debugVertices.empty() || debugIndices.empty())
     {
@@ -694,46 +748,102 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
 
 void TerrainMeshCollider::DrawGUI()
 {
-    if (!ImGui::TreeNode("TerrainMeshCollider"))
+    if (ImGui::TreeNode("TerrainMeshCollider"))
     {
-        return;
-    }
+        ImGui::DragInt("collision resolution", &resolution, 1, 1, MaxResolution);
+        resolution = std::clamp(resolution, 1, MaxResolution);
 
-    ImGui::DragInt("collision resolution", &resolution, 1, 1, MaxResolution);
-    resolution = std::clamp(resolution, 1, MaxResolution);
-
-    if (ImGui::Button("Rebuild Terrain MeshCollider"))
-    {
-        RebuildFromTerrain();
-    }
-
-    ImGui::Text("Effective Resolution: %d / %d", resolution, MaxResolution);
-    ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
-    ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
-
-    if (ImGui::TreeNode("Material"))
-    {
-        float staticFriction = material->getStaticFriction();
-        float dynamicFriction = material->getDynamicFriction();
-        float restitution = material->getRestitution();
-
-        if (ImGui::DragFloat("Static Friction", &staticFriction, 0.01f, 0.0f, 1.0f))
+        Terrain* terrain = owner->GetComponent<Terrain>();
+        if (terrain != nullptr && ImGui::TreeNode("Collision Area AABB"))
         {
-            material->setStaticFriction(staticFriction);
+            ClampCollisionArea();
+
+            const float terrainSize = terrain->GetTerrainSize();
+            const float halfTerrainSize = terrainSize * 0.5f;
+            Vector2 localMin =
+            {
+                (collisionArea.minX - 0.5f) * terrainSize,
+                (collisionArea.minZ - 0.5f) * terrainSize
+            };
+            Vector2 localMax =
+            {
+                (collisionArea.maxX - 0.5f) * terrainSize,
+                (collisionArea.maxZ - 0.5f) * terrainSize
+            };
+
+            bool areaChanged = false;
+            areaChanged |= ImGui::DragFloat2("local min xz", &localMin.x, 0.1f, -halfTerrainSize, halfTerrainSize);
+            areaChanged |= ImGui::DragFloat2("local max xz", &localMax.x, 0.1f, -halfTerrainSize, halfTerrainSize);
+
+            if (areaChanged)
+            {
+                localMin.x = std::clamp(localMin.x, -halfTerrainSize, halfTerrainSize);
+                localMin.y = std::clamp(localMin.y, -halfTerrainSize, halfTerrainSize);
+                localMax.x = std::clamp(localMax.x, -halfTerrainSize, halfTerrainSize);
+                localMax.y = std::clamp(localMax.y, -halfTerrainSize, halfTerrainSize);
+
+                collisionArea.minX = localMin.x / terrainSize + 0.5f;
+                collisionArea.minZ = localMin.y / terrainSize + 0.5f;
+                collisionArea.maxX = localMax.x / terrainSize + 0.5f;
+                collisionArea.maxZ = localMax.y / terrainSize + 0.5f;
+                ClampCollisionArea();
+            }
+
+            if (ImGui::Button("Reset Full Terrain Area"))
+            {
+				collisionArea.minX = 0.0f;
+				collisionArea.minZ = 0.0f;
+				collisionArea.maxX = 1.0f;
+				collisionArea.maxZ = 1.0f;
+            }
+
+            ImGui::Text(
+                "UV: (%.3f, %.3f) - (%.3f, %.3f)",
+                collisionArea.minX,
+                collisionArea.minZ,
+                collisionArea.maxX,
+                collisionArea.maxZ);
+            ImGui::Text(
+                "Area Size: %.2f x %.2f",
+                (collisionArea.maxX - collisionArea.minX) * terrainSize,
+                (collisionArea.maxZ - collisionArea.minZ) * terrainSize);
+
+            ImGui::TreePop();
         }
 
-        if (ImGui::DragFloat("Dynamic Friction", &dynamicFriction, 0.01f, 0.0f, 1.0f))
+        if (ImGui::Button("Rebuild Terrain MeshCollider"))
         {
-            material->setDynamicFriction(dynamicFriction);
+            RebuildFromTerrain();
         }
 
-        if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
+        ImGui::Text("Effective Resolution: %d / %d", resolution, MaxResolution);
+        ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
+        ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
+
+        if (ImGui::TreeNode("Material"))
         {
-            material->setRestitution(restitution);
+            float staticFriction = material->getStaticFriction();
+            float dynamicFriction = material->getDynamicFriction();
+            float restitution = material->getRestitution();
+
+            if (ImGui::DragFloat("Static Friction", &staticFriction, 0.01f, 0.0f, 1.0f))
+            {
+                material->setStaticFriction(staticFriction);
+            }
+
+            if (ImGui::DragFloat("Dynamic Friction", &dynamicFriction, 0.01f, 0.0f, 1.0f))
+            {
+                material->setDynamicFriction(dynamicFriction);
+            }
+
+            if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
+            {
+                material->setRestitution(restitution);
+            }
+
+            ImGui::TreePop();
         }
 
         ImGui::TreePop();
     }
-
-    ImGui::TreePop();
 }
