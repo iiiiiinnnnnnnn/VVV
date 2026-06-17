@@ -11,7 +11,7 @@ Scene::Scene(SceneMessage message) : message(message)
 	dl.transform.rotation = {1, 0, 1, 1};
 	lightManager.SetDirectionalLight(dl);
 
-	lightManager.SetAmbientColor(ColorFromRGBA(0x50BDFFFF));
+	lightManager.SetAmbientColor(ColorFromRGBA(0xE1FFD6FF));
 }
 
 void Scene::Update()

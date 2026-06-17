@@ -4,7 +4,7 @@
     "luminanceExtractionLowerEdge": 1.5,
     "luminanceExtractionHigherEdge": 2,
     "gaussianSigma": 0.8,
-    "bloomIntensity": 0,
+    "bloomIntensity": 0.7,
     "saturation": 1.2,
     "exposure": 1
   }

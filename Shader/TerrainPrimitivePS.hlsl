@@ -23,6 +23,69 @@ float3 UnpackNormalBC5(Texture2D<float4> tex, float2 uv)
     return float3(xy, z);
 }
 
+float Hash21(float2 p)
+{
+    p = frac(p * float2(123.34f, 456.21f));
+    p += dot(p, p + 45.32f);
+    return frac(p.x * p.y);
+}
+
+float ValueNoise(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = frac(p);
+    float2 u = f * f * (3.0f - 2.0f * f);
+
+    float a = Hash21(i);
+    float b = Hash21(i + float2(1.0f, 0.0f));
+    float c = Hash21(i + float2(0.0f, 1.0f));
+    float d = Hash21(i + float2(1.0f, 1.0f));
+
+    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+}
+
+float2 RotateUV(float2 uv, float angle)
+{
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(
+        uv.x * c - uv.y * s,
+        uv.x * s + uv.y * c);
+}
+
+float2 TerrainLayerUV(float2 baseUV, float2 worldXZ, float seed, float scaleMul)
+{
+    float2 cell = floor(worldXZ / 6.0f);
+    float2 jitter = float2(
+        Hash21(cell + seed),
+        Hash21(cell + seed + 19.17f)) - 0.5f;
+
+    float angle = (Hash21(cell + seed + 37.91f) - 0.5f) * 0.9f;
+    return RotateUV(baseUV * scaleMul + jitter * 0.18f, angle);
+}
+
+float4 SampleAntiTile(Texture2D<float4> tex, float2 baseUV, float2 worldXZ, float seed)
+{
+    float n = ValueNoise(worldXZ * 0.045f + seed);
+    float2 uvA = TerrainLayerUV(baseUV, worldXZ, seed, 1.0f);
+    float2 uvB = TerrainLayerUV(baseUV, worldXZ, seed + 71.3f, 1.37f);
+    return lerp(
+        tex.Sample(linearSampler, uvA),
+        tex.Sample(linearSampler, uvB),
+        smoothstep(0.25f, 0.75f, n));
+}
+
+float3 SampleAntiTileNormal(Texture2D<float4> tex, float2 baseUV, float2 worldXZ, float seed)
+{
+    float n = ValueNoise(worldXZ * 0.045f + seed);
+    float2 uvA = TerrainLayerUV(baseUV, worldXZ, seed, 1.0f);
+    float2 uvB = TerrainLayerUV(baseUV, worldXZ, seed + 71.3f, 1.37f);
+
+    float3 normalA = UnpackNormalBC5(tex, uvA);
+    float3 normalB = UnpackNormalBC5(tex, uvB);
+    return normalize(lerp(normalA, normalB, smoothstep(0.25f, 0.75f, n)));
+}
+
 // Terrain PBR FUnction
 #define TERRAIN_PBR
 #ifdef TERRAIN_PBR
@@ -123,10 +186,11 @@ float3 TerrainCalcShadowColorPCF(
 float4 main(VS_OUT pin) : SV_TARGET
 {
     float2 tilingCoord = pin.texcoord * tilling_scale;
+    float2 worldXZ = pin.position.xz;
 
-    float4 rockSRGB = rockTexture.Sample(linearSampler, tilingCoord);
-    float4 dirtSRGB = dirtTexture.Sample(linearSampler, tilingCoord);
-    float4 grassSRGB = grassTexture.Sample(linearSampler, tilingCoord);
+    float4 rockSRGB = SampleAntiTile(rockTexture, tilingCoord, worldXZ, 3.1f);
+    float4 dirtSRGB = SampleAntiTile(dirtTexture, tilingCoord, worldXZ, 17.7f);
+    float4 grassSRGB = SampleAntiTile(grassTexture, tilingCoord, worldXZ, 42.4f);
 
     float blendRate = saturate(
         terrainDataMap.Sample(shadowSampler, pin.texcoord).g);
@@ -164,9 +228,9 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedo.rgb,
         finalMetalness);
 
-    float3 rockNormalTex = UnpackNormalBC5(rockTextureNormal, tilingCoord);
-    float3 dirtNormalTex = UnpackNormalBC5(dirtTextureNormal, tilingCoord);
-    float3 grassNormalTex = UnpackNormalBC5(grassTextureNormal, tilingCoord);
+    float3 rockNormalTex = SampleAntiTileNormal(rockTextureNormal, tilingCoord, worldXZ, 3.1f);
+    float3 dirtNormalTex = SampleAntiTileNormal(dirtTextureNormal, tilingCoord, worldXZ, 17.7f);
+    float3 grassNormalTex = SampleAntiTileNormal(grassTextureNormal, tilingCoord, worldXZ, 42.4f);
 
     float dirtBlend = smoothstep(0.0f, 0.5f, blendRate);
     float grassBlend = smoothstep(0.5f, 1.0f, blendRate);
