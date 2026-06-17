@@ -710,11 +710,8 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
 
     // mesh
     #if 0
-
     if (debugVertices.empty() || debugIndices.empty())
-    {
         return;
-    }
 
     Actor* actor = GetOwnerAsActor();
 
@@ -758,36 +755,10 @@ void TerrainMeshCollider::DrawGUI()
         {
             ClampCollisionArea();
 
-            const float terrainSize = terrain->GetTerrainSize();
-            const float halfTerrainSize = terrainSize * 0.5f;
-            Vector2 localMin =
-            {
-                (collisionArea.minX - 0.5f) * terrainSize,
-                (collisionArea.minZ - 0.5f) * terrainSize
-            };
-            Vector2 localMax =
-            {
-                (collisionArea.maxX - 0.5f) * terrainSize,
-                (collisionArea.maxZ - 0.5f) * terrainSize
-            };
-
-            bool areaChanged = false;
-            areaChanged |= ImGui::DragFloat2("local min xz", &localMin.x, 0.1f, -halfTerrainSize, halfTerrainSize);
-            areaChanged |= ImGui::DragFloat2("local max xz", &localMax.x, 0.1f, -halfTerrainSize, halfTerrainSize);
-
-            if (areaChanged)
-            {
-                localMin.x = std::clamp(localMin.x, -halfTerrainSize, halfTerrainSize);
-                localMin.y = std::clamp(localMin.y, -halfTerrainSize, halfTerrainSize);
-                localMax.x = std::clamp(localMax.x, -halfTerrainSize, halfTerrainSize);
-                localMax.y = std::clamp(localMax.y, -halfTerrainSize, halfTerrainSize);
-
-                collisionArea.minX = localMin.x / terrainSize + 0.5f;
-                collisionArea.minZ = localMin.y / terrainSize + 0.5f;
-                collisionArea.maxX = localMax.x / terrainSize + 0.5f;
-                collisionArea.maxZ = localMax.y / terrainSize + 0.5f;
-                ClampCollisionArea();
-            }
+            ImGui::DragFloat2("MinX", &collisionArea.minX, 0.01f, -1, +1);
+            ImGui::DragFloat2("MinZ", &collisionArea.minZ, 0.01f, -1, +1);
+            ImGui::DragFloat2("MaxX", &collisionArea.minX, 0.01f, -1, +1);
+            ImGui::DragFloat2("MaxZ", &collisionArea.minZ, 0.01f, -1, +1);
 
             if (ImGui::Button("Reset Full Terrain Area"))
             {
@@ -796,17 +767,6 @@ void TerrainMeshCollider::DrawGUI()
 				collisionArea.maxX = 1.0f;
 				collisionArea.maxZ = 1.0f;
             }
-
-            ImGui::Text(
-                "UV: (%.3f, %.3f) - (%.3f, %.3f)",
-                collisionArea.minX,
-                collisionArea.minZ,
-                collisionArea.maxX,
-                collisionArea.maxZ);
-            ImGui::Text(
-                "Area Size: %.2f x %.2f",
-                (collisionArea.maxX - collisionArea.minX) * terrainSize,
-                (collisionArea.maxZ - collisionArea.minZ) * terrainSize);
 
             ImGui::TreePop();
         }

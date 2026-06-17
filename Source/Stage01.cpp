@@ -8,7 +8,16 @@ Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
 
     Terrain* terrain = AddComponent<Terrain>();
 	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField.dds");
-    AddComponent<TerrainMeshCollider>(rb, 1024, TerrainMeshCollider::CollisionArea{-82.8f, 87.1f, -103.1f, 62.2f});
+	AddComponent<TerrainMeshCollider>(
+		rb,
+		256,
+		TerrainMeshCollider::CollisionArea
+		{
+			0.2844f,
+			0.7242f,
+			0.2438f,
+			0.6844f
+		});
 }
 
 void Stage01::OnUpdate()

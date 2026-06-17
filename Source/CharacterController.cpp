@@ -22,7 +22,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
         actor->transform.position.z
     );
     desc.upDirection = PxVec3(0, 1, 0);
-    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
+    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(55.0f));
     desc.stepOffset = 0.3f;
     desc.contactOffset = 0.1f;
     desc.reportCallback = hitReport;
