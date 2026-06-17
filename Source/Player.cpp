@@ -131,7 +131,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.3f, 0.9f);
-	cc->SetPosition({0, 2.0f, 0});
+	cc->SetPosition({0, 3.0f, 0});
 
 	// 武器判定
 	weaponCollider = AddComponent<BoneSphereCollider>(

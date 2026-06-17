@@ -289,7 +289,9 @@ void Scene::DrawGUI(RenderContext& rc)
 
 		if (ImGui::CollapsingHeader("Skybox"))
 		{
-			Game::Graphics::Instance().GetSkyBoxRenderer()->DrawGUI();
+			Game::Graphics& graphics = Game::Graphics::Instance();
+			graphics.GetSkyBoxRenderer()->DrawGUI();
+			graphics.DrawSkyMapGUI();
 		}
 
 		// PostEffect

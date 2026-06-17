@@ -22,8 +22,8 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
         actor->transform.position.z
     );
     desc.upDirection = PxVec3(0, 1, 0);
-    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(55.0f));
-    desc.stepOffset = 0.3f;
+    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
+    desc.stepOffset = 0.5f;
     desc.contactOffset = 0.1f;
     desc.reportCallback = hitReport;
 
@@ -105,7 +105,7 @@ void CharacterController::DrawGUI()
         if (ImGui::TreeNode("Settings"))
         {
             float stepOffset = controller->getStepOffset();
-            if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.0f))
+            if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.5f))
                 controller->setStepOffset(stepOffset);
 
             float contactOffset = controller->getContactOffset();

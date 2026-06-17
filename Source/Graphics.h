@@ -59,6 +59,10 @@ namespace Game
 		ID3D11ShaderResourceView* GetIBLDiffuseIEM()     const { return iblDiffuseIEM.Get(); }
 		ID3D11ShaderResourceView* GetIBLSpecularPMREM()  const { return iblSpecularPMREM.Get(); }
 		ID3D11ShaderResourceView* GetIBLGGXLUT()         const { return iblGGXLUT.Get(); }
+		const std::string& GetSkyMapName() const { return skyMapName; }
+		bool LoadSkyMap(const std::string& name);
+		void RefreshSkyMapList();
+		void DrawSkyMapGUI();
 
 		static float ScreenWidth;
 		static float ScreenHeight;
@@ -83,5 +87,7 @@ namespace Game
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblGGXLUT;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblDiffuseIEM;
+		std::string skyMapName = "Default";
+		std::vector<std::string> skyMapNames;
 	};
 }

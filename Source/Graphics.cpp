@@ -132,13 +132,147 @@ namespace Game
 		skyBoxRenderer    = std::make_unique<SkyBoxRenderer>(device.Get());
 
 		// IBLテクスチャ読み込み
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_lut_ggx.dds",        iblGGXLUT.GetAddressOf());
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_specular_pmrem.dds", iblSpecularPMREM.GetAddressOf());
-		GpuResourceUtils::LoadTexture(device.Get(), "Data/Sky/Default_diffuse_iem.dds",    iblDiffuseIEM.GetAddressOf());
+		RefreshSkyMapList();
+		LoadSkyMap("Default");
 	}
 
 	void Graphics::Present(UINT syncInterval)
 	{
 		swapchain->Present(syncInterval, 0);
+	}
+
+	bool Graphics::LoadSkyMap(const std::string& name)
+	{
+		if (name.empty())
+			return false;
+
+		const std::filesystem::path skyDir = "Data/Sky";
+		const std::filesystem::path lutPath = skyDir / (name + "_lut_ggx.dds");
+		const std::filesystem::path specularPath = skyDir / (name + "_specular_pmrem.dds");
+		const std::filesystem::path diffusePath = skyDir / (name + "_diffuse_iem.dds");
+
+		if (!std::filesystem::exists(lutPath) ||
+			!std::filesystem::exists(specularPath) ||
+			!std::filesystem::exists(diffusePath))
+		{
+			return false;
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newGGXLUT;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newSpecularPMREM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newDiffuseIEM;
+
+		HRESULT hr = GpuResourceUtils::LoadTexture(
+			device.Get(),
+			lutPath.generic_string().c_str(),
+			newGGXLUT.GetAddressOf());
+		if (FAILED(hr)) return false;
+
+		hr = GpuResourceUtils::LoadTexture(
+			device.Get(),
+			specularPath.generic_string().c_str(),
+			newSpecularPMREM.GetAddressOf());
+		if (FAILED(hr)) return false;
+
+		hr = GpuResourceUtils::LoadTexture(
+			device.Get(),
+			diffusePath.generic_string().c_str(),
+			newDiffuseIEM.GetAddressOf());
+		if (FAILED(hr)) return false;
+
+		iblGGXLUT = newGGXLUT;
+		iblSpecularPMREM = newSpecularPMREM;
+		iblDiffuseIEM = newDiffuseIEM;
+		skyMapName = name;
+		return true;
+	}
+
+	void Graphics::RefreshSkyMapList()
+	{
+		skyMapNames.clear();
+
+		const std::filesystem::path skyDir = "Data/Sky";
+		if (!std::filesystem::exists(skyDir))
+		{
+			return;
+		}
+
+		for (const auto& entry : std::filesystem::directory_iterator(skyDir))
+		{
+			if (!entry.is_regular_file())
+			{
+				continue;
+			}
+
+			const std::filesystem::path path = entry.path();
+			if (path.extension() != ".dds")
+			{
+				continue;
+			}
+
+			const std::string filename = path.filename().generic_string();
+			const std::string suffix = "_specular_pmrem.dds";
+			if (filename.size() <= suffix.size() ||
+				filename.compare(filename.size() - suffix.size(), suffix.size(), suffix) != 0)
+			{
+				continue;
+			}
+
+			const std::string name = filename.substr(0, filename.size() - suffix.size());
+			if (std::filesystem::exists(skyDir / (name + "_lut_ggx.dds")) &&
+				std::filesystem::exists(skyDir / (name + "_diffuse_iem.dds")))
+			{
+				skyMapNames.push_back(name);
+			}
+		}
+
+		std::sort(skyMapNames.begin(), skyMapNames.end());
+	}
+
+	void Graphics::DrawSkyMapGUI()
+	{
+		if (ImGui::Button("Refresh Sky Maps"))
+		{
+			RefreshSkyMapList();
+		}
+
+		if (skyMapNames.empty())
+		{
+			ImGui::TextDisabled("No complete sky map set found.");
+			return;
+		}
+
+		int currentIndex = 0;
+		for (int i = 0; i < static_cast<int>(skyMapNames.size()); ++i)
+		{
+			if (skyMapNames[i] == skyMapName)
+			{
+				currentIndex = i;
+				break;
+			}
+		}
+
+		const char* preview =
+			currentIndex < static_cast<int>(skyMapNames.size())
+				? skyMapNames[currentIndex].c_str()
+				: skyMapName.c_str();
+
+		if (ImGui::BeginCombo("Sky Map", preview))
+		{
+			for (int i = 0; i < static_cast<int>(skyMapNames.size()); ++i)
+			{
+				const bool selected = skyMapNames[i] == skyMapName;
+				if (ImGui::Selectable(skyMapNames[i].c_str(), selected))
+				{
+					LoadSkyMap(skyMapNames[i]);
+				}
+
+				if (selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
 	}
 }

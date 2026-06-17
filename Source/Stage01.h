@@ -11,6 +11,7 @@ public:
 	Stage01();
 	~Stage01() = default;
 	void OnUpdate() override;
+	void OnRender(const RenderContext& rc);
 	void OnDrawGUI() override;
 
 private:

@@ -23,6 +23,11 @@ public:
 
     void DrawGUI();
 
+    void SetIntensity(float intensity)
+    {
+        skyboxData.skyIntensity = intensity;
+	}
+
 private:
     struct CbSkyBox
     {

@@ -31,10 +31,7 @@ Terrain::Terrain(Object* owner)
 		AddBrushTexture("Data/Image/bugTex.png");
 	}
 
-	if (LoadTerrainTexture(terrainFilePath))
-	{
-		RebuildTerrainCollider();
-	}
+	LoadTerrainTexture(terrainFilePath);
 }
 
 void Terrain::InitializeGpuResources()
@@ -355,10 +352,6 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 
 void Terrain::Update()
 {
-	if (pendingColliderRebuild)
-	{
-		RebuildTerrainCollider();
-	}
 }
 
 void Terrain::Render(const RenderContext& rc)
@@ -1278,16 +1271,7 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 	is_terrain_texture_clear_color = false;
 	pendingColliderRebuild = true;
 
-	RebuildTerrainCollider();
-
-	if (pendingColliderRebuild)
-	{
-		terrainIoMessage = "Terrain loaded. Collider rebuild is pending.";
-	}
-	else
-	{
-		terrainIoMessage = "Terrain loaded and collider rebuilt: " + terrainFilePath;
-	}
+	terrainIoMessage = "Terrain loaded. Collider rebuild is pending.";
 
 	return true;
 }
@@ -1493,6 +1477,8 @@ void Terrain::DrawGUI()
 			RebuildTerrainCollider();
 		}
 
+		ImGui::Text("Collider: %s", pendingColliderRebuild ? "dirty" : "clean");
+
 		if (!terrainIoMessage.empty())
 		{
 			ImGui::TextWrapped("%s", terrainIoMessage.c_str());
@@ -1523,7 +1509,6 @@ void Terrain::DrawGUI()
 		{
 			ClearTerrainTexture();
 			pendingColliderRebuild = true;
-			RebuildTerrainCollider();
 		}
 
 		ImGui::Text("R = height, G = paint layer");
