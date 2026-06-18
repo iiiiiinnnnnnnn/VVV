@@ -18,7 +18,7 @@ public:
     void OnLateUpdate() override;
     void OnDrawGUI() override;
 
-    void OnDamaged(float damage, KnockBackData knockBackData) override;
+    void OnDamaged(const DamageData& damageData) override;
     void OnDead() override;
 
     void OnEnterAnim(const Animator::State& state);

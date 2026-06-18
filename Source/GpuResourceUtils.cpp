@@ -71,6 +71,30 @@ HRESULT GpuResourceUtils::LoadPixelShader(
 	return hr;
 }
 
+// ジオメトリシェーダー読み込み
+HRESULT GpuResourceUtils::LoadGeometryShader(
+	ID3D11Device* device,
+	const char* filename,
+	ID3D11GeometryShader** geometryShader)
+{
+	FILE* fp = nullptr;
+	fopen_s(&fp, filename, "rb");
+	_ASSERT_EXPR_A(fp, "Geometry Shader File not found");
+
+	fseek(fp, 0, SEEK_END);
+	long size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
+	fread(data.get(), size, 1, fp);
+	fclose(fp);
+
+	HRESULT hr = device->CreateGeometryShader(data.get(), size, nullptr, geometryShader);
+	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+
+	return hr;
+}
+
 // テクスチャ読み込み
 HRESULT GpuResourceUtils::LoadTexture(
 	ID3D11Device* device,

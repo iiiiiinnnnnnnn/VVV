@@ -291,6 +291,9 @@
     <ClCompile Include="Source\Component.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DamageHoleComponent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClCompile>
@@ -315,9 +318,6 @@
     <ClCompile Include="Source\Apple.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ZakoEnemyA.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Stage00.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
@@ -326,6 +326,12 @@
     </ClCompile>
     <ClCompile Include="Source\Prop.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BossEnemy.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClCompile>
+    <ClCompile Include="MovieCameraController.cpp">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -515,6 +521,9 @@
     <ClInclude Include="Source\ModelRenderComponent.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
     </ClInclude>
+    <ClInclude Include="Source\DamageHoleComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+    </ClInclude>
     <ClInclude Include="Source\SpriteRenderComponent.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
     </ClInclude>
@@ -575,9 +584,6 @@
     <ClInclude Include="Source\Apple.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ZakoEnemyA.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Stage00.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClInclude>
@@ -586,6 +592,12 @@
     </ClInclude>
     <ClInclude Include="Source\Prop.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BossEnemy.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClInclude>
+    <ClInclude Include="MovieCameraController.h">
+      <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -673,6 +685,9 @@
       <Filter>シェーダー\ゲーム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
+      <Filter>シェーダー\ゲーム</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRGS.hlsl">
       <Filter>シェーダー\ゲーム</Filter>
     </FxCompile>
     <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">

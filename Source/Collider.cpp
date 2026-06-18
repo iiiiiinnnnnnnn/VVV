@@ -460,6 +460,17 @@ void BoneSphereCollider::UpdateShape()
     ghostActor->setKinematicTarget(MATRIX_TO_PX_TRANSFORM(world));
 }
 
+Vector3 BoneSphereCollider::GetWorldPosition() const
+{
+    if (!ghostActor)
+    {
+        return Vector3::Zero;
+    }
+
+    const PxTransform pose = ghostActor->getGlobalPose();
+    return Vector3(pose.p.x, pose.p.y, pose.p.z);
+}
+
 void BoneSphereCollider::Render(const RenderContext& rc)
 {
     if (!rc.renderSettings.showDebug || !ghostActor) return;

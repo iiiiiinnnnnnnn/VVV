@@ -65,6 +65,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		sceneConstantBuffer.Get(),
 	};
 	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
+	dc->GSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
 	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
 
 	// サンプラステート設定
@@ -186,6 +187,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	for (ID3D11Buffer*& vsConstantBuffer : vsConstantBuffers) { vsConstantBuffer = nullptr; }
 	for (ID3D11Buffer*& psConstantBuffer : psConstantBuffers) { psConstantBuffer = nullptr; }
 	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
+	dc->GSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
 	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
 
 	// サンプラステート設定解除

@@ -11,13 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
+    <ClCompile Include="Source\BossEnemy.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Apple.cpp" />
     <ClCompile Include="Source\Component.cpp" />
+    <ClCompile Include="Source\DamageHoleComponent.cpp" />
     <ClCompile Include="Source\DynamicAnimation.cpp" />
     <ClCompile Include="Source\DynamicAnimationSerializer.cpp" />
     <ClCompile Include="Source\Entity.cpp" />
@@ -78,9 +81,9 @@
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
-    <ClCompile Include="Source\ZakoEnemyA.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MovieCameraController.h" />
     <ClInclude Include="Source\Actor.h" />
     <ClInclude Include="Source\ActorManager.h" />
     <ClInclude Include="Source\Animator.h" />
@@ -88,6 +91,7 @@
     <ClInclude Include="Source\AnimEditorWindow.h" />
     <ClInclude Include="Source\BasicModelShader.h" />
     <ClInclude Include="Source\BasicSpriteShader.h" />
+    <ClInclude Include="Source\BossEnemy.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\Apple.h" />
@@ -110,6 +114,7 @@
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Component.h" />
     <ClInclude Include="Source\Components.h" />
+    <ClInclude Include="Source\DamageHoleComponent.h" />
     <ClInclude Include="Source\Dialog.h" />
     <ClInclude Include="Source\Effect.h" />
     <ClInclude Include="Source\EffectManager.h" />
@@ -166,7 +171,6 @@
     <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
     <ClInclude Include="Source\WidgetManager.h" />
-    <ClInclude Include="Source\ZakoEnemyA.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -215,6 +219,10 @@
     <FxCompile Include="Shader\PBRPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\PBRGS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

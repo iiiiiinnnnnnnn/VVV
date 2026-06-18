@@ -1,20 +1,18 @@
-// Entity.h
+Ôªø// Entity.h
 
 #pragma once
 #include "Actor.h"
 
-class KnockBackData
+class Entity;
+
+struct DamageData
 {
-public:
-	KnockBackData() = default;
-	KnockBackData(class Entity* source, float power) : hasData(true), source(source), power(power) {}
-	bool HasData() const { return hasData; }
-	class Entity* GetSource() const { return source; }
-	float GetPower() const { return power; }
-private:
-    bool hasData = false;
-    class Entity* source = nullptr;
-    float power = false;
+    float damage = 0.0f;
+    Entity* source = nullptr;
+
+    std::optional<Vector3> hitPosition;
+
+    float knockBackPower = 0.0f;
 };
 
 class Entity : public Actor
@@ -23,12 +21,11 @@ public:
     Entity(std::string name = "", std::string tag = "", bool isActive = true, int layer = Layer::Default, float life = 100.0f, float maxLife = 100.0f)
         : Actor(name, tag, isActive, layer), life(life), maxLife(maxLife) {}
 
-	void OnDrawGUI() override;
+    void OnDrawGUI() override;
 
     virtual void OnUpdate() override;
 
-    // HPëÄçÏ
-    void TakeDamage(float damage, KnockBackData knockBackData = {});
+    void TakeDamage(const DamageData& damageData);
     void Heal(float amount);
     bool IsDead() const { return life <= 0.0f; }
 
@@ -39,9 +36,8 @@ public:
     void AddKnockBack(const Vector3& velocity) { knockBackVelocity += velocity; }
 
 protected:
-    // éÄñSÅEÉ_ÉÅÅ[ÉWéûÇ…ÉIÅ[ÉoÅ[ÉâÉCÉhÇµÇƒégÇ§
     virtual void OnDead() {}
-    virtual void OnDamaged(float damage, KnockBackData knockBackData) {}
+    virtual void OnDamaged(const DamageData& damageData) {}
 
     Vector3 knockBackVelocity = Vector3::Zero;
 
@@ -49,7 +45,7 @@ protected:
     float maxLife = 100.0f;
     struct Cooldowns
     {
-		static const float DamageCooldownDuration;
+        static const float DamageCooldownDuration;
         float damageCooldown = 0.0f;
         void Update();
     } cooldowns;

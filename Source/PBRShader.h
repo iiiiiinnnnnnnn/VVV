@@ -52,7 +52,9 @@ private:
 		Vector4 holes[MaxDamageHoles]; // xyz: world center, w: radius
 		int holeCount;
 		float edgeWidth;
-		float DUMMY[2];
+		float depth;
+		float DUMMY;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
 };

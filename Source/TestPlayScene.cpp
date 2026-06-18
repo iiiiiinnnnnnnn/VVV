@@ -21,6 +21,7 @@
 #include "Stage00.h"
 #include "Stage01.h"
 #include "Prop.h"
+#include "BossEnemy.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
@@ -75,12 +76,11 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 			camera));
 	}
 
-	// Apple prop
+	// BossEnemy
 	#if 1
 	{
-		auto appleProp = std::make_shared<Prop>("Data/Model/turtle_tears_vending_machine.glb",
-			Transform(Matrix::CreateScale(1) * Matrix::CreateTranslation({0, 20, 20})), true, 1280);
-		actorManager.Register(appleProp);
+		auto boss = std::make_shared<BossEnemy>();
+		actorManager.Register(boss);
 	}
 	#endif
 

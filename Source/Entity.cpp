@@ -41,26 +41,26 @@ void Entity::OnUpdate()
 }
 
 // ƒ_ƒ[ƒW‚ðŽó‚¯‚é
-void Entity::TakeDamage(float damage, KnockBackData knockBackData)
+void Entity::TakeDamage(const DamageData& damageData)
 {
     if (cooldowns.damageCooldown > 0.0f) return;
     if (IsDead()) return;
 
-    if (knockBackData.HasData())
+    if (damageData.knockBackPower > 0 && damageData.hitPosition.has_value())
     {
-        Vector3 dir = knockBackData.GetSource()->transform.position - transform.position;
+        Vector3 dir = damageData.hitPosition.value() - transform.position;
         dir.y = 0;
         dir.Normalize();
 
-        AddKnockBack(-dir * knockBackData.GetPower());
+        AddKnockBack(-dir * damageData.knockBackPower);
     }
 
-    life -= damage;
+    life -= damageData.damage;
     life = max(life, 0.0f);
 
     cooldowns.damageCooldown = Cooldowns::DamageCooldownDuration;
 
-    OnDamaged(damage, knockBackData);
+    OnDamaged(damageData);
 
     if (IsDead())
         OnDead();

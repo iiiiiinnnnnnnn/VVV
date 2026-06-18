@@ -47,7 +47,8 @@ cbuffer CbDamageHoles : register(b2)
     float4 damageHoles[MaxDamageHoles]; // xyz: world center, w: radius
     int damageHoleCount;
     float damageHoleEdgeWidth;
-    float2 _dummyCbDamageHoles;
+    float damageHoleDepth;
+    float _dummyCbDamageHoles;
 };
 
 float DistanceFogFactor(float3 worldPosition)

@@ -66,6 +66,7 @@ public:
 
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+    Vector3 GetWorldPosition() const;
 private:
     void UpdateShape();
     Rigidbody* rigidbody = nullptr;
@@ -84,6 +85,7 @@ public:
     void LateUpdate() override;         // 毎フレームボーン追従
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+    Vector3 GetWorldPosition() const;
 private:
     void UpdateShape();
     PxShape* shape = nullptr;

@@ -1,9 +1,9 @@
 ﻿// Apple.cpp
 
 #include "Apple.h"
+#include "DamageHoleComponent.h"
 #include "ResourceManager.h"
 #include "HitEffect.h"
-#include "imgui.h"
 
 Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
@@ -16,9 +16,9 @@ Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
     rb = AddComponent<RigidbodyDynamic>();
     AddComponent<MeshCollider>(rb, model.get(), true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
 
-    modelRenderer = AddComponent<ModelRenderComponent>(
+    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR);
-    UpdateDamageHoleShaderParams();
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 13.0f, 2.5f, 8.0f);
 }
 
 void Apple::SetPosition(const Vector3& pos)
@@ -34,31 +34,17 @@ void Apple::OnUpdate()
 void Apple::OnDrawGUI()
 {
     Entity::OnDrawGUI();
-
-    if (ImGui::TreeNode("Apple Damage Holes"))
-    {
-        ImGui::DragFloat("Hole Radius", &damageHoleRadius, 0.1f, 0.1f, 100.0f);
-        ImGui::DragFloat("Hole Edge Width", &damageHoleEdgeWidth, 0.1f, 0.001f, 30.0f);
-        ImGui::Text("Hole Count: %d / %d", static_cast<int>(damageHoles.size()), MaxDamageHoles);
-
-        if (ImGui::Button("Clear Holes"))
-        {
-            damageHoles.clear();
-            UpdateDamageHoleShaderParams();
-        }
-
-        ImGui::TreePop();
-    }
 }
 
-void Apple::OnDamaged(float damage, KnockBackData knockBackData)
+void Apple::OnDamaged(const DamageData& damageData)
 {
     HitStop::Request(0.15f);
     CameraShake::Request(0.2f, 0.1f);
 
-    if (knockBackData.HasData())
+    if (damageData.source)
     {
-        AddDamageHoleFrom(knockBackData.GetSource());
+        const Entity* sourceEntity = damageData.source;
+        damageHoleComponent->AddDamageHoleFrom(sourceEntity);
     }
 }
 
@@ -68,7 +54,13 @@ void Apple::OnCollisionEnter(Actor* other)
     {
         if (isAggressive)
         {
-            static_cast<Entity*>(other)->TakeDamage(10.0f, {this, 20.0f});
+            static_cast<Entity*>(other)->TakeDamage(
+                {
+                    .damage = 10.0f,
+					.source = this,
+                    .hitPosition = other->transform.position,
+                    .knockBackPower = 20.0f
+                });
         }
     }
 }
@@ -81,7 +73,7 @@ void Apple::OnTriggerEnter(Actor* other)
 {
     if (other->CompareTag("Player"))
     {
-        TakeDamage(10.0f);
+        TakeDamage({.damage = 10.0f});
     }
 }
 
@@ -93,53 +85,4 @@ void Apple::OnDead()
 {
     printf("Apple Dead!\n");
     Destroy();
-}
-
-void Apple::AddDamageHoleFrom(Actor* attacker)
-{
-    if (attacker == nullptr)
-        return;
-
-    Vector3 center = transform.position;
-    if (rb != nullptr)
-    {
-        center = rb->GetPosition();
-    }
-
-    Vector3 direction = attacker->transform.position - center;
-    if (direction.LengthSquared() < eps)
-    {
-        direction = Vector3::Forward;
-    }
-    direction.Normalize();
-
-    const float surfaceDistance =
-        (std::max)(transform.scale.x, (std::max)(transform.scale.y, transform.scale.z)) * 0.45f;
-    Vector3 hitPosition = center + direction * surfaceDistance;
-
-    if (damageHoles.size() >= MaxDamageHoles)
-    {
-        damageHoles.erase(damageHoles.begin());
-    }
-
-    damageHoles.emplace_back(hitPosition.x, hitPosition.y, hitPosition.z, damageHoleRadius);
-    UpdateDamageHoleShaderParams();
-}
-
-void Apple::UpdateDamageHoleShaderParams()
-{
-    if (modelRenderer == nullptr)
-        return;
-
-    modelRenderer->SetShaderParamForAllMaterials({"holeCount", static_cast<int>(damageHoles.size())});
-    modelRenderer->SetShaderParamForAllMaterials({"holeEdgeWidth", damageHoleEdgeWidth});
-
-    for (int i = 0; i < MaxDamageHoles; ++i)
-    {
-        const Vector4 hole = (i < static_cast<int>(damageHoles.size()))
-            ? damageHoles[i]
-            : Vector4(0, 0, 0, 0);
-
-        modelRenderer->SetShaderParamForAllMaterials({"hole" + std::to_string(i), hole});
-    }
 }

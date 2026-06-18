@@ -216,9 +216,15 @@ void Player::OnTriggerEnter(Actor* other)
 	{
 		Entity* entity = static_cast<Entity*>(other);
 		bool footAtk = footCollider->IsActive();
-		entity->TakeDamage(
-			footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
-			{this, 50.0f});
+		BoneSphereCollider* attackCollider = footAtk ? footCollider : weaponCollider;
+		Vector3 hitPosition = attackCollider->GetWorldPosition();
+
+		entity->TakeDamage({
+			.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
+			.source = this,
+			.hitPosition = hitPosition,
+			.knockBackPower = 50.0f
+			});
 	}
 }
 
@@ -313,15 +319,15 @@ void Player::OnDrawGUI()
 	Entity::OnDrawGUI();
 }
 
-void Player::OnDamaged(float damage, KnockBackData knockBackData)
+void Player::OnDamaged(const DamageData& damageData)
 {
 	CameraShake::Request(0.13f, 0.07f);
 	DamageVignette::Request(3.0f * (1 - (life / maxLife)));
 
-	if (knockBackData.HasData())
+	if (damageData.hitPosition.has_value())
 	{
 		// 敵の位置に応じてアニメーション再生
-		Vector3 dir = knockBackData.GetSource()->transform.position - transform.position;
+		Vector3 dir = damageData.hitPosition.value() - transform.position;
 		dir.Normalize();
 
 		float dot = transform.right.Dot(dir);
