@@ -30,7 +30,14 @@ void Actor::DrawGUI()
         {
             auto rb = GetComponent<Rigidbody>();
             if (rb)
+            {
+                RigidbodyDynamic* rbd = dynamic_cast<RigidbodyDynamic*>(rb);
+                if (rbd)
+                {
+					rbd->SetVelocity(Vector3::Zero);
+                }
                 rb->SetPosition(transform.position);
+            }
             else
             {
                 auto cc = GetComponent<CharacterController>();

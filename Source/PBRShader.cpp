@@ -30,6 +30,12 @@ PBRShader::PBRShader(ID3D11Device* device)
 		device,
 		sizeof(CbMaterial),
 		materialConstantBuffer.GetAddressOf());
+
+	// ダメージ穴用定数バッファ (PSスロット2)
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbDamageHoles),
+		damageHolesConstantBuffer.GetAddressOf());
 }
 
 // 描画開始
@@ -179,11 +185,31 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			0);
 	}
 
+	// ダメージ穴CB更新
+	CbDamageHoles damageHoles{};
+	damageHoles.holeCount = std::clamp(GetParam<int>(cachedParams, "holeCount", 0), 0, MaxDamageHoles);
+	damageHoles.edgeWidth = (std::max)(GetParam<float>(cachedParams, "holeEdgeWidth", 1.5f), 0.001f);
+
+	for (int i = 0; i < damageHoles.holeCount; ++i)
+	{
+		const std::string name = "hole" + std::to_string(i);
+		damageHoles.holes[i] = GetParam<Vector4>(cachedParams, name, Vector4(0, 0, 0, 0));
+	}
+
+	dc->UpdateSubresource(
+		damageHolesConstantBuffer.Get(),
+		0,
+		nullptr,
+		&damageHoles,
+		0,
+		0);
+
 	// CBセット
 	ID3D11Buffer* cbs[] =
 	{
 		shadowMapConstantBuffer.Get(),
-		materialConstantBuffer.Get()
+		materialConstantBuffer.Get(),
+		damageHolesConstantBuffer.Get()
 	};
 
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
@@ -213,7 +239,7 @@ void PBRShader::End(const RenderContext& rc)
 	dc->IASetInputLayout(nullptr);
 
 	// 定数バッファ解除
-	ID3D11Buffer* nullCbs[] = { nullptr, nullptr };
+	ID3D11Buffer* nullCbs[] = { nullptr, nullptr, nullptr };
 	dc->PSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->VSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 

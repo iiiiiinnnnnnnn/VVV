@@ -324,6 +324,9 @@
     <ClCompile Include="Source\Stage01.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Prop.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -580,6 +583,9 @@
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Prop.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

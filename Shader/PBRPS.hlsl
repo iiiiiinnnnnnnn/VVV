@@ -86,6 +86,27 @@ void DirectBRDFShadowStrength(
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
+    float cutEdge = 0.0f;
+    [unroll]
+    for (int holeIndex = 0; holeIndex < MaxDamageHoles; ++holeIndex)
+    {
+        if (holeIndex < damageHoleCount)
+        {
+            float4 hole = damageHoles[holeIndex];
+            float distanceToHole = distance(pin.position, hole.xyz);
+            float radius = max(hole.w, 0.0f);
+
+            if (distanceToHole < radius)
+            {
+                discard;
+            }
+
+            cutEdge = max(
+                cutEdge,
+                1.0f - smoothstep(radius, radius + damageHoleEdgeWidth, distanceToHole));
+        }
+    }
+
     // -------------------------------------------------------------------------
     // テクスチャサンプリング
     // albedo と emissive は sRGB テクスチャ → PBR計算はリニア空間で行うため変換
@@ -93,6 +114,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     // -------------------------------------------------------------------------
     float4 albedoSRGB = baseMap.Sample(linearSampler, pin.texcoord);
     float4 albedo = float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a) * baseColor;
+    albedo.rgb = lerp(albedo.rgb, float3(0.08f, 0.025f, 0.01f), saturate(cutEdge));
 
     float3 emissiveSRGB = emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
     float3 emissive = pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb;

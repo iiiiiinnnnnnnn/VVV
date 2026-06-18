@@ -295,6 +295,12 @@ void MeshCollider::UpdateShape()
 
         if (useConvex)
         {
+            if (vertices.size() < 4)
+            {
+                OutputDebugStringA("MeshCollider: skipped convex mesh with fewer than 4 vertices.\n");
+                continue;
+            }
+
             PxConvexMeshDesc convexDesc;
             convexDesc.points.count  = (PxU32)vertices.size();
             convexDesc.points.stride = sizeof(PxVec3);
@@ -303,9 +309,20 @@ void MeshCollider::UpdateShape()
             convexDesc.quantizedCount = quantizedCount;
 
             PxDefaultMemoryOutputStream writeBuffer;
-            PxCookConvexMesh(*cookingParams, convexDesc, writeBuffer);
+            const bool cooked = PxCookConvexMesh(*cookingParams, convexDesc, writeBuffer);
+            if (!cooked || writeBuffer.getSize() == 0)
+            {
+                OutputDebugStringA("MeshCollider: skipped convex mesh because PhysX cooking failed.\n");
+                continue;
+            }
+
             PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
             PxConvexMesh* convexMesh = physics->createConvexMesh(readBuffer);
+            if (convexMesh == nullptr)
+            {
+                OutputDebugStringA("MeshCollider: skipped convex mesh because createConvexMesh failed.\n");
+                continue;
+            }
 
             shape = physics->createShape(PxConvexMeshGeometry(convexMesh), *material);
             convexMesh->release();
@@ -321,12 +338,29 @@ void MeshCollider::UpdateShape()
             meshDesc.triangles.data   = mesh.indices.data();
 
             PxDefaultMemoryOutputStream writeBuffer;
-            PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
+            const bool cooked = PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
+            if (!cooked || writeBuffer.getSize() == 0)
+            {
+                OutputDebugStringA("MeshCollider: skipped triangle mesh because PhysX cooking failed.\n");
+                continue;
+            }
+
             PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
             PxTriangleMesh* triangleMesh = physics->createTriangleMesh(readBuffer);
+            if (triangleMesh == nullptr)
+            {
+                OutputDebugStringA("MeshCollider: skipped triangle mesh because createTriangleMesh failed.\n");
+                continue;
+            }
 
             shape = physics->createShape(PxTriangleMeshGeometry(triangleMesh), *material);
             triangleMesh->release();
+        }
+
+        if (shape == nullptr)
+        {
+            OutputDebugStringA("MeshCollider: skipped mesh because createShape failed.\n");
+            continue;
         }
 
         rigidActor->attachShape(*shape);

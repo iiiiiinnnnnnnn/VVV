@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Entity.h"
+#include "ModelRenderComponent.h"
 
 class Apple : public Entity
 {
@@ -27,6 +28,15 @@ public:
 	void SetPosition(const Vector3& pos);
 
 private:
+	static constexpr int MaxDamageHoles = 8;
+
+	void AddDamageHoleFrom(Actor* attacker);
+	void UpdateDamageHoleShaderParams();
+
 	bool isAggressive = false;
 	Rigidbody* rb;
+	ModelRenderComponent* modelRenderer = nullptr;
+	std::vector<Vector4> damageHoles;
+	float damageHoleRadius = 13.0f;
+	float damageHoleEdgeWidth = 2.5f;
 };

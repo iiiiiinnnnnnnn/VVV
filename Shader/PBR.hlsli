@@ -40,6 +40,16 @@ cbuffer CbMaterial : register(b1)
     int useOcclusionTexture;
 };
 
+static const int MaxDamageHoles = 8;
+
+cbuffer CbDamageHoles : register(b2)
+{
+    float4 damageHoles[MaxDamageHoles]; // xyz: world center, w: radius
+    int damageHoleCount;
+    float damageHoleEdgeWidth;
+    float2 _dummyCbDamageHoles;
+};
+
 float DistanceFogFactor(float3 worldPosition)
 {
     const float fogStart = 85.0f;

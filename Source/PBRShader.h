@@ -43,4 +43,16 @@ private:
 		int		useOcclusionTexture;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
+
+	static constexpr int MaxDamageHoles = 8;
+
+	// b2
+	struct CbDamageHoles
+	{
+		Vector4 holes[MaxDamageHoles]; // xyz: world center, w: radius
+		int holeCount;
+		float edgeWidth;
+		float DUMMY[2];
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 };

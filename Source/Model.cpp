@@ -246,6 +246,7 @@ HRESULT Model::SaveScratchImageToDDSBytes(
 {
 	outDDS.clear();
 
+	constexpr size_t MaxEmbeddedTextureSize = 2048;
 	const DirectX::TexMetadata& sourceMetadata = sourceImage.GetMetadata();
 
 	DirectX::ScratchImage rgbaImage;
@@ -279,15 +280,44 @@ HRESULT Model::SaveScratchImageToDDSBytes(
 		}
 	}
 
-	const DirectX::ScratchImage* saveSource = &rgbaImage;
+	const DirectX::ScratchImage* mipSource = &rgbaImage;
+
+	DirectX::ScratchImage resizedImage;
+	const DirectX::TexMetadata& rgbaMetadata = rgbaImage.GetMetadata();
+	const size_t maxSize = (std::max)(rgbaMetadata.width, rgbaMetadata.height);
+	if (maxSize > MaxEmbeddedTextureSize)
+	{
+		const double scale = static_cast<double>(MaxEmbeddedTextureSize) / static_cast<double>(maxSize);
+		const size_t resizedWidth = (std::max)(static_cast<size_t>(1), static_cast<size_t>(rgbaMetadata.width * scale));
+		const size_t resizedHeight = (std::max)(static_cast<size_t>(1), static_cast<size_t>(rgbaMetadata.height * scale));
+
+		hr = DirectX::Resize(
+			rgbaImage.GetImages(),
+			rgbaImage.GetImageCount(),
+			rgbaMetadata,
+			resizedWidth,
+			resizedHeight,
+			DirectX::TEX_FILTER_DEFAULT,
+			resizedImage
+		);
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		mipSource = &resizedImage;
+	}
+
+	const DirectX::ScratchImage* saveSource = mipSource;
 
 	// ミップマップ生成
 	// 軽さ最優先ならここも消していい
 	DirectX::ScratchImage mipImage;
 	hr = DirectX::GenerateMipMaps(
-		rgbaImage.GetImages(),
-		rgbaImage.GetImageCount(),
-		rgbaImage.GetMetadata(),
+		mipSource->GetImages(),
+		mipSource->GetImageCount(),
+		mipSource->GetMetadata(),
 		DirectX::TEX_FILTER_DEFAULT,
 		0,
 		mipImage
@@ -604,7 +634,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	std::filesystem::path extension = sourceFilepath.extension();
 
 	std::filesystem::path cerealFilepath = sourceFilepath;
-	cerealFilepath.replace_extension(".cereal");
+	cerealFilepath.replace_extension(".vmdl");
 
 	// 独自形式のモデルファイルの存在確認
 	if (std::filesystem::exists(cerealFilepath) && !importRawModel)
@@ -631,7 +661,9 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		GLTFImporter importer(filename);
 
 		// マテリアルデータ読み取り
-		importer.LoadMaterials(materials, device);
+		// GLB内蔵テクスチャは一度ファイル化してからDDS化する。
+		// 巨大テクスチャをGPUからCaptureTextureするとDebug Layerで落ちやすいため。
+		importer.LoadMaterials(materials, nullptr);
 
 		// ノードデータ読み取り
 		importer.LoadNodes(nodes);

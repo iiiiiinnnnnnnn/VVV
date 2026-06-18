@@ -1,12 +1,6 @@
 ﻿// TestPlayScene.cpp
 
 #include "TestPlayScene.h"
-
-// actor
-#include "Player.h"
-#include "Apple.h"
-#include "Stage00.h"
-#include "Stage01.h"
 #include "SceneManager.h"
 
 // camera
@@ -16,9 +10,17 @@
 // player control
 #include "LocalPlayer.h"
 
+// graphics
 #include "HitEffect.h"
 #include "Graphics.h"
 #include "SpriteWidget.h"
+
+// actor
+#include "Player.h"
+#include "Apple.h"
+#include "Stage00.h"
+#include "Stage01.h"
+#include "Prop.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
@@ -72,6 +74,15 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 			std::make_unique<FreeCameraController>(
 			camera));
 	}
+
+	// Apple prop
+	#if 1
+	{
+		auto appleProp = std::make_shared<Prop>("Data/Model/turtle_tears_vending_machine.glb",
+			Transform(Matrix::CreateScale(1) * Matrix::CreateTranslation({0, 20, 20})), true, 1280);
+		actorManager.Register(appleProp);
+	}
+	#endif
 
 	// Apple normal
 	#if 0

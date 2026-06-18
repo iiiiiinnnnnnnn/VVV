@@ -157,9 +157,26 @@ Transform::TransformChangedResult Transform::DrawGUI()
 	if (ImGui::TreeNode("Transform"))
 	{
 		res.positionChanged = ImGui::DragFloat3("Position", &position.x);
+		ImGui::SameLine();
+		if (ImGui::Button("Zero##Position"))
+		{
+			position = Vector3::Zero;
+			res.positionChanged = true;
+		}
 		res.rotationChanged = ImGui::DragFloat4("Rotation", &rotation.x);
+		ImGui::SameLine();
+		if (ImGui::Button("Identity##Rotation"))
+		{
+			rotation = Quaternion::Identity;
+			res.rotationChanged = true;
+		}
 		res.scaleChanged = ImGui::DragFloat3("Scale", &scale.x);
 		ImGui::TreePop();
+
+		if(res.positionChanged || res.rotationChanged || res.scaleChanged)
+		{
+			Update();
+		}
 	}
 
 	return res;
