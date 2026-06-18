@@ -77,6 +77,7 @@
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
+    <ClCompile Include="Source\ZakoEnemyA.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Actor.h" />
@@ -163,6 +164,7 @@
     <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
     <ClInclude Include="Source\WidgetManager.h" />
+    <ClInclude Include="Source\ZakoEnemyA.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

@@ -14,7 +14,7 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 		ShaderParamList params;
 		params.push_back({
 			"color",
-			Color(1.0f, 1.0f, 1.0f, 0.7f)
+			ColorFromRGBA(0xB2E2FFFF)
 		});
 
 		BG_Illust = std::make_shared<SpriteWidget>(

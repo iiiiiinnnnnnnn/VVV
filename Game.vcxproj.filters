@@ -115,6 +115,12 @@
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\ライト">
       <UniqueIdentifier>{95ce1ff2-b85f-4658-9f05-0c6fcb30ed56}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\アクタ\敵">
+      <UniqueIdentifier>{f785825e-6c09-4620-a0e8-d92f9b2ba482}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\アクタ\ステージ">
+      <UniqueIdentifier>{57df697d-e7b3-47e9-b1f5-e60dd9e2a570}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -180,9 +186,6 @@
     <ClCompile Include="Source\FpsCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Stage00.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Player.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
@@ -227,9 +230,6 @@
     </ClCompile>
     <ClCompile Include="Source\ThirdPersonCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Apple.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\PostEffect.cpp">
       <Filter>ソースファイル\ゲーム\シェーダー</Filter>
@@ -291,9 +291,6 @@
     <ClCompile Include="Source\Component.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Stage01.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClCompile>
@@ -314,6 +311,18 @@
     </ClCompile>
     <ClCompile Include="Source\Light.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Apple.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ZakoEnemyA.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Stage00.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Stage01.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -404,9 +413,6 @@
     <ClInclude Include="Source\FpsCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Stage00.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Player.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
@@ -460,9 +466,6 @@
     </ClInclude>
     <ClInclude Include="Source\ThirdPersonCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Apple.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameDefine.h">
       <Filter>ソースファイル\ゲーム</Filter>
@@ -533,9 +536,6 @@
     <ClInclude Include="Source\Terrain.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Stage01.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
-    </ClInclude>
     <ClInclude Include="Source\LoadingScene.h">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
     </ClInclude>
@@ -568,6 +568,18 @@
     </ClInclude>
     <ClInclude Include="Source\CbLightData.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\ライト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Apple.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ZakoEnemyA.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage00.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage01.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
