@@ -3,17 +3,40 @@
 #include "Stage01.h"
 #include "Graphics.h"
 #include "LightManager.h"
+#include "ActorManager.h"
+#include "Prop.h"
+#include "Aracore.h"
+#include "AracoreQueen.h"
+#include "StageLoader.h"
 
-Stage01::Stage01() : Actor("Stage01", "Stage", Layer::Stage)
+Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 {
 	auto* rb = AddComponent<RigidbodyStatic>();
 
 	Terrain* terrain = AddComponent<Terrain>();
-	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField.dds");
+	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField2.dds");
 	AddComponent<TerrainMeshCollider>(rb, 256, TerrainMeshCollider::CollisionArea{0.2844f, 0.7242f, 0.2438f, 0.6844f});
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
+
+	// ŽG‹›“G
+	#if 0
+	{
+		auto enemy = std::make_shared<Aracore>();
+		actorManager->Register(enemy);
+	}
+	#endif
+
+	// ƒ{ƒX
+	#if 0
+	{
+		auto boss = std::make_shared<AracoreQueen>();
+		actorManager.Register(boss);
+	}
+	#endif
+
+	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
 }
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const

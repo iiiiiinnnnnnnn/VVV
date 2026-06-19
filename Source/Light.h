@@ -5,6 +5,8 @@
 #include "Object.h"
 #include "Transform.h"
 
+class LightManager;
+
 class Light : public Object
 {
 public:
@@ -38,7 +40,9 @@ public:
 	}
 
 protected:
+	friend class LightManager;
 	Color color = { 1, 1, 1, 1 };
+	LightManager* lightManager = nullptr;
 };
 
 class DirectionalLight : public Light

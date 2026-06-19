@@ -2,7 +2,7 @@
 
 #pragma once
 
-// for 3d
+// 3D
 #include "Transform.h"
 #include "ModelRenderComponent.h"
 #include "DamageHoleComponent.h"
@@ -14,6 +14,6 @@
 #include "Animator.h"
 #include "Terrain.h"
 
-// for 2d
+// 2D
 #include "RectTransform.h"
 #include "SpriteRenderComponent.h"

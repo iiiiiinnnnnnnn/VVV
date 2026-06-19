@@ -99,7 +99,7 @@ void Scene::Render()
 
 	// シャドウマップ描画
 	{
-		for (auto& actor : actorManager.data)
+		for (auto& actor : actorManager.GetActors())
 		{
 			auto* mrc = actor->GetComponent<ModelRenderComponent>();
 			if (mrc)
@@ -143,7 +143,7 @@ void Scene::Render()
 
 		graphics.GetModelRenderer()->Render(rc);
 
-		for (auto& actor : actorManager.data)
+		for (auto& actor : actorManager.GetActors())
 		{
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
 			if (trail)
@@ -227,90 +227,119 @@ void Scene::DrawGUI(RenderContext& rc)
 		}
 		ImGui::End();
 
-		ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None);
-
-		// パフォーマンス
-		if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
 		{
-			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-		}
-
-		// カメラ
-		if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
-			auto nowCameraController = GetNowCameraController();
-			if (nowCameraController)
-				nowCameraController->DrawGUI();
-		}
-
-		// RenderContext
-		if (ImGui::CollapsingHeader("RenderContext", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			if (ImGui::TreeNode("LightData"))
+			// パフォーマンス
+			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::TextDisabled("Light data is moved");
-				ImGui::TreePop();
+				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
 
-			if (ImGui::TreeNode("RenderSettings"))
+			// モード切替
 			{
-				ImGui::Checkbox("Show Debug", &renderSettings.showDebug);
-				ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
-				ImGui::TreePop();
+				float buttonHeight = 30.0f;
+				float spacing = ImGui::GetStyle().ItemSpacing.x;
+				float buttonWidth = (ImGui::GetContentRegionAvail().x - spacing) * 0.5f;
+
+				// 即デバッグモード
+				if (ImGui::Button("Let's Debug!", ImVec2(buttonWidth, buttonHeight)))
+				{
+					if (cameraControllers.size() > 1)
+					{
+						nowCameraControllerIndex = 1;
+					}
+					Game::Time::scale = 0.0f;
+				}
+
+				ImGui::SameLine();
+
+				// 即プレイモード
+				if (ImGui::Button("Let's Play!", ImVec2(buttonWidth, buttonHeight)))
+				{
+					if (cameraControllers.size() > 0)
+					{
+						nowCameraControllerIndex = 0;
+					}
+					Game::Time::scale = 1.0f;
+				}
 			}
 
-			if (ImGui::TreeNode("ShadowMapData"))
+			// カメラ
+			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Image(shadowMapData.shadowMap, ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1));
-				ImGui::ColorEdit4("Shadow Color", &shadowMapData.shadowColor.x);
-				ImGui::DragFloat("Shadow Bias", &shadowMapData.shadowBias, 0.001f, 0.0f, 1.0f);
-				ImGui::DragInt("PCF Kernel Size", &shadowMapData.pcfKernelSize, 1, 1, 15);
-				ImGui::TreePop();
+				ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
+				auto nowCameraController = GetNowCameraController();
+				if (nowCameraController)
+					nowCameraController->DrawGUI();
 			}
 
-			if (ImGui::TreeNode("IBLData"))
+			// RenderContext
+			if (ImGui::CollapsingHeader("RenderContext", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Image(iblData.diffuseIrradianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-				ImGui::Image(iblData.specularPremappingRadianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-				ImGui::Image(iblData.ggxLookUpTableMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-				ImGui::TreePop();
+				if (ImGui::TreeNode("LightData"))
+				{
+					ImGui::TextDisabled("Light data is moved");
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("RenderSettings"))
+				{
+					ImGui::Checkbox("Show Debug", &renderSettings.showDebug);
+					ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("ShadowMapData"))
+				{
+					ImGui::Image(shadowMapData.shadowMap, ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::ColorEdit4("Shadow Color", &shadowMapData.shadowColor.x);
+					ImGui::DragFloat("Shadow Bias", &shadowMapData.shadowBias, 0.001f, 0.0f, 1.0f);
+					ImGui::DragInt("PCF Kernel Size", &shadowMapData.pcfKernelSize, 1, 1, 15);
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("IBLData"))
+				{
+					ImGui::Image(iblData.diffuseIrradianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::Image(iblData.specularPremappingRadianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::Image(iblData.ggxLookUpTableMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+					ImGui::TreePop();
+				}
 			}
-		}
 
-		// Time
-		if (ImGui::CollapsingHeader("Time"))
-		{
-			ImGui::Text("Time: %.4f", Game::Time::time);
-			ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
-			ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
-			ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
-		}
-
-		if (ImGui::CollapsingHeader("Skybox"))
-		{
-			Game::Graphics& graphics = Game::Graphics::Instance();
-			graphics.GetSkyBoxRenderer()->DrawGUI();
-			graphics.DrawSkyMapGUI();
-		}
-
-		// PostEffect
-		if (ImGui::CollapsingHeader("PostEffect"))
-		{
-			postEffect.DrawGUI();
-		}
-
-		// Editor
-		if (ImGui::CollapsingHeader("Editor"))
-		{
-			if (ImGui::Button("Dynamic Animation Editor"))
+			// Time
+			if (ImGui::CollapsingHeader("Time"))
 			{
-				showDynamicAnimationEditorWindow = true;
+				ImGui::Text("Time: %.4f", Game::Time::time);
+				ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
+				ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
+				ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 			}
+
+			if (ImGui::CollapsingHeader("Skybox"))
+			{
+				Game::Graphics& graphics = Game::Graphics::Instance();
+				graphics.GetSkyBoxRenderer()->DrawGUI();
+				graphics.DrawSkyMapGUI();
+			}
+
+			// PostEffect
+			if (ImGui::CollapsingHeader("PostEffect"))
+			{
+				postEffect.DrawGUI();
+			}
+
+			// Editor
+			if (ImGui::CollapsingHeader("Editor"))
+			{
+				if (ImGui::Button("Dynamic Animation Editor"))
+				{
+					showDynamicAnimationEditorWindow = true;
+				}
+			}
+
+			OnDrawGUI();
 		}
-
-		OnDrawGUI();
-
 		ImGui::End();
 
 		dynamicAnimationEditorWindow.Draw(&showDynamicAnimationEditorWindow);

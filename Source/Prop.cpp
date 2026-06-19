@@ -6,10 +6,17 @@
 Prop::Prop(const std::filesystem::path& path, const Transform& transform, bool isDynamic, int meshColliderConvex, int animationIndex, const std::string& tag, bool isActive, int layer)
 	: Actor(path.stem().string().c_str(), tag, isActive, layer)
 {
-	// ÉÇÉfÉãì«Ç›çûÇ›
 	std::shared_ptr<Model> model = ResourceManager::Instance().LoadModel(path.string());
+	Build(model, transform, isDynamic, meshColliderConvex, animationIndex, tag, isActive, layer);
+}
 
-	// transformê›íË
+Prop::Prop(std::shared_ptr<Model> model, const Transform& transform, bool isDynamic, int meshColliderConvex, int animationIndex, const std::string& tag, bool isActive, int layer)
+{
+	Build(model, transform, isDynamic, meshColliderConvex, animationIndex, tag, isActive, layer);
+}
+
+void Prop::Build(std::shared_ptr<Model> model, const Transform& transform, bool isDynamic, int meshColliderConvex, int animationIndex, const std::string& tag, bool isActive, int layer)
+{
 	this->transform = transform;
 	this->transform.Update();
 
@@ -44,4 +51,3 @@ Prop::Prop(const std::filesystem::path& path, const Transform& transform, bool i
 		model->UpdateTransform(this->transform.matrix);
 	}
 }
-

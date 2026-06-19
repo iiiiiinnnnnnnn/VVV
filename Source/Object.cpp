@@ -43,6 +43,8 @@ void Object::DrawGUI()
         ImGui::Text("Name: %s", name.c_str());
         ImGui::Checkbox("Active", &isActive);
         ImGui::Text("Components: %d", (int)componentList.data.size());
+        if (ImGui::Button("Destroy"))
+            Destroy();
         ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
         ImGui::TreePop();
     }

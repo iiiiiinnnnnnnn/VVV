@@ -1,0 +1,33 @@
+{
+    "animationMode": "Model",
+    "layers": [
+        {
+            "anyStateEditorPosX": 60.0,
+            "anyStateEditorPosY": 100.0,
+            "anyStateTransitions": [],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Base Layer",
+            "states": [
+                {
+                    "animationIndex": 0,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 251.0,
+                    "editorPosY": 161.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "New State",
+                    "speed": 1.0,
+                    "transitions": []
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [],
+    "triggers": []
+}

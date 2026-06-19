@@ -17,11 +17,8 @@
 
 // actor
 #include "Player.h"
-#include "Apple.h"
 #include "Stage00.h"
 #include "Stage01.h"
-#include "Prop.h"
-#include "BossEnemy.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
@@ -75,38 +72,6 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 			std::make_unique<FreeCameraController>(
 			camera));
 	}
-
-	// BossEnemy
-	#if 1
-	{
-		auto boss = std::make_shared<BossEnemy>();
-		actorManager.Register(boss);
-	}
-	#endif
-
-	// Apple normal
-	#if 0
-	{
-		auto apple = std::make_shared<Apple>();
-
-		apple->SetAggressive(false);
-		apple->SetPosition({ 8, 0, 8 });
-
-		actorManager.Register(apple);
-	}
-	#endif
-
-	// Apple aggressive
-	#if 0
-	{
-		auto apple = std::make_shared<Apple>();
-
-		apple->SetAggressive(true);
-		apple->SetPosition({ -8, 0, 8 });
-
-		actorManager.Register(apple);
-	}
-	#endif
 
 	// test widget
 	{

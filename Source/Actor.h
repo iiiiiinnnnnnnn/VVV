@@ -6,6 +6,7 @@
 #include "Transform.h"
 #include "Components.h"
 #include "GameDefine.h"
+class ActorManager;
 
 class Actor : public Object
 {
@@ -27,6 +28,8 @@ public:
 	virtual void OnTriggerStay(Actor* other) {}
     virtual void OnTriggerExit(Actor* other) {}
 
+	virtual void OnRegistered(ActorManager* actorManager) {}
+
     void SetLayer(int layer) { this->layer = layer; }
     void SetTag(const std::string& tag) { this->tag = tag; }
 
@@ -34,7 +37,11 @@ public:
     const std::string& GetTag() const { return tag; }
     bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
 
+    ActorManager* GetActorManager() const { return actorManager; }
+
 protected:
+	friend class ActorManager;
     std::string tag;
 	int layer;
+    ActorManager* actorManager = nullptr;
 };

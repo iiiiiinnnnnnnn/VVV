@@ -94,12 +94,6 @@
     <Filter Include="ソースファイル\ゲーム\オブジェクト\エフェクト">
       <UniqueIdentifier>{7d23d410-22ea-4e50-80f9-4d321df9b932}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系">
-      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系">
-      <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\アプリ\エディト">
       <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
     </Filter>
@@ -120,6 +114,15 @@
     </Filter>
     <Filter Include="ソースファイル\ゲーム\オブジェクト\アクタ\ステージ">
       <UniqueIdentifier>{57df697d-e7b3-47e9-b1f5-e60dd9e2a570}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き">
+      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画">
+      <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\ゲーム\オブジェクト\追加コンポーネント">
+      <UniqueIdentifier>{07ab6be6-034f-4653-9bd0-4c82ada9eb6a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -247,31 +250,31 @@
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rigidbody.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\RectTransform.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\TrailRenderComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
@@ -283,16 +286,16 @@
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpringBone.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\Terrain.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\Component.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\DamageHoleComponent.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
@@ -327,11 +330,17 @@
     <ClCompile Include="Source\Prop.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\BossEnemy.cpp">
+    <ClCompile Include="Source\AracoreQueen.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClCompile>
     <ClCompile Include="MovieCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Aracore.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StageLoader.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -501,34 +510,34 @@
       <Filter>ソースファイル\システム%28基底%29\描画\レンダラー</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rigidbody.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\RectTransform.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\DamageHoleComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpriteRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\TrailRenderComponent.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\Components.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
@@ -543,10 +552,10 @@
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpringBone.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Terrain.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画系</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\LoadingScene.h">
       <Filter>ソースファイル\ゲーム\シーン</Filter>
@@ -593,11 +602,17 @@
     <ClInclude Include="Source\Prop.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\BossEnemy.h">
+    <ClInclude Include="Source\AracoreQueen.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClInclude>
     <ClInclude Include="MovieCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Aracore.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StageLoader.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -14,9 +14,10 @@
     <ClCompile Include="MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
+    <ClCompile Include="Source\Aracore.cpp" />
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
-    <ClCompile Include="Source\BossEnemy.cpp" />
+    <ClCompile Include="Source\AracoreQueen.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Apple.cpp" />
     <ClCompile Include="Source\Component.cpp" />
@@ -55,6 +56,7 @@
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\PostEffect.cpp" />
     <ClCompile Include="Source\Stage01.cpp" />
+    <ClCompile Include="Source\StageLoader.cpp" />
     <ClCompile Include="Source\Terrain.cpp" />
     <ClCompile Include="Source\TestPlayScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
@@ -89,9 +91,10 @@
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
+    <ClInclude Include="Source\Aracore.h" />
     <ClInclude Include="Source\BasicModelShader.h" />
     <ClInclude Include="Source\BasicSpriteShader.h" />
-    <ClInclude Include="Source\BossEnemy.h" />
+    <ClInclude Include="Source\AracoreQueen.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\Apple.h" />
@@ -141,6 +144,7 @@
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\Stage01.h" />
+    <ClInclude Include="Source\StageLoader.h" />
     <ClInclude Include="Source\Terrain.h" />
     <ClInclude Include="Source\TestPlayScene.h" />
     <ClInclude Include="Source\Mouse.h" />

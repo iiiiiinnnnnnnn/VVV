@@ -6,6 +6,7 @@
 #include "RectTransform.h"
 #include "Components.h"
 #include "Texture.h"
+class WidgetManager;
 
 class Widget : public Object
 {
@@ -19,4 +20,8 @@ public:
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
     void Update() override;
     void DrawGUI() override;
+
+protected:
+	friend class WidgetManager;
+    WidgetManager* widgetManager = nullptr;
 };

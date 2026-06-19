@@ -4,54 +4,121 @@
 
 #include "Actor.h"
 
-struct ActorManager
+class ActorManager
 {
 public:
-	std::vector<std::shared_ptr<Actor>> data;
-
 	void Register(std::shared_ptr<Actor> actor)
 	{
-		data.push_back(actor);
+		if (!actor) return;
+
+		actor->actorManager = this;
+		actor->OnRegistered(this);
+		pendingActors.push_back(actor);
+	}
+
+	void Clear()
+	{
+		data.clear();
+		pendingActors.clear();
+	}
+
+	void FlushPendingActors()
+	{
+		if (pendingActors.empty())
+		{
+			return;
+		}
+
+		for (std::shared_ptr<Actor>& actor : pendingActors)
+		{
+			if (!actor)
+			{
+				continue;
+			}
+
+			data.push_back(actor);
+		}
+
+		pendingActors.clear();
 	}
 
 	void Update()
 	{
-		for (auto& d : data)
+		FlushPendingActors();
+
+		const size_t count = data.size();
+
+		for (size_t i = 0; i < count; ++i)
 		{
-			d->Update();
+			if (!data[i])
+			{
+				continue;
+			}
+
+			if (data[i]->IsPendingDestroy())
+			{
+				continue;
+			}
+
+			data[i]->Update();
 		}
 
-		// 削除フラグありのオブジェクトを削除
 		data.erase(
 			std::remove_if(
 			data.begin(),
 			data.end(),
 			[](const std::shared_ptr<Actor>& actor)
 		{
-			return actor->IsPendingDestroy();
+			return !actor || actor->IsPendingDestroy();
 		}),
 			data.end());
+
+		FlushPendingActors();
 	}
 
 	void Render(const RenderContext& rc)
 	{
-		for (auto& d : data)
+		const size_t count = data.size();
+
+		for (size_t i = 0; i < count; ++i)
 		{
-			if (!d->IsPendingDestroy())
+			if (!data[i])
 			{
-				d->Render(rc);
+				continue;
 			}
+
+			if (data[i]->IsPendingDestroy())
+			{
+				continue;
+			}
+
+			data[i]->Render(rc);
 		}
 	}
 
 	void DrawGUI()
 	{
-		for (auto& d : data)
+		const size_t count = data.size();
+
+		for (size_t i = 0; i < count; ++i)
 		{
-			if (!d->IsPendingDestroy())
+			if (!data[i])
 			{
-				d->DrawGUI();
+				continue;
 			}
+
+			if (data[i]->IsPendingDestroy())
+			{
+				continue;
+			}
+
+			data[i]->DrawGUI();
 		}
 	}
+	std::vector<std::shared_ptr<Actor>>& GetActors() { return data; }
+	const std::vector<std::shared_ptr<Actor>>& GetActors() const { return data; }
+
+private:
+	std::vector<std::shared_ptr<Actor>> data;
+	std::vector<std::shared_ptr<Actor>> pendingActors;
 };

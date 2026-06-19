@@ -1,0 +1,30 @@
+{
+    "bosses": [],
+    "enemies": [
+        {
+            "active": true,
+            "aggressive": false,
+            "id": "aracore_001",
+            "layer": 3,
+            "position": [
+                0.0,
+                4.800000190734863,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "scale": [
+                0.003000000026077032,
+                0.003000000026077032,
+                0.003000000026077032
+            ],
+            "tag": "Enemy",
+            "type": "Aracore"
+        }
+    ],
+    "props": []
+}

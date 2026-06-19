@@ -4,12 +4,12 @@
 
 #include "Widget.h"
 
-struct WidgetManager
+class WidgetManager
 {
-	std::vector<std::shared_ptr<Widget>> data;
-
+public:
 	void Register(std::shared_ptr<Widget> widget)
 	{
+		widget->widgetManager = this;
 		data.push_back(widget);
 	}
 
@@ -53,4 +53,10 @@ struct WidgetManager
 			}
 		}
 	}
+
+	std::vector<std::shared_ptr<Widget>>& GetWidgets() { return data; }
+	const std::vector<std::shared_ptr<Widget>>& GetWidgets() const { return data; }
+
+private:
+	std::vector<std::shared_ptr<Widget>> data;
 };
