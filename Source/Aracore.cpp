@@ -27,7 +27,7 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
 void Aracore::OnRegistered(ActorManager* actorManager)
 {
 	// 機械の部分
-    #if 0
+    #if 1
     {
         std::shared_ptr<Model> model =
             ResourceManager::Instance().LoadModel("Data/Model/Prop/turtle_tears_vending_machine.glb");
@@ -35,6 +35,10 @@ void Aracore::OnRegistered(ActorManager* actorManager)
         auto machineShared = std::make_shared<Prop>(model, transform, false, 1280);
         auto machine = machineShared.get();
         actorManager->Register(machineShared);
+
+        std::vector<Model::NodePose> nodePoses;
+        model->GetNodePoses(nodePoses);
+        machine->transform.position = nodePoses[model->GetNodeIndex("Box01")].position;
 
         // モデルレンダラーとダメージホールコンポーネントを追加
         ModelRenderComponent* modelRenderer = machine->AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);

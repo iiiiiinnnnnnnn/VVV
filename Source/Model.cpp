@@ -191,6 +191,16 @@ void Model::Animation::serialize(Archive& archive)
 }
 #endif
 
+namespace
+{
+	constexpr uint64_t ModelCacheVersion = 2;
+
+	uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite)
+	{
+		return sourceLastWrite ^ ModelCacheVersion;
+	}
+}
+
 uint64_t Model::GetFileLastWriteTime64(const std::filesystem::path& path)
 {
 	return static_cast<uint64_t>(
@@ -645,7 +655,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		// cerealが古いなら、元のモデルファイルから再構築する
 		if (std::filesystem::exists(filename))
 		{
-			uint64_t fileLastWriteTime = GetFileLastWriteTime64(filename);
+			uint64_t fileLastWriteTime = MakeModelCacheStamp(GetFileLastWriteTime64(filename));
 
 			if (fileLastWriteTime != lastWriteTime)
 			{
@@ -683,7 +693,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		// 独自形式のモデルファイルを保存
 		Serialize(
 			cerealFilepath.string().c_str(),
-			GetFileLastWriteTime64(filename)
+			MakeModelCacheStamp(GetFileLastWriteTime64(filename))
 		);
 	}
 	else

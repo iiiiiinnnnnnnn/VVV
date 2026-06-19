@@ -1,5 +1,6 @@
 ﻿// GLTFImporter.cpp
 
+#include <array>
 #include <fstream>
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -18,6 +19,80 @@ bool LoadImageData(tinygltf::Image*, const int, std::string*,
 	void* user_pointer)
 {
 	return true;
+}
+
+namespace
+{
+	struct BoneInfluence
+	{
+		uint32_t index = 0;
+		float weight = 0.0f;
+	};
+
+	void NormalizeBoneWeights(Model::Vertex& vertex)
+	{
+		float weightSum =
+			vertex.boneWeight.x +
+			vertex.boneWeight.y +
+			vertex.boneWeight.z +
+			vertex.boneWeight.w;
+
+		if (weightSum <= 0.00001f)
+		{
+			vertex.boneWeight = {1, 0, 0, 0};
+			vertex.boneIndex = {0, 0, 0, 0};
+			return;
+		}
+
+		vertex.boneWeight.x /= weightSum;
+		vertex.boneWeight.y /= weightSum;
+		vertex.boneWeight.z /= weightSum;
+		vertex.boneWeight.w /= weightSum;
+	}
+
+	void PackTopBoneInfluences(
+		Model::Vertex& vertex,
+		const DirectX::XMUINT4& extraIndex,
+		const Vector4& extraWeight)
+	{
+		std::array<BoneInfluence, 8> influences =
+		{
+			BoneInfluence{vertex.boneIndex.x, max(vertex.boneWeight.x, 0.0f)},
+			BoneInfluence{vertex.boneIndex.y, max(vertex.boneWeight.y, 0.0f)},
+			BoneInfluence{vertex.boneIndex.z, max(vertex.boneWeight.z, 0.0f)},
+			BoneInfluence{vertex.boneIndex.w, max(vertex.boneWeight.w, 0.0f)},
+			BoneInfluence{extraIndex.x, max(extraWeight.x, 0.0f)},
+			BoneInfluence{extraIndex.y, max(extraWeight.y, 0.0f)},
+			BoneInfluence{extraIndex.z, max(extraWeight.z, 0.0f)},
+			BoneInfluence{extraIndex.w, max(extraWeight.w, 0.0f)}
+		};
+
+		std::sort(
+			influences.begin(),
+			influences.end(),
+			[](const BoneInfluence& a, const BoneInfluence& b)
+			{
+				return a.weight > b.weight;
+			}
+		);
+
+		vertex.boneIndex =
+		{
+			influences[0].index,
+			influences[1].index,
+			influences[2].index,
+			influences[3].index
+		};
+		vertex.boneWeight =
+		{
+			influences[0].weight,
+			influences[1].weight,
+			influences[2].weight,
+			influences[3].weight
+		};
+
+		NormalizeBoneWeights(vertex);
+	}
 }
 
 // コンストラクタ
@@ -174,6 +249,11 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 				mesh.vertices.resize(gltfAccessor.count);
 			}
 
+			std::vector<DirectX::XMUINT4> extraBoneIndices(mesh.vertices.size(), {0, 0, 0, 0});
+			std::vector<Vector4> extraBoneWeights(mesh.vertices.size(), {0, 0, 0, 0});
+			bool hasExtraBoneIndices = false;
+			bool hasExtraBoneWeights = false;
+
 			// 頂点バッファ
 			for (std::map<std::string, int>::const_reference gltfAttribute : gltfPrimitive.attributes)
 			{
@@ -303,6 +383,47 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 						}
 					}
 				}
+				else if (gltfAttribute.first == "JOINTS_1")
+				{
+					hasExtraBoneIndices = true;
+
+					switch (gltfAccessor.componentType)
+					{
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+						{
+							const uint8_t* p = static_cast<const uint8_t*>(vertexBuffer);
+							for (size_t i = 0; i < gltfAccessor.count; ++i)
+							{
+								DirectX::XMUINT4& boneIndex = extraBoneIndices.at(i);
+								boneIndex.x = p[0];
+								boneIndex.y = p[1];
+								boneIndex.z = p[2];
+								boneIndex.w = p[3];
+								p += 4;
+							}
+							break;
+						}
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+						{
+							const uint16_t* p = static_cast<const uint16_t*>(vertexBuffer);
+							for (size_t i = 0; i < gltfAccessor.count; ++i)
+							{
+								DirectX::XMUINT4& boneIndex = extraBoneIndices.at(i);
+								boneIndex.x = p[0];
+								boneIndex.y = p[1];
+								boneIndex.z = p[2];
+								boneIndex.w = p[3];
+								p += 4;
+							}
+							break;
+						}
+						default:
+						{
+							_ASSERT_EXPR(0, L"");
+							continue;
+						}
+					}
+				}
 				else if (gltfAttribute.first == "WEIGHTS_0")
 				{
 					switch (gltfAccessor.componentType)
@@ -355,6 +476,80 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 							continue;
 						}
 					}
+				}
+				else if (gltfAttribute.first == "WEIGHTS_1")
+				{
+					hasExtraBoneWeights = true;
+
+					switch (gltfAccessor.componentType)
+					{
+						case TINYGLTF_COMPONENT_TYPE_FLOAT:
+						{
+							const float* p = static_cast<const float*>(vertexBuffer);
+							for (size_t i = 0; i < gltfAccessor.count; ++i)
+							{
+								Vector4& boneWeights = extraBoneWeights.at(i);
+								boneWeights.x = p[0];
+								boneWeights.y = p[1];
+								boneWeights.z = p[2];
+								boneWeights.w = p[3];
+								p += 4;
+							}
+							break;
+						}
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+						{
+							const uint8_t* p = static_cast<const uint8_t*>(vertexBuffer);
+							for (size_t i = 0; i < gltfAccessor.count; ++i)
+							{
+								Vector4& boneWeights = extraBoneWeights.at(i);
+								boneWeights.x = p[0] / static_cast<float>(0xFF);
+								boneWeights.y = p[1] / static_cast<float>(0xFF);
+								boneWeights.z = p[2] / static_cast<float>(0xFF);
+								boneWeights.w = p[3] / static_cast<float>(0xFF);
+								p += 4;
+							}
+							break;
+						}
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+						{
+							const uint16_t* p = static_cast<const uint16_t*>(vertexBuffer);
+							for (size_t i = 0; i < gltfAccessor.count; ++i)
+							{
+								Vector4& boneWeights = extraBoneWeights.at(i);
+								boneWeights.x = p[0] / static_cast<float>(0xFFFF);
+								boneWeights.y = p[1] / static_cast<float>(0xFFFF);
+								boneWeights.z = p[2] / static_cast<float>(0xFFFF);
+								boneWeights.w = p[3] / static_cast<float>(0xFFFF);
+								p += 4;
+							}
+							break;
+						}
+						default:
+						{
+							_ASSERT_EXPR(0, L"");
+							continue;
+						}
+					}
+				}
+			}
+
+			if (hasExtraBoneIndices && hasExtraBoneWeights)
+			{
+				for (size_t i = 0; i < mesh.vertices.size(); ++i)
+				{
+					PackTopBoneInfluences(
+						mesh.vertices.at(i),
+						extraBoneIndices.at(i),
+						extraBoneWeights.at(i)
+					);
+				}
+			}
+			else
+			{
+				for (Model::Vertex& vertex : mesh.vertices)
+				{
+					NormalizeBoneWeights(vertex);
 				}
 			}
 
