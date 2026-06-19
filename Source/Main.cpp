@@ -36,14 +36,17 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	wcex.hIconSm = 0;
 	RegisterClassEx(&wcex);
 
+	constexpr int initializeWindowPosX = 10;
+	constexpr int initializeWindowPosY = 10;
+
 	RECT rc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 	HWND hWnd = CreateWindow(
 		_T("Game"),
 		_T(""),
 		WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME | WS_VISIBLE,
-		110,
-		110,
+		initializeWindowPosX,
+		initializeWindowPosY,
 		rc.right - rc.left,
 		rc.bottom - rc.top,
 		NULL,

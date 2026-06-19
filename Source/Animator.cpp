@@ -8,7 +8,7 @@
 #include "DynamicAnimationSerializer.h"
 #include "Widget.h"
 #include "SpriteRenderComponent.h"
-
+#include "IconsFontAwesome5.h"
 #include <filesystem>
 #include <unordered_set>
 
@@ -292,7 +292,7 @@ void Animator::Update()
 
 void Animator::DrawGUI()
 {
-    if (ImGui::TreeNode("Animator"))
+    if (ImGui::TreeNode(ICON_FA_FILM " Animator"))
     {
         ImGui::TextDisabled(
             animationMode == AnimationMode::Dynamic

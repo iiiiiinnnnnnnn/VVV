@@ -3,6 +3,7 @@
 #include "TrailRenderComponent.h"
 #include "Graphics.h"
 #include "GameTime.h"
+#include "IconsFontAwesome5.h"
 
 TrailRenderComponent::TrailRenderComponent(
     Object* owner,
@@ -123,7 +124,7 @@ void TrailRenderComponent::RenderTrail(const RenderContext& rc)
 
 void TrailRenderComponent::DrawGUI()
 {
-    if (ImGui::TreeNode("TrailRenderComponent"))
+    if (ImGui::TreeNode(ICON_FA_MAGIC " TrailRenderComponent"))
     {
         ImGui::Text("Node Index : %d", nodeIndex);
         ImGui::Text("Life Time  : %.2f", lifeTime);

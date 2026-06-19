@@ -12,8 +12,8 @@ public:
 		if (!actor) return;
 
 		actor->actorManager = this;
-		actor->OnRegistered(this);
 		pendingActors.push_back(actor);
+		actor->OnRegistered(this);
 	}
 
 	void Clear()

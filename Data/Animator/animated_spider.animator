@@ -12,7 +12,7 @@
             "name": "Base Layer",
             "states": [
                 {
-                    "animationIndex": 6,
+                    "animationIndex": 3,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -21,7 +21,7 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "New State",
-                    "speed": 1.0,
+                    "speed": 0.3700000047683716,
                     "transitions": []
                 }
             ],

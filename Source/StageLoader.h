@@ -53,10 +53,12 @@ private:
 
 	void WriteTransformToJSON(
 		json& objectJson,
-		const Transform& transform) const;
+		const Transform& transform,
+		bool writeScale) const;
 
 	Transform ReadTransform(
-		const json& objectJson) const;
+		const json& objectJson,
+		bool readScale = true) const;
 
 	Vector3 ReadVector3(
 		const json& objectJson,
@@ -70,7 +72,8 @@ private:
 
 	void ApplyTransformToActor(
 		Actor* actor,
-		const Transform& transform);
+		const Transform& transform,
+		bool dontScale);
 
 	void ApplyCommonActorSettings(
 		Actor* actor,
@@ -90,11 +93,6 @@ private:
 	std::string addId = "aracore_001";
 	std::string addPropPath = "Data/Model/Prop/paestum_stone.glb";
 
-	Vector3 addPosition = Vector3::Zero;
-	Vector3 addRotation = Vector3::Zero;
-	Vector3 addScale = Vector3::One;
-
-	bool addAggressive = false;
 	bool addIsDynamic = false;
 	int addMeshColliderConvex = 1280;
 };

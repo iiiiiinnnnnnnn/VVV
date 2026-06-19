@@ -9,6 +9,7 @@
 #include "LightManager.h"
 #include "Input.h"
 #include "Misc.h"
+#include "IconsFontAwesome5.h"
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)
@@ -1448,7 +1449,7 @@ void Terrain::DrawBrushGUI()
 
 void Terrain::DrawGUI()
 {
-	if (!ImGui::TreeNode("Terrain"))
+	if (!ImGui::TreeNode(ICON_FA_MOUNTAIN " Terrain"))
 	{
 		return;
 	}

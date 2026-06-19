@@ -48,5 +48,5 @@ struct Transform
 		bool rotationChanged = false;
 		bool scaleChanged = false;
 	};
-	TransformChangedResult DrawGUI();
+	TransformChangedResult DrawGUI(bool hideScale = false);
 };

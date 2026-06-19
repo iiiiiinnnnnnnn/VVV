@@ -4,6 +4,7 @@
 #include "Actor.h"
 #include "Graphics.h"
 #include "GameTime.h"
+#include "IconsFontAwesome5.h"
 
 namespace
 {
@@ -548,6 +549,7 @@ void SpringBone::LateUpdate()
 
 void SpringBone::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug)
         return;
 
@@ -627,7 +629,8 @@ void SpringBone::Render(const RenderContext& rc)
 
 void SpringBone::DrawGUI()
 {
-    if (ImGui::TreeNode("SpringBone"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_BONE " SpringBone");
+    if (isOpenGUI)
     {
         ImGui::Text("Bones: %d", static_cast<int>(bones.size()));
         ImGui::Text("Capsules: %d", static_cast<int>(springCapsules.size()));

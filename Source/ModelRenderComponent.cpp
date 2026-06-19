@@ -3,6 +3,7 @@
 #include "ModelRenderComponent.h"
 #include <Graphics.h>
 #include "Actor.h"
+#include "IconsFontAwesome5.h"
 
 ModelRenderComponent::ModelRenderComponent(
     Object* owner, std::shared_ptr<Model> model,
@@ -61,9 +62,37 @@ void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParam& para
     }
 }
 
+void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParamList& paramList)
+{
+    if (!model)
+        return;
+
+    for (const Model::Material& material : model->GetMaterials())
+    {
+        ShaderParamList& params = paramsWithMaterial[material.name];
+
+        for (const ShaderParam& param : paramList)
+        {
+            auto it = std::find_if(
+                params.begin(),
+                params.end(),
+                [&](const ShaderParam& p) { return p.name == param.name; });
+
+            if (it != params.end())
+            {
+                it->value = param.value;
+            }
+            else
+            {
+                params.push_back(param);
+            }
+        }
+    }
+}
+
 void ModelRenderComponent::DrawGUI()
 {
-    if (ImGui::TreeNode("ModelRenderComponent"))
+    if (ImGui::TreeNode(ICON_FA_CUBES " ModelRenderComponent"))
     {
         if (model)
         {
@@ -146,7 +175,7 @@ void ModelRenderComponent::DrawGUI()
                 }
             }
 
-            if (ImGui::TreeNode("Materials"))
+            if (ImGui::TreeNode(ICON_FA_PAINT_BRUSH " Materials"))
             {
                 for (const Model::Material& material : model->GetMaterials())
                 {

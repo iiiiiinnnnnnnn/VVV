@@ -24,6 +24,10 @@ public:
 
 private:
 	Animator* anim;
+	ModelRenderComponent* bodyRenderer = nullptr;
 	Rigidbody* rb;
 	DamageHoleComponent* damageHoleComponent = nullptr;
+
+	ShaderParamListWithMaterialName shaderParamWithMaterialName;
+	ShaderParamList machineShaderParam;
 };

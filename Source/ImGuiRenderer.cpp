@@ -71,6 +71,14 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
 	ImFont* font = io.Fonts->AddFontFromFileTTF("Data/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 	IM_ASSERT(font != NULL);
+
+	// Font Awesomeをマージ
+	static const ImWchar icon_ranges[] = { 0xf000, 0xf8ff, 0 };
+	ImFontConfig config;
+	config.MergeMode = true;
+	config.PixelSnapH = true;
+	config.GlyphMinAdvanceX = 16.0f;
+	io.Fonts->AddFontFromFileTTF("Data/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
 }
 
 // 終了化

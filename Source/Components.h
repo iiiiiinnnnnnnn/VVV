@@ -5,6 +5,7 @@
 // 3D
 #include "Transform.h"
 #include "ModelRenderComponent.h"
+#include "BoneFollower.h"
 #include "DamageHoleComponent.h"
 #include "TrailRenderComponent.h"
 #include "RigidBody.h"

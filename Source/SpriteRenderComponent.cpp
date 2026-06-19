@@ -3,6 +3,7 @@
 #include "SpriteRenderComponent.h"
 #include <Graphics.h>
 #include "Widget.h"
+#include "IconsFontAwesome5.h"
 
 SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamList shaderParam)
 	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
@@ -37,7 +38,7 @@ void SpriteRenderComponent::Render(const RenderContext& rc)
 
 void SpriteRenderComponent::DrawGUI()
 {
-	if (ImGui::TreeNode("SpriteRenderComponent"))
+	if (ImGui::TreeNode(ICON_FA_IMAGE " SpriteRenderComponent"))
 	{
 		if (texture)
 		{
@@ -49,7 +50,7 @@ void SpriteRenderComponent::DrawGUI()
 		}
 
 		// シェーダーパラメータ
-		if (ImGui::TreeNode("ShaderParams"))
+		if (ImGui::TreeNode(ICON_FA_PASTE " ShaderParams"))
 		{
 			for (ShaderParam& p : shaderParam)
 			{

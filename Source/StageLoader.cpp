@@ -5,10 +5,11 @@
 #include "ActorManager.h"
 #include "Aracore.h"
 #include "AracoreQueen.h"
-#include "Prop.h"
 #include "Components.h"
 
 #include <fstream>
+#include "ResourceManager.h"
+#include "IconsFontAwesome5.h"
 
 using json = nlohmann::json;
 
@@ -160,18 +161,17 @@ Actor* StageLoader::SpawnActorFromJSON(
 
 	std::shared_ptr<Actor> actor;
 
+	std::string id = objectJson.value("id", std::string());
+
 	if (groupName == "props")
 	{
-		std::string path =
-			objectJson.value("path", std::string());
+		std::string path = objectJson.value("path", std::string());
 
 		if (path.empty())
-		{
 			return nullptr;
-		}
 
 		Transform transform =
-			ReadTransform(objectJson);
+			ReadTransform(objectJson, true);
 
 		bool isDynamic =
 			objectJson.value("isDynamic", false);
@@ -191,16 +191,28 @@ Actor* StageLoader::SpawnActorFromJSON(
 		int layer =
 			objectJson.value("layer", Layer::Default);
 
-		actor =
-			std::make_shared<Prop>(
-			path,
-			transform,
-			isDynamic,
-			meshColliderConvex,
-			animationIndex,
-			tag,
-			active,
-			layer);
+		actor = std::make_shared<Actor>(id, tag, active, layer);
+		actor->transform = transform;
+		auto model = ResourceManager::Instance().LoadModel(path);
+		actor->AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);
+		if (animationIndex != -1)
+		{
+			Animator* anim = actor->AddComponent<Animator>(model, animationIndex);
+			anim->Play(0, animationIndex, true);
+		}
+		Rigidbody* rb = nullptr;
+		if (isDynamic)
+		{
+			rb = actor->AddComponent<RigidbodyDynamic>();
+		}
+		else
+		{
+			rb = actor->AddComponent<RigidbodyStatic>();
+		}
+		if (addMeshColliderConvex > 0)
+		{
+			actor->AddComponent<MeshCollider>(rb, model.get(), meshColliderConvex);
+		}
 	}
 	else
 	{
@@ -209,13 +221,11 @@ Actor* StageLoader::SpawnActorFromJSON(
 
 		if (type == "Aracore")
 		{
-			actor =
-				std::make_shared<Aracore>();
+			actor = std::make_shared<Aracore>();
 		}
 		else if (type == "AracoreQueen")
 		{
-			actor =
-				std::make_shared<AracoreQueen>();
+			actor = std::make_shared<AracoreQueen>();
 		}
 		else
 		{
@@ -228,22 +238,15 @@ Actor* StageLoader::SpawnActorFromJSON(
 	}
 
 	if (!actor)
-	{
 		return nullptr;
-	}
 
-	Actor* rawActor =
-		actor.get();
-
+	Actor* rawActor = actor.get();
 	actorManager->Register(actor);
 
-	if (groupName != "props")
-	{
-		Transform transform =
-			ReadTransform(objectJson);
+	Transform transform =
+		ReadTransform(objectJson, false);
 
-		ApplyTransformToActor(rawActor, transform);
-	}
+		ApplyTransformToActor(rawActor, transform, groupName != "props");
 
 	ApplyCommonActorSettings(rawActor, objectJson);
 
@@ -254,13 +257,8 @@ Actor* StageLoader::SpawnActorFromJSON(
 
 	loadedActors.push_back(loadedActor);
 
-	std::string id =
-		objectJson.value("id", std::string());
-
 	if (!id.empty())
-	{
 		namedActors[id] = rawActor;
-	}
 
 	return rawActor;
 }
@@ -341,14 +339,16 @@ json StageLoader::BuildObjectJSONFromLoadedActor(
 
 	WriteTransformToJSON(
 		objectJson,
-		actor->transform);
+		actor->transform,
+		loadedActor.groupName == "props");
 
 	return objectJson;
 }
 
 void StageLoader::WriteTransformToJSON(
 	json& objectJson,
-	const Transform& transform) const
+	const Transform& transform,
+	bool writeScale) const
 {
 	objectJson["position"] =
 	{
@@ -365,16 +365,24 @@ void StageLoader::WriteTransformToJSON(
 		transform.rotation.w
 	};
 
-	objectJson["scale"] =
+	if (writeScale)
 	{
-		transform.scale.x,
-		transform.scale.y,
-		transform.scale.z
-	};
+		objectJson["scale"] =
+		{
+			transform.scale.x,
+			transform.scale.y,
+			transform.scale.z
+		};
+	}
+	else
+	{
+		objectJson.erase("scale");
+	}
 }
 
 Transform StageLoader::ReadTransform(
-	const json& objectJson) const
+	const json& objectJson,
+	bool readScale) const
 {
 	Transform transform;
 
@@ -384,11 +392,12 @@ Transform StageLoader::ReadTransform(
 		"position",
 		Vector3::Zero);
 
-	transform.scale =
-		ReadVector3(
-		objectJson,
-		"scale",
-		Vector3::One);
+	transform.scale = readScale
+		? ReadVector3(
+			objectJson,
+			"scale",
+			Vector3::One)
+		: Vector3::One;
 
 	transform.rotation =
 		Quaternion::Identity;
@@ -435,18 +444,13 @@ Vector3 StageLoader::ReadVector3(
 	const Vector3& defaultValue) const
 {
 	if (!objectJson.contains(key))
-	{
 		return defaultValue;
-	}
 
 	const json& value =
 		objectJson[key];
 
-	if (!value.is_array() ||
-		value.size() < 3)
-	{
+	if (!value.is_array() || value.size() < 3)
 		return defaultValue;
-	}
 
 	return Vector3(
 		value[0].get<float>(),
@@ -456,15 +460,16 @@ Vector3 StageLoader::ReadVector3(
 
 void StageLoader::ApplyTransformToActor(
 	Actor* actor,
-	const Transform& transform)
+	const Transform& transform,
+	bool dontScale)
 {
 	if (!actor)
-	{
 		return;
-	}
 
-	actor->transform = transform;
-	actor->transform.Update();
+	actor->transform.SetPosition(transform.position);
+	actor->transform.SetRotation(transform.rotation);
+	if(!dontScale)
+		actor->transform.SetScale(transform.scale);
 
 	Rigidbody* rb =
 		actor->GetComponent<Rigidbody>();
@@ -492,8 +497,7 @@ void StageLoader::ApplyTransformToActor(
 
 	if (characterController)
 	{
-		characterController->SetFootPosition(
-			actor->transform.position);
+		characterController->SetFootPosition(actor->transform.position);
 	}
 }
 
@@ -501,113 +505,59 @@ void StageLoader::ApplyCommonActorSettings(
 	Actor* actor,
 	const json& objectJson)
 {
-	if (!actor)
-	{
-		return;
-	}
+	if (!actor) return;
 
 	if (objectJson.contains("name"))
 	{
-		actor->SetName(
-			objectJson["name"].get<std::string>());
+		actor->SetName(objectJson["name"].get<std::string>());
 	}
 	else if (objectJson.contains("id"))
 	{
-		actor->SetName(
-			objectJson["id"].get<std::string>());
+		actor->SetName(objectJson["id"].get<std::string>());
 	}
 
 	if (objectJson.contains("tag"))
 	{
-		actor->SetTag(
-			objectJson["tag"].get<std::string>());
+		actor->SetTag(objectJson["tag"].get<std::string>());
 	}
 
 	if (objectJson.contains("layer"))
 	{
-		actor->SetLayer(
-			objectJson["layer"].get<int>());
+		actor->SetLayer(objectJson["layer"].get<int>());
 	}
 
 	if (objectJson.contains("active"))
 	{
-		actor->SetActive(
-			objectJson["active"].get<bool>());
+		actor->SetActive(objectJson["active"].get<bool>());
 	}
 }
 
 json StageLoader::MakeAddObjectJSON() const
 {
 	json objectJson;
-
-	objectJson["id"] =
-		addId;
-
-	objectJson["position"] =
-	{
-		addPosition.x,
-		addPosition.y,
-		addPosition.z
-	};
-
-	objectJson["rotation"] =
-	{
-		addRotation.x,
-		addRotation.y,
-		addRotation.z
-	};
-
-	objectJson["scale"] =
-	{
-		addScale.x,
-		addScale.y,
-		addScale.z
-	};
-
+	objectJson["id"] = addId;
+	objectJson["position"] = {0, 0, 0};
+	objectJson["rotation"] = {0, 0, 0, 1};
 	if (addTypeIndex == 0)
 	{
-		objectJson["path"] =
-			addPropPath;
-
-		objectJson["isDynamic"] =
-			addIsDynamic;
-
-		objectJson["meshColliderConvex"] =
-			addMeshColliderConvex;
-
-		objectJson["tag"] =
-			"Prop";
-
-		objectJson["layer"] =
-			Layer::Default;
+		objectJson["scale"] = {1, 1, 1};
+		objectJson["path"] = addPropPath;
+		objectJson["isDynamic"] = addIsDynamic;
+		objectJson["meshColliderConvex"] = addMeshColliderConvex;
+		objectJson["tag"] = "Prop";
+		objectJson["layer"] = Layer::Default;
 	}
 	else if (addTypeIndex == 1)
 	{
-		objectJson["type"] =
-			"Aracore";
-
-		objectJson["aggressive"] =
-			addAggressive;
-
-		objectJson["tag"] =
-			"Enemy";
-
-		objectJson["layer"] =
-			Layer::Enemy;
+		objectJson["type"] = "Aracore";
+		objectJson["tag"] = "Enemy";
+		objectJson["layer"] = Layer::Enemy;
 	}
 	else if (addTypeIndex == 2)
 	{
-		objectJson["type"] =
-			"AracoreQueen";
-
-		objectJson["aggressive"] =
-			addAggressive;
-
-		objectJson["tag"] =
-			"Enemy";
-
-		objectJson["layer"] =
-			Layer::Enemy;
+		objectJson["type"] = "AracoreQueen";
+		objectJson["tag"] = "Enemy";
+		objectJson["layer"] = Layer::Enemy;
 	}
 
 	return objectJson;
@@ -615,7 +565,7 @@ json StageLoader::MakeAddObjectJSON() const
 
 void StageLoader::DrawGUI()
 {
-	if (ImGui::TreeNode("StageLoader"))
+	if (ImGui::TreeNode(ICON_FA_MOUNTAIN "StageLoader"))
 	{
 		ImGui::Text(
 			"Json: %s",
@@ -687,21 +637,6 @@ void StageLoader::DrawAddObjectGUI()
 			4096);
 	}
 
-	ImGui::DragFloat3(
-		"Position",
-		&addPosition.x,
-		0.1f);
-
-	ImGui::DragFloat3(
-		"Rotation",
-		&addRotation.x,
-		0.1f);
-
-	ImGui::DragFloat3(
-		"Scale",
-		&addScale.x,
-		0.01f);
-
 	if (ImGui::Button("Add"))
 	{
 		json objectJson =
@@ -766,11 +701,9 @@ void StageLoader::DrawLoadedActorsGUI()
 		if (ImGui::TreeNode(
 			name.empty() ? "Actor" : name.c_str()))
 		{
-			ImGui::Text(
-				"Group: %s",
-				loadedActor.groupName.c_str());
+			ImGui::Text("Group: %s", loadedActor.groupName.c_str());
 
-			actor->DrawGUI();
+			actor->transform.DrawGUI(loadedActor.groupName != "props");
 
 			if (ImGui::Button("Remove From Stage"))
 			{

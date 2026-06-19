@@ -5,22 +5,37 @@
 #include "ResourceManager.h"
 #include "HitEffect.h"
 #include "ActorManager.h"
-#include "Prop.h"
 
 Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
 	// 蜘蛛の部分
     {
+		shaderParamWithMaterialName =
+		{
+			{
+				"03 - Default",
+			{
+                {"metalness", 0.0f},
+            {"roughness", 1.0f},
+            {"occlusion", 0.5f},
+            {"occlusionStrength", 1.0f}
+		}
+			}
+		};
+
         // モデル描画
         std::shared_ptr<Model> model =
             ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider.glb");
-        transform.Update();
+		transform.SetScale(0.02f);
         model->UpdateTransform(transform.matrix);
-        AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);
+        bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
         // アニメータ
 		anim = AddComponent<Animator>(model, 0);
         anim->Load("Data/Animator/animated_spider.animator");
+
+		// キャラクターコントローラー
+		AddComponent<CharacterController>(1.13f, 0.001f);
     }
 }
 
@@ -29,19 +44,34 @@ void Aracore::OnRegistered(ActorManager* actorManager)
 	// 機械の部分
     #if 1
     {
+        machineShaderParam =
+        {
+            {
+                {"metalness", 1.0f},
+            {"roughness", 0.0f},
+            {"occlusion", 0.5f},
+            {"occlusionStrength", 1.0f}
+            }
+        };
         std::shared_ptr<Model> model =
             ResourceManager::Instance().LoadModel("Data/Model/Prop/turtle_tears_vending_machine.glb");
 
-        auto machineShared = std::make_shared<Prop>(model, transform, false, 1280);
+        auto machineShared = std::make_shared<Actor>("Machine", "Enemy", true, Layer::Enemy);
         auto machine = machineShared.get();
         actorManager->Register(machineShared);
 
-        std::vector<Model::NodePose> nodePoses;
-        model->GetNodePoses(nodePoses);
-        machine->transform.position = nodePoses[model->GetNodeIndex("Box01")].position;
+        if (bodyRenderer)
+        {
+            Transform offset{};
+            offset.SetPosition(0, -0.4f, 0);
+            offset.SetScale(40.0f, 40.0f, 64.3f);
+            machine->AddComponent<BoneFollower>(
+                bodyRenderer->GetModel(), "Box02", offset);
+        }
 
         // モデルレンダラーとダメージホールコンポーネントを追加
         ModelRenderComponent* modelRenderer = machine->AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);
+		modelRenderer->SetShaderParamForAllMaterials(machineShaderParam);
         damageHoleComponent = machine->AddComponent<DamageHoleComponent>(modelRenderer, 0.65f, 0.12f, 0.55f, 1.35f);
     }
     #endif

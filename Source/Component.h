@@ -29,4 +29,5 @@ public:
 protected:
     Object* owner;
     bool isActive = true;
+	bool isOpenGUI = false;
 };

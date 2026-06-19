@@ -4,7 +4,6 @@
 #include "Graphics.h"
 #include "LightManager.h"
 #include "ActorManager.h"
-#include "Prop.h"
 #include "Aracore.h"
 #include "AracoreQueen.h"
 #include "StageLoader.h"
@@ -41,14 +40,14 @@ Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const
 {
-	DirectionalLight directionalLight{"Cave Sun", true, {0.72f, 0.82f, 1.0f, 1.0f}};
+	DirectionalLight directionalLight{"Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
 	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
 		DirectX::XMConvertToRadians(-35.0f),
 		DirectX::XMConvertToRadians(35.0f),
 		0.0f);
 
 	lightManager.SetDirectionalLight(directionalLight);
-	lightManager.SetAmbientColor(ColorFromRGBA(0x344967FF));
+	lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
 }
 
 void Stage01::OnUpdate()

@@ -288,6 +288,9 @@
     <ClCompile Include="Source\SpringBone.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
+    <ClCompile Include="Source\BoneFollower.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Terrain.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClCompile>
@@ -326,9 +329,6 @@
     </ClCompile>
     <ClCompile Include="Source\Stage01.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Prop.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClCompile>
     <ClCompile Include="Source\AracoreQueen.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
@@ -554,6 +554,9 @@
     <ClInclude Include="Source\SpringBone.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
+    <ClInclude Include="Source\BoneFollower.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Terrain.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
@@ -598,9 +601,6 @@
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Prop.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
     </ClInclude>
     <ClInclude Include="Source\AracoreQueen.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>

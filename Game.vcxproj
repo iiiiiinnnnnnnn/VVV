@@ -16,6 +16,7 @@
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\Aracore.cpp" />
     <ClCompile Include="Source\BasicModelShader.cpp" />
+    <ClCompile Include="Source\BoneFollower.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\AracoreQueen.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
@@ -28,7 +29,6 @@
     <ClCompile Include="Source\Light.cpp" />
     <ClCompile Include="Source\LightManager.cpp" />
     <ClCompile Include="Source\LoadingScene.cpp" />
-    <ClCompile Include="Source\Prop.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SpringBone.cpp" />
     <ClCompile Include="Source\Player.cpp" />
@@ -93,6 +93,7 @@
     <ClInclude Include="Source\AnimEditorWindow.h" />
     <ClInclude Include="Source\Aracore.h" />
     <ClInclude Include="Source\BasicModelShader.h" />
+    <ClInclude Include="Source\BoneFollower.h" />
     <ClInclude Include="Source\BasicSpriteShader.h" />
     <ClInclude Include="Source\AracoreQueen.h" />
     <ClInclude Include="Source\Camera.h" />
@@ -107,7 +108,6 @@
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LightManager.h" />
     <ClInclude Include="Source\LoadingScene.h" />
-    <ClInclude Include="Source\Prop.h" />
     <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SpringBone.h" />
     <ClInclude Include="Source\HitEffect.h" />
@@ -358,7 +358,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -396,7 +396,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>

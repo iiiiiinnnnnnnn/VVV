@@ -19,6 +19,7 @@ public:
     Model* GetModel() const { return model.get(); }
     void SetModel(std::shared_ptr<Model> model) { this->model = model; }
     void SetShaderParamForAllMaterials(const ShaderParam& param);
+    void SetShaderParamForAllMaterials(const ShaderParamList& paramList);
 
 	const ModelShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(ModelShaderId id) { shaderId = id; }

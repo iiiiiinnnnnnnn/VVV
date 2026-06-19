@@ -5,6 +5,7 @@
 #include "Graphics.h"
 #include "ShapeRenderer.h"
 #include "Terrain.h"
+#include "IconsFontAwesome5.h"
 
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : Component(owner), material(material), size(size), rigidbody(rigidbody)
@@ -18,6 +19,7 @@ BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& siz
 
 void BoxCollider::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug) return;
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
@@ -50,14 +52,16 @@ void BoxCollider::UpdateShape()
 
 void BoxCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("BoxCollider"))
+    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoxCollider");
+    if (isOpenGUI)
     {
         bool changed = false;
         changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 100.0f);
 
         if (changed) UpdateShape();
 
-        if (ImGui::TreeNode("Material")) {
+        if (ImGui::TreeNode(ICON_FA_GRIP_LINES " Material"))
+        {
             float sfriction = material->getStaticFriction();
             float dfriction = material->getDynamicFriction();
             float restitution = material->getRestitution();
@@ -86,6 +90,7 @@ CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radi
 
 void CapsuleCollider::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug) return;
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
@@ -122,7 +127,8 @@ void CapsuleCollider::UpdateShape()
 
 void CapsuleCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("CapsuleCollider"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " CapsuleCollider");
+    if (isOpenGUI)
     {
         bool changed = false;
         changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
@@ -131,7 +137,7 @@ void CapsuleCollider::DrawGUI()
 
         if (changed) UpdateShape();
 
-        if (ImGui::TreeNode("Material")) {
+        if (ImGui::TreeNode(ICON_FA_GRIP_LINES " Material")) {
             float sfriction = material->getStaticFriction();
             float dfriction = material->getDynamicFriction();
             float restitution = material->getRestitution();
@@ -160,6 +166,7 @@ SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius
 
 void SphereCollider::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
 	if (!rc.renderSettings.showDebug) return;
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
@@ -194,7 +201,8 @@ void SphereCollider::UpdateShape()
 
 void SphereCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("SphereCollider"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " SphereCollider");
+    if (isOpenGUI)
     {
         bool changed = false;
         changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
@@ -202,7 +210,7 @@ void SphereCollider::DrawGUI()
 
         if (changed) UpdateShape();
 
-        if (ImGui::TreeNode("Material")) {
+        if (ImGui::TreeNode(ICON_FA_GRIP_LINES " Material")) {
             float sfriction = material->getStaticFriction();
             float dfriction = material->getDynamicFriction();
             float restitution = material->getRestitution();
@@ -221,8 +229,10 @@ void SphereCollider::DrawGUI()
 
 void MeshCollider::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug) return;
 
+    // 重いっす
     PrimitiveRenderer* pr = Game::Graphics::Instance().GetPrimitiveRenderer();
     Color color(0.0f, 1.0f, 1.0f, 1.0f);
 
@@ -375,7 +385,8 @@ void MeshCollider::UpdateShape()
 
 void MeshCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("MeshCollider"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " MeshCollider");
+    if (isOpenGUI)
     {
         if (useConvex)
         {
@@ -473,6 +484,7 @@ Vector3 BoneSphereCollider::GetWorldPosition() const
 
 void BoneSphereCollider::Render(const RenderContext& rc)
 {
+    if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform t = ghostActor->getGlobalPose();
@@ -485,7 +497,8 @@ void BoneSphereCollider::Render(const RenderContext& rc)
 
 void BoneSphereCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("BoneSphereCollider"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneSphereCollider");
+    if (isOpenGUI)
     {
         ImGui::Text("NodeIndex: %d", nodeIndex);
         ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
@@ -730,8 +743,8 @@ void TerrainMeshCollider::UpdateShape(
 
 void TerrainMeshCollider::Render(const RenderContext& rc)
 {
-    if (!rc.renderSettings.showDebug)
-        return;
+    if (!isOpenGUI) return;
+    if (!rc.renderSettings.showDebug) return;
 
     Terrain* terrain = owner->GetComponent<Terrain>();
     if (terrain != nullptr)
@@ -754,7 +767,7 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
     }
 
     // mesh
-    #if 0
+    #if 1
     if (debugVertices.empty() || debugIndices.empty())
         return;
 
@@ -790,7 +803,8 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
 
 void TerrainMeshCollider::DrawGUI()
 {
-    if (ImGui::TreeNode("TerrainMeshCollider"))
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " TerrainMeshCollider");
+    if (isOpenGUI)
     {
         ImGui::DragInt("collision resolution", &resolution, 1, 1, MaxResolution);
         resolution = std::clamp(resolution, 1, MaxResolution);
@@ -825,7 +839,7 @@ void TerrainMeshCollider::DrawGUI()
         ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
         ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
 
-        if (ImGui::TreeNode("Material"))
+        if (ImGui::TreeNode(ICON_FA_GRIP_LINES "Material"))
         {
             float staticFriction = material->getStaticFriction();
             float dynamicFriction = material->getDynamicFriction();

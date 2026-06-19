@@ -6,6 +6,7 @@
 #include "ModelRenderComponent.h"
 #include "Rigidbody.h"
 #include "imgui.h"
+#include "IconsFontAwesome5.h"
 
 DamageHoleComponent::DamageHoleComponent(
 	Object* owner,
@@ -26,7 +27,7 @@ DamageHoleComponent::DamageHoleComponent(
 
 void DamageHoleComponent::DrawGUI()
 {
-	if (ImGui::TreeNode("Damage Holes"))
+	if (ImGui::TreeNode(ICON_FA_BULLSEYE " DamageHoleComponent"))
 	{
 		if (ImGui::DragFloat("Hole Radius", &holeRadius, 0.01f, 0.001f, 100.0f))
 		{

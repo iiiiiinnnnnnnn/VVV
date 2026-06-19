@@ -2,6 +2,7 @@
 
 #include "Rigidbody.h"
 #include "Actor.h"
+#include "IconsFontAwesome5.h"
 
 Rigidbody::Rigidbody(Object* owner, PxRigidActor* actor) : Component(owner), rigidActor(actor)
 {
@@ -32,16 +33,32 @@ Rigidbody::~Rigidbody()
 void Rigidbody::Update()
 {
     Actor* ownerActor = Component::GetOwnerAsActor();
+    if (!ownerActor || !rigidActor) return;
 
-    if (rigidActor) {
-        Vector3 pos = VEC3(rigidActor->getGlobalPose().p);
-        ownerActor->transform.position = pos;
+    if (rigidActor->is<PxRigidStatic>())
+    {
+        return;
     }
+
+    PxTransform pose = rigidActor->getGlobalPose();
+
+    ownerActor->transform.position = Vector3(
+        pose.p.x,
+        pose.p.y,
+        pose.p.z);
+
+    ownerActor->transform.rotation = Quaternion(
+        pose.q.x,
+        pose.q.y,
+        pose.q.z,
+        pose.q.w);
+
+    ownerActor->transform.Update();
 }
 
 void Rigidbody::DrawGUI()
 {
-    if (ImGui::TreeNode("Rigidbody"))
+    if (ImGui::TreeNode(ICON_FA_WEIGHT_HANGING " Rigidbody"))
     {
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
@@ -82,7 +99,7 @@ RigidbodyStatic::RigidbodyStatic(Object* owner, Matrix matrix)
 
 void RigidbodyStatic::DrawGUI()
 {
-    if (ImGui::TreeNode("RigidbodyStatic"))
+    if (ImGui::TreeNode(ICON_FA_WEIGHT_HANGING " RigidbodyStatic"))
     {
         if (rigidActor)
         {
@@ -107,7 +124,7 @@ RigidbodyDynamic::RigidbodyDynamic(Object* owner)
 
 void RigidbodyDynamic::DrawGUI()
 {
-    if (ImGui::TreeNode("RigidbodyDynamic"))
+    if (ImGui::TreeNode(ICON_FA_WEIGHT_HANGING " RigidbodyDynamic"))
     {
         if (rigidActor)
         {

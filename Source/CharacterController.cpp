@@ -4,6 +4,7 @@
 #include "Actor.h"
 #include "Graphics.h"
 #include "GameTime.h"
+#include "IconsFontAwesome5.h"
 
 CharacterController::CharacterController(Object* owner, float radius, float height)
     : Component(owner)
@@ -59,25 +60,26 @@ void CharacterController::Update()
 
 void CharacterController::Render(const RenderContext& rc)
 {
-    if (rc.renderSettings.showDebug)
-    {
-        // PhysXカプセルはX軸基準なのでY軸に90度回転補正
-        PxTransform pose = controller->getActor()->getGlobalPose();
-        PxTransform offset(PxVec3(0, 0, 0), PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
-        PxTransform corrected = pose * offset;
+    if (!isOpenGUI) return;
+    if (!rc.renderSettings.showDebug) return;
 
-        Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-            PX_TRANSFORM_TO_MATRIX(corrected),
-            static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
-            static_cast<PxCapsuleController*>(controller)->getHeight(),
-            Color(1.0f, 1.0f, 0.0f, 1.0f)
-        );
-    }
+    // PhysXカプセルはX軸基準なのでY軸に90度回転補正
+    PxTransform pose = controller->getActor()->getGlobalPose();
+    PxTransform offset(PxVec3(0, 0, 0), PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
+    PxTransform corrected = pose * offset;
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+        PX_TRANSFORM_TO_MATRIX(corrected),
+        static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
+        static_cast<PxCapsuleController*>(controller)->getHeight(),
+        Color(1.0f, 1.0f, 0.0f, 1.0f)
+    );
 }
 
 void CharacterController::DrawGUI()
 {
-    if (ImGui::TreeNode("CharacterController"))
+    isOpenGUI = ImGui::TreeNode(ICON_FA_STREET_VIEW " CharacterController");
+    if (isOpenGUI)
     {
         PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
 

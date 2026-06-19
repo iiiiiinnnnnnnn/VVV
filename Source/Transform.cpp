@@ -3,6 +3,7 @@
 #include "Transform.h"
 #include "Components.h"
 #include "Object.h"
+#include "IconsFontAwesome5.h"
 
 Transform::Transform(const Vector3& pos, const Quaternion& rot, const Vector3& sca)
 	: position(pos), rotation(rot), scale(sca) {
@@ -150,30 +151,34 @@ void Transform::Update() {
 	right = Vector3::TransformNormal(Vector3::UnitX, matrix);
 }
 
-Transform::TransformChangedResult Transform::DrawGUI()
+Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
 {
 	TransformChangedResult res{};
 
-	if (ImGui::TreeNode("Transform"))
+	if (ImGui::TreeNode(ICON_FA_ARROWS_ALT " Transform"))
 	{
-		res.positionChanged = ImGui::DragFloat3("Position", &position.x);
+		res.positionChanged = ImGui::DragFloat3("Position", &position.x, 0.1f);
 		ImGui::SameLine();
 		if (ImGui::Button("Zero##Position"))
 		{
 			position = Vector3::Zero;
 			res.positionChanged = true;
 		}
-		res.rotationChanged = ImGui::DragFloat4("Rotation", &rotation.x);
-		ImGui::SameLine();
-		if (ImGui::Button("Identity##Rotation"))
+		Vector3 euler = rotation.ToEuler();
+		euler.x = DEG(euler.x);
+		euler.y = DEG(euler.y);
+		euler.z = DEG(euler.z);
+		if (ImGui::DragFloat3("Angle", &euler.x, 0.1f))
 		{
-			rotation = Quaternion::Identity;
+			rotation = Quaternion::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z));
+			rotation.Normalize();
 			res.rotationChanged = true;
 		}
-		res.scaleChanged = ImGui::DragFloat3("Scale", &scale.x);
+		if (!hideScale)
+			res.scaleChanged = ImGui::DragFloat3("Scale", &scale.x, 0.1f);
 		ImGui::TreePop();
 
-		if(res.positionChanged || res.rotationChanged || res.scaleChanged)
+		if (res.positionChanged || res.rotationChanged || res.scaleChanged)
 		{
 			Update();
 		}
