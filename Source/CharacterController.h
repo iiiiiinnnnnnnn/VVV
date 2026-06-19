@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "Component.h"
+#include "Collider.h"
 #include "PhysicsManager.h"
 #include "Object.h"
 
-class CharacterController : public Component {
+class CharacterController : public Collider {
 public:
     CharacterController(Object* owner, float radius, float height);
     ~CharacterController();

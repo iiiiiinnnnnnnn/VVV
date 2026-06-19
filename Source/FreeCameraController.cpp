@@ -53,20 +53,21 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 
 void FreeCameraController::OnUpdate()
 {
-    if (!Game::Input::Instance().IsFocusedWindow())
+    if (!Game::Input::IsFocusedWindow(true))
         return;
 
-    ImGuiIO& io = ImGui::GetIO();
+    Mouse& mouse = Game::Input::Instance().GetMouse();
 
     // マウスカーソルの移動量
-    float moveX = io.MouseDelta.x * 0.01f;
-    float moveY = io.MouseDelta.y * 0.01f;
+    float moveX = mouse.GetAxisX() * 0.01f;
+    float moveY = mouse.GetAxisY() * 0.01f;
 
     // 現在の入力状態を取得
-    bool isShiftPressed = io.KeyShift;
-    bool isAltPressed = io.KeyAlt;
-    bool isRightMouseDown = io.MouseDown[ImGuiMouseButton_Right];
-    bool isLeftMouseDown = io.MouseDown[ImGuiMouseButton_Left];
+    bool isShiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+    bool isAltPressed = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+    bool isRightMouseDown = (mouse.GetButton() & Mouse::BTN_RIGHT) != 0;
+    bool isLeftMouseDown = (mouse.GetButton() & Mouse::BTN_LEFT) != 0;
+    bool isMiddleMouseDown = (mouse.GetButton() & Mouse::BTN_MIDDLE) != 0;
 
     // 左クリックだけでは見渡さない。Alt + 左クリックのときだけオービット操作にする
     bool isAltLeftMouseDown = isAltPressed && isLeftMouseDown;
@@ -114,12 +115,12 @@ void FreeCameraController::OnUpdate()
 
         Vector3 moveDir = Vector3::Zero;
 
-        if (ImGui::IsKeyDown(ImGuiKey_W)) moveDir += Front;
-        if (ImGui::IsKeyDown(ImGuiKey_S)) moveDir -= Front;
-        if (ImGui::IsKeyDown(ImGuiKey_A)) moveDir += Right;
-        if (ImGui::IsKeyDown(ImGuiKey_D)) moveDir -= Right;
-        if (ImGui::IsKeyDown(ImGuiKey_E)) moveDir += Up;
-        if (ImGui::IsKeyDown(ImGuiKey_Q)) moveDir -= Up;
+        if (GetAsyncKeyState('W') & 0x8000) moveDir += Front;
+        if (GetAsyncKeyState('S') & 0x8000) moveDir -= Front;
+        if (GetAsyncKeyState('A') & 0x8000) moveDir += Right;
+        if (GetAsyncKeyState('D') & 0x8000) moveDir -= Right;
+        if (GetAsyncKeyState('E') & 0x8000) moveDir += Up;
+        if (GetAsyncKeyState('Q') & 0x8000) moveDir -= Up;
 
         if (moveDir.LengthSquared() > 0.0f)
         {
@@ -138,14 +139,14 @@ void FreeCameraController::OnUpdate()
     else
     {
         // ホイールズーム
-        if (io.MouseWheel != 0.0f)
+        if (mouse.GetWheel() != 0)
         {
-            distance -= io.MouseWheel * distance * 0.1f;
+            distance -= mouse.GetWheel() * distance * 0.1f;
             if (distance < 0.1f) distance = 0.1f;
         }
 
         // 中ボタンドラッグでパン
-        if (io.MouseDown[ImGuiMouseButton_Middle])
+        if (isMiddleMouseDown)
         {
             float panSpeed = distance * 0.2f;
             Vector3 pan = Right * moveX * panSpeed + Up * moveY * panSpeed;
@@ -167,7 +168,9 @@ void FreeCameraController::OnUpdate()
 
 void FreeCameraController::OnFocusLost()
 {
-    // ウィンドウのフォーカスが外れた際、ImGuiの入力状態（押しっぱなし判定など）が
-    // 残ってカメラが暴走するのを防ぐため、内部の入力を一度リセットする
+    Mouse& mouse = Game::Input::Instance().GetMouse();
+    mouse.SetCursorLock(false);
+    mouse.SetCursorVisible(true);
+
     ImGui::GetIO().ClearEventsQueue();
 }

@@ -7,11 +7,11 @@
 #include "IconsFontAwesome5.h"
 
 CharacterController::CharacterController(Object* owner, float radius, float height)
-    : Component(owner)
+    : Collider(owner)
 {
     Actor* actor = Component::GetOwnerAsActor();
 
-    hitReport = new CCHitReport(actor, actor->GetLayer());
+    hitReport = new CCHitReport(actor, this, actor->GetLayer());
 
     PxCapsuleControllerDesc desc;
     desc.radius = radius;
@@ -37,6 +37,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
     act->userData = actor;
     PxShape* shape = nullptr;
     act->getShapes(&shape, 1);
+    shape->userData = this;
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
 }
 

@@ -16,7 +16,7 @@ public:
 	// 更新処理
 	void Update()
 	{
-		if (Game::Input::IsFocusedWindow()) {
+		if (Game::Input::IsFocusedWindow(!BlocksOnImGuiFocus())) {
 			OnUpdate();
 		}
 		else {
@@ -32,6 +32,7 @@ public:
 	}
 
 protected:
+	virtual bool BlocksOnImGuiFocus() const { return true; }
 	virtual void OnUpdate() {}
 	virtual void OnDrawGUI() {}
 	

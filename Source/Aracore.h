@@ -15,10 +15,10 @@ public:
 
 	void OnDamaged(const DamageData& damageData) override;
 
-	void OnCollisionEnter(Actor* other) override;
-	void OnCollisionExit(Actor* other) override;
-	void OnTriggerEnter(Actor* other) override;
-	void OnTriggerExit(Actor* other) override;
+	void OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+	void OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+	void OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+	void OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
 
 	void OnDead() override;
 
@@ -26,6 +26,8 @@ private:
 	Animator* anim;
 	ModelRenderComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb;
+	Collider* bodyCollider = nullptr;
+	std::vector<Collider*> IKColliders;
 	DamageHoleComponent* damageHoleComponent = nullptr;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

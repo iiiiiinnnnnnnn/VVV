@@ -14,12 +14,45 @@ Scene::Scene(SceneMessage message) : message(message)
 	lightManager.SetAmbientColor(ColorFromRGBA(0xE1FFD6FF));
 }
 
+void Scene::SwitchToDebugMode()
+{
+	if (cameraControllers.size() > 1)
+	{
+		nowCameraControllerIndex = 1;
+		cameraControllers[nowCameraControllerIndex]->SyncCameraToController(camera);
+	}
+
+	isCursorReleased = false;
+	Game::Time::scale = 0.0f;
+}
+
+void Scene::SwitchToPlayMode()
+{
+	if (cameraControllers.size() > 0)
+	{
+		nowCameraControllerIndex = 0;
+		cameraControllers[nowCameraControllerIndex]->SyncCameraToController(camera);
+	}
+
+	isCursorReleased = false;
+	Game::Time::scale = 1.0f;
+}
+
 void Scene::Update()
 {
 	OnUpdate();
 
 	#ifdef _DEBUG
 	GamePad& gamePad = Game::Input::Instance().GetGamePad();
+	if (gamePad.GetButtonDown() & GamePad::BTN_F4)
+	{
+		SwitchToDebugMode();
+	}
+	if (gamePad.GetButtonDown() & GamePad::BTN_F5)
+	{
+		SwitchToPlayMode();
+	}
+
 	if (gamePad.GetButtonDown() & GamePad::BTN_F1)
 	{
 		isCursorReleased = true;
@@ -242,25 +275,17 @@ void Scene::DrawGUI(RenderContext& rc)
 				float buttonWidth = (ImGui::GetContentRegionAvail().x - spacing) * 0.5f;
 
 				// 即デバッグモード
-				if (ImGui::Button("Let's Debug!", ImVec2(buttonWidth, buttonHeight)))
+				if (ImGui::Button("Let's Debug!(F4)", ImVec2(buttonWidth, buttonHeight)))
 				{
-					if (cameraControllers.size() > 1)
-					{
-						nowCameraControllerIndex = 1;
-					}
-					Game::Time::scale = 0.0f;
+					SwitchToDebugMode();
 				}
 
 				ImGui::SameLine();
 
 				// 即プレイモード
-				if (ImGui::Button("Let's Play!", ImVec2(buttonWidth, buttonHeight)))
+				if (ImGui::Button("Let's Play!(F5)", ImVec2(buttonWidth, buttonHeight)))
 				{
-					if (cameraControllers.size() > 0)
-					{
-						nowCameraControllerIndex = 0;
-					}
-					Game::Time::scale = 1.0f;
+					SwitchToPlayMode();
 				}
 			}
 

@@ -24,8 +24,8 @@ void Object::Update()
     componentList.Update();
     OnUpdate();
 
-    componentList.LateUpdate();
     OnLateUpdate();
+    componentList.LateUpdate();
 }
 
 void Object::Render(const RenderContext& rc)

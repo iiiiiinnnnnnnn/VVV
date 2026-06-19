@@ -18,7 +18,7 @@ BoxCollider::BoxCollider(
     const Vector3& size,
     const Vector3& localPosition,
     PxMaterial* material)
-    : Component(owner)
+    : Collider(owner)
     , rigidbody(rigidbody)
     , material(material)
     , size(size)
@@ -68,6 +68,7 @@ void BoxCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
+    shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
 	rigidActor->attachShape(*shape);
 
@@ -123,7 +124,7 @@ CapsuleCollider::CapsuleCollider(
     float height,
     const Vector3& localPosition,
     PxMaterial* material)
-    : Component(owner)
+    : Collider(owner)
     , rigidbody(rigidbody)
     , material(material)
     , radius(radius)
@@ -177,6 +178,7 @@ void CapsuleCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxCapsuleGeometry(radius, height * 0.5f), *material);
+    shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
     rigidActor->attachShape(*shape);
 
@@ -226,7 +228,7 @@ SphereCollider::SphereCollider(
     float radius,
     const Vector3& localPosition,
     PxMaterial* material)
-    : Component(owner)
+    : Collider(owner)
     , rigidbody(rigidbody)
     , material(material)
     , radius(radius)
@@ -273,6 +275,7 @@ void SphereCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
+    shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
     rigidActor->attachShape(*shape);
 
@@ -347,14 +350,14 @@ void MeshCollider::Render(const RenderContext& rc)
 }
 
 MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
+    : Collider(owner), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
 }
 
 MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
+    : Collider(owner), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
     UpdateShape();
@@ -456,6 +459,7 @@ void MeshCollider::UpdateShape()
             continue;
         }
 
+        shape->userData = this;
         rigidActor->attachShape(*shape);
 
         // ownerのlayerをシェイプに反映
@@ -484,8 +488,24 @@ void MeshCollider::DrawGUI()
     }
 }
 
+static Matrix MakeBoneOffsetWorld(const Matrix& boneWorld, const Matrix& offset)
+{
+    Vector3 scale;
+    Vector3 position;
+    Quaternion rotation;
+    Matrix boneWorldCopy = boneWorld;
+    boneWorldCopy.Decompose(scale, rotation, position);
+
+    Matrix boneTransform =
+        Matrix::CreateScale(scale) *
+        Matrix::CreateFromQuaternion(rotation) *
+        Matrix::CreateTranslation(position);
+
+    return offset * boneTransform;
+}
+
 BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset, PxMaterial* material)
-    : Component(owner), model(model), nodeIndex(nodeIndex), radius(radius), offset(offset), material(material)
+    : Collider(owner), model(model), nodeIndex(nodeIndex), radius(radius), offset(offset), material(material)
 {
     Actor* actor = Component::GetOwnerAsActor();
 
@@ -494,15 +514,14 @@ BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeInde
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
     // ボーンの初期位置でKinematic Dynamicを生成
-    Matrix boneMat = model->GetNodes()[nodeIndex].worldTransform;
-    Vector3 scale, pos;
-    Quaternion rot;
-    boneMat.Decompose(scale, rot, pos);
+    _ASSERT_EXPR(model != nullptr, L"BoneSphereCollider requires model.");
+    _ASSERT_EXPR(nodeIndex >= 0, L"BoneSphereCollider invalid nodeIndex.");
+    _ASSERT_EXPR(nodeIndex < static_cast<int>(model->GetNodes().size()), L"BoneSphereCollider nodeIndex out of range.");
 
-    PxTransform t(
-        PxVec3(pos.x, pos.y, pos.z),
-        PxQuat(rot.x, rot.y, rot.z, rot.w)
-    );
+    Matrix boneWorld = model->GetNodes()[nodeIndex].worldTransform;
+    Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
+
+    PxTransform t = MATRIX_TO_PX_TRANSFORM(world);
     ghostActor = physics->createRigidDynamic(t);
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
@@ -510,6 +529,7 @@ BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeInde
 
     // Triggerシェイプ（物理応答なし → プレイヤーが飛ばない）
     shape = physics->createShape(PxSphereGeometry(radius), *this->material, true);
+    shape->userData = this;
     shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
     shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
 
@@ -542,15 +562,13 @@ void BoneSphereCollider::LateUpdate()
 
 void BoneSphereCollider::UpdateShape()
 {
-    if (!ghostActor || nodeIndex < 0) return;
+    if (!ghostActor || !model || nodeIndex < 0) return;
 
-    Matrix boneMat = model->GetNodes()[nodeIndex].worldTransform;
-    Vector3 scale, pos;
-    Quaternion rot;
-    boneMat.Decompose(scale, rot, pos);
+    const auto& nodes = model->GetNodes();
+    if (nodeIndex >= static_cast<int>(nodes.size())) return;
 
-    Matrix base = Matrix::CreateFromQuaternion(rot) * Matrix::CreateTranslation(pos);
-    Matrix world = offset * base;
+    Matrix boneWorld = nodes[nodeIndex].worldTransform;
+    Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
     ghostActor->setKinematicTarget(MATRIX_TO_PX_TRANSFORM(world));
 }
 
@@ -597,6 +615,9 @@ void BoneSphereCollider::DrawGUI()
                 Matrix::CreateTranslation(pos);
         }
         euler = rot.ToEuler();
+		euler.x = DEG(euler.x);
+		euler.y = DEG(euler.y);
+		euler.z = DEG(euler.z);
         if (ImGui::DragFloat3("OffsetRotation", &euler.x, 0.01f))
         {
             offset = Matrix::CreateScale(scale) *
@@ -608,7 +629,7 @@ void BoneSphereCollider::DrawGUI()
 }
 
 TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, const CollisionArea& collisionArea, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), collisionArea(collisionArea), material(material)
+    : Collider(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), collisionArea(collisionArea), material(material)
 {
     GetOwnerAsActor();
 
@@ -818,6 +839,7 @@ void TerrainMeshCollider::UpdateShape(
         return;
     }
 
+    shape->userData = this;
     rigidActor->attachShape(*shape);
 
     Actor* actor = GetOwnerAsActor();

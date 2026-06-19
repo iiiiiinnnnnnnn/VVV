@@ -42,23 +42,27 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
 		rb->SetKinematic(true);
 
         // “–‚½‚è”»’è
-        AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+        bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
-        /*append bones
-        IK Chain02
-        IK Chain10
-        IK Chain11
-        IK Chain12
-        IK Chain13
-        IK Chain14
-        IK Chain15
-        IK Chain16
-        */
-        AddComponent<BoneSphereCollider>(
-            model.get(),
-            model->GetNodeIndex("IK Chain02"),
-            0.8f,
-			Matrix::CreateTranslation({-0.58f, 1.0f, 0.5f}));
+        // ‘«‚Ì“–‚½‚è”»’è
+		Matrix offset = Matrix::CreateTranslation({-6.05f,8.53f,2.76f});
+        std::vector<std::string> ikBoneNames = {
+            "IK Chain02",
+            "IK Chain10",
+            "IK Chain11",
+            "IK Chain12",
+            "IK Chain13",
+            "IK Chain14",
+            "IK Chain15",
+            "IK Chain16"
+		};
+        for (const std::string& ikBoneName : ikBoneNames)
+        {
+            IKColliders.push_back(AddComponent<BoneSphereCollider>(
+                model.get(),
+                model->GetNodeIndex(ikBoneName.c_str()),
+                0.8f, offset));
+        }
     }
 }
 
@@ -131,12 +135,14 @@ void Aracore::OnDamaged(const DamageData& damageData)
     }
 }
 
-void Aracore::OnCollisionEnter(Actor* other)
+void Aracore::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
     // ƒvƒŒƒCƒ„[‚ÉUŒ‚‚·‚é
-    if (other->CompareTag("Player"))
+
+    Actor* otherActor = other->GetOwnerActor();
+    if (otherActor->CompareTag("Player"))
     {
-        static_cast<Entity*>(other)->TakeDamage({
+        static_cast<Entity*>(otherActor)->TakeDamage({
             .damage = 10.0f,
             .source = this,
             .hitPosition = transform.position,
@@ -145,15 +151,15 @@ void Aracore::OnCollisionEnter(Actor* other)
     }
 }
 
-void Aracore::OnCollisionExit(Actor* other)
+void Aracore::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void Aracore::OnTriggerEnter(Actor* other)
+void Aracore::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void Aracore::OnTriggerExit(Actor* other)
+void Aracore::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 

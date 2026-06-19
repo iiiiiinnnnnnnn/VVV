@@ -47,6 +47,7 @@ using namespace physx;
 static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 
 class Actor;
+class Collider;
 
 // 衝突イベントコールバック
 class CollisionEventCallback : public PxSimulationEventCallback
@@ -62,12 +63,20 @@ public:
     void onAdvance(const PxRigidBody* const*, const PxTransform*, PxU32) override {}
 
 private:
-    using ActorPair = std::pair<Actor*, Actor*>;
-    std::set<ActorPair> currentCollisionPairs;
-    std::set<ActorPair> currentTriggerPairs;
-    static ActorPair MakePair(Actor* a, Actor* b)
+    using ColliderPair = std::pair<Collider*, Collider*>;
+    struct PairState
     {
-        return (a <= b) ? ActorPair(a, b) : ActorPair(b, a);
+        Collider* a = nullptr;
+        Collider* b = nullptr;
+        Vector3 point = Vector3::Zero;
+        Vector3 normal = Vector3::Zero;
+    };
+
+    std::map<ColliderPair, PairState> currentCollisionPairs;
+    std::map<ColliderPair, PairState> currentTriggerPairs;
+    static ColliderPair MakePair(Collider* a, Collider* b)
+    {
+        return (a <= b) ? ColliderPair(a, b) : ColliderPair(b, a);
     }
 };
 
@@ -75,7 +84,8 @@ private:
 class CCHitReport : public PxUserControllerHitReport
 {
 public:
-    CCHitReport(Actor* owner, int layer) : owner(owner), ownerLayer(layer) {}
+    CCHitReport(Actor* owner, Collider* ownerCollider, int layer)
+        : owner(owner), ownerCollider(ownerCollider), ownerLayer(layer) {}
 
     void onShapeHit(const PxControllerShapeHit& hit) override;
     void onControllerHit(const PxControllersHit& hit) override {}
@@ -86,9 +96,15 @@ public:
 
 private:
     Actor* owner = nullptr;
+    Collider* ownerCollider = nullptr;
     int ownerLayer = 0;
-    std::set<Actor*> currentFrameActors;
-    std::set<Actor*> prevFrameActors;
+    struct HitState
+    {
+        Vector3 point = Vector3::Zero;
+        Vector3 normal = Vector3::Zero;
+    };
+    std::map<Collider*, HitState> currentFrameColliders;
+    std::map<Collider*, HitState> prevFrameColliders;
 public:
     bool dispatchedThisFrame = false;
 };

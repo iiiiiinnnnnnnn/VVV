@@ -59,6 +59,8 @@ public:
 	}
 
 private:
+	void SwitchToDebugMode();
+	void SwitchToPlayMode();
 	void DrawGUI(RenderContext& rc);
 
 protected:

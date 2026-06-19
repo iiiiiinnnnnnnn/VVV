@@ -3,6 +3,7 @@
 #include "PhysicsManager.h"
 #include "GameTime.h"
 #include "Actor.h"
+#include "Collider.h"
 #include "GameDefine.h"
 
 static PxFilterFlags LayerFilterShader(
@@ -40,28 +41,189 @@ static Actor* ToActor(PxActor* pxActor)
     return actor;
 }
 
+static bool IsValidActor(Actor* actor)
+{
+    return actor
+        && !actor->IsPendingDestroy()
+        && actor->IsActive();
+}
+
+static Collider* ToCollider(PxShape* shape)
+{
+    if (!shape) return nullptr;
+
+    Collider* collider = static_cast<Collider*>(shape->userData);
+    if (!collider) return nullptr;
+
+    Actor* actor = collider->GetOwnerActor();
+    if (!IsValidActor(actor)) return nullptr;
+
+    return collider;
+}
+
+static bool IsValidCollider(Collider* collider)
+{
+    return collider
+        && collider->IsActive()
+        && IsValidActor(collider->GetOwnerActor());
+}
+
+static PxTransform GetShapeGlobalPose(PxActor* actor, PxShape* shape)
+{
+    PxRigidActor* rigidActor = actor ? actor->is<PxRigidActor>() : nullptr;
+    if (!rigidActor || !shape) return PxTransform(PxIdentity);
+
+    return PxShapeExt::getGlobalPose(*shape, *rigidActor);
+}
+
+static void MakeFallbackPointNormal(
+    PxActor* actorA,
+    PxShape* shapeA,
+    PxActor* actorB,
+    PxShape* shapeB,
+    Vector3& point,
+    Vector3& normal)
+{
+    const Vector3 posA = VEC3(GetShapeGlobalPose(actorA, shapeA).p);
+    const Vector3 posB = VEC3(GetShapeGlobalPose(actorB, shapeB).p);
+
+    point = (posA + posB) * 0.5f;
+    normal = posB - posA;
+    if (normal.LengthSquared() > eps)
+        normal.Normalize();
+    else
+        normal = Vector3::Zero;
+}
+
+static void DispatchCollisionEnter(
+    Collider* a,
+    Collider* b,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* actorA = a->GetOwnerActor();
+    Actor* actorB = b->GetOwnerActor();
+    if (!IsValidCollider(a) || !IsValidCollider(b)) return;
+
+    actorA->OnCollisionEnter(a, b, point, normal);
+    actorB->OnCollisionEnter(b, a, point, -normal);
+}
+
+static void DispatchCollisionStay(
+    Collider* a,
+    Collider* b,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* actorA = a->GetOwnerActor();
+    Actor* actorB = b->GetOwnerActor();
+    if (!IsValidCollider(a) || !IsValidCollider(b)) return;
+
+    actorA->OnCollisionStay(a, b, point, normal);
+    actorB->OnCollisionStay(b, a, point, -normal);
+}
+
+static void DispatchCollisionExit(
+    Collider* a,
+    Collider* b,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* actorA = a->GetOwnerActor();
+    Actor* actorB = b->GetOwnerActor();
+    if (!IsValidActor(actorA) || !IsValidActor(actorB)) return;
+
+    actorA->OnCollisionExit(a, b, point, normal);
+    actorB->OnCollisionExit(b, a, point, -normal);
+}
+
+static void DispatchTriggerEnter(
+    Collider* trigger,
+    Collider* other,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* triggerActor = trigger->GetOwnerActor();
+    Actor* otherActor = other->GetOwnerActor();
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
+
+    triggerActor->OnTriggerEnter(trigger, other, point, normal);
+    otherActor->OnTriggerEnter(other, trigger, point, -normal);
+}
+
+static void DispatchTriggerStay(
+    Collider* trigger,
+    Collider* other,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* triggerActor = trigger->GetOwnerActor();
+    Actor* otherActor = other->GetOwnerActor();
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
+
+    triggerActor->OnTriggerStay(trigger, other, point, normal);
+    otherActor->OnTriggerStay(other, trigger, point, -normal);
+}
+
+static void DispatchTriggerExit(
+    Collider* trigger,
+    Collider* other,
+    const Vector3& point,
+    const Vector3& normal)
+{
+    Actor* triggerActor = trigger->GetOwnerActor();
+    Actor* otherActor = other->GetOwnerActor();
+    if (!IsValidActor(triggerActor) || !IsValidActor(otherActor)) return;
+
+    triggerActor->OnTriggerExit(trigger, other, point, normal);
+    otherActor->OnTriggerExit(other, trigger, point, -normal);
+}
+
 void CollisionEventCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
 {
-    Actor* a = ToActor(pairHeader.actors[0]);
-    Actor* b = ToActor(pairHeader.actors[1]);
-    if (!a || !b) return;
-
     for (PxU32 i = 0; i < nbPairs; ++i)
     {
         const PxContactPair& cp = pairs[i];
+        Collider* a = ToCollider(cp.shapes[0]);
+        Collider* b = ToCollider(cp.shapes[1]);
+        if (!a || !b) continue;
+
+        Vector3 point;
+        Vector3 normal;
+        PxContactPairPoint contactPoint;
+        if (cp.extractContacts(&contactPoint, 1) > 0)
+        {
+            point = VEC3(contactPoint.position);
+            normal = VEC3(contactPoint.normal);
+        }
+        else
+        {
+            MakeFallbackPointNormal(
+                pairHeader.actors[0],
+                cp.shapes[0],
+                pairHeader.actors[1],
+                cp.shapes[1],
+                point,
+                normal);
+        }
+
+        PairState state{a, b, point, normal};
 
         if (cp.events & PxPairFlag::eNOTIFY_TOUCH_FOUND)
         {
-            currentCollisionPairs.insert(MakePair(a, b));
-            a->OnCollisionEnter(b);
-            b->OnCollisionEnter(a);
+            currentCollisionPairs[MakePair(a, b)] = state;
+            DispatchCollisionEnter(a, b, point, normal);
+        }
+
+        if (cp.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS)
+        {
+            currentCollisionPairs[MakePair(a, b)] = state;
         }
 
         if (cp.events & PxPairFlag::eNOTIFY_TOUCH_LOST)
         {
             currentCollisionPairs.erase(MakePair(a, b));
-            a->OnCollisionExit(b);
-            b->OnCollisionExit(a);
+            DispatchCollisionExit(a, b, point, normal);
         }
     }
 }
@@ -71,22 +233,30 @@ void CollisionEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 nbPairs)
     for (PxU32 i = 0; i < nbPairs; ++i)
     {
         const PxTriggerPair& tp = pairs[i];
-        Actor* trigger = ToActor(tp.triggerActor);
-        Actor* other   = ToActor(tp.otherActor);
+        Collider* trigger = ToCollider(tp.triggerShape);
+        Collider* other = ToCollider(tp.otherShape);
         if (!trigger || !other) continue;
+
+        Vector3 point;
+        Vector3 normal;
+        MakeFallbackPointNormal(
+            tp.triggerActor,
+            tp.triggerShape,
+            tp.otherActor,
+            tp.otherShape,
+            point,
+            normal);
 
         if (tp.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
         {
-            currentTriggerPairs.insert(MakePair(trigger, other));
-            trigger->OnTriggerEnter(other);
-            other->OnTriggerEnter(trigger);
+            currentTriggerPairs[MakePair(trigger, other)] = {trigger, other, point, normal};
+            DispatchTriggerEnter(trigger, other, point, normal);
         }
 
         if (tp.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
         {
             currentTriggerPairs.erase(MakePair(trigger, other));
-            trigger->OnTriggerExit(other);
-            other->OnTriggerExit(trigger);
+            DispatchTriggerExit(trigger, other, point, normal);
         }
     }
 }
@@ -95,40 +265,34 @@ void CollisionEventCallback::DispatchStayEvents()
 {
     std::erase_if(currentCollisionPairs, [](const auto& pair)
     {
-        Actor* a = pair.first;
-        Actor* b = pair.second;
+        Collider* a = pair.second.a;
+        Collider* b = pair.second.b;
 
         return !a
             || !b
-            || a->IsPendingDestroy()
-            || b->IsPendingDestroy()
-            || !a->IsActive()
-            || !b->IsActive();
+            || !IsValidCollider(a)
+            || !IsValidCollider(b);
     });
 
     std::erase_if(currentTriggerPairs, [](const auto& pair)
     {
-        Actor* trigger = pair.first;
-        Actor* other = pair.second;
+        Collider* trigger = pair.second.a;
+        Collider* other = pair.second.b;
 
         return !trigger
             || !other
-            || trigger->IsPendingDestroy()
-            || other->IsPendingDestroy()
-            || !trigger->IsActive()
-            || !other->IsActive();
+            || !IsValidCollider(trigger)
+            || !IsValidCollider(other);
     });
 
-    for (auto& [a, b] : currentCollisionPairs)
+    for (auto& [_, state] : currentCollisionPairs)
     {
-        a->OnCollisionStay(b);
-        b->OnCollisionStay(a);
+        DispatchCollisionStay(state.a, state.b, state.point, state.normal);
     }
 
-    for (auto& [trigger, other] : currentTriggerPairs)
+    for (auto& [_, state] : currentTriggerPairs)
     {
-        trigger->OnTriggerStay(other);
-        other->OnTriggerStay(trigger);
+        DispatchTriggerStay(state.a, state.b, state.point, state.normal);
     }
 }
 
@@ -236,18 +400,24 @@ void PhysicsManager::Finalize()
 void CCHitReport::onShapeHit(const PxControllerShapeHit& hit)
 {
     if (!owner) return;
+    if (!ownerCollider) return;
     if (owner->IsPendingDestroy()) return;
     if (!owner->IsActive()) return;
 
     int otherLayer = static_cast<int>(hit.shape->getSimulationFilterData().word1);
     if (!Layer::Collides(ownerLayer, otherLayer)) return;
 
-    Actor* other = static_cast<Actor*>(hit.actor->userData);
-    if (!other) return;
-    if (other->IsPendingDestroy()) return;
-    if (!other->IsActive()) return;
+    Collider* otherCollider = ToCollider(hit.shape);
+    if (!otherCollider) return;
+    if (otherCollider == ownerCollider) return;
 
-    currentFrameActors.insert(other);
+    Vector3 normal = VEC3(hit.worldNormal);
+    if (normal.LengthSquared() > eps)
+        normal.Normalize();
+    else
+        normal = Vector3::Zero;
+
+    currentFrameColliders[otherCollider] = {VEC3(hit.worldPos), normal};
 }
 
 void CCHitReport::DispatchEvents()
@@ -255,54 +425,53 @@ void CCHitReport::DispatchEvents()
     if (dispatchedThisFrame) return;
     dispatchedThisFrame = true;
 
-    std::erase_if(currentFrameActors, [](Actor* actor)
+    std::erase_if(currentFrameColliders, [](const auto& pair)
     {
-        return !actor
-            || actor->IsPendingDestroy()
-            || !actor->IsActive();
+        return !IsValidCollider(pair.first);
     });
 
-    std::erase_if(prevFrameActors, [](Actor* actor)
+    std::erase_if(prevFrameColliders, [](const auto& pair)
     {
-        return !actor
-            || actor->IsPendingDestroy()
-            || !actor->IsActive();
+        return !IsValidCollider(pair.first);
     });
 
-    if (!owner || owner->IsPendingDestroy() || !owner->IsActive())
+    if (!owner || !ownerCollider || owner->IsPendingDestroy() || !owner->IsActive())
     {
-        currentFrameActors.clear();
-        prevFrameActors.clear();
+        currentFrameColliders.clear();
+        prevFrameColliders.clear();
         return;
     }
 
-    for (Actor* other : currentFrameActors)
+    for (auto& [otherCollider, state] : currentFrameColliders)
     {
-        if (prevFrameActors.find(other) == prevFrameActors.end())
+        Actor* otherActor = otherCollider->GetOwnerActor();
+        if (prevFrameColliders.find(otherCollider) == prevFrameColliders.end())
         {
-            owner->OnCollisionEnter(other);
-            other->OnCollisionEnter(owner);
+            owner->OnCollisionEnter(ownerCollider, otherCollider, state.point, state.normal);
+            otherActor->OnCollisionEnter(otherCollider, ownerCollider, state.point, -state.normal);
         }
     }
 
-    for (Actor* other : currentFrameActors)
+    for (auto& [otherCollider, state] : currentFrameColliders)
     {
-        if (prevFrameActors.find(other) != prevFrameActors.end())
+        Actor* otherActor = otherCollider->GetOwnerActor();
+        if (prevFrameColliders.find(otherCollider) != prevFrameColliders.end())
         {
-            owner->OnCollisionStay(other);
-            other->OnCollisionStay(owner);
+            owner->OnCollisionStay(ownerCollider, otherCollider, state.point, state.normal);
+            otherActor->OnCollisionStay(otherCollider, ownerCollider, state.point, -state.normal);
         }
     }
 
-    for (Actor* other : prevFrameActors)
+    for (auto& [otherCollider, state] : prevFrameColliders)
     {
-        if (currentFrameActors.find(other) == currentFrameActors.end())
+        Actor* otherActor = otherCollider->GetOwnerActor();
+        if (currentFrameColliders.find(otherCollider) == currentFrameColliders.end())
         {
-            owner->OnCollisionExit(other);
-            other->OnCollisionExit(owner);
+            owner->OnCollisionExit(ownerCollider, otherCollider, state.point, state.normal);
+            otherActor->OnCollisionExit(otherCollider, ownerCollider, state.point, -state.normal);
         }
     }
 
-    prevFrameActors = currentFrameActors;
-    currentFrameActors.clear();
+    prevFrameColliders = currentFrameColliders;
+    currentFrameColliders.clear();
 }

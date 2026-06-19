@@ -21,15 +21,18 @@ namespace Game
 
 	bool Input::IsFocusedWindow(bool dontCheckImgui)
 	{
-		// デバッグウインドウ操作中は処理しない
-		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
+		if (!dontCheckImgui)
 		{
-			return false;
-		}
+			// デバッグウインドウ操作中は処理しない
+			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
+			{
+				return false;
+			}
 
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
-		{
-			return false;
+			if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
+			{
+				return false;
+			}
 		}
 
 		// ウィンドウが最前面でない場合は処理しない

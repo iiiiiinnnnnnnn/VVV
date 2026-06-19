@@ -9,7 +9,14 @@
 
 class Rigidbody;
 
-class BoxCollider : public Component {
+class Collider : public Component
+{
+public:
+    Collider(Object* owner) : Component(owner) {}
+    Actor* GetOwnerActor() const { return GetOwnerAsActor(); }
+};
+
+class BoxCollider : public Collider {
 public:
     BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
     BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, const Vector3& localPosition, PxMaterial* material = nullptr);
@@ -28,7 +35,7 @@ private:
     Vector3 localPosition;
 };
 
-class CapsuleCollider : public Component {
+class CapsuleCollider : public Collider {
 public:
     CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
     CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, const Vector3& localPosition, PxMaterial* material = nullptr);
@@ -49,7 +56,7 @@ private:
     Vector3 localPosition;
 };
 
-class SphereCollider : public Component {
+class SphereCollider : public Collider {
 public:
     SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
     SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, const Vector3& localPosition, PxMaterial* material = nullptr);
@@ -68,7 +75,7 @@ private:
     Vector3 localPosition;
 };
 
-class MeshCollider : public Component
+class MeshCollider : public Collider
 {
 public:
     // TriangleMesh（Static用）
@@ -89,7 +96,7 @@ private:
 };
 
 // ボーンを指定して追従　行列オフセットも設定できる。
-class BoneSphereCollider : public Component
+class BoneSphereCollider : public Collider
 {
 public:
     BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr);
@@ -109,7 +116,7 @@ private:
     float radius = 0.5f;
 };
 
-class TerrainMeshCollider : public Component
+class TerrainMeshCollider : public Collider
 {
 public:
     static constexpr int MaxResolution = 2048;

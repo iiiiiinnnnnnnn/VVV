@@ -2,6 +2,7 @@
 
 #include "Player.h"
 #include "ResourceManager.h"
+#include "ActorManager.h"
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 #include "Graphics.h"
@@ -196,48 +197,49 @@ void Player::OnExitAnimAttack4B(const Animator::State& state)
 	footCollider->SetActive(false);
 }
 
-void Player::OnCollisionEnter(Actor* other)
+void Player::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionEnter: %s\n", other->GetName().c_str());
 }
 
-void Player::OnCollisionStay(Actor* other)
+void Player::OnCollisionStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionStay: %s\n", other->GetName().c_str());
 }
 
-void Player::OnCollisionExit(Actor* other)
+void Player::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionExit: %s\n", other->GetName().c_str());
 }
 
-void Player::OnTriggerEnter(Actor* other)
+void Player::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
-	// 敵にダメージを与える
-	if (other->CompareTag("Enemy"))
-	{
-		if (!weaponCollider->IsActive() && !footCollider->IsActive()) return;
+	if (!self || !other) return;
+	if (!self->IsActive()) return;
+	if (self != weaponCollider && self != footCollider) return;
 
-		Entity* entity = static_cast<Entity*>(other);
-		bool footAtk = footCollider->IsActive();
-		BoneSphereCollider* attackCollider = footAtk ? footCollider : weaponCollider;
-		Vector3 hitPosition = attackCollider->GetWorldPosition();
+	// 敵を殴る
 
-		entity->TakeDamage({
-			.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
-			.source = this,
-			.hitPosition = hitPosition,
-			.knockBackPower = 50.0f
-			});
-	}
+	Actor* otherActor = other->GetOwnerActor();
+	if (!otherActor->CompareTag("Enemy")) return;
+
+	Entity* entity = static_cast<Entity*>(otherActor);
+	bool footAtk = self == footCollider;
+
+	entity->TakeDamage({
+		.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
+		.source = this,
+		.hitPosition = point,
+		.knockBackPower = 50.0f
+		});
 }
 
-void Player::OnTriggerStay(Actor* other)
+void Player::OnTriggerStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerStay: %s\n", other->GetName().c_str());
 }
 
-void Player::OnTriggerExit(Actor* other)
+void Player::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
 }

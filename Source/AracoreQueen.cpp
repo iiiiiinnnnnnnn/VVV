@@ -48,14 +48,15 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
     }
 }
 
-void AracoreQueen::OnCollisionEnter(Actor* other)
+void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
     // プレイヤーに攻撃する
-    if (other->CompareTag("Player"))
+    Actor* otherActor = other->GetOwnerActor();
+    if (otherActor->CompareTag("Player"))
     {
         if (isAggressive)
         {
-            static_cast<Entity*>(other)->TakeDamage({
+            static_cast<Entity*>(otherActor)->TakeDamage({
                 .damage = 10.0f,
                 .source = this,
                 .hitPosition = transform.position,
@@ -65,15 +66,15 @@ void AracoreQueen::OnCollisionEnter(Actor* other)
     }
 }
 
-void AracoreQueen::OnCollisionExit(Actor* other)
+void AracoreQueen::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void AracoreQueen::OnTriggerEnter(Actor* other)
+void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void AracoreQueen::OnTriggerExit(Actor* other)
+void AracoreQueen::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 

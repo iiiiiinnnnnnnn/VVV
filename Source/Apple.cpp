@@ -48,13 +48,14 @@ void Apple::OnDamaged(const DamageData& damageData)
     }
 }
 
-void Apple::OnCollisionEnter(Actor* other)
+void Apple::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
-    if (other->CompareTag("Player"))
+    Actor* otherActor = other->GetOwnerActor();
+    if (otherActor->CompareTag("Player"))
     {
         if (isAggressive)
         {
-            static_cast<Entity*>(other)->TakeDamage(
+            static_cast<Entity*>(otherActor)->TakeDamage(
                 {
                     .damage = 10.0f,
 					.source = this,
@@ -65,15 +66,15 @@ void Apple::OnCollisionEnter(Actor* other)
     }
 }
 
-void Apple::OnCollisionExit(Actor* other)
+void Apple::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void Apple::OnTriggerEnter(Actor* other)
+void Apple::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 
-void Apple::OnTriggerExit(Actor* other)
+void Apple::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
 }
 

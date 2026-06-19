@@ -1110,8 +1110,7 @@ void Model::Serialize(const char* filename, uint64_t lastWrite)
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations),
-				CEREAL_NVP(attachments)
+				CEREAL_NVP(animations)
 			);
 		}
 		catch (...)
@@ -1136,8 +1135,7 @@ void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(materials),
 				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations),
-				CEREAL_NVP(attachments)
+				CEREAL_NVP(animations)
 			);
 		}
 		catch (...)

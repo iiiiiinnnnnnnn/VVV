@@ -162,6 +162,11 @@ int Framework::Run()
 // メッセージハンドラ
 LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (msg == WM_MOUSEWHEEL)
+	{
+		Game::Input::Instance().GetMouse().SetWheel(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+	}
+
 	if (ImGuiRenderer::HandleMessage(hWnd, msg, wParam, lParam))
 		return true;
 

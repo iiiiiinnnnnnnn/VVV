@@ -26,12 +26,12 @@ public:
     void OnEnterAnimAttack4B(const Animator::State& state);
     void OnExitAnimAttack4B(const Animator::State& state);
 
-    void OnCollisionEnter(Actor* other) override;
-    void OnCollisionStay(Actor* other) override;
-    void OnCollisionExit(Actor* other) override;
-    void OnTriggerEnter(Actor* other) override;
-    void OnTriggerStay(Actor* other) override;
-    void OnTriggerExit(Actor* other) override;
+    void OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnCollisionStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
 
     void SetController(std::unique_ptr<PlayerController> ctrl) { controller = std::move(ctrl); }
     PlayerController* GetController() const { return controller.get(); }

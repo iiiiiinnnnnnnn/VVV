@@ -7,6 +7,7 @@
 #include "Components.h"
 #include "GameDefine.h"
 class ActorManager;
+class Collider;
 
 class Actor : public Object
 {
@@ -21,12 +22,12 @@ public:
 	void Update() override;
 	void DrawGUI() override;
 
-    virtual void OnCollisionEnter(Actor* other) {}
-	virtual void OnCollisionStay(Actor* other) {}
-    virtual void OnCollisionExit(Actor* other) {}
-    virtual void OnTriggerEnter(Actor* other) {}
-	virtual void OnTriggerStay(Actor* other) {}
-    virtual void OnTriggerExit(Actor* other) {}
+    virtual void OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
+    virtual void OnCollisionStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
+    virtual void OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
+    virtual void OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
+	virtual void OnTriggerStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
+    virtual void OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) {}
 
 	virtual void OnRegistered(ActorManager* actorManager) {}
 

@@ -9,4 +9,7 @@ public:
 	void SyncControllerToCamera(Camera& camera) override;
 	void OnUpdate() override;
 	void OnFocusLost() override;
+
+protected:
+	bool BlocksOnImGuiFocus() const override { return false; }
 };
