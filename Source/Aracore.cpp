@@ -42,7 +42,23 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
 		rb->SetKinematic(true);
 
         // 当たり判定
-        AddComponent<SphereCollider>(rb, 2.5f, Vector3{0, 1.4f, 0});
+        AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+
+        /*append bones
+        IK Chain02
+        IK Chain10
+        IK Chain11
+        IK Chain12
+        IK Chain13
+        IK Chain14
+        IK Chain15
+        IK Chain16
+        */
+        AddComponent<BoneSphereCollider>(
+            model.get(),
+            model->GetNodeIndex("IK Chain02"),
+            0.8f,
+			Matrix::CreateTranslation({-0.58f, 1.0f, 0.5f}));
     }
 }
 
@@ -67,11 +83,11 @@ void Aracore::OnRegistered(ActorManager* actorManager)
         actorManager->Register(machineShared);
 
         // リジッドボディ
-        auto rb = AddComponent<RigidbodyDynamic>();
+        auto rb = machine->AddComponent<RigidbodyDynamic>();
         rb->SetKinematic(true);
 
         // 当たり判定
-        AddComponent<BoxCollider>(rb, Vector3{2.0f, 2.0f, 2.0f});
+        machine->AddComponent<BoxCollider>(rb, Vector3{3.72f, 2.95f, 6.14f}, Vector3{0.0f, 5.95f, 0.21f});
 
         // Box02に追従
         if (bodyRenderer)
