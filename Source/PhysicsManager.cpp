@@ -18,6 +18,12 @@ static PxFilterFlags LayerFilterShader(
     if (!Layer::Collides(layer0, layer1))
         return PxFilterFlag::eSUPPRESS;
 
+    if (PxFilterObjectIsTrigger(attr0) || PxFilterObjectIsTrigger(attr1))
+    {
+        pairFlags = PxPairFlag::eTRIGGER_DEFAULT;
+        return PxFilterFlag::eDEFAULT;
+    }
+
     pairFlags = PxPairFlag::eCONTACT_DEFAULT
         | PxPairFlag::eNOTIFY_TOUCH_FOUND
         | PxPairFlag::eNOTIFY_TOUCH_PERSISTS

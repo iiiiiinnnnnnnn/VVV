@@ -95,25 +95,73 @@ private:
     unsigned int quantizedCount = 32;
 };
 
-// ボーンを指定して追従　行列オフセットも設定できる。
-class BoneSphereCollider : public Collider
+class BoneCollider : public Collider
 {
 public:
-    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr);
-    ~BoneSphereCollider();
-    void LateUpdate() override;         // 毎フレームボーン追従
-    void Render(const RenderContext& rc) override;
-    void DrawGUI() override;
+    BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    ~BoneCollider() override;
+    void LateUpdate() override;
     Vector3 GetWorldPosition() const;
-private:
+    Actor* FindOverlapActorByTag(const std::string& tag) const;
+
+protected:
+    void InitializeShape();
     void UpdateShape();
+    virtual PxShape* CreateShape(PxPhysics* physics, PxMaterial* material) const = 0;
+    virtual PxTransform GetLocalPose() const { return PxTransform(PxIdentity); }
+    void DrawBoneSettingsGUI();
+
     PxShape* shape = nullptr;
-    PxRigidDynamic* ghostActor = nullptr;  // Rigidbody*からPxRigidDynamic*に変更
+    PxRigidDynamic* ghostActor = nullptr;
     PxMaterial* material = nullptr;
     Model* model = nullptr;
     int nodeIndex = -1;
     Matrix offset;
+    bool isTrigger = true;
+};
+
+// ボーンを指定して追従　行列オフセットも設定できる。
+class BoneSphereCollider : public BoneCollider
+{
+public:
+    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
+
+private:
+    PxShape* CreateShape(PxPhysics* physics, PxMaterial* material) const override;
+private:
     float radius = 0.5f;
+};
+
+// ボーンを指定して追従　行列オフセットも設定できる。
+class BoneCapsuleCollider : public BoneCollider
+{
+public:
+    BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
+
+private:
+    PxShape* CreateShape(PxPhysics* physics, PxMaterial* material) const override;
+    PxTransform GetLocalPose() const override;
+private:
+    float radius = 0.5f;
+    float height = 1.0f;
+};
+
+// ボーンを指定して追従　行列オフセットも設定できる。
+class BoneBoxCollider : public BoneCollider
+{
+public:
+    BoneBoxCollider(Object* owner, Model* model, int nodeIndex, const Vector3& size, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    void Render(const RenderContext& rc) override;
+    void DrawGUI() override;
+
+private:
+    PxShape* CreateShape(PxPhysics* physics, PxMaterial* material) const override;
+private:
+	Vector3 size = Vector3::One;
 };
 
 class TerrainMeshCollider : public Collider

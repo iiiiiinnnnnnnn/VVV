@@ -45,23 +45,33 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
         // 足の当たり判定
-		Matrix offset = Matrix::CreateTranslation({-6.05f,8.53f,2.76f});
         std::vector<std::string> ikBoneNames = {
-            "IK Chain02",
-            "IK Chain10",
-            "IK Chain11",
-            "IK Chain12",
-            "IK Chain13",
-            "IK Chain14",
-            "IK Chain15",
-            "IK Chain16"
+            "IK Chain01",
+            "IK Chain03",
+            "IK Chain04",
+            "IK Chain05",
+            "IK Chain06",
+            "IK Chain07",
+            "IK Chain08",
+            "IK Chain09"
 		};
         for (const std::string& ikBoneName : ikBoneNames)
         {
-            IKColliders.push_back(AddComponent<BoneSphereCollider>(
+            // 足接触コライダー
+            IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
                 model->GetNodeIndex(ikBoneName.c_str()),
-                0.8f, offset));
+                1.42f,
+                2.0f,
+                Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
+                PhysicsManager::Instance().GetDefaultMaterial(),
+                false));
+
+            // 踏みつけ激薄コライダー
+            IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
+                model.get(),
+                model->GetNodeIndex(ikBoneName.c_str()),
+                Vector3{0.7f, 0.1f, 0.7f}));
         }
     }
 }
@@ -113,6 +123,22 @@ void Aracore::OnRegistered(ActorManager* actorManager)
 void Aracore::OnUpdate()
 {
     Entity::OnUpdate();
+
+    for (Collider* collider : IKStampColliders)
+    {
+        BoneCollider* stampCollider = dynamic_cast<BoneCollider*>(collider);
+        if (!stampCollider) continue;
+
+        Actor* playerActor = stampCollider->FindOverlapActorByTag("Player");
+        if (!playerActor) continue;
+
+        static_cast<Entity*>(playerActor)->TakeDamage({
+            .damage = 10.0f,
+            .source = this,
+            .hitPosition = stampCollider->GetWorldPosition(),
+            .knockBackPower = 10.0f
+            });
+    }
 }
 
 void Aracore::OnDrawGUI()
@@ -137,18 +163,7 @@ void Aracore::OnDamaged(const DamageData& damageData)
 
 void Aracore::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
-    // プレイヤーに攻撃する
 
-    Actor* otherActor = other->GetOwnerActor();
-    if (otherActor->CompareTag("Player"))
-    {
-        static_cast<Entity*>(otherActor)->TakeDamage({
-            .damage = 10.0f,
-            .source = this,
-            .hitPosition = transform.position,
-            .knockBackPower = 20.0f
-            });
-    }
 }
 
 void Aracore::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
@@ -157,6 +172,30 @@ void Aracore::OnCollisionExit(Collider* self, Collider* other, const Vector3& po
 
 void Aracore::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
+    // 踏みつけ判定に当たったらプレイヤーにダメージ
+    {
+        bool isFootCollider = false;
+        for (Collider* collider : IKStampColliders)
+        {
+            if (self == collider)
+            {
+                isFootCollider = true;
+                break;
+            }
+        }
+        if (!isFootCollider) return;
+
+        Actor* otherActor = other->GetOwnerActor();
+        if (otherActor->CompareTag("Player"))
+        {
+            static_cast<Entity*>(otherActor)->TakeDamage({
+                .damage = 10.0f,
+                .source = this,
+                .hitPosition = point,
+                .knockBackPower = 10.0f
+                });
+        }
+    }
 }
 
 void Aracore::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
@@ -168,3 +207,9 @@ void Aracore::OnDead()
     printf("Aracore Dead!\n");
     Destroy();
 }
+
+
+
+
+
+

@@ -504,20 +504,27 @@ static Matrix MakeBoneOffsetWorld(const Matrix& boneWorld, const Matrix& offset)
     return offset * boneTransform;
 }
 
-BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset, PxMaterial* material)
-    : Collider(owner), model(model), nodeIndex(nodeIndex), radius(radius), offset(offset), material(material)
+BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset, PxMaterial* material, bool isTrigger)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+    , radius(radius)
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    InitializeShape();
+}
+
+BoneCollider::BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix offset, PxMaterial* material, bool isTrigger)
+    : Collider(owner), material(material), model(model), nodeIndex(nodeIndex), offset(offset), isTrigger(isTrigger)
+{
+    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
-    // ボーンの初期位置でKinematic Dynamicを生成
-    _ASSERT_EXPR(model != nullptr, L"BoneSphereCollider requires model.");
-    _ASSERT_EXPR(nodeIndex >= 0, L"BoneSphereCollider invalid nodeIndex.");
-    _ASSERT_EXPR(nodeIndex < static_cast<int>(model->GetNodes().size()), L"BoneSphereCollider nodeIndex out of range.");
+    _ASSERT_EXPR(model != nullptr, L"BoneCollider requires model.");
+    _ASSERT_EXPR(nodeIndex >= 0, L"BoneCollider invalid nodeIndex.");
+    _ASSERT_EXPR(nodeIndex < static_cast<int>(model->GetNodes().size()), L"BoneCollider nodeIndex out of range.");
 
+    // ボーンの初期位置でKinematic Dynamicを生成
     Matrix boneWorld = model->GetNodes()[nodeIndex].worldTransform;
     Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
 
@@ -526,26 +533,18 @@ BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeInde
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
 	ghostActor->userData = owner;
-
-    // Triggerシェイプ（物理応答なし → プレイヤーが飛ばない）
-    shape = physics->createShape(PxSphereGeometry(radius), *this->material, true);
-    shape->userData = this;
-    shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
-    shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
-
-    // ownerのlayerをシェイプに反映
-    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
-
-    ghostActor->attachShape(*shape);
-    shape->release();
-
-    PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
 }
 
-BoneSphereCollider::~BoneSphereCollider()
+BoneCollider::~BoneCollider()
 {
     if (ghostActor)
     {
+        if (shape)
+        {
+            ghostActor->detachShape(*shape);
+            shape->release();
+            shape = nullptr;
+        }
         if (PxScene* scene = ghostActor->getScene())
         {
             scene->removeActor(*ghostActor);
@@ -555,12 +554,44 @@ BoneSphereCollider::~BoneSphereCollider()
     }
 }
 
-void BoneSphereCollider::LateUpdate()
+void BoneCollider::InitializeShape()
+{
+    if (!ghostActor) return;
+
+    if (shape)
+    {
+        ghostActor->detachShape(*shape);
+        shape->release();
+        shape = nullptr;
+    }
+
+    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+    Actor* actor = Component::GetOwnerAsActor();
+
+    // Triggerは攻撃判定用、Simulationは接触判定用
+    shape = CreateShape(physics, material);
+    shape->userData = this;
+    shape->setLocalPose(GetLocalPose());
+    shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !isTrigger);
+    shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, isTrigger);
+
+    // ownerのlayerをシェイプに反映
+    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+
+    ghostActor->attachShape(*shape);
+
+    if (!ghostActor->getScene())
+    {
+        PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
+    }
+}
+
+void BoneCollider::LateUpdate()
 {
     UpdateShape();
 }
 
-void BoneSphereCollider::UpdateShape()
+void BoneCollider::UpdateShape()
 {
     if (!ghostActor || !model || nodeIndex < 0) return;
 
@@ -572,7 +603,7 @@ void BoneSphereCollider::UpdateShape()
     ghostActor->setKinematicTarget(MATRIX_TO_PX_TRANSFORM(world));
 }
 
-Vector3 BoneSphereCollider::GetWorldPosition() const
+Vector3 BoneCollider::GetWorldPosition() const
 {
     if (!ghostActor)
     {
@@ -581,6 +612,69 @@ Vector3 BoneSphereCollider::GetWorldPosition() const
 
     const PxTransform pose = ghostActor->getGlobalPose();
     return Vector3(pose.p.x, pose.p.y, pose.p.z);
+}
+
+Actor* BoneCollider::FindOverlapActorByTag(const std::string& tag) const
+{
+    if (!ghostActor || !shape) return nullptr;
+
+    PxGeometryHolder geometry = shape->getGeometry();
+    PxTransform pose = PxShapeExt::getGlobalPose(*shape, *ghostActor);
+    PxOverlapBuffer hit;
+    bool hitAny = PhysicsManager::Instance()
+        .GetSceneContext()
+        .GetScene()
+        ->overlap(geometry.any(), pose, hit);
+    if (!hitAny) return nullptr;
+
+    for (PxU32 i = 0; i < hit.getNbAnyHits(); ++i)
+    {
+        PxShape* hitShape = hit.getAnyHit(i).shape;
+        if (!hitShape) continue;
+        if (hitShape == shape) continue;
+
+        Collider* collider = static_cast<Collider*>(hitShape->userData);
+        if (!collider) continue;
+
+        Actor* actor = collider->GetOwnerActor();
+        if (!actor) continue;
+        if (actor == GetOwnerActor()) continue;
+        if (actor->CompareTag(tag)) return actor;
+    }
+
+    return nullptr;
+}
+
+void BoneCollider::DrawBoneSettingsGUI()
+{
+    ImGui::Text("NodeIndex: %d", nodeIndex);
+
+    Vector3 pos;
+    Quaternion rot;
+    Vector3 scale;
+    Vector3 euler;
+    offset.Decompose(scale, rot, pos);
+    if (ImGui::DragFloat3("OffsetPos", &pos.x, 0.01f))
+    {
+        offset = Matrix::CreateScale(scale) *
+            Matrix::CreateFromQuaternion(rot) *
+            Matrix::CreateTranslation(pos);
+    }
+    euler = rot.ToEuler();
+	euler.x = DEG(euler.x);
+	euler.y = DEG(euler.y);
+	euler.z = DEG(euler.z);
+    if (ImGui::DragFloat3("OffsetRotation", &euler.x, 0.01f))
+    {
+        offset = Matrix::CreateScale(scale) *
+            Matrix::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z)) *
+            Matrix::CreateTranslation(pos);
+    }
+}
+
+PxShape* BoneSphereCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const
+{
+    return physics->createShape(PxSphereGeometry(radius), *material, true);
 }
 
 void BoneSphereCollider::Render(const RenderContext& rc)
@@ -601,29 +695,119 @@ void BoneSphereCollider::DrawGUI()
 	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneSphereCollider");
     if (isOpenGUI)
     {
-        ImGui::Text("NodeIndex: %d", nodeIndex);
-        ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
-        Vector3 pos;
-        Quaternion rot;
-        Vector3 scale;
-        Vector3 euler;
-        offset.Decompose(scale, rot, pos);
-        if (ImGui::DragFloat3("OffsetPos", &pos.x, 0.01f))
+        bool changed = false;
+        changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+        if (radius < 0.01f) radius = 0.01f;
+        if (changed)
         {
-            offset = Matrix::CreateScale(scale) *
-                Matrix::CreateFromQuaternion(rot) *
-                Matrix::CreateTranslation(pos);
+            InitializeShape();
         }
-        euler = rot.ToEuler();
-		euler.x = DEG(euler.x);
-		euler.y = DEG(euler.y);
-		euler.z = DEG(euler.z);
-        if (ImGui::DragFloat3("OffsetRotation", &euler.x, 0.01f))
+        DrawBoneSettingsGUI();
+        ImGui::TreePop();
+    }
+}
+
+BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+    , radius(radius)
+    , height(height)
+{
+    InitializeShape();
+}
+
+PxShape* BoneCapsuleCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const
+{
+    return physics->createShape(
+        PxCapsuleGeometry(radius, height * 0.5f),
+        *material,
+        true);
+}
+
+PxTransform BoneCapsuleCollider::GetLocalPose() const
+{
+    return PxTransform(
+        PxVec3(0, 0, 0),
+        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
+}
+
+void BoneCapsuleCollider::Render(const RenderContext& rc)
+{
+    if (!isOpenGUI) return;
+    if (!rc.renderSettings.showDebug || !ghostActor) return;
+
+    PxTransform pose = ghostActor->getGlobalPose() *
+        GetLocalPose() *
+        PxTransform(PxVec3(0, 0, 0), PxQuat(-DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+        PX_TRANSFORM_TO_MATRIX(pose),
+        radius,
+        height,
+        Color(0.8f, 0.0f, 1.0f, 1.0f));
+}
+
+void BoneCapsuleCollider::DrawGUI()
+{
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneCapsuleCollider");
+    if (isOpenGUI)
+    {
+        bool changed = false;
+        changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+        changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f);
+        radius = max(radius, 0.01f);
+        height = max(height, 0.01f);
+        if (changed)
         {
-            offset = Matrix::CreateScale(scale) *
-                Matrix::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z)) *
-                Matrix::CreateTranslation(pos);
+            InitializeShape();
         }
+        DrawBoneSettingsGUI();
+        ImGui::TreePop();
+    }
+}
+
+BoneBoxCollider::BoneBoxCollider(Object* owner, Model* model, int nodeIndex, const Vector3& size, Matrix offset, PxMaterial* material, bool isTrigger)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+    , size(size)
+{
+    InitializeShape();
+}
+
+PxShape* BoneBoxCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const
+{
+    return physics->createShape(
+        PxBoxGeometry(size.x, size.y, size.z),
+        *material,
+        true);
+}
+
+void BoneBoxCollider::Render(const RenderContext& rc)
+{
+    if (!isOpenGUI) return;
+    if (!rc.renderSettings.showDebug || !ghostActor) return;
+
+    PxTransform t = ghostActor->getGlobalPose();
+    Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+        VEC3(t.p),
+        Vector3::Zero,
+        size,
+        Color(1.0f, 0.2f, 0.0f, 1.0f));
+}
+
+void BoneBoxCollider::DrawGUI()
+{
+	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneBoxCollider");
+    if (isOpenGUI)
+    {
+        bool changed = false;
+        changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
+        size.x = max(size.x, 0.01f);
+        size.y = max(size.y, 0.01f);
+        size.z = max(size.z, 0.01f);
+        if (changed)
+        {
+            InitializeShape();
+        }
+        DrawBoneSettingsGUI();
         ImGui::TreePop();
     }
 }

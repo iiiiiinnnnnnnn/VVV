@@ -28,6 +28,7 @@ private:
 	RigidbodyDynamic* rb;
 	Collider* bodyCollider = nullptr;
 	std::vector<Collider*> IKColliders;
+	std::vector<Collider*> IKStampColliders;
 	DamageHoleComponent* damageHoleComponent = nullptr;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

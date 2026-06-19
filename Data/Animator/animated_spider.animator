@@ -12,7 +12,7 @@
             "name": "Base Layer",
             "states": [
                 {
-                    "animationIndex": 0,
+                    "animationIndex": 4,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
