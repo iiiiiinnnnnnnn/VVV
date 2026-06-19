@@ -12,48 +12,60 @@ class Rigidbody;
 class BoxCollider : public Component {
 public:
     BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
+    BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, const Vector3& localPosition, PxMaterial* material = nullptr);
 	void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
 	const Vector3& GetSize() const { return size; }
+    const Vector3& GetLocalPosition() const { return localPosition; }
 private:
+    PxTransform MakeLocalPose() const;
     void UpdateShape();
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 	Vector3 size;
+    Vector3 localPosition;
 };
 
 class CapsuleCollider : public Component {
 public:
     CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
+    CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, const Vector3& localPosition, PxMaterial* material = nullptr);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
     const float GetRadius() const { return radius; }
     const float GetHeight() const { return height; }
+    const Vector3& GetLocalPosition() const { return localPosition; }
 private:
+    PxTransform MakeLocalPose() const;
     void UpdateShape();
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
     float radius;
     float height;
+    Vector3 localPosition;
 };
 
 class SphereCollider : public Component {
 public:
     SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
+    SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, const Vector3& localPosition, PxMaterial* material = nullptr);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
     const float GetRadius() const { return radius; }
+    const Vector3& GetLocalPosition() const { return localPosition; }
 private:
+    PxTransform MakeLocalPose() const;
     void UpdateShape();
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
     float radius;
+    Vector3 localPosition;
 };
 
 class MeshCollider : public Component

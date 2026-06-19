@@ -25,7 +25,7 @@ public:
 private:
 	Animator* anim;
 	ModelRenderComponent* bodyRenderer = nullptr;
-	Rigidbody* rb;
+	RigidbodyDynamic* rb;
 	DamageHoleComponent* damageHoleComponent = nullptr;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

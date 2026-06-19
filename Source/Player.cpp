@@ -131,6 +131,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.3f, 0.9f);
+	cc->SetUseGravity(false);
 	cc->SetPosition({0, 3.0f, 0});
 
 	// 武器判定
@@ -212,8 +213,11 @@ void Player::OnCollisionExit(Actor* other)
 
 void Player::OnTriggerEnter(Actor* other)
 {
+	// 敵にダメージを与える
 	if (other->CompareTag("Enemy"))
 	{
+		if (!weaponCollider->IsActive() && !footCollider->IsActive()) return;
+
 		Entity* entity = static_cast<Entity*>(other);
 		bool footAtk = footCollider->IsActive();
 		BoneSphereCollider* attackCollider = footAtk ? footCollider : weaponCollider;

@@ -26,7 +26,7 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         // モデル描画
         std::shared_ptr<Model> model =
             ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider.glb");
-		transform.SetScale(0.02f);
+		transform.SetScale(0.04f);
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
@@ -36,13 +36,19 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
 
 		// キャラクターコントローラー
 		AddComponent<CharacterController>(1.13f, 0.001f);
+
+		// リジッドボディ
+		rb = AddComponent<RigidbodyDynamic>();
+		rb->SetKinematic(true);
+
+        // 当たり判定
+        AddComponent<SphereCollider>(rb, 2.5f, Vector3{0, 1.4f, 0});
     }
 }
 
 void Aracore::OnRegistered(ActorManager* actorManager)
 {
 	// 機械の部分
-    #if 1
     {
         machineShaderParam =
         {
@@ -60,6 +66,14 @@ void Aracore::OnRegistered(ActorManager* actorManager)
         auto machine = machineShared.get();
         actorManager->Register(machineShared);
 
+        // リジッドボディ
+        auto rb = AddComponent<RigidbodyDynamic>();
+        rb->SetKinematic(true);
+
+        // 当たり判定
+        AddComponent<BoxCollider>(rb, Vector3{2.0f, 2.0f, 2.0f});
+
+        // Box02に追従
         if (bodyRenderer)
         {
             Transform offset{};
@@ -74,7 +88,6 @@ void Aracore::OnRegistered(ActorManager* actorManager)
 		modelRenderer->SetShaderParamForAllMaterials(machineShaderParam);
         damageHoleComponent = machine->AddComponent<DamageHoleComponent>(modelRenderer, 0.65f, 0.12f, 0.55f, 1.35f);
     }
-    #endif
 }
 
 void Aracore::OnUpdate()
@@ -110,7 +123,7 @@ void Aracore::OnCollisionEnter(Actor* other)
         static_cast<Entity*>(other)->TakeDamage({
             .damage = 10.0f,
             .source = this,
-            .hitPosition = other->transform.position,
+            .hitPosition = transform.position,
             .knockBackPower = 20.0f
             });
     }
@@ -122,11 +135,6 @@ void Aracore::OnCollisionExit(Actor* other)
 
 void Aracore::OnTriggerEnter(Actor* other)
 {
-    // プレイヤーから攻撃受ける
-    if (other->CompareTag("Player"))
-    {
-        TakeDamage({.damage = 10.0f});
-    }
 }
 
 void Aracore::OnTriggerExit(Actor* other)

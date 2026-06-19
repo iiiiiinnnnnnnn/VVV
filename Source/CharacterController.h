@@ -17,9 +17,16 @@ public:
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
     void SetFootPosition(const Vector3& pos);
+    void SetUseGravity(bool value) { useGravity = value; }
     bool IsGrounded() const { return grounded; }
 private:
+    void ApplyGravity();
+    void SyncOwnerTransform();
+
     PxController* controller = nullptr;
     CCHitReport* hitReport = nullptr;
     bool grounded = false;
+    bool useGravity = true;
+    float verticalVelocity = 0.0f;
+    float gravity = -9.81f;
 };

@@ -38,12 +38,10 @@ void Actor::DrawGUI()
                 }
                 rb->SetPosition(transform.position);
             }
-            else
-            {
-                auto cc = GetComponent<CharacterController>();
-                if (cc)
-                    cc->SetFootPosition(transform.position);
-            }
+
+            auto cc = GetComponent<CharacterController>();
+            if (cc)
+                cc->SetFootPosition(transform.position);
         }
         if (res.rotationChanged)
         {

@@ -58,7 +58,7 @@ void AracoreQueen::OnCollisionEnter(Actor* other)
             static_cast<Entity*>(other)->TakeDamage({
                 .damage = 10.0f,
                 .source = this,
-                .hitPosition = other->transform.position,
+                .hitPosition = transform.position,
                 .knockBackPower = 20.0f
                 });
         }
@@ -71,11 +71,6 @@ void AracoreQueen::OnCollisionExit(Actor* other)
 
 void AracoreQueen::OnTriggerEnter(Actor* other)
 {
-    // プレイヤーから攻撃受ける
-    if (other->CompareTag("Player"))
-    {
-        TakeDamage({.damage = 10.0f});
-    }
 }
 
 void AracoreQueen::OnTriggerExit(Actor* other)

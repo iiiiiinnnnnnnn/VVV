@@ -488,8 +488,6 @@ void StageLoader::ApplyTransformToActor(
 			dynamicRb->SetVelocity(
 				Vector3::Zero);
 		}
-
-		return;
 	}
 
 	CharacterController* characterController =
@@ -703,7 +701,19 @@ void StageLoader::DrawLoadedActorsGUI()
 		{
 			ImGui::Text("Group: %s", loadedActor.groupName.c_str());
 
-			actor->transform.DrawGUI(loadedActor.groupName != "props");
+			const bool dontScale =
+				loadedActor.groupName != "props";
+			Transform::TransformChangedResult transformResult =
+				actor->transform.DrawGUI(dontScale);
+			if (transformResult.positionChanged ||
+				transformResult.rotationChanged ||
+				transformResult.scaleChanged)
+			{
+				ApplyTransformToActor(
+					actor,
+					actor->transform,
+					dontScale);
+			}
 
 			if (ImGui::Button("Remove From Stage"))
 			{

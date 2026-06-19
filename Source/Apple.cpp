@@ -58,7 +58,7 @@ void Apple::OnCollisionEnter(Actor* other)
                 {
                     .damage = 10.0f,
 					.source = this,
-                    .hitPosition = other->transform.position,
+                    .hitPosition = transform.position,
                     .knockBackPower = 20.0f
                 });
         }
@@ -71,10 +71,6 @@ void Apple::OnCollisionExit(Actor* other)
 
 void Apple::OnTriggerEnter(Actor* other)
 {
-    if (other->CompareTag("Player"))
-    {
-        TakeDamage({.damage = 10.0f});
-    }
 }
 
 void Apple::OnTriggerExit(Actor* other)

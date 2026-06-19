@@ -8,7 +8,21 @@
 #include "IconsFontAwesome5.h"
 
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
-    : Component(owner), material(material), size(size), rigidbody(rigidbody)
+    : BoxCollider(owner, rigidbody, size, Vector3::Zero, material)
+{
+}
+
+BoxCollider::BoxCollider(
+    Object* owner,
+    Rigidbody* rigidbody,
+    const Vector3& size,
+    const Vector3& localPosition,
+    PxMaterial* material)
+    : Component(owner)
+    , rigidbody(rigidbody)
+    , material(material)
+    , size(size)
+    , localPosition(localPosition)
 {
     // エラー用
     Component::GetOwnerAsActor();
@@ -17,13 +31,25 @@ BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& siz
     UpdateShape();
 }
 
+PxTransform BoxCollider::MakeLocalPose() const
+{
+    return PxTransform(
+        PxVec3(localPosition.x, localPosition.y, localPosition.z),
+        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
+    );
+}
+
 void BoxCollider::Render(const RenderContext& rc)
 {
     if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug) return;
 
+    PxTransform pose =
+        rigidbody->GetRigidActor()->getGlobalPose() *
+        MakeLocalPose();
+
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-        rigidbody->GetPosition(), Vector3::Zero, size, {0.0f, 1.0f, 0.0f, 1.0f});
+        VEC3(pose.p), Vector3::Zero, size, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void BoxCollider::UpdateShape()
@@ -42,7 +68,7 @@ void BoxCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
-    shape->setLocalPose(PxTransform(PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))));
+    shape->setLocalPose(MakeLocalPose());
 	rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
@@ -57,6 +83,7 @@ void BoxCollider::DrawGUI()
     {
         bool changed = false;
         changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 100.0f);
+        changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
 
         if (changed) UpdateShape();
 
@@ -79,7 +106,29 @@ void BoxCollider::DrawGUI()
 }
 
 CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radius, float height, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), material(material), radius(radius), height(height)
+    : CapsuleCollider(
+        owner,
+        rigidbody,
+        radius,
+        height,
+        Vector3::Zero,
+        material)
+{
+}
+
+CapsuleCollider::CapsuleCollider(
+    Object* owner,
+    Rigidbody* rigidbody,
+    float radius,
+    float height,
+    const Vector3& localPosition,
+    PxMaterial* material)
+    : Component(owner)
+    , rigidbody(rigidbody)
+    , material(material)
+    , radius(radius)
+    , height(height)
+    , localPosition(localPosition)
 {
 	// エラー用
     Component::GetOwnerAsActor();
@@ -88,13 +137,28 @@ CapsuleCollider::CapsuleCollider(Object* owner, Rigidbody* rigidbody, float radi
     UpdateShape();
 }
 
+PxTransform CapsuleCollider::MakeLocalPose() const
+{
+    return PxTransform(
+        PxVec3(localPosition.x, localPosition.y, localPosition.z),
+        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
+    );
+}
+
 void CapsuleCollider::Render(const RenderContext& rc)
 {
     if (!isOpenGUI) return;
     if (!rc.renderSettings.showDebug) return;
 
+    PxTransform pose =
+        rigidbody->GetRigidActor()->getGlobalPose() *
+        MakeLocalPose();
+
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        PX_TRANSFORM_TO_MATRIX(rigidbody->GetRigidActor()->getGlobalPose()), radius, height, {0.0f, 1.0f, 0.0f, 1.0f});
+        PX_TRANSFORM_TO_MATRIX(pose),
+        radius,
+        height,
+        {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void CapsuleCollider::UpdateShape()
@@ -113,11 +177,7 @@ void CapsuleCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxCapsuleGeometry(radius, height * 0.5f), *material);
-    PxTransform localPose(
-        PxVec3(0, height * 0.5f + radius, 0),
-        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
-    );
-    shape->setLocalPose(localPose);
+    shape->setLocalPose(MakeLocalPose());
     rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
@@ -133,6 +193,7 @@ void CapsuleCollider::DrawGUI()
         bool changed = false;
         changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
         changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 100.0f);
+        changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
 		if (radius < 0.01f) radius = 0.01f;
 
         if (changed) UpdateShape();
@@ -155,7 +216,21 @@ void CapsuleCollider::DrawGUI()
 }
 
 SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius, PxMaterial* material)
-    : Component(owner), rigidbody(rigidbody), material(material), radius(radius)
+    : SphereCollider(owner, rigidbody, radius, Vector3(0, radius, 0), material)
+{
+}
+
+SphereCollider::SphereCollider(
+    Object* owner,
+    Rigidbody* rigidbody,
+    float radius,
+    const Vector3& localPosition,
+    PxMaterial* material)
+    : Component(owner)
+    , rigidbody(rigidbody)
+    , material(material)
+    , radius(radius)
+    , localPosition(localPosition)
 {
 	// エラー用
     Component::GetOwnerAsActor();
@@ -164,13 +239,22 @@ SphereCollider::SphereCollider(Object* owner, Rigidbody* rigidbody, float radius
     UpdateShape();
 }
 
+PxTransform SphereCollider::MakeLocalPose() const
+{
+    return PxTransform(PxVec3(localPosition.x, localPosition.y, localPosition.z));
+}
+
 void SphereCollider::Render(const RenderContext& rc)
 {
     if (!isOpenGUI) return;
 	if (!rc.renderSettings.showDebug) return;
 
+    PxTransform pose =
+        rigidbody->GetRigidActor()->getGlobalPose() *
+        MakeLocalPose();
+
     Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-        rigidbody->GetPosition() + Vector3(0, radius, 0), radius, { 0.0f, 1.0f, 0.0f, 1.0f });
+        VEC3(pose.p), radius, { 0.0f, 1.0f, 0.0f, 1.0f });
 }
 
 void SphereCollider::UpdateShape()
@@ -189,9 +273,7 @@ void SphereCollider::UpdateShape()
     // 新しいシェイプを生成
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
-    shape->setLocalPose(
-        PxTransform(PxVec3(0, radius, 0))
-    );
+    shape->setLocalPose(MakeLocalPose());
     rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
@@ -206,6 +288,7 @@ void SphereCollider::DrawGUI()
     {
         bool changed = false;
         changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
+        changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
         if (radius < 0.01f) radius = 0.01f;
 
         if (changed) UpdateShape();

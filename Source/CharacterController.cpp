@@ -30,6 +30,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
 
     controller = PhysicsManager::Instance()
         .GetSceneContext().GetControllerManager()->createController(desc);
+    SetFootPosition(actor->transform.position);
 
     // 内部シェイプにlayerをセット＆userDataにActor*を格納（コールバック用）
     PxRigidDynamic* act = controller->getActor();
@@ -47,8 +48,26 @@ CharacterController::~CharacterController()
 
 void CharacterController::Update()
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    ApplyGravity();
+    SyncOwnerTransform();
+}
 
+void CharacterController::ApplyGravity()
+{
+    if (!useGravity) return;
+    if (!controller) return;
+
+    if (grounded)
+        verticalVelocity = 0.0f;
+    else
+        verticalVelocity += gravity * Game::Time::deltaTime;
+
+    Move(Vector3(0.0f, verticalVelocity * Game::Time::deltaTime, 0.0f));
+}
+
+void CharacterController::SyncOwnerTransform()
+{
+    Actor* actor = Component::GetOwnerAsActor();
     if (!controller) return;
 
     PxExtendedVec3 pos = controller->getPosition();
@@ -56,6 +75,7 @@ void CharacterController::Update()
         + static_cast<PxCapsuleController*>(controller)->getRadius()
         + controller->getContactOffset();
     actor->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);
+    actor->transform.Update();
 }
 
 void CharacterController::Render(const RenderContext& rc)
@@ -85,6 +105,8 @@ void CharacterController::DrawGUI()
 
         // --- 状態表示 ---
         ImGui::Text("Grounded : %s", grounded ? "true" : "false");
+        ImGui::Checkbox("Use Gravity", &useGravity);
+        ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
 
         PxExtendedVec3 pos = controller->getPosition();
         ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
@@ -129,24 +151,34 @@ void CharacterController::DrawGUI()
 // that should not block the player (e.g. Hair, Body). No hardcoding needed.
 struct CCShapeFilterCallback : public PxQueryFilterCallback
 {
+    CCShapeFilterCallback(Actor* owner, int ownerLayer)
+        : owner(owner), ownerLayer(ownerLayer) {}
+
     PxQueryHitType::Enum preFilter(
         const PxFilterData& filterData, const PxShape* shape,
-        const PxRigidActor*, PxHitFlags&) override
+        const PxRigidActor* rigidActor, PxHitFlags&) override
     {
+        if (rigidActor && rigidActor->userData == owner) return PxQueryHitType::eNONE;
+
         int layer = (int)shape->getSimulationFilterData().word1;
-        if (!Layer::Collides(Layer::Player, layer)) return PxQueryHitType::eNONE;
+        if (!Layer::Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
         return PxQueryHitType::eBLOCK;
     }
     PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override
     {
         return PxQueryHitType::eBLOCK;
     }
+
+private:
+    Actor* owner = nullptr;
+    int ownerLayer = 0;
 };
 
 void CharacterController::Move(const Vector3& velocity)
 {
     static CCFilterCallback      ccFilter;
-    static CCShapeFilterCallback shapeFilter;
+    Actor* actor = Component::GetOwnerAsActor();
+    CCShapeFilterCallback shapeFilter(actor, actor->GetLayer());
 
     // 新フレームの開始としてフラグをリセット（LateUpdateより先にMoveが呼ばれる想定）
     hitReport->dispatchedThisFrame = false;
@@ -160,6 +192,10 @@ void CharacterController::Move(const Vector3& velocity)
         0.001f, Game::Time::deltaTime, filters
     );
     grounded = (flags & PxControllerCollisionFlag::eCOLLISION_DOWN) != PxControllerCollisionFlags(0);
+    if (grounded && velocity.y <= 0.0f)
+        verticalVelocity = 0.0f;
+
+    SyncOwnerTransform();
 
     hitReport->DispatchEvents();
 }
@@ -173,6 +209,8 @@ void CharacterController::LateUpdate()
 void CharacterController::SetPosition(const Vector3& position)
 {
     controller->setPosition(PxExtendedVec3(position.x, position.y, position.z));
+    verticalVelocity = 0.0f;
+    SyncOwnerTransform();
 }
 
 void CharacterController::SetFootPosition(const Vector3& position)
@@ -187,4 +225,6 @@ void CharacterController::SetFootPosition(const Vector3& position)
         position.x,
         position.y + halfHeight,
         position.z));
+    verticalVelocity = 0.0f;
+    SyncOwnerTransform();
 }

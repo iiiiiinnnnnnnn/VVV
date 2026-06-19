@@ -41,6 +41,9 @@ public:
     RigidbodyDynamic(Object* owner);
 
     void DrawGUI() override;
+    void LateUpdate() override;
+
+    void SetKinematic(bool isKinematic);
 
     void AddForce(const Vector3& force);
     void SetVelocity(const Vector3& v);

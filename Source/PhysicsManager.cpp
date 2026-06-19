@@ -31,8 +31,12 @@ static PxFilterFlags LayerFilterShader(
 static Actor* ToActor(PxActor* pxActor)
 {
     if (!pxActor) return nullptr;
+
     Actor* actor = static_cast<Actor*>(pxActor->userData);
-    if (!actor || actor->IsPendingDestroy()) return nullptr;
+    if (!actor) return nullptr;
+    if (actor->IsPendingDestroy()) return nullptr;
+    if (!actor->IsActive()) return nullptr;
+
     return actor;
 }
 
@@ -89,12 +93,30 @@ void CollisionEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 nbPairs)
 
 void CollisionEventCallback::DispatchStayEvents()
 {
-    // 削除済みActorをペアセットから除去
-    std::erase_if(currentCollisionPairs, [](const auto& pair) {
-        return pair.first->IsPendingDestroy() || pair.second->IsPendingDestroy();
+    std::erase_if(currentCollisionPairs, [](const auto& pair)
+    {
+        Actor* a = pair.first;
+        Actor* b = pair.second;
+
+        return !a
+            || !b
+            || a->IsPendingDestroy()
+            || b->IsPendingDestroy()
+            || !a->IsActive()
+            || !b->IsActive();
     });
-    std::erase_if(currentTriggerPairs, [](const auto& pair) {
-        return pair.first->IsPendingDestroy() || pair.second->IsPendingDestroy();
+
+    std::erase_if(currentTriggerPairs, [](const auto& pair)
+    {
+        Actor* trigger = pair.first;
+        Actor* other = pair.second;
+
+        return !trigger
+            || !other
+            || trigger->IsPendingDestroy()
+            || other->IsPendingDestroy()
+            || !trigger->IsActive()
+            || !other->IsActive();
     });
 
     for (auto& [a, b] : currentCollisionPairs)
@@ -102,6 +124,7 @@ void CollisionEventCallback::DispatchStayEvents()
         a->OnCollisionStay(b);
         b->OnCollisionStay(a);
     }
+
     for (auto& [trigger, other] : currentTriggerPairs)
     {
         trigger->OnTriggerStay(other);
@@ -212,13 +235,18 @@ void PhysicsManager::Finalize()
 
 void CCHitReport::onShapeHit(const PxControllerShapeHit& hit)
 {
-    int otherLayer = (int)hit.shape->getSimulationFilterData().word1;
+    if (!owner) return;
+    if (owner->IsPendingDestroy()) return;
+    if (!owner->IsActive()) return;
+
+    int otherLayer = static_cast<int>(hit.shape->getSimulationFilterData().word1);
     if (!Layer::Collides(ownerLayer, otherLayer)) return;
 
     Actor* other = static_cast<Actor*>(hit.actor->userData);
     if (!other) return;
+    if (other->IsPendingDestroy()) return;
+    if (!other->IsActive()) return;
 
-    // 今フレームの接触セットに追加するだけ（判定はDispatchEventsで行う）
     currentFrameActors.insert(other);
 }
 
@@ -227,11 +255,27 @@ void CCHitReport::DispatchEvents()
     if (dispatchedThisFrame) return;
     dispatchedThisFrame = true;
 
-    // 削除済みを除去
-    std::erase_if(currentFrameActors, [](Actor* a) { return a->IsPendingDestroy(); });
-    std::erase_if(prevFrameActors,    [](Actor* a) { return a->IsPendingDestroy(); });
+    std::erase_if(currentFrameActors, [](Actor* actor)
+    {
+        return !actor
+            || actor->IsPendingDestroy()
+            || !actor->IsActive();
+    });
 
-    // Enter: 今フレームにいて前フレームにいなかった
+    std::erase_if(prevFrameActors, [](Actor* actor)
+    {
+        return !actor
+            || actor->IsPendingDestroy()
+            || !actor->IsActive();
+    });
+
+    if (!owner || owner->IsPendingDestroy() || !owner->IsActive())
+    {
+        currentFrameActors.clear();
+        prevFrameActors.clear();
+        return;
+    }
+
     for (Actor* other : currentFrameActors)
     {
         if (prevFrameActors.find(other) == prevFrameActors.end())
@@ -241,7 +285,6 @@ void CCHitReport::DispatchEvents()
         }
     }
 
-    // Stay: 両フレームにいる
     for (Actor* other : currentFrameActors)
     {
         if (prevFrameActors.find(other) != prevFrameActors.end())
@@ -251,7 +294,6 @@ void CCHitReport::DispatchEvents()
         }
     }
 
-    // Exit: 前フレームにいて今フレームにいなかった
     for (Actor* other : prevFrameActors)
     {
         if (currentFrameActors.find(other) == currentFrameActors.end())

@@ -40,6 +40,14 @@ void Rigidbody::Update()
         return;
     }
 
+    if (PxRigidDynamic* dynamic = rigidActor->is<PxRigidDynamic>())
+    {
+        if (dynamic->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+        {
+            return;
+        }
+    }
+
     PxTransform pose = rigidActor->getGlobalPose();
 
     ownerActor->transform.position = Vector3(
@@ -156,6 +164,35 @@ void RigidbodyDynamic::DrawGUI()
         }
         ImGui::TreePop();
     }
+}
+
+void RigidbodyDynamic::LateUpdate()
+{
+    Actor* ownerActor = Component::GetOwnerAsActor();
+    PxRigidDynamic* dynamic = rigidActor->is<PxRigidDynamic>();
+    if (!ownerActor || !dynamic) return;
+    if (!(dynamic->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)) return;
+
+    SetPosition(ownerActor->transform.position);
+    SetRotation(ownerActor->transform.rotation);
+}
+
+void RigidbodyDynamic::SetKinematic(bool isKinematic)
+{
+    PxRigidDynamic* dynamic = rigidActor->is<PxRigidDynamic>();
+    if (dynamic)
+    {
+        if (isKinematic)
+        {
+            dynamic->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+            dynamic->setRigidBodyFlag(PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, true);
+        }
+        else
+        {
+            dynamic->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+            dynamic->setRigidBodyFlag(PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, false);
+        }
+	}
 }
 
 void RigidbodyDynamic::AddForce(const Vector3& force)
