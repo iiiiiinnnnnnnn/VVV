@@ -92,6 +92,7 @@
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
     <ClInclude Include="Source\Aracore.h" />
+    <ClInclude Include="Source\AracoreFootGrounder.h" />
     <ClInclude Include="Source\BasicModelShader.h" />
     <ClInclude Include="Source\BoneFollower.h" />
     <ClInclude Include="Source\BasicSpriteShader.h" />

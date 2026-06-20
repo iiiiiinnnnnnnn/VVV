@@ -5,6 +5,7 @@
 #include "ResourceManager.h"
 #include "HitEffect.h"
 #include "ActorManager.h"
+#include "AracoreFootGrounder.h"
 
 Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
@@ -30,6 +31,9 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
+        // 足接地補正
+        AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
+
         // アニメータ
 		anim = AddComponent<Animator>(model, 0);
         anim->Load("Data/Animator/animated_spider.animator");
@@ -44,6 +48,16 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         // 当たり判定
         bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
+        // 足接地補正対象。IK Chainではなくスキニングに効く足ボーンを補正する。
+        footGrounder->AddLeg("Box09", "Box11");
+        footGrounder->AddLeg("Box20", "Box19");
+        footGrounder->AddLeg("Box25", "Box23");
+        footGrounder->AddLeg("Box26", "Box24");
+        footGrounder->AddLeg("Box31", "Box29");
+        footGrounder->AddLeg("Box35", "Box36");
+        footGrounder->AddLeg("Box37", "Box34");
+        footGrounder->AddLeg("Box38", "Box30");
+
         // 足の当たり判定
         std::vector<std::string> ikBoneNames = {
             "IK Chain01",
@@ -57,20 +71,21 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
 		};
         for (const std::string& ikBoneName : ikBoneNames)
         {
+            const int ikNodeIndex = model->GetNodeIndex(ikBoneName.c_str());
             // 足接触コライダー
-            IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
+            /*IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
-                model->GetNodeIndex(ikBoneName.c_str()),
+                ikNodeIndex,
                 1.42f,
                 2.0f,
                 Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
                 PhysicsManager::Instance().GetDefaultMaterial(),
-                false));
+                false));*/
 
             // 踏みつけ激薄コライダー
             IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
                 model.get(),
-                model->GetNodeIndex(ikBoneName.c_str()),
+                ikNodeIndex,
                 Vector3{0.7f, 0.1f, 0.7f}));
         }
     }
@@ -205,8 +220,10 @@ void Aracore::OnTriggerExit(Collider* self, Collider* other, const Vector3& poin
 void Aracore::OnDead()
 {
     printf("Aracore Dead!\n");
-    Destroy();
+    Destroy(10);
 }
+
+
 
 
 

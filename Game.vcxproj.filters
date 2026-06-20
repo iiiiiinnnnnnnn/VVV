@@ -614,6 +614,9 @@
     <ClInclude Include="Source\StageLoader.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
+    <ClInclude Include="Source\AracoreFootGrounder.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
