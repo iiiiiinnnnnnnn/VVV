@@ -73,14 +73,14 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         {
             const int ikNodeIndex = model->GetNodeIndex(ikBoneName.c_str());
             // 足接触コライダー
-            /*IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
+            IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
                 ikNodeIndex,
                 1.42f,
                 2.0f,
                 Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
                 PhysicsManager::Instance().GetDefaultMaterial(),
-                false));*/
+                false));
 
             // 踏みつけ激薄コライダー
             IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
