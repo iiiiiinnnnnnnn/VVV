@@ -302,6 +302,12 @@ void CollisionEventCallback::DispatchStayEvents()
     }
 }
 
+void CollisionEventCallback::ClearPairs()
+{
+    currentCollisionPairs.clear();
+    currentTriggerPairs.clear();
+}
+
 // -------------------------------------------------------
 // PhysicsSceneContext
 // -------------------------------------------------------

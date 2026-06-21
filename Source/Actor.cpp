@@ -14,7 +14,10 @@ void Actor::Update()
 void Actor::DrawGUI()
 {
     ImGui::PushID(this);
-    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
+    debugGUIOpen =
+        ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str());
+
+    if (debugGUIOpen)
     {
         Object::DrawGUI();
 

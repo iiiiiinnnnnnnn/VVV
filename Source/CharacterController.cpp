@@ -81,7 +81,7 @@ void CharacterController::SyncOwnerTransform()
 
 void CharacterController::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderDebug()) return;
     if (!rc.renderSettings.showDebug) return;
 
     // PhysXカプセルはX軸基準なのでY軸に90度回転補正

@@ -7,6 +7,13 @@
 #include "Terrain.h"
 #include "IconsFontAwesome5.h"
 
+#include <cfloat>
+
+static bool ShouldRenderColliderDebug(const Collider* collider)
+{
+    return collider && collider->ShouldRenderDebug();
+}
+
 BoxCollider::BoxCollider(Object* owner, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material)
     : BoxCollider(owner, rigidbody, size, Vector3::Zero, material)
 {
@@ -34,14 +41,12 @@ BoxCollider::BoxCollider(
 PxTransform BoxCollider::MakeLocalPose() const
 {
     return PxTransform(
-        PxVec3(localPosition.x, localPosition.y, localPosition.z),
-        PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1))
-    );
+        PxVec3(localPosition.x, localPosition.y, localPosition.z));
 }
 
 void BoxCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug) return;
 
     PxTransform pose =
@@ -49,7 +54,7 @@ void BoxCollider::Render(const RenderContext& rc)
         MakeLocalPose();
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-        VEC3(pose.p), Vector3::Zero, size, {0.0f, 1.0f, 0.0f, 1.0f});
+        VEC3(pose.p), Vector3::Zero, size * 0.5f, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void BoxCollider::UpdateShape()
@@ -148,7 +153,7 @@ PxTransform CapsuleCollider::MakeLocalPose() const
 
 void CapsuleCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug) return;
 
     PxTransform pose =
@@ -248,7 +253,7 @@ PxTransform SphereCollider::MakeLocalPose() const
 
 void SphereCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
 	if (!rc.renderSettings.showDebug) return;
 
     PxTransform pose =
@@ -315,38 +320,45 @@ void SphereCollider::DrawGUI()
 
 void MeshCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug) return;
+    if (!model) return;
 
-    // 重いっす
-    PrimitiveRenderer* pr = Game::Graphics::Instance().GetPrimitiveRenderer();
-    Color color(0.0f, 1.0f, 1.0f, 1.0f);
+    Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
+    Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    bool hasVertex = false;
 
     for (const Model::Mesh& mesh : model->GetMeshes())
     {
         if (!mesh.isDraw) continue;
+        if (!mesh.node) continue;
 
-        const auto& verts   = mesh.vertices;
-        const auto& indices = mesh.indices;
-
-        for (size_t i = 0; i < indices.size(); i += 3)
+        for (const Model::Vertex& vertex : mesh.vertices)
         {
-            Vector3 v0 = Vector3::Transform(verts[indices[i + 0]].position, mesh.node->worldTransform);
-            Vector3 v1 = Vector3::Transform(verts[indices[i + 1]].position, mesh.node->worldTransform);
-            Vector3 v2 = Vector3::Transform(verts[indices[i + 2]].position, mesh.node->worldTransform);
+            Vector3 position =
+                Vector3::Transform(
+                    vertex.position,
+                    mesh.node->worldTransform);
 
-            pr->DrawLine(v0, v1, color, color);
-            pr->DrawLine(v1, v2, color, color);
-            pr->DrawLine(v2, v0, color, color);
+            if (position.x < minPosition.x) minPosition.x = position.x;
+            if (position.y < minPosition.y) minPosition.y = position.y;
+            if (position.z < minPosition.z) minPosition.z = position.z;
+
+            if (position.x > maxPosition.x) maxPosition.x = position.x;
+            if (position.y > maxPosition.y) maxPosition.y = position.y;
+            if (position.z > maxPosition.z) maxPosition.z = position.z;
+
+            hasVertex = true;
         }
     }
 
-    pr->Render(
-        rc.deviceContext,
-        rc.camera->GetView(),
-        rc.camera->GetProjection(),
-        D3D11_PRIMITIVE_TOPOLOGY_LINELIST
-    );
+    if (!hasVertex) return;
+
+    Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+        (minPosition + maxPosition) * 0.5f,
+        Vector3::Zero,
+        (maxPosition - minPosition) * 0.5f,
+        Color(0.0f, 1.0f, 1.0f, 1.0f));
 }
 
 MeshCollider::MeshCollider(Object* owner, Rigidbody* rigidbody, Model* model, PxMaterial* material)
@@ -679,7 +691,7 @@ PxShape* BoneSphereCollider::CreateShape(PxPhysics* physics, PxMaterial* materia
 
 void BoneSphereCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform t = ghostActor->getGlobalPose();
@@ -732,7 +744,7 @@ PxTransform BoneCapsuleCollider::GetLocalPose() const
 
 void BoneCapsuleCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform pose = ghostActor->getGlobalPose() *
@@ -782,7 +794,7 @@ PxShape* BoneBoxCollider::CreateShape(PxPhysics* physics, PxMaterial* material) 
 
 void BoneBoxCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform t = ghostActor->getGlobalPose();
@@ -1032,7 +1044,7 @@ void TerrainMeshCollider::UpdateShape(
 
 void TerrainMeshCollider::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderColliderDebug(this)) return;
     if (!rc.renderSettings.showDebug) return;
 
     Terrain* terrain = owner->GetComponent<Terrain>();
@@ -1055,39 +1067,6 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
             Color(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
-    // mesh
-    #if 1
-    if (debugVertices.empty() || debugIndices.empty())
-        return;
-
-    Actor* actor = GetOwnerAsActor();
-
-    const Matrix poseWorld =
-        Matrix::CreateFromQuaternion(actor->transform.rotation) *
-        Matrix::CreateTranslation(actor->transform.position);
-
-    PrimitiveRenderer* primitiveRenderer =
-        Game::Graphics::Instance().GetPrimitiveRenderer();
-
-    const Color color(0.0f, 1.0f, 1.0f, 1.0f);
-
-    for (size_t i = 0; i + 2 < debugIndices.size(); i += 3)
-    {
-        const Vector3 v0 = Vector3::Transform(debugVertices[debugIndices[i + 0]], poseWorld);
-        const Vector3 v1 = Vector3::Transform(debugVertices[debugIndices[i + 1]], poseWorld);
-        const Vector3 v2 = Vector3::Transform(debugVertices[debugIndices[i + 2]], poseWorld);
-
-        primitiveRenderer->DrawLine(v0, v1, color, color);
-        primitiveRenderer->DrawLine(v1, v2, color, color);
-        primitiveRenderer->DrawLine(v2, v0, color, color);
-    }
-
-    primitiveRenderer->Render(
-        rc.deviceContext,
-        rc.camera->GetView(),
-        rc.camera->GetProjection(),
-        D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    #endif
 }
 
 void TerrainMeshCollider::DrawGUI()

@@ -56,6 +56,7 @@ public:
     void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
     void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
     void DispatchStayEvents();
+    void ClearPairs();
 
     void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
     void onWake(PxActor**, PxU32) override {}
@@ -132,6 +133,7 @@ public:
     PxScene* GetScene() const { return scene; }
     PxControllerManager* GetControllerManager() const { return controllerManager; }
     CollisionEventCallback& GetEventCallback() { return eventCallback; }
+    void ClearCollisionEvents() { eventCallback.ClearPairs(); }
 
 private:
     PxScene* scene = nullptr;

@@ -549,7 +549,7 @@ void SpringBone::LateUpdate()
 
 void SpringBone::Render(const RenderContext& rc)
 {
-    if (!isOpenGUI) return;
+    if (!ShouldRenderDebug()) return;
     if (!rc.renderSettings.showDebug)
         return;
 

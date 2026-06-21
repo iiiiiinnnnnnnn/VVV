@@ -25,6 +25,7 @@ public:
 
     Actor* GetOwnerAsActor(Object* owner_sub = nullptr) const;
     Widget* GetOwnerAsWidget(Object* owner_sub = nullptr) const;
+    bool ShouldRenderDebug() const;
 
 protected:
     Object* owner;

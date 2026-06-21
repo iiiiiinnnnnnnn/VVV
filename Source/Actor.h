@@ -37,6 +37,7 @@ public:
 	const int GetLayer() const { return layer; }
     const std::string& GetTag() const { return tag; }
     bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
+    bool IsDebugGUIOpen() const { return debugGUIOpen; }
 
     ActorManager* GetActorManager() const { return actorManager; }
 
@@ -44,5 +45,6 @@ protected:
 	friend class ActorManager;
     std::string tag;
 	int layer;
+    bool debugGUIOpen = false;
     ActorManager* actorManager = nullptr;
 };

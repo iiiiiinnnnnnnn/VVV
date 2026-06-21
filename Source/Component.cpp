@@ -25,3 +25,9 @@ Widget* Component::GetOwnerAsWidget(Object* owner_sub) const
     _ASSERT_EXPR(ptr, "This component can only be attached to Widget.");
     return ptr;
 }
+
+bool Component::ShouldRenderDebug() const
+{
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    return actor && actor->IsDebugGUIOpen();
+}

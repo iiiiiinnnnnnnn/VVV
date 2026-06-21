@@ -7,7 +7,7 @@
             "layer": 3,
             "position": [
                 0.0,
-                0.0,
+                -1.1920928955078125e-07,
                 -20.0
             ],
             "rotation": [
@@ -20,5 +20,108 @@
             "type": "Aracore"
         }
     ],
-    "props": []
+    "props": [
+        {
+            "active": true,
+            "boxColliderOffset": [
+                0.0,
+                2.6412179470062256,
+                -0.030071765184402466
+            ],
+            "boxColliderSize": [
+                2.1110000610351563,
+                4.663506507873535,
+                2.002000093460083
+            ],
+            "id": "tower",
+            "isDynamic": false,
+            "layer": 0,
+            "path": "Data/Model/Prop/paestum_stone.glb",
+            "position": [
+                6.400000095367432,
+                0.0,
+                3.5
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "scale": [
+                3.0,
+                3.0,
+                3.0
+            ],
+            "tag": "Prop"
+        },
+        {
+            "active": true,
+            "boxColliderOffset": [
+                0.0,
+                2.6412179470062256,
+                -0.030071765184402466
+            ],
+            "boxColliderSize": [
+                2.1110000610351563,
+                4.663506507873535,
+                2.002000093460083
+            ],
+            "id": "tower2",
+            "isDynamic": false,
+            "layer": 0,
+            "path": "Data/Model/Prop/paestum_stone.glb",
+            "position": [
+                -7.199999809265137,
+                0.0,
+                -9.800000190734863
+            ],
+            "rotation": [
+                0.0,
+                0.7021530270576477,
+                0.0,
+                0.712026059627533
+            ],
+            "scale": [
+                3.0,
+                3.0,
+                3.0
+            ],
+            "tag": "Prop"
+        },
+        {
+            "active": true,
+            "boxColliderOffset": [
+                0.0,
+                2.6412179470062256,
+                -0.030071765184402466
+            ],
+            "boxColliderSize": [
+                2.1110000610351563,
+                4.663506507873535,
+                2.002000093460083
+            ],
+            "id": "tower3",
+            "isDynamic": false,
+            "layer": 0,
+            "path": "Data/Model/Prop/paestum_stone.glb",
+            "position": [
+                -15.0,
+                -0.30000001192092896,
+                3.9000000953674316
+            ],
+            "rotation": [
+                0.0,
+                0.7021530270576477,
+                0.0,
+                0.712026059627533
+            ],
+            "scale": [
+                3.0,
+                3.0,
+                3.0
+            ],
+            "tag": "Prop"
+        }
+    ]
 }

@@ -6,8 +6,10 @@
 #include "Aracore.h"
 #include "AracoreQueen.h"
 #include "Components.h"
+#include "PhysicsManager.h"
 
 #include <fstream>
+#include <cfloat>
 #include "ResourceManager.h"
 #include "IconsFontAwesome5.h"
 
@@ -25,6 +27,14 @@ StageLoader::StageLoader(
 
 void StageLoader::Update()
 {
+	if (reloadRequested)
+	{
+		reloadRequested = false;
+		LoadStageFromJSON();
+		loaded = true;
+		return;
+	}
+
 	if (loaded)
 	{
 		return;
@@ -130,6 +140,8 @@ void StageLoader::SaveStageToJSON()
 
 void StageLoader::ClearLoadedActors()
 {
+	PhysicsManager::Instance().GetSceneContext().ClearCollisionEvents();
+
 	for (LoadedActor& loadedActor : loadedActors)
 	{
 		if (loadedActor.actor)
@@ -176,9 +188,6 @@ Actor* StageLoader::SpawnActorFromJSON(
 		bool isDynamic =
 			objectJson.value("isDynamic", false);
 
-		int meshColliderConvex =
-			objectJson.value("meshColliderConvex", 1280);
-
 		int animationIndex =
 			objectJson.value("animationIndex", -1);
 
@@ -209,10 +218,12 @@ Actor* StageLoader::SpawnActorFromJSON(
 		{
 			rb = actor->AddComponent<RigidbodyStatic>();
 		}
-		if (addMeshColliderConvex > 0)
-		{
-			actor->AddComponent<MeshCollider>(rb, model.get(), meshColliderConvex);
-		}
+		AddPropCollider(
+			actor.get(),
+			rb,
+			model.get(),
+			objectJson,
+			transform);
 	}
 	else
 	{
@@ -244,9 +255,9 @@ Actor* StageLoader::SpawnActorFromJSON(
 	actorManager->Register(actor);
 
 	Transform transform =
-		ReadTransform(objectJson, false);
+		ReadTransform(objectJson, groupName == "props");
 
-		ApplyTransformToActor(rawActor, transform, groupName != "props");
+	ApplyTransformToActor(rawActor, transform, groupName != "props");
 
 	ApplyCommonActorSettings(rawActor, objectJson);
 
@@ -337,6 +348,11 @@ json StageLoader::BuildObjectJSONFromLoadedActor(
 	objectJson["active"] =
 		actor->IsActive();
 
+	if (loadedActor.groupName == "props")
+	{
+		WritePropColliderToJSON(objectJson, actor);
+	}
+
 	WriteTransformToJSON(
 		objectJson,
 		actor->transform,
@@ -378,6 +394,43 @@ void StageLoader::WriteTransformToJSON(
 	{
 		objectJson.erase("scale");
 	}
+}
+
+void StageLoader::WritePropColliderToJSON(
+	json& objectJson,
+	Actor* actor) const
+{
+	objectJson.erase("colliderType");
+	objectJson.erase("meshColliderConvex");
+
+	if (!actor)
+		return;
+
+	BoxCollider* boxCollider =
+		actor->GetComponent<BoxCollider>();
+
+	if (!boxCollider)
+		return;
+
+	const Vector3& size =
+		boxCollider->GetSize();
+
+	const Vector3& offset =
+		boxCollider->GetLocalPosition();
+
+	objectJson["boxColliderSize"] =
+	{
+		size.x,
+		size.y,
+		size.z
+	};
+
+	objectJson["boxColliderOffset"] =
+	{
+		offset.x,
+		offset.y,
+		offset.z
+	};
 }
 
 Transform StageLoader::ReadTransform(
@@ -456,6 +509,102 @@ Vector3 StageLoader::ReadVector3(
 		value[0].get<float>(),
 		value[1].get<float>(),
 		value[2].get<float>());
+}
+
+void StageLoader::AddPropCollider(
+	Actor* actor,
+	Rigidbody* rb,
+	Model* model,
+	const json& objectJson,
+	const Transform& transform)
+{
+	if (!actor || !rb)
+		return;
+
+	Vector3 defaultCenter;
+	Vector3 defaultSize;
+	GetModelLocalBounds(model, defaultCenter, defaultSize);
+
+	defaultCenter.x *= transform.scale.x;
+	defaultCenter.y *= transform.scale.y;
+	defaultCenter.z *= transform.scale.z;
+
+	defaultSize.x *= fabsf(transform.scale.x);
+	defaultSize.y *= fabsf(transform.scale.y);
+	defaultSize.z *= fabsf(transform.scale.z);
+
+	Vector3 boxColliderSize =
+		ReadVector3(
+			objectJson,
+			"boxColliderSize",
+			defaultSize);
+
+	Vector3 boxColliderOffset =
+		ReadVector3(
+			objectJson,
+			"boxColliderOffset",
+			defaultCenter);
+
+	if (boxColliderSize.x <= eps ||
+		boxColliderSize.y <= eps ||
+		boxColliderSize.z <= eps)
+	{
+		return;
+	}
+
+	actor->AddComponent<BoxCollider>(
+		rb,
+		boxColliderSize,
+		boxColliderOffset);
+}
+
+void StageLoader::GetModelLocalBounds(
+	Model* model,
+	Vector3& center,
+	Vector3& size) const
+{
+	center = Vector3::Zero;
+	size = Vector3::One;
+
+	if (!model)
+		return;
+
+	Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
+	Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	bool hasVertex = false;
+
+	for (const Model::Mesh& mesh : model->GetMeshes())
+	{
+		if (!mesh.isDraw || !mesh.node)
+			continue;
+
+		for (const Model::Vertex& vertex : mesh.vertices)
+		{
+			Vector3 position =
+				Vector3::Transform(
+					vertex.position,
+					mesh.node->worldTransform);
+
+			if (position.x < minPosition.x) minPosition.x = position.x;
+			if (position.y < minPosition.y) minPosition.y = position.y;
+			if (position.z < minPosition.z) minPosition.z = position.z;
+
+			if (position.x > maxPosition.x) maxPosition.x = position.x;
+			if (position.y > maxPosition.y) maxPosition.y = position.y;
+			if (position.z > maxPosition.z) maxPosition.z = position.z;
+
+			hasVertex = true;
+		}
+	}
+
+	if (!hasVertex)
+		return;
+
+	center =
+		(minPosition + maxPosition) * 0.5f;
+
+	size =
+		maxPosition - minPosition;
 }
 
 void StageLoader::ApplyTransformToActor(
@@ -541,7 +690,6 @@ json StageLoader::MakeAddObjectJSON() const
 		objectJson["scale"] = {1, 1, 1};
 		objectJson["path"] = addPropPath;
 		objectJson["isDynamic"] = addIsDynamic;
-		objectJson["meshColliderConvex"] = addMeshColliderConvex;
 		objectJson["tag"] = "Prop";
 		objectJson["layer"] = Layer::Default;
 	}
@@ -575,8 +723,7 @@ void StageLoader::DrawGUI()
 
 		if (ImGui::Button("Reload"))
 		{
-			LoadStageFromJSON();
-			loaded = true;
+			reloadRequested = true;
 		}
 
 		ImGui::SameLine();
@@ -626,13 +773,6 @@ void StageLoader::DrawAddObjectGUI()
 		ImGui::Checkbox(
 			"Is Dynamic",
 			&addIsDynamic);
-
-		ImGui::DragInt(
-			"Mesh Collider Convex",
-			&addMeshColliderConvex,
-			1.0f,
-			0,
-			4096);
 	}
 
 	if (ImGui::Button("Add"))

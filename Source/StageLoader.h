@@ -7,6 +7,9 @@
 #include "Actor.h"
 #include "nlohmann/json.hpp"
 
+class Model;
+class Rigidbody;
+
 class StageLoader : public Component
 {
 public:
@@ -56,6 +59,10 @@ private:
 		const Transform& transform,
 		bool writeScale) const;
 
+	void WritePropColliderToJSON(
+		json& objectJson,
+		Actor* actor) const;
+
 	Transform ReadTransform(
 		const json& objectJson,
 		bool readScale = true) const;
@@ -64,6 +71,18 @@ private:
 		const json& objectJson,
 		const char* key,
 		const Vector3& defaultValue) const;
+
+	void AddPropCollider(
+		Actor* actor,
+		Rigidbody* rb,
+		Model* model,
+		const json& objectJson,
+		const Transform& transform);
+
+	void GetModelLocalBounds(
+		Model* model,
+		Vector3& center,
+		Vector3& size) const;
 
 	json MakeAddObjectJSON() const;
 
@@ -83,6 +102,7 @@ private:
 	std::filesystem::path jsonPath;
 
 	bool loaded = false;
+	bool reloadRequested = false;
 
 	json stageJson;
 
@@ -94,5 +114,4 @@ private:
 	std::string addPropPath = "Data/Model/Prop/paestum_stone.glb";
 
 	bool addIsDynamic = false;
-	int addMeshColliderConvex = 1280;
 };
