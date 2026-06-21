@@ -342,6 +342,12 @@
     <ClCompile Include="Source\StageLoader.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClCompile>
+    <ClCompile Include="Source\NavMeshAgent.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshActor.cpp">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -612,6 +618,15 @@
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClInclude>
     <ClInclude Include="Source\StageLoader.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshAgent.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshActor.h">
+      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshObstacle.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
     <ClInclude Include="Source\AracoreFootGrounder.h">

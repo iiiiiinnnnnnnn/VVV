@@ -150,9 +150,9 @@ private:
     Terrain* cachedTerrain = nullptr;
     std::vector<Leg> legs;
     bool enabled = true;
-    float rayUpDistance = 20.0f;
-    float rayDownDistance = 1.0f;
-    float groundOffset = 0.0f;
+    float rayUpDistance = 5.0f;
+    float rayDownDistance = 50.0f;
+    float groundOffset = 0.65f;
     float smoothSpeed = 18.0f;
 };
 

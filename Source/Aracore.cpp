@@ -5,7 +5,9 @@
 #include "ResourceManager.h"
 #include "HitEffect.h"
 #include "ActorManager.h"
+#include "NavMeshAgent.h"
 #include "AracoreFootGrounder.h"
+
 
 Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
@@ -39,14 +41,18 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, Layer::Enemy, 1000.0f, 100
         anim->Load("Data/Animator/animated_spider.animator");
 
 		// キャラクターコントローラー
-		AddComponent<CharacterController>(1.13f, 0.001f);
+		CharacterController* cc = AddComponent<CharacterController>(0.45f, 0.7f);
+		cc->SetStepOffset(1.2f);
+		cc->SetSlopeLimitDeg(70.0f);
+		cc->SetContactOffset(0.2f);
+		AddComponent<NavMeshAgent>();
 
 		// リジッドボディ
 		rb = AddComponent<RigidbodyDynamic>();
 		rb->SetKinematic(true);
 
         // 当たり判定
-        bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+        //bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
         // 足接地補正対象。IK Chainではなくスキニングに効く足ボーンを補正する。
         footGrounder->AddLeg("Box09", "Box11");
@@ -168,11 +174,11 @@ void Aracore::OnDamaged(const DamageData& damageData)
 
     if (damageData.hitPosition.has_value())
     {
-        damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
+        //damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
     }
     else if (damageData.source)
     {
-        damageHoleComponent->AddDamageHoleFrom(damageData.source);
+        //damageHoleComponent->AddDamageHoleFrom(damageData.source);
     }
 }
 
@@ -222,6 +228,8 @@ void Aracore::OnDead()
     printf("Aracore Dead!\n");
     Destroy(10);
 }
+
+
 
 
 

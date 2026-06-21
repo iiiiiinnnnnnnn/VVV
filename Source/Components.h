@@ -14,6 +14,7 @@
 #include "CharacterController.h"
 #include "Animator.h"
 #include "Terrain.h"
+#include "NavMeshAgent.h"
 
 // 2D
 #include "RectTransform.h"

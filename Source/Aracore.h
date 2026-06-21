@@ -34,3 +34,4 @@ private:
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 	ShaderParamList machineShaderParam;
 };
+

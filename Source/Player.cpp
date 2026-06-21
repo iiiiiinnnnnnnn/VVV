@@ -133,6 +133,9 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	// キャラクターコントローラ生成
 	cc = AddComponent<CharacterController>(0.3f, 0.9f);
 	cc->SetUseGravity(false);
+	cc->SetStepOffset(1.0f);
+	cc->SetSlopeLimitDeg(70.0f);
+	cc->SetContactOffset(0.18f);
 	cc->SetPosition({0, 3.0f, 0});
 
 	// 武器判定
@@ -173,7 +176,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 void Player::OnEnterAnim(const Animator::State& state)
 {
-	if (state.name.compare("Attack"))
+	if (state.name.compare("Attack") == 0)
 	{
 		weaponCollider->SetActive(true);
 	}
@@ -181,7 +184,7 @@ void Player::OnEnterAnim(const Animator::State& state)
 
 void Player::OnExitAnim(const Animator::State& state)
 {
-	if (state.name.compare("Attack"))
+	if (state.name.compare("Attack") == 0)
 	{
 		weaponCollider->SetActive(false);
 	}

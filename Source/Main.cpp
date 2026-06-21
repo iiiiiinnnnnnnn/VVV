@@ -36,8 +36,8 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	wcex.hIconSm = 0;
 	RegisterClassEx(&wcex);
 
-	constexpr int initializeWindowPosX = 10;
-	constexpr int initializeWindowPosY = 10;
+	constexpr int initializeWindowPosX = 5;
+	constexpr int initializeWindowPosY = 5;
 
 	RECT rc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);

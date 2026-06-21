@@ -6,15 +6,15 @@
             "id": "aracore_001",
             "layer": 3,
             "position": [
-                0.0,
-                -1.1920928955078125e-07,
-                -20.0
+                -1.782238245010376,
+                -0.7470451593399048,
+                30.585227966308594
             ],
             "rotation": [
                 0.0,
+                0.8419839143753052,
                 0.0,
-                0.0,
-                1.0
+                -0.5395025014877319
             ],
             "tag": "Enemy",
             "type": "Aracore"
@@ -35,6 +35,7 @@
             ],
             "id": "tower",
             "isDynamic": false,
+            "isNavmeshObject": true,
             "layer": 0,
             "path": "Data/Model/Prop/paestum_stone.glb",
             "position": [
@@ -69,6 +70,7 @@
             ],
             "id": "tower2",
             "isDynamic": false,
+            "isNavmeshObject": true,
             "layer": 0,
             "path": "Data/Model/Prop/paestum_stone.glb",
             "position": [
@@ -103,6 +105,7 @@
             ],
             "id": "tower3",
             "isDynamic": false,
+            "isNavmeshObject": true,
             "layer": 0,
             "path": "Data/Model/Prop/paestum_stone.glb",
             "position": [

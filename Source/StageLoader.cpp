@@ -6,6 +6,8 @@
 #include "Aracore.h"
 #include "AracoreQueen.h"
 #include "Components.h"
+#include "NavMeshActor.h"
+#include "NavMeshObstacle.h"
 #include "PhysicsManager.h"
 
 #include <fstream>
@@ -109,6 +111,9 @@ void StageLoader::LoadStageFromJSON()
 	{
 		SpawnActorFromJSON(bossJson, "bosses");
 	}
+
+	if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+		navMeshActor->RequestBuild(1);
 }
 
 void StageLoader::SaveStageToJSON()
@@ -172,6 +177,7 @@ Actor* StageLoader::SpawnActorFromJSON(
 	}
 
 	std::shared_ptr<Actor> actor;
+	bool isNavmeshObject = false;
 
 	std::string id = objectJson.value("id", std::string());
 
@@ -200,6 +206,9 @@ Actor* StageLoader::SpawnActorFromJSON(
 		int layer =
 			objectJson.value("layer", Layer::Default);
 
+		isNavmeshObject =
+			ReadNavmeshObjectFlag(objectJson);
+
 		actor = std::make_shared<Actor>(id, tag, active, layer);
 		actor->transform = transform;
 		auto model = ResourceManager::Instance().LoadModel(path);
@@ -224,6 +233,10 @@ Actor* StageLoader::SpawnActorFromJSON(
 			model.get(),
 			objectJson,
 			transform);
+
+		ApplyNavmeshObjectToProp(
+			actor.get(),
+			isNavmeshObject);
 	}
 	else
 	{
@@ -261,10 +274,24 @@ Actor* StageLoader::SpawnActorFromJSON(
 
 	ApplyCommonActorSettings(rawActor, objectJson);
 
+	if (groupName == "props")
+	{
+		ApplyNavmeshObjectToProp(
+			rawActor,
+			isNavmeshObject);
+	}
+
 	LoadedActor loadedActor;
 	loadedActor.actor = actor;
 	loadedActor.groupName = groupName;
 	loadedActor.objectJson = objectJson;
+	loadedActor.isNavmeshObject = isNavmeshObject;
+
+	if (groupName == "props")
+	{
+		loadedActor.objectJson["isNavmeshObject"] =
+			loadedActor.isNavmeshObject;
+	}
 
 	loadedActors.push_back(loadedActor);
 
@@ -350,7 +377,15 @@ json StageLoader::BuildObjectJSONFromLoadedActor(
 
 	if (loadedActor.groupName == "props")
 	{
+		WriteNavmeshObjectFlag(
+			objectJson,
+			loadedActor.isNavmeshObject);
+
 		WritePropColliderToJSON(objectJson, actor);
+	}
+	else
+	{
+		objectJson.erase("isNavmeshObject");
 	}
 
 	WriteTransformToJSON(
@@ -359,6 +394,81 @@ json StageLoader::BuildObjectJSONFromLoadedActor(
 		loadedActor.groupName == "props");
 
 	return objectJson;
+}
+
+bool StageLoader::ReadNavmeshObjectFlag(
+	const json& objectJson) const
+{
+	const char* key = nullptr;
+	if (objectJson.contains("isNavmeshObject"))
+	{
+		key = "isNavmeshObject";
+	}
+	else if (objectJson.contains("isNavMeshObject"))
+	{
+		key = "isNavMeshObject";
+	}
+	else
+	{
+		return false;
+	}
+
+	const json& value =
+		objectJson[key];
+
+	if (value.is_boolean())
+	{
+		return value.get<bool>();
+	}
+
+	if (value.is_number_integer())
+	{
+		return value.get<int>() != 0;
+	}
+
+	if (value.is_string())
+	{
+		const std::string text =
+			value.get<std::string>();
+
+		return text == "true" ||
+			text == "True" ||
+			text == "TRUE" ||
+			text == "1";
+	}
+
+	return false;
+}
+
+void StageLoader::WriteNavmeshObjectFlag(
+	json& objectJson,
+	bool isNavmeshObject) const
+{
+	objectJson.erase("isNavMeshObject");
+	objectJson["isNavmeshObject"] =
+		isNavmeshObject;
+}
+
+void StageLoader::ApplyNavmeshObjectToProp(
+	Actor* actor,
+	bool isNavmeshObject)
+{
+	if (!actor)
+	{
+		return;
+	}
+
+	if (!isNavmeshObject)
+	{
+		return;
+	}
+
+	if (actor->GetComponent<NavMeshObstacle>())
+	{
+		return;
+	}
+
+	actor->AddComponent<NavMeshObstacle>();
 }
 
 void StageLoader::WriteTransformToJSON(
@@ -690,6 +800,7 @@ json StageLoader::MakeAddObjectJSON() const
 		objectJson["scale"] = {1, 1, 1};
 		objectJson["path"] = addPropPath;
 		objectJson["isDynamic"] = addIsDynamic;
+		objectJson["isNavmeshObject"] = addIsNavmeshObject;
 		objectJson["tag"] = "Prop";
 		objectJson["layer"] = Layer::Default;
 	}
@@ -773,6 +884,10 @@ void StageLoader::DrawAddObjectGUI()
 		ImGui::Checkbox(
 			"Is Dynamic",
 			&addIsDynamic);
+
+		ImGui::Checkbox(
+			"IsNavmeshObject",
+			&addIsNavmeshObject);
 	}
 
 	if (ImGui::Button("Add"))
@@ -841,6 +956,40 @@ void StageLoader::DrawLoadedActorsGUI()
 		{
 			ImGui::Text("Group: %s", loadedActor.groupName.c_str());
 
+			if (loadedActor.groupName == "props")
+			{
+				if (loadedActor.isNavmeshObject)
+				{
+					ApplyNavmeshObjectToProp(
+						actor,
+						true);
+				}
+
+				if (ImGui::Checkbox(
+					"IsNavmeshObject",
+					&loadedActor.isNavmeshObject))
+				{
+					loadedActor.objectJson["isNavmeshObject"] =
+						loadedActor.isNavmeshObject;
+
+					ApplyNavmeshObjectToProp(
+						actor,
+						loadedActor.isNavmeshObject);
+
+					if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+					{
+						navMeshActor->RequestBuild(2);
+					}
+				}
+
+				const bool hasNavmeshObstacle =
+					actor->GetComponent<NavMeshObstacle>() != nullptr;
+
+				ImGui::Text(
+					"NavMeshObstacle: %s",
+					hasNavmeshObstacle ? "Attached" : "Missing");
+			}
+
 			const bool dontScale =
 				loadedActor.groupName != "props";
 			Transform::TransformChangedResult transformResult =
@@ -853,6 +1002,14 @@ void StageLoader::DrawLoadedActorsGUI()
 					actor,
 					actor->transform,
 					dontScale);
+
+				if (loadedActor.isNavmeshObject)
+				{
+					if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+					{
+						navMeshActor->RequestBuild(1);
+					}
+				}
 			}
 
 			if (ImGui::Button("Remove From Stage"))

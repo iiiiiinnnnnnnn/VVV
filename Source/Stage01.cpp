@@ -6,6 +6,8 @@
 #include "ActorManager.h"
 #include "Aracore.h"
 #include "AracoreQueen.h"
+#include "NavMeshActor.h"
+
 #include "StageLoader.h"
 
 Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
@@ -15,6 +17,8 @@ Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 	Terrain* terrain = AddComponent<Terrain>();
 	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField2.dds");
 	AddComponent<TerrainMeshCollider>(rb, 256, TerrainMeshCollider::CollisionArea{0.2844f, 0.7242f, 0.2438f, 0.6844f});
+	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
+	AddComponent<NavMeshActor>();
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
@@ -35,7 +39,6 @@ Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 	}
 	#endif
 
-	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
 }
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const
@@ -59,3 +62,5 @@ void Stage01::OnDrawGUI()
 {
 
 }
+
+

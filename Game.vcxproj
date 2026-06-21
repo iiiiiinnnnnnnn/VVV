@@ -54,6 +54,8 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelRenderComponent.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
+    <ClCompile Include="Source\NavMeshAgent.cpp" />
+    <ClCompile Include="Source\NavMeshActor.cpp" />
     <ClCompile Include="Source\PostEffect.cpp" />
     <ClCompile Include="Source\Stage01.cpp" />
     <ClCompile Include="Source\StageLoader.cpp" />
@@ -141,6 +143,9 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderComponent.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
+    <ClInclude Include="Source\NavMeshAgent.h" />
+    <ClInclude Include="Source\NavMeshActor.h" />
+    <ClInclude Include="Source\NavMeshObstacle.h" />
     <ClInclude Include="Source\PostEffect.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />

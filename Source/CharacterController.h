@@ -18,6 +18,9 @@ public:
     void SetPosition(const Vector3& pos);
     void SetFootPosition(const Vector3& pos);
     void SetUseGravity(bool value) { useGravity = value; }
+    void SetStepOffset(float value);
+    void SetSlopeLimitDeg(float value);
+    void SetContactOffset(float value);
     bool IsGrounded() const { return grounded; }
 private:
     void ApplyGravity();

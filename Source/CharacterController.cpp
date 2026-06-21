@@ -229,3 +229,22 @@ void CharacterController::SetFootPosition(const Vector3& position)
     verticalVelocity = 0.0f;
     SyncOwnerTransform();
 }
+
+void CharacterController::SetStepOffset(float value)
+{
+    if (!controller) return;
+    controller->setStepOffset(max(value, 0.0f));
+}
+
+void CharacterController::SetSlopeLimitDeg(float value)
+{
+    if (!controller) return;
+    const float clamped = std::clamp(value, 0.0f, 89.0f);
+    controller->setSlopeLimit(cosf(clamped * DEG2RAD));
+}
+
+void CharacterController::SetContactOffset(float value)
+{
+    if (!controller) return;
+    controller->setContactOffset(max(value, 0.001f));
+}

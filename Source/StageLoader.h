@@ -40,6 +40,7 @@ private:
 		std::shared_ptr<Actor> actor;
 		std::string groupName;
 		json objectJson;
+		bool isNavmeshObject = false;
 	};
 
 	void LoadStageFromJSON();
@@ -53,6 +54,17 @@ private:
 	json BuildStageJSONFromLoadedActors() const;
 	json BuildObjectJSONFromLoadedActor(
 		const LoadedActor& loadedActor) const;
+
+	bool ReadNavmeshObjectFlag(
+		const json& objectJson) const;
+
+	void WriteNavmeshObjectFlag(
+		json& objectJson,
+		bool isNavmeshObject) const;
+
+	void ApplyNavmeshObjectToProp(
+		Actor* actor,
+		bool isNavmeshObject);
 
 	void WriteTransformToJSON(
 		json& objectJson,
@@ -114,4 +126,5 @@ private:
 	std::string addPropPath = "Data/Model/Prop/paestum_stone.glb";
 
 	bool addIsDynamic = false;
+	bool addIsNavmeshObject = false;
 };
