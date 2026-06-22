@@ -11,7 +11,7 @@
 #include "LocalPlayer.h"
 
 // graphics
-#include "HitEffect.h"
+#include "SceneEffect.h"
 #include "Graphics.h"
 #include "SpriteWidget.h"
 
@@ -61,7 +61,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 		std::unique_ptr<ThirdPersonCameraController> third =
 			std::make_unique<ThirdPersonCameraController>(
-			player);
+			player.get());
 
 		player->SetCameraController(third.get());
 

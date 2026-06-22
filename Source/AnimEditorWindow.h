@@ -1056,7 +1056,6 @@ private:
                         "ANYTRANS_REORDER",
                         &ti,
                         sizeof(int));
-                    ImGui::Text("-> %s", toName.c_str());
                     ImGui::EndDragDropSource();
                 }
 
@@ -1067,13 +1066,6 @@ private:
                     selectedTrans.fromStateIndex == ANY_STATE_INDEX &&
                     selectedTrans.transIndex == ti;
 
-                if (isSelected)
-                {
-                    ImGui::PushStyleColor(
-                        ImGuiCol_Text,
-                        ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
-                }
-
                 char label[128];
                 snprintf(
                     label,
@@ -1082,20 +1074,46 @@ private:
                     ti + 1,
                     toName.c_str());
 
-                if (ImGui::Selectable(
-                    label,
-                    isSelected,
-                    ImGuiSelectableFlags_None,
-                    ImVec2(-FLT_MIN, rowHeight)))
+                const ImVec2 itemPos = ImGui::GetCursorScreenPos();
+                const float itemWidth = ImGui::GetContentRegionAvail().x;
+                ImGui::InvisibleButton(
+                    "##AnyStateTransitionSelect",
+                    ImVec2(itemWidth, rowHeight));
+
+                const bool isHovered = ImGui::IsItemHovered();
+                if (ImGui::IsItemClicked())
                 {
                     selectedTrans = { li, ANY_STATE_INDEX, ti };
                     selectedState = {};
                 }
 
-                if (isSelected)
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                if (isSelected || isHovered)
                 {
-                    ImGui::PopStyleColor();
+                    const ImU32 bgColor = ImGui::GetColorU32(
+                        isSelected ? ImGuiCol_Header : ImGuiCol_HeaderHovered);
+                    drawList->AddRectFilled(
+                        itemPos,
+                        ImVec2(itemPos.x + itemWidth, itemPos.y + rowHeight),
+                        bgColor);
                 }
+
+                const ImU32 textColor = ImGui::GetColorU32(
+                    isSelected
+                        ? ImVec4(1.0f, 0.8f, 0.2f, 1.0f)
+                        : ImGui::GetStyleColorVec4(ImGuiCol_Text));
+                const float textY =
+                    itemPos.y + (rowHeight - ImGui::GetTextLineHeight()) * 0.5f;
+
+                drawList->PushClipRect(
+                    itemPos,
+                    ImVec2(itemPos.x + itemWidth, itemPos.y + rowHeight),
+                    true);
+                drawList->AddText(
+                    ImVec2(itemPos.x + 4.0f, textY),
+                    textColor,
+                    label);
+                drawList->PopClipRect();
 
                 if (ImGui::BeginDragDropTarget())
                 {

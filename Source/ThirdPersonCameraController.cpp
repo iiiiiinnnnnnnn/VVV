@@ -3,9 +3,9 @@
 #include "ThirdPersonCameraController.h"
 #include "Input.h"
 #include "GameTime.h"
-#include "HitEffect.h"
+#include "SceneEffect.h"
 
-ThirdPersonCameraController::ThirdPersonCameraController(std::shared_ptr<Player> character)
+ThirdPersonCameraController::ThirdPersonCameraController(Player* character)
 {
     SetPlayer(character);
 }
@@ -72,8 +72,20 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         finalEye = currentFocus + dir * hitDist;
     }
 
-    // 4. カメラに適用
+    // エフェクト系反映
     CameraShake::Update(camera, finalEye, currentFocus, Vector3::Up);
+    CameraThreaten::Update();
+
+    const float targetFov = FOV_DEFAULT * CameraThreaten::GetFovMultiplier();
+
+    fovYDegrees = targetFov;
+
+    camera.SetPerspectiveFov(
+        DirectX::XMConvertToRadians(fovYDegrees),
+        aspectRatio,
+        nearClip,
+        farClip
+    );
 
     // 次フレームの Lerp 用に現在の「理想位置」を保存しておく（必要に応じて）
     currentEye = finalEye;
@@ -114,4 +126,15 @@ void ThirdPersonCameraController::OnDrawGUI()
     ImGui::DragFloat("Sens X",        &mouseSensX,   0.0005f, 0.0001f, 0.01f);
     ImGui::DragFloat("Sens Y",        &mouseSensY,   0.0005f, 0.0001f, 0.01f);
     ImGui::DragFloat("Follow Speed",  &followSpeed,  0.5f,   1.0f, 30.0f);
+
+    ImGui::Separator();
+
+    ImGui::DragFloat("FOV Y", &fovYDegrees, 0.5f, 10.0f, 120.0f, "%.1f");
+    ImGui::DragFloat("Near Clip", &nearClip, 0.01f, 0.01f, 10.0f);
+    ImGui::DragFloat("Far Clip", &farClip, 10.0f, 10.0f, 10000.0f);
+
+    fovYDegrees = std::clamp(fovYDegrees, 10.0f, 120.0f);
+    nearClip = std::clamp(nearClip, 0.01f, 10.0f);
+    farClip = std::clamp(farClip, nearClip + 1.0f, 10000.0f);
 }
+

@@ -8,7 +8,7 @@
 class ThirdPersonCameraController : public CameraController
 {
 public:
-    ThirdPersonCameraController(std::shared_ptr<Player> chara);
+    ThirdPersonCameraController(Player* chara);
 
     void SyncCameraToController(const Camera& camera) override {}
     void SyncControllerToCamera(Camera& camera) override;
@@ -16,12 +16,12 @@ public:
     void OnFocusLost() override;
     void OnDrawGUI() override;
 
-    void SetPlayer(std::shared_ptr<Player> character) { this->character = character; }
+    void SetPlayer(Player* character) { this->character = character; }
 
     float GetCameraYaw() const { return -angleY; }
 
 private:
-    std::shared_ptr<Player> character = nullptr;
+    Player* character;
 
     float armLength    = 5.0f;
     float heightOffset = 1.5f;
@@ -31,8 +31,15 @@ private:
     float maxArmLength = 5.0f;
     float followSpeed  = 5.0f;
 
+	const float FOV_DEFAULT = 50.0f;
+    float fovYDegrees = 50.0f;
+    float aspectRatio = 1280.0f / 720.0f;
+    float nearClip = 0.1f;
+    float farClip = 1000.0f;
+
+    bool initialized = false;
+
     // 現在のカメラ位置・注視点（Lerpの現在値）
     Vector3 currentEye   = Vector3::Zero;
     Vector3 currentFocus = Vector3::Zero;
-    bool    initialized  = false;
 };

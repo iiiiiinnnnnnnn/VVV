@@ -6,6 +6,7 @@
 #include "PhysicsManager.h"
 #include "Object.h"
 #include "Model.h"
+#include <array>
 
 class Rigidbody;
 
@@ -98,7 +99,8 @@ private:
 class BoneCollider : public Collider
 {
 public:
-    BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix offset, PxMaterial* material,
+        bool isTrigger, bool freezePositions, bool freezeRotations);
     ~BoneCollider() override;
     void LateUpdate() override;
     Vector3 GetWorldPosition() const;
@@ -118,13 +120,17 @@ protected:
     int nodeIndex = -1;
     Matrix offset;
     bool isTrigger = true;
+    bool freezePositions = false;
+	bool freezeRotations = false;
 };
 
 // ボーンを指定して追従　行列オフセットも設定できる。
 class BoneSphereCollider : public BoneCollider
 {
 public:
-    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius,
+        Matrix offset = Matrix::Identity, PxMaterial* material = nullptr,
+        bool isTrigger = true, bool freezePositions = false, bool freezeRotations = false);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
@@ -138,7 +144,9 @@ private:
 class BoneCapsuleCollider : public BoneCollider
 {
 public:
-    BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius,
+        float height, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr,
+        bool isTrigger = true, bool freezePositions = false, bool freezeRotations = false);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
@@ -154,7 +162,9 @@ private:
 class BoneBoxCollider : public BoneCollider
 {
 public:
-    BoneBoxCollider(Object* owner, Model* model, int nodeIndex, const Vector3& size, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr, bool isTrigger = true);
+    BoneBoxCollider(Object* owner, Model* model, int nodeIndex, const Vector3& size,
+        Matrix offset = Matrix::Identity, PxMaterial* material = nullptr,
+        bool isTrigger = true, bool freezePositions = false, bool freezeRotations = false);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 

@@ -6,7 +6,7 @@
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 #include "Graphics.h"
-#include "HitEffect.h"
+#include "SceneEffect.h"
 
 Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0f)
 {

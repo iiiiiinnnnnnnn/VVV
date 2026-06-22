@@ -517,15 +517,21 @@ static Matrix MakeBoneOffsetWorld(const Matrix& boneWorld, const Matrix& offset)
     return offset * boneTransform;
 }
 
-BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model, int nodeIndex, float radius, Matrix offset, PxMaterial* material, bool isTrigger)
-    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+BoneSphereCollider::BoneSphereCollider(Object* owner, Model* model,
+    int nodeIndex, float radius, Matrix offset, PxMaterial* material,
+    bool isTrigger, bool freezePositions, bool freezeRotations)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , radius(radius)
 {
     InitializeShape();
 }
 
-BoneCollider::BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix offset, PxMaterial* material, bool isTrigger)
-    : Collider(owner), material(material), model(model), nodeIndex(nodeIndex), offset(offset), isTrigger(isTrigger)
+BoneCollider::BoneCollider(
+    Object* owner, Model* model, int nodeIndex, Matrix offset, PxMaterial* material,
+    bool isTrigger, bool freezePositions, bool freezeRotations)
+    : Collider(owner), material(material), model(model), nodeIndex(nodeIndex), offset(offset),
+	isTrigger(isTrigger), freezePositions{freezePositions},
+    freezeRotations{freezeRotations}
 {
     Component::GetOwnerAsActor();
 
@@ -540,6 +546,23 @@ BoneCollider::BoneCollider(Object* owner, Model* model, int nodeIndex, Matrix of
     // ボーンの初期位置でKinematic Dynamicを生成
     Matrix boneWorld = model->GetNodes()[nodeIndex].worldTransform;
     Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
+
+    if (freezePositions)
+    {
+        world._41 = offset._41;
+        world._42 = offset._42;
+        world._43 = offset._43;
+    }
+
+    if (freezeRotations)
+    {
+        Vector3 scale, _1;
+        Vector3 position;
+        Quaternion rotation;
+        world.Decompose(scale, rotation, position);
+        offset.Decompose(_1, rotation, _1);
+        world = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+    }
 
     PxTransform t = MATRIX_TO_PX_TRANSFORM(world);
     ghostActor = physics->createRigidDynamic(t);
@@ -613,6 +636,24 @@ void BoneCollider::UpdateShape()
 
     Matrix boneWorld = nodes[nodeIndex].worldTransform;
     Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
+
+    if (freezePositions)
+    {
+        world._41 = offset._41;
+        world._42 = offset._42;
+        world._43 = offset._43;
+    }
+
+    if (freezeRotations)
+    {
+        Vector3 scale, _1;
+        Vector3 position;
+        Quaternion rotation;
+        world.Decompose(scale, rotation, position);
+        offset.Decompose(_1, rotation, _1);
+        world = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+    }
+
     ghostActor->setKinematicTarget(MATRIX_TO_PX_TRANSFORM(world));
 }
 
@@ -683,6 +724,9 @@ void BoneCollider::DrawBoneSettingsGUI()
             Matrix::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z)) *
             Matrix::CreateTranslation(pos);
     }
+	ImGui::Checkbox("Freeze Positions", &freezePositions);
+	ImGui::SameLine();
+	ImGui::Checkbox("Freeze Rotations", &freezeRotations);
 }
 
 PxShape* BoneSphereCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const
@@ -720,8 +764,8 @@ void BoneSphereCollider::DrawGUI()
     }
 }
 
-BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger)
-    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger, bool freezePositions, bool freezeRotations)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , radius(radius)
     , height(height)
 {
@@ -778,8 +822,10 @@ void BoneCapsuleCollider::DrawGUI()
     }
 }
 
-BoneBoxCollider::BoneBoxCollider(Object* owner, Model* model, int nodeIndex, const Vector3& size, Matrix offset, PxMaterial* material, bool isTrigger)
-    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger)
+BoneBoxCollider::BoneBoxCollider(Object* owner, Model* model, int nodeIndex,
+    const Vector3& size, Matrix offset, PxMaterial* material,
+    bool isTrigger, bool freezePositions, bool freezeRotations)
+    : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , size(size)
 {
     InitializeShape();

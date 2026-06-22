@@ -497,7 +497,7 @@
     <ClInclude Include="Source\Entity.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\HitEffect.h">
+    <ClInclude Include="Source\SceneEffect.h">
       <Filter>ソースファイル\ゲーム</Filter>
     </ClInclude>
     <ClInclude Include="Source\Random.h">

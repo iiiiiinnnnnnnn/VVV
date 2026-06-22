@@ -3,13 +3,12 @@
 #include "AracoreQueen.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
-#include "HitEffect.h"
+#include "SceneEffect.h"
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
 #include "AracoreFootGrounder.h"
-#include "imgui.h"
 
-AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
+AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enemy, 100.0f, 100.0f)
 {
     // 蜘蛛の部分
     {
@@ -31,12 +30,21 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
-        // 足接地補正
-        AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
-
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
-        anim->Load("Data/Animator/animated_spider.animator");
+        anim->Load("Data/Animator/animated_spider_test.animator");
+        anim->AddCallbackFunc("ThreatFunc",
+            [this](const Animator::State& s)
+        {
+            // Enter
+			CameraThreaten::Request(1.7f, 1.5f);
+        },
+        [this](const Animator::State& s)
+        {
+            // Exit
+            /*CameraThreaten::Request(4.0f);*/
+        });
+        anim->BindCallbacks();
 
         // キャラクターコントローラー
         CharacterController* cc = AddComponent<CharacterController>(2.17f, 0.7f);
@@ -50,9 +58,11 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         rb->SetKinematic(true);
 
         // 当たり判定
-        //bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+        bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
-        // 足接地補正対象。IK Chainではなくスキニングに効く足ボーンを補正する。
+        // 足接地補正
+        #if 0
+        AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
         footGrounder->AddLeg("Box09", "Box11");
         footGrounder->AddLeg("Box20", "Box19");
         footGrounder->AddLeg("Box25", "Box23");
@@ -61,9 +71,10 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         footGrounder->AddLeg("Box35", "Box36");
         footGrounder->AddLeg("Box37", "Box34");
         footGrounder->AddLeg("Box38", "Box30");
+        #endif
 
         // 足の当たり判定
-        #if 0
+        #if 1
         std::vector<std::string> ikBoneNames = {
             "IK Chain01",
             "IK Chain03",
@@ -91,7 +102,13 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
             IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
                 model.get(),
                 ikNodeIndex,
-                Vector3{0.7f, 0.1f, 0.7f}));
+                Vector3(0.7f, 0.1f, 0.7f),
+                Matrix::Identity,
+                nullptr,
+                true,
+                false,
+                true
+            ));
         }
         #endif
     }
@@ -99,7 +116,9 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
 
 void AracoreQueen::OnRegistered(ActorManager* actorManager)
 {
-    actorManager->Register(std::static_pointer_cast<Actor>(std::make_shared<AracoreQueenMachine>(this)));
+    auto make = std::static_pointer_cast<Actor>(std::make_shared<AracoreQueenMachine>(this));
+    machine = make.get();
+    actorManager->Register(std::move(make));
 }
 
 void AracoreQueen::OnUpdate()
@@ -209,11 +228,18 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
 void AracoreQueen::OnDead()
 {
     printf("AracoreQueen Dead!\n");
-    Destroy(10);
+    if (machine)
+    {
+        machine->Destroy();
+    }
+	anim->SetBool("Dead", true);
+    Destroy(5);
 }
 
+// AracoreQueenMachine(AracoreQueen.cpp)
+
 AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
-    : Entity("AracoreQueenMachine", "Enemy", true, Layer::EnemyM, 1000.0f, 1000.0f),
+    : Entity("AracoreQueenMachine", "Enemy", true, Layer::EnemyM, 100.0f, 100.0f),
     ownerAracoreQueen(ownerAracoreQueen)
 {
     std::shared_ptr<Model> model =
@@ -326,4 +352,10 @@ void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
             ownerAracoreQueen->TakeDamage(damageData);
         }
     }
+}
+
+void AracoreQueenMachine::OnDead()
+{
+    printf("AracoreQueenMachine Dead!\n");
+    Destroy(2);
 }

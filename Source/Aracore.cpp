@@ -3,7 +3,7 @@
 #include "Aracore.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
-#include "HitEffect.h"
+#include "SceneEffect.h"
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
 #include "AracoreFootGrounder.h"

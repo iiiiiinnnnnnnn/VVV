@@ -1,4 +1,4 @@
-// HitEffect.h
+// SceneEffect.h
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "Random.h"
 
 #include <mutex>
+#include "SpriteRenderer.h"
 
 class HitStop
 {
@@ -44,6 +45,94 @@ private:
     inline static float timer  = 0.0f;
 };
 
+class CameraThreaten
+{
+public:
+    static void Request(float duration, float fovMultiplier = 1.5f)
+    {
+        // ‚·‚Å‚ÉˆÐŠd‰‰o’†A‚Ü‚½‚Í–ß‚è’†‚È‚ç–³Ž‹
+        if (active || intensity > 0.001f)
+        {
+            return;
+        }
+
+        timer = duration;
+        multiplier = fovMultiplier;
+        active = true;
+    }
+
+    static void ForceRequest(float duration, float fovMultiplier = 1.5f)
+    {
+        timer = duration;
+        multiplier = fovMultiplier;
+        active = true;
+    }
+
+    static void Update()
+    {
+        const float dt = Game::Time::unscaledDeltaTime;
+
+        if (active)
+        {
+            timer -= dt;
+
+            if (timer <= 0.0f)
+            {
+                timer = 0.0f;
+                active = false;
+            }
+        }
+
+        const float targetIntensity = active ? 1.0f : 0.0f;
+        const float speed = active ? easeInSpeed : easeOutSpeed;
+        const float t = 1.0f - expf(-speed * dt);
+
+        intensity = std::lerp(intensity, targetIntensity, t);
+
+        if (!active && intensity < 0.001f)
+        {
+            intensity = 0.0f;
+            multiplier = 1.0f;
+        }
+    }
+
+    static float GetFovMultiplier()
+    {
+        return std::lerp(1.0f, multiplier, EaseOutCubic(intensity));
+    }
+
+    static float GetTimer()
+    {
+        return timer;
+    }
+
+    static float GetIntensity()
+    {
+        return intensity;
+    }
+
+    static bool IsActive()
+    {
+        return active || intensity > 0.001f;
+    }
+
+private:
+    static float EaseOutCubic(float x)
+    {
+        x = std::clamp(x, 0.0f, 1.0f);
+        const float inv = 1.0f - x;
+        return 1.0f - inv * inv * inv;
+    }
+
+private:
+    inline static bool active = false;
+    inline static float timer = 0.0f;
+    inline static float multiplier = 1.0f;
+    inline static float intensity = 0.0f;
+
+    inline static float easeInSpeed = 2.0f;
+    inline static float easeOutSpeed = 1.0f;
+};
 
 class CameraShake
 {

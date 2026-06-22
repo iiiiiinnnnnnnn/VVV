@@ -190,9 +190,23 @@ void CollisionEventCallback::onContact(const PxContactPairHeader& pairHeader, co
     for (PxU32 i = 0; i < nbPairs; ++i)
     {
         const PxContactPair& cp = pairs[i];
+        if (cp.flags & PxContactPairFlag::eREMOVED_SHAPE_0)
+        {
+            continue;
+        }
+
+        if (cp.flags & PxContactPairFlag::eREMOVED_SHAPE_1)
+        {
+            continue;
+        }
+
         Collider* a = ToCollider(cp.shapes[0]);
         Collider* b = ToCollider(cp.shapes[1]);
-        if (!a || !b) continue;
+
+        if (!a || !b)
+        {
+            continue;
+        }
 
         Vector3 point;
         Vector3 normal;
@@ -239,9 +253,24 @@ void CollisionEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 nbPairs)
     for (PxU32 i = 0; i < nbPairs; ++i)
     {
         const PxTriggerPair& tp = pairs[i];
+
+        if (tp.flags & PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER)
+        {
+            continue;
+        }
+
+        if (tp.flags & PxTriggerPairFlag::eREMOVED_SHAPE_OTHER)
+        {
+            continue;
+        }
+
         Collider* trigger = ToCollider(tp.triggerShape);
         Collider* other = ToCollider(tp.otherShape);
-        if (!trigger || !other) continue;
+
+        if (!trigger || !other)
+        {
+            continue;
+        }
 
         Vector3 point;
         Vector3 normal;
