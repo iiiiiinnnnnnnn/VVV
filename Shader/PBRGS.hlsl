@@ -42,8 +42,17 @@ void ApplyDamageDent(inout VS_OUT v)
 
         if (influence > 0.0f)
         {
-            float3 surfaceNormal = normalize(v.normal);
-            v.position -= surfaceNormal * damageHoleDepth * influence;
+            float3 dentDirection = damageHoleDirections[holeIndex].xyz;
+            if (dot(dentDirection, dentDirection) < 0.0001f)
+            {
+                dentDirection = -normalize(v.normal);
+            }
+            else
+            {
+                dentDirection = normalize(dentDirection);
+            }
+
+            v.position += dentDirection * damageHoleDepth * influence;
         }
     }
 

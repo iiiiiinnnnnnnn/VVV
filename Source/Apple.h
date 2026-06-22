@@ -1,4 +1,5 @@
 // Apple.h
+#if 0
 
 #pragma once
 
@@ -31,5 +32,6 @@ public:
 private:
 	bool isAggressive = false;
 	Rigidbody* rb;
-	DamageHoleComponent* damageHoleComponent = nullptr;
 };
+
+#endif

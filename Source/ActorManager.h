@@ -12,7 +12,7 @@ public:
 		if (!actor) return;
 
 		actor->actorManager = this;
-		pendingActors.push_back(actor);
+		pendingActors.emplace_back(actor);
 		actor->OnRegistered(this);
 	}
 

@@ -333,7 +333,7 @@
     <ClCompile Include="Source\AracoreQueen.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClCompile>
-    <ClCompile Include="MovieCameraController.cpp">
+    <ClCompile Include="Source\MovieCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Aracore.cpp">
@@ -611,7 +611,7 @@
     <ClInclude Include="Source\AracoreQueen.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClInclude>
-    <ClInclude Include="MovieCameraController.h">
+    <ClInclude Include="Source\MovieCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Aracore.h">

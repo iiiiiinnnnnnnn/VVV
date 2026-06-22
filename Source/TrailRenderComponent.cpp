@@ -73,10 +73,8 @@ void TrailRenderComponent::LateUpdate()
         points.pop_back();
 }
 
-void TrailRenderComponent::Render(const RenderContext& rc)
+void TrailRenderComponent::BuildTrailVertices()
 {
-    // 変更: AddPointのみここで行う。実描画はRenderTrail()に分離。
-    // ModelRenderer->Render()より前に呼ばれるため、描画はScene側でModelRenderer後に行う。
     if (points.size() < 2) return;
 
     const int splineSegment = 50;
@@ -106,10 +104,16 @@ void TrailRenderComponent::Render(const RenderContext& rc)
     }
 }
 
+void TrailRenderComponent::Render(const RenderContext& rc)
+{
+}
+
 // 変更: 追加。RenderState設定と実描画。Scene側でModelRenderer->Render()の後に呼ぶ。
 void TrailRenderComponent::RenderTrail(const RenderContext& rc)
 {
     if (points.size() < 2) return;
+
+    BuildTrailVertices();
 
     auto& graphics   = Game::Graphics::Instance();
     auto  dc          = rc.deviceContext;

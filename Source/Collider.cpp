@@ -52,9 +52,10 @@ void BoxCollider::Render(const RenderContext& rc)
     PxTransform pose =
         rigidbody->GetRigidActor()->getGlobalPose() *
         MakeLocalPose();
+    Quaternion rotation(pose.q.x, pose.q.y, pose.q.z, pose.q.w);
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-        VEC3(pose.p), Vector3::Zero, size * 0.5f, {0.0f, 1.0f, 0.0f, 1.0f});
+        VEC3(pose.p), rotation.ToEuler(), size * 0.5f, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void BoxCollider::UpdateShape()
@@ -75,11 +76,11 @@ void BoxCollider::UpdateShape()
         PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
-	rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
     Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+	rigidActor->attachShape(*shape);
 }
 
 void BoxCollider::DrawGUI()
@@ -185,11 +186,11 @@ void CapsuleCollider::UpdateShape()
         PxCapsuleGeometry(radius, height * 0.5f), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
-    rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
     Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+    rigidActor->attachShape(*shape);
 }
 
 void CapsuleCollider::DrawGUI()
@@ -282,11 +283,11 @@ void SphereCollider::UpdateShape()
         PxSphereGeometry(radius), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
-    rigidActor->attachShape(*shape);
 
     // ownerのlayerをシェイプに反映
     Actor* actor = Component::GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+    rigidActor->attachShape(*shape);
 }
 
 void SphereCollider::DrawGUI()
@@ -472,11 +473,11 @@ void MeshCollider::UpdateShape()
         }
 
         shape->userData = this;
-        rigidActor->attachShape(*shape);
 
         // ownerのlayerをシェイプに反映
         Actor* actor = Component::GetOwnerAsActor();
         PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+        rigidActor->attachShape(*shape);
 
         shape->release();
     }
@@ -798,9 +799,10 @@ void BoneBoxCollider::Render(const RenderContext& rc)
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform t = ghostActor->getGlobalPose();
+    Quaternion rotation(t.q.x, t.q.y, t.q.z, t.q.w);
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
         VEC3(t.p),
-        Vector3::Zero,
+        rotation.ToEuler(),
         size,
         Color(1.0f, 0.2f, 0.0f, 1.0f));
 }
@@ -1036,10 +1038,10 @@ void TerrainMeshCollider::UpdateShape(
     }
 
     shape->userData = this;
-    rigidActor->attachShape(*shape);
 
     Actor* actor = GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+    rigidActor->attachShape(*shape);
 }
 
 void TerrainMeshCollider::Render(const RenderContext& rc)

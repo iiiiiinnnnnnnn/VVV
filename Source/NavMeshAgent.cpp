@@ -17,6 +17,8 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 
 void NavMeshAgent::Update()
 {
+	if (!autoMove) return;
+
 	Actor* actor = GetOwnerAsActor();
 	if (!actor) return;
 
@@ -40,6 +42,36 @@ void NavMeshAgent::Update()
 	}
 
 	MoveToTarget(actor, targetActor);
+}
+
+void NavMeshAgent::MoveToTarget(Actor* targetActor)
+{
+	Actor* actor = GetOwnerAsActor();
+	if (!actor) return;
+
+	if (!characterController)
+		characterController = actor->GetComponent<CharacterController>();
+
+	if (!characterController)
+	{
+		statusMessage = "CharacterController not found.";
+		return;
+	}
+
+	if (!targetActor)
+	{
+		statusMessage = "Target not found.";
+		return;
+	}
+
+	MoveToTarget(actor, targetActor);
+}
+
+void NavMeshAgent::Stop()
+{
+	pathFailTimer = 0.0f;
+	hasLastNextPoint = false;
+	statusMessage = "Idle.";
 }
 
 Actor* NavMeshAgent::FindTargetByTag()
@@ -133,6 +165,7 @@ void NavMeshAgent::DrawGUI()
 	if (!ImGui::TreeNode("NavMeshAgent"))
 		return;
 
+	ImGui::Checkbox("Auto Move", &autoMove);
 	ImGui::Checkbox("Chase Target Tag", &chaseTargetTag);
 	ImGui::InputText("Target Tag", &targetTag);
 	ImGui::Checkbox("Rotate To Move Direction", &rotateToMoveDirection);

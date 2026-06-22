@@ -14,6 +14,8 @@ public:
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
+	void OnRegistered(ActorManager* actorManager) override;
+
 private:
 
 };

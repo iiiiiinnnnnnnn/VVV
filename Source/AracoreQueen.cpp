@@ -1,85 +1,329 @@
-ï»¿// AracoreQueen.cpp
+// AracoreQueen.cpp
 
 #include "AracoreQueen.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
 #include "HitEffect.h"
+#include "ActorManager.h"
+#include "NavMeshAgent.h"
+#include "AracoreFootGrounder.h"
+#include "imgui.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
-    std::shared_ptr<Model> model =
-        ResourceManager::Instance().LoadModel("Data/Model/turtle_tears_vending_machine.glb");
+    // ’wå‚Ì•”•ª
+    {
+        // ƒ‚ƒfƒ‹
+        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider.glb");
+        shaderParamWithMaterialName =
+        {
+            {
+                "03 - Default",
+            {
+                {"metalness", 0.0f},
+            {"roughness", 1.0f},
+            {"occlusion", 0.5f},
+            {"occlusionStrength", 1.0f}
+        }
+            }
+        };
+        transform.SetScale(0.035f);
+        model->UpdateTransform(transform.matrix);
+        bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
-    transform.SetScale(1);
-    transform.SetPosition(0, 20, 20);
+        // ‘«Ú’n•â³
+        AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
 
-    rb = AddComponent<RigidbodyDynamic>();
+        // ƒAƒjƒ[ƒ^
+        anim = AddComponent<Animator>(model, 0);
+        anim->Load("Data/Animator/animated_spider.animator");
 
-    model->UpdateTransform(transform.matrix);
-    AddComponent<MeshCollider>(rb, model.get(), true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
+        // ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰[
+        CharacterController* cc = AddComponent<CharacterController>(2.17f, 0.7f);
+        cc->SetStepOffset(1.2f);
+        cc->SetSlopeLimitDeg(70.0f);
+        cc->SetContactOffset(0.2f);
+        navMeshAgent = AddComponent<NavMeshAgent>();
 
-	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã¨ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ›ãƒ¼ãƒ«ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’è¿½åŠ 
-    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 0.65f, 0.12f, 0.55f, 1.35f);
+        // ƒŠƒWƒbƒhƒ{ƒfƒB
+        rb = AddComponent<RigidbodyDynamic>();
+        rb->SetKinematic(true);
+
+        // “–‚½‚è”»’è
+        //bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+
+        // ‘«Ú’n•â³‘ÎÛBIK Chain‚Å‚Í‚È‚­ƒXƒLƒjƒ“ƒO‚ÉŒø‚­‘«ƒ{[ƒ“‚ğ•â³‚·‚éB
+        footGrounder->AddLeg("Box09", "Box11");
+        footGrounder->AddLeg("Box20", "Box19");
+        footGrounder->AddLeg("Box25", "Box23");
+        footGrounder->AddLeg("Box26", "Box24");
+        footGrounder->AddLeg("Box31", "Box29");
+        footGrounder->AddLeg("Box35", "Box36");
+        footGrounder->AddLeg("Box37", "Box34");
+        footGrounder->AddLeg("Box38", "Box30");
+
+        // ‘«‚Ì“–‚½‚è”»’è
+        #if 0
+        std::vector<std::string> ikBoneNames = {
+            "IK Chain01",
+            "IK Chain03",
+            "IK Chain04",
+            "IK Chain05",
+            "IK Chain06",
+            "IK Chain07",
+            "IK Chain08",
+            "IK Chain09"
+        };
+        for (const std::string& ikBoneName : ikBoneNames)
+        {
+            const int ikNodeIndex = model->GetNodeIndex(ikBoneName.c_str());
+            // ‘«ÚGƒRƒ‰ƒCƒ_[
+            IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
+                model.get(),
+                ikNodeIndex,
+                1.42f,
+                2.0f,
+                Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
+                PhysicsManager::Instance().GetDefaultMaterial(),
+                false));
+
+            // “¥‚İ‚Â‚¯Œƒ”–ƒRƒ‰ƒCƒ_[
+            IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
+                model.get(),
+                ikNodeIndex,
+                Vector3{0.7f, 0.1f, 0.7f}));
+        }
+        #endif
+    }
+}
+
+void AracoreQueen::OnRegistered(ActorManager* actorManager)
+{
+    actorManager->Register(std::static_pointer_cast<Actor>(std::make_shared<AracoreQueenMachine>(this)));
 }
 
 void AracoreQueen::OnUpdate()
 {
     Entity::OnUpdate();
+    //UpdateChase();
+}
+Actor* AracoreQueen::FindPlayer() const
+{
+    ActorManager* actorManager = GetActorManager();
+    if (!actorManager) return nullptr;
+
+    for (const std::shared_ptr<Actor>& actor : actorManager->GetActors())
+    {
+        if (!actor || actor->IsPendingDestroy()) continue;
+        if (!actor->CompareTag("Player")) continue;
+        return actor.get();
+    }
+
+    return nullptr;
 }
 
+void AracoreQueen::UpdateChase()
+{
+    if (!navMeshAgent) return;
+
+    Actor* player = FindPlayer();
+    if (!player)
+    {
+        if (chasingPlayer)
+            navMeshAgent->Stop();
+        chasingPlayer = false;
+        return;
+    }
+
+    Vector3 toPlayer = player->transform.position - transform.position;
+    toPlayer.y = 0.0f;
+    const float distanceSq = toPlayer.LengthSquared();
+    const float startDistanceSq = chaseStartDistance * chaseStartDistance;
+    const float stopDistanceSq = chaseStopDistance * chaseStopDistance;
+
+    if (!chasingPlayer && distanceSq <= startDistanceSq)
+        chasingPlayer = true;
+    else if (chasingPlayer && distanceSq >= stopDistanceSq)
+    {
+        chasingPlayer = false;
+        navMeshAgent->Stop();
+    }
+
+    if (chasingPlayer)
+        navMeshAgent->MoveToTarget(player);
+}
 void AracoreQueen::OnDrawGUI()
 {
     Entity::OnDrawGUI();
+
+    if (!ImGui::TreeNode("AracoreQueen AI"))
+        return;
+
+    ImGui::Checkbox("Chasing Player", &chasingPlayer);
+    ImGui::DragFloat("Chase Start Distance", &chaseStartDistance, 0.1f, 0.0f, 100.0f);
+    ImGui::DragFloat("Chase Stop Distance", &chaseStopDistance, 0.1f, 0.0f, 100.0f);
+    ImGui::TreePop();
+}
+
+void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+{
+
+}
+
+void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+{
+    // “¥‚İ‚Â‚¯”»’è‚É“–‚½‚Á‚½‚çƒvƒŒƒCƒ„[‚Éƒ_ƒ[ƒW
+    {
+        bool isFootCollider = false;
+        for (Collider* collider : IKStampColliders)
+        {
+            if (self == collider)
+            {
+                isFootCollider = true;
+                break;
+            }
+        }
+        if (!isFootCollider) return;
+
+        Actor* otherActor = other->GetOwnerActor();
+        if (otherActor->CompareTag("Player"))
+        {
+            static_cast<Entity*>(otherActor)->TakeDamage({
+                .damage = 10.0f,
+                .knockBackPower = 10.0f,
+                .hitColliderSelf = self,
+                .hitColliderOther = other,
+                .hitPosition = point,
+                .hitNormal = normal
+                });
+        }
+    }
 }
 
 void AracoreQueen::OnDamaged(const DamageData& damageData)
 {
     HitStop::Request(0.15f);
     CameraShake::Request(0.2f, 0.1f);
-
-    if (damageData.hitPosition.has_value())
-    {
-        damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
-    }
-    else if (damageData.source)
-    {
-        damageHoleComponent->AddDamageHoleFrom(damageData.source);
-    }
-}
-
-void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
-{
-    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«æ”»æ’ƒã™ã‚‹
-    Actor* otherActor = other->GetOwnerActor();
-    if (otherActor->CompareTag("Player"))
-    {
-        if (isAggressive)
-        {
-            static_cast<Entity*>(otherActor)->TakeDamage({
-                .damage = 10.0f,
-                .source = this,
-                .hitPosition = transform.position,
-                .knockBackPower = 20.0f
-                });
-        }
-    }
-}
-
-void AracoreQueen::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
-{
-}
-
-void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
-{
-}
-
-void AracoreQueen::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
-{
 }
 
 void AracoreQueen::OnDead()
 {
     printf("AracoreQueen Dead!\n");
-    Destroy();
+    Destroy(10);
+}
+
+AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
+    : Entity("AracoreQueenMachine", "Enemy", true, Layer::EnemyM, 1000.0f, 1000.0f),
+    ownerAracoreQueen(ownerAracoreQueen)
+{
+    std::shared_ptr<Model> model =
+        ResourceManager::Instance().LoadModel("Data/Model/Prop/vending.glb");
+
+    // ƒŠƒWƒbƒhƒ{ƒfƒB
+    auto rb = AddComponent<RigidbodyDynamic>();
+    rb->SetKinematic(true);
+
+    // “–‚½‚è”»’è
+    collider = AddComponent<BoxCollider>(
+        rb, Vector3{7.33f, 11.69f, 5.0f}, Vector3{0.0f, 0.29f, 0.0f});
+
+    // Box02‚É’Ç]
+    Transform offset{};
+    offset.SetPosition(0.0f, 43.8f, 9.6f);
+    offset.SetAngle(-15.0f, 0.0f, 0.0f);
+    offset.SetScale(40.3f, 34.9f, 47.9f);
+    AddComponent<BoneFollower>(ownerAracoreQueen->model.get(), "Box02", offset);
+
+    // ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[‚Æƒ_ƒ[ƒWƒz[ƒ‹ƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’Ç‰Á
+    shaderParamWithMaterialName =
+    {
+        {
+            "vend_main",
+            {
+                {"metalness", 0.2f},
+                {"roughness", 0.0f},
+                {"occlusion", 0.1f},
+                {"occlusionStrength", 1.0f}
+            }
+        },
+        {
+            "venashi",
+            {
+                {"metalness", 1.0f},
+                {"roughness", 0.0f},
+                {"occlusion", 0.1f},
+                {"occlusionStrength", 0.0f}
+            }
+        },
+        {
+            "vend_bottom",
+            {
+                {"metalness", 1.0f},
+                {"roughness", 0.0f},
+                {"occlusion", 0.1f},
+                {"occlusionStrength", 0.0f}
+            }
+        },
+        {
+            "back_light",
+            {
+                {"metalness", 1.0f},
+                {"roughness", 0.0f},
+                {"occlusion", 0.1f},
+                {"occlusionStrength", 0.0f}
+            }
+        },
+        {
+            "vend_main_toridashi",
+            {
+                {"metalness", 0.0f},
+                {"roughness", 0.0f},
+                {"occlusion", 0.1f},
+                {"occlusionStrength", 0.0f}
+            }
+        },
+        {
+            "vend_glass2",
+            {
+                {"metalness", 0.0f},
+                {"roughness", 0.0f},
+                {"occlusion", 1.0f},
+                {"occlusionStrength", 1.0f}
+            }
+        },
+        {
+            "vend_front_glass",
+            {
+                {"metalness", 0.5f},
+                {"roughness", 0.0f},
+                {"occlusion", 1.0f},
+                {"occlusionStrength", 1.0f}
+            }
+        }
+    };
+    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
+        model, ModelShaderId::PBR, shaderParamWithMaterialName);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 0.85f, 0.18f, 0.9f, 1.35f);
+}
+
+void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
+{
+    // ƒ{ƒRƒb
+    Actor* hitActor = damageData.hitColliderSelf ? damageData.hitColliderSelf->GetOwnerActor() : nullptr;
+    if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
+    {
+        if (damageData.hitPosition.has_value())
+        {
+            if (damageData.hitNormal.has_value())
+                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value(), damageData.hitNormal.value());
+            else
+                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
+            ownerAracoreQueen->TakeDamage(damageData);
+        }
+        else
+        {
+            damageHoleComponent->AddDamageHoleFrom(hitActor);
+            ownerAracoreQueen->TakeDamage(damageData);
+        }
+    }
 }

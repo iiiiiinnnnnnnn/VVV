@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MovieCameraController.cpp" />
+    <ClCompile Include="Source\MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
     <ClCompile Include="Source\Aracore.cpp" />
@@ -87,7 +87,7 @@
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MovieCameraController.h" />
+    <ClInclude Include="Source\MovieCameraController.h" />
     <ClInclude Include="Source\Actor.h" />
     <ClInclude Include="Source\ActorManager.h" />
     <ClInclude Include="Source\Animator.h" />

@@ -176,17 +176,19 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 void Player::OnEnterAnim(const Animator::State& state)
 {
-	if (state.name.compare("Attack") == 0)
+	if (state.name.starts_with("Attack"))
 	{
 		weaponCollider->SetActive(true);
+		trail->StartTrail();
 	}
 }
 
 void Player::OnExitAnim(const Animator::State& state)
 {
-	if (state.name.compare("Attack") == 0)
+	if (state.name.starts_with("Attack"))
 	{
 		weaponCollider->SetActive(false);
+		trail->StopTrail();
 	}
 }
 
@@ -226,14 +228,18 @@ void Player::OnTriggerEnter(Collider* self, Collider* other, const Vector3& poin
 	Actor* otherActor = other->GetOwnerActor();
 	if (!otherActor->CompareTag("Enemy")) return;
 
-	Entity* entity = static_cast<Entity*>(otherActor);
+	Entity* entity = dynamic_cast<Entity*>(otherActor);
+	if (!entity) return;
+
 	bool footAtk = self == footCollider;
 
 	entity->TakeDamage({
 		.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
-		.source = this,
+		.knockBackPower = footAtk ? 80.0f : 50.0f,
+		.hitColliderSelf = self,
+		.hitColliderOther = other,
 		.hitPosition = point,
-		.knockBackPower = 50.0f
+		.hitNormal = normal,
 		});
 }
 
@@ -304,11 +310,7 @@ void Player::OnUpdate()
 
 	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
 
-	// trail
-	if(weaponCollider->IsActive())
-		trail->StartTrail();
-	else
-		trail->StopTrail();
+	// Trail is controlled by attack animation callbacks.
 }
 
 void Player::OnLateUpdate()

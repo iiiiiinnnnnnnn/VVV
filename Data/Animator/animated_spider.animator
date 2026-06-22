@@ -9,10 +9,10 @@
             "defaultState": 0,
             "hasAnyStateEditorPosition": true,
             "mask": [],
-            "name": "Base Layer",
+            "name": "Base",
             "states": [
                 {
-                    "animationIndex": 1,
+                    "animationIndex": 0,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -20,14 +20,99 @@
                     "editorPosY": 161.0,
                     "hasEditorPosition": true,
                     "loop": true,
-                    "name": "New State",
+                    "name": "Idle",
                     "speed": 0.3700000047683716,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.5
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 152.0,
+                    "editorPosY": 307.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "walk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 2,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -92.0,
+                    "editorPosY": 234.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "run",
+                    "speed": 1.0,
                     "transitions": []
                 }
             ],
             "weight": 1.0
         }
     ],
-    "parameters": [],
+    "parameters": [
+        {
+            "name": "Speed",
+            "type": "float",
+            "value": 0.0
+        }
+    ],
     "triggers": []
 }

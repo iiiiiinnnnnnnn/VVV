@@ -18,6 +18,7 @@ BoneFollower::BoneFollower(
 	Actor* ownerActor = Component::GetOwnerAsActor();
 	this->offset.Update();
 	SetTarget(targetModel, targetNodeName);
+	ApplyFollow();
 }
 
 BoneFollower::BoneFollower(
@@ -31,6 +32,7 @@ BoneFollower::BoneFollower(
 	Actor* ownerActor = Component::GetOwnerAsActor();
 	this->offset.Update();
 	SetTarget(targetModel, targetNodeIndex);
+	ApplyFollow();
 }
 
 void BoneFollower::Update()

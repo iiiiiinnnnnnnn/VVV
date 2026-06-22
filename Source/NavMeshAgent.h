@@ -18,6 +18,9 @@ public:
 
 	void SetTarget(Actor* target) { this->target = target; }
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }
+	void SetAutoMove(bool enabled) { autoMove = enabled; }
+	void MoveToTarget(Actor* targetActor);
+	void Stop();
 
 private:
 	Actor* FindTargetByTag();
@@ -27,7 +30,8 @@ private:
 	CharacterController* characterController = nullptr;
 	std::string targetTag = "Player";
 	std::string statusMessage;
-	bool chaseTargetTag = true;
+	bool autoMove = false;
+	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
 	bool useLastValidPathOnFail = true;
 	bool hasLastNextPoint = false;

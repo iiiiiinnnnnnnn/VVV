@@ -43,6 +43,7 @@ public:
 	void StopTrail() { stopping = true; }
 
 private:
+    void BuildTrailVertices();
 
     Model* model;
     int   nodeIndex;
@@ -62,3 +63,4 @@ private:
     static constexpr float SAMPLE_INTERVAL = 0.01f;
     float sampleTimer = 0.0f;
 };
+

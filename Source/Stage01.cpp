@@ -7,7 +7,6 @@
 #include "Aracore.h"
 #include "AracoreQueen.h"
 #include "NavMeshActor.h"
-
 #include "StageLoader.h"
 
 Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
@@ -22,23 +21,13 @@ Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
+}
 
-	// G‹›“G
-	#if 0
-	{
-		auto enemy = std::make_shared<Aracore>();
-		actorManager->Register(enemy);
-	}
-	#endif
-
-	// ƒ{ƒX
-	#if 0
-	{
-		auto boss = std::make_shared<AracoreQueen>();
-		actorManager.Register(boss);
-	}
-	#endif
-
+void Stage01::OnRegistered(ActorManager* actorManager)
+{
+	// ƒ{ƒX“G
+	auto boss = std::make_shared<AracoreQueen>();
+	actorManager->Register(boss);
 }
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const

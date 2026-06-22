@@ -50,6 +50,7 @@ private:
 	struct CbDamageHoles
 	{
 		Vector4 holes[MaxDamageHoles]; // xyz: world center, w: radius
+		Vector4 holeDirections[MaxDamageHoles]; // xyz: world dent direction
 		int holeCount;
 		float edgeWidth;
 		float depth;

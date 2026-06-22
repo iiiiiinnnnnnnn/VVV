@@ -8,11 +8,13 @@ class Entity;
 struct DamageData
 {
     float damage = 0.0f;
-    Entity* source = nullptr;
+    float knockBackPower = 0.0f;
+
+	Collider* hitColliderSelf = nullptr;
+	Collider* hitColliderOther = nullptr;
 
     std::optional<Vector3> hitPosition;
-
-    float knockBackPower = 0.0f;
+	std::optional<Vector3> hitNormal;
 };
 
 class Entity : public Actor

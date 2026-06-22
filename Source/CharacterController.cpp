@@ -24,7 +24,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
     );
     desc.upDirection = PxVec3(0, 1, 0);
     desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
-    desc.stepOffset = 0.5f;
+    desc.stepOffset = 0.2f;
     desc.contactOffset = 0.1f;
     desc.reportCallback = hitReport;
 
@@ -117,11 +117,20 @@ void CharacterController::DrawGUI()
         {
             float radius = capsule->getRadius();
             float height = capsule->getHeight();
+            Actor* actor = Component::GetOwnerAsActor();
 
             if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
+            {
+                const Vector3 footPosition = actor->transform.position;
                 capsule->setRadius(radius);
+                SetFootPosition(footPosition);
+            }
             if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
+            {
+                const Vector3 footPosition = actor->transform.position;
                 capsule->setHeight(height);
+                SetFootPosition(footPosition);
+            }
 
             ImGui::TreePop();
         }
@@ -134,7 +143,13 @@ void CharacterController::DrawGUI()
                 controller->setStepOffset(stepOffset);
 
             float contactOffset = controller->getContactOffset();
-            ImGui::Text("Contact Offset : %.3f", contactOffset);
+            if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
+            {
+                Actor* actor = Component::GetOwnerAsActor();
+                const Vector3 footPosition = actor->transform.position;
+                controller->setContactOffset(contactOffset);
+                SetFootPosition(footPosition);
+            }
 
             // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
             float slopeDeg = acosf(controller->getSlopeLimit()) * RAD2DEG;
@@ -246,5 +261,8 @@ void CharacterController::SetSlopeLimitDeg(float value)
 void CharacterController::SetContactOffset(float value)
 {
     if (!controller) return;
+    Actor* actor = Component::GetOwnerAsActor();
+    const Vector3 footPosition = actor->transform.position;
     controller->setContactOffset(max(value, 0.001f));
+    SetFootPosition(footPosition);
 }

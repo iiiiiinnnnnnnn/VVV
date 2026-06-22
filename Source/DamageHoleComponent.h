@@ -20,10 +20,12 @@ public:
 		float surfaceDistance = -1.0f);
 
 	void DrawGUI() override;
+	void LateUpdate() override;
 
 	void AddDamageHoleFrom(const Actor* attacker);
 	void AddDamageHoleFromPosition(const Vector3& hitPosition);
-	void AddDamageHoleAt(const Vector3& position);
+	void AddDamageHoleFromPosition(const Vector3& hitPosition, const Vector3& dentDirection);
+	void AddDamageHoleAt(const Vector3& position, const Vector3& dentDirection = Vector3::Zero);
 	void ClearDamageHoles();
 
 	void SetHoleRadius(float radius);
@@ -36,9 +38,12 @@ private:
 
 	void UpdateShaderParams();
 	float ComputeSurfaceDistance(const Actor& actor) const;
+	Vector4 MakeWorldHole(const Vector4& localHole, const Actor* actor) const;
+	Vector4 MakeWorldDirection(const Vector4& localDirection, const Actor* actor) const;
 
 	ModelRenderComponent* modelRenderer = nullptr;
 	std::vector<Vector4> damageHoles;
+	std::vector<Vector4> damageHoleDirections;
 	float holeRadius = 1.0f;
 	float holeEdgeWidth = 0.1f;
 	float holeDepth = 0.4f;

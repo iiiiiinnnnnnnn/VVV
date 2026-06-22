@@ -45,6 +45,7 @@ static const int MaxDamageHoles = 8;
 cbuffer CbDamageHoles : register(b2)
 {
     float4 damageHoles[MaxDamageHoles]; // xyz: world center, w: radius
+    float4 damageHoleDirections[MaxDamageHoles]; // xyz: world dent direction
     int damageHoleCount;
     float damageHoleEdgeWidth;
     float damageHoleDepth;

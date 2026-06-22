@@ -51,7 +51,7 @@ void PBRShader::Begin(const RenderContext& rc)
 	// シェーダーセットだけ
 	dc->IASetInputLayout(inputLayout.Get());
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->GSSetShader(geometryShader.Get(), nullptr, 0);
+	dc->GSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 
 	// SRVだけここでセット
@@ -193,14 +193,19 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 
 	// ダメージ穴CB更新
 	CbDamageHoles damageHoles{};
+	const bool hasDamageHoleParams = HasParam<int>(cachedParams, "holeCount");
 	damageHoles.holeCount = std::clamp(GetParam<int>(cachedParams, "holeCount", 0), 0, MaxDamageHoles);
 	damageHoles.edgeWidth = (std::max)(GetParam<float>(cachedParams, "holeEdgeWidth", 1.5f), 0.001f);
 	damageHoles.depth = (std::max)(GetParam<float>(cachedParams, "holeDepth", 0.4f), 0.0f);
+	const bool useDamageHoleGeometry = hasDamageHoleParams && damageHoles.depth > 0.0f;
 
 	for (int i = 0; i < damageHoles.holeCount; ++i)
 	{
 		const std::string name = "hole" + std::to_string(i);
+		const std::string directionName = "holeDirection" + std::to_string(i);
 		damageHoles.holes[i] = GetParam<Vector4>(cachedParams, name, Vector4(0, 0, 0, 0));
+		damageHoles.holeDirections[i] =
+			GetParam<Vector4>(cachedParams, directionName, Vector4(0, 0, 0, 0));
 	}
 
 	dc->UpdateSubresource(
@@ -221,6 +226,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 	dc->VSSetConstantBuffers(0, 1, shadowMapConstantBuffer.GetAddressOf());
+	dc->GSSetShader(useDamageHoleGeometry ? geometryShader.Get() : nullptr, nullptr, 0);
 	dc->GSSetConstantBuffers(0, _countof(cbs), cbs);
 
 	// マテリアルSRV
