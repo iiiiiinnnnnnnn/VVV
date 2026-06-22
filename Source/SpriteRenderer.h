@@ -9,6 +9,7 @@ enum class SpriteShaderId
 	Basic,
 	GaussianFilter,
 	Vignette,
+	ThreatenLine,
 
 	EnumCount
 };

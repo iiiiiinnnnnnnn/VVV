@@ -6,7 +6,7 @@
             "anyStateEditorPosY": 0.0,
             "anyStateTransitions": [],
             "blendMode": 0,
-            "defaultState": 0,
+            "defaultState": 2,
             "hasAnyStateEditorPosition": true,
             "mask": [],
             "name": "Base",

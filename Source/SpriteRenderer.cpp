@@ -5,6 +5,7 @@
 // 追加
 #include "GaussianFilterShader.h"
 #include "VignetteSpriteShader.h"
+#include "ThreatenLineSpriteShader.h"
 
 // コンストラクタ
 SpriteRenderer::SpriteRenderer(ID3D11Device* device)
@@ -23,6 +24,7 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 	// 追加
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);
 	shaders[static_cast<int>(SpriteShaderId::Vignette)] = std::make_unique<VignetteSpriteShader>(device);
+	shaders[static_cast<int>(SpriteShaderId::ThreatenLine)] = std::make_unique<ThreatenLineSpriteShader>(device);
 }
 
 // 頂点計算（Texture版）

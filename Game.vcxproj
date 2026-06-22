@@ -80,6 +80,7 @@
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\GameTime.cpp" />
     <ClCompile Include="Source\ThirdPersonCameraController.cpp" />
+    <ClCompile Include="Source\ThreatenLineSpriteShader.cpp" />
     <ClCompile Include="Source\TrailRenderComponent.cpp" />
     <ClCompile Include="Source\TrailRenderer.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\GameTime.h" />
     <ClInclude Include="Source\ThirdPersonCameraController.h" />
+    <ClInclude Include="Source\ThreatenLineSpriteShader.h" />
     <ClInclude Include="Source\TrailRenderComponent.h" />
     <ClInclude Include="Source\TrailRenderer.h" />
     <ClInclude Include="Source\Transform.h" />
@@ -293,6 +295,10 @@
     <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

@@ -84,16 +84,14 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 	}
 
 	DamageVignette::Init(device);
+	ThreatenLines::Init(device);
 }
 
 void TestPlayScene::OnUpdate()
 {
 	HitStop::Update();
-
-	DamageVignette::Update(
-		Game::Graphics::Instance().GetSpriteRenderer(),
-		Game::Graphics::ScreenWidth,
-		Game::Graphics::ScreenHeight);
+	DamageVignette::Update(Game::Graphics::Instance().GetSpriteRenderer());
+	ThreatenLines::Update(Game::Graphics::Instance().GetSpriteRenderer());
 }
 
 void TestPlayScene::OnDrawGUI()

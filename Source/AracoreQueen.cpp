@@ -37,13 +37,11 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
             [this](const Animator::State& s)
         {
             // Enter
-			CameraThreaten::Request(1.7f, 1.5f);
+			CameraThreaten::Request(1.0f, 1.5f);
+			ThreatenLines::Request(1.7f);
+            CameraShake::Request(2.0f, 0.1f);
         },
-        [this](const Animator::State& s)
-        {
-            // Exit
-            /*CameraThreaten::Request(4.0f);*/
-        });
+            nullptr);
         anim->BindCallbacks();
 
         // キャラクターコントローラー

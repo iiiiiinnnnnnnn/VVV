@@ -5,7 +5,7 @@
 #include "GameTime.h"
 #include "Camera.h"
 #include "Random.h"
-
+#include "Graphics.h"
 #include <mutex>
 #include "SpriteRenderer.h"
 
@@ -131,7 +131,131 @@ private:
     inline static float intensity = 0.0f;
 
     inline static float easeInSpeed = 2.0f;
-    inline static float easeOutSpeed = 1.0f;
+    inline static float easeOutSpeed = 1.5f;
+};
+
+class ThreatenLines
+{
+public:
+    static void Init(ID3D11Device* device)
+    {
+        std::call_once(initFlag, []()
+        {
+            dummyTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+        });
+    }
+
+    static void Request(float duration)
+    {
+        if (active || intensity > 0.001f)
+        {
+            return;
+        }
+
+        timer = duration;
+        effectTime = 0.0f;
+        randomSeed = Random::Range(0.0f, 1000.0f);
+        active = true;
+    }
+
+    static void Update(SpriteRenderer* renderer,
+        float screenW = Game::Graphics::ScreenWidth,
+        float screenH = Game::Graphics::ScreenHeight)
+    {
+        const float dt = Game::Time::unscaledDeltaTime;
+
+        effectTime += dt;
+
+        if (active)
+        {
+            timer -= dt;
+
+            if (timer <= 0.0f)
+            {
+                timer = 0.0f;
+                active = false;
+            }
+        }
+
+        const float targetIntensity = active ? 1.0f : 0.0f;
+        const float speed = active ? easeInSpeed : easeOutSpeed;
+        const float t = 1.0f - expf(-speed * dt);
+
+        intensity = std::lerp(intensity, targetIntensity, t);
+
+        if (!active && intensity < 0.001f)
+        {
+            intensity = 0.0f;
+        }
+
+        if (!renderer) return;
+        if (!dummyTexture) return;
+        if (intensity <= 0.001f) return;
+
+        const float eased = EaseOutQuad(intensity);
+
+        ShaderParamList params;
+        params.push_back({ "color", Color(1.0f, 0, 0, 0.35f) });
+        params.push_back({ "center", Vector2(0.5f, 0.5f) });
+        params.push_back({ "screenAspect", screenW / screenH });
+        params.push_back({ "lineCount", 64.0f });
+        params.push_back({ "lineWidth", 0.9f });
+        params.push_back({ "softness", 0.04f });
+        params.push_back({ "innerRadius", 0.18f });
+        params.push_back({ "outerRadius", 0.98f });
+        params.push_back({ "randomStrength", 0.45f });
+        params.push_back({ "randomSeed", randomSeed });
+        params.push_back({ "rotationSpeed", 0.25f });
+        params.push_back({ "rotation", 0.0f });
+
+        // イージングされた表示強度
+        params.push_back({ "alphaMultiplier", eased });
+
+        // ランダム化
+        params.push_back({ "time", Game::Time::time });
+        params.push_back({ "randomChangeSpeed", 14.0f });
+        params.push_back({ "rotationSpeed", 0.2f });
+        params.push_back({ "noiseScroll", 0.0f });
+
+        renderer->Draw(
+            SpriteShaderId::ThreatenLine,
+            dummyTexture,
+            Vector3(0, 0, 0),
+            Vector2(screenW, screenH),
+            Vector2(0, 0),
+            Vector2(1, 1),
+            0.0f,
+            params);
+    }
+
+    static bool IsActive()
+    {
+        return active;
+    }
+
+    static float GetIntensity()
+    {
+        return intensity;
+    }
+
+private:
+    static float EaseOutQuad(float x)
+    {
+        x = std::clamp(x, 0.0f, 1.0f);
+        return 1.0f - (1.0f - x) * (1.0f - x);
+    }
+
+    inline static bool active = false;
+    inline static float timer = 0.0f;
+    inline static float intensity = 0.0f;
+    inline static float effectTime = 0.0f;
+    inline static float randomSeed = 0.0f;
+
+    inline static float easeInSpeed = 3.5f;
+    inline static float easeOutSpeed = 2.0f;
+
+    inline static std::once_flag initFlag;
+    inline static std::shared_ptr<Texture> dummyTexture;
 };
 
 class CameraShake
@@ -208,7 +332,8 @@ public:
     }
 
     static void Update(SpriteRenderer* renderer,
-                       float screenW = 1280.0f, float screenH = 720.0f)
+        float screenW = Game::Graphics::ScreenWidth,
+        float screenH = Game::Graphics::ScreenHeight)
     {
         if (!active) return;
 
