@@ -19,12 +19,12 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         {
             {
                 "03 - Default",
-            {
-                {"metalness", 0.0f},
-            {"roughness", 1.0f},
-            {"occlusion", 0.5f},
-            {"occlusionStrength", 1.0f}
-        }
+                {
+                    {"metalness", 0.0f},
+                    {"roughness", 1.0f},
+                    {"occlusion", 1.0f},
+                    {"occlusionStrength", 0.0f}
+                }
             }
         };
         transform.SetScale(0.035f);

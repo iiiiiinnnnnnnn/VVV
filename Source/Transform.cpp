@@ -63,7 +63,8 @@ void Transform::SetRotation(const Quaternion& rotation)
 
 void Transform::SetAngle(const Vector3& euler)
 {
-	this->rotation = Quaternion::CreateFromYawPitchRoll(euler.y, euler.x, euler.z);
+	this->rotation = Quaternion::CreateFromYawPitchRoll(
+		RAD(euler.y), RAD(euler.x), RAD(euler.z));
 	Update();
 }
 
