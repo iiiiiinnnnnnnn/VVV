@@ -38,12 +38,6 @@ BoxCollider::BoxCollider(
     UpdateShape();
 }
 
-PxTransform BoxCollider::MakeLocalPose() const
-{
-    return PxTransform(
-        PxVec3(localPosition.x, localPosition.y, localPosition.z));
-}
-
 void BoxCollider::Render(const RenderContext& rc)
 {
     if (!ShouldRenderColliderDebug(this)) return;
@@ -52,10 +46,17 @@ void BoxCollider::Render(const RenderContext& rc)
     PxTransform pose =
         rigidbody->GetRigidActor()->getGlobalPose() *
         MakeLocalPose();
+
     Quaternion rotation(pose.q.x, pose.q.y, pose.q.z, pose.q.w);
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-        VEC3(pose.p), rotation.ToEuler(), size * 0.5f, {0.0f, 1.0f, 0.0f, 1.0f});
+        Conv::ToVector3(pose.p), rotation.ToEuler(), size, {0.0f, 1.0f, 0.0f, 1.0f});
+}
+
+PxTransform BoxCollider::MakeLocalPose() const
+{
+    return PxTransform(
+        PxVec3(localPosition.x, localPosition.y, localPosition.z));
 }
 
 void BoxCollider::UpdateShape()
@@ -73,7 +74,7 @@ void BoxCollider::UpdateShape()
 
     // 新しいシェイプを生成
     shape = physics->createShape(
-        PxBoxGeometry(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f), *material);
+        PxBoxGeometry(size.x, size.y, size.z), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
 
@@ -162,7 +163,7 @@ void CapsuleCollider::Render(const RenderContext& rc)
         MakeLocalPose();
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        PX_TRANSFORM_TO_MATRIX(pose),
+        Conv::ToMatrix(pose),
         radius,
         height,
         {0.0f, 1.0f, 0.0f, 1.0f});
@@ -262,7 +263,7 @@ void SphereCollider::Render(const RenderContext& rc)
         MakeLocalPose();
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-        VEC3(pose.p), radius, { 0.0f, 1.0f, 0.0f, 1.0f });
+        Conv::ToVector3(pose.p), radius, { 0.0f, 1.0f, 0.0f, 1.0f });
 }
 
 void SphereCollider::UpdateShape()
@@ -564,7 +565,7 @@ BoneCollider::BoneCollider(
         world = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
     }
 
-    PxTransform t = MATRIX_TO_PX_TRANSFORM(world);
+    PxTransform t = Conv::ToPxTransform(world);
     ghostActor = physics->createRigidDynamic(t);
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
@@ -654,7 +655,7 @@ void BoneCollider::UpdateShape()
         world = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
     }
 
-    ghostActor->setKinematicTarget(MATRIX_TO_PX_TRANSFORM(world));
+    ghostActor->setKinematicTarget(Conv::ToPxTransform(world));
 }
 
 Vector3 BoneCollider::GetWorldPosition() const
@@ -740,7 +741,7 @@ void BoneSphereCollider::Render(const RenderContext& rc)
     if (!rc.renderSettings.showDebug || !ghostActor) return;
 
     PxTransform t = ghostActor->getGlobalPose();
-    Matrix m = PX_TRANSFORM_TO_MATRIX(t);
+    Matrix m = Conv::ToMatrix(t);
     Vector3 pos(m._41, m._42, m._43);
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
@@ -797,7 +798,7 @@ void BoneCapsuleCollider::Render(const RenderContext& rc)
         PxTransform(PxVec3(0, 0, 0), PxQuat(-DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        PX_TRANSFORM_TO_MATRIX(pose),
+        Conv::ToMatrix(pose),
         radius,
         height,
         Color(0.8f, 0.0f, 1.0f, 1.0f));
@@ -847,7 +848,7 @@ void BoneBoxCollider::Render(const RenderContext& rc)
     PxTransform t = ghostActor->getGlobalPose();
     Quaternion rotation(t.q.x, t.q.y, t.q.z, t.q.w);
     Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-        VEC3(t.p),
+        Conv::ToVector3(t.p),
         rotation.ToEuler(),
         size,
         Color(1.0f, 0.2f, 0.0f, 1.0f));

@@ -136,7 +136,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	cc->SetStepOffset(1.0f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.18f);
-	cc->SetPosition({0, 3.0f, 0});
+	cc->SetPosition({0, 3.0f, 10});
 
 	// 武器判定
 	weaponCollider = AddComponent<BoneSphereCollider>(

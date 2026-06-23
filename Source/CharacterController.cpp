@@ -90,7 +90,7 @@ void CharacterController::Render(const RenderContext& rc)
     PxTransform corrected = pose * offset;
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        PX_TRANSFORM_TO_MATRIX(corrected),
+        Conv::ToMatrix(corrected),
         static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
         static_cast<PxCapsuleController*>(controller)->getHeight(),
         Color(1.0f, 1.0f, 0.0f, 1.0f)

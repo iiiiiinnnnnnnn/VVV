@@ -158,22 +158,22 @@ void GLTFImporter::LoadNodes(NodeList& nodes)
 
 		if (!gltfNode.matrix.empty())
 		{
-			Matrix m = MATRIX(gltfNode.matrix);
+			Matrix m = Conv::ToMatrix(gltfNode.matrix);
 			m.Decompose(node.scale, node.rotation, node.position);
 		}
 		else
 		{
 			if (gltfNode.scale.size() > 0)
 			{
-				node.scale = VEC3(gltfNode.scale);
+				node.scale = Conv::ToVector3(gltfNode.scale);
 			}
 			if (gltfNode.rotation.size() > 0)
 			{
-				node.rotation = QUAT(gltfNode.rotation);
+				node.rotation = Conv::ToQuaternion(gltfNode.rotation);
 			}
 			if (gltfNode.translation.size() > 0)
 			{
-				node.position = VEC3(gltfNode.translation);
+				node.position = Conv::ToVector3(gltfNode.translation);
 			}
 		}
 		// 座標系変換

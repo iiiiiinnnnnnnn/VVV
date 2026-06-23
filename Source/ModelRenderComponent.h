@@ -24,6 +24,9 @@ public:
 	const ModelShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(ModelShaderId id) { shaderId = id; }
 
+	ShaderParamListWithMaterialName& GetParamsWithMaterial() { return paramsWithMaterial; }
+	const ShaderParamListWithMaterialName& GetParamsWithMaterial() const { return paramsWithMaterial; }
+
 private:
     std::shared_ptr<Model> model;
 	ModelShaderId shaderId;

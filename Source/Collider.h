@@ -32,8 +32,8 @@ private:
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
-	Vector3 size;
-    Vector3 localPosition;
+	Vector3 size = Vector3::One;
+    Vector3 localPosition = Vector3::Zero;
 };
 
 class CapsuleCollider : public Collider {

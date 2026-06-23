@@ -137,8 +137,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 				continue;
 
 			// 半透明メッシュ登録
+			float shaderParamColorA = GetParam<Color>(drawInfo.paramsWithMaterial[mesh.material->name], "color", {1.0f, 1.0f, 1.0f, 1.0f}).w;
 			if (mesh.material->alphaMode == Model::AlphaMode::Blend ||
-				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f))
+				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f) ||
+				(shaderParamColorA > 0.01f && shaderParamColorA < 0.99f))
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
@@ -193,4 +195,56 @@ void ModelRenderer::Render(const RenderContext& rc)
 	// サンプラステート設定解除
 	for (ID3D11SamplerState*& samplerState : samplerStates) { samplerState = nullptr; }
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
+}
+
+void ModelRenderer::SetShaderParamForAllMaterials(Model* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial)
+{
+	if (!model)
+		return;
+
+	for (const Model::Material& material : model->GetMaterials())
+	{
+		ShaderParamList& params = paramsWithMaterial[material.name];
+		auto it = std::find_if(
+			params.begin(),
+			params.end(),
+			[&](const ShaderParam& p) { return p.name == param.name; });
+
+		if (it != params.end())
+		{
+			it->value = param.value;
+		}
+		else
+		{
+			params.push_back(param);
+		}
+	}
+}
+
+void ModelRenderer::SetShaderParamForAllMaterials(Model* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial)
+{
+	if (!model)
+		return;
+
+	for (const Model::Material& material : model->GetMaterials())
+	{
+		ShaderParamList& params = paramsWithMaterial[material.name];
+
+		for (const ShaderParam& param : paramList)
+		{
+			auto it = std::find_if(
+				params.begin(),
+				params.end(),
+				[&](const ShaderParam& p) { return p.name == param.name; });
+
+			if (it != params.end())
+			{
+				it->value = param.value;
+			}
+			else
+			{
+				params.push_back(param);
+			}
+		}
+	}
 }

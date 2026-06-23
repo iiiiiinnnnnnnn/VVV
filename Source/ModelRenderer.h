@@ -23,6 +23,9 @@ public:
 
 	void Render(const RenderContext& rc);
 
+	static void SetShaderParamForAllMaterials(Model* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial);
+	static void SetShaderParamForAllMaterials(Model* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial);
+
 private:
 	
 	struct CbScene

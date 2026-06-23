@@ -90,8 +90,8 @@ static void MakeFallbackPointNormal(
     Vector3& point,
     Vector3& normal)
 {
-    const Vector3 posA = VEC3(GetShapeGlobalPose(actorA, shapeA).p);
-    const Vector3 posB = VEC3(GetShapeGlobalPose(actorB, shapeB).p);
+    const Vector3 posA = Conv::ToVector3(GetShapeGlobalPose(actorA, shapeA).p);
+    const Vector3 posB = Conv::ToVector3(GetShapeGlobalPose(actorB, shapeB).p);
 
     point = (posA + posB) * 0.5f;
     normal = posB - posA;
@@ -213,8 +213,8 @@ void CollisionEventCallback::onContact(const PxContactPairHeader& pairHeader, co
         PxContactPairPoint contactPoint;
         if (cp.extractContacts(&contactPoint, 1) > 0)
         {
-            point = VEC3(contactPoint.position);
-            normal = VEC3(contactPoint.normal);
+            point = Conv::ToVector3(contactPoint.position);
+            normal = Conv::ToVector3(contactPoint.normal);
         }
         else
         {
@@ -452,13 +452,13 @@ void CCHitReport::onShapeHit(const PxControllerShapeHit& hit)
     if (!otherCollider) return;
     if (otherCollider == ownerCollider) return;
 
-    Vector3 normal = VEC3(hit.worldNormal);
+    Vector3 normal = Conv::ToVector3(hit.worldNormal);
     if (normal.LengthSquared() > eps)
         normal.Normalize();
     else
         normal = Vector3::Zero;
 
-    currentFrameColliders[otherCollider] = {VEC3(hit.worldPos), normal};
+    currentFrameColliders[otherCollider] = {Conv::ToVector3(hit.worldPos), normal};
 }
 
 void CCHitReport::DispatchEvents()

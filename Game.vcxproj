@@ -29,6 +29,7 @@
     <ClCompile Include="Source\Light.cpp" />
     <ClCompile Include="Source\LightManager.cpp" />
     <ClCompile Include="Source\LoadingScene.cpp" />
+    <ClCompile Include="Source\Prop.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SpringBone.cpp" />
     <ClCompile Include="Source\Player.cpp" />
@@ -112,6 +113,7 @@
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LightManager.h" />
     <ClInclude Include="Source\LoadingScene.h" />
+    <ClInclude Include="Source\Prop.h" />
     <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SpringBone.h" />
     <ClInclude Include="Source\SceneEffect.h" />

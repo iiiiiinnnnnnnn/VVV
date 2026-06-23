@@ -71,7 +71,7 @@ void Rigidbody::DrawGUI()
         ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
         if (rigidActor) {
-            Vector3 pos = VEC3(rigidActor->getGlobalPose().p);
+            Vector3 pos = Conv::ToVector3(rigidActor->getGlobalPose().p);
             ImGui::Text("Rigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         }
         ImGui::TreePop();
@@ -116,7 +116,7 @@ void RigidbodyStatic::DrawGUI()
             ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
             // 位置表示
-            Vector3 pos = VEC3(static_->getGlobalPose().p);
+            Vector3 pos = Conv::ToVector3(static_->getGlobalPose().p);
             ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         }
 
@@ -141,7 +141,7 @@ void RigidbodyDynamic::DrawGUI()
             ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
             // 位置表示
-            Vector3 pos = VEC3(dynamic->getGlobalPose().p);
+            Vector3 pos = Conv::ToVector3(dynamic->getGlobalPose().p);
             ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
 
             // velocity 表示＆編集

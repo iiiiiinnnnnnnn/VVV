@@ -16,8 +16,8 @@ public:
 
     void SetPosition(const Vector3& pos);
     void SetRotation(const Quaternion& rot);
-    Vector3 GetPosition() const { return VEC3(rigidActor->getGlobalPose().p); }
-	Quaternion GetRotation() const { return QUATPX(rigidActor->getGlobalPose().q); }
+    Vector3 GetPosition() const { return Conv::ToVector3(rigidActor->getGlobalPose().p); }
+	Quaternion GetRotation() const { return Conv::ToQuaternion(rigidActor->getGlobalPose().q); }
 
     PxRigidActor* GetRigidActor() const { return rigidActor; }
 
@@ -47,5 +47,5 @@ public:
 
     void AddForce(const Vector3& force);
     void SetVelocity(const Vector3& v);
-    const Vector3 GetVelocity() const { return VEC3(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
+    const Vector3 GetVelocity() const { return Conv::ToVector3(rigidActor->is<PxRigidDynamic>()->getLinearVelocity()); }
 };

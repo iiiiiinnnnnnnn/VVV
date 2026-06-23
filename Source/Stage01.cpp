@@ -9,8 +9,10 @@
 #include "NavMeshActor.h"
 #include "StageLoader.h"
 
-Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
+Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, Layer::Stage)
 {
+	this->actorManager = actorManager;
+
 	auto* rb = AddComponent<RigidbodyStatic>();
 
 	Terrain* terrain = AddComponent<Terrain>();
@@ -21,10 +23,7 @@ Stage01::Stage01() : Actor("Stage01", "Stage", true, Layer::Stage)
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
-}
 
-void Stage01::OnRegistered(ActorManager* actorManager)
-{
 	// ƒ{ƒX“G
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager->Register(boss);

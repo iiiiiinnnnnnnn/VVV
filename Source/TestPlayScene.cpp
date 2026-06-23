@@ -33,7 +33,7 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 	// stage
 	{
-		auto stage = std::make_shared<Stage01>();
+		auto stage = std::make_shared<Stage01>(&actorManager);
 		stage->ApplyEnvironment(lightManager);
 		actorManager.Register(stage);
 	}

@@ -10,6 +10,27 @@
 
 class LightManager;
 
+namespace Conv
+{
+	inline Vector3 ToVector3(const std::vector<double>& v)
+	{
+		return Vector3(static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2]));
+	}
+	inline Quaternion ToQuaternion(const std::vector<double>& v)
+	{
+		return Quaternion(static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2]), static_cast<float>(v[3]));
+	}
+	inline Matrix ToMatrix(const std::vector<double>& v)
+	{
+		return Matrix(
+			static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2]), static_cast<float>(v[3]),
+			static_cast<float>(v[4]), static_cast<float>(v[5]), static_cast<float>(v[6]), static_cast<float>(v[7]),
+			static_cast<float>(v[8]), static_cast<float>(v[9]), static_cast<float>(v[10]), static_cast<float>(v[11]),
+			static_cast<float>(v[12]), static_cast<float>(v[13]), static_cast<float>(v[14]), static_cast<float>(v[15])
+		);
+	}
+}
+
 class GLTFImporter
 {
 private:

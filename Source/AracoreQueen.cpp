@@ -90,7 +90,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
             IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
                 ikNodeIndex,
-                1.42f,
+                1.2f,
                 2.0f,
                 Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
                 PhysicsManager::Instance().GetDefaultMaterial(),
@@ -249,7 +249,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 
     // ìñÇΩÇËîªíË
     collider = AddComponent<BoxCollider>(
-        rb, Vector3{7.33f, 11.69f, 5.0f}, Vector3{0.0f, 0.29f, 0.0f});
+        rb, Vector3{7.33f * 0.5f, 11.69f * 0.5f, 5.0f * 0.5f}, Vector3{0.0f, 0.29f, 0.0f});
 
     // Box02Ç…í«è]
     Transform offset{};

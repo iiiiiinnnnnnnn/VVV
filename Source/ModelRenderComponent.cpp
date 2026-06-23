@@ -40,54 +40,12 @@ void ModelRenderComponent::Render(const RenderContext& rc)
 
 void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParam& param)
 {
-    if (!model)
-        return;
-
-    for (const Model::Material& material : model->GetMaterials())
-    {
-        ShaderParamList& params = paramsWithMaterial[material.name];
-        auto it = std::find_if(
-            params.begin(),
-            params.end(),
-            [&](const ShaderParam& p) { return p.name == param.name; });
-
-        if (it != params.end())
-        {
-            it->value = param.value;
-        }
-        else
-        {
-            params.push_back(param);
-        }
-    }
+    ModelRenderer::SetShaderParamForAllMaterials(model.get(), param, paramsWithMaterial);
 }
 
 void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParamList& paramList)
 {
-    if (!model)
-        return;
-
-    for (const Model::Material& material : model->GetMaterials())
-    {
-        ShaderParamList& params = paramsWithMaterial[material.name];
-
-        for (const ShaderParam& param : paramList)
-        {
-            auto it = std::find_if(
-                params.begin(),
-                params.end(),
-                [&](const ShaderParam& p) { return p.name == param.name; });
-
-            if (it != params.end())
-            {
-                it->value = param.value;
-            }
-            else
-            {
-                params.push_back(param);
-            }
-        }
-    }
+	ModelRenderer::SetShaderParamForAllMaterials(model.get(), paramList, paramsWithMaterial);
 }
 
 void ModelRenderComponent::DrawGUI()

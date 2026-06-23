@@ -44,6 +44,42 @@
 
 using namespace physx;
 
+namespace Conv
+{
+    inline PxVec3 ToPxVec3(const Vector3& v)
+    {
+        return PxVec3(v.x, v.y, v.z);
+    }
+    inline PxQuat ToPxQuat(const Quaternion& q)
+    {
+        return PxQuat(q.x, q.y, q.z, q.w);
+    }
+    inline PxTransform ToPxTransform(const Matrix& m)
+    {
+        Vector3 scale, pos;
+        Quaternion rot;
+        Matrix cpy = m;
+        cpy.Decompose(scale, rot, pos);
+        return PxTransform(ToPxVec3(pos), ToPxQuat(rot));
+    }
+    inline Vector3 ToVector3(const PxVec3& v)
+    {
+        return Vector3(static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z));
+    }
+    inline Vector3 ToVector3(const PxExtendedVec3& v)
+    {
+        return Vector3(static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z));
+    }
+    inline Quaternion ToQuaternion(const PxQuat& q)
+    {
+        return Quaternion(q.x, q.y, q.z, q.w);
+    }
+    inline Matrix ToMatrix(const PxTransform& t)
+    {
+        return Matrix::CreateFromQuaternion(ToQuaternion(t.q)) * Matrix::CreateTranslation(ToVector3(t.p));
+    }
+}
+
 static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 
 class Actor;

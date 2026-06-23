@@ -57,7 +57,7 @@ private:
 
 	bool buildRequested = true;
 	bool built = false;
-	bool showDebug = true;
+	bool showDebug = false;
 	int buildDelayFrames = 1;
 	int resolution = 128;
 	int debugDrawStep = 2;

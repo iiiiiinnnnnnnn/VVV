@@ -12,19 +12,21 @@ namespace Layer
     constexpr int Body = 5;
     constexpr int Hair = 6;
     constexpr int EnemyM = 7;
-    constexpr int Count = 8;
+    constexpr int Prop = 8;
+    constexpr int Count = 9;
 
     // 衝突マトリックス
     constexpr bool CollisionMatrix[Count][Count] = {
-        //             Default  Player  Weapon  Enemy   Stage   Body    Hair    EnemyM
-        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true  },
-        /* Player  */ { true,   true,   false,  true,   true,   false,  false,  true  },
-        /* Weapon  */ { true,   true,   true,   false,  false,  false,  false,  false },
-        /* Enemy   */ { true,   true,   false,  false,  true,   false,  false,  false },
-        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false },
-        /* Body    */ { false,  false,  false,  false,  false,  false,  true,   false },
-        /* Hair    */ { false,  false,  false,  false,  false,  true,   false,  false },
-        /* EnemyM  */ { true,   true,   false,  false,  false,  false,  false,  false },
+        //             Default  Player  Weapon  Enemy   Stage   Body    Hair    EnemyM   Prop
+        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true,   true },
+        /* Player  */ { true,   true,   false,  true,   true,   false,  false,  true,   true },
+        /* Weapon  */ { true,   true,   true,   false,  false,  false,  false,  false,  true },
+        /* Enemy   */ { true,   true,   false,  false,  true,   false,  false,  false,  true },
+        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false,  true },
+        /* Body    */ { false,  false,  false,  false,  false,  false,  true,   false,  true },
+        /* Hair    */ { false,  false,  false,  false,  false,  true,   false,  false,  true },
+        /* EnemyM  */ { true,   true,   false,  false,  false,  false,  false,  false,  true },
+        /* Prop    */ { true,   true,   true,   true,   true,   true,   true,   true,   true }
     };
 
     // A と B が衝突するか（対称参照）

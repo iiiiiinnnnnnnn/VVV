@@ -91,7 +91,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 	{
 		CbMaterial cb{};
 
-		cb.baseColor = mesh.material->baseColor;
+		cb.baseColor = mesh.material->baseColor * GetParam<Color>(cachedParams, "color", {1.0f, 1.0f, 1.0f, 1.0f});
 		cb.emissiveColor = mesh.material->emissiveColor;
 
 		const bool hasMetalnessParam = HasParam<float>(cachedParams, "metalness");
