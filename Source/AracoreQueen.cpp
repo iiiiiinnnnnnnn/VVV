@@ -249,7 +249,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 
     // ìñÇΩÇËîªíË
     collider = AddComponent<BoxCollider>(
-        rb, Vector3{7.33f * 0.5f, 11.69f * 0.5f, 5.0f * 0.5f}, Vector3{0.0f, 0.29f, 0.0f});
+        rb, Vector3{3.665f, 5.85f, 2.5f}, Vector3{0.0f, 0.29f, 0.0f});
 
     // Box02Ç…í«è]
     Transform offset{};
