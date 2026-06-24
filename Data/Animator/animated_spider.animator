@@ -9,28 +9,6 @@
                     "canInterrupt": false,
                     "conditions": [
                         {
-                            "mode": 4,
-                            "paramName": "Dead",
-                            "threshold": 0.0
-                        }
-                    ],
-                    "excludedFromStateIndices": [
-                        5,
-                        6
-                    ],
-                    "exitTime": 1.0,
-                    "hasExitTime": false,
-                    "isAny": true,
-                    "priority": 2,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
-                    "toStateIndex": 5,
-                    "transitionDuration": 0.10000000149011612
-                },
-                {
-                    "canInterrupt": false,
-                    "conditions": [
-                        {
                             "mode": 6,
                             "paramName": "Attack",
                             "threshold": 0.0
@@ -83,7 +61,28 @@
                     "priority": 0,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
-                    "toStateIndex": 7,
+                    "toStateIndex": 6,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "Dead",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        5
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 5,
                     "transitionDuration": 0.10000000149011612
                 }
             ],
@@ -299,33 +298,6 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
-                        }
-                    ]
-                },
-                {
-                    "animationIndex": 3,
-                    "blockAnyStateTransitions": false,
-                    "callbacks": [],
-                    "dynamicClipPath": "",
-                    "editorPosX": -300.0,
-                    "editorPosY": 115.0,
-                    "hasEditorPosition": true,
-                    "loop": false,
-                    "name": "Dead-Threat",
-                    "speed": 0.3199999928474426,
-                    "transitions": [
-                        {
-                            "canInterrupt": false,
-                            "conditions": [],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": true,
-                            "isAny": true,
-                            "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 6,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]

@@ -32,7 +32,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
-        anim->Load("Data/Animator/animated_spider_test.animator");
+        anim->Load("Data/Animator/animated_spider.animator");
         anim->AddCallbackFunc("ThreatFunc",
             [this](const Animator::State& s)
         {
@@ -59,7 +59,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
 
         // 足接地補正
-        #if 0
+        #if 1
         AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
         footGrounder->AddLeg("Box09", "Box11");
         footGrounder->AddLeg("Box20", "Box19");
@@ -74,14 +74,14 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         // 足の当たり判定
         #if 1
         std::vector<std::string> ikBoneNames = {
-            "IK Chain01",
-            "IK Chain03",
-            "IK Chain04",
-            "IK Chain05",
-            "IK Chain06",
-            "IK Chain07",
-            "IK Chain08",
-            "IK Chain09"
+            "IK Chain02",
+            "IK Chain14",
+            "IK Chain15",
+            "IK Chain16",
+            "IK Chain13",
+            "IK Chain12",
+            "IK Chain11",
+            "IK Chain10"
         };
         for (const std::string& ikBoneName : ikBoneNames)
         {
@@ -90,23 +90,12 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
             IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
                 ikNodeIndex,
-                1.2f,
-                2.0f,
-                Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) * Matrix::CreateTranslation(0.0f, 0.0f, 25.0f),
+                1.26f,
+                2.8f,
+                Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) *
+                Matrix::CreateTranslation(-7.41f, 15.0f, 10.0f),
                 PhysicsManager::Instance().GetDefaultMaterial(),
                 false));
-
-            // 踏みつけ激薄コライダー
-            IKStampColliders.push_back(AddComponent<BoneBoxCollider>(
-                model.get(),
-                ikNodeIndex,
-                Vector3(0.7f, 0.1f, 0.7f),
-                Matrix::Identity,
-                nullptr,
-                true,
-                false,
-                true
-            ));
         }
         #endif
     }
@@ -184,15 +173,11 @@ void AracoreQueen::OnDrawGUI()
 
 void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
 {
-
-}
-
-void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
-{
     // 踏みつけ判定に当たったらプレイヤーにダメージ
+    if (!IsDead() && anim->GetCurrentStateName(0) == "run")
     {
         bool isFootCollider = false;
-        for (Collider* collider : IKStampColliders)
+        for (Collider* collider : IKColliders)
         {
             if (self == collider)
             {
@@ -217,6 +202,11 @@ void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3
     }
 }
 
+void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+{
+
+}
+
 void AracoreQueen::OnDamaged(const DamageData& damageData)
 {
     HitStop::Request(0.15f);
@@ -227,11 +217,9 @@ void AracoreQueen::OnDead()
 {
     printf("AracoreQueen Dead!\n");
     if (machine)
-    {
-        machine->Destroy();
-    }
+        machine->Destroy(3);
 	anim->SetBool("Dead", true);
-    Destroy(5);
+    //Destroy(5);
 }
 
 // AracoreQueenMachine(AracoreQueen.cpp)

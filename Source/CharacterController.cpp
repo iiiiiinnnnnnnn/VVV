@@ -24,7 +24,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
     );
     desc.upDirection = PxVec3(0, 1, 0);
     desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
-    desc.stepOffset = 0.2f;
+    desc.stepOffset = 0.1f;
     desc.contactOffset = 0.1f;
     desc.reportCallback = hitReport;
 

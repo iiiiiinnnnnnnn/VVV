@@ -767,8 +767,7 @@ void BoneSphereCollider::DrawGUI()
 
 BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, Model* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger, bool freezePositions, bool freezeRotations)
     : BoneCollider(owner, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
-    , radius(radius)
-    , height(height)
+    , radius(radius), height(height)
 {
     InitializeShape();
 }
