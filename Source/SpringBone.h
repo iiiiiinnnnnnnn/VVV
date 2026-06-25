@@ -64,7 +64,7 @@ private:
     float maxVelocity = 0.3f;
 
     float collisionRadius = 0.03f;
-    float stiffness = 0.15f;
+    float stiffness = 0.05f;
     float maxSubStepTime = 1.0f / 120.0f;
     int maxSubSteps = 16;
     int solverIterations = 4;

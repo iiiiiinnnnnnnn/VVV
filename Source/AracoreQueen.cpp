@@ -111,7 +111,7 @@ void AracoreQueen::OnRegistered(ActorManager* actorManager)
 void AracoreQueen::OnUpdate()
 {
     Entity::OnUpdate();
-    //UpdateChase();
+    UpdateChase();
 }
 Actor* AracoreQueen::FindPlayer() const
 {
