@@ -131,7 +131,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(0.22f, 0.9f);
+	cc = AddComponent<CharacterController>(0.01f, 0.9f);
 	cc->SetUseGravity(false);
 	cc->SetStepOffset(1.0f);
 	cc->SetSlopeLimitDeg(70.0f);
@@ -324,38 +324,94 @@ void Player::OnUpdate()
 
 void Player::OnLateUpdate()
 {
-	Vector3    localMoveVec = anim->GetRootMotionVec();
+	Vector3 localMoveVec = anim->GetRootMotionVec();
 	Quaternion deltaRot = anim->GetRootMotionRot();
+
 	transform.SetRotation(transform.rotation * deltaRot);
 
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
+
 	cc->Move(worldMoveVec);
 
+	// まず、移動後のモデル姿勢をワールドへ反映する
+	model->UpdateTransform(transform.matrix);
+
+	// pelvisを下げる前の足位置から、左右の接地ターゲットを作る
+	if (footIK_L && footIK_L->IsIKEnabled())
+	{
+		footIK_L->UpdateGroundTarget(
+			1.0f,
+			3.0f,
+			0.01f,
+			Layer::FootIK
+		);
+	}
+
+	if (footIK_R && footIK_R->IsIKEnabled())
+	{
+		footIK_R->UpdateGroundTarget(
+			1.0f,
+			3.0f,
+			0.01f,
+			Layer::FootIK
+		);
+	}
+
+	// 左右の足の結果を見て、体を下げる
 	ApplyFootIKHipOffset();
+
+	// pelvisを下げた後の姿勢でIKを解く
+	if (footIK_L && footIK_L->IsIKEnabled())
+	{
+		footIK_L->SolveIK(model->GetWorldTransform());
+	}
+
+	if (footIK_R && footIK_R->IsIKEnabled())
+	{
+		footIK_R->SolveIK(model->GetWorldTransform());
+	}
 }
 
 void Player::ApplyFootIKHipOffset()
 {
 	float targetOffsetY = 0.0f;
 
-	if (footIK_L && footIK_L->IsIKEnabled() && footIK_L->HasGroundContact())
+	if (footIK_L &&
+		footIK_L->IsIKEnabled() &&
+		footIK_L->HasGroundContact())
 	{
-		targetOffsetY = min(targetOffsetY, footIK_L->GetGroundOffsetY());
+		targetOffsetY = min(
+			targetOffsetY,
+			footIK_L->GetGroundOffsetY()
+		);
 	}
 
-	if (footIK_R && footIK_R->IsIKEnabled() && footIK_R->HasGroundContact())
+	if (footIK_R &&
+		footIK_R->IsIKEnabled() &&
+		footIK_R->HasGroundContact())
 	{
-		targetOffsetY = min(targetOffsetY, footIK_R->GetGroundOffsetY());
+		targetOffsetY = min(
+			targetOffsetY,
+			footIK_R->GetGroundOffsetY()
+		);
 	}
 
-	targetOffsetY = max(targetOffsetY, -20.6f);
+	// 体を下げる量を制限する
+	targetOffsetY = std::clamp(targetOffsetY, -0.6f, 0.0f);
 
-	const float t = 1.0f - expf(-14.0f * Game::Time::deltaTime);
-	visualHipOffsetY += (targetOffsetY - visualHipOffsetY) * t;
+	const float t =
+		1.0f - expf(-14.0f * Game::Time::deltaTime);
 
-	model->GetNodes()[hipNodeIndex].position.y += visualHipOffsetY;
+	visualHipOffsetY +=
+		(targetOffsetY - visualHipOffsetY) * t;
+
+	if (hipNodeIndex >= 0)
+	{
+		model->GetNodes()[hipNodeIndex].position.y += visualHipOffsetY;
+	}
+
 	model->UpdateTransform(transform.matrix);
 }
 

@@ -6,6 +6,7 @@
 #include "Model.h"
 #include "Component.h"
 #include "Collider.h"
+#include "GameDefine.h"
 
 class FootIK : public Component
 {
@@ -20,10 +21,15 @@ public:
 
 	~FootIK() override = default;
 
-	void LateUpdate() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
 	int GetUpdateOrder() const override { return 200; }
+
+	bool UpdateGroundTarget(
+		float rayUp = 1.0f,
+		float rayDown = 3.0f,
+		float contactOffset = 0.01f,
+		int rayLayer = Layer::FootIK);
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
 

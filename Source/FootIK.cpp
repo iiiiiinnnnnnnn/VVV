@@ -30,43 +30,84 @@ FootIK::FootIK(
 	}
 }
 
-void FootIK::LateUpdate()
+bool FootIK::UpdateGroundTarget(
+	float rayUp,
+	float rayDown,
+	float contactOffset,
+	int rayLayer)
 {
-	InitializeFromCurrentPose(0.5f);
-	SyncPoleWorldPosition();
-	if (chain.tip) chain.targetPosition = Matrix(chain.tip->worldTransform).Translation();
-
-	// Raycast例
+	if (!chain.enabled)
 	{
-		const Vector3 currentContactPosition = GetContactWorldPosition();
 		hasGroundContact = false;
 		groundOffsetY = 0.0f;
-
-		rayStart = currentContactPosition + Vector3(0, 1.0f, 0);
-		rayEnd = currentContactPosition - Vector3(0, 3.0f, 0);
-
-		Vector3 direction = rayEnd - rayStart;
-		float distance = direction.Length();
-
-		if (distance < 0.001f) return;
-		direction.Normalize();
-
-		PhysicsManager::PhysicsRaycastHit hit;
-		if (PhysicsManager::Instance().Raycast(
-			rayStart,
-			direction,
-			distance,
-			hit,
-			Layer::FootIK
-			))
-		{
-			SetTargetFromContact(hit.position, hit.normal, 0.01f);
-			hasGroundContact = true;
-			groundOffsetY = hit.position.y - currentContactPosition.y;
-		}
+		return false;
 	}
 
-	SolveIK(model->GetWorldTransform());
+	if (chain.root == nullptr) return false;
+	if (chain.mid == nullptr) return false;
+	if (chain.tip == nullptr) return false;
+
+	InitializeFromCurrentPose(0.5f);
+	SyncPoleWorldPosition();
+
+	Vector3 currentContactPosition = GetContactWorldPosition();
+
+	hasGroundContact = false;
+	groundOffsetY = 0.0f;
+
+	rayStart = currentContactPosition + Vector3(0, rayUp, 0);
+	rayEnd = currentContactPosition - Vector3(0, rayDown, 0);
+
+	Vector3 direction = rayEnd - rayStart;
+	float distance = direction.Length();
+
+	if (distance < 0.001f)
+	{
+		return false;
+	}
+
+	direction.Normalize();
+
+	PhysicsManager::PhysicsRaycastHit hit;
+
+	if (!PhysicsManager::Instance().Raycast(
+		rayStart,
+		direction,
+		distance,
+		hit,
+		rayLayer))
+	{
+		// 地面が取れないときは現在のfoot位置へ戻す
+		if (chain.tip != nullptr)
+		{
+			chain.targetPosition =
+				Matrix(chain.tip->worldTransform).Translation();
+		}
+
+		return false;
+	}
+
+	// 壁や急すぎる面を地面扱いしない
+	if (hit.normal.y < 0.35f)
+	{
+		return false;
+	}
+
+	SetTargetFromContact(
+		hit.position,
+		hit.normal,
+		contactOffset
+	);
+
+	Vector3 targetContactPosition =
+		hit.position + hit.normal * contactOffset;
+
+	// pelvisをどれだけ下げる必要があるか
+	groundOffsetY =
+		targetContactPosition.y - currentContactPosition.y;
+
+	hasGroundContact = true;
+	return true;
 }
 
 void FootIK::Render(const RenderContext& rc)
@@ -105,6 +146,8 @@ void FootIK::Render(const RenderContext& rc)
 
 void FootIK::DrawGUI()
 {
+	if (!ShouldRenderDebug()) return;
+
 	if (ImGui::TreeNode(ICON_FA_BONE " FootIK"))
 	{
 		if (ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f))

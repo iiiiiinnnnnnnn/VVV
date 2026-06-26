@@ -19,15 +19,15 @@ namespace Layer
     // 衝突マトリックス
     constexpr bool CollisionMatrix[Count][Count] = {
         //             Default  Player  Weapon  Enemy   Stage   Body    Hair    EnemyM   Prop    FootIK
-        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true,   true,   false },
+        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true,   true,   true  },
         /* Player  */ { true,   true,   false,  true,   true,   false,  false,  true,   true,   false },
         /* Weapon  */ { true,   true,   true,   false,  false,  false,  false,  false,  true,   false },
         /* Enemy   */ { true,   true,   false,  false,  true,   false,  false,  false,  true,   false },
-        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false,  true,   true },
+        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false,  true,   true  },
         /* Body    */ { false,  false,  false,  false,  false,  false,  true,   false,  true,   false },
         /* Hair    */ { false,  false,  false,  false,  false,  true,   false,  false,  true,   false },
         /* EnemyM  */ { true,   true,   false,  false,  false,  false,  false,  false,  true,   false },
-        /* Prop    */ { true,   true,   true,   true,   true,   true,   true,   true,   true,   false },
+        /* Prop    */ { true,   true,   true,   true,   true,   true,   true,   true,   true,   true  },
         /* FootIK  */ { false,  false,  false,  false,  true,   false,  false,  false,  false,  false }
     };
 
