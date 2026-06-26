@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\FootIK.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
@@ -29,6 +30,7 @@
     <ClCompile Include="Source\Light.cpp" />
     <ClCompile Include="Source\LightManager.cpp" />
     <ClCompile Include="Source\LoadingScene.cpp" />
+    <ClCompile Include="Source\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Prop.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SpringBone.cpp" />
@@ -89,6 +91,7 @@
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\FootIK.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
     <ClInclude Include="Source\Actor.h" />
     <ClInclude Include="Source\ActorManager.h" />

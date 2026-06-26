@@ -133,6 +133,9 @@
     <Filter Include="シェーダー\ゲーム\モデル">
       <UniqueIdentifier>{0c99764e-ae6f-421e-9ed9-56ed03757b53}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK">
+      <UniqueIdentifier>{fafb2bc7-a5aa-4734-baa9-5d800d927e50}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -264,12 +267,6 @@
     <ClCompile Include="Source\RectTransform.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Transform.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
@@ -293,9 +290,6 @@
     </ClCompile>
     <ClCompile Include="Source\GamePad.cpp">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SpringBone.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneFollower.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
@@ -351,17 +345,32 @@
     <ClCompile Include="Source\StageLoader.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClCompile>
-    <ClCompile Include="Source\NavMeshAgent.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NavMeshActor.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ThreatenLineSpriteShader.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClCompile>
     <ClCompile Include="Source\Prop.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshActor.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshAgent.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CharacterController.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Collider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpringBone.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FootIK.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshObstacle.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -536,12 +545,6 @@
     <ClInclude Include="Source\RectTransform.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Transform.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
@@ -571,9 +574,6 @@
     </ClInclude>
     <ClInclude Include="Source\GamePad.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\SpringBone.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneFollower.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
@@ -635,15 +635,6 @@
     <ClInclude Include="Source\StageLoader.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
-    <ClInclude Include="Source\NavMeshAgent.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NavMeshActor.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NavMeshObstacle.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\AracoreFootGrounder.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
@@ -652,6 +643,27 @@
     </ClInclude>
     <ClInclude Include="Source\Prop.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshObstacle.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshAgent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshActor.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CharacterController.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Collider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FootIK.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpringBone.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

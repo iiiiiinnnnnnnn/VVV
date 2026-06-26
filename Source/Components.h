@@ -15,6 +15,10 @@
 #include "Animator.h"
 #include "Terrain.h"
 #include "NavMeshAgent.h"
+#include "NavMeshActor.h"
+#include "NavMeshAgent.h"
+#include "NavMeshObstacle.h"
+#include "FootIK.h"
 
 // 2D
 #include "RectTransform.h"

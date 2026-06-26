@@ -193,6 +193,27 @@ public:
         _ASSERT_EXPR(context != nullptr, L"PhysicsSceneContext is null.");
         return *context;
     }
+    const PhysicsSceneContext& GetSceneContext() const
+    {
+        const PhysicsSceneContext* context = threadSceneContext
+            ? threadSceneContext
+            : sceneContext.get();
+        _ASSERT_EXPR(context != nullptr, L"PhysicsSceneContext is null.");
+        return *context;
+	}
+
+    struct PhysicsRaycastHit
+    {
+        Vector3 position = Vector3::Zero;
+        Vector3 normal = Vector3::Up;
+        float distance = 0.0f;
+    };
+
+    bool Raycast(
+        const Vector3& origin,
+        const Vector3& direction,
+        float distance,
+        PhysicsRaycastHit& hit) const;
 
     std::unique_ptr<PhysicsSceneContext> CreateSceneContext(
         PxVec3 gravity = PxVec3(0, -9.81f, 0));

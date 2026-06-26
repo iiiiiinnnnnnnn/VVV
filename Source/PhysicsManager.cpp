@@ -373,7 +373,70 @@ void PhysicsSceneContext::Simulate() const
     const_cast<PhysicsSceneContext*>(this)->eventCallback.DispatchStayEvents();
 }
 
-// PhysicsManager
+bool PhysicsManager::Raycast(
+    const Vector3& origin,
+    const Vector3& direction,
+    float distance,
+    PhysicsRaycastHit& hit) const
+{
+    if (distance <= 0.001f)
+    {
+        return false;
+    }
+
+    Vector3 rayDirection = direction;
+
+    if (rayDirection.LengthSquared() < 0.000001f)
+    {
+        return false;
+    }
+
+    rayDirection.Normalize();
+
+    physx::PxVec3 pxOrigin(
+        origin.x,
+        origin.y,
+        origin.z
+    );
+
+    physx::PxVec3 pxDirection(
+        rayDirection.x,
+        rayDirection.y,
+        rayDirection.z
+    );
+
+    physx::PxRaycastBuffer hitBuffer;
+
+    bool result = GetSceneContext().GetScene()->raycast(
+        pxOrigin,
+        pxDirection,
+        distance,
+        hitBuffer
+    );
+
+    if (!result || !hitBuffer.hasBlock)
+    {
+        return false;
+    }
+
+    const physx::PxRaycastHit& block = hitBuffer.block;
+
+    hit.position = Vector3(
+        block.position.x,
+        block.position.y,
+        block.position.z
+    );
+
+    hit.normal = Vector3(
+        block.normal.x,
+        block.normal.y,
+        block.normal.z
+    );
+
+    hit.distance = block.distance;
+
+    return true;
+}
 
 std::unique_ptr<PhysicsSceneContext> PhysicsManager::CreateSceneContext(
     PxVec3 gravity)

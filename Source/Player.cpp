@@ -172,6 +172,10 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 			{Vector3::Zero, {0.0f, 0.16f, 0.0f}, 0.100f, model->GetNodeIndex("spine_03")}
 		})
 	);
+
+	// FootIK
+	//AddComponent<FootIK>(model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
+	//AddComponent<FootIK>(model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
 }
 
 void Player::OnEnterAnim(const Animator::State& state)

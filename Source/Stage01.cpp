@@ -25,8 +25,10 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, L
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
 	// ƒ{ƒX“G
+	#if 0
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager->Register(boss);
+	#endif
 }
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const
