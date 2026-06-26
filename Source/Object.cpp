@@ -3,6 +3,7 @@
 #include "Object.h"
 #include "imgui.h"
 #include "GameTime.h"
+#include <algorithm>
 
 void Object::Components::DrawGUI()
 {
@@ -55,10 +56,28 @@ void Object::DrawGUI()
 void Object::Components::push_back(std::unique_ptr<Component> component)
 {
     data.push_back(std::move(component));
+    updateOrderDirty = true;
+}
+
+void Object::Components::SortUpdateOrder()
+{
+    if (!updateOrderDirty) return;
+
+    std::stable_sort(
+        data.begin(),
+        data.end(),
+        [](const std::unique_ptr<Component>& a, const std::unique_ptr<Component>& b)
+        {
+            return a->GetUpdateOrder() < b->GetUpdateOrder();
+        });
+
+    updateOrderDirty = false;
 }
 
 void Object::Components::Update()
 {
+    SortUpdateOrder();
+
     for (auto& c : data)
         if (c->IsActive()) c->Update();
 }

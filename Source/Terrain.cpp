@@ -69,6 +69,11 @@ void Terrain::InitializeGpuResources()
 		sizeof(CbTerrainLayer),
 		terrainLayerConstantBuffer.GetAddressOf());
 
+	GpuResourceUtils::CreateConstantBuffer(
+		device,
+		sizeof(CbTerrainColliderBuild),
+		terrainColliderBuildConstantBuffer.GetAddressOf());
+
 	CreateGridMesh(device);
 	CreateTerrainTexture(device);
 
@@ -101,6 +106,11 @@ void Terrain::InitializeGpuResources()
 		device,
 		"Data/Shader/TerrainPrimitivePS.cso",
 		terrainPixelShader.GetAddressOf());
+
+	GpuResourceUtils::LoadComputeShader(
+		device,
+		"Data/Shader/TerrainColliderBuildCS.cso",
+		terrainColliderBuildComputeShader.GetAddressOf());
 
 	// レイヤー追加
 	// ブレンドで違和感のない順番で追加する
@@ -366,6 +376,15 @@ void Terrain::Render(const RenderContext& rc)
 
 	PaintByMouse(rc);
 	UploadTerrainTexture(dc);
+
+	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
+	{
+		if (collider->NeedsGpuRebuild())
+		{
+			collider->RebuildFromTerrain();
+			pendingColliderRebuild = false;
+		}
+	}
 
 	UpdateTerrainObjectConstantBuffer(dc);
 	UpdateTerrainSceneConstantBuffer(dc, rc);
@@ -1277,6 +1296,216 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 	return true;
 }
 
+std::filesystem::path Terrain::GetColliderVertexPath() const
+{
+	std::filesystem::path filepath(terrainFilePath);
+	filepath.replace_extension(".vx");
+	return filepath;
+}
+
+bool Terrain::BuildGpuColliderMesh(
+	float minX,
+	float maxX,
+	float minZ,
+	float maxZ,
+	std::vector<Vector3>& vertices,
+	std::vector<uint32_t>& indices)
+{
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
+	if (!device || !dc || !terrainColliderBuildComputeShader || !terrainTextureShaderResourceView)
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: GPU resource is missing.";
+		return false;
+	}
+
+	minX = std::clamp(minX, 0.0f, 1.0f);
+	maxX = std::clamp(maxX, 0.0f, 1.0f);
+	minZ = std::clamp(minZ, 0.0f, 1.0f);
+	maxZ = std::clamp(maxZ, 0.0f, 1.0f);
+
+	if (minX > maxX) std::swap(minX, maxX);
+	if (minZ > maxZ) std::swap(minZ, maxZ);
+
+	const int tessellationSegments = max(
+		static_cast<int>(std::ceil(max(
+			tesselation_constant.edge_factor,
+			tesselation_constant.inner_factor))),
+		1);
+	const int totalSegmentCountX = max(gridResolution * tessellationSegments, 1);
+	const int totalSegmentCountZ = max(gridResolution * tessellationSegments, 1);
+
+	const int minGridX = std::clamp(static_cast<int>(std::floor(minX * totalSegmentCountX)), 0, totalSegmentCountX - 1);
+	const int maxGridX = std::clamp(static_cast<int>(std::ceil(maxX * totalSegmentCountX)), minGridX + 1, totalSegmentCountX);
+	const int minGridZ = std::clamp(static_cast<int>(std::floor(minZ * totalSegmentCountZ)), 0, totalSegmentCountZ - 1);
+	const int maxGridZ = std::clamp(static_cast<int>(std::ceil(maxZ * totalSegmentCountZ)), minGridZ + 1, totalSegmentCountZ);
+	const int segmentCountX = maxGridX - minGridX;
+	const int segmentCountZ = maxGridZ - minGridZ;
+	const int vertexLineCount = segmentCountX + 1;
+	const size_t vertexCount =
+		static_cast<size_t>(segmentCountX + 1) *
+		static_cast<size_t>(segmentCountZ + 1);
+
+	if (vertexCount == 0 || vertexCount > static_cast<size_t>(UINT_MAX))
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: vertex count is invalid.";
+		return false;
+	}
+
+	CbTerrainColliderBuild cb{};
+	cb.terrainSize = terrainSize;
+	cb.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
+	cb.heightScaler = tesselation_constant.height_scaler;
+	cb.minGridX = minGridX;
+	cb.minGridZ = minGridZ;
+	cb.segmentCountX = segmentCountX;
+	cb.segmentCountZ = segmentCountZ;
+	cb.totalSegmentCountX = totalSegmentCountX;
+	cb.totalSegmentCountZ = totalSegmentCountZ;
+	cb.vertexLineCount = vertexLineCount;
+
+	dc->UpdateSubresource(terrainColliderBuildConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	UploadTerrainTexture(dc);
+
+	D3D11_BUFFER_DESC outputDesc{};
+	outputDesc.ByteWidth = static_cast<UINT>(sizeof(Vector4) * vertexCount);
+	outputDesc.Usage = D3D11_USAGE_DEFAULT;
+	outputDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	outputDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	outputDesc.StructureByteStride = sizeof(Vector4);
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> outputBuffer;
+	HRESULT hr = device->CreateBuffer(&outputDesc, nullptr, outputBuffer.GetAddressOf());
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: output buffer creation failed.";
+		return false;
+	}
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uavDesc.Buffer.NumElements = static_cast<UINT>(vertexCount);
+
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> outputUav;
+	hr = device->CreateUnorderedAccessView(outputBuffer.Get(), &uavDesc, outputUav.GetAddressOf());
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: output UAV creation failed.";
+		return false;
+	}
+
+	D3D11_BUFFER_DESC stagingDesc = outputDesc;
+	stagingDesc.Usage = D3D11_USAGE_STAGING;
+	stagingDesc.BindFlags = 0;
+	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	stagingDesc.MiscFlags = 0;
+	stagingDesc.StructureByteStride = 0;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> stagingBuffer;
+	hr = device->CreateBuffer(&stagingDesc, nullptr, stagingBuffer.GetAddressOf());
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: staging buffer creation failed.";
+		return false;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> prevShader;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> prevConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> prevShaderResourceView;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> prevSampler;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> prevUnorderedAccessView;
+
+	dc->CSGetShader(prevShader.GetAddressOf(), nullptr, nullptr);
+	dc->CSGetConstantBuffers(0, 1, prevConstantBuffer.GetAddressOf());
+	dc->CSGetShaderResources(0, 1, prevShaderResourceView.GetAddressOf());
+	dc->CSGetSamplers(0, 1, prevSampler.GetAddressOf());
+	dc->CSGetUnorderedAccessViews(0, 1, prevUnorderedAccessView.GetAddressOf());
+
+	ID3D11UnorderedAccessView* uavs[] = {outputUav.Get()};
+	ID3D11ShaderResourceView* srvs[] = {terrainTextureShaderResourceView.Get()};
+	ID3D11SamplerState* samplers[] =
+	{
+		Game::Graphics::Instance().GetRenderState()->GetSamplerState(SamplerState::PointClamp)
+	};
+	ID3D11Buffer* cbs[] = {terrainColliderBuildConstantBuffer.Get()};
+
+	dc->CSSetShader(terrainColliderBuildComputeShader.Get(), nullptr, 0);
+	dc->CSSetConstantBuffers(0, 1, cbs);
+	dc->CSSetShaderResources(0, 1, srvs);
+	dc->CSSetSamplers(0, 1, samplers);
+	dc->CSSetUnorderedAccessViews(0, 1, uavs, nullptr);
+
+	const UINT groupCount = static_cast<UINT>((vertexCount + 255) / 256);
+	dc->Dispatch(groupCount, 1, 1);
+
+	ID3D11UnorderedAccessView* nullUav = nullptr;
+	ID3D11ShaderResourceView* nullSrv = nullptr;
+	ID3D11SamplerState* nullSampler = nullptr;
+	ID3D11Buffer* nullCb = nullptr;
+	dc->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);
+	dc->CSSetShaderResources(0, 1, &nullSrv);
+	dc->CSSetSamplers(0, 1, &nullSampler);
+	dc->CSSetConstantBuffers(0, 1, &nullCb);
+	dc->CSSetShader(nullptr, nullptr, 0);
+
+	dc->CopyResource(stagingBuffer.Get(), outputBuffer.Get());
+
+	ID3D11ComputeShader* restoreShader = prevShader.Get();
+	ID3D11Buffer* restoreConstantBuffer = prevConstantBuffer.Get();
+	ID3D11ShaderResourceView* restoreShaderResourceView = prevShaderResourceView.Get();
+	ID3D11SamplerState* restoreSampler = prevSampler.Get();
+	ID3D11UnorderedAccessView* restoreUnorderedAccessView = prevUnorderedAccessView.Get();
+	dc->CSSetShader(restoreShader, nullptr, 0);
+	dc->CSSetConstantBuffers(0, 1, &restoreConstantBuffer);
+	dc->CSSetShaderResources(0, 1, &restoreShaderResourceView);
+	dc->CSSetSamplers(0, 1, &restoreSampler);
+	dc->CSSetUnorderedAccessViews(0, 1, &restoreUnorderedAccessView, nullptr);
+
+	D3D11_MAPPED_SUBRESOURCE mapped{};
+	hr = dc->Map(stagingBuffer.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+	if (FAILED(hr))
+	{
+		terrainIoMessage = "Terrain collider GPU bake failed: staging map failed.";
+		return false;
+	}
+
+	const Vector4* gpuVertices = static_cast<const Vector4*>(mapped.pData);
+	vertices.resize(vertexCount);
+	for (size_t i = 0; i < vertexCount; ++i)
+	{
+		vertices[i] = Vector3(gpuVertices[i].x, gpuVertices[i].y, gpuVertices[i].z);
+	}
+	dc->Unmap(stagingBuffer.Get(), 0);
+
+	indices.clear();
+	indices.reserve(
+		static_cast<size_t>(segmentCountX) *
+		static_cast<size_t>(segmentCountZ) * 6);
+
+	for (int z = 0; z < segmentCountZ; ++z)
+	{
+		for (int x = 0; x < segmentCountX; ++x)
+		{
+			const uint32_t i0 = static_cast<uint32_t>(z * vertexLineCount + x);
+			const uint32_t i1 = i0 + 1;
+			const uint32_t i2 = i0 + static_cast<uint32_t>(vertexLineCount);
+			const uint32_t i3 = i2 + 1;
+
+			indices.push_back(i0);
+			indices.push_back(i2);
+			indices.push_back(i1);
+
+			indices.push_back(i1);
+			indices.push_back(i2);
+			indices.push_back(i3);
+		}
+	}
+
+	terrainIoMessage = "Terrain collider GPU baked.";
+	return true;
+}
+
 void Terrain::RebuildTerrainCollider()
 {
 	TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>();
@@ -1573,6 +1802,8 @@ void Terrain::DrawGUI()
 		{
 			terrainSize = newTerrainSize;
 			CreateGridMesh(Game::Graphics::Instance().GetDevice());
+			pendingColliderRebuild = true;
+			RebuildTerrainCollider();
 		}
 
 		int newGridResolution = gridResolution;
@@ -1585,7 +1816,11 @@ void Terrain::DrawGUI()
 		ImGui::Checkbox("wire", &use_wire);
 		ImGui::SliderFloat("edge", &tesselation_constant.edge_factor, 1.0f, 16.0f);
 		ImGui::SliderFloat("inner", &tesselation_constant.inner_factor, 1.0f, 16.0f);
-		ImGui::SliderFloat("height scaler", &tesselation_constant.height_scaler, -200.0f, 200.0f);
+		if (ImGui::SliderFloat("height scaler", &tesselation_constant.height_scaler, -200.0f, 200.0f))
+		{
+			pendingColliderRebuild = true;
+			RebuildTerrainCollider();
+		}
 		ImGui::SliderFloat("tilling scale", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
 
 		ImGui::TreePop();

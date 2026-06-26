@@ -7,7 +7,36 @@
 #include "Terrain.h"
 #include "IconsFontAwesome5.h"
 
+#include <cmath>
 #include <cfloat>
+
+namespace
+{
+    struct TerrainColliderVxHeader
+    {
+        char magic[4] = {'V', 'V', 'V', 'X'};
+        uint32_t version = 1;
+        uint32_t vertexCount = 0;
+        uint32_t indexCount = 0;
+        float minX = 0.0f;
+        float maxX = 1.0f;
+        float minZ = 0.0f;
+        float maxZ = 1.0f;
+        float scaleX = 1.0f;
+        float scaleY = 1.0f;
+        float scaleZ = 1.0f;
+        float terrainSize = 500.0f;
+        int gridResolution = 0;
+        float edgeFactor = 0.0f;
+        float innerFactor = 0.0f;
+        float heightScaler = 0.0f;
+    };
+
+    bool NearlyEqual(float a, float b)
+    {
+        return std::fabs(a - b) <= 0.0001f;
+    }
+}
 
 static bool ShouldRenderColliderDebug(const Collider* collider)
 {
@@ -872,8 +901,8 @@ void BoneBoxCollider::DrawGUI()
     }
 }
 
-TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution, const CollisionArea& collisionArea, PxMaterial* material)
-    : Collider(owner), rigidbody(rigidbody), resolution(std::clamp(resolution, 1, MaxResolution)), collisionArea(collisionArea), material(material)
+TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, const CollisionArea& collisionArea, PxMaterial* material)
+    : Collider(owner), rigidbody(rigidbody), collisionArea(collisionArea), material(material)
 {
     GetOwnerAsActor();
 
@@ -881,7 +910,18 @@ TerrainMeshCollider::TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, in
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 
-    RebuildFromTerrain();
+    std::vector<Vector3> vertices;
+    std::vector<uint32_t> indices;
+    if (LoadCachedMesh(vertices, indices))
+    {
+        UpdateShape(vertices, indices);
+        debugVertices = vertices;
+        debugIndices = indices;
+    }
+    else
+    {
+        pendingGpuRebuild = true;
+    }
 }
 
 TerrainMeshCollider::~TerrainMeshCollider()
@@ -944,77 +984,191 @@ void TerrainMeshCollider::RebuildFromTerrain()
 {
     std::vector<Vector3> vertices;
     std::vector<uint32_t> indices;
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    _ASSERT_EXPR(terrain != nullptr, L"TerrainMeshCollider requires Terrain component.");
 
-    BuildMeshFromTerrain(vertices, indices);
+    ClampCollisionArea();
+    if (!terrain->BuildGpuColliderMesh(
+        collisionArea.minX,
+        collisionArea.maxX,
+        collisionArea.minZ,
+        collisionArea.maxZ,
+        vertices,
+        indices))
+    {
+        vxMessage = "GPU collider bake failed.";
+        return;
+    }
+
+    ApplyOwnerScale(vertices);
     UpdateShape(vertices, indices);
+    SaveCachedMesh(vertices, indices);
 
     debugVertices = vertices;
     debugIndices = indices;
+    pendingGpuRebuild = false;
 }
 
-void TerrainMeshCollider::BuildMeshFromTerrain(
+bool TerrainMeshCollider::LoadCachedMesh(
     std::vector<Vector3>& vertices,
     std::vector<uint32_t>& indices)
 {
     Terrain* terrain = owner->GetComponent<Terrain>();
-    _ASSERT_EXPR(terrain != nullptr, L"TerrainMeshCollider requires Terrain component.");
-
-    Actor* actor = GetOwnerAsActor();
-
-    ClampCollisionArea();
-
-    const int r = std::clamp(resolution, 1, MaxResolution);
-    const float terrainSize = terrain->GetTerrainSize();
-    const Vector3 ownerScale = actor->transform.scale;
-
-    vertices.clear();
-    indices.clear();
-
-    vertices.reserve(
-        static_cast<size_t>(r + 1) *
-        static_cast<size_t>(r + 1));
-
-    indices.reserve(
-        static_cast<size_t>(r) *
-        static_cast<size_t>(r) * 6);
-
-    for (int z = 0; z <= r; ++z)
+    if (!terrain)
     {
-        for (int x = 0; x <= r; ++x)
-        {
-            const float tx = static_cast<float>(x) / static_cast<float>(r);
-            const float tz = static_cast<float>(z) / static_cast<float>(r);
-            const float u = collisionArea.minX + (collisionArea.maxX - collisionArea.minX) * tx;
-            const float v = collisionArea.minZ + (collisionArea.maxZ - collisionArea.minZ) * tz;
-
-            Vector3 localPosition;
-            localPosition.x = (u - 0.5f) * terrainSize * ownerScale.x;
-            localPosition.y = terrain->GetHeightByUV(u, v) * ownerScale.y;
-            localPosition.z = (v - 0.5f) * terrainSize * ownerScale.z;
-
-            vertices.push_back(localPosition);
-        }
+        vxMessage = "Terrain .vx load skipped: Terrain is missing.";
+        return false;
     }
 
-    const int vertexLineCount = r + 1;
-
-    for (int z = 0; z < r; ++z)
+    ClampCollisionArea();
+    const std::filesystem::path filepath = terrain->GetColliderVertexPath();
+    if (!std::filesystem::exists(filepath))
     {
-        for (int x = 0; x < r; ++x)
-        {
-            const uint32_t i0 = static_cast<uint32_t>(z * vertexLineCount + x);
-            const uint32_t i1 = i0 + 1;
-            const uint32_t i2 = i0 + static_cast<uint32_t>(vertexLineCount);
-            const uint32_t i3 = i2 + 1;
+        vxMessage = "Terrain .vx not found. GPU bake will create it.";
+        return false;
+    }
 
-            indices.push_back(i0);
-            indices.push_back(i2);
-            indices.push_back(i1);
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file)
+    {
+        vxMessage = "Terrain .vx load failed: open failed.";
+        return false;
+    }
 
-            indices.push_back(i1);
-            indices.push_back(i2);
-            indices.push_back(i3);
-        }
+    TerrainColliderVxHeader header{};
+    file.read(reinterpret_cast<char*>(&header), sizeof(header));
+
+    if (!file ||
+        header.magic[0] != 'V' ||
+        header.magic[1] != 'V' ||
+        header.magic[2] != 'V' ||
+        header.magic[3] != 'X' ||
+        header.version != 1 ||
+        header.vertexCount == 0 ||
+        header.indexCount == 0)
+    {
+        vxMessage = "Terrain .vx load failed: invalid header.";
+        return false;
+    }
+
+    Actor* actor = GetOwnerAsActor();
+    const Vector3 scale = actor->transform.scale;
+    if (!NearlyEqual(header.minX, collisionArea.minX) ||
+        !NearlyEqual(header.maxX, collisionArea.maxX) ||
+        !NearlyEqual(header.minZ, collisionArea.minZ) ||
+        !NearlyEqual(header.maxZ, collisionArea.maxZ) ||
+        !NearlyEqual(header.scaleX, scale.x) ||
+        !NearlyEqual(header.scaleY, scale.y) ||
+        !NearlyEqual(header.scaleZ, scale.z) ||
+        !NearlyEqual(header.terrainSize, terrain->GetTerrainSize()) ||
+        header.gridResolution != terrain->GetGridResolution() ||
+        !NearlyEqual(header.edgeFactor, terrain->GetTessellationEdgeFactor()) ||
+        !NearlyEqual(header.innerFactor, terrain->GetTessellationInnerFactor()) ||
+        !NearlyEqual(header.heightScaler, terrain->GetHeightScaler()))
+    {
+        vxMessage = "Terrain .vx ignored: terrain collider setting changed.";
+        return false;
+    }
+
+    vertices.resize(header.vertexCount);
+    indices.resize(header.indexCount);
+
+    file.read(
+        reinterpret_cast<char*>(vertices.data()),
+        sizeof(Vector3) * vertices.size());
+    file.read(
+        reinterpret_cast<char*>(indices.data()),
+        sizeof(uint32_t) * indices.size());
+
+    if (!file)
+    {
+        vertices.clear();
+        indices.clear();
+        vxMessage = "Terrain .vx load failed: data is truncated.";
+        return false;
+    }
+
+    vxMessage = "Terrain .vx loaded: " + filepath.generic_string();
+    return true;
+}
+
+bool TerrainMeshCollider::SaveCachedMesh(
+    const std::vector<Vector3>& vertices,
+    const std::vector<uint32_t>& indices)
+{
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    if (!terrain || vertices.empty() || indices.empty())
+    {
+        vxMessage = "Terrain .vx save skipped: mesh is empty.";
+        return false;
+    }
+
+    const std::filesystem::path filepath = terrain->GetColliderVertexPath();
+    std::error_code error;
+    if (!filepath.parent_path().empty())
+    {
+        std::filesystem::create_directories(filepath.parent_path(), error);
+    }
+
+    if (error)
+    {
+        vxMessage = "Terrain .vx save failed: directory creation failed.";
+        return false;
+    }
+
+    std::ofstream file(filepath, std::ios::binary);
+    if (!file)
+    {
+        vxMessage = "Terrain .vx save failed: open failed.";
+        return false;
+    }
+
+    Actor* actor = GetOwnerAsActor();
+    const Vector3 scale = actor->transform.scale;
+
+    TerrainColliderVxHeader header{};
+    header.vertexCount = static_cast<uint32_t>(vertices.size());
+    header.indexCount = static_cast<uint32_t>(indices.size());
+    header.minX = collisionArea.minX;
+    header.maxX = collisionArea.maxX;
+    header.minZ = collisionArea.minZ;
+    header.maxZ = collisionArea.maxZ;
+    header.scaleX = scale.x;
+    header.scaleY = scale.y;
+    header.scaleZ = scale.z;
+    header.terrainSize = terrain->GetTerrainSize();
+    header.gridResolution = terrain->GetGridResolution();
+    header.edgeFactor = terrain->GetTessellationEdgeFactor();
+    header.innerFactor = terrain->GetTessellationInnerFactor();
+    header.heightScaler = terrain->GetHeightScaler();
+
+    file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+    file.write(
+        reinterpret_cast<const char*>(vertices.data()),
+        sizeof(Vector3) * vertices.size());
+    file.write(
+        reinterpret_cast<const char*>(indices.data()),
+        sizeof(uint32_t) * indices.size());
+
+    if (!file)
+    {
+        vxMessage = "Terrain .vx save failed: write failed.";
+        return false;
+    }
+
+    vxMessage = "Terrain .vx saved: " + filepath.generic_string();
+    return true;
+}
+
+void TerrainMeshCollider::ApplyOwnerScale(std::vector<Vector3>& vertices) const
+{
+    Actor* actor = GetOwnerAsActor();
+    const Vector3 scale = actor->transform.scale;
+    for (Vector3& vertex : vertices)
+    {
+        vertex.x *= scale.x;
+        vertex.y *= scale.y;
+        vertex.z *= scale.z;
     }
 }
 
@@ -1122,18 +1276,15 @@ void TerrainMeshCollider::DrawGUI()
 	isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " TerrainMeshCollider");
     if (isOpenGUI)
     {
-        ImGui::DragInt("collision resolution", &resolution, 1, 1, MaxResolution);
-        resolution = std::clamp(resolution, 1, MaxResolution);
-
         Terrain* terrain = owner->GetComponent<Terrain>();
         if (terrain != nullptr && ImGui::TreeNode("Collision Area AABB"))
         {
             ClampCollisionArea();
 
-            ImGui::DragFloat2("MinX", &collisionArea.minX, 0.01f, -1, +1);
-            ImGui::DragFloat2("MinZ", &collisionArea.minZ, 0.01f, -1, +1);
-            ImGui::DragFloat2("MaxX", &collisionArea.minX, 0.01f, -1, +1);
-            ImGui::DragFloat2("MaxZ", &collisionArea.minZ, 0.01f, -1, +1);
+            ImGui::DragFloat("Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
 
             if (ImGui::Button("Reset Full Terrain Area"))
             {
@@ -1146,12 +1297,37 @@ void TerrainMeshCollider::DrawGUI()
             ImGui::TreePop();
         }
 
-        if (ImGui::Button("Rebuild Terrain MeshCollider"))
+        if (ImGui::Button("Remake Terrain .vx Collider"))
         {
-            RebuildFromTerrain();
+            RequestGpuRebuild();
         }
 
-        ImGui::Text("Effective Resolution: %d / %d", resolution, MaxResolution);
+        ImGui::SameLine();
+        if (ImGui::Button("Load Terrain .vx Collider"))
+        {
+            std::vector<Vector3> vertices;
+            std::vector<uint32_t> indices;
+            if (LoadCachedMesh(vertices, indices))
+            {
+                UpdateShape(vertices, indices);
+                debugVertices = vertices;
+                debugIndices = indices;
+            }
+        }
+
+        if (ImGui::Button("Save Current Terrain .vx Collider"))
+        {
+            SaveCachedMesh(debugVertices, debugIndices);
+        }
+
+        if (terrain != nullptr)
+        {
+            ImGui::Text("HeightMap: %d x %d",
+                terrain->GetHeightMapWidth(),
+                terrain->GetHeightMapHeight());
+            ImGui::Text("VX: %s", terrain->GetColliderVertexPath().generic_string().c_str());
+        }
+        ImGui::Text("%s", vxMessage.c_str());
         ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
         ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
 

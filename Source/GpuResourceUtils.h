@@ -28,6 +28,12 @@ public:
 		const char* filename,
 		ID3D11GeometryShader** geometryShader);
 
+	// コンピュートシェーダー読み込み
+	static HRESULT LoadComputeShader(
+		ID3D11Device* device,
+		const char* filename,
+		ID3D11ComputeShader** computeShader);
+
 	// テクスチャ読み込み
 	static HRESULT LoadTexture(
 		ID3D11Device* device,

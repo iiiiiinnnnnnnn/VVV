@@ -13,20 +13,22 @@ namespace Layer
     constexpr int Hair = 6;
     constexpr int EnemyM = 7;
     constexpr int Prop = 8;
-    constexpr int Count = 9;
+    constexpr int FootIK = 9;
+    constexpr int Count = 10;
 
     // 衝突マトリックス
     constexpr bool CollisionMatrix[Count][Count] = {
-        //             Default  Player  Weapon  Enemy   Stage   Body    Hair    EnemyM   Prop
-        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true,   true },
-        /* Player  */ { true,   true,   false,  true,   true,   false,  false,  true,   true },
-        /* Weapon  */ { true,   true,   true,   false,  false,  false,  false,  false,  true },
-        /* Enemy   */ { true,   true,   false,  false,  true,   false,  false,  false,  true },
-        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false,  true },
-        /* Body    */ { false,  false,  false,  false,  false,  false,  true,   false,  true },
-        /* Hair    */ { false,  false,  false,  false,  false,  true,   false,  false,  true },
-        /* EnemyM  */ { true,   true,   false,  false,  false,  false,  false,  false,  true },
-        /* Prop    */ { true,   true,   true,   true,   true,   true,   true,   true,   true }
+        //             Default  Player  Weapon  Enemy   Stage   Body    Hair    EnemyM   Prop    FootIK
+        /* Default */ { true,   true,   true,   true,   true,   false,  false,  true,   true,   false },
+        /* Player  */ { true,   true,   false,  true,   true,   false,  false,  true,   true,   false },
+        /* Weapon  */ { true,   true,   true,   false,  false,  false,  false,  false,  true,   false },
+        /* Enemy   */ { true,   true,   false,  false,  true,   false,  false,  false,  true,   false },
+        /* Stage   */ { true,   true,   false,  false,  false,  false,  false,  false,  true,   true },
+        /* Body    */ { false,  false,  false,  false,  false,  false,  true,   false,  true,   false },
+        /* Hair    */ { false,  false,  false,  false,  false,  true,   false,  false,  true,   false },
+        /* EnemyM  */ { true,   true,   false,  false,  false,  false,  false,  false,  true,   false },
+        /* Prop    */ { true,   true,   true,   true,   true,   true,   true,   true,   true,   false },
+        /* FootIK  */ { false,  false,  false,  false,  true,   false,  false,  false,  false,  false }
     };
 
     // A と B が衝突するか（対称参照）

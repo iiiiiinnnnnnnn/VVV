@@ -771,6 +771,9 @@
     <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
       <Filter>シェーダー\システム\モデル</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl">
+      <Filter>シェーダー\システム\モデル</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>

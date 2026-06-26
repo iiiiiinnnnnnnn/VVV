@@ -131,7 +131,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(0.3f, 0.9f);
+	cc = AddComponent<CharacterController>(0.22f, 0.9f);
 	cc->SetUseGravity(false);
 	cc->SetStepOffset(1.0f);
 	cc->SetSlopeLimitDeg(70.0f);
@@ -174,8 +174,8 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	);
 
 	// FootIK
-	//AddComponent<FootIK>(model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
-	//AddComponent<FootIK>(model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
+	footIK_R = AddComponent<FootIK>(model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
+	footIK_L = AddComponent<FootIK>(model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -313,6 +313,10 @@ void Player::OnUpdate()
 		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
 	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
+
+	bool isIdleing = anim->GetCurrentStateName(0) == "Idle";
+	if (footIK_L) footIK_L->SetIKEnabled(isIdleing);
+	if (footIK_R) footIK_R->SetIKEnabled(isIdleing);
 
 	// Trail is controlled by attack animation callbacks.
 }

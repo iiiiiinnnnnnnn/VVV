@@ -22,6 +22,7 @@ public:
     virtual void LateUpdate() {}
     virtual void Render(const RenderContext& rc) {}
     virtual void DrawGUI() {}
+    virtual int GetUpdateOrder() const { return 0; }
 
     Actor* GetOwnerAsActor(Object* owner_sub = nullptr) const;
     Widget* GetOwnerAsWidget(Object* owner_sub = nullptr) const;

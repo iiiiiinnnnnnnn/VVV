@@ -177,23 +177,25 @@ private:
 class TerrainMeshCollider : public Collider
 {
 public:
-    static constexpr int MaxResolution = 2048;
-
     struct CollisionArea
     {
         float minX = 0.0f, maxX = 1.0f, minZ = 0.0f, maxZ = 1.0f;
     };
 
-    TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, int resolution = 128, const CollisionArea& collisionArea = {}, PxMaterial* material = nullptr);
+    TerrainMeshCollider(Object* owner, Rigidbody* rigidbody, const CollisionArea& collisionArea = {}, PxMaterial* material = nullptr);
     ~TerrainMeshCollider() override;
 
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 
     void RebuildFromTerrain();
+    bool NeedsGpuRebuild() const { return pendingGpuRebuild; }
+    void RequestGpuRebuild() { pendingGpuRebuild = true; }
 
 private:
-    void BuildMeshFromTerrain(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices);
+    bool LoadCachedMesh(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices);
+    bool SaveCachedMesh(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
+    void ApplyOwnerScale(std::vector<Vector3>& vertices) const;
     void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
     void ReleaseShape();
     void ClampCollisionArea();
@@ -202,9 +204,10 @@ private:
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 
-    int resolution = 128;
     CollisionArea collisionArea;
 
     std::vector<Vector3> debugVertices;
     std::vector<uint32_t> debugIndices;
+    std::string vxMessage;
+    bool pendingGpuRebuild = false;
 };

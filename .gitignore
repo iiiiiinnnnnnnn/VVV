@@ -381,3 +381,6 @@ imgui.ini
 
 # lib file
 *.lib
+
+# vertex cache
+*.vx

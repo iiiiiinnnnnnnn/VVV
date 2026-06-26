@@ -20,9 +20,10 @@ public:
 
 	~FootIK() override = default;
 
-	void Update() override;
+	void LateUpdate() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
+	int GetUpdateOrder() const override { return 200; }
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
 
@@ -33,6 +34,10 @@ public:
 		float contactOffset = 0.01f);
 
 	void SetPoleWorldPosition(const Vector3& poleWorldPosition);
+	void SetIKEnabled(bool enabled);
+	bool IsIKEnabled() const { return chain.enabled; }
+	void SyncPoleWorldPosition();
+	void SyncPoleLocalPosition();
 
 	Vector3 GetPoleWorldPosition() const;
 	Vector3 GetTargetPosition() const;
@@ -52,6 +57,7 @@ private:
 
 		Vector3 targetPosition = Vector3::Zero;
 		Vector3 polePosition = Vector3::Zero;
+		Vector3 poleLocalPosition = Vector3::Zero;
 
 		bool poleInitialized = false;
 
@@ -60,6 +66,9 @@ private:
 	};
 
 	Chain chain;
+	Model* model = nullptr;
+
+	Vector3 rayStart, rayEnd;
 
 	static void UpdateWorldTransforms(Model::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{

@@ -12,7 +12,7 @@ FootIK::FootIK(
 	const char* calfName,
 	const char* footName,
 	const char* ballName)
-	: Component(owner)
+	: Component(owner), model(model)
 {
 	// FootIK‚Ìƒ`ƒF[ƒ“‚ðì‚é
 	chain.root = &model->GetNodes().at(model->GetNodeIndex(thighName));
@@ -30,41 +30,42 @@ FootIK::FootIK(
 	}
 }
 
-void FootIK::Update()
+void FootIK::LateUpdate()
 {
-	if (isActive)
+	InitializeFromCurrentPose(0.5f);
+	SyncPoleWorldPosition();
+	if (chain.tip) chain.targetPosition = Matrix(chain.tip->worldTransform).Translation();
+
+	// Raycast—á
 	{
-		InitializeFromCurrentPose(0.5f);
+		rayStart = GetContactWorldPosition() + Vector3(0, 1.0f, 0);
+		rayEnd = GetContactWorldPosition() - Vector3(0, 3.0f, 0);
 
-		// Raycast—á
+		Vector3 direction = rayEnd - rayStart;
+		float distance = direction.Length();
+
+		if (distance < 0.001f) return;
+		direction.Normalize();
+
+		PhysicsManager::PhysicsRaycastHit hit;
+		if (PhysicsManager::Instance().Raycast(
+			rayStart,
+			direction,
+			distance,
+			hit,
+			Layer::FootIK
+			))
 		{
-			Vector3 rayStart = GetContactWorldPosition() + Vector3(0, 1.0f, 0);
-			Vector3 rayEnd   = GetContactWorldPosition() - Vector3(0, 3.0f, 0);
-
-			Vector3 direction = rayEnd - rayStart;
-			float distance = direction.Length();
-
-			if (distance < 0.001f) return;
-			direction.Normalize();
-
-			PhysicsManager::PhysicsRaycastHit hit;
-			if (PhysicsManager::Instance().Raycast(
-				rayStart,
-				direction,
-				distance,
-				hit
-				))
-			{
-				SetTargetFromContact(hit.position, hit.normal, 0.01f);
-			}
+			SetTargetFromContact(hit.position, hit.normal, 0.01f);
 		}
-
-		SolveIK(GetOwnerAsActor()->transform.matrix);
 	}
+
+	SolveIK(model->GetWorldTransform());
 }
 
 void FootIK::Render(const RenderContext& rc)
 {
+	if (!isActive) return;
 	if (!chain.enabled) return;
 	if (chain.weight <= 0.0f) return;
 	if (chain.root == nullptr) return;
@@ -87,13 +88,23 @@ void FootIK::Render(const RenderContext& rc)
 			0.05f,
 			{0, 1, 1, 1});
 	}
+	// Ray•`‰æ
+	{
+		Game::Graphics::Instance().GetPrimitiveRenderer()->DrawLine(
+			rayStart,
+			rayEnd,
+			{1, 0, 0, 1}, {1, 0, 0, 1});
+	}
 }
 
 void FootIK::DrawGUI()
 {
 	if (ImGui::TreeNode(ICON_FA_BONE " FootIK"))
 	{
-		ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f);
+		if (ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f))
+		{
+			SyncPoleLocalPosition();
+		}
 		ImGui::TreePop();
 	}
 }
@@ -140,6 +151,7 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 	chain.polePosition = midPosition + poleDirection * poleDistance;
 	chain.targetPosition = tipPosition;
 	chain.poleInitialized = true;
+	SyncPoleLocalPosition();
 }
 
 void FootIK::SetTarget(const Vector3& targetPosition)
@@ -177,6 +189,32 @@ void FootIK::SetPoleWorldPosition(const Vector3& poleWorldPosition)
 {
 	chain.polePosition = poleWorldPosition;
 	chain.poleInitialized = true;
+	SyncPoleLocalPosition();
+}
+
+void FootIK::SetIKEnabled(bool enabled)
+{
+	chain.enabled = enabled;
+}
+
+void FootIK::SyncPoleWorldPosition()
+{
+	if (!model) return;
+	if (!chain.poleInitialized) return;
+
+	chain.polePosition = Vector3::Transform(
+		chain.poleLocalPosition,
+		model->GetWorldTransform());
+}
+
+void FootIK::SyncPoleLocalPosition()
+{
+	if (!model) return;
+
+	Matrix inverseModelWorldTransform = model->GetWorldTransform().Invert();
+	chain.poleLocalPosition = Vector3::Transform(
+		chain.polePosition,
+		inverseModelWorldTransform);
 }
 
 Vector3 FootIK::GetPoleWorldPosition() const

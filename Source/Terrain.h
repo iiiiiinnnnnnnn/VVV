@@ -21,6 +21,20 @@ public:
 
 	float GetHeightByUV(float u, float v) const;
 	float GetTerrainSize() const { return terrainSize; }
+	int GetHeightMapWidth() const { return TerrainTextureWidth; }
+	int GetHeightMapHeight() const { return TerrainTextureHeight; }
+	int GetGridResolution() const { return gridResolution; }
+	float GetTessellationEdgeFactor() const { return tesselation_constant.edge_factor; }
+	float GetTessellationInnerFactor() const { return tesselation_constant.inner_factor; }
+	float GetHeightScaler() const { return tesselation_constant.height_scaler; }
+	std::filesystem::path GetColliderVertexPath() const;
+	bool BuildGpuColliderMesh(
+		float minX,
+		float maxX,
+		float minZ,
+		float maxZ,
+		std::vector<Vector3>& vertices,
+		std::vector<uint32_t>& indices);
 
 	bool SaveTerrainTexture(const std::string& filename);
 	bool LoadTerrainTexture(const std::string& filename);
@@ -94,6 +108,22 @@ private:
 		Vector3 viewPosition;
 		float dummy;
 		CbLightData lightData;
+	};
+
+	struct CbTerrainColliderBuild
+	{
+		float terrainSize;
+		float heightMapTexelSize;
+		float heightScaler;
+		float dummy0;
+		int minGridX;
+		int minGridZ;
+		int segmentCountX;
+		int segmentCountZ;
+		int totalSegmentCountX;
+		int totalSegmentCountZ;
+		int vertexLineCount;
+		int dummy1;
 	};
 
 	struct TerrainBrush
@@ -171,11 +201,13 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainSceneConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> tesselationConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainLayerConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainColliderBuildConstantBuffer;
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrainVertexShader;
 	Microsoft::WRL::ComPtr<ID3D11HullShader> terrainHullShader;
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> terrainDomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> terrainPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> terrainColliderBuildComputeShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> terrainInputLayout;
 
 	std::vector<Vector4> terrainPixels;

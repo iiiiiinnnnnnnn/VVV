@@ -58,6 +58,8 @@ protected:
     BoneSphereCollider* footCollider = nullptr;
     TrailRenderComponent* trail = nullptr;
     SpringBone* hairSpringBone = nullptr;
+	FootIK* footIK_R = nullptr;
+	FootIK* footIK_L = nullptr;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;

@@ -941,6 +941,26 @@ void Model::UpdateTransform(const Matrix& worldTransform)
 	}
 }
 
+const Matrix& Model::GetWorldTransform() const
+{
+	for (const Node& node : nodes)
+	{
+		if (node.parent == nullptr)
+		{
+			return node.worldTransform;
+		}
+	}
+
+	// アタッチされたノードは毎フレーム対象ノードのworldTransformを上書き
+	for (auto& [childIdx, targetIdx] : attachments)
+	{
+		return nodes[childIdx].worldTransform;
+	}
+
+	static const Matrix identity = Matrix::Identity;
+	return identity;
+}
+
 void Model::ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const
 {
 	const Animation& animation = animations.at(animationIndex);

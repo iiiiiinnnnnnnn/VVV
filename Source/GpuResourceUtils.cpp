@@ -15,28 +15,27 @@ HRESULT GpuResourceUtils::LoadVertexShader(
 	ID3D11VertexShader** vertexShader)
 {
 	// ファイルを開く
-	FILE* fp = nullptr;
-	fopen_s(&fp, filename, "rb");
-	_ASSERT_EXPR_A(fp, "Vertex Shader File not found");
-
-	// ファイルのサイズを求める
-	fseek(fp, 0, SEEK_END);
-	long size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-
-	// メモリ上に頂点シェーダーデータを格納する領域を用意する
-	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
-	fread(data.get(), size, 1, fp);
-	fclose(fp);
+	std::vector<uint8_t> data = LoadBinaryFile(filename);
 
 	// 頂点シェーダー生成
-	HRESULT hr = device->CreateVertexShader(data.get(), size, nullptr, vertexShader);
+	HRESULT hr = device->CreateVertexShader(
+		data.data(),
+		data.size(),
+		nullptr,
+		vertexShader);
+
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
 	// 入力レイアウト
 	if (inputLayout != nullptr)
 	{
-		hr = device->CreateInputLayout(inputElementDescs, inputElementCount, data.get(), size, inputLayout);
+		hr = device->CreateInputLayout(
+			inputElementDescs,
+			inputElementCount,
+			data.data(),
+			data.size(),
+			inputLayout);
+
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	}
 
@@ -50,22 +49,15 @@ HRESULT GpuResourceUtils::LoadPixelShader(
 	ID3D11PixelShader** pixelShader)
 {
 	// ファイルを開く
-	FILE* fp = nullptr;
-	fopen_s(&fp, filename, "rb");
-	_ASSERT_EXPR_A(fp, "Pixel Shader File not found");
-
-	// ファイルのサイズを求める
-	fseek(fp, 0, SEEK_END);
-	long size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-
-	// メモリ上に頂点シェーダーデータを格納する領域を用意する
-	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
-	fread(data.get(), size, 1, fp);
-	fclose(fp);
+	std::vector<uint8_t> data = LoadBinaryFile(filename);
 
 	// ピクセルシェーダー生成
-	HRESULT hr = device->CreatePixelShader(data.get(), size, nullptr, pixelShader);
+	HRESULT hr = device->CreatePixelShader(
+		data.data(),
+		data.size(),
+		nullptr,
+		pixelShader);
+
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
 	return hr;
@@ -77,19 +69,32 @@ HRESULT GpuResourceUtils::LoadGeometryShader(
 	const char* filename,
 	ID3D11GeometryShader** geometryShader)
 {
-	FILE* fp = nullptr;
-	fopen_s(&fp, filename, "rb");
-	_ASSERT_EXPR_A(fp, "Geometry Shader File not found");
+	std::vector<uint8_t> data = LoadBinaryFile(filename);
 
-	fseek(fp, 0, SEEK_END);
-	long size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
+	HRESULT hr = device->CreateGeometryShader(
+		data.data(),
+		data.size(),
+		nullptr,
+		geometryShader);
 
-	std::unique_ptr<u_char[]> data = std::make_unique<u_char[]>(size);
-	fread(data.get(), size, 1, fp);
-	fclose(fp);
+	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-	HRESULT hr = device->CreateGeometryShader(data.get(), size, nullptr, geometryShader);
+	return hr;
+}
+
+HRESULT GpuResourceUtils::LoadComputeShader(
+	ID3D11Device* device,
+	const char* filename,
+	ID3D11ComputeShader** computeShader)
+{
+	std::vector<uint8_t> data = LoadBinaryFile(filename);
+
+	HRESULT hr = device->CreateComputeShader(
+		data.data(),
+		data.size(),
+		nullptr,
+		computeShader);
+
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
 	return hr;

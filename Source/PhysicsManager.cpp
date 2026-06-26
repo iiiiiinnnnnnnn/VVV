@@ -377,7 +377,8 @@ bool PhysicsManager::Raycast(
     const Vector3& origin,
     const Vector3& direction,
     float distance,
-    PhysicsRaycastHit& hit) const
+    PhysicsRaycastHit& hit,
+    int layer) const
 {
     if (distance <= 0.001f)
     {
@@ -406,12 +407,49 @@ bool PhysicsManager::Raycast(
     );
 
     physx::PxRaycastBuffer hitBuffer;
+    physx::PxQueryFilterData filterData;
+    if (layer >= 0)
+    {
+        filterData.flags |= physx::PxQueryFlag::ePREFILTER;
+    }
+
+    struct RaycastFilterCallback : physx::PxQueryFilterCallback
+    {
+        int layer = -1;
+
+        physx::PxQueryHitType::Enum preFilter(
+            const physx::PxFilterData& filterData,
+            const physx::PxShape*,
+            const physx::PxRigidActor*,
+            physx::PxHitFlags&) override
+        {
+            if (layer < 0) return physx::PxQueryHitType::eBLOCK;
+
+            int otherLayer = static_cast<int>(filterData.word1);
+            if (!Layer::Collides(layer, otherLayer)) return physx::PxQueryHitType::eNONE;
+            return physx::PxQueryHitType::eBLOCK;
+        }
+
+        physx::PxQueryHitType::Enum postFilter(
+            const physx::PxFilterData&,
+            const physx::PxQueryHit&,
+            const physx::PxShape*,
+            const physx::PxRigidActor*) override
+        {
+            return physx::PxQueryHitType::eBLOCK;
+        }
+    } filterCallback;
+
+    filterCallback.layer = layer;
 
     bool result = GetSceneContext().GetScene()->raycast(
         pxOrigin,
         pxDirection,
         distance,
-        hitBuffer
+        hitBuffer,
+        physx::PxHitFlag::eDEFAULT,
+        filterData,
+        layer >= 0 ? &filterCallback : nullptr
     );
 
     if (!result || !hitBuffer.hasBlock)

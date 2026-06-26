@@ -56,9 +56,11 @@ protected:
 	struct Components {
 		std::vector<std::unique_ptr<Component>> data;
 		void push_back(std::unique_ptr<Component> component);
+		void SortUpdateOrder();
 		void Update();
 		void LateUpdate();
 		void Render(const RenderContext& rc);
 		void DrawGUI();
+		bool updateOrderDirty = false;
 	} componentList;
 };

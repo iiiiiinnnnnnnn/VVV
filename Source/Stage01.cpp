@@ -17,7 +17,8 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, L
 
 	Terrain* terrain = AddComponent<Terrain>();
 	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField2.dds");
-	AddComponent<TerrainMeshCollider>(rb, 256, TerrainMeshCollider::CollisionArea{0.2844f, 0.7242f, 0.2438f, 0.6844f});
+	AddComponent<TerrainMeshCollider>(rb,
+		TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
 	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
 	AddComponent<NavMeshActor>();
 
