@@ -38,8 +38,12 @@ void FootIK::LateUpdate()
 
 	// Raycast—á
 	{
-		rayStart = GetContactWorldPosition() + Vector3(0, 1.0f, 0);
-		rayEnd = GetContactWorldPosition() - Vector3(0, 3.0f, 0);
+		const Vector3 currentContactPosition = GetContactWorldPosition();
+		hasGroundContact = false;
+		groundOffsetY = 0.0f;
+
+		rayStart = currentContactPosition + Vector3(0, 1.0f, 0);
+		rayEnd = currentContactPosition - Vector3(0, 3.0f, 0);
 
 		Vector3 direction = rayEnd - rayStart;
 		float distance = direction.Length();
@@ -57,6 +61,8 @@ void FootIK::LateUpdate()
 			))
 		{
 			SetTargetFromContact(hit.position, hit.normal, 0.01f);
+			hasGroundContact = true;
+			groundOffsetY = hit.position.y - currentContactPosition.y;
 		}
 	}
 
@@ -363,3 +369,4 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	UpdateWorldTransforms(midBone, modelWorldTransform);
 }
+

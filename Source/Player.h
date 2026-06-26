@@ -47,6 +47,9 @@ public:
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 
+private:
+    void ApplyFootIKHipOffset();
+
 protected:
     std::unique_ptr<PlayerController> controller;
     std::shared_ptr<Model> model = nullptr;
@@ -60,6 +63,8 @@ protected:
     SpringBone* hairSpringBone = nullptr;
 	FootIK* footIK_R = nullptr;
 	FootIK* footIK_L = nullptr;
+    int hipNodeIndex = -1;
+    float visualHipOffsetY = 0.0f;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;

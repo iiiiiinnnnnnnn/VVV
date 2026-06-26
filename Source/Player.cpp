@@ -176,6 +176,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	// FootIK
 	footIK_R = AddComponent<FootIK>(model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
 	footIK_L = AddComponent<FootIK>(model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
+	hipNodeIndex = model->GetNodeIndex("pelvis");
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -331,6 +332,31 @@ void Player::OnLateUpdate()
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 	cc->Move(worldMoveVec);
+
+	ApplyFootIKHipOffset();
+}
+
+void Player::ApplyFootIKHipOffset()
+{
+	float targetOffsetY = 0.0f;
+
+	if (footIK_L && footIK_L->IsIKEnabled() && footIK_L->HasGroundContact())
+	{
+		targetOffsetY = min(targetOffsetY, footIK_L->GetGroundOffsetY());
+	}
+
+	if (footIK_R && footIK_R->IsIKEnabled() && footIK_R->HasGroundContact())
+	{
+		targetOffsetY = min(targetOffsetY, footIK_R->GetGroundOffsetY());
+	}
+
+	targetOffsetY = max(targetOffsetY, -20.6f);
+
+	const float t = 1.0f - expf(-14.0f * Game::Time::deltaTime);
+	visualHipOffsetY += (targetOffsetY - visualHipOffsetY) * t;
+
+	model->GetNodes()[hipNodeIndex].position.y += visualHipOffsetY;
+	model->UpdateTransform(transform.matrix);
 }
 
 void Player::OnDrawGUI()

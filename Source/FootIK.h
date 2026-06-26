@@ -42,6 +42,8 @@ public:
 	Vector3 GetPoleWorldPosition() const;
 	Vector3 GetTargetPosition() const;
 	Vector3 GetContactWorldPosition() const;
+	bool HasGroundContact() const { return hasGroundContact; }
+	float GetGroundOffsetY() const { return groundOffsetY; }
 
 	void SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform);
 
@@ -69,6 +71,8 @@ private:
 	Model* model = nullptr;
 
 	Vector3 rayStart, rayEnd;
+	bool hasGroundContact = false;
+	float groundOffsetY = 0.0f;
 
 	static void UpdateWorldTransforms(Model::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{
