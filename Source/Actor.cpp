@@ -3,6 +3,7 @@
 #include "Actor.h"
 #include "imgui.h"
 #include "Components.h"
+#include "ActorManager.h"
 
 void Actor::Update()
 {
@@ -20,13 +21,6 @@ void Actor::DrawGUI()
     if (debugGUIOpen)
     {
         Object::DrawGUI();
-
-        if (ImGui::TreeNode("Actor Info"))
-        {
-            ImGui::Text("Tag: %s", tag.c_str());
-			ImGui::Text("Layer: %d", layer);
-			ImGui::TreePop();
-        }
 
         Transform::TransformChangedResult res = transform.DrawGUI();
         if (res.positionChanged)
@@ -68,4 +62,16 @@ void Actor::DrawGUI()
     ImGui::PopID();
 
     ImGui::Separator();
+}
+
+Actor* Actor::FindActorByTag(const std::string& searchTag) const
+{
+    if (!actorManager) return nullptr;
+    for (const std::shared_ptr<Actor>& actor : actorManager->GetActors())
+    {
+        if (!actor || actor->IsPendingDestroy()) continue;
+        if (actor->CompareTag(searchTag))
+            return actor.get();
+    }
+	return nullptr;
 }

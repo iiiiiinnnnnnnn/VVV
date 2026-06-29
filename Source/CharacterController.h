@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "Collider.h"
+#include "PhysicsComponent.h"
 #include "PhysicsManager.h"
 #include "Object.h"
 
-class CharacterController : public Collider {
+class CharacterController : public PhysicsComponent {
 public:
-    CharacterController(Object* owner, float radius, float height);
+    CharacterController(Object* owner, LayerId layerId, float radius, float height);
     ~CharacterController();
     void Update() override;
     void LateUpdate() override;

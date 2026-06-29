@@ -2,7 +2,6 @@
 
 #include "NavMeshObstacle.h"
 #include "Actor.h"
-#include "Collider.h"
 
 bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 {

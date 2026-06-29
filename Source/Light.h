@@ -10,8 +10,8 @@ class LightManager;
 class Light : public Object
 {
 public:
-	Light(std::string name = "Light", bool isActive = true, Color color = {1, 1, 1, 1})
-		: Object(name, isActive), color(color) {}
+	Light(const std::string& name = "Light", const std::string& tag = "Light", bool isActive = true, Color color = {1, 1, 1, 1})
+		: Object(name, tag, isActive), color(color) {}
 	virtual ~Light() = default;
 
 	void Update() override
@@ -48,8 +48,8 @@ protected:
 class DirectionalLight : public Light
 {
 public:
-	DirectionalLight(std::string name = "Directional Light", bool isActive = true, Color color = {1, 1, 1, 1})
-		: Light(name, isActive, color)
+	DirectionalLight(const std::string& name = "Directional Light", const std::string& tag = "Directional Light", bool isActive = true, Color color = {1, 1, 1, 1})
+		: Light(name, tag, isActive, color)
 	{
 	}
 
@@ -59,8 +59,8 @@ public:
 class PointLight : public Light
 {
 public:
-	PointLight(std::string name = "Point Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f)
-		: Light(name, isActive, color), range(range)
+	PointLight(const std::string& name = "Point Light", const std::string& tag = "Point Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f)
+		: Light(name, tag, isActive, color), range(range)
 	{
 	}
 
@@ -83,8 +83,8 @@ protected:
 class SpotLight : public Light
 {
 public:
-	SpotLight(std::string name = "Spot Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f, float innerConeAngle = 0.9f, float outerConeAngle = 0.8f)
-		: Light(name, isActive, color), range(range), innerConeAngle(innerConeAngle), outerConeAngle(outerConeAngle)
+	SpotLight(const std::string& name = "Spot Light", const std::string& tag = "Spot Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f, float innerConeAngle = 0.9f, float outerConeAngle = 0.8f)
+		: Light(name, tag, isActive, color), range(range), innerConeAngle(innerConeAngle), outerConeAngle(outerConeAngle)
 	{
 	}
 
@@ -129,8 +129,8 @@ protected:
 class AreaLight : public Light
 {
 public:
-	AreaLight(std::string name = "Area Light", bool isActive = true, Color color = {1, 1, 1, 1}, float width = 1.0f, float height = 1.0f, float range = 10.0f)
-		: Light(name, isActive, color), width(width), height(height), range(range)
+	AreaLight(const std::string& name = "Area Light", const std::string& tag = "Area Light", bool isActive = true, Color color = {1, 1, 1, 1}, float width = 1.0f, float height = 1.0f, float range = 10.0f)
+		: Light(name, tag, isActive, color), width(width), height(height), range(range)
 	{
 	}
 

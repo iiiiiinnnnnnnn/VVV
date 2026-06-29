@@ -11,11 +11,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\BoneBoxCollider.cpp" />
+    <ClCompile Include="Source\BoneCapsuleCollider.cpp" />
+    <ClCompile Include="Source\BoneCollider.cpp" />
+    <ClCompile Include="Source\BoneSphereCollider.cpp" />
+    <ClCompile Include="Source\BoxCollider.cpp" />
+    <ClCompile Include="Source\CapsuleCollider.cpp" />
     <ClCompile Include="Source\FootIK.cpp" />
+    <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
     <ClCompile Include="Source\Animator.cpp" />
-    <ClCompile Include="Source\Aracore.cpp" />
     <ClCompile Include="Source\BasicModelShader.cpp" />
     <ClCompile Include="Source\BoneFollower.cpp" />
     <ClCompile Include="Source\BasicSpriteShader.cpp" />
@@ -33,10 +39,10 @@
     <ClCompile Include="Source\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Prop.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
+    <ClCompile Include="Source\SphereCollider.cpp" />
     <ClCompile Include="Source\SpringBone.cpp" />
     <ClCompile Include="Source\Player.cpp" />
     <ClCompile Include="Source\CharacterController.cpp" />
-    <ClCompile Include="Source\Collider.cpp" />
     <ClCompile Include="Source\Dialog.cpp" />
     <ClCompile Include="Source\Effect.cpp" />
     <ClCompile Include="Source\EffectManager.cpp" />
@@ -63,6 +69,7 @@
     <ClCompile Include="Source\Stage01.cpp" />
     <ClCompile Include="Source\StageLoader.cpp" />
     <ClCompile Include="Source\Terrain.cpp" />
+    <ClCompile Include="Source\TerrainMeshCollider.cpp" />
     <ClCompile Include="Source\TestPlayScene.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="Source\PhysicsManager.cpp" />
@@ -87,18 +94,26 @@
     <ClCompile Include="Source\TrailRenderComponent.cpp" />
     <ClCompile Include="Source\TrailRenderer.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
+    <ClCompile Include="Source\UserSettingsManager.cpp" />
     <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\BoneBoxCollider.h" />
+    <ClInclude Include="Source\BoneCapsuleCollider.h" />
+    <ClInclude Include="Source\BoneCollider.h" />
+    <ClInclude Include="Source\BoneSphereCollider.h" />
+    <ClInclude Include="Source\BoxCollider.h" />
+    <ClInclude Include="Source\CapsuleCollider.h" />
+    <ClInclude Include="Source\CollidersDef.h" />
     <ClInclude Include="Source\FootIK.h" />
+    <ClInclude Include="Source\MeshCollider.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
     <ClInclude Include="Source\Actor.h" />
     <ClInclude Include="Source\ActorManager.h" />
     <ClInclude Include="Source\Animator.h" />
     <ClInclude Include="Source\AnimatorSerializer.h" />
     <ClInclude Include="Source\AnimEditorWindow.h" />
-    <ClInclude Include="Source\Aracore.h" />
     <ClInclude Include="Source\AracoreFootGrounder.h" />
     <ClInclude Include="Source\BasicModelShader.h" />
     <ClInclude Include="Source\BoneFollower.h" />
@@ -112,17 +127,17 @@
     <ClInclude Include="Source\DynamicAnimationEditorWindow.h" />
     <ClInclude Include="Source\DynamicAnimationSerializer.h" />
     <ClInclude Include="Source\Entity.h" />
-    <ClInclude Include="Source\GameDefine.h" />
     <ClInclude Include="Source\Light.h" />
     <ClInclude Include="Source\LightManager.h" />
     <ClInclude Include="Source\LoadingScene.h" />
+    <ClInclude Include="Source\PhysicsComponent.h" />
     <ClInclude Include="Source\Prop.h" />
     <ClInclude Include="Source\SceneManager.h" />
+    <ClInclude Include="Source\SphereCollider.h" />
     <ClInclude Include="Source\SpringBone.h" />
     <ClInclude Include="Source\SceneEffect.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
-    <ClInclude Include="Source\Collider.h" />
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Component.h" />
     <ClInclude Include="Source\Components.h" />
@@ -158,6 +173,7 @@
     <ClInclude Include="Source\Stage01.h" />
     <ClInclude Include="Source\StageLoader.h" />
     <ClInclude Include="Source\Terrain.h" />
+    <ClInclude Include="Source\TerrainMeshCollider.h" />
     <ClInclude Include="Source\TestPlayScene.h" />
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\PlayerController.h" />
@@ -185,6 +201,7 @@
     <ClInclude Include="Source\TrailRenderComponent.h" />
     <ClInclude Include="Source\TrailRenderer.h" />
     <ClInclude Include="Source\Transform.h" />
+    <ClInclude Include="Source\UserSettingsManager.h" />
     <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
     <ClInclude Include="Source\WidgetManager.h" />

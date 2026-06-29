@@ -133,8 +133,8 @@
     <Filter Include="シェーダー\ゲーム\モデル">
       <UniqueIdentifier>{0c99764e-ae6f-421e-9ed9-56ed03757b53}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK">
-      <UniqueIdentifier>{fafb2bc7-a5aa-4734-baa9-5d800d927e50}</UniqueIdentifier>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理">
+      <UniqueIdentifier>{cfca3712-e72e-4daa-94c1-9b4d22f31405}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -339,9 +339,6 @@
     <ClCompile Include="Source\MovieCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Aracore.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
-    </ClCompile>
     <ClCompile Include="Source\StageLoader.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClCompile>
@@ -357,20 +354,47 @@
     <ClCompile Include="Source\NavMeshAgent.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
-    <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Collider.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SpringBone.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\FootIK.cpp">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
-    </ClCompile>
     <ClCompile Include="Source\NavMeshObstacle.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FootIK.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UserSettingsManager.cpp">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoxCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SphereCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CapsuleCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MeshCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneSphereCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TerrainMeshCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneBoxCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneCapsuleCollider.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CharacterController.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpringBone.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -515,9 +539,6 @@
     <ClInclude Include="Source\ThirdPersonCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameDefine.h">
-      <Filter>ソースファイル\ゲーム</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Entity.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ</Filter>
     </ClInclude>
@@ -629,9 +650,6 @@
     <ClInclude Include="Source\MovieCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Aracore.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
-    </ClInclude>
     <ClInclude Include="Source\StageLoader.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
     </ClInclude>
@@ -653,17 +671,50 @@
     <ClInclude Include="Source\NavMeshActor.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
-    <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Collider.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
-    </ClInclude>
     <ClInclude Include="Source\FootIK.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PhysicsComponent.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UserSettingsManager.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ\エディト</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoxCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CollidersDef.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SphereCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CapsuleCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MeshCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneSphereCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneCapsuleCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneBoxCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TerrainMeshCollider.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CharacterController.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpringBone.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\IK</Filter>
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -771,9 +822,6 @@
     <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
       <Filter>シェーダー\システム\モデル</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
@@ -798,6 +846,7 @@
     <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />

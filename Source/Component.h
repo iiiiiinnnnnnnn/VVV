@@ -5,6 +5,9 @@
 // コンポーネントにはWidget、Actorどちらかしかアタッチできないものがある
 // その場合はActorにdynamic_castした時にエラー吐くために変換&エラー関数がある
 
+// フォント用
+#include "IconsFontAwesome5.h"
+
 struct RenderContext;
 class Object;
 class Actor;

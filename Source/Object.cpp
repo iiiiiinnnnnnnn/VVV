@@ -41,8 +41,9 @@ void Object::DrawGUI()
 {
     if (ImGui::TreeNode("Object Info"))
     {
-        ImGui::Text("Name: %s", name.c_str());
         ImGui::Checkbox("Active", &isActive);
+        ImGui::Text("Name: %s", name.c_str());
+		ImGui::Text("Tag: %s", tag.c_str());
         ImGui::Text("Components: %d", (int)componentList.data.size());
         if (ImGui::Button("Destroy"))
             Destroy();

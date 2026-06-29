@@ -5,13 +5,14 @@
 #include "Graphics.h"
 #include "GameTime.h"
 #include "IconsFontAwesome5.h"
+#include "UserSettingsManager.h"
 
-CharacterController::CharacterController(Object* owner, float radius, float height)
-    : Collider(owner)
+CharacterController::CharacterController(Object* owner, LayerId layerId, float radius, float height)
+    : PhysicsComponent(owner, layerId)
 {
     Actor* actor = Component::GetOwnerAsActor();
 
-    hitReport = new CCHitReport(actor, this, actor->GetLayer());
+    hitReport = new CCHitReport(actor, this, layerId);
 
     PxCapsuleControllerDesc desc;
     desc.radius = radius;
@@ -38,7 +39,7 @@ CharacterController::CharacterController(Object* owner, float radius, float heig
     PxShape* shape = nullptr;
     act->getShapes(&shape, 1);
     shape->userData = this;
-    PhysicsManager::SetLayerToShape(shape, actor->GetLayer());
+    PhysicsManager::SetLayerToShape(shape, layerId);
 }
 
 CharacterController::~CharacterController()
@@ -177,7 +178,7 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
         if (rigidActor && rigidActor->userData == owner) return PxQueryHitType::eNONE;
 
         int layer = (int)shape->getSimulationFilterData().word1;
-        if (!Layer::Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
+        if (!UserSettingsManager::Instance().Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
         return PxQueryHitType::eBLOCK;
     }
     PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override
@@ -194,7 +195,7 @@ void CharacterController::Move(const Vector3& velocity)
 {
     static CCFilterCallback      ccFilter;
     Actor* actor = Component::GetOwnerAsActor();
-    CCShapeFilterCallback shapeFilter(actor, actor->GetLayer());
+    CCShapeFilterCallback shapeFilter(actor, layerId);
 
     // 新フレームの開始としてフラグをリセット（LateUpdateより先にMoveが呼ばれる想定）
     hitReport->dispatchedThisFrame = false;

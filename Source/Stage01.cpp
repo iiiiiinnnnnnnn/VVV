@@ -4,12 +4,11 @@
 #include "Graphics.h"
 #include "LightManager.h"
 #include "ActorManager.h"
-#include "Aracore.h"
 #include "AracoreQueen.h"
 #include "NavMeshActor.h"
 #include "StageLoader.h"
 
-Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, Layer::Stage)
+Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true)
 {
 	this->actorManager = actorManager;
 
@@ -17,7 +16,7 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, L
 
 	Terrain* terrain = AddComponent<Terrain>();
 	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField2.dds");
-	AddComponent<TerrainMeshCollider>(rb,
+	AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rb,
 		TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
 	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
 	AddComponent<NavMeshActor>();
@@ -26,7 +25,7 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, L
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
 	// ƒ{ƒX“G
-	#if 0
+	#if 1
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager->Register(boss);
 	#endif
@@ -34,7 +33,7 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true, L
 
 void Stage01::ApplyEnvironment(LightManager& lightManager) const
 {
-	DirectionalLight directionalLight{"Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
+	DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
 	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
 		DirectX::XMConvertToRadians(-35.0f),
 		DirectX::XMConvertToRadians(35.0f),

@@ -4,7 +4,7 @@
 #include "ResourceManager.h"
 
 Prop::Prop(StageLoader::PropData& propData)
-	: Actor("Prop", "Prop", true, Layer::Prop)
+	: Actor("Prop", "Prop", true)
 {
 	propData.transform.Update();
 	transform = propData.transform;
@@ -18,7 +18,7 @@ Prop::Prop(StageLoader::PropData& propData)
 	propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
 	AddComponent<ModelRenderComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
 
-	AddComponent<BoxCollider>(rb, propData.boxColliderData.size, propData.boxColliderData.localPosition,
+	AddComponent<BoxCollider>(Layers::Get("Prop"), rb, propData.boxColliderData.size, propData.boxColliderData.localPosition,
 		PhysicsManager::Instance().GetPhysics()->createMaterial(
 		propData.boxColliderData.staticFriction, propData.boxColliderData.dynamicFriction, propData.boxColliderData.restitution));
 }

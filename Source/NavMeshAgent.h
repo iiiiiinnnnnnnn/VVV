@@ -22,6 +22,8 @@ public:
 	void MoveToTarget(Actor* targetActor);
 	void Stop();
 
+	float GetSpeed() const { return speed; }
+
 private:
 	Actor* FindTargetByTag();
 	void MoveToTarget(Actor* actor, Actor* targetActor);

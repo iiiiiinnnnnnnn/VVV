@@ -26,12 +26,12 @@ public:
     void OnEnterAnimAttack4B(const Animator::State& state);
     void OnExitAnimAttack4B(const Animator::State& state);
 
-    void OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
-    void OnCollisionStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
-    void OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
-    void OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
-    void OnTriggerStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
-    void OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal) override;
+    void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+    void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+    void OnCollisionExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+    void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
     void SetController(std::unique_ptr<PlayerController> ctrl) { controller = std::move(ctrl); }
     PlayerController* GetController() const { return controller.get(); }

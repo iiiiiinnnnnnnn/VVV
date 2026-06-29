@@ -8,7 +8,7 @@
 #include "Graphics.h"
 #include "SceneEffect.h"
 
-Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0f)
+Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
 	model->_print(); // デバッグ用
@@ -131,7 +131,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(0.01f, 0.9f);
+	cc = AddComponent<CharacterController>(Layers::Get("Player"), 0.01f, 0.9f);
 	cc->SetUseGravity(false);
 	cc->SetStepOffset(1.0f);
 	cc->SetSlopeLimitDeg(70.0f);
@@ -140,6 +140,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// 武器判定
 	weaponCollider = AddComponent<BoneSphereCollider>(
+		Layers::Get("PlayerAtk"),
 		model.get(),
 		model->GetNodeIndex("add_weapon_r"),
 		0.5f,
@@ -148,6 +149,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// キック判定
 	footCollider = AddComponent<BoneSphereCollider>(
+		Layers::Get("PlayerAtk"),
 		model.get(),
 		model->GetNodeIndex("foot_l"),
 		0.5f,
@@ -162,6 +164,7 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 
 	// HairPhysics
 	hairSpringBone = AddComponent<SpringBone>(
+		Layers::Get("Hair"), 
 		model.get(),
 		std::vector<std::string>{"hair"},
 		std::vector<SpringBone::SpringCapsule>(
@@ -174,8 +177,8 @@ Player::Player() : Entity("Player", "Player", true, Layer::Player, 100.0f, 100.0
 	);
 
 	// FootIK
-	footIK_R = AddComponent<FootIK>(model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
-	footIK_L = AddComponent<FootIK>(model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
+	footIK_R = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
+	footIK_L = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
 	hipNodeIndex = model->GetNodeIndex("pelvis");
 }
 
@@ -207,22 +210,22 @@ void Player::OnExitAnimAttack4B(const Animator::State& state)
 	footCollider->SetActive(false);
 }
 
-void Player::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionEnter: %s\n", other->GetName().c_str());
 }
 
-void Player::OnCollisionStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionStay: %s\n", other->GetName().c_str());
 }
 
-void Player::OnCollisionExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnCollisionExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnCollisionExit: %s\n", other->GetName().c_str());
 }
 
-void Player::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	if (!self || !other) return;
 	if (!self->IsActive()) return;
@@ -230,7 +233,7 @@ void Player::OnTriggerEnter(Collider* self, Collider* other, const Vector3& poin
 
 	// 敵を殴る
 
-	Actor* otherActor = other->GetOwnerActor();
+	Actor* otherActor = other->GetOwnerAsActor();
 	if (!otherActor->CompareTag("Enemy")) return;
 
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
@@ -248,12 +251,12 @@ void Player::OnTriggerEnter(Collider* self, Collider* other, const Vector3& poin
 		});
 }
 
-void Player::OnTriggerStay(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerStay: %s\n", other->GetName().c_str());
 }
 
-void Player::OnTriggerExit(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void Player::OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
 }
@@ -344,8 +347,7 @@ void Player::OnLateUpdate()
 		footIK_L->UpdateGroundTarget(
 			1.0f,
 			3.0f,
-			0.01f,
-			Layer::FootIK
+			0.01f
 		);
 	}
 
@@ -354,8 +356,7 @@ void Player::OnLateUpdate()
 		footIK_R->UpdateGroundTarget(
 			1.0f,
 			3.0f,
-			0.01f,
-			Layer::FootIK
+			0.01f
 		);
 	}
 

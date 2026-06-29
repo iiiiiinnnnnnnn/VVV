@@ -7,12 +7,13 @@
 
 FootIK::FootIK(
 	Object* owner,
+	LayerId layerId,
 	Model* model,
 	const char* thighName,
 	const char* calfName,
 	const char* footName,
 	const char* ballName)
-	: Component(owner), model(model)
+	: PhysicsComponent(owner, layerId), model(model)
 {
 	// FootIKのチェーンを作る
 	chain.root = &model->GetNodes().at(model->GetNodeIndex(thighName));
@@ -33,8 +34,7 @@ FootIK::FootIK(
 bool FootIK::UpdateGroundTarget(
 	float rayUp,
 	float rayDown,
-	float contactOffset,
-	int rayLayer)
+	float contactOffset)
 {
 	if (!chain.enabled)
 	{
@@ -75,7 +75,7 @@ bool FootIK::UpdateGroundTarget(
 		direction,
 		distance,
 		hit,
-		rayLayer))
+		layerId))
 	{
 		// 地面が取れないときは現在のfoot位置へ戻す
 		if (chain.tip != nullptr)

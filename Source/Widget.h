@@ -6,13 +6,14 @@
 #include "RectTransform.h"
 #include "Components.h"
 #include "Texture.h"
+
 class WidgetManager;
 
 class Widget : public Object
 {
 public:
-	Widget(const std::string& name = "", bool isActive = true)
-        : Object(name, isActive) {}
+	Widget(const std::string& name = "", const std::string& tag = "", bool isActive = true)
+        : Object(name, tag, isActive) {}
     virtual ~Widget() = default;
 
     RectTransform rect;

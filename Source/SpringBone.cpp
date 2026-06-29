@@ -128,10 +128,11 @@ namespace
 
 SpringBone::SpringBone(
     Object* owner,
+	LayerId layerId,
     Model* model,
     std::vector<std::string> boneContainNames,
     std::vector<SpringCapsule> bodyCapsules)
-    : Component(owner)
+    : PhysicsComponent(owner, layerId)
     , springCapsules(bodyCapsules)
     , model(model)
 {

@@ -1,10 +1,10 @@
 // SpringBone.h
 #pragma once
 
-#include "Component.h"
+#include "PhysicsComponent.h"
 #include "Model.h"
 
-class SpringBone : public Component
+class SpringBone : public PhysicsComponent
 {
 public:
     struct Bone
@@ -29,6 +29,7 @@ public:
 
     SpringBone(
         Object* owner,
+		LayerId layerId,
         Model* model,
         std::vector<std::string> boneContainNames,
         std::vector<SpringCapsule> bodyCapsules = {});

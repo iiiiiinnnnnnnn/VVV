@@ -3,7 +3,6 @@
 #include "Terrain.h"
 #include <DirectXTex.h>
 #include "Actor.h"
-#include "Collider.h"
 #include "Graphics.h"
 #include "GpuResourceUtils.h"
 #include "LightManager.h"

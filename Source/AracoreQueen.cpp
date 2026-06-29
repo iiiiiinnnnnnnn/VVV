@@ -8,7 +8,7 @@
 #include "NavMeshAgent.h"
 #include "AracoreFootGrounder.h"
 
-AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enemy, 100.0f, 100.0f)
+AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
 {
     // 蜘蛛の部分
     {
@@ -45,7 +45,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         anim->BindCallbacks();
 
         // キャラクターコントローラー
-        CharacterController* cc = AddComponent<CharacterController>(2.17f, 0.7f);
+        CharacterController* cc = AddComponent<CharacterController>(Layers::Get("Enemy"), 2.17f, 0.7f);
         cc->SetStepOffset(1.2f);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);
@@ -56,11 +56,11 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         rb->SetKinematic(true);
 
         // 当たり判定
-        bodyCollider = AddComponent<SphereCollider>(rb, 4.68f, Vector3{0, 3.55f, 0});
+        bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 4.68f, Vector3{0, 3.55f, 0});
 
         // 足接地補正
         #if 1
-        AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
+        /*AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
         footGrounder->AddLeg("Box09", "Box11");
         footGrounder->AddLeg("Box20", "Box19");
         footGrounder->AddLeg("Box25", "Box23");
@@ -68,11 +68,20 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
         footGrounder->AddLeg("Box31", "Box29");
         footGrounder->AddLeg("Box35", "Box36");
         footGrounder->AddLeg("Box37", "Box34");
-        footGrounder->AddLeg("Box38", "Box30");
+        footGrounder->AddLeg("Box38", "Box30");*/
         #endif
 
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box09", "Box10", "Box11"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box20", "Box18", "Box19"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box25", "Box22", "Box23"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box26", "Box21", "Box24"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box31", "Box28", "Box29"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box35", "Box32", "Box36"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box37", "Box33", "Box34"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box38", "Box27", "Box30"));
+
         // 足の当たり判定
-        #if 1
+        #if 0
         std::vector<std::string> ikBoneNames = {
             "IK Chain02",
             "IK Chain14",
@@ -89,6 +98,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, Layer::Enem
             // 足接触コライダー
             IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
                 model.get(),
+
                 ikNodeIndex,
                 1.26f,
                 2.8f,
@@ -112,52 +122,62 @@ void AracoreQueen::OnUpdate()
 {
     Entity::OnUpdate();
     UpdateChase();
+
+    anim->SetFloat("speed", navMeshAgent->GetSpeed());
 }
-Actor* AracoreQueen::FindPlayer() const
+
+void AracoreQueen::OnLateUpdate()
 {
-    ActorManager* actorManager = GetActorManager();
-    if (!actorManager) return nullptr;
+    if (!model) return;
 
-    for (const std::shared_ptr<Actor>& actor : actorManager->GetActors())
+    model->UpdateTransform(transform.matrix);
+
+    for (auto& footIK : footIKs)
     {
-        if (!actor || actor->IsPendingDestroy()) continue;
-        if (!actor->CompareTag("Player")) continue;
-        return actor.get();
-    }
+        if (!footIK || !footIK->IsIKEnabled()) continue;
 
-    return nullptr;
+        footIK->UpdateGroundTarget(
+            1.0f,
+            3.0f,
+            0.01f
+        );
+
+        footIK->SolveIK(transform.matrix);
+    }
 }
 
 void AracoreQueen::UpdateChase()
 {
     if (!navMeshAgent) return;
 
-    Actor* player = FindPlayer();
+	Actor* player = Actor::FindActorByTag("Player");
     if (!player)
-    {
-        if (chasingPlayer)
-            navMeshAgent->Stop();
-        chasingPlayer = false;
-        return;
-    }
-
-    Vector3 toPlayer = player->transform.position - transform.position;
-    toPlayer.y = 0.0f;
-    const float distanceSq = toPlayer.LengthSquared();
-    const float startDistanceSq = chaseStartDistance * chaseStartDistance;
-    const float stopDistanceSq = chaseStopDistance * chaseStopDistance;
-
-    if (!chasingPlayer && distanceSq <= startDistanceSq)
-        chasingPlayer = true;
-    else if (chasingPlayer && distanceSq >= stopDistanceSq)
     {
         chasingPlayer = false;
         navMeshAgent->Stop();
+        return;
+    }
+
+    const float distance = Vector3::Distance(player->transform.position, transform.position);
+    if (distance < 15.0f)
+    {
+        chasingPlayer = false;
+    }
+    else
+    {
+        chasingPlayer = true;
     }
 
     if (chasingPlayer)
+    {
         navMeshAgent->MoveToTarget(player);
+    }
+    else
+    {
+        navMeshAgent->Stop();
+    }
 }
+
 void AracoreQueen::OnDrawGUI()
 {
     Entity::OnDrawGUI();
@@ -165,19 +185,16 @@ void AracoreQueen::OnDrawGUI()
     if (!ImGui::TreeNode("AracoreQueen AI"))
         return;
 
-    ImGui::Checkbox("Chasing Player", &chasingPlayer);
-    ImGui::DragFloat("Chase Start Distance", &chaseStartDistance, 0.1f, 0.0f, 100.0f);
-    ImGui::DragFloat("Chase Stop Distance", &chaseStopDistance, 0.1f, 0.0f, 100.0f);
     ImGui::TreePop();
 }
 
-void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
     // 踏みつけ判定に当たったらプレイヤーにダメージ
     if (!IsDead() && anim->GetCurrentStateName(0) == "run")
     {
         bool isFootCollider = false;
-        for (Collider* collider : IKColliders)
+        for (PhysicsComponent* collider : IKColliders)
         {
             if (self == collider)
             {
@@ -187,7 +204,7 @@ void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vecto
         }
         if (!isFootCollider) return;
 
-        Actor* otherActor = other->GetOwnerActor();
+        Actor* otherActor = other->GetOwnerAsActor();
         if (otherActor->CompareTag("Player"))
         {
             static_cast<Entity*>(otherActor)->TakeDamage({
@@ -202,7 +219,7 @@ void AracoreQueen::OnCollisionEnter(Collider* self, Collider* other, const Vecto
     }
 }
 
-void AracoreQueen::OnTriggerEnter(Collider* self, Collider* other, const Vector3& point, const Vector3& normal)
+void AracoreQueen::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 
 }
@@ -225,7 +242,7 @@ void AracoreQueen::OnDead()
 // AracoreQueenMachine(AracoreQueen.cpp)
 
 AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
-    : Entity("AracoreQueenMachine", "Enemy", true, Layer::EnemyM, 100.0f, 100.0f),
+    : Entity("AracoreQueenMachine", "Enemy", true, 100.0f, 100.0f),
     ownerAracoreQueen(ownerAracoreQueen)
 {
     std::shared_ptr<Model> model =
@@ -237,7 +254,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 
     // 当たり判定
     collider = AddComponent<BoxCollider>(
-        rb, Vector3{3.665f, 5.85f, 2.5f}, Vector3{0.0f, 0.29f, 0.0f});
+        Layers::Get("EnemyAtk"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
 
     // Box02に追従
     Transform offset{};
@@ -321,7 +338,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
 {
     // ボコッ
-    Actor* hitActor = damageData.hitColliderSelf ? damageData.hitColliderSelf->GetOwnerActor() : nullptr;
+    Actor* hitActor = damageData.hitColliderSelf ? damageData.hitColliderSelf->GetOwnerAsActor() : nullptr;
     if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
     {
         if (damageData.hitPosition.has_value())

@@ -10,8 +10,8 @@ struct DamageData
     float damage = 0.0f;
     float knockBackPower = 0.0f;
 
-	Collider* hitColliderSelf = nullptr;
-	Collider* hitColliderOther = nullptr;
+	PhysicsComponent* hitColliderSelf = nullptr;
+    PhysicsComponent* hitColliderOther = nullptr;
 
     std::optional<Vector3> hitPosition;
 	std::optional<Vector3> hitNormal;
@@ -20,8 +20,8 @@ struct DamageData
 class Entity : public Actor
 {
 public:
-    Entity(std::string name = "", std::string tag = "", bool isActive = true, int layer = Layer::Default, float life = 100.0f, float maxLife = 100.0f)
-        : Actor(name, tag, isActive, layer), life(life), maxLife(maxLife) {}
+    Entity(std::string name = "", std::string tag = "", bool isActive = true, float life = 100.0f, float maxLife = 100.0f)
+        : Actor(name, tag, isActive), life(life), maxLife(maxLife) {}
 
     void OnDrawGUI() override;
 

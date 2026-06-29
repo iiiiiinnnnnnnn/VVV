@@ -4,15 +4,14 @@
 
 #include "Common.h"
 #include "Model.h"
-#include "Component.h"
-#include "Collider.h"
-#include "GameDefine.h"
+#include "PhysicsComponent.h"
 
-class FootIK : public Component
+class FootIK : public PhysicsComponent
 {
 public:
 	FootIK(
 		Object* owner,
+		LayerId layerId,
 		Model* model,
 		const char* thighName,
 		const char* calfName,
@@ -28,8 +27,7 @@ public:
 	bool UpdateGroundTarget(
 		float rayUp = 1.0f,
 		float rayDown = 3.0f,
-		float contactOffset = 0.01f,
-		int rayLayer = Layer::FootIK);
+		float contactOffset = 0.01f);
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
 

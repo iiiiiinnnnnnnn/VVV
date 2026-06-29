@@ -39,8 +39,7 @@
 #include "pvd/PxPvd.h"
 #include "pvd/PxPvdTransport.h"
 #include "pvd/PxPvdSceneClient.h"
-
-#include "GameDefine.h"
+#include "UserSettingsManager.h"
 
 using namespace physx;
 
@@ -83,7 +82,7 @@ namespace Conv
 static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 
 class Actor;
-class Collider;
+class PhysicsComponent;
 
 // 衝突イベントコールバック
 class CollisionEventCallback : public PxSimulationEventCallback
@@ -100,18 +99,18 @@ public:
     void onAdvance(const PxRigidBody* const*, const PxTransform*, PxU32) override {}
 
 private:
-    using ColliderPair = std::pair<Collider*, Collider*>;
+    using ColliderPair = std::pair<PhysicsComponent*, PhysicsComponent*>;
     struct PairState
     {
-        Collider* a = nullptr;
-        Collider* b = nullptr;
+        PhysicsComponent* a = nullptr;
+        PhysicsComponent* b = nullptr;
         Vector3 point = Vector3::Zero;
         Vector3 normal = Vector3::Zero;
     };
 
     std::map<ColliderPair, PairState> currentCollisionPairs;
     std::map<ColliderPair, PairState> currentTriggerPairs;
-    static ColliderPair MakePair(Collider* a, Collider* b)
+    static ColliderPair MakePair(PhysicsComponent* a, PhysicsComponent* b)
     {
         return (a <= b) ? ColliderPair(a, b) : ColliderPair(b, a);
     }
@@ -121,7 +120,7 @@ private:
 class CCHitReport : public PxUserControllerHitReport
 {
 public:
-    CCHitReport(Actor* owner, Collider* ownerCollider, int layer)
+    CCHitReport(Actor* owner, PhysicsComponent* ownerCollider, int layer)
         : owner(owner), ownerCollider(ownerCollider), ownerLayer(layer) {}
 
     void onShapeHit(const PxControllerShapeHit& hit) override;
@@ -133,15 +132,15 @@ public:
 
 private:
     Actor* owner = nullptr;
-    Collider* ownerCollider = nullptr;
+    PhysicsComponent* ownerCollider = nullptr;
     int ownerLayer = 0;
     struct HitState
     {
         Vector3 point = Vector3::Zero;
         Vector3 normal = Vector3::Zero;
     };
-    std::map<Collider*, HitState> currentFrameColliders;
-    std::map<Collider*, HitState> prevFrameColliders;
+    std::map<PhysicsComponent*, HitState> currentFrameColliders;
+    std::map<PhysicsComponent*, HitState> prevFrameColliders;
 public:
     bool dispatchedThisFrame = false;
 };
@@ -156,7 +155,7 @@ public:
         PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
         int layerA = (int)shapeA->getSimulationFilterData().word1;
         int layerB = (int)shapeB->getSimulationFilterData().word1;
-        return Layer::Collides(layerA, layerB);
+        return UserSettingsManager::Instance().Collides(layerA, layerB);
     }
 };
 

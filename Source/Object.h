@@ -10,8 +10,8 @@ struct RenderContext;
 class Object
 {
 public:
-	Object(const std::string& name = "", bool isActive = true)
-		: name(name), isActive(isActive) {}
+	Object(const std::string& name = "", const std::string& tag = "", bool isActive = true)
+		: name(name), tag(tag), isActive(isActive) { }
 	
 	void SetActive(bool active) { isActive = active; }
 	void SetName(const std::string& name) { this->name = name; }
@@ -22,6 +22,10 @@ public:
 	virtual void Update();
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
+
+	void SetTag(const std::string& tag) { this->tag = tag; }
+	const std::string& GetTag() const { return tag; }
+	bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
 
 	void Destroy(float delay = 0.0f) { destroyTimer = delay; }
 	bool IsPendingDestroy() const { return destroyTimer.has_value() && destroyTimer.value() <= 0.0f; }
@@ -50,6 +54,7 @@ protected:
 
 	bool isActive;
 	std::string name;
+	std::string tag;
 
 	std::optional<float> destroyTimer;
 

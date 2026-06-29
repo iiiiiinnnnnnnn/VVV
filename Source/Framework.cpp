@@ -32,6 +32,9 @@ Framework::Framework(HWND hWnd)
 	// グラフィックス初期化
 	Game::Graphics::Instance().Initialize(hWnd);
 
+	// エディタ用の設定初期化
+	UserSettingsManager::Instance().Initialize();
+
 	// IMGUI初期化
 	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(), Game::Graphics::Instance().GetDeviceContext());
 

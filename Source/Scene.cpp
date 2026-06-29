@@ -7,7 +7,7 @@
 Scene::Scene(SceneMessage message) : message(message)
 {
 	// ライト設定
-	DirectionalLight dl{"Sun", true, {1, 1, 1, 1}};
+	DirectionalLight dl{"Sun", "Directional Light", true, {1, 1, 1, 1}};
 	dl.transform.rotation = {1, 0, 1, 1};
 	lightManager.SetDirectionalLight(dl);
 
@@ -242,24 +242,31 @@ void Scene::DrawGUI(RenderContext& rc)
 	#ifdef _DEBUG
 	if (renderSettings.showDebug)
 	{
-		if (ImGui::Begin("Actors"))
+		// オブジェクト系統デバッグ
 		{
-			actorManager.DrawGUI();
-		}
-		ImGui::End();
+			if (ImGui::Begin("Actors"))
+			{
+				actorManager.DrawGUI();
+			}
+			ImGui::End();
 
-		if (ImGui::Begin("Widgets"))
-		{
-			widgetManager.DrawGUI();
-		}
-		ImGui::End();
+			if (ImGui::Begin("Widgets"))
+			{
+				widgetManager.DrawGUI();
+			}
+			ImGui::End();
 
-		if (ImGui::Begin("Lights"))
-		{
-			lightManager.DrawGUI();
+			if (ImGui::Begin("Lights"))
+			{
+				lightManager.DrawGUI();
+			}
+			ImGui::End();
 		}
-		ImGui::End();
 
+		// ユーザー設定
+		UserSettingsManager::Instance().DrawGUI();
+
+		// シーン設定
 		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
 		{
 			// パフォーマンス
@@ -333,7 +340,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 
 			// Time
-			if (ImGui::CollapsingHeader("Time"))
+			if (ImGui::CollapsingHeader("Time", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("Time: %.4f", Game::Time::time);
 				ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
@@ -341,7 +348,7 @@ void Scene::DrawGUI(RenderContext& rc)
 				ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 			}
 
-			if (ImGui::CollapsingHeader("Skybox"))
+			if (ImGui::CollapsingHeader("Skybox", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				Game::Graphics& graphics = Game::Graphics::Instance();
 				graphics.GetSkyBoxRenderer()->DrawGUI();
@@ -349,13 +356,13 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 
 			// PostEffect
-			if (ImGui::CollapsingHeader("PostEffect"))
+			if (ImGui::CollapsingHeader("PostEffect", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				postEffect.DrawGUI();
 			}
 
 			// Editor
-			if (ImGui::CollapsingHeader("Editor"))
+			if (ImGui::CollapsingHeader("Editor", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				if (ImGui::Button("Dynamic Animation Editor"))
 				{

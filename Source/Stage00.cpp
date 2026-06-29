@@ -3,7 +3,7 @@
 #include "Stage00.h"
 #include "ResourceManager.h"
 
-Stage00::Stage00() : Actor("Stage00", "Stage", Layer::Stage)
+Stage00::Stage00() : Actor("Stage00", "Stage")
 {
     // 参考用に残しているがStage00.glbを消したのでこのステージは無意味
     #if 0
