@@ -4,6 +4,7 @@
 #include "Actor.h"
 #include "IconsFontAwesome5.h"
 #include "Graphics.h"
+#include "GameTime.h"
 
 FootIK::FootIK(
 	Object* owner,
@@ -38,8 +39,6 @@ bool FootIK::UpdateGroundTarget(
 {
 	if (!chain.enabled)
 	{
-		hasGroundContact = false;
-		groundOffsetY = 0.0f;
 		return false;
 	}
 
@@ -51,9 +50,6 @@ bool FootIK::UpdateGroundTarget(
 	SyncPoleWorldPosition();
 
 	Vector3 currentContactPosition = GetContactWorldPosition();
-
-	hasGroundContact = false;
-	groundOffsetY = 0.0f;
 
 	rayStart = currentContactPosition + Vector3(0, rayUp, 0);
 	rayEnd = currentContactPosition - Vector3(0, rayDown, 0);
@@ -77,19 +73,14 @@ bool FootIK::UpdateGroundTarget(
 		hit,
 		layerId))
 	{
-		// 地面が取れないときは現在のfoot位置へ戻す
-		if (chain.tip != nullptr)
-		{
-			chain.targetPosition =
-				Matrix(chain.tip->worldTransform).Translation();
-		}
-
+		KeepPreviousGroundTarget();
 		return false;
 	}
 
 	// 壁や急すぎる面を地面扱いしない
 	if (hit.normal.y < 0.35f)
 	{
+		KeepPreviousGroundTarget();
 		return false;
 	}
 
@@ -102,11 +93,12 @@ bool FootIK::UpdateGroundTarget(
 	Vector3 targetContactPosition =
 		hit.position + hit.normal * contactOffset;
 
-	// pelvisをどれだけ下げる必要があるか
-	groundOffsetY =
-		targetContactPosition.y - currentContactPosition.y;
+	SetSmoothedTarget(
+		chain.targetPosition,
+		targetContactPosition.y - currentContactPosition.y);
 
 	hasGroundContact = true;
+	lostGroundFrameCount = 0;
 	return true;
 }
 
@@ -114,7 +106,7 @@ void FootIK::Render(const RenderContext& rc)
 {
 	if (!isActive) return;
 	if (!chain.enabled) return;
-	if (chain.weight <= 0.0f) return;
+	if (chain.weight <= 0.001f) return;
 	if (chain.root == nullptr) return;
 	if (chain.mid == nullptr) return;
 	if (chain.tip == nullptr) return;
@@ -141,6 +133,8 @@ void FootIK::Render(const RenderContext& rc)
 			rayStart,
 			rayEnd,
 			{1, 0, 0, 1}, {1, 0, 0, 1});
+		Game::Graphics::Instance().GetPrimitiveRenderer()->Render(
+			rc.deviceContext, rc.camera->GetView(), rc.camera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	}
 }
 
@@ -243,7 +237,64 @@ void FootIK::SetPoleWorldPosition(const Vector3& poleWorldPosition)
 
 void FootIK::SetIKEnabled(bool enabled)
 {
+	if (chain.enabled == enabled) return;
+
 	chain.enabled = enabled;
+	if (!chain.enabled) ResetGroundState();
+}
+
+void FootIK::ResetGroundState()
+{
+	hasGroundContact = false;
+	groundOffsetY = 0.0f;
+	smoothedGroundOffsetY = 0.0f;
+	hasSmoothedTarget = false;
+	lostGroundFrameCount = 0;
+
+	if (chain.tip)
+	{
+		chain.targetPosition = Matrix(chain.tip->worldTransform).Translation();
+		smoothedTargetPosition = chain.targetPosition;
+	}
+}
+
+void FootIK::KeepPreviousGroundTarget()
+{
+	lostGroundFrameCount++;
+	if (lostGroundFrameCount <= maxLostGroundFrames && hasSmoothedTarget)
+	{
+		chain.targetPosition = smoothedTargetPosition;
+		groundOffsetY = smoothedGroundOffsetY;
+		hasGroundContact = true;
+		return;
+	}
+
+	hasGroundContact = false;
+	groundOffsetY = 0.0f;
+}
+
+void FootIK::SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY)
+{
+	if (!hasSmoothedTarget || Vector3::Distance(smoothedTargetPosition, targetPosition) > 0.75f)
+	{
+		smoothedTargetPosition = targetPosition;
+		smoothedGroundOffsetY = targetGroundOffsetY;
+		hasSmoothedTarget = true;
+	}
+	else
+	{
+		float targetRate = 1.0f - expf(-targetSmoothSpeed * Game::Time::deltaTime);
+		float offsetRate = 1.0f - expf(-groundOffsetSmoothSpeed * Game::Time::deltaTime);
+
+		targetRate = std::clamp(targetRate, 0.0f, 1.0f);
+		offsetRate = std::clamp(offsetRate, 0.0f, 1.0f);
+
+		smoothedTargetPosition = Vector3::Lerp(smoothedTargetPosition, targetPosition, targetRate);
+		smoothedGroundOffsetY += (targetGroundOffsetY - smoothedGroundOffsetY) * offsetRate;
+	}
+
+	chain.targetPosition = smoothedTargetPosition;
+	groundOffsetY = smoothedGroundOffsetY;
 }
 
 void FootIK::SyncPoleWorldPosition()
@@ -296,7 +347,12 @@ Vector3 FootIK::GetContactWorldPosition() const
 void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 {
 	if (!chain.enabled) return;
-	if (chain.weight <= 0.0f) return;
+
+	float targetWeight = hasGroundContact ? 1.0f : 0.0f;
+	float blendRate = 1.0f - expf(-ikBlendSpeed * Game::Time::deltaTime);
+	blendRate = std::clamp(blendRate, 0.0f, 1.0f);
+	chain.weight += (targetWeight - chain.weight) * blendRate;
+	if (chain.weight <= 0.001f) return;
 	if (chain.root == nullptr) return;
 	if (chain.mid == nullptr) return;
 	if (chain.tip == nullptr) return;
@@ -305,6 +361,9 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	Model::Node& rootBone = *chain.root;
 	Model::Node& midBone = *chain.mid;
 	Model::Node& tipBone = *chain.tip;
+
+	Quaternion originalRootRotation = rootBone.rotation;
+	Quaternion originalMidRotation = midBone.rotation;
 
 	Matrix RootWorldTransform = rootBone.worldTransform;
 	Matrix MidWorldTransform = midBone.worldTransform;
@@ -411,5 +470,14 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	RotateBone(midBone, MidTipVec, MidTargetVec);
 
 	UpdateWorldTransforms(midBone, modelWorldTransform);
-}
 
+	Quaternion solvedRootRotation = rootBone.rotation;
+	Quaternion solvedMidRotation = midBone.rotation;
+
+	rootBone.rotation = Quaternion::Slerp(originalRootRotation, solvedRootRotation, chain.weight);
+	rootBone.rotation.Normalize();
+	midBone.rotation = Quaternion::Slerp(originalMidRotation, solvedMidRotation, chain.weight);
+	midBone.rotation.Normalize();
+
+	UpdateWorldTransforms(rootBone, modelWorldTransform);
+}

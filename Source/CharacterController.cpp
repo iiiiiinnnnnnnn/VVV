@@ -73,10 +73,21 @@ void CharacterController::SyncOwnerTransform()
     if (!controller) return;
 
     PxExtendedVec3 pos = controller->getPosition();
-    float halfHeight = (static_cast<PxCapsuleController*>(controller)->getHeight() * 0.5f)
-        + static_cast<PxCapsuleController*>(controller)->getRadius()
-        + controller->getContactOffset();
-    actor->transform.position = Vector3((float)pos.x, (float)pos.y - halfHeight, (float)pos.z);
+    if (ownerAnchorAtCenter)
+    {
+        actor->transform.position = Vector3(
+            (float)pos.x,
+            (float)pos.y,
+            (float)pos.z);
+        actor->transform.Update();
+        return;
+    }
+
+    float footToCenter = GetFootToControllerCenter();
+    actor->transform.position = Vector3(
+        (float)pos.x,
+        (float)pos.y - footToCenter + ownerAnchorOffsetY,
+        (float)pos.z);
     actor->transform.Update();
 }
 
@@ -85,13 +96,21 @@ void CharacterController::Render(const RenderContext& rc)
     if (!ShouldRenderDebug()) return;
     if (!rc.renderSettings.showDebug) return;
 
-    // PhysXカプセルはX軸基準なのでY軸に90度回転補正
-    PxTransform pose = controller->getActor()->getGlobalPose();
-    PxTransform offset(PxVec3(0, 0, 0), PxQuat(DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
-    PxTransform corrected = pose * offset;
+    PxExtendedVec3 controllerPosition = controller->getPosition();
+    Vector3 position = useDebugRenderPosition ?
+        debugRenderPosition :
+        Vector3(
+            (float)controllerPosition.x,
+            (float)controllerPosition.y,
+            (float)controllerPosition.z);
+
+    Matrix world = Matrix::CreateTranslation(
+        position.x,
+        position.y,
+        position.z);
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        Conv::ToMatrix(corrected),
+        world,
         static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
         static_cast<PxCapsuleController*>(controller)->getHeight(),
         Color(1.0f, 1.0f, 0.0f, 1.0f)
@@ -122,15 +141,15 @@ void CharacterController::DrawGUI()
 
             if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
             {
-                const Vector3 footPosition = actor->transform.position;
+                const Vector3 anchorPosition = actor->transform.position;
                 capsule->setRadius(radius);
-                SetFootPosition(footPosition);
+                SetPosition(anchorPosition);
             }
             if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
             {
-                const Vector3 footPosition = actor->transform.position;
+                const Vector3 anchorPosition = actor->transform.position;
                 capsule->setHeight(height);
-                SetFootPosition(footPosition);
+                SetPosition(anchorPosition);
             }
 
             ImGui::TreePop();
@@ -147,9 +166,9 @@ void CharacterController::DrawGUI()
             if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
             {
                 Actor* actor = Component::GetOwnerAsActor();
-                const Vector3 footPosition = actor->transform.position;
+                const Vector3 anchorPosition = actor->transform.position;
                 controller->setContactOffset(contactOffset);
-                SetFootPosition(footPosition);
+                SetPosition(anchorPosition);
             }
 
             // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
@@ -225,25 +244,76 @@ void CharacterController::LateUpdate()
 
 void CharacterController::SetPosition(const Vector3& position)
 {
-    controller->setPosition(PxExtendedVec3(position.x, position.y, position.z));
+    if (ownerAnchorAtCenter)
+    {
+        controller->setPosition(PxExtendedVec3(
+            position.x,
+            position.y,
+            position.z));
+        verticalVelocity = 0.0f;
+        SyncOwnerTransform();
+        return;
+    }
+
+    const float footToCenter = GetFootToControllerCenter();
+    controller->setPosition(PxExtendedVec3(
+        position.x,
+        position.y - ownerAnchorOffsetY + footToCenter,
+        position.z));
     verticalVelocity = 0.0f;
     SyncOwnerTransform();
 }
 
 void CharacterController::SetFootPosition(const Vector3& position)
 {
-    PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
-    const float halfHeight =
-        (capsule->getHeight() * 0.5f) +
-        capsule->getRadius() +
-        controller->getContactOffset();
+    const float footToCenter = GetFootToControllerCenter();
 
     controller->setPosition(PxExtendedVec3(
         position.x,
-        position.y + halfHeight,
+        position.y + footToCenter,
         position.z));
     verticalVelocity = 0.0f;
     SyncOwnerTransform();
+}
+
+void CharacterController::SetOwnerAnchorOffsetY(float value)
+{
+    Actor* actor = Component::GetOwnerAsActor();
+    const Vector3 anchorPosition = actor->transform.position;
+    ownerAnchorOffsetY = max(value, 0.0f);
+    SetPosition(anchorPosition);
+}
+
+void CharacterController::SetOwnerAnchorAtCenter(bool value)
+{
+    Actor* actor = Component::GetOwnerAsActor();
+    const Vector3 anchorPosition = actor->transform.position;
+    ownerAnchorAtCenter = value;
+    SetPosition(anchorPosition);
+}
+
+void CharacterController::SetDebugRenderPosition(const Vector3& position)
+{
+    debugRenderPosition = position;
+    useDebugRenderPosition = true;
+}
+
+void CharacterController::ClearDebugRenderPosition()
+{
+    useDebugRenderPosition = false;
+}
+
+float CharacterController::GetFootToControllerCenter() const
+{
+    if (!controller) return 0.0f;
+
+    const PxCapsuleController* capsule =
+        static_cast<const PxCapsuleController*>(controller);
+
+    return
+        capsule->getHeight() * 0.5f +
+        capsule->getRadius() +
+        controller->getContactOffset();
 }
 
 void CharacterController::SetStepOffset(float value)
@@ -263,7 +333,7 @@ void CharacterController::SetContactOffset(float value)
 {
     if (!controller) return;
     Actor* actor = Component::GetOwnerAsActor();
-    const Vector3 footPosition = actor->transform.position;
+    const Vector3 anchorPosition = actor->transform.position;
     controller->setContactOffset(max(value, 0.001f));
-    SetFootPosition(footPosition);
+    SetPosition(anchorPosition);
 }

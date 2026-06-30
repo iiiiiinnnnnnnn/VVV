@@ -23,6 +23,8 @@ public:
 	void Stop();
 
 	float GetSpeed() const { return speed; }
+	float GetMoveAmount() const { return lastMoveDelta.Length(); }
+	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
 
 private:
 	Actor* FindTargetByTag();
@@ -38,6 +40,7 @@ private:
 	bool useLastValidPathOnFail = true;
 	bool hasLastNextPoint = false;
 	Vector3 lastNextPoint = Vector3::Zero;
+	Vector3 lastMoveDelta = Vector3::Zero;
 	float speed = 3.5f;
 	float stoppingDistance = 1.5f;
 	float repathDistance = 1.0f;

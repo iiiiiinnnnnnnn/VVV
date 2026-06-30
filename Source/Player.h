@@ -5,6 +5,7 @@
 #include "Entity.h"
 #include "PlayerController.h"
 #include "Model.h"
+#include "PhysicsManager.h"
 
 class ThirdPersonCameraController;
 
@@ -49,6 +50,11 @@ public:
 
 private:
     void ApplyFootIKHipOffset();
+    void UpdateModelVisualOffsetFromPelvis();
+    Vector3 GetPelvisWorldPosition() const;
+    Matrix GetModelWorldTransform() const;
+    bool RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const;
+    void SnapToGroundIfNeeded();
 
 protected:
     std::unique_ptr<PlayerController> controller;
@@ -56,6 +62,7 @@ protected:
 
     Animator*             anim = nullptr;
     CharacterController*  cc   = nullptr;
+    ModelRenderComponent* modelRenderer = nullptr;
     ThirdPersonCameraController* cameraController = nullptr;
     BoneSphereCollider* weaponCollider = nullptr;
     BoneSphereCollider* footCollider = nullptr;
@@ -65,6 +72,9 @@ protected:
 	FootIK* footIK_L = nullptr;
     int hipNodeIndex = -1;
     float visualHipOffsetY = 0.0f;
+    float modelVisualOffsetY = 0.85f;
+    float groundSnapUpDistance = 0.4f;
+    float groundSnapDownDistance = 1.4f;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;
@@ -74,6 +84,7 @@ protected:
     Vector3 frameVelocity = Vector3::Zero;
     float verticalVelocity = 0.0f;
     float speed = 5.0f;
+    bool groundedByRay = false;
 
     ShaderParamListWithMaterialName shaderParamWithMaterialName;
 

@@ -17,6 +17,10 @@ public:
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
     void SetFootPosition(const Vector3& pos);
+    void SetOwnerAnchorOffsetY(float value);
+    void SetOwnerAnchorAtCenter(bool value);
+    void SetDebugRenderPosition(const Vector3& position);
+    void ClearDebugRenderPosition();
     void SetUseGravity(bool value) { useGravity = value; }
     void SetStepOffset(float value);
     void SetSlopeLimitDeg(float value);
@@ -25,6 +29,7 @@ public:
 private:
     void ApplyGravity();
     void SyncOwnerTransform();
+    float GetFootToControllerCenter() const;
 
     PxController* controller = nullptr;
     CCHitReport* hitReport = nullptr;
@@ -32,4 +37,8 @@ private:
     bool useGravity = true;
     float verticalVelocity = 0.0f;
     float gravity = -9.81f;
+    float ownerAnchorOffsetY = 0.0f;
+    bool ownerAnchorAtCenter = false;
+    Vector3 debugRenderPosition = Vector3::Zero;
+    bool useDebugRenderPosition = false;
 };

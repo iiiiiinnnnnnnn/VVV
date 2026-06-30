@@ -120,7 +120,8 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	}
 		},
 	};
-	AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+	modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+	modelRenderer->SetAutoUpdateTransform(false);
 
 	// アニメーター生成
 	anim = AddComponent<Animator>(model);
@@ -131,11 +132,12 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(Layers::Get("Player"), 0.01f, 0.9f);
+	cc = AddComponent<CharacterController>(Layers::Get("Player"), 0.30f, 0.01f);
 	cc->SetUseGravity(false);
-	cc->SetStepOffset(1.0f);
+	cc->SetStepOffset(0.45f);
 	cc->SetSlopeLimitDeg(70.0f);
-	cc->SetContactOffset(0.18f);
+	cc->SetContactOffset(0.05f);
+	cc->SetOwnerAnchorAtCenter(true);
 	cc->SetPosition({0, 3.0f, 10});
 
 	// 武器判定
@@ -180,6 +182,8 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	footIK_R = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
 	footIK_L = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
 	hipNodeIndex = model->GetNodeIndex("pelvis");
+	model->UpdateTransform(Matrix::Identity);
+	UpdateModelVisualOffsetFromPelvis();
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -310,17 +314,16 @@ void Player::OnUpdate()
 	if (ctx.attackPressed)
 		anim->SetTrigger("Attack");
 
+	PhysicsManager::PhysicsRaycastHit groundHit;
+	groundedByRay = RaycastGround(groundHit);
+
 	// 重力
-	if (cc->IsGrounded())
+	if (groundedByRay && verticalVelocity <= 0.0f)
 		verticalVelocity = 0.0f;
 	else
 		verticalVelocity -= 9.81f * Game::Time::deltaTime;
 
 	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
-
-	bool isIdleing = anim->GetCurrentStateName(0) == "Idle";
-	if (footIK_L) footIK_L->SetIKEnabled(isIdleing);
-	if (footIK_R) footIK_R->SetIKEnabled(isIdleing);
 
 	// Trail is controlled by attack animation callbacks.
 }
@@ -331,15 +334,18 @@ void Player::OnLateUpdate()
 	Quaternion deltaRot = anim->GetRootMotionRot();
 
 	transform.SetRotation(transform.rotation * deltaRot);
+	model->UpdateTransform(transform.matrix);
+	UpdateModelVisualOffsetFromPelvis();
 
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
 	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
 
 	cc->Move(worldMoveVec);
+	SnapToGroundIfNeeded();
 
 	// まず、移動後のモデル姿勢をワールドへ反映する
-	model->UpdateTransform(transform.matrix);
+	model->UpdateTransform(GetModelWorldTransform());
 
 	// pelvisを下げる前の足位置から、左右の接地ターゲットを作る
 	if (footIK_L && footIK_L->IsIKEnabled())
@@ -373,6 +379,83 @@ void Player::OnLateUpdate()
 	{
 		footIK_R->SolveIK(model->GetWorldTransform());
 	}
+
+	if (cc && hipNodeIndex >= 0)
+		cc->SetDebugRenderPosition(GetPelvisWorldPosition());
+}
+
+Matrix Player::GetModelWorldTransform() const
+{
+	return Matrix::CreateTranslation(0.0f, -modelVisualOffsetY, 0.0f) *
+		transform.matrix;
+}
+
+void Player::UpdateModelVisualOffsetFromPelvis()
+{
+	if (hipNodeIndex < 0) return;
+
+	Vector3 scale;
+	Vector3 position;
+	Quaternion rotation;
+	model->GetNodes()[hipNodeIndex].globalTransform.Decompose(
+		scale,
+		rotation,
+		position);
+
+	if (position.y > 0.0f)
+		modelVisualOffsetY = position.y;
+}
+
+Vector3 Player::GetPelvisWorldPosition() const
+{
+	if (hipNodeIndex < 0) return transform.position;
+
+	Vector3 scale;
+	Vector3 position;
+	Quaternion rotation;
+	model->GetNodes()[hipNodeIndex].worldTransform.Decompose(
+		scale,
+		rotation,
+		position);
+
+	return position;
+}
+
+bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
+{
+	Vector3 rayStart =
+		transform.position +
+		Vector3(0.0f, groundSnapUpDistance, 0.0f);
+
+	float rayDistance =
+		groundSnapUpDistance +
+		groundSnapDownDistance +
+		modelVisualOffsetY;
+
+	return PhysicsManager::Instance().Raycast(
+		rayStart,
+		Vector3::Down,
+		rayDistance,
+		hit,
+		Layers::Get("Foot"));
+}
+
+void Player::SnapToGroundIfNeeded()
+{
+	PhysicsManager::PhysicsRaycastHit hit;
+	groundedByRay = RaycastGround(hit);
+	if (!groundedByRay) return;
+	if (hit.normal.y < 0.35f) return;
+	if (verticalVelocity > 0.0f) return;
+
+	Vector3 targetPosition = transform.position;
+	targetPosition.y = hit.position.y + modelVisualOffsetY;
+
+	float t = 1.0f - expf(-30.0f * Game::Time::deltaTime);
+	t = std::clamp(t, 0.0f, 1.0f);
+	transform.SetPosition(Vector3::Lerp(transform.position, targetPosition, t));
+	cc->SetPosition(transform.position);
+	verticalVelocity = 0.0f;
 }
 
 void Player::ApplyFootIKHipOffset()
@@ -413,7 +496,7 @@ void Player::ApplyFootIKHipOffset()
 		model->GetNodes()[hipNodeIndex].position.y += visualHipOffsetY;
 	}
 
-	model->UpdateTransform(transform.matrix);
+	model->UpdateTransform(GetModelWorldTransform());
 }
 
 void Player::OnDrawGUI()

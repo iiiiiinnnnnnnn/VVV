@@ -77,6 +77,18 @@ private:
 	Vector3 rayStart, rayEnd;
 	bool hasGroundContact = false;
 	float groundOffsetY = 0.0f;
+	Vector3 smoothedTargetPosition = Vector3::Zero;
+	bool hasSmoothedTarget = false;
+	float smoothedGroundOffsetY = 0.0f;
+	float targetSmoothSpeed = 24.0f;
+	float groundOffsetSmoothSpeed = 18.0f;
+	float ikBlendSpeed = 20.0f;
+	int lostGroundFrameCount = 0;
+	int maxLostGroundFrames = 4;
+
+	void ResetGroundState();
+	void KeepPreviousGroundTarget();
+	void SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY);
 
 	static void UpdateWorldTransforms(Model::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{

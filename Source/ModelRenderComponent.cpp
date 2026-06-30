@@ -25,6 +25,8 @@ void ModelRenderComponent::LateUpdate()
 
     if (!model)
         return;
+    if (!autoUpdateTransform)
+        return;
 
     // アクターの変換行列でモデルを更新
     model->UpdateTransform(actor->transform.matrix);

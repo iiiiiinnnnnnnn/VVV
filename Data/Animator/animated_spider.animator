@@ -128,8 +128,8 @@
                             "conditions": [
                                 {
                                     "mode": 0,
-                                    "paramName": "Speed",
-                                    "threshold": 0.5
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -180,7 +180,7 @@
                             "conditions": [
                                 {
                                     "mode": 1,
-                                    "paramName": "Speed",
+                                    "paramName": "speed",
                                     "threshold": 0.009999999776482582
                                 }
                             ],
@@ -212,9 +212,9 @@
                             "canInterrupt": false,
                             "conditions": [
                                 {
-                                    "mode": 1,
-                                    "paramName": "Speed",
-                                    "threshold": 0.5
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.05000000074505806
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -374,14 +374,14 @@
     ],
     "parameters": [
         {
-            "name": "Speed",
-            "type": "float",
-            "value": 0.0
-        },
-        {
             "name": "Dead",
             "type": "bool",
             "value": false
+        },
+        {
+            "name": "speed",
+            "type": "float",
+            "value": 0.0
         }
     ],
     "triggers": [

@@ -71,14 +71,14 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         footGrounder->AddLeg("Box38", "Box30");*/
         #endif
 
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box09", "Box10", "Box11"));
+       /* footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box09", "Box10", "Box11"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box20", "Box18", "Box19"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box25", "Box22", "Box23"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box26", "Box21", "Box24"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box31", "Box28", "Box29"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box35", "Box32", "Box36"));
         footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box37", "Box33", "Box34"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box38", "Box27", "Box30"));
+        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box38", "Box27", "Box30"));*/
 
         // ‘«‚Ì“–‚½‚è”»’è
         #if 0
@@ -123,7 +123,7 @@ void AracoreQueen::OnUpdate()
     Entity::OnUpdate();
     UpdateChase();
 
-    anim->SetFloat("speed", navMeshAgent->GetSpeed());
+    anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
 }
 
 void AracoreQueen::OnLateUpdate()

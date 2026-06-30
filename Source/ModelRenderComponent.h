@@ -18,6 +18,7 @@ public:
 
     Model* GetModel() const { return model.get(); }
     void SetModel(std::shared_ptr<Model> model) { this->model = model; }
+    void SetAutoUpdateTransform(bool value) { autoUpdateTransform = value; }
     void SetShaderParamForAllMaterials(const ShaderParam& param);
     void SetShaderParamForAllMaterials(const ShaderParamList& paramList);
 
@@ -31,4 +32,5 @@ private:
     std::shared_ptr<Model> model;
 	ModelShaderId shaderId;
     ShaderParamListWithMaterialName paramsWithMaterial;
+    bool autoUpdateTransform = true;
 };

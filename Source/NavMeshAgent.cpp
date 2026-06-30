@@ -17,6 +17,8 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 
 void NavMeshAgent::Update()
 {
+	lastMoveDelta = Vector3::Zero;
+
 	if (!autoMove) return;
 
 	Actor* actor = GetOwnerAsActor();
@@ -46,6 +48,8 @@ void NavMeshAgent::Update()
 
 void NavMeshAgent::MoveToTarget(Actor* targetActor)
 {
+	lastMoveDelta = Vector3::Zero;
+
 	Actor* actor = GetOwnerAsActor();
 	if (!actor) return;
 
@@ -69,6 +73,7 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 
 void NavMeshAgent::Stop()
 {
+	lastMoveDelta = Vector3::Zero;
 	pathFailTimer = 0.0f;
 	hasLastNextPoint = false;
 	statusMessage = "Idle.";
@@ -92,6 +97,8 @@ Actor* NavMeshAgent::FindTargetByTag()
 
 void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 {
+	lastMoveDelta = Vector3::Zero;
+
 	const Vector3 toTarget = targetActor->transform.position - actor->transform.position;
 	Vector3 flatToTarget = toTarget;
 	flatToTarget.y = 0.0f;
@@ -144,7 +151,8 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	}
 
 	direction.Normalize();
-	characterController->Move(direction * speed * Game::Time::deltaTime);
+	lastMoveDelta = direction * speed * Game::Time::deltaTime;
+	characterController->Move(lastMoveDelta);
 
 	if (rotateToMoveDirection)
 	{
