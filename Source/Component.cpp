@@ -29,5 +29,5 @@ Widget* Component::GetOwnerAsWidget(Object* owner_sub) const
 bool Component::ShouldRenderDebug() const
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
-    return actor && actor->IsDebugGUIOpen();
+    return actor && actor->IsDebugGUIOpen() && !actor->IsDebugRenderHidden();
 }

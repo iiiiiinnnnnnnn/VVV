@@ -20,6 +20,8 @@ void Actor::DrawGUI()
 
     if (debugGUIOpen)
     {
+        ImGui::Checkbox("Hide Debugs", &hideDebugs);
+
         Object::DrawGUI();
 
         Transform::TransformChangedResult res = transform.DrawGUI();
