@@ -1,0 +1,99 @@
+name: Build and Upload VVV
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout VVV
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Build Debug x64
+        run: msbuild Game.sln /m /p:Configuration=Debug /p:Platform=x64
+
+      - name: Package VVV
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $outDir = "bin\x64\Debug"
+          $packageDir = "package"
+          $distDir = "dist"
+
+          Remove-Item $packageDir -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $distDir -Recurse -Force -ErrorAction SilentlyContinue
+
+          New-Item -ItemType Directory -Force $packageDir | Out-Null
+          New-Item -ItemType Directory -Force $distDir | Out-Null
+
+          $files = @(
+            "PhysXCommon_64.dll",
+            "PhysXCooking_64.dll",
+            "PhysXFoundation_64.dll",
+            "PVDRuntime_64.dll",
+            "Game.exe",
+            "Game.exp",
+            "Game.lib",
+            "Game.pdb",
+            "PhysX_64.dll"
+          )
+
+          foreach ($file in $files) {
+            $src = Join-Path $outDir $file
+
+            if (!(Test-Path $src)) {
+              throw "Missing file: $src"
+            }
+
+            Copy-Item $src $packageDir -Force
+          }
+
+          if (!(Test-Path "Data")) {
+            throw "Missing folder: Data"
+          }
+
+          New-Item -ItemType Directory -Force "$packageDir\Data" | Out-Null
+
+          robocopy "Data" "$packageDir\Data" /E /R:2 /W:1 `
+            /XF "*.glb" "DDSAssistant.bat" "texconv.exe" "FBX2glTF-windows-x64.exe" "FBX2glTF.bat" "ninclude_*" `
+            /XD "ninclude_*"
+
+          if ($LASTEXITCODE -ge 8) {
+            throw "robocopy failed with exit code $LASTEXITCODE"
+          }
+
+          if (Test-Path "imgui.ini") {
+            Copy-Item "imgui.ini" "$packageDir\imgui.ini" -Force
+          }
+
+          Compress-Archive -Path "$packageDir\*" -DestinationPath "$distDir\VVV.zip" -Force
+
+      - name: Upload VVV.zip to shuushoku-download-site
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+
+          if ($tag -eq "main" -or $tag -eq "master") {
+            $tag = "manual-${{ github.run_number }}"
+          }
+
+          $releaseRepo = "iiiiiinnnnnnnn/shuushoku-download-site"
+
+          gh release delete $tag --repo $releaseRepo --yes 2>$null
+          gh release create $tag "dist\VVV.zip" --repo $releaseRepo --title $tag --notes "Automated VVV Debug build"
