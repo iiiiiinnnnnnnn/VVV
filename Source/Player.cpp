@@ -13,16 +13,6 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
 	model->_print(); // デバッグ用
 
-	// 武器がずれるやつ修正
-	{
-		model->AttachNodeToNode(
-			model->GetNodeIndex("add_weapon_l"),
-			model->GetNodeIndex("hand_l"));
-		model->AttachNodeToNode(
-			model->GetNodeIndex("add_weapon_r"),
-			model->GetNodeIndex("hand_r"));
-	}
-
 	// メッシュ表示/非表示
 	{
 		auto& meshes = model->GetMeshes();
