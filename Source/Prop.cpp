@@ -1,6 +1,8 @@
 // Prop.cpp
 
 #include "Prop.h"
+#include "NavMeshActor.h"
+#include "NavMeshObstacle.h"
 #include "ResourceManager.h"
 
 Prop::Prop(StageLoader::PropData& propData)
@@ -21,6 +23,10 @@ Prop::Prop(StageLoader::PropData& propData)
 	AddComponent<BoxCollider>(Layers::Get("Prop"), rb, propData.boxColliderData.size, propData.boxColliderData.localPosition,
 		PhysicsManager::Instance().GetPhysics()->createMaterial(
 		propData.boxColliderData.staticFriction, propData.boxColliderData.dynamicFriction, propData.boxColliderData.restitution));
+
+	AddComponent<NavMeshObstacle>();
+	if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+		navMeshActor->RequestBuild();
 }
 
 void Prop::OnUpdate()

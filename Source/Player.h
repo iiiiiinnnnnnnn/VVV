@@ -49,12 +49,14 @@ public:
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 
 private:
-    void ApplyFootIKHipOffset();
+    void ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition);
     void UpdateModelVisualOffsetFromPelvis();
     Vector3 GetPelvisWorldPosition() const;
     Matrix GetModelWorldTransform() const;
     bool RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const;
     void SnapToGroundIfNeeded();
+    float GetOwnerAnchorOffsetY() const;
+    void SyncWeaponAttachNodes();
 
 protected:
     std::unique_ptr<PlayerController> controller;
@@ -71,10 +73,12 @@ protected:
 	FootIK* footIK_R = nullptr;
 	FootIK* footIK_L = nullptr;
     int hipNodeIndex = -1;
+
     float visualHipOffsetY = 0.0f;
-    float modelVisualOffsetY = 0.85f;
-    float groundSnapUpDistance = 0.4f;
-    float groundSnapDownDistance = 1.4f;
+    float modelVisualOffsetY = 0.0f;
+    float modelFootLocalY = 0.0f;
+    float groundSnapUpDistance = 0.2f;
+    float groundSnapDownDistance = 0.5f;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;

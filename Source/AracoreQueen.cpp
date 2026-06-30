@@ -6,6 +6,7 @@
 #include "SceneEffect.h"
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
+#include "NavMeshActor.h"
 #include "AracoreFootGrounder.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
@@ -45,10 +46,11 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         anim->BindCallbacks();
 
         // キャラクターコントローラー
-        CharacterController* cc = AddComponent<CharacterController>(Layers::Get("Enemy"), 2.17f, 0.7f);
+        CharacterController* cc = AddComponent<CharacterController>(Layers::Get("Enemy"), 3.86f, 0.01f);
         cc->SetStepOffset(1.2f);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);
+        navAgentRadius = 3.86f;
         navMeshAgent = AddComponent<NavMeshAgent>();
 
         // リジッドボディ
@@ -56,7 +58,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         rb->SetKinematic(true);
 
         // 当たり判定
-        bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 4.68f, Vector3{0, 3.55f, 0});
+        bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
 
         // 足接地補正
         #if 1
@@ -149,6 +151,9 @@ void AracoreQueen::OnLateUpdate()
 void AracoreQueen::UpdateChase()
 {
     if (!navMeshAgent) return;
+
+    if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+        navMeshActor->SetAgentRadius(navAgentRadius);
 
 	Actor* player = Actor::FindActorByTag("Player");
     if (!player)
@@ -362,3 +367,4 @@ void AracoreQueenMachine::OnDead()
     printf("AracoreQueenMachine Dead!\n");
     Destroy(2);
 }
+

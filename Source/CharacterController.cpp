@@ -77,7 +77,7 @@ void CharacterController::SyncOwnerTransform()
     {
         actor->transform.position = Vector3(
             (float)pos.x,
-            (float)pos.y,
+            (float)pos.y - ownerAnchorOffsetY,
             (float)pos.z);
         actor->transform.Update();
         return;
@@ -111,7 +111,7 @@ void CharacterController::Render(const RenderContext& rc)
 
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
         world,
-        static_cast<PxCapsuleController*>(controller)->getRadius() + controller->getContactOffset(),
+        static_cast<PxCapsuleController*>(controller)->getRadius(),
         static_cast<PxCapsuleController*>(controller)->getHeight(),
         Color(1.0f, 1.0f, 0.0f, 1.0f)
     );
@@ -248,7 +248,7 @@ void CharacterController::SetPosition(const Vector3& position)
     {
         controller->setPosition(PxExtendedVec3(
             position.x,
-            position.y,
+            position.y + ownerAnchorOffsetY,
             position.z));
         verticalVelocity = 0.0f;
         SyncOwnerTransform();
@@ -312,8 +312,7 @@ float CharacterController::GetFootToControllerCenter() const
 
     return
         capsule->getHeight() * 0.5f +
-        capsule->getRadius() +
-        controller->getContactOffset();
+        capsule->getRadius();
 }
 
 void CharacterController::SetStepOffset(float value)

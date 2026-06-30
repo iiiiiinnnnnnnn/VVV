@@ -379,6 +379,17 @@ bool PhysicsManager::Raycast(
     PhysicsRaycastHit& hit,
     int layer) const
 {
+    return Raycast(origin, direction, distance, hit, layer, nullptr);
+}
+
+bool PhysicsManager::Raycast(
+    const Vector3& origin,
+    const Vector3& direction,
+    float distance,
+    PhysicsRaycastHit& hit,
+    int layer,
+    const Actor* ignoreActor) const
+{
     if (distance <= 0.001f)
     {
         return false;
@@ -415,13 +426,15 @@ bool PhysicsManager::Raycast(
     struct RaycastFilterCallback : physx::PxQueryFilterCallback
     {
         int layer = -1;
+        const Actor* ignoreActor = nullptr;
 
         physx::PxQueryHitType::Enum preFilter(
             const physx::PxFilterData& filterData,
             const physx::PxShape*,
-            const physx::PxRigidActor*,
+            const physx::PxRigidActor* rigidActor,
             physx::PxHitFlags&) override
         {
+            if (ignoreActor && rigidActor && rigidActor->userData == ignoreActor) return physx::PxQueryHitType::eNONE;
             if (layer < 0) return physx::PxQueryHitType::eBLOCK;
 
             int otherLayer = static_cast<int>(filterData.word1);
@@ -440,6 +453,7 @@ bool PhysicsManager::Raycast(
     } filterCallback;
 
     filterCallback.layer = layer;
+    filterCallback.ignoreActor = ignoreActor;
 
     bool result = GetSceneContext().GetScene()->raycast(
         pxOrigin,

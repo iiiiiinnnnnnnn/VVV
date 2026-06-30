@@ -132,13 +132,24 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
-	cc = AddComponent<CharacterController>(Layers::Get("Player"), 0.30f, 0.01f);
+	float radius = 0.25f;
+	float totalHeight = 1.7f;
+	float capsuleHeight = totalHeight - radius * 2.0f;
+
+	cc = AddComponent<CharacterController>(
+		Layers::Get("Player"),
+		radius,
+		capsuleHeight
+	);
 	cc->SetUseGravity(false);
 	cc->SetStepOffset(0.45f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.05f);
-	cc->SetOwnerAnchorAtCenter(true);
-	cc->SetPosition({0, 3.0f, 10});
+	cc->SetOwnerAnchorAtCenter(false);
+	cc->SetOwnerAnchorOffsetY(0.0f);
+
+	// SetFootPosition と SetPosition は両方呼ばない
+	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
 	// 武器判定
 	weaponCollider = AddComponent<BoneSphereCollider>(
@@ -183,7 +194,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	footIK_L = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
 	hipNodeIndex = model->GetNodeIndex("pelvis");
 	model->UpdateTransform(Matrix::Identity);
-	UpdateModelVisualOffsetFromPelvis();
+	//UpdateModelVisualOffsetFromPelvis();
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -334,8 +345,6 @@ void Player::OnLateUpdate()
 	Quaternion deltaRot = anim->GetRootMotionRot();
 
 	transform.SetRotation(transform.rotation * deltaRot);
-	model->UpdateTransform(transform.matrix);
-	UpdateModelVisualOffsetFromPelvis();
 
 	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
 	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
@@ -344,50 +353,95 @@ void Player::OnLateUpdate()
 	cc->Move(worldMoveVec);
 	SnapToGroundIfNeeded();
 
-	// まず、移動後のモデル姿勢をワールドへ反映する
 	model->UpdateTransform(GetModelWorldTransform());
 
-	// pelvisを下げる前の足位置から、左右の接地ターゲットを作る
-	if (footIK_L && footIK_L->IsIKEnabled())
+	Vector3 baseHipLocalPosition = Vector3::Zero;
+	if (hipNodeIndex >= 0)
 	{
-		footIK_L->UpdateGroundTarget(
-			1.0f,
-			3.0f,
-			0.01f
-		);
+		baseHipLocalPosition = model->GetNodes()[hipNodeIndex].position;
 	}
 
-	if (footIK_R && footIK_R->IsIKEnabled())
+	const std::string currentStateName =
+		anim ? anim->GetCurrentStateName(0) : "";
+
+	const bool useFootIK =
+		currentStateName == "Idle";
+
+	if (useFootIK)
 	{
-		footIK_R->UpdateGroundTarget(
-			1.0f,
-			3.0f,
-			0.01f
-		);
+		if (footIK_L && footIK_L->IsIKEnabled())
+		{
+			footIK_L->UpdateGroundTarget(
+				0.2f,
+				0.5f,
+				0.01f
+			);
+		}
+
+		if (footIK_R && footIK_R->IsIKEnabled())
+		{
+			footIK_R->UpdateGroundTarget(
+				0.2f,
+				0.5f,
+				0.01f
+			);
+		}
+
+		ApplyFootIKHipOffset(baseHipLocalPosition);
+
+		if (footIK_L && footIK_L->IsIKEnabled())
+		{
+			footIK_L->SolveIK(model->GetWorldTransform());
+		}
+
+		if (footIK_R && footIK_R->IsIKEnabled())
+		{
+			footIK_R->SolveIK(model->GetWorldTransform());
+		}
+	}
+	else
+	{
+		// Idle以外ではFootIKの腰補正を戻す
+		visualHipOffsetY = 0.0f;
+
+		if (hipNodeIndex >= 0)
+		{
+			model->GetNodes()[hipNodeIndex].position = baseHipLocalPosition;
+		}
+
+		model->UpdateTransform(GetModelWorldTransform());
 	}
 
-	// 左右の足の結果を見て、体を下げる
-	ApplyFootIKHipOffset();
+	// 最終姿勢が決まった後に、武器ノードを同期する
+	SyncWeaponAttachNodes();
 
-	// pelvisを下げた後の姿勢でIKを解く
-	if (footIK_L && footIK_L->IsIKEnabled())
+	if (cc)
 	{
-		footIK_L->SolveIK(model->GetWorldTransform());
+		cc->ClearDebugRenderPosition();
 	}
+}
 
-	if (footIK_R && footIK_R->IsIKEnabled())
-	{
-		footIK_R->SolveIK(model->GetWorldTransform());
-	}
+void Player::SyncWeaponAttachNodes()
+{
+	if (!model) return;
 
-	if (cc && hipNodeIndex >= 0)
-		cc->SetDebugRenderPosition(GetPelvisWorldPosition());
+	const int weaponL = model->GetNodeIndex("add_weapon_l");
+	const int weaponR = model->GetNodeIndex("add_weapon_r");
+	const int handL   = model->GetNodeIndex("hand_l");
+	const int handR   = model->GetNodeIndex("hand_r");
+
+	if (weaponL < 0 || weaponR < 0 || handL < 0 || handR < 0) return;
+
+	model->GetNodes()[weaponL].worldTransform =
+		model->GetNodes()[handL].worldTransform;
+
+	model->GetNodes()[weaponR].worldTransform =
+		model->GetNodes()[handR].worldTransform;
 }
 
 Matrix Player::GetModelWorldTransform() const
 {
-	return Matrix::CreateTranslation(0.0f, -modelVisualOffsetY, 0.0f) *
-		transform.matrix;
+	return transform.matrix;
 }
 
 void Player::UpdateModelVisualOffsetFromPelvis()
@@ -423,67 +477,84 @@ Vector3 Player::GetPelvisWorldPosition() const
 
 bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
 {
+	uint32_t groundMask =
+		Layers::Get("Terrain") |
+		Layers::Get("Stage") |
+		Layers::Get("Prop");
+
 	Vector3 rayStart =
-		transform.position +
-		Vector3(0.0f, groundSnapUpDistance, 0.0f);
+		transform.position + Vector3(0.0f, groundSnapUpDistance, 0.0f);
 
 	float rayDistance =
-		groundSnapUpDistance +
-		groundSnapDownDistance +
-		modelVisualOffsetY;
+		groundSnapUpDistance + groundSnapDownDistance;
 
 	return PhysicsManager::Instance().Raycast(
 		rayStart,
 		Vector3::Down,
 		rayDistance,
 		hit,
-		Layers::Get("Foot"));
+		groundMask
+	);
 }
 
 void Player::SnapToGroundIfNeeded()
 {
 	PhysicsManager::PhysicsRaycastHit hit;
 	groundedByRay = RaycastGround(hit);
+
 	if (!groundedByRay) return;
 	if (hit.normal.y < 0.35f) return;
 	if (verticalVelocity > 0.0f) return;
 
 	Vector3 targetPosition = transform.position;
-	targetPosition.y = hit.position.y + modelVisualOffsetY;
+	targetPosition.y = hit.position.y;
 
 	float t = 1.0f - expf(-30.0f * Game::Time::deltaTime);
 	t = std::clamp(t, 0.0f, 1.0f);
+
 	transform.SetPosition(Vector3::Lerp(transform.position, targetPosition, t));
-	cc->SetPosition(transform.position);
+
+	if (cc)
+	{
+		cc->SetOwnerAnchorOffsetY(0.0f);
+		cc->SetPosition(transform.position);
+	}
+
 	verticalVelocity = 0.0f;
 }
 
-void Player::ApplyFootIKHipOffset()
+void Player::ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition)
 {
 	float targetOffsetY = 0.0f;
+	float highestFootOffsetY = 0.0f;
 
 	if (footIK_L &&
 		footIK_L->IsIKEnabled() &&
 		footIK_L->HasGroundContact())
 	{
-		targetOffsetY = min(
-			targetOffsetY,
-			footIK_L->GetGroundOffsetY()
-		);
+		const float footOffsetY = footIK_L->GetGroundOffsetY();
+
+		targetOffsetY = min(targetOffsetY, footOffsetY);
+		highestFootOffsetY = max(highestFootOffsetY, footOffsetY);
 	}
 
 	if (footIK_R &&
 		footIK_R->IsIKEnabled() &&
 		footIK_R->HasGroundContact())
 	{
-		targetOffsetY = min(
-			targetOffsetY,
-			footIK_R->GetGroundOffsetY()
-		);
+		const float footOffsetY = footIK_R->GetGroundOffsetY();
+
+		targetOffsetY = min(targetOffsetY, footOffsetY);
+		highestFootOffsetY = max(highestFootOffsetY, footOffsetY);
 	}
 
-	// 体を下げる量を制限する
-	targetOffsetY = std::clamp(targetOffsetY, -0.6f, 0.0f);
+	if (highestFootOffsetY > 0.0f)
+	{
+		targetOffsetY = min(targetOffsetY, -highestFootOffsetY);
+	}
+
+	// 腰下げ量はまず弱めに制限する
+	targetOffsetY = std::clamp(targetOffsetY, -0.2f, 0.0f);
 
 	const float t =
 		1.0f - expf(-14.0f * Game::Time::deltaTime);
@@ -493,7 +564,8 @@ void Player::ApplyFootIKHipOffset()
 
 	if (hipNodeIndex >= 0)
 	{
-		model->GetNodes()[hipNodeIndex].position.y += visualHipOffsetY;
+		model->GetNodes()[hipNodeIndex].position =
+			baseHipLocalPosition + Vector3(0.0f, visualHipOffsetY, 0.0f);
 	}
 
 	model->UpdateTransform(GetModelWorldTransform());
@@ -502,6 +574,25 @@ void Player::ApplyFootIKHipOffset()
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
+
+	bool changed = false;
+
+	changed |= ImGui::DragFloat("visualHipOffsetY", &visualHipOffsetY, 0.01f, -1.0f, 1.0f);
+	changed |= ImGui::DragFloat("modelVisualOffsetY", &modelVisualOffsetY, 0.01f, -1.0f, 2.0f);
+	changed |= ImGui::DragFloat("modelFootLocalY", &modelFootLocalY, 0.01f, -1.0f, 1.0f);
+	changed |= ImGui::DragFloat("groundSnapUpDistance", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
+	changed |= ImGui::DragFloat("groundSnapDownDistance", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
+
+	if (changed && cc)
+	{
+		cc->SetOwnerAnchorOffsetY(GetOwnerAnchorOffsetY());
+		cc->SetPosition(transform.position);
+	}
+}
+
+float Player::GetOwnerAnchorOffsetY() const
+{
+	return max(0.0f, modelVisualOffsetY - modelFootLocalY);
 }
 
 void Player::OnDamaged(const DamageData& damageData)

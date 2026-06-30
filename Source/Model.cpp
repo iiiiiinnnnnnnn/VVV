@@ -913,16 +913,6 @@ int Model::GetNodeIndex(const char* name) const
 	return -1;
 }
 
-void Model::AttachNodeToNode(int childIndex, int targetIndex)
-{
-	attachments.push_back({ childIndex, targetIndex });
-}
-
-void Model::ClearAttachments()
-{
-	attachments.clear();
-}
-
 // トランスフォーム更新処理
 void Model::UpdateTransform(const Matrix& worldTransform)
 {
@@ -932,12 +922,6 @@ void Model::UpdateTransform(const Matrix& worldTransform)
 		{
 			UpdateNodeTransform(node, Matrix::Identity, worldTransform);
 		}
-	}
-
-	// アタッチされたノードは毎フレーム対象ノードのworldTransformを上書き
-	for (auto& [childIdx, targetIdx] : attachments)
-	{
-		nodes[childIdx].worldTransform = nodes[targetIdx].worldTransform;
 	}
 }
 
@@ -949,12 +933,6 @@ const Matrix& Model::GetWorldTransform() const
 		{
 			return node.worldTransform;
 		}
-	}
-
-	// アタッチされたノードは毎フレーム対象ノードのworldTransformを上書き
-	for (auto& [childIdx, targetIdx] : attachments)
-	{
-		return nodes[childIdx].worldTransform;
 	}
 
 	static const Matrix identity = Matrix::Identity;

@@ -71,6 +71,15 @@ void NavMeshActor::RequestBuild(int delayFrames)
 	buildDelayFrames = max(delayFrames, 0);
 }
 
+void NavMeshActor::SetAgentRadius(float value)
+{
+	value = max(value, 0.0f);
+	if (fabsf(agentRadius - value) <= 0.001f) return;
+
+	agentRadius = value;
+	RequestBuild();
+}
+
 void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) const
 {
 	Actor* actor = GetOwnerAsActor();

@@ -27,6 +27,8 @@ public:
 		Vector3& nextPoint) const;
 
 	void RequestBuild(int delayFrames = 1);
+	void SetAgentRadius(float value);
+	float GetAgentRadius() const { return agentRadius; }
 
 	static NavMeshActor* GetActive() { return active; }
 

@@ -53,6 +53,7 @@ private:
 	std::vector<PhysicsComponent*> IKStampColliders;
 	DamageHoleComponent* damageHoleComponent = nullptr;
 	bool chasingPlayer = false;
+	float navAgentRadius = 2.17f;
 	std::vector<FootIK*> footIKs;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

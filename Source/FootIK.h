@@ -84,7 +84,7 @@ private:
 	float groundOffsetSmoothSpeed = 18.0f;
 	float ikBlendSpeed = 20.0f;
 	int lostGroundFrameCount = 0;
-	int maxLostGroundFrames = 4;
+	int maxLostGroundFrames = 10;
 
 	void ResetGroundState();
 	void KeepPreviousGroundTarget();
@@ -158,3 +158,4 @@ private:
 		bone.rotation.Normalize();
 	}
 };
+

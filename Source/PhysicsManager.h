@@ -214,6 +214,13 @@ public:
         float distance,
         PhysicsRaycastHit& hit,
         int layer = -1) const;
+    bool Raycast(
+        const Vector3& origin,
+        const Vector3& direction,
+        float distance,
+        PhysicsRaycastHit& hit,
+        int layer,
+        const Actor* ignoreActor) const;
 
     std::unique_ptr<PhysicsSceneContext> CreateSceneContext(
         PxVec3 gravity = PxVec3(0, -9.81f, 0));
