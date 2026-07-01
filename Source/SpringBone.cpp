@@ -550,12 +550,7 @@ void SpringBone::LateUpdate()
 
 void SpringBone::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug)
-        return;
-
-    if (model == nullptr)
-        return;
+    if (!showDebug) return;
 
     Game::Graphics& graphics = Game::Graphics::Instance();
     PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
@@ -630,91 +625,85 @@ void SpringBone::Render(const RenderContext& rc)
 
 void SpringBone::DrawGUI()
 {
-	isOpenGUI = ImGui::TreeNode(ICON_FA_BONE " SpringBone");
-    if (isOpenGUI)
+    ImGui::Text("Bones: %d", static_cast<int>(bones.size()));
+    ImGui::Text("Capsules: %d", static_cast<int>(springCapsules.size()));
+
+    if (ImGui::Button("Reset Physics"))
+        Reset();
+
+    ImGui::Separator();
+    ImGui::DragFloat3("Gravity", &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
+    ImGui::DragFloat("Damping", &damping, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGui::DragFloat("Max Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
+
+    ImGui::Separator();
+    ImGui::Text("Collision / Solver");
+    ImGui::DragFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
+    ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
+    ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
+
+    ImGui::Checkbox("Draw Bones", &drawBones);
+    ImGui::Checkbox("Draw Capsules", &drawCapsules);
+
+    ImGui::Separator();
+    ImGui::Text("Capsule Colliders");
+
+    if (ImGui::Button("Add Capsule"))
     {
-        ImGui::Text("Bones: %d", static_cast<int>(bones.size()));
-        ImGui::Text("Capsules: %d", static_cast<int>(springCapsules.size()));
+        SpringCapsule capsule;
+        springCapsules.push_back(capsule);
+    }
 
-        if (ImGui::Button("Reset Physics"))
-            Reset();
+    if (model != nullptr)
+    {
+        std::vector<Model::Node>& nodes = model->GetNodes();
+        int deleteIndex = -1;
 
-        ImGui::Separator();
-        ImGui::DragFloat3("Gravity", &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
-        ImGui::DragFloat("Damping", &damping, 0.001f, 0.0f, 1.0f, "%.3f");
-        ImGui::DragFloat("Max Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
-
-        ImGui::Separator();
-        ImGui::Text("Collision / Solver");
-        ImGui::DragFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
-        ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
-        ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
-        ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
-        ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
-
-        ImGui::Checkbox("Draw Bones", &drawBones);
-        ImGui::Checkbox("Draw Capsules", &drawCapsules);
-
-        ImGui::Separator();
-        ImGui::Text("Capsule Colliders");
-
-        if (ImGui::Button("Add Capsule"))
+        for (int i = 0; i < static_cast<int>(springCapsules.size()); ++i)
         {
-            SpringCapsule capsule;
-            springCapsules.push_back(capsule);
-        }
+            SpringCapsule& capsule = springCapsules[i];
 
-        if (model != nullptr)
-        {
-            std::vector<Model::Node>& nodes = model->GetNodes();
-            int deleteIndex = -1;
+            ImGui::PushID(i);
 
-            for (int i = 0; i < static_cast<int>(springCapsules.size()); ++i)
+            const std::string header = "Capsule[" + std::to_string(i) + "]";
+            if (ImGui::CollapsingHeader(header.c_str()))
             {
-                SpringCapsule& capsule = springCapsules[i];
+                std::string currentNodeName = "None";
+                if (capsule.nodeIndex >= 0 && capsule.nodeIndex < static_cast<int>(nodes.size()))
+                    currentNodeName = nodes[capsule.nodeIndex].name;
 
-                ImGui::PushID(i);
-
-                const std::string header = "Capsule[" + std::to_string(i) + "]";
-                if (ImGui::CollapsingHeader(header.c_str()))
+                if (ImGui::BeginCombo("Node", currentNodeName.c_str()))
                 {
-                    std::string currentNodeName = "None";
-                    if (capsule.nodeIndex >= 0 && capsule.nodeIndex < static_cast<int>(nodes.size()))
-                        currentNodeName = nodes[capsule.nodeIndex].name;
+                    if (ImGui::Selectable("None", capsule.nodeIndex < 0))
+                        capsule.nodeIndex = -1;
 
-                    if (ImGui::BeginCombo("Node", currentNodeName.c_str()))
+                    for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
                     {
-                        if (ImGui::Selectable("None", capsule.nodeIndex < 0))
-                            capsule.nodeIndex = -1;
+                        const bool selected = capsule.nodeIndex == nodeIndex;
+                        if (ImGui::Selectable(nodes[nodeIndex].name.c_str(), selected))
+                            capsule.nodeIndex = nodeIndex;
 
-                        for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
-                        {
-                            const bool selected = capsule.nodeIndex == nodeIndex;
-                            if (ImGui::Selectable(nodes[nodeIndex].name.c_str(), selected))
-                                capsule.nodeIndex = nodeIndex;
-
-                            if (selected)
-                                ImGui::SetItemDefaultFocus();
-                        }
-
-                        ImGui::EndCombo();
+                        if (selected)
+                            ImGui::SetItemDefaultFocus();
                     }
 
-                    ImGui::DragFloat3("Start", &capsule.start.x, 0.01f);
-                    ImGui::DragFloat3("End", &capsule.end.x, 0.01f);
-                    ImGui::DragFloat("Radius", &capsule.radius, 0.005f, 0.001f, 10.0f, "%.3f");
-
-                    if (ImGui::Button("Delete"))
-                        deleteIndex = i;
+                    ImGui::EndCombo();
                 }
 
-                ImGui::PopID();
+                ImGui::DragFloat3("Start", &capsule.start.x, 0.01f);
+                ImGui::DragFloat3("End", &capsule.end.x, 0.01f);
+                ImGui::DragFloat("Radius", &capsule.radius, 0.005f, 0.001f, 10.0f, "%.3f");
+
+                if (ImGui::Button("Delete"))
+                    deleteIndex = i;
             }
 
-            if (deleteIndex >= 0)
-                springCapsules.erase(springCapsules.begin() + deleteIndex);
+            ImGui::PopID();
         }
 
-        ImGui::TreePop();
+        if (deleteIndex >= 0)
+            springCapsules.erase(springCapsules.begin() + deleteIndex);
     }
 }

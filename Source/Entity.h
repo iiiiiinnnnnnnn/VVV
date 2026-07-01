@@ -23,28 +23,29 @@ public:
     Entity(std::string name = "", std::string tag = "", bool isActive = true, float life = 100.0f, float maxLife = 100.0f)
         : Actor(name, tag, isActive), life(life), maxLife(maxLife) {}
 
-    void OnDrawGUI() override;
-
     virtual void OnUpdate() override;
 
     void TakeDamage(const DamageData& damageData);
     void Heal(float amount);
     bool IsDead() const { return life <= 0.0f; }
 
-    float GetLife()    const { return life; }
+    float GetLife() const { return life; }
     float GetMaxLife() const { return maxLife; }
 
     Vector3 GetKnockBackVelocity() const { return knockBackVelocity; }
     void AddKnockBack(const Vector3& velocity) { knockBackVelocity += velocity; }
 
 protected:
+    void OnDrawGUI() override;
+
     virtual void OnDead() {}
     virtual void OnDamaged(const DamageData& damageData) {}
 
     Vector3 knockBackVelocity = Vector3::Zero;
 
-    float life    = 100.0f;
+    float life = 100.0f;
     float maxLife = 100.0f;
+
     struct Cooldowns
     {
         static const float DamageCooldownDuration;

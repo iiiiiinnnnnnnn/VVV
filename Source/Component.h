@@ -29,10 +29,12 @@ public:
 
     Actor* GetOwnerAsActor(Object* owner_sub = nullptr) const;
     Widget* GetOwnerAsWidget(Object* owner_sub = nullptr) const;
-    bool ShouldRenderDebug() const;
+
+	virtual const char* GetDebugName() const = 0;
 
 protected:
+    friend class Object;
     Object* owner;
     bool isActive = true;
-	bool isOpenGUI = false;
+	bool showDebug = false;
 };

@@ -17,6 +17,7 @@ public:
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_BOX " StageLoader"; }
 
 	void LoadJson();
 	void SaveJson();

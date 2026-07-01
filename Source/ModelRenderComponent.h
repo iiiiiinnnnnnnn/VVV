@@ -15,6 +15,7 @@ public:
     void LateUpdate() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_CUBES " ModelRenderComponent"; }
 
     Model* GetModel() const { return model.get(); }
     void SetModel(std::shared_ptr<Model> model) { this->model = model; }

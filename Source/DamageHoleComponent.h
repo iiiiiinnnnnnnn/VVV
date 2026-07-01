@@ -20,6 +20,7 @@ public:
 		float surfaceDistance = -1.0f);
 
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_BULLSEYE " DamageHoleComponent"; }
 	void LateUpdate() override;
 
 	void AddDamageHoleFrom(const Actor* attacker);

@@ -25,6 +25,7 @@ public:
 
 	void Update() override;
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_BONE " BoneFollower"; }
 
 	void SetTarget(Model* targetModel, const std::string& targetNodeName);
 	void SetTarget(Model* targetModel, int targetNodeIndex);

@@ -14,6 +14,7 @@ public:
     void LateUpdate() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_STREET_VIEW " CharacterController"; }
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
     void SetFootPosition(const Vector3& pos);

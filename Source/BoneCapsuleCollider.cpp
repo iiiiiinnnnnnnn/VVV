@@ -29,8 +29,7 @@ PxTransform BoneCapsuleCollider::GetLocalPose() const
 
 void BoneCapsuleCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug || !ghostActor) return;
+	if (!showDebug) return;
 
     PxTransform pose = ghostActor->getGlobalPose() *
         GetLocalPose() *
@@ -45,19 +44,14 @@ void BoneCapsuleCollider::Render(const RenderContext& rc)
 
 void BoneCapsuleCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneCapsuleCollider");
-    if (isOpenGUI)
+    bool changed = false;
+    changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+    changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f);
+    radius = max(radius, 0.01f);
+    height = max(height, 0.01f);
+    if (changed)
     {
-        bool changed = false;
-        changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
-        changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f);
-        radius = max(radius, 0.01f);
-        height = max(height, 0.01f);
-        if (changed)
-        {
-            InitializeShape();
-        }
-        DrawBoneSettingsGUI();
-        ImGui::TreePop();
+        InitializeShape();
     }
+    DrawBoneSettingsGUI();
 }

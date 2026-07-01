@@ -352,8 +352,7 @@ void TerrainMeshCollider::UpdateShape(
 
 void TerrainMeshCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug) return;
+    if (!showDebug) return;
 
     Terrain* terrain = owner->GetComponent<Terrain>();
     if (terrain != nullptr)
@@ -379,86 +378,80 @@ void TerrainMeshCollider::Render(const RenderContext& rc)
 
 void TerrainMeshCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " TerrainMeshCollider");
-    if (isOpenGUI)
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    if (terrain != nullptr && ImGui::TreeNode("Collision Area AABB"))
     {
-        Terrain* terrain = owner->GetComponent<Terrain>();
-        if (terrain != nullptr && ImGui::TreeNode("Collision Area AABB"))
+        ClampCollisionArea();
+
+        ImGui::DragFloat("Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
+
+        if (ImGui::Button("Reset Full Terrain Area"))
         {
-            ClampCollisionArea();
-
-            ImGui::DragFloat("Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
-            ImGui::DragFloat("Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
-            ImGui::DragFloat("Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
-            ImGui::DragFloat("Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
-
-            if (ImGui::Button("Reset Full Terrain Area"))
-            {
-                collisionArea.minX = 0.0f;
-                collisionArea.minZ = 0.0f;
-                collisionArea.maxX = 1.0f;
-                collisionArea.maxZ = 1.0f;
-            }
-
-            ImGui::TreePop();
+            collisionArea.minX = 0.0f;
+            collisionArea.minZ = 0.0f;
+            collisionArea.maxX = 1.0f;
+            collisionArea.maxZ = 1.0f;
         }
 
-        if (ImGui::Button("Remake Terrain .vx Collider"))
+        ImGui::TreePop();
+    }
+
+    if (ImGui::Button("Remake Terrain .vx Collider"))
+    {
+        RequestGpuRebuild();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Load Terrain .vx Collider"))
+    {
+        std::vector<Vector3> vertices;
+        std::vector<uint32_t> indices;
+        if (LoadCachedMesh(vertices, indices))
         {
-            RequestGpuRebuild();
+            UpdateShape(vertices, indices);
+            debugVertices = vertices;
+            debugIndices = indices;
+        }
+    }
+
+    if (ImGui::Button("Save Current Terrain .vx Collider"))
+    {
+        SaveCachedMesh(debugVertices, debugIndices);
+    }
+
+    if (terrain != nullptr)
+    {
+        ImGui::Text("HeightMap: %d x %d",
+            terrain->GetHeightMapWidth(),
+            terrain->GetHeightMapHeight());
+        ImGui::Text("VX: %s", terrain->GetColliderVertexPath().generic_string().c_str());
+    }
+    ImGui::Text("%s", vxMessage.c_str());
+    ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
+    ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
+
+    if (ImGui::TreeNode(ICON_FA_GRIP_LINES "Material"))
+    {
+        float staticFriction = material->getStaticFriction();
+        float dynamicFriction = material->getDynamicFriction();
+        float restitution = material->getRestitution();
+
+        if (ImGui::DragFloat("Static Friction", &staticFriction, 0.01f, 0.0f, 1.0f))
+        {
+            material->setStaticFriction(staticFriction);
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button("Load Terrain .vx Collider"))
+        if (ImGui::DragFloat("Dynamic Friction", &dynamicFriction, 0.01f, 0.0f, 1.0f))
         {
-            std::vector<Vector3> vertices;
-            std::vector<uint32_t> indices;
-            if (LoadCachedMesh(vertices, indices))
-            {
-                UpdateShape(vertices, indices);
-                debugVertices = vertices;
-                debugIndices = indices;
-            }
+            material->setDynamicFriction(dynamicFriction);
         }
 
-        if (ImGui::Button("Save Current Terrain .vx Collider"))
+        if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
         {
-            SaveCachedMesh(debugVertices, debugIndices);
-        }
-
-        if (terrain != nullptr)
-        {
-            ImGui::Text("HeightMap: %d x %d",
-                terrain->GetHeightMapWidth(),
-                terrain->GetHeightMapHeight());
-            ImGui::Text("VX: %s", terrain->GetColliderVertexPath().generic_string().c_str());
-        }
-        ImGui::Text("%s", vxMessage.c_str());
-        ImGui::Text("Vertices: %d", static_cast<int>(debugVertices.size()));
-        ImGui::Text("Triangles: %d", static_cast<int>(debugIndices.size() / 3));
-
-        if (ImGui::TreeNode(ICON_FA_GRIP_LINES "Material"))
-        {
-            float staticFriction = material->getStaticFriction();
-            float dynamicFriction = material->getDynamicFriction();
-            float restitution = material->getRestitution();
-
-            if (ImGui::DragFloat("Static Friction", &staticFriction, 0.01f, 0.0f, 1.0f))
-            {
-                material->setStaticFriction(staticFriction);
-            }
-
-            if (ImGui::DragFloat("Dynamic Friction", &dynamicFriction, 0.01f, 0.0f, 1.0f))
-            {
-                material->setDynamicFriction(dynamicFriction);
-            }
-
-            if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
-            {
-                material->setRestitution(restitution);
-            }
-
-            ImGui::TreePop();
+            material->setRestitution(restitution);
         }
 
         ImGui::TreePop();

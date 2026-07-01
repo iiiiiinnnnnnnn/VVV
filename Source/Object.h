@@ -32,7 +32,7 @@ public:
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args) {
-		componentList.push_back(std::make_unique<T>(this, std::forward<Args>(args)...));
+		componentList.Register(std::make_unique<T>(this, std::forward<Args>(args)...));
 		return static_cast<T*>(componentList.data.back().get());
 	}
 
@@ -53,14 +53,12 @@ protected:
 	virtual void OnDrawGUI() {}
 
 	bool isActive;
-	std::string name;
-	std::string tag;
-
+	std::string name, tag;
 	std::optional<float> destroyTimer;
 
 	struct Components {
 		std::vector<std::unique_ptr<Component>> data;
-		void push_back(std::unique_ptr<Component> component);
+		void Register(std::unique_ptr<Component> component);
 		void SortUpdateOrder();
 		void Update();
 		void LateUpdate();

@@ -105,7 +105,8 @@ bool FootIK::UpdateGroundTarget(
 
 void FootIK::Render(const RenderContext& rc)
 {
-	if (!isActive) return;
+	if (!showDebug) return;
+
 	if (!chain.enabled) return;
 	if (chain.root == nullptr) return;
 	if (chain.mid == nullptr) return;
@@ -140,15 +141,9 @@ void FootIK::Render(const RenderContext& rc)
 
 void FootIK::DrawGUI()
 {
-	if (!ShouldRenderDebug()) return;
-
-	if (ImGui::TreeNode(ICON_FA_BONE " FootIK"))
+	if (ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f))
 	{
-		if (ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f))
-		{
-			SyncPoleLocalPosition();
-		}
-		ImGui::TreePop();
+		SyncPoleLocalPosition();
 	}
 }
 

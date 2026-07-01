@@ -22,6 +22,8 @@ public:
 
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_BONE " FootIK"; }
+
 	int GetUpdateOrder() const override { return 200; }
 
 	bool UpdateGroundTarget(

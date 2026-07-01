@@ -31,15 +31,10 @@ public:
 
 	virtual void OnRegistered(ActorManager* actorManager) {}
 
-    bool IsDebugGUIOpen() const { return debugGUIOpen; }
-	bool IsDebugRenderHidden() const { return hideDebugs; }
-
     ActorManager* GetActorManager() const { return actorManager; }
 	Actor* FindActorByTag(const std::string& searchTag) const;
 
 protected:
 	friend class ActorManager;
-    bool debugGUIOpen = false;
-    bool hideDebugs = false;
     ActorManager* actorManager = nullptr;
 };

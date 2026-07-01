@@ -13,6 +13,7 @@ public:
 
     void Update() override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_WEIGHT_HANGING " Rigidbody"; }
 
     void SetPosition(const Vector3& pos);
     void SetRotation(const Quaternion& rot);

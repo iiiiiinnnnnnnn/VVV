@@ -24,8 +24,7 @@ PxShape* BoneBoxCollider::CreateShape(PxPhysics* physics, PxMaterial* material) 
 
 void BoneBoxCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug || !ghostActor) return;
+	if (!showDebug)  return;
 
     PxTransform t = ghostActor->getGlobalPose();
     Quaternion rotation(t.q.x, t.q.y, t.q.z, t.q.w);
@@ -38,19 +37,14 @@ void BoneBoxCollider::Render(const RenderContext& rc)
 
 void BoneBoxCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneBoxCollider");
-    if (isOpenGUI)
+    bool changed = false;
+    changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
+    size.x = max(size.x, 0.01f);
+    size.y = max(size.y, 0.01f);
+    size.z = max(size.z, 0.01f);
+    if (changed)
     {
-        bool changed = false;
-        changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
-        size.x = max(size.x, 0.01f);
-        size.y = max(size.y, 0.01f);
-        size.z = max(size.z, 0.01f);
-        if (changed)
-        {
-            InitializeShape();
-        }
-        DrawBoneSettingsGUI();
-        ImGui::TreePop();
+        InitializeShape();
     }
+    DrawBoneSettingsGUI();
 }

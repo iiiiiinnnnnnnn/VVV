@@ -93,8 +93,7 @@ void CharacterController::SyncOwnerTransform()
 
 void CharacterController::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug) return;
+	if (!showDebug) return;
 
     PxExtendedVec3 controllerPosition = controller->getPosition();
     Vector3 position = useDebugRenderPosition ?
@@ -119,65 +118,59 @@ void CharacterController::Render(const RenderContext& rc)
 
 void CharacterController::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_STREET_VIEW " CharacterController");
-    if (isOpenGUI)
+    PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
+
+    // --- 状態表示 ---
+    ImGui::Text("Grounded : %s", grounded ? "true" : "false");
+    ImGui::Checkbox("Use Gravity", &useGravity);
+    ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
+
+    PxExtendedVec3 pos = controller->getPosition();
+    ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
+
+    // --- カプセル形状 ---
+    if (ImGui::TreeNode("Shape"))
     {
-        PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
+        float radius = capsule->getRadius();
+        float height = capsule->getHeight();
+        Actor* actor = Component::GetOwnerAsActor();
 
-        // --- 状態表示 ---
-        ImGui::Text("Grounded : %s", grounded ? "true" : "false");
-        ImGui::Checkbox("Use Gravity", &useGravity);
-        ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
-
-        PxExtendedVec3 pos = controller->getPosition();
-        ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
-
-        // --- カプセル形状 ---
-        if (ImGui::TreeNode("Shape"))
+        if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
         {
-            float radius = capsule->getRadius();
-            float height = capsule->getHeight();
+            const Vector3 anchorPosition = actor->transform.position;
+            capsule->setRadius(radius);
+            SetPosition(anchorPosition);
+        }
+        if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
+        {
+            const Vector3 anchorPosition = actor->transform.position;
+            capsule->setHeight(height);
+            SetPosition(anchorPosition);
+        }
+
+        ImGui::TreePop();
+    }
+
+    // --- コントローラ設定 ---
+    if (ImGui::TreeNode("Settings"))
+    {
+        float stepOffset = controller->getStepOffset();
+        if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.5f))
+            controller->setStepOffset(stepOffset);
+
+        float contactOffset = controller->getContactOffset();
+        if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
+        {
             Actor* actor = Component::GetOwnerAsActor();
-
-            if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
-            {
-                const Vector3 anchorPosition = actor->transform.position;
-                capsule->setRadius(radius);
-                SetPosition(anchorPosition);
-            }
-            if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
-            {
-                const Vector3 anchorPosition = actor->transform.position;
-                capsule->setHeight(height);
-                SetPosition(anchorPosition);
-            }
-
-            ImGui::TreePop();
+            const Vector3 anchorPosition = actor->transform.position;
+            controller->setContactOffset(contactOffset);
+            SetPosition(anchorPosition);
         }
 
-        // --- コントローラ設定 ---
-        if (ImGui::TreeNode("Settings"))
-        {
-            float stepOffset = controller->getStepOffset();
-            if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.5f))
-                controller->setStepOffset(stepOffset);
-
-            float contactOffset = controller->getContactOffset();
-            if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
-            {
-                Actor* actor = Component::GetOwnerAsActor();
-                const Vector3 anchorPosition = actor->transform.position;
-                controller->setContactOffset(contactOffset);
-                SetPosition(anchorPosition);
-            }
-
-            // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
-            float slopeDeg = acosf(controller->getSlopeLimit()) * RAD2DEG;
-            if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
-                controller->setSlopeLimit(cosf(slopeDeg * DEG2RAD));
-
-            ImGui::TreePop();
-        }
+        // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
+        float slopeDeg = acosf(controller->getSlopeLimit()) * RAD2DEG;
+        if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
+            controller->setSlopeLimit(cosf(slopeDeg * DEG2RAD));
 
         ImGui::TreePop();
     }

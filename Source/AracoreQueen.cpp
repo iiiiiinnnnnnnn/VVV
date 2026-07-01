@@ -7,7 +7,6 @@
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
 #include "NavMeshActor.h"
-#include "AracoreFootGrounder.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
 {

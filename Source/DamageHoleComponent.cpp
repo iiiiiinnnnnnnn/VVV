@@ -27,50 +27,45 @@ DamageHoleComponent::DamageHoleComponent(
 
 void DamageHoleComponent::DrawGUI()
 {
-	if (ImGui::TreeNode(ICON_FA_BULLSEYE " DamageHoleComponent"))
+	if (ImGui::DragFloat("Hole Radius", &holeRadius, 0.01f, 0.001f, 100.0f))
 	{
-		if (ImGui::DragFloat("Hole Radius", &holeRadius, 0.01f, 0.001f, 100.0f))
-		{
-			UpdateShaderParams();
-		}
-		if (ImGui::DragFloat("Hole Edge Width", &holeEdgeWidth, 0.01f, 0.001f, 30.0f))
-		{
-			UpdateShaderParams();
-		}
-		if (ImGui::DragFloat("Hole Depth", &holeDepth, 0.01f, 0.0f, 100.0f))
-		{
-			UpdateShaderParams();
-		}
-		ImGui::DragFloat("Surface Distance", &surfaceDistance, 0.01f, -1.0f, 100.0f);
-		ImGui::Text("Hole Count: %d / %d", static_cast<int>(damageHoles.size()), MaxDamageHoles);
+		UpdateShaderParams();
+	}
+	if (ImGui::DragFloat("Hole Edge Width", &holeEdgeWidth, 0.01f, 0.001f, 30.0f))
+	{
+		UpdateShaderParams();
+	}
+	if (ImGui::DragFloat("Hole Depth", &holeDepth, 0.01f, 0.0f, 100.0f))
+	{
+		UpdateShaderParams();
+	}
+	ImGui::DragFloat("Surface Distance", &surfaceDistance, 0.01f, -1.0f, 100.0f);
+	ImGui::Text("Hole Count: %d / %d", static_cast<int>(damageHoles.size()), MaxDamageHoles);
 
-		if (ImGui::Button("Add Front Hole"))
+	if (ImGui::Button("Add Front Hole"))
+	{
+		if (Actor* actor = GetOwnerAsActor())
 		{
-			if (Actor* actor = GetOwnerAsActor())
+			Vector3 center = actor->transform.position;
+			if (Rigidbody* rb = actor->GetComponent<Rigidbody>())
 			{
-				Vector3 center = actor->transform.position;
-				if (Rigidbody* rb = actor->GetComponent<Rigidbody>())
-				{
-					center = rb->GetPosition();
-				}
-
-				Vector3 direction = actor->transform.forward;
-				if (direction.LengthSquared() < eps)
-				{
-					direction = Vector3::Forward;
-				}
-				direction.Normalize();
-
-				AddDamageHoleAt(center + direction * ComputeSurfaceDistance(*actor), direction);
+				center = rb->GetPosition();
 			}
-		}
 
-		if (ImGui::Button("Clear Holes"))
-		{
-			ClearDamageHoles();
-		}
+			Vector3 direction = actor->transform.forward;
+			if (direction.LengthSquared() < eps)
+			{
+				direction = Vector3::Forward;
+			}
+			direction.Normalize();
 
-		ImGui::TreePop();
+			AddDamageHoleAt(center + direction * ComputeSurfaceDistance(*actor), direction);
+		}
+	}
+
+	if (ImGui::Button("Clear Holes"))
+	{
+		ClearDamageHoles();
 	}
 }
 

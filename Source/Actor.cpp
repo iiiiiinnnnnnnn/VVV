@@ -15,15 +15,8 @@ void Actor::Update()
 void Actor::DrawGUI()
 {
     ImGui::PushID(this);
-    debugGUIOpen =
-        ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str());
-
-    if (debugGUIOpen)
+    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
     {
-        ImGui::Checkbox("Hide Debugs", &hideDebugs);
-
-        Object::DrawGUI();
-
         Transform::TransformChangedResult res = transform.DrawGUI();
         if (res.positionChanged)
         {
@@ -33,7 +26,7 @@ void Actor::DrawGUI()
                 RigidbodyDynamic* rbd = dynamic_cast<RigidbodyDynamic*>(rb);
                 if (rbd)
                 {
-					rbd->SetVelocity(Vector3::Zero);
+                    rbd->SetVelocity(Vector3::Zero);
                 }
                 rb->SetPosition(transform.position);
             }
@@ -53,7 +46,7 @@ void Actor::DrawGUI()
             // you have no idea what's come
         }
 
-        componentList.DrawGUI();
+        Object::DrawGUI();
 
         if (ImGui::TreeNode("User param"))
         {
@@ -62,8 +55,6 @@ void Actor::DrawGUI()
         }
     }
     ImGui::PopID();
-
-    ImGui::Separator();
 }
 
 Actor* Actor::FindActorByTag(const std::string& searchTag) const

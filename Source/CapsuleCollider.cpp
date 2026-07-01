@@ -50,8 +50,7 @@ PxTransform CapsuleCollider::MakeLocalPose() const
 
 void CapsuleCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug) return;
+	if (!showDebug) return;
 
     PxTransform pose =
         rigidbody->GetRigidActor()->getGlobalPose() *
@@ -90,30 +89,25 @@ void CapsuleCollider::UpdateShape()
 
 void CapsuleCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " CapsuleCollider");
-    if (isOpenGUI)
+    bool changed = false;
+    changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
+    changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 100.0f);
+    changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
+    if (radius < 0.01f) radius = 0.01f;
+
+    if (changed) UpdateShape();
+
+    if (ImGui::TreeNode(ICON_FA_GRIP_LINES " Material"))
     {
-        bool changed = false;
-        changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 100.0f);
-        changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 100.0f);
-        changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
-        if (radius < 0.01f) radius = 0.01f;
-
-        if (changed) UpdateShape();
-
-        if (ImGui::TreeNode(ICON_FA_GRIP_LINES " Material")) {
-            float sfriction = material->getStaticFriction();
-            float dfriction = material->getDynamicFriction();
-            float restitution = material->getRestitution();
-            if (ImGui::DragFloat("Static Friction", &sfriction, 0.01f, 0.0f, 1.0f))
-                material->setStaticFriction(sfriction);
-            if (ImGui::DragFloat("Dynamic Friction", &dfriction, 0.01f, 0.0f, 1.0f))
-                material->setDynamicFriction(dfriction);
-            if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
-                material->setRestitution(restitution);
-            ImGui::TreePop();
-        }
-
+        float sfriction = material->getStaticFriction();
+        float dfriction = material->getDynamicFriction();
+        float restitution = material->getRestitution();
+        if (ImGui::DragFloat("Static Friction", &sfriction, 0.01f, 0.0f, 1.0f))
+            material->setStaticFriction(sfriction);
+        if (ImGui::DragFloat("Dynamic Friction", &dfriction, 0.01f, 0.0f, 1.0f))
+            material->setDynamicFriction(dfriction);
+        if (ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f))
+            material->setRestitution(restitution);
         ImGui::TreePop();
     }
 }

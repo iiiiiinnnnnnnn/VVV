@@ -16,6 +16,8 @@ public:
 
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " MeshCollider"; }
+
     Vector3 GetWorldPosition() const;
 private:
     void UpdateShape();

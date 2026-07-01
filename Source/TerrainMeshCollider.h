@@ -17,6 +17,7 @@ public:
 
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+    const char* GetDebugName() const override { return ICON_FA_SHAPES " TerrainMeshCollider"; }
 
     void RebuildFromTerrain();
     bool NeedsGpuRebuild() const { return pendingGpuRebuild; }

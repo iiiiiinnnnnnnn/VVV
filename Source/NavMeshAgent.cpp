@@ -170,9 +170,6 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 
 void NavMeshAgent::DrawGUI()
 {
-	if (!ImGui::TreeNode("NavMeshAgent"))
-		return;
-
 	ImGui::Checkbox("Auto Move", &autoMove);
 	ImGui::Checkbox("Chase Target Tag", &chaseTargetTag);
 	ImGui::InputText("Target Tag", &targetTag);
@@ -184,6 +181,4 @@ void NavMeshAgent::DrawGUI()
 	ImGui::DragFloat("Path Fail Grace Time", &pathFailGraceTime, 0.01f, 0.0f, 5.0f);
 	ImGui::DragFloat("Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::Text("%s", statusMessage.c_str());
-
-	ImGui::TreePop();
 }

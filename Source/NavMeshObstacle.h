@@ -13,4 +13,5 @@ public:
 	bool GetBounds(Vector3& center, Vector3& size) const;
 
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_CUBE " NavMeshObstacle"; }
 };

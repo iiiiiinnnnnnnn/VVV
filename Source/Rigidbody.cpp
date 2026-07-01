@@ -66,15 +66,12 @@ void Rigidbody::Update()
 
 void Rigidbody::DrawGUI()
 {
-    if (ImGui::TreeNode(ICON_FA_WEIGHT_HANGING " Rigidbody"))
-    {
-        ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
+    ImGui::Text("Type: %s", rigidActor->getConcreteTypeName());
 
-        if (rigidActor) {
-            Vector3 pos = Conv::ToVector3(rigidActor->getGlobalPose().p);
-            ImGui::Text("Rigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
-        }
-        ImGui::TreePop();
+    if (rigidActor)
+    {
+        Vector3 pos = Conv::ToVector3(rigidActor->getGlobalPose().p);
+        ImGui::Text("Rigidbody Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
     }
 }
 

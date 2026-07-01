@@ -22,8 +22,7 @@ PxShape* BoneSphereCollider::CreateShape(PxPhysics* physics, PxMaterial* materia
 
 void BoneSphereCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug || !ghostActor) return;
+    if (!showDebug) return;
 
     PxTransform t = ghostActor->getGlobalPose();
     Matrix m = Conv::ToMatrix(t);
@@ -35,17 +34,12 @@ void BoneSphereCollider::Render(const RenderContext& rc)
 
 void BoneSphereCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " BoneSphereCollider");
-    if (isOpenGUI)
+    bool changed = false;
+    changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+    if (radius < 0.01f) radius = 0.01f;
+    if (changed)
     {
-        bool changed = false;
-        changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
-        if (radius < 0.01f) radius = 0.01f;
-        if (changed)
-        {
-            InitializeShape();
-        }
-        DrawBoneSettingsGUI();
-        ImGui::TreePop();
+        InitializeShape();
     }
+    DrawBoneSettingsGUI();
 }

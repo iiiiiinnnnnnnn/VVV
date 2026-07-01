@@ -56,8 +56,7 @@ void StageLoader::Update()
 
 void StageLoader::Render(const RenderContext& rc)
 {
-	if (!ShouldRenderDebug()) return;
-	if (!rc.renderSettings.showDebug) return;
+	if (!showDebug) return;
 
 	for (auto& prop : propDataList)
 	{
@@ -84,229 +83,224 @@ void StageLoader::Render(const RenderContext& rc)
 
 void StageLoader::DrawGUI()
 {
-	if (ImGui::TreeNode(ICON_FA_BOX " StageLoader"))
+	ImGui::Text("Json Path: %s", jsonPath.string().c_str());
+
 	{
-		ImGui::Text("Json Path: %s", jsonPath.string().c_str());
+		float availWidth = ImGui::GetContentRegionAvail().x;
+		float spacing = ImGui::GetStyle().ItemSpacing.x;
+		float buttonWidth = (availWidth - spacing) * 0.5f;
 
+		// セーブ
+
+		if (ImGui::Button("Save", ImVec2(buttonWidth, 0.0f)))
 		{
-			float availWidth = ImGui::GetContentRegionAvail().x;
-			float spacing = ImGui::GetStyle().ItemSpacing.x;
-			float buttonWidth = (availWidth - spacing) * 0.5f;
-
-			// セーブ
-
-			if (ImGui::Button("Save", ImVec2(buttonWidth, 0.0f)))
-			{
-				SaveJson();
-			}
-
-			ImGui::SameLine();
-
-			// リロード
-
-			if (ImGui::Button("Reload", ImVec2(buttonWidth, 0.0f)))
-			{
-				LoadJson();
-			}
-
-			ImGui::Separator();
+			SaveJson();
 		}
 
-		// 追加
+		ImGui::SameLine();
 
-		ImGui::Text("Add Object:");
-		if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 200.0f), true))
+		// リロード
+
+		if (ImGui::Button("Reload", ImVec2(buttonWidth, 0.0f)))
 		{
-			// 追加タイプ
+			LoadJson();
+		}
 
-			using AddType = decltype(addType);
-			std::string previewName = std::string(magic_enum::enum_name(addType));
-			if (ImGui::BeginCombo("##StageLoaderCombo", previewName.c_str()))
+		ImGui::Separator();
+	}
+
+	// 追加
+
+	ImGui::Text("Add Object:");
+	if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 200.0f), true))
+	{
+		// 追加タイプ
+
+		using AddType = decltype(addType);
+		std::string previewName = std::string(magic_enum::enum_name(addType));
+		if (ImGui::BeginCombo("##StageLoaderCombo", previewName.c_str()))
+		{
+			for (AddType type : magic_enum::enum_values<AddType>())
 			{
-				for (AddType type : magic_enum::enum_values<AddType>())
+				std::string name = std::string(magic_enum::enum_name(type));
+				bool isSelected = (addType == type);
+
+				if (ImGui::Selectable(name.c_str(), isSelected))
+				{
+					addType = type;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndCombo();
+		}
+
+		// 追加詳細
+
+		if (addType == AddType::Spawner)
+		{
+			// transform
+			addSpawnerData.transform.DrawGUI();
+
+			// boxCollider
+			addSpawnerData.boxColliderData.DrawGUI();
+
+			// スポーナータイプ
+			ImGui::Text("Spawner Type:");
+			if (ImGui::BeginCombo("##StageLoaderSpawnerType", std::string(magic_enum::enum_name(addSpawnerData.spawnerType)).c_str()))
+			{
+				for (auto type : magic_enum::enum_values<decltype(addSpawnerData.spawnerType)>())
 				{
 					std::string name = std::string(magic_enum::enum_name(type));
-					bool isSelected = (addType == type);
-
+					bool isSelected = (addSpawnerData.spawnerType == type);
 					if (ImGui::Selectable(name.c_str(), isSelected))
 					{
-						addType = type;
+						addSpawnerData.spawnerType = type;
 					}
-
 					if (isSelected)
 					{
 						ImGui::SetItemDefaultFocus();
 					}
 				}
-
 				ImGui::EndCombo();
 			}
 
-			// 追加詳細
+			// 追加ボタン
 
-			if (addType == AddType::Spawner)
+			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
-				// transform
-				addSpawnerData.transform.DrawGUI();
-
-				// boxCollider
-				addSpawnerData.boxColliderData.DrawGUI();
-
-				// スポーナータイプ
-				ImGui::Text("Spawner Type:");
-				if (ImGui::BeginCombo("##StageLoaderSpawnerType", std::string(magic_enum::enum_name(addSpawnerData.spawnerType)).c_str()))
-				{
-					for (auto type : magic_enum::enum_values<decltype(addSpawnerData.spawnerType)>())
-					{
-						std::string name = std::string(magic_enum::enum_name(type));
-						bool isSelected = (addSpawnerData.spawnerType == type);
-						if (ImGui::Selectable(name.c_str(), isSelected))
-						{
-							addSpawnerData.spawnerType = type;
-						}
-						if (isSelected)
-						{
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-
-				// 追加ボタン
-
-				if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
-				{
-					spawnerDataList.push_back(addSpawnerData);
-				}
-
-			}
-			else if (addType == AddType::Prop)
-			{
-				// transform
-				addPropData.transform.DrawGUI();
-
-				// boxCollider
-				addPropData.boxColliderData.DrawGUI();
-
-				// rigidbody
-				addPropData.rigidbodyData.DrawGUI();
-
-				// プロップの場合はパスが詳細。パスの最初に#があればダイナミック
-
-				std::vector<std::filesystem::path> glbFiles;
-				for (const auto& file : std::filesystem::directory_iterator("Data/Model/Prop"))
-				{
-					if (file.path().extension() == ".glb")
-					{
-						glbFiles.push_back(file.path());
-					}
-				}
-
-				// モデルパス
-
-				ImGui::Text("Model Path:");
-				if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
-				{
-					for (const auto& path : glbFiles)
-					{
-						std::string name = path.filename().string();
-						bool isSelected = (addPropData.modelPath == name);
-						if (ImGui::Selectable(name.c_str(), isSelected))
-						{
-							addPropData.modelPath = "Data/Model/Prop/" + name;
-						}
-						if (isSelected)
-						{
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-
-				// 追加ボタン
-
-				if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
-				{
-					if (std::filesystem::exists(addPropData.modelPath))
-					{
-						propDataList.push_back(addPropData);
-					}
-				}
+				spawnerDataList.push_back(addSpawnerData);
 			}
 
-			ImGui::EndChild();
 		}
-
-		ImGui::TextUnformatted("SpawnerList:");
-
-		ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 150.0f), true);
-
-		for (int i = 0; i < static_cast<int>(spawnerDataList.size()); ++i)
+		else if (addType == AddType::Prop)
 		{
-			auto& spawnerData = spawnerDataList[i];
+			// transform
+			addPropData.transform.DrawGUI();
 
-			ImGui::PushID(i);
+			// boxCollider
+			addPropData.boxColliderData.DrawGUI();
 
-			if (ImGui::TreeNode("Spawner"))
+			// rigidbody
+			addPropData.rigidbodyData.DrawGUI();
+
+			// プロップの場合はパスが詳細。パスの最初に#があればダイナミック
+
+			std::vector<std::filesystem::path> glbFiles;
+			for (const auto& file : std::filesystem::directory_iterator("Data/Model/Prop"))
 			{
-				spawnerData.transform.DrawGUI();
-				spawnerData.boxColliderData.DrawGUI();
-
-				std::string spawnerTypeName = std::string(magic_enum::enum_name(spawnerData.spawnerType));
-				ImGui::Text("Spawner Type: %s", spawnerTypeName.c_str());
-
-				if (ImGui::Button("Remove"))
+				if (file.path().extension() == ".glb")
 				{
-					spawnerDataList.erase(spawnerDataList.begin() + i);
-					ImGui::TreePop();
-					ImGui::PopID();
-					break;
+					glbFiles.push_back(file.path());
 				}
-
-				ImGui::TreePop();
 			}
 
-			ImGui::PopID();
-		}
+			// モデルパス
 
-		ImGui::EndChild();
-
-		ImGui::TextUnformatted("PropList:");
-
-		ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 150.0f), true);
-
-		for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
-		{
-			auto& propData = propDataList[i];
-
-			ImGui::PushID(i);
-
-			if (ImGui::TreeNode("Prop"))
+			ImGui::Text("Model Path:");
+			if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
 			{
-				propData.transform.DrawGUI();
-				propData.boxColliderData.DrawGUI();
-				propData.rigidbodyData.DrawGUI();
-
-				ImGui::Text("Model Path: %s", propData.modelPath.c_str());
-
-				if (ImGui::Button("Remove"))
+				for (const auto& path : glbFiles)
 				{
-					propDataList.erase(propDataList.begin() + i);
-					ImGui::TreePop();
-					ImGui::PopID();
-					break;
+					std::string name = path.filename().string();
+					bool isSelected = (addPropData.modelPath == name);
+					if (ImGui::Selectable(name.c_str(), isSelected))
+					{
+						addPropData.modelPath = "Data/Model/Prop/" + name;
+					}
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
 				}
-
-				ImGui::TreePop();
+				ImGui::EndCombo();
 			}
 
-			ImGui::PopID();
+			// 追加ボタン
+
+			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
+			{
+				if (std::filesystem::exists(addPropData.modelPath))
+				{
+					propDataList.push_back(addPropData);
+				}
+			}
 		}
-
-		ImGui::EndChild();
-
-		ImGui::TreePop();
 	}
+
+	ImGui::EndChild();
+
+	ImGui::TextUnformatted("SpawnerList:");
+
+	ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 150.0f), true);
+
+	for (int i = 0; i < static_cast<int>(spawnerDataList.size()); ++i)
+	{
+		auto& spawnerData = spawnerDataList[i];
+
+		ImGui::PushID(i);
+
+		if (ImGui::TreeNode("Spawner"))
+		{
+			spawnerData.transform.DrawGUI();
+			spawnerData.boxColliderData.DrawGUI();
+
+			std::string spawnerTypeName = std::string(magic_enum::enum_name(spawnerData.spawnerType));
+			ImGui::Text("Spawner Type: %s", spawnerTypeName.c_str());
+
+			if (ImGui::Button("Remove"))
+			{
+				spawnerDataList.erase(spawnerDataList.begin() + i);
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::PopID();
+	}
+
+	ImGui::EndChild();
+
+	ImGui::TextUnformatted("PropList:");
+
+	ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 150.0f), true);
+
+	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
+	{
+		auto& propData = propDataList[i];
+
+		ImGui::PushID(i);
+
+		if (ImGui::TreeNode("Prop"))
+		{
+			propData.transform.DrawGUI();
+			propData.boxColliderData.DrawGUI();
+			propData.rigidbodyData.DrawGUI();
+
+			ImGui::Text("Model Path: %s", propData.modelPath.c_str());
+
+			if (ImGui::Button("Remove"))
+			{
+				propDataList.erase(propDataList.begin() + i);
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::PopID();
+	}
+
+	ImGui::EndChild();
 }
 
 void StageLoader::LoadJson()

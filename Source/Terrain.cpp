@@ -1677,11 +1677,6 @@ void Terrain::DrawBrushGUI()
 
 void Terrain::DrawGUI()
 {
-	if (!ImGui::TreeNode(ICON_FA_MOUNTAIN " Terrain"))
-	{
-		return;
-	}
-
 	if (ImGui::TreeNode("Terrain File"))
 	{
 		ImGui::InputText("terrain file", &terrainFilePath);
@@ -1824,8 +1819,6 @@ void Terrain::DrawGUI()
 
 		ImGui::TreePop();
 	}
-
-	ImGui::TreePop();
 }
 
 float Terrain::GetHeightByUV(float u, float v) const

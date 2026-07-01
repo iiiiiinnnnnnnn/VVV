@@ -121,9 +121,6 @@
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画">
       <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\ゲーム\オブジェクト\追加コンポーネント">
-      <UniqueIdentifier>{07ab6be6-034f-4653-9bd0-4c82ada9eb6a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="シェーダー\システム\スプライト">
       <UniqueIdentifier>{7ec9f737-081c-4ae0-9151-36ab37c20afb}</UniqueIdentifier>
     </Filter>
@@ -135,6 +132,9 @@
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理">
       <UniqueIdentifier>{cfca3712-e72e-4daa-94c1-9b4d22f31405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理">
+      <UniqueIdentifier>{b87d1a78-31b5-4d24-810e-f3bdadab3ffe}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -339,9 +339,6 @@
     <ClCompile Include="Source\MovieCameraController.cpp">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\StageLoader.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ThreatenLineSpriteShader.cpp">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClCompile>
@@ -395,6 +392,9 @@
     </ClCompile>
     <ClCompile Include="Source\SpringBone.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StageLoader.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -650,12 +650,6 @@
     <ClInclude Include="Source\MovieCameraController.h">
       <Filter>ソースファイル\ゲーム\カメラ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\StageLoader.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\AracoreFootGrounder.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\追加コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\ThreatenLineSpriteShader.h">
       <Filter>ソースファイル\システム%28基底%29\描画\シェーダー\スプライト</Filter>
     </ClInclude>
@@ -715,6 +709,9 @@
     </ClInclude>
     <ClInclude Include="Source\SpringBone.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StageLoader.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

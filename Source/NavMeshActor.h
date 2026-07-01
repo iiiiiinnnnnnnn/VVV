@@ -20,6 +20,7 @@ public:
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshActor"; }
 
 	bool FindNextPoint(
 		const Vector3& start,
@@ -59,7 +60,6 @@ private:
 
 	bool buildRequested = true;
 	bool built = false;
-	bool showDebug = false;
 	int buildDelayFrames = 1;
 	int resolution = 128;
 	int debugDrawStep = 2;

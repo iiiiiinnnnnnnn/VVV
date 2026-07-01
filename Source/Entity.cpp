@@ -19,7 +19,7 @@ void Entity::OnDrawGUI()
         ImGui::Text("Life: %.1f / %.1f", life, maxLife);
         ImGui::Text("Damage Cooldown: %.2f", cooldowns.damageCooldown);
         ImGui::Text("IsDead: %s", IsDead() ? "Yes" : "No");
-		ImGui::TreePop();
+        ImGui::TreePop();
     }
 }
 

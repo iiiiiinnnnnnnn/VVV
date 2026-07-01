@@ -49,8 +49,6 @@ bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 
 void NavMeshObstacle::DrawGUI()
 {
-	if (!ImGui::TreeNode("NavMesh Obstacle")) return;
 	ImGui::Text("This actor is marked as a NavMesh obstacle.");
 	ImGui::Text("Bounds are determined by the BoxCollider component.");
-	ImGui::TreePop();
 }

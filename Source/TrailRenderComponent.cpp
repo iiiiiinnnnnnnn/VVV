@@ -128,15 +128,10 @@ void TrailRenderComponent::RenderTrail(const RenderContext& rc)
 
 void TrailRenderComponent::DrawGUI()
 {
-    if (ImGui::TreeNode(ICON_FA_MAGIC " TrailRenderComponent"))
-    {
-        ImGui::Text("Node Index : %d", nodeIndex);
-        ImGui::Text("Life Time  : %.2f", lifeTime);
-        ImGui::Text("Max Points : %d", maxPoints);
-        ImGui::Text("Points     : %d", (int)points.size());
+    ImGui::Text("Node Index : %d", nodeIndex);
+    ImGui::Text("Life Time  : %.2f", lifeTime);
+    ImGui::Text("Max Points : %d", maxPoints);
+    ImGui::Text("Points     : %d", (int)points.size());
 
-        ImGui::ColorPicker3("Color", &color.x);
-
-        ImGui::TreePop();
-    }
+    ImGui::ColorPicker3("Color", &color.x);
 }

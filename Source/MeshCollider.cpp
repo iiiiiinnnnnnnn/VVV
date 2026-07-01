@@ -8,9 +8,7 @@
 
 void MeshCollider::Render(const RenderContext& rc)
 {
-    if (!ShouldRenderDebug()) return;
-    if (!rc.renderSettings.showDebug) return;
-    if (!model) return;
+	if (!showDebug) return;
 
     Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
     Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -171,18 +169,13 @@ void MeshCollider::UpdateShape()
 
 void MeshCollider::DrawGUI()
 {
-    isOpenGUI = ImGui::TreeNode(ICON_FA_SHAPES " MeshCollider");
-    if (isOpenGUI)
+    if (useConvex)
     {
-        if (useConvex)
-        {
-            ImGui::Text("ConvexMesh");
-            ImGui::Text("Quantized Count: %u", quantizedCount);
-        }
-        else
-        {
-            ImGui::Text("TriangleMesh");
-        }
-        ImGui::TreePop();
+        ImGui::Text("ConvexMesh");
+        ImGui::Text("Quantized Count: %u", quantizedCount);
+    }
+    else
+    {
+        ImGui::Text("TriangleMesh");
     }
 }

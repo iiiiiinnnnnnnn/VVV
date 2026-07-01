@@ -15,6 +15,7 @@ public:
 
 	void Update() override;
 	void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshAgent"; }
 
 	void SetTarget(Actor* target) { this->target = target; }
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }

@@ -42,12 +42,8 @@ void BoneFollower::Update()
 
 void BoneFollower::DrawGUI()
 {
-	if (ImGui::TreeNode(ICON_FA_BONE " BoneFollower"))
-	{
-		ImGui::Text("Target Node: [%d]%s", targetNodeIndex, targetNodeName.c_str());
-		offset.DrawGUI();
-		ImGui::TreePop();
-	}
+	ImGui::Text("Target Node: [%d]%s", targetNodeIndex, targetNodeName.c_str());
+	offset.DrawGUI();
 }
 
 void BoneFollower::SetTarget(Model* targetModel, const std::string& targetNodeName)

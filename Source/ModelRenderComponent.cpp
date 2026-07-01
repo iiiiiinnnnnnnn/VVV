@@ -52,104 +52,97 @@ void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParamList& 
 
 void ModelRenderComponent::DrawGUI()
 {
-    if (ImGui::TreeNode(ICON_FA_CUBES " ModelRenderComponent"))
+    // ノードツリーを再帰的に描画する関数
+    std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
     {
-        if (model)
+        // 矢印をクリック、またはノードをダブルクリックで階層を開く
+        ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
+            | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+        // 子がいない場合は矢印をつけない
+        size_t childCount = node->children.size();
+        if (childCount == 0)
         {
-            // ノードツリーを再帰的に描画する関数
-            std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
+            nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        }
+
+        bool isAnyMeshHidden = false;
+        std::string meshIndices = "";
+
+        // このノードに関連するメッシュを探す
+        for (int i = 0; i < model->GetMeshes().size(); i++)
+        {
+            const Model::Mesh& mesh = model->GetMeshes()[i];
+            if (mesh.node == node)
             {
-                // 矢印をクリック、またはノードをダブルクリックで階層を開く
-                ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow
-                    | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+                if (!meshIndices.empty()) meshIndices += ",";
+                meshIndices += std::to_string(i);
 
-                // 子がいない場合は矢印をつけない
-                size_t childCount = node->children.size();
-                if (childCount == 0)
-                {
-                    nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-                }
+                if (!mesh.isDraw)
+                    isAnyMeshHidden = true;
+            }
+        }
 
-                bool isAnyMeshHidden = false;
-                std::string meshIndices = "";
-                
-                // このノードに関連するメッシュを探す
-                for (int i = 0; i < model->GetMeshes().size(); i++)
-                {
-                    const Model::Mesh& mesh = model->GetMeshes()[i];
-                    if (mesh.node == node)
-                    {
-                        if (!meshIndices.empty()) meshIndices += ",";
-                        meshIndices += std::to_string(i);
+        // ツリーノードを表示
+        ImGui::PushStyleColor(ImGuiCol_Text,
+            IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
 
-                        if (!mesh.isDraw)
-                            isAnyMeshHidden = true;
-                    }
-                }
+        std::string meshStr = meshIndices.empty() ? "" : "{" + meshIndices + "}";
+        int nodeIndex = static_cast<int>(node - model->GetNodes().data());
 
-                // ツリーノードを表示
-                ImGui::PushStyleColor(ImGuiCol_Text,
-                    IM_COL32(255, 255, 255, isAnyMeshHidden ? 100 : 255));
+        // ノード名とインデックスに続けて、[x, y, z] 形式でポジションを表示
+        bool opened = ImGui::TreeNodeEx(node, nodeFlags,
+            "[%d]%s%s [%.2f, %.2f, %.2f]",
+            nodeIndex,
+            meshStr.c_str(),
+            node->name.c_str(),
+            node->position.x, node->position.y, node->position.z);
 
-                std::string meshStr = meshIndices.empty() ? "" : "{" + meshIndices + "}";
-                int nodeIndex = static_cast<int>(node - model->GetNodes().data());
+        ImGui::PopStyleColor();
 
-                // ノード名とインデックスに続けて、[x, y, z] 形式でポジションを表示
-                bool opened = ImGui::TreeNodeEx(node, nodeFlags,
-                    "[%d]%s%s [%.2f, %.2f, %.2f]",
-                    nodeIndex,
-                    meshStr.c_str(),
-                    node->name.c_str(),
-                    node->position.x, node->position.y, node->position.z);
-
-                ImGui::PopStyleColor();
-
-                if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                {
-                    for (Model::Mesh& mesh : model->GetMeshes())
-                    {
-                        if (mesh.node == node)
-                        {
-                            mesh.isDraw = !mesh.isDraw;
-                        }
-                    }
-                }
-
-                // 開かれている場合、子階層も同じ処理を行う
-                if (opened && childCount > 0)
-                {
-                    for (Model::Node* child : node->children)
-                    {
-                        drawNodeTree(child);
-                    }
-                    ImGui::TreePop();
-                }
-            };
-
-            // すべてのルートノード（親を持たないノード）を起点に描画
-            for (Model::Node& node : model->GetNodes())
+        if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        {
+            for (Model::Mesh& mesh : model->GetMeshes())
             {
-                if (node.parent == nullptr)
+                if (mesh.node == node)
                 {
-                    drawNodeTree(&node);
+                    mesh.isDraw = !mesh.isDraw;
                 }
             }
+        }
 
-            if (ImGui::TreeNode(ICON_FA_PAINT_BRUSH " Materials"))
+        // 開かれている場合、子階層も同じ処理を行う
+        if (opened && childCount > 0)
+        {
+            for (Model::Node* child : node->children)
             {
-                for (const Model::Material& material : model->GetMaterials())
+                drawNodeTree(child);
+            }
+            ImGui::TreePop();
+        }
+    };
+
+    // すべてのルートノード（親を持たないノード）を起点に描画
+    for (Model::Node& node : model->GetNodes())
+    {
+        if (node.parent == nullptr)
+        {
+            drawNodeTree(&node);
+        }
+    }
+
+    if (ImGui::TreeNode(ICON_FA_PAINT_BRUSH " Materials"))
+    {
+        for (const Model::Material& material : model->GetMaterials())
+        {
+            if (ImGui::TreeNode(material.name.c_str()))
+            {
+                // paramsWithMaterial にあれば表示
+                auto it = paramsWithMaterial.find(material.name);
+                if (it != paramsWithMaterial.end())
                 {
-                    if (ImGui::TreeNode(material.name.c_str()))
-                    {
-                        // paramsWithMaterial にあれば表示
-                        auto it = paramsWithMaterial.find(material.name);
-                        if (it != paramsWithMaterial.end())
-                        {
-                            for (ShaderParam& p : it->second)
-                                std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
-                        }
-                        ImGui::TreePop();
-                    }
+                    for (ShaderParam& p : it->second)
+                        std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
                 }
                 ImGui::TreePop();
             }

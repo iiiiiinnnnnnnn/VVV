@@ -14,6 +14,7 @@ public:
     void Update() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_IMAGE " SpriteRenderComponent"; }
 
     Texture* GetTexture() const { return texture.get(); }
     void SetTexture(std::shared_ptr<Texture> texture) { this->texture = texture; }

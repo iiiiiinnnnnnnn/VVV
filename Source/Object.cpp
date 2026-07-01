@@ -9,7 +9,12 @@ void Object::Components::DrawGUI()
 {
     for (auto& c : data) {
         ImGui::PushID((void*)((uintptr_t)c.get() ^ (uintptr_t)this));
-        c->DrawGUI();
+        c->showDebug = ImGui::TreeNode(c->GetDebugName());
+        if (c->showDebug)
+        {
+            c->DrawGUI();
+            ImGui::TreePop();
+        }
         ImGui::PopID();
     }
 }
@@ -42,19 +47,18 @@ void Object::DrawGUI()
     if (ImGui::TreeNode("Object Info"))
     {
         ImGui::Checkbox("Active", &isActive);
-        ImGui::Text("Name: %s", name.c_str());
-		ImGui::Text("Tag: %s", tag.c_str());
-        ImGui::Text("Components: %d", (int)componentList.data.size());
-        if (ImGui::Button("Destroy"))
-            Destroy();
+        ImGui::Text("Name: %s, Tag: %s", name.c_str(), tag.c_str());
         ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
+        if (ImGui::Button("Destroy")) Destroy();
         ImGui::TreePop();
     }
+
+    componentList.DrawGUI();
 }
 
 // Components
 
-void Object::Components::push_back(std::unique_ptr<Component> component)
+void Object::Components::Register(std::unique_ptr<Component> component)
 {
     data.push_back(std::move(component));
     updateOrderDirty = true;

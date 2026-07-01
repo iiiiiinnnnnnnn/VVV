@@ -38,26 +38,21 @@ void SpriteRenderComponent::Render(const RenderContext& rc)
 
 void SpriteRenderComponent::DrawGUI()
 {
-	if (ImGui::TreeNode(ICON_FA_IMAGE " SpriteRenderComponent"))
+	if (texture)
 	{
-		if (texture)
-		{
-			ImGui::Text("Texture: %s", texture->GetShaderResourceView() ? "Loaded" : "Not Loaded");
-		}
-		else
-		{
-			ImGui::Text("Texture: None");
-		}
+		ImGui::Text("Texture: %s", texture->GetShaderResourceView() ? "Loaded" : "Not Loaded");
+	}
+	else
+	{
+		ImGui::Text("Texture: None");
+	}
 
-		// シェーダーパラメータ
-		if (ImGui::TreeNode(ICON_FA_PASTE " ShaderParams"))
+	// シェーダーパラメータ
+	if (ImGui::TreeNode(ICON_FA_PASTE " ShaderParams"))
+	{
+		for (ShaderParam& p : shaderParam)
 		{
-			for (ShaderParam& p : shaderParam)
-			{
-				std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
-			}
-
-			ImGui::TreePop();
+			std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
 		}
 
 		ImGui::TreePop();

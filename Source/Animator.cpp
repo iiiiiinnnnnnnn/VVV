@@ -292,52 +292,47 @@ void Animator::Update()
 
 void Animator::DrawGUI()
 {
-    if (ImGui::TreeNode(ICON_FA_FILM " Animator"))
+    ImGui::TextDisabled(
+        animationMode == AnimationMode::Dynamic
+        ? "Mode: Dynamic (.danim)"
+        : "Mode: Model");
+
+    if (animationMode == AnimationMode::Dynamic &&
+        !dynamicAnimationError.empty())
     {
-        ImGui::TextDisabled(
-            animationMode == AnimationMode::Dynamic
-                ? "Mode: Dynamic (.danim)"
-                : "Mode: Model");
-
-        if (animationMode == AnimationMode::Dynamic &&
-            !dynamicAnimationError.empty())
-        {
-            ImGui::TextWrapped("Dynamic animation error:");
-            ImGui::TextColored(
-                ImVec4(1.0f, 0.25f, 0.25f, 1.0f),
-                "%s",
-                dynamicAnimationError.c_str());
-        }
-
-        for (int layerIndex = 0;
-             layerIndex < static_cast<int>(layers.size());
-             ++layerIndex)
-        {
-            const AnimatorLayer& layer = layers[layerIndex];
-            ImGui::Text(
-                "[%d] %s  w=%.2f",
-                layerIndex,
-                layer.name.c_str(),
-                layer.weight);
-
-            if (layer.currentStateIndex >= 0 &&
-                layer.currentStateIndex < static_cast<int>(layer.states.size()))
-            {
-                const State& currentState =
-                    layer.states[layer.currentStateIndex];
-                ImGui::SameLine();
-                ImGui::TextColored(
-                    ImVec4(0.4f, 1.0f, 0.4f, 1.0f),
-                    "  -> %s",
-                    currentState.name.c_str());
-            }
-        }
-
-        if (ImGui::Button("Go AnimEditor"))
-            OpenAnimEditor();
-
-        ImGui::TreePop();
+        ImGui::TextWrapped("Dynamic animation error:");
+        ImGui::TextColored(
+            ImVec4(1.0f, 0.25f, 0.25f, 1.0f),
+            "%s",
+            dynamicAnimationError.c_str());
     }
+
+    for (int layerIndex = 0;
+        layerIndex < static_cast<int>(layers.size());
+        ++layerIndex)
+    {
+        const AnimatorLayer& layer = layers[layerIndex];
+        ImGui::Text(
+            "[%d] %s  w=%.2f",
+            layerIndex,
+            layer.name.c_str(),
+            layer.weight);
+
+        if (layer.currentStateIndex >= 0 &&
+            layer.currentStateIndex < static_cast<int>(layer.states.size()))
+        {
+            const State& currentState =
+                layer.states[layer.currentStateIndex];
+            ImGui::SameLine();
+            ImGui::TextColored(
+                ImVec4(0.4f, 1.0f, 0.4f, 1.0f),
+                "  -> %s",
+                currentState.name.c_str());
+        }
+    }
+
+    if (ImGui::Button("Go AnimEditor"))
+        OpenAnimEditor();
 
     if (animEditor && animEditorOpen)
         animEditor->Draw(&animEditorOpen);

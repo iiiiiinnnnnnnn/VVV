@@ -412,9 +412,7 @@ bool NavMeshActor::FindNextPoint(
 
 void NavMeshActor::Render(const RenderContext& rc)
 {
-	if (!ShouldRenderDebug()) return;
 	if (!showDebug) return;
-	if (!rc.renderSettings.showDebug) return;
 	if (debugCells.empty()) return;
 
 	PrimitiveRenderer* renderer =
@@ -439,10 +437,6 @@ void NavMeshActor::Render(const RenderContext& rc)
 
 void NavMeshActor::DrawGUI()
 {
-	if (!ImGui::TreeNode("NavMeshActor"))
-		return;
-
-	ImGui::Checkbox("Show Debug", &showDebug);
 	if (ImGui::DragInt("Resolution", &resolution, 1.0f, 8, 256))
 		resolution = max(resolution, 8);
 	if (ImGui::DragInt("Debug Draw Step", &debugDrawStep, 1.0f, 1, 32))
@@ -455,6 +449,4 @@ void NavMeshActor::DrawGUI()
 
 	if (ImGui::Button("Rebuild NavMesh"))
 		buildRequested = true;
-
-	ImGui::TreePop();
 }

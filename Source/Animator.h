@@ -23,6 +23,7 @@ public:
     Animator(Object* owner, bool unscaledTime = true);
     void Update() override;
     void DrawGUI() override;
+	const char* GetDebugName() const override { return ICON_FA_FILM " Animator"; }
     int GetUpdateOrder() const override { return 100; }
     void _print() const; // デバッグ用
 
