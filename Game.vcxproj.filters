@@ -160,6 +160,21 @@
     <Filter Include="シェーダー\システム\モデル\Trail">
       <UniqueIdentifier>{4151ee56-693d-4e37-b9b0-7cfec2c32305}</UniqueIdentifier>
     </Filter>
+    <Filter Include="シェーダー\システム\スプライト\Basic">
+      <UniqueIdentifier>{a1135338-5623-4e45-b91f-b9f03a979f9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\スプライト\PostEffect">
+      <UniqueIdentifier>{91a3bb11-1180-4ec7-83be-eecded54946a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\スプライト\ThreatenLine">
+      <UniqueIdentifier>{9853311f-addd-4623-bd86-4b269ad1b032}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\スプライト\GaussianFiltering">
+      <UniqueIdentifier>{b7c893bb-dd3d-417a-af47-6fd921df87ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\スプライト\VignetteSpritePS">
+      <UniqueIdentifier>{2213e4a3-38e3-4c3e-9f2d-736aa9ee9903}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -742,15 +757,6 @@
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="imgui.ini" />
-    <None Include="Shader\BasicSprite.hlsli">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </None>
-    <None Include="Shader\GaussianFiltering.hlsli">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </None>
-    <None Include="Shader\PostEffect.hlsli">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </None>
     <None Include="Shader\PBR.hlsli">
       <Filter>シェーダー\システム\モデル\PBR</Filter>
     </None>
@@ -784,32 +790,17 @@
     <None Include="Shader\TrailRenderer.hlsli">
       <Filter>シェーダー\システム\モデル\Trail</Filter>
     </None>
+    <None Include="Shader\BasicSprite.hlsli">
+      <Filter>シェーダー\システム\スプライト\Basic</Filter>
+    </None>
+    <None Include="Shader\PostEffect.hlsli">
+      <Filter>シェーダー\システム\スプライト\PostEffect</Filter>
+    </None>
+    <None Include="Shader\GaussianFiltering.hlsli">
+      <Filter>シェーダー\システム\スプライト\GaussianFiltering</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\BasicSpritePS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicSpriteVS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BloomPS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\FullScreenQuadVS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\ToneMappingPS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\PBRGS.hlsl">
       <Filter>シェーダー\システム\モデル\PBR</Filter>
     </FxCompile>
@@ -818,9 +809,6 @@
     </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>シェーダー\システム\モデル\PBR</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
-      <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl" />
     <FxCompile Include="Shader\BasicModelVS.hlsl">
@@ -867,6 +855,33 @@
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <Filter>シェーダー\システム\モデル\Trail</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BasicSpriteVS.hlsl">
+      <Filter>シェーダー\システム\スプライト\Basic</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BasicSpritePS.hlsl">
+      <Filter>シェーダー\システム\スプライト\Basic</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BloomPS.hlsl">
+      <Filter>シェーダー\システム\スプライト\PostEffect</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\FullScreenQuadVS.hlsl">
+      <Filter>シェーダー\システム\スプライト\PostEffect</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">
+      <Filter>シェーダー\システム\スプライト\PostEffect</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ToneMappingPS.hlsl">
+      <Filter>シェーダー\システム\スプライト\PostEffect</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
+      <Filter>シェーダー\システム\スプライト\ThreatenLine</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
+      <Filter>シェーダー\システム\スプライト\GaussianFiltering</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
+      <Filter>シェーダー\システム\スプライト\VignetteSpritePS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
