@@ -5,6 +5,7 @@
 #include <wrl.h>
 
 #include <filesystem>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,7 @@ public:
 	float GetTessellationEdgeFactor() const { return tesselation_constant.edge_factor; }
 	float GetTessellationInnerFactor() const { return tesselation_constant.inner_factor; }
 	float GetHeightScaler() const { return tesselation_constant.height_scaler; }
+	uint64_t GetTerrainDataHash() const;
 	std::filesystem::path GetColliderVertexPath() const;
 	bool BuildGpuColliderMesh(
 		float minX,
@@ -163,6 +165,14 @@ private:
 
 	void InitializeGpuResources();
 	void CreateGridMesh(ID3D11Device* device);
+	void BuildTerrainMesh(
+		float minX,
+		float maxX,
+		float minZ,
+		float maxZ,
+		std::vector<TerrainVertex>& vertices,
+		std::vector<uint32_t>& indices) const;
+	void MarkTerrainMeshDirty();
 	void CreateTerrainTexture(ID3D11Device* device);
 	void UploadTerrainTexture(ID3D11DeviceContext* dc);
 	void ClearTerrainTexture();
@@ -201,6 +211,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+	bool terrainMeshDirty = true;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> materialConstantBuffer;

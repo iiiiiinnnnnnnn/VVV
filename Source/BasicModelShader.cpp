@@ -1,6 +1,8 @@
-﻿#include "Misc.h"
-#include "GpuResourceUtils.h"
+﻿// BasicModelShader.cpp
 #include "BasicModelShader.h"
+
+#include "DebugUtil.h"
+#include "GpuResourceUtils.h"
 
 BasicModelShader::BasicModelShader(ID3D11Device* device)
 {

@@ -1,7 +1,7 @@
 ﻿// Model.cpp
 
 #include "Model.h"
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "GLTFImporter.h"
 #include "GpuResourceUtils.h"
 #include "Graphics.h"

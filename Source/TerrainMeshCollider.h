@@ -2,6 +2,7 @@
 
 #pragma once
 #include <cmath>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -29,9 +30,10 @@ public:
     struct TerrainColliderVxHeader
     {
         char magic[4] = {'V', 'V', 'V', 'X'};
-        uint32_t version = 1;
+        uint32_t version = 3;
         uint32_t vertexCount = 0;
         uint32_t indexCount = 0;
+        uint64_t terrainDataHash = 0;
         float minX = 0.0f;
         float maxX = 1.0f;
         float minZ = 0.0f;

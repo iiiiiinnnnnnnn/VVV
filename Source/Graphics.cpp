@@ -1,5 +1,5 @@
 ﻿// Graphics.cpp
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "Graphics.h"
 #include "GpuResourceUtils.h"
 

@@ -7,7 +7,7 @@
 #include <DirectXTex.h>
 
 #include "Graphics.h"
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 
 // テクスチャ読み込み

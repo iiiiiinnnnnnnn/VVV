@@ -1,7 +1,7 @@
 ﻿// ShadowMapRenderer.cpp
 
 #include "ShadowMapRenderer.h"
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 #include "Terrain.h"
 

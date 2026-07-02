@@ -149,7 +149,7 @@ bool TerrainMeshCollider::LoadCachedMesh(
         header.magic[1] != 'V' ||
         header.magic[2] != 'V' ||
         header.magic[3] != 'X' ||
-        header.version != 1 ||
+        header.version != 3 ||
         header.vertexCount == 0 ||
         header.indexCount == 0)
     {
@@ -159,10 +159,12 @@ bool TerrainMeshCollider::LoadCachedMesh(
 
     Actor* actor = GetOwnerAsActor();
     const Vector3 scale = actor->transform.scale;
+    const uint64_t terrainDataHash = terrain->GetTerrainDataHash();
     if (!NearlyEqual(header.minX, collisionArea.minX) ||
         !NearlyEqual(header.maxX, collisionArea.maxX) ||
         !NearlyEqual(header.minZ, collisionArea.minZ) ||
         !NearlyEqual(header.maxZ, collisionArea.maxZ) ||
+        header.terrainDataHash != terrainDataHash ||
         !NearlyEqual(header.scaleX, scale.x) ||
         !NearlyEqual(header.scaleY, scale.y) ||
         !NearlyEqual(header.scaleZ, scale.z) ||
@@ -235,6 +237,7 @@ bool TerrainMeshCollider::SaveCachedMesh(
     TerrainColliderVxHeader header{};
     header.vertexCount = static_cast<uint32_t>(vertices.size());
     header.indexCount = static_cast<uint32_t>(indices.size());
+    header.terrainDataHash = terrain->GetTerrainDataHash();
     header.minX = collisionArea.minX;
     header.maxX = collisionArea.maxX;
     header.minZ = collisionArea.minZ;

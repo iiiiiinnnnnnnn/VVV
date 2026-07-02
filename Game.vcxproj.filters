@@ -841,6 +841,9 @@
     <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
       <Filter>シェーダー\システム\モデル\Terrain</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveMeshVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitiveDS.hlsl">
       <Filter>シェーダー\システム\モデル\Terrain</Filter>
     </FxCompile>

@@ -1,5 +1,5 @@
 ﻿#include <algorithm>
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 #include "LightManager.h"
 #include "ModelRenderer.h"

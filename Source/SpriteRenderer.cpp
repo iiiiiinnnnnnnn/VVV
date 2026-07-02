@@ -1,5 +1,5 @@
 ﻿#include "SpriteRenderer.h"
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "BasicSpriteShader.h"
 
 // 追加

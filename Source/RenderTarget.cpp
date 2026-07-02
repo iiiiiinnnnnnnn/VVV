@@ -1,5 +1,5 @@
 ﻿#include "RenderTarget.h"
-#include "Misc.h"
+#include "DebugUtil.h"
 
 // オフスクリーン用コンストラクタ
 RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format)

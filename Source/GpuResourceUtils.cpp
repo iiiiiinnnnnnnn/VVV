@@ -2,7 +2,7 @@
 #include <wrl.h>
 #include <DirectXTex.h>
 #include <WICTextureLoader.h> 
-#include "Misc.h"
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 
 // 頂点シェーダー読み込み
