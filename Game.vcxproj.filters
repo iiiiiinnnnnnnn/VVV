@@ -127,14 +127,38 @@
     <Filter Include="シェーダー\システム\モデル">
       <UniqueIdentifier>{d6cd2287-ead3-4b85-b7d1-b4a80aee767b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\ゲーム\モデル">
-      <UniqueIdentifier>{0c99764e-ae6f-421e-9ed9-56ed03757b53}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\物理">
       <UniqueIdentifier>{cfca3712-e72e-4daa-94c1-9b4d22f31405}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理">
       <UniqueIdentifier>{b87d1a78-31b5-4d24-810e-f3bdadab3ffe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\PBR">
+      <UniqueIdentifier>{0c99764e-ae6f-421e-9ed9-56ed03757b53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Basic">
+      <UniqueIdentifier>{b199b2b4-2e6b-466e-a4ee-70dc08748a2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Primitive">
+      <UniqueIdentifier>{2ec101a5-af92-49d6-ac1a-29a972ae6e80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Common">
+      <UniqueIdentifier>{2c584ffe-1efe-4177-a9f6-4066020b56f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Shadowmap">
+      <UniqueIdentifier>{e7369717-e690-4177-b8b0-3d9838a6320a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Shape">
+      <UniqueIdentifier>{d9f4c8e3-9799-447e-b73f-93ec64295ead}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\SkyBox">
+      <UniqueIdentifier>{9f79b914-747d-4452-b2e4-1f3ae05ac4fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Terrain">
+      <UniqueIdentifier>{913f488d-7d52-4ad9-943d-80e71cc543d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー\システム\モデル\Trail">
+      <UniqueIdentifier>{4151ee56-693d-4e37-b9b0-7cfec2c32305}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -718,9 +742,6 @@
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="imgui.ini" />
-    <None Include="Shader\BasicModel.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
     <None Include="Shader\BasicSprite.hlsli">
       <Filter>シェーダー\システム\スプライト</Filter>
     </None>
@@ -730,44 +751,41 @@
     <None Include="Shader\PostEffect.hlsli">
       <Filter>シェーダー\システム\スプライト</Filter>
     </None>
-    <None Include="Shader\PrimitiveRenderer.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\Scene.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\ShadingFunctions.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\ShadowmapCaster.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\ShapeRenderer.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\Skinning.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\TerrainPrimitive.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
-    <None Include="Shader\TrailRenderer.hlsli">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </None>
     <None Include="Shader\PBR.hlsli">
-      <Filter>シェーダー\ゲーム\モデル</Filter>
+      <Filter>シェーダー\システム\モデル\PBR</Filter>
     </None>
     <None Include="Shader\PBRFunctions.hlsli">
-      <Filter>シェーダー\ゲーム\モデル</Filter>
+      <Filter>シェーダー\システム\モデル\PBR</Filter>
+    </None>
+    <None Include="Shader\BasicModel.hlsli">
+      <Filter>シェーダー\システム\モデル\Basic</Filter>
+    </None>
+    <None Include="Shader\PrimitiveRenderer.hlsli">
+      <Filter>シェーダー\システム\モデル\Primitive</Filter>
+    </None>
+    <None Include="Shader\Scene.hlsli">
+      <Filter>シェーダー\システム\モデル\Common</Filter>
+    </None>
+    <None Include="Shader\ShadingFunctions.hlsli">
+      <Filter>シェーダー\システム\モデル\Common</Filter>
+    </None>
+    <None Include="Shader\ShadowmapCaster.hlsli">
+      <Filter>シェーダー\システム\モデル\Shadowmap</Filter>
+    </None>
+    <None Include="Shader\ShapeRenderer.hlsli">
+      <Filter>シェーダー\システム\モデル\Shape</Filter>
+    </None>
+    <None Include="Shader\Skinning.hlsli">
+      <Filter>シェーダー\システム\モデル\Common</Filter>
+    </None>
+    <None Include="Shader\TerrainPrimitive.hlsli">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </None>
+    <None Include="Shader\TrailRenderer.hlsli">
+      <Filter>シェーダー\システム\モデル\Trail</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\BasicModelPS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicModelVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
@@ -786,64 +804,70 @@
     <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\PrimitiveRendererPS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\ShapeRendererPS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\ShapeRendererVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\SkyBoxPS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\SkyBoxVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TerrainPrimitiveDS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TerrainPrimitiveHS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\ToneMappingPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TrailRendererPS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\TrailRendererVS.hlsl">
-      <Filter>シェーダー\システム\モデル</Filter>
     </FxCompile>
     <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRGS.hlsl">
-      <Filter>シェーダー\ゲーム\モデル</Filter>
+      <Filter>シェーダー\システム\モデル\PBR</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
-      <Filter>シェーダー\ゲーム\モデル</Filter>
+      <Filter>シェーダー\システム\モデル\PBR</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
-      <Filter>シェーダー\ゲーム\モデル</Filter>
+      <Filter>シェーダー\システム\モデル\PBR</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
       <Filter>シェーダー\システム\スプライト</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl" />
+    <FxCompile Include="Shader\BasicModelVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Basic</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\BasicModelPS.hlsl">
+      <Filter>シェーダー\システム\モデル\Basic</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Primitive</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\PrimitiveRendererPS.hlsl">
+      <Filter>シェーダー\システム\モデル\Primitive</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Shadowmap</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShapeRendererVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Shape</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ShapeRendererPS.hlsl">
+      <Filter>シェーダー\システム\モデル\Shape</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxVS.hlsl">
+      <Filter>シェーダー\システム\モデル\SkyBox</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SkyBoxPS.hlsl">
+      <Filter>シェーダー\システム\モデル\SkyBox</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveDS.hlsl">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitiveHS.hlsl">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
+      <Filter>シェーダー\システム\モデル\Terrain</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererVS.hlsl">
+      <Filter>シェーダー\システム\モデル\Trail</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TrailRendererPS.hlsl">
+      <Filter>シェーダー\システム\モデル\Trail</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ザ・メモ.txt" />
