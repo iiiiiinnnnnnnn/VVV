@@ -5,6 +5,7 @@
 #include "IconsFontAwesome5.h"
 #include "Graphics.h"
 #include "GameTime.h"
+#include "PhysicsManager.h"
 
 FootIK::FootIK(
 	Object* owner,

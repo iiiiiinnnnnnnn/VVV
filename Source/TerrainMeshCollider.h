@@ -1,6 +1,9 @@
-// TerrainMeshCollider.h
+﻿// TerrainMeshCollider.h
 
 #pragma once
+#include <cmath>
+#include <string>
+#include <vector>
 
 #include "CollidersDef.h"
 

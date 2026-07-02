@@ -1,6 +1,7 @@
 ﻿// LoadingScene.h
 
 #pragma once
+#include <memory>
 
 #include "Scene.h"
 #include "SpriteWidget.h"

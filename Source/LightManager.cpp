@@ -2,6 +2,7 @@
 
 #include "LightManager.h"
 #include "CbLightData.h"
+#include "imgui.h"
 
 void LightManager::Update()
 {

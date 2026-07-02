@@ -17,7 +17,6 @@
 
 // actor
 #include "Player.h"
-#include "Stage00.h"
 #include "Stage01.h"
 
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)

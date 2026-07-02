@@ -4,6 +4,9 @@
 
 #include "Widget.h"
 
+#include "SpriteRenderer.h"
+#include <filesystem>
+
 class SpriteWidget : public Widget
 {
 public:

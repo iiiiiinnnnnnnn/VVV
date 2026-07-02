@@ -1,6 +1,8 @@
 ﻿// ResourceManager.h
 
 #pragma once
+#include <memory>
+#include <string>
 
 #include "Common.h"
 #include "Model.h"

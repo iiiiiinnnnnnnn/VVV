@@ -1,5 +1,6 @@
 // TrailRenderComponent.h
 #pragma once
+#include <deque>
 
 #include "Component.h"
 #include "Model.h"

@@ -1,6 +1,12 @@
 ﻿// Model.h
 
 #pragma once
+#include <d3d11.h>
+#include <wrl.h>
+
+#include <filesystem>
+#include <string>
+#include <vector>
 
 #include "Common.h"
 #include "ShaderParam.h"

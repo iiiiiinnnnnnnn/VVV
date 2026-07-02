@@ -1,6 +1,12 @@
 ﻿// DynamicAnimationEditorWindow.h
 
 #pragma once
+#include <imgui.h>
+#include <imgui_stdlib.h>
+
+#include <utility>
+#include <variant>
+#include <cstring>
 
 #include "Common.h"
 #include "Dialog.h"

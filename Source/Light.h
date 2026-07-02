@@ -1,6 +1,7 @@
-// Light.h
+﻿// Light.h
 
 #pragma once
+#include <string>
 
 #include "Object.h"
 #include "Transform.h"

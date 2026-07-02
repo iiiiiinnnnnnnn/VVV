@@ -1,6 +1,7 @@
 ﻿// ModelRenderComponent.h
 
 #pragma once
+#include <memory>
 
 #include "Component.h"
 #include "Model.h"

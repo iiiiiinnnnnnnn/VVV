@@ -1,6 +1,7 @@
 ﻿// DamageHoleComponent.h
 
 #pragma once
+#include <vector>
 
 #include "Component.h"
 #include "Common.h"

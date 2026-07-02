@@ -18,6 +18,7 @@
     <ClCompile Include="Source\BoxCollider.cpp" />
     <ClCompile Include="Source\CapsuleCollider.cpp" />
     <ClCompile Include="Source\FootIK.cpp" />
+    <ClCompile Include="Source\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
     <ClCompile Include="Source\Actor.cpp" />
@@ -85,7 +86,6 @@
     <ClCompile Include="Source\SkyBoxRenderer.cpp" />
     <ClCompile Include="Source\SpriteRenderComponent.cpp" />
     <ClCompile Include="Source\SpriteRenderer.cpp" />
-    <ClCompile Include="Source\Stage00.cpp" />
     <ClCompile Include="Source\SpriteWidget.cpp" />
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\GameTime.cpp" />
@@ -99,6 +99,7 @@
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Benchmark.h" />
     <ClInclude Include="Source\BoneBoxCollider.h" />
     <ClInclude Include="Source\BoneCapsuleCollider.h" />
     <ClInclude Include="Source\BoneCollider.h" />
@@ -106,7 +107,10 @@
     <ClInclude Include="Source\BoxCollider.h" />
     <ClInclude Include="Source\CapsuleCollider.h" />
     <ClInclude Include="Source\CollidersDef.h" />
+    <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\DebugUtil.h" />
     <ClInclude Include="Source\FootIK.h" />
+    <ClInclude Include="Source\HumanoidFootIK.h" />
     <ClInclude Include="Source\MeshCollider.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
     <ClInclude Include="Source\Actor.h" />
@@ -137,9 +141,7 @@
     <ClInclude Include="Source\SceneEffect.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
-    <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Component.h" />
-    <ClInclude Include="Source\Components.h" />
     <ClInclude Include="Source\DamageHoleComponent.h" />
     <ClInclude Include="Source\Dialog.h" />
     <ClInclude Include="Source\Effect.h" />
@@ -159,7 +161,6 @@
     <ClInclude Include="Source\Object.h" />
     <ClInclude Include="Source\PBRShader.h" />
     <ClInclude Include="Source\LocalPlayer.h" />
-    <ClInclude Include="Source\Misc.h" />
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelRenderComponent.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
@@ -191,7 +192,6 @@
     <ClInclude Include="Source\SkyBoxRenderer.h" />
     <ClInclude Include="Source\SpriteRenderComponent.h" />
     <ClInclude Include="Source\SpriteRenderer.h" />
-    <ClInclude Include="Source\Stage00.h" />
     <ClInclude Include="Source\SpriteWidget.h" />
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\GameTime.h" />

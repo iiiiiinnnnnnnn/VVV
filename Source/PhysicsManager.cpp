@@ -3,6 +3,7 @@
 #include "PhysicsManager.h"
 #include "GameTime.h"
 #include "Actor.h"
+#include "PhysicsComponent.h"
 #include "UserSettingsManager.h"
 
 static PxFilterFlags LayerFilterShader(

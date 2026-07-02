@@ -1,6 +1,15 @@
 // StageLoader.h
 
 #pragma once
+#include "Model.h"
+#include "ShaderParam.h"
+
+#include <imgui.h>
+
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "Common.h"
 #include "Component.h"

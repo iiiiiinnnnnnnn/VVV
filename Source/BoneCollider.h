@@ -1,6 +1,7 @@
-// BoneCollider.h
+﻿// BoneCollider.h
 
 #pragma once
+#include <string>
 
 #include "CollidersDef.h"
 

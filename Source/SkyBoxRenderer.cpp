@@ -1,7 +1,9 @@
 ﻿// SkyBoxRenderer.cpp
+
 #include "SkyBoxRenderer.h"
 #include "GpuResourceUtils.h"
-#include "Misc.h"
+#include "DebugUtil.h"
+#include <imgui.h>
 
 SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 {

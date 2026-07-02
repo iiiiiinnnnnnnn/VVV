@@ -7,6 +7,9 @@
 #include "AracoreQueen.h"
 #include "NavMeshActor.h"
 #include "StageLoader.h"
+#include "Rigidbody.h"
+#include "Terrain.h"
+#include "TerrainMeshCollider.h"
 
 Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true)
 {

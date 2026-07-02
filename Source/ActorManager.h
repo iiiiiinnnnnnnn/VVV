@@ -1,6 +1,11 @@
-// ActorManager.h
+﻿// ActorManager.h
 
 #pragma once
+#include <cstddef>
+
+#include <algorithm>
+#include <memory>
+#include <vector>
 
 #include "Actor.h"
 

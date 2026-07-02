@@ -1,6 +1,7 @@
-// NavMeshAgent.h
+﻿// NavMeshAgent.h
 
 #pragma once
+#include <string>
 
 #include "Common.h"
 #include "Component.h"

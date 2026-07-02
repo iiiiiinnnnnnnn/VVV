@@ -1,6 +1,7 @@
 // LightManager.h
 
 #pragma once
+#include <deque>
 
 #include "Common.h"
 #include "Light.h"

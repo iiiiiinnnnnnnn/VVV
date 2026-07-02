@@ -1,6 +1,10 @@
 ﻿// AnimatorSerializer.h
 
 #pragma once
+#include <algorithm>
+#include <functional>
+#include <variant>
+#include <vector>
 
 #include "Animator.h"
 #include "nlohmann/json.hpp"

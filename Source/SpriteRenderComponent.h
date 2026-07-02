@@ -1,6 +1,8 @@
 ﻿// SpriteRenderComponent.h
 
 #pragma once
+#include <memory>
+#include <string>
 
 #include "Texture.h"
 #include "SpriteRenderer.h"

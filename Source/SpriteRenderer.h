@@ -1,4 +1,9 @@
 ﻿#pragma once
+#include <d3d11.h>
+#include <wrl.h>
+
+#include <memory>
+#include <vector>
 
 #include "Common.h"
 #include "Shader.h"

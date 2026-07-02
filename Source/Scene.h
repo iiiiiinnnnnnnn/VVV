@@ -1,6 +1,8 @@
 ﻿// Scene.h
 
 #pragma once
+#include <memory>
+#include <vector>
 
 #include "Common.h"
 #include "Graphics.h"

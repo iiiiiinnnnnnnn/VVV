@@ -4,10 +4,11 @@
 
 #include "Object.h"
 #include "Transform.h"
-#include "Components.h"
+
+#include <string>
 
 class ActorManager;
-class Collider;
+class PhysicsComponent;
 
 class Actor : public Object
 {

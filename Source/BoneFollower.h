@@ -1,6 +1,7 @@
-// BoneFollower.h
+﻿// BoneFollower.h
 
 #pragma once
+#include <string>
 
 #include "Component.h"
 #include "Model.h"

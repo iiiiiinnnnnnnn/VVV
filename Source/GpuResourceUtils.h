@@ -1,4 +1,11 @@
 ﻿#pragma once
+#include <cstddef>
+
+#include <d3d11.h>
+#include <wrl.h>
+
+#include <filesystem>
+#include <vector>
 
 #include "Common.h"
 #include "DirectXTex.h"

@@ -1,6 +1,9 @@
 ﻿// PhysicsManager.h
 
 #pragma once
+#include <map>
+#include <memory>
+#include <utility>
 
 #include "Common.h"
 #include <set>

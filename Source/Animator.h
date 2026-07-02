@@ -1,6 +1,13 @@
 ﻿// Animator.h
 
 #pragma once
+#include <functional>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
+
 #include "Common.h"
 #include "Model.h"
 #include "Component.h"

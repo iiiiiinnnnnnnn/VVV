@@ -327,9 +327,6 @@
     <ClCompile Include="Source\Apple.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Stage00.cpp">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Stage01.cpp">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
@@ -396,6 +393,9 @@
     <ClCompile Include="Source\StageLoader.cpp">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理</Filter>
     </ClCompile>
+    <ClCompile Include="Source\HumanoidFootIK.cpp">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -414,9 +414,6 @@
       <Filter>ソースファイル\システム%28基底%29\描画</Filter>
     </ClInclude>
     <ClInclude Include="Source\Framework.h">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Dialog.h">
@@ -460,9 +457,6 @@
     </ClInclude>
     <ClInclude Include="Source\Actor.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\アクタ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Common.h">
-      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
     <ClInclude Include="Source\PlayerController.h">
       <Filter>ソースファイル\ゲーム\プレイヤーコントローラー</Filter>
@@ -584,9 +578,6 @@
     <ClInclude Include="Source\TrailRenderComponent.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\描画</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Components.h">
-      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Input.h">
       <Filter>ソースファイル\システム%28基底%29\アプリ\入力</Filter>
     </ClInclude>
@@ -637,9 +628,6 @@
     </ClInclude>
     <ClInclude Include="Source\Apple.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\敵</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Stage00.h">
-      <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
       <Filter>ソースファイル\ゲーム\オブジェクト\アクタ\ステージ</Filter>
@@ -712,6 +700,18 @@
     </ClInclude>
     <ClInclude Include="Source\StageLoader.h">
       <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\データ管理</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\HumanoidFootIK.h">
+      <Filter>ソースファイル\システム%28基底%29\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Common.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Benchmark.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DebugUtil.h">
+      <Filter>ソースファイル\システム%28基底%29\アプリ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,7 @@
-// MovieCameraController.h
+﻿// MovieCameraController.h
 
 #pragma once
+#include <memory>
 
 #include "CameraController.h"
 #include "Animator.h"

@@ -1,10 +1,22 @@
-// AracoreQueen.h
+﻿// AracoreQueen.h
 
 #pragma once
+#include "ShaderParam.h"
+#include <memory>
+#include <vector>
 
 #include "Entity.h"
 
 class NavMeshAgent;
+class Actor;
+class ActorManager;
+class Animator;
+class DamageHoleComponent;
+class FootIK;
+class Model;
+class ModelRenderComponent;
+class PhysicsComponent;
+class RigidbodyDynamic;
 class AracoreQueen;
 
 class AracoreQueenMachine : public Entity
@@ -42,9 +54,9 @@ private:
 	friend class AracoreQueenMachine;
 	void UpdateChase();
 
-	Animator* anim;
+	Animator* anim = nullptr;
 	ModelRenderComponent* bodyRenderer = nullptr;
-	RigidbodyDynamic* rb;
+	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<Model> model;
 	Actor* machine = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;

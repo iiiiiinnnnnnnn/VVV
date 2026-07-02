@@ -1,11 +1,21 @@
 ﻿// Player.h
 
 #pragma once
+#include "Animator.h"
+
+#include <memory>
+#include <utility>
 
 #include "Entity.h"
-#include "PlayerController.h"
-#include "Model.h"
+
 #include "PhysicsManager.h"
+#include "PlayerController.h"
+#include "CharacterController.h"
+#include "ModelRenderComponent.h"
+#include "BoneSphereCollider.h"
+#include "TrailRenderComponent.h"
+#include "SpringBone.h"
+#include "FootIK.h"
 
 class ThirdPersonCameraController;
 

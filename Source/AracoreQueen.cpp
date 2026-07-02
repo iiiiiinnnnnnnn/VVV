@@ -1,6 +1,16 @@
 // AracoreQueen.cpp
 
 #include "AracoreQueen.h"
+#include "Animator.h"
+#include "BoneFollower.h"
+#include "BoxCollider.h"
+#include "CharacterController.h"
+#include "FootIK.h"
+#include "Model.h"
+#include "ModelRenderComponent.h"
+#include "PhysicsComponent.h"
+#include "RigidBody.h"
+#include "SphereCollider.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
 #include "SceneEffect.h"

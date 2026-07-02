@@ -1,6 +1,7 @@
 // Light.cpp
 
 #include "Light.h"
+#include "imgui.h"
 
 void Light::DrawGUI()
 {

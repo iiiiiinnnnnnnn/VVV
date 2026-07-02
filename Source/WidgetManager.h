@@ -1,6 +1,9 @@
 // WidgetManager.h
 
 #pragma once
+#include <algorithm>
+#include <memory>
+#include <vector>
 
 #include "Widget.h"
 

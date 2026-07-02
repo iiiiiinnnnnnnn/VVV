@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "Common.h"
 #include "Component.h"
+
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 struct RenderContext;
 

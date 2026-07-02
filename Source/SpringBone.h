@@ -1,5 +1,7 @@
-// SpringBone.h
+﻿// SpringBone.h
 #pragma once
+#include <string>
+#include <vector>
 
 #include "PhysicsComponent.h"
 #include "Model.h"

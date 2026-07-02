@@ -4,8 +4,9 @@
 
 #include "Object.h"
 #include "RectTransform.h"
-#include "Components.h"
 #include "Texture.h"
+#include <string>
+#include <imgui.h>
 
 class WidgetManager;
 

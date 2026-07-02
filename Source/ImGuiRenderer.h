@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <wrl.h>
 
 #include <Windows.h>
 #include <d3d11.h>

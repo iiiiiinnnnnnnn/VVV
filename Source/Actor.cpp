@@ -1,9 +1,11 @@
 ﻿// Actor.cpp
 
 #include "Actor.h"
-#include "imgui.h"
-#include "Components.h"
+
 #include "ActorManager.h"
+#include "Rigidbody.h"
+#include "CharacterController.h"
+#include <imgui.h>
 
 void Actor::Update()
 {

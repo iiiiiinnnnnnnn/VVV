@@ -2,6 +2,8 @@
 
 #include "SpriteWidget.h"
 
+#include "SpriteRenderComponent.h"
+
 SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
                            SpriteShaderId shaderId, ShaderParamList shaderParam)
     : Widget(spritePath.filename().string().c_str())

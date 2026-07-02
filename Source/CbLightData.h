@@ -30,17 +30,17 @@ struct CbLightData
 	struct CbSpotLight
 	{
 		Vector3 position;
-		float DUMMY;
+		float dummy0;
 
 		Vector3 direction;
-		float DUMMY;
+		float dummy1;
 
 		Color color;
 
 		float range;
 		float innerConeAngle;
 		float outerConeAngle;
-		float DUMMY;
+		float dummy2;
 	} spotLights[MaxSpotLights];
 
 	struct CbAreaLight

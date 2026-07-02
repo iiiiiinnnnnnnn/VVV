@@ -1,5 +1,7 @@
 ﻿// Graphics.h
 #pragma once
+#include <string>
+#include <vector>
 
 #include <d3d11.h>
 #include <wrl.h>

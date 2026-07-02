@@ -1,6 +1,9 @@
 // FootIK.h
 
 #pragma once
+#include <algorithm>
+#include <cmath>
+#include <cfloat>
 
 #include "Common.h"
 #include "Model.h"

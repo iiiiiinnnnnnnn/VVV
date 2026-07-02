@@ -1,4 +1,9 @@
-#pragma once
+﻿#pragma once
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
+#include <imgui.h>
 
 #include "Common.h"
 

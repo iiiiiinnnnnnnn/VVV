@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Components.h"
 #include "Actor.h"
 
 class Stage01 : public Actor

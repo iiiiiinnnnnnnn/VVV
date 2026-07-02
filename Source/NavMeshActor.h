@@ -1,6 +1,8 @@
-// NavMeshActor.h
+﻿// NavMeshActor.h
 
 #pragma once
+#include <string>
+#include <vector>
 
 #include "Common.h"
 #include "Component.h"

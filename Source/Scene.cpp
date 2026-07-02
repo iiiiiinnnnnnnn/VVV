@@ -3,6 +3,9 @@
 #include "Scene.h"
 #include "GameTime.h"
 #include "Light.h"
+#include "ModelRenderComponent.h"
+#include "TrailRenderComponent.h"
+#include "Terrain.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {

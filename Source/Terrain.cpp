@@ -1,14 +1,15 @@
 ﻿// Terrain.cpp
 
 #include "Terrain.h"
-#include <DirectXTex.h>
+
 #include "Actor.h"
 #include "Graphics.h"
 #include "GpuResourceUtils.h"
 #include "LightManager.h"
 #include "Input.h"
-#include "Misc.h"
-#include "IconsFontAwesome5.h"
+#include "DebugUtil.h"
+#include "TerrainMeshCollider.h"
+#include <DirectXTex.h>
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)

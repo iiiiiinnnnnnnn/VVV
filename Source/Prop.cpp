@@ -4,6 +4,9 @@
 #include "NavMeshActor.h"
 #include "NavMeshObstacle.h"
 #include "ResourceManager.h"
+#include "Rigidbody.h"
+#include "ModelRenderComponent.h"
+#include "BoxCollider.h"
 
 Prop::Prop(StageLoader::PropData& propData)
 	: Actor("Prop", "Prop", true)

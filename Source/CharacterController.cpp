@@ -168,9 +168,9 @@ void CharacterController::DrawGUI()
         }
 
         // slopeLimit は角度(deg)で表示・編集して内部はcos値に変換
-        float slopeDeg = acosf(controller->getSlopeLimit()) * RAD2DEG;
+        float slopeDeg = DEG(acosf(controller->getSlopeLimit()));
         if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
-            controller->setSlopeLimit(cosf(slopeDeg * DEG2RAD));
+            controller->setSlopeLimit(cosf(RAD(slopeDeg)));
 
         ImGui::TreePop();
     }
@@ -318,7 +318,7 @@ void CharacterController::SetSlopeLimitDeg(float value)
 {
     if (!controller) return;
     const float clamped = std::clamp(value, 0.0f, 89.0f);
-    controller->setSlopeLimit(cosf(clamped * DEG2RAD));
+    controller->setSlopeLimit(cosf(RAD(clamped)));
 }
 
 void CharacterController::SetContactOffset(float value)

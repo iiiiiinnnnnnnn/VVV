@@ -1,9 +1,12 @@
 ﻿// Entity.h
 
 #pragma once
+#include <optional>
+#include <string>
+
 #include "Actor.h"
 
-class Entity;
+class PhysicsComponent;
 
 struct DamageData
 {

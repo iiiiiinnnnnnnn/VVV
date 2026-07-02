@@ -1,6 +1,7 @@
 ﻿// FpsCameraController.h
 
 #pragma once
+#include <memory>
 
 #include "CameraController.h"
 #include "Player.h"
