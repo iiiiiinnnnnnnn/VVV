@@ -79,6 +79,12 @@ PostProccess::PostProccess()
 	GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbChromaticAberration),
 		chromaticAberrationConstantBuffer.GetAddressOf());
 
+	// FXAA
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/FXAAPS.cso",
+		FXAAPixelShader.GetAddressOf());
+
 	// Fullscreen quad
 	GpuResourceUtils::LoadVertexShader(
 		device,
@@ -301,6 +307,11 @@ void PostProccess::BasicEffect(const RenderContext& rc, ID3D11ShaderResourceView
 	UnbindShaderResources(rc.deviceContext);
 }
 
+void PostProccess::FXAA(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+{
+	DrawFullscreen(rc, FXAAPixelShader.Get(), colorMap, nullptr);
+}
+
 void PostProccess::RenderFinal(
 	const RenderContext& rc,
 	ID3D11ShaderResourceView* colorMap,
@@ -309,75 +320,88 @@ void PostProccess::RenderFinal(
 	RenderTarget* outputBuffer)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	RenderTarget* workBuffers[] = {workBufferA, workBufferB};
+	RenderTarget* workBuffers[] = { workBufferA, workBufferB };
 	ID3D11ShaderResourceView* source = colorMap;
 	int workBufferIndex = 0;
+
 	int passCount = 1;
 	if (enableRadialBlur) ++passCount;
-	if (enableVignette) ++passCount;
 	if (enableChromaticAberration) ++passCount;
+	if (enableVignette) ++passCount;
 	if (enableBasicEffect) ++passCount;
+	if (enableFXAA) ++passCount;
 
 	auto renderPass = [&](auto draw)
-		{
-			--passCount;
-			RenderTarget* target = passCount == 0
-				? outputBuffer
-				: workBuffers[workBufferIndex];
+	{
+		--passCount;
 
-			target->Clear(dc);
-			target->Activate(dc);
-			draw(source);
-			if (target != outputBuffer)
-			{
-				target->Deactivate(dc);
-				source = target->GetSRV();
-				workBufferIndex = 1 - workBufferIndex;
-			}
-		};
+		RenderTarget* target = passCount == 0
+			? outputBuffer
+			: workBuffers[workBufferIndex];
+
+		target->Clear(dc);
+		target->Activate(dc);
+
+		draw(source);
+
+		if (target != outputBuffer)
+		{
+			target->Deactivate(dc);
+			source = target->GetSRV();
+			workBufferIndex = 1 - workBufferIndex;
+		}
+	};
 
 	renderPass([&](ID3D11ShaderResourceView* passSource)
+	{
+		if (enableToneMapping)
 		{
-			if (enableToneMapping)
-			{
-				ToneMapping(rc, passSource);
-			}
-			else
-			{
-				Copy(rc, passSource);
-			}
-		});
+			ToneMapping(rc, passSource);
+		}
+		else
+		{
+			Copy(rc, passSource);
+		}
+	});
 
 	if (enableRadialBlur)
 	{
 		renderPass([&](ID3D11ShaderResourceView* passSource)
-			{
-				RadialBlur(rc, passSource);
-			});
+		{
+			RadialBlur(rc, passSource);
+		});
 	}
 
 	if (enableChromaticAberration)
 	{
 		renderPass([&](ID3D11ShaderResourceView* passSource)
-			{
-				ChromaticAberration(rc, passSource);
-			});
+		{
+			ChromaticAberration(rc, passSource);
+		});
 	}
 
 	if (enableVignette)
 	{
 		renderPass([&](ID3D11ShaderResourceView* passSource)
-			{
-				Vignette(rc, passSource);
-			});
+		{
+			Vignette(rc, passSource);
+		});
 	}
 
 	if (enableBasicEffect)
 	{
 		renderPass([&](ID3D11ShaderResourceView* passSource)
-			{
-				BasicEffect(rc, passSource);
-			});
+		{
+			BasicEffect(rc, passSource);
+		});
+	}
+
+	if (enableFXAA)
+	{
+		renderPass([&](ID3D11ShaderResourceView* passSource)
+		{
+			FXAA(rc, passSource);
+		});
 	}
 }
 
@@ -545,6 +569,12 @@ void PostProccess::DrawGUI()
 		ImGui::DragFloat("Bloom Threshold", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
 		ImGui::DragFloat("Bloom Blur Size", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
 		ImGui::DragFloat("Bloom Blur Brightness", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("FXAA"))
+	{
+		ImGui::Checkbox("Enable##FXAA", &enableFXAA);
 		ImGui::TreePop();
 	}
 }

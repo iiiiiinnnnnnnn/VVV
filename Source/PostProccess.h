@@ -27,6 +27,7 @@ public:
 	void Vignette(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 	void ChromaticAberration(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 	void BasicEffect(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
+	void FXAA(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 	void RenderFinal(
 		const RenderContext& rc,
 		ID3D11ShaderResourceView* colorMap,
@@ -42,6 +43,7 @@ public:
 	bool IsVignetteEnabled() const { return enableVignette; }
 	bool IsChromaticAberrationEnabled() const { return enableChromaticAberration; }
 	bool IsBasicEffectEnabled() const { return enableBasicEffect; }
+	bool IsFXAAEnabled() const { return enableFXAA; }
 	void DrawGUI();
 
 private:
@@ -185,6 +187,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> SSAOConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOCompositePixelShader;
+
+	// FXAA
+	bool enableFXAA = true;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> FXAAPixelShader;
 
 	// Final Basic Effect
 	bool enableBasicEffect = false;

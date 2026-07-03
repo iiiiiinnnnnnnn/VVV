@@ -805,6 +805,12 @@
     <None Include="Shader\FullScreenQuad.hlsli">
       <Filter>シェーダー\スプライト\PostProccess</Filter>
     </None>
+    <None Include="Shader\gbuffer.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="Shader\filter_functions.hlsli">
+      <Filter>シェーダー</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
@@ -896,6 +902,9 @@
       <Filter>シェーダー\スプライト\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SSAOPS.hlsl">
+      <Filter>シェーダー\スプライト\PostProccess</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\FXAAPS.hlsl">
       <Filter>シェーダー\スプライト\PostProccess</Filter>
     </FxCompile>
   </ItemGroup>

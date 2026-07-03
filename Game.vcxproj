@@ -209,8 +209,10 @@
     <None Include=".gitignore" />
     <None Include="imgui.ini" />
     <None Include="README.md" />
+    <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\GaussianFiltering.hlsli" />
     <None Include="Shader\BasicModel.hlsli" />
+    <None Include="Shader\gbuffer.hlsli" />
     <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PBRFunctions.hlsli" />
     <None Include="Shader\FullScreenQuad.hlsli" />
@@ -226,6 +228,10 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\ChromaticAberrationPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\FXAAPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
