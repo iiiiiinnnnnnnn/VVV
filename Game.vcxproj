@@ -107,6 +107,7 @@
     <ClInclude Include="Source\CollidersDef.h" />
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\DebugUtil.h" />
+    <ClInclude Include="Source\Easing.h" />
     <ClInclude Include="Source\FootIK.h" />
     <ClInclude Include="Source\HumanoidFootIK.h" />
     <ClInclude Include="Source\MeshCollider.h" />
@@ -132,6 +133,7 @@
     <ClInclude Include="Source\LightManager.h" />
     <ClInclude Include="Source\LoadingScene.h" />
     <ClInclude Include="Source\PhysicsComponent.h" />
+    <ClInclude Include="Source\PostProcessController.h" />
     <ClInclude Include="Source\Prop.h" />
     <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SphereCollider.h" />

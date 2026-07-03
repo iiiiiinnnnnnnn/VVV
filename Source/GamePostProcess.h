@@ -48,6 +48,12 @@ namespace Game
 		bool IsFXAAEnabled() const { return enableFXAA; }
 		void DrawGUI();
 
+		void ClearRuntimeEffects();
+
+		void AddRuntimeRadialBlur(float intensity);
+		void AddRuntimeChromaticAberration(float intensity);
+		void AddRuntimeVignette(float intensity, const Color& color);
+
 	private:
 		void DrawFullscreen(
 			const RenderContext& rc,
@@ -201,5 +207,11 @@ namespace Game
 		float finalBloomThreshold = 0.25f;
 		float finalBloomBlurSize = 4.0f;
 		float finalBloomBlurBrightness = 1.0f;
+
+		// Runtime effects
+		float runtimeRadialBlurIntensity = 0.0f;
+		float runtimeChromaticAberrationIntensity = 0.0f;
+		float runtimeVignetteIntensity = 0.0f;
+		Color runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
 	};
 }

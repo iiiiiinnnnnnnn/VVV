@@ -64,9 +64,6 @@
     <Filter Include="ソースファイル\シーン">
       <UniqueIdentifier>{d200445d-b38a-4cfe-afb0-822a19aa506d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\シーン\_エンジン">
-      <UniqueIdentifier>{bc8b83a6-e810-46ef-a6c3-240cc2ab3571}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\プレイヤーコントローラー">
       <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
     </Filter>
@@ -168,6 +165,9 @@
     </Filter>
     <Filter Include="シェーダー\PostProccess">
       <UniqueIdentifier>{91a3bb11-1180-4ec7-83be-eecded54946a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\シーン\エンジン">
+      <UniqueIdentifier>{bc8b83a6-e810-46ef-a6c3-240cc2ab3571}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -370,10 +370,10 @@
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene.cpp">
-      <Filter>ソースファイル\シーン\_エンジン</Filter>
+      <Filter>ソースファイル\シーン\エンジン</Filter>
     </ClCompile>
     <ClCompile Include="Source\SceneManager.cpp">
-      <Filter>ソースファイル\シーン\_エンジン</Filter>
+      <Filter>ソースファイル\シーン\エンジン</Filter>
     </ClCompile>
     <ClCompile Include="Source\FpsCameraController.cpp">
       <Filter>ソースファイル\カメラ</Filter>
@@ -660,10 +660,10 @@
       <Filter>ソースファイル\シーン</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene.h">
-      <Filter>ソースファイル\シーン\_エンジン</Filter>
+      <Filter>ソースファイル\シーン\エンジン</Filter>
     </ClInclude>
     <ClInclude Include="Source\SceneManager.h">
-      <Filter>ソースファイル\シーン\_エンジン</Filter>
+      <Filter>ソースファイル\シーン\エンジン</Filter>
     </ClInclude>
     <ClInclude Include="Source\ThirdPersonCameraController.h">
       <Filter>ソースファイル\カメラ</Filter>
@@ -733,6 +733,12 @@
     </ClInclude>
     <ClInclude Include="Source\Actor.h">
       <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostProcessController.h">
+      <Filter>ソースファイル\シーン</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Easing.h">
+      <Filter>ソースファイル\アプリ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

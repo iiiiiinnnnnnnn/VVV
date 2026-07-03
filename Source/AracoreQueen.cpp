@@ -17,6 +17,7 @@
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
 #include "NavMeshActor.h"
+#include "PostProcessController.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
 {
@@ -42,13 +43,16 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
-        anim->Load("Data/Animator/animated_spider.animator");
+        anim->Load("Data/Animator/animated_spider_test.animator");
         anim->AddCallbackFunc("ThreatFunc",
             [this](const Animator::State& s)
         {
-            // Enter
-			CameraThreaten::Request(1.0f, 1.5f);
-			ThreatenLines::Request(1.7f);
+            PostProcessController::Instance().RequestThreaten(
+                5.0f,
+                3.0f,
+                0.15f,
+                Easing::Type::InSine,
+                Easing::Type::OutCubic);
             CameraShake::Request(2.0f, 0.1f);
         },
             nullptr);

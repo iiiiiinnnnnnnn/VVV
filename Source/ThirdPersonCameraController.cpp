@@ -74,11 +74,6 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 
     // エフェクト系反映
     CameraShake::Update(camera, finalEye, currentFocus, Vector3::Up);
-    CameraThreaten::Update();
-
-    const float targetFov = FOV_DEFAULT * CameraThreaten::GetFovMultiplier();
-
-    fovYDegrees = targetFov;
 
     camera.SetPerspectiveFov(
         DirectX::XMConvertToRadians(fovYDegrees),

@@ -206,45 +206,59 @@ namespace Game
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
+		const float runtimeRadius = radialBlurRadius * runtimeRadialBlurIntensity;
+
 		CbRadialBlur cb = {};
-		cb.radius = radialBlurRadius;
+		cb.radius = enableRadialBlur
+			? radialBlurRadius + runtimeRadius
+			: runtimeRadius;
 		cb.samplingCount = max(radialBlurSamplingCount, 1);
 		cb.center = radialBlurCenter;
 		cb.maskRadius = radialBlurMaskRadius;
+
 		dc->UpdateSubresource(radialBlurConstantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 		DrawFullscreen(rc, radialBlurPixelShader.Get(), colorMap, radialBlurConstantBuffer.Get());
-	}
-
-	void PostProcess::Vignette(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
-	{
-		ID3D11DeviceContext* dc = rc.deviceContext;
-
-		CbVignette cb = {};
-		cb.color = vignetteColor;
-		cb.center = vignetteCenter;
-		cb.intensity = vignetteIntensity;
-		cb.smoothness = vignetteSmoothness;
-		cb.rounded = vignetteRounded ? 1.0f : 0.0f;
-		cb.roundness = vignetteRoundness;
-		dc->UpdateSubresource(vignetteConstantBuffer.Get(), 0, 0, &cb, 0, 0);
-
-		DrawFullscreen(rc, vignettePixelShader.Get(), colorMap, vignetteConstantBuffer.Get());
 	}
 
 	void PostProcess::ChromaticAberration(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
+		const float runtimeAmount =
+			chromaticAberrationAmount * runtimeChromaticAberrationIntensity;
+
 		CbChromaticAberration cb = {};
-		cb.amount = chromaticAberrationAmount;
+		cb.amount = enableChromaticAberration
+			? chromaticAberrationAmount + runtimeAmount
+			: runtimeAmount;
 		cb.maxSamples = max(chromaticAberrationMaxSamples, 1);
 		cb.shift[0] = chromaticAberrationShift[0];
 		cb.shift[1] = chromaticAberrationShift[1];
 		cb.shift[2] = chromaticAberrationShift[2];
+
 		dc->UpdateSubresource(chromaticAberrationConstantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 		DrawFullscreen(rc, chromaticAberrationPixelShader.Get(), colorMap, chromaticAberrationConstantBuffer.Get());
+	}
+
+	void PostProcess::Vignette(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+	{
+		ID3D11DeviceContext* dc = rc.deviceContext;
+
+		const bool useRuntimeVignette = runtimeVignetteIntensity > 0.001f;
+
+		CbVignette cb = {};
+		cb.color = useRuntimeVignette ? runtimeVignetteColor : vignetteColor;
+		cb.center = vignetteCenter;
+		cb.intensity = vignetteIntensity + runtimeVignetteIntensity;
+		cb.smoothness = vignetteSmoothness;
+		cb.rounded = vignetteRounded ? 1.0f : 0.0f;
+		cb.roundness = vignetteRoundness;
+
+		dc->UpdateSubresource(vignetteConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+
+		DrawFullscreen(rc, vignettePixelShader.Get(), colorMap, vignetteConstantBuffer.Get());
 	}
 
 	void PostProcess::DrawFullscreen(
@@ -325,10 +339,21 @@ namespace Game
 		ID3D11ShaderResourceView* source = colorMap;
 		int workBufferIndex = 0;
 
+		// エフェクトが有効ならパス増やす
+		
+		const bool useRadialBlur =
+			enableRadialBlur || runtimeRadialBlurIntensity > 0.001f;
+
+		const bool useChromaticAberration =
+			enableChromaticAberration || runtimeChromaticAberrationIntensity > 0.001f;
+
+		const bool useVignette =
+			enableVignette || runtimeVignetteIntensity > 0.001f;
+
 		int passCount = 1;
-		if (enableRadialBlur) ++passCount;
-		if (enableChromaticAberration) ++passCount;
-		if (enableVignette) ++passCount;
+		if (useRadialBlur) ++passCount;
+		if (useChromaticAberration) ++passCount;
+		if (useVignette) ++passCount;
 		if (enableBasicEffect) ++passCount;
 		if (enableFXAA) ++passCount;
 
@@ -365,7 +390,7 @@ namespace Game
 			}
 		});
 
-		if (enableRadialBlur)
+		if (useRadialBlur)
 		{
 			renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
@@ -373,7 +398,7 @@ namespace Game
 			});
 		}
 
-		if (enableChromaticAberration)
+		if (useChromaticAberration)
 		{
 			renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
@@ -381,7 +406,7 @@ namespace Game
 			});
 		}
 
-		if (enableVignette)
+		if (useVignette)
 		{
 			renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
@@ -642,6 +667,35 @@ namespace Game
 			case DirectX::ToneMapPostProcess::DCI_P3_D65_to_UHDTV: return "DCI-P3 D65 to UHDTV";
 			case DirectX::ToneMapPostProcess::HDTV_to_DCI_P3_D65: return "HDTV to DCI-P3 D65";
 			default: return "Unknown";
+		}
+	}
+
+	// Runtime effects management
+
+	void PostProcess::ClearRuntimeEffects()
+	{
+		runtimeRadialBlurIntensity = 0.0f;
+		runtimeChromaticAberrationIntensity = 0.0f;
+		runtimeVignetteIntensity = 0.0f;
+		runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
+	}
+
+	void PostProcess::AddRuntimeRadialBlur(float intensity)
+	{
+		runtimeRadialBlurIntensity = max(runtimeRadialBlurIntensity, intensity);
+	}
+
+	void PostProcess::AddRuntimeChromaticAberration(float intensity)
+	{
+		runtimeChromaticAberrationIntensity = max(runtimeChromaticAberrationIntensity, intensity);
+	}
+
+	void PostProcess::AddRuntimeVignette(float intensity, const Color& color)
+	{
+		if (intensity > runtimeVignetteIntensity)
+		{
+			runtimeVignetteIntensity = intensity;
+			runtimeVignetteColor = color;
 		}
 	}
 }

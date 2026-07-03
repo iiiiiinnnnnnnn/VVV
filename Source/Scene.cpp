@@ -6,6 +6,7 @@
 #include "ModelRenderComponent.h"
 #include "TrailRenderComponent.h"
 #include "Terrain.h"
+#include "PostProcessController.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
@@ -91,6 +92,8 @@ void Scene::Update()
 	widgetManager.Update();
 
 	lightManager.Update();
+
+	PostProcessController::Instance().Update();
 }
 
 void Scene::Render()
@@ -267,6 +270,10 @@ void Scene::Render()
 	}
 	postProcessBuffer->Deactivate(dc);
 
+	postProcess.ClearRuntimeEffects();
+
+	PostProcessController::Instance().ApplyTo(postProcess);
+
 	// ---- Final PostProcess: postProcessBuffer → displayBuffer -------------
 	postProcess.RenderFinal(
 		rc,
@@ -433,6 +440,12 @@ void Scene::DrawGUI(RenderContext& rc)
 			if (ImGui::CollapsingHeader("PostProcess", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				postProcess.DrawGUI();
+
+				ImGui::Separator();
+
+				ImGui::Text("CONTROLLER");
+
+				PostProcessController::Instance().DrawGUI();
 			}
 
 			// Editor
