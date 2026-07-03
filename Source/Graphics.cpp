@@ -113,8 +113,22 @@ namespace Game
 			bloomHeight,
 			DXGI_FORMAT_R16G16B16A16_FLOAT);
 
+		frameBuffers[static_cast<int>(FrameBufferId::BloomWork)] =
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			bloomWidth,
+			bloomHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
+
 		// 最終PostProcessはフル解像度
 		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
+			std::make_unique<RenderTarget>(
+			device.Get(),
+			screenWidth,
+			screenHeight,
+			DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::PostProcess2)] =
 			std::make_unique<RenderTarget>(
 			device.Get(),
 			screenWidth,

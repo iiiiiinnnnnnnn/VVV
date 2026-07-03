@@ -13,7 +13,7 @@
 #include "CameraController.h"
 #include "RenderContext.h"
 #include "PhysicsManager.h"
-#include "PostEffect.h"
+#include "PostProccess.h"
 #include "DynamicAnimationEditorWindow.h"
 #include "ActorManager.h"
 #include "WidgetManager.h"
@@ -79,7 +79,7 @@ protected:
 	int nowCameraControllerIndex = 0;
 	bool isCursorReleased = false;
 
-	PostEffect postEffect;
+	PostProccess postProccess;
 	RenderSettings renderSettings;
 	ShadowMapData shadowMapData;
 	IBLData iblData;

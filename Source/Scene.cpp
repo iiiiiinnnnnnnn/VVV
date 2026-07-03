@@ -103,7 +103,9 @@ void Scene::Render()
 	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
 	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
+	RenderTarget* bloomWorkBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomWork);
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
+	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
 	// 描画コンテキスト設定
 	RenderContext rc;
@@ -194,29 +196,56 @@ void Scene::Render()
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
-		postEffect.Begin(rc);
-		postEffect.LuminanceExtraction(rc, sceneBuffer->GetSRV());
-		postEffect.End(rc);
+		if (postProccess.IsBloomExtractEnabled())
+		{
+			postProccess.LuminanceExtraction(rc, sceneBuffer->GetSRV());
+		}
+		else
+		{
+			postProccess.Copy(rc, sceneBuffer->GetSRV());
+		}
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	// ---- Bloom合成: sceneBuffer + luminanceBuffer → postProcessBuffer -----
+	if (postProccess.IsBloomBlurEnabled())
+	{
+		bloomWorkBuffer->Clear(dc);
+		bloomWorkBuffer->Activate(dc);
+		{
+			postProccess.BloomBlur(rc, luminanceBuffer->GetSRV(), true);
+		}
+		bloomWorkBuffer->Deactivate(dc);
+
+		luminanceBuffer->Clear(dc);
+		luminanceBuffer->Activate(dc);
+		{
+			postProccess.BloomBlur(rc, bloomWorkBuffer->GetSRV(), false);
+		}
+		luminanceBuffer->Deactivate(dc);
+	}
+
+	// ---- Bloom合成 / Merge: sceneBuffer + luminanceBuffer → postProcessBuffer -----
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
-		postEffect.Begin(rc);
-		postEffect.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
-		postEffect.End(rc);
+		if (postProccess.IsDualEffectEnabled())
+		{
+			postProccess.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
+		}
+		else
+		{
+			postProccess.Copy(rc, sceneBuffer->GetSRV());
+		}
 	}
 	postProcessBuffer->Deactivate(dc);
 
-	// ---- トーンマッピング: postProcessBuffer → displayBuffer --------------
-	displayBuffer->Activate(dc);
-	{
-		postEffect.Begin(rc);
-		postEffect.ToneMapping(rc, postProcessBuffer->GetSRV());
-		postEffect.End(rc);
-	}
+	// ---- Final PostProccess: postProcessBuffer → displayBuffer -------------
+	postProccess.RenderFinal(
+		rc,
+		postProcessBuffer->GetSRV(),
+		postProcessBuffer2,
+		postProcessBuffer,
+		displayBuffer);
 
 	// ShapeRenderer描画
 	graphics.GetShapeRenderer()->Render(
@@ -358,10 +387,10 @@ void Scene::DrawGUI(RenderContext& rc)
 				graphics.DrawSkyMapGUI();
 			}
 
-			// PostEffect
-			if (ImGui::CollapsingHeader("PostEffect", ImGuiTreeNodeFlags_DefaultOpen))
+			// PostProccess
+			if (ImGui::CollapsingHeader("PostProccess", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				postEffect.DrawGUI();
+				postProccess.DrawGUI();
 			}
 
 			// Editor

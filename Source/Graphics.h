@@ -23,7 +23,9 @@ namespace Game
 		Display,
 		Scene,
 		Luminance,
+		BloomWork,
 		PostProcess,
+		PostProcess2,
 
 		EnumCount
 	};

@@ -66,7 +66,7 @@
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\NavMeshAgent.cpp" />
     <ClCompile Include="Source\NavMeshActor.cpp" />
-    <ClCompile Include="Source\PostEffect.cpp" />
+    <ClCompile Include="Source\PostProccess.cpp" />
     <ClCompile Include="Source\Stage01.cpp" />
     <ClCompile Include="Source\StageLoader.cpp" />
     <ClCompile Include="Source\Terrain.cpp" />
@@ -167,7 +167,7 @@
     <ClInclude Include="Source\NavMeshAgent.h" />
     <ClInclude Include="Source\NavMeshActor.h" />
     <ClInclude Include="Source\NavMeshObstacle.h" />
-    <ClInclude Include="Source\PostEffect.h" />
+    <ClInclude Include="Source\PostProccess.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\Stage01.h" />
@@ -213,7 +213,7 @@
     <None Include="Shader\BasicModel.hlsli" />
     <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PBRFunctions.hlsli" />
-    <None Include="Shader\PostEffect.hlsli" />
+    <None Include="Shader\FullScreenQuad.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
     <None Include="Shader\Scene.hlsli" />
     <None Include="Shader\ShadingFunctions.hlsli" />
@@ -225,7 +225,7 @@
     <None Include="Shader\TrailRenderer.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\BloomPS.hlsl">
+    <FxCompile Include="Shader\ChromaticAberrationPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
@@ -244,10 +244,6 @@
     <FxCompile Include="Shader\BasicModelVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\LuminanceExtractionPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -331,10 +327,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\ToneMappingPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -343,7 +335,15 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shader\VignettePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shader\VignetteSpritePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\RadialBlurPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
