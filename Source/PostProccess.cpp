@@ -43,6 +43,18 @@ PostProccess::PostProccess()
 	toneMap->SetOperator(DirectX::ToneMapPostProcess::ACESFilmic);
 	toneMap->SetTransferFunction(DirectX::ToneMapPostProcess::SRGB);
 
+	// SSAO
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/SSAOPS.cso",
+		SSAOPixelShader.GetAddressOf());
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/SSAOCompositePS.cso",
+		SSAOCompositePixelShader.GetAddressOf());
+	GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbSSAO),
+		SSAOConstantBuffer.GetAddressOf());
+
 	// Radial Blur
 	GpuResourceUtils::LoadPixelShader(
 		device,
@@ -154,6 +166,35 @@ void PostProccess::ToneMapping(const RenderContext& rc, ID3D11ShaderResourceView
 	UnbindShaderResources(rc.deviceContext);
 }
 
+void PostProccess::SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap)
+{
+	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
+	Matrix inverseViewProjection = viewProjection.Invert();
+
+	CbSSAO cb = {};
+	cb.viewTransform = rc.camera->GetView();
+	cb.inverseViewProjectionTransform = inverseViewProjection;
+	cb.projectionTransform = rc.camera->GetProjection();
+	cb.zBufferParameteres = Vector4::Zero;
+	cb.radius = ssaoRadius;
+	cb.intensity = ssaoIntensity;
+	cb.minDistance = ssaoMinDistance;
+	cb.maxDistance = ssaoMaxDistance;
+	dc->UpdateSubresource(SSAOConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+
+	DrawFullscreen(rc, SSAOPixelShader.Get(), depthMap, SSAOConstantBuffer.Get());
+}
+
+void PostProccess::ApplySSAO(
+	const RenderContext& rc,
+	ID3D11ShaderResourceView* colorMap,
+	ID3D11ShaderResourceView* ssaoMap)
+{
+	DrawFullscreen(rc, SSAOCompositePixelShader.Get(), colorMap, nullptr, ssaoMap);
+}
+
 void PostProccess::RadialBlur(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
@@ -203,22 +244,27 @@ void PostProccess::DrawFullscreen(
 	const RenderContext& rc,
 	ID3D11PixelShader* pixelShader,
 	ID3D11ShaderResourceView* colorMap,
-	ID3D11Buffer* constantBuffer)
+	ID3D11Buffer* constantBuffer,
+	ID3D11ShaderResourceView* colorMap2)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 	UINT stride = sizeof(FullscreenVertex);
 	UINT offset = 0;
 	ID3D11Buffer* vertexBuffers[] = {fullscreenVertexBuffer.Get()};
-	ID3D11Buffer* constantBuffers[] = {constantBuffer};
 	ID3D11SamplerState* sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
+	ID3D11ShaderResourceView* srvs[] = {colorMap, colorMap2};
+	const UINT srvCount = colorMap2 ? 2 : 1;
 
 	dc->IASetInputLayout(fullscreenInputLayout.Get());
 	dc->IASetVertexBuffers(0, _countof(vertexBuffers), vertexBuffers, &stride, &offset);
 	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	dc->VSSetShader(fullscreenVertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader, nullptr, 0);
-	dc->PSSetShaderResources(0, 1, &colorMap);
-	dc->PSSetConstantBuffers(2, _countof(constantBuffers), constantBuffers);
+	dc->PSSetShaderResources(0, srvCount, srvs);
+	if (constantBuffer)
+	{
+		dc->PSSetConstantBuffers(2, 1, &constantBuffer);
+	}
 	dc->PSSetSamplers(0, 1, &sampler);
 	dc->Draw(4, 0);
 
@@ -310,20 +356,20 @@ void PostProccess::RenderFinal(
 			});
 	}
 
+	if (enableChromaticAberration)
+	{
+		renderPass([&](ID3D11ShaderResourceView* passSource)
+			{
+				ChromaticAberration(rc, passSource);
+			});
+	}
+
 	if (enableVignette)
 	{
 		renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
 				Vignette(rc, passSource);
 			});
-	}
-
-	if (enableChromaticAberration)
-	{
-		renderPass([&](ID3D11ShaderResourceView* passSource)
-			{
-				ChromaticAberration(rc, passSource);
-		});
 	}
 
 	if (enableBasicEffect)
@@ -425,6 +471,17 @@ void PostProccess::DrawGUI()
 		}
 		ImGui::DragFloat("Exposure", &exposure, 0.01f, 0.0f, 5.0f);
 		ImGui::DragFloat("Paper White Nits", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
+		ImGui::TreePop();
+	}
+
+	// Add depth-based contact shadows in screen space.
+	if (ImGui::TreeNode("SSAO"))
+	{
+		ImGui::Checkbox("Enable##SSAO", &enableSSAO);
+		ImGui::DragFloat("Radius", &ssaoRadius, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Intensity", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
+		ImGui::DragFloat("Min Distance", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
+		ImGui::DragFloat("Max Distance", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
 		ImGui::TreePop();
 	}
 

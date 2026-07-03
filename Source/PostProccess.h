@@ -21,6 +21,8 @@ public:
 	void BloomBlur(const RenderContext& rc, ID3D11ShaderResourceView* bloomMap, bool horizontal);
 	void Bloom(const RenderContext& rc, ID3D11ShaderResourceView* colorMap, ID3D11ShaderResourceView* bloomMap);
 	void ToneMapping(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
+	void SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap);
+	void ApplySSAO(const RenderContext& rc, ID3D11ShaderResourceView* colorMap, ID3D11ShaderResourceView* ssaoMap);
 	void RadialBlur(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 	void Vignette(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 	void ChromaticAberration(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
@@ -34,6 +36,7 @@ public:
 	bool IsBloomExtractEnabled() const { return enableBloomExtract; }
 	bool IsBloomBlurEnabled() const { return enableBloomBlur; }
 	bool IsDualEffectEnabled() const { return enableDualEffect; }
+	bool IsSSAOEnabled() const { return enableSSAO; }
 	bool IsToneMappingEnabled() const { return enableToneMapping; }
 	bool IsRadialBlurEnabled() const { return enableRadialBlur; }
 	bool IsVignetteEnabled() const { return enableVignette; }
@@ -46,7 +49,8 @@ private:
 		const RenderContext& rc,
 		ID3D11PixelShader* pixelShader,
 		ID3D11ShaderResourceView* colorMap,
-		ID3D11Buffer* constantBuffer);
+		ID3D11Buffer* constantBuffer,
+		ID3D11ShaderResourceView* colorMap2 = nullptr);
 	void UnbindShaderResources(ID3D11DeviceContext* dc);
 	static const char* BasicEffectName(int index);
 	static const char* DualEffectName(int index);
@@ -159,6 +163,28 @@ private:
 	};
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> chromaticAberrationPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> chromaticAberrationConstantBuffer;
+
+	// SSAO
+	bool enableSSAO = true;
+	float ssaoRadius = 1.0f;
+	float ssaoIntensity = 1.0f;
+	float ssaoMinDistance = 0.003f;
+	float ssaoMaxDistance = 0.01f;
+	struct CbSSAO
+	{
+		Matrix viewTransform;
+		Matrix inverseViewProjectionTransform;
+		Matrix projectionTransform;
+		Vector4 zBufferParameteres;
+
+		float radius;
+		float intensity;
+		float minDistance;
+		float maxDistance;
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> SSAOConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOCompositePixelShader;
 
 	// Final Basic Effect
 	bool enableBasicEffect = false;

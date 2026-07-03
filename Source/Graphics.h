@@ -24,6 +24,7 @@ namespace Game
 		Scene,
 		Luminance,
 		BloomWork,
+		SSAO,
 		PostProcess,
 		PostProcess2,
 

@@ -104,6 +104,7 @@ void Scene::Render()
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
 	RenderTarget* luminanceBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Luminance);
 	RenderTarget* bloomWorkBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::BloomWork);
+	RenderTarget* ssaoBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::SSAO);
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
@@ -192,17 +193,36 @@ void Scene::Render()
 	}
 	sceneBuffer->Deactivate(dc);
 
+	ID3D11ShaderResourceView* sceneColorMap = sceneBuffer->GetSRV();
+	if (postProccess.IsSSAOEnabled())
+	{
+		ssaoBuffer->Clear(dc, 1, 1, 1, 1);
+		ssaoBuffer->Activate(dc);
+		{
+			postProccess.SSAO(rc, sceneBuffer->GetDepthSRV());
+		}
+		ssaoBuffer->Deactivate(dc);
+
+		postProcessBuffer2->Clear(dc);
+		postProcessBuffer2->Activate(dc);
+		{
+			postProccess.ApplySSAO(rc, sceneBuffer->GetSRV(), ssaoBuffer->GetSRV());
+		}
+		postProcessBuffer2->Deactivate(dc);
+		sceneColorMap = postProcessBuffer2->GetSRV();
+	}
+
 	// ---- 輝度抽出: sceneBuffer → luminanceBuffer --------------------------
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
 		if (postProccess.IsBloomExtractEnabled())
 		{
-			postProccess.LuminanceExtraction(rc, sceneBuffer->GetSRV());
+			postProccess.LuminanceExtraction(rc, sceneColorMap);
 		}
 		else
 		{
-			postProccess.Copy(rc, sceneBuffer->GetSRV());
+			postProccess.Copy(rc, sceneColorMap);
 		}
 	}
 	luminanceBuffer->Deactivate(dc);
@@ -230,11 +250,11 @@ void Scene::Render()
 	{
 		if (postProccess.IsDualEffectEnabled())
 		{
-			postProccess.Bloom(rc, sceneBuffer->GetSRV(), luminanceBuffer->GetSRV());
+			postProccess.Bloom(rc, sceneColorMap, luminanceBuffer->GetSRV());
 		}
 		else
 		{
-			postProccess.Copy(rc, sceneBuffer->GetSRV());
+			postProccess.Copy(rc, sceneColorMap);
 		}
 	}
 	postProcessBuffer->Deactivate(dc);
