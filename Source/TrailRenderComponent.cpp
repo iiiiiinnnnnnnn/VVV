@@ -124,6 +124,10 @@ void TrailRenderComponent::RenderTrail(const RenderContext& rc)
     dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 
     graphics.GetTrailRenderer()->Render(dc, rc.camera->GetView(), rc.camera->GetProjection(), color);
+
+    dc->OMSetBlendState(renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
+    dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
+    dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullBack));
 }
 
 void TrailRenderComponent::DrawGUI()

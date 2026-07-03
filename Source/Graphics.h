@@ -6,6 +6,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 #include <memory>
+#include <windows.h>
 #include "RenderState.h"
 #include "RenderTarget.h"
 #include "PrimitiveRenderer.h"
@@ -46,6 +47,8 @@ namespace Game
 
 		void Initialize(HWND hWnd);
 		void Present(UINT syncInterval);
+		void RequestToggleBorderlessFullscreen();
+		bool IsBorderlessFullscreen() const { return borderlessFullscreen; }
 
 		HWND GetWindowHandle() { return hWnd; }
 		ID3D11Device* GetDevice() { return device.Get(); }
@@ -73,6 +76,11 @@ namespace Game
 		static float ScreenHeight;
 
 	private:
+		void Resize(UINT width, UINT height);
+		void RecreateFrameBuffers(UINT screenWidth, UINT screenHeight);
+		void ToggleBorderlessFullscreen();
+
+	private:
 		HWND hWnd = nullptr;
 		Microsoft::WRL::ComPtr<ID3D11Device>		device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext>	immediateContext;
@@ -94,5 +102,11 @@ namespace Game
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblDiffuseIEM;
 		std::string skyMapName = "Default";
 		std::vector<std::string> skyMapNames;
+
+		bool requestToggleBorderlessFullscreen = false;
+		bool borderlessFullscreen = false;
+		LONG_PTR windowedStyle = 0;
+		LONG_PTR windowedExStyle = 0;
+		WINDOWPLACEMENT windowedPlacement = { sizeof(WINDOWPLACEMENT) };
 	};
 }

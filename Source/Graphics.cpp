@@ -16,22 +16,6 @@ namespace Game
 		UINT screenWidth  = rc.right - rc.left;
 		UINT screenHeight = rc.bottom - rc.top;
 
-		ScreenWidth  = static_cast<float>(screenWidth);
-		ScreenHeight = static_cast<float>(screenHeight);
-
-		UINT bloomWidth = screenWidth / 4;
-		UINT bloomHeight = screenHeight / 4;
-
-		if (bloomWidth < 1)
-		{
-			bloomWidth = 1;
-		}
-
-		if (bloomHeight < 1)
-		{
-			bloomHeight = 1;
-		}
-
 		HRESULT hr = S_OK;
 
 		// デバイス＆スワップチェーンの生成
@@ -88,59 +72,8 @@ namespace Game
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// バックバッファ用 RenderTarget を生成
-		frameBuffers[static_cast<int>(FrameBufferId::Display)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			swapchain.Get(),
-			screenWidth,
-			screenHeight);
-
-		// HDR用シーンバッファはフル解像度
-		frameBuffers[static_cast<int>(FrameBufferId::Scene)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			screenWidth,
-			screenHeight,
-			DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-		// Bloom系は低解像度にする
-		// ここが重要。フル解像度のままだと小さい丸が大量に見えやすい。
-		frameBuffers[static_cast<int>(FrameBufferId::Luminance)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			bloomWidth,
-			bloomHeight,
-			DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-		frameBuffers[static_cast<int>(FrameBufferId::BloomWork)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			bloomWidth,
-			bloomHeight,
-			DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-		frameBuffers[static_cast<int>(FrameBufferId::SSAO)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			screenWidth,
-			screenHeight,
-			DXGI_FORMAT_R8G8B8A8_UNORM);
-
-		// 最終PostProcessはフル解像度
-		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			screenWidth,
-			screenHeight,
-			DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-		frameBuffers[static_cast<int>(FrameBufferId::PostProcess2)] =
-			std::make_unique<RenderTarget>(
-			device.Get(),
-			screenWidth,
-			screenHeight,
-			DXGI_FORMAT_R16G16B16A16_FLOAT);
+		// フレームバッファ生成
+		RecreateFrameBuffers(screenWidth, screenHeight);
 
 		// 各レンダラー生成
 		renderState       = std::make_unique<RenderState>(device.Get());
@@ -160,6 +93,165 @@ namespace Game
 	void Graphics::Present(UINT syncInterval)
 	{
 		swapchain->Present(syncInterval, 0);
+
+		if (requestToggleBorderlessFullscreen)
+		{
+			requestToggleBorderlessFullscreen = false;
+			ToggleBorderlessFullscreen();
+		}
+	}
+
+	void Graphics::RequestToggleBorderlessFullscreen()
+	{
+		requestToggleBorderlessFullscreen = true;
+	}
+
+	void Graphics::ToggleBorderlessFullscreen()
+	{
+		if (!borderlessFullscreen)
+		{
+			windowedStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
+			windowedExStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+			windowedPlacement.length = sizeof(WINDOWPLACEMENT);
+			GetWindowPlacement(hWnd, &windowedPlacement);
+
+			MONITORINFO monitorInfo = {};
+			monitorInfo.cbSize = sizeof(MONITORINFO);
+			GetMonitorInfo(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+
+			SetWindowLongPtr(
+				hWnd,
+				GWL_STYLE,
+				windowedStyle & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU));
+			SetWindowLongPtr(
+				hWnd,
+				GWL_EXSTYLE,
+				windowedExStyle & ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+			SetWindowPos(
+				hWnd,
+				HWND_TOP,
+				monitorInfo.rcMonitor.left,
+				monitorInfo.rcMonitor.top,
+				monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+				monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+			borderlessFullscreen = true;
+		}
+		else
+		{
+			SetWindowLongPtr(hWnd, GWL_STYLE, windowedStyle);
+			SetWindowLongPtr(hWnd, GWL_EXSTYLE, windowedExStyle);
+			SetWindowPlacement(hWnd, &windowedPlacement);
+			SetWindowPos(
+				hWnd,
+				nullptr,
+				0,
+				0,
+				0,
+				0,
+				SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+			borderlessFullscreen = false;
+		}
+
+		RECT rc = {};
+		GetClientRect(hWnd, &rc);
+		Resize(static_cast<UINT>(rc.right - rc.left), static_cast<UINT>(rc.bottom - rc.top));
+	}
+
+	void Graphics::Resize(UINT width, UINT height)
+	{
+		if (width == 0 || height == 0)
+		{
+			return;
+		}
+
+		immediateContext->OMSetRenderTargets(0, nullptr, nullptr);
+		immediateContext->ClearState();
+
+		for (auto& frameBuffer : frameBuffers)
+		{
+			frameBuffer.reset();
+		}
+
+		HRESULT hr = swapchain->ResizeBuffers(
+			0,
+			width,
+			height,
+			DXGI_FORMAT_UNKNOWN,
+			0);
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+
+		RecreateFrameBuffers(width, height);
+	}
+
+	void Graphics::RecreateFrameBuffers(UINT screenWidth, UINT screenHeight)
+	{
+		ScreenWidth = static_cast<float>(screenWidth);
+		ScreenHeight = static_cast<float>(screenHeight);
+
+		UINT bloomWidth = screenWidth / 4;
+		UINT bloomHeight = screenHeight / 4;
+
+		if (bloomWidth < 1)
+		{
+			bloomWidth = 1;
+		}
+
+		if (bloomHeight < 1)
+		{
+			bloomHeight = 1;
+		}
+
+		frameBuffers[static_cast<int>(FrameBufferId::Display)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				swapchain.Get(),
+				screenWidth,
+				screenHeight);
+
+		frameBuffers[static_cast<int>(FrameBufferId::Scene)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				screenWidth,
+				screenHeight,
+				DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::Luminance)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				bloomWidth,
+				bloomHeight,
+				DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::BloomWork)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				bloomWidth,
+				bloomHeight,
+				DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::SSAO)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				screenWidth,
+				screenHeight,
+				DXGI_FORMAT_R8G8B8A8_UNORM);
+
+		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				screenWidth,
+				screenHeight,
+				DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		frameBuffers[static_cast<int>(FrameBufferId::PostProcess2)] =
+			std::make_unique<RenderTarget>(
+				device.Get(),
+				screenWidth,
+				screenHeight,
+				DXGI_FORMAT_R16G16B16A16_FLOAT);
 	}
 
 	bool Graphics::LoadSkyMap(const std::string& name)

@@ -327,6 +327,19 @@ void Scene::DrawGUI(RenderContext& rc)
 				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
 
+			if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				Game::Graphics& graphics = Game::Graphics::Instance();
+				const char* label = graphics.IsBorderlessFullscreen()
+					? "Windowed"
+					: "Borderless Fullscreen";
+
+				if (ImGui::Button(label, ImVec2(-1.0f, 30.0f)))
+				{
+					graphics.RequestToggleBorderlessFullscreen();
+				}
+			}
+
 			// モード切替
 			{
 				float buttonHeight = 30.0f;

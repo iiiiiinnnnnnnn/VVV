@@ -168,10 +168,10 @@ private:
 
 	// SSAO
 	bool enableSSAO = true;
-	float ssaoRadius = 1.0f;
-	float ssaoIntensity = 1.0f;
-	float ssaoMinDistance = 0.003f;
-	float ssaoMaxDistance = 0.01f;
+	float ssaoRadius = 1.5f;
+	float ssaoIntensity = 3.0f;
+	float ssaoMinDistance = 0.05f;
+	float ssaoMaxDistance = 5.0f;
 	struct CbSSAO
 	{
 		Matrix viewTransform;
