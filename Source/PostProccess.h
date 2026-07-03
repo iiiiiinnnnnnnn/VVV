@@ -85,8 +85,8 @@ private:
 
 	// Bloom Blur
 	bool enableBloomBlur = true;
-	float bloomBlurSize = 4.0f;
-	float bloomBlurBrightness = 1.0f;
+	float bloomBlurSize = 2.5f;
+	float bloomBlurBrightness = 1.2f;
 
 	// Dual Effect
 	bool enableDualEffect = true;
