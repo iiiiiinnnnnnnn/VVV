@@ -224,7 +224,7 @@ public:
         params.push_back({ "noiseScroll", 0.0f });
 
         renderer->Draw(
-            SpriteShaderId::ThreatenLine,
+            SpriteShaderId::Basic,
             dummyTexture,
             Vector3(0, 0, 0),
             Vector2(screenW, screenH),
@@ -357,7 +357,7 @@ public:
         params.push_back({ "color", Color(1, 0, 0, alpha) });
 
         renderer->Draw(
-            SpriteShaderId::Vignette,
+            SpriteShaderId::Basic,
             dummyTexture,
             Vector3(0, 0, 0),
             Vector2(screenW, screenH),

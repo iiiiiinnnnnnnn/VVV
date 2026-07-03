@@ -502,8 +502,7 @@ void Terrain::Render(const RenderContext& rc)
 		0);
 
 	dc->RSSetState(
-		rc.renderState->GetRasterizerState(
-			use_wire ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
+		rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 
 	UINT stride = sizeof(TerrainVertex);
 	UINT offset = 0;
@@ -1663,7 +1662,6 @@ void Terrain::DrawGUI()
 			MarkTerrainMeshDirty();
 		}
 
-		ImGui::Checkbox("wire", &use_wire);
 		bool meshSettingChanged = false;
 		meshSettingChanged |= ImGui::SliderFloat("edge", &tesselation_constant.edge_factor, 1.0f, 16.0f);
 		meshSettingChanged |= ImGui::SliderFloat("inner", &tesselation_constant.inner_factor, 1.0f, 16.0f);

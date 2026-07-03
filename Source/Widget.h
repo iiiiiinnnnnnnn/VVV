@@ -23,7 +23,11 @@ public:
     void Update() override;
     void DrawGUI() override;
 
+	void SetAffectedByPostProcess(bool affected) { affectedByPostProcess = affected; }
+	bool GetAffectedByPostProcess() const { return affectedByPostProcess; }
+
 protected:
 	friend class WidgetManager;
     WidgetManager* widgetManager = nullptr;
+	bool affectedByPostProcess = false;
 };

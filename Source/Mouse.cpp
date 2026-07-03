@@ -1,4 +1,7 @@
-﻿#include "Mouse.h"
+﻿// Mouse.cpp
+
+#include "Mouse.h"
+#include "Graphics.h"
 
 static const int KeyMap[] =
 {
@@ -11,10 +14,7 @@ static const int KeyMap[] =
 Mouse::Mouse(HWND hWnd)
 	: hWnd(hWnd)
 {
-	RECT rc;
-	GetClientRect(hWnd, &rc);
-	screenWidth = rc.right - rc.left;
-	screenHeight = rc.bottom - rc.top;
+
 }
 
 // 更新
@@ -52,8 +52,8 @@ void Mouse::Update()
 	GetClientRect(hWnd, &rc);
 	UINT screenW = rc.right - rc.left;
 	UINT screenH = rc.bottom - rc.top;
-	UINT viewportW = screenWidth;
-	UINT viewportH = screenHeight;
+	UINT viewportW = static_cast<UINT>(Game::Graphics::ScreenWidth);
+	UINT viewportH = static_cast<UINT>(Game::Graphics::ScreenHeight);
 
 	// 画面補正
 	positionX[1] = positionX[0];

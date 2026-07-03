@@ -194,19 +194,19 @@ void Scene::Render()
 	sceneBuffer->Deactivate(dc);
 
 	ID3D11ShaderResourceView* sceneColorMap = sceneBuffer->GetSRV();
-	if (postProccess.IsSSAOEnabled())
+	if (postProcess.IsSSAOEnabled())
 	{
 		ssaoBuffer->Clear(dc, 1, 1, 1, 1);
 		ssaoBuffer->Activate(dc);
 		{
-			postProccess.SSAO(rc, sceneBuffer->GetDepthSRV());
+			postProcess.SSAO(rc, sceneBuffer->GetDepthSRV());
 		}
 		ssaoBuffer->Deactivate(dc);
 
 		postProcessBuffer2->Clear(dc);
 		postProcessBuffer2->Activate(dc);
 		{
-			postProccess.ApplySSAO(rc, sceneBuffer->GetSRV(), ssaoBuffer->GetSRV());
+			postProcess.ApplySSAO(rc, sceneBuffer->GetSRV(), ssaoBuffer->GetSRV());
 		}
 		postProcessBuffer2->Deactivate(dc);
 		sceneColorMap = postProcessBuffer2->GetSRV();
@@ -216,30 +216,30 @@ void Scene::Render()
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
-		if (postProccess.IsBloomExtractEnabled())
+		if (postProcess.IsBloomExtractEnabled())
 		{
-			postProccess.LuminanceExtraction(rc, sceneColorMap);
+			postProcess.LuminanceExtraction(rc, sceneColorMap);
 		}
 		else
 		{
-			postProccess.Copy(rc, sceneColorMap);
+			postProcess.Copy(rc, sceneColorMap);
 		}
 	}
 	luminanceBuffer->Deactivate(dc);
 
-	if (postProccess.IsBloomBlurEnabled())
+	if (postProcess.IsBloomBlurEnabled())
 	{
 		bloomWorkBuffer->Clear(dc);
 		bloomWorkBuffer->Activate(dc);
 		{
-			postProccess.BloomBlur(rc, luminanceBuffer->GetSRV(), true);
+			postProcess.BloomBlur(rc, luminanceBuffer->GetSRV(), true);
 		}
 		bloomWorkBuffer->Deactivate(dc);
 
 		luminanceBuffer->Clear(dc);
 		luminanceBuffer->Activate(dc);
 		{
-			postProccess.BloomBlur(rc, bloomWorkBuffer->GetSRV(), false);
+			postProcess.BloomBlur(rc, bloomWorkBuffer->GetSRV(), false);
 		}
 		luminanceBuffer->Deactivate(dc);
 	}
@@ -248,19 +248,27 @@ void Scene::Render()
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
-		if (postProccess.IsDualEffectEnabled())
+		if (postProcess.IsDualEffectEnabled())
 		{
-			postProccess.Bloom(rc, sceneColorMap, luminanceBuffer->GetSRV());
+			postProcess.Bloom(rc, sceneColorMap, luminanceBuffer->GetSRV());
 		}
 		else
 		{
-			postProccess.Copy(rc, sceneColorMap);
+			postProcess.Copy(rc, sceneColorMap);
 		}
 	}
 	postProcessBuffer->Deactivate(dc);
 
-	// ---- Final PostProccess: postProcessBuffer → displayBuffer -------------
-	postProccess.RenderFinal(
+	// PostProcessありのウィジェット
+	postProcessBuffer->Activate(dc);
+	{
+		widgetManager.Render(rc, true);
+		graphics.GetSpriteRenderer()->Render(rc);
+	}
+	postProcessBuffer->Deactivate(dc);
+
+	// ---- Final PostProcess: postProcessBuffer → displayBuffer -------------
+	postProcess.RenderFinal(
 		rc,
 		postProcessBuffer->GetSRV(),
 		postProcessBuffer2,
@@ -281,8 +289,8 @@ void Scene::Render()
 		camera.GetProjection(),
 		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-	// ---- スプライト・GUIはdisplayBufferのまま描画 ------------------------
-	widgetManager.Render(rc);
+	// PostProcessなしのウィジェット
+	widgetManager.Render(rc, false);
 	graphics.GetSpriteRenderer()->Render(rc);
 
 	// GUI
@@ -327,6 +335,7 @@ void Scene::DrawGUI(RenderContext& rc)
 				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
 
+			// ウィンドウ切替
 			if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				Game::Graphics& graphics = Game::Graphics::Instance();
@@ -420,10 +429,10 @@ void Scene::DrawGUI(RenderContext& rc)
 				graphics.DrawSkyMapGUI();
 			}
 
-			// PostProccess
-			if (ImGui::CollapsingHeader("PostProccess", ImGuiTreeNodeFlags_DefaultOpen))
+			// PostProcess
+			if (ImGui::CollapsingHeader("PostProcess", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				postProccess.DrawGUI();
+				postProcess.DrawGUI();
 			}
 
 			// Editor

@@ -110,6 +110,8 @@ namespace Game
 	{
 		if (!borderlessFullscreen)
 		{
+			// フルスクリーン化
+
 			windowedStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
 			windowedExStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 			windowedPlacement.length = sizeof(WINDOWPLACEMENT);
@@ -140,6 +142,8 @@ namespace Game
 		}
 		else
 		{
+			// ウィンドウ化
+
 			SetWindowLongPtr(hWnd, GWL_STYLE, windowedStyle);
 			SetWindowLongPtr(hWnd, GWL_EXSTYLE, windowedExStyle);
 			SetWindowPlacement(hWnd, &windowedPlacement);

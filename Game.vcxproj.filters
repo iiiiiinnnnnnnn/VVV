@@ -52,9 +52,6 @@
     <Filter Include="ソースファイル\オブジェクト\アクタ\エンティティ">
       <UniqueIdentifier>{9808b356-2b01-4497-b52b-cbc733a296b4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\アクタ\_エンジン">
-      <UniqueIdentifier>{1f216af4-44bc-4c8c-afef-d640a0354d22}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\オブジェクト\ウィジェット">
       <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
     </Filter>
@@ -169,17 +166,8 @@
     <Filter Include="シェーダー\スプライト\Basic">
       <UniqueIdentifier>{a1135338-5623-4e45-b91f-b9f03a979f9b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\スプライト\PostProccess">
+    <Filter Include="シェーダー\PostProccess">
       <UniqueIdentifier>{91a3bb11-1180-4ec7-83be-eecded54946a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\スプライト\ThreatenLine">
-      <UniqueIdentifier>{9853311f-addd-4623-bd86-4b269ad1b032}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\スプライト\GaussianFiltering">
-      <UniqueIdentifier>{b7c893bb-dd3d-417a-af47-6fd921df87ef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\スプライト\VignetteSpritePS">
-      <UniqueIdentifier>{2213e4a3-38e3-4c3e-9f2d-736aa9ee9903}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -240,13 +228,10 @@
     <ClCompile Include="Source\Texture.cpp">
       <Filter>ソースファイル\リソース</Filter>
     </ClCompile>
-    <ClCompile Include="Source\PostProccess.cpp">
+    <ClCompile Include="Source\GamePostProcess.cpp">
       <Filter>ソースファイル\描画\シェーダー\シェーダー</Filter>
     </ClCompile>
     <ClCompile Include="Source\GaussianFilterShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\VignetteSpriteShader.cpp">
       <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rigidbody.cpp">
@@ -308,9 +293,6 @@
     </ClCompile>
     <ClCompile Include="Source\Stage01.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThreatenLineSpriteShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClCompile>
     <ClCompile Include="Source\NavMeshActor.cpp">
       <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
@@ -381,9 +363,6 @@
     <ClCompile Include="Source\Prop.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Actor.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\_エンジン</Filter>
-    </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
@@ -440,6 +419,9 @@
     </ClCompile>
     <ClCompile Include="Source\GameTime.cpp">
       <Filter>ソースファイル\アプリ\タイム</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Actor.cpp">
+      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -524,13 +506,10 @@
     <ClInclude Include="Source\Random.h">
       <Filter>ソースファイル\アプリ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\PostProccess.h">
+    <ClInclude Include="Source\GamePostProcess.h">
       <Filter>ソースファイル\描画\シェーダー\シェーダー</Filter>
     </ClInclude>
     <ClInclude Include="Source\GaussianFilterShader.h">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\VignetteSpriteShader.h">
       <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rigidbody.h">
@@ -598,9 +577,6 @@
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThreatenLineSpriteShader.h">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClInclude>
     <ClInclude Include="Source\NavMeshObstacle.h">
       <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
@@ -677,12 +653,6 @@
     <ClInclude Include="Source\Prop.h">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Actor.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\_エンジン</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ActorManager.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\_エンジン</Filter>
-    </ClInclude>
     <ClInclude Include="Source\TestPlayScene.h">
       <Filter>ソースファイル\シーン</Filter>
     </ClInclude>
@@ -758,6 +728,12 @@
     <ClInclude Include="Source\GameTime.h">
       <Filter>ソースファイル\アプリ\タイム</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ActorManager.h">
+      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Actor.h">
+      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -799,11 +775,8 @@
     <None Include="Shader\BasicSprite.hlsli">
       <Filter>シェーダー\スプライト\Basic</Filter>
     </None>
-    <None Include="Shader\GaussianFiltering.hlsli">
-      <Filter>シェーダー\スプライト\GaussianFiltering</Filter>
-    </None>
     <None Include="Shader\FullScreenQuad.hlsli">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </None>
     <None Include="Shader\gbuffer.hlsli">
       <Filter>シェーダー</Filter>
@@ -822,7 +795,6 @@
     <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>シェーダー\モデル\PBR</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl" />
     <FxCompile Include="Shader\BasicModelVS.hlsl">
       <Filter>シェーダー\モデル\Basic</Filter>
     </FxCompile>
@@ -877,35 +849,32 @@
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <Filter>シェーダー\スプライト\Basic</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
-      <Filter>シェーダー\スプライト\ThreatenLine</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
-      <Filter>シェーダー\スプライト\GaussianFiltering</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
-      <Filter>シェーダー\スプライト\VignetteSpritePS</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\RadialBlurPS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\VignettePS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\FullScreenQuadVS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ChromaticAberrationPS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SSAOCompositePS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SSAOPS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\FXAAPS.hlsl">
-      <Filter>シェーダー\スプライト\PostProccess</Filter>
+      <Filter>シェーダー\PostProccess</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
+      <Filter>シェーダー\スプライト</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl">
+      <Filter>シェーダー\モデル\Terrain</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

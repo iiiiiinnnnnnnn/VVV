@@ -39,37 +39,6 @@ LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
 		widgetManager.Register(BG_Illust);
 	}
 
-	// Vignette
-	{
-		ShaderParamList params;
-		params.push_back({
-			"color",
-			Color(0.0f, 0.0f, 0.0f, 1.0f)
-		});
-
-		auto vignette = std::make_shared<SpriteWidget>(
-			"",
-			SpriteShaderId::Vignette,
-			params);
-
-		vignette->rect.position =
-		{
-			screenWidth * 0.5f,
-			screenHeight * 0.5f
-		};
-
-		vignette->rect.anchor = { 0.5f, 0.5f };
-
-		const float size = 1.5f;
-		vignette->rect.size =
-		{
-			screenWidth * size,
-			screenHeight * size
-		};
-
-		widgetManager.Register(vignette);
-	}
-
 	// 進捗バー背景
 	{
 		ShaderParamList params;

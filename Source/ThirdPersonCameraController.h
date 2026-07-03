@@ -23,12 +23,12 @@ public:
 private:
     Player* character;
 
-    float armLength    = 5.0f;
+    float armLength    = 7.5f;
     float heightOffset = 1.5f;
     float mouseSensX   = 0.005f;
     float mouseSensY   = 0.003f;
     float minArmLength = 0.5f;
-    float maxArmLength = 5.0f;
+    float maxArmLength = 50.0f;
     float followSpeed  = 5.0f;
 
 	const float FOV_DEFAULT = 50.0f;

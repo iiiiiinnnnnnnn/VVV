@@ -4,8 +4,6 @@
 
 // 追加
 #include "GaussianFilterShader.h"
-#include "VignetteSpriteShader.h"
-#include "ThreatenLineSpriteShader.h"
 
 // コンストラクタ
 SpriteRenderer::SpriteRenderer(ID3D11Device* device)
@@ -23,8 +21,6 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 
 	// 追加
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);
-	shaders[static_cast<int>(SpriteShaderId::Vignette)] = std::make_unique<VignetteSpriteShader>(device);
-	shaders[static_cast<int>(SpriteShaderId::ThreatenLine)] = std::make_unique<ThreatenLineSpriteShader>(device);
 }
 
 // 頂点計算（Texture版）
@@ -135,7 +131,7 @@ void SpriteRenderer::Render(const RenderContext& rc)
 
 	// レンダーステート設定
 	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
-	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
+	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
 	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 
 	// プリミティブトポロジー・頂点バッファ設定

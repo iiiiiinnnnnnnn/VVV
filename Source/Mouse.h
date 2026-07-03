@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Mouse.h
+
+#pragma once
 
 #include <windows.h>
 
@@ -46,18 +48,6 @@ public:
 	// 前回のマウスカーソルY座標取得
 	int GetOldPositionY() const { return positionY[1]; }
 
-	// スクリーン幅設定
-	void SetScreenWidth(int width) { screenWidth = width; }
-
-	// スクリーン高さ設定
-	void SetScreenHeight(int height) { screenHeight = height; }
-
-	// スクリーン幅取得
-	int GetScreenWidth() const { return screenWidth; }
-
-	// スクリーン高さ取得
-	int GetScreenHeight() const { return screenHeight; }
-
 	// 移動量取得
 	int GetAxisX() const { return axisX; }
 	int GetAxisY() const { return axisY; }
@@ -69,17 +59,18 @@ public:
 	void SetCursorVisible(bool visible);
 
 private:
-	MouseButton		buttonState[2] = { 0 };
-	MouseButton		buttonDown = 0;
-	MouseButton		buttonUp = 0;
-	int				positionX[2];
-	int				positionY[2];
-	int				wheel[2];
-	int				screenWidth = 0;
-	int				screenHeight = 0;
-	int				axisX = 0;
-	int				axisY = 0;
-	bool			cursorLocked = false;
-	bool			cursorVisible = true;
-	HWND			hWnd = nullptr;
+	MouseButton buttonState[2] = {};
+	MouseButton buttonDown = 0;
+	MouseButton buttonUp = 0;
+
+	int positionX[2] = {};
+	int positionY[2] = {};
+	int wheel[2] = {};
+
+	int axisX = 0;
+	int axisY = 0;
+
+	bool cursorLocked = false;
+	bool cursorVisible = true;
+	HWND hWnd = nullptr;
 };

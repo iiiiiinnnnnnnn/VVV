@@ -66,7 +66,7 @@
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\NavMeshAgent.cpp" />
     <ClCompile Include="Source\NavMeshActor.cpp" />
-    <ClCompile Include="Source\PostProccess.cpp" />
+    <ClCompile Include="Source\GamePostProcess.cpp" />
     <ClCompile Include="Source\Stage01.cpp" />
     <ClCompile Include="Source\StageLoader.cpp" />
     <ClCompile Include="Source\Terrain.cpp" />
@@ -90,12 +90,10 @@
     <ClCompile Include="Source\Texture.cpp" />
     <ClCompile Include="Source\GameTime.cpp" />
     <ClCompile Include="Source\ThirdPersonCameraController.cpp" />
-    <ClCompile Include="Source\ThreatenLineSpriteShader.cpp" />
     <ClCompile Include="Source\TrailRenderComponent.cpp" />
     <ClCompile Include="Source\TrailRenderer.cpp" />
     <ClCompile Include="Source\Transform.cpp" />
     <ClCompile Include="Source\UserSettingsManager.cpp" />
-    <ClCompile Include="Source\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -167,7 +165,7 @@
     <ClInclude Include="Source\NavMeshAgent.h" />
     <ClInclude Include="Source\NavMeshActor.h" />
     <ClInclude Include="Source\NavMeshObstacle.h" />
-    <ClInclude Include="Source\PostProccess.h" />
+    <ClInclude Include="Source\GamePostProcess.h" />
     <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\Stage01.h" />
@@ -196,12 +194,10 @@
     <ClInclude Include="Source\Texture.h" />
     <ClInclude Include="Source\GameTime.h" />
     <ClInclude Include="Source\ThirdPersonCameraController.h" />
-    <ClInclude Include="Source\ThreatenLineSpriteShader.h" />
     <ClInclude Include="Source\TrailRenderComponent.h" />
     <ClInclude Include="Source\TrailRenderer.h" />
     <ClInclude Include="Source\Transform.h" />
     <ClInclude Include="Source\UserSettingsManager.h" />
-    <ClInclude Include="Source\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Widget.h" />
     <ClInclude Include="Source\WidgetManager.h" />
   </ItemGroup>
@@ -210,7 +206,6 @@
     <None Include="imgui.ini" />
     <None Include="README.md" />
     <None Include="Shader\filter_functions.hlsli" />
-    <None Include="Shader\GaussianFiltering.hlsli" />
     <None Include="Shader\BasicModel.hlsli" />
     <None Include="Shader\gbuffer.hlsli" />
     <None Include="Shader\PBR.hlsli" />
@@ -337,10 +332,6 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="Shader\ThreatenLineSpriteShaderPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -350,10 +341,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\VignettePS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>

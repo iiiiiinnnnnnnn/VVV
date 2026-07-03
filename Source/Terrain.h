@@ -108,7 +108,7 @@ private:
 		float edge_factor = 4.0f;
 		float inner_factor = 4.0f;
 		float height_scaler = 25.0f;
-		float tilling_scale = 140.0f;
+		float tilling_scale = 70.0f;
 	};
 
 	struct CbTerrainScene
@@ -206,7 +206,6 @@ private:
 	int gridResolution = 64;
 	UINT indexCount = 0;
 
-	bool use_wire = false;
 	CbTessellation tesselation_constant;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
@@ -242,10 +241,10 @@ private:
 	Color baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	Color emissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
 	float metalness = 0.0f;
-	float roughness = 0.85f;
-	float occlusion = 1.0f;
+	float roughness = 0.5f;
+	float occlusion = 0.5f;
 	float occlusionStrength = 1.0f;
-	float shadowStrength = 1.0f;
+	float shadowStrength = 0.7f;
 
 	bool use_brush = false;
 	BrushMode brushMode = BrushMode::RaiseLower;

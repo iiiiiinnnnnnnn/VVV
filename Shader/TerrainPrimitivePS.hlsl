@@ -291,7 +291,7 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float3 baseN = normalize(pin.normal);
 
-    float3 T = normalize(float3(1, 0, 0));
+    float3 T = normalize(pin.tangent);
     T = normalize(T - baseN * dot(baseN, T));
 
     float3 B = normalize(cross(baseN, T));

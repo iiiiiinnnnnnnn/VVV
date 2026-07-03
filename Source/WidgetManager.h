@@ -35,14 +35,26 @@ public:
 			data.end());
 	}
 
-	void Render(const RenderContext& rc)
+	void Render(const RenderContext& rc, bool affectedByPostProcess)
 	{
 		for (auto& d : data)
 		{
-			if (!d->IsPendingDestroy())
+			if (!d)
 			{
-				d->Render(rc);
+				continue;
 			}
+
+			if (d->IsPendingDestroy())
+			{
+				continue;
+			}
+
+			if (d->GetAffectedByPostProcess() != affectedByPostProcess)
+			{
+				continue;
+			}
+
+			d->Render(rc);
 		}
 	}
 
