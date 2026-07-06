@@ -135,7 +135,6 @@ void SpiderFootIK::ApplyFootSettings()
 
 		footIK->SetLiftOnly(false);
 		footIK->SetMaxUpCorrection(maxUpCorrection);
-		footIK->SetAlwaysRenderDebug(showFootDebug);
 	}
 }
 

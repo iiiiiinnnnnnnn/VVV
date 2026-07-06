@@ -467,9 +467,19 @@
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
-                    "editorPosX": -296.0,
-                    "editorPosY": 227.0,
-                    "footIKRanges": [],
+                    "editorPosX": -328.0,
+                    "editorPosY": 138.0,
+                    "footIKRanges": [
+                        {
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.0,
+                            "fadeOutRatio": 0.0,
+                            "name": "FootIK",
+                            "startRatio": 0.0,
+                            "targetName": "All",
+                            "weight": 1.0
+                        }
+                    ],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Dead",

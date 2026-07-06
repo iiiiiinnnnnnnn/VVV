@@ -169,7 +169,7 @@ bool FootIK::UpdateGroundTarget(
 
 void FootIK::Render(const RenderContext& rc)
 {
-	if (!showDebug && !alwaysRenderDebug) return;
+	if (!showDebug) return;
 
 	if (!chain.enabled) return;
 	if (chain.root == nullptr) return;

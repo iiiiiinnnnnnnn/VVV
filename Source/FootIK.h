@@ -41,7 +41,6 @@ public:
 	void SetDownwardWeight(float weight) { downwardWeight = std::clamp(weight, 0.0f, 1.0f); }
 	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
 	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
-	void SetAlwaysRenderDebug(bool value) { alwaysRenderDebug = value; }
 
 	void SetTarget(const Vector3& targetPosition);
 	void SetTargetFromContact(
@@ -93,7 +92,6 @@ private:
 	Vector3 rayStart, rayEnd;
 	bool hasGroundContact = false;
 	bool liftOnly = false;
-	bool alwaysRenderDebug = false;
 	float downwardWeight = 1.0f;
 	float maxUpCorrection = 2.0f;
 	float maxDownCorrection = 2.0f;
