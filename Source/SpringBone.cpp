@@ -330,7 +330,7 @@ void SpringBone::LateUpdate()
     if (!initialized)
         Reset();
 
-    float elapsedTime = max(Game::Time::deltaTime, 0.0f);
+    float elapsedTime = std::max(Game::Time::deltaTime, 0.0f);
     if (elapsedTime <= 0.0f)
         return;
 
@@ -475,7 +475,7 @@ void SpringBone::LateUpdate()
             nextChildWorldPosition +=
                 (animatedChildWorldPosition - nextChildWorldPosition) * stepStiffness;
 
-            const int iterations = max(solverIterations, 1);
+            const int iterations = std::max(solverIterations, 1);
             for (int iteration = 0; iteration < iterations; ++iteration)
             {
                 Vector3 toChild = nextChildWorldPosition - parentWorldPosition;

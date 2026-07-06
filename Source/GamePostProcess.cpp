@@ -212,7 +212,7 @@ namespace Game
 		cb.radius = enableRadialBlur
 			? radialBlurRadius + runtimeRadius
 			: runtimeRadius;
-		cb.samplingCount = max(radialBlurSamplingCount, 1);
+		cb.samplingCount = std::max(radialBlurSamplingCount, 1);
 		cb.center = radialBlurCenter;
 		cb.maskRadius = radialBlurMaskRadius;
 
@@ -232,7 +232,7 @@ namespace Game
 		cb.amount = enableChromaticAberration
 			? chromaticAberrationAmount + runtimeAmount
 			: runtimeAmount;
-		cb.maxSamples = max(chromaticAberrationMaxSamples, 1);
+		cb.maxSamples = std::max(chromaticAberrationMaxSamples, 1);
 		cb.shift[0] = chromaticAberrationShift[0];
 		cb.shift[1] = chromaticAberrationShift[1];
 		cb.shift[2] = chromaticAberrationShift[2];
@@ -246,12 +246,19 @@ namespace Game
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
-		const bool useRuntimeVignette = runtimeVignetteIntensity > 0.001f;
+		const float totalIntensity = vignetteIntensity + runtimeVignetteIntensity;
+		const float runtimeBlend = totalIntensity > 0.001f
+			? runtimeVignetteIntensity / totalIntensity
+			: 0.0f;
 
 		CbVignette cb = {};
-		cb.color = useRuntimeVignette ? runtimeVignetteColor : vignetteColor;
+		cb.color = {
+			vignetteColor.x + (runtimeVignetteColor.x - vignetteColor.x) * runtimeBlend,
+			vignetteColor.y + (runtimeVignetteColor.y - vignetteColor.y) * runtimeBlend,
+			vignetteColor.z + (runtimeVignetteColor.z - vignetteColor.z) * runtimeBlend,
+			vignetteColor.w + (runtimeVignetteColor.w - vignetteColor.w) * runtimeBlend};
 		cb.center = vignetteCenter;
-		cb.intensity = vignetteIntensity + runtimeVignetteIntensity;
+		cb.intensity = totalIntensity;
 		cb.smoothness = vignetteSmoothness;
 		cb.rounded = vignetteRounded ? 1.0f : 0.0f;
 		cb.roundness = vignetteRoundness;
@@ -682,12 +689,12 @@ namespace Game
 
 	void PostProcess::AddRuntimeRadialBlur(float intensity)
 	{
-		runtimeRadialBlurIntensity = max(runtimeRadialBlurIntensity, intensity);
+		runtimeRadialBlurIntensity = std::max(runtimeRadialBlurIntensity, intensity);
 	}
 
 	void PostProcess::AddRuntimeChromaticAberration(float intensity)
 	{
-		runtimeChromaticAberrationIntensity = max(runtimeChromaticAberrationIntensity, intensity);
+		runtimeChromaticAberrationIntensity = std::max(runtimeChromaticAberrationIntensity, intensity);
 	}
 
 	void PostProcess::AddRuntimeVignette(float intensity, const Color& color)

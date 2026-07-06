@@ -60,7 +60,7 @@ void Entity::TakeDamage(const DamageData& damageData)
     }
 
     life -= damageData.damage;
-    life = max(life, 0.0f);
+    life = std::max(life, 0.0f);
 
     cooldowns.damageCooldown = Cooldowns::DamageCooldownDuration;
 
@@ -73,5 +73,5 @@ void Entity::TakeDamage(const DamageData& damageData)
 // ‰ñ•œ‚·‚é
 void Entity::Heal(float amount)
 {
-    life = min(life + amount, maxLife);
+    life = std::min(life + amount, maxLife);
 }

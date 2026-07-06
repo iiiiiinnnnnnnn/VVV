@@ -22,7 +22,9 @@ public:
 
 		InSine,
 		OutSine,
-		InOutSine
+		InOutSine,
+
+		Count
 	};
 	static inline float Evaluate(float t, Type type)
 	{

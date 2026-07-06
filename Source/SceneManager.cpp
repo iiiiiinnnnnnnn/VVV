@@ -303,14 +303,14 @@ void SceneManager::UpdateLoadProgress()
 	// Scene側へ進捗報告を書かせないため、表示用の進捗値を作る。
 	// 実際の完了判定はloadFinishedで行う。
 	const float target = 0.9f;
-	const float interpolation = min(
+	const float interpolation = std::min(
 		Game::Time::unscaledDeltaTime * 1.5f,
 		1.0f);
 
 	loadProgress +=
 		(target - loadProgress) * interpolation;
 
-	loadProgress = min(loadProgress, target);
+	loadProgress = std::min(loadProgress, target);
 }
 
 std::string SceneManager::GetLastLoadError() const

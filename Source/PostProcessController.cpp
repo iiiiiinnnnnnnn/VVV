@@ -4,9 +4,9 @@
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
 {
-	threatenTimer = max(threatenTimer, duration);
-	threatenDuration = max(threatenDuration, duration);
-	threatenPower = max(threatenPower, power);
+	threatenTimer = std::max(threatenTimer, duration);
+	threatenDuration = std::max(threatenDuration, duration);
+	threatenPower = std::max(threatenPower, power);
 	threatenAttackRate = std::clamp(attackRate, 0.01f, 0.95f);
 	threatenAttackEasing = attackEasing;
 	threatenReleaseEasing = releaseEasing;
@@ -14,9 +14,9 @@ void PostProcessController::RequestThreaten(float duration, float power, float a
 
 void PostProcessController::RequestDamagedVignette(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
 {
-	damagedVigTimer = max(damagedVigTimer, duration);
-	damagedVigDuration = max(damagedVigDuration, duration);
-	damagedVigPower = max(damagedVigPower, power);
+	damagedVigTimer = std::max(damagedVigTimer, duration);
+	damagedVigDuration = std::max(damagedVigDuration, duration);
+	damagedVigPower = std::max(damagedVigPower, power);
 	damagedVigAttackRate = std::clamp(attackRate, 0.01f, 0.95f);
 	damagedVigAttackEasing = attackEasing;
 	damagedVigReleaseEasing = releaseEasing;
@@ -51,23 +51,44 @@ void PostProcessController::Update()
 
 void PostProcessController::DrawGUI()
 {
-	if (ImGui::Button("TEST_IKAKU", ImVec2(-FLT_MIN, 30.0f)))
+	// Threaten
 	{
-		RequestThreaten(
-			5.0f,
-			3.0f,
-			0.15f,
-			Easing::Type::InSine,
-			Easing::Type::OutCubic);
+		static float duration = 5.0f;
+		static float power = 3.0f;
+		static float attackRate = 0.15f;
+		static Easing::Type attackEasing = Easing::Type::InSine;
+		static Easing::Type releaseEasing = Easing::Type::OutCubic;
+		ImGui::PushID("Threaten");
+		ImGui::DragFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
+		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
+		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
+		ImGui::DragInt(("Release Easing: " + std::string(magic_enum::enum_name(releaseEasing))).c_str(), (int*)&releaseEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
+		if (ImGui::Button("TEST_IKAKU", ImVec2(-FLT_MIN, 30.0f)))
+		{
+			RequestThreaten(duration, power, attackRate, attackEasing, releaseEasing);
+		}
+		ImGui::PopID();
 	}
-	if (ImGui::Button("TEST_DAMAGE_VIG", ImVec2(-FLT_MIN, 30.0f)))
+
+	// Damaged Vignette
 	{
-		RequestDamagedVignette(
-			5.0f,
-			1.0f,
-			0.15f,
-			Easing::Type::InSine,
-			Easing::Type::OutCubic);
+		static float duration = 1.0f;
+		static float power = 0.5f;
+		static float attackRate = 0.05f;
+		static Easing::Type attackEasing = Easing::Type::Linear;
+		static Easing::Type releaseEasing = Easing::Type::InOutQuad;
+		ImGui::PushID("Damaged Vignette");
+		ImGui::DragFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
+		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
+		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
+		ImGui::DragInt(("Release Easing: " + std::string(magic_enum::enum_name(releaseEasing))).c_str(), (int*)&releaseEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
+		if (ImGui::Button("TEST_DAMAGE_VIG", ImVec2(-FLT_MIN, 30.0f)))
+		{
+			RequestDamagedVignette(duration, power, attackRate, attackEasing, releaseEasing);
+		}
+		ImGui::PopID();
 	}
 }
 
@@ -94,7 +115,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 		damagedVigReleaseEasing);
 	if (damagedVig > 0.001f)
 	{
-		postProcess.AddRuntimeVignette(damagedVig, {0.7f, 0, 0, 0});
+		postProcess.AddRuntimeVignette(damagedVig, {0.7f, 0, 0, 1});
 	}
 }
 

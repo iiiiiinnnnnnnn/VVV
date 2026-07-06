@@ -189,9 +189,9 @@ void Terrain::BuildTerrainMesh(
 	if (minX > maxX) std::swap(minX, maxX);
 	if (minZ > maxZ) std::swap(minZ, maxZ);
 
-	const int meshSegments = max(
-		gridResolution * max(
-			static_cast<int>(std::ceil(max(
+	const int meshSegments = std::max(
+		gridResolution * std::max(
+			static_cast<int>(std::ceil(std::max(
 				tesselation_constant.edge_factor,
 				tesselation_constant.inner_factor))),
 			1),
@@ -787,10 +787,10 @@ void Terrain::ApplyBrush(float u, float v, float heightSign)
 	const int centerY = static_cast<int>(v * static_cast<float>(TerrainTextureHeight - 1));
 	const int radius = brush_size;
 
-	const int x0 = max(centerX - radius, 0);
-	const int y0 = max(centerY - radius, 0);
-	const int x1 = min(centerX + radius, TerrainTextureWidth - 1);
-	const int y1 = min(centerY + radius, TerrainTextureHeight - 1);
+	const int x0 = std::max(centerX - radius, 0);
+	const int y0 = std::max(centerY - radius, 0);
+	const int x1 = std::min(centerX + radius, TerrainTextureWidth - 1);
+	const int y1 = std::min(centerY + radius, TerrainTextureHeight - 1);
 	const float brushDiameter = static_cast<float>(radius * 2);
 
 	if (brushDiameter <= 0.0f)
@@ -959,8 +959,8 @@ bool Terrain::AddBrushTexture(const std::string& filename)
 		for (int x = 0; x < brush.width; ++x)
 		{
 			const uint8_t* pixel = row + static_cast<size_t>(x) * 4;
-			minimumAlpha = min(minimumAlpha, pixel[3]);
-			maximumAlpha = max(maximumAlpha, pixel[3]);
+			minimumAlpha = std::min(minimumAlpha, pixel[3]);
+			maximumAlpha = std::max(maximumAlpha, pixel[3]);
 		}
 	}
 
@@ -1059,8 +1059,8 @@ float Terrain::SampleBrushMask(float u, float v) const
 
 	const int x0 = static_cast<int>(std::floor(sourceX));
 	const int y0 = static_cast<int>(std::floor(sourceY));
-	const int x1 = min(x0 + 1, brush->width - 1);
-	const int y1 = min(y0 + 1, brush->height - 1);
+	const int x1 = std::min(x0 + 1, brush->width - 1);
+	const int y1 = std::min(y0 + 1, brush->height - 1);
 
 	const float tx = sourceX - static_cast<float>(x0);
 	const float ty = sourceY - static_cast<float>(y0);

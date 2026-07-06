@@ -273,7 +273,7 @@ void CharacterController::SetOwnerAnchorOffsetY(float value)
 {
     Actor* actor = Component::GetOwnerAsActor();
     const Vector3 anchorPosition = actor->transform.position;
-    ownerAnchorOffsetY = max(value, 0.0f);
+    ownerAnchorOffsetY = std::max(value, 0.0f);
     SetPosition(anchorPosition);
 }
 
@@ -311,7 +311,7 @@ float CharacterController::GetFootToControllerCenter() const
 void CharacterController::SetStepOffset(float value)
 {
     if (!controller) return;
-    controller->setStepOffset(max(value, 0.0f));
+    controller->setStepOffset(std::max(value, 0.0f));
 }
 
 void CharacterController::SetSlopeLimitDeg(float value)
@@ -326,6 +326,6 @@ void CharacterController::SetContactOffset(float value)
     if (!controller) return;
     Actor* actor = Component::GetOwnerAsActor();
     const Vector3 anchorPosition = actor->transform.position;
-    controller->setContactOffset(max(value, 0.001f));
+    controller->setContactOffset(std::max(value, 0.001f));
     SetPosition(anchorPosition);
 }

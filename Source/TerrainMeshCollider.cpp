@@ -75,14 +75,14 @@ void TerrainMeshCollider::ClampCollisionArea()
     constexpr float minRange = 0.001f;
     if (collisionArea.maxX - collisionArea.minX < minRange)
     {
-        collisionArea.maxX = min(collisionArea.minX + minRange, 1.0f);
-        collisionArea.minX = max(collisionArea.maxX - minRange, 0.0f);
+        collisionArea.maxX = std::min(collisionArea.minX + minRange, 1.0f);
+        collisionArea.minX = std::max(collisionArea.maxX - minRange, 0.0f);
     }
 
     if (collisionArea.maxZ - collisionArea.minZ < minRange)
     {
-        collisionArea.maxZ = min(collisionArea.minZ + minRange, 1.0f);
-        collisionArea.minZ = max(collisionArea.maxZ - minRange, 0.0f);
+        collisionArea.maxZ = std::min(collisionArea.minZ + minRange, 1.0f);
+        collisionArea.minZ = std::max(collisionArea.maxZ - minRange, 0.0f);
     }
 }
 

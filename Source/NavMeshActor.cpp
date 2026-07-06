@@ -68,12 +68,12 @@ void NavMeshActor::Update()
 void NavMeshActor::RequestBuild(int delayFrames)
 {
 	buildRequested = true;
-	buildDelayFrames = max(delayFrames, 0);
+	buildDelayFrames = std::max(delayFrames, 0);
 }
 
 void NavMeshActor::SetAgentRadius(float value)
 {
-	value = max(value, 0.0f);
+	value = std::max(value, 0.0f);
 	if (fabsf(agentRadius - value) <= 0.001f) return;
 
 	agentRadius = value;
@@ -135,7 +135,7 @@ void NavMeshActor::Build()
 	std::vector<ObstacleBounds> obstacles;
 	CollectObstacles(obstacles);
 
-	const int grid = max(resolution, 2);
+	const int grid = std::max(resolution, 2);
 	const int vertSide = grid + 1;
 	const int nvp = 3;
 	const float terrainSize = terrain->GetTerrainSize();
@@ -156,7 +156,7 @@ void NavMeshActor::Build()
 			const int index = (z * vertSide + x) * 3;
 
 			verts[index + 0] = static_cast<unsigned short>(x);
-			verts[index + 1] = static_cast<unsigned short>(max(0, static_cast<int>((height - navMinY) / cellHeight)));
+			verts[index + 1] = static_cast<unsigned short>(std::max(0, static_cast<int>((height - navMinY) / cellHeight)));
 			verts[index + 2] = static_cast<unsigned short>(z);
 		}
 	}
@@ -250,7 +250,7 @@ void NavMeshActor::Build()
 		{
 			const unsigned short a = poly[edgeIndex];
 			const unsigned short b = poly[(edgeIndex + 1) % nvp];
-			const std::pair<unsigned short, unsigned short> key(min(a, b), max(a, b));
+			const std::pair<unsigned short, unsigned short> key(std::min(a, b), std::max(a, b));
 
 			auto it = edgeRefs.find(key);
 			if (it == edgeRefs.end())
@@ -358,7 +358,7 @@ bool NavMeshActor::FindNextPoint(
 	filter.setIncludeFlags(1);
 	filter.setExcludeFlags(0);
 
-	const float horizontalExtent = max(nearestPolyExtent, agentRadius * 2.0f);
+	const float horizontalExtent = std::max(nearestPolyExtent, agentRadius * 2.0f);
 	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
 	const float startPos[3] = {start.x, start.y, start.z};
 	const float goalPos[3] = {goal.x, goal.y, goal.z};
@@ -419,7 +419,7 @@ void NavMeshActor::Render(const RenderContext& rc)
 		Game::Graphics::Instance().GetPrimitiveRenderer();
 	if (!renderer) return;
 
-	const int step = max(debugDrawStep, 1);
+	const int step = std::max(debugDrawStep, 1);
 	const Color walkableColor(0.0f, 0.8f, 1.0f, 0.65f);
 	const Color blockedColor(1.0f, 0.15f, 0.05f, 0.65f);
 
@@ -438,9 +438,9 @@ void NavMeshActor::Render(const RenderContext& rc)
 void NavMeshActor::DrawGUI()
 {
 	if (ImGui::DragInt("Resolution", &resolution, 1.0f, 8, 256))
-		resolution = max(resolution, 8);
+		resolution = std::max(resolution, 8);
 	if (ImGui::DragInt("Debug Draw Step", &debugDrawStep, 1.0f, 1, 32))
-		debugDrawStep = max(debugDrawStep, 1);
+		debugDrawStep = std::max(debugDrawStep, 1);
 	ImGui::DragFloat("Agent Height", &agentHeight, 0.1f, 0.1f, 10.0f);
 	ImGui::DragFloat("Agent Radius", &agentRadius, 0.1f, 0.0f, 10.0f);
 	ImGui::DragFloat("Agent Climb", &agentClimb, 0.1f, 0.0f, 10.0f);

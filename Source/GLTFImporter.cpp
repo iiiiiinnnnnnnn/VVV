@@ -57,14 +57,14 @@ namespace
 	{
 		std::array<BoneInfluence, 8> influences =
 		{
-			BoneInfluence{vertex.boneIndex.x, max(vertex.boneWeight.x, 0.0f)},
-			BoneInfluence{vertex.boneIndex.y, max(vertex.boneWeight.y, 0.0f)},
-			BoneInfluence{vertex.boneIndex.z, max(vertex.boneWeight.z, 0.0f)},
-			BoneInfluence{vertex.boneIndex.w, max(vertex.boneWeight.w, 0.0f)},
-			BoneInfluence{extraIndex.x, max(extraWeight.x, 0.0f)},
-			BoneInfluence{extraIndex.y, max(extraWeight.y, 0.0f)},
-			BoneInfluence{extraIndex.z, max(extraWeight.z, 0.0f)},
-			BoneInfluence{extraIndex.w, max(extraWeight.w, 0.0f)}
+			BoneInfluence{vertex.boneIndex.x, std::max(vertex.boneWeight.x, 0.0f)},
+			BoneInfluence{vertex.boneIndex.y, std::max(vertex.boneWeight.y, 0.0f)},
+			BoneInfluence{vertex.boneIndex.z, std::max(vertex.boneWeight.z, 0.0f)},
+			BoneInfluence{vertex.boneIndex.w, std::max(vertex.boneWeight.w, 0.0f)},
+			BoneInfluence{extraIndex.x, std::max(extraWeight.x, 0.0f)},
+			BoneInfluence{extraIndex.y, std::max(extraWeight.y, 0.0f)},
+			BoneInfluence{extraIndex.z, std::max(extraWeight.z, 0.0f)},
+			BoneInfluence{extraIndex.w, std::max(extraWeight.w, 0.0f)}
 		};
 
 		std::sort(
@@ -736,8 +736,8 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 			const tinygltf::BufferView& gltfOutputBufferView = gltfModel.bufferViews.at(gltfOutputAccessor.bufferView);
 
 			const float* gltfKeyframeTimes = reinterpret_cast<const float*>(gltfModel.buffers.at(gltfInputBufferView.buffer).data.data() + gltfInputBufferView.byteOffset + gltfInputAccessor.byteOffset);
-			minTime = min(minTime, gltfKeyframeTimes[0]);
-			maxTime = max(animation.secondsLength, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
+			minTime = std::min(minTime, gltfKeyframeTimes[0]);
+			maxTime = std::max(animation.secondsLength, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
 
 			if (gltfAnimationChannel.target_path == "scale")
 			{

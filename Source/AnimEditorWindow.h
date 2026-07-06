@@ -1487,7 +1487,7 @@ private:
             if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, 1.0f, "%.2f"))
             {
                 cb.enterTimePer = range[0];
-                cb.exitTimePer  = max(range[1], range[0] + 0.01f);
+                cb.exitTimePer  = std::max(range[1], range[0] + 0.01f);
             }
 
             ImGui::SameLine();

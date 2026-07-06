@@ -7,7 +7,7 @@
 void HitStop::Request(float duration)
 {
     // ‚·‚Å‚É~‚Ü‚Á‚Ä‚¢‚éê‡‚Í’·‚¢•û‚ğ—Dæ
-    timer = max(timer, duration);
+    timer = std::max(timer, duration);
 
     if (!isPlaying)
     {

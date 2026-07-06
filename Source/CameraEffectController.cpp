@@ -5,8 +5,8 @@
 
 void CameraEffectController::Request(float duration, float intensity)
 {
-    timer         = max(timer, duration);
-    maxIntensity  = max(maxIntensity, intensity);
+    timer         = std::max(timer, duration);
+    maxIntensity  = std::max(maxIntensity, intensity);
     isPlaying        = true;
 }
 
@@ -30,7 +30,7 @@ void CameraEffectController::Update(Camera& camera, const Vector3& eye, const Ve
     }
 
     // 時間経過で強度を減衰
-    float ratio = timer / max(timer + Game::Time::unscaledDeltaTime, 0.0001f);
+    float ratio = timer / std::max(timer + Game::Time::unscaledDeltaTime, 0.0001f);
     float intensity = maxIntensity * ratio;
 
     // ランダムオフセット（右・上方向のみ。前後はほぼ気にならないので省略）

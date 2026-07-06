@@ -47,8 +47,8 @@ void BoneCapsuleCollider::DrawGUI()
     bool changed = false;
     changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
     changed |= ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f);
-    radius = max(radius, 0.01f);
-    height = max(height, 0.01f);
+    radius = std::max(radius, 0.01f);
+    height = std::max(height, 0.01f);
     if (changed)
     {
         InitializeShape();

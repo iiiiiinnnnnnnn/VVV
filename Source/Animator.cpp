@@ -240,7 +240,7 @@ void Animator::Update()
 
     if (animationMode == AnimationMode::Dynamic)
     {
-        dynamicClipWatchTimer += max(
+        dynamicClipWatchTimer += std::max(
             Game::Time::unscaledDeltaTime,
             0.0f);
 

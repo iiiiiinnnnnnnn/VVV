@@ -191,7 +191,7 @@ bool DynamicAnimationSerializer::Load(
 	try
 	{
 		loaded.name = root.value("name", std::string("Dynamic Animation"));
-		loaded.length = max(root.value("length", 1.0f), 0.0f);
+		loaded.length = std::max(root.value("length", 1.0f), 0.0f);
 
 		if (root.contains("tracks"))
 		{

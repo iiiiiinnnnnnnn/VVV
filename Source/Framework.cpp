@@ -72,7 +72,7 @@ void Framework::Update(float elapsedTime)
 		SHOW_CONSOLE();
 	}
 
-	elapsedTime = min(elapsedTime, 1.0f / 60.0f);
+	elapsedTime = std::min(elapsedTime, 1.0f / 60.0f);
 
 	// 時間更新処理
 	Game::Time::time += elapsedTime;

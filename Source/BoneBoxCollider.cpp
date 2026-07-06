@@ -39,9 +39,9 @@ void BoneBoxCollider::DrawGUI()
 {
     bool changed = false;
     changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
-    size.x = max(size.x, 0.01f);
-    size.y = max(size.y, 0.01f);
-    size.z = max(size.z, 0.01f);
+    size.x = std::max(size.x, 0.01f);
+    size.y = std::max(size.y, 0.01f);
+    size.z = std::max(size.z, 0.01f);
     if (changed)
     {
         InitializeShape();

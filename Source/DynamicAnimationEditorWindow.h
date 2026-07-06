@@ -94,7 +94,7 @@ private:
 			9999.0f,
 			"%.3f sec"))
 		{
-			clip.length = max(clip.length, 0.001f);
+			clip.length = std::max(clip.length, 0.001f);
 			ClampAllKeyTimes();
 		}
 
@@ -255,7 +255,7 @@ private:
 			DynamicAnimationKey key;
 			key.time = track.keys.empty()
 				? 0.0f
-				: min(clip.length, track.keys.back().time + 0.1f);
+				: std::min(clip.length, track.keys.back().time + 0.1f);
 			key.value = track.keys.empty()
 				? MakeDefaultDynamicValue(track.valueType)
 				: track.keys.back().value;

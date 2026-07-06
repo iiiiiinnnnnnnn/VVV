@@ -524,8 +524,8 @@ void Player::ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition)
 	{
 		const float footOffsetY = footIK_L->GetGroundOffsetY();
 
-		targetOffsetY = min(targetOffsetY, footOffsetY);
-		highestFootOffsetY = max(highestFootOffsetY, footOffsetY);
+		targetOffsetY = std::min(targetOffsetY, footOffsetY);
+		highestFootOffsetY = std::max(highestFootOffsetY, footOffsetY);
 	}
 
 	if (footIK_R &&
@@ -534,13 +534,13 @@ void Player::ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition)
 	{
 		const float footOffsetY = footIK_R->GetGroundOffsetY();
 
-		targetOffsetY = min(targetOffsetY, footOffsetY);
-		highestFootOffsetY = max(highestFootOffsetY, footOffsetY);
+		targetOffsetY = std::min(targetOffsetY, footOffsetY);
+		highestFootOffsetY = std::max(highestFootOffsetY, footOffsetY);
 	}
 
 	if (highestFootOffsetY > 0.0f)
 	{
-		targetOffsetY = min(targetOffsetY, -highestFootOffsetY);
+		targetOffsetY = std::min(targetOffsetY, -highestFootOffsetY);
 	}
 
 	// 腰下げ量はまず弱めに制限する
@@ -582,13 +582,15 @@ void Player::OnDrawGUI()
 
 float Player::GetOwnerAnchorOffsetY() const
 {
-	return max(0.0f, modelVisualOffsetY - modelFootLocalY);
+	return std::max(0.0f, modelVisualOffsetY - modelFootLocalY);
 }
 
 void Player::OnDamaged(const DamageData& damageData)
 {
 	CameraEffectController::Request(0.13f, 0.07f);
-	PostProcessController::Instance().RequestDamagedVignette(3.0f * (1 - (life / maxLife)));
+	float lifeIntensity = (1 - (life / maxLife)) * 0.5f;
+	PostProcessController::Instance().RequestDamagedVignette(
+		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15, Easing::Type::InSine, Easing::Type::OutCubic);
 
 	if (damageData.hitPosition.has_value())
 	{
