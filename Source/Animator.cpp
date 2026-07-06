@@ -1952,6 +1952,3 @@ void Animator::Load(const std::string& path)
             0.0f);
     }
 }
-
-
-
