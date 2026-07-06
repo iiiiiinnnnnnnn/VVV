@@ -37,7 +37,7 @@ private:
 	int waistNodeIndex = -1;
 	std::vector<FootIK*> footIKs;
 	std::vector<std::vector<std::string>> footTargetNames;
-	float modelVisualOffsetY = 0.3f;
+	float modelVisualOffsetY = -0.06f;
 	float rayUp = 1.0f;
 	float rayDown = 5.0f;
 	float contactOffset = 0.5f;

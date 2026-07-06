@@ -134,7 +134,7 @@ void AracoreQueen::UpdateChase()
 	Actor* player = Actor::FindActorByTag("Player");
     if (!player)
     {
-        chasingPlayer = false;
+        chasingPlayer = ChaseType::No;
         navMeshAgent->Stop();
         return;
     }
@@ -142,14 +142,33 @@ void AracoreQueen::UpdateChase()
     const float distance = Vector3::Distance(player->transform.position, transform.position);
     if (distance < 15.0f)
     {
-        chasingPlayer = false;
+        if (chaisedTimer > 0.0f)
+        {
+			chaisedTimer -= Game::Time::deltaTime;
+            if(chaisedTimer <= 0.0f)
+            {
+                chasingPlayer = ChaseType::No;
+                chaisedTimer = 0.0f;
+			}
+        }
     }
     else
     {
-        chasingPlayer = true;
+        if (distance > 20.0f)
+        {
+            chasingPlayer = ChaseType::Run;
+            navMeshAgent->SetSpeed(6.0f);
+            chaisedTimer = 3.0f;
+        }
+        else
+        {
+            chasingPlayer = ChaseType::Walk;
+            navMeshAgent->SetSpeed(3.0f);
+            chaisedTimer = 3.0f;
+        }
     }
 
-    if (chasingPlayer)
+    if (chasingPlayer != ChaseType::No)
     {
         navMeshAgent->MoveToTarget(player);
     }

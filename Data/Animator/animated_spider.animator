@@ -140,7 +140,7 @@
                                 {
                                     "mode": 0,
                                     "paramName": "speed",
-                                    "threshold": 0.0010000000474974513
+                                    "threshold": 1.0
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -160,8 +160,8 @@
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
-                    "editorPosX": 148.0,
-                    "editorPosY": 298.0,
+                    "editorPosX": 180.0,
+                    "editorPosY": 307.0,
                     "footIKRanges": [
                         {
                             "endRatio": 0.20000000298023224,
@@ -318,8 +318,8 @@
                             "conditions": [
                                 {
                                     "mode": 0,
-                                    "paramName": "Speed",
-                                    "threshold": 0.75
+                                    "paramName": "speed",
+                                    "threshold": 4.0
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -581,15 +581,15 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "run",
-                    "speed": 0.8500000238418579,
+                    "speed": 0.5,
                     "transitions": [
                         {
                             "canInterrupt": false,
                             "conditions": [
                                 {
-                                    "mode": 0,
+                                    "mode": 1,
                                     "paramName": "speed",
-                                    "threshold": 0.05000000074505806
+                                    "threshold": 4.0
                                 }
                             ],
                             "excludedFromStateIndices": [],

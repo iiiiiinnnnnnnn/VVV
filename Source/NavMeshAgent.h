@@ -24,6 +24,7 @@ public:
 	void MoveToTarget(Actor* targetActor);
 	void Stop();
 
+	void SetSpeed(float value) { speed = value; }
 	float GetSpeed() const { return speed; }
 	float GetMoveAmount() const { return currentSpeed; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }

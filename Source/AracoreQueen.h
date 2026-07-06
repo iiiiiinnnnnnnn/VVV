@@ -62,7 +62,11 @@ private:
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
 	DamageHoleComponent* damageHoleComponent = nullptr;
-	bool chasingPlayer = false;
+	enum class ChaseType
+	{
+		No, Walk, Run
+	} chasingPlayer = ChaseType::No;
+	float chaisedTimer = 0.0f;
 	float navAgentRadius = 2.17f;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
