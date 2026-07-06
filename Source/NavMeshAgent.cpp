@@ -73,6 +73,7 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 
 void NavMeshAgent::Stop()
 {
+	currentSpeed = 0.0f;
 	lastMoveDelta = Vector3::Zero;
 	pathFailTimer = 0.0f;
 	hasLastNextPoint = false;
@@ -106,6 +107,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	if (flatToTarget.LengthSquared() <= stoppingDistance * stoppingDistance)
 	{
 		statusMessage = "Arrived.";
+		currentSpeed = 0.0f;
 		return;
 	}
 
@@ -113,6 +115,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	if (!navMeshActor)
 	{
 		statusMessage = "NavMeshActor not found.";
+		currentSpeed = 0.0f;
 		return;
 	}
 
@@ -123,6 +126,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 		if (!useLastValidPathOnFail || !hasLastNextPoint || pathFailTimer > pathFailGraceTime)
 		{
 			statusMessage = "Path not found.";
+			currentSpeed = 0.0f;
 			return;
 		}
 
@@ -151,6 +155,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	}
 
 	direction.Normalize();
+	currentSpeed = speed;
 	lastMoveDelta = direction * speed * Game::Time::deltaTime;
 	characterController->Move(lastMoveDelta);
 

@@ -39,10 +39,10 @@ private:
 	std::vector<std::vector<std::string>> footTargetNames;
 	float modelVisualOffsetY = 0.3f;
 	float rayUp = 1.0f;
-	float rayDown = 3.0f;
+	float rayDown = 5.0f;
 	float contactOffset = 0.5f;
 	float maxUpCorrection = 2.0f;
-	float maxDownCorrection = 2.0f;
+	float maxDownCorrection = 5.0f;
 	bool showFootDebug = true;
 };
 

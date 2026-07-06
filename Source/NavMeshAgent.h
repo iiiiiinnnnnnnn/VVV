@@ -25,7 +25,7 @@ public:
 	void Stop();
 
 	float GetSpeed() const { return speed; }
-	float GetMoveAmount() const { return lastMoveDelta.Length(); }
+	float GetMoveAmount() const { return currentSpeed; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
 
 private:
@@ -42,11 +42,12 @@ private:
 	bool useLastValidPathOnFail = true;
 	bool hasLastNextPoint = false;
 	Vector3 lastNextPoint = Vector3::Zero;
-	Vector3 lastMoveDelta = Vector3::Zero;
-	float speed = 3.5f;
 	float stoppingDistance = 1.5f;
 	float repathDistance = 1.0f;
 	float pathFailGraceTime = 0.5f;
 	float pathFailTimer = 0.0f;
 	float turnSpeed = 8.0f;
+	Vector3 lastMoveDelta = Vector3::Zero;
+	float currentSpeed = 0.0f;
+	float speed = 3.5f;
 };
