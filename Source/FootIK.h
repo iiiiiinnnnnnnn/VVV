@@ -35,6 +35,10 @@ public:
 		float contactOffset = 0.01f);
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
+	void SetPoleLiftY(float liftY) { poleLiftY = liftY; }
+	void SetRootRotationOffset(const Quaternion& offset) { rootRotationOffset = offset; }
+	void SetLiftOnly(bool value) { liftOnly = value; }
+	void SetAlwaysRenderDebug(bool value) { alwaysRenderDebug = value; }
 
 	void SetTarget(const Vector3& targetPosition);
 	void SetTargetFromContact(
@@ -81,6 +85,8 @@ private:
 
 	Vector3 rayStart, rayEnd;
 	bool hasGroundContact = false;
+	bool liftOnly = false;
+	bool alwaysRenderDebug = false;
 	float groundOffsetY = 0.0f;
 	Vector3 smoothedTargetPosition = Vector3::Zero;
 	bool hasSmoothedTarget = false;
@@ -88,6 +94,8 @@ private:
 	float targetSmoothSpeed = 24.0f;
 	float groundOffsetSmoothSpeed = 18.0f;
 	float ikBlendSpeed = 20.0f;
+	float poleLiftY = 0.35f;
+	Quaternion rootRotationOffset = Quaternion::Identity;
 	int lostGroundFrameCount = 0;
 	int maxLostGroundFrames = 10;
 
@@ -163,4 +171,12 @@ private:
 		bone.rotation.Normalize();
 	}
 };
+
+
+
+
+
+
+
+
 

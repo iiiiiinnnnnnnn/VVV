@@ -283,6 +283,9 @@ namespace Game
 		ID3D11ShaderResourceView* srvs[] = {colorMap, colorMap2};
 		const UINT srvCount = colorMap2 ? 2 : 1;
 
+		dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
+		dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
+		dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
 		dc->IASetInputLayout(fullscreenInputLayout.Get());
 		dc->IASetVertexBuffers(0, _countof(vertexBuffers), vertexBuffers, &stride, &offset);
 		dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

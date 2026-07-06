@@ -5,7 +5,6 @@
 #include "BoneFollower.h"
 #include "BoxCollider.h"
 #include "CharacterController.h"
-#include "FootIK.h"
 #include "Model.h"
 #include "ModelRenderComponent.h"
 #include "PhysicsComponent.h"
@@ -20,6 +19,7 @@
 #include "CameraEffectController.h"
 #include "Easing.h"
 #include "HitStop.h"
+#include "SpiderFootIK.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
 {
@@ -76,26 +76,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
 
         // ë´ê⁄ínï‚ê≥
-        #if 1
-        /*AracoreFootGrounder* footGrounder = AddComponent<AracoreFootGrounder>(model.get());
-        footGrounder->AddLeg("Box09", "Box11");
-        footGrounder->AddLeg("Box20", "Box19");
-        footGrounder->AddLeg("Box25", "Box23");
-        footGrounder->AddLeg("Box26", "Box24");
-        footGrounder->AddLeg("Box31", "Box29");
-        footGrounder->AddLeg("Box35", "Box36");
-        footGrounder->AddLeg("Box37", "Box34");
-        footGrounder->AddLeg("Box38", "Box30");*/
-        #endif
-
-       /* footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box09", "Box10", "Box11"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box20", "Box18", "Box19"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box25", "Box22", "Box23"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box26", "Box21", "Box24"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box31", "Box28", "Box29"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box35", "Box32", "Box36"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box37", "Box33", "Box34"));
-        footIKs.push_back(AddComponent<FootIK>(Layers::Get("Foot"), model.get(), "Box38", "Box27", "Box30"));*/
+        AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get());
 
         // ë´ÇÃìñÇΩÇËîªíË
         #if 0
@@ -141,26 +122,6 @@ void AracoreQueen::OnUpdate()
     UpdateChase();
 
     anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
-}
-
-void AracoreQueen::OnLateUpdate()
-{
-    if (!model) return;
-
-    model->UpdateTransform(transform.matrix);
-
-    for (auto& footIK : footIKs)
-    {
-        if (!footIK || !footIK->IsIKEnabled()) continue;
-
-        footIK->UpdateGroundTarget(
-            1.0f,
-            3.0f,
-            0.01f
-        );
-
-        footIK->SolveIK(transform.matrix);
-    }
 }
 
 void AracoreQueen::UpdateChase()
@@ -274,7 +235,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 
     // ìñÇΩÇËîªíË
     collider = AddComponent<BoxCollider>(
-        Layers::Get("EnemyAtk"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
+        Layers::Get("EnemyAccessory"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
 
     // Box02Ç…í«è]
     Transform offset{};
@@ -382,4 +343,3 @@ void AracoreQueenMachine::OnDead()
     printf("AracoreQueenMachine Dead!\n");
     Destroy(2);
 }
-

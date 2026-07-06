@@ -12,7 +12,6 @@ class Actor;
 class ActorManager;
 class Animator;
 class DamageHoleComponent;
-class FootIK;
 class Model;
 class ModelRenderComponent;
 class PhysicsComponent;
@@ -41,7 +40,6 @@ public:
 	~AracoreQueen() = default;
 	void OnRegistered(ActorManager* actorManager) override;
 	void OnUpdate() override;
-	void OnLateUpdate() override;
 	void OnDrawGUI() override;
 
 	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
@@ -66,7 +64,6 @@ private:
 	DamageHoleComponent* damageHoleComponent = nullptr;
 	bool chasingPlayer = false;
 	float navAgentRadius = 2.17f;
-	std::vector<FootIK*> footIKs;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 };

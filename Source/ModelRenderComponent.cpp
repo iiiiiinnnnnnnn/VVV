@@ -52,6 +52,51 @@ void ModelRenderComponent::SetShaderParamForAllMaterials(const ShaderParamList& 
 
 void ModelRenderComponent::DrawGUI()
 {
+    auto drawVector3 = [](const char* label, const Vector3& value)
+    {
+        ImGui::Text("%s: %.3f, %.3f, %.3f", label, value.x, value.y, value.z);
+    };
+
+    auto drawQuaternion = [](const char* label, const Quaternion& value)
+    {
+        ImGui::Text("%s: %.3f, %.3f, %.3f, %.3f", label, value.x, value.y, value.z, value.w);
+    };
+
+    auto drawMatrixTransform = [&](const char* label, const Matrix& matrix)
+    {
+        Vector3 scale;
+        Vector3 position;
+        Quaternion rotation;
+        Matrix work = matrix;
+        work.Decompose(scale, rotation, position);
+
+        ImGui::SeparatorText(label);
+        drawVector3("Position", position);
+        drawQuaternion("Rotation", rotation);
+        drawVector3("Scale", scale);
+    };
+
+    auto drawNodeTooltip = [&](Model::Node* node, int nodeIndex, const std::string& meshIndices)
+    {
+        ImGui::BeginTooltip();
+
+        ImGui::Text("Node[%d] %s", nodeIndex, node->name.c_str());
+        ImGui::Text("Parent: %d", node->parentIndex);
+        ImGui::Text("Children: %zu", node->children.size());
+        ImGui::Text("Meshes: %s", meshIndices.empty() ? "None" : meshIndices.c_str());
+
+        ImGui::SeparatorText("Local Node");
+        drawVector3("Position", node->position);
+        drawQuaternion("Rotation", node->rotation);
+        drawVector3("Scale", node->scale);
+
+        drawMatrixTransform("Local Matrix", node->localTransform);
+        drawMatrixTransform("Global Matrix", node->globalTransform);
+        drawMatrixTransform("World Matrix", node->worldTransform);
+
+        ImGui::EndTooltip();
+    };
+
     // ノードツリーを再帰的に描画する関数
     std::function<void(Model::Node*)> drawNodeTree = [&](Model::Node* node)
     {
@@ -99,6 +144,11 @@ void ModelRenderComponent::DrawGUI()
             node->position.x, node->position.y, node->position.z);
 
         ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered() || ImGui::IsItemFocused())
+        {
+            drawNodeTooltip(node, nodeIndex, meshIndices);
+        }
 
         if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {

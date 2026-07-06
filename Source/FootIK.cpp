@@ -72,7 +72,7 @@ bool FootIK::UpdateGroundTarget(
 		direction,
 		distance,
 		hit,
-		Layers::Everything(),
+		layerId,
 		GetOwnerAsActor()))
 	{
 		KeepPreviousGroundTarget();
@@ -86,18 +86,26 @@ bool FootIK::UpdateGroundTarget(
 		return false;
 	}
 
+	Vector3 targetContactPosition =
+		hit.position + hit.normal * contactOffset;
+	const float targetGroundOffsetY =
+		targetContactPosition.y - currentContactPosition.y;
+
+	if (liftOnly && targetGroundOffsetY <= 0.001f)
+	{
+		ResetGroundState();
+		return false;
+	}
+
 	SetTargetFromContact(
 		hit.position,
 		hit.normal,
 		contactOffset
 	);
 
-	Vector3 targetContactPosition =
-		hit.position + hit.normal * contactOffset;
-
 	SetSmoothedTarget(
 		chain.targetPosition,
-		targetContactPosition.y - currentContactPosition.y);
+		targetGroundOffsetY);
 
 	hasGroundContact = true;
 	lostGroundFrameCount = 0;
@@ -106,7 +114,7 @@ bool FootIK::UpdateGroundTarget(
 
 void FootIK::Render(const RenderContext& rc)
 {
-	if (!showDebug) return;
+	if (!showDebug && !alwaysRenderDebug) return;
 
 	if (!chain.enabled) return;
 	if (chain.root == nullptr) return;
@@ -135,8 +143,6 @@ void FootIK::Render(const RenderContext& rc)
 			rayStart,
 			rayEnd,
 			{1, 0, 0, 1}, {1, 0, 0, 1});
-		Game::Graphics::Instance().GetPrimitiveRenderer()->Render(
-			rc.deviceContext, rc.camera->GetView(), rc.camera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	}
 }
 
@@ -187,7 +193,7 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 
 	poleDirection.Normalize();
 
-	chain.polePosition = midPosition + poleDirection * poleDistance + Vector3::Up * 0.35f;
+	chain.polePosition = midPosition + poleDirection * poleDistance + Vector3::Up * poleLiftY;
 	chain.targetPosition = tipPosition;
 	chain.poleInitialized = true;
 	SyncPoleLocalPosition();
@@ -480,4 +486,3 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	UpdateWorldTransforms(rootBone, modelWorldTransform);
 }
-

@@ -15,7 +15,7 @@
 #include "BoneSphereCollider.h"
 #include "TrailRenderComponent.h"
 #include "SpringBone.h"
-#include "FootIK.h"
+#include "HumanoidFootIK.h"
 
 class ThirdPersonCameraController;
 
@@ -59,13 +59,9 @@ public:
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 
 private:
-    void ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition);
-    void UpdateModelVisualOffsetFromPelvis();
-    Vector3 GetPelvisWorldPosition() const;
     Matrix GetModelWorldTransform() const;
     bool RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const;
     void SnapToGroundIfNeeded();
-    float GetOwnerAnchorOffsetY() const;
     void SyncWeaponAttachNodes();
 
 protected:
@@ -80,13 +76,7 @@ protected:
     BoneSphereCollider* footCollider = nullptr;
     TrailRenderComponent* trail = nullptr;
     SpringBone* hairSpringBone = nullptr;
-	FootIK* footIK_R = nullptr;
-	FootIK* footIK_L = nullptr;
-    int hipNodeIndex = -1;
-
-    float visualHipOffsetY = 0.0f;
-    float modelVisualOffsetY = 0.0f;
-    float modelFootLocalY = 0.0f;
+	HumanoidFootIK* footIK = nullptr;
     float groundSnapUpDistance = 0.2f;
     float groundSnapDownDistance = 0.5f;
 

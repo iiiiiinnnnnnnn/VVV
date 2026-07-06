@@ -330,6 +330,9 @@
     <ClCompile Include="Source\HumanoidFootIK.cpp">
       <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
     </ClCompile>
+    <ClCompile Include="Source\SpiderFootIK.cpp">
+      <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Entity.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
     </ClCompile>
@@ -624,6 +627,9 @@
       <Filter>ソースファイル\オブジェクト\コンポーネント\データ管理</Filter>
     </ClInclude>
     <ClInclude Include="Source\HumanoidFootIK.h">
+      <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpiderFootIK.h">
       <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Player.h">

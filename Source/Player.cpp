@@ -180,11 +180,15 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	);
 
 	// FootIK
-	footIK_R = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_r", "calf_r", "foot_r", "ball_r");
-	footIK_L = AddComponent<FootIK>(Layers::Get("Foot"),model.get(), "thigh_l", "calf_l", "foot_l", "ball_l");
-	hipNodeIndex = model->GetNodeIndex("pelvis");
+	footIK = AddComponent<HumanoidFootIK>(
+		Layers::Get("Foot"),
+		model.get(),
+		anim,
+		"Idle",
+		"pelvis",
+		"thigh_l", "calf_l", "foot_l", "ball_l",
+		"thigh_r", "calf_r", "foot_r", "ball_r");
 	model->UpdateTransform(Matrix::Identity);
-	//UpdateModelVisualOffsetFromPelvis();
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -345,63 +349,6 @@ void Player::OnLateUpdate()
 
 	model->UpdateTransform(GetModelWorldTransform());
 
-	Vector3 baseHipLocalPosition = Vector3::Zero;
-	if (hipNodeIndex >= 0)
-	{
-		baseHipLocalPosition = model->GetNodes()[hipNodeIndex].position;
-	}
-
-	const std::string currentStateName =
-		anim ? anim->GetCurrentStateName(0) : "";
-
-	const bool useFootIK =
-		currentStateName == "Idle";
-
-	if (useFootIK)
-	{
-		if (footIK_L && footIK_L->IsIKEnabled())
-		{
-			footIK_L->UpdateGroundTarget(
-				0.2f,
-				0.5f,
-				0.01f
-			);
-		}
-
-		if (footIK_R && footIK_R->IsIKEnabled())
-		{
-			footIK_R->UpdateGroundTarget(
-				0.2f,
-				0.5f,
-				0.01f
-			);
-		}
-
-		ApplyFootIKHipOffset(baseHipLocalPosition);
-
-		if (footIK_L && footIK_L->IsIKEnabled())
-		{
-			footIK_L->SolveIK(model->GetWorldTransform());
-		}
-
-		if (footIK_R && footIK_R->IsIKEnabled())
-		{
-			footIK_R->SolveIK(model->GetWorldTransform());
-		}
-	}
-	else
-	{
-		// Idle以外ではFootIKの腰補正を戻す
-		visualHipOffsetY = 0.0f;
-
-		if (hipNodeIndex >= 0)
-		{
-			model->GetNodes()[hipNodeIndex].position = baseHipLocalPosition;
-		}
-
-		model->UpdateTransform(GetModelWorldTransform());
-	}
-
 	// 最終姿勢が決まった後に、武器ノードを同期する
 	SyncWeaponAttachNodes();
 
@@ -432,37 +379,6 @@ void Player::SyncWeaponAttachNodes()
 Matrix Player::GetModelWorldTransform() const
 {
 	return transform.matrix;
-}
-
-void Player::UpdateModelVisualOffsetFromPelvis()
-{
-	if (hipNodeIndex < 0) return;
-
-	Vector3 scale;
-	Vector3 position;
-	Quaternion rotation;
-	model->GetNodes()[hipNodeIndex].globalTransform.Decompose(
-		scale,
-		rotation,
-		position);
-
-	if (position.y > 0.0f)
-		modelVisualOffsetY = position.y;
-}
-
-Vector3 Player::GetPelvisWorldPosition() const
-{
-	if (hipNodeIndex < 0) return transform.position;
-
-	Vector3 scale;
-	Vector3 position;
-	Quaternion rotation;
-	model->GetNodes()[hipNodeIndex].worldTransform.Decompose(
-		scale,
-		rotation,
-		position);
-
-	return position;
 }
 
 bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
@@ -513,76 +429,19 @@ void Player::SnapToGroundIfNeeded()
 	verticalVelocity = 0.0f;
 }
 
-void Player::ApplyFootIKHipOffset(const Vector3& baseHipLocalPosition)
-{
-	float targetOffsetY = 0.0f;
-	float highestFootOffsetY = 0.0f;
-
-	if (footIK_L &&
-		footIK_L->IsIKEnabled() &&
-		footIK_L->HasGroundContact())
-	{
-		const float footOffsetY = footIK_L->GetGroundOffsetY();
-
-		targetOffsetY = std::min(targetOffsetY, footOffsetY);
-		highestFootOffsetY = std::max(highestFootOffsetY, footOffsetY);
-	}
-
-	if (footIK_R &&
-		footIK_R->IsIKEnabled() &&
-		footIK_R->HasGroundContact())
-	{
-		const float footOffsetY = footIK_R->GetGroundOffsetY();
-
-		targetOffsetY = std::min(targetOffsetY, footOffsetY);
-		highestFootOffsetY = std::max(highestFootOffsetY, footOffsetY);
-	}
-
-	if (highestFootOffsetY > 0.0f)
-	{
-		targetOffsetY = std::min(targetOffsetY, -highestFootOffsetY);
-	}
-
-	// 腰下げ量はまず弱めに制限する
-	targetOffsetY = std::clamp(targetOffsetY, -0.2f, 0.0f);
-
-	const float t =
-		1.0f - expf(-14.0f * Game::Time::deltaTime);
-
-	visualHipOffsetY +=
-		(targetOffsetY - visualHipOffsetY) * t;
-
-	if (hipNodeIndex >= 0)
-	{
-		model->GetNodes()[hipNodeIndex].position =
-			baseHipLocalPosition + Vector3(0.0f, visualHipOffsetY, 0.0f);
-	}
-
-	model->UpdateTransform(GetModelWorldTransform());
-}
-
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
 
 	bool changed = false;
 
-	changed |= ImGui::DragFloat("visualHipOffsetY", &visualHipOffsetY, 0.01f, -1.0f, 1.0f);
-	changed |= ImGui::DragFloat("modelVisualOffsetY", &modelVisualOffsetY, 0.01f, -1.0f, 2.0f);
-	changed |= ImGui::DragFloat("modelFootLocalY", &modelFootLocalY, 0.01f, -1.0f, 1.0f);
 	changed |= ImGui::DragFloat("groundSnapUpDistance", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
 	changed |= ImGui::DragFloat("groundSnapDownDistance", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
 
 	if (changed && cc)
 	{
-		cc->SetOwnerAnchorOffsetY(GetOwnerAnchorOffsetY());
 		cc->SetPosition(transform.position);
 	}
-}
-
-float Player::GetOwnerAnchorOffsetY() const
-{
-	return std::max(0.0f, modelVisualOffsetY - modelFootLocalY);
 }
 
 void Player::OnDamaged(const DamageData& damageData)
@@ -590,7 +449,7 @@ void Player::OnDamaged(const DamageData& damageData)
 	CameraEffectController::Request(0.13f, 0.07f);
 	float lifeIntensity = (1 - (life / maxLife)) * 0.5f;
 	PostProcessController::Instance().RequestDamagedVignette(
-		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15, Easing::Type::InSine, Easing::Type::OutCubic);
+		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15f, Easing::Type::InSine, Easing::Type::OutCubic);
 
 	if (damageData.hitPosition.has_value())
 	{
