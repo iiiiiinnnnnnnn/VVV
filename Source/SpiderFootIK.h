@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "Common.h"
@@ -9,10 +10,12 @@
 #include "FootIK.h"
 #include "Model.h"
 
+class Animator;
+
 class SpiderFootIK : public Component
 {
 public:
-	SpiderFootIK(Object* owner, LayerId layerId, Model* model);
+	SpiderFootIK(Object* owner, LayerId layerId, Model* model, Animator* animator = nullptr);
 	~SpiderFootIK() override = default;
 
 	void LateUpdate() override;
@@ -25,17 +28,22 @@ public:
 
 private:
 	void UpdateModelTransform();
-	void ApplyRootRotationOffset();
 	void ApplyFootSettings();
+	float GetFootIKWeight(int footIndex) const;
 
 	Model* model = nullptr;
+	Animator* animator = nullptr;
 	LayerId layerId = 0;
 	int waistNodeIndex = -1;
 	std::vector<FootIK*> footIKs;
-	float modelVisualOffsetY = -0.2f;
+	std::vector<std::vector<std::string>> footTargetNames;
+	float modelVisualOffsetY = 0.0f;
 	float rayUp = 1.0f;
 	float rayDown = 3.0f;
-	float contactOffset = 0.01f;
-	float rootCorrectionXDeg = -90.0f;
+	float contactOffset = 0.5f;
+	float maxUpCorrection = 2.0f;
+	float maxDownCorrection = 2.0f;
 	bool showFootDebug = true;
 };
+
+

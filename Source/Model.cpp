@@ -1,4 +1,4 @@
-ï»¿// Model.cpp
+// Model.cpp
 
 #include "Model.h"
 #include "DebugUtil.h"
@@ -10,8 +10,9 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp>
+#include <algorithm>
 
-#if 1 // ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºé–‰ã˜ã‚‹ç”¨
+#if 1 // ƒVƒŠƒAƒ‰ƒCƒY•Â‚¶‚é—p
 namespace DirectX
 {
 	template<class Archive>
@@ -171,6 +172,19 @@ void Model::QuaternionKeyframe::serialize(Archive& archive)
 }
 
 template<class Archive>
+void Model::FootIKRange::serialize(Archive& archive)
+{
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(footIndex),
+		CEREAL_NVP(startRatio),
+		CEREAL_NVP(endRatio),
+		CEREAL_NVP(weight),
+		CEREAL_NVP(fadeInRatio),
+		CEREAL_NVP(fadeOutRatio)
+	);
+}
+template<class Archive>
 void Model::NodeAnim::serialize(Archive& archive)
 {
 	archive(
@@ -186,18 +200,28 @@ void Model::Animation::serialize(Archive& archive)
 	archive(
 		CEREAL_NVP(name),
 		CEREAL_NVP(secondsLength),
-		CEREAL_NVP(nodeAnims)
+		CEREAL_NVP(nodeAnims),
+		CEREAL_NVP(footIKRanges)
 	);
 }
 #endif
 
 namespace
 {
-	constexpr uint64_t ModelCacheVersion = 2;
+	constexpr uint64_t ModelCacheVersion = 3;
 
 	uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite)
 	{
 		return sourceLastWrite ^ ModelCacheVersion;
+	}
+
+	bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp)
+	{
+		std::ifstream stream(filepath, std::ios::binary);
+		if (!stream.is_open()) return false;
+
+		stream.read(reinterpret_cast<char*>(&stamp), sizeof(stamp));
+		return stream.good();
 	}
 }
 
@@ -262,7 +286,7 @@ HRESULT Model::SaveScratchImageToDDSBytes(
 	DirectX::ScratchImage rgbaImage;
 	HRESULT hr = S_OK;
 
-	// DDSã¨ã—ã¦æ‰±ã„ã‚„ã™ã„RGBA8ã¸å¤‰æ›ã™ã‚‹
+	// DDS‚Æ‚µ‚Äˆµ‚¢‚â‚·‚¢RGBA8‚Ö•ÏŠ·‚·‚é
 	if (sourceMetadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
 	{
 		hr = DirectX::Convert(
@@ -321,8 +345,8 @@ HRESULT Model::SaveScratchImageToDDSBytes(
 
 	const DirectX::ScratchImage* saveSource = mipSource;
 
-	// ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ç”Ÿæˆ
-	// è»½ã•æœ€å„ªå…ˆãªã‚‰ã“ã“ã‚‚æ¶ˆã—ã¦ã„ã„
+	// ƒ~ƒbƒvƒ}ƒbƒv¶¬
+	// Œy‚³Å—Dæ‚È‚ç‚±‚±‚àÁ‚µ‚Ä‚¢‚¢
 	DirectX::ScratchImage mipImage;
 	hr = DirectX::GenerateMipMaps(
 		mipSource->GetImages(),
@@ -338,7 +362,7 @@ HRESULT Model::SaveScratchImageToDDSBytes(
 		saveSource = &mipImage;
 	}
 
-	// åœ§ç¸®ã›ãšDDSãƒ¡ãƒ¢ãƒªã¸ä¿å­˜
+	// ˆ³k‚¹‚¸DDSƒƒ‚ƒŠ‚Ö•Û‘¶
 	DirectX::Blob blob;
 	hr = DirectX::SaveToDDSMemory(
 		saveSource->GetImages(),
@@ -372,7 +396,7 @@ HRESULT Model::ConvertTextureFileToDDSBytes(
 
 	std::wstring extension = ToLowerWString(texturePath.extension().wstring());
 
-	// å…ƒãŒDDSãªã‚‰å†åœ§ç¸®ã›ãšã€ãã®ã¾ã¾åŸ‹ã‚è¾¼ã‚€
+	// Œ³‚ªDDS‚È‚çÄˆ³k‚¹‚¸A‚»‚Ì‚Ü‚Ü–„‚ß‚Ş
 	if (extension == L".dds")
 	{
 		return ReadBinaryFile(texturePath, outDDS) ? S_OK : E_FAIL;
@@ -472,8 +496,8 @@ void Model::BuildEmbeddedDDSFromFileOrSRV(
 		}
 	}
 
-	// glbå†…è”µãƒ†ã‚¯ã‚¹ãƒãƒ£ãªã©ã€ãƒ•ã‚¡ã‚¤ãƒ«åãŒå–ã‚Œãªã„å ´åˆã®ä¿é™ºã€‚
-	// importer.LoadMaterials ãŒSRVã‚’ä½œã£ã¦ã„ã‚‹ãªã‚‰ã€GPUã‹ã‚‰æ•ã¾ãˆã¦DDSåŒ–ã™ã‚‹ã€‚
+	// glb“à‘ ƒeƒNƒXƒ`ƒƒ‚È‚ÇAƒtƒ@ƒCƒ‹–¼‚ªæ‚ê‚È‚¢ê‡‚Ì•ÛŒ¯B
+	// importer.LoadMaterials ‚ªSRV‚ğì‚Á‚Ä‚¢‚é‚È‚çAGPU‚©‚ç•ß‚Ü‚¦‚ÄDDS‰»‚·‚éB
 	if (srv != nullptr)
 	{
 		HRESULT hr = ConvertSRVToDDSBytes(device, srv, outDDS);
@@ -645,52 +669,60 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 
 	std::filesystem::path cerealFilepath = sourceFilepath;
 	cerealFilepath.replace_extension(".vmdl");
+	modelCacheFilepath = cerealFilepath;
+	modelCacheLastWrite = std::filesystem::exists(filename)
+		? MakeModelCacheStamp(GetFileLastWriteTime64(filename))
+		: 0;
 
-	// ç‹¬è‡ªå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®å­˜åœ¨ç¢ºèª
+	// “Æ©Œ`®‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì‘¶İŠm”F
 	if (std::filesystem::exists(cerealFilepath) && !importRawModel)
 	{
-		uint64_t lastWriteTime = 0;
-		Deserialize(cerealFilepath.string().c_str(), lastWriteTime);
-
-		// cerealãŒå¤ã„ãªã‚‰ã€å…ƒã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰å†æ§‹ç¯‰ã™ã‚‹
+		bool canUseCache = true;
 		if (std::filesystem::exists(filename))
 		{
-			uint64_t fileLastWriteTime = MakeModelCacheStamp(GetFileLastWriteTime64(filename));
-
-			if (fileLastWriteTime != lastWriteTime)
-			{
-				Model tmpModel(filename, sampleRate, true);
-				*this = std::move(tmpModel);
-				return;
-			}
+			uint64_t cachedLastWriteTime = 0;
+			canUseCache =
+				ReadModelCacheStamp(cerealFilepath, cachedLastWriteTime) &&
+				cachedLastWriteTime == modelCacheLastWrite;
 		}
+
+		if (!canUseCache)
+		{
+			Model tmpModel(filename, sampleRate, true);
+			*this = std::move(tmpModel);
+			return;
+		}
+
+		uint64_t lastWriteTime = 0;
+		Deserialize(cerealFilepath.string().c_str(), lastWriteTime);
+		modelCacheLastWrite = lastWriteTime;
 	}
 	else if (extension == ".gltf" || extension == ".glb")
 	{
-		// æ±ç”¨ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿
+		// ”Ä—pƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ
 		GLTFImporter importer(filename);
 
-		// ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
-		// GLBå†…è”µãƒ†ã‚¯ã‚¹ãƒãƒ£ã¯ä¸€åº¦ãƒ•ã‚¡ã‚¤ãƒ«åŒ–ã—ã¦ã‹ã‚‰DDSåŒ–ã™ã‚‹ã€‚
-		// å·¨å¤§ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’GPUã‹ã‚‰CaptureTextureã™ã‚‹ã¨Debug Layerã§è½ã¡ã‚„ã™ã„ãŸã‚ã€‚
+		// ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^“Ç‚İæ‚è
+		// GLB“à‘ ƒeƒNƒXƒ`ƒƒ‚Íˆê“xƒtƒ@ƒCƒ‹‰»‚µ‚Ä‚©‚çDDS‰»‚·‚éB
+		// ‹‘åƒeƒNƒXƒ`ƒƒ‚ğGPU‚©‚çCaptureTexture‚·‚é‚ÆDebug Layer‚Å—‚¿‚â‚·‚¢‚½‚ßB
 		importer.LoadMaterials(materials, nullptr);
 
-		// ãƒãƒ¼ãƒ‰ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
+		// ƒm[ƒhƒf[ƒ^“Ç‚İæ‚è
 		importer.LoadNodes(nodes);
 
-		// ãƒ¡ãƒƒã‚·ãƒ¥ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
+		// ƒƒbƒVƒ…ƒf[ƒ^“Ç‚İæ‚è
 		importer.LoadMeshes(meshes, nodes);
 
-		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‡ãƒ¼ã‚¿èª­ã¿å–ã‚Š
+		// ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^“Ç‚İæ‚è
 		importer.LoadAnimations(animations, nodes, sampleRate);
 
-		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’DDSåŒ–ã—ã¦cerealã«åŸ‹ã‚è¾¼ã‚€
+		// ƒeƒNƒXƒ`ƒƒ‚ğDDS‰»‚µ‚Äcereal‚É–„‚ß‚Ş
 		for (Material& material : materials)
 		{
 			BuildMaterialEmbeddedDDS(device, dirpath, material);
 		}
 
-		// ç‹¬è‡ªå½¢å¼ã®ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ä¿å­˜
+		// “Æ©Œ`®‚Ìƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚ğ•Û‘¶
 		Serialize(
 			cerealFilepath.string().c_str(),
 			MakeModelCacheStamp(GetFileLastWriteTime64(filename))
@@ -701,18 +733,18 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		_ASSERT_EXPR_A(false, "found not model file");
 	}
 
-	// ãƒãƒ†ãƒªã‚¢ãƒ«æ§‹ç¯‰
+	// ƒ}ƒeƒŠƒAƒ‹\’z
 	for (Material& material : materials)
 	{
 		BuildMaterialTextureResources(device, dirpath, material);
 	}
 
-	// ãƒãƒ¼ãƒ‰æ§‹ç¯‰
+	// ƒm[ƒh\’z
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
 	{
 		Node& node = nodes.at(nodeIndex);
 
-		// è¦ªå­é–¢ä¿‚ã‚’æ§‹ç¯‰
+		// eqŠÖŒW‚ğ\’z
 		node.parent = node.parentIndex >= 0 ? &nodes.at(node.parentIndex) : nullptr;
 
 		if (node.parent != nullptr)
@@ -721,16 +753,16 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		}
 	}
 
-	// ãƒ¡ãƒƒã‚·ãƒ¥æ§‹ç¯‰
+	// ƒƒbƒVƒ…\’z
 	for (Mesh& mesh : meshes)
 	{
-		// å‚ç…§ãƒãƒ†ãƒªã‚¢ãƒ«è¨­å®š
+		// QÆƒ}ƒeƒŠƒAƒ‹İ’è
 		mesh.material = &materials.at(mesh.materialIndex);
 
-		// å‚ç…§ãƒãƒ¼ãƒ‰è¨­å®š
+		// QÆƒm[ƒhİ’è
 		mesh.node = &nodes.at(mesh.nodeIndex);
 
-		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
+		// ’¸“_ƒoƒbƒtƒ@
 		{
 			D3D11_BUFFER_DESC bufferDesc = {};
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
@@ -755,7 +787,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡
+		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@
 		{
 			D3D11_BUFFER_DESC bufferDesc = {};
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
@@ -780,18 +812,18 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ãƒœãƒ¼ãƒ³æ§‹ç¯‰
+		// ƒ{[ƒ“\’z
 		for (Bone& bone : mesh.bones)
 		{
 			bone.node = &nodes.at(bone.nodeIndex);
 		}
 	}
 
-	// è¡Œåˆ—åˆæœŸåŒ–
+	// s—ñ‰Šú‰»
 	UpdateTransform(Matrix::Identity);
 }
 
-// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¿½åŠ èª­ã¿è¾¼ã¿
+// ƒAƒjƒ[ƒVƒ‡ƒ“’Ç‰Á“Ç‚İ‚İ
 void Model::AppendAnimations(const char* filename)
 {
 	std::filesystem::path filepath(filename);
@@ -801,20 +833,20 @@ void Model::AppendAnimations(const char* filename)
 	{
 		GLTFImporter importer(filename);
 
-		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ•ã‚¡ã‚¤ãƒ«å´ã®ãƒãƒ¼ãƒ‰ã‚’å–å¾—
+		// ƒAƒjƒ[ƒVƒ‡ƒ“ƒtƒ@ƒCƒ‹‘¤‚Ìƒm[ƒh‚ğæ“¾
 		std::vector<Node> animNodes;
 		importer.LoadNodes(animNodes);
 
-		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ã‚¢ãƒ‹ãƒ¡ãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒ¼ãƒ‰åŸºæº–ã§èª­ã¿è¾¼ã‚€
+		// ƒAƒjƒ[ƒVƒ‡ƒ“‚ğƒAƒjƒƒtƒ@ƒCƒ‹‚Ìƒm[ƒhŠî€‚Å“Ç‚İ‚Ş
 		std::vector<Animation> newAnims;
 		importer.LoadAnimations(newAnims, animNodes);
 
-		// ãƒ¢ãƒ‡ãƒ«å´ã®ãƒãƒ¼ãƒ‰åâ†’ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ãƒãƒƒãƒ—ä½œæˆ
+		// ƒ‚ƒfƒ‹‘¤‚Ìƒm[ƒh–¼¨ƒCƒ“ƒfƒbƒNƒX‚Ìƒ}ƒbƒvì¬
 		std::unordered_map<std::string, int> modelNodeMap;
 		for (int i = 0; i < (int)nodes.size(); ++i)
 			modelNodeMap[nodes[i].name] = i;
 
-		// nodeAnimsã‚’ãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰é †ã«ä¸¦ã¹æ›¿ãˆã‚‹
+		// nodeAnims‚ğƒ‚ƒfƒ‹‚Ìƒm[ƒh‡‚É•À‚×‘Ö‚¦‚é
 		for (Animation& anim : newAnims)
 		{
 			Animation remapped;
@@ -823,7 +855,7 @@ void Model::AppendAnimations(const char* filename)
 			remapped.secondsLength = anim.secondsLength;
 			remapped.nodeAnims.resize(nodes.size());
 
-			// ã¾ãšãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰ã®åˆæœŸå§¿å‹¢ã§åˆæœŸåŒ–
+			// ‚Ü‚¸ƒ‚ƒfƒ‹‚Ìƒm[ƒh‚Ì‰Šúp¨‚Å‰Šú‰»
 			for (int i = 0; i < (int)nodes.size(); ++i)
 			{
 				Model::VectorKeyframe pk;
@@ -848,7 +880,7 @@ void Model::AppendAnimations(const char* filename)
 				remapped.nodeAnims[i].scaleKeyframes.push_back(sk);
 			}
 
-			// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ¼ãƒ‰ã‚’ãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã«å¯¾å¿œä»˜ã‘
+			// ƒAƒjƒ[ƒVƒ‡ƒ“ƒm[ƒh‚ğƒ‚ƒfƒ‹‚Ìƒm[ƒhƒCƒ“ƒfƒbƒNƒX‚É‘Î‰•t‚¯
 			for (int animIdx = 0; animIdx < (int)animNodes.size(); ++animIdx)
 			{
 				auto it = modelNodeMap.find(animNodes[animIdx].name);
@@ -866,7 +898,7 @@ void Model::AppendAnimations(const char* filename)
 	}
 }
 
-// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
+// ƒAƒjƒ[ƒVƒ‡ƒ“ƒCƒ“ƒfƒbƒNƒXæ“¾
 int Model::GetAnimationIndex(const char* name) const
 {
 	for (size_t animationIndex = 0; animationIndex < animations.size(); ++animationIndex)
@@ -900,7 +932,7 @@ static void UpdateNodeTransform(Model::Node& node, const Matrix& parentGlobal, c
 	}
 }
 
-// ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
+// ƒm[ƒhƒCƒ“ƒfƒbƒNƒXæ“¾
 int Model::GetNodeIndex(const char* name) const
 {
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
@@ -913,7 +945,7 @@ int Model::GetNodeIndex(const char* name) const
 	return -1;
 }
 
-// ãƒˆãƒ©ãƒ³ã‚¹ãƒ•ã‚©ãƒ¼ãƒ æ›´æ–°å‡¦ç†
+// ƒgƒ‰ƒ“ƒXƒtƒH[ƒ€XVˆ—
 void Model::UpdateTransform(const Matrix& worldTransform)
 {
 	for (Node& node : nodes)
@@ -944,54 +976,54 @@ void Model::ComputeAnimation(int animationIndex, int nodeIndex, float time, Node
 	const Animation& animation = animations.at(animationIndex);
 	const NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
 
-	// ä½ç½®
+	// ˆÊ’u
 	for (size_t index = 0; index < nodeAnim.positionKeyframes.size() - 1; ++index)
 	{
-		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
+		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
 		const VectorKeyframe& keyframe0 = nodeAnim.positionKeyframes.at(index);
 		const VectorKeyframe& keyframe1 = nodeAnim.positionKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
+			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
+			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
 			nodePose.position = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
-	// å›è»¢
+	// ‰ñ“]
 	for (size_t index = 0; index < nodeAnim.rotationKeyframes.size() - 1; ++index)
 	{
-		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
+		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
 		const QuaternionKeyframe& keyframe0 = nodeAnim.rotationKeyframes.at(index);
 		const QuaternionKeyframe& keyframe1 = nodeAnim.rotationKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
+			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
+			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
 			nodePose.rotation = Quaternion::Slerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
-	// ã‚¹ã‚±ãƒ¼ãƒ«
+	// ƒXƒP[ƒ‹
 	for (size_t index = 0; index < nodeAnim.scaleKeyframes.size() - 1; ++index)
 	{
-		// ç¾åœ¨ã®æ™‚é–“ãŒã©ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–“ã«ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹
+		// Œ»İ‚ÌŠÔ‚ª‚Ç‚ÌƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚É‚¢‚é‚©”»’è‚·‚é
 		const VectorKeyframe& keyframe0 = nodeAnim.scaleKeyframes.at(index);
 		const VectorKeyframe& keyframe1 = nodeAnim.scaleKeyframes.at(index + 1);
 		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
 		{
-			// å†ç”Ÿæ™‚é–“ã¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®æ™‚é–“ã‹ã‚‰è£œå®Œç‡ã‚’ç®—å‡ºã™ã‚‹
+			// Ä¶ŠÔ‚ÆƒL[ƒtƒŒ[ƒ€‚ÌŠÔ‚©‚ç•âŠ®—¦‚ğZo‚·‚é
 			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
 
-			// å‰ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã¨æ¬¡ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã®å§¿å‹¢ã‚’è£œå®Œã—ã€è¨ˆç®—çµæœã‚’ãƒãƒ¼ãƒ‰ã«æ ¼ç´
+			// ‘O‚ÌƒL[ƒtƒŒ[ƒ€‚ÆŸ‚ÌƒL[ƒtƒŒ[ƒ€‚Ìp¨‚ğ•âŠ®‚µAŒvZŒ‹‰Ê‚ğƒm[ƒh‚ÉŠi”[
 			nodePose.scale = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
 		}
 	}
 }
 
-// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—
+// ƒAƒjƒ[ƒVƒ‡ƒ“ŒvZ
 void Model::ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const
 {
 	if (nodePoses.size() != nodes.size())
@@ -1004,7 +1036,69 @@ void Model::ComputeAnimation(int animationIndex, float time, std::vector<NodePos
 	}
 }
 
-// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºè¨­å®š
+// ƒm[ƒhƒ|[ƒYİ’è
+float Model::EvaluateFootIKWeight(int animationIndex, float time, int footIndex) const
+{
+	if (animationIndex < 0) return 0.0f;
+	if (animationIndex >= static_cast<int>(animations.size())) return 0.0f;
+
+	const Animation& animation = animations[animationIndex];
+	if (animation.secondsLength > 0.0f)
+	{
+		while (time < 0.0f) time += animation.secondsLength;
+		while (time > animation.secondsLength) time -= animation.secondsLength;
+	}
+
+	float result = 0.0f;
+	for (const FootIKRange& range : animation.footIKRanges)
+	{
+		if (range.footIndex >= 0 && range.footIndex != footIndex) continue;
+
+		float timeRatio =
+			animation.secondsLength > 0.001f
+			? time / animation.secondsLength
+			: 0.0f;
+
+		timeRatio = std::clamp(timeRatio, 0.0f, 1.0f);
+
+		float start = range.startRatio;
+		float end = range.endRatio;
+		if (end < start)
+		{
+			const float temp = start;
+			start = end;
+			end = temp;
+		}
+
+		if (timeRatio < start || timeRatio > end) continue;
+
+		float weight = std::clamp(range.weight, 0.0f, 1.0f);
+
+		if (range.fadeInRatio > 0.001f)
+		{
+			weight *= std::clamp((timeRatio - start) / range.fadeInRatio, 0.0f, 1.0f);
+		}
+
+		if (range.fadeOutRatio > 0.001f)
+		{
+			weight *= std::clamp((end - timeRatio) / range.fadeOutRatio, 0.0f, 1.0f);
+		}
+
+		if (result < weight) result = weight;
+	}
+
+	return result;
+}
+
+bool Model::SaveVmdl()
+{
+	if (modelCacheFilepath.empty()) return false;
+
+	Serialize(
+		modelCacheFilepath.string().c_str(),
+		modelCacheLastWrite);
+	return true;
+}
 void Model::SetNodePoses(const std::vector<NodePose>& nodePoses)
 {
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
@@ -1018,7 +1112,7 @@ void Model::SetNodePoses(const std::vector<NodePose>& nodePoses)
 	}
 }
 
-// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºå–å¾—
+// ƒm[ƒhƒ|[ƒYæ“¾
 void Model::GetNodePoses(std::vector<NodePose>& nodePoses) const
 {
 	if (nodePoses.size() != nodes.size())
@@ -1042,7 +1136,7 @@ void Model::_print() const
 
 	printf("========== Model::_print ==========\n");
 
-	// --- ãƒãƒ¼ãƒ‰ä¸€è¦§ ---
+	// --- ƒm[ƒhˆê—— ---
 	printf("[Nodes] count=%zu\n", nodes.size());
 	for (int i = 0; i < static_cast<int>(nodes.size()); ++i)
 	{
@@ -1054,7 +1148,7 @@ void Model::_print() const
 		OutputDebugStringA(buf);
 	}
 
-	// --- ãƒœãƒ¼ãƒ³ä¸€è¦§ï¼ˆãƒ¡ãƒƒã‚·ãƒ¥ã”ã¨ï¼‰---
+	// --- ƒ{[ƒ“ˆê——iƒƒbƒVƒ…‚²‚Æj---
 	printf("[Meshes] count=%zu\n", meshes.size());
 	for (int mi = 0; mi < static_cast<int>(meshes.size()); ++mi)
 	{
@@ -1079,7 +1173,7 @@ void Model::_print() const
 		}
 	}
 
-	// --- ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä¸€è¦§ ---
+	// --- ƒAƒjƒ[ƒVƒ‡ƒ“ˆê—— ---
 	printf("[Animations] count=%zu\n", animations.size());
 	for (int i = 0; i < static_cast<int>(animations.size()); ++i)
 	{
@@ -1093,7 +1187,7 @@ void Model::_print() const
 	printf("====================================\n");
 }
 
-// ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
+// ƒVƒŠƒAƒ‰ƒCƒY
 void Model::Serialize(const char* filename, uint64_t lastWrite)
 {
 	std::ofstream ostream(filename, std::ios::binary);
@@ -1118,7 +1212,7 @@ void Model::Serialize(const char* filename, uint64_t lastWrite)
 	}
 }
 
-// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
+// ƒfƒVƒŠƒAƒ‰ƒCƒY
 void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 {
 	std::ifstream istream(filename, std::ios::binary);
@@ -1146,3 +1240,8 @@ void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 		_ASSERT_EXPR_A(false, "Model File not found.");
 	}
 }
+
+
+
+
+

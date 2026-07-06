@@ -3,10 +3,11 @@
 #include "SpiderFootIK.h"
 
 #include "Actor.h"
+#include "Animator.h"
 #include "Object.h"
 
-SpiderFootIK::SpiderFootIK(Object* owner, LayerId layerId, Model* model)
-	: Component(owner), model(model), layerId(layerId)
+SpiderFootIK::SpiderFootIK(Object* owner, LayerId layerId, Model* model, Animator* animator)
+	: Component(owner), model(model), animator(animator), layerId(layerId)
 {
 	if (model)
 	{
@@ -29,10 +30,13 @@ void SpiderFootIK::LateUpdate()
 
 	UpdateModelTransform();
 
-	for (FootIK* footIK : footIKs)
+	for (int footIndex = 0; footIndex < static_cast<int>(footIKs.size()); ++footIndex)
 	{
+		FootIK* footIK = footIKs[footIndex];
 		if (!footIK || !footIK->IsIKEnabled()) continue;
 
+		footIK->SetDownwardWeight(GetFootIKWeight(footIndex));
+		footIK->SetMaxDownCorrection(maxDownCorrection);
 		footIK->UpdateGroundTarget(rayUp, rayDown, contactOffset);
 		footIK->SolveIK(model->GetWorldTransform());
 	}
@@ -51,16 +55,34 @@ void SpiderFootIK::DrawGUI()
 			waistPosition.y,
 			waistPosition.z);
 	}
-	ImGui::DragFloat("Ray Up", &rayUp, 0.01f, 0.0f, 5.0f);
-	ImGui::DragFloat("Ray Down", &rayDown, 0.01f, 0.0f, 10.0f);
-	ImGui::DragFloat("Contact Offset", &contactOffset, 0.001f, 0.0f, 0.2f);
+	ImGui::DragFloat("Ray Up", &rayUp, 0.01f, 0.0f);
+	ImGui::DragFloat("Ray Down", &rayDown, 0.01f, 0.0f);
+	ImGui::DragFloat("Contact Offset", &contactOffset, 0.001f, 0.0f);
+	ImGui::DragFloat("Max Up Correction", &maxUpCorrection, 0.01f, 0.0f);
+	ImGui::DragFloat("Max Down Correction", &maxDownCorrection, 0.01f, 0.0f);
 	if (ImGui::Checkbox("Show Foot Debug", &showFootDebug))
 	{
 		ApplyFootSettings();
 	}
-	if (ImGui::DragFloat("Root Correction X", &rootCorrectionXDeg, 1.0f, -180.0f, 180.0f))
+
+	if (animator && model)
 	{
-		ApplyRootRotationOffset();
+		const int animationIndex = animator->GetCurrentAnimationIndex(0);
+		const float time = animator->GetCurrentAnimationTime(0);
+		ImGui::TextDisabled("FootIK Anim: %d  Time: %.3f", animationIndex, time);
+		for (int footIndex = 0; footIndex < static_cast<int>(footIKs.size()); ++footIndex)
+		{
+			FootIK* footIK = footIKs[footIndex];
+			ImGui::TextDisabled(
+				"Foot %d Weight: %.2f  Hit: %s  OffsetY: %.3f  HitLayer: %d  RawLayer: %d  NormalY: %.2f",
+				footIndex,
+				GetFootIKWeight(footIndex),
+				footIK && footIK->HasGroundContact() ? "Yes" : "No",
+				footIK ? footIK->GetGroundOffsetY() : 0.0f,
+				footIK ? static_cast<int>(footIK->GetLastHitLayerId()) : -1,
+				footIK ? static_cast<int>(footIK->GetLastRawHitLayerId()) : -1,
+				footIK ? footIK->GetLastHitNormalY() : 0.0f);
+		}
 	}
 }
 
@@ -79,8 +101,13 @@ void SpiderFootIK::AddLeg(const char* rootName, const char* midName, const char*
 
 	footIK->SetPoleLiftY(0.0f);
 	footIKs.push_back(footIK);
+	std::vector<std::string> targetNames;
+	if (rootName && rootName[0] != '\0') targetNames.emplace_back(rootName);
+	if (midName && midName[0] != '\0') targetNames.emplace_back(midName);
+	if (tipName && tipName[0] != '\0') targetNames.emplace_back(tipName);
+	if (contactName && contactName[0] != '\0') targetNames.emplace_back(contactName);
+	footTargetNames.push_back(targetNames);
 	ApplyFootSettings();
-	ApplyRootRotationOffset();
 }
 
 void SpiderFootIK::SetRay(float up, float down, float contactOffset)
@@ -100,24 +127,33 @@ void SpiderFootIK::UpdateModelTransform()
 		Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f));
 }
 
-void SpiderFootIK::ApplyRootRotationOffset()
-{
-	const Quaternion offset =
-		Quaternion::CreateFromYawPitchRoll(0.0f, RAD(rootCorrectionXDeg), 0.0f);
-
-	for (FootIK* footIK : footIKs)
-	{
-		if (footIK) footIK->SetRootRotationOffset(offset);
-	}
-}
-
 void SpiderFootIK::ApplyFootSettings()
 {
 	for (FootIK* footIK : footIKs)
 	{
 		if (!footIK) continue;
 
-		footIK->SetLiftOnly(true);
+		footIK->SetLiftOnly(false);
+		footIK->SetMaxUpCorrection(maxUpCorrection);
 		footIK->SetAlwaysRenderDebug(showFootDebug);
 	}
 }
+
+float SpiderFootIK::GetFootIKWeight(int footIndex) const
+{
+	if (!animator) return 0.0f;
+	if (footIndex < 0 || footIndex >= static_cast<int>(footTargetNames.size())) return 0.0f;
+
+	float result = animator->EvaluateCurrentFootIKWeight("All");
+	for (const std::string& targetName : footTargetNames[footIndex])
+	{
+		const float weight = animator->EvaluateCurrentFootIKWeight(targetName);
+		if (result < weight) result = weight;
+	}
+	return result;
+}
+
+
+
+
+

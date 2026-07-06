@@ -1,0 +1,74 @@
+{
+    "animationMode": "Dynamic",
+    "layers": [
+        {
+            "anyStateEditorPosX": 0.0,
+            "anyStateEditorPosY": 0.0,
+            "anyStateTransitions": [],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Base Layer",
+            "states": [
+                {
+                    "animationIndex": -1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "C:\\Users\\2250183\\Desktop\\VVV\\Data\\Animation\\Test.danim",
+                    "editorPosX": 212.0,
+                    "editorPosY": 131.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "test",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.0
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": -1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "C:\\Users\\2250183\\Desktop\\VVV\\Data\\Animation\\Test2.danim",
+                    "editorPosX": 212.0,
+                    "editorPosY": 243.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "test2",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.0
+                        }
+                    ]
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [],
+    "triggers": []
+}

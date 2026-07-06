@@ -1,4 +1,4 @@
-ï»¿// Animator.h
+// Animator.h
 
 #pragma once
 #include <functional>
@@ -32,10 +32,10 @@ public:
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_FILM " Animator"; }
     int GetUpdateOrder() const override { return 100; }
-    void _print() const; // ãƒ‡ãƒãƒƒã‚°ç”¨
+    void _print() const; // ƒfƒoƒbƒO—p
 
     // =========================================================
-    // å‹å®šç¾©
+    // Œ^’è‹`
     // =========================================================
     using ParamValue = std::variant<float, int, bool>;
 
@@ -47,8 +47,8 @@ public:
 
     enum class BlendMode
     {
-        Override,   // ä¸‹ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’ä¸Šæ›¸ãï¼ˆé€šå¸¸ï¼‰
-        Additive,   // ä¸‹ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«åŠ ç®—
+        Override,   // ‰º‚ÌƒŒƒCƒ„[‚ğã‘‚«i’Êíj
+        Additive,   // ‰º‚ÌƒŒƒCƒ„[‚É‰ÁZ
     };
 
     struct Condition
@@ -62,20 +62,30 @@ public:
     {
         int                    toStateIndex = -1;
         std::vector<Condition> conditions;
-        // AnyState é·ç§»ç”¨: ã“ã®é…åˆ—ã«å«ã¾ã‚Œã‚‹ã‚¹ãƒ†ãƒ¼ãƒˆIndexã«ã„ã‚‹é–“ã¯é·ç§»ã—ãªã„
+        // AnyState ‘JˆÚ—p: ‚±‚Ì”z—ñ‚ÉŠÜ‚Ü‚ê‚éƒXƒe[ƒgIndex‚É‚¢‚éŠÔ‚Í‘JˆÚ‚µ‚È‚¢
         std::vector<int>       excludedFromStateIndices;
         float                  exitTime = 1.0f;
         float                  transitionDuration = 0.1f;
         bool                   hasExitTime = false;
-        // true ã®ã¨ãã¯é·ç§»å…ƒå†ç”Ÿç‡ã®æ¡ä»¶ã‚’ä½¿ã‚ãªã„ï¼ˆãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼‰
+        // true ‚Ì‚Æ‚«‚Í‘JˆÚŒ³Ä¶—¦‚ÌğŒ‚ğg‚í‚È‚¢iƒfƒtƒHƒ‹ƒgj
         bool                   isAny = true;
-        // isAny == false ã®ã¨ãã€é·ç§»å…ƒã‚¢ãƒ‹ãƒ¡ã®å†ç”Ÿç‡ãŒã“ã®å€¤ä»¥ä¸Šãªã‚‰é·ç§»å¯èƒ½ï¼ˆ0.0 - 1.0ï¼‰
-        float                  sourceProgressMin = 0.0f;  // é·ç§»å¯èƒ½ãªå†ç”Ÿç‡ã®ä¸‹é™
-        float                  sourceProgressMax = 1.0f;  // é·ç§»å¯èƒ½ãªå†ç”Ÿç‡ã®ä¸Šé™ï¼ˆ1.0=åˆ¶é™ãªã—ï¼‰
+        // isAny == false ‚Ì‚Æ‚«A‘JˆÚŒ³ƒAƒjƒ‚ÌÄ¶—¦‚ª‚±‚Ì’lˆÈã‚È‚ç‘JˆÚ‰Â”\i0.0 - 1.0j
+        float                  sourceProgressMin = 0.0f;  // ‘JˆÚ‰Â”\‚ÈÄ¶—¦‚Ì‰ºŒÀ
+        float                  sourceProgressMax = 1.0f;  // ‘JˆÚ‰Â”\‚ÈÄ¶—¦‚ÌãŒÀi1.0=§ŒÀ‚È‚µj
         int                    priority = 0;
         bool                   canInterrupt = false;
     };
 
+    struct FootIKRange
+    {
+        std::string name = "FootIK";
+        std::string targetName = "All";
+        float startRatio = 0.0f;
+        float endRatio = 1.0f;
+        float weight = 1.0f;
+        float fadeInRatio = 0.03f;
+        float fadeOutRatio = 0.03f;
+    };
     struct State
     {
         struct Callback
@@ -93,13 +103,14 @@ public:
         std::string             dynamicClipPath;
         float                   speed = 1.0f;
         bool                    loop = true;
-        // true ã®å ´åˆã€ã“ã®ã‚¹ãƒ†ãƒ¼ãƒˆæ»åœ¨ä¸­ã¯ AnyState é·ç§»ã‚’è©•ä¾¡ã—ãªã„
+        // true ‚Ìê‡A‚±‚ÌƒXƒe[ƒg‘Øİ’†‚Í AnyState ‘JˆÚ‚ğ•]‰¿‚µ‚È‚¢
         bool                    blockAnyStateTransitions = false;
-        // AnimEditor ãƒãƒ¼ãƒ‰åº§æ¨™ï¼ˆä¿å­˜ç”¨ï¼‰
+        // AnimEditor ƒm[ƒhÀ•Wi•Û‘¶—pj
         bool                    hasEditorPosition = false;
         float                   editorPosX = 0.0f;
         float                   editorPosY = 0.0f;
         std::vector<Transition> transitions;
+        std::vector<FootIKRange> footIKRanges;
 
         std::vector<Callback> callbacks;
         void AddCallback(const std::string& label, float enterPer, float exitPer)
@@ -108,10 +119,10 @@ public:
         }
     };
 
-    // AvatarMask : é©ç”¨ã™ã‚‹ãƒãƒ¼ãƒ‰Indexã®ã‚»ãƒƒãƒˆï¼ˆç©º = å…¨ãƒãƒ¼ãƒ‰ï¼‰
+    // AvatarMask : “K—p‚·‚éƒm[ƒhIndex‚ÌƒZƒbƒgi‹ó = ‘Sƒm[ƒhj
     struct AvatarMask
     {
-        std::vector<int> nodes; // ç©ºãªã‚‰å…¨èº«
+        std::vector<int> nodes; // ‹ó‚È‚ç‘Sg
         bool Contains(int nodeIndex) const
         {
             if (nodes.empty()) return true;
@@ -120,15 +131,15 @@ public:
         }
     };
 
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼æœ¬ä½“
+    // ƒŒƒCƒ„[–{‘Ì
     struct AnimatorLayer
     {
         std::string  name;
         float        weight = 1.0f;
         BlendMode    blendMode = BlendMode::Override;
-        AvatarMask   mask;                     // ç©º=å…¨èº«
+        AvatarMask   mask;                     // ‹ó=‘Sg
 
-        // ç‹¬ç«‹ã—ãŸã‚¹ãƒ†ãƒ¼ãƒˆãƒã‚·ãƒ³
+        // “Æ—§‚µ‚½ƒXƒe[ƒgƒ}ƒVƒ“
         std::vector<State> states;
         int   defaultStateIndex = 0;
         int   currentStateIndex = -1;
@@ -139,9 +150,9 @@ public:
         float blendDuration = 0.0f;
         bool  isTransitioning = false;
 
-        // AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ï¼ˆã©ã®ã‚¹ãƒ†ãƒ¼ãƒˆã‹ã‚‰ã§ã‚‚é·ç§»ã§ãã‚‹ï¼‰
+        // AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“i‚Ç‚ÌƒXƒe[ƒg‚©‚ç‚Å‚à‘JˆÚ‚Å‚«‚éj
         std::vector<Transition> anyStateTransitions;
-        // AnimEditor AnyState ãƒãƒ¼ãƒ‰åº§æ¨™ï¼ˆä¿å­˜ç”¨ï¼‰
+        // AnimEditor AnyState ƒm[ƒhÀ•Wi•Û‘¶—pj
         bool  hasAnyStateEditorPosition = false;
         float anyStateEditorPosX = 0.0f;
         float anyStateEditorPosY = 0.0f;
@@ -154,19 +165,19 @@ public:
         }
     };
 
-    // ã‚¨ãƒ‡ã‚£ã‚¿ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’é–‹ã
+    // ƒGƒfƒBƒ^ƒEƒBƒ“ƒhƒE‚ğŠJ‚­
     void OpenAnimEditor();
 
-    // AnimEditorWindow ã‹ã‚‰å†…éƒ¨ãƒ‡ãƒ¼ã‚¿ã¸ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ãŸã‚ã®ã‚²ãƒƒã‚¿ãƒ¼
+    // AnimEditorWindow ‚©‚ç“à•”ƒf[ƒ^‚ÖƒAƒNƒZƒX‚·‚é‚½‚ß‚ÌƒQƒbƒ^[
     int GetLayerCount() const { return (int)layers.size(); }
 
     const std::unordered_map<std::string, ParamValue>& GetParameters() const { return parameters; }
     const std::unordered_map<std::string, bool>&       GetTriggers()   const { return triggers; }
-    // ã‚¨ãƒ‡ã‚£ã‚¿ç”¨ï¼šç›´æ¥å‰Šé™¤ã§ãã‚‹ã‚ˆã†éconstå‚ç…§ã‚’è¿”ã™
+    // ƒGƒfƒBƒ^—pF’¼Úíœ‚Å‚«‚é‚æ‚¤”ñconstQÆ‚ğ•Ô‚·
     std::unordered_map<std::string, ParamValue>& GetParameters_Mutable() { return parameters; }
     std::unordered_map<std::string, bool>&       GetTriggers_Mutable()   { return triggers; }
 
-    // ãƒ¢ãƒ‡ãƒ«ã¸ã®ã‚¢ã‚¯ã‚»ã‚¹ (é€²æ—ãƒãƒ¼æç”»ç”¨)
+    // ƒ‚ƒfƒ‹‚Ö‚ÌƒAƒNƒZƒX (i’»ƒo[•`‰æ—p)
     std::shared_ptr<Model> GetModel() const { return model; }
     AnimationMode GetAnimationMode() const { return animationMode; }
     bool IsDynamicMode() const { return animationMode == AnimationMode::Dynamic; }
@@ -178,9 +189,9 @@ public:
     const std::string& GetDynamicAnimationError() const { return dynamicAnimationError; }
 
     // =========================================================
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼æ“ä½œ
+    // ƒŒƒCƒ„[‘€ì
     // =========================================================
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ ã€è¿½åŠ ã—ãŸãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Indexã‚’è¿”ã™
+    // ƒŒƒCƒ„[’Ç‰ÁA’Ç‰Á‚µ‚½ƒŒƒCƒ„[‚ÌIndex‚ğ•Ô‚·
     int  AddLayer(const std::string& name,
                   BlendMode blendMode = BlendMode::Override,
                   float weight = 1.0f,
@@ -194,7 +205,7 @@ public:
     void DuplicateLayer(int layerIndex);
 
     // =========================================================
-    // ã‚¹ãƒ†ãƒ¼ãƒˆæ“ä½œï¼ˆãƒ¬ã‚¤ãƒ¤ãƒ¼IndexæŒ‡å®šï¼‰
+    // ƒXƒe[ƒg‘€ìiƒŒƒCƒ„[Indexw’èj
     // =========================================================
     int  AddState(int layerIndex, const std::string& name,
                   int animationIndex, bool loop = true, float speed = 1.0f);
@@ -215,10 +226,10 @@ public:
     void SetDefaultState(int layerIndex, int stateIndex);
 
     // =========================================================
-    // AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ï¼ˆã©ã®ã‚¹ãƒ†ãƒ¼ãƒˆã‹ã‚‰ã§ã‚‚é·ç§»ã§ãã‚‹ï¼‰
+    // AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“i‚Ç‚ÌƒXƒe[ƒg‚©‚ç‚Å‚à‘JˆÚ‚Å‚«‚éj
     // =========================================================
-    // AnyState ã‹ã‚‰æŒ‡å®šã‚¹ãƒ†ãƒ¼ãƒˆã¸ã®ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ã‚’è¿½åŠ ã™ã‚‹ã€‚
-    // æˆ»ã‚Šå€¤ã¯ãã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã® anyStateTransitions é…åˆ—å†…ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã€‚
+    // AnyState ‚©‚çw’èƒXƒe[ƒg‚Ö‚Ìƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“‚ğ’Ç‰Á‚·‚éB
+    // –ß‚è’l‚Í‚»‚ÌƒŒƒCƒ„[‚Ì anyStateTransitions ”z—ñ“à‚ÌƒCƒ“ƒfƒbƒNƒXB
     int  AddAnyStateTransition(int layerIndex, int toState,
                                float transitionDuration = 0.1f,
                                bool hasExitTime = false, float exitTime = 1.0f,
@@ -228,7 +239,7 @@ public:
                               const std::string& paramName, ConditionMode mode,
                               ParamValue threshold = 0.0f);
 
-    // AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸€è¦§ã‚’å–å¾—ï¼ˆã‚¨ãƒ‡ã‚£ã‚¿ç”¨ï¼‰
+    // AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“ˆê——‚ğæ“¾iƒGƒfƒBƒ^—pj
     const std::vector<Transition>& GetAnyStateTransitions(int layerIndex) const
     {
         return layers[layerIndex].anyStateTransitions;
@@ -240,9 +251,12 @@ public:
 
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
     int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
+    int  GetCurrentAnimationIndex(int layerIndex = 0) const;
+    float GetCurrentAnimationTime(int layerIndex = 0) const;
+    float EvaluateCurrentFootIKWeight(const std::string& targetName, int layerIndex = 0) const;
 
     // =========================================================
-    // ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼ˆAnimatorå…¨ä½“ã§å…±æœ‰ï¼‰
+    // ƒpƒ‰ƒ[ƒ^iAnimator‘S‘Ì‚Å‹¤—Lj
     // =========================================================
     void AddFloat(const std::string& name, float defaultValue = 0.0f);
     void AddInt(const std::string& name, int defaultValue = 0);
@@ -259,13 +273,13 @@ public:
     bool  GetBool(const std::string& name)  const { return parameters.find(name) != parameters.end() ? std::get<bool>(parameters.at(name)) : false; }
 
     // =========================================================
-    // ç›´æ¥å†ç”Ÿï¼ˆã‚¹ãƒ†ãƒ¼ãƒˆãƒã‚·ãƒ³ã‚’ä½¿ã‚ãªã„å ´åˆï¼‰
+    // ’¼ÚÄ¶iƒXƒe[ƒgƒ}ƒVƒ“‚ğg‚í‚È‚¢ê‡j
     // =========================================================
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
-    bool Save(const std::string& path);   // AnimatorSerializer::Save ã‚’å‘¼ã¶
-    void Load(const std::string& path);   // AnimatorSerializer::Load ã‚’å‘¼ã¶
+    bool Save(const std::string& path);   // AnimatorSerializer::Save ‚ğŒÄ‚Ô
+    void Load(const std::string& path);   // AnimatorSerializer::Load ‚ğŒÄ‚Ô
     const std::string& GetLastPath() const { return m_lastPath; }
 
     void ClearAll()
@@ -278,14 +292,14 @@ public:
         dynamicClipCache.clear();
     }
 
-    // ãƒ«ãƒ¼ãƒˆãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã‚’æœ‰åŠ¹åŒ–ã—ã€å¯¾è±¡ã®ãƒãƒ¼ãƒ‰åã‚’è¨­å®šã™ã‚‹
+    // ƒ‹[ƒgƒ‚[ƒVƒ‡ƒ“‚ğ—LŒø‰»‚µA‘ÎÛ‚Ìƒm[ƒh–¼‚ğİ’è‚·‚é
     void SetRootMotion(const std::string& rootNodeName);
 
-    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒæ¯ãƒ•ãƒ¬ãƒ¼ãƒ å–å¾—ã—ã¦ç§»å‹•ã«åˆ©ç”¨ã™ã‚‹ã€Œãƒ­ãƒ¼ã‚«ãƒ«ç©ºé–“ã®ç§»å‹•å·®åˆ†ã€
+    // ƒvƒŒƒCƒ„[‚ª–ˆƒtƒŒ[ƒ€æ“¾‚µ‚ÄˆÚ“®‚É—˜—p‚·‚éuƒ[ƒJƒ‹‹óŠÔ‚ÌˆÚ“®·•ªv
     Vector3 GetRootMotionVec() const { return rootMotionVec; }
     Quaternion GetRootMotionRot() const { return rootMotionRot; }
 
-    // ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
+    // ƒR[ƒ‹ƒoƒbƒN
     void BindCallbacks();
     void AddCallbackFunc(const std::string& label, std::function<void(const Animator::State&)> enter, std::function<void(const Animator::State&)> exit)
     {
@@ -320,10 +334,10 @@ private:
     float dynamicClipWatchTimer = 0.0f;
     static constexpr float DynamicClipWatchInterval = 0.25f;
 
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒªã‚¹ãƒˆï¼ˆè¿½åŠ é †ã«è©•ä¾¡ï¼‰
+    // ƒŒƒCƒ„[ƒŠƒXƒgi’Ç‰Á‡‚É•]‰¿j
     std::vector<AnimatorLayer> layers;
 
-    // Animatorå…¨ä½“ã§å…±æœ‰ã™ã‚‹ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
+    // Animator‘S‘Ì‚Å‹¤—L‚·‚éƒpƒ‰ƒ[ƒ^
     std::unordered_map<std::string, ParamValue> parameters;
     std::unordered_map<std::string, bool>       triggers;
 
@@ -341,11 +355,14 @@ private:
 
     bool useRootMotion = false;
     std::string rootNodeName = "";
-    int rootNodeIndex = -1; // ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã•ã‚ŒãŸãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
+    int rootNodeIndex = -1; // ƒLƒƒƒbƒVƒ…‚³‚ê‚½ƒ‹[ƒgƒm[ƒh‚ÌƒCƒ“ƒfƒbƒNƒX
 
     Vector3 rootMotionVec = Vector3::Zero;
     Quaternion rootMotionRot = Quaternion::Identity;
 
-    // 1ã¤ã®ãƒãƒ¼ãƒ‰ã®ãƒãƒ¼ã‚ºã‚’ç‰¹å®šæ™‚é–“ã‹ã‚‰ã‚µãƒ³ãƒ—ãƒªãƒ³ã‚°ã™ã‚‹ãƒ˜ãƒ«ãƒ‘ãƒ¼
+    // 1‚Â‚Ìƒm[ƒh‚Ìƒ|[ƒY‚ğ“Á’èŠÔ‚©‚çƒTƒ“ƒvƒŠƒ“ƒO‚·‚éƒwƒ‹ƒp[
     Model::NodePose SampleNodePose(int animIndex, float time, int nodeIdx);
 };
+
+
+

@@ -1,0 +1,616 @@
+{
+    "layers": [
+        {
+            "anyStateEditorPosX": -189.0,
+            "anyStateEditorPosY": 67.0,
+            "anyStateTransitions": [
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "IsDead",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        10
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 3,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 10,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_R",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        9,
+                        10,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 2,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 8,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_L",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        8,
+                        10,
+                        9
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 1,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 9,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Attack",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        4,
+                        5,
+                        6,
+                        7,
+                        10,
+                        9,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 4,
+                    "transitionDuration": 0.10000000149011612
+                }
+            ],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Base",
+            "states": [
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 84.0,
+                    "editorPosY": 10.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Idle",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 29,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 216.0,
+                    "editorPosY": -237.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Walk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 17,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 472.0,
+                    "editorPosY": -109.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Run",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.15000000596046448
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "IsSprinting",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 3,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 26,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 612.0,
+                    "editorPosY": 51.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Sprint",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.15000000596046448
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsSprinting",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 0,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.25,
+                            "exitTimePer": 0.3499999940395355,
+                            "label": "OnAnim"
+                        }
+                    ],
+                    "editorPosX": 56.0,
+                    "editorPosY": 323.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack1Freeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": false,
+                            "priority": 1,
+                            "sourceProgressMax": 0.699999988079071,
+                            "sourceProgressMin": 0.30000001192092896,
+                            "toStateIndex": 5,
+                            "transitionDuration": 0.30000001192092896
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.10000000149011612,
+                            "exitTimePer": 0.20000000298023224,
+                            "label": "OnAnim"
+                        }
+                    ],
+                    "editorPosX": 248.0,
+                    "editorPosY": 291.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack2Freeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": false,
+                            "priority": 1,
+                            "sourceProgressMax": 0.6000000238418579,
+                            "sourceProgressMin": 0.20000000298023224,
+                            "toStateIndex": 6,
+                            "transitionDuration": 0.4000000059604645
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 2,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.20000000298023224,
+                            "exitTimePer": 0.4000000059604645,
+                            "label": "OnAnim"
+                        }
+                    ],
+                    "editorPosX": 456.0,
+                    "editorPosY": 243.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack3Freeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "Attack",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": false,
+                            "priority": 1,
+                            "sourceProgressMax": 0.800000011920929,
+                            "sourceProgressMin": 0.30000001192092896,
+                            "toStateIndex": 7,
+                            "transitionDuration": 0.4000000059604645
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 3,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.10000000149011612,
+                            "exitTimePer": 0.25,
+                            "label": "OnAnim"
+                        },
+                        {
+                            "enterTimePer": 0.3700000047683716,
+                            "exitTimePer": 0.6100000143051147,
+                            "label": "OnAttack4B"
+                        }
+                    ],
+                    "editorPosX": 632.0,
+                    "editorPosY": 179.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Attack4Freeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 10,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": -184.0,
+                    "editorPosY": 355.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Hit_RFreeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 9,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": -268.0,
+                    "editorPosY": 227.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Hit_LFreeze",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 7,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": -8.0,
+                    "editorPosY": 467.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "DeadFreeze",
+                    "speed": 1.0,
+                    "transitions": []
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [
+        {
+            "name": "Speed",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "MoveX",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "IsSprinting",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "IsDead",
+            "type": "bool",
+            "value": false
+        }
+    ],
+    "triggers": [
+        "Attack",
+        "Hit_R",
+        "Hit_L"
+    ]
+}

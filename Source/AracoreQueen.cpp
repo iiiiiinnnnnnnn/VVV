@@ -76,7 +76,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
 
         // ‘«Ú’n•â³
-        AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get());
+        AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
 
         // ‘«‚Ì“–‚½‚è”»’è
         #if 0
@@ -343,3 +343,4 @@ void AracoreQueenMachine::OnDead()
     printf("AracoreQueenMachine Dead!\n");
     Destroy(2);
 }
+

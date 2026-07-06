@@ -1,4 +1,4 @@
-ï»¿// Player.cpp
+// Player.cpp
 
 #include "Player.h"
 #include "ResourceManager.h"
@@ -11,17 +11,17 @@
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
-	model->_print(); // ãƒ‡ãƒãƒƒã‚°ç”¨
+	model->_print(); // ƒfƒoƒbƒO—p
 
-	// ãƒ¡ãƒƒã‚·ãƒ¥è¡¨ç¤º/éè¡¨ç¤º
+	// ƒƒbƒVƒ…•\¦/”ñ•\¦
 	{
 		auto& meshes = model->GetMeshes();
-		meshes[0].isDraw = false; // ç›¾
-		meshes[2].isDraw = false; // ã‚¢ãƒƒã‚¯ã‚¹
-		meshes[8].isDraw = false;// ç´ è¶³
-		meshes[15].isDraw = false; // ç§æœ
-		meshes[9].isDraw = false; // ç´ æ‰‹
-		meshes[4].isDraw =  // é¡”
+		meshes[0].isDraw = false; // ‚
+		meshes[2].isDraw = false; // ƒAƒbƒNƒX
+		meshes[8].isDraw = false;// ‘f‘«
+		meshes[15].isDraw = false; // „•
+		meshes[9].isDraw = false; // ‘fè
+		meshes[4].isDraw =  // Šç
 			meshes[5].isDraw =
 			meshes[16].isDraw =
 			meshes[17].isDraw =
@@ -31,7 +31,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 			meshes[21].isDraw = false;
 	}
 
-	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
+	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
 	shaderParamWithMaterialName =
 	{
 		{
@@ -113,7 +113,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 	modelRenderer->SetAutoUpdateTransform(false);
 
-	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿ãƒ¼ç”Ÿæˆ
+	// ƒAƒjƒ[ƒ^[¶¬
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
@@ -121,7 +121,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	anim->AddCallbackFunc("OnAttack4B", [this](const Animator::State& s) { OnEnterAnimAttack4B(s); }, [this](const Animator::State& s) { OnExitAnimAttack4B(s); });
 	anim->BindCallbacks();
 
-	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ç”Ÿæˆ
+	// ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰¶¬
 	float radius = 0.25f;
 	float totalHeight = 1.7f;
 	float capsuleHeight = totalHeight - radius * 2.0f;
@@ -138,10 +138,10 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	cc->SetOwnerAnchorAtCenter(false);
 	cc->SetOwnerAnchorOffsetY(0.0f);
 
-	// SetFootPosition ã¨ SetPosition ã¯ä¸¡æ–¹å‘¼ã°ãªã„
+	// SetFootPosition ‚Æ SetPosition ‚Í—¼•ûŒÄ‚Î‚È‚¢
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
-	// æ­¦å™¨åˆ¤å®š
+	// •Ší”»’è
 	weaponCollider = AddComponent<BoneSphereCollider>(
 		Layers::Get("PlayerAtk"),
 		model.get(),
@@ -150,7 +150,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		Matrix::CreateTranslation({-0.56f, 0, 0}));
 	weaponCollider->SetActive(false);
 
-	// ã‚­ãƒƒã‚¯åˆ¤å®š
+	// ƒLƒbƒN”»’è
 	footCollider = AddComponent<BoneSphereCollider>(
 		Layers::Get("PlayerAtk"),
 		model.get(),
@@ -240,7 +240,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	if (!self->IsActive()) return;
 	if (self != weaponCollider && self != footCollider) return;
 
-	// æ•µã‚’æ®´ã‚‹
+	// “G‚ğ‰£‚é
 
 	Actor* otherActor = other->GetOwnerAsActor();
 	if (!otherActor->CompareTag("Enemy")) return;
@@ -278,26 +278,26 @@ void Player::OnUpdate()
 
 	InputContext ctx = controller->Poll();
 
-	// ---- å…¥åŠ›ãƒ™ã‚¯ãƒˆãƒ«ã‚’ã‚«ãƒ¡ãƒ©YawåŸºæº–ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰æ–¹å‘ã«å¤‰æ› ----
+	// ---- “ü—ÍƒxƒNƒgƒ‹‚ğƒJƒƒ‰YawŠî€‚Ìƒ[ƒ‹ƒh•ûŒü‚É•ÏŠ· ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
 	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
-	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // å‹•ã‘ãªã„
+	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // “®‚¯‚È‚¢
 
 	Vector3 worldMoveDir = Vector3::Zero;
 	if (inputLen > 0.1f)
 	{
 		float camYaw = cameraController ? cameraController->GetCameraYaw() : 0.0f;
 
-		// ã‚«ãƒ¡ãƒ©ã®Yawå›è»¢è¡Œåˆ—ã§ãƒ­ãƒ¼ã‚«ãƒ«å…¥åŠ›ã‚’ãƒ¯ãƒ¼ãƒ«ãƒ‰æ–¹å‘ã¸
+		// ƒJƒƒ‰‚ÌYaw‰ñ“]s—ñ‚Åƒ[ƒJƒ‹“ü—Í‚ğƒ[ƒ‹ƒh•ûŒü‚Ö
 		float sinY = sinf(camYaw);
 		float cosY = cosf(camYaw);
 
-		// å…¥åŠ›(moveX=å³, moveZ=å‰) ã‚’ã‚«ãƒ¡ãƒ©åŸºæº–ã§ãƒ¯ãƒ¼ãƒ«ãƒ‰XZ ã«å¤‰æ›
+		// “ü—Í(moveX=‰E, moveZ=‘O) ‚ğƒJƒƒ‰Šî€‚Åƒ[ƒ‹ƒhXZ ‚É•ÏŠ·
 		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
 		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
 		worldMoveDir.Normalize();
 
-		// æ”»æ’ƒä¸­ã¯å…¥åŠ›ã«ã‚ˆã‚‹æ–¹å‘è»¢æ›ã‚’æ­¢ã‚ã‚‹
+		// UŒ‚’†‚Í“ü—Í‚É‚æ‚é•ûŒü“]Š·‚ğ~‚ß‚é
 		if (!isFreeze)
 		{
 			bool sprinting = ctx.sprint && inputLen > 0.1f;
@@ -309,7 +309,7 @@ void Player::OnUpdate()
 		}
 	}
 
-	// Speed / Sprint ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’Animatorã¸
+	// Speed / Sprint ƒpƒ‰ƒ[ƒ^‚ğAnimator‚Ö
 	bool sprinting = ctx.sprint && inputLen > 0.1f;
 	float speedParam = (inputLen < 0.1f) ? 0.0f : (sprinting ? 1.5f : inputLen);
 	anim->SetFloat("Speed",       speedParam);
@@ -322,7 +322,7 @@ void Player::OnUpdate()
 	PhysicsManager::PhysicsRaycastHit groundHit;
 	groundedByRay = RaycastGround(groundHit);
 
-	// é‡åŠ›
+	// d—Í
 	if (groundedByRay && verticalVelocity <= 0.0f)
 		verticalVelocity = 0.0f;
 	else
@@ -349,7 +349,7 @@ void Player::OnLateUpdate()
 
 	model->UpdateTransform(GetModelWorldTransform());
 
-	// æœ€çµ‚å§¿å‹¢ãŒæ±ºã¾ã£ãŸå¾Œã«ã€æ­¦å™¨ãƒãƒ¼ãƒ‰ã‚’åŒæœŸã™ã‚‹
+	// ÅIp¨‚ªŒˆ‚Ü‚Á‚½Œã‚ÉA•Šíƒm[ƒh‚ğ“¯Šú‚·‚é
 	SyncWeaponAttachNodes();
 
 	if (cc)
@@ -383,11 +383,6 @@ Matrix Player::GetModelWorldTransform() const
 
 bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
 {
-	uint32_t groundMask =
-		Layers::Get("Terrain") |
-		Layers::Get("Stage") |
-		Layers::Get("Prop");
-
 	Vector3 rayStart =
 		transform.position + Vector3(0.0f, groundSnapUpDistance, 0.0f);
 
@@ -399,7 +394,8 @@ bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
 		Vector3::Down,
 		rayDistance,
 		hit,
-		groundMask
+		Layers::Get("Player"),
+		this
 	);
 }
 
@@ -453,7 +449,7 @@ void Player::OnDamaged(const DamageData& damageData)
 
 	if (damageData.hitPosition.has_value())
 	{
-		// æ•µã®ä½ç½®ã«å¿œã˜ã¦ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿ
+		// “G‚ÌˆÊ’u‚É‰‚¶‚ÄƒAƒjƒ[ƒVƒ‡ƒ“Ä¶
 		Vector3 dir = damageData.hitPosition.value() - transform.position;
 		dir.Normalize();
 
@@ -477,3 +473,5 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::OnDead()
 {
 }
+
+

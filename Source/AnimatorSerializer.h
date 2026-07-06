@@ -1,4 +1,4 @@
-ï»¿// AnimatorSerializer.h
+// AnimatorSerializer.h
 
 #pragma once
 #include <algorithm>
@@ -88,6 +88,20 @@ public:
                 jState["editorPosX"] = state.editorPosX;
                 jState["editorPosY"] = state.editorPosY;
 
+                json jFootIKRanges = json::array();
+                for (const auto& range : state.footIKRanges)
+                {
+                    json jRange;
+                    jRange["name"] = range.name;
+                    jRange["targetName"] = range.targetName;
+                    jRange["startRatio"] = range.startRatio;
+                    jRange["endRatio"] = range.endRatio;
+                    jRange["weight"] = range.weight;
+                    jRange["fadeInRatio"] = range.fadeInRatio;
+                    jRange["fadeOutRatio"] = range.fadeOutRatio;
+                    jFootIKRanges.push_back(jRange);
+                }
+                jState["footIKRanges"] = jFootIKRanges;
                 // Transitions
                 json jTrans = json::array();
                 for (const auto& tr : state.transitions)
@@ -124,7 +138,7 @@ public:
                 }
                 jState["transitions"] = jTrans;
 
-                // Callbacks (label / enterTimePer / exitTimePer ã®ã¿ä¿å­˜ã€‚std::function ã¯ä¿å­˜ä¸å¯)
+                // Callbacks (label / enterTimePer / exitTimePer ‚Ì‚İ•Û‘¶Bstd::function ‚Í•Û‘¶•s‰Â)
                 json jCallbacks = json::array();
                 for (const auto& cb : state.callbacks)
                 {
@@ -186,7 +200,7 @@ public:
     }
 
     // -------------------------------------------------------
-    // Load  (æ—¢å­˜ãƒ‡ãƒ¼ã‚¿ã‚’å…¨ã¦ã‚¯ãƒªã‚¢ã—ã¦ä¸Šæ›¸ã)
+    // Load  (Šù‘¶ƒf[ƒ^‚ğ‘S‚ÄƒNƒŠƒA‚µ‚Äã‘‚«)
     // -------------------------------------------------------
     static void Load(Animator& anim, const std::string& path)
     {
@@ -268,9 +282,25 @@ public:
                     jState.value("editorPosY", 0.0f);
 
                 // Transitions
-                // AddTransition ã¯å†…éƒ¨ã§ã‚½ãƒ¼ãƒˆã™ã‚‹ãŸã‚ã€JSONã®é †ç•ªãŒå´©ã‚Œã‚‹ã€‚
-                // ç›´æ¥ push_back â†’ Condition ã‚’ä»˜ä¸ â†’ æœ€å¾Œã«ã¾ã¨ã‚ã¦ã‚½ãƒ¼ãƒˆã™ã‚‹ã€‚
+                // AddTransition ‚Í“à•”‚Åƒ\[ƒg‚·‚é‚½‚ßAJSON‚Ì‡”Ô‚ª•ö‚ê‚éB
+                // ’¼Ú push_back ¨ Condition ‚ğ•t—^ ¨ ÅŒã‚É‚Ü‚Æ‚ß‚Äƒ\[ƒg‚·‚éB
                 auto& stateRef = anim.GetLayer(li).states[si];
+                if (jState.contains("footIKRanges"))
+                {
+                    for (const auto& jRange : jState["footIKRanges"])
+                    {
+                        Animator::FootIKRange range;
+                        range.name = jRange.value("name", std::string("FootIK"));
+                        range.targetName = jRange.value("targetName", jRange.value("targetBoneName", std::string("All")));
+                        if (range.targetName.empty()) range.targetName = "All";
+                        range.startRatio = jRange.value("startRatio", 0.0f);
+                        range.endRatio = jRange.value("endRatio", 1.0f);
+                        range.weight = jRange.value("weight", 1.0f);
+                        range.fadeInRatio = jRange.value("fadeInRatio", 0.03f);
+                        range.fadeOutRatio = jRange.value("fadeOutRatio", 0.03f);
+                        stateRef.footIKRanges.push_back(range);
+                    }
+                }
                 for (const auto& jTr : jState["transitions"])
                 {
                     Animator::Transition tr;
@@ -304,13 +334,13 @@ public:
                     }
                     stateRef.transitions.push_back(tr);
                 }
-                // JSON ã®ä¸¦ã³é † = priority é †ã¨ã—ã¦ä¿å­˜ã•ã‚Œã¦ã„ã‚‹ã®ã§ã‚½ãƒ¼ãƒˆä¸è¦ã ãŒã€
-                // å¿µã®ãŸã‚ priority å€¤ã§ã‚½ãƒ¼ãƒˆã—ã¦æ•´åˆæ€§ã‚’ä¿ã¤
+                // JSON ‚Ì•À‚Ñ‡ = priority ‡‚Æ‚µ‚Ä•Û‘¶‚³‚ê‚Ä‚¢‚é‚Ì‚Åƒ\[ƒg•s—v‚¾‚ªA
+                // ”O‚Ì‚½‚ß priority ’l‚Åƒ\[ƒg‚µ‚Ä®‡«‚ğ•Û‚Â
                 std::sort(stateRef.transitions.begin(), stateRef.transitions.end(),
                           [](const Animator::Transition& a, const Animator::Transition& b)
                 { return a.priority > b.priority; });
 
-                // Callbacks ã®å¾©å…ƒï¼ˆlabel / enter / exit ã®ã¿ã€‚std::function ã¯ BindCallbacks() ã§å†ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹ï¼‰
+                // Callbacks ‚Ì•œŒ³ilabel / enter / exit ‚Ì‚İBstd::function ‚Í BindCallbacks() ‚ÅÄƒoƒCƒ“ƒh‚·‚éj
                 if (jState.contains("callbacks"))
                 {
                     for (const auto& jCb : jState["callbacks"])
@@ -371,3 +401,6 @@ public:
         }
     }
 };
+
+
+

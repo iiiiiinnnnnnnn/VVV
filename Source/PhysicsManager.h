@@ -209,6 +209,7 @@ public:
         Vector3 position = Vector3::Zero;
         Vector3 normal = Vector3::Up;
         float distance = 0.0f;
+        LayerId layerId = InvalidLayerId;
     };
 
     bool Raycast(

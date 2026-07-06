@@ -1,4 +1,4 @@
-// FootIK.h
+ï»¿// FootIK.h
 
 #pragma once
 #include <algorithm>
@@ -38,6 +38,9 @@ public:
 	void SetPoleLiftY(float liftY) { poleLiftY = liftY; }
 	void SetRootRotationOffset(const Quaternion& offset) { rootRotationOffset = offset; }
 	void SetLiftOnly(bool value) { liftOnly = value; }
+	void SetDownwardWeight(float weight) { downwardWeight = std::clamp(weight, 0.0f, 1.0f); }
+	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
+	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
 	void SetAlwaysRenderDebug(bool value) { alwaysRenderDebug = value; }
 
 	void SetTarget(const Vector3& targetPosition);
@@ -57,6 +60,10 @@ public:
 	Vector3 GetContactWorldPosition() const;
 	bool HasGroundContact() const { return hasGroundContact; }
 	float GetGroundOffsetY() const { return groundOffsetY; }
+	bool HasRawGroundHit() const { return hasRawGroundHit; }
+	LayerId GetLastHitLayerId() const { return lastHitLayerId; }
+	LayerId GetLastRawHitLayerId() const { return lastRawHitLayerId; }
+	float GetLastHitNormalY() const { return lastHitNormalY; }
 
 	void SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform);
 
@@ -68,7 +75,7 @@ private:
 		Model::Node* root = nullptr;    // thigh
 		Model::Node* mid = nullptr;     // calf
 		Model::Node* tip = nullptr;     // foot
-		Model::Node* contact = nullptr; // ballB‚È‚¯‚ê‚Î foot
+		Model::Node* contact = nullptr; // ballã€‚ãªã‘ã‚Œã° foot
 
 		Vector3 targetPosition = Vector3::Zero;
 		Vector3 polePosition = Vector3::Zero;
@@ -87,7 +94,14 @@ private:
 	bool hasGroundContact = false;
 	bool liftOnly = false;
 	bool alwaysRenderDebug = false;
+	float downwardWeight = 1.0f;
+	float maxUpCorrection = 2.0f;
+	float maxDownCorrection = 2.0f;
 	float groundOffsetY = 0.0f;
+	bool hasRawGroundHit = false;
+	LayerId lastHitLayerId = InvalidLayerId;
+	LayerId lastRawHitLayerId = InvalidLayerId;
+	float lastHitNormalY = 0.0f;
 	Vector3 smoothedTargetPosition = Vector3::Zero;
 	bool hasSmoothedTarget = false;
 	float smoothedGroundOffsetY = 0.0f;
@@ -102,6 +116,16 @@ private:
 	void ResetGroundState();
 	void KeepPreviousGroundTarget();
 	void SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY);
+	Matrix GetModelOwnerWorldTransform() const;
+
+	static bool IsDescendantOf(const Model::Node* ancestor, const Model::Node* node)
+	{
+		for (const Model::Node* current = node; current; current = current->parent)
+		{
+			if (current == ancestor) return true;
+		}
+		return false;
+	}
 
 	static void UpdateWorldTransforms(Model::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{
@@ -171,12 +195,3 @@ private:
 		bone.rotation.Normalize();
 	}
 };
-
-
-
-
-
-
-
-
-

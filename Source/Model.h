@@ -1,4 +1,4 @@
-ï»¿// Model.h
+// Model.h
 
 #pragma once
 #include <d3d11.h>
@@ -55,7 +55,7 @@ public:
 
 	struct Material
 	{
-		// ä¿å­˜ã™ã‚‹
+		// •Û‘¶‚·‚é
 		std::string			name;
 		std::string			baseTextureFileName;
 		std::string			normalTextureFileName;
@@ -63,7 +63,7 @@ public:
 		std::string			occlusionTextureFileName;
 		std::string			metalnessRoughnessTextureFileName;
 
-		// åŸ‹ã‚è¾¼ã‚€DDSãƒ‡ãƒ¼ã‚¿
+		// –„‚ß‚ŞDDSƒf[ƒ^
 		std::vector<uint8_t>	baseTextureDDS;
 		std::vector<uint8_t>	normalTextureDDS;
 		std::vector<uint8_t>	emissiveTextureDDS;
@@ -77,9 +77,9 @@ public:
 		float				occlusionStrength = 0.0f;
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
-		ShaderParamList		shaderParams = {}; // ã‚«ã‚¹ã‚¿ãƒ ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
+		ShaderParamList		shaderParams = {}; // ƒJƒXƒ^ƒ€ƒpƒ‰ƒ[ƒ^
 
-		// ä¿å­˜ã—ãªã„
+		// •Û‘¶‚µ‚È‚¢
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	emissiveMap;
@@ -115,14 +115,14 @@ public:
 
 	struct Mesh
 	{
-		// ä¿å­˜ã™ã‚‹
+		// •Û‘¶‚·‚é
 		std::vector<Vertex>		vertices;
 		std::vector<uint32_t>	indices;
 		std::vector<Bone>		bones;
 		int			nodeIndex = 0;
 		int			materialIndex = 0;
 
-		// ä¿å­˜ã—ãªã„
+		// •Û‘¶‚µ‚È‚¢
 		Material* material = nullptr;
 		Node* node = nullptr;
 		bool		isDraw = true;
@@ -151,6 +151,20 @@ public:
 		void serialize(Archive& archive);
 	};
 
+	struct FootIKRange
+	{
+		std::string name = "FootIK";
+		int footIndex = -1;
+		float startRatio = 0.0f;
+		float endRatio = 1.0f;
+		float weight = 1.0f;
+		float fadeInRatio = 0.03f;
+		float fadeOutRatio = 0.03f;
+
+		template<class Archive>
+		void serialize(Archive& archive);
+	};
+
 	struct NodeAnim
 	{
 		std::vector<VectorKeyframe>		positionKeyframes;
@@ -166,6 +180,7 @@ public:
 		std::string					name;
 		float						secondsLength;
 		std::vector<NodeAnim>		nodeAnims;
+		std::vector<FootIKRange>	footIKRanges;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -187,56 +202,58 @@ public:
 		}
 	};
 
-	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¿½åŠ èª­ã¿è¾¼ã¿
+	// ƒAƒjƒ[ƒVƒ‡ƒ“’Ç‰Á“Ç‚İ‚İ
 	void AppendAnimations(const char* filename);
 
-	// ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿å–å¾—
+	// ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^æ“¾
 	const std::vector<Material>& GetMaterials() const { return materials; }
 	std::vector<Material>& GetMaterials() { return materials; }
 
-	// ãƒ¡ãƒƒã‚·ãƒ¥ãƒ‡ãƒ¼ã‚¿å–å¾—
+	// ƒƒbƒVƒ…ƒf[ƒ^æ“¾
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }
 
-	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‡ãƒ¼ã‚¿å–å¾—
+	// ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^æ“¾
 	const std::vector<Animation>& GetAnimations() const { return animations; }
 	std::vector<Animation>& GetAnimations() { return animations; }
 
-	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
+	// ƒAƒjƒ[ƒVƒ‡ƒ“ƒCƒ“ƒfƒbƒNƒXæ“¾
 	int GetAnimationIndex(const char* name) const;
 
-	// ãƒãƒ¼ãƒ‰ãƒ‡ãƒ¼ã‚¿å–å¾—
+	// ƒm[ƒhƒf[ƒ^æ“¾
 	const std::vector<Node>& GetNodes() const { return nodes; }
 	std::vector<Node>& GetNodes() { return nodes; }
 
-	// ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰å–å¾—
+	// ƒ‹[ƒgƒm[ƒhæ“¾
 	Node* GetRootNode() { return nodes.data(); }
 
-	// ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å–å¾—
+	// ƒm[ƒhƒCƒ“ƒfƒbƒNƒXæ“¾
 	int GetNodeIndex(const char* name) const;
 
-	// ãƒˆãƒ©ãƒ³ã‚¹ãƒ•ã‚©ãƒ¼ãƒ æ›´æ–°å‡¦ç†
+	// ƒgƒ‰ƒ“ƒXƒtƒH[ƒ€XVˆ—
 	void UpdateTransform(const Matrix& worldTransform);
 
 	const Matrix& GetWorldTransform() const;
 
-	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—
+	// ƒAƒjƒ[ƒVƒ‡ƒ“ŒvZ
 	void ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const;
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
+	float EvaluateFootIKWeight(int animationIndex, float time, int footIndex = -1) const;
+	bool SaveVmdl();
 
-	// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºè¨­å®š
+	// ƒm[ƒhƒ|[ƒYİ’è
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
-	// ãƒãƒ¼ãƒ‰ãƒãƒ¼ã‚ºå–å¾—
+	// ƒm[ƒhƒ|[ƒYæ“¾
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
 
 	void _print() const;
 
 private:
-	// ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
+	// ƒVƒŠƒAƒ‰ƒCƒY
 	void Serialize(const char* filename, uint64_t lastWrite);
 
-	// ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚º
+	// ƒfƒVƒŠƒAƒ‰ƒCƒY
 	void Deserialize(const char* filename, uint64_t& lastWrite);
 
 	uint64_t GetFileLastWriteTime64(const std::filesystem::path& path);
@@ -254,4 +271,7 @@ private:
 	std::vector<Mesh>		meshes;
 	std::vector<Node>		nodes;
 	std::vector<Animation>	animations;
+	std::filesystem::path modelCacheFilepath;
+	uint64_t modelCacheLastWrite = 0;
 };
+

@@ -31,6 +31,12 @@ FootIK::FootIK(
 	{
 		chain.contact = chain.tip;
 	}
+
+	if (!IsDescendantOf(chain.root, chain.mid) ||
+		!IsDescendantOf(chain.mid, chain.tip))
+	{
+		chain.enabled = false;
+	}
 }
 
 bool FootIK::UpdateGroundTarget(
@@ -66,6 +72,11 @@ bool FootIK::UpdateGroundTarget(
 	direction.Normalize();
 
 	PhysicsManager::PhysicsRaycastHit hit;
+	PhysicsManager::PhysicsRaycastHit rawHit;
+	lastHitLayerId = InvalidLayerId;
+	lastRawHitLayerId = InvalidLayerId;
+	hasRawGroundHit = false;
+	lastHitNormalY = 0.0f;
 
 	if (!PhysicsManager::Instance().Raycast(
 		rayStart,
@@ -75,9 +86,20 @@ bool FootIK::UpdateGroundTarget(
 		layerId,
 		GetOwnerAsActor()))
 	{
+		hasRawGroundHit = PhysicsManager::Instance().Raycast(
+			rayStart,
+			direction,
+			distance,
+			rawHit,
+			-1,
+			GetOwnerAsActor());
+		lastRawHitLayerId = hasRawGroundHit ? rawHit.layerId : InvalidLayerId;
 		KeepPreviousGroundTarget();
 		return false;
 	}
+
+	lastHitLayerId = hit.layerId;
+	lastHitNormalY = hit.normal.y;
 
 	// •Ç‚â‹}‚·‚¬‚é–Ê‚ð’n–Êˆµ‚¢‚µ‚È‚¢
 	if (hit.normal.y < 0.35f)
@@ -88,13 +110,40 @@ bool FootIK::UpdateGroundTarget(
 
 	Vector3 targetContactPosition =
 		hit.position + hit.normal * contactOffset;
-	const float targetGroundOffsetY =
+	float targetGroundOffsetY =
 		targetContactPosition.y - currentContactPosition.y;
+	float targetWeight = 1.0f;
 
-	if (liftOnly && targetGroundOffsetY <= 0.001f)
+	if (targetGroundOffsetY < -0.001f)
 	{
-		ResetGroundState();
-		return false;
+		if (liftOnly || downwardWeight <= 0.001f)
+		{
+			ResetGroundState();
+			return false;
+		}
+
+		float limitedGroundOffsetY = targetGroundOffsetY;
+		if (limitedGroundOffsetY < -maxDownCorrection)
+		{
+			limitedGroundOffsetY = -maxDownCorrection;
+		}
+
+		targetWeight =
+			(targetGroundOffsetY != 0.0f)
+			? limitedGroundOffsetY / targetGroundOffsetY
+			: 0.0f;
+		targetWeight *= downwardWeight;
+		targetWeight = std::clamp(targetWeight, 0.0f, 1.0f);
+		targetGroundOffsetY *= targetWeight;
+	}
+	else if (targetGroundOffsetY > maxUpCorrection)
+	{
+		targetWeight =
+			(targetGroundOffsetY != 0.0f)
+			? maxUpCorrection / targetGroundOffsetY
+			: 0.0f;
+		targetWeight = std::clamp(targetWeight, 0.0f, 1.0f);
+		targetGroundOffsetY *= targetWeight;
 	}
 
 	SetTargetFromContact(
@@ -102,6 +151,12 @@ bool FootIK::UpdateGroundTarget(
 		hit.normal,
 		contactOffset
 	);
+
+	if (targetWeight < 0.999f)
+	{
+		const Vector3 currentTipPosition = Matrix(chain.tip->worldTransform).Translation();
+		chain.targetPosition = Vector3::Lerp(currentTipPosition, chain.targetPosition, targetWeight);
+	}
 
 	SetSmoothedTarget(
 		chain.targetPosition,
@@ -309,19 +364,35 @@ void FootIK::SyncPoleWorldPosition()
 
 	chain.polePosition = Vector3::Transform(
 		chain.poleLocalPosition,
-		model->GetWorldTransform());
+		GetOwnerAsActor()->transform.matrix);
 }
 
 void FootIK::SyncPoleLocalPosition()
 {
 	if (!model) return;
 
-	Matrix inverseModelWorldTransform = model->GetWorldTransform().Invert();
+	Matrix inverseModelWorldTransform = GetModelOwnerWorldTransform().Invert();
 	chain.poleLocalPosition = Vector3::Transform(
 		chain.polePosition,
 		inverseModelWorldTransform);
 }
 
+
+Matrix FootIK::GetModelOwnerWorldTransform() const
+{
+	if (!model) return Matrix::Identity;
+
+	for (const Model::Node& node : model->GetNodes())
+	{
+		if (node.parent) continue;
+
+		Matrix rootGlobalTransform = node.globalTransform;
+		Matrix rootWorldTransform = node.worldTransform;
+		return rootGlobalTransform.Invert() * rootWorldTransform;
+	}
+
+	return Matrix::Identity;
+}
 Vector3 FootIK::GetPoleWorldPosition() const
 {
 	return chain.polePosition;
@@ -353,6 +424,8 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 {
 	if (!chain.enabled) return;
 
+	const Matrix ownerWorldTransform = GetModelOwnerWorldTransform();
+
 	float targetWeight = hasGroundContact ? 1.0f : 0.0f;
 	float blendRate = 1.0f - expf(-ikBlendSpeed * Game::Time::deltaTime);
 	blendRate = std::clamp(blendRate, 0.0f, 1.0f);
@@ -369,6 +442,16 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	Quaternion originalRootRotation = rootBone.rotation;
 	Quaternion originalMidRotation = midBone.rotation;
+	auto restoreOriginalPose = [&]()
+	{
+		rootBone.rotation = originalRootRotation;
+		midBone.rotation = originalMidRotation;
+		UpdateWorldTransforms(rootBone, ownerWorldTransform);
+	};
+
+	rootBone.rotation *= rootRotationOffset;
+	rootBone.rotation.Normalize();
+	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 
 	Matrix RootWorldTransform = rootBone.worldTransform;
 	Matrix MidWorldTransform = midBone.worldTransform;
@@ -389,9 +472,21 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	float rootMidLength = RootMidVec.Length();
 	float midTipLength = MidTipVec.Length();
 
-	if (rootTargetLength < 0.001f) return;
-	if (rootMidLength < 0.001f) return;
-	if (midTipLength < 0.001f) return;
+	if (rootTargetLength < 0.001f)
+	{
+		restoreOriginalPose();
+		return;
+	}
+	if (rootMidLength < 0.001f)
+	{
+		restoreOriginalPose();
+		return;
+	}
+	if (midTipLength < 0.001f)
+	{
+		restoreOriginalPose();
+		return;
+	}
 
 	Vector3 RootTargetDirection = RootTargetVec;
 	RootTargetDirection.Normalize();
@@ -461,7 +556,7 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 		}
 	}
 
-	UpdateWorldTransforms(rootBone, modelWorldTransform);
+	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 
 	MidWorldTransform = midBone.worldTransform;
 	TipWorldTransform = tipBone.worldTransform;
@@ -474,7 +569,7 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	RotateBone(midBone, MidTipVec, MidTargetVec);
 
-	UpdateWorldTransforms(midBone, modelWorldTransform);
+	UpdateWorldTransforms(midBone, ownerWorldTransform);
 
 	Quaternion solvedRootRotation = rootBone.rotation;
 	Quaternion solvedMidRotation = midBone.rotation;
@@ -484,5 +579,6 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	midBone.rotation = Quaternion::Slerp(originalMidRotation, solvedMidRotation, chain.weight);
 	midBone.rotation.Normalize();
 
-	UpdateWorldTransforms(rootBone, modelWorldTransform);
+	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 }
+

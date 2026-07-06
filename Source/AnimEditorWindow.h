@@ -1,4 +1,4 @@
-ï»¿// AnimEditorWindow.h
+// AnimEditorWindow.h
 
 #pragma once
 #include <imgui.h>
@@ -22,9 +22,9 @@
 namespace ed = ax::NodeEditor;
 
 // -------------------------------------------------------
-// ID å‰²ã‚Šå½“ã¦è¦å‰‡
+// ID Š„‚è“–‚Ä‹K‘¥
 //   Node  ID : layerIndex * 10000 + stateIndex + 1      (1-based)
-//   Pin   ID : layerIndex * 100000 + stateIndex * 100 + pinSlot (å‡ºåŠ›=0, å…¥åŠ›=1..N)
+//   Pin   ID : layerIndex * 100000 + stateIndex * 100 + pinSlot (o—Í=0, “ü—Í=1..N)
 //   Link  ID : base + layerIndex * 2000000 + fromState * 1000 + transitionIndex
 // -------------------------------------------------------
 
@@ -46,12 +46,12 @@ public:
             ed::DestroyEditor(context);
     }
 
-    // Animator::DrawGUI() ã‹ã‚‰æ¯ãƒ•ãƒ¬ãƒ¼ãƒ å‘¼ã¶
+    // Animator::DrawGUI() ‚©‚ç–ˆƒtƒŒ[ƒ€ŒÄ‚Ô
     void Draw(bool* pOpen)
     {
         if (!pOpen || !*pOpen) return;
 
-        // cppå´ã‹ã‚‰ãƒ­ãƒ¼ãƒ‰ã•ã‚ŒãŸå ´åˆã€ãƒ‘ã‚¹ã‚’åŒæœŸ
+        // cpp‘¤‚©‚çƒ[ƒh‚³‚ê‚½ê‡AƒpƒX‚ğ“¯Šú
         if (!animator->GetLastPath().empty() &&
             m_currentFilePath[0] == '\0')
         {
@@ -70,7 +70,7 @@ public:
             return;
         }
 
-        // ---- ãƒ¬ã‚¤ãƒ¤ãƒ¼ ã‚¿ãƒ– -----------------------------------------
+        // ---- ƒŒƒCƒ„[ ƒ^ƒu -----------------------------------------
         const int layerCount = (int)animator->GetLayerCount();
         if (layerCount == 0)
         {
@@ -86,7 +86,7 @@ public:
         {
             if (m_currentFilePath[0] == '\0')
             {
-                // æœªä¿å­˜ãªã‚‰ SaveAs ã¸
+                // –¢•Û‘¶‚È‚ç SaveAs ‚Ö
                 if (Dialog::SaveFileName(m_currentFilePath, MAX_PATH,
                     "Animator File\0*.animator\0All Files\0*.*\0\0",
                     "Save Animator", "animator") == DialogResult::OK)
@@ -139,9 +139,9 @@ public:
             animator->IsDynamicMode() ? "Dynamic Mode" : "Model Mode");
         ImGui::Separator();
 
-        // ---- ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚¿ãƒ– + ç®¡ç†ãƒœã‚¿ãƒ³ ---------------------------------
-        // å·¦ã«ã‚ã‚‹ãƒ¬ã‚¤ãƒ¤ãƒ¼ã»ã©å„ªå…ˆåº¦ãŒé«˜ã„ï¼ˆUpdateã®è©•ä¾¡é †ï¼‰
-        // < > ãƒœã‚¿ãƒ³ã§éš£ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¨å…¥ã‚Œæ›¿ãˆ
+        // ---- ƒŒƒCƒ„[ƒ^ƒu + ŠÇ—ƒ{ƒ^ƒ“ ---------------------------------
+        // ¶‚É‚ ‚éƒŒƒCƒ„[‚Ù‚Ç—Dæ“x‚ª‚‚¢iUpdate‚Ì•]‰¿‡j
+        // < > ƒ{ƒ^ƒ“‚Å—×‚ÌƒŒƒCƒ„[‚Æ“ü‚ê‘Ö‚¦
         if (ImGui::BeginTabBar("Layers"))
         {
             for (int li = 0; li < layerCount; ++li)
@@ -154,7 +154,7 @@ public:
                 {
                     currentLayer = li;
 
-                    // ä¸¦ã³æ›¿ãˆãƒœã‚¿ãƒ³ï¼ˆã‚¿ãƒ–å†…ã«è¡¨ç¤ºï¼‰
+                    // •À‚Ñ‘Ö‚¦ƒ{ƒ^ƒ“iƒ^ƒu“à‚É•\¦j
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 1));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.6f));
 
@@ -165,7 +165,7 @@ public:
                     if (ImGui::SmallButton("<"))
                     {
                         animator->SwapLayers(li, li - 1);
-                        // selectedTrans / selectedState ã® layerIndex ã‚’è¿½å¾“
+                        // selectedTrans / selectedState ‚Ì layerIndex ‚ğ’Ç]
                         if (selectedTrans.layerIndex == li)       selectedTrans.layerIndex = li - 1;
                         else if (selectedTrans.layerIndex == li - 1) selectedTrans.layerIndex = li;
                         if (selectedState.layerIndex == li)       selectedState.layerIndex = li - 1;
@@ -197,14 +197,14 @@ public:
                 }
             }
 
-            // + ãƒœã‚¿ãƒ³ã§ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ 
+            // + ƒ{ƒ^ƒ“‚ÅƒŒƒCƒ„[’Ç‰Á
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing))
                 animator->AddLayer("New Layer", Animator::BlendMode::Override, 1.0f, {});
 
             ImGui::EndTabBar();
         }
 
-        // ---- ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ ãƒ¢ãƒ¼ãƒ€ãƒ« ---------------------------------------
+        // ---- ƒŒƒCƒ„[’Ç‰Áƒ‚[ƒ_ƒ‹ ---------------------------------------
         ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Always);
         if (ImGui::BeginPopupModal("AddLayerModal", nullptr,
             ImGuiWindowFlags_NoResize))
@@ -268,10 +268,10 @@ private:
     int          currentLayer = 0;
     char m_currentFilePath[MAX_PATH] = {};
 
-    // AnyState ã®å†…éƒ¨è¡¨ç¾ç”¨ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ï¼ˆã‚¹ãƒ†ãƒ¼ãƒˆã¨è¡çªã—ãªã„å¤§ããªå€¤ã‚’ä½¿ç”¨ï¼‰
+    // AnyState ‚Ì“à•”•\Œ»—pƒCƒ“ƒfƒbƒNƒXiƒXƒe[ƒg‚ÆÕ“Ë‚µ‚È‚¢‘å‚«‚È’l‚ğg—pj
     static constexpr int ANY_STATE_INDEX = 999;
 
-    // é¸æŠä¸­ã®ãƒªãƒ³ã‚¯ (é·ç§») ã‚’è¦šãˆã¦ãŠããŸã‚ã®æƒ…å ±
+    // ‘I‘ğ’†‚ÌƒŠƒ“ƒN (‘JˆÚ) ‚ğŠo‚¦‚Ä‚¨‚­‚½‚ß‚Ìî•ñ
     struct SelectedTransition
     {
         int layerIndex = -1;
@@ -280,11 +280,11 @@ private:
     };
     SelectedTransition selectedTrans;
 
-    // é¸æŠä¸­ã®ã‚¹ãƒ†ãƒ¼ãƒˆ
+    // ‘I‘ğ’†‚ÌƒXƒe[ƒg
     struct SelectedState { int layerIndex = -1; int stateIndex = -1; };
     SelectedState selectedState;
 
-    // ãƒãƒ¼ãƒ‰ã®åˆæœŸé…ç½®ã‚ªãƒ•ã‚»ãƒƒãƒˆ (åˆå›ã®ã¿ä½¿ã†)
+    // ƒm[ƒh‚Ì‰Šú”z’uƒIƒtƒZƒbƒg (‰‰ñ‚Ì‚İg‚¤)
     std::unordered_map<int /*nodeId*/, bool> positionSet;
 
     ImVec2 m_contextMenuPos = { 0.0f, 0.0f };
@@ -296,24 +296,25 @@ private:
     ed::LinkId m_deleteLinkId;
     bool m_suppressNodeEditorInteractions = false;
 
-    float  m_leftPanelWidth = 230.0f;  // å·¦ãƒ‘ãƒãƒ«å¹…ï¼ˆãƒ‰ãƒ©ãƒƒã‚°ã§å¤‰æ›´å¯èƒ½ï¼‰
+    float  m_leftPanelWidth = 230.0f;  // ¶ƒpƒlƒ‹•iƒhƒ‰ƒbƒO‚Å•ÏX‰Â”\j
 
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ ç”¨ãƒã‚¹ã‚¯é¸æŠ
+    // ƒŒƒCƒ„[’Ç‰Á—pƒ}ƒXƒN‘I‘ğ
     bool                m_addLayerPopupOpen = false;
     char                m_addLayerName[64] = "New Layer";
-    std::vector<bool>   m_maskSelection;      // ãƒœãƒ¼ãƒ³ã”ã¨ã®é¸æŠçŠ¶æ…‹
-    int                 m_contextLayerIndex = -1; // å³ã‚¯ãƒªãƒƒã‚¯ã—ãŸã‚¿ãƒ–ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼Index
+    std::vector<bool>   m_maskSelection;      // ƒ{[ƒ“‚²‚Æ‚Ì‘I‘ğó‘Ô
+    int                 m_contextLayerIndex = -1; // ‰EƒNƒŠƒbƒN‚µ‚½ƒ^ƒu‚ÌƒŒƒCƒ„[Index
+    int                 m_keyEditorNodeIndex = 0;
 
     // -------------------------------------------------------------------
-    // ID ãƒ˜ãƒ«ãƒ‘ãƒ¼
+    // ID ƒwƒ‹ƒp[
     // -------------------------------------------------------------------
     static ed::PinId OutPin(int li, int si)
     {
-        return ed::PinId(100000 + li * 10000 + si * 2 + 0);  // ãƒ™ãƒ¼ã‚¹100000ã‚’è¿½åŠ 
+        return ed::PinId(100000 + li * 10000 + si * 2 + 0);  // ƒx[ƒX100000‚ğ’Ç‰Á
     }
     static ed::PinId InPin(int li, int si)
     {
-        return ed::PinId(100000 + li * 10000 + si * 2 + 1);  // ãƒ™ãƒ¼ã‚¹100000ã‚’è¿½åŠ 
+        return ed::PinId(100000 + li * 10000 + si * 2 + 1);  // ƒx[ƒX100000‚ğ’Ç‰Á
     }
     static ed::NodeId NodeId(int li, int si)
     {
@@ -333,7 +334,7 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚¨ãƒ‡ã‚£ã‚¿æœ¬ä½“
+    // ƒŒƒCƒ„[ƒGƒfƒBƒ^–{‘Ì
     // -------------------------------------------------------------------
     void DrawLayerEditor(Animator::AnimatorLayer& layer, int li)
     {
@@ -356,7 +357,7 @@ private:
 
         ImGui::EndChild();
 
-        // ã‚¹ãƒ—ãƒªãƒƒã‚¿ï¼ˆãƒ‰ãƒ©ãƒƒã‚°ã§å·¦ãƒ‘ãƒãƒ«å¹…ã‚’å¤‰æ›´ï¼‰
+        // ƒXƒvƒŠƒbƒ^iƒhƒ‰ƒbƒO‚Å¶ƒpƒlƒ‹•‚ğ•ÏXj
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.5f, 0.5f, 0.8f));
@@ -396,11 +397,11 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒãƒ¼ãƒ‰æç”»
+    // ƒm[ƒh•`‰æ
     // -------------------------------------------------------------------
     void DrawNodes(Animator::AnimatorLayer& layer, int li)
     {
-        // é…ç½®å¾…ã¡ãƒãƒ¼ãƒ‰ãŒã‚ã‚Œã°ä»Šãƒ•ãƒ¬ãƒ¼ãƒ ã§ä½ç½®ã‚’ã‚»ãƒƒãƒˆ
+        // ”z’u‘Ò‚¿ƒm[ƒh‚ª‚ ‚ê‚Î¡ƒtƒŒ[ƒ€‚ÅˆÊ’u‚ğƒZƒbƒg
         if (m_pendingNodePlace && m_pendingNodeSi >= 0 &&
             m_pendingNodeSi < (int)layer.states.size())
         {
@@ -414,7 +415,7 @@ private:
             m_pendingNodeSi = -1;
         }
 
-        // ---- AnyState ãƒãƒ¼ãƒ‰ã‚’å…ˆã«è¡¨ç¤º ----
+        // ---- AnyState ƒm[ƒh‚ğæ‚É•\¦ ----
         {
             ax::NodeEditor::NodeId nid = NodeId(li, ANY_STATE_INDEX);
             int nidInt = (int)nid.Get();
@@ -435,7 +436,7 @@ private:
                 }
             }
 
-            // AnyState ã‚’ç›®ç«‹ãŸã›ã‚‹è‰²
+            // AnyState ‚ğ–Ú—§‚½‚¹‚éF
             ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBorder,
                                            ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
 
@@ -448,7 +449,7 @@ private:
 
             ImGui::TextDisabled("From any state");
 
-            // å‡ºåŠ›ãƒ”ãƒ³ã®ã¿
+            // o—Íƒsƒ“‚Ì‚İ
             ax::NodeEditor::BeginPin(OutPin(li, ANY_STATE_INDEX), ax::NodeEditor::PinKind::Output);
             ImGui::PushID((int)OutPin(li, ANY_STATE_INDEX).Get());
             ImGui::TextUnformatted("A");
@@ -460,10 +461,10 @@ private:
 
             ax::NodeEditor::PopStyleColor();
 
-            // AnyState ãƒãƒ¼ãƒ‰é¸æŠæ™‚ã®æŒ™å‹•ï¼šå·¦ãƒ‘ãƒãƒ«ã§ AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸€è¦§ãŒè¦‹ãˆã‚‹ã‚ˆã†
+            // AnyState ƒm[ƒh‘I‘ğ‚Ì‹““®F¶ƒpƒlƒ‹‚Å AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“ˆê——‚ªŒ©‚¦‚é‚æ‚¤
             if (ed::IsNodeSelected(nid) && !ImGui::IsMouseDragging(0))
             {
-                // é¸æŠçŠ¶æ…‹ã¯å·¦ãƒ‘ãƒãƒ«ã® AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸€è¦§ã§æ‰±ã†ã€‚
+                // ‘I‘ğó‘Ô‚Í¶ƒpƒlƒ‹‚Ì AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“ˆê——‚Åˆµ‚¤B
                 selectedState = {};
                 selectedTrans = {};
             }
@@ -507,7 +508,7 @@ private:
 
             ax::NodeEditor::BeginNode(nid);
 
-            // ãƒãƒ¼ãƒ‰å…¨ä½“ã‚’ li,si ã§ã‚¹ã‚³ãƒ¼ãƒ—
+            // ƒm[ƒh‘S‘Ì‚ğ li,si ‚ÅƒXƒR[ƒv
             ImGui::PushID(li * 10000 + si);
 
             ImVec4 nameCol = (si == 0)
@@ -539,7 +540,7 @@ private:
                 }
             }
 
-            // å…¥åŠ›ãƒ”ãƒ³
+            // “ü—Íƒsƒ“
             ax::NodeEditor::BeginPin(InPin(li, si), ax::NodeEditor::PinKind::Input);
             ImGui::PushID((int)InPin(li, si).Get());
             ImGui::TextUnformatted(">");
@@ -548,7 +549,7 @@ private:
 
             ImGui::SameLine(140.0f);
 
-            // å‡ºåŠ›ãƒ”ãƒ³
+            // o—Íƒsƒ“
             ax::NodeEditor::BeginPin(OutPin(li, si), ax::NodeEditor::PinKind::Output);
             ImGui::PushID((int)OutPin(li, si).Get());
             ImGui::TextUnformatted("o");
@@ -575,7 +576,7 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒªãƒ³ã‚¯æç”»
+    // ƒŠƒ“ƒN•`‰æ
     // -------------------------------------------------------------------
     void DrawLinks(Animator::AnimatorLayer& layer, int li)
     {
@@ -588,7 +589,7 @@ private:
                 if (tr.toStateIndex < 0 ||
                     tr.toStateIndex >= (int)layer.states.size()) continue;
 
-                // é¸æŠä¸­ã¯è‰²ã‚’å¤‰ãˆã‚‹
+                // ‘I‘ğ’†‚ÍF‚ğ•Ï‚¦‚é
                 bool isSelected =
                     (selectedTrans.layerIndex == li &&
                      selectedTrans.fromStateIndex == si &&
@@ -605,7 +606,7 @@ private:
             }
         }
 
-        // AnyState ã‹ã‚‰ã®é·ç§»ã‚’æç”»
+        // AnyState ‚©‚ç‚Ì‘JˆÚ‚ğ•`‰æ
         for (int ti = 0; ti < (int)layer.anyStateTransitions.size(); ++ti)
         {
             const Animator::Transition& tr = layer.anyStateTransitions[ti];
@@ -619,7 +620,7 @@ private:
 
             ImVec4 col = isSelected
                 ? ImVec4(1.0f, 0.8f, 0.0f, 1.0f)
-                : ImVec4(0.9f, 0.6f, 0.3f, 1.0f); // AnyState è‰²
+                : ImVec4(0.9f, 0.6f, 0.3f, 1.0f); // AnyState F
 
             ed::Link(LinkId(li, ANY_STATE_INDEX, ti),
                      OutPin(li, ANY_STATE_INDEX),
@@ -629,11 +630,11 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ã‚¤ãƒ³ã‚¿ãƒ©ã‚¯ã‚·ãƒ§ãƒ³ (ãƒªãƒ³ã‚¯ä½œæˆ / ã‚¯ãƒªãƒƒã‚¯é¸æŠ / å‰Šé™¤)
+    // ƒCƒ“ƒ^ƒ‰ƒNƒVƒ‡ƒ“ (ƒŠƒ“ƒNì¬ / ƒNƒŠƒbƒN‘I‘ğ / íœ)
     // -------------------------------------------------------------------
     void HandleInteractions(Animator::AnimatorLayer& layer, int li)
     {
-        // ---- æ–°è¦ãƒªãƒ³ã‚¯ (ãƒ‰ãƒ©ãƒƒã‚°&ãƒ‰ãƒ­ãƒƒãƒ—) --------------------------
+        // ---- V‹KƒŠƒ“ƒN (ƒhƒ‰ƒbƒO&ƒhƒƒbƒv) --------------------------
         if (ed::BeginCreate())
         {
             ed::PinId startPin, endPin;
@@ -641,13 +642,13 @@ private:
             {
                 if (startPin && endPin && startPin != endPin)
                 {
-                    // ãƒ”ãƒ³IDã‹ã‚‰ stateIndex ã‚’é€†å¼•ã
+                    // ƒsƒ“ID‚©‚ç stateIndex ‚ğ‹tˆø‚«
                     int fromSi = DecodeOutPin(li, startPin);
                     int toSi = DecodeInPin(li, endPin);
 
                     if (fromSi >= 0 && toSi >= 0 && fromSi != toSi)
                     {
-                        // AnyState ã‹ã‚‰ã®é·ç§»ã‹é€šå¸¸é·ç§»ã‹ã§å‡¦ç†ã‚’åˆ†ã‘ã‚‹
+                        // AnyState ‚©‚ç‚Ì‘JˆÚ‚©’Êí‘JˆÚ‚©‚Åˆ—‚ğ•ª‚¯‚é
                         bool exists = false;
                         if (fromSi == ANY_STATE_INDEX)
                         {
@@ -656,7 +657,7 @@ private:
 
                             if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1), 2.0f))
                             {
-                                // AnyState é·ç§»è¿½åŠ 
+                                // AnyState ‘JˆÚ’Ç‰Á
                                 animator->AddAnyStateTransition(li, toSi,
                                                                 0.1f, false, 1.0f, 0, false);
                                 selectedTrans = { li, ANY_STATE_INDEX,
@@ -670,7 +671,7 @@ private:
 
                             if (!exists && ed::AcceptNewItem(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f))
                             {
-                                // é€šå¸¸é·ç§»è¿½åŠ 
+                                // ’Êí‘JˆÚ’Ç‰Á
                                 animator->AddTransition(li, fromSi, toSi,
                                                         0.1f, false, 1.0f, 0, false);
                                 selectedTrans = { li, fromSi,
@@ -687,7 +688,7 @@ private:
         }
         ed::EndCreate();
 
-        // ---- å‰Šé™¤ -----------------------------------------------------
+        // ---- íœ -----------------------------------------------------
         if (ed::BeginDelete())
         {
             ed::LinkId delLink;
@@ -730,11 +731,11 @@ private:
             {
                 if (ed::AcceptDeletedItem())
                 {
-                    // NodeId ã‹ã‚‰ stateIndex ã‚’é€†ç®—
+                    // NodeId ‚©‚ç stateIndex ‚ğ‹tZ
                     int nv = (int)delNode.Get() - 1 - li * 1000;
                     if (nv >= 0 && nv < (int)layer.states.size())
                     {
-                        // ã“ã®ã‚¹ãƒ†ãƒ¼ãƒˆã¸ã®/ã‹ã‚‰ã®é·ç§»ã‚’å…¨å‰Šé™¤
+                        // ‚±‚ÌƒXƒe[ƒg‚Ö‚Ì/‚©‚ç‚Ì‘JˆÚ‚ğ‘Síœ
                         layer.states.erase(layer.states.begin() + nv);
                         for (auto& s : layer.states)
                         {
@@ -744,11 +745,11 @@ private:
                                 return t.toStateIndex == nv;
                             }),
                                 s.transitions.end());
-                            // toStateIndex ã®ç•ªå·ã‚’è©°ã‚ã‚‹
+                            // toStateIndex ‚Ì”Ô†‚ğ‹l‚ß‚é
                             for (auto& t : s.transitions)
                                 if (t.toStateIndex > nv) --t.toStateIndex;
                         }
-                        // AnyState å´ã® toStateIndex ã‚‚è©°ã‚ã‚‹
+                        // AnyState ‘¤‚Ì toStateIndex ‚à‹l‚ß‚é
                         layer.anyStateTransitions.erase(
                             std::remove_if(layer.anyStateTransitions.begin(), layer.anyStateTransitions.end(),
                             [nv](const Animator::Transition& t) {
@@ -758,7 +759,7 @@ private:
                         for (auto& t : layer.anyStateTransitions)
                             if (t.toStateIndex > nv) --t.toStateIndex;
 
-                        // currentState ã‚‚è£œæ­£
+                        // currentState ‚à•â³
                         if (layer.currentStateIndex == nv) layer.currentStateIndex = 0;
                         else if (layer.currentStateIndex > nv) --layer.currentStateIndex;
                         positionSet.clear();
@@ -770,14 +771,14 @@ private:
         ed::EndDelete();
 
         bool openContextMenu = false;
-        ed::NodeId contextNodeId;  // å°†æ¥ã®ãƒãƒ¼ãƒ‰ãƒ¡ãƒ‹ãƒ¥ãƒ¼ç”¨
+        ed::NodeId contextNodeId;  // «—ˆ‚Ìƒm[ƒhƒƒjƒ…[—p
 
         if (ed::ShowBackgroundContextMenu())
         {
             openContextMenu = true;
             m_contextMenuPos = m_canvasMousePos;
         }
-        // ãƒãƒ¼ãƒ‰ãƒ»ãƒªãƒ³ã‚¯ã®ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆãƒ¡ãƒ‹ãƒ¥ãƒ¼ã¯ç¾åœ¨æœªä½¿ç”¨
+        // ƒm[ƒhEƒŠƒ“ƒN‚ÌƒRƒ“ƒeƒLƒXƒgƒƒjƒ…[‚ÍŒ»İ–¢g—p
 
         ed::Suspend();
         if (openContextMenu) ImGui::OpenPopup("BackgroundContextMenu");
@@ -795,17 +796,17 @@ private:
             ImGui::EndPopup();
         }
 
-        // NodeContextMenu / LinkContextMenu ã¯ç¾åœ¨ãƒ¡ãƒ‹ãƒ¥ãƒ¼é …ç›®ãªã— â†’ è¡¨ç¤ºã—ãªã„
+        // NodeContextMenu / LinkContextMenu ‚ÍŒ»İƒƒjƒ…[€–Ú‚È‚µ ¨ •\¦‚µ‚È‚¢
         ed::Resume();
 
-        // ---- ãƒªãƒ³ã‚¯ã‚·ãƒ³ã‚°ãƒ«ã‚¯ãƒªãƒƒã‚¯ â†’ è©³ç´°ãƒ‘ãƒãƒ«ã«è¡¨ç¤º ---------------
+        // ---- ƒŠƒ“ƒNƒVƒ“ƒOƒ‹ƒNƒŠƒbƒN ¨ Ú×ƒpƒlƒ‹‚É•\¦ ---------------
         if (ed::IsBackgroundClicked())
         {
             selectedTrans = {};
             selectedState = {};
         }
 
-        // ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ãŸãƒªãƒ³ã‚¯ã‚’é¸æŠ
+        // ƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚½ƒŠƒ“ƒN‚ğ‘I‘ğ
         ed::LinkId clickedLink = ed::GetDoubleClickedLink();
         if (clickedLink ||
             (ImGui::IsMouseClicked(0) &&
@@ -820,13 +821,13 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ‘ãƒãƒ«
+    // ƒpƒ‰ƒ[ƒ^ƒpƒlƒ‹
     // -------------------------------------------------------------------
     void DrawParameterPanel()
     {
         ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "Parameters");
 
-        // --- è¿½åŠ UI ---
+        // --- ’Ç‰ÁUI ---
         static char newParamName[64] = "";
         static int  newParamType = 0; // 0=Float 1=Int 2=Bool 3=Trigger
         const char* typeLabels[] = { "Float", "Int", "Bool", "Trigger" };
@@ -852,7 +853,7 @@ private:
 
         ImGui::Separator();
 
-        // --- ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ä¸€è¦§ï¼ˆå‰Šé™¤ãƒœã‚¿ãƒ³ä»˜ãï¼‰---
+        // --- ƒpƒ‰ƒ[ƒ^ˆê——iíœƒ{ƒ^ƒ“•t‚«j---
         const auto& params   = animator->GetParameters();
         const auto& triggers = animator->GetTriggers();
 
@@ -930,13 +931,13 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒ¬ã‚¤ãƒ¤ãƒ¼è¨­å®šãƒ‘ãƒãƒ«ï¼ˆå¸¸æ™‚è¡¨ç¤ºï¼‰
+    // ƒŒƒCƒ„[İ’èƒpƒlƒ‹ií•\¦j
     // -------------------------------------------------------------------
     void DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
     {
         ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Layer Settings");
 
-        // ãƒ¬ã‚¤ãƒ¤ãƒ¼å
+        // ƒŒƒCƒ„[–¼
         char nameBuf[64];
         strncpy_s(nameBuf, layer.name.c_str(), sizeof(nameBuf));
         ImGui::SetNextItemWidth(-1.0f);
@@ -998,7 +999,7 @@ private:
                 "Dynamic Mode: later layers overwrite the same Widget/ShaderParam target.");
         }
 
-        // ---- AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸€è¦§ï¼ˆç·¨é›†å¯èƒ½ï¼‰ ----
+        // ---- AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“ˆê——i•ÒW‰Â”\j ----
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), "AnyState Transitions");
@@ -1240,18 +1241,18 @@ private:
             }
         }
 
-        // è¿½åŠ ãƒœã‚¿ãƒ³ï¼ˆã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’é¸ã‚“ã§è¿½åŠ ï¼‰
+        // ’Ç‰Áƒ{ƒ^ƒ“iƒ^[ƒQƒbƒg‚ğ‘I‚ñ‚Å’Ç‰Áj
         ImGui::Spacing();
         if (ImGui::Button("+ AnyState Transition", ImVec2(160, 0)))
         {
             if (!layer.states.empty())
             {
-                // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã§æœ€åˆã®ã‚¹ãƒ†ãƒ¼ãƒˆã¸é·ç§»ã‚’è¿½åŠ 
+                // ƒfƒtƒHƒ‹ƒg‚ÅÅ‰‚ÌƒXƒe[ƒg‚Ö‘JˆÚ‚ğ’Ç‰Á
                 animator->AddAnyStateTransition(li, 0, 0.1f, false, 1.0f, 0, false);
             }
         }
 
-        // ãƒ¬ã‚¤ãƒ¤ãƒ¼å‰Šé™¤ï¼ˆ2ã¤ä»¥ä¸Šã‚ã‚‹ã¨ãï¼‰
+        // ƒŒƒCƒ„[íœi2‚ÂˆÈã‚ ‚é‚Æ‚«j
         if (animator->GetLayerCount() > 1)
         {
             ImGui::Spacing();
@@ -1263,7 +1264,345 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // é¸æŠä¸­ã‚¹ãƒ†ãƒ¼ãƒˆè©³ç´°ãƒ‘ãƒãƒ«
+    // Foot IK ƒŒƒ“ƒW•ÒW
+    // -------------------------------------------------------------------
+    void DrawFootIKRangeEditor(Animator::State& state)
+    {
+        if (!animator || animator->IsDynamicMode()) return;
+
+        std::shared_ptr<Model> model = animator->GetModel();
+        const float animationLength = animator->GetStateLength(state);
+        const std::string animationName = animator->GetStateAnimationName(state);
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.4f, 0.9f, 1.0f, 1.0f), "Foot IK Ranges");
+        ImGui::TextDisabled("Animation: %s  Length: %.3f sec",
+            animationName.c_str(),
+            animationLength);
+
+        if (ImGui::Button("+ Add Foot IK Range", ImVec2(-1.0f, 0.0f)))
+        {
+            Animator::FootIKRange range;
+            range.name = "FootIK";
+            range.targetName = "All";
+            range.startRatio = 0.0f;
+            range.endRatio = 1.0f;
+            range.weight = 1.0f;
+            range.fadeInRatio = 0.03f;
+            range.fadeOutRatio = 0.03f;
+            state.footIKRanges.push_back(range);
+        }
+
+        int removeIndex = -1;
+        for (int rangeIndex = 0;
+            rangeIndex < static_cast<int>(state.footIKRanges.size());
+            ++rangeIndex)
+        {
+            Animator::FootIKRange& range = state.footIKRanges[rangeIndex];
+            ImGui::PushID(rangeIndex);
+
+            const float startSeconds = range.startRatio * animationLength;
+            const float endSeconds = range.endRatio * animationLength;
+
+            char header[160];
+            sprintf_s(
+                header,
+                "%d: %s  target=%s  %.2f-%.2f (%.2fs-%.2fs)  w=%.2f",
+                rangeIndex,
+                range.name.c_str(),
+                range.targetName.c_str(),
+                range.startRatio,
+                range.endRatio,
+                startSeconds,
+                endSeconds,
+                range.weight);
+
+            const bool nodeOpen = ImGui::TreeNode("[ TREE ]");
+            ImGui::SameLine();
+            ImGui::Text("%s", header);
+
+            if (nodeOpen)
+            {
+                ImGui::SetNextItemWidth(-1.0f);
+                ImGui::InputText("Name", &range.name);
+
+                const char* currentTargetName = range.targetName.empty() ? "All" : range.targetName.c_str();
+                ImGui::SetNextItemWidth(-1.0f);
+                if (ImGui::BeginCombo("Target", currentTargetName))
+                {
+                    const bool allSelected = range.targetName == "All" || range.targetName.empty();
+                    if (ImGui::Selectable("All", allSelected))
+                    {
+                        range.targetName = "All";
+                    }
+                    if (allSelected) ImGui::SetItemDefaultFocus();
+
+                    if (model)
+                    {
+                        const auto& nodes = model->GetNodes();
+                        for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+                        {
+                            const std::string& nodeName = nodes[nodeIndex].name;
+                            if (nodeName.empty()) continue;
+
+                            const bool selected = range.targetName == nodeName;
+                            if (ImGui::Selectable(nodeName.c_str(), selected))
+                            {
+                                range.targetName = nodeName;
+                            }
+                            if (selected) ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                float ratioRange[2] =
+                {
+                    range.startRatio,
+                    range.endRatio
+                };
+
+                if (ImGui::DragFloat2(
+                    "Ratio",
+                    ratioRange,
+                    0.001f,
+                    0.0f,
+                    1.0f,
+                    "%.3f"))
+                {
+                    range.startRatio = ratioRange[0];
+                    range.endRatio = ratioRange[1];
+
+                    if (range.endRatio < range.startRatio)
+                    {
+                        const float temp = range.startRatio;
+                        range.startRatio = range.endRatio;
+                        range.endRatio = temp;
+                    }
+                }
+
+                ImGui::TextDisabled(
+                    "Seconds: %.3f - %.3f",
+                    range.startRatio * animationLength,
+                    range.endRatio * animationLength);
+
+                ImGui::SliderFloat("Weight", &range.weight, 0.0f, 1.0f, "%.2f");
+                ImGui::DragFloat("Fade In Ratio", &range.fadeInRatio, 0.001f, 0.0f, 1.0f, "%.3f");
+                ImGui::DragFloat("Fade Out Ratio", &range.fadeOutRatio, 0.001f, 0.0f, 1.0f, "%.3f");
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.18f, 0.18f, 1.0f));
+                if (ImGui::Button("Delete Range", ImVec2(-1.0f, 0.0f)))
+                    removeIndex = rangeIndex;
+                ImGui::PopStyleColor();
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+
+        if (removeIndex >= 0)
+        {
+            state.footIKRanges.erase(
+                state.footIKRanges.begin() + removeIndex);
+        }
+
+    }
+
+    void DrawAnimationKeyEditor(Animator::State& state)
+    {
+        if (!animator || animator->IsDynamicMode()) return;
+
+        std::shared_ptr<Model> model = animator->GetModel();
+        if (!model) return;
+        if (state.animationIndex < 0) return;
+        if (state.animationIndex >= static_cast<int>(model->GetAnimations().size())) return;
+
+        Model::Animation& animation =
+            model->GetAnimations()[state.animationIndex];
+        if (animation.nodeAnims.empty()) return;
+
+        const auto& nodes = model->GetNodes();
+        if (m_keyEditorNodeIndex < 0) m_keyEditorNodeIndex = 0;
+        if (m_keyEditorNodeIndex >= static_cast<int>(nodes.size()))
+            m_keyEditorNodeIndex = static_cast<int>(nodes.size()) - 1;
+        if (m_keyEditorNodeIndex >= static_cast<int>(animation.nodeAnims.size()))
+            m_keyEditorNodeIndex = static_cast<int>(animation.nodeAnims.size()) - 1;
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.7f, 0.8f, 1.0f, 1.0f), "Animation Keys");
+
+        const char* currentNodeName =
+            (m_keyEditorNodeIndex >= 0 &&
+             m_keyEditorNodeIndex < static_cast<int>(nodes.size()))
+            ? nodes[m_keyEditorNodeIndex].name.c_str()
+            : "(none)";
+
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::BeginCombo("Node", currentNodeName))
+        {
+            int count = static_cast<int>(nodes.size());
+            if (count > static_cast<int>(animation.nodeAnims.size()))
+                count = static_cast<int>(animation.nodeAnims.size());
+            for (int nodeIndex = 0; nodeIndex < count; ++nodeIndex)
+            {
+                const bool selected = m_keyEditorNodeIndex == nodeIndex;
+                if (ImGui::Selectable(nodes[nodeIndex].name.c_str(), selected))
+                    m_keyEditorNodeIndex = nodeIndex;
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        if (m_keyEditorNodeIndex < 0 ||
+            m_keyEditorNodeIndex >= static_cast<int>(animation.nodeAnims.size()))
+        {
+            return;
+        }
+
+        Model::NodeAnim& nodeAnim = animation.nodeAnims[m_keyEditorNodeIndex];
+        const Model::Node& node = nodes[m_keyEditorNodeIndex];
+
+        DrawVectorKeys(
+            "Position Keys",
+            nodeAnim.positionKeyframes,
+            animation.secondsLength,
+            node.position);
+        DrawQuaternionKeys(
+            "Rotation Keys",
+            nodeAnim.rotationKeyframes,
+            animation.secondsLength,
+            node.rotation);
+        DrawVectorKeys(
+            "Scale Keys",
+            nodeAnim.scaleKeyframes,
+            animation.secondsLength,
+            node.scale);
+
+        if (ImGui::Button("Save VMDL##keys", ImVec2(-1.0f, 0.0f)))
+        {
+            model->SaveVmdl();
+        }
+    }
+
+    void DrawVectorKeys(
+        const char* label,
+        std::vector<Model::VectorKeyframe>& keys,
+        float animationLength,
+        const Vector3& defaultValue)
+    {
+        if (!ImGui::TreeNode(label)) return;
+
+        int removeIndex = -1;
+        bool sortKeys = false;
+        for (int keyIndex = 0; keyIndex < static_cast<int>(keys.size()); ++keyIndex)
+        {
+            Model::VectorKeyframe& key = keys[keyIndex];
+            ImGui::PushID(keyIndex);
+
+            ImGui::SetNextItemWidth(90.0f);
+            if (ImGui::DragFloat("Sec", &key.seconds, 0.01f, 0.0f, animationLength, "%.3f"))
+                sortKeys = true;
+
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(150.0f);
+            ImGui::DragFloat3("Value", &key.value.x, 0.01f, -1000.0f, 1000.0f, "%.3f");
+
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x"))
+                removeIndex = keyIndex;
+
+            ImGui::PopID();
+        }
+
+        if (removeIndex >= 0)
+            keys.erase(keys.begin() + removeIndex);
+
+        if (ImGui::Button("+ Add Key", ImVec2(-1.0f, 0.0f)))
+        {
+            Model::VectorKeyframe key;
+            key.seconds = 0.0f;
+            key.value = defaultValue;
+            keys.push_back(key);
+            sortKeys = true;
+        }
+
+        if (sortKeys)
+        {
+            std::sort(
+                keys.begin(),
+                keys.end(),
+                [](const Model::VectorKeyframe& a, const Model::VectorKeyframe& b)
+                {
+                    return a.seconds < b.seconds;
+                });
+        }
+
+        ImGui::TreePop();
+    }
+
+    void DrawQuaternionKeys(
+        const char* label,
+        std::vector<Model::QuaternionKeyframe>& keys,
+        float animationLength,
+        const Quaternion& defaultValue)
+    {
+        if (!ImGui::TreeNode(label)) return;
+
+        int removeIndex = -1;
+        bool sortKeys = false;
+        for (int keyIndex = 0; keyIndex < static_cast<int>(keys.size()); ++keyIndex)
+        {
+            Model::QuaternionKeyframe& key = keys[keyIndex];
+            ImGui::PushID(keyIndex);
+
+            ImGui::SetNextItemWidth(90.0f);
+            if (ImGui::DragFloat("Sec", &key.seconds, 0.01f, 0.0f, animationLength, "%.3f"))
+                sortKeys = true;
+
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(170.0f);
+            if (ImGui::DragFloat4("Value", &key.value.x, 0.001f, -1.0f, 1.0f, "%.3f"))
+                key.value.Normalize();
+
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x"))
+                removeIndex = keyIndex;
+
+            ImGui::PopID();
+        }
+
+        if (removeIndex >= 0)
+            keys.erase(keys.begin() + removeIndex);
+
+        if (ImGui::Button("+ Add Key", ImVec2(-1.0f, 0.0f)))
+        {
+            Model::QuaternionKeyframe key;
+            key.seconds = 0.0f;
+            key.value = defaultValue;
+            keys.push_back(key);
+            sortKeys = true;
+        }
+
+        if (sortKeys)
+        {
+            std::sort(
+                keys.begin(),
+                keys.end(),
+                [](const Model::QuaternionKeyframe& a, const Model::QuaternionKeyframe& b)
+                {
+                    return a.seconds < b.seconds;
+                });
+        }
+
+        ImGui::TreePop();
+    }
+
+    // -------------------------------------------------------------------
+    // ‘I‘ğ’†ƒXƒe[ƒgÚ×ƒpƒlƒ‹
     // -------------------------------------------------------------------
     void DrawStateDetail(Animator::AnimatorLayer& layer, int li)
     {
@@ -1275,7 +1614,7 @@ private:
         ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "State");
         ImGui::Separator();
 
-        // ã‚¹ãƒ†ãƒ¼ãƒˆå
+        // ƒXƒe[ƒg–¼
         char nameBuf[128];
         strncpy_s(nameBuf, state.name.c_str(), sizeof(nameBuf));
         ImGui::SetNextItemWidth(-1.0f);
@@ -1347,6 +1686,9 @@ private:
                 }
                 ImGui::EndCombo();
             }
+
+            DrawFootIKRangeEditor(state);
+            DrawAnimationKeyEditor(state);
         }
 
         ImGui::Spacing();
@@ -1362,7 +1704,7 @@ private:
             if (ImGui::Button("Set as Default"))
                 animator->SetDefaultState(li, si);
 
-        // ---- ã“ã®ã‚¹ãƒ†ãƒ¼ãƒˆã‹ã‚‰å‡ºã‚‹ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ã®å„ªå…ˆé †ä½ï¼ˆãƒ‰ãƒ©ãƒƒã‚°ã§ä¸¦ã³æ›¿ãˆï¼‰----
+        // ---- ‚±‚ÌƒXƒe[ƒg‚©‚ço‚éƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“‚Ì—Dæ‡ˆÊiƒhƒ‰ƒbƒO‚Å•À‚Ñ‘Ö‚¦j----
         if (!state.transitions.empty())
         {
             ImGui::Spacing();
@@ -1379,7 +1721,7 @@ private:
 
                 ImGui::PushID(ti);
 
-                // ãƒ‰ãƒ©ãƒƒã‚°ãƒãƒ³ãƒ‰ãƒ«ï¼ˆ :: ã‚¢ã‚¤ã‚³ãƒ³é¢¨ï¼‰
+                // ƒhƒ‰ƒbƒOƒnƒ“ƒhƒ‹i :: ƒAƒCƒRƒ“•—j
                 ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0, 0, 0, 0));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.1f));
                 ImGui::Button("::##hdl");
@@ -1392,14 +1734,14 @@ private:
                 }
                 ImGui::SameLine();
 
-                // é¸æŠä¸­ãªã‚‰è‰²ã‚’å¤‰ãˆã‚‹
+                // ‘I‘ğ’†‚È‚çF‚ğ•Ï‚¦‚é
                 bool isSelected = (selectedTrans.layerIndex == li &&
                                    selectedTrans.fromStateIndex == si &&
                                    selectedTrans.transIndex == ti);
                 if (isSelected)
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0.8f, 0.2f, 1));
 
-                // è¡Œå…¨ä½“ã‚’ãƒ‰ãƒ©ãƒƒã‚°ã‚½ãƒ¼ã‚¹ã«ã™ã‚‹
+                // s‘S‘Ì‚ğƒhƒ‰ƒbƒOƒ\[ƒX‚É‚·‚é
                 char label[128];
                 snprintf(label, sizeof(label), "%d. -> %s", ti + 1, toName.c_str());
                 ImGui::Selectable(label, isSelected, ImGuiSelectableFlags_None, ImVec2(0, 0));
@@ -1407,14 +1749,14 @@ private:
                 if (isSelected)
                     ImGui::PopStyleColor();
 
-                // ã‚¯ãƒªãƒƒã‚¯ã§é¸æŠ
+                // ƒNƒŠƒbƒN‚Å‘I‘ğ
                 if (ImGui::IsItemClicked())
                 {
                     selectedTrans = { li, si, ti };
                     selectedState = {};
                 }
 
-                // ãƒ‰ãƒ­ãƒƒãƒ—ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ
+                // ƒhƒƒbƒvƒ^[ƒQƒbƒg
                 if (ImGui::BeginDragDropTarget())
                 {
                     if (const ImGuiPayload* payload =
@@ -1429,10 +1771,10 @@ private:
                 ImGui::PopID();
             }
 
-            // ãƒ‰ãƒ©ãƒƒã‚°&ãƒ‰ãƒ­ãƒƒãƒ—å¾Œã«ä¸¦ã³æ›¿ãˆå®Ÿè¡Œ
+            // ƒhƒ‰ƒbƒO&ƒhƒƒbƒvŒã‚É•À‚Ñ‘Ö‚¦Às
             if (dragFrom >= 0 && dragTo >= 0 && dragFrom != dragTo)
             {
-                // é¸æŠä¸­ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¿½è·¡
+                // ‘I‘ğ’†ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ’ÇÕ
                 int selectedTi = (selectedTrans.layerIndex == li &&
                                   selectedTrans.fromStateIndex == si)
                     ? selectedTrans.transIndex : -1;
@@ -1442,11 +1784,11 @@ private:
                 int insertAt = (dragTo > dragFrom) ? dragTo : dragTo;
                 state.transitions.insert(state.transitions.begin() + insertAt, moved);
 
-                // priorityå€¤ã‚’é…åˆ—é †ã«æŒ¯ã‚Šç›´ã™ï¼ˆå†…éƒ¨æ•´åˆæ€§ã®ãŸã‚ï¼‰
+                // priority’l‚ğ”z—ñ‡‚ÉU‚è’¼‚·i“à•”®‡«‚Ì‚½‚ßj
                 for (int i = 0; i < (int)state.transitions.size(); ++i)
                     state.transitions[i].priority = (int)state.transitions.size() - 1 - i;
 
-                // selectedTrans ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ–°ã—ã„ä½ç½®ã«è¿½å¾“
+                // selectedTrans ƒCƒ“ƒfƒbƒNƒX‚ğV‚µ‚¢ˆÊ’u‚É’Ç]
                 if (selectedTi >= 0)
                 {
                     if (selectedTi == dragFrom)
@@ -1472,7 +1814,7 @@ private:
             auto& cb = callbacks[ci];
             ImGui::PushID(ci);
 
-            // ãƒ©ãƒ™ãƒ«
+            // ƒ‰ƒxƒ‹
             char labelBuf[64];
             strncpy_s(labelBuf, cb.label.c_str(), sizeof(labelBuf));
             ImGui::SetNextItemWidth(120.0f);
@@ -1481,7 +1823,7 @@ private:
 
             ImGui::SameLine();
 
-            // åŒºé–“ã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼
+            // ‹æŠÔƒXƒ‰ƒCƒ_[
             float range[2] = { cb.enterTimePer, cb.exitTimePer };
             ImGui::SetNextItemWidth(150.0f);
             if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, 1.0f, "%.2f"))
@@ -1492,11 +1834,11 @@ private:
 
             ImGui::SameLine();
 
-            // å‰Šé™¤ãƒœã‚¿ãƒ³
+            // íœƒ{ƒ^ƒ“
             if (ImGui::SmallButton("x"))
                 removeIdx = ci;
 
-            // é–¢æ•°ãƒã‚¤ãƒ³ãƒ‰çŠ¶æ³ã‚’è¡¨ç¤º
+            // ŠÖ”ƒoƒCƒ“ƒhó‹µ‚ğ•\¦
             ImGui::Indent();
             ImGui::TextDisabled("onEnter: %s", cb.onEnter ? "bound" : "(none)");
             ImGui::SameLine();
@@ -1514,13 +1856,13 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // é¸æŠä¸­ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³è©³ç´°ãƒ‘ãƒãƒ«
+    // ‘I‘ğ’†ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“Ú×ƒpƒlƒ‹
     // -------------------------------------------------------------------
     void DrawTransitionDetail(Animator::AnimatorLayer& layer)
     {
         int si = selectedTrans.fromStateIndex;
         int ti = selectedTrans.transIndex;
-        // AnyState ã®å ´åˆã¯ layer.anyStateTransitions ã‚’å‚ç…§ã™ã‚‹
+        // AnyState ‚Ìê‡‚Í layer.anyStateTransitions ‚ğQÆ‚·‚é
         if (si == ANY_STATE_INDEX)
         {
             if (ti < 0 || ti >= (int)layer.anyStateTransitions.size()) return;
@@ -1578,7 +1920,7 @@ private:
             ImGui::DragFloat("To Progress",   &tr.sourceProgressMax, 0.01f, 0.0f, 1.0f, "%.2f");
             if (tr.sourceProgressMin > tr.sourceProgressMax) tr.sourceProgressMax = tr.sourceProgressMin;
         }
-        // Priority ã¯ ã‚¹ãƒ†ãƒ¼ãƒˆè©³ç´°ã® "Transition Order" ãƒªã‚¹ãƒˆã§ä¸¦ã³æ›¿ãˆã—ã¦å¤‰æ›´ã™ã‚‹
+        // Priority ‚Í ƒXƒe[ƒgÚ×‚Ì "Transition Order" ƒŠƒXƒg‚Å•À‚Ñ‘Ö‚¦‚µ‚Ä•ÏX‚·‚é
         ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
         ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
 
@@ -1620,13 +1962,13 @@ private:
         const auto& params = animator->GetParameters();
         const auto& triggers = animator->GetTriggers();
 
-        // æ¡ä»¶ä¸€è¦§
+        // ğŒˆê——
         for (int ci = 0; ci < (int)tr.conditions.size(); ++ci)
         {
             Animator::Condition& c = tr.conditions[ci];
             ImGui::PushID(ci);
 
-            // ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿åã‚³ãƒ³ãƒœ
+            // ƒpƒ‰ƒ[ƒ^–¼ƒRƒ“ƒ{
             ImGui::SetNextItemWidth(100.0f);
             if (ImGui::BeginCombo("##param", c.paramName.c_str()))
             {
@@ -1649,7 +1991,7 @@ private:
             }
             ImGui::SameLine();
 
-            // ãƒ¢ãƒ¼ãƒ‰ã‚³ãƒ³ãƒœ
+            // ƒ‚[ƒhƒRƒ“ƒ{
             {
                 auto pit = params.find(c.paramName);
                 bool isTrigger = (triggers.find(c.paramName) != triggers.end());
@@ -1694,7 +2036,7 @@ private:
                 }
             }
 
-            // ã—ãã„å€¤ (Trigger/Bool ä»¥å¤–)
+            // ‚µ‚«‚¢’l (Trigger/Bool ˆÈŠO)
             auto pit2 = params.find(c.paramName);
             bool isBoolParam = (pit2 != params.end() && std::holds_alternative<bool>(pit2->second));
             bool isTriggerParam = (triggers.find(c.paramName) != triggers.end());
@@ -1741,7 +2083,7 @@ private:
             ImGui::PopID();
         }
 
-        // æ¡ä»¶è¿½åŠ ãƒœã‚¿ãƒ³
+        // ğŒ’Ç‰Áƒ{ƒ^ƒ“
         if (ImGui::Button("+ Condition"))
         {
             Animator::Condition newC;
@@ -1750,7 +2092,7 @@ private:
                 newC.paramName = params.begin()->first;
                 const auto& val = params.begin()->second;
 
-                // ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®å‹ã«åˆã‚ã›ã¦modeã¨thresholdã®åˆæœŸå€¤ã‚’è¨­å®š
+                // ƒpƒ‰ƒ[ƒ^‚ÌŒ^‚É‡‚í‚¹‚Ämode‚Æthreshold‚Ì‰Šú’l‚ğİ’è
                 if (std::holds_alternative<float>(val))
                 {
                     newC.mode = Animator::ConditionMode::Greater;
@@ -1778,7 +2120,7 @@ private:
     }
 
     // -------------------------------------------------------------------
-    // ãƒ”ãƒ³ID ã®é€†å¼•ããƒ˜ãƒ«ãƒ‘ãƒ¼
+    // ƒsƒ“ID ‚Ì‹tˆø‚«ƒwƒ‹ƒp[
     // -------------------------------------------------------------------
     static int DecodeOutPin(int li, ed::PinId pin)
     {
@@ -1805,3 +2147,6 @@ private:
         ti = value % LinkFromStride;
     }
 };
+
+
+

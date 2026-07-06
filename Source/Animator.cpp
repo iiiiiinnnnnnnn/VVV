@@ -1,4 +1,4 @@
-ï»¿// Animator.cpp
+// Animator.cpp
 
 #include "Animator.h"
 #include "AnimEditorWindow.h"
@@ -46,7 +46,7 @@ Animator::Animator(Object* owner, bool unscaledTime)
 }
 
 // =========================================================
-// ãƒ¬ã‚¤ãƒ¤ãƒ¼æ“ä½œ
+// ƒŒƒCƒ„[‘€ì
 // =========================================================
 int Animator::AddLayer(const std::string& name, BlendMode blendMode, float weight, AvatarMask mask)
 {
@@ -78,7 +78,7 @@ void Animator::DuplicateLayer(int layerIndex)
 {
     AnimatorLayer copy = layers[layerIndex];
     copy.name += " (Copy)";
-    // ãƒ©ãƒ³ã‚¿ã‚¤ãƒ çŠ¶æ…‹ã¯ãƒªã‚»ãƒƒãƒˆ
+    // ƒ‰ƒ“ƒ^ƒCƒ€ó‘Ô‚ÍƒŠƒZƒbƒg
     copy.currentStateIndex = copy.defaultStateIndex;
     copy.currentTime = 0.0f;
     copy.isTransitioning = false;
@@ -88,7 +88,7 @@ void Animator::DuplicateLayer(int layerIndex)
 }
 
 // =========================================================
-// ã‚¹ãƒ†ãƒ¼ãƒˆæ“ä½œ
+// ƒXƒe[ƒg‘€ì
 // =========================================================
 int Animator::AddState(int li, const std::string& name, int animIndex, bool loop, float speed)
 {
@@ -177,7 +177,7 @@ void Animator::SetDefaultState(int li, int stateIndex)
 }
 
 // =========================================================
-// AnyState ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³
+// AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
 // =========================================================
 int Animator::AddAnyStateTransition(int li, int to, float duration,
                                     bool hasExitTime, float exitTime, int priority, bool canInterrupt)
@@ -212,7 +212,7 @@ void Animator::AddAnyStateCondition(int li, int ti,
 }
 
 // =========================================================
-// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼ˆå…¨ãƒ¬ã‚¤ãƒ¤ãƒ¼å…±æœ‰ï¼‰
+// ƒpƒ‰ƒ[ƒ^i‘SƒŒƒCƒ„[‹¤—Lj
 // =========================================================
 void Animator::AddFloat(const std::string& name, float v) { parameters[name] = v; }
 void Animator::AddInt(const std::string& name, int v) { parameters[name] = v; }
@@ -377,10 +377,10 @@ void Animator::UpdateLayer(
         ? Game::Time::unscaledDeltaTime
         : Game::Time::deltaTime;
 
-    // æ™‚é–“æ›´æ–°
+    // ŠÔXV
     layer.currentTime += dt * curState.speed;
 
-    // ãƒ«ãƒ¼ãƒ—ã§æ™‚é–“ã‚’æˆ»ã™å‰ã®å†ç”Ÿç‡ã‚’é·ç§»åˆ¤å®šã«ä½¿ã†
+    // ƒ‹[ƒv‚ÅŠÔ‚ğ–ß‚·‘O‚ÌÄ¶—¦‚ğ‘JˆÚ”»’è‚Ég‚¤
     float transitionNormalizedTime =
         curAnim.secondsLength > 0.0f
         ? layer.currentTime / curAnim.secondsLength
@@ -407,7 +407,7 @@ void Animator::UpdateLayer(
         }
     }
 
-    // ãƒ«ãƒ¼ãƒˆãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã®æŠ½å‡º
+    // ƒ‹[ƒgƒ‚[ƒVƒ‡ƒ“‚Ì’Šo
     if (useRootMotion &&
         rootNodeIndex != -1)
     {
@@ -481,13 +481,13 @@ void Animator::UpdateLayer(
             layer.weight);
     }
 
-    // ç¾åœ¨ã‚¹ãƒ†ãƒ¼ãƒˆã®ãƒãƒ¼ã‚º
+    // Œ»İƒXƒe[ƒg‚Ìƒ|[ƒY
     model->ComputeAnimation(
         curState.animationIndex,
         layer.currentTime,
         nodePoses);
 
-    // ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸­
+    // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“’†
     if (layer.isTransitioning)
     {
         State& nextState =
@@ -576,7 +576,7 @@ void Animator::UpdateLayer(
         }
         else
         {
-            // ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³ä¸­ã®å‰²ã‚Šè¾¼ã¿
+            // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“’†‚ÌŠ„‚è‚İ
             for (const Transition& transition :
                 curState.transitions)
             {
@@ -634,7 +634,7 @@ void Animator::UpdateLayer(
     }
     else
     {
-        // AnyStateãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³
+        // AnyStateƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
         if (!curState.blockAnyStateTransitions)
         {
             for (const Transition& transition :
@@ -709,7 +709,7 @@ void Animator::UpdateLayer(
             }
         }
 
-        // é€šå¸¸ãƒˆãƒ©ãƒ³ã‚¸ã‚·ãƒ§ãƒ³
+        // ’Êíƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
         if (!layer.isTransitioning &&
             layer.nextStateIndex < 0)
         {
@@ -765,7 +765,7 @@ void Animator::UpdateLayer(
         }
     }
 
-    // æœ€çµ‚ãƒãƒ¼ã‚ºã¸é©ç”¨
+    // ÅIƒ|[ƒY‚Ö“K—p
     for (int nodeIndex = 0;
         nodeIndex <
         static_cast<int>(nodePoses.size());
@@ -836,8 +836,8 @@ void Animator::UpdateDynamicLayer(
         layer.currentTime +
         dt * currentState.speed;
 
-    // ãƒ«ãƒ¼ãƒ—ã§æ™‚é–“ã‚’æˆ»ã™å‰ã®å†ç”Ÿç‡ã€‚
-    // Has Exit Timeåˆ¤å®šã§ã¯å¿…ãšã“ã¡ã‚‰ã‚’ä½¿ã†ã€‚
+    // ƒ‹[ƒv‚ÅŠÔ‚ğ–ß‚·‘O‚ÌÄ¶—¦B
+    // Has Exit Time”»’è‚Å‚Í•K‚¸‚±‚¿‚ç‚ğg‚¤B
     const float transitionNormalizedTime =
         currentLength > 0.0f
         ? advancedCurrentTime / currentLength
@@ -1171,8 +1171,8 @@ void Animator::UpdateDynamicLayer(
         return;
     }
 
-    // AnyStateã‚’ãƒ«ãƒ¼ãƒ—å‡¦ç†å¾Œã§ã¯ãªãã€
-    // ãƒ«ãƒ¼ãƒ—å‰ã®å†ç”Ÿç‡ã§åˆ¤å®šã™ã‚‹ã€‚
+    // AnyState‚ğƒ‹[ƒvˆ—Œã‚Å‚Í‚È‚­A
+    // ƒ‹[ƒv‘O‚ÌÄ¶—¦‚Å”»’è‚·‚éB
     if (!currentState.blockAnyStateTransitions)
     {
         for (const Transition& transition :
@@ -1206,8 +1206,8 @@ void Animator::UpdateDynamicLayer(
                 continue;
             }
 
-            // Exit Timeåˆ°é”ã§é·ç§»ã™ã‚‹ã¨ãã¯ã€
-            // ãƒ«ãƒ¼ãƒ—å¾Œã®å…ˆé ­ã§ã¯ãªãæœ«å°¾ã‚’ä½¿ã†ã€‚
+            // Exit Time“’B‚Å‘JˆÚ‚·‚é‚Æ‚«‚ÍA
+            // ƒ‹[ƒvŒã‚Ìæ“ª‚Å‚Í‚È‚­––”ö‚ğg‚¤B
             if (currentLooped &&
                 transition.hasExitTime)
             {
@@ -1243,8 +1243,8 @@ void Animator::UpdateDynamicLayer(
             continue;
         }
 
-        // Exit Timeåˆ°é”ã§é·ç§»ã™ã‚‹ã¨ãã¯ã€
-        // ãƒ«ãƒ¼ãƒ—å¾Œã®å…ˆé ­ã§ã¯ãªãæœ«å°¾ã‚’ä½¿ã†ã€‚
+        // Exit Time“’B‚Å‘JˆÚ‚·‚é‚Æ‚«‚ÍA
+        // ƒ‹[ƒvŒã‚Ìæ“ª‚Å‚Í‚È‚­––”ö‚ğg‚¤B
         if (currentLooped &&
             transition.hasExitTime)
         {
@@ -1269,8 +1269,8 @@ void Animator::UpdateDynamicLayer(
         }
     }
 
-    // é·ç§»ã—ãªã‹ã£ãŸå ´åˆã ã‘ã€
-    // ãƒ«ãƒ¼ãƒ—å¾Œã¾ãŸã¯åœæ­¢å¾Œã®ç¾åœ¨å€¤ã‚’é©ç”¨ã™ã‚‹ã€‚
+    // ‘JˆÚ‚µ‚È‚©‚Á‚½ê‡‚¾‚¯A
+    // ƒ‹[ƒvŒã‚Ü‚½‚Í’â~Œã‚ÌŒ»İ’l‚ğ“K—p‚·‚éB
     ApplyDynamicState(
         currentState,
         layer.currentTime);
@@ -1499,8 +1499,8 @@ bool Animator::ReloadDynamicClipIfChanged(const std::string& path)
             "Failed to auto reload .danim: " + path + " / " + error;
         OutputDebugStringA((dynamicAnimationError + "\n").c_str());
 
-        // ä¿å­˜é€”ä¸­ã®ä¸€æ™‚çš„ãªèª­è¾¼å¤±æ•—ã‚’è€ƒæ…®ã—ã€
-        // æ›´æ–°æ—¥æ™‚ã¯é€²ã‚ãšæ¬¡å›ã®ç›£è¦–ã§å†è©¦è¡Œã™ã‚‹ã€‚
+        // •Û‘¶“r’†‚Ìˆê“I‚È“Ç¸”s‚ğl—¶‚µA
+        // XV“ú‚Íi‚ß‚¸Ÿ‰ñ‚ÌŠÄ‹‚ÅÄs‚·‚éB
         return false;
     }
 
@@ -1622,7 +1622,7 @@ void Animator::ReloadDynamicClips()
     dynamicClipWatchTimer = 0.0f;
 }
 
-// ç‰¹å®šãƒœãƒ¼ãƒ³ã®ã‚µãƒ³ãƒ—ãƒªãƒ³ã‚°ç”¨ãƒ˜ãƒ«ãƒ‘ãƒ¼
+// “Á’èƒ{[ƒ“‚ÌƒTƒ“ƒvƒŠƒ“ƒO—pƒwƒ‹ƒp[
 Model::NodePose Animator::SampleNodePose(int animIndex, float time, int nodeIdx)
 {
     static std::vector<Model::NodePose> tempPoses;
@@ -1651,7 +1651,7 @@ void Animator::BindCallbacks()
 
 void Animator::Play(int layerIndex, int animationIndex, bool loop)
 {
-    // ç¯„å›²å¤–
+    // ”ÍˆÍŠO
     _ASSERT_EXPR(layerIndex >= 0 && layerIndex < (int)layers.size(), L"Invalid layer index");
 
     auto& layer = layers[layerIndex];
@@ -1689,7 +1689,7 @@ void Animator::SetRootMotion(const std::string& name)
 
     if (!model) return;
 
-    // ãƒ¢ãƒ‡ãƒ«ã®ãƒãƒ¼ãƒ‰ç¾¤ã‹ã‚‰åå‰ãŒä¸€è‡´ã™ã‚‹ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¤œç´¢
+    // ƒ‚ƒfƒ‹‚Ìƒm[ƒhŒQ‚©‚ç–¼‘O‚ªˆê’v‚·‚éƒCƒ“ƒfƒbƒNƒX‚ğŒŸõ
     const auto& nodes = model->GetNodes();
     for (int i = 0; i < (int)nodes.size(); ++i)
     {
@@ -1733,7 +1733,7 @@ bool Animator::EvaluateCondition(const Condition& c) const
     else if (std::holds_alternative<int>(val))
     {
         int v = std::get<int>(val);
-        // threshold ãŒ float ã§ä¿å­˜ã•ã‚Œã¦ã„ã‚‹å ´åˆã‚‚å®‰å…¨ã«å–ã‚Šå‡ºã™
+        // threshold ‚ª float ‚Å•Û‘¶‚³‚ê‚Ä‚¢‚éê‡‚àˆÀ‘S‚Éæ‚èo‚·
         int t = std::holds_alternative<int>(thr) ? std::get<int>(thr)
             : std::holds_alternative<float>(thr) ? (int)std::get<float>(thr)
             : 0;
@@ -1837,6 +1837,72 @@ const std::string& Animator::GetCurrentStateName(int li) const
     return layer.states[layer.currentStateIndex].name;
 }
 
+int Animator::GetCurrentAnimationIndex(int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return -1;
+
+    const AnimatorLayer& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0) return -1;
+    if (layer.currentStateIndex >= static_cast<int>(layer.states.size())) return -1;
+
+    return layer.states[layer.currentStateIndex].animationIndex;
+}
+
+float Animator::GetCurrentAnimationTime(int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
+    return layers[layerIndex].currentTime;
+}
+float Animator::EvaluateCurrentFootIKWeight(const std::string& targetName, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
+
+    const AnimatorLayer& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0) return 0.0f;
+    if (layer.currentStateIndex >= static_cast<int>(layer.states.size())) return 0.0f;
+
+    const State& state = layer.states[layer.currentStateIndex];
+    if (state.footIKRanges.empty()) return 0.0f;
+
+    const float stateLength = GetStateLength(state);
+    float ratio = stateLength > 0.001f ? layer.currentTime / stateLength : 0.0f;
+    ratio = std::clamp(ratio, 0.0f, 1.0f);
+
+    float result = 0.0f;
+    for (const FootIKRange& range : state.footIKRanges)
+    {
+        if (range.targetName != "All" && range.targetName != targetName) continue;
+
+        float start = std::clamp(range.startRatio, 0.0f, 1.0f);
+        float end = std::clamp(range.endRatio, 0.0f, 1.0f);
+        if (end < start)
+        {
+            const float temp = start;
+            start = end;
+            end = temp;
+        }
+
+        if (ratio < start || ratio > end) continue;
+
+        float weight = std::clamp(range.weight, 0.0f, 1.0f);
+        const float fadeIn = std::clamp(range.fadeInRatio, 0.0f, 1.0f);
+        const float fadeOut = std::clamp(range.fadeOutRatio, 0.0f, 1.0f);
+
+        if (fadeIn > 0.001f)
+        {
+            weight *= std::clamp((ratio - start) / fadeIn, 0.0f, 1.0f);
+        }
+
+        if (fadeOut > 0.001f)
+        {
+            weight *= std::clamp((end - ratio) / fadeOut, 0.0f, 1.0f);
+        }
+
+        if (result < weight) result = weight;
+    }
+
+    return result;
+}
 bool Animator::Save(const std::string& path)
 {
     m_lastPath = path;
@@ -1886,3 +1952,6 @@ void Animator::Load(const std::string& path)
             0.0f);
     }
 }
+
+
+

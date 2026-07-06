@@ -1,4 +1,4 @@
-ï»¿// PhysicsManager.cpp
+// PhysicsManager.cpp
 
 #include "PhysicsManager.h"
 #include "GameTime.h"
@@ -14,7 +14,7 @@ static PxFilterFlags LayerFilterShader(
     int layer0 = (int)fd0.word1;
     int layer1 = (int)fd1.word1;
 
-    // ãƒãƒˆãƒªãƒƒã‚¯ã‚¹ã§è¡çªã—ãªã„çµ„ã¿åˆã‚ã›ãªã‚‰ç„¡è¦–
+    // ƒ}ƒgƒŠƒbƒNƒX‚ÅÕ“Ë‚µ‚È‚¢‘g‚İ‡‚í‚¹‚È‚ç–³‹
     if (!UserSettingsManager::Instance().Collides(layer0, layer1))
         return PxFilterFlag::eSUPPRESS;
 
@@ -352,7 +352,7 @@ PhysicsSceneContext::PhysicsSceneContext(PxVec3 gravity)
     sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD;
     scene = manager.GetPhysics()->createScene(sceneDesc);
 
-    // ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ç™»éŒ²
+    // ƒR[ƒ‹ƒoƒbƒN“o˜^
     scene->setSimulationEventCallback(&eventCallback);
 
     controllerManager = PxCreateControllerManager(*scene);
@@ -369,7 +369,7 @@ void PhysicsSceneContext::Simulate() const
     scene->simulate(Game::Time::deltaTime);
     scene->fetchResults(true);
 
-    // Stay ã‚¤ãƒ™ãƒ³ãƒˆã‚’é…ä¿¡ï¼ˆæ¥è§¦ç¶™ç¶šä¸­ã®ãƒšã‚¢ã«æ¯ãƒ•ãƒ¬ãƒ¼ãƒ é€šçŸ¥ï¼‰
+    // Stay ƒCƒxƒ“ƒg‚ğ”zMiÚGŒp‘±’†‚ÌƒyƒA‚É–ˆƒtƒŒ[ƒ€’Ê’mj
     const_cast<PhysicsSceneContext*>(this)->eventCallback.DispatchStayEvents();
 }
 
@@ -419,7 +419,7 @@ bool PhysicsManager::Raycast(
 
     physx::PxRaycastBuffer hitBuffer;
     physx::PxQueryFilterData filterData;
-    if (layer >= 0)
+    if (layer >= 0 || ignoreActor)
     {
         filterData.flags |= physx::PxQueryFlag::ePREFILTER;
     }
@@ -430,15 +430,16 @@ bool PhysicsManager::Raycast(
         const Actor* ignoreActor = nullptr;
 
         physx::PxQueryHitType::Enum preFilter(
-            const physx::PxFilterData& filterData,
-            const physx::PxShape*,
+            const physx::PxFilterData&,
+            const physx::PxShape* shape,
             const physx::PxRigidActor* rigidActor,
             physx::PxHitFlags&) override
         {
             if (ignoreActor && rigidActor && rigidActor->userData == ignoreActor) return physx::PxQueryHitType::eNONE;
             if (layer < 0) return physx::PxQueryHitType::eBLOCK;
+            if (!shape) return physx::PxQueryHitType::eNONE;
 
-            int otherLayer = static_cast<int>(filterData.word1);
+            int otherLayer = static_cast<int>(shape->getSimulationFilterData().word1);
             if (!UserSettingsManager::Instance().Collides(layer, otherLayer)) return physx::PxQueryHitType::eNONE;
             return physx::PxQueryHitType::eBLOCK;
         }
@@ -463,7 +464,7 @@ bool PhysicsManager::Raycast(
         hitBuffer,
         physx::PxHitFlag::eDEFAULT,
         filterData,
-        layer >= 0 ? &filterCallback : nullptr
+        (layer >= 0 || ignoreActor) ? &filterCallback : nullptr
     );
 
     if (!result || !hitBuffer.hasBlock)
@@ -486,6 +487,10 @@ bool PhysicsManager::Raycast(
     );
 
     hit.distance = block.distance;
+    hit.layerId =
+        block.shape
+        ? static_cast<LayerId>(block.shape->getQueryFilterData().word1)
+        : InvalidLayerId;
 
     return true;
 }
@@ -511,10 +516,10 @@ void PhysicsManager::Initialize()
     // PVD
     gPvd = PxCreatePvd(*gFoundation);
 
-    // æ¥ç¶šè¨­å®š(5425ç•ªãƒãƒ¼ãƒˆ)
+    // Ú‘±İ’è(5425”Ôƒ|[ƒg)
     gPvdTransport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 
-    // æ¥ç¶š
+    // Ú‘±
     if(gPvd->connect(*gPvdTransport, PxPvdInstrumentationFlag::eALL)) {
         printf("[PhysicsManager] PVD Connected!");
     }
@@ -523,19 +528,19 @@ void PhysicsManager::Initialize()
     PxTolerancesScale scale;
     gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, scale, true, gPvd);
 
-    // ExtensionsåˆæœŸåŒ–
+    // Extensions‰Šú‰»
     PxInitExtensions(*gPhysics, gPvd);
 
     // Cooking
     gCookingParams =  new PxCookingParams(PxTolerancesScale());
 
-    // CPUãƒ‡ã‚£ã‚¹ãƒ‘ãƒƒãƒãƒ£
+    // CPUƒfƒBƒXƒpƒbƒ`ƒƒ
     gDispatcher = PxDefaultCpuDispatcherCreate(1);
 
-    // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ç‰©ç†æè³ªï¼ˆæ‘©æ“¦0.5, åç™º0.5ï¼‰
+    // ƒfƒtƒHƒ‹ƒg‚Ì•¨—Ş¿i–€C0.5, ”½”­0.5j
     gDefaultMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 
-    // ã‚·ãƒ¼ãƒ³ç”Ÿæˆ
+    // ƒV[ƒ“¶¬
     sceneContext = CreateSceneContext(PxVec3(0, -9.81f, 0));
 }
 
@@ -631,3 +636,5 @@ void CCHitReport::DispatchEvents()
     prevFrameColliders = currentFrameColliders;
     currentFrameColliders.clear();
 }
+
+
