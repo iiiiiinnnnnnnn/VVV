@@ -13,11 +13,13 @@
 #include "SphereCollider.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
-#include "SceneEffect.h"
 #include "ActorManager.h"
 #include "NavMeshAgent.h"
 #include "NavMeshActor.h"
 #include "PostProcessController.h"
+#include "CameraEffectController.h"
+#include "Easing.h"
+#include "HitStop.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
 {
@@ -43,7 +45,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
-        anim->Load("Data/Animator/animated_spider_test.animator");
+        anim->Load("Data/Animator/animated_spider.animator");
         anim->AddCallbackFunc("ThreatFunc",
             [this](const Animator::State& s)
         {
@@ -53,7 +55,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
                 0.15f,
                 Easing::Type::InSine,
                 Easing::Type::OutCubic);
-            CameraShake::Request(2.0f, 0.1f);
+            CameraEffectController::Request(2.0f, 0.1f);
         },
             nullptr);
         anim->BindCallbacks();
@@ -245,7 +247,7 @@ void AracoreQueen::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* othe
 void AracoreQueen::OnDamaged(const DamageData& damageData)
 {
     HitStop::Request(0.15f);
-    CameraShake::Request(0.2f, 0.1f);
+    CameraEffectController::Request(0.2f, 0.1f);
 }
 
 void AracoreQueen::OnDead()

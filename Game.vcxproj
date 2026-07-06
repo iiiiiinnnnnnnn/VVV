@@ -16,8 +16,10 @@
     <ClCompile Include="Source\BoneCollider.cpp" />
     <ClCompile Include="Source\BoneSphereCollider.cpp" />
     <ClCompile Include="Source\BoxCollider.cpp" />
+    <ClCompile Include="Source\CameraEffectController.cpp" />
     <ClCompile Include="Source\CapsuleCollider.cpp" />
     <ClCompile Include="Source\FootIK.cpp" />
+    <ClCompile Include="Source\HitStop.cpp" />
     <ClCompile Include="Source\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
@@ -38,6 +40,7 @@
     <ClCompile Include="Source\LightManager.cpp" />
     <ClCompile Include="Source\LoadingScene.cpp" />
     <ClCompile Include="Source\NavMeshObstacle.cpp" />
+    <ClCompile Include="Source\PostProcessController.cpp" />
     <ClCompile Include="Source\Prop.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SphereCollider.cpp" />
@@ -103,6 +106,7 @@
     <ClInclude Include="Source\BoneCollider.h" />
     <ClInclude Include="Source\BoneSphereCollider.h" />
     <ClInclude Include="Source\BoxCollider.h" />
+    <ClInclude Include="Source\CameraEffectController.h" />
     <ClInclude Include="Source\CapsuleCollider.h" />
     <ClInclude Include="Source\CollidersDef.h" />
     <ClInclude Include="Source\Common.h" />
@@ -138,7 +142,7 @@
     <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SphereCollider.h" />
     <ClInclude Include="Source\SpringBone.h" />
-    <ClInclude Include="Source\SceneEffect.h" />
+    <ClInclude Include="Source\HitStop.h" />
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
     <ClInclude Include="Source\Component.h" />
@@ -168,7 +172,6 @@
     <ClInclude Include="Source\NavMeshActor.h" />
     <ClInclude Include="Source\NavMeshObstacle.h" />
     <ClInclude Include="Source\GamePostProcess.h" />
-    <ClInclude Include="Source\Random.h" />
     <ClInclude Include="Source\ShaderParam.h" />
     <ClInclude Include="Source\Stage01.h" />
     <ClInclude Include="Source\StageLoader.h" />
@@ -402,7 +405,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -440,7 +443,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

@@ -2,20 +2,12 @@
 
 #include "TestPlayScene.h"
 #include "SceneManager.h"
-
-// camera
 #include "FreeCameraController.h"
 #include "ThirdPersonCameraController.h"
-
-// player control
 #include "LocalPlayer.h"
-
-// graphics
-#include "SceneEffect.h"
 #include "Graphics.h"
 #include "SpriteWidget.h"
-
-// actor
+#include "HitStop.h"
 #include "Player.h"
 #include "Stage01.h"
 
@@ -81,14 +73,11 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		sw->AddComponent<Animator>()->Load("Data/Animator/Test2D.animator");
 		widgetManager.Register(sw);
 	}
-
-	DamageVignette::Init(device);
 }
 
 void TestPlayScene::OnUpdate()
 {
 	HitStop::Update();
-	DamageVignette::Update(Game::Graphics::Instance().GetSpriteRenderer());
 }
 
 void TestPlayScene::OnDrawGUI()

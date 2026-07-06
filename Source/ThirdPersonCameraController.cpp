@@ -3,7 +3,7 @@
 #include "ThirdPersonCameraController.h"
 #include "Input.h"
 #include "GameTime.h"
-#include "SceneEffect.h"
+#include "CameraEffectController.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Player* character)
 {
@@ -73,7 +73,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     }
 
     // エフェクト系反映
-    CameraShake::Update(camera, finalEye, currentFocus, Vector3::Up);
+    CameraEffectController::Update(camera, finalEye, currentFocus, Vector3::Up);
 
     camera.SetPerspectiveFov(
         DirectX::XMConvertToRadians(fovYDegrees),

@@ -6,6 +6,7 @@
 #include "Easing.h"
 #include "GameTime.h"
 #include "GamePostProcess.h"
+#include "imgui.h"
 
 class PostProcessController
 {
@@ -18,9 +19,7 @@ public:
 
 	void Reset()
 	{
-		threatenTimer = 0.0f;
-		threatenDuration = 0.0f;
-		threatenPower = 0.0f;
+		*this = PostProcessController{};
 	}
 
 	void RequestThreaten(
@@ -28,97 +27,39 @@ public:
 		float power = 1.0f,
 		float attackRate = 0.25f,
 		Easing::Type attackEasing = Easing::Type::InSine,
-		Easing::Type releaseEasing = Easing::Type::OutCubic)
-	{
-		threatenTimer = max(threatenTimer, duration);
-		threatenDuration = max(threatenDuration, duration);
-		threatenPower = max(threatenPower, power);
+		Easing::Type releaseEasing = Easing::Type::OutCubic);
 
-		threatenAttackRate = std::clamp(attackRate, 0.01f, 0.95f);
-		threatenAttackEasing = attackEasing;
-		threatenReleaseEasing = releaseEasing;
-	}
+	void RequestDamagedVignette(
+		float duration,
+		float power = 1.0f,
+		float attackRate = 0.25f,
+		Easing::Type attackEasing = Easing::Type::InSine,
+		Easing::Type releaseEasing = Easing::Type::OutCubic);
 
-	void Update()
-	{
-		const float dt = Game::Time::unscaledDeltaTime;
+	void Update();
 
-		if (threatenTimer > 0.0f)
-		{
-			threatenTimer -= dt;
+	void DrawGUI();
 
-			if (threatenTimer <= 0.0f)
-			{
-				threatenTimer = 0.0f;
-				threatenDuration = 0.0f;
-				threatenPower = 0.0f;
-			}
-		}
-	}
-
-	void DrawGUI()
-	{
-		if (ImGui::Button("TEST_IKAKU", ImVec2(-FLT_MIN, 30.0f)))
-		{
-			PostProcessController::Instance().RequestThreaten(
-				5.0f,
-				3.0f,
-				0.15f,
-				Easing::Type::InSine,
-				Easing::Type::OutCubic);
-		}
-	}
-
-	void ApplyTo(Game::PostProcess& postProcess) const
-	{
-		const float threaten = GetThreatenIntensity();
-
-		if (threaten > 0.001f)
-		{
-			postProcess.AddRuntimeRadialBlur(threaten);
-		}
-	}
+	void ApplyTo(Game::PostProcess& postProcess) const;
 
 private:
 	PostProcessController() = default;
 
 	// エンベロープを計算して威嚇演出の強度を返す
-	float GetThreatenIntensity() const
-	{
-		if (threatenDuration <= 0.0f)
-		{
-			return 0.0f;
-		}
-
-		const float remainRate = std::clamp(
-			threatenTimer / threatenDuration,
-			0.0f,
-			1.0f);
-
-		const float progress = 1.0f - remainRate;
-
-		float envelope = 0.0f;
-
-		if (progress < threatenAttackRate)
-		{
-			const float attackT = progress / threatenAttackRate;
-			envelope = Easing::Evaluate(attackT, threatenAttackEasing);
-		}
-		else
-		{
-			const float releaseT = (progress - threatenAttackRate) / (1.0f - threatenAttackRate);
-			envelope = 1.0f - Easing::Evaluate(releaseT, threatenReleaseEasing);
-		}
-
-		return threatenPower * envelope;
-	}
+	float GetIntensity(float timer, float duration, float power, float attackRate, Easing::Type attack, Easing::Type release) const;
 
 private:
 	float threatenTimer = 0.0f;
 	float threatenDuration = 0.0f;
 	float threatenPower = 0.0f;
-
 	float threatenAttackRate = 0.25f;
 	Easing::Type threatenAttackEasing = Easing::Type::InSine;
 	Easing::Type threatenReleaseEasing = Easing::Type::OutCubic;
+
+	float damagedVigTimer = 0.0f;
+	float damagedVigDuration = 0.0f;
+	float damagedVigPower = 0.0f;
+	float damagedVigAttackRate = 0.25f;
+	Easing::Type damagedVigAttackEasing = Easing::Type::InSine;
+	Easing::Type damagedVigReleaseEasing = Easing::Type::OutCubic;
 };

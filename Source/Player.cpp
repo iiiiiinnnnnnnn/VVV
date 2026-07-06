@@ -2,11 +2,11 @@
 
 #include "Player.h"
 #include "ResourceManager.h"
-#include "ActorManager.h"
 #include "ThirdPersonCameraController.h"
 #include "GameTime.h"
 #include "Graphics.h"
-#include "SceneEffect.h"
+#include "PostProcessController.h"
+#include "CameraEffectController.h"
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
@@ -587,8 +587,8 @@ float Player::GetOwnerAnchorOffsetY() const
 
 void Player::OnDamaged(const DamageData& damageData)
 {
-	CameraShake::Request(0.13f, 0.07f);
-	DamageVignette::Request(3.0f * (1 - (life / maxLife)));
+	CameraEffectController::Request(0.13f, 0.07f);
+	PostProcessController::Instance().RequestDamagedVignette(3.0f * (1 - (life / maxLife)));
 
 	if (damageData.hitPosition.has_value())
 	{

@@ -61,6 +61,26 @@ public:
 		return loadProgress;
 	}
 
+	Scene* GetCurrentScene()
+	{
+		return currentScene.get();
+	}
+
+	const Scene* GetCurrentScene() const
+	{
+		return currentScene.get();
+	}
+
+	CameraController* GetNowCameraController() const
+	{
+		if (!currentScene)
+		{
+			return nullptr;
+		}
+
+		return currentScene->GetNowCameraController();
+	}
+
 	std::string GetLastLoadError() const;
 
 private:

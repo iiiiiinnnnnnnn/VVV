@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cwctype>
 #include <string>
 #include <fstream>
@@ -44,3 +45,18 @@ inline Color ColorFromRGBA(uint32_t rgba)
         ((rgba >>  0) & 0xFF) / 255.0f
     );
 }
+
+class Random
+{
+public:
+    static float Range(float min, float max)
+    {
+        float t = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        return min + t * (max - min);
+    }
+
+    static int Range(int min, int max)
+    {
+        return min + rand() % (max - min + 1);
+    }
+};
