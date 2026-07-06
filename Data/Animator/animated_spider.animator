@@ -93,7 +93,7 @@
             "name": "Base",
             "states": [
                 {
-                    "animationIndex": 0,
+                    "animationIndex": 4,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -156,7 +156,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 1,
+                    "animationIndex": 8,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -354,7 +354,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 2,
+                    "animationIndex": 6,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -624,7 +624,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 4,
+                    "animationIndex": 1,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -797,7 +797,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 7,
+                    "animationIndex": 2,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -805,65 +805,65 @@
                     "editorPosY": 3.0,
                     "footIKRanges": [
                         {
-                            "endRatio": 0.20000000298023224,
+                            "endRatio": 1.0,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box11",
                             "startRatio": 0.0,
                             "targetName": "Box11",
                             "weight": 1.0
                         },
                         {
+                            "endRatio": 0.16699999570846558,
+                            "fadeInRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
+                            "name": "Box19",
+                            "startRatio": 0.0,
+                            "targetName": "Box19",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.621999979019165,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.10000000149011612,
+                            "name": "Box19",
+                            "startRatio": 0.36800000071525574,
+                            "targetName": "Box19",
+                            "weight": 1.0
+                        },
+                        {
                             "endRatio": 1.0,
                             "fadeInRatio": 0.10000000149011612,
                             "fadeOutRatio": 0.0,
-                            "name": "Box11",
+                            "name": "Box19",
+                            "startRatio": 0.8240000009536743,
+                            "targetName": "Box19",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.0,
+                            "fadeOutRatio": 0.0,
+                            "name": "Box23",
+                            "startRatio": 0.0,
+                            "targetName": "Box23",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.3149999976158142,
+                            "fadeInRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
+                            "name": "Box24",
+                            "startRatio": 0.0,
+                            "targetName": "Box24",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.6809999942779541,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.10000000149011612,
+                            "name": "Box24",
                             "startRatio": 0.5,
-                            "targetName": "Box11",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.5,
-                            "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
-                            "name": "Box19",
-                            "startRatio": 0.0,
-                            "targetName": "Box19",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box19",
-                            "startRatio": 0.9300000071525574,
-                            "targetName": "Box19",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.06300000101327896,
-                            "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
-                            "name": "Box23",
-                            "startRatio": 0.0,
-                            "targetName": "Box23",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box23",
-                            "startRatio": 0.41999998688697815,
-                            "targetName": "Box23",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.5090000033378601,
-                            "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
-                            "name": "Box24",
-                            "startRatio": 0.0,
                             "targetName": "Box24",
                             "weight": 1.0
                         },
@@ -872,30 +872,21 @@
                             "fadeInRatio": 0.10000000149011612,
                             "fadeOutRatio": 0.0,
                             "name": "Box24",
-                            "startRatio": 0.9399999976158142,
+                            "startRatio": 0.8650000095367432,
                             "targetName": "Box24",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.5,
+                            "endRatio": 1.0,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box29",
                             "startRatio": 0.0,
                             "targetName": "Box29",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box29",
-                            "startRatio": 0.9200000166893005,
-                            "targetName": "Box29",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.2029999941587448,
+                            "endRatio": 0.08900000154972076,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box36",
@@ -904,16 +895,25 @@
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
+                            "endRatio": 0.4950000047683716,
                             "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
                             "name": "Box36",
-                            "startRatio": 0.5370000004768372,
+                            "startRatio": 0.2709999978542328,
                             "targetName": "Box36",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.5450000166893005,
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
+                            "name": "Box36",
+                            "startRatio": 0.6909999847412109,
+                            "targetName": "Box36",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.35899999737739563,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box34",
@@ -922,29 +922,29 @@
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
+                            "endRatio": 0.6740000247955322,
                             "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
                             "name": "Box34",
-                            "startRatio": 0.9449999928474426,
+                            "startRatio": 0.44999998807907104,
                             "targetName": "Box34",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.05700000002980232,
-                            "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
-                            "name": "Box30",
-                            "startRatio": 0.0,
-                            "targetName": "Box30",
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
+                            "name": "Box34",
+                            "startRatio": 0.7760000228881836,
+                            "targetName": "Box34",
                             "weight": 1.0
                         },
                         {
                             "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
+                            "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.0,
                             "name": "Box30",
-                            "startRatio": 0.4099999964237213,
+                            "startRatio": 0.0,
                             "targetName": "Box30",
                             "weight": 1.0
                         }
@@ -970,7 +970,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 8,
+                    "animationIndex": 3,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -1014,7 +1014,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 3,
+                    "animationIndex": 7,
                     "blockAnyStateTransitions": false,
                     "callbacks": [
                         {
@@ -1028,7 +1028,7 @@
                     "editorPosY": -61.0,
                     "footIKRanges": [
                         {
-                            "endRatio": 0.20000000298023224,
+                            "endRatio": 0.03200000151991844,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box11",
@@ -1037,16 +1037,25 @@
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
+                            "endRatio": 0.6660000085830688,
                             "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
                             "name": "Box11",
-                            "startRatio": 0.5,
+                            "startRatio": 0.23499999940395355,
                             "targetName": "Box11",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.5,
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
+                            "name": "Box11",
+                            "startRatio": 0.8029999732971191,
+                            "targetName": "Box11",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.03200000151991844,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box19",
@@ -1059,14 +1068,14 @@
                             "fadeInRatio": 0.10000000149011612,
                             "fadeOutRatio": 0.0,
                             "name": "Box19",
-                            "startRatio": 0.9300000071525574,
+                            "startRatio": 0.949999988079071,
                             "targetName": "Box19",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.06300000101327896,
+                            "endRatio": 1.0,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box23",
                             "startRatio": 0.0,
                             "targetName": "Box23",
@@ -1074,33 +1083,15 @@
                         },
                         {
                             "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box23",
-                            "startRatio": 0.41999998688697815,
-                            "targetName": "Box23",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.5090000033378601,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box24",
                             "startRatio": 0.0,
-                            "targetName": "Box24",
+                            "targetName": "Box34",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box24",
-                            "startRatio": 0.9399999976158142,
-                            "targetName": "Box24",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.5,
+                            "endRatio": 0.13500000536441803,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box29",
@@ -1109,16 +1100,25 @@
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 1.0,
+                            "endRatio": 0.7319999933242798,
                             "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
+                            "fadeOutRatio": 0.10000000149011612,
                             "name": "Box29",
-                            "startRatio": 0.9200000166893005,
+                            "startRatio": 0.335999995470047,
                             "targetName": "Box29",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.2029999941587448,
+                            "endRatio": 1.0,
+                            "fadeInRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
+                            "name": "Box29",
+                            "startRatio": 0.9490000009536743,
+                            "targetName": "Box29",
+                            "weight": 1.0
+                        },
+                        {
+                            "endRatio": 0.09700000286102295,
                             "fadeInRatio": 0.0,
                             "fadeOutRatio": 0.10000000149011612,
                             "name": "Box36",
@@ -1131,14 +1131,14 @@
                             "fadeInRatio": 0.10000000149011612,
                             "fadeOutRatio": 0.0,
                             "name": "Box36",
-                            "startRatio": 0.5370000004768372,
+                            "startRatio": 0.9679999947547913,
                             "targetName": "Box36",
                             "weight": 1.0
                         },
                         {
-                            "endRatio": 0.5450000166893005,
+                            "endRatio": 1.0,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box34",
                             "startRatio": 0.0,
                             "targetName": "Box34",
@@ -1146,34 +1146,16 @@
                         },
                         {
                             "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box34",
-                            "startRatio": 0.9449999928474426,
-                            "targetName": "Box34",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 0.05700000002980232,
                             "fadeInRatio": 0.0,
-                            "fadeOutRatio": 0.10000000149011612,
+                            "fadeOutRatio": 0.0,
                             "name": "Box30",
                             "startRatio": 0.0,
-                            "targetName": "Box30",
-                            "weight": 1.0
-                        },
-                        {
-                            "endRatio": 1.0,
-                            "fadeInRatio": 0.10000000149011612,
-                            "fadeOutRatio": 0.0,
-                            "name": "Box30",
-                            "startRatio": 0.4099999964237213,
                             "targetName": "Box30",
                             "weight": 1.0
                         }
                     ],
                     "hasEditorPosition": true,
-                    "loop": true,
+                    "loop": false,
                     "name": "Threat",
                     "speed": 0.5,
                     "transitions": [
