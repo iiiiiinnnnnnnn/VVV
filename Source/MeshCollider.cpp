@@ -5,7 +5,14 @@
 #include "Rigidbody.h"
 #include "Graphics.h"
 #include "IconsFontAwesome5.h"
+#include "Actor.h"
 
+Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
+{
+    Actor* actor = GetOwnerAsActor();
+    Vector3 ownerScale = actor ? actor->transform.scale : Vector3::One;
+    return nodeTransform * Matrix::CreateScale(ownerScale);
+}
 void MeshCollider::Render(const RenderContext& rc)
 {
 	if (!showDebug) return;
@@ -18,13 +25,12 @@ void MeshCollider::Render(const RenderContext& rc)
     {
         if (!mesh.isDraw) continue;
         if (!mesh.node) continue;
-
+        Matrix localVertexTransform = MakeLocalVertexTransform(mesh.node->globalTransform);
+        Matrix actorTransform = Conv::ToMatrix(rigidbody->GetRigidActor()->getGlobalPose());
         for (const Model::Vertex& vertex : mesh.vertices)
         {
-            Vector3 position =
-                Vector3::Transform(
-                vertex.position,
-                mesh.node->worldTransform);
+            Vector3 position = Vector3::Transform(vertex.position, localVertexTransform);
+            position = Vector3::Transform(position, actorTransform);
 
             if (position.x < minPosition.x) minPosition.x = position.x;
             if (position.y < minPosition.y) minPosition.y = position.y;
@@ -77,11 +83,12 @@ void MeshCollider::UpdateShape()
     for (const Model::Mesh& mesh : model->GetMeshes())
     {
         if (!mesh.isDraw) continue;
-
         std::vector<PxVec3> vertices;
+        Matrix nodeTransform = mesh.node ? mesh.node->globalTransform : Matrix::Identity;
+        Matrix localVertexTransform = MakeLocalVertexTransform(nodeTransform);
         for (const Model::Vertex& v : mesh.vertices)
         {
-            Vector3 pos = Vector3::Transform(v.position, mesh.node->worldTransform);
+            Vector3 pos = Vector3::Transform(v.position, localVertexTransform);
             vertices.push_back(PxVec3(pos.x, pos.y, pos.z));
         }
 

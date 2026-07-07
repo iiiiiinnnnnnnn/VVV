@@ -16,7 +16,22 @@
                 },
                 "staticFriction": 0.5
             },
+            "colliderType": "Box",
+            "destroyLife": 5.0,
             "modelPath": "Data/Model/Prop/paestum_stone.glb",
+            "pbr": {
+                "color": {
+                    "a": 1.0,
+                    "b": 1.0,
+                    "g": 1.0,
+                    "r": 1.0
+                },
+                "metallic": 0.0,
+                "occlusion": 1.0,
+                "occlusionStrength": 1.0,
+                "roughness": 0.5,
+                "shadowStrength": 1.0
+            },
             "rigidbody": {
                 "isDynamic": false
             },
@@ -37,7 +52,8 @@
                     "y": 5.0,
                     "z": 5.0
                 }
-            }
+            },
+            "useDestroy": true
         },
         {
             "boxCollider": {
@@ -55,7 +71,22 @@
                 },
                 "staticFriction": 0.5
             },
+            "colliderType": "Box",
+            "destroyLife": 5.0,
             "modelPath": "Data/Model/Prop/paestum_stone.glb",
+            "pbr": {
+                "color": {
+                    "a": 1.0,
+                    "b": 1.0,
+                    "g": 1.0,
+                    "r": 1.0
+                },
+                "metallic": 0.0,
+                "occlusion": 1.0,
+                "occlusionStrength": 1.0,
+                "roughness": 0.5,
+                "shadowStrength": 1.0
+            },
             "rigidbody": {
                 "isDynamic": false
             },
@@ -76,7 +107,8 @@
                     "y": 5.0,
                     "z": 5.0
                 }
-            }
+            },
+            "useDestroy": true
         },
         {
             "boxCollider": {
@@ -94,7 +126,22 @@
                 },
                 "staticFriction": 0.5
             },
+            "colliderType": "Box",
+            "destroyLife": 5.0,
             "modelPath": "Data/Model/Prop/paestum_stone.glb",
+            "pbr": {
+                "color": {
+                    "a": 1.0,
+                    "b": 1.0,
+                    "g": 1.0,
+                    "r": 1.0
+                },
+                "metallic": 0.0,
+                "occlusion": 1.0,
+                "occlusionStrength": 1.0,
+                "roughness": 0.5,
+                "shadowStrength": 1.0
+            },
             "rigidbody": {
                 "isDynamic": false
             },
@@ -115,7 +162,63 @@
                     "y": 5.0,
                     "z": 5.0
                 }
-            }
+            },
+            "useDestroy": true
+        },
+        {
+            "boxCollider": {
+                "dynamicFriction": 0.5,
+                "localPosition": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "restitution": 0.10000000149011612,
+                "size": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "staticFriction": 0.5
+            },
+            "colliderType": "Mesh",
+            "destroyLife": 0.0,
+            "modelPath": "Data/Model/Prop/stone_structure_scnv2_mid.glb",
+            "pbr": {
+                "color": {
+                    "a": 1.0,
+                    "b": 1.0,
+                    "g": 1.0,
+                    "r": 1.0
+                },
+                "metallic": 0.0,
+                "occlusion": 0.0,
+                "occlusionStrength": 0.5,
+                "roughness": 1.0,
+                "shadowStrength": 1.0
+            },
+            "rigidbody": {
+                "isDynamic": false
+            },
+            "transform": {
+                "position": {
+                    "x": -1.899999976158142,
+                    "y": -0.9399999976158142,
+                    "z": -2.799999952316284
+                },
+                "rotation": {
+                    "w": 0.9326390027999878,
+                    "x": -0.0,
+                    "y": -0.3608108460903168,
+                    "z": 0.0
+                },
+                "scale": {
+                    "x": 12.0,
+                    "y": 12.0,
+                    "z": 12.0
+                }
+            },
+            "useDestroy": false
         }
     ],
     "spawners": []

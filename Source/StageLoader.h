@@ -88,17 +88,30 @@ private:
 	} addSpawnerData = {};
 	std::vector<SpawnerData> spawnerDataList = {};
 
+	enum class ColliderType
+	{
+		Box,
+		Mesh
+	};
+
 	struct PropData
 	{
 		// •Û‘¶‚·‚é
 		Transform transform = {};
 		BoxColliderData boxColliderData = {};
 		RigidbodyData rigidbodyData = {};
+		ColliderType colliderType = ColliderType::Box;
 		std::string modelPath = "";
+		Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
 		float metallic = 0.0f;
 		float roughness = 0.5f;
 		float occlusion = 1.0f;
 		float occlusionStrength = 1.0f;
+		float shadowStrength = 1.0f;
+		bool useDestroy = false;
+		float destroyLife = 0.0f;
+
+		ShaderParamList MakePBRParams() const;
 
 		// •Û‘¶‚µ‚È‚¢
 		std::shared_ptr<Model> model = nullptr;
@@ -107,7 +120,12 @@ private:
 	} addPropData = {};
 	std::vector<PropData> propDataList = {};
 
+	void DrawPBRParamsGUI(PropData& propData);
+	void DrawColliderTypeGUI(PropData& propData);
+	void DrawDestroyGUI(PropData& propData);
+
 	std::filesystem::path jsonPath = {};
 	Actor* stage = nullptr;
 	std::vector<Actor*> addedRealActors = {};
 };
+

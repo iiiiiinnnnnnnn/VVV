@@ -21,6 +21,7 @@ public:
     Vector3 GetWorldPosition() const;
 private:
     void UpdateShape();
+    Matrix MakeLocalVertexTransform(const Matrix& nodeTransform) const;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
     Model* model = nullptr;

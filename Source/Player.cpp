@@ -249,14 +249,39 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	if (!entity) return;
 
 	bool footAtk = self == footCollider;
+	Vector3 hitPosition = point;
+	Vector3 hitNormal = normal;
+	BoneSphereCollider* attackCollider = footAtk ? footCollider : weaponCollider;
+	Vector3 rayOrigin = attackCollider->GetWorldPosition();
+	Vector3 rayDirection = point - rayOrigin;
+	if (rayDirection.LengthSquared() <= eps)
+		rayDirection = otherActor->transform.position - rayOrigin;
+	if (rayDirection.LengthSquared() > eps)
+	{
+		float rayDistance = rayDirection.Length() * 2.0f + 2.0f;
+		rayDirection.Normalize();
+
+		PhysicsManager::PhysicsRaycastHit hit;
+		if (PhysicsManager::Instance().Raycast(
+			rayOrigin,
+			rayDirection,
+			rayDistance,
+			hit,
+			self->GetLayerId(),
+			this))
+		{
+			hitPosition = hit.position;
+			hitNormal = -hit.normal;
+		}
+	}
 
 	entity->TakeDamage({
 		.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
 		.knockBackPower = footAtk ? 80.0f : 50.0f,
 		.hitColliderSelf = self,
 		.hitColliderOther = other,
-		.hitPosition = point,
-		.hitNormal = normal,
+		.hitPosition = hitPosition,
+		.hitNormal = hitNormal,
 		});
 }
 
@@ -473,5 +498,4 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::OnDead()
 {
 }
-
 

@@ -12,6 +12,59 @@
 
 using json = nlohmann::json;
 
+ShaderParamList StageLoader::PropData::MakePBRParams() const
+{
+	return {
+		{"color", color},
+		{"metalness", metallic},
+		{"roughness", roughness},
+		{"occlusion", occlusion},
+		{"occlusionStrength", occlusionStrength},
+		{"shadowStrength", shadowStrength},
+	};
+}
+
+void StageLoader::DrawPBRParamsGUI(PropData& propData)
+{
+	if (ImGui::TreeNode("PBR Shader Params"))
+	{
+		ImGui::ColorEdit4("Color", &propData.color.x);
+		ImGui::DragFloat("Metallic", &propData.metallic, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("Roughness", &propData.roughness, 0.01f, 0.0001f, 1.0f);
+		ImGui::DragFloat("Occlusion", &propData.occlusion, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("Occlusion Strength", &propData.occlusionStrength, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat("Shadow Strength", &propData.shadowStrength, 0.01f, 0.0f, 1.0f);
+		ImGui::TreePop();
+	}
+}
+
+void StageLoader::DrawColliderTypeGUI(PropData& propData)
+{
+	std::string previewName = std::string(magic_enum::enum_name(propData.colliderType));
+	if (ImGui::BeginCombo("Collider Type", previewName.c_str()))
+	{
+		for (ColliderType type : magic_enum::enum_values<ColliderType>())
+		{
+			std::string name = std::string(magic_enum::enum_name(type));
+			bool isSelected = propData.colliderType == type;
+			if (ImGui::Selectable(name.c_str(), isSelected))
+				propData.colliderType = type;
+			if (isSelected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+}
+
+void StageLoader::DrawDestroyGUI(PropData& propData)
+{
+	ImGui::Checkbox("Use Destroy", &propData.useDestroy);
+	if (propData.useDestroy)
+	{
+		ImGui::DragFloat("Destroy Life", &propData.destroyLife, 0.1f, 0.0f, 100000.0f);
+		if (propData.destroyLife < 0.0f) propData.destroyLife = 0.0f;
+	}
+}
 StageLoader::StageLoader(Object* owner, Actor* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
 {
@@ -27,26 +80,7 @@ void StageLoader::Update()
 			prop.model = ResourceManager::Instance().LoadModel(prop.modelPath);
 		}
 
-		float t = Game::Time::time;
-
-		float cycle = std::fmod(t, 1.0f);
-
-		float alpha;
-		if (cycle < 0.5f)
-		{
-			alpha = cycle / 0.5f;
-		}
-		else
-		{
-			alpha = 1.0f - ((cycle - 0.5f) / 0.5f);
-		}
-
-		ShaderParamList param;
-		param.push_back({"metalness", prop.metallic});
-		param.push_back({"roughness", prop.roughness});
-		param.push_back({"occlusion", prop.occlusion});
-		param.push_back({"occlusionStrength", prop.occlusionStrength});
-		param.push_back({"color", Color(1.0f, 1.0f, 1.0f, alpha)});
+		ShaderParamList param = prop.MakePBRParams();
 		ModelRenderer::SetShaderParamForAllMaterials(prop.model.get(), param, prop.shaderParams);
 
 		prop.transform.Update();
@@ -74,6 +108,8 @@ void StageLoader::Render(const RenderContext& rc)
 	}
 	for (auto& prop : propDataList)
 	{
+		if (prop.colliderType != ColliderType::Box) continue;
+
 		// 当たり判定描画
 		Matrix world = prop.transform.matrix * Matrix::CreateTranslation(prop.boxColliderData.localPosition);
 		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
@@ -168,7 +204,6 @@ void StageLoader::DrawGUI()
 				}
 				ImGui::EndCombo();
 			}
-
 			// 追加ボタン
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
@@ -182,11 +217,18 @@ void StageLoader::DrawGUI()
 			// transform
 			addPropData.transform.DrawGUI();
 
-			// boxCollider
-			addPropData.boxColliderData.DrawGUI();
+			DrawColliderTypeGUI(addPropData);
+			if (addPropData.colliderType == ColliderType::Box)
+			{
+				// boxCollider
+				addPropData.boxColliderData.DrawGUI();
 
-			// rigidbody
-			addPropData.rigidbodyData.DrawGUI();
+				// rigidbody
+				addPropData.rigidbodyData.DrawGUI();
+			}
+
+			DrawPBRParamsGUI(addPropData);
+			DrawDestroyGUI(addPropData);
 
 			// プロップの場合はパスが詳細。パスの最初に#があればダイナミック
 
@@ -200,17 +242,17 @@ void StageLoader::DrawGUI()
 			}
 
 			// モデルパス
-
 			ImGui::Text("Model Path:");
 			if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
 			{
 				for (const auto& path : glbFiles)
 				{
 					std::string name = path.filename().string();
-					bool isSelected = (addPropData.modelPath == name);
+					std::string modelPath = "Data/Model/Prop/" + name;
+					bool isSelected = (addPropData.modelPath == modelPath);
 					if (ImGui::Selectable(name.c_str(), isSelected))
 					{
-						addPropData.modelPath = "Data/Model/Prop/" + name;
+						addPropData.modelPath = modelPath;
 					}
 					if (isSelected)
 					{
@@ -281,8 +323,15 @@ void StageLoader::DrawGUI()
 		if (ImGui::TreeNode("Prop"))
 		{
 			propData.transform.DrawGUI();
-			propData.boxColliderData.DrawGUI();
-			propData.rigidbodyData.DrawGUI();
+			DrawColliderTypeGUI(propData);
+			if (propData.colliderType == ColliderType::Box)
+			{
+				propData.boxColliderData.DrawGUI();
+				propData.rigidbodyData.DrawGUI();
+			}
+
+			DrawPBRParamsGUI(propData);
+			DrawDestroyGUI(propData);
 
 			ImGui::Text("Model Path: %s", propData.modelPath.c_str());
 
@@ -441,6 +490,20 @@ void StageLoader::LoadJson()
 				}
 			}
 
+			if (propJson.contains("colliderType"))
+			{
+				std::string colliderTypeName = propJson.value("colliderType", "Box");
+				auto colliderType = magic_enum::enum_cast<ColliderType>(colliderTypeName);
+				if (colliderType.has_value())
+					propData.colliderType = colliderType.value();
+			}
+			else if (propJson.contains("MeshCollider"))
+			{
+				propData.colliderType = propJson.value("MeshCollider", false)
+					? ColliderType::Mesh
+					: ColliderType::Box;
+			}
+
 			if (propJson.contains("boxCollider"))
 			{
 				const auto& boxColliderJson = propJson["boxCollider"];
@@ -467,8 +530,33 @@ void StageLoader::LoadJson()
 			if (propJson.contains("rigidbody"))
 			{
 				const auto& rigidbodyJson = propJson["rigidbody"];
-
 				propData.rigidbodyData.isDynamic = rigidbodyJson.value("isDynamic", false);
+			}
+
+			if (propJson.contains("pbr"))
+			{
+				const auto& pbrJson = propJson["pbr"];
+				if (pbrJson.contains("color"))
+				{
+					propData.color.x = pbrJson["color"].value("r", 1.0f);
+					propData.color.y = pbrJson["color"].value("g", 1.0f);
+					propData.color.z = pbrJson["color"].value("b", 1.0f);
+					propData.color.w = pbrJson["color"].value("a", 1.0f);
+				}
+				propData.metallic = pbrJson.value("metallic", propData.metallic);
+				propData.roughness = pbrJson.value("roughness", propData.roughness);
+				propData.occlusion = pbrJson.value("occlusion", propData.occlusion);
+				propData.occlusionStrength = pbrJson.value("occlusionStrength", propData.occlusionStrength);
+				propData.shadowStrength = pbrJson.value("shadowStrength", propData.shadowStrength);
+			}
+
+			propData.useDestroy = propJson.value("useDestroy", false);
+			propData.destroyLife = propJson.value("destroyLife", 0.0f);
+			if (propJson.contains("destroyableHP"))
+			{
+				float oldDestroyLife = static_cast<float>(propJson.value("destroyableHP", 0));
+				propData.useDestroy = oldDestroyLife > 0.0f;
+				propData.destroyLife = oldDestroyLife;
 			}
 
 			propData.modelPath = propJson.value("modelPath", "");
@@ -552,6 +640,20 @@ void StageLoader::SaveJson()
 		propJson["boxCollider"]["restitution"] = propData.boxColliderData.restitution;
 
 		propJson["rigidbody"]["isDynamic"] = propData.rigidbodyData.isDynamic;
+		propJson["colliderType"] = std::string(magic_enum::enum_name(propData.colliderType));
+
+		propJson["pbr"]["color"]["r"] = propData.color.x;
+		propJson["pbr"]["color"]["g"] = propData.color.y;
+		propJson["pbr"]["color"]["b"] = propData.color.z;
+		propJson["pbr"]["color"]["a"] = propData.color.w;
+		propJson["pbr"]["metallic"] = propData.metallic;
+		propJson["pbr"]["roughness"] = propData.roughness;
+		propJson["pbr"]["occlusion"] = propData.occlusion;
+		propJson["pbr"]["occlusionStrength"] = propData.occlusionStrength;
+		propJson["pbr"]["shadowStrength"] = propData.shadowStrength;
+
+		propJson["useDestroy"] = propData.useDestroy;
+		propJson["destroyLife"] = propData.destroyLife;
 
 		propJson["modelPath"] = propData.modelPath;
 
@@ -572,3 +674,4 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
+
