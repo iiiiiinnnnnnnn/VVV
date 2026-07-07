@@ -353,25 +353,6 @@ float4 main(VS_OUT pin) : SV_TARGET
         + iblSpecular
         + emissive;
 
-    [unroll]
-    for (int holeIndex = 0; holeIndex < MaxDamageHoles; ++holeIndex)
-    {
-        if (holeIndex >= damageHoleCount)
-        {
-            break;
-        }
-
-        float4 hole = damageHoles[holeIndex];
-        float radius = max(hole.w, 0.001f);
-        float distanceToHole = distance(pin.position, hole.xyz);
-        float body = 1.0f - smoothstep(radius * 0.35f, radius, distanceToHole);
-        float edge = 1.0f - smoothstep(radius, radius + damageHoleEdgeWidth, distanceToHole);
-        edge *= smoothstep(radius * 0.35f, radius, distanceToHole);
-
-        color = lerp(color, color * 0.35f, saturate(body));
-        color = lerp(color, float3(0.02f, 0.018f, 0.015f), saturate(edge));
-    }
-
     color = ApplyDistanceFog(color, pin.position);
 
     return float4(color, albedo.a);

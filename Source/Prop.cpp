@@ -9,6 +9,8 @@
 #include "BoxCollider.h"
 #include "DamageHoleComponent.h"
 #include "MeshCollider.h"
+#include "HitStop.h"
+#include "CameraEffectController.h"
 
 Prop::Prop(StageLoader::PropData& propData)
 	: Actor("Prop", "Prop", true)
@@ -63,6 +65,9 @@ void Prop::OnTriggerEnter(
 	if (destroyLife <= 0.0f) return;
 	if (other->GetLayerId() != Layers::Get("PlayerAtk") &&
 		other->GetLayerId() != Layers::Get("EnemyAtk")) return;
+
+	HitStop::Request(0.1f);
+	CameraEffectController::Request(0.1f, 0.1f);
 
 	// É{ÉRÉb
 	if (damageHoleComponent)
