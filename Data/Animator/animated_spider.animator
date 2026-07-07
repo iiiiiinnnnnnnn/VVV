@@ -359,7 +359,7 @@
                     "callbacks": [],
                     "dynamicClipPath": "",
                     "editorPosX": -92.0,
-                    "editorPosY": 234.0,
+                    "editorPosY": 227.0,
                     "footIKRanges": [
                         {
                             "endRatio": 0.029999999329447746,
@@ -607,7 +607,7 @@
                             "conditions": [
                                 {
                                     "mode": 1,
-                                    "paramName": "Speed",
+                                    "paramName": "speed",
                                     "threshold": 0.009999999776482582
                                 }
                             ],
