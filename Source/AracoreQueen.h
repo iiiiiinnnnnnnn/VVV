@@ -68,6 +68,7 @@ private:
 	} chasingPlayer = ChaseType::No;
 	float chaisedTimer = 0.0f;
 	float navAgentRadius = 2.17f;
+	std::vector<Vector3> colPositions;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 };

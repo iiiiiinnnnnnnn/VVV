@@ -20,8 +20,10 @@
 #include "Easing.h"
 #include "HitStop.h"
 #include "SpiderFootIK.h"
+#include "BoneCapsuleCollider.h"
+#include "BoneSphereCollider.h"
 
-AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100.0f)
+AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
 {
     // 蜘蛛の部分
     {
@@ -34,8 +36,8 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
                 {
                     {"metalness", 0.0f},
                     {"roughness", 1.0f},
-                    {"occlusion", 1.0f},
-                    {"occlusionStrength", 0.0f}
+                    {"occlusion", 0.0f},
+                    {"occlusionStrength", 0.7f}
                 }
             }
         };
@@ -79,7 +81,6 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
         AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
 
         // 足の当たり判定
-        #if 0
         std::vector<std::string> ikBoneNames = {
             "IK Chain02",
             "IK Chain14",
@@ -90,22 +91,31 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 100.0f, 100
             "IK Chain11",
             "IK Chain10"
         };
-        for (const std::string& ikBoneName : ikBoneNames)
+        colPositions = {
+            {-6.41f, 13.75f, 0.0f},
+            {-10.96f, 8.36f, 0.0f},
+            {-6.67f, -5.5f, 0.0f},
+            {-3.82f, -5.19f, 0.0f},
+            {6.41f, 13.75f, 0.0f},
+            {6.23f, 8.9f, 0.0f},
+            {3.51f, -3.4f, 0.0f},
+            {-0.51f, -3.08f, 0.0f}
+        };
+        for (int i = 0; i < ikBoneNames.size(); i++)
         {
-            const int ikNodeIndex = model->GetNodeIndex(ikBoneName.c_str());
-            // 足接触コライダー
-            IKColliders.push_back(AddComponent<BoneCapsuleCollider>(
-                model.get(),
+            const int ikNodeIndex = model->GetNodeIndex(ikBoneNames[i].c_str());
 
+            // 足接触コライダー
+            IKColliders.push_back(AddComponent<BoneSphereCollider>(
+                Layers::Get("Enemy"),
+                model.get(),
                 ikNodeIndex,
-                1.26f,
-                2.8f,
+                1.0f,
                 Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) *
-                Matrix::CreateTranslation(-7.41f, 15.0f, 10.0f),
+                Matrix::CreateTranslation(colPositions[i]),
                 PhysicsManager::Instance().GetDefaultMaterial(),
                 false));
         }
-        #endif
     }
 }
 
@@ -139,32 +149,34 @@ void AracoreQueen::UpdateChase()
         return;
     }
 
-    const float distance = Vector3::Distance(player->transform.position, transform.position);
+    chaisedTimer -= Game::Time::deltaTime;
+    const float distance = Vector3::Distance(
+        player->transform.position, transform.position);
     if (distance < 15.0f)
     {
-        if (chaisedTimer > 0.0f)
+        if (chaisedTimer < 0.01f)
         {
-			chaisedTimer -= Game::Time::deltaTime;
-            if(chaisedTimer <= 0.0f)
-            {
-                chasingPlayer = ChaseType::No;
-                chaisedTimer = 0.0f;
-			}
+            chasingPlayer = ChaseType::No;
+            navMeshAgent->SetSpeed(3.0f);
+            chaisedTimer = 2.0f;
         }
     }
     else
     {
-        if (distance > 20.0f)
+        if (chaisedTimer < 0.01f)
         {
-            chasingPlayer = ChaseType::Run;
-            navMeshAgent->SetSpeed(6.0f);
-            chaisedTimer = 3.0f;
-        }
-        else
-        {
-            chasingPlayer = ChaseType::Walk;
-            navMeshAgent->SetSpeed(3.0f);
-            chaisedTimer = 3.0f;
+            if (distance > 20.0f)
+            {
+                chasingPlayer = ChaseType::Run;
+                navMeshAgent->SetSpeed(6.0f);
+                chaisedTimer = 3.0f;
+            }
+            else
+            {
+                chasingPlayer = ChaseType::Walk;
+                navMeshAgent->SetSpeed(3.0f);
+                chaisedTimer = 3.0f;
+            }
         }
     }
 
@@ -185,13 +197,23 @@ void AracoreQueen::OnDrawGUI()
     if (!ImGui::TreeNode("AracoreQueen AI"))
         return;
 
+    for(Vector3& pos : colPositions)
+    {
+		ImGui::PushID(&pos);
+        ImGui::DragFloat3("Foot Collider Offset", &pos.x, 0.01f);
+		ImGui::PopID();
+	}
+
     ImGui::TreePop();
 }
 
 void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
+    if (IsDead()) return;
+
     // 踏みつけ判定に当たったらプレイヤーにダメージ
-    if (!IsDead() && anim->GetCurrentStateName(0) == "run")
+	std::string currentState = anim->GetCurrentStateName();
+    if (currentState == "run" || currentState == "walk")
     {
         bool isFootCollider = false;
         for (PhysicsComponent* collider : IKColliders)
@@ -242,7 +264,7 @@ void AracoreQueen::OnDead()
 // AracoreQueenMachine(AracoreQueen.cpp)
 
 AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
-    : Entity("AracoreQueenMachine", "Enemy", true, 100.0f, 100.0f),
+    : Entity("AracoreQueenMachine", "Enemy", true, ownerAracoreQueen->GetLife(), ownerAracoreQueen->GetMaxLife()),
     ownerAracoreQueen(ownerAracoreQueen)
 {
     std::shared_ptr<Model> model =
@@ -332,7 +354,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     };
     ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 0.85f, 0.18f, 0.9f, 1.35f);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3, 2, 2, 1);
 }
 
 void AracoreQueenMachine::OnDamaged(const DamageData& damageData)

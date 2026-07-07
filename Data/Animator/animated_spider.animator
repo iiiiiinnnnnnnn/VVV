@@ -120,8 +120,8 @@
                             "conditions": [
                                 {
                                     "mode": 0,
-                                    "paramName": "Speed",
-                                    "threshold": 0.75
+                                    "paramName": "speed",
+                                    "threshold": 4.0
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -590,6 +590,11 @@
                                     "mode": 1,
                                     "paramName": "speed",
                                     "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
                                 }
                             ],
                             "excludedFromStateIndices": [],
@@ -779,7 +784,7 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "attack",
-                    "speed": 0.4399999976158142,
+                    "speed": 0.5,
                     "transitions": [
                         {
                             "canInterrupt": false,
