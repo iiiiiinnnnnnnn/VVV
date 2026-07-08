@@ -674,4 +674,3 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
-

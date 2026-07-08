@@ -2147,6 +2147,3 @@ private:
         ti = value % LinkFromStride;
     }
 };
-
-
-

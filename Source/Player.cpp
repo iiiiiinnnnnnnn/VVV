@@ -502,4 +502,3 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::OnDead()
 {
 }
-

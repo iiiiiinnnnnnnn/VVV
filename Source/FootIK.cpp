@@ -581,4 +581,3 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 }
-

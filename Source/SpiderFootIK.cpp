@@ -151,8 +151,3 @@ float SpiderFootIK::GetFootIKWeight(int footIndex) const
 	}
 	return result;
 }
-
-
-
-
-

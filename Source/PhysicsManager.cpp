@@ -636,5 +636,3 @@ void CCHitReport::DispatchEvents()
     prevFrameColliders = currentFrameColliders;
     currentFrameColliders.clear();
 }
-
-

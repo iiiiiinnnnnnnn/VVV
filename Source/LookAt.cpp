@@ -184,6 +184,3 @@ void LookAt::DrawGUI()
 
 	ImGui::DragFloat("Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
 }
-
-
-

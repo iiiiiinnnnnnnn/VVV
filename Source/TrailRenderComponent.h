@@ -65,4 +65,3 @@ private:
     static constexpr float SAMPLE_INTERVAL = 0.01f;
     float sampleTimer = 0.0f;
 };
-

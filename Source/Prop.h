@@ -23,4 +23,3 @@ public:
 	bool useDestroy = false;
 	float destroyLife = 0.0f;
 };
-

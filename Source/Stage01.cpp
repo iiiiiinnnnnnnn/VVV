@@ -55,5 +55,3 @@ void Stage01::OnDrawGUI()
 {
 
 }
-
-

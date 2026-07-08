@@ -132,4 +132,3 @@ void ThirdPersonCameraController::OnDrawGUI()
     nearClip = std::clamp(nearClip, 0.01f, 10.0f);
     farClip = std::clamp(farClip, nearClip + 1.0f, 10000.0f);
 }
-

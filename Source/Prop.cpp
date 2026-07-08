@@ -80,4 +80,3 @@ void Prop::OnTriggerEnter(
 		destroyLife = 0.0f;
 	}
 }
-

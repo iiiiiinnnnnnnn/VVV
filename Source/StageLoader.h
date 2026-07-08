@@ -128,4 +128,3 @@ private:
 	Actor* stage = nullptr;
 	std::vector<Actor*> addedRealActors = {};
 };
-

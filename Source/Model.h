@@ -274,4 +274,3 @@ private:
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;
 };
-

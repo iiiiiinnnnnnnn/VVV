@@ -363,6 +363,3 @@ private:
     // 1つのノードのポーズを特定時間からサンプリングするヘルパー
     Model::NodePose SampleNodePose(int animIndex, float time, int nodeIdx);
 };
-
-
-

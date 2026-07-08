@@ -67,7 +67,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         cc->SetStepOffset(1.2f);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);
-        navAgentRadius = 5.86f;
+        navAgentRadius = 3.9f;
         navMeshAgent = AddComponent<NavMeshAgent>();
 
         // リジッドボディ
@@ -386,4 +386,3 @@ void AracoreQueenMachine::OnDead()
     printf("AracoreQueenMachine Dead!\n");
     Destroy(2);
 }
-

@@ -45,5 +45,3 @@ private:
 	float maxDownCorrection = 5.0f;
 	bool showFootDebug = true;
 };
-
-

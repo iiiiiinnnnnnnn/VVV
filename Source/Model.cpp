@@ -1240,8 +1240,3 @@ void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 		_ASSERT_EXPR_A(false, "Model File not found.");
 	}
 }
-
-
-
-
-
