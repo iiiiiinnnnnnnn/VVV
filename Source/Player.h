@@ -68,37 +68,33 @@ private:
 protected:
     std::unique_ptr<PlayerController> controller;
     std::shared_ptr<Model> model = nullptr;
-
+    
+    // rendering
     Animator*             anim = nullptr;
-    CharacterController*  cc   = nullptr;
-    ModelRenderComponent* modelRenderer = nullptr;
-    ThirdPersonCameraController* cameraController = nullptr;
-    BoneSphereCollider* weaponCollider = nullptr;
-    BoneSphereCollider* footCollider = nullptr;
-    TrailRenderComponent* trail = nullptr;
-    SpringBone* hairSpringBone = nullptr;
-	HumanoidFootIK* footIK = nullptr;
-    float groundSnapUpDistance = 0.2f;
-    float groundSnapDownDistance = 0.5f;
-
-    LookAt* lookAt;
-
-    bool  isFirstPerson = false;
-    float spineAngleX   = 0.0f;
-    const Vector2 idleSpineAngle  = {0.8f, 0};
-    const Vector2 readySpineAngle = {-0.25f, -0.38f};
-
-    Vector3 frameVelocity = Vector3::Zero;
-    float verticalVelocity = 0.0f;
-    float speed = 5.0f;
-    bool groundedByRay = false;
-
-    ShaderParamListWithMaterialName shaderParamWithMaterialName;
-
     int stIdle   = -1;
     int stWalk   = -1;
     int stRun    = -1;
     int stSprint = -1;
+    ModelRenderComponent* modelRenderer = nullptr;
+    ShaderParamListWithMaterialName shaderParamWithMaterialName;
+    ThirdPersonCameraController* cameraController = nullptr;
+    bool  isFirstPerson = false;
+    float spineAngleX   = 0.0f;
+    const Vector2 idleSpineAngle  = {0.8f, 0};
+    const Vector2 readySpineAngle = {-0.25f, -0.38f};
+    TrailRenderComponent* trail = nullptr;
+    SpringBone* hairSpringBone = nullptr;
+    HumanoidFootIK* footIK = nullptr;
+    float groundSnapUpDistance = 0.2f;
+    float groundSnapDownDistance = 0.5f;
+    LookAt* lookAt;
 
-    Vector3 offsetPos = Vector3::Zero;
+    // movement
+    CharacterController*  cc   = nullptr;
+    BoneSphereCollider* weaponCollider = nullptr;
+    BoneSphereCollider* footCollider = nullptr;
+    Vector3 frameVelocity = Vector3::Zero;
+    float verticalVelocity = 0.0f;
+    float speed = 5.0f;
+    bool groundedByRay = false;
 };
