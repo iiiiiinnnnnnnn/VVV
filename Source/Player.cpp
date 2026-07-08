@@ -189,6 +189,10 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		"thigh_l", "calf_l", "foot_l", "ball_l",
 		"thigh_r", "calf_r", "foot_r", "ball_r");
 	model->UpdateTransform(Matrix::Identity);
+
+	// LookAt
+	lookAt = AddComponent<LookAt>(model.get(), "head", "neck_01");
+	lookAt->SetTarget({0.0f, 2, 6});
 }
 
 void Player::OnEnterAnim(const Animator::State& state)

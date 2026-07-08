@@ -423,6 +423,9 @@
     <ClCompile Include="Source\PostProcessController.cpp">
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
+    <ClCompile Include="Source\LookAt.cpp">
+      <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -742,6 +745,9 @@
     </ClInclude>
     <ClInclude Include="Source\HitStop.h">
       <Filter>ソースファイル\シーン</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LookAt.h">
+      <Filter>ソースファイル\オブジェクト\コンポーネント\動き</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

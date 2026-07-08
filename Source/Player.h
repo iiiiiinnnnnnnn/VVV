@@ -16,6 +16,7 @@
 #include "TrailRenderComponent.h"
 #include "SpringBone.h"
 #include "HumanoidFootIK.h"
+#include "LookAt.h"
 
 class ThirdPersonCameraController;
 
@@ -79,6 +80,8 @@ protected:
 	HumanoidFootIK* footIK = nullptr;
     float groundSnapUpDistance = 0.2f;
     float groundSnapDownDistance = 0.5f;
+
+    LookAt* lookAt;
 
     bool  isFirstPerson = false;
     float spineAngleX   = 0.0f;

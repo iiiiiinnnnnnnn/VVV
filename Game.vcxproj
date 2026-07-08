@@ -21,6 +21,7 @@
     <ClCompile Include="Source\FootIK.cpp" />
     <ClCompile Include="Source\HitStop.cpp" />
     <ClCompile Include="Source\HumanoidFootIK.cpp" />
+    <ClCompile Include="Source\LookAt.cpp" />
     <ClCompile Include="Source\SpiderFootIK.cpp" />
     <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
@@ -115,6 +116,7 @@
     <ClInclude Include="Source\Easing.h" />
     <ClInclude Include="Source\FootIK.h" />
     <ClInclude Include="Source\HumanoidFootIK.h" />
+    <ClInclude Include="Source\LookAt.h" />
     <ClInclude Include="Source\SpiderFootIK.h" />
     <ClInclude Include="Source\MeshCollider.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
