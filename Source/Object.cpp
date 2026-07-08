@@ -5,6 +5,11 @@
 #include "GameTime.h"
 #include <algorithm>
 
+Object::~Object()
+{
+    componentList.Clear();
+}
+
 void Object::Components::DrawGUI()
 {
     for (auto& c : data) {
@@ -58,10 +63,24 @@ void Object::DrawGUI()
 
 // Components
 
+Object::Components::~Components()
+{
+    Clear();
+}
+
 void Object::Components::Register(std::unique_ptr<Component> component)
 {
     data.push_back(std::move(component));
     updateOrderDirty = true;
+}
+
+void Object::Components::Clear()
+{
+    for (auto it = data.rbegin(); it != data.rend(); ++it)
+        it->reset();
+
+    data.clear();
+    updateOrderDirty = false;
 }
 
 void Object::Components::SortUpdateOrder()

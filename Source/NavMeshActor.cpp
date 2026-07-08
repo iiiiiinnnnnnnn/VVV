@@ -86,7 +86,7 @@ void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) cons
 	ActorManager* actorManager = actor ? actor->GetActorManager() : nullptr;
 	if (!actorManager) return;
 
-	for (const std::shared_ptr<Actor>& other : actorManager->GetActors())
+	for (Actor* other : actorManager->GetActors())
 	{
 		if (!other || other->IsPendingDestroy()) continue;
 

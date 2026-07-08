@@ -141,8 +141,10 @@ void Scene::Render()
 
 	// シャドウマップ描画
 	{
-		for (auto& actor : actorManager.GetActors())
+		for (Actor* actor : actorManager.GetActors())
 		{
+			if (!actor || actor->IsPendingDestroy()) continue;
+
 			auto* mrc = actor->GetComponent<ModelRenderComponent>();
 			if (mrc)
 			{
@@ -185,8 +187,10 @@ void Scene::Render()
 
 		graphics.GetModelRenderer()->Render(rc);
 
-		for (auto& actor : actorManager.GetActors())
+		for (Actor* actor : actorManager.GetActors())
 		{
+			if (!actor || actor->IsPendingDestroy()) continue;
+
 			auto* trail = actor->GetComponent<TrailRenderComponent>();
 			if (trail)
 			{

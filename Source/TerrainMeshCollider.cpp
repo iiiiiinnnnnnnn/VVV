@@ -32,11 +32,7 @@ TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbo
 
 TerrainMeshCollider::~TerrainMeshCollider()
 {
-    if (shape != nullptr)
-    {
-        shape->release();
-        shape = nullptr;
-    }
+    ReleaseShape();
 }
 
 void TerrainMeshCollider::ReleaseShape()

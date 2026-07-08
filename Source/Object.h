@@ -17,6 +17,7 @@ class Object
 public:
 	Object(const std::string& name = "", const std::string& tag = "", bool isActive = true)
 		: name(name), tag(tag), isActive(isActive) { }
+	virtual ~Object();
 	
 	void SetActive(bool active) { isActive = active; }
 	void SetName(const std::string& name) { this->name = name; }
@@ -62,8 +63,10 @@ protected:
 	std::optional<float> destroyTimer;
 
 	struct Components {
+		~Components();
 		std::vector<std::unique_ptr<Component>> data;
 		void Register(std::unique_ptr<Component> component);
+		void Clear();
 		void SortUpdateOrder();
 		void Update();
 		void LateUpdate();

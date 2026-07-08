@@ -29,17 +29,11 @@ public:
 
 	void FlushPendingActors()
 	{
-		if (pendingActors.empty())
-		{
-			return;
-		}
+		if (pendingActors.empty()) return;
 
 		for (std::shared_ptr<Actor>& actor : pendingActors)
 		{
-			if (!actor)
-			{
-				continue;
-			}
+			if (!actor) continue;
 
 			data.push_back(actor);
 		}
@@ -55,15 +49,9 @@ public:
 
 		for (size_t i = 0; i < count; ++i)
 		{
-			if (!data[i])
-			{
-				continue;
-			}
+			if (!data[i]) continue;
 
-			if (data[i]->IsPendingDestroy())
-			{
-				continue;
-			}
+			if (data[i]->IsPendingDestroy()) continue;
 
 			data[i]->Update();
 		}
@@ -87,15 +75,9 @@ public:
 
 		for (size_t i = 0; i < count; ++i)
 		{
-			if (!data[i])
-			{
-				continue;
-			}
+			if (!data[i]) continue;
 
-			if (data[i]->IsPendingDestroy())
-			{
-				continue;
-			}
+			if (data[i]->IsPendingDestroy()) continue;
 
 			data[i]->Render(rc);
 		}
@@ -107,21 +89,36 @@ public:
 
 		for (size_t i = 0; i < count; ++i)
 		{
-			if (!data[i])
-			{
-				continue;
-			}
+			if (!data[i]) continue;
 
-			if (data[i]->IsPendingDestroy())
-			{
-				continue;
-			}
+			if (data[i]->IsPendingDestroy()) continue;
 
 			data[i]->DrawGUI();
 		}
 	}
-	std::vector<std::shared_ptr<Actor>>& GetActors() { return data; }
-	const std::vector<std::shared_ptr<Actor>>& GetActors() const { return data; }
+
+	std::vector<Actor*> GetActors() const
+	{
+		std::vector<Actor*> result;
+		result.reserve(data.size());
+		for (const auto& actor : data)
+		{
+			if (!actor) continue;
+			result.push_back(actor.get());
+		}
+		return result;
+	}
+
+	std::vector<Actor*> GetActorsByTag(const std::string& tag) const
+	{
+		std::vector<Actor*> result;
+		for (const auto& actor : data)
+		{
+			if (!actor || !actor->CompareTag(tag)) continue;
+			result.push_back(actor.get());
+		}
+		return result;
+	}
 
 private:
 	std::vector<std::shared_ptr<Actor>> data;

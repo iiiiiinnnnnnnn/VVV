@@ -62,11 +62,11 @@ void Actor::DrawGUI()
 Actor* Actor::FindActorByTag(const std::string& searchTag) const
 {
     if (!actorManager) return nullptr;
-    for (const std::shared_ptr<Actor>& actor : actorManager->GetActors())
+    for (Actor* actor : actorManager->GetActors())
     {
         if (!actor || actor->IsPendingDestroy()) continue;
         if (actor->CompareTag(searchTag))
-            return actor.get();
+            return actor;
     }
 	return nullptr;
 }

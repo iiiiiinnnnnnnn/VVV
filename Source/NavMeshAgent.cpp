@@ -86,11 +86,11 @@ Actor* NavMeshAgent::FindTargetByTag()
 	ActorManager* actorManager = actor ? actor->GetActorManager() : nullptr;
 	if (!actorManager) return nullptr;
 
-	for (const std::shared_ptr<Actor>& targetActor : actorManager->GetActors())
+	for (Actor* targetActor : actorManager->GetActors())
 	{
 		if (!targetActor || targetActor->IsPendingDestroy()) continue;
 		if (!targetActor->CompareTag(targetTag)) continue;
-		return targetActor.get();
+		return targetActor;
 	}
 
 	return nullptr;

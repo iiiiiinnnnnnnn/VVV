@@ -1,4 +1,4 @@
-// Player.cpp
+ï»¿// Player.cpp
 
 #include "Player.h"
 #include "ResourceManager.h"
@@ -7,21 +7,22 @@
 #include "Graphics.h"
 #include "PostProcessController.h"
 #include "CameraEffectController.h"
+#include "ActorManager.h"
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
-	model->_print(); // ƒfƒoƒbƒO—p
+	model->_print(); // ãƒ‡ãƒãƒƒã‚°ç”¨
 
-	// ƒƒbƒVƒ…•\¦/”ñ•\¦
+	// ãƒ¡ãƒƒã‚·ãƒ¥è¡¨ç¤º/éè¡¨ç¤º
 	{
 		auto& meshes = model->GetMeshes();
-		meshes[0].isDraw = false; // ‚
-		meshes[2].isDraw = false; // ƒAƒbƒNƒX
-		meshes[8].isDraw = false;// ‘f‘«
-		meshes[15].isDraw = false; // „•
-		meshes[9].isDraw = false; // ‘fè
-		meshes[4].isDraw =  // Šç
+		meshes[0].isDraw = false; // ç›¾
+		meshes[2].isDraw = false; // ã‚¢ãƒƒã‚¯ã‚¹
+		meshes[8].isDraw = false;// ç´ è¶³
+		meshes[15].isDraw = false; // ç§æœ
+		meshes[9].isDraw = false; // ç´ æ‰‹
+		meshes[4].isDraw =  // é¡”
 			meshes[5].isDraw =
 			meshes[16].isDraw =
 			meshes[17].isDraw =
@@ -31,7 +32,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 			meshes[21].isDraw = false;
 	}
 
-	// ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[¶¬
+	// ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
 	shaderParamWithMaterialName =
 	{
 		{
@@ -113,7 +114,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 	modelRenderer->SetAutoUpdateTransform(false);
 
-	// ƒAƒjƒ[ƒ^[¶¬
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿ãƒ¼ç”Ÿæˆ
 	anim = AddComponent<Animator>(model);
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
@@ -121,7 +122,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	anim->AddCallbackFunc("OnAttack4B", [this](const Animator::State& s) { OnEnterAnimAttack4B(s); }, [this](const Animator::State& s) { OnExitAnimAttack4B(s); });
 	anim->BindCallbacks();
 
-	// ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰¶¬
+	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ç”Ÿæˆ
 	float radius = 0.25f;
 	float totalHeight = 1.7f;
 	float capsuleHeight = totalHeight - radius * 2.0f;
@@ -138,10 +139,10 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	cc->SetOwnerAnchorAtCenter(false);
 	cc->SetOwnerAnchorOffsetY(0.0f);
 
-	// SetFootPosition ‚Æ SetPosition ‚Í—¼•ûŒÄ‚Î‚È‚¢
+	// SetFootPosition ã¨ SetPosition ã¯ä¸¡æ–¹å‘¼ã°ãªã„
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
-	// •Ší”»’è
+	// æ­¦å™¨åˆ¤å®š
 	weaponCollider = AddComponent<BoneSphereCollider>(
 		Layers::Get("PlayerAtk"),
 		model.get(),
@@ -150,7 +151,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		Matrix::CreateTranslation({-0.56f, 0, 0}));
 	weaponCollider->SetActive(false);
 
-	// ƒLƒbƒN”»’è
+	// ã‚­ãƒƒã‚¯åˆ¤å®š
 	footCollider = AddComponent<BoneSphereCollider>(
 		Layers::Get("PlayerAtk"),
 		model.get(),
@@ -192,7 +193,93 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(model.get(), "head", "neck_01");
-	lookAt->SetTarget({0.0f, 2, 6});
+	lookAt->SetActive(false);
+}
+
+void Player::OnUpdate()
+{
+	Entity::OnUpdate();
+
+	UpdateLookIn();
+	UpdateMovement();
+}
+
+void Player::OnLateUpdate()
+{
+	Vector3 localMoveVec = anim->GetRootMotionVec();
+	Quaternion deltaRot = anim->GetRootMotionRot();
+
+	transform.SetRotation(transform.rotation * deltaRot);
+
+	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
+	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
+	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
+
+	cc->Move(worldMoveVec);
+	SnapToGroundIfNeeded();
+
+	model->UpdateTransform(GetModelWorldTransform());
+
+	// æœ€çµ‚å§¿å‹¢ãŒæ±ºã¾ã£ãŸå¾Œã«ã€æ­¦å™¨ãƒãƒ¼ãƒ‰ã‚’åŒæœŸã™ã‚‹
+	SyncWeaponAttachNodes();
+
+	if (cc)
+	{
+		cc->ClearDebugRenderPosition();
+	}
+}
+
+void Player::OnDrawGUI()
+{
+	Entity::OnDrawGUI();
+
+	bool changed = false;
+
+	changed |= ImGui::DragFloat("groundSnapUpDistance", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
+	changed |= ImGui::DragFloat("groundSnapDownDistance", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
+
+	if (changed && cc)
+	{
+		cc->SetPosition(transform.position);
+	}
+
+	ImGui::Text("LookIn Target: %s", lookInTarget ? lookInTarget->GetName().c_str() : "None");
+	ImGui::Text("LookAt Target: %.1f,%.1f,%.1f", lookAt->GetTarget().x, lookAt->GetTarget().y, lookAt->GetTarget().z);
+}
+
+void Player::OnDamaged(const DamageData& damageData)
+{
+	CameraEffectController::Request(0.13f, 0.07f);
+	float lifeIntensity = (1 - (life / maxLife)) * 0.5f;
+	PostProcessController::Instance().RequestDamagedVignette(
+		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15f, Easing::Type::InSine, Easing::Type::OutCubic);
+
+	if (damageData.hitPosition.has_value())
+	{
+		// æ•µã®ä½ç½®ã«å¿œã˜ã¦ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿ
+		Vector3 dir = damageData.hitPosition.value() - transform.position;
+		dir.Normalize();
+
+		float dot = transform.right.Dot(dir);
+
+		if (dot >= 0.0f)
+		{
+			anim->SetTrigger("Hit_R");
+		}
+		else
+		{
+			anim->SetTrigger("Hit_L");
+		}
+	}
+	else
+	{
+		anim->SetTrigger("Hit_R");
+	}
+}
+
+void Player::OnDead()
+{
+
 }
 
 void Player::OnEnterAnim(const Animator::State& state)
@@ -244,7 +331,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	if (!self->IsActive()) return;
 	if (self != weaponCollider && self != footCollider) return;
 
-	// “G‚ğ‰£‚é
+	// æ•µã‚’æ®´ã‚‹
 
 	Actor* otherActor = other->GetOwnerAsActor();
 	if (!otherActor->CompareTag("Enemy")) return;
@@ -297,94 +384,6 @@ void Player::OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, cons
 void Player::OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
-}
-
-void Player::OnUpdate()
-{
-	Entity::OnUpdate();
-
-	if (!controller) return;
-
-	InputContext ctx = controller->Poll();
-
-	// ---- “ü—ÍƒxƒNƒgƒ‹‚ğƒJƒƒ‰YawŠî€‚Ìƒ[ƒ‹ƒh•ûŒü‚É•ÏŠ· ----
-	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
-	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
-	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // “®‚¯‚È‚¢
-
-	Vector3 worldMoveDir = Vector3::Zero;
-	if (inputLen > 0.1f)
-	{
-		float camYaw = cameraController ? cameraController->GetCameraYaw() : 0.0f;
-
-		// ƒJƒƒ‰‚ÌYaw‰ñ“]s—ñ‚Åƒ[ƒJƒ‹“ü—Í‚ğƒ[ƒ‹ƒh•ûŒü‚Ö
-		float sinY = sinf(camYaw);
-		float cosY = cosf(camYaw);
-
-		// “ü—Í(moveX=‰E, moveZ=‘O) ‚ğƒJƒƒ‰Šî€‚Åƒ[ƒ‹ƒhXZ ‚É•ÏŠ·
-		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
-		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
-		worldMoveDir.Normalize();
-
-		// UŒ‚’†‚Í“ü—Í‚É‚æ‚é•ûŒü“]Š·‚ğ~‚ß‚é
-		if (!isFreeze)
-		{
-			bool sprinting = ctx.sprint && inputLen > 0.1f;
-			float turnSpeed = sprinting ? 8.0f : 12.0f;
-			float targetYaw = atan2f(worldMoveDir.x, worldMoveDir.z);
-			Quaternion targetRot = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
-			float t = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
-			transform.SetRotation(Quaternion::Slerp(transform.rotation, targetRot, t));
-		}
-	}
-
-	// Speed / Sprint ƒpƒ‰ƒ[ƒ^‚ğAnimator‚Ö
-	bool sprinting = ctx.sprint && inputLen > 0.1f;
-	float speedParam = (inputLen < 0.1f) ? 0.0f : (sprinting ? 1.5f : inputLen);
-	anim->SetFloat("Speed",       speedParam);
-	anim->SetBool ("IsSprinting", sprinting);
-	anim->SetBool ("IsDead", IsDead());
-
-	if (ctx.attackPressed)
-		anim->SetTrigger("Attack");
-
-	PhysicsManager::PhysicsRaycastHit groundHit;
-	groundedByRay = RaycastGround(groundHit);
-
-	// d—Í
-	if (groundedByRay && verticalVelocity <= 0.0f)
-		verticalVelocity = 0.0f;
-	else
-		verticalVelocity -= 9.81f * Game::Time::deltaTime;
-
-	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
-
-	// Trail is controlled by attack animation callbacks.
-}
-
-void Player::OnLateUpdate()
-{
-	Vector3 localMoveVec = anim->GetRootMotionVec();
-	Quaternion deltaRot = anim->GetRootMotionRot();
-
-	transform.SetRotation(transform.rotation * deltaRot);
-
-	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
-	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
-	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
-
-	cc->Move(worldMoveVec);
-	SnapToGroundIfNeeded();
-
-	model->UpdateTransform(GetModelWorldTransform());
-
-	// ÅIp¨‚ªŒˆ‚Ü‚Á‚½Œã‚ÉA•Šíƒm[ƒh‚ğ“¯Šú‚·‚é
-	SyncWeaponAttachNodes();
-
-	if (cc)
-	{
-		cc->ClearDebugRenderPosition();
-	}
 }
 
 void Player::SyncWeaponAttachNodes()
@@ -454,51 +453,91 @@ void Player::SnapToGroundIfNeeded()
 	verticalVelocity = 0.0f;
 }
 
-void Player::OnDrawGUI()
+void Player::UpdateLookIn()
 {
-	Entity::OnDrawGUI();
-
-	bool changed = false;
-
-	changed |= ImGui::DragFloat("groundSnapUpDistance", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
-	changed |= ImGui::DragFloat("groundSnapDownDistance", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
-
-	if (changed && cc)
+	auto actors = actorManager->GetActors();
+	bool found = false;
+	float foundDistance = 500.0f;
+	const float lockInDistance = 20.0f;
+	for (Actor* actor : actors)
 	{
-		cc->SetPosition(transform.position);
-	}
-}
+		if (!actor) continue;
+		if (actor == this) continue;
+		if (!actor->CompareTag("Enemy")) continue;
 
-void Player::OnDamaged(const DamageData& damageData)
-{
-	CameraEffectController::Request(0.13f, 0.07f);
-	float lifeIntensity = (1 - (life / maxLife)) * 0.5f;
-	PostProcessController::Instance().RequestDamagedVignette(
-		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15f, Easing::Type::InSine, Easing::Type::OutCubic);
-
-	if (damageData.hitPosition.has_value())
-	{
-		// “G‚ÌˆÊ’u‚É‰‚¶‚ÄƒAƒjƒ[ƒVƒ‡ƒ“Ä¶
-		Vector3 dir = damageData.hitPosition.value() - transform.position;
-		dir.Normalize();
-
-		float dot = transform.right.Dot(dir);
-
-		if (dot >= 0.0f)
+		float dist = Vector3::Distance(
+			actor->transform.position, transform.position);
+		if (dist < lockInDistance)
 		{
-			anim->SetTrigger("Hit_R");
-		}
-		else
-		{
-			anim->SetTrigger("Hit_L");
+			found = true;
+			if (dist < foundDistance)
+			{
+				foundDistance = dist;
+				lookInTarget = actor;
+			}
 		}
 	}
+	if (found)
+		lookAt->SetTarget(lookInTarget->transform.position);
 	else
-	{
-		anim->SetTrigger("Hit_R");
-	}
+		lookInTarget = nullptr;
+	lookAt->SetActive(found);
 }
 
-void Player::OnDead()
+void Player::UpdateMovement()
 {
+	if (!controller) return;
+	InputContext ctx = controller->Poll();
+
+	// ---- å…¥åŠ›ãƒ™ã‚¯ãƒˆãƒ«ã‚’ã‚«ãƒ¡ãƒ©YawåŸºæº–ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰æ–¹å‘ã«å¤‰æ› ----
+	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
+	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
+	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // å‹•ã‘ãªã„
+
+	Vector3 worldMoveDir = Vector3::Zero;
+	if (inputLen > 0.1f)
+	{
+		float camYaw = cameraController ? cameraController->GetCameraYaw() : 0.0f;
+
+		// ã‚«ãƒ¡ãƒ©ã®Yawå›è»¢è¡Œåˆ—ã§ãƒ­ãƒ¼ã‚«ãƒ«å…¥åŠ›ã‚’ãƒ¯ãƒ¼ãƒ«ãƒ‰æ–¹å‘ã¸
+		float sinY = sinf(camYaw);
+		float cosY = cosf(camYaw);
+
+		// å…¥åŠ›(moveX=å³, moveZ=å‰) ã‚’ã‚«ãƒ¡ãƒ©åŸºæº–ã§ãƒ¯ãƒ¼ãƒ«ãƒ‰XZ ã«å¤‰æ›
+		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
+		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
+		worldMoveDir.Normalize();
+
+		// æ”»æ’ƒä¸­ã¯å…¥åŠ›ã«ã‚ˆã‚‹æ–¹å‘è»¢æ›ã‚’æ­¢ã‚ã‚‹
+		if (!isFreeze)
+		{
+			bool sprinting = ctx.sprint && inputLen > 0.1f;
+			float turnSpeed = sprinting ? 8.0f : 12.0f;
+			float targetYaw = atan2f(worldMoveDir.x, worldMoveDir.z);
+			Quaternion targetRot = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
+			float t = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
+			transform.SetRotation(Quaternion::Slerp(transform.rotation, targetRot, t));
+		}
+	}
+
+	// Speed / Sprint ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’Animatorã¸
+	bool sprinting = ctx.sprint && inputLen > 0.1f;
+	float speedParam = (inputLen < 0.1f) ? 0.0f : (sprinting ? 1.5f : inputLen);
+	anim->SetFloat("Speed", speedParam);
+	anim->SetBool("IsSprinting", sprinting);
+	anim->SetBool("IsDead", IsDead());
+
+	if (ctx.attackPressed)
+		anim->SetTrigger("Attack");
+
+	PhysicsManager::PhysicsRaycastHit groundHit;
+	groundedByRay = RaycastGround(groundHit);
+
+	// é‡åŠ›
+	if (groundedByRay && verticalVelocity <= 0.0f)
+		verticalVelocity = 0.0f;
+	else
+		verticalVelocity -= 9.81f * Game::Time::deltaTime;
+
+	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
 }

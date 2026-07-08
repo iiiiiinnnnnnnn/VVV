@@ -64,33 +64,38 @@ private:
     bool RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const;
     void SnapToGroundIfNeeded();
     void SyncWeaponAttachNodes();
+    void UpdateLookIn();
+    void UpdateMovement();
 
 protected:
-    std::unique_ptr<PlayerController> controller;
+    std::unique_ptr<PlayerController> controller = nullptr;
     std::shared_ptr<Model> model = nullptr;
-    
+
     // rendering
-    Animator*             anim = nullptr;
-    int stIdle   = -1;
-    int stWalk   = -1;
-    int stRun    = -1;
+    Animator* anim = nullptr;
+    int stIdle = -1;
+    int stWalk = -1;
+    int stRun = -1;
     int stSprint = -1;
     ModelRenderComponent* modelRenderer = nullptr;
     ShaderParamListWithMaterialName shaderParamWithMaterialName;
     ThirdPersonCameraController* cameraController = nullptr;
     bool  isFirstPerson = false;
-    float spineAngleX   = 0.0f;
-    const Vector2 idleSpineAngle  = {0.8f, 0};
+    float spineAngleX = 0.0f;
+    const Vector2 idleSpineAngle = {0.8f, 0};
     const Vector2 readySpineAngle = {-0.25f, -0.38f};
     TrailRenderComponent* trail = nullptr;
     SpringBone* hairSpringBone = nullptr;
     HumanoidFootIK* footIK = nullptr;
     float groundSnapUpDistance = 0.2f;
     float groundSnapDownDistance = 0.5f;
-    LookAt* lookAt;
+
+    // look
+    Actor* lookInTarget = nullptr;
+    LookAt* lookAt = nullptr;
 
     // movement
-    CharacterController*  cc   = nullptr;
+    CharacterController* cc = nullptr;
     BoneSphereCollider* weaponCollider = nullptr;
     BoneSphereCollider* footCollider = nullptr;
     Vector3 frameVelocity = Vector3::Zero;
