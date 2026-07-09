@@ -197,6 +197,8 @@ void Scene::Render()
 				trail->RenderTrail(rc);
 			}
 		}
+
+		OnRender(rc);
 	}
 	sceneBuffer->Deactivate(dc);
 

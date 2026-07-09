@@ -10,6 +10,7 @@
 #include "shader.h"
 
 #include "Component.h"
+#include "RenderContext.h"
 
 class ParticleSystem
 {
@@ -41,8 +42,11 @@ private:
 	//	定数バッファのデータ定義
 	struct Constants
 	{
-		Vector2 size;
-		Vector2 dummy;
+		Matrix viewProjection;
+		Vector3 cameraRight;
+		float dummy0;
+		Vector3 cameraUp;
+		float dummy1;
 	};
 
 public:
@@ -51,7 +55,7 @@ public:
 	~ParticleSystem();
 	void Update();
 
-	void Render(ID3D11DeviceContext* immediateContext);
+	void Render(const RenderContext& rc);
 
 	void Set(
 		int type,

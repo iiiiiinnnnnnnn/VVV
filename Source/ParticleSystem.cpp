@@ -58,7 +58,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"GeometryParticleVS.cso",
+		"Data/Shader/GeometryParticleVS.cso",
 		InputElementDesc.data(),
 		InputElementDesc.size(),
 		inputLayout.ReleaseAndGetAddressOf(),
@@ -66,12 +66,12 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 
 	GpuResourceUtils::LoadGeometryShader(
 		device,
-		"GeometryParticleGS.cso",
+		"Data/Shader/GeometryParticleGS.cso",
 		geometryShader.ReleaseAndGetAddressOf());
 
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"GeometryParticlePS.cso",
+		"Data/Shader/GeometryParticlePS.cso",
 		pixelShader.ReleaseAndGetAddressOf());
 }
 
@@ -106,11 +106,15 @@ void ParticleSystem::Update()
 	}
 }
 
-void ParticleSystem::Render(ID3D11DeviceContext* immediateContext)
+void ParticleSystem::Render(const RenderContext& rc)
 {
+	ID3D11DeviceContext* immediateContext = rc.deviceContext;
+
 	//定数バッファの更新
-	Constants cb;
-	cb.size = { 0.1f,0.1f };
+	Constants cb{};
+	cb.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
+	cb.cameraRight = rc.camera->GetRight();
+	cb.cameraUp = rc.camera->GetUp();
 	immediateContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	immediateContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 	immediateContext->GSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
@@ -129,6 +133,8 @@ void ParticleSystem::Render(ID3D11DeviceContext* immediateContext)
 
 	//	テクスチャ設定
 	immediateContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
+	ID3D11SamplerState* samplerState = rc.renderState->GetSamplerState(SamplerState::LinearWrap);
+	immediateContext->PSSetSamplers(0, 1, &samplerState);
 
 	//	パーティクル情報を頂点バッファに転送
 	int n = 0; //パーティクル発生数
@@ -162,6 +168,11 @@ void ParticleSystem::Render(ID3D11DeviceContext* immediateContext)
 
 	//	パーティクル情報分描画コール
 	immediateContext->Draw(n, 0);
+
+	ID3D11ShaderResourceView* nullShaderResourceView = nullptr;
+	ID3D11SamplerState* nullSamplerState = nullptr;
+	immediateContext->PSSetShaderResources(0, 1, &nullShaderResourceView);
+	immediateContext->PSSetSamplers(0, 1, &nullSamplerState);
 
 	//	シェーダ無効化
 	immediateContext->VSSetShader(nullptr, nullptr, 0);

@@ -67,6 +67,7 @@ private:
 
 protected:
 	virtual void OnUpdate() {}
+	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
 
 	SceneMessage message = nullptr;

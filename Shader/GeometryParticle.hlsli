@@ -1,7 +1,5 @@
 // GeometryParticle.hlsli
 
-#include "Scene.hlsli"
-
 //  頂点情報
 struct VS_IN
 {
@@ -28,6 +26,9 @@ struct PS_IN
 
 cbuffer GEOMETRY_PARTICLE_DATA : register(b0)
 {
-    float2 Size; //  パーティクルの大きさ
-    float2 dummy;
+    row_major float4x4 viewProjection;
+    float3 cameraRight;
+    float dummy0;
+    float3 cameraUp;
+    float dummy1;
 };
