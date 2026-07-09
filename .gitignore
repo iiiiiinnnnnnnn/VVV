@@ -380,7 +380,7 @@ imgui.ini
 *.7z
 
 # lib file
-*.lib
+#*.lib
 
 # vertex cache
 *.vx
