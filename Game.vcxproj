@@ -411,7 +411,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -420,8 +420,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;Effekseer.lib;EffekseerRendererDX11.lib;xaudio2.lib;DirectXTK.lib;DirectXTex.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;SnippetRender_static_64.lib;SnippetUtils_static_64.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;%(AdditionalDependencies);RecastNavigation.lib;dearImgui.lib;nodeeditor.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\External\DirectXTK\Bin\Desktop_2022\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\DirectXTex\Bin\Desktop_2022\$(PlatformTarget)\$(Configuration);.\External\Effekseer170e\lib\vs2022\MT\$(PlatformTarget)\$(Configuration);.\$(PlatformTarget)\$(Configuration);.\External\PhysX\physx\bin\win.x86_64.vc143.mt\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -433,10 +433,11 @@
     </FxCompile>
     <PreBuildEvent />
     <PreLinkEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.lib" "$(SolutionDir)x64\"</Command>
+      <Command>
+      </Command>
     </PreLinkEvent>
     <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -449,7 +450,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\cereal\include;.\External\Effekseer170e\include\Effekseer;.\External\Effekseer170e\include\EffekseerRendererDX11;.\External\DirectXTK\Inc;.\External\DirectXTex\DirectXTex;.\External\PhysX\physx\include;.\External\stb;.\External\recastnavigation\DebugUtils\Include;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\DetourCrowd\Include;.\External\recastnavigation\DetourTileCache\Include;.\External\recastnavigation\Recast\Include;.\External\nodeeditor;.\External\tinygltf;.\External\nodeeditor\dearImgui;.\External\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -459,8 +460,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;Effekseer.lib;EffekseerRendererDX11.lib;xaudio2.lib;DirectXTK.lib;DirectXTex.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;SnippetRender_static_64.lib;SnippetUtils_static_64.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;%(AdditionalDependencies);RecastNavigation.lib;dearImgui.lib;nodeeditor.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\External\DirectXTK\Bin\Desktop_2022\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\DirectXTex\Bin\Desktop_2022\$(PlatformTarget)\$(Configuration);.\External\Effekseer170e\lib\vs2022\MT\$(PlatformTarget)\$(Configuration);.\$(PlatformTarget)\$(Configuration);.\External\PhysX\physx\bin\win.x86_64.vc143.mt\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -475,10 +476,11 @@
       </Command>
     </PreBuildEvent>
     <PreLinkEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.lib" "$(SolutionDir)x64\"</Command>
+      <Command>
+      </Command>
     </PreLinkEvent>
     <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\physx\install\vc17win64-cpu-only\PhysX\bin\win.x86_64.vc143.mt\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

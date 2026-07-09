@@ -1,8 +1,0 @@
-# CMake generation dependency list for this directory.
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/pvdruntime/compiler/cmake/CMakeLists.txt
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/pvdruntime/compiler/cmake/PVDRuntime.cmake
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/pvdruntime/compiler/cmake/windows/CMakeLists.txt
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/pvdruntime/compiler/cmake/windows/PVDRuntime.cmake
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/source/compiler/cmake/modules/GetCompilerAndPlatform.cmake
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/source/compiler/cmake/modules/NvidiaBuildOptions.cmake
-C:/Users/2250183/Desktop/VVV/External/PhysX/physx/source/compiler/cmake/modules/SetOutputPaths.cmake
