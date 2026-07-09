@@ -814,9 +814,6 @@
     <None Include=".gitignore">
       <Filter>プロジェクト設定</Filter>
     </None>
-    <None Include="imgui.ini">
-      <Filter>プロジェクト設定</Filter>
-    </None>
     <None Include="README.md">
       <Filter>プロジェクト設定</Filter>
     </None>

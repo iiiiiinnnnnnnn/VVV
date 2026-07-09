@@ -108,6 +108,7 @@ private:
 		float occlusion = 1.0f;
 		float occlusionStrength = 1.0f;
 		float shadowStrength = 1.0f;
+		bool isFlatShading = false;
 		bool useDestroy = false;
 		float destroyLife = 0.0f;
 

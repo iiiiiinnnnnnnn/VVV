@@ -21,6 +21,7 @@ ShaderParamList StageLoader::PropData::MakePBRParams() const
 		{"occlusion", occlusion},
 		{"occlusionStrength", occlusionStrength},
 		{"shadowStrength", shadowStrength},
+		{"IsFlatShading", isFlatShading},
 	};
 }
 
@@ -34,6 +35,7 @@ void StageLoader::DrawPBRParamsGUI(PropData& propData)
 		ImGui::DragFloat("Occlusion", &propData.occlusion, 0.01f, 0.0f, 1.0f);
 		ImGui::DragFloat("Occlusion Strength", &propData.occlusionStrength, 0.01f, 0.0f, 1.0f);
 		ImGui::DragFloat("Shadow Strength", &propData.shadowStrength, 0.01f, 0.0f, 1.0f);
+		ImGui::Checkbox("Is Flat Shading", &propData.isFlatShading);
 		ImGui::TreePop();
 	}
 }
@@ -548,6 +550,7 @@ void StageLoader::LoadJson()
 				propData.occlusion = pbrJson.value("occlusion", propData.occlusion);
 				propData.occlusionStrength = pbrJson.value("occlusionStrength", propData.occlusionStrength);
 				propData.shadowStrength = pbrJson.value("shadowStrength", propData.shadowStrength);
+				propData.isFlatShading = pbrJson.value("IsFlatShading", propData.isFlatShading);
 			}
 
 			propData.useDestroy = propJson.value("useDestroy", false);
@@ -651,6 +654,7 @@ void StageLoader::SaveJson()
 		propJson["pbr"]["occlusion"] = propData.occlusion;
 		propJson["pbr"]["occlusionStrength"] = propData.occlusionStrength;
 		propJson["pbr"]["shadowStrength"] = propData.shadowStrength;
+		propJson["pbr"]["IsFlatShading"] = propData.isFlatShading;
 
 		propJson["useDestroy"] = propData.useDestroy;
 		propJson["destroyLife"] = propData.destroyLife;

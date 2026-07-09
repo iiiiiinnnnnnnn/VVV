@@ -239,9 +239,9 @@ private:
 	int currentTerrainLayerIndex = 0;
 
 	Color baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-	Color emissiveColor = {0.1f, 0.1f, 0.1f, 1.0f};
+	Color emissiveColor = {0, 0, 0, 1};
 	float metalness = 0.0f;
-	float roughness = 0.2f;
+	float roughness = 1.0f;
 	float occlusion = 1.0f;
 	float occlusionStrength = 1.0f;
 	float shadowStrength = 1.0f;

@@ -38,6 +38,9 @@ cbuffer CbMaterial : register(b1)
     int useMetalnessTexture;
     int useRoughnessTexture;
     int useOcclusionTexture;
+
+    int isFlatShading;
+    float3 _dummyCbMaterial;
 };
 
 static const int MaxDamageHoles = 8;

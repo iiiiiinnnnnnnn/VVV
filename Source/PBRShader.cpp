@@ -176,6 +176,9 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			"shadowStrength",
 			1.0f);
 
+		const bool isFlatShading = GetParam<bool>(cachedParams, "IsFlatShading", false);
+		cb.isFlatShading = isFlatShading ? 1 : 0;
+
 		cb.metalness = std::clamp(cb.metalness, 0.0f, 1.0f);
 		cb.roughness = std::clamp(cb.roughness, 0.0001f, 1.0f);
 		cb.occlusion = std::clamp(cb.occlusion, 0.0f, 1.0f);
@@ -198,6 +201,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 	damageHoles.edgeWidth = (std::max)(GetParam<float>(cachedParams, "holeEdgeWidth", 1.5f), 0.001f);
 	damageHoles.depth = (std::max)(GetParam<float>(cachedParams, "holeDepth", 0.4f), 0.0f);
 	const bool useDamageHoleGeometry = hasDamageHoleParams && damageHoles.depth > 0.0f;
+	const bool useGeometryShader = useDamageHoleGeometry || GetParam<bool>(cachedParams, "IsFlatShading", false);
 
 	for (int i = 0; i < damageHoles.holeCount; ++i)
 	{
@@ -226,7 +230,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
 	dc->VSSetConstantBuffers(0, 1, shadowMapConstantBuffer.GetAddressOf());
-	dc->GSSetShader(useDamageHoleGeometry ? geometryShader.Get() : nullptr, nullptr, 0);
+	dc->GSSetShader(useGeometryShader ? geometryShader.Get() : nullptr, nullptr, 0);
 	dc->GSSetConstantBuffers(0, _countof(cbs), cbs);
 
 	// マテリアルSRV

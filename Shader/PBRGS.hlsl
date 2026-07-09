@@ -1,3 +1,5 @@
+// PBRGS.hlsl
+
 #include "PBR.hlsli"
 
 VS_OUT InterpolateVertex(VS_OUT a, VS_OUT b)
@@ -59,11 +61,60 @@ void ApplyDamageDent(inout VS_OUT v)
     ReprojectVertex(v);
 }
 
+void ApplyFlatShading(inout VS_OUT a, inout VS_OUT b, inout VS_OUT c)
+{
+    float3 faceNormal = cross(b.position - a.position, c.position - a.position);
+    float3 averageNormal = a.normal + b.normal + c.normal;
+
+    if (dot(faceNormal, faceNormal) < 0.0001f)
+    {
+        faceNormal = averageNormal;
+    }
+
+    faceNormal = normalize(faceNormal);
+    averageNormal = normalize(averageNormal);
+
+    if (dot(faceNormal, averageNormal) < 0.0f)
+    {
+        faceNormal = -faceNormal;
+    }
+
+    float3 tangent = a.tangent + b.tangent + c.tangent;
+
+    if (dot(tangent, tangent) < 0.0001f)
+    {
+        tangent = a.tangent;
+    }
+
+    tangent = normalize(tangent);
+    tangent = tangent - faceNormal * dot(tangent, faceNormal);
+
+    if (dot(tangent, tangent) < 0.0001f)
+    {
+        tangent = a.tangent;
+    }
+
+    tangent = normalize(tangent);
+
+    a.normal = faceNormal;
+    b.normal = faceNormal;
+    c.normal = faceNormal;
+
+    a.tangent = tangent;
+    b.tangent = tangent;
+    c.tangent = tangent;
+}
+
 void EmitTriangle(VS_OUT a, VS_OUT b, VS_OUT c, inout TriangleStream<VS_OUT> stream)
 {
     ApplyDamageDent(a);
     ApplyDamageDent(b);
     ApplyDamageDent(c);
+
+    if (isFlatShading != 0)
+    {
+        ApplyFlatShading(a, b, c);
+    }
 
     stream.Append(a);
     stream.Append(b);
@@ -89,6 +140,12 @@ void main(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> stream)
     VS_OUT v0 = input[0];
     VS_OUT v1 = input[1];
     VS_OUT v2 = input[2];
+
+    if (damageHoleCount <= 0)
+    {
+        EmitTriangle(v0, v1, v2, stream);
+        return;
+    }
 
     VS_OUT m01 = InterpolateVertex(v0, v1);
     VS_OUT m12 = InterpolateVertex(v1, v2);

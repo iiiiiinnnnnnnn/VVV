@@ -43,6 +43,8 @@ private:
 		int		useMetalnessTexture;
 		int		useRoughnessTexture;
 		int		useOcclusionTexture;
+		int		isFlatShading;
+		float	DUMMY[3];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 
