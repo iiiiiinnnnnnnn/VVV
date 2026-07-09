@@ -264,7 +264,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         lerp(albedoLuminance.xxx, albedo.rgb, 0.55f),
         terrainDistanceFade * 0.45f);
 
-    float3 emissive = emissiveColor.rgb;
+    float3 emissive = emissiveColor.rgb + emissionColor.rgb * emissionColor.a;
 
     float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);

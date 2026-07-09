@@ -9,13 +9,56 @@
 #include "GameTime.h"
 #include "ActorManager.h"
 #include "Prop.h"
+#include "CrystalProp.h"
 
 using json = nlohmann::json;
+
+static void LoadTransformJson(const json& transformJson, Transform& transform)
+{
+	if (transformJson.contains("position"))
+	{
+		transform.position.x = transformJson["position"].value("x", 0.0f);
+		transform.position.y = transformJson["position"].value("y", 0.0f);
+		transform.position.z = transformJson["position"].value("z", 0.0f);
+	}
+
+	if (transformJson.contains("rotation"))
+	{
+		transform.rotation.x = transformJson["rotation"].value("x", 0.0f);
+		transform.rotation.y = transformJson["rotation"].value("y", 0.0f);
+		transform.rotation.z = transformJson["rotation"].value("z", 0.0f);
+		transform.rotation.w = transformJson["rotation"].value("w", 1.0f);
+	}
+
+	if (transformJson.contains("scale"))
+	{
+		transform.scale.x = transformJson["scale"].value("x", 1.0f);
+		transform.scale.y = transformJson["scale"].value("y", 1.0f);
+		transform.scale.z = transformJson["scale"].value("z", 1.0f);
+	}
+}
+
+static void SaveTransformJson(json& transformJson, const Transform& transform)
+{
+	transformJson["position"]["x"] = transform.position.x;
+	transformJson["position"]["y"] = transform.position.y;
+	transformJson["position"]["z"] = transform.position.z;
+
+	transformJson["rotation"]["x"] = transform.rotation.x;
+	transformJson["rotation"]["y"] = transform.rotation.y;
+	transformJson["rotation"]["z"] = transform.rotation.z;
+	transformJson["rotation"]["w"] = transform.rotation.w;
+
+	transformJson["scale"]["x"] = transform.scale.x;
+	transformJson["scale"]["y"] = transform.scale.y;
+	transformJson["scale"]["z"] = transform.scale.z;
+}
 
 ShaderParamList StageLoader::PropData::MakePBRParams() const
 {
 	return {
 		{"color", color},
+		{"emission", emission},
 		{"metalness", metallic},
 		{"roughness", roughness},
 		{"occlusion", occlusion},
@@ -25,11 +68,67 @@ ShaderParamList StageLoader::PropData::MakePBRParams() const
 	};
 }
 
+ShaderParamList StageLoader::CrystalData::MakePBRParams() const
+{
+	return {
+		{"color", color},
+		{"emission", emission},
+		{"metalness", metallic},
+		{"roughness", roughness},
+		{"occlusion", occlusion},
+		{"occlusionStrength", occlusionStrength},
+		{"shadowStrength", shadowStrength},
+		{"IsFlatShading", isFlatShading},
+	};
+}
+
+void StageLoader::DrawCrystalDataGUI(CrystalData& crystalData)
+{
+	ImGui::Text("Model Path: %s", crystalData.modelPath.c_str());
+	if (ImGui::TreeNode("Parent Transform"))
+	{
+		crystalData.parentTransform.DrawGUI();
+		ImGui::TreePop();
+	}
+	ImGui::ColorEdit4("Color", &crystalData.color.x);
+	ImGui::ColorEdit4("Emission", &crystalData.emission.x);
+	ImGui::DragFloat("Metallic", &crystalData.metallic, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Roughness", &crystalData.roughness, 0.01f, 0.0001f, 1.0f);
+	ImGui::DragFloat("Occlusion", &crystalData.occlusion, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Occlusion Strength", &crystalData.occlusionStrength, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Shadow Strength", &crystalData.shadowStrength, 0.01f, 0.0f, 1.0f);
+	ImGui::Checkbox("Is Flat Shading", &crystalData.isFlatShading);
+
+	if (ImGui::DragInt("Count", &crystalData.count, 0.1f, 0, 256))
+	{
+		if (crystalData.count < 0) crystalData.count = 0;
+		crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
+	}
+
+	if (crystalData.transforms.size() != static_cast<size_t>(crystalData.count))
+	{
+		crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
+	}
+
+	for (int i = 0; i < crystalData.count; ++i)
+	{
+		ImGui::PushID(i);
+		std::string label = "Crystal " + std::to_string(i);
+		if (ImGui::TreeNode(label.c_str()))
+		{
+			crystalData.transforms[i].DrawGUI();
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
+}
+
 void StageLoader::DrawPBRParamsGUI(PropData& propData)
 {
 	if (ImGui::TreeNode("PBR Shader Params"))
 	{
 		ImGui::ColorEdit4("Color", &propData.color.x);
+		ImGui::ColorEdit4("Emission", &propData.emission.x);
 		ImGui::DragFloat("Metallic", &propData.metallic, 0.01f, 0.0f, 1.0f);
 		ImGui::DragFloat("Roughness", &propData.roughness, 0.01f, 0.0001f, 1.0f);
 		ImGui::DragFloat("Occlusion", &propData.occlusion, 0.01f, 0.0f, 1.0f);
@@ -75,8 +174,9 @@ StageLoader::StageLoader(Object* owner, Actor* stage, std::filesystem::path json
 
 void StageLoader::Update()
 {
-	for (auto& prop : propDataList)
+	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
 	{
+		auto& prop = propDataList[propIndex];
 		if (!prop.model)
 		{
 			prop.model = ResourceManager::Instance().LoadModel(prop.modelPath);
@@ -87,6 +187,41 @@ void StageLoader::Update()
 
 		prop.transform.Update();
 		prop.model->UpdateTransform(prop.transform.matrix);
+
+		if (propIndex < static_cast<int>(addedPropActors.size()) && addedPropActors[propIndex])
+		{
+			addedPropActors[propIndex]->ApplyStageData(prop);
+		}
+	}
+
+	for (int crystalIndex = 0; crystalIndex < static_cast<int>(crystalDataList.size()); ++crystalIndex)
+	{
+		auto& crystal = crystalDataList[crystalIndex];
+		crystal.count = static_cast<int>(crystal.transforms.size());
+		crystal.models.resize(crystal.transforms.size());
+
+		crystal.parentTransform.Update();
+
+		for (size_t i = 0; i < crystal.transforms.size(); ++i)
+		{
+			if (!crystal.models[i])
+			{
+				crystal.models[i] = ResourceManager::Instance().LoadModel(crystal.modelPath);
+			}
+
+			ModelRenderer::SetShaderParamForAllMaterials(
+				crystal.models[i].get(),
+				crystal.MakePBRParams(),
+				crystal.shaderParams);
+
+			crystal.transforms[i].Update();
+			crystal.models[i]->UpdateTransform(crystal.transforms[i].matrix * crystal.parentTransform.matrix);
+		}
+
+		if (crystalIndex < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[crystalIndex])
+		{
+			addedCrystalActors[crystalIndex]->ApplyStageData(crystal);
+		}
 	}
 }
 
@@ -271,6 +406,26 @@ void StageLoader::DrawGUI()
 				if (std::filesystem::exists(addPropData.modelPath))
 				{
 					propDataList.push_back(addPropData);
+					auto propActor = std::make_shared<Prop>(propDataList.back());
+					addedRealActors.push_back(propActor.get());
+					addedPropActors.push_back(propActor.get());
+					stage->GetActorManager()->Register(propActor);
+				}
+			}
+		}
+		else if (addType == AddType::Crystal)
+		{
+			DrawCrystalDataGUI(addCrystalData);
+
+			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
+			{
+				if (std::filesystem::exists(addCrystalData.modelPath))
+				{
+					crystalDataList.push_back(addCrystalData);
+					auto crystalActor = std::make_shared<CrystalProp>(crystalDataList.back());
+					addedRealActors.push_back(crystalActor.get());
+					addedCrystalActors.push_back(crystalActor.get());
+					stage->GetActorManager()->Register(crystalActor);
 				}
 			}
 		}
@@ -339,7 +494,84 @@ void StageLoader::DrawGUI()
 
 			if (ImGui::Button("Remove"))
 			{
+				if (i < static_cast<int>(addedPropActors.size()) && addedPropActors[i])
+				{
+					addedPropActors[i]->Destroy();
+				}
+				if (i < static_cast<int>(addedRealActors.size())) addedRealActors.erase(addedRealActors.begin() + i);
+				if (i < static_cast<int>(addedPropActors.size())) addedPropActors.erase(addedPropActors.begin() + i);
 				propDataList.erase(propDataList.begin() + i);
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::PopID();
+	}
+
+	ImGui::EndChild();
+
+	ImGui::TextUnformatted("CrystalList:");
+
+	ImGui::BeginChild("##crystallistwin", ImVec2(0.0f, 150.0f), true);
+
+	for (int i = 0; i < static_cast<int>(crystalDataList.size()); ++i)
+	{
+		auto& crystalData = crystalDataList[i];
+
+		ImGui::PushID(i);
+
+		if (ImGui::TreeNode("CrystalProp"))
+		{
+			DrawCrystalDataGUI(crystalData);
+
+			if (ImGui::Button("Duplicate"))
+			{
+				CrystalData copiedCrystalData = crystalData;
+				copiedCrystalData.models.clear();
+				copiedCrystalData.shaderParams.clear();
+				crystalDataList.insert(crystalDataList.begin() + i + 1, copiedCrystalData);
+
+				auto crystalActor = std::make_shared<CrystalProp>(crystalDataList[i + 1]);
+				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i + 1;
+				if (realActorIndex <= static_cast<int>(addedRealActors.size()))
+				{
+					addedRealActors.insert(addedRealActors.begin() + realActorIndex, crystalActor.get());
+				}
+				else
+				{
+					addedRealActors.push_back(crystalActor.get());
+				}
+
+				if (i + 1 <= static_cast<int>(addedCrystalActors.size()))
+				{
+					addedCrystalActors.insert(addedCrystalActors.begin() + i + 1, crystalActor.get());
+				}
+				else
+				{
+					addedCrystalActors.push_back(crystalActor.get());
+				}
+
+				stage->GetActorManager()->Register(crystalActor);
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+			ImGui::SameLine();
+
+			if (ImGui::Button("Remove"))
+			{
+				if (i < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[i])
+				{
+					addedCrystalActors[i]->Destroy();
+				}
+				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i;
+				if (realActorIndex < static_cast<int>(addedRealActors.size())) addedRealActors.erase(addedRealActors.begin() + realActorIndex);
+				if (i < static_cast<int>(addedCrystalActors.size())) addedCrystalActors.erase(addedCrystalActors.begin() + i);
+				crystalDataList.erase(crystalDataList.begin() + i);
 				ImGui::TreePop();
 				ImGui::PopID();
 				break;
@@ -381,11 +613,15 @@ void StageLoader::LoadJson()
 
 	spawnerDataList.clear();
 	propDataList.clear();
+	crystalDataList.clear();
 
 	for (auto addedActor : addedRealActors)
 	{
-		addedActor->Destroy();
+		if (addedActor) addedActor->Destroy();
 	}
+	addedRealActors.clear();
+	addedPropActors.clear();
+	addedCrystalActors.clear();
 
 	if (root.contains("spawners") && root["spawners"].is_array())
 	{
@@ -545,6 +781,13 @@ void StageLoader::LoadJson()
 					propData.color.z = pbrJson["color"].value("b", 1.0f);
 					propData.color.w = pbrJson["color"].value("a", 1.0f);
 				}
+				if (pbrJson.contains("emission"))
+				{
+					propData.emission.x = pbrJson["emission"].value("r", propData.emission.x);
+					propData.emission.y = pbrJson["emission"].value("g", propData.emission.y);
+					propData.emission.z = pbrJson["emission"].value("b", propData.emission.z);
+					propData.emission.w = pbrJson["emission"].value("a", propData.emission.w);
+				}
 				propData.metallic = pbrJson.value("metallic", propData.metallic);
 				propData.roughness = pbrJson.value("roughness", propData.roughness);
 				propData.occlusion = pbrJson.value("occlusion", propData.occlusion);
@@ -566,8 +809,64 @@ void StageLoader::LoadJson()
 
 			propDataList.push_back(propData);
 
-			// リアルにステージに配置
-			stage->GetActorManager()->Register(std::make_shared<Prop>(propData));
+			auto propActor = std::make_shared<Prop>(propData);
+			addedRealActors.push_back(propActor.get());
+			addedPropActors.push_back(propActor.get());
+			stage->GetActorManager()->Register(propActor);
+		}
+	}
+
+	if (root.contains("crystals") && root["crystals"].is_array())
+	{
+		for (const auto& crystalJson : root["crystals"])
+		{
+			CrystalData crystalData;
+			crystalData.modelPath = crystalJson.value("modelPath", crystalData.modelPath);
+			if (crystalJson.contains("transform"))
+			{
+				LoadTransformJson(crystalJson["transform"], crystalData.parentTransform);
+			}
+			crystalData.isFlatShading = crystalJson.value("IsFlatShading", crystalData.isFlatShading);
+			crystalData.count = crystalJson.value("count", crystalData.count);
+			if (crystalJson.contains("color"))
+			{
+				crystalData.color.x = crystalJson["color"].value("r", crystalData.color.x);
+				crystalData.color.y = crystalJson["color"].value("g", crystalData.color.y);
+				crystalData.color.z = crystalJson["color"].value("b", crystalData.color.z);
+				crystalData.color.w = crystalJson["color"].value("a", crystalData.color.w);
+			}
+			if (crystalJson.contains("emission"))
+			{
+				crystalData.emission.x = crystalJson["emission"].value("r", crystalData.emission.x);
+				crystalData.emission.y = crystalJson["emission"].value("g", crystalData.emission.y);
+				crystalData.emission.z = crystalJson["emission"].value("b", crystalData.emission.z);
+				crystalData.emission.w = crystalJson["emission"].value("a", crystalData.emission.w);
+			}
+			crystalData.metallic = crystalJson.value("metallic", crystalData.metallic);
+			crystalData.roughness = crystalJson.value("roughness", crystalData.roughness);
+			crystalData.occlusion = crystalJson.value("occlusion", crystalData.occlusion);
+			crystalData.occlusionStrength = crystalJson.value("occlusionStrength", crystalData.occlusionStrength);
+			crystalData.shadowStrength = crystalJson.value("shadowStrength", crystalData.shadowStrength);
+
+			crystalData.transforms.clear();
+			if (crystalJson.contains("transforms") && crystalJson["transforms"].is_array())
+			{
+				for (const auto& transformJson : crystalJson["transforms"])
+				{
+					Transform transform;
+					LoadTransformJson(transformJson, transform);
+					crystalData.transforms.push_back(transform);
+				}
+			}
+
+			if (crystalData.count < 0) crystalData.count = 0;
+			crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
+			crystalDataList.push_back(crystalData);
+
+			auto crystalActor = std::make_shared<CrystalProp>(crystalData);
+			addedRealActors.push_back(crystalActor.get());
+			addedCrystalActors.push_back(crystalActor.get());
+			stage->GetActorManager()->Register(crystalActor);
 		}
 	}
 }
@@ -578,6 +877,7 @@ void StageLoader::SaveJson()
 
 	root["spawners"] = json::array();
 	root["props"] = json::array();
+	root["crystals"] = json::array();
 
 	for (const auto& spawnerData : spawnerDataList)
 	{
@@ -649,6 +949,10 @@ void StageLoader::SaveJson()
 		propJson["pbr"]["color"]["g"] = propData.color.y;
 		propJson["pbr"]["color"]["b"] = propData.color.z;
 		propJson["pbr"]["color"]["a"] = propData.color.w;
+		propJson["pbr"]["emission"]["r"] = propData.emission.x;
+		propJson["pbr"]["emission"]["g"] = propData.emission.y;
+		propJson["pbr"]["emission"]["b"] = propData.emission.z;
+		propJson["pbr"]["emission"]["a"] = propData.emission.w;
 		propJson["pbr"]["metallic"] = propData.metallic;
 		propJson["pbr"]["roughness"] = propData.roughness;
 		propJson["pbr"]["occlusion"] = propData.occlusion;
@@ -662,6 +966,39 @@ void StageLoader::SaveJson()
 		propJson["modelPath"] = propData.modelPath;
 
 		root["props"].push_back(propJson);
+	}
+
+	for (const auto& crystalData : crystalDataList)
+	{
+		json crystalJson;
+
+		crystalJson["modelPath"] = crystalData.modelPath;
+		SaveTransformJson(crystalJson["transform"], crystalData.parentTransform);
+		crystalJson["count"] = crystalData.count;
+		crystalJson["color"]["r"] = crystalData.color.x;
+		crystalJson["color"]["g"] = crystalData.color.y;
+		crystalJson["color"]["b"] = crystalData.color.z;
+		crystalJson["color"]["a"] = crystalData.color.w;
+		crystalJson["emission"]["r"] = crystalData.emission.x;
+		crystalJson["emission"]["g"] = crystalData.emission.y;
+		crystalJson["emission"]["b"] = crystalData.emission.z;
+		crystalJson["emission"]["a"] = crystalData.emission.w;
+		crystalJson["metallic"] = crystalData.metallic;
+		crystalJson["roughness"] = crystalData.roughness;
+		crystalJson["occlusion"] = crystalData.occlusion;
+		crystalJson["occlusionStrength"] = crystalData.occlusionStrength;
+		crystalJson["shadowStrength"] = crystalData.shadowStrength;
+		crystalJson["IsFlatShading"] = crystalData.isFlatShading;
+		crystalJson["transforms"] = json::array();
+
+		for (const Transform& transform : crystalData.transforms)
+		{
+			json transformJson;
+			SaveTransformJson(transformJson, transform);
+			crystalJson["transforms"].push_back(transformJson);
+		}
+
+		root["crystals"].push_back(crystalJson);
 	}
 
 	if (jsonPath.has_parent_path())
@@ -678,3 +1015,11 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
+
+
+
+
+
+
+
+

@@ -418,6 +418,7 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 	CbMaterial cbMaterial{};
 	cbMaterial.baseColor = baseColor;
 	cbMaterial.emissiveColor = emissiveColor;
+	cbMaterial.emissionColor = Color(0.0f, 0.0f, 0.0f, 0.0f);
 	cbMaterial.metalness = std::clamp(metalness, 0.0f, 1.0f);
 	cbMaterial.roughness = std::clamp(roughness, 0.0001f, 1.0f);
 	cbMaterial.occlusion = std::clamp(occlusion, 0.0f, 1.0f);
@@ -426,6 +427,7 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 	cbMaterial.useMetalnessTexture = 0;
 	cbMaterial.useRoughnessTexture = 0;
 	cbMaterial.useOcclusionTexture = 0;
+	cbMaterial.isFlatShading = 0;
 
 	dc->UpdateSubresource(
 		materialConstantBuffer.Get(),

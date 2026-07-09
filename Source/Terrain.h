@@ -83,6 +83,7 @@ private:
 	{
 		Color baseColor;
 		Color emissiveColor;
+		Color emissionColor;
 
 		float metalness;
 		float roughness;
@@ -93,6 +94,8 @@ private:
 		int useMetalnessTexture;
 		int useRoughnessTexture;
 		int useOcclusionTexture;
+		int isFlatShading;
+		float dummy[3];
 	};
 
 	struct CbTerrainObject

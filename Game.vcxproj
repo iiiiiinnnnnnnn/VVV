@@ -35,6 +35,7 @@
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Apple.cpp" />
     <ClCompile Include="Source\Component.cpp" />
+    <ClCompile Include="Source\CrystalProp.cpp" />
     <ClCompile Include="Source\DamageHoleComponent.cpp" />
     <ClCompile Include="Source\DynamicAnimation.cpp" />
     <ClCompile Include="Source\DynamicAnimationSerializer.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="Source\Player.h" />
     <ClInclude Include="Source\CharacterController.h" />
     <ClInclude Include="Source\Component.h" />
+    <ClInclude Include="Source\CrystalProp.h" />
     <ClInclude Include="Source\DamageHoleComponent.h" />
     <ClInclude Include="Source\Dialog.h" />
     <ClInclude Include="Source\Effect.h" />

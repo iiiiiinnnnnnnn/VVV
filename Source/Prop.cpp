@@ -20,8 +20,8 @@ Prop::Prop(StageLoader::PropData& propData)
 
 	propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
 	propData.model->UpdateTransform(transform.matrix);
-	auto mr = AddComponent<ModelRenderComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
-	mr->SetShaderParamForAllMaterials(propData.MakePBRParams());
+	modelRenderer = AddComponent<ModelRenderComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
+	modelRenderer->SetShaderParamForAllMaterials(propData.MakePBRParams());
 
 	if (propData.colliderType == StageLoader::ColliderType::Mesh)
 	{
@@ -51,7 +51,18 @@ Prop::Prop(StageLoader::PropData& propData)
 	if (useDestroy && destroyLife > 0.0f)
 	{
 		damageHoleComponent =
-			AddComponent<DamageHoleComponent>(mr, 2.0f, 2.0f, 2.0f, 1.0f);
+			AddComponent<DamageHoleComponent>(modelRenderer, 2.0f, 2.0f, 2.0f, 1.0f);
+	}
+}
+
+void Prop::ApplyStageData(StageLoader::PropData& propData)
+{
+	transform = propData.transform;
+	transform.Update();
+
+	if (modelRenderer)
+	{
+		modelRenderer->SetShaderParamForAllMaterials(propData.MakePBRParams());
 	}
 }
 

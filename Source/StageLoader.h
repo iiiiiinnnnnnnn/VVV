@@ -17,6 +17,9 @@
 #include "nlohmann/json.hpp"
 #include "IconsFontAwesome5.h"
 
+class Prop;
+class CrystalProp;
+
 class StageLoader : public Component
 {
 public:
@@ -33,11 +36,13 @@ public:
 
 private:
 	friend class Prop;
+	friend class CrystalProp;
 
 	enum class AddType
 	{
 		Spawner,
-		Prop
+		Prop,
+		Crystal
 	} addType = AddType::Spawner;
 
 	struct RigidbodyData
@@ -103,6 +108,7 @@ private:
 		ColliderType colliderType = ColliderType::Box;
 		std::string modelPath = "";
 		Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		Color emission = Color(0.0f, 0.0f, 0.0f, 0.0f);
 		float metallic = 0.0f;
 		float roughness = 0.5f;
 		float occlusion = 1.0f;
@@ -121,11 +127,40 @@ private:
 	} addPropData = {};
 	std::vector<PropData> propDataList = {};
 
+	struct CrystalData
+	{
+		// ????
+		std::string modelPath = "Data/Model/Prop/crystal.glb";
+		Transform parentTransform = {};
+		int count = 1;
+		std::vector<Transform> transforms = {{}};
+		Color color = Color(0.45f, 0.85f, 1.0f, 0.45f);
+		Color emission = Color(0.0f, 0.0f, 0.0f, 0.0f);
+		float metallic = 0.0f;
+		float roughness = 0.5f;
+		float occlusion = 1.0f;
+		float occlusionStrength = 1.0f;
+		float shadowStrength = 1.0f;
+		bool isFlatShading = true;
+
+		ShaderParamList MakePBRParams() const;
+
+		// ?????
+		std::vector<std::shared_ptr<Model>> models = {};
+		ShaderParamListWithMaterialName shaderParams = {};
+	};
+
+	CrystalData addCrystalData = {};
+	std::vector<CrystalData> crystalDataList = {};
+
 	void DrawPBRParamsGUI(PropData& propData);
 	void DrawColliderTypeGUI(PropData& propData);
 	void DrawDestroyGUI(PropData& propData);
+	void DrawCrystalDataGUI(CrystalData& crystalData);
 
 	std::filesystem::path jsonPath = {};
 	Actor* stage = nullptr;
 	std::vector<Actor*> addedRealActors = {};
+	std::vector<Prop*> addedPropActors = {};
+	std::vector<CrystalProp*> addedCrystalActors = {};
 };

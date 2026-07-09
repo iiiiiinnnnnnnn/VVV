@@ -33,6 +33,7 @@ private:
 	{
 		Color	baseColor;
 		Color	emissiveColor;
+		Color	emissionColor;
 
 		float	metalness;
 		float	roughness;

@@ -101,7 +101,9 @@ float4 main(VS_OUT pin) : SV_TARGET
     * baseColor;
 
     float3 emissiveSRGB = emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
-    float3 emissive = pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb;
+    float3 emissive =
+        pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb
+        + emissionColor.rgb * emissionColor.a;
 
     float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);

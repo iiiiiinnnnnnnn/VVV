@@ -354,6 +354,9 @@
     <ClCompile Include="Source\Prop.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CrystalProp.cpp">
+      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+    </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
@@ -657,6 +660,9 @@
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Prop.h">
+      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CrystalProp.h">
       <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
     </ClInclude>
     <ClInclude Include="Source\TestPlayScene.h">

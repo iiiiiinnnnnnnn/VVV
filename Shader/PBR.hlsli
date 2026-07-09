@@ -10,7 +10,7 @@ struct VS_OUT
     float4 vertex       : SV_POSITION;
     float2 texcoord     : TEXCOORD0;
     float3 normal       : NORMAL;
-    float3 position     : POSITION;     // ワールド座標（ライティング計算用）
+    float3 position     : POSITION;
     float3 tangent      : TANGENT;
     float3 shadowTexcoord : TEXCOORD1;  // シャドウマップ参照用UV+深度
 };
@@ -28,6 +28,7 @@ cbuffer CbMaterial : register(b1)
 {
     float4 baseColor;
     float4 emissiveColor;
+    float4 emissionColor;
 
     float metalness;
     float roughness;
