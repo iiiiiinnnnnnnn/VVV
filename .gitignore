@@ -386,3 +386,5 @@ imgui.ini
 *.vx
 /package
 /dist
+/External
+/External/Effekseer170e/include/EffekseerRendererDX11/EffekseerRendererDX11.h
