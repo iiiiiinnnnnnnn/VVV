@@ -25,6 +25,7 @@ public:
 
 	void AddLeg(const char* rootName, const char* midName, const char* tipName, const char* contactName = nullptr);
 	void SetRay(float up, float down, float contactOffset);
+	bool HasGroundContact() const;
 
 private:
 	void UpdateModelTransform();

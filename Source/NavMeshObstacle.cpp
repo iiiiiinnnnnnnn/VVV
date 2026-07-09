@@ -3,14 +3,26 @@
 #include "NavMeshObstacle.h"
 #include "Actor.h"
 #include "BoxCollider.h"
+#include "CrystalProp.h"
+#include "MeshCollider.h"
 
 bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 {
 	Actor* actor = GetOwnerAsActor();
 	if (!actor) return false;
 
+	if (CrystalProp* crystalProp = dynamic_cast<CrystalProp*>(actor))
+	{
+		if (crystalProp->GetNavMeshBounds(center, size)) return true;
+	}
+
 	BoxCollider* box = actor->GetComponent<BoxCollider>();
-	if (!box) return false;
+	if (!box)
+	{
+		MeshCollider* mesh = actor->GetComponent<MeshCollider>();
+		if (mesh) return mesh->GetBounds(center, size);
+		return false;
+	}
 
 	const Vector3 actorScale = actor->transform.scale;
 	const Vector3 localPosition = box->GetLocalPosition();
@@ -51,5 +63,5 @@ bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 void NavMeshObstacle::DrawGUI()
 {
 	ImGui::Text("This actor is marked as a NavMesh obstacle.");
-	ImGui::Text("Bounds are determined by the BoxCollider component.");
+	ImGui::Text("Bounds are determined by the collider component.");
 }

@@ -132,7 +132,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 2,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         },
                         {
                             "canInterrupt": false,
@@ -151,7 +151,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         }
                     ]
                 },
@@ -330,7 +330,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 2,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         },
                         {
                             "canInterrupt": false,
@@ -349,7 +349,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         }
                     ]
                 },
@@ -605,7 +605,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         },
                         {
                             "canInterrupt": false,
@@ -624,7 +624,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.5
                         }
                     ]
                 },
@@ -1192,7 +1192,7 @@
         {
             "name": "speed",
             "type": "float",
-            "value": 0.0
+            "value": 3.0
         }
     ],
     "triggers": [

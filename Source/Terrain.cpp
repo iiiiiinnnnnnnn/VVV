@@ -120,6 +120,7 @@ void Terrain::InitializeGpuResources()
 	AddTerrainLayer("Data/Terrain/Layers/rock.png", "Data/Terrain/Layers/rock_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/dirt.png", "Data/Terrain/Layers/dirt_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/grass.png", "Data/Terrain/Layers/grass_n.png");
+	AddTerrainLayer("Data/Terrain/Layers/test.png", "Data/Terrain/Layers/test.png");
 
 	// エラー用
 	if (terrainLayers.empty())

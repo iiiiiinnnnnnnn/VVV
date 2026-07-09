@@ -11,7 +11,46 @@ Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
 {
     Actor* actor = GetOwnerAsActor();
     Vector3 ownerScale = actor ? actor->transform.scale : Vector3::One;
-    return nodeTransform * Matrix::CreateScale(ownerScale);
+    return nodeTransform * Matrix::CreateScale(ownerScale * localScale);
+}
+bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
+{
+    if (!rigidbody) return false;
+    if (!rigidbody->GetRigidActor()) return false;
+    if (!model) return false;
+
+    Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
+    Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    bool hasVertex = false;
+    Matrix actorTransform = Conv::ToMatrix(rigidbody->GetRigidActor()->getGlobalPose());
+
+    for (const Model::Mesh& mesh : model->GetMeshes())
+    {
+        if (!mesh.isDraw) continue;
+        if (!mesh.node) continue;
+        Matrix localVertexTransform = MakeLocalVertexTransform(mesh.node->globalTransform);
+        for (const Model::Vertex& vertex : mesh.vertices)
+        {
+            Vector3 position = Vector3::Transform(vertex.position, localVertexTransform);
+            position = Vector3::Transform(position, actorTransform);
+
+            if (position.x < minPosition.x) minPosition.x = position.x;
+            if (position.y < minPosition.y) minPosition.y = position.y;
+            if (position.z < minPosition.z) minPosition.z = position.z;
+
+            if (position.x > maxPosition.x) maxPosition.x = position.x;
+            if (position.y > maxPosition.y) maxPosition.y = position.y;
+            if (position.z > maxPosition.z) maxPosition.z = position.z;
+
+            hasVertex = true;
+        }
+    }
+
+    if (!hasVertex) return false;
+
+    center = (minPosition + maxPosition) * 0.5f;
+    size = maxPosition - minPosition;
+    return true;
 }
 void MeshCollider::Render(const RenderContext& rc)
 {
@@ -60,6 +99,12 @@ MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody,
     UpdateShape();
 }
 
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
+{
+    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+    UpdateShape();
+}
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
@@ -67,6 +112,18 @@ MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody,
     UpdateShape();
 }
 
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
+{
+    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+    UpdateShape();
+}
+void MeshCollider::SetLocalScale(const Vector3& scale)
+{
+    if ((localScale - scale).LengthSquared() < 0.000001f) return;
+    localScale = scale;
+    UpdateShape();
+}
 void MeshCollider::UpdateShape()
 {
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
@@ -186,3 +243,6 @@ void MeshCollider::DrawGUI()
         ImGui::Text("TriangleMesh");
     }
 }
+
+
+

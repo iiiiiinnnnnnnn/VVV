@@ -37,10 +37,12 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
                     {"metalness", 0.0f},
                     {"roughness", 1.0f},
                     {"occlusion", 0.0f},
-                    {"occlusionStrength", 0.7f}
+                    {"occlusionStrength", 0.7f},
+                    {"emission", Color(0,0,0,0) }
                 }
             }
         };
+        transform.SetPosition({-6, 3, 6});
         transform.SetScale(0.035f);
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
@@ -78,7 +80,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
 
         // ‘«Ú’n•â³
-        AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
+        spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
 
         // ‘«‚Ì“–‚½‚è”»’è
         std::vector<std::string> ikBoneNames = {
@@ -184,6 +186,12 @@ void AracoreQueen::UpdateChase()
 
     if (chasingPlayer != ChaseType::No)
     {
+        if (spiderFootIK && !spiderFootIK->HasGroundContact())
+        {
+        	navMeshAgent->Stop();
+        	return;
+        }
+
         navMeshAgent->MoveToTarget(player);
     }
     else

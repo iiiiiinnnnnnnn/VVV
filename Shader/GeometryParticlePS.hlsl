@@ -11,5 +11,7 @@ SamplerState samplerStates[3] : register(s0);
 
 float4 main(PS_IN pin) : SV_TARGET0
 {
-    return colorMap.Sample(samplerStates[ANISOTROPIC], pin.texcoord) * pin.color;
+    float4 tex = colorMap.Sample(samplerStates[ANISOTROPIC], pin.texcoord);
+    float intensity = max(tex.r, max(tex.g, tex.b));
+    return float4(pin.color.rgb * intensity, tex.a * pin.color.a);
 }

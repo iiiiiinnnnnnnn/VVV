@@ -117,6 +117,17 @@ void SpiderFootIK::SetRay(float up, float down, float contactOffset)
 	this->contactOffset = contactOffset;
 }
 
+bool SpiderFootIK::HasGroundContact() const
+{
+	for (const FootIK* footIK : footIKs)
+	{
+		if (!footIK) continue;
+		if (!footIK->IsIKEnabled()) continue;
+		if (footIK->HasGroundContact()) return true;
+	}
+	return false;
+}
+
 void SpiderFootIK::UpdateModelTransform()
 {
 	Actor* actor = GetOwnerAsActor();

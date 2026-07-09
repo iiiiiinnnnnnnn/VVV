@@ -31,6 +31,7 @@ private:
 		float vx, vy, vz;
 		float ax, ay, az;
 		float alpha;
+		Color color;
 		float timer;
 		float animeTimer;
 		float type;
@@ -65,7 +66,8 @@ public:
 		Vector3 f = Vector3(0.0f, 0.0f, 0.0f),
 		Vector2 size = Vector2(1.0f, 1.0f),
 		bool anime = false,
-		float animeSpeed = 24.0f
+		float animeSpeed = 24.0f,
+		Color color = Color(0.35f, 0.9f, 1.0f, 1.0f)
 	);
 
 private:

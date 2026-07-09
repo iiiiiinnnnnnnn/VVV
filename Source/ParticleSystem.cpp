@@ -147,10 +147,8 @@ void ParticleSystem::Render(const RenderContext& rc)
 		vertices[n].position.z = data[i].z;
 		vertices[n].texcoord.x = data[i].w;
 		vertices[n].texcoord.y = data[i].h;
-		vertices[n].color.x =
-			vertices[n].color.y =
-			vertices[n].color.z = 1.0f;
-		vertices[n].color.w = data[i].alpha;
+		vertices[n].color = data[i].color;
+		vertices[n].color.w *= data[i].alpha;
 
 		vertices[n].param.x = 0;
 		vertices[n].param.y = data[i].type;
@@ -180,7 +178,7 @@ void ParticleSystem::Render(const RenderContext& rc)
 	immediateContext->PSSetShader(nullptr, nullptr, 0);
 }
 
-void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f, Vector2 size, bool anime, float animeSpeed)
+void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f, Vector2 size, bool anime, float animeSpeed, Color color)
 {
 	for (int i = 0; i < numParticles; i++)
 	{
@@ -198,9 +196,11 @@ void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f,
 		data[i].w = size.x;
 		data[i].h = size.y;
 		data[i].alpha = 1.0f;
+		data[i].color = color;
 		data[i].timer = timer;
 		data[i].anime = anime;
 		data[i].animeSpeed = animeSpeed;
 		break;
 	}
 }
+

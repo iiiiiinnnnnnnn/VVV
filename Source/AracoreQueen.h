@@ -17,6 +17,7 @@ class ModelRenderComponent;
 class PhysicsComponent;
 class RigidbodyDynamic;
 class AracoreQueen;
+class SpiderFootIK;
 
 class AracoreQueenMachine : public Entity
 {
@@ -58,6 +59,7 @@ private:
 	std::shared_ptr<Model> model;
 	Actor* machine = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
+	SpiderFootIK* spiderFootIK = nullptr;
 	PhysicsComponent* bodyCollider = nullptr;
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
