@@ -18,7 +18,7 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true)
 	auto* rb = AddComponent<RigidbodyStatic>();
 
 	Terrain* terrain = AddComponent<Terrain>();
-	terrain->LoadTerrainTexture("Data/Terrain/Maps/BossField2.dds");
+	terrain->LoadTerrainTexture("Data/Terrain/Maps/test.dds");
 	AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rb,
 		TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
 	AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");

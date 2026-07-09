@@ -9,6 +9,7 @@
 #include "Input.h"
 #include "DebugUtil.h"
 #include "TerrainMeshCollider.h"
+#include "Texture.h"
 #include <DirectXTex.h>
 
 Terrain::Terrain(Object* owner)
@@ -115,15 +116,15 @@ void Terrain::InitializeGpuResources()
 	// レイヤー追加
 	// ブレンドで違和感のない順番で追加する
 
-	AddTerrainLayer("Data/Terrain/Layers/stone.dds", "Data/Terrain/Layers/stone_n.dds");
-	AddTerrainLayer("Data/Terrain/Layers/rock.dds", "Data/Terrain/Layers/rock_n.dds");
-	AddTerrainLayer("Data/Terrain/Layers/dirt.dds", "Data/Terrain/Layers/dirt_n.dds");
-	AddTerrainLayer("Data/Terrain/Layers/grass.dds", "Data/Terrain/Layers/grass_n.dds");
+	AddTerrainLayer("Data/Terrain/Layers/stone.png", "Data/Terrain/Layers/stone_n.png");
+	AddTerrainLayer("Data/Terrain/Layers/rock.png", "Data/Terrain/Layers/rock_n.png");
+	AddTerrainLayer("Data/Terrain/Layers/dirt.png", "Data/Terrain/Layers/dirt_n.png");
+	AddTerrainLayer("Data/Terrain/Layers/grass.png", "Data/Terrain/Layers/grass_n.png");
 
 	// エラー用
 	if (terrainLayers.empty())
 	{
-		AddTerrainLayer("Data/Image/bugtex.dds", "Data/Image/bugtex.dds");
+		AddTerrainLayer("Data/Image/bugTex.png", "Data/Image/bugTex.png");
 	}
 }
 
@@ -1132,9 +1133,8 @@ bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::strin
 	layer.baseColorPath = normalizedBasePath;
 	layer.normalPath = normalizedNormalPath;
 
-	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
-	HRESULT hr = GpuResourceUtils::LoadTexture(
-		device,
+	HRESULT hr = MipmapTexture::LoadTexture(
+		Game::Graphics::Instance().GetDevice(),
 		layer.baseColorPath.c_str(),
 		layer.baseColorView.GetAddressOf());
 
@@ -1144,8 +1144,8 @@ bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::strin
 		return false;
 	}
 
-	hr = GpuResourceUtils::LoadTexture(
-		device,
+	hr = MipmapTexture::LoadTexture(
+		Game::Graphics::Instance().GetDevice(),
 		layer.normalPath.c_str(),
 		layer.normalView.GetAddressOf());
 

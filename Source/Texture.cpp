@@ -136,3 +136,141 @@ Texture::Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTU
 	: shaderResourceView(shaderResourceView), texture2dDesc(texture2dDesc)
 {
 }
+
+MipmapTexture::MipmapTexture(const char* filename)
+{
+	Load(filename);
+}
+
+bool MipmapTexture::Load(const char* filename)
+{
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+
+	std::string loadedPath;
+	HRESULT hr = LoadTexture(
+		device,
+		filename,
+		shaderResourceView.ReleaseAndGetAddressOf(),
+		&texture2dDesc,
+		&loadedPath);
+
+	sourceFilePath = filename != nullptr ? std::filesystem::path(filename).lexically_normal().generic_string() : "";
+	loadedFilePath = loadedPath;
+
+	if (FAILED(hr))
+	{
+		GpuResourceUtils::CreateDummyTexture(
+			device,
+			0xFFFFFFFF,
+			shaderResourceView.ReleaseAndGetAddressOf(),
+			&texture2dDesc);
+		return false;
+	}
+
+	return true;
+}
+
+HRESULT MipmapTexture::LoadTexture(
+	ID3D11Device* device,
+	const char* filename,
+	ID3D11ShaderResourceView** shaderResourceView,
+	D3D11_TEXTURE2D_DESC* texture2dDesc,
+	std::string* loadedFilePath)
+{
+	if (device == nullptr || filename == nullptr || shaderResourceView == nullptr)
+	{
+		return E_INVALIDARG;
+	}
+
+	const std::filesystem::path sourcePath = std::filesystem::path(filename).lexically_normal();
+	const std::wstring extension = ToLowerWString(sourcePath.extension().wstring());
+
+	std::filesystem::path loadPath = sourcePath;
+	if (extension != L".dds")
+	{
+		const std::filesystem::path ddsPath = GetDDSCachePath(sourcePath);
+		if (!std::filesystem::exists(ddsPath))
+		{
+			HRESULT hr = CreateDDSCache(sourcePath, ddsPath);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+
+		loadPath = ddsPath;
+	}
+
+	if (!std::filesystem::exists(loadPath))
+	{
+		return E_FAIL;
+	}
+
+	HRESULT hr = Texture::LoadTexture(
+		device,
+		loadPath.generic_string().c_str(),
+		shaderResourceView,
+		texture2dDesc);
+
+	if (SUCCEEDED(hr) && loadedFilePath != nullptr)
+	{
+		*loadedFilePath = loadPath.generic_string();
+	}
+
+	return hr;
+}
+
+std::filesystem::path MipmapTexture::GetDDSCachePath(const std::filesystem::path& sourcePath)
+{
+	std::filesystem::path ddsPath = sourcePath;
+	ddsPath.replace_extension(".dds");
+	return ddsPath.lexically_normal();
+}
+
+HRESULT MipmapTexture::CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath)
+{
+	if (!std::filesystem::exists(sourcePath))
+	{
+		return E_FAIL;
+	}
+
+	DirectX::TexMetadata metadata{};
+	DirectX::ScratchImage sourceImage;
+	HRESULT hr = GpuResourceUtils::LoadImageFile(sourcePath, metadata, sourceImage);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	DirectX::ScratchImage mipImage;
+	hr = DirectX::GenerateMipMaps(
+		sourceImage.GetImages(),
+		sourceImage.GetImageCount(),
+		metadata,
+		DirectX::TEX_FILTER_DEFAULT,
+		0,
+		mipImage);
+
+	const DirectX::ScratchImage* saveImage = &mipImage;
+	if (FAILED(hr))
+	{
+		saveImage = &sourceImage;
+	}
+
+	std::error_code error;
+	if (!ddsPath.parent_path().empty())
+	{
+		std::filesystem::create_directories(ddsPath.parent_path(), error);
+		if (error)
+		{
+			return E_FAIL;
+		}
+	}
+
+	return DirectX::SaveToDDSFile(
+		saveImage->GetImages(),
+		saveImage->GetImageCount(),
+		saveImage->GetMetadata(),
+		DirectX::DDS_FLAGS_NONE,
+		ddsPath.wstring().c_str());
+}

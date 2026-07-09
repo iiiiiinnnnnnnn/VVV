@@ -239,12 +239,12 @@ private:
 	int currentTerrainLayerIndex = 0;
 
 	Color baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-	Color emissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
+	Color emissiveColor = {0.1f, 0.1f, 0.1f, 1.0f};
 	float metalness = 0.0f;
-	float roughness = 0.5f;
-	float occlusion = 0.5f;
+	float roughness = 0.2f;
+	float occlusion = 1.0f;
 	float occlusionStrength = 1.0f;
-	float shadowStrength = 0.7f;
+	float shadowStrength = 1.0f;
 
 	bool use_brush = false;
 	BrushMode brushMode = BrushMode::RaiseLower;

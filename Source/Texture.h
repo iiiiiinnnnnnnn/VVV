@@ -4,6 +4,9 @@
 #include <d3d11.h>
 #include <wrl.h>
 
+#include <filesystem>
+#include <string>
+
 #include "Common.h"
 
 // テクスチャ
@@ -35,4 +38,35 @@ public:
 private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	shaderResourceView;
 	D3D11_TEXTURE2D_DESC	texture2dDesc;
+};
+
+// MipmapつきDDSキャッシュを自動生成して読み込むテクスチャ
+class MipmapTexture
+{
+public:
+	MipmapTexture() = default;
+	MipmapTexture(const char* filename);
+
+	bool Load(const char* filename);
+
+	inline const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& GetShaderResourceView() const { return shaderResourceView; }
+	inline const D3D11_TEXTURE2D_DESC& GetTexture2dDesc() const { return texture2dDesc; }
+	inline const std::string& GetSourceFilePath() const { return sourceFilePath; }
+	inline const std::string& GetLoadedFilePath() const { return loadedFilePath; }
+
+	static HRESULT LoadTexture(
+		ID3D11Device* device,
+		const char* filename,
+		ID3D11ShaderResourceView** shaderResourceView,
+		D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr,
+		std::string* loadedFilePath = nullptr);
+
+private:
+	static std::filesystem::path GetDDSCachePath(const std::filesystem::path& sourcePath);
+	static HRESULT CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath);
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+	D3D11_TEXTURE2D_DESC texture2dDesc{};
+	std::string sourceFilePath;
+	std::string loadedFilePath;
 };
