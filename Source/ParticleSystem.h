@@ -1,0 +1,82 @@
+// ParticleSystem.h
+
+#pragma once
+
+#include "Common.h"
+
+#include <vector>
+
+#include "texture.h"
+#include "shader.h"
+
+#include "Component.h"
+
+class ParticleSystem
+{
+private:
+	struct Vertex
+	{
+		Vector3 position;	//	位置
+		Vector2 texcoord;	//	UV
+		Color color;		//	頂点色		
+		Vector4 param;		//	汎用パラメータ
+	};
+
+	struct ParticleData
+	{
+		float x, y, z;
+		float w, h;
+		float aw, ah;
+		float vx, vy, vz;
+		float ax, ay, az;
+		float alpha;
+		float timer;
+		float animeTimer;
+		float type;
+
+		bool anime;
+		float animeSpeed;
+	};
+
+	//	定数バッファのデータ定義
+	struct Constants
+	{
+		Vector2 size;
+		Vector2 dummy;
+	};
+
+public:
+	ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView, int komax = 1, int komay = 1, int num = 1000);
+
+	~ParticleSystem();
+	void Update();
+
+	void Render(ID3D11DeviceContext* immediateContext);
+
+	void Set(
+		int type,
+		float timer,
+		Vector3 p,
+		Vector3 v = Vector3(0.0f, 0.0f, 0.0f),
+		Vector3 f = Vector3(0.0f, 0.0f, 0.0f),
+		Vector2 size = Vector2(1.0f, 1.0f),
+		bool anime = false,
+		float animeSpeed = 24.0f
+	);
+
+private:
+	ParticleData* data;	//	パーティクル情報
+	Vertex* vertices;		//	頂点バッファ書き込み情報
+	int numParticles = 0;	//	パーティクル数
+	int komax, komay;		//	Textureの縦横分割数
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader> geometryShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+};

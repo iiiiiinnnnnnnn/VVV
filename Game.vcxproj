@@ -22,6 +22,7 @@
     <ClCompile Include="Source\HitStop.cpp" />
     <ClCompile Include="Source\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\LookAt.cpp" />
+    <ClCompile Include="Source\ParticleSystem.cpp" />
     <ClCompile Include="Source\SpiderFootIK.cpp" />
     <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
@@ -117,6 +118,7 @@
     <ClInclude Include="Source\FootIK.h" />
     <ClInclude Include="Source\HumanoidFootIK.h" />
     <ClInclude Include="Source\LookAt.h" />
+    <ClInclude Include="Source\ParticleSystem.h" />
     <ClInclude Include="Source\SpiderFootIK.h" />
     <ClInclude Include="Source\MeshCollider.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
@@ -217,6 +219,7 @@
     <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\BasicModel.hlsli" />
     <None Include="Shader\gbuffer.hlsli" />
+    <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PBRFunctions.hlsli" />
     <None Include="Shader\FullScreenQuad.hlsli" />
@@ -238,6 +241,20 @@
     <FxCompile Include="Shader\FXAAPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\GeometryParticleGS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\GeometryParticlePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\GeometryParticleVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\SSAOCompositePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
