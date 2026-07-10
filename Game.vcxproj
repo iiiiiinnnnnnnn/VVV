@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Aracore.cpp" />
     <ClCompile Include="Source\BoneBoxCollider.cpp" />
     <ClCompile Include="Source\BoneCapsuleCollider.cpp" />
     <ClCompile Include="Source\BoneCollider.cpp" />
@@ -104,6 +105,7 @@
     <ClCompile Include="Source\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Aracore.h" />
     <ClInclude Include="Source\Benchmark.h" />
     <ClInclude Include="Source\BoneBoxCollider.h" />
     <ClInclude Include="Source\BoneCapsuleCollider.h" />

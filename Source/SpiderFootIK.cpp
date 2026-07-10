@@ -9,19 +9,7 @@
 SpiderFootIK::SpiderFootIK(Object* owner, LayerId layerId, Model* model, Animator* animator)
 	: Component(owner), model(model), animator(animator), layerId(layerId)
 {
-	if (model)
-	{
-		waistNodeIndex = model->GetNodeIndex("Dummy02");
-	}
 
-	AddLeg("Box09", "Box10", "Box11");
-	AddLeg("Box20", "Box18", "Box19");
-	AddLeg("Box25", "Box22", "Box23");
-	AddLeg("Box26", "Box21", "Box24");
-	AddLeg("Box31", "Box28", "Box29");
-	AddLeg("Box35", "Box32", "Box36");
-	AddLeg("Box37", "Box33", "Box34");
-	AddLeg("Box38", "Box27", "Box30");
 }
 
 void SpiderFootIK::LateUpdate()

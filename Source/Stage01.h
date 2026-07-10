@@ -14,5 +14,5 @@ public:
 	void OnDrawGUI() override;
 
 private:
-
+	float aracoreSpawnTimer = -1.0f;
 };

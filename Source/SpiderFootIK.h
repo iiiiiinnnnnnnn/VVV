@@ -27,6 +27,9 @@ public:
 	void SetRay(float up, float down, float contactOffset);
 	bool HasGroundContact() const;
 
+	void SetWaistNodeIndex(int index) { waistNodeIndex = index; }
+	void SetModelVisualOffsetY(float y) { modelVisualOffsetY = y; }
+
 private:
 	void UpdateModelTransform();
 	void ApplyFootSettings();

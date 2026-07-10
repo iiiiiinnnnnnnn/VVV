@@ -1688,7 +1688,6 @@ private:
             }
 
             DrawFootIKRangeEditor(state);
-            DrawAnimationKeyEditor(state);
         }
 
         ImGui::Spacing();

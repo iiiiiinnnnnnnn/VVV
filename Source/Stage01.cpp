@@ -4,12 +4,14 @@
 #include "Graphics.h"
 #include "LightManager.h"
 #include "ActorManager.h"
+#include "Aracore.h"
 #include "AracoreQueen.h"
 #include "NavMeshActor.h"
 #include "StageLoader.h"
 #include "Rigidbody.h"
 #include "Terrain.h"
 #include "TerrainMeshCollider.h"
+#include "GameTime.h"
 
 Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true)
 {
@@ -28,7 +30,7 @@ Stage01::Stage01(ActorManager* actorManager) : Actor("Stage01", "Stage", true)
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
 	// ƒ{ƒX“G
-	#if 1
+	#if 0
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager->Register(boss);
 	#endif
@@ -56,7 +58,15 @@ void Stage01::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
 
 void Stage01::OnUpdate()
 {
+	//aracoreSpawnTimer -= Game::Time::deltaTime;
+	if (aracoreSpawnTimer < 0)
+	{
+		aracoreSpawnTimer = 30.0f;
 
+		auto aracore = std::make_shared<Aracore>();
+		aracore->transform.SetPosition(-6, 5, 6);
+		actorManager->Register(aracore);
+	}
 }
 
 void Stage01::OnDrawGUI()

@@ -493,6 +493,11 @@ void Animator::UpdateLayer(
         State& nextState =
             layer.states[layer.nextStateIndex];
 
+        if (model->GetAnimations().size() <= nextState.animationIndex)
+        {
+            return;
+        }
+
         const Model::Animation& nextAnim =
             model->GetAnimations()[
                 nextState.animationIndex];

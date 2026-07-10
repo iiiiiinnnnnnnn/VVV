@@ -33,13 +33,13 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         {
             {
                 "03 - Default",
-                {
-                    {"metalness", 0.0f},
-                    {"roughness", 1.0f},
-                    {"occlusion", 0.0f},
-                    {"occlusionStrength", 0.7f},
-                    {"emission", Color(0,0,0,0) }
-                }
+            {
+                {"metalness", 0.0f},
+            {"roughness", 1.0f},
+            {"occlusion", 0.0f},
+            {"occlusionStrength", 0.7f},
+            {"emission", Color(0, 0, 0, 0)}
+        }
             }
         };
         transform.SetPosition({-6, 3, 6});
@@ -82,6 +82,15 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
 
         // ë´ê⁄ínï‚ê≥
         spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
+        spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Dummy02"));
+        spiderFootIK->AddLeg("Box09", "Box10", "Box11");
+        spiderFootIK->AddLeg("Box20", "Box18", "Box19");
+        spiderFootIK->AddLeg("Box25", "Box22", "Box23");
+        spiderFootIK->AddLeg("Box26", "Box21", "Box24");
+        spiderFootIK->AddLeg("Box31", "Box28", "Box29");
+        spiderFootIK->AddLeg("Box35", "Box32", "Box36");
+        spiderFootIK->AddLeg("Box37", "Box33", "Box34");
+        spiderFootIK->AddLeg("Box38", "Box27", "Box30");
 
         // ë´ÇÃìñÇΩÇËîªíË
         std::vector<std::string> ikBoneNames = {

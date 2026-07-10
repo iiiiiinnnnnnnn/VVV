@@ -438,6 +438,9 @@
     <ClCompile Include="Source\ParticleSystem.cpp">
       <Filter>ソースファイル\コンポーネント\パーティクル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Aracore.cpp">
+      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
@@ -766,6 +769,9 @@
     </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>ソースファイル\内部</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Aracore.h">
+      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
