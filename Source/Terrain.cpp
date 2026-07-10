@@ -1,4 +1,4 @@
-ï»¿// Terrain.cpp
+// Terrain.cpp
 
 #include "Terrain.h"
 
@@ -113,8 +113,8 @@ void Terrain::InitializeGpuResources()
 		"Data/Shader/TerrainColliderBuildCS.cso",
 		terrainColliderBuildComputeShader.GetAddressOf());
 
-	// ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ 
-	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã§é•å’Œæ„Ÿã®ãªã„é †ç•ªã§è¿½åŠ ã™ã‚‹
+	// ƒŒƒCƒ„[’Ç‰Á
+	// ƒuƒŒƒ“ƒh‚Åˆá˜aŠ´‚Ì‚È‚¢‡”Ô‚Å’Ç‰Á‚·‚é
 
 	AddTerrainLayer("Data/Terrain/Layers/stone.png", "Data/Terrain/Layers/stone_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/rock.png", "Data/Terrain/Layers/rock_n.png");
@@ -122,7 +122,7 @@ void Terrain::InitializeGpuResources()
 	AddTerrainLayer("Data/Terrain/Layers/grass.png", "Data/Terrain/Layers/grass_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/test.png", "Data/Terrain/Layers/test.png");
 
-	// ã‚¨ãƒ©ãƒ¼ç”¨
+	// ƒGƒ‰[—p
 	if (terrainLayers.empty())
 	{
 		AddTerrainLayer("Data/Image/bugTex.png", "Data/Image/bugTex.png");
@@ -420,6 +420,9 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 	cbMaterial.baseColor = baseColor;
 	cbMaterial.emissiveColor = emissiveColor;
 	cbMaterial.emissionColor = Color(0.0f, 0.0f, 0.0f, 0.0f);
+	cbMaterial.fresnelColor = Color(1.0f, 1.0f, 1.0f, 0.0f);
+	cbMaterial.fresnelPower = 3.0f;
+	cbMaterial.fresnelStrength = 0.0f;
 	cbMaterial.metalness = std::clamp(metalness, 0.0f, 1.0f);
 	cbMaterial.roughness = std::clamp(roughness, 0.0001f, 1.0f);
 	cbMaterial.occlusion = std::clamp(occlusion, 0.0f, 1.0f);
@@ -1722,3 +1725,6 @@ uint64_t Terrain::GetTerrainDataHash() const
 
 	return hash;
 }
+
+
+

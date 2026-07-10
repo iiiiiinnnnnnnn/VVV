@@ -1,4 +1,4 @@
-﻿// Terrain.h
+// Terrain.h
 
 #pragma once
 #include <d3d11.h>
@@ -84,6 +84,7 @@ private:
 		Color baseColor;
 		Color emissiveColor;
 		Color emissionColor;
+		Color fresnelColor;
 
 		float metalness;
 		float roughness;
@@ -91,11 +92,14 @@ private:
 		float occlusionStrength;
 
 		float shadowStrength;
+		float fresnelPower;
+		float fresnelStrength;
 		int useMetalnessTexture;
+
 		int useRoughnessTexture;
 		int useOcclusionTexture;
 		int isFlatShading;
-		float dummy[3];
+		float dummy;
 	};
 
 	struct CbTerrainObject
@@ -264,3 +268,5 @@ private:
 	std::string terrainIoMessage;
 	bool pendingColliderRebuild = false;
 };
+
+

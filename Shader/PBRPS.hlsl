@@ -140,6 +140,9 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 N = normalize(pin.normal);
     float3 V = normalize(viewPosition - pin.position);
 
+    float fresnel = pow(saturate(1.0f - dot(N, V)), max(fresnelPower, 0.0001f));
+    float3 rimEmission = fresnelColor.rgb * fresnelColor.a * fresnel * fresnelStrength;
+
     float3 totalDiffuse = 0.0f;
     float3 totalSpecular = 0.0f;
 
@@ -353,7 +356,8 @@ float4 main(VS_OUT pin) : SV_TARGET
         (totalDiffuse + totalSpecular) * shadow
         + iblDiffuse
         + iblSpecular
-        + emissive;
+        + emissive
+        + rimEmission;
 
     color = ApplyDistanceFog(color, pin.position);
 

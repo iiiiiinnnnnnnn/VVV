@@ -73,6 +73,9 @@ ShaderParamList StageLoader::CrystalData::MakePBRParams() const
 	return {
 		{"color", color},
 		{"emission", emission},
+		{"fresnelColor", fresnelColor},
+		{"fresnelPower", fresnelPower},
+		{"fresnelStrength", fresnelStrength},
 		{"metalness", metallic},
 		{"roughness", roughness},
 		{"occlusion", occlusion},
@@ -90,15 +93,6 @@ void StageLoader::DrawCrystalDataGUI(CrystalData& crystalData)
 		crystalData.parentTransform.DrawGUI();
 		ImGui::TreePop();
 	}
-	ImGui::ColorEdit4("Color", &crystalData.color.x);
-	ImGui::ColorEdit4("Emission", &crystalData.emission.x);
-	ImGui::DragFloat("Metallic", &crystalData.metallic, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Roughness", &crystalData.roughness, 0.01f, 0.0001f, 1.0f);
-	ImGui::DragFloat("Occlusion", &crystalData.occlusion, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Occlusion Strength", &crystalData.occlusionStrength, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Shadow Strength", &crystalData.shadowStrength, 0.01f, 0.0f, 1.0f);
-	ImGui::Checkbox("Is Flat Shading", &crystalData.isFlatShading);
-
 	if (ImGui::DragInt("Count", &crystalData.count, 0.1f, 0, 256))
 	{
 		if (crystalData.count < 0) crystalData.count = 0;
@@ -856,6 +850,15 @@ void StageLoader::LoadJson()
 				crystalData.emission.z = crystalJson["emission"].value("b", crystalData.emission.z);
 				crystalData.emission.w = crystalJson["emission"].value("a", crystalData.emission.w);
 			}
+			if (crystalJson.contains("fresnelColor"))
+			{
+				crystalData.fresnelColor.x = crystalJson["fresnelColor"].value("r", crystalData.fresnelColor.x);
+				crystalData.fresnelColor.y = crystalJson["fresnelColor"].value("g", crystalData.fresnelColor.y);
+				crystalData.fresnelColor.z = crystalJson["fresnelColor"].value("b", crystalData.fresnelColor.z);
+				crystalData.fresnelColor.w = crystalJson["fresnelColor"].value("a", crystalData.fresnelColor.w);
+			}
+			crystalData.fresnelPower = crystalJson.value("fresnelPower", crystalData.fresnelPower);
+			crystalData.fresnelStrength = crystalJson.value("fresnelStrength", crystalData.fresnelStrength);
 			crystalData.metallic = crystalJson.value("metallic", crystalData.metallic);
 			crystalData.roughness = crystalJson.value("roughness", crystalData.roughness);
 			crystalData.occlusion = crystalJson.value("occlusion", crystalData.occlusion);
@@ -998,6 +1001,12 @@ void StageLoader::SaveJson()
 		crystalJson["emission"]["g"] = crystalData.emission.y;
 		crystalJson["emission"]["b"] = crystalData.emission.z;
 		crystalJson["emission"]["a"] = crystalData.emission.w;
+		crystalJson["fresnelColor"] ["r"] = crystalData.fresnelColor.x;
+		crystalJson["fresnelColor"] ["g"] = crystalData.fresnelColor.y;
+		crystalJson["fresnelColor"] ["b"] = crystalData.fresnelColor.z;
+		crystalJson["fresnelColor"] ["a"] = crystalData.fresnelColor.w;
+		crystalJson["fresnelPower"] = crystalData.fresnelPower;
+		crystalJson["fresnelStrength"] = crystalData.fresnelStrength;
 		crystalJson["metallic"] = crystalData.metallic;
 		crystalJson["roughness"] = crystalData.roughness;
 		crystalJson["occlusion"] = crystalData.occlusion;
@@ -1030,6 +1039,15 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -29,6 +29,7 @@ cbuffer CbMaterial : register(b1)
     float4 baseColor;
     float4 emissiveColor;
     float4 emissionColor;
+    float4 fresnelColor;
 
     float metalness;
     float roughness;
@@ -36,12 +37,14 @@ cbuffer CbMaterial : register(b1)
     float occlusionStrength;
     
     float shadowStrength;
+    float fresnelPower;
+    float fresnelStrength;
     int useMetalnessTexture;
+
     int useRoughnessTexture;
     int useOcclusionTexture;
-
     int isFlatShading;
-    float3 _dummyCbMaterial;
+    float _dummyCbMaterial;
 };
 
 static const int MaxDamageHoles = 8;
@@ -79,3 +82,4 @@ float3 ApplyDistanceFog(float3 color, float3 worldPosition)
 }
 
 #endif // __PBR_HLSLI__
+

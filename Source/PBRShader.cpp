@@ -1,4 +1,4 @@
-ï»¿// PBRShader.cpp
+// PBRShader.cpp
 
 #include "PBRShader.h"
 #include "GpuResourceUtils.h"
@@ -13,7 +13,7 @@ PBRShader::PBRShader(ID3D11Device* device)
 		inputLayout.GetAddressOf(),
 		vertexShader.GetAddressOf());
 
-	// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
+	// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
 	GpuResourceUtils::LoadPixelShader(
 		device,
 		"Data/Shader/PBRPS.cso",
@@ -24,37 +24,37 @@ PBRShader::PBRShader(ID3D11Device* device)
 		"Data/Shader/PBRGS.cso",
 		geometryShader.GetAddressOf());
 
-	// ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡ (PSã‚¹ãƒ­ãƒƒãƒˆ0)
+	// ƒVƒƒƒhƒEƒ}ƒbƒv—p’è”ƒoƒbƒtƒ@ (PSƒXƒƒbƒg0)
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbShadowMap),
 		shadowMapConstantBuffer.GetAddressOf());
 
-	// ãƒãƒ†ãƒªã‚¢ãƒ«ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡ (PSã‚¹ãƒ­ãƒƒãƒˆ1)
+	// ƒ}ƒeƒŠƒAƒ‹—p’è”ƒoƒbƒtƒ@ (PSƒXƒƒbƒg1)
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbMaterial),
 		materialConstantBuffer.GetAddressOf());
 
-	// ãƒ€ãƒ¡ãƒ¼ã‚¸ç©´ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡ (PSã‚¹ãƒ­ãƒƒãƒˆ2)
+	// ƒ_ƒ[ƒWŒŠ—p’è”ƒoƒbƒtƒ@ (PSƒXƒƒbƒg2)
 	GpuResourceUtils::CreateConstantBuffer(
 		device,
 		sizeof(CbDamageHoles),
 		damageHolesConstantBuffer.GetAddressOf());
 }
 
-// æç”»é–‹å§‹
+// •`‰æŠJn
 void PBRShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚»ãƒƒãƒˆã ã‘
+	// ƒVƒF[ƒ_[ƒZƒbƒg‚¾‚¯
 	dc->IASetInputLayout(inputLayout.Get());
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->GSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 
-	// SRVã ã‘ã“ã“ã§ã‚»ãƒƒãƒˆ
+	// SRV‚¾‚¯‚±‚±‚ÅƒZƒbƒg
 	dc->PSSetShaderResources(8, 1, &rc.shadowMapData.shadowMap);
 
 	ID3D11ShaderResourceView* iblSrvs[] =
@@ -70,7 +70,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ã‚·ãƒ£ãƒ‰ã‚¦CBæ›´æ–°
+	// ƒVƒƒƒhƒECBXV
 	{
 		CbShadowMap cb{};
 		cb.lightViewProjection = rc.shadowMapData.lightViewProjection;
@@ -87,13 +87,16 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			0);
 	}
 
-	// ãƒãƒ†ãƒªã‚¢ãƒ«CBæ›´æ–°
+	// ƒ}ƒeƒŠƒAƒ‹CBXV
 	{
 		CbMaterial cb{};
 
 		cb.baseColor = mesh.material->baseColor * GetParam<Color>(cachedParams, "color", {1.0f, 1.0f, 1.0f, 1.0f});
 		cb.emissiveColor = mesh.material->emissiveColor;
 		cb.emissionColor = GetParam<Color>(cachedParams, "emission", {0.0f, 0.0f, 0.0f, 0.0f});
+		cb.fresnelColor = GetParam<Color>(cachedParams, "fresnelColor", {1.0f, 1.0f, 1.0f, 0.0f});
+		cb.fresnelPower = GetParam<float>(cachedParams, "fresnelPower", 3.0f);
+		cb.fresnelStrength = GetParam<float>(cachedParams, "fresnelStrength", 0.0f);
 
 		const bool hasMetalnessParam = HasParam<float>(cachedParams, "metalness");
 		const bool hasRoughnessParam = HasParam<float>(cachedParams, "roughness");
@@ -104,9 +107,9 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 
 		// ------------------------------------------------------------
 		// metalness
-		// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼ã‚ã‚Š  : ãã®å€¤ã‚’ä½¿ã†
-		// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼ãªã— + ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚ã‚Š : HLSLå´ã§ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ä½¿ã†
-		// ã©ã¡ã‚‰ã‚‚ãªã— : ãƒ¢ãƒ‡ãƒ«å´ã®å€¤ã‚’ä½¿ã†
+		// ƒpƒ‰ƒ[ƒ^[‚ ‚è  : ‚»‚Ì’l‚ğg‚¤
+		// ƒpƒ‰ƒ[ƒ^[‚È‚µ + ƒeƒNƒXƒ`ƒƒ‚ ‚è : HLSL‘¤‚ÅƒeƒNƒXƒ`ƒƒ‚ğg‚¤
+		// ‚Ç‚¿‚ç‚à‚È‚µ : ƒ‚ƒfƒ‹‘¤‚Ì’l‚ğg‚¤
 		// ------------------------------------------------------------
 		if (hasMetalnessParam)
 		{
@@ -145,8 +148,8 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 
 		// ------------------------------------------------------------
 		// occlusion
-		// occlusionStrengthã¯ã€ŒAOãã®ã‚‚ã®ã€ã§ã¯ãªãã€ŒAOã®åŠ¹ãå…·åˆã€
-		// æ‰‹å‹•ã§AOå€¤ã‚’æŒ‡å®šã—ãŸã„å ´åˆã¯ "occlusion" ã‚’ä½¿ã†
+		// occlusionStrength‚ÍuAO‚»‚Ì‚à‚Ìv‚Å‚Í‚È‚­uAO‚ÌŒø‚«‹ï‡v
+		// è“®‚ÅAO’l‚ğw’è‚µ‚½‚¢ê‡‚Í "occlusion" ‚ğg‚¤
 		// ------------------------------------------------------------
 		if (hasOcclusionParam)
 		{
@@ -169,9 +172,9 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			"occlusionStrength",
 			mesh.material->occlusionStrength);
 
-		// 1.0 = é€šå¸¸ã®å½±
-		// 0.0 = å½±ãŒã‹ãªã‚Šä»˜ãã«ãã„
-		// è‚Œã¯ 0.5ã€œ0.75 ãã‚‰ã„ãŒãŠã™ã™ã‚
+		// 1.0 = ’Êí‚Ì‰e
+		// 0.0 = ‰e‚ª‚©‚È‚è•t‚«‚É‚­‚¢
+		// ”§‚Í 0.5?0.75 ‚­‚ç‚¢‚ª‚¨‚·‚·‚ß
 		cb.shadowStrength = GetParam<float>(
 			cachedParams,
 			"shadowStrength",
@@ -185,6 +188,8 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		cb.occlusion = std::clamp(cb.occlusion, 0.0f, 1.0f);
 		cb.occlusionStrength = std::clamp(cb.occlusionStrength, 0.0f, 1.0f);
 		cb.shadowStrength = std::clamp(cb.shadowStrength, 0.0f, 1.0f);
+		cb.fresnelPower = (std::max)(cb.fresnelPower, 0.0001f);
+		cb.fresnelStrength = (std::max)(cb.fresnelStrength, 0.0f);
 
 		dc->UpdateSubresource(
 			materialConstantBuffer.Get(),
@@ -195,7 +200,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 			0);
 	}
 
-	// ãƒ€ãƒ¡ãƒ¼ã‚¸ç©´CBæ›´æ–°
+	// ƒ_ƒ[ƒWŒŠCBXV
 	CbDamageHoles damageHoles{};
 	const bool hasDamageHoleParams = HasParam<int>(cachedParams, "holeCount");
 	damageHoles.holeCount = std::clamp(GetParam<int>(cachedParams, "holeCount", 0), 0, MaxDamageHoles);
@@ -221,7 +226,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		0,
 		0);
 
-	// CBã‚»ãƒƒãƒˆ
+	// CBƒZƒbƒg
 	ID3D11Buffer* cbs[] =
 	{
 		shadowMapConstantBuffer.Get(),
@@ -234,7 +239,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 	dc->GSSetShader(useGeometryShader ? geometryShader.Get() : nullptr, nullptr, 0);
 	dc->GSSetConstantBuffers(0, _countof(cbs), cbs);
 
-	// ãƒãƒ†ãƒªã‚¢ãƒ«SRV
+	// ƒ}ƒeƒŠƒAƒ‹SRV
 	ID3D11ShaderResourceView* srvs[] =
 	{
 		mesh.material->baseMap.Get(),
@@ -247,27 +252,27 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
 }
 
-// æç”»çµ‚äº†
+// •`‰æI—¹
 void PBRShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼è§£é™¤
+	// ƒVƒF[ƒ_[‰ğœ
 	dc->VSSetShader(nullptr, nullptr, 0);
 	dc->GSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(nullptr, nullptr, 0);
 	dc->IASetInputLayout(nullptr);
 
-	// å®šæ•°ãƒãƒƒãƒ•ã‚¡è§£é™¤
+	// ’è”ƒoƒbƒtƒ@‰ğœ
 	ID3D11Buffer* nullCbs[] = { nullptr, nullptr, nullptr };
 	dc->PSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->VSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->GSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 
-	// SRVè§£é™¤
-	// slot 0ã€œ4: ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ†ã‚¯ã‚¹ãƒãƒ£
-	// slot 8   : ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—
-	// slot 17ã€œ19: IBL
+	// SRV‰ğœ
+	// slot 0?4: ƒ}ƒeƒŠƒAƒ‹ƒeƒNƒXƒ`ƒƒ
+	// slot 8   : ƒVƒƒƒhƒEƒ}ƒbƒv
+	// slot 17?19: IBL
 	ID3D11ShaderResourceView* nullSrvs[5] = {};
 	dc->PSSetShaderResources(0, _countof(nullSrvs), nullSrvs);
 
@@ -277,3 +282,6 @@ void PBRShader::End(const RenderContext& rc)
 	ID3D11ShaderResourceView* nullIblSrvs[3] = {};
 	dc->PSSetShaderResources(17, _countof(nullIblSrvs), nullIblSrvs);
 }
+
+
+

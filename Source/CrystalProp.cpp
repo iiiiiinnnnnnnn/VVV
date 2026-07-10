@@ -12,6 +12,8 @@
 #include "ResourceManager.h"
 #include "Rigidbody.h"
 
+#include <imgui.h>
+
 CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
 	: Actor("CrystalProp", "CrystalProp", true)
 {
@@ -65,6 +67,7 @@ void CrystalProp::SyncCollider(Instance& instance, const Matrix& world)
 
 	Vector3 scale;
 	Matrix colliderMatrix = MakeColliderMatrix(world, scale);
+	scale *= colliderScale;
 
 	if (!instance.rigidbody)
 	{
@@ -126,6 +129,34 @@ void CrystalProp::Break(Instance& instance)
 	SpawnBreakParticles(position);
 }
 
+ShaderParamList CrystalProp::MakePBRParams() const
+{
+	return {
+		{"color", color},
+		{"emission", emission},
+		{"fresnelColor", fresnelColor},
+		{"fresnelPower", fresnelPower},
+		{"fresnelStrength", fresnelStrength},
+		{"metalness", metallic},
+		{"roughness", roughness},
+		{"occlusion", occlusion},
+		{"occlusionStrength", occlusionStrength},
+		{"shadowStrength", shadowStrength},
+		{"IsFlatShading", isFlatShading},
+	};
+}
+
+void CrystalProp::ApplyMaterialParams()
+{
+	for (Instance& instance : instances)
+	{
+		if (!instance.model) continue;
+		ModelRenderer::SetShaderParamForAllMaterials(
+			instance.model.get(),
+			MakePBRParams(),
+			shaderParams);
+	}
+}
 void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 {
 	parentTransform = crystalData.parentTransform;
@@ -160,7 +191,7 @@ void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 
 		ModelRenderer::SetShaderParamForAllMaterials(
 			instance.model.get(),
-			crystalData.MakePBRParams(),
+			MakePBRParams(),
 			shaderParams);
 	}
 }
@@ -219,6 +250,22 @@ void CrystalProp::Render(const RenderContext& rc)
 	}
 }
 
+void CrystalProp::OnDrawGUI()
+{
+	bool materialChanged = false;
+	materialChanged |= ImGui::ColorEdit4("Color", &color.x);
+	materialChanged |= ImGui::ColorEdit4("Emission", &emission.x);
+	materialChanged |= ImGui::ColorEdit4("Fresnel Color", &fresnelColor.x);
+	materialChanged |= ImGui::DragFloat("Fresnel Power", &fresnelPower, 0.01f, 0.0001f, 16.0f);
+	materialChanged |= ImGui::DragFloat("Fresnel Strength", &fresnelStrength, 0.01f, 0.0f, 8.0f);
+	materialChanged |= ImGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f);
+	materialChanged |= ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0001f, 1.0f);
+	materialChanged |= ImGui::DragFloat("Shadow Strength", &shadowStrength, 0.01f, 0.0f, 1.0f);
+	materialChanged |= ImGui::Checkbox("Is Flat Shading", &isFlatShading);
+	ImGui::DragFloat("Collider Scale", &colliderScale, 0.01f, 0.01f, 3.0f);
+	
+	if (materialChanged) ApplyMaterialParams();
+}
 void CrystalProp::OnCollisionEnter(
 	PhysicsComponent* self,
 	PhysicsComponent* other,
@@ -236,3 +283,5 @@ void CrystalProp::OnTriggerEnter(
 {
 	TryBreak(self, other);
 }
+
+

@@ -37,7 +37,8 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, 1000.0f, 1000.0f)
                 {"metalness", 0.0f},
             {"roughness", 1.0f},
             {"occlusion", 0.0f},
-            {"occlusionStrength", 0.7f}
+            {"occlusionStrength", 0.7f},
+        {"emission", ColorFromRGBA(0x4AA5FFFF)}
         }
             },
             {
@@ -46,8 +47,7 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, 1000.0f, 1000.0f)
                 {"metalness", 0.0f},
             {"roughness", 0.1f},
             {"occlusion", 0.0f},
-            {"occlusionStrength", 0.7f},
-            {"emission", ColorFromRGBA(0x4AA5FFFF)}
+            {"occlusionStrength", 0.7f}
         }
             }
         };

@@ -131,23 +131,25 @@ private:
 
 	struct CrystalData
 	{
-		// ????
 		std::string modelPath = "Data/Model/Prop/crystal.glb";
 		Transform parentTransform = {};
 		int count = 1;
 		std::vector<Transform> transforms = {{}};
-		Color color = Color(0.45f, 0.85f, 1.0f, 0.45f);
-		Color emission = Color(0.0f, 0.0f, 0.0f, 0.0f);
+		Color color = Color(0.05f, 0.45f, 0.9f, 1.0f);
+		Color emission = Color(0.0f, 0.55f, 1.0f, 0.25f);
+		Color fresnelColor = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		float fresnelPower = 1.5f;
+		float fresnelStrength = 1.0f;
 		float metallic = 0.0f;
-		float roughness = 0.5f;
+		float roughness = 0.0f;
 		float occlusion = 1.0f;
 		float occlusionStrength = 1.0f;
 		float shadowStrength = 1.0f;
-		bool isFlatShading = true;
+		bool isFlatShading = false;
 
 		ShaderParamList MakePBRParams() const;
 
-		// ?????
+		// •Û‘¶‚µ‚È‚¢
 		std::vector<std::shared_ptr<Model>> models = {};
 		ShaderParamListWithMaterialName shaderParams = {};
 	};
@@ -167,4 +169,9 @@ private:
 	std::vector<Prop*> addedPropActors = {};
 	std::vector<CrystalProp*> addedCrystalActors = {};
 };
+
+
+
+
+
 
