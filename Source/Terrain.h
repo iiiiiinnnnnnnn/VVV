@@ -247,7 +247,7 @@ private:
 	float roughness = 1.0f;
 	float occlusion = 1.0f;
 	float occlusionStrength = 1.0f;
-	float shadowStrength = 1.0f;
+	float shadowStrength = 0.85f;
 
 	bool use_brush = false;
 	BrushMode brushMode = BrushMode::RaiseLower;

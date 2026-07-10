@@ -46,6 +46,14 @@ void Stage01::ApplyEnvironment(LightManager& lightManager) const
 	lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
 }
 
+void Stage01::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
+{
+	if (StageLoader* stageLoader = GetComponent<StageLoader>())
+	{
+		stageLoader->SetCrystalBreakParticleSystem(particleSystem);
+	}
+}
+
 void Stage01::OnUpdate()
 {
 
@@ -55,3 +63,4 @@ void Stage01::OnDrawGUI()
 {
 
 }
+

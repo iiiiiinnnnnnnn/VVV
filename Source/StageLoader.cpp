@@ -254,6 +254,18 @@ void StageLoader::Render(const RenderContext& rc)
 	}
 }
 
+void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
+{
+	crystalBreakParticleSystem = particleSystem;
+
+	for (CrystalProp* crystalActor : addedCrystalActors)
+	{
+		if (crystalActor)
+		{
+			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
+		}
+	}
+}
 void StageLoader::DrawGUI()
 {
 	ImGui::Text("Json Path: %s", jsonPath.string().c_str());
@@ -423,6 +435,7 @@ void StageLoader::DrawGUI()
 				{
 					crystalDataList.push_back(addCrystalData);
 					auto crystalActor = std::make_shared<CrystalProp>(crystalDataList.back());
+					crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 					addedRealActors.push_back(crystalActor.get());
 					addedCrystalActors.push_back(crystalActor.get());
 					stage->GetActorManager()->Register(crystalActor);
@@ -536,6 +549,7 @@ void StageLoader::DrawGUI()
 				crystalDataList.insert(crystalDataList.begin() + i + 1, copiedCrystalData);
 
 				auto crystalActor = std::make_shared<CrystalProp>(crystalDataList[i + 1]);
+				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i + 1;
 				if (realActorIndex <= static_cast<int>(addedRealActors.size()))
 				{
@@ -864,6 +878,7 @@ void StageLoader::LoadJson()
 			crystalDataList.push_back(crystalData);
 
 			auto crystalActor = std::make_shared<CrystalProp>(crystalData);
+			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 			addedRealActors.push_back(crystalActor.get());
 			addedCrystalActors.push_back(crystalActor.get());
 			stage->GetActorManager()->Register(crystalActor);
@@ -1015,6 +1030,9 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
+
+
+
 
 
 

@@ -19,19 +19,23 @@ public:
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
     void SetLocalScale(const Vector3& scale);
+    void SetCollisionEnabled(bool enabled);
 	const char* GetDebugName() const override { return ICON_FA_SHAPES " MeshCollider"; }
 
     bool GetBounds(Vector3& center, Vector3& size) const;
     Vector3 GetWorldPosition() const;
 private:
     void UpdateShape();
+    void DetachShapes();
     Matrix MakeLocalVertexTransform(const Matrix& nodeTransform) const;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
     Model* model = nullptr;
     Vector3 localScale = Vector3::One;
     bool useConvex = false;
+    bool collisionEnabled = true;
     unsigned int quantizedCount = 32;
 };
+
 
 

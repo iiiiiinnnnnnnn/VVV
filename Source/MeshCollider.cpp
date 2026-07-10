@@ -122,20 +122,47 @@ void MeshCollider::SetLocalScale(const Vector3& scale)
 {
     if ((localScale - scale).LengthSquared() < 0.000001f) return;
     localScale = scale;
-    UpdateShape();
+    if (collisionEnabled) UpdateShape();
 }
+
+void MeshCollider::SetCollisionEnabled(bool enabled)
+{
+    if (collisionEnabled == enabled) return;
+
+    collisionEnabled = enabled;
+    SetActive(enabled);
+
+    if (collisionEnabled)
+        UpdateShape();
+    else
+        DetachShapes();
+}
+
+void MeshCollider::DetachShapes()
+{
+    if (!rigidbody) return;
+
+    PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+    if (!rigidActor) return;
+
+    PxU32 shapeCount = rigidActor->getNbShapes();
+    std::vector<PxShape*> shapes(shapeCount);
+    rigidActor->getShapes(shapes.data(), shapeCount);
+    for (PxShape* shape : shapes)
+    {
+        rigidActor->detachShape(*shape);
+    }
+}
+
 void MeshCollider::UpdateShape()
 {
+    if (!collisionEnabled) return;
+
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxCookingParams* cookingParams = PhysicsManager::Instance().GetCooking();
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
 
-    // 既存シェイプを全部外す
-    PxU32 shapeCount = rigidActor->getNbShapes();
-    std::vector<PxShape*> shapes(shapeCount);
-    rigidActor->getShapes(shapes.data(), shapeCount);
-    for (PxShape* s : shapes)
-        rigidActor->detachShape(*s);
+    DetachShapes();
 
     for (const Model::Mesh& mesh : model->GetMeshes())
     {

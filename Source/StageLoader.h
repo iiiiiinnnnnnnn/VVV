@@ -19,6 +19,7 @@
 
 class Prop;
 class CrystalProp;
+class ParticleSystem;
 
 class StageLoader : public Component
 {
@@ -33,6 +34,7 @@ public:
 
 	void LoadJson();
 	void SaveJson();
+	void SetCrystalBreakParticleSystem(ParticleSystem* particleSystem);
 
 private:
 	friend class Prop;
@@ -160,7 +162,9 @@ private:
 
 	std::filesystem::path jsonPath = {};
 	Actor* stage = nullptr;
+	ParticleSystem* crystalBreakParticleSystem = nullptr;
 	std::vector<Actor*> addedRealActors = {};
 	std::vector<Prop*> addedPropActors = {};
 	std::vector<CrystalProp*> addedCrystalActors = {};
 };
+

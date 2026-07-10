@@ -22,9 +22,11 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 	float screenHeight =
 		Game::Graphics::ScreenHeight;
 
+	std::shared_ptr<Stage01> stage = nullptr;
+
 	// stage
 	{
-		auto stage = std::make_shared<Stage01>(&actorManager);
+		stage = std::make_shared<Stage01>(&actorManager);
 		stage->ApplyEnvironment(lightManager);
 		actorManager.Register(stage);
 	}
@@ -86,6 +88,11 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 			device,
 			sozai.GetShaderResourceView(),
 			4, 4, num_particle);
+
+		if (stage)
+		{
+			stage->SetCrystalBreakParticleSystem(particleSystem.get());
+		}
 	}
 }
 

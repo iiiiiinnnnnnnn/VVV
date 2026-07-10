@@ -60,7 +60,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 		device,
 		"Data/Shader/GeometryParticleVS.cso",
 		InputElementDesc.data(),
-		InputElementDesc.size(),
+		(UINT)InputElementDesc.size(),
 		inputLayout.ReleaseAndGetAddressOf(),
 		vertexShader.ReleaseAndGetAddressOf());
 

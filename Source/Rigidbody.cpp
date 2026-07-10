@@ -89,6 +89,30 @@ void Rigidbody::SetRotation(const Quaternion& rot)
 	rigidActor->setGlobalPose(t);
 }
 
+void Rigidbody::SetSceneEnabled(bool enabled)
+{
+    if (!rigidActor) return;
+
+    PxScene* scene = rigidActor->getScene();
+    if (enabled)
+    {
+        rigidActor->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, false);
+        if (!scene)
+        {
+            PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rigidActor);
+        }
+        SetActive(true);
+        return;
+    }
+
+    rigidActor->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, true);
+    if (scene)
+    {
+        scene->removeActor(*rigidActor);
+    }
+    SetActive(false);
+}
+
 RigidbodyStatic::RigidbodyStatic(Object* owner)
     : Rigidbody(owner, PhysicsManager::Instance().CreateStatic(Component::GetOwnerAsActor(owner)->transform.matrix))
 {

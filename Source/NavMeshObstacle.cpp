@@ -3,18 +3,12 @@
 #include "NavMeshObstacle.h"
 #include "Actor.h"
 #include "BoxCollider.h"
-#include "CrystalProp.h"
 #include "MeshCollider.h"
 
 bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 {
 	Actor* actor = GetOwnerAsActor();
 	if (!actor) return false;
-
-	if (CrystalProp* crystalProp = dynamic_cast<CrystalProp*>(actor))
-	{
-		if (crystalProp->GetNavMeshBounds(center, size)) return true;
-	}
 
 	BoxCollider* box = actor->GetComponent<BoxCollider>();
 	if (!box)

@@ -17,6 +17,7 @@ public:
 
     void SetPosition(const Vector3& pos);
     void SetRotation(const Quaternion& rot);
+    void SetSceneEnabled(bool enabled);
     Vector3 GetPosition() const { return Conv::ToVector3(rigidActor->getGlobalPose().p); }
 	Quaternion GetRotation() const { return Conv::ToQuaternion(rigidActor->getGlobalPose().q); }
 
