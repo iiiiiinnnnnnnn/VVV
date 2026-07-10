@@ -65,7 +65,8 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         anim->BindCallbacks();
 
         // キャラクターコントローラー
-        CharacterController* cc = AddComponent<CharacterController>(Layers::Get("Enemy"), 3.86f, 0.01f);
+        CharacterController* cc = AddComponent<CharacterController>(
+            Layers::Get("Enemy"), 3.0f, 0.01f);
         cc->SetStepOffset(1.2f);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);

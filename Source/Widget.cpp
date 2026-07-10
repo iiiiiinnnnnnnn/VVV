@@ -32,8 +32,6 @@ void Widget::DrawGUI()
             ImGui::TreePop();
         }
 
-        componentList.DrawGUI();
-
         if (ImGui::TreeNode("User param"))
         {
             OnDrawGUI();

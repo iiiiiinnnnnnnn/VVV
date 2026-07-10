@@ -60,12 +60,15 @@ public:
 
 	void DrawGUI()
 	{
-		for (auto& d : data)
+		const size_t count = data.size();
+
+		for (size_t i = 0; i < count; ++i)
 		{
-			if (!d->IsPendingDestroy())
-			{
-				d->DrawGUI();
-			}
+			if (!data[i]) continue;
+
+			if (data[i]->IsPendingDestroy()) continue;
+
+			data[i]->DrawGUI();
 		}
 	}
 
