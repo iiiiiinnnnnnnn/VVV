@@ -1,0 +1,23 @@
+﻿#pragma once
+#include <d3d11.h>
+#include <wrl.h>
+
+#include "Rendering/Shader/Shader.h"
+
+class BasicSpriteShader : public SpriteShader
+{
+public:
+	BasicSpriteShader(ID3D11Device* device);
+	~BasicSpriteShader() {}
+
+	void Begin(const RenderContext& rc) override;
+	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderParam) override;
+	void End(const RenderContext& rc) override;
+
+private:
+	struct CbBasic // (b0)
+	{
+		Color color;
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> cbBasic;
+};
