@@ -4,7 +4,48 @@
         {
             "anyStateEditorPosX": 60.0,
             "anyStateEditorPosY": 100.0,
-            "anyStateTransitions": [],
+            "anyStateTransitions": [
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "Dead",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 2,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Attack",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        3
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 3,
+                    "transitionDuration": 0.10000000149011612
+                }
+            ],
             "blendMode": 0,
             "defaultState": 0,
             "hasAnyStateEditorPosition": true,
@@ -41,25 +82,6 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
-                        },
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 6,
-                                    "paramName": "Attack",
-                                    "threshold": 0.0
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 2,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
@@ -99,18 +121,71 @@
                     ]
                 },
                 {
+                    "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 132.0,
+                    "editorPosY": -86.0,
+                    "footIKRanges": [],
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Dead",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "Dead",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
                     "animationIndex": 0,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
-                    "editorPosX": 277.0,
-                    "editorPosY": 363.0,
+                    "editorPosX": -140.0,
+                    "editorPosY": 3.0,
                     "footIKRanges": [],
                     "hasEditorPosition": true,
-                    "loop": true,
+                    "loop": false,
                     "name": "Attack",
                     "speed": 1.0,
                     "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -135,6 +210,11 @@
             "name": "speed",
             "type": "float",
             "value": 0.0
+        },
+        {
+            "name": "Dead",
+            "type": "bool",
+            "value": false
         }
     ],
     "triggers": [

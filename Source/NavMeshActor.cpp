@@ -82,8 +82,7 @@ void NavMeshActor::SetAgentRadius(float value)
 
 void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) const
 {
-	Actor* actor = GetOwnerAsActor();
-	ActorManager* actorManager = actor ? actor->GetActorManager() : nullptr;
+	ActorManager* actorManager = ActorManager::GetActive();
 	if (!actorManager) return;
 
 	for (Actor* other : actorManager->GetActors())
@@ -124,7 +123,7 @@ void NavMeshActor::Build()
 {
 	Release();
 
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	Terrain* terrain = actor ? actor->GetComponent<Terrain>() : nullptr;
 	if (!terrain)
 	{

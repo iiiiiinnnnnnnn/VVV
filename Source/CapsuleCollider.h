@@ -6,6 +6,7 @@ class CapsuleCollider : public PhysicsComponent {
 public:
     CapsuleCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, float radius, float height, PxMaterial* material = nullptr);
     CapsuleCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, float radius, float height, const Vector3& localPosition, PxMaterial* material = nullptr);
+    void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_SHAPES " CapsuleCollider"; }

@@ -1,8 +1,9 @@
-﻿// Object.h
+// Object.h
 
 #pragma once
 
 #include "Component.h"
+#include "Transform.h"
 
 #include <memory>
 #include <optional>
@@ -11,6 +12,7 @@
 #include <vector>
 
 struct RenderContext;
+class RectTransform;
 
 class Object
 {
@@ -18,60 +20,79 @@ public:
 	Object(const std::string& name = "", const std::string& tag = "", bool isActive = true)
 		: name(name), tag(tag), isActive(isActive) { }
 	virtual ~Object();
-	
-	void SetActive(bool active) { isActive = active; }
-	void SetName(const std::string& name) { this->name = name; }
 
-	bool IsActive() const { return isActive; }
-	const std::string& GetName() const { return name; }
-
+	virtual void Awake();
+	virtual void Start();
 	virtual void Update();
+	virtual void LateUpdate();
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
 
-	void SetTag(const std::string& tag) { this->tag = tag; }
-	const std::string& GetTag() const { return tag; }
-	bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
-
-	void Destroy(float delay = 0.0f) { destroyTimer = delay; }
+	virtual void Destroy(float delay = 0.0f) { destroyTimer = delay; }
 	bool IsPendingDestroy() const { return destroyTimer.has_value() && destroyTimer.value() <= 0.0f; }
 
 	template<typename T, typename... Args>
-	T* AddComponent(Args&&... args) {
-		componentList.Register(std::make_unique<T>(this, std::forward<Args>(args)...));
-		return static_cast<T*>(componentList.data.back().get());
+	T* AddComponent(Args&&... args)
+	{
+		auto component = std::make_unique<T>(this, std::forward<Args>(args)...);
+		auto* result = component.get();
+		components.push_back(std::move(component));
+		updateOrderDirty = true;
+
+		if (isAwake)
+		{
+			result->Awake();
+			result->isAwake = true;
+		}
+
+		if (isStarted && isActive && result->IsActive())
+		{
+			result->Start();
+			result->isStarted = true;
+		}
+
+		return result;
 	}
 
 	template<typename T>
-	T* GetComponent() {
-		for (auto& c : componentList.data) {
-			if (auto* p = dynamic_cast<T*>(c.get())) {
-				return p;
-			}
-		}
-		return nullptr;
-	}
+	T* GetComponent() const;
+
+	// Name
+	const std::string& GetName() const { return name; }
+	void SetName(const std::string& name) { this->name = name; }
+
+	// Tag
+	const std::string& GetTag() const { return tag; }
+	void SetTag(const std::string& tag) { this->tag = tag; }
+	bool CompareTag(const std::string& otherTag) const { return tag == otherTag; }
+
+	// Active
+	bool IsActive() const { return isActive; }
+	void SetActive(bool active) { isActive = active; }
+	virtual Transform* GetTransform() { return nullptr; }
+	virtual const Transform* GetTransform() const { return nullptr; }
+	virtual RectTransform* GetRectTransform() { return nullptr; }
+	virtual const RectTransform* GetRectTransform() const { return nullptr; }
 
 protected:
+	virtual void OnAwake() {}
+	virtual void OnStart() {}
 	virtual void OnUpdate() {}
 	virtual void OnLateUpdate() {}
 	virtual void OnRender(const RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
 
-	bool isActive;
+protected:
 	std::string name, tag;
+	bool isActive;
 	std::optional<float> destroyTimer;
+	std::vector<std::unique_ptr<Component>> components;
+	bool isAwake = false;
+	bool isStarted = false;
 
-	struct Components {
-		~Components();
-		std::vector<std::unique_ptr<Component>> data;
-		void Register(std::unique_ptr<Component> component);
-		void Clear();
-		void SortUpdateOrder();
-		void Update();
-		void LateUpdate();
-		void Render(const RenderContext& rc);
-		void DrawGUI();
-		bool updateOrderDirty = false;
-	} componentList;
+private:
+	void SortComponentsByUpdateOrder();
+	bool updateOrderDirty = false;
 };
+
+#include "Object.inl"

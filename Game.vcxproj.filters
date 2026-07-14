@@ -28,9 +28,6 @@
     <Filter Include="ソースファイル\オブジェクト\アクタ">
       <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\アクタ\ステージ">
-      <UniqueIdentifier>{57df697d-e7b3-47e9-b1f5-e60dd9e2a570}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\オブジェクト\アクタ\エンティティ">
       <UniqueIdentifier>{9808b356-2b01-4497-b52b-cbc733a296b4}</UniqueIdentifier>
     </Filter>
@@ -145,14 +142,8 @@
     <Filter Include="ソースファイル\コンポーネント">
       <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き">
-      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソースファイル\コンポーネント\描画">
       <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\物理">
-      <UniqueIdentifier>{cfca3712-e72e-4daa-94c1-9b4d22f31405}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソースファイル\コンポーネント\データ管理">
       <UniqueIdentifier>{b87d1a78-31b5-4d24-810e-f3bdadab3ffe}</UniqueIdentifier>
@@ -162,6 +153,30 @@
     </Filter>
     <Filter Include="プロジェクト設定">
       <UniqueIdentifier>{a46b9dd0-0349-48bd-8fcc-39673772a85d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\オブジェクト\ステージ">
+      <UniqueIdentifier>{57df697d-e7b3-47e9-b1f5-e60dd9e2a570}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理">
+      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\Rigidbody">
+      <UniqueIdentifier>{6a87f85f-2f3b-4e44-96ea-a39b56ad4ae3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29">
+      <UniqueIdentifier>{527eb8f3-99d7-40f0-b81c-315784501738}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\Animator">
+      <UniqueIdentifier>{f0a96077-fbd4-4bd4-b93d-de17125f74f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\BoneIK">
+      <UniqueIdentifier>{79b91bae-ae87-41d2-97b2-66b54db6dc7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\Navmesh">
+      <UniqueIdentifier>{20591830-571d-4b12-9284-c420dcb7ba47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソースファイル\コンポーネント\動き、物理\Collider">
+      <UniqueIdentifier>{3f69ee93-56c3-479f-b0fd-ad55a05facb2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -222,18 +237,6 @@
     <ClCompile Include="Source\GaussianFilterShader.cpp">
       <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rigidbody.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\RectTransform.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ModelRenderComponent.cpp">
       <Filter>ソースファイル\コンポーネント\描画</Filter>
     </ClCompile>
@@ -252,14 +255,8 @@
     <ClCompile Include="Source\GamePad.cpp">
       <Filter>ソースファイル\アプリ\入力</Filter>
     </ClCompile>
-    <ClCompile Include="Source\BoneFollower.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Terrain.cpp">
       <Filter>ソースファイル\コンポーネント\描画</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component.cpp">
-      <Filter>ソースファイル\コンポーネント</Filter>
     </ClCompile>
     <ClCompile Include="Source\DamageHoleComponent.cpp">
       <Filter>ソースファイル\コンポーネント\描画</Filter>
@@ -280,64 +277,13 @@
       <Filter>ソースファイル\オブジェクト\ライト</Filter>
     </ClCompile>
     <ClCompile Include="Source\Stage01.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NavMeshActor.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NavMeshAgent.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NavMeshObstacle.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\FootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClCompile>
     <ClCompile Include="Source\UserSettingsManager.cpp">
       <Filter>ソースファイル\アプリ\エディト</Filter>
     </ClCompile>
-    <ClCompile Include="Source\BoxCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SphereCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\CapsuleCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MeshCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\BoneCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\BoneSphereCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\TerrainMeshCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\BoneBoxCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\BoneCapsuleCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SpringBone.cpp">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClCompile>
     <ClCompile Include="Source\StageLoader.cpp">
       <Filter>ソースファイル\コンポーネント\データ管理</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\HumanoidFootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SpiderFootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
     </ClCompile>
     <ClCompile Include="Source\Entity.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
@@ -352,10 +298,10 @@
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
     </ClCompile>
     <ClCompile Include="Source\Prop.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClCompile>
     <ClCompile Include="Source\CrystalProp.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
       <Filter>ソースファイル\シーン</Filter>
@@ -432,14 +378,86 @@
     <ClCompile Include="Source\PostProcessController.cpp">
       <Filter>ソースファイル\シーン</Filter>
     </ClCompile>
-    <ClCompile Include="Source\LookAt.cpp">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ParticleSystem.cpp">
       <Filter>ソースファイル\コンポーネント\パーティクル</Filter>
     </ClCompile>
     <ClCompile Include="Source\Aracore.cpp">
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RectTransform.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Transform.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animator.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Animator</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneFollower.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FootIK.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\HumanoidFootIK.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpiderFootIK.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshActor.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshAgent.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NavMeshObstacle.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\LookAt.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneBoxCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneCapsuleCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoneSphereCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BoxCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CapsuleCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CharacterController.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MeshCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SphereCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpringBone.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TerrainMeshCollider.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RigidbodyDynamic.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RigidbodyStatic.cpp">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Component.cpp">
+      <Filter>ソースファイル\コンポーネント</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -521,18 +539,6 @@
     <ClInclude Include="Source\GaussianFilterShader.h">
       <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rigidbody.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\RectTransform.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
     <ClInclude Include="Source\ModelRenderComponent.h">
       <Filter>ソースファイル\コンポーネント\描画</Filter>
     </ClInclude>
@@ -553,9 +559,6 @@
     </ClInclude>
     <ClInclude Include="Source\GamePad.h">
       <Filter>ソースファイル\アプリ\入力</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\BoneFollower.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Terrain.h">
       <Filter>ソースファイル\コンポーネント\描画</Filter>
@@ -585,70 +588,16 @@
       <Filter>ソースファイル\オブジェクト\ライト</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NavMeshObstacle.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NavMeshAgent.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NavMeshActor.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\FootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClInclude>
     <ClInclude Include="Source\PhysicsComponent.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
+      <Filter>ソースファイル\コンポーネント\動き、物理</Filter>
     </ClInclude>
     <ClInclude Include="Source\UserSettingsManager.h">
       <Filter>ソースファイル\アプリ\エディト</Filter>
     </ClInclude>
-    <ClInclude Include="Source\BoxCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\CollidersDef.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\SphereCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\CapsuleCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\MeshCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\BoneCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\BoneSphereCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\BoneCapsuleCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\BoneBoxCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\TerrainMeshCollider.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\SpringBone.h">
-      <Filter>ソースファイル\コンポーネント\物理</Filter>
-    </ClInclude>
     <ClInclude Include="Source\StageLoader.h">
       <Filter>ソースファイル\コンポーネント\データ管理</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\HumanoidFootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\SpiderFootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
     </ClInclude>
     <ClInclude Include="Source\Player.h">
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
@@ -663,10 +612,10 @@
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
     </ClInclude>
     <ClInclude Include="Source\Prop.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClInclude>
     <ClInclude Include="Source\CrystalProp.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\ステージ</Filter>
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
     </ClInclude>
     <ClInclude Include="Source\TestPlayScene.h">
       <Filter>ソースファイル\シーン</Filter>
@@ -761,9 +710,6 @@
     <ClInclude Include="Source\HitStop.h">
       <Filter>ソースファイル\シーン</Filter>
     </ClInclude>
-    <ClInclude Include="Source\LookAt.h">
-      <Filter>ソースファイル\コンポーネント\動き</Filter>
-    </ClInclude>
     <ClInclude Include="Source\ParticleSystem.h">
       <Filter>ソースファイル\コンポーネント\パーティクル</Filter>
     </ClInclude>
@@ -772,6 +718,84 @@
     </ClInclude>
     <ClInclude Include="Source\Aracore.h">
       <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Stage.h">
+      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RectTransform.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Transform.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animator.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Animator</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneFollower.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FootIK.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\HumanoidFootIK.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpiderFootIK.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshObstacle.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshActor.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NavMeshAgent.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LookAt.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneBoxCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneCapsuleCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoneSphereCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BoxCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CapsuleCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CharacterController.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CollidersDef.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MeshCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SphereCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpringBone.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TerrainMeshCollider.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RigidbodyStatic.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RigidbodyDynamic.h">
+      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -828,6 +852,9 @@
     </None>
     <None Include="README.md">
       <Filter>プロジェクト設定</Filter>
+    </None>
+    <None Include="Source\Object.inl">
+      <Filter>ソースファイル\オブジェクト</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -7,17 +7,17 @@
 
 #include "Entity.h"
 
-class NavMeshAgent;
-class Actor;
-class ActorManager;
-class Animator;
-class DamageHoleComponent;
-class Model;
-class ModelRenderComponent;
-class PhysicsComponent;
-class RigidbodyDynamic;
 class AracoreQueen;
-class SpiderFootIK;
+
+// component
+#include "RigidbodyDynamic.h"
+#include "NavMeshAgent.h"
+#include "Animator.h"
+#include "DamageHoleComponent.h"
+#include "Model.h"
+#include "ModelRenderComponent.h"
+#include "PhysicsComponent.h"
+#include "SpiderFootIK.h"
 
 class AracoreQueenMachine : public Entity
 {
@@ -25,10 +25,10 @@ public:
 	AracoreQueenMachine(AracoreQueen* ownerAracoreQueen);
 
 	void OnDamaged(const DamageData& damageData) override;
-	void OnDead() override;
+	void OnDead(const DamageData& damageData) override;
 
 private:
-	AracoreQueen* ownerAracoreQueen = nullptr;
+	class AracoreQueen* ownerAracoreQueen = nullptr;
 	DamageHoleComponent* damageHoleComponent = nullptr;
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 	PhysicsComponent* collider = nullptr;
@@ -39,7 +39,7 @@ class AracoreQueen : public Entity
 public:
 	AracoreQueen();
 	~AracoreQueen() = default;
-	void OnRegistered(ActorManager* actorManager) override;
+	void OnAwake() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
@@ -47,7 +47,7 @@ public:
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
 	void OnDamaged(const DamageData& damageData) override;
-	void OnDead() override;
+	void OnDead(const DamageData& damageData) override;
 
 private:
 	friend class AracoreQueenMachine;

@@ -2,7 +2,6 @@
 
 #include "FootIK.h"
 #include "Actor.h"
-#include "IconsFontAwesome5.h"
 #include "Graphics.h"
 #include "GameTime.h"
 #include "PhysicsManager.h"
@@ -84,7 +83,7 @@ bool FootIK::UpdateGroundTarget(
 		distance,
 		hit,
 		layerId,
-		GetOwnerAsActor()))
+		dynamic_cast<Actor*>(owner)))
 	{
 		hasRawGroundHit = PhysicsManager::Instance().Raycast(
 			rayStart,
@@ -92,7 +91,7 @@ bool FootIK::UpdateGroundTarget(
 			distance,
 			rawHit,
 			-1,
-			GetOwnerAsActor());
+			dynamic_cast<Actor*>(owner));
 		lastRawHitLayerId = hasRawGroundHit ? rawHit.layerId : InvalidLayerId;
 		KeepPreviousGroundTarget();
 		return false;
@@ -364,7 +363,7 @@ void FootIK::SyncPoleWorldPosition()
 
 	chain.polePosition = Vector3::Transform(
 		chain.poleLocalPosition,
-		GetOwnerAsActor()->transform.matrix);
+		dynamic_cast<Actor*>(owner)->transform.matrix);
 }
 
 void FootIK::SyncPoleLocalPosition()

@@ -25,10 +25,8 @@ BoxCollider::BoxCollider(
     , localPosition(localPosition)
 {
     // エラー用
-    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
-    UpdateShape();
 }
 
 void BoxCollider::Render(const RenderContext& rc)
@@ -45,6 +43,11 @@ void BoxCollider::Render(const RenderContext& rc)
         Conv::ToVector3(pose.p), rotation.ToEuler(), size, {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
+void BoxCollider::OnAwake()
+{
+    UpdateShape();
+}
+
 PxTransform BoxCollider::MakeLocalPose() const
 {
     return PxTransform(
@@ -53,8 +56,12 @@ PxTransform BoxCollider::MakeLocalPose() const
 
 void BoxCollider::UpdateShape()
 {
-    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+    if (!rigidbody) return;
+
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+    if (!rigidActor) return;
+
+    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
     // 古いシェイプを削除
     if (shape)

@@ -1,12 +1,23 @@
-﻿// Actor.cpp
+// Actor.cpp
 
 #include "Actor.h"
 
-#include "ActorManager.h"
 #include "Rigidbody.h"
 #include "CharacterController.h"
 #include <imgui.h>
 
+void Actor::Destroy(float delay)
+{
+    Object::Destroy(delay);
+
+	for (const auto& component : components)
+    {
+        if (auto* rigidbody = dynamic_cast<Rigidbody*>(component.get()))
+        {
+            rigidbody->SetSceneEnabled(false);
+        }
+    }
+}
 void Actor::Update()
 {
     transform.Update();
@@ -57,16 +68,4 @@ void Actor::DrawGUI()
         }
     }
     ImGui::PopID();
-}
-
-Actor* Actor::FindActorByTag(const std::string& searchTag) const
-{
-    if (!actorManager) return nullptr;
-    for (Actor* actor : actorManager->GetActors())
-    {
-        if (!actor || actor->IsPendingDestroy()) continue;
-        if (actor->CompareTag(searchTag))
-            return actor;
-    }
-	return nullptr;
 }

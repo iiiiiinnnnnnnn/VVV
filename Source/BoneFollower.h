@@ -8,6 +8,7 @@
 #include "Transform.h"
 
 class Rigidbody;
+class Actor;
 
 class BoneFollower : public Component
 {
@@ -24,8 +25,9 @@ public:
 		int targetNodeIndex,
 		const Transform& offset = {});
 
-	void Update() override;
-	void DrawGUI() override;
+	void OnAwake() override;
+	void OnUpdate() override;
+	void OnDrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_BONE " BoneFollower"; }
 
 	void SetTarget(Model* targetModel, const std::string& targetNodeName);

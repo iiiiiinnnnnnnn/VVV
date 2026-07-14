@@ -1,5 +1,3 @@
-// MeshCollider.h
-
 #pragma once
 
 #include "CollidersDef.h"
@@ -16,6 +14,7 @@ public:
     MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
     MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
 
+    void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
     void SetLocalScale(const Vector3& scale);
@@ -36,6 +35,9 @@ private:
     bool collisionEnabled = true;
     unsigned int quantizedCount = 32;
 };
+
+
+
 
 
 

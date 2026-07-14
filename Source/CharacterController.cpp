@@ -10,7 +10,7 @@
 CharacterController::CharacterController(Object* owner, LayerId layerId, float radius, float height)
     : PhysicsComponent(owner, layerId)
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
 
     hitReport = new CCHitReport(actor, this, layerId);
 
@@ -69,7 +69,7 @@ void CharacterController::ApplyGravity()
 
 void CharacterController::SyncOwnerTransform()
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     if (!controller) return;
 
     PxExtendedVec3 pos = controller->getPosition();
@@ -133,7 +133,7 @@ void CharacterController::DrawGUI()
     {
         float radius = capsule->getRadius();
         float height = capsule->getHeight();
-        Actor* actor = Component::GetOwnerAsActor();
+        Actor* actor = dynamic_cast<Actor*>(owner);
 
         if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
         {
@@ -161,7 +161,7 @@ void CharacterController::DrawGUI()
         float contactOffset = controller->getContactOffset();
         if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
         {
-            Actor* actor = Component::GetOwnerAsActor();
+            Actor* actor = dynamic_cast<Actor*>(owner);
             const Vector3 anchorPosition = actor->transform.position;
             controller->setContactOffset(contactOffset);
             SetPosition(anchorPosition);
@@ -206,7 +206,7 @@ private:
 void CharacterController::Move(const Vector3& velocity)
 {
     static CCFilterCallback      ccFilter;
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     CCShapeFilterCallback shapeFilter(actor, layerId);
 
     // 新フレームの開始としてフラグをリセット（LateUpdateより先にMoveが呼ばれる想定）
@@ -271,7 +271,7 @@ void CharacterController::SetFootPosition(const Vector3& position)
 
 void CharacterController::SetOwnerAnchorOffsetY(float value)
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     const Vector3 anchorPosition = actor->transform.position;
     ownerAnchorOffsetY = std::max(value, 0.0f);
     SetPosition(anchorPosition);
@@ -279,7 +279,7 @@ void CharacterController::SetOwnerAnchorOffsetY(float value)
 
 void CharacterController::SetOwnerAnchorAtCenter(bool value)
 {
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     const Vector3 anchorPosition = actor->transform.position;
     ownerAnchorAtCenter = value;
     SetPosition(anchorPosition);
@@ -324,7 +324,7 @@ void CharacterController::SetSlopeLimitDeg(float value)
 void CharacterController::SetContactOffset(float value)
 {
     if (!controller) return;
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     const Vector3 anchorPosition = actor->transform.position;
     controller->setContactOffset(std::max(value, 0.001f));
     SetPosition(anchorPosition);

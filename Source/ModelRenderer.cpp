@@ -1,4 +1,6 @@
-﻿#include <algorithm>
+﻿// ModelRenderer.cpp
+
+#include <algorithm>
 #include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 #include "LightManager.h"

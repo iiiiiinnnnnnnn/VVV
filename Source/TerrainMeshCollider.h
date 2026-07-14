@@ -19,6 +19,7 @@ public:
     TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const CollisionArea& collisionArea = {}, PxMaterial* material = nullptr);
     ~TerrainMeshCollider() override;
 
+    void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
     const char* GetDebugName() const override { return ICON_FA_SHAPES " TerrainMeshCollider"; }

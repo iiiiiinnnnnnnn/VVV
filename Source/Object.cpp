@@ -3,47 +3,90 @@
 #include "Object.h"
 #include "imgui.h"
 #include "GameTime.h"
-#include <algorithm>
 
 Object::~Object()
 {
-    componentList.Clear();
+    components.clear();
 }
 
-void Object::Components::DrawGUI()
+void Object::Awake()
 {
-    for (auto& c : data) {
-        ImGui::PushID((void*)((uintptr_t)c.get() ^ (uintptr_t)this));
-        c->showDebug = ImGui::TreeNode(c->GetDebugName());
-        if (c->showDebug)
-        {
-            c->DrawGUI();
-            ImGui::TreePop();
-        }
-        ImGui::PopID();
+	if (isAwake) return;
+
+	isAwake = true;
+    SortComponentsByUpdateOrder();
+
+    OnAwake();
+
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+		Component* component = components[i].get();
+		if (component->isAwake) continue;
+
+        component->Awake();
+		component->isAwake = true;
+    }
+}
+
+void Object::Start()
+{
+	if (isStarted || !isAwake || !isActive) return;
+
+	isStarted = true;
+
+    OnStart();
+
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+		Component* component = components[i].get();
+		if (!component->IsActive() || component->isStarted) continue;
+
+        component->Start();
+		component->isStarted = true;
     }
 }
 
 void Object::Update()
 {
     if (!isActive) return;
+	if (!isAwake) Awake();
+	if (!isStarted) Start();
 
-    // Destroy timer
     if (destroyTimer.has_value() && destroyTimer.value() > 0.0f)
         destroyTimer.value() -= Game::Time::deltaTime;
 
-    componentList.Update();
     OnUpdate();
 
+    for (auto& c : components)
+    {
+        if (c->IsActive())
+            c->Update();
+    }
+}
+
+void Object::LateUpdate()
+{
+    if (!isActive) return;
+
     OnLateUpdate();
-    componentList.LateUpdate();
+
+    for (auto& c : components)
+    {
+        if(c->IsActive())
+            c->LateUpdate();
+    }
 }
 
 void Object::Render(const RenderContext& rc)
 {
     if (!isActive) return;
 
-    componentList.Render(rc);
+    for (auto& c : components)
+    {
+        if(c->IsActive())
+            c->Render(rc);
+    }
+
     OnRender(rc);
 }
 
@@ -54,66 +97,36 @@ void Object::DrawGUI()
         ImGui::Checkbox("Active", &isActive);
         ImGui::Text("Name: %s, Tag: %s", name.c_str(), tag.c_str());
         ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
-        if (ImGui::Button("Destroy")) Destroy();
+
+        if (ImGui::Button("Destroy"))
+            Destroy();
+
         ImGui::TreePop();
     }
 
-    componentList.DrawGUI();
+    for (auto& c : components)
+    {
+        ImGui::PushID((void*)((uintptr_t)c.get() ^ (uintptr_t)this));
+        if (ImGui::TreeNode(c->GetDebugName()))
+        {
+            c->DrawGUI();
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
+    }
 }
 
-// Components
-
-Object::Components::~Components()
-{
-    Clear();
-}
-
-void Object::Components::Register(std::unique_ptr<Component> component)
-{
-    data.push_back(std::move(component));
-    updateOrderDirty = true;
-}
-
-void Object::Components::Clear()
-{
-    for (auto it = data.rbegin(); it != data.rend(); ++it)
-        it->reset();
-
-    data.clear();
-    updateOrderDirty = false;
-}
-
-void Object::Components::SortUpdateOrder()
+void Object::SortComponentsByUpdateOrder()
 {
     if (!updateOrderDirty) return;
 
     std::stable_sort(
-        data.begin(),
-        data.end(),
+        components.begin(),
+        components.end(),
         [](const std::unique_ptr<Component>& a, const std::unique_ptr<Component>& b)
-        {
-            return a->GetUpdateOrder() < b->GetUpdateOrder();
-        });
+    {
+        return a->GetUpdateOrder() < b->GetUpdateOrder();
+    });
 
     updateOrderDirty = false;
-}
-
-void Object::Components::Update()
-{
-    SortUpdateOrder();
-
-    for (auto& c : data)
-        if (c->IsActive()) c->Update();
-}
-
-void Object::Components::LateUpdate()
-{
-    for (auto& c : data)
-        if (c->IsActive()) c->LateUpdate();
-}
-
-void Object::Components::Render(const RenderContext& rc)
-{
-    for (auto& c : data)
-        if (c->IsActive()) c->Render(rc);
 }

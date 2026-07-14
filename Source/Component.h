@@ -2,38 +2,61 @@
 
 #pragma once
 
-#include "IconsFontAwesome5.h"
+// Component.h
 
+#include "IconsFontAwesome5.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
 struct RenderContext;
 class Object;
-class Actor;
-class Widget;
 
 class Component {
 public:
     Component(Object* owner) : owner(owner) {}
     virtual ~Component() = default;
 
-    void SetActive(bool active) { isActive = active; }
+    virtual void OnAwake() {}
+    virtual void OnStart() {}
+    virtual void OnUpdate() {}
+    virtual void OnLateUpdate() {}
+    virtual void OnEnabled() {}
+    virtual void OnDisabled() {}
+	virtual void OnRender(const RenderContext& rc) {}
+    virtual void OnDrawGUI() {}
+
+    virtual void Awake() { OnAwake(); }
+    virtual void Start() { OnStart(); }
+    virtual void Update() { OnUpdate(); }
+    virtual void LateUpdate() { OnLateUpdate(); }
+    virtual void Render(const RenderContext& rc) { OnRender(rc); }
+    virtual void DrawGUI() { OnDrawGUI(); }
+
     bool IsActive() const { return isActive; }
+    void SetActive(bool active)
+    {
+        if (isActive == active)
+            return;
 
-    virtual void Update() {}
-    virtual void LateUpdate() {}
-    virtual void Render(const RenderContext& rc) {}
-    virtual void DrawGUI() {}
-    virtual int GetUpdateOrder() const { return 0; }
+        isActive = active;
 
-    Actor* GetOwnerAsActor(Object* owner_sub = nullptr) const;
-    Widget* GetOwnerAsWidget(Object* owner_sub = nullptr) const;
+        if (isActive)
+            OnEnabled();
+        else
+            OnDisabled();
+    }
 
-	virtual const char* GetDebugName() const = 0;
+public:
+    virtual const char* GetDebugName() const = 0;
 
 protected:
     friend class Object;
+    virtual int GetUpdateOrder() const { return 0; }
+
+protected:
     Object* owner;
     bool isActive = true;
+	bool isAwake = false;
+	bool isStarted = false;
 	bool showDebug = false;
 };

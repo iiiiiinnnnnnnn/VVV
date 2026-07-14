@@ -20,11 +20,12 @@
 class Prop;
 class CrystalProp;
 class ParticleSystem;
+class Stage;
 
 class StageLoader : public Component
 {
 public:
-	StageLoader(Object* owner, Actor* stage, std::filesystem::path jsonPath);
+	StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath);
 	~StageLoader() = default;
 
 	void Update() override;
@@ -131,10 +132,11 @@ private:
 
 	struct CrystalData
 	{
-		std::string modelPath = "Data/Model/Prop/crystal.glb";
-		Transform parentTransform = {};
-		int count = 1;
-		std::vector<Transform> transforms = {{}};
+		Transform transform = {};
+	};
+
+	struct CrystalShaderData
+	{
 		Color color = Color(0.05f, 0.45f, 0.9f, 1.0f);
 		Color emission = Color(0.0f, 0.55f, 1.0f, 0.25f);
 		Color fresnelColor = Color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -148,27 +150,26 @@ private:
 		bool isFlatShading = false;
 
 		ShaderParamList MakePBRParams() const;
-
-		// •Û‘¶‚µ‚È‚¢
-		std::vector<std::shared_ptr<Model>> models = {};
-		ShaderParamListWithMaterialName shaderParams = {};
 	};
 
 	CrystalData addCrystalData = {};
+	CrystalShaderData crystalShaderData = {};
+	ShaderParamListWithMaterialName crystalShaderParams = {};
 	std::vector<CrystalData> crystalDataList = {};
-
 	void DrawPBRParamsGUI(PropData& propData);
 	void DrawColliderTypeGUI(PropData& propData);
 	void DrawDestroyGUI(PropData& propData);
 	void DrawCrystalDataGUI(CrystalData& crystalData);
+	void DrawCrystalShaderParamsGUI();
 
 	std::filesystem::path jsonPath = {};
-	Actor* stage = nullptr;
+	Stage* stage = nullptr;
 	ParticleSystem* crystalBreakParticleSystem = nullptr;
 	std::vector<Actor*> addedRealActors = {};
 	std::vector<Prop*> addedPropActors = {};
 	std::vector<CrystalProp*> addedCrystalActors = {};
 };
+
 
 
 

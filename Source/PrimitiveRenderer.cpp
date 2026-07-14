@@ -1,4 +1,6 @@
-﻿#include "DebugUtil.h"
+﻿// PrimitiveRenderer.cpp
+
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 #include "PrimitiveRenderer.h"
 

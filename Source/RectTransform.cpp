@@ -1,4 +1,6 @@
-﻿// RectTransform.h
+﻿// RectTransform.cpp
+
+// RectTransform.h
 
 #include "RectTransform.h"
 

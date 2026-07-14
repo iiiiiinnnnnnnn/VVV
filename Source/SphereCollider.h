@@ -8,6 +8,7 @@ class SphereCollider : public PhysicsComponent {
 public:
     SphereCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, float radius, PxMaterial* material = nullptr);
     SphereCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, float radius, const Vector3& localPosition, PxMaterial* material = nullptr);
+    void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
     const char* GetDebugName() const override { return ICON_FA_SHAPES " SphereCollider"; }

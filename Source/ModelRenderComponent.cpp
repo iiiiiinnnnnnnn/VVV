@@ -11,7 +11,7 @@ ModelRenderComponent::ModelRenderComponent(
     : Component(owner), model(model), shaderId(shaderId), paramsWithMaterial(paramsWithMaterial)
 {
     // エラー用
-    Component::GetOwnerAsActor();
+    dynamic_cast<Actor*>(owner);
 
     if (model)
     {

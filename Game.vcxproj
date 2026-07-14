@@ -24,6 +24,8 @@
     <ClCompile Include="Source\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\LookAt.cpp" />
     <ClCompile Include="Source\ParticleSystem.cpp" />
+    <ClCompile Include="Source\RigidbodyDynamic.cpp" />
+    <ClCompile Include="Source\RigidbodyStatic.cpp" />
     <ClCompile Include="Source\SpiderFootIK.cpp" />
     <ClCompile Include="Source\MeshCollider.cpp" />
     <ClCompile Include="Source\MovieCameraController.cpp" />
@@ -35,7 +37,6 @@
     <ClCompile Include="Source\AracoreQueen.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Apple.cpp" />
-    <ClCompile Include="Source\Component.cpp" />
     <ClCompile Include="Source\CrystalProp.cpp" />
     <ClCompile Include="Source\DamageHoleComponent.cpp" />
     <ClCompile Include="Source\DynamicAnimation.cpp" />
@@ -86,7 +87,6 @@
     <ClCompile Include="Source\RectTransform.cpp" />
     <ClCompile Include="Source\RenderState.cpp" />
     <ClCompile Include="Source\RenderTarget.cpp" />
-    <ClCompile Include="Source\Rigidbody.cpp" />
     <ClCompile Include="Source\Scene.cpp" />
     <ClCompile Include="Source\Shader.cpp" />
     <ClCompile Include="Source\ShadowMapRenderer.cpp" />
@@ -122,6 +122,8 @@
     <ClInclude Include="Source\HumanoidFootIK.h" />
     <ClInclude Include="Source\LookAt.h" />
     <ClInclude Include="Source\ParticleSystem.h" />
+    <ClInclude Include="Source\RigidbodyDynamic.h" />
+    <ClInclude Include="Source\RigidbodyStatic.h" />
     <ClInclude Include="Source\SpiderFootIK.h" />
     <ClInclude Include="Source\MeshCollider.h" />
     <ClInclude Include="Source\MovieCameraController.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="Source\NavMeshObstacle.h" />
     <ClInclude Include="Source\GamePostProcess.h" />
     <ClInclude Include="Source\ShaderParam.h" />
+    <ClInclude Include="Source\Stage.h" />
     <ClInclude Include="Source\Stage01.h" />
     <ClInclude Include="Source\StageLoader.h" />
     <ClInclude Include="Source\Terrain.h" />
@@ -193,7 +196,6 @@
     <ClInclude Include="Source\RectTransform.h" />
     <ClInclude Include="Source\RenderTarget.h" />
     <ClInclude Include="Source\ResourceManager.h" />
-    <ClInclude Include="Source\Rigidbody.h" />
     <ClInclude Include="Source\PhysicsManager.h" />
     <ClInclude Include="Source\PrimitiveRenderer.h" />
     <ClInclude Include="Source\RenderContext.h" />
@@ -235,6 +237,7 @@
     <None Include="Shader\BasicSprite.hlsli" />
     <None Include="Shader\TerrainPrimitive.hlsli" />
     <None Include="Shader\TrailRenderer.hlsli" />
+    <None Include="Source\Object.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\ChromaticAberrationPS.hlsl">

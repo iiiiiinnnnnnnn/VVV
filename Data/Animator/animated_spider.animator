@@ -788,6 +788,54 @@
                     "transitions": [
                         {
                             "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
                             "exitTime": 1.0,
@@ -959,6 +1007,49 @@
                     "name": "damage",
                     "speed": 0.5600000023841858,
                     "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -1192,7 +1283,7 @@
         {
             "name": "speed",
             "type": "float",
-            "value": 3.0
+            "value": 0.0
         }
     ],
     "triggers": [

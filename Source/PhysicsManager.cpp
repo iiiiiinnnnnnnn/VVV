@@ -61,7 +61,7 @@ static PhysicsComponent* ToCollider(PxShape* shape)
     PhysicsComponent* collider = static_cast<PhysicsComponent*>(shape->userData);
     if (!collider) return nullptr;
 
-    Actor* actor = collider->GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(collider->GetOwner());
     if (!IsValidActor(actor)) return nullptr;
 
     return collider;
@@ -71,7 +71,7 @@ static bool IsValidCollider(PhysicsComponent* collider)
 {
     return collider
         && collider->IsActive()
-        && IsValidActor(collider->GetOwnerAsActor());
+        && IsValidActor(dynamic_cast<Actor*>(collider->GetOwner()));
 }
 
 static PxTransform GetShapeGlobalPose(PxActor* actor, PxShape* shape)
@@ -107,8 +107,8 @@ static void DispatchCollisionEnter(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* actorA = a->GetOwnerAsActor();
-    Actor* actorB = b->GetOwnerAsActor();
+    Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
+    Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
     if (!IsValidCollider(a) || !IsValidCollider(b)) return;
 
     actorA->OnCollisionEnter(a, b, point, normal);
@@ -121,8 +121,8 @@ static void DispatchCollisionStay(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* actorA = a->GetOwnerAsActor();
-    Actor* actorB = b->GetOwnerAsActor();
+    Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
+    Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
     if (!IsValidCollider(a) || !IsValidCollider(b)) return;
 
     actorA->OnCollisionStay(a, b, point, normal);
@@ -135,8 +135,8 @@ static void DispatchCollisionExit(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* actorA = a->GetOwnerAsActor();
-    Actor* actorB = b->GetOwnerAsActor();
+    Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
+    Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
     if (!IsValidActor(actorA) || !IsValidActor(actorB)) return;
 
     actorA->OnCollisionExit(a, b, point, normal);
@@ -149,8 +149,8 @@ static void DispatchTriggerEnter(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* triggerActor = trigger->GetOwnerAsActor();
-    Actor* otherActor = other->GetOwnerAsActor();
+    Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
+    Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
     if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
 
     triggerActor->OnTriggerEnter(trigger, other, point, normal);
@@ -163,8 +163,8 @@ static void DispatchTriggerStay(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* triggerActor = trigger->GetOwnerAsActor();
-    Actor* otherActor = other->GetOwnerAsActor();
+    Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
+    Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
     if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
 
     triggerActor->OnTriggerStay(trigger, other, point, normal);
@@ -177,8 +177,8 @@ static void DispatchTriggerExit(
     const Vector3& point,
     const Vector3& normal)
 {
-    Actor* triggerActor = trigger->GetOwnerAsActor();
-    Actor* otherActor = other->GetOwnerAsActor();
+    Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
+    Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
     if (!IsValidActor(triggerActor) || !IsValidActor(otherActor)) return;
 
     triggerActor->OnTriggerExit(trigger, other, point, normal);
@@ -605,7 +605,7 @@ void CCHitReport::DispatchEvents()
 
     for (auto& [otherCollider, state] : currentFrameColliders)
     {
-        Actor* otherActor = otherCollider->GetOwnerAsActor();
+        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (prevFrameColliders.find(otherCollider) == prevFrameColliders.end())
         {
             owner->OnCollisionEnter(ownerCollider, otherCollider, state.point, state.normal);
@@ -615,7 +615,7 @@ void CCHitReport::DispatchEvents()
 
     for (auto& [otherCollider, state] : currentFrameColliders)
     {
-        Actor* otherActor = otherCollider->GetOwnerAsActor();
+        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (prevFrameColliders.find(otherCollider) != prevFrameColliders.end())
         {
             owner->OnCollisionStay(ownerCollider, otherCollider, state.point, state.normal);
@@ -625,7 +625,7 @@ void CCHitReport::DispatchEvents()
 
     for (auto& [otherCollider, state] : prevFrameColliders)
     {
-        Actor* otherActor = otherCollider->GetOwnerAsActor();
+        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (currentFrameColliders.find(otherCollider) == currentFrameColliders.end())
         {
             owner->OnCollisionExit(ownerCollider, otherCollider, state.point, state.normal);

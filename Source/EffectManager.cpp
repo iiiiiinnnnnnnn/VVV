@@ -1,4 +1,6 @@
-﻿#include "Graphics.h"
+﻿// EffectManager.cpp
+
+#include "Graphics.h"
 #include "EffectManager.h"
 #include "GameTime.h"
 

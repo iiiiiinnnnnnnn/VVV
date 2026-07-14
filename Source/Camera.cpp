@@ -1,4 +1,6 @@
-﻿#include "Camera.h"
+﻿// Camera.cpp
+
+#include "Camera.h"
 
 // コンストラクタ
 Camera::Camera()

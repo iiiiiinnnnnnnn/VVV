@@ -1,5 +1,8 @@
-﻿
+﻿// Main.cpp
+
+
 #include <windows.h>
+#include <filesystem>
 #include <memory>
 #include <assert.h>
 #include <tchar.h>
@@ -9,6 +12,25 @@
 const LONG SCREEN_WIDTH = 1280;
 const LONG SCREEN_HEIGHT = 720;
 
+namespace
+{
+void SetProjectWorkingDirectory()
+{
+	wchar_t executablePath[MAX_PATH]{};
+	if (!GetModuleFileNameW(nullptr, executablePath, _countof(executablePath))) return;
+
+	for (std::filesystem::path directory = std::filesystem::path(executablePath).parent_path();
+		!directory.empty();
+		directory = directory.parent_path())
+	{
+		if (!std::filesystem::is_directory(directory / "Data")) continue;
+
+		SetCurrentDirectoryW(directory.c_str());
+		return;
+	}
+}
+}
+
 LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	Framework *f = reinterpret_cast<Framework*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
@@ -17,6 +39,7 @@ LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
 INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line, INT cmd_show)
 {
+	SetProjectWorkingDirectory();
 #if defined(DEBUG) | defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	//_CrtSetBreakAlloc(237);

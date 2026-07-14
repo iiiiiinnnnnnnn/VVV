@@ -21,7 +21,7 @@ void NavMeshAgent::Update()
 
 	if (!autoMove) return;
 
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 
 	if (!characterController)
@@ -50,7 +50,7 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 {
 	lastMoveDelta = Vector3::Zero;
 
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 
 	if (!characterController)
@@ -82,8 +82,7 @@ void NavMeshAgent::Stop()
 
 Actor* NavMeshAgent::FindTargetByTag()
 {
-	Actor* actor = GetOwnerAsActor();
-	ActorManager* actorManager = actor ? actor->GetActorManager() : nullptr;
+	ActorManager* actorManager = ActorManager::GetActive();
 	if (!actorManager) return nullptr;
 
 	for (Actor* targetActor : actorManager->GetActors())

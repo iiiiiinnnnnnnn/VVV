@@ -8,7 +8,6 @@
 #include "Model.h"
 #include "ModelRenderComponent.h"
 #include "PhysicsComponent.h"
-#include "RigidBody.h"
 #include "SphereCollider.h"
 #include "DamageHoleComponent.h"
 #include "ResourceManager.h"
@@ -131,11 +130,12 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     }
 }
 
-void AracoreQueen::OnRegistered(ActorManager* actorManager)
+void AracoreQueen::OnAwake()
 {
     auto make = std::static_pointer_cast<Actor>(std::make_shared<AracoreQueenMachine>(this));
     machine = make.get();
-    actorManager->Register(std::move(make));
+    if (ActorManager* actorManager = ActorManager::GetActive())
+        actorManager->Register(std::move(make));
 }
 
 void AracoreQueen::OnUpdate()
@@ -155,7 +155,8 @@ void AracoreQueen::UpdateChase()
         navMeshActor->SetAgentRadius(navAgentRadius);
     }
 
-	Actor* player = Actor::FindActorByTag("Player");
+	ActorManager* actorManager = ActorManager::GetActive();
+	Actor* player = actorManager ? actorManager->FindActorByTag("Player") : nullptr;
     if (!player)
     {
         chasingPlayer = ChaseType::No;
@@ -246,7 +247,7 @@ void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* ot
         }
         if (!isFootCollider) return;
 
-        Actor* otherActor = other->GetOwnerAsActor();
+        Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
         if (otherActor->CompareTag("Player"))
         {
             static_cast<Entity*>(otherActor)->TakeDamage({
@@ -272,7 +273,7 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
     CameraEffectController::Request(0.2f, 0.1f);
 }
 
-void AracoreQueen::OnDead()
+void AracoreQueen::OnDead(const DamageData& damageData)
 {
     printf("AracoreQueen Dead!\n");
     if (machine)
@@ -298,7 +299,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     collider = AddComponent<BoxCollider>(
         Layers::Get("EnemyAccessory"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
 
-    // Box02‚É’Ç]
+    // e‚Ì‘Ì‚É’Ç]
     Transform offset{};
     offset.SetPosition(0.0f, 43.8f, 9.6f);
     offset.SetAngle(-15.0f, 0.0f, 0.0f);
@@ -380,7 +381,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
 {
     // ƒ{ƒRƒb
-    Actor* hitActor = damageData.hitColliderSelf ? damageData.hitColliderSelf->GetOwnerAsActor() : nullptr;
+    Actor* hitActor = damageData.hitColliderSelf ? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner()) : nullptr;
     if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
     {
         if (damageData.hitPosition.has_value())
@@ -399,7 +400,7 @@ void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
     }
 }
 
-void AracoreQueenMachine::OnDead()
+void AracoreQueenMachine::OnDead(const DamageData& damageData)
 {
     printf("AracoreQueenMachine Dead!\n");
     Destroy(2);

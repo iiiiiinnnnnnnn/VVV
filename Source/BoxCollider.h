@@ -8,6 +8,7 @@ class BoxCollider : public PhysicsComponent {
 public:
     BoxCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const Vector3& size, PxMaterial* material = nullptr);
     BoxCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const Vector3& size, const Vector3& localPosition, PxMaterial* material = nullptr);
+    void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_SHAPES " BoxCollider"; }

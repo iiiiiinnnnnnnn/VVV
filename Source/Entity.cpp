@@ -4,12 +4,20 @@
 #include "imgui.h"
 #include "GameTime.h"
 
+using std::max;
+using std::min;
+
 const float Entity::Cooldowns::DamageCooldownDuration = 0.2f;
 
 void Entity::Cooldowns::Update()
 {
     if (damageCooldown >= 0.0f)
         damageCooldown -= Game::Time::deltaTime;
+}
+
+void Entity::SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale)
+{
+
 }
 
 void Entity::OnDrawGUI()
@@ -60,18 +68,18 @@ void Entity::TakeDamage(const DamageData& damageData)
     }
 
     life -= damageData.damage;
-    life = std::max(life, 0.0f);
+    life = max(life, 0.0f);
 
     cooldowns.damageCooldown = Cooldowns::DamageCooldownDuration;
 
     OnDamaged(damageData);
 
     if (IsDead())
-        OnDead();
+        OnDead(damageData);
 }
 
 // ‰ñ•œ‚·‚é
 void Entity::Heal(float amount)
 {
-    life = std::min(life + amount, maxLife);
+    life = min(life + amount, maxLife);
 }

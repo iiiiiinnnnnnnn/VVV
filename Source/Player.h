@@ -31,7 +31,7 @@ public:
     void OnDrawGUI() override;
 
     void OnDamaged(const DamageData& damageData) override;
-    void OnDead() override;
+    void OnDead(const DamageData& damageData) override;
 
     void OnEnterAnim(const Animator::State& state);
     void OnExitAnim(const Animator::State& state);

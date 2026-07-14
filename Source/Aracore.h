@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Entity.h"
+#include "ParticleSystem.h"
 
 class NavMeshAgent;
 class Actor;
@@ -25,7 +26,7 @@ public:
 	AracoreMachine(Aracore* ownerAracore);
 
 	void OnDamaged(const DamageData& damageData) override;
-	void OnDead() override;
+	void OnDead(const DamageData& damageData) override;
 
 private:
 	Aracore* ownerAracore = nullptr;
@@ -37,23 +38,27 @@ private:
 class Aracore : public Entity
 {
 public:
-	Aracore();
+	Aracore(const Vector3& position);
 	~Aracore() = default;
-	void OnRegistered(ActorManager* actorManager) override;
+	void OnAwake() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
+
+	void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
 
 	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
 	void OnDamaged(const DamageData& damageData) override;
-	void OnDead() override;
+	void OnDead(const DamageData& damageData) override;
 
 private:
 	friend class AracoreMachine;
 	void UpdateChase();
+	void SpawnBreakParticles();
 
 	Animator* anim = nullptr;
+	ParticleSystem* breakParticleSystem;
 	ModelRenderComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<Model> model;

@@ -1,4 +1,6 @@
-﻿#include "BasicSpriteShader.h"
+﻿// BasicSpriteShader.cpp
+
+#include "BasicSpriteShader.h"
 #include "GpuResourceUtils.h"
 
 BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)

@@ -9,7 +9,7 @@ SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Text
 	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
 {
 	// エラー用
-	Component::GetOwnerAsWidget();
+	dynamic_cast<Widget*>(owner);
 }
 
 void SpriteRenderComponent::Update()
@@ -18,7 +18,7 @@ void SpriteRenderComponent::Update()
 
 void SpriteRenderComponent::Render(const RenderContext& rc)
 {
-	Widget* widget = Component::GetOwnerAsWidget();
+	Widget* widget = dynamic_cast<Widget*>(owner);
 	if (texture)
 	{
 		// anchor分だけpositionをオフセット

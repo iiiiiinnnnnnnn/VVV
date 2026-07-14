@@ -1,4 +1,6 @@
-﻿#include <imgui.h>
+﻿// FreeCameraController.cpp
+
+#include <imgui.h>
 #include "FreeCameraController.h"
 #include "GameTime.h"
 

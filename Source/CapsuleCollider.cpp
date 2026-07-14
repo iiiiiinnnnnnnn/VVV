@@ -34,9 +34,12 @@ CapsuleCollider::CapsuleCollider(
     , localPosition(localPosition)
 {
     // エラー用
-    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+}
+
+void CapsuleCollider::OnAwake()
+{
     UpdateShape();
 }
 
@@ -65,8 +68,12 @@ void CapsuleCollider::Render(const RenderContext& rc)
 
 void CapsuleCollider::UpdateShape()
 {
-    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+    if (!rigidbody) return;
+
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+    if (!rigidActor) return;
+
+    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
     // 古いシェイプを削除
     if (shape)

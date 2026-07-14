@@ -133,7 +133,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		capsuleHeight
 	);
 	cc->SetUseGravity(false);
-	cc->SetStepOffset(0.45f);
+	cc->SetStepOffset(0.15f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.05f);
 	cc->SetOwnerAnchorAtCenter(false);
@@ -277,7 +277,7 @@ void Player::OnDamaged(const DamageData& damageData)
 	}
 }
 
-void Player::OnDead()
+void Player::OnDead(const DamageData& damageData)
 {
 
 }
@@ -333,7 +333,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	// 敵を殴る
 
-	Actor* otherActor = other->GetOwnerAsActor();
+	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor->CompareTag("Enemy")) return;
 
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
@@ -455,6 +455,8 @@ void Player::SnapToGroundIfNeeded()
 
 void Player::UpdateLookIn()
 {
+	ActorManager* actorManager = ActorManager::GetActive();
+	if (!actorManager) return;
 	auto actors = actorManager->GetActors();
 	bool found = false;
 	float foundDistance = 500.0f;

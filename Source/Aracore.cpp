@@ -23,7 +23,8 @@
 #include "BoneCapsuleCollider.h"
 #include "BoneSphereCollider.h"
 
-Aracore::Aracore() : Entity("Aracore", "Enemy", true, 1000.0f, 1000.0f)
+Aracore::Aracore(const Vector3& position) 
+    : Entity("Aracore", "Enemy", true, 100.0f, 100.0f)
 {
     // 蜘蛛の部分
     {
@@ -51,8 +52,8 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, 1000.0f, 1000.0f)
         }
             }
         };
-        transform.SetPosition({-6, 3, 6});
-        transform.SetScale(1);
+        transform.SetPosition(position);
+        transform.SetScale(0.6f);
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
@@ -91,11 +92,12 @@ Aracore::Aracore() : Entity("Aracore", "Enemy", true, 1000.0f, 1000.0f)
     }
 }
 
-void Aracore::OnRegistered(ActorManager* actorManager)
+void Aracore::OnAwake()
 {
     auto make = std::static_pointer_cast<Actor>(std::make_shared<AracoreMachine>(this));
     machine = make.get();
-    actorManager->Register(std::move(make));
+    if (ActorManager* actorManager = ActorManager::GetActive())
+        actorManager->Register(std::move(make));
 }
 
 void Aracore::OnUpdate()
@@ -115,7 +117,8 @@ void Aracore::UpdateChase()
         navMeshActor->SetAgentRadius(navAgentRadius);
     }
 
-    Actor* player = Actor::FindActorByTag("Player");
+    ActorManager* actorManager = ActorManager::GetActive();
+    Actor* player = actorManager ? actorManager->FindActorByTag("Player") : nullptr;
     if (!player)
     {
         chasingPlayer = ChaseType::No;
@@ -205,11 +208,47 @@ void Aracore::OnDamaged(const DamageData& damageData)
     CameraEffectController::Request(0.2f, 0.1f);
 }
 
-void Aracore::OnDead()
+void Aracore::OnDead(const DamageData& damageData)
 {
     if (machine)
+    {
+		SpawnBreakParticles();
         machine->Destroy(0);
+        machine = nullptr;
+    }
     anim->SetBool("Dead", true);
+	bodyCollider->SetActive(false);
+	rb->SetActive(false);
+}
+
+void Aracore::SpawnBreakParticles()
+{
+    if (!breakParticleSystem) return;
+
+    const int particleCount = 32;
+    for (int i = 0; i < particleCount; ++i)
+    {
+        Vector3 p = transform.position;
+        p.x += Random::Range(-0.6f, 0.6f);
+        p.y += Random::Range(+0.7f, 1.0f);
+        p.z += Random::Range(-0.6f, 0.6f);
+
+        Vector3 v;
+        v.x = Random::Range(-1.75f, 1.75f);
+        v.y = Random::Range(-0.45f, 1.05f);
+        v.z = Random::Range(-1.75f, 1.75f);
+
+        breakParticleSystem->Set(
+            7,
+            1.2f,
+            p,
+            v,
+            Vector3(0.0f, -5.0f, 0.0f),
+            Vector2(1.0f, 1.0f),
+            false,
+            24.0f,
+            Color(0.35f, 0.9f, 1.0f, 1.0f));
+    }
 }
 
 // AracoreMachine(Aracore.cpp)
@@ -227,26 +266,29 @@ AracoreMachine::AracoreMachine(Aracore* ownerAracore)
 
     // 当たり判定
     collider = AddComponent<BoxCollider>(
-        Layers::Get("EnemyAccessory"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
+        Layers::Get("EnemyAccessory"), rb, 
+        Vector3 { 0.575f, 0.99f, 0.65f }, Vector3{0.0f, 1.0f, 0.0f});
 
-    // Box02に追従
+    // 親の体に追従
     Transform offset{};
-    offset.SetPosition(0.0f, 43.8f, 9.6f);
-    offset.SetAngle(-15.0f, 0.0f, 0.0f);
-    offset.SetScale(40.3f, 34.9f, 47.9f);
-    AddComponent<BoneFollower>(ownerAracore->model.get(), "Box02", offset);
+    offset.SetPosition(0.0f, 0.0f, 0.0f);
+    offset.SetAngle(-90.0f, 0.0f, 13.9f);
+    offset.SetScale(1.1f, 0.5f, 0.9f);
+    AddComponent<BoneFollower>(ownerAracore->model.get(),
+        "Bone.004_012", offset);
 
     // モデルレンダラーとダメージホールコンポーネントを追加
     shaderParamWithMaterialName = {};
     ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3, 2, 2, 1);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(
+        modelRenderer, 0.5f, 0.5f, 1.2f, 0.1f);
 }
 
 void AracoreMachine::OnDamaged(const DamageData& damageData)
 {
     // ボコッ
-    Actor* hitActor = damageData.hitColliderSelf ? damageData.hitColliderSelf->GetOwnerAsActor() : nullptr;
+    Actor* hitActor = damageData.hitColliderSelf ? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner()) : nullptr;
     if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
     {
         if (damageData.hitPosition.has_value())
@@ -265,10 +307,14 @@ void AracoreMachine::OnDamaged(const DamageData& damageData)
     }
 }
 
-void AracoreMachine::OnDead()
+void AracoreMachine::OnDead(const DamageData& damageData)
 {
-    printf("AracoreMachine Dead!\n");
-    Destroy(2);
+    if (ownerAracore)
+        ownerAracore->SpawnBreakParticles();
+	DamageData absoluteryDIED = damageData;
+    absoluteryDIED.damage = 999999;
+    ownerAracore->TakeDamage(absoluteryDIED);
+    Destroy(0);
 }
 
 

@@ -1,6 +1,7 @@
 // StageLoader.cpp
 
 #include "StageLoader.h"
+#include "Stage.h"
 #include "Graphics.h"
 #include "magic_enum/magic_enum.hpp"
 #include <fstream>
@@ -68,7 +69,7 @@ ShaderParamList StageLoader::PropData::MakePBRParams() const
 	};
 }
 
-ShaderParamList StageLoader::CrystalData::MakePBRParams() const
+ShaderParamList StageLoader::CrystalShaderData::MakePBRParams() const
 {
 	return {
 		{"color", color},
@@ -87,36 +88,26 @@ ShaderParamList StageLoader::CrystalData::MakePBRParams() const
 
 void StageLoader::DrawCrystalDataGUI(CrystalData& crystalData)
 {
-	ImGui::Text("Model Path: %s", crystalData.modelPath.c_str());
-	if (ImGui::TreeNode("Parent Transform"))
-	{
-		crystalData.parentTransform.DrawGUI();
-		ImGui::TreePop();
-	}
-	if (ImGui::DragInt("Count", &crystalData.count, 0.1f, 0, 256))
-	{
-		if (crystalData.count < 0) crystalData.count = 0;
-		crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
-	}
-
-	if (crystalData.transforms.size() != static_cast<size_t>(crystalData.count))
-	{
-		crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
-	}
-
-	for (int i = 0; i < crystalData.count; ++i)
-	{
-		ImGui::PushID(i);
-		std::string label = "Crystal " + std::to_string(i);
-		if (ImGui::TreeNode(label.c_str()))
-		{
-			crystalData.transforms[i].DrawGUI();
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
+	crystalData.transform.DrawGUI();
 }
 
+void StageLoader::DrawCrystalShaderParamsGUI()
+{
+	if (!ImGui::TreeNode("Crystal Shader Params")) return;
+
+	ImGui::ColorEdit4("Color", &crystalShaderData.color.x);
+	ImGui::ColorEdit4("Emission", &crystalShaderData.emission.x);
+	ImGui::ColorEdit4("Fresnel Color", &crystalShaderData.fresnelColor.x);
+	ImGui::DragFloat("Fresnel Power", &crystalShaderData.fresnelPower, 0.01f, 0.0001f, 16.0f);
+	ImGui::DragFloat("Fresnel Strength", &crystalShaderData.fresnelStrength, 0.01f, 0.0f, 8.0f);
+	ImGui::DragFloat("Metallic", &crystalShaderData.metallic, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Roughness", &crystalShaderData.roughness, 0.01f, 0.0001f, 1.0f);
+	ImGui::DragFloat("Occlusion", &crystalShaderData.occlusion, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Occlusion Strength", &crystalShaderData.occlusionStrength, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Shadow Strength", &crystalShaderData.shadowStrength, 0.01f, 0.0f, 1.0f);
+	ImGui::Checkbox("Is Flat Shading", &crystalShaderData.isFlatShading);
+	ImGui::TreePop();
+}
 void StageLoader::DrawPBRParamsGUI(PropData& propData)
 {
 	if (ImGui::TreeNode("PBR Shader Params"))
@@ -160,7 +151,7 @@ void StageLoader::DrawDestroyGUI(PropData& propData)
 		if (propData.destroyLife < 0.0f) propData.destroyLife = 0.0f;
 	}
 }
-StageLoader::StageLoader(Object* owner, Actor* stage, std::filesystem::path jsonPath)
+StageLoader::StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
 {
 	LoadJson();
@@ -191,33 +182,14 @@ void StageLoader::Update()
 	for (int crystalIndex = 0; crystalIndex < static_cast<int>(crystalDataList.size()); ++crystalIndex)
 	{
 		auto& crystal = crystalDataList[crystalIndex];
-		crystal.count = static_cast<int>(crystal.transforms.size());
-		crystal.models.resize(crystal.transforms.size());
-
-		crystal.parentTransform.Update();
-
-		for (size_t i = 0; i < crystal.transforms.size(); ++i)
-		{
-			if (!crystal.models[i])
-			{
-				crystal.models[i] = ResourceManager::Instance().LoadModel(crystal.modelPath);
-			}
-
-			ModelRenderer::SetShaderParamForAllMaterials(
-				crystal.models[i].get(),
-				crystal.MakePBRParams(),
-				crystal.shaderParams);
-
-			crystal.transforms[i].Update();
-			crystal.models[i]->UpdateTransform(crystal.transforms[i].matrix * crystal.parentTransform.matrix);
-		}
-
 		if (crystalIndex < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[crystalIndex])
 		{
 			addedCrystalActors[crystalIndex]->ApplyStageData(crystal);
+			addedCrystalActors[crystalIndex]->ApplyShaderParams(
+				crystalShaderData.MakePBRParams(),
+				crystalShaderParams);
 		}
-	}
-}
+	}}
 
 void StageLoader::Render(const RenderContext& rc)
 {
@@ -256,7 +228,18 @@ void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
 	{
 		if (crystalActor)
 		{
-			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
+			crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
+				{
+					for (Actor*& addedActor : addedRealActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+					for (CrystalProp*& addedActor : addedCrystalActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+				});
+				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 		}
 	}
 }
@@ -415,7 +398,7 @@ void StageLoader::DrawGUI()
 					auto propActor = std::make_shared<Prop>(propDataList.back());
 					addedRealActors.push_back(propActor.get());
 					addedPropActors.push_back(propActor.get());
-					stage->GetActorManager()->Register(propActor);
+					stage->GetActorManager().Register(propActor);
 				}
 			}
 		}
@@ -425,14 +408,26 @@ void StageLoader::DrawGUI()
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
-				if (std::filesystem::exists(addCrystalData.modelPath))
+				if (true)
 				{
 					crystalDataList.push_back(addCrystalData);
 					auto crystalActor = std::make_shared<CrystalProp>(crystalDataList.back());
-					crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
+					crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
+                    crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
+				{
+					for (Actor*& addedActor : addedRealActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+					for (CrystalProp*& addedActor : addedCrystalActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+				});
+				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 					addedRealActors.push_back(crystalActor.get());
 					addedCrystalActors.push_back(crystalActor.get());
-					stage->GetActorManager()->Register(crystalActor);
+					stage->GetActorManager().Register(crystalActor);
 				}
 			}
 		}
@@ -521,6 +516,8 @@ void StageLoader::DrawGUI()
 
 	ImGui::EndChild();
 
+	DrawCrystalShaderParamsGUI();
+
 	ImGui::TextUnformatted("CrystalList:");
 
 	ImGui::BeginChild("##crystallistwin", ImVec2(0.0f, 150.0f), true);
@@ -538,11 +535,21 @@ void StageLoader::DrawGUI()
 			if (ImGui::Button("Duplicate"))
 			{
 				CrystalData copiedCrystalData = crystalData;
-				copiedCrystalData.models.clear();
-				copiedCrystalData.shaderParams.clear();
 				crystalDataList.insert(crystalDataList.begin() + i + 1, copiedCrystalData);
 
 				auto crystalActor = std::make_shared<CrystalProp>(crystalDataList[i + 1]);
+				crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
+                crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
+				{
+					for (Actor*& addedActor : addedRealActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+					for (CrystalProp*& addedActor : addedCrystalActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+				});
 				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i + 1;
 				if (realActorIndex <= static_cast<int>(addedRealActors.size()))
@@ -563,7 +570,7 @@ void StageLoader::DrawGUI()
 					addedCrystalActors.push_back(crystalActor.get());
 				}
 
-				stage->GetActorManager()->Register(crystalActor);
+				stage->GetActorManager().Register(crystalActor);
 				ImGui::TreePop();
 				ImGui::PopID();
 				break;
@@ -820,75 +827,106 @@ void StageLoader::LoadJson()
 			auto propActor = std::make_shared<Prop>(propData);
 			addedRealActors.push_back(propActor.get());
 			addedPropActors.push_back(propActor.get());
-			stage->GetActorManager()->Register(propActor);
+			stage->GetActorManager().Register(propActor);
 		}
 	}
+
+	const json* crystalShaderJson = nullptr;
+	if (root.contains("crystalShaderParams"))
+	{
+		crystalShaderJson = &root["crystalShaderParams"];
+	}
+
+	auto loadCrystalShaderData = [&](const json& shaderJson)
+	{
+		crystalShaderData.isFlatShading = shaderJson.value("IsFlatShading", crystalShaderData.isFlatShading);
+		if (shaderJson.contains("color"))
+		{
+			crystalShaderData.color.x = shaderJson["color"].value("r", crystalShaderData.color.x);
+			crystalShaderData.color.y = shaderJson["color"].value("g", crystalShaderData.color.y);
+			crystalShaderData.color.z = shaderJson["color"].value("b", crystalShaderData.color.z);
+			crystalShaderData.color.w = shaderJson["color"].value("a", crystalShaderData.color.w);
+		}
+		if (shaderJson.contains("emission"))
+		{
+			crystalShaderData.emission.x = shaderJson["emission"].value("r", crystalShaderData.emission.x);
+			crystalShaderData.emission.y = shaderJson["emission"].value("g", crystalShaderData.emission.y);
+			crystalShaderData.emission.z = shaderJson["emission"].value("b", crystalShaderData.emission.z);
+			crystalShaderData.emission.w = shaderJson["emission"].value("a", crystalShaderData.emission.w);
+		}
+		if (shaderJson.contains("fresnelColor"))
+		{
+			crystalShaderData.fresnelColor.x = shaderJson["fresnelColor"].value("r", crystalShaderData.fresnelColor.x);
+			crystalShaderData.fresnelColor.y = shaderJson["fresnelColor"].value("g", crystalShaderData.fresnelColor.y);
+			crystalShaderData.fresnelColor.z = shaderJson["fresnelColor"].value("b", crystalShaderData.fresnelColor.z);
+			crystalShaderData.fresnelColor.w = shaderJson["fresnelColor"].value("a", crystalShaderData.fresnelColor.w);
+		}
+		crystalShaderData.fresnelPower = shaderJson.value("fresnelPower", crystalShaderData.fresnelPower);
+		crystalShaderData.fresnelStrength = shaderJson.value("fresnelStrength", crystalShaderData.fresnelStrength);
+		crystalShaderData.metallic = shaderJson.value("metallic", crystalShaderData.metallic);
+		crystalShaderData.roughness = shaderJson.value("roughness", crystalShaderData.roughness);
+		crystalShaderData.occlusion = shaderJson.value("occlusion", crystalShaderData.occlusion);
+		crystalShaderData.occlusionStrength = shaderJson.value("occlusionStrength", crystalShaderData.occlusionStrength);
+		crystalShaderData.shadowStrength = shaderJson.value("shadowStrength", crystalShaderData.shadowStrength);
+	};
+
+	if (crystalShaderJson) loadCrystalShaderData(*crystalShaderJson);
 
 	if (root.contains("crystals") && root["crystals"].is_array())
 	{
 		for (const auto& crystalJson : root["crystals"])
 		{
-			CrystalData crystalData;
-			crystalData.modelPath = crystalJson.value("modelPath", crystalData.modelPath);
-			if (crystalJson.contains("transform"))
-			{
-				LoadTransformJson(crystalJson["transform"], crystalData.parentTransform);
-			}
-			crystalData.isFlatShading = crystalJson.value("IsFlatShading", crystalData.isFlatShading);
-			crystalData.count = crystalJson.value("count", crystalData.count);
-			if (crystalJson.contains("color"))
-			{
-				crystalData.color.x = crystalJson["color"].value("r", crystalData.color.x);
-				crystalData.color.y = crystalJson["color"].value("g", crystalData.color.y);
-				crystalData.color.z = crystalJson["color"].value("b", crystalData.color.z);
-				crystalData.color.w = crystalJson["color"].value("a", crystalData.color.w);
-			}
-			if (crystalJson.contains("emission"))
-			{
-				crystalData.emission.x = crystalJson["emission"].value("r", crystalData.emission.x);
-				crystalData.emission.y = crystalJson["emission"].value("g", crystalData.emission.y);
-				crystalData.emission.z = crystalJson["emission"].value("b", crystalData.emission.z);
-				crystalData.emission.w = crystalJson["emission"].value("a", crystalData.emission.w);
-			}
-			if (crystalJson.contains("fresnelColor"))
-			{
-				crystalData.fresnelColor.x = crystalJson["fresnelColor"].value("r", crystalData.fresnelColor.x);
-				crystalData.fresnelColor.y = crystalJson["fresnelColor"].value("g", crystalData.fresnelColor.y);
-				crystalData.fresnelColor.z = crystalJson["fresnelColor"].value("b", crystalData.fresnelColor.z);
-				crystalData.fresnelColor.w = crystalJson["fresnelColor"].value("a", crystalData.fresnelColor.w);
-			}
-			crystalData.fresnelPower = crystalJson.value("fresnelPower", crystalData.fresnelPower);
-			crystalData.fresnelStrength = crystalJson.value("fresnelStrength", crystalData.fresnelStrength);
-			crystalData.metallic = crystalJson.value("metallic", crystalData.metallic);
-			crystalData.roughness = crystalJson.value("roughness", crystalData.roughness);
-			crystalData.occlusion = crystalJson.value("occlusion", crystalData.occlusion);
-			crystalData.occlusionStrength = crystalJson.value("occlusionStrength", crystalData.occlusionStrength);
-			crystalData.shadowStrength = crystalJson.value("shadowStrength", crystalData.shadowStrength);
+			if (!crystalShaderJson && crystalDataList.empty()) loadCrystalShaderData(crystalJson);
 
-			crystalData.transforms.clear();
+			std::vector<Transform> transforms;
 			if (crystalJson.contains("transforms") && crystalJson["transforms"].is_array())
 			{
+				Transform parentTransform;
+				if (crystalJson.contains("transform")) LoadTransformJson(crystalJson["transform"], parentTransform);
+				parentTransform.Update();
+
 				for (const auto& transformJson : crystalJson["transforms"])
 				{
 					Transform transform;
 					LoadTransformJson(transformJson, transform);
-					crystalData.transforms.push_back(transform);
+					transform.Update();
+					transforms.emplace_back(transform.matrix * parentTransform.matrix);
 				}
 			}
+			else
+			{
+				Transform transform;
+				if (crystalJson.contains("transform")) LoadTransformJson(crystalJson["transform"], transform);
+				transforms.push_back(transform);
+			}
 
-			if (crystalData.count < 0) crystalData.count = 0;
-			crystalData.transforms.resize(static_cast<size_t>(crystalData.count));
-			crystalDataList.push_back(crystalData);
+			for (const Transform& transform : transforms)
+			{
+				CrystalData crystalData;
+				crystalData.transform = transform;
+				crystalDataList.push_back(crystalData);
 
-			auto crystalActor = std::make_shared<CrystalProp>(crystalData);
-			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
-			addedRealActors.push_back(crystalActor.get());
-			addedCrystalActors.push_back(crystalActor.get());
-			stage->GetActorManager()->Register(crystalActor);
+				auto crystalActor = std::make_shared<CrystalProp>(crystalData);
+				crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
+				crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
+				{
+					for (Actor*& addedActor : addedRealActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+					for (CrystalProp*& addedActor : addedCrystalActors)
+					{
+						if (addedActor == destroyedCrystal) addedActor = nullptr;
+					}
+				});
+				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
+				addedRealActors.push_back(crystalActor.get());
+				addedCrystalActors.push_back(crystalActor.get());
+				stage->GetActorManager().Register(crystalActor);
+			}
 		}
 	}
 }
-
 void StageLoader::SaveJson()
 {
 	json root;
@@ -986,45 +1024,30 @@ void StageLoader::SaveJson()
 		root["props"].push_back(propJson);
 	}
 
-	for (const auto& crystalData : crystalDataList)
+	root["crystalShaderParams"]["color"] = {
+		{"r", crystalShaderData.color.x}, {"g", crystalShaderData.color.y},
+		{"b", crystalShaderData.color.z}, {"a", crystalShaderData.color.w}};
+	root["crystalShaderParams"]["emission"] = {
+		{"r", crystalShaderData.emission.x}, {"g", crystalShaderData.emission.y},
+		{"b", crystalShaderData.emission.z}, {"a", crystalShaderData.emission.w}};
+	root["crystalShaderParams"]["fresnelColor"] = {
+		{"r", crystalShaderData.fresnelColor.x}, {"g", crystalShaderData.fresnelColor.y},
+		{"b", crystalShaderData.fresnelColor.z}, {"a", crystalShaderData.fresnelColor.w}};
+	root["crystalShaderParams"]["fresnelPower"] = crystalShaderData.fresnelPower;
+	root["crystalShaderParams"]["fresnelStrength"] = crystalShaderData.fresnelStrength;
+	root["crystalShaderParams"]["metallic"] = crystalShaderData.metallic;
+	root["crystalShaderParams"]["roughness"] = crystalShaderData.roughness;
+	root["crystalShaderParams"]["occlusion"] = crystalShaderData.occlusion;
+	root["crystalShaderParams"]["occlusionStrength"] = crystalShaderData.occlusionStrength;
+	root["crystalShaderParams"]["shadowStrength"] = crystalShaderData.shadowStrength;
+	root["crystalShaderParams"]["IsFlatShading"] = crystalShaderData.isFlatShading;
+
+	for (const CrystalData& crystalData : crystalDataList)
 	{
 		json crystalJson;
-
-		crystalJson["modelPath"] = crystalData.modelPath;
-		SaveTransformJson(crystalJson["transform"], crystalData.parentTransform);
-		crystalJson["count"] = crystalData.count;
-		crystalJson["color"]["r"] = crystalData.color.x;
-		crystalJson["color"]["g"] = crystalData.color.y;
-		crystalJson["color"]["b"] = crystalData.color.z;
-		crystalJson["color"]["a"] = crystalData.color.w;
-		crystalJson["emission"]["r"] = crystalData.emission.x;
-		crystalJson["emission"]["g"] = crystalData.emission.y;
-		crystalJson["emission"]["b"] = crystalData.emission.z;
-		crystalJson["emission"]["a"] = crystalData.emission.w;
-		crystalJson["fresnelColor"] ["r"] = crystalData.fresnelColor.x;
-		crystalJson["fresnelColor"] ["g"] = crystalData.fresnelColor.y;
-		crystalJson["fresnelColor"] ["b"] = crystalData.fresnelColor.z;
-		crystalJson["fresnelColor"] ["a"] = crystalData.fresnelColor.w;
-		crystalJson["fresnelPower"] = crystalData.fresnelPower;
-		crystalJson["fresnelStrength"] = crystalData.fresnelStrength;
-		crystalJson["metallic"] = crystalData.metallic;
-		crystalJson["roughness"] = crystalData.roughness;
-		crystalJson["occlusion"] = crystalData.occlusion;
-		crystalJson["occlusionStrength"] = crystalData.occlusionStrength;
-		crystalJson["shadowStrength"] = crystalData.shadowStrength;
-		crystalJson["IsFlatShading"] = crystalData.isFlatShading;
-		crystalJson["transforms"] = json::array();
-
-		for (const Transform& transform : crystalData.transforms)
-		{
-			json transformJson;
-			SaveTransformJson(transformJson, transform);
-			crystalJson["transforms"].push_back(transformJson);
-		}
-
+		SaveTransformJson(crystalJson["transform"], crystalData.transform);
 		root["crystals"].push_back(crystalJson);
 	}
-
 	if (jsonPath.has_parent_path())
 	{
 		std::filesystem::create_directories(jsonPath.parent_path());
@@ -1039,6 +1062,12 @@ void StageLoader::SaveJson()
 
 	ofs << std::setw(4) << root;
 }
+
+
+
+
+
+
 
 
 

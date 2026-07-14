@@ -5,12 +5,11 @@
 #include "Rigidbody.h"
 #include "Graphics.h"
 #include "IconsFontAwesome5.h"
-#include "Actor.h"
 
 Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
 {
-    Actor* actor = GetOwnerAsActor();
-    Vector3 ownerScale = actor ? actor->transform.scale : Vector3::One;
+    Transform* transform = owner->GetComponent<Transform>();
+    Vector3 ownerScale = transform ? transform->scale : Vector3::One;
     return nodeTransform * Matrix::CreateScale(ownerScale * localScale);
 }
 bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
@@ -96,28 +95,29 @@ MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody,
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
-    UpdateShape();
 }
 
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
-    UpdateShape();
 }
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
-    UpdateShape();
 }
 
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+}
+void MeshCollider::OnAwake()
+{
     UpdateShape();
 }
+
 void MeshCollider::SetLocalScale(const Vector3& scale)
 {
     if ((localScale - scale).LengthSquared() < 0.000001f) return;
@@ -156,11 +156,13 @@ void MeshCollider::DetachShapes()
 
 void MeshCollider::UpdateShape()
 {
-    if (!collisionEnabled) return;
+    if (!collisionEnabled || !rigidbody || !model) return;
+
+    PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+    if (!rigidActor) return;
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxCookingParams* cookingParams = PhysicsManager::Instance().GetCooking();
-    PxRigidActor* rigidActor = rigidbody->GetRigidActor();
 
     DetachShapes();
 
@@ -270,6 +272,9 @@ void MeshCollider::DrawGUI()
         ImGui::Text("TriangleMesh");
     }
 }
+
+
+
 
 
 

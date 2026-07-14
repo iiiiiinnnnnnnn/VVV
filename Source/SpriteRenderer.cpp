@@ -1,4 +1,6 @@
-﻿#include "SpriteRenderer.h"
+﻿// SpriteRenderer.cpp
+
+#include "SpriteRenderer.h"
 #include "DebugUtil.h"
 #include "BasicSpriteShader.h"
 

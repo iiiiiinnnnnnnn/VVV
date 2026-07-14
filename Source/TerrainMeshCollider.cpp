@@ -10,8 +10,6 @@
 TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const CollisionArea& collisionArea, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), collisionArea(collisionArea), material(material)
 {
-    GetOwnerAsActor();
-
     _ASSERT_EXPR(rigidbody != nullptr, L"TerrainMeshCollider requires Rigidbody.");
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
@@ -20,7 +18,6 @@ TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbo
     std::vector<uint32_t> indices;
     if (LoadCachedMesh(vertices, indices))
     {
-        UpdateShape(vertices, indices);
         debugVertices = vertices;
         debugIndices = indices;
     }
@@ -28,6 +25,12 @@ TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbo
     {
         pendingGpuRebuild = true;
     }
+}
+
+void TerrainMeshCollider::OnAwake()
+{
+    if (!debugVertices.empty() && !debugIndices.empty())
+        UpdateShape(debugVertices, debugIndices);
 }
 
 TerrainMeshCollider::~TerrainMeshCollider()
@@ -153,8 +156,9 @@ bool TerrainMeshCollider::LoadCachedMesh(
         return false;
     }
 
-    Actor* actor = GetOwnerAsActor();
-    const Vector3 scale = actor->transform.scale;
+    Transform* transform = owner->GetComponent<Transform>();
+    if (!transform) return false;
+    const Vector3 scale = transform->scale;
     const uint64_t terrainDataHash = terrain->GetTerrainDataHash();
     if (!NearlyEqual(header.minX, collisionArea.minX) ||
         !NearlyEqual(header.maxX, collisionArea.maxX) ||
@@ -227,8 +231,9 @@ bool TerrainMeshCollider::SaveCachedMesh(
         return false;
     }
 
-    Actor* actor = GetOwnerAsActor();
-    const Vector3 scale = actor->transform.scale;
+    Transform* transform = owner->GetComponent<Transform>();
+    if (!transform) return false;
+    const Vector3 scale = transform->scale;
 
     TerrainColliderVxHeader header{};
     header.vertexCount = static_cast<uint32_t>(vertices.size());
@@ -267,8 +272,9 @@ bool TerrainMeshCollider::SaveCachedMesh(
 
 void TerrainMeshCollider::ApplyOwnerScale(std::vector<Vector3>& vertices) const
 {
-    Actor* actor = GetOwnerAsActor();
-    const Vector3 scale = actor->transform.scale;
+    Transform* transform = owner->GetComponent<Transform>();
+    if (!transform) return;
+    const Vector3 scale = transform->scale;
     for (Vector3& vertex : vertices)
     {
         vertex.x *= scale.x;
@@ -344,7 +350,6 @@ void TerrainMeshCollider::UpdateShape(
 
     shape->userData = this;
 
-    Actor* actor = GetOwnerAsActor();
     PhysicsManager::SetLayerToShape(shape, layerId);
     rigidActor->attachShape(*shape);
 }

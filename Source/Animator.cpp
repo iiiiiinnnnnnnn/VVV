@@ -36,13 +36,13 @@ namespace
 Animator::Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime)
     : Component(owner), animationMode(AnimationMode::Model), model(model), unscaledTime(unscaledTime)
 {
-    Component::GetOwnerAsActor();
+    dynamic_cast<Actor*>(owner);
 }
 
 Animator::Animator(Object* owner, bool unscaledTime)
     : Component(owner), animationMode(AnimationMode::Dynamic), unscaledTime(unscaledTime)
 {
-    Component::GetOwnerAsWidget();
+    dynamic_cast<Widget*>(owner);
 }
 
 // =========================================================
@@ -1356,7 +1356,7 @@ void Animator::ApplyDynamicTrack(
     const DynamicAnimationTrack& track,
     const ::ParamValue& value)
 {
-    Widget* widget = Component::GetOwnerAsWidget();
+    Widget* widget = dynamic_cast<Widget*>(owner);
 
     if (track.target == DynamicAnimationTarget::WidgetProperty)
     {

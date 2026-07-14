@@ -12,13 +12,22 @@
 class ActorManager
 {
 public:
+	ActorManager() { active = this; }
+	~ActorManager()
+	{
+		if (active == this)
+			active = nullptr;
+	}
+
+	static ActorManager* GetActive() { return active; }
+
 	void Register(std::shared_ptr<Actor> actor)
 	{
 		if (!actor) return;
 
-		actor->actorManager = this;
+		actor->Awake();
+		actor->Start();
 		pendingActors.emplace_back(actor);
-		actor->OnRegistered(this);
 	}
 
 	void Clear()
@@ -54,6 +63,13 @@ public:
 			if (data[i]->IsPendingDestroy()) continue;
 
 			data[i]->Update();
+		}
+
+		for (size_t i = 0; i < count; ++i)
+		{
+			if (!data[i] || data[i]->IsPendingDestroy()) continue;
+
+			data[i]->LateUpdate();
 		}
 
 		data.erase(
@@ -120,7 +136,15 @@ public:
 		return result;
 	}
 
+	Actor* FindActorByTag(const std::string& tag) const
+	{
+		for (const auto& actor : data)
+			if (actor && actor->CompareTag(tag)) return actor.get();
+		return nullptr;
+	}
+
 private:
+	inline static ActorManager* active = nullptr;
 	std::vector<std::shared_ptr<Actor>> data;
 	std::vector<std::shared_ptr<Actor>> pendingActors;
 };

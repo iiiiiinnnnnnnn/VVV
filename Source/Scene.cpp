@@ -7,19 +7,21 @@
 #include "TrailRenderComponent.h"
 #include "Terrain.h"
 #include "PostProcessController.h"
+#include "UserSettingsManager.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
-	// ライト設定
-	DirectionalLight dl{"Sun", "Directional Light", true, {1, 1, 1, 1}};
-	dl.transform.rotation = {1, 0, 1, 1};
-	lightManager.SetDirectionalLight(dl);
-
-	lightManager.SetAmbientColor(ColorFromRGBA(0x366BB6FF));
 }
 
 void Scene::SwitchToDebugMode()
 {
+	if (!currentStage_) return;
+
+	Stage& stage = *currentStage_;
+	Camera& camera = *stage.GetCamera();
+	auto& cameraControllers = stage.GetCameraControllers();
+	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
+
 	if (cameraControllers.size() > 1)
 	{
 		nowCameraControllerIndex = 1;
@@ -32,6 +34,13 @@ void Scene::SwitchToDebugMode()
 
 void Scene::SwitchToPlayMode()
 {
+	if (!currentStage_) return;
+
+	Stage& stage = *currentStage_;
+	Camera& camera = *stage.GetCamera();
+	auto& cameraControllers = stage.GetCameraControllers();
+	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
+
 	if (cameraControllers.size() > 0)
 	{
 		nowCameraControllerIndex = 0;
@@ -45,6 +54,12 @@ void Scene::SwitchToPlayMode()
 void Scene::Update()
 {
 	OnUpdate();
+	if (!currentStage_) return;
+
+	Stage& stage = *currentStage_;
+	Camera& camera = *stage.GetCamera();
+	auto& cameraControllers = stage.GetCameraControllers();
+	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
 
 	#ifdef _DEBUG
 	GamePad& gamePad = Game::Input::Instance().GetGamePad();
@@ -86,18 +101,35 @@ void Scene::Update()
 		// カメラコントローラーからカメラへ反映
 		cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
 
-		actorManager.Update();
 	}
 
-	widgetManager.Update();
+	stage.Update();
 
-	lightManager.Update();
+	widgetManager.Update();
 
 	PostProcessController::Instance().Update();
 }
 
 void Scene::Render()
 {
+	if (!currentStage_)
+	{
+		Game::Graphics& graphics = Game::Graphics::Instance();
+		RenderContext rc{};
+		rc.deviceContext = graphics.GetDeviceContext();
+		rc.renderState = graphics.GetRenderState();
+
+		widgetManager.Render(rc, true);
+		graphics.GetSpriteRenderer()->Render(rc);
+		widgetManager.Render(rc, false);
+		graphics.GetSpriteRenderer()->Render(rc);
+		return;
+	}
+
+	Stage& stage = *currentStage_;
+	Camera& camera = *stage.GetCamera();
+	ActorManager& actorManager = stage.GetActorManager();
+	LightManager& lightManager = stage.GetLightManager();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
 	RenderState* renderState = graphics.GetRenderState();
@@ -141,6 +173,11 @@ void Scene::Render()
 
 	// シャドウマップ描画
 	{
+		if (Terrain* terrain = stage.GetComponent<Terrain>())
+		{
+			graphics.GetShadowMapRenderer()->Draw(terrain);
+		}
+
 		for (Actor* actor : actorManager.GetActors())
 		{
 			if (!actor || actor->IsPendingDestroy()) continue;
@@ -183,7 +220,7 @@ void Scene::Render()
 			*rc.camera,
 			graphics.GetIBLSpecularPMREM());
 
-		actorManager.Render(rc);
+		stage.Render(rc);
 
 		graphics.GetModelRenderer()->Render(rc);
 
@@ -312,6 +349,14 @@ void Scene::Render()
 
 void Scene::DrawGUI(RenderContext& rc)
 {
+	if (!currentStage_) return;
+
+	Stage& stage = *currentStage_;
+	Camera& camera = *stage.GetCamera();
+	auto& cameraControllers = stage.GetCameraControllers();
+	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
+	ActorManager& actorManager = stage.GetActorManager();
+	LightManager& lightManager = stage.GetLightManager();
 	#ifdef _DEBUG
 	if (renderSettings.showDebug)
 	{
@@ -474,6 +519,5 @@ void Scene::DrawGUI(RenderContext& rc)
 
 CameraController* Scene::GetNowCameraController() const
 {
-	if (cameraControllers.empty()) return nullptr;
-	return cameraControllers[nowCameraControllerIndex].get();
+	return currentStage_ ? currentStage_->GetNowCameraController() : nullptr;
 }

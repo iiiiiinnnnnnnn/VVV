@@ -7,7 +7,7 @@
 
 bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 {
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return false;
 
 	BoxCollider* box = actor->GetComponent<BoxCollider>();

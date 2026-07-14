@@ -1,4 +1,6 @@
-﻿// PostProcess.cpp
+﻿// GamePostProcess.cpp
+
+// PostProcess.cpp
 
 #include "GamePostProcess.h"
 

@@ -118,7 +118,7 @@ bool SpiderFootIK::HasGroundContact() const
 
 void SpiderFootIK::UpdateModelTransform()
 {
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 
 	model->UpdateTransform(

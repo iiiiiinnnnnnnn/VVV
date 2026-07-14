@@ -25,9 +25,12 @@ SphereCollider::SphereCollider(
     , localPosition(localPosition)
 {
     // エラー用
-    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
+}
+
+void SphereCollider::OnAwake()
+{
     UpdateShape();
 }
 
@@ -50,8 +53,12 @@ void SphereCollider::Render(const RenderContext& rc)
 
 void SphereCollider::UpdateShape()
 {
-    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+    if (!rigidbody) return;
+
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
+    if (!rigidActor) return;
+
+    PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
     // 古いシェイプを削除
     if (shape)

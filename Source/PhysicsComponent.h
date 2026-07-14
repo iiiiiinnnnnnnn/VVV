@@ -13,6 +13,7 @@ public:
 
 	LayerId GetLayerId() const { return layerId; }
 	void SetLayerId(LayerId id) { layerId = id; }
+	Object* GetOwner() const { return owner; }
 
 protected:
 	LayerId layerId = 0;

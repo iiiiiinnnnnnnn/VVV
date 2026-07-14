@@ -1,4 +1,6 @@
-﻿#include <windows.h>
+﻿// GamePad.cpp
+
+#include <windows.h>
 #include <math.h>
 #include <Xinput.h>
 #include "GamePad.h"

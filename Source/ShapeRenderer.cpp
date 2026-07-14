@@ -1,4 +1,6 @@
-﻿#include "DebugUtil.h"
+﻿// ShapeRenderer.cpp
+
+#include "DebugUtil.h"
 #include "GpuResourceUtils.h"
 #include "ShapeRenderer.h"
 

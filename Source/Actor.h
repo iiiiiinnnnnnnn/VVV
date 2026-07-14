@@ -1,13 +1,10 @@
-﻿// Actor.h
+// Actor.h
 
 #pragma once
 
 #include "Object.h"
 #include "Transform.h"
 
-#include <string>
-
-class ActorManager;
 class PhysicsComponent;
 
 class Actor : public Object
@@ -17,11 +14,12 @@ public:
         : Object(name, tag, isActive) {}
     virtual ~Actor() = default;
 
-    Transform transform;
-
-    // オーバーライドする必要があるやつだけ(transform割り込み)
 	void Update() override;
 	void DrawGUI() override;
+	Transform* GetTransform() override { return &transform; }
+	const Transform* GetTransform() const override { return &transform; }
+
+	void Destroy(float delay = 0.0f) override;
 
     virtual void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
     virtual void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
@@ -30,12 +28,7 @@ public:
 	virtual void OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
     virtual void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
 
-	virtual void OnRegistered(ActorManager* actorManager) {}
-
-    ActorManager* GetActorManager() const { return actorManager; }
-	Actor* FindActorByTag(const std::string& searchTag) const;
-
-protected:
-	friend class ActorManager;
-    ActorManager* actorManager = nullptr;
+public:
+    Transform transform;
 };
+

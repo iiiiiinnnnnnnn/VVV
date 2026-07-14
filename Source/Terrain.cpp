@@ -15,8 +15,6 @@
 Terrain::Terrain(Object* owner)
 	: Component(owner)
 {
-	GetOwnerAsActor();
-
 	InitializeGpuResources();
 	ClearTerrainTexture();
 
@@ -359,10 +357,11 @@ void Terrain::ClearTerrainTexture()
 
 void Terrain::UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc)
 {
-	Actor* actor = GetOwnerAsActor();
+	Transform* transform = owner->GetComponent<Transform>();
+	if (!transform) return;
 
 	CbTerrainObject cbObject{};
-	cbObject.world = actor->transform.matrix;
+	cbObject.world = transform->matrix;
 	cbObject.terrainSize = terrainSize;
 	cbObject.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
 
@@ -748,8 +747,9 @@ bool Terrain::ScreenToTerrainUV(const RenderContext& rc, float& outU, float& out
 	Vector3 rayDirectionWorld = farPoint - nearPoint;
 	rayDirectionWorld.Normalize();
 
-	Actor* actor = GetOwnerAsActor();
-	Matrix invWorld = actor->transform.matrix.Invert();
+	Transform* transform = owner->GetComponent<Transform>();
+	if (!transform) return false;
+	Matrix invWorld = transform->matrix.Invert();
 
 	Vector3 rayOriginLocal = Vector3::Transform(rayOriginWorld, invWorld);
 	Vector3 rayDirectionLocal = Vector3::TransformNormal(rayDirectionWorld, invWorld);

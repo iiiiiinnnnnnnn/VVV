@@ -22,6 +22,8 @@ public:
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
     void Update() override;
     void DrawGUI() override;
+	RectTransform* GetRectTransform() override { return &rect; }
+	const RectTransform* GetRectTransform() const override { return &rect; }
 
 	void SetAffectedByPostProcess(bool affected) { affectedByPostProcess = affected; }
 	bool GetAffectedByPostProcess() const { return affectedByPostProcess; }

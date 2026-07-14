@@ -44,7 +44,7 @@ void DamageHoleComponent::DrawGUI()
 
 	if (ImGui::Button("Add Front Hole"))
 	{
-		if (Actor* actor = GetOwnerAsActor())
+		if (Actor* actor = dynamic_cast<Actor*>(owner))
 		{
 			Vector3 center = actor->transform.position;
 			if (Rigidbody* rb = actor->GetComponent<Rigidbody>())
@@ -80,7 +80,7 @@ void DamageHoleComponent::AddDamageHoleFrom(const Actor* attacker)
 {
 	if (!attacker) return;
 
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 
 	Vector3 center = actor->transform.position;
@@ -101,7 +101,7 @@ void DamageHoleComponent::AddDamageHoleFrom(const Actor* attacker)
 
 void DamageHoleComponent::AddDamageHoleFromPosition(const Vector3& hitPosition)
 {
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	Vector3 direction = actor ? hitPosition - actor->transform.position : Vector3::Zero;
 	if (direction.LengthSquared() > eps)
 		direction.Normalize();
@@ -129,7 +129,7 @@ void DamageHoleComponent::AddDamageHoleAt(const Vector3& position, const Vector3
 
 	Vector3 localPosition = position;
 	Vector3 localDirection = direction;
-	if (Actor* actor = GetOwnerAsActor())
+	if (Actor* actor = dynamic_cast<Actor*>(owner))
 	{
 		Matrix inverseWorld = actor->transform.matrix.Invert();
 		localPosition = Vector3::Transform(position, inverseWorld);
@@ -179,7 +179,7 @@ void DamageHoleComponent::UpdateShaderParams()
 	modelRenderer->SetShaderParamForAllMaterials({"holeEdgeWidth", holeEdgeWidth});
 	modelRenderer->SetShaderParamForAllMaterials({"holeDepth", holeDepth});
 
-	Actor* actor = GetOwnerAsActor();
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	for (int i = 0; i < MaxDamageHoles; ++i)
 	{
 		const Vector4 hole = (i < static_cast<int>(damageHoles.size()))

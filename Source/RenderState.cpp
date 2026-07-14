@@ -1,4 +1,6 @@
-﻿#include "DebugUtil.h"
+﻿// RenderState.cpp
+
+#include "DebugUtil.h"
 #include "RenderState.h"
 
 // コンストラクタ

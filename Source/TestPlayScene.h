@@ -17,5 +17,5 @@ public:
 	void OnDrawGUI() override;
 
 private:
-	std::unique_ptr<ParticleSystem> particleSystem;
+
 };

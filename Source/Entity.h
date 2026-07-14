@@ -3,7 +3,7 @@
 #pragma once
 #include <optional>
 #include <string>
-
+#include "Stage.h"
 #include "Actor.h"
 
 class PhysicsComponent;
@@ -38,10 +38,12 @@ public:
     Vector3 GetKnockBackVelocity() const { return knockBackVelocity; }
     void AddKnockBack(const Vector3& velocity) { knockBackVelocity += velocity; }
 
+	void SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale = 1.0f);
+
 protected:
     void OnDrawGUI() override;
 
-    virtual void OnDead() {}
+    virtual void OnDead(const DamageData& damageData) {}
     virtual void OnDamaged(const DamageData& damageData) {}
 
     Vector3 knockBackVelocity = Vector3::Zero;

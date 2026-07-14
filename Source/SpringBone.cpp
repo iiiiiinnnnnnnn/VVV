@@ -137,7 +137,7 @@ SpringBone::SpringBone(
     , model(model)
 {
     // エラー用
-    Component::GetOwnerAsActor();
+    dynamic_cast<Actor*>(owner);
 
     BuildBones(boneContainNames);
 }
@@ -302,7 +302,7 @@ void SpringBone::Reset()
     if (model == nullptr)
         return;
 
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     Matrix ownerWorldTransform = actor != nullptr ? actor->transform.matrix : Matrix::Identity;
     model->UpdateTransform(ownerWorldTransform);
 
@@ -337,7 +337,7 @@ void SpringBone::LateUpdate()
     std::vector<Model::Node>& nodes = model->GetNodes();
     const int nodeCount = static_cast<int>(nodes.size());
 
-    Actor* actor = Component::GetOwnerAsActor();
+    Actor* actor = dynamic_cast<Actor*>(owner);
     Matrix ownerWorldTransform = actor != nullptr
         ? actor->transform.matrix
         : Matrix::Identity;

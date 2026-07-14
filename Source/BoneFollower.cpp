@@ -15,10 +15,8 @@ BoneFollower::BoneFollower(
 	: Component(owner)
 	, offset(offset)
 {
-	Actor* ownerActor = Component::GetOwnerAsActor();
 	this->offset.Update();
 	SetTarget(targetModel, targetNodeName);
-	ApplyFollow();
 }
 
 BoneFollower::BoneFollower(
@@ -29,18 +27,21 @@ BoneFollower::BoneFollower(
 	: Component(owner)
 	, offset(offset)
 {
-	Actor* ownerActor = Component::GetOwnerAsActor();
 	this->offset.Update();
 	SetTarget(targetModel, targetNodeIndex);
-	ApplyFollow();
 }
 
-void BoneFollower::Update()
+void BoneFollower::OnAwake()
 {
 	ApplyFollow();
 }
 
-void BoneFollower::DrawGUI()
+void BoneFollower::OnUpdate()
+{
+	ApplyFollow();
+}
+
+void BoneFollower::OnDrawGUI()
 {
 	ImGui::Text("Target Node: [%d]%s", targetNodeIndex, targetNodeName.c_str());
 	offset.DrawGUI();
@@ -86,7 +87,7 @@ void BoneFollower::SetOffset(
 
 void BoneFollower::ApplyFollow()
 {
-	Actor* ownerActor = Component::GetOwnerAsActor();
+	Actor* ownerActor = dynamic_cast<Actor*>(owner);
 	if (!ownerActor || !targetModel) return;
 
 	const std::vector<Model::Node>& nodes = targetModel->GetNodes();

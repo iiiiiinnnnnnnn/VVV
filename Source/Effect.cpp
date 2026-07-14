@@ -1,4 +1,6 @@
-﻿#include "Graphics.h"
+﻿// Effect.cpp
+
+#include "Graphics.h"
 #include "Effect.h"
 #include "EffectManager.h"
 #include <mutex>

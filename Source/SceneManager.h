@@ -6,6 +6,7 @@
 
 #include "Common.h"
 #include "Scene.h"
+#include "PhysicsManager.h"
 
 #include <atomic>
 #include <exception>

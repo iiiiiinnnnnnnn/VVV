@@ -14,7 +14,6 @@ BoneCollider::BoneCollider(
     isTrigger(isTrigger), freezePositions{freezePositions},
     freezeRotations{freezeRotations}
 {
-    Component::GetOwnerAsActor();
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 
@@ -170,9 +169,9 @@ Actor* BoneCollider::FindOverlapActorByTag(const std::string& tag) const
         PhysicsComponent* collider = static_cast<PhysicsComponent*>(hitShape->userData);
         if (!collider) continue;
 
-        Actor* actor = collider->GetOwnerAsActor();
+        Actor* actor = dynamic_cast<Actor*>(collider->GetOwner());
         if (!actor) continue;
-        if (actor == GetOwnerAsActor()) continue;
+        if (actor == dynamic_cast<Actor*>(owner)) continue;
         if (actor->CompareTag(tag)) return actor;
     }
 

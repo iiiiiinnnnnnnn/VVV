@@ -7,17 +7,12 @@
 #include "Common.h"
 #include "Graphics.h"
 #include "Input.h"
-#include "Camera.h"
-#include "Actor.h"
 #include "Widget.h"
-#include "CameraController.h"
 #include "RenderContext.h"
-#include "PhysicsManager.h"
 #include "GamePostProcess.h"
 #include "DynamicAnimationEditorWindow.h"
-#include "ActorManager.h"
 #include "WidgetManager.h"
-#include "LightManager.h"
+#include "Stage01.h"
 
 // Sceneへ渡す任意のデータ。
 // 使用するScene側で必要な型へキャストして使う。
@@ -32,23 +27,7 @@ public:
 
 	virtual void Update();
 	virtual void Render();
-
-	Camera* GetCamera()
-	{
-		return &camera;
-	}
-
 	CameraController* GetNowCameraController() const;
-
-	int GetNowCameraControllerIndex() const
-	{
-		return nowCameraControllerIndex;
-	}
-
-	const LightManager& GetLightManager() const
-	{
-		return lightManager;
-	}
 
 	const RenderSettings& GetRenderSettings() const
 	{
@@ -70,14 +49,13 @@ protected:
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
 
+	std::unique_ptr<Stage> currentStage_;
+
 	SceneMessage message = nullptr;
 
 	bool showDynamicAnimationEditorWindow = false;
 	DynamicAnimationEditorWindow dynamicAnimationEditorWindow;
 
-	Camera camera;
-	std::vector<std::unique_ptr<CameraController>> cameraControllers;
-	int nowCameraControllerIndex = 0;
 	bool isCursorReleased = false;
 
 	Game::PostProcess postProcess;
@@ -85,7 +63,5 @@ protected:
 	ShadowMapData shadowMapData;
 	IBLData iblData;
 
-	ActorManager actorManager;
 	WidgetManager widgetManager;
-	LightManager lightManager;
 };
