@@ -1,7 +1,6 @@
 ﻿// TerrainMeshCollider.h
 
 #pragma once
-#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -56,11 +55,6 @@ private:
     void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
     void ReleaseShape();
     void ClampCollisionArea();
-
-    bool NearlyEqual(float a, float b)
-    {
-        return std::fabs(a - b) <= 0.0001f;
-    }
 
     PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;

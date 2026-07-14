@@ -1,966 +1,895 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
-    <Filter Include="ソースファイル">
-      <UniqueIdentifier>{22b9d892-a108-4576-907a-6671f2b47c75}</UniqueIdentifier>
+    <Filter Include="Animation">
+      <UniqueIdentifier>{bec44de4-182a-5342-9af4-1e54aa2fe358}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー">
-      <UniqueIdentifier>{15a18324-c569-44a5-860e-70b29ab50491}</UniqueIdentifier>
+    <Filter Include="Application">
+      <UniqueIdentifier>{26d30179-1711-5c6f-b1fd-77306bab4640}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\物理">
-      <UniqueIdentifier>{afdc2c92-edcc-45c3-819a-3fc4a44b8e8a}</UniqueIdentifier>
+    <Filter Include="Application\Bootstrap">
+      <UniqueIdentifier>{a0b5356b-83a8-5461-9e62-beb3ad77de49}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アプリ">
-      <UniqueIdentifier>{3084c246-b69a-4652-8a81-096e9c7ab090}</UniqueIdentifier>
+    <Filter Include="Application\Input">
+      <UniqueIdentifier>{3bbf9c12-77f5-5dd9-8501-25c5f35b31c8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アプリ\エディト">
-      <UniqueIdentifier>{304340e8-d778-410b-aae3-c9259c162c3b}</UniqueIdentifier>
+    <Filter Include="Application\SettingsAndDebug">
+      <UniqueIdentifier>{97c321c8-115a-5871-bcea-30517ad367ea}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アプリ\入力">
-      <UniqueIdentifier>{de4e9ff2-75ac-4a10-9d16-751ed615f21b}</UniqueIdentifier>
+    <Filter Include="Application\Time">
+      <UniqueIdentifier>{377672cd-acc6-552a-93a6-590f7511c2c7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オーディオ">
-      <UniqueIdentifier>{a5ee6f23-df6d-407f-9634-387fab3db889}</UniqueIdentifier>
+    <Filter Include="Application\Tools">
+      <UniqueIdentifier>{5b69eaee-6bd3-53fe-800c-1de20bd2c4ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト">
-      <UniqueIdentifier>{6a4c50f1-85ce-4674-9620-088cc6c16290}</UniqueIdentifier>
+    <Filter Include="Core">
+      <UniqueIdentifier>{4d219df1-c552-5299-a6a7-11ef209370cd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\アクタ">
-      <UniqueIdentifier>{9a72350c-45c0-4afe-b285-c119ea25c9e5}</UniqueIdentifier>
+    <Filter Include="Core\Foundation">
+      <UniqueIdentifier>{7ef62bea-1b27-59ef-9bc3-0d36ba9cd606}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\アクタ\エンティティ">
-      <UniqueIdentifier>{9808b356-2b01-4497-b52b-cbc733a296b4}</UniqueIdentifier>
+    <Filter Include="Core\Object">
+      <UniqueIdentifier>{e34a08e9-dc82-52f2-89be-08368adc9907}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\ウィジェット">
-      <UniqueIdentifier>{a51309dd-1db6-4236-b7b4-4f2677565f9e}</UniqueIdentifier>
+    <Filter Include="Gameplay">
+      <UniqueIdentifier>{87093877-7f27-558f-b28a-f32f4700ebad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\オブジェクト\ライト">
-      <UniqueIdentifier>{95ce1ff2-b85f-4658-9f05-0c6fcb30ed56}</UniqueIdentifier>
+    <Filter Include="Gameplay\AI">
+      <UniqueIdentifier>{c6571121-f585-5a8c-8aec-ebe2b55c96f4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\カメラ">
-      <UniqueIdentifier>{4561f66d-646b-410b-8980-6e0d0e83782d}</UniqueIdentifier>
+    <Filter Include="Gameplay\Actor">
+      <UniqueIdentifier>{6434a9c3-d783-5dcf-88ae-a64386ef2799}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\シーン">
-      <UniqueIdentifier>{d200445d-b38a-4cfe-afb0-822a19aa506d}</UniqueIdentifier>
+    <Filter Include="Gameplay\Camera">
+      <UniqueIdentifier>{2101424f-8d01-5850-a29d-f078d3023b7c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\プレイヤーコントローラー">
-      <UniqueIdentifier>{0b302153-6366-4435-9e2a-b0871780c0e7}</UniqueIdentifier>
+    <Filter Include="Gameplay\Lighting">
+      <UniqueIdentifier>{6a1cb470-6e2a-51b1-91d7-2fca111db099}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\リソース">
-      <UniqueIdentifier>{9bbcc62a-8dc0-41e6-855c-50271dfd7fbc}</UniqueIdentifier>
+    <Filter Include="Gameplay\Player">
+      <UniqueIdentifier>{8f6752d2-e46a-57c6-999c-a5cee67713a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画">
-      <UniqueIdentifier>{ceab042a-835d-40bc-a5bc-816c0c37d9a9}</UniqueIdentifier>
+    <Filter Include="Gameplay\Scene">
+      <UniqueIdentifier>{1ad6a432-eaeb-55b3-9046-d9820f1e1562}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー">
-      <UniqueIdentifier>{40dc2f16-0df4-4a02-84e5-759fb56f6e10}</UniqueIdentifier>
+    <Filter Include="Gameplay\Stage">
+      <UniqueIdentifier>{6c8bc7e4-7ae9-5ab5-a7a4-28672141f079}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\シェーダー">
-      <UniqueIdentifier>{f47cc0d1-a12e-469d-b7ea-389cc1b7d144}</UniqueIdentifier>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{064777ca-9599-5d31-bdb1-c3eac57208b8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\シェーダー\モデル">
-      <UniqueIdentifier>{1939d9ac-fa4c-4e6e-84ff-bfa74a544ab5}</UniqueIdentifier>
+    <Filter Include="Physics\Collider">
+      <UniqueIdentifier>{8f0fea58-10b8-53b6-b196-57707e486b53}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\シェーダー\スプライト">
-      <UniqueIdentifier>{ac83e138-f728-4b00-a5ee-6d2f6cd5a024}</UniqueIdentifier>
+    <Filter Include="Physics\Core">
+      <UniqueIdentifier>{d48a9a79-86a6-51f1-9a03-20e40da19555}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\Model">
-      <UniqueIdentifier>{9fd4691d-5a3f-43c6-bf0d-e1b799726645}</UniqueIdentifier>
+    <Filter Include="Physics\Navigation">
+      <UniqueIdentifier>{54b9cdce-71b7-5f38-9bbc-1615a7199cd3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\ShadowMap">
-      <UniqueIdentifier>{1a8e3f2b-2b38-4f82-8ff3-27a98eb31efd}</UniqueIdentifier>
+    <Filter Include="Physics\RigidBody">
+      <UniqueIdentifier>{35001063-91f9-5328-b984-f1c4e6c91707}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\Debug">
-      <UniqueIdentifier>{936eba98-130a-41c8-a7f1-dbced21a2831}</UniqueIdentifier>
+    <Filter Include="Project">
+      <UniqueIdentifier>{b5466245-aacb-5f60-87d5-7edd25927ba9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\Sky">
-      <UniqueIdentifier>{b174d1c4-b593-4528-a9a6-52f210e802c3}</UniqueIdentifier>
+    <Filter Include="Rendering">
+      <UniqueIdentifier>{610b5913-428e-52d1-8867-0b25f8781106}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\Sprite">
-      <UniqueIdentifier>{cf31b300-2bcc-40f3-a4eb-21b4707358a6}</UniqueIdentifier>
+    <Filter Include="Rendering\Component">
+      <UniqueIdentifier>{f19cbdc6-f140-51a9-92ed-2aeda68b7091}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\レンダラー\Trail">
-      <UniqueIdentifier>{ab68a562-0002-4f89-b1e5-aa20a98eaad1}</UniqueIdentifier>
+    <Filter Include="Rendering\Core">
+      <UniqueIdentifier>{567241f6-c4dc-523e-a58a-92a3419f5d66}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\Common">
-      <UniqueIdentifier>{3a951e36-10fc-4259-a6cf-1c511e6924ad}</UniqueIdentifier>
+    <Filter Include="Rendering\Effect">
+      <UniqueIdentifier>{387e536b-fc83-5c5e-ba05-3a11be4d169d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\描画\3Dエフェクト">
-      <UniqueIdentifier>{be58181d-cee9-438c-9d64-b012a9380a4d}</UniqueIdentifier>
+    <Filter Include="Rendering\Renderer">
+      <UniqueIdentifier>{ce086930-c12e-5ec8-96b3-92d36f596589}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アプリ\Debug">
-      <UniqueIdentifier>{55d2b0f5-487f-4167-990e-79dae9216b94}</UniqueIdentifier>
+    <Filter Include="Rendering\Shader">
+      <UniqueIdentifier>{447a0bfd-a5cc-5a41-a12c-fa02ee6d8b4e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソースファイル\アプリ\タイム">
-      <UniqueIdentifier>{cd3c03cd-bea8-462b-bd3c-717091cb45be}</UniqueIdentifier>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{db470d82-6a2d-5449-9673-88c6ff2e4e54}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル">
-      <UniqueIdentifier>{d6cd2287-ead3-4b85-b7d1-b4a80aee767b}</UniqueIdentifier>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4734be18-9a06-59b1-a6cf-5367e5eddbcc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\PBR">
-      <UniqueIdentifier>{0c99764e-ae6f-421e-9ed9-56ed03757b53}</UniqueIdentifier>
+    <Filter Include="Shaders\2D">
+      <UniqueIdentifier>{2c438fde-5c13-593a-a138-a41b8500d104}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\Basic">
-      <UniqueIdentifier>{b199b2b4-2e6b-466e-a4ee-70dc08748a2c}</UniqueIdentifier>
+    <Filter Include="Shaders\3D">
+      <UniqueIdentifier>{79a9aa39-2e31-5831-be27-79cd22e8ad3e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\Primitive">
-      <UniqueIdentifier>{2ec101a5-af92-49d6-ac1a-29a972ae6e80}</UniqueIdentifier>
+    <Filter Include="Shaders\Common">
+      <UniqueIdentifier>{2a201606-7876-57a3-b53e-52b7d4e9f433}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\Shadowmap">
-      <UniqueIdentifier>{e7369717-e690-4177-b8b0-3d9838a6320a}</UniqueIdentifier>
+    <Filter Include="Shaders\Particle">
+      <UniqueIdentifier>{aaf0412e-4e9c-56af-b7fd-036c1b5f485d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\Shape">
-      <UniqueIdentifier>{d9f4c8e3-9799-447e-b73f-93ec64295ead}</UniqueIdentifier>
+    <Filter Include="Shaders\PostProcess">
+      <UniqueIdentifier>{74d2d87a-69de-5b8a-b1be-c142d568a330}</UniqueIdentifier>
     </Filter>
-    <Filter Include="シェーダー\モデル\SkyBox">
-      <UniqueIdentifier>{9f79b914-747d-4452-b2e4-1f3ae05ac4fb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\モデル\Terrain">
-      <UniqueIdentifier>{913f488d-7d52-4ad9-943d-80e71cc543d0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\モデル\Trail">
-      <UniqueIdentifier>{4151ee56-693d-4e37-b9b0-7cfec2c32305}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\スプライト">
-      <UniqueIdentifier>{7ec9f737-081c-4ae0-9151-36ab37c20afb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\スプライト\Basic">
-      <UniqueIdentifier>{a1135338-5623-4e45-b91f-b9f03a979f9b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\PostProccess">
-      <UniqueIdentifier>{91a3bb11-1180-4ec7-83be-eecded54946a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\シーン\エンジン">
-      <UniqueIdentifier>{bc8b83a6-e810-46ef-a6c3-240cc2ab3571}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="シェーダー\パーティクル">
-      <UniqueIdentifier>{9ae4c4da-349e-45da-99c1-03cc64b0b526}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\内部">
-      <UniqueIdentifier>{54ae692e-fcaa-4f13-b494-94609f00d596}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント">
-      <UniqueIdentifier>{8323898d-daf3-4ac2-887b-9f6e82e59542}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\描画">
-      <UniqueIdentifier>{f707d33f-9e32-49e9-bbf1-4e35d7941e6d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\データ管理">
-      <UniqueIdentifier>{b87d1a78-31b5-4d24-810e-f3bdadab3ffe}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\パーティクル">
-      <UniqueIdentifier>{809840d9-478b-448c-99c3-edd02250dc20}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="プロジェクト設定">
-      <UniqueIdentifier>{a46b9dd0-0349-48bd-8fcc-39673772a85d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\オブジェクト\ステージ">
-      <UniqueIdentifier>{57df697d-e7b3-47e9-b1f5-e60dd9e2a570}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理">
-      <UniqueIdentifier>{0528829d-3f04-4806-8535-552bfb0e5923}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\Rigidbody">
-      <UniqueIdentifier>{6a87f85f-2f3b-4e44-96ea-a39b56ad4ae3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29">
-      <UniqueIdentifier>{527eb8f3-99d7-40f0-b81c-315784501738}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\Animator">
-      <UniqueIdentifier>{f0a96077-fbd4-4bd4-b93d-de17125f74f1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\BoneIK">
-      <UniqueIdentifier>{79b91bae-ae87-41d2-97b2-66b54db6dc7f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\Navmesh">
-      <UniqueIdentifier>{20591830-571d-4b12-9284-c420dcb7ba47}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソースファイル\コンポーネント\動き、物理\Collider">
-      <UniqueIdentifier>{3f69ee93-56c3-479f-b0fd-ad55a05facb2}</UniqueIdentifier>
+    <Filter Include="UI">
+      <UniqueIdentifier>{010f6bd1-88eb-5d1e-b669-bf7e07878617}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\FreeCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\GLTFImporter.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\GpuResourceUtils.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Framework.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Application\Bootstrap</Filter>
     </ClCompile>
     <ClCompile Include="Source\Main.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Application\Bootstrap</Filter>
     </ClCompile>
     <ClCompile Include="Source\Dialog.cpp">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\PhysicsManager.cpp">
-      <Filter>ソースファイル\物理</Filter>
+      <Filter>Physics\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Widget.cpp">
-      <Filter>ソースファイル\オブジェクト\ウィジェット</Filter>
+      <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\LocalPlayer.cpp">
-      <Filter>ソースファイル\プレイヤーコントローラー</Filter>
+      <Filter>Gameplay\Player</Filter>
     </ClCompile>
     <ClCompile Include="Source\EffectManager.cpp">
-      <Filter>ソースファイル\描画\3Dエフェクト</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClCompile>
     <ClCompile Include="Source\Effect.cpp">
-      <Filter>ソースファイル\描画\3Dエフェクト</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClCompile>
     <ClCompile Include="Source\BasicModelShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\モデル</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\BasicSpriteShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Model.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Shader.cpp">
-      <Filter>ソースファイル\描画\シェーダー</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Object.cpp">
-      <Filter>ソースファイル\オブジェクト</Filter>
+      <Filter>Core\Object</Filter>
     </ClCompile>
     <ClCompile Include="Source\Texture.cpp">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\GaussianFilterShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRenderComponent.cpp">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteRenderComponent.cpp">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\TrailRenderComponent.cpp">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input.cpp">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Mouse.cpp">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\GamePad.cpp">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Terrain.cpp">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClCompile>
     <ClCompile Include="Source\DamageHoleComponent.cpp">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteWidget.cpp">
-      <Filter>ソースファイル\オブジェクト\ウィジェット</Filter>
+      <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\DynamicAnimationSerializer.cpp">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClCompile>
     <ClCompile Include="Source\DynamicAnimation.cpp">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClCompile>
     <ClCompile Include="Source\LightManager.cpp">
-      <Filter>ソースファイル\オブジェクト\ライト</Filter>
+      <Filter>Gameplay\Lighting</Filter>
     </ClCompile>
     <ClCompile Include="Source\Light.cpp">
-      <Filter>ソースファイル\オブジェクト\ライト</Filter>
+      <Filter>Gameplay\Lighting</Filter>
     </ClCompile>
     <ClCompile Include="Source\Stage01.cpp">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClCompile>
     <ClCompile Include="Source\UserSettingsManager.cpp">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\SettingsAndDebug</Filter>
     </ClCompile>
     <ClCompile Include="Source\StageLoader.cpp">
-      <Filter>ソースファイル\コンポーネント\データ管理</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClCompile>
     <ClCompile Include="Source\Entity.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Player.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Player</Filter>
     </ClCompile>
     <ClCompile Include="Source\Apple.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\AracoreQueen.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Prop.cpp">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\CrystalProp.cpp">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\LoadingScene.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\TestPlayScene.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene.cpp">
-      <Filter>ソースファイル\シーン\エンジン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\SceneManager.cpp">
-      <Filter>ソースファイル\シーン\エンジン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\FpsCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\MovieCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\ThirdPersonCameraController.cpp">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Model</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\ShadowMapRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\ShadowMap</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\ImGuiRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\ShapeRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\SkyBoxRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Sky</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpriteRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Sprite</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\TrailRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Trail</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\PrimitiveRenderer.cpp">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics.cpp">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\RenderState.cpp">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\RenderTarget.cpp">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameTime.cpp">
-      <Filter>ソースファイル\アプリ\タイム</Filter>
+      <Filter>Application\Time</Filter>
     </ClCompile>
     <ClCompile Include="Source\Actor.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\GamePostProcess.cpp">
-      <Filter>ソースファイル\描画\シェーダー</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\PBRShader.cpp">
-      <Filter>ソースファイル\描画\シェーダー\モデル</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\CameraEffectController.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\HitStop.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\PostProcessController.cpp">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\ParticleSystem.cpp">
-      <Filter>ソースファイル\コンポーネント\パーティクル</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClCompile>
     <ClCompile Include="Source\Aracore.cpp">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\RectTransform.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+      <Filter>Core\Object</Filter>
     </ClCompile>
     <ClCompile Include="Source\Transform.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+      <Filter>Core\Object</Filter>
     </ClCompile>
     <ClCompile Include="Source\Animator.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Animator</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneFollower.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\FootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\HumanoidFootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpiderFootIK.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\NavMeshActor.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="Source\NavMeshAgent.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="Source\NavMeshObstacle.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="Source\LookAt.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneBoxCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneCapsuleCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoneSphereCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\BoxCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\CapsuleCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\CharacterController.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\MeshCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\SphereCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\SpringBone.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\TerrainMeshCollider.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClCompile>
     <ClCompile Include="Source\RigidbodyDynamic.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+      <Filter>Physics\RigidBody</Filter>
     </ClCompile>
     <ClCompile Include="Source\RigidbodyStatic.cpp">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component.cpp">
-      <Filter>ソースファイル\コンポーネント</Filter>
+      <Filter>Physics\RigidBody</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\FreeCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\GLTFImporter.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\GpuResourceUtils.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Framework.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Application\Bootstrap</Filter>
     </ClInclude>
     <ClInclude Include="Source\Dialog.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Shader.h">
-      <Filter>ソースファイル\描画\シェーダー</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\PhysicsManager.h">
-      <Filter>ソースファイル\物理</Filter>
+      <Filter>Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component.h">
-      <Filter>ソースファイル\コンポーネント</Filter>
+      <Filter>Core\Object</Filter>
     </ClInclude>
     <ClInclude Include="Source\CameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Widget.h">
-      <Filter>ソースファイル\オブジェクト\ウィジェット</Filter>
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\PlayerController.h">
-      <Filter>ソースファイル\プレイヤーコントローラー</Filter>
+      <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\LocalPlayer.h">
-      <Filter>ソースファイル\プレイヤーコントローラー</Filter>
+      <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimEditorWindow.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Source\AnimatorSerializer.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\EffectManager.h">
-      <Filter>ソースファイル\描画\3Dエフェクト</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClInclude>
     <ClInclude Include="Source\Effect.h">
-      <Filter>ソースファイル\描画\3Dエフェクト</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClInclude>
     <ClInclude Include="Source\BasicModelShader.h">
-      <Filter>ソースファイル\描画\シェーダー\モデル</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\BasicSpriteShader.h">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Object.h">
-      <Filter>ソースファイル\オブジェクト</Filter>
+      <Filter>Core\Object</Filter>
     </ClInclude>
     <ClInclude Include="Source\ResourceManager.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Texture.h">
-      <Filter>ソースファイル\リソース</Filter>
+      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\ShaderParam.h">
-      <Filter>ソースファイル\描画\シェーダー</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\EnemyAIController.h">
-      <Filter>ソースファイル\プレイヤーコントローラー</Filter>
+      <Filter>Gameplay\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\GaussianFilterShader.h">
-      <Filter>ソースファイル\描画\シェーダー\スプライト</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRenderComponent.h">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\DamageHoleComponent.h">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpriteRenderComponent.h">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\TrailRenderComponent.h">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Input.h">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClInclude>
     <ClInclude Include="Source\Mouse.h">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClInclude>
     <ClInclude Include="Source\GamePad.h">
-      <Filter>ソースファイル\アプリ\入力</Filter>
+      <Filter>Application\Input</Filter>
     </ClInclude>
     <ClInclude Include="Source\Terrain.h">
-      <Filter>ソースファイル\コンポーネント\描画</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpriteWidget.h">
-      <Filter>ソースファイル\オブジェクト\ウィジェット</Filter>
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\DynamicAnimationEditorWindow.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Source\DynamicAnimationSerializer.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Source\DynamicAnimation.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Source\Light.h">
-      <Filter>ソースファイル\オブジェクト\ライト</Filter>
+      <Filter>Gameplay\Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Source\WidgetManager.h">
-      <Filter>ソースファイル\オブジェクト\ウィジェット</Filter>
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\LightManager.h">
-      <Filter>ソースファイル\オブジェクト\ライト</Filter>
+      <Filter>Gameplay\Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Source\CbLightData.h">
-      <Filter>ソースファイル\オブジェクト\ライト</Filter>
+      <Filter>Gameplay\Lighting</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage01.h">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClInclude>
     <ClInclude Include="Source\PhysicsComponent.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理</Filter>
+      <Filter>Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\UserSettingsManager.h">
-      <Filter>ソースファイル\アプリ\エディト</Filter>
+      <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\StageLoader.h">
-      <Filter>ソースファイル\コンポーネント\データ管理</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClInclude>
     <ClInclude Include="Source\Player.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\Entity.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\AracoreQueen.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Apple.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Prop.h">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\CrystalProp.h">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\TestPlayScene.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\LoadingScene.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene.h">
-      <Filter>ソースファイル\シーン\エンジン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\SceneManager.h">
-      <Filter>ソースファイル\シーン\エンジン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\ThirdPersonCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\FpsCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\MovieCameraController.h">
-      <Filter>ソースファイル\カメラ</Filter>
+      <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Model</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\ShadowMapRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\ShadowMap</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\ImGuiRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\ShapeRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\SkyBoxRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Sky</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpriteRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Sprite</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\TrailRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Trail</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\PrimitiveRenderer.h">
-      <Filter>ソースファイル\描画\レンダラー\Debug</Filter>
+      <Filter>Rendering\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics.h">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderContext.h">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderState.h">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\RenderTarget.h">
-      <Filter>ソースファイル\描画\Common</Filter>
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Benchmark.h">
-      <Filter>ソースファイル\アプリ\Debug</Filter>
+      <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\DebugUtil.h">
-      <Filter>ソースファイル\アプリ\Debug</Filter>
+      <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\HighResolutionTimer.h">
-      <Filter>ソースファイル\アプリ\タイム</Filter>
+      <Filter>Application\Time</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameTime.h">
-      <Filter>ソースファイル\アプリ\タイム</Filter>
+      <Filter>Application\Time</Filter>
     </ClInclude>
     <ClInclude Include="Source\ActorManager.h">
-      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Actor.h">
-      <Filter>ソースファイル\オブジェクト\アクタ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\PostProcessController.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Easing.h">
-      <Filter>ソースファイル\アプリ</Filter>
+      <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\GamePostProcess.h">
-      <Filter>ソースファイル\描画\シェーダー</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\PBRShader.h">
-      <Filter>ソースファイル\描画\シェーダー\モデル</Filter>
+      <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\CameraEffectController.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\HitStop.h">
-      <Filter>ソースファイル\シーン</Filter>
+      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\ParticleSystem.h">
-      <Filter>ソースファイル\コンポーネント\パーティクル</Filter>
+      <Filter>Rendering\Effect</Filter>
     </ClInclude>
     <ClInclude Include="Source\Common.h">
-      <Filter>ソースファイル\内部</Filter>
+      <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Aracore.h">
-      <Filter>ソースファイル\オブジェクト\アクタ\エンティティ</Filter>
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Stage.h">
-      <Filter>ソースファイル\オブジェクト\ステージ</Filter>
+      <Filter>Gameplay\Stage</Filter>
     </ClInclude>
     <ClInclude Include="Source\RectTransform.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+      <Filter>Core\Object</Filter>
     </ClInclude>
     <ClInclude Include="Source\Transform.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Transform%28疑似コンポーネント%29</Filter>
+      <Filter>Core\Object</Filter>
     </ClInclude>
     <ClInclude Include="Source\Animator.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Animator</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneFollower.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\FootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\HumanoidFootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpiderFootIK.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\NavMeshObstacle.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\NavMeshActor.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\NavMeshAgent.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Navmesh</Filter>
+      <Filter>Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\LookAt.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneBoxCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneCapsuleCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoneSphereCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\BoxCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\CapsuleCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\CharacterController.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\CollidersDef.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\MeshCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\SphereCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\SpringBone.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\BoneIK</Filter>
+      <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\TerrainMeshCollider.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Collider</Filter>
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
     <ClInclude Include="Source\RigidbodyStatic.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+      <Filter>Physics\RigidBody</Filter>
     </ClInclude>
     <ClInclude Include="Source\RigidbodyDynamic.h">
-      <Filter>ソースファイル\コンポーネント\動き、物理\Rigidbody</Filter>
+      <Filter>Physics\RigidBody</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\PBR.hlsli">
-      <Filter>シェーダー\モデル\PBR</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\PBRFunctions.hlsli">
-      <Filter>シェーダー\モデル\PBR</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\BasicModel.hlsli">
-      <Filter>シェーダー\モデル\Basic</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\PrimitiveRenderer.hlsli">
-      <Filter>シェーダー\モデル\Primitive</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\ShadowmapCaster.hlsli">
-      <Filter>シェーダー\モデル\Shadowmap</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\ShapeRenderer.hlsli">
-      <Filter>シェーダー\モデル\Shape</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\TerrainPrimitive.hlsli">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\TrailRenderer.hlsli">
-      <Filter>シェーダー\モデル\Trail</Filter>
+      <Filter>Shaders\3D</Filter>
     </None>
     <None Include="Shader\BasicSprite.hlsli">
-      <Filter>シェーダー\スプライト\Basic</Filter>
+      <Filter>Shaders\2D</Filter>
     </None>
     <None Include="Shader\FullScreenQuad.hlsli">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </None>
     <None Include="Shader\gbuffer.hlsli">
-      <Filter>シェーダー</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </None>
     <None Include="Shader\filter_functions.hlsli">
-      <Filter>シェーダー</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </None>
     <None Include="Shader\GeometryParticle.hlsli">
-      <Filter>シェーダー\パーティクル</Filter>
+      <Filter>Shaders\Particle</Filter>
     </None>
     <None Include="Shader\Scene.hlsli">
-      <Filter>シェーダー</Filter>
+      <Filter>Shaders\Common</Filter>
     </None>
     <None Include="Shader\ShadingFunctions.hlsli">
-      <Filter>シェーダー</Filter>
+      <Filter>Shaders\Common</Filter>
     </None>
     <None Include="Shader\Skinning.hlsli">
-      <Filter>シェーダー</Filter>
+      <Filter>Shaders\Common</Filter>
     </None>
     <None Include=".gitignore">
-      <Filter>プロジェクト設定</Filter>
+      <Filter>Project</Filter>
     </None>
     <None Include="README.md">
-      <Filter>プロジェクト設定</Filter>
+      <Filter>Project</Filter>
     </None>
     <None Include="Source\Object.inl">
-      <Filter>ソースファイル\オブジェクト</Filter>
+      <Filter>Core\Object</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
-      <Filter>シェーダー\モデル\PBR</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
-      <Filter>シェーダー\モデル\PBR</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
-      <Filter>シェーダー\モデル\PBR</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicModelVS.hlsl">
-      <Filter>シェーダー\モデル\Basic</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicModelPS.hlsl">
-      <Filter>シェーダー\モデル\Basic</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">
-      <Filter>シェーダー\モデル\Primitive</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererPS.hlsl">
-      <Filter>シェーダー\モデル\Primitive</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ShadowmapCasterVS.hlsl">
-      <Filter>シェーダー\モデル\Shadowmap</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ShapeRendererVS.hlsl">
-      <Filter>シェーダー\モデル\Shape</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ShapeRendererPS.hlsl">
-      <Filter>シェーダー\モデル\Shape</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SkyBoxVS.hlsl">
-      <Filter>シェーダー\モデル\SkyBox</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SkyBoxPS.hlsl">
-      <Filter>シェーダー\モデル\SkyBox</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitiveVS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitiveMeshVS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitiveDS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitiveHS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererVS.hlsl">
-      <Filter>シェーダー\モデル\Trail</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
-      <Filter>シェーダー\モデル\Trail</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
-      <Filter>シェーダー\スプライト\Basic</Filter>
+      <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
-      <Filter>シェーダー\スプライト\Basic</Filter>
+      <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\RadialBlurPS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\VignettePS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\FullScreenQuadVS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ChromaticAberrationPS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SSAOCompositePS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SSAOPS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\FXAAPS.hlsl">
-      <Filter>シェーダー\PostProccess</Filter>
+      <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
-      <Filter>シェーダー\スプライト</Filter>
+      <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TerrainColliderBuildCS.hlsl">
-      <Filter>シェーダー\モデル\Terrain</Filter>
+      <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\GeometryParticleVS.hlsl">
-      <Filter>シェーダー\パーティクル</Filter>
+      <Filter>Shaders\Particle</Filter>
     </FxCompile>
     <FxCompile Include="Shader\GeometryParticleGS.hlsl">
-      <Filter>シェーダー\パーティクル</Filter>
+      <Filter>Shaders\Particle</Filter>
     </FxCompile>
     <FxCompile Include="Shader\GeometryParticlePS.hlsl">
-      <Filter>シェーダー\パーティクル</Filter>
+      <Filter>Shaders\Particle</Filter>
     </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="ザ・メモ.txt">
-      <Filter>プロジェクト設定</Filter>
-    </Text>
   </ItemGroup>
 </Project>

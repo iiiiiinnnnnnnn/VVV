@@ -6,7 +6,10 @@
 
 Object::~Object()
 {
-    components.clear();
+	while (!components.empty())
+	{
+		components.pop_back();
+	}
 }
 
 void Object::Awake()

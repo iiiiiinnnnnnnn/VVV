@@ -7,6 +7,8 @@
 #include "Terrain.h"
 #include "Actor.h"
 
+#include <cmath>
+
 TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const CollisionArea& collisionArea, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), collisionArea(collisionArea), material(material)
 {
@@ -40,14 +42,14 @@ TerrainMeshCollider::~TerrainMeshCollider()
 
 void TerrainMeshCollider::ReleaseShape()
 {
-    if (shape == nullptr)
-    {
-        return;
-    }
+    if (!shape) return;
 
-    if (rigidbody != nullptr && rigidbody->GetRigidActor() != nullptr)
+    if (rigidbody)
     {
-        rigidbody->GetRigidActor()->detachShape(*shape);
+        if (PxRigidActor* rigidActor = rigidbody->GetRigidActor())
+        {
+            rigidActor->detachShape(*shape);
+        }
     }
 
     shape->release();
@@ -118,6 +120,11 @@ bool TerrainMeshCollider::LoadCachedMesh(
     std::vector<Vector3>& vertices,
     std::vector<uint32_t>& indices)
 {
+	const auto nearlyEqual = [](float a, float b)
+	{
+		return std::fabs(a - b) <= 0.0001f;
+	};
+
     Terrain* terrain = owner->GetComponent<Terrain>();
     if (!terrain)
     {
@@ -160,19 +167,19 @@ bool TerrainMeshCollider::LoadCachedMesh(
     if (!transform) return false;
     const Vector3 scale = transform->scale;
     const uint64_t terrainDataHash = terrain->GetTerrainDataHash();
-    if (!NearlyEqual(header.minX, collisionArea.minX) ||
-        !NearlyEqual(header.maxX, collisionArea.maxX) ||
-        !NearlyEqual(header.minZ, collisionArea.minZ) ||
-        !NearlyEqual(header.maxZ, collisionArea.maxZ) ||
+    if (!nearlyEqual(header.minX, collisionArea.minX) ||
+        !nearlyEqual(header.maxX, collisionArea.maxX) ||
+        !nearlyEqual(header.minZ, collisionArea.minZ) ||
+        !nearlyEqual(header.maxZ, collisionArea.maxZ) ||
         header.terrainDataHash != terrainDataHash ||
-        !NearlyEqual(header.scaleX, scale.x) ||
-        !NearlyEqual(header.scaleY, scale.y) ||
-        !NearlyEqual(header.scaleZ, scale.z) ||
-        !NearlyEqual(header.terrainSize, terrain->GetTerrainSize()) ||
+        !nearlyEqual(header.scaleX, scale.x) ||
+        !nearlyEqual(header.scaleY, scale.y) ||
+        !nearlyEqual(header.scaleZ, scale.z) ||
+        !nearlyEqual(header.terrainSize, terrain->GetTerrainSize()) ||
         header.gridResolution != terrain->GetGridResolution() ||
-        !NearlyEqual(header.edgeFactor, terrain->GetTessellationEdgeFactor()) ||
-        !NearlyEqual(header.innerFactor, terrain->GetTessellationInnerFactor()) ||
-        !NearlyEqual(header.heightScaler, terrain->GetHeightScaler()))
+        !nearlyEqual(header.edgeFactor, terrain->GetTessellationEdgeFactor()) ||
+        !nearlyEqual(header.innerFactor, terrain->GetTessellationInnerFactor()) ||
+        !nearlyEqual(header.heightScaler, terrain->GetHeightScaler()))
     {
         vxMessage = "Terrain .vx ignored: terrain collider setting changed.";
         return false;

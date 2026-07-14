@@ -381,9 +381,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="ザ・メモ.txt" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D22095F2-0FC3-424B-97D6-074B973AB293}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
