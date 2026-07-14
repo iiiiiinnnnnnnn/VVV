@@ -5,7 +5,8 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 
-ThirdPersonCameraController::ThirdPersonCameraController(Player* character)
+ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* character)
+	: CameraController(owner)
 {
     SetPlayer(character);
 }
@@ -86,7 +87,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     currentEye = finalEye;
 }
 
-void ThirdPersonCameraController::OnUpdate()
+void ThirdPersonCameraController::UpdateCamera()
 {
     Mouse& mouse = Game::Input::Instance().GetMouse();
     mouse.SetCursorLock(true);

@@ -2,8 +2,12 @@
 
 #include "Gameplay/Camera/Camera.h"
 
+#include "Core/Object/Object.h"
+#include "Core/Object/Transform.h"
+
 // コンストラクタ
-Camera::Camera()
+Camera::Camera(Object* owner, int priority)
+	: Component(owner), priority(priority), normalizedPriority(priority)
 {
 	// カメラ設定
 	SetPerspectiveFov(
@@ -47,6 +51,12 @@ void Camera::SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& 
 	// 視点、注視点を保存
 	this->eye = eye;
 	this->focus = focus;
+
+	Transform* transform = owner->GetComponent<Transform>();
+	if (!transform) return;
+
+	transform->SetPosition(eye);
+	transform->SetRotation(Quaternion::CreateFromRotationMatrix(world));
 }
 
 // パースペクティブ設定

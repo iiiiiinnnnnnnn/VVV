@@ -27,7 +27,7 @@ public:
 
 	virtual void Update();
 	virtual void Render();
-	CameraController* GetNowCameraController() const;
+	CameraController* GetActiveCameraController() const;
 
 	const RenderSettings& GetRenderSettings() const
 	{
@@ -49,7 +49,7 @@ protected:
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
 
-	std::unique_ptr<Stage> currentStage_;
+	std::unique_ptr<Stage> currentStage;
 
 	SceneMessage message = nullptr;
 

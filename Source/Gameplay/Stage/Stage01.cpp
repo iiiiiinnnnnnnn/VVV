@@ -11,6 +11,8 @@
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
+#include "Gameplay/Camera/Camera.h"
+#include "Gameplay/Camera/FreeCameraController.h"
 
 Stage01::Stage01()
 {
@@ -27,6 +29,26 @@ Stage01::Stage01()
 	StageLoader* stageLoader = AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	AddComponent<NavMeshActor>();
+
+	// F4縺ｧ蛻・ｊ譖ｿ縺医ｋ繧ｹ繝・・繧ｸ遒ｺ隱咲畑繧ｫ繝｡繝ｩ
+	{
+		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
+		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
+		debugCamera->SetPerspectiveFov(
+			DirectX::XMConvertToRadians(45.0f),
+			Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight,
+			0.1f,
+			1000.0f);
+		debugCamera->SetLookAt({0.0f, 3.0f, 5.0f}, Vector3::Zero, Vector3::Up);
+
+		FreeCameraController* controller =
+			debugCameraActor->AddComponent<FreeCameraController>();
+		debugCamera->SetActive(false);
+		controller->SetActive(false);
+
+		SetDebugCamera(debugCamera);
+		actorManager.Register(debugCameraActor);
+	}
 
 	//	パーティクル準備
 	{
@@ -106,6 +128,6 @@ void Stage01::OnRender(const RenderContext& rc)
 
 void Stage01::OnDrawGUI()
 {
-
+	
 }
 

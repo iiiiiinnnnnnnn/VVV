@@ -14,4 +14,5 @@ public:
 
 private:
 	float aracoreSpawnTimer = -1.0f;
+	std::unique_ptr<Actor> subCamera;
 };

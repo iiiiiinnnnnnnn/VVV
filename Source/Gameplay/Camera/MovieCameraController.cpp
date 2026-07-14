@@ -3,7 +3,8 @@
 #include "Gameplay/Camera/MovieCameraController.h"
 #include "Application/Time/GameTime.h"
 
-MovieCameraController::MovieCameraController()
+MovieCameraController::MovieCameraController(Object* owner)
+	: CameraController(owner)
 {
 	//anim = std::make_unique<Animator>(this, true);
 }
@@ -13,7 +14,7 @@ void MovieCameraController::SyncControllerToCamera(Camera& camera)
 
 }
 
-void MovieCameraController::OnUpdate()
+void MovieCameraController::UpdateCamera()
 {
 
 }

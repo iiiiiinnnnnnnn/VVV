@@ -9,10 +9,10 @@
 class FpsCameraController : public CameraController
 {
 public:
-    FpsCameraController(std::shared_ptr<Player> chara);
+    FpsCameraController(Object* owner, std::shared_ptr<Player> chara);
     void SyncCameraToController(const Camera& camera) override {}
     void SyncControllerToCamera(Camera& camera) override;
-    void OnUpdate() override;
+    void UpdateCamera() override;
     void OnFocusLost() override;
     void OnDrawGUI() override;
 

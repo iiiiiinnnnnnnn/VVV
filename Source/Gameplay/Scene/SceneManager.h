@@ -72,14 +72,14 @@ public:
 		return currentScene.get();
 	}
 
-	CameraController* GetNowCameraController() const
+	CameraController* GetActiveCameraController() const
 	{
 		if (!currentScene)
 		{
 			return nullptr;
 		}
 
-		return currentScene->GetNowCameraController();
+		return currentScene->GetActiveCameraController();
 	}
 
 	std::string GetLastLoadError() const;

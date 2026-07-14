@@ -9,11 +9,11 @@
 class MovieCameraController : public CameraController
 {
 public:
-    MovieCameraController();
+    MovieCameraController(Object* owner);
 
     void SyncCameraToController(const Camera& camera) override {}
     void SyncControllerToCamera(Camera& camera) override;
-    void OnUpdate() override;
+    void UpdateCamera() override;
     void OnFocusLost() override;
     void OnDrawGUI() override;
 

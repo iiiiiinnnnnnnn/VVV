@@ -24,14 +24,14 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 	// stage
 	{
-		currentStage_ = std::make_unique<Stage01>();
+		currentStage = std::make_unique<Stage01>();
 	}
 
-	Stage& stage = *currentStage_;
+	Stage& stage = *currentStage;
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
-	Camera& camera = *stage.GetCamera();
-	auto& cameraControllers = stage.GetCameraControllers();
+	Camera* camera = stage.GetActiveCamera();
+	Actor* cameraActor = stage.GetDefaultCameraActor();
 
 	// player & camera
 	{
@@ -43,29 +43,25 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 		actorManager.Register(player);
 
-		camera.SetPerspectiveFov(
+		camera->SetPerspectiveFov(
 			DirectX::XMConvertToRadians(45),
 			screenWidth / screenHeight,
 			0.1f,
 			1000.0f);
 
-		camera.SetLookAt(
+		camera->SetLookAt(
 			{ 0, 3, 5 },
 			{ 0, 0, 0 },
 			{ 0, 1, 0 });
 
-		std::unique_ptr<ThirdPersonCameraController> third =
-			std::make_unique<ThirdPersonCameraController>(
-			player.get());
+		ThirdPersonCameraController* third =
+			cameraActor->AddComponent<ThirdPersonCameraController>(player.get());
 
-		player->SetCameraController(third.get());
+		player->SetCameraController(third);
 
-		cameraControllers.push_back(
-			std::move(third));
-
-		cameraControllers.push_back(
-			std::make_unique<FreeCameraController>(
-			camera));
+		FreeCameraController* freeCamera =
+			cameraActor->AddComponent<FreeCameraController>();
+		freeCamera->SetActive(false);
 	}
 
 	// test widget

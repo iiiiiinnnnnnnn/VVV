@@ -8,6 +8,8 @@
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Gameplay/Camera/FreeCameraController.h"
+#include "Gameplay/Camera/ThirdPersonCameraController.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
@@ -15,17 +17,23 @@ Scene::Scene(SceneMessage message) : message(message)
 
 void Scene::SwitchToDebugMode()
 {
-	if (!currentStage_) return;
+	if (!currentStage) return;
 
-	Stage& stage = *currentStage_;
-	Camera& camera = *stage.GetCamera();
-	auto& cameraControllers = stage.GetCameraControllers();
-	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
-
-	if (cameraControllers.size() > 1)
+	Stage& stage = *currentStage;
+	if (Camera* debugCamera = stage.GetDebugCamera())
 	{
-		nowCameraControllerIndex = 1;
-		cameraControllers[nowCameraControllerIndex]->SyncCameraToController(camera);
+		debugCamera->SetActive(true);
+		if (CameraController* controller = stage.GetCameraController(debugCamera))
+			controller->SetActive(true);
+		stage.PromoteCamera(debugCamera);
+	}
+	else
+	{
+	Actor* cameraActor = stage.GetDefaultCameraActor();
+	if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
+		controller->SetActive(false);
+	if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
+		controller->SetActive(true);
 	}
 
 	isCursorReleased = false;
@@ -34,18 +42,21 @@ void Scene::SwitchToDebugMode()
 
 void Scene::SwitchToPlayMode()
 {
-	if (!currentStage_) return;
+	if (!currentStage) return;
 
-	Stage& stage = *currentStage_;
-	Camera& camera = *stage.GetCamera();
-	auto& cameraControllers = stage.GetCameraControllers();
-	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
-
-	if (cameraControllers.size() > 0)
+	Stage& stage = *currentStage;
+	if (Camera* debugCamera = stage.GetDebugCamera())
 	{
-		nowCameraControllerIndex = 0;
-		cameraControllers[nowCameraControllerIndex]->SyncCameraToController(camera);
+		if (CameraController* controller = stage.GetCameraController(debugCamera))
+			controller->SetActive(false);
+		debugCamera->SetActive(false);
 	}
+
+	Actor* cameraActor = stage.GetDefaultCameraActor();
+	if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
+		controller->SetActive(false);
+	if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
+		controller->SetActive(true);
 
 	isCursorReleased = false;
 	Game::Time::scale = 1.0f;
@@ -54,12 +65,9 @@ void Scene::SwitchToPlayMode()
 void Scene::Update()
 {
 	OnUpdate();
-	if (!currentStage_) return;
+	if (!currentStage) return;
 
-	Stage& stage = *currentStage_;
-	Camera& camera = *stage.GetCamera();
-	auto& cameraControllers = stage.GetCameraControllers();
-	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
+	Stage& stage = *currentStage;
 
 	#ifdef _DEBUG
 	GamePad& gamePad = Game::Input::Instance().GetGamePad();
@@ -85,23 +93,8 @@ void Scene::Update()
 	}
 	#endif
 
-	// カメラコントローラーがないとアクターは動けないよ！
-	if (cameraControllers.size() > 0)
-	{
-		// カメラ更新処理
-		if (isCursorReleased)
-		{
-			cameraControllers[nowCameraControllerIndex]->OnFocusLost();
-		}
-		else
-		{
-			cameraControllers[nowCameraControllerIndex]->Update();
-		}
-
-		// カメラコントローラーからカメラへ反映
-		cameraControllers[nowCameraControllerIndex]->SyncControllerToCamera(camera);
-
-	}
+	if (CameraController* controller = stage.GetActiveCameraController())
+		controller->SetInputEnabled(!isCursorReleased);
 
 	stage.Update();
 
@@ -112,7 +105,7 @@ void Scene::Update()
 
 void Scene::Render()
 {
-	if (!currentStage_)
+	if (!currentStage)
 	{
 		Game::Graphics& graphics = Game::Graphics::Instance();
 		RenderContext rc{};
@@ -126,8 +119,10 @@ void Scene::Render()
 		return;
 	}
 
-	Stage& stage = *currentStage_;
-	Camera& camera = *stage.GetCamera();
+	Stage& stage = *currentStage;
+	Camera* activeCamera = stage.GetActiveCamera();
+	if (!activeCamera) return;
+	Camera& camera = *activeCamera;
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -349,12 +344,12 @@ void Scene::Render()
 
 void Scene::DrawGUI(RenderContext& rc)
 {
-	if (!currentStage_) return;
+	if (!currentStage) return;
 
-	Stage& stage = *currentStage_;
-	Camera& camera = *stage.GetCamera();
-	auto& cameraControllers = stage.GetCameraControllers();
-	int& nowCameraControllerIndex = stage.GetNowCameraControllerIndexRef();
+	Stage& stage = *currentStage;
+	Camera* activeCamera = stage.GetActiveCamera();
+	if (!activeCamera) return;
+	Camera& camera = *activeCamera;
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
 	#ifdef _DEBUG
@@ -431,10 +426,9 @@ void Scene::DrawGUI(RenderContext& rc)
 			// カメラ
 			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::SliderInt("CameraController", &nowCameraControllerIndex, 0, static_cast<int>(cameraControllers.size()) - 1);
-				auto nowCameraController = GetNowCameraController();
-				if (nowCameraController)
-					nowCameraController->DrawGUI();
+				ImGui::Text("Priority: %d", camera.GetPriority());
+				if (CameraController* controller = stage.GetActiveCameraController())
+					controller->DrawGUI();
 			}
 
 			// RenderContext
@@ -517,7 +511,7 @@ void Scene::DrawGUI(RenderContext& rc)
 	#endif
 }
 
-CameraController* Scene::GetNowCameraController() const
+CameraController* Scene::GetActiveCameraController() const
 {
-	return currentStage_ ? currentStage_->GetNowCameraController() : nullptr;
+	return currentStage ? currentStage->GetActiveCameraController() : nullptr;
 }

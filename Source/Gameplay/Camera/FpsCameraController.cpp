@@ -3,7 +3,8 @@
 #include "Gameplay/Camera/FpsCameraController.h"
 #include "Application/Input/Input.h"
 
-FpsCameraController::FpsCameraController(std::shared_ptr<Player> character)
+FpsCameraController::FpsCameraController(Object* owner, std::shared_ptr<Player> character)
+	: CameraController(owner)
 {
     SetPlayer(character);
 }
@@ -27,7 +28,7 @@ void FpsCameraController::SyncControllerToCamera(Camera& camera)
     camera.SetLookAt(eye, focus, Vector3::Up);
 }
 
-void FpsCameraController::OnUpdate()
+void FpsCameraController::UpdateCamera()
 {
     Mouse& mouse = Game::Input::Instance().GetMouse();
     mouse.SetCursorLock(true);

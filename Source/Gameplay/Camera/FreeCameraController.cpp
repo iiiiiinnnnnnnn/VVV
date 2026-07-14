@@ -4,10 +4,8 @@
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Application/Time/GameTime.h"
 
-FreeCameraController::FreeCameraController(const Camera& camera)
-{
-	SyncCameraToController(camera);
-}
+FreeCameraController::FreeCameraController(Object* owner)
+	: CameraController(owner) {}
 
 // カメラからコントローラーへパラメータを同期する
 void FreeCameraController::SyncCameraToController(const Camera& camera)
@@ -53,7 +51,7 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 	);
 }
 
-void FreeCameraController::OnUpdate()
+void FreeCameraController::UpdateCamera()
 {
     if (!Game::Input::IsFocusedWindow(true))
         return;

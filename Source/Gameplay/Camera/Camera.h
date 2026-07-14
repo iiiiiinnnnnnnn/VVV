@@ -1,12 +1,23 @@
 ﻿#pragma once
 
 #include "Core/Foundation/Common.h"
+#include "Core/Object/Component.h"
+
+#include <cstdint>
 
 // カメラ
-class Camera
+class Camera : public Component
 {
 public:
-	Camera();
+	Camera(Object* owner, int priority = 0);
+
+	void OnDrawGUI() override
+	{
+		int value = priority;
+		if (ImGui::DragInt("Priority", &value))
+			SetPriority(value);
+	}
+	const char* GetDebugName() const override { return ICON_FA_VIDEO " Camera"; }
 
 	// 指定方向を向く
 	void SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& up);
@@ -35,6 +46,13 @@ public:
 	// 右方向取得
 	const Vector3& GetRight() const { return right; }
 
+	int GetPriority() const { return priority; }
+	void SetPriority(int value)
+	{
+		priority = value;
+		priorityChanged = true;
+	}
+
 private:
 	Matrix		view;
 	Matrix		projection;
@@ -45,4 +63,18 @@ private:
 	Vector3		up;
 	Vector3		front;
 	Vector3		right;
+	int priority = 0;
+	bool priorityChanged = false;
+	int normalizedPriority = 0;
+
+	bool HasPriorityChange() const { return priorityChanged; }
+	int GetNormalizedPriority() const { return normalizedPriority; }
+	void SetNormalizedPriority(int value)
+	{
+		priority = value;
+		normalizedPriority = value;
+		priorityChanged = false;
+	}
+
+	friend class Stage;
 };

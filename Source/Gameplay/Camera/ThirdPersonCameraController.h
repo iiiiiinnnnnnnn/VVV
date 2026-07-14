@@ -8,11 +8,11 @@
 class ThirdPersonCameraController : public CameraController
 {
 public:
-    ThirdPersonCameraController(Player* chara);
+    ThirdPersonCameraController(Object* owner, Player* chara);
 
     void SyncCameraToController(const Camera& camera) override {}
     void SyncControllerToCamera(Camera& camera) override;
-    void OnUpdate() override;
+    void UpdateCamera() override;
     void OnFocusLost() override;
     void OnDrawGUI() override;
 
