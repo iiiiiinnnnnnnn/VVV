@@ -30,7 +30,6 @@ public:
     void SetDestroyedCallback(std::function<void(CrystalProp*)> callback) { destroyedCallback = std::move(callback); }
     void Update() override;
 private:
-    void UpdateLifeFromScale();
     void SpawnBreakParticles();
     void OnDamaged(const DamageData& damageData) override;
     void OnDead(const DamageData& damageData) override;

@@ -19,7 +19,14 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
 {
     transform = crystalData.transform;
     transform.Update();
-    UpdateLifeFromScale();
+
+    float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
+    largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
+    constexpr float baseScale = 0.5f;
+    constexpr float lifePerScale = 87.0f;
+    maxLife = ceilf((largestScale - baseScale) * lifePerScale);
+    maxLife = (std::clamp)(maxLife, 1.0f, 100.0f);
+    life = maxLife;
 
     model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal.glb");
     modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParams);
@@ -36,18 +43,6 @@ void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 {
     transform = crystalData.transform;
     transform.Update();
-    UpdateLifeFromScale();
-}
-
-void CrystalProp::UpdateLifeFromScale()
-{
-    float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
-    largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
-    constexpr float baseScale = 0.5f;
-    constexpr float lifePerScale = 87.0f;
-    maxLife = ceilf((largestScale - baseScale) * lifePerScale);
-    maxLife = (std::clamp)(maxLife, 1.0f, 100.0f);
-    life = maxLife;
 }
 
 void CrystalProp::ApplyShaderParams(const ShaderParamList& params, const ShaderParamListWithMaterialName& materialParams)
@@ -111,4 +106,3 @@ void CrystalProp::Update()
     rigidbody->SetRotation(transform.rotation);
     meshCollider->SetLocalScale(transform.scale);
 }
-
