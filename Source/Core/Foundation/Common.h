@@ -6,8 +6,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cwctype>
+#include <filesystem>
 #include <string>
 #include <fstream>
+#include <vector>
 
 // Convert a string to lowercase
 inline std::wstring ToLowerWString(std::wstring text)
@@ -20,6 +22,33 @@ inline std::wstring ToLowerWString(std::wstring text)
     );
 
     return text;
+}
+
+inline uint64_t GetFileLastWriteTime64(const std::filesystem::path& path)
+{
+	return static_cast<uint64_t>(
+		std::filesystem::last_write_time(path).time_since_epoch().count()
+	);
+}
+
+inline bool ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData)
+{
+	outData.clear();
+
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	if (!file) return false;
+
+	std::streamsize size = file.tellg();
+	if (size <= 0) return false;
+
+	outData.resize(static_cast<size_t>(size));
+	file.seekg(0, std::ios::beg);
+	file.read(reinterpret_cast<char*>(outData.data()), size);
+
+	if (file) return true;
+
+	outData.clear();
+	return false;
 }
 
 // Generate a random

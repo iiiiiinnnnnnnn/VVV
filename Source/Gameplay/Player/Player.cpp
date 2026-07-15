@@ -334,7 +334,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	// 敵を殴る
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
-	if (!otherActor->CompareTag("Enemy")) return;
+	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("CrystalProp")) return;
 
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
 	if (!entity) return;

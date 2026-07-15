@@ -653,6 +653,9 @@
     <ClInclude Include="Source\Core\Foundation\Common.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>

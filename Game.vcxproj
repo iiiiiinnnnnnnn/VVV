@@ -115,7 +115,8 @@
     <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h" />
     <ClInclude Include="Source\Physics\Collider\CapsuleCollider.h" />
     <ClInclude Include="Source\Physics\Core\CollidersDef.h" />
-    <ClInclude Include="Source\Core\Foundation\Common.h" />
+      <ClInclude Include="Source\Core\Foundation\Common.h" />
+      <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugUtil.h" />
     <ClInclude Include="Source\Core\Foundation\Easing.h" />
     <ClInclude Include="Source\Animation\FootIK.h" />

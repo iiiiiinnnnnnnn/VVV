@@ -13,73 +13,6 @@
 #include <algorithm>
 
 #if 1 // シリアライズ閉じる用
-namespace DirectX
-{
-	template<class Archive>
-	void serialize(Archive& archive, XMUINT4& v)
-	{
-		archive(
-			cereal::make_nvp("x", v.x),
-			cereal::make_nvp("y", v.y),
-			cereal::make_nvp("z", v.z),
-			cereal::make_nvp("w", v.w)
-		);
-	}
-
-	template<class Archive>
-	void serialize(Archive& archive, XMFLOAT2& v)
-	{
-		archive(
-			cereal::make_nvp("x", v.x),
-			cereal::make_nvp("y", v.y)
-		);
-	}
-
-	template<class Archive>
-	void serialize(Archive& archive, XMFLOAT3& v)
-	{
-		archive(
-			cereal::make_nvp("x", v.x),
-			cereal::make_nvp("y", v.y),
-			cereal::make_nvp("z", v.z)
-		);
-	}
-
-	template<class Archive>
-	void serialize(Archive& archive, XMFLOAT4& v)
-	{
-		archive(
-			cereal::make_nvp("x", v.x),
-			cereal::make_nvp("y", v.y),
-			cereal::make_nvp("z", v.z),
-			cereal::make_nvp("w", v.w)
-		);
-	}
-
-	template<class Archive>
-	void serialize(Archive& archive, XMFLOAT4X4& m)
-	{
-		archive(
-			cereal::make_nvp("_11", m._11),
-			cereal::make_nvp("_12", m._12),
-			cereal::make_nvp("_13", m._13),
-			cereal::make_nvp("_14", m._14),
-			cereal::make_nvp("_21", m._21),
-			cereal::make_nvp("_22", m._22),
-			cereal::make_nvp("_23", m._23),
-			cereal::make_nvp("_24", m._24),
-			cereal::make_nvp("_31", m._31),
-			cereal::make_nvp("_32", m._32),
-			cereal::make_nvp("_33", m._33),
-			cereal::make_nvp("_34", m._34),
-			cereal::make_nvp("_41", m._41),
-			cereal::make_nvp("_42", m._42),
-			cereal::make_nvp("_43", m._43),
-			cereal::make_nvp("_44", m._44)
-		);
-	}
-}
-
 template<class Archive>
 void Model::Node::serialize(Archive& archive)
 {
@@ -206,72 +139,18 @@ void Model::Animation::serialize(Archive& archive)
 }
 #endif
 
-namespace
+uint64_t Model::MakeModelCacheStamp(uint64_t sourceLastWrite)
 {
-	constexpr uint64_t ModelCacheVersion = 3;
-
-	uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite)
-	{
-		return sourceLastWrite ^ ModelCacheVersion;
-	}
-
-	bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp)
-	{
-		std::ifstream stream(filepath, std::ios::binary);
-		if (!stream.is_open()) return false;
-
-		stream.read(reinterpret_cast<char*>(&stamp), sizeof(stamp));
-		return stream.good();
-	}
+	return sourceLastWrite ^ ModelCacheVersion;
 }
 
-uint64_t Model::GetFileLastWriteTime64(const std::filesystem::path& path)
+bool Model::ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp)
 {
-	return static_cast<uint64_t>(
-		std::filesystem::last_write_time(path).time_since_epoch().count()
-		);
-}
+	std::ifstream stream(filepath, std::ios::binary);
+	if (!stream.is_open()) return false;
 
-std::wstring Model::ToLowerWString(std::wstring text)
-{
-	std::transform(
-		text.begin(),
-		text.end(),
-		text.begin(),
-		[](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }
-	);
-
-	return text;
-}
-
-bool Model::ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData)
-{
-	outData.clear();
-
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	if (!file)
-	{
-		return false;
-	}
-
-	std::streamsize size = file.tellg();
-	if (size <= 0)
-	{
-		return false;
-	}
-
-	outData.resize(static_cast<size_t>(size));
-
-	file.seekg(0, std::ios::beg);
-	file.read(reinterpret_cast<char*>(outData.data()), size);
-
-	if (!file)
-	{
-		outData.clear();
-		return false;
-	}
-
-	return true;
+	stream.read(reinterpret_cast<char*>(&stamp), sizeof(stamp));
+	return stream.good();
 }
 
 HRESULT Model::SaveScratchImageToDDSBytes(
@@ -821,6 +700,106 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 
 	// 行列初期化
 	UpdateTransform(Matrix::Identity);
+}
+
+Model::Model(const Model& other)
+	: materials(other.materials),
+	meshes(other.meshes),
+	nodes(other.nodes),
+	animations(other.animations),
+	modelCacheFilepath(other.modelCacheFilepath),
+	modelCacheLastWrite(other.modelCacheLastWrite)
+{
+	RebuildRuntimeReferences();
+}
+
+Model::Model(Model&& other) noexcept
+	: materials(std::move(other.materials)),
+	meshes(std::move(other.meshes)),
+	nodes(std::move(other.nodes)),
+	animations(std::move(other.animations)),
+	modelCacheFilepath(std::move(other.modelCacheFilepath)),
+	modelCacheLastWrite(other.modelCacheLastWrite)
+{
+	RebuildRuntimeReferences();
+}
+
+Model& Model::operator=(const Model& other)
+{
+	if (this == &other) return *this;
+
+	materials = other.materials;
+	meshes = other.meshes;
+	nodes = other.nodes;
+	animations = other.animations;
+	modelCacheFilepath = other.modelCacheFilepath;
+	modelCacheLastWrite = other.modelCacheLastWrite;
+	RebuildRuntimeReferences();
+	return *this;
+}
+
+Model& Model::operator=(Model&& other) noexcept
+{
+	if (this == &other) return *this;
+
+	materials = std::move(other.materials);
+	meshes = std::move(other.meshes);
+	nodes = std::move(other.nodes);
+	animations = std::move(other.animations);
+	modelCacheFilepath = std::move(other.modelCacheFilepath);
+	modelCacheLastWrite = other.modelCacheLastWrite;
+	RebuildRuntimeReferences();
+	return *this;
+}
+
+void Model::RebuildRuntimeReferences()
+{
+	for (Node& node : nodes)
+	{
+		node.parent = nullptr;
+		node.children.clear();
+	}
+
+	for (Node& node : nodes)
+	{
+		if (node.parentIndex < 0) continue;
+		if (node.parentIndex >= static_cast<int>(nodes.size())) continue;
+
+		node.parent = &nodes[node.parentIndex];
+		node.parent->children.emplace_back(&node);
+	}
+
+	for (Mesh& mesh : meshes)
+	{
+		mesh.material = nullptr;
+		mesh.node = nullptr;
+		if (mesh.materialIndex >= 0 && mesh.materialIndex < static_cast<int>(materials.size()))
+			mesh.material = &materials[mesh.materialIndex];
+		if (mesh.nodeIndex >= 0 && mesh.nodeIndex < static_cast<int>(nodes.size()))
+			mesh.node = &nodes[mesh.nodeIndex];
+
+		for (Bone& bone : mesh.bones)
+		{
+			bone.node = nullptr;
+			if (bone.nodeIndex >= 0 && bone.nodeIndex < static_cast<int>(nodes.size()))
+				bone.node = &nodes[bone.nodeIndex];
+		}
+	}
+
+	UpdateTransform(Matrix::Identity);
+}
+
+std::shared_ptr<Model> Model::Clone() const
+{
+	return std::make_shared<Model>(*this);
+}
+
+bool Model::HasSkeleton() const
+{
+	for (const Mesh& mesh : meshes)
+		if (!mesh.bones.empty()) return true;
+
+	return false;
 }
 
 // アニメーション追加読み込み

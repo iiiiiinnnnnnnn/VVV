@@ -20,6 +20,8 @@ public:
 	Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc);
 	~Texture() {}
 
+	std::shared_ptr<Texture> Clone() const;
+
 	// シェーダーリソースビュー取得
 	inline const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& GetShaderResourceView() const { return shaderResourceView; }
 

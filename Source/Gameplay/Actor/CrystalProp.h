@@ -5,18 +5,20 @@
 #include <functional>
 #include <memory>
 
-#include "Gameplay/Actor/Actor.h"
+#include "Gameplay/Actor/Entity.h"
 #include "Resource/Model.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Rendering/Core/ShaderParam.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 
 class MeshCollider;
+class DamageHoleComponent;
+class ModelRenderComponent;
 class ParticleSystem;
 class PhysicsComponent;
 class Rigidbody;
 
-class CrystalProp : public Actor
+class CrystalProp : public Entity
 {
 public:
     CrystalProp(const StageLoader::CrystalData& crystalData);
@@ -27,22 +29,11 @@ public:
     void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
     void SetDestroyedCallback(std::function<void(CrystalProp*)> callback) { destroyedCallback = std::move(callback); }
     void Update() override;
-    void Render(const RenderContext& rc) override;
-    void OnCollisionEnter(
-        PhysicsComponent* self,
-        PhysicsComponent* other,
-        const Vector3& point,
-        const Vector3& normal) override;
-    void OnTriggerEnter(
-        PhysicsComponent* self,
-        PhysicsComponent* other,
-        const Vector3& point,
-        const Vector3& normal) override;
-
 private:
+    void UpdateLifeFromScale();
     void SpawnBreakParticles();
-    bool IsBreakLayer(LayerId layerId) const;
-    void TryBreak(PhysicsComponent* other);
+    void OnDamaged(const DamageData& damageData) override;
+    void OnDead(const DamageData& damageData) override;
 
     std::shared_ptr<Model> model;
     ShaderParamListWithMaterialName shaderParams = {};
@@ -50,6 +41,8 @@ private:
     std::function<void(CrystalProp*)> destroyedCallback = {};
     Rigidbody* rigidbody = nullptr;
     MeshCollider* meshCollider = nullptr;
+    ModelRenderComponent* modelRenderer = nullptr;
+    DamageHoleComponent* damageHoleComponent = nullptr;
 };
 
 

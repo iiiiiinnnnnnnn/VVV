@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Core/Foundation/Common.h"
+#include "Core/Foundation/DirectXSerialization.h"
 #include "Rendering/Core/ShaderParam.h"
 #include "Rendering/Core/RenderContext.h"
 
@@ -26,6 +27,13 @@ class Model
 {
 public:
 	Model(const char* filename, float sampleRate = 60, bool importRawModel = false);
+	Model(const Model& other);
+	Model(Model&& other) noexcept;
+	Model& operator=(const Model& other);
+	Model& operator=(Model&& other) noexcept;
+
+	std::shared_ptr<Model> Clone() const;
+	bool HasSkeleton() const;
 
 	struct Node
 	{
@@ -252,25 +260,31 @@ public:
 private:
 	// シリアライズ
 	void Serialize(const char* filename, uint64_t lastWrite);
-
-	// デシリアライズ
 	void Deserialize(const char* filename, uint64_t& lastWrite);
 
-	uint64_t GetFileLastWriteTime64(const std::filesystem::path& path);
-	std::wstring ToLowerWString(std::wstring text);
-	bool ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData);
-	HRESULT SaveScratchImageToDDSBytes(const DirectX::ScratchImage& sourceImage, std::vector<uint8_t>& outDDS);
-	HRESULT ConvertTextureFileToDDSBytes(const std::filesystem::path& texturePath, std::vector<uint8_t>& outDDS);
-	HRESULT ConvertSRVToDDSBytes(ID3D11Device* device, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
-	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
-	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Model::Material& material);
-	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
-	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Model::Material& material);
+	// モデルキャッシュ
+	static constexpr uint64_t ModelCacheVersion = 3;
+	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
+	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);
 
-	std::vector<Material>	materials;
-	std::vector<Mesh>		meshes;
-	std::vector<Node>		nodes;
-	std::vector<Animation>	animations;
+	// テキスチャルDDS変換
+	static HRESULT SaveScratchImageToDDSBytes(const DirectX::ScratchImage& sourceImage, std::vector<uint8_t>& outDDS);
+	static HRESULT ConvertTextureFileToDDSBytes(const std::filesystem::path& texturePath, std::vector<uint8_t>& outDDS);
+	static HRESULT ConvertSRVToDDSBytes(ID3D11Device* device, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
+	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
+	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
+	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+
+	void RebuildRuntimeReferences();
+
+	// モデルアセットデータ
+	std::vector<Material> materials;
+	std::vector<Mesh> meshes;
+	std::vector<Node> nodes;
+	std::vector<Animation> animations;
+
+	// キャッシュ情報
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;
 };

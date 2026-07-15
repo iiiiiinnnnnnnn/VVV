@@ -7,18 +7,23 @@
 #include "Gameplay/Scene/HitStop.h"
 #include "Physics/Collider/MeshCollider.h"
 #include "Rendering/Renderer/ModelRenderer.h"
+#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/DamageHoleComponent.h"
 #include "Rendering/Effect/ParticleSystem.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
 
 CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
-    : Actor("CrystalProp", "CrystalProp", true)
+    : Entity("CrystalProp", "CrystalProp", true)
 {
     transform = crystalData.transform;
     transform.Update();
+    UpdateLifeFromScale();
 
     model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal.glb");
+    modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParams);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1, 1, 2, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();
     meshCollider = AddComponent<MeshCollider>(
         Layers::Get("Prop"),
@@ -31,12 +36,26 @@ void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 {
     transform = crystalData.transform;
     transform.Update();
+    UpdateLifeFromScale();
+}
+
+void CrystalProp::UpdateLifeFromScale()
+{
+    float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
+    largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
+    constexpr float baseScale = 0.5f;
+    constexpr float lifePerScale = 87.0f;
+    maxLife = ceilf((largestScale - baseScale) * lifePerScale);
+    maxLife = (std::clamp)(maxLife, 1.0f, 100.0f);
+    life = maxLife;
 }
 
 void CrystalProp::ApplyShaderParams(const ShaderParamList& params, const ShaderParamListWithMaterialName& materialParams)
 {
     shaderParams = materialParams;
-    ModelRenderer::SetShaderParamForAllMaterials(model.get(), params, shaderParams);
+    ShaderParamListWithMaterialName& rendererParams = modelRenderer->GetParamsWithMaterial();
+    rendererParams = shaderParams;
+    ModelRenderer::SetShaderParamForAllMaterials(model.get(), params, rendererParams);
 }
 
 void CrystalProp::SpawnBreakParticles()
@@ -69,22 +88,17 @@ void CrystalProp::SpawnBreakParticles()
     }
 }
 
-bool CrystalProp::IsBreakLayer(LayerId layerId) const
+void CrystalProp::OnDamaged(const DamageData& damageData)
 {
-    return layerId == Layers::Get("Enemy") ||
-        layerId == Layers::Get("PlayerAtk") ||
-        layerId == Layers::Get("PlayerAttack") ||
-        layerId == Layers::Get("EnemyAtk") ||
-        layerId == Layers::Get("EnemyAttack");
-}
-
-void CrystalProp::TryBreak(PhysicsComponent* other)
-{
-    if (!other) return;
-    if (!IsBreakLayer(other->GetLayerId())) return;
-
     HitStop::Request(0.06f);
     CameraEffectController::Request(0.1f, 0.06f);
+
+    if (damageData.hitPosition.has_value())
+        damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value(), damageData.hitNormal.value_or(Vector3::Zero));
+}
+
+void CrystalProp::OnDead(const DamageData& damageData)
+{
     SpawnBreakParticles();
     Destroy();
     if (destroyedCallback) destroyedCallback(this);
@@ -93,36 +107,8 @@ void CrystalProp::TryBreak(PhysicsComponent* other)
 void CrystalProp::Update()
 {
     Actor::Update();
-    model->UpdateTransform(transform.matrix);
     rigidbody->SetPosition(transform.position);
     rigidbody->SetRotation(transform.rotation);
     meshCollider->SetLocalScale(transform.scale);
 }
-
-void CrystalProp::Render(const RenderContext& rc)
-{
-    Game::Graphics::Instance().GetModelRenderer()->Draw(
-        ModelShaderId::PBR,
-        model,
-        shaderParams);
-}
-
-void CrystalProp::OnCollisionEnter(
-    PhysicsComponent* self,
-    PhysicsComponent* other,
-    const Vector3& point,
-    const Vector3& normal)
-{
-    TryBreak(other);
-}
-
-void CrystalProp::OnTriggerEnter(
-    PhysicsComponent* self,
-    PhysicsComponent* other,
-    const Vector3& point,
-    const Vector3& normal)
-{
-    TryBreak(other);
-}
-
 

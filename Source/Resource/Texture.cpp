@@ -137,6 +137,11 @@ Texture::Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTU
 {
 }
 
+std::shared_ptr<Texture> Texture::Clone() const
+{
+	return std::make_shared<Texture>(*this);
+}
+
 MipmapTexture::MipmapTexture(const char* filename)
 {
 	Load(filename);

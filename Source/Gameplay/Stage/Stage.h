@@ -85,8 +85,7 @@ public:
 
 		int highestPriority = -1;
 		for (Camera* current : GetCameras())
-			if (highestPriority < current->GetPriority())
-				highestPriority = current->GetPriority();
+			highestPriority = std::max(highestPriority, current->GetPriority());
 
 		return SetCameraPriority(camera, highestPriority + 1);
 	}
