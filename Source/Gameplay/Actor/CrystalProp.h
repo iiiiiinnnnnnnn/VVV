@@ -17,6 +17,7 @@ class ModelRenderComponent;
 class ParticleSystem;
 class PhysicsComponent;
 class Rigidbody;
+class NavMeshObstacle;
 
 class CrystalProp : public Entity
 {
@@ -40,6 +41,7 @@ private:
     std::function<void(CrystalProp*)> destroyedCallback = {};
     Rigidbody* rigidbody = nullptr;
     MeshCollider* meshCollider = nullptr;
+    NavMeshObstacle* navMeshObstacle = nullptr;
     ModelRenderComponent* modelRenderer = nullptr;
     DamageHoleComponent* damageHoleComponent = nullptr;
 };

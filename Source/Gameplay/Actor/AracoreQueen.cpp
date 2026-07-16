@@ -1,4 +1,4 @@
-// AracoreQueen.cpp
+ï»¿// AracoreQueen.cpp
 
 #include "Gameplay/Actor/AracoreQueen.h"
 #include "Animation/Animator.h"
@@ -24,9 +24,9 @@
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
 {
-    // ’wå‚Ì•”•ª
+    // èœ˜è››ã®éƒ¨åˆ†
     {
-        // ƒ‚ƒfƒ‹
+        // ãƒ¢ãƒ‡ãƒ«
         model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider.glb");
         shaderParamWithMaterialName =
         {
@@ -46,7 +46,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         model->UpdateTransform(transform.matrix);
         bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
-        // ƒAƒjƒ[ƒ^
+        // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚¿
         anim = AddComponent<Animator>(model, 0);
         anim->Load("Data/Animator/animated_spider.animator");
         anim->AddCallbackFunc("ThreatFunc",
@@ -63,23 +63,22 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
             nullptr);
         anim->BindCallbacks();
 
-        // ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰[
+        // ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼
         CharacterController* cc = AddComponent<CharacterController>(
             Layers::Get("Enemy"), 3.0f, 0.01f);
         cc->SetStepOffset(1.2f);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);
-        navAgentRadius = 3.9f;
         navMeshAgent = AddComponent<NavMeshAgent>();
 
-        // ƒŠƒWƒbƒhƒ{ƒfƒB
+        // ãƒªã‚¸ãƒƒãƒ‰ãƒœãƒ‡ã‚£
         rb = AddComponent<RigidbodyDynamic>();
         rb->SetKinematic(true);
 
-        // “–‚½‚è”»’è
+        // å½“ãŸã‚Šåˆ¤å®š
         bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
 
-        // ‘«Ú’n•â³
+        // è¶³æ¥åœ°è£œæ­£
         spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
         spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Dummy02"));
         spiderFootIK->AddLeg("Box09", "Box10", "Box11");
@@ -91,7 +90,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         spiderFootIK->AddLeg("Box37", "Box33", "Box34");
         spiderFootIK->AddLeg("Box38", "Box27", "Box30");
 
-        // ‘«‚Ì“–‚½‚è”»’è
+        // è¶³ã®å½“ãŸã‚Šåˆ¤å®š
         std::vector<std::string> ikBoneNames = {
             "IK Chain02",
             "IK Chain14",
@@ -116,7 +115,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         {
             const int ikNodeIndex = model->GetNodeIndex(ikBoneNames[i].c_str());
 
-            // ‘«ÚGƒRƒ‰ƒCƒ_[
+            // è¶³æ¥è§¦ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼
             IKColliders.push_back(AddComponent<BoneSphereCollider>(
                 Layers::Get("Enemy"),
                 model.get(),
@@ -128,6 +127,29 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
                 false));
         }
     }
+
+    controller = AddComponent<EnemyAIFlow>();
+    controller->SetGraphPath("Data/AI/SpiderChase.json");
+    if (!controller->Load(controller->GetGraphPath()))
+        controller->CreateDefaultChaseGraph();
+    controller->SetAgentRadius(3.0f);
+
+    const auto stop = [this](const EnemyAIFlow::State&)
+    {
+        controller->StopMovement();
+    };
+    const auto walk = [this](const EnemyAIFlow::State&)
+    {
+        controller->MoveToTarget(3.0f);
+    };
+    const auto run = [this](const EnemyAIFlow::State&)
+    {
+        controller->MoveToTarget(6.0f);
+    };
+    controller->AddCallbackFunc("Idle", stop, stop, {}, stop);
+    controller->AddCallbackFunc("Walk", walk, walk, {}, stop);
+    controller->AddCallbackFunc("Run", run, run, {}, stop);
+    controller->BindCallbacks();
 }
 
 void AracoreQueen::OnAwake()
@@ -141,74 +163,7 @@ void AracoreQueen::OnAwake()
 void AracoreQueen::OnUpdate()
 {
     Entity::OnUpdate();
-    UpdateChase();
-
     anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
-}
-
-void AracoreQueen::UpdateChase()
-{
-    if (!navMeshAgent) return;
-
-    if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
-    {
-        navMeshActor->SetAgentRadius(navAgentRadius);
-    }
-
-	ActorManager* actorManager = ActorManager::GetActive();
-	Actor* player = actorManager ? actorManager->FindActorByTag("Player") : nullptr;
-    if (!player)
-    {
-        chasingPlayer = ChaseType::No;
-        navMeshAgent->Stop();
-        return;
-    }
-
-    chaisedTimer -= Game::Time::deltaTime;
-    const float distance = Vector3::Distance(
-        player->transform.position, transform.position);
-    if (distance < 15.0f)
-    {
-        if (chaisedTimer < 0.01f)
-        {
-            chasingPlayer = ChaseType::No;
-            navMeshAgent->SetSpeed(3.0f);
-            chaisedTimer = 2.0f;
-        }
-    }
-    else
-    {
-        if (chaisedTimer < 0.01f)
-        {
-            if (distance > 20.0f)
-            {
-                chasingPlayer = ChaseType::Run;
-                navMeshAgent->SetSpeed(6.0f);
-                chaisedTimer = 3.0f;
-            }
-            else
-            {
-                chasingPlayer = ChaseType::Walk;
-                navMeshAgent->SetSpeed(3.0f);
-                chaisedTimer = 3.0f;
-            }
-        }
-    }
-
-    if (chasingPlayer != ChaseType::No)
-    {
-        if (spiderFootIK && !spiderFootIK->HasGroundContact())
-        {
-        	navMeshAgent->Stop();
-        	return;
-        }
-
-        navMeshAgent->MoveToTarget(player);
-    }
-    else
-    {
-        navMeshAgent->Stop();
-    }
 }
 
 void AracoreQueen::OnDrawGUI()
@@ -232,7 +187,7 @@ void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* ot
 {
     if (IsDead()) return;
 
-    // “¥‚İ‚Â‚¯”»’è‚É“–‚½‚Á‚½‚çƒvƒŒƒCƒ„[‚Éƒ_ƒ[ƒW
+    // è¸ã¿ã¤ã‘åˆ¤å®šã«å½“ãŸã£ãŸã‚‰ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«ãƒ€ãƒ¡ãƒ¼ã‚¸
 	std::string currentState = anim->GetCurrentStateName();
     if (currentState == "run" || currentState == "walk")
     {
@@ -275,6 +230,7 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
 
 void AracoreQueen::OnDead(const DamageData& damageData)
 {
+    if (controller) controller->SetActive(false);
     printf("AracoreQueen Dead!\n");
     if (machine)
         machine->Destroy(3);
@@ -291,22 +247,22 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     std::shared_ptr<Model> model =
         ResourceManager::Instance().LoadModel("Data/Model/Prop/vending.glb");
 
-    // ƒŠƒWƒbƒhƒ{ƒfƒB
+    // ãƒªã‚¸ãƒƒãƒ‰ãƒœãƒ‡ã‚£
     auto rb = AddComponent<RigidbodyDynamic>();
     rb->SetKinematic(true);
 
-    // “–‚½‚è”»’è
+    // å½“ãŸã‚Šåˆ¤å®š
     collider = AddComponent<BoxCollider>(
         Layers::Get("EnemyAccessory"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
 
-    // e‚Ì‘Ì‚É’Ç]
+    // è¦ªã®ä½“ã«è¿½å¾“
     Transform offset{};
     offset.SetPosition(0.0f, 43.8f, 9.6f);
     offset.SetAngle(-15.0f, 0.0f, 0.0f);
     offset.SetScale(40.3f, 34.9f, 47.9f);
     AddComponent<BoneFollower>(ownerAracoreQueen->model.get(), "Box02", offset);
 
-    // ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[‚Æƒ_ƒ[ƒWƒz[ƒ‹ƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’Ç‰Á
+    // ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã¨ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ›ãƒ¼ãƒ«ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’è¿½åŠ 
     shaderParamWithMaterialName =
     {
         {
@@ -380,7 +336,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
 
 void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
 {
-    // ƒ{ƒRƒb
+    // ãƒœã‚³ãƒƒ
     Actor* hitActor = damageData.hitColliderSelf ? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner()) : nullptr;
     if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
     {

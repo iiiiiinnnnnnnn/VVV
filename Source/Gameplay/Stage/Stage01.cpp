@@ -1,4 +1,4 @@
-// Stage01.cpp
+ï»¿// Stage01.cpp
 
 #include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
@@ -30,7 +30,7 @@ Stage01::Stage01()
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	AddComponent<NavMeshActor>();
 
-	// F4ã§åˆE‚Šæ›¿ãˆã‚‹ã‚¹ãƒEEã‚¸ç¢ºèªç”¨ã‚«ãƒ¡ãƒ©
+	// F4ç¸ºï½§è›»ãƒ»ï½Šè­–ï½¿ç¸ºåŒ»ï½‹ç¹§ï½¹ç¹ãƒ»ãƒ»ç¹§ï½¸é’ï½ºéš±å’²ç•‘ç¹§ï½«ç¹ï½¡ç¹ï½©
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
 		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
@@ -50,12 +50,12 @@ Stage01::Stage01()
 		actorManager.Register(debugCameraActor);
 	}
 
-	//	ƒp[ƒeƒBƒNƒ‹€”õ
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æº–å‚™
 	{
-		//	ƒp[ƒeƒBƒNƒ‹—p‰æ‘œƒ[ƒh
+		//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«ç”¨ç”»åƒãƒ­ãƒ¼ãƒ‰
 		auto sozai = Texture("Data/Image/particle256x256.png");
 
-		//	ƒp[ƒeƒBƒNƒ‹ƒVƒXƒeƒ€¶¬
+		//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«ã‚·ã‚¹ãƒ†ãƒ ç”Ÿæˆ
 		particleSystem = std::make_unique<ParticleSystem>(
 			device,
 			sozai.GetShaderResourceView(),
@@ -63,8 +63,8 @@ Stage01::Stage01()
 		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
-	// ƒ{ƒX“G
-	#if 1
+	// ãƒœã‚¹æ•µ
+	#if 0
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager.Register(boss);
 	#endif
@@ -80,24 +80,24 @@ Stage01::Stage01()
 
 void Stage01::OnUpdate()
 {
-	//	~á
+	//	é™é›ª
 	Vector3 pos = Vector3((rand() % 30 - 15) * 0.1f, rand() % 30 * 0.1f + 1, (rand() % 30 - 15) * 0.1f + 3);
 	int max = 2;
 	for (int i = 0; i < max; i++)
 	{
-		//	”­¶ˆÊ’u
+		//	ç™ºç”Ÿä½ç½®
 		Vector3 p = { 0,0,0 };
 		p.x = pos.x + (rand() % 10001 - 5000) * 0.01f;
 		p.y = pos.y;
 		p.z = pos.z + (rand() % 10001 - 5000) * 0.01f;
-		//	”­¶•ûŒü
+		//	ç™ºç”Ÿæ–¹å‘
 		Vector3 v = { 0,0,0 };
 		v.y = -(rand() % 10001) * 0.0002f - 0.002f;
-		//	—Í
+		//	åŠ›
 		Vector3 f = { 0,0,0 };
 		f.x = (rand() % 10001) * 0.00001f + 0.1f;
 		f.z = (rand() % 10001 - 5000) * 0.00001f;
-		//	‘å‚«‚³
+		//	å¤§ãã•
 		Vector2 s = { .2f,.2f };
 
 		particleSystem->Set(12, 5, p, v, f, s);
@@ -118,7 +118,7 @@ void Stage01::OnUpdate()
 
 void Stage01::OnRender(const RenderContext& rc)
 {
-	//	ƒp[ƒeƒBƒNƒ‹•`‰æ
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æç”»
 	rc.deviceContext->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
 	rc.deviceContext->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestOnly), 0);
 	rc.deviceContext->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));

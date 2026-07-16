@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp" />
+    <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneBoxCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCapsuleCollider.cpp" />
@@ -31,6 +33,8 @@
     <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Actor.cpp" />
     <ClCompile Include="Source\Animation\Animator.cpp" />
+    <ClCompile Include="Source\Animation\AnimatorEditor.cpp" />
+    <ClCompile Include="Source\Animation\AnimatorSerialization.cpp" />
     <ClCompile Include="Source\Rendering\Shader\BasicModelShader.cpp" />
     <ClCompile Include="Source\Animation\BoneFollower.cpp" />
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
@@ -69,6 +73,7 @@
     <ClCompile Include="Source\Core\Object\Object.cpp" />
     <ClCompile Include="Source\Rendering\Shader\PBRShader.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayer.cpp" />
+    <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp" />
     <ClCompile Include="Source\Resource\Model.cpp" />
     <ClCompile Include="Source\Rendering\Component\ModelRenderComponent.cpp" />
@@ -132,8 +137,6 @@
     <ClInclude Include="Source\Gameplay\Actor\Actor.h" />
     <ClInclude Include="Source\Gameplay\Actor\ActorManager.h" />
     <ClInclude Include="Source\Animation\Animator.h" />
-    <ClInclude Include="Source\Animation\AnimatorSerializer.h" />
-    <ClInclude Include="Source\Application\Tools\AnimEditorWindow.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicModelShader.h" />
     <ClInclude Include="Source\Animation\BoneFollower.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
@@ -164,7 +167,8 @@
     <ClInclude Include="Source\Application\Tools\Dialog.h" />
     <ClInclude Include="Source\Rendering\Effect\Effect.h" />
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h" />
-    <ClInclude Include="Source\Gameplay\AI\EnemyAIController.h" />
+    <ClInclude Include="Source\Gameplay\AI\AIFlow.h" />
+    <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h" />
     <ClInclude Include="Source\Gameplay\Camera\FpsCameraController.h" />
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />
@@ -179,6 +183,7 @@
     <ClInclude Include="Source\Core\Object\Object.h" />
     <ClInclude Include="Source\Rendering\Shader\PBRShader.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
+    <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h" />
     <ClInclude Include="Source\Resource\Model.h" />
     <ClInclude Include="Source\Rendering\Component\ModelRenderComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\ModelRenderer.h" />

@@ -4,6 +4,18 @@
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Collider/BoxCollider.h"
 #include "Physics/Collider/MeshCollider.h"
+#include "Physics/Navigation/NavMeshActor.h"
+
+void NavMeshObstacle::OnStart()
+{
+	MarkDirty();
+}
+
+void NavMeshObstacle::MarkDirty()
+{
+	if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+		navMeshActor->RequestBuild();
+}
 
 bool NavMeshObstacle::GetBounds(Vector3& center, Vector3& size) const
 {

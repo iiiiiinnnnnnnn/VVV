@@ -1,8 +1,6 @@
 // Animator.cpp
 
 #include "Animation/Animator.h"
-#include "Application/Tools/AnimEditorWindow.h"
-#include "Animation/AnimatorSerializer.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Application/Time/GameTime.h"
 #include "Application/Tools/DynamicAnimationSerializer.h"
@@ -43,6 +41,11 @@ Animator::Animator(Object* owner, bool unscaledTime)
     : Component(owner), animationMode(AnimationMode::Dynamic), unscaledTime(unscaledTime)
 {
     dynamic_cast<Widget*>(owner);
+}
+
+Animator::~Animator()
+{
+    if (editorContext) ax::NodeEditor::DestroyEditor(editorContext);
 }
 
 // =========================================================
@@ -331,11 +334,10 @@ void Animator::DrawGUI()
         }
     }
 
-    if (ImGui::Button("Go AnimEditor"))
-        OpenAnimEditor();
+    if (ImGui::Button("Open Animator"))
+        OpenEditor();
 
-    if (animEditor && animEditorOpen)
-        animEditor->Draw(&animEditorOpen);
+    DrawEditor(&editorOpen);
 }
 
 void Animator::_print() const
@@ -349,11 +351,16 @@ void Animator::_print() const
     }
 }
 
-void Animator::OpenAnimEditor()
+void Animator::OpenEditor()
 {
-    if (!animEditor)
-        animEditor = std::make_unique<AnimEditorWindow>(this);
-    animEditorOpen = true;
+    if (!editorContext)
+    {
+        ax::NodeEditor::Config config;
+        config.SettingsFile = nullptr;
+        config.CanvasSizeMode = ax::NodeEditor::CanvasSizeMode::FitVerticalView;
+        editorContext = ax::NodeEditor::CreateEditor(&config);
+    }
+    editorOpen = true;
 }
 
 void Animator::UpdateLayer(
@@ -1911,7 +1918,7 @@ float Animator::EvaluateCurrentFootIKWeight(const std::string& targetName, int l
 bool Animator::Save(const std::string& path)
 {
     m_lastPath = path;
-    return AnimatorSerializer::Save(*this, path);
+    return Serialize(path);
 }
 
 void Animator::Load(const std::string& path)
@@ -1923,7 +1930,7 @@ void Animator::Load(const std::string& path)
     dynamicAnimationError.clear();
     dynamicClipWatchTimer = 0.0f;
 
-    AnimatorSerializer::Load(*this, path);
+    Deserialize(path);
 
     if (animationMode != AnimationMode::Dynamic)
     {

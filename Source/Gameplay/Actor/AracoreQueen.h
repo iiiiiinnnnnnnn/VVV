@@ -1,4 +1,4 @@
-﻿// AracoreQueen.h
+// AracoreQueen.h
 
 #pragma once
 #include "Rendering/Core/ShaderParam.h"
@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Gameplay/Actor/Entity.h"
+#include "Gameplay/AI/EnemyAIFlow.h"
 
 class AracoreQueen;
 
@@ -51,8 +52,6 @@ public:
 
 private:
 	friend class AracoreQueenMachine;
-	void UpdateChase();
-
 	Animator* anim = nullptr;
 	ModelRenderComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb = nullptr;
@@ -63,13 +62,8 @@ private:
 	PhysicsComponent* bodyCollider = nullptr;
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
+	EnemyAIFlow* controller = nullptr;
 	DamageHoleComponent* damageHoleComponent = nullptr;
-	enum class ChaseType
-	{
-		No, Walk, Run
-	} chasingPlayer = ChaseType::No;
-	float chaisedTimer = 0.0f;
-	float navAgentRadius = 2.17f;
 	std::vector<Vector3> colPositions;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

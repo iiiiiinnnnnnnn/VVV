@@ -13,6 +13,7 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
+#include "Physics/Navigation/NavMeshObstacle.h"
 
 CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     : Entity("CrystalProp", "CrystalProp", true)
@@ -35,14 +36,24 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     meshCollider = AddComponent<MeshCollider>(
         Layers::Get("Prop"),
         rigidbody,
-        model.get(),
-        transform.scale);
+        model.get());
+    navMeshObstacle = AddComponent<NavMeshObstacle>();
 }
 
 void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 {
+    const Transform& nextTransform = crystalData.transform;
+    const bool changed =
+        (transform.position - nextTransform.position).LengthSquared() > eps ||
+        (transform.scale - nextTransform.scale).LengthSquared() > eps ||
+        fabsf(transform.rotation.x - nextTransform.rotation.x) > eps ||
+        fabsf(transform.rotation.y - nextTransform.rotation.y) > eps ||
+        fabsf(transform.rotation.z - nextTransform.rotation.z) > eps ||
+        fabsf(transform.rotation.w - nextTransform.rotation.w) > eps;
+
     transform = crystalData.transform;
     transform.Update();
+    if (changed && navMeshObstacle) navMeshObstacle->MarkDirty();
 }
 
 void CrystalProp::ApplyShaderParams(const ShaderParamList& params, const ShaderParamListWithMaterialName& materialParams)
@@ -96,6 +107,7 @@ void CrystalProp::OnDead(const DamageData& damageData)
 {
     SpawnBreakParticles();
     Destroy();
+    if (navMeshObstacle) navMeshObstacle->MarkDirty();
     if (destroyedCallback) destroyedCallback(this);
 }
 
@@ -104,5 +116,4 @@ void CrystalProp::Update()
     Actor::Update();
     rigidbody->SetPosition(transform.position);
     rigidbody->SetRotation(transform.rotation);
-    meshCollider->SetLocalScale(transform.scale);
 }

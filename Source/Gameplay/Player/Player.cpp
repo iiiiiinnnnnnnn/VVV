@@ -192,7 +192,8 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	model->UpdateTransform(transform.matrix);
 
 	// LookAt
-	lookAt = AddComponent<LookAt>(model.get(), "head", "neck_01");
+	lookAt = AddComponent<LookAt>(
+		model.get(), "head", "neck_01");
 	lookAt->SetActive(false);
 }
 

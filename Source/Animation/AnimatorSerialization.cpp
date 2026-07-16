@@ -1,32 +1,22 @@
-// AnimatorSerializer.h
-
-#pragma once
-#include <algorithm>
-#include <functional>
-#include <variant>
-#include <vector>
+// AnimatorSerialization.cpp
 
 #include "Animation/Animator.h"
-#include "nlohmann/json.hpp"
+
+#include <algorithm>
 #include <fstream>
-#include <string>
+#include <variant>
+
+#include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
-
-class AnimatorSerializer
-{
-public:
-    // -------------------------------------------------------
-    // Save
-    // -------------------------------------------------------
-    static bool Save(const Animator& anim, const std::string& path)
+bool Animator::Serialize(const std::string& path) const
     {
         json root;
-        root["animationMode"] = anim.IsDynamicMode() ? "Dynamic" : "Model";
+        root["animationMode"] = IsDynamicMode() ? "Dynamic" : "Model";
 
         // Parameters
         json jParams = json::array();
-        for (const auto& kv : anim.GetParameters())
+        for (const auto& kv : GetParameters())
         {
             json p;
             p["name"] = kv.first;
@@ -50,7 +40,7 @@ public:
 
         // Triggers
         json jTriggers = json::array();
-        for (const auto& kv : anim.GetTriggers())
+        for (const auto& kv : GetTriggers())
             jTriggers.push_back(kv.first);
 
         root["parameters"] = jParams;
@@ -58,10 +48,10 @@ public:
 
         // Layers
         json jLayers = json::array();
-        for (int li = 0; li < anim.GetLayerCount(); ++li)
+        for (int li = 0; li < GetLayerCount(); ++li)
         {
             const Animator::AnimatorLayer& layer =
-                const_cast<Animator&>(anim).GetLayer(li);
+                GetLayer(li);
 
             json jLayer;
             jLayer["name"]      = layer.name;
@@ -202,7 +192,7 @@ public:
     // -------------------------------------------------------
     // Load  (既存データを全てクリアして上書き)
     // -------------------------------------------------------
-    static void Load(Animator& anim, const std::string& path)
+void Animator::Deserialize(const std::string& path)
     {
         std::ifstream ifs(path);
         _ASSERT_EXPR(ifs, "Failed to open file: " + path);
@@ -211,7 +201,7 @@ public:
         try { root = json::parse(ifs); }
         catch (...) { _ASSERT_EXPR(false, "Failed to parse animator: " + path); }
 
-        const std::string expectedMode = anim.IsDynamicMode() ? "Dynamic" : "Model";
+        const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "Model";
         const std::string fileMode = root.value("animationMode", expectedMode);
         if (fileMode != expectedMode)
         {
@@ -219,21 +209,21 @@ public:
             return;
         }
 
-        anim.ClearAll();
+        ClearAll();
 
         // Parameters
         for (const auto& p : root["parameters"])
         {
             std::string name = p["name"];
             std::string type = p["type"];
-            if (type == "float")      anim.AddFloat(name, p["value"].get<float>());
-            else if (type == "int")   anim.AddInt(name, p["value"].get<int>());
-            else if (type == "bool")  anim.AddBool(name, p["value"].get<bool>());
+            if (type == "float")      AddFloat(name, p["value"].get<float>());
+            else if (type == "int")   AddInt(name, p["value"].get<int>());
+            else if (type == "bool")  AddBool(name, p["value"].get<bool>());
         }
 
         // Triggers
         for (const auto& t : root["triggers"])
-            anim.AddTrigger(t.get<std::string>());
+            AddTrigger(t.get<std::string>());
 
         // Layers
         for (const auto& jLayer : root["layers"])
@@ -241,22 +231,22 @@ public:
             Animator::AvatarMask mask;
             mask.nodes = jLayer.value("mask", std::vector<int>{});
 
-            int li = anim.AddLayer(
+            int li = AddLayer(
                 jLayer["name"].get<std::string>(),
                 (Animator::BlendMode)jLayer["blendMode"].get<int>(),
                 jLayer["weight"].get<float>(),
                 mask);
-            anim.GetLayer(li).hasAnyStateEditorPosition = jLayer.value("hasAnyStateEditorPosition", false);
-            anim.GetLayer(li).anyStateEditorPosX = jLayer.value("anyStateEditorPosX", 0.0f);
-            anim.GetLayer(li).anyStateEditorPosY = jLayer.value("anyStateEditorPosY", 0.0f);
+            GetLayer(li).hasAnyStateEditorPosition = jLayer.value("hasAnyStateEditorPosition", false);
+            GetLayer(li).anyStateEditorPosX = jLayer.value("anyStateEditorPosX", 0.0f);
+            GetLayer(li).anyStateEditorPosY = jLayer.value("anyStateEditorPosY", 0.0f);
 
             // States
             for (const auto& jState : jLayer["states"])
             {
                 int si = -1;
-                if (anim.IsDynamicMode())
+                if (IsDynamicMode())
                 {
-                    si = anim.AddDynamicState(
+                    si = AddDynamicState(
                         li,
                         jState["name"].get<std::string>(),
                         jState.value("dynamicClipPath", std::string()),
@@ -265,26 +255,26 @@ public:
                 }
                 else
                 {
-                    si = anim.AddState(
+                    si = AddState(
                         li,
                         jState["name"].get<std::string>(),
                         jState.value("animationIndex", -1),
                         jState["loop"].get<bool>(),
                         jState["speed"].get<float>());
                 }
-                anim.GetLayer(li).states[si].blockAnyStateTransitions =
+                GetLayer(li).states[si].blockAnyStateTransitions =
                     jState.value("blockAnyStateTransitions", false);
-                anim.GetLayer(li).states[si].hasEditorPosition =
+                GetLayer(li).states[si].hasEditorPosition =
                     jState.value("hasEditorPosition", false);
-                anim.GetLayer(li).states[si].editorPosX =
+                GetLayer(li).states[si].editorPosX =
                     jState.value("editorPosX", 0.0f);
-                anim.GetLayer(li).states[si].editorPosY =
+                GetLayer(li).states[si].editorPosY =
                     jState.value("editorPosY", 0.0f);
 
                 // Transitions
                 // AddTransition は内部でソートするため、JSONの順番が崩れる。
                 // 直接 push_back → Condition を付与 → 最後にまとめてソートする。
-                auto& stateRef = anim.GetLayer(li).states[si];
+                auto& stateRef = GetLayer(li).states[si];
                 if (jState.contains("footIKRanges"))
                 {
                     for (const auto& jRange : jState["footIKRanges"])
@@ -356,12 +346,12 @@ public:
             // DefaultState
             int defState = jLayer["defaultState"].get<int>();
             if (defState >= 0)
-                anim.SetDefaultState(li, defState);
+                SetDefaultState(li, defState);
 
             // AnyState Transitions
             if (jLayer.contains("anyStateTransitions"))
             {
-                auto& anyTrans = anim.GetAnyStateTransitions_Mutable(li);
+                auto& anyTrans = GetAnyStateTransitions_Mutable(li);
                 for (const auto& jTr : jLayer["anyStateTransitions"])
                 {
                     Animator::Transition tr;
@@ -400,4 +390,3 @@ public:
             }
         }
     }
-};

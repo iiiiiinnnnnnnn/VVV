@@ -7,6 +7,7 @@
 
 #include "Gameplay/Actor/Entity.h"
 #include "Rendering/Effect/ParticleSystem.h"
+#include "Gameplay/AI/EnemyAIFlow.h"
 
 class NavMeshAgent;
 class Actor;
@@ -44,21 +45,22 @@ public:
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
-	void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
-
 	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 
+	EnemyAIFlow* GetController() const { return controller; }
+
+	void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
+
 private:
 	friend class AracoreMachine;
-	void UpdateChase();
 	void SpawnBreakParticles();
 
 	Animator* anim = nullptr;
-	ParticleSystem* breakParticleSystem;
+	ParticleSystem* breakParticleSystem = nullptr;
 	ModelRenderComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<Model> model;
@@ -68,13 +70,8 @@ private:
 	PhysicsComponent* bodyCollider = nullptr;
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
+	EnemyAIFlow* controller = nullptr;
 	DamageHoleComponent* damageHoleComponent = nullptr;
-	enum class ChaseType
-	{
-		No, Walk, Run
-	} chasingPlayer = ChaseType::No;
-	float chaisedTimer = 0.0f;
-	float navAgentRadius = 2.17f;
 	std::vector<Vector3> colPositions;
 
 	ShaderParamListWithMaterialName shaderParamWithMaterialName;

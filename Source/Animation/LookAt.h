@@ -39,7 +39,7 @@ private:
 	float currentPitch1 = 0.0f, currentPitch2 = 0.0f, currentPitch3 = 0.0f;
 	Model* model;
 	float maxAngleYaw = RAD(30.0f);
-	float maxAnglePitch = RAD(45.0f);
+	float maxAnglePitch = RAD(20.0f);
 	float smoothSpeed = 12.0f;
 	int nodeIndex1 = -1, nodeIndex2 = -1, nodeIndex3 = -1;
 };

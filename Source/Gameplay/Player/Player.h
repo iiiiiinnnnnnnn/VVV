@@ -4,7 +4,6 @@
 #include "Animation/Animator.h"
 
 #include <memory>
-#include <utility>
 
 #include "Gameplay/Actor/Entity.h"
 
@@ -45,8 +44,7 @@ public:
     void OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
     void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
-    void SetController(std::unique_ptr<PlayerController> ctrl) { controller = std::move(ctrl); }
-    PlayerController* GetController() const { return controller.get(); }
+    PlayerController* GetController() const { return controller; }
 
     Model* GetModel() const { return model.get(); }
 
@@ -68,7 +66,7 @@ private:
     void UpdateMovement();
 
 protected:
-    std::unique_ptr<PlayerController> controller = nullptr;
+    PlayerController* controller = nullptr;
     std::shared_ptr<Model> model = nullptr;
 
     // rendering

@@ -1,6 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
+    <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
+      <Filter>Gameplay\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp">
+      <Filter>Gameplay\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp">
+      <Filter>Gameplay\Player</Filter>
+    </ClCompile>
     <Filter Include="Animation">
       <UniqueIdentifier>{bec44de4-182a-5342-9af4-1e54aa2fe358}</UniqueIdentifier>
     </Filter>
@@ -120,6 +129,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
+      <Filter>Gameplay\Player</Filter>
+    </ClInclude>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -333,6 +345,12 @@
     <ClCompile Include="Source\Animation\Animator.cpp">
       <Filter>Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Animation\AnimatorEditor.cpp">
+      <Filter>Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animation\AnimatorSerialization.cpp">
+      <Filter>Animation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Animation\BoneFollower.cpp">
       <Filter>Animation</Filter>
     </ClCompile>
@@ -437,12 +455,6 @@
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Application\Tools\AnimEditorWindow.h">
-      <Filter>Application\Tools</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Animation\AnimatorSerializer.h">
-      <Filter>Animation</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
@@ -470,7 +482,10 @@
     <ClInclude Include="Source\Rendering\Core\ShaderParam.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\AI\EnemyAIController.h">
+    <ClInclude Include="Source\Gameplay\AI\AIFlow.h">
+      <Filter>Gameplay\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h">
       <Filter>Gameplay\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h">

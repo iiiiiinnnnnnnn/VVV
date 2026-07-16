@@ -8,14 +8,15 @@
 #include <variant>
 #include <vector>
 
+#include <imgui.h>
+#include <imgui_node_editor.h>
+
 #include "Core/Foundation/Common.h"
 #include "Resource/Model.h"
 #include "Core/Object/Component.h"
 #include "Application/Tools/DynamicAnimation.h"
 
 #define ANIM(name) model->GetAnimationIndex(name)
-
-class AnimEditorWindow;
 
 class Animator : public Component
 {
@@ -28,6 +29,7 @@ public:
 
     Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime = false);
     Animator(Object* owner, bool unscaledTime = true);
+    ~Animator() override;
     void Update() override;
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_FILM " Animator"; }
@@ -166,9 +168,8 @@ public:
     };
 
     // エディタウィンドウを開く
-    void OpenAnimEditor();
+    void OpenEditor();
 
-    // AnimEditorWindow から内部データへアクセスするためのゲッター
     int GetLayerCount() const { return (int)layers.size(); }
 
     const std::unordered_map<std::string, ParamValue>& GetParameters() const { return parameters; }
@@ -200,6 +201,7 @@ public:
     void SetLayerWeight(int layerIndex, float weight);
     void SetLayerMask(int layerIndex, AvatarMask mask);
     AnimatorLayer& GetLayer(int layerIndex) { return layers[layerIndex]; }
+    const AnimatorLayer& GetLayer(int layerIndex) const { return layers[layerIndex]; }
     void RemoveLayer(int layerIndex);
     void SwapLayers(int a, int b);
     void DuplicateLayer(int layerIndex);
@@ -278,8 +280,8 @@ public:
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
-    bool Save(const std::string& path);   // AnimatorSerializer::Save を呼ぶ
-    void Load(const std::string& path);   // AnimatorSerializer::Load を呼ぶ
+    bool Save(const std::string& path);
+    void Load(const std::string& path);
     const std::string& GetLastPath() const { return m_lastPath; }
 
     void ClearAll()
@@ -307,6 +309,28 @@ public:
     }
 
 private:
+    bool Serialize(const std::string& path) const;
+    void Deserialize(const std::string& path);
+    void DrawEditor(bool* open);
+    void DrawLayerEditor(AnimatorLayer& layer, int layerIndex);
+    void DrawNodes(AnimatorLayer& layer, int layerIndex);
+    void DrawLinks(AnimatorLayer& layer, int layerIndex);
+    void HandleInteractions(AnimatorLayer& layer, int layerIndex);
+    void DrawParameterPanel();
+    void DrawLayerSettings(AnimatorLayer& layer, int layerIndex);
+    void DrawFootIKRangeEditor(State& state);
+    void DrawAnimationKeyEditor(State& state);
+    void DrawVectorKeys(const char* label, std::vector<Model::VectorKeyframe>& keys, float duration, const Vector3& defaultValue);
+    void DrawQuaternionKeys(const char* label, std::vector<Model::QuaternionKeyframe>& keys, float duration, const Quaternion& defaultValue);
+    void DrawStateDetail(AnimatorLayer& layer, int layerIndex);
+    void DrawTransitionDetail(AnimatorLayer& layer);
+    static ax::NodeEditor::PinId OutPin(int layerIndex, int stateIndex);
+    static ax::NodeEditor::PinId InPin(int layerIndex, int stateIndex);
+    static ax::NodeEditor::NodeId NodeId(int layerIndex, int stateIndex);
+    static ax::NodeEditor::LinkId LinkId(int layerIndex, int fromState, int transitionIndex);
+    static int DecodeOutPin(int layerIndex, ax::NodeEditor::PinId pin);
+    static int DecodeInPin(int layerIndex, ax::NodeEditor::PinId pin);
+    static void DecodeLinkId(ax::NodeEditor::LinkId id, int& layerIndex, int& fromState, int& transitionIndex);
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
     bool EvaluateTransition(const Transition& t, float normalizedTime) const;
@@ -345,8 +369,35 @@ private:
     std::vector<Model::NodePose> nextNodePoses;
 
     std::string m_lastPath;
-    std::unique_ptr<AnimEditorWindow> animEditor;
-    bool animEditorOpen = false;
+    ax::NodeEditor::EditorContext* editorContext = nullptr;
+    bool editorOpen = false;
+    int currentEditorLayer = 0;
+    char currentAnimatorPath[MAX_PATH] = {};
+    static constexpr int ANY_STATE_INDEX = 999;
+    struct SelectedTransition
+    {
+        int layerIndex = -1;
+        int fromStateIndex = -1;
+        int transIndex = -1;
+    };
+    SelectedTransition selectedTransition;
+    struct SelectedState { int layerIndex = -1; int stateIndex = -1; };
+    SelectedState selectedState;
+    std::unordered_map<int, bool> editorPositionSet;
+    ImVec2 editorContextMenuPosition = {0.0f, 0.0f};
+    ImVec2 editorCanvasMousePosition = {0.0f, 0.0f};
+    bool pendingNodePlacement = false;
+    int pendingNodeStateIndex = -1;
+    ImVec2 pendingNodePosition = {0.0f, 0.0f};
+    ax::NodeEditor::NodeId deleteNodeId;
+    ax::NodeEditor::LinkId deleteLinkId;
+    bool suppressNodeEditorInteractions = false;
+    float editorLeftPanelWidth = 230.0f;
+    bool addLayerPopupOpen = false;
+    char addLayerName[64] = "New Layer";
+    std::vector<bool> maskSelection;
+    int contextLayerIndex = -1;
+    int keyEditorNodeIndex = 0;
 
     struct two { std::function<void(const Animator::State&)> a, b; };
     std::unordered_map<std::string, two> g_AnimCallbackRegistry;
@@ -363,3 +414,5 @@ private:
     // 1つのノードのポーズを特定時間からサンプリングするヘルパー
     Model::NodePose SampleNodePose(int animIndex, float time, int nodeIdx);
 };
+
+

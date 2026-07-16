@@ -35,11 +35,8 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 	// player & camera
 	{
-		std::shared_ptr<Player> player =
-			std::make_shared<Player>();
-
-		player->SetController(
-			std::make_unique<LocalPlayer>());
+		std::shared_ptr<LocalPlayer> player =
+			std::make_shared<LocalPlayer>();
 
 		actorManager.Register(player);
 

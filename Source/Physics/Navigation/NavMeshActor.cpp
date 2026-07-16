@@ -22,6 +22,7 @@ NavMeshActor::NavMeshActor(Object* owner)
 	: Component(owner)
 {
 	active = this;
+	showDebug = true;
 }
 
 NavMeshActor::~NavMeshActor()
@@ -101,12 +102,13 @@ void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) cons
 
 bool NavMeshActor::IsBlockedByObstacle(
 	const Vector3& center,
-	const std::vector<ObstacleBounds>& obstacles) const
+	const std::vector<ObstacleBounds>& obstacles,
+	float cellHalfSize) const
 {
 	for (const ObstacleBounds& obstacle : obstacles)
 	{
 		const Vector3 halfSize = obstacle.size * 0.5f;
-		const float inflate = agentRadius;
+		const float inflate = agentRadius + obstaclePadding + cellHalfSize;
 
 		if (center.x < obstacle.center.x - halfSize.x - inflate) continue;
 		if (center.x > obstacle.center.x + halfSize.x + inflate) continue;
@@ -220,7 +222,7 @@ void NavMeshActor::Build()
 			const Vector3 p2 = makeDebugVertex(x, z + 1);
 			const Vector3 p3 = makeDebugVertex(x + 1, z + 1);
 
-			if (IsBlockedByObstacle(center, obstacles))
+			if (IsBlockedByObstacle(center, obstacles, cellSize * 0.5f))
 			{
 				++blockedCellCount;
 				pushDebugTriangle(p0, p2, p1, false);
@@ -409,10 +411,49 @@ bool NavMeshActor::FindNextPoint(
 	return true;
 }
 
+bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const
+{
+	std::vector<ObstacleBounds> obstacles;
+	CollectObstacles(obstacles);
+
+	const Vector3 delta = goal - start;
+	for (const ObstacleBounds& obstacle : obstacles)
+	{
+		const Vector3 halfSize = obstacle.size * 0.5f;
+		const float inflate = agentRadius + obstaclePadding;
+		const float minX = obstacle.center.x - halfSize.x - inflate;
+		const float maxX = obstacle.center.x + halfSize.x + inflate;
+		const float minZ = obstacle.center.z - halfSize.z - inflate;
+		const float maxZ = obstacle.center.z + halfSize.z + inflate;
+
+		float enter = 0.0f;
+		float exit = 1.0f;
+		auto clipAxis = [&enter, &exit](float origin, float direction, float minValue, float maxValue)
+		{
+			if (fabsf(direction) <= eps)
+				return origin >= minValue && origin <= maxValue;
+
+			float first = (minValue - origin) / direction;
+			float second = (maxValue - origin) / direction;
+			if (first > second) std::swap(first, second);
+			enter = std::max(enter, first);
+			exit = std::min(exit, second);
+			return enter <= exit;
+		};
+
+		if (clipAxis(start.x, delta.x, minX, maxX) &&
+			clipAxis(start.z, delta.z, minZ, maxZ))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void NavMeshActor::Render(const RenderContext& rc)
 {
 	if (!showDebug) return;
-	if (debugCells.empty()) return;
 
 	PrimitiveRenderer* renderer =
 		Game::Graphics::Instance().GetPrimitiveRenderer();
@@ -427,15 +468,77 @@ void NavMeshActor::Render(const RenderContext& rc)
 		if (index % step != 0) continue;
 
 		const DebugCell& cell = debugCells[index];
+		if (cell.walkable && !showWalkableCells) continue;
+		if (!cell.walkable && !showBlockedCells) continue;
 		const Color color = cell.walkable ? walkableColor : blockedColor;
 		renderer->DrawLine(cell.corners[0], cell.corners[1], color, color);
 		renderer->DrawLine(cell.corners[1], cell.corners[2], color, color);
 		renderer->DrawLine(cell.corners[2], cell.corners[0], color, color);
 	}
+
+	if (!showObstacleBounds && !showInflatedObstacleBounds) return;
+
+	std::vector<ObstacleBounds> obstacles;
+	CollectObstacles(obstacles);
+	auto drawBounds = [renderer](
+		const Vector3& center,
+		const Vector3& size,
+		const Color& color)
+	{
+		const Vector3 half = size * 0.5f;
+		const Vector3 corners[] =
+		{
+			center + Vector3(-half.x, -half.y, -half.z),
+			center + Vector3( half.x, -half.y, -half.z),
+			center + Vector3( half.x, -half.y,  half.z),
+			center + Vector3(-half.x, -half.y,  half.z),
+			center + Vector3(-half.x,  half.y, -half.z),
+			center + Vector3( half.x,  half.y, -half.z),
+			center + Vector3( half.x,  half.y,  half.z),
+			center + Vector3(-half.x,  half.y,  half.z)
+		};
+		constexpr int edges[][2] =
+		{
+			{0, 1}, {1, 2}, {2, 3}, {3, 0},
+			{4, 5}, {5, 6}, {6, 7}, {7, 4},
+			{0, 4}, {1, 5}, {2, 6}, {3, 7}
+		};
+		for (const auto& edge : edges)
+			renderer->DrawLine(corners[edge[0]], corners[edge[1]], color, color);
+	};
+
+	const Color obstacleColor(1.0f, 1.0f, 1.0f, 1.0f);
+	const Color inflatedColor(1.0f, 0.8f, 0.1f, 1.0f);
+	const float inflate = agentRadius + obstaclePadding;
+	for (const ObstacleBounds& obstacle : obstacles)
+	{
+		if (showObstacleBounds)
+			drawBounds(obstacle.center, obstacle.size, obstacleColor);
+		if (showInflatedObstacleBounds)
+		{
+			Vector3 inflatedSize = obstacle.size;
+			inflatedSize.x += inflate * 2.0f;
+			inflatedSize.z += inflate * 2.0f;
+			drawBounds(obstacle.center, inflatedSize, inflatedColor);
+		}
+	}
 }
 
 void NavMeshActor::DrawGUI()
 {
+	ImGui::Checkbox("Show NavMesh Debug", &showDebug);
+	if (showDebug)
+	{
+		ImGui::Checkbox("Show Walkable Cells", &showWalkableCells);
+		ImGui::Checkbox("Show Blocked Cells", &showBlockedCells);
+		ImGui::Checkbox("Show MeshCollider Bounds", &showObstacleBounds);
+		ImGui::Checkbox("Show Inflated Obstacle Bounds", &showInflatedObstacleBounds);
+		ImGui::TextColored(ImVec4(0.0f, 0.8f, 1.0f, 1.0f), "Cyan: walkable");
+		ImGui::TextColored(ImVec4(1.0f, 0.15f, 0.05f, 1.0f), "Red: blocked cell");
+		ImGui::TextUnformatted("White: MeshCollider bounds");
+		ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.1f, 1.0f), "Yellow: inflated obstacle");
+	}
+
 	if (ImGui::DragInt("Resolution", &resolution, 1.0f, 8, 256))
 		resolution = std::max(resolution, 8);
 	if (ImGui::DragInt("Debug Draw Step", &debugDrawStep, 1.0f, 1, 32))
@@ -443,6 +546,7 @@ void NavMeshActor::DrawGUI()
 	ImGui::DragFloat("Agent Height", &agentHeight, 0.1f, 0.1f, 10.0f);
 	ImGui::DragFloat("Agent Radius", &agentRadius, 0.1f, 0.0f, 10.0f);
 	ImGui::DragFloat("Agent Climb", &agentClimb, 0.1f, 0.0f, 10.0f);
+	ImGui::DragFloat("Obstacle Padding", &obstaclePadding, 0.05f, 0.0f, 5.0f);
 	ImGui::DragFloat("Nearest Poly Extent", &nearestPolyExtent, 0.1f, 0.1f, 50.0f);
 	ImGui::Text("%s", statusMessage.c_str());
 

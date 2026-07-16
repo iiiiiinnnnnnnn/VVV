@@ -1,8 +1,11 @@
-﻿#pragma once
-#include "Gameplay/Player/PlayerController.h"
+// LocalPlayer.h
 
-class LocalPlayer : public PlayerController
+#pragma once
+
+#include "Gameplay/Player/Player.h"
+
+class LocalPlayer : public Player
 {
 public:
-    InputContext Poll() override;
+    LocalPlayer();
 };

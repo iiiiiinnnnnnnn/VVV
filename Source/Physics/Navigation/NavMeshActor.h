@@ -28,6 +28,7 @@ public:
 		const Vector3& start,
 		const Vector3& goal,
 		Vector3& nextPoint) const;
+	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
 
 	void RequestBuild(int delayFrames = 1);
 	void SetAgentRadius(float value);
@@ -53,7 +54,8 @@ private:
 	void CollectObstacles(std::vector<ObstacleBounds>& obstacles) const;
 	bool IsBlockedByObstacle(
 		const Vector3& center,
-		const std::vector<ObstacleBounds>& obstacles) const;
+		const std::vector<ObstacleBounds>& obstacles,
+		float cellHalfSize) const;
 
 	static NavMeshActor* active;
 
@@ -62,12 +64,17 @@ private:
 
 	bool buildRequested = true;
 	bool built = false;
+	bool showWalkableCells = true;
+	bool showBlockedCells = true;
+	bool showObstacleBounds = true;
+	bool showInflatedObstacleBounds = true;
 	int buildDelayFrames = 1;
 	int resolution = 128;
-	int debugDrawStep = 2;
+	int debugDrawStep = 1;
 	float agentHeight = 2.0f;
 	float agentRadius = 0.6f;
 	float agentClimb = 1.2f;
+	float obstaclePadding = 0.25f;
 	float nearestPolyExtent = 8.0f;
 	float navMinY = -100.0f;
 	float navMaxY = 100.0f;

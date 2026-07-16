@@ -28,6 +28,7 @@ public:
 	float GetSpeed() const { return speed; }
 	float GetMoveAmount() const { return currentSpeed; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
+	const std::string& GetStatusMessage() const { return statusMessage; }
 
 private:
 	Actor* FindTargetByTag();
@@ -41,10 +42,10 @@ private:
 	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
 	bool useLastValidPathOnFail = true;
+	bool directMoveOnPathFail = true;
 	bool hasLastNextPoint = false;
 	Vector3 lastNextPoint = Vector3::Zero;
 	float stoppingDistance = 1.5f;
-	float repathDistance = 1.0f;
 	float pathFailGraceTime = 0.5f;
 	float pathFailTimer = 0.0f;
 	float turnSpeed = 8.0f;
