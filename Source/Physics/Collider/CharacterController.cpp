@@ -44,8 +44,15 @@ CharacterController::CharacterController(Object* owner, LayerId layerId, float r
 
 CharacterController::~CharacterController()
 {
-    if (controller) controller->release();
+    ReleaseController();
     delete hitReport;
+}
+
+void CharacterController::ReleaseController()
+{
+    if (!controller) return;
+    controller->release();
+    controller = nullptr;
 }
 
 void CharacterController::Update()

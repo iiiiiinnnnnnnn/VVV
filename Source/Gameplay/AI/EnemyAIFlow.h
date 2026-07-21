@@ -21,6 +21,8 @@ public:
     void SetSearchRange(float value);
     void SetAgentRadius(float value) { agentRadius = value; }
     Actor* GetTarget() const { return target; }
+    void LockOn(Actor* actor);
+    void SetMovementLocked(bool value);
     void MoveToTarget(float speed);
     void StopMovement();
 
@@ -36,10 +38,13 @@ private:
 
     std::string targetTag = "Player";
     Actor* target = nullptr;
+    Actor* lockedTarget = nullptr;
     NavMeshAgent* navMeshAgent = nullptr;
     float agentRadius = 1.0f;
     float trackingTurnSpeed = 8.0f;
     Vector3 sightRayStart = Vector3::Zero;
     Vector3 sightRayEnd = Vector3::Zero;
     bool sightRayHit = false;
+	bool movementLocked = false;
+	bool showSightDebug = true;
 };

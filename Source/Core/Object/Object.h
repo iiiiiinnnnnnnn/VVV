@@ -30,6 +30,7 @@ public:
 
 	virtual void Destroy(float delay = 0.0f) { destroyTimer = delay; }
 	bool IsPendingDestroy() const { return destroyTimer.has_value() && destroyTimer.value() <= 0.0f; }
+	void SetComponentDebugVisible(bool visible) { componentDebugVisible = visible; }
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args)
@@ -89,6 +90,7 @@ protected:
 	std::vector<std::unique_ptr<Component>> components;
 	bool isAwake = false;
 	bool isStarted = false;
+	bool componentDebugVisible = false;
 
 private:
 	void SortComponentsByUpdateOrder();

@@ -157,7 +157,13 @@
                 {
                     "animationIndex": 0,
                     "blockAnyStateTransitions": false,
-                    "callbacks": [],
+                    "callbacks": [
+                        {
+                            "enterTimePer": 0.25,
+                            "exitTimePer": 0.55,
+                            "label": "AttackHit"
+                        }
+                    ],
                     "dynamicClipPath": "",
                     "editorPosX": -140.0,
                     "editorPosY": 3.0,

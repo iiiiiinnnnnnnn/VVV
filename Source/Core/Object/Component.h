@@ -33,6 +33,7 @@ public:
     virtual void DrawGUI() { OnDrawGUI(); }
 
     bool IsActive() const { return isActive; }
+	void SetShowDebug(bool enabled) { showDebug = enabled; }
     void SetActive(bool active)
     {
         if (isActive == active)

@@ -29,6 +29,8 @@ public:
     BoneCollider(Object* owner, LayerId layerId, Model* model, int nodeIndex, Matrix offset, PxMaterial* material,
         bool isTrigger, bool freezePositions, bool freezeRotations);
     ~BoneCollider() override;
+    void OnEnabled() override;
+    void OnDisabled() override;
     void LateUpdate() override;
     Vector3 GetWorldPosition() const;
     Actor* FindOverlapActorByTag(const std::string& tag) const;

@@ -22,7 +22,6 @@ using json = nlohmann::json;
 EnemyAIFlow::EnemyAIFlow(Object* owner)
     : AIFlow(owner)
 {
-    showDebug = true;
     SetGraphPath("Data/AI/EnemyAI.json");
     SetFloat("SearchRange", 15.0f);
     SetFloat("SightRayLength", 16.5f);
@@ -46,7 +45,7 @@ void EnemyAIFlow::OnDisabled()
 
 void EnemyAIFlow::OnRender(const RenderContext&)
 {
-    if (!showDebug) return;
+    if (!showDebug || !showSightDebug) return;
 
     const Actor* ownerActor = dynamic_cast<const Actor*>(owner);
     if (!ownerActor) return;
@@ -135,8 +134,28 @@ void EnemyAIFlow::SetSearchRange(float value)
     SetFloat("SearchRange", std::max(value, 0.0f));
 }
 
+void EnemyAIFlow::LockOn(Actor* actor)
+{
+    if (!actor || actor == owner) return;
+    lockedTarget = actor;
+    target = actor;
+}
+
+void EnemyAIFlow::SetMovementLocked(bool value)
+{
+    if (value && !movementLocked) FaceTarget();
+    movementLocked = value;
+    if (movementLocked) StopMovement();
+}
+
 void EnemyAIFlow::MoveToTarget(float speed)
 {
+    if (movementLocked)
+    {
+        StopMovement();
+        return;
+    }
+
     if (!target || !GetBool("IsTargetInSearchRange"))
     {
         StopMovement();
@@ -191,6 +210,21 @@ void EnemyAIFlow::UpdateBlackboard()
         for (Actor* actor : actorManager->GetActors())
         {
             if (!actor || actor == ownerActor || actor->IsPendingDestroy()) continue;
+            if (actor == lockedTarget && actor->IsActive())
+            {
+                target = actor;
+                closestDistance = Vector3::Distance(
+                    actor->transform.position, ownerActor->transform.position);
+                break;
+            }
+        }
+
+        if (lockedTarget && target != lockedTarget) lockedTarget = nullptr;
+
+        for (Actor* actor : actorManager->GetActors())
+        {
+            if (target == lockedTarget && lockedTarget) break;
+            if (!actor || actor == ownerActor || actor->IsPendingDestroy()) continue;
             if (!actor->CompareTag(targetTag)) continue;
             const float distance = Vector3::Distance(
                 actor->transform.position, ownerActor->transform.position);
@@ -204,11 +238,16 @@ void EnemyAIFlow::UpdateBlackboard()
     SetBool("HasTarget", hasTarget, true);
     SetBool(
         "IsTargetInSearchRange",
-        hasTarget && closestDistance <= GetFloat("SearchRange", 20.0f),
+        hasTarget && (target == lockedTarget || closestDistance <= GetFloat("SearchRange", 20.0f)),
         true);
     SetFloat("TargetDistance", closestDistance, true);
     SetVector3("TargetPosition", hasTarget ? target->transform.position : Vector3::Zero, true);
     UpdateSightRay();
+    if (target && target == lockedTarget)
+    {
+        SetBool("IsTargetInSightAngle", true, true);
+        SetBool("IsTargetVisible", true, true);
+    }
 }
 
 void EnemyAIFlow::UpdateSightRay()
@@ -301,6 +340,7 @@ void EnemyAIFlow::UpdateSightRay()
 void EnemyAIFlow::DrawFlowInspector()
 {
     ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
+    ImGui::Text("Locked Target: %s", lockedTarget ? lockedTarget->GetName().c_str() : "None");
     ImGui::Text("Target Distance: %.2f", GetFloat("TargetDistance"));
     ImGui::Text("In Sight Angle: %s", GetBool("IsTargetInSightAngle") ? "true" : "false");
     ImGui::Text("Target Visible: %s", GetBool("IsTargetVisible") ? "true" : "false");
@@ -308,7 +348,7 @@ void EnemyAIFlow::DrawFlowInspector()
         "NavMesh: %s",
         navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : "Not cached yet");
     ImGui::Text("Move Speed: %.2f", navMeshAgent ? navMeshAgent->GetMoveAmount() : 0.0f);
-    ImGui::Checkbox("Show Sight Debug", &showDebug);
+    ImGui::Checkbox("Show Sight Debug", &showSightDebug);
 
     float searchRange = GetFloat("SearchRange", 20.0f);
     if (ImGui::DragFloat("Search Range", &searchRange, 0.25f, 0.0f, 1000.0f))

@@ -30,6 +30,7 @@ public:
 
 	const Vector3 GetVelocity() const { return Conv::ToVector3(rb->getLinearVelocity()); }
 	void SetVelocity(const Vector3& v);
+	void SetAngularVelocity(const Vector3& v);
 
 protected:
 	PxRigidDynamic* rb = nullptr;

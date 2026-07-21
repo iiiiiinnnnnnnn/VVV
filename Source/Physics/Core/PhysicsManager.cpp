@@ -59,7 +59,7 @@ static PhysicsComponent* ToCollider(PxShape* shape)
     if (!shape) return nullptr;
 
     PhysicsComponent* collider = static_cast<PhysicsComponent*>(shape->userData);
-    if (!collider) return nullptr;
+    if (!PhysicsComponent::IsLive(collider) || !collider->IsActive()) return nullptr;
 
     Actor* actor = dynamic_cast<Actor*>(collider->GetOwner());
     if (!IsValidActor(actor)) return nullptr;
@@ -69,7 +69,7 @@ static PhysicsComponent* ToCollider(PxShape* shape)
 
 static bool IsValidCollider(PhysicsComponent* collider)
 {
-    return collider
+    return PhysicsComponent::IsLive(collider)
         && collider->IsActive()
         && IsValidActor(dynamic_cast<Actor*>(collider->GetOwner()));
 }

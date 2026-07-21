@@ -362,10 +362,8 @@ void Scene::DrawGUI(RenderContext& rc)
 	{
 		// オブジェクト系統デバッグ
 		{
-			if (ImGui::Begin("Actors"))
-			{
-				actorManager.DrawGUI();
-			}
+			const bool actorsWindowOpen = ImGui::Begin("Actors");
+			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
 			if (ImGui::Begin("Widgets"))

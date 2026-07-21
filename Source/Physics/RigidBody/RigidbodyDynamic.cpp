@@ -122,5 +122,12 @@ void RigidbodyDynamic::AddForce(const Vector3& force)
 
 void RigidbodyDynamic::SetVelocity(const Vector3& v)
 {
-    static_cast<PxRigidDynamic*>(rb)->setLinearVelocity({ v.x, v.y, v.z });
+	if (!rb) return;
+	static_cast<PxRigidDynamic*>(rb)->setLinearVelocity({ v.x, v.y, v.z });
+}
+
+void RigidbodyDynamic::SetAngularVelocity(const Vector3& v)
+{
+	if (!rb) return;
+	static_cast<PxRigidDynamic*>(rb)->setAngularVelocity({ v.x, v.y, v.z });
 }

@@ -1,6 +1,7 @@
 ﻿// PhysicsManager.h
 
 #pragma once
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
@@ -95,6 +96,17 @@ public:
     void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
     void DispatchStayEvents();
     void ClearPairs();
+    void RemoveCollider(PhysicsComponent* collider)
+    {
+        std::erase_if(currentCollisionPairs, [collider](const auto& pair)
+        {
+            return pair.second.a == collider || pair.second.b == collider;
+        });
+        std::erase_if(currentTriggerPairs, [collider](const auto& pair)
+        {
+            return pair.second.a == collider || pair.second.b == collider;
+        });
+    }
 
     void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
     void onWake(PxActor**, PxU32) override {}
@@ -124,7 +136,23 @@ class CCHitReport : public PxUserControllerHitReport
 {
 public:
     CCHitReport(Actor* owner, PhysicsComponent* ownerCollider, int layer)
-        : owner(owner), ownerCollider(ownerCollider), ownerLayer(layer) {}
+        : owner(owner), ownerCollider(ownerCollider), ownerLayer(layer)
+    {
+        liveReports.insert(this);
+    }
+    ~CCHitReport() override
+    {
+        liveReports.erase(this);
+    }
+
+    static void RemoveColliderFromAll(PhysicsComponent* collider)
+    {
+        for (CCHitReport* report : liveReports)
+        {
+            report->currentFrameColliders.erase(collider);
+            report->prevFrameColliders.erase(collider);
+        }
+    }
 
     void onShapeHit(const PxControllerShapeHit& hit) override;
     void onControllerHit(const PxControllersHit& hit) override {}
@@ -144,6 +172,7 @@ private:
     };
     std::map<PhysicsComponent*, HitState> currentFrameColliders;
     std::map<PhysicsComponent*, HitState> prevFrameColliders;
+    inline static std::set<CCHitReport*> liveReports;
 public:
     bool dispatchedThisFrame = false;
 };

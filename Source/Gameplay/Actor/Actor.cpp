@@ -4,15 +4,26 @@
 
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/CharacterController.h"
+#include "Physics/Core/PhysicsComponent.h"
 #include <imgui.h>
 
 void Actor::Destroy(float delay)
 {
     Object::Destroy(delay);
+	CollisionEventCallback& eventCallback =
+		PhysicsManager::Instance().GetSceneContext().GetEventCallback();
 
 	for (const auto& component : components)
-    {
-        if (auto* rigidbody = dynamic_cast<Rigidbody*>(component.get()))
+	{
+		if (PhysicsComponent* collider = dynamic_cast<PhysicsComponent*>(component.get()))
+		{
+			eventCallback.RemoveCollider(collider);
+			CCHitReport::RemoveColliderFromAll(collider);
+			collider->SetActive(false);
+		}
+		if (CharacterController* controller = dynamic_cast<CharacterController*>(component.get()))
+			controller->ReleaseController();
+		if (auto* rigidbody = dynamic_cast<Rigidbody*>(component.get()))
         {
             rigidbody->SetSceneEnabled(false);
         }
@@ -28,7 +39,9 @@ void Actor::Update()
 void Actor::DrawGUI()
 {
     ImGui::PushID(this);
-    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
+    const bool inspectorOpen = ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str());
+	SetComponentDebugVisible(inspectorOpen);
+    if (inspectorOpen)
     {
         Transform::TransformChangedResult res = transform.DrawGUI();
         if (res.positionChanged)

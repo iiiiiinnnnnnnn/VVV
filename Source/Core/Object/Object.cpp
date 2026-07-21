@@ -3,6 +3,7 @@
 #include "Core/Object/Object.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
+#include "Rendering/Core/RenderContext.h"
 
 Object::~Object()
 {
@@ -86,8 +87,11 @@ void Object::Render(const RenderContext& rc)
 
     for (auto& c : components)
     {
-        if(c->IsActive())
+		if(c->IsActive())
+		{
+			c->SetShowDebug(rc.renderSettings.showDebug && componentDebugVisible);
             c->Render(rc);
+		}
     }
 
     OnRender(rc);

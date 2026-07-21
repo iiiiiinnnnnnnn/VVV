@@ -99,13 +99,18 @@ public:
 		}
 	}
 
-	void DrawGUI()
+	void DrawGUI(bool windowOpen = true)
 	{
 		const size_t count = data.size();
 
 		for (size_t i = 0; i < count; ++i)
 		{
 			if (!data[i]) continue;
+			if (!windowOpen)
+			{
+				data[i]->SetComponentDebugVisible(false);
+				continue;
+			}
 
 			if (data[i]->IsPendingDestroy()) continue;
 

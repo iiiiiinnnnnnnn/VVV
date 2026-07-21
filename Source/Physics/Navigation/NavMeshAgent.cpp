@@ -131,21 +131,28 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 		pathFailTimer += Game::Time::deltaTime;
 		if (!useLastValidPathOnFail || !hasLastNextPoint || pathFailTimer > pathFailGraceTime)
 		{
-			if (!directMoveOnPathFail ||
-				navMeshActor->IsDirectPathBlocked(
+			if (navMeshActor->FindObstacleDetourPoint(
+				actor->transform.position,
+				targetActor->transform.position,
+				nextPoint))
+			{
+				directMove = true;
+				statusMessage = "Local obstacle detour.";
+			}
+			else if (directMoveOnPathFail &&
+				!navMeshActor->IsDirectPathBlocked(
 					actor->transform.position,
 					targetActor->transform.position))
-			{
-				statusMessage = "Path blocked by obstacle.";
-				currentSpeed = 0.0f;
-				return;
-			}
-
-			else
 			{
 				nextPoint = targetActor->transform.position;
 				directMove = true;
 				statusMessage = "Direct move: Path not found.";
+			}
+			else
+			{
+				statusMessage = "Path blocked by obstacle.";
+				currentSpeed = 0.0f;
+				return;
 			}
 		}
 		else
@@ -157,8 +164,6 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	else
 	{
 		pathFailTimer = 0.0f;
-		lastNextPoint = nextPoint;
-		hasLastNextPoint = true;
 	}
 
 	Vector3 direction = nextPoint - actor->transform.position;
@@ -166,8 +171,25 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 
 	if (direction.LengthSquared() <= eps)
 	{
-		statusMessage = "Next point too close.";
-		return;
+		if (navMeshActor && navMeshActor->IsDirectPathBlocked(
+			actor->transform.position,
+			targetActor->transform.position))
+		{
+			statusMessage = "Next point too close and direct path blocked.";
+			currentSpeed = 0.0f;
+			return;
+		}
+
+		nextPoint = targetActor->transform.position;
+		direction = flatToTarget;
+		directMove = true;
+		statusMessage = "Direct move: next point too close.";
+	}
+
+	if (!directMove && pathFailTimer <= 0.0f)
+	{
+		lastNextPoint = nextPoint;
+		hasLastNextPoint = true;
 	}
 
 	const float nextPointDistance = direction.Length();

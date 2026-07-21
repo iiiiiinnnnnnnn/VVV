@@ -26,6 +26,7 @@ public:
     void SetStepOffset(float value);
     void SetSlopeLimitDeg(float value);
     void SetContactOffset(float value);
+    void ReleaseController();
     bool IsGrounded() const { return grounded; }
 private:
     void ApplyGravity();

@@ -12,7 +12,7 @@ class Actor : public Object
 public:
     Actor(std::string name = "", std::string tag = "", bool isActive = true)
         : Object(name, tag, isActive) {}
-    virtual ~Actor() = default;
+    ~Actor() override = default;
 
 	void Update() override;
 	void DrawGUI() override;

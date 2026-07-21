@@ -1,16 +1,15 @@
 ﻿// Aracore.cpp
 
 #include "Gameplay/Actor/Aracore.h"
+#include <algorithm>
 #include "Animation/Animator.h"
 #include "Animation/BoneFollower.h"
-#include "Physics/Collider/BoxCollider.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Resource/Model.h"
 #include "Rendering/Component/ModelRenderComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/SphereCollider.h"
-#include "Rendering/Component/DamageHoleComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Physics/Navigation/NavMeshAgent.h"
@@ -22,6 +21,7 @@
 #include "Animation/SpiderFootIK.h"
 #include "Physics/Collider/BoneCapsuleCollider.h"
 #include "Physics/Collider/BoneSphereCollider.h"
+#include "Application/Time/GameTime.h"
 
 Aracore::Aracore(const Vector3& position) 
     : Entity("Aracore", "Enemy", true, 100.0f, 100.0f)
@@ -60,14 +60,18 @@ Aracore::Aracore(const Vector3& position)
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
         anim->Load("Data/Animator/animated_spider2.animator");
+        anim->AddCallbackFunc(
+            "AttackHit",
+            [this](const Animator::State&) { OnEnterAttackHit(); },
+            [this](const Animator::State&) { OnExitAttackHit(); });
         anim->BindCallbacks();
 
         // キャラクターコントローラー
-        CharacterController* cc = AddComponent<CharacterController>(
+        characterController = AddComponent<CharacterController>(
             Layers::Get("Enemy"), 0.4f, 0.01f);
-        cc->SetStepOffset(1.2f);
-        cc->SetSlopeLimitDeg(70.0f);
-        cc->SetContactOffset(0.2f);
+        characterController->SetStepOffset(1.2f);
+        characterController->SetSlopeLimitDeg(70.0f);
+        characterController->SetContactOffset(0.2f);
         navMeshAgent = AddComponent<NavMeshAgent>();
 
         // リジッドボディ
@@ -76,6 +80,13 @@ Aracore::Aracore(const Vector3& position)
 
         // 当たり判定
         bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 0.6f, Vector3{0, 0.4f, 0});
+        attackCollider = AddComponent<BoneSphereCollider>(
+            Layers::Get("EnemyAtk"),
+            model.get(),
+            model->GetNodeIndex("Bone.004_012"),
+            0.4f,
+            Matrix::CreateTranslation(0.0f, 0.0f, 1.25f));
+        attackCollider->SetActive(false);
 
         // 足接地補正
         spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
@@ -94,7 +105,7 @@ Aracore::Aracore(const Vector3& position)
     controller->SetGraphPath("Data/AI/SpiderChase.json");
     if (!controller->Load(controller->GetGraphPath()))
         controller->CreateDefaultChaseGraph();
-    controller->SetAgentRadius(2.0f);
+    controller->SetAgentRadius(1.5f);
 
     const auto stop = [this](const EnemyAIFlow::State&)
     {
@@ -114,6 +125,16 @@ Aracore::Aracore(const Vector3& position)
     controller->BindCallbacks();
 }
 
+void Aracore::Destroy(float delay)
+{
+	if (machine)
+	{
+		machine->Destroy(delay);
+		machine = nullptr;
+	}
+	Actor::Destroy(delay);
+}
+
 void Aracore::OnAwake()
 {
     auto make = std::static_pointer_cast<Actor>(std::make_shared<AracoreMachine>(this));
@@ -125,6 +146,34 @@ void Aracore::OnAwake()
 void Aracore::OnUpdate()
 {
     Entity::OnUpdate();
+	if (deathSequenceActive)
+	{
+		deathTimer -= Game::Time::deltaTime;
+		if (deathTimer <= 0.0f)
+		{
+			deathSequenceActive = false;
+			SpawnBreakParticles();
+			Destroy();
+		}
+		return;
+	}
+
+    attackCooldown = std::max(attackCooldown - Game::Time::deltaTime, 0.0f);
+    if (attackRequested)
+    {
+        attackRequestTimer += Game::Time::deltaTime;
+        const bool inAttackState = anim->GetCurrentStateName() == "Attack";
+        if (inAttackState) attackStateEntered = true;
+        if ((attackStateEntered && !inAttackState) || attackRequestTimer >= 3.0f)
+            EndAttack();
+    }
+    else if (controller && controller->GetTarget() && attackCooldown <= 0.0f)
+    {
+        const float distance = Vector3::Distance(
+            transform.position, controller->GetTarget()->transform.position);
+        if (distance <= 1.75f) BeginAttack();
+    }
+
     anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
 }
 
@@ -154,27 +203,205 @@ void Aracore::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, 
 
 void Aracore::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
+	if (self != attackCollider || !attackCollider->IsActive()) return;
+	TryDealAttackDamage(dynamic_cast<Actor*>(other->GetOwner()), other, point, normal);
+}
 
+void Aracore::OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+{
+	if (self != attackCollider || !attackCollider->IsActive()) return;
+	TryDealAttackDamage(dynamic_cast<Actor*>(other->GetOwner()), other, point, normal);
 }
 
 void Aracore::OnDamaged(const DamageData& damageData)
 {
     HitStop::Request(0.15f);
     CameraEffectController::Request(0.2f, 0.1f);
+
+	Actor* attacker = damageData.hitColliderSelf
+		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
+		: nullptr;
+	if (controller && attacker && attacker->CompareTag("Player"))
+		controller->LockOn(attacker);
 }
 
 void Aracore::OnDead(const DamageData& damageData)
 {
+    EndAttack();
     if (controller) controller->SetActive(false);
+	if (navMeshAgent) navMeshAgent->SetActive(false);
+	if (characterController)
+	{
+		characterController->ReleaseController();
+		characterController->SetActive(false);
+	}
+	if (spiderFootIK) spiderFootIK->SetActive(false);
     if (machine)
     {
-		SpawnBreakParticles();
         machine->Destroy(0);
         machine = nullptr;
     }
     anim->SetBool("Dead", true);
-	bodyCollider->SetActive(false);
-	rb->SetActive(false);
+	anim->SetFloat("speed", 0.0f);
+	if (bodyCollider) bodyCollider->SetActive(true);
+	if (rb)
+	{
+		rb->SetActive(true);
+		rb->SetKinematic(false);
+
+		Vector3 launchDirection = Vector3::Zero;
+		if (damageData.hitPosition.has_value())
+		{
+			launchDirection = transform.position - damageData.hitPosition.value();
+			launchDirection.y = 0.0f;
+			if (launchDirection.LengthSquared() > eps) launchDirection.Normalize();
+		}
+		rb->SetVelocity(launchDirection * 2.5f + Vector3(0.0f, 1.5f, 0.0f));
+		rb->SetAngularVelocity(Vector3(
+			Random::Range(-5.0f, 5.0f),
+			Random::Range(-3.0f, 3.0f),
+			Random::Range(-5.0f, 5.0f)));
+	}
+	deathTimer = 5.0f;
+	deathSequenceActive = true;
+}
+
+void Aracore::BeginAttack()
+{
+	if (attackRequested || IsDead()) return;
+
+	attackRequested = true;
+	attackStateEntered = false;
+	attackHit = false;
+	attackRequestTimer = 0.0f;
+	if (controller) controller->SetMovementLocked(true);
+	anim->SetFloat("speed", 0.0f);
+	anim->SetTrigger("Attack");
+}
+
+void Aracore::EndAttack()
+{
+	attackRequested = false;
+	attackStateEntered = false;
+	attackRequestTimer = 0.0f;
+	attackCooldown = 0.8f;
+	if (attackCollider) attackCollider->SetActive(false);
+	if (controller) controller->SetMovementLocked(false);
+}
+
+void Aracore::OnEnterAttackHit()
+{
+	if (!attackRequested || IsDead()) return;
+
+	attackHit = false;
+	attackCollider->SetActive(true);
+	Actor* actor = attackCollider->FindOverlapActorByTag("Player");
+	if (!actor) return;
+
+	Vector3 normal = actor->transform.position - attackCollider->GetWorldPosition();
+	if (normal.LengthSquared() > eps) normal.Normalize();
+	TryDealAttackDamage(actor, nullptr, actor->transform.position, normal);
+}
+
+void Aracore::OnExitAttackHit()
+{
+	if (attackCollider) attackCollider->SetActive(false);
+	if (!IsDead()) SpawnAttackRangeParticles();
+}
+
+void Aracore::TryDealAttackDamage(
+	Actor* actor,
+	PhysicsComponent* otherCollider,
+	const Vector3& point,
+	const Vector3& normal)
+{
+	if (attackHit || !actor || !actor->CompareTag("Player")) return;
+
+	Entity* entity = dynamic_cast<Entity*>(actor);
+	if (!entity) return;
+
+	attackHit = true;
+	entity->TakeDamage({
+		.damage = Random::Range(12.0f, 18.0f),
+		.knockBackPower = 12.0f,
+		.hitColliderSelf = attackCollider,
+		.hitColliderOther = otherCollider,
+		.hitPosition = point,
+		.hitNormal = normal,
+	});
+}
+
+void Aracore::SpawnAttackRangeParticles()
+{
+	if (!breakParticleSystem || !attackCollider) return;
+
+	Vector3 center = attackCollider->GetWorldPosition();
+	center.y = transform.position.y + 0.06f;
+	constexpr float attackRadius = 0.95f;
+	constexpr int boundaryParticleCount = 18;
+	constexpr int innerParticleCount = 14;
+	constexpr float pi2 = DirectX::XM_2PI;
+
+	for (int i = 0; i < boundaryParticleCount; ++i)
+	{
+		const float angle = pi2 * static_cast<float>(i) /
+			static_cast<float>(boundaryParticleCount);
+		Vector3 position = center + Vector3(
+			cosf(angle) * attackRadius,
+			Random::Range(0.0f, 0.04f),
+			sinf(angle) * attackRadius);
+		breakParticleSystem->Set(
+			7,
+			0.5f,
+			position,
+			Vector3::Zero,
+			Vector3::Zero,
+			Vector2(0.18f, 0.18f),
+			false,
+			24.0f,
+			Color(0.25f, 0.85f, 1.0f, 0.9f));
+	}
+
+	for (int i = 0; i < innerParticleCount; ++i)
+	{
+		const float ratio = sqrtf(
+			(static_cast<float>(i) + 0.5f) /
+			static_cast<float>(innerParticleCount));
+		const float angle = static_cast<float>(i) * 2.39996323f;
+		Vector3 position = center + Vector3(
+			cosf(angle) * attackRadius * ratio,
+			Random::Range(0.0f, 0.05f),
+			sinf(angle) * attackRadius * ratio);
+		breakParticleSystem->Set(
+			7,
+			Random::Range(0.35f, 0.5f),
+			position,
+			Vector3::Zero,
+			Vector3::Zero,
+			Vector2(0.14f, 0.14f),
+			false,
+			24.0f,
+			Color(0.35f, 0.9f, 1.0f, 0.75f));
+	}
+
+	for (int i = 0; i < 10; ++i)
+	{
+		const float angle = Random::Range(0.0f, pi2);
+		const float speed = Random::Range(0.5f, 1.2f);
+		breakParticleSystem->Set(
+			7,
+			0.3f,
+			center + Vector3(0.0f, 0.15f, 0.0f),
+			Vector3(
+				cosf(angle) * speed,
+				Random::Range(0.25f, 0.65f),
+				sinf(angle) * speed),
+			Vector3(0.0f, -2.0f, 0.0f),
+			Vector2(0.16f, 0.16f),
+			false,
+			24.0f,
+			Color(0.45f, 0.95f, 1.0f, 1.0f));
+	}
 }
 
 void Aracore::SpawnBreakParticles()
@@ -210,20 +437,10 @@ void Aracore::SpawnBreakParticles()
 // AracoreMachine(Aracore.cpp)
 
 AracoreMachine::AracoreMachine(Aracore* ownerAracore)
-    : Entity("AracoreMachine", "Enemy", true, ownerAracore->GetLife(), ownerAracore->GetMaxLife()),
-    ownerAracore(ownerAracore)
+    : Actor("AracoreMachine")
 {
     std::shared_ptr<Model> model =
         ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
-
-    // リジッドボディ
-    auto rb = AddComponent<RigidbodyDynamic>();
-    rb->SetKinematic(true);
-
-    // 当たり判定
-    collider = AddComponent<BoxCollider>(
-        Layers::Get("EnemyAccessory"), rb, 
-        Vector3 { 0.575f, 0.99f, 0.65f }, Vector3{0.0f, 1.0f, 0.0f});
 
     // 親の体に追従
     Transform offset{};
@@ -233,42 +450,8 @@ AracoreMachine::AracoreMachine(Aracore* ownerAracore)
     AddComponent<BoneFollower>(ownerAracore->model.get(),
         "Bone.004_012", offset);
 
-    // モデルレンダラーとダメージホールコンポーネントを追加
+    // モデルレンダラー
     shaderParamWithMaterialName = {};
-    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
+    AddComponent<ModelRenderComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(
-        modelRenderer, 0.5f, 0.5f, 1.2f, 0.1f);
-}
-
-void AracoreMachine::OnDamaged(const DamageData& damageData)
-{
-    // ボコッ
-    Actor* hitActor = damageData.hitColliderSelf ? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner()) : nullptr;
-    if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
-    {
-        if (damageData.hitPosition.has_value())
-        {
-            if (damageData.hitNormal.has_value())
-                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value(), damageData.hitNormal.value());
-            else
-                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
-            ownerAracore->TakeDamage(damageData);
-        }
-        else
-        {
-            damageHoleComponent->AddDamageHoleFrom(hitActor);
-            ownerAracore->TakeDamage(damageData);
-        }
-    }
-}
-
-void AracoreMachine::OnDead(const DamageData& damageData)
-{
-    if (ownerAracore)
-        ownerAracore->SpawnBreakParticles();
-	DamageData absoluteryDIED = damageData;
-    absoluteryDIED.damage = 999999;
-    ownerAracore->TakeDamage(absoluteryDIED);
-    Destroy(0);
 }

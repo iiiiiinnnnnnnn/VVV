@@ -70,6 +70,18 @@ BoneCollider::~BoneCollider()
     }
 }
 
+void BoneCollider::OnEnabled()
+{
+    if (!ghostActor || ghostActor->getScene()) return;
+    PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
+}
+
+void BoneCollider::OnDisabled()
+{
+    if (!ghostActor) return;
+    if (PxScene* scene = ghostActor->getScene()) scene->removeActor(*ghostActor);
+}
+
 void BoneCollider::InitializeShape()
 {
     if (!ghostActor) return;
@@ -95,7 +107,7 @@ void BoneCollider::InitializeShape()
 
     ghostActor->attachShape(*shape);
 
-    if (!ghostActor->getScene())
+    if (IsActive() && !ghostActor->getScene())
     {
         PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
     }
