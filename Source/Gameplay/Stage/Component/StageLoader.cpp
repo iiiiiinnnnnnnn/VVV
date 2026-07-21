@@ -358,12 +358,12 @@ void StageLoader::DrawGUI()
 
 			// プロップの場合はパスが詳細。パスの最初に#があればダイナミック
 
-			std::vector<std::filesystem::path> glbFiles;
+			std::vector<std::filesystem::path> modelFiles;
 			for (const auto& file : std::filesystem::directory_iterator("Data/Model/Prop"))
 			{
-				if (file.path().extension() == ".glb")
+				if (file.path().extension() == ".vmdl")
 				{
-					glbFiles.push_back(file.path());
+					modelFiles.push_back(file.path());
 				}
 			}
 
@@ -371,9 +371,9 @@ void StageLoader::DrawGUI()
 			ImGui::Text("Model Path:");
 			if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
 			{
-				for (const auto& path : glbFiles)
+				for (const auto& path : modelFiles)
 				{
-					std::string name = path.filename().string();
+					std::string name = path.stem().string();
 					std::string modelPath = "Data/Model/Prop/" + name;
 					bool isSelected = (addPropData.modelPath == modelPath);
 					if (ImGui::Selectable(name.c_str(), isSelected))
@@ -392,7 +392,9 @@ void StageLoader::DrawGUI()
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
-				if (std::filesystem::exists(addPropData.modelPath))
+				std::filesystem::path cachedModelPath(addPropData.modelPath);
+				cachedModelPath.replace_extension(".vmdl");
+				if (std::filesystem::exists(cachedModelPath))
 				{
 					propDataList.push_back(addPropData);
 					auto propActor = std::make_shared<Prop>(propDataList.back());

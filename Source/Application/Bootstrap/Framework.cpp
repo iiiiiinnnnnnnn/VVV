@@ -6,7 +6,6 @@
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
-#include "Gameplay/Scene/TestPlayScene.h"
 
 #if _DEBUG
 #define SHOW_CONSOLE() if(!showedConsole){ AllocConsole(); freopen("CONOUT$", "w", stdout); freopen("CONOUT$", "w", stderr); showedConsole = true; }
@@ -44,8 +43,6 @@ Framework::Framework(HWND hWnd)
 	// シーンマネージャー初期化
 	SceneManager::Instance().Initialize();
 
-	// 最初のシーン初期化
-	SceneManager::Instance().LoadScene<TestPlayScene>();
 }
 
 // デストラクタ

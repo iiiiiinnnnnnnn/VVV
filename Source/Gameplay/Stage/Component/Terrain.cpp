@@ -10,6 +10,7 @@
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Resource/Texture.h"
+#include "Resource/ResourceManager.h"
 #include <DirectXTex.h>
 
 #include <cfloat>
@@ -1132,10 +1133,8 @@ bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::strin
 		return false;
 	}
 
-	const std::filesystem::path basePath =
-		std::filesystem::path(baseColorPath).lexically_normal();
-	const std::filesystem::path normalMapPath =
-		std::filesystem::path(normalPath).lexically_normal();
+	const std::filesystem::path basePath = ResourceManager::Instance().ResolvePath(baseColorPath);
+	const std::filesystem::path normalMapPath = ResourceManager::Instance().ResolvePath(normalPath);
 
 	if (!std::filesystem::exists(basePath))
 	{

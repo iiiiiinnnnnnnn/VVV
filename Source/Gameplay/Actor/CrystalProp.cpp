@@ -29,7 +29,7 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     maxLife = (std::clamp)(maxLife, 1.0f, 100.0f);
     life = maxLife;
 
-    model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal.glb");
+    model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
     modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParams);
     damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1, 1, 2, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();

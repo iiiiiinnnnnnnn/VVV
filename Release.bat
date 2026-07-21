@@ -5,7 +5,8 @@ cd /d "%~dp0"
 set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
 set RELEASE_TAG=vvv-latest
 set ZIP_NAME=VVV.zip
-set OUT_DIR=bin\x64\Debug
+set OUT_DIR=bin\x64\Release
+set RUNTIME_DATA_DIR=bin\x64\Debug\Data
 set PACKAGE_DIR=package
 set DIST_DIR=dist
 
@@ -13,7 +14,7 @@ echo [1/6] ビルド済みファイルを確認中...
 
 if not exist "%OUT_DIR%\Game.exe" (
     echo Game.exe が見つかりません。
-    echo 先に Visual Studio で Debug x64 ビルドしてください。
+    echo 先に Visual Studio で Release x64 ビルドしてください。
     pause
     exit /b 1
 )
@@ -46,30 +47,23 @@ copy "%OUT_DIR%\Game.exp" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\Game.lib" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\Game.pdb" "%PACKAGE_DIR%\" /Y
 
-if not exist "Data" (
+if not exist "%RUNTIME_DATA_DIR%\cached.ini" (
     echo Data フォルダーが見つかりません。
     pause
     exit /b 1
 )
 
 echo [4/6] Data をコピー中...
-echo .glb、指定ツール、ninclude_、Data\Terrain\Layers の png は除外します。
+echo Copying resources listed in Data/cached.ini.
 
-mkdir "%PACKAGE_DIR%\Data"
+powershell -NoProfile -ExecutionPolicy Bypass -File "PackageData.ps1" -RuntimeData "%RUNTIME_DATA_DIR%" -PackageData "%PACKAGE_DIR%\Data"
 
-robocopy "Data" "%PACKAGE_DIR%\Data" /E /R:2 /W:1 ^
- /XF "*.glb" "DDSAssistant.bat" "texconv.exe" "FBX2glTF-windows-x64.exe" "FBX2glTF.bat" "ninclude_*" ^
- /XD "ninclude_*"
-
-if %ERRORLEVEL% GEQ 8 (
+if errorlevel 1 (
     echo Data のコピーに失敗しました。
     pause
     exit /b 1
 )
 
-if exist "%PACKAGE_DIR%\Data\Terrain\Layers" (
-    del /q "%PACKAGE_DIR%\Data\Terrain\Layers\*.png" 2>nul
-)
 
 if exist "imgui.ini" (
     copy "imgui.ini" "%PACKAGE_DIR%\" /Y

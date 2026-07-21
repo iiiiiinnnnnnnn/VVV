@@ -4,6 +4,7 @@
 
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/LoadingScene.h"
+#include "Gameplay/Scene/GameStartScene.h"
 #include "Physics/Core/PhysicsManager.h"
 
 #include <stdexcept>
@@ -64,7 +65,7 @@ SceneManager::~SceneManager()
 
 void SceneManager::Initialize()
 {
-	currentScene = std::make_unique<LoadingScene>();
+	currentScene = std::make_unique<GameStartScene>();
 	loadProgress = 0.0f;
 }
 

@@ -152,6 +152,16 @@ bool Model::ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t&
 	stream.read(reinterpret_cast<char*>(&stamp), sizeof(stamp));
 	return stream.good();
 }
+bool Model::IsCacheUpToDate(
+	const std::filesystem::path& sourcePath,
+	const std::filesystem::path& cachePath)
+{
+	if (!std::filesystem::exists(sourcePath) || !std::filesystem::exists(cachePath)) return false;
+
+	uint64_t cachedStamp = 0;
+	return ReadModelCacheStamp(cachePath, cachedStamp) &&
+		cachedStamp == MakeModelCacheStamp(GetFileLastWriteTime64(sourcePath));
+}
 
 HRESULT Model::SaveScratchImageToDDSBytes(
 	const DirectX::ScratchImage& sourceImage,
@@ -538,7 +548,11 @@ void Model::BuildMaterialTextureResources(
 	);
 }
 
-Model::Model(const char* filename, float sampleRate, bool importRawModel)
+Model::Model(
+	const char* filename,
+	float sampleRate,
+	bool importRawModel,
+	const char* cacheFilename)
 {
 	auto device = Game::Graphics::Instance().GetDevice();
 
@@ -546,8 +560,16 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	std::filesystem::path dirpath(sourceFilepath.parent_path());
 	std::filesystem::path extension = sourceFilepath.extension();
 
-	std::filesystem::path cerealFilepath = sourceFilepath;
-	cerealFilepath.replace_extension(".vmdl");
+	std::filesystem::path cerealFilepath;
+	if (cacheFilename && cacheFilename[0] != '\0')
+	{
+		cerealFilepath = cacheFilename;
+	}
+	else
+	{
+		cerealFilepath = sourceFilepath;
+		cerealFilepath.replace_extension(".vmdl");
+	}
 	modelCacheFilepath = cerealFilepath;
 	modelCacheLastWrite = std::filesystem::exists(filename)
 		? MakeModelCacheStamp(GetFileLastWriteTime64(filename))
@@ -567,7 +589,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 
 		if (!canUseCache)
 		{
-			Model tmpModel(filename, sampleRate, true);
+			Model tmpModel(filename, sampleRate, true, cerealFilepath.string().c_str());
 			*this = std::move(tmpModel);
 			return;
 		}
@@ -584,7 +606,7 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 		// マテリアルデータ読み取り
 		// GLB内蔵テクスチャは一度ファイル化してからDDS化する。
 		// 巨大テクスチャをGPUからCaptureTextureするとDebug Layerで落ちやすいため。
-		importer.LoadMaterials(materials, nullptr);
+		importer.LoadMaterials(materials, device);
 
 		// ノードデータ読み取り
 		importer.LoadNodes(nodes);
@@ -613,6 +635,26 @@ Model::Model(const char* filename, float sampleRate, bool importRawModel)
 	}
 
 	// マテリアル構築
+	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
+	{
+		const int parentIndex = nodes[nodeIndex].parentIndex;
+		if (parentIndex >= static_cast<int>(nodes.size()))
+			throw std::runtime_error("Invalid parent node index: node=" + std::to_string(nodeIndex) + ", parent=" + std::to_string(parentIndex));
+	}
+	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
+	{
+		const Mesh& mesh = meshes[meshIndex];
+		if (mesh.materialIndex < 0 || mesh.materialIndex >= static_cast<int>(materials.size()))
+			throw std::runtime_error("Invalid material index: mesh=" + std::to_string(meshIndex) + ", material=" + std::to_string(mesh.materialIndex) + ", count=" + std::to_string(materials.size()));
+		if (mesh.nodeIndex < 0 || mesh.nodeIndex >= static_cast<int>(nodes.size()))
+			throw std::runtime_error("Invalid mesh node index: mesh=" + std::to_string(meshIndex) + ", node=" + std::to_string(mesh.nodeIndex) + ", count=" + std::to_string(nodes.size()));
+		for (size_t boneIndex = 0; boneIndex < mesh.bones.size(); ++boneIndex)
+		{
+			const int nodeIndex = mesh.bones[boneIndex].nodeIndex;
+			if (nodeIndex < 0 || nodeIndex >= static_cast<int>(nodes.size()))
+				throw std::runtime_error("Invalid bone node index: mesh=" + std::to_string(meshIndex) + ", bone=" + std::to_string(boneIndex) + ", node=" + std::to_string(nodeIndex) + ", count=" + std::to_string(nodes.size()));
+		}
+	}
 	for (Material& material : materials)
 	{
 		BuildMaterialTextureResources(device, dirpath, material);
@@ -1219,3 +1261,4 @@ void Model::Deserialize(const char* filename, uint64_t& lastWrite)
 		_ASSERT_EXPR_A(false, "Model File not found.");
 	}
 }
+

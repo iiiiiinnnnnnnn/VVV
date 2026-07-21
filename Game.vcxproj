@@ -49,6 +49,7 @@
     <ClCompile Include="Source\Gameplay\Lighting\Light.cpp" />
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Prop.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp" />
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
+    <ClCompile Include="Source\Resource\ResourceManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp" />
     <ClCompile Include="Source\Application\Input\Mouse.cpp" />
     <ClCompile Include="Source\Physics\Core\PhysicsManager.cpp" />
@@ -152,6 +154,7 @@
     <ClInclude Include="Source\Gameplay\Lighting\Light.h" />
     <ClInclude Include="Source\Gameplay\Lighting\LightManager.h" />
     <ClInclude Include="Source\Gameplay\Scene\LoadingScene.h" />
+    <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h" />
     <ClInclude Include="Source\Physics\Core\PhysicsComponent.h" />
     <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Prop.h" />

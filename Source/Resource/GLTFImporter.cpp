@@ -781,6 +781,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 					keyframe.seconds = gltfKeyframeTimes[i];
 					keyframe.value = gltfKeyframeValues[i];
 				}
+				if (nodeAnim.rotationKeyframes.empty()) continue;
 
 				// キーフレームの値が全て同じなら最初のキーフレーム以外省く
 				bool result = true;

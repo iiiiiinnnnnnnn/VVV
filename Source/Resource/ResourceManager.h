@@ -1,59 +1,74 @@
-﻿// ResourceManager.h
+// ResourceManager.h
 
 #pragma once
+
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Resource/Model.h"
 #include "Resource/Texture.h"
 
 class ResourceManager
 {
+public:
+	enum class AssetType
+	{
+		File,
+		Model,
+		MipmapTexture,
+	};
+
+	struct AssetPath
+	{
+		AssetType type = AssetType::File;
+		std::string path;
+		std::string updated;
+	};
+
 private:
 	ResourceManager() = default;
 	~ResourceManager() = default;
 
 public:
-	static ResourceManager& Instance()
-	{
-		static ResourceManager instance;
-		return instance;
-	}
+	static ResourceManager& Instance();
 
-	std::shared_ptr<Model> LoadModel(const std::string& key)
-	{
-		const std::string cacheKey = NormalizeKey(key);
-		auto it = models.find(cacheKey);
-		if (it == models.end())
-		{
-			auto model = std::make_shared<Model>(cacheKey.c_str());
-			it = models.emplace(cacheKey, std::move(model)).first;
-		}
+	bool PrepareGameResources();
+	void RegisterGeneratedCache(const std::string& path);
+	std::string ResolvePath(const std::string& path) const;
+	const std::vector<std::string>& GetErrors() const { return errors; }
+	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
 
-		return it->second->Clone();
-	}
-
-	std::shared_ptr<Texture> LoadTexture(const std::string& key)
-	{
-		const std::string cacheKey = NormalizeKey(key);
-		auto it = textures.find(cacheKey);
-		if (it == textures.end())
-		{
-			auto texture = std::make_shared<Texture>(cacheKey.c_str());
-			it = textures.emplace(cacheKey, std::move(texture)).first;
-		}
-
-		return it->second->Clone();
-	}
+	std::shared_ptr<Model> LoadModel(const std::string& key);
+	std::shared_ptr<Texture> LoadTexture(const std::string& key);
 
 private:
-	static std::string NormalizeKey(const std::string& key)
-	{
-		return std::filesystem::path(key).lexically_normal().generic_string();
-	}
+	bool BuildCaches();
+	bool LoadCachedPathList();
+	bool SaveCachedPathList();
+	bool PreloadCachedResources();
+	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});
+	void ReportError(const std::string& message);
 
+	static std::filesystem::path FindSourceDataRoot();
+	static std::string NormalizePath(const std::string& path);
+	static std::string MakeLookupKey(const std::string& path);
+	static std::string GetLastWriteTimeText(const std::filesystem::path& path);
+	static bool IsModelSource(const std::filesystem::path& path);
+	static bool IsTerrainLayerSource(const std::filesystem::path& relativePath);
+	static bool IsDevelopmentOnly(const std::filesystem::path& relativePath);
+	static const char* ToTypeName(AssetType type);
+	static bool ParseTypeName(const std::string& name, AssetType& type);
+
+	std::filesystem::path sourceDataRoot;
+	std::filesystem::path runtimeDataRoot;
+	std::filesystem::path cachedPathList;
+	std::vector<AssetPath> assetPaths;
+	std::unordered_map<std::string, size_t> assetPathLookup;
 	std::unordered_map<std::string, std::shared_ptr<Model>> models;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
+	std::vector<std::shared_ptr<MipmapTexture>> mipmapTextures;
+	std::vector<std::string> errors;
 };

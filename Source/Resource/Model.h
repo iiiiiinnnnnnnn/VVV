@@ -26,7 +26,11 @@
 class Model
 {
 public:
-	Model(const char* filename, float sampleRate = 60, bool importRawModel = false);
+	Model(
+		const char* filename,
+		float sampleRate = 60,
+		bool importRawModel = false,
+		const char* cacheFilename = nullptr);
 	Model(const Model& other);
 	Model(Model&& other) noexcept;
 	Model& operator=(const Model& other);
@@ -248,6 +252,9 @@ public:
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
 	float EvaluateFootIKWeight(int animationIndex, float time, int footIndex = -1) const;
 	bool SaveVmdl();
+	static bool IsCacheUpToDate(
+		const std::filesystem::path& sourcePath,
+		const std::filesystem::path& cachePath);
 
 	// ノードポーズ設定
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
@@ -263,7 +270,7 @@ private:
 	void Deserialize(const char* filename, uint64_t& lastWrite);
 
 	// モデルキャッシュ
-	static constexpr uint64_t ModelCacheVersion = 3;
+	static constexpr uint64_t ModelCacheVersion = 4;
 	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
 	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);
 
@@ -288,3 +295,4 @@ private:
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;
 };
+

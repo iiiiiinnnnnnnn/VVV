@@ -11,7 +11,7 @@
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
-	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield.glb");
+	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
 	model->_print(); // デバッグ用
 
 	// メッシュ表示/非表示

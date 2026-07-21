@@ -9,7 +9,7 @@
 Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
     std::shared_ptr<Model> model =
-        ResourceManager::Instance().LoadModel("Data/Model/apple.glb");
+		ResourceManager::Instance().LoadModel("Data/Model/apple");
 
     transform.SetScale(50.0f);
     model->UpdateTransform(transform.matrix);

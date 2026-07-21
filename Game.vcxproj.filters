@@ -258,6 +258,9 @@
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp">
+      <Filter>Gameplay\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
@@ -407,6 +410,9 @@
     </ClCompile>
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp">
       <Filter>Physics\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ResourceManager.cpp">
+      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyDynamic.cpp">
       <Filter>Physics\RigidBody</Filter>
@@ -573,6 +579,9 @@
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\LoadingScene.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\Scene.h">

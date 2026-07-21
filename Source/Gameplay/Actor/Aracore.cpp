@@ -29,7 +29,7 @@ Aracore::Aracore(const Vector3& position)
     // 蜘蛛の部分
     {
         // モデル
-        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider2.glb");
+        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider2");
         shaderParamWithMaterialName =
         {
             {
@@ -94,7 +94,7 @@ Aracore::Aracore(const Vector3& position)
     controller->SetGraphPath("Data/AI/SpiderChase.json");
     if (!controller->Load(controller->GetGraphPath()))
         controller->CreateDefaultChaseGraph();
-    controller->SetAgentRadius(2.5f);
+    controller->SetAgentRadius(2.0f);
 
     const auto stop = [this](const EnemyAIFlow::State&)
     {
@@ -214,7 +214,7 @@ AracoreMachine::AracoreMachine(Aracore* ownerAracore)
     ownerAracore(ownerAracore)
 {
     std::shared_ptr<Model> model =
-        ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal.glb");
+        ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
 
     // リジッドボディ
     auto rb = AddComponent<RigidbodyDynamic>();

@@ -107,6 +107,7 @@ void Scene::Render()
 {
 	if (!currentStage)
 	{
+		OnDrawGUI();
 		Game::Graphics& graphics = Game::Graphics::Instance();
 		RenderContext rc{};
 		rc.deviceContext = graphics.GetDeviceContext();

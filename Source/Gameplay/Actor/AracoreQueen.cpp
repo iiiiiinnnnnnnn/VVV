@@ -27,7 +27,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     // 蜘蛛の部分
     {
         // モデル
-        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider.glb");
+        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider");
         shaderParamWithMaterialName =
         {
             {
@@ -245,7 +245,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     ownerAracoreQueen(ownerAracoreQueen)
 {
     std::shared_ptr<Model> model =
-        ResourceManager::Instance().LoadModel("Data/Model/Prop/vending.glb");
+        ResourceManager::Instance().LoadModel("Data/Model/Prop/vending");
 
     // リジッドボディ
     auto rb = AddComponent<RigidbodyDynamic>();

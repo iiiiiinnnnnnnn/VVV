@@ -5,6 +5,7 @@
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Stage/Component/Terrain.h"
+#include "Resource/ResourceManager.h"
 #include "Gameplay/Actor/Actor.h"
 
 #include <cmath>
@@ -273,8 +274,9 @@ bool TerrainMeshCollider::SaveCachedMesh(
         return false;
     }
 
-    vxMessage = "Terrain .vx saved: " + filepath.generic_string();
-    return true;
+	vxMessage = "Terrain .vx saved: " + filepath.generic_string();
+	ResourceManager::Instance().RegisterGeneratedCache(filepath.generic_string());
+	return true;
 }
 
 void TerrainMeshCollider::ApplyOwnerScale(std::vector<Vector3>& vertices) const

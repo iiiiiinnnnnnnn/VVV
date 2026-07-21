@@ -62,10 +62,12 @@ public:
 		ID3D11ShaderResourceView** shaderResourceView,
 		D3D11_TEXTURE2D_DESC* texture2dDesc = nullptr,
 		std::string* loadedFilePath = nullptr);
+	static HRESULT CreateDDSCache(
+		const std::filesystem::path& sourcePath,
+		const std::filesystem::path& ddsPath);
 
 private:
 	static std::filesystem::path GetDDSCachePath(const std::filesystem::path& sourcePath);
-	static HRESULT CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath);
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 	D3D11_TEXTURE2D_DESC texture2dDesc{};
