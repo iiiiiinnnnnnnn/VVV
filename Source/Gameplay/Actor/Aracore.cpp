@@ -94,7 +94,7 @@ Aracore::Aracore(const Vector3& position)
     controller->SetGraphPath("Data/AI/SpiderChase.json");
     if (!controller->Load(controller->GetGraphPath()))
         controller->CreateDefaultChaseGraph();
-    controller->SetAgentRadius(3.0f);
+    controller->SetAgentRadius(2.5f);
 
     const auto stop = [this](const EnemyAIFlow::State&)
     {

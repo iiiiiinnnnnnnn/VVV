@@ -193,15 +193,19 @@ void Scene::Render()
 		graphics.GetShadowMapRenderer()->Render(
 			rc,
 			lightManager.GetDirectionalLight().GetDirection(),
-			camera.GetFocus(),
-			20.0f,
-			100.0f,
-			0.01f,
-			200.0f
+			500.0f
 		);
 
-		shadowMapData.shadowMap = graphics.GetShadowMapRenderer()->GetDepthSRV();
-		shadowMapData.lightViewProjection = graphics.GetShadowMapRenderer()->GetLightViewProjection();
+		for (int cascadeIndex = 0;
+			 cascadeIndex < ShadowMapData::CascadeCount;
+			 ++cascadeIndex)
+		{
+			shadowMapData.shadowMaps[cascadeIndex] =
+				graphics.GetShadowMapRenderer()->GetDepthSRV(cascadeIndex);
+			shadowMapData.lightViewProjections[cascadeIndex] =
+				graphics.GetShadowMapRenderer()->GetLightViewProjection(cascadeIndex);
+		}
+		shadowMapData.cascadeSplits = graphics.GetShadowMapRenderer()->GetCascadeSplits();
 		rc.shadowMapData = shadowMapData;
 	}
 
@@ -449,7 +453,17 @@ void Scene::DrawGUI(RenderContext& rc)
 
 				if (ImGui::TreeNode("ShadowMapData"))
 				{
-					ImGui::Image(shadowMapData.shadowMap, ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1));
+					for (int cascadeIndex = 0;
+						 cascadeIndex < ShadowMapData::CascadeCount;
+						 ++cascadeIndex)
+					{
+						ImGui::Text("Cascade %d", cascadeIndex);
+						ImGui::Image(
+							shadowMapData.shadowMaps[cascadeIndex],
+							ImVec2(192, 192),
+							ImVec2(0, 0),
+							ImVec2(1, 1));
+					}
 					ImGui::ColorEdit4("Shadow Color", &shadowMapData.shadowColor.x);
 					ImGui::DragFloat("Shadow Bias", &shadowMapData.shadowBias, 0.001f, 0.0f, 1.0f);
 					ImGui::DragInt("PCF Kernel Size", &shadowMapData.pcfKernelSize, 1, 1, 15);

@@ -13,6 +13,22 @@ float3 CalcShadowTexcoord(float3 worldPosition, matrix lightViewProjection)
     return p.xyz;
 }
 
+int SelectShadowCascade(float cameraDistance, float4 cascadeSplits)
+{
+    int cascadeIndex = -1;
+    if (cameraDistance <= cascadeSplits.x) cascadeIndex = 0;
+    else if (cameraDistance <= cascadeSplits.y) cascadeIndex = 1;
+    else if (cameraDistance <= cascadeSplits.z) cascadeIndex = 2;
+    else if (cameraDistance <= cascadeSplits.w) cascadeIndex = 3;
+    return cascadeIndex;
+}
+
+bool IsShadowTexcoordValid(float3 shadowTexcoord)
+{
+    return all(shadowTexcoord >= 0.0f.xxx) &&
+        all(shadowTexcoord <= 1.0f.xxx);
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 //  シンプルシャドウ判定
 // ────────────────────────────────────────────────────────────────────────────
@@ -43,8 +59,10 @@ float3 CalcShadowColorPCFFilter(Texture2D tex, SamplerState samplerState,
     {
         for (int y = -PCFKernelSize / 2; y <= PCFKernelSize / 2; ++y)
         {
-            float depth = tex.Sample(samplerState,
-                shadowTexcoord.xy + texelSize * float2(x, y)).r;
+            float depth = tex.SampleLevel(
+                samplerState,
+                shadowTexcoord.xy + texelSize * float2(x, y),
+                0.0f).r;
             factor += step(shadowTexcoord.z - depth, shadowBias);
         }
     }

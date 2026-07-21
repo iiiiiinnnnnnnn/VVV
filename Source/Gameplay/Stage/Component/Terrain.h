@@ -1,9 +1,10 @@
-// Terrain.h
+﻿// Terrain.h
 
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
+#include <array>
 #include <filesystem>
 #include <cstdint>
 #include <string>
@@ -11,6 +12,7 @@
 
 #include "Core/Object/Component.h"
 #include "Gameplay/Lighting/CbLightData.h"
+#include "Rendering/Core/RenderContext.h"
 
 class Terrain : public Component
 {
@@ -72,7 +74,9 @@ private:
 
 	struct CbShadowMap
 	{
-		Matrix lightViewProjection;
+		Matrix lightViewProjections[ShadowMapData::CascadeCount];
+		Vector4 cascadeSplits;
+		Vector4 cameraFront;
 		Color shadowColor;
 		float shadowBias;
 		int pcfKernelSize;
@@ -190,7 +194,9 @@ private:
 		const RenderContext& rc);
 	void UpdateShadowConstantBuffer(
 		ID3D11DeviceContext* dc,
-		const Matrix& lightViewProjection,
+		const std::array<Matrix, ShadowMapData::CascadeCount>& lightViewProjections,
+		const Vector4& cascadeSplits,
+		const Vector3& cameraFront,
 		const Color& shadowColor,
 		float shadowBias,
 		int pcfKernelSize);
@@ -268,5 +274,4 @@ private:
 	std::string terrainIoMessage;
 	bool pendingColliderRebuild = false;
 };
-
 

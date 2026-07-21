@@ -26,14 +26,5 @@ VS_OUT main(
     vout.tangent  = normalize(worldTangent);
     vout.texcoord = texcoord;
 
-    // シャドウマップ用テクスチャ座標をVSで計算してPSに渡す
-    {
-        float4 lightClip = mul(float4(worldPos.xyz, 1.0f), light_view_projection);
-        lightClip /= lightClip.w;
-        lightClip.y = -lightClip.y;
-        lightClip.xy = 0.5f * lightClip.xy + 0.5f;
-        vout.shadowTexcoord = lightClip.xyz;
-    }
-
     return vout;
 }

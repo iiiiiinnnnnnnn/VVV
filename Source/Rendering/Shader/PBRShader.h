@@ -1,4 +1,4 @@
-// PBRShader.h
+ï»¿// PBRShader.h
 
 #pragma once
 #include <d3d11.h>
@@ -20,10 +20,12 @@ private:
 	// b0
 	struct CbShadowMap
 	{
-		Matrix	lightViewProjection;	// ƒ‰ƒCƒgƒrƒ…[ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ
-		Color	shadowColor;			// ‰e‚ÌF
-		float	shadowBias;				// [“x”äŠr—p‚ÌƒIƒtƒZƒbƒg’l
-		int		pcfKernelSize;			// ƒ\ƒtƒgƒVƒƒƒhƒE‚Ìs—ñƒTƒCƒY
+		Matrix	lightViewProjections[ShadowMapData::CascadeCount];
+		Vector4	cascadeSplits;
+		Vector4	cameraFront;
+		Color	shadowColor;			// å½±ã®è‰²
+		float	shadowBias;				// æ·±åº¦æ¯”è¼ƒç”¨ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤
+		int		pcfKernelSize;			// ã‚½ãƒ•ãƒˆã‚·ãƒ£ãƒ‰ã‚¦ã®è¡Œåˆ—ã‚µã‚¤ã‚º
 		float	DUMMY[2];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	shadowMapConstantBuffer;
@@ -68,5 +70,4 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
 };
-
 

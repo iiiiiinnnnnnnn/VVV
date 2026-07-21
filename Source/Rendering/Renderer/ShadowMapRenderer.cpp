@@ -5,6 +5,9 @@
 #include "Resource/GpuResourceUtils.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 
+#include <cfloat>
+#include <cmath>
+
 ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     : shadowMapSize(shadowMapSize)
 {
@@ -16,6 +19,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     //   テクスチャ本体  → DXGI_FORMAT_R32_TYPELESS  (DSVとSRV両方に使える)
     //   DSV            → DXGI_FORMAT_D32_FLOAT
     //   SRV            → DXGI_FORMAT_R32_FLOAT
+    for (int cascadeIndex = 0; cascadeIndex < CascadeCount; ++cascadeIndex)
     {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
         D3D11_TEXTURE2D_DESC desc = {};
@@ -34,7 +38,10 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
         dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-        hr = device->CreateDepthStencilView(tex.Get(), &dsvDesc, depthDsv.GetAddressOf());
+        hr = device->CreateDepthStencilView(
+            tex.Get(),
+            &dsvDesc,
+            depthDsvs[cascadeIndex].GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
         // SRV（PBRShaderのslot8にバインドする）
@@ -43,7 +50,10 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
         srvDesc.Texture2D.MostDetailedMip = 0;
-        hr = device->CreateShaderResourceView(tex.Get(), &srvDesc, depthSrv.GetAddressOf());
+        hr = device->CreateShaderResourceView(
+            tex.Get(),
+            &srvDesc,
+            depthSrvs[cascadeIndex].GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
@@ -116,39 +126,161 @@ void ShadowMapRenderer::Draw(Terrain* terrain)
 
 void ShadowMapRenderer::Render(const RenderContext& rc,
                                const Vector3& lightDir,
-                               const Vector3& targetPos,
-                               float lightDistance,
-                               float orthoSize,
-                               float nearZ,
-                               float farZ)
+                               float shadowDistance)
 {
     ID3D11DeviceContext* dc = rc.deviceContext;
-
-    // ----- ライト行列計算 -----
+    if (!rc.camera)
     {
-        // ライトを方向の逆から照らす位置に置く
-        Vector3 lightPos = targetPos - lightDir * lightDistance;
-
-        // 正射影（平行光源なので透視投影ではなく正射影）
-        // orthoSizeでシーン全体がカバーされるよう調整する
-        Matrix V = Matrix::CreateLookAt(lightPos, targetPos, Vector3::Up);
-        Matrix P = Matrix::CreateOrthographic(orthoSize, orthoSize, nearZ, farZ);
-        lightViewProjection = V * P;
-
-        // ライト行列定数バッファ更新
-        CbShadowScene cbShadowScene{};
-        cbShadowScene.lightViewProjection = lightViewProjection;
-        dc->UpdateSubresource(shadowSceneConstantBuffer.Get(), 0, 0, &cbShadowScene, 0, 0);
+        drawList.clear();
+        terrainDrawList.clear();
+        return;
     }
+
+    ID3D11ShaderResourceView* nullShadowSrvs[CascadeCount] = {};
+    dc->PSSetShaderResources(8, CascadeCount, nullShadowSrvs);
+
+    CalculateCascadeMatrices(*rc.camera, lightDir, shadowDistance);
+
+    for (int cascadeIndex = 0; cascadeIndex < CascadeCount; ++cascadeIndex)
+    {
+        RenderCascade(dc, cascadeIndex);
+    }
+
+    drawList.clear();
+    terrainDrawList.clear();
+
+    ID3D11RenderTargetView* nullRtv = nullptr;
+    dc->OMSetRenderTargets(1, &nullRtv, nullptr);
+
+    ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
+    dc->VSSetConstantBuffers(6, _countof(nullCbs), nullCbs);
+}
+
+void ShadowMapRenderer::CalculateCascadeMatrices(
+    const Camera& camera,
+    const Vector3& lightDir,
+    float shadowDistance)
+{
+    const Matrix& projection = camera.GetProjection();
+    const float fovY = 2.0f * std::atan(1.0f / projection._22);
+    const float aspect = projection._22 / projection._11;
+    const float nearClip = -projection._43 / projection._33;
+    const float cameraFarClip = -projection._43 / (projection._33 - 1.0f);
+    const float farClip = std::min(shadowDistance, cameraFarClip);
+
+    const float splitRatios[CascadeCount] = {0.05f, 0.15f, 0.40f, 1.0f};
+    float splits[CascadeCount] = {};
+    for (int i = 0; i < CascadeCount; ++i)
+    {
+        splits[i] = nearClip + (farClip - nearClip) * splitRatios[i];
+    }
+    cascadeSplits = Vector4(splits[0], splits[1], splits[2], splits[3]);
+
+    Vector3 normalizedLightDir = lightDir;
+    normalizedLightDir.Normalize();
+    const Vector3 lightUp = std::abs(normalizedLightDir.Dot(Vector3::Up)) > 0.98f
+        ? Vector3::Right
+        : Vector3::Up;
+    float cascadeNear = nearClip;
+
+    for (int cascadeIndex = 0; cascadeIndex < CascadeCount; ++cascadeIndex)
+    {
+        const float cascadeFar = splits[cascadeIndex];
+        const float nearHalfHeight = std::tan(fovY * 0.5f) * cascadeNear;
+        const float nearHalfWidth = nearHalfHeight * aspect;
+        const float farHalfHeight = std::tan(fovY * 0.5f) * cascadeFar;
+        const float farHalfWidth = farHalfHeight * aspect;
+        const Vector3 nearCenter = camera.GetEye() + camera.GetFront() * cascadeNear;
+        const Vector3 farCenter = camera.GetEye() + camera.GetFront() * cascadeFar;
+
+        const Vector3 corners[8] =
+        {
+            nearCenter + camera.GetUp() * nearHalfHeight + camera.GetRight() * nearHalfWidth,
+            nearCenter + camera.GetUp() * nearHalfHeight - camera.GetRight() * nearHalfWidth,
+            nearCenter - camera.GetUp() * nearHalfHeight + camera.GetRight() * nearHalfWidth,
+            nearCenter - camera.GetUp() * nearHalfHeight - camera.GetRight() * nearHalfWidth,
+            farCenter + camera.GetUp() * farHalfHeight + camera.GetRight() * farHalfWidth,
+            farCenter + camera.GetUp() * farHalfHeight - camera.GetRight() * farHalfWidth,
+            farCenter - camera.GetUp() * farHalfHeight + camera.GetRight() * farHalfWidth,
+            farCenter - camera.GetUp() * farHalfHeight - camera.GetRight() * farHalfWidth,
+        };
+
+        Vector3 center = Vector3::Zero;
+        for (const Vector3& corner : corners)
+        {
+            center += corner;
+        }
+        center /= 8.0f;
+
+        float radius = 0.0f;
+        for (const Vector3& corner : corners)
+        {
+            radius = std::max(radius, Vector3::Distance(center, corner));
+        }
+        radius = std::ceil(radius * 16.0f) / 16.0f;
+
+        const float depthPadding = radius;
+        const Vector3 lightPosition = center - normalizedLightDir * (radius + depthPadding);
+        const Matrix lightView = DirectX::XMMatrixLookAtLH(
+            lightPosition,
+            center,
+            lightUp);
+
+        Vector3 minBounds(FLT_MAX, FLT_MAX, FLT_MAX);
+        Vector3 maxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        for (const Vector3& corner : corners)
+        {
+            const Vector3 lightSpace = Vector3::Transform(corner, lightView);
+            minBounds.x = std::min(minBounds.x, lightSpace.x);
+            minBounds.y = std::min(minBounds.y, lightSpace.y);
+            minBounds.z = std::min(minBounds.z, lightSpace.z);
+            maxBounds.x = std::max(maxBounds.x, lightSpace.x);
+            maxBounds.y = std::max(maxBounds.y, lightSpace.y);
+            maxBounds.z = std::max(maxBounds.z, lightSpace.z);
+        }
+
+        minBounds.z = std::max(0.01f, minBounds.z - depthPadding);
+        maxBounds.z += depthPadding;
+
+        const float worldUnitsPerTexel = (maxBounds.x - minBounds.x) / shadowMapSize;
+        if (worldUnitsPerTexel > 0.0f)
+        {
+            minBounds.x = std::floor(minBounds.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+            minBounds.y = std::floor(minBounds.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+            maxBounds.x = std::ceil(maxBounds.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+            maxBounds.y = std::ceil(maxBounds.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+        }
+
+        const Matrix lightProjection = DirectX::XMMatrixOrthographicOffCenterLH(
+            minBounds.x,
+            maxBounds.x,
+            minBounds.y,
+            maxBounds.y,
+            minBounds.z,
+            maxBounds.z);
+        lightViewProjections[cascadeIndex] = lightView * lightProjection;
+        cascadeNear = cascadeFar;
+    }
+}
+
+void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
+{
+    CbShadowScene cbShadowScene{};
+    cbShadowScene.lightViewProjection = lightViewProjections[cascadeIndex];
+    dc->UpdateSubresource(shadowSceneConstantBuffer.Get(), 0, nullptr, &cbShadowScene, 0, 0);
 
     // ----- RenderTarget切り替え -----
     // カラーRTはnull（デプスのみ書き込み）
     // 前のRTは保存せず上書き。Deactivateは呼び出し元がGraphics::SetRenderTargets()で戻す前提
     {
         ID3D11RenderTargetView* nullRtv = nullptr;
-        dc->OMSetRenderTargets(1, &nullRtv, depthDsv.Get());
+        dc->OMSetRenderTargets(1, &nullRtv, depthDsvs[cascadeIndex].Get());
         dc->RSSetViewports(1, &shadowViewport);
-        dc->ClearDepthStencilView(depthDsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+        dc->ClearDepthStencilView(
+            depthDsvs[cascadeIndex].Get(),
+            D3D11_CLEAR_DEPTH,
+            1.0f,
+            0);
     }
 
     // ----- シェーダー＆ステート設定 -----
@@ -203,18 +335,12 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
             dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
         }
     }
-    drawList.clear();
-
     dc->RSSetState(terrainRasterizerState.Get());
 
     for (Terrain* terrain : terrainDrawList)
     {
-        if (terrain != nullptr)
-        {
-            terrain->RenderShadowMap(dc, lightViewProjection);
-        }
+        if (terrain) terrain->RenderShadowMap(dc, lightViewProjections[cascadeIndex]);
     }
-    terrainDrawList.clear();
 
     // ----- 後始末 -----
     // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
@@ -224,6 +350,4 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
         dc->OMSetRenderTargets(1, &nullRtv, nullDsv);
     }
 
-    ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
-    dc->VSSetConstantBuffers(6, _countof(nullCbs), nullCbs);
 }

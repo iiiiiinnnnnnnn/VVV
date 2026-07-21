@@ -12,12 +12,15 @@ struct VS_OUT
     float3 normal       : NORMAL;
     float3 position     : POSITION;
     float3 tangent      : TANGENT;
-    float3 shadowTexcoord : TEXCOORD1;  // シャドウマップ参照用UV+深度
 };
+
+static const int ShadowCascadeCount = 4;
 
 cbuffer CbShadowMap : register(b0)
 {
-    row_major float4x4 light_view_projection;
+    row_major float4x4 light_view_projections[ShadowCascadeCount];
+    float4 cascade_splits;
+    float4 camera_front;
     float4 shadowColor; // 影の色
     float shadowBias; // 深度オフセット
     int pcfKernelSize; // PCFカーネルサイズ

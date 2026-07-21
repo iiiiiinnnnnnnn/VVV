@@ -4,6 +4,8 @@
 #include <d3d11.h>
 #include <wrl.h>
 
+#include <array>
+
 #include "Gameplay/Camera/Camera.h"
 #include "Rendering/Core/RenderState.h"
 
@@ -19,8 +21,10 @@ struct RenderSettings
 // シャドウマップ用情報
 struct ShadowMapData
 {
-	ID3D11ShaderResourceView* shadowMap = nullptr;
-	Matrix lightViewProjection;
+	static constexpr int CascadeCount = 4;
+	std::array<ID3D11ShaderResourceView*, CascadeCount> shadowMaps{};
+	std::array<Matrix, CascadeCount> lightViewProjections{};
+	Vector4 cascadeSplits = {};
 	Color shadowColor = {0.2f, 0.2f, 0.2f, 1.0f};
 	float shadowBias = 0.001f;
 	int pcfKernelSize = 2;

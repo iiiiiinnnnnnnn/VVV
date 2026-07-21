@@ -10,7 +10,6 @@ VS_OUT InterpolateVertex(VS_OUT a, VS_OUT b)
     o.normal = normalize(0.5f * (a.normal + b.normal));
     o.position = 0.5f * (a.position + b.position);
     o.tangent = normalize(0.5f * (a.tangent + b.tangent));
-    o.shadowTexcoord = 0.5f * (a.shadowTexcoord + b.shadowTexcoord);
     return o;
 }
 
@@ -18,11 +17,6 @@ void ReprojectVertex(inout VS_OUT v)
 {
     v.vertex = mul(float4(v.position, 1.0f), viewProjection);
 
-    float4 lightClip = mul(float4(v.position, 1.0f), light_view_projection);
-    lightClip /= lightClip.w;
-    lightClip.y = -lightClip.y;
-    lightClip.xy = 0.5f * lightClip.xy + 0.5f;
-    v.shadowTexcoord = lightClip.xyz;
 }
 
 void ApplyDamageDent(inout VS_OUT v)

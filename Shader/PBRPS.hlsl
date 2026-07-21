@@ -14,7 +14,7 @@ Texture2D emissiveMap : register(t4); // エミッシブ (sRGB)
 SamplerState linearSampler : register(s0);
 
 // シャドウマップ (slot 8)
-Texture2D shadowMap : register(t8);
+Texture2D shadowMaps[ShadowCascadeCount] : register(t8);
 SamplerState shadowSampler : register(s1);
 
 // IBLテクスチャ (slot 17〜19)
@@ -306,14 +306,42 @@ float4 main(VS_OUT pin) : SV_TARGET
         }
     }
 
-    // シャドウ（PCFソフトシャドウ）
-    float3 shadow = CalcShadowColorPCFFilter(
-        shadowMap,
-        shadowSampler,
-        pin.shadowTexcoord,
-        shadowColor.rgb,
-        shadowBias,
-        pcfKernelSize);
+    float3 shadow = 1.0f.xxx;
+    int cascadeIndex = SelectShadowCascade(
+        dot(pin.position - viewPosition, camera_front.xyz),
+        cascade_splits);
+    if (cascadeIndex >= 0)
+    {
+        float3 shadowTexcoord = CalcShadowTexcoord(
+            pin.position,
+            light_view_projections[cascadeIndex]);
+        if (IsShadowTexcoordValid(shadowTexcoord))
+        {
+            switch (cascadeIndex)
+            {
+            case 0:
+                shadow = CalcShadowColorPCFFilter(
+                    shadowMaps[0], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            case 1:
+                shadow = CalcShadowColorPCFFilter(
+                    shadowMaps[1], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            case 2:
+                shadow = CalcShadowColorPCFFilter(
+                    shadowMaps[2], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            default:
+                shadow = CalcShadowColorPCFFilter(
+                    shadowMaps[3], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            }
+        }
+    }
 
     // shadowStrengthが低いほど、シャドウマップの影も薄くする。
     // 「鼻などの変な影だけ薄くしたい、外部の影は残したい」場合は、

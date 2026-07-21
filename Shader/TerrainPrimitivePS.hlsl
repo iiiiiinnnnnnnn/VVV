@@ -2,8 +2,9 @@
 
 #include "TerrainPrimitive.hlsli"
 #include "PBRFunctions.hlsli"
+#include "ShadowmapFunctions.hlsli"
 
-Texture2D shadowMap : register(t8);
+Texture2D shadowMaps[ShadowCascadeCount] : register(t8);
 
 Texture2D lut_ggx : register(t17);
 TextureCube specular_pmrem : register(t18);
@@ -475,20 +476,40 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float3 shadow = 1.0f.xxx;
 
-    if (pin.shadowTexcoord.x >= 0.0f &&
-        pin.shadowTexcoord.x <= 1.0f &&
-        pin.shadowTexcoord.y >= 0.0f &&
-        pin.shadowTexcoord.y <= 1.0f &&
-        pin.shadowTexcoord.z >= 0.0f &&
-        pin.shadowTexcoord.z <= 1.0f)
+    int cascadeIndex = SelectShadowCascade(
+        dot(pin.position - viewPosition, camera_front.xyz),
+        cascade_splits);
+    if (cascadeIndex >= 0)
     {
-        shadow = TerrainCalcShadowColorPCF(
-            shadowMap,
-            shadowSampler,
-            pin.shadowTexcoord,
-            shadowColor.rgb,
-            shadowBias,
-            pcfKernelSize);
+        float3 shadowTexcoord = CalcShadowTexcoord(
+            pin.position,
+            light_view_projections[cascadeIndex]);
+        if (IsShadowTexcoordValid(shadowTexcoord))
+        {
+            switch (cascadeIndex)
+            {
+            case 0:
+                shadow = TerrainCalcShadowColorPCF(
+                    shadowMaps[0], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            case 1:
+                shadow = TerrainCalcShadowColorPCF(
+                    shadowMaps[1], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            case 2:
+                shadow = TerrainCalcShadowColorPCF(
+                    shadowMaps[2], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            default:
+                shadow = TerrainCalcShadowColorPCF(
+                    shadowMaps[3], shadowSampler, shadowTexcoord,
+                    shadowColor.rgb, shadowBias, pcfKernelSize);
+                break;
+            }
+        }
     }
 
     shadow = lerp(

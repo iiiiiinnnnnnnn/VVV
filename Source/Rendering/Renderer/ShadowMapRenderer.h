@@ -4,6 +4,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
+#include <array>
 #include <vector>
 
 #include "Core/Foundation/Common.h"
@@ -15,7 +16,9 @@ class Terrain;
 class ShadowMapRenderer
 {
 public:
-    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048 * 4);
+    static constexpr int CascadeCount = ShadowMapData::CascadeCount;
+
+    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048);
     ~ShadowMapRenderer() = default;
 
     void Draw(Model* model);
@@ -23,18 +26,27 @@ public:
 
     void Render(const RenderContext& rc,
                 const Vector3& lightDir,
-                const Vector3& targetPos,
-                float lightDistance = 50.0f,
-                float orthoSize = 30.0f,
-                float nearZ = 0.1f,
-                float farZ = 200.0f);
+                float shadowDistance = 500.0f);
 
-    ID3D11ShaderResourceView* GetDepthSRV() const { return depthSrv.Get(); }
-    const Matrix& GetLightViewProjection() const { return lightViewProjection; }
+    ID3D11ShaderResourceView* GetDepthSRV(int cascadeIndex) const
+    {
+        return depthSrvs.at(cascadeIndex).Get();
+    }
+    const Matrix& GetLightViewProjection(int cascadeIndex) const
+    {
+        return lightViewProjections.at(cascadeIndex);
+    }
+    const Vector4& GetCascadeSplits() const { return cascadeSplits; }
 
 private:
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthDsv;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> depthSrv;
+    void CalculateCascadeMatrices(
+        const Camera& camera,
+        const Vector3& lightDir,
+        float shadowDistance);
+    void RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex);
+
+    std::array<Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, CascadeCount> depthDsvs;
+    std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, CascadeCount> depthSrvs;
     D3D11_VIEWPORT shadowViewport = {};
 
     struct CbSkeleton
@@ -59,6 +71,7 @@ private:
     std::vector<Model*> drawList;
     std::vector<Terrain*> terrainDrawList;
 
-    Matrix lightViewProjection;
+    std::array<Matrix, CascadeCount> lightViewProjections;
+    Vector4 cascadeSplits = {};
     UINT shadowMapSize;
 };

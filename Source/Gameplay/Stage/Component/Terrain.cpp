@@ -1,4 +1,4 @@
-// Terrain.cpp
+ï»¿// Terrain.cpp
 
 #include "Gameplay/Stage/Component/Terrain.h"
 
@@ -11,6 +11,8 @@
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Resource/Texture.h"
 #include <DirectXTex.h>
+
+#include <cfloat>
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)
@@ -111,8 +113,8 @@ void Terrain::InitializeGpuResources()
 		"Data/Shader/TerrainColliderBuildCS.cso",
 		terrainColliderBuildComputeShader.GetAddressOf());
 
-	// ƒŒƒCƒ„[’Ç‰Á
-	// ƒuƒŒƒ“ƒh‚Åˆá˜aŠ´‚Ì‚È‚¢‡”Ô‚Å’Ç‰Á‚·‚é
+	// ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½åŠ 
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ã§é•å’Œæ„Ÿã®ãªã„é †ç•ªã§è¿½åŠ ã™ã‚‹
 
 	AddTerrainLayer("Data/Terrain/Layers/stone.png", "Data/Terrain/Layers/stone_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/rock.png", "Data/Terrain/Layers/rock_n.png");
@@ -120,7 +122,7 @@ void Terrain::InitializeGpuResources()
 	AddTerrainLayer("Data/Terrain/Layers/grass.png", "Data/Terrain/Layers/grass_n.png");
 	AddTerrainLayer("Data/Terrain/Layers/test.png", "Data/Terrain/Layers/test.png");
 
-	// ƒGƒ‰[—p
+	// ã‚¨ãƒ©ãƒ¼ç”¨
 	if (terrainLayers.empty())
 	{
 		AddTerrainLayer("Data/Image/bugTex.png", "Data/Image/bugTex.png");
@@ -393,13 +395,27 @@ void Terrain::UpdateTerrainSceneConstantBuffer(
 
 void Terrain::UpdateShadowConstantBuffer(
 	ID3D11DeviceContext* dc,
-	const Matrix& lightViewProjection,
+	const std::array<Matrix, ShadowMapData::CascadeCount>& lightViewProjections,
+	const Vector4& cascadeSplits,
+	const Vector3& cameraFront,
 	const Color& shadowColor,
 	float shadowBias,
 	int pcfKernelSize)
 {
 	CbShadowMap cbShadow{};
-	cbShadow.lightViewProjection = lightViewProjection;
+	for (int cascadeIndex = 0;
+		 cascadeIndex < ShadowMapData::CascadeCount;
+		 ++cascadeIndex)
+	{
+		cbShadow.lightViewProjections[cascadeIndex] =
+			lightViewProjections[cascadeIndex];
+	}
+	cbShadow.cascadeSplits = cascadeSplits;
+	cbShadow.cameraFront = Vector4(
+		cameraFront.x,
+		cameraFront.y,
+		cameraFront.z,
+		0.0f);
 	cbShadow.shadowColor = shadowColor;
 	cbShadow.shadowBias = shadowBias;
 	cbShadow.pcfKernelSize = pcfKernelSize;
@@ -474,7 +490,9 @@ void Terrain::Render(const RenderContext& rc)
 	UpdateTerrainSceneConstantBuffer(dc, rc);
 	UpdateShadowConstantBuffer(
 		dc,
-		rc.shadowMapData.lightViewProjection,
+		rc.shadowMapData.lightViewProjections,
+		rc.shadowMapData.cascadeSplits,
+		rc.camera->GetFront(),
 		rc.shadowMapData.shadowColor,
 		rc.shadowMapData.shadowBias,
 		rc.shadowMapData.pcfKernelSize);
@@ -546,7 +564,10 @@ void Terrain::Render(const RenderContext& rc)
 	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
 	dc->PSSetShaderResources(0, 1, &terrainSrv);
 
-	dc->PSSetShaderResources(8, 1, &rc.shadowMapData.shadowMap);
+	dc->PSSetShaderResources(
+		8,
+		ShadowMapData::CascadeCount,
+		rc.shadowMapData.shadowMaps.data());
 
 	ID3D11ShaderResourceView* iblSrvs[] =
 	{
@@ -593,7 +614,8 @@ void Terrain::Render(const RenderContext& rc)
 	ID3D11ShaderResourceView* nullTerrainSrvs[MaxTerrainLayers] = {};
 
 	dc->PSSetShaderResources(0, 1, &nullSrv);
-	dc->PSSetShaderResources(8, 1, &nullSrv);
+	ID3D11ShaderResourceView* nullShadowSrvs[ShadowMapData::CascadeCount] = {};
+	dc->PSSetShaderResources(8, ShadowMapData::CascadeCount, nullShadowSrvs);
 	dc->PSSetShaderResources(17, _countof(nullSrvs3), nullSrvs3);
 	dc->PSSetShaderResources(20, MaxTerrainLayers, nullTerrainSrvs);
 	dc->PSSetShaderResources(36, MaxTerrainLayers, nullTerrainSrvs);
@@ -623,7 +645,13 @@ void Terrain::RenderShadowMap(
 	UpdateTerrainObjectConstantBuffer(dc);
 	UpdateShadowConstantBuffer(
 		dc,
-		lightViewProjection,
+		std::array<Matrix, ShadowMapData::CascadeCount>{
+			lightViewProjection,
+			lightViewProjection,
+			lightViewProjection,
+			lightViewProjection},
+		Vector4(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX),
+		Vector3::Forward,
 		Color(0.0f, 0.0f, 0.0f, 1.0f),
 		0.0f,
 		1);
@@ -1725,6 +1753,4 @@ uint64_t Terrain::GetTerrainDataHash() const
 
 	return hash;
 }
-
-
 

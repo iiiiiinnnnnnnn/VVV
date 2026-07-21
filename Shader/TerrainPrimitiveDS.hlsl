@@ -56,9 +56,5 @@ VS_OUT main(
     output.normal = worldNormal;
     output.position = worldPosition.xyz;
     output.tangent = worldTangent;
-    output.shadowTexcoord = CalcShadowTexcoord(
-        worldPosition.xyz,
-        light_view_projection);
-
     return output;
 }
