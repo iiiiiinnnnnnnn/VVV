@@ -28,7 +28,7 @@ public:
 
     virtual void OnUpdate() override;
 
-    void TakeDamage(const DamageData& damageData);
+    virtual void TakeDamage(const DamageData& damageData);
     void Heal(float amount);
     bool IsDead() const { return life <= 0.0f; }
 

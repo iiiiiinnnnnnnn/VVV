@@ -336,6 +336,9 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("CrystalProp")) return;
+	constexpr float maxMeleeTargetDistance = 4.0f;
+	if (Vector3::DistanceSquared(transform.position, otherActor->transform.position) >
+		maxMeleeTargetDistance * maxMeleeTargetDistance) return;
 
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
 	if (!entity) return;

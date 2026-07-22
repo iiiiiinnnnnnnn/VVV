@@ -366,6 +366,11 @@ void Scene::DrawGUI(RenderContext& rc)
 			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
+			const bool currentStageWindowOpen = ImGui::Begin("Current Stage");
+			stage.SetComponentDebugVisible(currentStageWindowOpen);
+			if (currentStageWindowOpen) stage.DrawGUI();
+			ImGui::End();
+
 			if (ImGui::Begin("Widgets"))
 			{
 				widgetManager.DrawGUI();

@@ -68,7 +68,10 @@ void CrystalProp::SpawnBreakParticles()
 {
     if (!breakParticleSystem) return;
 
-    const int particleCount = 32;
+    float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
+    largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
+
+    int particleCount = largestScale * 32 * 10;
     for (int i = 0; i < particleCount; ++i)
     {
         Vector3 p = transform.position;
@@ -77,17 +80,17 @@ void CrystalProp::SpawnBreakParticles()
         p.z += Random::Range(-0.6f, 0.6f);
 
         Vector3 v;
-        v.x = Random::Range(-1.75f, 1.75f);
-        v.y = Random::Range(-0.45f, 1.05f);
-        v.z = Random::Range(-1.75f, 1.75f);
+        v.x = Random::Range(-0.75f, 0.75f);
+        v.y = Random::Range(+2.45f, 5.05f);
+        v.z = Random::Range(-0.75f, 0.75f);
 
         breakParticleSystem->Set(
             7,
-            1.2f,
+            5.2f,
             p,
             v,
             Vector3(0.0f, -5.0f, 0.0f),
-            Vector2(1.0f, 1.0f),
+            Vector2(0.2f, 0.2f),
             false,
             24.0f,
             Color(0.35f, 0.9f, 1.0f, 1.0f));

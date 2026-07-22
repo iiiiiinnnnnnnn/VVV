@@ -125,8 +125,25 @@ Aracore::Aracore(const Vector3& position)
     controller->BindCallbacks();
 }
 
+void Aracore::TakeDamage(const DamageData& damageData)
+{
+	if (!IsDead()) return Entity::TakeDamage(damageData);
+	if (!deathSequenceActive) return;
+
+	HitStop::Request(0.15f);
+	CameraEffectController::Request(0.2f, 0.1f);
+	FinishDeathSequence();
+}
+
 void Aracore::Destroy(float delay)
 {
+	if (delay > 0.0f)
+	{
+		if (machine) machine->Destroy(delay);
+		Object::Destroy(delay);
+		return;
+	}
+
 	if (machine)
 	{
 		machine->Destroy(delay);
@@ -145,16 +162,10 @@ void Aracore::OnAwake()
 
 void Aracore::OnUpdate()
 {
-    Entity::OnUpdate();
+	Entity::OnUpdate();
 	if (deathSequenceActive)
 	{
-		deathTimer -= Game::Time::deltaTime;
-		if (deathTimer <= 0.0f)
-		{
-			deathSequenceActive = false;
-			SpawnBreakSpiderParticles();
-			Destroy();
-		}
+		if (IsPendingDestroy()) FinishDeathSequence();
 		return;
 	}
 
@@ -262,9 +273,18 @@ void Aracore::OnDead(const DamageData& damageData)
 			Random::Range(-3.0f, 3.0f),
 			Random::Range(-5.0f, 5.0f)));
 	}
-	deathTimer = 5.0f;
 	deathSequenceActive = true;
+	Destroy(5.0f);
     SpawnBreakCrystalParticles();
+}
+
+void Aracore::FinishDeathSequence()
+{
+	if (!deathSequenceActive) return;
+
+	deathSequenceActive = false;
+	SpawnBreakSpiderParticles();
+	Destroy();
 }
 
 void Aracore::BeginAttack()

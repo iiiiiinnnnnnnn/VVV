@@ -36,6 +36,7 @@ class Aracore : public Entity
 public:
 	Aracore(const Vector3& position);
 	~Aracore() = default;
+	void TakeDamage(const DamageData& damageData) override;
 	void Destroy(float delay = 0.0f) override;
 	void OnAwake() override;
 	void OnUpdate() override;
@@ -62,6 +63,7 @@ private:
 	void SpawnAttackRangeParticles();
 	void SpawnBreakCrystalParticles();
 	void SpawnBreakSpiderParticles();
+	void FinishDeathSequence();
 
 	Animator* anim = nullptr;
 	CharacterController* characterController = nullptr;
@@ -78,7 +80,6 @@ private:
 	std::vector<PhysicsComponent*> IKStampColliders;
 	EnemyAIFlow* controller = nullptr;
 	std::vector<Vector3> colPositions;
-	float deathTimer = 0.0f;
 	float attackCooldown = 0.0f;
 	float attackRequestTimer = 0.0f;
 	bool attackRequested = false;
