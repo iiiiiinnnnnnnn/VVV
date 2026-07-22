@@ -60,7 +60,8 @@ private:
 	void OnExitAttackHit();
 	void TryDealAttackDamage(Actor* actor, PhysicsComponent* otherCollider, const Vector3& point, const Vector3& normal);
 	void SpawnAttackRangeParticles();
-	void SpawnBreakParticles();
+	void SpawnBreakCrystalParticles();
+	void SpawnBreakSpiderParticles();
 
 	Animator* anim = nullptr;
 	CharacterController* characterController = nullptr;

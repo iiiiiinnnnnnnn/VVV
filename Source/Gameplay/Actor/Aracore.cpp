@@ -152,7 +152,7 @@ void Aracore::OnUpdate()
 		if (deathTimer <= 0.0f)
 		{
 			deathSequenceActive = false;
-			SpawnBreakParticles();
+			SpawnBreakSpiderParticles();
 			Destroy();
 		}
 		return;
@@ -264,6 +264,7 @@ void Aracore::OnDead(const DamageData& damageData)
 	}
 	deathTimer = 5.0f;
 	deathSequenceActive = true;
+    SpawnBreakCrystalParticles();
 }
 
 void Aracore::BeginAttack()
@@ -404,17 +405,47 @@ void Aracore::SpawnAttackRangeParticles()
 	}
 }
 
-void Aracore::SpawnBreakParticles()
+void Aracore::SpawnBreakCrystalParticles()
 {
     if (!breakParticleSystem) return;
 
-    const int particleCount = 16;
+    const int particleCount = 35 * 2;
     for (int i = 0; i < particleCount; ++i)
     {
         Vector3 p = transform.position;
         p.x += Random::Range(-0.6f, 0.6f);
         p.y += Random::Range(+0.7f, 1.0f);
         p.z += Random::Range(-0.6f, 0.6f);
+
+        Vector3 v;
+        v.x = Random::Range(-1.75f, 1.75f);
+        v.y = Random::Range(1.45f, 2.05f);
+        v.z = Random::Range(-1.75f, 1.75f);
+
+        breakParticleSystem->Set(
+            7,
+            1.2f,
+            p,
+            v,
+            Vector3(0.0f, -5.0f, 0.0f),
+            Vector2(0.2f, 0.2f),
+            false,
+            24.0f,
+            Color(0.35f, 0.9f, 1.0f, 1.0f));
+    }
+}
+
+void Aracore::SpawnBreakSpiderParticles()
+{
+    if (!breakParticleSystem) return;
+
+    const int particleCount = 16 * 2;
+    for (int i = 0; i < particleCount; ++i)
+    {
+        Vector3 p = transform.position;
+        p.x += Random::Range(-0.3f, 0.3f);
+        p.y += Random::Range(+0.7f, 1.0f);
+        p.z += Random::Range(-0.3f, 0.3f);
 
         Vector3 v;
         v.x = Random::Range(-1.75f, 1.75f);
