@@ -14,6 +14,7 @@
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp" />
     <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp" />
     <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
@@ -80,12 +81,15 @@
     <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp" />
     <ClCompile Include="Source\Resource\VMDLModel.cpp" />
+    <ClCompile Include="Source\Resource\VSTG.cpp" />
+    <ClCompile Include="Source\Rendering\Component\VMDL.cpp" />
     <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ModelRenderer.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshAgent.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshActor.cpp" />
     <ClCompile Include="Source\Rendering\Shader\GamePostProcess.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Stage01.cpp" />
+    <ClCompile Include="Source\Gameplay\Stage\Stage.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp" />
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
@@ -118,6 +122,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h" />
+    <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\Benchmark.h" />
     <ClInclude Include="Source\Physics\Collider\BoneBoxCollider.h" />
@@ -194,6 +199,8 @@
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h" />
     <ClInclude Include="Source\Resource\VMDLModel.h" />
+    <ClInclude Include="Source\Resource\VSTG.h" />
+    <ClInclude Include="Source\Rendering\Component\VMDL.h" />
     <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\ModelRenderer.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshAgent.h" />

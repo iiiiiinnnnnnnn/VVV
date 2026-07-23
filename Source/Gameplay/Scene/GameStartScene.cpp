@@ -5,6 +5,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
+#include "Gameplay/Scene/VstgEditorScene.h"
 #include "Resource/ResourceManager.h"
 
 GameStartScene::GameStartScene(SceneMessage message)
@@ -34,6 +35,10 @@ void GameStartScene::OnDrawGUI()
 		if (ImGui::Button("Enter VMDL Editor", ImVec2(240, 56)))
 		{
 			loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
+		}
+		if (ImGui::Button("Enter VSTG Editor", ImVec2(240, 56)))
+		{
+			loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
 		}
 #endif
 		return;

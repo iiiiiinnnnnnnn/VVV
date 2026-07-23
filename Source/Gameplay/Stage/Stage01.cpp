@@ -20,13 +20,17 @@ Stage01::Stage01()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	auto* rb = AddComponent<RigidbodyStatic>();
-
-	Terrain* terrain = AddComponent<Terrain>();
-	terrain->LoadTerrainTexture("Data/Terrain/Maps/test.dds");
-	AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rb,
-		TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
-	StageLoader* stageLoader = AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
+	const bool loadedVstg = LoadVSTG("Data/Stages/Stage01.vstg");
+	StageLoader* stageLoader = GetComponent<StageLoader>();
+	if (!loadedVstg)
+	{
+		auto* rb = AddComponent<RigidbodyStatic>();
+		Terrain* terrain = AddComponent<Terrain>();
+		terrain->LoadTerrainTexture("Data/Terrain/Maps/test.dds");
+		AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rb,
+			TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
+		stageLoader = AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
+	}
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	AddComponent<NavMeshActor>();
 
@@ -68,12 +72,14 @@ Stage01::Stage01()
 	actorManager.Register(boss);
 	#endif
 
-	DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
-	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
-		RAD(-35.0f), RAD(35.0f), 0.0f);
-
-	lightManager.SetDirectionalLight(directionalLight);
-	lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
+	if (!loadedVstg)
+	{
+		DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
+		directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
+			RAD(-35.0f), RAD(35.0f), 0.0f);
+		lightManager.SetDirectionalLight(directionalLight);
+		lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
+	}
 }
 
 void Stage01::OnUpdate()

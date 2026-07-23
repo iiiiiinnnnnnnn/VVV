@@ -9,6 +9,7 @@
 #include "Rendering/Renderer/ModelRenderer.h"
 
 class Animator;
+class PhysicsComponent;
 class TrailRenderComponent;
 
 class VMDLModelComponent : public Component {
@@ -32,24 +33,27 @@ public:
 
 	const ModelShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(ModelShaderId id) { shaderId = id; }
+	void BuildAttachments();
+	void SetBuildEmbeddedTrails(bool value) { buildEmbeddedTrails = value; }
+	PhysicsComponent* GetAttachmentCollider(const std::string& name) const;
 
 	ShaderParamListWithMaterialName& GetParamsWithMaterial() { return paramsWithMaterial; }
 	const ShaderParamListWithMaterialName& GetParamsWithMaterial() const { return paramsWithMaterial; }
 
 private:
-	void BuildAttachments();
 	void UpdateAnimationControls();
 	void RestoreAnimationControls();
 
     std::shared_ptr<VMDLModel> model;
 	ModelShaderId shaderId;
     ShaderParamListWithMaterialName paramsWithMaterial;
-    bool autoUpdateTransform = true;
+	bool autoUpdateTransform = true;
 	LayerId attachmentLayerId = 0;
+	bool buildEmbeddedTrails = true;
 	bool attachmentsBuilt = false;
 	bool animationControlsApplied = false;
 	Animator* animator = nullptr;
-	std::vector<Component*> attachmentColliders;
+	std::vector<PhysicsComponent*> attachmentColliders;
 	std::vector<TrailRenderComponent*> attachmentTrails;
 	std::vector<uint8_t> initialMeshVisibility;
 };

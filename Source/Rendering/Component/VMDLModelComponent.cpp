@@ -99,6 +99,7 @@ void VMDLModelComponent::BuildAttachments()
 	}
 
 	const auto& trailData = model->GetVmdlTrailData();
+	if (!buildEmbeddedTrails) return;
 	attachmentTrails.assign(trailData.trails.size(), nullptr);
 	for (int trailIndex = 0; trailIndex < static_cast<int>(trailData.trails.size()); ++trailIndex)
 	{
@@ -110,6 +111,15 @@ void VMDLModelComponent::BuildAttachments()
 		if (!model->GetTrailInitialActive(trailIndex)) trail->StopTrail();
 		attachmentTrails[trailIndex] = trail;
 	}
+}
+
+PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& name) const
+{
+	for (PhysicsComponent* collider : attachmentColliders)
+	{
+		if (collider && collider->CompareName(name)) return collider;
+	}
+	return nullptr;
 }
 
 void VMDLModelComponent::LateUpdate()

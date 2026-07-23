@@ -6,6 +6,7 @@
 #include "magic_enum/magic_enum.hpp"
 #include <fstream>
 #include <iomanip>
+#include <sstream>
 #include "Resource/ResourceManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/ActorManager.h"
@@ -153,6 +154,12 @@ void StageLoader::DrawDestroyGUI(PropData& propData)
 }
 StageLoader::StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
+{
+	LoadJson();
+}
+
+StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonText, bool fromMemory)
+	: Component(owner), stage(stage), jsonText(jsonText)
 {
 	LoadJson();
 }
@@ -591,23 +598,22 @@ void StageLoader::DrawGUI()
 
 void StageLoader::LoadJson()
 {
-	if (!std::filesystem::exists(jsonPath))
+	std::ifstream file;
+	std::istringstream memory(jsonText);
+	std::istream* input = &memory;
+	if (jsonText.empty())
 	{
-		return;
-	}
-
-	std::ifstream ifs(jsonPath);
-
-	if (!ifs)
-	{
-		return;
+		if (!std::filesystem::exists(jsonPath)) return;
+		file.open(jsonPath);
+		if (!file) return;
+		input = &file;
 	}
 
 	json root;
 
 	try
 	{
-		ifs >> root;
+		*input >> root;
 	}
 	catch (const json::parse_error&)
 	{
@@ -915,6 +921,23 @@ void StageLoader::LoadJson()
 		}
 	}
 }
+
+void StageLoader::LoadJsonText(const std::string& text)
+{
+	jsonText = text;
+	jsonPath.clear();
+	LoadJson();
+}
+
+std::string StageLoader::SaveJsonText()
+{
+	const std::filesystem::path previousPath = jsonPath;
+	jsonPath.clear();
+	SaveJson();
+	jsonPath = previousPath;
+	return jsonText;
+}
+
 void StageLoader::SaveJson()
 {
 	json root;
@@ -1036,6 +1059,8 @@ void StageLoader::SaveJson()
 		SaveTransformJson(crystalJson["transform"], crystalData.transform);
 		root["crystals"].push_back(crystalJson);
 	}
+	jsonText = root.dump(4);
+	if (jsonPath.empty()) return;
 	if (jsonPath.has_parent_path())
 	{
 		std::filesystem::create_directories(jsonPath.parent_path());
@@ -1048,7 +1073,7 @@ void StageLoader::SaveJson()
 		return;
 	}
 
-	ofs << std::setw(4) << root;
+	ofs << jsonText;
 }
 
 

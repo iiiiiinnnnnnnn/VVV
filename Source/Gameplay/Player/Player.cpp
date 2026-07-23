@@ -1,7 +1,6 @@
 ﻿// Player.cpp
 
 #include "Gameplay/Player/Player.h"
-#include "Resource/ResourceManager.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/Graphics.h"
@@ -9,102 +8,15 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/ActorManager.h"
 
-#include <stdexcept>
-
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
-	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
-	if (!model) throw std::runtime_error("Player VMDL could not be loaded.");
-
-	model->ApplyShape("Face1");
-	model->ApplyShape("Eye1");
-	model->ApplyShape("Cloth1");
-	model->ApplyShape("Sword");
-
-	// モデルレンダラー生成
-	shaderParamWithMaterialName =
-	{
-		{
-			"Weapon_Axe_Shiled",
-		{
-			{"metalness", 0.8f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.5f},
-		{"occlusionStrength", 1.0f}
-	}
-		},
-		{
-			"Weapon_Sword_Shiled",
-		{
-			{"metalness", 0.8f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.5f},
-		{"occlusionStrength", 1.0f}
-	}
-		},
-		{
-			"Face",
-		{
-			{"metalness", 0.0f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f},
-		{"shadowStrength", 0.5f}
-	}
-		},
-		{
-			"Eye",
-		{
-			{"metalness", 0.0f},
-		{"roughness", 0.0f},
-		{"occlusion", 1.0f},
-		{"occlusionStrength", 1.0f},
-		{"shadowStrength", 0.5f}
-	}
-		},
-		{
-			"Body",
-		{
-			{"metalness", 0.0f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f},
-		{"shadowStrength", 0.5f}
-	}
-		},
-		{
-			"Shiled_Hair",
-		{
-			{"metalness", 0.0f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.0f},
-		{"occlusionStrength", 1.0f}
-	}
-		},
-		{
-			"Shiled_Cloth",
-		{
-			{"metalness", 0.1f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.0f},
-		{"occlusionStrength", 0.8f}
-	}
-		},
-		{
-			"Squire_Cloth",
-		{
-			{"metalness", 0.0f},
-		{"roughness", 0.0f},
-		{"occlusion", 0.0f},
-		{"occlusionStrength", 0.08f}
-	}
-		},
-	};
-	modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
+	model = vmdl->GetSharedModel();
+	modelRenderer = vmdl->GetRenderer();
 	modelRenderer->SetAutoUpdateTransform(false);
 
-	// アニメーター生成
-	anim = AddComponent<Animator>(model);
+	// 状態遷移とゲーム固有コールバックはAnimator側で設定する。
+	anim = vmdl->GetAnimator();
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
 	anim->AddCallbackFunc("OnAnim", [this](const Animator::State& s) { OnEnterAnim(s); }, [this](const Animator::State& s) { OnExitAnim(s); });
@@ -131,62 +43,14 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	// SetFootPosition と SetPosition は両方呼ばない
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
-	// 武器判定
-	weaponCollider = AddComponent<BoneSphereCollider>(
-		Layers::Get("PlayerAtk"),
-		model.get(),
-		model->GetNodeIndex("add_weapon_r"),
-		0.5f,
-		Matrix::CreateTranslation({-0.56f, 0, 0}));
-	weaponCollider->SetActive(false);
+	weaponCollider = vmdl->GetCollider<BoneCollider>("Weapon");
+	footCollider = vmdl->GetCollider<BoneCollider>("Kick");
 
-	// キック判定
-	footCollider = AddComponent<BoneSphereCollider>(
-		Layers::Get("PlayerAtk"),
-		model.get(),
-		model->GetNodeIndex("foot_l"),
-		0.5f,
-		Matrix::CreateTranslation({0, 0, 0}));
-	footCollider->SetActive(false);
-
-	// Trail
+	// TrailはVMDL Editor側の設定が未完成なので、現行の手動生成を残す。
 	trail = AddComponent<TrailRenderComponent>(
 		model.get(),
 		model->GetNodeIndex("add_weapon_r"));
 	trail->StopTrail();
-
-	// HairPhysics
-	hairSpringBone = AddComponent<SpringBone>(
-		Layers::Get("Hair"), 
-		model.get(),
-		std::vector<std::string>{"hair"},
-		std::vector<SpringBone::SpringCapsule>(
-		{
-			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.076f, model->GetNodeIndex("head")},
-			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.130f, model->GetNodeIndex("spine_01")},
-			{Vector3::Zero, {0.0f, 0.10f, 0.0f}, 0.155f, model->GetNodeIndex("spine_02")},
-			{Vector3::Zero, {0.0f, 0.16f, 0.0f}, 0.100f, model->GetNodeIndex("spine_03")}
-		})
-	);
-
-	// FootIK
-	//const VMDLModel::VmdlIKSettings& ikSettings = model->GetVmdlIKSettings();
-	//const bool useVmdlHumanFootIK = ikSettings.type == 1;
-	//footIK = AddComponent<HumanoidFootIK>(
-	//	Layers::Get("Foot"),
-	//	model.get(),
-	//	anim,
-	//	"Idle",
-	//	useVmdlHumanFootIK ? ikSettings.pelvis.c_str() : "pelvis",
-	//	useVmdlHumanFootIK ? ikSettings.leftThigh.c_str() : "thigh_l",
-	//	useVmdlHumanFootIK ? ikSettings.leftCalf.c_str() : "calf_l",
-	//	useVmdlHumanFootIK ? ikSettings.leftFoot.c_str() : "foot_l",
-	//	useVmdlHumanFootIK ? ikSettings.leftBall.c_str() : "ball_l",
-	//	useVmdlHumanFootIK ? ikSettings.rightThigh.c_str() : "thigh_r",
-	//	useVmdlHumanFootIK ? ikSettings.rightCalf.c_str() : "calf_r",
-	//	useVmdlHumanFootIK ? ikSettings.rightFoot.c_str() : "foot_r",
-	//	useVmdlHumanFootIK ? ikSettings.rightBall.c_str() : "ball_r");
-	//model->UpdateTransform(transform.matrix);
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(
@@ -284,7 +148,7 @@ void Player::OnEnterAnim(const Animator::State& state)
 {
 	if (state.name.starts_with("Attack"))
 	{
-		weaponCollider->SetActive(true);
+		if (weaponCollider) weaponCollider->SetActive(true);
 		trail->StartTrail();
 	}
 }
@@ -293,19 +157,19 @@ void Player::OnExitAnim(const Animator::State& state)
 {
 	if (state.name.starts_with("Attack"))
 	{
-		weaponCollider->SetActive(false);
+		if (weaponCollider) weaponCollider->SetActive(false);
 		trail->StopTrail();
 	}
 }
 
 void Player::OnEnterAnimAttack4B(const Animator::State& state)
 {
-	footCollider->SetActive(true);
+	if (footCollider) footCollider->SetActive(true);
 }
 
 void Player::OnExitAnimAttack4B(const Animator::State& state)
 {
-	footCollider->SetActive(false);
+	if (footCollider) footCollider->SetActive(false);
 }
 
 void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
@@ -341,9 +205,10 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	if (!entity) return;
 
 	bool footAtk = self == footCollider;
+	BoneCollider* attackCollider = footAtk ? footCollider : weaponCollider;
+	if (!attackCollider) return;
 	Vector3 hitPosition = point;
 	Vector3 hitNormal = normal;
-	BoneSphereCollider* attackCollider = footAtk ? footCollider : weaponCollider;
 	Vector3 rayOrigin = attackCollider->GetWorldPosition();
 	Vector3 rayDirection = point - rayOrigin;
 	if (rayDirection.LengthSquared() <= eps)

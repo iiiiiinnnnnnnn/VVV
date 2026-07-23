@@ -10,11 +10,10 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Player/PlayerController.h"
 #include "Physics/Collider/CharacterController.h"
+#include "Rendering/Component/VMDL.h"
 #include "Rendering/Component/VMDLModelComponent.h"
-#include "Physics/Collider/BoneSphereCollider.h"
+#include "Physics/Collider/BoneCollider.h"
 #include "Rendering/Component/TrailRenderComponent.h"
-#include "Animation/SpringBone.h"
-#include "Animation/HumanoidFootIK.h"
 #include "Animation/LookAt.h"
 
 class ThirdPersonCameraController;
@@ -75,16 +74,14 @@ protected:
     int stWalk = -1;
     int stRun = -1;
     int stSprint = -1;
+    VMDL* vmdl = nullptr;
     VMDLModelComponent* modelRenderer = nullptr;
-    ShaderParamListWithMaterialName shaderParamWithMaterialName;
     ThirdPersonCameraController* cameraController = nullptr;
     bool  isFirstPerson = false;
     float spineAngleX = 0.0f;
     const Vector2 idleSpineAngle = {0.8f, 0};
     const Vector2 readySpineAngle = {-0.25f, -0.38f};
     TrailRenderComponent* trail = nullptr;
-    SpringBone* hairSpringBone = nullptr;
-    HumanoidFootIK* footIK = nullptr;
     float groundSnapUpDistance = 0.2f;
     float groundSnapDownDistance = 0.5f;
 
@@ -94,8 +91,8 @@ protected:
 
     // movement
     CharacterController* cc = nullptr;
-    BoneSphereCollider* weaponCollider = nullptr;
-    BoneSphereCollider* footCollider = nullptr;
+    BoneCollider* weaponCollider = nullptr;
+    BoneCollider* footCollider = nullptr;
     Vector3 frameVelocity = Vector3::Zero;
     float verticalVelocity = 0.0f;
     float speed = 5.0f;

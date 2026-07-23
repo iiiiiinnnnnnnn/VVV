@@ -1291,6 +1291,44 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 		return false;
 	}
 
+	if (!LoadTerrainImage(sourceMetadata, sourceImage)) return false;
+	terrainFilePath = filepath.generic_string();
+	terrainIoMessage = "Terrain loaded. Collider rebuild is pending.";
+	return true;
+}
+
+bool Terrain::SaveTerrainMemory(std::vector<uint8_t>& bytes) const
+{
+	if (terrainPixels.size() != static_cast<size_t>(TerrainTextureWidth * TerrainTextureHeight)) return false;
+	DirectX::Image image{};
+	image.width = TerrainTextureWidth;
+	image.height = TerrainTextureHeight;
+	image.format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	image.rowPitch = static_cast<size_t>(TerrainTextureWidth) * sizeof(Vector4);
+	image.slicePitch = image.rowPitch * static_cast<size_t>(TerrainTextureHeight);
+	image.pixels = reinterpret_cast<uint8_t*>(const_cast<Vector4*>(terrainPixels.data()));
+	DirectX::Blob blob;
+	if (FAILED(DirectX::SaveToDDSMemory(image, DirectX::DDS_FLAGS_NONE, blob))) return false;
+	const auto* begin = static_cast<const uint8_t*>(blob.GetBufferPointer());
+	bytes.assign(begin, begin + blob.GetBufferSize());
+	return true;
+}
+
+bool Terrain::LoadTerrainMemory(const std::vector<uint8_t>& bytes)
+{
+	if (bytes.empty()) return false;
+	DirectX::TexMetadata metadata{};
+	DirectX::ScratchImage image;
+	if (FAILED(DirectX::LoadFromDDSMemory(bytes.data(), bytes.size(), DirectX::DDS_FLAGS_NONE, &metadata, image))) return false;
+	if (!LoadTerrainImage(metadata, image)) return false;
+	terrainFilePath.clear();
+	terrainIoMessage = "Terrain loaded from VSTG.";
+	return true;
+}
+
+bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const DirectX::ScratchImage& sourceImage)
+{
+	HRESULT hr = S_OK;
 	const DirectX::ScratchImage* workingImage = &sourceImage;
 	DirectX::ScratchImage convertedImage;
 
@@ -1357,12 +1395,9 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 		memcpy(destinationRow, sourceRow, destinationRowPitch);
 	}
 
-	terrainFilePath = filepath.generic_string();
 	terrainTextureDirty = true;
 	is_terrain_texture_clear_color = false;
 	MarkTerrainMeshDirty();
-
-	terrainIoMessage = "Terrain loaded. Collider rebuild is pending.";
 
 	return true;
 }

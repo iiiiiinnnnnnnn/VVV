@@ -3,6 +3,7 @@
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
+#include <DirectXTex.h>
 
 #include <array>
 #include <filesystem>
@@ -49,6 +50,8 @@ public:
 
 	bool SaveTerrainTexture(const std::string& filename);
 	bool LoadTerrainTexture(const std::string& filename);
+	bool SaveTerrainMemory(std::vector<uint8_t>& bytes) const;
+	bool LoadTerrainMemory(const std::vector<uint8_t>& bytes);
 
 	bool AddBrushTexture(const std::string& filename);
 	bool SetBrushTexture(int index);
@@ -187,6 +190,7 @@ private:
 	void CreateTerrainTexture(ID3D11Device* device);
 	void UploadTerrainTexture(ID3D11DeviceContext* dc);
 	void ClearTerrainTexture();
+	bool LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const DirectX::ScratchImage& sourceImage);
 
 	void UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc);
 	void UpdateTerrainSceneConstantBuffer(

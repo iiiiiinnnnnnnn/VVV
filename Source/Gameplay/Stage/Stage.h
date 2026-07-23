@@ -14,6 +14,7 @@
 #include <limits>
 #include <algorithm>
 #include <vector>
+#include <string>
 
 class Stage : public Object
 {
@@ -190,6 +191,8 @@ public:
 	const ActorManager& GetActorManager() const { return actorManager; }
 
 	ParticleSystem* GetParticleSystem() { return particleSystem.get(); }
+	bool LoadVSTG(const std::string& path);
+	const std::string& GetVSTGError() const { return vstgError; }
 
 protected:
 	Transform transform;
@@ -199,4 +202,5 @@ protected:
 	ActorManager actorManager;
 	LightManager lightManager;
 	std::unique_ptr<ParticleSystem> particleSystem;
+	std::string vstgError;
 };

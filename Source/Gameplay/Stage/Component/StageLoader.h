@@ -26,6 +26,7 @@ class StageLoader : public Component
 {
 public:
 	StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath);
+	StageLoader(Object* owner, Stage* stage, const std::string& jsonText, bool fromMemory);
 	~StageLoader() = default;
 
 	void Update() override;
@@ -34,7 +35,9 @@ public:
 	const char* GetDebugName() const override { return ICON_FA_BOX " StageLoader"; }
 
 	void LoadJson();
+	void LoadJsonText(const std::string& text);
 	void SaveJson();
+	std::string SaveJsonText();
 	void SetCrystalBreakParticleSystem(ParticleSystem* particleSystem);
 
 private:
@@ -160,6 +163,7 @@ private:
 	void DrawCrystalShaderParamsGUI();
 
 	std::filesystem::path jsonPath = {};
+	std::string jsonText;
 	Stage* stage = nullptr;
 	ParticleSystem* crystalBreakParticleSystem = nullptr;
 	std::vector<Actor*> addedRealActors = {};

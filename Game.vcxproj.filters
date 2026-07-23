@@ -141,6 +141,9 @@
 	<ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
 	  <Filter>Gameplay\Scene</Filter>
 	</ClInclude>
+	<ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
+	  <Filter>Gameplay\Scene</Filter>
+	</ClInclude>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -163,6 +166,9 @@
 	  <Filter>Application\SettingsAndDebug</Filter>
 	</ClCompile>
 	<ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
+	  <Filter>Gameplay\Scene</Filter>
+	</ClCompile>
+	<ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
 	  <Filter>Gameplay\Scene</Filter>
 	</ClCompile>
     <ClCompile Include="Source\Application\Tools\Dialog.cpp">
@@ -192,6 +198,9 @@
     <ClCompile Include="Source\Resource\VMDLModel.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Resource\VSTG.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
@@ -205,6 +214,9 @@
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp">
+      <Filter>Rendering\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\VMDL.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\SpriteRenderComponent.cpp">
@@ -244,6 +256,9 @@
       <Filter>Gameplay\Lighting</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Stage\Stage01.cpp">
+      <Filter>Gameplay\Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Stage\Stage.cpp">
       <Filter>Gameplay\Stage</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\SettingsAndDebug\UserSettingsManager.cpp">
@@ -491,6 +506,9 @@
     <ClInclude Include="Source\Resource\VMDLModel.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Resource\VSTG.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Core\Object\Object.h">
       <Filter>Core\Object</Filter>
     </ClInclude>
@@ -513,6 +531,9 @@
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h">
+      <Filter>Rendering\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\VMDL.h">
       <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h">
