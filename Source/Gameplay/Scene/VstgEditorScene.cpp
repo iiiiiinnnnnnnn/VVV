@@ -67,7 +67,13 @@ void VstgEditorScene::OnDrawGUI()
 			if (ImGui::MenuItem("Open VSTG")) Open();
 			if (ImGui::MenuItem("Save VSTG", "Ctrl+S")) Save();
 			if (ImGui::MenuItem("Save VSTG As", "Ctrl+Shift+S")) SaveAs();
-			if (ImGui::MenuItem("Exit")) SceneManager::Instance().LoadScene<GameStartScene>();
+			if (ImGui::MenuItem("Exit"))
+			{
+				if (OnRequestExit())
+				{
+					SceneManager::Instance().LoadScene<GameStartScene>();
+				}
+			}
 			ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("Display"))
