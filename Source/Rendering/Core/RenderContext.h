@@ -15,6 +15,8 @@ class LightManager;
 struct RenderSettings
 {
 	bool showDebug = true;
+	bool showComponentDebug = true;
+	bool showColliderDebug = true;
 	bool wireframe = false;
 };
 

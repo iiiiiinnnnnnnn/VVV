@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <utility>
 
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Component.h"
 
 class PhysicsComponent : public Component

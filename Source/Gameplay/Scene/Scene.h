@@ -2,6 +2,7 @@
 
 #pragma once
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "Core/Foundation/Common.h"
@@ -48,15 +49,18 @@ protected:
 	virtual void OnUpdate() {}
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
+	virtual bool UsesGameDebugGUI() const { return true; }
 
 	std::unique_ptr<Stage> currentStage;
 
 	SceneMessage message = nullptr;
 
 	bool showDynamicAnimationEditorWindow = false;
+	bool showPhysicsLayerWindow = false;
 	DynamicAnimationEditorWindow dynamicAnimationEditorWindow;
 
 	bool isCursorReleased = false;
+	std::string pendingStagePath;
 
 	Game::PostProcess postProcess;
 	RenderSettings renderSettings;

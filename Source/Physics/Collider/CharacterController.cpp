@@ -1,11 +1,11 @@
-ï»¿// CharacterController.cpp
+// CharacterController.cpp
 
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
 #include "IconsFontAwesome5.h"
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
 CharacterController::CharacterController(Object* owner, LayerId layerId, float radius, float height)
     : PhysicsComponent(owner, layerId)
@@ -33,7 +33,7 @@ CharacterController::CharacterController(Object* owner, LayerId layerId, float r
         .GetSceneContext().GetControllerManager()->createController(desc);
     SetFootPosition(actor->transform.position);
 
-    // å†…éƒ¨ã‚·ã‚§ã‚¤ãƒ—ã«layerã‚’ã‚»ãƒƒãƒˆï¼†userDataã«Actor*ã‚’æ ¼ç´ï¼ˆã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ç”¨ï¼‰
+    // “à•”ƒVƒFƒCƒv‚Élayer‚ðƒZƒbƒg•userData‚ÉActor*‚ðŠi”[iƒR[ƒ‹ƒoƒbƒN—pj
     PxRigidDynamic* act = controller->getActor();
     act->userData = actor;
     PxShape* shape = nullptr;
@@ -127,7 +127,7 @@ void CharacterController::DrawGUI()
 {
     PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
 
-    // --- çŠ¶æ…‹è¡¨ç¤º ---
+    // --- ó‘Ô•\Ž¦ ---
     ImGui::Text("Grounded : %s", grounded ? "true" : "false");
     ImGui::Checkbox("Use Gravity", &useGravity);
     ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
@@ -135,7 +135,7 @@ void CharacterController::DrawGUI()
     PxExtendedVec3 pos = controller->getPosition();
     ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
 
-    // --- ã‚«ãƒ—ã‚»ãƒ«å½¢çŠ¶ ---
+    // --- ƒJƒvƒZƒ‹Œ`ó ---
     if (ImGui::TreeNode("Shape"))
     {
         float radius = capsule->getRadius();
@@ -158,7 +158,7 @@ void CharacterController::DrawGUI()
         ImGui::TreePop();
     }
 
-    // --- ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©è¨­å®š ---
+    // --- ƒRƒ“ƒgƒ[ƒ‰Ý’è ---
     if (ImGui::TreeNode("Settings"))
     {
         float stepOffset = controller->getStepOffset();
@@ -174,7 +174,7 @@ void CharacterController::DrawGUI()
             SetPosition(anchorPosition);
         }
 
-        // slopeLimit ã¯è§’åº¦(deg)ã§è¡¨ç¤ºãƒ»ç·¨é›†ã—ã¦å†…éƒ¨ã¯coså€¤ã«å¤‰æ›
+        // slopeLimit ‚ÍŠp“x(deg)‚Å•\Ž¦E•ÒW‚µ‚Ä“à•”‚Ícos’l‚É•ÏŠ·
         float slopeDeg = DEG(acosf(controller->getSlopeLimit()));
         if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
             controller->setSlopeLimit(cosf(RAD(slopeDeg)));
@@ -197,7 +197,7 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
         if (rigidActor && rigidActor->userData == owner) return PxQueryHitType::eNONE;
 
         int layer = (int)shape->getSimulationFilterData().word1;
-        if (!UserSettingsManager::Instance().Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
+        if (!PhysicsLayerManager::Instance().Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
         return PxQueryHitType::eBLOCK;
     }
     PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override
@@ -216,7 +216,7 @@ void CharacterController::Move(const Vector3& velocity)
     Actor* actor = dynamic_cast<Actor*>(owner);
     CCShapeFilterCallback shapeFilter(actor, layerId);
 
-    // æ–°ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–‹å§‹ã¨ã—ã¦ãƒ•ãƒ©ã‚°ã‚’ãƒªã‚»ãƒƒãƒˆï¼ˆLateUpdateã‚ˆã‚Šå…ˆã«MoveãŒå‘¼ã°ã‚Œã‚‹æƒ³å®šï¼‰
+    // VƒtƒŒ[ƒ€‚ÌŠJŽn‚Æ‚µ‚Äƒtƒ‰ƒO‚ðƒŠƒZƒbƒgiLateUpdate‚æ‚èæ‚ÉMove‚ªŒÄ‚Î‚ê‚é‘z’èj
     hitReport->dispatchedThisFrame = false;
 
     PxControllerFilters filters;
@@ -238,7 +238,7 @@ void CharacterController::Move(const Vector3& velocity)
 
 void CharacterController::LateUpdate()
 {
-    // Move()ã¯OnLateUpdateã§å‘¼ã°ã‚Œã‚‹ãŸã‚ã€ãã®å¾Œã«åˆ¤å®šã™ã‚‹
+    // Move()‚ÍOnLateUpdate‚ÅŒÄ‚Î‚ê‚é‚½‚ßA‚»‚ÌŒã‚É”»’è‚·‚é
     hitReport->DispatchEvents();
 }
 

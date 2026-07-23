@@ -4,7 +4,7 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Core/PhysicsComponent.h"
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
 static PxFilterFlags LayerFilterShader(
     PxFilterObjectAttributes attr0, PxFilterData fd0,
@@ -15,7 +15,7 @@ static PxFilterFlags LayerFilterShader(
     int layer1 = (int)fd1.word1;
 
     // マトリックスで衝突しない組み合わせなら無視
-    if (!UserSettingsManager::Instance().Collides(layer0, layer1))
+    if (!PhysicsLayerManager::Instance().Collides(layer0, layer1))
         return PxFilterFlag::eSUPPRESS;
 
     if (PxFilterObjectIsTrigger(attr0) || PxFilterObjectIsTrigger(attr1))
@@ -440,7 +440,7 @@ bool PhysicsManager::Raycast(
             if (!shape) return physx::PxQueryHitType::eNONE;
 
             int otherLayer = static_cast<int>(shape->getSimulationFilterData().word1);
-            if (!UserSettingsManager::Instance().Collides(layer, otherLayer)) return physx::PxQueryHitType::eNONE;
+            if (!PhysicsLayerManager::Instance().Collides(layer, otherLayer)) return physx::PxQueryHitType::eNONE;
             return physx::PxQueryHitType::eBLOCK;
         }
 
@@ -566,7 +566,7 @@ void CCHitReport::onShapeHit(const PxControllerShapeHit& hit)
     if (!owner->IsActive()) return;
 
     int otherLayer = static_cast<int>(hit.shape->getSimulationFilterData().word1);
-    if (!UserSettingsManager::Instance().Collides(ownerLayer, otherLayer)) return;
+    if (!PhysicsLayerManager::Instance().Collides(ownerLayer, otherLayer)) return;
 
     PhysicsComponent* otherCollider = ToCollider(hit.shape);
     if (!otherCollider) return;

@@ -108,7 +108,6 @@ public:
 			if (!data[i]) continue;
 			if (!windowOpen)
 			{
-				data[i]->SetComponentDebugVisible(false);
 				continue;
 			}
 

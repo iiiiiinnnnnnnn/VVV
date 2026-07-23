@@ -11,6 +11,7 @@
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Resource/Texture.h"
 #include "Resource/ResourceManager.h"
+#include "nlohmann/json.hpp"
 #include <DirectXTex.h>
 
 #include <cfloat>
@@ -20,9 +21,6 @@ Terrain::Terrain(Object* owner)
 {
 	InitializeGpuResources();
 	ClearTerrainTexture();
-
-	std::error_code error;
-	std::filesystem::create_directories("Data/Terrain/Maps", error);
 
 	AddBrushTexture("Data/Terrain/Brushes/brush_default.png");
 	AddBrushTexture("Data/Terrain/Brushes/brush_pen.png");
@@ -34,7 +32,6 @@ Terrain::Terrain(Object* owner)
 		AddBrushTexture("Data/Image/bugTex.png");
 	}
 
-	LoadTerrainTexture(terrainFilePath);
 }
 
 void Terrain::InitializeGpuResources()
@@ -476,15 +473,6 @@ void Terrain::Render(const RenderContext& rc)
 	if (terrainMeshDirty)
 	{
 		CreateGridMesh(Game::Graphics::Instance().GetDevice());
-	}
-
-	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
-	{
-		if (pendingColliderRebuild || collider->NeedsGpuRebuild())
-		{
-			collider->RebuildFromTerrain();
-			pendingColliderRebuild = false;
-		}
 	}
 
 	UpdateTerrainObjectConstantBuffer(dc);
@@ -1326,6 +1314,121 @@ bool Terrain::LoadTerrainMemory(const std::vector<uint8_t>& bytes)
 	return true;
 }
 
+std::string Terrain::SaveSettingsJson() const
+{
+	using json = nlohmann::json;
+	const auto saveColor = [](const Color& value)
+	{
+		return json::array({value.x, value.y, value.z, value.w});
+	};
+
+	json root;
+	root["terrainSize"] = terrainSize;
+	root["gridResolution"] = gridResolution;
+	root["tessellation"] = {
+		{"edge", tesselation_constant.edge_factor},
+		{"inner", tesselation_constant.inner_factor},
+		{"heightScaler", tesselation_constant.height_scaler},
+		{"tilingScale", tesselation_constant.tilling_scale}};
+	root["material"] = {
+		{"baseColor", saveColor(baseColor)},
+		{"emissiveColor", saveColor(emissiveColor)},
+		{"metalness", metalness},
+		{"roughness", roughness},
+		{"occlusion", occlusion},
+		{"occlusionStrength", occlusionStrength},
+		{"shadowStrength", shadowStrength}};
+	root["clearColor"] = saveColor(terrain_texture_clear_color);
+	root["selectedLayer"] = currentTerrainLayerIndex;
+	root["layers"] = json::array();
+	for (const TerrainLayer& layer : terrainLayers)
+	{
+		root["layers"].push_back({
+			{"baseColor", layer.baseColorPath},
+			{"normal", layer.normalPath}});
+	}
+	root["brush"] = {
+		{"enabled", use_brush},
+		{"mode", static_cast<int>(brushMode)},
+		{"size", brush_size},
+		{"heightStrength", heightBrushStrength},
+		{"setHeight", setHeightValue},
+		{"paintOpacity", paintOpacity},
+		{"invertMask", invertBrushMask},
+		{"selected", currentBrushIndex}};
+	return root.dump();
+}
+
+bool Terrain::LoadSettingsJson(const std::string& text)
+{
+	if (text.empty()) return true;
+	using json = nlohmann::json;
+	const auto loadColor = [](const json& value, const Color& fallback)
+	{
+		if (!value.is_array() || value.size() < 4) return fallback;
+		return Color(
+			value[0].get<float>(),
+			value[1].get<float>(),
+			value[2].get<float>(),
+			value[3].get<float>());
+	};
+
+	try
+	{
+		const json root = json::parse(text);
+		terrainSize = root.value("terrainSize", terrainSize);
+		gridResolution = root.value("gridResolution", gridResolution);
+		if (const auto it = root.find("tessellation"); it != root.end())
+		{
+			tesselation_constant.edge_factor = it->value("edge", tesselation_constant.edge_factor);
+			tesselation_constant.inner_factor = it->value("inner", tesselation_constant.inner_factor);
+			tesselation_constant.height_scaler = it->value("heightScaler", tesselation_constant.height_scaler);
+			tesselation_constant.tilling_scale = it->value("tilingScale", tesselation_constant.tilling_scale);
+		}
+		if (const auto it = root.find("material"); it != root.end())
+		{
+			if (it->contains("baseColor")) baseColor = loadColor((*it)["baseColor"], baseColor);
+			if (it->contains("emissiveColor")) emissiveColor = loadColor((*it)["emissiveColor"], emissiveColor);
+			metalness = it->value("metalness", metalness);
+			roughness = it->value("roughness", roughness);
+			occlusion = it->value("occlusion", occlusion);
+			occlusionStrength = it->value("occlusionStrength", occlusionStrength);
+			shadowStrength = it->value("shadowStrength", shadowStrength);
+		}
+		if (root.contains("clearColor"))
+			terrain_texture_clear_color = loadColor(root["clearColor"], terrain_texture_clear_color);
+
+		terrainLayers.clear();
+		for (const auto& layer : root.value("layers", json::array()))
+			AddTerrainLayer(layer.value("baseColor", ""), layer.value("normal", ""));
+		if (!terrainLayers.empty())
+		{
+			currentTerrainLayerIndex = std::clamp(
+				root.value("selectedLayer", 0),
+				0,
+				static_cast<int>(terrainLayers.size()) - 1);
+		}
+
+		if (const auto it = root.find("brush"); it != root.end())
+		{
+			use_brush = it->value("enabled", use_brush);
+			brushMode = static_cast<BrushMode>(std::clamp(it->value("mode", 0), 0, 2));
+			brush_size = it->value("size", brush_size);
+			heightBrushStrength = it->value("heightStrength", heightBrushStrength);
+			setHeightValue = it->value("setHeight", setHeightValue);
+			paintOpacity = it->value("paintOpacity", paintOpacity);
+			invertBrushMask = it->value("invertMask", invertBrushMask);
+			currentBrushIndex = it->value("selected", currentBrushIndex);
+		}
+		MarkTerrainMeshDirty();
+		return true;
+	}
+	catch (const json::exception&)
+	{
+		return false;
+	}
+}
+
 bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const DirectX::ScratchImage& sourceImage)
 {
 	HRESULT hr = S_OK;
@@ -1404,6 +1507,7 @@ bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const
 
 std::filesystem::path Terrain::GetColliderVertexPath() const
 {
+	if (terrainFilePath.empty()) return {};
 	std::filesystem::path filepath(terrainFilePath);
 	filepath.replace_extension(".vx");
 	return filepath;
@@ -1431,10 +1535,10 @@ bool Terrain::BuildGpuColliderMesh(
 	return true;
 }
 
-void Terrain::RebuildTerrainCollider()
+void Terrain::BakeCollider()
 {
 	TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>();
-	if (collider == nullptr)
+	if (!collider)
 	{
 		pendingColliderRebuild = true;
 		return;
@@ -1603,41 +1707,6 @@ void Terrain::DrawBrushGUI()
 
 void Terrain::DrawGUI()
 {
-	if (ImGui::TreeNode("Terrain File"))
-	{
-		ImGui::InputText("terrain file", &terrainFilePath);
-
-		if (ImGui::Button("Save Terrain"))
-		{
-			SaveTerrainTexture(terrainFilePath);
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Load Terrain"))
-		{
-			LoadTerrainTexture(terrainFilePath);
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Rebuild Collider"))
-		{
-			pendingColliderRebuild = true;
-			RebuildTerrainCollider();
-		}
-
-		ImGui::Text("Collider: %s", pendingColliderRebuild ? "dirty" : "clean");
-
-		if (!terrainIoMessage.empty())
-		{
-			ImGui::TextWrapped("%s", terrainIoMessage.c_str());
-		}
-
-		ImGui::TextWrapped("Terrain maps are saved as 1024 x 1024 float DDS files.");
-		ImGui::TreePop();
-	}
-
 	DrawBrushGUI();
 	DrawTerrainLayerGUI();
 

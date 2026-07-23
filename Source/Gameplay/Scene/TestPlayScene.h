@@ -10,7 +10,7 @@ class TestPlayScene : public Scene
 public:
 	TestPlayScene(SceneMessage message = nullptr);
 
-	~TestPlayScene() override = default;
+	~TestPlayScene() override;
 
 	void OnUpdate() override;
 	void OnRender(RenderContext& rc) override;

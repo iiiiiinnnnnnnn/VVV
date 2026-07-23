@@ -21,13 +21,13 @@ bool Stage::LoadVSTG(const std::string& path)
 
 	auto* rigidbody = AddComponent<RigidbodyStatic>();
 	auto* terrain = AddComponent<Terrain>();
-	AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rigidbody);
 	auto* loader = AddComponent<StageLoader>(this, std::string("{}"), true);
 	if (!data.Apply(*terrain, *loader, lightManager))
 	{
 		vstgError = "VSTG content could not be applied.";
 		return false;
 	}
+	AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rigidbody);
 	vstgError.clear();
 	return true;
 }

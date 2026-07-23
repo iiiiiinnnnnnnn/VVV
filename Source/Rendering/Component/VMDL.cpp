@@ -6,7 +6,7 @@
 
 #include "Animation/Animator.h"
 #include "Animation/HumanoidFootIK.h"
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Object.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"

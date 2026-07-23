@@ -1,5 +1,6 @@
 ﻿// Graphics.h
 #pragma once
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@ namespace Game
 		void Initialize(HWND hWnd);
 		void Present(UINT syncInterval);
 		void RequestToggleBorderlessFullscreen();
+		void SetBorderlessFullscreen(bool enabled);
 		bool IsBorderlessFullscreen() const { return borderlessFullscreen; }
 
 		HWND GetWindowHandle() { return hWnd; }
@@ -106,6 +108,7 @@ namespace Game
 		std::vector<std::string> skyMapNames;
 
 		bool requestToggleBorderlessFullscreen = false;
+		std::atomic<int> requestedBorderlessFullscreen{-1};
 		bool borderlessFullscreen = false;
 		bool windowMovementLocked = false;
 		LONG_PTR windowedStyle = 0;

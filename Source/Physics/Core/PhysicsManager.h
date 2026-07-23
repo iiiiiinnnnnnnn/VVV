@@ -1,4 +1,4 @@
-ï»¿// PhysicsManager.h
+// PhysicsManager.h
 
 #pragma once
 #include <algorithm>
@@ -43,7 +43,7 @@
 #include "pvd/PxPvd.h"
 #include "pvd/PxPvdTransport.h"
 #include "pvd/PxPvdSceneClient.h"
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
 using namespace physx;
 
@@ -88,7 +88,7 @@ static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 class Actor;
 class PhysicsComponent;
 
-// è¡çªã‚¤ãƒ™ãƒ³ãƒˆã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
+// Õ“ËƒCƒxƒ“ƒgƒR[ƒ‹ƒoƒbƒN
 class CollisionEventCallback : public PxSimulationEventCallback
 {
 public:
@@ -131,7 +131,7 @@ private:
     }
 };
 
-// CharacterController ã®æ¥è§¦ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ï¼ˆCCå¯¾Rigidbodyï¼‰
+// CharacterController ‚ÌÚGƒR[ƒ‹ƒoƒbƒNiCC‘ÎRigidbodyj
 class CCHitReport : public PxUserControllerHitReport
 {
 public:
@@ -158,7 +158,7 @@ public:
     void onControllerHit(const PxControllersHit& hit) override {}
     void onObstacleHit(const PxControllerObstacleHit& hit) override {}
 
-    // Framework ã® Simulate å¾Œã«æ¯ãƒ•ãƒ¬ãƒ¼ãƒ å‘¼ã¶
+    // Framework ‚Ì Simulate Œã‚É–ˆƒtƒŒ[ƒ€ŒÄ‚Ô
     void DispatchEvents();
 
 private:
@@ -177,7 +177,7 @@ public:
     bool dispatchedThisFrame = false;
 };
 
-// CharacterControlleråŒå£«ã®è¡çªãƒ•ã‚£ãƒ«ã‚¿
+// CharacterController“¯m‚ÌÕ“ËƒtƒBƒ‹ƒ^
 class CCFilterCallback : public PxControllerFilterCallback
 {
 public:
@@ -187,7 +187,7 @@ public:
         PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
         int layerA = (int)shapeA->getSimulationFilterData().word1;
         int layerB = (int)shapeB->getSimulationFilterData().word1;
-        return UserSettingsManager::Instance().Collides(layerA, layerB);
+        return PhysicsLayerManager::Instance().Collides(layerA, layerB);
     }
 };
 
@@ -261,8 +261,8 @@ public:
     void SetCurrentSceneContext(
         std::unique_ptr<PhysicsSceneContext> context);
 
-    // éåŒæœŸãƒ­ãƒ¼ãƒ‰ã‚¹ãƒ¬ãƒƒãƒ‰ã ã‘ãŒä½¿ç”¨ã™ã‚‹PhysXã‚·ãƒ¼ãƒ³ã‚’æŒ‡å®šã™ã‚‹ã€‚
-    // nullptrã‚’æ¸¡ã™ã¨é€šå¸¸ã®ã‚«ãƒ¬ãƒ³ãƒˆã‚·ãƒ¼ãƒ³ã¸æˆ»ã‚‹ã€‚
+    // ”ñ“¯Šúƒ[ƒhƒXƒŒƒbƒh‚¾‚¯‚ªg—p‚·‚éPhysXƒV[ƒ“‚ğw’è‚·‚éB
+    // nullptr‚ğ“n‚·‚Æ’Êí‚ÌƒJƒŒƒ“ƒgƒV[ƒ“‚Ö–ß‚éB
     void SetThreadSceneContext(PhysicsSceneContext* context)
     {
         threadSceneContext = context;
@@ -298,8 +298,8 @@ public:
     static void SetLayerToShape(PxShape* shape, int layer)
     {
         PxFilterData fd;
-        fd.word0 = (1u << layer); // è‡ªåˆ†ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ“ãƒƒãƒˆ
-        fd.word1 = (PxU32)layer;  // ãƒ¬ã‚¤ãƒ¤ãƒ¼ç•ªå·ï¼ˆFilterShaderã§å‚ç…§ï¼‰
+        fd.word0 = (1u << layer); // ©•ª‚ÌƒŒƒCƒ„[ƒrƒbƒg
+        fd.word1 = (PxU32)layer;  // ƒŒƒCƒ„[”Ô†iFilterShader‚ÅQÆj
         shape->setSimulationFilterData(fd);
         shape->setQueryFilterData(fd);
     }

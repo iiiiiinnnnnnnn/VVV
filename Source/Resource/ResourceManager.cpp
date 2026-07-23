@@ -489,7 +489,8 @@ bool ResourceManager::IsDevelopmentOnly(const std::filesystem::path& relativePat
 
 	std::string extension = relativePath.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	if (extension == ".glb" || extension == ".gltf" || extension == ".vx") return true;
+	if (extension == ".glb" || extension == ".gltf" || extension == ".vx" ||
+		extension == ".physicslayers") return true;
 	if (extension == ".dds" && relativePath.parent_path().generic_string() == "Terrain/Layers") return true;
 
 	const std::string generic = relativePath.generic_string();

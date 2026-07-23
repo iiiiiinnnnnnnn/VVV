@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Component.h"
 #include "Resource/VMDLModel.h"
 

@@ -40,7 +40,6 @@ void Actor::DrawGUI()
 {
     ImGui::PushID(this);
     const bool inspectorOpen = ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str());
-	SetComponentDebugVisible(inspectorOpen);
     if (inspectorOpen)
     {
         Transform::TransformChangedResult res = transform.DrawGUI();

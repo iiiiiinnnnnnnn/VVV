@@ -1,4 +1,4 @@
-// VSTG.cpp
+﻿// VSTG.cpp
 
 #include "Resource/VSTG.h"
 
@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 namespace
 {
-constexpr uint32_t VstgVersion = 1;
+constexpr uint32_t VstgVersion = 2;
 
 json SaveVector3(const Vector3& value)
 {
@@ -63,6 +63,48 @@ void LoadLight(const json& value, Light& light)
 	light.transform.Update();
 }
 
+void UpgradeLegacyDefaultLighting(uint32_t version, std::string& lightingJson)
+{
+	if (version != 1) return;
+
+	try
+	{
+		json root = json::parse(lightingJson);
+		const json ambient = root.value("ambient", json::array());
+		const json directional = root.value("directional", json::object());
+		const json rotation = directional.value("rotation", json::array());
+		if (ambient.size() < 4 || rotation.size() < 4) return;
+
+		const bool defaultAmbient =
+			ambient[0].get<float>() == 1.0f &&
+			ambient[1].get<float>() == 1.0f &&
+			ambient[2].get<float>() == 1.0f &&
+			ambient[3].get<float>() == 1.0f;
+		const bool defaultRotation =
+			rotation[0].get<float>() == 0.0f &&
+			rotation[1].get<float>() == 0.0f &&
+			rotation[2].get<float>() == 0.0f &&
+			rotation[3].get<float>() == 1.0f;
+		if (!defaultAmbient || !defaultRotation) return;
+
+		// 初期版VSTG Editorが保存した仮の白色照明を、従来のゲーム用初期照明へ移行する。
+		root["ambient"] = SaveColor(ColorFromRGBA(0x2A4C7DFF));
+		Quaternion rotationValue = Quaternion::CreateFromYawPitchRoll(
+			RAD(-35.0f),
+			RAD(35.0f),
+			0.0f);
+		root["directional"]["rotation"] = {
+			rotationValue.x,
+			rotationValue.y,
+			rotationValue.z,
+			rotationValue.w};
+		lightingJson = root.dump();
+	}
+	catch (const json::exception&)
+	{
+	}
+}
+
 template<typename T>
 bool Read(std::ifstream& stream, T& value)
 {
@@ -89,24 +131,33 @@ bool VSTG::Load(const std::filesystem::path& path)
 	uint64_t lightingSize = 0;
 	uint64_t stageSize = 0;
 	uint64_t terrainSize = 0;
+	uint64_t terrainSettingsSize = 0;
 	stream.read(magic, sizeof(magic));
 	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) || !Read(stream, terrainSize) ||
-		std::string(magic, sizeof(magic)) != "VSTG" || version != VstgVersion)
+		std::string(magic, sizeof(magic)) != "VSTG" || (version != 1 && version != VstgVersion))
 	{
 		error = "Invalid VSTG header.";
+		return false;
+	}
+	if (version >= 2 && !Read(stream, terrainSettingsSize))
+	{
+		error = "Invalid VSTG terrain settings header.";
 		return false;
 	}
 	lightingJson.resize(static_cast<size_t>(lightingSize));
 	stageJson.resize(static_cast<size_t>(stageSize));
 	terrainDds.resize(static_cast<size_t>(terrainSize));
+	terrainSettingsJson.resize(static_cast<size_t>(terrainSettingsSize));
 	stream.read(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.read(stageJson.data(), static_cast<std::streamsize>(stageSize));
 	stream.read(reinterpret_cast<char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
+	stream.read(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
 	if (!stream)
 	{
 		error = "VSTG data is truncated.";
 		return false;
 	}
+	UpgradeLegacyDefaultLighting(version, lightingJson);
 	error.clear();
 	return true;
 }
@@ -131,12 +182,15 @@ bool VSTG::Save(const std::filesystem::path& path) const
 	const uint64_t lightingSize = lightingJson.size();
 	const uint64_t stageSize = stageJson.size();
 	const uint64_t terrainSize = terrainDds.size();
+	const uint64_t terrainSettingsSize = terrainSettingsJson.size();
 	Write(stream, lightingSize);
 	Write(stream, stageSize);
 	Write(stream, terrainSize);
+	Write(stream, terrainSettingsSize);
 	stream.write(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.write(stageJson.data(), static_cast<std::streamsize>(stageSize));
 	stream.write(reinterpret_cast<const char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
+	stream.write(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
 	error = stream ? "" : "VSTG write failed.";
 	return static_cast<bool>(stream);
 }
@@ -150,12 +204,14 @@ bool VSTG::Capture(Terrain& terrain, StageLoader& stageLoader, const LightManage
 	}
 	stageJson = stageLoader.SaveJsonText();
 	lightingJson = BuildLightingJson(lights);
+	terrainSettingsJson = terrain.SaveSettingsJson();
 	error.clear();
 	return true;
 }
 
 bool VSTG::Apply(Terrain& terrain, StageLoader& stageLoader, LightManager& lights) const
 {
+	if (!terrain.LoadSettingsJson(terrainSettingsJson)) return false;
 	if (!terrain.LoadTerrainMemory(terrainDds)) return false;
 	stageLoader.LoadJsonText(stageJson);
 	return ApplyLightingJson(lightingJson, lights);

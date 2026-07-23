@@ -261,7 +261,7 @@
     <ClCompile Include="Source\Gameplay\Stage\Stage.cpp">
       <Filter>Gameplay\Stage</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Application\SettingsAndDebug\UserSettingsManager.cpp">
+    <ClCompile Include="Source\Application\SettingsAndDebug\PhysicsLayerManager.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp">
@@ -587,7 +587,7 @@
     <ClInclude Include="Source\Physics\Core\PhysicsComponent.h">
       <Filter>Physics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Application\SettingsAndDebug\UserSettingsManager.h">
+    <ClInclude Include="Source\Application\SettingsAndDebug\PhysicsLayerManager.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h">

@@ -20,7 +20,7 @@ Stage01::Stage01()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	const bool loadedVstg = LoadVSTG("Data/Stages/Stage01.vstg");
+	const bool loadedVstg = LoadVSTG("Data/Stages/0.vstg");
 	StageLoader* stageLoader = GetComponent<StageLoader>();
 	if (!loadedVstg)
 	{

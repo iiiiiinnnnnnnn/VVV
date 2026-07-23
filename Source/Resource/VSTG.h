@@ -29,6 +29,7 @@ private:
 
 	std::string lightingJson;
 	std::string stageJson;
+	std::string terrainSettingsJson;
 	std::vector<uint8_t> terrainDds;
 	mutable std::string error;
 };

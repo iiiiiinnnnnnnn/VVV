@@ -19,15 +19,37 @@
 VstgEditorScene::VstgEditorScene(SceneMessage message)
 	: Scene(message)
 {
+	Game::Graphics& graphics = Game::Graphics::Instance();
+	graphics.SetBorderlessFullscreen(true);
+	graphics.SetWindowMovementLocked(true);
 	CreateStage();
+}
+
+VstgEditorScene::~VstgEditorScene()
+{
+	Game::Graphics& graphics = Game::Graphics::Instance();
+	graphics.SetBorderlessFullscreen(false);
+	graphics.SetWindowMovementLocked(false);
 }
 
 void VstgEditorScene::CreateStage()
 {
 	currentStage = std::make_unique<Stage>();
+	DirectionalLight& directionalLight = currentStage->GetLightManager().GetDirectionalLight();
+	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
+		RAD(-35.0f),
+		RAD(35.0f),
+		0.0f);
+	directionalLight.transform.Update();
+	currentStage->GetLightManager().SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
 	auto* rigidbody = currentStage->AddComponent<RigidbodyStatic>();
 	terrain = currentStage->AddComponent<Terrain>();
-	currentStage->AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rigidbody);
+	currentStage->AddComponent<TerrainMeshCollider>(
+		Layers::Get("Terrain"),
+		rigidbody,
+		TerrainMeshCollider::CollisionArea{},
+		nullptr,
+		false);
 	stageLoader = currentStage->AddComponent<StageLoader>(currentStage.get(), std::string("{}"), true);
 	Camera* camera = currentStage->GetActiveCamera();
 	camera->SetPerspectiveFov(RAD(45.0f), Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 2000.0f);
@@ -38,53 +60,115 @@ void VstgEditorScene::CreateStage()
 void VstgEditorScene::OnDrawGUI()
 {
 	UpdateTitle();
-	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
-	constexpr ImGuiWindowFlags flags =
-		ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-	if (!ImGui::Begin("VSTG Editor", nullptr, flags))
-	{
-		ImGui::End();
-		return;
-	}
-	if (ImGui::BeginMenuBar())
+	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
 		{
 			if (ImGui::MenuItem("Open VSTG")) Open();
 			if (ImGui::MenuItem("Save VSTG", "Ctrl+S")) Save();
 			if (ImGui::MenuItem("Save VSTG As", "Ctrl+Shift+S")) SaveAs();
-			if (ImGui::MenuItem("Import DDS + Stage JSON")) ImportLegacy();
 			if (ImGui::MenuItem("Exit")) SceneManager::Instance().LoadScene<GameStartScene>();
 			ImGui::EndMenu();
 		}
-		ImGui::EndMenuBar();
+		if (ImGui::BeginMenu("Display"))
+		{
+			ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
+			ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
+			ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+			ImGui::EndMenu();
+		}
+		std::string displayPath = path.empty() ? "Untitled" : path.string();
+		if (dirty) displayPath += " *";
+		const float pathWidth = ImGui::CalcTextSize(displayPath.c_str()).x;
+		ImGui::SetCursorPosX(std::max(
+			ImGui::GetCursorPosX() + 20.0f,
+			ImGui::GetWindowWidth() - pathWidth - ImGui::GetStyle().WindowPadding.x));
+		ImGui::TextUnformatted(displayPath.c_str());
+		ImGui::EndMainMenuBar();
 	}
+
 	if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
 	{
 		if (ImGui::GetIO().KeyShift) SaveAs();
 		else Save();
 	}
-	if (ImGui::BeginTable("VSTG Layout", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	const ImVec2 workPosition = viewport->WorkPos;
+	const ImVec2 workSize = viewport->WorkSize;
+	const float leftWidth = workSize.x * 0.24f;
+	const float rightWidth = workSize.x * 0.24f;
+	const float halfHeight = workSize.y * 0.5f;
+	constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+
+	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
+	ImGui::SetNextWindowSize({leftWidth, halfHeight}, ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Lights###VSTG Lights", nullptr, windowFlags))
 	{
-		ImGui::TableNextColumn();
-		ImGui::TextUnformatted("Lighting");
-		if (ImGui::Button("Add Point Light")) currentStage->GetLightManager().AddPointLight();
+		if (ImGui::Button("Add Point Light"))
+		{
+			currentStage->GetLightManager().AddPointLight();
+			dirty = true;
+		}
 		ImGui::SameLine();
-		if (ImGui::Button("Add Spot Light")) currentStage->GetLightManager().AddSpotLight();
-		if (ImGui::Button("Add Area Light")) currentStage->GetLightManager().AddAreaLight();
+		if (ImGui::Button("Add Spot Light"))
+		{
+			currentStage->GetLightManager().AddSpotLight();
+			dirty = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add Area Light"))
+		{
+			currentStage->GetLightManager().AddAreaLight();
+			dirty = true;
+		}
 		currentStage->GetLightManager().DrawGUI();
-		ImGui::TableNextColumn();
-		ImGui::TextUnformatted("Terrain");
-		if (terrain) terrain->DrawGUI();
-		ImGui::TableNextColumn();
-		ImGui::TextUnformatted("Props / Spawners");
-		if (stageLoader) stageLoader->DrawGUI();
-		ImGui::EndTable();
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+			(ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
+			dirty = true;
 	}
-	if (!message.empty()) ImGui::TextWrapped("%s", message.c_str());
+	ImGui::End();
+
+	ImGui::SetNextWindowPos({workPosition.x, workPosition.y + halfHeight}, ImGuiCond_Always);
+	ImGui::SetNextWindowSize({leftWidth, workSize.y - halfHeight}, ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Terrain###VSTG Terrain", nullptr, windowFlags))
+	{
+		if (terrain) terrain->DrawGUI();
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+			(ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
+			dirty = true;
+	}
+	ImGui::End();
+
+	ImGui::SetNextWindowPos(
+		{workPosition.x + workSize.x - rightWidth, workPosition.y},
+		ImGuiCond_Always);
+	ImGui::SetNextWindowSize({rightWidth, workSize.y * 0.95f}, ImGuiCond_Appearing);
+	if (ImGui::Begin("Stage Objects###VSTG Stage Objects", nullptr, windowFlags))
+	{
+		if (ImGui::BeginTabBar("VSTG Object Tabs"))
+		{
+			if (ImGui::BeginTabItem("Props"))
+			{
+				if (stageLoader) stageLoader->DrawPropGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Spawners"))
+			{
+				if (stageLoader) stageLoader->DrawSpawnerGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Crystals"))
+			{
+				if (stageLoader) stageLoader->DrawCrystalGUI();
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
+		}
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+			(ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
+			dirty = true;
+	}
 	ImGui::End();
 }
 
@@ -106,6 +190,7 @@ void VstgEditorScene::Open()
 	}
 	data = std::move(loaded);
 	path = filename;
+	dirty = false;
 	message = "VSTG loaded.";
 }
 
@@ -116,12 +201,14 @@ void VstgEditorScene::Save()
 		SaveAs();
 		return;
 	}
+	terrain->BakeCollider();
 	if (!data.Capture(*terrain, *stageLoader, currentStage->GetLightManager()) || !data.Save(path))
 	{
 		message = data.GetError();
 		return;
 	}
 	ResourceManager::Instance().RegisterGeneratedCache(path.generic_string());
+	dirty = false;
 	message = "VSTG saved.";
 }
 
@@ -134,33 +221,10 @@ void VstgEditorScene::SaveAs()
 	Save();
 }
 
-void VstgEditorScene::ImportLegacy()
-{
-	char terrainPath[MAX_PATH]{};
-	if (Dialog::OpenFileName(terrainPath, MAX_PATH, "Terrain DDS (*.dds)\0*.dds\0", "Import Terrain DDS") != DialogResult::OK) return;
-	char jsonPath[MAX_PATH]{};
-	if (Dialog::OpenFileName(jsonPath, MAX_PATH, "Stage JSON (*.json)\0*.json\0", "Import Stage JSON") != DialogResult::OK) return;
-	std::ifstream stream(jsonPath);
-	if (!stream)
-	{
-		message = "Stage JSON could not be opened.";
-		return;
-	}
-	const std::string text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
-	CreateStage();
-	if (!terrain->LoadTerrainTexture(terrainPath))
-	{
-		message = "Terrain DDS import failed.";
-		return;
-	}
-	stageLoader->LoadJsonText(text);
-	path.clear();
-	message = "Legacy DDS and Stage JSON imported. Save as VSTG.";
-}
-
 void VstgEditorScene::UpdateTitle()
 {
 	std::wstring title = L"VSTG Editor - ";
 	title += path.empty() ? L"Untitled" : path.wstring();
+	if (dirty) title += L" *";
 	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), title.c_str());
 }

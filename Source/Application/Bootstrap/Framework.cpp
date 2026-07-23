@@ -1,4 +1,4 @@
-ï»¿// Framework.cpp
+// Framework.cpp
 #include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
@@ -7,96 +7,96 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
 
-// å‚ç›´åŒæœŸé–“éš”è¨­å®š
+// ‚’¼“¯ŠúŠÔŠuİ’è
 static const int syncInterval = 0;
 
-// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
-	// å…¥åŠ›åˆæœŸåŒ–
+	// “ü—Í‰Šú‰»
 	Game::Input::Instance().Initialize(hWnd);
 
-	// ã‚°ãƒ©ãƒ•ã‚£ãƒƒã‚¯ã‚¹åˆæœŸåŒ–
+	// ƒOƒ‰ƒtƒBƒbƒNƒX‰Šú‰»
 	Game::Graphics::Instance().Initialize(hWnd);
 
-	// ã‚¨ãƒ‡ã‚£ã‚¿ç”¨ã®è¨­å®šåˆæœŸåŒ–
-	UserSettingsManager::Instance().Initialize();
+	// ƒGƒfƒBƒ^—p‚Ìİ’è‰Šú‰»
+	PhysicsLayerManager::Instance().Initialize();
 
-	// IMGUIåˆæœŸåŒ–
+	// IMGUI‰Šú‰»
 	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(), Game::Graphics::Instance().GetDeviceContext());
 
-	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£åˆæœŸåŒ–
+	// •¨—ƒ}ƒl[ƒWƒƒ‰Šú‰»
 	PhysicsManager::Instance().Initialize();
 
-	// ã‚·ãƒ¼ãƒ³ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼åˆæœŸåŒ–
+	// ƒV[ƒ“ƒ}ƒl[ƒWƒƒ[‰Šú‰»
 	SceneManager::Instance().Initialize();
 
 }
 
-// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// ƒfƒXƒgƒ‰ƒNƒ^
 Framework::~Framework()
 {
-	// IMGUIçµ‚äº†åŒ–
+	// IMGUII—¹‰»
 	ImGuiRenderer::Finalize();
 
-	// ã‚·ãƒ¼ãƒ³ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼çµ‚äº†åŒ–
+	// ƒV[ƒ“ƒ}ƒl[ƒWƒƒ[I—¹‰»
 	SceneManager::Instance().Finalize();
 
-	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£çµ‚äº†åŒ–
+	// •¨—ƒ}ƒl[ƒWƒƒI—¹‰»
 	PhysicsManager::Instance().Finalize();
 
 }
 
-// æ›´æ–°å‡¦ç†
+// XVˆ—
 void Framework::Update(float elapsedTime)
 {
 	elapsedTime = std::min(elapsedTime, 1.0f / 60.0f);
 
-	// æ™‚é–“æ›´æ–°å‡¦ç†
+	// ŠÔXVˆ—
 	Game::Time::time += elapsedTime;
 	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
 	Game::Time::unscaledDeltaTime = elapsedTime;
 
-	// å…¥åŠ›æ›´æ–°å‡¦ç†
+	// “ü—ÍXVˆ—
 	Game::Input::Instance().Update();
 
-	// IMGUIãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†
+	// IMGUIƒtƒŒ[ƒ€ŠJnˆ—
 	ImGuiRenderer::NewFrame();
 
-	// ã‚·ãƒ¼ãƒ³æ›´æ–°å‡¦ç†
+	// ƒV[ƒ“XVˆ—
 	SceneManager::Instance().Update();
 
-	// ç‰©ç†ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³
+	// •¨—ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“
 	PhysicsManager::Instance().GetSceneContext().Simulate();
 }
 
-// æç”»å‡¦ç†
+// •`‰æˆ—
 void Framework::Render(float elapsedTime)
 {
 	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
-	// ç”»é¢ã‚¯ãƒªã‚¢ï¼†ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š
+	// ‰æ–ÊƒNƒŠƒA•ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgİ’è
 	RenderTarget* backBuffer = Game::Graphics::Instance().
 		GetFrameBuffer(Game::FrameBufferId::Display);
 	backBuffer->Clear(dc, 0.5f, 0.5f, 0.5f, 1);
 	backBuffer->Activate(dc);
 
-	// ã‚·ãƒ¼ãƒ³é€šå¸¸æç”»ï¼†GUIæç”»å‡¦ç†
-	// GUIæç”»ã‚‚Sceneã«ä»»ã›ã¡ã‚ƒã†ãŠ(rcæ‹¾ãˆã‚‹ã‚ˆã†ã«ã™ã‚‹ãŸã‚)
+	// ƒV[ƒ“’Êí•`‰æ•GUI•`‰æˆ—
+	// GUI•`‰æ‚àScene‚É”C‚¹‚¿‚á‚¤‚¨(rcE‚¦‚é‚æ‚¤‚É‚·‚é‚½‚ß)
 	SceneManager::Instance().Render();
 
-	// IMGUIæç”»
+	// IMGUI•`‰æ
 	ImGuiRenderer::Render(dc);
 
-	// ç”»é¢è¡¨ç¤º
+	// ‰æ–Ê•\¦
 	Game::Graphics::Instance().Present(syncInterval);
 }
 
-// ãƒ•ãƒ¬ãƒ¼ãƒ ãƒ¬ãƒ¼ãƒˆè¨ˆç®—
+// ƒtƒŒ[ƒ€ƒŒ[ƒgŒvZ
 void Framework::CalculateFrameStats()
 {
-	// 1ç§’ã”ã¨ã«FPSã‚’è¨ˆç®—ã—ã¦ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¿ã‚¤ãƒˆãƒ«ã«è¡¨ç¤º
+	// 1•b‚²‚Æ‚ÉFPS‚ğŒvZ‚µ‚ÄƒEƒBƒ“ƒhƒEƒ^ƒCƒgƒ‹‚É•\¦
 	static int frames = 0;
 	static float time_tlapsed = 0.0f;
 	frames++;
@@ -110,13 +110,13 @@ void Framework::CalculateFrameStats()
 		outs << "FPS : " << fps << " / " << "Frame Time : " << mspf << " (ms)";
 		SetWindowTextA(hWnd, outs.str().c_str());
 
-		// ãƒªã‚»ãƒƒãƒˆ
+		// ƒŠƒZƒbƒg
 		frames = 0;
 		time_tlapsed += 1.0f;
 	}
 }
 
-// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãƒ«ãƒ¼ãƒ—
+// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒ‹[ƒv
 int Framework::Run()
 {
 	MSG msg = {};
@@ -141,7 +141,7 @@ int Framework::Run()
 	return static_cast<int>(msg.wParam);
 }
 
-// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒãƒ³ãƒ‰ãƒ©
+// ƒƒbƒZ[ƒWƒnƒ“ƒhƒ‰
 LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (msg == WM_MOUSEWHEEL)

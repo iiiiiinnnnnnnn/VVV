@@ -15,7 +15,13 @@ public:
         float minX = 0.0f, maxX = 1.0f, minZ = 0.0f, maxZ = 1.0f;
     };
 
-    TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const CollisionArea& collisionArea = {}, PxMaterial* material = nullptr);
+    TerrainMeshCollider(
+        Object* owner,
+        LayerId layerId,
+        Rigidbody* rigidbody,
+        const CollisionArea& collisionArea = {},
+        PxMaterial* material = nullptr,
+        bool rebuildOnAwake = true);
     ~TerrainMeshCollider() override;
 
     void OnAwake() override;
@@ -66,4 +72,5 @@ private:
     std::vector<uint32_t> debugIndices;
     std::string vxMessage;
     bool pendingGpuRebuild = false;
+    bool rebuildOnAwake = true;
 };

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -116,7 +116,7 @@
     <ClCompile Include="Source\Rendering\Component\TrailRenderComponent.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\TrailRenderer.cpp" />
     <ClCompile Include="Source\Core\Object\Transform.cpp" />
-    <ClCompile Include="Source\Application\SettingsAndDebug\UserSettingsManager.cpp" />
+    <ClCompile Include="Source\Application\SettingsAndDebug\PhysicsLayerManager.cpp" />
     <ClCompile Include="Source\UI\Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -237,7 +237,7 @@
     <ClInclude Include="Source\Rendering\Component\TrailRenderComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\TrailRenderer.h" />
     <ClInclude Include="Source\Core\Object\Transform.h" />
-    <ClInclude Include="Source\Application\SettingsAndDebug\UserSettingsManager.h" />
+    <ClInclude Include="Source\Application\SettingsAndDebug\PhysicsLayerManager.h" />
     <ClInclude Include="Source\UI\Widget.h" />
     <ClInclude Include="Source\UI\WidgetManager.h" />
   </ItemGroup>

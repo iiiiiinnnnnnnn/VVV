@@ -94,6 +94,12 @@ namespace Game
 	{
 		swapchain->Present(syncInterval, 0);
 
+		const int requestedState = requestedBorderlessFullscreen.exchange(-1);
+		if (requestedState >= 0 && borderlessFullscreen != (requestedState != 0))
+		{
+			ToggleBorderlessFullscreen();
+		}
+
 		if (requestToggleBorderlessFullscreen)
 		{
 			requestToggleBorderlessFullscreen = false;
@@ -106,11 +112,17 @@ namespace Game
 		requestToggleBorderlessFullscreen = true;
 	}
 
+	void Graphics::SetBorderlessFullscreen(bool enabled)
+	{
+		requestedBorderlessFullscreen.store(enabled ? 1 : 0);
+	}
+
 	void Graphics::ToggleBorderlessFullscreen()
 	{
 		if (!borderlessFullscreen)
 		{
-			// フルスクリーン化
+			// 排他的フルスクリーンにはせず、モニター全体を覆う枠なしウィンドウにする。
+			swapchain->SetFullscreenState(FALSE, nullptr);
 
 			windowedStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
 			windowedExStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
@@ -159,9 +171,11 @@ namespace Game
 			borderlessFullscreen = false;
 		}
 
-		RECT rc = {};
+		RECT rc{};
 		GetClientRect(hWnd, &rc);
-		Resize(static_cast<UINT>(rc.right - rc.left), static_cast<UINT>(rc.bottom - rc.top));
+		const UINT width = static_cast<UINT>(rc.right - rc.left);
+		const UINT height = static_cast<UINT>(rc.bottom - rc.top);
+		if (ScreenWidth != width || ScreenHeight != height) Resize(width, height);
 	}
 
 	void Graphics::Resize(UINT width, UINT height)

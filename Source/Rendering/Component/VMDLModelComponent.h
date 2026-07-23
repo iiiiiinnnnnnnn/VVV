@@ -1,9 +1,9 @@
-﻿// VMDLModelComponent.h
+// VMDLModelComponent.h
 
 #pragma once
 #include <memory>
 
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Component.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Renderer/ModelRenderer.h"

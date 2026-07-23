@@ -10,8 +10,18 @@
 
 #include <cmath>
 
-TerrainMeshCollider::TerrainMeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, const CollisionArea& collisionArea, PxMaterial* material)
-    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), collisionArea(collisionArea), material(material)
+TerrainMeshCollider::TerrainMeshCollider(
+    Object* owner,
+    LayerId layerId,
+    Rigidbody* rigidbody,
+    const CollisionArea& collisionArea,
+    PxMaterial* material,
+    bool rebuildOnAwake)
+    : PhysicsComponent(owner, layerId),
+      rigidbody(rigidbody),
+      material(material),
+      collisionArea(collisionArea),
+      rebuildOnAwake(rebuildOnAwake)
 {
     _ASSERT_EXPR(rigidbody != nullptr, L"TerrainMeshCollider requires Rigidbody.");
 
@@ -34,6 +44,8 @@ void TerrainMeshCollider::OnAwake()
 {
     if (!debugVertices.empty() && !debugIndices.empty())
         UpdateShape(debugVertices, debugIndices);
+    else if (pendingGpuRebuild && rebuildOnAwake)
+        RebuildFromTerrain();
 }
 
 TerrainMeshCollider::~TerrainMeshCollider()
@@ -135,6 +147,11 @@ bool TerrainMeshCollider::LoadCachedMesh(
 
     ClampCollisionArea();
     const std::filesystem::path filepath = terrain->GetColliderVertexPath();
+    if (filepath.empty())
+    {
+        vxMessage = "Embedded terrain collider will be rebuilt in memory.";
+        return false;
+    }
     if (!std::filesystem::exists(filepath))
     {
         vxMessage = "Terrain .vx not found. GPU bake will create it.";
@@ -220,6 +237,11 @@ bool TerrainMeshCollider::SaveCachedMesh(
     }
 
     const std::filesystem::path filepath = terrain->GetColliderVertexPath();
+    if (filepath.empty())
+    {
+        vxMessage = "Embedded terrain collider is kept in memory.";
+        return false;
+    }
     std::error_code error;
     if (!filepath.parent_path().empty())
     {

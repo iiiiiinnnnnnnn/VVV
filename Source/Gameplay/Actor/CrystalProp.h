@@ -8,7 +8,6 @@
 #include "Gameplay/Actor/Entity.h"
 #include "Resource/VMDLModel.h"
 #include "Physics/Core/PhysicsComponent.h"
-#include "Rendering/Core/ShaderParam.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 
 class MeshCollider;
@@ -26,7 +25,6 @@ public:
     ~CrystalProp() override = default;
 
     void ApplyStageData(const StageLoader::CrystalData& crystalData);
-    void ApplyShaderParams(const ShaderParamList& params, const ShaderParamListWithMaterialName& materialParams);
     void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
     void SetDestroyedCallback(std::function<void(CrystalProp*)> callback) { destroyedCallback = std::move(callback); }
     void Update() override;
@@ -36,7 +34,6 @@ private:
     void OnDead(const DamageData& damageData) override;
 
     std::shared_ptr<VMDLModel> model;
-    ShaderParamListWithMaterialName shaderParams = {};
     ParticleSystem* breakParticleSystem = nullptr;
     std::function<void(CrystalProp*)> destroyedCallback = {};
     Rigidbody* rigidbody = nullptr;

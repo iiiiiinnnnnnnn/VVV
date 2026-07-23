@@ -1,4 +1,4 @@
-ï»¿// Scene.cpp
+// Scene.cpp
 
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
@@ -7,9 +7,12 @@
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Scene/PostProcessController.h"
-#include "Application/SettingsAndDebug/UserSettingsManager.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
+#include "Gameplay/Scene/GameStartScene.h"
+#include "Gameplay/Scene/SceneManager.h"
+#include "Application/Tools/Dialog.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
@@ -20,8 +23,18 @@ void Scene::SwitchToDebugMode()
 	if (!currentStage) return;
 
 	Stage& stage = *currentStage;
+	Camera* sourceCamera = stage.GetActiveCamera();
 	if (Camera* debugCamera = stage.GetDebugCamera())
 	{
+		if (sourceCamera && sourceCamera != debugCamera)
+		{
+			debugCamera->SetLookAt(
+				sourceCamera->GetEye(),
+				sourceCamera->GetFocus(),
+				sourceCamera->GetUp());
+			if (FreeCameraController* controller = dynamic_cast<FreeCameraController*>(stage.GetCameraController(debugCamera)))
+				controller->SyncCameraToController(*sourceCamera);
+		}
 		debugCamera->SetActive(true);
 		if (CameraController* controller = stage.GetCameraController(debugCamera))
 			controller->SetActive(true);
@@ -29,11 +42,15 @@ void Scene::SwitchToDebugMode()
 	}
 	else
 	{
-	Actor* cameraActor = stage.GetDefaultCameraActor();
-	if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
-		controller->SetActive(false);
-	if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
-		controller->SetActive(true);
+		Actor* cameraActor = stage.GetDefaultCameraActor();
+		if (!cameraActor) return;
+		if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
+			controller->SetActive(false);
+		if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
+		{
+			if (sourceCamera) controller->SyncCameraToController(*sourceCamera);
+			controller->SetActive(true);
+		}
 	}
 
 	isCursorReleased = false;
@@ -65,31 +82,39 @@ void Scene::SwitchToPlayMode()
 void Scene::Update()
 {
 	OnUpdate();
+	if (!pendingStagePath.empty())
+	{
+		auto openedStage = std::make_unique<Stage>();
+		if (openedStage->LoadVSTG(pendingStagePath)) currentStage = std::move(openedStage);
+		pendingStagePath.clear();
+	}
 	if (!currentStage) return;
 
 	Stage& stage = *currentStage;
 
 	#ifdef _DEBUG
-	GamePad& gamePad = Game::Input::Instance().GetGamePad();
-	if (gamePad.GetButtonDown() & GamePad::BTN_F4)
+	if (UsesGameDebugGUI())
 	{
-		SwitchToDebugMode();
-	}
-	if (gamePad.GetButtonDown() & GamePad::BTN_F5)
-	{
-		SwitchToPlayMode();
-	}
+		GamePad& gamePad = Game::Input::Instance().GetGamePad();
+		if (gamePad.GetButtonDown() & GamePad::BTN_F4)
+		{
+			SwitchToDebugMode();
+		}
+		if (gamePad.GetButtonDown() & GamePad::BTN_F5)
+		{
+			SwitchToPlayMode();
+		}
 
-	if (gamePad.GetButtonDown() & GamePad::BTN_F1)
-	{
-		isCursorReleased = true;
-	}
+		if (gamePad.GetButtonDown() & GamePad::BTN_F1)
+		{
+			isCursorReleased = !isCursorReleased;
+		}
 
-	if (isCursorReleased &&
-		Game::Input::IsFocusedWindow() &&
-		(Game::Input::Instance().GetMouse().GetButtonDown() & Mouse::BTN_LEFT))
-	{
-		isCursorReleased = false;
+		if (gamePad.GetButtonDown() & GamePad::BTN_F6)
+		{
+			if (Game::Time::scale > 0.0f) SwitchToDebugMode();
+			else SwitchToPlayMode();
+		}
 	}
 	#endif
 
@@ -139,7 +164,7 @@ void Scene::Render()
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
-	// æç”»ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆè¨­å®š
+	// •`‰æƒRƒ“ƒeƒLƒXƒgİ’è
 	RenderContext rc;
 	{
 		rc.deviceContext = dc;
@@ -151,7 +176,7 @@ void Scene::Render()
 		rc.iblData = iblData;
 	}
 
-	// ãƒ‡ãƒãƒƒã‚°åˆ‡ã‚Šæ›¿ãˆ
+	// ƒfƒoƒbƒOØ‚è‘Ö‚¦
 	{
 		#ifdef _DEBUG
 		if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
@@ -161,13 +186,13 @@ void Scene::Render()
 		#endif
 	}
 
-	// IBLãƒ‡ãƒ¼ã‚¿ã‚’RenderContextã«è©°ã‚ã‚‹
+	// IBLƒf[ƒ^‚ğRenderContext‚É‹l‚ß‚é
 	iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
 	iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
 	iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 	rc.iblData = iblData;
 
-	// ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—æç”»
+	// ƒVƒƒƒhƒEƒ}ƒbƒv•`‰æ
 	{
 		if (Terrain* terrain = stage.GetComponent<Terrain>())
 		{
@@ -210,7 +235,7 @@ void Scene::Render()
 		rc.shadowMapData = shadowMapData;
 	}
 
-	// ---- ã‚·ãƒ¼ãƒ³æç”» â†’ sceneBuffer ----------------------------------------
+	// ---- ƒV[ƒ“•`‰æ ¨ sceneBuffer ----------------------------------------
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
@@ -255,7 +280,7 @@ void Scene::Render()
 		sceneColorMap = postProcessBuffer2->GetSRV();
 	}
 
-	// ---- è¼åº¦æŠ½å‡º: sceneBuffer â†’ luminanceBuffer --------------------------
+	// ---- ‹P“x’Šo: sceneBuffer ¨ luminanceBuffer --------------------------
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
@@ -287,7 +312,7 @@ void Scene::Render()
 		luminanceBuffer->Deactivate(dc);
 	}
 
-	// ---- Bloomåˆæˆ / Merge: sceneBuffer + luminanceBuffer â†’ postProcessBuffer -----
+	// ---- Bloom‡¬ / Merge: sceneBuffer + luminanceBuffer ¨ postProcessBuffer -----
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
@@ -302,7 +327,7 @@ void Scene::Render()
 	}
 	postProcessBuffer->Deactivate(dc);
 
-	// PostProcessã‚ã‚Šã®ã‚¦ã‚£ã‚¸ã‚§ãƒƒãƒˆ
+	// PostProcess‚ ‚è‚ÌƒEƒBƒWƒFƒbƒg
 	postProcessBuffer->Activate(dc);
 	{
 		widgetManager.Render(rc, true);
@@ -314,7 +339,7 @@ void Scene::Render()
 
 	PostProcessController::Instance().ApplyTo(postProcess);
 
-	// ---- Final PostProcess: postProcessBuffer â†’ displayBuffer -------------
+	// ---- Final PostProcess: postProcessBuffer ¨ displayBuffer -------------
 	postProcess.RenderFinal(
 		rc,
 		postProcessBuffer->GetSRV(),
@@ -322,21 +347,21 @@ void Scene::Render()
 		postProcessBuffer,
 		displayBuffer);
 
-	// ShapeRendereræç”»
+	// ShapeRenderer•`‰æ
 	graphics.GetShapeRenderer()->Render(
 		dc,
 		camera.GetView(),
 		camera.GetProjection()
 	);
 
-	// PrimitiveRendereræç”»
+	// PrimitiveRenderer•`‰æ
 	primitiveRenderer->Render(
 		dc,
 		camera.GetView(),
 		camera.GetProjection(),
 		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-	// PostProcessãªã—ã®ã‚¦ã‚£ã‚¸ã‚§ãƒƒãƒˆ
+	// PostProcess‚È‚µ‚ÌƒEƒBƒWƒFƒbƒg
 	widgetManager.Render(rc, false);
 	graphics.GetSpriteRenderer()->Render(rc);
 
@@ -347,6 +372,11 @@ void Scene::Render()
 void Scene::DrawGUI(RenderContext& rc)
 {
 	if (!currentStage) return;
+	if (!UsesGameDebugGUI())
+	{
+		OnDrawGUI();
+		return;
+	}
 
 	Stage& stage = *currentStage;
 	Camera* activeCamera = stage.GetActiveCamera();
@@ -355,25 +385,74 @@ void Scene::DrawGUI(RenderContext& rc)
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
 	#ifdef _DEBUG
-	if (renderSettings.showDebug)
 	{
-		// ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆç³»çµ±ãƒ‡ãƒãƒƒã‚°
+		if (ImGui::BeginMainMenuBar())
 		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("Open Stage"))
+				{
+					char filename[MAX_PATH]{};
+					if (Dialog::OpenFileName(filename, MAX_PATH, "VSTG (*.vstg)\0*.vstg\0", "Open Stage") == DialogResult::OK)
+						pendingStagePath = filename;
+				}
+				ImGui::Separator();
+				if (ImGui::MenuItem("Exit"))
+					SceneManager::Instance().LoadScene<GameStartScene>();
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Display"))
+			{
+				ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
+				ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
+				ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Window"))
+			{
+				if (ImGui::MenuItem("Physics Layer")) showPhysicsLayerWindow = true;
+				if (ImGui::MenuItem("Dynamic Animation Editor")) showDynamicAnimationEditorWindow = true;
+				ImGui::EndMenu();
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Play", "F5", false, Game::Time::scale <= 0.0f))
+				SwitchToPlayMode();
+			if (ImGui::MenuItem("Pause", "F6", false, Game::Time::scale > 0.0f))
+				SwitchToDebugMode();
+			ImGui::EndMainMenuBar();
+		}
+
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		const float menuHeight = ImGui::GetFrameHeight();
+		const float panelTop = viewport->WorkPos.y + menuHeight;
+		const float panelHeight = std::max(120.0f, (viewport->WorkSize.y - menuHeight) * 0.25f);
+		constexpr float leftWidth = 600.0f;
+		constexpr float rightWidth = 680.0f;
+
+		// ƒIƒuƒWƒFƒNƒgŒn“ƒfƒoƒbƒO
+		{
+			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			const bool actorsWindowOpen = ImGui::Begin("Actors");
 			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
+			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight * 3.0f}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			const bool currentStageWindowOpen = ImGui::Begin("Current Stage");
-			stage.SetComponentDebugVisible(currentStageWindowOpen);
 			if (currentStageWindowOpen) stage.DrawGUI();
 			ImGui::End();
 
+			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			if (ImGui::Begin("Widgets"))
 			{
 				widgetManager.DrawGUI();
 			}
 			ImGui::End();
 
+			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight * 2.0f}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			if (ImGui::Begin("Lights"))
 			{
 				lightManager.DrawGUI();
@@ -381,39 +460,32 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::End();
 		}
 
-		// ãƒ¦ãƒ¼ã‚¶ãƒ¼è¨­å®š
-		UserSettingsManager::Instance().DrawGUI();
+		// ƒ†[ƒU[İ’è
+		if (showPhysicsLayerWindow)
+			PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
-		// ã‚·ãƒ¼ãƒ³è¨­å®š
+		// ƒV[ƒ“İ’è
+		ImGui::SetNextWindowPos(
+			{viewport->WorkPos.x + viewport->WorkSize.x - rightWidth, panelTop},
+			ImGuiCond_Always);
+		ImGui::SetNextWindowSize(
+			{rightWidth, viewport->WorkSize.y - menuHeight},
+			ImGuiCond_Always);
 		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
 		{
-			// ãƒ‘ãƒ•ã‚©ãƒ¼ãƒãƒ³ã‚¹
+			// ƒpƒtƒH[ƒ}ƒ“ƒX
 			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			}
 
-			// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦åˆ‡æ›¿
-			if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				Game::Graphics& graphics = Game::Graphics::Instance();
-				const char* label = graphics.IsBorderlessFullscreen()
-					? "Windowed"
-					: "Borderless Fullscreen";
-
-				if (ImGui::Button(label, ImVec2(-1.0f, 30.0f)))
-				{
-					graphics.RequestToggleBorderlessFullscreen();
-				}
-			}
-
-			// ãƒ¢ãƒ¼ãƒ‰åˆ‡æ›¿
+			// ƒ‚[ƒhØ‘Ö
 			{
 				float buttonHeight = 30.0f;
 				float spacing = ImGui::GetStyle().ItemSpacing.x;
 				float buttonWidth = (ImGui::GetContentRegionAvail().x - spacing) * 0.5f;
 
-				// å³ãƒ‡ãƒãƒƒã‚°ãƒ¢ãƒ¼ãƒ‰
+				// ‘¦ƒfƒoƒbƒOƒ‚[ƒh
 				if (ImGui::Button("Let's Debug!(F4)", ImVec2(buttonWidth, buttonHeight)))
 				{
 					SwitchToDebugMode();
@@ -421,63 +493,19 @@ void Scene::DrawGUI(RenderContext& rc)
 
 				ImGui::SameLine();
 
-				// å³ãƒ—ãƒ¬ã‚¤ãƒ¢ãƒ¼ãƒ‰
+				// ‘¦ƒvƒŒƒCƒ‚[ƒh
 				if (ImGui::Button("Let's Play!(F5)", ImVec2(buttonWidth, buttonHeight)))
 				{
 					SwitchToPlayMode();
 				}
 			}
 
-			// ã‚«ãƒ¡ãƒ©
+			// ƒJƒƒ‰
 			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("Priority: %d", camera.GetPriority());
 				if (CameraController* controller = stage.GetActiveCameraController())
 					controller->DrawGUI();
-			}
-
-			// RenderContext
-			if (ImGui::CollapsingHeader("RenderContext", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				if (ImGui::TreeNode("LightData"))
-				{
-					ImGui::TextDisabled("Light data is moved");
-					ImGui::TreePop();
-				}
-
-				if (ImGui::TreeNode("RenderSettings"))
-				{
-					ImGui::Checkbox("Show Debug", &renderSettings.showDebug);
-					ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
-					ImGui::TreePop();
-				}
-
-				if (ImGui::TreeNode("ShadowMapData"))
-				{
-					for (int cascadeIndex = 0;
-						 cascadeIndex < ShadowMapData::CascadeCount;
-						 ++cascadeIndex)
-					{
-						ImGui::Text("Cascade %d", cascadeIndex);
-						ImGui::Image(
-							shadowMapData.shadowMaps[cascadeIndex],
-							ImVec2(192, 192),
-							ImVec2(0, 0),
-							ImVec2(1, 1));
-					}
-					ImGui::ColorEdit4("Shadow Color", &shadowMapData.shadowColor.x);
-					ImGui::DragFloat("Shadow Bias", &shadowMapData.shadowBias, 0.001f, 0.0f, 1.0f);
-					ImGui::DragInt("PCF Kernel Size", &shadowMapData.pcfKernelSize, 1, 1, 15);
-					ImGui::TreePop();
-				}
-
-				if (ImGui::TreeNode("IBLData"))
-				{
-					ImGui::Image(iblData.diffuseIrradianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-					ImGui::Image(iblData.specularPremappingRadianceEnvironmentMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-					ImGui::Image(iblData.ggxLookUpTableMap, ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
-					ImGui::TreePop();
-				}
 			}
 
 			// Time
@@ -506,15 +534,6 @@ void Scene::DrawGUI(RenderContext& rc)
 				ImGui::Text("CONTROLLER");
 
 				PostProcessController::Instance().DrawGUI();
-			}
-
-			// Editor
-			if (ImGui::CollapsingHeader("Editor", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				if (ImGui::Button("Dynamic Animation Editor"))
-				{
-					showDynamicAnimationEditorWindow = true;
-				}
 			}
 
 			OnDrawGUI();

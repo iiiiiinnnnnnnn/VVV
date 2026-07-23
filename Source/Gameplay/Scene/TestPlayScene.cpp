@@ -13,8 +13,12 @@
 
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
+	Game::Graphics& graphics = Game::Graphics::Instance();
+	graphics.SetBorderlessFullscreen(true);
+	graphics.SetWindowMovementLocked(true);
+
 	ID3D11Device* device =
-		Game::Graphics::Instance().GetDevice();
+		graphics.GetDevice();
 
 	float screenWidth =
 		Game::Graphics::ScreenWidth;
@@ -70,6 +74,11 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 		sw->AddComponent<Animator>()->Load("Data/Animator/Test2D.animator");
 		widgetManager.Register(sw);
 	}
+}
+
+TestPlayScene::~TestPlayScene()
+{
+	Game::Graphics::Instance().SetWindowMovementLocked(false);
 }
 
 void TestPlayScene::OnUpdate()

@@ -6,7 +6,6 @@
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Scene/HitStop.h"
 #include "Physics/Collider/MeshCollider.h"
-#include "Rendering/Renderer/ModelRenderer.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/DamageHoleComponent.h"
 #include "Rendering/Effect/ParticleSystem.h"
@@ -30,7 +29,7 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     life = maxLife;
 
     model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
-    modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParams);
+    modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR);
     damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1, 1, 2, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();
     meshCollider = AddComponent<MeshCollider>(
@@ -54,14 +53,6 @@ void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
     transform = crystalData.transform;
     transform.Update();
     if (changed && navMeshObstacle) navMeshObstacle->MarkDirty();
-}
-
-void CrystalProp::ApplyShaderParams(const ShaderParamList& params, const ShaderParamListWithMaterialName& materialParams)
-{
-    shaderParams = materialParams;
-    ShaderParamListWithMaterialName& rendererParams = modelRenderer->GetParamsWithMaterial();
-    rendererParams = shaderParams;
-    ModelRenderer::SetShaderParamForAllMaterials(model.get(), params, rendererParams);
 }
 
 void CrystalProp::SpawnBreakParticles()

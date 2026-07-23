@@ -70,45 +70,11 @@ ShaderParamList StageLoader::PropData::MakePBRParams() const
 	};
 }
 
-ShaderParamList StageLoader::CrystalShaderData::MakePBRParams() const
-{
-	return {
-		{"color", color},
-		{"emission", emission},
-		{"fresnelColor", fresnelColor},
-		{"fresnelPower", fresnelPower},
-		{"fresnelStrength", fresnelStrength},
-		{"metalness", metallic},
-		{"roughness", roughness},
-		{"occlusion", occlusion},
-		{"occlusionStrength", occlusionStrength},
-		{"shadowStrength", shadowStrength},
-		{"IsFlatShading", isFlatShading},
-	};
-}
-
 void StageLoader::DrawCrystalDataGUI(CrystalData& crystalData)
 {
 	crystalData.transform.DrawGUI();
 }
 
-void StageLoader::DrawCrystalShaderParamsGUI()
-{
-	if (!ImGui::TreeNode("Crystal Shader Params")) return;
-
-	ImGui::ColorEdit4("Color", &crystalShaderData.color.x);
-	ImGui::ColorEdit4("Emission", &crystalShaderData.emission.x);
-	ImGui::ColorEdit4("Fresnel Color", &crystalShaderData.fresnelColor.x);
-	ImGui::DragFloat("Fresnel Power", &crystalShaderData.fresnelPower, 0.01f, 0.0001f, 16.0f);
-	ImGui::DragFloat("Fresnel Strength", &crystalShaderData.fresnelStrength, 0.01f, 0.0f, 8.0f);
-	ImGui::DragFloat("Metallic", &crystalShaderData.metallic, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Roughness", &crystalShaderData.roughness, 0.01f, 0.0001f, 1.0f);
-	ImGui::DragFloat("Occlusion", &crystalShaderData.occlusion, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Occlusion Strength", &crystalShaderData.occlusionStrength, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("Shadow Strength", &crystalShaderData.shadowStrength, 0.01f, 0.0f, 1.0f);
-	ImGui::Checkbox("Is Flat Shading", &crystalShaderData.isFlatShading);
-	ImGui::TreePop();
-}
 void StageLoader::DrawPBRParamsGUI(PropData& propData)
 {
 	if (ImGui::TreeNode("PBR Shader Params"))
@@ -192,9 +158,6 @@ void StageLoader::Update()
 		if (crystalIndex < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[crystalIndex])
 		{
 			addedCrystalActors[crystalIndex]->ApplyStageData(crystal);
-			addedCrystalActors[crystalIndex]->ApplyShaderParams(
-				crystalShaderData.MakePBRParams(),
-				crystalShaderParams);
 		}
 	}}
 
@@ -248,13 +211,36 @@ void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
 }
 void StageLoader::DrawGUI()
 {
-	ImGui::Text("Json Path: %s", jsonPath.string().c_str());
+	DrawEditorGUI(false);
+}
 
+void StageLoader::DrawPropGUI()
+{
+	addType = AddType::Prop;
+	DrawEditorGUI(true);
+}
+
+void StageLoader::DrawSpawnerGUI()
+{
+	addType = AddType::Spawner;
+	DrawEditorGUI(true);
+}
+
+void StageLoader::DrawCrystalGUI()
+{
+	addType = AddType::Crystal;
+	DrawEditorGUI(true);
+}
+
+void StageLoader::DrawEditorGUI(bool singleSection)
+{
+	ImGui::PushID(static_cast<int>(addType));
+	if (!singleSection)
 	{
+		ImGui::Text("Json Path: %s", jsonPath.string().c_str());
 		float availWidth = ImGui::GetContentRegionAvail().x;
 		float spacing = ImGui::GetStyle().ItemSpacing.x;
 		float buttonWidth = (availWidth - spacing) * 0.5f;
-
 
 		if (ImGui::Button("Save", ImVec2(buttonWidth, 0.0f)))
 		{
@@ -262,7 +248,6 @@ void StageLoader::DrawGUI()
 		}
 
 		ImGui::SameLine();
-
 
 		if (ImGui::Button("Reload", ImVec2(buttonWidth, 0.0f)))
 		{
@@ -274,30 +259,25 @@ void StageLoader::DrawGUI()
 
 
 	ImGui::Text("Add Object:");
-	if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 200.0f), true))
+	if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 400.0f), true))
 	{
 
-		using AddType = decltype(addType);
-		std::string previewName = std::string(magic_enum::enum_name(addType));
-		if (ImGui::BeginCombo("##StageLoaderCombo", previewName.c_str()))
+		if (!singleSection)
 		{
-			for (AddType type : magic_enum::enum_values<AddType>())
+			using AddType = decltype(addType);
+			std::string previewName = std::string(magic_enum::enum_name(addType));
+			if (ImGui::BeginCombo("##StageLoaderCombo", previewName.c_str()))
 			{
-				std::string name = std::string(magic_enum::enum_name(type));
-				bool isSelected = (addType == type);
-
-				if (ImGui::Selectable(name.c_str(), isSelected))
+				for (AddType type : magic_enum::enum_values<AddType>())
 				{
-					addType = type;
-				}
+					std::string name = std::string(magic_enum::enum_name(type));
+					bool isSelected = addType == type;
+					if (ImGui::Selectable(name.c_str(), isSelected)) addType = type;
 
-				if (isSelected)
-				{
-					ImGui::SetItemDefaultFocus();
+					if (isSelected) ImGui::SetItemDefaultFocus();
 				}
+				ImGui::EndCombo();
 			}
-
-			ImGui::EndCombo();
 		}
 
 
@@ -407,7 +387,6 @@ void StageLoader::DrawGUI()
 				{
 					crystalDataList.push_back(addCrystalData);
 					auto crystalActor = std::make_shared<CrystalProp>(crystalDataList.back());
-					crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
                     crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
 				{
 					for (Actor*& addedActor : addedRealActors)
@@ -430,6 +409,8 @@ void StageLoader::DrawGUI()
 
 	ImGui::EndChild();
 
+	if (!singleSection || addType == AddType::Spawner)
+	{
 	ImGui::TextUnformatted("SpawnerList:");
 
 	ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 150.0f), true);
@@ -463,7 +444,10 @@ void StageLoader::DrawGUI()
 	}
 
 	ImGui::EndChild();
+	}
 
+	if (!singleSection || addType == AddType::Prop)
+	{
 	ImGui::TextUnformatted("PropList:");
 
 	ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 150.0f), true);
@@ -510,9 +494,10 @@ void StageLoader::DrawGUI()
 	}
 
 	ImGui::EndChild();
+	}
 
-	DrawCrystalShaderParamsGUI();
-
+	if (!singleSection || addType == AddType::Crystal)
+	{
 	ImGui::TextUnformatted("CrystalList:");
 
 	ImGui::BeginChild("##crystallistwin", ImVec2(0.0f, 150.0f), true);
@@ -533,7 +518,6 @@ void StageLoader::DrawGUI()
 				crystalDataList.insert(crystalDataList.begin() + i + 1, copiedCrystalData);
 
 				auto crystalActor = std::make_shared<CrystalProp>(crystalDataList[i + 1]);
-				crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
                 crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
 				{
 					for (Actor*& addedActor : addedRealActors)
@@ -594,6 +578,8 @@ void StageLoader::DrawGUI()
 	}
 
 	ImGui::EndChild();
+	}
+	ImGui::PopID();
 }
 
 void StageLoader::LoadJson()
@@ -825,53 +811,10 @@ void StageLoader::LoadJson()
 		}
 	}
 
-	const json* crystalShaderJson = nullptr;
-	if (root.contains("crystalShaderParams"))
-	{
-		crystalShaderJson = &root["crystalShaderParams"];
-	}
-
-	auto loadCrystalShaderData = [&](const json& shaderJson)
-	{
-		crystalShaderData.isFlatShading = shaderJson.value("IsFlatShading", crystalShaderData.isFlatShading);
-		if (shaderJson.contains("color"))
-		{
-			crystalShaderData.color.x = shaderJson["color"].value("r", crystalShaderData.color.x);
-			crystalShaderData.color.y = shaderJson["color"].value("g", crystalShaderData.color.y);
-			crystalShaderData.color.z = shaderJson["color"].value("b", crystalShaderData.color.z);
-			crystalShaderData.color.w = shaderJson["color"].value("a", crystalShaderData.color.w);
-		}
-		if (shaderJson.contains("emission"))
-		{
-			crystalShaderData.emission.x = shaderJson["emission"].value("r", crystalShaderData.emission.x);
-			crystalShaderData.emission.y = shaderJson["emission"].value("g", crystalShaderData.emission.y);
-			crystalShaderData.emission.z = shaderJson["emission"].value("b", crystalShaderData.emission.z);
-			crystalShaderData.emission.w = shaderJson["emission"].value("a", crystalShaderData.emission.w);
-		}
-		if (shaderJson.contains("fresnelColor"))
-		{
-			crystalShaderData.fresnelColor.x = shaderJson["fresnelColor"].value("r", crystalShaderData.fresnelColor.x);
-			crystalShaderData.fresnelColor.y = shaderJson["fresnelColor"].value("g", crystalShaderData.fresnelColor.y);
-			crystalShaderData.fresnelColor.z = shaderJson["fresnelColor"].value("b", crystalShaderData.fresnelColor.z);
-			crystalShaderData.fresnelColor.w = shaderJson["fresnelColor"].value("a", crystalShaderData.fresnelColor.w);
-		}
-		crystalShaderData.fresnelPower = shaderJson.value("fresnelPower", crystalShaderData.fresnelPower);
-		crystalShaderData.fresnelStrength = shaderJson.value("fresnelStrength", crystalShaderData.fresnelStrength);
-		crystalShaderData.metallic = shaderJson.value("metallic", crystalShaderData.metallic);
-		crystalShaderData.roughness = shaderJson.value("roughness", crystalShaderData.roughness);
-		crystalShaderData.occlusion = shaderJson.value("occlusion", crystalShaderData.occlusion);
-		crystalShaderData.occlusionStrength = shaderJson.value("occlusionStrength", crystalShaderData.occlusionStrength);
-		crystalShaderData.shadowStrength = shaderJson.value("shadowStrength", crystalShaderData.shadowStrength);
-	};
-
-	if (crystalShaderJson) loadCrystalShaderData(*crystalShaderJson);
-
 	if (root.contains("crystals") && root["crystals"].is_array())
 	{
 		for (const auto& crystalJson : root["crystals"])
 		{
-			if (!crystalShaderJson && crystalDataList.empty()) loadCrystalShaderData(crystalJson);
-
 			std::vector<Transform> transforms;
 			if (crystalJson.contains("transforms") && crystalJson["transforms"].is_array())
 			{
@@ -901,7 +844,6 @@ void StageLoader::LoadJson()
 				crystalDataList.push_back(crystalData);
 
 				auto crystalActor = std::make_shared<CrystalProp>(crystalData);
-				crystalActor->ApplyShaderParams(crystalShaderData.MakePBRParams(), crystalShaderParams);
 				crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
 				{
 					for (Actor*& addedActor : addedRealActors)
@@ -1034,24 +976,6 @@ void StageLoader::SaveJson()
 
 		root["props"].push_back(propJson);
 	}
-
-	root["crystalShaderParams"]["color"] = {
-		{"r", crystalShaderData.color.x}, {"g", crystalShaderData.color.y},
-		{"b", crystalShaderData.color.z}, {"a", crystalShaderData.color.w}};
-	root["crystalShaderParams"]["emission"] = {
-		{"r", crystalShaderData.emission.x}, {"g", crystalShaderData.emission.y},
-		{"b", crystalShaderData.emission.z}, {"a", crystalShaderData.emission.w}};
-	root["crystalShaderParams"]["fresnelColor"] = {
-		{"r", crystalShaderData.fresnelColor.x}, {"g", crystalShaderData.fresnelColor.y},
-		{"b", crystalShaderData.fresnelColor.z}, {"a", crystalShaderData.fresnelColor.w}};
-	root["crystalShaderParams"]["fresnelPower"] = crystalShaderData.fresnelPower;
-	root["crystalShaderParams"]["fresnelStrength"] = crystalShaderData.fresnelStrength;
-	root["crystalShaderParams"]["metallic"] = crystalShaderData.metallic;
-	root["crystalShaderParams"]["roughness"] = crystalShaderData.roughness;
-	root["crystalShaderParams"]["occlusion"] = crystalShaderData.occlusion;
-	root["crystalShaderParams"]["occlusionStrength"] = crystalShaderData.occlusionStrength;
-	root["crystalShaderParams"]["shadowStrength"] = crystalShaderData.shadowStrength;
-	root["crystalShaderParams"]["IsFlatShading"] = crystalShaderData.isFlatShading;
 
 	for (const CrystalData& crystalData : crystalDataList)
 	{

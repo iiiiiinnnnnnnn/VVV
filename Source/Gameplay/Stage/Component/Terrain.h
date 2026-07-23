@@ -52,6 +52,10 @@ public:
 	bool LoadTerrainTexture(const std::string& filename);
 	bool SaveTerrainMemory(std::vector<uint8_t>& bytes) const;
 	bool LoadTerrainMemory(const std::vector<uint8_t>& bytes);
+	std::string SaveSettingsJson() const;
+	bool LoadSettingsJson(const std::string& text);
+	void UseEmbeddedStorage() { terrainFilePath.clear(); }
+	void BakeCollider();
 
 	bool AddBrushTexture(const std::string& filename);
 	bool SetBrushTexture(int index);
@@ -216,7 +220,6 @@ private:
 	bool AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath);
 	void DrawTerrainLayerGUI();
 	float GetTerrainLayerValue(int layerIndex) const;
-	void RebuildTerrainCollider();
 
 private:
 	float terrainSize = 500.0f;
@@ -274,7 +277,7 @@ private:
 	std::vector<TerrainBrush> brushes;
 	int currentBrushIndex = -1;
 
-	std::string terrainFilePath = "Data/Terrain/Maps/Default.dds";
+	std::string terrainFilePath;
 	std::string terrainIoMessage;
 	bool pendingColliderRebuild = false;
 };

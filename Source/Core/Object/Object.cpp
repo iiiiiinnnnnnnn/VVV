@@ -4,6 +4,8 @@
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/RenderContext.h"
+#include "Physics/Core/PhysicsComponent.h"
+#include "Gameplay/Stage/Component/Terrain.h"
 
 Object::~Object()
 {
@@ -89,7 +91,10 @@ void Object::Render(const RenderContext& rc)
     {
 		if(c->IsActive())
 		{
-			c->SetShowDebug(rc.renderSettings.showDebug && componentDebugVisible);
+			const bool isCollider = dynamic_cast<PhysicsComponent*>(c.get()) != nullptr;
+			c->SetShowDebug(
+				rc.renderSettings.showDebug &&
+				(isCollider ? rc.renderSettings.showColliderDebug : rc.renderSettings.showComponentDebug));
             c->Render(rc);
 		}
     }
@@ -113,6 +118,7 @@ void Object::DrawGUI()
 
     for (auto& c : components)
     {
+		if (dynamic_cast<Terrain*>(c.get())) continue;
         ImGui::PushID((void*)((uintptr_t)c.get() ^ (uintptr_t)this));
         if (ImGui::TreeNode(c->GetDebugName()))
         {
