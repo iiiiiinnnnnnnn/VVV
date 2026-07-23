@@ -172,6 +172,28 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::End();
 }
 
+bool VstgEditorScene::OnRequestExit()
+{
+	if (dirty)
+	{
+		int result = MessageBoxW(
+			Game::Graphics::Instance().GetWindowHandle(),
+			L"Do you want to save changes to the VSTG before exiting?",
+			L"VSTG Editor",
+			MB_YESNOCANCEL | MB_ICONQUESTION);
+		if (result == IDYES)
+		{
+			Save();
+			if (dirty) return false; // Save failed or canceled
+		}
+		else if (result == IDCANCEL)
+		{
+			return false; // Cancel exit
+		}
+	}
+	return true;
+}
+
 void VstgEditorScene::Open()
 {
 	char filename[MAX_PATH]{};

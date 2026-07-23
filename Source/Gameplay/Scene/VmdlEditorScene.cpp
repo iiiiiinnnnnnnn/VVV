@@ -2149,6 +2149,29 @@ void VmdlEditorScene::MarkDirty()
 	placement.initialized = true;
 }
 
+
+bool VmdlEditorScene::OnRequestExit()
+{
+	if (dirty)
+	{
+		int result = MessageBoxW(
+			Game::Graphics::Instance().GetWindowHandle(),
+			L"Do you want to save changes to the VSTG before exiting?",
+			L"VSTG Editor",
+			MB_YESNOCANCEL | MB_ICONQUESTION);
+		if (result == IDYES)
+		{
+			SaveVmdl();
+			if (dirty) return false; // Save failed or canceled
+		}
+		else if (result == IDCANCEL)
+		{
+			return false; // Cancel exit
+		}
+	}
+	return true;
+}
+
 void VmdlEditorScene::UpdateModelPlacement()
 {
 	if (!model) return;

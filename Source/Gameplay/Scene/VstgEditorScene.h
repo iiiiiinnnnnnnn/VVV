@@ -20,6 +20,7 @@ public:
 protected:
 	void OnDrawGUI() override;
 	bool UsesGameDebugGUI() const override { return false; }
+	bool OnRequestExit() override;
 
 private:
 	void CreateStage();

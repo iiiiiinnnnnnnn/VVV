@@ -408,7 +408,12 @@ void Scene::DrawGUI(RenderContext& rc)
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
-					SceneManager::Instance().LoadScene<GameStartScene>();
+				{
+					if (OnRequestExit())
+					{
+						SceneManager::Instance().LoadScene<GameStartScene>();
+					}
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Display"))

@@ -23,6 +23,7 @@ public:
 
 protected:
 	void OnDrawGUI() override;
+	bool OnRequestExit() override;
 
 private:
 	void RenderPreview();
