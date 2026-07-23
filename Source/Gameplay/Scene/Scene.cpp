@@ -1,4 +1,4 @@
-// Scene.cpp
+ï»¿// Scene.cpp
 
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
@@ -81,6 +81,16 @@ void Scene::SwitchToPlayMode()
 
 void Scene::Update()
 {
+	// ESCã‚­ãƒ¼ã§èµ·å‹•ç”»é¢æˆ»ã‚‹
+	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_ESCAPE)
+	{
+		if (OnRequestExit())
+		{
+			SceneManager::Instance().LoadScene<GameStartScene>();
+			return;
+		}
+	}
+
 	OnUpdate();
 	if (!pendingStagePath.empty())
 	{
@@ -164,7 +174,7 @@ void Scene::Render()
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
-	// •`‰æƒRƒ“ƒeƒLƒXƒgİ’è
+	// æç”»ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆè¨­å®š
 	RenderContext rc;
 	{
 		rc.deviceContext = dc;
@@ -176,7 +186,7 @@ void Scene::Render()
 		rc.iblData = iblData;
 	}
 
-	// ƒfƒoƒbƒOØ‚è‘Ö‚¦
+	// ãƒ‡ãƒãƒƒã‚°åˆ‡ã‚Šæ›¿ãˆ
 	{
 		#ifdef _DEBUG
 		if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
@@ -186,13 +196,13 @@ void Scene::Render()
 		#endif
 	}
 
-	// IBLƒf[ƒ^‚ğRenderContext‚É‹l‚ß‚é
+	// IBLãƒ‡ãƒ¼ã‚¿ã‚’RenderContextã«è©°ã‚ã‚‹
 	iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
 	iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
 	iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 	rc.iblData = iblData;
 
-	// ƒVƒƒƒhƒEƒ}ƒbƒv•`‰æ
+	// ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—æç”»
 	{
 		if (Terrain* terrain = stage.GetComponent<Terrain>())
 		{
@@ -235,7 +245,7 @@ void Scene::Render()
 		rc.shadowMapData = shadowMapData;
 	}
 
-	// ---- ƒV[ƒ“•`‰æ ¨ sceneBuffer ----------------------------------------
+	// ---- ã‚·ãƒ¼ãƒ³æç”» â†’ sceneBuffer ----------------------------------------
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
@@ -280,7 +290,7 @@ void Scene::Render()
 		sceneColorMap = postProcessBuffer2->GetSRV();
 	}
 
-	// ---- ‹P“x’Šo: sceneBuffer ¨ luminanceBuffer --------------------------
+	// ---- è¼åº¦æŠ½å‡º: sceneBuffer â†’ luminanceBuffer --------------------------
 	luminanceBuffer->Clear(dc);
 	luminanceBuffer->Activate(dc);
 	{
@@ -312,7 +322,7 @@ void Scene::Render()
 		luminanceBuffer->Deactivate(dc);
 	}
 
-	// ---- Bloom‡¬ / Merge: sceneBuffer + luminanceBuffer ¨ postProcessBuffer -----
+	// ---- Bloomåˆæˆ / Merge: sceneBuffer + luminanceBuffer â†’ postProcessBuffer -----
 	postProcessBuffer->Clear(dc);
 	postProcessBuffer->Activate(dc);
 	{
@@ -327,7 +337,7 @@ void Scene::Render()
 	}
 	postProcessBuffer->Deactivate(dc);
 
-	// PostProcess‚ ‚è‚ÌƒEƒBƒWƒFƒbƒg
+	// PostProcessã‚ã‚Šã®ã‚¦ã‚£ã‚¸ã‚§ãƒƒãƒˆ
 	postProcessBuffer->Activate(dc);
 	{
 		widgetManager.Render(rc, true);
@@ -339,7 +349,7 @@ void Scene::Render()
 
 	PostProcessController::Instance().ApplyTo(postProcess);
 
-	// ---- Final PostProcess: postProcessBuffer ¨ displayBuffer -------------
+	// ---- Final PostProcess: postProcessBuffer â†’ displayBuffer -------------
 	postProcess.RenderFinal(
 		rc,
 		postProcessBuffer->GetSRV(),
@@ -347,21 +357,21 @@ void Scene::Render()
 		postProcessBuffer,
 		displayBuffer);
 
-	// ShapeRenderer•`‰æ
+	// ShapeRendereræç”»
 	graphics.GetShapeRenderer()->Render(
 		dc,
 		camera.GetView(),
 		camera.GetProjection()
 	);
 
-	// PrimitiveRenderer•`‰æ
+	// PrimitiveRendereræç”»
 	primitiveRenderer->Render(
 		dc,
 		camera.GetView(),
 		camera.GetProjection(),
 		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-	// PostProcess‚È‚µ‚ÌƒEƒBƒWƒFƒbƒg
+	// PostProcessãªã—ã®ã‚¦ã‚£ã‚¸ã‚§ãƒƒãƒˆ
 	widgetManager.Render(rc, false);
 	graphics.GetSpriteRenderer()->Render(rc);
 
@@ -405,7 +415,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			{
 				ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
 				ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
-				ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+				ImGui::Checkbox("NavMesh Move Area", &renderSettings.showNavMeshDebug);
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Window"))
@@ -423,24 +433,17 @@ void Scene::DrawGUI(RenderContext& rc)
 		}
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		const float menuHeight = ImGui::GetFrameHeight();
-		const float panelTop = viewport->WorkPos.y + menuHeight;
-		const float panelHeight = std::max(120.0f, (viewport->WorkSize.y - menuHeight) * 0.25f);
+		const float panelTop = viewport->WorkPos.y;
+		const float panelHeight = std::max(120.0f, viewport->WorkSize.y / 3.0f);
 		constexpr float leftWidth = 600.0f;
 		constexpr float rightWidth = 680.0f;
 
-		// ƒIƒuƒWƒFƒNƒgŒn“ƒfƒoƒbƒO
+		// ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆç³»çµ±ãƒ‡ãƒãƒƒã‚°
 		{
 			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop}, ImGuiCond_Always);
 			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			const bool actorsWindowOpen = ImGui::Begin("Actors");
 			actorManager.DrawGUI(actorsWindowOpen);
-			ImGui::End();
-
-			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight * 3.0f}, ImGuiCond_Always);
-			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
-			const bool currentStageWindowOpen = ImGui::Begin("Current Stage");
-			if (currentStageWindowOpen) stage.DrawGUI();
 			ImGui::End();
 
 			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight}, ImGuiCond_Always);
@@ -460,47 +463,20 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::End();
 		}
 
-		// ƒ†[ƒU[İ’è
+		// ãƒ¦ãƒ¼ã‚¶ãƒ¼è¨­å®š
 		if (showPhysicsLayerWindow)
 			PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
-		// ƒV[ƒ“İ’è
+		// ã‚·ãƒ¼ãƒ³è¨­å®š
 		ImGui::SetNextWindowPos(
 			{viewport->WorkPos.x + viewport->WorkSize.x - rightWidth, panelTop},
 			ImGuiCond_Always);
 		ImGui::SetNextWindowSize(
-			{rightWidth, viewport->WorkSize.y - menuHeight},
+			{rightWidth, viewport->WorkSize.y},
 			ImGuiCond_Always);
 		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
 		{
-			// ƒpƒtƒH[ƒ}ƒ“ƒX
-			if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-			}
-
-			// ƒ‚[ƒhØ‘Ö
-			{
-				float buttonHeight = 30.0f;
-				float spacing = ImGui::GetStyle().ItemSpacing.x;
-				float buttonWidth = (ImGui::GetContentRegionAvail().x - spacing) * 0.5f;
-
-				// ‘¦ƒfƒoƒbƒOƒ‚[ƒh
-				if (ImGui::Button("Let's Debug!(F4)", ImVec2(buttonWidth, buttonHeight)))
-				{
-					SwitchToDebugMode();
-				}
-
-				ImGui::SameLine();
-
-				// ‘¦ƒvƒŒƒCƒ‚[ƒh
-				if (ImGui::Button("Let's Play!(F5)", ImVec2(buttonWidth, buttonHeight)))
-				{
-					SwitchToPlayMode();
-				}
-			}
-
-			// ƒJƒƒ‰
+			// ã‚«ãƒ¡ãƒ©
 			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text("Priority: %d", camera.GetPriority());

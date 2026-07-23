@@ -1,4 +1,4 @@
-// Framework.cpp
+ï»¿// Framework.cpp
 #include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
@@ -7,96 +7,96 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
 
-// ‚’¼“¯ŠúŠÔŠuİ’è
+// å‚ç›´åŒæœŸé–“éš”è¨­å®š
 static const int syncInterval = 0;
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
-	// “ü—Í‰Šú‰»
+	// å…¥åŠ›åˆæœŸåŒ–
 	Game::Input::Instance().Initialize(hWnd);
 
-	// ƒOƒ‰ƒtƒBƒbƒNƒX‰Šú‰»
+	// ã‚°ãƒ©ãƒ•ã‚£ãƒƒã‚¯ã‚¹åˆæœŸåŒ–
 	Game::Graphics::Instance().Initialize(hWnd);
 
-	// ƒGƒfƒBƒ^—p‚Ìİ’è‰Šú‰»
+	// ã‚¨ãƒ‡ã‚£ã‚¿ç”¨ã®è¨­å®šåˆæœŸåŒ–
 	PhysicsLayerManager::Instance().Initialize();
 
-	// IMGUI‰Šú‰»
+	// IMGUIåˆæœŸåŒ–
 	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(), Game::Graphics::Instance().GetDeviceContext());
 
-	// •¨—ƒ}ƒl[ƒWƒƒ‰Šú‰»
+	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£åˆæœŸåŒ–
 	PhysicsManager::Instance().Initialize();
 
-	// ƒV[ƒ“ƒ}ƒl[ƒWƒƒ[‰Šú‰»
+	// ã‚·ãƒ¼ãƒ³ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼åˆæœŸåŒ–
 	SceneManager::Instance().Initialize();
 
 }
 
-// ƒfƒXƒgƒ‰ƒNƒ^
+// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 Framework::~Framework()
 {
-	// IMGUII—¹‰»
+	// IMGUIçµ‚äº†åŒ–
 	ImGuiRenderer::Finalize();
 
-	// ƒV[ƒ“ƒ}ƒl[ƒWƒƒ[I—¹‰»
+	// ã‚·ãƒ¼ãƒ³ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼çµ‚äº†åŒ–
 	SceneManager::Instance().Finalize();
 
-	// •¨—ƒ}ƒl[ƒWƒƒI—¹‰»
+	// ç‰©ç†ãƒãƒãƒ¼ã‚¸ãƒ£çµ‚äº†åŒ–
 	PhysicsManager::Instance().Finalize();
 
 }
 
-// XVˆ—
+// æ›´æ–°å‡¦ç†
 void Framework::Update(float elapsedTime)
 {
 	elapsedTime = std::min(elapsedTime, 1.0f / 60.0f);
 
-	// ŠÔXVˆ—
+	// æ™‚é–“æ›´æ–°å‡¦ç†
 	Game::Time::time += elapsedTime;
 	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
 	Game::Time::unscaledDeltaTime = elapsedTime;
 
-	// “ü—ÍXVˆ—
+	// å…¥åŠ›æ›´æ–°å‡¦ç†
 	Game::Input::Instance().Update();
 
-	// IMGUIƒtƒŒ[ƒ€ŠJnˆ—
+	// IMGUIãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†
 	ImGuiRenderer::NewFrame();
 
-	// ƒV[ƒ“XVˆ—
+	// ã‚·ãƒ¼ãƒ³æ›´æ–°å‡¦ç†
 	SceneManager::Instance().Update();
 
-	// •¨—ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“
+	// ç‰©ç†ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³
 	PhysicsManager::Instance().GetSceneContext().Simulate();
 }
 
-// •`‰æˆ—
+// æç”»å‡¦ç†
 void Framework::Render(float elapsedTime)
 {
 	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
-	// ‰æ–ÊƒNƒŠƒA•ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒgİ’è
+	// ç”»é¢ã‚¯ãƒªã‚¢ï¼†ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š
 	RenderTarget* backBuffer = Game::Graphics::Instance().
 		GetFrameBuffer(Game::FrameBufferId::Display);
 	backBuffer->Clear(dc, 0.5f, 0.5f, 0.5f, 1);
 	backBuffer->Activate(dc);
 
-	// ƒV[ƒ“’Êí•`‰æ•GUI•`‰æˆ—
-	// GUI•`‰æ‚àScene‚É”C‚¹‚¿‚á‚¤‚¨(rcE‚¦‚é‚æ‚¤‚É‚·‚é‚½‚ß)
+	// ã‚·ãƒ¼ãƒ³é€šå¸¸æç”»ï¼†GUIæç”»å‡¦ç†
+	// GUIæç”»ã‚‚Sceneã«ä»»ã›ã¡ã‚ƒã†ãŠ(rcæ‹¾ãˆã‚‹ã‚ˆã†ã«ã™ã‚‹ãŸã‚)
 	SceneManager::Instance().Render();
 
-	// IMGUI•`‰æ
+	// IMGUIæç”»
 	ImGuiRenderer::Render(dc);
 
-	// ‰æ–Ê•\¦
+	// ç”»é¢è¡¨ç¤º
 	Game::Graphics::Instance().Present(syncInterval);
 }
 
-// ƒtƒŒ[ƒ€ƒŒ[ƒgŒvZ
+// ãƒ•ãƒ¬ãƒ¼ãƒ ãƒ¬ãƒ¼ãƒˆè¨ˆç®—
 void Framework::CalculateFrameStats()
 {
-	// 1•b‚²‚Æ‚ÉFPS‚ğŒvZ‚µ‚ÄƒEƒBƒ“ƒhƒEƒ^ƒCƒgƒ‹‚É•\¦
+	// 1ç§’ã”ã¨ã«FPSã‚’è¨ˆç®—ã—ã¦ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¿ã‚¤ãƒˆãƒ«ã«è¡¨ç¤º
 	static int frames = 0;
 	static float time_tlapsed = 0.0f;
 	frames++;
@@ -110,13 +110,13 @@ void Framework::CalculateFrameStats()
 		outs << "FPS : " << fps << " / " << "Frame Time : " << mspf << " (ms)";
 		SetWindowTextA(hWnd, outs.str().c_str());
 
-		// ƒŠƒZƒbƒg
+		// ãƒªã‚»ãƒƒãƒˆ
 		frames = 0;
 		time_tlapsed += 1.0f;
 	}
 }
 
-// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒ‹[ƒv
+// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãƒ«ãƒ¼ãƒ—
 int Framework::Run()
 {
 	MSG msg = {};
@@ -141,7 +141,7 @@ int Framework::Run()
 	return static_cast<int>(msg.wParam);
 }
 
-// ƒƒbƒZ[ƒWƒnƒ“ƒhƒ‰
+// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒãƒ³ãƒ‰ãƒ©
 LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (msg == WM_MOUSEWHEEL)
@@ -183,9 +183,6 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 		PostQuitMessage(0);
 		break;
 	case WM_CREATE:
-		break;
-	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE) PostMessage(hWnd, WM_CLOSE, 0, 0);
 		break;
 	case WM_ENTERSIZEMOVE:
 		// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.

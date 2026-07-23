@@ -12,8 +12,11 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
-	modelRenderer = vmdl->GetRenderer();
-	modelRenderer->SetAutoUpdateTransform(false);
+	vmdl->SetAutoUpdateTransform(false);
+	vmdl->ApplyShape("Face1");
+	vmdl->ApplyShape("Eye1");
+	vmdl->ApplyShape("Cloth1");
+	vmdl->ApplyShape("Sword");
 
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する。
 	anim = vmdl->GetAnimator();

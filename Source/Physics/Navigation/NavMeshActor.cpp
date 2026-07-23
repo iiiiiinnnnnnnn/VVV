@@ -531,7 +531,7 @@ bool NavMeshActor::FindObstacleDetourPoint(
 
 void NavMeshActor::Render(const RenderContext& rc)
 {
-	if (!showDebug || !showNavMeshDebug) return;
+	if (!showNavMeshDebug || !rc.renderSettings.showNavMeshDebug) return;
 
 	PrimitiveRenderer* renderer =
 		Game::Graphics::Instance().GetPrimitiveRenderer();

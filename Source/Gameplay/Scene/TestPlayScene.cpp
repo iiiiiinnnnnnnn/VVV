@@ -1,6 +1,7 @@
 ﻿// TestPlayScene.cpp
 
 #include "Gameplay/Scene/TestPlayScene.h"
+#include "Gameplay/Scene/GameStartScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"

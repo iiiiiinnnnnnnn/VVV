@@ -1612,7 +1612,7 @@ void VmdlEditorScene::ApplyAnimationPreview()
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
 	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
 		previewTrailActive[i] = model->EvaluateTrailActive(selectedAnimation, animationTime, i) ? 1 : 0;
-	model->ApplyShapeAnimation(selectedAnimation, animationTime, previewInitialMeshVisibility);
+	model->ApplyShapeAnimation(selectedAnimation, animationTime);
 }
 
 void VmdlEditorScene::ResetAnimationControlPreview()
@@ -1624,7 +1624,7 @@ void VmdlEditorScene::ResetAnimationControlPreview()
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
 	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
 		previewTrailActive[i] = model->GetTrailInitialActive(i) ? 1 : 0;
-	model->RestoreShapeVisibility(previewInitialMeshVisibility);
+	model->RestoreRuntimeShapeVisibility();
 }
 
 void VmdlEditorScene::DrawAnimationEventEditor()
@@ -2046,24 +2046,60 @@ void VmdlEditorScene::DrawMaterialEditor()
 		changed |= ImGui::SliderFloat("Alpha Cutoff", &material.alphaCutoff, 0.0f, 1.0f);
 
 	ImGui::SeparatorText("Textures");
-	const auto textureRow = [](const char* label, const std::string& filename, const std::vector<uint8_t>& embedded)
+	const auto textureRow = [&](const char* label, VMDLModel::MaterialTextureSlot slot,
+		const std::string& filename, const std::vector<uint8_t>& embedded)
 	{
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
 		ImGui::TextUnformatted(label);
 		ImGui::TableSetColumnIndex(1);
 		if (filename.empty()) ImGui::TextDisabled(embedded.empty() ? "None" : "Embedded");
-		else ImGui::TextUnformatted(filename.c_str());
+		else ImGui::Text("%s%s", filename.c_str(), embedded.empty() ? "" : " (Embedded)");
+		ImGui::TableSetColumnIndex(2);
+		ImGui::PushID(label);
+		if (ImGui::SmallButton("Replace"))
+		{
+			char filepath[MAX_PATH]{};
+			const char* filter =
+				"Texture (*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp)\0"
+				"*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp\0";
+			if (Dialog::OpenFileName(filepath, MAX_PATH, filter, "Replace Material Texture") == DialogResult::OK)
+			{
+				if (model->ReplaceMaterialTexture(static_cast<size_t>(selectedMaterial), slot, filepath))
+				{
+					status = "Texture replaced and embedded in the VMDL.";
+					changed = true;
+				}
+				else
+				{
+					status = "Texture replacement failed.";
+				}
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Clear") &&
+			model->ClearMaterialTexture(static_cast<size_t>(selectedMaterial), slot))
+		{
+			status = "Texture cleared.";
+			changed = true;
+		}
+		ImGui::PopID();
 	};
-	if (ImGui::BeginTable("Material Textures", 2, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp))
+	if (ImGui::BeginTable("Material Textures", 3, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp))
 	{
 		ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 150.0f);
 		ImGui::TableSetupColumn("Source", ImGuiTableColumnFlags_WidthStretch);
-		textureRow("Base Color", material.baseTextureFileName, material.baseTextureDDS);
-		textureRow("Normal", material.normalTextureFileName, material.normalTextureDDS);
-		textureRow("Metalness / Roughness", material.metalnessRoughnessTextureFileName, material.metalnessRoughnessTextureDDS);
-		textureRow("Occlusion", material.occlusionTextureFileName, material.occlusionTextureDDS);
-		textureRow("Emissive", material.emissiveTextureFileName, material.emissiveTextureDDS);
+		ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 130.0f);
+		textureRow("Base Color", VMDLModel::MaterialTextureSlot::BaseColor,
+			material.baseTextureFileName, material.baseTextureDDS);
+		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal,
+			material.normalTextureFileName, material.normalTextureDDS);
+		textureRow("Metalness / Roughness", VMDLModel::MaterialTextureSlot::MetalnessRoughness,
+			material.metalnessRoughnessTextureFileName, material.metalnessRoughnessTextureDDS);
+		textureRow("Occlusion", VMDLModel::MaterialTextureSlot::Occlusion,
+			material.occlusionTextureFileName, material.occlusionTextureDDS);
+		textureRow("Emissive", VMDLModel::MaterialTextureSlot::Emissive,
+			material.emissiveTextureFileName, material.emissiveTextureDDS);
 		ImGui::EndTable();
 	}
 	if (changed) MarkDirty();
@@ -2267,9 +2303,6 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 		rootOffset = model->GetVmdlExtensionData().rootOffset;
 		modelScale = model->GetVmdlPlacementData().scale;
 		UpdateModelPlacement();
-		previewInitialMeshVisibility.clear();
-		previewInitialMeshVisibility.reserve(model->GetMeshes().size());
-		for (const auto& mesh : model->GetMeshes()) previewInitialMeshVisibility.push_back(mesh.isDraw ? 1 : 0);
 		ResetAnimationControlPreview();
 	}
 	catch (const std::exception& exception)

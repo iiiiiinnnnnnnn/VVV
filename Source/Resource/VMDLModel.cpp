@@ -623,6 +623,119 @@ void VMDLModel::BuildMaterialTextureResources(
 	);
 }
 
+bool VMDLModel::ReplaceMaterialTexture(
+	size_t materialIndex,
+	MaterialTextureSlot slot,
+	const std::filesystem::path& texturePath)
+{
+	if (materialIndex >= materials.size() || texturePath.empty()) return false;
+
+	Material& material = materials[materialIndex];
+	std::string* filename = nullptr;
+	std::vector<uint8_t>* embeddedDDS = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
+	switch (slot)
+	{
+	case MaterialTextureSlot::BaseColor:
+		filename = &material.baseTextureFileName;
+		embeddedDDS = &material.baseTextureDDS;
+		srv = &material.baseMap;
+		break;
+	case MaterialTextureSlot::Normal:
+		filename = &material.normalTextureFileName;
+		embeddedDDS = &material.normalTextureDDS;
+		srv = &material.normalMap;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		filename = &material.metalnessRoughnessTextureFileName;
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		srv = &material.metalnessRoughnessMap;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		filename = &material.occlusionTextureFileName;
+		embeddedDDS = &material.occlusionTextureDDS;
+		srv = &material.occlusionMap;
+		break;
+	case MaterialTextureSlot::Emissive:
+		filename = &material.emissiveTextureFileName;
+		embeddedDDS = &material.emissiveTextureDDS;
+		srv = &material.emissiveMap;
+		break;
+	}
+	if (!filename || !embeddedDDS || !srv) return false;
+
+	std::vector<uint8_t> convertedDDS;
+	if (FAILED(ConvertTextureFileToDDSBytes(texturePath, convertedDDS)) || convertedDDS.empty()) return false;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
+	const HRESULT hr = DirectX::CreateDDSTextureFromMemory(
+		Game::Graphics::Instance().GetDevice(),
+		convertedDDS.data(),
+		convertedDDS.size(),
+		nullptr,
+		replacement.GetAddressOf());
+	if (FAILED(hr)) return false;
+
+	*filename = texturePath.filename().string();
+	*embeddedDDS = std::move(convertedDDS);
+	*srv = std::move(replacement);
+	return true;
+}
+
+bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot)
+{
+	if (materialIndex >= materials.size()) return false;
+
+	Material& material = materials[materialIndex];
+	std::string* filename = nullptr;
+	std::vector<uint8_t>* embeddedDDS = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
+	uint32_t dummyColor = 0xFFFFFFFF;
+	switch (slot)
+	{
+	case MaterialTextureSlot::BaseColor:
+		filename = &material.baseTextureFileName;
+		embeddedDDS = &material.baseTextureDDS;
+		srv = &material.baseMap;
+		break;
+	case MaterialTextureSlot::Normal:
+		filename = &material.normalTextureFileName;
+		embeddedDDS = &material.normalTextureDDS;
+		srv = &material.normalMap;
+		dummyColor = 0xFFFF7F7F;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		filename = &material.metalnessRoughnessTextureFileName;
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		srv = &material.metalnessRoughnessMap;
+		dummyColor = 0xFF00FF00;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		filename = &material.occlusionTextureFileName;
+		embeddedDDS = &material.occlusionTextureDDS;
+		srv = &material.occlusionMap;
+		break;
+	case MaterialTextureSlot::Emissive:
+		filename = &material.emissiveTextureFileName;
+		embeddedDDS = &material.emissiveTextureDDS;
+		srv = &material.emissiveMap;
+		dummyColor = 0xFF000000;
+		break;
+	}
+	if (!filename || !embeddedDDS || !srv) return false;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
+	if (FAILED(GpuResourceUtils::CreateDummyTexture(
+		Game::Graphics::Instance().GetDevice(),
+		dummyColor,
+		replacement.GetAddressOf()))) return false;
+
+	filename->clear();
+	embeddedDDS->clear();
+	*srv = std::move(replacement);
+	return true;
+}
+
 VMDLModel::VMDLModel(
 	const char* filename,
 	float sampleRate,
@@ -812,6 +925,7 @@ VMDLModel::VMDLModel(
 	}
 
 	UpdateTransform(Matrix::Identity);
+	CaptureRuntimeShapeVisibility();
 }
 
 VMDLModel::VMDLModel(const VMDLModel& other)
@@ -923,6 +1037,7 @@ void VMDLModel::RebuildRuntimeReferences()
 	}
 
 	UpdateTransform(Matrix::Identity);
+	CaptureRuntimeShapeVisibility();
 }
 
 std::shared_ptr<VMDLModel> VMDLModel::Clone() const
@@ -1074,15 +1189,16 @@ bool VMDLModel::ApplyShape(int shapeIndex)
 {
 	const auto& shapes = vmdlExtensionData.shapes;
 	if (shapeIndex < 0 || shapeIndex >= static_cast<int>(shapes.size())) return false;
+	if (runtimeShapeVisibility.size() != meshes.size()) CaptureRuntimeShapeVisibility();
 
 	const auto& visibility = shapes[shapeIndex].meshVisibility;
 	const size_t count = std::min(meshes.size(), visibility.size());
 	for (size_t i = 0; i < count; ++i)
 	{
-		if (visibility[i] == 1) meshes[i].isDraw = true;
-		else if (visibility[i] == 0) meshes[i].isDraw = false;
+		if (visibility[i] == 1) runtimeShapeVisibility[i] = 1;
+		else if (visibility[i] == 0) runtimeShapeVisibility[i] = 0;
 	}
-	return true;
+	return ApplyShapeToMeshes(shapeIndex);
 }
 
 void VMDLModel::UpdateTransform(const Matrix& worldTransform)
@@ -1397,15 +1513,44 @@ const VMDLModel::VmdlShapeAnimationTrack* VMDLModel::FindShapeAnimationTrack(con
 	return nullptr;
 }
 
-void VMDLModel::RestoreShapeVisibility(const std::vector<uint8_t>& initialVisibility)
+void VMDLModel::CaptureRuntimeShapeVisibility()
 {
-	const size_t count = std::min(meshes.size(), initialVisibility.size());
-	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = initialVisibility[i] != 0;
+	runtimeShapeVisibility.clear();
+	runtimeShapeVisibility.reserve(meshes.size());
+	for (const Mesh& mesh : meshes) runtimeShapeVisibility.push_back(mesh.isDraw ? 1 : 0);
 }
 
-void VMDLModel::ApplyShapeAnimation(int animationIndex, float time, const std::vector<uint8_t>& initialVisibility)
+bool VMDLModel::ApplyShapeToMeshes(int shapeIndex)
 {
-	RestoreShapeVisibility(initialVisibility);
+	const auto& shapes = vmdlExtensionData.shapes;
+	if (shapeIndex < 0 || shapeIndex >= static_cast<int>(shapes.size())) return false;
+
+	const auto& visibility = shapes[shapeIndex].meshVisibility;
+	const size_t count = std::min(meshes.size(), visibility.size());
+	for (size_t i = 0; i < count; ++i)
+	{
+		if (visibility[i] == 1) meshes[i].isDraw = true;
+		else if (visibility[i] == 0) meshes[i].isDraw = false;
+	}
+	return true;
+}
+
+void VMDLModel::RestoreShapeVisibility(const std::vector<uint8_t>& visibility)
+{
+	const size_t count = std::min(meshes.size(), visibility.size());
+	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = visibility[i] != 0;
+	CaptureRuntimeShapeVisibility();
+}
+
+void VMDLModel::RestoreRuntimeShapeVisibility()
+{
+	const size_t count = std::min(meshes.size(), runtimeShapeVisibility.size());
+	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = runtimeShapeVisibility[i] != 0;
+}
+
+void VMDLModel::ApplyShapeAnimation(int animationIndex, float time)
+{
+	RestoreRuntimeShapeVisibility();
 	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return;
 
 	const Animation& animation = animations[animationIndex];
@@ -1421,7 +1566,7 @@ void VMDLModel::ApplyShapeAnimation(int animationIndex, float time, const std::v
 	for (const auto& key : track->keys)
 	{
 		if (key.seconds > time) break;
-		ApplyShape(key.shapeIndex);
+		ApplyShapeToMeshes(key.shapeIndex);
 	}
 }
 

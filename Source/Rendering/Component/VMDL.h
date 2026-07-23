@@ -29,6 +29,8 @@ public:
 	Animator* GetAnimator() const { return animator; }
 	HumanoidFootIK* GetHumanFootIK() const { return humanFootIK; }
 	PhysicsComponent* GetCollider(const std::string& name) const;
+	void SetAutoUpdateTransform(bool value);
+	bool ApplyShape(const std::string& shapeName);
 
 	template<typename T>
 	T* GetCollider(const std::string& name) const

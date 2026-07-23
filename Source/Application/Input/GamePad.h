@@ -36,6 +36,7 @@ public:
 	static const GamePadButton BTN_F10				= (1 << 25); // デバッグ
 	static const GamePadButton BTN_F11				= (1 << 26); // デバッグ
 	static const GamePadButton BTN_F12				= (1 << 27); // デバッグ
+	static const GamePadButton BTN_ESCAPE			= (1 << 28);
 
 public:
 	GamePad() {}

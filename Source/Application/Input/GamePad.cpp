@@ -167,6 +167,7 @@ void GamePad::Update()
 		if (GetAsyncKeyState(VK_F10) & 0x8000) newButtonState |= BTN_F10;
 		if (GetAsyncKeyState(VK_F11) & 0x8000) newButtonState |= BTN_F11;
 		if (GetAsyncKeyState(VK_F12) & 0x8000) newButtonState |= BTN_F12;
+		if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) newButtonState |= BTN_ESCAPE;
 
 #if 1
 		if (newButtonState & BTN_UP)    ly = 1.0f;

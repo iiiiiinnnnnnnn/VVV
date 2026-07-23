@@ -310,6 +310,15 @@ public:
 		void serialize(Archive& archive);
 	};
 
+	enum class MaterialTextureSlot
+	{
+		BaseColor,
+		Normal,
+		MetalnessRoughness,
+		Occlusion,
+		Emissive
+	};
+
 	struct Vertex
 	{
 		Vector3				position = Vector3::Zero;
@@ -424,6 +433,11 @@ public:
 
 	const std::vector<Material>& GetMaterials() const { return materials; }
 	std::vector<Material>& GetMaterials() { return materials; }
+	bool ReplaceMaterialTexture(
+		size_t materialIndex,
+		MaterialTextureSlot slot,
+		const std::filesystem::path& texturePath);
+	bool ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot);
 
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }
@@ -460,8 +474,9 @@ public:
 	VmdlTrailAnimationTrack& GetOrCreateTrailAnimationTrack(const std::string& animationName, int trailIndex);
 	VmdlShapeAnimationTrack& GetOrCreateShapeAnimationTrack(const std::string& animationName);
 	const VmdlShapeAnimationTrack* FindShapeAnimationTrack(const std::string& animationName) const;
-	void ApplyShapeAnimation(int animationIndex, float time, const std::vector<uint8_t>& initialVisibility);
-	void RestoreShapeVisibility(const std::vector<uint8_t>& initialVisibility);
+	void ApplyShapeAnimation(int animationIndex, float time);
+	void RestoreShapeVisibility(const std::vector<uint8_t>& visibility);
+	void RestoreRuntimeShapeVisibility();
 	bool ApplyShape(int shapeIndex);
 	bool ApplyShape(const char* name);
 	int GetShapeIndex(const char* name) const;
@@ -504,6 +519,8 @@ private:
 	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
 	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+	bool ApplyShapeToMeshes(int shapeIndex);
+	void CaptureRuntimeShapeVisibility();
 
 	void RebuildRuntimeReferences();
 
@@ -517,6 +534,7 @@ private:
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;
 	VmdlPlacementData vmdlPlacementData;
+	std::vector<uint8_t> runtimeShapeVisibility;
 
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;

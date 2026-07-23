@@ -38,9 +38,6 @@ void VMDLModelComponent::BuildAttachments()
 {
 	if (attachmentsBuilt || !model) return;
 	attachmentsBuilt = true;
-	initialMeshVisibility.clear();
-	initialMeshVisibility.reserve(model->GetMeshes().size());
-	for (const auto& mesh : model->GetMeshes()) initialMeshVisibility.push_back(mesh.isDraw ? 1 : 0);
 
 	const auto& data = model->GetVmdlExtensionData();
 	attachmentColliders.assign(data.colliders.size(), nullptr);
@@ -162,7 +159,7 @@ void VMDLModelComponent::UpdateAnimationControls()
 		if (model->EvaluateTrailActive(animationIndex, time, i)) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
 	}
-	model->ApplyShapeAnimation(animationIndex, time, initialMeshVisibility);
+	model->ApplyShapeAnimation(animationIndex, time);
 	animationControlsApplied = true;
 }
 
@@ -179,7 +176,7 @@ void VMDLModelComponent::RestoreAnimationControls()
 		if (model->GetTrailInitialActive(i)) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
 	}
-	model->RestoreShapeVisibility(initialMeshVisibility);
+	model->RestoreRuntimeShapeVisibility();
 	animationControlsApplied = false;
 }
 

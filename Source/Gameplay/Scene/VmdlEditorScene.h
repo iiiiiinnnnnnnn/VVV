@@ -114,7 +114,6 @@ private:
 	bool showGrid = true;
 	bool showExportWarning = false;
 	bool exiting = false;
-	std::vector<uint8_t> previewInitialMeshVisibility;
 	std::vector<uint8_t> previewColliderActive;
 	std::vector<uint8_t> previewTrailActive;
 };

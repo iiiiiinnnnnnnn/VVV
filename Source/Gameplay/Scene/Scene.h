@@ -49,7 +49,9 @@ protected:
 	virtual void OnUpdate() {}
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
+
 	virtual bool UsesGameDebugGUI() const { return true; }
+	virtual bool OnRequestExit() { return true; }
 
 	std::unique_ptr<Stage> currentStage;
 

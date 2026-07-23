@@ -38,6 +38,16 @@ PhysicsComponent* VMDL::GetCollider(const std::string& name) const
 	return renderer ? renderer->GetAttachmentCollider(name) : nullptr;
 }
 
+void VMDL::SetAutoUpdateTransform(bool value)
+{
+	if (renderer) renderer->SetAutoUpdateTransform(value);
+}
+
+bool VMDL::ApplyShape(const std::string& shapeName)
+{
+	return model && model->ApplyShape(shapeName.c_str());
+}
+
 LayerId VMDL::GetAttachmentLayer() const
 {
 	if (owner->CompareTag("Player")) return Layers::Get("PlayerAtk");

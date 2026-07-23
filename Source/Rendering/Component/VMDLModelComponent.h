@@ -55,5 +55,4 @@ private:
 	Animator* animator = nullptr;
 	std::vector<PhysicsComponent*> attachmentColliders;
 	std::vector<TrailRenderComponent*> attachmentTrails;
-	std::vector<uint8_t> initialMeshVisibility;
 };

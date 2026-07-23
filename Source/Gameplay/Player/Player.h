@@ -11,7 +11,6 @@
 #include "Gameplay/Player/PlayerController.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Rendering/Component/VMDL.h"
-#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Collider/BoneCollider.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Animation/LookAt.h"
@@ -75,7 +74,6 @@ protected:
     int stRun = -1;
     int stSprint = -1;
     VMDL* vmdl = nullptr;
-    VMDLModelComponent* modelRenderer = nullptr;
     ThirdPersonCameraController* cameraController = nullptr;
     bool  isFirstPerson = false;
     float spineAngleX = 0.0f;
