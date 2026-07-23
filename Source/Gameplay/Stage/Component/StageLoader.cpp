@@ -413,7 +413,7 @@ void StageLoader::DrawEditorGUI(bool singleSection)
 	{
 	ImGui::TextUnformatted("SpawnerList:");
 
-	ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 150.0f), true);
+	ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 170.0f * 3.0f), true);
 
 	for (int i = 0; i < static_cast<int>(spawnerDataList.size()); ++i)
 	{
@@ -450,7 +450,7 @@ void StageLoader::DrawEditorGUI(bool singleSection)
 	{
 	ImGui::TextUnformatted("PropList:");
 
-	ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 150.0f), true);
+	ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 170.0f * 3.0f), true);
 
 	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 	{
