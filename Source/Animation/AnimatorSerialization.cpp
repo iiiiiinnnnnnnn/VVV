@@ -1,4 +1,4 @@
-// AnimatorSerialization.cpp
+ï»¿// AnimatorSerialization.cpp
 
 #include "Animation/Animator.h"
 
@@ -12,7 +12,7 @@ using json = nlohmann::json;
 bool Animator::Serialize(const std::string& path) const
     {
         json root;
-        root["animationMode"] = IsDynamicMode() ? "Dynamic" : "Model";
+        root["animationMode"] = IsDynamicMode() ? "Dynamic" : "VMDLModel";
 
         // Parameters
         json jParams = json::array();
@@ -78,20 +78,6 @@ bool Animator::Serialize(const std::string& path) const
                 jState["editorPosX"] = state.editorPosX;
                 jState["editorPosY"] = state.editorPosY;
 
-                json jFootIKRanges = json::array();
-                for (const auto& range : state.footIKRanges)
-                {
-                    json jRange;
-                    jRange["name"] = range.name;
-                    jRange["targetName"] = range.targetName;
-                    jRange["startRatio"] = range.startRatio;
-                    jRange["endRatio"] = range.endRatio;
-                    jRange["weight"] = range.weight;
-                    jRange["fadeInRatio"] = range.fadeInRatio;
-                    jRange["fadeOutRatio"] = range.fadeOutRatio;
-                    jFootIKRanges.push_back(jRange);
-                }
-                jState["footIKRanges"] = jFootIKRanges;
                 // Transitions
                 json jTrans = json::array();
                 for (const auto& tr : state.transitions)
@@ -108,7 +94,6 @@ bool Animator::Serialize(const std::string& path) const
                     jTr["priority"]           = tr.priority;
                     jTr["canInterrupt"]       = tr.canInterrupt;
 
-                    // Conditions
                     json jConds = json::array();
                     for (const auto& c : tr.conditions)
                     {
@@ -128,8 +113,8 @@ bool Animator::Serialize(const std::string& path) const
                 }
                 jState["transitions"] = jTrans;
 
-                // Callbacks (label / enterTimePer / exitTimePer ‚Ì‚İ•Û‘¶Bstd::function ‚Í•Û‘¶•s‰Â)
                 json jCallbacks = json::array();
+				// å®Ÿè¡Œé–¢æ•°ãã®ã‚‚ã®ã¯ä¿å­˜ã§ããªã„ãŸã‚ã€å†ãƒã‚¤ãƒ³ãƒ‰ã«å¿…è¦ãªãƒ©ãƒ™ãƒ«ã¨ç™ºç«åŒºé–“ã ã‘ä¿å­˜ã™ã‚‹ã€‚
                 for (const auto& cb : state.callbacks)
                 {
                     json jCb;
@@ -144,7 +129,6 @@ bool Animator::Serialize(const std::string& path) const
             }
             jLayer["states"] = jStates;
 
-            // AnyState Transitions
             json jAnyTrans = json::array();
             for (const auto& tr : layer.anyStateTransitions)
             {
@@ -190,7 +174,6 @@ bool Animator::Serialize(const std::string& path) const
     }
 
     // -------------------------------------------------------
-    // Load  (Šù‘¶ƒf[ƒ^‚ğ‘S‚ÄƒNƒŠƒA‚µ‚Äã‘‚«)
     // -------------------------------------------------------
 void Animator::Deserialize(const std::string& path)
     {
@@ -201,17 +184,18 @@ void Animator::Deserialize(const std::string& path)
         try { root = json::parse(ifs); }
         catch (...) { _ASSERT_EXPR(false, "Failed to parse animator: " + path); }
 
-        const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "Model";
-        const std::string fileMode = root.value("animationMode", expectedMode);
-        if (fileMode != expectedMode)
+		const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "VMDLModel";
+		const std::string fileMode = root.value("animationMode", expectedMode);
+		const bool legacyVmdlMode = !IsDynamicMode() && fileMode == "Model";
+		if (fileMode != expectedMode && !legacyVmdlMode)
         {
             _ASSERT_EXPR(false, L"Animator mode does not match the loaded file.");
             return;
         }
 
+		// æ—¢å­˜ãƒ‡ãƒ¼ã‚¿ã¨æ··ã–ã‚‹ã¨ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹å‚ç…§ãŒå£Šã‚Œã‚‹ãŸã‚ã€èª­ã¿è¾¼ã¿å‰ã«å…¨çŠ¶æ…‹ã‚’ç ´æ£„ã™ã‚‹ã€‚
         ClearAll();
 
-        // Parameters
         for (const auto& p : root["parameters"])
         {
             std::string name = p["name"];
@@ -221,11 +205,9 @@ void Animator::Deserialize(const std::string& path)
             else if (type == "bool")  AddBool(name, p["value"].get<bool>());
         }
 
-        // Triggers
         for (const auto& t : root["triggers"])
             AddTrigger(t.get<std::string>());
 
-        // Layers
         for (const auto& jLayer : root["layers"])
         {
             Animator::AvatarMask mask;
@@ -240,7 +222,6 @@ void Animator::Deserialize(const std::string& path)
             GetLayer(li).anyStateEditorPosX = jLayer.value("anyStateEditorPosX", 0.0f);
             GetLayer(li).anyStateEditorPosY = jLayer.value("anyStateEditorPosY", 0.0f);
 
-            // States
             for (const auto& jState : jLayer["states"])
             {
                 int si = -1;
@@ -271,26 +252,7 @@ void Animator::Deserialize(const std::string& path)
                 GetLayer(li).states[si].editorPosY =
                     jState.value("editorPosY", 0.0f);
 
-                // Transitions
-                // AddTransition ‚Í“à•”‚Åƒ\[ƒg‚·‚é‚½‚ßAJSON‚Ì‡”Ô‚ª•ö‚ê‚éB
-                // ’¼Ú push_back ¨ Condition ‚ğ•t—^ ¨ ÅŒã‚É‚Ü‚Æ‚ß‚Äƒ\[ƒg‚·‚éB
                 auto& stateRef = GetLayer(li).states[si];
-                if (jState.contains("footIKRanges"))
-                {
-                    for (const auto& jRange : jState["footIKRanges"])
-                    {
-                        Animator::FootIKRange range;
-                        range.name = jRange.value("name", std::string("FootIK"));
-                        range.targetName = jRange.value("targetName", jRange.value("targetBoneName", std::string("All")));
-                        if (range.targetName.empty()) range.targetName = "All";
-                        range.startRatio = jRange.value("startRatio", 0.0f);
-                        range.endRatio = jRange.value("endRatio", 1.0f);
-                        range.weight = jRange.value("weight", 1.0f);
-                        range.fadeInRatio = jRange.value("fadeInRatio", 0.03f);
-                        range.fadeOutRatio = jRange.value("fadeOutRatio", 0.03f);
-                        stateRef.footIKRanges.push_back(range);
-                    }
-                }
                 for (const auto& jTr : jState["transitions"])
                 {
                     Animator::Transition tr;
@@ -306,7 +268,6 @@ void Animator::Deserialize(const std::string& path)
                     tr.priority           = jTr["priority"].get<int>();
                     tr.canInterrupt       = jTr["canInterrupt"].get<bool>();
 
-                    // Conditions
                     for (const auto& jC : jTr["conditions"])
                     {
                         Animator::Condition c;
@@ -324,15 +285,13 @@ void Animator::Deserialize(const std::string& path)
                     }
                     stateRef.transitions.push_back(tr);
                 }
-                // JSON ‚Ì•À‚Ñ‡ = priority ‡‚Æ‚µ‚Ä•Û‘¶‚³‚ê‚Ä‚¢‚é‚Ì‚Åƒ\[ƒg•s—v‚¾‚ªA
-                // ”O‚Ì‚½‚ß priority ’l‚Åƒ\[ƒg‚µ‚Ä®‡«‚ğ•Û‚Â
                 std::sort(stateRef.transitions.begin(), stateRef.transitions.end(),
                           [](const Animator::Transition& a, const Animator::Transition& b)
                 { return a.priority > b.priority; });
 
-                // Callbacks ‚Ì•œŒ³ilabel / enter / exit ‚Ì‚İBstd::function ‚Í BindCallbacks() ‚ÅÄƒoƒCƒ“ƒh‚·‚éj
                 if (jState.contains("callbacks"))
                 {
+					// ã“ã“ã§ã¯è­˜åˆ¥æƒ…å ±ã ã‘å¾©å…ƒã™ã‚‹ã€‚onEnter/onExitã¯èª­ã¿è¾¼ã¿å¾Œã«BindCallbacksã§è¨­å®šã™ã‚‹ã€‚
                     for (const auto& jCb : jState["callbacks"])
                     {
                         stateRef.AddCallback(
@@ -343,12 +302,10 @@ void Animator::Deserialize(const std::string& path)
                 }
             }
 
-            // DefaultState
             int defState = jLayer["defaultState"].get<int>();
             if (defState >= 0)
                 SetDefaultState(li, defState);
 
-            // AnyState Transitions
             if (jLayer.contains("anyStateTransitions"))
             {
                 auto& anyTrans = GetAnyStateTransitions_Mutable(li);

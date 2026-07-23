@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Core/Object/Component.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Core/Object/Transform.h"
 
 class Rigidbody;
@@ -15,13 +15,13 @@ class BoneFollower : public Component
 public:
 	BoneFollower(
 		Object* owner,
-		Model* targetModel,
+		VMDLModel* targetModel,
 		const std::string& targetNodeName,
 		const Transform& offset = {});
 
 	BoneFollower(
 		Object* owner,
-		Model* targetModel,
+		VMDLModel* targetModel,
 		int targetNodeIndex,
 		const Transform& offset = {});
 
@@ -30,8 +30,8 @@ public:
 	void OnDrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_BONE " BoneFollower"; }
 
-	void SetTarget(Model* targetModel, const std::string& targetNodeName);
-	void SetTarget(Model* targetModel, int targetNodeIndex);
+	void SetTarget(VMDLModel* targetModel, const std::string& targetNodeName);
+	void SetTarget(VMDLModel* targetModel, int targetNodeIndex);
 	void SetOffset(const Transform& offset);
 	void SetOffset(
 		const Vector3& position,
@@ -42,7 +42,7 @@ private:
 	void ApplyFollow();
 	void SyncRigidbody(Actor* ownerActor);
 
-	Model* targetModel = nullptr;
+	VMDLModel* targetModel = nullptr;
 	int targetNodeIndex = -1;
 	std::string targetNodeName;
 	Transform offset;

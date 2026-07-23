@@ -7,14 +7,14 @@
 #include "Core/Foundation/Common.h"
 
 class Actor;
-class ModelRenderComponent;
+class VMDLModelComponent;
 
 class DamageHoleComponent : public Component
 {
 public:
 	DamageHoleComponent(
 		Object* owner,
-		ModelRenderComponent* modelRenderer,
+		VMDLModelComponent* modelRenderer,
 		float holeRadius,
 		float holeEdgeWidth,
 		float holeDepth,
@@ -43,7 +43,7 @@ private:
 	Vector4 MakeWorldHole(const Vector4& localHole, const Actor* actor) const;
 	Vector4 MakeWorldDirection(const Vector4& localDirection, const Actor* actor) const;
 
-	ModelRenderComponent* modelRenderer = nullptr;
+	VMDLModelComponent* modelRenderer = nullptr;
 	std::vector<Vector4> damageHoles;
 	std::vector<Vector4> damageHoleDirections;
 	float holeRadius = 1.0f;

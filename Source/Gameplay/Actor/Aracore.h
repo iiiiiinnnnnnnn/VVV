@@ -1,4 +1,4 @@
-// Aracore.h
+﻿// Aracore.h
 
 #pragma once
 #include "Rendering/Core/ShaderParam.h"
@@ -15,8 +15,8 @@ class ActorManager;
 class Animator;
 class CharacterController;
 class BoneSphereCollider;
-class Model;
-class ModelRenderComponent;
+class VMDLModel;
+class VMDLModelComponent;
 class PhysicsComponent;
 class RigidbodyDynamic;
 class Aracore;
@@ -68,9 +68,9 @@ private:
 	Animator* anim = nullptr;
 	CharacterController* characterController = nullptr;
 	ParticleSystem* breakParticleSystem = nullptr;
-	ModelRenderComponent* bodyRenderer = nullptr;
+	VMDLModelComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb = nullptr;
-	std::shared_ptr<Model> model;
+	std::shared_ptr<VMDLModel> model;
 	Actor* machine = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
 	SpiderFootIK* spiderFootIK = nullptr;

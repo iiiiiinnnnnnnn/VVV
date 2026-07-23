@@ -6,7 +6,7 @@
 #include "Gameplay/Stage/Component/StageLoader.h"
 
 class DamageHoleComponent;
-class ModelRenderComponent;
+class VMDLModelComponent;
 
 class Prop : public Actor
 {
@@ -23,7 +23,7 @@ public:
 		const Vector3& normal) override;
 
 	DamageHoleComponent* damageHoleComponent = nullptr;
-	ModelRenderComponent* modelRenderer = nullptr;
+	VMDLModelComponent* modelRenderer = nullptr;
 	bool useDestroy = false;
 	float destroyLife = 0.0f;
 };

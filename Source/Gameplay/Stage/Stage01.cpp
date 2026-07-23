@@ -30,7 +30,6 @@ Stage01::Stage01()
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	AddComponent<NavMeshActor>();
 
-	// F4縺ｧ蛻・ｊ譖ｿ縺医ｋ繧ｹ繝・・繧ｸ遒ｺ隱咲畑繧ｫ繝｡繝ｩ
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
 		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
@@ -69,7 +68,6 @@ Stage01::Stage01()
 	actorManager.Register(boss);
 	#endif
 
-
 	DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
 	directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
 		RAD(-35.0f), RAD(35.0f), 0.0f);
@@ -105,6 +103,8 @@ void Stage01::OnUpdate()
 
 	particleSystem->Update();
 
+	// 雑魚敵
+	#if 0
 	//aracoreSpawnTimer -= Game::Time::deltaTime;
 	if (aracoreSpawnTimer < 0)
 	{
@@ -114,6 +114,7 @@ void Stage01::OnUpdate()
 		aracore->SetBreakParticleSystem(particleSystem.get());
 		actorManager.Register(aracore);
 	}
+	#endif
 }
 
 void Stage01::OnRender(const RenderContext& rc)

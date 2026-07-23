@@ -1,4 +1,4 @@
-// SpiderFootIK.h
+﻿// SpiderFootIK.h
 
 #pragma once
 
@@ -8,14 +8,14 @@
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 #include "Animation/FootIK.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 
 class Animator;
 
 class SpiderFootIK : public Component
 {
 public:
-	SpiderFootIK(Object* owner, LayerId layerId, Model* model, Animator* animator = nullptr);
+	SpiderFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator = nullptr);
 	~SpiderFootIK() override = default;
 
 	void LateUpdate() override;
@@ -35,7 +35,7 @@ private:
 	void ApplyFootSettings();
 	float GetFootIKWeight(int footIndex) const;
 
-	Model* model = nullptr;
+	VMDLModel* model = nullptr;
 	Animator* animator = nullptr;
 	LayerId layerId = 0;
 	int waistNodeIndex = -1;

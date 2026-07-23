@@ -4,6 +4,7 @@
 
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
+#include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Resource/ResourceManager.h"
 
 GameStartScene::GameStartScene(SceneMessage message)
@@ -15,14 +16,26 @@ GameStartScene::GameStartScene(SceneMessage message)
 void GameStartScene::OnUpdate()
 {
 	if (!resourcesReady || loadRequested) return;
+#if !defined(_DEBUG)
 	loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
+#endif
 }
 
 void GameStartScene::OnDrawGUI()
 {
 	if (resourcesReady)
 	{
-		ImGui::TextUnformatted("Resources are ready.");
+		ImGui::TextUnformatted("Select startup mode.");
+#if defined(_DEBUG)
+		if (ImGui::Button("Enter Game", ImVec2(240, 56)))
+		{
+			loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
+		}
+		if (ImGui::Button("Enter VMDL Editor", ImVec2(240, 56)))
+		{
+			loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
+		}
+#endif
 		return;
 	}
 

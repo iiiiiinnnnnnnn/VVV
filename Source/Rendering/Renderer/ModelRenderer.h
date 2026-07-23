@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// ModelRenderer.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -8,7 +9,7 @@
 #include <vector>
 
 #include "Core/Foundation/Common.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Rendering/Shader/Shader.h"
 #include "Gameplay/Lighting/CbLightData.h"
 
@@ -26,12 +27,12 @@ public:
 	ModelRenderer(ID3D11Device* device);
 	~ModelRenderer() {}
 
-	void Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial);
+	void Draw(ModelShaderId shaderId, std::shared_ptr<VMDLModel> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial);
 
 	void Render(const RenderContext& rc);
 
-	static void SetShaderParamForAllMaterials(Model* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial);
-	static void SetShaderParamForAllMaterials(Model* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial);
+	static void SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial);
+	static void SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial);
 
 private:
 	
@@ -51,14 +52,14 @@ private:
 	struct DrawInfo
 	{
 		ModelShaderId				shaderId;
-		std::shared_ptr<Model>	model;
+		std::shared_ptr<VMDLModel>	model;
 		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
 	};
 
 	struct TransparencyDrawInfo
 	{
 		ModelShaderId				shaderId;
-		const Model::Mesh*		mesh;
+		const VMDLModel::Mesh*		mesh;
 		float					distance;
 		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
 	};

@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// HighResolutionTimer.h
+#pragma once
 
 #include <windows.h>
 

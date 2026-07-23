@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// BasicModelShader.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -11,13 +12,15 @@ public:
 	~BasicModelShader() override = default;
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, const Model::Mesh& mesh) override;
+	void Update(const RenderContext& rc, const VMDLModel::Mesh& mesh) override;
 	void End(const RenderContext& rc) override;
 
 private:
 	struct CbBasic
 	{
 		Color		materialColor;
+		int			useTexture = 1;
+		float		padding[3]{};
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };

@@ -3,7 +3,7 @@
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Lighting/Light.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -178,7 +178,7 @@ void Scene::Render()
 		{
 			if (!actor || actor->IsPendingDestroy()) continue;
 
-			auto* mrc = actor->GetComponent<ModelRenderComponent>();
+			auto* mrc = actor->GetComponent<VMDLModelComponent>();
 			if (mrc)
 			{
 				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
@@ -228,11 +228,8 @@ void Scene::Render()
 		{
 			if (!actor || actor->IsPendingDestroy()) continue;
 
-			auto* trail = actor->GetComponent<TrailRenderComponent>();
-			if (trail)
-			{
+			for (TrailRenderComponent* trail : actor->GetComponents<TrailRenderComponent>())
 				trail->RenderTrail(rc);
-			}
 		}
 
 		OnRender(rc);

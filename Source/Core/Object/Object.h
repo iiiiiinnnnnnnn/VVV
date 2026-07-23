@@ -58,6 +58,9 @@ public:
 	template<typename T>
 	T* GetComponent() const;
 
+	template<typename T>
+	std::vector<T*> GetComponents() const;
+
 	// Name
 	const std::string& GetName() const { return name; }
 	void SetName(const std::string& name) { this->name = name; }

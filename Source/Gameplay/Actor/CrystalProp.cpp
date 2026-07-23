@@ -1,4 +1,4 @@
-// CrystalProp.cpp
+﻿// CrystalProp.cpp
 
 #include "Gameplay/Actor/CrystalProp.h"
 
@@ -7,7 +7,7 @@
 #include "Gameplay/Scene/HitStop.h"
 #include "Physics/Collider/MeshCollider.h"
 #include "Rendering/Renderer/ModelRenderer.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/DamageHoleComponent.h"
 #include "Rendering/Effect/ParticleSystem.h"
 #include "Physics/Core/PhysicsComponent.h"
@@ -30,7 +30,7 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     life = maxLife;
 
     model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
-    modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParams);
+    modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParams);
     damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1, 1, 2, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();
     meshCollider = AddComponent<MeshCollider>(

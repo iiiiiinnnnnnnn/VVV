@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Shader.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -6,7 +7,7 @@
 
 #include "Core/Foundation/Common.h"
 #include "Rendering/Core/RenderContext.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Rendering/Core/ShaderParam.h"
 
 class Shader
@@ -36,6 +37,6 @@ public:
 class ModelShader : public Shader
 {
 public:
-	virtual void Update(const RenderContext& rc, const Model::Mesh& mesh) = 0;
+	virtual void Update(const RenderContext& rc, const VMDLModel::Mesh& mesh) = 0;
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 };

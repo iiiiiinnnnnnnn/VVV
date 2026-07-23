@@ -1,4 +1,4 @@
-// TrailRenderComponent.cpp
+ï»¿// TrailRenderComponent.cpp
 
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Core/Graphics.h"
@@ -7,7 +7,7 @@
 
 TrailRenderComponent::TrailRenderComponent(
     Object* owner,
-    Model* model,
+    VMDLModel* model,
     int   nodeIndex,
     Color color,
     float rootOffset,
@@ -19,22 +19,43 @@ TrailRenderComponent::TrailRenderComponent(
     , model(model)
     , nodeIndex(nodeIndex)
     , color(color)
-    , rootOffset(rootOffset)
-    , tipOffset(tipOffset)
+	, rootOffset(rootOffset, 0.0f, 0.0f)
+	, tipOffset(tipOffset, 0.0f, 0.0f)
     , tipRatio(tipRatio)
     , lifeTime(lifeTime)
     , maxPoints(maxPoints)
 {
-    // ƒGƒ‰[—p
+}
+
+TrailRenderComponent::TrailRenderComponent(
+	Object* owner,
+	VMDLModel* model,
+	int nodeIndex,
+	const Vector3& rootOffset,
+	const Vector3& tipOffset,
+	Color color,
+	float tipRatio,
+	float lifeTime,
+	int maxPoints)
+	: Component(owner),
+	model(model),
+	nodeIndex(nodeIndex),
+	rootOffset(rootOffset),
+	tipOffset(tipOffset),
+	tipRatio(tipRatio),
+	lifeTime(lifeTime),
+	maxPoints(maxPoints),
+	color(color)
+{
 }
 
 void TrailRenderComponent::LateUpdate()
 {
     float dt = Game::Time::deltaTime;
 
-    // --- Šù‘¶‚Ì“_‚ğ˜V‰»‚³‚¹Aõ–½Ø‚ê‚ğíœ ---
     for (auto& p : points)
     {
+		// å¤ã„ç‚¹ã»ã©åˆƒå…ˆã‚’æ ¹å…ƒã¸ç¸®ã‚ã€æ®‹åƒã®çµ‚ç«¯ãŒè‡ªç„¶ã«ç´°ããªã‚‹ã‚ˆã†äºŒä¹—ã‚¤ãƒ¼ã‚¸ãƒ³ã‚°ã™ã‚‹ã€‚
         p.age += dt;
         float t = p.age / lifeTime;
         float easedT = t * t;  // EaseIn
@@ -44,30 +65,26 @@ void TrailRenderComponent::LateUpdate()
     while (!points.empty() && points.back().age >= lifeTime)
         points.pop_back();
 
-    // --- ƒAƒNƒeƒBƒu‚Å‚È‚¯‚ê‚ÎƒTƒ“ƒvƒŠƒ“ƒO‚µ‚È‚¢i“_‚Í˜V‰»Eíœ‚¾‚¯i‚Şj---
     if (!IsActive() || stopping) return;
 
-    // --- ƒTƒ“ƒvƒŠƒ“ƒOŠÔŠuƒ`ƒFƒbƒN ---
     sampleTimer += dt;
     if (sampleTimer < SAMPLE_INTERVAL) return;
     sampleTimer = 0.0f;
 
-    // --- ƒm[ƒh‚Ìƒ[ƒ‹ƒhs—ñ‚©‚ç root / tip ‚ğæ“¾ ---
-    const Model::Node& node = model->GetNodes()[nodeIndex];
+    const VMDLModel::Node& node = model->GetNodes()[nodeIndex];
     const Matrix& wt = node.worldTransform;
 
-    Matrix rootMat = Matrix::CreateTranslation(rootOffset, 0.0f, 0.0f) * wt;
-    Matrix tipMat  = Matrix::CreateTranslation(tipOffset,  0.0f, 0.0f) * wt;
+    Matrix rootMat = Matrix::CreateTranslation(rootOffset) * wt;
+    Matrix tipMat  = Matrix::CreateTranslation(tipOffset) * wt;
 
     TrailPoint pt;
     pt.root    = { rootMat._41, rootMat._42, rootMat._43 };
     pt.tipFull = { tipMat._41,  tipMat._42,  tipMat._43  };
-    pt.tip     = pt.tipFull;  // •ÏX: root ¨ tipFulli’Ç‰Á’¼Œã‚©‚çƒtƒ‹•\¦j
+    pt.tip     = pt.tipFull;
     pt.age     = 0.0f;
 
     points.push_front(pt);
 
-    // ãŒÀ‚ğ’´‚¦‚½‚çŒÃ‚¢‚à‚Ì‚ğíœ
     while ((int)points.size() > maxPoints)
         points.pop_back();
 }
@@ -82,6 +99,8 @@ void TrailRenderComponent::BuildTrailVertices()
 
     for (int i = 0; i < count - 1; ++i)
     {
+		// å„ã‚µãƒ³ãƒ—ãƒ«é–“ã‚’Catmull-Romæ›²ç·šã§è£œé–“ã™ã‚‹ã€‚ç«¯ã§ã¯éš£æ¥ç‚¹ã‚’å¤–æŒ¿ã—ã¦ä»®æƒ³åˆ¶å¾¡ç‚¹ã‚’ä½œã‚Šã€
+		// å§‹ç«¯ã¨çµ‚ç«¯ã§ã‚‚æ¥ç·šãŒæ€¥ã«æŠ˜ã‚Œãªã„ã‚ˆã†ã«ã™ã‚‹ã€‚
         for (int j = 0; j < splineSegment; ++j)
         {
             float t = static_cast<float>(j) / splineSegment;
@@ -107,7 +126,6 @@ void TrailRenderComponent::Render(const RenderContext& rc)
 {
 }
 
-// •ÏX: ’Ç‰ÁBRenderStateİ’è‚ÆÀ•`‰æBScene‘¤‚ÅModelRenderer->Render()‚ÌŒã‚ÉŒÄ‚ÔB
 void TrailRenderComponent::RenderTrail(const RenderContext& rc)
 {
     if (points.size() < 2) return;
@@ -118,6 +136,7 @@ void TrailRenderComponent::RenderTrail(const RenderContext& rc)
     auto  dc          = rc.deviceContext;
     auto  renderState = rc.renderState;
 
+	// è»Œè·¡ã¯åŠ ç®—ãƒ»æ·±åº¦æ›¸ãè¾¼ã¿ãªã—ãƒ»ä¸¡é¢æç”»ã§æãã€çµ‚äº†å¾Œã¯æ¨™æº–çŠ¶æ…‹ã¸å¿…ãšæˆ»ã™ã€‚
     dc->OMSetBlendState(renderState->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
     dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestOnly), 0);
     dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));

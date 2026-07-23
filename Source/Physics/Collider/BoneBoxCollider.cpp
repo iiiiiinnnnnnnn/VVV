@@ -1,11 +1,11 @@
-// BoneBoxCollider.cpp
+﻿// BoneBoxCollider.cpp
 
 #include "Physics/Collider/BoneBoxCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
 
-BoneBoxCollider::BoneBoxCollider(Object* owner, LayerId layerId, Model* model, int nodeIndex,
+BoneBoxCollider::BoneBoxCollider(Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex,
     const Vector3& size, Matrix offset, PxMaterial* material,
     bool isTrigger, bool freezePositions, bool freezeRotations)
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)

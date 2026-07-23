@@ -5,8 +5,8 @@
 #include "Animation/Animator.h"
 #include "Animation/BoneFollower.h"
 #include "Physics/Collider/CharacterController.h"
-#include "Resource/Model.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Resource/VMDLModel.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/SphereCollider.h"
@@ -55,7 +55,7 @@ Aracore::Aracore(const Vector3& position)
         transform.SetPosition(position);
         transform.SetScale(0.6f);
         model->UpdateTransform(transform.matrix);
-        bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
@@ -490,7 +490,7 @@ void Aracore::SpawnBreakSpiderParticles()
 AracoreMachine::AracoreMachine(Aracore* ownerAracore)
     : Actor("AracoreMachine")
 {
-    std::shared_ptr<Model> model =
+    std::shared_ptr<VMDLModel> model =
         ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
 
     // 親の体に追従
@@ -503,6 +503,6 @@ AracoreMachine::AracoreMachine(Aracore* ownerAracore)
 
     // モデルレンダラー
     shaderParamWithMaterialName = {};
-    AddComponent<ModelRenderComponent>(
+    AddComponent<VMDLModelComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
 }

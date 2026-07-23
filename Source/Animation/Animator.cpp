@@ -1,4 +1,4 @@
-// Animator.cpp
+ï»¿// Animator.cpp
 
 #include "Animation/Animator.h"
 #include "Gameplay/Actor/Actor.h"
@@ -31,8 +31,8 @@ namespace
     }
 }
 
-Animator::Animator(Object* owner, std::shared_ptr<Model> model, bool unscaledTime)
-    : Component(owner), animationMode(AnimationMode::Model), model(model), unscaledTime(unscaledTime)
+Animator::Animator(Object* owner, std::shared_ptr<VMDLModel> model, bool unscaledTime)
+    : Component(owner), animationMode(AnimationMode::VMDLModel), model(model), unscaledTime(unscaledTime)
 {
     dynamic_cast<Actor*>(owner);
 }
@@ -49,7 +49,6 @@ Animator::~Animator()
 }
 
 // =========================================================
-// ƒŒƒCƒ„[‘€ì
 // =========================================================
 int Animator::AddLayer(const std::string& name, BlendMode blendMode, float weight, AvatarMask mask)
 {
@@ -81,7 +80,6 @@ void Animator::DuplicateLayer(int layerIndex)
 {
     AnimatorLayer copy = layers[layerIndex];
     copy.name += " (Copy)";
-    // ƒ‰ƒ“ƒ^ƒCƒ€ó‘Ô‚ÍƒŠƒZƒbƒg
     copy.currentStateIndex = copy.defaultStateIndex;
     copy.currentTime = 0.0f;
     copy.isTransitioning = false;
@@ -91,7 +89,6 @@ void Animator::DuplicateLayer(int layerIndex)
 }
 
 // =========================================================
-// ƒXƒe[ƒg‘€ì
 // =========================================================
 int Animator::AddState(int li, const std::string& name, int animIndex, bool loop, float speed)
 {
@@ -180,7 +177,6 @@ void Animator::SetDefaultState(int li, int stateIndex)
 }
 
 // =========================================================
-// AnyState ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
 // =========================================================
 int Animator::AddAnyStateTransition(int li, int to, float duration,
                                     bool hasExitTime, float exitTime, int priority, bool canInterrupt)
@@ -215,7 +211,6 @@ void Animator::AddAnyStateCondition(int li, int ti,
 }
 
 // =========================================================
-// ƒpƒ‰ƒ[ƒ^i‘SƒŒƒCƒ„[‹¤—Lj
 // =========================================================
 void Animator::AddFloat(const std::string& name, float v) { parameters[name] = v; }
 void Animator::AddInt(const std::string& name, int v) { parameters[name] = v; }
@@ -278,7 +273,7 @@ void Animator::Update()
     }
 
     const int nodeCount = static_cast<int>(model->GetNodes().size());
-    std::vector<Model::NodePose> finalPoses(nodeCount);
+    std::vector<VMDLModel::NodePose> finalPoses(nodeCount);
 
     for (auto& layer : layers)
     {
@@ -298,7 +293,7 @@ void Animator::DrawGUI()
     ImGui::TextDisabled(
         animationMode == AnimationMode::Dynamic
         ? "Mode: Dynamic (.danim)"
-        : "Mode: Model");
+        : "Mode: VMDLModel");
 
     if (animationMode == AnimationMode::Dynamic &&
         !dynamicAnimationError.empty())
@@ -365,7 +360,7 @@ void Animator::OpenEditor()
 
 void Animator::UpdateLayer(
     AnimatorLayer& layer,
-    std::vector<Model::NodePose>& finalPoses)
+    std::vector<VMDLModel::NodePose>& finalPoses)
 {
     _ASSERT_EXPR(
         layer.currentStateIndex >= 0 &&
@@ -375,7 +370,7 @@ void Animator::UpdateLayer(
     State& curState =
         layer.states[layer.currentStateIndex];
 
-    const Model::Animation& curAnim =
+    const VMDLModel::Animation& curAnim =
         model->GetAnimations()[curState.animationIndex];
 
     float prevTime = layer.currentTime;
@@ -384,10 +379,8 @@ void Animator::UpdateLayer(
         ? Game::Time::unscaledDeltaTime
         : Game::Time::deltaTime;
 
-    // ŠÔXV
     layer.currentTime += dt * curState.speed;
 
-    // ƒ‹[ƒv‚ÅŠÔ‚ğ–ß‚·‘O‚ÌÄ¶—¦‚ğ‘JˆÚ”»’è‚Ég‚¤
     float transitionNormalizedTime =
         curAnim.secondsLength > 0.0f
         ? layer.currentTime / curAnim.secondsLength
@@ -400,6 +393,7 @@ void Animator::UpdateLayer(
 
     bool looped = false;
 
+	// ãƒ«ãƒ¼ãƒ—å¢ƒç•Œã‚’ã¾ãŸã„ã ãƒ•ãƒ¬ãƒ¼ãƒ ã¯ã€å¾Œæ®µã®ãƒ«ãƒ¼ãƒˆãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—ã§çµ‚ç«¯â†’å…ˆé ­ã‚’åˆ†å‰²ã—ã¦æ‰±ã†ã€‚
     if (layer.currentTime > curAnim.secondsLength)
     {
         if (curState.loop)
@@ -414,17 +408,18 @@ void Animator::UpdateLayer(
         }
     }
 
-    // ƒ‹[ƒgƒ‚[ƒVƒ‡ƒ“‚Ì’Šo
     if (useRootMotion &&
         rootNodeIndex != -1)
     {
-        Model::NodePose posePrev =
+		// é€šå¸¸ãƒ•ãƒ¬ãƒ¼ãƒ ã¯å‰å›å§¿å‹¢ã¨ã®å·®åˆ†ã ã‘ã‚’ä½¿ã†ã€‚
+		// ãƒ«ãƒ¼ãƒ—æ™‚ã¯ã€Œå‰å›â†’çµ‚ç«¯ã€ã¨ã€Œå…ˆé ­â†’ç¾åœ¨ã€ã‚’åˆæˆã—ã€å¢ƒç•Œã§é€†å‘ãã«é£›ã¶ã®ã‚’é˜²ãã€‚
+        VMDLModel::NodePose posePrev =
             SampleNodePose(
             curState.animationIndex,
             prevTime,
             rootNodeIndex);
 
-        Model::NodePose poseCur =
+        VMDLModel::NodePose poseCur =
             SampleNodePose(
             curState.animationIndex,
             layer.currentTime,
@@ -448,13 +443,13 @@ void Animator::UpdateLayer(
         }
         else
         {
-            Model::NodePose poseEnd =
+            VMDLModel::NodePose poseEnd =
                 SampleNodePose(
                 curState.animationIndex,
                 curAnim.secondsLength,
                 rootNodeIndex);
 
-            Model::NodePose poseStart =
+            VMDLModel::NodePose poseStart =
                 SampleNodePose(
                 curState.animationIndex,
                 0.0f,
@@ -488,15 +483,14 @@ void Animator::UpdateLayer(
             layer.weight);
     }
 
-    // Œ»İƒXƒe[ƒg‚Ìƒ|[ƒY
     model->ComputeAnimation(
         curState.animationIndex,
         layer.currentTime,
         nodePoses);
 
-    // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“’†
     if (layer.isTransitioning)
     {
+		// é·ç§»å…ƒã¨é·ç§»å…ˆã‚’åˆ¥ã€…ã®æ™‚åˆ»ã§è©•ä¾¡ã—ã€blendDurationã«æ²¿ã£ã¦å…¨ãƒãƒ¼ãƒ‰ã‚’è£œé–“ã™ã‚‹ã€‚
         State& nextState =
             layer.states[layer.nextStateIndex];
 
@@ -505,7 +499,7 @@ void Animator::UpdateLayer(
             return;
         }
 
-        const Model::Animation& nextAnim =
+        const VMDLModel::Animation& nextAnim =
             model->GetAnimations()[
                 nextState.animationIndex];
 
@@ -588,7 +582,7 @@ void Animator::UpdateLayer(
         }
         else
         {
-            // ƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“’†‚ÌŠ„‚è‚İ
+			// ãƒ–ãƒ¬ãƒ³ãƒ‰ä¸­æ–­ã‚’è¨±å¯ã—ãŸé·ç§»ã ã‘å†è©•ä¾¡ã™ã‚‹ã€‚åŒã˜é·ç§»å…ˆã¯å†é–‹å§‹ã—ãªã„ã€‚
             for (const Transition& transition :
                 curState.transitions)
             {
@@ -646,9 +640,9 @@ void Animator::UpdateLayer(
     }
     else
     {
-        // AnyStateƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
         if (!curState.blockAnyStateTransitions)
         {
+			// AnyStateã‚’é€šå¸¸é·ç§»ã‚ˆã‚Šå…ˆã«è©•ä¾¡ã™ã‚‹ã€‚é™¤å¤–å…ƒãƒªã‚¹ãƒˆã«ç¾åœ¨çŠ¶æ…‹ãŒã‚ã‚Œã°å€™è£œã‹ã‚‰å¤–ã™ã€‚
             for (const Transition& transition :
                 layer.anyStateTransitions)
             {
@@ -721,10 +715,10 @@ void Animator::UpdateLayer(
             }
         }
 
-        // ’Êíƒgƒ‰ƒ“ƒWƒVƒ‡ƒ“
         if (!layer.isTransitioning &&
             layer.nextStateIndex < 0)
         {
+			// AnyStateã§é·ç§»ãŒå§‹ã¾ã‚‰ãªã‹ã£ãŸå ´åˆã ã‘ã€ç¾åœ¨çŠ¶æ…‹å›ºæœ‰ã®é·ç§»ã‚’å„ªå…ˆé †ã«è©•ä¾¡ã™ã‚‹ã€‚
             for (const Transition& transition :
                 curState.transitions)
             {
@@ -777,7 +771,6 @@ void Animator::UpdateLayer(
         }
     }
 
-    // ÅIƒ|[ƒY‚Ö“K—p
     for (int nodeIndex = 0;
         nodeIndex <
         static_cast<int>(nodePoses.size());
@@ -789,6 +782,7 @@ void Animator::UpdateLayer(
         if (useRootMotion &&
             nodeIndex == rootNodeIndex)
         {
+			// ç§»å‹•é‡ã¯Actorå´ã¸æ¸¡ã™ãŸã‚ã€æç”»ãƒ¢ãƒ‡ãƒ«ã®ãƒ«ãƒ¼ãƒˆã«ã¯äºŒé‡é©ç”¨ã—ãªã„ã€‚
             finalPoses[nodeIndex].position =
                 Vector3::Zero;
 
@@ -848,8 +842,6 @@ void Animator::UpdateDynamicLayer(
         layer.currentTime +
         dt * currentState.speed;
 
-    // ƒ‹[ƒv‚ÅŠÔ‚ğ–ß‚·‘O‚ÌÄ¶—¦B
-    // Has Exit Time”»’è‚Å‚Í•K‚¸‚±‚¿‚ç‚ğg‚¤B
     const float transitionNormalizedTime =
         currentLength > 0.0f
         ? advancedCurrentTime / currentLength
@@ -1183,8 +1175,6 @@ void Animator::UpdateDynamicLayer(
         return;
     }
 
-    // AnyState‚ğƒ‹[ƒvˆ—Œã‚Å‚Í‚È‚­A
-    // ƒ‹[ƒv‘O‚ÌÄ¶—¦‚Å”»’è‚·‚éB
     if (!currentState.blockAnyStateTransitions)
     {
         for (const Transition& transition :
@@ -1218,8 +1208,6 @@ void Animator::UpdateDynamicLayer(
                 continue;
             }
 
-            // Exit Time“’B‚Å‘JˆÚ‚·‚é‚Æ‚«‚ÍA
-            // ƒ‹[ƒvŒã‚Ìæ“ª‚Å‚Í‚È‚­––”ö‚ğg‚¤B
             if (currentLooped &&
                 transition.hasExitTime)
             {
@@ -1255,8 +1243,6 @@ void Animator::UpdateDynamicLayer(
             continue;
         }
 
-        // Exit Time“’B‚Å‘JˆÚ‚·‚é‚Æ‚«‚ÍA
-        // ƒ‹[ƒvŒã‚Ìæ“ª‚Å‚Í‚È‚­––”ö‚ğg‚¤B
         if (currentLooped &&
             transition.hasExitTime)
         {
@@ -1281,8 +1267,6 @@ void Animator::UpdateDynamicLayer(
         }
     }
 
-    // ‘JˆÚ‚µ‚È‚©‚Á‚½ê‡‚¾‚¯A
-    // ƒ‹[ƒvŒã‚Ü‚½‚Í’â~Œã‚ÌŒ»İ’l‚ğ“K—p‚·‚éB
     ApplyDynamicState(
         currentState,
         layer.currentTime);
@@ -1511,8 +1495,6 @@ bool Animator::ReloadDynamicClipIfChanged(const std::string& path)
             "Failed to auto reload .danim: " + path + " / " + error;
         OutputDebugStringA((dynamicAnimationError + "\n").c_str());
 
-        // •Û‘¶“r’†‚Ìˆê“I‚È“Ç¸”s‚ğl—¶‚µA
-        // XV“ú‚Íi‚ß‚¸Ÿ‰ñ‚ÌŠÄ‹‚ÅÄs‚·‚éB
         return false;
     }
 
@@ -1547,7 +1529,7 @@ const DynamicAnimationTrack* Animator::FindMatchingTrack(
 
 float Animator::GetStateLength(const State& state) const
 {
-    if (animationMode == AnimationMode::Model)
+    if (animationMode == AnimationMode::VMDLModel)
     {
         if (!model || state.animationIndex < 0 ||
             state.animationIndex >= static_cast<int>(model->GetAnimations().size()))
@@ -1565,7 +1547,7 @@ float Animator::GetStateLength(const State& state) const
 
 std::string Animator::GetStateAnimationName(const State& state) const
 {
-    if (animationMode == AnimationMode::Model)
+    if (animationMode == AnimationMode::VMDLModel)
     {
         if (!model || state.animationIndex < 0 ||
             state.animationIndex >= static_cast<int>(model->GetAnimations().size()))
@@ -1634,16 +1616,15 @@ void Animator::ReloadDynamicClips()
     dynamicClipWatchTimer = 0.0f;
 }
 
-// “Á’èƒ{[ƒ“‚ÌƒTƒ“ƒvƒŠƒ“ƒO—pƒwƒ‹ƒp[
-Model::NodePose Animator::SampleNodePose(int animIndex, float time, int nodeIdx)
+VMDLModel::NodePose Animator::SampleNodePose(int animIndex, float time, int nodeIdx)
 {
-    static std::vector<Model::NodePose> tempPoses;
+    static std::vector<VMDLModel::NodePose> tempPoses;
     model->ComputeAnimation(animIndex, time, tempPoses);
     if (nodeIdx >= 0 && nodeIdx < (int)tempPoses.size())
     {
         return tempPoses[nodeIdx];
     }
-    return Model::NodePose{}; // Identity
+    return VMDLModel::NodePose{}; // Identity
 }
 
 void Animator::BindCallbacks()
@@ -1663,7 +1644,6 @@ void Animator::BindCallbacks()
 
 void Animator::Play(int layerIndex, int animationIndex, bool loop)
 {
-    // ”ÍˆÍŠO
     _ASSERT_EXPR(layerIndex >= 0 && layerIndex < (int)layers.size(), L"Invalid layer index");
 
     auto& layer = layers[layerIndex];
@@ -1692,7 +1672,7 @@ void Animator::Stop(int layerIndex)
 
 void Animator::SetRootMotion(const std::string& name)
 {
-    if (animationMode != AnimationMode::Model)
+    if (animationMode != AnimationMode::VMDLModel)
         return;
 
     rootNodeName = name;
@@ -1701,7 +1681,6 @@ void Animator::SetRootMotion(const std::string& name)
 
     if (!model) return;
 
-    // ƒ‚ƒfƒ‹‚Ìƒm[ƒhŒQ‚©‚ç–¼‘O‚ªˆê’v‚·‚éƒCƒ“ƒfƒbƒNƒX‚ğŒŸõ
     const auto& nodes = model->GetNodes();
     for (int i = 0; i < (int)nodes.size(); ++i)
     {
@@ -1712,7 +1691,7 @@ void Animator::SetRootMotion(const std::string& name)
         }
     }
 
-    _ASSERT_EXPR(rootNodeIndex != -1, L"Root Motion node not found in Model!");
+    _ASSERT_EXPR(rootNodeIndex != -1, L"Root Motion node not found in VMDLModel!");
 }
 
 bool Animator::EvaluateCondition(const Condition& c) const
@@ -1745,7 +1724,6 @@ bool Animator::EvaluateCondition(const Condition& c) const
     else if (std::holds_alternative<int>(val))
     {
         int v = std::get<int>(val);
-        // threshold ‚ª float ‚Å•Û‘¶‚³‚ê‚Ä‚¢‚éê‡‚àˆÀ‘S‚Éæ‚èo‚·
         int t = std::holds_alternative<int>(thr) ? std::get<int>(thr)
             : std::holds_alternative<float>(thr) ? (int)std::get<float>(thr)
             : 0;
@@ -1864,56 +1842,6 @@ float Animator::GetCurrentAnimationTime(int layerIndex) const
 {
     if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
     return layers[layerIndex].currentTime;
-}
-float Animator::EvaluateCurrentFootIKWeight(const std::string& targetName, int layerIndex) const
-{
-    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
-
-    const AnimatorLayer& layer = layers[layerIndex];
-    if (layer.currentStateIndex < 0) return 0.0f;
-    if (layer.currentStateIndex >= static_cast<int>(layer.states.size())) return 0.0f;
-
-    const State& state = layer.states[layer.currentStateIndex];
-    if (state.footIKRanges.empty()) return 0.0f;
-
-    const float stateLength = GetStateLength(state);
-    float ratio = stateLength > 0.001f ? layer.currentTime / stateLength : 0.0f;
-    ratio = std::clamp(ratio, 0.0f, 1.0f);
-
-    float result = 0.0f;
-    for (const FootIKRange& range : state.footIKRanges)
-    {
-        if (range.targetName != "All" && range.targetName != targetName) continue;
-
-        float start = std::clamp(range.startRatio, 0.0f, 1.0f);
-        float end = std::clamp(range.endRatio, 0.0f, 1.0f);
-        if (end < start)
-        {
-            const float temp = start;
-            start = end;
-            end = temp;
-        }
-
-        if (ratio < start || ratio > end) continue;
-
-        float weight = std::clamp(range.weight, 0.0f, 1.0f);
-        const float fadeIn = std::clamp(range.fadeInRatio, 0.0f, 1.0f);
-        const float fadeOut = std::clamp(range.fadeOutRatio, 0.0f, 1.0f);
-
-        if (fadeIn > 0.001f)
-        {
-            weight *= std::clamp((ratio - start) / fadeIn, 0.0f, 1.0f);
-        }
-
-        if (fadeOut > 0.001f)
-        {
-            weight *= std::clamp((end - ratio) / fadeOut, 0.0f, 1.0f);
-        }
-
-        if (result < weight) result = weight;
-    }
-
-    return result;
 }
 bool Animator::Save(const std::string& path)
 {

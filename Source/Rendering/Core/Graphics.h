@@ -71,12 +71,14 @@ namespace Game
 		bool LoadSkyMap(const std::string& name);
 		void RefreshSkyMapList();
 		void DrawSkyMapGUI();
+		void Resize(UINT width, UINT height);
+		void SetWindowMovementLocked(bool locked) { windowMovementLocked = locked; }
+		bool IsWindowMovementLocked() const { return windowMovementLocked; }
 
 		static float ScreenWidth;
 		static float ScreenHeight;
 
 	private:
-		void Resize(UINT width, UINT height);
 		void RecreateFrameBuffers(UINT screenWidth, UINT screenHeight);
 		void ToggleBorderlessFullscreen();
 
@@ -105,6 +107,7 @@ namespace Game
 
 		bool requestToggleBorderlessFullscreen = false;
 		bool borderlessFullscreen = false;
+		bool windowMovementLocked = false;
 		LONG_PTR windowedStyle = 0;
 		LONG_PTR windowedExStyle = 0;
 		WINDOWPLACEMENT windowedPlacement = { sizeof(WINDOWPLACEMENT) };

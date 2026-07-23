@@ -9,28 +9,17 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/ActorManager.h"
 
+#include <stdexcept>
+
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	model = ResourceManager::Instance().LoadModel("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
-	model->_print(); // デバッグ用
+	if (!model) throw std::runtime_error("Player VMDL could not be loaded.");
 
-	// メッシュ表示/非表示
-	{
-		auto& meshes = model->GetMeshes();
-		meshes[0].isDraw = false; // 盾
-		meshes[2].isDraw = false; // アックス
-		meshes[8].isDraw = false;// 素足
-		meshes[15].isDraw = false; // 私服
-		meshes[9].isDraw = false; // 素手
-		meshes[4].isDraw =  // 顔
-			meshes[5].isDraw =
-			meshes[16].isDraw =
-			meshes[17].isDraw =
-			meshes[18].isDraw =
-			meshes[19].isDraw =
-			meshes[20].isDraw =
-			meshes[21].isDraw = false;
-	}
+	model->ApplyShape("Face1");
+	model->ApplyShape("Eye1");
+	model->ApplyShape("Cloth1");
+	model->ApplyShape("Sword");
 
 	// モデルレンダラー生成
 	shaderParamWithMaterialName =
@@ -111,7 +100,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	}
 		},
 	};
-	modelRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+	modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 	modelRenderer->SetAutoUpdateTransform(false);
 
 	// アニメーター生成
@@ -181,15 +170,23 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	);
 
 	// FootIK
-	footIK = AddComponent<HumanoidFootIK>(
-		Layers::Get("Foot"),
-		model.get(),
-		anim,
-		"Idle",
-		"pelvis",
-		"thigh_l", "calf_l", "foot_l", "ball_l",
-		"thigh_r", "calf_r", "foot_r", "ball_r");
-	model->UpdateTransform(transform.matrix);
+	//const VMDLModel::VmdlIKSettings& ikSettings = model->GetVmdlIKSettings();
+	//const bool useVmdlHumanFootIK = ikSettings.type == 1;
+	//footIK = AddComponent<HumanoidFootIK>(
+	//	Layers::Get("Foot"),
+	//	model.get(),
+	//	anim,
+	//	"Idle",
+	//	useVmdlHumanFootIK ? ikSettings.pelvis.c_str() : "pelvis",
+	//	useVmdlHumanFootIK ? ikSettings.leftThigh.c_str() : "thigh_l",
+	//	useVmdlHumanFootIK ? ikSettings.leftCalf.c_str() : "calf_l",
+	//	useVmdlHumanFootIK ? ikSettings.leftFoot.c_str() : "foot_l",
+	//	useVmdlHumanFootIK ? ikSettings.leftBall.c_str() : "ball_l",
+	//	useVmdlHumanFootIK ? ikSettings.rightThigh.c_str() : "thigh_r",
+	//	useVmdlHumanFootIK ? ikSettings.rightCalf.c_str() : "calf_r",
+	//	useVmdlHumanFootIK ? ikSettings.rightFoot.c_str() : "foot_r",
+	//	useVmdlHumanFootIK ? ikSettings.rightBall.c_str() : "ball_r");
+	//model->UpdateTransform(transform.matrix);
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(

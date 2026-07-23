@@ -1,4 +1,4 @@
-// ResourceManager.cpp
+﻿// ResourceManager.cpp
 
 #include "Resource/ResourceManager.h"
 
@@ -77,69 +77,36 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 	return assetPaths[it->second].path;
 }
 
-std::shared_ptr<Model> ResourceManager::LoadModel(const std::string& key)
+std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 {
 	const std::string lookupKey = MakeLookupKey(key);
 	const auto pathIt = assetPathLookup.find(lookupKey);
-	if (pathIt == assetPathLookup.end() || assetPaths[pathIt->second].type != AssetType::Model)
+	if (pathIt == assetPathLookup.end() || assetPaths[pathIt->second].type != AssetType::VMDLModel)
 	{
-		ReportError("Model is not in Data/cached.ini: " + NormalizePath(key));
+		ReportError("VMDLModel is not in Data/cached.ini: " + NormalizePath(key));
 		return nullptr;
 	}
 
 	auto it = models.find(lookupKey);
 	if (it == models.end())
 	{
-		const std::string& cachePath = assetPaths[pathIt->second].path;
-		if (!std::filesystem::exists(cachePath))
+		const std::string& vmdlPath = assetPaths[pathIt->second].path;
+		if (!std::filesystem::exists(vmdlPath))
 		{
-			ReportError("Model cache not found: " + cachePath);
+			ReportError("VMDLModel not found: " + vmdlPath);
 			return nullptr;
 		}
 
-		std::shared_ptr<Model> model;
 		try
 		{
-			model = std::make_shared<Model>(lookupKey.c_str(), 60.0f, false, cachePath.c_str());
+			auto model = std::make_shared<VMDLModel>(vmdlPath.c_str());
+			it = models.emplace(lookupKey, std::move(model)).first;
 		}
 		catch (const std::exception& exception)
 		{
-#if defined(DEBUG) || defined(_DEBUG)
-			std::filesystem::path sourceRelative = std::filesystem::path(cachePath).lexically_relative("Data");
-			std::filesystem::path sourcePath;
-			for (const char* extension : { ".glb", ".gltf" })
-			{
-				std::filesystem::path candidate = sourceDataRoot / sourceRelative;
-				candidate.replace_extension(extension);
-				if (!std::filesystem::exists(candidate)) continue;
-				sourcePath = std::move(candidate);
-				break;
-			}
-
-			if (!sourcePath.empty())
-			{
-				try
-				{
-					model = std::make_shared<Model>(
-						sourcePath.string().c_str(),
-						60.0f,
-						true,
-						cachePath.c_str());
-				}
-				catch (const std::exception& rebuildException)
-				{
-					ReportError("Model cache rebuild failed: " + cachePath + " (" + rebuildException.what() + ")");
-					return nullptr;
-				}
-			}
-			if (!model)
-#endif
-			{
-				ReportError("Model cache load failed: " + cachePath + " (" + exception.what() + ")");
-				return nullptr;
-			}
+			ReportError("VMDLModel load failed: " + vmdlPath + " (" + exception.what() + ")");
+			return nullptr;
 		}
-		it = models.emplace(lookupKey, std::move(model)).first;
 	}
 
 	return it->second->Clone();
@@ -205,8 +172,7 @@ bool ResourceManager::BuildCaches()
 		AssetType type = AssetType::File;
 		if (IsModelSource(sourcePath))
 		{
-			type = AssetType::Model;
-			runtimePath.replace_extension(".vmdl");
+			type = AssetType::VMDLModel;
 		}
 		else if (IsTerrainLayerSource(relativePath))
 		{
@@ -217,7 +183,7 @@ bool ResourceManager::BuildCaches()
 		const std::filesystem::path runtimeRelativePath = runtimePath.lexically_relative(runtimeDataRoot);
 		const std::filesystem::path cachedPath = ToDataPath(runtimeRelativePath);
 		const std::string outputKey = MakeLookupKey(cachedPath.generic_string());
-		if ((type == AssetType::Model || type == AssetType::MipmapTexture) && !outputPaths.insert(outputKey).second)
+		if ((type == AssetType::VMDLModel || type == AssetType::MipmapTexture) && !outputPaths.insert(outputKey).second)
 		{
 			ReportError("Duplicate resource name: " + outputKey);
 			continue;
@@ -231,22 +197,7 @@ bool ResourceManager::BuildCaches()
 			continue;
 		}
 
-		if (type == AssetType::Model)
-		{
-			if (!Model::IsCacheUpToDate(sourcePath, runtimePath))
-			{
-				try
-				{
-					Model model(sourcePath.string().c_str(), 60.0f, false, runtimePath.string().c_str());
-				}
-				catch (const std::exception& exception)
-				{
-					ReportError("Model cache creation failed: " + cachedPath.generic_string() + " (" + exception.what() + ")");
-					continue;
-				}
-			}
-		}
-		else if (type == AssetType::MipmapTexture)
+		if (type == AssetType::MipmapTexture)
 		{
 			const bool upToDate = std::filesystem::exists(runtimePath) &&
 				std::filesystem::last_write_time(runtimePath) >= std::filesystem::last_write_time(sourcePath);
@@ -412,7 +363,7 @@ bool ResourceManager::PreloadCachedResources()
 			continue;
 		}
 
-		if (asset.type == AssetType::Model)
+		if (asset.type == AssetType::VMDLModel)
 		{
 			LoadModel(asset.path);
 		}
@@ -440,7 +391,7 @@ bool ResourceManager::AddAssetPath(
 	asset.path = NormalizePath(path.generic_string());
 	asset.updated = updated;
 
-	if (type == AssetType::Model || type == AssetType::MipmapTexture)
+	if (type == AssetType::VMDLModel || type == AssetType::MipmapTexture)
 	{
 		const std::string lookupKey = MakeLookupKey(asset.path);
 		const auto existing = assetPathLookup.find(lookupKey);
@@ -515,7 +466,7 @@ bool ResourceManager::IsModelSource(const std::filesystem::path& path)
 {
 	std::string extension = path.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	return extension == ".glb" || extension == ".gltf";
+	return extension == ".vmdl";
 }
 
 bool ResourceManager::IsTerrainLayerSource(const std::filesystem::path& relativePath)
@@ -536,12 +487,13 @@ bool ResourceManager::IsDevelopmentOnly(const std::filesystem::path& relativePat
 		return true;
 	}
 
-	const std::string extension = relativePath.extension().string();
-	if (extension == ".vmdl" || extension == ".vx") return true;
+	std::string extension = relativePath.extension().string();
+	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+	if (extension == ".glb" || extension == ".gltf" || extension == ".vx") return true;
 	if (extension == ".dds" && relativePath.parent_path().generic_string() == "Terrain/Layers") return true;
 
 	const std::string generic = relativePath.generic_string();
-	if (generic.starts_with("Model/") && !IsModelSource(relativePath)) return true;
+	if (generic.starts_with("VMDLModel/") && !IsModelSource(relativePath)) return true;
 	for (const auto& part : relativePath)
 	{
 		if (part.string().starts_with("ninclude_")) return true;
@@ -553,7 +505,7 @@ const char* ResourceManager::ToTypeName(AssetType type)
 {
 	switch (type)
 	{
-	case AssetType::Model: return "model";
+	case AssetType::VMDLModel: return "model";
 	case AssetType::MipmapTexture: return "mipmap";
 	default: return "file";
 	}
@@ -561,7 +513,7 @@ const char* ResourceManager::ToTypeName(AssetType type)
 
 bool ResourceManager::ParseTypeName(const std::string& name, AssetType& type)
 {
-	if (name == "model") type = AssetType::Model;
+	if (name == "model") type = AssetType::VMDLModel;
 	else if (name == "mipmap") type = AssetType::MipmapTexture;
 	else if (name == "file") type = AssetType::File;
 	else return false;

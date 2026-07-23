@@ -1,5 +1,5 @@
 {
-    "animationMode": "Model",
+    "animationMode": "VMDLModel",
     "layers": [
         {
             "anyStateEditorPosX": 0.0,

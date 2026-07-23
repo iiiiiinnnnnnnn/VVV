@@ -126,10 +126,10 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float finalAO = clamp(occlusion, 0.0f, 1.0f);
 
-    if (useOcclusionTexture != 0)
-    {
-        finalAO = occlusionMap.Sample(linearSampler, pin.texcoord).r;
-    }
+	if (useOcclusionTexture != 0)
+	{
+		finalAO = occlusionMap.Sample(linearSampler, pin.texcoord).r * occlusion;
+	}
 
     finalAO = lerp(1.0f, finalAO, occlusionStrength);
 

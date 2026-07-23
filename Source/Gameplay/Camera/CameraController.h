@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// CameraController.h
+#pragma once
 #include "Core/Object/Component.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"

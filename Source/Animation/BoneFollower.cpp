@@ -1,4 +1,4 @@
-// BoneFollower.cpp
+﻿// BoneFollower.cpp
 
 #include "Animation/BoneFollower.h"
 
@@ -9,7 +9,7 @@
 
 BoneFollower::BoneFollower(
 	Object* owner,
-	Model* targetModel,
+	VMDLModel* targetModel,
 	const std::string& targetNodeName,
 	const Transform& offset)
 	: Component(owner)
@@ -21,7 +21,7 @@ BoneFollower::BoneFollower(
 
 BoneFollower::BoneFollower(
 	Object* owner,
-	Model* targetModel,
+	VMDLModel* targetModel,
 	int targetNodeIndex,
 	const Transform& offset)
 	: Component(owner)
@@ -47,14 +47,14 @@ void BoneFollower::OnDrawGUI()
 	offset.DrawGUI();
 }
 
-void BoneFollower::SetTarget(Model* targetModel, const std::string& targetNodeName)
+void BoneFollower::SetTarget(VMDLModel* targetModel, const std::string& targetNodeName)
 {
 	this->targetModel = targetModel;
 	this->targetNodeName = targetNodeName;
 	targetNodeIndex = targetModel ? targetModel->GetNodeIndex(targetNodeName.c_str()) : -1;
 }
 
-void BoneFollower::SetTarget(Model* targetModel, int targetNodeIndex)
+void BoneFollower::SetTarget(VMDLModel* targetModel, int targetNodeIndex)
 {
 	this->targetModel = targetModel;
 	this->targetNodeIndex = targetNodeIndex;
@@ -62,7 +62,7 @@ void BoneFollower::SetTarget(Model* targetModel, int targetNodeIndex)
 
 	if (!targetModel) return;
 
-	const std::vector<Model::Node>& nodes = targetModel->GetNodes();
+	const std::vector<VMDLModel::Node>& nodes = targetModel->GetNodes();
 	if (targetNodeIndex < 0 || targetNodeIndex >= static_cast<int>(nodes.size())) return;
 
 	targetNodeName = nodes[targetNodeIndex].name;
@@ -90,7 +90,7 @@ void BoneFollower::ApplyFollow()
 	Actor* ownerActor = dynamic_cast<Actor*>(owner);
 	if (!ownerActor || !targetModel) return;
 
-	const std::vector<Model::Node>& nodes = targetModel->GetNodes();
+	const std::vector<VMDLModel::Node>& nodes = targetModel->GetNodes();
 	if (targetNodeIndex < 0 || targetNodeIndex >= static_cast<int>(nodes.size())) return;
 
 	Vector3 targetScale;

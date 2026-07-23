@@ -1,4 +1,4 @@
-// ResourceManager.h
+﻿// ResourceManager.h
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Resource/Texture.h"
 
 class ResourceManager
@@ -17,7 +17,7 @@ public:
 	enum class AssetType
 	{
 		File,
-		Model,
+		VMDLModel,
 		MipmapTexture,
 	};
 
@@ -41,7 +41,7 @@ public:
 	const std::vector<std::string>& GetErrors() const { return errors; }
 	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
 
-	std::shared_ptr<Model> LoadModel(const std::string& key);
+	std::shared_ptr<VMDLModel> LoadModel(const std::string& key);
 	std::shared_ptr<Texture> LoadTexture(const std::string& key);
 
 private:
@@ -67,7 +67,7 @@ private:
 	std::filesystem::path cachedPathList;
 	std::vector<AssetPath> assetPaths;
 	std::unordered_map<std::string, size_t> assetPathLookup;
-	std::unordered_map<std::string, std::shared_ptr<Model>> models;
+	std::unordered_map<std::string, std::shared_ptr<VMDLModel>> models;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 	std::vector<std::shared_ptr<MipmapTexture>> mipmapTextures;
 	std::vector<std::string> errors;

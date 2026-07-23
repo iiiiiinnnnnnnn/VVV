@@ -1,22 +1,16 @@
-// TrailRenderComponent.h
+ï»¿// TrailRenderComponent.h
 #pragma once
 #include <deque>
 
 #include "Core/Object/Component.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 
 class TrailRenderComponent : public Component
 {
 public:
-    // model        : ƒm[ƒhˆÊ’u‚Ìæ“¾Œ³
-    // nodeIndex    : ’ÇÕ‚·‚éƒ{[ƒ“‚ÌƒCƒ“ƒfƒbƒNƒX
-    // rootOffset   : ƒm[ƒhŒ´“_‚©‚ç‚Ìroot‘¤ƒIƒtƒZƒbƒgiƒ[ƒJƒ‹Xj
-    // tipOffset    : ƒm[ƒhŒ´“_‚©‚ç‚Ìtip‘¤ƒIƒtƒZƒbƒgiƒ[ƒJƒ‹Xj
-    // lifeTime     : “_‚ªÁ‚¦‚é‚Ü‚Å‚Ì•b”
-    // maxPoints    : “¯‚É•Û‚·‚é“_‚ÌãŒÀ
     TrailRenderComponent(
         Object* owner,
-        Model* model,
+        VMDLModel* model,
         int   nodeIndex,
         Color color = {1.0f, 0.9f, 0.3f, 1.0f},
         float rootOffset = 0.0f,
@@ -24,6 +18,16 @@ public:
         float tipRatio = 1.0f,
         float lifeTime   = 0.5f,
         int   maxPoints  = 40);
+	TrailRenderComponent(
+		Object* owner,
+		VMDLModel* model,
+		int nodeIndex,
+		const Vector3& rootOffset,
+		const Vector3& tipOffset,
+		Color color,
+		float tipRatio = 1.0f,
+		float lifeTime = 0.5f,
+		int maxPoints = 40);
 
     void LateUpdate() override;
     void Render(const RenderContext& rc);
@@ -36,7 +40,7 @@ public:
         Vector3 root;
         Vector3 tip;
         Vector3 tipFull;
-        float   age; // 0.0 = V‚µ‚¢, lifeTime = Á‚¦‚é
+        float   age;
     };
     const std::deque<TrailPoint>& GetPoints() const { return points; }
     float GetLifeTime() const { return lifeTime; }
@@ -47,10 +51,10 @@ public:
 private:
     void BuildTrailVertices();
 
-    Model* model;
+    VMDLModel* model;
     int   nodeIndex;
-    float rootOffset;   // ƒ[ƒJƒ‹X•ûŒü‚ÌrootˆÊ’u
-    float tipOffset;    // ƒ[ƒJƒ‹X•ûŒü‚ÌtipˆÊ’u
+	Vector3 rootOffset;
+	Vector3 tipOffset;
     float tipRatio;
     float lifeTime;
     int   maxPoints;

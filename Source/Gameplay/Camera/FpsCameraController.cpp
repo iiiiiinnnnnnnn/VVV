@@ -12,7 +12,7 @@ FpsCameraController::FpsCameraController(Object* owner, std::shared_ptr<Player> 
 void FpsCameraController::SyncControllerToCamera(Camera& camera)
 {
     // 目のノードのワールド位置を取得
-    Model::Node* eyeNode = &character->GetModel()->GetNodes()[6];
+    VMDLModel::Node* eyeNode = &character->GetModel()->GetNodes()[6];
     Matrix world = Matrix::CreateTranslation(eyeOffset) * eyeNode->worldTransform;
     Vector3 eye(world._41, world._42, world._43);
 

@@ -1,4 +1,4 @@
-// FootIK.cpp
+﻿// FootIK.cpp
 
 #include "Animation/FootIK.h"
 #include "Gameplay/Actor/Actor.h"
@@ -9,19 +9,18 @@
 FootIK::FootIK(
 	Object* owner,
 	LayerId layerId,
-	Model* model,
+	VMDLModel* model,
 	const char* thighName,
 	const char* calfName,
 	const char* footName,
 	const char* ballName)
 	: PhysicsComponent(owner, layerId), model(model)
 {
-	// FootIK�̃`�F�[�������
 	chain.root = &model->GetNodes().at(model->GetNodeIndex(thighName));
 	chain.mid = &model->GetNodes().at(model->GetNodeIndex(calfName));
 	chain.tip = &model->GetNodes().at(model->GetNodeIndex(footName));
 
-	// ball(�ڒn)���Ȃ��Ȃ�foot��ڒn�Ƃ��Ďg��
+	// 接地位置にはつま先を使う。指定がなければ足首を接地点として扱う。
 	if (ballName)
 	{
 		chain.contact = &model->GetNodes().at(model->GetNodeIndex(ballName));
@@ -77,6 +76,7 @@ bool FootIK::UpdateGroundTarget(
 	hasRawGroundHit = false;
 	lastHitNormalY = 0.0f;
 
+	// IK対象レイヤーだけを先に調べる。失敗時の全レイヤーRaycastはデバッグ情報の記録にだけ使う。
 	if (!PhysicsManager::Instance().Raycast(
 		rayStart,
 		direction,
@@ -100,7 +100,6 @@ bool FootIK::UpdateGroundTarget(
 	lastHitLayerId = hit.layerId;
 	lastHitNormalY = hit.normal.y;
 
-	// �ǂ�}������ʂ�n�ʈ������Ȃ�
 	if (hit.normal.y < 0.35f)
 	{
 		KeepPreviousGroundTarget();
@@ -113,6 +112,8 @@ bool FootIK::UpdateGroundTarget(
 		targetContactPosition.y - currentContactPosition.y;
 	float targetWeight = 1.0f;
 
+	// 下方向は脚が伸び切らない範囲へ制限し、制限量に応じてIKウェイトも下げる。
+	// 上方向も同様に補正量を抑え、急な段差で足が跳ね上がるのを防ぐ。
 	if (targetGroundOffsetY < -0.001f)
 	{
 		if (liftOnly || downwardWeight <= 0.001f)
@@ -175,7 +176,6 @@ void FootIK::Render(const RenderContext& rc)
 	if (chain.mid == nullptr) return;
 	if (chain.tip == nullptr) return;
 
-	// IK�^�[�Q�b�g�ʒu��`��
 	{
 		Vector3 targetPosition = chain.targetPosition;
 		Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
@@ -183,7 +183,6 @@ void FootIK::Render(const RenderContext& rc)
 			0.05f,
 			{1, 1, 0, 1});
 	}
-	// Pole�ʒu��`��
 	{
 		Vector3 polePosition = chain.polePosition;
 		Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
@@ -191,7 +190,6 @@ void FootIK::Render(const RenderContext& rc)
 			0.05f,
 			{0, 1, 1, 1});
 	}
-	// Ray�`��
 	{
 		Game::Graphics::Instance().GetPrimitiveRenderer()->DrawLine(
 			rayStart,
@@ -265,7 +263,7 @@ void FootIK::SetTargetFromContact(
 {
 	if (chain.tip == nullptr) return;
 
-	Model::Node* contactNode =
+	VMDLModel::Node* contactNode =
 		chain.contact != nullptr
 		? chain.contact
 		: chain.tip;
@@ -381,7 +379,7 @@ Matrix FootIK::GetModelOwnerWorldTransform() const
 {
 	if (!model) return Matrix::Identity;
 
-	for (const Model::Node& node : model->GetNodes())
+	for (const VMDLModel::Node& node : model->GetNodes())
 	{
 		if (node.parent) continue;
 
@@ -425,7 +423,7 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	const Matrix ownerWorldTransform = GetModelOwnerWorldTransform();
 
-	float targetWeight = hasGroundContact ? 1.0f : 0.0f;
+	float targetWeight = hasGroundContact ? ikWeight : 0.0f;
 	float blendRate = 1.0f - expf(-ikBlendSpeed * Game::Time::deltaTime);
 	blendRate = std::clamp(blendRate, 0.0f, 1.0f);
 	chain.weight += (targetWeight - chain.weight) * blendRate;
@@ -435,9 +433,9 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	if (chain.tip == nullptr) return;
 	if (!chain.poleInitialized) return;
 
-	Model::Node& rootBone = *chain.root;
-	Model::Node& midBone = *chain.mid;
-	Model::Node& tipBone = *chain.tip;
+	VMDLModel::Node& rootBone = *chain.root;
+	VMDLModel::Node& midBone = *chain.mid;
+	VMDLModel::Node& tipBone = *chain.tip;
 
 	Quaternion originalRootRotation = rootBone.rotation;
 	Quaternion originalMidRotation = midBone.rotation;

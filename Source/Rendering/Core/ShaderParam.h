@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// ShaderParam.h
+#pragma once
 #include <string>
 #include <unordered_map>
 #include <variant>

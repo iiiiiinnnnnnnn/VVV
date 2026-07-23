@@ -1,7 +1,7 @@
-// StageLoader.h
+ï»¿// StageLoader.h
 
 #pragma once
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Rendering/Core/ShaderParam.h"
 
 #include <imgui.h>
@@ -84,7 +84,6 @@ private:
 
 	struct SpawnerData
 	{
-		// •Û‘¶‚·‚é
 		Transform transform = {};
 		BoxColliderData boxColliderData = {};
 		enum class SpawnerType
@@ -104,7 +103,6 @@ private:
 
 	struct PropData
 	{
-		// •Û‘¶‚·‚é
 		Transform transform = {};
 		BoxColliderData boxColliderData = {};
 		RigidbodyData rigidbodyData = {};
@@ -123,8 +121,7 @@ private:
 
 		ShaderParamList MakePBRParams() const;
 
-		// •Û‘¶‚µ‚È‚¢
-		std::shared_ptr<Model> model = nullptr;
+		std::shared_ptr<VMDLModel> model = nullptr;
 		ShaderParamListWithMaterialName shaderParams = {};
 
 	} addPropData = {};

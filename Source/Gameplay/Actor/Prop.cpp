@@ -1,11 +1,11 @@
-// Prop.cpp
+ï»¿// Prop.cpp
 
 #include "Gameplay/Actor/Prop.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/Navigation/NavMeshObstacle.h"
 #include "Resource/ResourceManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Collider/BoxCollider.h"
 #include "Rendering/Component/DamageHoleComponent.h"
 #include "Physics/Collider/MeshCollider.h"
@@ -20,7 +20,7 @@ Prop::Prop(StageLoader::PropData& propData)
 
 	propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
 	propData.model->UpdateTransform(transform.matrix);
-	modelRenderer = AddComponent<ModelRenderComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
+	modelRenderer = AddComponent<VMDLModelComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
 	modelRenderer->SetShaderParamForAllMaterials(propData.MakePBRParams());
 
 	if (propData.colliderType == StageLoader::ColliderType::Mesh)
@@ -80,7 +80,6 @@ void Prop::OnTriggerEnter(
 	HitStop::Request(0.1f);
 	CameraEffectController::Request(0.1f, 0.1f);
 
-	// ƒ{ƒRƒb
 	if (damageHoleComponent)
 		damageHoleComponent->AddDamageHoleFromPosition(point, -normal);
 	destroyLife -= 1.0f;

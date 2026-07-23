@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// FreeCameraController.h
+#pragma once
 #include "Gameplay/Camera/CameraController.h"
 
 class FreeCameraController : public CameraController

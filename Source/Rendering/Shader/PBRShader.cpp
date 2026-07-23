@@ -69,7 +69,7 @@ void PBRShader::Begin(const RenderContext& rc)
 	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 }
 
-void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
+void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -170,12 +170,12 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		}
 		else if (hasOcclusionTexture)
 		{
-			cb.occlusion = 1.0f;
+			cb.occlusion = mesh.material->occlusion;
 			cb.useOcclusionTexture = 1;
 		}
 		else
 		{
-			cb.occlusion = 1.0f;
+			cb.occlusion = mesh.material->occlusion;
 			cb.useOcclusionTexture = 0;
 		}
 
@@ -190,7 +190,7 @@ void PBRShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
 		cb.shadowStrength = GetParam<float>(
 			cachedParams,
 			"shadowStrength",
-			1.0f);
+			mesh.material->shadowStrength);
 
 		const bool isFlatShading = GetParam<bool>(cachedParams, "IsFlatShading", false);
 		cb.isFlatShading = isFlatShading ? 1 : 0;

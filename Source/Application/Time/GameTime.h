@@ -1,4 +1,4 @@
-// Time.h
+ï»¿// GameTime.h
 #pragma once
 
 namespace Game
@@ -6,9 +6,9 @@ namespace Game
 	class Time
 	{
 	public:
-		static float time; // ‹N“®‚©‚ç‚Ì—İŒvŠÔ
-		static float scale; // ŠÔ‚ÌƒXƒP[ƒ‹
-		static float deltaTime; // ‘OƒtƒŒ[ƒ€‚©‚ç‚ÌŒo‰ßŠÔ
-		static float unscaledDeltaTime; // ‹N“®‚©‚ç‚Ì—İŒvŠÔiƒXƒP[ƒ‹‚Ì‰e‹¿‚ğó‚¯‚È‚¢j
+		static float time; // ï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì—İŒvï¿½ï¿½ï¿½ï¿½
+		static float scale; // ï¿½ï¿½ï¿½Ô‚ÌƒXï¿½Pï¿½[ï¿½ï¿½
+		static float deltaTime; // ï¿½Oï¿½tï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÌŒoï¿½ßï¿½ï¿½ï¿½
+		static float unscaledDeltaTime; // ï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì—İŒvï¿½ï¿½ï¿½Ôiï¿½Xï¿½Pï¿½[ï¿½ï¿½ï¿½Ì‰eï¿½ï¿½ï¿½ï¿½ó‚¯‚È‚ï¿½ï¿½j
 	};
 }

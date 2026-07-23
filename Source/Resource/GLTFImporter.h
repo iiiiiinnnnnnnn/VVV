@@ -9,7 +9,7 @@
 #include <map>
 #include <filesystem>
 #include <tiny_gltf.h>
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Rendering/Core/RenderContext.h"
 
 class LightManager;
@@ -38,10 +38,10 @@ namespace Conv
 class GLTFImporter
 {
 private:
-	using MeshList = std::vector<Model::Mesh>;
-	using MaterialList = std::vector<Model::Material>;
-	using NodeList = std::vector<Model::Node>;
-	using AnimationList = std::vector<Model::Animation>;
+	using MeshList = std::vector<VMDLModel::Mesh>;
+	using MaterialList = std::vector<VMDLModel::Material>;
+	using NodeList = std::vector<VMDLModel::Node>;
+	using AnimationList = std::vector<VMDLModel::Animation>;
 
 public:
 	GLTFImporter(const char* filename);
@@ -67,12 +67,12 @@ private:
 	static void ConvertPositionAxisSystem(Vector4& v);
 	static void ConvertRotationAxisSystem(Quaternion& q);
 	static void ConvertMatrixAxisSystem(DirectX::XMFLOAT4X4& m);
-	static void ConvertNodeAxisSystem(Model::Node& node);
-	static void ConvertMeshAxisSystem(Model::Mesh& mesh);
-	static void ConvertAnimationAxisSystem(Model::Animation& animation);
+	static void ConvertNodeAxisSystem(VMDLModel::Node& node);
+	static void ConvertMeshAxisSystem(VMDLModel::Mesh& mesh);
+	static void ConvertAnimationAxisSystem(VMDLModel::Animation& animation);
 
 	// タンジェント計算
-	static void ComputeTangents(std::vector<Model::Vertex>& vertices, const std::vector<uint32_t>& indices);
+	static void ComputeTangents(std::vector<VMDLModel::Vertex>& vertices, const std::vector<uint32_t>& indices);
 
 private:
 	std::filesystem::path			filepath;

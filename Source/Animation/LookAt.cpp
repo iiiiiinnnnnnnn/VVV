@@ -1,20 +1,21 @@
-// LookAt.cpp
+﻿// LookAt.cpp
 
 #include "Animation/LookAt.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Application/Time/GameTime.h"
 
-LookAt::LookAt(Object* owner, Model* model,
+LookAt::LookAt(Object* owner, VMDLModel* model,
 	const std::string& nodeName1,
 	const std::string& nodeName2,
 	const std::string& nodeName3)
 	: Component(owner), model(model)
 {
-	// �����p�����̃m�[�h�̃��[�J����Ԋ�������߂�
 
+	// 初期姿勢のワールド軸をノードのローカル空間へ戻し、モデル固有の正面・上・右を求める。
+	// この基準を保持することで、ボーン軸が一般的なXYZ方向でなくても同じ計算を使える。
 	auto SetBasis = [&](int nodeIndex, Vector3& forward, Vector3& right, Vector3& up)
 	{
 		if (nodeIndex < 0) return;
@@ -38,7 +39,6 @@ LookAt::LookAt(Object* owner, Model* model,
 		up.Normalize();
 	};
 
-	// �m�[�h������m�[�h�C���f�b�N�X���擾���A�����ݒ�
 
 	nodeIndex1 = model->GetNodeIndex(nodeName1.c_str());
 	SetBasis(nodeIndex1, forward1, right1, up1);
@@ -59,8 +59,8 @@ void LookAt::LateUpdate()
 	if (!model) return;
 	if (nodeIndex1 < 0) return;
 
-	// �E�F�C�g���U
 
+	// 首・頭など複数ノードを使う場合は、総回転量が増えないよう均等に分配する。
 	float weight = 1.0f;
 	if (nodeIndex2 != -1)
 	{
@@ -71,7 +71,6 @@ void LookAt::LateUpdate()
 		}
 	}
 
-	// �m�[�h�̃��[�J����Ԃ�yaw/pitch�ɕ������A��둤�ɂ͋Ȃ��Ȃ�
 
 	auto SetLookAt = [&](int nodeIndex, const Vector3& forward, const Vector3& right, const Vector3& up, float& currentYaw, float& currentPitch)
 	{
@@ -83,6 +82,7 @@ void LookAt::LateUpdate()
 		float yaw = 0.0f;
 		float pitch = 0.0f;
 
+		// 注視点を現在のノード空間へ変換し、初期姿勢の基準軸からyawとpitchを計算する。
 		Vector3 localDirection = Vector3::Transform(target, inverseWorld);
 		if (localDirection.Length() >= 0.001f)
 		{
@@ -109,6 +109,7 @@ void LookAt::LateUpdate()
 			}
 		}
 
+		// 指数補間にして、フレームレートが変わっても追従速度がほぼ一定になるようにする。
 		float rate = 1.0f - expf(-smoothSpeed * Game::Time::deltaTime);
 		if (rate > 1.0f) rate = 1.0f;
 		if (rate < 0.0f) rate = 0.0f;
@@ -135,7 +136,6 @@ void LookAt::LateUpdate()
 		node.rotation.Normalize();
 	};
 
-	// �m�[�h�̉�]���X�V
 
 	SetLookAt(nodeIndex1, forward1, right1, up1, currentYaw1, currentPitch1);
 	if (nodeIndex2 != -1)

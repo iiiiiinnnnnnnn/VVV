@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// GamePad.h
+#pragma once
 
 using GamePadButton = unsigned int;
 

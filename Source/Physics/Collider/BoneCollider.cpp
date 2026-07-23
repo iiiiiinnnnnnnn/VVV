@@ -1,4 +1,4 @@
-// BoneCollider.cpp
+﻿// BoneCollider.cpp
 
 #include "Physics/Collider/BoneCollider.h"
 #include "Rendering/Core/RenderContext.h"
@@ -8,7 +8,7 @@
 #include "Gameplay/Actor/Actor.h"
 
 BoneCollider::BoneCollider(
-    Object* owner, LayerId layerId, Model* model, int nodeIndex, Matrix offset, PxMaterial* material,
+    Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex, Matrix offset, PxMaterial* material,
     bool isTrigger, bool freezePositions, bool freezeRotations)
     : PhysicsComponent(owner, layerId), material(material), model(model), nodeIndex(nodeIndex), offset(offset),
     isTrigger(isTrigger), freezePositions{freezePositions},
@@ -23,10 +23,11 @@ BoneCollider::BoneCollider(
     _ASSERT_EXPR(nodeIndex >= 0, L"BoneCollider invalid nodeIndex.");
     _ASSERT_EXPR(nodeIndex < static_cast<int>(model->GetNodes().size()), L"BoneCollider nodeIndex out of range.");
 
-    // �{�[���̏����ʒu��Kinematic Dynamic�𐶐�
     Matrix boneWorld = model->GetNodes()[nodeIndex].worldTransform;
     Matrix world = MakeBoneOffsetWorld(boneWorld, offset);
 
+	// PhysXはボーンを直接参照できないため、追従専用のKinematic Actorを用意する。
+	// freeze指定時は対象成分だけVMDLで設定したオフセット値へ固定する。
     if (freezePositions)
     {
         world._41 = offset._41;
@@ -95,14 +96,13 @@ void BoneCollider::InitializeShape()
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
-    // Trigger�͍U������p�ASimulation�͐ڐG����p
     shape = CreateShape(physics, material);
     shape->userData = this;
     shape->setLocalPose(GetLocalPose());
+	// Triggerと通常接触はPhysX上で同時に有効化できないため排他的に切り替える。
     shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !isTrigger);
     shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, isTrigger);
 
-    // owner��layer���V�F�C�v�ɔ��f
     PhysicsManager::SetLayerToShape(shape, layerId);
 
     ghostActor->attachShape(*shape);

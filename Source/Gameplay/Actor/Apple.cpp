@@ -8,7 +8,7 @@
 
 Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
-    std::shared_ptr<Model> model =
+    std::shared_ptr<VMDLModel> model =
 		ResourceManager::Instance().LoadModel("Data/Model/apple");
 
     transform.SetScale(50.0f);
@@ -17,7 +17,7 @@ Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
     rb = AddComponent<RigidbodyDynamic>();
     AddComponent<MeshCollider>(rb, model.get(), true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
 
-    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
+    VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
         model, ModelShaderId::PBR);
 }
 

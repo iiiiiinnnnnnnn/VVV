@@ -1,4 +1,4 @@
-// BoneSphereCollider.cpp
+﻿// BoneSphereCollider.cpp
 
 #include "Physics/Collider/BoneSphereCollider.h"
 #include "Rendering/Core/RenderContext.h"
@@ -6,7 +6,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "IconsFontAwesome5.h"
 
-BoneSphereCollider::BoneSphereCollider(Object* owner, LayerId layerId, Model* model,
+BoneSphereCollider::BoneSphereCollider(Object* owner, LayerId layerId, VMDLModel* model,
     int nodeIndex, float radius, Matrix offset, PxMaterial* material,
     bool isTrigger, bool freezePositions, bool freezeRotations)
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)

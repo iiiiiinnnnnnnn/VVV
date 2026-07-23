@@ -1,16 +1,16 @@
-// LookAt.h
+﻿// LookAt.h
 
 #pragma once
 
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 
-class Model;
+class VMDLModel;
 
 class LookAt : public Component
 {
 public:
-	LookAt(Object* owner, Model* model,
+	LookAt(Object* owner, VMDLModel* model,
 		const std::string& nodeName1,
 		const std::string& nodeName2 = "",
 		const std::string& nodeName3 = "");
@@ -37,7 +37,7 @@ private:
 	Vector3 target;
 	float currentYaw1 = 0.0f, currentYaw2 = 0.0f, currentYaw3 = 0.0f;
 	float currentPitch1 = 0.0f, currentPitch2 = 0.0f, currentPitch3 = 0.0f;
-	Model* model;
+	VMDLModel* model;
 	float maxAngleYaw = RAD(30.0f);
 	float maxAnglePitch = RAD(20.0f);
 	float smoothSpeed = 12.0f;

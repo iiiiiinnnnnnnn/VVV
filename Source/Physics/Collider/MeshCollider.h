@@ -1,18 +1,17 @@
+Ôªø// MeshCollider.h
 #pragma once
 
 #include "Physics/Core/CollidersDef.h"
 
-class Model;
+class VMDLModel;
 
 class MeshCollider : public PhysicsComponent
 {
 public:
-    // TriangleMeshÅiStaticópÅj
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, PxMaterial* material = nullptr);
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, PxMaterial* material = nullptr);
-    // ConvexMeshÅiDynamicópÅj
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
 
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
@@ -29,7 +28,7 @@ private:
     Matrix MakeLocalVertexTransform(const Matrix& nodeTransform) const;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
-    Model* model = nullptr;
+    VMDLModel* model = nullptr;
     Vector3 localScale = Vector3::One;
     bool useConvex = false;
     bool collisionEnabled = true;

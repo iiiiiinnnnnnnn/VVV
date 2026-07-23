@@ -1,4 +1,4 @@
-// AracoreQueen.h
+﻿// AracoreQueen.h
 
 #pragma once
 #include "Rendering/Core/ShaderParam.h"
@@ -15,8 +15,8 @@ class AracoreQueen;
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Animation/Animator.h"
 #include "Rendering/Component/DamageHoleComponent.h"
-#include "Resource/Model.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Resource/VMDLModel.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Animation/SpiderFootIK.h"
 
@@ -53,9 +53,9 @@ public:
 private:
 	friend class AracoreQueenMachine;
 	Animator* anim = nullptr;
-	ModelRenderComponent* bodyRenderer = nullptr;
+	VMDLModelComponent* bodyRenderer = nullptr;
 	RigidbodyDynamic* rb = nullptr;
-	std::shared_ptr<Model> model;
+	std::shared_ptr<VMDLModel> model;
 	Actor* machine = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
 	SpiderFootIK* spiderFootIK = nullptr;

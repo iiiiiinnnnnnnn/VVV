@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Effect.h
+#pragma once
 
 #include "Core/Foundation/Common.h"
 #include <DirectXMath.h>

@@ -1,6 +1,7 @@
 ﻿// GLTFImporter.cpp
 
 #include <array>
+#include <cmath>
 #include <fstream>
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -29,7 +30,44 @@ namespace
 		float weight = 0.0f;
 	};
 
-	void NormalizeBoneWeights(Model::Vertex& vertex)
+	bool BuildTriangleList(std::vector<uint32_t>& indices, int mode, size_t vertexCount)
+	{
+		std::vector<uint32_t> triangles;
+		const auto addTriangle = [&](uint32_t a, uint32_t b, uint32_t c)
+		{
+			if (a >= vertexCount || b >= vertexCount || c >= vertexCount) return;
+			if (a == b || b == c || c == a) return;
+			triangles.push_back(a);
+			triangles.push_back(b);
+			triangles.push_back(c);
+		};
+
+		switch (mode)
+		{
+		case TINYGLTF_MODE_TRIANGLES:
+			for (size_t i = 0; i + 2 < indices.size(); i += 3)
+				addTriangle(indices[i], indices[i + 1], indices[i + 2]);
+			break;
+		case TINYGLTF_MODE_TRIANGLE_STRIP:
+			for (size_t i = 2; i < indices.size(); ++i)
+			{
+				if ((i & 1) == 0) addTriangle(indices[i - 2], indices[i - 1], indices[i]);
+				else addTriangle(indices[i - 1], indices[i - 2], indices[i]);
+			}
+			break;
+		case TINYGLTF_MODE_TRIANGLE_FAN:
+			for (size_t i = 2; i < indices.size(); ++i)
+				addTriangle(indices[0], indices[i - 1], indices[i]);
+			break;
+		default:
+			return false;
+		}
+
+		indices = std::move(triangles);
+		return !indices.empty();
+	}
+
+	void NormalizeBoneWeights(VMDLModel::Vertex& vertex)
 	{
 		float weightSum =
 			vertex.boneWeight.x +
@@ -51,7 +89,7 @@ namespace
 	}
 
 	void PackTopBoneInfluences(
-		Model::Vertex& vertex,
+		VMDLModel::Vertex& vertex,
 		const DirectX::XMUINT4& extraIndex,
 		const Vector4& extraWeight)
 	{
@@ -139,14 +177,14 @@ GLTFImporter::GLTFImporter(const char* filename)
 // ノードデータを読み込み
 void GLTFImporter::LoadNodes(NodeList& nodes)
 {
-	/*Model::Node& node = nodes.emplace_back();
+	/*VMDLModel::Node& node = nodes.emplace_back();
 	node.name = filepath.filename().stem().string();*/
 
 	nodes.resize(gltfModel.nodes.size());
 	for (size_t gltfNodeIndex = 0; gltfNodeIndex < nodes.size(); ++gltfNodeIndex)
 	{
 		const tinygltf::Node& gltfNode = gltfModel.nodes.at(gltfNodeIndex);
-		Model::Node& node = nodes.at(gltfNodeIndex);
+		VMDLModel::Node& node = nodes.at(gltfNodeIndex);
 
 		// データ取得
 		node.name = gltfNode.name;
@@ -193,7 +231,12 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 				
 		for (const tinygltf::Primitive& gltfPrimitive : gltfMesh.primitives)
 		{
-			Model::Mesh& mesh = meshes.emplace_back();
+			const int primitiveMode = gltfPrimitive.mode < 0 ? TINYGLTF_MODE_TRIANGLES : gltfPrimitive.mode;
+			if (primitiveMode != TINYGLTF_MODE_TRIANGLES &&
+				primitiveMode != TINYGLTF_MODE_TRIANGLE_STRIP &&
+				primitiveMode != TINYGLTF_MODE_TRIANGLE_FAN) continue;
+
+			VMDLModel::Mesh& mesh = meshes.emplace_back();
 			mesh.nodeIndex = gltfNodeIndex;
 			mesh.materialIndex = gltfPrimitive.material;
 
@@ -206,7 +249,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 
 				for (int i = 0; i < gltfAccessor.count; ++i)
 				{
-					Model::Bone& bone = mesh.bones.emplace_back();
+					VMDLModel::Bone& bone = mesh.bones.emplace_back();
 					const DirectX::XMFLOAT4X4* offsetTransforms = reinterpret_cast<const DirectX::XMFLOAT4X4*>(gltfModel.buffers.at(gltfBufferView.buffer).data.data() + gltfBufferView.byteOffset + gltfAccessor.byteOffset);
 					bone.offsetTransform = offsetTransforms[i];
 					bone.nodeIndex = gltfSkin.joints.at(i);
@@ -214,6 +257,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 			}
 
 			// インデックスバッファ
+			if (gltfPrimitive.indices >= 0)
 			{
 				const tinygltf::Accessor& gltfAccessor = gltfModel.accessors.at(gltfPrimitive.indices);
 				const tinygltf::BufferView& gltfBufferView = gltfModel.bufferViews.at(gltfAccessor.bufferView);
@@ -235,6 +279,14 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 						mesh.indices.at(i) = indicesU16[i];
 					}
 				}
+				else if (gltfAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+				{
+					const uint8_t* indicesU8 = static_cast<const uint8_t*>(indices);
+					for (size_t i = 0; i < gltfAccessor.count; ++i)
+					{
+						mesh.indices.at(i) = indicesU8[i];
+					}
+				}
 				else
 				{
 					_ASSERT_EXPR_A(false, "This accessor component type is not supported.");;
@@ -247,6 +299,17 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 				_ASSERT_EXPR(gltfAttribute != gltfPrimitive.attributes.end(), "");
 				const tinygltf::Accessor& gltfAccessor = gltfModel.accessors.at(gltfAttribute->second);
 				mesh.vertices.resize(gltfAccessor.count);
+			}
+			if (gltfPrimitive.indices < 0)
+			{
+				mesh.indices.resize(mesh.vertices.size());
+				for (size_t i = 0; i < mesh.indices.size(); ++i)
+					mesh.indices[i] = static_cast<uint32_t>(i);
+			}
+			if (!BuildTriangleList(mesh.indices, primitiveMode, mesh.vertices.size()))
+			{
+				meshes.pop_back();
+				continue;
 			}
 
 			std::vector<DirectX::XMUINT4> extraBoneIndices(mesh.vertices.size(), {0, 0, 0, 0});
@@ -547,7 +610,7 @@ void GLTFImporter::LoadMeshes(MeshList& meshes, const NodeList& nodes)
 			}
 			else
 			{
-				for (Model::Vertex& vertex : mesh.vertices)
+				for (VMDLModel::Vertex& vertex : mesh.vertices)
 				{
 					NormalizeBoneWeights(vertex);
 				}
@@ -576,7 +639,7 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 
 	for (const tinygltf::Material& gltfMaterial : gltfModel.materials)
 	{
-		Model::Material& material = materials.emplace_back();
+		VMDLModel::Material& material = materials.emplace_back();
 		material.name = gltfMaterial.name;
 		material.baseColor.x = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(0));
 		material.baseColor.y = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(1));
@@ -591,15 +654,15 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 		material.alphaCutoff = static_cast<float>(gltfMaterial.alphaCutoff);
 		if (gltfMaterial.alphaMode == "BLEND")
 		{
-			material.alphaMode = Model::AlphaMode::Blend;
+			material.alphaMode = VMDLModel::AlphaMode::Blend;
 		}
 		else if (gltfMaterial.alphaMode == "MASK")
 		{
-			material.alphaMode = Model::AlphaMode::Mask;
+			material.alphaMode = VMDLModel::AlphaMode::Mask;
 		}
 		else
 		{
-			material.alphaMode = Model::AlphaMode::Opaque;
+			material.alphaMode = VMDLModel::AlphaMode::Opaque;
 		}
 
 		auto loadTexture = [&](int gltfTextureIndex, const char* textureType, std::string& textureFilename, ID3D11ShaderResourceView** srv)
@@ -718,7 +781,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 
 	for (const tinygltf::Animation& gltfAnimation : gltfModel.animations)
 	{
-		Model::Animation& animation = animations.emplace_back();
+		VMDLModel::Animation& animation = animations.emplace_back();
 		animation.name = gltfAnimation.name;
 		animation.nodeAnims.resize(nodes.size());
 		animation.secondsLength = 0;
@@ -728,7 +791,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 		for (const tinygltf::AnimationChannel& gltfAnimationChannel : gltfAnimation.channels)
 		{
 			// ノードアニメーションデータを読み取り開始
-			Model::NodeAnim& nodeAnim = animation.nodeAnims.at(gltfAnimationChannel.target_node);
+			VMDLModel::NodeAnim& nodeAnim = animation.nodeAnims.at(gltfAnimationChannel.target_node);
 			const tinygltf::AnimationSampler& gltfAnimationSampler = gltfAnimation.samplers.at(gltfAnimationChannel.sampler);
 			const tinygltf::Accessor& gltfInputAccessor = gltfModel.accessors.at(gltfAnimationSampler.input);
 			const tinygltf::Accessor& gltfOutputAccessor = gltfModel.accessors.at(gltfAnimationSampler.output);
@@ -745,7 +808,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 				const DirectX::XMFLOAT3* gltfKeyframeValues = reinterpret_cast<const DirectX::XMFLOAT3*>(gltfModel.buffers.at(gltfOutputBufferView.buffer).data.data() + gltfOutputBufferView.byteOffset + gltfOutputAccessor.byteOffset);
 				for (int i = 0; i < gltfInputAccessor.count; ++i)
 				{
-					Model::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
+					VMDLModel::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
 					keyframe.seconds = gltfKeyframeTimes[i];
 					keyframe.value = gltfKeyframeValues[i];
 				}
@@ -777,7 +840,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 					float frame = gltfKeyframeTimes[i] * sampleRate;
 					if (fabs(std::round(frame) - frame) > 0.001) continue;
 
-					Model::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
+					VMDLModel::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
 					keyframe.seconds = gltfKeyframeTimes[i];
 					keyframe.value = gltfKeyframeValues[i];
 				}
@@ -806,7 +869,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 				const DirectX::XMFLOAT3* gltfKeyframeValues = reinterpret_cast<const DirectX::XMFLOAT3*>(gltfModel.buffers.at(gltfOutputBufferView.buffer).data.data() + gltfOutputBufferView.byteOffset + gltfOutputAccessor.byteOffset);
 				for (int i = 0; i < gltfInputAccessor.count; ++i)
 				{
-					Model::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
+					VMDLModel::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
 					keyframe.seconds = gltfKeyframeTimes[i];
 					keyframe.value = gltfKeyframeValues[i];
 				}
@@ -831,17 +894,17 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 		}
 
 		// 先頭キーフレームの時間が0じゃない場合があるので調整する
-		for (Model::NodeAnim& nodeAnim : animation.nodeAnims)
+		for (VMDLModel::NodeAnim& nodeAnim : animation.nodeAnims)
 		{
-			for (Model::VectorKeyframe& keyframe : nodeAnim.positionKeyframes)
+			for (VMDLModel::VectorKeyframe& keyframe : nodeAnim.positionKeyframes)
 			{
 				keyframe.seconds -= minTime;
 			}
-			for (Model::QuaternionKeyframe& keyframe : nodeAnim.rotationKeyframes)
+			for (VMDLModel::QuaternionKeyframe& keyframe : nodeAnim.rotationKeyframes)
 			{
 				keyframe.seconds -= minTime;
 			}
-			for (Model::VectorKeyframe& keyframe : nodeAnim.scaleKeyframes)
+			for (VMDLModel::VectorKeyframe& keyframe : nodeAnim.scaleKeyframes)
 			{
 				keyframe.seconds -= minTime;
 			}
@@ -855,44 +918,44 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 		// アニメーションがなかったノードに対して初期姿勢のキーフレームを追加する
 		for (size_t nodeIndex = 0; nodeIndex < animation.nodeAnims.size(); ++nodeIndex)
 		{
-			const Model::Node& node = nodes.at(nodeIndex);
-			Model::NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
+			const VMDLModel::Node& node = nodes.at(nodeIndex);
+			VMDLModel::NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
 			// 移動
 			if (nodeAnim.positionKeyframes.size() == 0)
 			{
-				Model::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
+				VMDLModel::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
 				keyframe.seconds = 0.0f;
 				keyframe.value = node.position;
 			}
 			if (nodeAnim.positionKeyframes.size() == 1)
 			{
-				Model::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
+				VMDLModel::VectorKeyframe& keyframe = nodeAnim.positionKeyframes.emplace_back();
 				keyframe.seconds = animation.secondsLength;
 				keyframe.value = nodeAnim.positionKeyframes.at(0).value;
 			}
 			// 回転
 			if (nodeAnim.rotationKeyframes.size() == 0)
 			{
-				Model::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
+				VMDLModel::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
 				keyframe.seconds = 0.0f;
 				keyframe.value = node.rotation;
 			}
 			if (nodeAnim.rotationKeyframes.size() == 1)
 			{
-				Model::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
+				VMDLModel::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
 				keyframe.seconds = animation.secondsLength;
 				keyframe.value = nodeAnim.rotationKeyframes.at(0).value;
 			}
 			// スケール
 			if (nodeAnim.scaleKeyframes.size() == 0)
 			{
-				Model::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
+				VMDLModel::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
 				keyframe.seconds = 0.0f;
 				keyframe.value = node.scale;
 			}
 			if (nodeAnim.scaleKeyframes.size() == 1)
 			{
-				Model::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
+				VMDLModel::VectorKeyframe& keyframe = nodeAnim.scaleKeyframes.emplace_back();
 				keyframe.seconds = animation.secondsLength;
 				keyframe.value = nodeAnim.scaleKeyframes.at(0).value;
 			}
@@ -1007,22 +1070,22 @@ void GLTFImporter::ConvertMatrixAxisSystem(DirectX::XMFLOAT4X4& m)
 	m._41 = -m._41;
 }
 
-void GLTFImporter::ConvertNodeAxisSystem(Model::Node& node)
+void GLTFImporter::ConvertNodeAxisSystem(VMDLModel::Node& node)
 {
 	ConvertPositionAxisSystem(node.position);
 	ConvertRotationAxisSystem(node.rotation);
 }
 
-void GLTFImporter::ConvertMeshAxisSystem(Model::Mesh& mesh)
+void GLTFImporter::ConvertMeshAxisSystem(VMDLModel::Mesh& mesh)
 {
-	for (Model::Vertex& v : mesh.vertices)
+	for (VMDLModel::Vertex& v : mesh.vertices)
 	{
 		ConvertPositionAxisSystem(v.position);
 		ConvertPositionAxisSystem(v.normal);
 		ConvertPositionAxisSystem(v.tangent);
 	}
 
-	for (size_t i = 0; i < mesh.indices.size(); i += 3)
+	for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3)
 	{
 		uint32_t* p = &mesh.indices.at(i);
 		uint32_t temp = p[1];
@@ -1030,21 +1093,21 @@ void GLTFImporter::ConvertMeshAxisSystem(Model::Mesh& mesh)
 		p[2] = temp;
 	}
 
-	for (Model::Bone& bone : mesh.bones)
+	for (VMDLModel::Bone& bone : mesh.bones)
 	{
 		ConvertMatrixAxisSystem(bone.offsetTransform);
 	}
 }
 
-void GLTFImporter::ConvertAnimationAxisSystem(Model::Animation& animation)
+void GLTFImporter::ConvertAnimationAxisSystem(VMDLModel::Animation& animation)
 {
-	for (Model::NodeAnim& nodeAnim : animation.nodeAnims)
+	for (VMDLModel::NodeAnim& nodeAnim : animation.nodeAnims)
 	{
-		for (Model::VectorKeyframe& keyframe : nodeAnim.positionKeyframes)
+		for (VMDLModel::VectorKeyframe& keyframe : nodeAnim.positionKeyframes)
 		{
 			ConvertPositionAxisSystem(keyframe.value);
 		}
-		for (Model::QuaternionKeyframe& keyframe : nodeAnim.rotationKeyframes)
+		for (VMDLModel::QuaternionKeyframe& keyframe : nodeAnim.rotationKeyframes)
 		{
 			ConvertRotationAxisSystem(keyframe.value);
 		}
@@ -1052,22 +1115,23 @@ void GLTFImporter::ConvertAnimationAxisSystem(Model::Animation& animation)
 }
 
 // タンジェント計算
-void GLTFImporter::ComputeTangents(std::vector<Model::Vertex>& vertices, const std::vector<uint32_t>& indices)
+void GLTFImporter::ComputeTangents(std::vector<VMDLModel::Vertex>& vertices, const std::vector<uint32_t>& indices)
 {
 	size_t vertexCount = vertices.size();
+	if (vertexCount == 0) return;
 	std::unique_ptr<DirectX::XMFLOAT3[]> tan1 = std::make_unique<DirectX::XMFLOAT3[]>(vertexCount);
 	std::unique_ptr<DirectX::XMFLOAT3[]> tan2 = std::make_unique<DirectX::XMFLOAT3[]>(vertexCount);
-	std::unique_ptr<DirectX::XMFLOAT4[]> tangent = std::make_unique<DirectX::XMFLOAT4[]>(vertexCount);
 
-	for (size_t i = 0; i < indices.size(); i += 3)
+	for (size_t i = 0; i + 2 < indices.size(); i += 3)
 	{
 		const uint32_t i1 = indices[i + 0];
 		const uint32_t i2 = indices[i + 1];
 		const uint32_t i3 = indices[i + 2];
+		if (i1 >= vertexCount || i2 >= vertexCount || i3 >= vertexCount) continue;
 
-		const Model::Vertex& v1 = vertices[i1];
-		const Model::Vertex& v2 = vertices[i2];
-		const Model::Vertex& v3 = vertices[i3];
+		const VMDLModel::Vertex& v1 = vertices[i1];
+		const VMDLModel::Vertex& v2 = vertices[i2];
+		const VMDLModel::Vertex& v3 = vertices[i3];
 
 		const float x1 = v2.position.x - v1.position.x;
 		const float x2 = v3.position.x - v1.position.x;
@@ -1079,26 +1143,33 @@ void GLTFImporter::ComputeTangents(std::vector<Model::Vertex>& vertices, const s
 		const float s2 = v3.texcoord.x - v1.texcoord.x;
 		const float t1 = v2.texcoord.y - v1.texcoord.y;
 		const float t2 = v3.texcoord.y - v1.texcoord.y;
-		const float r = 1.0f / (s1 * t2 - s2 * t1);
+		const float denominator = s1 * t2 - s2 * t1;
+		if (std::abs(denominator) <= 0.000001f) continue;
+		const float r = 1.0f / denominator;
 		const DirectX::XMFLOAT3 sdir = { (t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r };
 		const DirectX::XMFLOAT3 tdir = { (s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r };
 		tan1[i1] = { tan1[i1].x + sdir.x, tan1[i1].y + sdir.y, tan1[i1].z + sdir.z };
 		tan1[i2] = { tan1[i2].x + sdir.x, tan1[i2].y + sdir.y, tan1[i2].z + sdir.z };
 		tan1[i3] = { tan1[i3].x + sdir.x, tan1[i3].y + sdir.y, tan1[i3].z + sdir.z };
-		tan2[i1] = { tan2[i1].x + sdir.x, tan2[i1].y + sdir.y, tan2[i1].z + sdir.z };
-		tan2[i2] = { tan2[i2].x + sdir.x, tan2[i2].y + sdir.y, tan2[i2].z + sdir.z };
-		tan2[i3] = { tan2[i3].x + sdir.x, tan2[i3].y + sdir.y, tan2[i3].z + sdir.z };
+		tan2[i1] = { tan2[i1].x + tdir.x, tan2[i1].y + tdir.y, tan2[i1].z + tdir.z };
+		tan2[i2] = { tan2[i2].x + tdir.x, tan2[i2].y + tdir.y, tan2[i2].z + tdir.z };
+		tan2[i3] = { tan2[i3].x + tdir.x, tan2[i3].y + tdir.y, tan2[i3].z + tdir.z };
 	}
 
 	for (size_t i = 0; i < vertexCount; ++i)
 	{
-		Model::Vertex& v = vertices[i];
+		VMDLModel::Vertex& v = vertices[i];
 
 		Vector3 N = v.normal;
 		Vector3 T1 = tan1[i];
 
 		// Gram-Schmidt orthogonalize        
 		Vector3 T = T1 - (N * N.Dot(T1));
+		if (T.LengthSquared() <= 0.000001f)
+		{
+			v.tangent = {1, 0, 0, 1};
+			continue;
+		}
 		T.Normalize();
 
 		// Calculate handedness        

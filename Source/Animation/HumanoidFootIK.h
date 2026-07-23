@@ -1,9 +1,9 @@
-// HumanoidFootIK.h
+﻿// HumanoidFootIK.h
 
 #pragma once
 
 #include "Core/Foundation/Common.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Core/Object/Component.h"
 #include "Animation/FootIK.h"
 
@@ -15,7 +15,7 @@ public:
 	HumanoidFootIK(
 		Object* owner,
 		LayerId layerId,
-		Model* model,
+		VMDLModel* model,
 		Animator* animator,
 		const char* activeStateName,
 		const char* pelvisName,
@@ -33,10 +33,11 @@ public:
 
 private:
 	bool ShouldUseIK() const;
+	float GetVmdlFootWeight(int footIndex) const;
 	void ApplyHipOffset(const Vector3& baseHipLocalPosition);
 	void ResetHipOffset(const Vector3& baseHipLocalPosition);
 
-	Model* model = nullptr;
+	VMDLModel* model = nullptr;
 	Animator* animator = nullptr;
 	FootIK* footIK_L = nullptr;
 	FootIK* footIK_R = nullptr;

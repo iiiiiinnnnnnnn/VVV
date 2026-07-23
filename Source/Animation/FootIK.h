@@ -6,7 +6,7 @@
 #include <cfloat>
 
 #include "Core/Foundation/Common.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Physics/Core/PhysicsComponent.h"
 
 class FootIK : public PhysicsComponent
@@ -15,7 +15,7 @@ public:
 	FootIK(
 		Object* owner,
 		LayerId layerId,
-		Model* model,
+		VMDLModel* model,
 		const char* thighName,
 		const char* calfName,
 		const char* footName,
@@ -38,6 +38,7 @@ public:
 	void SetPoleLiftY(float liftY) { poleLiftY = liftY; }
 	void SetRootRotationOffset(const Quaternion& offset) { rootRotationOffset = offset; }
 	void SetLiftOnly(bool value) { liftOnly = value; }
+	void SetWeight(float weight) { ikWeight = std::clamp(weight, 0.0f, 1.0f); }
 	void SetDownwardWeight(float weight) { downwardWeight = std::clamp(weight, 0.0f, 1.0f); }
 	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
 	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
@@ -71,10 +72,10 @@ public:
 private:
 	struct Chain
 	{
-		Model::Node* root = nullptr;    // thigh
-		Model::Node* mid = nullptr;     // calf
-		Model::Node* tip = nullptr;     // foot
-		Model::Node* contact = nullptr; // ball。なければ foot
+		VMDLModel::Node* root = nullptr;    // thigh
+		VMDLModel::Node* mid = nullptr;     // calf
+		VMDLModel::Node* tip = nullptr;     // foot
+		VMDLModel::Node* contact = nullptr; // ball。なければ foot
 
 		Vector3 targetPosition = Vector3::Zero;
 		Vector3 polePosition = Vector3::Zero;
@@ -87,11 +88,12 @@ private:
 	};
 
 	Chain chain;
-	Model* model = nullptr;
+	VMDLModel* model = nullptr;
 
 	Vector3 rayStart, rayEnd;
 	bool hasGroundContact = false;
 	bool liftOnly = false;
+	float ikWeight = 1.0f;
 	float downwardWeight = 1.0f;
 	float maxUpCorrection = 2.0f;
 	float maxDownCorrection = 2.0f;
@@ -116,16 +118,16 @@ private:
 	void SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY);
 	Matrix GetModelOwnerWorldTransform() const;
 
-	static bool IsDescendantOf(const Model::Node* ancestor, const Model::Node* node)
+	static bool IsDescendantOf(const VMDLModel::Node* ancestor, const VMDLModel::Node* node)
 	{
-		for (const Model::Node* current = node; current; current = current->parent)
+		for (const VMDLModel::Node* current = node; current; current = current->parent)
 		{
 			if (current == ancestor) return true;
 		}
 		return false;
 	}
 
-	static void UpdateWorldTransforms(Model::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
+	static void UpdateWorldTransforms(VMDLModel::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{
 		DirectX::XMMATRIX S = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
 		DirectX::XMMATRIX R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation));
@@ -144,13 +146,13 @@ private:
 		DirectX::XMStoreFloat4x4(&node.globalTransform, GlobalTransform);
 		DirectX::XMStoreFloat4x4(&node.worldTransform, WorldTransform);
 
-		for (Model::Node* child : node.children)
+		for (VMDLModel::Node* child : node.children)
 		{
 			UpdateWorldTransforms(*child, modelWorldTransform);
 		}
 	}
 
-	static void RotateBone(Model::Node& bone, const Vector3& direction1, const Vector3& direction2)
+	static void RotateBone(VMDLModel::Node& bone, const Vector3& direction1, const Vector3& direction2)
 	{
 		Vector3 dir1 = direction1;
 		Vector3 dir2 = direction2;

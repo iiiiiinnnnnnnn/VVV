@@ -1,4 +1,4 @@
-// SpiderFootIK.cpp
+﻿// SpiderFootIK.cpp
 
 #include "Animation/SpiderFootIK.h"
 
@@ -6,7 +6,7 @@
 #include "Animation/Animator.h"
 #include "Core/Object/Object.h"
 
-SpiderFootIK::SpiderFootIK(Object* owner, LayerId layerId, Model* model, Animator* animator)
+SpiderFootIK::SpiderFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator)
 	: Component(owner), model(model), animator(animator), layerId(layerId)
 {
 
@@ -23,7 +23,9 @@ void SpiderFootIK::LateUpdate()
 		FootIK* footIK = footIKs[footIndex];
 		if (!footIK || !footIK->IsIKEnabled()) continue;
 
-		footIK->SetDownwardWeight(GetFootIKWeight(footIndex));
+		const float weight = GetFootIKWeight(footIndex);
+		footIK->SetWeight(weight);
+		footIK->SetDownwardWeight(weight);
 		footIK->SetMaxDownCorrection(maxDownCorrection);
 		footIK->UpdateGroundTarget(rayUp, rayDown, contactOffset);
 		footIK->SolveIK(model->GetWorldTransform());
@@ -32,7 +34,7 @@ void SpiderFootIK::LateUpdate()
 
 void SpiderFootIK::DrawGUI()
 {
-	ImGui::DragFloat("Model Visual Offset Y", &modelVisualOffsetY, 0.01f, -2.0f, 2.0f);
+	ImGui::DragFloat("VMDLModel Visual Offset Y", &modelVisualOffsetY, 0.01f, -2.0f, 2.0f);
 	if (waistNodeIndex >= 0)
 	{
 		const Vector3 waistPosition =
@@ -141,12 +143,17 @@ float SpiderFootIK::GetFootIKWeight(int footIndex) const
 {
 	if (!animator) return 0.0f;
 	if (footIndex < 0 || footIndex >= static_cast<int>(footTargetNames.size())) return 0.0f;
-
-	float result = animator->EvaluateCurrentFootIKWeight("All");
-	for (const std::string& targetName : footTargetNames[footIndex])
+	if (model)
 	{
-		const float weight = animator->EvaluateCurrentFootIKWeight(targetName);
-		if (result < weight) result = weight;
+		const int ikType = model->GetVmdlIKSettings().type;
+		if (ikType == 2 || ikType == 3)
+		{
+			return model->EvaluateFootIKWeight(
+				animator->GetCurrentAnimationIndex(),
+				animator->GetCurrentAnimationTime(),
+				footIndex);
+		}
 	}
-	return result;
+
+	return 0.0f;
 }

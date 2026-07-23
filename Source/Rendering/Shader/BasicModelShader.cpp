@@ -47,13 +47,14 @@ void BasicModelShader::Begin(const RenderContext& rc)
 }
 
 // 更新処理
-void BasicModelShader::Update(const RenderContext& rc, const Model::Mesh& mesh)
+void BasicModelShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	// メッシュ用定数バッファ更新
 	CbBasic cb{};
-	cb.materialColor = mesh.material->baseColor;
+	cb.materialColor = GetParam<Color>(cachedParams, "color", mesh.material->baseColor);
+	cb.useTexture = GetParam<bool>(cachedParams, "useTexture", true) ? 1 : 0;
 	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 	// シェーダーリソースビュー設定

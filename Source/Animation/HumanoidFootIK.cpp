@@ -1,4 +1,4 @@
-// HumanoidFootIK.cpp
+﻿// HumanoidFootIK.cpp
 
 #include "Animation/HumanoidFootIK.h"
 
@@ -12,7 +12,7 @@ using std::min;
 HumanoidFootIK::HumanoidFootIK(
 	Object* owner,
 	LayerId layerId,
-	Model* model,
+	VMDLModel* model,
 	Animator* animator,
 	const char* activeStateName,
 	const char* pelvisName,
@@ -59,6 +59,8 @@ void HumanoidFootIK::LateUpdate()
 	{
 		baseHipLocalPosition = model->GetNodes()[hipNodeIndex].position;
 	}
+	if (footIK_L) footIK_L->SetWeight(GetVmdlFootWeight(0));
+	if (footIK_R) footIK_R->SetWeight(GetVmdlFootWeight(1));
 
 	if (!ShouldUseIK())
 	{
@@ -115,7 +117,19 @@ void HumanoidFootIK::SetHipOffsetLimit(float minOffsetY, float maxOffsetY)
 bool HumanoidFootIK::ShouldUseIK() const
 {
 	if (!animator) return true;
+	if (model && model->GetVmdlIKSettings().type == 1)
+		return GetVmdlFootWeight(0) > 0.001f || GetVmdlFootWeight(1) > 0.001f;
 	return animator->GetCurrentStateName(0) == activeStateName;
+}
+
+float HumanoidFootIK::GetVmdlFootWeight(int footIndex) const
+{
+	if (!model || !animator) return 1.0f;
+	if (model->GetVmdlIKSettings().type != 1) return 1.0f;
+	return model->EvaluateFootIKWeight(
+		animator->GetCurrentAnimationIndex(),
+		animator->GetCurrentAnimationTime(),
+		footIndex);
 }
 
 void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)

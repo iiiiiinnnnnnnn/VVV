@@ -1,6 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
+	<ClCompile Include="External\imguizmo\ImGuizmo.cpp">
+	  <Filter>Application\Tools</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -132,6 +135,12 @@
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
+	  <Filter>Application\SettingsAndDebug</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
+	  <Filter>Gameplay\Scene</Filter>
+	</ClInclude>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -150,6 +159,12 @@
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp">
       <Filter>Application\Bootstrap</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp">
+	  <Filter>Application\SettingsAndDebug</Filter>
+	</ClCompile>
+	<ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
+	  <Filter>Gameplay\Scene</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Application\Tools\Dialog.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
@@ -174,7 +189,7 @@
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resource\Model.cpp">
+    <ClCompile Include="Source\Resource\VMDLModel.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp">
@@ -189,7 +204,7 @@
     <ClCompile Include="Source\Rendering\Shader\GaussianFilterShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\ModelRenderComponent.cpp">
+    <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\SpriteRenderComponent.cpp">
@@ -473,7 +488,7 @@
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Resource\Model.h">
+    <ClInclude Include="Source\Resource\VMDLModel.h">
       <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Object\Object.h">
@@ -497,7 +512,7 @@
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\ModelRenderComponent.h">
+    <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h">
       <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h">

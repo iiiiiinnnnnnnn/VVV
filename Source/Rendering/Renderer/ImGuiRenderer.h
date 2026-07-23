@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// ImGuiRenderer.h
+#pragma once
 #include <wrl.h>
 
 #include <Windows.h>

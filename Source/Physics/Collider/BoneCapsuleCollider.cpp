@@ -1,11 +1,11 @@
-// BoneCapsuleCollider.cpp
+﻿// BoneCapsuleCollider.cpp
 
 #include "Physics/Collider/BoneCapsuleCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
 
-BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, LayerId layerId, Model* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger, bool freezePositions, bool freezeRotations)
+BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex, float radius, float height, Matrix offset, PxMaterial* material, bool isTrigger, bool freezePositions, bool freezeRotations)
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , radius(radius), height(height)
 {

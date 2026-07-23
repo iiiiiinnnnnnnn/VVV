@@ -5,8 +5,8 @@
 #include "Animation/BoneFollower.h"
 #include "Physics/Collider/BoxCollider.h"
 #include "Physics/Collider/CharacterController.h"
-#include "Resource/Model.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Resource/VMDLModel.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Collider/SphereCollider.h"
 #include "Rendering/Component/DamageHoleComponent.h"
@@ -44,7 +44,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         transform.SetPosition({-6, 3, 6});
         transform.SetScale(0.035f);
         model->UpdateTransform(transform.matrix);
-        bodyRenderer = AddComponent<ModelRenderComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
@@ -244,7 +244,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     : Entity("AracoreQueenMachine", "Enemy", true, ownerAracoreQueen->GetLife(), ownerAracoreQueen->GetMaxLife()),
     ownerAracoreQueen(ownerAracoreQueen)
 {
-    std::shared_ptr<Model> model =
+    std::shared_ptr<VMDLModel> model =
         ResourceManager::Instance().LoadModel("Data/Model/Prop/vending");
 
     // リジッドボディ
@@ -329,7 +329,7 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
             }
         }
     };
-    ModelRenderComponent* modelRenderer = AddComponent<ModelRenderComponent>(
+    VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
         model, ModelShaderId::PBR, shaderParamWithMaterialName);
     damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3, 2, 2, 1);
 }

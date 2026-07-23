@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// EffectManager.h
+#pragma once
 
 #include <DirectXMath.h>
 #include <Effekseer.h>

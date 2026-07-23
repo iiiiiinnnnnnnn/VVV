@@ -1,17 +1,16 @@
-// BoneCapsuleCollider.h
+ï»¿// BoneCapsuleCollider.h
 
 #pragma once
 
 #include "Physics/Core/CollidersDef.h"
 #include "Physics/Collider/BoneCollider.h"
 
-class Model;
+class VMDLModel;
 
-// ƒ{[ƒ“‚ğw’è‚µ‚Ä’Ç]@s—ñƒIƒtƒZƒbƒg‚àİ’è‚Å‚«‚éB
 class BoneCapsuleCollider : public BoneCollider
 {
 public:
-    BoneCapsuleCollider(Object* owner, LayerId layerId, Model* model, int nodeIndex, float radius,
+    BoneCapsuleCollider(Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex, float radius,
         float height, Matrix offset = Matrix::Identity, PxMaterial* material = nullptr,
         bool isTrigger = true, bool freezePositions = false, bool freezeRotations = false);
     void Render(const RenderContext& rc) override;

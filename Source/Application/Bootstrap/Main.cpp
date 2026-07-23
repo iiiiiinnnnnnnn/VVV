@@ -8,6 +8,7 @@
 #include <tchar.h>
 
 #include "Application/Bootstrap/Framework.h"
+#include "Application/SettingsAndDebug/DebugLog.h"
 
 const LONG SCREEN_WIDTH = 1280;
 const LONG SCREEN_HEIGHT = 720;
@@ -31,6 +32,7 @@ LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line, INT cmd_show)
 {
 	SetExecutableWorkingDirectory();
+	DebugLog::Initialize();
 #if defined(DEBUG) | defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	//_CrtSetBreakAlloc(237);
@@ -71,5 +73,7 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 
 	Framework f(hWnd);
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&f));
-	return f.Run();
+	const int result = f.Run();
+	DebugLog::Finalize();
+	return result;
 }

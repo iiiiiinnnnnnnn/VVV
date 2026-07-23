@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "Core/Foundation/Common.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Rendering/Shader/Shader.h"
 
 class Terrain;
@@ -21,7 +21,7 @@ public:
     ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048);
     ~ShadowMapRenderer() = default;
 
-    void Draw(Model* model);
+    void Draw(VMDLModel* model);
     void Draw(Terrain* terrain);
 
     void Render(const RenderContext& rc,
@@ -68,7 +68,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> terrainRasterizerState;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState;
 
-    std::vector<Model*> drawList;
+    std::vector<VMDLModel*> drawList;
     std::vector<Terrain*> terrainDrawList;
 
     std::array<Matrix, CascadeCount> lightViewProjections;

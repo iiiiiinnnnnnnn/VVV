@@ -7,12 +7,6 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
 
-#if _DEBUG
-#define SHOW_CONSOLE() if(!showedConsole){ AllocConsole(); freopen("CONOUT$", "w", stdout); freopen("CONOUT$", "w", stderr); showedConsole = true; }
-#else
-#define SHOW_CONSOLE()
-#endif
-
 // 垂直同期間隔設定
 static const int syncInterval = 0;
 
@@ -20,11 +14,6 @@ static const int syncInterval = 0;
 Framework::Framework(HWND hWnd)
 	: hWnd(hWnd)
 {
-	if (GetAsyncKeyState(VK_F2) & 0x8000)
-	{
-		SHOW_CONSOLE();
-	}
-
 	// 入力初期化
 	Game::Input::Instance().Initialize(hWnd);
 
@@ -57,18 +46,11 @@ Framework::~Framework()
 	// 物理マネージャ終了化
 	PhysicsManager::Instance().Finalize();
 
-	// コンソール解放
-	FreeConsole();
 }
 
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
-	if (GetAsyncKeyState(VK_F2) & 0x8000)
-	{
-		SHOW_CONSOLE();
-	}
-
 	elapsedTime = std::min(elapsedTime, 1.0f / 60.0f);
 
 	// 時間更新処理
@@ -172,6 +154,23 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 	switch (msg)
 	{
+	case WM_NCHITTEST:
+	{
+		const LRESULT hit = DefWindowProc(hWnd, msg, wParam, lParam);
+		if (Game::Graphics::Instance().IsWindowMovementLocked() && hit == HTCAPTION) return HTCLIENT;
+		return hit;
+	}
+	case WM_SYSCOMMAND:
+		if (Game::Graphics::Instance().IsWindowMovementLocked())
+		{
+			const WPARAM command = wParam & 0xFFF0;
+			if (command == SC_MOVE || command == SC_SIZE || command == SC_RESTORE || command == SC_MAXIMIZE) return 0;
+		}
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED)
+			Game::Graphics::Instance().Resize(LOWORD(lParam), HIWORD(lParam));
+		break;
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;

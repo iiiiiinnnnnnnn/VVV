@@ -28,3 +28,14 @@ T* Object::GetComponent() const
 
 	return nullptr;
 }
+
+template<typename T>
+std::vector<T*> Object::GetComponents() const
+{
+	std::vector<T*> results;
+	for (const auto& component : components)
+	{
+		if (auto* value = dynamic_cast<T*>(component.get())) results.push_back(value);
+	}
+	return results;
+}

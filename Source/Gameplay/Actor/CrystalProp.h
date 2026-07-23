@@ -1,4 +1,4 @@
-// CrystalProp.h
+﻿// CrystalProp.h
 
 #pragma once
 
@@ -6,14 +6,14 @@
 #include <memory>
 
 #include "Gameplay/Actor/Entity.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Rendering/Core/ShaderParam.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 
 class MeshCollider;
 class DamageHoleComponent;
-class ModelRenderComponent;
+class VMDLModelComponent;
 class ParticleSystem;
 class PhysicsComponent;
 class Rigidbody;
@@ -35,14 +35,14 @@ private:
     void OnDamaged(const DamageData& damageData) override;
     void OnDead(const DamageData& damageData) override;
 
-    std::shared_ptr<Model> model;
+    std::shared_ptr<VMDLModel> model;
     ShaderParamListWithMaterialName shaderParams = {};
     ParticleSystem* breakParticleSystem = nullptr;
     std::function<void(CrystalProp*)> destroyedCallback = {};
     Rigidbody* rigidbody = nullptr;
     MeshCollider* meshCollider = nullptr;
     NavMeshObstacle* navMeshObstacle = nullptr;
-    ModelRenderComponent* modelRenderer = nullptr;
+    VMDLModelComponent* modelRenderer = nullptr;
     DamageHoleComponent* damageHoleComponent = nullptr;
 };
 

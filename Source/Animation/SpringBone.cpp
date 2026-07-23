@@ -129,7 +129,7 @@ namespace
 SpringBone::SpringBone(
     Object* owner,
 	LayerId layerId,
-    Model* model,
+    VMDLModel* model,
     std::vector<std::string> boneContainNames,
     std::vector<SpringCapsule> bodyCapsules)
     : PhysicsComponent(owner, layerId)
@@ -142,6 +142,59 @@ SpringBone::SpringBone(
     BuildBones(boneContainNames);
 }
 
+SpringBone::SpringBone(
+	Object* owner,
+	LayerId layerId,
+	VMDLModel* model,
+	int rootNodeIndex,
+	std::vector<SpringCapsule> bodyCapsules,
+	float stiffness,
+	float drag)
+	: PhysicsComponent(owner, layerId)
+	, springCapsules(std::move(bodyCapsules))
+	, stiffness(stiffness)
+	, damping(drag)
+	, model(model)
+{
+	BuildBones(rootNodeIndex);
+}
+
+void SpringBone::BuildBones(int rootNodeIndex)
+{
+	bones.clear();
+	if (!model || rootNodeIndex < 0 || rootNodeIndex >= static_cast<int>(model->GetNodes().size())) return;
+
+	const auto addBone = [this](int nodeIndex)
+	{
+		const auto& node = model->GetNodes()[nodeIndex];
+		Bone bone;
+		bone.nodeIndex = nodeIndex;
+		bone.localPosition = node.position;
+		bone.localRotation = node.rotation;
+		bone.worldTransform = node.worldTransform;
+		bone.currentWorldPosition = bone.worldTransform.Translation();
+		bone.oldWorldPosition = bone.currentWorldPosition;
+		bones.push_back(bone);
+	};
+
+	std::vector<int> pending{rootNodeIndex};
+	while (!pending.empty())
+	{
+		const int nodeIndex = pending.back();
+		pending.pop_back();
+		addBone(nodeIndex);
+		for (const auto* child : model->GetNodes()[nodeIndex].children)
+		{
+			pending.push_back(static_cast<int>(child - model->GetNodes().data()));
+		}
+	}
+	std::sort(bones.begin(), bones.end(), [this](const Bone& a, const Bone& b)
+	{
+		return GetNodeDepth(a.nodeIndex) < GetNodeDepth(b.nodeIndex);
+	});
+	initialized = false;
+}
+
 void SpringBone::BuildBones(const std::vector<std::string>& boneContainNames)
 {
     bones.clear();
@@ -149,11 +202,11 @@ void SpringBone::BuildBones(const std::vector<std::string>& boneContainNames)
     if (model == nullptr)
         return;
 
-    std::vector<Model::Node>& nodes = model->GetNodes();
+    std::vector<VMDLModel::Node>& nodes = model->GetNodes();
 
     for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
     {
-        Model::Node& node = nodes[nodeIndex];
+        VMDLModel::Node& node = nodes[nodeIndex];
 
         if (!ContainsAnyName(node.name, boneContainNames))
             continue;
@@ -198,12 +251,12 @@ int SpringBone::GetNodeDepth(int nodeIndex) const
     if (model == nullptr)
         return 0;
 
-    const std::vector<Model::Node>& nodes = model->GetNodes();
+    const std::vector<VMDLModel::Node>& nodes = model->GetNodes();
     if (nodeIndex < 0 || nodeIndex >= static_cast<int>(nodes.size()))
         return 0;
 
     int depth = 0;
-    const Model::Node* node = &nodes[nodeIndex];
+    const VMDLModel::Node* node = &nodes[nodeIndex];
 
     while (node != nullptr && node->parent != nullptr)
     {
@@ -245,7 +298,7 @@ Matrix SpringBone::GetNodeWorldTransform(int nodeIndex) const
     if (bone != nullptr)
         return bone->worldTransform;
 
-    const std::vector<Model::Node>& nodes = model->GetNodes();
+    const std::vector<VMDLModel::Node>& nodes = model->GetNodes();
     if (nodeIndex >= static_cast<int>(nodes.size()))
         return Matrix::Identity;
 
@@ -306,14 +359,14 @@ void SpringBone::Reset()
     Matrix ownerWorldTransform = actor != nullptr ? actor->transform.matrix : Matrix::Identity;
     model->UpdateTransform(ownerWorldTransform);
 
-    std::vector<Model::Node>& nodes = model->GetNodes();
+    std::vector<VMDLModel::Node>& nodes = model->GetNodes();
 
     for (Bone& bone : bones)
     {
         if (bone.nodeIndex < 0 || bone.nodeIndex >= static_cast<int>(nodes.size()))
             continue;
 
-        Model::Node& node = nodes[bone.nodeIndex];
+        VMDLModel::Node& node = nodes[bone.nodeIndex];
         bone.localPosition = node.position;
         bone.localRotation = node.rotation;
         bone.worldTransform = node.worldTransform;
@@ -334,7 +387,7 @@ void SpringBone::LateUpdate()
     if (elapsedTime <= 0.0f)
         return;
 
-    std::vector<Model::Node>& nodes = model->GetNodes();
+    std::vector<VMDLModel::Node>& nodes = model->GetNodes();
     const int nodeCount = static_cast<int>(nodes.size());
 
     Actor* actor = dynamic_cast<Actor*>(owner);
@@ -384,7 +437,7 @@ void SpringBone::LateUpdate()
             if (bone.nodeIndex < 0 || bone.nodeIndex >= nodeCount)
                 continue;
 
-            Model::Node& node = nodes[bone.nodeIndex];
+            VMDLModel::Node& node = nodes[bone.nodeIndex];
             if (node.parent == nullptr)
                 continue;
 
@@ -396,9 +449,9 @@ void SpringBone::LateUpdate()
                 : baseWorldTransforms[parentNodeIndex];
 
             Bone* childBone = nullptr;
-            Model::Node* childNode = nullptr;
+            VMDLModel::Node* childNode = nullptr;
 
-            for (Model::Node* candidateChildNode : node.children)
+            for (VMDLModel::Node* candidateChildNode : node.children)
             {
                 const int childNodeIndex = static_cast<int>(candidateChildNode - &nodes[0]);
                 Bone* foundChildBone = FindBone(childNodeIndex);
@@ -559,7 +612,7 @@ void SpringBone::Render(const RenderContext& rc)
     if (primitiveRenderer == nullptr || shapeRenderer == nullptr)
         return;
 
-    const std::vector<Model::Node>& nodes = model->GetNodes();
+    const std::vector<VMDLModel::Node>& nodes = model->GetNodes();
 
     if (drawBones)
     {
@@ -568,10 +621,10 @@ void SpringBone::Render(const RenderContext& rc)
             if (bone.nodeIndex < 0 || bone.nodeIndex >= static_cast<int>(nodes.size()))
                 continue;
 
-            const Model::Node& node = nodes[bone.nodeIndex];
+            const VMDLModel::Node& node = nodes[bone.nodeIndex];
 
             const Bone* childBone = nullptr;
-            for (Model::Node* childNode : node.children)
+            for (VMDLModel::Node* childNode : node.children)
             {
                 const int childNodeIndex = static_cast<int>(childNode - &nodes[0]);
                 childBone = FindBone(childNodeIndex);
@@ -658,7 +711,7 @@ void SpringBone::DrawGUI()
 
     if (model != nullptr)
     {
-        std::vector<Model::Node>& nodes = model->GetNodes();
+        std::vector<VMDLModel::Node>& nodes = model->GetNodes();
         int deleteIndex = -1;
 
         for (int i = 0; i < static_cast<int>(springCapsules.size()); ++i)

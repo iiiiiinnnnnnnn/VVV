@@ -1,4 +1,4 @@
-// StageLoader.cpp
+Ôªø// StageLoader.cpp
 
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Stage.h"
@@ -197,14 +197,11 @@ void StageLoader::Render(const RenderContext& rc)
 
 	for (auto& prop : propDataList)
 	{
-		// ÉÇÉfÉãï`âÊ
 		Game::Graphics::Instance().GetModelRenderer()->Draw(ModelShaderId::PBR, prop.model, prop.shaderParams);
 	}
 
-	// éwíËïbä‘äuÇ≈ì_ñ≈
 	for (auto& spawner : spawnerDataList)
 	{
-		// ÉXÉ|Å[ÉìîÕàÕï`âÊ
 		Matrix world = spawner.transform.matrix * Matrix::CreateTranslation(spawner.boxColliderData.localPosition);
 		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
 			world.Translation(), spawner.transform.rotation.ToEuler(), spawner.boxColliderData.size, {1, 1, 1});
@@ -213,7 +210,6 @@ void StageLoader::Render(const RenderContext& rc)
 	{
 		if (prop.colliderType != ColliderType::Box) continue;
 
-		// ìñÇΩÇËîªíËï`âÊ
 		Matrix world = prop.transform.matrix * Matrix::CreateTranslation(prop.boxColliderData.localPosition);
 		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
 			world.Translation(), prop.transform.rotation.ToEuler(), prop.boxColliderData.size, {1, 1, 1});
@@ -252,7 +248,6 @@ void StageLoader::DrawGUI()
 		float spacing = ImGui::GetStyle().ItemSpacing.x;
 		float buttonWidth = (availWidth - spacing) * 0.5f;
 
-		// ÉZÅ[Éu
 
 		if (ImGui::Button("Save", ImVec2(buttonWidth, 0.0f)))
 		{
@@ -261,7 +256,6 @@ void StageLoader::DrawGUI()
 
 		ImGui::SameLine();
 
-		// ÉäÉçÅ[Éh
 
 		if (ImGui::Button("Reload", ImVec2(buttonWidth, 0.0f)))
 		{
@@ -271,12 +265,10 @@ void StageLoader::DrawGUI()
 		ImGui::Separator();
 	}
 
-	// í«â¡
 
 	ImGui::Text("Add Object:");
 	if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 200.0f), true))
 	{
-		// í«â¡É^ÉCÉv
 
 		using AddType = decltype(addType);
 		std::string previewName = std::string(magic_enum::enum_name(addType));
@@ -301,7 +293,6 @@ void StageLoader::DrawGUI()
 			ImGui::EndCombo();
 		}
 
-		// í«â¡è⁄ç◊
 
 		if (addType == AddType::Spawner)
 		{
@@ -311,7 +302,6 @@ void StageLoader::DrawGUI()
 			// boxCollider
 			addSpawnerData.boxColliderData.DrawGUI();
 
-			// ÉXÉ|Å[ÉiÅ[É^ÉCÉv
 			ImGui::Text("Spawner Type:");
 			if (ImGui::BeginCombo("##StageLoaderSpawnerType", std::string(magic_enum::enum_name(addSpawnerData.spawnerType)).c_str()))
 			{
@@ -330,7 +320,6 @@ void StageLoader::DrawGUI()
 				}
 				ImGui::EndCombo();
 			}
-			// í«â¡É{É^Éì
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
@@ -356,7 +345,6 @@ void StageLoader::DrawGUI()
 			DrawPBRParamsGUI(addPropData);
 			DrawDestroyGUI(addPropData);
 
-			// ÉvÉçÉbÉvÇÃèÍçáÇÕÉpÉXÇ™è⁄ç◊ÅBÉpÉXÇÃç≈èâÇ…#Ç™Ç†ÇÍÇŒÉ_ÉCÉiÉ~ÉbÉN
 
 			std::vector<std::filesystem::path> modelFiles;
 			for (const auto& file : std::filesystem::directory_iterator("Data/Model/Prop"))
@@ -367,8 +355,7 @@ void StageLoader::DrawGUI()
 				}
 			}
 
-			// ÉÇÉfÉãÉpÉX
-			ImGui::Text("Model Path:");
+			ImGui::Text("VMDLModel Path:");
 			if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
 			{
 				for (const auto& path : modelFiles)
@@ -388,7 +375,6 @@ void StageLoader::DrawGUI()
 				ImGui::EndCombo();
 			}
 
-			// í«â¡É{É^Éì
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
@@ -494,7 +480,7 @@ void StageLoader::DrawGUI()
 			DrawPBRParamsGUI(propData);
 			DrawDestroyGUI(propData);
 
-			ImGui::Text("Model Path: %s", propData.modelPath.c_str());
+			ImGui::Text("VMDLModel Path: %s", propData.modelPath.c_str());
 
 			if (ImGui::Button("Remove"))
 			{

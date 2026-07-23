@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Physics/Core/PhysicsComponent.h"
-#include "Resource/Model.h"
+#include "Resource/VMDLModel.h"
 
 class SpringBone : public PhysicsComponent
 {
@@ -32,9 +32,17 @@ public:
     SpringBone(
         Object* owner,
 		LayerId layerId,
-        Model* model,
+        VMDLModel* model,
         std::vector<std::string> boneContainNames,
         std::vector<SpringCapsule> bodyCapsules = {});
+	SpringBone(
+		Object* owner,
+		LayerId layerId,
+		VMDLModel* model,
+		int rootNodeIndex,
+		std::vector<SpringCapsule> bodyCapsules,
+		float stiffness,
+		float drag);
 
     ~SpringBone() override = default;
 
@@ -47,6 +55,7 @@ public:
 
 private:
     void BuildBones(const std::vector<std::string>& boneContainNames);
+	void BuildBones(int rootNodeIndex);
 
     Bone* FindBone(int nodeIndex);
     const Bone* FindBone(int nodeIndex) const;
@@ -77,5 +86,5 @@ private:
     bool drawCapsules = true;
     bool initialized = false;
 
-    Model* model = nullptr;
+    VMDLModel* model = nullptr;
 };

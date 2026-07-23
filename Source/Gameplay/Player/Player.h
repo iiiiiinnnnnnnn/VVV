@@ -10,7 +10,7 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Player/PlayerController.h"
 #include "Physics/Collider/CharacterController.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Collider/BoneSphereCollider.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Animation/SpringBone.h"
@@ -46,7 +46,7 @@ public:
 
     PlayerController* GetController() const { return controller; }
 
-    Model* GetModel() const { return model.get(); }
+    VMDLModel* GetModel() const { return model.get(); }
 
     void SetSpineAngleX(float angleX) { spineAngleX = angleX; }
     float GetSpinAngleX() const { return spineAngleX; }
@@ -67,7 +67,7 @@ private:
 
 protected:
     PlayerController* controller = nullptr;
-    std::shared_ptr<Model> model = nullptr;
+    std::shared_ptr<VMDLModel> model = nullptr;
 
     // rendering
     Animator* anim = nullptr;
@@ -75,7 +75,7 @@ protected:
     int stWalk = -1;
     int stRun = -1;
     int stSprint = -1;
-    ModelRenderComponent* modelRenderer = nullptr;
+    VMDLModelComponent* modelRenderer = nullptr;
     ShaderParamListWithMaterialName shaderParamWithMaterialName;
     ThirdPersonCameraController* cameraController = nullptr;
     bool  isFirstPerson = false;

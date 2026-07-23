@@ -32,7 +32,7 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 }
 
 // 箱描画
-void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<Model> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
+void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<VMDLModel> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
@@ -82,13 +82,14 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 	// レンダーステート設定
 	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	dc->RSSetState(rc.renderState->GetRasterizerState(
+		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const Model::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
+	auto drawMesh = [&](const VMDLModel::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
 	{
 		// 頂点バッファ設定
-		UINT stride = sizeof(Model::Vertex);
+		UINT stride = sizeof(VMDLModel::Vertex);
 		UINT offset = 0;
 		dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 		dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -100,7 +101,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		{
 			for (size_t i = 0; i < mesh.bones.size(); ++i)
 			{
-				const Model::Bone& bone = mesh.bones.at(i);
+				const VMDLModel::Bone& bone = mesh.bones.at(i);
 				cbSkeleton.boneTransforms[i] =
 					bone.offsetTransform * bone.node->worldTransform;
 			}
@@ -132,7 +133,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		ModelShader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
 		shader->Begin(rc);
 
-		for (const Model::Mesh& mesh : drawInfo.model->GetMeshes())
+		for (const VMDLModel::Mesh& mesh : drawInfo.model->GetMeshes())
 		{
 			// 描画しないメッシュはスキップ
 			if (!mesh.isDraw)
@@ -140,7 +141,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 			// 半透明メッシュ登録
 			float shaderParamColorA = GetParam<Color>(drawInfo.paramsWithMaterial[mesh.material->name], "color", {1.0f, 1.0f, 1.0f, 1.0f}).w;
-			if (mesh.material->alphaMode == Model::AlphaMode::Blend ||
+			if (mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
 				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f) ||
 				(shaderParamColorA > 0.01f && shaderParamColorA < 0.99f))
 			{
@@ -199,12 +200,12 @@ void ModelRenderer::Render(const RenderContext& rc)
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
 }
 
-void ModelRenderer::SetShaderParamForAllMaterials(Model* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial)
+void ModelRenderer::SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial)
 {
 	if (!model)
 		return;
 
-	for (const Model::Material& material : model->GetMaterials())
+	for (const VMDLModel::Material& material : model->GetMaterials())
 	{
 		ShaderParamList& params = paramsWithMaterial[material.name];
 		auto it = std::find_if(
@@ -223,12 +224,12 @@ void ModelRenderer::SetShaderParamForAllMaterials(Model* model, const ShaderPara
 	}
 }
 
-void ModelRenderer::SetShaderParamForAllMaterials(Model* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial)
+void ModelRenderer::SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial)
 {
 	if (!model)
 		return;
 
-	for (const Model::Material& material : model->GetMaterials())
+	for (const VMDLModel::Material& material : model->GetMaterials())
 	{
 		ShaderParamList& params = paramsWithMaterial[material.name];
 

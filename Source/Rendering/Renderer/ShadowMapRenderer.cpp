@@ -114,7 +114,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     }
 }
 
-void ShadowMapRenderer::Draw(Model* model)
+void ShadowMapRenderer::Draw(VMDLModel* model)
 {
     drawList.emplace_back(model);
 }
@@ -304,7 +304,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // ----- メッシュ描画 -----
     for (const auto& model : drawList)
     {
-        for (const Model::Mesh& mesh : model->GetMeshes())
+        for (const VMDLModel::Mesh& mesh : model->GetMeshes())
         {
             if (!mesh.isDraw) continue;
 
@@ -314,7 +314,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             {
                 for (size_t i = 0; i < mesh.bones.size(); ++i)
                 {
-                    const Model::Bone& bone = mesh.bones.at(i);
+                    const VMDLModel::Bone& bone = mesh.bones.at(i);
                     cbSkeleton.boneTransforms[i] =
                         bone.offsetTransform * bone.node->worldTransform;
                 }
@@ -326,7 +326,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
             // 頂点バッファ・インデックスバッファ設定
-            UINT stride = sizeof(Model::Vertex);
+            UINT stride = sizeof(VMDLModel::Vertex);
             UINT offset = 0;
             dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
             dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);

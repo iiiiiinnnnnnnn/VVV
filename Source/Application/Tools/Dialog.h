@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Dialog.h
+#pragma once
 
 #include <Windows.h>
 

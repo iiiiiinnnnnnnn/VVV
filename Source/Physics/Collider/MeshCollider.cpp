@@ -1,4 +1,4 @@
-// MeshCollider.cpp
+ï»¿// MeshCollider.cpp
 
 #include "Physics/Collider/MeshCollider.h"
 #include "Rendering/Core/RenderContext.h"
@@ -10,7 +10,11 @@ Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
 {
     Transform* transform = owner->GetComponent<Transform>();
     Vector3 ownerScale = transform ? transform->scale : Vector3::One;
-    return nodeTransform * Matrix::CreateScale(ownerScale * localScale);
+	const auto& placement = model->GetVmdlPlacementData();
+	return nodeTransform *
+		Matrix::CreateScale(placement.scale) *
+		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset) *
+		Matrix::CreateScale(ownerScale * localScale);
 }
 bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
 {
@@ -23,12 +27,12 @@ bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
     bool hasVertex = false;
     Matrix actorTransform = Conv::ToMatrix(rigidbody->GetRigidActor()->getGlobalPose());
 
-    for (const Model::Mesh& mesh : model->GetMeshes())
+    for (const VMDLModel::Mesh& mesh : model->GetMeshes())
     {
         if (!mesh.isDraw) continue;
         if (!mesh.node) continue;
         Matrix localVertexTransform = MakeLocalVertexTransform(mesh.node->globalTransform);
-        for (const Model::Vertex& vertex : mesh.vertices)
+        for (const VMDLModel::Vertex& vertex : mesh.vertices)
         {
             Vector3 position = Vector3::Transform(vertex.position, localVertexTransform);
             position = Vector3::Transform(position, actorTransform);
@@ -59,13 +63,13 @@ void MeshCollider::Render(const RenderContext& rc)
     Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     bool hasVertex = false;
 
-    for (const Model::Mesh& mesh : model->GetMeshes())
+    for (const VMDLModel::Mesh& mesh : model->GetMeshes())
     {
         if (!mesh.isDraw) continue;
         if (!mesh.node) continue;
         Matrix localVertexTransform = MakeLocalVertexTransform(mesh.node->globalTransform);
         Matrix actorTransform = Conv::ToMatrix(rigidbody->GetRigidActor()->getGlobalPose());
-        for (const Model::Vertex& vertex : mesh.vertices)
+        for (const VMDLModel::Vertex& vertex : mesh.vertices)
         {
             Vector3 position = Vector3::Transform(vertex.position, localVertexTransform);
             position = Vector3::Transform(position, actorTransform);
@@ -91,24 +95,24 @@ void MeshCollider::Render(const RenderContext& rc)
         Color(0.0f, 1.0f, 1.0f, 1.0f));
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, PxMaterial* material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, PxMaterial* material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, Model* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
@@ -166,13 +170,13 @@ void MeshCollider::UpdateShape()
 
     DetachShapes();
 
-    for (const Model::Mesh& mesh : model->GetMeshes())
+    for (const VMDLModel::Mesh& mesh : model->GetMeshes())
     {
         if (!mesh.isDraw) continue;
         std::vector<PxVec3> vertices;
         Matrix nodeTransform = mesh.node ? mesh.node->globalTransform : Matrix::Identity;
         Matrix localVertexTransform = MakeLocalVertexTransform(nodeTransform);
-        for (const Model::Vertex& v : mesh.vertices)
+        for (const VMDLModel::Vertex& v : mesh.vertices)
         {
             Vector3 pos = Vector3::Transform(v.position, localVertexTransform);
             vertices.push_back(PxVec3(pos.x, pos.y, pos.z));
@@ -252,7 +256,6 @@ void MeshCollider::UpdateShape()
 
         shape->userData = this;
 
-        // owner‚Ìlayer‚ðƒVƒFƒCƒv‚É”½‰f
         PhysicsManager::SetLayerToShape(shape, layerId);
         rigidActor->attachShape(*shape);
 

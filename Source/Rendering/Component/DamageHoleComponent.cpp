@@ -3,14 +3,14 @@
 #include "Rendering/Component/DamageHoleComponent.h"
 
 #include "Gameplay/Actor/Actor.h"
-#include "Rendering/Component/ModelRenderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "imgui.h"
 #include "IconsFontAwesome5.h"
 
 DamageHoleComponent::DamageHoleComponent(
 	Object* owner,
-	ModelRenderComponent* modelRenderer,
+	VMDLModelComponent* modelRenderer,
 	float holeRadius,
 	float holeEdgeWidth,
 	float holeDepth,

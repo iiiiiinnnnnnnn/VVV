@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Framework.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -25,6 +26,4 @@ public:
 private:
 	const HWND				hWnd;
 	HighResolutionTimer		timer;
-
-	bool showedConsole = false;
 };
