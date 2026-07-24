@@ -49,11 +49,11 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	weaponCollider = vmdl->GetCollider<BoneCollider>("Weapon");
 	footCollider = vmdl->GetCollider<BoneCollider>("Kick");
 
-	// TrailはVMDL Editor側の設定が未完成なので、現行の手動生成を残す。
-	trail = AddComponent<TrailRenderComponent>(
-		model.get(),
-		model->GetNodeIndex("add_weapon_r"));
-	trail->StopTrail();
+	//// TrailはVMDL Editor側の設定が未完成なので、現行の手動生成を残す。
+	//trail = AddComponent<TrailRenderComponent>(
+	//	model.get(),
+	//	model->GetNodeIndex("add_weapon_r"));
+	//trail->StopTrail();
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(
@@ -149,20 +149,20 @@ void Player::OnDead(const DamageData& damageData)
 
 void Player::OnEnterAnim(const Animator::State& state)
 {
-	if (state.name.starts_with("Attack"))
+	/*if (state.name.starts_with("Attack"))
 	{
 		if (weaponCollider) weaponCollider->SetActive(true);
 		trail->StartTrail();
-	}
+	}*/
 }
 
 void Player::OnExitAnim(const Animator::State& state)
 {
-	if (state.name.starts_with("Attack"))
+	/*if (state.name.starts_with("Attack"))
 	{
 		if (weaponCollider) weaponCollider->SetActive(false);
 		trail->StopTrail();
-	}
+	}*/
 }
 
 void Player::OnEnterAnimAttack4B(const Animator::State& state)

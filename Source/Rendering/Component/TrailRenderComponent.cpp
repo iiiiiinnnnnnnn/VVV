@@ -14,7 +14,8 @@ TrailRenderComponent::TrailRenderComponent(
     float tipOffset,
     float tipRatio,
     float lifeTime,
-    int   maxPoints)
+    int   maxPoints,
+    Vector3 offsetAngle)
     : Component(owner)
     , model(model)
     , nodeIndex(nodeIndex)
@@ -24,6 +25,7 @@ TrailRenderComponent::TrailRenderComponent(
     , tipRatio(tipRatio)
     , lifeTime(lifeTime)
     , maxPoints(maxPoints)
+	, offsetAngle(offsetAngle)
 {
 }
 
@@ -36,7 +38,8 @@ TrailRenderComponent::TrailRenderComponent(
 	Color color,
 	float tipRatio,
 	float lifeTime,
-	int maxPoints)
+	int maxPoints,
+    Vector3 offsetAngle)
 	: Component(owner),
 	model(model),
 	nodeIndex(nodeIndex),
@@ -45,7 +48,8 @@ TrailRenderComponent::TrailRenderComponent(
 	tipRatio(tipRatio),
 	lifeTime(lifeTime),
 	maxPoints(maxPoints),
-	color(color)
+	color(color),
+	offsetAngle(offsetAngle)
 {
 }
 
@@ -72,7 +76,12 @@ void TrailRenderComponent::LateUpdate()
     sampleTimer = 0.0f;
 
     const VMDLModel::Node& node = model->GetNodes()[nodeIndex];
-    const Matrix& wt = node.worldTransform;
+    Matrix wt = node.worldTransform;
+
+	wt *= Matrix::CreateFromYawPitchRoll(
+        RAD(offsetAngle.y),
+        RAD(offsetAngle.x),
+        RAD(offsetAngle.z));
 
     Matrix rootMat = Matrix::CreateTranslation(rootOffset) * wt;
     Matrix tipMat  = Matrix::CreateTranslation(tipOffset) * wt;
@@ -154,6 +163,10 @@ void TrailRenderComponent::DrawGUI()
     ImGui::Text("Life Time  : %.2f", lifeTime);
     ImGui::Text("Max Points : %d", maxPoints);
     ImGui::Text("Points     : %d", (int)points.size());
+	ImGui::Text("Root Offset: (%.2f, %.2f, %.2f)", rootOffset.x, rootOffset.y, rootOffset.z);
+	ImGui::Text("Tip Offset : (%.2f, %.2f, %.2f)", tipOffset.x, tipOffset.y, tipOffset.z);
+	ImGui::Text("Tip Ratio  : %.2f", tipRatio);
+	ImGui::Text("Offset Angle: (%.2f, %.2f, %.2f)", offsetAngle.x, offsetAngle.y, offsetAngle.z);
 
     ImGui::ColorPicker3("Color", &color.x);
 }

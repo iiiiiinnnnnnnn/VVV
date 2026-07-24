@@ -17,7 +17,8 @@ public:
         float tipOffset = -1.0f,
         float tipRatio = 1.0f,
         float lifeTime   = 0.5f,
-        int   maxPoints  = 40);
+        int   maxPoints  = 40,
+        Vector3 offsetAngle = {0, 0, 0});
 	TrailRenderComponent(
 		Object* owner,
 		VMDLModel* model,
@@ -27,7 +28,8 @@ public:
 		Color color,
 		float tipRatio = 1.0f,
 		float lifeTime = 0.5f,
-		int maxPoints = 40);
+		int maxPoints = 40,
+        Vector3 offsetAngle = {0, 0, 0});
 
     void LateUpdate() override;
     void Render(const RenderContext& rc);
@@ -58,6 +60,8 @@ private:
     float tipRatio;
     float lifeTime;
     int   maxPoints;
+
+	Vector3 offsetAngle;
 
     // trail cbuffer data
     Color color;

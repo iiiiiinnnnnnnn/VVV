@@ -28,11 +28,11 @@ private:
 	void Save();
 	void SaveAs();
 	void UpdateTitle();
+	void ErrorMessage(const std::string& message);
 
 	std::filesystem::path path;
 	VSTG data;
 	Terrain* terrain = nullptr;
 	StageLoader* stageLoader = nullptr;
-	std::string message;
 	bool dirty = true;
 };

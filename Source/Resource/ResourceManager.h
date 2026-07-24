@@ -35,6 +35,8 @@ private:
 public:
 	static ResourceManager& Instance();
 
+	static std::filesystem::path FindSourceDataRoot();
+
 	bool PrepareGameResources();
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
@@ -52,7 +54,6 @@ private:
 	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});
 	void ReportError(const std::string& message);
 
-	static std::filesystem::path FindSourceDataRoot();
 	static std::string NormalizePath(const std::string& path);
 	static std::string MakeLookupKey(const std::string& path);
 	static std::string GetLastWriteTimeText(const std::filesystem::path& path);

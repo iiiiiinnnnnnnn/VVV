@@ -18,6 +18,7 @@
 #include <cmath>
 #include "GameStartScene.h"
 #include "Application/Time/GameTime.h"
+#include "Resource/ResourceManager.h"
 
 namespace
 {
@@ -206,6 +207,24 @@ void VmdlEditorScene::OnDrawGUI()
 		ImGui::EndTabBar();
 	}
 	ImGui::EndChild();
+
+	if (animationRecording)
+	{
+		const ImVec2 position = ImGui::GetWindowPos();
+		const ImVec2 size = ImGui::GetWindowSize();
+
+		constexpr float thickness = 4.0f;
+		constexpr float inset = thickness * 0.5f;
+
+		ImGui::GetForegroundDrawList()->AddRect(
+			ImVec2(position.x + inset, position.y + inset),
+			ImVec2(position.x + size.x - inset, position.y + size.y - inset),
+			IM_COL32(255, 0, 0, 255),
+			0.0f,
+			ImDrawFlags_None,
+			thickness);
+	}
+
 	ImGui::End();
 
 	if (showExportWarning) ImGui::OpenPopup("Export GLB");
@@ -818,6 +837,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			changed |= ImGui::DragFloat("Tip Ratio", &value.tipRatio, 0.01f, 0.0f, 4.0f);
 			changed |= ImGui::DragFloat("Life Time", &value.lifeTime, 0.01f, 0.01f, 10.0f, "%.3f sec");
 			changed |= ImGui::DragInt("Max Points", &value.maxPoints, 1.0f, 2, 1024);
+			changed |= DragVector3("Offset Angle", value.offsetAngle);
 			value.tipRatio = std::clamp(value.tipRatio, 0.0f, 4.0f);
 			value.lifeTime = std::clamp(value.lifeTime, 0.01f, 10.0f);
 			value.maxPoints = std::clamp(value.maxPoints, 2, 1024);
@@ -881,12 +901,28 @@ void VmdlEditorScene::DrawTimeline()
 	if (selectedAnimation < 0 || selectedAnimation >= static_cast<int>(animations.size())) return;
 
 	VMDLModel::Animation& animation = animations[selectedAnimation];
-	const bool recordClicked = ImGui::Button("\xE2\x97\x8F##Record", ImVec2(38.0f, 0.0f));
+
+	if (animationRecording)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
+	}
+
+	const bool recordClicked = ImGui::Button(
+		ICON_FA_CAMERA "##Record",
+		ImVec2(38.0f, 0.0f));
+
+	if (animationRecording)
+	{
+		ImGui::PopStyleColor(3);
+	}
+
 	if (recordClicked) animationRecording = !animationRecording;
 	ImGui::SameLine();
-	if (ImGui::Button(animationPlaying ? "||##Play" : "\xE2\x96\xB6##Play", ImVec2(38.0f, 0.0f))) animationPlaying = !animationPlaying;
+	if (ImGui::Button(animationPlaying ? ICON_FA_PAUSE "##Play" : ICON_FA_PLAY "##Play", ImVec2(38.0f, 0.0f))) animationPlaying = !animationPlaying;
 	ImGui::SameLine();
-	if (ImGui::Button("\xE2\x96\xA0##Stop", ImVec2(38.0f, 0.0f)))
+	if (ImGui::Button(ICON_FA_STOP "##Stop", ImVec2(38.0f, 0.0f)))
 	{
 		animationPlaying = false;
 		animationTime = 0.0f;
@@ -902,7 +938,6 @@ void VmdlEditorScene::DrawTimeline()
 	ImGui::Text("%.3f / %.3f sec", animationTime, animation.secondsLength);
 	if (ImGui::Button("Register Key", ImVec2(130.0f, 0.0f))) AddAnimationKey();
 	ImGui::SameLine();
-	ImGui::TextDisabled(animationRecording ? "Recording: bone edits update the key at the current time." : "Select a bone, pose it, then register a key.");
 	if (selectedNode >= 0 && selectedNode < static_cast<int>(animation.nodeAnims.size()))
 	{
 		DrawAnimationCurves();
@@ -913,7 +948,6 @@ void VmdlEditorScene::DrawTimeline()
 		modelScale = std::max(modelScale, 0.000001f);
 		MarkDirty();
 	}
-	ImGui::TextDisabled("Use Root Offset to lift a model that is below the ground.");
 }
 
 void VmdlEditorScene::DrawAnimationCurves()
@@ -990,9 +1024,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 	if (ImGui::SmallButton("Delete Selected Key")) deleteSelectedKey();
 	ImGui::EndDisabled();
 	ImGui::SameLine();
-	ImGui::TextDisabled("Select a diamond and press Delete.");
 	if (hasSelectedKey() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) deleteSelectedKey();
-	ImGui::TextDisabled(footWeightCount > 0 ? "Click the ruler to scrub. Paint Foot Weight with left drag; right-click Collider, Trail, or Shape tracks to edit keys." : "Right-click Collider, Trail, or Shape tracks to edit keys. Configure IK Settings to edit Foot Weight.");
 	const float rulerHeight = 26.0f;
 	const float footWeightHeight = 20.0f;
 	const float rowHeight = 20.0f;
@@ -1644,7 +1676,6 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 	const auto byTime = [](const auto& left, const auto& right) { return left.seconds < right.seconds; };
 
 	ImGui::SeparatorText("Animation Events");
-	ImGui::TextDisabled("Pause keeps the state at the current time. Stop restores Collider, Trail, and Shape initial states.");
 
 	if (ImGui::TreeNodeEx("Collider Active", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -1808,7 +1839,7 @@ void VmdlEditorScene::DrawIkSettings()
 	ImGui::Separator();
 	if (!model)
 	{
-		ImGui::TextDisabled("No model loaded.");
+		ImGui::TextDisabled("Nothing");
 		return;
 	}
 
@@ -1817,7 +1848,6 @@ void VmdlEditorScene::DrawIkSettings()
 	if (ImGui::Combo("IK Type", &settings.type, types, IM_ARRAYSIZE(types))) MarkDirty();
 	if (settings.type == 1)
 	{
-		ImGui::TextDisabled("Assign the humanoid leg chain used when Human Foot IK is applied.");
 		const auto nodeCombo = [&](const char* label, std::string& name)
 		{
 			bool changed = false;
@@ -1867,21 +1897,6 @@ void VmdlEditorScene::DrawIkSettings()
 			ImGui::EndTable();
 		}
 	}
-	else if (settings.type == 2)
-	{
-		ImGui::TextDisabled("Foot Weight provides four channels: front left/right and back left/right.");
-	}
-	else if (settings.type == 3)
-	{
-		ImGui::TextDisabled("Foot Weight provides eight independent leg channels.");
-	}
-
-	if (settings.type == 0)
-	{
-		ImGui::TextDisabled("Select an IK Type to configure animation foot weights in the Animation tab.");
-		return;
-	}
-	ImGui::TextDisabled("Foot weights are stored per animation in the Animation tab.");
 }
 
 void VmdlEditorScene::DrawShapeEditor()
@@ -2277,15 +2292,33 @@ void VmdlEditorScene::UpdateWindowTitle()
 
 void VmdlEditorScene::OpenVmdl()
 {
+	const std::string initialDirectory =
+		(ResourceManager::FindSourceDataRoot() / "Model").string();
 	char filepath[MAX_PATH]{};
-	if (Dialog::OpenFileName(filepath, MAX_PATH, "VMDL (*.vmdl)\0*.vmdl\0", "Open VMDL") != DialogResult::OK) return;
+	if (Dialog::OpenFileName(
+		filepath,
+		MAX_PATH,
+		"VMDL (*.vmdl)\0*.vmdl\0",
+		"Open VMDL",
+		initialDirectory.c_str()
+		) != DialogResult::OK)
+		return;
 	LoadModel(filepath, false);
 }
 
 void VmdlEditorScene::ImportGlb()
 {
+	const std::string initialDirectory =
+		(ResourceManager::FindSourceDataRoot() / "Model").string();
 	char filepath[MAX_PATH]{};
-	if (Dialog::OpenFileName(filepath, MAX_PATH, "glTF Binary (*.glb)\0*.glb\0", "Import GLB") != DialogResult::OK) return;
+	if (Dialog::OpenFileName(
+		filepath,
+		MAX_PATH,
+		"glTF Binary (*.glb)\0*.glb\0",
+		"Import GLB",
+		initialDirectory.c_str()
+		) != DialogResult::OK)
+		return;
 	LoadModel(filepath, true);
 }
 
@@ -2371,5 +2404,5 @@ void VmdlEditorScene::ErrorMessage(const std::string& message)
 {
 	MessageBoxW(
 		Game::Graphics::Instance().GetWindowHandle(),
-		std::wstring(message.begin(), message.end()).c_str(), L"VSTG Editor", MB_ICONERROR);
+		std::wstring(message.begin(), message.end()).c_str(), L"VMDL Editor", MB_ICONERROR);
 }

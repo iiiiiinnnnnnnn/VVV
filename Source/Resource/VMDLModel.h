@@ -143,6 +143,7 @@ public:
 		float tipRatio = 1.0f;
 		float lifeTime = 0.5f;
 		int maxPoints = 40;
+		Vector3 offsetAngle = Vector3::Zero;
 
 		template<class Archive>
 		void serialize(Archive& archive);

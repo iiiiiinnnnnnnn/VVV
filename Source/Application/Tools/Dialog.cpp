@@ -6,28 +6,24 @@
 static char pathBuffer[MAX_PATH];
 
 // [ファイルを開く]ダイアログボックスを表示
-DialogResult Dialog::OpenFileName(char* filepath, int size, const char* filter, const char* title, HWND hWnd, bool multiSelect)
+DialogResult Dialog::OpenFileName(
+	char* filepath,
+	int size,
+	const char* filter,
+	const char* title,
+	const char* initialDir,
+	HWND hWnd,
+	bool multiSelect)
 {
-	// 初期パス設定
-	char dirname[MAX_PATH];
-	if (filepath[0] != '0')
+	std::string dirname;
+
+	if (initialDir != nullptr && initialDir[0] != '\0')
 	{
-		// ディレクトリパス取得
-		::_splitpath_s(filepath, nullptr, 0, dirname, MAX_PATH, nullptr, 0, nullptr, 0);
+		dirname = initialDir;
 	}
-	else
+	else if (filepath[0] != '\0')
 	{
-		filepath[0] = dirname[0] = '\0';
-	}
-	if ((dirname[0] == '\0'))
-	{
-		strcpy_s(dirname, MAX_PATH, pathBuffer);
-	}
-	// lpstrInitialDir は \ でないと受け付けない
-	for (char* p = dirname; *p != '\0'; p++)
-	{
-		if (*p == '/')
-			* p = '\\';
+		dirname = std::filesystem::path(filepath).parent_path().string();
 	}
 
 	if (filter == nullptr)
@@ -35,45 +31,31 @@ DialogResult Dialog::OpenFileName(char* filepath, int size, const char* filter, 
 		filter = "All Files\0*.*\0\0";
 	}
 
-	// 構造体セット
-	OPENFILENAMEA	ofn;
-	memset(&ofn, 0, sizeof(OPENFILENAMEA));
-	ofn.lStructSize = sizeof(OPENFILENAMEA);
+	OPENFILENAMEA ofn{};
+	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hWnd;
 	ofn.lpstrFilter = filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFile = filepath;
 	ofn.nMaxFile = size;
 	ofn.lpstrTitle = title;
-	ofn.lpstrInitialDir = (dirname[0] != '\0') ? dirname : nullptr;
-	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.lpstrInitialDir = dirname.empty() ? nullptr : dirname.c_str();
+	ofn.Flags =
+		OFN_FILEMUSTEXIST |
+		OFN_HIDEREADONLY |
+		OFN_NOCHANGEDIR;
+
 	if (multiSelect)
 	{
 		ofn.Flags |= OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 	}
 
-	// カレントディレクトリ取得
-	char currentDir[MAX_PATH];
-	if (!::GetCurrentDirectoryA(MAX_PATH, currentDir))
-	{
-		currentDir[0] = '\0';
-	}
-
-	// ダイアログオープン
 	if (::GetOpenFileNameA(&ofn) == FALSE)
 	{
 		return DialogResult::Cancel;
 	}
 
-	// カレントディレクトリ復帰
-	if (currentDir[0] != '\0')
-	{
-		::SetCurrentDirectoryA(currentDir);
-	}
-
-	// 最終パスを記憶
 	strcpy_s(pathBuffer, MAX_PATH, filepath);
-
 	return DialogResult::OK;
 }
 
@@ -84,6 +66,7 @@ DialogResult Dialog::SaveFileName(
 	const char* filter,
 	const char* title,
 	const char* ext,
+	const char* initialDir,
 	HWND hWnd)
 {
 	char dirname[MAX_PATH]{};

@@ -202,24 +202,30 @@ bool VstgEditorScene::OnRequestExit()
 
 void VstgEditorScene::Open()
 {
+	const std::string initialDirectory =
+		(ResourceManager::FindSourceDataRoot() / "Stages").string();
 	char filename[MAX_PATH]{};
-	if (Dialog::OpenFileName(filename, MAX_PATH, "VSTG (*.vstg)\0*.vstg\0", "Open VSTG") != DialogResult::OK) return;
+	if (Dialog::OpenFileName(
+		filename,
+		MAX_PATH,
+		"VSTG (*.vstg)\0*.vstg\0",
+		initialDirectory.c_str(),
+		"Data/Stage") != DialogResult::OK) return;
 	VSTG loaded;
 	if (!loaded.Load(filename))
 	{
-		message = loaded.GetError();
+		ErrorMessage(loaded.GetError());
 		return;
 	}
 	CreateStage();
 	if (!loaded.Apply(*terrain, *stageLoader, currentStage->GetLightManager()))
 	{
-		message = "VSTG apply failed.";
+		ErrorMessage(loaded.GetError());
 		return;
 	}
 	data = std::move(loaded);
 	path = filename;
 	dirty = false;
-	message = "VSTG loaded.";
 }
 
 void VstgEditorScene::Save()
@@ -232,12 +238,11 @@ void VstgEditorScene::Save()
 	terrain->BakeCollider();
 	if (!data.Capture(*terrain, *stageLoader, currentStage->GetLightManager()) || !data.Save(path))
 	{
-		message = data.GetError();
+		ErrorMessage(data.GetError());
 		return;
 	}
 	ResourceManager::Instance().RegisterGeneratedCache(path.generic_string());
 	dirty = false;
-	message = "VSTG saved.";
 }
 
 void VstgEditorScene::SaveAs()
@@ -255,4 +260,11 @@ void VstgEditorScene::UpdateTitle()
 	title += path.empty() ? L"Untitled" : path.wstring();
 	if (dirty) title += L" *";
 	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), title.c_str());
+}
+
+void VstgEditorScene::ErrorMessage(const std::string& message)
+{
+	MessageBoxW(
+		Game::Graphics::Instance().GetWindowHandle(),
+		std::wstring(message.begin(), message.end()).c_str(), L"VSTG Editor", MB_ICONERROR);
 }
