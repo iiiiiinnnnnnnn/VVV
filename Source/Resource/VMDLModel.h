@@ -433,11 +433,19 @@ public:
 
 	const std::vector<Material>& GetMaterials() const { return materials; }
 	std::vector<Material>& GetMaterials() { return materials; }
+
 	bool ReplaceMaterialTexture(
 		size_t materialIndex,
 		MaterialTextureSlot slot,
 		const std::filesystem::path& texturePath);
-	bool ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot);
+
+	bool ExportMaterialTexture(
+		size_t materialIndex,
+		MaterialTextureSlot slot,
+		const std::filesystem::path& savePath);
+
+	bool ClearMaterialTexture(
+		size_t materialIndex, MaterialTextureSlot slot);
 
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }

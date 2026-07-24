@@ -2053,10 +2053,33 @@ void VmdlEditorScene::DrawMaterialEditor()
 		ImGui::TableSetColumnIndex(0);
 		ImGui::TextUnformatted(label);
 		ImGui::TableSetColumnIndex(1);
+
 		if (filename.empty()) ImGui::TextDisabled(embedded.empty() ? "None" : "Embedded");
 		else ImGui::Text("%s%s", filename.c_str(), embedded.empty() ? "" : " (Embedded)");
+
 		ImGui::TableSetColumnIndex(2);
 		ImGui::PushID(label);
+
+		if (ImGui::SmallButton("Export"))
+		{
+			char filepath[MAX_PATH]{};
+			const char* filter =
+				"Texture (*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp)\0"
+				"*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp\0";
+			if (Dialog::SaveFileName(filepath, MAX_PATH, filter, "Export Material Texture") == DialogResult::OK)
+			{
+				if (model->ExportMaterialTexture(static_cast<size_t>(selectedMaterial), slot, filepath))
+				{
+					changed = true;
+				}
+				else
+				{
+					ErrorMessage("Failed to export the material texture.");
+				}
+			}
+		}
+		ImGui::SameLine();
+
 		if (ImGui::SmallButton("Replace"))
 		{
 			char filepath[MAX_PATH]{};
@@ -2067,20 +2090,19 @@ void VmdlEditorScene::DrawMaterialEditor()
 			{
 				if (model->ReplaceMaterialTexture(static_cast<size_t>(selectedMaterial), slot, filepath))
 				{
-					status = "Texture replaced and embedded in the VMDL.";
 					changed = true;
 				}
 				else
 				{
-					status = "Texture replacement failed.";
+					ErrorMessage("Failed to replace the material texture.");
 				}
 			}
 		}
 		ImGui::SameLine();
+
 		if (ImGui::SmallButton("Clear") &&
 			model->ClearMaterialTexture(static_cast<size_t>(selectedMaterial), slot))
 		{
-			status = "Texture cleared.";
 			changed = true;
 		}
 		ImGui::PopID();
@@ -2089,7 +2111,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 	{
 		ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 150.0f);
 		ImGui::TableSetupColumn("Source", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 130.0f);
+		ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 		textureRow("Base Color", VMDLModel::MaterialTextureSlot::BaseColor,
 			material.baseTextureFileName, material.baseTextureDDS);
 		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal,
@@ -2272,9 +2294,11 @@ void VmdlEditorScene::SaveVmdl()
 	{
 		displayPath = documentPath;
 		dirty = false;
-		status = "VMDL saved.";
 	}
-	else status = "VMDL save failed.";
+	else
+	{
+		ErrorMessage("Failed to save the VMDL file.");
+	}
 }
 
 void VmdlEditorScene::SaveVmdlAs()
@@ -2288,9 +2312,11 @@ void VmdlEditorScene::SaveVmdlAs()
 	{
 		displayPath = documentPath;
 		dirty = false;
-		status = "VMDL saved.";
 	}
-	else status = "VMDL save failed.";
+	else
+	{
+		ErrorMessage("Failed to save the VMDL file.");
+	}
 }
 
 void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool importGlb)
@@ -2304,7 +2330,6 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 			model = std::make_shared<VMDLModel>(filepath.string().c_str(), 60.0f, true, proposedPath.string().c_str(), false);
 			documentPath.clear();
 			displayPath = filepath;
-			status = "GLB imported. Use Save VMDL to create the VMDL file.";
 			dirty = true;
 		}
 		else
@@ -2312,7 +2337,6 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 			documentPath = filepath;
 			displayPath = filepath;
 			model = std::make_shared<VMDLModel>(filepath.string().c_str());
-			status = "VMDL opened.";
 			dirty = false;
 		}
 		selectedNode = model->GetNodes().empty() ? -1 : 0;
@@ -2332,6 +2356,13 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 	{
 		model.reset();
 		displayPath.clear();
-		status = std::string("Load failed: ") + exception.what();
+		ErrorMessage(std::string("Load failed: ") + exception.what());
 	}
+}
+
+void VmdlEditorScene::ErrorMessage(const std::string& message)
+{
+	MessageBoxW(
+		Game::Graphics::Instance().GetWindowHandle(),
+		std::wstring(message.begin(), message.end()).c_str(), L"VSTG Editor", MB_ICONERROR);
 }

@@ -52,12 +52,12 @@ private:
 	void SaveVmdl();
 	void SaveVmdlAs();
 	void LoadModel(const std::filesystem::path& filepath, bool importGlb);
+	void ErrorMessage(const std::string& message);
 
 	std::shared_ptr<VMDLModel> model;
 	std::filesystem::path documentPath;
 	std::filesystem::path displayPath;
 	std::wstring previousWindowTitle;
-	std::string status = "Open a VMDL or import a GLB to begin.";
 	std::unique_ptr<RenderTarget> previewTarget;
 	std::unique_ptr<Object> cameraOwner;
 	Camera* editorCamera = nullptr;

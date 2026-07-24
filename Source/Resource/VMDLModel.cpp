@@ -682,6 +682,52 @@ bool VMDLModel::ReplaceMaterialTexture(
 	return true;
 }
 
+bool VMDLModel::ExportMaterialTexture(
+	size_t materialIndex,
+	MaterialTextureSlot slot,
+	const std::filesystem::path& savePath)
+{
+	if (materialIndex >= materials.size() || savePath.empty()) return false;
+
+	Material& material = materials[materialIndex];
+	std::vector<uint8_t>* embeddedDDS = nullptr;
+	switch (slot)
+	{
+	case MaterialTextureSlot::BaseColor:
+		embeddedDDS = &material.baseTextureDDS;
+		break;
+	case MaterialTextureSlot::Normal:
+		embeddedDDS = &material.normalTextureDDS;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		embeddedDDS = &material.occlusionTextureDDS;
+		break;
+	case MaterialTextureSlot::Emissive:
+		embeddedDDS = &material.emissiveTextureDDS;
+		break;
+	}
+
+	if (!embeddedDDS) return false;
+
+	std::ofstream file(
+		savePath,
+		std::ios::binary | std::ios::out | std::ios::trunc);
+
+	if (!file)
+	{
+		return false;
+	}
+
+	file.write(
+		reinterpret_cast<const char*>(embeddedDDS->data()),
+		static_cast<std::streamsize>(embeddedDDS->size()));
+
+	return true;
+}
+
 bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot)
 {
 	if (materialIndex >= materials.size()) return false;
