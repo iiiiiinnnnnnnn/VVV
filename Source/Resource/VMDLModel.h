@@ -10,7 +10,6 @@
 
 #include "Core/Foundation/Common.h"
 #include "Core/Foundation/DirectXSerialization.h"
-#include "Rendering/Core/ShaderParam.h"
 #include "Rendering/Core/RenderContext.h"
 
 // Cereal
@@ -289,7 +288,6 @@ public:
 		float				shadowStrength = 1.0f;
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
-		ShaderParamList		shaderParams = {};
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;

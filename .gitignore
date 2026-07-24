@@ -388,4 +388,4 @@ imgui.ini
 /dist
 /Data/Terrain/Layers/*.dds
 /LicenseAssets
-/PackageData.ps1
+/*.ps1
