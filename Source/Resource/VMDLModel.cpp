@@ -5,216 +5,9 @@
 #include "Resource/GLTFImporter.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Rendering/Core/Graphics.h"
+#include "Core/Foundation/DirectXTexConverts.h"
+#include "Core/Foundation/DirectXTexConverts.h"
 #include <algorithm>
-
-template<class Archive>
-void VMDLModel::Node::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(parentIndex), CEREAL_NVP(position), CEREAL_NVP(rotation), CEREAL_NVP(scale));
-}
-
-template<class Archive>
-void VMDLModel::Material::serialize(Archive& archive)
-{
-	archive(
-		CEREAL_NVP(name),
-		CEREAL_NVP(baseTextureFileName),
-		CEREAL_NVP(normalTextureFileName),
-		CEREAL_NVP(emissiveTextureFileName),
-		CEREAL_NVP(occlusionTextureFileName),
-		CEREAL_NVP(metalnessRoughnessTextureFileName),
-		CEREAL_NVP(baseTextureDDS),
-		CEREAL_NVP(normalTextureDDS),
-		CEREAL_NVP(emissiveTextureDDS),
-		CEREAL_NVP(occlusionTextureDDS),
-		CEREAL_NVP(metalnessRoughnessTextureDDS),
-		CEREAL_NVP(baseColor),
-		CEREAL_NVP(emissiveColor),
-		CEREAL_NVP(metalness),
-		CEREAL_NVP(roughness),
-		CEREAL_NVP(occlusionStrength),
-		CEREAL_NVP(alphaCutoff),
-		CEREAL_NVP(alphaMode));
-}
-
-template<class Archive>
-void VMDLModel::MaterialPbrSettings::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(occlusion), CEREAL_NVP(shadowStrength));
-}
-
-template<class Archive>
-void VMDLModel::Vertex::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(position), CEREAL_NVP(boneWeight), CEREAL_NVP(boneIndex), CEREAL_NVP(texcoord), CEREAL_NVP(normal), CEREAL_NVP(tangent));
-}
-
-template<class Archive>
-void VMDLModel::Bone::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetTransform));
-}
-
-template<class Archive>
-void VMDLModel::Mesh::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(vertices), CEREAL_NVP(indices), CEREAL_NVP(bones), CEREAL_NVP(nodeIndex), CEREAL_NVP(materialIndex));
-}
-
-template<class Archive>
-void VMDLModel::VectorKeyframe::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
-}
-
-template<class Archive>
-void VMDLModel::QuaternionKeyframe::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
-}
-
-template<class Archive>
-void VMDLModel::FootIKRange::serialize(Archive& archive)
-{
-	archive(
-		CEREAL_NVP(name),
-		CEREAL_NVP(footIndex),
-		CEREAL_NVP(startRatio),
-		CEREAL_NVP(endRatio),
-		CEREAL_NVP(weight),
-		CEREAL_NVP(fadeInRatio),
-		CEREAL_NVP(fadeOutRatio));
-}
-
-template<class Archive>
-void VMDLModel::NodeAnim::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(positionKeyframes), CEREAL_NVP(rotationKeyframes), CEREAL_NVP(scaleKeyframes));
-}
-
-template<class Archive>
-void VMDLModel::Animation::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(secondsLength), CEREAL_NVP(nodeAnims), CEREAL_NVP(footIKRanges));
-}
-
-template<class Archive>
-void VMDLModel::VmdlRigidBody::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(offsetRotation), CEREAL_NVP(mass), CEREAL_NVP(kinematic));
-}
-
-template<class Archive>
-void VMDLModel::VmdlCollider::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(shape), CEREAL_NVP(center), CEREAL_NVP(rotation), CEREAL_NVP(size), CEREAL_NVP(trigger));
-}
-
-template<class Archive>
-void VMDLModel::VmdlSpring::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(offsetRotation), CEREAL_NVP(stiffness), CEREAL_NVP(drag));
-}
-
-template<class Archive>
-void VMDLModel::VmdlSpringCollider::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(radius));
-}
-
-template<class Archive>
-void VMDLModel::VmdlShape::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(meshVisibility));
-}
-
-template<class Archive>
-void VMDLModel::VmdlTrail::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(rootOffset), CEREAL_NVP(tipOffset), CEREAL_NVP(color), CEREAL_NVP(tipRatio), CEREAL_NVP(lifeTime), CEREAL_NVP(maxPoints));
-}
-
-template<class Archive>
-void VMDLModel::VmdlExtensionData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(rootOffset), CEREAL_NVP(rigidBodies), CEREAL_NVP(colliders), CEREAL_NVP(springs), CEREAL_NVP(springColliders), CEREAL_NVP(shapes));
-}
-
-template<class Archive>
-void VMDLModel::VmdlIKSettings::serialize(Archive& archive)
-{
-	archive(
-		CEREAL_NVP(type),
-		CEREAL_NVP(pelvis),
-		CEREAL_NVP(leftThigh),
-		CEREAL_NVP(leftCalf),
-		CEREAL_NVP(leftFoot),
-		CEREAL_NVP(leftBall),
-		CEREAL_NVP(rightThigh),
-		CEREAL_NVP(rightCalf),
-		CEREAL_NVP(rightFoot),
-		CEREAL_NVP(rightBall));
-}
-
-template<class Archive>
-void VMDLModel::VmdlFootWeightTrack::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(sampleRate), CEREAL_NVP(weights));
-}
-
-template<class Archive>
-void VMDLModel::VmdlAnimationEditorData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(footWeightTracks));
-}
-
-template<class Archive>
-void VMDLModel::VmdlBoolKeyframe::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
-}
-
-template<class Archive>
-void VMDLModel::VmdlColliderAnimationTrack::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(colliderIndex), CEREAL_NVP(keys));
-}
-
-template<class Archive>
-void VMDLModel::VmdlShapeKeyframe::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(shapeIndex));
-}
-
-template<class Archive>
-void VMDLModel::VmdlShapeAnimationTrack::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(keys));
-}
-
-template<class Archive>
-void VMDLModel::VmdlTrailAnimationTrack::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(trailIndex), CEREAL_NVP(keys));
-}
-
-template<class Archive>
-void VMDLModel::VmdlTrailData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(trails), CEREAL_NVP(initialActive), CEREAL_NVP(tracks));
-}
-
-template<class Archive>
-void VMDLModel::VmdlPlacementData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(scale), CEREAL_NVP(initialized));
-}
-
-template<class Archive>
-void VMDLModel::VmdlAnimationControlData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(colliderInitialActive), CEREAL_NVP(colliderTracks), CEREAL_NVP(shapeTracks));
-}
 
 uint64_t VMDLModel::MakeModelCacheStamp(uint64_t sourceLastWrite)
 {
@@ -239,205 +32,6 @@ bool VMDLModel::IsCacheUpToDate(
 	uint64_t cachedStamp = 0;
 	return ReadModelCacheStamp(cachePath, cachedStamp) &&
 		cachedStamp == MakeModelCacheStamp(GetFileLastWriteTime64(sourcePath));
-}
-
-HRESULT VMDLModel::SaveScratchImageToDDSBytes(
-	const DirectX::ScratchImage& sourceImage,
-	std::vector<uint8_t>& outDDS)
-{
-	outDDS.clear();
-
-	constexpr size_t MaxEmbeddedTextureSize = 2048;
-	const DirectX::TexMetadata& sourceMetadata = sourceImage.GetMetadata();
-
-	// DDSへ統一する前にRGBA8へ変換する。埋め込みサイズを抑えるため長辺を2048pxに制限し、
-	// 縮小後の画像からミップを生成する。ミップ生成に失敗しても元画像は保存できる。
-	DirectX::ScratchImage rgbaImage;
-	HRESULT hr = S_OK;
-
-	if (sourceMetadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
-	{
-		hr = DirectX::Convert(
-			sourceImage.GetImages(),
-			sourceImage.GetImageCount(),
-			sourceMetadata,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			DirectX::TEX_FILTER_DEFAULT,
-			DirectX::TEX_THRESHOLD_DEFAULT,
-			rgbaImage
-		);
-
-		if (FAILED(hr))
-		{
-			return hr;
-		}
-	}
-	else
-	{
-		hr = rgbaImage.InitializeFromImage(*sourceImage.GetImage(0, 0, 0));
-
-		if (FAILED(hr))
-		{
-			return hr;
-		}
-	}
-
-	const DirectX::ScratchImage* mipSource = &rgbaImage;
-
-	DirectX::ScratchImage resizedImage;
-	const DirectX::TexMetadata& rgbaMetadata = rgbaImage.GetMetadata();
-	const size_t maxSize = (std::max)(rgbaMetadata.width, rgbaMetadata.height);
-	if (maxSize > MaxEmbeddedTextureSize)
-	{
-		const double scale = static_cast<double>(MaxEmbeddedTextureSize) / static_cast<double>(maxSize);
-		const size_t resizedWidth = (std::max)(static_cast<size_t>(1), static_cast<size_t>(rgbaMetadata.width * scale));
-		const size_t resizedHeight = (std::max)(static_cast<size_t>(1), static_cast<size_t>(rgbaMetadata.height * scale));
-
-		hr = DirectX::Resize(
-			rgbaImage.GetImages(),
-			rgbaImage.GetImageCount(),
-			rgbaMetadata,
-			resizedWidth,
-			resizedHeight,
-			DirectX::TEX_FILTER_DEFAULT,
-			resizedImage
-		);
-
-		if (FAILED(hr))
-		{
-			return hr;
-		}
-
-		mipSource = &resizedImage;
-	}
-
-	const DirectX::ScratchImage* saveSource = mipSource;
-
-	DirectX::ScratchImage mipImage;
-	hr = DirectX::GenerateMipMaps(
-		mipSource->GetImages(),
-		mipSource->GetImageCount(),
-		mipSource->GetMetadata(),
-		DirectX::TEX_FILTER_DEFAULT,
-		0,
-		mipImage
-	);
-
-	if (SUCCEEDED(hr))
-	{
-		saveSource = &mipImage;
-	}
-
-	DirectX::Blob blob;
-	hr = DirectX::SaveToDDSMemory(
-		saveSource->GetImages(),
-		saveSource->GetImageCount(),
-		saveSource->GetMetadata(),
-		DirectX::DDS_FLAGS_NONE,
-		blob
-	);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	outDDS.resize(blob.GetBufferSize());
-	memcpy(outDDS.data(), blob.GetBufferPointer(), blob.GetBufferSize());
-
-	return S_OK;
-}
-
-HRESULT VMDLModel::ConvertTextureFileToDDSBytes(
-	const std::filesystem::path& texturePath,
-	std::vector<uint8_t>& outDDS)
-{
-	outDDS.clear();
-
-	if (!std::filesystem::exists(texturePath))
-	{
-		return E_FAIL;
-	}
-
-	std::wstring extension = ToLowerWString(texturePath.extension().wstring());
-
-	if (extension == L".dds")
-	{
-		return ReadBinaryFile(texturePath, outDDS) ? S_OK : E_FAIL;
-	}
-
-	DirectX::ScratchImage image;
-	DirectX::TexMetadata metadata = {};
-	HRESULT hr = E_FAIL;
-
-	if (extension == L".tga")
-	{
-		hr = DirectX::LoadFromTGAFile(
-			texturePath.wstring().c_str(),
-			&metadata,
-			image
-		);
-	}
-	else
-	{
-		hr = DirectX::LoadFromWICFile(
-			texturePath.wstring().c_str(),
-			DirectX::WIC_FLAGS_FORCE_RGB,
-			&metadata,
-			image
-		);
-	}
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	return SaveScratchImageToDDSBytes(image, outDDS);
-}
-
-HRESULT VMDLModel::ConvertSRVToDDSBytes(
-	ID3D11Device* device,
-	ID3D11ShaderResourceView* srv,
-	std::vector<uint8_t>& outDDS)
-{
-	outDDS.clear();
-
-	if (device == nullptr || srv == nullptr)
-	{
-		return E_FAIL;
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11Resource> resource;
-	srv->GetResource(resource.GetAddressOf());
-
-	if (resource == nullptr)
-	{
-		return E_FAIL;
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-	device->GetImmediateContext(context.GetAddressOf());
-
-	if (context == nullptr)
-	{
-		return E_FAIL;
-	}
-
-	DirectX::ScratchImage image;
-	HRESULT hr = DirectX::CaptureTexture(
-		device,
-		context.Get(),
-		resource.Get(),
-		image
-	);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	return SaveScratchImageToDDSBytes(image, outDDS);
 }
 
 void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(
@@ -689,6 +283,12 @@ bool VMDLModel::ExportMaterialTexture(
 {
 	if (materialIndex >= materials.size() || savePath.empty()) return false;
 
+	std::filesystem::path ext = savePath.extension();
+	if (ext != ".dds" && ext != ".png")
+	{
+		return false;
+	}
+
 	Material& material = materials[materialIndex];
 	std::vector<uint8_t>* embeddedDDS = nullptr;
 	switch (slot)
@@ -712,18 +312,26 @@ bool VMDLModel::ExportMaterialTexture(
 
 	if (!embeddedDDS) return false;
 
-	std::ofstream file(
-		savePath,
-		std::ios::binary | std::ios::out | std::ios::trunc);
-
-	if (!file)
+	if (ext == ".dds")
 	{
-		return false;
-	}
+		std::ofstream file(
+			savePath,
+			std::ios::binary | std::ios::out | std::ios::trunc);
 
-	file.write(
-		reinterpret_cast<const char*>(embeddedDDS->data()),
-		static_cast<std::streamsize>(embeddedDDS->size()));
+		if (!file)
+		{
+			return false;
+		}
+
+		file.write(
+			reinterpret_cast<const char*>(embeddedDDS->data()),
+			static_cast<std::streamsize>(embeddedDDS->size()));
+	}
+	else if(ext == ".png")
+	{
+		HRESULT hr = SaveDDSAsPNG(*embeddedDDS, savePath);
+		if (FAILED(hr)) return false;
+	}
 
 	return true;
 }

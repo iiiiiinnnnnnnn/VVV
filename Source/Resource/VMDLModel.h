@@ -520,9 +520,6 @@ private:
 	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
 	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);
 
-	static HRESULT SaveScratchImageToDDSBytes(const DirectX::ScratchImage& sourceImage, std::vector<uint8_t>& outDDS);
-	static HRESULT ConvertTextureFileToDDSBytes(const std::filesystem::path& texturePath, std::vector<uint8_t>& outDDS);
-	static HRESULT ConvertSRVToDDSBytes(ID3D11Device* device, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
 	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
 	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
 	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);

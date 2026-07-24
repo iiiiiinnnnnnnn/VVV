@@ -82,7 +82,7 @@ void Scene::SwitchToPlayMode()
 void Scene::Update()
 {
 	// ESCキーで起動画面戻る
-	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_ESCAPE)
+	if (Game::Input::Instance().GetGamePad().GetButtonUp() & GamePad::BTN_ESCAPE)
 	{
 		if (OnRequestExit())
 		{

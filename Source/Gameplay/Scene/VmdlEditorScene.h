@@ -105,7 +105,7 @@ private:
 	int draggingNumericTrack = -1;
 	int draggingNumericComponent = -1;
 	bool showMesh = true;
-	bool showFaces = true;
+	bool showFaces = false;
 	bool showRigidBody = true;
 	bool showCollider = true;
 	bool showSpring = true;

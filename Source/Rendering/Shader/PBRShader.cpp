@@ -103,11 +103,10 @@ void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 	{
 		CbMaterial cb{};
 
-		cb.baseColor = mesh.material->baseColor * GetParam<Color>(cachedParams, "color", {1.0f, 1.0f, 1.0f, 1.0f});
-		cb.emissiveColor = mesh.material->emissiveColor;
+		cb.baseColor = GetParam<Color>(cachedParams, "color", {1.0f, 1.0f, 1.0f, 1.0f});
 		cb.emissionColor = GetParam<Color>(cachedParams, "emission", {0.0f, 0.0f, 0.0f, 0.0f});
 		cb.fresnelColor = GetParam<Color>(cachedParams, "fresnelColor", {1.0f, 1.0f, 1.0f, 0.0f});
-		cb.fresnelPower = GetParam<float>(cachedParams, "fresnelPower", 3.0f);
+		cb.fresnelPower = GetParam<float>(cachedParams, "fresnelPower", 0.0f);
 		cb.fresnelStrength = GetParam<float>(cachedParams, "fresnelStrength", 0.0f);
 
 		const bool hasMetalnessParam = HasParam<float>(cachedParams, "metalness");

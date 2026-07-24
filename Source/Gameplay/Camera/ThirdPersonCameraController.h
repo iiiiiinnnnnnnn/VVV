@@ -23,7 +23,7 @@ public:
 private:
     Player* character;
 
-    float armLength    = 7.0f;
+    float armLength    = 11.0f;
     float heightOffset = 1.5f;
     float mouseSensX   = 0.005f;
     float mouseSensY   = 0.003f;

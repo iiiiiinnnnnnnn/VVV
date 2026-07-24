@@ -165,13 +165,9 @@ void VmdlEditorScene::OnDrawGUI()
 		ImGui::EndChild();
 		ImGui::EndTable();
 	}
-	ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Separator));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_SeparatorHovered));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_SeparatorActive));
 	ImGui::Button("##BottomSplitter", ImVec2(-1.0f, splitterHeight));
 	if (ImGui::IsItemActive()) bottomPanelHeight = std::clamp(bottomPanelHeight - ImGui::GetIO().MouseDelta.y, 140.0f, totalHeight - 220.0f);
 	if (ImGui::IsItemHovered() || ImGui::IsItemActive()) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-	ImGui::PopStyleColor(3);
 
 	ImGui::BeginChild("Editor Bottom", ImVec2(0.0f, 0.0f), true);
 	if (ImGui::BeginTabBar("VMDL Editor Tabs"))
@@ -448,24 +444,22 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	const bool nodeClicked = ImGui::IsItemClicked();
 	DrawNodeContextMenu(nodeIndex);
 	const auto& extension = model->GetVmdlExtensionData();
-	const auto drawBadge = [&](const char* text, const ImVec4& color)
+	const auto drawBadge = [](const char* text)
 	{
 		ImGui::SameLine(0.0f, 4.0f);
-		ImGui::PushStyleColor(ImGuiCol_Text, color);
 		ImGui::TextUnformatted(text);
-		ImGui::PopStyleColor();
 	};
 	if (std::any_of(extension.rigidBodies.begin(), extension.rigidBodies.end(), [nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
-		drawBadge("[RB]", ImVec4(1.0f, 0.72f, 0.15f, 1.0f));
+		drawBadge("[RB]");
 	if (std::any_of(extension.colliders.begin(), extension.colliders.end(), [nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
-		drawBadge("[C]", ImVec4(0.15f, 0.85f, 1.0f, 1.0f));
+		drawBadge("[C]");
 	if (std::any_of(extension.springs.begin(), extension.springs.end(), [nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
-		drawBadge("[S]", ImVec4(0.3f, 1.0f, 0.35f, 1.0f));
+		drawBadge("[S]");
 	if (std::any_of(extension.springColliders.begin(), extension.springColliders.end(), [nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
-		drawBadge("[SC]", ImVec4(1.0f, 0.25f, 0.85f, 1.0f));
+		drawBadge("[SC]");
 	const auto& trails = model->GetVmdlTrailData().trails;
 	if (std::any_of(trails.begin(), trails.end(), [nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
-		drawBadge("[T]", ImVec4(1.0f, 0.55f, 0.12f, 1.0f));
+		drawBadge("[T]");
 	if (nodeClicked)
 	{
 		selectedNode = nodeIndex;
@@ -480,7 +474,6 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	{
 		const VMDLModel::Mesh& mesh = meshes[meshIndex];
 		if (mesh.nodeIndex != nodeIndex) continue;
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.25f, 1.0f));
 		const std::string label = "Mesh " + std::to_string(meshIndex) + " : " + mesh.material->name;
 		if (ImGui::Selectable(label.c_str(), selectedMesh == meshIndex))
 		{
@@ -488,7 +481,6 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			selectedNode = nodeIndex;
 			selectedMaterial = mesh.materialIndex;
 		}
-		ImGui::PopStyleColor();
 	}
 	for (const VMDLModel::Node* child : node.children)
 	{
@@ -869,9 +861,7 @@ void VmdlEditorScene::DrawTimeline()
 	if (selectedAnimation < 0 || selectedAnimation >= static_cast<int>(animations.size())) return;
 
 	VMDLModel::Animation& animation = animations[selectedAnimation];
-	if (animationRecording) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.75f, 0.12f, 0.12f, 1.0f));
 	const bool recordClicked = ImGui::Button("\xE2\x97\x8F##Record", ImVec2(38.0f, 0.0f));
-	if (animationRecording) ImGui::PopStyleColor();
 	if (recordClicked) animationRecording = !animationRecording;
 	if (ImGui::IsItemHovered()) ImGui::SetTooltip("Record: automatically key edited bone transforms");
 	ImGui::SameLine();
@@ -1829,7 +1819,7 @@ void VmdlEditorScene::DrawIkSettings()
 			if (!name.empty() && model->GetNodeIndex(name.c_str()) < 0)
 			{
 				ImGui::SameLine();
-				ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Missing");
+				ImGui::TextUnformatted("Missing");
 			}
 			return changed;
 		};
@@ -1913,7 +1903,6 @@ void VmdlEditorScene::DrawShapeEditor()
 	ImGui::EndDisabled();
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!canDeleteShape);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.12f, 0.12f, 1.0f));
 	if (ImGui::Button("Delete Shape") && canDeleteShape)
 	{
 		shapes.erase(shapes.begin() + selectedShape);
@@ -1929,7 +1918,6 @@ void VmdlEditorScene::DrawShapeEditor()
 		else selectedShape = std::min(selectedShape, static_cast<int>(shapes.size()) - 1);
 		MarkDirty();
 	}
-	ImGui::PopStyleColor();
 	ImGui::EndDisabled();
 
 	constexpr ImGuiTableFlags shapeTableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp;
@@ -1958,9 +1946,9 @@ void VmdlEditorScene::DrawShapeEditor()
 				MarkDirty();
 			}
 			if (shape.meshVisibility.size() != model->GetMeshes().size()) shape.meshVisibility.resize(model->GetMeshes().size(), 2);
-			ImGui::TextColored(ImVec4(0.30f, 1.0f, 0.35f, 1.0f), "+ Add");
+			ImGui::TextUnformatted("+ Add");
 			ImGui::SameLine();
-			ImGui::TextColored(ImVec4(1.0f, 0.30f, 0.30f, 1.0f), "- Remove");
+			ImGui::TextUnformatted("- Remove");
 			ImGui::SameLine();
 			ImGui::TextDisabled("Middle dot: No change");
 			ImGui::Separator();
@@ -1972,13 +1960,9 @@ void VmdlEditorScene::DrawShapeEditor()
 				const std::string label = "Mesh " + std::to_string(i) + " : " + mesh.material->name;
 				ImGui::PushID(i);
 				bool changed = false;
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.30f, 1.0f, 0.35f, 1.0f));
 				if (ImGui::RadioButton("+", state == 1)) { state = 1; changed = true; }
-				ImGui::PopStyleColor();
 				ImGui::SameLine();
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.30f, 0.30f, 1.0f));
 				if (ImGui::RadioButton("-", state == 0)) { state = 0; changed = true; }
-				ImGui::PopStyleColor();
 				ImGui::SameLine();
 				if (ImGui::RadioButton("\xC2\xB7", state == 2)) { state = 2; changed = true; }
 				ImGui::SameLine();
@@ -2064,8 +2048,11 @@ void VmdlEditorScene::DrawMaterialEditor()
 		{
 			char filepath[MAX_PATH]{};
 			const char* filter =
-				"Texture (*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp)\0"
-				"*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp\0";
+				"DDS Texture (*.dds)\0"
+				"*.dds\0"
+				"PNG Image (*.png)\0"
+				"*.png\0"
+				"\0";
 			if (Dialog::SaveFileName(filepath, MAX_PATH, filter, "Export Material Texture") == DialogResult::OK)
 			{
 				if (model->ExportMaterialTexture(static_cast<size_t>(selectedMaterial), slot, filepath))
@@ -2084,8 +2071,11 @@ void VmdlEditorScene::DrawMaterialEditor()
 		{
 			char filepath[MAX_PATH]{};
 			const char* filter =
-				"Texture (*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp)\0"
-				"*.dds;*.png;*.jpg;*.jpeg;*.tga;*.bmp\0";
+				"DDS Texture (*.dds)\0"
+				"*.dds\0"
+				"PNG Image (*.png)\0"
+				"*.png\0"
+				"\0";
 			if (Dialog::OpenFileName(filepath, MAX_PATH, filter, "Replace Material Texture") == DialogResult::OK)
 			{
 				if (model->ReplaceMaterialTexture(static_cast<size_t>(selectedMaterial), slot, filepath))
@@ -2111,7 +2101,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 	{
 		ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 150.0f);
 		ImGui::TableSetupColumn("Source", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+		ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 300.0f);
 		textureRow("Base Color", VMDLModel::MaterialTextureSlot::BaseColor,
 			material.baseTextureFileName, material.baseTextureDDS);
 		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal,

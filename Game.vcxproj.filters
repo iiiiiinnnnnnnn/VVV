@@ -1,9 +1,9 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
-	<ClCompile Include="External\imguizmo\ImGuizmo.cpp">
-	  <Filter>Application\Tools</Filter>
-	</ClCompile>
+    <ClCompile Include="External\imguizmo\ImGuizmo.cpp">
+      <Filter>Application\Tools</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -82,9 +82,6 @@
     <Filter Include="Physics\RigidBody">
       <UniqueIdentifier>{35001063-91f9-5328-b984-f1c4e6c91707}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Project">
-      <UniqueIdentifier>{b5466245-aacb-5f60-87d5-7edd25927ba9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Rendering">
       <UniqueIdentifier>{610b5913-428e-52d1-8867-0b25f8781106}</UniqueIdentifier>
     </Filter>
@@ -130,20 +127,23 @@
     <Filter Include="Gameplay\Stage\Component">
       <UniqueIdentifier>{7e4a7de8-c3c1-57af-8816-a7fd0f0d92cb}</UniqueIdentifier>
     </Filter>
+    <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
-	  <Filter>Application\SettingsAndDebug</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
-	  <Filter>Gameplay\Scene</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
-	  <Filter>Gameplay\Scene</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -162,15 +162,15 @@
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp">
       <Filter>Application\Bootstrap</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp">
-	  <Filter>Application\SettingsAndDebug</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
-	  <Filter>Gameplay\Scene</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
-	  <Filter>Gameplay\Scene</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
+      <Filter>Gameplay\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
+      <Filter>Gameplay\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Application\Tools\Dialog.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
@@ -450,6 +450,9 @@
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyStatic.cpp">
       <Filter>Physics\RigidBody</Filter>
     </ClCompile>
+    <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
@@ -850,15 +853,11 @@
     <None Include="Shader\Skinning.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
-    <None Include=".gitignore">
-      <Filter>Project</Filter>
-    </None>
-    <None Include="README.md">
-      <Filter>Project</Filter>
-    </None>
     <None Include="Source\Core\Object\Object.inl">
       <Filter>Core\Object</Filter>
     </None>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
