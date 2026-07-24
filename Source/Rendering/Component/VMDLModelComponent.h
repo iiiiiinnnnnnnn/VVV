@@ -1,4 +1,4 @@
-// VMDLModelComponent.h
+﻿// VMDLModelComponent.h
 
 #pragma once
 #include <memory>
@@ -10,6 +10,7 @@
 
 class Animator;
 class PhysicsComponent;
+class VMDLColliderComponent;
 class TrailRenderComponent;
 
 class VMDLModelComponent : public Component {
@@ -51,6 +52,6 @@ private:
 	bool attachmentsBuilt = false;
 	bool animationControlsApplied = false;
 	Animator* animator = nullptr;
-	std::vector<PhysicsComponent*> attachmentColliders;
+	std::vector<VMDLColliderComponent*> attachmentColliders;
 	std::vector<TrailRenderComponent*> attachmentTrails;
 };

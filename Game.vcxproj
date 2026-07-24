@@ -29,6 +29,7 @@
     <ClCompile Include="Source\Gameplay\Scene\HitStop.cpp" />
     <ClCompile Include="Source\Animation\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\Animation\LookAt.cpp" />
+    <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp" />
     <ClCompile Include="Source\Rendering\Effect\ParticleSystem.cpp" />
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyDynamic.cpp" />
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyStatic.cpp" />
@@ -132,6 +133,7 @@
     <ClInclude Include="Source\Physics\Collider\BoxCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h" />
     <ClInclude Include="Source\Physics\Collider\CapsuleCollider.h" />
+    <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h" />
     <ClInclude Include="Source\Physics\Core\CollidersDef.h" />
     <ClInclude Include="Source\Core\Foundation\Common.h" />
     <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h" />

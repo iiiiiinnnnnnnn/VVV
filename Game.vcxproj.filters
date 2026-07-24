@@ -130,6 +130,9 @@
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp">
+      <Filter>Physics\Collider</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
@@ -449,6 +452,9 @@
     </ClCompile>
     <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h">
       <Filter>Core\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h">
+      <Filter>Physics\Collider</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -20,48 +20,39 @@
 #include "Application/Time/GameTime.h"
 #include "Resource/ResourceManager.h"
 
-namespace
+constexpr UINT PreviewWidth = 1024;
+constexpr UINT PreviewHeight = 1024;
+constexpr int PreviewGridSubdivisions = 20;
+constexpr float PreviewGridScale = 0.5f;
+
+Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
 {
-	constexpr UINT PreviewWidth = 1024;
-	constexpr UINT PreviewHeight = 1024;
-	constexpr int PreviewGridSubdivisions = 20;
-	constexpr float PreviewGridScale = 0.5f;
-	constexpr float PreviewGridSize = PreviewGridSubdivisions * PreviewGridScale;
-
-	bool DragVector3(const char* label, Vector3& value, float speed = 0.01f)
+	if (keys.empty()) return fallback;
+	if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
+	if (time >= keys.back().seconds) return keys.back().value;
+	for (size_t i = 1; i < keys.size(); ++i)
 	{
-		return ImGui::DragFloat3(label, &value.x, speed);
+		if (time > keys[i].seconds) continue;
+		const float duration = keys[i].seconds - keys[i - 1].seconds;
+		const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
+		return Vector3::Lerp(keys[i - 1].value, keys[i].value, rate);
 	}
+	return keys.back().value;
+}
 
-	Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
+Quaternion EvaluateQuaternionKeys(const std::vector<VMDLModel::QuaternionKeyframe>& keys, float time, const Quaternion& fallback)
+{
+	if (keys.empty()) return fallback;
+	if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
+	if (time >= keys.back().seconds) return keys.back().value;
+	for (size_t i = 1; i < keys.size(); ++i)
 	{
-		if (keys.empty()) return fallback;
-		if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
-		if (time >= keys.back().seconds) return keys.back().value;
-		for (size_t i = 1; i < keys.size(); ++i)
-		{
-			if (time > keys[i].seconds) continue;
-			const float duration = keys[i].seconds - keys[i - 1].seconds;
-			const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
-			return Vector3::Lerp(keys[i - 1].value, keys[i].value, rate);
-		}
-		return keys.back().value;
+		if (time > keys[i].seconds) continue;
+		const float duration = keys[i].seconds - keys[i - 1].seconds;
+		const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
+		return Quaternion::Slerp(keys[i - 1].value, keys[i].value, rate);
 	}
-
-	Quaternion EvaluateQuaternionKeys(const std::vector<VMDLModel::QuaternionKeyframe>& keys, float time, const Quaternion& fallback)
-	{
-		if (keys.empty()) return fallback;
-		if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
-		if (time >= keys.back().seconds) return keys.back().value;
-		for (size_t i = 1; i < keys.size(); ++i)
-		{
-			if (time > keys[i].seconds) continue;
-			const float duration = keys[i].seconds - keys[i - 1].seconds;
-			const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
-			return Quaternion::Slerp(keys[i - 1].value, keys[i].value, rate);
-		}
-		return keys.back().value;
-	}
+	return keys.back().value;
 }
 
 VmdlEditorScene::VmdlEditorScene(SceneMessage message)
@@ -267,7 +258,7 @@ void VmdlEditorScene::RenderPreview()
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
-	previewSceneTarget->Clear(dc, 0.18f, 0.22f, 0.25f, 1.0f);
+	previewSceneTarget->Clear(dc, 0, 0, 0, 1.0f);
 	previewSceneTarget->Activate(dc);
 
 	RenderContext rc{};
@@ -381,7 +372,10 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.springColliders)
 			{
-				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(nodeOffsetTransform(value.nodeIndex, value.offsetPosition)), value.radius, Color(1.0f, 0.2f, 0.9f, 0.7f));
+				graphics.GetShapeRenderer()->DrawSphere(
+					matrixPosition(
+					nodeOffsetTransform(
+					value.nodeIndex, value.offsetPosition)), value.radius, Color(1.0f, 0.2f, 0.9f, 0.7f));
 				hasShapes = true;
 			}
 		}
@@ -679,13 +673,13 @@ void VmdlEditorScene::DrawProperty()
 
 	VMDLModel::Node& node = model->GetNodes()[selectedNode];
 	ImGui::Text("Node: %s", node.name.c_str());
-	bool transformChanged = DragVector3("Local Position", node.position);
+	bool transformChanged = ImGui::DragFloat3("Local Position", &node.position.x, 0.01f);
 	if (ImGui::DragFloat4("Local Rotation", &node.rotation.x, 0.01f))
 	{
 		node.rotation.Normalize();
 		transformChanged = true;
 	}
-	transformChanged |= DragVector3("Local Scale", node.scale);
+	transformChanged |= ImGui::DragFloat3("Local Scale", &node.scale.x, 0.01f);
 	if (transformChanged)
 	{
 		MarkDirty();
@@ -719,7 +713,11 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		ImGui::PushID(1000 + i);
 		if (ImGui::TreeNode("Rigid body"))
 		{
-			if (ImGui::InputText("Name", &value.name) || DragVector3("Offset Position", value.offsetPosition) || DragVector3("Offset Rotation", value.offsetRotation) || ImGui::DragFloat("Mass", &value.mass, 0.05f, 0.0f) || ImGui::Checkbox("Kinematic", &value.kinematic)) MarkDirty();
+			if (ImGui::InputText("Name", &value.name) ||
+				ImGui::DragFloat3("Offset Position", &value.offsetPosition.x, 0.01f) ||
+				ImGui::DragFloat3("Offset Rotation", &value.offsetRotation.x, 0.01f) ||
+				ImGui::DragFloat("Mass", &value.mass, 0.05f, 0.0f) ||
+				ImGui::Checkbox("Kinematic", &value.kinematic)) MarkDirty();
 			if (ImGui::Button("Delete")) deleteRigidBody = i;
 			ImGui::TreePop();
 		}
@@ -747,8 +745,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				if (value.shape == 1) value.size.y = value.size.z = value.size.x;
 				changed = true;
 			}
-			changed |= DragVector3("Offset Position", value.center);
-			changed |= DragVector3("Offset Rotation", value.rotation);
+			changed |= ImGui::DragFloat3("Offset Position", &value.center.x, 0.01f);
+			changed |= ImGui::DragFloat3("Offset Rotation", &value.rotation.x, 0.01f);
 			if (value.shape == 1)
 			{
 				if (ImGui::DragFloat("Radius", &value.size.x, 0.01f, 0.001f))
@@ -765,7 +763,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				value.size.x = std::max(0.001f, value.size.x);
 				value.size.y = std::max(0.001f, value.size.y);
 			}
-			else changed |= DragVector3("Size", value.size);
+			else changed |= ImGui::DragFloat3("Size", &value.size.x, 0.01f);
 			changed |= ImGui::Checkbox("Trigger", &value.trigger);
 			if (changed) MarkDirty();
 			if (ImGui::Checkbox("Initially Active", &initialActive))
@@ -807,7 +805,11 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		ImGui::PushID(3000 + i);
 		if (ImGui::TreeNode("Spring"))
 		{
-			if (ImGui::InputText("Name", &value.name) || DragVector3("Offset Position", value.offsetPosition) || DragVector3("Offset Rotation", value.offsetRotation) || ImGui::DragFloat("Stiffness", &value.stiffness, 0.01f, 0.0f, 1.0f) || ImGui::DragFloat("Drag", &value.drag, 0.01f, 0.0f, 1.0f)) MarkDirty();
+			if (ImGui::InputText("Name", &value.name) ||
+				ImGui::DragFloat3("Offset Position", &value.offsetPosition.x, 0.01f) ||
+				ImGui::DragFloat3("Offset Rotation", &value.offsetRotation.x, 0.01f) ||
+				ImGui::DragFloat("Stiffness", &value.stiffness, 0.01f, 0.0f, 1.0f) ||
+				ImGui::DragFloat("Drag", &value.drag, 0.01f, 0.0f, 1.0f)) MarkDirty();
 
 			if (ImGui::Button("Delete")) deleteSpring = i;
 			ImGui::TreePop();
@@ -828,7 +830,9 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		ImGui::PushID(4000 + i);
 		if (ImGui::TreeNode("Spring Collider"))
 		{
-			if (ImGui::InputText("Name", &value.name) || DragVector3("Offset Position", value.offsetPosition) || ImGui::DragFloat("Radius", &value.radius, 0.01f, 0.001f)) MarkDirty();
+			if (ImGui::InputText("Name", &value.name) ||
+				ImGui::DragFloat3("Offset Position", &value.offsetPosition.x, 0.01f) ||
+				ImGui::DragFloat("Radius", &value.radius, 0.01f, 0.001f)) MarkDirty();
 
 			if (ImGui::Button("Delete")) deleteSpringCollider = i;
 			ImGui::TreePop();
@@ -852,13 +856,13 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			bool initialActive = model->GetTrailInitialActive(i);
 			bool changed = ImGui::InputText("Name", &value.name);
-			changed |= DragVector3("Root Offset", value.rootOffset);
-			changed |= DragVector3("Tip Offset", value.tipOffset);
+			changed |= ImGui::DragFloat3("Root Offset", &value.rootOffset.x, 0.01f);
+			changed |= ImGui::DragFloat3("Tip Offset", &value.tipOffset.x, 0.01f);
 			changed |= ImGui::ColorEdit4("Color", &value.color.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 			changed |= ImGui::DragFloat("Tip Ratio", &value.tipRatio, 0.01f, 0.0f, 4.0f);
 			changed |= ImGui::DragFloat("Life Time", &value.lifeTime, 0.01f, 0.01f, 10.0f, "%.3f sec");
 			changed |= ImGui::DragInt("Max Points", &value.maxPoints, 1.0f, 2, 1024);
-			changed |= DragVector3("Offset Angle", value.offsetAngle);
+			changed |= ImGui::DragFloat3("Offset Angle", &value.offsetAngle.x, 0.01f);
 			value.tipRatio = std::clamp(value.tipRatio, 0.0f, 4.0f);
 			value.lifeTime = std::clamp(value.lifeTime, 0.01f, 10.0f);
 			value.maxPoints = std::clamp(value.maxPoints, 2, 1024);
@@ -963,12 +967,7 @@ void VmdlEditorScene::DrawTimeline()
 	{
 		DrawAnimationCurves();
 	}
-	if (DragVector3("VMDLModel Root Offset", rootOffset, 0.01f)) MarkDirty();
-	if (ImGui::DragFloat("VMDLModel Scale", &modelScale, 0.001f, 0.000001f, FLT_MAX, "%.6f"))
-	{
-		modelScale = std::max(modelScale, 0.000001f);
-		MarkDirty();
-	}
+	if (ImGui::DragFloat3("VMDLModel Root Offset", &rootOffset.x, 0.01f)) MarkDirty();
 }
 
 void VmdlEditorScene::DrawAnimationCurves()
@@ -2210,7 +2209,8 @@ void VmdlEditorScene::MarkDirty()
 	if (!model) return;
 	model->GetVmdlExtensionData().rootOffset = rootOffset;
 	auto& placement = model->GetVmdlPlacementData();
-	placement.scale = modelScale;
+	modelScale = 1.0f;
+	placement.scale = 1.0f;
 	placement.initialized = true;
 }
 
@@ -2240,68 +2240,72 @@ bool VmdlEditorScene::OnRequestExit()
 void VmdlEditorScene::UpdateModelPlacement()
 {
 	if (!model) return;
+
+	modelScale = 1.0f;
+
+	auto& placement = model->GetVmdlPlacementData();
+	const bool scaleWasChanged = !placement.initialized || std::abs(placement.scale - 1.0f) > 0.000001f;
+
+	placement.scale = 1.0f;
+	placement.initialized = true;
+
 	model->UpdateTransform(Matrix::Identity);
+
 	Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
 	Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 	bool hasVertex = false;
+
 	for (const VMDLModel::Mesh& mesh : model->GetMeshes())
 	{
 		if (!mesh.node) continue;
+
 		for (const VMDLModel::Vertex& vertex : mesh.vertices)
 		{
-			const Vector3 position = Vector3::Transform(vertex.position, mesh.node->globalTransform);
+			const Vector3 position =
+				Vector3::Transform(vertex.position, mesh.node->globalTransform);
+
 			minPosition.x = std::min(minPosition.x, position.x);
 			minPosition.y = std::min(minPosition.y, position.y);
 			minPosition.z = std::min(minPosition.z, position.z);
+
 			maxPosition.x = std::max(maxPosition.x, position.x);
 			maxPosition.y = std::max(maxPosition.y, position.y);
 			maxPosition.z = std::max(maxPosition.z, position.z);
+
 			hasVertex = true;
 		}
 	}
-	if (!hasVertex) return;
 
-	auto& placement = model->GetVmdlPlacementData();
-	if (!placement.initialized)
+	if (!hasVertex)
 	{
-		const Vector3 size = maxPosition - minPosition;
-		const float largestSize = std::max(size.x, std::max(size.y, size.z));
-		// でかすぎるモデルを自動で縮小する挙動は廃止。グリッドより小さい場合のみ拡大して合わせる。
-		modelScale = (largestSize > 0.000001f && largestSize < PreviewGridSize) ? PreviewGridSize / largestSize : 1.0f;
-		const Vector3 scaledMin = minPosition * modelScale;
-		const Vector3 scaledMax = maxPosition * modelScale;
-		rootOffset.x = -(scaledMin.x + scaledMax.x) * 0.5f;
-		rootOffset.z = -(scaledMin.z + scaledMax.z) * 0.5f;
-		rootOffset.y = scaledMin.y < 0.0f ? -scaledMin.y : 0.0f;
-		placement.scale = modelScale;
-		placement.initialized = true;
+		if (scaleWasChanged) dirty = true;
+		return;
+	}
+
+	rootOffset = model->GetVmdlExtensionData().rootOffset;
+
+	if (rootOffset == Vector3::Zero)
+	{
+		rootOffset.x = -(minPosition.x + maxPosition.x) * 0.5f;
+		rootOffset.z = -(minPosition.z + maxPosition.z) * 0.5f;
+		rootOffset.y = minPosition.y < 0.0f ? -minPosition.y : 0.0f;
+
 		model->GetVmdlExtensionData().rootOffset = rootOffset;
 		dirty = true;
 	}
-	else
+	else if (scaleWasChanged)
 	{
-		modelScale = std::max(placement.scale, 0.000001f);
-		rootOffset = model->GetVmdlExtensionData().rootOffset;
-		const Vector3 size = maxPosition - minPosition;
-		const float largestSize = std::max(size.x, std::max(size.y, size.z));
-		if (largestSize > 0.000001f && largestSize < PreviewGridSize && placement.scale <= 1.0f)
-		{
-			modelScale = PreviewGridSize / largestSize;
-			const Vector3 scaledMin = minPosition * modelScale;
-			const Vector3 scaledMax = maxPosition * modelScale;
-			rootOffset.x = -(scaledMin.x + scaledMax.x) * 0.5f;
-			rootOffset.z = -(scaledMin.z + scaledMax.z) * 0.5f;
-			rootOffset.y = scaledMin.y < 0.0f ? -scaledMin.y : 0.0f;
-			placement.scale = modelScale;
-			model->GetVmdlExtensionData().rootOffset = rootOffset;
-			dirty = true;
-		}
+		dirty = true;
 	}
 
-	const Vector3 scaledCenter = (minPosition + maxPosition) * (0.5f * modelScale);
-	const Vector3 scaledSize = (maxPosition - minPosition) * modelScale;
-	cameraFocusOffset = scaledCenter - Vector3(0.0f, 1.0f, 0.0f);
-	cameraDistance = std::clamp(scaledSize.Length() * 1.25f, 2.0f, 50.0f);
+	const Vector3 center = (minPosition + maxPosition) * 0.5f;
+	const Vector3 size = maxPosition - minPosition;
+
+	cameraFocusOffset =
+		center - Vector3(0.0f, 1.0f, 0.0f);
+
+	cameraDistance =
+		std::clamp(size.Length() * 1.25f, 2.0f, 50.0f);
 }
 
 void VmdlEditorScene::UpdateWindowTitle()
@@ -2407,7 +2411,7 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 		selectedKeyTrack = -1;
 		selectedKeyIndex = -1;
 		rootOffset = model->GetVmdlExtensionData().rootOffset;
-		modelScale = model->GetVmdlPlacementData().scale;
+		modelScale = 1.0f;
 		UpdateModelPlacement();
 		ResetAnimationControlPreview();
 	}

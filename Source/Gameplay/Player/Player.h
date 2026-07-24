@@ -11,7 +11,7 @@
 #include "Gameplay/Player/PlayerController.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Rendering/Component/VMDL.h"
-#include "Physics/Collider/BoneCollider.h"
+#include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Animation/LookAt.h"
 
@@ -59,7 +59,6 @@ private:
     Matrix GetModelWorldTransform() const;
     bool RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const;
     void SnapToGroundIfNeeded();
-    void SyncWeaponAttachNodes();
     void UpdateLookIn();
     void UpdateMovement();
 
@@ -89,8 +88,8 @@ protected:
 
     // movement
     CharacterController* cc = nullptr;
-    BoneCollider* weaponCollider = nullptr;
-    BoneCollider* footCollider = nullptr;
+    VMDLColliderComponent* weaponCollider = nullptr;
+    VMDLColliderComponent* footCollider = nullptr;
     Vector3 frameVelocity = Vector3::Zero;
     float verticalVelocity = 0.0f;
     float speed = 5.0f;

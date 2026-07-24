@@ -5,9 +5,7 @@
 #include "Animation/SpringBone.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/Actor.h"
-#include "Physics/Collider/BoneBoxCollider.h"
-#include "Physics/Collider/BoneCapsuleCollider.h"
-#include "Physics/Collider/BoneSphereCollider.h"
+#include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "IconsFontAwesome5.h"
 
@@ -50,32 +48,20 @@ void VMDLModelComponent::BuildAttachments()
 		const Matrix offset =
 			Matrix::CreateFromYawPitchRoll(RAD(value.rotation.y), RAD(value.rotation.x), RAD(value.rotation.z)) *
 			Matrix::CreateTranslation(value.center);
-		PhysicsComponent* collider = nullptr;
-		switch (value.shape)
-		{
-		case 1:
-			collider = owner->AddComponent<BoneSphereCollider>(
-				attachmentLayerId, model.get(), value.nodeIndex, std::max(0.001f, value.size.x),
-				offset, nullptr, value.trigger);
-			break;
-		case 2:
-			collider = owner->AddComponent<BoneCapsuleCollider>(
-				attachmentLayerId, model.get(), value.nodeIndex,
-				std::max(0.001f, value.size.x), std::max(0.001f, value.size.y),
-				offset, nullptr, value.trigger);
-			break;
-		default:
-			collider = owner->AddComponent<BoneBoxCollider>(
-				attachmentLayerId, model.get(), value.nodeIndex, value.size,
-				offset, nullptr, value.trigger);
-			break;
-		}
-		if (collider)
-		{
-			collider->SetName(value.name);
-			collider->SetActive(model->GetColliderInitialActive(colliderIndex));
-			attachmentColliders[colliderIndex] = collider;
-		}
+
+		auto* collider = owner->AddComponent<VMDLColliderComponent>(
+			attachmentLayerId,
+			model.get(),
+			value.nodeIndex,
+			value.shape,
+			value.size,
+			offset,
+			nullptr,
+			value.trigger);
+
+		collider->SetName(value.name);
+		collider->SetActive(model->GetColliderInitialActive(colliderIndex));
+		attachmentColliders[colliderIndex] = collider;
 	}
 
 	std::vector<SpringBone::SpringCapsule> springColliders;
@@ -113,7 +99,7 @@ void VMDLModelComponent::BuildAttachments()
 
 PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& name) const
 {
-	for (PhysicsComponent* collider : attachmentColliders)
+	for (VMDLColliderComponent* collider : attachmentColliders)
 	{
 		if (collider && collider->CompareName(name)) return collider;
 	}
@@ -127,13 +113,20 @@ void VMDLModelComponent::LateUpdate()
     if (!model)
         return;
 	UpdateAnimationControls();
-	if (!autoUpdateTransform) return;
 
-	const auto& placement = model->GetVmdlPlacementData();
-	const Matrix placementTransform =
-		Matrix::CreateScale(placement.scale) *
-		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
-	model->UpdateTransform(placementTransform * actor->transform.matrix);
+	if (autoUpdateTransform)
+	{
+		const auto& placement = model->GetVmdlPlacementData();
+		const Matrix placementTransform =
+			Matrix::CreateScale(placement.scale) *
+			Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
+		model->UpdateTransform(placementTransform * actor->transform.matrix);
+	}
+
+	for (VMDLColliderComponent* collider : attachmentColliders)
+	{
+		if (collider && collider->IsActive()) collider->UpdateFromNode();
+	}
 }
 
 void VMDLModelComponent::UpdateAnimationControls()

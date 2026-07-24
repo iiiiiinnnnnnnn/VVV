@@ -46,8 +46,8 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	// SetFootPosition と SetPosition は両方呼ばない
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
-	weaponCollider = vmdl->GetCollider<BoneCollider>("Weapon");
-	footCollider = vmdl->GetCollider<BoneCollider>("Kick");
+	weaponCollider = vmdl->GetCollider<VMDLColliderComponent>("Weapon");
+	footCollider = vmdl->GetCollider<VMDLColliderComponent>("Kick");
 
 	//// TrailはVMDL Editor側の設定が未完成なので、現行の手動生成を残す。
 	//trail = AddComponent<TrailRenderComponent>(
@@ -85,8 +85,6 @@ void Player::OnLateUpdate()
 
 	model->UpdateTransform(GetModelWorldTransform());
 
-	// 最終姿勢が決まった後に、武器ノードを同期する
-	SyncWeaponAttachNodes();
 
 	if (cc)
 	{
@@ -208,7 +206,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	if (!entity) return;
 
 	bool footAtk = self == footCollider;
-	BoneCollider* attackCollider = footAtk ? footCollider : weaponCollider;
+	VMDLColliderComponent* attackCollider = footAtk ? footCollider : weaponCollider;
 	if (!attackCollider) return;
 	Vector3 hitPosition = point;
 	Vector3 hitNormal = normal;
@@ -253,24 +251,6 @@ void Player::OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, cons
 void Player::OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
-}
-
-void Player::SyncWeaponAttachNodes()
-{
-	if (!model) return;
-
-	const int weaponL = model->GetNodeIndex("add_weapon_l");
-	const int weaponR = model->GetNodeIndex("add_weapon_r");
-	const int handL   = model->GetNodeIndex("hand_l");
-	const int handR   = model->GetNodeIndex("hand_r");
-
-	if (weaponL < 0 || weaponR < 0 || handL < 0 || handR < 0) return;
-
-	model->GetNodes()[weaponL].worldTransform =
-		model->GetNodes()[handL].worldTransform;
-
-	model->GetNodes()[weaponR].worldTransform =
-		model->GetNodes()[handR].worldTransform;
 }
 
 Matrix Player::GetModelWorldTransform() const
