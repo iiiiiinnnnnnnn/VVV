@@ -22,88 +22,101 @@
 
 namespace
 {
-constexpr UINT PreviewWidth = 1024;
-constexpr UINT PreviewHeight = 1024;
-constexpr int PreviewGridSubdivisions = 20;
-constexpr float PreviewGridScale = 0.5f;
-constexpr float PreviewGridSize = PreviewGridSubdivisions * PreviewGridScale;
+	constexpr UINT PreviewWidth = 1024;
+	constexpr UINT PreviewHeight = 1024;
+	constexpr int PreviewGridSubdivisions = 20;
+	constexpr float PreviewGridScale = 0.5f;
+	constexpr float PreviewGridSize = PreviewGridSubdivisions * PreviewGridScale;
 
-bool DragVector3(const char* label, Vector3& value, float speed = 0.01f)
-{
-	return ImGui::DragFloat3(label, &value.x, speed);
-}
-
-Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
-{
-	if (keys.empty()) return fallback;
-	if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
-	if (time >= keys.back().seconds) return keys.back().value;
-	for (size_t i = 1; i < keys.size(); ++i)
+	bool DragVector3(const char* label, Vector3& value, float speed = 0.01f)
 	{
-		if (time > keys[i].seconds) continue;
-		const float duration = keys[i].seconds - keys[i - 1].seconds;
-		const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
-		return Vector3::Lerp(keys[i - 1].value, keys[i].value, rate);
+		return ImGui::DragFloat3(label, &value.x, speed);
 	}
-	return keys.back().value;
-}
 
-Quaternion EvaluateQuaternionKeys(const std::vector<VMDLModel::QuaternionKeyframe>& keys, float time, const Quaternion& fallback)
-{
-	if (keys.empty()) return fallback;
-	if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
-	if (time >= keys.back().seconds) return keys.back().value;
-	for (size_t i = 1; i < keys.size(); ++i)
+	Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
 	{
-		if (time > keys[i].seconds) continue;
-		const float duration = keys[i].seconds - keys[i - 1].seconds;
-		const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
-		return Quaternion::Slerp(keys[i - 1].value, keys[i].value, rate);
+		if (keys.empty()) return fallback;
+		if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
+		if (time >= keys.back().seconds) return keys.back().value;
+		for (size_t i = 1; i < keys.size(); ++i)
+		{
+			if (time > keys[i].seconds) continue;
+			const float duration = keys[i].seconds - keys[i - 1].seconds;
+			const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
+			return Vector3::Lerp(keys[i - 1].value, keys[i].value, rate);
+		}
+		return keys.back().value;
 	}
-	return keys.back().value;
-}
+
+	Quaternion EvaluateQuaternionKeys(const std::vector<VMDLModel::QuaternionKeyframe>& keys, float time, const Quaternion& fallback)
+	{
+		if (keys.empty()) return fallback;
+		if (keys.size() == 1 || time <= keys.front().seconds) return keys.front().value;
+		if (time >= keys.back().seconds) return keys.back().value;
+		for (size_t i = 1; i < keys.size(); ++i)
+		{
+			if (time > keys[i].seconds) continue;
+			const float duration = keys[i].seconds - keys[i - 1].seconds;
+			const float rate = duration > 0.00001f ? (time - keys[i - 1].seconds) / duration : 0.0f;
+			return Quaternion::Slerp(keys[i - 1].value, keys[i].value, rate);
+		}
+		return keys.back().value;
+	}
 }
 
 VmdlEditorScene::VmdlEditorScene(SceneMessage message)
 	: Scene(message)
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
+
 	HWND window = graphics.GetWindowHandle();
-	previousWindowStyle = GetWindowLongPtr(window, GWL_STYLE);
-	wchar_t windowTitle[1024]{};
-	GetWindowTextW(window, windowTitle, static_cast<int>(std::size(windowTitle)));
-	previousWindowTitle = windowTitle;
-	restoreWindowOnExit = GetWindowPlacement(window, &previousWindowPlacement) != FALSE;
+
+	previousWindowStyle =
+		GetWindowLongPtr(
+		window,
+		GWL_STYLE);
+
+	previousWindowPlacement.length =
+		sizeof(previousWindowPlacement);
+
+	restoreWindowOnExit =
+		GetWindowPlacement(
+		window,
+		&previousWindowPlacement) != FALSE;
+
+	graphics.SetBorderlessFullscreen(true);
 	graphics.SetWindowMovementLocked(true);
-	SetWindowLongPtr(window, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-	SetWindowPos(window, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-	ShowWindow(window, SW_MAXIMIZE);
-	previewSceneTarget = std::make_unique<RenderTarget>(
+
+	previewSceneTarget =
+		std::make_unique<RenderTarget>(
 		graphics.GetDevice(),
 		PreviewWidth,
 		PreviewHeight,
 		DXGI_FORMAT_R16G16B16A16_FLOAT);
 
-	previewTarget = std::make_unique<RenderTarget>(
+	previewTarget =
+		std::make_unique<RenderTarget>(
 		graphics.GetDevice(),
 		PreviewWidth,
 		PreviewHeight,
 		DXGI_FORMAT_R8G8B8A8_UNORM);
-	cameraOwner = std::make_unique<Object>("VMDL Editor Camera");
-	editorCamera = cameraOwner->AddComponent<Camera>();
-	editorLightDirection = {0.6f, -0.7f, 0.0f};
+
+	cameraOwner =
+		std::make_unique<Object>(
+		"VMDL Editor Camera");
+
+	editorCamera =
+		cameraOwner->AddComponent<Camera>();
+
+	editorLightDirection =
+	{0.6f, -0.7f, 0.0f};
 }
 
 VmdlEditorScene::~VmdlEditorScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
-	HWND window = graphics.GetWindowHandle();
+	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
-	SetWindowTextW(window, previousWindowTitle.c_str());
-	if (!restoreWindowOnExit) return;
-	SetWindowLongPtr(window, GWL_STYLE, previousWindowStyle);
-	SetWindowPlacement(window, &previousWindowPlacement);
-	SetWindowPos(window, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
 void VmdlEditorScene::OnDrawGUI()
@@ -437,11 +450,21 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem("Grid", nullptr, &showGrid);
 		ImGui::EndMenu();
 	}
-	std::string title = "VMDL Editor - ";
-	title += documentPath.empty() ? "Untitled" : documentPath.filename().string();
-	if (dirty) title += " *";
+	std::string title = documentPath.empty() ? "Untitled" : documentPath.string();
+
+	if (dirty)
+	{
+		title += " *";
+	}
+
 	const float titleWidth = ImGui::CalcTextSize(title.c_str()).x;
-	ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX() + 20.0f, (ImGui::GetWindowWidth() - titleWidth) * 0.5f));
+	const float rightPadding = 12.0f;
+
+	ImGui::SetCursorPosX(
+		ImGui::GetWindowWidth()
+		- titleWidth
+		- rightPadding);
+
 	ImGui::TextUnformatted(title.c_str());
 	ImGui::EndMenuBar();
 
@@ -587,8 +610,6 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 void VmdlEditorScene::DrawViewport()
 {
 	ImGui::TextUnformatted("3D View");
-	ImGui::SameLine();
-	ImGui::TextDisabled("Right drag: orbit / Wheel: zoom");
 	ImGui::SameLine();
 	if (ImGui::SmallButton("Move")) gizmoOperation = ImGuizmo::TRANSLATE;
 	ImGui::SameLine();
@@ -2245,7 +2266,8 @@ void VmdlEditorScene::UpdateModelPlacement()
 	{
 		const Vector3 size = maxPosition - minPosition;
 		const float largestSize = std::max(size.x, std::max(size.y, size.z));
-		modelScale = largestSize > 0.000001f ? PreviewGridSize / largestSize : 1.0f;
+		// でかすぎるモデルを自動で縮小する挙動は廃止。グリッドより小さい場合のみ拡大して合わせる。
+		modelScale = (largestSize > 0.000001f && largestSize < PreviewGridSize) ? PreviewGridSize / largestSize : 1.0f;
 		const Vector3 scaledMin = minPosition * modelScale;
 		const Vector3 scaledMax = maxPosition * modelScale;
 		rootOffset.x = -(scaledMin.x + scaledMax.x) * 0.5f;
@@ -2284,10 +2306,7 @@ void VmdlEditorScene::UpdateModelPlacement()
 
 void VmdlEditorScene::UpdateWindowTitle()
 {
-	std::wstring title = L"VMDL Editor - ";
-	title += displayPath.empty() ? L"Untitled" : displayPath.wstring();
-	if (dirty) title += L" *";
-	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), title.c_str());
+	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VMDL Editor");
 }
 
 void VmdlEditorScene::OpenVmdl()

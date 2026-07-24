@@ -108,7 +108,7 @@ void VstgEditorScene::OnDrawGUI()
 	constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
-	ImGui::SetNextWindowSize({leftWidth, halfHeight}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({leftWidth, halfHeight}, ImGuiCond_Always);
 	if (ImGui::Begin("Lights###VSTG Lights", nullptr, windowFlags))
 	{
 		if (ImGui::Button("Add Point Light"))
@@ -136,7 +136,7 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::End();
 
 	ImGui::SetNextWindowPos({workPosition.x, workPosition.y + halfHeight}, ImGuiCond_Always);
-	ImGui::SetNextWindowSize({leftWidth, workSize.y - halfHeight}, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize({leftWidth, workSize.y - halfHeight}, ImGuiCond_Always);
 	if (ImGui::Begin("Terrain###VSTG Terrain", nullptr, windowFlags))
 	{
 		if (terrain) terrain->DrawGUI();
@@ -256,10 +256,7 @@ void VstgEditorScene::SaveAs()
 
 void VstgEditorScene::UpdateTitle()
 {
-	std::wstring title = L"VSTG Editor - ";
-	title += path.empty() ? L"Untitled" : path.wstring();
-	if (dirty) title += L" *";
-	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), title.c_str());
+	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VSTG Editor");
 }
 
 void VstgEditorScene::ErrorMessage(const std::string& message)

@@ -9,18 +9,7 @@ class VMDLModel;
 
 static Matrix MakeBoneOffsetWorld(const Matrix& boneWorld, const Matrix& offset)
 {
-    Vector3 scale;
-    Vector3 position;
-    Quaternion rotation;
-    Matrix boneWorldCopy = boneWorld;
-    boneWorldCopy.Decompose(scale, rotation, position);
-
-    Matrix boneTransform =
-        Matrix::CreateScale(scale) *
-        Matrix::CreateFromQuaternion(rotation) *
-        Matrix::CreateTranslation(position);
-
-    return offset * boneTransform;
+    return offset * boneWorld;
 }
 
 class BoneCollider : public PhysicsComponent

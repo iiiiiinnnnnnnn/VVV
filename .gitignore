@@ -370,11 +370,6 @@ FodyWeavers.xsd
 # imgui config file
 imgui.ini
 
-# cache
-*.cereal
-*.mdl
-*.vmdl
-
 # for ai send
 *.zip
 *.7z

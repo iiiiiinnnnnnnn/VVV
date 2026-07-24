@@ -531,6 +531,7 @@ private:
 	void Serialize(const char* filename, uint64_t lastWrite);
 	void Deserialize(const char* filename, uint64_t& lastWrite);
 
+	static constexpr uint32_t VmdlCompressionVersion = 1;
 	static constexpr uint64_t ModelCacheVersion = 4;
 	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
 	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);

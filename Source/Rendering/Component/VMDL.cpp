@@ -15,8 +15,9 @@
 VMDL::VMDL(Object* owner, const std::string& path)
 	: Component(owner), path(path)
 {
-	model = ResourceManager::Instance().LoadModel(path);
-	if (!model) throw std::runtime_error("VMDL could not be loaded: " + path);
+	auto loaded = ResourceManager::Instance().LoadModel(path);
+	if (!loaded) throw std::runtime_error("VMDL could not be loaded: " + path);
+	model = loaded->Clone();
 
 	renderer = owner->AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());

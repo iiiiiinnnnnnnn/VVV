@@ -8,6 +8,11 @@
 #include "Core/Foundation/DirectXTexConverts.h"
 #include "Core/Foundation/DirectXTexConverts.h"
 #include <algorithm>
+#include <array>
+#include <compressapi.h>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
 
 uint64_t VMDLModel::MakeModelCacheStamp(uint64_t sourceLastWrite)
 {
@@ -230,31 +235,31 @@ bool VMDLModel::ReplaceMaterialTexture(
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
 	switch (slot)
 	{
-	case MaterialTextureSlot::BaseColor:
-		filename = &material.baseTextureFileName;
-		embeddedDDS = &material.baseTextureDDS;
-		srv = &material.baseMap;
-		break;
-	case MaterialTextureSlot::Normal:
-		filename = &material.normalTextureFileName;
-		embeddedDDS = &material.normalTextureDDS;
-		srv = &material.normalMap;
-		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		filename = &material.metalnessRoughnessTextureFileName;
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
-		srv = &material.metalnessRoughnessMap;
-		break;
-	case MaterialTextureSlot::Occlusion:
-		filename = &material.occlusionTextureFileName;
-		embeddedDDS = &material.occlusionTextureDDS;
-		srv = &material.occlusionMap;
-		break;
-	case MaterialTextureSlot::Emissive:
-		filename = &material.emissiveTextureFileName;
-		embeddedDDS = &material.emissiveTextureDDS;
-		srv = &material.emissiveMap;
-		break;
+		case MaterialTextureSlot::BaseColor:
+			filename = &material.baseTextureFileName;
+			embeddedDDS = &material.baseTextureDDS;
+			srv = &material.baseMap;
+			break;
+		case MaterialTextureSlot::Normal:
+			filename = &material.normalTextureFileName;
+			embeddedDDS = &material.normalTextureDDS;
+			srv = &material.normalMap;
+			break;
+		case MaterialTextureSlot::MetalnessRoughness:
+			filename = &material.metalnessRoughnessTextureFileName;
+			embeddedDDS = &material.metalnessRoughnessTextureDDS;
+			srv = &material.metalnessRoughnessMap;
+			break;
+		case MaterialTextureSlot::Occlusion:
+			filename = &material.occlusionTextureFileName;
+			embeddedDDS = &material.occlusionTextureDDS;
+			srv = &material.occlusionMap;
+			break;
+		case MaterialTextureSlot::Emissive:
+			filename = &material.emissiveTextureFileName;
+			embeddedDDS = &material.emissiveTextureDDS;
+			srv = &material.emissiveMap;
+			break;
 	}
 	if (!filename || !embeddedDDS || !srv) return false;
 
@@ -293,21 +298,21 @@ bool VMDLModel::ExportMaterialTexture(
 	std::vector<uint8_t>* embeddedDDS = nullptr;
 	switch (slot)
 	{
-	case MaterialTextureSlot::BaseColor:
-		embeddedDDS = &material.baseTextureDDS;
-		break;
-	case MaterialTextureSlot::Normal:
-		embeddedDDS = &material.normalTextureDDS;
-		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
-		break;
-	case MaterialTextureSlot::Occlusion:
-		embeddedDDS = &material.occlusionTextureDDS;
-		break;
-	case MaterialTextureSlot::Emissive:
-		embeddedDDS = &material.emissiveTextureDDS;
-		break;
+		case MaterialTextureSlot::BaseColor:
+			embeddedDDS = &material.baseTextureDDS;
+			break;
+		case MaterialTextureSlot::Normal:
+			embeddedDDS = &material.normalTextureDDS;
+			break;
+		case MaterialTextureSlot::MetalnessRoughness:
+			embeddedDDS = &material.metalnessRoughnessTextureDDS;
+			break;
+		case MaterialTextureSlot::Occlusion:
+			embeddedDDS = &material.occlusionTextureDDS;
+			break;
+		case MaterialTextureSlot::Emissive:
+			embeddedDDS = &material.emissiveTextureDDS;
+			break;
 	}
 
 	if (!embeddedDDS) return false;
@@ -347,34 +352,34 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 	uint32_t dummyColor = 0xFFFFFFFF;
 	switch (slot)
 	{
-	case MaterialTextureSlot::BaseColor:
-		filename = &material.baseTextureFileName;
-		embeddedDDS = &material.baseTextureDDS;
-		srv = &material.baseMap;
-		break;
-	case MaterialTextureSlot::Normal:
-		filename = &material.normalTextureFileName;
-		embeddedDDS = &material.normalTextureDDS;
-		srv = &material.normalMap;
-		dummyColor = 0xFFFF7F7F;
-		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		filename = &material.metalnessRoughnessTextureFileName;
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
-		srv = &material.metalnessRoughnessMap;
-		dummyColor = 0xFF00FF00;
-		break;
-	case MaterialTextureSlot::Occlusion:
-		filename = &material.occlusionTextureFileName;
-		embeddedDDS = &material.occlusionTextureDDS;
-		srv = &material.occlusionMap;
-		break;
-	case MaterialTextureSlot::Emissive:
-		filename = &material.emissiveTextureFileName;
-		embeddedDDS = &material.emissiveTextureDDS;
-		srv = &material.emissiveMap;
-		dummyColor = 0xFF000000;
-		break;
+		case MaterialTextureSlot::BaseColor:
+			filename = &material.baseTextureFileName;
+			embeddedDDS = &material.baseTextureDDS;
+			srv = &material.baseMap;
+			break;
+		case MaterialTextureSlot::Normal:
+			filename = &material.normalTextureFileName;
+			embeddedDDS = &material.normalTextureDDS;
+			srv = &material.normalMap;
+			dummyColor = 0xFFFF7F7F;
+			break;
+		case MaterialTextureSlot::MetalnessRoughness:
+			filename = &material.metalnessRoughnessTextureFileName;
+			embeddedDDS = &material.metalnessRoughnessTextureDDS;
+			srv = &material.metalnessRoughnessMap;
+			dummyColor = 0xFF00FF00;
+			break;
+		case MaterialTextureSlot::Occlusion:
+			filename = &material.occlusionTextureFileName;
+			embeddedDDS = &material.occlusionTextureDDS;
+			srv = &material.occlusionMap;
+			break;
+		case MaterialTextureSlot::Emissive:
+			filename = &material.emissiveTextureFileName;
+			embeddedDDS = &material.emissiveTextureDDS;
+			srv = &material.emissiveMap;
+			dummyColor = 0xFF000000;
+			break;
 	}
 	if (!filename || !embeddedDDS || !srv) return false;
 
@@ -1273,161 +1278,282 @@ void VMDLModel::GetNodePoses(std::vector<NodePose>& nodePoses) const
 
 void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 {
-	std::ofstream ostream(filename, std::ios::binary);
-	if (ostream.is_open())
-	{
-		cereal::BinaryOutputArchive archive(ostream);
-		std::vector<MaterialPbrSettings> materialPbrSettings;
-		materialPbrSettings.reserve(materials.size());
-		for (const Material& material : materials)
-			materialPbrSettings.push_back({material.occlusion, material.shadowStrength});
-		std::vector<MaterialVMatSettings> materialVMatSettings;
-		materialVMatSettings.reserve(materials.size());
-		for (const Material& material : materials)
-		{
-			materialVMatSettings.push_back({
-				material.fresnelColor,
-				material.fresnelPower,
-				material.fresnelStrength,
-				material.isFlatShading});
-		}
+	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
+	std::vector<MaterialPbrSettings> materialPbrSettings;
+	materialPbrSettings.reserve(materials.size());
+	for (const Material& material : materials)
+		materialPbrSettings.push_back({material.occlusion, material.shadowStrength});
 
-		try
-		{
-			archive(
-				CEREAL_NVP(lastWrite),
-				CEREAL_NVP(nodes),
-				CEREAL_NVP(materials),
-				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations),
-				CEREAL_NVP(vmdlExtensionData),
-				CEREAL_NVP(vmdlIKSettings),
-				CEREAL_NVP(vmdlAnimationEditorData),
-				CEREAL_NVP(vmdlAnimationControlData),
-				CEREAL_NVP(materialPbrSettings),
-				CEREAL_NVP(vmdlTrailData),
-				CEREAL_NVP(vmdlPlacementData),
-				CEREAL_NVP(materialVMatSettings)
-			);
-		}
-		catch (...)
-		{
-			_ASSERT_EXPR_A(false, "VMDLModel serialize failed.");
-		}
+	std::vector<MaterialVMatSettings> materialVMatSettings;
+	materialVMatSettings.reserve(materials.size());
+	for (const Material& material : materials)
+	{
+		materialVMatSettings.push_back({
+			material.fresnelColor,
+			material.fresnelPower,
+			material.fresnelStrength,
+			material.isFlatShading});
+	}
+
+	try
+	{
+		cereal::BinaryOutputArchive archive(serializedStream);
+		archive(
+			CEREAL_NVP(lastWrite),
+			CEREAL_NVP(nodes),
+			CEREAL_NVP(materials),
+			CEREAL_NVP(meshes),
+			CEREAL_NVP(animations),
+			CEREAL_NVP(vmdlExtensionData),
+			CEREAL_NVP(vmdlIKSettings),
+			CEREAL_NVP(vmdlAnimationEditorData),
+			CEREAL_NVP(vmdlAnimationControlData),
+			CEREAL_NVP(materialPbrSettings),
+			CEREAL_NVP(vmdlTrailData),
+			CEREAL_NVP(vmdlPlacementData),
+			CEREAL_NVP(materialVMatSettings));
+	}
+	catch (...)
+	{
+		_ASSERT_EXPR_A(false, "VMDLModel serialize failed.");
+		return;
+	}
+
+	const std::string serializedData = serializedStream.str();
+	COMPRESSOR_HANDLE compressor = nullptr;
+	if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &compressor))
+	{
+		_ASSERT_EXPR_A(false, "VMDLModel compressor creation failed.");
+		return;
+	}
+
+	SIZE_T compressedSize = 0;
+	Compress(
+		compressor,
+		serializedData.data(),
+		serializedData.size(),
+		nullptr,
+		0,
+		&compressedSize);
+
+	if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || compressedSize == 0)
+	{
+		CloseCompressor(compressor);
+		_ASSERT_EXPR_A(false, "VMDLModel compressed size calculation failed.");
+		return;
+	}
+
+	std::vector<uint8_t> compressedData(compressedSize);
+	if (!Compress(
+		compressor,
+		serializedData.data(),
+		serializedData.size(),
+		compressedData.data(),
+		compressedData.size(),
+		&compressedSize))
+	{
+		CloseCompressor(compressor);
+		_ASSERT_EXPR_A(false, "VMDLModel compression failed.");
+		return;
+	}
+	CloseCompressor(compressor);
+	compressedData.resize(compressedSize);
+
+	std::ofstream ostream(filename, std::ios::binary | std::ios::trunc);
+	if (!ostream.is_open())
+	{
+		_ASSERT_EXPR_A(false, "VMDLModel file open failed.");
+		return;
+	}
+
+	static constexpr std::array<char, 8> magic = {'V', 'M', 'D', 'L', 'C', 'M', 'P', '\0'};
+	const uint32_t version = VmdlCompressionVersion;
+	const uint64_t uncompressedSize = static_cast<uint64_t>(serializedData.size());
+	const uint64_t storedCompressedSize = static_cast<uint64_t>(compressedData.size());
+
+	ostream.write(magic.data(), magic.size());
+	ostream.write(reinterpret_cast<const char*>(&version), sizeof(version));
+	ostream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
+	ostream.write(reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
+	ostream.write(reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
+
+	if (!ostream.good())
+	{
+		_ASSERT_EXPR_A(false, "VMDLModel file write failed.");
 	}
 }
 
 void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 {
-	std::ifstream istream(filename, std::ios::binary);
-	if (istream.is_open())
+	std::ifstream fileStream(filename, std::ios::binary);
+	if (!fileStream.is_open())
 	{
-		cereal::BinaryInputArchive archive(istream);
+		_ASSERT_EXPR_A(false, "VMDLModel File not found.");
+		return;
+	}
+
+	auto deserialize = [this, &lastWrite](std::istream& stream)
+	{
+		cereal::BinaryInputArchive archive(stream);
+
+		archive(
+			CEREAL_NVP(lastWrite),
+			CEREAL_NVP(nodes),
+			CEREAL_NVP(materials),
+			CEREAL_NVP(meshes),
+			CEREAL_NVP(animations));
 
 		try
 		{
-			archive(
-				CEREAL_NVP(lastWrite),
-				CEREAL_NVP(nodes),
-				CEREAL_NVP(materials),
-				CEREAL_NVP(meshes),
-				CEREAL_NVP(animations)
-			);
+			archive(CEREAL_NVP(vmdlExtensionData));
+		}
+		catch (...)
+		{
+			vmdlExtensionData = {};
+		}
 
-			try
-			{
-				archive(CEREAL_NVP(vmdlExtensionData));
-			}
-			catch (...)
-			{
-				vmdlExtensionData = {};
-			}
+		try
+		{
+			archive(CEREAL_NVP(vmdlIKSettings));
+		}
+		catch (...)
+		{
+			vmdlIKSettings = {};
+		}
 
-			try
-			{
-				archive(CEREAL_NVP(vmdlIKSettings));
-			}
-			catch (...)
-			{
-				vmdlIKSettings = {};
-			}
+		try
+		{
+			archive(CEREAL_NVP(vmdlAnimationEditorData));
+		}
+		catch (...)
+		{
+			vmdlAnimationEditorData = {};
+		}
 
-			try
-			{
-				archive(CEREAL_NVP(vmdlAnimationEditorData));
-			}
-			catch (...)
-			{
-				vmdlAnimationEditorData = {};
-			}
+		try
+		{
+			archive(CEREAL_NVP(vmdlAnimationControlData));
+		}
+		catch (...)
+		{
+			vmdlAnimationControlData = {};
+		}
 
-			try
+		try
+		{
+			std::vector<MaterialPbrSettings> materialPbrSettings;
+			archive(CEREAL_NVP(materialPbrSettings));
+			const size_t count = std::min(materials.size(), materialPbrSettings.size());
+			for (size_t i = 0; i < count; ++i)
 			{
-				archive(CEREAL_NVP(vmdlAnimationControlData));
-			}
-			catch (...)
-			{
-				vmdlAnimationControlData = {};
-			}
-
-			try
-			{
-				std::vector<MaterialPbrSettings> materialPbrSettings;
-				archive(CEREAL_NVP(materialPbrSettings));
-				const size_t count = std::min(materials.size(), materialPbrSettings.size());
-				for (size_t i = 0; i < count; ++i)
-				{
-					materials[i].occlusion = materialPbrSettings[i].occlusion;
-					materials[i].shadowStrength = materialPbrSettings[i].shadowStrength;
-				}
-			}
-			catch (...)
-			{
-			}
-
-			try
-			{
-				archive(CEREAL_NVP(vmdlTrailData));
-			}
-			catch (...)
-			{
-				vmdlTrailData = {};
-			}
-
-			try
-			{
-				archive(CEREAL_NVP(vmdlPlacementData));
-			}
-			catch (...)
-			{
-				vmdlPlacementData = {};
-			}
-
-			try
-			{
-				std::vector<MaterialVMatSettings> materialVMatSettings;
-				archive(CEREAL_NVP(materialVMatSettings));
-				const size_t count = std::min(materials.size(), materialVMatSettings.size());
-				for (size_t i = 0; i < count; ++i)
-				{
-					materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
-					materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
-					materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
-					materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
-				}
-			}
-			catch (...)
-			{
+				materials[i].occlusion = materialPbrSettings[i].occlusion;
+				materials[i].shadowStrength = materialPbrSettings[i].shadowStrength;
 			}
 		}
 		catch (...)
 		{
-			_ASSERT_EXPR_A(false, "VMDLModel deserialize failed.");
+		}
+
+		try
+		{
+			archive(CEREAL_NVP(vmdlTrailData));
+		}
+		catch (...)
+		{
+			vmdlTrailData = {};
+		}
+
+		try
+		{
+			archive(CEREAL_NVP(vmdlPlacementData));
+		}
+		catch (...)
+		{
+			vmdlPlacementData = {};
+		}
+
+		try
+		{
+			std::vector<MaterialVMatSettings> materialVMatSettings;
+			archive(CEREAL_NVP(materialVMatSettings));
+			const size_t count = std::min(materials.size(), materialVMatSettings.size());
+			for (size_t i = 0; i < count; ++i)
+			{
+				materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
+				materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
+				materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
+				materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
+			}
+		}
+		catch (...)
+		{
+		}
+	};
+
+	try
+	{
+		static constexpr std::array<char, 8> magic = {'V', 'M', 'D', 'L', 'C', 'M', 'P', '\0'};
+		std::array<char, magic.size()> fileMagic{};
+		fileStream.read(fileMagic.data(), fileMagic.size());
+
+		if (fileStream.gcount() == static_cast<std::streamsize>(fileMagic.size()) && fileMagic == magic)
+		{
+			uint32_t version = 0;
+			uint64_t uncompressedSize = 0;
+			uint64_t compressedSize = 0;
+			fileStream.read(reinterpret_cast<char*>(&version), sizeof(version));
+			fileStream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
+			fileStream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
+
+			if (!fileStream.good() || version != VmdlCompressionVersion ||
+				uncompressedSize == 0 || compressedSize == 0 ||
+				uncompressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()) ||
+				compressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()))
+			{
+				throw std::runtime_error("Invalid compressed VMDL header.");
+			}
+
+			std::vector<uint8_t> compressedData(static_cast<size_t>(compressedSize));
+			fileStream.read(
+				reinterpret_cast<char*>(compressedData.data()),
+				static_cast<std::streamsize>(compressedData.size()));
+			if (!fileStream.good())
+			{
+				throw std::runtime_error("Compressed VMDL data is truncated.");
+			}
+
+			std::vector<uint8_t> serializedData(static_cast<size_t>(uncompressedSize));
+			DECOMPRESSOR_HANDLE decompressor = nullptr;
+			if (!CreateDecompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &decompressor))
+			{
+				throw std::runtime_error("VMDL decompressor creation failed.");
+			}
+
+			SIZE_T decompressedSize = 0;
+			const BOOL result = Decompress(
+				decompressor,
+				compressedData.data(),
+				compressedData.size(),
+				serializedData.data(),
+				serializedData.size(),
+				&decompressedSize);
+			CloseDecompressor(decompressor);
+
+			if (!result || decompressedSize != serializedData.size())
+			{
+				throw std::runtime_error("VMDL decompression failed.");
+			}
+
+			std::string serializedString(
+				reinterpret_cast<const char*>(serializedData.data()),
+				serializedData.size());
+			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
+			deserialize(serializedStream);
 		}
 	}
-	else
+	catch (...)
 	{
-		_ASSERT_EXPR_A(false, "VMDLModel File not found.");
+		_ASSERT_EXPR_A(false, "VMDLModel deserialize failed.");
 	}
 }
 

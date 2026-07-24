@@ -57,7 +57,6 @@ private:
 	std::shared_ptr<VMDLModel> model;
 	std::filesystem::path documentPath;
 	std::filesystem::path displayPath;
-	std::wstring previousWindowTitle;
 	std::unique_ptr<RenderTarget> previewSceneTarget;
 	std::unique_ptr<RenderTarget> previewTarget;
 	std::unique_ptr<Object> cameraOwner;

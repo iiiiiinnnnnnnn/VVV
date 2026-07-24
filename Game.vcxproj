@@ -454,7 +454,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
@@ -495,7 +495,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>

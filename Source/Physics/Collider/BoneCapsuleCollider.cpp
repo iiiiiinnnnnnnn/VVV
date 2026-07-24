@@ -31,12 +31,9 @@ void BoneCapsuleCollider::Render(const RenderContext& rc)
 {
 	if (!showDebug) return;
 
-    PxTransform pose = ghostActor->getGlobalPose() *
-        GetLocalPose() *
-        PxTransform(PxVec3(0, 0, 0), PxQuat(-DirectX::XM_PIDIV2, PxVec3(0, 0, 1)));
-
+    PxTransform t = ghostActor->getGlobalPose();
     Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-        Conv::ToMatrix(pose),
+        Conv::ToMatrix(t),
         radius,
         height,
         Color(0.8f, 0.0f, 1.0f, 1.0f));
