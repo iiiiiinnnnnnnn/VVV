@@ -189,7 +189,7 @@
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp">
       <Filter>Rendering\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Shader\BasicModelShader.cpp">
+    <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp">
@@ -351,9 +351,6 @@
     <ClCompile Include="Source\Rendering\Shader\GamePostProcess.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Shader\PBRShader.cpp">
-      <Filter>Rendering\Shader</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\CameraEffectController.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
@@ -500,7 +497,7 @@
     <ClInclude Include="Source\Rendering\Effect\Effect.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Shader\BasicModelShader.h">
+    <ClInclude Include="Source\Rendering\Shader\VMatShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h">
@@ -520,9 +517,6 @@
     </ClInclude>
     <ClInclude Include="Source\Resource\Texture.h">
       <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\ShaderParam.h">
-      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\AI\AIFlow.h">
       <Filter>Gameplay\AI</Filter>
@@ -668,6 +662,9 @@
     <ClInclude Include="Source\Rendering\Core\RenderContext.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Core\RenderState.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
@@ -699,9 +696,6 @@
       <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h">
-      <Filter>Rendering\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Shader\PBRShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h">
@@ -811,9 +805,6 @@
     <None Include="Shader\PBRFunctions.hlsli">
       <Filter>Shaders\3D</Filter>
     </None>
-    <None Include="Shader\BasicModel.hlsli">
-      <Filter>Shaders\3D</Filter>
-    </None>
     <None Include="Shader\PrimitiveRenderer.hlsli">
       <Filter>Shaders\3D</Filter>
     </None>
@@ -867,12 +858,6 @@
       <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
-      <Filter>Shaders\3D</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicModelVS.hlsl">
-      <Filter>Shaders\3D</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicModelPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\PrimitiveRendererVS.hlsl">

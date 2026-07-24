@@ -1,4 +1,5 @@
 ﻿// BasicSpriteShader.h
+
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -12,7 +13,11 @@ public:
 	~BasicSpriteShader() {}
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& shaderParam) override;
+	void Update(
+		const RenderContext& rc,
+		ID3D11ShaderResourceView* srv,
+		Vector2 textureSize,
+		const Color& color) override;
 	void End(const RenderContext& rc) override;
 
 private:
@@ -20,5 +25,6 @@ private:
 	{
 		Color color;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> cbBasic;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };

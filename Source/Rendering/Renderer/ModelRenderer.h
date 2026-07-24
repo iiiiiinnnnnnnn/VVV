@@ -15,8 +15,7 @@
 
 enum class ModelShaderId
 {
-	Basic,
-	PBR,
+	VMat,
 
 	EnumCount
 };
@@ -27,12 +26,12 @@ public:
 	ModelRenderer(ID3D11Device* device);
 	~ModelRenderer() {}
 
-	void Draw(ModelShaderId shaderId, std::shared_ptr<VMDLModel> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial);
+	void Draw(
+		ModelShaderId shaderId,
+		std::shared_ptr<VMDLModel> model,
+		const VMatRenderParams* params = nullptr);
 
 	void Render(const RenderContext& rc);
-
-	static void SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial);
-	static void SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial);
 
 private:
 	
@@ -53,7 +52,7 @@ private:
 	{
 		ModelShaderId				shaderId;
 		std::shared_ptr<VMDLModel>	model;
-		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
+		const VMatRenderParams*		params;
 	};
 
 	struct TransparencyDrawInfo
@@ -61,7 +60,7 @@ private:
 		ModelShaderId				shaderId;
 		const VMDLModel::Mesh*		mesh;
 		float					distance;
-		std::unordered_map<std::string, ShaderParamList> paramsWithMaterial;
+		const VMatRenderParams*	params;
 	};
 
 	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];

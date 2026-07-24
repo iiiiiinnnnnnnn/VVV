@@ -109,8 +109,11 @@ private:
 
 		int useRoughnessTexture;
 		int useOcclusionTexture;
+		int useEmissiveTexture;
 		int isFlatShading;
-		float dummy;
+
+		int useBaseColorTexture;
+		int dummy[3];
 	};
 
 	struct CbTerrainObject

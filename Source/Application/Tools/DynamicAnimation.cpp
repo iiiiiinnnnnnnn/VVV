@@ -34,9 +34,9 @@ namespace
 		return t;
 	}
 
-	ParamValue InterpolateValue(
-		const ParamValue& from,
-		const ParamValue& to,
+	DynamicValue InterpolateValue(
+		const DynamicValue& from,
+		const DynamicValue& to,
 		float t)
 	{
 		if (from.index() != to.index())
@@ -89,8 +89,8 @@ const char* ToString(DynamicAnimationTarget value)
 	{
 	case DynamicAnimationTarget::WidgetProperty:
 		return "WidgetProperty";
-	case DynamicAnimationTarget::ShaderParam:
-		return "ShaderParam";
+	case DynamicAnimationTarget::SpriteColor:
+		return "SpriteColor";
 	}
 	return "WidgetProperty";
 }
@@ -162,9 +162,9 @@ bool TryParseDynamicAnimationTarget(
 		value = DynamicAnimationTarget::WidgetProperty;
 		return true;
 	}
-	if (text == "ShaderParam")
+	if (text == "SpriteColor" || text == "ShaderParam")
 	{
-		value = DynamicAnimationTarget::ShaderParam;
+		value = DynamicAnimationTarget::SpriteColor;
 		return true;
 	}
 	return false;
@@ -276,7 +276,7 @@ bool TryParseDynamicValueType(
 	return false;
 }
 
-DynamicValueType GetDynamicValueType(const ParamValue& value)
+DynamicValueType GetDynamicValueType(const DynamicValue& value)
 {
 	if (std::holds_alternative<bool>(value))
 		return DynamicValueType::Bool;
@@ -311,7 +311,7 @@ DynamicValueType GetWidgetPropertyValueType(DynamicWidgetProperty property)
 	return DynamicValueType::Float;
 }
 
-ParamValue MakeDefaultDynamicValue(DynamicValueType type)
+DynamicValue MakeDefaultDynamicValue(DynamicValueType type)
 {
 	switch (type)
 	{
@@ -345,9 +345,9 @@ bool IsDynamicValueInterpolatable(DynamicValueType type)
 		type == DynamicValueType::Vector4;
 }
 
-ParamValue BlendDynamicAnimationValue(
-	const ParamValue& from,
-	const ParamValue& to,
+DynamicValue BlendDynamicAnimationValue(
+	const DynamicValue& from,
+	const DynamicValue& to,
 	float t)
 {
 	t = std::clamp(t, 0.0f, 1.0f);
@@ -362,7 +362,7 @@ ParamValue BlendDynamicAnimationValue(
 	return InterpolateValue(from, to, t);
 }
 
-ParamValue EvaluateDynamicAnimationTrack(
+DynamicValue EvaluateDynamicAnimationTrack(
 	const DynamicAnimationTrack& track,
 	float time)
 {

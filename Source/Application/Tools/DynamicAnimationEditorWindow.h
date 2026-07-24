@@ -110,9 +110,9 @@ private:
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button("+ Shader Param"))
+		if (ImGui::Button("+ Sprite Color"))
 		{
-			AddShaderParamTrack();
+			AddSpriteColorTrack();
 		}
 
 		ImGui::SameLine();
@@ -164,7 +164,7 @@ private:
 			"Target: %s",
 			track.target == DynamicAnimationTarget::WidgetProperty
 				? "Widget"
-				: "ShaderParam");
+				: "Sprite Color");
 
 		if (track.target == DynamicAnimationTarget::WidgetProperty)
 		{
@@ -173,9 +173,7 @@ private:
 		}
 		else
 		{
-			ImGui::SetNextItemWidth(260.0f);
-			ImGui::InputText("Param Name", &track.shaderParamName);
-			DrawValueTypeCombo(track);
+			ImGui::Text("Value Type: Color");
 		}
 	}
 
@@ -327,7 +325,7 @@ private:
 
 	void DrawValueEditor(
 		const char* label,
-		ParamValue& value,
+		DynamicValue& value,
 		DynamicValueType type)
 	{
 		switch (type)
@@ -454,11 +452,10 @@ private:
 		clip.tracks.push_back(track);
 	}
 
-	void AddShaderParamTrack()
+	void AddSpriteColorTrack()
 	{
 		DynamicAnimationTrack track;
-		track.target = DynamicAnimationTarget::ShaderParam;
-		track.shaderParamName = "color";
+		track.target = DynamicAnimationTarget::SpriteColor;
 		track.valueType = DynamicValueType::Color;
 		track.keys.push_back(MakeDefaultKey(track.valueType));
 		clip.tracks.push_back(track);
@@ -504,12 +501,7 @@ private:
 		}
 		else
 		{
-			label += "ShaderParam / ";
-			label += track.shaderParamName.empty()
-				? "(unnamed)"
-				: track.shaderParamName;
-			label += " / ";
-			label += ToString(track.valueType);
+			label += "Sprite Color";
 		}
 		return label;
 	}

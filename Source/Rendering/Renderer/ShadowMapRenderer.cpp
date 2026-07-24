@@ -14,7 +14,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     HRESULT hr;
 
     // ----- デプスオンリーテクスチャの生成 -----
-    // シャドウマップはデプスのみ。SRVとして後でPBRShaderに渡す。
+    // シャドウマップはデプスのみ。SRVとして後でVMatShaderに渡す。
     // フォーマット:
     //   テクスチャ本体  → DXGI_FORMAT_R32_TYPELESS  (DSVとSRV両方に使える)
     //   DSV            → DXGI_FORMAT_D32_FLOAT
@@ -44,7 +44,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
             depthDsvs[cascadeIndex].GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-        // SRV（PBRShaderのslot8にバインドする）
+        // SRV（VMatShaderのslot8にバインドする）
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -343,7 +343,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     }
 
     // ----- 後始末 -----
-    // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
+    // SRVとしてVMatShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
     {
         ID3D11RenderTargetView* nullRtv = nullptr;
         ID3D11DepthStencilView* nullDsv = nullptr;

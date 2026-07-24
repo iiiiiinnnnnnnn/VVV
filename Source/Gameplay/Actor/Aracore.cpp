@@ -30,32 +30,32 @@ Aracore::Aracore(const Vector3& position)
     {
         // モデル
         model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider2");
-        shaderParamWithMaterialName =
+        renderParams.materials =
         {
-            {
-                "Spider",
-            {
-                {"metalness", 0.0f},
-            {"roughness", 1.0f},
-            {"occlusion", 0.0f},
-            {"occlusionStrength", 0.7f},
-        {"emission", ColorFromRGBA(0x4AA5FFFF)}
-        }
-            },
-            {
-                "Yeux",
-            {
-                {"metalness", 0.0f},
-            {"roughness", 0.1f},
-            {"occlusion", 0.0f},
-            {"occlusionStrength", 0.7f}
-        }
-            }
+			{
+				"Spider",
+				{
+					.emissionColor = ColorFromRGBA(0x4AA5FFFF),
+					.metalness = 0.0f,
+					.roughness = 1.0f,
+					.occlusion = 0.0f,
+					.occlusionStrength = 0.7f,
+				}
+			},
+			{
+				"Yeux",
+				{
+					.metalness = 0.0f,
+					.roughness = 0.1f,
+					.occlusion = 0.0f,
+					.occlusionStrength = 0.7f,
+				}
+			},
         };
         transform.SetPosition(position);
         transform.SetScale(0.6f);
         model->UpdateTransform(transform.matrix);
-        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat, renderParams);
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
@@ -502,7 +502,5 @@ AracoreMachine::AracoreMachine(Aracore* ownerAracore)
         "Bone.004_012", offset);
 
     // モデルレンダラー
-    shaderParamWithMaterialName = {};
-    AddComponent<VMDLModelComponent>(
-        model, ModelShaderId::PBR, shaderParamWithMaterialName);
+    AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
 }

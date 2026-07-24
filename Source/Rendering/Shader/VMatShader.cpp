@@ -1,9 +1,9 @@
-﻿// PBRShader.cpp
+﻿// VMatShader.cpp
 
-#include "Rendering/Shader/PBRShader.h"
+#include "Rendering/Shader/VMatShader.h"
 #include "Resource/GpuResourceUtils.h"
 
-PBRShader::PBRShader(ID3D11Device* device)
+VMatShader::VMatShader(ID3D11Device* device)
 {
 	GpuResourceUtils::LoadVertexShader(
 		device,
@@ -44,7 +44,7 @@ PBRShader::PBRShader(ID3D11Device* device)
 }
 
 // 描画開始
-void PBRShader::Begin(const RenderContext& rc)
+void VMatShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -69,16 +69,25 @@ void PBRShader::Begin(const RenderContext& rc)
 	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
 }
 
-void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
+void VMatShader::Update(
+	const RenderContext& rc,
+	const VMDLModel::Mesh& mesh,
+	const VMatRenderParams* params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
+	const VMatMaterialParams* materialParams = nullptr;
+	if (params)
+	{
+		const auto it = params->materials.find(mesh.material->name);
+		if (it != params->materials.end()) materialParams = &it->second;
+	}
 
 	// シャドウCB更新
 	{
 		CbShadowMap cb{};
 		for (int cascadeIndex = 0;
-			 cascadeIndex < ShadowMapData::CascadeCount;
-			 ++cascadeIndex)
+			cascadeIndex < ShadowMapData::CascadeCount;
+			++cascadeIndex)
 		{
 			cb.lightViewProjections[cascadeIndex] =
 				rc.shadowMapData.lightViewProjections[cascadeIndex];
@@ -103,105 +112,85 @@ void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 	{
 		CbMaterial cb{};
 
-		cb.baseColor = GetParam<Color>(cachedParams, "color", {1.0f, 1.0f, 1.0f, 1.0f});
-		cb.emissionColor = GetParam<Color>(cachedParams, "emission", {0.0f, 0.0f, 0.0f, 0.0f});
-		cb.fresnelColor = GetParam<Color>(cachedParams, "fresnelColor", {1.0f, 1.0f, 1.0f, 0.0f});
-		cb.fresnelPower = GetParam<float>(cachedParams, "fresnelPower", 0.0f);
-		cb.fresnelStrength = GetParam<float>(cachedParams, "fresnelStrength", 0.0f);
+		// Base Color
+		cb.baseColor = materialParams && materialParams->baseColor
+			? *materialParams->baseColor
+			: mesh.material->baseColor;
+		cb.useBaseColorTexture = materialParams && materialParams->useBaseColorTexture
+			? (*materialParams->useBaseColorTexture ? 1 : 0)
+			: 1;
 
-		const bool hasMetalnessParam = HasParam<float>(cachedParams, "metalness");
-		const bool hasRoughnessParam = HasParam<float>(cachedParams, "roughness");
-		const bool hasOcclusionParam = HasParam<float>(cachedParams, "occlusion");
-
+		// Metal Rough
 		const bool hasMetalRoughTexture = mesh.material->metalnessRoughnessMap != nullptr;
+		cb.metalness = std::clamp(
+			materialParams && materialParams->metalness
+				? *materialParams->metalness
+				: mesh.material->metalness,
+			0.0f,
+			1.0f);
+		cb.useMetalnessTexture = hasMetalRoughTexture && !(materialParams && materialParams->metalness) ? 1 : 0;
+		cb.roughness = std::clamp(
+			materialParams && materialParams->roughness
+				? *materialParams->roughness
+				: mesh.material->roughness,
+			0.0001f,
+			1.0f);
+		cb.useRoughnessTexture = hasMetalRoughTexture && !(materialParams && materialParams->roughness) ? 1 : 0;
+
+		// Occlusion
 		const bool hasOcclusionTexture = mesh.material->occlusionMap != nullptr;
+		cb.occlusion = std::clamp(
+			materialParams && materialParams->occlusion
+				? *materialParams->occlusion
+				: mesh.material->occlusion,
+			0.0f,
+			1.0f);
+		cb.occlusionStrength = std::clamp(
+			materialParams && materialParams->occlusionStrength
+				? *materialParams->occlusionStrength
+				: mesh.material->occlusionStrength,
+			0.0f,
+			1.0f);
+		cb.useOcclusionTexture = hasOcclusionTexture && !(materialParams && materialParams->occlusion) ? 1 : 0;
 
-		// ------------------------------------------------------------
-		// metalness
-		// パラメーターあり  : その値を使う
-		// パラメーターなし + テクスチャあり : HLSL側でテクスチャを使う
-		// どちらもなし : モデル側の値を使う
-		// ------------------------------------------------------------
-		if (hasMetalnessParam)
-		{
-			cb.metalness = GetParam<float>(cachedParams, "metalness", 0.0f);
-			cb.useMetalnessTexture = 0;
-		}
-		else if (hasMetalRoughTexture)
-		{
-			cb.metalness = 0.0f;
-			cb.useMetalnessTexture = 1;
-		}
-		else
-		{
-			cb.metalness = mesh.material->metalness;
-			cb.useMetalnessTexture = 0;
-		}
+		// Emissive
+		const bool hasEmissiveTexture = mesh.material->emissiveMap != nullptr;
+		cb.emissiveColor = mesh.material->emissiveColor;
+		cb.emissionColor = materialParams && materialParams->emissionColor
+			? *materialParams->emissionColor
+			: Color(0, 0, 0, 0);
+		cb.useEmissiveTexture = hasEmissiveTexture ? 1 : 0;
 
-		// ------------------------------------------------------------
-		// roughness
-		// ------------------------------------------------------------
-		if (hasRoughnessParam)
-		{
-			cb.roughness = GetParam<float>(cachedParams, "roughness", 0.5f);
-			cb.useRoughnessTexture = 0;
-		}
-		else if (hasMetalRoughTexture)
-		{
-			cb.roughness = 0.5f;
-			cb.useRoughnessTexture = 1;
-		}
-		else
-		{
-			cb.roughness = mesh.material->roughness;
-			cb.useRoughnessTexture = 0;
-		}
+		// Fresnel
+		cb.fresnelColor = materialParams && materialParams->fresnelColor
+			? *materialParams->fresnelColor
+			: mesh.material->fresnelColor;
+		cb.fresnelPower = std::max(
+			materialParams && materialParams->fresnelPower
+				? *materialParams->fresnelPower
+				: mesh.material->fresnelPower,
+			0.0001f);
+		cb.fresnelStrength = std::max(
+			materialParams && materialParams->fresnelStrength
+				? *materialParams->fresnelStrength
+				: mesh.material->fresnelStrength,
+			0.0f);
 
-		// ------------------------------------------------------------
-		// occlusion
-		// occlusionStrengthは「AOそのもの」ではなく「AOの効き具合」
-		// 手動でAO値を指定したい場合は "occlusion" を使う
-		// ------------------------------------------------------------
-		if (hasOcclusionParam)
-		{
-			cb.occlusion = GetParam<float>(cachedParams, "occlusion", 1.0f);
-			cb.useOcclusionTexture = 0;
-		}
-		else if (hasOcclusionTexture)
-		{
-			cb.occlusion = mesh.material->occlusion;
-			cb.useOcclusionTexture = 1;
-		}
-		else
-		{
-			cb.occlusion = mesh.material->occlusion;
-			cb.useOcclusionTexture = 0;
-		}
+		// 1.0 = 通常の影  0.0 = 影がかなり付きにくい
+		cb.shadowStrength = std::clamp(
+			materialParams && materialParams->shadowStrength
+				? *materialParams->shadowStrength
+				: mesh.material->shadowStrength,
+			0.0f,
+			1.0f);
 
-		cb.occlusionStrength = GetParam<float>(
-			cachedParams,
-			"occlusionStrength",
-			mesh.material->occlusionStrength);
-
-		// 1.0 = 通常の影
-		// 0.0 = 影がかなり付きにくい
-		// 肌は 0.5?0.75 くらいがおすすめ
-		cb.shadowStrength = GetParam<float>(
-			cachedParams,
-			"shadowStrength",
-			mesh.material->shadowStrength);
-
-		const bool isFlatShading = GetParam<bool>(cachedParams, "IsFlatShading", false);
+		// FlatShading
+		const bool isFlatShading = materialParams && materialParams->isFlatShading
+			? *materialParams->isFlatShading
+			: mesh.material->isFlatShading != 0;
 		cb.isFlatShading = isFlatShading ? 1 : 0;
 
-		cb.metalness = std::clamp(cb.metalness, 0.0f, 1.0f);
-		cb.roughness = std::clamp(cb.roughness, 0.0001f, 1.0f);
-		cb.occlusion = std::clamp(cb.occlusion, 0.0f, 1.0f);
-		cb.occlusionStrength = std::clamp(cb.occlusionStrength, 0.0f, 1.0f);
-		cb.shadowStrength = std::clamp(cb.shadowStrength, 0.0f, 1.0f);
-		cb.fresnelPower = (std::max)(cb.fresnelPower, 0.0001f);
-		cb.fresnelStrength = (std::max)(cb.fresnelStrength, 0.0f);
-
+		// 定数バッファ更新
 		dc->UpdateSubresource(
 			materialConstantBuffer.Get(),
 			0,
@@ -213,20 +202,22 @@ void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 
 	// ダメージ穴CB更新
 	CbDamageHoles damageHoles{};
-	const bool hasDamageHoleParams = HasParam<int>(cachedParams, "holeCount");
-	damageHoles.holeCount = std::clamp(GetParam<int>(cachedParams, "holeCount", 0), 0, MaxDamageHoles);
-	damageHoles.edgeWidth = (std::max)(GetParam<float>(cachedParams, "holeEdgeWidth", 1.5f), 0.001f);
-	damageHoles.depth = (std::max)(GetParam<float>(cachedParams, "holeDepth", 0.4f), 0.0f);
-	const bool useDamageHoleGeometry = hasDamageHoleParams && damageHoles.depth > 0.0f;
-	const bool useGeometryShader = useDamageHoleGeometry || GetParam<bool>(cachedParams, "IsFlatShading", false);
+	const VMatDamageHoleParams* holeParams = params ? &params->damageHoles : nullptr;
+	damageHoles.count = holeParams
+		? std::clamp(holeParams->count, 0, VMatDamageHoleParams::MaxCount)
+		: 0;
+	damageHoles.edgeWidth = holeParams ? std::max(holeParams->edgeWidth, 0.001f) : 1.5f;
+	damageHoles.depth = holeParams ? std::max(holeParams->depth, 0.0f) : 0.4f;
+	const bool useDamageHoleGeometry = damageHoles.count > 0 && damageHoles.depth > 0.0f;
+	const bool isFlatShading = materialParams && materialParams->isFlatShading
+		? *materialParams->isFlatShading
+		: mesh.material->isFlatShading != 0;
+	const bool useGeometryShader = useDamageHoleGeometry || isFlatShading;
 
-	for (int i = 0; i < damageHoles.holeCount; ++i)
+	for (int i = 0; i < damageHoles.count; ++i)
 	{
-		const std::string name = "hole" + std::to_string(i);
-		const std::string directionName = "holeDirection" + std::to_string(i);
-		damageHoles.holes[i] = GetParam<Vector4>(cachedParams, name, Vector4(0, 0, 0, 0));
-		damageHoles.holeDirections[i] =
-			GetParam<Vector4>(cachedParams, directionName, Vector4(0, 0, 0, 0));
+		damageHoles.holes[i] = holeParams->holes[i];
+		damageHoles.directions[i] = holeParams->directions[i];
 	}
 
 	dc->UpdateSubresource(
@@ -264,7 +255,7 @@ void PBRShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh)
 }
 
 // 描画終了
-void PBRShader::End(const RenderContext& rc)
+void VMatShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

@@ -5,8 +5,12 @@
 #include "UI/Widget.h"
 #include "IconsFontAwesome5.h"
 
-SpriteRenderComponent::SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture, SpriteShaderId shaderId, ShaderParamList shaderParam)
-	: Component(owner), texture(texture), shaderId(shaderId), shaderParam(shaderParam)
+SpriteRenderComponent::SpriteRenderComponent(
+	Object* owner,
+	std::shared_ptr<Texture> texture,
+	SpriteShaderId shaderId,
+	const Color& color)
+	: Component(owner), texture(texture), shaderId(shaderId), color(color)
 {
 	// エラー用
 	dynamic_cast<Widget*>(owner);
@@ -32,7 +36,7 @@ void SpriteRenderComponent::Render(const RenderContext& rc)
 			{ 0.0f, 0.0f },
 			{ (float)texture->GetWidth(), (float)texture->GetHeight() },
 			widget->rect.angle,
-			shaderParam);
+			color);
 	}
 }
 
@@ -46,54 +50,5 @@ void SpriteRenderComponent::DrawGUI()
 	{
 		ImGui::Text("Texture: None");
 	}
-
-	// シェーダーパラメータ
-	if (ImGui::TreeNode(ICON_FA_PASTE " ShaderParams"))
-	{
-		for (ShaderParam& p : shaderParam)
-		{
-			std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
-		}
-
-		ImGui::TreePop();
-	}
-}
-
-ShaderParam* SpriteRenderComponent::FindShaderParam(const std::string& name)
-{
-	for (ShaderParam& param : shaderParam)
-	{
-		if (param.name == name)
-		{
-			return &param;
-		}
-	}
-
-	return nullptr;
-}
-
-const ShaderParam* SpriteRenderComponent::FindShaderParam(const std::string& name) const
-{
-	for (const ShaderParam& param : shaderParam)
-	{
-		if (param.name == name)
-		{
-			return &param;
-		}
-	}
-
-	return nullptr;
-}
-
-void SpriteRenderComponent::SetShaderParam(
-	const std::string& name,
-	const ParamValue& value)
-{
-	if (ShaderParam* param = FindShaderParam(name))
-	{
-		param->value = value;
-		return;
-	}
-
-	shaderParam.push_back({ name, value });
+	ImGui::ColorEdit4("Color", &color.x);
 }

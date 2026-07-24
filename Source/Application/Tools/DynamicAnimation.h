@@ -2,15 +2,18 @@
 
 #pragma once
 
-#include "Rendering/Core/ShaderParam.h"
+#include "Core/Foundation/Common.h"
 
 #include <string>
+#include <variant>
 #include <vector>
+
+using DynamicValue = std::variant<bool, short, int, float, Color, Vector2, Vector3, Vector4>;
 
 enum class DynamicAnimationTarget
 {
 	WidgetProperty,
-	ShaderParam
+	SpriteColor
 };
 
 enum class DynamicWidgetProperty
@@ -45,7 +48,7 @@ enum class DynamicValueType
 struct DynamicAnimationKey
 {
 	float time = 0.0f;
-	ParamValue value = 0.0f;
+	DynamicValue value = 0.0f;
 
 	// This interpolation mode is used from this key to the next key.
 	DynamicInterpolation interpolation = DynamicInterpolation::Linear;
@@ -56,8 +59,6 @@ struct DynamicAnimationTrack
 	DynamicAnimationTarget target = DynamicAnimationTarget::WidgetProperty;
 	DynamicWidgetProperty widgetProperty = DynamicWidgetProperty::Position;
 
-	// Used only when target is ShaderParam.
-	std::string shaderParamName = "color";
 	DynamicValueType valueType = DynamicValueType::Vector2;
 
 	std::vector<DynamicAnimationKey> keys;
@@ -91,16 +92,16 @@ bool TryParseDynamicValueType(
 	const std::string& text,
 	DynamicValueType& value);
 
-DynamicValueType GetDynamicValueType(const ParamValue& value);
+DynamicValueType GetDynamicValueType(const DynamicValue& value);
 DynamicValueType GetWidgetPropertyValueType(DynamicWidgetProperty property);
-ParamValue MakeDefaultDynamicValue(DynamicValueType type);
+DynamicValue MakeDefaultDynamicValue(DynamicValueType type);
 bool IsDynamicValueInterpolatable(DynamicValueType type);
 
-ParamValue EvaluateDynamicAnimationTrack(
+DynamicValue EvaluateDynamicAnimationTrack(
 	const DynamicAnimationTrack& track,
 	float time);
 
-ParamValue BlendDynamicAnimationValue(
-	const ParamValue& from,
-	const ParamValue& to,
+DynamicValue BlendDynamicAnimationValue(
+	const DynamicValue& from,
+	const DynamicValue& to,
 	float t);

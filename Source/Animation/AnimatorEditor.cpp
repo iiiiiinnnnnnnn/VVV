@@ -192,7 +192,7 @@ void Animator::DrawEditor(bool* pOpen)
             }
             else
             {
-                ImGui::TextDisabled("Dynamic layers animate Widget and ShaderParam values.");
+                ImGui::TextDisabled("Dynamic layers animate Widget and Sprite Color values.");
                 ImGui::Dummy(ImVec2(0.0f, 300.0f));
             }
 
@@ -888,7 +888,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
         else
         {
             ImGui::TextDisabled(
-                "Dynamic Mode: later layers overwrite the same Widget/ShaderParam target.");
+                "Dynamic Mode: later layers overwrite the same Widget/Sprite Color target.");
         }
 
         ImGui::Spacing();

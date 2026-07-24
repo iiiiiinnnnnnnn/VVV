@@ -28,23 +28,23 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     {
         // モデル
         model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider");
-        shaderParamWithMaterialName =
+        renderParams.materials =
         {
-            {
-                "03 - Default",
-            {
-                {"metalness", 0.0f},
-            {"roughness", 1.0f},
-            {"occlusion", 0.0f},
-            {"occlusionStrength", 0.7f},
-            {"emission", Color(0, 0, 0, 0)}
-        }
-            }
+			{
+				"03 - Default",
+				{
+					.emissionColor = Color(0, 0, 0, 0),
+					.metalness = 0.0f,
+					.roughness = 1.0f,
+					.occlusion = 0.0f,
+					.occlusionStrength = 0.7f,
+				}
+			},
         };
         transform.SetPosition({-6, 3, 6});
         transform.SetScale(0.035f);
         model->UpdateTransform(transform.matrix);
-        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR, shaderParamWithMaterialName);
+        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat, renderParams);
 
         // アニメータ
         anim = AddComponent<Animator>(model, 0);
@@ -263,75 +263,75 @@ AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
     AddComponent<BoneFollower>(ownerAracoreQueen->model.get(), "Box02", offset);
 
     // モデルレンダラーとダメージホールコンポーネントを追加
-    shaderParamWithMaterialName =
+    renderParams.materials =
     {
         {
             "vend_main",
             {
-                {"metalness", 0.2f},
-                {"roughness", 0.0f},
-                {"occlusion", 0.1f},
-                {"occlusionStrength", 1.0f}
+				.metalness = 0.2f,
+				.roughness = 0.0f,
+				.occlusion = 0.1f,
+				.occlusionStrength = 1.0f,
             }
         },
         {
             "venashi",
             {
-                {"metalness", 1.0f},
-                {"roughness", 0.0f},
-                {"occlusion", 0.1f},
-                {"occlusionStrength", 0.0f}
+				.metalness = 1.0f,
+				.roughness = 0.0f,
+				.occlusion = 0.1f,
+				.occlusionStrength = 0.0f,
             }
         },
         {
             "vend_bottom",
             {
-                {"metalness", 1.0f},
-                {"roughness", 0.0f},
-                {"occlusion", 0.1f},
-                {"occlusionStrength", 0.0f}
+				.metalness = 1.0f,
+				.roughness = 0.0f,
+				.occlusion = 0.1f,
+				.occlusionStrength = 0.0f,
             }
         },
         {
             "back_light",
             {
-                {"metalness", 1.0f},
-                {"roughness", 0.0f},
-                {"occlusion", 0.1f},
-                {"occlusionStrength", 0.0f}
+				.metalness = 1.0f,
+				.roughness = 0.0f,
+				.occlusion = 0.1f,
+				.occlusionStrength = 0.0f,
             }
         },
         {
             "vend_main_toridashi",
             {
-                {"metalness", 0.0f},
-                {"roughness", 0.0f},
-                {"occlusion", 0.1f},
-                {"occlusionStrength", 0.0f}
+				.metalness = 0.0f,
+				.roughness = 0.0f,
+				.occlusion = 0.1f,
+				.occlusionStrength = 0.0f,
             }
         },
         {
             "vend_glass2",
             {
-                {"metalness", 0.0f},
-                {"roughness", 0.0f},
-                {"occlusion", 1.0f},
-                {"occlusionStrength", 1.0f}
+				.metalness = 0.0f,
+				.roughness = 0.0f,
+				.occlusion = 1.0f,
+				.occlusionStrength = 1.0f,
             }
         },
         {
             "vend_front_glass",
             {
-                {"metalness", 0.5f},
-                {"roughness", 0.0f},
-                {"occlusion", 1.0f},
-                {"occlusionStrength", 1.0f}
+				.metalness = 0.5f,
+				.roughness = 0.0f,
+				.occlusion = 1.0f,
+				.occlusionStrength = 1.0f,
             }
         }
     };
     VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
-        model, ModelShaderId::PBR, shaderParamWithMaterialName);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3, 2, 2, 1);
+        model, ModelShaderId::VMat, renderParams);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3.0f, 2.0f, 2.0f, 1.0f);
 }
 
 void AracoreQueenMachine::OnDamaged(const DamageData& damageData)

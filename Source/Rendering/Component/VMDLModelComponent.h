@@ -15,8 +15,8 @@ class TrailRenderComponent;
 class VMDLModelComponent : public Component {
 public:
     VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel> model,
-                         ModelShaderId shaderId = ModelShaderId::Basic,
-                         ShaderParamListWithMaterialName paramsWithMaterial = {});
+                         ModelShaderId shaderId = ModelShaderId::VMat,
+                         VMatRenderParams renderParams = {});
 
 	void OnAwake() override;
     void LateUpdate() override;
@@ -28,17 +28,15 @@ public:
     void SetModel(std::shared_ptr<VMDLModel> model) { this->model = model; }
     void SetAutoUpdateTransform(bool value) { autoUpdateTransform = value; }
 	void SetAttachmentLayerId(LayerId value) { attachmentLayerId = value; }
-    void SetShaderParamForAllMaterials(const ShaderParam& param);
-    void SetShaderParamForAllMaterials(const ShaderParamList& paramList);
 
 	const ModelShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(ModelShaderId id) { shaderId = id; }
+	void SetMaterialParamsForAllMaterials(const VMatMaterialParams& params);
+	VMatRenderParams& GetRenderParams() { return renderParams; }
+	const VMatRenderParams& GetRenderParams() const { return renderParams; }
 	void BuildAttachments();
 	void SetBuildEmbeddedTrails(bool value) { buildEmbeddedTrails = value; }
 	PhysicsComponent* GetAttachmentCollider(const std::string& name) const;
-
-	ShaderParamListWithMaterialName& GetParamsWithMaterial() { return paramsWithMaterial; }
-	const ShaderParamListWithMaterialName& GetParamsWithMaterial() const { return paramsWithMaterial; }
 
 private:
 	void UpdateAnimationControls();
@@ -46,7 +44,7 @@ private:
 
     std::shared_ptr<VMDLModel> model;
 	ModelShaderId shaderId;
-    ShaderParamListWithMaterialName paramsWithMaterial;
+	VMatRenderParams renderParams;
 	bool autoUpdateTransform = true;
 	LayerId attachmentLayerId = 0;
 	bool buildEmbeddedTrails = true;

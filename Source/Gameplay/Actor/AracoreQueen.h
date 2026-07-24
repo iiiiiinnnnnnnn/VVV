@@ -1,7 +1,7 @@
 ﻿// AracoreQueen.h
 
 #pragma once
-#include "Rendering/Core/ShaderParam.h"
+#include "Rendering/Core/VMatRenderParams.h"
 #include <memory>
 #include <vector>
 
@@ -31,7 +31,7 @@ public:
 private:
 	class AracoreQueen* ownerAracoreQueen = nullptr;
 	DamageHoleComponent* damageHoleComponent = nullptr;
-	ShaderParamListWithMaterialName shaderParamWithMaterialName;
+	VMatRenderParams renderParams;
 	PhysicsComponent* collider = nullptr;
 };
 
@@ -66,5 +66,5 @@ private:
 	DamageHoleComponent* damageHoleComponent = nullptr;
 	std::vector<Vector3> colPositions;
 
-	ShaderParamListWithMaterialName shaderParamWithMaterialName;
+	VMatRenderParams renderParams;
 };

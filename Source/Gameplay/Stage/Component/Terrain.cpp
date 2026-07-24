@@ -444,7 +444,9 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 	cbMaterial.useMetalnessTexture = 0;
 	cbMaterial.useRoughnessTexture = 0;
 	cbMaterial.useOcclusionTexture = 0;
+	cbMaterial.useEmissiveTexture = 0;
 	cbMaterial.isFlatShading = 0;
+	cbMaterial.useBaseColorTexture = 0;
 
 	dc->UpdateSubresource(
 		materialConstantBuffer.Get(),

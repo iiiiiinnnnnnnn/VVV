@@ -29,8 +29,8 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     life = maxLife;
 
     model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
-    modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::PBR);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1, 1, 2, 0.1f);
+    modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1.0f, 1.0f, 2.0f, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();
     meshCollider = AddComponent<MeshCollider>(
         Layers::Get("Prop"),
@@ -62,7 +62,7 @@ void CrystalProp::SpawnBreakParticles()
     float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
     largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
 
-    int particleCount = largestScale * 32 * 10;
+    int particleCount = static_cast<int>(largestScale * 32.0f * 10.0f);
     for (int i = 0; i < particleCount; ++i)
     {
         Vector3 p = transform.position;

@@ -298,7 +298,7 @@ private:
     void ApplyDynamicState(const State& state, float time);
     void ApplyDynamicTransition(const State& currentState, float currentTime,
                                 const State& nextState, float nextTime, float blendWeight);
-    void ApplyDynamicTrack(const DynamicAnimationTrack& track, const ::ParamValue& value);
+    void ApplyDynamicTrack(const DynamicAnimationTrack& track, const DynamicValue& value);
     std::shared_ptr<DynamicAnimationClip> GetDynamicClip(const std::string& path) const;
     void ReloadActiveDynamicClipsIfChanged();
     bool ReloadDynamicClipIfChanged(const std::string& path);

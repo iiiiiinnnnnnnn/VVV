@@ -5,10 +5,7 @@
 #include "Resource/GpuResourceUtils.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Rendering/Renderer/ModelRenderer.h"
-#include "Rendering/Shader/BasicModelShader.h"
-
-// 追加シェーダー
-#include "Rendering/Shader/PBRShader.h"
+#include "Rendering/Shader/VMatShader.h"
 
 // コンストラクタ
 ModelRenderer::ModelRenderer(ID3D11Device* device)
@@ -25,19 +22,19 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 		sizeof(CbSkeleton),
 		skeletonConstantBuffer.GetAddressOf());
 
-	shaders[static_cast<int>(ModelShaderId::Basic)] = std::make_unique<BasicModelShader>(device);
-
-	// 追加シェーダー
-	shaders[static_cast<int>(ModelShaderId::PBR)] = std::make_unique<PBRShader>(device);
+	shaders[static_cast<int>(ModelShaderId::VMat)] = std::make_unique<VMatShader>(device);
 }
 
 // 箱描画
-void ModelRenderer::Draw(ModelShaderId shaderId, std::shared_ptr<VMDLModel> model, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
+void ModelRenderer::Draw(
+	ModelShaderId shaderId,
+	std::shared_ptr<VMDLModel> model,
+	const VMatRenderParams* params)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
 	drawInfo.model = model;
-	drawInfo.paramsWithMaterial = paramsWithMaterial;
+	drawInfo.params = params;
 }
 
 // 描画実行
@@ -86,7 +83,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const VMDLModel::Mesh& mesh, ModelShader* shader, std::unordered_map<std::string, ShaderParamList> paramsWithMaterial)
+	auto drawMesh = [&](const VMDLModel::Mesh& mesh, ModelShader* shader, const VMatRenderParams* params)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(VMDLModel::Vertex);
@@ -112,13 +109,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 		}
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
-		// マテリアル名でパラメータを引いてシェーダーに渡す
-		auto it = paramsWithMaterial.find(mesh.material->name);
-		const ShaderParamList& params = (it != paramsWithMaterial.end()) ? it->second : ShaderParamList{};
-		shader->ApplyShaderParams(params);
-
 		// 更新
-		shader->Update(rc, mesh);
+		shader->Update(rc, mesh, params);
 
 		// 描画
 		dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
@@ -140,15 +132,20 @@ void ModelRenderer::Render(const RenderContext& rc)
 				continue;
 
 			// 半透明メッシュ登録
-			float shaderParamColorA = GetParam<Color>(drawInfo.paramsWithMaterial[mesh.material->name], "color", {1.0f, 1.0f, 1.0f, 1.0f}).w;
+			float w = mesh.material->baseColor.w;
+			if (drawInfo.params)
+			{
+				const auto it = drawInfo.params->materials.find(mesh.material->name);
+				if (it != drawInfo.params->materials.end() && it->second.baseColor)
+					w = it->second.baseColor->w;
+			}
 			if (mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
-				(mesh.material->baseColor.w > 0.01f && mesh.material->baseColor.w < 0.99f) ||
-				(shaderParamColorA > 0.01f && shaderParamColorA < 0.99f))
+				(w > 0.01f && w < 0.99f))
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
-				transparencyDrawInfo.paramsWithMaterial = drawInfo.paramsWithMaterial;
+				transparencyDrawInfo.params = drawInfo.params;
 				// カメラとの距離を算出
 				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
 				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
@@ -158,7 +155,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 			}
 
 			// 描画
-			drawMesh(mesh, shader, drawInfo.paramsWithMaterial);
+			drawMesh(mesh, shader, drawInfo.params);
 		}
 
 		shader->End(rc);
@@ -182,7 +179,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 		shader->Begin(rc);
 
-		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.paramsWithMaterial);
+		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.params);
 
 		shader->End(rc);
 	}
@@ -198,56 +195,4 @@ void ModelRenderer::Render(const RenderContext& rc)
 	// サンプラステート設定解除
 	for (ID3D11SamplerState*& samplerState : samplerStates) { samplerState = nullptr; }
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
-}
-
-void ModelRenderer::SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParam& param, ShaderParamListWithMaterialName& paramsWithMaterial)
-{
-	if (!model)
-		return;
-
-	for (const VMDLModel::Material& material : model->GetMaterials())
-	{
-		ShaderParamList& params = paramsWithMaterial[material.name];
-		auto it = std::find_if(
-			params.begin(),
-			params.end(),
-			[&](const ShaderParam& p) { return p.name == param.name; });
-
-		if (it != params.end())
-		{
-			it->value = param.value;
-		}
-		else
-		{
-			params.push_back(param);
-		}
-	}
-}
-
-void ModelRenderer::SetShaderParamForAllMaterials(VMDLModel* model, const ShaderParamList& paramList, ShaderParamListWithMaterialName& paramsWithMaterial)
-{
-	if (!model)
-		return;
-
-	for (const VMDLModel::Material& material : model->GetMaterials())
-	{
-		ShaderParamList& params = paramsWithMaterial[material.name];
-
-		for (const ShaderParam& param : paramList)
-		{
-			auto it = std::find_if(
-				params.begin(),
-				params.end(),
-				[&](const ShaderParam& p) { return p.name == param.name; });
-
-			if (it != params.end())
-			{
-				it->value = param.value;
-			}
-			else
-			{
-				params.push_back(param);
-			}
-		}
-	}
 }

@@ -13,8 +13,9 @@
 
 VMDLModelComponent::VMDLModelComponent(
     Object* owner, std::shared_ptr<VMDLModel> model,
-    ModelShaderId shaderId, ShaderParamListWithMaterialName paramsWithMaterial)
-    : Component(owner), model(model), shaderId(shaderId), paramsWithMaterial(paramsWithMaterial)
+    ModelShaderId shaderId,
+	VMatRenderParams renderParams)
+    : Component(owner), model(model), shaderId(shaderId), renderParams(std::move(renderParams))
 {
     // エラー用
     dynamic_cast<Actor*>(owner);
@@ -184,18 +185,15 @@ void VMDLModelComponent::Render(const RenderContext& rc)
 {
     if (model)
     {
-        Game::Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, paramsWithMaterial);
+        Game::Graphics::Instance().GetModelRenderer()->Draw(shaderId, model, &renderParams);
     }
 }
 
-void VMDLModelComponent::SetShaderParamForAllMaterials(const ShaderParam& param)
+void VMDLModelComponent::SetMaterialParamsForAllMaterials(const VMatMaterialParams& params)
 {
-    ModelRenderer::SetShaderParamForAllMaterials(model.get(), param, paramsWithMaterial);
-}
-
-void VMDLModelComponent::SetShaderParamForAllMaterials(const ShaderParamList& paramList)
-{
-	ModelRenderer::SetShaderParamForAllMaterials(model.get(), paramList, paramsWithMaterial);
+	if (!model) return;
+	for (const VMDLModel::Material& material : model->GetMaterials())
+		renderParams.materials[material.name] = params;
 }
 
 void VMDLModelComponent::DrawGUI()
@@ -335,13 +333,33 @@ void VMDLModelComponent::DrawGUI()
         {
             if (ImGui::TreeNode(material.name.c_str()))
             {
-                // paramsWithMaterial にあれば表示
-                auto it = paramsWithMaterial.find(material.name);
-                if (it != paramsWithMaterial.end())
-                {
-                    for (ShaderParam& p : it->second)
-                        std::visit(ParamGUIVisitor{p.name.c_str()}, p.value);
-                }
+				ImGui::Text("Base Color: %.3f, %.3f, %.3f, %.3f",
+					material.baseColor.x, material.baseColor.y, material.baseColor.z, material.baseColor.w);
+				ImGui::Text("Emissive Color: %.3f, %.3f, %.3f, %.3f",
+					material.emissiveColor.x, material.emissiveColor.y,
+					material.emissiveColor.z, material.emissiveColor.w);
+				ImGui::Text("Metalness: %.3f", material.metalness);
+				ImGui::Text("Roughness: %.3f", material.roughness);
+				ImGui::Text("Occlusion: %.3f", material.occlusion);
+				ImGui::Text("Occlusion Strength: %.3f", material.occlusionStrength);
+				ImGui::Text("Shadow Strength: %.3f", material.shadowStrength);
+
+				const auto it = renderParams.materials.find(material.name);
+				if (it != renderParams.materials.end())
+				{
+					const VMatMaterialParams& params = it->second;
+					ImGui::SeparatorText("Instance Overrides");
+					if (params.baseColor) ImGui::Text("Base Color: %.3f, %.3f, %.3f, %.3f",
+						params.baseColor->x, params.baseColor->y, params.baseColor->z, params.baseColor->w);
+					if (params.emissionColor) ImGui::Text("Emission: %.3f, %.3f, %.3f, %.3f",
+						params.emissionColor->x, params.emissionColor->y,
+						params.emissionColor->z, params.emissionColor->w);
+					if (params.metalness) ImGui::Text("Metalness: %.3f", *params.metalness);
+					if (params.roughness) ImGui::Text("Roughness: %.3f", *params.roughness);
+					if (params.occlusion) ImGui::Text("Occlusion: %.3f", *params.occlusion);
+					if (params.occlusionStrength) ImGui::Text("Occlusion Strength: %.3f", *params.occlusionStrength);
+					if (params.shadowStrength) ImGui::Text("Shadow Strength: %.3f", *params.shadowStrength);
+				}
                 ImGui::TreePop();
             }
         }

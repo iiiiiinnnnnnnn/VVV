@@ -38,7 +38,7 @@ public:
 private:
 	static constexpr int MaxDamageHoles = 8;
 
-	void UpdateShaderParams();
+	void UpdateRenderParams();
 	float ComputeSurfaceDistance(const Actor& actor) const;
 	Vector4 MakeWorldHole(const Vector4& localHole, const Actor* actor) const;
 	Vector4 MakeWorldDirection(const Vector4& localDirection, const Actor* actor) const;

@@ -11,7 +11,8 @@
 class SpriteRenderComponent : public Component {
 public:
     SpriteRenderComponent(Object* owner, std::shared_ptr<Texture> texture,
-                          SpriteShaderId shaderId = SpriteShaderId::Basic, ShaderParamList shaderParam = {});
+                          SpriteShaderId shaderId = SpriteShaderId::Basic,
+						  const Color& color = Color(1, 1, 1, 1));
     
     void Update() override;
     void Render(const RenderContext& rc) override;
@@ -23,16 +24,11 @@ public:
 
     const SpriteShaderId& GetShaderId() const { return shaderId; }
     void SetShaderId(SpriteShaderId id) { shaderId = id; }
-
-    ShaderParamList& GetShaderParams() { return shaderParam; }
-    const ShaderParamList& GetShaderParams() const { return shaderParam; }
-
-    ShaderParam* FindShaderParam(const std::string& name);
-    const ShaderParam* FindShaderParam(const std::string& name) const;
-    void SetShaderParam(const std::string& name, const ParamValue& value);
+	const Color& GetColor() const { return color; }
+	void SetColor(const Color& value) { color = value; }
 
 private:
     std::shared_ptr<Texture> texture;
     SpriteShaderId shaderId;
-    ShaderParamList shaderParam;
+	Color color;
 };

@@ -58,6 +58,7 @@ private:
 	std::filesystem::path documentPath;
 	std::filesystem::path displayPath;
 	std::wstring previousWindowTitle;
+	std::unique_ptr<RenderTarget> previewSceneTarget;
 	std::unique_ptr<RenderTarget> previewTarget;
 	std::unique_ptr<Object> cameraOwner;
 	Camera* editorCamera = nullptr;
@@ -84,6 +85,7 @@ private:
 	WINDOWPLACEMENT previousWindowPlacement{sizeof(WINDOWPLACEMENT)};
 	bool restoreWindowOnExit = false;
 	Vector3 rootOffset = Vector3::Zero;
+	Vector3 editorLightDirection = Vector3(-0.7f, -0.6f, 0.0f);
 	float modelScale = 1.0f;
 	bool dirty = false;
 	bool animationPlaying = false;

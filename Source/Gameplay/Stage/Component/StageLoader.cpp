@@ -56,17 +56,17 @@ static void SaveTransformJson(json& transformJson, const Transform& transform)
 	transformJson["scale"]["z"] = transform.scale.z;
 }
 
-ShaderParamList StageLoader::PropData::MakePBRParams() const
+VMatMaterialParams StageLoader::PropData::MakeVMatParams() const
 {
 	return {
-		{"color", color},
-		{"emission", emission},
-		{"metalness", metallic},
-		{"roughness", roughness},
-		{"occlusion", occlusion},
-		{"occlusionStrength", occlusionStrength},
-		{"shadowStrength", shadowStrength},
-		{"IsFlatShading", isFlatShading},
+		.baseColor = color,
+		.emissionColor = emission,
+		.metalness = metallic,
+		.roughness = roughness,
+		.occlusion = occlusion,
+		.occlusionStrength = occlusionStrength,
+		.shadowStrength = shadowStrength,
+		.isFlatShading = isFlatShading,
 	};
 }
 
@@ -140,8 +140,9 @@ void StageLoader::Update()
 			prop.model = ResourceManager::Instance().LoadModel(prop.modelPath);
 		}
 
-		ShaderParamList param = prop.MakePBRParams();
-		ModelRenderer::SetShaderParamForAllMaterials(prop.model.get(), param, prop.shaderParams);
+		const VMatMaterialParams params = prop.MakeVMatParams();
+		for (const VMDLModel::Material& material : prop.model->GetMaterials())
+			prop.renderParams.materials[material.name] = params;
 
 		prop.transform.Update();
 		prop.model->UpdateTransform(prop.transform.matrix);
@@ -167,7 +168,7 @@ void StageLoader::Render(const RenderContext& rc)
 
 	for (auto& prop : propDataList)
 	{
-		Game::Graphics::Instance().GetModelRenderer()->Draw(ModelShaderId::PBR, prop.model, prop.shaderParams);
+		Game::Graphics::Instance().GetModelRenderer()->Draw(ModelShaderId::VMat, prop.model, &prop.renderParams);
 	}
 
 	for (auto& spawner : spawnerDataList)

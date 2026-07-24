@@ -20,8 +20,8 @@ Prop::Prop(StageLoader::PropData& propData)
 
 	propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
 	propData.model->UpdateTransform(transform.matrix);
-	modelRenderer = AddComponent<VMDLModelComponent>(propData.model, ModelShaderId::PBR, propData.shaderParams);
-	modelRenderer->SetShaderParamForAllMaterials(propData.MakePBRParams());
+	modelRenderer = AddComponent<VMDLModelComponent>(propData.model, ModelShaderId::VMat, propData.renderParams);
+	modelRenderer->SetMaterialParamsForAllMaterials(propData.MakeVMatParams());
 
 	if (propData.colliderType == StageLoader::ColliderType::Mesh)
 	{
@@ -62,7 +62,7 @@ void Prop::ApplyStageData(StageLoader::PropData& propData)
 
 	if (modelRenderer)
 	{
-		modelRenderer->SetShaderParamForAllMaterials(propData.MakePBRParams());
+		modelRenderer->SetMaterialParamsForAllMaterials(propData.MakeVMatParams());
 	}
 }
 

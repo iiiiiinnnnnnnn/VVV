@@ -280,7 +280,7 @@ public:
 		std::vector<uint8_t>	metalnessRoughnessTextureDDS;
 
 		Color				baseColor = {1, 1, 1, 1};
-		Color				emissiveColor = {1, 1, 1, 1};
+		Color				emissiveColor = {0, 0, 0, 1};
 		float				metalness = 0.0f;
 		float				roughness = 0.0f;
 		float				occlusion = 1.0f;
@@ -288,6 +288,11 @@ public:
 		float				shadowStrength = 1.0f;
 		float				alphaCutoff = 0.5f;
 		AlphaMode			alphaMode = AlphaMode::Opaque;
+
+		Color				fresnelColor = {1, 1, 1, 0};
+		float				fresnelPower = 0.0f;
+		float				fresnelStrength = 0.0f;
+		int					isFlatShading = false;
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;
@@ -303,6 +308,17 @@ public:
 	{
 		float occlusion = 1.0f;
 		float shadowStrength = 1.0f;
+
+		template<class Archive>
+		void serialize(Archive& archive);
+	};
+
+	struct MaterialVMatSettings
+	{
+		Color fresnelColor = {1, 1, 1, 0};
+		float fresnelPower = 0.0f;
+		float fresnelStrength = 0.0f;
+		int isFlatShading = false;
 
 		template<class Archive>
 		void serialize(Archive& archive);

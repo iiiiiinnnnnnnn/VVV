@@ -1,4 +1,4 @@
-﻿// PBRShader.h
+﻿// VMatShader.h
 
 #pragma once
 #include <d3d11.h>
@@ -6,17 +6,21 @@
 
 #include "Rendering/Shader/Shader.h"
 
-class PBRShader : public ModelShader
+class VMatShader : public ModelShader
 {
 public:
-	PBRShader(ID3D11Device* device);
-	~PBRShader() override = default;
+	VMatShader(ID3D11Device* device);
+	~VMatShader() override = default;
 
 	void Begin(const RenderContext& rc) override;
-	void Update(const RenderContext& rc, const VMDLModel::Mesh& mesh) override;
+	void Update(
+		const RenderContext& rc,
+		const VMDLModel::Mesh& mesh,
+		const VMatRenderParams* params) override;
 	void End(const RenderContext& rc) override;
 
 private:
+
 	// b0
 	struct CbShadowMap
 	{
@@ -26,7 +30,9 @@ private:
 		Color	shadowColor;			// 影の色
 		float	shadowBias;				// 深度比較用のオフセット値
 		int		pcfKernelSize;			// ソフトシャドウの行列サイズ
-		float	DUMMY[2];
+
+	private:
+		float	dummy[2];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	shadowMapConstantBuffer;
 
@@ -50,24 +56,28 @@ private:
 
 		int		useRoughnessTexture;
 		int		useOcclusionTexture;
+		int 	useEmissiveTexture;
 		int		isFlatShading;
-		float	DUMMY;
+
+		int		useBaseColorTexture;
+
+	private:
+		int		dummy[3];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
-
-	static constexpr int MaxDamageHoles = 8;
 
 	// b2
 	struct CbDamageHoles
 	{
-		Vector4 holes[MaxDamageHoles]; // xyz: world center, w: radius
-		Vector4 holeDirections[MaxDamageHoles]; // xyz: world dent direction
-		int holeCount;
+		Vector4 holes[VMatDamageHoleParams::MaxCount]; // xyz: world center, w: radius
+		Vector4 directions[VMatDamageHoleParams::MaxCount]; // xyz: world dent direction
+		int count;
 		float edgeWidth;
 		float depth;
-		float DUMMY;
+
+	private:
+		float dummy;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
 };
-

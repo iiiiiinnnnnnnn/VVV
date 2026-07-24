@@ -1313,14 +1313,14 @@ void Animator::ApplyDynamicTransition(
 
     for (const DynamicAnimationTrack& currentTrack : currentClip->tracks)
     {
-        const ::ParamValue currentValue =
+        const DynamicValue currentValue =
             EvaluateDynamicAnimationTrack(currentTrack, currentTime);
         const DynamicAnimationTrack* nextTrack =
             FindMatchingTrack(*nextClip, currentTrack);
 
         if (nextTrack && currentTrack.valueType == nextTrack->valueType)
         {
-            const ::ParamValue nextValue =
+            const DynamicValue nextValue =
                 EvaluateDynamicAnimationTrack(*nextTrack, nextTime);
             ApplyDynamicTrack(
                 currentTrack,
@@ -1345,7 +1345,7 @@ void Animator::ApplyDynamicTransition(
 
 void Animator::ApplyDynamicTrack(
     const DynamicAnimationTrack& track,
-    const ::ParamValue& value)
+    const DynamicValue& value)
 {
     Widget* widget = dynamic_cast<Widget*>(owner);
 
@@ -1379,7 +1379,7 @@ void Animator::ApplyDynamicTrack(
     if (SpriteRenderComponent* sprite =
         widget->GetComponent<SpriteRenderComponent>())
     {
-        sprite->SetShaderParam(track.shaderParamName, value);
+		if (const Color* color = std::get_if<Color>(&value)) sprite->SetColor(*color);
     }
 }
 
@@ -1518,10 +1518,7 @@ const DynamicAnimationTrack* Animator::FindMatchingTrack(
             if (track.widgetProperty == sourceTrack.widgetProperty)
                 return &track;
         }
-        else if (track.shaderParamName == sourceTrack.shaderParamName)
-        {
-            return &track;
-        }
+        else return &track;
     }
 
     return nullptr;

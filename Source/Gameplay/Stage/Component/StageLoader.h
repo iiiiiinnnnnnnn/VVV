@@ -2,7 +2,7 @@
 
 #pragma once
 #include "Resource/VMDLModel.h"
-#include "Rendering/Core/ShaderParam.h"
+#include "Rendering/Core/VMatRenderParams.h"
 
 #include <imgui.h>
 
@@ -125,10 +125,10 @@ private:
 		bool useDestroy = false;
 		float destroyLife = 0.0f;
 
-		ShaderParamList MakePBRParams() const;
+		VMatMaterialParams MakeVMatParams() const;
 
 		std::shared_ptr<VMDLModel> model = nullptr;
-		ShaderParamListWithMaterialName shaderParams = {};
+		VMatRenderParams renderParams = {};
 
 	} addPropData = {};
 	std::vector<PropData> propDataList = {};

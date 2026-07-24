@@ -34,13 +34,13 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	const ShaderParamList& shaderParams)
+	const Color& color)
 {
 	return BuildDrawInfo(
 		shaderId,
 		texture->GetShaderResourceView().Get(),
 		{ static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight()) },
-		dxyz, dwh, sxy, swh, angle, shaderParams);
+		dxyz, dwh, sxy, swh, angle, color);
 }
 
 SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
@@ -52,13 +52,13 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	const ShaderParamList& shaderParams)
+	const Color& color)
 {
 	DrawInfo info = {};
 	info.shaderId = shaderId;
 	info.srv = srv;
-	info.shaderParams = shaderParams;
 	info.textureSize = textureSize;
+	info.color = color;
 
 	// 頂点座標（スクリーン空間）
 	DirectX::XMFLOAT2 positions[4] = {
@@ -113,9 +113,9 @@ void SpriteRenderer::Draw(
 	Vector2 sxy,
 	Vector2 swh,
 	float angle,
-	const ShaderParamList& shaderParams)
+	const Color& color)
 {
-	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, shaderParams));
+	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, color));
 }
 
 void SpriteRenderer::Render(const RenderContext& rc)
@@ -172,7 +172,7 @@ void SpriteRenderer::Render(const RenderContext& rc)
 		memcpy(mapped.pData, verts, sizeof(verts));
 		dc->Unmap(vertexBuffer.Get(), 0);
 
-		shader->Update(rc, call.srv.Get(), call.textureSize, call.shaderParams);
+		shader->Update(rc, call.srv.Get(), call.textureSize, call.color);
 
 		// 描画
 		dc->Draw(4, 0);

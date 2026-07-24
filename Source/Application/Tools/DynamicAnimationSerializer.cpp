@@ -10,7 +10,7 @@ using json = nlohmann::json;
 
 namespace
 {
-	json SerializeValue(const ParamValue& value)
+	json SerializeValue(const DynamicValue& value)
 	{
 		if (const bool* v = std::get_if<bool>(&value))
 			return *v;
@@ -34,7 +34,7 @@ namespace
 	bool DeserializeValue(
 		const json& source,
 		DynamicValueType type,
-		ParamValue& value)
+		DynamicValue& value)
 	{
 		try
 		{
@@ -126,7 +126,6 @@ bool DynamicAnimationSerializer::Save(
 		json trackJson;
 		trackJson["target"] = ToString(track.target);
 		trackJson["widgetProperty"] = ToString(track.widgetProperty);
-		trackJson["shaderParamName"] = track.shaderParamName;
 		trackJson["valueType"] = ToString(track.valueType);
 		trackJson["keys"] = json::array();
 
@@ -219,9 +218,6 @@ bool DynamicAnimationSerializer::Load(
 				}
 				track.widgetProperty = widgetProperty;
 
-				track.shaderParamName =
-					trackJson.value("shaderParamName", std::string("color"));
-
 				DynamicValueType valueType;
 				if (!TryParseDynamicValueType(
 					trackJson.value("valueType", std::string("Float")),
@@ -235,6 +231,10 @@ bool DynamicAnimationSerializer::Load(
 				if (track.target == DynamicAnimationTarget::WidgetProperty)
 				{
 					track.valueType = GetWidgetPropertyValueType(track.widgetProperty);
+				}
+				else
+				{
+					track.valueType = DynamicValueType::Color;
 				}
 
 				if (trackJson.contains("keys"))

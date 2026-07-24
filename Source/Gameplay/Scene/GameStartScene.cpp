@@ -13,6 +13,13 @@ GameStartScene::GameStartScene(SceneMessage message)
 	: Scene(message)
 {
 	resourcesReady = ResourceManager::Instance().PrepareGameResources();
+
+	if (resourcesReady)
+	{
+		Game::Graphics& graphics = Game::Graphics::Instance();
+		graphics.RefreshSkyMapList();
+		graphics.LoadSkyMap("Default");
+	}
 }
 
 void GameStartScene::OnUpdate()

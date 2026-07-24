@@ -91,8 +91,9 @@ float4 main(VS_OUT pin) : SV_TARGET
     // albedo と emissive は sRGB テクスチャ → PBR計算はリニア空間で行うため変換
     // metalness/roughness/AO はリニアデータなのでそのまま使う
     // -------------------------------------------------------------------------
-    float4 albedoSRGB =
-    baseMap.Sample(linearSampler, pin.texcoord);
+    float4 albedoSRGB = useBaseColorTexture != 0
+        ? baseMap.Sample(linearSampler, pin.texcoord)
+        : float4(1.0, 1.0, 1.0, 1.0);
 
     float4 albedo =
     float4(
@@ -100,10 +101,20 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedoSRGB.a)
     * baseColor;
 
-    float3 emissiveSRGB = emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
-    float3 emissive =
-        pow(emissiveSRGB, GammaFactor) * emissiveColor.rgb
-        + emissionColor.rgb * emissionColor.a;
+    float3 emissive;
+    if (useEmissiveTexture != 0)
+    {
+        float3 emissiveSRGB =
+        emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
+        float3 emissiveMask = pow(emissiveSRGB, GammaFactor);
+        float emissiveStrength = max(emissiveMask.r, max(emissiveMask.g, emissiveMask.b));
+        emissive = emissiveColor.rgb * emissiveColor.a * emissiveStrength;
+    }
+    else
+    {
+        emissive = emissiveColor.rgb * emissiveColor.a;
+    }
+    emissive += emissionColor.rgb * emissionColor.a;
 
     float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);

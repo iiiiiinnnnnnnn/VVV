@@ -161,16 +161,32 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 		return hit;
 	}
 	case WM_SYSCOMMAND:
+	{
+		const WPARAM command = wParam & 0xFFF0;
+
 		if (Game::Graphics::Instance().IsWindowMovementLocked())
 		{
-			const WPARAM command = wParam & 0xFFF0;
-			if (command == SC_MOVE || command == SC_SIZE || command == SC_RESTORE || command == SC_MAXIMIZE) return 0;
+			if (command == SC_MOVE || command == SC_SIZE || command == SC_MAXIMIZE)
+			{
+				return 0;
+			}
+
+			// 最大化状態からの「元のサイズに戻す」は禁止するが、
+			// 最小化状態からの復帰は許可する
+			if (command == SC_RESTORE && !IsIconic(hWnd))
+			{
+				return 0;
+			}
 		}
+
 		return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
 	case WM_SIZE:
+	{
 		if (wParam != SIZE_MINIMIZED)
 			Game::Graphics::Instance().Resize(LOWORD(lParam), HIWORD(lParam));
 		break;
+	}
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;

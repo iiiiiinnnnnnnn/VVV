@@ -38,7 +38,7 @@ cbuffer CbMaterial : register(b1)
     float roughness;
     float occlusion;
     float occlusionStrength;
-    
+
     float shadowStrength;
     float fresnelPower;
     float fresnelStrength;
@@ -46,8 +46,11 @@ cbuffer CbMaterial : register(b1)
 
     int useRoughnessTexture;
     int useOcclusionTexture;
+    int useEmissiveTexture;
     int isFlatShading;
-    float _dummyCbMaterial;
+
+    int useBaseColorTexture;
+    int3 _dummyCbMaterial;
 };
 
 static const int MaxDamageHoles = 8;

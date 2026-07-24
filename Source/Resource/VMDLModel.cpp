@@ -1281,6 +1281,16 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 		materialPbrSettings.reserve(materials.size());
 		for (const Material& material : materials)
 			materialPbrSettings.push_back({material.occlusion, material.shadowStrength});
+		std::vector<MaterialVMatSettings> materialVMatSettings;
+		materialVMatSettings.reserve(materials.size());
+		for (const Material& material : materials)
+		{
+			materialVMatSettings.push_back({
+				material.fresnelColor,
+				material.fresnelPower,
+				material.fresnelStrength,
+				material.isFlatShading});
+		}
 
 		try
 		{
@@ -1296,7 +1306,8 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 				CEREAL_NVP(vmdlAnimationControlData),
 				CEREAL_NVP(materialPbrSettings),
 				CEREAL_NVP(vmdlTrailData),
-				CEREAL_NVP(vmdlPlacementData)
+				CEREAL_NVP(vmdlPlacementData),
+				CEREAL_NVP(materialVMatSettings)
 			);
 		}
 		catch (...)
@@ -1390,6 +1401,23 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 			catch (...)
 			{
 				vmdlPlacementData = {};
+			}
+
+			try
+			{
+				std::vector<MaterialVMatSettings> materialVMatSettings;
+				archive(CEREAL_NVP(materialVMatSettings));
+				const size_t count = std::min(materials.size(), materialVMatSettings.size());
+				for (size_t i = 0; i < count; ++i)
+				{
+					materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
+					materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
+					materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
+					materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
+				}
+			}
+			catch (...)
+			{
 			}
 		}
 		catch (...)

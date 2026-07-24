@@ -44,6 +44,16 @@ void VMDLModel::MaterialPbrSettings::serialize(Archive& archive)
 }
 
 template<class Archive>
+void VMDLModel::MaterialVMatSettings::serialize(Archive& archive)
+{
+	archive(
+		CEREAL_NVP(fresnelColor),
+		CEREAL_NVP(fresnelPower),
+		CEREAL_NVP(fresnelStrength),
+		CEREAL_NVP(isFlatShading));
+}
+
+template<class Archive>
 void VMDLModel::Vertex::serialize(Archive& archive)
 {
 	archive(CEREAL_NVP(position), CEREAL_NVP(boneWeight), CEREAL_NVP(boneIndex), CEREAL_NVP(texcoord), CEREAL_NVP(normal), CEREAL_NVP(tangent));
@@ -223,6 +233,8 @@ template void VMDLModel::Material::serialize<cereal::BinaryInputArchive>(cereal:
 template void VMDLModel::Material::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::MaterialPbrSettings::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::MaterialPbrSettings::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::MaterialVMatSettings::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::MaterialVMatSettings::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::Vertex::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Vertex::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::Bone::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);

@@ -3,6 +3,7 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
+#include <filesystem>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -13,6 +14,15 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
+
+	#if defined(DEBUG) || defined(_DEBUG)
+	std::filesystem::create_directories("Data/Font");
+	std::filesystem::copy(
+		"../../../Data/Font",
+		"Data/Font",
+		std::filesystem::copy_options::recursive |
+		std::filesystem::copy_options::overwrite_existing);
+	#endif
 
 	io.IniFilename = "Data/Editor.ini";
 

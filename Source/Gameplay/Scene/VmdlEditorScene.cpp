@@ -17,6 +17,7 @@
 #include <cfloat>
 #include <cmath>
 #include "GameStartScene.h"
+#include "Application/Time/GameTime.h"
 
 namespace
 {
@@ -76,10 +77,20 @@ VmdlEditorScene::VmdlEditorScene(SceneMessage message)
 	SetWindowLongPtr(window, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 	SetWindowPos(window, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	ShowWindow(window, SW_MAXIMIZE);
-	previewTarget = std::make_unique<RenderTarget>(graphics.GetDevice(), PreviewWidth, PreviewHeight);
+	previewSceneTarget = std::make_unique<RenderTarget>(
+		graphics.GetDevice(),
+		PreviewWidth,
+		PreviewHeight,
+		DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+	previewTarget = std::make_unique<RenderTarget>(
+		graphics.GetDevice(),
+		PreviewWidth,
+		PreviewHeight,
+		DXGI_FORMAT_R8G8B8A8_UNORM);
 	cameraOwner = std::make_unique<Object>("VMDL Editor Camera");
 	editorCamera = cameraOwner->AddComponent<Camera>();
-	editorLights.GetDirectionalLight().transform.SetAngle(0.6f, -0.7f, 0.0f);
+	editorLightDirection = {0.6f, -0.7f, 0.0f};
 }
 
 VmdlEditorScene::~VmdlEditorScene()
@@ -211,7 +222,7 @@ void VmdlEditorScene::OnDrawGUI()
 
 void VmdlEditorScene::RenderPreview()
 {
-	if (!previewTarget || !editorCamera) return;
+	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
 
 	const Vector3 focus = rootOffset + Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
 	const float horizontalDistance = cameraDistance * std::cos(cameraPitch);
@@ -224,13 +235,16 @@ void VmdlEditorScene::RenderPreview()
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
-	previewTarget->Clear(dc, 0.18f, 0.22f, 0.25f, 1.0f);
-	previewTarget->Activate(dc);
+	previewSceneTarget->Clear(dc, 0.18f, 0.22f, 0.25f, 1.0f);
+	previewSceneTarget->Activate(dc);
 
 	RenderContext rc{};
 	rc.deviceContext = dc;
 	rc.renderState = graphics.GetRenderState();
 	rc.camera = editorCamera;
+	editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
+	editorLightDirection.y += Game::Time::unscaledDeltaTime * 50.0f;
+	if (editorLightDirection.y > 360.0f) editorLightDirection.y -= 360.0f;
 	rc.lightManager = &editorLights;
 	rc.iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 	rc.iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
@@ -249,23 +263,24 @@ void VmdlEditorScene::RenderPreview()
 		if (showMesh)
 		{
 			rc.renderSettings.wireframe = false;
-			ShaderParamListWithMaterialName params;
+			VMatRenderParams params;
 			if (!usePbr)
 			{
 				for (const VMDLModel::Material& material : model->GetMaterials())
 				{
-					params[material.name] = {
-						{"color", solidColor},
-						{"useTexture", false}};
+					params.materials[material.name] = {
+						.baseColor = solidColor,
+						.useBaseColorTexture = false,
+					};
 				}
 			}
-			graphics.GetModelRenderer()->Draw(usePbr ? ModelShaderId::PBR : ModelShaderId::Basic, model, params);
+			graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, model, &params);
 			graphics.GetModelRenderer()->Render(rc);
 		}
 		if (showFaces)
 		{
 			rc.renderSettings.wireframe = true;
-			graphics.GetModelRenderer()->Draw(ModelShaderId::Basic, model, {});
+			graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, model);
 			graphics.GetModelRenderer()->Render(rc);
 		}
 
@@ -364,6 +379,11 @@ void VmdlEditorScene::RenderPreview()
 		}
 	}
 
+	previewSceneTarget->Deactivate(dc);
+
+	previewTarget->Clear(dc);
+	previewTarget->Activate(dc);
+	postProcess.ToneMapping(rc, previewSceneTarget->GetSRV());
 	previewTarget->Deactivate(dc);
 }
 
@@ -863,10 +883,8 @@ void VmdlEditorScene::DrawTimeline()
 	VMDLModel::Animation& animation = animations[selectedAnimation];
 	const bool recordClicked = ImGui::Button("\xE2\x97\x8F##Record", ImVec2(38.0f, 0.0f));
 	if (recordClicked) animationRecording = !animationRecording;
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip("Record: automatically key edited bone transforms");
 	ImGui::SameLine();
 	if (ImGui::Button(animationPlaying ? "||##Play" : "\xE2\x96\xB6##Play", ImVec2(38.0f, 0.0f))) animationPlaying = !animationPlaying;
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play / Pause: pause keeps Collider, Trail, and Shape animation states");
 	ImGui::SameLine();
 	if (ImGui::Button("\xE2\x96\xA0##Stop", ImVec2(38.0f, 0.0f)))
 	{
@@ -875,7 +893,6 @@ void VmdlEditorScene::DrawTimeline()
 		ApplyAnimationPreview();
 		ResetAnimationControlPreview();
 	}
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop: restore Collider, Trail, and Shape initial states");
 	ImGui::SameLine();
 	ImGui::Checkbox("Loop", &animationLoop);
 	ImGui::SameLine();

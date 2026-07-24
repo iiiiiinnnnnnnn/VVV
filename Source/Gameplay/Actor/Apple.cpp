@@ -18,7 +18,7 @@ Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
     AddComponent<MeshCollider>(rb, model.get(), true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
 
     VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
-        model, ModelShaderId::PBR);
+        model, ModelShaderId::VMat);
 }
 
 void Apple::SetPosition(const Vector3& pos)

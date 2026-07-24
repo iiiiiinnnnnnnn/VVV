@@ -39,7 +39,7 @@
     <ClCompile Include="Source\Animation\Animator.cpp" />
     <ClCompile Include="Source\Animation\AnimatorEditor.cpp" />
     <ClCompile Include="Source\Animation\AnimatorSerialization.cpp" />
-    <ClCompile Include="Source\Rendering\Shader\BasicModelShader.cpp" />
+    <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp" />
     <ClCompile Include="Source\Animation\BoneFollower.cpp" />
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\AracoreQueen.cpp" />
@@ -76,7 +76,6 @@
     <ClCompile Include="Source\Rendering\Renderer\ImGuiRenderer.cpp" />
     <ClCompile Include="Source\Application\Input\Input.cpp" />
     <ClCompile Include="Source\Core\Object\Object.cpp" />
-    <ClCompile Include="Source\Rendering\Shader\PBRShader.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayer.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp" />
@@ -151,7 +150,7 @@
     <ClInclude Include="Source\Gameplay\Actor\Actor.h" />
     <ClInclude Include="Source\Gameplay\Actor\ActorManager.h" />
     <ClInclude Include="Source\Animation\Animator.h" />
-    <ClInclude Include="Source\Rendering\Shader\BasicModelShader.h" />
+    <ClInclude Include="Source\Rendering\Shader\VMatShader.h" />
     <ClInclude Include="Source\Animation\BoneFollower.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
     <ClInclude Include="Source\Gameplay\Actor\AracoreQueen.h" />
@@ -196,7 +195,6 @@
     <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
     <ClInclude Include="Source\Application\Input\Input.h" />
     <ClInclude Include="Source\Core\Object\Object.h" />
-    <ClInclude Include="Source\Rendering\Shader\PBRShader.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h" />
     <ClInclude Include="Source\Resource\VMDLModel.h" />
@@ -208,7 +206,6 @@
     <ClInclude Include="Source\Physics\Navigation\NavMeshActor.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h" />
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h" />
-    <ClInclude Include="Source\Rendering\Core\ShaderParam.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage01.h" />
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h" />
@@ -223,6 +220,7 @@
     <ClInclude Include="Source\Physics\Core\PhysicsManager.h" />
     <ClInclude Include="Source\Rendering\Renderer\PrimitiveRenderer.h" />
     <ClInclude Include="Source\Rendering\Core\RenderContext.h" />
+    <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h" />
     <ClInclude Include="Source\Rendering\Core\RenderState.h" />
     <ClInclude Include="Source\Gameplay\Scene\Scene.h" />
     <ClInclude Include="Source\Rendering\Shader\Shader.h" />
@@ -246,7 +244,6 @@
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="Shader\filter_functions.hlsli" />
-    <None Include="Shader\BasicModel.hlsli" />
     <None Include="Shader\gbuffer.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\PBR.hlsli" />
@@ -301,14 +298,6 @@
     <FxCompile Include="Shader\GaussianFilteringPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicModelPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\BasicModelVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\PBRPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -470,7 +459,7 @@
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>Data\Shader\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(TargetDir)Data\Shader\%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput>
       </AssemblerOutput>
       <AssemblerOutputFile>
@@ -511,7 +500,7 @@
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>Data\Shader\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(TargetDir)Data\Shader\%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput>
       </AssemblerOutput>
       <AssemblerOutputFile>

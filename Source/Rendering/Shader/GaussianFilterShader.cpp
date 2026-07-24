@@ -36,7 +36,11 @@ void GaussianFilterShader::Begin(const RenderContext& rc)
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
 }
 
-void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv, Vector2 textureSize, const ShaderParamList& params)
+void GaussianFilterShader::Update(
+	const RenderContext& rc,
+	ID3D11ShaderResourceView* srv,
+	Vector2 textureSize,
+	const Color& color)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -44,21 +48,18 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	CbGaussianFilter constant;
 	{
 		//	偶数の場合は奇数に直す
-		int kernel_size = GetParam<int>(params, "kernel_size", 20);
-		float sigma = GetParam<float>(params, "sigma", 20);
+		if (kernelSize % 2 == 0)
+			kernelSize++;
 
-		if (kernel_size % 2 == 0)
-			kernel_size++;
-
-		constant.kernelSize = static_cast<float>(kernel_size);
+		constant.kernelSize = static_cast<float>(kernelSize);
 		constant.texcel.x = 1.0f / textureSize.x;
 		constant.texcel.y = 1.0f / textureSize.y;
 		//	重みを算出
 		float sum = 0.0f;
 		int id = 0;
-		for (int y = -kernel_size / 2; y <= kernel_size / 2; y++)
+		for (int y = -kernelSize / 2; y <= kernelSize / 2; y++)
 		{
-			for (int x = -kernel_size / 2; x <= kernel_size / 2; x++)
+			for (int x = -kernelSize / 2; x <= kernelSize / 2; x++)
 			{
 				constant.weights[id].x = (float)x;
 				constant.weights[id].y = (float)y;
@@ -68,7 +69,7 @@ void GaussianFilterShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 			}
 		}
 		//	平均化
-		for (int i = 0; i < kernel_size * kernel_size; i++)
+		for (int i = 0; i < kernelSize * kernelSize; i++)
 		{
 			constant.weights[i].z /= sum;
 		}

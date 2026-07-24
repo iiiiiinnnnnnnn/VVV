@@ -1,7 +1,7 @@
 ﻿// Aracore.h
 
 #pragma once
-#include "Rendering/Core/ShaderParam.h"
+#include "Rendering/Core/VMatRenderParams.h"
 #include <memory>
 #include <vector>
 
@@ -28,7 +28,6 @@ public:
 	AracoreMachine(Aracore* ownerAracore);
 
 private:
-	ShaderParamListWithMaterialName shaderParamWithMaterialName;
 };
 
 class Aracore : public Entity
@@ -87,5 +86,5 @@ private:
 	bool attackHit = false;
 	bool deathSequenceActive = false;
 
-	ShaderParamListWithMaterialName shaderParamWithMaterialName;
+	VMatRenderParams renderParams;
 };

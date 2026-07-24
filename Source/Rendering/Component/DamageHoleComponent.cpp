@@ -22,22 +22,22 @@ DamageHoleComponent::DamageHoleComponent(
 	, holeDepth(holeDepth)
 	, surfaceDistance(surfaceDistance)
 {
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::DrawGUI()
 {
 	if (ImGui::DragFloat("Hole Radius", &holeRadius, 0.01f, 0.001f, 100.0f))
 	{
-		UpdateShaderParams();
+		UpdateRenderParams();
 	}
 	if (ImGui::DragFloat("Hole Edge Width", &holeEdgeWidth, 0.01f, 0.001f, 30.0f))
 	{
-		UpdateShaderParams();
+		UpdateRenderParams();
 	}
 	if (ImGui::DragFloat("Hole Depth", &holeDepth, 0.01f, 0.0f, 100.0f))
 	{
-		UpdateShaderParams();
+		UpdateRenderParams();
 	}
 	ImGui::DragFloat("Surface Distance", &surfaceDistance, 0.01f, -1.0f, 100.0f);
 	ImGui::Text("Hole Count: %d / %d", static_cast<int>(damageHoles.size()), MaxDamageHoles);
@@ -73,7 +73,7 @@ void DamageHoleComponent::LateUpdate()
 {
 	if (damageHoles.empty()) return;
 
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::AddDamageHoleFrom(const Actor* attacker)
@@ -140,44 +140,42 @@ void DamageHoleComponent::AddDamageHoleAt(const Vector3& position, const Vector3
 
 	damageHoles.emplace_back(localPosition.x, localPosition.y, localPosition.z, holeRadius);
 	damageHoleDirections.emplace_back(localDirection.x, localDirection.y, localDirection.z, 0.0f);
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::ClearDamageHoles()
 {
 	damageHoles.clear();
 	damageHoleDirections.clear();
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::SetHoleRadius(float radius)
 {
 	holeRadius = radius;
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::SetHoleEdgeWidth(float edgeWidth)
 {
 	holeEdgeWidth = edgeWidth;
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
 void DamageHoleComponent::SetHoleDepth(float depth)
 {
 	holeDepth = depth;
-	UpdateShaderParams();
+	UpdateRenderParams();
 }
 
-void DamageHoleComponent::UpdateShaderParams()
+void DamageHoleComponent::UpdateRenderParams()
 {
-	if (modelRenderer == nullptr)
-	{
-		return;
-	}
+	if (!modelRenderer) return;
 
-	modelRenderer->SetShaderParamForAllMaterials({"holeCount", static_cast<int>(damageHoles.size())});
-	modelRenderer->SetShaderParamForAllMaterials({"holeEdgeWidth", holeEdgeWidth});
-	modelRenderer->SetShaderParamForAllMaterials({"holeDepth", holeDepth});
+	VMatDamageHoleParams& params = modelRenderer->GetRenderParams().damageHoles;
+	params.count = static_cast<int>(damageHoles.size());
+	params.edgeWidth = holeEdgeWidth;
+	params.depth = holeDepth;
 
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	for (int i = 0; i < MaxDamageHoles; ++i)
@@ -189,8 +187,8 @@ void DamageHoleComponent::UpdateShaderParams()
 			? MakeWorldDirection(damageHoleDirections[i], actor)
 			: Vector4(0, 0, 0, 0);
 
-		modelRenderer->SetShaderParamForAllMaterials({"hole" + std::to_string(i), hole});
-		modelRenderer->SetShaderParamForAllMaterials({"holeDirection" + std::to_string(i), direction});
+		params.holes[i] = hole;
+		params.directions[i] = direction;
 	}
 }
 
