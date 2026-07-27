@@ -478,6 +478,10 @@ void VmdlEditorScene::DrawMenuBar()
 		if (ImGui::MenuItem("Physics Layer")) showPhysicsLayerWindow = true;
 		ImGui::EndMenu();
 	}
+	if (ImGui::BeginMenu("Tools"))
+	{
+
+	}
 	std::string title = documentPath.empty() ? "Untitled" : documentPath.string();
 
 	if (dirty)
