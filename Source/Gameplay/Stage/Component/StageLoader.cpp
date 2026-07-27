@@ -334,11 +334,15 @@ void StageLoader::DrawEditorGUI(bool singleSection)
 
 
 			std::vector<std::filesystem::path> modelFiles;
-			for (const auto& file : std::filesystem::directory_iterator("Data/Model/Prop"))
+			std::error_code directoryError;
+			const std::filesystem::path propDirectory = "Data/Model/Prop";
+			for (std::filesystem::directory_iterator file(propDirectory, directoryError), end;
+				file != end && !directoryError;
+				file.increment(directoryError))
 			{
-				if (file.path().extension() == ".vmdl")
+				if (file->path().extension() == ".vmdl")
 				{
-					modelFiles.push_back(file.path());
+					modelFiles.push_back(file->path());
 				}
 			}
 

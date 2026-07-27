@@ -102,7 +102,6 @@ void Scene::Update()
 
 	Stage& stage = *currentStage;
 
-	#ifdef _DEBUG
 	if (UsesGameDebugGUI())
 	{
 		GamePad& gamePad = Game::Input::Instance().GetGamePad();
@@ -126,7 +125,6 @@ void Scene::Update()
 			else SwitchToPlayMode();
 		}
 	}
-	#endif
 
 	if (CameraController* controller = stage.GetActiveCameraController())
 		controller->SetInputEnabled(!isCursorReleased);
@@ -175,12 +173,10 @@ void Scene::Render()
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
 	// デバッグ切り替え
-	#ifdef _DEBUG
 	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
 	{
 		renderSettings.showDebug = !renderSettings.showDebug;
 	}
-	#endif
 
 	// 描画コンテキスト設定
 	RenderContext rc;
@@ -392,7 +388,6 @@ void Scene::DrawGUI(RenderContext& rc)
 	Camera& camera = *activeCamera;
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
-	#ifdef _DEBUG
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -529,7 +524,6 @@ void Scene::DrawGUI(RenderContext& rc)
 
 		dynamicAnimationEditorWindow.Draw(&showDynamicAnimationEditorWindow);
 	}
-	#endif
 }
 
 CameraController* Scene::GetActiveCameraController() const

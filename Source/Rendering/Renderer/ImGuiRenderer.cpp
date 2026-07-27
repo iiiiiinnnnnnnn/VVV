@@ -7,22 +7,13 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// ‰Šú‰»
+// åˆæœŸåŒ–
 void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceContext* dc)
 {
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
-
-	#if defined(DEBUG) || defined(_DEBUG)
-	std::filesystem::create_directories("Data/Font");
-	std::filesystem::copy(
-		"../../../Data/Font",
-		"Data/Font",
-		std::filesystem::copy_options::recursive |
-		std::filesystem::copy_options::overwrite_existing);
-	#endif
 
 	io.IniFilename = "Data/Editor.ini";
 
@@ -52,13 +43,13 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	// ImGuiƒXƒ^ƒCƒ‹İ’è
+	// ImGuiã‚¹ã‚¿ã‚¤ãƒ«è¨­å®š
 	{
-		style.Alpha = 0.8f; // ‘S‘Ì‚Ì“§–¾“x
+		style.Alpha = 0.8f; // å…¨ä½“ã®é€æ˜åº¦
 		style.WindowRounding = 8.0f;
 		style.FrameRounding = 4.0f;
 
-		// ”wŒiF‚ğ”¼“§–¾‚É
+		// èƒŒæ™¯è‰²ã‚’åŠé€æ˜ã«
 		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.7f);
 		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.6f);
 		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.8f);
@@ -84,9 +75,9 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
 	ImFont* font = io.Fonts->AddFontFromFileTTF("Data/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	IM_ASSERT(font != NULL);
+	if (!font) io.Fonts->AddFontDefault();
 
-	// Font Awesome‚ğƒ}[ƒW
+	// Font Awesomeã‚’ãƒãƒ¼ã‚¸
 	static const ImWchar icon_ranges[] = { 0xf000, 0xf8ff, 0 };
 	ImFontConfig config;
 	config.MergeMode = true;
@@ -95,7 +86,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	io.Fonts->AddFontFromFileTTF("Data/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
 }
 
-// I—¹‰»
+// çµ‚äº†åŒ–
 void ImGuiRenderer::Finalize()
 {
 	ImGui_ImplDX11_Shutdown();
@@ -103,7 +94,7 @@ void ImGuiRenderer::Finalize()
 	ImGui::DestroyContext();
 }
 
-// ƒtƒŒ[ƒ€ŠJnˆ—
+// ãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†
 void ImGuiRenderer::NewFrame()
 {
 	ImGui_ImplDX11_NewFrame();
@@ -147,7 +138,7 @@ void ImGuiRenderer::NewFrame()
 #endif
 }
 
-// •`‰æ
+// æç”»
 void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 {
 	// Rendering
@@ -164,7 +155,7 @@ void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 	}
 }
 
-// WIN32ƒƒbƒZ[ƒWƒnƒ“ƒhƒ‰[
+// WIN32ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒãƒ³ãƒ‰ãƒ©ãƒ¼
 LRESULT ImGuiRenderer::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);

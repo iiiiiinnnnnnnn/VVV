@@ -6,28 +6,28 @@ set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
 set RELEASE_TAG=vvv-latest
 set ZIP_NAME=VVV.zip
 set OUT_DIR=bin\x64\Release
-set RUNTIME_DATA_DIR=bin\x64\Debug\Data
+set RUNTIME_DATA_DIR=bin\x64\Release\Data
 set PACKAGE_DIR=package
 set DIST_DIR=dist
 
-echo [1/6] ƒrƒ‹ƒhÏ‚İƒtƒ@ƒCƒ‹‚ğŠm”F’†...
+echo [1/6] ãƒ“ãƒ«ãƒ‰æ¸ˆã¿ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ç¢ºèªä¸­...
 
 if not exist "%OUT_DIR%\Game.exe" (
-    echo Game.exe ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB
-    echo æ‚É Visual Studio ‚Å Release x64 ƒrƒ‹ƒh‚µ‚Ä‚­‚¾‚³‚¢B
+    echo Game.exe ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚
+    echo å…ˆã« Visual Studio ã§ Release x64 ãƒ“ãƒ«ãƒ‰ã—ã¦ãã ã•ã„ã€‚
     pause
     exit /b 1
 )
 
 where gh >nul 2>nul
 if errorlevel 1 (
-    echo GitHub CLI ‚Ì gh ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB
-    echo gh ‚ğƒCƒ“ƒXƒg[ƒ‹‚µ‚ÄƒƒOƒCƒ“‚µ‚Ä‚­‚¾‚³‚¢B
+    echo GitHub CLI ã® gh ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚
+    echo gh ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ãƒ­ã‚°ã‚¤ãƒ³ã—ã¦ãã ã•ã„ã€‚
     pause
     exit /b 1
 )
 
-echo [2/6] ì‹ÆƒtƒHƒ‹ƒ_[‚ğ‰Šú‰»’†...
+echo [2/6] ä½œæ¥­ãƒ•ã‚©ãƒ«ãƒ€ãƒ¼ã‚’åˆæœŸåŒ–ä¸­...
 
 rmdir /s /q "%PACKAGE_DIR%" 2>nul
 rmdir /s /q "%DIST_DIR%" 2>nul
@@ -35,7 +35,7 @@ rmdir /s /q "%DIST_DIR%" 2>nul
 mkdir "%PACKAGE_DIR%"
 mkdir "%DIST_DIR%"
 
-echo [3/6] exe ‚Æ dll ‚ğƒRƒs[’†...
+echo [3/6] exe ã¨ dll ã‚’ã‚³ãƒ”ãƒ¼ä¸­...
 
 copy "%OUT_DIR%\PhysXCommon_64.dll" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\PhysXCooking_64.dll" "%PACKAGE_DIR%\" /Y
@@ -43,46 +43,39 @@ copy "%OUT_DIR%\PhysXFoundation_64.dll" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\PVDRuntime_64.dll" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\PhysX_64.dll" "%PACKAGE_DIR%\" /Y
 copy "%OUT_DIR%\Game.exe" "%PACKAGE_DIR%\" /Y
-copy "%OUT_DIR%\Game.exp" "%PACKAGE_DIR%\" /Y
-copy "%OUT_DIR%\Game.lib" "%PACKAGE_DIR%\" /Y
-copy "%OUT_DIR%\Game.pdb" "%PACKAGE_DIR%\" /Y
 
 if not exist "%RUNTIME_DATA_DIR%\cached.ini" (
-    echo Data ƒtƒHƒ‹ƒ_[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB
+    echo Data ãƒ•ã‚©ãƒ«ãƒ€ãƒ¼ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚
     pause
     exit /b 1
 )
 
-echo [4/6] Data ‚ğƒRƒs[’†...
+echo [4/6] Data ã‚’ã‚³ãƒ”ãƒ¼ä¸­...
 echo Copying resources listed in Data/cached.ini.
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "PackageData.ps1" -RuntimeData "%RUNTIME_DATA_DIR%" -PackageData "%PACKAGE_DIR%\Data"
 
 if errorlevel 1 (
-    echo Data ‚ÌƒRƒs[‚É¸”s‚µ‚Ü‚µ‚½B
+    echo Data ã®ã‚³ãƒ”ãƒ¼ã«å¤±æ•—ã—ã¾ã—ãŸã€‚
     pause
     exit /b 1
 )
 
 
-if exist "imgui.ini" (
-    copy "imgui.ini" "%PACKAGE_DIR%\" /Y
-)
-
-echo [5/6] zip ‚ğì¬’†...
-echo Data ‚ª‘å‚«‚¢ê‡A‚±‚±‚Å‚µ‚Î‚ç‚­~‚Ü‚Á‚ÄŒ©‚¦‚Ü‚·B
+echo [5/6] zip ã‚’ä½œæˆä¸­...
+echo Data ãŒå¤§ãã„å ´åˆã€ã“ã“ã§ã—ã°ã‚‰ãæ­¢ã¾ã£ã¦è¦‹ãˆã¾ã™ã€‚
 
 pushd "%PACKAGE_DIR%"
 tar -a -cf "..\%DIST_DIR%\%ZIP_NAME%" *
 popd
 
 if not exist "%DIST_DIR%\%ZIP_NAME%" (
-    echo zip ‚Ìì¬‚É¸”s‚µ‚Ü‚µ‚½B
+    echo zip ã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸã€‚
     pause
     exit /b 1
 )
 
-echo [6/6] GitHub Release ‚ÉƒAƒbƒvƒ[ƒh’†...
+echo [6/6] GitHub Release ã«ã‚¢ãƒƒãƒ—ãƒ­ãƒ¼ãƒ‰ä¸­...
 
 gh release view "%RELEASE_TAG%" --repo "%RELEASE_REPO%" >nul 2>nul
 
@@ -93,11 +86,11 @@ if errorlevel 1 (
 )
 
 if errorlevel 1 (
-    echo Release ‚Ö‚ÌƒAƒbƒvƒ[ƒh‚É¸”s‚µ‚Ü‚µ‚½B
+    echo Release ã¸ã®ã‚¢ãƒƒãƒ—ãƒ­ãƒ¼ãƒ‰ã«å¤±æ•—ã—ã¾ã—ãŸã€‚
     pause
     exit /b 1
 )
 
-echo Š®—¹‚µ‚Ü‚µ‚½B
+echo å®Œäº†ã—ã¾ã—ãŸã€‚
 echo https://github.com/iiiiiinnnnnnnn/shuushoku-download-site/releases/download/vvv-latest/VVV.zip
 pause

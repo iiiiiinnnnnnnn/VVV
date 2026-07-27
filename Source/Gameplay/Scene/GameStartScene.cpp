@@ -21,9 +21,6 @@ void GameStartScene::OnUpdate()
 		if (!windowConfigured) return;
 	}
 	if (loadRequested) return;
-#if !defined(_DEBUG)
-	loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
-#endif
 }
 
 void GameStartScene::OnDrawGUI()
@@ -42,7 +39,6 @@ void GameStartScene::OnDrawGUI()
 		return;
 	}
 
-#if defined(_DEBUG)
 	if (ImGui::Button("Game", ImVec2(-FLT_MIN, 50)))
 	{
 		loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
@@ -55,7 +51,6 @@ void GameStartScene::OnDrawGUI()
 	{
 		loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
 	}
-#endif
 	ImGui::End();
 }
 

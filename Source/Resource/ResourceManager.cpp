@@ -41,13 +41,13 @@ bool ResourceManager::PrepareGameResources()
 	runtimeDataRoot = std::filesystem::current_path() / "Data";
 	cachedPathList = runtimeDataRoot / "cached.ini";
 
-#if defined(DEBUG) || defined(_DEBUG)
 	sourceDataRoot = FindSourceDataRoot();
-	if (!BuildCaches()) return false;
-	if (!SaveCachedPathList()) return false;
-#else
-	if (!LoadCachedPathList()) return false;
-#endif
+	if (!sourceDataRoot.empty())
+	{
+		if (!BuildCaches()) return false;
+		if (!SaveCachedPathList()) return false;
+	}
+	else if (!LoadCachedPathList()) return false;
 
 	resourcesPrepared = PreloadCachedResources();
 	return resourcesPrepared;
@@ -61,7 +61,6 @@ bool ResourceManager::ReloadGameResources()
 
 void ResourceManager::RegisterGeneratedCache(const std::string& path)
 {
-#if defined(DEBUG) || defined(_DEBUG)
 	const std::string normalizedPath = NormalizePath(path);
 	if (!std::filesystem::exists(normalizedPath))
 	{
@@ -74,7 +73,6 @@ void ResourceManager::RegisterGeneratedCache(const std::string& path)
 		if (asset.path == normalizedPath) return;
 	}
 	if (AddAssetPath(AssetType::File, normalizedPath, GetLastWriteTimeText(normalizedPath))) SaveCachedPathList();
-#endif
 }
 
 std::string ResourceManager::ResolvePath(const std::string& path) const

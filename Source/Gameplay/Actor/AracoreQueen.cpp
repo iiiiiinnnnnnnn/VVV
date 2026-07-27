@@ -60,7 +60,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     };
     const auto walk = [this](const EnemyAIFlow::State&)
     {
-        controller->MoveToTarget(1.5f);
+        controller->MoveToTarget(3.0f);
     };
     controller->AddCallbackFunc("Idle", stop, stop, {}, stop);
     controller->AddCallbackFunc("Walk", walk, walk, {}, stop);

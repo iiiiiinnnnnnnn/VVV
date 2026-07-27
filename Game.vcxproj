@@ -474,7 +474,8 @@
       </Command>
     </PreLinkEvent>
     <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)Data\PhysicsLayers.physicslayers" "$(TargetDir)Data\PhysicsLayers.physicslayers"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -518,7 +519,8 @@
       </Command>
     </PreLinkEvent>
     <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)Data\PhysicsLayers.physicslayers" "$(TargetDir)Data\PhysicsLayers.physicslayers"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
