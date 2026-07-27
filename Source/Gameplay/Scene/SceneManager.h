@@ -38,11 +38,21 @@ public:
 			std::is_base_of_v<Scene, T>,
 			"T must inherit from Scene.");
 
+		constexpr bool reloadGameResources = []
+		{
+			if constexpr (requires { T::ReloadsGameResourcesOnLoad; })
+			{
+				return T::ReloadsGameResourcesOnLoad;
+			}
+			return true;
+		}();
+
 		return RequestLoadScene(
 			[message]() -> std::unique_ptr<Scene>
 			{
 				return std::make_unique<T>(message);
-			});
+			},
+			reloadGameResources);
 	}
 
 	// 旧呼び出しとの互換用。
@@ -101,9 +111,9 @@ private:
 		std::unique_ptr<Scene> scene;
 	};
 
-	bool RequestLoadScene(SceneFactory sceneFactory);
+	bool RequestLoadScene(SceneFactory sceneFactory, bool reloadGameResources);
 	void BeginPendingLoad();
-	bool StartLoadThread(SceneFactory sceneFactory);
+	bool StartLoadThread(SceneFactory sceneFactory, bool reloadGameResources);
 	void UpdateLoadProgress();
 	void ApplyLoadedScene();
 	void JoinLoadThread();
@@ -111,6 +121,7 @@ private:
 	std::unique_ptr<Scene> currentScene;
 
 	SceneFactory pendingSceneFactory;
+	bool pendingReloadGameResources = true;
 	std::atomic_bool loadRequested = false;
 
 	std::thread loadThread;

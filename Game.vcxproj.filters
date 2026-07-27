@@ -456,6 +456,9 @@
     <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h">
       <Filter>Physics\Collider</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\Foundation\Json.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">

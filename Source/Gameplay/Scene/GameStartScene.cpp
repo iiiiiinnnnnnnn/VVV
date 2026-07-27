@@ -7,19 +7,10 @@
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Scene/VstgEditorScene.h"
 #include "Rendering/Core/Graphics.h"
-#include "Resource/ResourceManager.h"
 
 GameStartScene::GameStartScene(SceneMessage message)
 	: Scene(message)
 {
-	resourcesReady = ResourceManager::Instance().PrepareGameResources();
-
-	if (resourcesReady)
-	{
-		Game::Graphics& graphics = Game::Graphics::Instance();
-		graphics.RefreshSkyMapList();
-		graphics.LoadSkyMap("Default");
-	}
 }
 
 void GameStartScene::OnUpdate()
@@ -29,7 +20,7 @@ void GameStartScene::OnUpdate()
 		ConfigureWindow();
 		if (!windowConfigured) return;
 	}
-	if (!resourcesReady || loadRequested) return;
+	if (loadRequested) return;
 #if !defined(_DEBUG)
 	loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
 #endif
@@ -51,31 +42,20 @@ void GameStartScene::OnDrawGUI()
 		return;
 	}
 
-	if (resourcesReady)
-	{
 #if defined(_DEBUG)
-		if (ImGui::Button("Game", ImVec2(-FLT_MIN, 50)))
-		{
-			loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
-		}
-		if (ImGui::Button("VMDL Editor", ImVec2(-FLT_MIN, 50)))
-		{
-			loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
-		}
-		if (ImGui::Button("VSTG Editor", ImVec2(-FLT_MIN, 50)))
-		{
-			loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
-		}
-#endif
-		ImGui::End();
-		return;
-	}
-
-	ImGui::TextUnformatted("Resource preparation failed.");
-	for (const std::string& error : ResourceManager::Instance().GetErrors())
+	if (ImGui::Button("Game", ImVec2(-FLT_MIN, 50)))
 	{
-		ImGui::TextWrapped("%s", error.c_str());
+		loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
 	}
+	if (ImGui::Button("VMDL Editor", ImVec2(-FLT_MIN, 50)))
+	{
+		loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
+	}
+	if (ImGui::Button("VSTG Editor", ImVec2(-FLT_MIN, 50)))
+	{
+		loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
+	}
+#endif
 	ImGui::End();
 }
 

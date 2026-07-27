@@ -27,7 +27,7 @@ Prop::Prop(StageLoader::PropData& propData)
 	{
 		Rigidbody* rb;
 		rb = AddComponent<RigidbodyStatic>();
-		AddComponent<MeshCollider>(Layers::Get("Prop"), rb, propData.model.get());
+		AddComponent<MeshCollider>(Layers::Get("Prop"), rb, propData.model);
 	}
 	else
 	{

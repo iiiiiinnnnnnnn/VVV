@@ -260,6 +260,7 @@ public:
 
     void SetCurrentSceneContext(
         std::unique_ptr<PhysicsSceneContext> context);
+    void RefreshLayerFiltering();
 
     // 非同期ロードスレッドだけが使用するPhysXシーンを指定する。
     // nullptrを渡すと通常のカレントシーンへ戻る。

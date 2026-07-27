@@ -30,11 +30,6 @@ public:
     void OnDamaged(const DamageData& damageData) override;
     void OnDead(const DamageData& damageData) override;
 
-    void OnEnterAnim(const Animator::State& state);
-    void OnExitAnim(const Animator::State& state);
-    void OnEnterAnimAttack4B(const Animator::State& state);
-    void OnExitAnimAttack4B(const Animator::State& state);
-
     void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
     void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
     void OnCollisionExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;

@@ -2,11 +2,9 @@
 
 #include "Application/Tools/DynamicAnimationSerializer.h"
 
-#include "nlohmann/json.hpp"
+#include "Core/Foundation/Json.h"
 
 #include <fstream>
-
-using json = nlohmann::json;
 
 namespace
 {

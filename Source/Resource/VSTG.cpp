@@ -7,9 +7,7 @@
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Component/Terrain.h"
-#include "nlohmann/json.hpp"
-
-using json = nlohmann::json;
+#include "Core/Foundation/Json.h"
 
 namespace
 {
@@ -43,6 +41,7 @@ json SaveLight(const Light& light)
 		{"name", light.GetName()},
 		{"active", light.IsActive()},
 		{"color", SaveColor(light.GetColor())},
+		{"intensity", light.GetIntensity()},
 		{"position", SaveVector3(light.transform.position)},
 		{"rotation", {light.transform.rotation.x, light.transform.rotation.y, light.transform.rotation.z, light.transform.rotation.w}}
 	};
@@ -52,7 +51,16 @@ void LoadLight(const json& value, Light& light)
 {
 	light.SetName(value.value("name", light.GetName()));
 	light.SetActive(value.value("active", true));
-	if (value.contains("color")) light.SetColor(LoadColor(value["color"]));
+	if (value.contains("color"))
+	{
+		const Color color = LoadColor(value["color"]);
+		light.SetColor(color);
+		light.SetIntensity(value.value("intensity", color.w));
+	}
+	else
+	{
+		light.SetIntensity(value.value("intensity", light.GetIntensity()));
+	}
 	if (value.contains("position")) light.transform.position = LoadVector3(value["position"]);
 	if (value.contains("rotation") && value["rotation"].is_array() && value["rotation"].size() >= 4)
 	{

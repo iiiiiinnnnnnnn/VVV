@@ -41,6 +41,7 @@ public:
 	struct VmdlCollider
 	{
 		std::string name = "Collider";
+		int layer = -1;
 		int nodeIndex = -1;
 		int shape = 0;
 		Vector3 center = Vector3::Zero;
@@ -76,9 +77,9 @@ public:
 		void serialize(Archive& archive);
 	};
 
-	struct VmdlShape
+	struct VmdlMorph
 	{
-		std::string name = "Shape";
+		std::string name = "Morph";
 		std::vector<uint8_t> meshVisibility;
 
 		template<class Archive>
@@ -92,7 +93,19 @@ public:
 		std::vector<VmdlCollider> colliders;
 		std::vector<VmdlSpring> springs;
 		std::vector<VmdlSpringCollider> springColliders;
-		std::vector<VmdlShape> shapes;
+		std::vector<VmdlMorph> morphs;
+
+		template<class Archive>
+		void serialize(Archive& archive);
+	};
+
+	struct VmdlIKLeg
+	{
+		std::string name = "Leg";
+		std::string root;
+		std::string mid;
+		std::string tip;
+		std::string contact;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -100,16 +113,11 @@ public:
 
 	struct VmdlIKSettings
 	{
+		static constexpr size_t MaxLegCount = 8;
+
 		int type = 0;
-		std::string pelvis = "pelvis";
-		std::string leftThigh = "thigh_l";
-		std::string leftCalf = "calf_l";
-		std::string leftFoot = "foot_l";
-		std::string leftBall = "ball_l";
-		std::string rightThigh = "thigh_r";
-		std::string rightCalf = "calf_r";
-		std::string rightFoot = "foot_r";
-		std::string rightBall = "ball_r";
+		std::string centerNode = "pelvis";
+		std::vector<VmdlIKLeg> legs;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -168,19 +176,19 @@ public:
 		void serialize(Archive& archive);
 	};
 
-	struct VmdlShapeKeyframe
+	struct VmdlMorphKeyframe
 	{
 		float seconds = 0.0f;
-		int shapeIndex = -1;
+		int morphIndex = -1;
 
 		template<class Archive>
 		void serialize(Archive& archive);
 	};
 
-	struct VmdlShapeAnimationTrack
+	struct VmdlMorphAnimationTrack
 	{
 		std::string animationName;
-		std::vector<VmdlShapeKeyframe> keys;
+		std::vector<VmdlMorphKeyframe> keys;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -206,20 +214,11 @@ public:
 		void serialize(Archive& archive);
 	};
 
-	struct VmdlPlacementData
-	{
-		float scale = 1.0f;
-		bool initialized = false;
-
-		template<class Archive>
-		void serialize(Archive& archive);
-	};
-
 	struct VmdlAnimationControlData
 	{
 		std::vector<uint8_t> colliderInitialActive;
 		std::vector<VmdlColliderAnimationTrack> colliderTracks;
-		std::vector<VmdlShapeAnimationTrack> shapeTracks;
+		std::vector<VmdlMorphAnimationTrack> morphTracks;
 
 		template<class Archive>
 		void serialize(Archive& archive);
@@ -495,28 +494,29 @@ public:
 	void SetTrailInitialActive(int trailIndex, bool active);
 	bool EvaluateTrailActive(int animationIndex, float time, int trailIndex) const;
 	VmdlTrailAnimationTrack& GetOrCreateTrailAnimationTrack(const std::string& animationName, int trailIndex);
-	VmdlShapeAnimationTrack& GetOrCreateShapeAnimationTrack(const std::string& animationName);
-	const VmdlShapeAnimationTrack* FindShapeAnimationTrack(const std::string& animationName) const;
-	void ApplyShapeAnimation(int animationIndex, float time);
-	void RestoreShapeVisibility(const std::vector<uint8_t>& visibility);
-	void RestoreRuntimeShapeVisibility();
-	bool ApplyShape(int shapeIndex);
-	bool ApplyShape(const char* name);
-	int GetShapeIndex(const char* name) const;
+	VmdlMorphAnimationTrack& GetOrCreateMorphAnimationTrack(const std::string& animationName);
+	const VmdlMorphAnimationTrack* FindMorphAnimationTrack(const std::string& animationName) const;
+	void ApplyMorphAnimation(int animationIndex, float time);
+	void RestoreMorphVisibility(const std::vector<uint8_t>& visibility);
+	void RestoreRuntimeMorphVisibility();
+	bool ApplyMorph(int morphIndex);
+	bool ApplyMorph(const char* name);
+	int GetMorphIndex(const char* name) const;
+	void NormalizeMorphNames();
 	bool SaveVmdl();
 	bool SaveVmdl(const std::filesystem::path& filepath);
 	VmdlExtensionData& GetVmdlExtensionData() { return vmdlExtensionData; }
 	const VmdlExtensionData& GetVmdlExtensionData() const { return vmdlExtensionData; }
 	VmdlIKSettings& GetVmdlIKSettings() { return vmdlIKSettings; }
 	const VmdlIKSettings& GetVmdlIKSettings() const { return vmdlIKSettings; }
+	void EnsureVmdlIKSettingsCompatibility();
+	void ResetVmdlIKLegsForType();
 	VmdlAnimationEditorData& GetVmdlAnimationEditorData() { return vmdlAnimationEditorData; }
 	const VmdlAnimationEditorData& GetVmdlAnimationEditorData() const { return vmdlAnimationEditorData; }
 	VmdlAnimationControlData& GetVmdlAnimationControlData() { return vmdlAnimationControlData; }
 	const VmdlAnimationControlData& GetVmdlAnimationControlData() const { return vmdlAnimationControlData; }
 	VmdlTrailData& GetVmdlTrailData() { return vmdlTrailData; }
 	const VmdlTrailData& GetVmdlTrailData() const { return vmdlTrailData; }
-	VmdlPlacementData& GetVmdlPlacementData() { return vmdlPlacementData; }
-	const VmdlPlacementData& GetVmdlPlacementData() const { return vmdlPlacementData; }
 	static bool IsCacheUpToDate(
 		const std::filesystem::path& sourcePath,
 		const std::filesystem::path& cachePath);
@@ -531,7 +531,7 @@ private:
 	void Serialize(const char* filename, uint64_t lastWrite);
 	void Deserialize(const char* filename, uint64_t& lastWrite);
 
-	static constexpr uint32_t VmdlCompressionVersion = 1;
+	static constexpr uint32_t VmdlCompressionVersion = 3;
 	static constexpr uint64_t ModelCacheVersion = 4;
 	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
 	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);
@@ -540,8 +540,8 @@ private:
 	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
 	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
-	bool ApplyShapeToMeshes(int shapeIndex);
-	void CaptureRuntimeShapeVisibility();
+	bool ApplyMorphToMeshes(int morphIndex);
+	void CaptureRuntimeMorphVisibility();
 
 	void RebuildRuntimeReferences();
 
@@ -554,10 +554,8 @@ private:
 	VmdlAnimationEditorData vmdlAnimationEditorData;
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;
-	VmdlPlacementData vmdlPlacementData;
-	std::vector<uint8_t> runtimeShapeVisibility;
+	std::vector<uint8_t> runtimeMorphVisibility;
 
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;
 };
-

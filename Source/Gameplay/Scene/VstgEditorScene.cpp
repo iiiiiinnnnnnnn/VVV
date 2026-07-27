@@ -78,6 +78,7 @@ void VstgEditorScene::OnDrawGUI()
 		}
 		if (ImGui::BeginMenu("Display"))
 		{
+			ImGui::MenuItem("Debug", "F3", &renderSettings.showDebug);
 			ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
 			ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
 			ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
@@ -184,7 +185,7 @@ bool VstgEditorScene::OnRequestExit()
 	{
 		int result = MessageBoxW(
 			Game::Graphics::Instance().GetWindowHandle(),
-			L"Do you want to save changes to the VSTG before exiting?",
+			L"èIóπÇ∑ÇÈëOÇ…ï€ë∂ÇµÇ‹Ç∑Ç©ÅH",
 			L"VSTG Editor",
 			MB_YESNOCANCEL | MB_ICONQUESTION);
 		if (result == IDYES)

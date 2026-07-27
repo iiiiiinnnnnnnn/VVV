@@ -11,10 +11,20 @@ void Light::DrawGUI()
 
 	if (ImGui::TreeNode("Light Info"))
 	{
-		ImGui::ColorEdit4(
+		ImGui::ColorEdit3(
 			"Color",
 			&color.x,
 			ImGuiColorEditFlags_Float);
+
+		ImGui::DragFloat(
+			"Intensity",
+			&intensity,
+			0.1f,
+			0.0f,
+			100000.0f,
+			"%.2f");
+
+		intensity = std::max(intensity, 0.0f);
 
 		ImGui::TreePop();
 	}

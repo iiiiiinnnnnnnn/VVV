@@ -152,6 +152,9 @@ CbLightData LightManager::ConvertToCb() const
 		{
 			cbLightData.directionalLight.color =
 				directionalLight.GetColor();
+
+			cbLightData.directionalLight.color.w =
+				directionalLight.GetIntensity();
 		}
 		else
 		{
@@ -183,6 +186,9 @@ CbLightData LightManager::ConvertToCb() const
 
 		cbPointLight.color =
 			pointLight.GetColor();
+
+		cbPointLight.color.w =
+			pointLight.GetIntensity();
 
 		cbPointLight.range =
 			pointLight.GetRange();
@@ -231,6 +237,9 @@ CbLightData LightManager::ConvertToCb() const
 
 		cbSpotLight.color =
 			spotLight.GetColor();
+
+		cbSpotLight.color.w =
+			spotLight.GetIntensity();
 
 		cbSpotLight.range =
 			spotLight.GetRange();
@@ -314,6 +323,9 @@ CbLightData LightManager::ConvertToCb() const
 
 		cbAreaLight.color =
 			areaLight.GetColor();
+
+		cbAreaLight.color.w =
+			areaLight.GetIntensity();
 
 		++cbLightData.areaLightCount;
 	}

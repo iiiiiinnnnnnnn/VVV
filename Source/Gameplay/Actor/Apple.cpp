@@ -15,7 +15,7 @@ Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
     model->UpdateTransform(transform.matrix);
 
     rb = AddComponent<RigidbodyDynamic>();
-    AddComponent<MeshCollider>(rb, model.get(), true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
+    AddComponent<MeshCollider>(rb, model, true, 1280, PhysicsManager::Instance().GetPhysics()->createMaterial(0.5f, 0.5f, 0));
 
     VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
         model, ModelShaderId::VMat);

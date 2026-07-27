@@ -16,7 +16,6 @@ public:
 private:
 	void ConfigureWindow();
 
-	bool resourcesReady = false;
 	bool loadRequested = false;
 	bool windowConfigured = false;
 };

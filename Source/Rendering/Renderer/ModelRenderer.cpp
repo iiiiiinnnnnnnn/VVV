@@ -96,7 +96,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 		CbSkeleton cbSkeleton{};
 		if (mesh.bones.size() > 0)
 		{
-			for (size_t i = 0; i < mesh.bones.size(); ++i)
+			for (size_t i = 0; i < mesh.bones.size() && i < _countof(cbSkeleton.boneTransforms); ++i)
 			{
 				const VMDLModel::Bone& bone = mesh.bones.at(i);
 				cbSkeleton.boneTransforms[i] =

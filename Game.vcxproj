@@ -122,6 +122,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h" />
     <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h" />
+    <ClInclude Include="Source\Core\Foundation\Json.h" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />

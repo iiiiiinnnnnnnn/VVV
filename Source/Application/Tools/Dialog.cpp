@@ -146,19 +146,19 @@ DialogResult Dialog::SaveFileName(
 	}
 
 	std::filesystem::path selectedPath(filepath);
-
-	switch (ofn.nFilterIndex)
+	if (ext && ext[0] != '\0')
 	{
-		case 1:
-			selectedPath.replace_extension(".dds");
-			break;
-
-		case 2:
-			selectedPath.replace_extension(".png");
-			break;
-
-		default:
-			return DialogResult::Cancel;
+		std::string extension = ext;
+		if (extension.front() != '.') extension.insert(extension.begin(), '.');
+		selectedPath.replace_extension(extension);
+	}
+	else if (ofn.nFilterIndex == 1)
+	{
+		selectedPath.replace_extension(".dds");
+	}
+	else if (ofn.nFilterIndex == 2)
+	{
+		selectedPath.replace_extension(".png");
 	}
 
 	const std::string finalPath = selectedPath.string();

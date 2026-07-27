@@ -1009,8 +1009,9 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 					static_cast<float>(l.color[0]),
 					static_cast<float>(l.color[1]),
 					static_cast<float>(l.color[2]),
-					static_cast<float>(l.intensity) * 0.01f
+					1.0f
 		};
+		const float intensity = static_cast<float>(l.intensity) * 0.01f;
 		float range = (l.range > 0.0) ? static_cast<float>(l.range) : 10.0f;
 
 		if (l.type == "point")
@@ -1019,6 +1020,7 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 			light.SetName(l.name);
 			light.transform.position = position;
 			light.SetColor(color);
+			light.SetIntensity(intensity);
 			light.SetRange(range);
 		}
 		else if (l.type == "spot")
@@ -1028,6 +1030,7 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 			light.transform.position = position;
 			light.transform.SetDirection(direction);
 			light.SetColor(color);
+			light.SetIntensity(intensity);
 			light.SetRange(range);
 			light.SetInnerConeAngle(static_cast<float>(l.spot.innerConeAngle));
 			light.SetOuterConeAngle(static_cast<float>(l.spot.outerConeAngle));
@@ -1040,6 +1043,7 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 			light.SetName(l.name);
 			light.transform.SetDirection(direction);
 			light.SetColor(color);
+			light.SetIntensity(intensity);
 		}
 	}
 }

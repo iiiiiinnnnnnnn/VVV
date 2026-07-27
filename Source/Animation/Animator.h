@@ -361,6 +361,7 @@ private:
     bool useRootMotion = false;
     std::string rootNodeName = "";
     int rootNodeIndex = -1;
+    VMDLModel::NodePose rootMotionBasePose;
 
     Vector3 rootMotionVec = Vector3::Zero;
     Quaternion rootMotionRot = Quaternion::Identity;

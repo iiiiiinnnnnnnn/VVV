@@ -80,6 +80,9 @@ void SpiderFootIK::AddLeg(const char* rootName, const char* midName, const char*
 {
 	if (!owner) return;
 	if (!model) return;
+	if (!rootName || !midName || !tipName) return;
+	if (model->GetNodeIndex(rootName) < 0 || model->GetNodeIndex(midName) < 0 || model->GetNodeIndex(tipName) < 0) return;
+	if (contactName && model->GetNodeIndex(contactName) < 0) return;
 
 	FootIK* footIK = owner->AddComponent<FootIK>(
 		layerId,
@@ -98,6 +101,26 @@ void SpiderFootIK::AddLeg(const char* rootName, const char* midName, const char*
 	if (contactName && contactName[0] != '\0') targetNames.emplace_back(contactName);
 	footTargetNames.push_back(targetNames);
 	ApplyFootSettings();
+}
+
+int SpiderFootIK::AddLegsFromVmdlSettings()
+{
+	if (!model) return 0;
+	model->EnsureVmdlIKSettingsCompatibility();
+	const auto& settings = model->GetVmdlIKSettings();
+	if (settings.type != 2 && settings.type != 3) return 0;
+
+	waistNodeIndex = model->GetNodeIndex(settings.centerNode.c_str());
+	int addedCount = 0;
+	for (const auto& leg : settings.legs)
+	{
+		const size_t previousCount = footIKs.size();
+		AddLeg(
+			leg.root.c_str(), leg.mid.c_str(), leg.tip.c_str(),
+			leg.contact.empty() ? nullptr : leg.contact.c_str());
+		if (footIKs.size() > previousCount) ++addedCount;
+	}
+	return addedCount;
 }
 
 void SpiderFootIK::SetRay(float up, float down, float contactOffset)

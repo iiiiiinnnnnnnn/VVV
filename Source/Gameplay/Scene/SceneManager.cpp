@@ -6,6 +6,8 @@
 #include "Gameplay/Scene/LoadingScene.h"
 #include "Gameplay/Scene/GameStartScene.h"
 #include "Physics/Core/PhysicsManager.h"
+#include "Rendering/Core/Graphics.h"
+#include "Resource/ResourceManager.h"
 
 #include <stdexcept>
 
@@ -134,7 +136,8 @@ void SceneManager::Render()
 }
 
 bool SceneManager::RequestLoadScene(
-	SceneFactory sceneFactory)
+	SceneFactory sceneFactory,
+	bool reloadGameResources)
 {
 	if (!sceneFactory)
 	{
@@ -151,6 +154,7 @@ bool SceneManager::RequestLoadScene(
 		std::lock_guard<std::mutex> lock(loadMutex);
 
 		pendingSceneFactory = std::move(sceneFactory);
+		pendingReloadGameResources = reloadGameResources;
 		lastLoadError.clear();
 	}
 
@@ -171,11 +175,13 @@ void SceneManager::BeginPendingLoad()
 	}
 
 	SceneFactory sceneFactory;
+	bool reloadGameResources = true;
 
 	{
 		std::lock_guard<std::mutex> lock(loadMutex);
 		sceneFactory = std::move(pendingSceneFactory);
 		pendingSceneFactory = {};
+		reloadGameResources = pendingReloadGameResources;
 	}
 
 	if (!sceneFactory)
@@ -208,7 +214,7 @@ void SceneManager::BeginPendingLoad()
 	currentScene.reset();
 	currentScene = std::make_unique<LoadingScene>();
 
-	if (!StartLoadThread(std::move(sceneFactory)))
+	if (!StartLoadThread(std::move(sceneFactory), reloadGameResources))
 	{
 		loading.store(
 			false,
@@ -217,18 +223,31 @@ void SceneManager::BeginPendingLoad()
 }
 
 bool SceneManager::StartLoadThread(
-	SceneFactory sceneFactory)
+	SceneFactory sceneFactory,
+	bool reloadGameResources)
 {
 	try
 	{
 		loadThread = std::thread(
-			[this, sceneFactory = std::move(sceneFactory)]() mutable
+			[this, sceneFactory = std::move(sceneFactory), reloadGameResources]() mutable
 		{
 			std::unique_ptr<LoadedScene> result;
 			std::exception_ptr exception;
 
 			try
 			{
+				ResourceManager& resources = ResourceManager::Instance();
+				if (reloadGameResources && !resources.ReloadGameResources())
+				{
+					const auto& errors = resources.GetErrors();
+					throw std::runtime_error(errors.empty() ? "Resource preparation failed." : errors.front());
+				}
+
+				Game::Graphics& graphics = Game::Graphics::Instance();
+				const std::string skyMapName = graphics.GetSkyMapName();
+				graphics.RefreshSkyMapList();
+				if (!graphics.LoadSkyMap(skyMapName)) graphics.LoadSkyMap("Default");
+
 				result =
 					std::make_unique<LoadedScene>();
 

@@ -28,14 +28,14 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     maxLife = (std::clamp)(maxLife, 1.0f, 100.0f);
     life = maxLife;
 
-    model = ResourceManager::Instance().LoadModel("Data/Model/Prop/crystal");
+    model = ResourceManager::Instance().LoadModel("Data/Model/Crystal/crystals_from_space");
     modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 1.0f, 1.0f, 2.0f, 0.1f);
+    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 0.5f, 0.5f, 0.5f, 0.1f);
     rigidbody = AddComponent<RigidbodyStatic>();
     meshCollider = AddComponent<MeshCollider>(
         Layers::Get("Prop"),
         rigidbody,
-        model.get());
+        model);
     navMeshObstacle = AddComponent<NavMeshObstacle>();
 }
 

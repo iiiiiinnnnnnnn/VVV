@@ -45,6 +45,8 @@ public:
 	void SetCollides(LayerId a, LayerId b, bool enabled);
 
 	LayerId GetLayerId(const char* name) const;
+	const std::string& GetLayerName(LayerId id) const;
+	std::string GetLayerDisplayName(LayerId id) const;
 
 private:
 	PhysicsLayerManager() = default;

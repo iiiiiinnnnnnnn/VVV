@@ -6,9 +6,8 @@
 #include <fstream>
 #include <variant>
 
-#include "nlohmann/json.hpp"
+#include "Core/Foundation/Json.h"
 
-using json = nlohmann::json;
 bool Animator::Serialize(const std::string& path) const
     {
         json root;

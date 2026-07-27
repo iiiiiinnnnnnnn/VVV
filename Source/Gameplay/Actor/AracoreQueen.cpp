@@ -2,65 +2,35 @@
 
 #include "Gameplay/Actor/AracoreQueen.h"
 #include "Animation/Animator.h"
-#include "Animation/BoneFollower.h"
-#include "Physics/Collider/BoxCollider.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Resource/VMDLModel.h"
+#include "Rendering/Component/VMDL.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Collider/SphereCollider.h"
-#include "Rendering/Component/DamageHoleComponent.h"
-#include "Resource/ResourceManager.h"
-#include "Gameplay/Actor/ActorManager.h"
 #include "Physics/Navigation/NavMeshAgent.h"
-#include "Physics/Navigation/NavMeshActor.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Core/Foundation/Easing.h"
 #include "Gameplay/Scene/HitStop.h"
 #include "Animation/SpiderFootIK.h"
-#include "Physics/Collider/BoneCapsuleCollider.h"
-#include "Physics/Collider/BoneSphereCollider.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
 {
     // 蜘蛛の部分
     {
         // モデル
-        model = ResourceManager::Instance().LoadModel("Data/Model/Spider/animated_spider");
-        renderParams.materials =
-        {
-			{
-				"03 - Default",
-				{
-					.emissionColor = Color(0, 0, 0, 0),
-					.metalness = 0.0f,
-					.roughness = 1.0f,
-					.occlusion = 0.0f,
-					.occlusionStrength = 0.7f,
-				}
-			},
-        };
+        vmdl = AddComponent<VMDL>("Data/Model/Spider/animated_spider_rootmotion");
+        model = vmdl->GetSharedModel();
         transform.SetPosition({-6, 3, 6});
         transform.SetScale(0.035f);
         model->UpdateTransform(transform.matrix);
-        bodyRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat, renderParams);
 
         // アニメータ
-        anim = AddComponent<Animator>(model, 0);
+        anim = vmdl->GetAnimator();
+        anim->SetRootMotion("Box01");
         anim->Load("Data/Animator/animated_spider.animator");
-        anim->AddCallbackFunc("ThreatFunc",
-            [this](const Animator::State& s)
-        {
-            PostProcessController::Instance().RequestThreaten(
-                5.0f,
-                3.0f,
-                0.15f,
-                Easing::Type::InSine,
-                Easing::Type::OutCubic);
-            CameraEffectController::Request(2.0f, 0.1f);
-        },
-            nullptr);
+        anim->AddCallbackFunc("ThreatFunc", [this](const Animator::State& s) { Threat(); }, nullptr);
         anim->BindCallbacks();
 
         // キャラクターコントローラー
@@ -75,57 +45,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         rb = AddComponent<RigidbodyDynamic>();
         rb->SetKinematic(true);
 
-        // 当たり判定
-        bodyCollider = AddComponent<SphereCollider>(Layers::Get("Enemy"), rb, 3.66f, Vector3{0, 3.55f, 0});
-
-        // 足接地補正
-        spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
-        spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Dummy02"));
-        spiderFootIK->AddLeg("Box09", "Box10", "Box11");
-        spiderFootIK->AddLeg("Box20", "Box18", "Box19");
-        spiderFootIK->AddLeg("Box25", "Box22", "Box23");
-        spiderFootIK->AddLeg("Box26", "Box21", "Box24");
-        spiderFootIK->AddLeg("Box31", "Box28", "Box29");
-        spiderFootIK->AddLeg("Box35", "Box32", "Box36");
-        spiderFootIK->AddLeg("Box37", "Box33", "Box34");
-        spiderFootIK->AddLeg("Box38", "Box27", "Box30");
-
-        // 足の当たり判定
-        std::vector<std::string> ikBoneNames = {
-            "IK Chain02",
-            "IK Chain14",
-            "IK Chain15",
-            "IK Chain16",
-            "IK Chain13",
-            "IK Chain12",
-            "IK Chain11",
-            "IK Chain10"
-        };
-        colPositions = {
-            {-6.41f, 13.75f, 0.0f},
-            {-10.96f, 8.36f, 0.0f},
-            {-6.67f, -5.5f, 0.0f},
-            {-3.82f, -5.19f, 0.0f},
-            {6.41f, 13.75f, 0.0f},
-            {6.23f, 8.9f, 0.0f},
-            {3.51f, -3.4f, 0.0f},
-            {-0.51f, -3.08f, 0.0f}
-        };
-        for (int i = 0; i < ikBoneNames.size(); i++)
-        {
-            const int ikNodeIndex = model->GetNodeIndex(ikBoneNames[i].c_str());
-
-            // 足接触コライダー
-            IKColliders.push_back(AddComponent<BoneSphereCollider>(
-                Layers::Get("Enemy"),
-                model.get(),
-                ikNodeIndex,
-                1.0f,
-                Matrix::CreateFromYawPitchRoll(0.0f, RAD(90.0f), 0.0f) *
-                Matrix::CreateTranslation(colPositions[i]),
-                PhysicsManager::Instance().GetDefaultMaterial(),
-                false));
-        }
+        spiderFootIK = vmdl->GetMultiLegFootIK();
     }
 
     controller = AddComponent<EnemyAIFlow>();
@@ -140,24 +60,22 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     };
     const auto walk = [this](const EnemyAIFlow::State&)
     {
-        controller->MoveToTarget(3.0f);
-    };
-    const auto run = [this](const EnemyAIFlow::State&)
-    {
-        controller->MoveToTarget(6.0f);
+        controller->MoveToTarget(1.5f);
     };
     controller->AddCallbackFunc("Idle", stop, stop, {}, stop);
     controller->AddCallbackFunc("Walk", walk, walk, {}, stop);
-    controller->AddCallbackFunc("Run", run, run, {}, stop);
     controller->BindCallbacks();
 }
 
-void AracoreQueen::OnAwake()
+void AracoreQueen::Threat()
 {
-    auto make = std::static_pointer_cast<Actor>(std::make_shared<AracoreQueenMachine>(this));
-    machine = make.get();
-    if (ActorManager* actorManager = ActorManager::GetActive())
-        actorManager->Register(std::move(make));
+    PostProcessController::Instance().RequestThreaten(
+        5.0f,
+        3.0f,
+        0.15f,
+        Easing::Type::InSine,
+        Easing::Type::OutCubic);
+    CameraEffectController::Request(2.0f, 0.1f);
 }
 
 void AracoreQueen::OnUpdate()
@@ -170,17 +88,17 @@ void AracoreQueen::OnDrawGUI()
 {
     Entity::OnDrawGUI();
 
-    if (!ImGui::TreeNode("AracoreQueen AI"))
-        return;
-
-    for(Vector3& pos : colPositions)
+    if (ImGui::Button("THREAT"))
     {
-		ImGui::PushID(&pos);
-        ImGui::DragFloat3("Foot Collider Offset", &pos.x, 0.01f);
-		ImGui::PopID();
-	}
+        Threat();
+    }
 
-    ImGui::TreePop();
+    for (Vector3& pos : colPositions)
+    {
+        ImGui::PushID(&pos);
+        ImGui::DragFloat3("Foot Collider Offset", &pos.x, 0.01f);
+        ImGui::PopID();
+    }
 }
 
 void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
@@ -232,132 +150,6 @@ void AracoreQueen::OnDead(const DamageData& damageData)
 {
     if (controller) controller->SetActive(false);
     printf("AracoreQueen Dead!\n");
-    if (machine)
-        machine->Destroy(3);
 	anim->SetBool("Dead", true);
     //Destroy(5);
-}
-
-// AracoreQueenMachine(AracoreQueen.cpp)
-
-AracoreQueenMachine::AracoreQueenMachine(AracoreQueen* ownerAracoreQueen)
-    : Entity("AracoreQueenMachine", "Enemy", true, ownerAracoreQueen->GetLife(), ownerAracoreQueen->GetMaxLife()),
-    ownerAracoreQueen(ownerAracoreQueen)
-{
-    std::shared_ptr<VMDLModel> model =
-        ResourceManager::Instance().LoadModel("Data/Model/Prop/vending");
-
-    // リジッドボディ
-    auto rb = AddComponent<RigidbodyDynamic>();
-    rb->SetKinematic(true);
-
-    // 当たり判定
-    collider = AddComponent<BoxCollider>(
-        Layers::Get("EnemyAccessory"), rb, Vector3 { 3.665f, 5.85f, 2.5f }, Vector3{0.0f, 0.29f, 0.0f});
-
-    // 親の体に追従
-    Transform offset{};
-    offset.SetPosition(0.0f, 43.8f, 9.6f);
-    offset.SetAngle(-15.0f, 0.0f, 0.0f);
-    offset.SetScale(40.3f, 34.9f, 47.9f);
-    AddComponent<BoneFollower>(ownerAracoreQueen->model.get(), "Box02", offset);
-
-    // モデルレンダラーとダメージホールコンポーネントを追加
-    renderParams.materials =
-    {
-        {
-            "vend_main",
-            {
-				.metalness = 0.2f,
-				.roughness = 0.0f,
-				.occlusion = 0.1f,
-				.occlusionStrength = 1.0f,
-            }
-        },
-        {
-            "venashi",
-            {
-				.metalness = 1.0f,
-				.roughness = 0.0f,
-				.occlusion = 0.1f,
-				.occlusionStrength = 0.0f,
-            }
-        },
-        {
-            "vend_bottom",
-            {
-				.metalness = 1.0f,
-				.roughness = 0.0f,
-				.occlusion = 0.1f,
-				.occlusionStrength = 0.0f,
-            }
-        },
-        {
-            "back_light",
-            {
-				.metalness = 1.0f,
-				.roughness = 0.0f,
-				.occlusion = 0.1f,
-				.occlusionStrength = 0.0f,
-            }
-        },
-        {
-            "vend_main_toridashi",
-            {
-				.metalness = 0.0f,
-				.roughness = 0.0f,
-				.occlusion = 0.1f,
-				.occlusionStrength = 0.0f,
-            }
-        },
-        {
-            "vend_glass2",
-            {
-				.metalness = 0.0f,
-				.roughness = 0.0f,
-				.occlusion = 1.0f,
-				.occlusionStrength = 1.0f,
-            }
-        },
-        {
-            "vend_front_glass",
-            {
-				.metalness = 0.5f,
-				.roughness = 0.0f,
-				.occlusion = 1.0f,
-				.occlusionStrength = 1.0f,
-            }
-        }
-    };
-    VMDLModelComponent* modelRenderer = AddComponent<VMDLModelComponent>(
-        model, ModelShaderId::VMat, renderParams);
-    damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 3.0f, 2.0f, 2.0f, 1.0f);
-}
-
-void AracoreQueenMachine::OnDamaged(const DamageData& damageData)
-{
-    // ボコッ
-    Actor* hitActor = damageData.hitColliderSelf ? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner()) : nullptr;
-    if (damageData.hitColliderOther == collider && hitActor && hitActor->CompareTag("Player"))
-    {
-        if (damageData.hitPosition.has_value())
-        {
-            if (damageData.hitNormal.has_value())
-                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value(), damageData.hitNormal.value());
-            else
-                damageHoleComponent->AddDamageHoleFromPosition(damageData.hitPosition.value());
-            ownerAracoreQueen->TakeDamage(damageData);
-        }
-        else
-        {
-            damageHoleComponent->AddDamageHoleFrom(hitActor);
-            ownerAracoreQueen->TakeDamage(damageData);
-        }
-    }
-}
-
-void AracoreQueenMachine::OnDead(const DamageData& damageData)
-{
-    printf("AracoreQueenMachine Dead!\n");
-    Destroy(2);
 }

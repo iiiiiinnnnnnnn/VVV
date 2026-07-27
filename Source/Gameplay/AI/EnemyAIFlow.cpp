@@ -15,9 +15,7 @@
 #include "Rendering/Core/Graphics.h"
 
 #include "imgui.h"
-#include "nlohmann/json.hpp"
-
-using json = nlohmann::json;
+#include "Core/Foundation/Json.h"
 
 EnemyAIFlow::EnemyAIFlow(Object* owner)
     : AIFlow(owner)

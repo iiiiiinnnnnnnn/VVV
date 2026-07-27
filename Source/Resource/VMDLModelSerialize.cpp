@@ -10,7 +10,12 @@
 template<class Archive>
 void VMDLModel::Node::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(parentIndex), CEREAL_NVP(position), CEREAL_NVP(rotation), CEREAL_NVP(scale));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(parentIndex),
+		CEREAL_NVP(position),
+		CEREAL_NVP(rotation),
+		CEREAL_NVP(scale));
 }
 
 template<class Archive>
@@ -40,7 +45,9 @@ void VMDLModel::Material::serialize(Archive& archive)
 template<class Archive>
 void VMDLModel::MaterialPbrSettings::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(occlusion), CEREAL_NVP(shadowStrength));
+	archive(
+		CEREAL_NVP(occlusion),
+		CEREAL_NVP(shadowStrength));
 }
 
 template<class Archive>
@@ -56,31 +63,48 @@ void VMDLModel::MaterialVMatSettings::serialize(Archive& archive)
 template<class Archive>
 void VMDLModel::Vertex::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(position), CEREAL_NVP(boneWeight), CEREAL_NVP(boneIndex), CEREAL_NVP(texcoord), CEREAL_NVP(normal), CEREAL_NVP(tangent));
+	archive(
+		CEREAL_NVP(position),
+		CEREAL_NVP(boneWeight),
+		CEREAL_NVP(boneIndex),
+		CEREAL_NVP(texcoord),
+		CEREAL_NVP(normal),
+		CEREAL_NVP(tangent));
 }
 
 template<class Archive>
 void VMDLModel::Bone::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetTransform));
+	archive(
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(offsetTransform));
 }
 
 template<class Archive>
 void VMDLModel::Mesh::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(vertices), CEREAL_NVP(indices), CEREAL_NVP(bones), CEREAL_NVP(nodeIndex), CEREAL_NVP(materialIndex));
+	archive(
+		CEREAL_NVP(vertices),
+		CEREAL_NVP(indices),
+		CEREAL_NVP(bones),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(materialIndex));
 }
 
 template<class Archive>
 void VMDLModel::VectorKeyframe::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
+	archive(
+		CEREAL_NVP(seconds),
+		CEREAL_NVP(value));
 }
 
 template<class Archive>
 void VMDLModel::QuaternionKeyframe::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
+	archive(
+		CEREAL_NVP(seconds),
+		CEREAL_NVP(value));
 }
 
 template<class Archive>
@@ -99,55 +123,113 @@ void VMDLModel::FootIKRange::serialize(Archive& archive)
 template<class Archive>
 void VMDLModel::NodeAnim::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(positionKeyframes), CEREAL_NVP(rotationKeyframes), CEREAL_NVP(scaleKeyframes));
+	archive(
+		CEREAL_NVP(positionKeyframes),
+		CEREAL_NVP(rotationKeyframes),
+		CEREAL_NVP(scaleKeyframes));
 }
 
 template<class Archive>
 void VMDLModel::Animation::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(secondsLength), CEREAL_NVP(nodeAnims), CEREAL_NVP(footIKRanges));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(secondsLength),
+		CEREAL_NVP(nodeAnims),
+		CEREAL_NVP(footIKRanges));
 }
 
 template<class Archive>
 void VMDLModel::VmdlRigidBody::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(offsetRotation), CEREAL_NVP(mass), CEREAL_NVP(kinematic));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(offsetPosition),
+		CEREAL_NVP(offsetRotation),
+		CEREAL_NVP(mass),
+		CEREAL_NVP(kinematic));
 }
 
 template<class Archive>
 void VMDLModel::VmdlCollider::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(shape), CEREAL_NVP(center), CEREAL_NVP(rotation), CEREAL_NVP(size), CEREAL_NVP(trigger));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(layer),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(shape),
+		CEREAL_NVP(center),
+		CEREAL_NVP(rotation),
+		CEREAL_NVP(size),
+		CEREAL_NVP(trigger));
 }
 
 template<class Archive>
 void VMDLModel::VmdlSpring::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(offsetRotation), CEREAL_NVP(stiffness), CEREAL_NVP(drag));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(offsetPosition),
+		CEREAL_NVP(offsetRotation),
+		CEREAL_NVP(stiffness),
+		CEREAL_NVP(drag));
 }
 
 template<class Archive>
 void VMDLModel::VmdlSpringCollider::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(offsetPosition), CEREAL_NVP(radius));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(offsetPosition),
+		CEREAL_NVP(radius));
 }
 
 template<class Archive>
-void VMDLModel::VmdlShape::serialize(Archive& archive)
+void VMDLModel::VmdlMorph::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(meshVisibility));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(meshVisibility));
 }
 
 template<class Archive>
 void VMDLModel::VmdlTrail::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(rootOffset), CEREAL_NVP(tipOffset), CEREAL_NVP(color), CEREAL_NVP(tipRatio), CEREAL_NVP(lifeTime), CEREAL_NVP(maxPoints));
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(nodeIndex),
+		CEREAL_NVP(rootOffset),
+		CEREAL_NVP(tipOffset),
+		CEREAL_NVP(color),
+		CEREAL_NVP(tipRatio),
+		CEREAL_NVP(lifeTime),
+		CEREAL_NVP(maxPoints));
 }
 
 template<class Archive>
 void VMDLModel::VmdlExtensionData::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(rootOffset), CEREAL_NVP(rigidBodies), CEREAL_NVP(colliders), CEREAL_NVP(springs), CEREAL_NVP(springColliders), CEREAL_NVP(shapes));
+	archive(
+		CEREAL_NVP(rootOffset),
+		CEREAL_NVP(rigidBodies),
+		CEREAL_NVP(colliders),
+		CEREAL_NVP(springs),
+		CEREAL_NVP(springColliders),
+		CEREAL_NVP(morphs));
+}
+
+template<class Archive>
+void VMDLModel::VmdlIKLeg::serialize(Archive& archive)
+{
+	archive(
+		CEREAL_NVP(name),
+		CEREAL_NVP(root),
+		CEREAL_NVP(mid),
+		CEREAL_NVP(tip),
+		CEREAL_NVP(contact));
 }
 
 template<class Archive>
@@ -155,78 +237,86 @@ void VMDLModel::VmdlIKSettings::serialize(Archive& archive)
 {
 	archive(
 		CEREAL_NVP(type),
-		CEREAL_NVP(pelvis),
-		CEREAL_NVP(leftThigh),
-		CEREAL_NVP(leftCalf),
-		CEREAL_NVP(leftFoot),
-		CEREAL_NVP(leftBall),
-		CEREAL_NVP(rightThigh),
-		CEREAL_NVP(rightCalf),
-		CEREAL_NVP(rightFoot),
-		CEREAL_NVP(rightBall));
+		CEREAL_NVP(centerNode),
+		CEREAL_NVP(legs));
 }
 
 template<class Archive>
 void VMDLModel::VmdlFootWeightTrack::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(sampleRate), CEREAL_NVP(weights));
+	archive(
+		CEREAL_NVP(animationName),
+		CEREAL_NVP(sampleRate),
+		CEREAL_NVP(weights));
 }
 
 template<class Archive>
 void VMDLModel::VmdlAnimationEditorData::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(footWeightTracks));
+	archive(
+		CEREAL_NVP(footWeightTracks));
 }
 
 template<class Archive>
 void VMDLModel::VmdlBoolKeyframe::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(value));
+	archive(
+		CEREAL_NVP(seconds),
+		CEREAL_NVP(value));
 }
 
 template<class Archive>
 void VMDLModel::VmdlColliderAnimationTrack::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(colliderIndex), CEREAL_NVP(keys));
+	archive(
+		CEREAL_NVP(animationName),
+		CEREAL_NVP(colliderIndex),
+		CEREAL_NVP(keys));
 }
 
 template<class Archive>
-void VMDLModel::VmdlShapeKeyframe::serialize(Archive& archive)
+void VMDLModel::VmdlMorphKeyframe::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(shapeIndex));
+	archive(
+		CEREAL_NVP(seconds),
+		CEREAL_NVP(morphIndex));
 }
 
 template<class Archive>
-void VMDLModel::VmdlShapeAnimationTrack::serialize(Archive& archive)
+void VMDLModel::VmdlMorphAnimationTrack::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(keys));
+	archive(
+		CEREAL_NVP(animationName),
+		CEREAL_NVP(keys));
 }
 
 template<class Archive>
 void VMDLModel::VmdlTrailAnimationTrack::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(animationName), CEREAL_NVP(trailIndex), CEREAL_NVP(keys));
+	archive(
+		CEREAL_NVP(animationName),
+		CEREAL_NVP(trailIndex),
+		CEREAL_NVP(keys));
 }
 
 template<class Archive>
 void VMDLModel::VmdlTrailData::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(trails), CEREAL_NVP(initialActive), CEREAL_NVP(tracks));
-}
-
-template<class Archive>
-void VMDLModel::VmdlPlacementData::serialize(Archive& archive)
-{
-	archive(CEREAL_NVP(scale), CEREAL_NVP(initialized));
+	archive(
+		CEREAL_NVP(trails),
+		CEREAL_NVP(initialActive),
+		CEREAL_NVP(tracks));
 }
 
 template<class Archive>
 void VMDLModel::VmdlAnimationControlData::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(colliderInitialActive), CEREAL_NVP(colliderTracks), CEREAL_NVP(shapeTracks));
+	archive(
+		CEREAL_NVP(colliderInitialActive),
+		CEREAL_NVP(colliderTracks),
+		CEREAL_NVP(morphTracks));
 }
 
-// Explicit template instantiations for cereal binary archives.
 template void VMDLModel::Node::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Node::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::Material::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
@@ -259,12 +349,14 @@ template void VMDLModel::VmdlSpring::serialize<cereal::BinaryInputArchive>(cerea
 template void VMDLModel::VmdlSpring::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlSpringCollider::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlSpringCollider::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
-template void VMDLModel::VmdlShape::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
-template void VMDLModel::VmdlShape::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlMorph::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlMorph::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlTrail::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlTrail::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlExtensionData::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlExtensionData::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlIKLeg::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlIKLeg::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlIKSettings::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlIKSettings::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlFootWeightTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
@@ -275,15 +367,13 @@ template void VMDLModel::VmdlBoolKeyframe::serialize<cereal::BinaryInputArchive>
 template void VMDLModel::VmdlBoolKeyframe::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlColliderAnimationTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlColliderAnimationTrack::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
-template void VMDLModel::VmdlShapeKeyframe::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
-template void VMDLModel::VmdlShapeKeyframe::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
-template void VMDLModel::VmdlShapeAnimationTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
-template void VMDLModel::VmdlShapeAnimationTrack::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlMorphKeyframe::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlMorphKeyframe::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlMorphAnimationTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlMorphAnimationTrack::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlTrailAnimationTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlTrailAnimationTrack::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlTrailData::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlTrailData::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
-template void VMDLModel::VmdlPlacementData::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
-template void VMDLModel::VmdlPlacementData::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlAnimationControlData::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlAnimationControlData::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);

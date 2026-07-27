@@ -90,15 +90,18 @@ Aracore::Aracore(const Vector3& position)
 
         // 足接地補正
         spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
-        spiderFootIK->SetRay(0.55f, 2.73f, 0.1f);
-        spiderFootIK->SetModelVisualOffsetY(-0.2f);
-        spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Bone.004_012"));
-        spiderFootIK->AddLeg("Bone_R.003_0105", "Bone_R.005_0107", "Bone_R.006_0108");
-        spiderFootIK->AddLeg("Bone_L.003_0113", "Bone_L.005_0115", "Bone_L.006_0116");
-        spiderFootIK->AddLeg("Bone.003_R.002_082", "Bone.003_R.004_084", "Bone.003_R.006_086");
-        spiderFootIK->AddLeg("Bone.003_L.002_074", "Bone.003_L.004_076", "Bone.003_L.006_078");
-        spiderFootIK->AddLeg("Bone.004_R.002_096","Bone.004_R.004_098","Bone.004_R.006_0100");
-        spiderFootIK->AddLeg("Bone.004_L.002_00","Bone.004_L.004_090","Bone.004_L.006_092");
+	spiderFootIK->SetRay(0.55f, 2.73f, 0.1f);
+	spiderFootIK->SetModelVisualOffsetY(-0.2f);
+	if (spiderFootIK->AddLegsFromVmdlSettings() == 0)
+	{
+		spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Bone.004_012"));
+		spiderFootIK->AddLeg("Bone_R.003_0105", "Bone_R.005_0107", "Bone_R.006_0108");
+		spiderFootIK->AddLeg("Bone_L.003_0113", "Bone_L.005_0115", "Bone_L.006_0116");
+		spiderFootIK->AddLeg("Bone.003_R.002_082", "Bone.003_R.004_084", "Bone.003_R.006_086");
+		spiderFootIK->AddLeg("Bone.003_L.002_074", "Bone.003_L.004_076", "Bone.003_L.006_078");
+		spiderFootIK->AddLeg("Bone.004_R.002_096", "Bone.004_R.004_098", "Bone.004_R.006_0100");
+		spiderFootIK->AddLeg("Bone.004_L.002_00", "Bone.004_L.004_090", "Bone.004_L.006_092");
+	}
     }
 
     controller = AddComponent<EnemyAIFlow>();

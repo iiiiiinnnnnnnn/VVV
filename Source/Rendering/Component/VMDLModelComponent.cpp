@@ -1,6 +1,7 @@
 ﻿// VMDLModelComponent.cpp
 
 #include "Rendering/Component/VMDLModelComponent.h"
+#include <cstring>
 #include "Animation/Animator.h"
 #include "Animation/SpringBone.h"
 #include "Rendering/Core/Graphics.h"
@@ -20,9 +21,7 @@ VMDLModelComponent::VMDLModelComponent(
 
     if (model)
     {
-		const auto& placement = model->GetVmdlPlacementData();
 		const Matrix placementTransform =
-			Matrix::CreateScale(placement.scale) *
 			Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
 		model->UpdateTransform(placementTransform);
     }
@@ -49,8 +48,11 @@ void VMDLModelComponent::BuildAttachments()
 			Matrix::CreateFromYawPitchRoll(RAD(value.rotation.y), RAD(value.rotation.x), RAD(value.rotation.z)) *
 			Matrix::CreateTranslation(value.center);
 
+		const LayerId colliderLayer = value.layer >= 0 && value.layer < EditableLayerCount
+			? static_cast<LayerId>(value.layer)
+			: attachmentLayerId;
 		auto* collider = owner->AddComponent<VMDLColliderComponent>(
-			attachmentLayerId,
+			colliderLayer,
 			model.get(),
 			value.nodeIndex,
 			value.shape,
@@ -103,6 +105,10 @@ PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& n
 	{
 		if (collider && collider->CompareName(name)) return collider;
 	}
+	for (VMDLColliderComponent* collider : attachmentColliders)
+	{
+		if (collider && ::_stricmp(collider->GetName().c_str(), name.c_str()) == 0) return collider;
+	}
 	return nullptr;
 }
 
@@ -116,9 +122,7 @@ void VMDLModelComponent::LateUpdate()
 
 	if (autoUpdateTransform)
 	{
-		const auto& placement = model->GetVmdlPlacementData();
 		const Matrix placementTransform =
-			Matrix::CreateScale(placement.scale) *
 			Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
 		model->UpdateTransform(placementTransform * actor->transform.matrix);
 	}
@@ -153,7 +157,7 @@ void VMDLModelComponent::UpdateAnimationControls()
 		if (model->EvaluateTrailActive(animationIndex, time, i)) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
 	}
-	model->ApplyShapeAnimation(animationIndex, time);
+	model->ApplyMorphAnimation(animationIndex, time);
 	animationControlsApplied = true;
 }
 
@@ -170,7 +174,7 @@ void VMDLModelComponent::RestoreAnimationControls()
 		if (model->GetTrailInitialActive(i)) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
 	}
-	model->RestoreRuntimeShapeVisibility();
+	model->RestoreRuntimeMorphVisibility();
 	animationControlsApplied = false;
 }
 

@@ -32,7 +32,7 @@ public:
 		int size,
 		const char* filter = nullptr,
 		const char* title = nullptr,
-		const char* initialDir = nullptr,
 		const char* ext = nullptr,
+		const char* initialDir = nullptr,
 		HWND hWnd = NULL);
 };

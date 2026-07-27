@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// VMDLColliderComponent.h
+
+#pragma once
 
 #include <string>
 
@@ -39,12 +41,14 @@ public:
 
 private:
     void CreateShape();
+    void UpdateScaledSize(const Matrix& world);
     PxTransform GetShapeLocalPose() const;
 
     VMDLModel* model = nullptr;
     int nodeIndex = -1;
     int shapeType = 0;
     Vector3 size = Vector3::One;
+    Vector3 scaledSize = Vector3::One;
     Matrix offset = Matrix::Identity;
     bool isTrigger = true;
 

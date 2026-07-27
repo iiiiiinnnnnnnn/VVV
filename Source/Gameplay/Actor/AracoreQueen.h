@@ -9,38 +9,22 @@
 #include "Gameplay/AI/EnemyAIFlow.h"
 
 class AracoreQueen;
+class VMDL;
 
 // component
 #include "Physics/RigidBody/RigidbodyDynamic.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Animation/Animator.h"
-#include "Rendering/Component/DamageHoleComponent.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
-#include "Animation/SpiderFootIK.h"
-
-class AracoreQueenMachine : public Entity
-{
-public:
-	AracoreQueenMachine(AracoreQueen* ownerAracoreQueen);
-
-	void OnDamaged(const DamageData& damageData) override;
-	void OnDead(const DamageData& damageData) override;
-
-private:
-	class AracoreQueen* ownerAracoreQueen = nullptr;
-	DamageHoleComponent* damageHoleComponent = nullptr;
-	VMatRenderParams renderParams;
-	PhysicsComponent* collider = nullptr;
-};
+class SpiderFootIK;
 
 class AracoreQueen : public Entity
 {
 public:
 	AracoreQueen();
 	~AracoreQueen() = default;
-	void OnAwake() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
@@ -51,19 +35,17 @@ public:
 	void OnDead(const DamageData& damageData) override;
 
 private:
-	friend class AracoreQueenMachine;
+	void Threat();
+
 	Animator* anim = nullptr;
-	VMDLModelComponent* bodyRenderer = nullptr;
+	VMDL* vmdl = nullptr;
 	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<VMDLModel> model;
-	Actor* machine = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
 	SpiderFootIK* spiderFootIK = nullptr;
-	PhysicsComponent* bodyCollider = nullptr;
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
 	EnemyAIFlow* controller = nullptr;
-	DamageHoleComponent* damageHoleComponent = nullptr;
 	std::vector<Vector3> colPositions;
 
 	VMatRenderParams renderParams;

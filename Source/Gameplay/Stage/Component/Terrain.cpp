@@ -11,7 +11,7 @@
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Resource/Texture.h"
 #include "Resource/ResourceManager.h"
-#include "nlohmann/json.hpp"
+#include "Core/Foundation/Json.h"
 #include <DirectXTex.h>
 
 #include <cfloat>
@@ -1318,7 +1318,6 @@ bool Terrain::LoadTerrainMemory(const std::vector<uint8_t>& bytes)
 
 std::string Terrain::SaveSettingsJson() const
 {
-	using json = nlohmann::json;
 	const auto saveColor = [](const Color& value)
 	{
 		return json::array({value.x, value.y, value.z, value.w});
@@ -1364,7 +1363,6 @@ std::string Terrain::SaveSettingsJson() const
 bool Terrain::LoadSettingsJson(const std::string& text)
 {
 	if (text.empty()) return true;
-	using json = nlohmann::json;
 	const auto loadColor = [](const json& value, const Color& fallback)
 	{
 		if (!value.is_array() || value.size() < 4) return fallback;

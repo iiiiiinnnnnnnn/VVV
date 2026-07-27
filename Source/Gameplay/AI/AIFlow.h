@@ -33,6 +33,12 @@ public:
         NotEqual
     };
 
+    enum class ConditionLogic
+    {
+        And,
+        Or
+    };
+
     struct Parameter
     {
         std::string name;
@@ -54,6 +60,7 @@ public:
     {
         int id = -1;
         int targetStateId = -1;
+        ConditionLogic conditionLogic = ConditionLogic::And;
         std::vector<Condition> conditions;
     };
 

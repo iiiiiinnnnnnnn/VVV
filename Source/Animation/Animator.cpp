@@ -782,12 +782,9 @@ void Animator::UpdateLayer(
         if (useRootMotion &&
             nodeIndex == rootNodeIndex)
         {
-			// 移動量はActor側へ渡すため、描画モデルのルートには二重適用しない。
-            finalPoses[nodeIndex].position =
-                Vector3::Zero;
-
-            finalPoses[nodeIndex].rotation =
-                Quaternion::Identity;
+			// アニメーション差分はActor側へ渡しつつ、モデル座標系を補正する初期姿勢は残す。
+            finalPoses[nodeIndex] =
+                rootMotionBasePose;
 
             continue;
         }
@@ -1675,6 +1672,7 @@ void Animator::SetRootMotion(const std::string& name)
     rootNodeName = name;
     useRootMotion = true;
     rootNodeIndex = -1;
+    rootMotionBasePose = {};
 
     if (!model) return;
 
@@ -1684,6 +1682,9 @@ void Animator::SetRootMotion(const std::string& name)
         if (nodes[i].name == rootNodeName)
         {
             rootNodeIndex = i;
+            rootMotionBasePose.position = nodes[i].position;
+            rootMotionBasePose.rotation = nodes[i].rotation;
+            rootMotionBasePose.scale = nodes[i].scale;
             break;
         }
     }

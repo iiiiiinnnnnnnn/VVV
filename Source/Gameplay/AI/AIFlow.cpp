@@ -9,72 +9,71 @@
 
 #include "imgui.h"
 #include "imgui_node_editor.h"
-#include "nlohmann/json.hpp"
+#include "Core/Foundation/Json.h"
 
 namespace ed = ax::NodeEditor;
-using json = nlohmann::json;
 
 namespace
 {
-constexpr int NODE_ID_BASE = 1000;
-constexpr int PIN_ID_BASE = 100000;
-constexpr int LINK_ID_BASE = 200000;
+    constexpr int NODE_ID_BASE = 1000;
+    constexpr int PIN_ID_BASE = 100000;
+    constexpr int LINK_ID_BASE = 200000;
 
-ed::NodeId ToNodeId(int stateId)
-{
-    return ed::NodeId(NODE_ID_BASE + stateId);
-}
-
-ed::PinId ToInputPinId(int stateId)
-{
-    return ed::PinId(PIN_ID_BASE + stateId * 2);
-}
-
-ed::PinId ToOutputPinId(int stateId)
-{
-    return ed::PinId(PIN_ID_BASE + stateId * 2 + 1);
-}
-
-ed::LinkId ToLinkId(int transitionId)
-{
-    return ed::LinkId(LINK_ID_BASE + transitionId);
-}
-
-int DecodeInputPin(ed::PinId pin)
-{
-    const int value = static_cast<int>(pin.Get()) - PIN_ID_BASE;
-    if (value < 0 || value % 2 != 0) return -1;
-    return value / 2;
-}
-
-int DecodeOutputPin(ed::PinId pin)
-{
-    const int value = static_cast<int>(pin.Get()) - PIN_ID_BASE;
-    if (value < 0 || value % 2 != 1) return -1;
-    return value / 2;
-}
-
-int DecodeLink(ed::LinkId link)
-{
-    return static_cast<int>(link.Get()) - LINK_ID_BASE;
-}
-
-const char* CompareName(AIFlow::CompareOp compare)
-{
-    using CompareOp = AIFlow::CompareOp;
-    switch (compare)
+    ed::NodeId ToNodeId(int stateId)
     {
-    case CompareOp::IsTrue: return "Is True";
-    case CompareOp::IsFalse: return "Is False";
-    case CompareOp::Less: return "<";
-    case CompareOp::LessEqual: return "<=";
-    case CompareOp::Greater: return ">";
-    case CompareOp::GreaterEqual: return ">=";
-    case CompareOp::Equal: return "==";
-    case CompareOp::NotEqual: return "!=";
+        return ed::NodeId(NODE_ID_BASE + stateId);
     }
-    return "Unknown";
-}
+
+    ed::PinId ToInputPinId(int stateId)
+    {
+        return ed::PinId(PIN_ID_BASE + stateId * 2);
+    }
+
+    ed::PinId ToOutputPinId(int stateId)
+    {
+        return ed::PinId(PIN_ID_BASE + stateId * 2 + 1);
+    }
+
+    ed::LinkId ToLinkId(int transitionId)
+    {
+        return ed::LinkId(LINK_ID_BASE + transitionId);
+    }
+
+    int DecodeInputPin(ed::PinId pin)
+    {
+        const int value = static_cast<int>(pin.Get()) - PIN_ID_BASE;
+        if (value < 0 || value % 2 != 0) return -1;
+        return value / 2;
+    }
+
+    int DecodeOutputPin(ed::PinId pin)
+    {
+        const int value = static_cast<int>(pin.Get()) - PIN_ID_BASE;
+        if (value < 0 || value % 2 != 1) return -1;
+        return value / 2;
+    }
+
+    int DecodeLink(ed::LinkId link)
+    {
+        return static_cast<int>(link.Get()) - LINK_ID_BASE;
+    }
+
+    const char* CompareName(AIFlow::CompareOp compare)
+    {
+        using CompareOp = AIFlow::CompareOp;
+        switch (compare)
+        {
+            case CompareOp::IsTrue: return "Is True";
+            case CompareOp::IsFalse: return "Is False";
+            case CompareOp::Less: return "<";
+            case CompareOp::LessEqual: return "<=";
+            case CompareOp::Greater: return ">";
+            case CompareOp::GreaterEqual: return ">=";
+            case CompareOp::Equal: return "==";
+            case CompareOp::NotEqual: return "!=";
+        }
+        return "Unknown";
+    }
 }
 
 struct AIFlow::EditorData
@@ -102,7 +101,6 @@ struct AIFlow::EditorData
     int contextTransitionId = -1;
     std::string newParameterName = "Parameter";
     ParameterType newParameterType = ParameterType::Float;
-    std::string status;
 };
 
 AIFlow::AIFlow(Object* owner)
@@ -158,12 +156,11 @@ void AIFlow::OnDrawGUI()
     if (ImGui::Button("Open AI Graph")) editorOpen = true;
     ImGui::SameLine();
     if (ImGui::Button("Reload"))
-        editor->status = Load(graphPath) ? "Loaded." : "Load failed.";
+        Load(graphPath);
     ImGui::SameLine();
     if (ImGui::Button("Save"))
-        editor->status = Save(graphPath) ? "Saved." : "Save failed.";
+        Save(graphPath);
 
-    if (!editor->status.empty()) ImGui::TextUnformatted(editor->status.c_str());
     DrawEditor(&editorOpen);
 }
 
@@ -335,6 +332,10 @@ bool AIFlow::Load(const std::string& path)
                         transition.id = transitionJson.value("id", nextTransitionId++);
                         nextTransitionId = std::max(nextTransitionId, transition.id + 1);
                         transition.targetStateId = transitionJson.value("targetStateId", -1);
+                        transition.conditionLogic =
+                            transitionJson.value("conditionLogic", std::string("AND")) == "OR"
+                            ? ConditionLogic::Or
+                            : ConditionLogic::And;
 
                         if (transitionJson.contains("conditions"))
                         {
@@ -406,6 +407,7 @@ bool AIFlow::Save(const std::string& path) const
             json transitionJson = {
                 {"id", transition.id},
                 {"targetStateId", transition.targetStateId},
+                {"conditionLogic", transition.conditionLogic == ConditionLogic::Or ? "OR" : "AND"},
                 {"conditions", json::array()}
             };
             for (const Condition& condition : transition.conditions)
@@ -578,6 +580,16 @@ void AIFlow::EvaluateTransitions()
 bool AIFlow::EvaluateTransition(const Transition& transition) const
 {
     if (!FindState(transition.targetStateId)) return false;
+
+    if (transition.conditions.empty()) return true;
+
+    if (transition.conditionLogic == ConditionLogic::Or)
+    {
+        for (const Condition& condition : transition.conditions)
+            if (EvaluateCondition(condition)) return true;
+        return false;
+    }
+
     for (const Condition& condition : transition.conditions)
         if (!EvaluateCondition(condition)) return false;
     return true;
@@ -654,40 +666,33 @@ void AIFlow::DrawEditor(bool* open)
         return;
     }
 
-    ImGui::SetNextItemWidth(420.0f);
-    ImGui::InputText("##AIGraphPath", &graphPath);
-    ImGui::SameLine();
-    if (ImGui::Button("Load"))
-        editor->status = Load(graphPath) ? "Loaded." : "Load failed.";
-    ImGui::SameLine();
-    if (ImGui::Button("Save"))
-        editor->status = Save(graphPath) ? "Saved." : "Save failed.";
-    ImGui::SameLine();
-    if (ImGui::Button("Bind"))
-    {
-        BindCallbacks();
-        editor->status = "Callbacks bound.";
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Restart From Entry"))
-    {
-        RestartStateMachine();
-        editor->status = "State machine restarted.";
-    }
-    ImGui::SameLine();
-    const State* playingState = GetCurrentState();
-    ImGui::TextColored(
-        ImVec4(0.2f, 1.0f, 0.35f, 1.0f),
-        "Playing: %s",
-        playingState ? playingState->name.c_str() : "None");
-    if (!editor->status.empty())
-    {
-        ImGui::SameLine();
-        ImGui::TextUnformatted(editor->status.c_str());
-    }
-
     const float inspectorWidth = 330.0f;
-    ImGui::BeginChild("##AIGraphCanvas", ImVec2(-inspectorWidth, 0.0f), true);
+    const float panelHeight = ImGui::GetContentRegionAvail().y;
+    constexpr ImGuiTableFlags layoutFlags =
+        ImGuiTableFlags_SizingStretchProp |
+        ImGuiTableFlags_Resizable |
+        ImGuiTableFlags_NoSavedSettings |
+        ImGuiTableFlags_BordersInnerV;
+    if (!ImGui::BeginTable(
+        "##AIEditorLayout",
+        2,
+        layoutFlags,
+        ImVec2(0.0f, panelHeight)))
+    {
+        ImGui::End();
+        return;
+    }
+    ImGui::TableSetupColumn(
+        "Inspector",
+        ImGuiTableColumnFlags_WidthFixed,
+        inspectorWidth);
+    ImGui::TableSetupColumn(
+        "Graph",
+        ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(1);
+
+    ImGui::BeginChild("##AIGraphCanvas", ImVec2(0.0f, panelHeight), true);
     ed::SetCurrentEditor(editor->context);
     ed::Begin("AI State Graph");
 
@@ -877,9 +882,9 @@ void AIFlow::DrawEditor(bool* open)
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Save Graph"))
-            editor->status = Save(graphPath) ? "Saved." : "Save failed.";
+            Save(graphPath);
         if (ImGui::MenuItem("Reload Graph"))
-            editor->status = Load(graphPath) ? "Loaded." : "Load failed.";
+            Load(graphPath);
         ImGui::EndPopup();
     }
 
@@ -949,8 +954,35 @@ void AIFlow::DrawEditor(bool* open)
     ed::SetCurrentEditor(nullptr);
     ImGui::EndChild();
 
+    ImGui::TableSetColumnIndex(0);
+    ImGui::BeginChild("##AIGraphInspector", ImVec2(0.0f, panelHeight), true);
+    ImGui::TextUnformatted("Graph");
+    ImGui::Separator();
+
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::InputText("##AIGraphPath", &graphPath);
+    if (ImGui::Button("Load"))
+        Load(graphPath) ? "Loaded." : "Load failed.";
     ImGui::SameLine();
-    ImGui::BeginChild("##AIGraphInspector", ImVec2(0.0f, 0.0f), true);
+    if (ImGui::Button("Save"))
+        Save(graphPath) ? "Saved." : "Save failed.";
+    ImGui::SameLine();
+    if (ImGui::Button("Bind"))
+    {
+        BindCallbacks();
+    }
+    if (ImGui::Button("Restart From Entry", ImVec2(-1.0f, 0.0f)))
+    {
+        RestartStateMachine();
+    }
+
+    const State* playingState = GetCurrentState();
+    ImGui::TextColored(
+        ImVec4(0.2f, 1.0f, 0.35f, 1.0f),
+        "Playing: %s",
+        playingState ? playingState->name.c_str() : "None");
+
+    ImGui::Spacing();
     ImGui::TextUnformatted("Inspector");
     ImGui::Separator();
 
@@ -989,6 +1021,20 @@ void AIFlow::DrawEditor(bool* open)
             sourceIsCurrent
                 ? (transitionPasses ? "LIVE: PASS" : "LIVE: BLOCKED")
                 : "LIVE: WAITING (source state is not running)");
+
+        int conditionLogic = static_cast<int>(transition->conditionLogic);
+        const char* conditionLogicNames[] = {"AND (All)", "OR (Any)"};
+        if (ImGui::Combo(
+            "Condition Logic",
+            &conditionLogic,
+            conditionLogicNames,
+            IM_ARRAYSIZE(conditionLogicNames)))
+        {
+            transition->conditionLogic = static_cast<ConditionLogic>(conditionLogic);
+            liveTransitionChanged = true;
+            changedTransitionId = transition->id;
+        }
+
         ImGui::TextDisabled("No conditions means Always.");
 
         for (int index = 0; index < static_cast<int>(transition->conditions.size()); ++index)
@@ -1131,12 +1177,12 @@ void AIFlow::DrawEditor(bool* open)
         State* sourceState = nullptr;
         if (Transition* changedTransition = FindTransition(changedTransitionId, &sourceState))
         {
-            editor->status = "Live applied.";
             if (sourceState && sourceState->id == currentStateId)
                 EvaluateTransitions();
         }
     }
 
     ImGui::EndChild();
+    ImGui::EndTable();
     ImGui::End();
 }

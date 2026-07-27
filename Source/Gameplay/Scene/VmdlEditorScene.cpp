@@ -2,6 +2,7 @@
 
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Application/Tools/Dialog.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
@@ -15,6 +16,7 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <cctype>
 #include <cmath>
 #include "GameStartScene.h"
 #include "Application/Time/GameTime.h"
@@ -24,6 +26,28 @@ constexpr UINT PreviewWidth = 1024;
 constexpr UINT PreviewHeight = 1024;
 constexpr int PreviewGridSubdivisions = 20;
 constexpr float PreviewGridScale = 0.5f;
+constexpr float PreviewMinCameraDistance = 0.2f;
+constexpr float PreviewMaxCameraDistance = 100000.0f;
+
+std::string ToUpperMorphName(std::string value)
+{
+	std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c)
+	{
+		return static_cast<char>(std::toupper(c));
+	});
+	return value;
+}
+
+std::string MakeUniqueMorphName(const VMDLModel& model, const std::string& baseName)
+{
+	const std::string base = ToUpperMorphName(baseName);
+	if (model.GetMorphIndex(base.c_str()) < 0) return base;
+	for (int suffix = 2; ; ++suffix)
+	{
+		const std::string candidate = base + " " + std::to_string(suffix);
+		if (model.GetMorphIndex(candidate.c_str()) < 0) return candidate;
+	}
+}
 
 Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
 {
@@ -144,6 +168,7 @@ void VmdlEditorScene::OnDrawGUI()
 		ImGuiWindowFlags_MenuBar |
 		ImGuiWindowFlags_NoDecoration |
 		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoBringToFrontOnFocus |
 		ImGuiWindowFlags_NoSavedSettings;
 
 	if (!ImGui::Begin("VMDL Editor", nullptr, flags))
@@ -193,9 +218,9 @@ void VmdlEditorScene::OnDrawGUI()
 			DrawTimeline();
 			ImGui::EndTabItem();
 		}
-		if (ImGui::BeginTabItem("Shape"))
+		if (ImGui::BeginTabItem("Morph"))
 		{
-			DrawShapeEditor();
+			DrawMorphEditor();
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("IK Settings"))
@@ -230,6 +255,7 @@ void VmdlEditorScene::OnDrawGUI()
 	}
 
 	ImGui::End();
+	if (showPhysicsLayerWindow) PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
 	if (showExportWarning) ImGui::OpenPopup("Export GLB");
 	showExportWarning = false;
@@ -247,14 +273,18 @@ void VmdlEditorScene::RenderPreview()
 {
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
 
-	const Vector3 focus = rootOffset + Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
+	const float zoomLerp = 1.0f - std::exp(-12.0f * Game::Time::unscaledDeltaTime);
+	cameraDistance = std::lerp(cameraDistance, targetCameraDistance, zoomLerp);
+	const Vector3 focus = Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
 	const float horizontalDistance = cameraDistance * std::cos(cameraPitch);
 	const Vector3 eye = focus + Vector3(
 		std::sin(cameraYaw) * horizontalDistance,
 		std::sin(cameraPitch) * cameraDistance,
 		-std::cos(cameraYaw) * horizontalDistance);
 	editorCamera->SetLookAt(eye, focus, Vector3::Up);
-	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f), 1.0f, 0.01f, 1000.0f);
+	const float nearClip = std::max(0.01f, cameraDistance * 0.0001f);
+	const float farClip = std::max(1000.0f, cameraDistance * 2.0f);
+	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f), 1.0f, nearClip, farClip);
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
@@ -281,8 +311,7 @@ void VmdlEditorScene::RenderPreview()
 
 	if (model)
 	{
-		const Matrix placement = Matrix::CreateScale(modelScale) * Matrix::CreateTranslation(rootOffset);
-		model->UpdateTransform(placement);
+		model->UpdateTransform(Matrix::Identity);
 		if (showMesh)
 		{
 			rc.renderSettings.wireframe = false;
@@ -444,6 +473,11 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem("Grid", nullptr, &showGrid);
 		ImGui::EndMenu();
 	}
+	if (ImGui::BeginMenu("Window"))
+	{
+		if (ImGui::MenuItem("Physics Layer")) showPhysicsLayerWindow = true;
+		ImGui::EndMenu();
+	}
 	std::string title = documentPath.empty() ? "Untitled" : documentPath.string();
 
 	if (dirty)
@@ -531,12 +565,14 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		const VMDLModel::Mesh& mesh = meshes[meshIndex];
 		if (mesh.nodeIndex != nodeIndex) continue;
 		const std::string label = "Mesh " + std::to_string(meshIndex) + " : " + mesh.material->name;
+		if (!mesh.isDraw) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 		if (ImGui::Selectable(label.c_str(), selectedMesh == meshIndex))
 		{
 			selectedMesh = meshIndex;
 			selectedNode = nodeIndex;
 			selectedMaterial = mesh.materialIndex;
 		}
+		if (!mesh.isDraw) ImGui::PopStyleColor();
 	}
 	for (const VMDLModel::Node* child : node.children)
 	{
@@ -636,8 +672,7 @@ void VmdlEditorScene::DrawViewport()
 			&world._11))
 		{
 			VMDLModel::Node& node = model->GetNodes()[selectedNode];
-			const Matrix placement = Matrix::CreateScale(modelScale) * Matrix::CreateTranslation(rootOffset);
-			Matrix global = world * placement.Invert();
+			Matrix global = world;
 			Matrix local = node.parent ? global * node.parent->globalTransform.Invert() : global;
 			local.Decompose(node.scale, node.rotation, node.position);
 			MarkDirty();
@@ -654,11 +689,17 @@ void VmdlEditorScene::DrawViewport()
 	}
 	if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
 	{
-		const float panScale = cameraDistance * 0.0015f;
+		float panScale = cameraDistance * 0.0015f;
+		if (io.KeyShift) panScale *= 10.0f;
 		cameraFocusOffset -= editorCamera->GetRight() * io.MouseDelta.x * panScale;
 		cameraFocusOffset += editorCamera->GetUp() * io.MouseDelta.y * panScale;
 	}
-	if (io.MouseWheel != 0.0f) cameraDistance = std::clamp(cameraDistance - io.MouseWheel * 0.4f, 0.2f, 100.0f);
+	if (io.MouseWheel != 0.0f)
+	{
+		if (io.KeyShift) targetCameraDistance *= std::pow(2.0f, -io.MouseWheel);
+		else targetCameraDistance -= io.MouseWheel * 0.4f;
+		targetCameraDistance = std::clamp(targetCameraDistance, PreviewMinCameraDistance, PreviewMaxCameraDistance);
+	}
 }
 
 void VmdlEditorScene::DrawProperty()
@@ -693,7 +734,7 @@ void VmdlEditorScene::DrawProperty()
 		ImGui::Text("Material: %s", mesh.material->name.c_str());
 		ImGui::Text("Vertices: %zu", mesh.vertices.size());
 		ImGui::Text("Faces: %zu", mesh.indices.size() / 3);
-		ImGui::Checkbox("Visible", &mesh.isDraw);
+		if (ImGui::Checkbox("Visible", &mesh.isDraw)) MarkDirty();
 	}
 	if (!usePbr) ImGui::ColorEdit4("Solid Color", &solidColor.x);
 
@@ -740,6 +781,28 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			const char* shapes[] = {"Box", "Sphere", "Capsule"};
 			bool initialActive = model->GetColliderInitialActive(i);
 			bool changed = ImGui::InputText("Name", &value.name);
+			PhysicsLayerManager& layerManager = PhysicsLayerManager::Instance();
+			const std::string layerPreview = value.layer < 0
+				? "-1: Inherit"
+				: layerManager.GetLayerDisplayName(static_cast<LayerId>(value.layer));
+			if (ImGui::BeginCombo("Layer", layerPreview.c_str()))
+			{
+				if (ImGui::Selectable("-1: Inherit", value.layer < 0))
+				{
+					value.layer = -1;
+					changed = true;
+				}
+				for (int layer = 0; layer < EditableLayerCount; ++layer)
+				{
+					const std::string label = layerManager.GetLayerDisplayName(static_cast<LayerId>(layer));
+					if (ImGui::Selectable(label.c_str(), value.layer == layer))
+					{
+						value.layer = layer;
+						changed = true;
+					}
+				}
+				ImGui::EndCombo();
+			}
 			if (ImGui::Combo("Shape", &value.shape, shapes, IM_ARRAYSIZE(shapes)))
 			{
 				if (value.shape == 1) value.size.y = value.size.z = value.size.x;
@@ -967,7 +1030,6 @@ void VmdlEditorScene::DrawTimeline()
 	{
 		DrawAnimationCurves();
 	}
-	if (ImGui::DragFloat3("VMDLModel Root Offset", &rootOffset.x, 0.01f)) MarkDirty();
 }
 
 void VmdlEditorScene::DrawAnimationCurves()
@@ -977,16 +1039,14 @@ void VmdlEditorScene::DrawAnimationCurves()
 	if (selectedNode >= static_cast<int>(animation.nodeAnims.size())) return;
 	auto& keys = animation.nodeAnims[selectedNode];
 	const float length = std::max(0.001f, animation.secondsLength);
-	const int ikType = model->GetVmdlIKSettings().type;
-	const int footWeightCount = ikType == 1 ? 2 : ikType == 2 ? 4 : ikType == 3 ? 8 : 0;
-	constexpr const char* humanLabels[] = {"Left", "Right"};
-	constexpr const char* quadrupedLabels[] = {"Front Left", "Front Right", "Back Left", "Back Right"};
-	constexpr const char* insectLabels[] = {"Leg 1", "Leg 2", "Leg 3", "Leg 4", "Leg 5", "Leg 6", "Leg 7", "Leg 8"};
+	model->EnsureVmdlIKSettingsCompatibility();
+	const auto& ikSettings = model->GetVmdlIKSettings();
+	const int footWeightCount = ikSettings.type == 0
+		? 0
+		: static_cast<int>(std::min(ikSettings.legs.size(), VMDLModel::VmdlIKSettings::MaxLegCount));
 	const auto footWeightLabel = [&](int index)
 	{
-		if (ikType == 1) return humanLabels[index];
-		if (ikType == 2) return quadrupedLabels[index];
-		return insectLabels[index];
+		return ikSettings.legs[index].name.c_str();
 	};
 	std::vector<VMDLModel::VmdlFootWeightTrack*> footWeightTracks(footWeightCount, nullptr);
 	for (int i = 0; i < footWeightCount; ++i)
@@ -1053,8 +1113,8 @@ void VmdlEditorScene::DrawAnimationCurves()
 	const float rowsTopOffset = rulerHeight + footWeightsHeight;
 	const int colliderRowCount = static_cast<int>(model->GetVmdlExtensionData().colliders.size());
 	const int trailRowCount = static_cast<int>(model->GetVmdlTrailData().trails.size());
-	const int shapeRowCount = static_cast<int>(model->GetVmdlExtensionData().shapes.size());
-	const int eventRowCount = colliderRowCount + trailRowCount + shapeRowCount;
+	const int morphRowCount = static_cast<int>(model->GetVmdlExtensionData().morphs.size());
+	const int eventRowCount = colliderRowCount + trailRowCount + morphRowCount;
 	const float eventRowsTopOffset = rowsTopOffset + rowHeight * static_cast<float>(rows.size());
 	const float sheetHeight = eventRowsTopOffset + rowHeight * static_cast<float>(eventRowCount);
 	ImGui::InvisibleButton("Animation Dope Sheet", ImVec2(-1.0f, sheetHeight), ImGuiButtonFlags_MouseButtonLeft);
@@ -1112,6 +1172,26 @@ void VmdlEditorScene::DrawAnimationCurves()
 		drawList->AddRectFilled(ImVec2(sheetMin.x, rowTop), ImVec2(sheetMin.x + labelWidth, rowBottom), IM_COL32(45, 45, 48, 255));
 		std::string label = std::string("Foot Weight / ") + footWeightLabel(footIndex);
 		drawList->AddText(ImVec2(sheetMin.x + 8.0f, rowTop + 2.0f), IM_COL32(210, 210, 215, 255), label.c_str());
+		const ImVec2 negativeButtonMin(sheetMin.x + labelWidth - 42.0f, rowTop + 2.0f);
+		const ImVec2 negativeButtonMax(sheetMin.x + labelWidth - 24.0f, rowBottom - 2.0f);
+		const ImVec2 applyButtonMin(sheetMin.x + labelWidth - 22.0f, rowTop + 2.0f);
+		const ImVec2 applyButtonMax(sheetMin.x + labelWidth - 4.0f, rowBottom - 2.0f);
+		const bool negativeButtonHovered = ImGui::IsMouseHoveringRect(negativeButtonMin, negativeButtonMax);
+		const bool applyButtonHovered = ImGui::IsMouseHoveringRect(applyButtonMin, applyButtonMax);
+		drawList->AddRectFilled(
+			negativeButtonMin,
+			negativeButtonMax,
+			negativeButtonHovered ? IM_COL32(185, 105, 125, 255) : IM_COL32(75, 78, 85, 255),
+			3.0f);
+		drawList->AddRect(negativeButtonMin, negativeButtonMax, IM_COL32(130, 135, 145, 255), 3.0f);
+		drawList->AddText(ImVec2(negativeButtonMin.x + 5.0f, negativeButtonMin.y), IM_COL32(240, 240, 245, 255), "N");
+		drawList->AddRectFilled(
+			applyButtonMin,
+			applyButtonMax,
+			applyButtonHovered ? IM_COL32(100, 150, 215, 255) : IM_COL32(75, 78, 85, 255),
+			3.0f);
+		drawList->AddRect(applyButtonMin, applyButtonMax, IM_COL32(130, 135, 145, 255), 3.0f);
+		drawList->AddText(ImVec2(applyButtonMin.x + 5.0f, applyButtonMin.y), IM_COL32(240, 240, 245, 255), "A");
 		drawList->AddRectFilled(ImVec2(timeLeft, rowTop + 1.0f), ImVec2(timeRight, rowBottom - 1.0f), IM_COL32(0, 0, 0, 255));
 		auto* track = footWeightTracks[footIndex];
 		if (track && !track->weights.empty())
@@ -1186,7 +1266,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 
 	const auto& colliders = model->GetVmdlExtensionData().colliders;
 	const auto& trails = model->GetVmdlTrailData().trails;
-	const auto& shapes = model->GetVmdlExtensionData().shapes;
+	const auto& morphs = model->GetVmdlExtensionData().morphs;
 	auto& controlData = model->GetVmdlAnimationControlData();
 	const auto drawEventDiamond = [&](float seconds, float centerY, ImU32 color)
 	{
@@ -1232,15 +1312,15 @@ void VmdlEditorScene::DrawAnimationCurves()
 		}
 		else
 		{
-			const int shapeIndex = eventRow - colliderRowCount - trailRowCount;
-			const std::string label = "Shape / " + shapes[shapeIndex].name;
+			const int morphIndex = eventRow - colliderRowCount - trailRowCount;
+			const std::string label = "Morph / " + morphs[morphIndex].name;
 			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(210, 125, 255, 255), label.c_str());
-			for (const auto& track : controlData.shapeTracks)
+			for (const auto& track : controlData.morphTracks)
 			{
 				if (track.animationName != animation.name) continue;
 				for (const auto& key : track.keys)
 				{
-					if (key.shapeIndex == shapeIndex) drawEventDiamond(key.seconds, centerY, IM_COL32(210, 125, 255, 255));
+					if (key.morphIndex == morphIndex) drawEventDiamond(key.seconds, centerY, IM_COL32(210, 125, 255, 255));
 				}
 				break;
 			}
@@ -1294,12 +1374,12 @@ void VmdlEditorScene::DrawAnimationCurves()
 			}
 			else if (timelineEventContextKind == 1)
 			{
-				for (const auto& track : controlData.shapeTracks)
+				for (const auto& track : controlData.morphTracks)
 				{
 					if (track.animationName != animation.name) continue;
 					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
 					{
-						if (track.keys[i].shapeIndex != timelineEventContextTarget) continue;
+						if (track.keys[i].morphIndex != timelineEventContextTarget) continue;
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
 						if (distance >= closest) continue;
 						closest = distance;
@@ -1385,11 +1465,11 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 			}
 		}
-		else if (timelineEventContextKind == 1 && timelineEventContextTarget >= 0 && timelineEventContextTarget < shapeRowCount)
+		else if (timelineEventContextKind == 1 && timelineEventContextTarget >= 0 && timelineEventContextTarget < morphRowCount)
 		{
-			ImGui::Text("Shape: %s", shapes[timelineEventContextTarget].name.c_str());
-			VMDLModel::VmdlShapeAnimationTrack* track = nullptr;
-			for (auto& candidate : controlData.shapeTracks)
+			ImGui::Text("Morph: %s", morphs[timelineEventContextTarget].name.c_str());
+			VMDLModel::VmdlMorphAnimationTrack* track = nullptr;
+			for (auto& candidate : controlData.morphTracks)
 			{
 				if (candidate.animationName == animation.name)
 				{
@@ -1406,7 +1486,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
 					for (int i = 0; i < static_cast<int>(track->keys.size()); ++i)
 					{
-						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f && track->keys[i].shapeIndex == timelineEventContextTarget) timelineEventContextKey = i;
+						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f && track->keys[i].morphIndex == timelineEventContextTarget) timelineEventContextKey = i;
 					}
 					MarkDirty();
 					ApplyAnimationPreview();
@@ -1419,9 +1499,9 @@ void VmdlEditorScene::DrawAnimationCurves()
 					ImGui::CloseCurrentPopup();
 				}
 			}
-			else if (ImGui::MenuItem("Add Apply Key"))
+			else if (ImGui::MenuItem("Add Morph Key"))
 			{
-				auto& newTrack = model->GetOrCreateShapeAnimationTrack(animation.name);
+				auto& newTrack = model->GetOrCreateMorphAnimationTrack(animation.name);
 				newTrack.keys.push_back({timelineEventContextTime, timelineEventContextTarget});
 				std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
 				MarkDirty();
@@ -1490,6 +1570,18 @@ void VmdlEditorScene::DrawAnimationCurves()
 	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
 		const ImVec2 mouse = ImGui::GetIO().MousePos;
+		const bool clickedNegativeButton = mouse.x >= sheetMin.x + labelWidth - 42.0f && mouse.x <= sheetMin.x + labelWidth - 24.0f;
+		const bool clickedApplyButton = mouse.x >= sheetMin.x + labelWidth - 22.0f && mouse.x <= sheetMin.x + labelWidth - 4.0f;
+		if ((clickedNegativeButton || clickedApplyButton) && mouse.y >= weightTop && mouse.y < weightBottom)
+		{
+			const int footIndex = std::clamp(static_cast<int>((mouse.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
+			auto& track = model->GetOrCreateFootWeightTrack(animation.name, footIndex);
+			const int sampleCount = std::max(2, static_cast<int>(std::ceil(length * track.sampleRate)) + 1);
+			track.weights.assign(sampleCount, clickedNegativeButton ? -1.0f : 1.0f);
+			MarkDirty();
+			ApplyAnimationPreview();
+			return;
+		}
 		if (mouse.x >= timeLeft && mouse.y >= weightTop && mouse.y < weightBottom)
 		{
 			paintingFootWeight = true;
@@ -1671,7 +1763,7 @@ void VmdlEditorScene::ApplyAnimationPreview()
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
 	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
 		previewTrailActive[i] = model->EvaluateTrailActive(selectedAnimation, animationTime, i) ? 1 : 0;
-	model->ApplyShapeAnimation(selectedAnimation, animationTime);
+	model->ApplyMorphAnimation(selectedAnimation, animationTime);
 }
 
 void VmdlEditorScene::ResetAnimationControlPreview()
@@ -1683,7 +1775,7 @@ void VmdlEditorScene::ResetAnimationControlPreview()
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
 	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
 		previewTrailActive[i] = model->GetTrailInitialActive(i) ? 1 : 0;
-	model->RestoreRuntimeShapeVisibility();
+	model->RestoreRuntimeMorphVisibility();
 }
 
 void VmdlEditorScene::DrawAnimationEventEditor()
@@ -1691,7 +1783,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 	if (!model || selectedAnimation < 0 || selectedAnimation >= static_cast<int>(model->GetAnimations().size())) return;
 	auto& animation = model->GetAnimations()[selectedAnimation];
 	auto& colliders = model->GetVmdlExtensionData().colliders;
-	auto& shapes = model->GetVmdlExtensionData().shapes;
+	auto& morphs = model->GetVmdlExtensionData().morphs;
 	auto& controlData = model->GetVmdlAnimationControlData();
 	const auto byTime = [](const auto& left, const auto& right) { return left.seconds < right.seconds; };
 
@@ -1779,31 +1871,31 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNodeEx("Shape Apply", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::TreeNodeEx("Morph Apply", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		if (shapes.empty()) ImGui::TextDisabled("No Shape is registered in this VMDL.");
+		if (morphs.empty()) ImGui::TextDisabled("No Morph is registered in this VMDL.");
 		else
 		{
-			selectedShapeEventTarget = std::clamp(selectedShapeEventTarget, 0, static_cast<int>(shapes.size()) - 1);
-			if (ImGui::BeginCombo("Shape", shapes[selectedShapeEventTarget].name.c_str()))
+			selectedMorphEventTarget = std::clamp(selectedMorphEventTarget, 0, static_cast<int>(morphs.size()) - 1);
+			if (ImGui::BeginCombo("Morph", morphs[selectedMorphEventTarget].name.c_str()))
 			{
-				for (int i = 0; i < static_cast<int>(shapes.size()); ++i)
+				for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
 				{
-					if (ImGui::Selectable(shapes[i].name.c_str(), selectedShapeEventTarget == i)) selectedShapeEventTarget = i;
+					if (ImGui::Selectable(morphs[i].name.c_str(), selectedMorphEventTarget == i)) selectedMorphEventTarget = i;
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::Button("Add Apply Key"))
+			if (ImGui::Button("Add Morph Key"))
 			{
-				auto& track = model->GetOrCreateShapeAnimationTrack(animation.name);
-				track.keys.push_back({animationTime, selectedShapeEventTarget});
+				auto& track = model->GetOrCreateMorphAnimationTrack(animation.name);
+				track.keys.push_back({animationTime, selectedMorphEventTarget});
 				std::sort(track.keys.begin(), track.keys.end(), byTime);
 				MarkDirty();
 				ApplyAnimationPreview();
 			}
 
-			VMDLModel::VmdlShapeAnimationTrack* selectedTrack = nullptr;
-			for (auto& track : controlData.shapeTracks)
+			VMDLModel::VmdlMorphAnimationTrack* selectedTrack = nullptr;
+			for (auto& track : controlData.morphTracks)
 			{
 				if (track.animationName == animation.name)
 				{
@@ -1822,15 +1914,15 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 					ImGui::SetNextItemWidth(150.0f);
 					if (ImGui::DragFloat("##Time", &key.seconds, 0.01f, 0.0f, animation.secondsLength, "%.3f sec")) changed = true;
 					ImGui::SameLine();
-					const char* keyShapeName = key.shapeIndex >= 0 && key.shapeIndex < static_cast<int>(shapes.size()) ? shapes[key.shapeIndex].name.c_str() : "(missing)";
+					const char* keyMorphName = key.morphIndex >= 0 && key.morphIndex < static_cast<int>(morphs.size()) ? morphs[key.morphIndex].name.c_str() : "(missing)";
 					ImGui::SetNextItemWidth(220.0f);
-					if (ImGui::BeginCombo("##Shape", keyShapeName))
+					if (ImGui::BeginCombo("##Morph", keyMorphName))
 					{
-						for (int shapeIndex = 0; shapeIndex < static_cast<int>(shapes.size()); ++shapeIndex)
+						for (int morphIndex = 0; morphIndex < static_cast<int>(morphs.size()); ++morphIndex)
 						{
-							if (ImGui::Selectable(shapes[shapeIndex].name.c_str(), key.shapeIndex == shapeIndex))
+							if (ImGui::Selectable(morphs[morphIndex].name.c_str(), key.morphIndex == morphIndex))
 							{
-								key.shapeIndex = shapeIndex;
+								key.morphIndex = morphIndex;
 								changed = true;
 							}
 						}
@@ -1863,141 +1955,149 @@ void VmdlEditorScene::DrawIkSettings()
 		return;
 	}
 
+	model->EnsureVmdlIKSettingsCompatibility();
 	auto& settings = model->GetVmdlIKSettings();
 	const char* types[] = {"None", "Human Foot IK", "Quadruped IK", "Insect IK"};
-	if (ImGui::Combo("IK Type", &settings.type, types, IM_ARRAYSIZE(types))) MarkDirty();
-	if (settings.type == 1)
+	int selectedType = settings.type;
+	if (ImGui::Combo("IK Type", &selectedType, types, IM_ARRAYSIZE(types)))
 	{
-		const auto nodeCombo = [&](const char* label, std::string& name)
-		{
-			bool changed = false;
-			if (ImGui::BeginCombo(label, name.empty() ? "(none)" : name.c_str()))
-			{
-				for (const auto& node : model->GetNodes())
-				{
-					if (ImGui::Selectable(node.name.c_str(), node.name == name))
-					{
-						name = node.name;
-						changed = true;
-					}
-				}
-				ImGui::EndCombo();
-			}
-			if (!name.empty() && model->GetNodeIndex(name.c_str()) < 0)
-			{
-				ImGui::SameLine();
-				ImGui::TextUnformatted("Missing");
-			}
-			return changed;
-		};
+		settings.type = selectedType;
+		model->ResetVmdlIKLegsForType();
+		MarkDirty();
+	}
+	if (settings.type == 0) return;
 
-		if (nodeCombo("Pelvis", settings.pelvis)) MarkDirty();
-		if (ImGui::BeginTable("Human Foot IK Bones", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchSame))
+	const auto nodeCombo = [&](const char* label, std::string& name, bool allowNone = false)
+	{
+		bool changed = false;
+		if (ImGui::BeginCombo(label, name.empty() ? "(none)" : name.c_str()))
 		{
-			ImGui::TableSetupColumn("Left Leg");
-			ImGui::TableSetupColumn("Right Leg");
-			ImGui::TableHeadersRow();
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::PushID("Left Leg");
-			bool leftChanged = nodeCombo("Thigh", settings.leftThigh);
-			leftChanged |= nodeCombo("Calf", settings.leftCalf);
-			leftChanged |= nodeCombo("Foot", settings.leftFoot);
-			leftChanged |= nodeCombo("Ball", settings.leftBall);
-			if (leftChanged) MarkDirty();
-			ImGui::PopID();
-			ImGui::TableSetColumnIndex(1);
-			ImGui::PushID("Right Leg");
-			bool rightChanged = nodeCombo("Thigh", settings.rightThigh);
-			rightChanged |= nodeCombo("Calf", settings.rightCalf);
-			rightChanged |= nodeCombo("Foot", settings.rightFoot);
-			rightChanged |= nodeCombo("Ball", settings.rightBall);
-			if (rightChanged) MarkDirty();
-			ImGui::PopID();
-			ImGui::EndTable();
+			if (allowNone && ImGui::Selectable("(none)", name.empty()))
+			{
+				name.clear();
+				changed = true;
+			}
+			for (const auto& node : model->GetNodes())
+			{
+				if (ImGui::Selectable(node.name.c_str(), node.name == name))
+				{
+					name = node.name;
+					changed = true;
+				}
+			}
+			ImGui::EndCombo();
 		}
+		if (!name.empty() && model->GetNodeIndex(name.c_str()) < 0)
+		{
+			ImGui::SameLine();
+			ImGui::TextUnformatted("Missing");
+		}
+		return changed;
+	};
+
+	if (nodeCombo(settings.type == 1 ? "Pelvis" : "Body Center", settings.centerNode)) MarkDirty();
+	for (int i = 0; i < static_cast<int>(settings.legs.size()); ++i)
+	{
+		auto& leg = settings.legs[i];
+		ImGui::PushID(i);
+		const std::string header = leg.name.empty() ? "Leg " + std::to_string(i + 1) : leg.name;
+		if (ImGui::CollapsingHeader(header.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			bool changed = ImGui::InputText("Name", &leg.name);
+			changed |= nodeCombo("Root", leg.root);
+			changed |= nodeCombo("Mid", leg.mid);
+			changed |= nodeCombo("Tip", leg.tip);
+			changed |= nodeCombo("Contact", leg.contact, true);
+			if (changed) MarkDirty();
+		}
+		ImGui::PopID();
 	}
 }
 
-void VmdlEditorScene::DrawShapeEditor()
+void VmdlEditorScene::DrawMorphEditor()
 {
-	ImGui::TextUnformatted("Shape Editor");
+	ImGui::TextUnformatted("Morph Editor");
 	ImGui::SameLine();
 	ImGui::TextDisabled("+ shows a mesh, - hides it, and square leaves it unchanged.");
 	if (!model) return;
 
-	auto& shapes = model->GetVmdlExtensionData().shapes;
-	if (ImGui::Button("Register Current Shape"))
+	auto& morphs = model->GetVmdlExtensionData().morphs;
+	if (ImGui::Button("Register Current Morph"))
 	{
-		auto& shape = shapes.emplace_back();
-		shape.name = "Shape " + std::to_string(shapes.size());
-		shape.meshVisibility.reserve(model->GetMeshes().size());
-		for (const VMDLModel::Mesh& mesh : model->GetMeshes()) shape.meshVisibility.push_back(mesh.isDraw ? 1 : 0);
-		selectedShape = static_cast<int>(shapes.size()) - 1;
+		auto& morph = morphs.emplace_back();
+		morph.name = MakeUniqueMorphName(*model, "MORPH " + std::to_string(morphs.size()));
+		morph.meshVisibility.reserve(model->GetMeshes().size());
+		for (const VMDLModel::Mesh& mesh : model->GetMeshes()) morph.meshVisibility.push_back(mesh.isDraw ? 1 : 0);
+		selectedMorph = static_cast<int>(morphs.size()) - 1;
 		MarkDirty();
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Apply Shape") && selectedShape >= 0 && selectedShape < static_cast<int>(shapes.size()))
+	if (ImGui::Button("Apply Morph") && selectedMorph >= 0 && selectedMorph < static_cast<int>(morphs.size()))
 	{
-		model->ApplyShape(selectedShape);
+		model->ApplyMorph(selectedMorph);
 	}
 	ImGui::SameLine();
-	const bool canDeleteShape = selectedShape >= 0 && selectedShape < static_cast<int>(shapes.size());
-	ImGui::BeginDisabled(!canDeleteShape);
-	if (ImGui::Button("Duplicate Shape") && canDeleteShape)
+	const bool canDeleteMorph = selectedMorph >= 0 && selectedMorph < static_cast<int>(morphs.size());
+	ImGui::BeginDisabled(!canDeleteMorph);
+	if (ImGui::Button("Duplicate Morph") && canDeleteMorph)
 	{
-		VMDLModel::VmdlShape duplicate = shapes[selectedShape];
-		duplicate.name += " Copy";
-		shapes.push_back(std::move(duplicate));
-		selectedShape = static_cast<int>(shapes.size()) - 1;
+		VMDLModel::VmdlMorph duplicate = morphs[selectedMorph];
+		duplicate.name = MakeUniqueMorphName(*model, duplicate.name + " COPY");
+		morphs.push_back(std::move(duplicate));
+		selectedMorph = static_cast<int>(morphs.size()) - 1;
 		MarkDirty();
 	}
 	ImGui::EndDisabled();
 	ImGui::SameLine();
-	ImGui::BeginDisabled(!canDeleteShape);
-	if (ImGui::Button("Delete Shape") && canDeleteShape)
+	ImGui::BeginDisabled(!canDeleteMorph);
+	if (ImGui::Button("Delete Morph") && canDeleteMorph)
 	{
-		shapes.erase(shapes.begin() + selectedShape);
-		for (auto& track : model->GetVmdlAnimationControlData().shapeTracks)
+		morphs.erase(morphs.begin() + selectedMorph);
+		for (auto& track : model->GetVmdlAnimationControlData().morphTracks)
 		{
-			std::erase_if(track.keys, [&](const auto& key) { return key.shapeIndex == selectedShape; });
+			std::erase_if(track.keys, [&](const auto& key) { return key.morphIndex == selectedMorph; });
 			for (auto& key : track.keys)
 			{
-				if (key.shapeIndex > selectedShape) --key.shapeIndex;
+				if (key.morphIndex > selectedMorph) --key.morphIndex;
 			}
 		}
-		if (shapes.empty()) selectedShape = -1;
-		else selectedShape = std::min(selectedShape, static_cast<int>(shapes.size()) - 1);
+		if (morphs.empty()) selectedMorph = -1;
+		else selectedMorph = std::min(selectedMorph, static_cast<int>(morphs.size()) - 1);
 		MarkDirty();
 	}
 	ImGui::EndDisabled();
 
-	constexpr ImGuiTableFlags shapeTableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp;
-	if (ImGui::BeginTable("Shape Editor Layout", 2, shapeTableFlags, ImVec2(0.0f, 0.0f)))
+	constexpr ImGuiTableFlags morphTableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp;
+	if (ImGui::BeginTable("Morph Editor Layout", 2, morphTableFlags, ImVec2(0.0f, 0.0f)))
 	{
-		ImGui::TableSetupColumn("Shape List Column", ImGuiTableColumnFlags_WidthStretch, 0.25f);
-		ImGui::TableSetupColumn("Shape Property Column", ImGuiTableColumnFlags_WidthStretch, 0.75f);
+		ImGui::TableSetupColumn("Morph List Column", ImGuiTableColumnFlags_WidthStretch, 0.25f);
+		ImGui::TableSetupColumn("Morph Property Column", ImGuiTableColumnFlags_WidthStretch, 0.75f);
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
-		ImGui::BeginChild("Shape List", ImVec2(0.0f, 0.0f), true);
-		for (int i = 0; i < static_cast<int>(shapes.size()); ++i)
+		ImGui::BeginChild("Morph List", ImVec2(0.0f, 0.0f), true);
+		for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
 		{
-			if (ImGui::Selectable(shapes[i].name.c_str(), selectedShape == i)) selectedShape = i;
+			if (ImGui::Selectable(morphs[i].name.c_str(), selectedMorph == i)) selectedMorph = i;
 		}
 		ImGui::EndChild();
 		ImGui::TableSetColumnIndex(1);
-		ImGui::BeginChild("Shape Property", ImVec2(0.0f, 0.0f), true);
-		if (selectedShape >= 0 && selectedShape < static_cast<int>(shapes.size()))
+		ImGui::BeginChild("Morph Property", ImVec2(0.0f, 0.0f), true);
+		if (selectedMorph >= 0 && selectedMorph < static_cast<int>(morphs.size()))
 		{
-			auto& shape = shapes[selectedShape];
+			auto& morph = morphs[selectedMorph];
 			char name[128]{};
-			strcpy_s(name, shape.name.c_str());
+			strcpy_s(name, morph.name.c_str());
 			if (ImGui::InputText("Name", name, sizeof(name)))
 			{
-				shape.name = name;
-				MarkDirty();
+				const std::string newName = ToUpperMorphName(name);
+				const int duplicateIndex = model->GetMorphIndex(newName.c_str());
+				if (!newName.empty() && (duplicateIndex < 0 || duplicateIndex == selectedMorph))
+				{
+					morph.name = newName;
+					MarkDirty();
+				}
 			}
-			if (shape.meshVisibility.size() != model->GetMeshes().size()) shape.meshVisibility.resize(model->GetMeshes().size(), 2);
+			if (morph.meshVisibility.size() != model->GetMeshes().size()) morph.meshVisibility.resize(model->GetMeshes().size(), 2);
 			ImGui::TextUnformatted("+ Add");
 			ImGui::SameLine();
 			ImGui::TextUnformatted("- Remove");
@@ -2006,7 +2106,7 @@ void VmdlEditorScene::DrawShapeEditor()
 			ImGui::Separator();
 			for (int i = 0; i < static_cast<int>(model->GetMeshes().size()); ++i)
 			{
-				uint8_t& state = shape.meshVisibility[i];
+				uint8_t& state = morph.meshVisibility[i];
 				if (state > 2) state = 2;
 				const VMDLModel::Mesh& mesh = model->GetMeshes()[i];
 				const std::string label = "Mesh " + std::to_string(i) + " : " + mesh.material->name;
@@ -2207,11 +2307,7 @@ void VmdlEditorScene::MarkDirty()
 {
 	dirty = true;
 	if (!model) return;
-	model->GetVmdlExtensionData().rootOffset = rootOffset;
-	auto& placement = model->GetVmdlPlacementData();
-	modelScale = 1.0f;
-	placement.scale = 1.0f;
-	placement.initialized = true;
+	//model->GetVmdlExtensionData().rootOffset = rootOffset;
 }
 
 
@@ -2221,13 +2317,13 @@ bool VmdlEditorScene::OnRequestExit()
 	{
 		int result = MessageBoxW(
 			Game::Graphics::Instance().GetWindowHandle(),
-			L"Do you want to save changes to the VSTG before exiting?",
+			L"終了する前に保存しますか？",
 			L"VSTG Editor",
 			MB_YESNOCANCEL | MB_ICONQUESTION);
 		if (result == IDYES)
 		{
 			SaveVmdl();
-			if (dirty) return false; // Save failed or canceled
+			if (dirty) return false;
 		}
 		else if (result == IDCANCEL)
 		{
@@ -2237,17 +2333,9 @@ bool VmdlEditorScene::OnRequestExit()
 	return true;
 }
 
-void VmdlEditorScene::UpdateModelPlacement()
+void VmdlEditorScene::UpdateModelFraming()
 {
 	if (!model) return;
-
-	modelScale = 1.0f;
-
-	auto& placement = model->GetVmdlPlacementData();
-	const bool scaleWasChanged = !placement.initialized || std::abs(placement.scale - 1.0f) > 0.000001f;
-
-	placement.scale = 1.0f;
-	placement.initialized = true;
 
 	model->UpdateTransform(Matrix::Identity);
 
@@ -2276,27 +2364,7 @@ void VmdlEditorScene::UpdateModelPlacement()
 		}
 	}
 
-	if (!hasVertex)
-	{
-		if (scaleWasChanged) dirty = true;
-		return;
-	}
-
-	rootOffset = model->GetVmdlExtensionData().rootOffset;
-
-	if (rootOffset == Vector3::Zero)
-	{
-		rootOffset.x = -(minPosition.x + maxPosition.x) * 0.5f;
-		rootOffset.z = -(minPosition.z + maxPosition.z) * 0.5f;
-		rootOffset.y = minPosition.y < 0.0f ? -minPosition.y : 0.0f;
-
-		model->GetVmdlExtensionData().rootOffset = rootOffset;
-		dirty = true;
-	}
-	else if (scaleWasChanged)
-	{
-		dirty = true;
-	}
+	if (!hasVertex) return;
 
 	const Vector3 center = (minPosition + maxPosition) * 0.5f;
 	const Vector3 size = maxPosition - minPosition;
@@ -2306,6 +2374,7 @@ void VmdlEditorScene::UpdateModelPlacement()
 
 	cameraDistance =
 		std::clamp(size.Length() * 1.25f, 2.0f, 50.0f);
+	targetCameraDistance = cameraDistance;
 }
 
 void VmdlEditorScene::UpdateWindowTitle()
@@ -2410,9 +2479,7 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 		animationPlaying = false;
 		selectedKeyTrack = -1;
 		selectedKeyIndex = -1;
-		rootOffset = model->GetVmdlExtensionData().rootOffset;
-		modelScale = 1.0f;
-		UpdateModelPlacement();
+		UpdateModelFraming();
 		ResetAnimationControlPreview();
 	}
 	catch (const std::exception& exception)
@@ -2421,6 +2488,8 @@ void VmdlEditorScene::LoadModel(const std::filesystem::path& filepath, bool impo
 		displayPath.clear();
 		ErrorMessage(std::string("Load failed: ") + exception.what());
 	}
+
+	model->ApplyMorph("DEFAULT");
 }
 
 void VmdlEditorScene::ErrorMessage(const std::string& message)

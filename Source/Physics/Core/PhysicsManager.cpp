@@ -508,6 +508,22 @@ void PhysicsManager::SetCurrentSceneContext(
     sceneContext = std::move(context);
 }
 
+void PhysicsManager::RefreshLayerFiltering()
+{
+    PxScene* scene = GetSceneContext().GetScene();
+    if (!scene) return;
+
+    const PxActorTypeFlags actorTypes = PxActorTypeFlag::eRIGID_STATIC | PxActorTypeFlag::eRIGID_DYNAMIC;
+    const PxU32 actorCount = scene->getNbActors(actorTypes);
+    std::vector<PxActor*> actors(actorCount);
+    if (actorCount > 0) scene->getActors(actorTypes, actors.data(), actorCount);
+    GetSceneContext().ClearCollisionEvents();
+    for (PxActor* actor : actors)
+    {
+        if (actor) scene->resetFiltering(*actor);
+    }
+}
+
 void PhysicsManager::Initialize()
 {
     // Foundation

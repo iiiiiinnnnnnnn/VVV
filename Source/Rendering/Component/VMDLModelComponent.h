@@ -38,6 +38,7 @@ public:
 	void BuildAttachments();
 	void SetBuildEmbeddedTrails(bool value) { buildEmbeddedTrails = value; }
 	PhysicsComponent* GetAttachmentCollider(const std::string& name) const;
+	const std::vector<VMDLColliderComponent*>& GetAttachmentColliders() const { return attachmentColliders; }
 
 private:
 	void UpdateAnimationControls();

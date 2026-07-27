@@ -38,6 +38,8 @@ public:
 	static std::filesystem::path FindSourceDataRoot();
 
 	bool PrepareGameResources();
+	bool ReloadGameResources();
+	bool AreGameResourcesPrepared() const { return resourcesPrepared; }
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
 	const std::vector<std::string>& GetErrors() const { return errors; }
@@ -72,4 +74,5 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
 	std::vector<std::shared_ptr<MipmapTexture>> mipmapTextures;
 	std::vector<std::string> errors;
+	bool resourcesPrepared = false;
 };

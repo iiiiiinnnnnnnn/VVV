@@ -67,7 +67,7 @@ Stage01::Stage01()
 	}
 
 	// ボス敵
-	#if 0
+	#if 1
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager.Register(boss);
 	#endif

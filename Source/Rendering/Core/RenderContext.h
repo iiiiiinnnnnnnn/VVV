@@ -14,10 +14,10 @@ class LightManager;
 // レンダリング設定
 struct RenderSettings
 {
-	bool showDebug = true;
+	bool showDebug = false;
 	bool showComponentDebug = true;
 	bool showColliderDebug = true;
-	bool showNavMeshDebug = false;
+	bool showNavMeshDebug = true;
 	bool wireframe = false;
 };
 

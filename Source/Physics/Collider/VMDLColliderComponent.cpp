@@ -1,4 +1,6 @@
-﻿#include "Physics/Collider/VMDLColliderComponent.h"
+﻿// VMDLColliderComponent.cpp
+
+#include "Physics/Collider/VMDLColliderComponent.h"
 
 #include <algorithm>
 
@@ -35,11 +37,11 @@ VMDLColliderComponent::VMDLColliderComponent(
     , isTrigger(isTrigger)
     , material(material ? material : PhysicsManager::Instance().GetDefaultMaterial())
 {
-    _ASSERT_EXPR(model != nullptr, L"VMDLColliderComponent requires model.");
-    _ASSERT_EXPR(nodeIndex >= 0, L"VMDLColliderComponent invalid nodeIndex.");
+    _ASSERT_EXPR(model != nullptr, L"requires model.");
+    _ASSERT_EXPR(nodeIndex >= 0, L"invalid nodeIndex.");
     _ASSERT_EXPR(
         model && nodeIndex < static_cast<int>(model->GetNodes().size()),
-        L"VMDLColliderComponent nodeIndex out of range.");
+        L"nodeIndex out of range.");
 
     if (!model || nodeIndex < 0 || nodeIndex >= static_cast<int>(model->GetNodes().size()))
     {
@@ -53,6 +55,7 @@ VMDLColliderComponent::VMDLColliderComponent(
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
     ghostActor->userData = owner;
 
+    UpdateScaledSize(world);
     CreateShape();
 }
 
@@ -99,7 +102,7 @@ void VMDLColliderComponent::CreateShape()
     {
     case 1:
         shape = physics->createShape(
-            PxSphereGeometry(std::max(0.001f, size.x)),
+            PxSphereGeometry(std::max(0.001f, scaledSize.x)),
             *material,
             true);
         break;
@@ -107,8 +110,8 @@ void VMDLColliderComponent::CreateShape()
     case 2:
         shape = physics->createShape(
             PxCapsuleGeometry(
-                std::max(0.001f, size.x),
-                std::max(0.001f, size.y) * 0.5f),
+                std::max(0.001f, scaledSize.x),
+                std::max(0.001f, scaledSize.y) * 0.5f),
             *material,
             true);
         break;
@@ -116,9 +119,9 @@ void VMDLColliderComponent::CreateShape()
     default:
         shape = physics->createShape(
             PxBoxGeometry(
-                std::max(0.001f, size.x),
-                std::max(0.001f, size.y),
-                std::max(0.001f, size.z)),
+                std::max(0.001f, scaledSize.x),
+                std::max(0.001f, scaledSize.y),
+                std::max(0.001f, scaledSize.z)),
             *material,
             true);
         break;
@@ -140,6 +143,13 @@ void VMDLColliderComponent::CreateShape()
     {
         PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
     }
+}
+
+void VMDLColliderComponent::UpdateScaledSize(const Matrix&)
+{
+	// VMDL Editorの表示と同様、保存されたsizeをワールド寸法として扱う。
+	// Bone階層の座標系補正ScaleはColliderの位置へだけ反映し、形状サイズには掛けない。
+    scaledSize = size;
 }
 
 PxTransform VMDLColliderComponent::GetShapeLocalPose() const
@@ -191,6 +201,9 @@ void VMDLColliderComponent::UpdateFromNode()
     }
 
     const Matrix world = MakeColliderWorld(nodes[nodeIndex].worldTransform, offset);
+    const Vector3 previousScaledSize = scaledSize;
+    UpdateScaledSize(world);
+    if ((scaledSize - previousScaledSize).LengthSquared() > 0.000001f) CreateShape();
     ghostActor->setGlobalPose(Conv::ToPxTransform(world), false);
 }
 
@@ -273,31 +286,35 @@ void VMDLColliderComponent::Render(const RenderContext& rc)
 
     switch (shapeType)
     {
-    case 1:
-        Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-            Conv::ToVector3(pose.p),
-            size.x,
-            Color(1.0f, 0.0f, 1.0f, 1.0f));
-        break;
+        case 1:
+        {
+            Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
+                Conv::ToVector3(pose.p),
+                scaledSize.x,
+                Color(1.0f, 0.0f, 1.0f, 1.0f));
+            break;
+        }
 
-    case 2:
-        Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-            Conv::ToMatrix(pose),
-            size.x,
-            size.y,
-            Color(0.8f, 0.0f, 1.0f, 1.0f));
-        break;
+        case 2:
+        {
+            Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+                Conv::ToMatrix(pose),
+                scaledSize.x,
+                scaledSize.y,
+                Color(0.8f, 0.0f, 1.0f, 1.0f));
+            break;
+        }
 
-    default:
-    {
-        const Quaternion rotation(pose.q.x, pose.q.y, pose.q.z, pose.q.w);
-        Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-            Conv::ToVector3(pose.p),
-            rotation.ToEuler(),
-            size,
-            Color(1.0f, 0.2f, 0.0f, 1.0f));
-        break;
-    }
+        default:
+        {
+            const Quaternion rotation(pose.q.x, pose.q.y, pose.q.z, pose.q.w);
+            Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+                Conv::ToVector3(pose.p),
+                rotation.ToEuler(),
+                scaledSize,
+                Color(1.0f, 0.2f, 0.0f, 1.0f));
+            break;
+        }
     }
 }
 

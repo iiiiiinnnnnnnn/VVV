@@ -7,23 +7,18 @@
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/ActorManager.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
-	vmdl->ApplyShape("Face1");
-	vmdl->ApplyShape("Eye1");
-	vmdl->ApplyShape("Cloth1");
-	vmdl->ApplyShape("Sword");
 
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する。
 	anim = vmdl->GetAnimator();
 	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
-	anim->AddCallbackFunc("OnAnim", [this](const Animator::State& s) { OnEnterAnim(s); }, [this](const Animator::State& s) { OnExitAnim(s); });
-	anim->AddCallbackFunc("OnAttack4B", [this](const Animator::State& s) { OnEnterAnimAttack4B(s); }, [this](const Animator::State& s) { OnExitAnimAttack4B(s); });
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
@@ -43,17 +38,11 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	cc->SetOwnerAnchorAtCenter(false);
 	cc->SetOwnerAnchorOffsetY(0.0f);
 
-	// SetFootPosition と SetPosition は両方呼ばない
+	// SetFootPositionとSetPositionは両方呼ばない
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
-	weaponCollider = vmdl->GetCollider<VMDLColliderComponent>("Weapon");
-	footCollider = vmdl->GetCollider<VMDLColliderComponent>("Kick");
-
-	//// TrailはVMDL Editor側の設定が未完成なので、現行の手動生成を残す。
-	//trail = AddComponent<TrailRenderComponent>(
-	//	model.get(),
-	//	model->GetNodeIndex("add_weapon_r"));
-	//trail->StopTrail();
+	weaponCollider = vmdl->GetCollider<VMDLColliderComponent>("weapon");
+	footCollider = vmdl->GetCollider<VMDLColliderComponent>("kick");
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(
@@ -143,34 +132,6 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::OnDead(const DamageData& damageData)
 {
 
-}
-
-void Player::OnEnterAnim(const Animator::State& state)
-{
-	/*if (state.name.starts_with("Attack"))
-	{
-		if (weaponCollider) weaponCollider->SetActive(true);
-		trail->StartTrail();
-	}*/
-}
-
-void Player::OnExitAnim(const Animator::State& state)
-{
-	/*if (state.name.starts_with("Attack"))
-	{
-		if (weaponCollider) weaponCollider->SetActive(false);
-		trail->StopTrail();
-	}*/
-}
-
-void Player::OnEnterAnimAttack4B(const Animator::State& state)
-{
-	if (footCollider) footCollider->SetActive(true);
-}
-
-void Player::OnExitAnimAttack4B(const Animator::State& state)
-{
-	if (footCollider) footCollider->SetActive(false);
 }
 
 void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)

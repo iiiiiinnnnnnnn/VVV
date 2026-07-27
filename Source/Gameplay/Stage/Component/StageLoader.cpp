@@ -12,8 +12,7 @@
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Prop.h"
 #include "Gameplay/Actor/CrystalProp.h"
-
-using json = nlohmann::json;
+#include "Core\Foundation\Json.h"
 
 static void LoadTransformJson(const json& transformJson, Transform& transform)
 {

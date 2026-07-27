@@ -1,6 +1,8 @@
 ﻿// MeshCollider.h
 #pragma once
 
+#include <memory>
+
 #include "Physics/Core/CollidersDef.h"
 
 class VMDLModel;
@@ -8,10 +10,10 @@ class VMDLModel;
 class MeshCollider : public PhysicsComponent
 {
 public:
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, PxMaterial* material = nullptr);
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, PxMaterial* material = nullptr);
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
-    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
+    MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
 
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
@@ -28,7 +30,7 @@ private:
     Matrix MakeLocalVertexTransform(const Matrix& nodeTransform) const;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
-    VMDLModel* model = nullptr;
+    std::shared_ptr<VMDLModel> model;
     Vector3 localScale = Vector3::One;
     bool useConvex = false;
     bool collisionEnabled = true;

@@ -174,6 +174,14 @@ void Scene::Render()
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
+	// デバッグ切り替え
+	#ifdef _DEBUG
+	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+	{
+		renderSettings.showDebug = !renderSettings.showDebug;
+	}
+	#endif
+
 	// 描画コンテキスト設定
 	RenderContext rc;
 	{
@@ -184,16 +192,6 @@ void Scene::Render()
 		rc.renderSettings = renderSettings;
 		rc.shadowMapData = shadowMapData;
 		rc.iblData = iblData;
-	}
-
-	// デバッグ切り替え
-	{
-		#ifdef _DEBUG
-		if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
-		{
-			renderSettings.showDebug = !renderSettings.showDebug;
-		}
-		#endif
 	}
 
 	// IBLデータをRenderContextに詰める
@@ -418,6 +416,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 			if (ImGui::BeginMenu("Display"))
 			{
+				ImGui::MenuItem("Debug", "F3", &renderSettings.showDebug);
 				ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
 				ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
 				ImGui::Checkbox("NavMesh Move Area", &renderSettings.showNavMeshDebug);
@@ -434,6 +433,13 @@ void Scene::DrawGUI(RenderContext& rc)
 				SwitchToPlayMode();
 			if (ImGui::MenuItem("Pause", "F6", false, Game::Time::scale > 0.0f))
 				SwitchToDebugMode();
+
+			std::string text = "F1 to Show cursor. F3 to Show debug. F4/F5 to Play/Pause";
+			const float width = ImGui::CalcTextSize(text.c_str()).x;
+			ImGui::SetCursorPosX(std::max(
+				ImGui::GetCursorPosX() + 20.0f,
+				ImGui::GetWindowWidth() - width - ImGui::GetStyle().WindowPadding.x));
+			ImGui::TextUnformatted(text.c_str());
 			ImGui::EndMainMenuBar();
 		}
 

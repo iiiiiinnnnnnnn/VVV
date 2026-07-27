@@ -116,7 +116,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
 
 void ShadowMapRenderer::Draw(VMDLModel* model)
 {
-    drawList.emplace_back(model);
+    if (model) drawList.emplace_back(model);
 }
 
 void ShadowMapRenderer::Draw(Terrain* terrain)
@@ -312,7 +312,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             CbSkeleton cbSkeleton{};
             if (mesh.bones.size() > 0)
             {
-                for (size_t i = 0; i < mesh.bones.size(); ++i)
+                for (size_t i = 0; i < mesh.bones.size() && i < _countof(cbSkeleton.boneTransforms); ++i)
                 {
                     const VMDLModel::Bone& bone = mesh.bones.at(i);
                     cbSkeleton.boneTransforms[i] =

@@ -77,6 +77,9 @@ public:
 		directionalLight.SetColor(
 			light.GetColor());
 
+		directionalLight.SetIntensity(
+			light.GetIntensity());
+
 		directionalLight.transform =
 			light.transform;
 
@@ -123,3 +126,4 @@ private:
 		1.0f
 	};
 };
+

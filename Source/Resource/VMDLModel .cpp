@@ -586,7 +586,7 @@ VMDLModel::VMDLModel(
 	}
 
 	UpdateTransform(Matrix::Identity);
-	CaptureRuntimeShapeVisibility();
+	CaptureRuntimeMorphVisibility();
 }
 
 VMDLModel::VMDLModel(const VMDLModel& other)
@@ -698,7 +698,7 @@ void VMDLModel::RebuildRuntimeReferences()
 	}
 
 	UpdateTransform(Matrix::Identity);
-	CaptureRuntimeShapeVisibility();
+	CaptureRuntimeMorphVisibility();
 }
 
 std::shared_ptr<VMDLModel> VMDLModel::Clone() const
@@ -830,36 +830,36 @@ int VMDLModel::GetNodeIndex(const char* name) const
 	return -1;
 }
 
-int VMDLModel::GetShapeIndex(const char* name) const
+int VMDLModel::GetMorphIndex(const char* name) const
 {
 	if (!name) return -1;
-	const auto& shapes = vmdlExtensionData.shapes;
-	for (int i = 0; i < static_cast<int>(shapes.size()); ++i)
+	const auto& morphs = vmdlExtensionData.morphs;
+	for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
 	{
-		if (shapes[i].name == name) return i;
+		if (morphs[i].name == name) return i;
 	}
 	return -1;
 }
 
-bool VMDLModel::ApplyShape(const char* name)
+bool VMDLModel::ApplyMorph(const char* name)
 {
-	return ApplyShape(GetShapeIndex(name));
+	return ApplyMorph(GetMorphIndex(name));
 }
 
-bool VMDLModel::ApplyShape(int shapeIndex)
+bool VMDLModel::ApplyMorph(int morphIndex)
 {
-	const auto& shapes = vmdlExtensionData.shapes;
-	if (shapeIndex < 0 || shapeIndex >= static_cast<int>(shapes.size())) return false;
-	if (runtimeShapeVisibility.size() != meshes.size()) CaptureRuntimeShapeVisibility();
+	const auto& morphs = vmdlExtensionData.morphs;
+	if (morphIndex < 0 || morphIndex >= static_cast<int>(morphs.size())) return false;
+	if (runtimeMorphVisibility.size() != meshes.size()) CaptureRuntimeMorphVisibility();
 
-	const auto& visibility = shapes[shapeIndex].meshVisibility;
+	const auto& visibility = morphs[morphIndex].meshVisibility;
 	const size_t count = std::min(meshes.size(), visibility.size());
 	for (size_t i = 0; i < count; ++i)
 	{
-		if (visibility[i] == 1) runtimeShapeVisibility[i] = 1;
-		else if (visibility[i] == 0) runtimeShapeVisibility[i] = 0;
+		if (visibility[i] == 1) runtimeMorphVisibility[i] = 1;
+		else if (visibility[i] == 0) runtimeMorphVisibility[i] = 0;
 	}
-	return ApplyShapeToMeshes(shapeIndex);
+	return ApplyMorphToMeshes(morphIndex);
 }
 
 void VMDLModel::UpdateTransform(const Matrix& worldTransform)
@@ -1154,39 +1154,39 @@ VMDLModel::VmdlTrailAnimationTrack& VMDLModel::GetOrCreateTrailAnimationTrack(co
 	return track;
 }
 
-VMDLModel::VmdlShapeAnimationTrack& VMDLModel::GetOrCreateShapeAnimationTrack(const std::string& animationName)
+VMDLModel::VmdlMorphAnimationTrack& VMDLModel::GetOrCreateMorphAnimationTrack(const std::string& animationName)
 {
-	for (auto& track : vmdlAnimationControlData.shapeTracks)
+	for (auto& track : vmdlAnimationControlData.morphTracks)
 	{
 		if (track.animationName == animationName) return track;
 	}
-	auto& track = vmdlAnimationControlData.shapeTracks.emplace_back();
+	auto& track = vmdlAnimationControlData.morphTracks.emplace_back();
 	track.animationName = animationName;
 	return track;
 }
 
-const VMDLModel::VmdlShapeAnimationTrack* VMDLModel::FindShapeAnimationTrack(const std::string& animationName) const
+const VMDLModel::VmdlMorphAnimationTrack* VMDLModel::FindMorphAnimationTrack(const std::string& animationName) const
 {
-	for (const auto& track : vmdlAnimationControlData.shapeTracks)
+	for (const auto& track : vmdlAnimationControlData.morphTracks)
 	{
 		if (track.animationName == animationName) return &track;
 	}
 	return nullptr;
 }
 
-void VMDLModel::CaptureRuntimeShapeVisibility()
+void VMDLModel::CaptureRuntimeMorphVisibility()
 {
-	runtimeShapeVisibility.clear();
-	runtimeShapeVisibility.reserve(meshes.size());
-	for (const Mesh& mesh : meshes) runtimeShapeVisibility.push_back(mesh.isDraw ? 1 : 0);
+	runtimeMorphVisibility.clear();
+	runtimeMorphVisibility.reserve(meshes.size());
+	for (const Mesh& mesh : meshes) runtimeMorphVisibility.push_back(mesh.isDraw ? 1 : 0);
 }
 
-bool VMDLModel::ApplyShapeToMeshes(int shapeIndex)
+bool VMDLModel::ApplyMorphToMeshes(int morphIndex)
 {
-	const auto& shapes = vmdlExtensionData.shapes;
-	if (shapeIndex < 0 || shapeIndex >= static_cast<int>(shapes.size())) return false;
+	const auto& morphs = vmdlExtensionData.morphs;
+	if (morphIndex < 0 || morphIndex >= static_cast<int>(morphs.size())) return false;
 
-	const auto& visibility = shapes[shapeIndex].meshVisibility;
+	const auto& visibility = morphs[morphIndex].meshVisibility;
 	const size_t count = std::min(meshes.size(), visibility.size());
 	for (size_t i = 0; i < count; ++i)
 	{
@@ -1196,22 +1196,22 @@ bool VMDLModel::ApplyShapeToMeshes(int shapeIndex)
 	return true;
 }
 
-void VMDLModel::RestoreShapeVisibility(const std::vector<uint8_t>& visibility)
+void VMDLModel::RestoreMorphVisibility(const std::vector<uint8_t>& visibility)
 {
 	const size_t count = std::min(meshes.size(), visibility.size());
 	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = visibility[i] != 0;
-	CaptureRuntimeShapeVisibility();
+	CaptureRuntimeMorphVisibility();
 }
 
-void VMDLModel::RestoreRuntimeShapeVisibility()
+void VMDLModel::RestoreRuntimeMorphVisibility()
 {
-	const size_t count = std::min(meshes.size(), runtimeShapeVisibility.size());
-	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = runtimeShapeVisibility[i] != 0;
+	const size_t count = std::min(meshes.size(), runtimeMorphVisibility.size());
+	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = runtimeMorphVisibility[i] != 0;
 }
 
-void VMDLModel::ApplyShapeAnimation(int animationIndex, float time)
+void VMDLModel::ApplyMorphAnimation(int animationIndex, float time)
 {
-	RestoreRuntimeShapeVisibility();
+	RestoreRuntimeMorphVisibility();
 	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return;
 
 	const Animation& animation = animations[animationIndex];
@@ -1221,13 +1221,13 @@ void VMDLModel::ApplyShapeAnimation(int animationIndex, float time)
 		while (time > animation.secondsLength) time -= animation.secondsLength;
 	}
 
-	const auto* track = FindShapeAnimationTrack(animation.name);
+	const auto* track = FindMorphAnimationTrack(animation.name);
 	if (!track) return;
-	// Shapeは差分指定なので、現在時刻までのキーを先頭から順に適用して結果を再現する。
+	// Morphは差分指定なので、現在時刻までのキーを先頭から順に適用して結果を再現する。
 	for (const auto& key : track->keys)
 	{
 		if (key.seconds > time) break;
-		ApplyShapeToMeshes(key.shapeIndex);
+		ApplyMorphToMeshes(key.morphIndex);
 	}
 }
 
@@ -1564,4 +1564,3 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 		_ASSERT_EXPR_A(false, "VMDLModel deserialize failed.");
 	}
 }
-

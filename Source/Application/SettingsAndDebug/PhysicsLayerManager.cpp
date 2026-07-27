@@ -1,6 +1,7 @@
 // PhysicsLayerManager.cpp
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
+#include "Physics/Core/PhysicsManager.h"
 #include <fstream>
 #include <filesystem>
 
@@ -14,8 +15,6 @@
 
 #include "imgui.h"
 
-namespace
-{
 std::filesystem::path GetPhysicsLayerPath()
 {
     for (std::filesystem::path directory = std::filesystem::current_path();
@@ -26,7 +25,6 @@ std::filesystem::path GetPhysicsLayerPath()
         if (directory == directory.root_path()) break;
     }
     return {};
-}
 }
 
 template<class Archive>
@@ -217,6 +215,8 @@ void PhysicsLayerManager::SetCollides(LayerId a, LayerId b, bool enabled)
     {
         settings.collisionMatrix[ib][ia] = value;
     }
+
+    PhysicsManager::Instance().RefreshLayerFiltering();
 }
 
 void PhysicsLayerManager::Initialize()
@@ -252,12 +252,12 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 
         constexpr int DisplayLayerCount = EditableLayerCount;
 
-        auto getDisplayLayerName = [&](int index) -> const char*
+        auto getDisplayLayerName = [&](int index) -> std::string
         {
             const int realIndex = index;
             const std::string& name = settings.layerNames[realIndex];
 
-            return name.empty() ? "(Empty)" : name.c_str();
+            return std::to_string(index) + ": " + (name.empty() ? "(Empty)" : name);
         };
 
         auto getDisplayLayerId = [&](int index) -> LayerId
@@ -274,8 +274,8 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             ImGuiTableFlags_ScrollY |
             ImGuiTableFlags_SizingFixedFit))
         {
-            constexpr float LayerColumnWidth = 80.0f;
-            constexpr float CollisionColumnWidth = 80.0f;
+            constexpr float LayerColumnWidth = 160.0f;
+            constexpr float CollisionColumnWidth = 100.0f;
 
             ImGui::TableSetupColumn(
                 "Layer",
@@ -285,7 +285,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             for (int x = 0; x < DisplayLayerCount; ++x)
             {
                 ImGui::TableSetupColumn(
-                    getDisplayLayerName(x),
+                    getDisplayLayerName(x).c_str(),
                     ImGuiTableColumnFlags_WidthFixed,
                     CollisionColumnWidth);
             }
@@ -304,6 +304,8 @@ void PhysicsLayerManager::DrawGUI(bool* open)
                 char nameId[64];
                 sprintf_s(nameId, "##LayerName_%d", y);
 
+                ImGui::Text("%d:", y);
+                ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
                 if (ImGui::InputText(nameId, name, sizeof(name)))
@@ -355,4 +357,18 @@ LayerId PhysicsLayerManager::GetLayerId(const char* name) const
     }
 
     return InvalidLayerId;
+}
+
+const std::string& PhysicsLayerManager::GetLayerName(LayerId id) const
+{
+    static const std::string empty;
+    if (id >= EditableLayerCount) return empty;
+    return settings.layerNames[id];
+}
+
+std::string PhysicsLayerManager::GetLayerDisplayName(LayerId id) const
+{
+    if (id >= EditableLayerCount) return std::to_string(id) + ": (Invalid)";
+    const std::string& name = GetLayerName(id);
+    return std::to_string(id) + ": " + (name.empty() ? "(Empty)" : name);
 }

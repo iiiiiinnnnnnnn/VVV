@@ -11,8 +11,8 @@ class LightManager;
 class Light : public Object
 {
 public:
-	Light(const std::string& name = "Light", const std::string& tag = "Light", bool isActive = true, Color color = {1, 1, 1, 1})
-		: Object(name, tag, isActive), color(color) {}
+	Light(const std::string& name = "Light", const std::string& tag = "Light", bool isActive = true, Color color = {1, 1, 1, 1}, float intensity = 1.0f)
+		: Object(name, tag, isActive), color(color), intensity(intensity) {}
 	virtual ~Light() = default;
 
 	void Update() override
@@ -35,6 +35,16 @@ public:
 		return color;
 	}
 
+	void SetIntensity(float intensity)
+	{
+		this->intensity = std::max(intensity, 0.0f);
+	}
+
+	float GetIntensity() const
+	{
+		return intensity;
+	}
+
 	const Vector3 GetDirection() const
 	{
 		return transform.forward;
@@ -43,14 +53,15 @@ public:
 protected:
 	friend class LightManager;
 	Color color = { 1, 1, 1, 1 };
+	float intensity = 1.0f;
 	LightManager* lightManager = nullptr;
 };
 
 class DirectionalLight : public Light
 {
 public:
-	DirectionalLight(const std::string& name = "Directional Light", const std::string& tag = "Directional Light", bool isActive = true, Color color = {1, 1, 1, 1})
-		: Light(name, tag, isActive, color)
+	DirectionalLight(const std::string& name = "Directional Light", const std::string& tag = "Directional Light", bool isActive = true, Color color = {1, 1, 1, 1}, float intensity = 1.0f)
+		: Light(name, tag, isActive, color, intensity)
 	{
 	}
 
@@ -60,8 +71,8 @@ public:
 class PointLight : public Light
 {
 public:
-	PointLight(const std::string& name = "Point Light", const std::string& tag = "Point Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f)
-		: Light(name, tag, isActive, color), range(range)
+	PointLight(const std::string& name = "Point Light", const std::string& tag = "Point Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f, float intensity = 10.0f)
+		: Light(name, tag, isActive, color, intensity), range(range)
 	{
 	}
 
@@ -84,8 +95,8 @@ protected:
 class SpotLight : public Light
 {
 public:
-	SpotLight(const std::string& name = "Spot Light", const std::string& tag = "Spot Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f, float innerConeAngle = 0.9f, float outerConeAngle = 0.8f)
-		: Light(name, tag, isActive, color), range(range), innerConeAngle(innerConeAngle), outerConeAngle(outerConeAngle)
+	SpotLight(const std::string& name = "Spot Light", const std::string& tag = "Spot Light", bool isActive = true, Color color = {1, 1, 1, 1}, float range = 10.0f, float innerConeAngle = 0.9f, float outerConeAngle = 0.8f, float intensity = 10.0f)
+		: Light(name, tag, isActive, color, intensity), range(range), innerConeAngle(innerConeAngle), outerConeAngle(outerConeAngle)
 	{
 	}
 
@@ -130,8 +141,8 @@ protected:
 class AreaLight : public Light
 {
 public:
-	AreaLight(const std::string& name = "Area Light", const std::string& tag = "Area Light", bool isActive = true, Color color = {1, 1, 1, 1}, float width = 1.0f, float height = 1.0f, float range = 10.0f)
-		: Light(name, tag, isActive, color), width(width), height(height), range(range)
+	AreaLight(const std::string& name = "Area Light", const std::string& tag = "Area Light", bool isActive = true, Color color = {1, 1, 1, 1}, float width = 1.0f, float height = 1.0f, float range = 10.0f, float intensity = 10.0f)
+		: Light(name, tag, isActive, color, intensity), width(width), height(height), range(range)
 	{
 	}
 

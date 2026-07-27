@@ -30,6 +30,7 @@ ResourceManager& ResourceManager::Instance()
 
 bool ResourceManager::PrepareGameResources()
 {
+	if (resourcesPrepared) return true;
 	errors.clear();
 	assetPaths.clear();
 	assetPathLookup.clear();
@@ -48,7 +49,14 @@ bool ResourceManager::PrepareGameResources()
 	if (!LoadCachedPathList()) return false;
 #endif
 
-	return PreloadCachedResources();
+	resourcesPrepared = PreloadCachedResources();
+	return resourcesPrepared;
+}
+
+bool ResourceManager::ReloadGameResources()
+{
+	resourcesPrepared = false;
+	return PrepareGameResources();
 }
 
 void ResourceManager::RegisterGeneratedCache(const std::string& path)

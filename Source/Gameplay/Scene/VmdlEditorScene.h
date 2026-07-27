@@ -18,6 +18,8 @@ class RenderTarget;
 class VmdlEditorScene : public Scene
 {
 public:
+	static constexpr bool ReloadsGameResourcesOnLoad = false;
+
 	VmdlEditorScene(SceneMessage message = nullptr);
 	~VmdlEditorScene() override;
 
@@ -34,7 +36,7 @@ private:
 	void DrawProperty();
 	void DrawTimeline();
 	void DrawIkSettings();
-	void DrawShapeEditor();
+	void DrawMorphEditor();
 	void DrawMaterialEditor();
 	void DrawAnimationEventEditor();
 	void DrawAttachedData(int nodeIndex);
@@ -45,7 +47,7 @@ private:
 	void RecordSelectedNodeKey();
 	void AddAnimationKey();
 	void MarkDirty();
-	void UpdateModelPlacement();
+	void UpdateModelFraming();
 	void UpdateWindowTitle();
 	void OpenVmdl();
 	void ImportGlb();
@@ -71,21 +73,20 @@ private:
 	float cameraYaw = 0.55f;
 	float cameraPitch = 0.35f;
 	float cameraDistance = 5.0f;
+	float targetCameraDistance = 5.0f;
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	int gizmoOperation = 120;
-	int selectedShape = -1;
+	int selectedMorph = -1;
 	int selectedMaterial = -1;
 	int selectedColliderEventTarget = 0;
 	int selectedTrailEventTarget = 0;
-	int selectedShapeEventTarget = 0;
+	int selectedMorphEventTarget = 0;
 	bool usePbr = true;
 	Color solidColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
 	LONG_PTR previousWindowStyle = 0;
 	WINDOWPLACEMENT previousWindowPlacement{sizeof(WINDOWPLACEMENT)};
 	bool restoreWindowOnExit = false;
-	Vector3 rootOffset = Vector3::Zero;
 	Vector3 editorLightDirection = Vector3(-0.7f, -0.6f, 0.0f);
-	float modelScale = 1.0f;
 	bool dirty = false;
 	bool animationPlaying = false;
 	bool animationLoop = true;
@@ -115,6 +116,7 @@ private:
 	bool showBones = true;
 	bool showGrid = true;
 	bool showExportWarning = false;
+	bool showPhysicsLayerWindow = false;
 	bool exiting = false;
 	std::vector<uint8_t> previewColliderActive;
 	std::vector<uint8_t> previewTrailActive;

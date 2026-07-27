@@ -10,9 +10,7 @@ Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
 {
     Transform* transform = owner->GetComponent<Transform>();
     Vector3 ownerScale = transform ? transform->scale : Vector3::One;
-	const auto& placement = model->GetVmdlPlacementData();
 	return nodeTransform *
-		Matrix::CreateScale(placement.scale) *
 		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset) *
 		Matrix::CreateScale(ownerScale * localScale);
 }
@@ -58,6 +56,7 @@ bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
 void MeshCollider::Render(const RenderContext& rc)
 {
 	if (!showDebug) return;
+	if (!model || !rigidbody || !rigidbody->GetRigidActor()) return;
 
     Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
     Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -95,25 +94,25 @@ void MeshCollider::Render(const RenderContext& rc)
         Color(0.0f, 1.0f, 1.0f, 1.0f));
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, PxMaterial* material)
-    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(false), quantizedCount(32), material(material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, PxMaterial* material)
-    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
-    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
-MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, VMDLModel* model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
-    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(model), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
+MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
+    : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
