@@ -34,7 +34,6 @@ rmdir /s /q "%DIST_DIR%" 2>nul
 mkdir "%DIST_DIR%"
 
 echo [3/4] bin\x64\Release 全体の zip を作成中...
-echo Data が大きい場合、ここでしばらく止まって見えます。
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0CreateZip.ps1" -SourceDirectory "%OUT_DIR%" -DestinationFile "%DIST_DIR%\%ZIP_NAME%"
 
