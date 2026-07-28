@@ -384,4 +384,4 @@ imgui.ini
 /Data/Terrain/Layers/*.dds
 /LicenseAssets
 /*.ps1
-!/PackageData.ps1
+!/CreateZip.ps1
