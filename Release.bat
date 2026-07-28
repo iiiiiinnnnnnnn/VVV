@@ -1,5 +1,7 @@
+@rem Release.bat
 @echo off
 setlocal
+chcp 65001 >nul
 cd /d "%~dp0"
 
 set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
@@ -53,7 +55,7 @@ if not exist "%RUNTIME_DATA_DIR%\cached.ini" (
 echo [4/6] Data をコピー中...
 echo Copying resources listed in Data/cached.ini.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "PackageData.ps1" -RuntimeData "%RUNTIME_DATA_DIR%" -PackageData "%PACKAGE_DIR%\Data"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0PackageData.ps1" -RuntimeData "%RUNTIME_DATA_DIR%" -PackageData "%PACKAGE_DIR%\Data"
 
 if errorlevel 1 (
     echo Data のコピーに失敗しました。
