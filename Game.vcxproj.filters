@@ -133,6 +133,7 @@
     <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp">
       <Filter>Physics\Collider</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Actor\EnemySmall.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
@@ -458,6 +459,9 @@
     </ClInclude>
     <ClInclude Include="Source\Core\Foundation\Json.h">
       <Filter>Core\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Actor\EnemySmall.h">
+      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

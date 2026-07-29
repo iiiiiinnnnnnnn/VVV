@@ -479,6 +479,9 @@ public:
 	void UpdateTransform(const Matrix& worldTransform);
 
 	const Matrix& GetWorldTransform() const;
+	Matrix GetRenderScaleTransform() const;
+	float GetModelScale() const { return modelScale; }
+	void SetModelScale(float value);
 
 	void ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const;
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
@@ -555,6 +558,8 @@ private:
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;
 	std::vector<uint8_t> runtimeMorphVisibility;
+	float modelScale = 1.0f;
+	Matrix worldTransform = Matrix::Identity;
 
 	std::filesystem::path modelCacheFilepath;
 	uint64_t modelCacheLastWrite = 0;

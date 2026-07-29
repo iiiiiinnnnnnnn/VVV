@@ -10,7 +10,10 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
+#include <cmath>
 #include <compressapi.h>
+#include <cstring>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -611,6 +614,8 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	vmdlAnimationEditorData(other.vmdlAnimationEditorData),
 	vmdlAnimationControlData(other.vmdlAnimationControlData),
 	vmdlTrailData(other.vmdlTrailData),
+	modelScale(other.modelScale),
+	worldTransform(other.worldTransform),
 	modelCacheFilepath(other.modelCacheFilepath),
 	modelCacheLastWrite(other.modelCacheLastWrite)
 {
@@ -627,6 +632,8 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	vmdlAnimationEditorData(std::move(other.vmdlAnimationEditorData)),
 	vmdlAnimationControlData(std::move(other.vmdlAnimationControlData)),
 	vmdlTrailData(std::move(other.vmdlTrailData)),
+	modelScale(other.modelScale),
+	worldTransform(other.worldTransform),
 	modelCacheFilepath(std::move(other.modelCacheFilepath)),
 	modelCacheLastWrite(other.modelCacheLastWrite)
 {
@@ -646,6 +653,8 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	vmdlAnimationEditorData = other.vmdlAnimationEditorData;
 	vmdlAnimationControlData = other.vmdlAnimationControlData;
 	vmdlTrailData = other.vmdlTrailData;
+	modelScale = other.modelScale;
+	worldTransform = other.worldTransform;
 	modelCacheFilepath = other.modelCacheFilepath;
 	modelCacheLastWrite = other.modelCacheLastWrite;
 	RebuildRuntimeReferences();
@@ -665,6 +674,8 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	vmdlAnimationEditorData = std::move(other.vmdlAnimationEditorData);
 	vmdlAnimationControlData = std::move(other.vmdlAnimationControlData);
 	vmdlTrailData = std::move(other.vmdlTrailData);
+	modelScale = other.modelScale;
+	worldTransform = other.worldTransform;
 	modelCacheFilepath = std::move(other.modelCacheFilepath);
 	modelCacheLastWrite = other.modelCacheLastWrite;
 	RebuildRuntimeReferences();
@@ -828,6 +839,21 @@ static void UpdateNodeTransform(VMDLModel::Node& node, const Matrix& parentGloba
 
 int VMDLModel::GetNodeIndex(const char* name) const
 {
+	if (!name) return -1;
+
+	const char* separator = strchr(name, ':');
+	if (separator && separator != name)
+	{
+		int referencedIndex = -1;
+		const auto result = std::from_chars(name, separator, referencedIndex);
+		if (result.ec == std::errc() && result.ptr == separator &&
+			referencedIndex >= 0 && referencedIndex < static_cast<int>(nodes.size()) &&
+			nodes[referencedIndex].name == separator + 1)
+		{
+			return referencedIndex;
+		}
+	}
+
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
 	{
 		if (nodes.at(nodeIndex).name == name)
@@ -917,6 +943,8 @@ bool VMDLModel::ApplyMorph(int morphIndex)
 
 void VMDLModel::UpdateTransform(const Matrix& worldTransform)
 {
+	this->worldTransform = worldTransform;
+
 	for (Node& node : nodes)
 	{
 		if (node.parent == nullptr)
@@ -926,18 +954,26 @@ void VMDLModel::UpdateTransform(const Matrix& worldTransform)
 	}
 }
 
+Matrix VMDLModel::GetRenderScaleTransform() const
+{
+	if (modelScale == 1.0f) return Matrix::Identity;
+
+	const Vector3 pivot = worldTransform.Translation();
+
+	return
+		Matrix::CreateTranslation(-pivot) *
+		Matrix::CreateScale(modelScale) *
+		Matrix::CreateTranslation(pivot);
+}
+
+void VMDLModel::SetModelScale(float value)
+{
+	modelScale = std::isfinite(value) ? std::clamp(value, 0.0001f, 10000.0f) : 1.0f;
+}
+
 const Matrix& VMDLModel::GetWorldTransform() const
 {
-	for (const Node& node : nodes)
-	{
-		if (node.parent == nullptr)
-		{
-			return node.worldTransform;
-		}
-	}
-
-	static const Matrix identity = Matrix::Identity;
-	return identity;
+	return worldTransform;
 }
 
 void VMDLModel::ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const
@@ -1410,7 +1446,8 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 			CEREAL_NVP(vmdlAnimationControlData),
 			CEREAL_NVP(materialPbrSettings),
 			CEREAL_NVP(vmdlTrailData),
-			CEREAL_NVP(materialVMatSettings));
+			CEREAL_NVP(materialVMatSettings),
+			CEREAL_NVP(modelScale));
 	}
 	catch (...)
 	{
@@ -1577,6 +1614,16 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 		}
 		catch (...)
 		{
+		}
+
+		try
+		{
+			archive(CEREAL_NVP(modelScale));
+			SetModelScale(modelScale);
+		}
+		catch (...)
+		{
+			modelScale = 1.0f;
 		}
 
 		EnsureVmdlIKSettingsCompatibility();

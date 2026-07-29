@@ -115,7 +115,8 @@ private:
 	bool showTrail = true;
 	bool showBones = true;
 	bool showGrid = true;
-	bool showExportWarning = false;
+	bool showSetScaleWindow = false;
+	float setScaleValue = 1.0f;
 	bool showPhysicsLayerWindow = false;
 	bool exiting = false;
 	std::vector<uint8_t> previewColliderActive;

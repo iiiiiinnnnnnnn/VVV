@@ -13,6 +13,7 @@
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
+#include "Gameplay/Actor/EnemySmall.h"
 
 Stage01::Stage01()
 {
@@ -66,12 +67,6 @@ Stage01::Stage01()
 		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
-	// ボス敵
-	#if 1
-	auto boss = std::make_shared<AracoreQueen>();
-	actorManager.Register(boss);
-	#endif
-
 	if (!loadedVstg)
 	{
 		DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
@@ -80,6 +75,18 @@ Stage01::Stage01()
 		lightManager.SetDirectionalLight(directionalLight);
 		lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
 	}
+
+	// ボス敵
+	#if 0
+	auto boss = std::make_shared<AracoreQueen>();
+	actorManager.Register(boss);
+	#endif
+
+	// 雑魚敵
+	#if 1
+	auto enemy = std::make_shared<EnemySmall>(Vector3{-4.113f, 0.95f, -3.712f});
+	actorManager.Register(enemy);
+	#endif
 }
 
 void Stage01::OnUpdate()

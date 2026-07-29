@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp" />
     <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp" />
+    <ClCompile Include="Source\Gameplay\Actor\EnemySmall.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp" />
@@ -123,6 +124,7 @@
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h" />
     <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h" />
     <ClInclude Include="Source\Core\Foundation\Json.h" />
+    <ClInclude Include="Source\Gameplay\Actor\EnemySmall.h" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />

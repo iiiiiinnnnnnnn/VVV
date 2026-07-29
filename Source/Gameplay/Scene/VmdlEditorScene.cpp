@@ -49,6 +49,11 @@ std::string MakeUniqueMorphName(const VMDLModel& model, const std::string& baseN
 	}
 }
 
+std::string MakeNodeLabel(int nodeIndex, const std::string& nodeName)
+{
+	return std::to_string(nodeIndex) + ":" + nodeName;
+}
+
 Vector3 EvaluateVectorKeys(const std::vector<VMDLModel::VectorKeyframe>& keys, float time, const Vector3& fallback)
 {
 	if (keys.empty()) return fallback;
@@ -137,7 +142,11 @@ VmdlEditorScene::~VmdlEditorScene()
 void VmdlEditorScene::OnDrawGUI()
 {
 	UpdateWindowTitle();
-	if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+	if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+	{
+		OpenVmdl();
+	}
+	else if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
 	{
 		if (ImGui::GetIO().KeyShift) SaveVmdlAs();
 		else SaveVmdl();
@@ -257,14 +266,25 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGui::End();
 	if (showPhysicsLayerWindow) PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
-	if (showExportWarning) ImGui::OpenPopup("Export GLB");
-	showExportWarning = false;
-	if (ImGui::BeginPopupModal("Export GLB", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	if (showSetScaleWindow) ImGui::OpenPopup("Set Scale");
+	showSetScaleWindow = false;
+	if (ImGui::BeginPopupModal("Set Scale", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		ImGui::TextWrapped("GLB export removes VMDL-only data such as rigid bodies, colliders, springs, IK, and editor animation data.");
-		ImGui::Spacing();
-		ImGui::TextDisabled("The GLB exporter is not connected yet.");
-		if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+		ImGui::SetNextItemWidth(220.0f);
+		ImGui::InputFloat("Scale", &setScaleValue, 0.01f, 0.1f, "%.4f");
+		const bool validScale = model && std::isfinite(setScaleValue) && setScaleValue > 0.0f;
+		ImGui::BeginDisabled(!validScale);
+		if (ImGui::Button("Apply", ImVec2(100.0f, 0.0f)))
+		{
+			model->SetModelScale(setScaleValue);
+			setScaleValue = model->GetModelScale();
+			UpdateModelFraming();
+			MarkDirty();
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(100.0f, 0.0f))) ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 }
@@ -339,11 +359,12 @@ void VmdlEditorScene::RenderPreview()
 		if (showBones)
 		{
 			const auto& nodes = model->GetNodes();
+			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
 			for (const VMDLModel::Node& node : nodes)
 			{
 				if (!node.parent) continue;
-				const Vector3 start(node.parent->worldTransform._41, node.parent->worldTransform._42, node.parent->worldTransform._43);
-				const Vector3 end(node.worldTransform._41, node.worldTransform._42, node.worldTransform._43);
+				const Vector3 start = (node.parent->worldTransform * renderScaleTransform).Translation();
+				const Vector3 end = (node.worldTransform * renderScaleTransform).Translation();
 				graphics.GetPrimitiveRenderer()->DrawLine(start, end, Color(1, 0.8f, 0.1f, 1), Color(1, 0.3f, 0.1f, 1));
 			}
 			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(), editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -447,12 +468,11 @@ void VmdlEditorScene::DrawMenuBar()
 	if (!ImGui::BeginMenuBar()) return;
 	if (ImGui::BeginMenu("File"))
 	{
-		if (ImGui::MenuItem("Open VMDL...")) OpenVmdl();
+		if (ImGui::MenuItem("Open VMDL...", "Ctrl+O")) OpenVmdl();
 		if (ImGui::MenuItem("Save VMDL", "Ctrl+S", false, model != nullptr)) SaveVmdl();
 		if (ImGui::MenuItem("Save VMDL As...", "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
 		ImGui::Separator();
 		if (ImGui::MenuItem("Import GLB...")) ImportGlb();
-		if (ImGui::MenuItem("Export GLB...", nullptr, false, model != nullptr)) showExportWarning = true;
 		ImGui::Separator();
 		if (ImGui::MenuItem("Exit")) exiting = true;
 		ImGui::EndMenu();
@@ -480,7 +500,12 @@ void VmdlEditorScene::DrawMenuBar()
 	}
 	if (ImGui::BeginMenu("Tools"))
 	{
-
+		if (ImGui::MenuItem("Set Scale...", nullptr, false, model != nullptr))
+		{
+			setScaleValue = model->GetModelScale();
+			showSetScaleWindow = true;
+		}
+		ImGui::EndMenu();
 	}
 	std::string title = documentPath.empty() ? "Untitled" : documentPath.string();
 
@@ -534,7 +559,12 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
 	if (node.children.empty() && !hasMesh) flags |= ImGuiTreeNodeFlags_Leaf;
 	if (selectedNode == nodeIndex && selectedMesh < 0) flags |= ImGuiTreeNodeFlags_Selected;
-	const bool open = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(nodeIndex + 1)), flags, "%s", node.name.c_str());
+	const std::string nodeLabel = MakeNodeLabel(nodeIndex, node.name);
+	const bool open = ImGui::TreeNodeEx(
+		reinterpret_cast<void*>(static_cast<intptr_t>(nodeIndex + 1)),
+		flags,
+		"%s",
+		nodeLabel.c_str());
 	const bool nodeClicked = ImGui::IsItemClicked();
 	DrawNodeContextMenu(nodeIndex);
 	const auto& extension = model->GetVmdlExtensionData();
@@ -590,7 +620,8 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 	ImGui::PushID(nodeIndex);
 	if (ImGui::BeginPopupContextItem("Node Actions"))
 	{
-		ImGui::TextDisabled("Node: %s", model->GetNodes()[nodeIndex].name.c_str());
+		const auto& node = model->GetNodes()[nodeIndex];
+		ImGui::TextDisabled("Node: %s", MakeNodeLabel(nodeIndex, node.name).c_str());
 		ImGui::Separator();
 		if (ImGui::BeginMenu("Add"))
 		{
@@ -665,7 +696,8 @@ void VmdlEditorScene::DrawViewport()
 	{
 		Matrix view = editorCamera->GetView();
 		Matrix projection = editorCamera->GetProjection();
-		Matrix world = model->GetNodes()[selectedNode].worldTransform;
+		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
+		Matrix world = model->GetNodes()[selectedNode].worldTransform * renderScaleTransform;
 		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 		ImGuizmo::SetRect(imageMin.x, imageMin.y, imageMax.x - imageMin.x, imageMax.y - imageMin.y);
 		if (ImGuizmo::Manipulate(
@@ -676,7 +708,7 @@ void VmdlEditorScene::DrawViewport()
 			&world._11))
 		{
 			VMDLModel::Node& node = model->GetNodes()[selectedNode];
-			Matrix global = world;
+			Matrix global = world * renderScaleTransform.Invert();
 			Matrix local = node.parent ? global * node.parent->globalTransform.Invert() : global;
 			local.Decompose(node.scale, node.rotation, node.position);
 			MarkDirty();
@@ -717,7 +749,7 @@ void VmdlEditorScene::DrawProperty()
 	}
 
 	VMDLModel::Node& node = model->GetNodes()[selectedNode];
-	ImGui::Text("Node: %s", node.name.c_str());
+	ImGui::Text("Node: %s", MakeNodeLabel(selectedNode, node.name).c_str());
 	bool transformChanged = ImGui::DragFloat3("Local Position", &node.position.x, 0.01f);
 	if (ImGui::DragFloat4("Local Rotation", &node.rotation.x, 0.01f))
 	{
@@ -1974,18 +2006,25 @@ void VmdlEditorScene::DrawIkSettings()
 	const auto nodeCombo = [&](const char* label, std::string& name, bool allowNone = false)
 	{
 		bool changed = false;
-		if (ImGui::BeginCombo(label, name.empty() ? "(none)" : name.c_str()))
+		const int selectedNodeIndex = name.empty() ? -1 : model->GetNodeIndex(name.c_str());
+		const std::string preview = selectedNodeIndex >= 0
+			? MakeNodeLabel(selectedNodeIndex, model->GetNodes()[selectedNodeIndex].name)
+			: name.empty() ? "(none)" : name;
+		if (ImGui::BeginCombo(label, preview.c_str()))
 		{
 			if (allowNone && ImGui::Selectable("(none)", name.empty()))
 			{
 				name.clear();
 				changed = true;
 			}
-			for (const auto& node : model->GetNodes())
+			const auto& nodes = model->GetNodes();
+			for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
 			{
-				if (ImGui::Selectable(node.name.c_str(), node.name == name))
+				const auto& node = nodes[nodeIndex];
+				const std::string nodeLabel = MakeNodeLabel(nodeIndex, node.name);
+				if (ImGui::Selectable(nodeLabel.c_str(), nodeIndex == selectedNodeIndex))
 				{
-					name = node.name;
+					name = nodeLabel;
 					changed = true;
 				}
 			}
@@ -2342,6 +2381,7 @@ void VmdlEditorScene::UpdateModelFraming()
 	if (!model) return;
 
 	model->UpdateTransform(Matrix::Identity);
+	const Matrix renderScaleTransform = model->GetRenderScaleTransform();
 
 	Vector3 minPosition(FLT_MAX, FLT_MAX, FLT_MAX);
 	Vector3 maxPosition(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -2354,7 +2394,9 @@ void VmdlEditorScene::UpdateModelFraming()
 		for (const VMDLModel::Vertex& vertex : mesh.vertices)
 		{
 			const Vector3 position =
-				Vector3::Transform(vertex.position, mesh.node->globalTransform);
+				Vector3::Transform(
+					vertex.position,
+					mesh.node->globalTransform * renderScaleTransform);
 
 			minPosition.x = std::min(minPosition.x, position.x);
 			minPosition.y = std::min(minPosition.y, position.y);

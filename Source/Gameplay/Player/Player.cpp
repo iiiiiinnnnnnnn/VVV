@@ -216,7 +216,18 @@ void Player::OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, cons
 
 Matrix Player::GetModelWorldTransform() const
 {
-	return transform.matrix;
+	Vector3 placementOffset = model->GetVmdlExtensionData().rootOffset;
+	const int rootNodeIndex = model->GetNodeIndex("root");
+	if (rootNodeIndex >= 0)
+	{
+		const Vector3 rootPosition =
+			model->GetNodes()[rootNodeIndex].globalTransform.Translation();
+		placementOffset.x -= rootPosition.x;
+		placementOffset.z -= rootPosition.z;
+	}
+
+	const Matrix placementTransform = Matrix::CreateTranslation(placementOffset);
+	return placementTransform * transform.matrix;
 }
 
 bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const

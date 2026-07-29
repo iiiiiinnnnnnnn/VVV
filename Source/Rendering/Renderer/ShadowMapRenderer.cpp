@@ -304,6 +304,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // ----- メッシュ描画 -----
     for (const auto& model : drawList)
     {
+		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
         for (const VMDLModel::Mesh& mesh : model->GetMeshes())
         {
             if (!mesh.isDraw) continue;
@@ -316,12 +317,12 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
                 {
                     const VMDLModel::Bone& bone = mesh.bones.at(i);
                     cbSkeleton.boneTransforms[i] =
-                        bone.offsetTransform * bone.node->worldTransform;
+                        bone.offsetTransform * bone.node->worldTransform * renderScaleTransform;
                 }
             }
             else
             {
-                cbSkeleton.boneTransforms[0] = mesh.node->worldTransform;
+                cbSkeleton.boneTransforms[0] = mesh.node->worldTransform * renderScaleTransform;
             }
             dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 

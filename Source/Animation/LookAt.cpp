@@ -147,7 +147,7 @@ void LookAt::LateUpdate()
 		}
 	}
 
-	model->UpdateTransform(dynamic_cast<Actor*>(owner)->transform.matrix);
+	model->UpdateTransform(model->GetWorldTransform());
 }
 
 void LookAt::Render(const RenderContext& rc)

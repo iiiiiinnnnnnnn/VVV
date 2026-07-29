@@ -355,8 +355,7 @@ void SpringBone::Reset()
     if (model == nullptr)
         return;
 
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    Matrix ownerWorldTransform = actor != nullptr ? actor->transform.matrix : Matrix::Identity;
+	Matrix ownerWorldTransform = model->GetWorldTransform();
     model->UpdateTransform(ownerWorldTransform);
 
     std::vector<VMDLModel::Node>& nodes = model->GetNodes();
@@ -390,10 +389,7 @@ void SpringBone::LateUpdate()
     std::vector<VMDLModel::Node>& nodes = model->GetNodes();
     const int nodeCount = static_cast<int>(nodes.size());
 
-    Actor* actor = dynamic_cast<Actor*>(owner);
-    Matrix ownerWorldTransform = actor != nullptr
-        ? actor->transform.matrix
-        : Matrix::Identity;
+	Matrix ownerWorldTransform = model->GetWorldTransform();
 
     model->UpdateTransform(ownerWorldTransform);
 

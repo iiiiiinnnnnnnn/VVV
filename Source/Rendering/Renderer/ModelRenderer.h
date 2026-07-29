@@ -1,4 +1,6 @@
 ﻿// ModelRenderer.h
+// ModelRenderer.h
+
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -59,8 +61,9 @@ private:
 	{
 		ModelShaderId				shaderId;
 		const VMDLModel::Mesh*		mesh;
+		Matrix					renderScaleTransform;
 		float					distance;
-		const VMatRenderParams*	params;
+		const VMatRenderParams*		params;
 	};
 
 	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];

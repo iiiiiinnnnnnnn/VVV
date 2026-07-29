@@ -1,0 +1,33 @@
+{
+    "animationMode": "VMDLModel",
+    "layers": [
+        {
+            "anyStateEditorPosX": 60.0,
+            "anyStateEditorPosY": 100.0,
+            "anyStateTransitions": [],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Base Layer",
+            "states": [
+                {
+                    "animationIndex": 2,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 191.0,
+                    "editorPosY": 208.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "idle",
+                    "speed": 1.0,
+                    "transitions": []
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [],
+    "triggers": []
+}

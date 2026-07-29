@@ -83,7 +83,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
 
 	// メッシュ描画関数
-	auto drawMesh = [&](const VMDLModel::Mesh& mesh, ModelShader* shader, const VMatRenderParams* params)
+	auto drawMesh = [&](const VMDLModel::Mesh& mesh, const Matrix& renderScaleTransform,
+		ModelShader* shader, const VMatRenderParams* params)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(VMDLModel::Vertex);
@@ -100,12 +101,12 @@ void ModelRenderer::Render(const RenderContext& rc)
 			{
 				const VMDLModel::Bone& bone = mesh.bones.at(i);
 				cbSkeleton.boneTransforms[i] =
-					bone.offsetTransform * bone.node->worldTransform;
+					bone.offsetTransform * bone.node->worldTransform * renderScaleTransform;
 			}
 		}
 		else
 		{
-			cbSkeleton.boneTransforms[0] = mesh.node->worldTransform;
+			cbSkeleton.boneTransforms[0] = mesh.node->worldTransform * renderScaleTransform;
 		}
 		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
@@ -123,6 +124,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	for (DrawInfo& drawInfo : drawInfos)
 	{
 		ModelShader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
+		const Matrix renderScaleTransform = drawInfo.model->GetRenderScaleTransform();
 		shader->Begin(rc);
 
 		for (const VMDLModel::Mesh& mesh : drawInfo.model->GetMeshes())
@@ -145,9 +147,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
+				transparencyDrawInfo.renderScaleTransform = renderScaleTransform;
 				transparencyDrawInfo.params = drawInfo.params;
 				// カメラとの距離を算出
-				Vector3 Position = {mesh.node->worldTransform._41, mesh.node->worldTransform._42, mesh.node->worldTransform._43};
+				const Vector3 Position = (mesh.node->worldTransform * renderScaleTransform).Translation();
 				DirectX::XMVECTOR Vec = Position - rc.camera->GetEye();
 				transparencyDrawInfo.distance = rc.camera->GetFront().Dot(Vec);
 
@@ -155,7 +158,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 			}
 
 			// 描画
-			drawMesh(mesh, shader, drawInfo.params);
+			drawMesh(mesh, renderScaleTransform, shader, drawInfo.params);
 		}
 
 		shader->End(rc);
@@ -179,7 +182,11 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 		shader->Begin(rc);
 
-		drawMesh(*transparencyDrawInfo.mesh, shader, transparencyDrawInfo.params);
+		drawMesh(
+			*transparencyDrawInfo.mesh,
+			transparencyDrawInfo.renderScaleTransform,
+			shader,
+			transparencyDrawInfo.params);
 
 		shader->End(rc);
 	}
