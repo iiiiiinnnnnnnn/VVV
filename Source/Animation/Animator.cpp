@@ -473,7 +473,8 @@ void Animator::UpdateLayer(
         }
 
         rootMotionVec +=
-            deltaPos * layer.weight;
+            model->GetScaledAttachmentVector(deltaPos) *
+            layer.weight;
 
         rootMotionRot =
             rootMotionRot *
@@ -1683,6 +1684,8 @@ void Animator::SetRootMotion(const std::string& name)
         {
             rootNodeIndex = i;
             rootMotionBasePose.position = nodes[i].position;
+			rootMotionBasePose.position.x = 0.0f;
+			rootMotionBasePose.position.z = 0.0f;
             rootMotionBasePose.rotation = nodes[i].rotation;
             rootMotionBasePose.scale = nodes[i].scale;
             break;

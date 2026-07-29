@@ -170,8 +170,10 @@ void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
 
 	if (hipNodeIndex >= 0)
 	{
+		const Vector3 localHipOffset = model->GetUnscaledAttachmentVector(
+			Vector3(0.0f, visualHipOffsetY, 0.0f));
 		model->GetNodes()[hipNodeIndex].position =
-			baseHipLocalPosition + Vector3(0.0f, visualHipOffsetY, 0.0f);
+			baseHipLocalPosition + localHipOffset;
 	}
 
 	model->UpdateTransform(model->GetWorldTransform());

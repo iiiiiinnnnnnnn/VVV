@@ -18,7 +18,7 @@ class VMDL;
 #include "Resource/VMDLModel.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
-class SpiderFootIK;
+class MultiLegFootIK;
 
 class AracoreQueen : public Entity
 {
@@ -42,7 +42,7 @@ private:
 	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<VMDLModel> model;
 	NavMeshAgent* navMeshAgent = nullptr;
-	SpiderFootIK* spiderFootIK = nullptr;
+	MultiLegFootIK* multiLegFootIK = nullptr;
 	std::vector<PhysicsComponent*> IKColliders;
 	std::vector<PhysicsComponent*> IKStampColliders;
 	EnemyAIFlow* controller = nullptr;

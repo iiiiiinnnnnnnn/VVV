@@ -11,7 +11,7 @@
 
 class Animator;
 class HumanoidFootIK;
-class SpiderFootIK;
+class MultiLegFootIK;
 class PhysicsComponent;
 class VMDLModelComponent;
 
@@ -29,7 +29,7 @@ public:
 	VMDLModelComponent* GetRenderer() const { return renderer; }
 	Animator* GetAnimator() const { return animator; }
 	HumanoidFootIK* GetHumanFootIK() const { return humanFootIK; }
-	SpiderFootIK* GetMultiLegFootIK() const { return multiLegFootIK; }
+	MultiLegFootIK* GetMultiLegFootIK() const { return multiLegFootIK; }
 	PhysicsComponent* GetCollider(const std::string& name) const;
 	void SetAutoUpdateTransform(bool value);
 	bool ApplyMorph(const std::string& morphName);
@@ -49,5 +49,5 @@ private:
 	VMDLModelComponent* renderer = nullptr;
 	Animator* animator = nullptr;
 	HumanoidFootIK* humanFootIK = nullptr;
-	SpiderFootIK* multiLegFootIK = nullptr;
+	MultiLegFootIK* multiLegFootIK = nullptr;
 };

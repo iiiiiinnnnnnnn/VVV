@@ -13,7 +13,7 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Core/Foundation/Easing.h"
 #include "Gameplay/Scene/HitStop.h"
-#include "Animation/SpiderFootIK.h"
+#include "Animation/MultiLegFootIK.h"
 
 AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
 {
@@ -45,7 +45,7 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
         rb = AddComponent<RigidbodyDynamic>();
         rb->SetKinematic(true);
 
-        spiderFootIK = vmdl->GetMultiLegFootIK();
+        multiLegFootIK = vmdl->GetMultiLegFootIK();
     }
 
     controller = AddComponent<EnemyAIFlow>();

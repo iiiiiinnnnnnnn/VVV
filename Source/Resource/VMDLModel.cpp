@@ -966,6 +966,21 @@ Matrix VMDLModel::GetRenderScaleTransform() const
 		Matrix::CreateTranslation(pivot);
 }
 
+Matrix VMDLModel::GetScaledAttachmentTransform(const Matrix& unscaledWorldTransform) const
+{
+	return unscaledWorldTransform * GetRenderScaleTransform();
+}
+
+Vector3 VMDLModel::GetScaledAttachmentVector(const Vector3& unscaledValue) const
+{
+	return unscaledValue * modelScale;
+}
+
+Vector3 VMDLModel::GetUnscaledAttachmentVector(const Vector3& scaledValue) const
+{
+	return scaledValue / modelScale;
+}
+
 void VMDLModel::SetModelScale(float value)
 {
 	modelScale = std::isfinite(value) ? std::clamp(value, 0.0001f, 10000.0f) : 1.0f;
@@ -1069,6 +1084,43 @@ void VMDLModel::EnsureVmdlIKSettingsCompatibility()
 		else if (settings.type == 2) settings.legs[i].name = quadrupedNames[i];
 		else settings.legs[i].name = "Leg " + std::to_string(i + 1);
 	}
+
+	// 旧形式では同名ノードを名前だけで保存していたため、複数の脚がすべて
+	// 最初の同名ノードへ解決される。複数脚で同じ旧形式名を使っている場合だけ、
+	// ノードの出現順に番号付き参照へ移行する。
+	const auto upgradeDuplicateLegNodes = [this, &settings](std::string VmdlIKLeg::* member)
+	{
+		std::unordered_map<std::string, std::vector<std::string*>> referencesByName;
+		for (VmdlIKLeg& leg : settings.legs)
+		{
+			std::string& reference = leg.*member;
+			if (reference.empty() || reference.find(':') != std::string::npos) continue;
+			referencesByName[reference].push_back(&reference);
+		}
+
+		for (auto& [nodeName, references] : referencesByName)
+		{
+			if (references.size() < 2) continue;
+
+			std::vector<int> matchingNodeIndices;
+			for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+			{
+				if (nodes[nodeIndex].name == nodeName) matchingNodeIndices.push_back(nodeIndex);
+			}
+			if (matchingNodeIndices.size() < references.size()) continue;
+
+			for (size_t referenceIndex = 0; referenceIndex < references.size(); ++referenceIndex)
+			{
+				const int nodeIndex = matchingNodeIndices[referenceIndex];
+				*references[referenceIndex] = std::to_string(nodeIndex) + ":" + nodeName;
+			}
+		}
+	};
+
+	upgradeDuplicateLegNodes(&VmdlIKLeg::root);
+	upgradeDuplicateLegNodes(&VmdlIKLeg::mid);
+	upgradeDuplicateLegNodes(&VmdlIKLeg::tip);
+	upgradeDuplicateLegNodes(&VmdlIKLeg::contact);
 }
 
 float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIndex) const

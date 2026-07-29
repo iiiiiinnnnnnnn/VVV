@@ -6,7 +6,7 @@
 
 #include "Animation/Animator.h"
 #include "Animation/HumanoidFootIK.h"
-#include "Animation/SpiderFootIK.h"
+#include "Animation/MultiLegFootIK.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Object.h"
 #include "Physics/Core/PhysicsComponent.h"
@@ -83,7 +83,7 @@ void VMDL::BuildFootIK()
 		return;
 	}
 
-	multiLegFootIK = owner->AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), animator);
+	multiLegFootIK = owner->AddComponent<MultiLegFootIK>(Layers::Get("Foot"), model.get(), animator);
 	multiLegFootIK->SetModelVisualOffsetY(0.0f);
 	multiLegFootIK->AddLegsFromVmdlSettings();
 }

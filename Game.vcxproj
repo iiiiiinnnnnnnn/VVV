@@ -34,7 +34,7 @@
     <ClCompile Include="Source\Rendering\Effect\ParticleSystem.cpp" />
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyDynamic.cpp" />
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyStatic.cpp" />
-    <ClCompile Include="Source\Animation\SpiderFootIK.cpp" />
+    <ClCompile Include="Source\Animation\MultiLegFootIK.cpp" />
     <ClCompile Include="Source\Physics\Collider\MeshCollider.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Actor.cpp" />
@@ -63,6 +63,7 @@
     <ClCompile Include="Source\Physics\Collider\SphereCollider.cpp" />
     <ClCompile Include="Source\Animation\SpringBone.cpp" />
     <ClCompile Include="Source\Gameplay\Player\Player.cpp" />
+	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp" />
     <ClCompile Include="Source\Physics\Collider\CharacterController.cpp" />
     <ClCompile Include="Source\Application\Tools\Dialog.cpp" />
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp" />
@@ -149,7 +150,7 @@
     <ClInclude Include="Source\Physics\RigidBody\RigidbodyDynamic.h" />
     <ClInclude Include="Source\Physics\RigidBody\Rigidbody.h" />
     <ClInclude Include="Source\Physics\RigidBody\RigidbodyStatic.h" />
-    <ClInclude Include="Source\Animation\SpiderFootIK.h" />
+    <ClInclude Include="Source\Animation\MultiLegFootIK.h" />
     <ClInclude Include="Source\Physics\Collider\MeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Actor.h" />
@@ -219,6 +220,7 @@
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Application\Input\Mouse.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerController.h" />
+	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
     <ClInclude Include="Source\Rendering\Core\RenderTarget.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />

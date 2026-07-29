@@ -12,9 +12,9 @@
 
 namespace
 {
-    Matrix MakeColliderWorld(const Matrix& nodeWorld, const Matrix& offset)
+    Matrix MakeColliderWorld(const VMDLModel& model, const Matrix& nodeWorld, const Matrix& offset)
     {
-        return offset * nodeWorld;
+        return model.GetScaledAttachmentTransform(offset * nodeWorld);
     }
 }
 
@@ -49,7 +49,7 @@ VMDLColliderComponent::VMDLColliderComponent(
     }
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
-    const Matrix world = MakeColliderWorld(model->GetNodes()[nodeIndex].worldTransform, offset);
+    const Matrix world = MakeColliderWorld(*model, model->GetNodes()[nodeIndex].worldTransform, offset);
 
     ghostActor = physics->createRigidDynamic(Conv::ToPxTransform(world));
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
@@ -147,9 +147,7 @@ void VMDLColliderComponent::CreateShape()
 
 void VMDLColliderComponent::UpdateScaledSize(const Matrix&)
 {
-	// VMDL Editorの表示と同様、保存されたsizeをワールド寸法として扱う。
-	// Bone階層の座標系補正ScaleはColliderの位置へだけ反映し、形状サイズには掛けない。
-    scaledSize = size;
+    scaledSize = model ? model->GetScaledAttachmentVector(size) : size;
 }
 
 PxTransform VMDLColliderComponent::GetShapeLocalPose() const
@@ -200,7 +198,7 @@ void VMDLColliderComponent::UpdateFromNode()
         return;
     }
 
-    const Matrix world = MakeColliderWorld(nodes[nodeIndex].worldTransform, offset);
+    const Matrix world = MakeColliderWorld(*model, nodes[nodeIndex].worldTransform, offset);
     const Vector3 previousScaledSize = scaledSize;
     UpdateScaledSize(world);
     if ((scaledSize - previousScaledSize).LengthSquared() > 0.000001f) CreateShape();

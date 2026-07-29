@@ -18,7 +18,7 @@
 //#include "Gameplay/Scene/CameraEffectController.h"
 //#include "Core/Foundation/Easing.h"
 //#include "Gameplay/Scene/HitStop.h"
-//#include "Animation/SpiderFootIK.h"
+//#include "Animation/MultiLegFootIK.h"
 //#include "Physics/Collider/BoneCapsuleCollider.h"
 //#include "Physics/Collider/BoneSphereCollider.h"
 //#include "Application/Time/GameTime.h"
@@ -89,18 +89,18 @@
 //        attackCollider->SetActive(false);
 //
 //        // 足接地補正
-//        spiderFootIK = AddComponent<SpiderFootIK>(Layers::Get("Foot"), model.get(), anim);
-//	spiderFootIK->SetRay(0.55f, 2.73f, 0.1f);
-//	spiderFootIK->SetModelVisualOffsetY(-0.2f);
-//	if (spiderFootIK->AddLegsFromVmdlSettings() == 0)
+//        multiLegFootIK = AddComponent<MultiLegFootIK>(Layers::Get("Foot"), model.get(), anim);
+//	multiLegFootIK->SetRay(0.55f, 2.73f, 0.1f);
+//	multiLegFootIK->SetModelVisualOffsetY(-0.2f);
+//	if (multiLegFootIK->AddLegsFromVmdlSettings() == 0)
 //	{
-//		spiderFootIK->SetWaistNodeIndex(model->GetNodeIndex("Bone.004_012"));
-//		spiderFootIK->AddLeg("Bone_R.003_0105", "Bone_R.005_0107", "Bone_R.006_0108");
-//		spiderFootIK->AddLeg("Bone_L.003_0113", "Bone_L.005_0115", "Bone_L.006_0116");
-//		spiderFootIK->AddLeg("Bone.003_R.002_082", "Bone.003_R.004_084", "Bone.003_R.006_086");
-//		spiderFootIK->AddLeg("Bone.003_L.002_074", "Bone.003_L.004_076", "Bone.003_L.006_078");
-//		spiderFootIK->AddLeg("Bone.004_R.002_096", "Bone.004_R.004_098", "Bone.004_R.006_0100");
-//		spiderFootIK->AddLeg("Bone.004_L.002_00", "Bone.004_L.004_090", "Bone.004_L.006_092");
+//		multiLegFootIK->SetWaistNodeIndex(model->GetNodeIndex("Bone.004_012"));
+//		multiLegFootIK->AddLeg("Bone_R.003_0105", "Bone_R.005_0107", "Bone_R.006_0108");
+//		multiLegFootIK->AddLeg("Bone_L.003_0113", "Bone_L.005_0115", "Bone_L.006_0116");
+//		multiLegFootIK->AddLeg("Bone.003_R.002_082", "Bone.003_R.004_084", "Bone.003_R.006_086");
+//		multiLegFootIK->AddLeg("Bone.003_L.002_074", "Bone.003_L.004_076", "Bone.003_L.006_078");
+//		multiLegFootIK->AddLeg("Bone.004_R.002_096", "Bone.004_R.004_098", "Bone.004_R.006_0100");
+//		multiLegFootIK->AddLeg("Bone.004_L.002_00", "Bone.004_L.004_090", "Bone.004_L.006_092");
 //	}
 //    }
 //
@@ -249,7 +249,7 @@
 //		characterController->ReleaseController();
 //		characterController->SetActive(false);
 //	}
-//	if (spiderFootIK) spiderFootIK->SetActive(false);
+//	if (multiLegFootIK) multiLegFootIK->SetActive(false);
 //    if (machine)
 //    {
 //        machine->Destroy(0);

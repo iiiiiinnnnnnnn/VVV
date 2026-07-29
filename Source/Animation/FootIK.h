@@ -117,6 +117,9 @@ private:
 	void KeepPreviousGroundTarget();
 	void SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY);
 	Matrix GetModelOwnerWorldTransform() const;
+	Matrix GetScaledModelOwnerWorldTransform() const;
+	Matrix GetScaledNodeWorldTransform(const VMDLModel::Node& node) const;
+	Vector3 GetScaledNodeWorldPosition(const VMDLModel::Node& node) const;
 
 	static bool IsDescendantOf(const VMDLModel::Node* ancestor, const VMDLModel::Node* node)
 	{

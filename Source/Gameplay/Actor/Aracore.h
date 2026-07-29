@@ -20,7 +20,7 @@
 //class PhysicsComponent;
 //class RigidbodyDynamic;
 //class Aracore;
-//class SpiderFootIK;
+//class MultiLegFootIK;
 //
 //class Aracore : public Entity
 //{
@@ -64,7 +64,7 @@
 //	std::shared_ptr<VMDLModel> model;
 //	Actor* machine = nullptr;
 //	NavMeshAgent* navMeshAgent = nullptr;
-//	SpiderFootIK* spiderFootIK = nullptr;
+//	MultiLegFootIK* multiLegFootIK = nullptr;
 //	PhysicsComponent* bodyCollider = nullptr;
 //	BoneSphereCollider* attackCollider = nullptr;
 //	std::vector<PhysicsComponent*> IKColliders;

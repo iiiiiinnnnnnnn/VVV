@@ -127,6 +127,9 @@
     <Filter Include="Gameplay\Stage\Component">
       <UniqueIdentifier>{7e4a7de8-c3c1-57af-8816-a7fd0f0d92cb}</UniqueIdentifier>
     </Filter>
+	<Filter Include="Gameplay\Component">
+	  <UniqueIdentifier>{882aaaf8-bba7-4c11-a204-b940791c64e0}</UniqueIdentifier>
+	</Filter>
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -277,6 +280,9 @@
     <ClCompile Include="Source\Gameplay\Player\Player.cpp">
       <Filter>Gameplay\Player</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp">
+	  <Filter>Gameplay\Component</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Apple.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -394,7 +400,7 @@
     <ClCompile Include="Source\Animation\HumanoidFootIK.cpp">
       <Filter>Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Animation\SpiderFootIK.cpp">
+    <ClCompile Include="Source\Animation\MultiLegFootIK.cpp">
       <Filter>Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Physics\Navigation\NavMeshActor.cpp">
@@ -606,6 +612,9 @@
     <ClInclude Include="Source\Gameplay\Player\Player.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h">
+	  <Filter>Gameplay\Component</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Entity.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
@@ -750,7 +759,7 @@
     <ClInclude Include="Source\Animation\HumanoidFootIK.h">
       <Filter>Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Animation\SpiderFootIK.h">
+    <ClInclude Include="Source\Animation\MultiLegFootIK.h">
       <Filter>Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h">

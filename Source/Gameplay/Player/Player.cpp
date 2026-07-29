@@ -7,17 +7,20 @@
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/ActorManager.h"
+#include "Gameplay/Component/CharacterMotorComponent.h"
+#include "Physics/Core/PhysicsManager.h"
+#include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
+	// VMDL読み込み
 	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する。
 	anim = vmdl->GetAnimator();
-	anim->SetRootMotion("root");
 	anim->Load("Data/Animator/Player.animator");
 	anim->BindCallbacks();
 
@@ -31,18 +34,17 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		radius,
 		capsuleHeight
 	);
-	cc->SetUseGravity(false);
 	cc->SetStepOffset(0.15f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.05f);
 	cc->SetOwnerAnchorAtCenter(false);
 	cc->SetOwnerAnchorOffsetY(0.0f);
 
+	motor = AddComponent<CharacterMotorComponent>(anim, cc);
+	motor->SetRootMotionNode("root");
+
 	// SetFootPositionとSetPositionは両方呼ばない
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
-
-	weaponCollider = vmdl->GetCollider<VMDLColliderComponent>("weapon");
-	footCollider = vmdl->GetCollider<VMDLColliderComponent>("kick");
 
 	// LookAt
 	lookAt = AddComponent<LookAt>(
@@ -56,24 +58,15 @@ void Player::OnUpdate()
 
 	UpdateLookIn();
 	UpdateMovement();
+	if (motor)
+	{
+		motor->SetExternalVelocity(knockBackVelocity);
+	}
 }
 
 void Player::OnLateUpdate()
 {
-	Vector3 localMoveVec = anim->GetRootMotionVec();
-	Quaternion deltaRot = anim->GetRootMotionRot();
-
-	transform.SetRotation(transform.rotation * deltaRot);
-
-	Vector3 worldMoveVec = Vector3::Transform(localMoveVec, transform.rotation);
-	worldMoveVec += knockBackVelocity * Game::Time::deltaTime;
-	worldMoveVec.y += verticalVelocity * Game::Time::deltaTime;
-
-	cc->Move(worldMoveVec);
-	SnapToGroundIfNeeded();
-
-	model->UpdateTransform(GetModelWorldTransform());
-
+	model->UpdateTransform(transform.matrix);
 
 	if (cc)
 	{
@@ -84,16 +77,6 @@ void Player::OnLateUpdate()
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-
-	bool changed = false;
-
-	changed |= ImGui::DragFloat("groundSnapUpDistance", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
-	changed |= ImGui::DragFloat("groundSnapDownDistance", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
-
-	if (changed && cc)
-	{
-		cc->SetPosition(transform.position);
-	}
 
 	ImGui::Text("LookIn Target: %s", lookInTarget ? lookInTarget->GetName().c_str() : "None");
 	ImGui::Text("LookAt Target: %.1f,%.1f,%.1f", lookAt->GetTarget().x, lookAt->GetTarget().y, lookAt->GetTarget().z);
@@ -139,39 +122,25 @@ void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, c
 	//printf("OnCollisionEnter: %s\n", other->GetName().c_str());
 }
 
-void Player::OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
-{
-	//printf("OnCollisionStay: %s\n", other->GetName().c_str());
-}
-
-void Player::OnCollisionExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
-{
-	//printf("OnCollisionExit: %s\n", other->GetName().c_str());
-}
-
 void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	if (!self || !other) return;
 	if (!self->IsActive()) return;
-	if (self != weaponCollider && self != footCollider) return;
+
+	bool footAtk = (self->CompareName("kick")); // キック攻撃(VMDL取り出し)
+	bool weaponAtk = (self->CompareName("weapon")); // 攻撃(VMDL取り出し)
+	if (!footAtk && !weaponAtk) return;
 
 	// 敵を殴る
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("CrystalProp")) return;
-	constexpr float maxMeleeTargetDistance = 4.0f;
-	if (Vector3::DistanceSquared(transform.position, otherActor->transform.position) >
-		maxMeleeTargetDistance * maxMeleeTargetDistance) return;
-
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
 	if (!entity) return;
 
-	bool footAtk = self == footCollider;
-	VMDLColliderComponent* attackCollider = footAtk ? footCollider : weaponCollider;
-	if (!attackCollider) return;
 	Vector3 hitPosition = point;
 	Vector3 hitNormal = normal;
-	Vector3 rayOrigin = attackCollider->GetWorldPosition();
+	Vector3 rayOrigin = dynamic_cast<VMDLColliderComponent*>(self)->GetWorldPosition();
 	Vector3 rayDirection = point - rayOrigin;
 	if (rayDirection.LengthSquared() <= eps)
 		rayDirection = otherActor->transform.position - rayOrigin;
@@ -204,76 +173,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 		});
 }
 
-void Player::OnTriggerStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
-{
-	//printf("OnTriggerStay: %s\n", other->GetName().c_str());
-}
-
-void Player::OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
-{
-	//printf("OnTriggerExit: %s\n", other->GetName().c_str());
-}
-
-Matrix Player::GetModelWorldTransform() const
-{
-	Vector3 placementOffset = model->GetVmdlExtensionData().rootOffset;
-	const int rootNodeIndex = model->GetNodeIndex("root");
-	if (rootNodeIndex >= 0)
-	{
-		const Vector3 rootPosition =
-			model->GetNodes()[rootNodeIndex].globalTransform.Translation();
-		placementOffset.x -= rootPosition.x;
-		placementOffset.z -= rootPosition.z;
-	}
-
-	const Matrix placementTransform = Matrix::CreateTranslation(placementOffset);
-	return placementTransform * transform.matrix;
-}
-
-bool Player::RaycastGround(PhysicsManager::PhysicsRaycastHit& hit) const
-{
-	Vector3 rayStart =
-		transform.position + Vector3(0.0f, groundSnapUpDistance, 0.0f);
-
-	float rayDistance =
-		groundSnapUpDistance + groundSnapDownDistance;
-
-	return PhysicsManager::Instance().Raycast(
-		rayStart,
-		Vector3::Down,
-		rayDistance,
-		hit,
-		Layers::Get("Player"),
-		this
-	);
-}
-
-void Player::SnapToGroundIfNeeded()
-{
-	PhysicsManager::PhysicsRaycastHit hit;
-	groundedByRay = RaycastGround(hit);
-
-	if (!groundedByRay) return;
-	if (hit.normal.y < 0.35f) return;
-	if (verticalVelocity > 0.0f) return;
-
-	Vector3 targetPosition = transform.position;
-	targetPosition.y = hit.position.y;
-
-	float t = 1.0f - expf(-30.0f * Game::Time::deltaTime);
-	t = std::clamp(t, 0.0f, 1.0f);
-
-	transform.SetPosition(Vector3::Lerp(transform.position, targetPosition, t));
-
-	if (cc)
-	{
-		cc->SetOwnerAnchorOffsetY(0.0f);
-		cc->SetPosition(transform.position);
-	}
-
-	verticalVelocity = 0.0f;
-}
-
+// 敵がいたら見る
 void Player::UpdateLookIn()
 {
 	ActorManager* actorManager = ActorManager::GetActive();
@@ -307,6 +207,7 @@ void Player::UpdateLookIn()
 	lookAt->SetActive(found);
 }
 
+// プレイヤーの移動処理
 void Player::UpdateMovement()
 {
 	if (!controller) return;
@@ -353,14 +254,4 @@ void Player::UpdateMovement()
 	if (ctx.attackPressed)
 		anim->SetTrigger("Attack");
 
-	PhysicsManager::PhysicsRaycastHit groundHit;
-	groundedByRay = RaycastGround(groundHit);
-
-	// 重力
-	if (groundedByRay && verticalVelocity <= 0.0f)
-		verticalVelocity = 0.0f;
-	else
-		verticalVelocity -= 9.81f * Game::Time::deltaTime;
-
-	frameVelocity.y = verticalVelocity * Game::Time::deltaTime;
 }

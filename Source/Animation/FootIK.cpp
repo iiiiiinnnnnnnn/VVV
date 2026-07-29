@@ -154,7 +154,7 @@ bool FootIK::UpdateGroundTarget(
 
 	if (targetWeight < 0.999f)
 	{
-		const Vector3 currentTipPosition = Matrix(chain.tip->worldTransform).Translation();
+		const Vector3 currentTipPosition = GetScaledNodeWorldPosition(*chain.tip);
 		chain.targetPosition = Vector3::Lerp(currentTipPosition, chain.targetPosition, targetWeight);
 	}
 
@@ -213,9 +213,9 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 	if (chain.mid == nullptr) return;
 	if (chain.tip == nullptr) return;
 
-	Matrix rootWorldTransform = chain.root->worldTransform;
-	Matrix midWorldTransform  = chain.mid->worldTransform;
-	Matrix tipWorldTransform  = chain.tip->worldTransform;
+	Matrix rootWorldTransform = GetScaledNodeWorldTransform(*chain.root);
+	Matrix midWorldTransform = GetScaledNodeWorldTransform(*chain.mid);
+	Matrix tipWorldTransform = GetScaledNodeWorldTransform(*chain.tip);
 
 	Vector3 rootPosition = rootWorldTransform.Translation();
 	Vector3 midPosition  = midWorldTransform.Translation();
@@ -245,7 +245,10 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 
 	poleDirection.Normalize();
 
-	chain.polePosition = midPosition + poleDirection * poleDistance + Vector3::Up * poleLiftY;
+	const Vector3 scaledPoleOffset = model
+		? model->GetScaledAttachmentVector(Vector3(poleDistance, poleLiftY, 0.0f))
+		: Vector3(poleDistance, poleLiftY, 0.0f);
+	chain.polePosition = midPosition + poleDirection * scaledPoleOffset.x + Vector3::Up * scaledPoleOffset.y;
 	chain.targetPosition = tipPosition;
 	chain.poleInitialized = true;
 	SyncPoleLocalPosition();
@@ -268,8 +271,8 @@ void FootIK::SetTargetFromContact(
 		? chain.contact
 		: chain.tip;
 
-	Matrix tipWorldTransform = chain.tip->worldTransform;
-	Matrix contactWorldTransform = contactNode->worldTransform;
+	Matrix tipWorldTransform = GetScaledNodeWorldTransform(*chain.tip);
+	Matrix contactWorldTransform = GetScaledNodeWorldTransform(*contactNode);
 
 	Vector3 tipPosition = tipWorldTransform.Translation();
 	Vector3 currentContactPosition = contactWorldTransform.Translation();
@@ -307,7 +310,7 @@ void FootIK::ResetGroundState()
 
 	if (chain.tip)
 	{
-		chain.targetPosition = Matrix(chain.tip->worldTransform).Translation();
+		chain.targetPosition = GetScaledNodeWorldPosition(*chain.tip);
 		smoothedTargetPosition = chain.targetPosition;
 	}
 }
@@ -361,14 +364,14 @@ void FootIK::SyncPoleWorldPosition()
 
 	chain.polePosition = Vector3::Transform(
 		chain.poleLocalPosition,
-		dynamic_cast<Actor*>(owner)->transform.matrix);
+		GetScaledModelOwnerWorldTransform());
 }
 
 void FootIK::SyncPoleLocalPosition()
 {
 	if (!model) return;
 
-	Matrix inverseModelWorldTransform = GetModelOwnerWorldTransform().Invert();
+	Matrix inverseModelWorldTransform = GetScaledModelOwnerWorldTransform().Invert();
 	chain.poleLocalPosition = Vector3::Transform(
 		chain.polePosition,
 		inverseModelWorldTransform);
@@ -390,6 +393,24 @@ Matrix FootIK::GetModelOwnerWorldTransform() const
 
 	return Matrix::Identity;
 }
+
+Matrix FootIK::GetScaledModelOwnerWorldTransform() const
+{
+	const Matrix ownerWorldTransform = GetModelOwnerWorldTransform();
+	return model ? model->GetScaledAttachmentTransform(ownerWorldTransform) : ownerWorldTransform;
+}
+
+Matrix FootIK::GetScaledNodeWorldTransform(const VMDLModel::Node& node) const
+{
+	const Matrix nodeWorldTransform = node.worldTransform;
+	return model ? model->GetScaledAttachmentTransform(nodeWorldTransform) : nodeWorldTransform;
+}
+
+Vector3 FootIK::GetScaledNodeWorldPosition(const VMDLModel::Node& node) const
+{
+	return GetScaledNodeWorldTransform(node).Translation();
+}
+
 Vector3 FootIK::GetPoleWorldPosition() const
 {
 	return chain.polePosition;
@@ -404,14 +425,12 @@ Vector3 FootIK::GetContactWorldPosition() const
 {
 	if (chain.contact != nullptr)
 	{
-		Matrix world = chain.contact->worldTransform;
-		return world.Translation();
+		return GetScaledNodeWorldPosition(*chain.contact);
 	}
 
 	if (chain.tip != nullptr)
 	{
-		Matrix world = chain.tip->worldTransform;
-		return world.Translation();
+		return GetScaledNodeWorldPosition(*chain.tip);
 	}
 
 	return Vector3::Zero;
@@ -450,9 +469,9 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	rootBone.rotation.Normalize();
 	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 
-	Matrix RootWorldTransform = rootBone.worldTransform;
-	Matrix MidWorldTransform = midBone.worldTransform;
-	Matrix TipWorldTransform = tipBone.worldTransform;
+	Matrix RootWorldTransform = GetScaledNodeWorldTransform(rootBone);
+	Matrix MidWorldTransform = GetScaledNodeWorldTransform(midBone);
+	Matrix TipWorldTransform = GetScaledNodeWorldTransform(tipBone);
 
 	Vector3 RootWorldPosition = RootWorldTransform.Translation();
 	Vector3 MidWorldPosition = MidWorldTransform.Translation();
@@ -555,8 +574,8 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	UpdateWorldTransforms(rootBone, ownerWorldTransform);
 
-	MidWorldTransform = midBone.worldTransform;
-	TipWorldTransform = tipBone.worldTransform;
+	MidWorldTransform = GetScaledNodeWorldTransform(midBone);
+	TipWorldTransform = GetScaledNodeWorldTransform(tipBone);
 
 	MidWorldPosition = MidWorldTransform.Translation();
 	TipWorldPosition = TipWorldTransform.Translation();

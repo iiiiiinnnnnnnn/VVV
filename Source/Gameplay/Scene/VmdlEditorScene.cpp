@@ -403,17 +403,19 @@ void VmdlEditorScene::RenderPreview()
 			{
 				if (i < static_cast<int>(previewColliderActive.size()) && previewColliderActive[i] == 0) continue;
 				const auto& value = data.colliders[i];
-				Matrix transform = nodeOffsetTransform(value.nodeIndex, value.center, value.rotation);
-				const Vector3 position = matrixPosition(transform);
-				if (value.shape == 1) graphics.GetShapeRenderer()->DrawSphere(position, std::max(0.001f, value.size.x), Color(0.1f, 0.9f, 1.0f, 0.7f));
-				else if (value.shape == 2) graphics.GetShapeRenderer()->DrawCapsule(transform, std::max(0.001f, value.size.x), std::max(0.001f, value.size.y), Color(0.1f, 0.9f, 1.0f, 0.7f));
+				Matrix transform = model->GetScaledAttachmentTransform(
+					nodeOffsetTransform(value.nodeIndex, value.center, value.rotation));
+				const Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
+				Vector3 transformScale;
+				Vector3 position;
+				Quaternion rotation;
+				transform.Decompose(transformScale, rotation, position);
+				const Matrix pose = Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+				if (value.shape == 1) graphics.GetShapeRenderer()->DrawSphere(position, std::max(0.001f, scaledSize.x), Color(0.1f, 0.9f, 1.0f, 0.7f));
+				else if (value.shape == 2) graphics.GetShapeRenderer()->DrawCapsule(pose, std::max(0.001f, scaledSize.x), std::max(0.001f, scaledSize.y), Color(0.1f, 0.9f, 1.0f, 0.7f));
 				else
 				{
-					Vector3 scale;
-					Vector3 boxPosition;
-					Quaternion rotation;
-					transform.Decompose(scale, rotation, boxPosition);
-					graphics.GetShapeRenderer()->DrawBox(boxPosition, rotation.ToEuler(), value.size, Color(0.1f, 0.9f, 1.0f, 0.7f));
+					graphics.GetShapeRenderer()->DrawBox(position, rotation.ToEuler(), scaledSize, Color(0.1f, 0.9f, 1.0f, 0.7f));
 				}
 				hasShapes = true;
 			}
@@ -844,25 +846,41 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				if (value.shape == 1) value.size.y = value.size.z = value.size.x;
 				changed = true;
 			}
-			changed |= ImGui::DragFloat3("Offset Position", &value.center.x, 0.01f);
+			Vector3 scaledCenter = model->GetScaledAttachmentVector(value.center);
+			Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
+			if (ImGui::DragFloat3("Offset Position", &scaledCenter.x, 0.01f))
+			{
+				value.center = model->GetUnscaledAttachmentVector(scaledCenter);
+				changed = true;
+			}
 			changed |= ImGui::DragFloat3("Offset Rotation", &value.rotation.x, 0.01f);
 			if (value.shape == 1)
 			{
-				if (ImGui::DragFloat("Radius", &value.size.x, 0.01f, 0.001f))
+				if (ImGui::DragFloat("Radius", &scaledSize.x, 0.01f, 0.001f))
 				{
-					value.size.x = std::max(0.001f, value.size.x);
-					value.size.y = value.size.z = value.size.x;
+					scaledSize.x = std::max(0.001f, scaledSize.x);
+					scaledSize.y = scaledSize.z = scaledSize.x;
+					value.size = model->GetUnscaledAttachmentVector(scaledSize);
 					changed = true;
 				}
 			}
 			else if (value.shape == 2)
 			{
-				changed |= ImGui::DragFloat("Radius", &value.size.x, 0.01f, 0.001f);
-				changed |= ImGui::DragFloat("Height", &value.size.y, 0.01f, 0.001f);
-				value.size.x = std::max(0.001f, value.size.x);
-				value.size.y = std::max(0.001f, value.size.y);
+				bool sizeChanged = ImGui::DragFloat("Radius", &scaledSize.x, 0.01f, 0.001f);
+				sizeChanged |= ImGui::DragFloat("Height", &scaledSize.y, 0.01f, 0.001f);
+				if (sizeChanged)
+				{
+					scaledSize.x = std::max(0.001f, scaledSize.x);
+					scaledSize.y = std::max(0.001f, scaledSize.y);
+					value.size = model->GetUnscaledAttachmentVector(scaledSize);
+					changed = true;
+				}
 			}
-			else changed |= ImGui::DragFloat3("Size", &value.size.x, 0.01f);
+			else if (ImGui::DragFloat3("Size", &scaledSize.x, 0.01f))
+			{
+				value.size = model->GetUnscaledAttachmentVector(scaledSize);
+				changed = true;
+			}
 			changed |= ImGui::Checkbox("Trigger", &value.trigger);
 			if (changed) MarkDirty();
 			if (ImGui::Checkbox("Initially Active", &initialActive))

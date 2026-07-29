@@ -480,6 +480,9 @@ public:
 
 	const Matrix& GetWorldTransform() const;
 	Matrix GetRenderScaleTransform() const;
+	Matrix GetScaledAttachmentTransform(const Matrix& unscaledWorldTransform) const;
+	Vector3 GetScaledAttachmentVector(const Vector3& unscaledValue) const;
+	Vector3 GetUnscaledAttachmentVector(const Vector3& scaledValue) const;
 	float GetModelScale() const { return modelScale; }
 	void SetModelScale(float value);
 
