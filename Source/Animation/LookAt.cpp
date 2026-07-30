@@ -6,6 +6,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Application/Time/GameTime.h"
+#include "Gameplay/Actor/ActorManager.h"
 
 LookAt::LookAt(Object* owner, VMDLModel* model,
 	const std::string& nodeName1,
@@ -54,11 +55,43 @@ LookAt::LookAt(Object* owner, VMDLModel* model,
 	}
 }
 
+void LookAt::Update()
+{
+	ActorManager* actorManager = ActorManager::GetActive();
+	found = false;
+	if (!actorManager) return;
+
+	for (Actor* actor : actorManager->GetActors())
+	{
+		if (!actor) continue;
+		if (actor == owner) continue;
+
+		float dist = Vector3::Distance(
+			actor->transform.position, owner->GetTransform()->position);
+		if (dist < lookDistance)
+		{
+			bool matchesFilter = false;
+			for (auto& filterTag : filterTags)
+			{
+				if (actor->CompareTag(filterTag))
+				{
+					matchesFilter = true;
+					break;
+				}
+			}
+			if (!matchesFilter) continue;
+
+			found = true;
+			target = actor->transform.position;
+			return;
+		}
+	}
+}
+
 void LookAt::LateUpdate()
 {
 	if (!model) return;
 	if (nodeIndex1 < 0) return;
-
 
 	// 首・頭など複数ノードを使う場合は、総回転量が増えないよう均等に分配する。
 	float weight = 1.0f;
@@ -84,7 +117,7 @@ void LookAt::LateUpdate()
 
 		// 注視点を現在のノード空間へ変換し、初期姿勢の基準軸からyawとpitchを計算する。
 		Vector3 localDirection = Vector3::Transform(target, inverseWorld);
-		if (localDirection.Length() >= 0.001f)
+		if (found && localDirection.Length() >= 0.001f)
 		{
 			localDirection.Normalize();
 
@@ -168,6 +201,7 @@ void LookAt::Render(const RenderContext& rc)
 
 void LookAt::DrawGUI()
 {
+	ImGui::Text("found : %s", found ? "true" : "false");
 	ImGui::DragFloat3("Target", &target.x, 0.01f);
 
 	float maxAngleYawDegrees = DEG(maxAngleYaw);

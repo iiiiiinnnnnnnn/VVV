@@ -22,29 +22,36 @@ public:
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }
 	void SetAutoMove(bool enabled) { autoMove = enabled; }
 	void MoveToTarget(Actor* targetActor);
+	bool MoveToRandomPosition(float minDistance, float maxDistance);
 	void Stop();
 
 	void SetSpeed(float value) { speed = value; }
 	float GetSpeed() const { return speed; }
 	float GetMoveAmount() const { return currentSpeed; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
+	const Vector3& GetDestination() const { return destination; }
+	bool HasDestination() const { return hasDestination; }
 	const std::string& GetStatusMessage() const { return statusMessage; }
 
 private:
 	Actor* FindTargetByTag();
-	void MoveToTarget(Actor* actor, Actor* targetActor);
+	bool MoveToPosition(Actor* actor, const Vector3& targetPosition);
 
 	Actor* target = nullptr;
 	CharacterController* characterController = nullptr;
 	std::string targetTag = "Player";
 	std::string statusMessage;
 	bool autoMove = false;
+	bool hasDestination = false;
 	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
 	bool useLastValidPathOnFail = true;
 	bool directMoveOnPathFail = true;
 	bool hasLastNextPoint = false;
 	Vector3 lastNextPoint = Vector3::Zero;
+	Vector3 destination = Vector3::Zero;
+	float randomMinDistance = 3.0f;
+	float randomMaxDistance = 10.0f;
 	float stoppingDistance = 1.5f;
 	float pathFailGraceTime = 0.5f;
 	float pathFailTimer = 0.0f;

@@ -24,11 +24,15 @@ void CharacterMotorComponent::OnUpdate()
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor || !animator || !characterController) return;
 
-	const Quaternion rootMotionRotation = animator->GetRootMotionRot();
-	actor->transform.SetRotation(actor->transform.rotation * rootMotionRotation);
+	rootMotionDelta = Vector3::Zero;
+	if (useRootMotion)
+	{
+		const Quaternion rootMotionRotation = animator->GetRootMotionRot();
+		actor->transform.SetRotation(actor->transform.rotation * rootMotionRotation);
 
-	const Vector3 localRootMotionDelta = animator->GetRootMotionVec();
-	rootMotionDelta = Vector3::Transform(localRootMotionDelta, actor->transform.rotation);
+		const Vector3 localRootMotionDelta = animator->GetRootMotionVec();
+		rootMotionDelta = Vector3::Transform(localRootMotionDelta, actor->transform.rotation);
+	}
 	UpdateGravity();
 	const Vector3 motorVelocity = externalVelocity + Vector3(0.0f, verticalVelocity, 0.0f);
 	lastMoveDelta = rootMotionDelta + motorVelocity * Game::Time::deltaTime;
@@ -55,6 +59,7 @@ void CharacterMotorComponent::OnDrawGUI()
 		lastMoveDelta.z);
 	ImGui::Text("Grounded: %s", grounded ? "true" : "false");
 	ImGui::Text("Vertical Velocity: %.3f", verticalVelocity);
+	ImGui::Checkbox("Use Root Motion", &useRootMotion);
 	ImGui::Checkbox("Use Gravity", &useGravity);
 	ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
 	ImGui::Checkbox("Use Ground Snap", &useGroundSnap);

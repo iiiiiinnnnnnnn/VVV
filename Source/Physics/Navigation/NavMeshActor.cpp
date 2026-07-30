@@ -124,8 +124,7 @@ void NavMeshActor::Build()
 {
 	Release();
 
-	Actor* actor = dynamic_cast<Actor*>(owner);
-	Terrain* terrain = actor ? actor->GetComponent<Terrain>() : nullptr;
+	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 	if (!terrain)
 	{
 		statusMessage = "NavMesh build skipped: Terrain not found.";
@@ -422,6 +421,93 @@ bool NavMeshActor::FindNextPoint(
 		straightPath[pointIndex * 3 + 1],
 		straightPath[pointIndex * 3 + 2]);
 	return true;
+}
+
+bool NavMeshActor::FindRandomPoint(
+	const Vector3& center,
+	float minDistance,
+	float maxDistance,
+	Vector3& randomPoint) const
+{
+	if (!built || !navQuery) return false;
+
+	minDistance = std::max(minDistance, 0.0f);
+	maxDistance = std::max(maxDistance, 0.0f);
+	if (minDistance > maxDistance) std::swap(minDistance, maxDistance);
+	if (maxDistance <= eps) return false;
+
+	dtQueryFilter filter;
+	filter.setIncludeFlags(1);
+	filter.setExcludeFlags(0);
+
+	const float horizontalExtent = std::max(nearestPolyExtent, agentRadius * 2.0f);
+	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
+	const float centerPos[3] = {center.x, center.y, center.z};
+	float nearestCenter[3] = {};
+	dtPolyRef centerRef = 0;
+	if (dtStatusFailed(navQuery->findNearestPoly(
+		centerPos,
+		halfExtents,
+		&filter,
+		&centerRef,
+		nearestCenter)) || !centerRef)
+	{
+		return false;
+	}
+
+	constexpr int maxAttempts = 64;
+	const float minDistanceSq = minDistance * minDistance;
+	const float maxDistanceSq = maxDistance * maxDistance;
+	for (int attempt = 0; attempt < maxAttempts; ++attempt)
+	{
+		const float angle = Random::Range(-DirectX::XM_PI, DirectX::XM_PI);
+		const float distance = sqrtf(Random::Range(minDistanceSq, maxDistanceSq));
+		const float candidate[3] =
+		{
+			center.x + sinf(angle) * distance,
+			center.y,
+			center.z + cosf(angle) * distance
+		};
+
+		dtPolyRef goalRef = 0;
+		float nearestGoal[3] = {};
+		if (dtStatusFailed(navQuery->findNearestPoly(
+			candidate,
+			halfExtents,
+			&filter,
+			&goalRef,
+			nearestGoal)) || !goalRef)
+		{
+			continue;
+		}
+
+		const Vector3 offset(
+			nearestGoal[0] - center.x,
+			0.0f,
+			nearestGoal[2] - center.z);
+		const float distanceSq = offset.LengthSquared();
+		if (distanceSq < minDistanceSq || distanceSq > maxDistanceSq) continue;
+
+		dtPolyRef path[64] = {};
+		int pathCount = 0;
+		if (dtStatusFailed(navQuery->findPath(
+			centerRef,
+			goalRef,
+			nearestCenter,
+			nearestGoal,
+			&filter,
+			path,
+			&pathCount,
+			_countof(path))) || pathCount <= 0 || path[pathCount - 1] != goalRef)
+		{
+			continue;
+		}
+
+		randomPoint = Vector3(nearestGoal[0], nearestGoal[1], nearestGoal[2]);
+		return true;
+	}
+
+	return false;
 }
 
 bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const

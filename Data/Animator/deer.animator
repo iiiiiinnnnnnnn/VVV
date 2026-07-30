@@ -4,7 +4,50 @@
         {
             "anyStateEditorPosX": 60.0,
             "anyStateEditorPosY": 100.0,
-            "anyStateTransitions": [],
+            "anyStateTransitions": [
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "dead",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 2,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "ready",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        2,
+                        3,
+                        4
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 3,
+                    "transitionDuration": 0.10000000149011612
+                }
+            ],
             "blendMode": 0,
             "defaultState": 0,
             "hasAnyStateEditorPosition": true,
@@ -22,12 +65,218 @@
                     "loop": true,
                     "name": "idle",
                     "speed": 1.0,
-                    "transitions": []
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.0010000000474974513
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 0,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 344.0,
+                    "editorPosY": 67.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "walk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.0010000000474974513
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 4,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 4,
+                    "blockAnyStateTransitions": true,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -12.0,
+                    "editorPosY": -60.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "dead",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "dead",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -76.0,
+                    "editorPosY": 211.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "ready",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "ready",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 3.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 4,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 3,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 500.0,
+                    "editorPosY": 323.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "run",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.0010000000474974513
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
         }
     ],
-    "parameters": [],
+    "parameters": [
+        {
+            "name": "dead",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "speed",
+            "type": "float",
+            "value": 0.0
+        },
+        {
+            "name": "ready",
+            "type": "bool",
+            "value": true
+        }
+    ],
     "triggers": []
 }

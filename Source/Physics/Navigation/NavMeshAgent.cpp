@@ -33,6 +33,16 @@ void NavMeshAgent::Update()
 		return;
 	}
 
+	if (hasDestination)
+	{
+		if (MoveToPosition(actor, destination))
+		{
+			hasDestination = false;
+			autoMove = false;
+		}
+		return;
+	}
+
 	Actor* targetActor = target;
 	if (chaseTargetTag)
 		targetActor = FindTargetByTag();
@@ -43,7 +53,7 @@ void NavMeshAgent::Update()
 		return;
 	}
 
-	MoveToTarget(actor, targetActor);
+	MoveToPosition(actor, targetActor->transform.position);
 }
 
 void NavMeshAgent::MoveToTarget(Actor* targetActor)
@@ -68,7 +78,43 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 		return;
 	}
 
-	MoveToTarget(actor, targetActor);
+	MoveToPosition(actor, targetActor->transform.position);
+}
+
+bool NavMeshAgent::MoveToRandomPosition(float minDistance, float maxDistance)
+{
+	Actor* actor = dynamic_cast<Actor*>(owner);
+	if (!actor)
+	{
+		statusMessage = "Owner is not Actor.";
+		return false;
+	}
+
+	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
+	if (!navMeshActor)
+	{
+		statusMessage = "NavMeshActor not found.";
+		return false;
+	}
+
+	Vector3 randomPoint;
+	if (!navMeshActor->FindRandomPoint(
+		actor->transform.position,
+		minDistance,
+		maxDistance,
+		randomPoint))
+	{
+		statusMessage = "Random point not found.";
+		return false;
+	}
+
+	destination = randomPoint;
+	hasDestination = true;
+	autoMove = true;
+	pathFailTimer = 0.0f;
+	hasLastNextPoint = false;
+	statusMessage = "Random destination selected.";
+	return true;
 }
 
 void NavMeshAgent::Stop()
@@ -77,6 +123,8 @@ void NavMeshAgent::Stop()
 	lastMoveDelta = Vector3::Zero;
 	pathFailTimer = 0.0f;
 	hasLastNextPoint = false;
+	hasDestination = false;
+	autoMove = false;
 	statusMessage = "Idle.";
 }
 
@@ -95,11 +143,11 @@ Actor* NavMeshAgent::FindTargetByTag()
 	return nullptr;
 }
 
-void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
+bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
 
-	const Vector3 toTarget = targetActor->transform.position - actor->transform.position;
+	const Vector3 toTarget = targetPosition - actor->transform.position;
 	Vector3 flatToTarget = toTarget;
 	flatToTarget.y = 0.0f;
 
@@ -107,7 +155,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	{
 		statusMessage = "Arrived.";
 		currentSpeed = 0.0f;
-		return;
+		return true;
 	}
 
 	Vector3 nextPoint;
@@ -119,21 +167,21 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 		{
 			statusMessage = "NavMeshActor not found.";
 			currentSpeed = 0.0f;
-			return;
+			return false;
 		}
 
-		nextPoint = targetActor->transform.position;
+			nextPoint = targetPosition;
 		directMove = true;
 		statusMessage = "Direct move: NavMeshActor not found.";
 	}
-	else if (!navMeshActor->FindNextPoint(actor->transform.position, targetActor->transform.position, nextPoint))
+	else if (!navMeshActor->FindNextPoint(actor->transform.position, targetPosition, nextPoint))
 	{
 		pathFailTimer += Game::Time::deltaTime;
 		if (!useLastValidPathOnFail || !hasLastNextPoint || pathFailTimer > pathFailGraceTime)
 		{
 			if (navMeshActor->FindObstacleDetourPoint(
 				actor->transform.position,
-				targetActor->transform.position,
+				targetPosition,
 				nextPoint))
 			{
 				directMove = true;
@@ -142,9 +190,9 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 			else if (directMoveOnPathFail &&
 				!navMeshActor->IsDirectPathBlocked(
 					actor->transform.position,
-					targetActor->transform.position))
+					targetPosition))
 			{
-				nextPoint = targetActor->transform.position;
+				nextPoint = targetPosition;
 				directMove = true;
 				statusMessage = "Direct move: Path not found.";
 			}
@@ -152,7 +200,7 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 			{
 				statusMessage = "Path blocked by obstacle.";
 				currentSpeed = 0.0f;
-				return;
+				return false;
 			}
 		}
 		else
@@ -173,14 +221,14 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 	{
 		if (navMeshActor && navMeshActor->IsDirectPathBlocked(
 			actor->transform.position,
-			targetActor->transform.position))
+			targetPosition))
 		{
 			statusMessage = "Next point too close and direct path blocked.";
 			currentSpeed = 0.0f;
-			return;
+			return false;
 		}
 
-		nextPoint = targetActor->transform.position;
+		nextPoint = targetPosition;
 		direction = flatToTarget;
 		directMove = true;
 		statusMessage = "Direct move: next point too close.";
@@ -213,6 +261,8 @@ void NavMeshAgent::MoveToTarget(Actor* actor, Actor* targetActor)
 
 	if (!directMove && pathFailTimer <= 0.0f)
 		statusMessage = "Moving.";
+
+	return false;
 }
 
 void NavMeshAgent::DrawGUI()
@@ -227,5 +277,9 @@ void NavMeshAgent::DrawGUI()
 	ImGui::DragFloat("Stopping Distance", &stoppingDistance, 0.1f, 0.0f, 20.0f);
 	ImGui::DragFloat("Path Fail Grace Time", &pathFailGraceTime, 0.01f, 0.0f, 5.0f);
 	ImGui::DragFloat("Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
+	ImGui::DragFloat("Random Min Distance", &randomMinDistance, 0.1f, 0.0f, 100.0f);
+	ImGui::DragFloat("Random Max Distance", &randomMaxDistance, 0.1f, 0.0f, 100.0f);
+	if (ImGui::Button("Move To Random Position"))
+		MoveToRandomPosition(randomMinDistance, randomMaxDistance);
 	ImGui::Text("%s", statusMessage.c_str());
 }

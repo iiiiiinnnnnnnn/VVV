@@ -1,0 +1,198 @@
+{
+    "agentRadius": 1.5,
+    "entryStateId": 2,
+    "parameters": [
+        {
+            "bool": false,
+            "float": 20.0,
+            "name": "SearchRange",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 1.0,
+            "name": "SightRayHeight",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 30.0,
+            "name": "SightRayLength",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 1.0,
+            "name": "SightTargetHeight",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 90.0,
+            "name": "SightHorizontalFov",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 60.0,
+            "name": "SightVerticalFov",
+            "runtimeOnly": false,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": true,
+            "float": 0.0,
+            "name": "HasTarget",
+            "runtimeOnly": true,
+            "type": 0,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": true,
+            "float": 0.0,
+            "name": "IsTargetInSearchRange",
+            "runtimeOnly": true,
+            "type": 0,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 0.0,
+            "name": "IsTargetInSightAngle",
+            "runtimeOnly": true,
+            "type": 0,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 0.0,
+            "name": "IsTargetVisible",
+            "runtimeOnly": true,
+            "type": 0,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 3.0227880477905273,
+            "name": "TargetDistance",
+            "runtimeOnly": true,
+            "type": 1,
+            "vector": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "bool": false,
+            "float": 0.0,
+            "name": "TargetPosition",
+            "runtimeOnly": true,
+            "type": 2,
+            "vector": {
+                "x": -7.087302207946777,
+                "y": 0.7500001192092896,
+                "z": -3.172764539718628
+            }
+        }
+    ],
+    "states": [
+        {
+            "callback": "Freedom",
+            "editorPosX": 84.0,
+            "editorPosY": 215.0,
+            "hasEditorPosition": true,
+            "id": 2,
+            "name": "自由歩行",
+            "transitions": [
+                {
+                    "conditionLogic": "AND",
+                    "conditions": [
+                        {
+                            "compare": 0,
+                            "parameter": "IsTargetVisible",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "id": 9,
+                    "targetStateId": 4
+                }
+            ]
+        },
+        {
+            "callback": "Attacking",
+            "editorPosX": 226.0,
+            "editorPosY": 61.0,
+            "hasEditorPosition": true,
+            "id": 4,
+            "name": "攻撃態勢",
+            "transitions": [
+                {
+                    "conditionLogic": "AND",
+                    "conditions": [
+                        {
+                            "compare": 1,
+                            "parameter": "IsTargetInSearchRange",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "id": 10,
+                    "targetStateId": 2
+                }
+            ]
+        }
+    ],
+    "targetTag": "Player",
+    "trackingTurnSpeed": 8.0
+}

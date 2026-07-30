@@ -28,6 +28,11 @@ public:
 		const Vector3& start,
 		const Vector3& goal,
 		Vector3& nextPoint) const;
+	bool FindRandomPoint(
+		const Vector3& center,
+		float minDistance,
+		float maxDistance,
+		Vector3& randomPoint) const;
 	bool FindObstacleDetourPoint(
 		const Vector3& start,
 		const Vector3& goal,

@@ -597,6 +597,25 @@ void CCHitReport::onShapeHit(const PxControllerShapeHit& hit)
     currentFrameColliders[otherCollider] = {Conv::ToVector3(hit.worldPos), normal};
 }
 
+void CCHitReport::onControllerHit(const PxControllersHit& hit)
+{
+	if (!owner || !ownerCollider || !hit.other) return;
+	if (owner->IsPendingDestroy() || !owner->IsActive()) return;
+
+	PxShape* otherShape = nullptr;
+	hit.other->getActor()->getShapes(&otherShape, 1);
+	PhysicsComponent* otherCollider = ToCollider(otherShape);
+	if (!otherCollider || otherCollider == ownerCollider) return;
+
+	const int otherLayer = static_cast<int>(otherShape->getSimulationFilterData().word1);
+	if (!PhysicsLayerManager::Instance().Collides(ownerLayer, otherLayer)) return;
+
+	Vector3 normal = Conv::ToVector3(hit.worldNormal);
+	if (normal.LengthSquared() > eps) normal.Normalize();
+	else normal = Vector3::Zero;
+
+	currentFrameColliders[otherCollider] = {Conv::ToVector3(hit.worldPos), normal};
+}
 void CCHitReport::DispatchEvents()
 {
     if (dispatchedThisFrame) return;
@@ -652,3 +671,4 @@ void CCHitReport::DispatchEvents()
     prevFrameColliders = currentFrameColliders;
     currentFrameColliders.clear();
 }
+

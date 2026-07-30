@@ -155,7 +155,7 @@ public:
     }
 
     void onShapeHit(const PxControllerShapeHit& hit) override;
-    void onControllerHit(const PxControllersHit& hit) override {}
+    void onControllerHit(const PxControllersHit& hit) override;
     void onObstacleHit(const PxControllerObstacleHit& hit) override {}
 
     // Framework ÇÃ Simulate å„Ç…ñàÉtÉåÅ[ÉÄåƒÇ‘
@@ -324,3 +324,4 @@ private:
     PxDefaultAllocator      gAllocator;
     PxDefaultErrorCallback  gErrorCallback;
 };
+

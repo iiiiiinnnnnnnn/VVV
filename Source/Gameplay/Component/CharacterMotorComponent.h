@@ -24,6 +24,7 @@ public:
 
 	void SetRootMotionNode(const std::string& nodeName);
 	void SetExternalVelocity(const Vector3& velocity) { externalVelocity = velocity; }
+	void SetUseRootMotion(bool value) { useRootMotion = value; }
 	void SetGravity(float value) { gravity = value; }
 	void SetUseGravity(bool value) { useGravity = value; }
 	void SetUseGroundSnap(bool value) { useGroundSnap = value; }
@@ -52,6 +53,7 @@ private:
 	float groundSnapSpeed = 30.0f;
 	float minimumGroundNormalY = 0.35f;
 	bool useGravity = true;
+	bool useRootMotion = true;
 	bool useGroundSnap = true;
 	bool grounded = false;
 };

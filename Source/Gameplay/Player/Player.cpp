@@ -47,16 +47,16 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
 	// LookAt
-	lookAt = AddComponent<LookAt>(
+	auto lookAt = AddComponent<LookAt>(
 		model.get(), "head", "neck_01");
-	lookAt->SetActive(false);
+	lookAt->SetLookDistance(10.0f);
+	lookAt->SetFilterTags({"Enemy"});
 }
 
 void Player::OnUpdate()
 {
 	Entity::OnUpdate();
 
-	UpdateLookIn();
 	UpdateMovement();
 	if (motor)
 	{
@@ -77,9 +77,6 @@ void Player::OnLateUpdate()
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-
-	ImGui::Text("LookIn Target: %s", lookInTarget ? lookInTarget->GetName().c_str() : "None");
-	ImGui::Text("LookAt Target: %.1f,%.1f,%.1f", lookAt->GetTarget().x, lookAt->GetTarget().y, lookAt->GetTarget().z);
 }
 
 void Player::OnDamaged(const DamageData& damageData)
@@ -126,21 +123,23 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 {
 	if (!self || !other) return;
 	if (!self->IsActive()) return;
+	if (self->GetLayerId() != Layers::Get("PlayerAtk")) return;
 
-	bool footAtk = (self->CompareName("kick")); // キック攻撃(VMDL取り出し)
-	bool weaponAtk = (self->CompareName("weapon")); // 攻撃(VMDL取り出し)
-	if (!footAtk && !weaponAtk) return;
+	const bool footAtk = self->CompareName("kick");
 
 	// 敵を殴る
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+	if (!otherActor) return;
 	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("CrystalProp")) return;
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
 	if (!entity) return;
 
 	Vector3 hitPosition = point;
 	Vector3 hitNormal = normal;
-	Vector3 rayOrigin = dynamic_cast<VMDLColliderComponent*>(self)->GetWorldPosition();
+	VMDLColliderComponent* attackCollider = dynamic_cast<VMDLColliderComponent*>(self);
+	if (!attackCollider) return;
+	Vector3 rayOrigin = attackCollider->GetWorldPosition();
 	Vector3 rayDirection = point - rayOrigin;
 	if (rayDirection.LengthSquared() <= eps)
 		rayDirection = otherActor->transform.position - rayOrigin;
@@ -165,46 +164,12 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	entity->TakeDamage({
 		.damage = footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
-		.knockBackPower = footAtk ? 80.0f : 50.0f,
+		.knockBackPower = footAtk ? 5.0f : 0.0f,
 		.hitColliderSelf = self,
 		.hitColliderOther = other,
 		.hitPosition = hitPosition,
 		.hitNormal = hitNormal,
 		});
-}
-
-// 敵がいたら見る
-void Player::UpdateLookIn()
-{
-	ActorManager* actorManager = ActorManager::GetActive();
-	if (!actorManager) return;
-	auto actors = actorManager->GetActors();
-	bool found = false;
-	float foundDistance = 500.0f;
-	const float lockInDistance = 20.0f;
-	for (Actor* actor : actors)
-	{
-		if (!actor) continue;
-		if (actor == this) continue;
-		if (!actor->CompareTag("Enemy")) continue;
-
-		float dist = Vector3::Distance(
-			actor->transform.position, transform.position);
-		if (dist < lockInDistance)
-		{
-			found = true;
-			if (dist < foundDistance)
-			{
-				foundDistance = dist;
-				lookInTarget = actor;
-			}
-		}
-	}
-	if (found)
-		lookAt->SetTarget(lookInTarget->transform.position);
-	else
-		lookInTarget = nullptr;
-	lookAt->SetActive(found);
 }
 
 // プレイヤーの移動処理
