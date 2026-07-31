@@ -67,12 +67,12 @@ void CrystalProp::SpawnBreakParticles()
     {
         Vector3 p = transform.position;
         p.x += Random::Range(-0.6f, 0.6f);
-        p.y += Random::Range(+0.7f, 1.0f);
+        p.y += Random::Range(+0.0f, 0.0f);
         p.z += Random::Range(-0.6f, 0.6f);
 
         Vector3 v;
         v.x = Random::Range(-0.75f, 0.75f);
-        v.y = Random::Range(+2.45f, 5.05f);
+        v.y = Random::Range(+2.45f, 3.05f);
         v.z = Random::Range(-0.75f, 0.75f);
 
         breakParticleSystem->Set(

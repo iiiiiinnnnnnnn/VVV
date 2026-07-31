@@ -7,8 +7,10 @@
 #include <imgui.h>
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "Core/Foundation/Common.h"
@@ -42,6 +44,9 @@ public:
 	void SaveJson();
 	std::string SaveJsonText();
 	void SetCrystalBreakParticleSystem(ParticleSystem* particleSystem);
+	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&)>;
+	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);
+	void SpawnEntities();
 
 private:
 	friend class Prop;
@@ -92,12 +97,7 @@ private:
 	{
 		Transform transform = {};
 		BoxColliderData boxColliderData = {};
-		enum class SpawnerType
-		{
-			Aracore
-
-		} spawnerType = SpawnerType::Aracore;
-
+		std::string entityName = "EnemySmall";
 	} addSpawnerData = {};
 	std::vector<SpawnerData> spawnerDataList = {};
 
@@ -153,6 +153,8 @@ private:
 	std::vector<Actor*> addedRealActors = {};
 	std::vector<Prop*> addedPropActors = {};
 	std::vector<CrystalProp*> addedCrystalActors = {};
+	std::unordered_map<std::string, SpawnerFactory> spawnerFactories = {};
+	std::vector<std::weak_ptr<Actor>> spawnedActors = {};
 };
 
 

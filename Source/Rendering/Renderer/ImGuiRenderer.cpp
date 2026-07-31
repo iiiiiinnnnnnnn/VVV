@@ -7,7 +7,6 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// 初期化
 void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceContext* dc)
 {
 	// Setup Dear ImGui context
@@ -86,7 +85,6 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	io.Fonts->AddFontFromFileTTF("Data/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
 }
 
-// 終了化
 void ImGuiRenderer::Finalize()
 {
 	ImGui_ImplDX11_Shutdown();
@@ -94,7 +92,6 @@ void ImGuiRenderer::Finalize()
 	ImGui::DestroyContext();
 }
 
-// フレーム開始処理
 void ImGuiRenderer::NewFrame()
 {
 	ImGui_ImplDX11_NewFrame();
@@ -138,7 +135,6 @@ void ImGuiRenderer::NewFrame()
 #endif
 }
 
-// 描画
 void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 {
 	// Rendering
@@ -155,7 +151,6 @@ void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 	}
 }
 
-// WIN32メッセージハンドラー
 LRESULT ImGuiRenderer::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);

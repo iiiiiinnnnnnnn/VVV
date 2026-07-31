@@ -14,7 +14,7 @@ Stage01::Stage01()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	const bool loadedVstg = LoadVSTG("Data/Stages/0.vstg");
+	const bool loadedVstg = LoadVSTG("Data/Stages/0_tall.vstg");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
 	StageLoader* stageLoader = GetComponent<StageLoader>();
@@ -51,20 +51,19 @@ Stage01::Stage01()
 		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
+	stageLoader->RegisterSpawnerFactory("EnemySmall", [](const Transform& transform)
+	{
+		auto enemy = std::make_shared<EnemySmall>(transform.position);
+		enemy->transform.SetRotation(transform.rotation);
+		enemy->transform.SetScale(transform.scale);
+		return enemy;
+	});
+	stageLoader->SpawnEntities();
+
 	// ボス敵
 	#if 0
 	auto boss = std::make_shared<AracoreQueen>();
 	actorManager.Register(boss);
-	#endif
-
-	// 雑魚敵
-	#if 1
-	for (int i = 0; i < 5; i++)
-	{
-		auto enemy = std::make_shared<EnemySmall>(
-			Vector3{-4.113f, 0.95f + (i * 10), -3.712f}, Vector3{0, 180, 0});
-		actorManager.Register(enemy);
-	}
 	#endif
 }
 

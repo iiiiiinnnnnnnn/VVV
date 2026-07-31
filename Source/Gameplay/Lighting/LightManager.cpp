@@ -1,7 +1,12 @@
 // LightManager.cpp
 
 #include "Gameplay/Lighting/LightManager.h"
+
+#include <algorithm>
 #include "Gameplay/Lighting/CbLightData.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Renderer/ShapeRenderer.h"
+#include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "imgui.h"
 
 void LightManager::Update()
@@ -10,17 +15,20 @@ void LightManager::Update()
 
 	for (PointLight& pointLight : pointLights)
 	{
-		pointLight.Update();
+		if (!pointLight.IsPendingDestroy())
+			pointLight.Update();
 	}
 
 	for (SpotLight& spotLight : spotLights)
 	{
-		spotLight.Update();
+		if (!spotLight.IsPendingDestroy())
+			spotLight.Update();
 	}
 
 	for (AreaLight& areaLight : areaLights)
 	{
-		areaLight.Update();
+		if (!areaLight.IsPendingDestroy())
+			areaLight.Update();
 	}
 }
 
@@ -30,20 +38,109 @@ void LightManager::Render(const RenderContext& rc)
 
 	for (PointLight& pointLight : pointLights)
 	{
-		pointLight.Render(rc);
+		if (!pointLight.IsPendingDestroy())
+			pointLight.Render(rc);
 	}
 	for (SpotLight& spotLight : spotLights)
 	{
-		spotLight.Render(rc);
+		if (!spotLight.IsPendingDestroy())
+			spotLight.Render(rc);
 	}
 	for (AreaLight& areaLight : areaLights)
 	{
-		areaLight.Render(rc);
+		if (!areaLight.IsPendingDestroy())
+			areaLight.Render(rc);
+	}
+}
+
+void LightManager::DrawDebug() const
+{
+	ShapeRenderer* renderer =
+		Game::Graphics::Instance().GetShapeRenderer();
+	PrimitiveRenderer* primitiveRenderer =
+		Game::Graphics::Instance().GetPrimitiveRenderer();
+	if (!renderer || !primitiveRenderer) return;
+
+	for (const PointLight& pointLight : pointLights)
+	{
+		if (!pointLight.IsActive() ||
+			pointLight.IsPendingDestroy()) continue;
+
+		Color color = pointLight.GetColor();
+		color.w = 1.0f;
+		renderer->DrawSphere(
+			pointLight.transform.position,
+			0.15f,
+			color);
+		renderer->DrawSphere(
+			pointLight.transform.position,
+			pointLight.GetRange(),
+			color);
+	}
+
+	for (const AreaLight& areaLight : areaLights)
+	{
+		if (!areaLight.IsActive() ||
+			areaLight.IsPendingDestroy()) continue;
+
+		const Color color(
+			1.0f,
+			0.55f,
+			0.05f,
+			1.0f);
+		const Vector3 angle =
+			areaLight.transform.rotation.ToEuler();
+		const float halfWidth =
+			std::max(areaLight.GetWidth(), 0.0f) *
+			0.5f;
+		const float halfHeight =
+			std::max(areaLight.GetHeight(), 0.0f) *
+			0.5f;
+		const float range =
+			std::max(areaLight.GetRange(), 0.0f);
+
+		renderer->DrawBox(
+			areaLight.transform.position,
+			angle,
+			Vector3(
+				halfWidth,
+				halfHeight,
+				0.025f),
+			color);
+
+		Color rangeColor = color;
+		rangeColor.w = 0.45f;
+		const Vector3 rangeEnd =
+			areaLight.transform.position -
+			areaLight.transform.forward *
+			range;
+		primitiveRenderer->DrawLine(
+			areaLight.transform.position,
+			rangeEnd,
+			color,
+			rangeColor);
+		renderer->DrawSphere(
+			rangeEnd,
+			0.1f,
+			color);
 	}
 }
 
 void LightManager::DrawGUI()
 {
+	const auto visibleLightCount =
+		[](const auto& lights)
+		{
+			return static_cast<int>(
+				std::count_if(
+					lights.begin(),
+					lights.end(),
+					[](const auto& light)
+					{
+						return !light.IsPendingDestroy();
+					}));
+		};
+
 	if (ImGui::CollapsingHeader(
 		"Environment",
 		ImGuiTreeNodeFlags_DefaultOpen))
@@ -69,13 +166,15 @@ void LightManager::DrawGUI()
 	{
 		ImGui::Text(
 			"Count: %d / %d",
-			static_cast<int>(pointLights.size()),
+			visibleLightCount(pointLights),
 			CbLightData::MaxPointLights);
 
 		for (int i = 0;
 			i < static_cast<int>(pointLights.size());
 			++i)
 		{
+			if (pointLights[i].IsPendingDestroy()) continue;
+
 			ImGui::PushID(&pointLights[i]);
 			pointLights[i].DrawGUI();
 			ImGui::PopID();
@@ -88,13 +187,15 @@ void LightManager::DrawGUI()
 	{
 		ImGui::Text(
 			"Count: %d / %d",
-			static_cast<int>(spotLights.size()),
+			visibleLightCount(spotLights),
 			CbLightData::MaxSpotLights);
 
 		for (int i = 0;
 			i < static_cast<int>(spotLights.size());
 			++i)
 		{
+			if (spotLights[i].IsPendingDestroy()) continue;
+
 			ImGui::PushID(&spotLights[i]);
 			spotLights[i].DrawGUI();
 			ImGui::PopID();
@@ -107,13 +208,15 @@ void LightManager::DrawGUI()
 	{
 		ImGui::Text(
 			"Count: %d / %d",
-			static_cast<int>(areaLights.size()),
+			visibleLightCount(areaLights),
 			CbLightData::MaxAreaLights);
 
 		for (int i = 0;
 			i < static_cast<int>(areaLights.size());
 			++i)
 		{
+			if (areaLights[i].IsPendingDestroy()) continue;
+
 			ImGui::PushID(&areaLights[i]);
 			areaLights[i].DrawGUI();
 			ImGui::PopID();
@@ -166,7 +269,8 @@ CbLightData LightManager::ConvertToCb() const
 	// Point Lights
 	for (const PointLight& pointLight : pointLights)
 	{
-		if (!pointLight.IsActive())
+		if (!pointLight.IsActive() ||
+			pointLight.IsPendingDestroy())
 		{
 			continue;
 		}
@@ -199,7 +303,8 @@ CbLightData LightManager::ConvertToCb() const
 	// Spot Lights
 	for (const SpotLight& spotLight : spotLights)
 	{
-		if (!spotLight.IsActive())
+		if (!spotLight.IsActive() ||
+			spotLight.IsPendingDestroy())
 		{
 			continue;
 		}
@@ -256,7 +361,8 @@ CbLightData LightManager::ConvertToCb() const
 	// Area Lights
 	for (const AreaLight& areaLight : areaLights)
 	{
-		if (!areaLight.IsActive())
+		if (!areaLight.IsActive() ||
+			areaLight.IsPendingDestroy())
 		{
 			continue;
 		}

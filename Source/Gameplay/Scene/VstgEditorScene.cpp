@@ -59,6 +59,18 @@ void VstgEditorScene::CreateStage()
 	currentStage->GetDefaultCameraActor()->AddComponent<FreeCameraController>();
 }
 
+void VstgEditorScene::OnRender(RenderContext& rc)
+{
+	if (!currentStage ||
+		!rc.renderSettings.showDebug ||
+		!rc.renderSettings.showLightDebug)
+	{
+		return;
+	}
+
+	currentStage->GetLightManager().DrawDebug();
+}
+
 void VstgEditorScene::OnDrawGUI()
 {
 	UpdateTitle();
@@ -66,7 +78,7 @@ void VstgEditorScene::OnDrawGUI()
 	{
 		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem("Open VSTG")) Open();
+			if (ImGui::MenuItem("Open VSTG", "Ctrl+O")) Open();
 			if (ImGui::MenuItem("Save VSTG", "Ctrl+S")) Save();
 			if (ImGui::MenuItem("Save VSTG As", "Ctrl+Shift+S")) SaveAs();
 			if (ImGui::MenuItem("Exit"))
@@ -83,6 +95,8 @@ void VstgEditorScene::OnDrawGUI()
 			ImGui::MenuItem("Debug", "F3", &renderSettings.showDebug);
 			ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
 			ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
+			ImGui::Checkbox("Lights", &renderSettings.showLightDebug);
+			ImGui::Checkbox("NavMesh", &renderSettings.showNavMeshDebug);
 			ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
 			ImGui::EndMenu();
 		}
@@ -96,7 +110,11 @@ void VstgEditorScene::OnDrawGUI()
 		ImGui::EndMainMenuBar();
 	}
 
-	if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+	if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+	{
+		Open();
+	}
+	else if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
 	{
 		if (ImGui::GetIO().KeyShift) SaveAs();
 		else Save();

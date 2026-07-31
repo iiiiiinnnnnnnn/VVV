@@ -219,7 +219,9 @@ void ShadowMapRenderer::CalculateCascadeMatrices(
         }
         radius = std::ceil(radius * 16.0f) / 16.0f;
 
-        const float depthPadding = radius;
+        //const float depthPadding = radius;
+        const float depthPadding =
+            std::max(radius * 2.0f, 200.0f);
         const Vector3 lightPosition = center - normalizedLightDir * (radius + depthPadding);
         const Matrix lightView = DirectX::XMMatrixLookAtLH(
             lightPosition,

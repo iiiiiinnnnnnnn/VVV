@@ -19,6 +19,7 @@ public:
 	~VstgEditorScene() override;
 
 protected:
+	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
 	bool UsesGameDebugGUI() const override { return false; }
 	bool OnRequestExit() override;

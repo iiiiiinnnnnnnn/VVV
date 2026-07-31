@@ -1349,7 +1349,6 @@ std::string Terrain::SaveSettingsJson() const
 			{"normal", layer.normalPath}});
 	}
 	root["brush"] = {
-		{"enabled", use_brush},
 		{"mode", static_cast<int>(brushMode)},
 		{"size", brush_size},
 		{"heightStrength", heightBrushStrength},
@@ -1409,9 +1408,9 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 				static_cast<int>(terrainLayers.size()) - 1);
 		}
 
+		use_brush = false;
 		if (const auto it = root.find("brush"); it != root.end())
 		{
-			use_brush = it->value("enabled", use_brush);
 			brushMode = static_cast<BrushMode>(std::clamp(it->value("mode", 0), 0, 2));
 			brush_size = it->value("size", brush_size);
 			heightBrushStrength = it->value("heightStrength", heightBrushStrength);

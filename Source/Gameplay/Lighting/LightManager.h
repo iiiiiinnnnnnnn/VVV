@@ -13,6 +13,7 @@ class LightManager
 public:
 	void Update();
 	void Render(const RenderContext& rc);
+	void DrawDebug() const;
 	void DrawGUI();
 
 	DirectionalLight& GetDirectionalLight()

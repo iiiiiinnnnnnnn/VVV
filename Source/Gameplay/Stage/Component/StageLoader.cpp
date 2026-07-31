@@ -209,6 +209,35 @@ void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
 		}
 	}
 }
+
+void StageLoader::RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory)
+{
+	if (entityName.empty() || !factory) return;
+	spawnerFactories[entityName] = std::move(factory);
+}
+
+void StageLoader::SpawnEntities()
+{
+	for (const std::weak_ptr<Actor>& actorReference : spawnedActors)
+	{
+		if (std::shared_ptr<Actor> actor = actorReference.lock())
+			actor->Destroy();
+	}
+	spawnedActors.clear();
+
+	for (const SpawnerData& spawnerData : spawnerDataList)
+	{
+		auto factory = spawnerFactories.find(spawnerData.entityName);
+		if (factory == spawnerFactories.end()) continue;
+
+		std::shared_ptr<Actor> actor = factory->second(spawnerData.transform);
+		if (!actor) continue;
+
+		spawnedActors.push_back(actor);
+		stage->GetActorManager().Register(actor);
+	}
+}
+
 void StageLoader::DrawGUI()
 {
 	DrawEditorGUI(false);
@@ -289,28 +318,12 @@ void StageLoader::DrawEditorGUI(bool singleSection)
 			// boxCollider
 			addSpawnerData.boxColliderData.DrawGUI();
 
-			ImGui::Text("Spawner Type:");
-			if (ImGui::BeginCombo("##StageLoaderSpawnerType", std::string(magic_enum::enum_name(addSpawnerData.spawnerType)).c_str()))
-			{
-				for (auto type : magic_enum::enum_values<decltype(addSpawnerData.spawnerType)>())
-				{
-					std::string name = std::string(magic_enum::enum_name(type));
-					bool isSelected = (addSpawnerData.spawnerType == type);
-					if (ImGui::Selectable(name.c_str(), isSelected))
-					{
-						addSpawnerData.spawnerType = type;
-					}
-					if (isSelected)
-					{
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
+			ImGui::InputText("Entity Name", &addSpawnerData.entityName);
 
 			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
 			{
-				spawnerDataList.push_back(addSpawnerData);
+				if (!addSpawnerData.entityName.empty())
+					spawnerDataList.push_back(addSpawnerData);
 			}
 
 		}
@@ -430,8 +443,7 @@ void StageLoader::DrawEditorGUI(bool singleSection)
 			spawnerData.transform.DrawGUI();
 			spawnerData.boxColliderData.DrawGUI();
 
-			std::string spawnerTypeName = std::string(magic_enum::enum_name(spawnerData.spawnerType));
-			ImGui::Text("Spawner Type: %s", spawnerTypeName.c_str());
+			ImGui::InputText("Entity Name", &spawnerData.entityName);
 
 			if (ImGui::Button("Remove"))
 			{
@@ -618,9 +630,15 @@ void StageLoader::LoadJson()
 	{
 		if (addedActor) addedActor->Destroy();
 	}
+	for (const std::weak_ptr<Actor>& actorReference : spawnedActors)
+	{
+		if (std::shared_ptr<Actor> actor = actorReference.lock())
+			actor->Destroy();
+	}
 	addedRealActors.clear();
 	addedPropActors.clear();
 	addedCrystalActors.clear();
+	spawnedActors.clear();
 
 	if (root.contains("spawners") && root["spawners"].is_array())
 	{
@@ -678,17 +696,9 @@ void StageLoader::LoadJson()
 				spawnerData.boxColliderData.restitution = boxColliderJson.value("restitution", 0.0f);
 			}
 
-			if (spawnerJson.contains("spawnerType"))
-			{
-				std::string spawnerTypeName = spawnerJson.value("spawnerType", "");
-
-				auto spawnerType = magic_enum::enum_cast<decltype(spawnerData.spawnerType)>(spawnerTypeName);
-
-				if (spawnerType.has_value())
-				{
-					spawnerData.spawnerType = spawnerType.value();
-				}
-			}
+			spawnerData.entityName = spawnerJson.value(
+				"entityName",
+				spawnerJson.value("spawnerType", std::string("EnemySmall")));
 
 			spawnerDataList.push_back(spawnerData);
 		}
@@ -866,6 +876,8 @@ void StageLoader::LoadJson()
 			}
 		}
 	}
+
+	if (!spawnerFactories.empty()) SpawnEntities();
 }
 
 void StageLoader::LoadJsonText(const std::string& text)
@@ -921,7 +933,7 @@ void StageLoader::SaveJson()
 		spawnerJson["boxCollider"]["dynamicFriction"] = spawnerData.boxColliderData.dynamicFriction;
 		spawnerJson["boxCollider"]["restitution"] = spawnerData.boxColliderData.restitution;
 
-		spawnerJson["spawnerType"] = std::string(magic_enum::enum_name(spawnerData.spawnerType));
+		spawnerJson["entityName"] = spawnerData.entityName;
 
 		root["spawners"].push_back(spawnerJson);
 	}

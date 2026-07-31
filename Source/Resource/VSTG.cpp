@@ -274,12 +274,16 @@ std::string VSTG::BuildLightingJson(const LightManager& lights) const
 	root["directional"] = SaveLight(lights.GetDirectionalLight());
 	for (const PointLight& light : lights.GetPointLights())
 	{
+		if (light.IsPendingDestroy()) continue;
+
 		json value = SaveLight(light);
 		value["range"] = light.GetRange();
 		root["points"].push_back(std::move(value));
 	}
 	for (const SpotLight& light : lights.GetSpotLights())
 	{
+		if (light.IsPendingDestroy()) continue;
+
 		json value = SaveLight(light);
 		value["range"] = light.GetRange();
 		value["innerCone"] = light.GetInnerConeAngle();
@@ -288,6 +292,8 @@ std::string VSTG::BuildLightingJson(const LightManager& lights) const
 	}
 	for (const AreaLight& light : lights.GetAreaLights())
 	{
+		if (light.IsPendingDestroy()) continue;
+
 		json value = SaveLight(light);
 		value["range"] = light.GetRange();
 		value["width"] = light.GetWidth();

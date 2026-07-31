@@ -18,6 +18,7 @@ struct RenderSettings
 	bool showComponentDebug = true;
 	bool showColliderDebug = true;
 	bool showNavMeshDebug = true;
+	bool showLightDebug = true;
 	bool wireframe = false;
 };
 
