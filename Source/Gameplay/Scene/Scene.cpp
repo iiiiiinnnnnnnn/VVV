@@ -439,20 +439,30 @@ void Scene::DrawGUI(RenderContext& rc)
 		}
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		const float panelTop = viewport->WorkPos.y;
-		const float panelHeight = std::max(120.0f, viewport->WorkSize.y / 3.0f);
-		constexpr float leftWidth = 600.0f;
-		constexpr float rightWidth = 680.0f;
+		constexpr float windowMargin = 10.0f;
+		const ImVec2 contentPosition = {
+			viewport->WorkPos.x + windowMargin,
+			viewport->WorkPos.y + windowMargin
+		};
+		const ImVec2 contentSize = {
+			std::max(1.0f, viewport->WorkSize.x - windowMargin * 2.0f),
+			std::max(1.0f, viewport->WorkSize.y - windowMargin * 2.0f)
+		};
+		const float panelHeight = contentSize.y / 3.0f;
+		const float leftWidth = std::min(600.0f, contentSize.x);
+		const float rightWidth = std::min(680.0f, contentSize.x);
 
 		// オブジェクト系統デバッグ
 		{
-			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop}, ImGuiCond_Always);
+			ImGui::SetNextWindowPos(contentPosition, ImGuiCond_Always);
 			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			const bool actorsWindowOpen = ImGui::Begin("Actors");
 			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
-			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight}, ImGuiCond_Always);
+			ImGui::SetNextWindowPos(
+				{contentPosition.x, contentPosition.y + panelHeight},
+				ImGuiCond_Always);
 			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			if (ImGui::Begin("Widgets"))
 			{
@@ -460,7 +470,9 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 			ImGui::End();
 
-			ImGui::SetNextWindowPos({viewport->WorkPos.x, panelTop + panelHeight * 2.0f}, ImGuiCond_Always);
+			ImGui::SetNextWindowPos(
+				{contentPosition.x, contentPosition.y + panelHeight * 2.0f},
+				ImGuiCond_Always);
 			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
 			if (ImGui::Begin("Lights"))
 			{
@@ -475,10 +487,10 @@ void Scene::DrawGUI(RenderContext& rc)
 
 		// シーン設定
 		ImGui::SetNextWindowPos(
-			{viewport->WorkPos.x + viewport->WorkSize.x - rightWidth, panelTop},
+			{contentPosition.x + contentSize.x - rightWidth, contentPosition.y},
 			ImGuiCond_Always);
 		ImGui::SetNextWindowSize(
-			{rightWidth, viewport->WorkSize.y},
+			{rightWidth, contentSize.y},
 			ImGuiCond_Always);
 		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
 		{

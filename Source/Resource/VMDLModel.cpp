@@ -611,6 +611,7 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	animations(other.animations),
 	vmdlExtensionData(other.vmdlExtensionData),
 	vmdlIKSettings(other.vmdlIKSettings),
+	vmdlIKPoles(other.vmdlIKPoles),
 	vmdlAnimationEditorData(other.vmdlAnimationEditorData),
 	vmdlAnimationControlData(other.vmdlAnimationControlData),
 	vmdlTrailData(other.vmdlTrailData),
@@ -629,6 +630,7 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	animations(std::move(other.animations)),
 	vmdlExtensionData(std::move(other.vmdlExtensionData)),
 	vmdlIKSettings(std::move(other.vmdlIKSettings)),
+	vmdlIKPoles(std::move(other.vmdlIKPoles)),
 	vmdlAnimationEditorData(std::move(other.vmdlAnimationEditorData)),
 	vmdlAnimationControlData(std::move(other.vmdlAnimationControlData)),
 	vmdlTrailData(std::move(other.vmdlTrailData)),
@@ -650,6 +652,7 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	animations = other.animations;
 	vmdlExtensionData = other.vmdlExtensionData;
 	vmdlIKSettings = other.vmdlIKSettings;
+	vmdlIKPoles = other.vmdlIKPoles;
 	vmdlAnimationEditorData = other.vmdlAnimationEditorData;
 	vmdlAnimationControlData = other.vmdlAnimationControlData;
 	vmdlTrailData = other.vmdlTrailData;
@@ -671,6 +674,7 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	animations = std::move(other.animations);
 	vmdlExtensionData = std::move(other.vmdlExtensionData);
 	vmdlIKSettings = std::move(other.vmdlIKSettings);
+	vmdlIKPoles = std::move(other.vmdlIKPoles);
 	vmdlAnimationEditorData = std::move(other.vmdlAnimationEditorData);
 	vmdlAnimationControlData = std::move(other.vmdlAnimationControlData);
 	vmdlTrailData = std::move(other.vmdlTrailData);
@@ -1047,12 +1051,14 @@ void VMDLModel::ResetVmdlIKLegsForType()
 {
 	auto& settings = vmdlIKSettings;
 	settings.legs.clear();
+	vmdlIKPoles.clear();
 
 	int legCount = 0;
 	if (settings.type == 1) legCount = 2;
 	else if (settings.type == 2) legCount = 4;
 	else if (settings.type == 3) legCount = 8;
 	settings.legs.resize(legCount);
+	vmdlIKPoles.resize(legCount);
 
 	constexpr const char* humanNames[] = {"Left", "Right"};
 	constexpr const char* quadrupedNames[] = {"Front Left", "Front Right", "Back Left", "Back Right"};
@@ -1074,6 +1080,7 @@ void VMDLModel::EnsureVmdlIKSettingsCompatibility()
 	else if (settings.type == 2) requiredCount = 4;
 	else if (settings.type == 3) requiredCount = 8;
 	settings.legs.resize(requiredCount);
+	vmdlIKPoles.resize(requiredCount);
 
 	constexpr const char* humanNames[] = {"Left", "Right"};
 	constexpr const char* quadrupedNames[] = {"Front Left", "Front Right", "Back Left", "Back Right"};
@@ -1499,7 +1506,8 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 			CEREAL_NVP(materialPbrSettings),
 			CEREAL_NVP(vmdlTrailData),
 			CEREAL_NVP(materialVMatSettings),
-			CEREAL_NVP(modelScale));
+			CEREAL_NVP(modelScale),
+			CEREAL_NVP(vmdlIKPoles));
 	}
 	catch (...)
 	{
@@ -1676,6 +1684,15 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 		catch (...)
 		{
 			modelScale = 1.0f;
+		}
+
+		try
+		{
+			archive(CEREAL_NVP(vmdlIKPoles));
+		}
+		catch (...)
+		{
+			vmdlIKPoles.clear();
 		}
 
 		EnsureVmdlIKSettingsCompatibility();

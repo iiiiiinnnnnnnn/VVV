@@ -292,6 +292,13 @@ void FootIK::SetPoleWorldPosition(const Vector3& poleWorldPosition)
 	SyncPoleLocalPosition();
 }
 
+void FootIK::SetPoleLocalPosition(const Vector3& poleLocalPosition)
+{
+	chain.poleLocalPosition = poleLocalPosition;
+	chain.poleInitialized = true;
+	SyncPoleWorldPosition();
+}
+
 void FootIK::SetIKEnabled(bool enabled)
 {
 	if (chain.enabled == enabled) return;

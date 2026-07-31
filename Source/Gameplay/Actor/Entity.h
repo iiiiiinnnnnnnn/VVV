@@ -40,6 +40,26 @@ public:
 
 	void SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale = 1.0f);
 
+private:
+    struct Cooldowns
+    {
+        float DamageCooldownDuration = 0.1f;
+        float damageCooldown = 0.0f;
+
+        void Update();
+    } cooldowns;
+
+public:
+    Cooldowns& GetCooldowns()
+    {
+        return cooldowns;
+    }
+
+    const Cooldowns& GetCooldowns() const
+    {
+        return cooldowns;
+    }
+
 protected:
     void OnDrawGUI() override;
 
@@ -50,11 +70,4 @@ protected:
 
     float life = 100.0f;
     float maxLife = 100.0f;
-
-    struct Cooldowns
-    {
-        static const float DamageCooldownDuration;
-        float damageCooldown = 0.0f;
-        void Update();
-    } cooldowns;
 };

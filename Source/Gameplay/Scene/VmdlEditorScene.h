@@ -51,6 +51,7 @@ private:
 	void UpdateWindowTitle();
 	void OpenVmdl();
 	void ImportGlb();
+	void AppendAnimationGlb();
 	void SaveVmdl();
 	void SaveVmdlAs();
 	void LoadModel(const std::filesystem::path& filepath, bool importGlb);
@@ -114,6 +115,7 @@ private:
 	bool showSpringCollider = true;
 	bool showTrail = true;
 	bool showBones = true;
+	bool showIkPole = true;
 	bool showGrid = true;
 	bool showSetScaleWindow = false;
 	float setScaleValue = 1.0f;

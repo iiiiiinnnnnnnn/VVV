@@ -7,8 +7,6 @@
 using std::max;
 using std::min;
 
-const float Entity::Cooldowns::DamageCooldownDuration = 0.2f;
-
 void Entity::Cooldowns::Update()
 {
     if (damageCooldown >= 0.0f)
@@ -70,7 +68,7 @@ void Entity::TakeDamage(const DamageData& damageData)
     life -= damageData.damage;
     life = max(life, 0.0f);
 
-    cooldowns.damageCooldown = Cooldowns::DamageCooldownDuration;
+    cooldowns.damageCooldown = cooldowns.DamageCooldownDuration;
 
     OnDamaged(damageData);
 

@@ -13,6 +13,5 @@ public:
 	void OnDrawGUI() override;
 
 private:
-	float aracoreSpawnTimer = -1.0f;
-	std::unique_ptr<Actor> subCamera;
+
 };

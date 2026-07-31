@@ -5,9 +5,11 @@
 #include <algorithm>
 #include <cfloat>
 #include <cstring>
+#include <filesystem>
 #include <utility>
 
 #include "Application/Tools/Dialog.h"
+#include "Rendering/Core/Graphics.h"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -53,7 +55,9 @@ void Animator::DrawEditor(bool* pOpen)
             {
                 if (Dialog::SaveFileName(currentAnimatorPath, MAX_PATH,
                     "Animator File\0*.animator\0All Files\0*.*\0\0",
-                    "Save Animator", "animator") == DialogResult::OK)
+                    "Save Animator", "animator", "Data/Animator",
+                    Game::Graphics::Instance().GetWindowHandle()) ==
+                    DialogResult::OK)
                 {
                     Save(currentAnimatorPath);
                 }
@@ -67,10 +71,21 @@ void Animator::DrawEditor(bool* pOpen)
         if (ImGui::Button("Save As"))
         {
             char buf[MAX_PATH] = {};
-            strcpy_s(buf, currentAnimatorPath);
+            const std::filesystem::path currentPath =
+                currentAnimatorPath;
+            const std::string currentFilename =
+                currentPath.filename().string();
+            strcpy_s(buf, currentFilename.c_str());
+            const std::string initialDirectory =
+                currentPath.has_parent_path()
+                ? currentPath.parent_path().string()
+                : std::string("Data/Animator");
             if (Dialog::SaveFileName(buf, MAX_PATH,
                 "Animator File\0*.animator\0All Files\0*.*\0\0",
-                "Save As Animator", "animator") == DialogResult::OK)
+                "Save As Animator", "animator",
+                initialDirectory.c_str(),
+                Game::Graphics::Instance().GetWindowHandle()) ==
+                DialogResult::OK)
             {
                 strcpy_s(currentAnimatorPath, buf);
                 Save(currentAnimatorPath);

@@ -69,38 +69,15 @@ DialogResult Dialog::SaveFileName(
 	const char* initialDir,
 	HWND hWnd)
 {
-	char dirname[MAX_PATH]{};
+	std::filesystem::path initialDirectory;
+	if (initialDir && initialDir[0] != '\0')
+		initialDirectory = initialDir;
+	else if (filepath[0] != '\0')
+		initialDirectory = std::filesystem::path(filepath).parent_path();
+	else if (pathBuffer[0] != '\0')
+		initialDirectory = std::filesystem::path(pathBuffer).parent_path();
 
-	if (filepath[0] != '\0')
-	{
-		::_splitpath_s(
-			filepath,
-			nullptr,
-			0,
-			dirname,
-			MAX_PATH,
-			nullptr,
-			0,
-			nullptr,
-			0);
-	}
-	else
-	{
-		filepath[0] = '\0';
-	}
-
-	if (dirname[0] == '\0')
-	{
-		strcpy_s(dirname, MAX_PATH, pathBuffer);
-	}
-
-	for (char* p = dirname; *p != '\0'; ++p)
-	{
-		if (*p == '/')
-		{
-			*p = '\\';
-		}
-	}
+	const std::string dirname = initialDirectory.string();
 
 	if (filter == nullptr)
 	{
@@ -116,7 +93,7 @@ DialogResult Dialog::SaveFileName(
 	ofn.nMaxFile = size;
 	ofn.lpstrTitle = title;
 	ofn.lpstrInitialDir =
-		dirname[0] != '\0' ? dirname : nullptr;
+		dirname.empty() ? nullptr : dirname.c_str();
 	ofn.lpstrDefExt = ext;
 	ofn.Flags =
 		OFN_OVERWRITEPROMPT |

@@ -98,6 +98,98 @@
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 4,
                     "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "QL",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        9,
+                        8,
+                        10
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 14,
+                    "transitionDuration": 0.0
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "QR",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        10,
+                        9,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 13,
+                    "transitionDuration": 0.0
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "QB",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        10,
+                        9,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 12,
+                    "transitionDuration": 0.0
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "QF",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        10,
+                        9,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 11,
+                    "transitionDuration": 0.0
                 }
             ],
             "blendMode": 0,
@@ -113,7 +205,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 84.0,
                     "editorPosY": 10.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
@@ -166,7 +257,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 216.0,
                     "editorPosY": -237.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Walk",
@@ -219,7 +309,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 472.0,
                     "editorPosY": -109.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Run",
@@ -291,7 +380,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 612.0,
                     "editorPosY": 51.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Sprint",
@@ -350,7 +438,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 56.0,
                     "editorPosY": 323.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack1Freeze",
@@ -403,7 +490,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 248.0,
                     "editorPosY": 291.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack2Freeze",
@@ -456,7 +542,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 456.0,
                     "editorPosY": 243.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack3Freeze",
@@ -514,7 +599,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": 632.0,
                     "editorPosY": 179.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack4Freeze",
@@ -542,7 +626,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": -184.0,
                     "editorPosY": 355.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Hit_RFreeze",
@@ -570,7 +653,6 @@
                     "dynamicClipPath": "",
                     "editorPosX": -268.0,
                     "editorPosY": 227.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Hit_LFreeze",
@@ -598,12 +680,119 @@
                     "dynamicClipPath": "",
                     "editorPosX": -8.0,
                     "editorPosY": 467.0,
-                    "footIKRanges": [],
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "DeadFreeze",
                     "speed": 1.0,
                     "transitions": []
+                },
+                {
+                    "animationIndex": 14,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -140.0,
+                    "editorPosY": -285.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "QuickshiftF",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.0
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 13,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -184.0,
+                    "editorPosY": -157.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "QuickshiftB",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.0
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 16,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -408.0,
+                    "editorPosY": 51.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "QuickshiftR",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.0
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 15,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": -380.0,
+                    "editorPosY": -173.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "QuickshiftL",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.0
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -634,6 +823,10 @@
     "triggers": [
         "Attack",
         "Hit_R",
-        "Hit_L"
+        "Hit_L",
+        "QF",
+        "QR",
+        "QB",
+        "QL"
     ]
 }

@@ -29,7 +29,7 @@ private:
     float mouseSensY   = 0.003f;
     float minArmLength = 0.5f;
     float maxArmLength = 50.0f;
-    float followSpeed  = 5.0f;
+    float followSpeed  = 4.5f;
 
 	const float FOV_DEFAULT = 50.0f;
     float fovYDegrees = 50.0f;

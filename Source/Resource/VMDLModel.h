@@ -123,6 +123,15 @@ public:
 		void serialize(Archive& archive);
 	};
 
+	struct VmdlIKPole
+	{
+		bool custom = false;
+		Vector3 position = Vector3::Zero;
+
+		template<class Archive>
+		void serialize(Archive& archive);
+	};
+
 	struct VmdlFootWeightTrack
 	{
 		std::string animationName;
@@ -515,6 +524,8 @@ public:
 	const VmdlExtensionData& GetVmdlExtensionData() const { return vmdlExtensionData; }
 	VmdlIKSettings& GetVmdlIKSettings() { return vmdlIKSettings; }
 	const VmdlIKSettings& GetVmdlIKSettings() const { return vmdlIKSettings; }
+	std::vector<VmdlIKPole>& GetVmdlIKPoles() { return vmdlIKPoles; }
+	const std::vector<VmdlIKPole>& GetVmdlIKPoles() const { return vmdlIKPoles; }
 	void EnsureVmdlIKSettingsCompatibility();
 	void ResetVmdlIKLegsForType();
 	VmdlAnimationEditorData& GetVmdlAnimationEditorData() { return vmdlAnimationEditorData; }
@@ -557,6 +568,7 @@ private:
 	std::vector<Animation> animations;
 	VmdlExtensionData vmdlExtensionData;
 	VmdlIKSettings vmdlIKSettings;
+	std::vector<VmdlIKPole> vmdlIKPoles;
 	VmdlAnimationEditorData vmdlAnimationEditorData;
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;

@@ -21,13 +21,19 @@ public:
 	void SetTarget(Actor* target) { this->target = target; }
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }
 	void SetAutoMove(bool enabled) { autoMove = enabled; }
+	void SetMovementPaused(bool value) { movementPaused = value; }
 	void MoveToTarget(Actor* targetActor);
+	void MoveToPosition(const Vector3& targetPosition);
 	bool MoveToRandomPosition(float minDistance, float maxDistance);
 	void Stop();
 
 	void SetSpeed(float value) { speed = value; }
+	void SetTurnSpeed(float value) { turnSpeed = std::max(value, 0.0f); }
+	void SetStoppingDistance(float value) { stoppingDistance = std::max(value, 0.0f); }
 	float GetSpeed() const { return speed; }
+	float GetStoppingDistance() const { return stoppingDistance; }
 	float GetMoveAmount() const { return currentSpeed; }
+	float GetTurnAngle() const { return currentTurnAngle; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
 	const Vector3& GetDestination() const { return destination; }
 	bool HasDestination() const { return hasDestination; }
@@ -45,6 +51,7 @@ private:
 	bool hasDestination = false;
 	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
+	bool movementPaused = false;
 	bool useLastValidPathOnFail = true;
 	bool directMoveOnPathFail = true;
 	bool hasLastNextPoint = false;
@@ -56,6 +63,7 @@ private:
 	float pathFailGraceTime = 0.5f;
 	float pathFailTimer = 0.0f;
 	float turnSpeed = 8.0f;
+	float currentTurnAngle = 0.0f;
 	Vector3 lastMoveDelta = Vector3::Zero;
 	float currentSpeed = 0.0f;
 	float speed = 3.5f;

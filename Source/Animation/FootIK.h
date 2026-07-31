@@ -50,12 +50,14 @@ public:
 		float contactOffset = 0.01f);
 
 	void SetPoleWorldPosition(const Vector3& poleWorldPosition);
+	void SetPoleLocalPosition(const Vector3& poleLocalPosition);
 	void SetIKEnabled(bool enabled);
 	bool IsIKEnabled() const { return chain.enabled; }
 	void SyncPoleWorldPosition();
 	void SyncPoleLocalPosition();
 
 	Vector3 GetPoleWorldPosition() const;
+	Vector3 GetPoleLocalPosition() const { return chain.poleLocalPosition; }
 	Vector3 GetTargetPosition() const;
 	Vector3 GetContactWorldPosition() const;
 	bool HasGroundContact() const { return hasGroundContact; }

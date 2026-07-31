@@ -11,6 +11,14 @@ struct InputContext
     bool crouch = false;
     bool sprint = false;
     bool attackPressed = false;
+    bool quickForwardPressed = false;
+    bool quickBackwardPressed = false;
+    bool quickLeftPressed = false;
+    bool quickRightPressed = false;
+    bool quickForwardStarted = false;
+    bool quickBackwardStarted = false;
+    bool quickLeftStarted = false;
+    bool quickRightStarted = false;
     int attackType = 0;
 };
 

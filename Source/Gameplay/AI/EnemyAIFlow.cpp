@@ -22,6 +22,7 @@ EnemyAIFlow::EnemyAIFlow(Object* owner)
 {
     SetGraphPath("Data/AI/EnemyAI.json");
     SetFloat("SearchRange", 15.0f);
+    SetFloat("LostRange", 22.5f);
     SetFloat("SightRayLength", 16.5f);
     SetFloat("SightRayHeight", 0.05f);
     SetFloat("SightTargetHeight", 1.0f);
@@ -29,6 +30,7 @@ EnemyAIFlow::EnemyAIFlow(Object* owner)
     SetFloat("SightVerticalFov", 60.0f);
     SetBool("HasTarget", false, true);
     SetBool("IsTargetInSearchRange", false, true);
+    SetBool("IsTargetInLostRange", false, true);
     SetBool("IsTargetInSightAngle", false, true);
     SetBool("IsTargetVisible", false, true);
     SetFloat("TargetDistance", std::numeric_limits<float>::max(), true);
@@ -49,13 +51,24 @@ void EnemyAIFlow::OnRender(const RenderContext&)
     if (!ownerActor) return;
 
     const float searchRange = GetFloat("SearchRange", 20.0f);
+    const float lostRange = std::max(
+        GetFloat("LostRange", searchRange * 1.5f),
+        searchRange);
     const Color white(1.0f, 1.0f, 1.0f, 1.0f);
+    const Color lostRangeColor(1.0f, 0.65f, 0.15f, 1.0f);
     if (searchRange > 0.0f)
     {
         Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
             ownerActor->transform.position,
             searchRange,
             white);
+    }
+    if (lostRange > searchRange)
+    {
+        Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
+            ownerActor->transform.position,
+            lostRange,
+            lostRangeColor);
     }
 
     PrimitiveRenderer* primitiveRenderer =
@@ -93,6 +106,7 @@ void EnemyAIFlow::CreateDefaultChaseGraph()
     ClearGraph();
     GetParameters().clear();
     SetFloat("SearchRange", 20.0f);
+    SetFloat("LostRange", 30.0f);
     SetFloat("SightRayLength", 30.0f);
     SetFloat("SightRayHeight", 1.0f);
     SetFloat("SightTargetHeight", 1.0f);
@@ -100,6 +114,7 @@ void EnemyAIFlow::CreateDefaultChaseGraph()
     SetFloat("SightVerticalFov", 60.0f);
     SetBool("HasTarget", false, true);
     SetBool("IsTargetInSearchRange", false, true);
+    SetBool("IsTargetInLostRange", false, true);
     SetBool("IsTargetInSightAngle", false, true);
     SetBool("IsTargetVisible", false, true);
     SetFloat("TargetDistance", std::numeric_limits<float>::max(), true);
@@ -117,11 +132,11 @@ void EnemyAIFlow::CreateDefaultChaseGraph()
     idleToWalk.conditions.push_back({"IsTargetVisible", CompareOp::IsTrue});
     idleToWalk.conditions.push_back({"IsTargetInSearchRange", CompareOp::IsTrue});
     Transition& walkToIdle = AddTransition(walkId, idleId);
-    walkToIdle.conditions.push_back({"IsTargetInSearchRange", CompareOp::IsFalse});
+    walkToIdle.conditions.push_back({"IsTargetInLostRange", CompareOp::IsFalse});
     Transition& walkToRun = AddTransition(walkId, runId);
     walkToRun.conditions.push_back({"TargetDistance", CompareOp::Greater, 10.0f});
     Transition& runToIdle = AddTransition(runId, idleId);
-    runToIdle.conditions.push_back({"IsTargetInSearchRange", CompareOp::IsFalse});
+    runToIdle.conditions.push_back({"IsTargetInLostRange", CompareOp::IsFalse});
     Transition& runToWalk = AddTransition(runId, walkId);
     runToWalk.conditions.push_back({"TargetDistance", CompareOp::LessEqual, 10.0f});
     BindCallbacks();
@@ -129,7 +144,20 @@ void EnemyAIFlow::CreateDefaultChaseGraph()
 
 void EnemyAIFlow::SetSearchRange(float value)
 {
-    SetFloat("SearchRange", std::max(value, 0.0f));
+    const float searchRange =
+        std::max(value, 0.0f);
+    SetFloat("SearchRange", searchRange);
+    if (GetFloat("LostRange", searchRange) < searchRange)
+        SetFloat("LostRange", searchRange);
+}
+
+void EnemyAIFlow::SetLostRange(float value)
+{
+    SetFloat(
+        "LostRange",
+        std::max(
+            value,
+            GetFloat("SearchRange", 20.0f)));
 }
 
 void EnemyAIFlow::LockOn(Actor* actor)
@@ -154,7 +182,7 @@ void EnemyAIFlow::MoveToTarget(float speed)
         return;
     }
 
-    if (!target || !GetBool("IsTargetInSearchRange"))
+    if (!target || !GetBool("IsTargetInLostRange"))
     {
         StopMovement();
         return;
@@ -182,61 +210,103 @@ void EnemyAIFlow::StopMovement()
 
 void EnemyAIFlow::FaceTarget()
 {
-    Actor* ownerActor = dynamic_cast<Actor*>(owner);
-    if (!ownerActor || !target) return;
+    if (!target) return;
 
-    Vector3 direction = target->transform.position - ownerActor->transform.position;
+    Vector3 direction = target->transform.position - owner->GetTransform()->position;
     direction.y = 0.0f;
     if (direction.LengthSquared() <= eps) return;
 
     const float targetYaw = atan2f(direction.x, direction.z);
     const Quaternion targetRotation = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
     const float rate = 1.0f - expf(-trackingTurnSpeed * Game::Time::deltaTime);
-    ownerActor->transform.SetRotation(
-        Quaternion::Slerp(ownerActor->transform.rotation, targetRotation, rate));
+    owner->GetTransform()->SetRotation(
+        Quaternion::Slerp(owner->GetTransform()->rotation, targetRotation, rate));
 }
 
 void EnemyAIFlow::UpdateBlackboard()
 {
     Actor* ownerActor = dynamic_cast<Actor*>(owner);
     ActorManager* actorManager = ActorManager::GetActive();
-    target = nullptr;
 
+    const float searchRange =
+        GetFloat("SearchRange", 20.0f);
+    const float lostRange =
+        std::max(
+            GetFloat(
+                "LostRange",
+                searchRange * 1.5f),
+            searchRange);
     float closestDistance = std::numeric_limits<float>::max();
     if (ownerActor && actorManager)
     {
+        bool targetIsValid = false;
         for (Actor* actor : actorManager->GetActors())
         {
             if (!actor || actor == ownerActor || actor->IsPendingDestroy()) continue;
-            if (actor == lockedTarget && actor->IsActive())
+            if (actor != target || !actor->IsActive()) continue;
+
+            closestDistance = Vector3::Distance(
+                actor->transform.position,
+                ownerActor->transform.position);
+            targetIsValid =
+                closestDistance <= lostRange;
+            break;
+        }
+
+        if (!targetIsValid)
+        {
+            if (lockedTarget == target)
+                lockedTarget = nullptr;
+            target = nullptr;
+            closestDistance =
+                std::numeric_limits<float>::max();
+        }
+
+        if (!target)
+        {
+            for (Actor* actor : actorManager->GetActors())
             {
+                if (!actor ||
+                    actor == ownerActor ||
+                    actor->IsPendingDestroy() ||
+                    !actor->IsActive())
+                {
+                    continue;
+                }
+                if (!actor->CompareTag(targetTag)) continue;
+
+                const float distance =
+                    Vector3::Distance(
+                        actor->transform.position,
+                        ownerActor->transform.position);
+                if (distance > searchRange ||
+                    distance >= closestDistance)
+                {
+                    continue;
+                }
+
+                closestDistance = distance;
                 target = actor;
-                closestDistance = Vector3::Distance(
-                    actor->transform.position, ownerActor->transform.position);
-                break;
             }
         }
-
-        if (lockedTarget && target != lockedTarget) lockedTarget = nullptr;
-
-        for (Actor* actor : actorManager->GetActors())
-        {
-            if (target == lockedTarget && lockedTarget) break;
-            if (!actor || actor == ownerActor || actor->IsPendingDestroy()) continue;
-            if (!actor->CompareTag(targetTag)) continue;
-            const float distance = Vector3::Distance(
-                actor->transform.position, ownerActor->transform.position);
-            if (distance >= closestDistance) continue;
-            closestDistance = distance;
-            target = actor;
-        }
+    }
+    else
+    {
+        target = nullptr;
+        lockedTarget = nullptr;
     }
 
     const bool hasTarget = target != nullptr;
     SetBool("HasTarget", hasTarget, true);
     SetBool(
         "IsTargetInSearchRange",
-        hasTarget && (target == lockedTarget || closestDistance <= GetFloat("SearchRange", 20.0f)),
+        hasTarget &&
+        closestDistance <= searchRange,
+        true);
+    SetBool(
+        "IsTargetInLostRange",
+        hasTarget &&
+        closestDistance <= lostRange,
         true);
     SetFloat("TargetDistance", closestDistance, true);
     SetVector3("TargetPosition", hasTarget ? target->transform.position : Vector3::Zero, true);
@@ -340,6 +410,12 @@ void EnemyAIFlow::DrawFlowInspector()
     ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
     ImGui::Text("Locked Target: %s", lockedTarget ? lockedTarget->GetName().c_str() : "None");
     ImGui::Text("Target Distance: %.2f", GetFloat("TargetDistance"));
+    ImGui::Text(
+        "In Search Range: %s",
+        GetBool("IsTargetInSearchRange") ? "true" : "false");
+    ImGui::Text(
+        "In Lost Range: %s",
+        GetBool("IsTargetInLostRange") ? "true" : "false");
     ImGui::Text("In Sight Angle: %s", GetBool("IsTargetInSightAngle") ? "true" : "false");
     ImGui::Text("Target Visible: %s", GetBool("IsTargetVisible") ? "true" : "false");
     ImGui::Text(
@@ -351,6 +427,18 @@ void EnemyAIFlow::DrawFlowInspector()
     float searchRange = GetFloat("SearchRange", 20.0f);
     if (ImGui::DragFloat("Search Range", &searchRange, 0.25f, 0.0f, 1000.0f))
         SetSearchRange(searchRange);
+    float lostRange = GetFloat(
+        "LostRange",
+        searchRange * 1.5f);
+    if (ImGui::DragFloat(
+        "Lost Range",
+        &lostRange,
+        0.25f,
+        searchRange,
+        1000.0f))
+    {
+        SetLostRange(lostRange);
+    }
     float sightRayLength = GetFloat("SightRayLength", 30.0f);
     if (ImGui::DragFloat("Sight Ray Length", &sightRayLength, 0.25f, 0.0f, 1000.0f))
         SetFloat("SightRayLength", std::max(sightRayLength, 0.0f));
@@ -381,6 +469,39 @@ bool EnemyAIFlow::LoadFlowExtension(const std::string& path)
         targetTag = root.value("targetTag", targetTag);
         agentRadius = root.value("agentRadius", agentRadius);
         trackingTurnSpeed = root.value("trackingTurnSpeed", trackingTurnSpeed);
+        const float searchRange =
+            GetFloat("SearchRange", 20.0f);
+        SetLostRange(
+            GetFloat(
+                "LostRange",
+                searchRange * 1.5f));
+        SetBool("IsTargetInLostRange", false, true);
+
+        // Migrate old loss conditions while keeping acquisition conditions unchanged.
+        for (AIFlow::State& state : GetStates())
+        {
+            for (AIFlow::Transition& transition :
+                state.transitions)
+            {
+                for (AIFlow::Condition& condition :
+                    transition.conditions)
+                {
+                    if (condition.parameterName !=
+                        "IsTargetInSearchRange")
+                    {
+                        continue;
+                    }
+                    if (condition.compare !=
+                        CompareOp::IsFalse)
+                    {
+                        continue;
+                    }
+
+                    condition.parameterName =
+                        "IsTargetInLostRange";
+                }
+            }
+        }
         return true;
     }
     catch (...)

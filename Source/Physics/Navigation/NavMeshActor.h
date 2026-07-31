@@ -16,6 +16,12 @@ struct RenderContext;
 class NavMeshActor : public Component
 {
 public:
+	struct WalkableArea
+	{
+		Vector3 center = Vector3::Zero;
+		Vector3 size = Vector3::One;
+	};
+
 	NavMeshActor(Object* owner);
 	~NavMeshActor() override;
 
@@ -28,6 +34,9 @@ public:
 		const Vector3& start,
 		const Vector3& goal,
 		Vector3& nextPoint) const;
+	bool FindNearestPoint(
+		const Vector3& position,
+		Vector3& nearestPoint) const;
 	bool FindRandomPoint(
 		const Vector3& center,
 		float minDistance,
@@ -41,7 +50,14 @@ public:
 
 	void RequestBuild(int delayFrames = 1);
 	void SetAgentRadius(float value);
+	void SetResolution(int value);
+	void AddWalkableArea(const Vector3& center, const Vector3& size);
+	void ClearWalkableAreas();
+	std::string SaveSettingsJson() const;
+	bool LoadSettingsJson(const std::string& text);
 	float GetAgentRadius() const { return agentRadius; }
+	int GetResolution() const { return resolution; }
+	const std::vector<WalkableArea>& GetWalkableAreas() const { return walkableAreas; }
 
 	static NavMeshActor* GetActive() { return active; }
 
@@ -65,6 +81,10 @@ private:
 		const Vector3& center,
 		const std::vector<ObstacleBounds>& obstacles,
 		float cellHalfSize) const;
+	bool IsInsideWalkableArea(const Vector3& center, float cellHalfSize) const;
+	bool IsSegmentInsideWalkableAreas(
+		const Vector3& start,
+		const Vector3& goal) const;
 
 	static NavMeshActor* active;
 
@@ -76,6 +96,7 @@ private:
 	bool showWalkableCells = true;
 	bool showBlockedCells = true;
 	bool showObstacleBounds = true;
+	bool showWalkableAreaBounds = true;
 	bool showNavMeshDebug = true;
 	int buildDelayFrames = 1;
 	int resolution = 128;
@@ -88,4 +109,5 @@ private:
 	float navMaxY = 100.0f;
 	std::string statusMessage;
 	std::vector<DebugCell> debugCells;
+	std::vector<WalkableArea> walkableAreas;
 };

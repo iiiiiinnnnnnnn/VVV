@@ -112,13 +112,19 @@ int MultiLegFootIK::AddLegsFromVmdlSettings()
 
 	waistNodeIndex = model->GetNodeIndex(settings.centerNode.c_str());
 	int addedCount = 0;
-	for (const auto& leg : settings.legs)
+	const auto& poles = model->GetVmdlIKPoles();
+	for (int legIndex = 0; legIndex < static_cast<int>(settings.legs.size()); ++legIndex)
 	{
+		const auto& leg = settings.legs[legIndex];
 		const size_t previousCount = footIKs.size();
 		AddLeg(
 			leg.root.c_str(), leg.mid.c_str(), leg.tip.c_str(),
 			leg.contact.empty() ? nullptr : leg.contact.c_str());
-		if (footIKs.size() > previousCount) ++addedCount;
+		if (footIKs.size() <= previousCount) continue;
+
+		if (legIndex < static_cast<int>(poles.size()) && poles[legIndex].custom)
+			footIKs.back()->SetPoleLocalPosition(poles[legIndex].position);
+		++addedCount;
 	}
 	return addedCount;
 }

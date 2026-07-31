@@ -2,15 +2,8 @@
 
 #include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
-#include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Actor/ActorManager.h"
-#include "Gameplay/Actor/Aracore.h"
-#include "Gameplay/Actor/AracoreQueen.h"
-#include "Physics/Navigation/NavMeshActor.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Physics/RigidBody/Rigidbody.h"
-#include "Gameplay/Stage/Component/Terrain.h"
-#include "Physics/Collider/TerrainMeshCollider.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/EnemySmall.h"
@@ -22,19 +15,10 @@ Stage01::Stage01()
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
 	const bool loadedVstg = LoadVSTG("Data/Stages/0.vstg");
-	StageLoader* stageLoader = GetComponent<StageLoader>();
-	if (!loadedVstg)
-	{
-		auto* rb = AddComponent<RigidbodyStatic>();
-		Terrain* terrain = AddComponent<Terrain>();
-		terrain->LoadTerrainTexture("Data/Terrain/Maps/test.dds");
-		AddComponent<TerrainMeshCollider>(Layers::Get("Terrain"), rb,
-			TerrainMeshCollider::CollisionArea{0.34f, 0.664f, 0.304f, 0.624f});
-		stageLoader = AddComponent<StageLoader>(this, "Data/Stages/Stage01.json");
-	}
-	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
-	AddComponent<NavMeshActor>();
+	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
+	StageLoader* stageLoader = GetComponent<StageLoader>();
+	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
 		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
@@ -67,15 +51,6 @@ Stage01::Stage01()
 		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
-	if (!loadedVstg)
-	{
-		DirectionalLight directionalLight{"Cave Sun", "Cave Sun", true, {1.0f, 1.0f, 1.0f, 1.0f}};
-		directionalLight.transform.rotation = Quaternion::CreateFromYawPitchRoll(
-			RAD(-35.0f), RAD(35.0f), 0.0f);
-		lightManager.SetDirectionalLight(directionalLight);
-		lightManager.SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
-	}
-
 	// ボス敵
 	#if 0
 	auto boss = std::make_shared<AracoreQueen>();
@@ -84,8 +59,12 @@ Stage01::Stage01()
 
 	// 雑魚敵
 	#if 1
-	auto enemy = std::make_shared<EnemySmall>(Vector3{-4.113f, 0.95f, -3.712f});
-	actorManager.Register(enemy);
+	for (int i = 0; i < 5; i++)
+	{
+		auto enemy = std::make_shared<EnemySmall>(
+			Vector3{-4.113f, 0.95f + (i * 10), -3.712f}, Vector3{0, 180, 0});
+		actorManager.Register(enemy);
+	}
 	#endif
 }
 

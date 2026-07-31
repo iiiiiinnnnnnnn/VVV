@@ -356,6 +356,10 @@ void VmdlEditorScene::RenderPreview()
 			graphics.GetModelRenderer()->Render(rc);
 		}
 
+		dc->OMSetDepthStencilState(
+			rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite),
+			0);
+
 		if (showBones)
 		{
 			const auto& nodes = model->GetNodes();
@@ -384,6 +388,66 @@ void VmdlEditorScene::RenderPreview()
 		};
 		auto& data = model->GetVmdlExtensionData();
 		bool hasShapes = false;
+		if (showIkPole)
+		{
+			model->EnsureVmdlIKSettingsCompatibility();
+			const auto& nodes = model->GetNodes();
+			const auto& ikSettings = model->GetVmdlIKSettings();
+			const auto& poles = model->GetVmdlIKPoles();
+			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
+			for (int i = 0; i < static_cast<int>(ikSettings.legs.size()); ++i)
+			{
+				const auto& leg = ikSettings.legs[i];
+				const int rootIndex = model->GetNodeIndex(leg.root.c_str());
+				const int midIndex = model->GetNodeIndex(leg.mid.c_str());
+				const int tipIndex = model->GetNodeIndex(leg.tip.c_str());
+				if (rootIndex < 0 || midIndex < 0 || tipIndex < 0) continue;
+
+				Vector3 polePosition;
+				if (i < static_cast<int>(poles.size()) && poles[i].custom)
+				{
+					polePosition =
+						Vector3::Transform(poles[i].position, renderScaleTransform);
+				}
+				else
+				{
+					const Vector3 rootPosition =
+						(nodes[rootIndex].worldTransform * renderScaleTransform).Translation();
+					const Vector3 midPosition =
+						(nodes[midIndex].worldTransform * renderScaleTransform).Translation();
+					const Vector3 tipPosition =
+						(nodes[tipIndex].worldTransform * renderScaleTransform).Translation();
+					Vector3 rootToTip = tipPosition - rootPosition;
+					Vector3 poleDirection = Vector3::UnitZ;
+					if (rootToTip.LengthSquared() > eps)
+					{
+						rootToTip.Normalize();
+						const Vector3 projectedMid =
+							rootPosition +
+							rootToTip * (midPosition - rootPosition).Dot(rootToTip);
+						poleDirection = midPosition - projectedMid;
+						if (poleDirection.LengthSquared() <= eps)
+							poleDirection = Vector3::UnitZ;
+						else
+							poleDirection.Normalize();
+					}
+					const float poleLift = ikSettings.type == 1 ? 0.35f : 0.0f;
+					const Vector3 scaledPoleOffset =
+						model->GetScaledAttachmentVector(
+							Vector3(0.5f, poleLift, 0.0f));
+					polePosition =
+						midPosition +
+						poleDirection * scaledPoleOffset.x +
+						Vector3::Up * scaledPoleOffset.y;
+				}
+
+				graphics.GetShapeRenderer()->DrawSphere(
+					polePosition,
+					0.05f,
+					Color(0.0f, 1.0f, 1.0f, 1.0f));
+				hasShapes = true;
+			}
+		}
 		if (showRigidBody)
 		{
 			for (const auto& value : data.rigidBodies)
@@ -455,6 +519,10 @@ void VmdlEditorScene::RenderPreview()
 			}
 			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(), editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 		}
+
+		dc->OMSetDepthStencilState(
+			rc.renderState->GetDepthStencilState(DepthState::TestAndWrite),
+			0);
 	}
 
 	previewSceneTarget->Deactivate(dc);
@@ -475,6 +543,14 @@ void VmdlEditorScene::DrawMenuBar()
 		if (ImGui::MenuItem("Save VMDL As...", "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
 		ImGui::Separator();
 		if (ImGui::MenuItem("Import GLB...")) ImportGlb();
+		if (ImGui::MenuItem(
+			"Append Animation GLB...",
+			nullptr,
+			false,
+			model != nullptr))
+		{
+			AppendAnimationGlb();
+		}
 		ImGui::Separator();
 		if (ImGui::MenuItem("Exit")) exiting = true;
 		ImGui::EndMenu();
@@ -487,6 +563,7 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem("Mesh", nullptr, &showMesh);
 		ImGui::MenuItem("Face", nullptr, &showFaces);
 		ImGui::MenuItem("Bone", nullptr, &showBones);
+		ImGui::MenuItem("IK Pole", nullptr, &showIkPole);
 		ImGui::MenuItem("Rigid body", nullptr, &showRigidBody);
 		ImGui::MenuItem("Collider", nullptr, &showCollider);
 		ImGui::MenuItem("Spring", nullptr, &showSpring);
@@ -2011,6 +2088,7 @@ void VmdlEditorScene::DrawIkSettings()
 
 	model->EnsureVmdlIKSettingsCompatibility();
 	auto& settings = model->GetVmdlIKSettings();
+	auto& poles = model->GetVmdlIKPoles();
 	const char* types[] = {"None", "Human Foot IK", "Quadruped IK", "Insect IK"};
 	int selectedType = settings.type;
 	if (ImGui::Combo("IK Type", &selectedType, types, IM_ARRAYSIZE(types)))
@@ -2069,6 +2147,53 @@ void VmdlEditorScene::DrawIkSettings()
 			changed |= nodeCombo("Mid", leg.mid);
 			changed |= nodeCombo("Tip", leg.tip);
 			changed |= nodeCombo("Contact", leg.contact, true);
+
+			auto& pole = poles[i];
+			const bool wasCustom = pole.custom;
+			if (ImGui::Checkbox("Custom Pole", &pole.custom))
+			{
+				changed = true;
+				if (!wasCustom && pole.custom)
+				{
+					const int rootIndex = model->GetNodeIndex(leg.root.c_str());
+					const int midIndex = model->GetNodeIndex(leg.mid.c_str());
+					const int tipIndex = model->GetNodeIndex(leg.tip.c_str());
+					if (rootIndex >= 0 && midIndex >= 0 && tipIndex >= 0)
+					{
+						const auto& nodes = model->GetNodes();
+						const Vector3 rootPosition = nodes[rootIndex].globalTransform.Translation();
+						const Vector3 midPosition = nodes[midIndex].globalTransform.Translation();
+						const Vector3 tipPosition = nodes[tipIndex].globalTransform.Translation();
+						Vector3 rootToTip = tipPosition - rootPosition;
+						Vector3 poleDirection = Vector3::UnitZ;
+						if (rootToTip.LengthSquared() > eps)
+						{
+							rootToTip.Normalize();
+							const Vector3 projectedMid =
+								rootPosition +
+								rootToTip * (midPosition - rootPosition).Dot(rootToTip);
+							poleDirection = midPosition - projectedMid;
+							if (poleDirection.LengthSquared() <= eps)
+								poleDirection = Vector3::UnitZ;
+							else
+								poleDirection.Normalize();
+						}
+						const float poleLift = settings.type == 1 ? 0.35f : 0.0f;
+						pole.position =
+							midPosition +
+							poleDirection * 0.5f +
+							Vector3::Up * poleLift;
+					}
+				}
+			}
+			if (pole.custom)
+			{
+				changed |= ImGui::DragFloat3(
+					"Pole Position",
+					&pole.position.x,
+					0.01f);
+				ImGui::TextDisabled("Model-local position");
+			}
 			if (changed) MarkDirty();
 		}
 		ImGui::PopID();
@@ -2476,6 +2601,50 @@ void VmdlEditorScene::ImportGlb()
 		) != DialogResult::OK)
 		return;
 	LoadModel(filepath, true);
+}
+
+void VmdlEditorScene::AppendAnimationGlb()
+{
+	if (!model) return;
+
+	const std::string initialDirectory =
+		(ResourceManager::FindSourceDataRoot() / "Model").string();
+	char filepath[MAX_PATH]{};
+	if (Dialog::OpenFileName(
+		filepath,
+		MAX_PATH,
+		"glTF Binary (*.glb)\0*.glb\0",
+		"Append Animation GLB",
+		initialDirectory.c_str()
+		) != DialogResult::OK)
+	{
+		return;
+	}
+
+	try
+	{
+		const int firstAppendedIndex =
+			static_cast<int>(model->GetAnimations().size());
+		model->AppendAnimations(filepath);
+		if (firstAppendedIndex >= static_cast<int>(model->GetAnimations().size()))
+		{
+			ErrorMessage("The selected GLB contains no animations.");
+			return;
+		}
+
+		selectedAnimation = firstAppendedIndex;
+		animationTime = 0.0f;
+		animationPlaying = false;
+		selectedKeyTrack = -1;
+		selectedKeyIndex = -1;
+		ResetAnimationControlPreview();
+		ApplyAnimationPreview();
+		MarkDirty();
+	}
+	catch (const std::exception& exception)
+	{
+		ErrorMessage(std::string("Animation append failed: ") + exception.what());
+	}
 }
 
 void VmdlEditorScene::SaveVmdl()

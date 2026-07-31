@@ -51,6 +51,9 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 		model.get(), "head", "neck_01");
 	lookAt->SetLookDistance(10.0f);
 	lookAt->SetFilterTags({"Enemy"});
+
+	// プレイヤーはダメージのクールダウン長い
+	GetCooldowns().DamageCooldownDuration = 1.5f;
 }
 
 void Player::OnUpdate()
@@ -182,23 +185,70 @@ void Player::UpdateMovement()
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
 	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
 	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // 動けない
+	const bool isQuickshift =
+		currentStateName.find("Quickshift") !=
+		std::string::npos;
+	const bool quickStepActive =
+		ctx.quickForwardPressed ||
+		ctx.quickBackwardPressed ||
+		ctx.quickLeftPressed ||
+		ctx.quickRightPressed;
+	const bool quickStepStarted =
+		ctx.quickForwardStarted ||
+		ctx.quickBackwardStarted ||
+		ctx.quickLeftStarted ||
+		ctx.quickRightStarted;
+
+	const float camYaw =
+		cameraController
+		? cameraController->GetCameraYaw()
+		: 0.0f;
+	const float sinY = sinf(camYaw);
+	const float cosY = cosf(camYaw);
+
+	const float quickInputX =
+		(ctx.quickRightStarted ? 1.0f : 0.0f) -
+		(ctx.quickLeftStarted ? 1.0f : 0.0f);
+	const float quickInputZ =
+		(ctx.quickForwardStarted ? 1.0f : 0.0f) -
+		(ctx.quickBackwardStarted ? 1.0f : 0.0f);
+	if (fabsf(quickInputX) > eps ||
+		fabsf(quickInputZ) > eps)
+	{
+		Vector3 quickWorldDirection(
+			quickInputX * cosY + quickInputZ * sinY,
+			0.0f,
+			quickInputX * -sinY + quickInputZ * cosY);
+		quickWorldDirection.Normalize();
+
+		const float localRight =
+			quickWorldDirection.Dot(transform.right);
+		const float localForward =
+			quickWorldDirection.Dot(transform.forward);
+		if (fabsf(localForward) >= fabsf(localRight))
+		{
+			bufferedQuickStepTrigger =
+				localForward >= 0.0f ? "QF" : "QB";
+		}
+		else
+		{
+			bufferedQuickStepTrigger =
+				localRight >= 0.0f ? "QR" : "QL";
+		}
+	}
 
 	Vector3 worldMoveDir = Vector3::Zero;
 	if (inputLen > 0.1f)
 	{
-		float camYaw = cameraController ? cameraController->GetCameraYaw() : 0.0f;
-
-		// カメラのYaw回転行列でローカル入力をワールド方向へ
-		float sinY = sinf(camYaw);
-		float cosY = cosf(camYaw);
-
 		// 入力(moveX=右, moveZ=前) をカメラ基準でワールドXZ に変換
 		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
 		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
 		worldMoveDir.Normalize();
 
 		// 攻撃中は入力による方向転換を止める
-		if (!isFreeze)
+		if (!isFreeze &&
+			!isQuickshift &&
+			!quickStepActive)
 		{
 			bool sprinting = ctx.sprint && inputLen > 0.1f;
 			float turnSpeed = sprinting ? 8.0f : 12.0f;
@@ -210,13 +260,30 @@ void Player::UpdateMovement()
 	}
 
 	// Speed / Sprint パラメータをAnimatorへ
-	bool sprinting = ctx.sprint && inputLen > 0.1f;
-	float speedParam = (inputLen < 0.1f) ? 0.0f : (sprinting ? 1.5f : inputLen);
+	bool sprinting =
+		!quickStepActive &&
+		ctx.sprint &&
+		inputLen > 0.1f;
+	float speedParam =
+		quickStepActive || inputLen < 0.1f
+		? 0.0f
+		: sprinting ? 1.5f : inputLen;
 	anim->SetFloat("Speed", speedParam);
 	anim->SetBool("IsSprinting", sprinting);
 	anim->SetBool("IsDead", IsDead());
 
 	if (ctx.attackPressed)
 		anim->SetTrigger("Attack");
+	if (quickStepStarted &&
+		!bufferedQuickStepTrigger.empty())
+	{
+		anim->SetTrigger(
+			bufferedQuickStepTrigger);
+		bufferedQuickStepTrigger.clear();
+	}
+	else if (!quickStepActive)
+	{
+		bufferedQuickStepTrigger.clear();
+	}
 
 }

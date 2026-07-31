@@ -12,6 +12,44 @@
 
 namespace
 {
+    std::filesystem::path FindProjectDataRoot()
+    {
+        for (std::filesystem::path directory =
+                std::filesystem::current_path();
+             !directory.empty();
+             directory = directory.parent_path())
+        {
+            const std::filesystem::path dataRoot =
+                directory / "Data";
+            if (std::filesystem::exists(directory / "Game.sln") &&
+                std::filesystem::is_directory(dataRoot))
+            {
+                return dataRoot.lexically_normal();
+            }
+            if (directory == directory.root_path()) break;
+        }
+        return {};
+    }
+
+    bool TryGetRelativeDataPath(
+        const std::filesystem::path& path,
+        const std::filesystem::path& dataRoot,
+        std::filesystem::path& relativePath)
+    {
+        if (dataRoot.empty()) return false;
+
+        const std::filesystem::path relative =
+            path.lexically_relative(dataRoot);
+        if (relative.empty()) return false;
+
+        const auto first = relative.begin();
+        if (first != relative.end() && *first == "..")
+            return false;
+
+        relativePath = relative;
+        return true;
+    }
+
     bool TryGetFileWriteStamp(
         const std::string& path,
         long long& outStamp)
@@ -408,80 +446,97 @@ void Animator::UpdateLayer(
         }
     }
 
+    Vector3 frameRootMotionVec =
+        Vector3::Zero;
+    Quaternion frameRootMotionRot =
+        Quaternion::Identity;
+
+    auto sampleRootMotion =
+        [this](
+            const State& state,
+            float previousTime,
+            float currentTime,
+            float animationLength,
+            bool crossedLoop,
+            Vector3& deltaVec,
+            Quaternion& deltaRot)
+        {
+            VMDLModel::NodePose posePrev =
+                SampleNodePose(
+                state.animationIndex,
+                previousTime,
+                rootNodeIndex);
+
+            VMDLModel::NodePose poseCur =
+                SampleNodePose(
+                state.animationIndex,
+                currentTime,
+                rootNodeIndex);
+
+            Vector3 deltaPos;
+
+            if (!crossedLoop)
+            {
+                deltaPos =
+                    poseCur.position -
+                    posePrev.position;
+
+                Quaternion invPrev;
+                posePrev.rotation.Inverse(invPrev);
+
+                deltaRot =
+                    invPrev *
+                    poseCur.rotation;
+            }
+            else
+            {
+                VMDLModel::NodePose poseEnd =
+                    SampleNodePose(
+                    state.animationIndex,
+                    animationLength,
+                    rootNodeIndex);
+
+                VMDLModel::NodePose poseStart =
+                    SampleNodePose(
+                    state.animationIndex,
+                    0.0f,
+                    rootNodeIndex);
+
+                deltaPos =
+                    (poseEnd.position -
+                    posePrev.position) +
+                    (poseCur.position -
+                    poseStart.position);
+
+                Quaternion invPrev;
+                Quaternion invStart;
+
+                posePrev.rotation.Inverse(invPrev);
+                poseStart.rotation.Inverse(invStart);
+
+                deltaRot =
+                    (invPrev * poseEnd.rotation) *
+                    (invStart * poseCur.rotation);
+            }
+
+            deltaVec =
+                model->GetScaledAttachmentVector(
+                    deltaPos);
+        };
+
     if (useRootMotion &&
         rootNodeIndex != -1)
     {
 		// 通常フレームは前回姿勢との差分だけを使う。
 		// ループ時は「前回→終端」と「先頭→現在」を合成し、境界で逆向きに飛ぶのを防ぐ。
-        VMDLModel::NodePose posePrev =
-            SampleNodePose(
-            curState.animationIndex,
+        sampleRootMotion(
+            curState,
             prevTime,
-            rootNodeIndex);
-
-        VMDLModel::NodePose poseCur =
-            SampleNodePose(
-            curState.animationIndex,
             layer.currentTime,
-            rootNodeIndex);
-
-        Vector3 deltaPos;
-        Quaternion deltaRot;
-
-        if (!looped)
-        {
-            deltaPos =
-                poseCur.position -
-                posePrev.position;
-
-            Quaternion invPrev;
-            posePrev.rotation.Inverse(invPrev);
-
-            deltaRot =
-                invPrev *
-                poseCur.rotation;
-        }
-        else
-        {
-            VMDLModel::NodePose poseEnd =
-                SampleNodePose(
-                curState.animationIndex,
-                curAnim.secondsLength,
-                rootNodeIndex);
-
-            VMDLModel::NodePose poseStart =
-                SampleNodePose(
-                curState.animationIndex,
-                0.0f,
-                rootNodeIndex);
-
-            deltaPos =
-                (poseEnd.position -
-                posePrev.position) +
-                (poseCur.position -
-                poseStart.position);
-
-            Quaternion invPrev;
-            Quaternion invStart;
-
-            posePrev.rotation.Inverse(invPrev);
-            poseStart.rotation.Inverse(invStart);
-
-            deltaRot =
-                (invPrev * poseEnd.rotation) *
-                (invStart * poseCur.rotation);
-        }
-
-        rootMotionVec +=
-            model->GetScaledAttachmentVector(deltaPos) *
-            layer.weight;
-
-        rootMotionRot =
-            rootMotionRot *
-            Quaternion::Lerp(
-            Quaternion::Identity,
-            deltaRot,
-            layer.weight);
+            curAnim.secondsLength,
+            looped,
+            frameRootMotionVec,
+            frameRootMotionRot);
     }
 
     model->ComputeAnimation(
@@ -504,8 +559,13 @@ void Animator::UpdateLayer(
             model->GetAnimations()[
                 nextState.animationIndex];
 
+        const float previousNextTime =
+            layer.nextTime;
+
         layer.nextTime +=
             dt * nextState.speed;
+
+        bool nextLooped = false;
 
         if (layer.nextTime >
             nextAnim.secondsLength)
@@ -514,6 +574,7 @@ void Animator::UpdateLayer(
             {
                 layer.nextTime -=
                     nextAnim.secondsLength;
+                nextLooped = true;
             }
             else
             {
@@ -543,6 +604,36 @@ void Animator::UpdateLayer(
         if (weight > 1.0f)
         {
             weight = 1.0f;
+        }
+
+        if (useRootMotion &&
+            rootNodeIndex != -1)
+        {
+            Vector3 nextRootMotionVec;
+            Quaternion nextRootMotionRot;
+
+            sampleRootMotion(
+                nextState,
+                previousNextTime,
+                layer.nextTime,
+                nextAnim.secondsLength,
+                nextLooped,
+                nextRootMotionVec,
+                nextRootMotionRot);
+
+			// 見た目と同じ比率で遷移先のルートモーションも混ぜる。
+			// 遷移元だけを使うと、短い回避ではブレンド時間ぶんの移動が消えてしまう。
+            frameRootMotionVec =
+                Vector3::Lerp(
+                    frameRootMotionVec,
+                    nextRootMotionVec,
+                    weight);
+
+            frameRootMotionRot =
+                Quaternion::Slerp(
+                    frameRootMotionRot,
+                    nextRootMotionRot,
+                    weight);
         }
 
         for (size_t i = 0;
@@ -641,6 +732,9 @@ void Animator::UpdateLayer(
     }
     else
     {
+        bool anyStateTransitionStarted =
+            false;
+
         if (!curState.blockAnyStateTransitions)
         {
 			// AnyStateを通常遷移より先に評価する。除外元リストに現在状態があれば候補から外す。
@@ -712,11 +806,14 @@ void Animator::UpdateLayer(
                     layer.nextStateIndex = -1;
                 }
 
+                anyStateTransitionStarted =
+                    true;
                 break;
             }
         }
 
-        if (!layer.isTransitioning &&
+        if (!anyStateTransitionStarted &&
+            !layer.isTransitioning &&
             layer.nextStateIndex < 0)
         {
 			// AnyStateで遷移が始まらなかった場合だけ、現在状態固有の遷移を優先順に評価する。
@@ -770,6 +867,21 @@ void Animator::UpdateLayer(
                 break;
             }
         }
+    }
+
+    if (useRootMotion &&
+        rootNodeIndex != -1)
+    {
+        rootMotionVec +=
+            frameRootMotionVec *
+            layer.weight;
+
+        rootMotionRot =
+            rootMotionRot *
+            Quaternion::Lerp(
+                Quaternion::Identity,
+                frameRootMotionRot,
+                layer.weight);
     }
 
     for (int nodeIndex = 0;
@@ -1847,7 +1959,57 @@ float Animator::GetCurrentAnimationTime(int layerIndex) const
 bool Animator::Save(const std::string& path)
 {
     m_lastPath = path;
-    return Serialize(path);
+
+    const std::filesystem::path selectedPath =
+        std::filesystem::absolute(path).lexically_normal();
+    const std::filesystem::path runtimeDataRoot =
+        (std::filesystem::current_path() / "Data")
+        .lexically_normal();
+    const std::filesystem::path projectDataRoot =
+        FindProjectDataRoot();
+
+    std::filesystem::path relativePath;
+    if (!TryGetRelativeDataPath(
+            selectedPath,
+            runtimeDataRoot,
+            relativePath) &&
+        !TryGetRelativeDataPath(
+            selectedPath,
+            projectDataRoot,
+            relativePath))
+    {
+        relativePath =
+            std::filesystem::path("Animator") /
+            selectedPath.filename();
+    }
+
+    std::vector<std::filesystem::path> savePaths = {
+        selectedPath,
+        runtimeDataRoot / relativePath
+    };
+    if (!projectDataRoot.empty())
+        savePaths.push_back(projectDataRoot / relativePath);
+
+    bool saved = true;
+    std::unordered_set<std::string> uniquePaths;
+    for (const std::filesystem::path& savePath : savePaths)
+    {
+        const std::filesystem::path normalizedPath =
+            savePath.lexically_normal();
+        if (!uniquePaths.insert(
+                normalizedPath.generic_string()).second)
+        {
+            continue;
+        }
+
+        std::error_code error;
+        std::filesystem::create_directories(
+            normalizedPath.parent_path(),
+            error);
+        if (error || !Serialize(normalizedPath.string()))
+            saved = false;
+    }
+    return saved;
 }
 
 void Animator::Load(const std::string& path)

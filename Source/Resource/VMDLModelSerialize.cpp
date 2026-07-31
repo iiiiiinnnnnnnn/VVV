@@ -242,6 +242,14 @@ void VMDLModel::VmdlIKSettings::serialize(Archive& archive)
 }
 
 template<class Archive>
+void VMDLModel::VmdlIKPole::serialize(Archive& archive)
+{
+	archive(
+		CEREAL_NVP(custom),
+		CEREAL_NVP(position));
+}
+
+template<class Archive>
 void VMDLModel::VmdlFootWeightTrack::serialize(Archive& archive)
 {
 	archive(
@@ -359,6 +367,8 @@ template void VMDLModel::VmdlIKLeg::serialize<cereal::BinaryInputArchive>(cereal
 template void VMDLModel::VmdlIKLeg::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlIKSettings::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlIKSettings::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlIKPole::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlIKPole::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlFootWeightTrack::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlFootWeightTrack::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlAnimationEditorData::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);

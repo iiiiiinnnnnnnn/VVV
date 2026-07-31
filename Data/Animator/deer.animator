@@ -36,7 +36,9 @@
                     "excludedFromStateIndices": [
                         2,
                         3,
-                        4
+                        4,
+                        5,
+                        6
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -45,6 +47,50 @@
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 3,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "turnR",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        6,
+                        5
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 6,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "turnL",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        6,
+                        5
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 5,
                     "transitionDuration": 0.10000000149011612
                 }
             ],
@@ -97,7 +143,7 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "walk",
-                    "speed": 1.0,
+                    "speed": 0.699999988079071,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -116,25 +162,6 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
-                        },
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 0,
-                                    "paramName": "speed",
-                                    "threshold": 0.10000000149011612
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 4,
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
@@ -256,6 +283,72 @@
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
+                },
+                {
+                    "animationIndex": 7,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 200.0,
+                    "editorPosY": -29.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "turnL",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnL",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 6,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 200.0,
+                    "editorPosY": -125.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "turnR",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnR",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -268,14 +361,24 @@
             "value": false
         },
         {
+            "name": "turnR",
+            "type": "bool",
+            "value": false
+        },
+        {
             "name": "speed",
             "type": "float",
-            "value": 0.0
+            "value": 0.5
         },
         {
             "name": "ready",
             "type": "bool",
-            "value": true
+            "value": false
+        },
+        {
+            "name": "turnL",
+            "type": "bool",
+            "value": false
         }
     ],
     "triggers": []

@@ -7,11 +7,12 @@
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Component/Terrain.h"
+#include "Physics/Navigation/NavMeshActor.h"
 #include "Core/Foundation/Json.h"
 
 namespace
 {
-constexpr uint32_t VstgVersion = 2;
+constexpr uint32_t VstgVersion = 3;
 
 json SaveVector3(const Vector3& value)
 {
@@ -140,9 +141,12 @@ bool VSTG::Load(const std::filesystem::path& path)
 	uint64_t stageSize = 0;
 	uint64_t terrainSize = 0;
 	uint64_t terrainSettingsSize = 0;
+	uint64_t navMeshSettingsSize = 0;
 	stream.read(magic, sizeof(magic));
 	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) || !Read(stream, terrainSize) ||
-		std::string(magic, sizeof(magic)) != "VSTG" || (version != 1 && version != VstgVersion))
+		std::string(magic, sizeof(magic)) != "VSTG" ||
+		version < 1 ||
+		version > VstgVersion)
 	{
 		error = "Invalid VSTG header.";
 		return false;
@@ -152,14 +156,21 @@ bool VSTG::Load(const std::filesystem::path& path)
 		error = "Invalid VSTG terrain settings header.";
 		return false;
 	}
+	if (version >= 3 && !Read(stream, navMeshSettingsSize))
+	{
+		error = "Invalid VSTG NavMesh settings header.";
+		return false;
+	}
 	lightingJson.resize(static_cast<size_t>(lightingSize));
 	stageJson.resize(static_cast<size_t>(stageSize));
 	terrainDds.resize(static_cast<size_t>(terrainSize));
 	terrainSettingsJson.resize(static_cast<size_t>(terrainSettingsSize));
+	navMeshSettingsJson.resize(static_cast<size_t>(navMeshSettingsSize));
 	stream.read(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.read(stageJson.data(), static_cast<std::streamsize>(stageSize));
 	stream.read(reinterpret_cast<char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
 	stream.read(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
+	stream.read(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
 	if (!stream)
 	{
 		error = "VSTG data is truncated.";
@@ -191,19 +202,26 @@ bool VSTG::Save(const std::filesystem::path& path) const
 	const uint64_t stageSize = stageJson.size();
 	const uint64_t terrainSize = terrainDds.size();
 	const uint64_t terrainSettingsSize = terrainSettingsJson.size();
+	const uint64_t navMeshSettingsSize = navMeshSettingsJson.size();
 	Write(stream, lightingSize);
 	Write(stream, stageSize);
 	Write(stream, terrainSize);
 	Write(stream, terrainSettingsSize);
+	Write(stream, navMeshSettingsSize);
 	stream.write(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.write(stageJson.data(), static_cast<std::streamsize>(stageSize));
 	stream.write(reinterpret_cast<const char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
 	stream.write(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
+	stream.write(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
 	error = stream ? "" : "VSTG write failed.";
 	return static_cast<bool>(stream);
 }
 
-bool VSTG::Capture(Terrain& terrain, StageLoader& stageLoader, const LightManager& lights)
+bool VSTG::Capture(
+	Terrain& terrain,
+	NavMeshActor& navMesh,
+	StageLoader& stageLoader,
+	const LightManager& lights)
 {
 	if (!terrain.SaveTerrainMemory(terrainDds))
 	{
@@ -213,16 +231,40 @@ bool VSTG::Capture(Terrain& terrain, StageLoader& stageLoader, const LightManage
 	stageJson = stageLoader.SaveJsonText();
 	lightingJson = BuildLightingJson(lights);
 	terrainSettingsJson = terrain.SaveSettingsJson();
+	navMeshSettingsJson = navMesh.SaveSettingsJson();
 	error.clear();
 	return true;
 }
 
-bool VSTG::Apply(Terrain& terrain, StageLoader& stageLoader, LightManager& lights) const
+bool VSTG::Apply(
+	Terrain& terrain,
+	NavMeshActor& navMesh,
+	StageLoader& stageLoader,
+	LightManager& lights) const
 {
-	if (!terrain.LoadSettingsJson(terrainSettingsJson)) return false;
-	if (!terrain.LoadTerrainMemory(terrainDds)) return false;
+	if (!terrain.LoadSettingsJson(terrainSettingsJson))
+	{
+		error = "Terrain settings could not be applied.";
+		return false;
+	}
+	if (!terrain.LoadTerrainMemory(terrainDds))
+	{
+		error = "Terrain data could not be applied.";
+		return false;
+	}
+	if (!navMesh.LoadSettingsJson(navMeshSettingsJson))
+	{
+		error = "NavMesh settings could not be applied.";
+		return false;
+	}
 	stageLoader.LoadJsonText(stageJson);
-	return ApplyLightingJson(lightingJson, lights);
+	if (!ApplyLightingJson(lightingJson, lights))
+	{
+		error = "Lighting settings could not be applied.";
+		return false;
+	}
+	error.clear();
+	return true;
 }
 
 std::string VSTG::BuildLightingJson(const LightManager& lights) const

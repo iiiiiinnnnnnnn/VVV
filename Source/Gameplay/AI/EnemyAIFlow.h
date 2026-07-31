@@ -19,11 +19,14 @@ public:
     void CreateDefaultChaseGraph();
     void SetTargetTag(const std::string& value) { targetTag = value; }
     void SetSearchRange(float value);
+    void SetLostRange(float value);
     void SetAgentRadius(float value) { agentRadius = value; }
+    void SetTrackingTurnSpeed(float value) { trackingTurnSpeed = std::max(value, 0.0f); }
     Actor* GetTarget() const { return target; }
     void LockOn(Actor* actor);
     void SetMovementLocked(bool value);
     void MoveToTarget(float speed);
+    void FaceTarget();
     void StopMovement();
 
 protected:
@@ -34,7 +37,6 @@ protected:
 
 private:
     void UpdateSightRay();
-    void FaceTarget();
 
     std::string targetTag = "Player";
     Actor* target = nullptr;

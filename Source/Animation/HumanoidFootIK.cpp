@@ -47,6 +47,12 @@ HumanoidFootIK::HumanoidFootIK(
 			calfRName,
 			footRName,
 			ballRName);
+
+		const auto& poles = model->GetVmdlIKPoles();
+		if (footIK_L && !poles.empty() && poles[0].custom)
+			footIK_L->SetPoleLocalPosition(poles[0].position);
+		if (footIK_R && poles.size() > 1 && poles[1].custom)
+			footIK_R->SetPoleLocalPosition(poles[1].position);
 	}
 }
 

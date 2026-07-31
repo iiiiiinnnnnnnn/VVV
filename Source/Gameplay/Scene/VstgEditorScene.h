@@ -10,6 +10,7 @@
 
 class StageLoader;
 class Terrain;
+class NavMeshActor;
 
 class VstgEditorScene : public Scene
 {
@@ -33,6 +34,7 @@ private:
 	std::filesystem::path path;
 	VSTG data;
 	Terrain* terrain = nullptr;
+	NavMeshActor* navMesh = nullptr;
 	StageLoader* stageLoader = nullptr;
 	bool dirty = true;
 };

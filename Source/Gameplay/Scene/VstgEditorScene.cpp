@@ -13,6 +13,7 @@
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
+#include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Resource/ResourceManager.h"
 
@@ -50,6 +51,7 @@ void VstgEditorScene::CreateStage()
 		TerrainMeshCollider::CollisionArea{},
 		nullptr,
 		false);
+	navMesh = currentStage->AddComponent<NavMeshActor>();
 	stageLoader = currentStage->AddComponent<StageLoader>(currentStage.get(), std::string("{}"), true);
 	Camera* camera = currentStage->GetActiveCamera();
 	camera->SetPerspectiveFov(RAD(45.0f), Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 2000.0f);
@@ -101,46 +103,59 @@ void VstgEditorScene::OnDrawGUI()
 	}
 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	const ImVec2 workPosition = viewport->WorkPos;
-	const ImVec2 workSize = viewport->WorkSize;
+	constexpr float windowMargin = 10.0f;
+	const ImVec2 workPosition = {
+		viewport->WorkPos.x + windowMargin,
+		viewport->WorkPos.y + windowMargin
+	};
+	const ImVec2 workSize = {
+		std::max(1.0f, viewport->WorkSize.x - windowMargin * 2.0f),
+		std::max(1.0f, viewport->WorkSize.y - windowMargin * 2.0f)
+	};
 	const float leftWidth = workSize.x * 0.24f;
 	const float rightWidth = workSize.x * 0.24f;
-	const float halfHeight = workSize.y * 0.5f;
 	constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
-	ImGui::SetNextWindowSize({leftWidth, halfHeight}, ImGuiCond_Always);
-	if (ImGui::Begin("Lights###VSTG Lights", nullptr, windowFlags))
+	ImGui::SetNextWindowSize({leftWidth, workSize.y}, ImGuiCond_Always);
+	if (ImGui::Begin("Stage Settings###VSTG Stage Settings", nullptr, windowFlags))
 	{
-		if (ImGui::Button("Add Point Light"))
+		if (ImGui::BeginTabBar("VSTG Settings Tabs"))
 		{
-			currentStage->GetLightManager().AddPointLight();
-			dirty = true;
+			if (ImGui::BeginTabItem("Lights"))
+			{
+				if (ImGui::Button("Add Point Light"))
+				{
+					currentStage->GetLightManager().AddPointLight();
+					dirty = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Add Spot Light"))
+				{
+					currentStage->GetLightManager().AddSpotLight();
+					dirty = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Add Area Light"))
+				{
+					currentStage->GetLightManager().AddAreaLight();
+					dirty = true;
+				}
+				currentStage->GetLightManager().DrawGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Terrain"))
+			{
+				if (terrain) terrain->DrawGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("NavMesh"))
+			{
+				if (navMesh) navMesh->DrawGUI();
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add Spot Light"))
-		{
-			currentStage->GetLightManager().AddSpotLight();
-			dirty = true;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add Area Light"))
-		{
-			currentStage->GetLightManager().AddAreaLight();
-			dirty = true;
-		}
-		currentStage->GetLightManager().DrawGUI();
-		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-			(ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
-			dirty = true;
-	}
-	ImGui::End();
-
-	ImGui::SetNextWindowPos({workPosition.x, workPosition.y + halfHeight}, ImGuiCond_Always);
-	ImGui::SetNextWindowSize({leftWidth, workSize.y - halfHeight}, ImGuiCond_Always);
-	if (ImGui::Begin("Terrain###VSTG Terrain", nullptr, windowFlags))
-	{
-		if (terrain) terrain->DrawGUI();
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
 			(ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)))
 			dirty = true;
@@ -150,7 +165,7 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::SetNextWindowPos(
 		{workPosition.x + workSize.x - rightWidth, workPosition.y},
 		ImGuiCond_Always);
-	ImGui::SetNextWindowSize({rightWidth, workSize.y * 0.95f}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowSize({rightWidth, workSize.y}, ImGuiCond_Always);
 	if (ImGui::Begin("Stage Objects###VSTG Stage Objects", nullptr, windowFlags))
 	{
 		if (ImGui::BeginTabBar("VSTG Object Tabs"))
@@ -219,7 +234,11 @@ void VstgEditorScene::Open()
 		return;
 	}
 	CreateStage();
-	if (!loaded.Apply(*terrain, *stageLoader, currentStage->GetLightManager()))
+	if (!loaded.Apply(
+		*terrain,
+		*navMesh,
+		*stageLoader,
+		currentStage->GetLightManager()))
 	{
 		ErrorMessage(loaded.GetError());
 		return;
@@ -237,7 +256,12 @@ void VstgEditorScene::Save()
 		return;
 	}
 	terrain->BakeCollider();
-	if (!data.Capture(*terrain, *stageLoader, currentStage->GetLightManager()) || !data.Save(path))
+	if (!data.Capture(
+		*terrain,
+		*navMesh,
+		*stageLoader,
+		currentStage->GetLightManager()) ||
+		!data.Save(path))
 	{
 		ErrorMessage(data.GetError());
 		return;

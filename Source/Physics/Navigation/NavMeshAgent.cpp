@@ -81,6 +81,16 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 	MoveToPosition(actor, targetActor->transform.position);
 }
 
+void NavMeshAgent::MoveToPosition(const Vector3& targetPosition)
+{
+	destination = targetPosition;
+	hasDestination = true;
+	autoMove = true;
+	pathFailTimer = 0.0f;
+	hasLastNextPoint = false;
+	statusMessage = "Destination selected.";
+}
+
 bool NavMeshAgent::MoveToRandomPosition(float minDistance, float maxDistance)
 {
 	Actor* actor = dynamic_cast<Actor*>(owner);
@@ -120,6 +130,7 @@ bool NavMeshAgent::MoveToRandomPosition(float minDistance, float maxDistance)
 void NavMeshAgent::Stop()
 {
 	currentSpeed = 0.0f;
+	currentTurnAngle = 0.0f;
 	lastMoveDelta = Vector3::Zero;
 	pathFailTimer = 0.0f;
 	hasLastNextPoint = false;
@@ -146,21 +157,86 @@ Actor* NavMeshAgent::FindTargetByTag()
 bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
+	currentTurnAngle = 0.0f;
 
 	const Vector3 toTarget = targetPosition - actor->transform.position;
 	Vector3 flatToTarget = toTarget;
 	flatToTarget.y = 0.0f;
 
-	if (flatToTarget.LengthSquared() <= stoppingDistance * stoppingDistance)
+	Vector3 nextPoint;
+	bool directMove = false;
+	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
+	if (navMeshActor)
+	{
+		Vector3 nearestPoint;
+		if (navMeshActor->FindNearestPoint(
+				actor->transform.position,
+				nearestPoint))
+		{
+			Vector3 recoveryDirection =
+				nearestPoint - actor->transform.position;
+			recoveryDirection.y = 0.0f;
+			const float recoveryDistance =
+				recoveryDirection.Length();
+			constexpr float recoveryThreshold = 0.005f;
+			if (recoveryDistance > recoveryThreshold)
+			{
+				recoveryDirection /= recoveryDistance;
+				currentTurnAngle = atan2f(
+					recoveryDirection.Dot(actor->transform.right),
+					recoveryDirection.Dot(actor->transform.forward));
+
+				if (rotateToMoveDirection)
+				{
+					const float targetYaw = atan2f(
+						recoveryDirection.x,
+						recoveryDirection.z);
+					const Quaternion targetRotation =
+						Quaternion::CreateFromYawPitchRoll(
+							targetYaw,
+							0.0f,
+							0.0f);
+					const float rate =
+						1.0f -
+						expf(-turnSpeed * Game::Time::deltaTime);
+					actor->transform.SetRotation(
+						Quaternion::Slerp(
+							actor->transform.rotation,
+							targetRotation,
+							rate));
+				}
+
+				if (movementPaused)
+				{
+					currentSpeed = 0.0f;
+					statusMessage = "Turning to NavMesh.";
+					return false;
+				}
+
+				const float moveDistance = std::min(
+					speed * Game::Time::deltaTime,
+					recoveryDistance);
+				lastMoveDelta =
+					recoveryDirection * moveDistance;
+				currentSpeed = speed;
+				characterController->Move(lastMoveDelta);
+
+				pathFailTimer = 0.0f;
+				hasLastNextPoint = false;
+				statusMessage = "Returning to NavMesh.";
+				return false;
+			}
+		}
+	}
+
+	if (flatToTarget.LengthSquared() <=
+		stoppingDistance * stoppingDistance)
 	{
 		statusMessage = "Arrived.";
 		currentSpeed = 0.0f;
 		return true;
 	}
 
-	Vector3 nextPoint;
-	bool directMove = false;
-	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
 	if (!navMeshActor)
 	{
 		if (!directMoveOnPathFail)
@@ -242,12 +318,9 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 
 	const float nextPointDistance = direction.Length();
 	direction /= nextPointDistance;
-	currentSpeed = speed;
-	const float moveDistance = std::min(
-		speed * Game::Time::deltaTime,
-		nextPointDistance);
-	lastMoveDelta = direction * moveDistance;
-	characterController->Move(lastMoveDelta);
+	currentTurnAngle = atan2f(
+		direction.Dot(actor->transform.right),
+		direction.Dot(actor->transform.forward));
 
 	if (rotateToMoveDirection)
 	{
@@ -258,6 +331,20 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		actor->transform.SetRotation(
 			Quaternion::Slerp(actor->transform.rotation, targetRotation, rate));
 	}
+
+	if (movementPaused)
+	{
+		currentSpeed = 0.0f;
+		statusMessage = "Turning.";
+		return false;
+	}
+
+	currentSpeed = speed;
+	const float moveDistance = std::min(
+		speed * Game::Time::deltaTime,
+		nextPointDistance);
+	lastMoveDelta = direction * moveDistance;
+	characterController->Move(lastMoveDelta);
 
 	if (!directMove && pathFailTimer <= 0.0f)
 		statusMessage = "Moving.";
@@ -271,6 +358,7 @@ void NavMeshAgent::DrawGUI()
 	ImGui::Checkbox("Chase Target Tag", &chaseTargetTag);
 	ImGui::InputText("Target Tag", &targetTag);
 	ImGui::Checkbox("Rotate To Move Direction", &rotateToMoveDirection);
+	ImGui::Checkbox("Movement Paused", &movementPaused);
 	ImGui::Checkbox("Use Last Valid Path On Fail", &useLastValidPathOnFail);
 	ImGui::Checkbox("Direct Move On Path Fail", &directMoveOnPathFail);
 	ImGui::DragFloat("Speed", &speed, 0.1f, 0.0f, 30.0f);
