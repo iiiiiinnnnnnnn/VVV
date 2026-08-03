@@ -203,8 +203,8 @@
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
-                    "editorPosX": 84.0,
-                    "editorPosY": 10.0,
+                    "editorPosX": 100.0,
+                    "editorPosY": -12.0,
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
@@ -700,6 +700,44 @@
                     "transitions": [
                         {
                             "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
                             "exitTime": 1.0,
@@ -709,7 +747,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.0
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 },
@@ -727,6 +765,44 @@
                     "transitions": [
                         {
                             "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
                             "exitTime": 1.0,
@@ -736,7 +812,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.0
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 },
@@ -746,12 +822,50 @@
                     "callbacks": [],
                     "dynamicClipPath": "",
                     "editorPosX": -408.0,
-                    "editorPosY": 51.0,
+                    "editorPosY": -61.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftR",
                     "speed": 1.0,
                     "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -763,7 +877,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.0
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 },
@@ -772,13 +886,51 @@
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
-                    "editorPosX": -380.0,
-                    "editorPosY": -173.0,
+                    "editorPosX": -408.0,
+                    "editorPosY": -237.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftL",
                     "speed": 1.0,
                     "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.800000011920929
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -790,7 +942,7 @@
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.0
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 }

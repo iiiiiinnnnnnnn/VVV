@@ -390,7 +390,6 @@ void VmdlEditorScene::RenderPreview()
 		bool hasShapes = false;
 		if (showIkPole)
 		{
-			model->EnsureVmdlIKSettingsCompatibility();
 			const auto& nodes = model->GetNodes();
 			const auto& ikSettings = model->GetVmdlIKSettings();
 			const auto& poles = model->GetVmdlIKPoles();
@@ -1170,7 +1169,6 @@ void VmdlEditorScene::DrawAnimationCurves()
 	if (selectedNode >= static_cast<int>(animation.nodeAnims.size())) return;
 	auto& keys = animation.nodeAnims[selectedNode];
 	const float length = std::max(0.001f, animation.secondsLength);
-	model->EnsureVmdlIKSettingsCompatibility();
 	const auto& ikSettings = model->GetVmdlIKSettings();
 	const int footWeightCount = ikSettings.type == 0
 		? 0
@@ -2086,7 +2084,6 @@ void VmdlEditorScene::DrawIkSettings()
 		return;
 	}
 
-	model->EnsureVmdlIKSettingsCompatibility();
 	auto& settings = model->GetVmdlIKSettings();
 	auto& poles = model->GetVmdlIKPoles();
 	const char* types[] = {"None", "Human Foot IK", "Quadruped IK", "Insect IK"};

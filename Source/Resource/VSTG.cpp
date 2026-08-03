@@ -52,16 +52,8 @@ void LoadLight(const json& value, Light& light)
 {
 	light.SetName(value.value("name", light.GetName()));
 	light.SetActive(value.value("active", true));
-	if (value.contains("color"))
-	{
-		const Color color = LoadColor(value["color"]);
-		light.SetColor(color);
-		light.SetIntensity(value.value("intensity", color.w));
-	}
-	else
-	{
-		light.SetIntensity(value.value("intensity", light.GetIntensity()));
-	}
+	light.SetColor(LoadColor(value["color"]));
+	light.SetIntensity(value["intensity"].get<float>());
 	if (value.contains("position")) light.transform.position = LoadVector3(value["position"]);
 	if (value.contains("rotation") && value["rotation"].is_array() && value["rotation"].size() >= 4)
 	{
@@ -70,48 +62,6 @@ void LoadLight(const json& value, Light& light)
 			value["rotation"][2].get<float>(), value["rotation"][3].get<float>()};
 	}
 	light.transform.Update();
-}
-
-void UpgradeLegacyDefaultLighting(uint32_t version, std::string& lightingJson)
-{
-	if (version != 1) return;
-
-	try
-	{
-		json root = json::parse(lightingJson);
-		const json ambient = root.value("ambient", json::array());
-		const json directional = root.value("directional", json::object());
-		const json rotation = directional.value("rotation", json::array());
-		if (ambient.size() < 4 || rotation.size() < 4) return;
-
-		const bool defaultAmbient =
-			ambient[0].get<float>() == 1.0f &&
-			ambient[1].get<float>() == 1.0f &&
-			ambient[2].get<float>() == 1.0f &&
-			ambient[3].get<float>() == 1.0f;
-		const bool defaultRotation =
-			rotation[0].get<float>() == 0.0f &&
-			rotation[1].get<float>() == 0.0f &&
-			rotation[2].get<float>() == 0.0f &&
-			rotation[3].get<float>() == 1.0f;
-		if (!defaultAmbient || !defaultRotation) return;
-
-		// 初期版VSTG Editorが保存した仮の白色照明を、従来のゲーム用初期照明へ移行する。
-		root["ambient"] = SaveColor(ColorFromRGBA(0x2A4C7DFF));
-		Quaternion rotationValue = Quaternion::CreateFromYawPitchRoll(
-			RAD(-35.0f),
-			RAD(35.0f),
-			0.0f);
-		root["directional"]["rotation"] = {
-			rotationValue.x,
-			rotationValue.y,
-			rotationValue.z,
-			rotationValue.w};
-		lightingJson = root.dump();
-	}
-	catch (const json::exception&)
-	{
-	}
 }
 
 template<typename T>
@@ -145,18 +95,17 @@ bool VSTG::Load(const std::filesystem::path& path)
 	stream.read(magic, sizeof(magic));
 	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) || !Read(stream, terrainSize) ||
 		std::string(magic, sizeof(magic)) != "VSTG" ||
-		version < 1 ||
-		version > VstgVersion)
+		version != VstgVersion)
 	{
 		error = "Invalid VSTG header.";
 		return false;
 	}
-	if (version >= 2 && !Read(stream, terrainSettingsSize))
+	if (!Read(stream, terrainSettingsSize))
 	{
 		error = "Invalid VSTG terrain settings header.";
 		return false;
 	}
-	if (version >= 3 && !Read(stream, navMeshSettingsSize))
+	if (!Read(stream, navMeshSettingsSize))
 	{
 		error = "Invalid VSTG NavMesh settings header.";
 		return false;
@@ -176,7 +125,6 @@ bool VSTG::Load(const std::filesystem::path& path)
 		error = "VSTG data is truncated.";
 		return false;
 	}
-	UpgradeLegacyDefaultLighting(version, lightingJson);
 	error.clear();
 	return true;
 }

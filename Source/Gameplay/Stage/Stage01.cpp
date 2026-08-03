@@ -3,10 +3,10 @@
 #include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/ActorManager.h"
-#include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/EnemySmall.h"
+#include "Application/Time/GameTime.h"
 
 Stage01::Stage01()
 {
@@ -17,7 +17,7 @@ Stage01::Stage01()
 	const bool loadedVstg = LoadVSTG("Data/Stages/0_tall.vstg");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
-	StageLoader* stageLoader = GetComponent<StageLoader>();
+	stageLoader = GetComponent<StageLoader>();
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
@@ -93,19 +93,6 @@ void Stage01::OnUpdate()
 	}
 
 	particleSystem->Update();
-
-	// 雑魚敵
-	#if 0
-	//aracoreSpawnTimer -= Game::Time::deltaTime;
-	if (aracoreSpawnTimer < 0)
-	{
-		aracoreSpawnTimer = 30.0f;
-
-		auto aracore = std::make_shared<Aracore>(Vector3{9, 5, 10});
-		aracore->SetBreakParticleSystem(particleSystem.get());
-		actorManager.Register(aracore);
-	}
-	#endif
 }
 
 void Stage01::OnRender(const RenderContext& rc)

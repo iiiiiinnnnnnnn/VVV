@@ -283,6 +283,9 @@
 	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp">
 	  <Filter>Gameplay\Component</Filter>
 	</ClCompile>
+	<ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp">
+	  <Filter>Gameplay\Component</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Apple.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -613,6 +616,9 @@
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
 	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h">
+	  <Filter>Gameplay\Component</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Gameplay\Component\LockOnComponent.h">
 	  <Filter>Gameplay\Component</Filter>
 	</ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Entity.h">

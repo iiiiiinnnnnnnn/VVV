@@ -60,7 +60,6 @@ LayerId VMDL::GetAttachmentLayer() const
 
 void VMDL::BuildFootIK()
 {
-	model->EnsureVmdlIKSettingsCompatibility();
 	const auto& settings = model->GetVmdlIKSettings();
 	if (settings.type == 0) return;
 

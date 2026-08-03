@@ -526,7 +526,6 @@ public:
 	const VmdlIKSettings& GetVmdlIKSettings() const { return vmdlIKSettings; }
 	std::vector<VmdlIKPole>& GetVmdlIKPoles() { return vmdlIKPoles; }
 	const std::vector<VmdlIKPole>& GetVmdlIKPoles() const { return vmdlIKPoles; }
-	void EnsureVmdlIKSettingsCompatibility();
 	void ResetVmdlIKLegsForType();
 	VmdlAnimationEditorData& GetVmdlAnimationEditorData() { return vmdlAnimationEditorData; }
 	const VmdlAnimationEditorData& GetVmdlAnimationEditorData() const { return vmdlAnimationEditorData; }
@@ -534,10 +533,6 @@ public:
 	const VmdlAnimationControlData& GetVmdlAnimationControlData() const { return vmdlAnimationControlData; }
 	VmdlTrailData& GetVmdlTrailData() { return vmdlTrailData; }
 	const VmdlTrailData& GetVmdlTrailData() const { return vmdlTrailData; }
-	static bool IsCacheUpToDate(
-		const std::filesystem::path& sourcePath,
-		const std::filesystem::path& cachePath);
-
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
@@ -551,7 +546,6 @@ private:
 	static constexpr uint32_t VmdlCompressionVersion = 3;
 	static constexpr uint64_t ModelCacheVersion = 4;
 	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
-	static bool ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp);
 
 	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
 	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);

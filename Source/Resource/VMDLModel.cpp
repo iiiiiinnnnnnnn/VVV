@@ -36,26 +36,6 @@ uint64_t VMDLModel::MakeModelCacheStamp(uint64_t sourceLastWrite)
 	return sourceLastWrite ^ ModelCacheVersion;
 }
 
-bool VMDLModel::ReadModelCacheStamp(const std::filesystem::path& filepath, uint64_t& stamp)
-{
-	std::ifstream stream(filepath, std::ios::binary);
-	if (!stream.is_open()) return false;
-
-	stream.read(reinterpret_cast<char*>(&stamp), sizeof(stamp));
-	return stream.good();
-}
-
-bool VMDLModel::IsCacheUpToDate(
-	const std::filesystem::path& sourcePath,
-	const std::filesystem::path& cachePath)
-{
-	if (!std::filesystem::exists(sourcePath) || !std::filesystem::exists(cachePath)) return false;
-
-	uint64_t cachedStamp = 0;
-	return ReadModelCacheStamp(cachePath, cachedStamp) &&
-		cachedStamp == MakeModelCacheStamp(GetFileLastWriteTime64(sourcePath));
-}
-
 void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(
 	ID3D11Device* device,
 	const std::filesystem::path& dirpath,
@@ -444,30 +424,6 @@ VMDLModel::VMDLModel(
 	{
 		uint64_t lastWriteTime = 0;
 		Deserialize(sourceFilepath.string().c_str(), lastWriteTime);
-		modelCacheLastWrite = lastWriteTime;
-	}
-	else if (std::filesystem::exists(cerealFilepath) && !importRawModel)
-	{
-		// 旧GLB運用との互換処理。元ファイルがある場合だけ更新時刻を照合し、
-		// 不一致なら再インポートする。正式なVMDL読み込みではこの経路を通らない。
-		bool canUseCache = true;
-		if (std::filesystem::exists(filename))
-		{
-			uint64_t cachedLastWriteTime = 0;
-			canUseCache =
-				ReadModelCacheStamp(cerealFilepath, cachedLastWriteTime) &&
-				cachedLastWriteTime == modelCacheLastWrite;
-		}
-
-		if (!canUseCache)
-		{
-			VMDLModel tmpModel(filename, sampleRate, true, cerealFilepath.string().c_str());
-			*this = std::move(tmpModel);
-			return;
-		}
-
-		uint64_t lastWriteTime = 0;
-		Deserialize(cerealFilepath.string().c_str(), lastWriteTime);
 		modelCacheLastWrite = lastWriteTime;
 	}
 	else if (extension == ".gltf" || extension == ".glb")
@@ -1071,65 +1027,6 @@ void VMDLModel::ResetVmdlIKLegsForType()
 
 }
 
-void VMDLModel::EnsureVmdlIKSettingsCompatibility()
-{
-	auto& settings = vmdlIKSettings;
-	if (settings.centerNode.empty()) settings.centerNode = "pelvis";
-	size_t requiredCount = 0;
-	if (settings.type == 1) requiredCount = 2;
-	else if (settings.type == 2) requiredCount = 4;
-	else if (settings.type == 3) requiredCount = 8;
-	settings.legs.resize(requiredCount);
-	vmdlIKPoles.resize(requiredCount);
-
-	constexpr const char* humanNames[] = {"Left", "Right"};
-	constexpr const char* quadrupedNames[] = {"Front Left", "Front Right", "Back Left", "Back Right"};
-	for (size_t i = 0; i < settings.legs.size(); ++i)
-	{
-		if (!settings.legs[i].name.empty() && settings.legs[i].name != "Leg") continue;
-		if (settings.type == 1) settings.legs[i].name = humanNames[i];
-		else if (settings.type == 2) settings.legs[i].name = quadrupedNames[i];
-		else settings.legs[i].name = "Leg " + std::to_string(i + 1);
-	}
-
-	// 旧形式では同名ノードを名前だけで保存していたため、複数の脚がすべて
-	// 最初の同名ノードへ解決される。複数脚で同じ旧形式名を使っている場合だけ、
-	// ノードの出現順に番号付き参照へ移行する。
-	const auto upgradeDuplicateLegNodes = [this, &settings](std::string VmdlIKLeg::* member)
-	{
-		std::unordered_map<std::string, std::vector<std::string*>> referencesByName;
-		for (VmdlIKLeg& leg : settings.legs)
-		{
-			std::string& reference = leg.*member;
-			if (reference.empty() || reference.find(':') != std::string::npos) continue;
-			referencesByName[reference].push_back(&reference);
-		}
-
-		for (auto& [nodeName, references] : referencesByName)
-		{
-			if (references.size() < 2) continue;
-
-			std::vector<int> matchingNodeIndices;
-			for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
-			{
-				if (nodes[nodeIndex].name == nodeName) matchingNodeIndices.push_back(nodeIndex);
-			}
-			if (matchingNodeIndices.size() < references.size()) continue;
-
-			for (size_t referenceIndex = 0; referenceIndex < references.size(); ++referenceIndex)
-			{
-				const int nodeIndex = matchingNodeIndices[referenceIndex];
-				*references[referenceIndex] = std::to_string(nodeIndex) + ":" + nodeName;
-			}
-		}
-	};
-
-	upgradeDuplicateLegNodes(&VmdlIKLeg::root);
-	upgradeDuplicateLegNodes(&VmdlIKLeg::mid);
-	upgradeDuplicateLegNodes(&VmdlIKLeg::tip);
-	upgradeDuplicateLegNodes(&VmdlIKLeg::contact);
-}
-
 float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIndex) const
 {
 	if (animationIndex < 0) return 0.0f;
@@ -1143,18 +1040,6 @@ float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIn
 	}
 
 	const VmdlFootWeightTrack* selectedTrack = FindFootWeightTrack(animation.name, footIndex);
-	if (!selectedTrack)
-	{
-		// 旧VMDLの単一トラックは全ての足へ共通適用する。
-		for (const VmdlFootWeightTrack& track : vmdlAnimationEditorData.footWeightTracks)
-		{
-			if (track.animationName == animation.name)
-			{
-				selectedTrack = &track;
-				break;
-			}
-		}
-	}
 	if (selectedTrack && !selectedTrack->weights.empty())
 	{
 		// ペイント済みトラックがあれば隣接サンプルを線形補間する。
@@ -1165,48 +1050,7 @@ float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIn
 		const size_t index1 = std::min(index0 + 1, track.weights.size() - 1);
 		return std::lerp(track.weights[index0], track.weights[index1], sample - static_cast<float>(index0));
 	}
-
-	// ペイントデータがない旧形式では区間設定へフォールバックし、
-	// 重複区間のうち最も強いウェイトを採用する。
-	float result = 0.0f;
-	for (const FootIKRange& range : animation.footIKRanges)
-	{
-		if (range.footIndex >= 0 && range.footIndex != footIndex) continue;
-
-		float timeRatio =
-			animation.secondsLength > 0.001f
-			? time / animation.secondsLength
-			: 0.0f;
-
-		timeRatio = std::clamp(timeRatio, 0.0f, 1.0f);
-
-		float start = range.startRatio;
-		float end = range.endRatio;
-		if (end < start)
-		{
-			const float temp = start;
-			start = end;
-			end = temp;
-		}
-
-		if (timeRatio < start || timeRatio > end) continue;
-
-		float weight = std::clamp(range.weight, 0.0f, 1.0f);
-
-		if (range.fadeInRatio > 0.001f)
-		{
-			weight *= std::clamp((timeRatio - start) / range.fadeInRatio, 0.0f, 1.0f);
-		}
-
-		if (range.fadeOutRatio > 0.001f)
-		{
-			weight *= std::clamp((end - timeRatio) / range.fadeOutRatio, 0.0f, 1.0f);
-		}
-
-		if (result < weight) result = weight;
-	}
-
-	return result;
+	return 0.0f;
 }
 
 std::string VMDLModel::MakeFootWeightTrackKey(const std::string& animationName, int footIndex)
@@ -1471,7 +1315,6 @@ void VMDLModel::GetNodePoses(std::vector<NodePose>& nodePoses) const
 
 void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 {
-	EnsureVmdlIKSettingsCompatibility();
 	NormalizeMorphNames();
 	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
 	std::vector<MaterialPbrSettings> materialPbrSettings;
@@ -1591,111 +1434,42 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 	auto deserialize = [this, &lastWrite](std::istream& stream)
 	{
 		cereal::BinaryInputArchive archive(stream);
+		std::vector<MaterialPbrSettings> materialPbrSettings;
+		std::vector<MaterialVMatSettings> materialVMatSettings;
 
 		archive(
 			CEREAL_NVP(lastWrite),
 			CEREAL_NVP(nodes),
 			CEREAL_NVP(materials),
 			CEREAL_NVP(meshes),
-			CEREAL_NVP(animations));
+			CEREAL_NVP(animations),
+			CEREAL_NVP(vmdlExtensionData),
+			CEREAL_NVP(vmdlIKSettings),
+			CEREAL_NVP(vmdlAnimationEditorData),
+			CEREAL_NVP(vmdlAnimationControlData),
+			CEREAL_NVP(materialPbrSettings),
+			CEREAL_NVP(vmdlTrailData),
+			CEREAL_NVP(materialVMatSettings),
+			CEREAL_NVP(modelScale),
+			CEREAL_NVP(vmdlIKPoles));
 
-		try
+		const size_t pbrCount = std::min(materials.size(), materialPbrSettings.size());
+		for (size_t i = 0; i < pbrCount; ++i)
 		{
-			archive(CEREAL_NVP(vmdlExtensionData));
-		}
-		catch (...)
-		{
-			vmdlExtensionData = {};
-		}
-
-		try
-		{
-			archive(CEREAL_NVP(vmdlIKSettings));
-		}
-		catch (...)
-		{
-			vmdlIKSettings = {};
+			materials[i].occlusion = materialPbrSettings[i].occlusion;
+			materials[i].shadowStrength = materialPbrSettings[i].shadowStrength;
 		}
 
-		try
+		const size_t vmatCount = std::min(materials.size(), materialVMatSettings.size());
+		for (size_t i = 0; i < vmatCount; ++i)
 		{
-			archive(CEREAL_NVP(vmdlAnimationEditorData));
-		}
-		catch (...)
-		{
-			vmdlAnimationEditorData = {};
-		}
-
-		try
-		{
-			archive(CEREAL_NVP(vmdlAnimationControlData));
-		}
-		catch (...)
-		{
-			vmdlAnimationControlData = {};
+			materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
+			materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
+			materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
+			materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
 		}
 
-		try
-		{
-			std::vector<MaterialPbrSettings> materialPbrSettings;
-			archive(CEREAL_NVP(materialPbrSettings));
-			const size_t count = std::min(materials.size(), materialPbrSettings.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				materials[i].occlusion = materialPbrSettings[i].occlusion;
-				materials[i].shadowStrength = materialPbrSettings[i].shadowStrength;
-			}
-		}
-		catch (...)
-		{
-		}
-
-		try
-		{
-			archive(CEREAL_NVP(vmdlTrailData));
-		}
-		catch (...)
-		{
-			vmdlTrailData = {};
-		}
-
-		try
-		{
-			std::vector<MaterialVMatSettings> materialVMatSettings;
-			archive(CEREAL_NVP(materialVMatSettings));
-			const size_t count = std::min(materials.size(), materialVMatSettings.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
-				materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
-				materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
-				materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
-			}
-		}
-		catch (...)
-		{
-		}
-
-		try
-		{
-			archive(CEREAL_NVP(modelScale));
-			SetModelScale(modelScale);
-		}
-		catch (...)
-		{
-			modelScale = 1.0f;
-		}
-
-		try
-		{
-			archive(CEREAL_NVP(vmdlIKPoles));
-		}
-		catch (...)
-		{
-			vmdlIKPoles.clear();
-		}
-
-		EnsureVmdlIKSettingsCompatibility();
+		SetModelScale(modelScale);
 		NormalizeMorphNames();
 	};
 
@@ -1705,7 +1479,9 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 		std::array<char, magic.size()> fileMagic{};
 		fileStream.read(fileMagic.data(), fileMagic.size());
 
-		if (fileStream.gcount() == static_cast<std::streamsize>(fileMagic.size()) && fileMagic == magic)
+		if (fileStream.gcount() != static_cast<std::streamsize>(fileMagic.size()) || fileMagic != magic)
+			throw std::runtime_error("Invalid compressed VMDL magic.");
+
 		{
 			uint32_t version = 0;
 			uint64_t uncompressedSize = 0;

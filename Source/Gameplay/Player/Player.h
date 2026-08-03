@@ -15,6 +15,7 @@
 
 class ThirdPersonCameraController;
 class CharacterMotorComponent;
+class LockOnComponent;
 
 class Player : public Entity
 {
@@ -70,5 +71,6 @@ protected:
     // movement
 	CharacterController* cc = nullptr;
 	CharacterMotorComponent* motor = nullptr;
+	LockOnComponent* lockOnComponent = nullptr;
     float speed = 5.0f;
 };

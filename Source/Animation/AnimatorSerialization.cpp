@@ -185,8 +185,7 @@ void Animator::Deserialize(const std::string& path)
 
 		const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "VMDLModel";
 		const std::string fileMode = root.value("animationMode", expectedMode);
-		const bool legacyVmdlMode = !IsDynamicMode() && fileMode == "Model";
-		if (fileMode != expectedMode && !legacyVmdlMode)
+		if (fileMode != expectedMode)
         {
             _ASSERT_EXPR(false, L"Animator mode does not match the loaded file.");
             return;

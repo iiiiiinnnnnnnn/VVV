@@ -9,7 +9,7 @@
 #include "Application/Time/GameTime.h"
 
 EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
-	: Entity("Deer(EnemySmall)", "Enemy", true, 100.0f, 100.0f)
+	: Entity("Deer(EnemySmall)", "Enemy", true, 200.0f, 200.0f)
 {
 	vmdl = AddComponent<VMDL>("Data/Model/Enemy/deer");
 	anim = vmdl->GetAnimator();
@@ -78,8 +78,19 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 			Actor* target = controller->GetTarget();
 			if (!target) return;
 
+			// “Ëi(—]•ª‚Éi‚Þ)
+			Vector3 over = target->transform.position - transform.position;
+			over.y = 0.0f;
+
+			if (over.LengthSquared() > eps) over.Normalize();
+
+			const float overDistance = 8.0f;
+			const Vector3 destination =
+				target->transform.position + over * overDistance;
+
 			navMeshAgent->SetSpeed(attackMoveSpeed);
-			navMeshAgent->MoveToPosition(target->transform.position);
+			navMeshAgent->MoveToPosition(destination);
+
 			attackAimLocked = true;
 
 			return;

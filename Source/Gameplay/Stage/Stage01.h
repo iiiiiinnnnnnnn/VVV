@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Stage/Component/StageLoader.h"
 
 class Stage01 : public Stage
 {
@@ -13,5 +14,5 @@ public:
 	void OnDrawGUI() override;
 
 private:
-
+	StageLoader* stageLoader = nullptr;
 };

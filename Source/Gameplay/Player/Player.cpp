@@ -1,4 +1,4 @@
-ï»¿// Player.cpp
+// Player.cpp
 
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
@@ -8,23 +8,24 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Component/CharacterMotorComponent.h"
+#include "Gameplay/Component/LockOnComponent.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
-	// VMDLèª­ã¿è¾¼ã¿
+	// VMDL“Ç‚İ‚İ
 	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 
-	// çŠ¶æ…‹é·ç§»ã¨ã‚²ãƒ¼ãƒ å›ºæœ‰ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã¯Animatorå´ã§è¨­å®šã™ã‚‹ã€‚
+	// ó‘Ô‘JˆÚ‚ÆƒQ[ƒ€ŒÅ—LƒR[ƒ‹ƒoƒbƒN‚ÍAnimator‘¤‚Åİ’è‚·‚éB
 	anim = vmdl->GetAnimator();
 	anim->Load("Data/Animator/Player.animator");
 	anim->BindCallbacks();
 
-	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ç”Ÿæˆ
+	// ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰¶¬
 	float radius = 0.25f;
 	float totalHeight = 1.7f;
 	float capsuleHeight = totalHeight - radius * 2.0f;
@@ -43,7 +44,11 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	motor = AddComponent<CharacterMotorComponent>(anim, cc);
 	motor->SetRootMotionNode("root");
 
-	// SetFootPositionã¨SetPositionã¯ä¸¡æ–¹å‘¼ã°ãªã„
+	lockOnComponent = AddComponent<LockOnComponent>();
+	lockOnComponent->SetLostRange(20.0f);
+	lockOnComponent->SetRotationSpeed(6.0f);
+
+	// SetFootPosition‚ÆSetPosition‚Í—¼•ûŒÄ‚Î‚È‚¢
 	cc->SetFootPosition({ 0.0f, 5.0f, 10.0f });
 
 	// LookAt
@@ -52,13 +57,19 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	lookAt->SetLookDistance(10.0f);
 	lookAt->SetFilterTags({"Enemy"});
 
-	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸ã®ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³é•·ã„
+	// ƒvƒŒƒCƒ„[‚Íƒ_ƒ[ƒW‚ÌƒN[ƒ‹ƒ_ƒEƒ“’·‚¢
 	GetCooldowns().DamageCooldownDuration = 1.5f;
 }
 
 void Player::OnUpdate()
 {
 	Entity::OnUpdate();
+
+	const std::string& stateName = anim->GetCurrentStateName();
+	const bool isAttacking = stateName.starts_with("Attack");
+	const bool isHit = stateName == "Hit_RFreeze" || stateName == "Hit_LFreeze";
+	lockOnComponent->SetAimActive(isAttacking);
+	lockOnComponent->SetRotationPaused(isHit || IsDead());
 
 	UpdateMovement();
 	if (motor)
@@ -91,7 +102,7 @@ void Player::OnDamaged(const DamageData& damageData)
 
 	if (damageData.hitPosition.has_value())
 	{
-		// æ•µã®ä½ç½®ã«å¿œã˜ã¦ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿ
+		// “G‚ÌˆÊ’u‚É‰‚¶‚ÄƒAƒjƒ[ƒVƒ‡ƒ“Ä¶
 		Vector3 dir = damageData.hitPosition.value() - transform.position;
 		dir.Normalize();
 
@@ -110,11 +121,13 @@ void Player::OnDamaged(const DamageData& damageData)
 	{
 		anim->SetTrigger("Hit_R");
 	}
+	lockOnComponent->PauseRotation(0.15f);
 }
 
 void Player::OnDead(const DamageData& damageData)
 {
-
+	lockOnComponent->ClearTarget();
+	lockOnComponent->SetActive(false);
 }
 
 void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
@@ -130,7 +143,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	const bool footAtk = self->CompareName("kick");
 
-	// æ•µã‚’æ®´ã‚‹
+	// “G‚ğ‰£‚é
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor) return;
@@ -173,18 +186,20 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 		.hitPosition = hitPosition,
 		.hitNormal = hitNormal,
 		});
+
+	if (!entity->IsDead()) lockOnComponent->LockOn(otherActor);
 }
 
-// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç§»å‹•å‡¦ç†
+// ƒvƒŒƒCƒ„[‚ÌˆÚ“®ˆ—
 void Player::UpdateMovement()
 {
 	if (!controller) return;
 	InputContext ctx = controller->Poll();
 
-	// ---- å…¥åŠ›ãƒ™ã‚¯ãƒˆãƒ«ã‚’ã‚«ãƒ¡ãƒ©YawåŸºæº–ã®ãƒ¯ãƒ¼ãƒ«ãƒ‰æ–¹å‘ã«å¤‰æ› ----
+	// ---- “ü—ÍƒxƒNƒgƒ‹‚ğƒJƒƒ‰YawŠî€‚Ìƒ[ƒ‹ƒh•ûŒü‚É•ÏŠ· ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
 	const std::string currentStateName = anim ? anim->GetCurrentStateName(0) : "";
-	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // å‹•ã‘ãªã„
+	const bool isFreeze = (currentStateName.find("Freeze") != std::string::npos); // “®‚¯‚È‚¢
 	const bool isQuickshift =
 		currentStateName.find("Quickshift") !=
 		std::string::npos;
@@ -240,12 +255,12 @@ void Player::UpdateMovement()
 	Vector3 worldMoveDir = Vector3::Zero;
 	if (inputLen > 0.1f)
 	{
-		// å…¥åŠ›(moveX=å³, moveZ=å‰) ã‚’ã‚«ãƒ¡ãƒ©åŸºæº–ã§ãƒ¯ãƒ¼ãƒ«ãƒ‰XZ ã«å¤‰æ›
+		// “ü—Í(moveX=‰E, moveZ=‘O) ‚ğƒJƒƒ‰Šî€‚Åƒ[ƒ‹ƒhXZ ‚É•ÏŠ·
 		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
 		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
 		worldMoveDir.Normalize();
 
-		// æ”»æ’ƒä¸­ã¯å…¥åŠ›ã«ã‚ˆã‚‹æ–¹å‘è»¢æ›ã‚’æ­¢ã‚ã‚‹
+		// UŒ‚’†‚Í“ü—Í‚É‚æ‚é•ûŒü“]Š·‚ğ~‚ß‚é
 		if (!isFreeze &&
 			!isQuickshift &&
 			!quickStepActive)
@@ -259,7 +274,7 @@ void Player::UpdateMovement()
 		}
 	}
 
-	// Speed / Sprint ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’Animatorã¸
+	// Speed / Sprint ƒpƒ‰ƒ[ƒ^‚ğAnimator‚Ö
 	bool sprinting =
 		!quickStepActive &&
 		ctx.sprint &&
@@ -273,7 +288,10 @@ void Player::UpdateMovement()
 	anim->SetBool("IsDead", IsDead());
 
 	if (ctx.attackPressed)
+	{
+		lockOnComponent->SetAimActive(true);
 		anim->SetTrigger("Attack");
+	}
 	if (quickStepStarted &&
 		!bufferedQuickStepTrigger.empty())
 	{

@@ -29,6 +29,10 @@ public:
 	virtual void Update();
 	virtual void Render();
 	CameraController* GetActiveCameraController() const;
+	void RegisterWidget(std::shared_ptr<Widget> widget)
+	{
+		widgetManager.Register(std::move(widget));
+	}
 
 	const RenderSettings& GetRenderSettings() const
 	{

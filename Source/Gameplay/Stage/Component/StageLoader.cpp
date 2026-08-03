@@ -696,10 +696,9 @@ void StageLoader::LoadJson()
 				spawnerData.boxColliderData.restitution = boxColliderJson.value("restitution", 0.0f);
 			}
 
-			spawnerData.entityName = spawnerJson.value(
-				"entityName",
-				spawnerJson.value("spawnerType", std::string("EnemySmall")));
+			spawnerData.entityName = spawnerJson.value("entityName", std::string("EnemySmall"));
 
+			spawnerData.transform.Update();
 			spawnerDataList.push_back(spawnerData);
 		}
 	}
@@ -743,12 +742,6 @@ void StageLoader::LoadJson()
 				auto colliderType = magic_enum::enum_cast<ColliderType>(colliderTypeName);
 				if (colliderType.has_value())
 					propData.colliderType = colliderType.value();
-			}
-			else if (propJson.contains("MeshCollider"))
-			{
-				propData.colliderType = propJson.value("MeshCollider", false)
-					? ColliderType::Mesh
-					: ColliderType::Box;
 			}
 
 			if (propJson.contains("boxCollider"))
@@ -807,12 +800,6 @@ void StageLoader::LoadJson()
 
 			propData.useDestroy = propJson.value("useDestroy", false);
 			propData.destroyLife = propJson.value("destroyLife", 0.0f);
-			if (propJson.contains("destroyableHP"))
-			{
-				float oldDestroyLife = static_cast<float>(propJson.value("destroyableHP", 0));
-				propData.useDestroy = oldDestroyLife > 0.0f;
-				propData.destroyLife = oldDestroyLife;
-			}
 
 			propData.modelPath = propJson.value("modelPath", "");
 

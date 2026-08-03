@@ -106,7 +106,6 @@ void MultiLegFootIK::AddLeg(const char* rootName, const char* midName, const cha
 int MultiLegFootIK::AddLegsFromVmdlSettings()
 {
 	if (!model) return 0;
-	model->EnsureVmdlIKSettingsCompatibility();
 	const auto& settings = model->GetVmdlIKSettings();
 	if (settings.type != 2 && settings.type != 3) return 0;
 

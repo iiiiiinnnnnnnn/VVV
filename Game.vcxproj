@@ -64,6 +64,7 @@
     <ClCompile Include="Source\Animation\SpringBone.cpp" />
     <ClCompile Include="Source\Gameplay\Player\Player.cpp" />
 	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp" />
+	<ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp" />
     <ClCompile Include="Source\Physics\Collider\CharacterController.cpp" />
     <ClCompile Include="Source\Application\Tools\Dialog.cpp" />
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp" />
@@ -221,6 +222,7 @@
     <ClInclude Include="Source\Application\Input\Mouse.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerController.h" />
 	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
+	<ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
     <ClInclude Include="Source\Rendering\Core\RenderTarget.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />
