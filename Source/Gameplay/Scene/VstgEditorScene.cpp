@@ -59,6 +59,11 @@ void VstgEditorScene::CreateStage()
 	currentStage->GetDefaultCameraActor()->AddComponent<FreeCameraController>();
 }
 
+void VstgEditorScene::ConfigureRenderSettings(RenderSettings& settings)
+{
+	settings.distanceFogEnabled = settings.distanceFogEnabled && showFog;
+}
+
 void VstgEditorScene::OnRender(RenderContext& rc)
 {
 	if (!currentStage ||
@@ -98,6 +103,7 @@ void VstgEditorScene::OnDrawGUI()
 			ImGui::Checkbox("Lights", &renderSettings.showLightDebug);
 			ImGui::Checkbox("NavMesh", &renderSettings.showNavMeshDebug);
 			ImGui::Checkbox("Wireframe", &renderSettings.wireframe);
+			ImGui::Checkbox("Fog", &showFog);
 			ImGui::EndMenu();
 		}
 		std::string displayPath = path.empty() ? "Untitled" : path.string();

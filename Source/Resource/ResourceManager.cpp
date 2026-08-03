@@ -526,4 +526,3 @@ bool ResourceManager::ParseTypeName(const std::string& name, AssetType& type)
 	else return false;
 	return true;
 }
-

@@ -20,6 +20,11 @@ struct RenderSettings
 	bool showNavMeshDebug = true;
 	bool showLightDebug = true;
 	bool wireframe = false;
+	bool distanceFogEnabled = true;
+	float distanceFogStart = 18.0f;
+	float distanceFogEnd = 65.0f;
+	float distanceFogStrength = 0.9f;
+	Color distanceFogColor = {0.38f, 0.46f, 0.54f, 1.0f};
 };
 
 // シャドウマップ用情報

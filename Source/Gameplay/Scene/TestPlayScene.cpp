@@ -12,16 +12,6 @@
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Stage/Stage01.h"
 
-namespace
-{
-	void RestoreMouseCursor()
-	{
-		Mouse& mouse = Game::Input::Instance().GetMouse();
-		mouse.SetCursorLock(false);
-		mouse.SetCursorVisible(true);
-	}
-}
-
 TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -89,7 +79,10 @@ TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
 
 TestPlayScene::~TestPlayScene()
 {
-	RestoreMouseCursor();
+	Mouse& mouse = Game::Input::Instance().GetMouse();
+	mouse.SetCursorLock(false);
+	mouse.SetCursorVisible(true);
+
 	Game::Graphics::Instance().SetWindowMovementLocked(false);
 }
 
@@ -97,7 +90,10 @@ void TestPlayScene::OnUpdate()
 {
 	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_ESCAPE)
 	{
-		RestoreMouseCursor();
+		Mouse& mouse = Game::Input::Instance().GetMouse();
+		mouse.SetCursorLock(false);
+		mouse.SetCursorVisible(true);
+
 		SceneManager::Instance().LoadScene<GameStartScene>();
 		return;
 	}

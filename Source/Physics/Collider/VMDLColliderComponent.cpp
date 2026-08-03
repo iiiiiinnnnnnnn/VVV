@@ -295,8 +295,11 @@ void VMDLColliderComponent::Render(const RenderContext& rc)
 
         case 2:
         {
+            const Matrix capsulePose =
+                Matrix::CreateRotationZ(-DirectX::XM_PIDIV2) *
+                Conv::ToMatrix(pose);
             Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-                Conv::ToMatrix(pose),
+                capsulePose,
                 scaledSize.x,
                 scaledSize.y,
                 Color(0.8f, 0.0f, 1.0f, 1.0f));

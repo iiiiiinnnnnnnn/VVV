@@ -37,10 +37,10 @@ struct CbAreaLight
     float3 position;
     float width;
     
-    float3 direction; // ñ@ê¸
+    float3 direction; // Ê≥ïÁ∑ö
     float height;
     
-    float3 right; // ãÈå`Xé≤
+    float3 right; // Áü©ÂΩ¢XËª∏
     float range;
     
     float4 color;
@@ -68,4 +68,6 @@ cbuffer CbScene : register(b7)
     float3 viewPosition;
     float _dummyCbScene;
     CbLightData lightData;
+    float4 distanceFogColor;
+    float4 distanceFogParams;
 };

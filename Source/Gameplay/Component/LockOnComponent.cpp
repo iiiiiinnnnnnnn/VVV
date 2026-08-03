@@ -142,8 +142,6 @@ void LockOnComponent::OnDrawGUI()
 	ImGui::Text("ArrowUI: %s", targetAnchorIndex >= 0 ? "Found" : "Not Found");
 	ImGui::DragFloat("Lost Range", &lostRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
-	ImGui::DragFloat2("Indicator Size", &indicatorSize.x, 1.0f, 1.0f, 1000.0f);
-	if (indicator) indicator->rect.size = indicatorSize;
 	ImGui::Text("Aim Active: %s", aimActive ? "true" : "false");
 	ImGui::Text("Rotation Paused: %s", rotationPaused ? "true" : "false");
 	ImGui::Text("Rotation Pause: %.2f", rotationPauseTimer);
@@ -187,7 +185,7 @@ void LockOnComponent::EnsureIndicator()
 
 	indicator = std::make_shared<SpriteWidget>("Data/UI/arrow.png");
 	indicator->rect.anchor = {0.5f, 0.5f};
-	indicator->rect.size = indicatorSize;
+	indicator->rect.size = Vector2(583.0f, 392.0f) * 0.1f;
 	indicator->rect.angle = -90.0f;
 	indicator->SetAffectedByPostProcess(false);
 	indicator->SetActive(false);

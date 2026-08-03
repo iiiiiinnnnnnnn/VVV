@@ -141,6 +141,13 @@ void MeshCollider::SetCollisionEnabled(bool enabled)
         DetachShapes();
 }
 
+void MeshCollider::SetTrigger(bool trigger)
+{
+	if (isTrigger == trigger) return;
+	isTrigger = trigger;
+	if (collisionEnabled) UpdateShape();
+}
+
 void MeshCollider::DetachShapes()
 {
     if (!rigidbody) return;
@@ -254,6 +261,8 @@ void MeshCollider::UpdateShape()
         }
 
         shape->userData = this;
+		shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !isTrigger);
+		shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, isTrigger);
 
         PhysicsManager::SetLayerToShape(shape, layerId);
         rigidActor->attachShape(*shape);
@@ -274,9 +283,3 @@ void MeshCollider::DrawGUI()
         ImGui::Text("TriangleMesh");
     }
 }
-
-
-
-
-
-

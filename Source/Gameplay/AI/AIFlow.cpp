@@ -566,7 +566,7 @@ void AIFlow::RestartStateMachine()
 
 void AIFlow::EvaluateTransitions()
 {
-    const State* state = FindState(currentStateId);
+	const State* state = FindState(currentStateId);
     if (!state) return;
 
     for (const Transition& transition : state->transitions)

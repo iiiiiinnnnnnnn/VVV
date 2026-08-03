@@ -22,7 +22,7 @@ cbuffer CbShadowMap : register(b0)
     float4 cascade_splits;
     float4 camera_front;
     float4 shadowColor; // 影の色
-    float shadowBias; // 深度オフセット
+    float shadowBias; // 震度バイアス
     int pcfKernelSize; // PCFカーネルサイズ
     float2 _dummyCbShadowMap;
 };
@@ -67,19 +67,16 @@ cbuffer CbDamageHoles : register(b2)
 
 float DistanceFogFactor(float3 worldPosition)
 {
-    const float fogStart = 85.0f;
-    const float fogEnd = 360.0f;
-
     float distanceFromCamera = distance(viewPosition, worldPosition);
-    float fog = smoothstep(fogStart, fogEnd, distanceFromCamera);
-    return fog * fog * 0.82f;
+    float fogEnd = max(distanceFogParams.y, distanceFogParams.x + 0.001f);
+    float fog = smoothstep(distanceFogParams.x, fogEnd, distanceFromCamera);
+    float enabled = step(0.5f, distanceFogParams.w);
+    return fog * fog * saturate(distanceFogParams.z) * enabled;
 }
 
 float3 DistanceFogColor()
 {
-    const float3 skyFogColor = float3(0.76f, 0.91f, 1.0f);
-    float3 ambient = lightData.ambientColor.rgb * lightData.ambientColor.a;
-    return lerp(ambient, skyFogColor, 0.65f);
+    return distanceFogColor.rgb;
 }
 
 float3 ApplyDistanceFog(float3 color, float3 worldPosition)
@@ -88,4 +85,3 @@ float3 ApplyDistanceFog(float3 color, float3 worldPosition)
 }
 
 #endif // __PBR_HLSLI__
-

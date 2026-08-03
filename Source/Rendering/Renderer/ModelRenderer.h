@@ -43,6 +43,8 @@ private:
 		Vector3		viewPosition;
 		float DUMMY;
 		CbLightData lightData;
+		Color distanceFogColor;
+		Vector4 distanceFogParams;
 	};
 
 	struct CbSkeleton

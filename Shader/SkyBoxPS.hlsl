@@ -11,6 +11,8 @@ cbuffer CbSkyBox : register(b0)
     row_major float4x4 inverseViewProjection;
     float3 viewPos;
     float  skyIntensity;    // 明るさスケール
+    float4 distanceFogColor;
+    float4 distanceFogParams;
 };
 
 struct VS_OUT
@@ -32,6 +34,8 @@ float4 main(VS_OUT pin) : SV_TARGET
     // mip0 でサンプリング（ぼかしなし）
     float3 color = skyTex.SampleLevel(linearSampler, dir, 0).rgb;
     color *= skyIntensity;
+	float fog = saturate(distanceFogParams.x) * step(0.5f, distanceFogParams.y);
+	color = lerp(color, distanceFogColor.rgb, fog);
 
     return float4(color, 1.0f);
 }

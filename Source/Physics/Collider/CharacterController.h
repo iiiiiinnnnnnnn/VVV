@@ -23,7 +23,19 @@ public:
     void SetDebugRenderPosition(const Vector3& position);
     void ClearDebugRenderPosition();
     void SetUseGravity(bool value) { useGravity = value; }
+    void SetPushable(bool value) { pushable = value; }
+    bool IsPushable() const { return pushable; }
     void SetStepOffset(float value);
+    void SetConstrainedClimbing(bool value)
+    {
+        if (!controller) return;
+
+        PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
+        capsule->setClimbingMode(
+            value
+            ? PxCapsuleClimbingMode::eCONSTRAINED
+            : PxCapsuleClimbingMode::eEASY);
+    }
     void SetSlopeLimitDeg(float value);
     void SetContactOffset(float value);
     void ReleaseController();
@@ -37,6 +49,7 @@ private:
     CCHitReport* hitReport = nullptr;
     bool grounded = false;
     bool useGravity = true;
+    bool pushable = true;
     float verticalVelocity = 0.0f;
     float gravity = -9.81f;
     float ownerAnchorOffsetY = 0.0f;

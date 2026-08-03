@@ -1002,29 +1002,3 @@ void StageLoader::SaveJson()
 
 	ofs << jsonText;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

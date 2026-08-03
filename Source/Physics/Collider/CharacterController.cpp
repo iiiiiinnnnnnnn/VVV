@@ -195,6 +195,7 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
         const PxRigidActor* rigidActor, PxHitFlags&) override
     {
         if (rigidActor && rigidActor->userData == owner) return PxQueryHitType::eNONE;
+		if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) return PxQueryHitType::eNONE;
 
         int layer = (int)shape->getSimulationFilterData().word1;
         if (!PhysicsLayerManager::Instance().Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;

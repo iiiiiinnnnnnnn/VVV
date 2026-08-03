@@ -293,4 +293,3 @@ void VMatShader::End(const RenderContext& rc)
 	ID3D11ShaderResourceView* nullIblSrvs[3] = {};
 	dc->PSSetShaderResources(17, _countof(nullIblSrvs), nullIblSrvs);
 }
-

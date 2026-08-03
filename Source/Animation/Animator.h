@@ -222,6 +222,7 @@ public:
     int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
     int  GetCurrentAnimationIndex(int layerIndex = 0) const;
     float GetCurrentAnimationTime(int layerIndex = 0) const;
+    bool GetAnimationControlState(int& animationIndex, float& time, int layerIndex = 0) const;
 
     // =========================================================
     // =========================================================
@@ -291,6 +292,7 @@ private:
     bool EvaluateCondition(const Condition& c) const;
     bool EvaluateTransition(const Transition& t) const;
     bool EvaluateTransition(const Transition& t, float normalizedTime) const;
+	bool HasActiveTriggerCondition(const Transition& transition) const;
     void EvaluateCallbacks(State& state, float currentTime, float animLength);
     void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer, std::vector<VMDLModel::NodePose>& finalPoses);
@@ -368,5 +370,3 @@ private:
 
     VMDLModel::NodePose SampleNodePose(int animIndex, float time, int nodeIdx);
 };
-
-

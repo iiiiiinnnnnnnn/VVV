@@ -1,4 +1,4 @@
-// EnemySmall.h
+﻿// EnemySmall.h
 
 #pragma once
 
@@ -32,6 +32,7 @@ private:
 	float attackWindupDuration = 1.3f;
 	float attackRecoveryDuration = 0.8f;
 	bool attackAimLocked = false;
+	bool deathCleanupPending = false;
 	float freedomWaitTimer = 0.0f;
 	float freedomWaitDuration = 2.0f;
 	float freedomMinDistance = 3.0f;

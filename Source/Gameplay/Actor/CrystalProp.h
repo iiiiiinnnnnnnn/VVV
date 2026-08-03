@@ -16,7 +16,6 @@ class VMDLModelComponent;
 class ParticleSystem;
 class PhysicsComponent;
 class Rigidbody;
-class NavMeshObstacle;
 
 class CrystalProp : public Entity
 {
@@ -28,7 +27,13 @@ public:
     void SetBreakParticleSystem(ParticleSystem* particleSystem) { breakParticleSystem = particleSystem; }
     void SetDestroyedCallback(std::function<void(CrystalProp*)> callback) { destroyedCallback = std::move(callback); }
     void Update() override;
+	void OnTriggerEnter(
+		PhysicsComponent* self,
+		PhysicsComponent* other,
+		const Vector3& point,
+		const Vector3& normal) override;
 private:
+	void Break();
     void SpawnBreakParticles();
     void OnDamaged(const DamageData& damageData) override;
     void OnDead(const DamageData& damageData) override;
@@ -38,10 +43,6 @@ private:
     std::function<void(CrystalProp*)> destroyedCallback = {};
     Rigidbody* rigidbody = nullptr;
     MeshCollider* meshCollider = nullptr;
-    NavMeshObstacle* navMeshObstacle = nullptr;
     VMDLModelComponent* modelRenderer = nullptr;
     DamageHoleComponent* damageHoleComponent = nullptr;
 };
-
-
-

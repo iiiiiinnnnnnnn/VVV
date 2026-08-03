@@ -117,6 +117,7 @@ std::string NavMeshActor::SaveSettingsJson() const
 	root["agentHeight"] = agentHeight;
 	root["agentRadius"] = agentRadius;
 	root["agentClimb"] = agentClimb;
+	root["agentMaxSlope"] = agentMaxSlope;
 	root["nearestPolyExtent"] = nearestPolyExtent;
 	root["navMinY"] = navMinY;
 	root["navMaxY"] = navMaxY;
@@ -146,6 +147,10 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 		agentHeight = std::max(root.value("agentHeight", agentHeight), 0.1f);
 		agentRadius = std::max(root.value("agentRadius", agentRadius), 0.0f);
 		agentClimb = std::max(root.value("agentClimb", agentClimb), 0.0f);
+		agentMaxSlope = std::clamp(
+			root.value("agentMaxSlope", agentMaxSlope),
+			0.0f,
+			89.0f);
 		nearestPolyExtent = std::max(
 			root.value("nearestPolyExtent", nearestPolyExtent),
 			0.1f);
@@ -298,6 +303,7 @@ void NavMeshActor::Build()
 	std::map<std::pair<int, int>, unsigned short> vertexRefs;
 	int blockedCellCount = 0;
 	int outsideAreaCellCount = 0;
+	int steepTriangleCount = 0;
 	bool capacityExceeded = false;
 	debugCells.clear();
 
@@ -367,6 +373,18 @@ void NavMeshActor::Build()
 		areas.push_back(0);
 	};
 
+	const float minWalkableNormalY = cosf(RAD(agentMaxSlope));
+	auto isWalkableSlope = [minWalkableNormalY](
+		const Vector3& a,
+		const Vector3& b,
+		const Vector3& c)
+	{
+		Vector3 normal = (b - a).Cross(c - a);
+		if (normal.LengthSquared() <= eps) return false;
+		normal.Normalize();
+		return fabsf(normal.y) >= minWalkableNormalY;
+	};
+
 	for (int z = 0; z < grid; ++z)
 	{
 		for (int x = 0; x < grid; ++x)
@@ -403,10 +421,18 @@ void NavMeshActor::Build()
 			const unsigned short i3 = getVertex(x + 1, z + 1);
 			if (capacityExceeded) break;
 
-			pushDebugTriangle(p0, p2, p1, true);
-			pushDebugTriangle(p1, p2, p3, true);
-			pushNavTriangle(i0, i2, i1);
-			pushNavTriangle(i1, i2, i3);
+			const bool firstWalkable = isWalkableSlope(p0, p2, p1);
+			const bool secondWalkable = isWalkableSlope(p1, p2, p3);
+			pushDebugTriangle(p0, p2, p1, firstWalkable);
+			pushDebugTriangle(p1, p2, p3, secondWalkable);
+			if (firstWalkable)
+				pushNavTriangle(i0, i2, i1);
+			else
+				++steepTriangleCount;
+			if (secondWalkable)
+				pushNavTriangle(i1, i2, i3);
+			else
+				++steepTriangleCount;
 			if (capacityExceeded) break;
 		}
 		if (capacityExceeded) break;
@@ -530,13 +556,15 @@ void NavMeshActor::Build()
 		" areas=" + std::to_string(walkableAreas.size()) +
 		" obstacles=" + std::to_string(obstacles.size()) +
 		" blocked=" + std::to_string(blockedCellCount) +
+		" steep=" + std::to_string(steepTriangleCount) +
 		" outside=" + std::to_string(outsideAreaCellCount);
 }
 
 bool NavMeshActor::FindNextPoint(
 	const Vector3& start,
 	const Vector3& goal,
-	Vector3& nextPoint) const
+	Vector3& nextPoint,
+	Vector3* reachableGoal) const
 {
 	if (!built || !navQuery)
 		return false;
@@ -574,9 +602,32 @@ bool NavMeshActor::FindNextPoint(
 			maxPathPolys)))
 		return false;
 
-	if (pathCount <= 0 ||
-		path[pathCount - 1] != goalRef)
-		return false;
+	if (pathCount <= 0) return false;
+
+	float pathGoal[3] = {
+		nearestGoal[0],
+		nearestGoal[1],
+		nearestGoal[2]};
+	if (path[pathCount - 1] != goalRef)
+	{
+		bool positionOverPoly = false;
+		if (dtStatusFailed(navQuery->closestPointOnPoly(
+				path[pathCount - 1],
+				goalPos,
+				pathGoal,
+				&positionOverPoly)))
+		{
+			return false;
+		}
+	}
+
+	if (reachableGoal)
+	{
+		*reachableGoal = Vector3(
+			pathGoal[0],
+			pathGoal[1],
+			pathGoal[2]);
+	}
 
 	constexpr int maxStraightPoints = 256;
 	float straightPath[maxStraightPoints * 3] = {};
@@ -585,7 +636,7 @@ bool NavMeshActor::FindNextPoint(
 	int straightCount = 0;
 	if (dtStatusFailed(navQuery->findStraightPath(
 		nearestStart,
-		nearestGoal,
+		pathGoal,
 		path,
 		pathCount,
 		straightPath,
@@ -662,6 +713,70 @@ bool NavMeshActor::FindNearestPoint(
 		nearestPosition[1],
 		nearestPosition[2]
 	};
+	return true;
+}
+
+bool NavMeshActor::FindRecoveryPoint(
+	const Vector3& position,
+	float safeDistance,
+	Vector3& recoveryPoint) const
+{
+	if (!built || !navQuery) return false;
+
+	dtQueryFilter filter;
+	filter.setIncludeFlags(1);
+	filter.setExcludeFlags(0);
+
+	const float horizontalExtent =
+		std::max(nearestPolyExtent, agentRadius * 2.0f);
+	const float halfExtents[3] = {
+		horizontalExtent,
+		20.0f,
+		horizontalExtent};
+	const float queryPosition[3] = {
+		position.x,
+		position.y,
+		position.z};
+	float nearestPosition[3] = {};
+	dtPolyRef nearestRef = 0;
+	if (dtStatusFailed(navQuery->findNearestPoly(
+			queryPosition,
+			halfExtents,
+			&filter,
+			&nearestRef,
+			nearestPosition)) ||
+		!nearestRef)
+	{
+		return false;
+	}
+
+	recoveryPoint = {
+		nearestPosition[0],
+		nearestPosition[1],
+		nearestPosition[2]};
+	safeDistance = std::max(safeDistance, 0.0f);
+	if (safeDistance <= eps) return true;
+
+	float wallDistance = safeDistance;
+	float wallPosition[3] = {};
+	float wallNormal[3] = {};
+	if (dtStatusFailed(navQuery->findDistanceToWall(
+			nearestRef,
+			nearestPosition,
+			safeDistance,
+			&filter,
+			&wallDistance,
+			wallPosition,
+			wallNormal)) ||
+		wallDistance >= safeDistance)
+	{
+		return true;
+	}
+
+	Vector3 inward(wallNormal[0], 0.0f, wallNormal[2]);
+	if (inward.LengthSquared() <= eps) return true;
+	inward.Normalize();
+	recoveryPoint += inward * (safeDistance - wallDistance);
 	return true;
 }
 
@@ -961,6 +1076,12 @@ void NavMeshActor::DrawGUI()
 	ImGui::DragFloat("Agent Height", &agentHeight, 0.1f, 0.1f, 10.0f);
 	ImGui::DragFloat("Agent Radius", &agentRadius, 0.1f, 0.0f, 10.0f);
 	ImGui::DragFloat("Agent Climb", &agentClimb, 0.1f, 0.0f, 10.0f);
+	float editedMaxSlope = agentMaxSlope;
+	if (ImGui::DragFloat("Agent Max Slope", &editedMaxSlope, 0.5f, 0.0f, 89.0f))
+	{
+		agentMaxSlope = std::clamp(editedMaxSlope, 0.0f, 89.0f);
+		RequestBuild();
+	}
 	ImGui::DragFloat("Nearest Poly Extent", &nearestPolyExtent, 0.1f, 0.1f, 50.0f);
 
 	if (ImGui::TreeNode("Walkable Areas"))

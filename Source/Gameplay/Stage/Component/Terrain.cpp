@@ -382,6 +382,12 @@ void Terrain::UpdateTerrainSceneConstantBuffer(
 	cbScene.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	cbScene.viewPosition = rc.camera->GetEye();
 	cbScene.lightData = rc.lightManager->ConvertToCb();
+	cbScene.distanceFogColor = rc.renderSettings.distanceFogColor;
+	cbScene.distanceFogParams = {
+		rc.renderSettings.distanceFogStart,
+		rc.renderSettings.distanceFogEnd,
+		rc.renderSettings.distanceFogStrength,
+		rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
 	dc->UpdateSubresource(
 		terrainSceneConstantBuffer.Get(),
 		0,
@@ -1339,6 +1345,12 @@ std::string Terrain::SaveSettingsJson() const
 		{"occlusion", occlusion},
 		{"occlusionStrength", occlusionStrength},
 		{"shadowStrength", shadowStrength}};
+	root["distanceFog"] = {
+		{"enabled", distanceFogEnabled},
+		{"start", distanceFogStart},
+		{"end", distanceFogEnd},
+		{"strength", distanceFogStrength},
+		{"color", saveColor(distanceFogColor)}};
 	root["clearColor"] = saveColor(terrain_texture_clear_color);
 	root["selectedLayer"] = currentTerrainLayerIndex;
 	root["layers"] = json::array();
@@ -1393,6 +1405,15 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 			occlusion = it->value("occlusion", occlusion);
 			occlusionStrength = it->value("occlusionStrength", occlusionStrength);
 			shadowStrength = it->value("shadowStrength", shadowStrength);
+		}
+		if (const auto it = root.find("distanceFog"); it != root.end())
+		{
+			distanceFogEnabled = it->value("enabled", distanceFogEnabled);
+			distanceFogStart = it->value("start", distanceFogStart);
+			distanceFogEnd = it->value("end", distanceFogEnd);
+			distanceFogStrength = it->value("strength", distanceFogStrength);
+			if (it->contains("color"))
+				distanceFogColor = loadColor((*it)["color"], distanceFogColor);
 		}
 		if (root.contains("clearColor"))
 			terrain_texture_clear_color = loadColor(root["clearColor"], terrain_texture_clear_color);
@@ -1721,6 +1742,31 @@ void Terrain::DrawGUI()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Distance Fog"))
+	{
+		ImGui::Checkbox("Enabled##TerrainDistanceFog", &distanceFogEnabled);
+		ImGui::DragFloat(
+			"Start Distance##TerrainDistanceFog",
+			&distanceFogStart,
+			0.5f,
+			0.0f,
+			std::max(distanceFogEnd - 0.1f, 0.0f));
+		ImGui::DragFloat(
+			"End Distance##TerrainDistanceFog",
+			&distanceFogEnd,
+			0.5f,
+			distanceFogStart + 0.1f,
+			1000.0f);
+		ImGui::DragFloat(
+			"Strength##TerrainDistanceFog",
+			&distanceFogStrength,
+			0.01f,
+			0.0f,
+			1.0f);
+		ImGui::ColorEdit3("Color##TerrainDistanceFog", &distanceFogColor.x);
+		ImGui::TreePop();
+	}
+
 	if (ImGui::TreeNode("Terrain Data"))
 	{
 		if (ImGui::Button("terrain texture clear"))
@@ -1812,6 +1858,15 @@ void Terrain::DrawGUI()
 	}
 }
 
+void Terrain::ApplyDistanceFogSettings(RenderSettings& settings) const
+{
+	settings.distanceFogEnabled = distanceFogEnabled;
+	settings.distanceFogStart = distanceFogStart;
+	settings.distanceFogEnd = distanceFogEnd;
+	settings.distanceFogStrength = distanceFogStrength;
+	settings.distanceFogColor = distanceFogColor;
+}
+
 float Terrain::GetHeightByUV(float u, float v) const
 {
 	if (terrainPixels.empty())
@@ -1855,4 +1910,3 @@ uint64_t Terrain::GetTerrainDataHash() const
 
 	return hash;
 }
-

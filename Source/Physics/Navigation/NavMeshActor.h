@@ -33,10 +33,15 @@ public:
 	bool FindNextPoint(
 		const Vector3& start,
 		const Vector3& goal,
-		Vector3& nextPoint) const;
+		Vector3& nextPoint,
+		Vector3* reachableGoal = nullptr) const;
 	bool FindNearestPoint(
 		const Vector3& position,
 		Vector3& nearestPoint) const;
+	bool FindRecoveryPoint(
+		const Vector3& position,
+		float safeDistance,
+		Vector3& recoveryPoint) const;
 	bool FindRandomPoint(
 		const Vector3& center,
 		float minDistance,
@@ -104,6 +109,7 @@ private:
 	float agentHeight = 2.0f;
 	float agentRadius = 0.6f;
 	float agentClimb = 1.2f;
+	float agentMaxSlope = 70.0f;
 	float nearestPolyExtent = 8.0f;
 	float navMinY = -100.0f;
 	float navMaxY = 100.0f;

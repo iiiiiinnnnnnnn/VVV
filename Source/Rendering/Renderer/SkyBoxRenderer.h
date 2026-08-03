@@ -7,6 +7,8 @@
 #include "Gameplay/Camera/Camera.h"
 #include "Rendering/Core/RenderState.h"
 
+struct RenderSettings;
+
 // IBLキューブマップをスカイとして描画するレンダラー
 // フルスクリーントライアングル1枚で描画する（頂点バッファ不要）
 class SkyBoxRenderer
@@ -21,7 +23,8 @@ public:
     void Render(ID3D11DeviceContext* dc,
                 const RenderState* renderState,
                 const Camera& camera,
-                ID3D11ShaderResourceView* skyTex);
+                ID3D11ShaderResourceView* skyTex,
+                const RenderSettings& renderSettings);
 
     void DrawGUI();
 
@@ -36,6 +39,8 @@ private:
         Matrix  inverseViewProjection;
         Vector3 viewPos;
         float   skyIntensity;
+		Color distanceFogColor;
+		Vector4 distanceFogParams;
     };
 
     struct SkyboxData

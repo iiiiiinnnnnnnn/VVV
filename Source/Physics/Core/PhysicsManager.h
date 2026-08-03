@@ -324,4 +324,3 @@ private:
     PxDefaultAllocator      gAllocator;
     PxDefaultErrorCallback  gErrorCallback;
 };
-

@@ -12,7 +12,6 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
-#include "Physics/Navigation/NavMeshObstacle.h"
 
 CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     : Entity("CrystalProp", "CrystalProp", true)
@@ -35,24 +34,36 @@ CrystalProp::CrystalProp(const StageLoader::CrystalData& crystalData)
     meshCollider = AddComponent<MeshCollider>(
         Layers::Get("Prop"),
         rigidbody,
-        model);
-    navMeshObstacle = AddComponent<NavMeshObstacle>();
+        model,
+		true);
+	meshCollider->SetTrigger(true);
 }
 
 void CrystalProp::ApplyStageData(const StageLoader::CrystalData& crystalData)
 {
-    const Transform& nextTransform = crystalData.transform;
-    const bool changed =
-        (transform.position - nextTransform.position).LengthSquared() > eps ||
-        (transform.scale - nextTransform.scale).LengthSquared() > eps ||
-        fabsf(transform.rotation.x - nextTransform.rotation.x) > eps ||
-        fabsf(transform.rotation.y - nextTransform.rotation.y) > eps ||
-        fabsf(transform.rotation.z - nextTransform.rotation.z) > eps ||
-        fabsf(transform.rotation.w - nextTransform.rotation.w) > eps;
-
     transform = crystalData.transform;
     transform.Update();
-    if (changed && navMeshObstacle) navMeshObstacle->MarkDirty();
+}
+
+void CrystalProp::OnTriggerEnter(
+	PhysicsComponent*,
+	PhysicsComponent* other,
+	const Vector3&,
+	const Vector3&)
+{
+	if (!other) return;
+	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+	if (!otherActor || !otherActor->CompareTag("Enemy")) return;
+	Break();
+}
+
+void CrystalProp::Break()
+{
+	if (IsPendingDestroy()) return;
+	life = 0.0f;
+	SpawnBreakParticles();
+	Destroy();
+	if (destroyedCallback) destroyedCallback(this);
 }
 
 void CrystalProp::SpawnBreakParticles()
@@ -99,10 +110,7 @@ void CrystalProp::OnDamaged(const DamageData& damageData)
 
 void CrystalProp::OnDead(const DamageData& damageData)
 {
-    SpawnBreakParticles();
-    Destroy();
-    if (navMeshObstacle) navMeshObstacle->MarkDirty();
-    if (destroyedCallback) destroyedCallback(this);
+	Break();
 }
 
 void CrystalProp::Update()

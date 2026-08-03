@@ -13,6 +13,8 @@
 #include "Gameplay/Scene/GameStartScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Application/Tools/Dialog.h"
+#include "Physics/Core/PhysicsManager.h"
+#include "Physics/Collider/CharacterController.h"
 
 Scene::Scene(SceneMessage message) : message(message)
 {
@@ -129,6 +131,29 @@ void Scene::Update()
 	if (CameraController* controller = stage.GetActiveCameraController())
 		controller->SetInputEnabled(!isCursorReleased);
 
+	if (Game::Time::deltaTime > 0.0f)
+	{
+		class ControllerInteractionFilter final : public CCFilterCallback
+		{
+		public:
+			bool filter(const PxController& a, const PxController& b) override
+			{
+				PxShape* shapeA = nullptr;
+				PxShape* shapeB = nullptr;
+				a.getActor()->getShapes(&shapeA, 1);
+				b.getActor()->getShapes(&shapeB, 1);
+				auto* controllerA = static_cast<CharacterController*>(shapeA->userData);
+				auto* controllerB = static_cast<CharacterController*>(shapeB->userData);
+				if (!controllerA->IsPushable() || !controllerB->IsPushable()) return false;
+				return CCFilterCallback::filter(a, b);
+			}
+		};
+		static ControllerInteractionFilter controllerFilter;
+		PhysicsManager::Instance().GetSceneContext().
+			GetControllerManager()->computeInteractions(
+				Game::Time::deltaTime,
+				&controllerFilter);
+	}
 	stage.Update();
 
 	widgetManager.Update();
@@ -159,6 +184,9 @@ void Scene::Render()
 	Camera& camera = *activeCamera;
 	ActorManager& actorManager = stage.GetActorManager();
 	LightManager& lightManager = stage.GetLightManager();
+	if (Terrain* terrain = stage.GetComponent<Terrain>())
+		terrain->ApplyDistanceFogSettings(renderSettings);
+	ConfigureRenderSettings(renderSettings);
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
 	RenderState* renderState = graphics.GetRenderState();
@@ -247,11 +275,13 @@ void Scene::Render()
 			rc.deviceContext,
 			renderState,
 			*rc.camera,
-			graphics.GetIBLSpecularPMREM());
+			graphics.GetIBLSpecularPMREM(),
+			rc.renderSettings);
 
 		stage.Render(rc);
 
 		graphics.GetModelRenderer()->Render(rc);
+		stage.RenderEffects(rc);
 
 		for (Actor* actor : actorManager.GetActors())
 		{

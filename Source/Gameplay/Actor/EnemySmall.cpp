@@ -1,4 +1,4 @@
-// EnemySmall.cpp
+ï»¿// EnemySmall.cpp
 
 #include "EnemySmall.h"
 #include "Animation/MultiLegFootIK.h"
@@ -21,7 +21,7 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 	anim->Load("Data/Animator/deer.animator");
 	anim->SetRootMotion("armature");
 
-	// ƒLƒƒƒ‰ƒNƒ^[ƒRƒ“ƒgƒ[ƒ‰[
+	// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼
 	cc = AddComponent<CharacterController>(
 		Layers::Get("Enemy"), 0.39f, 1.23f);
 	cc->SetStepOffset(0.15f);
@@ -78,7 +78,7 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 			Actor* target = controller->GetTarget();
 			if (!target) return;
 
-			// “Ëi(—]•ª‚Éi‚Ş)
+			// çªé€²(ä½™åˆ†ã«é€²ã‚€)
 			Vector3 over = target->transform.position - transform.position;
 			over.y = 0.0f;
 
@@ -156,6 +156,12 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 
 void EnemySmall::OnUpdate()
 {
+	if (deathCleanupPending)
+	{
+		Destroy();
+		return;
+	}
+
 	Entity::OnUpdate();
 
 	anim->SetBool("dead", IsDead());
@@ -264,6 +270,7 @@ void EnemySmall::OnDamaged(const DamageData& damageData)
 void EnemySmall::OnDead(const DamageData& damageData)
 {
 	navMeshAgent->Stop();
+	navMeshAgent->SetActive(false);
 	controller->SetActive(false);
-	Destroy();
+	deathCleanupPending = true;
 }

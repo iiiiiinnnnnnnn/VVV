@@ -8,6 +8,10 @@
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 
+// 敵をロックオンするためのゲームコンポーネント
+// 攻撃→ロックオン→以後攻撃時にロックオン対象に向かって攻撃する
+// モデルにあるArrowUIのTrigger位置にUIを表示する
+
 class Actor;
 class Entity;
 class SpriteWidget;
@@ -51,7 +55,6 @@ private:
 	float lostRange = 30.0f;
 	float rotationSpeed = 8.0f;
 	float rotationPauseTimer = 0.0f;
-	Vector2 indicatorSize = {96.0f, 64.0f};
 	bool aimActive = false;
 	bool rotationPaused = false;
 };

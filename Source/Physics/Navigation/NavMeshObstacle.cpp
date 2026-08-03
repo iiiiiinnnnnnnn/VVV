@@ -6,11 +6,6 @@
 #include "Physics/Collider/MeshCollider.h"
 #include "Physics/Navigation/NavMeshActor.h"
 
-void NavMeshObstacle::OnStart()
-{
-	MarkDirty();
-}
-
 void NavMeshObstacle::MarkDirty()
 {
 	if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())

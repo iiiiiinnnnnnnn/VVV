@@ -24,6 +24,7 @@ public:
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
+	void ApplyDistanceFogSettings(RenderSettings& settings) const;
 	const char* GetDebugName() const override { return ICON_FA_MOUNTAIN " Terrain"; }
 
 	void RenderShadowMap(
@@ -138,6 +139,8 @@ private:
 		Vector3 viewPosition;
 		float dummy;
 		CbLightData lightData;
+		Color distanceFogColor;
+		Vector4 distanceFogParams;
 	};
 
 	struct CbTerrainColliderBuild
@@ -268,6 +271,11 @@ private:
 	float occlusion = 1.0f;
 	float occlusionStrength = 1.0f;
 	float shadowStrength = 0.85f;
+	bool distanceFogEnabled = true;
+	float distanceFogStart = 18.0f;
+	float distanceFogEnd = 65.0f;
+	float distanceFogStrength = 0.9f;
+	Color distanceFogColor = {0.38f, 0.46f, 0.54f, 1.0f};
 
 	bool use_brush = false;
 	BrushMode brushMode = BrushMode::RaiseLower;
@@ -284,4 +292,3 @@ private:
 	std::string terrainIoMessage;
 	bool pendingColliderRebuild = false;
 };
-

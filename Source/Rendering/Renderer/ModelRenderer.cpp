@@ -50,6 +50,12 @@ void ModelRenderer::Render(const RenderContext& rc)
 		cbScene.viewProjection = V * P;
 		cbScene.viewPosition = rc.camera->GetEye();
 		cbScene.lightData = rc.lightManager->ConvertToCb();
+		cbScene.distanceFogColor = rc.renderSettings.distanceFogColor;
+		cbScene.distanceFogParams = {
+			rc.renderSettings.distanceFogStart,
+			rc.renderSettings.distanceFogEnd,
+			rc.renderSettings.distanceFogStrength,
+			rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
 		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
 	}
 

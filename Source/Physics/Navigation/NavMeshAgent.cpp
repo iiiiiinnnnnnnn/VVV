@@ -18,8 +18,7 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 void NavMeshAgent::Update()
 {
 	lastMoveDelta = Vector3::Zero;
-
-	if (!autoMove) return;
+	recoveredThisUpdate = false;
 
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
@@ -32,6 +31,9 @@ void NavMeshAgent::Update()
 		statusMessage = "CharacterController not found.";
 		return;
 	}
+
+	if (RecoverToNavMesh(actor)) return;
+	if (!autoMove) return;
 
 	if (hasDestination)
 	{
@@ -154,89 +156,78 @@ Actor* NavMeshAgent::FindTargetByTag()
 	return nullptr;
 }
 
+bool NavMeshAgent::RecoverToNavMesh(Actor* actor)
+{
+	if (recoveredThisUpdate || !actor || !characterController) return recoveredThisUpdate;
+
+	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
+	if (!navMeshActor) return false;
+
+	Vector3 recoveryPoint;
+	if (!navMeshActor->FindRecoveryPoint(
+			actor->transform.position,
+			recoveryInsetDistance,
+			recoveryPoint))
+	{
+		return false;
+	}
+
+	Vector3 recoveryDirection = recoveryPoint - actor->transform.position;
+	recoveryDirection.y = 0.0f;
+	const float recoveryDistance = recoveryDirection.Length();
+	constexpr float recoveryThreshold = 0.005f;
+	if (recoveryDistance <= recoveryThreshold) return false;
+
+	recoveryDirection /= recoveryDistance;
+	currentTurnAngle = atan2f(
+		recoveryDirection.Dot(actor->transform.right),
+		recoveryDirection.Dot(actor->transform.forward));
+	if (rotateToMoveDirection)
+	{
+		const float targetYaw = atan2f(
+			recoveryDirection.x,
+			recoveryDirection.z);
+		const Quaternion targetRotation =
+			Quaternion::CreateFromYawPitchRoll(
+				targetYaw,
+				0.0f,
+				0.0f);
+		const float rate =
+			1.0f - expf(-turnSpeed * Game::Time::deltaTime);
+		actor->transform.SetRotation(
+			Quaternion::Slerp(
+				actor->transform.rotation,
+				targetRotation,
+				rate));
+	}
+
+	const float moveDistance = std::min(
+		speed * Game::Time::deltaTime,
+		recoveryDistance);
+	lastMoveDelta = recoveryDirection * moveDistance;
+	currentSpeed = speed;
+	characterController->Move(lastMoveDelta);
+	pathFailTimer = 0.0f;
+	hasLastNextPoint = false;
+	recoveredThisUpdate = true;
+	statusMessage = "Returning to NavMesh with CharacterController.";
+	return true;
+}
+
 bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
 	currentTurnAngle = 0.0f;
+	if (RecoverToNavMesh(actor)) return false;
 
 	const Vector3 toTarget = targetPosition - actor->transform.position;
 	Vector3 flatToTarget = toTarget;
 	flatToTarget.y = 0.0f;
 
 	Vector3 nextPoint;
+	Vector3 reachableTarget = targetPosition;
 	bool directMove = false;
 	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
-	if (navMeshActor)
-	{
-		Vector3 nearestPoint;
-		if (navMeshActor->FindNearestPoint(
-				actor->transform.position,
-				nearestPoint))
-		{
-			Vector3 recoveryDirection =
-				nearestPoint - actor->transform.position;
-			recoveryDirection.y = 0.0f;
-			const float recoveryDistance =
-				recoveryDirection.Length();
-			constexpr float recoveryThreshold = 0.005f;
-			if (recoveryDistance > recoveryThreshold)
-			{
-				recoveryDirection /= recoveryDistance;
-				currentTurnAngle = atan2f(
-					recoveryDirection.Dot(actor->transform.right),
-					recoveryDirection.Dot(actor->transform.forward));
-
-				if (rotateToMoveDirection)
-				{
-					const float targetYaw = atan2f(
-						recoveryDirection.x,
-						recoveryDirection.z);
-					const Quaternion targetRotation =
-						Quaternion::CreateFromYawPitchRoll(
-							targetYaw,
-							0.0f,
-							0.0f);
-					const float rate =
-						1.0f -
-						expf(-turnSpeed * Game::Time::deltaTime);
-					actor->transform.SetRotation(
-						Quaternion::Slerp(
-							actor->transform.rotation,
-							targetRotation,
-							rate));
-				}
-
-				if (movementPaused)
-				{
-					currentSpeed = 0.0f;
-					statusMessage = "Turning to NavMesh.";
-					return false;
-				}
-
-				const float moveDistance = std::min(
-					speed * Game::Time::deltaTime,
-					recoveryDistance);
-				lastMoveDelta =
-					recoveryDirection * moveDistance;
-				currentSpeed = speed;
-				characterController->Move(lastMoveDelta);
-
-				pathFailTimer = 0.0f;
-				hasLastNextPoint = false;
-				statusMessage = "Returning to NavMesh.";
-				return false;
-			}
-		}
-	}
-
-	if (flatToTarget.LengthSquared() <=
-		stoppingDistance * stoppingDistance)
-	{
-		statusMessage = "Arrived.";
-		currentSpeed = 0.0f;
-		return true;
-	}
-
 	if (!navMeshActor)
 	{
 		if (!directMoveOnPathFail)
@@ -250,7 +241,11 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		directMove = true;
 		statusMessage = "Direct move: NavMeshActor not found.";
 	}
-	else if (!navMeshActor->FindNextPoint(actor->transform.position, targetPosition, nextPoint))
+	else if (!navMeshActor->FindNextPoint(
+		actor->transform.position,
+		targetPosition,
+		nextPoint,
+		&reachableTarget))
 	{
 		pathFailTimer += Game::Time::deltaTime;
 		if (!useLastValidPathOnFail || !hasLastNextPoint || pathFailTimer > pathFailGraceTime)
@@ -288,6 +283,17 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	else
 	{
 		pathFailTimer = 0.0f;
+	}
+
+	Vector3 flatToReachableTarget =
+		reachableTarget - actor->transform.position;
+	flatToReachableTarget.y = 0.0f;
+	if (flatToReachableTarget.LengthSquared() <=
+		stoppingDistance * stoppingDistance)
+	{
+		statusMessage = "Arrived.";
+		currentSpeed = 0.0f;
+		return true;
 	}
 
 	Vector3 direction = nextPoint - actor->transform.position;
@@ -364,6 +370,7 @@ void NavMeshAgent::DrawGUI()
 	ImGui::DragFloat("Speed", &speed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Stopping Distance", &stoppingDistance, 0.1f, 0.0f, 20.0f);
 	ImGui::DragFloat("Path Fail Grace Time", &pathFailGraceTime, 0.01f, 0.0f, 5.0f);
+	ImGui::DragFloat("Recovery Inset Distance", &recoveryInsetDistance, 0.01f, 0.0f, 5.0f);
 	ImGui::DragFloat("Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Random Min Distance", &randomMinDistance, 0.1f, 0.0f, 100.0f);
 	ImGui::DragFloat("Random Max Distance", &randomMaxDistance, 0.1f, 0.0f, 100.0f);

@@ -16,6 +16,7 @@ cbuffer CbSSAO : register(b2)
     float intensity;
     float minDistance;
     float maxDistance;
+    float4 distanceFogParams;
 };
 
 static const int sampleCount = 16;
@@ -88,5 +89,9 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     occlusion /= sampleCount;
     float ao = saturate(1.0f - occlusion * intensity);
+    float fogEnd = max(distanceFogParams.y, distanceFogParams.x + 0.001f);
+    float fog = smoothstep(distanceFogParams.x, fogEnd, centerDepth);
+    fog *= fog * saturate(distanceFogParams.z) * step(0.5f, distanceFogParams.w);
+    ao = lerp(ao, 1.0f, fog);
     return float4(ao, ao, ao, 1.0f);
 }

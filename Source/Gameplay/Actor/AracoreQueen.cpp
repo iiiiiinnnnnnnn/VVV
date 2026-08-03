@@ -7,6 +7,7 @@
 #include "Rendering/Component/VMDL.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Physics/Core/PhysicsComponent.h"
+#include "Physics/Collider/CapsuleCollider.h"
 #include "Physics/Collider/SphereCollider.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -15,14 +16,14 @@
 #include "Gameplay/Scene/HitStop.h"
 #include "Animation/MultiLegFootIK.h"
 
-AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
+AracoreQueen::AracoreQueen(Vector3 position) : Entity("AracoreQueen", "Enemy", true, 1000.0f, 1000.0f)
 {
     // 蜘蛛の部分
     {
         // モデル
-        vmdl = AddComponent<VMDL>("Data/Model/Spider/animated_spider_rootmotion");
+        vmdl = AddComponent<VMDL>("Data/Model/Enemy/aracore");
         model = vmdl->GetSharedModel();
-        transform.SetPosition({-6, 3, 6});
+        transform.SetPosition(position);
         transform.SetScale(0.035f);
         model->UpdateTransform(transform.matrix);
 
@@ -35,15 +36,13 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
 
         // キャラクターコントローラー
         CharacterController* cc = AddComponent<CharacterController>(
-            Layers::Get("Enemy"), 3.0f, 0.01f);
-        cc->SetStepOffset(1.2f);
+            Layers::Get("Foot"), 3.0f, 0.01f);
+        cc->SetPushable(false);
+        cc->SetStepOffset(0.0f);
+        cc->SetConstrainedClimbing(true);
         cc->SetSlopeLimitDeg(70.0f);
         cc->SetContactOffset(0.2f);
         navMeshAgent = AddComponent<NavMeshAgent>();
-
-        // リジッドボディ
-        rb = AddComponent<RigidbodyDynamic>();
-        rb->SetKinematic(true);
 
         multiLegFootIK = vmdl->GetMultiLegFootIK();
     }
@@ -58,17 +57,43 @@ AracoreQueen::AracoreQueen() : Entity("AracoreQueen", "Enemy", true, 1000.0f, 10
     {
         controller->StopMovement();
     };
-    const auto walk = [this](const EnemyAIFlow::State&)
+    const auto finding = [this](const EnemyAIFlow::State&)
     {
-        controller->MoveToTarget(3.0f);
+        if (isFinding)
+        {
+            controller->MoveToTarget(3.0f);
+
+            if (findingTimer > 10.0f)
+            {
+                isFinding = false;
+                findingTimer = 0.0f;
+            }
+			findingTimer += Game::Time::deltaTime;
+        }
+        else
+        {
+            controller->StopMovement();
+
+            if (findingTimer > 6.0f)
+            {
+                isFinding = true;
+                findingTimer = 0.0f;
+            }
+            findingTimer += Game::Time::deltaTime;
+        }
     };
-    controller->AddCallbackFunc("Idle", stop, stop, {}, stop);
-    controller->AddCallbackFunc("Walk", walk, walk, {}, stop);
+    const auto attack = [this](const EnemyAIFlow::State&)
+    {
+		anim->SetTrigger("Attack");
+	};
+    controller->AddCallbackFunc("Finding", finding, finding, {}, stop);
+    controller->AddCallbackFunc("Attack", attack, attack, {}, stop);
     controller->BindCallbacks();
 }
 
 void AracoreQueen::Threat()
 {
+	anim->SetTrigger("Threat");
     PostProcessController::Instance().RequestThreaten(
         5.0f,
         3.0f,
@@ -104,23 +129,12 @@ void AracoreQueen::OnDrawGUI()
 void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
     if (IsDead()) return;
+	PushPlayer(self, other);
 
-    // 踏みつけ判定に当たったらプレイヤーにダメージ
-	std::string currentState = anim->GetCurrentStateName();
-    if (currentState == "run" || currentState == "walk")
+    Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+
+    if (self->GetLayerId() == Layers::Get("EnemyAtk"))
     {
-        bool isFootCollider = false;
-        for (PhysicsComponent* collider : IKColliders)
-        {
-            if (self == collider)
-            {
-                isFootCollider = true;
-                break;
-            }
-        }
-        if (!isFootCollider) return;
-
-        Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
         if (otherActor->CompareTag("Player"))
         {
             static_cast<Entity*>(otherActor)->TakeDamage({
@@ -132,12 +146,97 @@ void AracoreQueen::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* ot
                 .hitNormal = normal
                 });
         }
+        return;
     }
+
+    // 踏みつけ判定に当たったらプレイヤーにダメージ
+    if (self->GetLayerId() == Layers::Get("AracoreAtkStamp"))
+    {
+        std::string currentState = anim->GetCurrentStateName();
+        if (currentState == "run" || currentState == "jump")
+        {
+            if (otherActor->CompareTag("Player"))
+            {
+                static_cast<Entity*>(otherActor)->TakeDamage({
+                    .damage = 10.0f,
+                    .knockBackPower = 10.0f,
+                    .hitColliderSelf = self,
+                    .hitColliderOther = other,
+                    .hitPosition = point,
+                    .hitNormal = normal
+                    });
+            }
+        }
+    }
+}
+
+void AracoreQueen::OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+{
+	if (IsDead()) return;
+	PushPlayer(self, other);
+}
+
+bool AracoreQueen::PushPlayer(PhysicsComponent* self, PhysicsComponent* other)
+{
+	if (self->CompareName("Enemy") || !other) return false;
+
+	Entity* player = dynamic_cast<Entity*>(other->GetOwner());
+	if (!player || !player->CompareTag("Player")) return false;
+
+	Vector3 direction = player->transform.position - transform.position;
+	direction.y = 0.0f;
+	if (direction.LengthSquared() <= eps) direction = transform.forward;
+	direction.Normalize();
+
+	constexpr float pushSpeed = 10.0f;
+	const float currentSpeed = player->GetKnockBackVelocity().Dot(direction);
+	if (currentSpeed < pushSpeed)
+		player->AddKnockBack(direction * (pushSpeed - currentSpeed));
+	return true;
 }
 
 void AracoreQueen::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
+    if (IsDead()) return;
+    PushPlayer(self, other);
 
+    Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+
+    if (self->GetLayerId() == Layers::Get("EnemyAtk"))
+    {
+        if (otherActor->CompareTag("Player"))
+        {
+            static_cast<Entity*>(otherActor)->TakeDamage({
+                .damage = 10.0f,
+                .knockBackPower = 10.0f,
+                .hitColliderSelf = self,
+                .hitColliderOther = other,
+                .hitPosition = point,
+                .hitNormal = normal
+                });
+        }
+        return;
+    }
+
+    // 踏みつけ判定に当たったらプレイヤーにダメージ
+    if (self->GetLayerId() == Layers::Get("AracoreAtkStamp"))
+    {
+        std::string currentState = anim->GetCurrentStateName();
+        if (currentState == "run" || currentState == "jump")
+        {
+            if (otherActor->CompareTag("Player"))
+            {
+                static_cast<Entity*>(otherActor)->TakeDamage({
+                    .damage = 10.0f,
+                    .knockBackPower = 10.0f,
+                    .hitColliderSelf = self,
+                    .hitColliderOther = other,
+                    .hitPosition = point,
+                    .hitNormal = normal
+                    });
+            }
+        }
+    }
 }
 
 void AracoreQueen::OnDamaged(const DamageData& damageData)

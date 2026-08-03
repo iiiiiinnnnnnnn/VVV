@@ -191,6 +191,11 @@ namespace Game
 		cb.intensity = ssaoIntensity;
 		cb.minDistance = ssaoMinDistance;
 		cb.maxDistance = ssaoMaxDistance;
+		cb.distanceFogParams = {
+			rc.renderSettings.distanceFogStart,
+			rc.renderSettings.distanceFogEnd,
+			rc.renderSettings.distanceFogStrength,
+			rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
 		dc->UpdateSubresource(SSAOConstantBuffer.Get(), 0, 0, &cb, 0, 0);
 
 		DrawFullscreen(rc, SSAOPixelShader.Get(), depthMap, SSAOConstantBuffer.Get());

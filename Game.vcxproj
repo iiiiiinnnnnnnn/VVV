@@ -18,7 +18,6 @@
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp" />
     <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp" />
-    <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneBoxCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCapsuleCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCollider.cpp" />
@@ -63,8 +62,8 @@
     <ClCompile Include="Source\Physics\Collider\SphereCollider.cpp" />
     <ClCompile Include="Source\Animation\SpringBone.cpp" />
     <ClCompile Include="Source\Gameplay\Player\Player.cpp" />
-	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp" />
-	<ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp" />
+    <ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp" />
+    <ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp" />
     <ClCompile Include="Source\Physics\Collider\CharacterController.cpp" />
     <ClCompile Include="Source\Application\Tools\Dialog.cpp" />
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp" />
@@ -129,7 +128,6 @@
     <ClInclude Include="Source\Gameplay\Actor\EnemySmall.h" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h" />
-    <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\Benchmark.h" />
     <ClInclude Include="Source\Physics\Collider\BoneBoxCollider.h" />
     <ClInclude Include="Source\Physics\Collider\BoneCapsuleCollider.h" />
@@ -221,8 +219,8 @@
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Application\Input\Mouse.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerController.h" />
-	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
-	<ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
+    <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
+    <ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
     <ClInclude Include="Source\Rendering\Core\RenderTarget.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />

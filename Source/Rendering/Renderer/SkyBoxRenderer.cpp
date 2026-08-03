@@ -3,6 +3,7 @@
 #include "Rendering/Renderer/SkyBoxRenderer.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
+#include "Rendering/Core/RenderContext.h"
 #include <imgui.h>
 
 SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
@@ -56,7 +57,8 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
                              const RenderState* renderState,
                              const Camera& camera,
-                             ID3D11ShaderResourceView* skyTex)
+                             ID3D11ShaderResourceView* skyTex,
+							 const RenderSettings& renderSettings)
 {
     if (!skyTex) return;
 
@@ -70,6 +72,12 @@ void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
         cb.inverseViewProjection = invVP;
         cb.viewPos               = camera.GetEye();
         cb.skyIntensity          = skyboxData.skyIntensity;
+		cb.distanceFogColor = renderSettings.distanceFogColor;
+		cb.distanceFogParams = {
+			renderSettings.distanceFogStrength,
+			renderSettings.distanceFogEnabled ? 1.0f : 0.0f,
+			0.0f,
+			0.0f};
         dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
     }
 

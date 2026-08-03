@@ -1,4 +1,6 @@
-// ParticleSystem.cpp
+ï»¿// ParticleSystem.cpp
+
+#include <algorithm>
 
 #include "Rendering/Effect/ParticleSystem.h"
 #include "Resource/GpuResourceUtils.h"
@@ -11,24 +13,24 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 {
 	HRESULT hr;
 
-	//	ƒp[ƒeƒBƒNƒ‹î•ñƒŠƒXƒg
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æƒ…å ±ãƒªã‚¹ãƒˆ
 	data = new ParticleData[num];
 	ZeroMemory(data, sizeof(ParticleData) * num);
 
-	//	’¸“_î•ñƒŠƒXƒg
+	//	é ‚ç‚¹æƒ…å ±ãƒªã‚¹ãƒˆ
 	vertices = new Vertex[num];
 	ZeroMemory(vertices, sizeof(Vertex) * num);
 
 	for (int i = 0; i < numParticles; i++) { data[i].type = -1; }
 
-	//	ƒp[ƒeƒBƒNƒ‹—p‰æ‘œƒ[ƒh
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«ç”¨ç”»åƒãƒ­ãƒ¼ãƒ‰
 	this->shaderResourceView = shaderResourceView;
 
-	//	’¸“_ƒoƒbƒtƒ@ì¬
+	//	é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ä½œæˆ
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	//	’¸“_”•ª‚Ìƒoƒbƒtƒ@
+	//	é ‚ç‚¹æ•°åˆ†ã®ãƒãƒƒãƒ•ã‚¡
 	bd.ByteWidth = sizeof(Vertex) * numParticles;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
@@ -36,7 +38,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 	hr = device->CreateBuffer(&bd, NULL, vertexBuffer.GetAddressOf());
 	assert(SUCCEEDED(hr));
 
-	//	’è”ƒoƒbƒtƒ@¶¬
+	//	å®šæ•°ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
 	D3D11_BUFFER_DESC cbd;
 	ZeroMemory(&cbd, sizeof(cbd));
 	cbd.Usage = D3D11_USAGE_DEFAULT;
@@ -47,7 +49,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 	hr = device->CreateBuffer(&cbd, nullptr, constantBuffer.GetAddressOf());
 	assert(SUCCEEDED(hr));
 
-	//	’¸“_ƒVƒF[ƒ_[
+	//	é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 	std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDesc
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -95,12 +97,26 @@ void ParticleSystem::Update()
 		data[i].z += data[i].vz * Game::Time::deltaTime;
 
 		data[i].timer -= Game::Time::deltaTime;
-		data[i].alpha = sqrtf(data[i].timer);
-		// ƒAƒjƒ
+		if (data[i].fadeInDuration > 0.0f || data[i].fadeOutDuration > 0.0f)
+		{
+			const float age = data[i].initialTimer - data[i].timer;
+			const float fadeIn = data[i].fadeInDuration > 0.0f
+				? std::clamp(age / data[i].fadeInDuration, 0.0f, 1.0f)
+				: 1.0f;
+			const float fadeOut = data[i].fadeOutDuration > 0.0f
+				? std::clamp(data[i].timer / data[i].fadeOutDuration, 0.0f, 1.0f)
+				: 1.0f;
+			data[i].alpha = std::min(fadeIn, fadeOut);
+		}
+		else
+		{
+			data[i].alpha = sqrtf(std::max(data[i].timer, 0.0f));
+		}
+		// ã‚¢ãƒ‹ãƒ¡
 		if (data[i].anime)
-			data[i].type += Game::Time::deltaTime * data[i].animeSpeed;	// speedƒRƒ}/•b
+			data[i].type += Game::Time::deltaTime * data[i].animeSpeed;	// speedã‚³ãƒ/ç§’
 
-		// I—¹”»’è
+		// çµ‚äº†åˆ¤å®š
 		if (data[i].timer <= 0)
 			data[i].type = -1;
 	}
@@ -110,7 +126,7 @@ void ParticleSystem::Render(const RenderContext& rc)
 {
 	ID3D11DeviceContext* immediateContext = rc.deviceContext;
 
-	//’è”ƒoƒbƒtƒ@‚ÌXV
+	//å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®æ›´æ–°
 	Constants cb{};
 	cb.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	cb.cameraRight = rc.camera->GetRight();
@@ -120,24 +136,24 @@ void ParticleSystem::Render(const RenderContext& rc)
 	immediateContext->GSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 	immediateContext->PSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-	//	“_•`‰æİ’è
+	//	ç‚¹æç”»è¨­å®š
 	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	//	ƒVƒF[ƒ_[İ’è
+	//	ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼è¨­å®š
 	immediateContext->VSSetShader(vertexShader.Get(), nullptr, 0);
 	immediateContext->GSSetShader(geometryShader.Get(), nullptr, 0);
 	immediateContext->PSSetShader(pixelShader.Get(), nullptr, 0);
 
-	//	“ü—ÍƒŒƒCƒAƒEƒgİ’è
+	//	å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆè¨­å®š
 	immediateContext->IASetInputLayout(inputLayout.Get());
 
-	//	ƒeƒNƒXƒ`ƒƒİ’è
+	//	ãƒ†ã‚¯ã‚¹ãƒãƒ£è¨­å®š
 	immediateContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
 	ID3D11SamplerState* samplerState = rc.renderState->GetSamplerState(SamplerState::LinearWrap);
 	immediateContext->PSSetSamplers(0, 1, &samplerState);
 
-	//	ƒp[ƒeƒBƒNƒ‹î•ñ‚ğ’¸“_ƒoƒbƒtƒ@‚É“]‘—
-	int n = 0; //ƒp[ƒeƒBƒNƒ‹”­¶”
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æƒ…å ±ã‚’é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã«è»¢é€
+	int n = 0; //ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«ç™ºç”Ÿæ•°
 	for (int i = 0; i < numParticles; i++)
 	{
 		if (data[i].type < 0) continue;
@@ -152,19 +168,19 @@ void ParticleSystem::Render(const RenderContext& rc)
 
 		vertices[n].param.x = 0;
 		vertices[n].param.y = data[i].type;
-		vertices[n].param.z = (float)komax;	//	‰¡ƒRƒ}”
-		vertices[n].param.w = (float)komay;	//	cƒRƒ}”
+		vertices[n].param.z = (float)komax;	//	æ¨ªã‚³ãƒæ•°
+		vertices[n].param.w = (float)komay;	//	ç¸¦ã‚³ãƒæ•°
 		++n;
 	}
-	//	’¸“_ƒf[ƒ^XV
+	//	é ‚ç‚¹ãƒ‡ãƒ¼ã‚¿æ›´æ–°
 	immediateContext->UpdateSubresource(vertexBuffer.Get(), 0, nullptr, vertices, 0, 0);
 
-	//	ƒo[ƒeƒbƒNƒXƒoƒbƒtƒ@[‚ğƒZƒbƒg
+	//	ãƒãƒ¼ãƒ†ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡ãƒ¼ã‚’ã‚»ãƒƒãƒˆ
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	immediateContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 
-	//	ƒp[ƒeƒBƒNƒ‹î•ñ•ª•`‰æƒR[ƒ‹
+	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æƒ…å ±åˆ†æç”»ã‚³ãƒ¼ãƒ«
 	immediateContext->Draw(n, 0);
 
 	ID3D11ShaderResourceView* nullShaderResourceView = nullptr;
@@ -172,13 +188,24 @@ void ParticleSystem::Render(const RenderContext& rc)
 	immediateContext->PSSetShaderResources(0, 1, &nullShaderResourceView);
 	immediateContext->PSSetSamplers(0, 1, &nullSamplerState);
 
-	//	ƒVƒF[ƒ_–³Œø‰»
+	//	ã‚·ã‚§ãƒ¼ãƒ€ç„¡åŠ¹åŒ–
 	immediateContext->VSSetShader(nullptr, nullptr, 0);
 	immediateContext->GSSetShader(nullptr, nullptr, 0);
 	immediateContext->PSSetShader(nullptr, nullptr, 0);
 }
 
-void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f, Vector2 size, bool anime, float animeSpeed, Color color)
+void ParticleSystem::Set(
+	int type,
+	float timer,
+	Vector3 p,
+	Vector3 v,
+	Vector3 f,
+	Vector2 size,
+	bool anime,
+	float animeSpeed,
+	Color color,
+	float fadeInDuration,
+	float fadeOutDuration)
 {
 	for (int i = 0; i < numParticles; i++)
 	{
@@ -196,6 +223,9 @@ void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f,
 		data[i].w = size.x;
 		data[i].h = size.y;
 		data[i].alpha = 1.0f;
+		data[i].initialTimer = timer;
+		data[i].fadeInDuration = fadeInDuration;
+		data[i].fadeOutDuration = fadeOutDuration;
 		data[i].color = color;
 		data[i].timer = timer;
 		data[i].anime = anime;
@@ -203,4 +233,3 @@ void ParticleSystem::Set(int type, float timer, Vector3 p, Vector3 v, Vector3 f,
 		break;
 	}
 }
-

@@ -51,6 +51,7 @@ private:
 
 protected:
 	virtual void OnUpdate() {}
+	virtual void ConfigureRenderSettings(RenderSettings&) {}
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
 

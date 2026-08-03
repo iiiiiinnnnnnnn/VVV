@@ -43,8 +43,6 @@ Prop::Prop(StageLoader::PropData& propData)
 	}
 
 	AddComponent<NavMeshObstacle>();
-	if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
-		navMeshActor->RequestBuild();
 
 	useDestroy = propData.useDestroy;
 	destroyLife = propData.destroyLife;
@@ -88,5 +86,7 @@ void Prop::OnTriggerEnter(
 	{
 		Destroy(0);
 		destroyLife = 0.0f;
+		if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
+			navMeshActor->RequestBuild();
 	}
 }

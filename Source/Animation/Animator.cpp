@@ -522,6 +522,10 @@ void Animator::UpdateLayer(
             deltaVec =
                 model->GetScaledAttachmentVector(
                     deltaPos);
+
+            // Vertical motion remains in the animated root pose so that
+            // jumps do not fight gravity or ground snapping on the Actor.
+            deltaVec.y = 0.0f;
         };
 
     if (useRootMotion &&
@@ -742,7 +746,8 @@ void Animator::UpdateLayer(
                 layer.anyStateTransitions)
             {
                 if (transition.toStateIndex ==
-                    layer.currentStateIndex)
+                    layer.currentStateIndex &&
+					!HasActiveTriggerCondition(transition))
                 {
                     continue;
                 }
@@ -895,9 +900,11 @@ void Animator::UpdateLayer(
         if (useRootMotion &&
             nodeIndex == rootNodeIndex)
         {
-			// アニメーション差分はActor側へ渡しつつ、モデル座標系を補正する初期姿勢は残す。
+            // Extract XZ motion to the Actor, but keep the animated Y pose.
             finalPoses[nodeIndex] =
                 rootMotionBasePose;
+            finalPoses[nodeIndex].position.y =
+                nodePoses[nodeIndex].position.y;
 
             continue;
         }
@@ -1291,7 +1298,8 @@ void Animator::UpdateDynamicLayer(
             layer.anyStateTransitions)
         {
             if (transition.toStateIndex ==
-                layer.currentStateIndex)
+                layer.currentStateIndex &&
+				!HasActiveTriggerCondition(transition))
             {
                 continue;
             }
@@ -1908,6 +1916,17 @@ bool Animator::EvaluateTransition(
     return true;
 }
 
+bool Animator::HasActiveTriggerCondition(
+	const Transition& transition) const
+{
+	for (const Condition& condition : transition.conditions)
+	{
+		if (condition.mode != ConditionMode::Trigger) continue;
+		if (EvaluateCondition(condition)) return true;
+	}
+	return false;
+}
+
 void Animator::EvaluateCallbacks(State& state, float currentTime, float animLength)
 {
     for (auto& callback : state.callbacks)
@@ -1955,6 +1974,30 @@ float Animator::GetCurrentAnimationTime(int layerIndex) const
 {
     if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
     return layers[layerIndex].currentTime;
+}
+
+bool Animator::GetAnimationControlState(int& animationIndex, float& time, int layerIndex) const
+{
+    animationIndex = -1;
+    time = 0.0f;
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return false;
+
+    const AnimatorLayer& layer = layers[layerIndex];
+    int stateIndex = layer.currentStateIndex;
+    time = layer.currentTime;
+
+    if (layer.isTransitioning &&
+        layer.nextStateIndex >= 0 &&
+        layer.nextStateIndex < static_cast<int>(layer.states.size()))
+    {
+        stateIndex = layer.nextStateIndex;
+        time = layer.nextTime;
+    }
+
+    if (stateIndex < 0 || stateIndex >= static_cast<int>(layer.states.size())) return false;
+
+    animationIndex = layer.states[stateIndex].animationIndex;
+    return animationIndex >= 0;
 }
 bool Animator::Save(const std::string& path)
 {

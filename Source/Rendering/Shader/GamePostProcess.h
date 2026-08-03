@@ -191,6 +191,7 @@ namespace Game
 			float intensity;
 			float minDistance;
 			float maxDistance;
+			Vector4 distanceFogParams;
 		};
 		Microsoft::WRL::ComPtr<ID3D11Buffer> SSAOConstantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOPixelShader;

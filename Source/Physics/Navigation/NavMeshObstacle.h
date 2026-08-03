@@ -10,7 +10,6 @@ class NavMeshObstacle : public Component
 public:
 	NavMeshObstacle(Object* owner) : Component(owner) {}
 
-	void OnStart() override;
 	void MarkDirty();
 	bool GetBounds(Vector3& center, Vector3& size) const;
 

@@ -10,7 +10,7 @@ using std::min;
 void Entity::Cooldowns::Update()
 {
     if (damageCooldown >= 0.0f)
-        damageCooldown -= Game::Time::deltaTime;
+        damageCooldown -= Game::Time::unscaledDeltaTime;
 }
 
 void Entity::SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale)

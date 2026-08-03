@@ -139,14 +139,14 @@ void VMDLModelComponent::UpdateAnimationControls()
 	if (!animator) animator = owner->GetComponent<Animator>();
 	if (!animator || animator->IsDynamicMode()) return;
 
-	const int animationIndex = animator->GetCurrentAnimationIndex();
-	if (animationIndex < 0)
+	int animationIndex = -1;
+	float time = 0.0f;
+	if (!animator->GetAnimationControlState(animationIndex, time))
 	{
 		if (animationControlsApplied) RestoreAnimationControls();
 		return;
 	}
 
-	const float time = animator->GetCurrentAnimationTime();
 	for (int i = 0; i < static_cast<int>(attachmentColliders.size()); ++i)
 	{
 		if (attachmentColliders[i]) attachmentColliders[i]->SetActive(model->EvaluateColliderActive(animationIndex, time, i));

@@ -1,4 +1,4 @@
-// ParticleSystem.h
+ï»¿// ParticleSystem.h
 
 #pragma once
 
@@ -17,10 +17,10 @@ class ParticleSystem
 private:
 	struct Vertex
 	{
-		Vector3 position;	//	ˆÊ’u
+		Vector3 position;	//	ä½ç½®
 		Vector2 texcoord;	//	UV
-		Color color;		//	’¸“_F		
-		Vector4 param;		//	”Ä—pƒpƒ‰ƒ[ƒ^
+		Color color;		//	é ‚ç‚¹è‰²		
+		Vector4 param;		//	æ±ç”¨ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
 	};
 
 	struct ParticleData
@@ -31,6 +31,9 @@ private:
 		float vx, vy, vz;
 		float ax, ay, az;
 		float alpha;
+		float initialTimer;
+		float fadeInDuration;
+		float fadeOutDuration;
 		Color color;
 		float timer;
 		float animeTimer;
@@ -40,7 +43,7 @@ private:
 		float animeSpeed;
 	};
 
-	//	’è”ƒoƒbƒtƒ@‚Ìƒf[ƒ^’è‹`
+	//	å®šæ•°ãƒãƒƒãƒ•ã‚¡ã®ãƒ‡ãƒ¼ã‚¿å®šç¾©
 	struct Constants
 	{
 		Matrix viewProjection;
@@ -67,14 +70,16 @@ public:
 		Vector2 size = Vector2(1.0f, 1.0f),
 		bool anime = false,
 		float animeSpeed = 24.0f,
-		Color color = Color(0.35f, 0.9f, 1.0f, 1.0f)
+		Color color = Color(0.35f, 0.9f, 1.0f, 1.0f),
+		float fadeInDuration = 0.0f,
+		float fadeOutDuration = 0.0f
 	);
 
 private:
-	ParticleData* data;	//	ƒp[ƒeƒBƒNƒ‹î•ñ
-	Vertex* vertices;		//	’¸“_ƒoƒbƒtƒ@‘‚«‚İî•ñ
-	int numParticles = 0;	//	ƒp[ƒeƒBƒNƒ‹”
-	int komax, komay;		//	Texture‚Ìc‰¡•ªŠ„”
+	ParticleData* data;	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æƒ…å ±
+	Vertex* vertices;		//	é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡æ›¸ãè¾¼ã¿æƒ…å ±
+	int numParticles = 0;	//	ãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ«æ•°
+	int komax, komay;		//	Textureã®ç¸¦æ¨ªåˆ†å‰²æ•°
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;

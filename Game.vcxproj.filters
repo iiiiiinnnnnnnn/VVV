@@ -127,9 +127,9 @@
     <Filter Include="Gameplay\Stage\Component">
       <UniqueIdentifier>{7e4a7de8-c3c1-57af-8816-a7fd0f0d92cb}</UniqueIdentifier>
     </Filter>
-	<Filter Include="Gameplay\Component">
-	  <UniqueIdentifier>{882aaaf8-bba7-4c11-a204-b940791c64e0}</UniqueIdentifier>
-	</Filter>
+    <Filter Include="Gameplay\Component">
+      <UniqueIdentifier>{882aaaf8-bba7-4c11-a204-b940791c64e0}</UniqueIdentifier>
+    </Filter>
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -280,12 +280,12 @@
     <ClCompile Include="Source\Gameplay\Player\Player.cpp">
       <Filter>Gameplay\Player</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp">
-	  <Filter>Gameplay\Component</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp">
-	  <Filter>Gameplay\Component</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp">
+      <Filter>Gameplay\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp">
+      <Filter>Gameplay\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Apple.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -375,9 +375,6 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\Effect\ParticleSystem.cpp">
       <Filter>Rendering\Effect</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp">
-      <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Object\RectTransform.cpp">
       <Filter>Core\Object</Filter>
@@ -615,12 +612,12 @@
     <ClInclude Include="Source\Gameplay\Player\Player.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h">
-	  <Filter>Gameplay\Component</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Gameplay\Component\LockOnComponent.h">
-	  <Filter>Gameplay\Component</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h">
+      <Filter>Gameplay\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Component\LockOnComponent.h">
+      <Filter>Gameplay\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Entity.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
@@ -740,9 +737,6 @@
     </ClInclude>
     <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h">
       <Filter>Core\Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\Aracore.h">
-      <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Stage\Stage.h">
       <Filter>Gameplay\Stage</Filter>

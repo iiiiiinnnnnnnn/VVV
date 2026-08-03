@@ -41,6 +41,8 @@ public:
 		actorManager.Render(rc);
 	}
 
+	virtual void RenderEffects(const RenderContext& rc) {}
+
 	Transform* GetTransform() override { return &transform; }
 	const Transform* GetTransform() const override { return &transform; }
 

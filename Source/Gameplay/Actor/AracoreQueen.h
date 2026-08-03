@@ -23,12 +23,13 @@ class MultiLegFootIK;
 class AracoreQueen : public Entity
 {
 public:
-	AracoreQueen();
+	AracoreQueen(Vector3 position);
 	~AracoreQueen() = default;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 
 	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+	void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
 	void OnDamaged(const DamageData& damageData) override;
@@ -36,17 +37,18 @@ public:
 
 private:
 	void Threat();
+	bool PushPlayer(PhysicsComponent* self, PhysicsComponent* other);
 
 	Animator* anim = nullptr;
 	VMDL* vmdl = nullptr;
-	RigidbodyDynamic* rb = nullptr;
 	std::shared_ptr<VMDLModel> model;
 	NavMeshAgent* navMeshAgent = nullptr;
 	MultiLegFootIK* multiLegFootIK = nullptr;
-	std::vector<PhysicsComponent*> IKColliders;
-	std::vector<PhysicsComponent*> IKStampColliders;
 	EnemyAIFlow* controller = nullptr;
 	std::vector<Vector3> colPositions;
+
+	float findingTimer = 0.0f;
+	bool isFinding = false;
 
 	VMatRenderParams renderParams;
 };
