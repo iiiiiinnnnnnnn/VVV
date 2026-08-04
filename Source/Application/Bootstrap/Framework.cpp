@@ -2,6 +2,7 @@
 #include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
+#include "Resource/ResourceManager.h"
 #include "GameInput.h"
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
@@ -19,6 +20,9 @@ Framework::Framework(HWND hWnd)
 
 	// グラフィックス初期化
 	Game::Graphics::Instance().Initialize(hWnd);
+
+	// IMGUIがフォントを読み込む前にData内のリソースをコピー
+	ResourceManager::Instance().PrepareGameResources();
 
 	// エディタ用の設定初期化
 	PhysicsLayerManager::Instance().Initialize();
