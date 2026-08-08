@@ -477,10 +477,6 @@
       <Command>
       </Command>
     </PreLinkEvent>
-    <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"
-copy /Y "$(SolutionDir)Data\PhysicsLayers.physicslayers" "$(TargetDir)Data\PhysicsLayers.physicslayers"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -522,11 +518,18 @@ copy /Y "$(SolutionDir)Data\PhysicsLayers.physicslayers" "$(TargetDir)Data\Physi
       <Command>
       </Command>
     </PreLinkEvent>
-    <PostBuildEvent>
-      <Command>xcopy /Y /D /I "$(SolutionDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" "$(TargetDir)"
-copy /Y "$(SolutionDir)Data\PhysicsLayers.physicslayers" "$(TargetDir)Data\PhysicsLayers.physicslayers"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="CopyRuntimeFiles" AfterTargets="Build">
+    <ItemGroup>
+      <PhysXRuntimeDll Include="$(ProjectDir)External\PhysX\dll\$(PlatformTarget)\$(Configuration)\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PhysXRuntimeDll)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(ProjectDir)Data\PhysicsLayers.physicslayers"
+          DestinationFiles="$(TargetDir)Data\PhysicsLayers.physicslayers"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
