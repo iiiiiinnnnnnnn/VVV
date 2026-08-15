@@ -204,7 +204,7 @@ void LockOnComponent::ResolveTargetAnchor()
 	const auto& colliders = targetModel->GetVmdlExtensionData().colliders;
 	for (int i = 0; i < static_cast<int>(colliders.size()); ++i)
 	{
-		if (colliders[i].name != "ArrowUI") continue;
+		if (colliders[i].name != "ARROWUI") continue;
 		targetAnchorIndex = i;
 		return;
 	}
