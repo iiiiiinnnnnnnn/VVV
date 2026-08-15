@@ -37,6 +37,15 @@ public:
 
 	void SetSelectedActor(Actor* actor) { selectedActor = actor; }
 	Actor* GetSelectedActor() const { return selectedActor; }
+	bool Contains(const Actor* actor) const
+	{
+		if (!actor) return false;
+		for (const auto& value : data)
+			if (value.get() == actor) return true;
+		for (const auto& value : pendingActors)
+			if (value.get() == actor) return true;
+		return false;
+	}
 
 	void FlushPendingActors()
 	{
@@ -78,10 +87,12 @@ public:
 			std::remove_if(
 			data.begin(),
 			data.end(),
-			[](const std::shared_ptr<Actor>& actor)
-		{
-			return !actor || actor->IsPendingDestroy();
-		}),
+			[this](const std::shared_ptr<Actor>& actor)
+			{
+				const bool remove = !actor || actor->IsPendingDestroy();
+				if (remove && actor.get() == selectedActor) selectedActor = nullptr;
+				return remove;
+			}),
 			data.end());
 
 		FlushPendingActors();

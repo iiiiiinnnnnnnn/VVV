@@ -279,6 +279,7 @@ void StageLoader::Update()
 		{
 			prop.model = LoadPropModel(prop.modelPath);
 		}
+		if (!prop.model) continue;
 
 		prop.transform.Update();
 		prop.model->UpdateTransform(prop.transform.matrix);
@@ -286,6 +287,13 @@ void StageLoader::Update()
 		if (propIndex < static_cast<int>(addedPropActors.size()))
 		{
 			Actor* addedActor = addedPropActors[propIndex];
+			if (addedActor && !stage->GetActorManager().Contains(addedActor))
+			{
+				for (Actor*& actor : addedRealActors)
+					if (actor == addedActor) actor = nullptr;
+				addedPropActors[propIndex] = nullptr;
+				addedActor = nullptr;
+			}
 			if (Prop* actor = dynamic_cast<Prop*>(addedActor))
 				actor->ApplyStageData(prop);
 			else if (CrystalProp* actor = dynamic_cast<CrystalProp*>(addedActor))
