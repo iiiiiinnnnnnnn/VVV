@@ -1,5 +1,3 @@
-// DirectXTexConverts.cpp
-
 #pragma once
 
 #include "Common.h"

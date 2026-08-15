@@ -1,5 +1,3 @@
-// LocalPlayerController.h
-
 #pragma once
 
 #include "Gameplay/Player/PlayerController.h"

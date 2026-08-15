@@ -1,6 +1,4 @@
-﻿// ActorManager.h
-
-#pragma once
+﻿#pragma once
 #include <cstddef>
 
 #include <algorithm>
@@ -34,7 +32,11 @@ public:
 	{
 		data.clear();
 		pendingActors.clear();
+		selectedActor = nullptr;
 	}
+
+	void SetSelectedActor(Actor* actor) { selectedActor = actor; }
+	Actor* GetSelectedActor() const { return selectedActor; }
 
 	void FlushPendingActors()
 	{
@@ -101,6 +103,7 @@ public:
 
 	void DrawGUI(bool windowOpen = true)
 	{
+		if (selectedActor && selectedActor->IsPendingDestroy()) selectedActor = nullptr;
 		const size_t count = data.size();
 
 		for (size_t i = 0; i < count; ++i)
@@ -113,7 +116,7 @@ public:
 
 			if (data[i]->IsPendingDestroy()) continue;
 
-			data[i]->DrawGUI();
+			data[i]->DrawGUI(data[i].get() == selectedActor);
 		}
 	}
 
@@ -151,4 +154,5 @@ private:
 	inline static ActorManager* active = nullptr;
 	std::vector<std::shared_ptr<Actor>> data;
 	std::vector<std::shared_ptr<Actor>> pendingActors;
+	Actor* selectedActor = nullptr;
 };

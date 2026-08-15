@@ -1,5 +1,4 @@
-﻿// Camera.h
-#pragma once
+﻿#pragma once
 
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"

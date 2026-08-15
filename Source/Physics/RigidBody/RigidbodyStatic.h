@@ -1,5 +1,3 @@
-// RigidbodyStatic.h
-
 #pragma once
 
 #include "Physics/RigidBody/Rigidbody.h"

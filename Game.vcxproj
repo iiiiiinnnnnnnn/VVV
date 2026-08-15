@@ -58,6 +58,7 @@
     <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Prop.cpp" />
+    <ClCompile Include="Source\Gameplay\Actor\Spawner.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Physics\Collider\SphereCollider.cpp" />
     <ClCompile Include="Source\Animation\SpringBone.cpp" />
@@ -79,10 +80,12 @@
     <ClCompile Include="Source\Rendering\Renderer\ImGuiRenderer.cpp" />
     <ClCompile Include="Source\Application\Input\Input.cpp" />
     <ClCompile Include="Source\Core\Object\Object.cpp" />
+    <ClCompile Include="Source\Core\Object\Component.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayer.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp" />
     <ClCompile Include="Source\Resource\VMDLModel.cpp" />
+	<ClCompile Include="Source\Resource\MeshCache.cpp" />
     <ClCompile Include="Source\Resource\VSTG.cpp" />
     <ClCompile Include="Source\Rendering\Component\VMDL.cpp" />
     <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp" />
@@ -107,6 +110,7 @@
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ShadowMapRenderer.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ShapeRenderer.cpp" />
+	<ClCompile Include="Source\Rendering\Renderer\DebugSolidRenderer.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\SkyBoxRenderer.cpp" />
     <ClCompile Include="Source\Rendering\Component\SpriteRenderComponent.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\SpriteRenderer.cpp" />
@@ -174,6 +178,7 @@
     <ClInclude Include="Source\Physics\Core\PhysicsComponent.h" />
     <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Prop.h" />
+    <ClInclude Include="Source\Gameplay\Actor\Spawner.h" />
     <ClInclude Include="Source\Gameplay\Scene\SceneManager.h" />
     <ClInclude Include="Source\Physics\Collider\SphereCollider.h" />
     <ClInclude Include="Source\Animation\SpringBone.h" />
@@ -197,12 +202,14 @@
     <ClInclude Include="Source\Resource\GpuResourceUtils.h" />
     <ClInclude Include="Source\Rendering\Core\Graphics.h" />
     <ClInclude Include="Source\Application\Time\HighResolutionTimer.h" />
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
+	<ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
+	<ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h" />
     <ClInclude Include="Source\Application\Input\Input.h" />
     <ClInclude Include="Source\Core\Object\Object.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h" />
     <ClInclude Include="Source\Resource\VMDLModel.h" />
+	<ClInclude Include="Source\Resource\MeshCache.h" />
     <ClInclude Include="Source\Resource\VSTG.h" />
     <ClInclude Include="Source\Rendering\Component\VMDL.h" />
     <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h" />
@@ -233,6 +240,7 @@
     <ClInclude Include="Source\Rendering\Shader\Shader.h" />
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h" />
     <ClInclude Include="Source\Rendering\Renderer\ShapeRenderer.h" />
+	<ClInclude Include="Source\Rendering\Renderer\DebugSolidRenderer.h" />
     <ClInclude Include="Source\Rendering\Renderer\SkyBoxRenderer.h" />
     <ClInclude Include="Source\Rendering\Component\SpriteRenderComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\SpriteRenderer.h" />
@@ -306,10 +314,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Shader\PBRPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
+	<FxCompile Include="Shader\PBRPS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+	</FxCompile>
+	<FxCompile Include="Shader\UnlitPS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+	</FxCompile>
     <FxCompile Include="Shader\PBRGS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>

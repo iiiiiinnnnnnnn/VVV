@@ -1,5 +1,3 @@
-// LocalPlayer.h
-
 #pragma once
 
 #include "Gameplay/Player/Player.h"

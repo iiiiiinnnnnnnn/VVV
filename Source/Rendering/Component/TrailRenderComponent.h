@@ -1,5 +1,4 @@
-﻿// TrailRenderComponent.h
-#pragma once
+﻿#pragma once
 #include <deque>
 
 #include "Core/Object/Component.h"
@@ -49,6 +48,9 @@ public:
 
     void StartTrail() { stopping = false; }
 	void StopTrail() { stopping = true; }
+	void ResetTrail();
+	void SetUseUnscaledTime(bool value) { useUnscaledTime = value; }
+	bool GetUseUnscaledTime() const { return useUnscaledTime; }
 
 private:
     void BuildTrailVertices();
@@ -67,6 +69,7 @@ private:
     Color color;
 
     bool stopping = false;
+	bool useUnscaledTime = false;
 
     std::deque<TrailPoint> points;
 

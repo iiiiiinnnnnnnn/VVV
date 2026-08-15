@@ -1,6 +1,4 @@
-﻿// BoneFollower.cpp
-
-#include "Animation/BoneFollower.h"
+﻿#include "Animation/BoneFollower.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/RigidBody/Rigidbody.h"

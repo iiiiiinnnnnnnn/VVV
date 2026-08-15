@@ -1,5 +1,3 @@
-// AIFlow.cpp
-
 #include "Gameplay/AI/AIFlow.h"
 
 #include <algorithm>
@@ -9,6 +7,7 @@
 
 #include "imgui.h"
 #include "imgui_node_editor.h"
+#include "Application/Time/GameTime.h"
 #include "Core/Foundation/Json.h"
 
 namespace ed = ax::NodeEditor;
@@ -119,28 +118,32 @@ void AIFlow::OnStart()
 
 void AIFlow::OnUpdate()
 {
-    UpdateBlackboard();
     EnsureCurrentState();
-    Invoke(&StateCallbacks::onUpdate);
+    stateTime += Game::Time::deltaTime;
+    SetFloat("StateTime", stateTime, true);
+    UpdateBlackboard();
+    InvokeActive(&StateCallbacks::onUpdate);
     EvaluateTransitions();
 }
 
 void AIFlow::OnLateUpdate()
 {
     EnsureCurrentState();
-    Invoke(&StateCallbacks::onLateUpdate);
+    InvokeActive(&StateCallbacks::onLateUpdate);
 }
 
 void AIFlow::OnEnabled()
 {
     pendingEnter = true;
+    stateTime = 0.0f;
 }
 
 void AIFlow::OnDisabled()
 {
-    Invoke(&StateCallbacks::onExit);
+    InvokeActive(&StateCallbacks::onExit, true);
     currentStateId = -1;
     pendingEnter = true;
+    stateTime = 0.0f;
 }
 
 void AIFlow::OnDrawGUI()
@@ -203,6 +206,62 @@ AIFlow::State& AIFlow::AddState(
     return states.back();
 }
 
+AIFlow::State& AIFlow::AddSubState(
+    int parentStateId,
+    const std::string& name,
+    const std::string& callbackName)
+{
+    State& state = AddState(name, callbackName);
+    state.parentStateId = FindState(parentStateId) ? parentStateId : -1;
+    if (State* parent = FindState(state.parentStateId))
+        if (parent->entrySubStateId < 0) parent->entrySubStateId = state.id;
+    return state;
+}
+
+void AIFlow::SetEntryState(int stateId)
+{
+    State* state = FindState(stateId);
+    if (!state) return;
+    entryStateId = state->parentStateId < 0 ? stateId : state->parentStateId;
+}
+
+bool AIFlow::SetParentState(int stateId, int parentStateId)
+{
+    State* state = FindState(stateId);
+    if (!state || stateId == parentStateId) return false;
+    if (parentStateId >= 0 && (!FindState(parentStateId) || IsDescendantOf(parentStateId, stateId)))
+        return false;
+
+    if (State* oldParent = FindState(state->parentStateId))
+    {
+        if (oldParent->entrySubStateId == stateId)
+        {
+            oldParent->entrySubStateId = -1;
+            for (const State& candidate : states)
+            {
+                if (candidate.parentStateId != oldParent->id || candidate.id == stateId) continue;
+                oldParent->entrySubStateId = candidate.id;
+                break;
+            }
+        }
+    }
+
+    state->parentStateId = parentStateId;
+    if (State* parent = FindState(parentStateId))
+        if (parent->entrySubStateId < 0) parent->entrySubStateId = stateId;
+    if (entryStateId == stateId && parentStateId >= 0) entryStateId = parentStateId;
+    return true;
+}
+
+bool AIFlow::SetEntrySubState(int parentStateId, int stateId)
+{
+    State* parent = FindState(parentStateId);
+    const State* state = FindState(stateId);
+    if (!parent || !state || state->parentStateId != parentStateId) return false;
+    parent->entrySubStateId = stateId;
+    return true;
+}
+
 AIFlow::Transition& AIFlow::AddTransition(
     int sourceStateId,
     int targetStateId)
@@ -224,21 +283,43 @@ bool AIFlow::RemoveState(int stateId)
         [stateId](const State& state) { return state.id == stateId; });
     if (found == states.end()) return false;
 
-    states.erase(found);
+    std::vector<int> removedIds{stateId};
+    for (size_t index = 0; index < removedIds.size(); ++index)
+    {
+        for (const State& state : states)
+            if (state.parentStateId == removedIds[index]) removedIds.push_back(state.id);
+    }
+
+    std::erase_if(
+        states,
+        [&removedIds](const State& state)
+        {
+            return std::find(removedIds.begin(), removedIds.end(), state.id) != removedIds.end();
+        });
     for (State& state : states)
     {
         std::erase_if(
             state.transitions,
-            [stateId](const Transition& transition)
+            [&removedIds](const Transition& transition)
             {
-                return transition.targetStateId == stateId;
+                return std::find(removedIds.begin(), removedIds.end(), transition.targetStateId) != removedIds.end();
             });
+        if (std::find(removedIds.begin(), removedIds.end(), state.entrySubStateId) != removedIds.end())
+            state.entrySubStateId = -1;
     }
 
-    boundCallbacks.erase(stateId);
-    if (entryStateId == stateId)
-        entryStateId = states.empty() ? -1 : states.front().id;
-    if (currentStateId == stateId)
+    for (int removedId : removedIds) boundCallbacks.erase(removedId);
+    if (std::find(removedIds.begin(), removedIds.end(), entryStateId) != removedIds.end())
+    {
+        entryStateId = -1;
+        for (const State& state : states)
+        {
+            if (state.parentStateId >= 0) continue;
+            entryStateId = state.id;
+            break;
+        }
+    }
+    if (std::find(removedIds.begin(), removedIds.end(), currentStateId) != removedIds.end())
     {
         currentStateId = -1;
         pendingEnter = true;
@@ -272,6 +353,7 @@ void AIFlow::ClearGraph()
     nextStateId = 1;
     nextTransitionId = 1;
     pendingEnter = true;
+    stateTime = 0.0f;
     editor->positionedStateIds.clear();
     editor->selectedStateId = -1;
     editor->selectedTransitionId = -1;
@@ -319,6 +401,8 @@ bool AIFlow::Load(const std::string& path)
                 state.id = stateJson.value("id", nextStateId++);
                 nextStateId = std::max(nextStateId, state.id + 1);
                 state.name = stateJson.value("name", "State");
+                state.parentStateId = stateJson.value("parentStateId", -1);
+                state.entrySubStateId = stateJson.value("entrySubStateId", -1);
                 state.callbackName = stateJson.value("callback", "");
                 state.hasEditorPosition = stateJson.value("hasEditorPosition", false);
                 state.editorPosX = stateJson.value("editorPosX", 0.0f);
@@ -354,6 +438,8 @@ bool AIFlow::Load(const std::string& path)
                 states.push_back(std::move(state));
             }
         }
+
+        SetFloat("StateTime", 0.0f, true);
 
         graphPath = path;
         if (!LoadFlowExtension(path)) return false;
@@ -394,6 +480,8 @@ bool AIFlow::Save(const std::string& path) const
     {
         json stateJson = {
             {"id", state.id},
+            {"parentStateId", state.parentStateId},
+            {"entrySubStateId", state.entrySubStateId},
             {"name", state.name},
             {"callback", state.callbackName},
             {"hasEditorPosition", state.hasEditorPosition},
@@ -507,6 +595,12 @@ const AIFlow::State* AIFlow::GetCurrentState() const
     return FindState(currentStateId);
 }
 
+bool AIFlow::IsStateActive(int stateId) const
+{
+    const std::vector<int> path = BuildStatePath(currentStateId);
+    return std::find(path.begin(), path.end(), stateId) != path.end();
+}
+
 AIFlow::State* AIFlow::FindState(int stateId)
 {
     for (State& state : states)
@@ -539,41 +633,69 @@ AIFlow::Transition* AIFlow::FindTransition(
 
 void AIFlow::EnsureCurrentState()
 {
-    if (!FindState(currentStateId)) currentStateId = entryStateId;
-    if (!FindState(currentStateId) && !states.empty()) currentStateId = states.front().id;
+    if (!FindState(currentStateId)) currentStateId = ResolveEntryState(entryStateId);
+    if (!FindState(currentStateId))
+    {
+        for (const State& state : states)
+        {
+            if (state.parentStateId >= 0) continue;
+            currentStateId = ResolveEntryState(state.id);
+            break;
+        }
+    }
     if (!pendingEnter || !FindState(currentStateId)) return;
 
     pendingEnter = false;
-    Invoke(&StateCallbacks::onEnter);
+    InvokeActive(&StateCallbacks::onEnter);
 }
 
 void AIFlow::ChangeState(int stateId)
 {
-    if (currentStateId == stateId || !FindState(stateId)) return;
-    Invoke(&StateCallbacks::onExit);
-    currentStateId = stateId;
+    const int resolvedStateId = ResolveEntryState(stateId);
+    if (currentStateId == resolvedStateId || !FindState(resolvedStateId)) return;
+
+    const std::vector<int> oldPath = BuildStatePath(currentStateId);
+    const std::vector<int> newPath = BuildStatePath(resolvedStateId);
+    size_t commonCount = 0;
+    while (commonCount < oldPath.size() &&
+           commonCount < newPath.size() &&
+           oldPath[commonCount] == newPath[commonCount])
+    {
+        ++commonCount;
+    }
+
+    for (size_t index = oldPath.size(); index > commonCount; --index)
+        InvokeState(oldPath[index - 1], &StateCallbacks::onExit);
+    currentStateId = resolvedStateId;
+    stateTime = 0.0f;
+    SetFloat("StateTime", stateTime, true);
     pendingEnter = false;
-    Invoke(&StateCallbacks::onEnter);
+    for (size_t index = commonCount; index < newPath.size(); ++index)
+        InvokeState(newPath[index], &StateCallbacks::onEnter);
 }
 
 void AIFlow::RestartStateMachine()
 {
-    Invoke(&StateCallbacks::onExit);
-    currentStateId = entryStateId;
+    InvokeActive(&StateCallbacks::onExit, true);
+    currentStateId = ResolveEntryState(entryStateId);
     pendingEnter = true;
+    stateTime = 0.0f;
     EnsureCurrentState();
 }
 
 void AIFlow::EvaluateTransitions()
 {
-	const State* state = FindState(currentStateId);
-    if (!state) return;
-
-    for (const Transition& transition : state->transitions)
+    const std::vector<int> path = BuildStatePath(currentStateId);
+    for (auto stateIt = path.rbegin(); stateIt != path.rend(); ++stateIt)
     {
-        if (!EvaluateTransition(transition)) continue;
-        ChangeState(transition.targetStateId);
-        return;
+        const State* state = FindState(*stateIt);
+        if (!state) continue;
+        for (const Transition& transition : state->transitions)
+        {
+            if (!EvaluateTransition(transition)) continue;
+            ChangeState(transition.targetStateId);
+            return;
+        }
     }
 }
 
@@ -625,9 +747,50 @@ bool AIFlow::EvaluateCondition(const Condition& condition) const
     }
 }
 
-void AIFlow::Invoke(StateCallback StateCallbacks::* callbackMember)
+int AIFlow::ResolveEntryState(int stateId) const
 {
-    const State* state = FindState(currentStateId);
+    const State* state = FindState(stateId);
+    std::unordered_set<int> visited;
+    while (state && state->entrySubStateId >= 0 && visited.insert(state->id).second)
+    {
+        const State* child = FindState(state->entrySubStateId);
+        if (!child || child->parentStateId != state->id) break;
+        state = child;
+    }
+    return state ? state->id : -1;
+}
+
+std::vector<int> AIFlow::BuildStatePath(int stateId) const
+{
+    std::vector<int> path;
+    std::unordered_set<int> visited;
+    const State* state = FindState(stateId);
+    while (state && visited.insert(state->id).second)
+    {
+        path.push_back(state->id);
+        state = FindState(state->parentStateId);
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
+bool AIFlow::IsDescendantOf(int stateId, int ancestorStateId) const
+{
+    const State* state = FindState(stateId);
+    std::unordered_set<int> visited;
+    while (state && visited.insert(state->id).second)
+    {
+        if (state->parentStateId == ancestorStateId) return true;
+        state = FindState(state->parentStateId);
+    }
+    return false;
+}
+
+void AIFlow::InvokeState(
+    int stateId,
+    StateCallback StateCallbacks::* callbackMember)
+{
+    const State* state = FindState(stateId);
     if (!state) return;
 
     const auto found = boundCallbacks.find(state->id);
@@ -635,6 +798,15 @@ void AIFlow::Invoke(StateCallback StateCallbacks::* callbackMember)
 
     const StateCallback& callback = found->second.*callbackMember;
     if (callback) callback(*state);
+}
+
+void AIFlow::InvokeActive(
+    StateCallback StateCallbacks::* callbackMember,
+    bool reverse)
+{
+    std::vector<int> path = BuildStatePath(currentStateId);
+    if (reverse) std::reverse(path.begin(), path.end());
+    for (int stateId : path) InvokeState(stateId, callbackMember);
 }
 
 AIFlow::Parameter* AIFlow::FindParameter(const std::string& name)
@@ -726,7 +898,8 @@ void AIFlow::DrawEditor(bool* open)
         }
 
         const bool isCurrent = state.id == currentStateId;
-        if (isCurrent)
+        const bool isActive = IsStateActive(state.id);
+        if (isActive)
         {
             ed::PushStyleColor(ed::StyleColor_NodeBg, ImVec4(0.06f, 0.28f, 0.10f, 0.96f));
             ed::PushStyleColor(ed::StyleColor_NodeBorder, ImVec4(0.2f, 0.85f, 0.3f, 1.0f));
@@ -738,8 +911,16 @@ void AIFlow::DrawEditor(bool* open)
         ImGui::TextUnformatted(state.name.c_str());
         if (isCurrent)
             ImGui::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), ">> RUNNING <<");
+        else if (isActive)
+            ImGui::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), ">> ACTIVE PARENT <<");
         ImGui::TextDisabled("Bind: %s", state.callbackName.empty() ? "None" : state.callbackName.c_str());
         if (state.id == entryStateId) ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Entry");
+        if (const State* parent = FindState(state.parentStateId))
+        {
+            ImGui::TextDisabled("Parent: %s", parent->name.c_str());
+            if (parent->entrySubStateId == state.id)
+                ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Sub Entry");
+        }
 
         ed::BeginPin(ToInputPinId(state.id), ed::PinKind::Input);
         ImGui::TextUnformatted(">");
@@ -751,7 +932,7 @@ void AIFlow::DrawEditor(bool* open)
         ImGui::PopID();
         ed::EndNode();
 
-        if (isCurrent)
+        if (isActive)
         {
             ed::PopStyleVar();
             ed::PopStyleColor(2);
@@ -895,12 +1076,27 @@ void AIFlow::DrawEditor(bool* open)
         {
             ImGui::TextUnformatted(state->name.c_str());
             ImGui::Separator();
-            if (ImGui::MenuItem("Set As Entry")) entryStateId = stateId;
+            if (state->parentStateId < 0)
+            {
+                if (ImGui::MenuItem("Set As Entry")) SetEntryState(stateId);
+            }
+            else if (ImGui::MenuItem("Set As Sub Entry"))
+            {
+                SetEntrySubState(state->parentStateId, stateId);
+            }
             if (ImGui::MenuItem("Delete State"))
             {
                 editor->positionedStateIds.erase(stateId);
                 editor->selectedStateId = -1;
                 RemoveState(stateId);
+            }
+            else if (ImGui::MenuItem("+ Sub State"))
+            {
+                State& child = AddSubState(stateId, "New Sub State");
+                editor->pendingStateId = child.id;
+                editor->pendingStatePosition = ImVec2(
+                    editor->contextMenuPosition.x + 180.0f,
+                    editor->contextMenuPosition.y + 120.0f);
             }
         }
         ImGui::EndPopup();
@@ -991,7 +1187,29 @@ void AIFlow::DrawEditor(bool* open)
         ImGui::Text("State ID: %d", state->id);
         ImGui::InputText("Name", &state->name);
         if (ImGui::InputText("Callback", &state->callbackName)) BindCallbacks();
-        if (ImGui::Button("Set As Entry")) entryStateId = state->id;
+        const State* parent = FindState(state->parentStateId);
+        const char* parentPreview = parent ? parent->name.c_str() : "None (Root)";
+        int selectedParentId = state->parentStateId;
+        if (ImGui::BeginCombo("Parent", parentPreview))
+        {
+            if (ImGui::Selectable("None (Root)", selectedParentId < 0)) selectedParentId = -1;
+            for (const State& candidate : states)
+            {
+                if (candidate.id == state->id || IsDescendantOf(candidate.id, state->id)) continue;
+                if (ImGui::Selectable(candidate.name.c_str(), selectedParentId == candidate.id))
+                    selectedParentId = candidate.id;
+            }
+            ImGui::EndCombo();
+        }
+        if (selectedParentId != state->parentStateId) SetParentState(state->id, selectedParentId);
+        if (state->parentStateId < 0)
+        {
+            if (ImGui::Button("Set As Entry")) SetEntryState(state->id);
+        }
+        else if (ImGui::Button("Set As Sub Entry"))
+        {
+            SetEntrySubState(state->parentStateId, state->id);
+        }
         ImGui::SameLine();
         if (ImGui::Button("Delete State"))
         {
@@ -1010,7 +1228,7 @@ void AIFlow::DrawEditor(bool* open)
             "%s -> %s",
             sourceState ? sourceState->name.c_str() : "Missing",
             targetState ? targetState->name.c_str() : "Missing");
-        const bool sourceIsCurrent = sourceState && sourceState->id == currentStateId;
+        const bool sourceIsCurrent = sourceState && IsStateActive(sourceState->id);
         const bool transitionPasses = EvaluateTransition(*transition);
         ImGui::TextColored(
             sourceIsCurrent
@@ -1177,7 +1395,7 @@ void AIFlow::DrawEditor(bool* open)
         State* sourceState = nullptr;
         if (Transition* changedTransition = FindTransition(changedTransitionId, &sourceState))
         {
-            if (sourceState && sourceState->id == currentStateId)
+            if (sourceState && IsStateActive(sourceState->id))
                 EvaluateTransitions();
         }
     }

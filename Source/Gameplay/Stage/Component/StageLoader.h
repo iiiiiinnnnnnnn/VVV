@@ -1,11 +1,9 @@
-﻿// StageLoader.h
-
-#pragma once
+﻿#pragma once
 #include "Resource/VMDLModel.h"
-#include "Rendering/Core/VMatRenderParams.h"
 
 #include <imgui.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -22,21 +20,31 @@
 class Prop;
 class CrystalProp;
 class ParticleSystem;
+class Spawner;
 class Stage;
 
 class StageLoader : public Component
 {
-public:
+  public:
+	enum class EditorObjectType
+	{
+		None,
+		Prop
+	};
+
+	struct EditorObjectReference
+	{
+		EditorObjectType type = EditorObjectType::None;
+		int index = -1;
+		Transform* transform = nullptr;
+	};
+
 	StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath);
 	StageLoader(Object* owner, Stage* stage, const std::string& jsonText, bool fromMemory);
 	~StageLoader() = default;
 
 	void Update() override;
-	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	void DrawPropGUI();
-	void DrawSpawnerGUI();
-	void DrawCrystalGUI();
 	const char* GetDebugName() const override { return ICON_FA_BOX " StageLoader"; }
 
 	void LoadJson();
@@ -46,113 +54,86 @@ public:
 	void SetCrystalBreakParticleSystem(ParticleSystem* particleSystem);
 	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&)>;
 	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);
-	void SpawnEntities();
+	std::vector<Spawner*> GetSpawners() const;
+	void SetEditorModels(
+		const std::unordered_map<std::string, std::shared_ptr<VMDLModel>>* models)
+	{
+		editorModels = models;
+		editorSelectionBounds.clear();
+	}
+	std::vector<EditorObjectReference> GetEditorObjects();
+	bool SelectEditorObject(EditorObjectType type, int index);
+	bool SelectEditorActor(const Actor* actor);
+	bool SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction);
+	void ClearEditorSelection();
+	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint);
+	bool BuildEditorPropTransform(
+		VMDLModel& model, const Vector3& placementPoint, Transform& transform);
+	EditorObjectType GetSelectedEditorObjectType() const { return selectedEditorObjectType; }
+	int GetSelectedEditorObjectIndex() const { return selectedEditorObjectIndex; }
+	Transform* GetSelectedEditorTransform();
+	void RefreshSelectedEditorObject();
 
-private:
+  private:
 	friend class Prop;
 	friend class CrystalProp;
-
-	enum class AddType
-	{
-		Spawner,
-		Prop,
-		Crystal
-	} addType = AddType::Spawner;
+	static constexpr const char* PlacementColliderName = "PLACEMENT";
 
 	struct RigidbodyData
 	{
 		bool isDynamic = false;
 		void DrawGUI()
 		{
-			if (ImGui::TreeNode(ICON_FA_WEIGHT_HANGING " Rigidbody Data"))
+			if (ImGui::TreeNode((const char*)u8"リジッドボディ設定"))
 			{
-				ImGui::Checkbox("Is Dynamic", &isDynamic);
+				ImGui::Checkbox((const char*)u8"動的オブジェクト", &isDynamic);
 				ImGui::TreePop();
 			}
 		}
 	};
 
-	struct BoxColliderData
+	enum class PropType
 	{
-		Vector3 size = Vector3::One;
-		Vector3 localPosition = Vector3::Zero;
-		float staticFriction = 0.5f;
-		float dynamicFriction = 0.5f;
-		float restitution = 0.1f;
-		void DrawGUI()
-		{
-			if (ImGui::TreeNode(ICON_FA_SHAPES " BoxCollider Data"))
-			{
-				ImGui::DragFloat3("Size", &size.x, 0.01f);
-				ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
-				ImGui::DragFloat("Static Friction", &staticFriction, 0.01f, 0.0f, 1.0f);
-				ImGui::DragFloat("Dynamic Friction", &dynamicFriction, 0.01f, 0.0f, 1.0f);
-				ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f);
-				ImGui::TreePop();
-			}
-		}
-	};
-
-	struct SpawnerData
-	{
-		Transform transform = {};
-		BoxColliderData boxColliderData = {};
-		std::string entityName = "EnemySmall";
-	} addSpawnerData = {};
-	std::vector<SpawnerData> spawnerDataList = {};
-
-	enum class ColliderType
-	{
-		Box,
-		Mesh
+		Standard,
+		Crystal
 	};
 
 	struct PropData
 	{
+		std::string name = "Prop";
+		std::string tag = "Prop";
+		PropType type = PropType::Standard;
 		Transform transform = {};
-		BoxColliderData boxColliderData = {};
 		RigidbodyData rigidbodyData = {};
-		ColliderType colliderType = ColliderType::Box;
 		std::string modelPath = "";
-		Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-		Color emission = Color(0.0f, 0.0f, 0.0f, 0.0f);
-		float metallic = 0.0f;
-		float roughness = 0.5f;
-		float occlusion = 1.0f;
-		float occlusionStrength = 1.0f;
-		float shadowStrength = 1.0f;
-		bool isFlatShading = false;
 		bool useDestroy = false;
 		float destroyLife = 0.0f;
-
-		VMatMaterialParams MakeVMatParams() const;
+		uint32_t destroyLayerMask = 0;
+		bool isSpawner = false;
+		std::string spawnerEntityName = "EnemySmall";
 
 		std::shared_ptr<VMDLModel> model = nullptr;
-		VMatRenderParams renderParams = {};
-
-	} addPropData = {};
-	std::vector<PropData> propDataList = {};
-
-	struct CrystalData
-	{
-		Transform transform = {};
+		bool editorPreview = false;
 	};
-
-	CrystalData addCrystalData = {};
-	std::vector<CrystalData> crystalDataList = {};
-	void DrawPBRParamsGUI(PropData& propData);
-	void DrawColliderTypeGUI(PropData& propData);
+	std::vector<PropData> propDataList = {};
 	void DrawDestroyGUI(PropData& propData);
-	void DrawCrystalDataGUI(CrystalData& crystalData);
-	void DrawEditorGUI(bool singleSection);
+	void DrawEditorGUI();
+	Actor* CreatePropActor(PropData& propData);
+	void ConfigureSpawner(Actor* actor, const PropData& propData);
+	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;
+	Vector3 GetPropPlacementOffset(VMDLModel& model);
+	static uint32_t GetDefaultDestroyLayerMask();
 
 	std::filesystem::path jsonPath = {};
 	std::string jsonText;
 	Stage* stage = nullptr;
 	ParticleSystem* crystalBreakParticleSystem = nullptr;
 	std::vector<Actor*> addedRealActors = {};
-	std::vector<Prop*> addedPropActors = {};
-	std::vector<CrystalProp*> addedCrystalActors = {};
+	std::vector<Actor*> addedPropActors = {};
 	std::unordered_map<std::string, SpawnerFactory> spawnerFactories = {};
-	std::vector<std::weak_ptr<Actor>> spawnedActors = {};
+	const std::unordered_map<std::string, std::shared_ptr<VMDLModel>>* editorModels = nullptr;
+	std::unordered_map<std::string, DirectX::BoundingBox> editorSelectionBounds;
+	EditorObjectType selectedEditorObjectType = EditorObjectType::None;
+	int selectedEditorObjectIndex = -1;
+	Transform selectedEditorTransform;
 };

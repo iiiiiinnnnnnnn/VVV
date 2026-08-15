@@ -1,5 +1,3 @@
-// CapsuleCollider.cpp
-
 #include "Physics/Collider/CapsuleCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"

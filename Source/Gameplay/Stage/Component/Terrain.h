@@ -1,13 +1,12 @@
-﻿// Terrain.h
-
 #pragma once
+
 #include <d3d11.h>
 #include <wrl.h>
 #include <DirectXTex.h>
 
 #include <array>
-#include <filesystem>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -18,27 +17,54 @@
 class Terrain : public Component
 {
 public:
+	// 基本処理
+
 	Terrain(Object* owner);
 	~Terrain() override = default;
 
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	void ApplyDistanceFogSettings(RenderSettings& settings) const;
 	const char* GetDebugName() const override { return ICON_FA_MOUNTAIN " Terrain"; }
+
+	// 描画
 
 	void RenderShadowMap(
 		ID3D11DeviceContext* dc,
 		const Matrix& lightViewProjection);
+	void ApplyDistanceFogSettings(RenderSettings& settings) const;
+
+	// 地形変形
 
 	float GetHeightByUV(float u, float v) const;
+	float GetSurfaceHeightByUV(float u, float v) const;
+	void Deform(const Vector3& worldPosition, const Vector3& direction, float power);
+
+	// 地形設定
+
 	float GetTerrainSize() const { return terrainSize; }
+	void SetTerrainSize(float value);
+
+	int GetGridResolution() const { return gridResolution; }
+	void SetGridResolution(int value);
+
+	float GetTessellationEdgeFactor() const { return tesselation_constant.edge_factor; }
+	void SetTessellationEdgeFactor(float value);
+
+	float GetTessellationInnerFactor() const { return tesselation_constant.inner_factor; }
+	void SetTessellationInnerFactor(float value);
+
+	float GetHeightScaler() const { return tesselation_constant.height_scaler; }
+	void SetHeightScaler(float value);
+
+	float GetTilingScale() const { return tesselation_constant.tilling_scale; }
+	void SetTilingScale(float value);
+
 	int GetHeightMapWidth() const { return TerrainTextureWidth; }
 	int GetHeightMapHeight() const { return TerrainTextureHeight; }
-	int GetGridResolution() const { return gridResolution; }
-	float GetTessellationEdgeFactor() const { return tesselation_constant.edge_factor; }
-	float GetTessellationInnerFactor() const { return tesselation_constant.inner_factor; }
-	float GetHeightScaler() const { return tesselation_constant.height_scaler; }
+
+	// コライダー
+
 	uint64_t GetTerrainDataHash() const;
 	std::filesystem::path GetColliderVertexPath() const;
 	bool BuildGpuColliderMesh(
@@ -48,6 +74,9 @@ public:
 		float maxZ,
 		std::vector<Vector3>& vertices,
 		std::vector<uint32_t>& indices);
+	void BakeCollider();
+
+	// 保存と読み込み
 
 	bool SaveTerrainTexture(const std::string& filename);
 	bool LoadTerrainTexture(const std::string& filename);
@@ -56,14 +85,24 @@ public:
 	std::string SaveSettingsJson() const;
 	bool LoadSettingsJson(const std::string& text);
 	void UseEmbeddedStorage() { terrainFilePath.clear(); }
-	void BakeCollider();
 
-	bool AddBrushTexture(const std::string& filename);
-	bool SetBrushTexture(int index);
+	// ブラシ
+
 	int GetBrushTextureIndex() const { return currentBrushIndex; }
+	bool SetBrushTexture(int index);
+
 	int GetBrushTextureCount() const { return static_cast<int>(brushes.size()); }
+	bool AddBrushTexture(const std::string& filename);
 
 private:
+	// 定数
+
+	static constexpr int MaxTerrainLayers = 16;
+	static constexpr int TerrainTextureWidth = 1024;
+	static constexpr int TerrainTextureHeight = 1024;
+
+	// ブラシモード
+
 	enum class BrushMode
 	{
 		RaiseLower,
@@ -71,7 +110,7 @@ private:
 		Paint,
 	};
 
-	static constexpr int MaxTerrainLayers = 16;
+	// 頂点
 
 	struct TerrainVertex
 	{
@@ -79,6 +118,8 @@ private:
 		Vector3 normal;
 		Vector2 texcoord;
 	};
+
+	// 定数バッファ
 
 	struct CbShadowMap
 	{
@@ -159,6 +200,14 @@ private:
 		int dummy1;
 	};
 
+	struct CbTerrainLayer
+	{
+		int layerCount = 0;
+		int dummy[3] = {};
+	};
+
+	// ブラシ
+
 	struct TerrainBrush
 	{
 		std::string name;
@@ -169,6 +218,8 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 	};
 
+	// 地形レイヤー
+
 	struct TerrainLayer
 	{
 		std::string name;
@@ -178,17 +229,19 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalView;
 	};
 
-	struct CbTerrainLayer
-	{
-		int layerCount = 0;
-		int dummy[3] = {};
-	};
-
-	static constexpr int TerrainTextureWidth = 1024;
-	static constexpr int TerrainTextureHeight = 1024;
+	// GPUリソース生成
 
 	void InitializeGpuResources();
 	void CreateGridMesh(ID3D11Device* device);
+	void CreateTerrainTexture(ID3D11Device* device);
+	void UploadTerrainTexture(ID3D11DeviceContext* dc);
+	void ClearTerrainTexture();
+	bool LoadTerrainImage(
+		const DirectX::TexMetadata& sourceMetadata,
+		const DirectX::ScratchImage& sourceImage);
+
+	// 地形メッシュ
+
 	void BuildTerrainMesh(
 		float minX,
 		float maxX,
@@ -197,10 +250,8 @@ private:
 		std::vector<TerrainVertex>& vertices,
 		std::vector<uint32_t>& indices) const;
 	void MarkTerrainMeshDirty();
-	void CreateTerrainTexture(ID3D11Device* device);
-	void UploadTerrainTexture(ID3D11DeviceContext* dc);
-	void ClearTerrainTexture();
-	bool LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const DirectX::ScratchImage& sourceImage);
+
+	// 定数バッファ更新
 
 	void UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc);
 	void UpdateTerrainSceneConstantBuffer(
@@ -216,27 +267,43 @@ private:
 		int pcfKernelSize);
 	void UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc);
 
+	// 地形編集
+
 	void PaintByMouse(const RenderContext& rc);
-	bool ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const;
+	bool ScreenToTerrainUV(
+		const RenderContext& rc,
+		float& outU,
+		float& outV) const;
 	void ApplyBrush(float u, float v, float heightSign);
+
+	// ブラシ処理
 
 	const TerrainBrush* GetCurrentBrush() const;
 	float SampleBrushMask(float u, float v) const;
 	void DrawBrushGUI();
-	bool AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath);
-	void DrawTerrainLayerGUI();
-	float GetTerrainLayerValue(int layerIndex) const;
 
-private:
+	// 地形レイヤー処理
+
+	bool AddTerrainLayer(
+		const std::string& baseColorPath,
+		const std::string& normalPath);
+	float GetTerrainLayerValue(int layerIndex) const;
+	void DrawTerrainLayerGUI();
+
+	// 地形メッシュ設定
+
 	float terrainSize = 500.0f;
 	int gridResolution = 64;
 	UINT indexCount = 0;
-
 	CbTessellation tesselation_constant;
+
+	// 地形メッシュ
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
 	bool terrainMeshDirty = true;
+
+	// 定数バッファ
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> materialConstantBuffer;
@@ -246,6 +313,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainLayerConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainColliderBuildConstantBuffer;
 
+	// シェーダー
+
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrainVertexShader;
 	Microsoft::WRL::ComPtr<ID3D11HullShader> terrainHullShader;
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> terrainDomainShader;
@@ -253,29 +322,39 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> terrainColliderBuildComputeShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> terrainInputLayout;
 
+	// 地形テクスチャ
+
 	std::vector<Vector4> terrainPixels;
 	bool terrainTextureDirty = true;
 	bool is_terrain_texture_clear_color = true;
 	Color terrain_texture_clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
-
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> terrainTexture;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> terrainTextureShaderResourceView;
+
+	// 地形レイヤー
 
 	std::vector<TerrainLayer> terrainLayers;
 	int currentTerrainLayerIndex = 0;
 
+	// マテリアル
+
 	Color baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
-	Color emissiveColor = {0, 0, 0, 1};
+	Color emissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
 	float metalness = 0.0f;
 	float roughness = 1.0f;
 	float occlusion = 1.0f;
 	float occlusionStrength = 1.0f;
 	float shadowStrength = 0.85f;
+
+	// 距離フォグ
+
 	bool distanceFogEnabled = true;
 	float distanceFogStart = 18.0f;
 	float distanceFogEnd = 65.0f;
 	float distanceFogStrength = 0.9f;
 	Color distanceFogColor = {0.38f, 0.46f, 0.54f, 1.0f};
+
+	// 地形ブラシ
 
 	bool use_brush = false;
 	BrushMode brushMode = BrushMode::RaiseLower;
@@ -284,9 +363,10 @@ private:
 	float setHeightValue = 0.0f;
 	float paintOpacity = 0.08f;
 	bool invertBrushMask = false;
-
 	std::vector<TerrainBrush> brushes;
 	int currentBrushIndex = -1;
+
+	// 保存状態
 
 	std::string terrainFilePath;
 	std::string terrainIoMessage;

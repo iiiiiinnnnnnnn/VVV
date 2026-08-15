@@ -1,5 +1,3 @@
-// AIFlow.h
-
 #pragma once
 
 #include <functional>
@@ -67,6 +65,8 @@ public:
     struct State
     {
         int id = -1;
+        int parentStateId = -1;
+        int entrySubStateId = -1;
         std::string name = "State";
         std::string callbackName;
         std::vector<Transition> transitions;
@@ -105,11 +105,14 @@ public:
     void BindCallbacks();
 
     State& AddState(const std::string& name, const std::string& callbackName = "");
+    State& AddSubState(int parentStateId, const std::string& name, const std::string& callbackName = "");
     Transition& AddTransition(int sourceStateId, int targetStateId);
     bool RemoveState(int stateId);
     bool RemoveTransition(int transitionId);
     void ClearGraph();
-    void SetEntryState(int stateId) { entryStateId = stateId; }
+    void SetEntryState(int stateId);
+    bool SetParentState(int stateId, int parentStateId);
+    bool SetEntrySubState(int parentStateId, int stateId);
 
     bool Load(const std::string& path);
     bool Save(const std::string& path) const;
@@ -125,6 +128,7 @@ public:
 
     int GetCurrentStateId() const { return currentStateId; }
     const State* GetCurrentState() const;
+    bool IsStateActive(int stateId) const;
     const std::vector<State>& GetStates() const { return states; }
     std::vector<State>& GetStates() { return states; }
     const std::vector<Parameter>& GetParameters() const { return parameters; }
@@ -148,7 +152,11 @@ private:
     void EvaluateTransitions();
     bool EvaluateTransition(const Transition& transition) const;
     bool EvaluateCondition(const Condition& condition) const;
-    void Invoke(StateCallback StateCallbacks::* callbackMember);
+    int ResolveEntryState(int stateId) const;
+    std::vector<int> BuildStatePath(int stateId) const;
+    bool IsDescendantOf(int stateId, int ancestorStateId) const;
+    void InvokeState(int stateId, StateCallback StateCallbacks::* callbackMember);
+    void InvokeActive(StateCallback StateCallbacks::* callbackMember, bool reverse = false);
     Parameter* FindParameter(const std::string& name);
     const Parameter* FindParameter(const std::string& name) const;
     void DrawEditor(bool* open);
@@ -165,4 +173,5 @@ private:
     int nextTransitionId = 1;
     bool editorOpen = false;
     bool pendingEnter = true;
+    float stateTime = 0.0f;
 };

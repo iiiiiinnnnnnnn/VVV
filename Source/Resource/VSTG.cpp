@@ -1,8 +1,7 @@
-﻿// VSTG.cpp
-
-#include "Resource/VSTG.h"
+﻿#include "Resource/VSTG.h"
 
 #include <fstream>
+#include <functional>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -33,52 +32,58 @@ Vector3 LoadVector3(const json& value, const Vector3& fallback = Vector3::Zero)
 Color LoadColor(const json& value, const Color& fallback = Color(1, 1, 1, 1))
 {
 	if (!value.is_array() || value.size() < 4) return fallback;
-	return {value[0].get<float>(), value[1].get<float>(), value[2].get<float>(), value[3].get<float>()};
+	return {
+		value[0].get<float>(), value[1].get<float>(), value[2].get<float>(), value[3].get<float>()};
 }
 
 json SaveLight(const Light& light)
 {
-	return {
-		{"name", light.GetName()},
-		{"active", light.IsActive()},
-		{"color", SaveColor(light.GetColor())},
-		{"intensity", light.GetIntensity()},
+	return {{"name", light.GetName()}, {"active", light.IsActive()},
+		{"color", SaveColor(light.GetColor())}, {"intensity", light.GetIntensity()},
 		{"position", SaveVector3(light.transform.position)},
-		{"rotation", {light.transform.rotation.x, light.transform.rotation.y, light.transform.rotation.z, light.transform.rotation.w}}
-	};
+		{"rotation", {light.transform.rotation.x, light.transform.rotation.y,
+						 light.transform.rotation.z, light.transform.rotation.w}}};
 }
 
 void LoadLight(const json& value, Light& light)
 {
 	light.SetName(value.value("name", light.GetName()));
 	light.SetActive(value.value("active", true));
-	light.SetColor(LoadColor(value["color"]));
-	light.SetIntensity(value["intensity"].get<float>());
+	if (value.contains("color"))
+	{
+		const Color color = LoadColor(value["color"]);
+		light.SetColor(color);
+		light.SetIntensity(value.value("intensity", color.w));
+	}
+	else
+	{
+		light.SetIntensity(value.value("intensity", light.GetIntensity()));
+	}
 	if (value.contains("position")) light.transform.position = LoadVector3(value["position"]);
 	if (value.contains("rotation") && value["rotation"].is_array() && value["rotation"].size() >= 4)
 	{
-		light.transform.rotation = {
-			value["rotation"][0].get<float>(), value["rotation"][1].get<float>(),
-			value["rotation"][2].get<float>(), value["rotation"][3].get<float>()};
+		light.transform.rotation = {value["rotation"][0].get<float>(),
+			value["rotation"][1].get<float>(), value["rotation"][2].get<float>(),
+			value["rotation"][3].get<float>()};
 	}
 	light.transform.Update();
 }
 
-template<typename T>
-bool Read(std::ifstream& stream, T& value)
+template <typename T> bool Read(std::ifstream& stream, T& value)
 {
 	return static_cast<bool>(stream.read(reinterpret_cast<char*>(&value), sizeof(value)));
 }
 
-template<typename T>
-void Write(std::ofstream& stream, const T& value)
+template <typename T> void Write(std::ofstream& stream, const T& value)
 {
 	stream.write(reinterpret_cast<const char*>(&value), sizeof(value));
 }
-}
+} // namespace
 
 bool VSTG::Load(const std::filesystem::path& path)
 {
+	terrainSettingsJson.clear();
+	navMeshSettingsJson.clear();
 	std::ifstream stream(path, std::ios::binary);
 	if (!stream)
 	{
@@ -93,21 +98,12 @@ bool VSTG::Load(const std::filesystem::path& path)
 	uint64_t terrainSettingsSize = 0;
 	uint64_t navMeshSettingsSize = 0;
 	stream.read(magic, sizeof(magic));
-	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) || !Read(stream, terrainSize) ||
-		std::string(magic, sizeof(magic)) != "VSTG" ||
+	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) ||
+		!Read(stream, terrainSize) || !Read(stream, terrainSettingsSize) ||
+		!Read(stream, navMeshSettingsSize) || std::string(magic, sizeof(magic)) != "VSTG" ||
 		version != VstgVersion)
 	{
 		error = "Invalid VSTG header.";
-		return false;
-	}
-	if (!Read(stream, terrainSettingsSize))
-	{
-		error = "Invalid VSTG terrain settings header.";
-		return false;
-	}
-	if (!Read(stream, navMeshSettingsSize))
-	{
-		error = "Invalid VSTG NavMesh settings header.";
 		return false;
 	}
 	lightingJson.resize(static_cast<size_t>(lightingSize));
@@ -117,7 +113,8 @@ bool VSTG::Load(const std::filesystem::path& path)
 	navMeshSettingsJson.resize(static_cast<size_t>(navMeshSettingsSize));
 	stream.read(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.read(stageJson.data(), static_cast<std::streamsize>(stageSize));
-	stream.read(reinterpret_cast<char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
+	stream.read(
+		reinterpret_cast<char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
 	stream.read(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
 	stream.read(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
 	if (!stream)
@@ -132,7 +129,8 @@ bool VSTG::Load(const std::filesystem::path& path)
 bool VSTG::Save(const std::filesystem::path& path) const
 {
 	std::error_code directoryError;
-	if (!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path(), directoryError);
+	if (!path.parent_path().empty())
+		std::filesystem::create_directories(path.parent_path(), directoryError);
 	if (directoryError)
 	{
 		error = "VSTG directory could not be created.";
@@ -158,7 +156,8 @@ bool VSTG::Save(const std::filesystem::path& path) const
 	Write(stream, navMeshSettingsSize);
 	stream.write(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
 	stream.write(stageJson.data(), static_cast<std::streamsize>(stageSize));
-	stream.write(reinterpret_cast<const char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
+	stream.write(reinterpret_cast<const char*>(terrainDds.data()),
+		static_cast<std::streamsize>(terrainSize));
 	stream.write(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
 	stream.write(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
 	error = stream ? "" : "VSTG write failed.";
@@ -166,10 +165,7 @@ bool VSTG::Save(const std::filesystem::path& path) const
 }
 
 bool VSTG::Capture(
-	Terrain& terrain,
-	NavMeshActor& navMesh,
-	StageLoader& stageLoader,
-	const LightManager& lights)
+	Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader, const LightManager& lights)
 {
 	if (!terrain.SaveTerrainMemory(terrainDds))
 	{
@@ -185,10 +181,7 @@ bool VSTG::Capture(
 }
 
 bool VSTG::Apply(
-	Terrain& terrain,
-	NavMeshActor& navMesh,
-	StageLoader& stageLoader,
-	LightManager& lights) const
+	Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader, LightManager& lights) const
 {
 	if (!terrain.LoadSettingsJson(terrainSettingsJson))
 	{
@@ -213,6 +206,18 @@ bool VSTG::Apply(
 	}
 	error.clear();
 	return true;
+}
+
+size_t VSTG::BuildEditorStateHash(const Terrain& terrain, const NavMeshActor& navMesh,
+	StageLoader& stageLoader, const LightManager& lights) const
+{
+	size_t hash = static_cast<size_t>(terrain.GetTerrainDataHash());
+	const std::hash<std::string> stringHash;
+	hash ^= stringHash(terrain.SaveSettingsJson()) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	hash ^= stringHash(navMesh.SaveSettingsJson()) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	hash ^= stringHash(stageLoader.SaveJsonText()) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	hash ^= stringHash(BuildLightingJson(lights)) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	return hash;
 }
 
 std::string VSTG::BuildLightingJson(const LightManager& lights) const
@@ -257,7 +262,8 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 	{
 		const json root = json::parse(text);
 		if (root.contains("ambient")) lights.SetAmbientColor(LoadColor(root["ambient"]));
-		if (root.contains("directional")) LoadLight(root["directional"], lights.GetDirectionalLight());
+		if (root.contains("directional"))
+			LoadLight(root["directional"], lights.GetDirectionalLight());
 		lights.GetPointLights().clear();
 		lights.GetSpotLights().clear();
 		lights.GetAreaLights().clear();

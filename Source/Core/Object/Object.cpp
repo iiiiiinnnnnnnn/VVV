@@ -1,6 +1,4 @@
-﻿// Object.cpp
-
-#include "Core/Object/Object.h"
+﻿#include "Core/Object/Object.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/RenderContext.h"
@@ -104,13 +102,13 @@ void Object::Render(const RenderContext& rc)
 
 void Object::DrawGUI()
 {
-    if (ImGui::TreeNode("Object Info"))
+    if (ImGui::TreeNode((const char*)u8"オブジェクト情報"))
     {
-        ImGui::Checkbox("Active", &isActive);
-        ImGui::Text("Name: %s, Tag: %s", name.c_str(), tag.c_str());
-        ImGui::Text("Destroy Timer: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : "N/A");
+        ImGui::Checkbox((const char*)u8"有効", &isActive);
+        ImGui::Text((const char*)u8"名前: %s、タグ: %s", name.c_str(), tag.c_str());
+        ImGui::Text((const char*)u8"破棄タイマー: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : (const char*)u8"なし");
 
-        if (ImGui::Button("Destroy"))
+        if (ImGui::Button((const char*)u8"破棄"))
             Destroy();
 
         ImGui::TreePop();

@@ -1,6 +1,4 @@
-// NavMeshActor.cpp
-
-#include "Physics/Navigation/NavMeshActor.h"
+﻿#include "Physics/Navigation/NavMeshActor.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Actor/ActorManager.h"
@@ -19,16 +17,14 @@
 
 NavMeshActor* NavMeshActor::active = nullptr;
 
-NavMeshActor::NavMeshActor(Object* owner)
-	: Component(owner)
+NavMeshActor::NavMeshActor(Object* owner) : Component(owner)
 {
 	active = this;
 }
 
 NavMeshActor::~NavMeshActor()
 {
-	if (active == this)
-		active = nullptr;
+	if (active == this) active = nullptr;
 
 	Release();
 }
@@ -49,12 +45,14 @@ void NavMeshActor::Release()
 
 	built = false;
 	debugCells.clear();
+	navTiles.clear();
+	tileCountX = 0;
+	tileCountZ = 0;
 }
 
 void NavMeshActor::Update()
 {
-	if (!buildRequested)
-		return;
+	if (!buildRequested && !regionBuildRequested) return;
 
 	if (buildDelayFrames > 0)
 	{
@@ -62,13 +60,45 @@ void NavMeshActor::Update()
 		return;
 	}
 
-	buildRequested = false;
-	Build();
+	if (buildRequested)
+	{
+		buildRequested = false;
+		regionBuildRequested = false;
+		Build();
+		return;
+	}
+
+	regionBuildRequested = false;
+	RebuildRegion();
 }
 
 void NavMeshActor::RequestBuild(int delayFrames)
 {
 	buildRequested = true;
+	regionBuildRequested = false;
+	buildDelayFrames = std::max(delayFrames, 0);
+}
+
+void NavMeshActor::RequestBuildRegion(const Vector3& center, float radius, int delayFrames)
+{
+	radius = std::max(radius, 0.0f);
+	const Vector3 regionRadius(radius, 0.0f, radius);
+	const Vector3 regionMin = center - regionRadius;
+	const Vector3 regionMax = center + regionRadius;
+	if (!regionBuildRequested)
+	{
+		rebuildRegionMin = regionMin;
+		rebuildRegionMax = regionMax;
+	}
+	else
+	{
+		rebuildRegionMin.x = std::min(rebuildRegionMin.x, regionMin.x);
+		rebuildRegionMin.z = std::min(rebuildRegionMin.z, regionMin.z);
+		rebuildRegionMax.x = std::max(rebuildRegionMax.x, regionMax.x);
+		rebuildRegionMax.z = std::max(rebuildRegionMax.z, regionMax.z);
+	}
+
+	regionBuildRequested = true;
 	buildDelayFrames = std::max(delayFrames, 0);
 }
 
@@ -94,9 +124,7 @@ void NavMeshActor::AddWalkableArea(const Vector3& center, const Vector3& size)
 {
 	WalkableArea area;
 	area.center = center;
-	area.size = Vector3(
-		std::max(fabsf(size.x), 0.1f),
-		std::max(fabsf(size.y), 0.1f),
+	area.size = Vector3(std::max(fabsf(size.x), 0.1f), std::max(fabsf(size.y), 0.1f),
 		std::max(fabsf(size.z), 0.1f));
 	walkableAreas.push_back(area);
 	RequestBuild();
@@ -124,10 +152,8 @@ std::string NavMeshActor::SaveSettingsJson() const
 
 	for (const WalkableArea& area : walkableAreas)
 	{
-		root["walkableAreas"].push_back({
-			{"center", {area.center.x, area.center.y, area.center.z}},
-			{"size", {area.size.x, area.size.y, area.size.z}}
-		});
+		root["walkableAreas"].push_back({{"center", {area.center.x, area.center.y, area.center.z}},
+			{"size", {area.size.x, area.size.y, area.size.z}}});
 	}
 	return root.dump();
 }
@@ -147,13 +173,8 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 		agentHeight = std::max(root.value("agentHeight", agentHeight), 0.1f);
 		agentRadius = std::max(root.value("agentRadius", agentRadius), 0.0f);
 		agentClimb = std::max(root.value("agentClimb", agentClimb), 0.0f);
-		agentMaxSlope = std::clamp(
-			root.value("agentMaxSlope", agentMaxSlope),
-			0.0f,
-			89.0f);
-		nearestPolyExtent = std::max(
-			root.value("nearestPolyExtent", nearestPolyExtent),
-			0.1f);
+		agentMaxSlope = std::clamp(root.value("agentMaxSlope", agentMaxSlope), 0.0f, 89.0f);
+		nearestPolyExtent = std::max(root.value("nearestPolyExtent", nearestPolyExtent), 0.1f);
 		navMinY = root.value("navMinY", navMinY);
 		navMaxY = root.value("navMaxY", navMaxY);
 		if (navMinY > navMaxY) std::swap(navMinY, navMaxY);
@@ -165,21 +186,15 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 			const json size = value.value("size", json::array());
 			if (center.size() < 3 || size.size() < 3) continue;
 			AddWalkableArea(
-				Vector3(
-					center[0].get<float>(),
-					center[1].get<float>(),
-					center[2].get<float>()),
-				Vector3(
-					size[0].get<float>(),
-					size[1].get<float>(),
-					size[2].get<float>()));
+				Vector3(center[0].get<float>(), center[1].get<float>(), center[2].get<float>()),
+				Vector3(size[0].get<float>(), size[1].get<float>(), size[2].get<float>()));
 		}
 		RequestBuild();
 		return true;
 	}
 	catch (const json::exception&)
 	{
-		statusMessage = "NavMesh settings load failed: invalid JSON.";
+		statusMessage = (const char*)u8"ナビメッシュ設定の読み込みに失敗しました（JSONが不正です）";
 		return false;
 	}
 }
@@ -204,15 +219,12 @@ void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) cons
 }
 
 bool NavMeshActor::IsBlockedByObstacle(
-	const Vector3& center,
-	const std::vector<ObstacleBounds>& obstacles,
-	float cellHalfSize) const
+	const Vector3& center, const std::vector<ObstacleBounds>& obstacles, float cellHalfSize) const
 {
 	for (const ObstacleBounds& obstacle : obstacles)
 	{
 		const Vector3 halfSize = obstacle.size * 0.5f;
-		const float inflate =
-			cellHalfSize + agentRadius;
+		const float inflate = cellHalfSize + agentRadius;
 
 		if (center.x < obstacle.center.x - halfSize.x - inflate) continue;
 		if (center.x > obstacle.center.x + halfSize.x + inflate) continue;
@@ -225,17 +237,14 @@ bool NavMeshActor::IsBlockedByObstacle(
 	return false;
 }
 
-bool NavMeshActor::IsInsideWalkableArea(
-	const Vector3& center,
-	float cellHalfSize) const
+bool NavMeshActor::IsInsideWalkableArea(const Vector3& center, float cellHalfSize) const
 {
 	if (walkableAreas.empty()) return true;
 
 	for (const WalkableArea& area : walkableAreas)
 	{
 		const Vector3 halfSize = area.size * 0.5f;
-		const float clearance =
-			cellHalfSize + agentRadius;
+		const float clearance = cellHalfSize + agentRadius;
 		if (center.x - clearance < area.center.x - halfSize.x) continue;
 		if (center.x + clearance > area.center.x + halfSize.x) continue;
 		if (center.y < area.center.y - halfSize.y) continue;
@@ -248,32 +257,29 @@ bool NavMeshActor::IsInsideWalkableArea(
 	return false;
 }
 
-bool NavMeshActor::IsSegmentInsideWalkableAreas(
-	const Vector3& start,
-	const Vector3& goal) const
+bool NavMeshActor::IsSegmentInsideWalkableAreas(const Vector3& start, const Vector3& goal) const
 {
 	if (walkableAreas.empty()) return true;
 
 	const Vector3 delta = goal - start;
 	const float horizontalDistance = Vector2(delta.x, delta.z).Length();
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
-	const float cellSize = terrain
-		? terrain->GetTerrainSize() / static_cast<float>(std::max(resolution, 1))
-		: 1.0f;
+	const float cellSize =
+		terrain ? terrain->GetTerrainSize() / static_cast<float>(std::max(resolution, 1)) : 1.0f;
 	const float sampleInterval = std::max(cellSize * 0.5f, 0.1f);
-	const int sampleCount = std::max(
-		static_cast<int>(ceilf(horizontalDistance / sampleInterval)),
-		1);
+	const int sampleCount =
+		std::max(static_cast<int>(ceilf(horizontalDistance / sampleInterval)), 1);
 
 	for (int index = 0; index <= sampleCount; ++index)
 	{
-		const float rate =
-			static_cast<float>(index) / static_cast<float>(sampleCount);
+		const float rate = static_cast<float>(index) / static_cast<float>(sampleCount);
 		if (!IsInsideWalkableArea(start + delta * rate, 0.0f)) return false;
 	}
 
 	return true;
 }
+
+// 動的地形用NavMeshタイル
 
 void NavMeshActor::Build()
 {
@@ -282,209 +288,282 @@ void NavMeshActor::Build()
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 	if (!terrain)
 	{
-		statusMessage = "NavMesh build skipped: Terrain not found.";
+		statusMessage = (const char*)u8"地形がないためナビメッシュを生成できません";
 		return;
 	}
 
+	const int grid = std::max(resolution, 2);
+	const float terrainSize = terrain->GetTerrainSize();
+	const float cellSize = terrainSize / static_cast<float>(grid);
+	const float halfTerrainSize = terrainSize * 0.5f;
+	tileCountX = (grid + CellsPerTile - 1) / CellsPerTile;
+	tileCountZ = (grid + CellsPerTile - 1) / CellsPerTile;
+
+	dtNavMeshParams params = {};
+	params.orig[0] = -halfTerrainSize;
+	params.orig[1] = navMinY;
+	params.orig[2] = -halfTerrainSize;
+	params.tileWidth = cellSize * CellsPerTile;
+	params.tileHeight = cellSize * CellsPerTile;
+	params.maxTiles = tileCountX * tileCountZ;
+	params.maxPolys = CellsPerTile * CellsPerTile * 2 + 1;
+
+	navMesh = dtAllocNavMesh();
+	if (!navMesh)
+	{
+		statusMessage = (const char*)u8"ナビメッシュのメモリ確保に失敗しました";
+		return;
+	}
+
+	if (dtStatusFailed(navMesh->init(&params)))
+	{
+		Release();
+		statusMessage = (const char*)u8"ナビメッシュの初期化に失敗しました";
+		return;
+	}
+
+	navTiles.resize(static_cast<size_t>(tileCountX) * tileCountZ);
 	std::vector<ObstacleBounds> obstacles;
 	CollectObstacles(obstacles);
+	for (int tileZ = 0; tileZ < tileCountZ; ++tileZ)
+	{
+		for (int tileX = 0; tileX < tileCountX; ++tileX)
+		{
+			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
+			{
+				Release();
+				statusMessage = (const char*)u8"ナビメッシュタイルの生成に失敗しました";
+				return;
+			}
+		}
+	}
 
+	navQuery = dtAllocNavMeshQuery();
+	if (!navQuery)
+	{
+		Release();
+		statusMessage = (const char*)u8"ナビメッシュ検索のメモリ確保に失敗しました";
+		return;
+	}
+
+	if (dtStatusFailed(navQuery->init(navMesh, 8192)))
+	{
+		Release();
+		statusMessage = (const char*)u8"ナビメッシュ検索の初期化に失敗しました";
+		return;
+	}
+
+	built = true;
+	RefreshDebugCells();
+	statusMessage = (const char*)u8"タイル生成完了  タイル=" +
+		std::to_string(tileCountX * tileCountZ) +
+		(const char*)u8" 障害物=" + std::to_string(obstacles.size());
+}
+
+bool NavMeshActor::BuildTile(
+	int tileX,
+	int tileZ,
+	Terrain& terrain,
+	const std::vector<ObstacleBounds>& obstacles)
+{
 	const int grid = std::max(resolution, 2);
-	const int nvp = 3;
-	const float terrainSize = terrain->GetTerrainSize();
+	const int minGridX = tileX * CellsPerTile;
+	const int minGridZ = tileZ * CellsPerTile;
+	const int maxGridX = std::min(minGridX + CellsPerTile, grid);
+	const int maxGridZ = std::min(minGridZ + CellsPerTile, grid);
+	const int cellCountX = maxGridX - minGridX;
+	const int cellCountZ = maxGridZ - minGridZ;
+	if (cellCountX <= 0 || cellCountZ <= 0) return true;
+
+	const int tileIndex = tileZ * tileCountX + tileX;
+	NavTile& tile = navTiles[tileIndex];
+	if (tile.reference)
+	{
+		unsigned char* oldData = nullptr;
+		int oldDataSize = 0;
+		navMesh->removeTile(tile.reference, &oldData, &oldDataSize);
+		dtFree(oldData);
+		tile.reference = 0;
+	}
+	tile.debugCells.clear();
+
+	constexpr int nvp = 3;
+	const float terrainSize = terrain.GetTerrainSize();
 	const float cellSize = terrainSize / static_cast<float>(grid);
 	const float cellHeight = 0.25f;
 	const float halfTerrainSize = terrainSize * 0.5f;
-
-	std::vector<unsigned short> verts;
+	std::vector<unsigned short> verts(
+		static_cast<size_t>(cellCountX + 1) * (cellCountZ + 1) * 3);
+	std::vector<Vector3> worldVertices(
+		static_cast<size_t>(cellCountX + 1) * (cellCountZ + 1));
 	std::vector<unsigned short> polys;
 	std::vector<unsigned short> flags;
 	std::vector<unsigned char> areas;
-	std::map<std::pair<int, int>, unsigned short> vertexRefs;
-	int blockedCellCount = 0;
-	int outsideAreaCellCount = 0;
-	int steepTriangleCount = 0;
-	bool capacityExceeded = false;
-	debugCells.clear();
 
-	auto makeDebugVertex = [&](int x, int z)
+	for (int localZ = 0; localZ <= cellCountZ; ++localZ)
 	{
-		const float u = static_cast<float>(x) / static_cast<float>(grid);
-		const float v = static_cast<float>(z) / static_cast<float>(grid);
-		return Vector3(
-			(u - 0.5f) * terrainSize,
-			terrain->GetHeightByUV(u, v) + 0.08f,
-			(v - 0.5f) * terrainSize);
-	};
-
-	auto pushDebugTriangle = [&](const Vector3& a, const Vector3& b, const Vector3& c, bool walkable)
-	{
-		DebugCell debugCell{};
-		debugCell.corners[0] = a;
-		debugCell.corners[1] = b;
-		debugCell.corners[2] = c;
-		debugCell.walkable = walkable;
-		debugCells.push_back(debugCell);
-	};
-
-	auto getVertex = [&](int x, int z)
-	{
-		const std::pair<int, int> key(x, z);
-		auto it = vertexRefs.find(key);
-		if (it != vertexRefs.end()) return it->second;
-
-		const size_t vertexCount = verts.size() / 3;
-		if (vertexCount >= 0xffff)
+		for (int localX = 0; localX <= cellCountX; ++localX)
 		{
-			capacityExceeded = true;
-			return static_cast<unsigned short>(0xffff);
-		}
-
-		const float u = static_cast<float>(x) / static_cast<float>(grid);
-		const float v = static_cast<float>(z) / static_cast<float>(grid);
-		const float height = terrain->GetHeightByUV(u, v);
-		const int quantizedHeight = std::clamp(
-			static_cast<int>((height - navMinY) / cellHeight),
-			0,
-			0xffff);
-		const unsigned short index = static_cast<unsigned short>(vertexCount);
-		verts.push_back(static_cast<unsigned short>(x));
-		verts.push_back(static_cast<unsigned short>(quantizedHeight));
-		verts.push_back(static_cast<unsigned short>(z));
-		vertexRefs[key] = index;
-		return index;
-	};
-
-	auto pushNavTriangle = [&](unsigned short a, unsigned short b, unsigned short c)
-	{
-		if (flags.size() >= 0xffff)
-		{
-			capacityExceeded = true;
-			return;
-		}
-
-		const int polyIndex = static_cast<int>(flags.size());
-		polys.resize(polys.size() + nvp * 2, 0xffff);
-		unsigned short* poly = &polys[static_cast<size_t>(polyIndex) * nvp * 2];
-		poly[0] = a;
-		poly[1] = b;
-		poly[2] = c;
-		flags.push_back(1);
-		areas.push_back(0);
-	};
-
-	const float minWalkableNormalY = cosf(RAD(agentMaxSlope));
-	auto isWalkableSlope = [minWalkableNormalY](
-		const Vector3& a,
-		const Vector3& b,
-		const Vector3& c)
-	{
-		Vector3 normal = (b - a).Cross(c - a);
-		if (normal.LengthSquared() <= eps) return false;
-		normal.Normalize();
-		return fabsf(normal.y) >= minWalkableNormalY;
-	};
-
-	for (int z = 0; z < grid; ++z)
-	{
-		for (int x = 0; x < grid; ++x)
-		{
-			const float u = (static_cast<float>(x) + 0.5f) / static_cast<float>(grid);
-			const float v = (static_cast<float>(z) + 0.5f) / static_cast<float>(grid);
-			Vector3 center(
+			const int gridX = minGridX + localX;
+			const int gridZ = minGridZ + localZ;
+			const float u = static_cast<float>(gridX) / static_cast<float>(grid);
+			const float v = static_cast<float>(gridZ) / static_cast<float>(grid);
+			const int vertexIndex = localZ * (cellCountX + 1) + localX;
+			Vector3& position = worldVertices[vertexIndex];
+			position = Vector3(
 				(u - 0.5f) * terrainSize,
-				terrain->GetHeightByUV(u, v),
+				terrain.GetHeightByUV(u, v),
 				(v - 0.5f) * terrainSize);
 
-			const Vector3 p0 = makeDebugVertex(x, z);
-			const Vector3 p1 = makeDebugVertex(x + 1, z);
-			const Vector3 p2 = makeDebugVertex(x, z + 1);
-			const Vector3 p3 = makeDebugVertex(x + 1, z + 1);
+			verts[static_cast<size_t>(vertexIndex) * 3] =
+				static_cast<unsigned short>(localX);
+			verts[static_cast<size_t>(vertexIndex) * 3 + 1] =
+				static_cast<unsigned short>(std::clamp(
+					static_cast<int>((position.y - navMinY) / cellHeight), 0, 0xffff));
+			verts[static_cast<size_t>(vertexIndex) * 3 + 2] =
+				static_cast<unsigned short>(localZ);
+		}
+	}
 
-			if (!IsInsideWalkableArea(center, cellSize * 0.5f))
-			{
-				++outsideAreaCellCount;
-				continue;
-			}
+	const float minWalkableNormalY = cosf(RAD(agentMaxSlope));
+	for (int localZ = 0; localZ < cellCountZ; ++localZ)
+	{
+		for (int localX = 0; localX < cellCountX; ++localX)
+		{
+			const int gridX = minGridX + localX;
+			const int gridZ = minGridZ + localZ;
+			const float u = (static_cast<float>(gridX) + 0.5f) / static_cast<float>(grid);
+			const float v = (static_cast<float>(gridZ) + 0.5f) / static_cast<float>(grid);
+			const Vector3 center(
+				(u - 0.5f) * terrainSize,
+				terrain.GetHeightByUV(u, v),
+				(v - 0.5f) * terrainSize);
+			if (!IsInsideWalkableArea(center, cellSize * 0.5f)) continue;
+
+			const unsigned short i0 =
+				static_cast<unsigned short>(localZ * (cellCountX + 1) + localX);
+			const unsigned short i1 = i0 + 1;
+			const unsigned short i2 = i0 + static_cast<unsigned short>(cellCountX + 1);
+			const unsigned short i3 = i2 + 1;
+			const Vector3& p0 = worldVertices[i0];
+			const Vector3& p1 = worldVertices[i1];
+			const Vector3& p2 = worldVertices[i2];
+			const Vector3& p3 = worldVertices[i3];
 
 			if (IsBlockedByObstacle(center, obstacles, cellSize * 0.5f))
 			{
-				++blockedCellCount;
-				pushDebugTriangle(p0, p2, p1, false);
-				pushDebugTriangle(p1, p2, p3, false);
+				DebugCell firstCell;
+				firstCell.corners[0] = p0;
+				firstCell.corners[1] = p2;
+				firstCell.corners[2] = p1;
+				tile.debugCells.push_back(firstCell);
+
+				DebugCell secondCell;
+				secondCell.corners[0] = p1;
+				secondCell.corners[1] = p2;
+				secondCell.corners[2] = p3;
+				tile.debugCells.push_back(secondCell);
 				continue;
 			}
 
-			const unsigned short i0 = getVertex(x, z);
-			const unsigned short i1 = getVertex(x + 1, z);
-			const unsigned short i2 = getVertex(x, z + 1);
-			const unsigned short i3 = getVertex(x + 1, z + 1);
-			if (capacityExceeded) break;
+			Vector3 firstNormal = (p2 - p0).Cross(p1 - p0);
+			Vector3 secondNormal = (p2 - p1).Cross(p3 - p1);
+			const bool hasFirstNormal = firstNormal.LengthSquared() > eps;
+			const bool hasSecondNormal = secondNormal.LengthSquared() > eps;
+			if (hasFirstNormal) firstNormal.Normalize();
+			if (hasSecondNormal) secondNormal.Normalize();
+			const bool firstWalkable =
+				hasFirstNormal && fabsf(firstNormal.y) >= minWalkableNormalY;
+			const bool secondWalkable =
+				hasSecondNormal && fabsf(secondNormal.y) >= minWalkableNormalY;
 
-			const bool firstWalkable = isWalkableSlope(p0, p2, p1);
-			const bool secondWalkable = isWalkableSlope(p1, p2, p3);
-			pushDebugTriangle(p0, p2, p1, firstWalkable);
-			pushDebugTriangle(p1, p2, p3, secondWalkable);
+			DebugCell firstCell;
+			firstCell.corners[0] = p0;
+			firstCell.corners[1] = p2;
+			firstCell.corners[2] = p1;
+			firstCell.walkable = firstWalkable;
+			tile.debugCells.push_back(firstCell);
+
+			DebugCell secondCell;
+			secondCell.corners[0] = p1;
+			secondCell.corners[1] = p2;
+			secondCell.corners[2] = p3;
+			secondCell.walkable = secondWalkable;
+			tile.debugCells.push_back(secondCell);
+
 			if (firstWalkable)
-				pushNavTriangle(i0, i2, i1);
-			else
-				++steepTriangleCount;
+			{
+				const size_t polygonOffset = polys.size();
+				polys.resize(polygonOffset + nvp * 2, 0xffff);
+				polys[polygonOffset] = i0;
+				polys[polygonOffset + 1] = i2;
+				polys[polygonOffset + 2] = i1;
+				flags.push_back(1);
+				areas.push_back(0);
+			}
 			if (secondWalkable)
-				pushNavTriangle(i1, i2, i3);
-			else
-				++steepTriangleCount;
-			if (capacityExceeded) break;
+			{
+				const size_t polygonOffset = polys.size();
+				polys.resize(polygonOffset + nvp * 2, 0xffff);
+				polys[polygonOffset] = i1;
+				polys[polygonOffset + 1] = i2;
+				polys[polygonOffset + 2] = i3;
+				flags.push_back(1);
+				areas.push_back(0);
+			}
 		}
-		if (capacityExceeded) break;
 	}
 
-	if (capacityExceeded)
-	{
-		statusMessage =
-			"NavMesh build failed: selected areas exceed 16-bit mesh capacity. "
-			"Reduce Resolution or AABB sizes.";
-		return;
-	}
+	if (flags.empty()) return true;
 
 	struct EdgeRef
 	{
-		unsigned short polyIndex = 0xffff;
-		unsigned short edgeIndex = 0xffff;
+		unsigned short polygon = 0xffff;
+		unsigned short edge = 0xffff;
 	};
-
 	std::map<std::pair<unsigned short, unsigned short>, EdgeRef> edgeRefs;
-	for (int polyIndex = 0; polyIndex < static_cast<int>(flags.size()); ++polyIndex)
+	for (int polygonIndex = 0; polygonIndex < static_cast<int>(flags.size()); ++polygonIndex)
 	{
-		unsigned short* poly = &polys[static_cast<size_t>(polyIndex) * nvp * 2];
+		unsigned short* polygon = &polys[static_cast<size_t>(polygonIndex) * nvp * 2];
 		for (int edgeIndex = 0; edgeIndex < nvp; ++edgeIndex)
 		{
-			const unsigned short a = poly[edgeIndex];
-			const unsigned short b = poly[(edgeIndex + 1) % nvp];
+			const unsigned short a = polygon[edgeIndex];
+			const unsigned short b = polygon[(edgeIndex + 1) % nvp];
 			const std::pair<unsigned short, unsigned short> key(std::min(a, b), std::max(a, b));
+			auto [it, inserted] = edgeRefs.emplace(
+				key, EdgeRef{static_cast<unsigned short>(polygonIndex),
+							 static_cast<unsigned short>(edgeIndex)});
+			if (inserted) continue;
 
-			auto it = edgeRefs.find(key);
-			if (it == edgeRefs.end())
-			{
-				edgeRefs[key] =
-				{
-					static_cast<unsigned short>(polyIndex),
-					static_cast<unsigned short>(edgeIndex)
-				};
-				continue;
-			}
-
-			unsigned short* otherPoly =
-				&polys[static_cast<size_t>(it->second.polyIndex) * nvp * 2];
-			poly[nvp + edgeIndex] = it->second.polyIndex;
-			otherPoly[nvp + it->second.edgeIndex] =
-				static_cast<unsigned short>(polyIndex);
+			unsigned short* other =
+				&polys[static_cast<size_t>(it->second.polygon) * nvp * 2];
+			polygon[nvp + edgeIndex] = it->second.polygon;
+			other[nvp + it->second.edge] = static_cast<unsigned short>(polygonIndex);
 		}
 	}
 
-	if (flags.empty())
+	for (int polygonIndex = 0; polygonIndex < static_cast<int>(flags.size()); ++polygonIndex)
 	{
-		statusMessage = "NavMesh build failed: no walkable polygons.";
-		return;
+		unsigned short* polygon = &polys[static_cast<size_t>(polygonIndex) * nvp * 2];
+		for (int edgeIndex = 0; edgeIndex < nvp; ++edgeIndex)
+		{
+			if (polygon[nvp + edgeIndex] != 0xffff) continue;
+			const unsigned short a = polygon[edgeIndex];
+			const unsigned short b = polygon[(edgeIndex + 1) % nvp];
+			const int ax = verts[static_cast<size_t>(a) * 3];
+			const int az = verts[static_cast<size_t>(a) * 3 + 2];
+			const int bx = verts[static_cast<size_t>(b) * 3];
+			const int bz = verts[static_cast<size_t>(b) * 3 + 2];
+
+			if (ax == 0 && bx == 0 && tileX > 0)
+				polygon[nvp + edgeIndex] = 0x8000 | 0;
+			else if (az == cellCountZ && bz == cellCountZ && tileZ + 1 < tileCountZ)
+				polygon[nvp + edgeIndex] = 0x8000 | 1;
+			else if (ax == cellCountX && bx == cellCountX && tileX + 1 < tileCountX)
+				polygon[nvp + edgeIndex] = 0x8000 | 2;
+			else if (az == 0 && bz == 0 && tileZ > 0)
+				polygon[nvp + edgeIndex] = 0x8000 | 3;
+		}
 	}
 
 	dtNavMeshCreateParams params = {};
@@ -495,12 +574,14 @@ void NavMeshActor::Build()
 	params.polyAreas = areas.data();
 	params.polyCount = static_cast<int>(flags.size());
 	params.nvp = nvp;
-	params.bmin[0] = -halfTerrainSize;
+	params.tileX = tileX;
+	params.tileY = tileZ;
+	params.bmin[0] = minGridX * cellSize - halfTerrainSize;
 	params.bmin[1] = navMinY;
-	params.bmin[2] = -halfTerrainSize;
-	params.bmax[0] = halfTerrainSize;
+	params.bmin[2] = minGridZ * cellSize - halfTerrainSize;
+	params.bmax[0] = maxGridX * cellSize - halfTerrainSize;
 	params.bmax[1] = navMaxY;
-	params.bmax[2] = halfTerrainSize;
+	params.bmax[2] = maxGridZ * cellSize - halfTerrainSize;
 	params.walkableHeight = agentHeight;
 	params.walkableRadius = agentRadius;
 	params.walkableClimb = agentClimb;
@@ -510,64 +591,78 @@ void NavMeshActor::Build()
 
 	unsigned char* data = nullptr;
 	int dataSize = 0;
-	if (!dtCreateNavMeshData(&params, &data, &dataSize))
-	{
-		statusMessage = "NavMesh build failed: dtCreateNavMeshData.";
-		return;
-	}
-
-	navMesh = dtAllocNavMesh();
-	if (!navMesh)
+	if (!dtCreateNavMeshData(&params, &data, &dataSize)) return false;
+	if (dtStatusFailed(navMesh->addTile(
+		data, dataSize, DT_TILE_FREE_DATA, 0, &tile.reference)))
 	{
 		dtFree(data);
-		statusMessage = "NavMesh build failed: dtAllocNavMesh.";
-		return;
+		return false;
 	}
+	return true;
+}
 
-	dtStatus status = navMesh->init(data, dataSize, DT_TILE_FREE_DATA);
-	if (dtStatusFailed(status))
+void NavMeshActor::RebuildRegion()
+{
+	if (!built || !navMesh)
 	{
-		dtFree(data);
-		Release();
-		statusMessage = "NavMesh build failed: navMesh init.";
+		Build();
 		return;
 	}
 
-	navQuery = dtAllocNavMeshQuery();
-	if (!navQuery)
+	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
+	if (!terrain)
 	{
-		Release();
-		statusMessage = "NavMesh build failed: dtAllocNavMeshQuery.";
+		statusMessage = (const char*)u8"地形がないためナビメッシュを再生成できません";
 		return;
 	}
 
-	status = navQuery->init(navMesh, 2048);
-	if (dtStatusFailed(status))
+	const int grid = std::max(resolution, 2);
+	const float terrainSize = terrain->GetTerrainSize();
+	const float halfTerrainSize = terrainSize * 0.5f;
+	const float tileSize = terrainSize / static_cast<float>(grid) * CellsPerTile;
+	const int minTileX = std::clamp(static_cast<int>(floorf(
+		(rebuildRegionMin.x + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
+	const int minTileZ = std::clamp(static_cast<int>(floorf(
+		(rebuildRegionMin.z + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
+	const int maxTileX = std::clamp(static_cast<int>(floorf(
+		(rebuildRegionMax.x + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
+	const int maxTileZ = std::clamp(static_cast<int>(floorf(
+		(rebuildRegionMax.z + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
+
+	std::vector<ObstacleBounds> obstacles;
+	CollectObstacles(obstacles);
+	int rebuiltTileCount = 0;
+	for (int tileZ = minTileZ; tileZ <= maxTileZ; ++tileZ)
 	{
-		Release();
-		statusMessage = "NavMesh build failed: query init.";
-		return;
+		for (int tileX = minTileX; tileX <= maxTileX; ++tileX)
+		{
+			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
+			{
+				statusMessage = (const char*)u8"NavMeshタイルの局所再生成に失敗しました";
+				return;
+			}
+			++rebuiltTileCount;
+		}
 	}
 
-	built = true;
-	statusMessage =
-		"NavMesh built. polys=" + std::to_string(flags.size()) +
-		" vertices=" + std::to_string(verts.size() / 3) +
-		" areas=" + std::to_string(walkableAreas.size()) +
-		" obstacles=" + std::to_string(obstacles.size()) +
-		" blocked=" + std::to_string(blockedCellCount) +
-		" steep=" + std::to_string(steepTriangleCount) +
-		" outside=" + std::to_string(outsideAreaCellCount);
+	RefreshDebugCells();
+	statusMessage = (const char*)u8"局所再生成完了  タイル=" +
+		std::to_string(rebuiltTileCount);
+}
+
+void NavMeshActor::RefreshDebugCells()
+{
+	debugCells.clear();
+	for (const NavTile& tile : navTiles)
+	{
+		debugCells.insert(debugCells.end(), tile.debugCells.begin(), tile.debugCells.end());
+	}
 }
 
 bool NavMeshActor::FindNextPoint(
-	const Vector3& start,
-	const Vector3& goal,
-	Vector3& nextPoint,
-	Vector3* reachableGoal) const
+	const Vector3& start, const Vector3& goal, Vector3& nextPoint, Vector3* reachableGoal) const
 {
-	if (!built || !navQuery)
-		return false;
+	if (!built || !navQuery) return false;
 
 	dtQueryFilter filter;
 	filter.setIncludeFlags(1);
@@ -582,40 +677,31 @@ bool NavMeshActor::FindNextPoint(
 	dtPolyRef startRef = 0;
 	dtPolyRef goalRef = 0;
 
-	if (dtStatusFailed(navQuery->findNearestPoly(startPos, halfExtents, &filter, &startRef, nearestStart)) || !startRef)
+	if (dtStatusFailed(
+			navQuery->findNearestPoly(startPos, halfExtents, &filter, &startRef, nearestStart)) ||
+		!startRef)
 		return false;
 
-	if (dtStatusFailed(navQuery->findNearestPoly(goalPos, halfExtents, &filter, &goalRef, nearestGoal)) || !goalRef)
+	if (dtStatusFailed(
+			navQuery->findNearestPoly(goalPos, halfExtents, &filter, &goalRef, nearestGoal)) ||
+		!goalRef)
 		return false;
 
 	constexpr int maxPathPolys = 2048;
 	dtPolyRef path[maxPathPolys] = {};
 	int pathCount = 0;
 	if (dtStatusFailed(navQuery->findPath(
-			startRef,
-			goalRef,
-			nearestStart,
-			nearestGoal,
-			&filter,
-			path,
-			&pathCount,
-			maxPathPolys)))
+			startRef, goalRef, nearestStart, nearestGoal, &filter, path, &pathCount, maxPathPolys)))
 		return false;
 
 	if (pathCount <= 0) return false;
 
-	float pathGoal[3] = {
-		nearestGoal[0],
-		nearestGoal[1],
-		nearestGoal[2]};
+	float pathGoal[3] = {nearestGoal[0], nearestGoal[1], nearestGoal[2]};
 	if (path[pathCount - 1] != goalRef)
 	{
 		bool positionOverPoly = false;
 		if (dtStatusFailed(navQuery->closestPointOnPoly(
-				path[pathCount - 1],
-				goalPos,
-				pathGoal,
-				&positionOverPoly)))
+				path[pathCount - 1], goalPos, pathGoal, &positionOverPoly)))
 		{
 			return false;
 		}
@@ -623,10 +709,7 @@ bool NavMeshActor::FindNextPoint(
 
 	if (reachableGoal)
 	{
-		*reachableGoal = Vector3(
-			pathGoal[0],
-			pathGoal[1],
-			pathGoal[2]);
+		*reachableGoal = Vector3(pathGoal[0], pathGoal[1], pathGoal[2]);
 	}
 
 	constexpr int maxStraightPoints = 256;
@@ -634,22 +717,13 @@ bool NavMeshActor::FindNextPoint(
 	unsigned char straightFlags[maxStraightPoints] = {};
 	dtPolyRef straightRefs[maxStraightPoints] = {};
 	int straightCount = 0;
-	if (dtStatusFailed(navQuery->findStraightPath(
-		nearestStart,
-		pathGoal,
-		path,
-		pathCount,
-		straightPath,
-		straightFlags,
-		straightRefs,
-		&straightCount,
-		maxStraightPoints)))
+	if (dtStatusFailed(navQuery->findStraightPath(nearestStart, pathGoal, path, pathCount,
+			straightPath, straightFlags, straightRefs, &straightCount, maxStraightPoints)))
 	{
 		return false;
 	}
 
-	if (straightCount <= 0)
-		return false;
+	if (straightCount <= 0) return false;
 
 	int pointIndex = straightCount - 1;
 	const float minNextPointDistance = std::max(agentRadius * 0.1f, 0.05f);
@@ -657,25 +731,19 @@ bool NavMeshActor::FindNextPoint(
 	for (int index = 1; index < straightCount; ++index)
 	{
 		Vector3 delta(
-			straightPath[index * 3 + 0] - start.x,
-			0.0f,
-			straightPath[index * 3 + 2] - start.z);
+			straightPath[index * 3 + 0] - start.x, 0.0f, straightPath[index * 3 + 2] - start.z);
 		if (delta.LengthSquared() <= minNextPointDistanceSq) continue;
 
 		pointIndex = index;
 		break;
 	}
 
-	nextPoint = Vector3(
-		straightPath[pointIndex * 3 + 0],
-		straightPath[pointIndex * 3 + 1],
+	nextPoint = Vector3(straightPath[pointIndex * 3 + 0], straightPath[pointIndex * 3 + 1],
 		straightPath[pointIndex * 3 + 2]);
 	return true;
 }
 
-bool NavMeshActor::FindNearestPoint(
-	const Vector3& position,
-	Vector3& nearestPoint) const
+bool NavMeshActor::FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const
 {
 	if (!built || !navQuery) return false;
 
@@ -683,43 +751,24 @@ bool NavMeshActor::FindNearestPoint(
 	filter.setIncludeFlags(1);
 	filter.setExcludeFlags(0);
 
-	const float horizontalExtent =
-		std::max(nearestPolyExtent, agentRadius * 2.0f);
-	const float halfExtents[3] = {
-		horizontalExtent,
-		20.0f,
-		horizontalExtent
-	};
-	const float queryPosition[3] = {
-		position.x,
-		position.y,
-		position.z
-	};
+	const float horizontalExtent = std::max(nearestPolyExtent, agentRadius * 2.0f);
+	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
+	const float queryPosition[3] = {position.x, position.y, position.z};
 	float nearestPosition[3] = {};
 	dtPolyRef nearestRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
-			queryPosition,
-			halfExtents,
-			&filter,
-			&nearestRef,
-			nearestPosition)) ||
+			queryPosition, halfExtents, &filter, &nearestRef, nearestPosition)) ||
 		!nearestRef)
 	{
 		return false;
 	}
 
-	nearestPoint = {
-		nearestPosition[0],
-		nearestPosition[1],
-		nearestPosition[2]
-	};
+	nearestPoint = {nearestPosition[0], nearestPosition[1], nearestPosition[2]};
 	return true;
 }
 
 bool NavMeshActor::FindRecoveryPoint(
-	const Vector3& position,
-	float safeDistance,
-	Vector3& recoveryPoint) const
+	const Vector3& position, float safeDistance, Vector3& recoveryPoint) const
 {
 	if (!built || !navQuery) return false;
 
@@ -727,47 +776,27 @@ bool NavMeshActor::FindRecoveryPoint(
 	filter.setIncludeFlags(1);
 	filter.setExcludeFlags(0);
 
-	const float horizontalExtent =
-		std::max(nearestPolyExtent, agentRadius * 2.0f);
-	const float halfExtents[3] = {
-		horizontalExtent,
-		20.0f,
-		horizontalExtent};
-	const float queryPosition[3] = {
-		position.x,
-		position.y,
-		position.z};
+	const float horizontalExtent = std::max(nearestPolyExtent, agentRadius * 2.0f);
+	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
+	const float queryPosition[3] = {position.x, position.y, position.z};
 	float nearestPosition[3] = {};
 	dtPolyRef nearestRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
-			queryPosition,
-			halfExtents,
-			&filter,
-			&nearestRef,
-			nearestPosition)) ||
+			queryPosition, halfExtents, &filter, &nearestRef, nearestPosition)) ||
 		!nearestRef)
 	{
 		return false;
 	}
 
-	recoveryPoint = {
-		nearestPosition[0],
-		nearestPosition[1],
-		nearestPosition[2]};
+	recoveryPoint = {nearestPosition[0], nearestPosition[1], nearestPosition[2]};
 	safeDistance = std::max(safeDistance, 0.0f);
 	if (safeDistance <= eps) return true;
 
 	float wallDistance = safeDistance;
 	float wallPosition[3] = {};
 	float wallNormal[3] = {};
-	if (dtStatusFailed(navQuery->findDistanceToWall(
-			nearestRef,
-			nearestPosition,
-			safeDistance,
-			&filter,
-			&wallDistance,
-			wallPosition,
-			wallNormal)) ||
+	if (dtStatusFailed(navQuery->findDistanceToWall(nearestRef, nearestPosition, safeDistance,
+			&filter, &wallDistance, wallPosition, wallNormal)) ||
 		wallDistance >= safeDistance)
 	{
 		return true;
@@ -781,10 +810,7 @@ bool NavMeshActor::FindRecoveryPoint(
 }
 
 bool NavMeshActor::FindRandomPoint(
-	const Vector3& center,
-	float minDistance,
-	float maxDistance,
-	Vector3& randomPoint) const
+	const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const
 {
 	if (!built || !navQuery) return false;
 
@@ -803,11 +829,8 @@ bool NavMeshActor::FindRandomPoint(
 	float nearestCenter[3] = {};
 	dtPolyRef centerRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
-		centerPos,
-		halfExtents,
-		&filter,
-		&centerRef,
-		nearestCenter)) || !centerRef)
+			centerPos, halfExtents, &filter, &centerRef, nearestCenter)) ||
+		!centerRef)
 	{
 		return false;
 	}
@@ -819,43 +842,27 @@ bool NavMeshActor::FindRandomPoint(
 	{
 		const float angle = Random::Range(-DirectX::XM_PI, DirectX::XM_PI);
 		const float distance = sqrtf(Random::Range(minDistanceSq, maxDistanceSq));
-		const float candidate[3] =
-		{
-			center.x + sinf(angle) * distance,
-			center.y,
-			center.z + cosf(angle) * distance
-		};
+		const float candidate[3] = {
+			center.x + sinf(angle) * distance, center.y, center.z + cosf(angle) * distance};
 
 		dtPolyRef goalRef = 0;
 		float nearestGoal[3] = {};
 		if (dtStatusFailed(navQuery->findNearestPoly(
-			candidate,
-			halfExtents,
-			&filter,
-			&goalRef,
-			nearestGoal)) || !goalRef)
+				candidate, halfExtents, &filter, &goalRef, nearestGoal)) ||
+			!goalRef)
 		{
 			continue;
 		}
 
-		const Vector3 offset(
-			nearestGoal[0] - center.x,
-			0.0f,
-			nearestGoal[2] - center.z);
+		const Vector3 offset(nearestGoal[0] - center.x, 0.0f, nearestGoal[2] - center.z);
 		const float distanceSq = offset.LengthSquared();
 		if (distanceSq < minDistanceSq || distanceSq > maxDistanceSq) continue;
 
 		dtPolyRef path[64] = {};
 		int pathCount = 0;
-		if (dtStatusFailed(navQuery->findPath(
-			centerRef,
-			goalRef,
-			nearestCenter,
-			nearestGoal,
-			&filter,
-			path,
-			&pathCount,
-			_countof(path))) || pathCount <= 0 || path[pathCount - 1] != goalRef)
+		if (dtStatusFailed(navQuery->findPath(centerRef, goalRef, nearestCenter, nearestGoal,
+				&filter, path, &pathCount, _countof(path))) ||
+			pathCount <= 0 || path[pathCount - 1] != goalRef)
 		{
 			continue;
 		}
@@ -877,9 +884,7 @@ bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal
 	const Vector3 delta = goal - start;
 	for (const ObstacleBounds& obstacle : obstacles)
 	{
-		const Vector3 halfSize =
-			obstacle.size * 0.5f +
-			Vector3(agentRadius, 0.0f, agentRadius);
+		const Vector3 halfSize = obstacle.size * 0.5f + Vector3(agentRadius, 0.0f, agentRadius);
 		const float minX = obstacle.center.x - halfSize.x;
 		const float maxX = obstacle.center.x + halfSize.x;
 		const float minZ = obstacle.center.z - halfSize.z;
@@ -887,10 +892,9 @@ bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal
 
 		float enter = 0.0f;
 		float exit = 1.0f;
-		auto clipAxis = [&enter, &exit](float origin, float direction, float minValue, float maxValue)
-		{
-			if (fabsf(direction) <= eps)
-				return origin >= minValue && origin <= maxValue;
+		auto clipAxis = [&enter, &exit](
+							float origin, float direction, float minValue, float maxValue) {
+			if (fabsf(direction) <= eps) return origin >= minValue && origin <= maxValue;
 
 			float first = (minValue - origin) / direction;
 			float second = (maxValue - origin) / direction;
@@ -900,8 +904,7 @@ bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal
 			return enter <= exit;
 		};
 
-		if (clipAxis(start.x, delta.x, minX, maxX) &&
-			clipAxis(start.z, delta.z, minZ, maxZ))
+		if (clipAxis(start.x, delta.x, minX, maxX) && clipAxis(start.z, delta.z, minZ, maxZ))
 		{
 			return true;
 		}
@@ -911,21 +914,18 @@ bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal
 }
 
 bool NavMeshActor::FindObstacleDetourPoint(
-	const Vector3& start,
-	const Vector3& goal,
-	Vector3& nextPoint) const
+	const Vector3& start, const Vector3& goal, Vector3& nextPoint) const
 {
 	std::vector<ObstacleBounds> obstacles;
 	CollectObstacles(obstacles);
 
-	auto intersects = [](const Vector3& from, const Vector3& to, const ObstacleBounds& obstacle)
-	{
+	auto intersects = [](const Vector3& from, const Vector3& to, const ObstacleBounds& obstacle) {
 		const Vector3 halfSize = obstacle.size * 0.5f;
 		const Vector3 delta = to - from;
 		float enter = 0.0f;
 		float exit = 1.0f;
-		auto clipAxis = [&enter, &exit](float origin, float direction, float minValue, float maxValue)
-		{
+		auto clipAxis = [&enter, &exit](
+							float origin, float direction, float minValue, float maxValue) {
 			if (fabsf(direction) <= eps) return origin >= minValue && origin <= maxValue;
 			float first = (minValue - origin) / direction;
 			float second = (maxValue - origin) / direction;
@@ -935,8 +935,10 @@ bool NavMeshActor::FindObstacleDetourPoint(
 			return enter <= exit;
 		};
 
-		return clipAxis(from.x, delta.x, obstacle.center.x - halfSize.x, obstacle.center.x + halfSize.x) &&
-			clipAxis(from.z, delta.z, obstacle.center.z - halfSize.z, obstacle.center.z + halfSize.z);
+		return clipAxis(from.x, delta.x, obstacle.center.x - halfSize.x,
+				   obstacle.center.x + halfSize.x) &&
+			   clipAxis(
+				   from.z, delta.z, obstacle.center.z - halfSize.z, obstacle.center.z + halfSize.z);
 	};
 
 	float bestDistance = FLT_MAX;
@@ -946,13 +948,14 @@ bool NavMeshActor::FindObstacleDetourPoint(
 	{
 		if (!intersects(start, goal, obstacle)) continue;
 		const Vector3 halfSize = obstacle.size * 0.5f;
-		const Vector3 candidates[] =
-		{
-			Vector3(obstacle.center.x - halfSize.x - clearance, start.y, obstacle.center.z - halfSize.z - clearance),
-			Vector3(obstacle.center.x + halfSize.x + clearance, start.y, obstacle.center.z - halfSize.z - clearance),
-			Vector3(obstacle.center.x - halfSize.x - clearance, start.y, obstacle.center.z + halfSize.z + clearance),
-			Vector3(obstacle.center.x + halfSize.x + clearance, start.y, obstacle.center.z + halfSize.z + clearance)
-		};
+		const Vector3 candidates[] = {Vector3(obstacle.center.x - halfSize.x - clearance, start.y,
+										  obstacle.center.z - halfSize.z - clearance),
+			Vector3(obstacle.center.x + halfSize.x + clearance, start.y,
+				obstacle.center.z - halfSize.z - clearance),
+			Vector3(obstacle.center.x - halfSize.x - clearance, start.y,
+				obstacle.center.z + halfSize.z + clearance),
+			Vector3(obstacle.center.x + halfSize.x + clearance, start.y,
+				obstacle.center.z + halfSize.z + clearance)};
 
 		for (const Vector3& candidate : candidates)
 		{
@@ -969,7 +972,8 @@ bool NavMeshActor::FindObstacleDetourPoint(
 			}
 			if (blocked) continue;
 
-			const float distance = Vector3::Distance(start, candidate) + Vector3::Distance(candidate, goal);
+			const float distance =
+				Vector3::Distance(start, candidate) + Vector3::Distance(candidate, goal);
 			if (distance >= bestDistance) continue;
 			bestDistance = distance;
 			nextPoint = candidate;
@@ -982,26 +986,26 @@ bool NavMeshActor::FindObstacleDetourPoint(
 
 void NavMeshActor::Render(const RenderContext& rc)
 {
-	if (!rc.renderSettings.showDebug ||
-		!showNavMeshDebug ||
-		!rc.renderSettings.showNavMeshDebug) return;
+	if (!rc.renderSettings.showDebug || !showNavMeshDebug || !rc.renderSettings.showNavMeshDebug)
+		return;
 
-	PrimitiveRenderer* renderer =
-		Game::Graphics::Instance().GetPrimitiveRenderer();
+	PrimitiveRenderer* renderer = Game::Graphics::Instance().GetPrimitiveRenderer();
 	if (!renderer) return;
 
-	const int step = std::max(debugDrawStep, 1);
-	const Color walkableColor(0.0f, 0.8f, 1.0f, 0.65f);
+	const Color walkableColor(0.0f, 0.75f, 1.0f, 0.30f);
 	const Color blockedColor(1.0f, 0.15f, 0.05f, 0.65f);
 
 	for (int index = 0; index < static_cast<int>(debugCells.size()); ++index)
 	{
-		if (index % step != 0) continue;
-
 		const DebugCell& cell = debugCells[index];
 		if (cell.walkable && !showWalkableCells) continue;
 		if (!cell.walkable && !showBlockedCells) continue;
 		const Color color = cell.walkable ? walkableColor : blockedColor;
+		if (cell.walkable)
+		{
+			renderer->DrawTriangle(cell.corners[0], cell.corners[1], cell.corners[2], color);
+			continue;
+		}
 		renderer->DrawLine(cell.corners[0], cell.corners[1], color, color);
 		renderer->DrawLine(cell.corners[1], cell.corners[2], color, color);
 		renderer->DrawLine(cell.corners[2], cell.corners[0], color, color);
@@ -1009,29 +1013,15 @@ void NavMeshActor::Render(const RenderContext& rc)
 
 	if (!showObstacleBounds && !showWalkableAreaBounds) return;
 
-	auto drawBounds = [renderer](
-		const Vector3& center,
-		const Vector3& size,
-		const Color& color)
-	{
+	auto drawBounds = [renderer](const Vector3& center, const Vector3& size, const Color& color) {
 		const Vector3 half = size * 0.5f;
-		const Vector3 corners[] =
-		{
-			center + Vector3(-half.x, -half.y, -half.z),
-			center + Vector3( half.x, -half.y, -half.z),
-			center + Vector3( half.x, -half.y,  half.z),
-			center + Vector3(-half.x, -half.y,  half.z),
-			center + Vector3(-half.x,  half.y, -half.z),
-			center + Vector3( half.x,  half.y, -half.z),
-			center + Vector3( half.x,  half.y,  half.z),
-			center + Vector3(-half.x,  half.y,  half.z)
-		};
-		constexpr int edges[][2] =
-		{
-			{0, 1}, {1, 2}, {2, 3}, {3, 0},
-			{4, 5}, {5, 6}, {6, 7}, {7, 4},
-			{0, 4}, {1, 5}, {2, 6}, {3, 7}
-		};
+		const Vector3 corners[] = {center + Vector3(-half.x, -half.y, -half.z),
+			center + Vector3(half.x, -half.y, -half.z), center + Vector3(half.x, -half.y, half.z),
+			center + Vector3(-half.x, -half.y, half.z), center + Vector3(-half.x, half.y, -half.z),
+			center + Vector3(half.x, half.y, -half.z), center + Vector3(half.x, half.y, half.z),
+			center + Vector3(-half.x, half.y, half.z)};
+		constexpr int edges[][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4},
+			{0, 4}, {1, 5}, {2, 6}, {3, 7}};
 		for (const auto& edge : edges)
 			renderer->DrawLine(corners[edge[0]], corners[edge[1]], color, color);
 	};
@@ -1055,67 +1045,65 @@ void NavMeshActor::Render(const RenderContext& rc)
 
 void NavMeshActor::DrawGUI()
 {
-	ImGui::Checkbox("Show NavMesh Debug", &showNavMeshDebug);
+	// ナビメッシュのデバッグ表示
+	ImGui::Checkbox((const char*)u8"ナビメッシュを表示", &showNavMeshDebug);
 	if (showNavMeshDebug)
 	{
-		ImGui::Checkbox("Show Walkable Cells", &showWalkableCells);
-		ImGui::Checkbox("Show Blocked Cells", &showBlockedCells);
-		ImGui::Checkbox("Show MeshCollider Bounds", &showObstacleBounds);
-		ImGui::Checkbox("Show Walkable AABB", &showWalkableAreaBounds);
-		ImGui::TextColored(ImVec4(0.0f, 0.8f, 1.0f, 1.0f), "Cyan: walkable");
-		ImGui::TextColored(ImVec4(1.0f, 0.15f, 0.05f, 1.0f), "Red: blocked cell");
-		ImGui::TextUnformatted("White: MeshCollider bounds");
-		ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.25f, 1.0f), "Green: walkable AABB");
+		ImGui::Checkbox((const char*)u8"実範囲（面）", &showWalkableCells);
+		ImGui::Checkbox((const char*)u8"移動不可セル（線）", &showBlockedCells);
+		ImGui::Checkbox((const char*)u8"障害物の境界（線）", &showObstacleBounds);
+		ImGui::Checkbox((const char*)u8"入力範囲（線）", &showWalkableAreaBounds);
+		ImGui::TextColored(ImVec4(0.0f, 0.8f, 1.0f, 1.0f), (const char*)u8"水色：生成された実範囲");
+		ImGui::TextColored(ImVec4(1.0f, 0.15f, 0.05f, 1.0f), (const char*)u8"赤：移動不可セル");
+		ImGui::TextUnformatted((const char*)u8"白：障害物の境界");
+		ImGui::TextColored(
+			ImVec4(0.2f, 1.0f, 0.25f, 1.0f), (const char*)u8"緑：入力した歩行可能範囲");
 	}
 
+	// 生成時のエージェント設定
 	int editedResolution = resolution;
-	if (ImGui::DragInt("Resolution", &editedResolution, 1.0f, 8, 2048))
+	if (ImGui::DragInt((const char*)u8"解像度", &editedResolution, 1.0f, 8, 2048))
 		SetResolution(editedResolution);
-	if (ImGui::DragInt("Debug Draw Step", &debugDrawStep, 1.0f, 1, 32))
-		debugDrawStep = std::max(debugDrawStep, 1);
-	ImGui::DragFloat("Agent Height", &agentHeight, 0.1f, 0.1f, 10.0f);
-	ImGui::DragFloat("Agent Radius", &agentRadius, 0.1f, 0.0f, 10.0f);
-	ImGui::DragFloat("Agent Climb", &agentClimb, 0.1f, 0.0f, 10.0f);
+	ImGui::DragFloat((const char*)u8"エージェントの高さ", &agentHeight, 0.1f, 0.1f, 10.0f);
+	ImGui::DragFloat((const char*)u8"エージェントの半径", &agentRadius, 0.1f, 0.0f, 10.0f);
+	ImGui::DragFloat((const char*)u8"登れる段差", &agentClimb, 0.1f, 0.0f, 10.0f);
 	float editedMaxSlope = agentMaxSlope;
-	if (ImGui::DragFloat("Agent Max Slope", &editedMaxSlope, 0.5f, 0.0f, 89.0f))
+	if (ImGui::DragFloat((const char*)u8"登れる最大傾斜", &editedMaxSlope, 0.5f, 0.0f, 89.0f))
 	{
 		agentMaxSlope = std::clamp(editedMaxSlope, 0.0f, 89.0f);
 		RequestBuild();
 	}
-	ImGui::DragFloat("Nearest Poly Extent", &nearestPolyExtent, 0.1f, 0.1f, 50.0f);
+	ImGui::DragFloat(
+		(const char*)u8"最近傍ポリゴン検索範囲", &nearestPolyExtent, 0.1f, 0.1f, 50.0f);
 
-	if (ImGui::TreeNode("Walkable Areas"))
+	// ナビメッシュを生成する入力範囲
+	if (ImGui::TreeNode((const char*)u8"歩行可能な入力範囲"))
 	{
 		if (walkableAreas.empty())
-			ImGui::TextUnformatted("No AABBs: the whole terrain is walkable.");
+			ImGui::TextUnformatted((const char*)u8"入力範囲なし：地形全体を対象にします");
 
 		int removeIndex = -1;
 		for (int index = 0; index < static_cast<int>(walkableAreas.size()); ++index)
 		{
 			ImGui::PushID(index);
 			WalkableArea& area = walkableAreas[index];
-			ImGui::Text("Area %d", index);
-
-			bool changed = ImGui::DragFloat3(
-				"Center",
-				&area.center.x,
-				0.25f);
-			changed |= ImGui::DragFloat3(
-				"Size",
-				&area.size.x,
-				0.25f,
-				0.1f,
-				10000.0f);
-			if (changed)
+			const std::string label = (const char*)u8"範囲 " + std::to_string(index + 1);
+			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				area.size.x = std::max(fabsf(area.size.x), 0.1f);
-				area.size.y = std::max(fabsf(area.size.y), 0.1f);
-				area.size.z = std::max(fabsf(area.size.z), 0.1f);
-				RequestBuild();
-			}
+				bool changed = ImGui::DragFloat3((const char*)u8"中心", &area.center.x, 0.25f);
+				changed |=
+					ImGui::DragFloat3((const char*)u8"大きさ", &area.size.x, 0.25f, 0.1f, 10000.0f);
+				if (changed)
+				{
+					area.size.x = std::max(fabsf(area.size.x), 0.1f);
+					area.size.y = std::max(fabsf(area.size.y), 0.1f);
+					area.size.z = std::max(fabsf(area.size.z), 0.1f);
+					RequestBuild();
+				}
 
-			if (ImGui::Button("Remove")) removeIndex = index;
-			ImGui::Separator();
+				if (ImGui::Button((const char*)u8"削除")) removeIndex = index;
+				ImGui::TreePop();
+			}
 			ImGui::PopID();
 		}
 
@@ -1125,19 +1113,17 @@ void NavMeshActor::DrawGUI()
 			RequestBuild();
 		}
 
-		if (ImGui::Button("Add Walkable AABB"))
+		if (ImGui::Button((const char*)u8"入力範囲を追加"))
 		{
 			Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 			const float size = terrain ? terrain->GetTerrainSize() : 10.0f;
-			AddWalkableArea(
-				Vector3::Zero,
-				Vector3(size, navMaxY - navMinY, size));
+			AddWalkableArea(Vector3::Zero, Vector3(size, navMaxY - navMinY, size));
 		}
 		ImGui::TreePop();
 	}
 
+	// 生成状態と手動再生成
 	ImGui::Text("%s", statusMessage.c_str());
 
-	if (ImGui::Button("Rebuild NavMesh"))
-		buildRequested = true;
+	if (ImGui::Button((const char*)u8"ナビメッシュを再生成")) buildRequested = true;
 }

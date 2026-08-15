@@ -1,6 +1,4 @@
-﻿// DynamicAnimation.h
-
-#pragma once
+﻿#pragma once
 
 #include "Core/Foundation/Common.h"
 

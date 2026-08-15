@@ -1,5 +1,3 @@
-// RenderTarget.cpp
-
 #include "Rendering/Core/RenderTarget.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 

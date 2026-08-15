@@ -1,9 +1,8 @@
-﻿// Scene.cpp
-
-#include "Gameplay/Scene/Scene.h"
+﻿#include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Lighting/Light.h"
 #include "Rendering/Component/VMDLModelComponent.h"
+#include "Resource/MeshCache.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -16,9 +15,7 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/Collider/CharacterController.h"
 
-Scene::Scene(SceneMessage message) : message(message)
-{
-}
+#include <format>
 
 void Scene::SwitchToDebugMode()
 {
@@ -31,10 +28,9 @@ void Scene::SwitchToDebugMode()
 		if (sourceCamera && sourceCamera != debugCamera)
 		{
 			debugCamera->SetLookAt(
-				sourceCamera->GetEye(),
-				sourceCamera->GetFocus(),
-				sourceCamera->GetUp());
-			if (FreeCameraController* controller = dynamic_cast<FreeCameraController*>(stage.GetCameraController(debugCamera)))
+				sourceCamera->GetEye(), sourceCamera->GetFocus(), sourceCamera->GetUp());
+			if (FreeCameraController* controller =
+					dynamic_cast<FreeCameraController*>(stage.GetCameraController(debugCamera)))
 				controller->SyncCameraToController(*sourceCamera);
 		}
 		debugCamera->SetActive(true);
@@ -46,7 +42,8 @@ void Scene::SwitchToDebugMode()
 	{
 		Actor* cameraActor = stage.GetDefaultCameraActor();
 		if (!cameraActor) return;
-		if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
+		if (ThirdPersonCameraController* controller =
+				cameraActor->GetComponent<ThirdPersonCameraController>())
 			controller->SetActive(false);
 		if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
 		{
@@ -74,7 +71,8 @@ void Scene::SwitchToPlayMode()
 	Actor* cameraActor = stage.GetDefaultCameraActor();
 	if (FreeCameraController* controller = cameraActor->GetComponent<FreeCameraController>())
 		controller->SetActive(false);
-	if (ThirdPersonCameraController* controller = cameraActor->GetComponent<ThirdPersonCameraController>())
+	if (ThirdPersonCameraController* controller =
+			cameraActor->GetComponent<ThirdPersonCameraController>())
 		controller->SetActive(true);
 
 	isCursorReleased = false;
@@ -107,9 +105,9 @@ void Scene::Update()
 	if (UsesGameDebugGUI())
 	{
 		GamePad& gamePad = Game::Input::Instance().GetGamePad();
-		if (gamePad.GetButtonDown() & GamePad::BTN_F4)
+		if (gamePad.GetButtonDown() & GamePad::BTN_F2)
 		{
-			SwitchToDebugMode();
+			showGameEditorGUI = !showGameEditorGUI;
 		}
 		if (gamePad.GetButtonDown() & GamePad::BTN_F5)
 		{
@@ -131,11 +129,13 @@ void Scene::Update()
 	if (CameraController* controller = stage.GetActiveCameraController())
 		controller->SetInputEnabled(!isCursorReleased);
 
+	SelectPausedActor();
+
 	if (Game::Time::deltaTime > 0.0f)
 	{
 		class ControllerInteractionFilter final : public CCFilterCallback
 		{
-		public:
+		  public:
 			bool filter(const PxController& a, const PxController& b) override
 			{
 				PxShape* shapeA = nullptr;
@@ -149,16 +149,54 @@ void Scene::Update()
 			}
 		};
 		static ControllerInteractionFilter controllerFilter;
-		PhysicsManager::Instance().GetSceneContext().
-			GetControllerManager()->computeInteractions(
-				Game::Time::deltaTime,
-				&controllerFilter);
+		PhysicsManager::Instance().GetSceneContext().GetControllerManager()->computeInteractions(
+			Game::Time::deltaTime, &controllerFilter);
 	}
 	stage.Update();
 
 	widgetManager.Update();
 
 	PostProcessController::Instance().Update();
+}
+
+void Scene::SelectPausedActor()
+{
+	auto& io = ImGui::GetIO();
+	if (!UsesGameDebugGUI() || !showGameEditorGUI || !currentStage || Game::Time::scale > 0.0f)
+		return;
+	if (!Game::Input::IsFocusedWindow(true) || io.WantCaptureMouse) return;
+
+	Mouse& mouse = Game::Input::Instance().GetMouse();
+	if ((mouse.GetButtonDown() & Mouse::BTN_LEFT) == 0) return;
+
+	Camera* camera = currentStage->GetActiveCamera();
+	if (!camera || Game::Graphics::ScreenWidth <= 0.0f || Game::Graphics::ScreenHeight <= 0.0f)
+		return;
+
+	const Vector2 mouseNdc = Game::Graphics::Instance().GetMouseNDC(
+		static_cast<float>(mouse.GetPositionX()),
+		static_cast<float>(mouse.GetPositionY()));
+	const Matrix inverseViewProjection = (camera->GetView() * camera->GetProjection()).Invert();
+	const DirectX::XMVECTOR nearPointValue = DirectX::XMVector3TransformCoord(
+		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 0.0f, 1.0f), inverseViewProjection);
+	const DirectX::XMVECTOR farPointValue = DirectX::XMVector3TransformCoord(
+		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 1.0f, 1.0f), inverseViewProjection);
+	Vector3 nearPoint;
+	Vector3 farPoint;
+	DirectX::XMStoreFloat3(&nearPoint, nearPointValue);
+	DirectX::XMStoreFloat3(&farPoint, farPointValue);
+
+	PhysicsManager::PhysicsRaycastHit hit;
+	if (!PhysicsManager::Instance().Raycast(nearPoint, farPoint - nearPoint, 10000.0f, hit) ||
+		!hit.actor)
+		return;
+
+	currentStage->GetActorManager().SetSelectedActor(hit.actor);
+	if (FreeCameraController* controller =
+			dynamic_cast<FreeCameraController*>(currentStage->GetActiveCameraController()))
+	{
+		controller->FocusOn(hit.actor->transform.position);
+	}
 }
 
 void Scene::Render()
@@ -239,6 +277,8 @@ void Scene::Render()
 			if (mrc)
 			{
 				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+				for (const auto& [slot, meshCache] : mrc->GetMeshCaches())
+					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes());
 			}
 
 			auto* terrain = actor->GetComponent<Terrain>();
@@ -249,14 +289,9 @@ void Scene::Render()
 		}
 
 		graphics.GetShadowMapRenderer()->Render(
-			rc,
-			lightManager.GetDirectionalLight().GetDirection(),
-			500.0f
-		);
+			rc, lightManager.GetDirectionalLight().GetDirection(), 500.0f);
 
-		for (int cascadeIndex = 0;
-			 cascadeIndex < ShadowMapData::CascadeCount;
-			 ++cascadeIndex)
+		for (int cascadeIndex = 0; cascadeIndex < ShadowMapData::CascadeCount; ++cascadeIndex)
 		{
 			shadowMapData.shadowMaps[cascadeIndex] =
 				graphics.GetShadowMapRenderer()->GetDepthSRV(cascadeIndex);
@@ -271,12 +306,8 @@ void Scene::Render()
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
-		graphics.GetSkyBoxRenderer()->Render(
-			rc.deviceContext,
-			renderState,
-			*rc.camera,
-			graphics.GetIBLSpecularPMREM(),
-			rc.renderSettings);
+		graphics.GetSkyBoxRenderer()->Render(rc.deviceContext, renderState, *rc.camera,
+			graphics.GetIBLSpecularPMREM(), rc.renderSettings);
 
 		stage.Render(rc);
 
@@ -375,25 +406,16 @@ void Scene::Render()
 
 	// ---- Final PostProcess: postProcessBuffer → displayBuffer -------------
 	postProcess.RenderFinal(
-		rc,
-		postProcessBuffer->GetSRV(),
-		postProcessBuffer2,
-		postProcessBuffer,
-		displayBuffer);
+		rc, postProcessBuffer->GetSRV(), postProcessBuffer2, postProcessBuffer, displayBuffer);
 
 	// ShapeRenderer描画
-	graphics.GetShapeRenderer()->Render(
-		dc,
-		camera.GetView(),
-		camera.GetProjection()
-	);
+	graphics.GetShapeRenderer()->Render(dc, camera.GetView(), camera.GetProjection());
 
 	// PrimitiveRenderer描画
+	primitiveRenderer->RenderTriangles(dc, camera.GetView(), camera.GetProjection(), renderState);
+
 	primitiveRenderer->Render(
-		dc,
-		camera.GetView(),
-		camera.GetProjection(),
-		D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	// PostProcessなしのウィジェット
 	widgetManager.Render(rc, false);
@@ -405,10 +427,28 @@ void Scene::Render()
 
 void Scene::DrawGUI(RenderContext& rc)
 {
+	auto& io = ImGui::GetIO();
 	if (!currentStage) return;
 	if (!UsesGameDebugGUI())
 	{
 		OnDrawGUI();
+		return;
+	}
+	if (!showGameEditorGUI)
+	{
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(
+			{viewport->Pos.x + viewport->Size.x - 10.0f, viewport->Pos.y + 10.0f}, ImGuiCond_Always,
+			{1.0f, 0.0f});
+		ImGui::SetNextWindowBgAlpha(0.7f);
+		constexpr ImGuiWindowFlags fpsWindowFlags =
+			ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoInputs;
+		if (ImGui::Begin("##Game FPS", nullptr, fpsWindowFlags))
+			ImGui::TextColored(
+				ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "FPS: %.0f", io.Framerate);
+		ImGui::End();
 		return;
 	}
 
@@ -421,16 +461,17 @@ void Scene::DrawGUI(RenderContext& rc)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("File"))
+			if (ImGui::BeginMenu((const char*)u8"ファイル"))
 			{
-				if (ImGui::MenuItem("Open Stage"))
+				if (ImGui::MenuItem((const char*)u8"ステージを開く"))
 				{
-					char filename[MAX_PATH]{};
-					if (Dialog::OpenFileName(filename, MAX_PATH, "VSTG (*.vstg)\0*.vstg\0", "Open Stage") == DialogResult::OK)
+					std::string filename;
+					if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
+							"Open Stage") == DialogResult::OK)
 						pendingStagePath = filename;
 				}
 				ImGui::Separator();
-				if (ImGui::MenuItem("Exit"))
+				if (ImGui::MenuItem((const char*)u8"終了"))
 				{
 					if (OnRequestExit())
 					{
@@ -439,72 +480,87 @@ void Scene::DrawGUI(RenderContext& rc)
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu("Display"))
+			if (ImGui::BeginMenu((const char*)u8"表示"))
 			{
-				ImGui::MenuItem("Debug", "F3", &renderSettings.showDebug);
-				ImGui::Checkbox("Colliders", &renderSettings.showColliderDebug);
-				ImGui::Checkbox("Components", &renderSettings.showComponentDebug);
-				ImGui::Checkbox("NavMesh Move Area", &renderSettings.showNavMeshDebug);
+				ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &renderSettings.showDebug);
+				ImGui::Checkbox((const char*)u8"コライダー", &renderSettings.showColliderDebug);
+				ImGui::Checkbox(
+					(const char*)u8"コンポーネント", &renderSettings.showComponentDebug);
+				ImGui::Checkbox(
+					(const char*)u8"ナビメッシュ移動範囲", &renderSettings.showNavMeshDebug);
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu("Window"))
+			if (ImGui::BeginMenu((const char*)u8"ウィンドウ"))
 			{
-				if (ImGui::MenuItem("Physics Layer")) showPhysicsLayerWindow = true;
-				if (ImGui::MenuItem("Dynamic Animation Editor")) showDynamicAnimationEditorWindow = true;
+				if (ImGui::MenuItem((const char*)u8"物理レイヤー")) showPhysicsLayerWindow = true;
+				if (ImGui::MenuItem((const char*)u8"動的アニメーションエディタ"))
+					showDynamicAnimationEditorWindow = true;
 				ImGui::EndMenu();
 			}
 			ImGui::Separator();
-			if (ImGui::MenuItem("Play", "F5", false, Game::Time::scale <= 0.0f))
+			if (ImGui::MenuItem((const char*)u8"再生", "F5", false, Game::Time::scale <= 0.0f))
 				SwitchToPlayMode();
-			if (ImGui::MenuItem("Pause", "F6", false, Game::Time::scale > 0.0f))
+			if (ImGui::MenuItem((const char*)u8"停止", "F6", false, Game::Time::scale > 0.0f))
 				SwitchToDebugMode();
 
-			std::string text = "F1 to Show cursor. F3 to Show debug. F4/F5 to Play/Pause";
-			const float width = ImGui::CalcTextSize(text.c_str()).x;
+			const char* shortcutText = (const char*)u8"F1: カーソル  F2: エディタ表示  F3: "
+												u8"デバッグ  F5: 再生  F6: 再生／停止";
+			const std::string fpsText = std::format("FPS: {:.0f}", io.Framerate);
+			const float shortcutWidth = ImGui::CalcTextSize(shortcutText).x;
+			const float fpsWidth = ImGui::CalcTextSize(fpsText.c_str()).x;
 			ImGui::SetCursorPosX(std::max(
-				ImGui::GetCursorPosX() + 20.0f,
-				ImGui::GetWindowWidth() - width - ImGui::GetStyle().WindowPadding.x));
-			ImGui::TextUnformatted(text.c_str());
+				ImGui::GetCursorPosX() + 20.0f, ImGui::GetWindowWidth() - shortcutWidth - fpsWidth -
+													20.0f - ImGui::GetStyle().WindowPadding.x));
+			ImGui::TextUnformatted(shortcutText);
+			ImGui::SameLine(0.0f, 20.0f);
+			ImGui::TextColored(
+				ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "%s", fpsText.c_str());
 			ImGui::EndMainMenuBar();
 		}
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		constexpr float windowMargin = 10.0f;
 		const ImVec2 contentPosition = {
-			viewport->WorkPos.x + windowMargin,
-			viewport->WorkPos.y + windowMargin
-		};
-		const ImVec2 contentSize = {
-			std::max(1.0f, viewport->WorkSize.x - windowMargin * 2.0f),
-			std::max(1.0f, viewport->WorkSize.y - windowMargin * 2.0f)
-		};
+			viewport->WorkPos.x + windowMargin, viewport->WorkPos.y + windowMargin};
+		const ImVec2 contentSize = {std::max(1.0f, viewport->WorkSize.x - windowMargin * 2.0f),
+			std::max(1.0f, viewport->WorkSize.y - windowMargin * 2.0f)};
 		const float panelHeight = contentSize.y / 3.0f;
-		const float leftWidth = std::min(600.0f, contentSize.x);
-		const float rightWidth = std::min(680.0f, contentSize.x);
+		const float minimumPanelWidth = std::min(240.0f, contentSize.x * 0.4f);
+		const float minimumCenterWidth = std::min(240.0f,
+			std::max(1.0f, contentSize.x - minimumPanelWidth * 2.0f));
+		const float maximumPanelTotal = std::max(
+			minimumPanelWidth * 2.0f, contentSize.x - minimumCenterWidth);
+		gameEditorLeftWidth = std::clamp(gameEditorLeftWidth, minimumPanelWidth,
+			maximumPanelTotal - minimumPanelWidth);
+		gameEditorRightWidth = std::clamp(gameEditorRightWidth, minimumPanelWidth,
+			maximumPanelTotal - gameEditorLeftWidth);
+
+		constexpr ImGuiWindowFlags panelWindowFlags = ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoSavedSettings;
 
 		// オブジェクト系統デバッグ
 		{
 			ImGui::SetNextWindowPos(contentPosition, ImGuiCond_Always);
-			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
-			const bool actorsWindowOpen = ImGui::Begin("Actors");
+			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
+			const bool actorsWindowOpen =
+				ImGui::Begin((const char*)u8"アクター", nullptr, panelWindowFlags);
 			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
 			ImGui::SetNextWindowPos(
-				{contentPosition.x, contentPosition.y + panelHeight},
-				ImGuiCond_Always);
-			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
-			if (ImGui::Begin("Widgets"))
+				{contentPosition.x, contentPosition.y + panelHeight}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
+			if (ImGui::Begin((const char*)u8"ウィジェット", nullptr, panelWindowFlags))
 			{
 				widgetManager.DrawGUI();
 			}
 			ImGui::End();
 
 			ImGui::SetNextWindowPos(
-				{contentPosition.x, contentPosition.y + panelHeight * 2.0f},
-				ImGuiCond_Always);
-			ImGui::SetNextWindowSize({leftWidth, panelHeight}, ImGuiCond_Always);
-			if (ImGui::Begin("Lights"))
+				{contentPosition.x, contentPosition.y + panelHeight * 2.0f}, ImGuiCond_Always);
+			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
+			if (ImGui::Begin((const char*)u8"ライト", nullptr, panelWindowFlags))
 			{
 				lightManager.DrawGUI();
 			}
@@ -517,31 +573,31 @@ void Scene::DrawGUI(RenderContext& rc)
 
 		// シーン設定
 		ImGui::SetNextWindowPos(
-			{contentPosition.x + contentSize.x - rightWidth, contentPosition.y},
+			{contentPosition.x + contentSize.x - gameEditorRightWidth, contentPosition.y},
 			ImGuiCond_Always);
-		ImGui::SetNextWindowSize(
-			{rightWidth, contentSize.y},
-			ImGuiCond_Always);
-		if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_None))
+		ImGui::SetNextWindowSize({gameEditorRightWidth, contentSize.y}, ImGuiCond_Always);
+		if (ImGui::Begin((const char*)u8"シーン", nullptr, panelWindowFlags))
 		{
 			// カメラ
-			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((const char*)u8"カメラ", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Priority: %d", camera.GetPriority());
+				ImGui::Text((const char*)u8"優先度: %d", camera.GetPriority());
 				if (CameraController* controller = stage.GetActiveCameraController())
 					controller->DrawGUI();
 			}
 
 			// Time
-			if (ImGui::CollapsingHeader("Time", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((const char*)u8"時間", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Text("Time: %.4f", Game::Time::time);
-				ImGui::Text("Unscaled Delta Time: %.4f", Game::Time::unscaledDeltaTime);
-				ImGui::Text("Delta Time: %.4f", Game::Time::deltaTime);
-				ImGui::DragFloat("Time Scale", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
+				ImGui::Text((const char*)u8"経過時間: %.4f", Game::Time::time);
+				ImGui::Text(
+					(const char*)u8"非スケール差分時間: %.4f", Game::Time::unscaledDeltaTime);
+				ImGui::Text((const char*)u8"差分時間: %.4f", Game::Time::deltaTime);
+				ImGui::DragFloat((const char*)u8"時間倍率", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 			}
 
-			if (ImGui::CollapsingHeader("Skybox", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader(
+					(const char*)u8"スカイボックス", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				Game::Graphics& graphics = Game::Graphics::Instance();
 				graphics.GetSkyBoxRenderer()->DrawGUI();
@@ -549,13 +605,14 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 
 			// PostProcess
-			if (ImGui::CollapsingHeader("PostProcess", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader(
+					(const char*)u8"ポストプロセス", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				postProcess.DrawGUI();
 
 				ImGui::Separator();
 
-				ImGui::Text("CONTROLLER");
+				ImGui::Text((const char*)u8"コントローラー");
 
 				PostProcessController::Instance().DrawGUI();
 			}
@@ -563,6 +620,74 @@ void Scene::DrawGUI(RenderContext& rc)
 			OnDrawGUI();
 		}
 		ImGui::End();
+
+		// パネル幅調整
+		constexpr float resizeHandleWidth = 8.0f;
+		constexpr ImGuiWindowFlags resizeHandleFlags = ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoBackground;
+
+		ImGui::SetNextWindowPos(
+			{contentPosition.x + gameEditorLeftWidth - resizeHandleWidth * 0.5f,
+				contentPosition.y},
+			ImGuiCond_Always);
+		ImGui::SetNextWindowSize({resizeHandleWidth, contentSize.y}, ImGuiCond_Always);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::Begin("##GameEditorLeftResize", nullptr, resizeHandleFlags);
+		ImGui::InvisibleButton("##Resize", {resizeHandleWidth, contentSize.y});
+		const bool leftResizeHovered = ImGui::IsItemHovered();
+		const bool leftResizeActive = ImGui::IsItemActive();
+		if (leftResizeHovered || leftResizeActive)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		if (leftResizeActive)
+		{
+			gameEditorLeftWidth = std::clamp(
+				gameEditorLeftWidth + io.MouseDelta.x, minimumPanelWidth,
+				maximumPanelTotal - gameEditorRightWidth);
+		}
+		const ImU32 leftResizeColor = ImGui::GetColorU32(leftResizeActive
+			? ImGuiCol_SeparatorActive
+			: leftResizeHovered ? ImGuiCol_SeparatorHovered : ImGuiCol_Separator);
+		const ImVec2 leftResizePosition = ImGui::GetWindowPos();
+		ImGui::GetWindowDrawList()->AddLine(
+			{leftResizePosition.x + resizeHandleWidth * 0.5f, leftResizePosition.y},
+			{leftResizePosition.x + resizeHandleWidth * 0.5f,
+				leftResizePosition.y + contentSize.y},
+			leftResizeColor,
+			leftResizeHovered || leftResizeActive ? 3.0f : 1.0f);
+		ImGui::End();
+		ImGui::PopStyleVar();
+
+		const float rightResizeX = contentPosition.x + contentSize.x - gameEditorRightWidth;
+		ImGui::SetNextWindowPos(
+			{rightResizeX - resizeHandleWidth * 0.5f, contentPosition.y}, ImGuiCond_Always);
+		ImGui::SetNextWindowSize({resizeHandleWidth, contentSize.y}, ImGuiCond_Always);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::Begin("##GameEditorRightResize", nullptr, resizeHandleFlags);
+		ImGui::InvisibleButton("##Resize", {resizeHandleWidth, contentSize.y});
+		const bool rightResizeHovered = ImGui::IsItemHovered();
+		const bool rightResizeActive = ImGui::IsItemActive();
+		if (rightResizeHovered || rightResizeActive)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		if (rightResizeActive)
+		{
+			gameEditorRightWidth = std::clamp(
+				gameEditorRightWidth - io.MouseDelta.x, minimumPanelWidth,
+				maximumPanelTotal - gameEditorLeftWidth);
+		}
+		const ImU32 rightResizeColor = ImGui::GetColorU32(rightResizeActive
+			? ImGuiCol_SeparatorActive
+			: rightResizeHovered ? ImGuiCol_SeparatorHovered : ImGuiCol_Separator);
+		const ImVec2 rightResizePosition = ImGui::GetWindowPos();
+		ImGui::GetWindowDrawList()->AddLine(
+			{rightResizePosition.x + resizeHandleWidth * 0.5f, rightResizePosition.y},
+			{rightResizePosition.x + resizeHandleWidth * 0.5f,
+				rightResizePosition.y + contentSize.y},
+			rightResizeColor,
+			rightResizeHovered || rightResizeActive ? 3.0f : 1.0f);
+		ImGui::End();
+		ImGui::PopStyleVar();
 
 		dynamicAnimationEditorWindow.Draw(&showDynamicAnimationEditorWindow);
 	}

@@ -1,10 +1,7 @@
-﻿// AnimatorEditor.cpp
-
-#include "Animation/Animator.h"
+﻿#include "Animation/Animator.h"
 
 #include <algorithm>
 #include <cfloat>
-#include <cstring>
 #include <filesystem>
 #include <utility>
 
@@ -20,11 +17,8 @@ void Animator::DrawEditor(bool* pOpen)
     {
         if (!pOpen || !*pOpen) return;
 
-        if (!GetLastPath().empty() &&
-            currentAnimatorPath[0] == '\0')
-        {
-            strcpy_s(currentAnimatorPath, GetLastPath().c_str());
-        }
+        if (!GetLastPath().empty() && currentAnimatorPath.empty())
+            currentAnimatorPath = GetLastPath();
 
         ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
         const char* windowTitle = IsDynamicMode()
@@ -51,56 +45,58 @@ void Animator::DrawEditor(bool* pOpen)
         // Toolbar
         if (ImGui::Button("Save"))
         {
-            if (currentAnimatorPath[0] == '\0')
+            if (currentAnimatorPath.empty())
             {
-                if (Dialog::SaveFileName(currentAnimatorPath, MAX_PATH,
+				std::string path;
+				if (Dialog::SaveFileName(path,
                     "Animator File\0*.animator\0All Files\0*.*\0\0",
                     "Save Animator", "animator", "Data/Animator",
                     Game::Graphics::Instance().GetWindowHandle()) ==
                     DialogResult::OK)
                 {
-                    Save(currentAnimatorPath);
+					currentAnimatorPath = path;
+                    Save(currentAnimatorPath.c_str());
                 }
             }
             else
             {
-                Save(currentAnimatorPath);
+                Save(currentAnimatorPath.c_str());
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("Save As"))
         {
-            char buf[MAX_PATH] = {};
-            const std::filesystem::path currentPath =
-                currentAnimatorPath;
-            const std::string currentFilename =
-                currentPath.filename().string();
-            strcpy_s(buf, currentFilename.c_str());
+			std::string path;
+			const std::filesystem::path currentPath =
+				currentAnimatorPath;
+			const std::string currentFilename =
+				currentPath.filename().string();
+			path = currentFilename;
             const std::string initialDirectory =
                 currentPath.has_parent_path()
                 ? currentPath.parent_path().string()
                 : std::string("Data/Animator");
-            if (Dialog::SaveFileName(buf, MAX_PATH,
+			if (Dialog::SaveFileName(path,
                 "Animator File\0*.animator\0All Files\0*.*\0\0",
                 "Save As Animator", "animator",
                 initialDirectory.c_str(),
                 Game::Graphics::Instance().GetWindowHandle()) ==
                 DialogResult::OK)
             {
-                strcpy_s(currentAnimatorPath, buf);
-                Save(currentAnimatorPath);
+				currentAnimatorPath = path;
+                Save(currentAnimatorPath.c_str());
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("Load"))
         {
-            char buf[MAX_PATH] = {};
-            if (Dialog::OpenFileName(buf, MAX_PATH,
+			std::string path;
+			if (Dialog::OpenFileName(path,
                 "Animator File\0*.animator\0All Files\0*.*\0\0",
                 "Open Animator") == DialogResult::OK)
             {
-                strcpy_s(currentAnimatorPath, buf);
-                Load(currentAnimatorPath);
+				currentAnimatorPath = path;
+                Load(currentAnimatorPath.c_str());
                 {
                     editorPositionSet.clear();
                     selectedTransition = {};
@@ -109,7 +105,8 @@ void Animator::DrawEditor(bool* pOpen)
             }
         }
         ImGui::SameLine();
-        ImGui::TextDisabled(currentAnimatorPath[0] ? currentAnimatorPath : "(unsaved)");
+        ImGui::TextDisabled(
+            currentAnimatorPath.empty() ? "(unsaved)" : currentAnimatorPath.c_str());
         ImGui::SameLine();
         ImGui::TextColored(
             IsDynamicMode()
@@ -123,9 +120,8 @@ void Animator::DrawEditor(bool* pOpen)
             for (int li = 0; li < layerCount; ++li)
             {
                 Animator::AnimatorLayer& layer = GetLayer(li);
-                char tabLabel[80];
-                sprintf_s(tabLabel, "%s##tab%d", layer.name.c_str(), li);
-                bool tabOpen = ImGui::BeginTabItem(tabLabel);
+                const std::string tabLabel = layer.name + "##tab" + std::to_string(li);
+                bool tabOpen = ImGui::BeginTabItem(tabLabel.c_str());
                 if (tabOpen)
                 {
                     currentEditorLayer = li;
@@ -183,7 +179,7 @@ void Animator::DrawEditor(bool* pOpen)
         {
             ImGui::Text("Layer Name:");
             ImGui::SetNextItemWidth(-1.0f);
-            ImGui::InputText("##layername", addLayerName, sizeof(addLayerName));
+            ImGui::InputText("##layername", &addLayerName);
 
             ImGui::Spacing();
             if (!IsDynamicMode())
@@ -266,6 +262,7 @@ ed::LinkId Animator::LinkId(int li, int from, int ti)
     // -------------------------------------------------------------------
 void Animator::DrawLayerEditor(Animator::AnimatorLayer& layer, int li)
     {
+		auto& io = ImGui::GetIO();
         suppressNodeEditorInteractions = false;
 
         ImGui::BeginChild("LeftPanel", ImVec2(editorLeftPanelWidth, 0), true);
@@ -293,7 +290,7 @@ void Animator::DrawLayerEditor(Animator::AnimatorLayer& layer, int li)
         ImGui::PopStyleColor(3);
         if (ImGui::IsItemActive())
         {
-            editorLeftPanelWidth += ImGui::GetIO().MouseDelta.x;
+			editorLeftPanelWidth += io.MouseDelta.x;
             editorLeftPanelWidth = std::clamp(editorLeftPanelWidth, 150.0f, 500.0f);
         }
         if (ImGui::IsItemHovered())
@@ -453,12 +450,12 @@ void Animator::DrawNodes(Animator::AnimatorLayer& layer, int li)
                         layer.currentTime / length,
                         0.0f,
                         1.0f);
-                    char progressId[32];
-                    sprintf_s(progressId, "##pb%d_%d", li, si);
+                    const std::string progressId =
+                        "##pb" + std::to_string(li) + "_" + std::to_string(si);
                     ImGui::ProgressBar(
                         progress,
                         ImVec2(160.0f, 5.0f),
-                        progressId);
+                        progressId.c_str());
                 }
             }
 
@@ -738,27 +735,26 @@ void Animator::DrawParameterPanel()
     {
         ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "Parameters");
 
-        static char newParamName[64] = "";
+        static std::string newParamName;
         static int  newParamType = 0; // 0=Float 1=Int 2=Bool 3=Trigger
         const char* typeLabels[] = { "Float", "Int", "Bool", "Trigger" };
 
         ImGui::SetNextItemWidth(100.0f);
-        ImGui::InputText("##newname", newParamName, sizeof(newParamName));
+        ImGui::InputText("##newname", &newParamName);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(70.0f);
         ImGui::Combo("##newtype", &newParamType, typeLabels, 4);
         ImGui::SameLine();
-        if (ImGui::SmallButton("+ Add") && newParamName[0] != '\0')
+        if (ImGui::SmallButton("+ Add") && !newParamName.empty())
         {
-            std::string n(newParamName);
             switch (newParamType)
             {
-                case 0: AddFloat(n);   break;
-                case 1: AddInt(n);     break;
-                case 2: AddBool(n);    break;
-                case 3: AddTrigger(n); break;
+                case 0: AddFloat(newParamName);   break;
+                case 1: AddInt(newParamName);     break;
+                case 2: AddBool(newParamName);    break;
+                case 3: AddTrigger(newParamName); break;
             }
-            newParamName[0] = '\0';
+            newParamName.clear();
         }
 
         ImGui::Separator();
@@ -845,11 +841,8 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
     {
         ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Layer Settings");
 
-        char nameBuf[64];
-        strncpy_s(nameBuf, layer.name.c_str(), sizeof(nameBuf));
         ImGui::SetNextItemWidth(-1.0f);
-        if (ImGui::InputText("##layername", nameBuf, sizeof(nameBuf)))
-            layer.name = nameBuf;
+        ImGui::InputText("##layername", &layer.name);
 
         if (!IsDynamicMode())
         {
@@ -981,13 +974,8 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                     selectedTransition.fromStateIndex == ANY_STATE_INDEX &&
                     selectedTransition.transIndex == ti;
 
-                char label[128];
-                snprintf(
-                    label,
-                    sizeof(label),
-                    "%d. -> %s",
-                    ti + 1,
-                    toName.c_str());
+                const std::string label =
+                    std::to_string(ti + 1) + ". -> " + toName;
 
                 const ImVec2 itemPos = ImGui::GetCursorScreenPos();
                 const float itemWidth = ImGui::GetContentRegionAvail().x;
@@ -1027,7 +1015,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                 drawList->AddText(
                     ImVec2(itemPos.x + 4.0f, textY),
                     textColor,
-                    label);
+                    label.c_str());
                 drawList->PopClipRect();
 
                 if (ImGui::BeginDragDropTarget())
@@ -1178,11 +1166,8 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "State");
         ImGui::Separator();
 
-        char nameBuf[128];
-        strncpy_s(nameBuf, state.name.c_str(), sizeof(nameBuf));
         ImGui::SetNextItemWidth(-1.0f);
-        if (ImGui::InputText("##statename", nameBuf, sizeof(nameBuf)))
-            state.name = nameBuf;
+        ImGui::InputText("##statename", &state.name);
 
         ImGui::Spacing();
 
@@ -1194,17 +1179,14 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
             if (ImGui::Button("Browse .danim", ImVec2(-1.0f, 0.0f)))
             {
-                char path[MAX_PATH] = {};
-                if (!state.dynamicClipPath.empty())
-                    strcpy_s(path, state.dynamicClipPath.c_str());
+				std::string path = state.dynamicClipPath;
 
-                if (Dialog::OpenFileName(
-                    path,
-                    MAX_PATH,
-                    "Dynamic Animation Clip\0*.danim\0All Files\0*.*\0\0",
+				if (Dialog::OpenFileName(
+					path,
+					"Dynamic Animation Clip\0*.danim\0All Files\0*.*\0\0",
                     "Open Dynamic Animation Clip") == DialogResult::OK)
                 {
-                    SetDynamicClipPath(li, si, path);
+					SetDynamicClipPath(li, si, path);
                 }
             }
 
@@ -1299,9 +1281,10 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
                 if (isSelected)
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0.8f, 0.2f, 1));
 
-                char label[128];
-                snprintf(label, sizeof(label), "%d. -> %s", ti + 1, toName.c_str());
-                ImGui::Selectable(label, isSelected, ImGuiSelectableFlags_None, ImVec2(0, 0));
+                const std::string label =
+                    std::to_string(ti + 1) + ". -> " + toName;
+                ImGui::Selectable(
+                    label.c_str(), isSelected, ImGuiSelectableFlags_None, ImVec2(0, 0));
 
                 if (isSelected)
                     ImGui::PopStyleColor();
@@ -1367,11 +1350,8 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
             auto& cb = callbacks[ci];
             ImGui::PushID(ci);
 
-            char labelBuf[64];
-            strncpy_s(labelBuf, cb.label.c_str(), sizeof(labelBuf));
             ImGui::SetNextItemWidth(120.0f);
-            if (ImGui::InputText("Label##cblabel", labelBuf, sizeof(labelBuf)))
-                cb.label = labelBuf;
+            ImGui::InputText("Label##cblabel", &cb.label);
 
             ImGui::SameLine();
 

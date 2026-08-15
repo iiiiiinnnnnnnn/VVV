@@ -1,6 +1,4 @@
-﻿// Terrain.cpp
-
-#include "Gameplay/Stage/Component/Terrain.h"
+﻿#include "Gameplay/Stage/Component/Terrain.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -9,6 +7,7 @@
 #include "Application/Input/Input.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
+#include "Physics/Navigation/NavMeshActor.h"
 #include "Resource/Texture.h"
 #include "Resource/ResourceManager.h"
 #include "Core/Foundation/Json.h"
@@ -32,6 +31,56 @@ Terrain::Terrain(Object* owner)
 		AddBrushTexture("Data/Image/bugTex.png");
 	}
 
+}
+
+void Terrain::SetTerrainSize(float value)
+{
+	value = std::max(value, 1.0f);
+	if (fabsf(terrainSize - value) <= eps) return;
+
+	terrainSize = value;
+	MarkTerrainMeshDirty();
+}
+
+void Terrain::SetGridResolution(int value)
+{
+	value = std::clamp(value, 1, 256);
+	if (gridResolution == value) return;
+
+	gridResolution = value;
+	MarkTerrainMeshDirty();
+}
+
+void Terrain::SetTessellationEdgeFactor(float value)
+{
+	value = std::clamp(value, 1.0f, 16.0f);
+	if (fabsf(tesselation_constant.edge_factor - value) <= eps) return;
+
+	tesselation_constant.edge_factor = value;
+	MarkTerrainMeshDirty();
+}
+
+void Terrain::SetTessellationInnerFactor(float value)
+{
+	value = std::clamp(value, 1.0f, 16.0f);
+	if (fabsf(tesselation_constant.inner_factor - value) <= eps) return;
+
+	tesselation_constant.inner_factor = value;
+	MarkTerrainMeshDirty();
+}
+
+void Terrain::SetHeightScaler(float value)
+{
+	value = std::clamp(value, -200.0f, 200.0f);
+	if (fabsf(tesselation_constant.height_scaler - value) <= eps) return;
+
+	tesselation_constant.height_scaler = value;
+	MarkTerrainMeshDirty();
+}
+
+void Terrain::SetTilingScale(float value)
+{
+	tesselation_constant.tilling_scale = std::clamp(value, 1.0f, 300.0f);
 }
 
 void Terrain::InitializeGpuResources()
@@ -708,6 +757,7 @@ void Terrain::RenderShadowMap(
 
 void Terrain::PaintByMouse(const RenderContext& rc)
 {
+	auto& io = ImGui::GetIO();
 	if (!use_brush)
 	{
 		return;
@@ -718,7 +768,6 @@ void Terrain::PaintByMouse(const RenderContext& rc)
 		return;
 	}
 
-	ImGuiIO& io = ImGui::GetIO();
 	if (io.KeyAlt)
 	{
 		return;
@@ -759,14 +808,17 @@ bool Terrain::ScreenToTerrainUV(const RenderContext& rc, float& outU, float& out
 		return false;
 	}
 
-	float ndcX = (2.0f * static_cast<float>(mouse.GetPositionX()) / screenWidth) - 1.0f;
-	float ndcY = 1.0f - (2.0f * static_cast<float>(mouse.GetPositionY()) / screenHeight);
+	const Vector2 mouseNdc = Game::Graphics::Instance().GetMouseNDC(
+		static_cast<float>(mouse.GetPositionX()),
+		static_cast<float>(mouse.GetPositionY()));
 
 	Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	Matrix invViewProjection = viewProjection.Invert();
 
-	Vector3 nearPoint = Vector3::Transform(Vector3(ndcX, ndcY, 0.0f), invViewProjection);
-	Vector3 farPoint = Vector3::Transform(Vector3(ndcX, ndcY, 1.0f), invViewProjection);
+	Vector3 nearPoint =
+		Vector3::Transform(Vector3(mouseNdc.x, mouseNdc.y, 0.0f), invViewProjection);
+	Vector3 farPoint =
+		Vector3::Transform(Vector3(mouseNdc.x, mouseNdc.y, 1.0f), invViewProjection);
 
 	Vector3 rayOriginWorld = nearPoint;
 	Vector3 rayDirectionWorld = farPoint - nearPoint;
@@ -1570,16 +1622,17 @@ void Terrain::BakeCollider()
 
 void Terrain::DrawTerrainLayerGUI()
 {
-	if (!ImGui::TreeNode("Terrain Paint Layers"))
+	if (!ImGui::TreeNode((const char*)u8"地形ペイントレイヤー"))
 	{
 		return;
 	}
 
-	ImGui::Text("Selected: %s",
+	ImGui::Text((const char*)u8"選択中: %s",
 		terrainLayers.empty()
-			? "None"
+			? (const char*)u8"なし"
 			: terrainLayers[currentTerrainLayerIndex].name.c_str());
 
+	// ペイントレイヤーのサムネイル一覧
 	{
 		const float thumbnailSize = 72.0f;
 		const float childHeight =
@@ -1640,7 +1693,7 @@ void Terrain::DrawTerrainLayerGUI()
 		ImGui::EndChild();
 	}
 
-	ImGui::Text("Layers: %d / %d",
+	ImGui::Text((const char*)u8"レイヤー数: %d / %d",
 		static_cast<int>(terrainLayers.size()),
 		MaxTerrainLayers);
 
@@ -1649,15 +1702,16 @@ void Terrain::DrawTerrainLayerGUI()
 
 void Terrain::DrawBrushGUI()
 {
-	if (!ImGui::TreeNode("Brush Texture"))
+	if (!ImGui::TreeNode((const char*)u8"ブラシテクスチャ"))
 	{
 		return;
 	}
 
 	const TerrainBrush* currentBrush = GetCurrentBrush();
-	ImGui::Text("Selected: %s",
-		currentBrush != nullptr ? currentBrush->name.c_str() : "None");
+	ImGui::Text((const char*)u8"選択中: %s",
+		currentBrush != nullptr ? currentBrush->name.c_str() : (const char*)u8"なし");
 
+	// ブラシテクスチャのサムネイル一覧
 	{
 		const float thumbnailSize = 72.0f;
 		const float childHeight =
@@ -1719,63 +1773,109 @@ void Terrain::DrawBrushGUI()
 		ImGui::EndChild();
 	}
 
-	ImGui::Checkbox("invert brush mask", &invertBrushMask);
+	ImGui::Checkbox((const char*)u8"ブラシマスクを反転", &invertBrushMask);
 
-	ImGui::Text("Brush count: %d", static_cast<int>(brushes.size()));
+	ImGui::Text((const char*)u8"ブラシ数: %d", static_cast<int>(brushes.size()));
 	ImGui::TreePop();
 }
 
 void Terrain::DrawGUI()
 {
+	// よく使う地形ブラシ
+	ImGui::TextUnformatted((const char*)u8"地形ブラシ");
+	ImGui::Checkbox((const char*)u8"ブラシを使用", &use_brush);
+
+	int brushModeIndex = static_cast<int>(brushMode);
+	const char* brushModeItems[] =
+	{
+		(const char*)u8"上げる／下げる",
+		(const char*)u8"高さを指定",
+		(const char*)u8"ペイント",
+	};
+
+	if (ImGui::Combo(
+			(const char*)u8"ブラシモード", &brushModeIndex, brushModeItems,
+			_countof(brushModeItems)))
+	{
+		brushMode = static_cast<BrushMode>(brushModeIndex);
+	}
+
+	ImGui::SliderInt((const char*)u8"ブラシサイズ", &brush_size, 1, 256);
+	if (brushMode == BrushMode::RaiseLower)
+	{
+		ImGui::DragFloat(
+			(const char*)u8"上下の強さ", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
+		ImGui::Text((const char*)u8"左ドラッグ：上げる");
+		ImGui::Text((const char*)u8"Shift + 左ドラッグ：下げる");
+	}
+	else if (brushMode == BrushMode::SetHeight)
+	{
+		ImGui::DragFloat(
+			(const char*)u8"指定する高さ", &setHeightValue, 0.001f, -10.0f, 10.0f);
+		ImGui::Text((const char*)u8"左ドラッグ：高さを設定");
+	}
+	else if (brushMode == BrushMode::Paint)
+	{
+		ImGui::DragFloat(
+			(const char*)u8"ペイント不透明度", &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGui::Text((const char*)u8"左ドラッグ：ペイント");
+	}
+	ImGui::Text((const char*)u8"Alt + 左ドラッグ：カメラ回転のみ");
+	ImGui::Separator();
+
+	// ブラシとペイントレイヤー
 	DrawBrushGUI();
 	DrawTerrainLayerGUI();
 
-	if (ImGui::TreeNode("Terrain PBR"))
+	// 地形のマテリアル
+	if (ImGui::TreeNode((const char*)u8"地形PBR"))
 	{
-		ImGui::ColorEdit4("base color", &baseColor.x);
-		ImGui::ColorEdit4("emissive color", &emissiveColor.x);
-		ImGui::SliderFloat("metalness", &metalness, 0.0f, 1.0f);
-		ImGui::SliderFloat("roughness", &roughness, 0.0001f, 1.0f);
-		ImGui::SliderFloat("occlusion", &occlusion, 0.0f, 1.0f);
-		ImGui::SliderFloat("occlusion strength", &occlusionStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat("shadow strength", &shadowStrength, 0.0f, 1.0f);
+		ImGui::ColorEdit4((const char*)u8"基本色", &baseColor.x);
+		ImGui::ColorEdit4((const char*)u8"発光色", &emissiveColor.x);
+		ImGui::SliderFloat((const char*)u8"メタリック", &metalness, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)u8"粗さ", &roughness, 0.0001f, 1.0f);
+		ImGui::SliderFloat((const char*)u8"オクルージョン", &occlusion, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)u8"オクルージョン強度", &occlusionStrength, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)u8"影の強度", &shadowStrength, 0.0f, 1.0f);
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode("Distance Fog"))
+	// 地形に適用する距離フォグ
+	if (ImGui::TreeNode((const char*)u8"距離フォグ"))
 	{
-		ImGui::Checkbox("Enabled##TerrainDistanceFog", &distanceFogEnabled);
+		ImGui::Checkbox((const char*)u8"有効##TerrainDistanceFog", &distanceFogEnabled);
 		ImGui::DragFloat(
-			"Start Distance##TerrainDistanceFog",
+			(const char*)u8"開始距離##TerrainDistanceFog",
 			&distanceFogStart,
 			0.5f,
 			0.0f,
 			std::max(distanceFogEnd - 0.1f, 0.0f));
 		ImGui::DragFloat(
-			"End Distance##TerrainDistanceFog",
+			(const char*)u8"終了距離##TerrainDistanceFog",
 			&distanceFogEnd,
 			0.5f,
 			distanceFogStart + 0.1f,
 			1000.0f);
 		ImGui::DragFloat(
-			"Strength##TerrainDistanceFog",
+			(const char*)u8"強度##TerrainDistanceFog",
 			&distanceFogStrength,
 			0.01f,
 			0.0f,
 			1.0f);
-		ImGui::ColorEdit3("Color##TerrainDistanceFog", &distanceFogColor.x);
+		ImGui::ColorEdit3((const char*)u8"色##TerrainDistanceFog", &distanceFogColor.x);
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode("Terrain Data"))
+	// 高さとペイントを保持する地形データ
+	if (ImGui::TreeNode((const char*)u8"地形データ"))
 	{
-		if (ImGui::Button("terrain texture clear"))
+		if (ImGui::Button((const char*)u8"地形テクスチャをクリア"))
 		{
 			ClearTerrainTexture();
 		}
 
-		ImGui::Text("R = height, G = paint layer");
-		ImGui::DragFloat4("terrain data clear RGBA", &terrain_texture_clear_color.x, 0.01f);
+		ImGui::Text((const char*)u8"R = 高さ、G = ペイントレイヤー");
+		ImGui::DragFloat4((const char*)u8"クリア時のRGBA", &terrain_texture_clear_color.x, 0.01f);
 
 		if (terrainTextureShaderResourceView)
 		{
@@ -1789,70 +1889,32 @@ void Terrain::DrawGUI()
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode("Terrain Brush"))
-	{
-		ImGui::Checkbox("use brush", &use_brush);
-
-		int brushModeIndex = static_cast<int>(brushMode);
-		const char* brushModeItems[] =
-		{
-			"Raise/Lower",
-			"Set Height",
-			"Paint",
-		};
-
-		if (ImGui::Combo("brush mode", &brushModeIndex, brushModeItems, _countof(brushModeItems)))
-		{
-			brushMode = static_cast<BrushMode>(brushModeIndex);
-		}
-
-		ImGui::SliderInt("brush size", &brush_size, 1, 256);
-		if (brushMode == BrushMode::RaiseLower)
-		{
-			ImGui::DragFloat("raise/lower strength", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
-			ImGui::Text("Left drag: raise");
-			ImGui::Text("Shift + left drag: lower");
-		}
-		else if (brushMode == BrushMode::SetHeight)
-		{
-			ImGui::DragFloat("set height", &setHeightValue, 0.001f, -10.0f, 10.0f);
-			ImGui::Text("Left drag: set height");
-		}
-		else if (brushMode == BrushMode::Paint)
-		{
-			ImGui::DragFloat("paint opacity", &paintOpacity, 0.001f, 0.0f, 1.0f);
-			ImGui::Text("Left drag: paint");
-		}
-		ImGui::Text("Alt + left drag: camera orbit only");
-
-		ImGui::TreePop();
-	}
-
-	if (ImGui::TreeNode("Terrain Rendering"))
+	// 地形メッシュとテセレーション
+	if (ImGui::TreeNode((const char*)u8"地形レンダリング"))
 	{
 		float newTerrainSize = terrainSize;
-		if (ImGui::DragFloat("terrain size", &newTerrainSize, 1.0f, 1.0f, 10000.0f))
+		if (ImGui::DragFloat((const char*)u8"地形サイズ", &newTerrainSize, 1.0f, 1.0f, 10000.0f))
 		{
 			terrainSize = newTerrainSize;
 			MarkTerrainMeshDirty();
 		}
 
 		int newGridResolution = gridResolution;
-		if (ImGui::DragInt("grid resolution", &newGridResolution, 1, 1, 256))
+		if (ImGui::DragInt((const char*)u8"グリッド解像度", &newGridResolution, 1, 1, 256))
 		{
 			gridResolution = newGridResolution;
 			MarkTerrainMeshDirty();
 		}
 
 		bool meshSettingChanged = false;
-		meshSettingChanged |= ImGui::SliderFloat("edge", &tesselation_constant.edge_factor, 1.0f, 16.0f);
-		meshSettingChanged |= ImGui::SliderFloat("inner", &tesselation_constant.inner_factor, 1.0f, 16.0f);
-		if (ImGui::SliderFloat("height scaler", &tesselation_constant.height_scaler, -200.0f, 200.0f))
+		meshSettingChanged |= ImGui::SliderFloat((const char*)u8"外周分割", &tesselation_constant.edge_factor, 1.0f, 16.0f);
+		meshSettingChanged |= ImGui::SliderFloat((const char*)u8"内部分割", &tesselation_constant.inner_factor, 1.0f, 16.0f);
+		if (ImGui::SliderFloat((const char*)u8"高さ倍率", &tesselation_constant.height_scaler, -200.0f, 200.0f))
 		{
 			meshSettingChanged = true;
 		}
 		if (meshSettingChanged) MarkTerrainMeshDirty();
-		ImGui::SliderFloat("tilling scale", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
+		ImGui::SliderFloat((const char*)u8"タイリング倍率", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
 
 		ImGui::TreePop();
 	}
@@ -1892,6 +1954,112 @@ float Terrain::GetHeightByUV(float u, float v) const
 		static_cast<size_t>(x)];
 
 	return pixel.x * tesselation_constant.height_scaler;
+}
+
+float Terrain::GetSurfaceHeightByUV(float u, float v) const
+{
+	u = std::clamp(u, 0.0f, 1.0f);
+	v = std::clamp(v, 0.0f, 1.0f);
+
+	const int tessellationFactor = std::max(
+		static_cast<int>(std::ceil(std::max(
+			tesselation_constant.edge_factor,
+			tesselation_constant.inner_factor))),
+		1);
+	const int meshSegments = std::max(gridResolution * tessellationFactor, 1);
+	const float gridX = u * meshSegments;
+	const float gridZ = v * meshSegments;
+	const int x = std::clamp(static_cast<int>(std::floor(gridX)), 0, meshSegments - 1);
+	const int z = std::clamp(static_cast<int>(std::floor(gridZ)), 0, meshSegments - 1);
+	const float xRatio = gridX - x;
+	const float zRatio = gridZ - z;
+	const float u0 = static_cast<float>(x) / meshSegments;
+	const float u1 = static_cast<float>(x + 1) / meshSegments;
+	const float v0 = static_cast<float>(z) / meshSegments;
+	const float v1 = static_cast<float>(z + 1) / meshSegments;
+	const float height00 = GetHeightByUV(u0, v0);
+	const float height10 = GetHeightByUV(u1, v0);
+	const float height01 = GetHeightByUV(u0, v1);
+
+	if (xRatio + zRatio <= 1.0f)
+	{
+		return height00 +
+			(height10 - height00) * xRatio +
+			(height01 - height00) * zRatio;
+	}
+
+	const float height11 = GetHeightByUV(u1, v1);
+	return height10 * (1.0f - zRatio) +
+		height01 * (1.0f - xRatio) +
+		height11 * (xRatio + zRatio - 1.0f);
+}
+
+void Terrain::Deform(const Vector3& worldPosition, const Vector3& direction, float power)
+{
+	if (terrainPixels.empty() || power <= eps || direction.LengthSquared() <= eps ||
+		fabsf(tesselation_constant.height_scaler) <= eps)
+	{
+		return;
+	}
+
+	Transform* transform = owner->GetComponent<Transform>();
+	if (!transform) return;
+
+	const Matrix inverseWorld = transform->matrix.Invert();
+	const Vector3 localPosition = Vector3::Transform(worldPosition, inverseWorld);
+	Vector3 localDirection = Vector3::TransformNormal(direction, inverseWorld);
+	if (localDirection.LengthSquared() <= eps) return;
+	localDirection.Normalize();
+
+	const float heightOffset = localDirection.y * power;
+	if (fabsf(heightOffset) <= eps) return;
+
+	const float radius = std::max(power, terrainSize / static_cast<float>(TerrainTextureWidth));
+	const float u = localPosition.x / terrainSize + 0.5f;
+	const float v = localPosition.z / terrainSize + 0.5f;
+	const int centerX = static_cast<int>(u * static_cast<float>(TerrainTextureWidth - 1));
+	const int centerY = static_cast<int>(v * static_cast<float>(TerrainTextureHeight - 1));
+	const int pixelRadius = std::max(static_cast<int>(ceilf(
+		radius / terrainSize * static_cast<float>(TerrainTextureWidth - 1))), 1);
+
+	const int x0 = std::max(centerX - pixelRadius, 0);
+	const int y0 = std::max(centerY - pixelRadius, 0);
+	const int x1 = std::min(centerX + pixelRadius, TerrainTextureWidth - 1);
+	const int y1 = std::min(centerY + pixelRadius, TerrainTextureHeight - 1);
+	if (x0 > x1 || y0 > y1) return;
+
+	const float texelSize = terrainSize / static_cast<float>(TerrainTextureWidth - 1);
+	for (int y = y0; y <= y1; ++y)
+	{
+		for (int x = x0; x <= x1; ++x)
+		{
+			const float deltaX = static_cast<float>(x - centerX) * texelSize;
+			const float deltaZ = static_cast<float>(y - centerY) * texelSize;
+			const float distance = sqrtf(deltaX * deltaX + deltaZ * deltaZ);
+			if (distance > radius) continue;
+
+			float falloff = 1.0f - distance / radius;
+			falloff = falloff * falloff * (3.0f - 2.0f * falloff);
+			Vector4& pixel = terrainPixels[
+				static_cast<size_t>(y) * TerrainTextureWidth + static_cast<size_t>(x)];
+			pixel.x += heightOffset * falloff / tesselation_constant.height_scaler;
+		}
+	}
+
+	terrainTextureDirty = true;
+	is_terrain_texture_clear_color = false;
+	MarkTerrainMeshDirty();
+
+	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
+	{
+		const float radiusUv = radius / terrainSize;
+		collider->RebuildRegionFromTerrain(
+			u - radiusUv, u + radiusUv, v - radiusUv, v + radiusUv);
+		pendingColliderRebuild = false;
+	}
+
+	if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
+		navMesh->RequestBuildRegion(localPosition, radius);
 }
 
 uint64_t Terrain::GetTerrainDataHash() const

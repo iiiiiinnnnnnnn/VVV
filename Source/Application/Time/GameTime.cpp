@@ -1,6 +1,3 @@
-// GameTime.cpp
-
-// Time.cpp
 #include "Application/Time/GameTime.h"
 
 namespace Game

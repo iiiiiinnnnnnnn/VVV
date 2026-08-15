@@ -1,6 +1,4 @@
-﻿// SkyBoxRenderer.cpp
-
-#include "Rendering/Renderer/SkyBoxRenderer.h"
+﻿#include "Rendering/Renderer/SkyBoxRenderer.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/RenderContext.h"

@@ -1,6 +1,4 @@
-﻿// Camera.cpp
-
-#include "Gameplay/Camera/Camera.h"
+﻿#include "Gameplay/Camera/Camera.h"
 
 #include "Core/Object/Object.h"
 #include "Core/Object/Transform.h"

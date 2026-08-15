@@ -1,5 +1,4 @@
-﻿// Framework.cpp
-#include "Application/Bootstrap/Framework.h"
+﻿#include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Resource/ResourceManager.h"
@@ -8,12 +7,13 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
 
+#include <format>
 // 垂直同期間隔設定
-static const int syncInterval = 0;
+static constexpr UINT PresentSyncInterval = 0;
+static constexpr double TargetFrameSeconds = 1.0 / 60.0;
 
 // コンストラクタ
-Framework::Framework(HWND hWnd)
-	: hWnd(hWnd)
+Framework::Framework(HWND hWnd) : hWnd(hWnd)
 {
 	// 入力初期化
 	Game::Input::Instance().Initialize(hWnd);
@@ -28,35 +28,32 @@ Framework::Framework(HWND hWnd)
 	PhysicsLayerManager::Instance().Initialize();
 
 	// IMGUI初期化
-	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(), Game::Graphics::Instance().GetDeviceContext());
+	ImGuiRenderer::Initialize(hWnd, Game::Graphics::Instance().GetDevice(),
+		Game::Graphics::Instance().GetDeviceContext());
 
 	// 物理マネージャ初期化
 	PhysicsManager::Instance().Initialize();
 
 	// シーンマネージャー初期化
 	SceneManager::Instance().Initialize();
-
 }
 
 // デストラクタ
 Framework::~Framework()
 {
-	// IMGUI終了化
-	ImGuiRenderer::Finalize();
-
 	// シーンマネージャー終了化
 	SceneManager::Instance().Finalize();
 
 	// 物理マネージャ終了化
 	PhysicsManager::Instance().Finalize();
 
+	// IMGUI終了化
+	ImGuiRenderer::Finalize();
 }
 
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
-	elapsedTime = std::min(elapsedTime, 1.0f / 60.0f);
-
 	// 時間更新処理
 	Game::Time::time += elapsedTime;
 	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
@@ -64,6 +61,9 @@ void Framework::Update(float elapsedTime)
 
 	// 入力更新処理
 	Game::Input::Instance().Update();
+
+	// ImGuiのフレーム開始前にシーン切り替えと旧シーンの破棄を終える
+	SceneManager::Instance().ApplyPendingChanges();
 
 	// IMGUIフレーム開始処理
 	ImGuiRenderer::NewFrame();
@@ -81,8 +81,8 @@ void Framework::Render(float elapsedTime)
 	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
 	// 画面クリア＆レンダーターゲット設定
-	RenderTarget* backBuffer = Game::Graphics::Instance().
-		GetFrameBuffer(Game::FrameBufferId::Display);
+	RenderTarget* backBuffer =
+		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Display);
 	backBuffer->Clear(dc, 0.5f, 0.5f, 0.5f, 1);
 	backBuffer->Activate(dc);
 
@@ -94,7 +94,7 @@ void Framework::Render(float elapsedTime)
 	ImGuiRenderer::Render(dc);
 
 	// 画面表示
-	Game::Graphics::Instance().Present(syncInterval);
+	Game::Graphics::Instance().Present(PresentSyncInterval);
 }
 
 // フレームレート計算
@@ -109,10 +109,9 @@ void Framework::CalculateFrameStats()
 	{
 		float fps = static_cast<float>(frames);
 		float mspf = 1000.0f / fps;
-		std::ostringstream outs;
-		outs.precision(6);
-		outs << "FPS : " << fps << " / " << "Frame Time : " << mspf << " (ms)";
-		SetWindowTextA(hWnd, outs.str().c_str());
+		const std::string title =
+			std::format("FPS : {} / Frame Time : {} (ms)", fps, mspf);
+		SetWindowTextA(hWnd, title.c_str());
 
 		// リセット
 		frames = 0;
@@ -124,6 +123,15 @@ void Framework::CalculateFrameStats()
 int Framework::Run()
 {
 	MSG msg = {};
+	HANDLE frameTimer = CreateWaitableTimerExW(
+		nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+	if (!frameTimer) frameTimer = CreateWaitableTimerW(nullptr, FALSE, nullptr);
+	LARGE_INTEGER performanceFrequency;
+	LARGE_INTEGER nextFrameTime;
+	QueryPerformanceFrequency(&performanceFrequency);
+	QueryPerformanceCounter(&nextFrameTime);
+	const LONGLONG targetFrameTicks =
+		static_cast<LONGLONG>(performanceFrequency.QuadPart * TargetFrameSeconds);
 
 	while (WM_QUIT != msg.message)
 	{
@@ -140,8 +148,26 @@ int Framework::Run()
 			float elapsedTime = timer.TimeInterval();
 			Update(elapsedTime);
 			Render(elapsedTime);
+
+			nextFrameTime.QuadPart += targetFrameTicks;
+			LARGE_INTEGER currentTime;
+			QueryPerformanceCounter(&currentTime);
+			if (nextFrameTime.QuadPart > currentTime.QuadPart && frameTimer)
+			{
+				LARGE_INTEGER dueTime;
+				dueTime.QuadPart = -(nextFrameTime.QuadPart - currentTime.QuadPart) * 10000000LL /
+								   performanceFrequency.QuadPart;
+				if (dueTime.QuadPart == 0) dueTime.QuadPart = -1;
+				SetWaitableTimer(frameTimer, &dueTime, 0, nullptr, nullptr, FALSE);
+				WaitForSingleObject(frameTimer, INFINITE);
+			}
+			else if (nextFrameTime.QuadPart <= currentTime.QuadPart)
+			{
+				nextFrameTime = currentTime;
+			}
 		}
 	}
+	if (frameTimer) CloseHandle(frameTimer);
 	return static_cast<int>(msg.wParam);
 }
 
@@ -153,15 +179,18 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 		Game::Input::Instance().GetMouse().SetWheel(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 	}
 
-	if (ImGuiRenderer::HandleMessage(hWnd, msg, wParam, lParam))
-		return true;
+	if (ImGuiRenderer::HandleMessage(hWnd, msg, wParam, lParam)) return true;
 
 	switch (msg)
 	{
+	case WM_CLOSE:
+		PostQuitMessage(0);
+		return 0;
 	case WM_NCHITTEST:
 	{
 		const LRESULT hit = DefWindowProc(hWnd, msg, wParam, lParam);
-		if (Game::Graphics::Instance().IsWindowMovementLocked() && hit == HTCAPTION) return HTCLIENT;
+		if (Game::Graphics::Instance().IsWindowMovementLocked() && hit == HTCAPTION)
+			return HTCLIENT;
 		return hit;
 	}
 	case WM_SYSCOMMAND:

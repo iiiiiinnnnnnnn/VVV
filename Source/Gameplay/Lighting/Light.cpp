@@ -1,23 +1,23 @@
-// Light.cpp
-
-#include "Gameplay/Lighting/Light.h"
+﻿#include "Gameplay/Lighting/Light.h"
 #include "imgui.h"
 
 void Light::DrawGUI()
 {
+	// オブジェクトとトランスフォーム
 	Object::DrawGUI();
 
 	transform.DrawGUI();
 
-	if (ImGui::TreeNode("Light Info"))
+	// 全ライト共通の色と強度
+	if (ImGui::TreeNode((const char*)u8"ライト設定"))
 	{
 		ImGui::ColorEdit3(
-			"Color",
+			(const char*)u8"色",
 			&color.x,
 			ImGuiColorEditFlags_Float);
 
 		ImGui::DragFloat(
-			"Intensity",
+			(const char*)u8"強度",
 			&intensity,
 			0.1f,
 			0.0f,
@@ -34,10 +34,11 @@ void DirectionalLight::DrawGUI()
 {
 	Light::DrawGUI();
 
-	if (ImGui::TreeNode(name.c_str()))
+	// ディレクショナルライトの方向
+	if (ImGui::TreeNode((const char*)u8"方向"))
 	{
 		ImGui::TextDisabled(
-			"Direction: %.3f, %.3f, %.3f",
+			(const char*)u8"向き: %.3f, %.3f, %.3f",
 			transform.forward.x,
 			transform.forward.y,
 			transform.forward.z);
@@ -50,10 +51,11 @@ void PointLight::DrawGUI()
 {
 	Light::DrawGUI();
 
-	if (ImGui::TreeNode(name.c_str()))
+	// ポイントライトの範囲
+	if (ImGui::TreeNode((const char*)u8"ポイントライト設定"))
 	{
 		ImGui::DragFloat(
-			"Range",
+			(const char*)u8"範囲",
 			&range,
 			0.1f,
 			0.0f,
@@ -73,10 +75,11 @@ void SpotLight::DrawGUI()
 {
 	Light::DrawGUI();
 
-	if (ImGui::TreeNode(name.c_str()))
+	// スポットライトの範囲とコーン
+	if (ImGui::TreeNode((const char*)u8"スポットライト設定"))
 	{
 		ImGui::DragFloat(
-			"Range",
+			(const char*)u8"範囲",
 			&range,
 			0.1f,
 			0.0f,
@@ -84,7 +87,7 @@ void SpotLight::DrawGUI()
 			"%.2f");
 
 		ImGui::DragFloat(
-			"Inner Cone Angle",
+			(const char*)u8"内側コーン角度",
 			&innerConeAngle,
 			0.001f,
 			0.0f,
@@ -92,7 +95,7 @@ void SpotLight::DrawGUI()
 			"%.3f");
 
 		ImGui::DragFloat(
-			"Outer Cone Angle",
+			(const char*)u8"外側コーン角度",
 			&outerConeAngle,
 			0.001f,
 			0.0f,
@@ -123,7 +126,7 @@ void SpotLight::DrawGUI()
 		}
 
 		ImGui::TextDisabled(
-			"Direction: %.3f, %.3f, %.3f",
+			(const char*)u8"向き: %.3f, %.3f, %.3f",
 			transform.forward.x,
 			transform.forward.y,
 			transform.forward.z);
@@ -136,10 +139,11 @@ void AreaLight::DrawGUI()
 {
 	Light::DrawGUI();
 
-	if (ImGui::TreeNode(name.c_str()))
+	// エリアライトの大きさと範囲
+	if (ImGui::TreeNode((const char*)u8"エリアライト設定"))
 	{
 		ImGui::DragFloat(
-			"Width",
+			(const char*)u8"幅",
 			&width,
 			0.01f,
 			0.0f,
@@ -147,7 +151,7 @@ void AreaLight::DrawGUI()
 			"%.2f");
 
 		ImGui::DragFloat(
-			"Height",
+			(const char*)u8"高さ",
 			&height,
 			0.01f,
 			0.0f,
@@ -155,7 +159,7 @@ void AreaLight::DrawGUI()
 			"%.2f");
 
 		ImGui::DragFloat(
-			"Range",
+			(const char*)u8"範囲",
 			&range,
 			0.1f,
 			0.0f,
@@ -178,13 +182,13 @@ void AreaLight::DrawGUI()
 		}
 
 		ImGui::TextDisabled(
-			"Direction: %.3f, %.3f, %.3f",
+			(const char*)u8"向き: %.3f, %.3f, %.3f",
 			transform.forward.x,
 			transform.forward.y,
 			transform.forward.z);
 
 		ImGui::TextDisabled(
-			"Right: %.3f, %.3f, %.3f",
+			(const char*)u8"右方向: %.3f, %.3f, %.3f",
 			transform.right.x,
 			transform.right.y,
 			transform.right.z);

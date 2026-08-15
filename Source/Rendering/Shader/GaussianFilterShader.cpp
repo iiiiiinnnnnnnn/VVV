@@ -1,6 +1,4 @@
-﻿// GaussianFilterShader.cpp
-
-#include "Rendering/Shader/GaussianFilterShader.h"
+﻿#include "Rendering/Shader/GaussianFilterShader.h"
 #include "Resource/GpuResourceUtils.h"
 
 GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)

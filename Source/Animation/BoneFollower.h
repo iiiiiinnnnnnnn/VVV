@@ -1,6 +1,4 @@
-﻿// BoneFollower.h
-
-#pragma once
+﻿#pragma once
 #include <string>
 
 #include "Core/Object/Component.h"

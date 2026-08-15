@@ -1,5 +1,3 @@
-// LocalPlayer.cpp
-
 #include "Gameplay/Player/LocalPlayer.h"
 
 #include "Gameplay/Player/LocalPlayerController.h"

@@ -1,5 +1,3 @@
-// Entity.cpp
-
 #include "Gameplay/Actor/Entity.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"

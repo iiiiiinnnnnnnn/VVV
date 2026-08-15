@@ -1,6 +1,4 @@
-﻿// CharacterController.h
-
-#pragma once
+﻿#pragma once
 
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Core/PhysicsManager.h"

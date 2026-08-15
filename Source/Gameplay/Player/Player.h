@@ -1,6 +1,4 @@
-﻿// Player.h
-
-#pragma once
+﻿#pragma once
 #include "Animation/Animator.h"
 
 #include <memory>
@@ -73,4 +71,5 @@ protected:
 	CharacterMotorComponent* motor = nullptr;
 	LockOnComponent* lockOnComponent = nullptr;
     float speed = 5.0f;
+	bool terrainDeformKeyHeld = false;
 };

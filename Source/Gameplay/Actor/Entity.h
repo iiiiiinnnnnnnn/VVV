@@ -1,6 +1,4 @@
-﻿// Entity.h
-
-#pragma once
+﻿#pragma once
 #include <optional>
 #include <string>
 #include "Gameplay/Stage/Stage.h"

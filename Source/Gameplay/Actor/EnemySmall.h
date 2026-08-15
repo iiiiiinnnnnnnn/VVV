@@ -1,6 +1,4 @@
-﻿// EnemySmall.h
-
-#pragma once
+﻿#pragma once
 
 #include "Gameplay/Actor/Entity.h"
 
@@ -28,15 +26,5 @@ private:
 	EnemyAIFlow* controller;
 	NavMeshAgent* navMeshAgent;
 	CharacterController* cc;
-	float attackPhaseTimer = 0.0f;
-	float attackWindupDuration = 1.3f;
-	float attackRecoveryDuration = 0.8f;
-	bool attackAimLocked = false;
 	bool deathCleanupPending = false;
-	float freedomWaitTimer = 0.0f;
-	float freedomWaitDuration = 2.0f;
-	float freedomMinDistance = 3.0f;
-	float freedomMaxDistance = 10.0f;
-	float freedomMoveSpeed = 1.0f;
-	float attackMoveSpeed = 6.0f;
 };

@@ -1,5 +1,3 @@
-// HitStop.h
-
 #pragma once
 
 class HitStop

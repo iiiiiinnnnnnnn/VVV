@@ -1,6 +1,4 @@
-﻿// FpsCameraController.cpp
-
-#include "Gameplay/Camera/FpsCameraController.h"
+﻿#include "Gameplay/Camera/FpsCameraController.h"
 #include "Application/Input/Input.h"
 
 FpsCameraController::FpsCameraController(Object* owner, std::shared_ptr<Player> character)

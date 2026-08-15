@@ -1,5 +1,3 @@
-// NavMeshObstacle.h
-
 #pragma once
 
 #include "Core/Foundation/Common.h"

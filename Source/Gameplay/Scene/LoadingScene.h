@@ -1,13 +1,11 @@
-﻿// LoadingScene.h
-
-#pragma once
+﻿#pragma once
 
 #include "Gameplay/Scene/Scene.h"
 
 class LoadingScene : public Scene
 {
 public:
-	LoadingScene(SceneMessage message = nullptr);
+	LoadingScene();
 	~LoadingScene() override = default;
 
 	void OnDrawGUI() override;

@@ -1,6 +1,4 @@
-// Actor.cpp
-
-#include "Gameplay/Actor/Actor.h"
+﻿#include "Gameplay/Actor/Actor.h"
 
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/CharacterController.h"
@@ -38,8 +36,32 @@ void Actor::Update()
 
 void Actor::DrawGUI()
 {
+	DrawGUI(false);
+}
+
+void Actor::DrawGUI(bool selected)
+{
     ImGui::PushID(this);
-    const bool inspectorOpen = ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str());
+	const ImGuiTreeNodeFlags flags = selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None;
+	if (selected) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (selected)
+	{
+		const ImVec4 selectedColor = ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive);
+		ImGui::PushStyleColor(ImGuiCol_Header, selectedColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, selectedColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, selectedColor);
+	}
+    const bool inspectorOpen = ImGui::CollapsingHeader(name.empty() ? (const char*)u8"名前なしオブジェクト" : name.c_str(), flags);
+	if (selected)
+	{
+		const ImVec2 itemMin = ImGui::GetItemRectMin();
+		const ImVec2 itemMax = ImGui::GetItemRectMax();
+		const ImU32 accentColor = ImGui::GetColorU32(ImGuiCol_NavCursor);
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		drawList->AddRect(itemMin, itemMax, accentColor, 2.0f, 0, 2.0f);
+		drawList->AddRectFilled(itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), accentColor);
+		ImGui::PopStyleColor(3);
+	}
     if (inspectorOpen)
     {
         Transform::TransformChangedResult res = transform.DrawGUI();
@@ -73,7 +95,7 @@ void Actor::DrawGUI()
 
         Object::DrawGUI();
 
-        if (ImGui::TreeNode("User param"))
+        if (ImGui::TreeNode((const char*)u8"ユーザーパラメーター"))
         {
             OnDrawGUI();
             ImGui::TreePop();

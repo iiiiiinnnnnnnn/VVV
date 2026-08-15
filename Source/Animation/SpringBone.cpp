@@ -1,6 +1,4 @@
-﻿// SpringBone.cpp
-
-#include "Animation/SpringBone.h"
+﻿#include "Animation/SpringBone.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
@@ -382,7 +380,8 @@ void SpringBone::LateUpdate()
     if (!initialized)
         Reset();
 
-    float elapsedTime = std::max(Game::Time::deltaTime, 0.0f);
+	const float elapsedTime = std::max(
+		useUnscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime, 0.0f);
     if (elapsedTime <= 0.0f)
         return;
 

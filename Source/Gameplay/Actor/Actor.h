@@ -1,5 +1,3 @@
-// Actor.h
-
 #pragma once
 
 #include "Core/Object/Object.h"
@@ -16,6 +14,7 @@ public:
 
 	void Update() override;
 	void DrawGUI() override;
+	void DrawGUI(bool selected);
 	Transform* GetTransform() override { return &transform; }
 	const Transform* GetTransform() const override { return &transform; }
 

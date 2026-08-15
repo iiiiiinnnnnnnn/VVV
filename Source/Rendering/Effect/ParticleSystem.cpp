@@ -1,6 +1,4 @@
-﻿// ParticleSystem.cpp
-
-#include <algorithm>
+﻿#include <algorithm>
 
 #include "Rendering/Effect/ParticleSystem.h"
 #include "Resource/GpuResourceUtils.h"

@@ -1,6 +1,4 @@
-﻿// Animator.cpp
-
-#include "Animation/Animator.h"
+﻿#include "Animation/Animator.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Application/Time/GameTime.h"
 #include "Application/Tools/DynamicAnimationSerializer.h"
@@ -1976,28 +1974,28 @@ float Animator::GetCurrentAnimationTime(int layerIndex) const
     return layers[layerIndex].currentTime;
 }
 
-bool Animator::GetAnimationControlState(int& animationIndex, float& time, int layerIndex) const
+bool Animator::GetAnimationControlState(int& animationIndex, float& time,
+	int& nextAnimationIndex, float& nextTime, int layerIndex) const
 {
     animationIndex = -1;
     time = 0.0f;
+	nextAnimationIndex = -1;
+	nextTime = 0.0f;
     if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return false;
 
     const AnimatorLayer& layer = layers[layerIndex];
-    int stateIndex = layer.currentStateIndex;
-    time = layer.currentTime;
+	if (layer.currentStateIndex < 0 ||
+		layer.currentStateIndex >= static_cast<int>(layer.states.size())) return false;
 
-    if (layer.isTransitioning &&
-        layer.nextStateIndex >= 0 &&
-        layer.nextStateIndex < static_cast<int>(layer.states.size()))
-    {
-        stateIndex = layer.nextStateIndex;
-        time = layer.nextTime;
-    }
-
-    if (stateIndex < 0 || stateIndex >= static_cast<int>(layer.states.size())) return false;
-
-    animationIndex = layer.states[stateIndex].animationIndex;
-    return animationIndex >= 0;
+	animationIndex = layer.states[layer.currentStateIndex].animationIndex;
+	time = layer.currentTime;
+	if (layer.isTransitioning && layer.nextStateIndex >= 0 &&
+		layer.nextStateIndex < static_cast<int>(layer.states.size()))
+	{
+		nextAnimationIndex = layer.states[layer.nextStateIndex].animationIndex;
+		nextTime = layer.nextTime;
+	}
+	return animationIndex >= 0;
 }
 bool Animator::Save(const std::string& path)
 {

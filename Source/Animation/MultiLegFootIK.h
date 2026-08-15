@@ -1,6 +1,4 @@
-﻿// MultiLegFootIK.h
-
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <vector>
@@ -14,7 +12,7 @@ class Animator;
 
 class MultiLegFootIK : public Component
 {
-public:
+  public:
 	MultiLegFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator = nullptr);
 	~MultiLegFootIK() override = default;
 
@@ -23,7 +21,8 @@ public:
 	const char* GetDebugName() const override { return ICON_FA_BONE " MultiLegFootIK"; }
 	int GetUpdateOrder() const override { return 200; }
 
-	void AddLeg(const char* rootName, const char* midName, const char* tipName, const char* contactName = nullptr);
+	void AddLeg(const char* rootName, const char* midName, const char* tipName,
+		const char* contactName = nullptr);
 	int AddLegsFromVmdlSettings();
 	void SetRay(float up, float down, float contactOffset);
 	bool HasGroundContact() const;
@@ -34,10 +33,11 @@ public:
 	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
 	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
 
-private:
+  private:
 	void UpdateModelTransform();
 	void ApplyFootSettings();
 	float GetFootIKWeight(int footIndex) const;
+	void GetRaySettings(int footIndex, Vector3& startOffset, float& length) const;
 
 	VMDLModel* model = nullptr;
 	Animator* animator = nullptr;

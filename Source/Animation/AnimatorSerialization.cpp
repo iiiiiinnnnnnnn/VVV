@@ -1,6 +1,4 @@
-﻿// AnimatorSerialization.cpp
-
-#include "Animation/Animator.h"
+﻿#include "Animation/Animator.h"
 
 #include <algorithm>
 #include <fstream>
@@ -177,17 +175,31 @@ bool Animator::Serialize(const std::string& path) const
 void Animator::Deserialize(const std::string& path)
     {
         std::ifstream ifs(path);
-        _ASSERT_EXPR(ifs, "Failed to open file: " + path);
+		if (!ifs)
+		{
+			OutputDebugStringA(("Animator file open failed: " + path + "\n").c_str());
+			return;
+		}
 
         json root;
-        try { root = json::parse(ifs); }
-        catch (...) { _ASSERT_EXPR(false, "Failed to parse animator: " + path); }
+		try
+		{
+			root = json::parse(ifs);
+		}
+		catch (const std::exception& exception)
+		{
+			const std::string message =
+				"Animator parse failed: " + path + " (" + exception.what() + ")\n";
+			OutputDebugStringA(message.c_str());
+			return;
+		}
 
 		const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "VMDLModel";
 		const std::string fileMode = root.value("animationMode", expectedMode);
 		if (fileMode != expectedMode)
         {
-            _ASSERT_EXPR(false, L"Animator mode does not match the loaded file.");
+			const std::string message = "Animator mode mismatch: " + path + "\n";
+			OutputDebugStringA(message.c_str());
             return;
         }
 

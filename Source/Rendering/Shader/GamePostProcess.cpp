@@ -1,7 +1,4 @@
-﻿// GamePostProcess.cpp
-
-// PostProcess.cpp
-
+﻿
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"
@@ -451,27 +448,27 @@ namespace Game
 	void PostProcess::DrawGUI()
 	{
 		// Extract bright pixels for Bloom.
-		if (ImGui::TreeNode("Bloom Extract"))
+		if (ImGui::TreeNode((const char*)u8"ブルーム抽出"))
 		{
-			ImGui::Checkbox("Enable##BloomExtract", &enableBloomExtract);
-			ImGui::DragFloat("Threshold", &bloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox((const char*)u8"有効##BloomExtract", &enableBloomExtract);
+			ImGui::DragFloat((const char*)u8"しきい値", &bloomThreshold, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur the Bloom texture.
-		if (ImGui::TreeNode("Bloom Blur"))
+		if (ImGui::TreeNode((const char*)u8"ブルームぼかし"))
 		{
-			ImGui::Checkbox("Enable##BloomBlur", &enableBloomBlur);
-			ImGui::DragFloat("Size", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGui::DragFloat("Brightness", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox((const char*)u8"有効##BloomBlur", &enableBloomBlur);
+			ImGui::DragFloat((const char*)u8"ぼかしサイズ", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGui::DragFloat((const char*)u8"明るさ", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Combine the base scene and Bloom texture.
-		if (ImGui::TreeNode("Dual Effect"))
+		if (ImGui::TreeNode((const char*)u8"合成エフェクト"))
 		{
-			ImGui::Checkbox("Enable##DualEffect", &enableDualEffect);
-			if (ImGui::BeginCombo("Effect", DualEffectName(dualEffectIndex)))
+			ImGui::Checkbox((const char*)u8"有効##DualEffect", &enableDualEffect);
+			if (ImGui::BeginCombo((const char*)u8"エフェクト", DualEffectName(dualEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::DualPostProcess::Effect_Max; ++i)
 				{
@@ -484,20 +481,20 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat("Bloom Intensity", &bloomIntensity, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Base Intensity", &baseIntensity, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Bloom Saturation", &bloomSaturation, 0.01f, 0.0f, 3.0f);
-			ImGui::DragFloat("Base Saturation", &baseSaturation, 0.01f, 0.0f, 3.0f);
-			ImGui::DragFloat("Merge Weight 1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Merge Weight 2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"ブルーム強度", &bloomIntensity, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"元画像の強度", &baseIntensity, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"ブルーム彩度", &bloomSaturation, 0.01f, 0.0f, 3.0f);
+			ImGui::DragFloat((const char*)u8"元画像の彩度", &baseSaturation, 0.01f, 0.0f, 3.0f);
+			ImGui::DragFloat((const char*)u8"合成比率1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"合成比率2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Convert HDR color for display.
-		if (ImGui::TreeNode("Tone Mapping"))
+		if (ImGui::TreeNode((const char*)u8"トーンマッピング"))
 		{
-			ImGui::Checkbox("Enable##ToneMapping", &enableToneMapping);
-			if (ImGui::BeginCombo("Operator", ToneMapOperatorName(toneMapOperatorIndex)))
+			ImGui::Checkbox((const char*)u8"有効##ToneMapping", &enableToneMapping);
+			if (ImGui::BeginCombo((const char*)u8"方式", ToneMapOperatorName(toneMapOperatorIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::Operator_Max; ++i)
 				{
@@ -510,7 +507,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::BeginCombo("Transfer Function", TransferFunctionName(transferFunctionIndex)))
+			if (ImGui::BeginCombo((const char*)u8"伝達関数", TransferFunctionName(transferFunctionIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::TransferFunction_Max; ++i)
 				{
@@ -523,7 +520,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::BeginCombo("Color Rotation", ColorRotationName(colorRotationIndex)))
+			if (ImGui::BeginCombo((const char*)u8"色空間変換", ColorRotationName(colorRotationIndex)))
 			{
 				for (int i = 0; i <= DirectX::ToneMapPostProcess::HDTV_to_DCI_P3_D65; ++i)
 				{
@@ -536,66 +533,66 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat("Exposure", &exposure, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat("Paper White Nits", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
+			ImGui::DragFloat((const char*)u8"露出", &exposure, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat((const char*)u8"基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
 			ImGui::TreePop();
 		}
 
 		// Add depth-based contact shadows in screen space.
 		if (ImGui::TreeNode("SSAO"))
 		{
-			ImGui::Checkbox("Enable##SSAO", &enableSSAO);
-			ImGui::DragFloat("Radius", &ssaoRadius, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Intensity", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat("Min Distance", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
-			ImGui::DragFloat("Max Distance", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
+			ImGui::Checkbox((const char*)u8"有効##SSAO", &enableSSAO);
+			ImGui::DragFloat((const char*)u8"半径##SSAO", &ssaoRadius, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"強度##SSAO", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat((const char*)u8"最小距離##SSAO", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
+			ImGui::DragFloat((const char*)u8"最大距離##SSAO", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur outward from the screen center.
-		if (ImGui::TreeNode("Radial Blur"))
+		if (ImGui::TreeNode((const char*)u8"放射ブラー"))
 		{
-			ImGui::Checkbox("Enable##RadialBlur", &enableRadialBlur);
-			ImGui::DragFloat("Radius", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
-			ImGui::DragInt("Sampling Count", &radialBlurSamplingCount, 1, 1, 64);
-			ImGui::DragFloat2("Center", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Mask Radius", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
+			ImGui::Checkbox((const char*)u8"有効##RadialBlur", &enableRadialBlur);
+			ImGui::DragFloat((const char*)u8"半径##RadialBlur", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
+			ImGui::DragInt((const char*)u8"サンプル数##RadialBlur", &radialBlurSamplingCount, 1, 1, 64);
+			ImGui::DragFloat2((const char*)u8"中心##RadialBlur", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat((const char*)u8"マスク半径##RadialBlur", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
 			ImGui::TreePop();
 		}
 
 		// Vignette effect to darken the edges of the screen.
-		if (ImGui::TreeNode("Vignette"))
+		if (ImGui::TreeNode((const char*)u8"ビネット"))
 		{
-			ImGui::Checkbox("Enable##Vignette", &enableVignette);
-			ImGui::ColorEdit3("Color", &vignetteColor.x);
-			ImGui::DragFloat2("Center", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat("Intensity", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat("Smoothness", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
-			ImGui::Checkbox("Rounded", &vignetteRounded);
+			ImGui::Checkbox((const char*)u8"有効##Vignette", &enableVignette);
+			ImGui::ColorEdit3((const char*)u8"色##Vignette", &vignetteColor.x);
+			ImGui::DragFloat2((const char*)u8"中心##Vignette", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat((const char*)u8"強度##Vignette", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat((const char*)u8"滑らかさ##Vignette", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
+			ImGui::Checkbox((const char*)u8"円形補正", &vignetteRounded);
 			if (vignetteRounded)
 			{
-				ImGui::DragFloat("Roundness", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
+				ImGui::DragFloat((const char*)u8"丸み", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
 			}
 			ImGui::TreePop();
 		}
 
 		// Chromatic aberration effect to simulate lens distortion.
-		if (ImGui::TreeNode("Chromatic Aberration"))
+		if (ImGui::TreeNode((const char*)u8"色収差"))
 		{
-			ImGui::Checkbox("Enable##ChromaticAberration", &enableChromaticAberration);
-			ImGui::DragFloat("Amount", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
-			ImGui::DragInt("Max Samples", &chromaticAberrationMaxSamples, 1, 1, 64);
-			ImGui::ColorEdit3("Shift0", &chromaticAberrationShift[0].x);
-			ImGui::ColorEdit3("Shift1", &chromaticAberrationShift[1].x);
-			ImGui::ColorEdit3("Shift2", &chromaticAberrationShift[2].x);
+			ImGui::Checkbox((const char*)u8"有効##ChromaticAberration", &enableChromaticAberration);
+			ImGui::DragFloat((const char*)u8"ずれ量", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
+			ImGui::DragInt((const char*)u8"最大サンプル数", &chromaticAberrationMaxSamples, 1, 1, 64);
+			ImGui::ColorEdit3((const char*)u8"色ずれ0", &chromaticAberrationShift[0].x);
+			ImGui::ColorEdit3((const char*)u8"色ずれ1", &chromaticAberrationShift[1].x);
+			ImGui::ColorEdit3((const char*)u8"色ずれ2", &chromaticAberrationShift[2].x);
 			ImGui::TreePop();
 		}
 
 		// Apply one final BasicPostProcess effect.
-		if (ImGui::TreeNode("Final Basic Effect"))
+		if (ImGui::TreeNode((const char*)u8"最終基本エフェクト"))
 		{
-			ImGui::Checkbox("Enable##FinalBasicEffect", &enableBasicEffect);
-			if (ImGui::BeginCombo("Effect", BasicEffectName(basicEffectIndex)))
+			ImGui::Checkbox((const char*)u8"有効##FinalBasicEffect", &enableBasicEffect);
+			if (ImGui::BeginCombo((const char*)u8"エフェクト##FinalBasicEffect", BasicEffectName(basicEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::BasicPostProcess::Effect_Max; ++i)
 				{
@@ -608,16 +605,16 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat("Gaussian Multiplier", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Bloom Threshold", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat("Bloom Blur Size", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGui::DragFloat("Bloom Blur Brightness", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"ガウシアン倍率", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"ブルームしきい値", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat((const char*)u8"ブルームぼかしサイズ", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGui::DragFloat((const char*)u8"ブルームぼかし明るさ", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNode("FXAA"))
 		{
-			ImGui::Checkbox("Enable##FXAA", &enableFXAA);
+			ImGui::Checkbox((const char*)u8"有効##FXAA", &enableFXAA);
 			ImGui::TreePop();
 		}
 	}

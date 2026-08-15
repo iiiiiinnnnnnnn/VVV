@@ -1,4 +1,3 @@
-// VMatRenderParams.h
 #pragma once
 
 #include <array>
@@ -39,4 +38,5 @@ struct VMatRenderParams
 {
 	std::unordered_map<std::string, VMatMaterialParams> materials;
 	VMatDamageHoleParams damageHoles;
+	bool unlit = false;
 };

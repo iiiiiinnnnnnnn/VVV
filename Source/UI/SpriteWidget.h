@@ -1,6 +1,4 @@
-﻿// SpriteWidget.h
-
-#pragma once
+﻿#pragma once
 
 #include "UI/Widget.h"
 

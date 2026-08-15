@@ -1,6 +1,4 @@
-﻿// Widget.cpp
-
-#include "UI/Widget.h"
+﻿#include "UI/Widget.h"
 
 void Widget::Update()
 {

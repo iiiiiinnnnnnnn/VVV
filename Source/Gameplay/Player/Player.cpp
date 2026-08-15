@@ -1,7 +1,8 @@
-﻿// Player.cpp
-
-#include "Gameplay/Player/Player.h"
+﻿#include "Gameplay/Player/Player.h"
+#include "Application/Input/Input.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
+#include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -16,9 +17,10 @@
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	// VMDL読み込み
-	vmdl = AddComponent<VMDL>("Data/Model/CombatGirl_Shield/CombatGirls_Sword_Shield");
+	vmdl = AddComponent<VMDL>("Data/Model/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
+	vmdl->SetModelYawOffset(RAD(180.0f));
 
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する。
 	anim = vmdl->GetAnimator();
@@ -76,11 +78,22 @@ void Player::OnUpdate()
 	{
 		motor->SetExternalVelocity(knockBackVelocity);
 	}
+
+	const bool deformKeyHeld =
+		Game::Input::IsFocusedWindow() && (GetAsyncKeyState('U') & 0x8000) != 0;
+	if (deformKeyHeld && !terrainDeformKeyHeld)
+	{
+		Scene* scene = SceneManager::Instance().GetCurrentScene();
+		Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
+		Terrain* terrain = stage ? stage->GetComponent<Terrain>() : nullptr;
+		if (terrain) terrain->Deform(transform.position, Vector3::Down, 5.0f);
+	}
+	terrainDeformKeyHeld = deformKeyHeld;
 }
 
 void Player::OnLateUpdate()
 {
-	model->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.matrix);
 
 	if (cc)
 	{

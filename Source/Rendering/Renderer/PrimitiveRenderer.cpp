@@ -1,8 +1,7 @@
-﻿// PrimitiveRenderer.cpp
-
-#include "Application/SettingsAndDebug/DebugUtil.h"
+﻿#include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
+#include "Rendering/Core/RenderState.h"
 
 // コンストラクタ
 PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
@@ -170,6 +169,42 @@ void PrimitiveRenderer::Render(
 	const Matrix& view,
 	const Matrix& projection,
 	D3D11_PRIMITIVE_TOPOLOGY primitiveTopology)
+
+{
+	RenderVertices(dc, view, projection, primitiveTopology, vertices);
+}
+
+void PrimitiveRenderer::RenderTriangles(
+	ID3D11DeviceContext* dc,
+	const Matrix& view,
+	const Matrix& projection,
+	RenderState* renderState)
+{
+	if (triangleVertices.empty()) return;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> previousBlend;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> previousDepth;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> previousRasterizer;
+	FLOAT blendFactor[4]{};
+	UINT sampleMask = 0xFFFFFFFF;
+	UINT stencilReference = 0;
+	dc->OMGetBlendState(previousBlend.GetAddressOf(), blendFactor, &sampleMask);
+	dc->OMGetDepthStencilState(previousDepth.GetAddressOf(), &stencilReference);
+	dc->RSGetState(previousRasterizer.GetAddressOf());
+	dc->OMSetBlendState(renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
+	dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestOnly), 0);
+	dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	RenderVertices(dc, view, projection, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, triangleVertices);
+	dc->OMSetBlendState(previousBlend.Get(), blendFactor, sampleMask);
+	dc->OMSetDepthStencilState(previousDepth.Get(), stencilReference);
+	dc->RSSetState(previousRasterizer.Get());
+}
+
+void PrimitiveRenderer::RenderVertices(
+	ID3D11DeviceContext* dc,
+	const Matrix& view,
+	const Matrix& projection,
+	D3D11_PRIMITIVE_TOPOLOGY primitiveTopology,
+	std::vector<Vertex>& sourceVertices)
 {
 	// シェーダー設定
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
@@ -197,7 +232,7 @@ void PrimitiveRenderer::Render(
 	dc->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// 描画
-	UINT totalVertexCount = static_cast<UINT>(vertices.size());
+	UINT totalVertexCount = static_cast<UINT>(sourceVertices.size());
 	UINT start = 0;
 	UINT count = (totalVertexCount < VertexCapacity) ? totalVertexCount : VertexCapacity;
 
@@ -207,7 +242,7 @@ void PrimitiveRenderer::Render(
 		HRESULT hr = dc->Map(vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-		memcpy(mappedSubresource.pData, &vertices[start], sizeof(Vertex) * count);
+		memcpy(mappedSubresource.pData, &sourceVertices[start], sizeof(Vertex) * count);
 
 		dc->Unmap(vertexBuffer.Get(), 0);
 
@@ -220,5 +255,5 @@ void PrimitiveRenderer::Render(
 		}
 	}
 
-	vertices.clear();
+	sourceVertices.clear();
 }

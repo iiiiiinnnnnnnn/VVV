@@ -1,6 +1,4 @@
-﻿// Light.h
-
-#pragma once
+﻿#pragma once
 #include <string>
 
 #include "Core/Object/Object.h"

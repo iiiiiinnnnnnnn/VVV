@@ -1,6 +1,4 @@
-﻿// BoneCollider.cpp
-
-#include "Physics/Collider/BoneCollider.h"
+﻿#include "Physics/Collider/BoneCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"

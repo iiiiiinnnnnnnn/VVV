@@ -1,5 +1,4 @@
-﻿// GamePad.h
-#pragma once
+﻿#pragma once
 
 using GamePadButton = unsigned int;
 
@@ -43,7 +42,7 @@ public:
 	~GamePad() {}
 
 	// 更新
-	void Update();
+	void Update(bool acceptsInput);
 
 	// スロット設定
 	void SetSlot(int slot) { this->slot = slot; }

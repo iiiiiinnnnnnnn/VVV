@@ -1,8 +1,4 @@
-// Stage01.h
-
 #pragma once
-
-#include <utility>
 
 #include "Gameplay/Stage/Stage.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -14,68 +10,6 @@ public:
 	void OnUpdate() override;
 	void RenderEffects(const RenderContext& rc) override;
 	void OnDrawGUI() override;
-
-	void SetFogParticleSystem(std::unique_ptr<ParticleSystem> system)
-	{
-		fogParticleSystem = std::move(system);
-	}
-	ParticleSystem* GetFogParticleSystem() const { return fogParticleSystem.get(); }
-
-	void SetFogSpawnAccumulator(float value) { fogSpawnAccumulator = value; }
-	float GetFogSpawnAccumulator() const { return fogSpawnAccumulator; }
-	void SetFogSpawnRate(float value) { fogSpawnRate = value; }
-	float GetFogSpawnRate() const { return fogSpawnRate; }
-	void SetFogAreaHalfWidth(float value) { fogAreaHalfWidth = value; }
-	float GetFogAreaHalfWidth() const { return fogAreaHalfWidth; }
-	void SetFogAreaHalfDepth(float value) { fogAreaHalfDepth = value; }
-	float GetFogAreaHalfDepth() const { return fogAreaHalfDepth; }
-
-	void SetFogMinHeight(float value) { fogMinHeight = value; }
-	float GetFogMinHeight() const { return fogMinHeight; }
-	void SetFogMaxHeight(float value) { fogMaxHeight = value; }
-	float GetFogMaxHeight() const { return fogMaxHeight; }
-	void SetFogHeightRange(float minValue, float maxValue)
-	{
-		fogMinHeight = minValue;
-		fogMaxHeight = maxValue;
-	}
-
-	void SetFogMinLifetime(float value) { fogMinLifetime = value; }
-	float GetFogMinLifetime() const { return fogMinLifetime; }
-	void SetFogMaxLifetime(float value) { fogMaxLifetime = value; }
-	float GetFogMaxLifetime() const { return fogMaxLifetime; }
-	void SetFogLifetimeRange(float minValue, float maxValue)
-	{
-		fogMinLifetime = minValue;
-		fogMaxLifetime = maxValue;
-	}
-
-	void SetFogFadeInDuration(float value) { fogFadeInDuration = value; }
-	float GetFogFadeInDuration() const { return fogFadeInDuration; }
-	void SetFogFadeOutDuration(float value) { fogFadeOutDuration = value; }
-	float GetFogFadeOutDuration() const { return fogFadeOutDuration; }
-	void SetFogFadeDurations(float fadeIn, float fadeOut)
-	{
-		fogFadeInDuration = fadeIn;
-		fogFadeOutDuration = fadeOut;
-	}
-
-	void SetFogMinSize(float value) { fogMinSize = value; }
-	float GetFogMinSize() const { return fogMinSize; }
-	void SetFogMaxSize(float value) { fogMaxSize = value; }
-	float GetFogMaxSize() const { return fogMaxSize; }
-	void SetFogSizeRange(float minValue, float maxValue)
-	{
-		fogMinSize = minValue;
-		fogMaxSize = maxValue;
-	}
-
-	void SetFogDriftSpeed(float value) { fogDriftSpeed = value; }
-	float GetFogDriftSpeed() const { return fogDriftSpeed; }
-	void SetFogColor(const Color& value) { fogColor = value; }
-	const Color& GetFogColor() const { return fogColor; }
-	void SetFogPrewarmed(bool value) { fogPrewarmed = value; }
-	bool IsFogPrewarmed() const { return fogPrewarmed; }
 
 private:
 	void SpawnFogParticle();

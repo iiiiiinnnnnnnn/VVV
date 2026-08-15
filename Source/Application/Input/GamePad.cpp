@@ -1,16 +1,20 @@
-﻿// GamePad.cpp
-
-#include <windows.h>
+﻿#include <windows.h>
 #include <math.h>
 #include <Xinput.h>
 #include "Application/Input/GamePad.h"
 
 // 更新
-void GamePad::Update()
+void GamePad::Update(bool acceptsInput)
 {
 	axisLx = axisLy = 0.0f;
 	axisRx = axisRy = 0.0f;
 	triggerL = triggerR = 0.0f;
+	if (!acceptsInput)
+	{
+		buttonState[0] = buttonState[1] = 0;
+		buttonDown = buttonUp = 0;
+		return;
+	}
 
 	GamePadButton newButtonState = 0;
 

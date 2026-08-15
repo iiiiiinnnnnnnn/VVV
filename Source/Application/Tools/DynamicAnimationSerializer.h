@@ -1,6 +1,4 @@
-﻿// DynamicAnimationSerializer.h
-
-#pragma once
+﻿#pragma once
 
 #include "Application/Tools/DynamicAnimation.h"
 

@@ -1,6 +1,4 @@
-﻿// NavMeshAgent.h
-
-#pragma once
+﻿#pragma once
 #include <string>
 
 #include "Core/Foundation/Common.h"

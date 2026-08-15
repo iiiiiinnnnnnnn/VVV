@@ -1,6 +1,4 @@
-﻿// Mouse.cpp
-
-#include "Application/Input/Mouse.h"
+﻿#include "Application/Input/Mouse.h"
 #include "Rendering/Core/Graphics.h"
 
 static const int KeyMap[] =

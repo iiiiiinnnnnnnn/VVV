@@ -1,6 +1,4 @@
-﻿// NavMeshActor.h
-
-#pragma once
+﻿#pragma once
 #include <string>
 #include <vector>
 
@@ -15,7 +13,7 @@ struct RenderContext;
 
 class NavMeshActor : public Component
 {
-public:
+  public:
 	struct WalkableArea
 	{
 		Vector3 center = Vector3::Zero;
@@ -30,30 +28,19 @@ public:
 	void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshActor"; }
 
-	bool FindNextPoint(
-		const Vector3& start,
-		const Vector3& goal,
-		Vector3& nextPoint,
+	bool FindNextPoint(const Vector3& start, const Vector3& goal, Vector3& nextPoint,
 		Vector3* reachableGoal = nullptr) const;
-	bool FindNearestPoint(
-		const Vector3& position,
-		Vector3& nearestPoint) const;
+	bool FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const;
 	bool FindRecoveryPoint(
-		const Vector3& position,
-		float safeDistance,
-		Vector3& recoveryPoint) const;
+		const Vector3& position, float safeDistance, Vector3& recoveryPoint) const;
 	bool FindRandomPoint(
-		const Vector3& center,
-		float minDistance,
-		float maxDistance,
-		Vector3& randomPoint) const;
+		const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const;
 	bool FindObstacleDetourPoint(
-		const Vector3& start,
-		const Vector3& goal,
-		Vector3& nextPoint) const;
+		const Vector3& start, const Vector3& goal, Vector3& nextPoint) const;
 	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
 
 	void RequestBuild(int delayFrames = 1);
+	void RequestBuildRegion(const Vector3& center, float radius, int delayFrames = 1);
 	void SetAgentRadius(float value);
 	void SetResolution(int value);
 	void AddWalkableArea(const Vector3& center, const Vector3& size);
@@ -66,7 +53,7 @@ public:
 
 	static NavMeshActor* GetActive() { return active; }
 
-private:
+  private:
 	struct ObstacleBounds
 	{
 		Vector3 center = Vector3::Zero;
@@ -79,17 +66,30 @@ private:
 		bool walkable = false;
 	};
 
+	// 動的地形用NavMeshタイル
+
+	static constexpr int CellsPerTile = 32;
+
+	struct NavTile
+	{
+		dtTileRef reference = 0;
+		std::vector<DebugCell> debugCells;
+	};
+
 	void Build();
+	bool BuildTile(
+		int tileX,
+		int tileZ,
+		Terrain& terrain,
+		const std::vector<ObstacleBounds>& obstacles);
+	void RebuildRegion();
+	void RefreshDebugCells();
 	void Release();
 	void CollectObstacles(std::vector<ObstacleBounds>& obstacles) const;
-	bool IsBlockedByObstacle(
-		const Vector3& center,
-		const std::vector<ObstacleBounds>& obstacles,
+	bool IsBlockedByObstacle(const Vector3& center, const std::vector<ObstacleBounds>& obstacles,
 		float cellHalfSize) const;
 	bool IsInsideWalkableArea(const Vector3& center, float cellHalfSize) const;
-	bool IsSegmentInsideWalkableAreas(
-		const Vector3& start,
-		const Vector3& goal) const;
+	bool IsSegmentInsideWalkableAreas(const Vector3& start, const Vector3& goal) const;
 
 	static NavMeshActor* active;
 
@@ -97,6 +97,7 @@ private:
 	dtNavMeshQuery* navQuery = nullptr;
 
 	bool buildRequested = true;
+	bool regionBuildRequested = false;
 	bool built = false;
 	bool showWalkableCells = true;
 	bool showBlockedCells = true;
@@ -104,8 +105,9 @@ private:
 	bool showWalkableAreaBounds = true;
 	bool showNavMeshDebug = true;
 	int buildDelayFrames = 1;
+	int tileCountX = 0;
+	int tileCountZ = 0;
 	int resolution = 128;
-	int debugDrawStep = 1;
 	float agentHeight = 2.0f;
 	float agentRadius = 0.6f;
 	float agentClimb = 1.2f;
@@ -115,5 +117,8 @@ private:
 	float navMaxY = 100.0f;
 	std::string statusMessage;
 	std::vector<DebugCell> debugCells;
+	std::vector<NavTile> navTiles;
 	std::vector<WalkableArea> walkableAreas;
+	Vector3 rebuildRegionMin = Vector3::Zero;
+	Vector3 rebuildRegionMax = Vector3::Zero;
 };

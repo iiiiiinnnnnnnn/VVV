@@ -1,17 +1,13 @@
-// GameStartScene.cpp
-
-#include "Gameplay/Scene/GameStartScene.h"
+﻿#include "Gameplay/Scene/GameStartScene.h"
 
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Scene/VstgEditorScene.h"
 #include "Rendering/Core/Graphics.h"
+#include "Rendering/Renderer/ImGuiTheme.h"
 
-GameStartScene::GameStartScene(SceneMessage message)
-	: Scene(message)
-{
-}
+GameStartScene::GameStartScene() {}
 
 void GameStartScene::OnUpdate()
 {
@@ -28,30 +24,44 @@ void GameStartScene::OnDrawGUI()
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
-	constexpr ImGuiWindowFlags flags =
-		ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoSavedSettings;
-	if (!ImGui::Begin("Startup", nullptr, flags))
+	constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+									   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+	if (!ImGui::Begin((const char*)u8"起動メニュー", nullptr, flags))
 	{
 		ImGui::End();
+		ImGui::PopStyleVar();
 		return;
 	}
 
-	if (ImGui::Button("Game", ImVec2(-FLT_MIN, 50)))
+	ImGui::PushStyleColor(ImGuiCol_Button, ImGuiTheme::YellowButton);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiTheme::YellowButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiTheme::YellowButtonActive);
+	if (ImGui::Button((const char*)u8"ゲーム開始", ImVec2(-FLT_MIN, 50)))
 	{
 		loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
 	}
-	if (ImGui::Button("VMDL Editor", ImVec2(-FLT_MIN, 50)))
+	ImGui::PopStyleColor(3);
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImGuiTheme::RedButton);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiTheme::RedButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiTheme::RedButtonActive);
+	if (ImGui::Button((const char*)u8"VMDLエディタ", ImVec2(-FLT_MIN, 50)))
 	{
 		loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
 	}
-	if (ImGui::Button("VSTG Editor", ImVec2(-FLT_MIN, 50)))
+	ImGui::PopStyleColor(3);
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImGuiTheme::StartVstgButton);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiTheme::StartVstgButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiTheme::StartVstgButtonActive);
+	if (ImGui::Button((const char*)u8"VSTGエディタ", ImVec2(-FLT_MIN, 50)))
 	{
 		loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
 	}
+	ImGui::PopStyleColor(3);
 	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 void GameStartScene::ConfigureWindow()
@@ -74,14 +84,8 @@ void GameStartScene::ConfigureWindow()
 	GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &monitorInfo);
 
 	SetWindowLongPtr(window, GWL_STYLE, style);
-	SetWindowPos(
-		window,
-		HWND_TOP,
-		monitorInfo.rcWork.left,
-		monitorInfo.rcWork.top,
-		rect.right - rect.left,
-		rect.bottom - rect.top,
-		SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+	SetWindowPos(window, HWND_TOP, monitorInfo.rcWork.left, monitorInfo.rcWork.top,
+		rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 	graphics.SetWindowMovementLocked(true);
 	windowConfigured = true;
 }

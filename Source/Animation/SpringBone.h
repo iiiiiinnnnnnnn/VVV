@@ -1,5 +1,4 @@
-﻿// SpringBone.h
-#pragma once
+﻿#pragma once
 #include <string>
 #include <vector>
 
@@ -52,6 +51,7 @@ public:
 	const char* GetDebugName() const override { return ICON_FA_BONE " SpringBone"; }
 
     void Reset();
+	void SetUseUnscaledTime(bool value) { useUnscaledTime = value; }
 
 private:
     void BuildBones(const std::vector<std::string>& boneContainNames);
@@ -85,6 +85,7 @@ private:
     bool drawBones = true;
     bool drawCapsules = true;
     bool initialized = false;
+	bool useUnscaledTime = false;
 
     VMDLModel* model = nullptr;
 };

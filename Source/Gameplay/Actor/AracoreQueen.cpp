@@ -1,6 +1,4 @@
-﻿// AracoreQueen.cpp
-
-#include "Gameplay/Actor/AracoreQueen.h"
+﻿#include "Gameplay/Actor/AracoreQueen.h"
 #include "Animation/Animator.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Resource/VMDLModel.h"
@@ -22,10 +20,11 @@ AracoreQueen::AracoreQueen(Vector3 position) : Entity("AracoreQueen", "Enemy", t
     {
         // モデル
         vmdl = AddComponent<VMDL>("Data/Model/Enemy/aracore");
+        vmdl->SetModelYawOffset(RAD(180.0f));
         model = vmdl->GetSharedModel();
         transform.SetPosition(position);
         transform.SetScale(0.035f);
-        model->UpdateTransform(transform.matrix);
+        vmdl->UpdateTransform(transform.matrix);
 
         // アニメータ
         anim = vmdl->GetAnimator();
@@ -57,36 +56,21 @@ AracoreQueen::AracoreQueen(Vector3 position) : Entity("AracoreQueen", "Enemy", t
     {
         controller->StopMovement();
     };
-    const auto finding = [this](const EnemyAIFlow::State&)
+    const auto findingWait = [this](const EnemyAIFlow::State&)
     {
-        if (isFinding)
-        {
-            controller->MoveToTarget(3.0f);
-
-            if (findingTimer > 10.0f)
-            {
-                isFinding = false;
-                findingTimer = 0.0f;
-            }
-			findingTimer += Game::Time::deltaTime;
-        }
-        else
-        {
-            controller->StopMovement();
-
-            if (findingTimer > 6.0f)
-            {
-                isFinding = true;
-                findingTimer = 0.0f;
-            }
-            findingTimer += Game::Time::deltaTime;
-        }
+        controller->StopMovement();
+    };
+    const auto findingChase = [this](const EnemyAIFlow::State&)
+    {
+        controller->MoveToTarget(3.0f);
     };
     const auto attack = [this](const EnemyAIFlow::State&)
     {
 		anim->SetTrigger("Attack");
 	};
-    controller->AddCallbackFunc("Finding", finding, finding, {}, stop);
+    controller->AddCallbackFunc("Finding", {}, {}, {}, stop);
+    controller->AddCallbackFunc("FindingWait", findingWait, findingWait);
+    controller->AddCallbackFunc("FindingChase", findingChase, findingChase);
     controller->AddCallbackFunc("Attack", attack, attack, {}, stop);
     controller->BindCallbacks();
 }

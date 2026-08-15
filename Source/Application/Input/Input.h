@@ -1,6 +1,4 @@
-﻿// Input.h
-
-#pragma once
+﻿#pragma once
 
 #include <memory>
 #include "Application/Input/GamePad.h"
@@ -38,6 +36,7 @@ namespace Game
 		static bool IsFocusedWindow(bool dontCheckImgui = false);
 
 	private:
+		HWND						hWnd = nullptr;
 		std::unique_ptr<GamePad>	gamePad;
 		std::unique_ptr<Mouse>		mouse;
 	};

@@ -1,11 +1,12 @@
-﻿// PrimitiveRenderer.h
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
 #include <vector>
 
 #include "Core/Foundation/Common.h"
+
+class RenderState;
 
 class PrimitiveRenderer
 {
@@ -26,6 +27,18 @@ public:
 		AddVertex(start, startColor);
 		AddVertex(end, endColor);
 	}
+	void DrawTriangle(const Vector3& a, const Vector3& b, const Vector3& c, const Color& color)
+	{
+		triangleVertices.push_back({a, color});
+		triangleVertices.push_back({b, color});
+		triangleVertices.push_back({c, color});
+	}
+
+	void RenderTriangles(
+		ID3D11DeviceContext* dc,
+		const Matrix& view,
+		const Matrix& projection,
+		RenderState* renderState);
 
 	// 描画実行
 	void Render(
@@ -48,6 +61,13 @@ private:
 		Color		color;
 	};
 	std::vector<Vertex>		vertices;
+	std::vector<Vertex>		triangleVertices;
+	void RenderVertices(
+		ID3D11DeviceContext* dc,
+		const Matrix& view,
+		const Matrix& projection,
+		D3D11_PRIMITIVE_TOPOLOGY primitiveTopology,
+		std::vector<Vertex>& sourceVertices);
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;

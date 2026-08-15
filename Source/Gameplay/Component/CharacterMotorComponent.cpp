@@ -1,5 +1,3 @@
-// CharacterMotorComponent.cpp
-
 #include "Gameplay/Component/CharacterMotorComponent.h"
 
 #include "Animation/Animator.h"

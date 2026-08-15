@@ -1,5 +1,4 @@
-﻿// GameTime.h
-#pragma once
+﻿#pragma once
 
 namespace Game
 {

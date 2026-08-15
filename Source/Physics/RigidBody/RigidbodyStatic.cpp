@@ -1,5 +1,3 @@
-// RigidbodyStatic.cpp
-
 #include "Physics/RigidBody/RigidbodyStatic.h"
 
 RigidbodyStatic::~RigidbodyStatic()

@@ -1,5 +1,3 @@
-// PostProcessController.cpp
-
 #include "Gameplay/Scene/PostProcessController.h"
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)

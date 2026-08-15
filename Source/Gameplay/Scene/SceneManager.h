@@ -1,5 +1,3 @@
-﻿// SceneManager.h
-
 #pragma once
 #include <memory>
 #include <string>
@@ -13,11 +11,13 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 
 class SceneManager
 {
-public:
+  public:
 	static SceneManager& Instance()
 	{
 		static SceneManager instance;
@@ -26,61 +26,34 @@ public:
 
 	void Initialize();
 	void Finalize();
+	void ApplyPendingChanges();
 	void Update();
 	void Render();
 
-	// 次のフレームでLoadingSceneへ切り替え、
-	// 指定Sceneをロード用スレッド内で生成する。
-	template<typename T>
-	bool LoadScene(SceneMessage message = nullptr)
+	template <typename T, typename... Args> bool LoadScene(Args&&... args)
 	{
-		static_assert(
-			std::is_base_of_v<Scene, T>,
-			"T must inherit from Scene.");
-
-		constexpr bool reloadGameResources = []
-		{
-			if constexpr (requires { T::ReloadsGameResourcesOnLoad; })
-			{
-				return T::ReloadsGameResourcesOnLoad;
-			}
-			return true;
-		}();
+		static_assert(std::is_base_of_v<Scene, T>, "T must inherit from Scene.");
+		auto arguments = std::make_tuple(std::forward<Args>(args)...);
 
 		return RequestLoadScene(
-			[message]() -> std::unique_ptr<Scene>
-			{
-				return std::make_unique<T>(message);
-			},
-			reloadGameResources);
+			[arguments = std::move(arguments)]() mutable -> std::unique_ptr<Scene> {
+				return std::apply(
+					[](auto&&... values) -> std::unique_ptr<Scene> {
+						return std::make_unique<T>(std::forward<decltype(values)>(values)...);
+					},
+					std::move(arguments));
+			});
 	}
 
-	// 旧呼び出しとの互換用。
-	template<typename T>
-	bool LoadSceneAsync(SceneMessage message = nullptr)
-	{
-		return LoadScene<T>(message);
-	}
+	template <typename T> bool LoadSceneAsync() { return LoadScene<T>(); }
 
-	bool IsLoading() const
-	{
-		return loading.load(std::memory_order_acquire);
-	}
+	bool IsLoading() const { return loading.load(std::memory_order_acquire); }
 
-	float GetLoadProgress() const
-	{
-		return loadProgress;
-	}
+	float GetLoadProgress() const { return loadProgress; }
 
-	Scene* GetCurrentScene()
-	{
-		return currentScene.get();
-	}
+	Scene* GetCurrentScene() { return currentScene.get(); }
 
-	const Scene* GetCurrentScene() const
-	{
-		return currentScene.get();
-	}
+	const Scene* GetCurrentScene() const { return currentScene.get(); }
 
 	CameraController* GetActiveCameraController() const
 	{
@@ -94,9 +67,8 @@ public:
 
 	std::string GetLastLoadError() const;
 
-private:
-	using SceneFactory =
-		std::function<std::unique_ptr<Scene>()>;
+  private:
+	using SceneFactory = std::function<std::unique_ptr<Scene>()>;
 
 	SceneManager() = default;
 	~SceneManager();
@@ -106,14 +78,13 @@ private:
 
 	struct LoadedScene
 	{
-		// Sceneを先に破棄し、その後PhysicsSceneContextを破棄する。
 		std::unique_ptr<PhysicsSceneContext> physicsContext;
 		std::unique_ptr<Scene> scene;
 	};
 
-	bool RequestLoadScene(SceneFactory sceneFactory, bool reloadGameResources);
+	bool RequestLoadScene(SceneFactory sceneFactory);
 	void BeginPendingLoad();
-	bool StartLoadThread(SceneFactory sceneFactory, bool reloadGameResources);
+	bool StartLoadThread(SceneFactory sceneFactory);
 	void UpdateLoadProgress();
 	void ApplyLoadedScene();
 	void JoinLoadThread();
@@ -121,7 +92,6 @@ private:
 	std::unique_ptr<Scene> currentScene;
 
 	SceneFactory pendingSceneFactory;
-	bool pendingReloadGameResources = true;
 	std::atomic_bool loadRequested = false;
 
 	std::thread loadThread;

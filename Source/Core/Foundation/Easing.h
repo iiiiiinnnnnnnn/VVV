@@ -1,5 +1,3 @@
-// Easing.h
-
 #pragma once
 
 #include <algorithm>

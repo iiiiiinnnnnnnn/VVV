@@ -1,6 +1,4 @@
-﻿// HumanoidFootIK.h
-
-#pragma once
+﻿#pragma once
 
 #include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
@@ -11,16 +9,11 @@ class Animator;
 
 class HumanoidFootIK : public Component
 {
-public:
-	HumanoidFootIK(
-		Object* owner,
-		LayerId layerId,
-		VMDLModel* model,
-		Animator* animator,
-		const char* activeStateName,
-		const char* pelvisName,
-		const char* thighLName, const char* calfLName, const char* footLName, const char* ballLName,
-		const char* thighRName, const char* calfRName, const char* footRName, const char* ballRName);
+  public:
+	HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator,
+		const char* activeStateName, const char* pelvisName, const char* thighLName,
+		const char* calfLName, const char* footLName, const char* ballLName, const char* thighRName,
+		const char* calfRName, const char* footRName, const char* ballRName);
 	~HumanoidFootIK() override = default;
 
 	void LateUpdate() override;
@@ -31,9 +24,10 @@ public:
 	void SetRay(float up, float down, float contactOffset);
 	void SetHipOffsetLimit(float minOffsetY, float maxOffsetY);
 
-private:
+  private:
 	bool ShouldUseIK() const;
 	float GetVmdlFootWeight(int footIndex) const;
+	void GetRaySettings(int footIndex, Vector3& startOffset, float& length) const;
 	void ApplyHipOffset(const Vector3& baseHipLocalPosition);
 	void ResetHipOffset(const Vector3& baseHipLocalPosition);
 

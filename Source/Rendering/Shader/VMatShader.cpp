@@ -1,6 +1,4 @@
-﻿// VMatShader.cpp
-
-#include "Rendering/Shader/VMatShader.h"
+﻿#include "Rendering/Shader/VMatShader.h"
 #include "Resource/GpuResourceUtils.h"
 
 VMatShader::VMatShader(ID3D11Device* device)
@@ -18,6 +16,10 @@ VMatShader::VMatShader(ID3D11Device* device)
 		device,
 		"Data/Shader/PBRPS.cso",
 		pixelShader.GetAddressOf());
+	GpuResourceUtils::LoadPixelShader(
+		device,
+		"Data/Shader/UnlitPS.cso",
+		unlitPixelShader.GetAddressOf());
 
 	GpuResourceUtils::LoadGeometryShader(
 		device,
@@ -75,6 +77,7 @@ void VMatShader::Update(
 	const VMatRenderParams* params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
+	dc->PSSetShader(params && params->unlit ? unlitPixelShader.Get() : pixelShader.Get(), nullptr, 0);
 	const VMatMaterialParams* materialParams = nullptr;
 	if (params)
 	{

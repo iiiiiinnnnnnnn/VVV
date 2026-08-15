@@ -1,4 +1,3 @@
-// Apple.h
 #if 0
 
 #pragma once

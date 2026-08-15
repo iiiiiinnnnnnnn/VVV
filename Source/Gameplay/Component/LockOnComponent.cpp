@@ -1,5 +1,3 @@
-// LockOnComponent.cpp
-
 #include "Gameplay/Component/LockOnComponent.h"
 
 #include "Application/Time/GameTime.h"

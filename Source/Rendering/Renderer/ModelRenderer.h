@@ -1,6 +1,3 @@
-﻿// ModelRenderer.h
-// ModelRenderer.h
-
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -14,6 +11,8 @@
 #include "Resource/VMDLModel.h"
 #include "Rendering/Shader/Shader.h"
 #include "Gameplay/Lighting/CbLightData.h"
+
+class MeshCache;
 
 enum class ModelShaderId
 {
@@ -31,6 +30,11 @@ public:
 	void Draw(
 		ModelShaderId shaderId,
 		std::shared_ptr<VMDLModel> model,
+		const VMatRenderParams* params = nullptr);
+	void DrawMeshCache(
+		ModelShaderId shaderId,
+		std::shared_ptr<MeshCache> meshCache,
+		std::shared_ptr<VMDLModel> skeleton,
 		const VMatRenderParams* params = nullptr);
 
 	void Render(const RenderContext& rc);
@@ -56,6 +60,7 @@ private:
 	{
 		ModelShaderId				shaderId;
 		std::shared_ptr<VMDLModel>	model;
+		std::shared_ptr<MeshCache>	meshCache;
 		const VMatRenderParams*		params;
 	};
 

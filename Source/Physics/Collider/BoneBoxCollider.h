@@ -1,6 +1,4 @@
-﻿// BoneBoxCollider.h
-
-#pragma once
+﻿#pragma once
 
 #include "Physics/Core/CollidersDef.h"
 #include "Physics/Collider/BoneCollider.h"

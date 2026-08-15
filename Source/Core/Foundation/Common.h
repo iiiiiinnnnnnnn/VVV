@@ -1,6 +1,4 @@
-﻿// Common.h
-
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 #include <cstdint>
@@ -24,11 +22,43 @@ inline std::wstring ToLowerWString(std::wstring text)
     return text;
 }
 
-inline uint64_t GetFileLastWriteTime64(const std::filesystem::path& path)
+// Convert a string to uppercase
+inline std::wstring ToUpperWString(std::wstring text)
 {
-	return static_cast<uint64_t>(
-		std::filesystem::last_write_time(path).time_since_epoch().count()
-	);
+    std::transform(
+        text.begin(),
+        text.end(),
+        text.begin(),
+        [](wchar_t c) { return static_cast<wchar_t>(std::towupper(c)); }
+    );
+
+    return text;
+}
+
+// Convert a string to lowercase
+inline std::string ToLowerString(std::string text)
+{
+    std::transform(
+        text.begin(),
+        text.end(),
+        text.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); }
+    );
+
+    return text;
+}
+
+// Convert a string to uppercase
+inline std::string ToUpperString(std::string text)
+{
+    std::transform(
+        text.begin(),
+        text.end(),
+        text.begin(),
+        [](unsigned char c) { return static_cast<char>(std::toupper(c)); }
+    );
+
+    return text;
 }
 
 inline bool ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData)

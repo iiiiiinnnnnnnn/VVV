@@ -1,5 +1,3 @@
-// PhysicsLayerManager.cpp
-
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Physics/Core/PhysicsManager.h"
 #include <fstream>
@@ -14,6 +12,7 @@
 #include <cereal/types/array.hpp>
 
 #include "imgui.h"
+#include "imgui_stdlib.h"
 
 std::filesystem::path GetPhysicsLayerPath()
 {
@@ -302,20 +301,13 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 
                 ImGui::TableSetColumnIndex(0);
 
-                char name[64];
-                strcpy_s(name, settings.layerNames[y].c_str());
-
-                char nameId[64];
-                sprintf_s(nameId, "##LayerName_%d", y);
+                const std::string nameId = "##LayerName_" + std::to_string(y);
 
                 ImGui::Text("%d:", y);
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
-                if (ImGui::InputText(nameId, name, sizeof(name)))
-                {
-                    settings.layerNames[y] = name;
-                }
+                ImGui::InputText(nameId.c_str(), &settings.layerNames[y]);
 
                 for (int x = 0; x < DisplayLayerCount; ++x)
                 {
@@ -326,10 +318,10 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 
                     bool enabled = Collides(layerA, layerB);
 
-                    char id[64];
-                    sprintf_s(id, "##Collision_%d_%d", y, x);
+                    const std::string id = "##Collision_" +
+                        std::to_string(y) + "_" + std::to_string(x);
 
-                    if (ImGui::Checkbox(id, &enabled))
+                    if (ImGui::Checkbox(id.c_str(), &enabled))
                     {
                         SetCollides(layerA, layerB, enabled);
                     }

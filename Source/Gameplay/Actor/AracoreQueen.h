@@ -1,6 +1,4 @@
-﻿// AracoreQueen.h
-
-#pragma once
+﻿#pragma once
 #include "Rendering/Core/VMatRenderParams.h"
 #include <memory>
 #include <vector>
@@ -46,9 +44,6 @@ private:
 	MultiLegFootIK* multiLegFootIK = nullptr;
 	EnemyAIFlow* controller = nullptr;
 	std::vector<Vector3> colPositions;
-
-	float findingTimer = 0.0f;
-	bool isFinding = false;
 
 	VMatRenderParams renderParams;
 };

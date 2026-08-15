@@ -1,5 +1,3 @@
-// SphereCollider.cpp
-
 #include "Physics/Collider/SphereCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"

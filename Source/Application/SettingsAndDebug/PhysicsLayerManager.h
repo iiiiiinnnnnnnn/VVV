@@ -1,5 +1,3 @@
-// PhysicsLayerManager.h
-
 // ƒGƒ“ƒWƒ““à•”‚Ìİ’è
 
 #pragma once

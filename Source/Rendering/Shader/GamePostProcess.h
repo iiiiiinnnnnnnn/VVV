@@ -1,6 +1,4 @@
-﻿// GamePostProcess.h
-
-#pragma once
+﻿#pragma once
 
 #include <memory>
 #include <d3d11.h>
@@ -89,17 +87,17 @@ namespace Game
 
 		// Bloom Extract
 		bool enableBloomExtract = true;
-		float bloomThreshold = 0.11f;
+		float bloomThreshold = 0.18f;
 
 		// Bloom Blur
 		bool enableBloomBlur = true;
 		float bloomBlurSize = 2.5f;
-		float bloomBlurBrightness = 1.2f;
+		float bloomBlurBrightness = 1.0f;
 
 		// Dual Effect
 		bool enableDualEffect = true;
 		int dualEffectIndex = DirectX::DualPostProcess::BloomCombine;
-		float bloomIntensity = 0.3f;
+		float bloomIntensity = 0.22f;
 		float baseIntensity = 1.0f;
 		float bloomSaturation = 1.0f;
 		float baseSaturation = 1.0f;

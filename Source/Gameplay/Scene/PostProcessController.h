@@ -1,5 +1,3 @@
-// PostProcessController.h
-
 #pragma once
 
 #include <algorithm>

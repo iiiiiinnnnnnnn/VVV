@@ -1,5 +1,3 @@
-// ThirdPersonCameraController.cpp
-
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"

@@ -1,6 +1,4 @@
-﻿// Scene.h
-
-#pragma once
+﻿#pragma once
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,20 +13,17 @@
 #include "UI/WidgetManager.h"
 #include "Gameplay/Stage/Stage01.h"
 
-// Sceneへ渡す任意のデータ。
-// 使用するScene側で必要な型へキャストして使う。
-using SceneMessage = void*;
-
 class Scene
 {
 public:
-	Scene(SceneMessage message = nullptr);
+	Scene() = default;
 
 	virtual ~Scene() = default;
 
 	virtual void Update();
 	virtual void Render();
 	CameraController* GetActiveCameraController() const;
+	Stage* GetCurrentStage() { return currentStage.get(); }
 	void RegisterWidget(std::shared_ptr<Widget> widget)
 	{
 		widgetManager.Register(std::move(widget));
@@ -39,14 +34,10 @@ public:
 		return renderSettings;
 	}
 
-	SceneMessage GetSceneMessage() const
-	{
-		return message;
-	}
-
 private:
 	void SwitchToDebugMode();
 	void SwitchToPlayMode();
+	void SelectPausedActor();
 	void DrawGUI(RenderContext& rc);
 
 protected:
@@ -60,13 +51,15 @@ protected:
 
 	std::unique_ptr<Stage> currentStage;
 
-	SceneMessage message = nullptr;
-
 	bool showDynamicAnimationEditorWindow = false;
 	bool showPhysicsLayerWindow = false;
 	DynamicAnimationEditorWindow dynamicAnimationEditorWindow;
 
+	// ゲーム内エディタ
 	bool isCursorReleased = false;
+	bool showGameEditorGUI = true;
+	float gameEditorLeftWidth = 600.0f;
+	float gameEditorRightWidth = 680.0f;
 	std::string pendingStagePath;
 
 	Game::PostProcess postProcess;

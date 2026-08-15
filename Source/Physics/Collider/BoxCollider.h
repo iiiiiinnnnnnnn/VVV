@@ -1,5 +1,3 @@
-// BoxCollider.h
-
 #include "Physics/Core/CollidersDef.h"
 
 #pragma once

@@ -1,6 +1,4 @@
-﻿// TrailRenderComponent.cpp
-
-#include "Rendering/Component/TrailRenderComponent.h"
+﻿#include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
 #include "IconsFontAwesome5.h"
@@ -55,7 +53,7 @@ TrailRenderComponent::TrailRenderComponent(
 
 void TrailRenderComponent::LateUpdate()
 {
-    float dt = Game::Time::deltaTime;
+	const float dt = useUnscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime;
 
     for (auto& p : points)
     {
@@ -75,16 +73,13 @@ void TrailRenderComponent::LateUpdate()
     if (sampleTimer < SAMPLE_INTERVAL) return;
     sampleTimer = 0.0f;
 
-    const VMDLModel::Node& node = model->GetNodes()[nodeIndex];
-    Matrix wt = node.worldTransform;
-
-	wt *= Matrix::CreateFromYawPitchRoll(
-        RAD(offsetAngle.y),
-        RAD(offsetAngle.x),
-        RAD(offsetAngle.z));
-
-    Matrix rootMat = Matrix::CreateTranslation(rootOffset) * wt;
-    Matrix tipMat  = Matrix::CreateTranslation(tipOffset) * wt;
+	const VMDLModel::Node& node = model->GetNodes()[nodeIndex];
+	const Matrix offsetRotation = Matrix::CreateFromYawPitchRoll(
+		RAD(offsetAngle.y), RAD(offsetAngle.x), RAD(offsetAngle.z));
+	const Matrix rootMat = model->GetScaledAttachmentTransform(
+		offsetRotation * Matrix::CreateTranslation(rootOffset) * node.worldTransform);
+	const Matrix tipMat = model->GetScaledAttachmentTransform(
+		offsetRotation * Matrix::CreateTranslation(tipOffset) * node.worldTransform);
 
     TrailPoint pt;
     pt.root    = { rootMat._41, rootMat._42, rootMat._43 };
@@ -96,6 +91,12 @@ void TrailRenderComponent::LateUpdate()
 
     while ((int)points.size() > maxPoints)
         points.pop_back();
+}
+
+void TrailRenderComponent::ResetTrail()
+{
+	points.clear();
+	sampleTimer = 0.0f;
 }
 
 void TrailRenderComponent::BuildTrailVertices()

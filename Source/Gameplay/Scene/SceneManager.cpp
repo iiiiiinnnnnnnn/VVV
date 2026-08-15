@@ -1,5 +1,3 @@
-﻿// SceneManager.cpp
-
 #include "Gameplay/Scene/SceneManager.h"
 
 #include "Application/Time/GameTime.h"
@@ -7,7 +5,6 @@
 #include "Gameplay/Scene/GameStartScene.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Rendering/Core/Graphics.h"
-#include "Resource/ResourceManager.h"
 
 #include <stdexcept>
 
@@ -16,7 +13,7 @@ namespace
 	class ThreadSceneContextScope
 	{
 	public:
-		explicit ThreadSceneContextScope(
+		ThreadSceneContextScope(
 			PhysicsSceneContext* context)
 		{
 			PhysicsManager::Instance().
@@ -110,17 +107,17 @@ void SceneManager::Finalize()
 	sceneWaitingForDestruction.reset();
 }
 
-void SceneManager::Update()
+void SceneManager::ApplyPendingChanges()
 {
-	// 前フレームまでに完了したSceneを適用する。
 	ApplyLoadedScene();
 
-	// Scene内からLoadSceneされた場合でも、
-	// 呼び出し元SceneのUpdate終了後となる次フレームに開始する。
 	BeginPendingLoad();
 
 	UpdateLoadProgress();
+}
 
+void SceneManager::Update()
+{
 	if (currentScene)
 	{
 		currentScene->Update();
@@ -136,8 +133,7 @@ void SceneManager::Render()
 }
 
 bool SceneManager::RequestLoadScene(
-	SceneFactory sceneFactory,
-	bool reloadGameResources)
+	SceneFactory sceneFactory)
 {
 	if (!sceneFactory)
 	{
@@ -154,7 +150,6 @@ bool SceneManager::RequestLoadScene(
 		std::lock_guard<std::mutex> lock(loadMutex);
 
 		pendingSceneFactory = std::move(sceneFactory);
-		pendingReloadGameResources = reloadGameResources;
 		lastLoadError.clear();
 	}
 
@@ -175,13 +170,11 @@ void SceneManager::BeginPendingLoad()
 	}
 
 	SceneFactory sceneFactory;
-	bool reloadGameResources = true;
 
 	{
 		std::lock_guard<std::mutex> lock(loadMutex);
 		sceneFactory = std::move(pendingSceneFactory);
 		pendingSceneFactory = {};
-		reloadGameResources = pendingReloadGameResources;
 	}
 
 	if (!sceneFactory)
@@ -209,12 +202,10 @@ void SceneManager::BeginPendingLoad()
 
 	loadProgress = 0.0f;
 
-	// 遷移元Sceneを安全なタイミングで破棄し、
-	// ロード中表示専用Sceneへ切り替える。
 	currentScene.reset();
 	currentScene = std::make_unique<LoadingScene>();
 
-	if (!StartLoadThread(std::move(sceneFactory), reloadGameResources))
+	if (!StartLoadThread(std::move(sceneFactory)))
 	{
 		loading.store(
 			false,
@@ -223,26 +214,18 @@ void SceneManager::BeginPendingLoad()
 }
 
 bool SceneManager::StartLoadThread(
-	SceneFactory sceneFactory,
-	bool reloadGameResources)
+	SceneFactory sceneFactory)
 {
 	try
 	{
 		loadThread = std::thread(
-			[this, sceneFactory = std::move(sceneFactory), reloadGameResources]() mutable
+			[this, sceneFactory = std::move(sceneFactory)]() mutable
 		{
 			std::unique_ptr<LoadedScene> result;
 			std::exception_ptr exception;
 
 			try
 			{
-				ResourceManager& resources = ResourceManager::Instance();
-				if (reloadGameResources && !resources.ReloadGameResources())
-				{
-					const auto& errors = resources.GetErrors();
-					throw std::runtime_error(errors.empty() ? "Resource preparation failed." : errors.front());
-				}
-
 				Game::Graphics& graphics = Game::Graphics::Instance();
 				const std::string skyMapName = graphics.GetSkyMapName();
 				graphics.RefreshSkyMapList();
@@ -259,8 +242,6 @@ bool SceneManager::StartLoadThread(
 					ThreadSceneContextScope contextScope(
 						result->physicsContext.get());
 
-					// ロード用スレッド内では通常どおり同期的に
-					// Sceneのコンストラクタを最後まで実行する。
 					result->scene = sceneFactory();
 				}
 
@@ -320,8 +301,6 @@ void SceneManager::UpdateLoadProgress()
 		return;
 	}
 
-	// Scene側へ進捗報告を書かせないため、表示用の進捗値を作る。
-	// 実際の完了判定はloadFinishedで行う。
 	const float target = 0.9f;
 	const float interpolation = std::min(
 		Game::Time::unscaledDeltaTime * 1.5f,

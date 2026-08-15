@@ -1,5 +1,4 @@
-﻿// RenderState.h
-#pragma once
+﻿#pragma once
 
 #include <wrl.h>
 #include <d3d11.h>

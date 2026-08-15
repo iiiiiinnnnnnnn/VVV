@@ -1,32 +1,33 @@
-﻿// ImGuiRenderer.cpp
-
-#include <imgui_impl_win32.h>
+﻿#include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
+#include "Rendering/Renderer/ImGuiTheme.h"
 #include <filesystem>
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
+	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceContext* dc)
 {
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
+	auto& io = ImGui::GetIO();
 
 	io.IniFilename = "Data/Editor.ini";
 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-	//io.ConfigViewportsNoAutoMerge = true;
-	//io.ConfigViewportsNoTaskBarIcon = true;
-	//io.ConfigViewportsNoDefaultParent = true;
-	//io.ConfigDockingAlwaysTabBar = true;
-	//io.ConfigDockingTransparentPayload = true;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	// Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+														//io.ConfigViewportsNoAutoMerge = true;
+														//io.ConfigViewportsNoTaskBarIcon = true;
+														//io.ConfigViewportsNoDefaultParent = true;
+														//io.ConfigDockingAlwaysTabBar = true;
+														//io.ConfigDockingTransparentPayload = true;
 #if 1
-	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
+	io.ConfigFlags |=
+		ImGuiConfigFlags_DpiEnableScaleFonts; // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
 	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
 #endif
 
@@ -52,9 +53,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.7f);
 		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.6f);
 		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.8f);
-		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.2f, 0.2f, 0.4f, 0.9f);
-		style.Colors[ImGuiCol_Header] = ImVec4(0.3f, 0.3f, 0.5f, 0.6f);
-		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.4f, 0.4f, 0.6f, 0.7f);
+		ImGuiTheme::ApplyYellowTheme(style);
 	}
 
 	// Setup Platform/Renderer backends
@@ -73,11 +72,12 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-	ImFont* font = io.Fonts->AddFontFromFileTTF("Data/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	ImFont* font = io.Fonts->AddFontFromFileTTF(
+		"Data/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 	if (!font) io.Fonts->AddFontDefault();
 
 	// Font Awesomeをマージ
-	static const ImWchar icon_ranges[] = { 0xf000, 0xf8ff, 0 };
+	static const ImWchar icon_ranges[] = {0xf000, 0xf8ff, 0};
 	ImFontConfig config;
 	config.MergeMode = true;
 	config.PixelSnapH = true;
@@ -137,13 +137,13 @@ void ImGuiRenderer::NewFrame()
 
 void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 {
+	auto& io = ImGui::GetIO();
 	// Rendering
 	ImGui::Render();
 
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Update and Render additional Platform Windows
-	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
 		ImGui::UpdatePlatformWindows();

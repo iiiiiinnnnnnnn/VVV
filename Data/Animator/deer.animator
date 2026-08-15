@@ -28,6 +28,28 @@
                     "canInterrupt": false,
                     "conditions": [
                         {
+                            "mode": 6,
+                            "paramName": "Damage",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        2,
+                        7
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 7,
+                    "transitionDuration": 0.05000000074505806
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
                             "mode": 4,
                             "paramName": "ready",
                             "threshold": 0.0
@@ -349,6 +371,33 @@
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
+                },
+                {
+                    "animationIndex": 5,
+                    "blockAnyStateTransitions": true,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 500.0,
+                    "editorPosY": 470.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Damage",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -381,5 +430,7 @@
             "value": false
         }
     ],
-    "triggers": []
+    "triggers": [
+        "Damage"
+    ]
 }

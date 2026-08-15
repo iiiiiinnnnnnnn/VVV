@@ -1,5 +1,3 @@
-// Stage.cpp
-
 #include "Gameplay/Stage/Stage.h"
 
 #include "Gameplay/Stage/Component/StageLoader.h"

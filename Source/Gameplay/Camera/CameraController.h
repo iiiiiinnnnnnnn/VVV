@@ -1,5 +1,4 @@
-﻿// CameraController.h
-#pragma once
+﻿#pragma once
 #include "Core/Object/Component.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
@@ -39,13 +38,13 @@ public:
 		if (!inputEnabled)
 		{
 			OnFocusLost();
-			return;
 		}
-
-		if (Game::Input::IsFocusedWindow(!BlocksOnImGuiFocus())) {
+		else if (Game::Input::IsFocusedWindow(!BlocksOnImGuiFocus()))
+		{
 			UpdateCamera();
 		}
-		else {
+		else
+		{
 			OnFocusLost();
 		}
 

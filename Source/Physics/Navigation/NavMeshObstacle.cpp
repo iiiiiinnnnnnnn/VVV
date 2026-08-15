@@ -1,5 +1,3 @@
-// NavMeshObstacle.cpp
-
 #include "Physics/Navigation/NavMeshObstacle.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Collider/BoxCollider.h"

@@ -1,6 +1,4 @@
-﻿// EffectManager.cpp
-
-#include "Rendering/Core/Graphics.h"
+﻿#include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Application/Time/GameTime.h"
 

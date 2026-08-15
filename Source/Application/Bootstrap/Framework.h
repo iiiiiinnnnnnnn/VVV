@@ -1,5 +1,4 @@
-﻿// Framework.h
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -9,21 +8,21 @@
 
 class Framework
 {
-public:
+  public:
 	Framework(HWND hWnd);
 	~Framework();
 
-private:
+  private:
 	void Update(float elapsedTime);
 	void Render(float elapsedTime);
 
 	void CalculateFrameStats();
 
-public:
+  public:
 	int Run();
 	LRESULT CALLBACK HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-private:
-	const HWND				hWnd;
-	HighResolutionTimer		timer;
+  private:
+	const HWND hWnd;
+	HighResolutionTimer timer;
 };

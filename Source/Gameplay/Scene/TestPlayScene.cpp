@@ -1,6 +1,4 @@
-﻿// TestPlayScene.cpp
-
-#include "Gameplay/Scene/TestPlayScene.h"
+﻿#include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Scene/GameStartScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -12,7 +10,7 @@
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Stage/Stage01.h"
 
-TestPlayScene::TestPlayScene(SceneMessage message) : Scene(message)
+TestPlayScene::TestPlayScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(true);

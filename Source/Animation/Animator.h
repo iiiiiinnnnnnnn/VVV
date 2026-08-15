@@ -1,6 +1,4 @@
-﻿// Animator.h
-
-#pragma once
+﻿#pragma once
 #include <functional>
 #include <memory>
 #include <string>
@@ -222,7 +220,8 @@ public:
     int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
     int  GetCurrentAnimationIndex(int layerIndex = 0) const;
     float GetCurrentAnimationTime(int layerIndex = 0) const;
-    bool GetAnimationControlState(int& animationIndex, float& time, int layerIndex = 0) const;
+    bool GetAnimationControlState(int& animationIndex, float& time,
+        int& nextAnimationIndex, float& nextTime, int layerIndex = 0) const;
 
     // =========================================================
     // =========================================================
@@ -329,7 +328,7 @@ private:
     ax::NodeEditor::EditorContext* editorContext = nullptr;
     bool editorOpen = false;
     int currentEditorLayer = 0;
-    char currentAnimatorPath[MAX_PATH] = {};
+    std::string currentAnimatorPath;
     static constexpr int ANY_STATE_INDEX = 999;
     struct SelectedTransition
     {
@@ -351,7 +350,7 @@ private:
     bool suppressNodeEditorInteractions = false;
     float editorLeftPanelWidth = 230.0f;
     bool addLayerPopupOpen = false;
-    char addLayerName[64] = "New Layer";
+    std::string addLayerName = "New Layer";
     std::vector<bool> maskSelection;
     int contextLayerIndex = -1;
 

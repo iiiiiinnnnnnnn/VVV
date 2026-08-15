@@ -1,6 +1,4 @@
-﻿// TestPlayScene.h
-
-#pragma once
+﻿#pragma once
 
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Effect/ParticleSystem.h"
@@ -8,7 +6,7 @@
 class TestPlayScene : public Scene
 {
 public:
-	TestPlayScene(SceneMessage message = nullptr);
+	TestPlayScene();
 
 	~TestPlayScene() override;
 

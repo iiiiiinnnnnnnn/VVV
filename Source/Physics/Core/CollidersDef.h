@@ -1,5 +1,3 @@
-// CollidersDef.h
-
 #pragma once
 
 #include "Physics/Core/PhysicsComponent.h"

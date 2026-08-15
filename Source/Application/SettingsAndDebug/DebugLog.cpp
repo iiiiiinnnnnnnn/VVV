@@ -1,5 +1,3 @@
-// DebugLog.cpp
-
 #include "Application/SettingsAndDebug/DebugLog.h"
 
 #if defined(_DEBUG)

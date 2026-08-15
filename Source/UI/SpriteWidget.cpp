@@ -1,6 +1,4 @@
-﻿// SpriteWidget.cpp
-
-#include "UI/SpriteWidget.h"
+﻿#include "UI/SpriteWidget.h"
 
 #include "Rendering/Component/SpriteRenderComponent.h"
 

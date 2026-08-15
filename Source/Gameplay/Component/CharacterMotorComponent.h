@@ -1,5 +1,3 @@
-// CharacterMotorComponent.h
-
 #pragma once
 
 #include <string>
@@ -20,7 +18,7 @@ public:
 
 	void OnUpdate() override;
 	void OnDrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_RUNNING " CharacterMotor"; }
+	const char* GetDebugName() const override { return ICON_FA_COG " CharacterMotor"; }
 
 	void SetRootMotionNode(const std::string& nodeName);
 	void SetExternalVelocity(const Vector3& velocity) { externalVelocity = velocity; }

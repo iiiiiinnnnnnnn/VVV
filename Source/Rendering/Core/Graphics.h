@@ -1,4 +1,3 @@
-Ôªø// Graphics.h
 #pragma once
 #include <atomic>
 #include <string>
@@ -11,6 +10,7 @@
 #include "Rendering/Core/RenderState.h"
 #include "Rendering/Core/RenderTarget.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
+#include "Rendering/Renderer/DebugSolidRenderer.h"
 #include "Rendering/Renderer/ShapeRenderer.h"
 #include "Rendering/Renderer/ModelRenderer.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
@@ -58,6 +58,7 @@ namespace Game
 		RenderState* GetRenderState() { return renderState.get(); }
 		RenderTarget* GetFrameBuffer(FrameBufferId frameBufferId) { return frameBuffers[static_cast<int>(frameBufferId)].get(); }
 		PrimitiveRenderer* GetPrimitiveRenderer() const { return primitiveRenderer.get(); }
+		DebugSolidRenderer* GetDebugSolidRenderer() const { return debugSolidRenderer.get(); }
 		TrailRenderer* GetTrailRenderer() const { return trailRenderer.get(); }
 		ShapeRenderer* GetShapeRenderer() const { return shapeRenderer.get(); }
 		ModelRenderer* GetModelRenderer() const { return modelRenderer.get(); }
@@ -65,7 +66,7 @@ namespace Game
 		ShadowMapRenderer* GetShadowMapRenderer() const { return shadowMapRenderer.get(); }
 		SkyBoxRenderer* GetSkyBoxRenderer()    const { return skyBoxRenderer.get(); }
 
-		// IBL„ÉÜ„ÇØ„Çπ„ÉÅ„É£ SRVÂèñÂæó
+		// IBLÉeÉNÉXÉ`ÉÉ SRVéÊìæ
 		ID3D11ShaderResourceView* GetIBLDiffuseIEM()     const { return iblDiffuseIEM.Get(); }
 		ID3D11ShaderResourceView* GetIBLSpecularPMREM()  const { return iblSpecularPMREM.Get(); }
 		ID3D11ShaderResourceView* GetIBLGGXLUT()         const { return iblGGXLUT.Get(); }
@@ -76,6 +77,7 @@ namespace Game
 		void Resize(UINT width, UINT height);
 		void SetWindowMovementLocked(bool locked) { windowMovementLocked = locked; }
 		bool IsWindowMovementLocked() const { return windowMovementLocked; }
+		Vector2 GetMouseNDC(float mouseX, float mouseY) const;
 
 		static float ScreenWidth;
 		static float ScreenHeight;
@@ -90,17 +92,18 @@ namespace Game
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext>	immediateContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain>		swapchain;
 
-		std::unique_ptr<RenderTarget> frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
+		std::unique_ptr<RenderTarget>		frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
 		std::unique_ptr<RenderState>		renderState;
 		std::unique_ptr<PrimitiveRenderer>	primitiveRenderer;
-		std::unique_ptr<TrailRenderer>	trailRenderer;
+		std::unique_ptr<DebugSolidRenderer>	debugSolidRenderer;
+		std::unique_ptr<TrailRenderer>		trailRenderer;
 		std::unique_ptr<ShapeRenderer>		shapeRenderer;
 		std::unique_ptr<ModelRenderer>		modelRenderer;
 		std::unique_ptr<SpriteRenderer>		spriteRenderer;
 		std::unique_ptr<ShadowMapRenderer>	shadowMapRenderer;
 		std::unique_ptr<SkyBoxRenderer>		skyBoxRenderer;
 
-		// IBL„ÉÜ„ÇØ„Çπ„ÉÅ„É£ (Data/lut_ggx.dds, Data/specular_pmrem.dds, Data/diffuse_iem.dds)
+		// IBLÉeÉNÉXÉ`ÉÉ (Data/lut_ggx.dds, Data/specular_pmrem.dds, Data/diffuse_iem.dds)
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblGGXLUT;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblDiffuseIEM;

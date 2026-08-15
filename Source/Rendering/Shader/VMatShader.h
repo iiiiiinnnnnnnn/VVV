@@ -1,6 +1,4 @@
-﻿// VMatShader.h
-
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -80,4 +78,5 @@ private:
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>	unlitPixelShader;
 };

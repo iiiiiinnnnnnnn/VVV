@@ -1,5 +1,3 @@
-// CapsuleCollider.h
-
 #include "Physics/Core/CollidersDef.h"
 
 class CapsuleCollider : public PhysicsComponent {

@@ -1,5 +1,3 @@
-// DebugLog.h
-
 #pragma once
 
 class DebugLog

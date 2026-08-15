@@ -1,23 +1,20 @@
-﻿// EnemySmall.cpp
-
-#include "EnemySmall.h"
+﻿#include "EnemySmall.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Scene/HitStop.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Physics/Navigation/NavMeshActor.h"
-#include "Application/Time/GameTime.h"
 
 EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 	: Entity("Deer(EnemySmall)", "Enemy", true, 200.0f, 200.0f)
 {
-	vmdl = AddComponent<VMDL>("Data/Model/Enemy/deer");
+	vmdl = AddComponent<VMDL>("Data/Model/Enemy/deer_ai_animated");
 	anim = vmdl->GetAnimator();
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	auto footIK = vmdl->GetMultiLegFootIK();
-	footIK->SetContactOffset(-0.34f);
-	footIK->SetModelVisualOffsetY(-0.13f);
+	footIK->SetContactOffset(-0.864f);
+	footIK->SetModelVisualOffsetY(-0.22f);
 	anim->Load("Data/Animator/deer.animator");
 	anim->SetRootMotion("armature");
 
@@ -58,99 +55,77 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 	ik->SetModelVisualOffsetY(-0.07f);
 	ik->SetContactOffset(-0.044f);
 
-	// Attacking
-	const auto enterAttacking = [this](const EnemyAIFlow::State&)
+	const auto ensureFloat = [this](const std::string& name, float value)
 	{
-		attackPhaseTimer = attackWindupDuration;
-		attackAimLocked = false;
+		for (const AIFlow::Parameter& parameter : controller->GetParameters())
+			if (parameter.name == name) return;
+		controller->SetFloat(name, value);
+	};
+	ensureFloat("FreedomMinDistance", 3.0f);
+	ensureFloat("FreedomMaxDistance", 10.0f);
+	ensureFloat("FreedomMoveSpeed", 1.0f);
+	ensureFloat("AttackMoveSpeed", 6.0f);
+	ensureFloat("AttackOverDistance", 8.0f);
+
+	const auto stop = [this](const EnemyAIFlow::State&)
+	{
 		controller->StopMovement();
-	};
-	const auto updateAttacking = [this](const EnemyAIFlow::State&)
-	{
-		anim->SetBool("ready", true);
-
-		if (!attackAimLocked)
-		{
-			controller->FaceTarget();
-			attackPhaseTimer -= Game::Time::deltaTime;
-			if (attackPhaseTimer > 0.0f) return;
-
-			Actor* target = controller->GetTarget();
-			if (!target) return;
-
-			// 突進(余分に進む)
-			Vector3 over = target->transform.position - transform.position;
-			over.y = 0.0f;
-
-			if (over.LengthSquared() > eps) over.Normalize();
-
-			const float overDistance = 8.0f;
-			const Vector3 destination =
-				target->transform.position + over * overDistance;
-
-			navMeshAgent->SetSpeed(attackMoveSpeed);
-			navMeshAgent->MoveToPosition(destination);
-
-			attackAimLocked = true;
-
-			return;
-		}
-
-		if (navMeshAgent->HasDestination()) return;
-
-		attackAimLocked = false;
-		attackPhaseTimer = attackRecoveryDuration;
-	};
-	const auto exitAttacking = [this](const EnemyAIFlow::State&)
-	{
-		attackPhaseTimer = 0.0f;
-		attackAimLocked = false;
-		controller->StopMovement();
-	};
-
-	// Freedom
-	const auto enterFreedom = [this](const EnemyAIFlow::State&)
-	{
-		navMeshAgent->Stop();
-		freedomWaitTimer = 0.0f;
 	};
 	const auto updateFreedom = [this](const EnemyAIFlow::State&)
 	{
 		anim->SetBool("ready", false);
-
-		if (navMeshAgent->HasDestination()) return;
-
-		freedomWaitTimer -= Game::Time::deltaTime;
-		if (freedomWaitTimer > 0.0f) return;
-
-		navMeshAgent->SetSpeed(freedomMoveSpeed);
-		if (navMeshAgent->MoveToRandomPosition(
-			freedomMinDistance,
-			freedomMaxDistance))
-		{
-			freedomWaitTimer = freedomWaitDuration;
-			return;
-		}
-
-		freedomWaitTimer = 1.0f;
 	};
-	const auto exitFreedom = [this](const EnemyAIFlow::State&)
+	const auto updateAttacking = [this](const EnemyAIFlow::State&)
 	{
-		navMeshAgent->Stop();
-		freedomWaitTimer = 0.0f;
+		anim->SetBool("ready", true);
 	};
-	controller->AddCallbackFunc(
-		"Attacking",
-		enterAttacking,
-		updateAttacking,
-		{},
-		exitAttacking);
-	controller->AddCallbackFunc(
-		"Freedom",
-		enterFreedom,
-		updateFreedom,
-		{},
-		exitFreedom);
+	const auto enterWander = [this](const EnemyAIFlow::State&)
+	{
+		navMeshAgent->SetSpeed(controller->GetFloat("FreedomMoveSpeed", 1.0f));
+		navMeshAgent->MoveToRandomPosition(
+			controller->GetFloat("FreedomMinDistance", 3.0f),
+			controller->GetFloat("FreedomMaxDistance", 10.0f));
+	};
+	const auto updateTurn = [this](const EnemyAIFlow::State&)
+	{
+		const float angle = controller->GetFloat("TurnAngle");
+		anim->SetBool("turnR", angle > 0.0f);
+		anim->SetBool("turnL", angle < 0.0f);
+		navMeshAgent->SetMovementPaused(true);
+		if (!navMeshAgent->HasDestination()) controller->FaceTarget();
+	};
+	const auto exitTurn = [this](const EnemyAIFlow::State&)
+	{
+		anim->SetBool("turnR", false);
+		anim->SetBool("turnL", false);
+		navMeshAgent->SetMovementPaused(false);
+	};
+	const auto updateFaceTarget = [this](const EnemyAIFlow::State&)
+	{
+		controller->FaceTarget();
+	};
+	const auto enterChase = [this](const EnemyAIFlow::State&)
+	{
+		Actor* target = controller->GetTarget();
+		if (!target) return;
+
+		Vector3 over = target->transform.position - transform.position;
+		over.y = 0.0f;
+		if (over.LengthSquared() > eps) over.Normalize();
+		const Vector3 destination = target->transform.position +
+			over * controller->GetFloat("AttackOverDistance", 8.0f);
+		navMeshAgent->SetSpeed(controller->GetFloat("AttackMoveSpeed", 6.0f));
+		navMeshAgent->MoveToPosition(destination);
+	};
+
+	controller->AddCallbackFunc("Freedom", stop, updateFreedom, {}, stop);
+	controller->AddCallbackFunc("FreedomWait", stop);
+	controller->AddCallbackFunc("FreedomWander", enterWander);
+	controller->AddCallbackFunc("Turn", {}, updateTurn, {}, exitTurn);
+	controller->AddCallbackFunc("Attacking", stop, updateAttacking, {}, stop);
+	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
+	controller->AddCallbackFunc("AttackChase", enterChase);
+	controller->AddCallbackFunc("Stop", stop);
 	controller->BindCallbacks();
 }
 
@@ -167,50 +142,6 @@ void EnemySmall::OnUpdate()
 	anim->SetBool("dead", IsDead());
 	anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
 
-	float turnAngle = navMeshAgent->GetTurnAngle();
-	Vector3 turnDirection = Vector3::Zero;
-	if (fabsf(turnAngle) <= eps && navMeshAgent->HasDestination())
-	{
-		turnDirection =
-			navMeshAgent->GetDestination() -
-			transform.position;
-	}
-
-	const EnemyAIFlow::State* aiState =
-		controller->GetCurrentState();
-	if (fabsf(turnAngle) <= eps &&
-		turnDirection.LengthSquared() <= eps &&
-		aiState &&
-		aiState->callbackName == "Attacking")
-	{
-		Actor* target = controller->GetTarget();
-		if (target)
-		{
-			turnDirection =
-				target->transform.position -
-				transform.position;
-		}
-	}
-
-	turnDirection.y = 0.0f;
-	if (fabsf(turnAngle) <= eps &&
-		turnDirection.LengthSquared() > eps)
-	{
-		turnDirection.Normalize();
-		turnAngle = atan2f(
-			turnDirection.Dot(transform.right),
-			turnDirection.Dot(transform.forward));
-	}
-
-	const bool turningRight =
-		turnAngle > RAD(15.0f);
-	const bool turningLeft =
-		turnAngle < -RAD(15.0f);
-	anim->SetBool("turnR", turningRight);
-	anim->SetBool("turnL", turningLeft);
-	navMeshAgent->SetMovementPaused(
-		turningRight || turningLeft);
-
 	//UpdateMovement();
 	/*if (motor)
 	{
@@ -220,7 +151,7 @@ void EnemySmall::OnUpdate()
 
 void EnemySmall::OnLateUpdate()
 {
-	model->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.matrix);
 
 	if (cc)
 	{
@@ -230,22 +161,19 @@ void EnemySmall::OnLateUpdate()
 
 void EnemySmall::OnDrawGUI()
 {
-	ImGui::Checkbox("AttackAimLocked", &attackAimLocked);
-	ImGui::DragFloat("FreedomWaitDuration", &freedomWaitDuration, 0.1f, 0.0f, 30.0f);
-	ImGui::DragFloat("FreedomMinDistance", &freedomMinDistance, 0.1f, 0.0f, 100.0f);
-	ImGui::DragFloat("FreedomMaxDistance", &freedomMaxDistance, 0.1f, 0.0f, 100.0f);
-	ImGui::DragFloat("FreedomMoveSpeed", &freedomMoveSpeed, 0.1f, 0.0f, 30.0f);
-	ImGui::DragFloat("AttackMoveSpeed", &attackMoveSpeed, 0.1f, 0.0f, 30.0f);
-	ImGui::DragFloat("AttackWindupDuration", &attackWindupDuration, 0.1f, 0.0f, 10.0f);
-	ImGui::DragFloat("AttackRecoveryDuration", &attackRecoveryDuration, 0.1f, 0.0f, 10.0f);
+	ImGui::TextDisabled("AI timings and movement values are edited in the AI Flow graph.");
 }
 
 void EnemySmall::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
+	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;
+	if (anim->GetCurrentStateName() != "run") return;
+
+	anim->SetTrigger("Damage");
+	navMeshAgent->Stop();
+
 	Entity* player = dynamic_cast<Entity*>(other->GetOwner());
 	if (!player || !player->CompareTag("Player")) return;
-
-	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;
 
 	DamageData damageData{
 		.damage = 10.0f,
@@ -256,7 +184,6 @@ void EnemySmall::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other,
 		.hitNormal = normal,
 	};
 	player->TakeDamage(damageData);
-	anim->SetTrigger("damaged");
 }
 
 void EnemySmall::OnDamaged(const DamageData& damageData)

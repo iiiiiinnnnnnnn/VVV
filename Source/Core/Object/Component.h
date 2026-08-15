@@ -1,12 +1,12 @@
-Ôªø// Component.h
-
 #pragma once
 
-// Component.h
 
 #include "IconsFontAwesome5.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
+
+#include <string>
+#include <vector>
 
 struct RenderContext;
 class Object;
@@ -31,6 +31,10 @@ public:
     virtual void LateUpdate() { OnLateUpdate(); }
     virtual void Render(const RenderContext& rc) { OnRender(rc); }
     virtual void DrawGUI() { OnDrawGUI(); }
+
+	// éñëOì«çûÇê›íË
+	bool SetPreloadResourceFiles(std::vector<std::string> files);
+	const std::vector<std::string>& GetPreloadResourceFiles() const { return preloadResourceFiles; }
 
     bool IsActive() const { return isActive; }
 	void SetShowDebug(bool enabled) { showDebug = enabled; }
@@ -60,4 +64,6 @@ protected:
 	bool isAwake = false;
 	bool isStarted = false;
 	bool showDebug = false;
+	// éñëOì«çûàÍóó
+	std::vector<std::string> preloadResourceFiles;
 };

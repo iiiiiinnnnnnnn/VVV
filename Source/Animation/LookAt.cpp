@@ -1,6 +1,4 @@
-﻿// LookAt.cpp
-
-#include "Animation/LookAt.h"
+﻿#include "Animation/LookAt.h"
 #include "Resource/VMDLModel.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"

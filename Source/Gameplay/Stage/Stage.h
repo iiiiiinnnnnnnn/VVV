@@ -1,5 +1,3 @@
-// Stage.h
-
 #pragma once
 
 #include "Core/Object/Object.h"

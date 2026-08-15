@@ -1,6 +1,4 @@
-﻿// BoneSphereCollider.cpp
-
-#include "Physics/Collider/BoneSphereCollider.h"
+﻿#include "Physics/Collider/BoneSphereCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"

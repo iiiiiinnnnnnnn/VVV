@@ -1,5 +1,3 @@
-// MovieCameraController.cpp
-
 #include "Gameplay/Camera/MovieCameraController.h"
 #include "Application/Time/GameTime.h"
 

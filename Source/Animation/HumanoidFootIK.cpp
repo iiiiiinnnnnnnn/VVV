@@ -1,6 +1,4 @@
-﻿// HumanoidFootIK.cpp
-
-#include "Animation/HumanoidFootIK.h"
+﻿#include "Animation/HumanoidFootIK.h"
 
 #include "Animation/Animator.h"
 #include "Application/Time/GameTime.h"
@@ -9,15 +7,10 @@
 using std::max;
 using std::min;
 
-HumanoidFootIK::HumanoidFootIK(
-	Object* owner,
-	LayerId layerId,
-	VMDLModel* model,
-	Animator* animator,
-	const char* activeStateName,
-	const char* pelvisName,
-	const char* thighLName, const char* calfLName, const char* footLName, const char* ballLName,
-	const char* thighRName, const char* calfRName, const char* footRName, const char* ballRName)
+HumanoidFootIK::HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator,
+	const char* activeStateName, const char* pelvisName, const char* thighLName,
+	const char* calfLName, const char* footLName, const char* ballLName, const char* thighRName,
+	const char* calfRName, const char* footRName, const char* ballRName)
 	: Component(owner), model(model), animator(animator)
 {
 	if (activeStateName)
@@ -33,20 +26,10 @@ HumanoidFootIK::HumanoidFootIK(
 	if (owner && model)
 	{
 		footIK_L = owner->AddComponent<FootIK>(
-			layerId,
-			model,
-			thighLName,
-			calfLName,
-			footLName,
-			ballLName);
+			layerId, model, thighLName, calfLName, footLName, ballLName);
 
 		footIK_R = owner->AddComponent<FootIK>(
-			layerId,
-			model,
-			thighRName,
-			calfRName,
-			footRName,
-			ballRName);
+			layerId, model, thighRName, calfRName, footRName, ballRName);
 
 		const auto& poles = model->GetVmdlIKPoles();
 		if (footIK_L && !poles.empty() && poles[0].custom)
@@ -76,12 +59,18 @@ void HumanoidFootIK::LateUpdate()
 
 	if (footIK_L && footIK_L->IsIKEnabled())
 	{
-		footIK_L->UpdateGroundTarget(rayUp, rayDown, contactOffset);
+		Vector3 startOffset;
+		float length = 0.0f;
+		GetRaySettings(0, startOffset, length);
+		footIK_L->UpdateGroundTarget(startOffset, length, contactOffset);
 	}
 
 	if (footIK_R && footIK_R->IsIKEnabled())
 	{
-		footIK_R->UpdateGroundTarget(rayUp, rayDown, contactOffset);
+		Vector3 startOffset;
+		float length = 0.0f;
+		GetRaySettings(1, startOffset, length);
+		footIK_R->UpdateGroundTarget(startOffset, length, contactOffset);
 	}
 
 	ApplyHipOffset(baseHipLocalPosition);
@@ -133,9 +122,20 @@ float HumanoidFootIK::GetVmdlFootWeight(int footIndex) const
 	if (!model || !animator) return 1.0f;
 	if (model->GetVmdlIKSettings().type != 1) return 1.0f;
 	return model->EvaluateFootIKWeight(
-		animator->GetCurrentAnimationIndex(),
-		animator->GetCurrentAnimationTime(),
-		footIndex);
+		animator->GetCurrentAnimationIndex(), animator->GetCurrentAnimationTime(), footIndex);
+}
+
+void HumanoidFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length) const
+{
+	startOffset = Vector3(0.0f, rayUp, 0.0f);
+	length = rayUp + rayDown;
+	if (!model) return;
+	const auto& settings = model->GetVmdlIKRaySettings();
+	if (footIndex < 0 || footIndex >= static_cast<int>(settings.size())) return;
+	const auto& ray = settings[footIndex];
+	if (!ray.custom) return;
+	startOffset = ray.startOffset;
+	length = ray.length;
 }
 
 void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
@@ -143,9 +143,7 @@ void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
 	float targetOffsetY = 0.0f;
 	float highestFootOffsetY = 0.0f;
 
-	if (footIK_L &&
-		footIK_L->IsIKEnabled() &&
-		footIK_L->HasGroundContact())
+	if (footIK_L && footIK_L->IsIKEnabled() && footIK_L->HasGroundContact())
 	{
 		const float footOffsetY = footIK_L->GetGroundOffsetY();
 
@@ -153,9 +151,7 @@ void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
 		highestFootOffsetY = max(highestFootOffsetY, footOffsetY);
 	}
 
-	if (footIK_R &&
-		footIK_R->IsIKEnabled() &&
-		footIK_R->HasGroundContact())
+	if (footIK_R && footIK_R->IsIKEnabled() && footIK_R->HasGroundContact())
 	{
 		const float footOffsetY = footIK_R->GetGroundOffsetY();
 
@@ -176,10 +172,9 @@ void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
 
 	if (hipNodeIndex >= 0)
 	{
-		const Vector3 localHipOffset = model->GetUnscaledAttachmentVector(
-			Vector3(0.0f, visualHipOffsetY, 0.0f));
-		model->GetNodes()[hipNodeIndex].position =
-			baseHipLocalPosition + localHipOffset;
+		const Vector3 localHipOffset =
+			model->GetUnscaledAttachmentVector(Vector3(0.0f, visualHipOffsetY, 0.0f));
+		model->GetNodes()[hipNodeIndex].position = baseHipLocalPosition + localHipOffset;
 	}
 
 	model->UpdateTransform(model->GetWorldTransform());

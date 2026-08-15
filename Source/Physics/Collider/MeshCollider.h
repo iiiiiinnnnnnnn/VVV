@@ -1,5 +1,4 @@
-﻿// MeshCollider.h
-#pragma once
+﻿#pragma once
 
 #include <memory>
 
@@ -18,6 +17,7 @@ public:
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
+	void UpdateShape();
     void SetLocalScale(const Vector3& scale);
     void SetCollisionEnabled(bool enabled);
 	void SetTrigger(bool trigger);
@@ -26,7 +26,6 @@ public:
     bool GetBounds(Vector3& center, Vector3& size) const;
     Vector3 GetWorldPosition() const;
 private:
-    void UpdateShape();
     void DetachShapes();
     Matrix MakeLocalVertexTransform(const Matrix& nodeTransform) const;
     Rigidbody* rigidbody = nullptr;

@@ -1,5 +1,3 @@
-// VMDL.h
-
 #pragma once
 
 #include <memory>
@@ -8,16 +6,16 @@
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Core/Object/Component.h"
 #include "Resource/VMDLModel.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 
 class Animator;
 class HumanoidFootIK;
 class MultiLegFootIK;
 class PhysicsComponent;
-class VMDLModelComponent;
 
 class VMDL : public Component
 {
-public:
+  public:
 	VMDL(Object* owner, const std::string& path);
 
 	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDL"; }
@@ -32,15 +30,25 @@ public:
 	MultiLegFootIK* GetMultiLegFootIK() const { return multiLegFootIK; }
 	PhysicsComponent* GetCollider(const std::string& name) const;
 	void SetAutoUpdateTransform(bool value);
+	void SetModelYawOffset(float radians)
+	{
+		if (renderer) renderer->SetModelYawOffset(radians);
+	}
+	void UpdateTransform(const Matrix& actorTransform)
+	{
+		if (renderer) renderer->UpdateModelTransform(actorTransform);
+	}
 	bool ApplyMorph(const std::string& morphName);
+	bool EquipMeshCache(
+		const std::string& slot, const std::string& path, const std::string& fallbackNodeName = {});
+	void UnequipMeshCache(const std::string& slot);
 
-	template<typename T>
-	T* GetCollider(const std::string& name) const
+	template <typename T> T* GetCollider(const std::string& name) const
 	{
 		return dynamic_cast<T*>(GetCollider(name));
 	}
 
-private:
+  private:
 	LayerId GetAttachmentLayer() const;
 	void BuildFootIK();
 

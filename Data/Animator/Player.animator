@@ -441,7 +441,7 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack1Freeze",
-                    "speed": 1.0,
+                    "speed": 1.2000000476837158,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -458,9 +458,9 @@
                             "isAny": false,
                             "priority": 1,
                             "sourceProgressMax": 0.699999988079071,
-                            "sourceProgressMin": 0.30000001192092896,
+                            "sourceProgressMin": 0.25,
                             "toStateIndex": 5,
-                            "transitionDuration": 0.30000001192092896
+                            "transitionDuration": 0.20000000298023224
                         },
                         {
                             "canInterrupt": false,
@@ -493,7 +493,7 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack2Freeze",
-                    "speed": 1.0,
+                    "speed": 1.2000000476837158,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -512,7 +512,7 @@
                             "sourceProgressMax": 0.6000000238418579,
                             "sourceProgressMin": 0.20000000298023224,
                             "toStateIndex": 6,
-                            "transitionDuration": 0.4000000059604645
+                            "transitionDuration": 0.30000001192092896
                         },
                         {
                             "canInterrupt": false,
@@ -545,7 +545,7 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack3Freeze",
-                    "speed": 1.0,
+                    "speed": 1.2000000476837158,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -562,9 +562,9 @@
                             "isAny": false,
                             "priority": 1,
                             "sourceProgressMax": 0.800000011920929,
-                            "sourceProgressMin": 0.30000001192092896,
+                            "sourceProgressMin": 0.20000000298023224,
                             "toStateIndex": 7,
-                            "transitionDuration": 0.4000000059604645
+                            "transitionDuration": 0.30000001192092896
                         },
                         {
                             "canInterrupt": false,
@@ -602,7 +602,7 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack4Freeze",
-                    "speed": 1.0,
+                    "speed": 1.2000000476837158,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -977,8 +977,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QR",
         "QB",
+        "QR",
         "QL"
     ]
 }

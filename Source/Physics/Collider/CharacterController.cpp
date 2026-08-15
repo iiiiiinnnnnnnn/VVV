@@ -1,5 +1,3 @@
-// CharacterController.cpp
-
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"

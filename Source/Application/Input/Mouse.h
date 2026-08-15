@@ -1,6 +1,4 @@
-﻿// Mouse.h
-
-#pragma once
+﻿#pragma once
 
 #include <windows.h>
 

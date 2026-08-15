@@ -1,6 +1,4 @@
-﻿// SpriteRenderComponent.cpp
-
-#include "Rendering/Component/SpriteRenderComponent.h"
+﻿#include "Rendering/Component/SpriteRenderComponent.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/Widget.h"
 #include "IconsFontAwesome5.h"

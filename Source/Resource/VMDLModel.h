@@ -1,6 +1,4 @@
-﻿// VMDLModel.h
-
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -19,28 +17,29 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/utility.hpp>
 
+class MeshCache;
+
 #include <DirectXTex.h>
 #include <DDSTextureLoader.h>
 
 class VMDLModel
 {
-public:
+  public:
 	struct VmdlRigidBody
 	{
-		std::string name = "Rigidbody";
+		std::string name = "RIGIDBODY";
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
 		Vector3 offsetRotation = Vector3::Zero;
 		float mass = 1.0f;
 		bool kinematic = false;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlCollider
 	{
-		std::string name = "Collider";
+		std::string name = "COLLIDER";
 		int layer = -1;
 		int nodeIndex = -1;
 		int shape = 0;
@@ -49,41 +48,38 @@ public:
 		Vector3 size = Vector3::One;
 		bool trigger = false;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlSpring
 	{
-		std::string name = "Spring";
+		std::string name = "SPRING";
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
 		Vector3 offsetRotation = Vector3::Zero;
 		float stiffness = 0.5f;
 		float drag = 0.2f;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlSpringCollider
 	{
-		std::string name = "Spring Collider";
+		std::string name = "SPRING COLLIDER";
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
 		float radius = 0.1f;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlMorph
 	{
 		std::string name = "Morph";
 		std::vector<uint8_t> meshVisibility;
+		bool applyOnInitialize = false;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlExtensionData
@@ -95,8 +91,7 @@ public:
 		std::vector<VmdlSpringCollider> springColliders;
 		std::vector<VmdlMorph> morphs;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlIKLeg
@@ -107,8 +102,7 @@ public:
 		std::string tip;
 		std::string contact;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlIKSettings
@@ -119,8 +113,7 @@ public:
 		std::string centerNode = "pelvis";
 		std::vector<VmdlIKLeg> legs;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlIKPole
@@ -128,31 +121,39 @@ public:
 		bool custom = false;
 		Vector3 position = Vector3::Zero;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlIKRaySettings
+	{
+		bool custom = false;
+		Vector3 startOffset = Vector3(0.0f, 0.2f, 0.0f);
+		float length = 0.7f;
+
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlFootWeightTrack
 	{
+		static constexpr float DefaultSampleRate = 120.0f;
+
 		std::string animationName;
-		float sampleRate = 60.0f;
+		float sampleRate = DefaultSampleRate;
 		std::vector<float> weights;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlAnimationEditorData
 	{
 		std::vector<VmdlFootWeightTrack> footWeightTracks;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlTrail
 	{
-		std::string name = "Trail";
+		std::string name = "TRAIL";
 		int nodeIndex = -1;
 		Vector3 rootOffset = Vector3::Zero;
 		Vector3 tipOffset = {-1.0f, 0.0f, 0.0f};
@@ -162,8 +163,7 @@ public:
 		int maxPoints = 40;
 		Vector3 offsetAngle = Vector3::Zero;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlBoolKeyframe
@@ -171,8 +171,7 @@ public:
 		float seconds = 0.0f;
 		bool value = true;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlColliderAnimationTrack
@@ -181,8 +180,7 @@ public:
 		int colliderIndex = -1;
 		std::vector<VmdlBoolKeyframe> keys;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlMorphKeyframe
@@ -190,8 +188,7 @@ public:
 		float seconds = 0.0f;
 		int morphIndex = -1;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlMorphAnimationTrack
@@ -199,8 +196,7 @@ public:
 		std::string animationName;
 		std::vector<VmdlMorphKeyframe> keys;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlTrailAnimationTrack
@@ -209,8 +205,7 @@ public:
 		int trailIndex = -1;
 		std::vector<VmdlBoolKeyframe> keys;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlTrailData
@@ -219,8 +214,7 @@ public:
 		std::vector<uint8_t> initialActive;
 		std::vector<VmdlTrailAnimationTrack> tracks;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VmdlAnimationControlData
@@ -229,16 +223,10 @@ public:
 		std::vector<VmdlColliderAnimationTrack> colliderTracks;
 		std::vector<VmdlMorphAnimationTrack> morphTracks;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
-	VMDLModel(
-		const char* filename,
-		float sampleRate = 60,
-		bool importRawModel = false,
-		const char* cacheFilename = nullptr,
-		bool saveImportedCache = true);
+	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr);
 	VMDLModel(const VMDLModel& other);
 	VMDLModel(VMDLModel&& other) noexcept;
 	VMDLModel& operator=(const VMDLModel& other);
@@ -249,21 +237,20 @@ public:
 
 	struct Node
 	{
-		std::string			name;
-		int					parentIndex = -1;
-		Vector3				position = Vector3::Zero;
-		Quaternion			rotation = Quaternion::Identity;
-		Vector3				scale = Vector3::One;
+		std::string name;
+		int parentIndex = -1;
+		Vector3 position = Vector3::Zero;
+		Quaternion rotation = Quaternion::Identity;
+		Vector3 scale = Vector3::One;
 
-		Matrix				localTransform;
-		Matrix				globalTransform;
-		Matrix				worldTransform;
+		Matrix localTransform;
+		Matrix globalTransform;
+		Matrix worldTransform;
 
 		Node* parent = nullptr;
-		std::vector<Node*>	children;
+		std::vector<Node*> children;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	enum class AlphaMode
@@ -275,42 +262,41 @@ public:
 
 	struct Material
 	{
-		std::string			name;
-		std::string			baseTextureFileName;
-		std::string			normalTextureFileName;
-		std::string			emissiveTextureFileName;
-		std::string			occlusionTextureFileName;
-		std::string			metalnessRoughnessTextureFileName;
+		std::string name;
+		std::string baseTextureFileName;
+		std::string normalTextureFileName;
+		std::string emissiveTextureFileName;
+		std::string occlusionTextureFileName;
+		std::string metalnessRoughnessTextureFileName;
 
-		std::vector<uint8_t>	baseTextureDDS;
-		std::vector<uint8_t>	normalTextureDDS;
-		std::vector<uint8_t>	emissiveTextureDDS;
-		std::vector<uint8_t>	occlusionTextureDDS;
-		std::vector<uint8_t>	metalnessRoughnessTextureDDS;
+		std::vector<uint8_t> baseTextureDDS;
+		std::vector<uint8_t> normalTextureDDS;
+		std::vector<uint8_t> emissiveTextureDDS;
+		std::vector<uint8_t> occlusionTextureDDS;
+		std::vector<uint8_t> metalnessRoughnessTextureDDS;
 
-		Color				baseColor = {1, 1, 1, 1};
-		Color				emissiveColor = {0, 0, 0, 1};
-		float				metalness = 0.0f;
-		float				roughness = 0.0f;
-		float				occlusion = 1.0f;
-		float				occlusionStrength = 0.0f;
-		float				shadowStrength = 1.0f;
-		float				alphaCutoff = 0.5f;
-		AlphaMode			alphaMode = AlphaMode::Opaque;
+		Color baseColor = {1, 1, 1, 1};
+		Color emissiveColor = {0, 0, 0, 1};
+		float metalness = 0.0f;
+		float roughness = 0.0f;
+		float occlusion = 1.0f;
+		float occlusionStrength = 0.0f;
+		float shadowStrength = 1.0f;
+		float alphaCutoff = 0.5f;
+		AlphaMode alphaMode = AlphaMode::Opaque;
 
-		Color				fresnelColor = {1, 1, 1, 0};
-		float				fresnelPower = 0.0f;
-		float				fresnelStrength = 0.0f;
-		int					isFlatShading = false;
+		Color fresnelColor = {1, 1, 1, 0};
+		float fresnelPower = 0.0f;
+		float fresnelStrength = 0.0f;
+		int isFlatShading = false;
 
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	baseMap;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	normalMap;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	emissiveMap;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	occlusionMap;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	metalnessRoughnessMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> baseMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> emissiveMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> occlusionMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalnessRoughnessMap;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct MaterialPbrSettings
@@ -318,8 +304,7 @@ public:
 		float occlusion = 1.0f;
 		float shadowStrength = 1.0f;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct MaterialVMatSettings
@@ -329,8 +314,29 @@ public:
 		float fresnelStrength = 0.0f;
 		int isFlatShading = false;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	// VMDL側で編集するマテリアルパラメーター
+	// GLBを差し替えても、同名マテリアルへ再適用する
+	struct VmdlMaterialData
+	{
+		std::string name;
+		Color baseColor = {1, 1, 1, 1};
+		Color emissiveColor = {0, 0, 0, 1};
+		float metalness = 0.0f;
+		float roughness = 0.0f;
+		float occlusion = 1.0f;
+		float occlusionStrength = 0.0f;
+		float shadowStrength = 1.0f;
+		float alphaCutoff = 0.5f;
+		AlphaMode alphaMode = AlphaMode::Opaque;
+		Color fresnelColor = {1, 1, 1, 0};
+		float fresnelPower = 0.0f;
+		float fresnelStrength = 0.0f;
+		int isFlatShading = false;
+
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	enum class MaterialTextureSlot
@@ -344,61 +350,57 @@ public:
 
 	struct Vertex
 	{
-		Vector3				position = Vector3::Zero;
-		Vector3				normal = Vector3::Zero;
-		Vector4				tangent = {0, 0, 0, 1};
-		Vector2				texcoord = {0, 0};
-		Vector4				boneWeight = {1, 0, 0, 0};
-		DirectX::XMUINT4	boneIndex = {0, 0, 0, 0};
+		Vector3 position = Vector3::Zero;
+		Vector3 normal = Vector3::Zero;
+		Vector4 tangent = {0, 0, 0, 1};
+		Vector2 texcoord = {0, 0};
+		Vector4 boneWeight = {1, 0, 0, 0};
+		DirectX::XMUINT4 boneIndex = {0, 0, 0, 0};
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct Bone
 	{
-		int					nodeIndex;
-		Matrix				offsetTransform;
+		int nodeIndex;
+		Matrix offsetTransform;
 		Node* node = nullptr;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct Mesh
 	{
-		std::vector<Vertex>		vertices;
-		std::vector<uint32_t>	indices;
-		std::vector<Bone>		bones;
-		int			nodeIndex = 0;
-		int			materialIndex = 0;
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<Bone> bones;
+		int nodeIndex = 0;
+		int materialIndex = 0;
 
 		Material* material = nullptr;
 		Node* node = nullptr;
-		bool		isDraw = true;
-		Microsoft::WRL::ComPtr<ID3D11Buffer>	vertexBuffer;
-		Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
+		bool isDraw = true;
+		uint32_t indexCount = 0;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct VectorKeyframe
 	{
-		float					seconds;
-		Vector3					value = Vector3::Zero;
+		float seconds;
+		Vector3 value = Vector3::Zero;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct QuaternionKeyframe
 	{
-		float					seconds;
-		Quaternion				value = Quaternion::Identity;
+		float seconds;
+		Quaternion value = Quaternion::Identity;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct FootIKRange
@@ -411,36 +413,33 @@ public:
 		float fadeInRatio = 0.03f;
 		float fadeOutRatio = 0.03f;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct NodeAnim
 	{
-		std::vector<VectorKeyframe>		positionKeyframes;
-		std::vector<QuaternionKeyframe>	rotationKeyframes;
-		std::vector<VectorKeyframe>		scaleKeyframes;
+		std::vector<VectorKeyframe> positionKeyframes;
+		std::vector<QuaternionKeyframe> rotationKeyframes;
+		std::vector<VectorKeyframe> scaleKeyframes;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct Animation
 	{
-		std::string					name;
-		float						secondsLength;
-		std::vector<NodeAnim>		nodeAnims;
-		std::vector<FootIKRange>	footIKRanges;
+		std::string name;
+		float secondsLength;
+		std::vector<NodeAnim> nodeAnims;
+		std::vector<FootIKRange> footIKRanges;
 
-		template<class Archive>
-		void serialize(Archive& archive);
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	struct NodePose
 	{
-		Vector3    position = Vector3::Zero;
+		Vector3 position = Vector3::Zero;
 		Quaternion rotation = Quaternion::Identity;
-		Vector3    scale = Vector3::One;
+		Vector3 scale = Vector3::One;
 
 		NodePose Lerp(const NodePose& other, float t) const
 		{
@@ -458,17 +457,13 @@ public:
 	std::vector<Material>& GetMaterials() { return materials; }
 
 	bool ReplaceMaterialTexture(
-		size_t materialIndex,
-		MaterialTextureSlot slot,
-		const std::filesystem::path& texturePath);
+		size_t materialIndex, MaterialTextureSlot slot, const std::filesystem::path& texturePath);
 
 	bool ExportMaterialTexture(
-		size_t materialIndex,
-		MaterialTextureSlot slot,
-		const std::filesystem::path& savePath);
+		size_t materialIndex, MaterialTextureSlot slot, const std::filesystem::path& savePath);
 
-	bool ClearMaterialTexture(
-		size_t materialIndex, MaterialTextureSlot slot);
+	bool ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot);
+	bool ResetMaterialToGLB(size_t materialIndex);
 
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }
@@ -499,70 +494,102 @@ public:
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
 	float EvaluateFootIKWeight(int animationIndex, float time, int footIndex = -1) const;
 	VmdlFootWeightTrack* FindFootWeightTrack(const std::string& animationName, int footIndex);
-	const VmdlFootWeightTrack* FindFootWeightTrack(const std::string& animationName, int footIndex) const;
-	VmdlFootWeightTrack& GetOrCreateFootWeightTrack(const std::string& animationName, int footIndex);
+	const VmdlFootWeightTrack* FindFootWeightTrack(
+		const std::string& animationName, int footIndex) const;
+	VmdlFootWeightTrack& GetOrCreateFootWeightTrack(
+		const std::string& animationName, int footIndex);
 	bool GetColliderInitialActive(int colliderIndex) const;
 	void SetColliderInitialActive(int colliderIndex, bool active);
 	bool EvaluateColliderActive(int animationIndex, float time, int colliderIndex) const;
-	VmdlColliderAnimationTrack& GetOrCreateColliderAnimationTrack(const std::string& animationName, int colliderIndex);
+	VmdlColliderAnimationTrack& GetOrCreateColliderAnimationTrack(
+		const std::string& animationName, int colliderIndex);
 	bool GetTrailInitialActive(int trailIndex) const;
 	void SetTrailInitialActive(int trailIndex, bool active);
 	bool EvaluateTrailActive(int animationIndex, float time, int trailIndex) const;
-	VmdlTrailAnimationTrack& GetOrCreateTrailAnimationTrack(const std::string& animationName, int trailIndex);
+	VmdlTrailAnimationTrack& GetOrCreateTrailAnimationTrack(
+		const std::string& animationName, int trailIndex);
 	VmdlMorphAnimationTrack& GetOrCreateMorphAnimationTrack(const std::string& animationName);
 	const VmdlMorphAnimationTrack* FindMorphAnimationTrack(const std::string& animationName) const;
 	void ApplyMorphAnimation(int animationIndex, float time);
 	void RestoreMorphVisibility(const std::vector<uint8_t>& visibility);
 	void RestoreRuntimeMorphVisibility();
+	void ApplyInitialMorphs();
 	bool ApplyMorph(int morphIndex);
 	bool ApplyMorph(const char* name);
 	int GetMorphIndex(const char* name) const;
 	void NormalizeMorphNames();
 	bool SaveVmdl();
 	bool SaveVmdl(const std::filesystem::path& filepath);
+
+	// GLB部分のみ交換
+	bool ReplaceGLBCache(const std::filesystem::path& filepath, float sampleRate = 60.0f);
 	VmdlExtensionData& GetVmdlExtensionData() { return vmdlExtensionData; }
 	const VmdlExtensionData& GetVmdlExtensionData() const { return vmdlExtensionData; }
 	VmdlIKSettings& GetVmdlIKSettings() { return vmdlIKSettings; }
 	const VmdlIKSettings& GetVmdlIKSettings() const { return vmdlIKSettings; }
 	std::vector<VmdlIKPole>& GetVmdlIKPoles() { return vmdlIKPoles; }
 	const std::vector<VmdlIKPole>& GetVmdlIKPoles() const { return vmdlIKPoles; }
+	std::vector<VmdlIKRaySettings>& GetVmdlIKRaySettings() { return vmdlIKRaySettings; }
+	const std::vector<VmdlIKRaySettings>& GetVmdlIKRaySettings() const { return vmdlIKRaySettings; }
 	void ResetVmdlIKLegsForType();
+	bool AutoAssignVmdlIKNodes();
 	VmdlAnimationEditorData& GetVmdlAnimationEditorData() { return vmdlAnimationEditorData; }
-	const VmdlAnimationEditorData& GetVmdlAnimationEditorData() const { return vmdlAnimationEditorData; }
+	const VmdlAnimationEditorData& GetVmdlAnimationEditorData() const
+	{
+		return vmdlAnimationEditorData;
+	}
 	VmdlAnimationControlData& GetVmdlAnimationControlData() { return vmdlAnimationControlData; }
-	const VmdlAnimationControlData& GetVmdlAnimationControlData() const { return vmdlAnimationControlData; }
+	const VmdlAnimationControlData& GetVmdlAnimationControlData() const
+	{
+		return vmdlAnimationControlData;
+	}
 	VmdlTrailData& GetVmdlTrailData() { return vmdlTrailData; }
 	const VmdlTrailData& GetVmdlTrailData() const { return vmdlTrailData; }
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
 
-private:
+  private:
+	friend class MeshCache;
+
 	static std::string MakeFootWeightTrackKey(const std::string& animationName, int footIndex);
+	void NormalizeAttachmentNames();
+	void NormalizeVmdlIKRaySettings();
+	void ApplyForwardDirectionCorrection();
 
-	void Serialize(const char* filename, uint64_t lastWrite);
-	void Deserialize(const char* filename, uint64_t& lastWrite);
+	void Serialize(const char* filename);
+	void Deserialize(const char* filename);
 
-	static constexpr uint32_t VmdlCompressionVersion = 3;
-	static constexpr uint64_t ModelCacheVersion = 4;
-	static uint64_t MakeModelCacheStamp(uint64_t sourceLastWrite);
+	// 分割形式
+	static constexpr uint32_t VmdlCompressionVersion = 9;
 
-	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS);
-	void BuildMaterialEmbeddedDDS(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
-	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath, const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
-	void BuildMaterialTextureResources(ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
+		const std::string& textureFileName, ID3D11ShaderResourceView* srv,
+		std::vector<uint8_t>& outDDS);
+	void BuildMaterialEmbeddedDDS(
+		ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath,
+		const std::string& textureFileName, const std::vector<uint8_t>& embeddedDDS,
+		uint32_t dummyColor, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
+	void BuildMaterialTextureResources(
+		ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
+	void SyncMaterialTextureToSource(size_t materialIndex, MaterialTextureSlot slot);
+	std::vector<VmdlMaterialData> CaptureVmdlMaterialData() const;
+	void ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data);
 	bool ApplyMorphToMeshes(int morphIndex);
 	void CaptureRuntimeMorphVisibility();
 
 	void RebuildRuntimeReferences();
 
 	std::vector<Material> materials;
+	std::vector<Material> sourceMaterials;
 	std::vector<Mesh> meshes;
 	std::vector<Node> nodes;
 	std::vector<Animation> animations;
 	VmdlExtensionData vmdlExtensionData;
 	VmdlIKSettings vmdlIKSettings;
 	std::vector<VmdlIKPole> vmdlIKPoles;
+	std::vector<VmdlIKRaySettings> vmdlIKRaySettings;
 	VmdlAnimationEditorData vmdlAnimationEditorData;
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;
@@ -571,5 +598,4 @@ private:
 	Matrix worldTransform = Matrix::Identity;
 
 	std::filesystem::path modelCacheFilepath;
-	uint64_t modelCacheLastWrite = 0;
 };

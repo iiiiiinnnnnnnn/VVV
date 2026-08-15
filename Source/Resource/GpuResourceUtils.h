@@ -1,5 +1,4 @@
-﻿// GpuResourceUtils.h
-#pragma once
+﻿#pragma once
 #include <cstddef>
 
 #include <d3d11.h>

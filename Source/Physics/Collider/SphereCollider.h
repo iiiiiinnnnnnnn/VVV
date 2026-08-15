@@ -1,5 +1,3 @@
-// SphereCollider.h
-
 #pragma once
 
 #include "Physics/Core/CollidersDef.h"

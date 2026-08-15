@@ -1,6 +1,4 @@
-﻿// TerrainMeshCollider.h
-
-#pragma once
+﻿#pragma once
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -29,7 +27,8 @@ public:
     void DrawGUI() override;
     const char* GetDebugName() const override { return ICON_FA_SHAPES " TerrainMeshCollider"; }
 
-    void RebuildFromTerrain();
+    void RebuildFromTerrain(bool saveCache = true);
+    void RebuildRegionFromTerrain(float minX, float maxX, float minZ, float maxZ);
     bool NeedsGpuRebuild() const { return pendingGpuRebuild; }
     void RequestGpuRebuild() { pendingGpuRebuild = true; }
 
@@ -55,14 +54,35 @@ public:
     };
 
 private:
+    // 動的地形コライダーのチャンク分割
+
+    static constexpr int ChunkCountPerAxis = 8;
+
+    struct ColliderChunk
+    {
+        CollisionArea area;
+        PxShape* shape = nullptr;
+        std::vector<Vector3> vertices;
+        std::vector<uint32_t> indices;
+    };
+
+    void InitializeChunks();
+    void BuildChunksFromCachedMesh(
+        const std::vector<Vector3>& vertices,
+        const std::vector<uint32_t>& indices);
+    void RebuildChunk(ColliderChunk& chunk);
+    void RefreshDebugMesh();
+
     bool LoadCachedMesh(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices);
     bool SaveCachedMesh(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
     void ApplyOwnerScale(std::vector<Vector3>& vertices) const;
-    void UpdateShape(const std::vector<Vector3>& vertices, const std::vector<uint32_t>& indices);
-    void ReleaseShape();
+    void UpdateShape(
+        PxShape*& shape,
+        const std::vector<Vector3>& vertices,
+        const std::vector<uint32_t>& indices);
+    void ReleaseShape(PxShape*& shape);
     void ClampCollisionArea();
 
-    PxShape* shape = nullptr;
     Rigidbody* rigidbody = nullptr;
     PxMaterial* material = nullptr;
 
@@ -70,6 +90,7 @@ private:
 
     std::vector<Vector3> debugVertices;
     std::vector<uint32_t> debugIndices;
+    std::vector<ColliderChunk> chunks;
     std::string vxMessage;
     bool pendingGpuRebuild = false;
     bool rebuildOnAwake = true;

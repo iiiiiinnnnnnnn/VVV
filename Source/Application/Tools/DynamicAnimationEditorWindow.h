@@ -1,6 +1,4 @@
-﻿// DynamicAnimationEditorWindow.h
-
-#pragma once
+﻿#pragma once
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
@@ -70,8 +68,8 @@ private:
 
 		ImGui::SameLine();
 		ImGui::TextDisabled(
-			currentFilePath[0] != '\0'
-				? currentFilePath
+			!currentFilePath.empty()
+				? currentFilePath.c_str()
 				: "(unsaved)");
 
 		if (!statusMessage.empty())
@@ -509,13 +507,13 @@ private:
 	void NewClip()
 	{
 		clip = {};
-		currentFilePath[0] = '\0';
+		currentFilePath.clear();
 		statusMessage = "Created a new clip.";
 	}
 
 	void Save()
 	{
-		if (currentFilePath[0] == '\0')
+		if (currentFilePath.empty())
 		{
 			SaveAs();
 			return;
@@ -526,15 +524,10 @@ private:
 
 	void SaveAs()
 	{
-		char path[MAX_PATH] = {};
-		if (currentFilePath[0] != '\0')
-		{
-			strcpy_s(path, currentFilePath);
-		}
+		std::string path = currentFilePath;
 
 		if (Dialog::SaveFileName(
 			path,
-			MAX_PATH,
 			"Dynamic Animation Clip\0*.danim\0All Files\0*.*\0\0",
 			"Save Dynamic Animation Clip",
 			"danim") != DialogResult::OK)
@@ -542,16 +535,15 @@ private:
 			return;
 		}
 
-		strcpy_s(currentFilePath, path);
+		currentFilePath = path;
 		SaveToPath(currentFilePath);
 	}
 
 	void Load()
 	{
-		char path[MAX_PATH] = {};
+		std::string path;
 		if (Dialog::OpenFileName(
 			path,
-			MAX_PATH,
 			"Dynamic Animation Clip\0*.danim\0All Files\0*.*\0\0",
 			"Open Dynamic Animation Clip") != DialogResult::OK)
 		{
@@ -567,7 +559,7 @@ private:
 		}
 
 		clip = std::move(loaded);
-		strcpy_s(currentFilePath, path);
+		currentFilePath = path;
 		statusMessage = "Loaded the clip.";
 	}
 
@@ -596,6 +588,6 @@ private:
 
 private:
 	DynamicAnimationClip clip;
-	char currentFilePath[MAX_PATH] = {};
+	std::string currentFilePath;
 	std::string statusMessage;
 };

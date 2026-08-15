@@ -1,6 +1,4 @@
-﻿// DamageHoleComponent.cpp
-
-#include "Rendering/Component/DamageHoleComponent.h"
+﻿#include "Rendering/Component/DamageHoleComponent.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Component/VMDLModelComponent.h"

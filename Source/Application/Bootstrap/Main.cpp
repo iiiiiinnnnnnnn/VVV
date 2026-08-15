@@ -1,6 +1,4 @@
-﻿// Main.cpp
-
-
+﻿
 #include <windows.h>
 #include <filesystem>
 #include <memory>
@@ -71,9 +69,15 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 		NULL);
 	ShowWindow(hWnd, cmd_show);
 
-	Framework f(hWnd);
-	SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&f));
-	const int result = f.Run();
+	int result = 0;
+	{
+		Framework framework(hWnd);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&framework));
+		result = framework.Run();
+	}
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+	if (IsWindow(hWnd)) DestroyWindow(hWnd);
+
 	DebugLog::Finalize();
 	return result;
 }

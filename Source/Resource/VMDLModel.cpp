@@ -1,6 +1,4 @@
-﻿// VMDLModel.cpp
-
-#include "Resource/VMDLModel.h"
+﻿#include "Resource/VMDLModel.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"
 #include "Resource/GpuResourceUtils.h"
@@ -14,39 +12,155 @@
 #include <cmath>
 #include <compressapi.h>
 #include <cstring>
+#include <initializer_list>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <unordered_map>
 
 namespace
 {
-	std::string ToUpperAscii(std::string value)
-	{
-		std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c)
-		{
-			return static_cast<char>(std::toupper(c));
-		});
-		return value;
-	}
-}
-
-uint64_t VMDLModel::MakeModelCacheStamp(uint64_t sourceLastWrite)
+std::string ToUpperAscii(std::string value)
 {
-	return sourceLastWrite ^ ModelCacheVersion;
+	std::transform(value.begin(), value.end(), value.begin(),
+		[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+	return value;
 }
 
-void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(
-	ID3D11Device* device,
-	const std::filesystem::path& dirpath,
-	const std::string& textureFileName,
-	ID3D11ShaderResourceView* srv,
-	std::vector<uint8_t>& outDDS)
+std::string NormalizeNodeMatchName(std::string_view value)
+{
+	std::string normalized;
+	normalized.reserve(value.size());
+	for (const unsigned char c : value)
+	{
+		if (c >= 0x80) normalized.push_back(static_cast<char>(c));
+		else if (std::isalnum(c)) normalized.push_back(static_cast<char>(std::toupper(c)));
+	}
+	return normalized;
+}
+
+bool HasNodeSide(const std::string& name, bool left)
+{
+	const std::string upper = ToUpperAscii(name);
+	const char* longSide = left ? "LEFT" : "RIGHT";
+	const char shortSide = left ? 'L' : 'R';
+	if (upper.find(longSide) != std::string::npos) return true;
+	const std::array<std::string, 6> patterns = {
+		std::string("_") + shortSide + "_",
+		std::string(".") + shortSide + ".",
+		std::string("-") + shortSide + "-",
+		std::string(1, shortSide) + "_",
+		std::string(1, shortSide) + ".",
+		std::string(1, shortSide) + "-",
+	};
+	for (const std::string& pattern : patterns)
+	{
+		if (upper.starts_with(pattern) || upper.find(pattern) != std::string::npos) return true;
+	}
+	if (upper.ends_with(std::string("_") + shortSide) ||
+		upper.ends_with(std::string(".") + shortSide) ||
+		upper.ends_with(std::string("-") + shortSide))
+		return true;
+	return name.find(reinterpret_cast<const char*>(left ? u8"左" : u8"右")) != std::string::npos;
+}
+
+bool HasNodeRegion(const std::string& name, bool front)
+{
+	const std::string normalized = NormalizeNodeMatchName(name);
+	if (front)
+	{
+		return normalized.find("FRONT") != std::string::npos ||
+			   normalized.find("FORE") != std::string::npos ||
+			   name.find(reinterpret_cast<const char*>(u8"前")) != std::string::npos;
+	}
+	return normalized.find("BACK") != std::string::npos ||
+		   normalized.find("HIND") != std::string::npos ||
+		   normalized.find("REAR") != std::string::npos ||
+		   name.find(reinterpret_cast<const char*>(u8"後")) != std::string::npos;
+}
+
+int FindBestIkNode(const std::vector<VMDLModel::Node>& nodes,
+	std::initializer_list<const char*> keywords, int side, int region, int preferredParent,
+	int legNumber = 0)
+{
+	int bestIndex = -1;
+	int bestScore = -1;
+	for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+	{
+		const auto& node = nodes[nodeIndex];
+		const std::string normalized = NormalizeNodeMatchName(node.name);
+		int score = -1;
+		int priority = static_cast<int>(keywords.size());
+		for (const char* keyword : keywords)
+		{
+			const std::string normalizedKeyword = NormalizeNodeMatchName(keyword);
+			if (!normalizedKeyword.empty() &&
+				normalized.find(normalizedKeyword) != std::string::npos)
+				score = std::max(score, priority * 20 + static_cast<int>(normalizedKeyword.size()));
+			--priority;
+		}
+		if (score < 0) continue;
+
+		if (side != 0)
+		{
+			const bool expectedSide = HasNodeSide(node.name, side < 0);
+			const bool oppositeSide = HasNodeSide(node.name, side > 0);
+			if (oppositeSide && !expectedSide) continue;
+			if (expectedSide) score += 100;
+		}
+		if (region != 0)
+		{
+			const bool expectedRegion = HasNodeRegion(node.name, region < 0);
+			const bool oppositeRegion = HasNodeRegion(node.name, region > 0);
+			if (oppositeRegion && !expectedRegion) continue;
+			if (expectedRegion) score += 60;
+		}
+		if (legNumber > 0)
+		{
+			const std::string number = std::to_string(legNumber);
+			if (normalized.find("LEG" + number) != std::string::npos ||
+				normalized.find(number + "LEG") != std::string::npos)
+				score += 80;
+		}
+		if (preferredParent >= 0)
+		{
+			if (node.parentIndex == preferredParent) score += 120;
+			else
+			{
+				int parentIndex = node.parentIndex;
+				while (parentIndex >= 0 && parentIndex < static_cast<int>(nodes.size()) &&
+					   parentIndex != preferredParent)
+					parentIndex = nodes[parentIndex].parentIndex;
+				if (parentIndex == preferredParent) score += 40;
+			}
+		}
+		if (score > bestScore)
+		{
+			bestScore = score;
+			bestIndex = nodeIndex;
+		}
+	}
+	return bestIndex;
+}
+
+bool AssignIkNodeReference(
+	std::string& target, const std::vector<VMDLModel::Node>& nodes, int nodeIndex)
+{
+	if (nodeIndex < 0 || nodeIndex >= static_cast<int>(nodes.size())) return false;
+	const std::string reference = std::to_string(nodeIndex) + ":" + nodes[nodeIndex].name;
+	if (target == reference) return false;
+	target = reference;
+	return true;
+}
+} // namespace
+
+void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device,
+	const std::filesystem::path& dirpath, const std::string& textureFileName,
+	ID3D11ShaderResourceView* srv, std::vector<uint8_t>& outDDS)
 {
 	outDDS.clear();
 
-	// 再現性のある元ファイルを優先する。GLB内蔵画像など実ファイルがない場合だけ、
-	// importerが作成したGPUテクスチャを読み戻してDDS化する。
 	if (!textureFileName.empty())
 	{
 		std::filesystem::path texturePath = dirpath / textureFileName;
@@ -71,57 +185,27 @@ void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(
 }
 
 void VMDLModel::BuildMaterialEmbeddedDDS(
-	ID3D11Device* device,
-	const std::filesystem::path& dirpath,
-	VMDLModel::Material& material)
+	ID3D11Device* device, const std::filesystem::path& dirpath, VMDLModel::Material& material)
 {
-	BuildEmbeddedDDSFromFileOrSRV(
-		device,
-		dirpath,
-		material.baseTextureFileName,
-		material.baseMap.Get(),
-		material.baseTextureDDS
-	);
+	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.baseTextureFileName,
+		material.baseMap.Get(), material.baseTextureDDS);
 
-	BuildEmbeddedDDSFromFileOrSRV(
-		device,
-		dirpath,
-		material.normalTextureFileName,
-		material.normalMap.Get(),
-		material.normalTextureDDS
-	);
+	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.normalTextureFileName,
+		material.normalMap.Get(), material.normalTextureDDS);
 
-	BuildEmbeddedDDSFromFileOrSRV(
-		device,
-		dirpath,
-		material.emissiveTextureFileName,
-		material.emissiveMap.Get(),
-		material.emissiveTextureDDS
-	);
+	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.emissiveTextureFileName,
+		material.emissiveMap.Get(), material.emissiveTextureDDS);
 
-	BuildEmbeddedDDSFromFileOrSRV(
-		device,
-		dirpath,
-		material.occlusionTextureFileName,
-		material.occlusionMap.Get(),
-		material.occlusionTextureDDS
-	);
+	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.occlusionTextureFileName,
+		material.occlusionMap.Get(), material.occlusionTextureDDS);
 
-	BuildEmbeddedDDSFromFileOrSRV(
-		device,
-		dirpath,
-		material.metalnessRoughnessTextureFileName,
-		material.metalnessRoughnessMap.Get(),
-		material.metalnessRoughnessTextureDDS
-	);
+	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.metalnessRoughnessTextureFileName,
+		material.metalnessRoughnessMap.Get(), material.metalnessRoughnessTextureDDS);
 }
 
-void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(
-	ID3D11Device* device,
-	const std::filesystem::path& dirpath,
-	const std::string& textureFileName,
-	const std::vector<uint8_t>& embeddedDDS,
-	uint32_t dummyColor,
+void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
+	const std::filesystem::path& dirpath, const std::string& textureFileName,
+	const std::vector<uint8_t>& embeddedDDS, uint32_t dummyColor,
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
 {
 	if (srv != nullptr)
@@ -134,12 +218,7 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(
 	if (!embeddedDDS.empty())
 	{
 		hr = DirectX::CreateDDSTextureFromMemory(
-			device,
-			embeddedDDS.data(),
-			embeddedDDS.size(),
-			nullptr,
-			srv.GetAddressOf()
-		);
+			device, embeddedDDS.data(), embeddedDDS.size(), nullptr, srv.GetAddressOf());
 
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		return;
@@ -147,11 +226,7 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(
 
 	if (textureFileName.empty())
 	{
-		hr = GpuResourceUtils::CreateDummyTexture(
-			device,
-			dummyColor,
-			srv.GetAddressOf()
-		);
+		hr = GpuResourceUtils::CreateDummyTexture(device, dummyColor, srv.GetAddressOf());
 
 		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		return;
@@ -159,70 +234,62 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(
 
 	std::filesystem::path texturePath = dirpath / textureFileName;
 
-	hr = GpuResourceUtils::LoadTexture(
-		device,
-		texturePath.string().c_str(),
-		srv.GetAddressOf()
-	);
+	hr = GpuResourceUtils::LoadTexture(device, texturePath.string().c_str(), srv.GetAddressOf());
 
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 }
 
 void VMDLModel::BuildMaterialTextureResources(
-	ID3D11Device* device,
-	const std::filesystem::path& dirpath,
-	VMDLModel::Material& material)
+	ID3D11Device* device, const std::filesystem::path& dirpath, VMDLModel::Material& material)
 {
-	CreateSRVFromEmbeddedDDSOrFile(
-		device,
-		dirpath,
-		material.baseTextureFileName,
-		material.baseTextureDDS,
-		0xFFFFFFFF,
-		material.baseMap
-	);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.baseTextureFileName,
+		material.baseTextureDDS, 0xFFFFFFFF, material.baseMap);
 
-	CreateSRVFromEmbeddedDDSOrFile(
-		device,
-		dirpath,
-		material.normalTextureFileName,
-		material.normalTextureDDS,
-		0xFFFF7F7F,
-		material.normalMap
-	);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.normalTextureFileName,
+		material.normalTextureDDS, 0xFFFF7F7F, material.normalMap);
 
-	CreateSRVFromEmbeddedDDSOrFile(
-		device,
-		dirpath,
-		material.emissiveTextureFileName,
-		material.emissiveTextureDDS,
-		0xFF000000,
-		material.emissiveMap
-	);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.emissiveTextureFileName,
+		material.emissiveTextureDDS, 0xFF000000, material.emissiveMap);
 
-	CreateSRVFromEmbeddedDDSOrFile(
-		device,
-		dirpath,
-		material.occlusionTextureFileName,
-		material.occlusionTextureDDS,
-		0xFFFFFFFF,
-		material.occlusionMap
-	);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.occlusionTextureFileName,
+		material.occlusionTextureDDS, 0xFFFFFFFF, material.occlusionMap);
 
-	CreateSRVFromEmbeddedDDSOrFile(
-		device,
-		dirpath,
-		material.metalnessRoughnessTextureFileName,
-		material.metalnessRoughnessTextureDDS,
-		0xFF00FF00,
-		material.metalnessRoughnessMap
-	);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.metalnessRoughnessTextureFileName,
+		material.metalnessRoughnessTextureDDS, 0xFF00FF00, material.metalnessRoughnessMap);
+}
+
+void VMDLModel::SyncMaterialTextureToSource(size_t materialIndex, MaterialTextureSlot slot)
+{
+	if (materialIndex >= materials.size() || materialIndex >= sourceMaterials.size()) return;
+	const Material& source = materials[materialIndex];
+	Material& target = sourceMaterials[materialIndex];
+	switch (slot)
+	{
+	case MaterialTextureSlot::BaseColor:
+		target.baseTextureFileName = source.baseTextureFileName;
+		target.baseTextureDDS = source.baseTextureDDS;
+		break;
+	case MaterialTextureSlot::Normal:
+		target.normalTextureFileName = source.normalTextureFileName;
+		target.normalTextureDDS = source.normalTextureDDS;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		target.metalnessRoughnessTextureFileName = source.metalnessRoughnessTextureFileName;
+		target.metalnessRoughnessTextureDDS = source.metalnessRoughnessTextureDDS;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		target.occlusionTextureFileName = source.occlusionTextureFileName;
+		target.occlusionTextureDDS = source.occlusionTextureDDS;
+		break;
+	case MaterialTextureSlot::Emissive:
+		target.emissiveTextureFileName = source.emissiveTextureFileName;
+		target.emissiveTextureDDS = source.emissiveTextureDDS;
+		break;
+	}
 }
 
 bool VMDLModel::ReplaceMaterialTexture(
-	size_t materialIndex,
-	MaterialTextureSlot slot,
-	const std::filesystem::path& texturePath)
+	size_t materialIndex, MaterialTextureSlot slot, const std::filesystem::path& texturePath)
 {
 	if (materialIndex >= materials.size() || texturePath.empty()) return false;
 
@@ -232,56 +299,52 @@ bool VMDLModel::ReplaceMaterialTexture(
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
 	switch (slot)
 	{
-		case MaterialTextureSlot::BaseColor:
-			filename = &material.baseTextureFileName;
-			embeddedDDS = &material.baseTextureDDS;
-			srv = &material.baseMap;
-			break;
-		case MaterialTextureSlot::Normal:
-			filename = &material.normalTextureFileName;
-			embeddedDDS = &material.normalTextureDDS;
-			srv = &material.normalMap;
-			break;
-		case MaterialTextureSlot::MetalnessRoughness:
-			filename = &material.metalnessRoughnessTextureFileName;
-			embeddedDDS = &material.metalnessRoughnessTextureDDS;
-			srv = &material.metalnessRoughnessMap;
-			break;
-		case MaterialTextureSlot::Occlusion:
-			filename = &material.occlusionTextureFileName;
-			embeddedDDS = &material.occlusionTextureDDS;
-			srv = &material.occlusionMap;
-			break;
-		case MaterialTextureSlot::Emissive:
-			filename = &material.emissiveTextureFileName;
-			embeddedDDS = &material.emissiveTextureDDS;
-			srv = &material.emissiveMap;
-			break;
+	case MaterialTextureSlot::BaseColor:
+		filename = &material.baseTextureFileName;
+		embeddedDDS = &material.baseTextureDDS;
+		srv = &material.baseMap;
+		break;
+	case MaterialTextureSlot::Normal:
+		filename = &material.normalTextureFileName;
+		embeddedDDS = &material.normalTextureDDS;
+		srv = &material.normalMap;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		filename = &material.metalnessRoughnessTextureFileName;
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		srv = &material.metalnessRoughnessMap;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		filename = &material.occlusionTextureFileName;
+		embeddedDDS = &material.occlusionTextureDDS;
+		srv = &material.occlusionMap;
+		break;
+	case MaterialTextureSlot::Emissive:
+		filename = &material.emissiveTextureFileName;
+		embeddedDDS = &material.emissiveTextureDDS;
+		srv = &material.emissiveMap;
+		break;
 	}
 	if (!filename || !embeddedDDS || !srv) return false;
 
 	std::vector<uint8_t> convertedDDS;
-	if (FAILED(ConvertTextureFileToDDSBytes(texturePath, convertedDDS)) || convertedDDS.empty()) return false;
+	if (FAILED(ConvertTextureFileToDDSBytes(texturePath, convertedDDS)) || convertedDDS.empty())
+		return false;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
-	const HRESULT hr = DirectX::CreateDDSTextureFromMemory(
-		Game::Graphics::Instance().GetDevice(),
-		convertedDDS.data(),
-		convertedDDS.size(),
-		nullptr,
-		replacement.GetAddressOf());
+	const HRESULT hr = DirectX::CreateDDSTextureFromMemory(Game::Graphics::Instance().GetDevice(),
+		convertedDDS.data(), convertedDDS.size(), nullptr, replacement.GetAddressOf());
 	if (FAILED(hr)) return false;
 
 	*filename = texturePath.filename().string();
 	*embeddedDDS = std::move(convertedDDS);
 	*srv = std::move(replacement);
+	SyncMaterialTextureToSource(materialIndex, slot);
 	return true;
 }
 
 bool VMDLModel::ExportMaterialTexture(
-	size_t materialIndex,
-	MaterialTextureSlot slot,
-	const std::filesystem::path& savePath)
+	size_t materialIndex, MaterialTextureSlot slot, const std::filesystem::path& savePath)
 {
 	if (materialIndex >= materials.size() || savePath.empty()) return false;
 
@@ -295,41 +358,38 @@ bool VMDLModel::ExportMaterialTexture(
 	std::vector<uint8_t>* embeddedDDS = nullptr;
 	switch (slot)
 	{
-		case MaterialTextureSlot::BaseColor:
-			embeddedDDS = &material.baseTextureDDS;
-			break;
-		case MaterialTextureSlot::Normal:
-			embeddedDDS = &material.normalTextureDDS;
-			break;
-		case MaterialTextureSlot::MetalnessRoughness:
-			embeddedDDS = &material.metalnessRoughnessTextureDDS;
-			break;
-		case MaterialTextureSlot::Occlusion:
-			embeddedDDS = &material.occlusionTextureDDS;
-			break;
-		case MaterialTextureSlot::Emissive:
-			embeddedDDS = &material.emissiveTextureDDS;
-			break;
+	case MaterialTextureSlot::BaseColor:
+		embeddedDDS = &material.baseTextureDDS;
+		break;
+	case MaterialTextureSlot::Normal:
+		embeddedDDS = &material.normalTextureDDS;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		embeddedDDS = &material.occlusionTextureDDS;
+		break;
+	case MaterialTextureSlot::Emissive:
+		embeddedDDS = &material.emissiveTextureDDS;
+		break;
 	}
 
 	if (!embeddedDDS) return false;
 
 	if (ext == ".dds")
 	{
-		std::ofstream file(
-			savePath,
-			std::ios::binary | std::ios::out | std::ios::trunc);
+		std::ofstream file(savePath, std::ios::binary | std::ios::out | std::ios::trunc);
 
 		if (!file)
 		{
 			return false;
 		}
 
-		file.write(
-			reinterpret_cast<const char*>(embeddedDDS->data()),
+		file.write(reinterpret_cast<const char*>(embeddedDDS->data()),
 			static_cast<std::streamsize>(embeddedDDS->size()));
 	}
-	else if(ext == ".png")
+	else if (ext == ".png")
 	{
 		HRESULT hr = SaveDDSAsPNG(*embeddedDDS, savePath);
 		if (FAILED(hr)) return false;
@@ -349,55 +409,80 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 	uint32_t dummyColor = 0xFFFFFFFF;
 	switch (slot)
 	{
-		case MaterialTextureSlot::BaseColor:
-			filename = &material.baseTextureFileName;
-			embeddedDDS = &material.baseTextureDDS;
-			srv = &material.baseMap;
-			break;
-		case MaterialTextureSlot::Normal:
-			filename = &material.normalTextureFileName;
-			embeddedDDS = &material.normalTextureDDS;
-			srv = &material.normalMap;
-			dummyColor = 0xFFFF7F7F;
-			break;
-		case MaterialTextureSlot::MetalnessRoughness:
-			filename = &material.metalnessRoughnessTextureFileName;
-			embeddedDDS = &material.metalnessRoughnessTextureDDS;
-			srv = &material.metalnessRoughnessMap;
-			dummyColor = 0xFF00FF00;
-			break;
-		case MaterialTextureSlot::Occlusion:
-			filename = &material.occlusionTextureFileName;
-			embeddedDDS = &material.occlusionTextureDDS;
-			srv = &material.occlusionMap;
-			break;
-		case MaterialTextureSlot::Emissive:
-			filename = &material.emissiveTextureFileName;
-			embeddedDDS = &material.emissiveTextureDDS;
-			srv = &material.emissiveMap;
-			dummyColor = 0xFF000000;
-			break;
+	case MaterialTextureSlot::BaseColor:
+		filename = &material.baseTextureFileName;
+		embeddedDDS = &material.baseTextureDDS;
+		srv = &material.baseMap;
+		break;
+	case MaterialTextureSlot::Normal:
+		filename = &material.normalTextureFileName;
+		embeddedDDS = &material.normalTextureDDS;
+		srv = &material.normalMap;
+		dummyColor = 0xFFFF7F7F;
+		break;
+	case MaterialTextureSlot::MetalnessRoughness:
+		filename = &material.metalnessRoughnessTextureFileName;
+		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+		srv = &material.metalnessRoughnessMap;
+		dummyColor = 0xFF00FF00;
+		break;
+	case MaterialTextureSlot::Occlusion:
+		filename = &material.occlusionTextureFileName;
+		embeddedDDS = &material.occlusionTextureDDS;
+		srv = &material.occlusionMap;
+		break;
+	case MaterialTextureSlot::Emissive:
+		filename = &material.emissiveTextureFileName;
+		embeddedDDS = &material.emissiveTextureDDS;
+		srv = &material.emissiveMap;
+		dummyColor = 0xFF000000;
+		break;
 	}
 	if (!filename || !embeddedDDS || !srv) return false;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
 	if (FAILED(GpuResourceUtils::CreateDummyTexture(
-		Game::Graphics::Instance().GetDevice(),
-		dummyColor,
-		replacement.GetAddressOf()))) return false;
+			Game::Graphics::Instance().GetDevice(), dummyColor, replacement.GetAddressOf())))
+		return false;
 
 	filename->clear();
 	embeddedDDS->clear();
 	*srv = std::move(replacement);
+	SyncMaterialTextureToSource(materialIndex, slot);
 	return true;
 }
 
-VMDLModel::VMDLModel(
-	const char* filename,
-	float sampleRate,
-	bool importRawModel,
-	const char* cacheFilename,
-	bool saveImportedCache)
+bool VMDLModel::ResetMaterialToGLB(size_t materialIndex)
+{
+	if (materialIndex >= materials.size()) return false;
+
+	const Material* glbMaterial = nullptr;
+	for (const Material& source : sourceMaterials)
+	{
+		if (source.name != materials[materialIndex].name) continue;
+		glbMaterial = &source;
+		break;
+	}
+	if (!glbMaterial) return false;
+
+	Material& material = materials[materialIndex];
+	material.baseColor = glbMaterial->baseColor;
+	material.emissiveColor = glbMaterial->emissiveColor;
+	material.metalness = glbMaterial->metalness;
+	material.roughness = glbMaterial->roughness;
+	material.occlusion = glbMaterial->occlusion;
+	material.occlusionStrength = glbMaterial->occlusionStrength;
+	material.shadowStrength = glbMaterial->shadowStrength;
+	material.alphaCutoff = glbMaterial->alphaCutoff;
+	material.alphaMode = glbMaterial->alphaMode;
+	material.fresnelColor = glbMaterial->fresnelColor;
+	material.fresnelPower = glbMaterial->fresnelPower;
+	material.fresnelStrength = glbMaterial->fresnelStrength;
+	material.isFlatShading = glbMaterial->isFlatShading;
+	return true;
+}
+
+VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePath)
 {
 	auto device = Game::Graphics::Instance().GetDevice();
 
@@ -406,29 +491,22 @@ VMDLModel::VMDLModel(
 	std::filesystem::path extension = sourceFilepath.extension();
 
 	std::filesystem::path cerealFilepath;
-	if (cacheFilename && cacheFilename[0] != '\0')
+	if (savePath && savePath[0] != '\0')
 	{
-		cerealFilepath = cacheFilename;
+		cerealFilepath = savePath;
 	}
-	else
+	else if (extension == ".vmdl")
 	{
 		cerealFilepath = sourceFilepath;
-		cerealFilepath.replace_extension(".vmdl");
 	}
 	modelCacheFilepath = cerealFilepath;
-	modelCacheLastWrite = std::filesystem::exists(filename)
-		? MakeModelCacheStamp(GetFileLastWriteTime64(filename))
-		: 0;
 
 	if (extension == ".vmdl" && std::filesystem::exists(sourceFilepath))
 	{
-		uint64_t lastWriteTime = 0;
-		Deserialize(sourceFilepath.string().c_str(), lastWriteTime);
-		modelCacheLastWrite = lastWriteTime;
+		Deserialize(sourceFilepath.string().c_str());
 	}
 	else if (extension == ".gltf" || extension == ".glb")
 	{
-		// GLB内蔵画像を含む全テクスチャをDDSへ変換し、VMDL単体で描画できるよう埋め込む。
 		GLTFImporter importer(filename);
 
 		importer.LoadMaterials(materials, device);
@@ -443,40 +521,42 @@ VMDLModel::VMDLModel(
 		{
 			BuildMaterialEmbeddedDDS(device, dirpath, material);
 		}
-
-		if (saveImportedCache)
-		{
-			Serialize(
-				cerealFilepath.string().c_str(),
-				MakeModelCacheStamp(GetFileLastWriteTime64(filename))
-			);
-		}
+		sourceMaterials = materials;
 	}
 	else
 	{
 		_ASSERT_EXPR_A(false, "found not model file");
 	}
 
-	// シリアライズ対象はインデックスだけなので、全配列が揃ってからポインタ参照を再構築する。
-	// vector再配置による参照切れを避けるため、読み込み途中ではポインタを設定しない。
+	if (extension == ".gltf" || extension == ".glb") ApplyForwardDirectionCorrection();
+
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
 	{
 		const int parentIndex = nodes[nodeIndex].parentIndex;
 		if (parentIndex >= static_cast<int>(nodes.size()))
-			throw std::runtime_error("Invalid parent node index: node=" + std::to_string(nodeIndex) + ", parent=" + std::to_string(parentIndex));
+			throw std::runtime_error(
+				"Invalid parent node index: node=" + std::to_string(nodeIndex) +
+				", parent=" + std::to_string(parentIndex));
 	}
 	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
 	{
 		const Mesh& mesh = meshes[meshIndex];
 		if (mesh.materialIndex < 0 || mesh.materialIndex >= static_cast<int>(materials.size()))
-			throw std::runtime_error("Invalid material index: mesh=" + std::to_string(meshIndex) + ", material=" + std::to_string(mesh.materialIndex) + ", count=" + std::to_string(materials.size()));
+			throw std::runtime_error("Invalid material index: mesh=" + std::to_string(meshIndex) +
+									 ", material=" + std::to_string(mesh.materialIndex) +
+									 ", count=" + std::to_string(materials.size()));
 		if (mesh.nodeIndex < 0 || mesh.nodeIndex >= static_cast<int>(nodes.size()))
-			throw std::runtime_error("Invalid mesh node index: mesh=" + std::to_string(meshIndex) + ", node=" + std::to_string(mesh.nodeIndex) + ", count=" + std::to_string(nodes.size()));
+			throw std::runtime_error("Invalid mesh node index: mesh=" + std::to_string(meshIndex) +
+									 ", node=" + std::to_string(mesh.nodeIndex) +
+									 ", count=" + std::to_string(nodes.size()));
 		for (size_t boneIndex = 0; boneIndex < mesh.bones.size(); ++boneIndex)
 		{
 			const int nodeIndex = mesh.bones[boneIndex].nodeIndex;
 			if (nodeIndex < 0 || nodeIndex >= static_cast<int>(nodes.size()))
-				throw std::runtime_error("Invalid bone node index: mesh=" + std::to_string(meshIndex) + ", bone=" + std::to_string(boneIndex) + ", node=" + std::to_string(nodeIndex) + ", count=" + std::to_string(nodes.size()));
+				throw std::runtime_error(
+					"Invalid bone node index: mesh=" + std::to_string(meshIndex) +
+					", bone=" + std::to_string(boneIndex) + ", node=" + std::to_string(nodeIndex) +
+					", count=" + std::to_string(nodes.size()));
 		}
 	}
 	for (Material& material : materials)
@@ -518,10 +598,7 @@ VMDLModel::VMDLModel(
 			subresourceData.SysMemSlicePitch = 0;
 
 			HRESULT hr = device->CreateBuffer(
-				&bufferDesc,
-				&subresourceData,
-				mesh.vertexBuffer.GetAddressOf()
-			);
+				&bufferDesc, &subresourceData, mesh.vertexBuffer.GetAddressOf());
 
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
@@ -542,13 +619,11 @@ VMDLModel::VMDLModel(
 			subresourceData.SysMemSlicePitch = 0;
 
 			HRESULT hr = device->CreateBuffer(
-				&bufferDesc,
-				&subresourceData,
-				mesh.indexBuffer.GetAddressOf()
-			);
+				&bufferDesc, &subresourceData, mesh.indexBuffer.GetAddressOf());
 
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
+		mesh.indexCount = static_cast<uint32_t>(mesh.indices.size());
 
 		for (Bone& bone : mesh.bones)
 		{
@@ -558,42 +633,38 @@ VMDLModel::VMDLModel(
 
 	UpdateTransform(Matrix::Identity);
 	CaptureRuntimeMorphVisibility();
+
+	// 読込完了後にVMDLを保存
+	if (savePath && savePath[0] != '\0' && (extension == ".gltf" || extension == ".glb"))
+	{
+		Serialize(cerealFilepath.string().c_str());
+	}
 }
 
 VMDLModel::VMDLModel(const VMDLModel& other)
-	: materials(other.materials),
-	meshes(other.meshes),
-	nodes(other.nodes),
-	animations(other.animations),
-	vmdlExtensionData(other.vmdlExtensionData),
-	vmdlIKSettings(other.vmdlIKSettings),
-	vmdlIKPoles(other.vmdlIKPoles),
-	vmdlAnimationEditorData(other.vmdlAnimationEditorData),
-	vmdlAnimationControlData(other.vmdlAnimationControlData),
-	vmdlTrailData(other.vmdlTrailData),
-	modelScale(other.modelScale),
-	worldTransform(other.worldTransform),
-	modelCacheFilepath(other.modelCacheFilepath),
-	modelCacheLastWrite(other.modelCacheLastWrite)
+	: materials(other.materials), sourceMaterials(other.sourceMaterials), meshes(other.meshes),
+	  nodes(other.nodes), animations(other.animations), vmdlExtensionData(other.vmdlExtensionData),
+	  vmdlIKSettings(other.vmdlIKSettings), vmdlIKPoles(other.vmdlIKPoles),
+	  vmdlIKRaySettings(other.vmdlIKRaySettings),
+	  vmdlAnimationEditorData(other.vmdlAnimationEditorData),
+	  vmdlAnimationControlData(other.vmdlAnimationControlData), vmdlTrailData(other.vmdlTrailData),
+	  modelScale(other.modelScale), worldTransform(other.worldTransform),
+	  modelCacheFilepath(other.modelCacheFilepath)
 {
 	RebuildRuntimeReferences();
 }
 
 VMDLModel::VMDLModel(VMDLModel&& other) noexcept
-	: materials(std::move(other.materials)),
-	meshes(std::move(other.meshes)),
-	nodes(std::move(other.nodes)),
-	animations(std::move(other.animations)),
-	vmdlExtensionData(std::move(other.vmdlExtensionData)),
-	vmdlIKSettings(std::move(other.vmdlIKSettings)),
-	vmdlIKPoles(std::move(other.vmdlIKPoles)),
-	vmdlAnimationEditorData(std::move(other.vmdlAnimationEditorData)),
-	vmdlAnimationControlData(std::move(other.vmdlAnimationControlData)),
-	vmdlTrailData(std::move(other.vmdlTrailData)),
-	modelScale(other.modelScale),
-	worldTransform(other.worldTransform),
-	modelCacheFilepath(std::move(other.modelCacheFilepath)),
-	modelCacheLastWrite(other.modelCacheLastWrite)
+	: materials(std::move(other.materials)), sourceMaterials(std::move(other.sourceMaterials)),
+	  meshes(std::move(other.meshes)), nodes(std::move(other.nodes)),
+	  animations(std::move(other.animations)),
+	  vmdlExtensionData(std::move(other.vmdlExtensionData)),
+	  vmdlIKSettings(std::move(other.vmdlIKSettings)), vmdlIKPoles(std::move(other.vmdlIKPoles)),
+	  vmdlIKRaySettings(std::move(other.vmdlIKRaySettings)),
+	  vmdlAnimationEditorData(std::move(other.vmdlAnimationEditorData)),
+	  vmdlAnimationControlData(std::move(other.vmdlAnimationControlData)),
+	  vmdlTrailData(std::move(other.vmdlTrailData)), modelScale(other.modelScale),
+	  worldTransform(other.worldTransform), modelCacheFilepath(std::move(other.modelCacheFilepath))
 {
 	RebuildRuntimeReferences();
 }
@@ -603,19 +674,20 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	if (this == &other) return *this;
 
 	materials = other.materials;
+	sourceMaterials = other.sourceMaterials;
 	meshes = other.meshes;
 	nodes = other.nodes;
 	animations = other.animations;
 	vmdlExtensionData = other.vmdlExtensionData;
 	vmdlIKSettings = other.vmdlIKSettings;
 	vmdlIKPoles = other.vmdlIKPoles;
+	vmdlIKRaySettings = other.vmdlIKRaySettings;
 	vmdlAnimationEditorData = other.vmdlAnimationEditorData;
 	vmdlAnimationControlData = other.vmdlAnimationControlData;
 	vmdlTrailData = other.vmdlTrailData;
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
 	modelCacheFilepath = other.modelCacheFilepath;
-	modelCacheLastWrite = other.modelCacheLastWrite;
 	RebuildRuntimeReferences();
 	return *this;
 }
@@ -625,19 +697,20 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	if (this == &other) return *this;
 
 	materials = std::move(other.materials);
+	sourceMaterials = std::move(other.sourceMaterials);
 	meshes = std::move(other.meshes);
 	nodes = std::move(other.nodes);
 	animations = std::move(other.animations);
 	vmdlExtensionData = std::move(other.vmdlExtensionData);
 	vmdlIKSettings = std::move(other.vmdlIKSettings);
 	vmdlIKPoles = std::move(other.vmdlIKPoles);
+	vmdlIKRaySettings = std::move(other.vmdlIKRaySettings);
 	vmdlAnimationEditorData = std::move(other.vmdlAnimationEditorData);
 	vmdlAnimationControlData = std::move(other.vmdlAnimationControlData);
 	vmdlTrailData = std::move(other.vmdlTrailData);
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
 	modelCacheFilepath = std::move(other.modelCacheFilepath);
-	modelCacheLastWrite = other.modelCacheLastWrite;
 	RebuildRuntimeReferences();
 	return *this;
 }
@@ -697,8 +770,7 @@ void VMDLModel::AppendAnimations(const char* filename)
 {
 	std::filesystem::path filepath(filename);
 
-	if (filepath.extension() == ".gltf" ||
-		filepath.extension() == ".glb")
+	if (filepath.extension() == ".gltf" || filepath.extension() == ".glb")
 	{
 		GLTFImporter importer(filename);
 
@@ -709,14 +781,10 @@ void VMDLModel::AppendAnimations(const char* filename)
 		importer.LoadAnimations(newAnims, animNodes);
 
 		std::unordered_map<std::string, int> modelNodeMap;
-		for (int i = 0; i < (int)nodes.size(); ++i)
-			modelNodeMap[nodes[i].name] = i;
+		for (int i = 0; i < (int)nodes.size(); ++i) modelNodeMap[nodes[i].name] = i;
 
 		for (Animation& anim : newAnims)
 		{
-			// アニメーション側とモデル側ではノード順が一致する保証がない。
-			// 全ノードを初期姿勢で埋め、同名ノードだけ読み込んだキーへ差し替える。
-			// これによりアニメーションにない装備ボーンも初期姿勢を維持できる。
 			Animation remapped;
 			//remapped.name = anim.name;
 			remapped.name = filepath.stem().string();
@@ -773,13 +841,13 @@ int VMDLModel::GetAnimationIndex(const char* name) const
 			return static_cast<int>(animationIndex);
 		}
 	}
-	char buffer[256];
-	sprintf_s(buffer, "animation not found: %s", name);
-	_ASSERT(buffer);
+	const std::string message = "animation not found: " + std::string(name);
+	_ASSERT_EXPR_A(false, message.c_str());
 	return -1;
 }
 
-static void UpdateNodeTransform(VMDLModel::Node& node, const Matrix& parentGlobal, const Matrix& worldTransform)
+static void UpdateNodeTransform(
+	VMDLModel::Node& node, const Matrix& parentGlobal, const Matrix& worldTransform)
 {
 	Matrix S = Matrix::CreateScale(node.scale);
 	Matrix R = Matrix::CreateFromQuaternion(node.rotation);
@@ -806,8 +874,8 @@ int VMDLModel::GetNodeIndex(const char* name) const
 	{
 		int referencedIndex = -1;
 		const auto result = std::from_chars(name, separator, referencedIndex);
-		if (result.ec == std::errc() && result.ptr == separator &&
-			referencedIndex >= 0 && referencedIndex < static_cast<int>(nodes.size()) &&
+		if (result.ec == std::errc() && result.ptr == separator && referencedIndex >= 0 &&
+			referencedIndex < static_cast<int>(nodes.size()) &&
 			nodes[referencedIndex].name == separator + 1)
 		{
 			return referencedIndex;
@@ -880,9 +948,46 @@ void VMDLModel::NormalizeMorphNames()
 	morphs = std::move(normalizedMorphs);
 }
 
+void VMDLModel::NormalizeAttachmentNames()
+{
+	for (VmdlRigidBody& rigidBody : vmdlExtensionData.rigidBodies)
+	{
+		rigidBody.name = ToUpperAscii(rigidBody.name);
+		if (rigidBody.name.empty()) rigidBody.name = "RIGIDBODY";
+	}
+	for (VmdlCollider& collider : vmdlExtensionData.colliders)
+	{
+		collider.name = ToUpperAscii(collider.name);
+		if (collider.name.empty()) collider.name = "COLLIDER";
+	}
+	for (VmdlSpring& spring : vmdlExtensionData.springs)
+	{
+		spring.name = ToUpperAscii(spring.name);
+		if (spring.name.empty()) spring.name = "SPRING";
+	}
+	for (VmdlSpringCollider& springCollider : vmdlExtensionData.springColliders)
+	{
+		springCollider.name = ToUpperAscii(springCollider.name);
+		if (springCollider.name.empty()) springCollider.name = "SPRING COLLIDER";
+	}
+	for (VmdlTrail& trail : vmdlTrailData.trails)
+	{
+		trail.name = ToUpperAscii(trail.name);
+		if (trail.name.empty()) trail.name = "TRAIL";
+	}
+}
+
 bool VMDLModel::ApplyMorph(const char* name)
 {
 	return ApplyMorph(GetMorphIndex(name));
+}
+
+void VMDLModel::ApplyInitialMorphs()
+{
+	for (int i = 0; i < static_cast<int>(vmdlExtensionData.morphs.size()); ++i)
+	{
+		if (vmdlExtensionData.morphs[i].applyOnInitialize) ApplyMorph(i);
+	}
 }
 
 bool VMDLModel::ApplyMorph(int morphIndex)
@@ -920,10 +1025,8 @@ Matrix VMDLModel::GetRenderScaleTransform() const
 
 	const Vector3 pivot = worldTransform.Translation();
 
-	return
-		Matrix::CreateTranslation(-pivot) *
-		Matrix::CreateScale(modelScale) *
-		Matrix::CreateTranslation(pivot);
+	return Matrix::CreateTranslation(-pivot) * Matrix::CreateScale(modelScale) *
+		   Matrix::CreateTranslation(pivot);
 }
 
 Matrix VMDLModel::GetScaledAttachmentTransform(const Matrix& unscaledWorldTransform) const
@@ -951,47 +1054,64 @@ const Matrix& VMDLModel::GetWorldTransform() const
 	return worldTransform;
 }
 
-void VMDLModel::ComputeAnimation(int animationIndex, int nodeIndex, float time, NodePose& nodePose) const
+void VMDLModel::ComputeAnimation(
+	int animationIndex, int nodeIndex, float time, NodePose& nodePose) const
 {
 	const Animation& animation = animations.at(animationIndex);
 	const NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
 
-	for (size_t index = 0; index < nodeAnim.positionKeyframes.size() - 1; ++index)
+	if (!nodeAnim.positionKeyframes.empty())
 	{
-		const VectorKeyframe& keyframe0 = nodeAnim.positionKeyframes.at(index);
-		const VectorKeyframe& keyframe1 = nodeAnim.positionKeyframes.at(index + 1);
-		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
+		nodePose.position = nodeAnim.positionKeyframes.back().value;
+		for (size_t index = 1; index < nodeAnim.positionKeyframes.size(); ++index)
 		{
-			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
-
-			nodePose.position = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
+			const VectorKeyframe& previous = nodeAnim.positionKeyframes[index - 1];
+			const VectorKeyframe& next = nodeAnim.positionKeyframes[index];
+			if (time > next.seconds) continue;
+			const float duration = next.seconds - previous.seconds;
+			const float rate = duration > 0.00001f ? (time - previous.seconds) / duration : 0.0f;
+			nodePose.position = time <= previous.seconds
+									? previous.value
+									: Vector3::Lerp(previous.value, next.value, rate);
+			break;
 		}
 	}
-	for (size_t index = 0; index < nodeAnim.rotationKeyframes.size() - 1; ++index)
+	if (!nodeAnim.rotationKeyframes.empty())
 	{
-		const QuaternionKeyframe& keyframe0 = nodeAnim.rotationKeyframes.at(index);
-		const QuaternionKeyframe& keyframe1 = nodeAnim.rotationKeyframes.at(index + 1);
-		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
+		nodePose.rotation = nodeAnim.rotationKeyframes.back().value;
+		for (size_t index = 1; index < nodeAnim.rotationKeyframes.size(); ++index)
 		{
-			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
-
-			nodePose.rotation = Quaternion::Slerp(keyframe0.value, keyframe1.value, rate);
+			const QuaternionKeyframe& previous = nodeAnim.rotationKeyframes[index - 1];
+			const QuaternionKeyframe& next = nodeAnim.rotationKeyframes[index];
+			if (time > next.seconds) continue;
+			const float duration = next.seconds - previous.seconds;
+			const float rate = duration > 0.00001f ? (time - previous.seconds) / duration : 0.0f;
+			nodePose.rotation = time <= previous.seconds
+									? previous.value
+									: Quaternion::Slerp(previous.value, next.value, rate);
+			break;
 		}
 	}
-	for (size_t index = 0; index < nodeAnim.scaleKeyframes.size() - 1; ++index)
+	if (!nodeAnim.scaleKeyframes.empty())
 	{
-		const VectorKeyframe& keyframe0 = nodeAnim.scaleKeyframes.at(index);
-		const VectorKeyframe& keyframe1 = nodeAnim.scaleKeyframes.at(index + 1);
-		if (time >= keyframe0.seconds && time <= keyframe1.seconds)
+		nodePose.scale = nodeAnim.scaleKeyframes.back().value;
+		for (size_t index = 1; index < nodeAnim.scaleKeyframes.size(); ++index)
 		{
-			float rate = (time - keyframe0.seconds) / (keyframe1.seconds - keyframe0.seconds);
-
-			nodePose.scale = Vector3::Lerp(keyframe0.value, keyframe1.value, rate);
+			const VectorKeyframe& previous = nodeAnim.scaleKeyframes[index - 1];
+			const VectorKeyframe& next = nodeAnim.scaleKeyframes[index];
+			if (time > next.seconds) continue;
+			const float duration = next.seconds - previous.seconds;
+			const float rate = duration > 0.00001f ? (time - previous.seconds) / duration : 0.0f;
+			nodePose.scale = time <= previous.seconds
+								 ? previous.value
+								 : Vector3::Lerp(previous.value, next.value, rate);
+			break;
 		}
 	}
 }
 
-void VMDLModel::ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const
+void VMDLModel::ComputeAnimation(
+	int animationIndex, float time, std::vector<NodePose>& nodePoses) const
 {
 	if (nodePoses.size() != nodes.size())
 	{
@@ -999,7 +1119,8 @@ void VMDLModel::ComputeAnimation(int animationIndex, float time, std::vector<Nod
 	}
 	for (size_t nodeIndex = 0; nodeIndex < nodePoses.size(); ++nodeIndex)
 	{
-		ComputeAnimation(animationIndex, static_cast<int>(nodeIndex), time, nodePoses.at(nodeIndex));
+		ComputeAnimation(
+			animationIndex, static_cast<int>(nodeIndex), time, nodePoses.at(nodeIndex));
 	}
 }
 
@@ -1008,6 +1129,7 @@ void VMDLModel::ResetVmdlIKLegsForType()
 	auto& settings = vmdlIKSettings;
 	settings.legs.clear();
 	vmdlIKPoles.clear();
+	vmdlIKRaySettings.clear();
 
 	int legCount = 0;
 	if (settings.type == 1) legCount = 2;
@@ -1015,16 +1137,129 @@ void VMDLModel::ResetVmdlIKLegsForType()
 	else if (settings.type == 3) legCount = 8;
 	settings.legs.resize(legCount);
 	vmdlIKPoles.resize(legCount);
+	NormalizeVmdlIKRaySettings();
 
 	constexpr const char* humanNames[] = {"Left", "Right"};
-	constexpr const char* quadrupedNames[] = {"Front Left", "Front Right", "Back Left", "Back Right"};
+	constexpr const char* quadrupedNames[] = {
+		"Front Left", "Front Right", "Back Left", "Back Right"};
 	for (int i = 0; i < legCount; ++i)
 	{
 		if (settings.type == 1) settings.legs[i].name = humanNames[i];
 		else if (settings.type == 2) settings.legs[i].name = quadrupedNames[i];
 		else settings.legs[i].name = "Leg " + std::to_string(i + 1);
 	}
+	AutoAssignVmdlIKNodes();
+}
 
+void VMDLModel::NormalizeVmdlIKRaySettings()
+{
+	const size_t previousSize = vmdlIKRaySettings.size();
+	vmdlIKRaySettings.resize(vmdlIKSettings.legs.size());
+	const float defaultStartHeight = vmdlIKSettings.type == 1 ? 0.2f : 1.0f;
+	const float defaultLength = vmdlIKSettings.type == 1 ? 0.7f : 6.0f;
+	for (size_t index = 0; index < vmdlIKRaySettings.size(); ++index)
+	{
+		auto& ray = vmdlIKRaySettings[index];
+		if (index >= previousSize)
+		{
+			ray.startOffset = Vector3(0.0f, defaultStartHeight, 0.0f);
+			ray.length = defaultLength;
+		}
+		ray.length = std::max(0.01f, ray.length);
+	}
+}
+
+bool VMDLModel::AutoAssignVmdlIKNodes()
+{
+	if (vmdlIKSettings.type == 0 || nodes.empty()) return false;
+
+	bool changed = false;
+	int centerIndex = -1;
+	if (vmdlIKSettings.type == 1)
+		centerIndex = FindBestIkNode(nodes,
+			{"HIPS", "PELVIS", "WAIST", "HIP", "ROOT", (const char*)u8"骨盤", (const char*)u8"腰"},
+			0, 0, -1);
+	else if (vmdlIKSettings.type == 2)
+		centerIndex = FindBestIkNode(nodes,
+			{"BODY", "SPINE", "CHEST", "PELVIS", "HIPS", "ROOT", (const char*)u8"胴体",
+				(const char*)u8"背骨"},
+			0, 0, -1);
+	else
+		centerIndex = FindBestIkNode(nodes,
+			{"THORAX", "BODY", "CHEST", "ROOT", (const char*)u8"胸部", (const char*)u8"胴体"}, 0, 0,
+			-1);
+	if (centerIndex >= 0)
+		changed |= AssignIkNodeReference(vmdlIKSettings.centerNode, nodes, centerIndex);
+	else centerIndex = GetNodeIndex(vmdlIKSettings.centerNode.c_str());
+
+	for (int i = 0; i < static_cast<int>(vmdlIKSettings.legs.size()); ++i)
+	{
+		auto& leg = vmdlIKSettings.legs[i];
+		const int side = i % 2 == 0 ? -1 : 1;
+		const int region = vmdlIKSettings.type == 2 ? (i < 2 ? -1 : 1) : 0;
+		const int legNumber = vmdlIKSettings.type == 3 ? i + 1 : 0;
+
+		int rootIndex = -1;
+		int midIndex = -1;
+		int tipIndex = -1;
+		int contactIndex = -1;
+		if (vmdlIKSettings.type == 1)
+		{
+			rootIndex = FindBestIkNode(nodes,
+				{"UPPERLEG", "UPLEG", "THIGH", (const char*)u8"太もも", (const char*)u8"腿",
+					(const char*)u8"足"},
+				side, 0, centerIndex);
+			midIndex = FindBestIkNode(nodes,
+				{"LOWERLEG", "CALF", "SHIN", "KNEE", (const char*)u8"ひざ", (const char*)u8"膝",
+					(const char*)u8"すね"},
+				side, 0, rootIndex);
+			tipIndex = FindBestIkNode(nodes,
+				{"FOOT", "ANKLE", (const char*)u8"足首", (const char*)u8"足"}, side, 0, midIndex);
+			contactIndex = FindBestIkNode(nodes,
+				{"TOEBASE", "TOE", "BALL", (const char*)u8"つま先", (const char*)u8"爪先"}, side, 0,
+				tipIndex);
+		}
+		else if (vmdlIKSettings.type == 2)
+		{
+			if (region < 0)
+			{
+				rootIndex = FindBestIkNode(nodes,
+					{"UPPERARM", "SHOULDER", "FRONTLEG", "FORELEG", "ARM", "LEG"}, side, region,
+					centerIndex);
+				midIndex = FindBestIkNode(nodes,
+					{"LOWERARM", "FOREARM", "ELBOW", "LOWERLEG", "KNEE"}, side, region, rootIndex);
+				tipIndex = FindBestIkNode(
+					nodes, {"HAND", "FRONTFOOT", "PAW", "FOOT", "WRIST"}, side, region, midIndex);
+			}
+			else
+			{
+				rootIndex = FindBestIkNode(nodes,
+					{"UPPERLEG", "THIGH", "HINDLEG", "BACKLEG", "LEG"}, side, region, centerIndex);
+				midIndex = FindBestIkNode(
+					nodes, {"LOWERLEG", "CALF", "SHIN", "KNEE"}, side, region, rootIndex);
+				tipIndex =
+					FindBestIkNode(nodes, {"FOOT", "PAW", "ANKLE", "HOOF"}, side, region, midIndex);
+			}
+			contactIndex =
+				FindBestIkNode(nodes, {"TOE", "CLAW", "HOOF", "BALL"}, side, region, tipIndex);
+		}
+		else
+		{
+			rootIndex =
+				FindBestIkNode(nodes, {"COXA", "LEGROOT", "LEG"}, 0, 0, centerIndex, legNumber);
+			midIndex =
+				FindBestIkNode(nodes, {"FEMUR", "LEGMID", "LEG"}, 0, 0, rootIndex, legNumber);
+			tipIndex = FindBestIkNode(nodes, {"TIBIA", "LEGTIP", "LEG"}, 0, 0, midIndex, legNumber);
+			contactIndex =
+				FindBestIkNode(nodes, {"TARSUS", "FOOT", "TOE"}, 0, 0, tipIndex, legNumber);
+		}
+
+		changed |= AssignIkNodeReference(leg.root, nodes, rootIndex);
+		changed |= AssignIkNodeReference(leg.mid, nodes, midIndex);
+		changed |= AssignIkNodeReference(leg.tip, nodes, tipIndex);
+		changed |= AssignIkNodeReference(leg.contact, nodes, contactIndex);
+	}
+	return changed;
 }
 
 float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIndex) const
@@ -1042,13 +1277,16 @@ float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIn
 	const VmdlFootWeightTrack* selectedTrack = FindFootWeightTrack(animation.name, footIndex);
 	if (selectedTrack && !selectedTrack->weights.empty())
 	{
-		// ペイント済みトラックがあれば隣接サンプルを線形補間する。
-		// 正負の値はそのまま返し、左右足などの解釈は利用側へ任せる。
 		const auto& track = *selectedTrack;
-		const float sample = std::clamp(time * track.sampleRate, 0.0f, static_cast<float>(track.weights.size() - 1));
+		const float sample = animation.secondsLength > 0.00001f
+								 ? std::clamp(time / animation.secondsLength, 0.0f, 1.0f) *
+									   static_cast<float>(track.weights.size() - 1)
+								 : 0.0f;
 		const size_t index0 = static_cast<size_t>(sample);
 		const size_t index1 = std::min(index0 + 1, track.weights.size() - 1);
-		return std::lerp(track.weights[index0], track.weights[index1], sample - static_cast<float>(index0));
+		return std::clamp(std::lerp(track.weights[index0], track.weights[index1],
+							  sample - static_cast<float>(index0)),
+			0.0f, 1.0f);
 	}
 	return 0.0f;
 }
@@ -1058,7 +1296,8 @@ std::string VMDLModel::MakeFootWeightTrackKey(const std::string& animationName, 
 	return animationName + "::FootWeight:" + std::to_string(footIndex);
 }
 
-VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(const std::string& animationName, int footIndex)
+VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(
+	const std::string& animationName, int footIndex)
 {
 	const std::string key = MakeFootWeightTrackKey(animationName, footIndex);
 	for (auto& track : vmdlAnimationEditorData.footWeightTracks)
@@ -1068,7 +1307,8 @@ VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(const std::string
 	return nullptr;
 }
 
-const VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(const std::string& animationName, int footIndex) const
+const VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(
+	const std::string& animationName, int footIndex) const
 {
 	const std::string key = MakeFootWeightTrackKey(animationName, footIndex);
 	for (const auto& track : vmdlAnimationEditorData.footWeightTracks)
@@ -1078,18 +1318,49 @@ const VMDLModel::VmdlFootWeightTrack* VMDLModel::FindFootWeightTrack(const std::
 	return nullptr;
 }
 
-VMDLModel::VmdlFootWeightTrack& VMDLModel::GetOrCreateFootWeightTrack(const std::string& animationName, int footIndex)
+VMDLModel::VmdlFootWeightTrack& VMDLModel::GetOrCreateFootWeightTrack(
+	const std::string& animationName, int footIndex)
 {
-	if (auto* track = FindFootWeightTrack(animationName, footIndex)) return *track;
-	auto& track = vmdlAnimationEditorData.footWeightTracks.emplace_back();
-	track.animationName = MakeFootWeightTrackKey(animationName, footIndex);
-	return track;
+	VmdlFootWeightTrack* track = FindFootWeightTrack(animationName, footIndex);
+	if (!track)
+	{
+		track = &vmdlAnimationEditorData.footWeightTracks.emplace_back();
+		track->animationName = MakeFootWeightTrackKey(animationName, footIndex);
+	}
+	if (track->sampleRate >= VmdlFootWeightTrack::DefaultSampleRate || track->weights.empty())
+		return *track;
+
+	float length = 0.0f;
+	for (const Animation& animation : animations)
+	{
+		if (animation.name != animationName) continue;
+		length = animation.secondsLength;
+		break;
+	}
+	if (length <= 0.0f) return *track;
+
+	const int sampleCount = std::max(
+		2, static_cast<int>(std::ceil(length * VmdlFootWeightTrack::DefaultSampleRate)) + 1);
+	std::vector<float> weights(sampleCount);
+	for (int i = 0; i < sampleCount; ++i)
+	{
+		const float sample = static_cast<float>(i) / static_cast<float>(sampleCount - 1) *
+							 static_cast<float>(track->weights.size() - 1);
+		const size_t index0 = static_cast<size_t>(sample);
+		const size_t index1 = std::min(index0 + 1, track->weights.size() - 1);
+		weights[i] = std::lerp(
+			track->weights[index0], track->weights[index1], sample - static_cast<float>(index0));
+	}
+	track->sampleRate = VmdlFootWeightTrack::DefaultSampleRate;
+	track->weights = std::move(weights);
+	return *track;
 }
 
 bool VMDLModel::GetColliderInitialActive(int colliderIndex) const
 {
 	if (colliderIndex < 0) return true;
-	if (colliderIndex >= static_cast<int>(vmdlAnimationControlData.colliderInitialActive.size())) return true;
+	if (colliderIndex >= static_cast<int>(vmdlAnimationControlData.colliderInitialActive.size()))
+		return true;
 	return vmdlAnimationControlData.colliderInitialActive[colliderIndex] != 0;
 }
 
@@ -1126,11 +1397,13 @@ bool VMDLModel::EvaluateColliderActive(int animationIndex, float time, int colli
 	return active;
 }
 
-VMDLModel::VmdlColliderAnimationTrack& VMDLModel::GetOrCreateColliderAnimationTrack(const std::string& animationName, int colliderIndex)
+VMDLModel::VmdlColliderAnimationTrack& VMDLModel::GetOrCreateColliderAnimationTrack(
+	const std::string& animationName, int colliderIndex)
 {
 	for (auto& track : vmdlAnimationControlData.colliderTracks)
 	{
-		if (track.animationName == animationName && track.colliderIndex == colliderIndex) return track;
+		if (track.animationName == animationName && track.colliderIndex == colliderIndex)
+			return track;
 	}
 	auto& track = vmdlAnimationControlData.colliderTracks.emplace_back();
 	track.animationName = animationName;
@@ -1177,7 +1450,8 @@ bool VMDLModel::EvaluateTrailActive(int animationIndex, float time, int trailInd
 	return active;
 }
 
-VMDLModel::VmdlTrailAnimationTrack& VMDLModel::GetOrCreateTrailAnimationTrack(const std::string& animationName, int trailIndex)
+VMDLModel::VmdlTrailAnimationTrack& VMDLModel::GetOrCreateTrailAnimationTrack(
+	const std::string& animationName, int trailIndex)
 {
 	for (auto& track : vmdlTrailData.tracks)
 	{
@@ -1189,7 +1463,8 @@ VMDLModel::VmdlTrailAnimationTrack& VMDLModel::GetOrCreateTrailAnimationTrack(co
 	return track;
 }
 
-VMDLModel::VmdlMorphAnimationTrack& VMDLModel::GetOrCreateMorphAnimationTrack(const std::string& animationName)
+VMDLModel::VmdlMorphAnimationTrack& VMDLModel::GetOrCreateMorphAnimationTrack(
+	const std::string& animationName)
 {
 	for (auto& track : vmdlAnimationControlData.morphTracks)
 	{
@@ -1200,7 +1475,8 @@ VMDLModel::VmdlMorphAnimationTrack& VMDLModel::GetOrCreateMorphAnimationTrack(co
 	return track;
 }
 
-const VMDLModel::VmdlMorphAnimationTrack* VMDLModel::FindMorphAnimationTrack(const std::string& animationName) const
+const VMDLModel::VmdlMorphAnimationTrack* VMDLModel::FindMorphAnimationTrack(
+	const std::string& animationName) const
 {
 	for (const auto& track : vmdlAnimationControlData.morphTracks)
 	{
@@ -1258,7 +1534,6 @@ void VMDLModel::ApplyMorphAnimation(int animationIndex, float time)
 
 	const auto* track = FindMorphAnimationTrack(animation.name);
 	if (!track) return;
-	// Morphは差分指定なので、現在時刻までのキーを先頭から順に適用して結果を再現する。
 	for (const auto& key : track->keys)
 	{
 		if (key.seconds > time) break;
@@ -1266,13 +1541,125 @@ void VMDLModel::ApplyMorphAnimation(int animationIndex, float time)
 	}
 }
 
+std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() const
+{
+	std::vector<VmdlMaterialData> result;
+	result.reserve(materials.size());
+	for (const Material& material : materials)
+	{
+		result.push_back({material.name, material.baseColor, material.emissiveColor,
+			material.metalness, material.roughness, material.occlusion, material.occlusionStrength,
+			material.shadowStrength, material.alphaCutoff, material.alphaMode,
+			material.fresnelColor, material.fresnelPower, material.fresnelStrength,
+			material.isFlatShading});
+	}
+	return result;
+}
+
+void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
+{
+	std::unordered_map<std::string, const VmdlMaterialData*> lookup;
+	lookup.reserve(data.size());
+	for (const VmdlMaterialData& value : data) lookup.emplace(value.name, &value);
+
+	for (Material& material : materials)
+	{
+		const auto found = lookup.find(material.name);
+		if (found == lookup.end()) continue;
+		const VmdlMaterialData& value = *found->second;
+		material.baseColor = value.baseColor;
+		material.emissiveColor = value.emissiveColor;
+		material.metalness = value.metalness;
+		material.roughness = value.roughness;
+		material.occlusion = value.occlusion;
+		material.occlusionStrength = value.occlusionStrength;
+		material.shadowStrength = value.shadowStrength;
+		material.alphaCutoff = value.alphaCutoff;
+		material.alphaMode = value.alphaMode;
+		material.fresnelColor = value.fresnelColor;
+		material.fresnelPower = value.fresnelPower;
+		material.fresnelStrength = value.fresnelStrength;
+		material.isFlatShading = value.isFlatShading;
+	}
+}
+
+bool VMDLModel::ReplaceGLBCache(const std::filesystem::path& filepath, float sampleRate)
+{
+	// 入力を確認
+	std::string extension = ToUpperAscii(filepath.extension().string());
+	if ((extension != ".GLB" && extension != ".GLTF") || !std::filesystem::exists(filepath))
+		return false;
+
+	// 新GLBを先に読込、VMDL側の編集値は後で同名マテリアルへ戻す
+	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
+	VMDLModel replacement(filepath.string().c_str(), sampleRate);
+	const std::vector<Node> oldNodes = nodes;
+	// ノード名を索引化
+	std::unordered_map<std::string, int> newNodeIndices;
+	newNodeIndices.reserve(replacement.nodes.size());
+	for (int i = 0; i < static_cast<int>(replacement.nodes.size()); ++i)
+		newNodeIndices.emplace(replacement.nodes[i].name, i);
+	auto remapNode = [&](int oldIndex) {
+		if (oldIndex < 0 || oldIndex >= static_cast<int>(oldNodes.size())) return -1;
+		const auto found = newNodeIndices.find(oldNodes[oldIndex].name);
+		return found == newNodeIndices.end() ? -1 : found->second;
+	};
+
+	// 独自データを再接続
+	for (auto& value : vmdlExtensionData.rigidBodies) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlExtensionData.colliders) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlExtensionData.springs) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlExtensionData.springColliders)
+		value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlTrailData.trails) value.nodeIndex = remapNode(value.nodeIndex);
+
+	// GLB部分を交換
+	sourceMaterials = replacement.sourceMaterials;
+	if (sourceMaterials.empty()) sourceMaterials = replacement.materials;
+	materials = std::move(replacement.materials);
+	meshes = std::move(replacement.meshes);
+	nodes = std::move(replacement.nodes);
+	animations = std::move(replacement.animations);
+	ApplyVmdlMaterialData(materialData);
+	RebuildRuntimeReferences();
+	return true;
+}
+
+void VMDLModel::ApplyForwardDirectionCorrection()
+{
+	const Matrix correction = Matrix::CreateRotationY(DirectX::XM_PI);
+	for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+	{
+		Node& node = nodes[nodeIndex];
+		if (node.parentIndex >= 0) continue;
+
+		const Matrix local = Matrix::CreateScale(node.scale) *
+							 Matrix::CreateFromQuaternion(node.rotation) *
+							 Matrix::CreateTranslation(node.position);
+		(local * correction).Decompose(node.scale, node.rotation, node.position);
+		node.rotation.Normalize();
+
+		for (Animation& animation : animations)
+		{
+			if (nodeIndex >= static_cast<int>(animation.nodeAnims.size())) continue;
+			NodeAnim& nodeAnimation = animation.nodeAnims[nodeIndex];
+			for (VectorKeyframe& key : nodeAnimation.positionKeyframes)
+				key.value = Vector3::Transform(key.value, correction);
+			for (QuaternionKeyframe& key : nodeAnimation.rotationKeyframes)
+			{
+				key.value = Quaternion::CreateFromRotationMatrix(
+					Matrix::CreateFromQuaternion(key.value) * correction);
+				key.value.Normalize();
+			}
+		}
+	}
+}
+
 bool VMDLModel::SaveVmdl()
 {
 	if (modelCacheFilepath.empty()) return false;
 
-	Serialize(
-		modelCacheFilepath.string().c_str(),
-		modelCacheLastWrite);
+	Serialize(modelCacheFilepath.string().c_str());
 	return true;
 }
 
@@ -1313,44 +1700,35 @@ void VMDLModel::GetNodePoses(std::vector<NodePose>& nodePoses) const
 	}
 }
 
-void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
+void VMDLModel::Serialize(const char* filename)
 {
+	NormalizeAttachmentNames();
 	NormalizeMorphNames();
 	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
-	std::vector<MaterialPbrSettings> materialPbrSettings;
-	materialPbrSettings.reserve(materials.size());
-	for (const Material& material : materials)
-		materialPbrSettings.push_back({material.occlusion, material.shadowStrength});
-
-	std::vector<MaterialVMatSettings> materialVMatSettings;
-	materialVMatSettings.reserve(materials.size());
-	for (const Material& material : materials)
-	{
-		materialVMatSettings.push_back({
-			material.fresnelColor,
-			material.fresnelPower,
-			material.fresnelStrength,
-			material.isFlatShading});
-	}
+	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
+	const std::vector<Material>& glbMaterials =
+		sourceMaterials.empty() ? materials : sourceMaterials;
 
 	try
 	{
-		cereal::BinaryOutputArchive archive(serializedStream);
-		archive(
-			CEREAL_NVP(lastWrite),
-			CEREAL_NVP(nodes),
-			CEREAL_NVP(materials),
-			CEREAL_NVP(meshes),
-			CEREAL_NVP(animations),
-			CEREAL_NVP(vmdlExtensionData),
-			CEREAL_NVP(vmdlIKSettings),
-			CEREAL_NVP(vmdlAnimationEditorData),
-			CEREAL_NVP(vmdlAnimationControlData),
-			CEREAL_NVP(materialPbrSettings),
-			CEREAL_NVP(vmdlTrailData),
-			CEREAL_NVP(materialVMatSettings),
-			CEREAL_NVP(modelScale),
-			CEREAL_NVP(vmdlIKPoles));
+		// 内部ファイルを作成
+		std::vector<std::pair<std::string, std::string>> files;
+		auto addFile = [&](const char* name, auto&& write) {
+			std::ostringstream stream(std::ios::binary | std::ios::out);
+			cereal::BinaryOutputArchive archive(stream);
+			write(archive);
+			files.emplace_back(name, stream.str());
+		};
+		addFile("model.glbcache",
+			[&](auto& archive) { archive(nodes, glbMaterials, meshes, animations); });
+		addFile("model.vmdldata", [&](auto& archive) {
+			archive(materialData, vmdlExtensionData, vmdlIKSettings, vmdlIKPoles, modelScale,
+				vmdlTrailData, vmdlAnimationEditorData, vmdlAnimationControlData,
+				vmdlIKRaySettings);
+		});
+
+		cereal::BinaryOutputArchive package(serializedStream);
+		package(files);
 	}
 	catch (...)
 	{
@@ -1367,13 +1745,7 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 	}
 
 	SIZE_T compressedSize = 0;
-	Compress(
-		compressor,
-		serializedData.data(),
-		serializedData.size(),
-		nullptr,
-		0,
-		&compressedSize);
+	Compress(compressor, serializedData.data(), serializedData.size(), nullptr, 0, &compressedSize);
 
 	if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || compressedSize == 0)
 	{
@@ -1383,13 +1755,8 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 	}
 
 	std::vector<uint8_t> compressedData(compressedSize);
-	if (!Compress(
-		compressor,
-		serializedData.data(),
-		serializedData.size(),
-		compressedData.data(),
-		compressedData.size(),
-		&compressedSize))
+	if (!Compress(compressor, serializedData.data(), serializedData.size(), compressedData.data(),
+			compressedData.size(), &compressedSize))
 	{
 		CloseCompressor(compressor);
 		_ASSERT_EXPR_A(false, "VMDLModel compression failed.");
@@ -1398,7 +1765,7 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 	CloseCompressor(compressor);
 	compressedData.resize(compressedSize);
 
-	std::ofstream ostream(filename, std::ios::binary | std::ios::trunc);
+	std::ofstream ostream(std::filesystem::path(filename), std::ios::binary | std::ios::trunc);
 	if (!ostream.is_open())
 	{
 		_ASSERT_EXPR_A(false, "VMDLModel file open failed.");
@@ -1413,7 +1780,8 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 	ostream.write(magic.data(), magic.size());
 	ostream.write(reinterpret_cast<const char*>(&version), sizeof(version));
 	ostream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
-	ostream.write(reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
+	ostream.write(
+		reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
 	ostream.write(reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
 
 	if (!ostream.good())
@@ -1422,56 +1790,14 @@ void VMDLModel::Serialize(const char* filename, uint64_t lastWrite)
 	}
 }
 
-void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
+void VMDLModel::Deserialize(const char* filename)
 {
-	std::ifstream fileStream(filename, std::ios::binary);
+	std::ifstream fileStream(std::filesystem::path(filename), std::ios::binary);
 	if (!fileStream.is_open())
 	{
 		_ASSERT_EXPR_A(false, "VMDLModel File not found.");
 		return;
 	}
-
-	auto deserialize = [this, &lastWrite](std::istream& stream)
-	{
-		cereal::BinaryInputArchive archive(stream);
-		std::vector<MaterialPbrSettings> materialPbrSettings;
-		std::vector<MaterialVMatSettings> materialVMatSettings;
-
-		archive(
-			CEREAL_NVP(lastWrite),
-			CEREAL_NVP(nodes),
-			CEREAL_NVP(materials),
-			CEREAL_NVP(meshes),
-			CEREAL_NVP(animations),
-			CEREAL_NVP(vmdlExtensionData),
-			CEREAL_NVP(vmdlIKSettings),
-			CEREAL_NVP(vmdlAnimationEditorData),
-			CEREAL_NVP(vmdlAnimationControlData),
-			CEREAL_NVP(materialPbrSettings),
-			CEREAL_NVP(vmdlTrailData),
-			CEREAL_NVP(materialVMatSettings),
-			CEREAL_NVP(modelScale),
-			CEREAL_NVP(vmdlIKPoles));
-
-		const size_t pbrCount = std::min(materials.size(), materialPbrSettings.size());
-		for (size_t i = 0; i < pbrCount; ++i)
-		{
-			materials[i].occlusion = materialPbrSettings[i].occlusion;
-			materials[i].shadowStrength = materialPbrSettings[i].shadowStrength;
-		}
-
-		const size_t vmatCount = std::min(materials.size(), materialVMatSettings.size());
-		for (size_t i = 0; i < vmatCount; ++i)
-		{
-			materials[i].fresnelColor = materialVMatSettings[i].fresnelColor;
-			materials[i].fresnelPower = materialVMatSettings[i].fresnelPower;
-			materials[i].fresnelStrength = materialVMatSettings[i].fresnelStrength;
-			materials[i].isFlatShading = materialVMatSettings[i].isFlatShading;
-		}
-
-		SetModelScale(modelScale);
-		NormalizeMorphNames();
-	};
 
 	try
 	{
@@ -1479,7 +1805,8 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 		std::array<char, magic.size()> fileMagic{};
 		fileStream.read(fileMagic.data(), fileMagic.size());
 
-		if (fileStream.gcount() != static_cast<std::streamsize>(fileMagic.size()) || fileMagic != magic)
+		if (fileStream.gcount() != static_cast<std::streamsize>(fileMagic.size()) ||
+			fileMagic != magic)
 			throw std::runtime_error("Invalid compressed VMDL magic.");
 
 		{
@@ -1490,17 +1817,15 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 			fileStream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
 			fileStream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
 
-			if (!fileStream.good() || version != VmdlCompressionVersion ||
-				uncompressedSize == 0 || compressedSize == 0 ||
+			if (!fileStream.good() || version != VmdlCompressionVersion || uncompressedSize == 0 ||
+				compressedSize == 0 ||
 				uncompressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()) ||
 				compressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()))
 			{
 				throw std::runtime_error("Invalid compressed VMDL header.");
 			}
-
 			std::vector<uint8_t> compressedData(static_cast<size_t>(compressedSize));
-			fileStream.read(
-				reinterpret_cast<char*>(compressedData.data()),
+			fileStream.read(reinterpret_cast<char*>(compressedData.data()),
 				static_cast<std::streamsize>(compressedData.size()));
 			if (!fileStream.good())
 			{
@@ -1515,13 +1840,9 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 			}
 
 			SIZE_T decompressedSize = 0;
-			const BOOL result = Decompress(
-				decompressor,
-				compressedData.data(),
-				compressedData.size(),
-				serializedData.data(),
-				serializedData.size(),
-				&decompressedSize);
+			const BOOL result =
+				Decompress(decompressor, compressedData.data(), compressedData.size(),
+					serializedData.data(), serializedData.size(), &decompressedSize);
 			CloseDecompressor(decompressor);
 
 			if (!result || decompressedSize != serializedData.size())
@@ -1530,10 +1851,39 @@ void VMDLModel::Deserialize(const char* filename, uint64_t& lastWrite)
 			}
 
 			std::string serializedString(
-				reinterpret_cast<const char*>(serializedData.data()),
-				serializedData.size());
+				reinterpret_cast<const char*>(serializedData.data()), serializedData.size());
 			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
-			deserialize(serializedStream);
+			std::vector<VmdlMaterialData> materialData;
+			std::vector<std::pair<std::string, std::string>> files;
+			cereal::BinaryInputArchive package(serializedStream);
+			package(files);
+			bool loadedGlbCache = false;
+			bool loadedVmdlData = false;
+			for (const auto& [name, data] : files)
+			{
+				std::istringstream section(data, std::ios::binary | std::ios::in);
+				cereal::BinaryInputArchive archive(section);
+				if (name == "model.glbcache")
+				{
+					archive(nodes, materials, meshes, animations);
+					loadedGlbCache = true;
+				}
+				else if (name == "model.vmdldata")
+				{
+					archive(materialData, vmdlExtensionData, vmdlIKSettings, vmdlIKPoles,
+						modelScale, vmdlTrailData, vmdlAnimationEditorData,
+						vmdlAnimationControlData, vmdlIKRaySettings);
+					loadedVmdlData = true;
+				}
+			}
+			if (!loadedGlbCache || !loadedVmdlData)
+				throw std::runtime_error("VMDL package is missing required data.");
+			sourceMaterials = materials;
+			ApplyVmdlMaterialData(materialData);
+			SetModelScale(modelScale);
+			NormalizeAttachmentNames();
+			NormalizeVmdlIKRaySettings();
+			NormalizeMorphNames();
 		}
 	}
 	catch (...)

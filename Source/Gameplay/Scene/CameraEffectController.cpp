@@ -1,5 +1,3 @@
-// CameraEffectController.cpp
-
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Application/Time/GameTime.h"
 

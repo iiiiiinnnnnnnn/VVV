@@ -1,6 +1,4 @@
-﻿// GLTFImporter.cpp
-
-#include <array>
+﻿#include <array>
 #include <cmath>
 #include <fstream>
 #define TINYGLTF_IMPLEMENTATION
@@ -137,7 +135,8 @@ namespace
 GLTFImporter::GLTFImporter(const char* filename)
 	: filepath(filename) 
 {
-	_ASSERT_EXPR_A(std::filesystem::exists(filename), "file is not found");
+	if (!std::filesystem::exists(filepath))
+		throw std::runtime_error("GLB file not found");
 
 	// 拡張子取得
 	std::string extension = filepath.extension().string();
@@ -155,7 +154,22 @@ GLTFImporter::GLTFImporter(const char* filename)
 	bool result = false;
 	if (extension == ".glb")
 	{
-		result = gltf.LoadBinaryFromFile(&gltfModel, &error, &warning, filepath.string());
+		// 日本語パスでも読めるように先にメモリへ読込
+		std::ifstream stream(filepath, std::ios::binary | std::ios::ate);
+		std::streamsize size = -1;
+		if (stream) size = static_cast<std::streamsize>(stream.tellg());
+		if (size > 0 && size <= static_cast<std::streamsize>(UINT_MAX))
+		{
+			std::vector<unsigned char> data(static_cast<size_t>(size));
+			stream.seekg(0, std::ios::beg);
+			if (stream.read(reinterpret_cast<char*>(data.data()), size))
+			{
+				result = gltf.LoadBinaryFromMemory(
+					&gltfModel, &error, &warning, data.data(),
+					static_cast<unsigned int>(data.size()), filepath.parent_path().string());
+			}
+		}
+		if (!result && error.empty()) error = "Failed to read GLB file";
 	}
 	else if (extension == ".gltf")
 	{
@@ -170,7 +184,7 @@ GLTFImporter::GLTFImporter(const char* filename)
 	{
 		OutputDebugStringA(error.c_str());
 		OutputDebugStringA("\n");
-		_ASSERT_EXPR_A(result, error.c_str());
+		throw std::runtime_error(error.empty() ? "Failed to import GLB" : error);
 	}
 }
 
@@ -800,7 +814,7 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 
 			const float* gltfKeyframeTimes = reinterpret_cast<const float*>(gltfModel.buffers.at(gltfInputBufferView.buffer).data.data() + gltfInputBufferView.byteOffset + gltfInputAccessor.byteOffset);
 			minTime = std::min(minTime, gltfKeyframeTimes[0]);
-			maxTime = std::max(animation.secondsLength, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
+			maxTime = std::max(maxTime, gltfKeyframeTimes[gltfInputAccessor.count - 1]);
 
 			if (gltfAnimationChannel.target_path == "scale")
 			{
@@ -835,11 +849,6 @@ void GLTFImporter::LoadAnimations(AnimationList& animations, const NodeList& nod
 				const DirectX::XMFLOAT4* gltfKeyframeValues = reinterpret_cast<const DirectX::XMFLOAT4*>(gltfModel.buffers.at(gltfOutputBufferView.buffer).data.data() + gltfOutputBufferView.byteOffset + gltfOutputAccessor.byteOffset);
 				for (int i = 0; i < gltfInputAccessor.count; ++i)
 				{
-					// なぜかUnityで出力したアニメーションデータにはゴミと思われるキーフレームが存在している場合がある。
-					// 小数点が存在するフレーム（時間）がゴミデータっぽいので除外する。
-					float frame = gltfKeyframeTimes[i] * sampleRate;
-					if (fabs(std::round(frame) - frame) > 0.001) continue;
-
 					VMDLModel::QuaternionKeyframe& keyframe = nodeAnim.rotationKeyframes.emplace_back();
 					keyframe.seconds = gltfKeyframeTimes[i];
 					keyframe.value = gltfKeyframeValues[i];

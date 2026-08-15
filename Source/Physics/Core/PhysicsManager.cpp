@@ -1,6 +1,4 @@
-// PhysicsManager.cpp
-
-#include "Physics/Core/PhysicsManager.h"
+ï»¿#include "Physics/Core/PhysicsManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Core/PhysicsComponent.h"
@@ -14,7 +12,7 @@ static PxFilterFlags LayerFilterShader(
     int layer0 = (int)fd0.word1;
     int layer1 = (int)fd1.word1;
 
-    // ƒ}ƒgƒŠƒbƒNƒX‚ÅÕ“Ë‚µ‚È‚¢‘g‚İ‡‚í‚¹‚È‚ç–³‹
+    // ãƒãƒˆãƒªãƒƒã‚¯ã‚¹ã§è¡çªã—ãªã„çµ„ã¿åˆã‚ã›ãªã‚‰ç„¡è¦–
     if (!PhysicsLayerManager::Instance().Collides(layer0, layer1))
         return PxFilterFlag::eSUPPRESS;
 
@@ -274,67 +272,97 @@ void CollisionEventCallback::onTrigger(PxTriggerPair* pairs, PxU32 nbPairs)
 
         Vector3 point;
         Vector3 normal;
-        MakeFallbackPointNormal(
-            tp.triggerActor,
-            tp.triggerShape,
-            tp.otherActor,
-            tp.otherShape,
-            point,
-            normal);
+		MakeFallbackPointNormal(
+			tp.triggerActor, tp.triggerShape, tp.otherActor, tp.otherShape, point, normal);
 
-        if (tp.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
-        {
-            currentTriggerPairs[MakePair(trigger, other)] = {trigger, other, point, normal};
-            DispatchTriggerEnter(trigger, other, point, normal);
-        }
+		if (tp.status & PxPairFlag::eNOTIFY_TOUCH_FOUND)
+		{
+			const ColliderPair pair = MakePair(trigger, other);
+			currentTriggerPairs[pair] = {trigger, other, point, normal};
+			if (!activeSweptTriggerPairs.contains(pair) &&
+				!reportedSweptTriggerPairs.contains(pair))
+				DispatchTriggerEnter(trigger, other, point, normal);
+		}
 
-        if (tp.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
-        {
-            currentTriggerPairs.erase(MakePair(trigger, other));
-            DispatchTriggerExit(trigger, other, point, normal);
-        }
-    }
+		if (tp.status & PxPairFlag::eNOTIFY_TOUCH_LOST)
+		{
+			const ColliderPair pair = MakePair(trigger, other);
+			currentTriggerPairs.erase(pair);
+			if (!activeSweptTriggerPairs.contains(pair) &&
+				!reportedSweptTriggerPairs.contains(pair))
+				DispatchTriggerExit(trigger, other, point, normal);
+		}
+	}
+}
+
+void CollisionEventCallback::ReportSweptTrigger(
+	PhysicsComponent* trigger, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+{
+	if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
+
+	const ColliderPair pair = MakePair(trigger, other);
+	if (reportedSweptTriggerPairs.contains(pair)) return;
+
+	if (currentTriggerPairs.contains(pair) && !activeSweptTriggerPairs.contains(pair))
+		activeSweptTriggerPairs[pair] = currentTriggerPairs[pair];
+	reportedSweptTriggerPairs[pair] = {trigger, other, point, normal};
+	if (!currentTriggerPairs.contains(pair) && !activeSweptTriggerPairs.contains(pair))
+		DispatchTriggerEnter(trigger, other, point, normal);
 }
 
 void CollisionEventCallback::DispatchStayEvents()
 {
-    std::erase_if(currentCollisionPairs, [](const auto& pair)
-    {
-        PhysicsComponent* a = pair.second.a;
-        PhysicsComponent* b = pair.second.b;
+	std::erase_if(currentCollisionPairs, [](const auto& pair) {
+		PhysicsComponent* a = pair.second.a;
+		PhysicsComponent* b = pair.second.b;
 
-        return !a
-            || !b
-            || !IsValidCollider(a)
-            || !IsValidCollider(b);
-    });
+		return !a || !b || !IsValidCollider(a) || !IsValidCollider(b);
+	});
 
-    std::erase_if(currentTriggerPairs, [](const auto& pair)
-    {
-        PhysicsComponent* trigger = pair.second.a;
-        PhysicsComponent* other = pair.second.b;
+	std::erase_if(currentTriggerPairs, [](const auto& pair) {
+		PhysicsComponent* trigger = pair.second.a;
+		PhysicsComponent* other = pair.second.b;
 
-        return !trigger
-            || !other
-            || !IsValidCollider(trigger)
-            || !IsValidCollider(other);
-    });
+		return !trigger || !other || !IsValidCollider(trigger) || !IsValidCollider(other);
+	});
 
-    for (auto& [_, state] : currentCollisionPairs)
-    {
-        DispatchCollisionStay(state.a, state.b, state.point, state.normal);
-    }
+	std::erase_if(activeSweptTriggerPairs, [](const auto& pair) {
+		return !IsValidCollider(pair.second.a) || !IsValidCollider(pair.second.b);
+	});
+	std::erase_if(reportedSweptTriggerPairs, [](const auto& pair) {
+		return !IsValidCollider(pair.second.a) || !IsValidCollider(pair.second.b);
+	});
 
-    for (auto& [_, state] : currentTriggerPairs)
-    {
-        DispatchTriggerStay(state.a, state.b, state.point, state.normal);
-    }
+	for (auto& [_, state] : currentCollisionPairs)
+	{
+		DispatchCollisionStay(state.a, state.b, state.point, state.normal);
+	}
+
+	for (auto& [_, state] : currentTriggerPairs)
+	{
+		DispatchTriggerStay(state.a, state.b, state.point, state.normal);
+	}
+
+	for (auto& [pair, state] : reportedSweptTriggerPairs)
+	{
+		if (!currentTriggerPairs.contains(pair) && activeSweptTriggerPairs.contains(pair))
+			DispatchTriggerStay(state.a, state.b, state.point, state.normal);
+	}
+	for (auto& [pair, state] : activeSweptTriggerPairs)
+	{
+		if (!currentTriggerPairs.contains(pair) && !reportedSweptTriggerPairs.contains(pair))
+			DispatchTriggerExit(state.a, state.b, state.point, state.normal);
+	}
+	activeSweptTriggerPairs = std::move(reportedSweptTriggerPairs);
+	reportedSweptTriggerPairs.clear();
 }
 
 void CollisionEventCallback::ClearPairs()
 {
-    currentCollisionPairs.clear();
-    currentTriggerPairs.clear();
+	currentCollisionPairs.clear();
+	currentTriggerPairs.clear();
+	activeSweptTriggerPairs.clear();
+	reportedSweptTriggerPairs.clear();
 }
 
 // -------------------------------------------------------
@@ -343,44 +371,179 @@ void CollisionEventCallback::ClearPairs()
 
 PhysicsSceneContext::PhysicsSceneContext(PxVec3 gravity)
 {
-    PhysicsManager& manager = PhysicsManager::Instance();
+	PhysicsManager& manager = PhysicsManager::Instance();
 
-    PxSceneDesc sceneDesc(manager.GetPhysics()->getTolerancesScale());
-    sceneDesc.gravity = gravity;
-    sceneDesc.cpuDispatcher = manager.GetDispatcher();
-    sceneDesc.filterShader = LayerFilterShader;
-    sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD;
-    scene = manager.GetPhysics()->createScene(sceneDesc);
+	PxSceneDesc sceneDesc(manager.GetPhysics()->getTolerancesScale());
+	sceneDesc.gravity = gravity;
+	sceneDesc.cpuDispatcher = manager.GetDispatcher();
+	sceneDesc.filterShader = LayerFilterShader;
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD;
+	scene = manager.GetPhysics()->createScene(sceneDesc);
 
-    // ƒR[ƒ‹ƒoƒbƒN“o˜^
-    scene->setSimulationEventCallback(&eventCallback);
+	// ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ç™»éŒ²
+	scene->setSimulationEventCallback(&eventCallback);
 
-    controllerManager = PxCreateControllerManager(*scene);
+	controllerManager = PxCreateControllerManager(*scene);
 }
 
 PhysicsSceneContext::~PhysicsSceneContext()
 {
-    if (controllerManager) controllerManager->release();
-    if (scene) scene->release();
+	if (controllerManager) controllerManager->release();
+	if (scene) scene->release();
 }
 
-void PhysicsSceneContext::Simulate() const
+void PhysicsSceneContext::QueueTriggerSweep(PhysicsComponent* trigger, const PxGeometry& geometry,
+	const PxTransform& startPose, const PxTransform& endPose, LayerId layerId,
+	const PxRigidActor* ignoreActor)
 {
-    scene->simulate(Game::Time::deltaTime);
-    scene->fetchResults(true);
+	if (!trigger || geometry.getType() == PxGeometryType::eINVALID) return;
 
-    // Stay ƒCƒxƒ“ƒg‚ğ”zMiÚGŒp‘±’†‚ÌƒyƒA‚É–ˆƒtƒŒ[ƒ€’Ê’mj
-    const_cast<PhysicsSceneContext*>(this)->eventCallback.DispatchStayEvents();
+	TriggerSweepRequest& request = triggerSweepRequests.emplace_back();
+	request.trigger = trigger;
+	request.geometry.storeAny(geometry);
+	request.startPose = startPose;
+	request.endPose = endPose;
+	request.layerId = layerId;
+	request.ignoreActor = ignoreActor;
 }
 
-bool PhysicsManager::Raycast(
-    const Vector3& origin,
-    const Vector3& direction,
-    float distance,
-    PhysicsRaycastHit& hit,
-    int layer) const
+void PhysicsSceneContext::ReportTriggerSweepHit(
+	PhysicsComponent* trigger, PxShape* shape, const Vector3& point, const Vector3& normal)
 {
-    return Raycast(origin, direction, distance, hit, layer, nullptr);
+	if (!PhysicsComponent::IsLive(trigger) || !trigger->IsActive()) return;
+	PhysicsComponent* other = ToCollider(shape);
+	if (!other || other == trigger || other->GetOwner() == trigger->GetOwner()) return;
+
+	eventCallback.ReportSweptTrigger(trigger, other, point, normal);
+}
+
+void PhysicsSceneContext::ProcessTriggerSweeps()
+{
+	struct SweepFilter : PxQueryFilterCallback
+	{
+		PhysicsComponent* trigger = nullptr;
+		LayerId layerId = InvalidLayerId;
+		const PxRigidActor* ignoreActor = nullptr;
+
+		PxQueryHitType::Enum preFilter(const PxFilterData&, const PxShape* shape,
+			const PxRigidActor* actor, PxHitFlags&) override
+		{
+			if (!shape || actor == ignoreActor) return PxQueryHitType::eNONE;
+			if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) return PxQueryHitType::eNONE;
+
+			PhysicsComponent* other = static_cast<PhysicsComponent*>(shape->userData);
+			if (!PhysicsComponent::IsLive(other) || !other->IsActive())
+				return PxQueryHitType::eNONE;
+			if (other == trigger || other->GetOwner() == trigger->GetOwner())
+				return PxQueryHitType::eNONE;
+
+			const LayerId otherLayer = static_cast<LayerId>(shape->getQueryFilterData().word1);
+			if (!PhysicsLayerManager::Instance().Collides(layerId, otherLayer))
+				return PxQueryHitType::eNONE;
+			return PxQueryHitType::eTOUCH;
+		}
+
+		PxQueryHitType::Enum postFilter(
+			const PxFilterData&, const PxQueryHit&, const PxShape*, const PxRigidActor*) override
+		{
+			return PxQueryHitType::eTOUCH;
+		}
+	} filter;
+
+	PxQueryFilterData filterData;
+	filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER |
+					   PxQueryFlag::eNO_BLOCK;
+
+	for (const TriggerSweepRequest& request : triggerSweepRequests)
+	{
+		if (!PhysicsComponent::IsLive(request.trigger) || !request.trigger->IsActive()) continue;
+
+		filter.trigger = request.trigger;
+		filter.layerId = request.layerId;
+		filter.ignoreActor = request.ignoreActor;
+
+		const float rotationDot =
+			std::clamp(std::abs(request.startPose.q.dot(request.endPose.q)), 0.0f, 1.0f);
+		const float rotationAngle = 2.0f * std::acos(rotationDot);
+		constexpr float RotationStep = PxPi / 18.0f;
+		const int segmentCount =
+			std::max(1, static_cast<int>(std::ceil(rotationAngle / RotationStep)));
+		const Vector3 startPosition = Conv::ToVector3(request.startPose.p);
+		const Vector3 endPosition = Conv::ToVector3(request.endPose.p);
+		const Quaternion startRotation = Conv::ToQuaternion(request.startPose.q);
+		const Quaternion endRotation = Conv::ToQuaternion(request.endPose.q);
+
+		for (int segment = 0; segment < segmentCount; ++segment)
+		{
+			if (!PhysicsComponent::IsLive(request.trigger) || !request.trigger->IsActive()) break;
+
+			const float startRate = static_cast<float>(segment) / segmentCount;
+			const float endRate = static_cast<float>(segment + 1) / segmentCount;
+			const Vector3 segmentStartPosition =
+				Vector3::Lerp(startPosition, endPosition, startRate);
+			const Vector3 segmentEndPosition = Vector3::Lerp(startPosition, endPosition, endRate);
+			const Quaternion segmentStartRotation =
+				Quaternion::Slerp(startRotation, endRotation, startRate);
+			const Quaternion segmentEndRotation =
+				Quaternion::Slerp(startRotation, endRotation, endRate);
+			const PxTransform segmentStart(
+				Conv::ToPxVec3(segmentStartPosition), Conv::ToPxQuat(segmentStartRotation));
+			const PxTransform segmentEnd(
+				Conv::ToPxVec3(segmentEndPosition), Conv::ToPxQuat(segmentEndRotation));
+			Vector3 movement = segmentEndPosition - segmentStartPosition;
+			const float distance = movement.Length();
+
+			if (distance > 0.00001f)
+			{
+				movement /= distance;
+				PxSweepBufferN<128> hits;
+				scene->sweep(request.geometry.any(), segmentStart, Conv::ToPxVec3(movement),
+					distance, hits, PxHitFlag::ePOSITION | PxHitFlag::eNORMAL, filterData, &filter);
+				for (PxU32 i = 0; i < hits.getNbAnyHits(); ++i)
+				{
+					const PxSweepHit& hit = hits.getAnyHit(i);
+					const Vector3 point = hit.flags & PxHitFlag::ePOSITION
+						? Conv::ToVector3(hit.position)
+						: segmentStartPosition;
+					const Vector3 normal = hit.flags & PxHitFlag::eNORMAL
+						? -Conv::ToVector3(hit.normal)
+						: movement;
+					ReportTriggerSweepHit(request.trigger, hit.shape, point, normal);
+				}
+			}
+			if (!PhysicsComponent::IsLive(request.trigger) || !request.trigger->IsActive()) break;
+
+			PxOverlapBufferN<128> overlaps;
+			scene->overlap(request.geometry.any(), segmentEnd, overlaps, filterData, &filter);
+			for (PxU32 i = 0; i < overlaps.getNbAnyHits(); ++i)
+			{
+				const PxOverlapHit& hit = overlaps.getAnyHit(i);
+				const PxTransform otherPose = PxShapeExt::getGlobalPose(*hit.shape, *hit.actor);
+				Vector3 normal = Conv::ToVector3(otherPose.p) - segmentEndPosition;
+				if (normal.LengthSquared() > eps) normal.Normalize();
+				else normal = Vector3::Zero;
+				const Vector3 point = (segmentEndPosition + Conv::ToVector3(otherPose.p)) * 0.5f;
+				ReportTriggerSweepHit(request.trigger, hit.shape, point, normal);
+			}
+		}
+	}
+	triggerSweepRequests.clear();
+}
+
+void PhysicsSceneContext::Simulate()
+{
+	ProcessTriggerSweeps();
+	scene->simulate(Game::Time::deltaTime);
+	scene->fetchResults(true);
+
+	// Stay ã‚¤ãƒ™ãƒ³ãƒˆã‚’é…ä¿¡ï¼ˆæ¥è§¦ç¶™ç¶šä¸­ã®ãƒšã‚¢ã«æ¯ãƒ•ãƒ¬ãƒ¼ãƒ é€šçŸ¥ï¼‰
+	eventCallback.DispatchStayEvents();
+}
+
+bool PhysicsManager::Raycast(const Vector3& origin, const Vector3& direction, float distance,
+	PhysicsRaycastHit& hit, int layer) const
+{
+	return Raycast(origin, direction, distance, hit, layer, nullptr);
 }
 
 bool PhysicsManager::Raycast(
@@ -491,6 +654,13 @@ bool PhysicsManager::Raycast(
         block.shape
         ? static_cast<LayerId>(block.shape->getQueryFilterData().word1)
         : InvalidLayerId;
+	hit.object = block.actor
+		? static_cast<Object*>(block.actor->userData)
+		: nullptr;
+	hit.actor = dynamic_cast<Actor*>(hit.object);
+	hit.collider = block.shape
+		? static_cast<PhysicsComponent*>(block.shape->userData)
+		: nullptr;
 
     return true;
 }
@@ -532,10 +702,10 @@ void PhysicsManager::Initialize()
     // PVD
     gPvd = PxCreatePvd(*gFoundation);
 
-    // Ú‘±İ’è(5425”Ôƒ|[ƒg)
+    // æ¥ç¶šè¨­å®š(5425ç•ªãƒãƒ¼ãƒˆ)
     gPvdTransport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 
-    // Ú‘±
+    // æ¥ç¶š
     if(gPvd->connect(*gPvdTransport, PxPvdInstrumentationFlag::eALL)) {
         printf("[PhysicsManager] PVD Connected!");
     }
@@ -544,19 +714,19 @@ void PhysicsManager::Initialize()
     PxTolerancesScale scale;
     gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, scale, true, gPvd);
 
-    // Extensions‰Šú‰»
+    // ExtensionsåˆæœŸåŒ–
     PxInitExtensions(*gPhysics, gPvd);
 
     // Cooking
     gCookingParams =  new PxCookingParams(PxTolerancesScale());
 
-    // CPUƒfƒBƒXƒpƒbƒ`ƒƒ
+    // CPUãƒ‡ã‚£ã‚¹ãƒ‘ãƒƒãƒãƒ£
     gDispatcher = PxDefaultCpuDispatcherCreate(1);
 
-    // ƒfƒtƒHƒ‹ƒg‚Ì•¨—Ş¿i–€C0.5, ”½”­0.5j
+    // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ç‰©ç†æè³ªï¼ˆæ‘©æ“¦0.5, åç™º0.5ï¼‰
     gDefaultMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.1f);
 
-    // ƒV[ƒ“¶¬
+    // ã‚·ãƒ¼ãƒ³ç”Ÿæˆ
     sceneContext = CreateSceneContext(PxVec3(0, -9.81f, 0));
 }
 

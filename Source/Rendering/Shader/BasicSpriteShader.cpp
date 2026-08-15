@@ -1,6 +1,4 @@
-﻿// BasicSpriteShader.cpp
-
-#include "Rendering/Shader/BasicSpriteShader.h"
+﻿#include "Rendering/Shader/BasicSpriteShader.h"
 #include "Resource/GpuResourceUtils.h"
 
 BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)

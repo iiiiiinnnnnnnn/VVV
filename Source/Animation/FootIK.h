@@ -1,6 +1,4 @@
-﻿// FootIK.h
-
-#pragma once
+﻿#pragma once
 #include <algorithm>
 #include <cmath>
 #include <cfloat>
@@ -11,15 +9,9 @@
 
 class FootIK : public PhysicsComponent
 {
-public:
-	FootIK(
-		Object* owner,
-		LayerId layerId,
-		VMDLModel* model,
-		const char* thighName,
-		const char* calfName,
-		const char* footName,
-		const char* ballName = nullptr);
+  public:
+	FootIK(Object* owner, LayerId layerId, VMDLModel* model, const char* thighName,
+		const char* calfName, const char* footName, const char* ballName = nullptr);
 
 	~FootIK() override = default;
 
@@ -30,9 +22,7 @@ public:
 	int GetUpdateOrder() const override { return 200; }
 
 	bool UpdateGroundTarget(
-		float rayUp = 1.0f,
-		float rayDown = 3.0f,
-		float contactOffset = 0.01f);
+		const Vector3& rayStartOffset, float rayLength, float contactOffset = 0.01f);
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
 	void SetPoleLiftY(float liftY) { poleLiftY = liftY; }
@@ -45,9 +35,7 @@ public:
 
 	void SetTarget(const Vector3& targetPosition);
 	void SetTargetFromContact(
-		const Vector3& contactPosition,
-		const Vector3& contactNormal,
-		float contactOffset = 0.01f);
+		const Vector3& contactPosition, const Vector3& contactNormal, float contactOffset = 0.01f);
 
 	void SetPoleWorldPosition(const Vector3& poleWorldPosition);
 	void SetPoleLocalPosition(const Vector3& poleLocalPosition);
@@ -71,12 +59,12 @@ public:
 
 	bool IsPoleInitialized() const { return chain.poleInitialized; }
 
-private:
+  private:
 	struct Chain
 	{
-		VMDLModel::Node* root = nullptr;    // thigh
-		VMDLModel::Node* mid = nullptr;     // calf
-		VMDLModel::Node* tip = nullptr;     // foot
+		VMDLModel::Node* root = nullptr;	// thigh
+		VMDLModel::Node* mid = nullptr;		// calf
+		VMDLModel::Node* tip = nullptr;		// foot
 		VMDLModel::Node* contact = nullptr; // ball。なければ foot
 
 		Vector3 targetPosition = Vector3::Zero;
@@ -132,20 +120,23 @@ private:
 		return false;
 	}
 
-	static void UpdateWorldTransforms(VMDLModel::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
+	static void UpdateWorldTransforms(
+		VMDLModel::Node& node, const DirectX::XMFLOAT4X4& modelWorldTransform)
 	{
 		DirectX::XMMATRIX S = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
-		DirectX::XMMATRIX R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation));
-		DirectX::XMMATRIX T = DirectX::XMMatrixTranslation(node.position.x, node.position.y, node.position.z);
+		DirectX::XMMATRIX R =
+			DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation));
+		DirectX::XMMATRIX T =
+			DirectX::XMMatrixTranslation(node.position.x, node.position.y, node.position.z);
 		DirectX::XMMATRIX LocalTransform = S * R * T;
 
 		DirectX::XMMATRIX ParentGlobalTransform =
-			node.parent != nullptr
-			? DirectX::XMLoadFloat4x4(&node.parent->globalTransform)
-			: DirectX::XMMatrixIdentity();
+			node.parent != nullptr ? DirectX::XMLoadFloat4x4(&node.parent->globalTransform)
+								   : DirectX::XMMatrixIdentity();
 
 		DirectX::XMMATRIX GlobalTransform = LocalTransform * ParentGlobalTransform;
-		DirectX::XMMATRIX WorldTransform = GlobalTransform * DirectX::XMLoadFloat4x4(&modelWorldTransform);
+		DirectX::XMMATRIX WorldTransform =
+			GlobalTransform * DirectX::XMLoadFloat4x4(&modelWorldTransform);
 
 		DirectX::XMStoreFloat4x4(&node.localTransform, LocalTransform);
 		DirectX::XMStoreFloat4x4(&node.globalTransform, GlobalTransform);
@@ -157,7 +148,8 @@ private:
 		}
 	}
 
-	static void RotateBone(VMDLModel::Node& bone, const Vector3& direction1, const Vector3& direction2)
+	static void RotateBone(
+		VMDLModel::Node& bone, const Vector3& direction1, const Vector3& direction2)
 	{
 		Vector3 dir1 = direction1;
 		Vector3 dir2 = direction2;

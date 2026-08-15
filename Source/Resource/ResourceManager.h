@@ -1,11 +1,10 @@
-Ôªø// ResourceManager.h
-
 #pragma once
 
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Resource/VMDLModel.h"
@@ -38,8 +37,9 @@ public:
 	static std::filesystem::path FindSourceDataRoot();
 
 	bool PrepareGameResources();
-	bool ReloadGameResources();
 	bool AreGameResourcesPrepared() const { return resourcesPrepared; }
+	// àÍìxÇæÇØì«çû
+	bool PreloadFile(const std::string& path);
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
 	const std::vector<std::string>& GetErrors() const { return errors; }
@@ -52,7 +52,6 @@ private:
 	bool BuildCaches();
 	bool LoadCachedPathList();
 	bool SaveCachedPathList();
-	bool PreloadCachedResources();
 	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});
 	void ReportError(const std::string& message);
 
@@ -72,7 +71,8 @@ private:
 	std::unordered_map<std::string, size_t> assetPathLookup;
 	std::unordered_map<std::string, std::shared_ptr<VMDLModel>> models;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
-	std::vector<std::shared_ptr<MipmapTexture>> mipmapTextures;
+	// ì«çûçœÇ›àÍóó
+	std::unordered_set<std::string> preloadedFiles;
 	std::vector<std::string> errors;
 	bool resourcesPrepared = false;
 };

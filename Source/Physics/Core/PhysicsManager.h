@@ -1,9 +1,8 @@
-// PhysicsManager.h
-
-#pragma once
+ï»¿#pragma once
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <vector>
 #include <utility>
 
 #include "Core/Foundation/Common.h"
@@ -86,52 +85,62 @@ namespace Conv
 static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 
 class Actor;
+class Object;
 class PhysicsComponent;
 
-// Õ“ËƒCƒxƒ“ƒgƒR[ƒ‹ƒoƒbƒN
+// è¡çªã‚¤ãƒ™ãƒ³ãƒˆã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
 class CollisionEventCallback : public PxSimulationEventCallback
 {
-public:
-    void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
-    void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
-    void DispatchStayEvents();
-    void ClearPairs();
-    void RemoveCollider(PhysicsComponent* collider)
-    {
-        std::erase_if(currentCollisionPairs, [collider](const auto& pair)
-        {
-            return pair.second.a == collider || pair.second.b == collider;
-        });
-        std::erase_if(currentTriggerPairs, [collider](const auto& pair)
-        {
-            return pair.second.a == collider || pair.second.b == collider;
-        });
-    }
+  public:
+	void onContact(
+		const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
+	void onTrigger(PxTriggerPair* pairs, PxU32 nbPairs) override;
+	void DispatchStayEvents();
+	void ReportSweptTrigger(PhysicsComponent* trigger, PhysicsComponent* other,
+		const Vector3& point, const Vector3& normal);
+	void ClearPairs();
+	void RemoveCollider(PhysicsComponent* collider)
+	{
+		std::erase_if(currentCollisionPairs, [collider](const auto& pair) {
+			return pair.second.a == collider || pair.second.b == collider;
+		});
+		std::erase_if(currentTriggerPairs, [collider](const auto& pair) {
+			return pair.second.a == collider || pair.second.b == collider;
+		});
+		std::erase_if(activeSweptTriggerPairs, [collider](const auto& pair) {
+			return pair.second.a == collider || pair.second.b == collider;
+		});
+		std::erase_if(reportedSweptTriggerPairs, [collider](const auto& pair) {
+			return pair.second.a == collider || pair.second.b == collider;
+		});
+	}
 
-    void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
-    void onWake(PxActor**, PxU32) override {}
-    void onSleep(PxActor**, PxU32) override {}
-    void onAdvance(const PxRigidBody* const*, const PxTransform*, PxU32) override {}
+	void onConstraintBreak(PxConstraintInfo*, PxU32) override {}
+	void onWake(PxActor**, PxU32) override {}
+	void onSleep(PxActor**, PxU32) override {}
+	void onAdvance(const PxRigidBody* const*, const PxTransform*, PxU32) override {}
 
-private:
-    using ColliderPair = std::pair<PhysicsComponent*, PhysicsComponent*>;
-    struct PairState
-    {
-        PhysicsComponent* a = nullptr;
-        PhysicsComponent* b = nullptr;
-        Vector3 point = Vector3::Zero;
-        Vector3 normal = Vector3::Zero;
-    };
+  private:
+	using ColliderPair = std::pair<PhysicsComponent*, PhysicsComponent*>;
+	struct PairState
+	{
+		PhysicsComponent* a = nullptr;
+		PhysicsComponent* b = nullptr;
+		Vector3 point = Vector3::Zero;
+		Vector3 normal = Vector3::Zero;
+	};
 
-    std::map<ColliderPair, PairState> currentCollisionPairs;
+	std::map<ColliderPair, PairState> currentCollisionPairs;
     std::map<ColliderPair, PairState> currentTriggerPairs;
+    std::map<ColliderPair, PairState> activeSweptTriggerPairs;
+    std::map<ColliderPair, PairState> reportedSweptTriggerPairs;
     static ColliderPair MakePair(PhysicsComponent* a, PhysicsComponent* b)
     {
         return (a <= b) ? ColliderPair(a, b) : ColliderPair(b, a);
     }
 };
 
-// CharacterController ‚ÌÚGƒR[ƒ‹ƒoƒbƒNiCC‘ÎRigidbodyj
+// CharacterController ã®æ¥è§¦ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ï¼ˆCCå¯¾Rigidbodyï¼‰
 class CCHitReport : public PxUserControllerHitReport
 {
 public:
@@ -158,7 +167,7 @@ public:
     void onControllerHit(const PxControllersHit& hit) override;
     void onObstacleHit(const PxControllerObstacleHit& hit) override {}
 
-    // Framework ‚Ì Simulate Œã‚É–ˆƒtƒŒ[ƒ€ŒÄ‚Ô
+    // Framework ã® Simulate å¾Œã«æ¯ãƒ•ãƒ¬ãƒ¼ãƒ å‘¼ã¶
     void DispatchEvents();
 
 private:
@@ -177,7 +186,7 @@ public:
     bool dispatchedThisFrame = false;
 };
 
-// CharacterController“¯m‚ÌÕ“ËƒtƒBƒ‹ƒ^
+// CharacterControlleråŒå£«ã®è¡çªãƒ•ã‚£ãƒ«ã‚¿
 class CCFilterCallback : public PxControllerFilterCallback
 {
 public:
@@ -187,35 +196,59 @@ public:
         PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
         int layerA = (int)shapeA->getSimulationFilterData().word1;
         int layerB = (int)shapeB->getSimulationFilterData().word1;
-        return PhysicsLayerManager::Instance().Collides(layerA, layerB);
-    }
+		return PhysicsLayerManager::Instance().Collides(layerA, layerB);
+	}
 };
 
-class PhysicsSceneContext {
-public:
-    PhysicsSceneContext(PxVec3 gravity = PxVec3(0, -9.81f, 0));
-    ~PhysicsSceneContext();
-    void Simulate() const;
+class PhysicsSceneContext
+{
+  public:
+	PhysicsSceneContext(PxVec3 gravity = PxVec3(0, -9.81f, 0));
+	~PhysicsSceneContext();
+	void Simulate();
+	void QueueTriggerSweep(PhysicsComponent* trigger, const PxGeometry& geometry,
+		const PxTransform& startPose, const PxTransform& endPose, LayerId layerId,
+		const PxRigidActor* ignoreActor);
 
-    PxScene* GetScene() const { return scene; }
-    PxControllerManager* GetControllerManager() const { return controllerManager; }
-    CollisionEventCallback& GetEventCallback() { return eventCallback; }
-    void ClearCollisionEvents() { eventCallback.ClearPairs(); }
+	PxScene* GetScene() const { return scene; }
+	PxControllerManager* GetControllerManager() const { return controllerManager; }
+	CollisionEventCallback& GetEventCallback() { return eventCallback; }
+	void ClearCollisionEvents() { eventCallback.ClearPairs(); }
 
-private:
-    PxScene* scene = nullptr;
-    PxControllerManager* controllerManager = nullptr;
-    CollisionEventCallback eventCallback;
+  private:
+	struct TriggerSweepRequest
+	{
+		PhysicsComponent* trigger = nullptr;
+		PxGeometryHolder geometry;
+		PxTransform startPose = PxTransform(PxIdentity);
+		PxTransform endPose = PxTransform(PxIdentity);
+		LayerId layerId = InvalidLayerId;
+		const PxRigidActor* ignoreActor = nullptr;
+	};
+
+	void ProcessTriggerSweeps();
+	void ReportTriggerSweepHit(
+		PhysicsComponent* trigger, PxShape* shape, const Vector3& point, const Vector3& normal);
+
+	PxScene* scene = nullptr;
+	PxControllerManager* controllerManager = nullptr;
+	CollisionEventCallback eventCallback;
+	std::vector<TriggerSweepRequest> triggerSweepRequests;
 };
 
-class PhysicsManager {
-public:
-    static PhysicsManager& Instance() { static PhysicsManager instance; return instance; }
+class PhysicsManager
+{
+  public:
+	static PhysicsManager& Instance()
+	{
+		static PhysicsManager instance;
+		return instance;
+	}
 
-    void Initialize();
-    void Finalize();
+	void Initialize();
+	void Finalize();
 
-    PhysicsSceneContext& GetSceneContext()
+	PhysicsSceneContext& GetSceneContext()
     {
         PhysicsSceneContext* context = threadSceneContext
             ? threadSceneContext
@@ -239,6 +272,9 @@ public:
         Vector3 normal = Vector3::Up;
         float distance = 0.0f;
         LayerId layerId = InvalidLayerId;
+		Object* object = nullptr;
+		Actor* actor = nullptr;
+		PhysicsComponent* collider = nullptr;
     };
 
     bool Raycast(
@@ -262,8 +298,8 @@ public:
         std::unique_ptr<PhysicsSceneContext> context);
     void RefreshLayerFiltering();
 
-    // ”ñ“¯Šúƒ[ƒhƒXƒŒƒbƒh‚¾‚¯‚ªg—p‚·‚éPhysXƒV[ƒ“‚ğw’è‚·‚éB
-    // nullptr‚ğ“n‚·‚Æ’Êí‚ÌƒJƒŒƒ“ƒgƒV[ƒ“‚Ö–ß‚éB
+    // éåŒæœŸãƒ­ãƒ¼ãƒ‰ã‚¹ãƒ¬ãƒƒãƒ‰ã ã‘ãŒä½¿ç”¨ã™ã‚‹PhysXã‚·ãƒ¼ãƒ³ã‚’æŒ‡å®šã™ã‚‹ã€‚
+    // nullptrã‚’æ¸¡ã™ã¨é€šå¸¸ã®ã‚«ãƒ¬ãƒ³ãƒˆã‚·ãƒ¼ãƒ³ã¸æˆ»ã‚‹ã€‚
     void SetThreadSceneContext(PhysicsSceneContext* context)
     {
         threadSceneContext = context;
@@ -299,8 +335,8 @@ public:
     static void SetLayerToShape(PxShape* shape, int layer)
     {
         PxFilterData fd;
-        fd.word0 = (1u << layer); // ©•ª‚ÌƒŒƒCƒ„[ƒrƒbƒg
-        fd.word1 = (PxU32)layer;  // ƒŒƒCƒ„[”Ô†iFilterShader‚ÅQÆj
+        fd.word0 = (1u << layer); // è‡ªåˆ†ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ“ãƒƒãƒˆ
+        fd.word1 = (PxU32)layer;  // ãƒ¬ã‚¤ãƒ¤ãƒ¼ç•ªå·ï¼ˆFilterShaderã§å‚ç…§ï¼‰
         shape->setSimulationFilterData(fd);
         shape->setQueryFilterData(fd);
     }

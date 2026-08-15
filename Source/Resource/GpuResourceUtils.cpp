@@ -1,6 +1,4 @@
-﻿// GpuResourceUtils.cpp
-
-#include <filesystem>
+﻿#include <filesystem>
 #include <wrl.h>
 #include <DirectXTex.h>
 #include <WICTextureLoader.h> 

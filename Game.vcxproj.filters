@@ -205,6 +205,9 @@
     <ClCompile Include="Source\Resource\VMDLModel.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Resource\MeshCache.cpp">
+	  <Filter>Resource</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Resource\VSTG.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -212,6 +215,9 @@
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Object\Object.cpp">
+      <Filter>Core\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Object\Component.cpp">
       <Filter>Core\Object</Filter>
     </ClCompile>
     <ClCompile Include="Source\Resource\Texture.cpp">
@@ -295,6 +301,9 @@
     <ClCompile Include="Source\Gameplay\Actor\Prop.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Actor\Spawner.cpp">
+      <Filter>Gameplay\Actor</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\CrystalProp.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -334,6 +343,9 @@
     <ClCompile Include="Source\Rendering\Renderer\ShapeRenderer.cpp">
       <Filter>Rendering\Renderer</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Rendering\Renderer\DebugSolidRenderer.cpp">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Rendering\Renderer\SkyBoxRenderer.cpp">
       <Filter>Rendering\Renderer</Filter>
     </ClCompile>
@@ -525,6 +537,9 @@
     <ClInclude Include="Source\Resource\VMDLModel.h">
       <Filter>Resource</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Resource\MeshCache.h">
+	  <Filter>Resource</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Resource\VSTG.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -630,6 +645,9 @@
     <ClInclude Include="Source\Gameplay\Actor\Prop.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Gameplay\Actor\Spawner.h">
+      <Filter>Gameplay\Actor</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\CrystalProp.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
@@ -663,12 +681,18 @@
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h">
-      <Filter>Rendering\Renderer</Filter>
-    </ClInclude>
+	<ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\ShapeRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Rendering\Renderer\DebugSolidRenderer.h">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\SkyBoxRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
@@ -876,9 +900,12 @@
     <FxCompile Include="Shader\PBRGS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\PBRPS.hlsl">
-      <Filter>Shaders\3D</Filter>
-    </FxCompile>
+	<FxCompile Include="Shader\PBRPS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
+	<FxCompile Include="Shader\UnlitPS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>

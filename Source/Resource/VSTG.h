@@ -1,7 +1,6 @@
-// VSTG.h
-
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -16,23 +15,19 @@ class Terrain;
 
 class VSTG
 {
-public:
+  public:
 	bool Load(const std::filesystem::path& path);
 	bool Save(const std::filesystem::path& path) const;
-	bool Capture(
-		Terrain& terrain,
-		NavMeshActor& navMesh,
-		StageLoader& stageLoader,
+	bool Capture(Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader,
 		const LightManager& lights);
-	bool Apply(
-		Terrain& terrain,
-		NavMeshActor& navMesh,
-		StageLoader& stageLoader,
+	bool Apply(Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader,
 		LightManager& lights) const;
+	size_t BuildEditorStateHash(const Terrain& terrain, const NavMeshActor& navMesh,
+		StageLoader& stageLoader, const LightManager& lights) const;
 
 	const std::string& GetError() const { return error; }
 
-private:
+  private:
 	std::string BuildLightingJson(const LightManager& lights) const;
 	bool ApplyLightingJson(const std::string& text, LightManager& lights) const;
 

@@ -1,6 +1,4 @@
-﻿// Shader.cpp
-
-#include "Rendering/Shader/Shader.h"
+﻿#include "Rendering/Shader/Shader.h"
 
 const std::vector<D3D11_INPUT_ELEMENT_DESC> SpriteShader::InputElementDescs =
 {

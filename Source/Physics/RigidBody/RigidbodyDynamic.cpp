@@ -1,5 +1,3 @@
-// RigidbodyDynamic.cpp
-
 #include "Physics/RigidBody/RigidbodyDynamic.h"
 
 RigidbodyDynamic::~RigidbodyDynamic()

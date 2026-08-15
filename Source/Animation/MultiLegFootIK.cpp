@@ -1,6 +1,4 @@
-﻿// MultiLegFootIK.cpp
-
-#include "Animation/MultiLegFootIK.h"
+﻿#include "Animation/MultiLegFootIK.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Animation/Animator.h"
@@ -8,9 +6,7 @@
 
 MultiLegFootIK::MultiLegFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator)
 	: Component(owner), model(model), animator(animator), layerId(layerId)
-{
-
-}
+{}
 
 void MultiLegFootIK::LateUpdate()
 {
@@ -27,7 +23,10 @@ void MultiLegFootIK::LateUpdate()
 		footIK->SetWeight(weight);
 		footIK->SetDownwardWeight(weight);
 		footIK->SetMaxDownCorrection(maxDownCorrection);
-		footIK->UpdateGroundTarget(rayUp, rayDown, contactOffset);
+		Vector3 startOffset;
+		float length = 0.0f;
+		GetRaySettings(footIndex, startOffset, length);
+		footIK->UpdateGroundTarget(startOffset, length, contactOffset);
 		footIK->SolveIK(model->GetWorldTransform());
 	}
 }
@@ -40,10 +39,7 @@ void MultiLegFootIK::DrawGUI()
 		const Vector3 waistPosition =
 			model->GetNodes()[waistNodeIndex].worldTransform.Translation();
 		ImGui::Text(
-			"Waist Dummy02: %.3f, %.3f, %.3f",
-			waistPosition.x,
-			waistPosition.y,
-			waistPosition.z);
+			"Waist Dummy02: %.3f, %.3f, %.3f", waistPosition.x, waistPosition.y, waistPosition.z);
 	}
 	ImGui::DragFloat("Ray Up", &rayUp, 0.01f, 0.0f);
 	ImGui::DragFloat("Ray Down", &rayDown, 0.01f, 0.0f);
@@ -63,10 +59,9 @@ void MultiLegFootIK::DrawGUI()
 		for (int footIndex = 0; footIndex < static_cast<int>(footIKs.size()); ++footIndex)
 		{
 			FootIK* footIK = footIKs[footIndex];
-			ImGui::TextDisabled(
-				"Foot %d Weight: %.2f  Hit: %s  OffsetY: %.3f  HitLayer: %d  RawLayer: %d  NormalY: %.2f",
-				footIndex,
-				GetFootIKWeight(footIndex),
+			ImGui::TextDisabled("Foot %d Weight: %.2f  Hit: %s  OffsetY: %.3f  HitLayer: %d  "
+								"RawLayer: %d  NormalY: %.2f",
+				footIndex, GetFootIKWeight(footIndex),
 				footIK && footIK->HasGroundContact() ? "Yes" : "No",
 				footIK ? footIK->GetGroundOffsetY() : 0.0f,
 				footIK ? static_cast<int>(footIK->GetLastHitLayerId()) : -1,
@@ -76,21 +71,19 @@ void MultiLegFootIK::DrawGUI()
 	}
 }
 
-void MultiLegFootIK::AddLeg(const char* rootName, const char* midName, const char* tipName, const char* contactName)
+void MultiLegFootIK::AddLeg(
+	const char* rootName, const char* midName, const char* tipName, const char* contactName)
 {
 	if (!owner) return;
 	if (!model) return;
 	if (!rootName || !midName || !tipName) return;
-	if (model->GetNodeIndex(rootName) < 0 || model->GetNodeIndex(midName) < 0 || model->GetNodeIndex(tipName) < 0) return;
+	if (model->GetNodeIndex(rootName) < 0 || model->GetNodeIndex(midName) < 0 ||
+		model->GetNodeIndex(tipName) < 0)
+		return;
 	if (contactName && model->GetNodeIndex(contactName) < 0) return;
 
-	FootIK* footIK = owner->AddComponent<FootIK>(
-		layerId,
-		model,
-		rootName,
-		midName,
-		tipName,
-		contactName);
+	FootIK* footIK =
+		owner->AddComponent<FootIK>(layerId, model, rootName, midName, tipName, contactName);
 
 	footIK->SetPoleLiftY(0.0f);
 	footIKs.push_back(footIK);
@@ -116,8 +109,7 @@ int MultiLegFootIK::AddLegsFromVmdlSettings()
 	{
 		const auto& leg = settings.legs[legIndex];
 		const size_t previousCount = footIKs.size();
-		AddLeg(
-			leg.root.c_str(), leg.mid.c_str(), leg.tip.c_str(),
+		AddLeg(leg.root.c_str(), leg.mid.c_str(), leg.tip.c_str(),
 			leg.contact.empty() ? nullptr : leg.contact.c_str());
 		if (footIKs.size() <= previousCount) continue;
 
@@ -152,8 +144,7 @@ void MultiLegFootIK::UpdateModelTransform()
 	if (!actor) return;
 
 	model->UpdateTransform(
-		actor->transform.matrix *
-		Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f));
+		actor->transform.matrix * Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f));
 }
 
 void MultiLegFootIK::ApplyFootSettings()
@@ -171,17 +162,35 @@ float MultiLegFootIK::GetFootIKWeight(int footIndex) const
 {
 	if (!animator) return 0.0f;
 	if (footIndex < 0 || footIndex >= static_cast<int>(footTargetNames.size())) return 0.0f;
-	if (model)
-	{
-		const int ikType = model->GetVmdlIKSettings().type;
-		if (ikType == 2 || ikType == 3)
-		{
-			return model->EvaluateFootIKWeight(
-				animator->GetCurrentAnimationIndex(),
-				animator->GetCurrentAnimationTime(),
-				footIndex);
-		}
-	}
+	if (!model) return 0.0f;
 
-	return 0.0f;
+	const int ikType = model->GetVmdlIKSettings().type;
+	if (ikType != 2 && ikType != 3) return 0.0f;
+
+	int animationIndex = -1;
+	float time = 0.0f;
+	int nextAnimationIndex = -1;
+	float nextTime = 0.0f;
+	if (!animator->GetAnimationControlState(
+		animationIndex, time, nextAnimationIndex, nextTime)) return 0.0f;
+
+	float weight = model->EvaluateFootIKWeight(animationIndex, time, footIndex);
+	if (nextAnimationIndex >= 0)
+		weight = std::max(weight,
+			model->EvaluateFootIKWeight(nextAnimationIndex, nextTime, footIndex));
+	return weight;
+
+}
+
+void MultiLegFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length) const
+{
+	startOffset = Vector3(0.0f, rayUp, 0.0f);
+	length = rayUp + rayDown;
+	if (!model) return;
+	const auto& settings = model->GetVmdlIKRaySettings();
+	if (footIndex < 0 || footIndex >= static_cast<int>(settings.size())) return;
+	const auto& ray = settings[footIndex];
+	if (!ray.custom) return;
+	startOffset = ray.startOffset;
+	length = ray.length;
 }

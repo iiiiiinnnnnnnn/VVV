@@ -1,6 +1,4 @@
-﻿// MeshCollider.cpp
-
-#include "Physics/Collider/MeshCollider.h"
+﻿#include "Physics/Collider/MeshCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"

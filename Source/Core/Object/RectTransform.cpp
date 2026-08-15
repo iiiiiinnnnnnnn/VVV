@@ -1,7 +1,4 @@
-﻿// RectTransform.cpp
-
-// RectTransform.h
-
+﻿
 #include "Core/Object/RectTransform.h"
 
 RectTransform::RectTransform(const Vector2& position, float angle, const Vector2& size, const Vector2 anchor)

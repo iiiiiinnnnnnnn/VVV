@@ -1,198 +1,65 @@
 {
     "agentRadius": 1.5,
-    "entryStateId": 2,
+    "entryStateId": 1,
+    "targetTag": "Player",
+    "trackingTurnSpeed": 8.0,
     "parameters": [
-        {
-            "bool": false,
-            "float": 20.0,
-            "name": "SearchRange",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 1.0,
-            "name": "SightRayHeight",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 30.0,
-            "name": "SightRayLength",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 1.0,
-            "name": "SightTargetHeight",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 90.0,
-            "name": "SightHorizontalFov",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 60.0,
-            "name": "SightVerticalFov",
-            "runtimeOnly": false,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": true,
-            "float": 0.0,
-            "name": "HasTarget",
-            "runtimeOnly": true,
-            "type": 0,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": true,
-            "float": 0.0,
-            "name": "IsTargetInSearchRange",
-            "runtimeOnly": true,
-            "type": 0,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 0.0,
-            "name": "IsTargetInSightAngle",
-            "runtimeOnly": true,
-            "type": 0,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 0.0,
-            "name": "IsTargetVisible",
-            "runtimeOnly": true,
-            "type": 0,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 3.0227880477905273,
-            "name": "TargetDistance",
-            "runtimeOnly": true,
-            "type": 1,
-            "vector": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            }
-        },
-        {
-            "bool": false,
-            "float": 0.0,
-            "name": "TargetPosition",
-            "runtimeOnly": true,
-            "type": 2,
-            "vector": {
-                "x": -7.087302207946777,
-                "y": 0.7500001192092896,
-                "z": -3.172764539718628
-            }
-        }
+        {"name":"SearchRange","type":1,"bool":false,"float":20.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"LostRange","type":1,"bool":false,"float":30.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightRayHeight","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightRayLength","type":1,"bool":false,"float":30.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightTargetHeight","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightHorizontalFov","type":1,"bool":false,"float":90.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightVerticalFov","type":1,"bool":false,"float":60.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"TurnThreshold","type":1,"bool":false,"float":15.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMinDistance","type":1,"bool":false,"float":3.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMaxDistance","type":1,"bool":false,"float":10.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMoveSpeed","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"AttackMoveSpeed","type":1,"bool":false,"float":6.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"AttackOverDistance","type":1,"bool":false,"float":8.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}}
     ],
     "states": [
         {
-            "callback": "Freedom",
-            "editorPosX": 84.0,
-            "editorPosY": 215.0,
-            "hasEditorPosition": true,
-            "id": 2,
-            "name": "自由歩行",
-            "transitions": [
-                {
-                    "conditionLogic": "AND",
-                    "conditions": [
-                        {
-                            "compare": 0,
-                            "parameter": "IsTargetVisible",
-                            "threshold": 0.0
-                        }
-                    ],
-                    "id": 9,
-                    "targetStateId": 4
-                }
+            "id":1,"parentStateId":-1,"entrySubStateId":3,"name":"Freedom","callback":"Freedom","hasEditorPosition":true,"editorPosX":80.0,"editorPosY":220.0,
+            "transitions":[{"id":1,"targetStateId":2,"conditionLogic":"AND","conditions":[{"parameter":"IsTargetVisible","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":2,"parentStateId":-1,"entrySubStateId":6,"name":"Attacking","callback":"Attacking","hasEditorPosition":true,"editorPosX":650.0,"editorPosY":220.0,
+            "transitions":[{"id":2,"targetStateId":1,"conditionLogic":"AND","conditions":[{"parameter":"IsTargetInLostRange","compare":1,"threshold":0.0}]}]
+        },
+        {
+            "id":3,"parentStateId":1,"entrySubStateId":-1,"name":"Wait","callback":"FreedomWait","hasEditorPosition":true,"editorPosX":40.0,"editorPosY":430.0,
+            "transitions":[{"id":3,"targetStateId":4,"conditionLogic":"AND","conditions":[{"parameter":"StateTime","compare":5,"threshold":2.0}]}]
+        },
+        {
+            "id":4,"parentStateId":1,"entrySubStateId":-1,"name":"Wander","callback":"FreedomWander","hasEditorPosition":true,"editorPosX":260.0,"editorPosY":430.0,
+            "transitions":[
+                {"id":4,"targetStateId":5,"conditionLogic":"AND","conditions":[{"parameter":"IsTurning","compare":0,"threshold":0.0}]},
+                {"id":5,"targetStateId":3,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]}
             ]
         },
         {
-            "callback": "Attacking",
-            "editorPosX": 226.0,
-            "editorPosY": 61.0,
-            "hasEditorPosition": true,
-            "id": 4,
-            "name": "攻撃態勢",
-            "transitions": [
-                {
-                    "conditionLogic": "AND",
-                    "conditions": [
-                        {
-                            "compare": 1,
-                            "parameter": "IsTargetInSearchRange",
-                            "threshold": 0.0
-                        }
-                    ],
-                    "id": 10,
-                    "targetStateId": 2
-                }
+            "id":5,"parentStateId":1,"entrySubStateId":-1,"name":"Turn","callback":"Turn","hasEditorPosition":true,"editorPosX":260.0,"editorPosY":610.0,
+            "transitions":[
+                {"id":6,"targetStateId":4,"conditionLogic":"AND","conditions":[{"parameter":"IsTurning","compare":1,"threshold":0.0},{"parameter":"HasDestination","compare":0,"threshold":0.0}]},
+                {"id":7,"targetStateId":3,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]}
             ]
+        },
+        {
+            "id":6,"parentStateId":2,"entrySubStateId":-1,"name":"Face Target","callback":"Turn","hasEditorPosition":true,"editorPosX":540.0,"editorPosY":430.0,
+            "transitions":[{"id":8,"targetStateId":7,"conditionLogic":"AND","conditions":[{"parameter":"IsFacingTarget","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":7,"parentStateId":2,"entrySubStateId":-1,"name":"Attack Prepare","callback":"FaceTarget","hasEditorPosition":true,"editorPosX":760.0,"editorPosY":430.0,
+            "transitions":[{"id":9,"targetStateId":8,"conditionLogic":"AND","conditions":[{"parameter":"StateTime","compare":5,"threshold":1.3}]}]
+        },
+        {
+            "id":8,"parentStateId":2,"entrySubStateId":-1,"name":"Chase","callback":"AttackChase","hasEditorPosition":true,"editorPosX":980.0,"editorPosY":430.0,
+            "transitions":[{"id":10,"targetStateId":9,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]}]
+        },
+        {
+            "id":9,"parentStateId":2,"entrySubStateId":-1,"name":"Recovery","callback":"Stop","hasEditorPosition":true,"editorPosX":760.0,"editorPosY":610.0,
+            "transitions":[{"id":11,"targetStateId":6,"conditionLogic":"AND","conditions":[{"parameter":"StateTime","compare":5,"threshold":0.8}]}]
         }
-    ],
-    "targetTag": "Player",
-    "trackingTurnSpeed": 8.0
+    ]
 }

@@ -1,6 +1,4 @@
-﻿// DynamicAnimationSerializer.cpp
-
-#include "Application/Tools/DynamicAnimationSerializer.h"
+﻿#include "Application/Tools/DynamicAnimationSerializer.h"
 
 #include "Core/Foundation/Json.h"
 

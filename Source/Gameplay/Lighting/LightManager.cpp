@@ -1,6 +1,4 @@
-// LightManager.cpp
-
-#include "Gameplay/Lighting/LightManager.h"
+﻿#include "Gameplay/Lighting/LightManager.h"
 
 #include <algorithm>
 #include "Gameplay/Lighting/CbLightData.h"
@@ -15,20 +13,17 @@ void LightManager::Update()
 
 	for (PointLight& pointLight : pointLights)
 	{
-		if (!pointLight.IsPendingDestroy())
-			pointLight.Update();
+		if (!pointLight.IsPendingDestroy()) pointLight.Update();
 	}
 
 	for (SpotLight& spotLight : spotLights)
 	{
-		if (!spotLight.IsPendingDestroy())
-			spotLight.Update();
+		if (!spotLight.IsPendingDestroy()) spotLight.Update();
 	}
 
 	for (AreaLight& areaLight : areaLights)
 	{
-		if (!areaLight.IsPendingDestroy())
-			areaLight.Update();
+		if (!areaLight.IsPendingDestroy()) areaLight.Update();
 	}
 }
 
@@ -38,187 +33,136 @@ void LightManager::Render(const RenderContext& rc)
 
 	for (PointLight& pointLight : pointLights)
 	{
-		if (!pointLight.IsPendingDestroy())
-			pointLight.Render(rc);
+		if (!pointLight.IsPendingDestroy()) pointLight.Render(rc);
 	}
 	for (SpotLight& spotLight : spotLights)
 	{
-		if (!spotLight.IsPendingDestroy())
-			spotLight.Render(rc);
+		if (!spotLight.IsPendingDestroy()) spotLight.Render(rc);
 	}
 	for (AreaLight& areaLight : areaLights)
 	{
-		if (!areaLight.IsPendingDestroy())
-			areaLight.Render(rc);
+		if (!areaLight.IsPendingDestroy()) areaLight.Render(rc);
 	}
 }
 
 void LightManager::DrawDebug() const
 {
-	ShapeRenderer* renderer =
-		Game::Graphics::Instance().GetShapeRenderer();
-	PrimitiveRenderer* primitiveRenderer =
-		Game::Graphics::Instance().GetPrimitiveRenderer();
+	ShapeRenderer* renderer = Game::Graphics::Instance().GetShapeRenderer();
+	PrimitiveRenderer* primitiveRenderer = Game::Graphics::Instance().GetPrimitiveRenderer();
 	if (!renderer || !primitiveRenderer) return;
 
 	for (const PointLight& pointLight : pointLights)
 	{
-		if (!pointLight.IsActive() ||
-			pointLight.IsPendingDestroy()) continue;
+		if (!pointLight.IsActive() || pointLight.IsPendingDestroy()) continue;
 
 		Color color = pointLight.GetColor();
 		color.w = 1.0f;
-		renderer->DrawSphere(
-			pointLight.transform.position,
-			0.15f,
-			color);
-		renderer->DrawSphere(
-			pointLight.transform.position,
-			pointLight.GetRange(),
-			color);
+		renderer->DrawSphere(pointLight.transform.position, 0.15f, color);
+		renderer->DrawSphere(pointLight.transform.position, pointLight.GetRange(), color);
 	}
 
 	for (const AreaLight& areaLight : areaLights)
 	{
-		if (!areaLight.IsActive() ||
-			areaLight.IsPendingDestroy()) continue;
+		if (!areaLight.IsActive() || areaLight.IsPendingDestroy()) continue;
 
-		const Color color(
-			1.0f,
-			0.55f,
-			0.05f,
-			1.0f);
-		const Vector3 angle =
-			areaLight.transform.rotation.ToEuler();
-		const float halfWidth =
-			std::max(areaLight.GetWidth(), 0.0f) *
-			0.5f;
-		const float halfHeight =
-			std::max(areaLight.GetHeight(), 0.0f) *
-			0.5f;
-		const float range =
-			std::max(areaLight.GetRange(), 0.0f);
+		const Color color(1.0f, 0.55f, 0.05f, 1.0f);
+		const Vector3 angle = areaLight.transform.rotation.ToEuler();
+		const float halfWidth = std::max(areaLight.GetWidth(), 0.0f) * 0.5f;
+		const float halfHeight = std::max(areaLight.GetHeight(), 0.0f) * 0.5f;
+		const float range = std::max(areaLight.GetRange(), 0.0f);
 
 		renderer->DrawBox(
-			areaLight.transform.position,
-			angle,
-			Vector3(
-				halfWidth,
-				halfHeight,
-				0.025f),
-			color);
+			areaLight.transform.position, angle, Vector3(halfWidth, halfHeight, 0.025f), color);
 
 		Color rangeColor = color;
 		rangeColor.w = 0.45f;
-		const Vector3 rangeEnd =
-			areaLight.transform.position -
-			areaLight.transform.forward *
-			range;
-		primitiveRenderer->DrawLine(
-			areaLight.transform.position,
-			rangeEnd,
-			color,
-			rangeColor);
-		renderer->DrawSphere(
-			rangeEnd,
-			0.1f,
-			color);
+		const Vector3 rangeEnd = areaLight.transform.position - areaLight.transform.forward * range;
+		primitiveRenderer->DrawLine(areaLight.transform.position, rangeEnd, color, rangeColor);
+		renderer->DrawSphere(rangeEnd, 0.1f, color);
 	}
 }
 
 void LightManager::DrawGUI()
 {
-	const auto visibleLightCount =
-		[](const auto& lights)
-		{
-			return static_cast<int>(
-				std::count_if(
-					lights.begin(),
-					lights.end(),
-					[](const auto& light)
-					{
-						return !light.IsPendingDestroy();
-					}));
-		};
+	const auto visibleLightCount = [](const auto& lights) {
+		return static_cast<int>(std::count_if(lights.begin(), lights.end(),
+			[](const auto& light) { return !light.IsPendingDestroy(); }));
+	};
 
-	if (ImGui::CollapsingHeader(
-		"Environment",
-		ImGuiTreeNodeFlags_DefaultOpen))
+	// 環境光
+	if (ImGui::CollapsingHeader((const char*)u8"環境光", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::ColorEdit4(
-			"Ambient Color",
-			&ambientColor.x,
-			ImGuiColorEditFlags_Float);
+		ImGui::ColorEdit4((const char*)u8"環境光の色", &ambientColor.x, ImGuiColorEditFlags_Float);
 	}
 
+	// ディレクショナルライト
 	if (ImGui::CollapsingHeader(
-		"Directional Light",
-		ImGuiTreeNodeFlags_DefaultOpen))
+			(const char*)u8"ディレクショナルライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::PushID(&directionalLight);
 		directionalLight.DrawGUI();
 		ImGui::PopID();
 	}
 
-	if (ImGui::CollapsingHeader(
-		"Point Lights",
-		ImGuiTreeNodeFlags_DefaultOpen))
+	// ポイントライト一覧
+	if (ImGui::CollapsingHeader((const char*)u8"ポイントライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text(
-			"Count: %d / %d",
-			visibleLightCount(pointLights),
+		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(pointLights),
 			CbLightData::MaxPointLights);
 
-		for (int i = 0;
-			i < static_cast<int>(pointLights.size());
-			++i)
+		for (int i = 0; i < static_cast<int>(pointLights.size()); ++i)
 		{
 			if (pointLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&pointLights[i]);
-			pointLights[i].DrawGUI();
+			const std::string label = pointLights[i].GetName() + "###PointLight";
+			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				pointLights[i].DrawGUI();
+				ImGui::TreePop();
+			}
 			ImGui::PopID();
 		}
 	}
 
-	if (ImGui::CollapsingHeader(
-		"Spot Lights",
-		ImGuiTreeNodeFlags_DefaultOpen))
+	// スポットライト一覧
+	if (ImGui::CollapsingHeader((const char*)u8"スポットライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text(
-			"Count: %d / %d",
-			visibleLightCount(spotLights),
+		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(spotLights),
 			CbLightData::MaxSpotLights);
 
-		for (int i = 0;
-			i < static_cast<int>(spotLights.size());
-			++i)
+		for (int i = 0; i < static_cast<int>(spotLights.size()); ++i)
 		{
 			if (spotLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&spotLights[i]);
-			spotLights[i].DrawGUI();
+			const std::string label = spotLights[i].GetName() + "###SpotLight";
+			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				spotLights[i].DrawGUI();
+				ImGui::TreePop();
+			}
 			ImGui::PopID();
 		}
 	}
 
-	if (ImGui::CollapsingHeader(
-		"Area Lights",
-		ImGuiTreeNodeFlags_DefaultOpen))
+	// エリアライト一覧
+	if (ImGui::CollapsingHeader((const char*)u8"エリアライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text(
-			"Count: %d / %d",
-			visibleLightCount(areaLights),
+		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(areaLights),
 			CbLightData::MaxAreaLights);
 
-		for (int i = 0;
-			i < static_cast<int>(areaLights.size());
-			++i)
+		for (int i = 0; i < static_cast<int>(areaLights.size()); ++i)
 		{
 			if (areaLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&areaLights[i]);
-			areaLights[i].DrawGUI();
+			const std::string label = areaLights[i].GetName() + "###AreaLight";
+			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				areaLights[i].DrawGUI();
+				ImGui::TreePop();
+			}
 			ImGui::PopID();
 		}
 	}
@@ -228,16 +172,12 @@ CbLightData LightManager::ConvertToCb() const
 {
 	CbLightData cbLightData{};
 
-	cbLightData.ambientColor =
-		ambientColor;
+	cbLightData.ambientColor = ambientColor;
 
 	// Directional Light
 	{
-		Vector3 direction =
-			Vector3::TransformNormal(
-			Vector3::UnitZ,
-			Matrix::CreateFromQuaternion(
-			directionalLight.transform.rotation));
+		Vector3 direction = Vector3::TransformNormal(
+			Vector3::UnitZ, Matrix::CreateFromQuaternion(directionalLight.transform.rotation));
 
 		if (direction.LengthSquared() > 0.000001f)
 		{
@@ -248,54 +188,43 @@ CbLightData LightManager::ConvertToCb() const
 			direction = Vector3::UnitZ;
 		}
 
-		cbLightData.directionalLight.direction =
-			direction;
+		cbLightData.directionalLight.direction = direction;
 
 		if (directionalLight.IsActive())
 		{
-			cbLightData.directionalLight.color =
-				directionalLight.GetColor();
+			cbLightData.directionalLight.color = directionalLight.GetColor();
 
-			cbLightData.directionalLight.color.w =
-				directionalLight.GetIntensity();
+			cbLightData.directionalLight.color.w = directionalLight.GetIntensity();
 		}
 		else
 		{
-			cbLightData.directionalLight.color =
-			{ 0.0f, 0.0f, 0.0f, 0.0f };
+			cbLightData.directionalLight.color = {0.0f, 0.0f, 0.0f, 0.0f};
 		}
 	}
 
 	// Point Lights
 	for (const PointLight& pointLight : pointLights)
 	{
-		if (!pointLight.IsActive() ||
-			pointLight.IsPendingDestroy())
+		if (!pointLight.IsActive() || pointLight.IsPendingDestroy())
 		{
 			continue;
 		}
 
-		if (cbLightData.pointLightCount >=
-			CbLightData::MaxPointLights)
+		if (cbLightData.pointLightCount >= CbLightData::MaxPointLights)
 		{
 			break;
 		}
 
 		CbLightData::CbPointLight& cbPointLight =
-			cbLightData.pointLights[
-				cbLightData.pointLightCount];
+			cbLightData.pointLights[cbLightData.pointLightCount];
 
-		cbPointLight.position =
-			pointLight.transform.position;
+		cbPointLight.position = pointLight.transform.position;
 
-		cbPointLight.color =
-			pointLight.GetColor();
+		cbPointLight.color = pointLight.GetColor();
 
-		cbPointLight.color.w =
-			pointLight.GetIntensity();
+		cbPointLight.color.w = pointLight.GetIntensity();
 
-		cbPointLight.range =
-			pointLight.GetRange();
+		cbPointLight.range = pointLight.GetRange();
 
 		++cbLightData.pointLightCount;
 	}
@@ -303,27 +232,20 @@ CbLightData LightManager::ConvertToCb() const
 	// Spot Lights
 	for (const SpotLight& spotLight : spotLights)
 	{
-		if (!spotLight.IsActive() ||
-			spotLight.IsPendingDestroy())
+		if (!spotLight.IsActive() || spotLight.IsPendingDestroy())
 		{
 			continue;
 		}
 
-		if (cbLightData.spotLightCount >=
-			CbLightData::MaxSpotLights)
+		if (cbLightData.spotLightCount >= CbLightData::MaxSpotLights)
 		{
 			break;
 		}
 
-		CbLightData::CbSpotLight& cbSpotLight =
-			cbLightData.spotLights[
-				cbLightData.spotLightCount];
+		CbLightData::CbSpotLight& cbSpotLight = cbLightData.spotLights[cbLightData.spotLightCount];
 
-		Vector3 direction =
-			Vector3::TransformNormal(
-			Vector3::UnitZ,
-			Matrix::CreateFromQuaternion(
-			spotLight.transform.rotation));
+		Vector3 direction = Vector3::TransformNormal(
+			Vector3::UnitZ, Matrix::CreateFromQuaternion(spotLight.transform.rotation));
 
 		if (direction.LengthSquared() > 0.000001f)
 		{
@@ -334,26 +256,19 @@ CbLightData LightManager::ConvertToCb() const
 			direction = Vector3::UnitZ;
 		}
 
-		cbSpotLight.position =
-			spotLight.transform.position;
+		cbSpotLight.position = spotLight.transform.position;
 
-		cbSpotLight.direction =
-			direction;
+		cbSpotLight.direction = direction;
 
-		cbSpotLight.color =
-			spotLight.GetColor();
+		cbSpotLight.color = spotLight.GetColor();
 
-		cbSpotLight.color.w =
-			spotLight.GetIntensity();
+		cbSpotLight.color.w = spotLight.GetIntensity();
 
-		cbSpotLight.range =
-			spotLight.GetRange();
+		cbSpotLight.range = spotLight.GetRange();
 
-		cbSpotLight.innerConeAngle =
-			spotLight.GetInnerConeAngle();
+		cbSpotLight.innerConeAngle = spotLight.GetInnerConeAngle();
 
-		cbSpotLight.outerConeAngle =
-			spotLight.GetOuterConeAngle();
+		cbSpotLight.outerConeAngle = spotLight.GetOuterConeAngle();
 
 		++cbLightData.spotLightCount;
 	}
@@ -361,35 +276,23 @@ CbLightData LightManager::ConvertToCb() const
 	// Area Lights
 	for (const AreaLight& areaLight : areaLights)
 	{
-		if (!areaLight.IsActive() ||
-			areaLight.IsPendingDestroy())
+		if (!areaLight.IsActive() || areaLight.IsPendingDestroy())
 		{
 			continue;
 		}
 
-		if (cbLightData.areaLightCount >=
-			CbLightData::MaxAreaLights)
+		if (cbLightData.areaLightCount >= CbLightData::MaxAreaLights)
 		{
 			break;
 		}
 
-		CbLightData::CbAreaLight& cbAreaLight =
-			cbLightData.areaLights[
-				cbLightData.areaLightCount];
+		CbLightData::CbAreaLight& cbAreaLight = cbLightData.areaLights[cbLightData.areaLightCount];
 
-		Matrix rotationMatrix =
-			Matrix::CreateFromQuaternion(
-			areaLight.transform.rotation);
+		Matrix rotationMatrix = Matrix::CreateFromQuaternion(areaLight.transform.rotation);
 
-		Vector3 direction =
-			Vector3::TransformNormal(
-			Vector3::UnitZ,
-			rotationMatrix);
+		Vector3 direction = Vector3::TransformNormal(Vector3::UnitZ, rotationMatrix);
 
-		Vector3 right =
-			Vector3::TransformNormal(
-			Vector3::UnitX,
-			rotationMatrix);
+		Vector3 right = Vector3::TransformNormal(Vector3::UnitX, rotationMatrix);
 
 		if (direction.LengthSquared() > 0.000001f)
 		{
@@ -409,29 +312,21 @@ CbLightData LightManager::ConvertToCb() const
 			right = Vector3::UnitX;
 		}
 
-		cbAreaLight.position =
-			areaLight.transform.position;
+		cbAreaLight.position = areaLight.transform.position;
 
-		cbAreaLight.direction =
-			direction;
+		cbAreaLight.direction = direction;
 
-		cbAreaLight.right =
-			right;
+		cbAreaLight.right = right;
 
-		cbAreaLight.width =
-			areaLight.GetWidth();
+		cbAreaLight.width = areaLight.GetWidth();
 
-		cbAreaLight.height =
-			areaLight.GetHeight();
+		cbAreaLight.height = areaLight.GetHeight();
 
-		cbAreaLight.range =
-			areaLight.GetRange();
+		cbAreaLight.range = areaLight.GetRange();
 
-		cbAreaLight.color =
-			areaLight.GetColor();
+		cbAreaLight.color = areaLight.GetColor();
 
-		cbAreaLight.color.w =
-			areaLight.GetIntensity();
+		cbAreaLight.color.w = areaLight.GetIntensity();
 
 		++cbLightData.areaLightCount;
 	}

@@ -1,5 +1,3 @@
-// TerrainMeshCollider.cpp
-
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
@@ -9,6 +7,7 @@
 #include "Gameplay/Actor/Actor.h"
 
 #include <cmath>
+#include <unordered_map>
 
 TerrainMeshCollider::TerrainMeshCollider(
     Object* owner,
@@ -43,17 +42,17 @@ TerrainMeshCollider::TerrainMeshCollider(
 void TerrainMeshCollider::OnAwake()
 {
     if (!debugVertices.empty() && !debugIndices.empty())
-        UpdateShape(debugVertices, debugIndices);
+        BuildChunksFromCachedMesh(debugVertices, debugIndices);
     else if (pendingGpuRebuild && rebuildOnAwake)
         RebuildFromTerrain();
 }
 
 TerrainMeshCollider::~TerrainMeshCollider()
 {
-    ReleaseShape();
+    for (ColliderChunk& chunk : chunks) ReleaseShape(chunk.shape);
 }
 
-void TerrainMeshCollider::ReleaseShape()
+void TerrainMeshCollider::ReleaseShape(PxShape*& shape)
 {
     if (!shape) return;
 
@@ -67,6 +66,125 @@ void TerrainMeshCollider::ReleaseShape()
 
     shape->release();
     shape = nullptr;
+}
+
+// 動的地形コライダーのチャンク分割
+
+void TerrainMeshCollider::InitializeChunks()
+{
+    if (chunks.size() == ChunkCountPerAxis * ChunkCountPerAxis &&
+        fabsf(chunks.front().area.minX - collisionArea.minX) <= eps &&
+        fabsf(chunks.front().area.minZ - collisionArea.minZ) <= eps &&
+        fabsf(chunks.back().area.maxX - collisionArea.maxX) <= eps &&
+        fabsf(chunks.back().area.maxZ - collisionArea.maxZ) <= eps)
+    {
+        return;
+    }
+
+    for (ColliderChunk& chunk : chunks) ReleaseShape(chunk.shape);
+    chunks.clear();
+    chunks.reserve(ChunkCountPerAxis * ChunkCountPerAxis);
+
+    const float rangeX = collisionArea.maxX - collisionArea.minX;
+    const float rangeZ = collisionArea.maxZ - collisionArea.minZ;
+    for (int z = 0; z < ChunkCountPerAxis; ++z)
+    {
+        for (int x = 0; x < ChunkCountPerAxis; ++x)
+        {
+            ColliderChunk chunk;
+            chunk.area.minX = collisionArea.minX + rangeX * x / ChunkCountPerAxis;
+            chunk.area.maxX = collisionArea.minX + rangeX * (x + 1) / ChunkCountPerAxis;
+            chunk.area.minZ = collisionArea.minZ + rangeZ * z / ChunkCountPerAxis;
+            chunk.area.maxZ = collisionArea.minZ + rangeZ * (z + 1) / ChunkCountPerAxis;
+            chunks.push_back(std::move(chunk));
+        }
+    }
+}
+
+void TerrainMeshCollider::BuildChunksFromCachedMesh(
+    const std::vector<Vector3>& vertices,
+    const std::vector<uint32_t>& indices)
+{
+    InitializeChunks();
+    for (ColliderChunk& chunk : chunks)
+    {
+        chunk.vertices.clear();
+        chunk.indices.clear();
+    }
+
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    Transform* transform = owner->GetComponent<Transform>();
+    if (!terrain || !transform) return;
+
+    const float width = terrain->GetTerrainSize() * transform->scale.x;
+    const float depth = terrain->GetTerrainSize() * transform->scale.z;
+    if (fabsf(width) <= eps || fabsf(depth) <= eps) return;
+
+    std::vector<std::unordered_map<uint32_t, uint32_t>> vertexMaps(chunks.size());
+    for (size_t index = 0; index + 2 < indices.size(); index += 3)
+    {
+        const uint32_t sourceIndices[] = {indices[index], indices[index + 1], indices[index + 2]};
+        const Vector3 center =
+            (vertices[sourceIndices[0]] + vertices[sourceIndices[1]] + vertices[sourceIndices[2]]) /
+            3.0f;
+        const float u = center.x / width + 0.5f;
+        const float v = center.z / depth + 0.5f;
+        const float rangeX = collisionArea.maxX - collisionArea.minX;
+        const float rangeZ = collisionArea.maxZ - collisionArea.minZ;
+        const int chunkX = std::clamp(static_cast<int>(
+            (u - collisionArea.minX) / rangeX * ChunkCountPerAxis), 0, ChunkCountPerAxis - 1);
+        const int chunkZ = std::clamp(static_cast<int>(
+            (v - collisionArea.minZ) / rangeZ * ChunkCountPerAxis), 0, ChunkCountPerAxis - 1);
+        const int chunkIndex = chunkZ * ChunkCountPerAxis + chunkX;
+        ColliderChunk& chunk = chunks[chunkIndex];
+        auto& vertexMap = vertexMaps[chunkIndex];
+
+        for (uint32_t sourceIndex : sourceIndices)
+        {
+            auto [it, inserted] = vertexMap.emplace(
+                sourceIndex, static_cast<uint32_t>(chunk.vertices.size()));
+            if (inserted) chunk.vertices.push_back(vertices[sourceIndex]);
+            chunk.indices.push_back(it->second);
+        }
+    }
+
+    for (ColliderChunk& chunk : chunks)
+    {
+        UpdateShape(chunk.shape, chunk.vertices, chunk.indices);
+    }
+    pendingGpuRebuild = false;
+}
+
+void TerrainMeshCollider::RebuildChunk(ColliderChunk& chunk)
+{
+    Terrain* terrain = owner->GetComponent<Terrain>();
+    if (!terrain) return;
+
+    if (!terrain->BuildGpuColliderMesh(
+        chunk.area.minX,
+        chunk.area.maxX,
+        chunk.area.minZ,
+        chunk.area.maxZ,
+        chunk.vertices,
+        chunk.indices))
+    {
+        return;
+    }
+
+    ApplyOwnerScale(chunk.vertices);
+    UpdateShape(chunk.shape, chunk.vertices, chunk.indices);
+}
+
+void TerrainMeshCollider::RefreshDebugMesh()
+{
+    debugVertices.clear();
+    debugIndices.clear();
+    for (const ColliderChunk& chunk : chunks)
+    {
+        const uint32_t vertexOffset = static_cast<uint32_t>(debugVertices.size());
+        debugVertices.insert(debugVertices.end(), chunk.vertices.begin(), chunk.vertices.end());
+        for (uint32_t index : chunk.indices) debugIndices.push_back(vertexOffset + index);
+    }
 }
 
 void TerrainMeshCollider::ClampCollisionArea()
@@ -100,32 +218,45 @@ void TerrainMeshCollider::ClampCollisionArea()
     }
 }
 
-void TerrainMeshCollider::RebuildFromTerrain()
+void TerrainMeshCollider::RebuildFromTerrain(bool saveCache)
 {
-    std::vector<Vector3> vertices;
-    std::vector<uint32_t> indices;
     Terrain* terrain = owner->GetComponent<Terrain>();
     _ASSERT_EXPR(terrain != nullptr, L"TerrainMeshCollider requires Terrain component.");
 
     ClampCollisionArea();
-    if (!terrain->BuildGpuColliderMesh(
-        collisionArea.minX,
-        collisionArea.maxX,
-        collisionArea.minZ,
-        collisionArea.maxZ,
-        vertices,
-        indices))
+    InitializeChunks();
+    for (ColliderChunk& chunk : chunks) RebuildChunk(chunk);
+    RefreshDebugMesh();
+    if (saveCache) SaveCachedMesh(debugVertices, debugIndices);
+    pendingGpuRebuild = false;
+}
+
+void TerrainMeshCollider::RebuildRegionFromTerrain(
+    float minX,
+    float maxX,
+    float minZ,
+    float maxZ)
+{
+    ClampCollisionArea();
+    InitializeChunks();
+    minX = std::clamp(minX, collisionArea.minX, collisionArea.maxX);
+    maxX = std::clamp(maxX, collisionArea.minX, collisionArea.maxX);
+    minZ = std::clamp(minZ, collisionArea.minZ, collisionArea.maxZ);
+    maxZ = std::clamp(maxZ, collisionArea.minZ, collisionArea.maxZ);
+    if (minX > maxX) std::swap(minX, maxX);
+    if (minZ > maxZ) std::swap(minZ, maxZ);
+
+    for (ColliderChunk& chunk : chunks)
     {
-        vxMessage = "GPU collider bake failed.";
-        return;
+        if (chunk.area.maxX < minX || chunk.area.minX > maxX ||
+            chunk.area.maxZ < minZ || chunk.area.minZ > maxZ)
+        {
+            continue;
+        }
+        RebuildChunk(chunk);
     }
 
-    ApplyOwnerScale(vertices);
-    UpdateShape(vertices, indices);
-    SaveCachedMesh(vertices, indices);
-
-    debugVertices = vertices;
-    debugIndices = indices;
+    RefreshDebugMesh();
     pendingGpuRebuild = false;
 }
 
@@ -315,11 +446,13 @@ void TerrainMeshCollider::ApplyOwnerScale(std::vector<Vector3>& vertices) const
 }
 
 void TerrainMeshCollider::UpdateShape(
+    PxShape*& shape,
     const std::vector<Vector3>& vertices,
     const std::vector<uint32_t>& indices)
 {
     if (vertices.empty() || indices.empty())
     {
+        ReleaseShape(shape);
         return;
     }
 
@@ -332,7 +465,7 @@ void TerrainMeshCollider::UpdateShape(
     _ASSERT_EXPR(rigidActor != nullptr, L"TerrainMeshCollider Rigidbody has no PhysX actor.");
     _ASSERT_EXPR(rigidActor->is<PxRigidStatic>() != nullptr, L"TerrainMeshCollider requires RigidbodyStatic.");
 
-    ReleaseShape();
+    ReleaseShape(shape);
 
     std::vector<PxVec3> pxVertices;
     pxVertices.reserve(vertices.size());
@@ -446,7 +579,7 @@ void TerrainMeshCollider::DrawGUI()
         std::vector<uint32_t> indices;
         if (LoadCachedMesh(vertices, indices))
         {
-            UpdateShape(vertices, indices);
+            BuildChunksFromCachedMesh(vertices, indices);
             debugVertices = vertices;
             debugIndices = indices;
         }

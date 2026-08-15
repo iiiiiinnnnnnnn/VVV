@@ -1,6 +1,4 @@
-﻿// Transform.cpp
-
-#include "Core/Object/Transform.h"
+﻿#include "Core/Object/Transform.h"
 
 #include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
@@ -156,11 +154,11 @@ Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
 {
 	TransformChangedResult res{};
 
-	if (ImGui::TreeNode(ICON_FA_ARROWS_ALT " Transform"))
+	if (ImGui::TreeNode((const char*)u8"トランスフォーム"))
 	{
-		res.positionChanged = ImGui::DragFloat3("Position", &position.x, 0.1f);
+		res.positionChanged = ImGui::DragFloat3((const char*)u8"位置", &position.x, 0.1f);
 		ImGui::SameLine();
-		if (ImGui::Button("Zero##Position"))
+		if (ImGui::Button((const char*)u8"原点##Position"))
 		{
 			position = Vector3::Zero;
 			res.positionChanged = true;
@@ -169,14 +167,14 @@ Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
 		euler.x = DEG(euler.x);
 		euler.y = DEG(euler.y);
 		euler.z = DEG(euler.z);
-		if (ImGui::DragFloat3("Angle", &euler.x, 0.1f))
+		if (ImGui::DragFloat3((const char*)u8"回転角度", &euler.x, 0.1f))
 		{
 			rotation = Quaternion::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z));
 			rotation.Normalize();
 			res.rotationChanged = true;
 		}
 		if (!hideScale)
-			res.scaleChanged = ImGui::DragFloat3("Scale", &scale.x, 0.1f);
+			res.scaleChanged = ImGui::DragFloat3((const char*)u8"拡大率", &scale.x, 0.1f);
 		ImGui::TreePop();
 
 		if (res.positionChanged || res.rotationChanged || res.scaleChanged)

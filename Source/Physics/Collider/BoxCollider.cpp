@@ -1,5 +1,3 @@
-// BoxCollider.cpp
-
 #include "Physics/Collider/BoxCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"

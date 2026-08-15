@@ -1,19 +1,11 @@
-﻿// FootIK.cpp
-
-#include "Animation/FootIK.h"
+﻿#include "Animation/FootIK.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
 
-FootIK::FootIK(
-	Object* owner,
-	LayerId layerId,
-	VMDLModel* model,
-	const char* thighName,
-	const char* calfName,
-	const char* footName,
-	const char* ballName)
+FootIK::FootIK(Object* owner, LayerId layerId, VMDLModel* model, const char* thighName,
+	const char* calfName, const char* footName, const char* ballName)
 	: PhysicsComponent(owner, layerId), model(model)
 {
 	chain.root = &model->GetNodes().at(model->GetNodeIndex(thighName));
@@ -30,17 +22,13 @@ FootIK::FootIK(
 		chain.contact = chain.tip;
 	}
 
-	if (!IsDescendantOf(chain.root, chain.mid) ||
-		!IsDescendantOf(chain.mid, chain.tip))
+	if (!IsDescendantOf(chain.root, chain.mid) || !IsDescendantOf(chain.mid, chain.tip))
 	{
 		chain.enabled = false;
 	}
 }
 
-bool FootIK::UpdateGroundTarget(
-	float rayUp,
-	float rayDown,
-	float contactOffset)
+bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, float contactOffset)
 {
 	if (!chain.enabled)
 	{
@@ -56,8 +44,8 @@ bool FootIK::UpdateGroundTarget(
 
 	Vector3 currentContactPosition = GetContactWorldPosition();
 
-	rayStart = currentContactPosition + Vector3(0, rayUp, 0);
-	rayEnd = currentContactPosition - Vector3(0, rayDown, 0);
+	rayStart = currentContactPosition + rayStartOffset;
+	rayEnd = rayStart - Vector3(0.0f, std::max(0.01f, rayLength), 0.0f);
 
 	Vector3 direction = rayEnd - rayStart;
 	float distance = direction.Length();
@@ -78,20 +66,10 @@ bool FootIK::UpdateGroundTarget(
 
 	// IK対象レイヤーだけを先に調べる。失敗時の全レイヤーRaycastはデバッグ情報の記録にだけ使う。
 	if (!PhysicsManager::Instance().Raycast(
-		rayStart,
-		direction,
-		distance,
-		hit,
-		layerId,
-		dynamic_cast<Actor*>(owner)))
+			rayStart, direction, distance, hit, layerId, dynamic_cast<Actor*>(owner)))
 	{
 		hasRawGroundHit = PhysicsManager::Instance().Raycast(
-			rayStart,
-			direction,
-			distance,
-			rawHit,
-			-1,
-			dynamic_cast<Actor*>(owner));
+			rayStart, direction, distance, rawHit, -1, dynamic_cast<Actor*>(owner));
 		lastRawHitLayerId = hasRawGroundHit ? rawHit.layerId : InvalidLayerId;
 		KeepPreviousGroundTarget();
 		return false;
@@ -106,10 +84,8 @@ bool FootIK::UpdateGroundTarget(
 		return false;
 	}
 
-	Vector3 targetContactPosition =
-		hit.position + hit.normal * contactOffset;
-	float targetGroundOffsetY =
-		targetContactPosition.y - currentContactPosition.y;
+	Vector3 targetContactPosition = hit.position + hit.normal * contactOffset;
+	float targetGroundOffsetY = targetContactPosition.y - currentContactPosition.y;
 	float targetWeight = 1.0f;
 
 	// 下方向は脚が伸び切らない範囲へ制限し、制限量に応じてIKウェイトも下げる。
@@ -129,38 +105,28 @@ bool FootIK::UpdateGroundTarget(
 		}
 
 		targetWeight =
-			(targetGroundOffsetY != 0.0f)
-			? limitedGroundOffsetY / targetGroundOffsetY
-			: 0.0f;
+			(targetGroundOffsetY != 0.0f) ? limitedGroundOffsetY / targetGroundOffsetY : 0.0f;
 		targetWeight *= downwardWeight;
 		targetWeight = std::clamp(targetWeight, 0.0f, 1.0f);
 		targetGroundOffsetY *= targetWeight;
 	}
 	else if (targetGroundOffsetY > maxUpCorrection)
 	{
-		targetWeight =
-			(targetGroundOffsetY != 0.0f)
-			? maxUpCorrection / targetGroundOffsetY
-			: 0.0f;
+		targetWeight = (targetGroundOffsetY != 0.0f) ? maxUpCorrection / targetGroundOffsetY : 0.0f;
 		targetWeight = std::clamp(targetWeight, 0.0f, 1.0f);
 		targetGroundOffsetY *= targetWeight;
 	}
 
-	SetTargetFromContact(
-		hit.position,
-		hit.normal,
-		contactOffset
-	);
+	SetTargetFromContact(hit.position, hit.normal, contactOffset);
 
 	if (targetWeight < 0.999f)
 	{
 		const Vector3 currentTipPosition = GetScaledNodeWorldPosition(*chain.tip);
-		chain.targetPosition = Vector3::Lerp(currentTipPosition, chain.targetPosition, targetWeight);
+		chain.targetPosition =
+			Vector3::Lerp(currentTipPosition, chain.targetPosition, targetWeight);
 	}
 
-	SetSmoothedTarget(
-		chain.targetPosition,
-		targetGroundOffsetY);
+	SetSmoothedTarget(chain.targetPosition, targetGroundOffsetY);
 
 	hasGroundContact = true;
 	lostGroundFrameCount = 0;
@@ -179,22 +145,16 @@ void FootIK::Render(const RenderContext& rc)
 	{
 		Vector3 targetPosition = chain.targetPosition;
 		Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-			targetPosition,
-			0.05f,
-			{1, 1, 0, 1});
+			targetPosition, 0.05f, {1, 1, 0, 1});
 	}
 	{
 		Vector3 polePosition = chain.polePosition;
 		Game::Graphics::Instance().GetShapeRenderer()->DrawSphere(
-			polePosition,
-			0.05f,
-			{0, 1, 1, 1});
+			polePosition, 0.05f, {0, 1, 1, 1});
 	}
 	{
 		Game::Graphics::Instance().GetPrimitiveRenderer()->DrawLine(
-			rayStart,
-			rayEnd,
-			{1, 0, 0, 1}, {1, 0, 0, 1});
+			rayStart, rayEnd, {1, 0, 0, 1}, {1, 0, 0, 1});
 	}
 }
 
@@ -218,8 +178,8 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 	Matrix tipWorldTransform = GetScaledNodeWorldTransform(*chain.tip);
 
 	Vector3 rootPosition = rootWorldTransform.Translation();
-	Vector3 midPosition  = midWorldTransform.Translation();
-	Vector3 tipPosition  = tipWorldTransform.Translation();
+	Vector3 midPosition = midWorldTransform.Translation();
+	Vector3 tipPosition = tipWorldTransform.Translation();
 
 	Vector3 rootToTip = tipPosition - rootPosition;
 	Vector3 rootToMid = midPosition - rootPosition;
@@ -232,8 +192,7 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 		rootToTipDirection.Normalize();
 
 		Vector3 projectedMidPosition =
-			rootPosition +
-			rootToTipDirection * rootToMid.Dot(rootToTipDirection);
+			rootPosition + rootToTipDirection * rootToMid.Dot(rootToTipDirection);
 
 		poleDirection = midPosition - projectedMidPosition;
 	}
@@ -245,10 +204,11 @@ void FootIK::InitializeFromCurrentPose(float poleDistance)
 
 	poleDirection.Normalize();
 
-	const Vector3 scaledPoleOffset = model
-		? model->GetScaledAttachmentVector(Vector3(poleDistance, poleLiftY, 0.0f))
-		: Vector3(poleDistance, poleLiftY, 0.0f);
-	chain.polePosition = midPosition + poleDirection * scaledPoleOffset.x + Vector3::Up * scaledPoleOffset.y;
+	const Vector3 scaledPoleOffset =
+		model ? model->GetScaledAttachmentVector(Vector3(poleDistance, poleLiftY, 0.0f))
+			  : Vector3(poleDistance, poleLiftY, 0.0f);
+	chain.polePosition =
+		midPosition + poleDirection * scaledPoleOffset.x + Vector3::Up * scaledPoleOffset.y;
 	chain.targetPosition = tipPosition;
 	chain.poleInitialized = true;
 	SyncPoleLocalPosition();
@@ -260,16 +220,11 @@ void FootIK::SetTarget(const Vector3& targetPosition)
 }
 
 void FootIK::SetTargetFromContact(
-	const Vector3& contactPosition,
-	const Vector3& contactNormal,
-	float contactOffset)
+	const Vector3& contactPosition, const Vector3& contactNormal, float contactOffset)
 {
 	if (chain.tip == nullptr) return;
 
-	VMDLModel::Node* contactNode =
-		chain.contact != nullptr
-		? chain.contact
-		: chain.tip;
+	VMDLModel::Node* contactNode = chain.contact != nullptr ? chain.contact : chain.tip;
 
 	Matrix tipWorldTransform = GetScaledNodeWorldTransform(*chain.tip);
 	Matrix contactWorldTransform = GetScaledNodeWorldTransform(*contactNode);
@@ -279,10 +234,7 @@ void FootIK::SetTargetFromContact(
 
 	Vector3 contactToTipOffset = tipPosition - currentContactPosition;
 
-	chain.targetPosition =
-		contactPosition +
-		contactNormal * contactOffset +
-		contactToTipOffset;
+	chain.targetPosition = contactPosition + contactNormal * contactOffset + contactToTipOffset;
 }
 
 void FootIK::SetPoleWorldPosition(const Vector3& poleWorldPosition)
@@ -369,9 +321,8 @@ void FootIK::SyncPoleWorldPosition()
 	if (!model) return;
 	if (!chain.poleInitialized) return;
 
-	chain.polePosition = Vector3::Transform(
-		chain.poleLocalPosition,
-		GetScaledModelOwnerWorldTransform());
+	chain.polePosition =
+		Vector3::Transform(chain.poleLocalPosition, GetScaledModelOwnerWorldTransform());
 }
 
 void FootIK::SyncPoleLocalPosition()
@@ -379,11 +330,8 @@ void FootIK::SyncPoleLocalPosition()
 	if (!model) return;
 
 	Matrix inverseModelWorldTransform = GetScaledModelOwnerWorldTransform().Invert();
-	chain.poleLocalPosition = Vector3::Transform(
-		chain.polePosition,
-		inverseModelWorldTransform);
+	chain.poleLocalPosition = Vector3::Transform(chain.polePosition, inverseModelWorldTransform);
 }
-
 
 Matrix FootIK::GetModelOwnerWorldTransform() const
 {
@@ -465,8 +413,7 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	Quaternion originalRootRotation = rootBone.rotation;
 	Quaternion originalMidRotation = midBone.rotation;
-	auto restoreOriginalPose = [&]()
-	{
+	auto restoreOriginalPose = [&]() {
 		rootBone.rotation = originalRootRotation;
 		midBone.rotation = originalMidRotation;
 		UpdateWorldTransforms(rootBone, ownerWorldTransform);

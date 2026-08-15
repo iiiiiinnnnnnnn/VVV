@@ -1,17 +1,18 @@
-﻿// StageLoader.cpp
-
-#include "Gameplay/Stage/Component/StageLoader.h"
+﻿#include "Gameplay/Stage/Component/StageLoader.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
 #include "magic_enum/magic_enum.hpp"
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include "Resource/ResourceManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Prop.h"
 #include "Gameplay/Actor/CrystalProp.h"
+#include "Gameplay/Actor/Spawner.h"
 #include "Core\Foundation\Json.h"
 
 static void LoadTransformJson(const json& transformJson, Transform& transform)
@@ -39,83 +40,44 @@ static void LoadTransformJson(const json& transformJson, Transform& transform)
 	}
 }
 
-static void SaveTransformJson(json& transformJson, const Transform& transform)
-{
-	transformJson["position"]["x"] = transform.position.x;
-	transformJson["position"]["y"] = transform.position.y;
-	transformJson["position"]["z"] = transform.position.z;
-
-	transformJson["rotation"]["x"] = transform.rotation.x;
-	transformJson["rotation"]["y"] = transform.rotation.y;
-	transformJson["rotation"]["z"] = transform.rotation.z;
-	transformJson["rotation"]["w"] = transform.rotation.w;
-
-	transformJson["scale"]["x"] = transform.scale.x;
-	transformJson["scale"]["y"] = transform.scale.y;
-	transformJson["scale"]["z"] = transform.scale.z;
-}
-
-VMatMaterialParams StageLoader::PropData::MakeVMatParams() const
-{
-	return {
-		.baseColor = color,
-		.emissionColor = emission,
-		.metalness = metallic,
-		.roughness = roughness,
-		.occlusion = occlusion,
-		.occlusionStrength = occlusionStrength,
-		.shadowStrength = shadowStrength,
-		.isFlatShading = isFlatShading,
-	};
-}
-
-void StageLoader::DrawCrystalDataGUI(CrystalData& crystalData)
-{
-	crystalData.transform.DrawGUI();
-}
-
-void StageLoader::DrawPBRParamsGUI(PropData& propData)
-{
-	if (ImGui::TreeNode("PBR Shader Params"))
-	{
-		ImGui::ColorEdit4("Color", &propData.color.x);
-		ImGui::ColorEdit4("Emission", &propData.emission.x);
-		ImGui::DragFloat("Metallic", &propData.metallic, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("Roughness", &propData.roughness, 0.01f, 0.0001f, 1.0f);
-		ImGui::DragFloat("Occlusion", &propData.occlusion, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("Occlusion Strength", &propData.occlusionStrength, 0.01f, 0.0f, 1.0f);
-		ImGui::DragFloat("Shadow Strength", &propData.shadowStrength, 0.01f, 0.0f, 1.0f);
-		ImGui::Checkbox("Is Flat Shading", &propData.isFlatShading);
-		ImGui::TreePop();
-	}
-}
-
-void StageLoader::DrawColliderTypeGUI(PropData& propData)
-{
-	std::string previewName = std::string(magic_enum::enum_name(propData.colliderType));
-	if (ImGui::BeginCombo("Collider Type", previewName.c_str()))
-	{
-		for (ColliderType type : magic_enum::enum_values<ColliderType>())
-		{
-			std::string name = std::string(magic_enum::enum_name(type));
-			bool isSelected = propData.colliderType == type;
-			if (ImGui::Selectable(name.c_str(), isSelected))
-				propData.colliderType = type;
-			if (isSelected)
-				ImGui::SetItemDefaultFocus();
-		}
-		ImGui::EndCombo();
-	}
-}
-
 void StageLoader::DrawDestroyGUI(PropData& propData)
 {
-	ImGui::Checkbox("Use Destroy", &propData.useDestroy);
+	// 破壊設定
+	ImGui::Checkbox((const char*)u8"破壊可能", &propData.useDestroy);
 	if (propData.useDestroy)
 	{
-		ImGui::DragFloat("Destroy Life", &propData.destroyLife, 0.1f, 0.0f, 100000.0f);
+		ImGui::DragFloat((const char*)u8"耐久値", &propData.destroyLife, 0.1f, 0.0f, 100000.0f);
 		if (propData.destroyLife < 0.0f) propData.destroyLife = 0.0f;
+
+		// ダメージを受ける物理レイヤー
+		if (ImGui::TreeNode((const char*)u8"ダメージを受けるレイヤー"))
+		{
+			PhysicsLayerManager& layerManager = PhysicsLayerManager::Instance();
+			for (int layer = 0; layer < EditableLayerCount; ++layer)
+			{
+				if (layerManager.GetLayerName(static_cast<LayerId>(layer)).empty()) continue;
+				bool enabled = (propData.destroyLayerMask & (1u << layer)) != 0;
+				const std::string label =
+					layerManager.GetLayerDisplayName(static_cast<LayerId>(layer));
+				if (ImGui::Checkbox(label.c_str(), &enabled))
+				{
+					if (enabled) propData.destroyLayerMask |= 1u << layer;
+					else propData.destroyLayerMask &= ~(1u << layer);
+				}
+			}
+			ImGui::TreePop();
+		}
 	}
+}
+
+uint32_t StageLoader::GetDefaultDestroyLayerMask()
+{
+	uint32_t mask = 0;
+	const LayerId playerAttack = Layers::Get("PlayerAtk");
+	const LayerId enemyAttack = Layers::Get("EnemyAtk");
+	if (playerAttack < EditableLayerCount) mask |= 1u << playerAttack;
+	if (enemyAttack < EditableLayerCount) mask |= 1u << enemyAttack;
+	return mask;
 }
 StageLoader::StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
@@ -129,6 +91,185 @@ StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonTex
 	LoadJson();
 }
 
+std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
+{
+	std::vector<EditorObjectReference> objects;
+	objects.reserve(propDataList.size());
+	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
+		objects.push_back({EditorObjectType::Prop, i, &propDataList[i].transform});
+	return objects;
+}
+
+bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
+{
+	const bool valid = type == EditorObjectType::Prop && index >= 0 &&
+		index < static_cast<int>(propDataList.size());
+	if (!valid) return false;
+	selectedEditorObjectType = type;
+	selectedEditorObjectIndex = index;
+	return true;
+}
+
+bool StageLoader::SelectEditorActor(const Actor* actor)
+{
+	if (!actor) return false;
+	for (int i = 0; i < static_cast<int>(addedPropActors.size()); ++i)
+		if (addedPropActors[i] == actor) return SelectEditorObject(EditorObjectType::Prop, i);
+	return false;
+}
+
+bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction)
+{
+	if (direction.LengthSquared() < 0.000001f) return false;
+	Vector3 normalizedDirection = direction;
+	normalizedDirection.Normalize();
+	const DirectX::SimpleMath::Ray ray(origin, normalizedDirection);
+
+	float nearestDistance = std::numeric_limits<float>::max();
+	int nearestIndex = -1;
+	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
+	{
+		PropData& propData = propDataList[propIndex];
+		if (!propData.model) propData.model = LoadPropModel(propData.modelPath);
+		if (!propData.model) continue;
+
+		propData.transform.Update();
+		auto bounds = editorSelectionBounds.find(propData.modelPath);
+		if (bounds == editorSelectionBounds.end())
+		{
+			propData.model->UpdateTransform(
+				Matrix::CreateTranslation(propData.model->GetVmdlExtensionData().rootOffset));
+			const Matrix renderScale = propData.model->GetRenderScaleTransform();
+			Vector3 minimum(
+				std::numeric_limits<float>::max(),
+				std::numeric_limits<float>::max(),
+				std::numeric_limits<float>::max());
+			Vector3 maximum(
+				std::numeric_limits<float>::lowest(),
+				std::numeric_limits<float>::lowest(),
+				std::numeric_limits<float>::lowest());
+			bool hasVertex = false;
+			for (const VMDLModel::Mesh& mesh : propData.model->GetMeshes())
+			{
+				if (!mesh.isDraw || !mesh.node) continue;
+				const Matrix vertexTransform = mesh.node->worldTransform * renderScale;
+				for (const VMDLModel::Vertex& vertex : mesh.vertices)
+				{
+					const Vector3 position =
+						Vector3::Transform(vertex.position, vertexTransform);
+					minimum = Vector3::Min(minimum, position);
+					maximum = Vector3::Max(maximum, position);
+					hasVertex = true;
+				}
+			}
+			if (!hasVertex) continue;
+
+			DirectX::BoundingBox localBounds;
+			localBounds.Center = (minimum + maximum) * 0.5f;
+			localBounds.Extents = (maximum - minimum) * 0.5f;
+			bounds = editorSelectionBounds.emplace(propData.modelPath, localBounds).first;
+		}
+
+		DirectX::BoundingBox worldBounds;
+		bounds->second.Transform(worldBounds, propData.transform.matrix);
+		float boundsDistance = 0.0f;
+		if (!ray.Intersects(worldBounds, boundsDistance) || boundsDistance >= nearestDistance)
+			continue;
+
+		const Matrix modelTransform =
+			Matrix::CreateTranslation(propData.model->GetVmdlExtensionData().rootOffset) *
+			propData.transform.matrix;
+		propData.model->UpdateTransform(modelTransform);
+		const Matrix renderScale = propData.model->GetRenderScaleTransform();
+
+		for (const VMDLModel::Mesh& mesh : propData.model->GetMeshes())
+		{
+			if (!mesh.isDraw || mesh.indices.size() < 3) continue;
+			const Matrix vertexTransform =
+				(mesh.node ? mesh.node->worldTransform : modelTransform) * renderScale;
+			for (size_t index = 0; index + 2 < mesh.indices.size(); index += 3)
+			{
+				const uint32_t index0 = mesh.indices[index];
+				const uint32_t index1 = mesh.indices[index + 1];
+				const uint32_t index2 = mesh.indices[index + 2];
+				if (index0 >= mesh.vertices.size() || index1 >= mesh.vertices.size() ||
+					index2 >= mesh.vertices.size())
+					continue;
+
+				const Vector3 vertex0 =
+					Vector3::Transform(mesh.vertices[index0].position, vertexTransform);
+				const Vector3 vertex1 =
+					Vector3::Transform(mesh.vertices[index1].position, vertexTransform);
+				const Vector3 vertex2 =
+					Vector3::Transform(mesh.vertices[index2].position, vertexTransform);
+				float distance = 0.0f;
+				if (!ray.Intersects(vertex0, vertex1, vertex2, distance) ||
+					distance >= nearestDistance)
+					continue;
+
+				nearestDistance = distance;
+				nearestIndex = propIndex;
+			}
+		}
+	}
+
+	return nearestIndex >= 0 && SelectEditorObject(EditorObjectType::Prop, nearestIndex);
+}
+
+void StageLoader::ClearEditorSelection()
+{
+	selectedEditorObjectType = EditorObjectType::None;
+	selectedEditorObjectIndex = -1;
+}
+
+Transform* StageLoader::GetSelectedEditorTransform()
+{
+	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(propDataList.size()))
+	{
+		PropData& propData = propDataList[selectedEditorObjectIndex];
+		if (!propData.model)
+			propData.model = LoadPropModel(propData.modelPath);
+		if (!propData.model) return nullptr;
+		selectedEditorTransform = propData.transform;
+		selectedEditorTransform.position =
+			Vector3::Transform(GetPropPlacementOffset(*propData.model), propData.transform.matrix);
+		selectedEditorTransform.Update();
+		return &selectedEditorTransform;
+	}
+	ClearEditorSelection();
+	return nullptr;
+}
+
+void StageLoader::RefreshSelectedEditorObject()
+{
+	if (selectedEditorObjectType != EditorObjectType::Prop || selectedEditorObjectIndex < 0 ||
+		selectedEditorObjectIndex >= static_cast<int>(propDataList.size()) ||
+		selectedEditorObjectIndex >= static_cast<int>(addedPropActors.size()) ||
+		!addedPropActors[selectedEditorObjectIndex])
+		return;
+
+	selectedEditorTransform.Update();
+	PropData& propData = propDataList[selectedEditorObjectIndex];
+	propData.transform.scale = selectedEditorTransform.scale;
+	propData.transform.rotation = selectedEditorTransform.rotation;
+	const Matrix rotationScale = Matrix::CreateScale(propData.transform.scale) *
+								 Matrix::CreateFromQuaternion(propData.transform.rotation);
+	propData.transform.position =
+		selectedEditorTransform.position -
+		Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
+	propData.transform.Update();
+	if (Prop* prop = dynamic_cast<Prop*>(addedPropActors[selectedEditorObjectIndex]))
+	{
+		prop->ApplyStageData(propData);
+	}
+	else if (CrystalProp* crystal =
+				 dynamic_cast<CrystalProp*>(addedPropActors[selectedEditorObjectIndex]))
+	{
+		crystal->ApplyStageData(propData);
+	}
+}
+
 void StageLoader::Update()
 {
 	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
@@ -136,53 +277,28 @@ void StageLoader::Update()
 		auto& prop = propDataList[propIndex];
 		if (!prop.model)
 		{
-			prop.model = ResourceManager::Instance().LoadModel(prop.modelPath);
+			prop.model = LoadPropModel(prop.modelPath);
 		}
-
-		const VMatMaterialParams params = prop.MakeVMatParams();
-		for (const VMDLModel::Material& material : prop.model->GetMaterials())
-			prop.renderParams.materials[material.name] = params;
 
 		prop.transform.Update();
 		prop.model->UpdateTransform(prop.transform.matrix);
 
-		if (propIndex < static_cast<int>(addedPropActors.size()) && addedPropActors[propIndex])
+		if (propIndex < static_cast<int>(addedPropActors.size()))
 		{
-			addedPropActors[propIndex]->ApplyStageData(prop);
+			Actor* addedActor = addedPropActors[propIndex];
+			if (Prop* actor = dynamic_cast<Prop*>(addedActor))
+				actor->ApplyStageData(prop);
+			else if (CrystalProp* actor = dynamic_cast<CrystalProp*>(addedActor))
+				actor->ApplyStageData(prop);
+			else if (addedActor)
+			{
+				addedActor->SetName(prop.name);
+				addedActor->SetTag(prop.tag);
+				addedActor->transform = prop.transform;
+				addedActor->transform.Update();
+			}
+			ConfigureSpawner(addedActor, prop);
 		}
-	}
-
-	for (int crystalIndex = 0; crystalIndex < static_cast<int>(crystalDataList.size()); ++crystalIndex)
-	{
-		auto& crystal = crystalDataList[crystalIndex];
-		if (crystalIndex < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[crystalIndex])
-		{
-			addedCrystalActors[crystalIndex]->ApplyStageData(crystal);
-		}
-	}}
-
-void StageLoader::Render(const RenderContext& rc)
-{
-	if (!showDebug) return;
-
-	for (auto& prop : propDataList)
-	{
-		Game::Graphics::Instance().GetModelRenderer()->Draw(ModelShaderId::VMat, prop.model, &prop.renderParams);
-	}
-
-	for (auto& spawner : spawnerDataList)
-	{
-		Matrix world = spawner.transform.matrix * Matrix::CreateTranslation(spawner.boxColliderData.localPosition);
-		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-			world.Translation(), spawner.transform.rotation.ToEuler(), spawner.boxColliderData.size, {1, 1, 1});
-	}
-	for (auto& prop : propDataList)
-	{
-		if (prop.colliderType != ColliderType::Box) continue;
-
-		Matrix world = prop.transform.matrix * Matrix::CreateTranslation(prop.boxColliderData.localPosition);
-		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
-			world.Translation(), prop.transform.rotation.ToEuler(), prop.boxColliderData.size, {1, 1, 1});
 	}
 }
 
@@ -190,22 +306,22 @@ void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
 {
 	crystalBreakParticleSystem = particleSystem;
 
-	for (CrystalProp* crystalActor : addedCrystalActors)
+	for (Actor* actor : addedPropActors)
 	{
+		CrystalProp* crystalActor = dynamic_cast<CrystalProp*>(actor);
 		if (crystalActor)
 		{
-			crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
+			crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal) {
+				for (Actor*& addedActor : addedRealActors)
 				{
-					for (Actor*& addedActor : addedRealActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-					for (CrystalProp*& addedActor : addedCrystalActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-				});
-				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
+					if (addedActor == destroyedCrystal) addedActor = nullptr;
+				}
+				for (Actor*& addedActor : addedPropActors)
+				{
+					if (addedActor == destroyedCrystal) addedActor = nullptr;
+				}
+			});
+			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 		}
 	}
 }
@@ -214,388 +330,233 @@ void StageLoader::RegisterSpawnerFactory(const std::string& entityName, SpawnerF
 {
 	if (entityName.empty() || !factory) return;
 	spawnerFactories[entityName] = std::move(factory);
+	for (int i = 0; i < static_cast<int>(propDataList.size()) &&
+		 i < static_cast<int>(addedPropActors.size()); ++i)
+	{
+		ConfigureSpawner(addedPropActors[i], propDataList[i]);
+	}
 }
 
-void StageLoader::SpawnEntities()
+std::vector<Spawner*> StageLoader::GetSpawners() const
 {
-	for (const std::weak_ptr<Actor>& actorReference : spawnedActors)
+	std::vector<Spawner*> result;
+	for (Actor* actor : addedPropActors)
 	{
-		if (std::shared_ptr<Actor> actor = actorReference.lock())
-			actor->Destroy();
-	}
-	spawnedActors.clear();
-
-	for (const SpawnerData& spawnerData : spawnerDataList)
-	{
-		auto factory = spawnerFactories.find(spawnerData.entityName);
-		if (factory == spawnerFactories.end()) continue;
-
-		std::shared_ptr<Actor> actor = factory->second(spawnerData.transform);
 		if (!actor) continue;
-
-		spawnedActors.push_back(actor);
-		stage->GetActorManager().Register(actor);
+		Spawner* spawner = actor->GetComponent<Spawner>();
+		if (spawner && spawner->IsActive()) result.push_back(spawner);
 	}
+	return result;
 }
 
 void StageLoader::DrawGUI()
 {
-	DrawEditorGUI(false);
+	DrawEditorGUI();
 }
 
-void StageLoader::DrawPropGUI()
+Actor* StageLoader::CreatePropActor(PropData& propData)
 {
-	addType = AddType::Prop;
-	DrawEditorGUI(true);
+	std::shared_ptr<Actor> actor;
+	if (propData.isSpawner && !propData.editorPreview)
+	{
+		actor = std::make_shared<Actor>(propData.name, propData.tag, true);
+		actor->transform = propData.transform;
+		actor->transform.Update();
+	}
+	else if (propData.type == PropType::Crystal)
+	{
+		auto crystal = std::make_shared<CrystalProp>(propData);
+		crystal->SetDestroyedCallback([this](CrystalProp* destroyedCrystal) {
+			for (Actor*& addedActor : addedRealActors)
+				if (addedActor == destroyedCrystal) addedActor = nullptr;
+			for (Actor*& addedActor : addedPropActors)
+				if (addedActor == destroyedCrystal) addedActor = nullptr;
+		});
+		crystal->SetBreakParticleSystem(crystalBreakParticleSystem);
+		actor = std::move(crystal);
+	}
+	else actor = std::make_shared<Prop>(propData);
+
+	Actor* result = actor.get();
+	ConfigureSpawner(result, propData);
+	stage->GetActorManager().Register(actor);
+	return result;
 }
 
-void StageLoader::DrawSpawnerGUI()
+void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 {
-	addType = AddType::Spawner;
-	DrawEditorGUI(true);
+	if (!actor) return;
+	Spawner* spawner = actor->GetComponent<Spawner>();
+	if (!spawner && propData.isSpawner)
+		spawner = actor->AddComponent<Spawner>(propData.spawnerEntityName);
+	if (!spawner) return;
+
+	spawner->SetEntityName(propData.spawnerEntityName);
+	spawner->SetActorManager(&stage->GetActorManager());
+	spawner->SetActive(propData.isSpawner);
+	spawner->SetEditorPreview(propData.isSpawner && propData.editorPreview);
+	Transform summonTransform = propData.transform;
+	if (propData.model)
+	{
+		const Matrix rotationScale = Matrix::CreateScale(propData.transform.scale) *
+			Matrix::CreateFromQuaternion(propData.transform.rotation);
+		summonTransform.position +=
+			Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
+		summonTransform.Update();
+	}
+	spawner->SetSummonTransform(summonTransform);
+	const auto factory = spawnerFactories.find(propData.spawnerEntityName);
+	spawner->SetFactory(factory == spawnerFactories.end() ? SpawnerFactory{} : factory->second);
 }
 
-void StageLoader::DrawCrystalGUI()
+std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPath) const
 {
-	addType = AddType::Crystal;
-	DrawEditorGUI(true);
+	if (editorModels)
+	{
+		const auto found = editorModels->find(modelPath);
+		if (found != editorModels->end() && found->second) return found->second->Clone();
+	}
+	return ResourceManager::Instance().LoadModel(modelPath);
 }
 
-void StageLoader::DrawEditorGUI(bool singleSection)
+Vector3 StageLoader::GetPropPlacementOffset(VMDLModel& model)
 {
-	ImGui::PushID(static_cast<int>(addType));
-	if (!singleSection)
+	model.UpdateTransform(Matrix::CreateTranslation(model.GetVmdlExtensionData().rootOffset));
+	for (const VMDLModel::VmdlCollider& collider : model.GetVmdlExtensionData().colliders)
 	{
-		ImGui::Text("Json Path: %s", jsonPath.string().c_str());
-		float availWidth = ImGui::GetContentRegionAvail().x;
-		float spacing = ImGui::GetStyle().ItemSpacing.x;
-		float buttonWidth = (availWidth - spacing) * 0.5f;
+		if (collider.name != PlacementColliderName || collider.nodeIndex < 0 ||
+			collider.nodeIndex >= static_cast<int>(model.GetNodes().size()))
+			continue;
 
-		if (ImGui::Button("Save", ImVec2(buttonWidth, 0.0f)))
-		{
-			SaveJson();
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Reload", ImVec2(buttonWidth, 0.0f)))
-		{
-			LoadJson();
-		}
-
-		ImGui::Separator();
+		const Matrix offset = Matrix::CreateFromYawPitchRoll(RAD(collider.rotation.y),
+								  RAD(collider.rotation.x), RAD(collider.rotation.z)) *
+							  Matrix::CreateTranslation(collider.center);
+		return model
+			.GetScaledAttachmentTransform(
+				offset * model.GetNodes()[collider.nodeIndex].worldTransform)
+			.Translation();
 	}
+	return Vector3::Zero;
+}
 
+bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint)
+{
+	PropData propData;
+	propData.modelPath = modelPath;
+	propData.name = std::filesystem::path(modelPath).stem().string();
+	propData.destroyLayerMask = GetDefaultDestroyLayerMask();
+	propData.editorPreview = editorModels != nullptr;
+	propData.model = LoadPropModel(modelPath);
+	if (!propData.model) return false;
+	const Matrix rotationScale = Matrix::CreateScale(propData.transform.scale) *
+								 Matrix::CreateFromQuaternion(propData.transform.rotation);
+	propData.transform.position =
+		terrainPoint -
+		Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
+	propData.transform.Update();
 
-	ImGui::Text("Add Object:");
-	if (ImGui::BeginChild("##addwin", ImVec2(0.0f, 400.0f), true))
+	propDataList.push_back(std::move(propData));
+	Actor* propActor = CreatePropActor(propDataList.back());
+	addedRealActors.push_back(propActor);
+	addedPropActors.push_back(propActor);
+	selectedEditorObjectType = EditorObjectType::Prop;
+	selectedEditorObjectIndex = static_cast<int>(propDataList.size()) - 1;
+	return true;
+}
+
+bool StageLoader::BuildEditorPropTransform(
+	VMDLModel& model, const Vector3& placementPoint, Transform& transform)
+{
+	const Matrix rotationScale =
+		Matrix::CreateScale(transform.scale) * Matrix::CreateFromQuaternion(transform.rotation);
+	transform.position =
+		placementPoint - Vector3::TransformNormal(GetPropPlacementOffset(model), rotationScale);
+	transform.Update();
+	return true;
+}
+
+void StageLoader::DrawEditorGUI()
+{
+	// 配置済みプロップ一覧
+	if (ImGui::TreeNodeEx((const char*)u8"プロップ",
+			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
 	{
-
-		if (!singleSection)
+		for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 		{
-			using AddType = decltype(addType);
-			std::string previewName = std::string(magic_enum::enum_name(addType));
-			if (ImGui::BeginCombo("##StageLoaderCombo", previewName.c_str()))
-			{
-				for (AddType type : magic_enum::enum_values<AddType>())
-				{
-					std::string name = std::string(magic_enum::enum_name(type));
-					bool isSelected = addType == type;
-					if (ImGui::Selectable(name.c_str(), isSelected)) addType = type;
+			auto& propData = propDataList[i];
 
-					if (isSelected) ImGui::SetItemDefaultFocus();
+			ImGui::PushID(i);
+
+			const bool selected = selectedEditorObjectType == EditorObjectType::Prop &&
+								  selectedEditorObjectIndex == i;
+			const std::string label =
+				(propData.name.empty() ? (const char*)u8"名前なし" : propData.name) + "###Prop";
+			const bool open = ImGui::TreeNodeEx(
+				label.c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);
+			if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::Prop, i);
+			if (open)
+			{
+				// 名前とトランスフォーム
+				ImGui::InputText((const char*)u8"名前", &propData.name);
+				ImGui::InputText((const char*)u8"タグ", &propData.tag);
+				propData.transform.DrawGUI();
+
+				// スポナー設定
+				ImGui::Checkbox((const char*)u8"スポナー", &propData.isSpawner);
+				if (propData.isSpawner)
+					ImGui::InputText((const char*)u8"生成対象", &propData.spawnerEntityName);
+
+				// 通常プロップの物理と破壊設定
+				if (propData.type == PropType::Standard)
+				{
+					propData.rigidbodyData.DrawGUI();
+					DrawDestroyGUI(propData);
 				}
-				ImGui::EndCombo();
-			}
-		}
 
-
-		if (addType == AddType::Spawner)
-		{
-			// transform
-			addSpawnerData.transform.DrawGUI();
-
-			// boxCollider
-			addSpawnerData.boxColliderData.DrawGUI();
-
-			ImGui::InputText("Entity Name", &addSpawnerData.entityName);
-
-			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
-			{
-				if (!addSpawnerData.entityName.empty())
-					spawnerDataList.push_back(addSpawnerData);
-			}
-
-		}
-		else if (addType == AddType::Prop)
-		{
-			// transform
-			addPropData.transform.DrawGUI();
-
-			DrawColliderTypeGUI(addPropData);
-			if (addPropData.colliderType == ColliderType::Box)
-			{
-				// boxCollider
-				addPropData.boxColliderData.DrawGUI();
-
-				// rigidbody
-				addPropData.rigidbodyData.DrawGUI();
-			}
-
-			DrawPBRParamsGUI(addPropData);
-			DrawDestroyGUI(addPropData);
-
-
-			std::vector<std::filesystem::path> modelFiles;
-			std::error_code directoryError;
-			const std::filesystem::path propDirectory = "Data/Model/Prop";
-			for (std::filesystem::directory_iterator file(propDirectory, directoryError), end;
-				file != end && !directoryError;
-				file.increment(directoryError))
-			{
-				if (file->path().extension() == ".vmdl")
+				// プロップの複製と削除
+				if (ImGui::Button((const char*)u8"複製"))
 				{
-					modelFiles.push_back(file->path());
+					PropData copy = propData;
+					copy.name += " Copy";
+					propDataList.insert(propDataList.begin() + i + 1, std::move(copy));
+					Actor* actor = CreatePropActor(propDataList[i + 1]);
+					addedRealActors.insert(addedRealActors.begin() + i + 1, actor);
+					addedPropActors.insert(addedPropActors.begin() + i + 1, actor);
+					SelectEditorObject(EditorObjectType::Prop, i + 1);
+					ImGui::TreePop();
+					ImGui::PopID();
+					break;
 				}
-			}
+				ImGui::SameLine();
 
-			ImGui::Text("VMDLModel Path:");
-			if (ImGui::BeginCombo("##StageLoaderPropDetail", std::filesystem::path(addPropData.modelPath).filename().string().c_str()))
-			{
-				for (const auto& path : modelFiles)
+				if (ImGui::Button((const char*)u8"削除"))
 				{
-					std::string name = path.stem().string();
-					std::string modelPath = "Data/Model/Prop/" + name;
-					bool isSelected = (addPropData.modelPath == modelPath);
-					if (ImGui::Selectable(name.c_str(), isSelected))
+					if (selectedEditorObjectType == EditorObjectType::Prop)
 					{
-						addPropData.modelPath = modelPath;
+						if (selectedEditorObjectIndex == i) ClearEditorSelection();
+						else if (selectedEditorObjectIndex > i) --selectedEditorObjectIndex;
 					}
-					if (isSelected)
+					if (i < static_cast<int>(addedPropActors.size()) && addedPropActors[i])
 					{
-						ImGui::SetItemDefaultFocus();
+						addedPropActors[i]->Destroy();
 					}
+					if (i < static_cast<int>(addedRealActors.size()))
+						addedRealActors.erase(addedRealActors.begin() + i);
+					if (i < static_cast<int>(addedPropActors.size()))
+						addedPropActors.erase(addedPropActors.begin() + i);
+					propDataList.erase(propDataList.begin() + i);
+					ImGui::TreePop();
+					ImGui::PopID();
+					break;
 				}
-				ImGui::EndCombo();
-			}
 
-
-			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
-			{
-				std::filesystem::path cachedModelPath(addPropData.modelPath);
-				cachedModelPath.replace_extension(".vmdl");
-				if (std::filesystem::exists(cachedModelPath))
-				{
-					propDataList.push_back(addPropData);
-					auto propActor = std::make_shared<Prop>(propDataList.back());
-					addedRealActors.push_back(propActor.get());
-					addedPropActors.push_back(propActor.get());
-					stage->GetActorManager().Register(propActor);
-				}
-			}
-		}
-		else if (addType == AddType::Crystal)
-		{
-			DrawCrystalDataGUI(addCrystalData);
-
-			if (ImGui::Button((const char*)u8"Add to loader", ImVec2(-FLT_MIN, 30.0f)))
-			{
-				if (true)
-				{
-					crystalDataList.push_back(addCrystalData);
-					auto crystalActor = std::make_shared<CrystalProp>(crystalDataList.back());
-                    crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
-				{
-					for (Actor*& addedActor : addedRealActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-					for (CrystalProp*& addedActor : addedCrystalActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-				});
-				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
-					addedRealActors.push_back(crystalActor.get());
-					addedCrystalActors.push_back(crystalActor.get());
-					stage->GetActorManager().Register(crystalActor);
-				}
-			}
-		}
-	}
-
-	ImGui::EndChild();
-
-	if (!singleSection || addType == AddType::Spawner)
-	{
-	ImGui::TextUnformatted("SpawnerList:");
-
-	ImGui::BeginChild("##spawnerlistwin", ImVec2(0.0f, 170.0f * 3.0f), true);
-
-	for (int i = 0; i < static_cast<int>(spawnerDataList.size()); ++i)
-	{
-		auto& spawnerData = spawnerDataList[i];
-
-		ImGui::PushID(i);
-
-		if (ImGui::TreeNode("Spawner"))
-		{
-			spawnerData.transform.DrawGUI();
-			spawnerData.boxColliderData.DrawGUI();
-
-			ImGui::InputText("Entity Name", &spawnerData.entityName);
-
-			if (ImGui::Button("Remove"))
-			{
-				spawnerDataList.erase(spawnerDataList.begin() + i);
 				ImGui::TreePop();
-				ImGui::PopID();
-				break;
 			}
 
-			ImGui::TreePop();
+			ImGui::PopID();
 		}
-
-		ImGui::PopID();
+		ImGui::TreePop();
 	}
-
-	ImGui::EndChild();
-	}
-
-	if (!singleSection || addType == AddType::Prop)
-	{
-	ImGui::TextUnformatted("PropList:");
-
-	ImGui::BeginChild("##proplistwin", ImVec2(0.0f, 170.0f * 3.0f), true);
-
-	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
-	{
-		auto& propData = propDataList[i];
-
-		ImGui::PushID(i);
-
-		if (ImGui::TreeNode("Prop"))
-		{
-			propData.transform.DrawGUI();
-			DrawColliderTypeGUI(propData);
-			if (propData.colliderType == ColliderType::Box)
-			{
-				propData.boxColliderData.DrawGUI();
-				propData.rigidbodyData.DrawGUI();
-			}
-
-			DrawPBRParamsGUI(propData);
-			DrawDestroyGUI(propData);
-
-			ImGui::Text("VMDLModel Path: %s", propData.modelPath.c_str());
-
-			if (ImGui::Button("Remove"))
-			{
-				if (i < static_cast<int>(addedPropActors.size()) && addedPropActors[i])
-				{
-					addedPropActors[i]->Destroy();
-				}
-				if (i < static_cast<int>(addedRealActors.size())) addedRealActors.erase(addedRealActors.begin() + i);
-				if (i < static_cast<int>(addedPropActors.size())) addedPropActors.erase(addedPropActors.begin() + i);
-				propDataList.erase(propDataList.begin() + i);
-				ImGui::TreePop();
-				ImGui::PopID();
-				break;
-			}
-
-			ImGui::TreePop();
-		}
-
-		ImGui::PopID();
-	}
-
-	ImGui::EndChild();
-	}
-
-	if (!singleSection || addType == AddType::Crystal)
-	{
-	ImGui::TextUnformatted("CrystalList:");
-
-	ImGui::BeginChild("##crystallistwin", ImVec2(0.0f, 170.0f * 3.0f), true);
-
-	for (int i = 0; i < static_cast<int>(crystalDataList.size()); ++i)
-	{
-		auto& crystalData = crystalDataList[i];
-
-		ImGui::PushID(i);
-
-		if (ImGui::TreeNode("CrystalProp"))
-		{
-			DrawCrystalDataGUI(crystalData);
-
-			if (ImGui::Button("Duplicate"))
-			{
-				CrystalData copiedCrystalData = crystalData;
-				crystalDataList.insert(crystalDataList.begin() + i + 1, copiedCrystalData);
-
-				auto crystalActor = std::make_shared<CrystalProp>(crystalDataList[i + 1]);
-                crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
-				{
-					for (Actor*& addedActor : addedRealActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-					for (CrystalProp*& addedActor : addedCrystalActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-				});
-				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
-				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i + 1;
-				if (realActorIndex <= static_cast<int>(addedRealActors.size()))
-				{
-					addedRealActors.insert(addedRealActors.begin() + realActorIndex, crystalActor.get());
-				}
-				else
-				{
-					addedRealActors.push_back(crystalActor.get());
-				}
-
-				if (i + 1 <= static_cast<int>(addedCrystalActors.size()))
-				{
-					addedCrystalActors.insert(addedCrystalActors.begin() + i + 1, crystalActor.get());
-				}
-				else
-				{
-					addedCrystalActors.push_back(crystalActor.get());
-				}
-
-				stage->GetActorManager().Register(crystalActor);
-				ImGui::TreePop();
-				ImGui::PopID();
-				break;
-			}
-			ImGui::SameLine();
-
-			if (ImGui::Button("Remove"))
-			{
-				if (i < static_cast<int>(addedCrystalActors.size()) && addedCrystalActors[i])
-				{
-					addedCrystalActors[i]->Destroy();
-				}
-				const int realActorIndex = static_cast<int>(addedPropActors.size()) + i;
-				if (realActorIndex < static_cast<int>(addedRealActors.size())) addedRealActors.erase(addedRealActors.begin() + realActorIndex);
-				if (i < static_cast<int>(addedCrystalActors.size())) addedCrystalActors.erase(addedCrystalActors.begin() + i);
-				crystalDataList.erase(crystalDataList.begin() + i);
-				ImGui::TreePop();
-				ImGui::PopID();
-				break;
-			}
-
-			ImGui::TreePop();
-		}
-
-		ImGui::PopID();
-	}
-
-	ImGui::EndChild();
-	}
-	ImGui::PopID();
 }
 
 void StageLoader::LoadJson()
@@ -622,92 +583,26 @@ void StageLoader::LoadJson()
 		return;
 	}
 
-	spawnerDataList.clear();
 	propDataList.clear();
-	crystalDataList.clear();
+	ClearEditorSelection();
 
 	for (auto addedActor : addedRealActors)
 	{
 		if (addedActor) addedActor->Destroy();
 	}
-	for (const std::weak_ptr<Actor>& actorReference : spawnedActors)
-	{
-		if (std::shared_ptr<Actor> actor = actorReference.lock())
-			actor->Destroy();
-	}
 	addedRealActors.clear();
 	addedPropActors.clear();
-	addedCrystalActors.clear();
-	spawnedActors.clear();
-
-	if (root.contains("spawners") && root["spawners"].is_array())
-	{
-		for (const auto& spawnerJson : root["spawners"])
-		{
-			SpawnerData spawnerData;
-
-			if (spawnerJson.contains("transform"))
-			{
-				const auto& transformJson = spawnerJson["transform"];
-
-				if (transformJson.contains("position"))
-				{
-					spawnerData.transform.position.x = transformJson["position"].value("x", 0.0f);
-					spawnerData.transform.position.y = transformJson["position"].value("y", 0.0f);
-					spawnerData.transform.position.z = transformJson["position"].value("z", 0.0f);
-				}
-
-				if (transformJson.contains("rotation"))
-				{
-					spawnerData.transform.rotation.x = transformJson["rotation"].value("x", 0.0f);
-					spawnerData.transform.rotation.y = transformJson["rotation"].value("y", 0.0f);
-					spawnerData.transform.rotation.z = transformJson["rotation"].value("z", 0.0f);
-					spawnerData.transform.rotation.w = transformJson["rotation"].value("w", 1.0f);
-				}
-
-				if (transformJson.contains("scale"))
-				{
-					spawnerData.transform.scale.x = transformJson["scale"].value("x", 1.0f);
-					spawnerData.transform.scale.y = transformJson["scale"].value("y", 1.0f);
-					spawnerData.transform.scale.z = transformJson["scale"].value("z", 1.0f);
-				}
-			}
-
-			if (spawnerJson.contains("boxCollider"))
-			{
-				const auto& boxColliderJson = spawnerJson["boxCollider"];
-
-				if (boxColliderJson.contains("localPosition"))
-				{
-					spawnerData.boxColliderData.localPosition.x = boxColliderJson["localPosition"].value("x", 0.0f);
-					spawnerData.boxColliderData.localPosition.y = boxColliderJson["localPosition"].value("y", 0.0f);
-					spawnerData.boxColliderData.localPosition.z = boxColliderJson["localPosition"].value("z", 0.0f);
-				}
-
-				if (boxColliderJson.contains("size"))
-				{
-					spawnerData.boxColliderData.size.x = boxColliderJson["size"].value("x", 1.0f);
-					spawnerData.boxColliderData.size.y = boxColliderJson["size"].value("y", 1.0f);
-					spawnerData.boxColliderData.size.z = boxColliderJson["size"].value("z", 1.0f);
-				}
-
-				spawnerData.boxColliderData.staticFriction = boxColliderJson.value("staticFriction", 0.5f);
-				spawnerData.boxColliderData.dynamicFriction = boxColliderJson.value("dynamicFriction", 0.5f);
-				spawnerData.boxColliderData.restitution = boxColliderJson.value("restitution", 0.0f);
-			}
-
-			spawnerData.entityName = spawnerJson.value("entityName", std::string("EnemySmall"));
-
-			spawnerData.transform.Update();
-			spawnerDataList.push_back(spawnerData);
-		}
-	}
 
 	if (root.contains("props") && root["props"].is_array())
 	{
 		for (const auto& propJson : root["props"])
 		{
 			PropData propData;
+			propData.name = propJson.value("name", std::string());
+			propData.tag = propJson.value("tag", std::string("Prop"));
+			const auto type =
+				magic_enum::enum_cast<PropType>(propJson.value("type", std::string("Standard")));
+			if (type.has_value()) propData.type = type.value();
 
 			if (propJson.contains("transform"))
 			{
@@ -736,79 +631,29 @@ void StageLoader::LoadJson()
 				}
 			}
 
-			if (propJson.contains("colliderType"))
-			{
-				std::string colliderTypeName = propJson.value("colliderType", "Box");
-				auto colliderType = magic_enum::enum_cast<ColliderType>(colliderTypeName);
-				if (colliderType.has_value())
-					propData.colliderType = colliderType.value();
-			}
-
-			if (propJson.contains("boxCollider"))
-			{
-				const auto& boxColliderJson = propJson["boxCollider"];
-
-				if (boxColliderJson.contains("localPosition"))
-				{
-					propData.boxColliderData.localPosition.x = boxColliderJson["localPosition"].value("x", 0.0f);
-					propData.boxColliderData.localPosition.y = boxColliderJson["localPosition"].value("y", 0.0f);
-					propData.boxColliderData.localPosition.z = boxColliderJson["localPosition"].value("z", 0.0f);
-				}
-
-				if (boxColliderJson.contains("size"))
-				{
-					propData.boxColliderData.size.x = boxColliderJson["size"].value("x", 1.0f);
-					propData.boxColliderData.size.y = boxColliderJson["size"].value("y", 1.0f);
-					propData.boxColliderData.size.z = boxColliderJson["size"].value("z", 1.0f);
-				}
-
-				propData.boxColliderData.staticFriction = boxColliderJson.value("staticFriction", 0.5f);
-				propData.boxColliderData.dynamicFriction = boxColliderJson.value("dynamicFriction", 0.5f);
-				propData.boxColliderData.restitution = boxColliderJson.value("restitution", 0.0f);
-			}
-
 			if (propJson.contains("rigidbody"))
 			{
 				const auto& rigidbodyJson = propJson["rigidbody"];
 				propData.rigidbodyData.isDynamic = rigidbodyJson.value("isDynamic", false);
 			}
 
-			if (propJson.contains("pbr"))
-			{
-				const auto& pbrJson = propJson["pbr"];
-				if (pbrJson.contains("color"))
-				{
-					propData.color.x = pbrJson["color"].value("r", 1.0f);
-					propData.color.y = pbrJson["color"].value("g", 1.0f);
-					propData.color.z = pbrJson["color"].value("b", 1.0f);
-					propData.color.w = pbrJson["color"].value("a", 1.0f);
-				}
-				if (pbrJson.contains("emission"))
-				{
-					propData.emission.x = pbrJson["emission"].value("r", propData.emission.x);
-					propData.emission.y = pbrJson["emission"].value("g", propData.emission.y);
-					propData.emission.z = pbrJson["emission"].value("b", propData.emission.z);
-					propData.emission.w = pbrJson["emission"].value("a", propData.emission.w);
-				}
-				propData.metallic = pbrJson.value("metallic", propData.metallic);
-				propData.roughness = pbrJson.value("roughness", propData.roughness);
-				propData.occlusion = pbrJson.value("occlusion", propData.occlusion);
-				propData.occlusionStrength = pbrJson.value("occlusionStrength", propData.occlusionStrength);
-				propData.shadowStrength = pbrJson.value("shadowStrength", propData.shadowStrength);
-				propData.isFlatShading = pbrJson.value("IsFlatShading", propData.isFlatShading);
-			}
-
 			propData.useDestroy = propJson.value("useDestroy", false);
 			propData.destroyLife = propJson.value("destroyLife", 0.0f);
+			propData.destroyLayerMask =
+				propJson.value("destroyLayerMask", GetDefaultDestroyLayerMask());
+			propData.isSpawner = propJson.value("isSpawner", false);
+			propData.spawnerEntityName =
+				propJson.value("spawnerEntityName", std::string("EnemySmall"));
+			propData.editorPreview = editorModels != nullptr;
 
 			propData.modelPath = propJson.value("modelPath", "");
+			if (propData.name.empty())
+				propData.name = std::filesystem::path(propData.modelPath).stem().string();
 
-			propDataList.push_back(propData);
-
-			auto propActor = std::make_shared<Prop>(propData);
-			addedRealActors.push_back(propActor.get());
-			addedPropActors.push_back(propActor.get());
-			stage->GetActorManager().Register(propActor);
+			propDataList.push_back(std::move(propData));
+			Actor* propActor = CreatePropActor(propDataList.back());
+			addedRealActors.push_back(propActor);
+			addedPropActors.push_back(propActor);
 		}
 	}
 
@@ -820,7 +665,8 @@ void StageLoader::LoadJson()
 			if (crystalJson.contains("transforms") && crystalJson["transforms"].is_array())
 			{
 				Transform parentTransform;
-				if (crystalJson.contains("transform")) LoadTransformJson(crystalJson["transform"], parentTransform);
+				if (crystalJson.contains("transform"))
+					LoadTransformJson(crystalJson["transform"], parentTransform);
 				parentTransform.Update();
 
 				for (const auto& transformJson : crystalJson["transforms"])
@@ -834,37 +680,28 @@ void StageLoader::LoadJson()
 			else
 			{
 				Transform transform;
-				if (crystalJson.contains("transform")) LoadTransformJson(crystalJson["transform"], transform);
+				if (crystalJson.contains("transform"))
+					LoadTransformJson(crystalJson["transform"], transform);
 				transforms.push_back(transform);
 			}
 
 			for (const Transform& transform : transforms)
 			{
-				CrystalData crystalData;
-				crystalData.transform = transform;
-				crystalDataList.push_back(crystalData);
-
-				auto crystalActor = std::make_shared<CrystalProp>(crystalData);
-				crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal)
-				{
-					for (Actor*& addedActor : addedRealActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-					for (CrystalProp*& addedActor : addedCrystalActors)
-					{
-						if (addedActor == destroyedCrystal) addedActor = nullptr;
-					}
-				});
-				crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
-				addedRealActors.push_back(crystalActor.get());
-				addedCrystalActors.push_back(crystalActor.get());
-				stage->GetActorManager().Register(crystalActor);
+				PropData propData;
+				propData.name = "Crystal";
+				propData.tag = "CrystalProp";
+				propData.type = PropType::Crystal;
+				propData.modelPath = "Data/Model/Crystal/crystals_from_space";
+				propData.transform = transform;
+				propData.editorPreview = editorModels != nullptr;
+				propDataList.push_back(std::move(propData));
+				Actor* crystalActor = CreatePropActor(propDataList.back());
+				addedRealActors.push_back(crystalActor);
+				addedPropActors.push_back(crystalActor);
 			}
 		}
 	}
 
-	if (!spawnerFactories.empty()) SpawnEntities();
 }
 
 void StageLoader::LoadJsonText(const std::string& text)
@@ -887,47 +724,14 @@ void StageLoader::SaveJson()
 {
 	json root;
 
-	root["spawners"] = json::array();
 	root["props"] = json::array();
-	root["crystals"] = json::array();
-
-	for (const auto& spawnerData : spawnerDataList)
-	{
-		json spawnerJson;
-
-		spawnerJson["transform"]["position"]["x"] = spawnerData.transform.position.x;
-		spawnerJson["transform"]["position"]["y"] = spawnerData.transform.position.y;
-		spawnerJson["transform"]["position"]["z"] = spawnerData.transform.position.z;
-
-		spawnerJson["transform"]["rotation"]["x"] = spawnerData.transform.rotation.x;
-		spawnerJson["transform"]["rotation"]["y"] = spawnerData.transform.rotation.y;
-		spawnerJson["transform"]["rotation"]["z"] = spawnerData.transform.rotation.z;
-		spawnerJson["transform"]["rotation"]["w"] = spawnerData.transform.rotation.w;
-
-		spawnerJson["transform"]["scale"]["x"] = spawnerData.transform.scale.x;
-		spawnerJson["transform"]["scale"]["y"] = spawnerData.transform.scale.y;
-		spawnerJson["transform"]["scale"]["z"] = spawnerData.transform.scale.z;
-
-		spawnerJson["boxCollider"]["localPosition"]["x"] = spawnerData.boxColliderData.localPosition.x;
-		spawnerJson["boxCollider"]["localPosition"]["y"] = spawnerData.boxColliderData.localPosition.y;
-		spawnerJson["boxCollider"]["localPosition"]["z"] = spawnerData.boxColliderData.localPosition.z;
-
-		spawnerJson["boxCollider"]["size"]["x"] = spawnerData.boxColliderData.size.x;
-		spawnerJson["boxCollider"]["size"]["y"] = spawnerData.boxColliderData.size.y;
-		spawnerJson["boxCollider"]["size"]["z"] = spawnerData.boxColliderData.size.z;
-
-		spawnerJson["boxCollider"]["staticFriction"] = spawnerData.boxColliderData.staticFriction;
-		spawnerJson["boxCollider"]["dynamicFriction"] = spawnerData.boxColliderData.dynamicFriction;
-		spawnerJson["boxCollider"]["restitution"] = spawnerData.boxColliderData.restitution;
-
-		spawnerJson["entityName"] = spawnerData.entityName;
-
-		root["spawners"].push_back(spawnerJson);
-	}
 
 	for (const auto& propData : propDataList)
 	{
 		json propJson;
+		propJson["name"] = propData.name;
+		propJson["tag"] = propData.tag;
+		propJson["type"] = std::string(magic_enum::enum_name(propData.type));
 
 		propJson["transform"]["position"]["x"] = propData.transform.position.x;
 		propJson["transform"]["position"]["y"] = propData.transform.position.y;
@@ -942,50 +746,19 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["y"] = propData.transform.scale.y;
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
 
-		propJson["boxCollider"]["localPosition"]["x"] = propData.boxColliderData.localPosition.x;
-		propJson["boxCollider"]["localPosition"]["y"] = propData.boxColliderData.localPosition.y;
-		propJson["boxCollider"]["localPosition"]["z"] = propData.boxColliderData.localPosition.z;
-
-		propJson["boxCollider"]["size"]["x"] = propData.boxColliderData.size.x;
-		propJson["boxCollider"]["size"]["y"] = propData.boxColliderData.size.y;
-		propJson["boxCollider"]["size"]["z"] = propData.boxColliderData.size.z;
-
-		propJson["boxCollider"]["staticFriction"] = propData.boxColliderData.staticFriction;
-		propJson["boxCollider"]["dynamicFriction"] = propData.boxColliderData.dynamicFriction;
-		propJson["boxCollider"]["restitution"] = propData.boxColliderData.restitution;
-
 		propJson["rigidbody"]["isDynamic"] = propData.rigidbodyData.isDynamic;
-		propJson["colliderType"] = std::string(magic_enum::enum_name(propData.colliderType));
-
-		propJson["pbr"]["color"]["r"] = propData.color.x;
-		propJson["pbr"]["color"]["g"] = propData.color.y;
-		propJson["pbr"]["color"]["b"] = propData.color.z;
-		propJson["pbr"]["color"]["a"] = propData.color.w;
-		propJson["pbr"]["emission"]["r"] = propData.emission.x;
-		propJson["pbr"]["emission"]["g"] = propData.emission.y;
-		propJson["pbr"]["emission"]["b"] = propData.emission.z;
-		propJson["pbr"]["emission"]["a"] = propData.emission.w;
-		propJson["pbr"]["metallic"] = propData.metallic;
-		propJson["pbr"]["roughness"] = propData.roughness;
-		propJson["pbr"]["occlusion"] = propData.occlusion;
-		propJson["pbr"]["occlusionStrength"] = propData.occlusionStrength;
-		propJson["pbr"]["shadowStrength"] = propData.shadowStrength;
-		propJson["pbr"]["IsFlatShading"] = propData.isFlatShading;
 
 		propJson["useDestroy"] = propData.useDestroy;
 		propJson["destroyLife"] = propData.destroyLife;
+		propJson["destroyLayerMask"] = propData.destroyLayerMask;
+		propJson["isSpawner"] = propData.isSpawner;
+		propJson["spawnerEntityName"] = propData.spawnerEntityName;
 
 		propJson["modelPath"] = propData.modelPath;
 
 		root["props"].push_back(propJson);
 	}
 
-	for (const CrystalData& crystalData : crystalDataList)
-	{
-		json crystalJson;
-		SaveTransformJson(crystalJson["transform"], crystalData.transform);
-		root["crystals"].push_back(crystalJson);
-	}
 	jsonText = root.dump(4);
 	if (jsonPath.empty()) return;
 	if (jsonPath.has_parent_path())

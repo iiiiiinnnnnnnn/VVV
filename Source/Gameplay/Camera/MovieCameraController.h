@@ -1,6 +1,4 @@
-﻿// MovieCameraController.h
-
-#pragma once
+﻿#pragma once
 #include <memory>
 
 #include "Gameplay/Camera/CameraController.h"

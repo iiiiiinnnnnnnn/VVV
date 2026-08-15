@@ -1,6 +1,4 @@
-﻿// DynamicAnimation.cpp
-
-#include "Application/Tools/DynamicAnimation.h"
+﻿#include "Application/Tools/DynamicAnimation.h"
 
 #include <algorithm>
 #include <cmath>

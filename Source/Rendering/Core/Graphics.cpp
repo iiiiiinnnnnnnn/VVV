@@ -1,4 +1,3 @@
-ï»¿// Graphics.cpp
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/GpuResourceUtils.h"
@@ -7,6 +6,15 @@ namespace Game
 {
 	float Graphics::ScreenWidth = 0.0f;
 	float Graphics::ScreenHeight = 0.0f;
+
+	Vector2 Graphics::GetMouseNDC(float mouseX, float mouseY) const
+	{
+		const float width = std::max(ScreenWidth, 1.0f);
+		const float height = std::max(ScreenHeight, 1.0f);
+		return {
+			mouseX / width * 2.0f - 1.0f,
+			1.0f - mouseY / height * 2.0f};
+	}
 
 	void Graphics::Initialize(HWND hWnd)
 	{
@@ -18,7 +26,7 @@ namespace Game
 
 		HRESULT hr = S_OK;
 
-		// ãƒ‡ãƒã‚¤ã‚¹ï¼†ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³ã®ç”Ÿæˆ
+		// ƒfƒoƒCƒX•ƒXƒƒbƒvƒ`ƒF[ƒ“‚Ì¶¬
 		{
 			UINT createDeviceFlags = 0;
 			#if defined(DEBUG) || defined(_DEBUG)
@@ -72,12 +80,13 @@ namespace Game
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ãƒ•ãƒ¬ãƒ¼ãƒ ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
+		// ƒtƒŒ[ƒ€ƒoƒbƒtƒ@¶¬
 		RecreateFrameBuffers(screenWidth, screenHeight);
 
-		// å„ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
+		// ŠeƒŒƒ“ƒ_ƒ‰[¶¬
 		renderState       = std::make_unique<RenderState>(device.Get());
 		primitiveRenderer = std::make_unique<PrimitiveRenderer>(device.Get());
+		debugSolidRenderer = std::make_unique<DebugSolidRenderer>(device.Get());
 		trailRenderer	  = std::make_unique<TrailRenderer>(device.Get());
 		shapeRenderer     = std::make_unique<ShapeRenderer>(device.Get());
 		modelRenderer     = std::make_unique<ModelRenderer>(device.Get());
@@ -85,7 +94,7 @@ namespace Game
 		shadowMapRenderer = std::make_unique<ShadowMapRenderer>(device.Get());
 		skyBoxRenderer    = std::make_unique<SkyBoxRenderer>(device.Get());
 
-		// IBLãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
+		// IBLƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
 		RefreshSkyMapList();
 		LoadSkyMap("Default");
 	}
@@ -121,7 +130,7 @@ namespace Game
 	{
 		if (!borderlessFullscreen)
 		{
-			// æ’ä»–çš„ãƒ•ãƒ«ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã«ã¯ã›ãšã€ãƒ¢ãƒ‹ã‚¿ãƒ¼å…¨ä½“ã‚’è¦†ã†æ ãªã—ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«ã™ã‚‹ã€‚
+			// ”r‘¼“Iƒtƒ‹ƒXƒNƒŠ[ƒ“‚É‚Í‚¹‚¸Aƒ‚ƒjƒ^[‘S‘Ì‚ğ•¢‚¤˜g‚È‚µƒEƒBƒ“ƒhƒE‚É‚·‚éB
 			swapchain->SetFullscreenState(FALSE, nullptr);
 
 			windowedStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
@@ -154,7 +163,7 @@ namespace Game
 		}
 		else
 		{
-			// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦åŒ–
+			// ƒEƒBƒ“ƒhƒE‰»
 
 			SetWindowLongPtr(hWnd, GWL_STYLE, windowedStyle);
 			SetWindowLongPtr(hWnd, GWL_EXSTYLE, windowedExStyle);

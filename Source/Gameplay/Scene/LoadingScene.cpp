@@ -1,9 +1,7 @@
-﻿// LoadingScene.cpp
-
-#include "Gameplay/Scene/LoadingScene.h"
+﻿#include "Gameplay/Scene/LoadingScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 
-LoadingScene::LoadingScene(SceneMessage message) : Scene(message)
+LoadingScene::LoadingScene()
 {
 }
 

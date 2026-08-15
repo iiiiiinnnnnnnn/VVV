@@ -1,5 +1,3 @@
-// NavMeshAgent.cpp
-
 #include "Physics/Navigation/NavMeshAgent.h"
 
 #include "Gameplay/Actor/Actor.h"

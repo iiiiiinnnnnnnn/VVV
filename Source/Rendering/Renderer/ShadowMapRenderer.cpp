@@ -1,5 +1,3 @@
-ï»¿// ShadowMapRenderer.cpp
-
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
@@ -13,12 +11,12 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
 {
     HRESULT hr;
 
-    // ----- ãƒ‡ãƒ—ã‚¹ã‚ªãƒ³ãƒªãƒ¼ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®ç”Ÿæˆ -----
-    // ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—ã¯ãƒ‡ãƒ—ã‚¹ã®ã¿ã€‚SRVã¨ã—ã¦å¾Œã§VMatShaderã«æ¸¡ã™ã€‚
-    // ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ:
-    //   ãƒ†ã‚¯ã‚¹ãƒãƒ£æœ¬ä½“  â†’ DXGI_FORMAT_R32_TYPELESS  (DSVã¨SRVä¸¡æ–¹ã«ä½¿ãˆã‚‹)
-    //   DSV            â†’ DXGI_FORMAT_D32_FLOAT
-    //   SRV            â†’ DXGI_FORMAT_R32_FLOAT
+    // ----- ƒfƒvƒXƒIƒ“ƒŠ[ƒeƒNƒXƒ`ƒƒ‚Ì¶¬ -----
+    // ƒfƒvƒX‚Ì‚İì¬‚µ‚ÄSRV‚Å‚àg‚¤
+    // ƒtƒH[ƒ}ƒbƒg:
+    //   ƒeƒNƒXƒ`ƒƒ–{‘Ì  ¨ DXGI_FORMAT_R32_TYPELESS  (DSV‚ÆSRV—¼•û‚Ég‚¦‚é)
+    //   DSV            ¨ DXGI_FORMAT_D32_FLOAT
+    //   SRV            ¨ DXGI_FORMAT_R32_FLOAT
     for (int cascadeIndex = 0; cascadeIndex < CascadeCount; ++cascadeIndex)
     {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
@@ -44,7 +42,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
             depthDsvs[cascadeIndex].GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-        // SRVï¼ˆVMatShaderã®slot8ã«ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹ï¼‰
+        // SRViVMatShader‚Ìslot8‚ÉƒoƒCƒ“ƒh‚·‚éj
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -57,7 +55,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
-    // ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆ
+    // ƒrƒ…[ƒ|[ƒg
     shadowViewport.Width = static_cast<float>(shadowMapSize);
     shadowViewport.Height = static_cast<float>(shadowMapSize);
     shadowViewport.MinDepth = 0.0f;
@@ -85,7 +83,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         sizeof(CbShadowScene),
         shadowSceneConstantBuffer.GetAddressOf());
 
-    // ----- ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆ -----
+    // ----- ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg -----
     {
         D3D11_RASTERIZER_DESC desc = {};
         desc.FillMode = D3D11_FILL_SOLID;
@@ -103,7 +101,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
     }
 
-    // ----- ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆ -----
+    // ----- ƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg -----
     {
         D3D11_DEPTH_STENCIL_DESC desc = {};
         desc.DepthEnable = true;
@@ -116,7 +114,14 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
 
 void ShadowMapRenderer::Draw(VMDLModel* model)
 {
-    if (model) drawList.emplace_back(model);
+	if (model) drawList.push_back({model, &model->GetMeshes()});
+}
+
+void ShadowMapRenderer::Draw(
+	VMDLModel* skeleton,
+	const std::vector<VMDLModel::Mesh>* meshes)
+{
+	if (skeleton && meshes) drawList.push_back({skeleton, meshes});
 }
 
 void ShadowMapRenderer::Draw(Terrain* terrain)
@@ -271,9 +276,9 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     cbShadowScene.lightViewProjection = lightViewProjections[cascadeIndex];
     dc->UpdateSubresource(shadowSceneConstantBuffer.Get(), 0, nullptr, &cbShadowScene, 0, 0);
 
-    // ----- RenderTargetåˆ‡ã‚Šæ›¿ãˆ -----
-    // ã‚«ãƒ©ãƒ¼RTã¯nullï¼ˆãƒ‡ãƒ—ã‚¹ã®ã¿æ›¸ãè¾¼ã¿ï¼‰
-    // å‰ã®RTã¯ä¿å­˜ã›ãšä¸Šæ›¸ãã€‚Deactivateã¯å‘¼ã³å‡ºã—å…ƒãŒGraphics::SetRenderTargets()ã§æˆ»ã™å‰æ
+    // ----- RenderTargetØ‚è‘Ö‚¦ -----
+    // ƒJƒ‰[RT‚ÍnulliƒfƒvƒX‚Ì‚İ‘‚«‚İj
+    // ŒÄoŒ³‚ª•`‰ææ‚ğ–ß‚·
     {
         ID3D11RenderTargetView* nullRtv = nullptr;
         dc->OMSetRenderTargets(1, &nullRtv, depthDsvs[cascadeIndex].Get());
@@ -285,17 +290,17 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             0);
     }
 
-    // ----- ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ï¼†ã‚¹ãƒ†ãƒ¼ãƒˆè¨­å®š -----
+    // ----- ƒVƒF[ƒ_[•ƒXƒe[ƒgİ’è -----
     dc->IASetInputLayout(inputLayout.Get());
     dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-    dc->PSSetShader(nullptr, nullptr, 0); // ãƒ‡ãƒ—ã‚¹ã®ã¿
-    dc->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF); // ãƒ–ãƒ¬ãƒ³ãƒ‰ç„¡åŠ¹
+    dc->PSSetShader(nullptr, nullptr, 0); // ƒfƒvƒX‚Ì‚İ
+    dc->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF); // ƒuƒŒƒ“ƒh–³Œø
     dc->OMSetDepthStencilState(depthStencilState.Get(), 0);
     dc->RSSetState(rasterizerState.Get());
 
-    // å®šæ•°ãƒãƒƒãƒ•ã‚¡è¨­å®š
-    // VS slot6: ã‚¹ã‚±ãƒ«ãƒˆãƒ³ï¼ˆModelRendererã¨åŒã˜ã‚¹ãƒ­ãƒƒãƒˆç•ªå·ã§çµ±ä¸€ï¼‰
-    // VS slot7: ãƒ©ã‚¤ãƒˆViewProjection
+    // ’è”ƒoƒbƒtƒ@İ’è
+    // VS slot6: ƒXƒPƒ‹ƒgƒ“iModelRenderer‚Æ“¯‚¶ƒXƒƒbƒg”Ô†‚Å“ˆêj
+    // VS slot7: ƒ‰ƒCƒgViewProjection
     ID3D11Buffer* vsCbs[] =
     {
         skeletonConstantBuffer.Get(),       // slot 6
@@ -303,15 +308,15 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     };
     dc->VSSetConstantBuffers(6, _countof(vsCbs), vsCbs);
 
-    // ----- ãƒ¡ãƒƒã‚·ãƒ¥æç”» -----
-    for (const auto& model : drawList)
+    // ----- ƒƒbƒVƒ…•`‰æ -----
+	for (const ModelDrawInfo& drawInfo : drawList)
     {
-		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
-        for (const VMDLModel::Mesh& mesh : model->GetMeshes())
+		const Matrix renderScaleTransform = drawInfo.skeleton->GetRenderScaleTransform();
+		for (const VMDLModel::Mesh& mesh : *drawInfo.meshes)
         {
             if (!mesh.isDraw) continue;
 
-            // ã‚¹ã‚±ãƒ«ãƒˆãƒ³å®šæ•°ãƒãƒƒãƒ•ã‚¡æ›´æ–°
+            // ƒXƒPƒ‹ƒgƒ“’è”ƒoƒbƒtƒ@XV
             CbSkeleton cbSkeleton{};
             if (mesh.bones.size() > 0)
             {
@@ -328,14 +333,14 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             }
             dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
 
-            // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ãƒ»ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
+            // ’¸“_ƒoƒbƒtƒ@EƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@İ’è
             UINT stride = sizeof(VMDLModel::Vertex);
             UINT offset = 0;
             dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
             dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
             dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-            dc->DrawIndexed(static_cast<UINT>(mesh.indices.size()), 0, 0);
+			dc->DrawIndexed(mesh.indexCount, 0, 0);
         }
     }
     dc->RSSetState(terrainRasterizerState.Get());
@@ -345,8 +350,8 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
         if (terrain) terrain->RenderShadowMap(dc, lightViewProjections[cascadeIndex]);
     }
 
-    // ----- å¾Œå§‹æœ« -----
-    // SRVã¨ã—ã¦VMatShaderã§å‚ç…§ã™ã‚‹ãŸã‚ã€DSVã‹ã‚‰ã¯å¤–ã—ã¦ãŠãï¼ˆåŒä¸€ãƒªã‚½ãƒ¼ã‚¹ã®åŒæ™‚ãƒã‚¤ãƒ³ãƒ‰ç¦æ­¢ï¼‰
+    // ----- Œãn–– -----
+    // SRV‚Æ‚µ‚ÄVMatShader‚ÅQÆ‚·‚é‚½‚ßADSV‚©‚ç‚ÍŠO‚µ‚Ä‚¨‚­i“¯ˆêƒŠƒ\[ƒX‚Ì“¯ƒoƒCƒ“ƒh‹Ö~j
     {
         ID3D11RenderTargetView* nullRtv = nullptr;
         ID3D11DepthStencilView* nullDsv = nullptr;

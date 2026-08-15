@@ -1,11 +1,20 @@
-﻿// FreeCameraController.cpp
-
-#include <imgui.h>
+﻿#include <imgui.h>
+#include <cmath>
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Application/Time/GameTime.h"
 
 FreeCameraController::FreeCameraController(Object* owner)
 	: CameraController(owner) {}
+
+void FreeCameraController::FocusOn(const Vector3& target)
+{
+	Vector3 viewDirection = focus - eye;
+	if (viewDirection.LengthSquared() < 0.000001f)
+		viewDirection = Vector3::UnitZ;
+	viewDirection.Normalize();
+	focus = target;
+	eye = focus - viewDirection * (std::max)(distance, 0.1f);
+}
 
 // カメラからコントローラーへパラメータを同期する
 void FreeCameraController::SyncCameraToController(const Camera& camera)
@@ -53,6 +62,7 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 
 void FreeCameraController::UpdateCamera()
 {
+	auto& io = ImGui::GetIO();
     if (!Game::Input::IsFocusedWindow(true))
         return;
 
@@ -65,9 +75,13 @@ void FreeCameraController::UpdateCamera()
     // 現在の入力状態を取得
     bool isShiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
     bool isAltPressed = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-    bool isRightMouseDown = (mouse.GetButton() & Mouse::BTN_RIGHT) != 0;
-    bool isLeftMouseDown = (mouse.GetButton() & Mouse::BTN_LEFT) != 0;
-    bool isMiddleMouseDown = (mouse.GetButton() & Mouse::BTN_MIDDLE) != 0;
+	const bool mouseCapturedByImGui = io.WantCaptureMouse;
+    bool isRightMouseDown = !mouseCapturedByImGui &&
+        (mouse.GetButton() & Mouse::BTN_RIGHT) != 0;
+    bool isLeftMouseDown = !mouseCapturedByImGui &&
+        (mouse.GetButton() & Mouse::BTN_LEFT) != 0;
+    bool isMiddleMouseDown = !mouseCapturedByImGui &&
+        (mouse.GetButton() & Mouse::BTN_MIDDLE) != 0;
 
     // 左クリックだけでは見渡さない。Alt + 左クリックのときだけオービット操作にする
     bool isAltLeftMouseDown = isAltPressed && isLeftMouseDown;
@@ -106,8 +120,19 @@ void FreeCameraController::UpdateCamera()
 
     if (isRightMouseDown)
     {
+		const int wheel = mouse.GetWheel();
+		if (wheel != 0)
+		{
+			constexpr float speedStep = 1.1f;
+			constexpr float minimumSpeed = 0.1f;
+			constexpr float maximumSpeed = 500.0f;
+			moveSpeed = (std::clamp)(
+				moveSpeed * std::pow(speedStep, static_cast<float>(wheel)),
+				minimumSpeed, maximumSpeed);
+		}
+
         // 右ドラッグ中のみ、WASDキーによるFPS移動を許可
-        float speed = 5.0f;
+        float speed = moveSpeed;
         if (isShiftPressed)
         {
             speed *= 3.0f;
@@ -139,7 +164,7 @@ void FreeCameraController::UpdateCamera()
     else
     {
         // ホイールズーム
-        if (mouse.GetWheel() != 0)
+        if (!mouseCapturedByImGui && mouse.GetWheel() != 0)
         {
             distance -= mouse.GetWheel() * distance * 0.1f;
             if (distance < 0.1f) distance = 0.1f;
@@ -168,9 +193,10 @@ void FreeCameraController::UpdateCamera()
 
 void FreeCameraController::OnFocusLost()
 {
+	auto& io = ImGui::GetIO();
     Mouse& mouse = Game::Input::Instance().GetMouse();
     mouse.SetCursorLock(false);
     mouse.SetCursorVisible(true);
 
-    ImGui::GetIO().ClearEventsQueue();
+	io.ClearEventsQueue();
 }

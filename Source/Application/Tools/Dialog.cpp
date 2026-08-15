@@ -1,9 +1,8 @@
-﻿// Dialog.cpp
-
-#include "Application/Tools/Dialog.h"
+﻿#include "Application/Tools/Dialog.h"
+#include <array>
 #include <filesystem>
 
-static char pathBuffer[MAX_PATH];
+static std::string lastPath;
 
 // [ファイルを開く]ダイアログボックスを表示
 DialogResult Dialog::OpenFileName(
@@ -16,6 +15,14 @@ DialogResult Dialog::OpenFileName(
 	bool multiSelect)
 {
 	std::string dirname;
+	if (!hWnd) hWnd = ::GetActiveWindow();
+	if (!hWnd) hWnd = ::GetForegroundWindow();
+	if (hWnd)
+	{
+		HWND rootWindow = ::GetAncestor(hWnd, GA_ROOTOWNER);
+		if (rootWindow) hWnd = rootWindow;
+		::SetForegroundWindow(hWnd);
+	}
 
 	if (initialDir != nullptr && initialDir[0] != '\0')
 	{
@@ -50,13 +57,35 @@ DialogResult Dialog::OpenFileName(
 		ofn.Flags |= OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 	}
 
-	if (::GetOpenFileNameA(&ofn) == FALSE)
+	const BOOL accepted = ::GetOpenFileNameA(&ofn);
+	if (hWnd)
+	{
+		::SetForegroundWindow(hWnd);
+		::BringWindowToTop(hWnd);
+	}
+	if (accepted == FALSE)
 	{
 		return DialogResult::Cancel;
 	}
 
-	strcpy_s(pathBuffer, MAX_PATH, filepath);
+	lastPath = filepath;
 	return DialogResult::OK;
+}
+
+DialogResult Dialog::OpenFileName(
+	std::string& filepath,
+	const char* filter,
+	const char* title,
+	const char* initialDir,
+	HWND hWnd)
+{
+	std::array<char, MAX_PATH> buffer{};
+	if (filepath.size() >= buffer.size()) return DialogResult::Cancel;
+	strcpy_s(buffer.data(), buffer.size(), filepath.c_str());
+	const DialogResult result = OpenFileName(
+		buffer.data(), static_cast<int>(buffer.size()), filter, title, initialDir, hWnd);
+	if (result == DialogResult::OK) filepath = buffer.data();
+	return result;
 }
 
 // [ファイルを保存]ダイアログボックスを表示
@@ -70,12 +99,20 @@ DialogResult Dialog::SaveFileName(
 	HWND hWnd)
 {
 	std::filesystem::path initialDirectory;
+	if (!hWnd) hWnd = ::GetActiveWindow();
+	if (!hWnd) hWnd = ::GetForegroundWindow();
+	if (hWnd)
+	{
+		HWND rootWindow = ::GetAncestor(hWnd, GA_ROOTOWNER);
+		if (rootWindow) hWnd = rootWindow;
+		::SetForegroundWindow(hWnd);
+	}
 	if (initialDir && initialDir[0] != '\0')
 		initialDirectory = initialDir;
 	else if (filepath[0] != '\0')
 		initialDirectory = std::filesystem::path(filepath).parent_path();
-	else if (pathBuffer[0] != '\0')
-		initialDirectory = std::filesystem::path(pathBuffer).parent_path();
+	else if (!lastPath.empty())
+		initialDirectory = std::filesystem::path(lastPath).parent_path();
 
 	const std::string dirname = initialDirectory.string();
 
@@ -107,7 +144,13 @@ DialogResult Dialog::SaveFileName(
 		currentDir[0] = '\0';
 	}
 
-	if (::GetSaveFileNameA(&ofn) == FALSE)
+	const BOOL accepted = ::GetSaveFileNameA(&ofn);
+	if (hWnd)
+	{
+		::SetForegroundWindow(hWnd);
+		::BringWindowToTop(hWnd);
+	}
+	if (accepted == FALSE)
 	{
 		if (currentDir[0] != '\0')
 		{
@@ -146,7 +189,24 @@ DialogResult Dialog::SaveFileName(
 	}
 
 	strcpy_s(filepath, size, finalPath.c_str());
-	strcpy_s(pathBuffer, MAX_PATH, filepath);
+	lastPath = filepath;
 
 	return DialogResult::OK;
+}
+
+DialogResult Dialog::SaveFileName(
+	std::string& filepath,
+	const char* filter,
+	const char* title,
+	const char* ext,
+	const char* initialDir,
+	HWND hWnd)
+{
+	std::array<char, MAX_PATH> buffer{};
+	if (filepath.size() >= buffer.size()) return DialogResult::Cancel;
+	strcpy_s(buffer.data(), buffer.size(), filepath.c_str());
+	const DialogResult result = SaveFileName(
+		buffer.data(), static_cast<int>(buffer.size()), filter, title, ext, initialDir, hWnd);
+	if (result == DialogResult::OK) filepath = buffer.data();
+	return result;
 }

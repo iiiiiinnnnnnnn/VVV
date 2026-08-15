@@ -1,6 +1,4 @@
-﻿// SpriteRenderComponent.h
-
-#pragma once
+﻿#pragma once
 #include <memory>
 #include <string>
 

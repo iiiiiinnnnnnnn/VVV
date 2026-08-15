@@ -1,5 +1,3 @@
-﻿// ShadowMapRenderer.h
-
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -22,6 +20,7 @@ public:
     ~ShadowMapRenderer() = default;
 
     void Draw(VMDLModel* model);
+    void Draw(VMDLModel* skeleton, const std::vector<VMDLModel::Mesh>* meshes);
     void Draw(Terrain* terrain);
 
     void Render(const RenderContext& rc,
@@ -68,7 +67,12 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> terrainRasterizerState;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState;
 
-    std::vector<VMDLModel*> drawList;
+	struct ModelDrawInfo
+	{
+		VMDLModel* skeleton = nullptr;
+		const std::vector<VMDLModel::Mesh>* meshes = nullptr;
+	};
+	std::vector<ModelDrawInfo> drawList;
     std::vector<Terrain*> terrainDrawList;
 
     std::array<Matrix, CascadeCount> lightViewProjections;

@@ -1,5 +1,3 @@
-// EnemyAIFlow.cpp
-
 #include "Gameplay/AI/EnemyAIFlow.h"
 
 #include <algorithm>
@@ -33,6 +31,11 @@ EnemyAIFlow::EnemyAIFlow(Object* owner)
     SetBool("IsTargetInLostRange", false, true);
     SetBool("IsTargetInSightAngle", false, true);
     SetBool("IsTargetVisible", false, true);
+    SetBool("HasDestination", false, true);
+    SetBool("IsTurning", false, true);
+    SetBool("IsFacingTarget", false, true);
+    SetFloat("TurnAngle", 0.0f, true);
+    SetFloat("TurnThreshold", 15.0f);
     SetFloat("TargetDistance", std::numeric_limits<float>::max(), true);
     SetVector3("TargetPosition", Vector3::Zero, true);
 }
@@ -117,6 +120,11 @@ void EnemyAIFlow::CreateDefaultChaseGraph()
     SetBool("IsTargetInLostRange", false, true);
     SetBool("IsTargetInSightAngle", false, true);
     SetBool("IsTargetVisible", false, true);
+    SetBool("HasDestination", false, true);
+    SetBool("IsTurning", false, true);
+    SetBool("IsFacingTarget", false, true);
+    SetFloat("TurnAngle", 0.0f, true);
+    SetFloat("TurnThreshold", 15.0f);
     SetFloat("TargetDistance", std::numeric_limits<float>::max(), true);
     SetVector3("TargetPosition", Vector3::Zero, true);
 
@@ -227,6 +235,7 @@ void EnemyAIFlow::UpdateBlackboard()
 {
     Actor* ownerActor = dynamic_cast<Actor*>(owner);
     ActorManager* actorManager = ActorManager::GetActive();
+    if (!navMeshAgent) navMeshAgent = owner->GetComponent<NavMeshAgent>();
 
     const float searchRange =
         GetFloat("SearchRange", 20.0f);
@@ -310,6 +319,26 @@ void EnemyAIFlow::UpdateBlackboard()
         true);
     SetFloat("TargetDistance", closestDistance, true);
     SetVector3("TargetPosition", hasTarget ? target->transform.position : Vector3::Zero, true);
+
+    float turnAngle = navMeshAgent ? navMeshAgent->GetTurnAngle() : 0.0f;
+    Vector3 turnDirection = Vector3::Zero;
+    if (fabsf(turnAngle) <= eps && navMeshAgent && navMeshAgent->HasDestination())
+        turnDirection = navMeshAgent->GetDestination() - owner->GetTransform()->position;
+    if (fabsf(turnAngle) <= eps && turnDirection.LengthSquared() <= eps && target)
+        turnDirection = target->transform.position - owner->GetTransform()->position;
+    turnDirection.y = 0.0f;
+    if (fabsf(turnAngle) <= eps && turnDirection.LengthSquared() > eps)
+    {
+        turnDirection.Normalize();
+        turnAngle = atan2f(
+            turnDirection.Dot(owner->GetTransform()->right),
+            turnDirection.Dot(owner->GetTransform()->forward));
+    }
+    const float turnThreshold = RAD(std::max(GetFloat("TurnThreshold", 15.0f), 0.0f));
+    SetBool("HasDestination", navMeshAgent && navMeshAgent->HasDestination(), true);
+    SetBool("IsTurning", fabsf(turnAngle) > turnThreshold, true);
+    SetBool("IsFacingTarget", hasTarget && fabsf(turnAngle) <= turnThreshold, true);
+    SetFloat("TurnAngle", DEG(turnAngle), true);
     UpdateSightRay();
     if (target && target == lockedTarget)
     {
@@ -418,6 +447,8 @@ void EnemyAIFlow::DrawFlowInspector()
         GetBool("IsTargetInLostRange") ? "true" : "false");
     ImGui::Text("In Sight Angle: %s", GetBool("IsTargetInSightAngle") ? "true" : "false");
     ImGui::Text("Target Visible: %s", GetBool("IsTargetVisible") ? "true" : "false");
+    ImGui::Text("Has Destination: %s", GetBool("HasDestination") ? "true" : "false");
+    ImGui::Text("Turning: %s (%.1f deg)", GetBool("IsTurning") ? "true" : "false", GetFloat("TurnAngle"));
     ImGui::Text(
         "NavMesh: %s",
         navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : "Not cached yet");
@@ -455,6 +486,9 @@ void EnemyAIFlow::DrawFlowInspector()
     if (ImGui::DragFloat("Sight Vertical FOV", &verticalFov, 0.5f, 1.0f, 179.0f))
         SetFloat("SightVerticalFov", std::clamp(verticalFov, 1.0f, 179.0f));
     ImGui::DragFloat("Tracking Turn Speed", &trackingTurnSpeed, 0.1f, 0.0f, 30.0f);
+    float turnThreshold = GetFloat("TurnThreshold", 15.0f);
+    if (ImGui::DragFloat("Turn Threshold", &turnThreshold, 0.5f, 0.0f, 180.0f))
+        SetFloat("TurnThreshold", std::max(turnThreshold, 0.0f));
 }
 
 bool EnemyAIFlow::LoadFlowExtension(const std::string& path)

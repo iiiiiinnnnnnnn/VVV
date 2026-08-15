@@ -1,11 +1,10 @@
-﻿// Stage01.cpp
-
-#include "Gameplay/Stage/Stage01.h"
+﻿#include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/EnemySmall.h"
+#include "Gameplay/Actor/Spawner.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/AracoreQueen.h"
 
@@ -81,7 +80,10 @@ Stage01::Stage01()
 		return enemy;
 	});
 	#endif
-	stageLoader->SpawnEntities();
+	for (Spawner* spawner : stageLoader->GetSpawners())
+	{
+		spawner->Summon();
+	}
 }
 
 void Stage01::OnUpdate()

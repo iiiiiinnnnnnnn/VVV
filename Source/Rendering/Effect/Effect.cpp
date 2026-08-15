@@ -1,6 +1,4 @@
-﻿// Effect.cpp
-
-#include "Rendering/Core/Graphics.h"
+﻿#include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/Effect.h"
 #include "Rendering/Effect/EffectManager.h"
 #include <mutex>

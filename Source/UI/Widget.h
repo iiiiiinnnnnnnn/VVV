@@ -1,6 +1,4 @@
-﻿// Widget.h
-
-#pragma once
+﻿#pragma once
 
 #include "Core/Object/Object.h"
 #include "Core/Object/RectTransform.h"

@@ -1,5 +1,3 @@
-// Rigidbody.h
-
 #pragma once
 
 #include "Core/Object/Component.h"
