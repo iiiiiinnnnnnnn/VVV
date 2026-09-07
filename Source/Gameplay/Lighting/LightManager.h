@@ -5,7 +5,7 @@
 #include "Gameplay/Lighting/Light.h"
 #include "Gameplay/Lighting/CbLightData.h"
 
-// 普通に管理する用のライトデータ
+// 譎ｮ騾壹↓邂｡逅�縺吶ｋ逕ｨ縺ｮ繝ｩ繧､繝医ョ繝ｼ繧ｿ
 class LightManager
 {
 public:

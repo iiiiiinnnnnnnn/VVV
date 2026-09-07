@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <bitset>
+
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Core/Object/Object.h"
@@ -23,6 +25,17 @@ public:
     void SetUseGravity(bool value) { useGravity = value; }
     void SetPushable(bool value) { pushable = value; }
     bool IsPushable() const { return pushable; }
+	void SetLayerIgnored(LayerId layer, bool ignored)
+	{
+		if (layer >= EditableLayerCount) return;
+		ignoredLayers.set(layer, ignored);
+	}
+	bool IgnoresLayer(LayerId layer) const override
+	{
+		return layer < EditableLayerCount && ignoredLayers.test(layer);
+	}
+	void SetActorTagIgnored(const std::string& tag, bool ignored);
+	bool IgnoresCollider(const PhysicsComponent& other) const override;
     void SetStepOffset(float value);
     void SetConstrainedClimbing(bool value)
     {
@@ -48,6 +61,8 @@ private:
     bool grounded = false;
     bool useGravity = true;
     bool pushable = true;
+	std::bitset<EditableLayerCount> ignoredLayers;
+	std::string ignoredActorTag;
     float verticalVelocity = 0.0f;
     float gravity = -9.81f;
     float ownerAnchorOffsetY = 0.0f;

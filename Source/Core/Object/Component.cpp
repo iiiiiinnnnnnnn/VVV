@@ -9,7 +9,7 @@ bool Component::SetPreloadResourceFiles(std::vector<std::string> files)
 	preloadResourceFiles = std::move(files);
 	bool succeeded = true;
 
-	// –¢“Ç‚Ì‚İˆ—
+	// æœªèª­è¾¼ã®ã¿å‡¦ç†
 	for (const std::string& file : preloadResourceFiles)
 	{
 		if (file.empty()) continue;

@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Stage/Component/StageLoader.h"
+﻿// StageLoader.cpp
+#include "Gameplay/Stage/Component/StageLoader.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
@@ -6,6 +7,8 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <map>
+#include <set>
 #include <sstream>
 #include "Resource/ResourceManager.h"
 #include "Application/Time/GameTime.h"
@@ -94,7 +97,9 @@ StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonTex
 std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 {
 	std::vector<EditorObjectReference> objects;
-	objects.reserve(propDataList.size());
+	objects.reserve(propDataList.size() + (hasPlayerStart ? 1 : 0));
+	if (hasPlayerStart)
+		objects.push_back({EditorObjectType::PlayerStart, -1, &playerStartTransform});
 	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 		objects.push_back({EditorObjectType::Prop, i, &propDataList[i].transform});
 	return objects;
@@ -102,8 +107,9 @@ std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 
 bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
 {
-	const bool valid = type == EditorObjectType::Prop && index >= 0 &&
-		index < static_cast<int>(propDataList.size());
+	const bool valid = (type == EditorObjectType::PlayerStart && hasPlayerStart) ||
+		(type == EditorObjectType::Prop && index >= 0 &&
+		 index < static_cast<int>(propDataList.size()));
 	if (!valid) return false;
 	selectedEditorObjectType = type;
 	selectedEditorObjectIndex = index;
@@ -224,6 +230,11 @@ void StageLoader::ClearEditorSelection()
 
 Transform* StageLoader::GetSelectedEditorTransform()
 {
+	if (selectedEditorObjectType == EditorObjectType::PlayerStart && hasPlayerStart)
+	{
+		playerStartTransform.Update();
+		return &playerStartTransform;
+	}
 	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(propDataList.size()))
 	{
@@ -243,6 +254,11 @@ Transform* StageLoader::GetSelectedEditorTransform()
 
 void StageLoader::RefreshSelectedEditorObject()
 {
+	if (selectedEditorObjectType == EditorObjectType::PlayerStart && hasPlayerStart)
+	{
+		playerStartTransform.Update();
+		return;
+	}
 	if (selectedEditorObjectType != EditorObjectType::Prop || selectedEditorObjectIndex < 0 ||
 		selectedEditorObjectIndex >= static_cast<int>(propDataList.size()) ||
 		selectedEditorObjectIndex >= static_cast<int>(addedPropActors.size()) ||
@@ -423,6 +439,7 @@ std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPa
 	{
 		const auto found = editorModels->find(modelPath);
 		if (found != editorModels->end() && found->second) return found->second->Clone();
+		return nullptr;
 	}
 	return ResourceManager::Instance().LoadModel(modelPath);
 }
@@ -472,6 +489,67 @@ bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& ter
 	return true;
 }
 
+void StageLoader::SetEditorPlayerStart(const Vector3& terrainPoint)
+{
+	hasPlayerStart = true;
+	playerStartTransform.position = terrainPoint;
+	playerStartTransform.scale = Vector3::One;
+	playerStartTransform.Update();
+	selectedEditorObjectType = EditorObjectType::PlayerStart;
+	selectedEditorObjectIndex = -1;
+}
+
+std::vector<std::string> StageLoader::GetMissingModelPaths() const
+{
+	std::set<std::string> uniquePaths;
+	for (const PropData& propData : propDataList)
+		if (!propData.model && !propData.modelPath.empty()) uniquePaths.insert(propData.modelPath);
+	return {uniquePaths.begin(), uniquePaths.end()};
+}
+
+bool StageLoader::ReplaceMissingModelPath(
+	const std::string& missingPath, const std::string& replacementPath)
+{
+	if (missingPath.empty() || replacementPath.empty()) return false;
+	std::shared_ptr<VMDLModel> replacement = LoadPropModel(replacementPath);
+	if (!replacement) return false;
+
+	bool replaced = false;
+	for (int index = 0; index < static_cast<int>(propDataList.size()); ++index)
+	{
+		PropData& propData = propDataList[index];
+		if (propData.modelPath != missingPath) continue;
+		propData.modelPath = replacementPath;
+		propData.model = replacement->Clone();
+		if (propData.name.empty() || propData.name == std::filesystem::path(missingPath).stem().string())
+			propData.name = std::filesystem::path(replacementPath).stem().string();
+
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+			addedPropActors[index]->Destroy();
+		Actor* actor = CreatePropActor(propData);
+		if (index < static_cast<int>(addedPropActors.size())) addedPropActors[index] = actor;
+		if (index < static_cast<int>(addedRealActors.size())) addedRealActors[index] = actor;
+		replaced = true;
+	}
+	return replaced;
+}
+
+void StageLoader::RemovePropsWithModelPath(const std::string& modelPath)
+{
+	for (int index = static_cast<int>(propDataList.size()) - 1; index >= 0; --index)
+	{
+		if (propDataList[index].modelPath != modelPath) continue;
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+			addedPropActors[index]->Destroy();
+		propDataList.erase(propDataList.begin() + index);
+		if (index < static_cast<int>(addedPropActors.size()))
+			addedPropActors.erase(addedPropActors.begin() + index);
+		if (index < static_cast<int>(addedRealActors.size()))
+			addedRealActors.erase(addedRealActors.begin() + index);
+	}
+	ClearEditorSelection();
+}
+
 bool StageLoader::BuildEditorPropTransform(
 	VMDLModel& model, const Vector3& placementPoint, Transform& transform)
 {
@@ -485,86 +563,122 @@ bool StageLoader::BuildEditorPropTransform(
 
 void StageLoader::DrawEditorGUI()
 {
-	// 配置済みプロップ一覧
-	if (ImGui::TreeNodeEx((const char*)u8"プロップ",
-			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
+	// プレイヤー初期位置は通常のVMDLと区別し、常に先頭へ表示する。
+	if (hasPlayerStart)
 	{
-		for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
+		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(170, 112, 12, 255));
+		const bool selected = selectedEditorObjectType == EditorObjectType::PlayerStart;
+		const bool open = ImGui::TreeNodeEx((const char*)u8"★ プレイヤー初期位置###PlayerStart",
+			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
+			(selected ? ImGuiTreeNodeFlags_Selected : 0));
+		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::PlayerStart, -1);
+		ImGui::PopStyleColor(2);
+		if (open)
 		{
-			auto& propData = propDataList[i];
-
-			ImGui::PushID(i);
-
-			const bool selected = selectedEditorObjectType == EditorObjectType::Prop &&
-								  selectedEditorObjectIndex == i;
-			const std::string label =
-				(propData.name.empty() ? (const char*)u8"名前なし" : propData.name) + "###Prop";
-			const bool open = ImGui::TreeNodeEx(
-				label.c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);
-			if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::Prop, i);
-			if (open)
+			playerStartTransform.DrawGUI(true);
+			if (ImGui::Button((const char*)u8"初期位置を削除"))
 			{
-				// 名前とトランスフォーム
-				ImGui::InputText((const char*)u8"名前", &propData.name);
-				ImGui::InputText((const char*)u8"タグ", &propData.tag);
-				propData.transform.DrawGUI();
-
-				// スポナー設定
-				ImGui::Checkbox((const char*)u8"スポナー", &propData.isSpawner);
-				if (propData.isSpawner)
-					ImGui::InputText((const char*)u8"生成対象", &propData.spawnerEntityName);
-
-				// 通常プロップの物理と破壊設定
-				if (propData.type == PropType::Standard)
-				{
-					propData.rigidbodyData.DrawGUI();
-					DrawDestroyGUI(propData);
-				}
-
-				// プロップの複製と削除
-				if (ImGui::Button((const char*)u8"複製"))
-				{
-					PropData copy = propData;
-					copy.name += " Copy";
-					propDataList.insert(propDataList.begin() + i + 1, std::move(copy));
-					Actor* actor = CreatePropActor(propDataList[i + 1]);
-					addedRealActors.insert(addedRealActors.begin() + i + 1, actor);
-					addedPropActors.insert(addedPropActors.begin() + i + 1, actor);
-					SelectEditorObject(EditorObjectType::Prop, i + 1);
-					ImGui::TreePop();
-					ImGui::PopID();
-					break;
-				}
-				ImGui::SameLine();
-
-				if (ImGui::Button((const char*)u8"削除"))
-				{
-					if (selectedEditorObjectType == EditorObjectType::Prop)
-					{
-						if (selectedEditorObjectIndex == i) ClearEditorSelection();
-						else if (selectedEditorObjectIndex > i) --selectedEditorObjectIndex;
-					}
-					if (i < static_cast<int>(addedPropActors.size()) && addedPropActors[i])
-					{
-						addedPropActors[i]->Destroy();
-					}
-					if (i < static_cast<int>(addedRealActors.size()))
-						addedRealActors.erase(addedRealActors.begin() + i);
-					if (i < static_cast<int>(addedPropActors.size()))
-						addedPropActors.erase(addedPropActors.begin() + i);
-					propDataList.erase(propDataList.begin() + i);
-					ImGui::TreePop();
-					ImGui::PopID();
-					break;
-				}
-
-				ImGui::TreePop();
+				hasPlayerStart = false;
+				ClearEditorSelection();
 			}
+			ImGui::TreePop();
+		}
+	}
 
-			ImGui::PopID();
+	std::map<std::string, std::vector<int>> groups;
+	for (int index = 0; index < static_cast<int>(propDataList.size()); ++index)
+		groups[propDataList[index].modelPath].push_back(index);
+	for (const auto& [modelPath, indices] : groups)
+	{
+		const std::string modelName = modelPath.empty()
+			? (const char*)u8"モデルなし"
+			: std::filesystem::path(modelPath).stem().string();
+		const std::string groupLabel = std::string(ICON_FA_CUBE "  ") + modelName +
+			" (" + std::to_string(indices.size()) + ")###ModelGroup" + modelPath;
+		if (!ImGui::TreeNodeEx(groupLabel.c_str(),
+			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
+			continue;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", modelPath.c_str());
+		bool changed = false;
+		for (int index : indices)
+		{
+			if (DrawPropEditor(index))
+			{
+				changed = true;
+				break;
+			}
 		}
 		ImGui::TreePop();
+		if (changed) break;
 	}
+}
+
+bool StageLoader::DrawPropEditor(int index)
+{
+	PropData& propData = propDataList[index];
+	ImGui::PushID(index);
+	const bool selected = selectedEditorObjectType == EditorObjectType::Prop &&
+		selectedEditorObjectIndex == index;
+	const std::string label =
+		(propData.name.empty() ? (const char*)u8"名前なし" : propData.name) + "###Prop";
+	const bool open = ImGui::TreeNodeEx(
+		label.c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);
+	if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::Prop, index);
+	if (!open)
+	{
+		ImGui::PopID();
+		return false;
+	}
+
+	ImGui::InputText((const char*)u8"名前", &propData.name);
+	ImGui::InputText((const char*)u8"タグ", &propData.tag);
+	propData.transform.DrawGUI();
+	ImGui::Checkbox((const char*)u8"スポナー", &propData.isSpawner);
+	if (propData.isSpawner)
+		ImGui::InputText((const char*)u8"生成対象", &propData.spawnerEntityName);
+	if (propData.type == PropType::Standard)
+	{
+		propData.rigidbodyData.DrawGUI();
+		DrawDestroyGUI(propData);
+	}
+
+	if (ImGui::Button((const char*)u8"複製"))
+	{
+		PropData copy = propData;
+		copy.name += " Copy";
+		propDataList.insert(propDataList.begin() + index + 1, std::move(copy));
+		Actor* actor = CreatePropActor(propDataList[index + 1]);
+		addedRealActors.insert(addedRealActors.begin() + index + 1, actor);
+		addedPropActors.insert(addedPropActors.begin() + index + 1, actor);
+		SelectEditorObject(EditorObjectType::Prop, index + 1);
+		ImGui::TreePop();
+		ImGui::PopID();
+		return true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button((const char*)u8"削除"))
+	{
+		if (selectedEditorObjectType == EditorObjectType::Prop)
+		{
+			if (selectedEditorObjectIndex == index) ClearEditorSelection();
+			else if (selectedEditorObjectIndex > index) --selectedEditorObjectIndex;
+		}
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+			addedPropActors[index]->Destroy();
+		if (index < static_cast<int>(addedRealActors.size()))
+			addedRealActors.erase(addedRealActors.begin() + index);
+		if (index < static_cast<int>(addedPropActors.size()))
+			addedPropActors.erase(addedPropActors.begin() + index);
+		propDataList.erase(propDataList.begin() + index);
+		ImGui::TreePop();
+		ImGui::PopID();
+		return true;
+	}
+
+	ImGui::TreePop();
+	ImGui::PopID();
+	return false;
 }
 
 void StageLoader::LoadJson()
@@ -592,6 +706,8 @@ void StageLoader::LoadJson()
 	}
 
 	propDataList.clear();
+	hasPlayerStart = false;
+	playerStartTransform = Transform{};
 	ClearEditorSelection();
 
 	for (auto addedActor : addedRealActors)
@@ -600,6 +716,13 @@ void StageLoader::LoadJson()
 	}
 	addedRealActors.clear();
 	addedPropActors.clear();
+	if (root.contains("playerStart") && root["playerStart"].is_object())
+	{
+		LoadTransformJson(root["playerStart"], playerStartTransform);
+		playerStartTransform.scale = Vector3::One;
+		playerStartTransform.Update();
+		hasPlayerStart = true;
+	}
 
 	if (root.contains("props") && root["props"].is_array())
 	{
@@ -655,11 +778,18 @@ void StageLoader::LoadJson()
 			propData.editorPreview = editorModels != nullptr;
 
 			propData.modelPath = propJson.value("modelPath", "");
+			std::string lowerModelPath = propData.modelPath;
+			std::transform(lowerModelPath.begin(), lowerModelPath.end(), lowerModelPath.begin(),
+				[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+			if (lowerModelPath.starts_with("data/"))
+				propData.modelPath.replace(0, 4, "Resources");
 			if (propData.name.empty())
 				propData.name = std::filesystem::path(propData.modelPath).stem().string();
+			propData.model = LoadPropModel(propData.modelPath);
 
 			propDataList.push_back(std::move(propData));
-			Actor* propActor = CreatePropActor(propDataList.back());
+			Actor* propActor = propDataList.back().model
+				? CreatePropActor(propDataList.back()) : nullptr;
 			addedRealActors.push_back(propActor);
 			addedPropActors.push_back(propActor);
 		}
@@ -699,11 +829,13 @@ void StageLoader::LoadJson()
 				propData.name = "Crystal";
 				propData.tag = "CrystalProp";
 				propData.type = PropType::Crystal;
-				propData.modelPath = "Data/Model/Crystal/crystals_from_space";
+				propData.modelPath = "Resources/Model/Prop/crystals_from_space";
 				propData.transform = transform;
 				propData.editorPreview = editorModels != nullptr;
+				propData.model = LoadPropModel(propData.modelPath);
 				propDataList.push_back(std::move(propData));
-				Actor* crystalActor = CreatePropActor(propDataList.back());
+				Actor* crystalActor = propDataList.back().model
+					? CreatePropActor(propDataList.back()) : nullptr;
 				addedRealActors.push_back(crystalActor);
 				addedPropActors.push_back(crystalActor);
 			}
@@ -731,6 +863,16 @@ std::string StageLoader::SaveJsonText()
 void StageLoader::SaveJson()
 {
 	json root;
+	if (hasPlayerStart)
+	{
+		root["playerStart"]["position"] = {
+			{"x", playerStartTransform.position.x}, {"y", playerStartTransform.position.y},
+			{"z", playerStartTransform.position.z}};
+		root["playerStart"]["rotation"] = {
+			{"x", playerStartTransform.rotation.x}, {"y", playerStartTransform.rotation.y},
+			{"z", playerStartTransform.rotation.z}, {"w", playerStartTransform.rotation.w}};
+		root["playerStart"]["scale"] = {{"x", 1.0f}, {"y", 1.0f}, {"z", 1.0f}};
+	}
 
 	root["props"] = json::array();
 

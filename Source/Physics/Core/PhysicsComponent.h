@@ -28,6 +28,11 @@ public:
 
 	LayerId GetLayerId() const { return layerId; }
 	void SetLayerId(LayerId id) { layerId = id; }
+	virtual bool IgnoresLayer(LayerId id) const { return false; }
+	virtual bool IgnoresCollider(const PhysicsComponent& other) const
+	{
+		return IgnoresLayer(other.GetLayerId());
+	}
 	const std::string& GetName() const { return name; }
 	bool CompareName(std::string_view value) const { return name == value; }
 	void SetName(const std::string& value) { name = value; }

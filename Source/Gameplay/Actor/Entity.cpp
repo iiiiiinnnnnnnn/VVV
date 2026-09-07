@@ -31,7 +31,7 @@ void Entity::OnUpdate()
 {
     cooldowns.Update();
 
-    // ノックバック
+    // 繝弱ャ繧ｯ繝舌ャ繧ｯ
     #if 1
     {
         knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
@@ -40,7 +40,7 @@ void Entity::OnUpdate()
     }
     #endif
 
-    #if 0 // 落下死
+    #if 0 // 關ｽ荳区ｭｻ
     {
         if (transform.position.y < -50.0f)
             TakeDamage(9999.0f, {});
@@ -48,10 +48,10 @@ void Entity::OnUpdate()
     #endif
 }
 
-// ダメージを受ける
+// 繝繝｡繝ｼ繧ｸ繧貞女縺代ｋ
 void Entity::TakeDamage(const DamageData& damageData)
 {
-    if (cooldowns.damageCooldown > 0.0f) return;
+    if (!damageData.ignoreDamageCooldown && cooldowns.damageCooldown > 0.0f) return;
     if (IsDead()) return;
 
     if (damageData.knockBackPower > 0 && damageData.hitPosition.has_value())
@@ -74,7 +74,7 @@ void Entity::TakeDamage(const DamageData& damageData)
         OnDead(damageData);
 }
 
-// 回復する
+// 蝗槫ｾｩ縺吶ｋ
 void Entity::Heal(float amount)
 {
     life = min(life + amount, maxLife);

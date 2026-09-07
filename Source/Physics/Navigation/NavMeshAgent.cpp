@@ -8,6 +8,16 @@
 
 #include "imgui.h"
 
+#include <cmath>
+
+namespace
+{
+	bool IsFinite(const Vector3& value)
+	{
+		return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+	}
+}
+
 NavMeshAgent::NavMeshAgent(Object* owner)
 	: Component(owner)
 {
@@ -157,6 +167,12 @@ Actor* NavMeshAgent::FindTargetByTag()
 bool NavMeshAgent::RecoverToNavMesh(Actor* actor)
 {
 	if (recoveredThisUpdate || !actor || !characterController) return recoveredThisUpdate;
+	if (!IsFinite(actor->transform.position))
+	{
+		statusMessage = "Recovery stopped: Actor position is invalid.";
+		currentSpeed = 0.0f;
+		return false;
+	}
 
 	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
 	if (!navMeshActor) return false;
@@ -169,12 +185,25 @@ bool NavMeshAgent::RecoverToNavMesh(Actor* actor)
 	{
 		return false;
 	}
+	if (!IsFinite(recoveryPoint))
+	{
+		statusMessage = "Recovery stopped: NavMesh returned an invalid point.";
+		currentSpeed = 0.0f;
+		return false;
+	}
 
 	Vector3 recoveryDirection = recoveryPoint - actor->transform.position;
 	recoveryDirection.y = 0.0f;
 	const float recoveryDistance = recoveryDirection.Length();
 	constexpr float recoveryThreshold = 0.005f;
-	if (recoveryDistance <= recoveryThreshold) return false;
+	if (!std::isfinite(recoveryDistance) || recoveryDistance <= recoveryThreshold) return false;
+	if (!std::isfinite(speed) || !std::isfinite(Game::Time::deltaTime) ||
+		Game::Time::deltaTime <= 0.0f)
+	{
+		statusMessage = "Recovery stopped: Movement timing is invalid.";
+		currentSpeed = 0.0f;
+		return false;
+	}
 
 	recoveryDirection /= recoveryDistance;
 	currentTurnAngle = atan2f(
@@ -203,6 +232,13 @@ bool NavMeshAgent::RecoverToNavMesh(Actor* actor)
 		speed * Game::Time::deltaTime,
 		recoveryDistance);
 	lastMoveDelta = recoveryDirection * moveDistance;
+	if (!IsFinite(lastMoveDelta))
+	{
+		statusMessage = "Recovery stopped: Movement delta is invalid.";
+		currentSpeed = 0.0f;
+		lastMoveDelta = Vector3::Zero;
+		return false;
+	}
 	currentSpeed = speed;
 	characterController->Move(lastMoveDelta);
 	pathFailTimer = 0.0f;
@@ -216,6 +252,12 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
 	currentTurnAngle = 0.0f;
+	if (!actor || !IsFinite(actor->transform.position) || !IsFinite(targetPosition))
+	{
+		statusMessage = "Movement stopped: Position is invalid.";
+		currentSpeed = 0.0f;
+		return false;
+	}
 	if (RecoverToNavMesh(actor)) return false;
 
 	const Vector3 toTarget = targetPosition - actor->transform.position;
@@ -321,6 +363,12 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	}
 
 	const float nextPointDistance = direction.Length();
+	if (!IsFinite(nextPoint) || !std::isfinite(nextPointDistance) || nextPointDistance <= eps)
+	{
+		statusMessage = "Movement stopped: NavMesh returned an invalid direction.";
+		currentSpeed = 0.0f;
+		return false;
+	}
 	direction /= nextPointDistance;
 	currentTurnAngle = atan2f(
 		direction.Dot(actor->transform.right),
@@ -348,6 +396,13 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		speed * Game::Time::deltaTime,
 		nextPointDistance);
 	lastMoveDelta = direction * moveDistance;
+	if (!IsFinite(lastMoveDelta))
+	{
+		statusMessage = "Movement stopped: Movement delta is invalid.";
+		currentSpeed = 0.0f;
+		lastMoveDelta = Vector3::Zero;
+		return false;
+	}
 	characterController->Move(lastMoveDelta);
 
 	if (!directMove && pathFailTimer <= 0.0f)

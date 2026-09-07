@@ -1,23 +1,34 @@
-﻿#include "Gameplay/Stage/Stage01.h"
+// Stage01.cpp
+#include "Gameplay/Stage/Stage01.h"
+#include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/EnemySmall.h"
 #include "Gameplay/Actor/Spawner.h"
+#include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/AracoreQueen.h"
+#include "Gameplay/Player/Player.h"
+#include "Audio/SoundSystem.h"
+#include "Audio/SoundTracks.generated.h"
 
-Stage01::Stage01()
+Stage01::Stage01(Player* player) : Stage()
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	const bool loadedVstg = LoadVSTG("Data/Stages/0_tall.vstg");
+	SoundSystem::Instance().PlayTrack(SoundTrack::BGM_CAVE_AMBIENT, -1,
+		SoundSystem::PlayOptions{.loop = true});
+
+	const bool loadedVstg = LoadVSTG("Resources/Stage/cave_01.vstg");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
 	stageLoader = GetComponent<StageLoader>();
+	if (player && stageLoader && stageLoader->HasPlayerStart())
+		player->SetSpawnTransform(stageLoader->GetPlayerStartTransform());
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
@@ -41,21 +52,21 @@ Stage01::Stage01()
 	//	パーティクル準備
 	{
 		//	パーティクル用画像ロード
-		auto sozai = Texture("Data/Image/particle256x256.png");
+		auto sozai = ResourceManager::Instance().LoadTexture("Resources/Image/particle256x256.png");
 
 		//	パーティクルシステム生成
 		particleSystem = std::make_unique<ParticleSystem>(
 			device,
-			sozai.GetShaderResourceView(),
+			sozai ? sozai->GetShaderResourceView() : nullptr,
 			4, 4, 1000);
 		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
 	{
-		Texture fogTexture("Data/Image/fog_particle.png");
+		auto fogTexture = ResourceManager::Instance().LoadTexture("Resources/Image/fog_particle.png");
 		fogParticleSystem = std::make_unique<ParticleSystem>(
 			device,
-			fogTexture.GetShaderResourceView(),
+			fogTexture ? fogTexture->GetShaderResourceView() : nullptr,
 			1,
 			1,
 			256);
@@ -72,12 +83,14 @@ Stage01::Stage01()
 	});
 	#endif
 	#if 1
-	stageLoader->RegisterSpawnerFactory("EnemyBig", [](const Transform& transform)
+	Terrain* terrain = GetComponent<Terrain>();
+	stageLoader->RegisterSpawnerFactory("AracoreQueen", [player, terrain, loader = stageLoader](const Transform& transform)
 	{
-		auto enemy = std::make_shared<AracoreQueen>(transform.position);
-		enemy->transform.SetRotation(transform.rotation);
-		enemy->transform.SetScale(transform.scale);
-		return enemy;
+		auto queen = std::make_shared<AracoreQueen>(player, transform.position, terrain);
+		queen->SetStageLoader(loader);
+		queen->transform.SetRotation(transform.rotation);
+		queen->transform.SetScale(transform.scale);
+		return queen;
 	});
 	#endif
 	for (Spawner* spawner : stageLoader->GetSpawners())

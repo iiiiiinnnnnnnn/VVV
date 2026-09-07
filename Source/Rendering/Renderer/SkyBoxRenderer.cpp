@@ -11,7 +11,7 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
     // 頂点シェーダー（入力レイアウト不要 = SV_VertexID 使用）
     hr = GpuResourceUtils::LoadVertexShader(
         device,
-        "Data/Shader/SkyBoxVS.cso",
+        "Resources/Shader/SkyBoxVS.cso",
         nullptr, 0,
         nullptr,
         vertexShader.GetAddressOf());
@@ -20,7 +20,7 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
     // ピクセルシェーダー
     hr = GpuResourceUtils::LoadPixelShader(
         device,
-        "Data/Shader/SkyBoxPS.cso",
+        "Resources/Shader/SkyBoxPS.cso",
         pixelShader.GetAddressOf());
     _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 

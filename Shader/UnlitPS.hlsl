@@ -13,5 +13,7 @@ float4 main(VS_OUT input) : SV_TARGET
         pow(textureColorSRGB.rgb, GammaFactor),
         textureColorSRGB.a);
 
-    return textureColor * baseColor;
+    float4 color = textureColor * baseColor;
+    color.rgb += emissionColor.rgb * emissionColor.a;
+    return color;
 }

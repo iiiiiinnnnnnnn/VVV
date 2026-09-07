@@ -1,6 +1,6 @@
 // GeometryParticle.hlsli
 
-//  ’¸“_î•ñ
+//  é ‚ç‚¹æƒ…å ±
 struct VS_IN
 {
     float3 position : POSITION;

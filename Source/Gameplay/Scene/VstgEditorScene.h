@@ -27,6 +27,7 @@ class VstgEditorScene : public Scene
 	~VstgEditorScene() override;
 
   protected:
+	void OnUpdate() override;
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
@@ -40,6 +41,7 @@ class VstgEditorScene : public Scene
 	// ファイル操作
 	void Open();
 	bool LoadStage(const std::filesystem::path& stagePath);
+	bool ResolveMissingModels();
 	void Save();
 	void SaveAs();
 	void LoadEditorSettings();
@@ -89,6 +91,8 @@ class VstgEditorScene : public Scene
 	Transform dragPreviewTransform;
 	VMatRenderParams dragPreviewRenderParams;
 	bool showDragPreview = false;
+	bool showPlayerStartDragPreview = false;
+	Vector3 playerStartDragPreviewPosition = Vector3::Zero;
 
 	// 編集状態
 	int gizmoOperation = 7;
@@ -96,4 +100,5 @@ class VstgEditorScene : public Scene
 	bool showFog = true;
 	bool dirty = false;
 	size_t cleanStateHash = 0;
+	bool maximizeWindowPending = true;
 };

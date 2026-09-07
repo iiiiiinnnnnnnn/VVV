@@ -17,10 +17,12 @@ void DebugLog::Initialize()
 
 	char filename[64]{};
 	std::strftime(filename, sizeof(filename), "Log/%Y_%m_%d_%H_%M_%S.log", &localTime);
+	char errorFilename[72]{};
+	std::strftime(errorFilename, sizeof(errorFilename), "Log/%Y_%m_%d_%H_%M_%S.error.log", &localTime);
 
 	FILE* stream = nullptr;
 	freopen_s(&stream, filename, "w", stdout);
-	freopen_s(&stream, filename, "a", stderr);
+	freopen_s(&stream, errorFilename, "w", stderr);
 	std::setvbuf(stdout, nullptr, _IONBF, 0);
 	std::setvbuf(stderr, nullptr, _IONBF, 0);
 #endif

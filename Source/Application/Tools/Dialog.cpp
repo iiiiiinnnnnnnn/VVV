@@ -174,11 +174,11 @@ DialogResult Dialog::SaveFileName(
 	}
 	else if (ofn.nFilterIndex == 1)
 	{
-		selectedPath.replace_extension(".dds");
+		selectedPath.replace_extension(".png");
 	}
 	else if (ofn.nFilterIndex == 2)
 	{
-		selectedPath.replace_extension(".png");
+		selectedPath.replace_extension(".dds");
 	}
 
 	const std::string finalPath = selectedPath.string();

@@ -3,19 +3,19 @@
 #ifndef __SHADING_FUNCTIONS_HLSLI__
 #define __SHADING_FUNCTIONS_HLSLI__
 
-//	ƒKƒ“ƒ}ŒW”
+//	ã‚¬ãƒ³ãƒä¿‚æ•°
 static const float GammaFactor = 2.2f;
 
-//	‰~ü—¦
+//	å††å‘¨ç‡
 static const float PI = 3.141592654f;
 
 //--------------------------------------------
-//	ƒ‰ƒ“ƒo[ƒgŠgU”½ËŒvZŠÖ”
+//	ãƒ©ãƒ³ãƒãƒ¼ãƒˆæ‹¡æ•£åå°„è¨ˆç®—é–¢æ•°
 //--------------------------------------------
-// N:–@ü(³‹K‰»Ï‚İ)
-// L:“üËƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// C:“üËŒõ(FE‹­‚³)
-// K:”½Ë—¦
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// L:å…¥å°„ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// C:å…¥å°„å…‰(è‰²ãƒ»å¼·ã•)
+// K:åå°„ç‡
 float3 CalcLambert(float3 N, float3 L, float3 C, float3 K)
 {
     float power = saturate(dot(N, -L));
@@ -23,13 +23,13 @@ float3 CalcLambert(float3 N, float3 L, float3 C, float3 K)
 }
 
 //--------------------------------------------
-//	ƒtƒHƒ“‚Ì‹¾–Ê”½ËŒvZŠÖ”
+//	ãƒ•ã‚©ãƒ³ã®é¡é¢åå°„è¨ˆç®—é–¢æ•°
 //--------------------------------------------
-// N:–@ü(³‹K‰»Ï‚İ)
-// L:“üËƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// E:‹üƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// C:“üËŒõ(FE‹­‚³)
-// K:”½Ë—¦
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// L:å…¥å°„ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// E:è¦–ç·šãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// C:å…¥å°„å…‰(è‰²ãƒ»å¼·ã•)
+// K:åå°„ç‡
 float3 CalcPhongSpecular(float3 N, float3 L, float3 E, float3 C, float3 K, float Power = 128)
 {
     float3 R = reflect(L, N);
@@ -39,12 +39,12 @@ float3 CalcPhongSpecular(float3 N, float3 L, float3 E, float3 C, float3 K, float
 }
 
 //--------------------------------------------
-//	ƒn[ƒtƒ‰ƒ“ƒo[ƒgŠgU”½ËŒvZŠÖ”
+//	ãƒãƒ¼ãƒ•ãƒ©ãƒ³ãƒãƒ¼ãƒˆæ‹¡æ•£åå°„è¨ˆç®—é–¢æ•°
 //--------------------------------------------
-// N:–@ü(³‹K‰»Ï‚İ)
-// L:“üËƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// C:“üËŒõ(FE‹­‚³)
-// K:”½Ë—¦
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// L:å…¥å°„ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// C:å…¥å°„å…‰(è‰²ãƒ»å¼·ã•)
+// K:åå°„ç‡
 float3 ClacHalfLambert(float3 N, float3 L, float3 C, float3 K)
 {
     float D = saturate(dot(N, -L) * 0.5f + 0.5f);
@@ -52,13 +52,13 @@ float3 ClacHalfLambert(float3 N, float3 L, float3 C, float3 K)
 }
 
 //--------------------------------------------
-// ƒŠƒ€ƒ‰ƒCƒg
+// ãƒªãƒ ãƒ©ã‚¤ãƒˆ
 //--------------------------------------------
-// N:–@ü(³‹K‰»Ï‚İ)
-// E:‹“_•ûŒüƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// L:“üËƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// C :ƒ‰ƒCƒgF
-// RimPower : ƒŠƒ€ƒ‰ƒCƒg‚Ì‹­‚³(‰Šú’l‚ÍƒeƒLƒg[‚È‚Ì‚Å©•ª‚Åİ’è‚·‚é‚ª‹g)
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// E:è¦–ç‚¹æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// L:å…¥å°„ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// C :ãƒ©ã‚¤ãƒˆè‰²
+// RimPower : ãƒªãƒ ãƒ©ã‚¤ãƒˆã®å¼·ã•(åˆæœŸå€¤ã¯ãƒ†ã‚­ãƒˆãƒ¼ãªã®ã§è‡ªåˆ†ã§è¨­å®šã™ã‚‹ãŒå‰)
 float3 CalcRimLight(float3 N, float3 E, float3 L, float3 C, float RimPower = 3.0f)
 {
     float rim = 1.0f - saturate(dot(N, -E));
@@ -66,14 +66,14 @@ float3 CalcRimLight(float3 N, float3 E, float3 L, float3 C, float RimPower = 3.0
 }
 
 //--------------------------------------------
-// ƒ‰ƒ“ƒvƒVƒF[ƒfƒBƒ“ƒO
+// ãƒ©ãƒ³ãƒ—ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°
 //--------------------------------------------
-// tex:ƒ‰ƒ“ƒvƒVƒF[ƒfƒBƒ“ƒO—pƒeƒNƒXƒ`ƒƒ
-// samp:ƒ‰ƒ“ƒvƒVƒF[ƒfƒBƒ“ƒO—pƒTƒ“ƒvƒ‰ƒXƒe[ƒg
-// N:–@ü(³‹K‰»Ï‚İ)
-// L:“üËƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
-// C:“üËŒõ(FE‹­‚³)
-// K:”½Ë—¦
+// tex:ãƒ©ãƒ³ãƒ—ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ç”¨ãƒ†ã‚¯ã‚¹ãƒãƒ£
+// samp:ãƒ©ãƒ³ãƒ—ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ç”¨ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆ
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// L:å…¥å°„ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
+// C:å…¥å°„å…‰(è‰²ãƒ»å¼·ã•)
+// K:åå°„ç‡
 float3 CalcRampShading(Texture2D tex, SamplerState samp, float3 N, float3 L, float3 C, float3 K)
 {
     float D = saturate(dot(N, -L) * 0.5f + 0.5f);
@@ -82,14 +82,14 @@ float3 CalcRampShading(Texture2D tex, SamplerState samp, float3 N, float3 L, flo
 }
 
 //--------------------------------------------
-// ‹…‘ÌŠÂ‹«ƒ}ƒbƒsƒ“ƒO
+// çƒä½“ç’°å¢ƒãƒãƒƒãƒ”ãƒ³ã‚°
 //--------------------------------------------
-// tex:ƒ‰ƒ“ƒvƒVƒF[ƒfƒBƒ“ƒO—pƒeƒNƒXƒ`ƒƒ
-// samp:ƒ‰ƒ“ƒvƒVƒF[ƒfƒBƒ“ƒO—pƒTƒ“ƒvƒ‰ƒXƒe[ƒg
-// color: Œ»İ‚ÌƒsƒNƒZƒ‹F
-// N:–@ü(³‹K‰»Ï‚İ)
-// C:“üËŒõ(FE‹­‚³)
-// value:“K‰—¦
+// tex:ãƒ©ãƒ³ãƒ—ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ç”¨ãƒ†ã‚¯ã‚¹ãƒãƒ£
+// samp:ãƒ©ãƒ³ãƒ—ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ç”¨ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆ
+// color: ç¾åœ¨ã®ãƒ”ã‚¯ã‚»ãƒ«è‰²
+// N:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// C:å…¥å°„å…‰(è‰²ãƒ»å¼·ã•)
+// value:é©å¿œç‡
 float3 CalcSphereEnvironment(Texture2D tex, SamplerState samp, in float3 color, float3 N, float3 E, float value)
 {
     float3 R = reflect(E, N);
@@ -98,13 +98,13 @@ float3 CalcSphereEnvironment(Texture2D tex, SamplerState samp, in float3 color, 
 }
 
 //--------------------------------------------
-// ”¼‹…ƒ‰ƒCƒeƒBƒ“ƒO
+// åŠçƒãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°
 //--------------------------------------------
-// normal:–@ü(³‹K‰»Ï‚İ)
-// up:ã•ûŒüi•Ğ•ûj
-// sky_color:‹ó(ã)F
-// ground_color:’n–Ê(‰º)F
-// hemisphere_weight:d‚İ
+// normal:æ³•ç·š(æ­£è¦åŒ–æ¸ˆã¿)
+// up:ä¸Šæ–¹å‘ï¼ˆç‰‡æ–¹ï¼‰
+// sky_color:ç©º(ä¸Š)è‰²
+// ground_color:åœ°é¢(ä¸‹)è‰²
+// hemisphere_weight:é‡ã¿
 float3 CalcHemiSphereLight(float3 normal, float3 up, float3 sky_color, float3 ground_color, float4 hemisphere_weight)
 {
     float factor = dot(normal, up) * 0.5f + 0.5f;
@@ -112,12 +112,12 @@ float3 CalcHemiSphereLight(float3 normal, float3 up, float3 sky_color, float3 gr
 }
 
 //--------------------------------------------
-//	ƒtƒHƒO
+//	ãƒ•ã‚©ã‚°
 //--------------------------------------------
-//color:Œ»İ‚ÌƒsƒNƒZƒ‹F
-//fog_color:ƒtƒHƒO‚ÌF
-//fog_range:ƒtƒHƒO‚Ì”ÍˆÍî•ñ
-//eye_length:‹“_‚©‚ç‚Ì‹——£
+//color:ç¾åœ¨ã®ãƒ”ã‚¯ã‚»ãƒ«è‰²
+//fog_color:ãƒ•ã‚©ã‚°ã®è‰²
+//fog_range:ãƒ•ã‚©ã‚°ã®ç¯„å›²æƒ…å ±
+//eye_length:è¦–ç‚¹ã‹ã‚‰ã®è·é›¢
 float4 CalcFog(in float4 color, float4 fog_color, float2 fog_range, float eye_length)
 {
     float fogAlpha = saturate((eye_length - fog_range.x) / (fog_range.y - fog_range.x));
@@ -125,11 +125,11 @@ float4 CalcFog(in float4 color, float4 fog_color, float2 fog_range, float eye_le
 }
 
 //--------------------------------------------
-//	ƒpƒmƒ‰ƒ}ƒXƒJƒCƒ{ƒbƒNƒX
+//	ãƒ‘ãƒãƒ©ãƒã‚¹ã‚«ã‚¤ãƒœãƒƒã‚¯ã‚¹
 //--------------------------------------------
-// tex:ƒpƒmƒ‰ƒ}ƒXƒJƒCƒ{ƒbƒNƒX—pƒeƒNƒXƒ`ƒƒ
-// samp: ƒpƒmƒ‰ƒ}ƒXƒJƒCƒ{ƒbƒNƒX—pƒTƒ“ƒvƒ‰ƒXƒe[ƒg
-//direction:•ûŒüƒxƒNƒgƒ‹(³‹K‰»Ï‚İ)
+// tex:ãƒ‘ãƒãƒ©ãƒã‚¹ã‚«ã‚¤ãƒœãƒƒã‚¯ã‚¹ç”¨ãƒ†ã‚¯ã‚¹ãƒãƒ£
+// samp: ãƒ‘ãƒãƒ©ãƒã‚¹ã‚«ã‚¤ãƒœãƒƒã‚¯ã‚¹ç”¨ã‚µãƒ³ãƒ—ãƒ©ã‚¹ãƒ†ãƒ¼ãƒˆ
+//direction:æ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«(æ­£è¦åŒ–æ¸ˆã¿)
 float4 SampleSkybox(Texture2D tex, SamplerState samp, float3 direction)
 {
     static const float PI = 3.14159265f;

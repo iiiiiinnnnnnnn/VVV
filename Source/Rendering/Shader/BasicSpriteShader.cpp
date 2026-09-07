@@ -6,7 +6,7 @@ BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 	// 頂点シェーダー
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/BasicSpriteVS.cso",
+		"Resources/Shader/BasicSpriteVS.cso",
 		SpriteShader::InputElementDescs.data(),
 		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
@@ -15,7 +15,7 @@ BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 	// ピクセルシェーダー
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/BasicSpritePS.cso",
+		"Resources/Shader/BasicSpritePS.cso",
 		pixelShader.GetAddressOf());
 
 	// 定数バッファ
@@ -32,13 +32,16 @@ void BasicSpriteShader::Begin(const RenderContext& rc)
 	dc->IASetInputLayout(inputLayout.Get());
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
+	ID3D11SamplerState* sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
+	dc->PSSetSamplers(0, 1, &sampler);
 }
 
 void BasicSpriteShader::Update(
 	const RenderContext& rc,
 	ID3D11ShaderResourceView* srv,
 	Vector2 textureSize,
-	const Color& color)
+	const Color& color,
+	const Vector4& parameters)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
@@ -68,4 +71,6 @@ void BasicSpriteShader::End(const RenderContext& rc)
 
 	ID3D11ShaderResourceView* nullSrv = nullptr;
 	dc->PSSetShaderResources(0, 1, &nullSrv);
+	ID3D11SamplerState* nullSampler = nullptr;
+	dc->PSSetSamplers(0, 1, &nullSampler);
 }

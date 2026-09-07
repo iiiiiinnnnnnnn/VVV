@@ -3,10 +3,12 @@
 #include "Gameplay/Stage/Stage.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 
+class Player;
+
 class Stage01 : public Stage
 {
 public:
-	Stage01();
+	Stage01(Player* player);
 	void OnUpdate() override;
 	void RenderEffects(const RenderContext& rc) override;
 	void OnDrawGUI() override;

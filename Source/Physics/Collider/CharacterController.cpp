@@ -5,6 +5,24 @@
 #include "IconsFontAwesome5.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
+#include <cmath>
+#include <limits>
+
+namespace
+{
+    bool IsFinite(const Vector3& value)
+    {
+        return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+    }
+
+    bool IsUsableControllerPosition(const PxExtendedVec3& value)
+    {
+        constexpr double limit = static_cast<double>(std::numeric_limits<float>::max()) * 0.25;
+        return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z) &&
+            std::abs(value.x) < limit && std::abs(value.y) < limit && std::abs(value.z) < limit;
+    }
+}
+
 CharacterController::CharacterController(Object* owner, LayerId layerId, float radius, float height)
     : PhysicsComponent(owner, layerId)
 {
@@ -29,9 +47,14 @@ CharacterController::CharacterController(Object* owner, LayerId layerId, float r
 
     controller = PhysicsManager::Instance()
         .GetSceneContext().GetControllerManager()->createController(desc);
+    if (!controller)
+    {
+        OutputDebugStringA("CharacterController: failed to create PhysX controller.\n");
+        return;
+    }
     SetFootPosition(actor->transform.position);
 
-    // “à•”ƒVƒFƒCƒv‚Élayer‚ðƒZƒbƒg•userData‚ÉActor*‚ðŠi”[iƒR[ƒ‹ƒoƒbƒN—pj
+    // å†…éƒ¨ã‚·ã‚§ã‚¤ãƒ—ã«layerã‚’ã‚»ãƒƒãƒˆï¼†userDataã«Actor*ã‚’æ ¼ç´ï¼ˆã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ç”¨ï¼‰
     PxRigidDynamic* act = controller->getActor();
     act->userData = actor;
     PxShape* shape = nullptr;
@@ -75,9 +98,10 @@ void CharacterController::ApplyGravity()
 void CharacterController::SyncOwnerTransform()
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
-    if (!controller) return;
+    if (!controller || !actor) return;
 
     PxExtendedVec3 pos = controller->getPosition();
+    if (!IsUsableControllerPosition(pos)) return;
     if (ownerAnchorAtCenter)
     {
         actor->transform.position = Vector3(
@@ -99,6 +123,7 @@ void CharacterController::SyncOwnerTransform()
 void CharacterController::Render(const RenderContext& rc)
 {
 	if (!showDebug) return;
+	if (!controller) return;
 
     PxExtendedVec3 controllerPosition = controller->getPosition();
     Vector3 position = useDebugRenderPosition ?
@@ -123,9 +148,15 @@ void CharacterController::Render(const RenderContext& rc)
 
 void CharacterController::DrawGUI()
 {
+    if (!controller)
+    {
+        ImGui::TextDisabled("PhysX controller is not available.");
+        return;
+    }
+
     PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
 
-    // --- ó‘Ô•\Ž¦ ---
+    // --- çŠ¶æ…‹è¡¨ç¤º ---
     ImGui::Text("Grounded : %s", grounded ? "true" : "false");
     ImGui::Checkbox("Use Gravity", &useGravity);
     ImGui::DragFloat("Gravity", &gravity, 0.01f, -100.0f, 100.0f);
@@ -133,7 +164,7 @@ void CharacterController::DrawGUI()
     PxExtendedVec3 pos = controller->getPosition();
     ImGui::Text("Position : (%.2f, %.2f, %.2f)", (float)pos.x, (float)pos.y, (float)pos.z);
 
-    // --- ƒJƒvƒZƒ‹Œ`ó ---
+    // --- ã‚«ãƒ—ã‚»ãƒ«å½¢çŠ¶ ---
     if (ImGui::TreeNode("Shape"))
     {
         float radius = capsule->getRadius();
@@ -156,7 +187,7 @@ void CharacterController::DrawGUI()
         ImGui::TreePop();
     }
 
-    // --- ƒRƒ“ƒgƒ[ƒ‰Ý’è ---
+    // --- ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©è¨­å®š ---
     if (ImGui::TreeNode("Settings"))
     {
         float stepOffset = controller->getStepOffset();
@@ -172,7 +203,7 @@ void CharacterController::DrawGUI()
             SetPosition(anchorPosition);
         }
 
-        // slopeLimit ‚ÍŠp“x(deg)‚Å•\Ž¦E•ÒW‚µ‚Ä“à•”‚Ícos’l‚É•ÏŠ·
+        // slopeLimit ã¯è§’åº¦(deg)ã§è¡¨ç¤ºãƒ»ç·¨é›†ã—ã¦å†…éƒ¨ã¯coså€¤ã«å¤‰æ›
         float slopeDeg = DEG(acosf(controller->getSlopeLimit()));
         if (ImGui::DragFloat("Slope Limit (deg)", &slopeDeg, 0.5f, 0.0f, 90.0f))
             controller->setSlopeLimit(cosf(RAD(slopeDeg)));
@@ -196,6 +227,13 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
 		if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) return PxQueryHitType::eNONE;
 
         int layer = (int)shape->getSimulationFilterData().word1;
+        auto* otherCollider = static_cast<PhysicsComponent*>(shape->userData);
+        if (CharacterController* characterController = owner->GetComponent<CharacterController>();
+            characterController &&
+            (characterController->IgnoresLayer(static_cast<LayerId>(layer)) ||
+             (PhysicsComponent::IsLive(otherCollider) &&
+              characterController->IgnoresCollider(*otherCollider))))
+            return PxQueryHitType::eNONE;
         if (!PhysicsLayerManager::Instance().Collides(ownerLayer, layer)) return PxQueryHitType::eNONE;
         return PxQueryHitType::eBLOCK;
     }
@@ -211,11 +249,26 @@ private:
 
 void CharacterController::Move(const Vector3& velocity)
 {
+    if (!controller || !hitReport || !IsFinite(velocity)) return;
+
     static CCFilterCallback      ccFilter;
     Actor* actor = dynamic_cast<Actor*>(owner);
+    if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) return;
+
+    const float elapsedTime = Game::Time::deltaTime;
+    if (!std::isfinite(elapsedTime) || elapsedTime <= 0.0f ||
+        !std::isfinite(velocity.LengthSquared()))
+        return;
+
+    if (!IsUsableControllerPosition(controller->getPosition()))
+    {
+        OutputDebugStringA("CharacterController: skipped move because its PhysX position is invalid.\n");
+        return;
+    }
+
     CCShapeFilterCallback shapeFilter(actor, layerId);
 
-    // VƒtƒŒ[ƒ€‚ÌŠJŽn‚Æ‚µ‚Äƒtƒ‰ƒO‚ðƒŠƒZƒbƒgiLateUpdate‚æ‚èæ‚ÉMove‚ªŒÄ‚Î‚ê‚é‘z’èj
+    // æ–°ãƒ•ãƒ¬ãƒ¼ãƒ ã®é–‹å§‹ã¨ã—ã¦ãƒ•ãƒ©ã‚°ã‚’ãƒªã‚»ãƒƒãƒˆï¼ˆLateUpdateã‚ˆã‚Šå…ˆã«MoveãŒå‘¼ã°ã‚Œã‚‹æƒ³å®šï¼‰
     hitReport->dispatchedThisFrame = false;
 
     PxControllerFilters filters;
@@ -224,7 +277,7 @@ void CharacterController::Move(const Vector3& velocity)
 
     PxControllerCollisionFlags flags = controller->move(
         PxVec3(velocity.x, velocity.y, velocity.z),
-        0.001f, Game::Time::deltaTime, filters
+        0.001f, elapsedTime, filters
     );
     grounded = (flags & PxControllerCollisionFlag::eCOLLISION_DOWN) != PxControllerCollisionFlags(0);
     if (grounded && velocity.y <= 0.0f)
@@ -237,12 +290,14 @@ void CharacterController::Move(const Vector3& velocity)
 
 void CharacterController::LateUpdate()
 {
-    // Move()‚ÍOnLateUpdate‚ÅŒÄ‚Î‚ê‚é‚½‚ßA‚»‚ÌŒã‚É”»’è‚·‚é
+    // Move()ã¯OnLateUpdateã§å‘¼ã°ã‚Œã‚‹ãŸã‚ã€ãã®å¾Œã«åˆ¤å®šã™ã‚‹
     hitReport->DispatchEvents();
 }
 
 void CharacterController::SetPosition(const Vector3& position)
 {
+    if (!controller || !IsFinite(position)) return;
+
     if (ownerAnchorAtCenter)
     {
         controller->setPosition(PxExtendedVec3(
@@ -265,6 +320,8 @@ void CharacterController::SetPosition(const Vector3& position)
 
 void CharacterController::SetFootPosition(const Vector3& position)
 {
+    if (!controller || !IsFinite(position)) return;
+
     const float footToCenter = GetFootToControllerCenter();
 
     controller->setPosition(PxExtendedVec3(
@@ -312,6 +369,24 @@ float CharacterController::GetFootToControllerCenter() const
     return
         capsule->getHeight() * 0.5f +
         capsule->getRadius();
+}
+
+void CharacterController::SetActorTagIgnored(const std::string& tag, bool ignored)
+{
+    if (ignored)
+    {
+        ignoredActorTag = tag;
+        return;
+    }
+
+    if (ignoredActorTag == tag) ignoredActorTag.clear();
+}
+
+bool CharacterController::IgnoresCollider(const PhysicsComponent& other) const
+{
+    if (PhysicsComponent::IgnoresCollider(other)) return true;
+    return !ignoredActorTag.empty() && other.GetOwner() &&
+        other.GetOwner()->CompareTag(ignoredActorTag);
 }
 
 void CharacterController::SetStepOffset(float value)

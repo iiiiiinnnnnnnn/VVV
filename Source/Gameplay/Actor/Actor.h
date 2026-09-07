@@ -1,3 +1,4 @@
+﻿// Actor.h
 #pragma once
 
 #include "Core/Object/Object.h"
@@ -5,7 +6,7 @@
 
 class PhysicsComponent;
 
-class Actor : public Object
+class Actor : public Object, public std::enable_shared_from_this<Actor>
 {
 public:
     Actor(std::string name = "", std::string tag = "", bool isActive = true)

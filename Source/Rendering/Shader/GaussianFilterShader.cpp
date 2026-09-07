@@ -6,7 +6,7 @@ GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 	// 頂点シェーダー
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/BasicSpriteVS.cso",
+		"Resources/Shader/BasicSpriteVS.cso",
 		SpriteShader::InputElementDescs.data(),
 		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
@@ -15,7 +15,7 @@ GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 	// ピクセルシェーダー
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/GaussianFilteringPS.cso",
+		"Resources/Shader/GaussianFilteringPS.cso",
 		pixelShader.GetAddressOf());
 
 	// ガウスフィルター用定数バッファ
@@ -38,7 +38,8 @@ void GaussianFilterShader::Update(
 	const RenderContext& rc,
 	ID3D11ShaderResourceView* srv,
 	Vector2 textureSize,
-	const Color& color)
+	const Color& color,
+	const Vector4& parameters)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

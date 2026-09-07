@@ -21,6 +21,7 @@ class Spawner : public Component
 
 	// 召喚
 	Actor* Summon();
+	Actor* Summon(const Transform& transform);
 	void ClearSummonedActors();
 
 	// エディタ表示

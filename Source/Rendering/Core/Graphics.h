@@ -66,7 +66,7 @@ namespace Game
 		ShadowMapRenderer* GetShadowMapRenderer() const { return shadowMapRenderer.get(); }
 		SkyBoxRenderer* GetSkyBoxRenderer()    const { return skyBoxRenderer.get(); }
 
-		// IBLÉeÉNÉXÉ`ÉÉ SRVéÊìæ
+		// IBL„ÉÜ„ÇØ„Çπ„ÉÅ„É£ SRVÂèñÂæó
 		ID3D11ShaderResourceView* GetIBLDiffuseIEM()     const { return iblDiffuseIEM.Get(); }
 		ID3D11ShaderResourceView* GetIBLSpecularPMREM()  const { return iblSpecularPMREM.Get(); }
 		ID3D11ShaderResourceView* GetIBLGGXLUT()         const { return iblGGXLUT.Get(); }
@@ -103,7 +103,7 @@ namespace Game
 		std::unique_ptr<ShadowMapRenderer>	shadowMapRenderer;
 		std::unique_ptr<SkyBoxRenderer>		skyBoxRenderer;
 
-		// IBLÉeÉNÉXÉ`ÉÉ (Data/lut_ggx.dds, Data/specular_pmrem.dds, Data/diffuse_iem.dds)
+		// IBL„ÉÜ„ÇØ„Çπ„ÉÅ„É£ (Resources/lut_ggx.dds, Resources/specular_pmrem.dds, Resources/diffuse_iem.dds)
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblGGXLUT;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblDiffuseIEM;

@@ -18,7 +18,7 @@
 EnemyAIFlow::EnemyAIFlow(Object* owner)
     : AIFlow(owner)
 {
-    SetGraphPath("Data/AI/EnemyAI.json");
+    SetGraphPath("Resources/AI/EnemyAI.json");
     SetFloat("SearchRange", 15.0f);
     SetFloat("LostRange", 22.5f);
     SetFloat("SightRayLength", 16.5f);

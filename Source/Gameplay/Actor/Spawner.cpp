@@ -12,9 +12,14 @@ Spawner::Spawner(Object* owner, std::string entityName)
 
 Actor* Spawner::Summon()
 {
+	return Summon(summonTransform);
+}
+
+Actor* Spawner::Summon(const Transform& transform)
+{
 	if (!actorManager || !factory) return nullptr;
 
-	std::shared_ptr<Actor> summoned = factory(summonTransform);
+	std::shared_ptr<Actor> summoned = factory(transform);
 	if (!summoned) return nullptr;
 
 	Actor* result = summoned.get();

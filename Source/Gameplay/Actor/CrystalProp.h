@@ -36,7 +36,8 @@ class CrystalProp : public Entity
 
   private:
 	void Break();
-	void SpawnBreakParticles();
+	void PlayBreakSound();
+	float SpawnBreakParticles();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 
@@ -47,4 +48,5 @@ class CrystalProp : public Entity
 	MeshCollider* meshCollider = nullptr;
 	VMDLModelComponent* modelRenderer = nullptr;
 	DamageHoleComponent* damageHoleComponent = nullptr;
+	bool broken = false;
 };

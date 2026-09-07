@@ -23,7 +23,7 @@ SamplerState sampler_states[5] : register(s0);
 #define FXAA_SUBPIX_SHIFT (1.0f / 4.0f)
 float3 fxaa(Texture2D color_texture, float2 texcoord, float2 pixel_size)
 {
-    //  ü•ÓƒsƒNƒZƒ‹‚ğQÆ
+    //  å‘¨è¾ºãƒ”ã‚¯ã‚»ãƒ«ã‚’å‚ç…§
     float2 texcoord2 = texcoord.xy - (pixel_size * (0.5 + FXAA_SUBPIX_SHIFT));
     float3 sampled_nw = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy).xyz;
     float3 sampled_ne = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy, float2(1, 0)).xyz;
@@ -31,28 +31,28 @@ float3 fxaa(Texture2D color_texture, float2 texcoord, float2 pixel_size)
     float3 sampled_se = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy, float2(1, 1)).xyz;
     float3 sampled_m = color_texture.Sample(sampler_states[LINEAR], texcoord.xy).xyz;
 
-    //  ‚»‚ê‚¼‚ê‚Ì‹P“x‚ğZo
+    //  ãã‚Œãã‚Œã®è¼åº¦ã‚’ç®—å‡º
     float luma_nw = convert_rgb_to_luminance(sampled_nw);
     float luma_ne = convert_rgb_to_luminance(sampled_ne);
     float luma_sw = convert_rgb_to_luminance(sampled_sw);
     float luma_se = convert_rgb_to_luminance(sampled_se);
     float luma_m = convert_rgb_to_luminance(sampled_m);
 
-    //  ‹P“x·‚ÌÅ¬Å‘å‚ğæ“¾
+    //  è¼åº¦å·®ã®æœ€å°æœ€å¤§ã‚’å–å¾—
     float luma_min = min(luma_m, min(min(luma_nw, luma_ne), min(luma_sw, luma_se)));
     float luma_max = max(luma_m, max(max(luma_nw, luma_ne), max(luma_sw, luma_se)));
 
-    //  ‹P“x·‚©‚çŒü‚«ƒxƒNƒgƒ‹‚ğZo
+    //  è¼åº¦å·®ã‹ã‚‰å‘ããƒ™ã‚¯ãƒˆãƒ«ã‚’ç®—å‡º
     float2 dir;
     dir.x = -((luma_nw + luma_ne) - (luma_sw + luma_se));
     dir.y = +((luma_nw + luma_sw) - (luma_ne + luma_se));
 
-    //  •¡”ƒsƒNƒZƒ‹‚ğ‰¡’f‚·‚é‚æ‚¤‚ÉƒGƒbƒW‚ğL‚Î‚·
+    //  è¤‡æ•°ãƒ”ã‚¯ã‚»ãƒ«ã‚’æ¨ªæ–­ã™ã‚‹ã‚ˆã†ã«ã‚¨ãƒƒã‚¸ã‚’ä¼¸ã°ã™
     float dir_reduce = max((luma_nw + luma_ne + luma_sw + luma_se) * (0.25f * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
     float rcp_dir_min = 1.0f / (min(abs(dir.x), abs(dir.y)) + dir_reduce);
     dir = min(float2(FXAA_SPAN_MAX, FXAA_SPAN_MAX), max(float2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), dir * rcp_dir_min)) * pixel_size;
 
-    //  Œü‚«ƒxƒNƒgƒ‹‚ğŒ³‚É•¡”ˆÊ’u‚ÌF‚ğƒuƒŒƒ“ƒh‚µ‚Ä•Ô‚·
+    //  å‘ããƒ™ã‚¯ãƒˆãƒ«ã‚’å…ƒã«è¤‡æ•°ä½ç½®ã®è‰²ã‚’ãƒ–ãƒ¬ãƒ³ãƒ‰ã—ã¦è¿”ã™
     float3 rgb_a = (1.0f / 2.0f)
                  * (color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (1.0f / 3.0f - 0.5f)).xyz +
                     color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (2.0f / 3.0f - 0.5f)).xyz);

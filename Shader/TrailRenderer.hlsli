@@ -16,4 +16,5 @@ cbuffer CbTrail : register(b0)
 {
     row_major float4x4 viewProjection;
     float4 color;
+    float4 endColor;
 };

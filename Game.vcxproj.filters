@@ -1,9 +1,18 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
+    <ClCompile Include="Source\Resource\CacheBuilder.cpp"><Filter>Resource</Filter></ClCompile>
+    <ClInclude Include="Source\Resource\CacheBuilder.h"><Filter>Resource</Filter></ClInclude>
+    <ClInclude Include="Source\Resource\CacheSettings.h"><Filter>Resource</Filter></ClInclude>
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Audio\SoundSystem.cpp">
+	  <Filter>Audio</Filter>
+	</ClCompile>
+	<ClCompile Include="Source\Audio\SoundTrackRegistry.cpp">
+	  <Filter>Audio</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -16,6 +25,9 @@
     <Filter Include="Animation">
       <UniqueIdentifier>{bec44de4-182a-5342-9af4-1e54aa2fe358}</UniqueIdentifier>
     </Filter>
+	<Filter Include="Audio">
+	  <UniqueIdentifier>{e012eb59-b425-4f08-88cd-07c83c835ec1}</UniqueIdentifier>
+	</Filter>
     <Filter Include="Application">
       <UniqueIdentifier>{26d30179-1711-5c6f-b1fd-77306bab4640}</UniqueIdentifier>
     </Filter>
@@ -139,6 +151,18 @@
     <ClCompile Include="Source\Gameplay\Actor\EnemySmall.cpp" />
   </ItemGroup>
   <ItemGroup>
+	<ClInclude Include="Source\Audio\SoundSystem.h">
+	  <Filter>Audio</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Audio\SoundTrackRegistry.h">
+	  <Filter>Audio</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Audio\SoundTracks.generated.h">
+	  <Filter>Audio</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Audio\VSoundFormat.h">
+	  <Filter>Audio</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
@@ -202,6 +226,9 @@
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp">
+	  <Filter>Rendering\Shader</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Resource\VMDLModel.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -251,6 +278,9 @@
       <Filter>Gameplay\Stage\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\DamageHoleComponent.cpp">
+      <Filter>Rendering\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
@@ -380,6 +410,9 @@
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\HitStop.cpp">
+      <Filter>Gameplay\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp">
@@ -534,6 +567,9 @@
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h">
+	  <Filter>Rendering\Shader</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Resource\VMDLModel.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -568,6 +604,9 @@
       <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h">
+      <Filter>Rendering\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\AfterimageComponent.h">
       <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\SpriteRenderComponent.h">
@@ -751,6 +790,9 @@
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\HitStop.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\ParticleSystem.h">
@@ -957,6 +999,9 @@
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>
+	<FxCompile Include="Shader\VignetteSpritePS.hlsl">
+	  <Filter>Shaders\2D</Filter>
+	</FxCompile>
     <FxCompile Include="Shader\RadialBlurPS.hlsl">
       <Filter>Shaders\PostProcess</Filter>
     </FxCompile>

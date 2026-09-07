@@ -24,13 +24,13 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float4 sceneColor = sceneMap.Sample(linearSamplerState, pin.texcoord);
 
-    //  ü•ÓŒ¸Œõˆ—
+    //  å‘¨è¾ºæ¸›å…‰å‡¦ç†
     float2 d = abs(pin.texcoord - center) * intensity;
 
-    //  Œ¸Œõ‚ğƒXƒNƒŠ[ƒ“‚É‡‚í‚·‚©‚Ç‚¤‚©
+    //  æ¸›å…‰ã‚’ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã«åˆã‚ã™ã‹ã©ã†ã‹
     d.x *= lerp(1.0f, sceneMapSize.x / sceneMapSize.y, rounded);
 
-    //  ‹÷‚Ì”Z‚³
+    //  éš…ã®æ¿ƒã•
     d = pow(saturate(d), roundness);
 
     float vignetteFactor = pow(saturate(1.0f - dot(d, d)), smoothness);

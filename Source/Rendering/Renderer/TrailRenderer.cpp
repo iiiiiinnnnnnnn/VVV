@@ -14,7 +14,7 @@ TrailRenderer::TrailRenderer(ID3D11Device* device)
 	// 頂点シェーダー
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/TrailRendererVS.cso",
+		"Resources/Shader/TrailRendererVS.cso",
 		inputElementDesc,
 		_countof(inputElementDesc),
 		inputLayout.GetAddressOf(),
@@ -23,7 +23,7 @@ TrailRenderer::TrailRenderer(ID3D11Device* device)
 	// ピクセルシェーダー
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/TrailRendererPS.cso",
+		"Resources/Shader/TrailRendererPS.cso",
 		pixelShader.GetAddressOf());
 
 	// 定数バッファ
@@ -60,7 +60,8 @@ void TrailRenderer::Render(
 	ID3D11DeviceContext* dc,
 	const Matrix& view,
 	const Matrix& projection,
-	Color color)
+	Color color,
+	Color endColor)
 {
 	// シェーダー設定
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
@@ -79,6 +80,8 @@ void TrailRenderer::Render(
 	CbTrail cbTrail;
 	cbTrail.viewProjection = view * projection;
 	cbTrail.color = color;
+	if (endColor.w < 0.0f) endColor = Color(color.x, color.y, color.z, 0.0f);
+	cbTrail.endColor = endColor;
 	dc->UpdateSubresource(constant.Get(), 0, 0, &cbTrail, 0, 0);
 
 	// 頂点バッファ設定

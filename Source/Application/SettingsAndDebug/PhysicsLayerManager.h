@@ -1,4 +1,4 @@
-// ƒGƒ“ƒWƒ““à•”‚Ìİ’è
+// ã‚¨ãƒ³ã‚¸ãƒ³å†…éƒ¨ã®è¨­å®š
 
 #pragma once
 
@@ -8,7 +8,7 @@
 
 using LayerId = uint8_t;
 
-// ƒŒƒCƒ„[‚Í20ŒÂ‚Ü‚Å
+// ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¯20å€‹ã¾ã§
 constexpr int EditableLayerCount = 20;
 
 constexpr LayerId InvalidLayerId = 255;
@@ -36,7 +36,7 @@ public:
 	void Initialize();
 	void DrawGUI(bool* open = nullptr);
 
-	// ó‚¯æ‚è
+	// å—ã‘å–ã‚Š
 
 	bool Collides(LayerId a, LayerId b) const;
 
@@ -50,7 +50,7 @@ private:
 	PhysicsLayerManager() = default;
 	~PhysicsLayerManager() = default;
 
-	// “Ç‚İ‘‚«
+	// èª­ã¿æ›¸ã
 
 	bool Load();
 	bool Save() const;
@@ -60,7 +60,7 @@ private:
 	PhysicsLayers settings;
 };
 
-// ƒwƒ‹ƒp[
+// ãƒ˜ãƒ«ãƒ‘ãƒ¼
 
 namespace Layers
 {

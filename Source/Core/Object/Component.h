@@ -32,7 +32,7 @@ public:
     virtual void Render(const RenderContext& rc) { OnRender(rc); }
     virtual void DrawGUI() { OnDrawGUI(); }
 
-	// –‘O“Ç‚ğİ’è
+	// äº‹å‰èª­è¾¼ã‚’è¨­å®š
 	bool SetPreloadResourceFiles(std::vector<std::string> files);
 	const std::vector<std::string>& GetPreloadResourceFiles() const { return preloadResourceFiles; }
 
@@ -64,6 +64,6 @@ protected:
 	bool isAwake = false;
 	bool isStarted = false;
 	bool showDebug = false;
-	// –‘O“Çˆê——
+	// äº‹å‰èª­è¾¼ä¸€è¦§
 	std::vector<std::string> preloadResourceFiles;
 };

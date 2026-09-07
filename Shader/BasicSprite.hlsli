@@ -1,6 +1,6 @@
 // BasicSprite.hlsli
 
-// 頂点シェーダー出力データ
+// 鬆らせ繧ｷ繧ｧ繝ｼ繝繝ｼ蜃ｺ蜉帙ョ繝ｼ繧ｿ
 struct VS_OUT
 {
 	float4 position : SV_POSITION;

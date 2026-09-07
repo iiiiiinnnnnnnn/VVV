@@ -2,7 +2,7 @@
 
 #include "Core/Foundation/Common.h"
 
-// コンスタントバッファに渡す用のライトデータ
+// 繧ｳ繝ｳ繧ｹ繧ｿ繝ｳ繝医ヰ繝�繝輔ぃ縺ｫ貂｡縺咏畑縺ｮ繝ｩ繧､繝医ョ繝ｼ繧ｿ
 struct CbLightData
 {
 	static constexpr int MaxPointLights = 32;

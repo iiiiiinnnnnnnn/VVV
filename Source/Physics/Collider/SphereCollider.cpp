@@ -22,7 +22,7 @@ SphereCollider::SphereCollider(
     , radius(radius)
     , localPosition(localPosition)
 {
-    // ƒGƒ‰[—p
+    // ã‚¨ãƒ©ãƒ¼ç”¨
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
@@ -58,7 +58,7 @@ void SphereCollider::UpdateShape()
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
-    // ŒÃ‚¢ƒVƒFƒCƒv‚ðíœ
+    // å¤ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’å‰Šé™¤
     if (shape)
     {
         rigidActor->detachShape(*shape);
@@ -66,13 +66,13 @@ void SphereCollider::UpdateShape()
         shape = nullptr;
     }
 
-    // V‚µ‚¢ƒVƒFƒCƒv‚ð¶¬
+    // æ–°ã—ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’ç”Ÿæˆ
     shape = physics->createShape(
         PxSphereGeometry(radius), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
 
-    // owner‚Ìlayer‚ðƒVƒFƒCƒv‚É”½‰f
+    // ownerã®layerã‚’ã‚·ã‚§ã‚¤ãƒ—ã«åæ˜ 
     PhysicsManager::SetLayerToShape(shape, layerId);
     rigidActor->attachShape(*shape);
 }

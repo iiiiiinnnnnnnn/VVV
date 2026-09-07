@@ -6,6 +6,9 @@
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/TrailRenderComponent.h"
+#include "Rendering/Component/VMDLParticleEmitterComponent.h"
+#include "Audio/SoundSystem.h"
+#include "Audio/SoundTrackRegistry.h"
 #include "Resource/MeshCache.h"
 #include "Resource/ResourceManager.h"
 #include "IconsFontAwesome5.h"
@@ -79,18 +82,31 @@ void VMDLModelComponent::BuildAttachments()
 	}
 
 	const auto& trailData = model->GetVmdlTrailData();
-	if (!buildEmbeddedTrails) return;
-	attachmentTrails.assign(trailData.trails.size(), nullptr);
-	for (int trailIndex = 0; trailIndex < static_cast<int>(trailData.trails.size()); ++trailIndex)
+	if (buildEmbeddedTrails)
 	{
-		const auto& value = trailData.trails[trailIndex];
+		attachmentTrails.assign(trailData.trails.size(), nullptr);
+		for (int trailIndex = 0; trailIndex < static_cast<int>(trailData.trails.size()); ++trailIndex)
+		{
+			const auto& value = trailData.trails[trailIndex];
+			if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+				continue;
+			auto* trail = owner->AddComponent<TrailRenderComponent>(model.get(), value.nodeIndex,
+				value.rootOffset, value.tipOffset, value.color, value.tipRatio,
+				std::max(0.01f, value.lifeTime), std::max(2, value.maxPoints), value.offsetAngle);
+			if (!model->GetTrailInitialActive(trailIndex)) trail->StopTrail();
+			attachmentTrails[trailIndex] = trail;
+		}
+	}
+
+	const auto& particleData = model->GetVmdlParticleData();
+	attachmentParticleEmitters.assign(particleData.emitters.size(), nullptr);
+	for (int i = 0; i < static_cast<int>(particleData.emitters.size()); ++i)
+	{
+		const auto& value = particleData.emitters[i];
 		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
 			continue;
-		auto* trail = owner->AddComponent<TrailRenderComponent>(model.get(), value.nodeIndex,
-			value.rootOffset, value.tipOffset, value.color, value.tipRatio,
-			std::max(0.01f, value.lifeTime), std::max(2, value.maxPoints), value.offsetAngle);
-		if (!model->GetTrailInitialActive(trailIndex)) trail->StopTrail();
-		attachmentTrails[trailIndex] = trail;
+		attachmentParticleEmitters[i] = owner->AddComponent<VMDLParticleEmitterComponent>(
+			model.get(), value, model->GetParticleInitialActive(i));
 	}
 }
 
@@ -107,12 +123,25 @@ PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& n
 	return nullptr;
 }
 
+float VMDLModelComponent::BurstParticleEmitter(const std::string& name)
+{
+	for (VMDLParticleEmitterComponent* emitter : attachmentParticleEmitters)
+	{
+		if (!emitter || ::_stricmp(emitter->GetEmitterName().c_str(), name.c_str()) != 0)
+			continue;
+		emitter->Burst();
+		return std::max(0.0f, emitter->GetMaximumLifetime());
+	}
+	return 0.0f;
+}
+
 void VMDLModelComponent::LateUpdate()
 {
 	Actor* actor = dynamic_cast<Actor*>(owner);
 
 	if (!model) return;
 	UpdateAnimationControls();
+	SyncExternalMeshCaches();
 
 	if (autoUpdateTransform)
 		UpdateModelTransform(actor->transform.matrix);
@@ -121,6 +150,167 @@ void VMDLModelComponent::LateUpdate()
 	{
 		if (collider) collider->UpdateFromNode();
 	}
+	UpdateSoundEvents();
+}
+
+void VMDLModelComponent::UpdateSoundEvents()
+{
+	if (!model) return;
+	const auto& soundData = model->GetVmdlSoundData();
+	for (auto event = activeSoundEvents.begin(); event != activeSoundEvents.end();)
+	{
+		if (!SoundSystem::Instance().IsPlaying(event->voiceId) || event->sourceIndex < 0 ||
+			event->sourceIndex >= static_cast<int>(soundData.sources.size()))
+		{
+			event = activeSoundEvents.erase(event);
+			continue;
+		}
+		const auto& source = soundData.sources[event->sourceIndex];
+		if (source.nodeIndex < 0 || source.nodeIndex >= static_cast<int>(model->GetNodes().size()) ||
+			!SoundSystem::Instance().SetPosition(event->voiceId,
+				model->GetNodes()[source.nodeIndex].worldTransform.Translation()))
+		{
+			event = activeSoundEvents.erase(event);
+			continue;
+		}
+		++event;
+	}
+	if (soundData.tracks.empty()) return;
+	if (!animator) animator = owner->GetComponent<Animator>();
+	if (!animator || animator->IsDynamicMode()) return;
+
+	int animationIndex = -1;
+	float time = 0.0f;
+	int nextAnimationIndex = -1;
+	float nextTime = 0.0f;
+	if (!animator->GetAnimationControlState(animationIndex, time, nextAnimationIndex, nextTime))
+	{
+		soundAnimationIndex = -1;
+		soundAnimationTime = 0.0f;
+		return;
+	}
+	if (nextAnimationIndex >= 0)
+	{
+		animationIndex = nextAnimationIndex;
+		time = nextTime;
+	}
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(model->GetAnimations().size())) return;
+
+	if (soundAnimationIndex != animationIndex)
+	{
+		PlaySoundEvents(animationIndex, -0.0001f, time);
+	}
+	else if (time + 0.0001f >= soundAnimationTime)
+	{
+		PlaySoundEvents(animationIndex, soundAnimationTime, time);
+	}
+	else
+	{
+		PlaySoundEvents(animationIndex, soundAnimationTime,
+			model->GetAnimations()[animationIndex].secondsLength);
+		PlaySoundEvents(animationIndex, -0.0001f, time);
+	}
+	soundAnimationIndex = animationIndex;
+	soundAnimationTime = time;
+}
+
+void VMDLModelComponent::PlaySoundEvents(int animationIndex, float beginTime, float endTime)
+{
+	if (endTime <= beginTime + 0.00001f) return;
+	const auto& animations = model->GetAnimations();
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return;
+	const auto& soundData = model->GetVmdlSoundData();
+	for (const auto& track : soundData.tracks)
+	{
+		if (track.animationName != animations[animationIndex].name) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds <= beginTime + 0.00001f || key.seconds > endTime + 0.00001f ||
+				key.sourceIndex < 0 || key.sourceIndex >= static_cast<int>(soundData.sources.size()))
+				continue;
+			const auto& source = soundData.sources[key.sourceIndex];
+			if (source.track < 0 || source.track > SoundTrackRegistry::MaximumTrack) continue;
+			const float pitchMin = std::min(source.pitchMin, source.pitchMax);
+			const float pitchMax = std::max(source.pitchMin, source.pitchMax);
+			const float pitch = pitchMax > pitchMin
+				? Random::Range(pitchMin, pitchMax) : pitchMin;
+			if (source.spatial)
+			{
+				if (source.nodeIndex < 0 || source.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+					continue;
+				SoundSystem::SpatialOptions options;
+				options.volume = std::max(0.0f, source.volume);
+				options.pitch = pitch;
+				options.minDistance = source.minDistance;
+				options.maxDistance = source.maxDistance;
+				options.lowPassHz = source.lowPassHz;
+				options.farLowPassHz = source.farLowPassHz;
+				options.reverbMix = source.reverbMix;
+				const auto voiceId = SoundSystem::Instance().PlayTrack3DAt(source.track,
+					model->GetNodes()[source.nodeIndex].worldTransform.Translation(), source.variant, options);
+				if (voiceId != SoundSystem::InvalidVoiceId)
+					activeSoundEvents.push_back({voiceId, key.sourceIndex});
+			}
+			else
+			{
+				SoundSystem::PlayOptions options;
+				options.volume = std::max(0.0f, source.volume);
+				options.pitch = pitch;
+				SoundSystem::Instance().PlayTrack(source.track, source.variant, options);
+			}
+		}
+	}
+}
+
+bool VMDLModelComponent::PlaySoundSource(
+	const std::string& name, const Vector3* positionOverride)
+{
+	if (!model || name.empty()) return false;
+
+	const auto& sources = model->GetVmdlSoundData().sources;
+	const auto found = std::find_if(sources.begin(), sources.end(), [&name](const auto& source) {
+		return source.name == name;
+	});
+	if (found == sources.end() || found->track < 0 ||
+		found->track > SoundTrackRegistry::MaximumTrack)
+	{
+		return false;
+	}
+
+	const float pitchMin = std::min(found->pitchMin, found->pitchMax);
+	const float pitchMax = std::max(found->pitchMin, found->pitchMax);
+	const float pitch = pitchMax > pitchMin ? Random::Range(pitchMin, pitchMax) : pitchMin;
+	if (!found->spatial)
+	{
+		SoundSystem::PlayOptions options;
+		options.volume = std::max(0.0f, found->volume);
+		options.pitch = pitch;
+		return SoundSystem::Instance().PlayTrack(found->track, found->variant, options) !=
+			SoundSystem::InvalidVoiceId;
+	}
+
+	Vector3 position;
+	if (positionOverride)
+	{
+		position = *positionOverride;
+	}
+	else
+	{
+		if (found->nodeIndex < 0 || found->nodeIndex >= static_cast<int>(model->GetNodes().size()))
+			return false;
+		position = model->GetNodes()[found->nodeIndex].worldTransform.Translation();
+	}
+
+	SoundSystem::SpatialOptions options;
+	options.volume = std::max(0.0f, found->volume);
+	options.pitch = pitch;
+	options.minDistance = found->minDistance;
+	options.maxDistance = found->maxDistance;
+	options.lowPassHz = found->lowPassHz;
+	options.farLowPassHz = found->farLowPassHz;
+	options.reverbMix = found->reverbMix;
+	return SoundSystem::Instance().PlayTrack3DAt(
+		found->track, position, found->variant, options) != SoundSystem::InvalidVoiceId;
 }
 
 void VMDLModelComponent::UpdateModelTransform(const Matrix& actorTransform)
@@ -156,7 +346,11 @@ void VMDLModelComponent::UpdateAnimationControls()
 			const bool currentActive = model->EvaluateColliderActive(animationIndex, time, i);
 			const bool nextActive = nextAnimationIndex >= 0 &&
 				model->EvaluateColliderActive(nextAnimationIndex, nextTime, i);
-			attachmentColliders[i]->SetActive(currentActive || nextActive);
+			const auto layerGate =
+				attachmentLayerEnabled.find(attachmentColliders[i]->GetLayerId());
+			const bool layerEnabled =
+				layerGate == attachmentLayerEnabled.end() || layerGate->second;
+			attachmentColliders[i]->SetActive(layerEnabled && (currentActive || nextActive));
 		}
 	}
 	for (int i = 0; i < static_cast<int>(attachmentTrails.size()); ++i)
@@ -167,6 +361,14 @@ void VMDLModelComponent::UpdateAnimationControls()
 			model->EvaluateTrailActive(nextAnimationIndex, nextTime, i);
 		if (currentActive || nextActive) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
+	}
+	for (int i = 0; i < static_cast<int>(attachmentParticleEmitters.size()); ++i)
+	{
+		if (!attachmentParticleEmitters[i]) continue;
+		const bool currentActive = model->EvaluateParticleActive(animationIndex, time, i);
+		const bool nextActive = nextAnimationIndex >= 0 &&
+			model->EvaluateParticleActive(nextAnimationIndex, nextTime, i);
+		attachmentParticleEmitters[i]->SetEmitting(currentActive || nextActive);
 	}
 	if (nextAnimationIndex >= 0) model->ApplyMorphAnimation(nextAnimationIndex, nextTime);
 	else model->ApplyMorphAnimation(animationIndex, time);
@@ -179,13 +381,25 @@ void VMDLModelComponent::RestoreAnimationControls()
 	for (int i = 0; i < static_cast<int>(attachmentColliders.size()); ++i)
 	{
 		if (attachmentColliders[i])
-			attachmentColliders[i]->SetActive(model->GetColliderInitialActive(i));
+		{
+			const auto layerGate =
+				attachmentLayerEnabled.find(attachmentColliders[i]->GetLayerId());
+			const bool layerEnabled =
+				layerGate == attachmentLayerEnabled.end() || layerGate->second;
+			attachmentColliders[i]->SetActive(
+				layerEnabled && model->GetColliderInitialActive(i));
+		}
 	}
 	for (int i = 0; i < static_cast<int>(attachmentTrails.size()); ++i)
 	{
 		if (!attachmentTrails[i]) continue;
 		if (model->GetTrailInitialActive(i)) attachmentTrails[i]->StartTrail();
 		else attachmentTrails[i]->StopTrail();
+	}
+	for (int i = 0; i < static_cast<int>(attachmentParticleEmitters.size()); ++i)
+	{
+		if (attachmentParticleEmitters[i])
+			attachmentParticleEmitters[i]->SetEmitting(model->GetParticleInitialActive(i));
 	}
 	model->RestoreRuntimeMorphVisibility();
 	animationControlsApplied = false;
@@ -199,6 +413,61 @@ void VMDLModelComponent::Render(const RenderContext& rc)
 		modelRenderer->Draw(shaderId, model, &renderParams);
 		for (const auto& [slot, meshCache] : meshCaches)
 			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &renderParams);
+		for (const auto& [groupIndex, meshCache] : externalMeshCaches)
+			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &renderParams);
+	}
+}
+
+void VMDLModelComponent::SyncExternalMeshCaches()
+{
+	if (!model) return;
+	const auto& groups = model->GetExternalMeshGroups();
+	const auto& modelMeshes = model->GetMeshes();
+	for (int groupIndex = 0; groupIndex < static_cast<int>(groups.size()); ++groupIndex)
+	{
+		const auto& group = groups[groupIndex];
+		bool active = false;
+		for (int meshIndex : group.meshIndices)
+			if (meshIndex >= 0 && meshIndex < static_cast<int>(modelMeshes.size()) &&
+				modelMeshes[meshIndex].isDraw) { active = true; break; }
+
+		auto loaded = externalMeshCaches.find(groupIndex);
+		if (!active)
+		{
+			if (loaded != externalMeshCaches.end()) externalMeshCaches.erase(loaded);
+			continue;
+		}
+		if (loaded == externalMeshCaches.end())
+		{
+			try
+			{
+				const std::filesystem::path resolved =
+					ResourceManager::Instance().ResolvePath(group.path);
+				auto cache = std::make_shared<MeshCache>(resolved, *model);
+				loaded = externalMeshCaches.emplace(groupIndex, std::move(cache)).first;
+			}
+			catch (const std::exception& exception)
+			{
+				const std::string message = "Lazy VMSH load failed: " + group.path +
+					" (" + exception.what() + ")\n";
+				OutputDebugStringA(message.c_str());
+				continue;
+			}
+		}
+
+		auto& cacheMeshes = loaded->second->GetMeshes();
+		for (size_t slot = 0; slot < cacheMeshes.size(); ++slot)
+		{
+			const int meshIndex = slot < group.meshIndices.size() ? group.meshIndices[slot] : -1;
+			cacheMeshes[slot].isDraw = meshIndex >= 0 &&
+				meshIndex < static_cast<int>(modelMeshes.size()) && modelMeshes[meshIndex].isDraw;
+		}
+	}
+	for (auto it = externalMeshCaches.begin(); it != externalMeshCaches.end();)
+	{
+		if (it->first < 0 || it->first >= static_cast<int>(groups.size()))
+			it = externalMeshCaches.erase(it);
+		else ++it;
 	}
 }
 
@@ -212,7 +481,7 @@ bool VMDLModelComponent::EquipMeshCache(
 		std::filesystem::path resolvedPath = ResourceManager::Instance().ResolvePath(path);
 		if (!std::filesystem::exists(resolvedPath))
 		{
-			const std::filesystem::path dataPath = std::filesystem::path("Data") / path;
+			const std::filesystem::path dataPath = std::filesystem::path("Resources") / path;
 			if (std::filesystem::exists(dataPath)) resolvedPath = dataPath;
 		}
 		auto loaded = std::make_shared<MeshCache>(resolvedPath, *model, fallbackNodeName);

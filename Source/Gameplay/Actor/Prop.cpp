@@ -6,7 +6,7 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/DamageHoleComponent.h"
 #include "Physics/Collider/MeshCollider.h"
-#include "Gameplay/Scene/HitStop.h"
+#include "Gameplay/Scene/TimeScaleController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 
 Prop::Prop(StageLoader::PropData& propData) : Actor(propData.name, propData.tag, true)
@@ -15,6 +15,8 @@ Prop::Prop(StageLoader::PropData& propData) : Actor(propData.name, propData.tag,
 	transform.Update();
 
 	if (!propData.model) propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
+	if (!propData.model)
+		throw std::runtime_error("Prop model could not be loaded: " + propData.modelPath);
 	propData.model->UpdateTransform(transform.matrix);
 	modelRenderer = AddComponent<VMDLModelComponent>(propData.model, ModelShaderId::VMat);
 	modelRenderer->SetAttachmentLayerId(Layers::Get("Prop"));
@@ -61,7 +63,7 @@ void Prop::OnTriggerEnter(
 	const LayerId layer = other->GetLayerId();
 	if (layer >= EditableLayerCount || (destroyLayerMask & (1u << layer)) == 0) return;
 
-	HitStop::Request(0.1f);
+	TimeScaleController::Request(0.1f);
 	CameraEffectController::Request(0.1f, 0.1f);
 
 	if (damageHoleComponent) damageHoleComponent->AddDamageHoleFromPosition(point, -normal);

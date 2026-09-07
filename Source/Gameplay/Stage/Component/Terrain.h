@@ -38,7 +38,10 @@ public:
 
 	float GetHeightByUV(float u, float v) const;
 	float GetSurfaceHeightByUV(float u, float v) const;
-	void Deform(const Vector3& worldPosition, const Vector3& direction, float power);
+	int GetSurfaceLayerIndex(const Vector3& worldPosition) const;
+	std::string GetSurfaceLayerName(const Vector3& worldPosition) const;
+	void Deform(const Vector3& worldPosition, const Vector3& direction, float power,
+		float radius = 0.0f);
 
 	// 地形設定
 

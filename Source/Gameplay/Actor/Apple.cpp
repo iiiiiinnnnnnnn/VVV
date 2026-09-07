@@ -8,7 +8,7 @@
 Apple::Apple() : Entity("Apple", "Enemy", true, Layer::Enemy, 1000.0f, 1000.0f)
 {
     std::shared_ptr<VMDLModel> model =
-		ResourceManager::Instance().LoadModel("Data/Model/apple");
+		ResourceManager::Instance().LoadModel("Resources/Model/apple");
 
     transform.SetScale(50.0f);
     model->UpdateTransform(transform.matrix);
@@ -37,7 +37,7 @@ void Apple::OnDrawGUI()
 
 void Apple::OnDamaged(const DamageData& damageData)
 {
-    HitStop::Request(0.15f);
+    TimeScaleController::Request(0.15f);
     CameraShake::Request(0.2f, 0.1f);
 }
 

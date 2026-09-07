@@ -1,4 +1,6 @@
-﻿#include "Resource/VSTG.h"
+﻿// VSTG.cpp
+#include "Resource/VSTG.h"
+#include "Resource/ResourceManager.h"
 
 #include <fstream>
 #include <functional>
@@ -69,7 +71,7 @@ void LoadLight(const json& value, Light& light)
 	light.transform.Update();
 }
 
-template <typename T> bool Read(std::ifstream& stream, T& value)
+template <typename T> bool Read(std::istream& stream, T& value)
 {
 	return static_cast<bool>(stream.read(reinterpret_cast<char*>(&value), sizeof(value)));
 }
@@ -84,12 +86,22 @@ bool VSTG::Load(const std::filesystem::path& path)
 {
 	terrainSettingsJson.clear();
 	navMeshSettingsJson.clear();
-	std::ifstream stream(path, std::ios::binary);
-	if (!stream)
+	const auto bytes = ResourceManager::Instance().LoadFile(path.generic_string());
+	if (!bytes)
 	{
 		error = "VSTG not found: " + path.generic_string();
 		return false;
 	}
+	class MemoryBuffer : public std::streambuf
+	{
+	public:
+		explicit MemoryBuffer(const std::vector<uint8_t>& data)
+		{
+			auto begin = const_cast<char*>(reinterpret_cast<const char*>(data.data()));
+			if (!data.empty()) setg(begin, begin, begin + data.size());
+		}
+	} buffer(*bytes);
+	std::istream stream(&buffer);
 	char magic[4]{};
 	uint32_t version = 0;
 	uint64_t lightingSize = 0;

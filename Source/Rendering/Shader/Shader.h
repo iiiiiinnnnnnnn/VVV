@@ -30,7 +30,8 @@ public:
 		const RenderContext& rc,
 		ID3D11ShaderResourceView* srv,
 		Vector2 textureSize,
-		const Color& color) = 0;
+		const Color& color,
+		const Vector4& parameters) = 0;
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 };
 

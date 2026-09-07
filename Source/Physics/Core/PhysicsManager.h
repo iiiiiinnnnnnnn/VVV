@@ -43,6 +43,7 @@
 #include "pvd/PxPvdTransport.h"
 #include "pvd/PxPvdSceneClient.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
+#include "Physics/Core/PhysicsComponent.h"
 
 using namespace physx;
 
@@ -86,7 +87,6 @@ static constexpr PxU32 LayerMask(int layer) { return (1u << layer); }
 
 class Actor;
 class Object;
-class PhysicsComponent;
 
 // 衝突イベントコールバック
 class CollisionEventCallback : public PxSimulationEventCallback
@@ -196,6 +196,11 @@ public:
         PxShape* shapeB = nullptr; b.getActor()->getShapes(&shapeB, 1);
         int layerA = (int)shapeA->getSimulationFilterData().word1;
         int layerB = (int)shapeB->getSimulationFilterData().word1;
+		auto* colliderA = static_cast<PhysicsComponent*>(shapeA->userData);
+		auto* colliderB = static_cast<PhysicsComponent*>(shapeB->userData);
+		if ((colliderA && colliderB && colliderA->IgnoresCollider(*colliderB)) ||
+			(colliderA && colliderB && colliderB->IgnoresCollider(*colliderA)))
+			return false;
 		return PhysicsLayerManager::Instance().Collides(layerA, layerB);
 	}
 };

@@ -1,3 +1,4 @@
+// ResourceManager.h
 #pragma once
 
 #include <filesystem>
@@ -9,6 +10,7 @@
 
 #include "Resource/VMDLModel.h"
 #include "Resource/Texture.h"
+#include "Resource/CacheSettings.h"
 
 class ResourceManager
 {
@@ -32,14 +34,22 @@ private:
 	~ResourceManager() = default;
 
 public:
-	static ResourceManager& Instance();
+	static ResourceManager& Instance()
+	{
+		static ResourceManager instance;
+		return instance;
+	}
 
-	static std::filesystem::path FindSourceDataRoot();
+	static std::filesystem::path FindSourceResourceRoot();
+	static std::filesystem::path ResolveSourcePath(const std::filesystem::path& path);
 
 	bool PrepareGameResources();
+	bool RefreshResources(const std::filesystem::path& savedSource = {});
 	bool AreGameResourcesPrepared() const { return resourcesPrepared; }
-	// àÍìxÇæÇØì«çû
+	// ‰∏ÄÂ∫¶„Å†„ÅëË™≠Ëæº
 	bool PreloadFile(const std::string& path);
+    bool PreloadConfiguredResources();
+    std::shared_ptr<const std::vector<uint8_t>> LoadFile(const std::string& path);
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
 	const std::vector<std::string>& GetErrors() const { return errors; }
@@ -49,7 +59,6 @@ public:
 	std::shared_ptr<Texture> LoadTexture(const std::string& key);
 
 private:
-	bool BuildCaches();
 	bool LoadCachedPathList();
 	bool SaveCachedPathList();
 	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});
@@ -58,21 +67,19 @@ private:
 	static std::string NormalizePath(const std::string& path);
 	static std::string MakeLookupKey(const std::string& path);
 	static std::string GetLastWriteTimeText(const std::filesystem::path& path);
-	static bool IsModelSource(const std::filesystem::path& path);
-	static bool IsTerrainLayerSource(const std::filesystem::path& relativePath);
-	static bool IsDevelopmentOnly(const std::filesystem::path& relativePath);
 	static const char* ToTypeName(AssetType type);
 	static bool ParseTypeName(const std::string& name, AssetType& type);
 
-	std::filesystem::path sourceDataRoot;
-	std::filesystem::path runtimeDataRoot;
+	std::filesystem::path runtimeResourceRoot;
 	std::filesystem::path cachedPathList;
 	std::vector<AssetPath> assetPaths;
 	std::unordered_map<std::string, size_t> assetPathLookup;
 	std::unordered_map<std::string, std::shared_ptr<VMDLModel>> models;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
-	// ì«çûçœÇ›àÍóó
+	// Ë™≠ËæºÊ∏à„Åø‰∏ÄË¶ß
 	std::unordered_set<std::string> preloadedFiles;
 	std::vector<std::string> errors;
 	bool resourcesPrepared = false;
+    CacheSettings cacheSettings;
+    std::unordered_map<std::string, std::shared_ptr<const std::vector<uint8_t>>> files;
 };

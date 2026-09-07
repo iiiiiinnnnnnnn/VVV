@@ -10,34 +10,34 @@
 
 namespace
 {
-    std::filesystem::path FindProjectDataRoot()
+    std::filesystem::path FindProjectResourceRoot()
     {
         for (std::filesystem::path directory =
                 std::filesystem::current_path();
              !directory.empty();
              directory = directory.parent_path())
         {
-            const std::filesystem::path dataRoot =
-                directory / "Data";
+            const std::filesystem::path resourceRoot =
+                directory / "Resources";
             if (std::filesystem::exists(directory / "Game.sln") &&
-                std::filesystem::is_directory(dataRoot))
+                std::filesystem::is_directory(resourceRoot))
             {
-                return dataRoot.lexically_normal();
+                return resourceRoot.lexically_normal();
             }
             if (directory == directory.root_path()) break;
         }
         return {};
     }
 
-    bool TryGetRelativeDataPath(
+    bool TryGetRelativeResourcePath(
         const std::filesystem::path& path,
-        const std::filesystem::path& dataRoot,
+        const std::filesystem::path& resourceRoot,
         std::filesystem::path& relativePath)
     {
-        if (dataRoot.empty()) return false;
+        if (resourceRoot.empty()) return false;
 
         const std::filesystem::path relative =
-            path.lexically_relative(dataRoot);
+            path.lexically_relative(resourceRoot);
         if (relative.empty()) return false;
 
         const auto first = relative.begin();
@@ -1952,9 +1952,26 @@ void Animator::EvaluateCallbacks(State& state, float currentTime, float animLeng
 const std::string& Animator::GetCurrentStateName(int li) const
 {
     static std::string empty;
+    if (li < 0 || li >= static_cast<int>(layers.size())) return empty;
     const auto& layer = layers[li];
-    if (layer.currentStateIndex < 0) return empty;
+    if (layer.currentStateIndex < 0 ||
+        layer.currentStateIndex >= static_cast<int>(layer.states.size())) return empty;
     return layer.states[layer.currentStateIndex].name;
+}
+
+const std::string& Animator::GetNextStateName(int li) const
+{
+    static const std::string empty;
+    if (li < 0 || li >= static_cast<int>(layers.size())) return empty;
+    const auto& layer = layers[li];
+    if (!layer.isTransitioning || layer.nextStateIndex < 0 ||
+        layer.nextStateIndex >= static_cast<int>(layer.states.size())) return empty;
+    return layer.states[layer.nextStateIndex].name;
+}
+
+bool Animator::IsTransitioning(int li) const
+{
+    return li >= 0 && li < static_cast<int>(layers.size()) && layers[li].isTransitioning;
 }
 
 int Animator::GetCurrentAnimationIndex(int layerIndex) const
@@ -2003,20 +2020,20 @@ bool Animator::Save(const std::string& path)
 
     const std::filesystem::path selectedPath =
         std::filesystem::absolute(path).lexically_normal();
-    const std::filesystem::path runtimeDataRoot =
-        (std::filesystem::current_path() / "Data")
+    const std::filesystem::path runtimeResourceRoot =
+        (std::filesystem::current_path() / "Resources")
         .lexically_normal();
-    const std::filesystem::path projectDataRoot =
-        FindProjectDataRoot();
+    const std::filesystem::path projectResourceRoot =
+        FindProjectResourceRoot();
 
     std::filesystem::path relativePath;
-    if (!TryGetRelativeDataPath(
+    if (!TryGetRelativeResourcePath(
             selectedPath,
-            runtimeDataRoot,
+            runtimeResourceRoot,
             relativePath) &&
-        !TryGetRelativeDataPath(
+        !TryGetRelativeResourcePath(
             selectedPath,
-            projectDataRoot,
+            projectResourceRoot,
             relativePath))
     {
         relativePath =
@@ -2026,10 +2043,10 @@ bool Animator::Save(const std::string& path)
 
     std::vector<std::filesystem::path> savePaths = {
         selectedPath,
-        runtimeDataRoot / relativePath
+        runtimeResourceRoot / relativePath
     };
-    if (!projectDataRoot.empty())
-        savePaths.push_back(projectDataRoot / relativePath);
+    if (!projectResourceRoot.empty())
+        savePaths.push_back(projectResourceRoot / relativePath);
 
     bool saved = true;
     std::unordered_set<std::string> uniquePaths;

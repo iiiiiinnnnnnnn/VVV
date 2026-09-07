@@ -18,7 +18,8 @@ public:
 		ID3D11DeviceContext* dc,
 		const Matrix& view,
 		const Matrix& projection,
-		Color color);
+		Color color,
+		Color endColor = Color(0.0f, 0.0f, 0.0f, -1.0f));
 
 private:
 	static const UINT VertexCapacity = 3 * 1024;
@@ -27,6 +28,7 @@ private:
 	{
 		Matrix		viewProjection;
 		Color color;
+		Color endColor;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constant;
 

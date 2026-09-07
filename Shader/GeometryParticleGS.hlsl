@@ -2,27 +2,27 @@
 
 #include "GeometryParticle.hlsli"
 
-//  1’¸“_‚©‚ç4’¸“_¶¬‚·‚é
+//  1é ‚ç‚¹ã‹ã‚‰4é ‚ç‚¹ç”Ÿæˆã™ã‚‹
 [maxvertexcount(4)]
 void main(point GS_IN gin[1], inout TriangleStream<PS_IN> output)
 {
-    //  ƒJƒƒ‰‚Ì‰E/ã•ûŒü‚ÖL‚°‚Äƒrƒ‹ƒ{[ƒh‚ğì‚é
+    //  ã‚«ãƒ¡ãƒ©ã®å³/ä¸Šæ–¹å‘ã¸åºƒã’ã¦ãƒ“ãƒ«ãƒœãƒ¼ãƒ‰ã‚’ä½œã‚‹
     float3 pos = gin[0].position;
 
-	//  “_‚ğ–Ê‚É‚·‚é‚½‚ß4’¸“_‚ÌÀ•W‚ğ¶¬
+	//  ç‚¹ã‚’é¢ã«ã™ã‚‹ãŸã‚4é ‚ç‚¹ã®åº§æ¨™ã‚’ç”Ÿæˆ
     float rot = gin[0].param.x;
     float s = sin(rot);
     float c = cos(rot);
     float3 right = (cameraRight * c - cameraUp * s) * (gin[0].size.x * 0.5);
     float3 up = (cameraRight * s + cameraUp * c) * (gin[0].size.y * 0.5);
 
-    //  4ŠpŒ`ƒ|ƒŠƒSƒ“‚ğ¶¬
+    //  4è§’å½¢ãƒãƒªã‚´ãƒ³ã‚’ç”Ÿæˆ
     float3 posLeftTop = pos - right + up;
     float3 posLeftBottom = pos - right - up;
     float3 posRightTop = pos + right + up;
     float3 posRightBottom = pos + right - up;
 
-	//  UVÀ•W‚ÌØ‚èæ‚èˆÊ’u‚ğtype‚©‚çZo
+	//  UVåº§æ¨™ã®åˆ‡ã‚Šå–ã‚Šä½ç½®ã‚’typeã‹ã‚‰ç®—å‡º
     uint type = (uint) gin[0].param.y;
     uint komax = (uint) gin[0].param.z;
     uint komay = (uint) gin[0].param.w;
@@ -30,29 +30,29 @@ void main(point GS_IN gin[1], inout TriangleStream<PS_IN> output)
     float h = 1.0 / komay;
     float2 uv = float2((type % komax) * w, (type / komax) * h);
 
-	//  ¶ã‚Ì“_‚ÌˆÊ’u(Ë‰eÀ•WŒn)EUVEF‚ğŒvZ‚µ‚Äo—Í
+	//  å·¦ä¸Šã®ç‚¹ã®ä½ç½®(å°„å½±åº§æ¨™ç³»)ãƒ»UVãƒ»è‰²ã‚’è¨ˆç®—ã—ã¦å‡ºåŠ›
     PS_IN pout = (PS_IN) 0;
     pout.color = gin[0].color;
     pout.position = mul(float4(posLeftTop, 1.0f), viewProjection);
-    pout.texcoord = uv + float2(0, 0); //   ƒeƒNƒXƒ`ƒƒ¶ã
+    pout.texcoord = uv + float2(0, 0); //   ãƒ†ã‚¯ã‚¹ãƒãƒ£å·¦ä¸Š
     output.Append(pout);
     
-	//  ‰Eã‚Ì“_‚ÌˆÊ’u(Ë‰eÀ•WŒn) ‚ÆƒeƒNƒXƒ`ƒƒÀ•W‚ÌŒvZ‚ğ‚µ‚Äo—Í
+	//  å³ä¸Šã®ç‚¹ã®ä½ç½®(å°„å½±åº§æ¨™ç³») ã¨ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã®è¨ˆç®—ã‚’ã—ã¦å‡ºåŠ›
     pout.color = gin[0].color;
     pout.position = mul(float4(posRightTop, 1.0f), viewProjection);
-    pout.texcoord = uv + float2(w, 0); //  ƒeƒNƒXƒ`ƒƒ
+    pout.texcoord = uv + float2(w, 0); //  ãƒ†ã‚¯ã‚¹ãƒãƒ£
     output.Append(pout);
 
-	//  ¶‰º‚Ì“_‚ÌˆÊ’u(Ë‰eÀ•WŒn) ‚ÆƒeƒNƒXƒ`ƒƒÀ•W‚ÌŒvZ‚ğ‚µ‚Äo—Í
+	//  å·¦ä¸‹ã®ç‚¹ã®ä½ç½®(å°„å½±åº§æ¨™ç³») ã¨ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã®è¨ˆç®—ã‚’ã—ã¦å‡ºåŠ›
     pout.color = gin[0].color;
     pout.position = mul(float4(posLeftBottom, 1.0f), viewProjection);
-    pout.texcoord = uv + float2(0, h); //   ƒeƒNƒXƒ`ƒƒ
+    pout.texcoord = uv + float2(0, h); //   ãƒ†ã‚¯ã‚¹ãƒãƒ£
     output.Append(pout);
 
-	//  ‰E‰º‚Ì“_‚ÌˆÊ’u(Ë‰eÀ•WŒn) ‚ÆƒeƒNƒXƒ`ƒƒÀ•W‚ÌŒvZ‚ğ‚µ‚Äo—Í
+	//  å³ä¸‹ã®ç‚¹ã®ä½ç½®(å°„å½±åº§æ¨™ç³») ã¨ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã®è¨ˆç®—ã‚’ã—ã¦å‡ºåŠ›
     pout.color = gin[0].color;
     pout.position = mul(float4(posRightBottom, 1.0f), viewProjection);
-    pout.texcoord = uv + float2(w, h); //  ƒeƒNƒXƒ`ƒƒ
+    pout.texcoord = uv + float2(w, h); //  ãƒ†ã‚¯ã‚¹ãƒãƒ£
     output.Append(pout);
 
     output.RestartStrip();

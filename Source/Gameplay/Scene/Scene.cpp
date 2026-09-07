@@ -4,6 +4,7 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/MeshCache.h"
 #include "Rendering/Component/TrailRenderComponent.h"
+#include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -33,6 +34,10 @@ void Scene::SwitchToDebugMode()
 					dynamic_cast<FreeCameraController*>(stage.GetCameraController(debugCamera)))
 				controller->SyncCameraToController(*sourceCamera);
 		}
+		// 停止中のデバッグカメラは周囲を確認しやすい広めの視野角にする。
+		const float width = std::max(Game::Graphics::ScreenWidth, 1.0f);
+		const float height = std::max(Game::Graphics::ScreenHeight, 1.0f);
+		debugCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(75.0f), width / height, 0.1f, 1000.0f);
 		debugCamera->SetActive(true);
 		if (CameraController* controller = stage.GetCameraController(debugCamera))
 			controller->SetActive(true);
@@ -79,6 +84,12 @@ void Scene::SwitchToPlayMode()
 	Game::Time::scale = 1.0f;
 }
 
+// F3に対応するデバッグ表示を切り替える
+void Scene::ToggleDebugDisplay()
+{
+	renderSettings.showDebug = !renderSettings.showDebug;
+}
+
 void Scene::Update()
 {
 	// ESCキーで起動画面戻る
@@ -86,12 +97,23 @@ void Scene::Update()
 	{
 		if (OnRequestExit())
 		{
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 			SceneManager::Instance().LoadScene<GameStartScene>();
+#else
+			PostQuitMessage(0);
+#endif
 			return;
 		}
 	}
 
 	OnUpdate();
+
+	// ステージを持たないツールシーンでもF3を受け取れるよう、早期returnより前で処理する
+	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+	{
+		ToggleDebugDisplay();
+	}
+
 	if (!pendingStagePath.empty())
 	{
 		auto openedStage = std::make_unique<Stage>();
@@ -238,12 +260,6 @@ void Scene::Render()
 	RenderTarget* postProcessBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess);
 	RenderTarget* postProcessBuffer2 = graphics.GetFrameBuffer(Game::FrameBufferId::PostProcess2);
 
-	// デバッグ切り替え
-	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
-	{
-		renderSettings.showDebug = !renderSettings.showDebug;
-	}
-
 	// 描画コンテキスト設定
 	RenderContext rc;
 	{
@@ -274,10 +290,12 @@ void Scene::Render()
 			if (!actor || actor->IsPendingDestroy()) continue;
 
 			auto* mrc = actor->GetComponent<VMDLModelComponent>();
-			if (mrc)
+			if (mrc && mrc->IsActive())
 			{
 				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
 				for (const auto& [slot, meshCache] : mrc->GetMeshCaches())
+					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes());
+				for (const auto& [groupIndex, meshCache] : mrc->GetExternalMeshCaches())
 					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes());
 			}
 
@@ -320,6 +338,9 @@ void Scene::Render()
 
 			for (TrailRenderComponent* trail : actor->GetComponents<TrailRenderComponent>())
 				trail->RenderTrail(rc);
+			for (VMDLParticleEmitterComponent* emitter :
+				actor->GetComponents<VMDLParticleEmitterComponent>())
+				emitter->RenderParticles(rc);
 		}
 
 		OnRender(rc);

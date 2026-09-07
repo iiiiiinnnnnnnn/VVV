@@ -10,9 +10,9 @@ DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 {
 	const D3D11_INPUT_ELEMENT_DESC element =
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0};
-	GpuResourceUtils::LoadVertexShader(device, "Data/Shader/ShapeRendererVS.cso",
+	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/ShapeRendererVS.cso",
 		&element, 1, inputLayout.GetAddressOf(), vertexShader.GetAddressOf());
-	GpuResourceUtils::LoadPixelShader(device, "Data/Shader/ShapeRendererPS.cso", pixelShader.GetAddressOf());
+	GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/ShapeRendererPS.cso", pixelShader.GetAddressOf());
 	GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbMesh), constantBuffer.GetAddressOf());
 
 	// Root、太いJoint、Tipで八面体を作る

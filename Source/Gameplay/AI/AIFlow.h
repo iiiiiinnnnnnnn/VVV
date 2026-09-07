@@ -166,7 +166,7 @@ private:
     std::unordered_map<std::string, StateCallbacks> callbackRegistry;
     std::unordered_map<int, StateCallbacks> boundCallbacks;
     std::unique_ptr<EditorData> editor;
-    std::string graphPath = "Data/AI/AIFlow.json";
+    std::string graphPath = "Resources/AI/AIFlow.json";
     int entryStateId = -1;
     int currentStateId = -1;
     int nextStateId = 1;

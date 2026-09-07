@@ -226,6 +226,147 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// VMDL内にはメッシュの位置だけを残し、頂点実体を外部.vmshへ分離する
+	struct ExternalMeshGroup
+	{
+		std::string path;
+		std::vector<int> meshIndices;
+		std::vector<uint8_t> initialVisibility;
+		// GLB再取込時にメッシュ番号を復元するための安定キー
+		std::vector<std::string> meshKeys;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	// VMDLのノードに追従する軽量パーティクルエミッタ。
+	// 外部エディタに依存せず、VMDL Editorで調整できる値だけを保持する。
+	struct VmdlParticleEmitter
+	{
+		// 0: Sprite, 1: Ribbon（拡張値はmodel.vfxdataへ保存）
+		int rendererType = 0;
+		int parentEmitterIndex = -1;
+		std::string name = "PARTICLE";
+		int nodeIndex = -1;
+		std::string texturePath = "Resources/Image/particle256x256.png";
+		int columns = 4;
+		int rows = 4;
+		int frame = 0;
+		bool animated = false;
+		float animationSpeed = 24.0f;
+		int capacity = 256;
+		Vector3 offset = Vector3::Zero;
+		Vector3 spawnExtents = Vector3::Zero;
+		Vector3 velocityMin = Vector3(-0.2f, 0.2f, -0.2f);
+		Vector3 velocityMax = Vector3(0.2f, 0.8f, 0.2f);
+		Vector3 acceleration = Vector3::Zero;
+		float emissionRate = 12.0f;
+		int burstCount = 0;
+		float lifetimeMin = 0.25f;
+		float lifetimeMax = 0.5f;
+		Vector2 sizeMin = Vector2(0.1f, 0.1f);
+		Vector2 sizeMax = Vector2(0.25f, 0.25f);
+		Color color = Color(0.35f, 0.9f, 1.0f, 1.0f);
+		float fadeInDuration = 0.0f;
+		float fadeOutDuration = 0.15f;
+		bool localVelocity = true;
+		bool additive = true;
+		Vector3 ribbonRootOffset = Vector3::Zero;
+		Vector3 ribbonTipOffset = Vector3(-1.0f, 0.0f, 0.0f);
+		float ribbonLifetime = 0.18f;
+		int ribbonMaxPoints = 40;
+		float ribbonTipRatio = 1.0f;
+		float ribbonSampleInterval = 0.01f;
+		Color ribbonEndColor = Color(0.1f, 0.4f, 1.0f, 0.0f);
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlParticleAnimationTrack
+	{
+		std::string animationName;
+		int emitterIndex = -1;
+		std::vector<VmdlBoolKeyframe> keys;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlParticleData
+	{
+		std::vector<VmdlParticleEmitter> emitters;
+		std::vector<uint8_t> initialActive;
+		std::vector<VmdlParticleAnimationTrack> tracks;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlMultiLegIKSettings
+	{
+		float bodyHeightOffset = 0.0f;
+		float contactOffset = 0.295f;
+		float maxUpCorrection = 2.0f;
+		float maxDownCorrection = 5.0f;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlSoundSource
+	{
+		std::string name = "SOUND SOURCE";
+		int nodeIndex = -1;
+		int track = 0;
+		int variant = -1;
+		float pitchMin = 1.0f;
+		float pitchMax = 1.0f;
+		bool spatial = true;
+		float volume = 1.0f;
+		float minDistance = 1.0f;
+		float maxDistance = 20.0f;
+		float lowPassHz = 6500.0f;
+		float farLowPassHz = 2200.0f;
+		float reverbMix = 0.12f;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlSoundSourceBinding
+	{
+		int track = 0;
+		int variant = -1;
+		float pitchMin = 1.0f;
+		float pitchMax = 1.0f;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlSoundKeyframe
+	{
+		float seconds = 0.0f;
+		int sourceIndex = -1;
+		int track = 0;
+		int variant = -1;
+		float volume = 1.0f;
+		float pitchMin = 1.0f;
+		float pitchMax = 1.0f;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlSoundAnimationTrack
+	{
+		std::string animationName;
+		std::vector<VmdlSoundKeyframe> keys;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlSoundData
+	{
+		std::vector<VmdlSoundSource> sources;
+		std::vector<VmdlSoundAnimationTrack> tracks;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
 	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr);
 	VMDLModel(const VMDLModel& other);
 	VMDLModel(VMDLModel&& other) noexcept;
@@ -233,6 +374,9 @@ class VMDLModel
 	VMDLModel& operator=(VMDLModel&& other) noexcept;
 
 	std::shared_ptr<VMDLModel> Clone() const;
+	// Lightweight snapshot used by transient visual effects. CPU mesh and
+	// animation data are omitted while GPU buffers and the current pose are kept.
+	std::shared_ptr<VMDLModel> CloneRenderPose() const;
 	bool HasSkeleton() const;
 
 	struct Node
@@ -468,6 +612,19 @@ class VMDLModel
 	const std::vector<Mesh>& GetMeshes() const { return meshes; }
 	std::vector<Mesh>& GetMeshes() { return meshes; }
 
+	// 指定メッシュを削除し、モーフとマテリアルの参照番号を詰め直す
+	bool RemoveMeshes(const std::vector<int>& meshIndices);
+	bool ExternalizeMeshes(const std::string& path, const std::vector<int>& meshIndices,
+		int activationMorphIndex);
+	bool RestoreExternalMeshes(int meshIndex, const std::filesystem::path& vmshPath,
+		std::string* error = nullptr);
+	bool IsExternalMesh(int meshIndex) const;
+	const ExternalMeshGroup* GetExternalMeshGroupForMesh(int meshIndex) const;
+	const std::vector<ExternalMeshGroup>& GetExternalMeshGroups() const
+	{
+		return externalMeshGroups;
+	}
+
 	const std::vector<Animation>& GetAnimations() const { return animations; }
 	std::vector<Animation>& GetAnimations() { return animations; }
 
@@ -508,6 +665,11 @@ class VMDLModel
 	bool EvaluateTrailActive(int animationIndex, float time, int trailIndex) const;
 	VmdlTrailAnimationTrack& GetOrCreateTrailAnimationTrack(
 		const std::string& animationName, int trailIndex);
+	bool GetParticleInitialActive(int emitterIndex) const;
+	void SetParticleInitialActive(int emitterIndex, bool active);
+	bool EvaluateParticleActive(int animationIndex, float time, int emitterIndex) const;
+	VmdlParticleAnimationTrack& GetOrCreateParticleAnimationTrack(
+		const std::string& animationName, int emitterIndex);
 	VmdlMorphAnimationTrack& GetOrCreateMorphAnimationTrack(const std::string& animationName);
 	const VmdlMorphAnimationTrack* FindMorphAnimationTrack(const std::string& animationName) const;
 	void ApplyMorphAnimation(int animationIndex, float time);
@@ -522,7 +684,8 @@ class VMDLModel
 	bool SaveVmdl(const std::filesystem::path& filepath);
 
 	// GLB部分のみ交換
-	bool ReplaceGLBCache(const std::filesystem::path& filepath, float sampleRate = 60.0f);
+	bool ReplaceGLBCache(const std::filesystem::path& filepath, float sampleRate = 60.0f,
+		std::string* error = nullptr);
 	VmdlExtensionData& GetVmdlExtensionData() { return vmdlExtensionData; }
 	const VmdlExtensionData& GetVmdlExtensionData() const { return vmdlExtensionData; }
 	VmdlIKSettings& GetVmdlIKSettings() { return vmdlIKSettings; }
@@ -531,6 +694,11 @@ class VMDLModel
 	const std::vector<VmdlIKPole>& GetVmdlIKPoles() const { return vmdlIKPoles; }
 	std::vector<VmdlIKRaySettings>& GetVmdlIKRaySettings() { return vmdlIKRaySettings; }
 	const std::vector<VmdlIKRaySettings>& GetVmdlIKRaySettings() const { return vmdlIKRaySettings; }
+	VmdlMultiLegIKSettings& GetVmdlMultiLegIKSettings() { return vmdlMultiLegIKSettings; }
+	const VmdlMultiLegIKSettings& GetVmdlMultiLegIKSettings() const
+	{
+		return vmdlMultiLegIKSettings;
+	}
 	void ResetVmdlIKLegsForType();
 	bool AutoAssignVmdlIKNodes();
 	VmdlAnimationEditorData& GetVmdlAnimationEditorData() { return vmdlAnimationEditorData; }
@@ -545,11 +713,18 @@ class VMDLModel
 	}
 	VmdlTrailData& GetVmdlTrailData() { return vmdlTrailData; }
 	const VmdlTrailData& GetVmdlTrailData() const { return vmdlTrailData; }
+	VmdlParticleData& GetVmdlParticleData() { return vmdlParticleData; }
+	const VmdlParticleData& GetVmdlParticleData() const { return vmdlParticleData; }
+	VmdlSoundData& GetVmdlSoundData() { return vmdlSoundData; }
+	const VmdlSoundData& GetVmdlSoundData() const { return vmdlSoundData; }
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
 
   private:
+	struct RenderPoseCloneTag {};
+	VMDLModel(const VMDLModel& other, RenderPoseCloneTag);
+
 	friend class MeshCache;
 
 	static std::string MakeFootWeightTrackKey(const std::string& animationName, int footIndex);
@@ -590,10 +765,14 @@ class VMDLModel
 	VmdlIKSettings vmdlIKSettings;
 	std::vector<VmdlIKPole> vmdlIKPoles;
 	std::vector<VmdlIKRaySettings> vmdlIKRaySettings;
+	VmdlMultiLegIKSettings vmdlMultiLegIKSettings;
 	VmdlAnimationEditorData vmdlAnimationEditorData;
 	VmdlAnimationControlData vmdlAnimationControlData;
 	VmdlTrailData vmdlTrailData;
+	VmdlParticleData vmdlParticleData;
+	VmdlSoundData vmdlSoundData;
 	std::vector<uint8_t> runtimeMorphVisibility;
+	std::vector<ExternalMeshGroup> externalMeshGroups;
 	float modelScale = 1.0f;
 	Matrix worldTransform = Matrix::Identity;
 

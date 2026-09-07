@@ -377,11 +377,9 @@ imgui.ini
 # lib file
 #*.lib
 
-# vertex cache
-*.vx
 /package
 /dist
-/Data/Terrain/Layers/*.dds
-/LicenseAssets
+/Resources/Terrain/Layers/*.dds
+/.assets/
 /Release.bat
 /CreateZip.ps1

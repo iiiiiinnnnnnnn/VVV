@@ -21,14 +21,14 @@ Terrain::Terrain(Object* owner)
 	InitializeGpuResources();
 	ClearTerrainTexture();
 
-	AddBrushTexture("Data/Terrain/Brushes/brush_default.png");
-	AddBrushTexture("Data/Terrain/Brushes/brush_pen.png");
-	AddBrushTexture("Data/Terrain/Brushes/brush_square.png");
-	AddBrushTexture("Data/Terrain/Brushes/brush_triangle.png");
-	AddBrushTexture("Data/Terrain/Brushes/brush_manji.png");
+	AddBrushTexture("Resources/Terrain/Brushes/brush_default.png");
+	AddBrushTexture("Resources/Terrain/Brushes/brush_pen.png");
+	AddBrushTexture("Resources/Terrain/Brushes/brush_square.png");
+	AddBrushTexture("Resources/Terrain/Brushes/brush_triangle.png");
+	AddBrushTexture("Resources/Terrain/Brushes/brush_manji.png");
 	if (brushes.empty())
 	{
-		AddBrushTexture("Data/Image/bugTex.png");
+		AddBrushTexture("Resources/Image/bugTex.png");
 	}
 
 }
@@ -134,7 +134,7 @@ void Terrain::InitializeGpuResources()
 
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/TerrainPrimitiveMeshVS.cso",
+		"Resources/Shader/TerrainPrimitiveMeshVS.cso",
 		inputElementDescs,
 		_countof(inputElementDescs),
 		terrainInputLayout.GetAddressOf(),
@@ -142,37 +142,37 @@ void Terrain::InitializeGpuResources()
 
 	GpuResourceUtils::LoadHullShader(
 		device,
-		"Data/Shader/TerrainPrimitiveHS.cso",
+		"Resources/Shader/TerrainPrimitiveHS.cso",
 		terrainHullShader.GetAddressOf());
 
 	GpuResourceUtils::LoadDomainShader(
 		device,
-		"Data/Shader/TerrainPrimitiveDS.cso",
+		"Resources/Shader/TerrainPrimitiveDS.cso",
 		terrainDomainShader.GetAddressOf());
 
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/TerrainPrimitivePS.cso",
+		"Resources/Shader/TerrainPrimitivePS.cso",
 		terrainPixelShader.GetAddressOf());
 
 	GpuResourceUtils::LoadComputeShader(
 		device,
-		"Data/Shader/TerrainColliderBuildCS.cso",
+		"Resources/Shader/TerrainColliderBuildCS.cso",
 		terrainColliderBuildComputeShader.GetAddressOf());
 
 	// レイヤー追加
 	// ブレンドで違和感のない順番で追加する
 
-	AddTerrainLayer("Data/Terrain/Layers/stone.png", "Data/Terrain/Layers/stone_n.png");
-	AddTerrainLayer("Data/Terrain/Layers/rock.png", "Data/Terrain/Layers/rock_n.png");
-	AddTerrainLayer("Data/Terrain/Layers/dirt.png", "Data/Terrain/Layers/dirt_n.png");
-	AddTerrainLayer("Data/Terrain/Layers/grass.png", "Data/Terrain/Layers/grass_n.png");
-	AddTerrainLayer("Data/Terrain/Layers/test.png", "Data/Terrain/Layers/test.png");
+	AddTerrainLayer("Resources/Terrain/Layers/stone.png", "Resources/Terrain/Layers/stone_n.png");
+	AddTerrainLayer("Resources/Terrain/Layers/rock.png", "Resources/Terrain/Layers/rock_n.png");
+	AddTerrainLayer("Resources/Terrain/Layers/dirt.png", "Resources/Terrain/Layers/dirt_n.png");
+	AddTerrainLayer("Resources/Terrain/Layers/grass.png", "Resources/Terrain/Layers/grass_n.png");
+	AddTerrainLayer("Resources/Terrain/Layers/test.png", "Resources/Terrain/Layers/test.png");
 
 	// エラー用
 	if (terrainLayers.empty())
 	{
-		AddTerrainLayer("Data/Image/bugTex.png", "Data/Image/bugTex.png");
+		AddTerrainLayer("Resources/Image/bugTex.png", "Resources/Image/bugTex.png");
 	}
 }
 
@@ -1994,7 +1994,41 @@ float Terrain::GetSurfaceHeightByUV(float u, float v) const
 		height11 * (xRatio + zRatio - 1.0f);
 }
 
-void Terrain::Deform(const Vector3& worldPosition, const Vector3& direction, float power)
+// ワールド座標に描かれている割合が最も大きい地形レイヤー番号を返す
+int Terrain::GetSurfaceLayerIndex(const Vector3& worldPosition) const
+{
+	if (terrainPixels.empty() || terrainLayers.empty()) return -1;
+	const Transform* transform = owner ? owner->GetComponent<Transform>() : nullptr;
+	if (!transform) return -1;
+
+	const Vector3 localPosition = Vector3::Transform(worldPosition, transform->matrix.Invert());
+	const float u = localPosition.x / terrainSize + 0.5f;
+	const float v = localPosition.z / terrainSize + 0.5f;
+	if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f) return -1;
+
+	const int x = std::clamp(
+		static_cast<int>(std::floor(u * static_cast<float>(TerrainTextureWidth))),
+		0, TerrainTextureWidth - 1);
+	const int y = std::clamp(
+		static_cast<int>(std::floor(v * static_cast<float>(TerrainTextureHeight))),
+		0, TerrainTextureHeight - 1);
+	const float layerRate = std::clamp(terrainPixels[
+		static_cast<size_t>(y) * TerrainTextureWidth + static_cast<size_t>(x)].y, 0.0f, 1.0f);
+	return std::clamp(
+		static_cast<int>(std::round(layerRate * static_cast<float>(terrainLayers.size() - 1))),
+		0, static_cast<int>(terrainLayers.size()) - 1);
+}
+
+// ワールド座標に描かれている主地形レイヤー名を返す
+std::string Terrain::GetSurfaceLayerName(const Vector3& worldPosition) const
+{
+	const int index = GetSurfaceLayerIndex(worldPosition);
+	return index >= 0 && index < static_cast<int>(terrainLayers.size())
+		? terrainLayers[index].name : std::string{};
+}
+
+void Terrain::Deform(
+	const Vector3& worldPosition, const Vector3& direction, float power, float requestedRadius)
 {
 	if (terrainPixels.empty() || power <= eps || direction.LengthSquared() <= eps ||
 		fabsf(tesselation_constant.height_scaler) <= eps)
@@ -2014,7 +2048,21 @@ void Terrain::Deform(const Vector3& worldPosition, const Vector3& direction, flo
 	const float heightOffset = localDirection.y * power;
 	if (fabsf(heightOffset) <= eps) return;
 
-	const float radius = std::max(power, terrainSize / static_cast<float>(TerrainTextureWidth));
+	// 描画メッシュの頂点間隔より小さい変形は高さマップに書かれても見た目へ現れない。
+	// 少なくとも中心の周囲に複数頂点が入る半径を確保して、着地跡を描画へ反映する。
+	const int meshSegments = std::max(
+		gridResolution * std::max(
+			static_cast<int>(std::ceil(std::max(
+				tesselation_constant.edge_factor,
+				tesselation_constant.inner_factor))),
+			1),
+		1);
+	const float meshSpacing = terrainSize / static_cast<float>(meshSegments);
+	const float radius = std::max({
+		requestedRadius,
+		power,
+		terrainSize / static_cast<float>(TerrainTextureWidth),
+		meshSpacing * 2.0f});
 	const float u = localPosition.x / terrainSize + 0.5f;
 	const float v = localPosition.z / terrainSize + 0.5f;
 	const int centerX = static_cast<int>(u * static_cast<float>(TerrainTextureWidth - 1));

@@ -13,6 +13,7 @@ enum class SpriteShaderId
 {
 	Basic,
 	GaussianFilter,
+	Vignette,
 
 	EnumCount
 };
@@ -31,7 +32,8 @@ public:
 		Vector2 sxy,
 		Vector2 swh,
 		float angle,
-		const Color& color = Color(1, 1, 1, 1));
+		const Color& color = Color(1, 1, 1, 1),
+		const Vector4& parameters = Vector4::Zero);
 
 	void Render(const RenderContext& rc);
 
@@ -49,9 +51,10 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	srv;
 		Vector2 											textureSize;
 		Color												color;
+		Vector4											parameters;
 	};
-	DrawInfo BuildDrawInfo(SpriteShaderId shaderId, std::shared_ptr<Texture> texture, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const Color& color);
-	DrawInfo BuildDrawInfo(SpriteShaderId shaderId, ID3D11ShaderResourceView* srv, Vector2 textureSize, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const Color& color);
+	DrawInfo BuildDrawInfo(SpriteShaderId shaderId, std::shared_ptr<Texture> texture, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const Color& color, const Vector4& parameters);
+	DrawInfo BuildDrawInfo(SpriteShaderId shaderId, ID3D11ShaderResourceView* srv, Vector2 textureSize, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const Color& color, const Vector4& parameters);
 
 	std::unique_ptr<SpriteShader>	shaders[static_cast<int>(SpriteShaderId::EnumCount)];
 	std::vector<DrawInfo>			drawCalls;

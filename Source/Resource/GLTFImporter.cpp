@@ -992,7 +992,11 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 	}
 
 	for (auto& l : gltfModel.lights)
-		printf(("light: " + l.name + " type: " + l.type + " intensity: " + std::to_string(l.intensity) + "\n").c_str());
+	{
+		const std::string output = "light: " + l.name + " type: " + l.type +
+			" intensity: " + std::to_string(l.intensity) + "\n";
+		OutputDebugStringA(output.c_str());
+	}
 
 	for (int nodeIdx = 0; nodeIdx < (int)gltfModel.nodes.size(); ++nodeIdx)
 	{

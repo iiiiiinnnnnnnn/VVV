@@ -12,7 +12,7 @@ void CameraEffectController::Update(Camera& camera, const Vector3& eye, const Ve
 {
     if (!isPlaying)
     {
-        // ƒVƒFƒCƒN‚È‚µF‚»‚Ì‚Ü‚Ü SetLookAt
+        // ã‚·ã‚§ã‚¤ã‚¯ãªã—ï¼šãã®ã¾ã¾ SetLookAt
         camera.SetLookAt(eye, focus, up);
         return;
     }
@@ -27,11 +27,11 @@ void CameraEffectController::Update(Camera& camera, const Vector3& eye, const Ve
         return;
     }
 
-    // ŠÔŒo‰ß‚Å‹­“x‚ğŒ¸Š
+    // æ™‚é–“çµŒéã§å¼·åº¦ã‚’æ¸›è¡°
     float ratio = timer / std::max(timer + Game::Time::unscaledDeltaTime, 0.0001f);
     float intensity = maxIntensity * ratio;
 
-    // ƒ‰ƒ“ƒ_ƒ€ƒIƒtƒZƒbƒgi‰EEã•ûŒü‚Ì‚İB‘OŒã‚Í‚Ù‚Ú‹C‚É‚È‚ç‚È‚¢‚Ì‚ÅÈ—ªj
+    // ãƒ©ãƒ³ãƒ€ãƒ ã‚ªãƒ•ã‚»ãƒƒãƒˆï¼ˆå³ãƒ»ä¸Šæ–¹å‘ã®ã¿ã€‚å‰å¾Œã¯ã»ã¼æ°—ã«ãªã‚‰ãªã„ã®ã§çœç•¥ï¼‰
     float ox = Random::Range(-1.0f, 1.0f) * intensity;
     float oy = Random::Range(-1.0f, 1.0f) * intensity;
 

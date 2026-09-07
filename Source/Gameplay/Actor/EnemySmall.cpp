@@ -1,21 +1,23 @@
 ﻿#include "EnemySmall.h"
 #include "Animation/MultiLegFootIK.h"
-#include "Gameplay/Scene/HitStop.h"
+#include "Gameplay/Scene/TimeScaleController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
+#include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Physics/Navigation/NavMeshActor.h"
+#include "Audio/SoundSystem.h"
 
 EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 	: Entity("Deer(EnemySmall)", "Enemy", true, 200.0f, 200.0f)
 {
-	vmdl = AddComponent<VMDL>("Data/Model/Enemy/deer_ai_animated");
+	vmdl = AddComponent<VMDL>("Resources/Model/Enemy/deer_ai_animated");
 	anim = vmdl->GetAnimator();
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	auto footIK = vmdl->GetMultiLegFootIK();
 	footIK->SetContactOffset(-0.864f);
 	footIK->SetModelVisualOffsetY(-0.22f);
-	anim->Load("Data/Animator/deer.animator");
+	anim->Load("Resources/Animator/deer.animator");
 	anim->SetRootMotion("armature");
 
 	// キャラクターコントローラー
@@ -44,7 +46,7 @@ EnemySmall::EnemySmall(const Vector3& position, const Vector3& euler)
 
 	// EnemyAIFlow
 	controller = AddComponent<EnemyAIFlow>();
-	controller->SetGraphPath("Data/AI/enemysmall.json");
+	controller->SetGraphPath("Resources/AI/enemysmall.json");
 	if (!controller->Load(controller->GetGraphPath()))
 		controller->CreateDefaultChaseGraph();
 	controller->SetAgentRadius(1.5f);
@@ -188,7 +190,7 @@ void EnemySmall::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other,
 
 void EnemySmall::OnDamaged(const DamageData& damageData)
 {
-	HitStop::Request(0.15f);
+	TimeScaleController::Request(0.15f);
 	CameraEffectController::Request(0.2f, 0.1f);
 	navMeshAgent->Stop();
 	controller->LockOn((Actor*)damageData.hitColliderSelf->GetOwner());
@@ -196,8 +198,25 @@ void EnemySmall::OnDamaged(const DamageData& damageData)
 
 void EnemySmall::OnDead(const DamageData& damageData)
 {
+	if (deathCleanupPending) return;
+
+	SoundSystem::SpatialOptions deathSoundOptions;
+	deathSoundOptions.minDistance = 15.0f;
+	deathSoundOptions.maxDistance = 20.0f;
+	SoundSystem::Instance().PlayTrack3DAt(
+		SoundTrack::SE_DEER_DIE, transform.position, -1, deathSoundOptions);
+
 	navMeshAgent->Stop();
 	navMeshAgent->SetActive(false);
 	controller->SetActive(false);
+
+	// Destruction is deferred until the next actor update, but collision must disappear
+	// on the exact frame life reaches zero.
+	for (PhysicsComponent* collider : GetComponents<PhysicsComponent>())
+	{
+		if (collider) collider->SetActive(false);
+	}
+	if (cc) cc->ReleaseController();
+
 	deathCleanupPending = true;
 }

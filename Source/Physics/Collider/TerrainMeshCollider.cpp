@@ -1,3 +1,4 @@
+// TerrainMeshCollider.cpp
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
@@ -360,6 +361,9 @@ bool TerrainMeshCollider::SaveCachedMesh(
     const std::vector<Vector3>& vertices,
     const std::vector<uint32_t>& indices)
 {
+#if !defined(_DEBUG)
+    return false;
+#else
     Terrain* terrain = owner->GetComponent<Terrain>();
     if (!terrain || vertices.empty() || indices.empty())
     {
@@ -430,6 +434,7 @@ bool TerrainMeshCollider::SaveCachedMesh(
 	vxMessage = "Terrain .vx saved: " + filepath.generic_string();
 	ResourceManager::Instance().RegisterGeneratedCache(filepath.generic_string());
 	return true;
+#endif
 }
 
 void TerrainMeshCollider::ApplyOwnerScale(std::vector<Vector3>& vertices) const

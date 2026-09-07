@@ -6,9 +6,9 @@
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 
-// “G‚ğƒƒbƒNƒIƒ“‚·‚é‚½‚ß‚ÌƒQ[ƒ€ƒRƒ“ƒ|[ƒlƒ“ƒg
-// UŒ‚¨ƒƒbƒNƒIƒ“¨ˆÈŒãUŒ‚‚ÉƒƒbƒNƒIƒ“‘ÎÛ‚ÉŒü‚©‚Á‚ÄUŒ‚‚·‚é
-// ƒ‚ƒfƒ‹‚É‚ ‚éArrowUI‚ÌTriggerˆÊ’u‚ÉUI‚ğ•\¦‚·‚é
+// æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã™ã‚‹ãŸã‚ã®ã‚²ãƒ¼ãƒ ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ
+// æ”»æ’ƒâ†’ãƒ­ãƒƒã‚¯ã‚ªãƒ³â†’ä»¥å¾Œæ”»æ’ƒæ™‚ã«ãƒ­ãƒƒã‚¯ã‚ªãƒ³å¯¾è±¡ã«å‘ã‹ã£ã¦æ”»æ’ƒã™ã‚‹
+// ãƒ¢ãƒ‡ãƒ«ã«ã‚ã‚‹ArrowUIã®Triggerä½ç½®ã«UIã‚’è¡¨ç¤ºã™ã‚‹
 
 class Actor;
 class Entity;
@@ -28,14 +28,17 @@ public:
 	const char* GetDebugName() const override { return ICON_FA_BULLSEYE " LockOnComponent"; }
 
 	void LockOn(Actor* actor);
+	bool LockOnNearestEnemy();
 	void ClearTarget();
 	void PauseRotation(float duration);
+	void ReleaseIfMovingAway(const Vector3& worldMoveDirection);
 
 	Actor* GetTarget() const { return target; }
 	bool IsLockedOn() const { return target; }
 	void SetAimActive(bool value) { aimActive = value; }
 	void SetRotationPaused(bool value) { rotationPaused = value; }
 	void SetLostRange(float value) { lostRange = std::max(value, 0.0f); }
+	void SetAcquireRange(float value) { acquireRange = std::max(value, 0.0f); }
 	void SetRotationSpeed(float value) { rotationSpeed = std::max(value, 0.0f); }
 
 private:
@@ -50,8 +53,10 @@ private:
 	VMDLModel* targetModel = nullptr;
 	int targetAnchorIndex = -1;
 	std::shared_ptr<SpriteWidget> indicator;
+	float acquireRange = 10.0f;
 	float lostRange = 30.0f;
 	float rotationSpeed = 8.0f;
+	float releaseMoveDot = -0.25f;
 	float rotationPauseTimer = 0.0f;
 	bool aimActive = false;
 	bool rotationPaused = false;

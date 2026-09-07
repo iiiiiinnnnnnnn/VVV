@@ -1,4 +1,6 @@
-﻿#include "UI/SpriteWidget.h"
+﻿// SpriteWidget.cpp
+#include "UI/SpriteWidget.h"
+#include "Resource/ResourceManager.h"
 
 #include "Rendering/Component/SpriteRenderComponent.h"
 
@@ -7,5 +9,5 @@ SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
     : Widget(spritePath.filename().string().c_str())
 {
     AddComponent<SpriteRenderComponent>(
-        std::make_shared<Texture>(spritePath.string().c_str()), shaderId, color);
+        ResourceManager::Instance().LoadTexture(spritePath.generic_string()), shaderId, color);
 }

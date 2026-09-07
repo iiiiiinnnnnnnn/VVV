@@ -8,11 +8,13 @@
 InputContext LocalPlayerController::Poll()
 {
     constexpr float quickStepBufferDuration = 0.2f;
-    if (!Game::Input::IsFocusedWindow())
+	// プレイ中のカーソル解放はScene側で管理するため、OSウィンドウのフォーカスだけを見る
+    if (!Game::Input::IsFocusedWindow(true))
     {
         quickStepKeyHeld = false;
         quickStepDirectionMask = 0;
         quickStepBufferTimer = 0.0f;
+		sprintLatched = false;
         return {};
     }
 
@@ -65,19 +67,27 @@ InputContext LocalPlayerController::Poll()
                 1u << index;
         }
     }
+	constexpr float gamePadDodgeDirectionThreshold = 0.35f;
+	if (pad.GetAxisLY() > gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 0;
+	if (pad.GetAxisLY() < -gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 1;
+	if (pad.GetAxisLX() < -gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 2;
+	if (pad.GetAxisLX() > gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 3;
 
-    const bool quickStepChordDown =
+    const bool keyboardDodgeDown =
         (GetAsyncKeyState(VK_SPACE) &
-         0x8000) != 0 &&
-        heldDirectionMask != 0;
+         0x8000) != 0;
     const bool quickStepStartedNow =
-        quickStepChordDown &&
-        !quickStepKeyHeld;
+        (keyboardDodgeDown && !quickStepKeyHeld) ||
+		(pad.GetButtonDown() & GamePad::BTN_LEFT_TRIGGER);
     quickStepKeyHeld =
-        quickStepChordDown;
+        keyboardDodgeDown;
 
     if (quickStepStartedNow)
     {
+        if (heldDirectionMask == 0)
+        {
+            context.quickDefaultForwardStarted = true;
+        }
         for (int index = 0; index < 4; ++index)
         {
             if ((heldDirectionMask &
@@ -115,12 +125,24 @@ InputContext LocalPlayerController::Poll()
         }
     }
 
-    context.sprint =
-        (pad.GetButton() & GamePad::BTN_LEFT_THUMB) ||
-        (GetAsyncKeyState(VK_LSHIFT) & 0x8000);
-    context.crouch = GetAsyncKeyState(VK_LCONTROL) & 0x8000;
+	const float movePower =
+		context.moveX * context.moveX + context.moveZ * context.moveZ;
+	if (movePower <= 0.01f)
+	{
+		sprintLatched = false;
+	}
+	else if ((pad.GetButtonDown() & GamePad::BTN_LEFT_THUMB) ||
+		(GetAsyncKeyState(VK_LSHIFT) & 0x8000))
+	{
+		sprintLatched = true;
+	}
+	context.sprint = sprintLatched;
+    context.crouch =
+		(pad.GetButton() & GamePad::BTN_RIGHT_THUMB) ||
+		(GetAsyncKeyState(VK_LCONTROL) & 0x8000);
     context.attackPressed =
-        (pad.GetButtonDown() & GamePad::BTN_A) ||
+		(pad.GetButtonDown() &
+			(GamePad::BTN_A | GamePad::BTN_X | GamePad::BTN_RIGHT_TRIGGER)) ||
         (mouse.GetButtonDown() & Mouse::BTN_LEFT);
 
     return context;

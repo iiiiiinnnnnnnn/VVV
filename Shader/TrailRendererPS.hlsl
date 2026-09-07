@@ -6,7 +6,8 @@ float4 main(VS_OUT pin) : SV_TARGET
 {
     float alpha = pow(saturate(1.0 - pin.uv.y), 2.0);
     alpha *= lerp(1.0, 0.3, pin.uv.x);
-    alpha *= 3.0; // Ç±Ç≠Ç∑ÇÈ
+    alpha *= 3.0; // „Åì„Åè„Åô„Çã
     alpha = saturate(alpha);
-    return float4(color.rgb, alpha);
+    float4 gradient = lerp(color, endColor, saturate(pin.uv.y));
+    return float4(gradient.rgb, alpha * gradient.a);
 }

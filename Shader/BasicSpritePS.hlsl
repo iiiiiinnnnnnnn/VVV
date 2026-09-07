@@ -10,7 +10,7 @@ cbuffer CbBasic : register(b0)
     float4 color;
 };
 
-// ƒsƒNƒZƒ‹ƒVƒF[ƒ_[ƒGƒ“ƒgƒŠƒ|ƒCƒ“ƒg
+// ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚¨ãƒ³ãƒˆãƒªãƒã‚¤ãƒ³ãƒˆ
 float4 main(VS_OUT pin) : SV_TARGET
 {
 	float4 final = spriteTexture.Sample(spriteSampler, pin.texcoord);

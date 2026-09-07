@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Gameplay/Camera/CameraController.h"
 #include "Gameplay/Player/Player.h"
@@ -17,6 +17,11 @@ public:
     void SetPlayer(Player* character) { this->character = character; }
 
     float GetCameraYaw() const { return -angleY; }
+	void RequestSkillFocus(float duration);
+
+protected:
+	// プレイ中のカーソル解放はScene側で管理するため、ImGuiの残留フォーカスでは止めない
+	bool BlocksOnImGuiFocus() const override { return false; }
 
 private:
     Player* character;
@@ -28,6 +33,13 @@ private:
     float minArmLength = 0.5f;
     float maxArmLength = 50.0f;
     float followSpeed  = 4.5f;
+	float sprintArmExtension = 2.0f;
+	float sprintArmSpeed = 5.5f;
+	float currentArmLength = 11.0f;
+	float skillFocusTimer = 0.0f;
+	float skillFocusDuration = 0.0f;
+	float skillFocusArmLength = 4.5f;
+	float skillFocusFovOffset = -6.0f;
 
 	const float FOV_DEFAULT = 50.0f;
     float fovYDegrees = 50.0f;
@@ -37,7 +49,7 @@ private:
 
     bool initialized = false;
 
-    // ���݂̃J�����ʒu�E�����_�iLerp�̌��ݒl�j
+    // 現在のカメラ位置・注視点（Lerpの現在値）
     Vector3 currentEye   = Vector3::Zero;
     Vector3 currentFocus = Vector3::Zero;
 };

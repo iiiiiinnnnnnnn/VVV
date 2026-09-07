@@ -1,11 +1,11 @@
 #ifndef __GBUFFER_HLSLI__
 #define __GBUFFER_HLSLI__
 
-//  ƒVƒF[ƒfƒBƒ“ƒOƒ‚ƒfƒ‹’è”
-static const int shading_model_unlit    = 0; //  ƒVƒF[ƒfƒBƒ“ƒOŒvZFƒ‰ƒCƒeƒBƒ“ƒO–³‚µ
-static const int shading_model_pbr      = 1; //  ƒVƒF[ƒfƒBƒ“ƒOŒvZF•¨—ƒx[ƒX‚ğ—p‚¢‚½ŒvZ
+//  ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ãƒ¢ãƒ‡ãƒ«å®šæ•°
+static const int shading_model_unlit    = 0; //  ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°è¨ˆç®—ï¼šãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°ç„¡ã—
+static const int shading_model_pbr      = 1; //  ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°è¨ˆç®—ï¼šç‰©ç†ãƒ™ãƒ¼ã‚¹ã‚’ç”¨ã„ãŸè¨ˆç®—
 
-//  ƒsƒNƒZƒ‹ƒVƒF[ƒ_[‚Ö‚Ìo—Í—p\‘¢‘Ì
+//  ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã¸ã®å‡ºåŠ›ç”¨æ§‹é€ ä½“
 struct PSGBufferOut
 {
     float4 base_color : SV_TARGET0;
@@ -16,23 +16,23 @@ struct PSGBufferOut
     float4 velocity : SV_TARGET5;
 };
 
-//  GBufferî•ñ\‘¢‘Ì
+//  GBufferæƒ…å ±æ§‹é€ ä½“
 struct GBufferData
 {
-    float3 base_color;          //  ƒx[ƒXƒJƒ‰[
-    int shading_model;          //  ƒVƒF[ƒfƒBƒ“ƒO•û®
-    float3 emissive_color;      //  ©ŒÈ”­ŒõF
-    float3 w_normal;            //  ƒ[ƒ‹ƒh–@ü
-    float3 w_position;          //  ƒ[ƒ‹ƒhÀ•W
-    float2 velocity;            //  ‘¬“x
-    float linear_depth;         //  üŒ`[“x(Decode‚Ì‚İ)
-    float roughness;            //  ‘e‚³
-    float metalness;            //  ‹à‘®¿
-    float occlusion_factor;     //  Õ•Á’l
-    float occlusion_strength;   //  Õ•Á‹­“x
+    float3 base_color;          //  ãƒ™ãƒ¼ã‚¹ã‚«ãƒ©ãƒ¼
+    int shading_model;          //  ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°æ–¹å¼
+    float3 emissive_color;      //  è‡ªå·±ç™ºå…‰è‰²
+    float3 w_normal;            //  ãƒ¯ãƒ¼ãƒ«ãƒ‰æ³•ç·š
+    float3 w_position;          //  ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™
+    float2 velocity;            //  é€Ÿåº¦
+    float linear_depth;         //  ç·šå½¢æ·±åº¦(Decodeæ™‚ã®ã¿)
+    float roughness;            //  ç²—ã•
+    float metalness;            //  é‡‘å±è³ª
+    float occlusion_factor;     //  é®è”½å€¤
+    float occlusion_strength;   //  é®è”½å¼·åº¦
 };
 
-//  GBufferƒeƒNƒXƒ`ƒƒó‚¯“n‚µ—p\‘¢‘Ì
+//  GBufferãƒ†ã‚¯ã‚¹ãƒãƒ£å—ã‘æ¸¡ã—ç”¨æ§‹é€ ä½“
 struct PSGBufferTextures
 {
     Texture2D<float4> base_color;
@@ -44,7 +44,7 @@ struct PSGBufferTextures
     SamplerState state;
 };
 
-//  UV‹óŠÔã‚Ì‘¬“xŒvZ—pŠÖ”
+//  UVç©ºé–“ä¸Šã®é€Ÿåº¦è¨ˆç®—ç”¨é–¢æ•°
 float2 calculate_uvspace_velocity(float4 current_clip_position, float4 previous_clip_position)
 {
     current_clip_position /= current_clip_position.w;
@@ -54,19 +54,19 @@ float2 calculate_uvspace_velocity(float4 current_clip_position, float4 previous_
     return (current_clip_position.xy - previous_clip_position.xy);
 }
 
-//  ”ñüŒ`[“x‚©‚çüŒ`[“x‚Ö•ÏŠ·
+//  éç·šå½¢æ·±åº¦ã‹ã‚‰ç·šå½¢æ·±åº¦ã¸å¤‰æ›
 float convert_projection_depth_to_linear_depth(float depth, float4 z_buffer_parameteres)
 {
     return 1.0f / (z_buffer_parameteres.x * depth + z_buffer_parameteres.y);
 }
 
-//  üŒ`[“x‚©‚ç”ñüŒ`[“x‚Ö•ÏŠ·
+//  ç·šå½¢æ·±åº¦ã‹ã‚‰éç·šå½¢æ·±åº¦ã¸å¤‰æ›
 float convert_linear_depth_to_projection_depth(float depth, float4 z_buffer_parameteres)
 {
     return (1.0f / depth - z_buffer_parameteres.y) / z_buffer_parameteres.x;
 }
 
-//  GBufferData‚É“Z‚ß‚½î•ñ‚ğƒsƒNƒZƒ‹ƒVƒF[ƒ_[‚Ìo—Í—p\‘¢‘Ì‚É•ÏŠ·
+//  GBufferDataã«çºã‚ãŸæƒ…å ±ã‚’ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã®å‡ºåŠ›ç”¨æ§‹é€ ä½“ã«å¤‰æ›
 PSGBufferOut EncodeGBuffer(in GBufferData data, matrix view_projection_matrix, float4 z_buffer_parameteres)
 {
     PSGBufferOut ret = (PSGBufferOut) 0;
@@ -90,10 +90,10 @@ PSGBufferOut EncodeGBuffer(in GBufferData data, matrix view_projection_matrix, f
     return ret;
 };
 
-//  ƒsƒNƒZƒ‹ƒVƒF[ƒ_[‚Ìo—Í—p\‘¢‘Ì‚©‚çGBufferDataî•ñ‚É•ÏŠ·
+//  ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã®å‡ºåŠ›ç”¨æ§‹é€ ä½“ã‹ã‚‰GBufferDataæƒ…å ±ã«å¤‰æ›
 GBufferData DecodeGBuffer(PSGBufferTextures textures, float2 uv, matrix inverse_view_projection_transform, float4 z_buffer_parameteres)
 {
-    //  ŠeƒeƒNƒXƒ`ƒƒ‚©‚çî•ñ‚ğæ“¾
+    //  å„ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‹ã‚‰æƒ…å ±ã‚’å–å¾—
     float4 base_color = textures.base_color.Sample(textures.state, uv);
     float4 emissive_color = textures.emissive_color.Sample(textures.state, uv);
     float4 normal = textures.normal.Sample(textures.state, uv);

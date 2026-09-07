@@ -1,4 +1,5 @@
-﻿#include "Application/Bootstrap/Framework.h"
+﻿// Framework.cpp
+#include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Resource/ResourceManager.h"
@@ -6,11 +7,15 @@
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Scene/TimeScaleController.h"
+#include "Audio/SoundSystem.h"
 
-#include <format>
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
 static constexpr double TargetFrameSeconds = 1.0 / 60.0;
+static constexpr float DefaultClearRed = 0.025f;
+static constexpr float DefaultClearGreen = 0.04f;
+static constexpr float DefaultClearBlue = 0.065f;
 
 // コンストラクタ
 Framework::Framework(HWND hWnd) : hWnd(hWnd)
@@ -21,7 +26,10 @@ Framework::Framework(HWND hWnd) : hWnd(hWnd)
 	// グラフィックス初期化
 	Game::Graphics::Instance().Initialize(hWnd);
 
-	// IMGUIがフォントを読み込む前にData内のリソースをコピー
+	// サウンドシステム初期化
+	SoundSystem::Instance().Initialize();
+
+	// 一覧と先読み対象を読み込む
 	ResourceManager::Instance().PrepareGameResources();
 
 	// エディタ用の設定初期化
@@ -49,6 +57,9 @@ Framework::~Framework()
 
 	// IMGUI終了化
 	ImGuiRenderer::Finalize();
+
+	// サウンドシステム終了化
+	SoundSystem::Instance().Finalize();
 }
 
 // 更新処理
@@ -58,6 +69,7 @@ void Framework::Update(float elapsedTime)
 	Game::Time::time += elapsedTime;
 	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
 	Game::Time::unscaledDeltaTime = elapsedTime;
+	TimeScaleController::Update();
 
 	// 入力更新処理
 	Game::Input::Instance().Update();
@@ -73,6 +85,9 @@ void Framework::Update(float elapsedTime)
 
 	// 物理シミュレーション
 	PhysicsManager::Instance().GetSceneContext().Simulate();
+
+	// 最新の位置で3D音声を更新
+	SoundSystem::Instance().Update();
 }
 
 // 描画処理
@@ -83,7 +98,8 @@ void Framework::Render(float elapsedTime)
 	// 画面クリア＆レンダーターゲット設定
 	RenderTarget* backBuffer =
 		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Display);
-	backBuffer->Clear(dc, 0.5f, 0.5f, 0.5f, 1);
+	backBuffer->Clear(
+		dc, DefaultClearRed, DefaultClearGreen, DefaultClearBlue, 1.0f);
 	backBuffer->Activate(dc);
 
 	// シーン通常描画＆GUI描画処理
@@ -95,28 +111,6 @@ void Framework::Render(float elapsedTime)
 
 	// 画面表示
 	Game::Graphics::Instance().Present(PresentSyncInterval);
-}
-
-// フレームレート計算
-void Framework::CalculateFrameStats()
-{
-	// 1秒ごとにFPSを計算してウィンドウタイトルに表示
-	static int frames = 0;
-	static float time_tlapsed = 0.0f;
-	frames++;
-
-	if ((timer.TimeStamp() - time_tlapsed) >= 1.0f)
-	{
-		float fps = static_cast<float>(frames);
-		float mspf = 1000.0f / fps;
-		const std::string title =
-			std::format("FPS : {} / Frame Time : {} (ms)", fps, mspf);
-		SetWindowTextA(hWnd, title.c_str());
-
-		// リセット
-		frames = 0;
-		time_tlapsed += 1.0f;
-	}
 }
 
 // アプリケーションループ
@@ -143,7 +137,6 @@ int Framework::Run()
 		else
 		{
 			timer.Tick();
-			CalculateFrameStats();
 
 			float elapsedTime = timer.TimeInterval();
 			Update(elapsedTime);

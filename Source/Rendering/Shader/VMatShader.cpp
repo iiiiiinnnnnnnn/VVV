@@ -5,7 +5,7 @@ VMatShader::VMatShader(ID3D11Device* device)
 {
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/PBRVS.cso",
+		"Resources/Shader/PBRVS.cso",
 		ModelShader::InputElementDescs.data(),
 		static_cast<UINT>(ModelShader::InputElementDescs.size()),
 		inputLayout.GetAddressOf(),
@@ -14,16 +14,16 @@ VMatShader::VMatShader(ID3D11Device* device)
 	// ピクセルシェーダー
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/PBRPS.cso",
+		"Resources/Shader/PBRPS.cso",
 		pixelShader.GetAddressOf());
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/UnlitPS.cso",
+		"Resources/Shader/UnlitPS.cso",
 		unlitPixelShader.GetAddressOf());
 
 	GpuResourceUtils::LoadGeometryShader(
 		device,
-		"Data/Shader/PBRGS.cso",
+		"Resources/Shader/PBRGS.cso",
 		geometryShader.GetAddressOf());
 
 	// シャドウマップ用定数バッファ (PSスロット0)

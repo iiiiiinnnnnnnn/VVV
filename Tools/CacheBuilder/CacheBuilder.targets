@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <CacheBuilderExe>$(MSBuildThisFileDirectory)..\..\Bin\Tools\$(Configuration)\CacheBuilder.exe</CacheBuilderExe>
+    <GameResourcesUpToDateMarker>$(IntDir)GameResources.upToDate</GameResourcesUpToDateMarker>
+  </PropertyGroup>
+  <!--
+    Visual StudioのFast Up-to-date Checkを有効に保つ。
+    Resourcesはvcxprojの通常入力ではないため、ここで入力とマーカーを
+    明示し、リソースが変更されたときだけCacheBuilderを起動させる。
+  -->
+  <ItemGroup>
+    <UpToDateCheckInput Include="$(ProjectDir)Resources\**\*" />
+    <UpToDateCheckOutput Include="$(GameResourcesUpToDateMarker)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)CacheBuilder.vcxproj">
+      <Project>{568C9351-07E9-4C99-9E9D-8576F21CFA88}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="BuildGameResources" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(SelectedFiles)'=='' and '$(DesignTimeBuild)'!='true'">
+    <Error Condition="!Exists('$(CacheBuilderExe)')" Text="CacheBuilder.exe is missing. Build the CacheBuilder project first." />
+    <Exec Command="&quot;$(CacheBuilderExe)&quot; --source &quot;$(ProjectDir)Resources&quot; --output &quot;$(TargetDir)Resources&quot;"
+          WorkingDirectory="$(ProjectDir)" />
+    <Touch Files="$(GameResourcesUpToDateMarker)" AlwaysCreate="true" />
+  </Target>
+</Project>

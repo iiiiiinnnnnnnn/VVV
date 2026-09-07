@@ -1,4 +1,5 @@
-﻿
+﻿// Main.cpp
+
 #include <windows.h>
 #include <filesystem>
 #include <memory>
@@ -19,6 +20,7 @@ void SetExecutableWorkingDirectory()
 	if (!GetModuleFileNameW(nullptr, executablePath, _countof(executablePath))) return;
 	SetCurrentDirectoryW(std::filesystem::path(executablePath).parent_path().c_str());
 }
+
 }
 
 LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -31,6 +33,7 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 {
 	SetExecutableWorkingDirectory();
 	DebugLog::Initialize();
+
 #if defined(DEBUG) | defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	//_CrtSetBreakAlloc(237);
@@ -57,7 +60,7 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 	HWND hWnd = CreateWindow(
 		_T("Game"),
-		_T(""),
+		_T("TPS V Editor"),
 		WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME | WS_VISIBLE,
 		initializeWindowPosX,
 		initializeWindowPosY,

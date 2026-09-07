@@ -26,7 +26,7 @@ namespace Game
 
 		HRESULT hr = S_OK;
 
-		// ƒfƒoƒCƒX•ƒXƒƒbƒvƒ`ƒF[ƒ“‚Ì¶¬
+		// ãƒ‡ãƒã‚¤ã‚¹ï¼†ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³ã®ç”Ÿæˆ
 		{
 			UINT createDeviceFlags = 0;
 			#if defined(DEBUG) || defined(_DEBUG)
@@ -80,10 +80,10 @@ namespace Game
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 
-		// ƒtƒŒ[ƒ€ƒoƒbƒtƒ@¶¬
+		// ãƒ•ãƒ¬ãƒ¼ãƒ ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
 		RecreateFrameBuffers(screenWidth, screenHeight);
 
-		// ŠeƒŒƒ“ƒ_ƒ‰[¶¬
+		// å„ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ç”Ÿæˆ
 		renderState       = std::make_unique<RenderState>(device.Get());
 		primitiveRenderer = std::make_unique<PrimitiveRenderer>(device.Get());
 		debugSolidRenderer = std::make_unique<DebugSolidRenderer>(device.Get());
@@ -94,7 +94,7 @@ namespace Game
 		shadowMapRenderer = std::make_unique<ShadowMapRenderer>(device.Get());
 		skyBoxRenderer    = std::make_unique<SkyBoxRenderer>(device.Get());
 
-		// IBLƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+		// IBLãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 		RefreshSkyMapList();
 		LoadSkyMap("Default");
 	}
@@ -130,7 +130,7 @@ namespace Game
 	{
 		if (!borderlessFullscreen)
 		{
-			// ”r‘¼“Iƒtƒ‹ƒXƒNƒŠ[ƒ“‚É‚Í‚¹‚¸Aƒ‚ƒjƒ^[‘S‘Ì‚ğ•¢‚¤˜g‚È‚µƒEƒBƒ“ƒhƒE‚É‚·‚éB
+			// æ’ä»–çš„ãƒ•ãƒ«ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã«ã¯ã›ãšã€ãƒ¢ãƒ‹ã‚¿ãƒ¼å…¨ä½“ã‚’è¦†ã†æ ãªã—ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«ã™ã‚‹ã€‚
 			swapchain->SetFullscreenState(FALSE, nullptr);
 
 			windowedStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
@@ -163,7 +163,7 @@ namespace Game
 		}
 		else
 		{
-			// ƒEƒBƒ“ƒhƒE‰»
+			// ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦åŒ–
 
 			SetWindowLongPtr(hWnd, GWL_STYLE, windowedStyle);
 			SetWindowLongPtr(hWnd, GWL_EXSTYLE, windowedExStyle);
@@ -286,7 +286,7 @@ namespace Game
 		if (name.empty())
 			return false;
 
-		const std::filesystem::path skyDir = "Data/Sky";
+		const std::filesystem::path skyDir = "Resources/Sky";
 		const std::filesystem::path lutPath = skyDir / (name + "_lut_ggx.dds");
 		const std::filesystem::path specularPath = skyDir / (name + "_specular_pmrem.dds");
 		const std::filesystem::path diffusePath = skyDir / (name + "_diffuse_iem.dds");
@@ -331,7 +331,7 @@ namespace Game
 	{
 		skyMapNames.clear();
 
-		const std::filesystem::path skyDir = "Data/Sky";
+		const std::filesystem::path skyDir = "Resources/Sky";
 		if (!std::filesystem::exists(skyDir))
 		{
 			return;

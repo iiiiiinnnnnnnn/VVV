@@ -101,6 +101,11 @@ int MultiLegFootIK::AddLegsFromVmdlSettings()
 	if (!model) return 0;
 	const auto& settings = model->GetVmdlIKSettings();
 	if (settings.type != 2 && settings.type != 3) return 0;
+	const auto& solverSettings = model->GetVmdlMultiLegIKSettings();
+	modelVisualOffsetY = solverSettings.bodyHeightOffset;
+	contactOffset = solverSettings.contactOffset;
+	maxUpCorrection = std::max(solverSettings.maxUpCorrection, 0.0f);
+	maxDownCorrection = std::max(solverSettings.maxDownCorrection, 0.0f);
 
 	waistNodeIndex = model->GetNodeIndex(settings.centerNode.c_str());
 	int addedCount = 0;

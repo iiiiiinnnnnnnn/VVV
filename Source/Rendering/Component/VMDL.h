@@ -29,6 +29,8 @@ class VMDL : public Component
 	HumanoidFootIK* GetHumanFootIK() const { return humanFootIK; }
 	MultiLegFootIK* GetMultiLegFootIK() const { return multiLegFootIK; }
 	PhysicsComponent* GetCollider(const std::string& name) const;
+	VMDLModel::VmdlSoundSource* GetSoundSource(const std::string& name);
+	const VMDLModel::VmdlSoundSource* GetSoundSource(const std::string& name) const;
 	void SetAutoUpdateTransform(bool value);
 	void SetModelYawOffset(float radians)
 	{

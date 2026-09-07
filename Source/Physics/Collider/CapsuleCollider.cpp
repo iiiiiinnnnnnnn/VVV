@@ -31,7 +31,7 @@ CapsuleCollider::CapsuleCollider(
     , height(height)
     , localPosition(localPosition)
 {
-    // ƒGƒ‰[—p
+    // ã‚¨ãƒ©ãƒ¼ç”¨
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
@@ -73,7 +73,7 @@ void CapsuleCollider::UpdateShape()
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
-    // ŒÃ‚¢ƒVƒFƒCƒv‚ðíœ
+    // å¤ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’å‰Šé™¤
     if (shape)
     {
         rigidActor->detachShape(*shape);
@@ -81,13 +81,13 @@ void CapsuleCollider::UpdateShape()
         shape = nullptr;
     }
 
-    // V‚µ‚¢ƒVƒFƒCƒv‚ð¶¬
+    // æ–°ã—ã„ã‚·ã‚§ã‚¤ãƒ—ã‚’ç”Ÿæˆ
     shape = physics->createShape(
         PxCapsuleGeometry(radius, height * 0.5f), *material);
     shape->userData = this;
     shape->setLocalPose(MakeLocalPose());
 
-    // owner‚Ìlayer‚ðƒVƒFƒCƒv‚É”½‰f
+    // ownerã®layerã‚’ã‚·ã‚§ã‚¤ãƒ—ã«åæ˜ 
     PhysicsManager::SetLayerToShape(shape, layerId);
     rigidActor->attachShape(*shape);
 }

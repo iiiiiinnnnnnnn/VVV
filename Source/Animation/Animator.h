@@ -217,6 +217,8 @@ public:
     }
 
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
+    const std::string& GetNextStateName(int layerIndex = 0) const;
+    bool IsTransitioning(int layerIndex = 0) const;
     int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
     int  GetCurrentAnimationIndex(int layerIndex = 0) const;
     float GetCurrentAnimationTime(int layerIndex = 0) const;

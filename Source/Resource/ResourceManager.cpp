@@ -1,7 +1,12 @@
-﻿#include "Resource/ResourceManager.h"
+﻿// ResourceManager.cpp
+#include "Resource/ResourceManager.h"
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+#include "Resource/CacheBuilder.h"
+#endif
 
 #include <algorithm>
 #include <chrono>
+#include <format>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -14,17 +19,28 @@ namespace
 {
 constexpr const char* ResourceSection = "[resources]";
 
-std::filesystem::path ToDataPath(const std::filesystem::path& relativePath)
+// フォルダー改名前の履歴を、移行先が存在する場合だけ新しいパスへ解決
+std::filesystem::path ResolveRenamedResourcePath(const std::filesystem::path& path)
 {
-	return std::filesystem::path("Data") / relativePath;
+	if (path.empty() || std::filesystem::exists(path)) return path;
+	std::filesystem::path migrated;
+	bool afterResources = false;
+	bool changed = false;
+	for (const auto& part : path)
+	{
+		const auto name = CacheSettings::Key(part.generic_string());
+		if (afterResources && (name == "vmdl" || name == "vstg"))
+		{
+			migrated /= name == "vmdl" ? "Model" : "Stage";
+			changed = true;
+		}
+		else migrated /= part;
+		afterResources = name == "resources";
+	}
+	return changed && std::filesystem::exists(migrated) ? migrated : path;
 }
-} // namespace
 
-ResourceManager& ResourceManager::Instance()
-{
-	static ResourceManager instance;
-	return instance;
-}
+} // namespace
 
 bool ResourceManager::PrepareGameResources()
 {
@@ -34,25 +50,91 @@ bool ResourceManager::PrepareGameResources()
 	assetPathLookup.clear();
 	models.clear();
 	textures.clear();
+	files.clear();
 	preloadedFiles.clear();
 
-	runtimeDataRoot = std::filesystem::current_path() / "Data";
-	cachedPathList = runtimeDataRoot / "cached.ini";
+	runtimeResourceRoot = std::filesystem::current_path() / "Resources";
+	cachedPathList = runtimeResourceRoot / "ResourceManifest.ini";
 
-	sourceDataRoot = FindSourceDataRoot();
-	if (!sourceDataRoot.empty())
-	{
-		if (!BuildCaches()) return false;
-		if (!SaveCachedPathList()) return false;
-	}
-	else if (!LoadCachedPathList()) return false;
+	if (!LoadCachedPathList()) return false;
 
-	resourcesPrepared = true;
-	return true;
+	resourcesPrepared = PreloadConfiguredResources();
+	return resourcesPrepared;
 }
 
+bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
+{
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	try
+	{
+		const auto sourceRoot = FindSourceResourceRoot();
+		if (sourceRoot.empty()) return true;
+		std::unordered_map<std::string, std::string> previousUpdates;
+		for (const auto& asset : assetPaths)
+			previousUpdates[CacheSettings::Key(asset.path)] = asset.updated;
+		if (runtimeResourceRoot.empty()) runtimeResourceRoot = std::filesystem::current_path() / "Resources";
+		cachedPathList = runtimeResourceRoot / "ResourceManifest.ini";
+		const auto changed = CacheBuilder::Build(sourceRoot, runtimeResourceRoot, false, savedSource);
+		for (const auto& path : changed)
+		{
+			const auto key = MakeLookupKey(path);
+			models.erase(key);
+			textures.erase(CacheSettings::Key(path));
+			files.erase(CacheSettings::Key(path));
+		}
+		preloadedFiles.clear();
+		assetPaths.clear();
+		assetPathLookup.clear();
+		errors.clear();
+		resourcesPrepared = LoadCachedPathList();
+		// ビルド側ですでに更新されたリソースも破棄
+		for (const auto& asset : assetPaths)
+		{
+			const auto key = CacheSettings::Key(asset.path);
+			const auto old = previousUpdates.find(key);
+			if (old == previousUpdates.end()) continue;
+			if (old->second == asset.updated) previousUpdates.erase(old);
+		}
+		for (const auto& [key, updated] : previousUpdates)
+		{
+			models.erase(MakeLookupKey(key));
+			textures.erase(key);
+			files.erase(key);
+		}
+		return resourcesPrepared && PreloadConfiguredResources();
+	}
+	catch (const std::exception& exception)
+	{
+		models.clear();
+		textures.clear();
+		files.clear();
+		preloadedFiles.clear();
+		ReportError(exception.what());
+		return false;
+	}
+#else
+	return true;
+#endif
+}
+
+// 実行用パスを編集用の正本へ解決し、旧フォルダー名の履歴も移行
+std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::path& requestedPath)
+{
+	const auto path = ResolveRenamedResourcePath(requestedPath);
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	const auto sourceRoot = FindSourceResourceRoot();
+	if (sourceRoot.empty() || path.empty()) return path;
+	const auto runtime = std::filesystem::weakly_canonical(std::filesystem::current_path() / "Resources");
+	const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+	const auto relative = absolute.lexically_relative(runtime);
+	if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..")
+		return ResolveRenamedResourcePath(sourceRoot / relative);
+#endif
+	return path;
+}
 bool ResourceManager::PreloadFile(const std::string& path)
 {
+	if (cacheSettings.Get(path).excluded) return false;
 	// 拡張子込みで判定
 	std::string preloadKey = NormalizePath(path);
 	std::transform(preloadKey.begin(), preloadKey.end(), preloadKey.begin(), ::tolower);
@@ -71,7 +153,7 @@ bool ResourceManager::PreloadFile(const std::string& path)
 	}
 	if (!value)
 	{
-		ReportError("Preload resource is not in Data/cached.ini: " + NormalizePath(path));
+		ReportError("Preload resource is not in Resources/ResourceManifest.ini: " + NormalizePath(path));
 		return false;
 	}
 
@@ -83,19 +165,15 @@ bool ResourceManager::PreloadFile(const std::string& path)
 	}
 	else
 	{
-		std::string extension = std::filesystem::path(value->path).extension().string();
-		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-		if (extension == ".dds" || extension == ".png" || extension == ".jpg" ||
-			extension == ".jpeg" || extension == ".tga" || extension == ".bmp")
+		if (CacheSettings::IsImage(value->path))
 		{
 			// テクスチャをキャッシュ
 			loaded = LoadTexture(path) != nullptr;
 		}
 		else
 		{
-			// その他は存在確認のみ
-			loaded = std::filesystem::exists(value->path);
-			if (!loaded) ReportError("Preload resource not found: " + value->path);
+			// その他はファイル本体を保持
+			loaded = LoadFile(value->path) != nullptr;
 		}
 	}
 
@@ -103,23 +181,74 @@ bool ResourceManager::PreloadFile(const std::string& path)
 	return loaded;
 }
 
+// Manifestから読み込んだ先読み設定に従ってリソースを準備
+bool ResourceManager::PreloadConfiguredResources()
+{
+	try
+	{
+		bool success = true;
+		for (const auto& asset : assetPaths)
+		{
+			const auto options = cacheSettings.Get(asset.path);
+			if (!options.excluded && options.preload && !PreloadFile(asset.path)) success = false;
+		}
+		return success;
+	}
+	catch (const std::exception& error)
+	{
+		ReportError(error.what());
+		return false;
+	}
+}
+
+std::shared_ptr<const std::vector<uint8_t>> ResourceManager::LoadFile(const std::string& path)
+{
+	const auto resolved = ResolvePath(path);
+	if (cacheSettings.Get(resolved).excluded) return nullptr;
+	const auto key = CacheSettings::Key(resolved);
+	if (const auto found = files.find(key); found != files.end()) return found->second;
+	std::ifstream input(resolved, std::ios::binary | std::ios::ate);
+	if (!input) { ReportError("Resource not found: " + resolved); return nullptr; }
+	const auto size = input.tellg();
+	if (size < 0) { ReportError("Resource size failed: " + resolved); return nullptr; }
+	auto bytes = std::make_shared<std::vector<uint8_t>>(static_cast<size_t>(size));
+	input.seekg(0);
+	if (!input.read(reinterpret_cast<char*>(bytes->data()), static_cast<std::streamsize>(bytes->size())))
+	{
+		ReportError("Resource read failed: " + resolved);
+		return nullptr;
+	}
+	if (cacheSettings.Get(resolved).preload) files.emplace(key, bytes);
+	return bytes;
+}
+
 void ResourceManager::RegisterGeneratedCache(const std::string& path)
 {
-	const std::string normalizedPath = NormalizePath(path);
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	const auto relative = std::filesystem::weakly_canonical(std::filesystem::absolute(path))
+		.lexically_relative(std::filesystem::weakly_canonical(runtimeResourceRoot));
+	if (relative.empty() || relative.is_absolute() || *relative.begin() == "..")
+	{
+		RefreshResources(path);
+		return;
+	}
+	const auto normalizedPath = (std::filesystem::path("Resources") / relative).generic_string();
 	if (!std::filesystem::exists(normalizedPath))
 	{
 		ReportError("Generated cache not found: " + normalizedPath);
 		return;
 	}
-
-	for (const AssetPath& asset : assetPaths)
+	for (auto& asset : assetPaths)
 	{
-		if (asset.path == normalizedPath) return;
+		if (asset.path != normalizedPath) continue;
+		asset.updated = GetLastWriteTimeText(normalizedPath);
+		SaveCachedPathList();
+		return;
 	}
 	if (AddAssetPath(AssetType::File, normalizedPath, GetLastWriteTimeText(normalizedPath)))
 		SaveCachedPathList();
+#endif
 }
-
 std::string ResourceManager::ResolvePath(const std::string& path) const
 {
 	const std::string lookupKey = MakeLookupKey(path);
@@ -130,11 +259,12 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 
 std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 {
+	if (cacheSettings.Get(ResolvePath(key)).excluded) return nullptr;
 	const std::string lookupKey = MakeLookupKey(key);
 	const auto pathIt = assetPathLookup.find(lookupKey);
 	if (pathIt == assetPathLookup.end() || assetPaths[pathIt->second].type != AssetType::VMDLModel)
 	{
-		ReportError("VMDLModel is not in Data/cached.ini: " + NormalizePath(key));
+		ReportError("VMDLModel is not in Resources/ResourceManifest.ini: " + NormalizePath(key));
 		return nullptr;
 	}
 
@@ -165,8 +295,9 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 
 std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key)
 {
-	const std::string lookupKey = MakeLookupKey(key);
 	const std::string resolvedPath = ResolvePath(key);
+	if (cacheSettings.Get(resolvedPath).excluded) return nullptr;
+	const std::string lookupKey = CacheSettings::Key(resolvedPath);
 	auto it = textures.find(lookupKey);
 	if (it == textures.end())
 	{
@@ -183,170 +314,14 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key)
 	return it->second->Clone();
 }
 
-bool ResourceManager::BuildCaches()
-{
-	if (!std::filesystem::is_directory(sourceDataRoot))
-	{
-		ReportError("Source Data directory not found: " + sourceDataRoot.generic_string());
-		return false;
-	}
-
-	std::error_code error;
-	std::filesystem::create_directories(runtimeDataRoot, error);
-	if (error)
-	{
-		ReportError(
-			"Runtime Data directory could not be created: " + runtimeDataRoot.generic_string());
-		return false;
-	}
-
-	std::vector<std::filesystem::path> sourceFiles;
-	for (std::filesystem::recursive_directory_iterator it(sourceDataRoot, error), end;
-		it != end && !error; it.increment(error))
-	{
-		if (it->is_regular_file()) sourceFiles.push_back(it->path());
-	}
-	if (error)
-	{
-		ReportError("Source Data scan failed: " + error.message());
-		return false;
-	}
-
-	std::sort(sourceFiles.begin(), sourceFiles.end());
-	std::unordered_set<std::string> outputPaths;
-	for (const std::filesystem::path& sourcePath : sourceFiles)
-	{
-		const std::filesystem::path relativePath = sourcePath.lexically_relative(sourceDataRoot);
-		if (IsDevelopmentOnly(relativePath)) continue;
-
-		std::filesystem::path runtimePath = runtimeDataRoot / relativePath;
-		AssetType type = AssetType::File;
-		if (IsModelSource(sourcePath))
-		{
-			type = AssetType::VMDLModel;
-		}
-		else if (IsTerrainLayerSource(relativePath))
-		{
-			type = AssetType::MipmapTexture;
-			runtimePath.replace_extension(".dds");
-		}
-
-		const std::filesystem::path runtimeRelativePath =
-			runtimePath.lexically_relative(runtimeDataRoot);
-		const std::filesystem::path cachedPath = ToDataPath(runtimeRelativePath);
-		const std::string outputKey = MakeLookupKey(cachedPath.generic_string());
-		if ((type == AssetType::VMDLModel || type == AssetType::MipmapTexture) &&
-			!outputPaths.insert(outputKey).second)
-		{
-			ReportError("Duplicate resource name: " + outputKey);
-			continue;
-		}
-
-		std::filesystem::create_directories(runtimePath.parent_path(), error);
-		if (error)
-		{
-			ReportError("Cache directory could not be created: " +
-						runtimePath.parent_path().generic_string());
-			error.clear();
-			continue;
-		}
-
-		if (type == AssetType::MipmapTexture)
-		{
-			if (!std::filesystem::exists(runtimePath) &&
-				FAILED(MipmapTexture::CreateDDSCache(sourcePath, runtimePath)))
-			{
-				ReportError("DDS cache creation failed: " + cachedPath.generic_string());
-				continue;
-			}
-		}
-		else
-		{
-			bool copyRequired = !std::filesystem::exists(runtimePath);
-			if (!copyRequired)
-			{
-				const auto sourceWriteTime = std::filesystem::last_write_time(sourcePath, error);
-				if (!error)
-				{
-					const auto runtimeWriteTime =
-						std::filesystem::last_write_time(runtimePath, error);
-					if (!error) copyRequired = sourceWriteTime != runtimeWriteTime;
-				}
-			}
-			if (!error && copyRequired)
-			{
-				std::filesystem::copy_file(sourcePath, runtimePath,
-					std::filesystem::copy_options::overwrite_existing, error);
-			}
-			if (error)
-			{
-				ReportError("Resource copy failed: " + cachedPath.generic_string() + " (" +
-							error.message() + ")");
-				error.clear();
-				continue;
-			}
-		}
-
-		if (!std::filesystem::exists(runtimePath))
-		{
-			ReportError("Cached resource was not created: " + cachedPath.generic_string());
-			continue;
-		}
-		AddAssetPath(type, cachedPath, GetLastWriteTimeText(sourcePath));
-	}
-
-	std::vector<std::filesystem::path> staleCaches;
-	for (std::filesystem::recursive_directory_iterator it(runtimeDataRoot, error), end;
-		it != end && !error; it.increment(error))
-	{
-		if (!it->is_regular_file()) continue;
-		const std::filesystem::path relativePath = it->path().lexically_relative(runtimeDataRoot);
-		const bool isModelCache = it->path().extension() == ".vmdl";
-		const bool isLayerCache = it->path().extension() == ".dds" &&
-								  relativePath.parent_path().generic_string() == "Terrain/Layers";
-		if (!isModelCache && !isLayerCache) continue;
-
-		const std::string outputKey = MakeLookupKey(ToDataPath(relativePath).generic_string());
-		if (!outputPaths.contains(outputKey)) staleCaches.push_back(it->path());
-	}
-	if (error)
-	{
-		ReportError("Stale cache scan failed: " + error.message());
-		error.clear();
-	}
-	for (const std::filesystem::path& staleCache : staleCaches)
-	{
-		std::filesystem::remove(staleCache, error);
-		if (!error) continue;
-		ReportError("Stale cache could not be removed: " + staleCache.generic_string() + " (" +
-					error.message() + ")");
-		error.clear();
-	}
-
-	std::vector<std::filesystem::path> generatedCaches;
-	for (std::filesystem::recursive_directory_iterator it(runtimeDataRoot, error), end;
-		it != end && !error; it.increment(error))
-	{
-		if (it->is_regular_file() && it->path().extension() == ".vx")
-			generatedCaches.push_back(it->path());
-	}
-	std::sort(generatedCaches.begin(), generatedCaches.end());
-	for (const std::filesystem::path& generatedCache : generatedCaches)
-	{
-		AddAssetPath(AssetType::File,
-			ToDataPath(generatedCache.lexically_relative(runtimeDataRoot)),
-			GetLastWriteTimeText(generatedCache));
-	}
-
-	return errors.empty();
-}
-
+// 実行用一覧と先読み設定をManifestから読み込む
 bool ResourceManager::LoadCachedPathList()
 {
+	cacheSettings = CacheSettings{};
 	std::ifstream file(cachedPathList);
 	if (!file)
 	{
-		ReportError("Data/cached.ini was not found. Release builds never create caches.");
+		ReportError("Resources/ResourceManifest.ini was not found. Release builds never create caches.");
 		return false;
 	}
 
@@ -367,7 +342,7 @@ bool ResourceManager::LoadCachedPathList()
 		const size_t separator = line.find('=');
 		if (separator == std::string::npos)
 		{
-			ReportError("Data/cached.ini contains an invalid line: " + line);
+			ReportError("Resources/ResourceManifest.ini contains an invalid line: " + line);
 			continue;
 		}
 
@@ -377,33 +352,45 @@ bool ResourceManager::LoadCachedPathList()
 		{
 			if (!lastAsset)
 			{
-				ReportError("Data/cached.ini contains updated before a resource.");
+				ReportError("Resources/ResourceManifest.ini contains updated before a resource.");
 				continue;
 			}
 			lastAsset->updated = value;
 			continue;
 		}
 
+		if (name == "preload")
+		{
+			if (!lastAsset || (value != "0" && value != "1"))
+			{
+				ReportError("ResourceManifest.ini contains an invalid preload entry.");
+				continue;
+			}
+			cacheSettings.Set(lastAsset->path, {false, value == "1"});
+			continue;
+		}
+
 		AssetType type;
 		if (!ParseTypeName(name, type))
 		{
-			ReportError("Data/cached.ini contains an unknown type: " + name);
+			ReportError("Resources/ResourceManifest.ini contains an unknown type: " + name);
 			continue;
 		}
 		if (AddAssetPath(type, value)) lastAsset = &assetPaths.back();
 	}
 
 	if (!inResourceSection && assetPaths.empty())
-		ReportError("Data/cached.ini has no [resources] section.");
+		ReportError("Resources/ResourceManifest.ini has no [resources] section.");
 	return errors.empty();
 }
 
+// 動的生成したリソースの登録時も先読み設定を維持して保存
 bool ResourceManager::SaveCachedPathList()
 {
 	std::ofstream file(cachedPathList, std::ios::trunc);
 	if (!file)
 	{
-		ReportError("Data/cached.ini could not be written.");
+		ReportError("Resources/ResourceManifest.ini could not be written.");
 		return false;
 	}
 
@@ -412,9 +399,10 @@ bool ResourceManager::SaveCachedPathList()
 	{
 		file << ToTypeName(asset.type) << '=' << asset.path << '\n';
 		if (!asset.updated.empty()) file << "updated=" << asset.updated << '\n';
+		file << "preload=" << cacheSettings.Get(asset.path).preload << '\n';
 	}
 	if (file.good()) return true;
-	ReportError("Data/cached.ini write failed.");
+	ReportError("Resources/ResourceManifest.ini write failed.");
 	return false;
 }
 
@@ -450,15 +438,15 @@ void ResourceManager::ReportError(const std::string& message)
 	OutputDebugStringA(output.c_str());
 }
 
-std::filesystem::path ResourceManager::FindSourceDataRoot()
+std::filesystem::path ResourceManager::FindSourceResourceRoot()
 {
 	for (std::filesystem::path directory = std::filesystem::current_path(); !directory.empty();
 		directory = directory.parent_path())
 	{
 		if (std::filesystem::exists(directory / "Game.sln") &&
-			std::filesystem::is_directory(directory / "Data"))
+			std::filesystem::is_directory(directory / "Resources"))
 		{
-			return std::filesystem::weakly_canonical(directory / "Data");
+			return std::filesystem::weakly_canonical(directory / "Resources");
 		}
 		if (directory == directory.root_path()) break;
 	}
@@ -467,12 +455,18 @@ std::filesystem::path ResourceManager::FindSourceDataRoot()
 
 std::string ResourceManager::NormalizePath(const std::string& path)
 {
-	return std::filesystem::path(path).lexically_normal().generic_string();
+	std::string normalized = std::filesystem::path(path).lexically_normal().generic_string();
+	std::string lower = normalized;
+	std::transform(lower.begin(), lower.end(), lower.begin(),
+		[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+	if (lower == "data") return "Resources";
+	if (lower.starts_with("data/")) normalized.replace(0, 4, "Resources");
+	return normalized;
 }
 
 std::string ResourceManager::MakeLookupKey(const std::string& path)
 {
-	std::filesystem::path lookupPath = std::filesystem::path(path).lexically_normal();
+	std::filesystem::path lookupPath = NormalizePath(path);
 	lookupPath.replace_extension();
 	std::string key = lookupPath.generic_string();
 	std::transform(key.begin(), key.end(), key.begin(), ::tolower);
@@ -482,64 +476,10 @@ std::string ResourceManager::MakeLookupKey(const std::string& path)
 std::string ResourceManager::GetLastWriteTimeText(const std::filesystem::path& path)
 {
 	std::error_code error;
-	const auto fileTime = std::filesystem::last_write_time(path, error);
+	const auto time = std::filesystem::last_write_time(path, error);
 	if (error) return {};
-
-	const auto systemTime = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-		fileTime - std::filesystem::file_time_type::clock::now() +
-		std::chrono::system_clock::now());
-	const std::time_t time = std::chrono::system_clock::to_time_t(systemTime);
-	std::tm utcTime{};
-	if (gmtime_s(&utcTime, &time)) return {};
-
-	std::ostringstream text;
-	text << std::put_time(&utcTime, "%Y-%m-%dT%H:%M:%SZ");
-	return text.str();
+	return std::format("{:%FT%TZ}", std::chrono::clock_cast<std::chrono::system_clock>(time));
 }
-
-bool ResourceManager::IsModelSource(const std::filesystem::path& path)
-{
-	std::string extension = path.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	return extension == ".vmdl";
-}
-
-bool ResourceManager::IsTerrainLayerSource(const std::filesystem::path& relativePath)
-{
-	if (relativePath.parent_path().generic_string() != "Terrain/Layers") return false;
-	std::string extension = relativePath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	return extension == ".png" || extension == ".jpg" || extension == ".jpeg" ||
-		   extension == ".tga" || extension == ".bmp" || extension == ".hdr";
-}
-
-bool ResourceManager::IsDevelopmentOnly(const std::filesystem::path& relativePath)
-{
-	const std::string filename = relativePath.filename().string();
-	if (filename == "cached" || filename == "cached.ini" || filename == "DDSAssistant.bat" ||
-		filename == "texconv.exe" || filename == "FBX2glTF-windows-x64.exe" ||
-		filename == "FBX2glTF.bat")
-	{
-		return true;
-	}
-
-	std::string extension = relativePath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	if (extension == ".glb" || extension == ".gltf" || extension == ".vx" ||
-		extension == ".physicslayers")
-		return true;
-	if (extension == ".dds" && relativePath.parent_path().generic_string() == "Terrain/Layers")
-		return true;
-
-	const std::string generic = relativePath.generic_string();
-	if (generic.starts_with("VMDLModel/") && !IsModelSource(relativePath)) return true;
-	for (const auto& part : relativePath)
-	{
-		if (part.string().starts_with("ninclude_")) return true;
-	}
-	return false;
-}
-
 const char* ResourceManager::ToTypeName(AssetType type)
 {
 	switch (type)

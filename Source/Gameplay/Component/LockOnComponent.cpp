@@ -2,6 +2,7 @@
 
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
+#include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Entity.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Scene/Scene.h"
@@ -138,6 +139,7 @@ void LockOnComponent::OnDrawGUI()
 {
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
 	ImGui::Text("ArrowUI: %s", targetAnchorIndex >= 0 ? "Found" : "Not Found");
+	ImGui::DragFloat("Acquire Range", &acquireRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Lost Range", &lostRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::Text("Aim Active: %s", aimActive ? "true" : "false");
@@ -151,6 +153,54 @@ void LockOnComponent::LockOn(Actor* actor)
 	if (!actor || actor == owner || actor->IsPendingDestroy()) return;
 	target = actor;
 	ResolveTargetAnchor();
+}
+
+// 攻撃時に取得範囲内で最も近い生存中のEnemyをロックする
+bool LockOnComponent::LockOnNearestEnemy()
+{
+	ActorManager* actorManager = ActorManager::GetActive();
+	Transform* ownerTransform = owner ? owner->GetTransform() : nullptr;
+	if (!actorManager || !ownerTransform) return false;
+
+	Actor* nearest = nullptr;
+	float nearestDistanceSquared = acquireRange * acquireRange;
+	for (Actor* actor : actorManager->GetActorsByTag("Enemy"))
+	{
+		if (!actor || actor == owner || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+		const Entity* entity = dynamic_cast<const Entity*>(actor);
+		if (entity && entity->IsDead()) continue;
+
+		Vector3 difference = actor->transform.position - ownerTransform->position;
+		difference.y = 0.0f;
+		const float distanceSquared = difference.LengthSquared();
+		if (distanceSquared > nearestDistanceSquared) continue;
+		nearestDistanceSquared = distanceSquared;
+		nearest = actor;
+	}
+
+	if (!nearest) return false;
+	LockOn(nearest);
+	return true;
+}
+
+// 対象から明確に離れる移動入力が入ったら、攻撃の吸い付きを解除する
+void LockOnComponent::ReleaseIfMovingAway(const Vector3& worldMoveDirection)
+{
+	if (!target) return;
+
+	Vector3 moveDirection = worldMoveDirection;
+	moveDirection.y = 0.0f;
+	if (moveDirection.LengthSquared() <= eps) return;
+	moveDirection.Normalize();
+
+	Transform* ownerTransform = owner ? owner->GetTransform() : nullptr;
+	if (!ownerTransform) return;
+	Vector3 directionToTarget = target->transform.position - ownerTransform->position;
+	directionToTarget.y = 0.0f;
+	if (directionToTarget.LengthSquared() <= eps) return;
+	directionToTarget.Normalize();
+
+	if (moveDirection.Dot(directionToTarget) < releaseMoveDot) ClearTarget();
 }
 
 void LockOnComponent::ClearTarget()
@@ -181,7 +231,7 @@ void LockOnComponent::EnsureIndicator()
 	Scene* scene = SceneManager::Instance().GetCurrentScene();
 	if (!scene) return;
 
-	indicator = std::make_shared<SpriteWidget>("Data/UI/arrow.png");
+	indicator = std::make_shared<SpriteWidget>("Resources/UI/arrow.png");
 	indicator->rect.anchor = {0.5f, 0.5f};
 	indicator->rect.size = Vector2(583.0f, 392.0f) * 0.1f;
 	indicator->rect.angle = -90.0f;

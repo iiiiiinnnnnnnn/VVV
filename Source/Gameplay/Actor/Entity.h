@@ -10,6 +10,7 @@ struct DamageData
 {
     float damage = 0.0f;
     float knockBackPower = 0.0f;
+	bool ignoreDamageCooldown = false;
 
 	PhysicsComponent* hitColliderSelf = nullptr;
     PhysicsComponent* hitColliderOther = nullptr;

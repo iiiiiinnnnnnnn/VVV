@@ -2,7 +2,7 @@
 
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Rendering/Core/Graphics.h"
-#include "Gameplay/Scene/HitStop.h"
+#include "Gameplay/Scene/TimeScaleController.h"
 #include "Physics/Collider/MeshCollider.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/DamageHoleComponent.h"
@@ -10,6 +10,7 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
+#include "Audio/SoundSystem.h"
 
 CrystalProp::CrystalProp(StageLoader::PropData& propData)
 	: Entity(propData.name, propData.tag, true)
@@ -26,6 +27,8 @@ CrystalProp::CrystalProp(StageLoader::PropData& propData)
 	life = maxLife;
 
 	if (!propData.model) propData.model = ResourceManager::Instance().LoadModel(propData.modelPath);
+	if (!propData.model)
+		throw std::runtime_error("Crystal model could not be loaded: " + propData.modelPath);
 	model = propData.model;
 	modelRenderer = AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
 	damageHoleComponent = AddComponent<DamageHoleComponent>(modelRenderer, 0.5f, 0.5f, 0.5f, 0.1f);
@@ -62,16 +65,51 @@ void CrystalProp::OnTriggerEnter(
 
 void CrystalProp::Break()
 {
-	if (IsPendingDestroy()) return;
+	if (broken || IsPendingDestroy()) return;
+	broken = true;
 	life = 0.0f;
-	SpawnBreakParticles();
-	Destroy();
+	PlayBreakSound();
+	const float particleLifetime = SpawnBreakParticles();
+	if (particleLifetime > 0.0f)
+	{
+		// 埋め込みパーティクルが消えるまでActorを残し、モデル本体だけ非表示にする。
+		if (modelRenderer) modelRenderer->SetActive(false);
+		Destroy(particleLifetime + 0.1f);
+	}
+	else Destroy();
 	if (destroyedCallback) destroyedCallback(this);
 }
 
-void CrystalProp::SpawnBreakParticles()
+void CrystalProp::PlayBreakSound()
 {
-	if (!breakParticleSystem) return;
+	float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
+	largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
+
+	const bool isLarge = largestScale >= 1.0f;
+	const char* sourceName = isLarge ? "BREAK_LARGE" : "BREAK_SMALL";
+	if (modelRenderer && modelRenderer->PlaySoundSource(sourceName, &transform.position)) return;
+
+	// 旧VMDLにサウンドソースがない間の互換用フォールバック。
+	SoundSystem::SpatialOptions options;
+	options.volume = isLarge ? 1.0f : 0.8f;
+	options.pitch = isLarge ? Random::Range(0.9f, 1.05f) : Random::Range(0.95f, 1.1f);
+	options.minDistance = isLarge ? 5.0f : 3.0f;
+	options.maxDistance = isLarge ? 55.0f : 35.0f;
+
+	SoundSystem::Instance().PlayTrack3DAt(
+		isLarge ? SoundTrack::SE_CRYSTAL_C_BREAK_LARGE
+				: SoundTrack::SE_CRYSTAL_C_BREAK_SMALL,
+		transform.position, -1, options);
+}
+
+float CrystalProp::SpawnBreakParticles()
+{
+	if (modelRenderer)
+	{
+		const float embeddedLifetime = modelRenderer->BurstParticleEmitter("CRYSTAL_BREAK");
+		if (embeddedLifetime > 0.0f) return embeddedLifetime;
+	}
+	if (!breakParticleSystem) return 0.0f;
 
 	float largestScale = (std::max)(fabsf(transform.scale.x), fabsf(transform.scale.y));
 	largestScale = (std::max)(largestScale, fabsf(transform.scale.z));
@@ -92,11 +130,12 @@ void CrystalProp::SpawnBreakParticles()
 		breakParticleSystem->Set(7, 5.2f, p, v, Vector3(0.0f, -5.0f, 0.0f), Vector2(0.2f, 0.2f),
 			false, 24.0f, Color(0.35f, 0.9f, 1.0f, 1.0f));
 	}
+	return 0.0f;
 }
 
 void CrystalProp::OnDamaged(const DamageData& damageData)
 {
-	HitStop::Request(0.06f);
+	TimeScaleController::Request(0.06f);
 	CameraEffectController::Request(0.1f, 0.06f);
 
 	if (damageData.hitPosition.has_value())

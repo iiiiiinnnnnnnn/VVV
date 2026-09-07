@@ -58,7 +58,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 
 	GpuResourceUtils::LoadVertexShader(
 		device,
-		"Data/Shader/GeometryParticleVS.cso",
+		"Resources/Shader/GeometryParticleVS.cso",
 		InputElementDesc.data(),
 		(UINT)InputElementDesc.size(),
 		inputLayout.ReleaseAndGetAddressOf(),
@@ -66,12 +66,12 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 
 	GpuResourceUtils::LoadGeometryShader(
 		device,
-		"Data/Shader/GeometryParticleGS.cso",
+		"Resources/Shader/GeometryParticleGS.cso",
 		geometryShader.ReleaseAndGetAddressOf());
 
 	GpuResourceUtils::LoadPixelShader(
 		device,
-		"Data/Shader/GeometryParticlePS.cso",
+		"Resources/Shader/GeometryParticlePS.cso",
 		pixelShader.ReleaseAndGetAddressOf());
 }
 
@@ -108,11 +108,17 @@ void ParticleSystem::Update()
 		}
 		else
 		{
-			data[i].alpha = sqrtf(std::max(data[i].timer, 0.0f));
+			// フェード未指定なら、寿命の長さに関係なく指定された色の不透明度を保つ。
+			data[i].alpha = 1.0f;
 		}
 		// アニメ
 		if (data[i].anime)
+		{
 			data[i].type += Game::Time::deltaTime * data[i].animeSpeed;	// speedコマ/秒
+			const float frameCount = static_cast<float>(std::max(1, komax * komay));
+			while (data[i].type >= frameCount) data[i].type -= frameCount;
+			while (data[i].type < 0.0f) data[i].type += frameCount;
+		}
 
 		// 終了判定
 		if (data[i].timer <= 0)

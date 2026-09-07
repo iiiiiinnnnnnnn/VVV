@@ -16,8 +16,6 @@ class Framework
 	void Update(float elapsedTime);
 	void Render(float elapsedTime);
 
-	void CalculateFrameStats();
-
   public:
 	int Run();
 	LRESULT CALLBACK HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

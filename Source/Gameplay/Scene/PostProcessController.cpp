@@ -20,9 +20,40 @@ void PostProcessController::RequestDamagedVignette(float duration, float power, 
 	damagedVigReleaseEasing = releaseEasing;
 }
 
+void PostProcessController::RequestJustDodge(float duration, float power)
+{
+	justDodgeTimer = std::max(justDodgeTimer, duration);
+	justDodgeDuration = std::max(justDodgeDuration, duration);
+	justDodgePower = std::max(justDodgePower, power);
+}
+
+void PostProcessController::RequestSkillStart(float duration, float power)
+{
+	skillStartTimer = std::max(skillStartTimer, duration);
+	skillStartDuration = std::max(skillStartDuration, duration);
+	skillStartPower = std::max(skillStartPower, power);
+}
+
+void PostProcessController::RequestSkillHit(float duration, float power)
+{
+	skillHitTimer = std::max(skillHitTimer, duration);
+	skillHitDuration = std::max(skillHitDuration, duration);
+	skillHitPower = std::max(skillHitPower, power);
+}
+
 void PostProcessController::Update()
 {
 	const float dt = Game::Time::unscaledDeltaTime;
+	const auto updatePulse = [dt](float& timer, float& duration, float& power)
+	{
+		if (timer <= 0.0f) return;
+		timer = std::max(timer - dt, 0.0f);
+		if (timer <= 0.0f)
+		{
+			duration = 0.0f;
+			power = 0.0f;
+		}
+	};
 
 	if (threatenTimer > 0.0f)
 	{
@@ -45,6 +76,19 @@ void PostProcessController::Update()
 			damagedVigPower = 0.0f;
 		}
 	}
+
+	updatePulse(justDodgeTimer, justDodgeDuration, justDodgePower);
+	updatePulse(skillStartTimer, skillStartDuration, skillStartPower);
+	updatePulse(skillHitTimer, skillHitDuration, skillHitPower);
+
+	const float auraTarget = invincibilityAuraRequested ? 1.0f : 0.0f;
+	const float auraResponse = invincibilityAuraRequested ? 14.0f : 6.0f;
+	const float auraBlend = 1.0f - expf(-auraResponse * std::max(dt, 0.0f));
+	invincibilityAuraIntensity +=
+		(auraTarget - invincibilityAuraIntensity) * auraBlend;
+	if (!invincibilityAuraRequested && invincibilityAuraIntensity < 0.001f)
+		invincibilityAuraIntensity = 0.0f;
+	invincibilityAuraRequested = false;
 }
 
 void PostProcessController::DrawGUI()
@@ -114,6 +158,42 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	if (damagedVig > 0.001f)
 	{
 		postProcess.AddRuntimeVignette(damagedVig, {0.7f, 0, 0, 1});
+	}
+
+	const float justDodge = GetIntensity(justDodgeTimer, justDodgeDuration,
+		justDodgePower, 0.12f, Easing::Type::OutQuad, Easing::Type::OutCubic);
+	if (justDodge > 0.001f)
+	{
+		postProcess.AddRuntimeRadialBlur(justDodge * 0.22f);
+		postProcess.AddRuntimeChromaticAberration(justDodge * 1.05f);
+		postProcess.AddRuntimeVignette(justDodge * 0.32f, {0.05f, 0.48f, 0.95f, 1.0f});
+	}
+
+	const float skillStart = GetIntensity(skillStartTimer, skillStartDuration,
+		skillStartPower, 0.10f, Easing::Type::OutQuad, Easing::Type::OutCubic);
+	if (skillStart > 0.001f)
+	{
+		postProcess.AddRuntimeRadialBlur(skillStart * 0.18f);
+		postProcess.AddRuntimeChromaticAberration(skillStart * 0.62f);
+		postProcess.AddRuntimeVignette(skillStart * 0.30f, {0.2f, 0.62f, 1.0f, 1.0f});
+	}
+
+	if (invincibilityAuraIntensity > 0.001f)
+	{
+		// 無敵期間全体で、青白い縁と色分離を明確に残す。
+		postProcess.AddRuntimeChromaticAberration(
+			invincibilityAuraIntensity * 0.22f);
+		postProcess.AddRuntimeVignette(
+			invincibilityAuraIntensity * 0.26f, {0.08f, 0.5f, 1.0f, 1.0f});
+	}
+
+	const float skillHit = GetIntensity(skillHitTimer, skillHitDuration,
+		skillHitPower, 0.08f, Easing::Type::OutQuad, Easing::Type::OutCubic);
+	if (skillHit > 0.001f)
+	{
+		postProcess.AddRuntimeRadialBlur(skillHit * 0.38f);
+		postProcess.AddRuntimeChromaticAberration(skillHit * 1.15f);
+		postProcess.AddRuntimeVignette(skillHit * 0.34f, {0.9f, 0.65f, 0.18f, 1.0f});
 	}
 }
 

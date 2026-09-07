@@ -13,7 +13,7 @@
 
 VMDL::VMDL(Object* owner, const std::string& path) : Component(owner), path(path)
 {
-	// ���f�������O�Ǎ�
+	// モデルを事前読込
 	if (!SetPreloadResourceFiles({path})) throw std::runtime_error("VMDL preload failed: " + path);
 
 	auto loaded = ResourceManager::Instance().LoadModel(path);
@@ -41,6 +41,28 @@ PhysicsComponent* VMDL::GetCollider(const std::string& name) const
 	return renderer ? renderer->GetAttachmentCollider(name) : nullptr;
 }
 
+// VMDLに登録されたサウンドソースを名前で取得する
+VMDLModel::VmdlSoundSource* VMDL::GetSoundSource(const std::string& name)
+{
+	if (!model) return nullptr;
+	for (auto& source : model->GetVmdlSoundData().sources)
+	{
+		if (source.name == name) return &source;
+	}
+	return nullptr;
+}
+
+// constなVMDLからサウンドソースを名前で取得する
+const VMDLModel::VmdlSoundSource* VMDL::GetSoundSource(const std::string& name) const
+{
+	if (!model) return nullptr;
+	for (const auto& source : model->GetVmdlSoundData().sources)
+	{
+		if (source.name == name) return &source;
+	}
+	return nullptr;
+}
+
 void VMDL::SetAutoUpdateTransform(bool value)
 {
 	if (renderer) renderer->SetAutoUpdateTransform(value);
@@ -54,7 +76,7 @@ bool VMDL::ApplyMorph(const std::string& morphName)
 bool VMDL::EquipMeshCache(
 	const std::string& slot, const std::string& path, const std::string& fallbackNodeName)
 {
-	// �����t�@�C�������O�Ǎ��ꗗ�֒ǉ�
+	// 装備ファイルも事前読込一覧へ追加
 	std::vector<std::string> files = GetPreloadResourceFiles();
 	if (std::find(files.begin(), files.end(), path) == files.end())
 	{
@@ -104,6 +126,5 @@ void VMDL::BuildFootIK()
 
 	multiLegFootIK =
 		owner->AddComponent<MultiLegFootIK>(Layers::Get("Foot"), model.get(), animator);
-	multiLegFootIK->SetModelVisualOffsetY(0.0f);
 	multiLegFootIK->AddLegsFromVmdlSettings();
 }

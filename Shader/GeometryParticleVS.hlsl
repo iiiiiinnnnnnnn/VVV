@@ -5,7 +5,7 @@
 GS_IN main(VS_IN vin)
 {
     GS_IN output = (GS_IN) 0;
-    //  ’¸“_î•ñ‚ğ‚»‚Ì‚Ü‚Ü‘—‚é
+    //  é ‚ç‚¹æƒ…å ±ã‚’ãã®ã¾ã¾é€ã‚‹
     output.position = vin.position;
     output.color = vin.color;
     output.size = vin.size;

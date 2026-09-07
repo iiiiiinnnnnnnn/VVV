@@ -1,8 +1,13 @@
-﻿#include "Resource/Texture.h"
+﻿// Texture.cpp
+#include "Resource/Texture.h"
+#if defined(_DEBUG)
+#include "Resource/CacheBuilder.h"
+#endif
 
 //#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <DirectXTex.h>
+#include <sstream>
 
 #include "Rendering/Core/Graphics.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
@@ -15,6 +20,18 @@ HRESULT Texture::LoadTexture(
 	ID3D11ShaderResourceView** shaderResourceView,
 	D3D11_TEXTURE2D_DESC* texture2dDesc)
 {
+	if (device == nullptr || filename == nullptr || shaderResourceView == nullptr)
+		return E_INVALIDARG;
+	*shaderResourceView = nullptr;
+
+	// WICのCOM環境を読み込みスレッドの終了まで保持
+	struct ComScope
+	{
+		HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		~ComScope() { if (SUCCEEDED(result)) CoUninitialize(); }
+	};
+	thread_local const ComScope com;
+	if (FAILED(com.result) && com.result != RPC_E_CHANGED_MODE) return com.result;
 	// 拡張子を取得
 	std::filesystem::path filepath(filename);
 	std::string extension = filepath.extension().string();
@@ -67,17 +84,18 @@ HRESULT Texture::LoadTexture(
 	// シェーダーリソースビュー作成
 	hr = DirectX::CreateShaderResourceView(device, scratch_image.GetImages(), scratch_image.GetImageCount(),
 		metadata, shaderResourceView);
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	if (FAILED(hr)) return hr;
 
 	// テクスチャ情報取得
 	if (texture2dDesc != nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
 		(*shaderResourceView)->GetResource(resource.GetAddressOf());
+		if (!resource) return E_FAIL;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d;
 		hr = resource->QueryInterface<ID3D11Texture2D>(texture2d.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		if (FAILED(hr)) return hr;
 
 		texture2d->GetDesc(texture2dDesc);
 	}
@@ -100,7 +118,15 @@ Texture::Texture(const char* filename)
 
 		// フォーマット毎に画像読み込み処理
 		HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		if (FAILED(hr))
+		{
+			std::ostringstream output;
+			output << "[Texture] Load failed: " << filename
+				<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")\n";
+			OutputDebugStringA(output.str().c_str());
+			GpuResourceUtils::CreateDummyTexture(
+				device, 0xFFFFFFFF, shaderResourceView.ReleaseAndGetAddressOf(), &texture2dDesc);
+		}
 	}
 	else
 	{
@@ -194,11 +220,15 @@ HRESULT MipmapTexture::LoadTexture(
 		const std::filesystem::path ddsPath = GetDDSCachePath(sourcePath);
 		if (!std::filesystem::exists(ddsPath))
 		{
+#if !defined(_DEBUG)
+			return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+#else
 			HRESULT hr = CreateDDSCache(sourcePath, ddsPath);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
+#endif
 		}
 
 		loadPath = ddsPath;
@@ -232,48 +262,9 @@ std::filesystem::path MipmapTexture::GetDDSCachePath(const std::filesystem::path
 
 HRESULT MipmapTexture::CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath)
 {
-	if (!std::filesystem::exists(sourcePath))
-	{
-		return E_FAIL;
-	}
-
-	DirectX::TexMetadata metadata{};
-	DirectX::ScratchImage sourceImage;
-	HRESULT hr = GpuResourceUtils::LoadImageFile(sourcePath, metadata, sourceImage);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	DirectX::ScratchImage mipImage;
-	hr = DirectX::GenerateMipMaps(
-		sourceImage.GetImages(),
-		sourceImage.GetImageCount(),
-		metadata,
-		DirectX::TEX_FILTER_DEFAULT,
-		0,
-		mipImage);
-
-	const DirectX::ScratchImage* saveImage = &mipImage;
-	if (FAILED(hr))
-	{
-		saveImage = &sourceImage;
-	}
-
-	std::error_code error;
-	if (!ddsPath.parent_path().empty())
-	{
-		std::filesystem::create_directories(ddsPath.parent_path(), error);
-		if (error)
-		{
-			return E_FAIL;
-		}
-	}
-
-	return DirectX::SaveToDDSFile(
-		saveImage->GetImages(),
-		saveImage->GetImageCount(),
-		saveImage->GetMetadata(),
-		DirectX::DDS_FLAGS_NONE,
-		ddsPath.wstring().c_str());
+#if defined(_DEBUG)
+	return CacheBuilder::CreateDDSCache(sourcePath, ddsPath);
+#else
+	return E_NOTIMPL;
+#endif
 }

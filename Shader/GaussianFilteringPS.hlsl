@@ -2,13 +2,13 @@
 
 #include "BasicSprite.hlsli"
 
-//  �J�[�l���ő�T�C�Y
+//  カーネル最大サイズ
 static const int KernelMax = 25;
 
 Texture2D texture0 : register(t0);
 SamplerState sampler0 : register(s0);
 
-//  �萔�o�b�t�@
+//  定数バッファ
 cbuffer GAUSSIAN_FILTER : register(b2)
 {
     float4 weights[KernelMax * KernelMax];
@@ -21,7 +21,7 @@ float4 main(VS_OUT pin) : SV_TARGET
 {
     float4 color = (float4) 0;
     color.a = 1;
-    //  �w��̃J�[�l���T�C�Y�����͂���F���擾�BCPU���Ōv�Z�����d�݂�Ϙa���Ă���
+    //  指定のカーネルサイズ分周囲から色を取得。CPU側で計算した重みを積和していく
     for (int i = 0; i < kernel_size * kernel_size; i++)
     {
         float2 offset = texcel * weights[i].xy;

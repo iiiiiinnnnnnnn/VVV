@@ -17,14 +17,14 @@
 std::filesystem::path GetPhysicsLayerPath()
 {
     const std::filesystem::path runtimePath =
-        std::filesystem::current_path() / "Data/PhysicsLayers.physicslayers";
+        std::filesystem::current_path() / "Resources/PhysicsLayers.physicslayers";
     if (std::filesystem::exists(runtimePath)) return runtimePath;
 
     for (std::filesystem::path directory = std::filesystem::current_path();
         !directory.empty(); directory = directory.parent_path())
     {
         if (std::filesystem::exists(directory / "Game.sln"))
-            return directory / "Data/PhysicsLayers.physicslayers";
+            return directory / "Resources/PhysicsLayers.physicslayers";
         if (directory == directory.root_path()) break;
     }
     return runtimePath;

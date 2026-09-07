@@ -17,6 +17,7 @@ struct InputContext
     bool quickBackwardStarted = false;
     bool quickLeftStarted = false;
     bool quickRightStarted = false;
+    bool quickDefaultForwardStarted = false;
     int attackType = 0;
 };
 

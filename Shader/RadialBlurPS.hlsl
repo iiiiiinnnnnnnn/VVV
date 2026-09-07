@@ -30,7 +30,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         resultColor += sceneMap.Sample(linearSampler, pin.texcoord + blurVector * index);
     }
 
-    //  w’è‚Ì”ÍˆÍ“à‚Í“K‰—Ê‚ğ•Ï‚¦‚é
+    //  æŒ‡å®šã®ç¯„å›²å†…ã¯é©å¿œé‡ã‚’å¤‰ãˆã‚‹
     float maskValue = saturate(
     (length(pin.texcoord - center)) /
     (maskRadius / min(sceneMapSize.x, sceneMapSize.y)));

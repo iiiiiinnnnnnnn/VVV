@@ -151,6 +151,17 @@ template <class Archive> void VMDLModel::VmdlIKRaySettings::serialize(Archive& a
 	archive(CEREAL_NVP(custom), CEREAL_NVP(startOffset), CEREAL_NVP(length));
 }
 
+template <class Archive> void VMDLModel::ExternalMeshGroup::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(path), CEREAL_NVP(meshIndices), CEREAL_NVP(initialVisibility));
+}
+
+template <class Archive> void VMDLModel::VmdlMultiLegIKSettings::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(bodyHeightOffset), CEREAL_NVP(contactOffset),
+		CEREAL_NVP(maxUpCorrection), CEREAL_NVP(maxDownCorrection));
+}
+
 template <class Archive> void VMDLModel::VmdlFootWeightTrack::serialize(Archive& archive)
 {
 	archive(CEREAL_NVP(animationName), CEREAL_NVP(sampleRate), CEREAL_NVP(weights));
@@ -191,9 +202,59 @@ template <class Archive> void VMDLModel::VmdlTrailData::serialize(Archive& archi
 	archive(CEREAL_NVP(trails), CEREAL_NVP(initialActive), CEREAL_NVP(tracks));
 }
 
+template <class Archive> void VMDLModel::VmdlParticleEmitter::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(texturePath),
+		CEREAL_NVP(columns), CEREAL_NVP(rows), CEREAL_NVP(frame), CEREAL_NVP(animated),
+		CEREAL_NVP(animationSpeed), CEREAL_NVP(capacity), CEREAL_NVP(offset),
+		CEREAL_NVP(spawnExtents), CEREAL_NVP(velocityMin), CEREAL_NVP(velocityMax),
+		CEREAL_NVP(acceleration), CEREAL_NVP(emissionRate), CEREAL_NVP(burstCount),
+		CEREAL_NVP(lifetimeMin), CEREAL_NVP(lifetimeMax), CEREAL_NVP(sizeMin),
+		CEREAL_NVP(sizeMax), CEREAL_NVP(color), CEREAL_NVP(fadeInDuration),
+		CEREAL_NVP(fadeOutDuration), CEREAL_NVP(localVelocity), CEREAL_NVP(additive));
+}
+
+template <class Archive> void VMDLModel::VmdlParticleAnimationTrack::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(animationName), CEREAL_NVP(emitterIndex), CEREAL_NVP(keys));
+}
+
+template <class Archive> void VMDLModel::VmdlParticleData::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(emitters), CEREAL_NVP(initialActive), CEREAL_NVP(tracks));
+}
+
 template <class Archive> void VMDLModel::VmdlAnimationControlData::serialize(Archive& archive)
 {
 	archive(CEREAL_NVP(colliderInitialActive), CEREAL_NVP(colliderTracks), CEREAL_NVP(morphTracks));
+}
+
+template <class Archive> void VMDLModel::VmdlSoundSource::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(spatial), CEREAL_NVP(volume),
+		CEREAL_NVP(minDistance), CEREAL_NVP(maxDistance), CEREAL_NVP(lowPassHz),
+		CEREAL_NVP(farLowPassHz), CEREAL_NVP(reverbMix));
+}
+
+template <class Archive> void VMDLModel::VmdlSoundSourceBinding::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(track), CEREAL_NVP(variant), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
+}
+
+template <class Archive> void VMDLModel::VmdlSoundKeyframe::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(seconds), CEREAL_NVP(sourceIndex), CEREAL_NVP(track),
+		CEREAL_NVP(variant), CEREAL_NVP(volume), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
+}
+
+template <class Archive> void VMDLModel::VmdlSoundAnimationTrack::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(animationName), CEREAL_NVP(keys));
+}
+
+template <class Archive> void VMDLModel::VmdlSoundData::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(sources), CEREAL_NVP(tracks));
 }
 
 template void VMDLModel::Node::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
@@ -261,6 +322,10 @@ template void VMDLModel::VmdlMorph::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlMorph::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);
+template void VMDLModel::ExternalMeshGroup::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::ExternalMeshGroup::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlTrail::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlTrail::serialize<cereal::BinaryOutputArchive>(
@@ -284,6 +349,10 @@ template void VMDLModel::VmdlIKPole::serialize<cereal::BinaryOutputArchive>(
 template void VMDLModel::VmdlIKRaySettings::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlIKRaySettings::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlMultiLegIKSettings::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlMultiLegIKSettings::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlFootWeightTrack::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
@@ -317,7 +386,39 @@ template void VMDLModel::VmdlTrailData::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlTrailData::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlParticleEmitter::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlParticleEmitter::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlParticleAnimationTrack::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlParticleAnimationTrack::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlParticleData::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlParticleData::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlAnimationControlData::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlAnimationControlData::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlSoundSource::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlSoundSource::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlSoundSourceBinding::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlSoundSourceBinding::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlSoundKeyframe::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlSoundKeyframe::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlSoundAnimationTrack::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlSoundAnimationTrack::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlSoundData::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlSoundData::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);

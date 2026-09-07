@@ -14,7 +14,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
 
-	io.IniFilename = "Data/Editor.ini";
+	io.IniFilename = "Resources/Editor.ini";
 
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -73,7 +73,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
 	ImFont* font = io.Fonts->AddFontFromFileTTF(
-		"Data/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+		"Resources/Font/ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 	if (!font) io.Fonts->AddFontDefault();
 
 	// Font Awesomeをマージ
@@ -82,7 +82,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	config.MergeMode = true;
 	config.PixelSnapH = true;
 	config.GlyphMinAdvanceX = 16.0f;
-	io.Fonts->AddFontFromFileTTF("Data/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
+	io.Fonts->AddFontFromFileTTF("Resources/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
 }
 
 void ImGuiRenderer::Finalize()

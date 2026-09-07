@@ -1,11 +1,13 @@
 ﻿#pragma once
 
+#include "Audio/SoundTrackRegistry.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/Scene.h"
 
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class Camera;
@@ -17,7 +19,9 @@ class Rigidbody;
 class MeshCollider;
 class RenderTarget;
 class TrailRenderComponent;
+class VMDLParticleEmitterComponent;
 class SpringBone;
+class MeshCache;
 
 class VmdlEditorScene : public Scene
 {
@@ -28,6 +32,7 @@ class VmdlEditorScene : public Scene
 
   protected:
 	void OnUpdate() override;
+	void ToggleDebugDisplay() override;
 	void OnDrawGUI() override;
 	bool OnRequestExit() override;
 
@@ -40,6 +45,8 @@ class VmdlEditorScene : public Scene
 		Spring,
 		SpringCollider,
 		Trail,
+		Particle,
+		SoundSource,
 	};
 
 	// 画面描画
@@ -53,6 +60,10 @@ class VmdlEditorScene : public Scene
 	// 階層選択と一括操作
 	void SelectNode(int nodeIndex, bool toggleSelection);
 	bool IsNodeSelected(int nodeIndex) const;
+	// メッシュを単独選択またはCtrlによる複数選択へ反映する
+	void SelectMesh(int meshIndex, bool toggleSelection);
+	// 指定メッシュが複数選択に含まれているかを返す
+	bool IsMeshSelected(int meshIndex) const;
 	void AddAttachedComponentToSelectedNodes(AttachedComponentType type);
 	std::string MakeUniqueAttachedComponentName(
 		AttachedComponentType type, const std::string& baseName) const;
@@ -63,6 +74,8 @@ class VmdlEditorScene : public Scene
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
 	void DrawAnimationEventEditor();
+	bool DrawSoundTrackSelector(const char* label, int& track);
+	std::string SoundTrackLabel(int track) const;
 	void DrawAttachedData(int nodeIndex);
 	void DrawNodeContextMenu(int nodeIndex);
 	void DrawAnimationCurves();
@@ -79,6 +92,7 @@ class VmdlEditorScene : public Scene
 
 	// プレビュー制御
 	void ApplyAnimationPreview();
+	void PlayAnimationSoundPreview(int animationIndex, float beginTime, float endTime);
 	bool ApplyFootIkPreview();
 	void RebuildFootIkPreview();
 	void LoadFootIkTestStage();
@@ -88,6 +102,11 @@ class VmdlEditorScene : public Scene
 	bool UpdateSpringPreview();
 	void RebuildTrailPreview();
 	void UpdateTrailPreview(const RenderContext& rc);
+	void RebuildParticlePreview();
+	void UpdateParticlePreview(const RenderContext& rc);
+	void UpdateExternalMeshPreview();
+	void ExportParticlePrefab(int emitterIndex);
+	void ImportParticlePrefab(int emitterIndex);
 	void RecordSelectedNodeKey();
 	void MarkDirty();
 	void UpdateModelFraming();
@@ -99,15 +118,19 @@ class VmdlEditorScene : public Scene
 	void ImportGlb();
 	void ReplaceGlbCache();
 	void AppendAnimationGlb();
+	// 選択メッシュを着脱単位の衣装キャッシュへ書き出す
+	void ExportSelectedMeshCache(bool removeFromModel);
+	void RestoreExternalMesh(int meshIndex);
 	void SaveVmdl();
 	void SaveVmdlAs();
-	bool ConfirmDuplicateColliderNames() const;
 	void LoadModel(
 		const std::filesystem::path& filepath, const std::filesystem::path& importDestination = {});
 	void ErrorMessage(const std::string& message);
 
 	// 編集対象
 	std::shared_ptr<VMDLModel> model;
+	std::unordered_map<int, std::shared_ptr<MeshCache>> externalMeshPreviewCaches;
+	SoundTrackRegistry editorSoundTracks;
 	std::filesystem::path documentPath;
 	std::filesystem::path recentModelPath;
 	std::unique_ptr<RenderTarget> previewSceneTarget;
@@ -120,6 +143,7 @@ class VmdlEditorScene : public Scene
 	int selectedNode = -1;
 	std::vector<int> selectedNodes;
 	int selectedMesh = -1;
+	std::vector<int> selectedMeshes;
 	AttachedComponentType selectedComponentType = AttachedComponentType::None;
 	int selectedComponentIndex = -1;
 	bool focusSelectedComponent = false;
@@ -157,15 +181,21 @@ class VmdlEditorScene : public Scene
 	int selectedMaterial = -1;
 	int selectedColliderEventTarget = 0;
 	int selectedTrailEventTarget = 0;
+	int selectedParticleEventTarget = 0;
 	int selectedMorphEventTarget = 0;
-	LONG_PTR previousWindowStyle = 0;
-	WINDOWPLACEMENT previousWindowPlacement{sizeof(WINDOWPLACEMENT)};
-	bool restoreWindowOnExit = false;
+	bool restoreWindowPending = true;
+	bool savedWindowPlacementValid = false;
+	bool savedWindowMaximized = true;
+	int savedWindowX = 100;
+	int savedWindowY = 100;
+	int savedWindowWidth = 1280;
+	int savedWindowHeight = 720;
 	Vector3 editorLightDirection = Vector3(-0.7f, -0.6f, 0.0f);
 
 	// 編集状態
 	bool dirty = false;
 	bool animationPlaying = false;
+	bool animationSoundPreviewStarting = true;
 	bool animationLoop = true;
 	bool animationRecording = false;
 	bool draggingAnimationKey = false;
@@ -199,9 +229,11 @@ class VmdlEditorScene : public Scene
 	bool showDebugOverlays = true;
 	bool showRigidBody = true;
 	bool showCollider = true;
+	bool showSoundRange = true;
 	bool showSpring = true;
 	bool showSpringCollider = true;
 	bool showTrail = true;
+	bool showParticle = true;
 	bool showBones = true;
 	bool showIkPole = true;
 	bool showGrid = true;
@@ -211,6 +243,7 @@ class VmdlEditorScene : public Scene
 	bool exiting = false;
 	std::vector<uint8_t> previewColliderActive;
 	std::vector<uint8_t> previewTrailActive;
+	std::vector<uint8_t> previewParticleActive;
 
 	// Springプレビュー
 	std::unique_ptr<Object> springPreviewOwner;
@@ -226,6 +259,12 @@ class VmdlEditorScene : public Scene
 	std::string trailPreviewSignature;
 	int trailPreviewAnimation = -1;
 	float trailPreviewAnimationTime = 0.0f;
+
+	// パーティクルプレビュー
+	std::unique_ptr<Object> particlePreviewOwner;
+	std::vector<VMDLParticleEmitterComponent*> particlePreviewComponents;
+	int particlePreviewAnimation = -1;
+	float particlePreviewAnimationTime = 0.0f;
 
 	// Foot IKプレビュー
 	std::shared_ptr<VMDLModel> footIkTestStageModel;

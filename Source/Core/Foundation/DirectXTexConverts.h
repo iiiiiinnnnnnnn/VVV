@@ -99,8 +99,8 @@ HRESULT SaveScratchImageToDDSBytes(
 	constexpr size_t MaxEmbeddedTextureSize = 2048;
 	const DirectX::TexMetadata& sourceMetadata = sourceImage.GetMetadata();
 
-	// DDS‚Ö“ˆê‚·‚é‘O‚ÉRGBA8‚Ö•ÏŠ·‚·‚éB–„‚ß‚İƒTƒCƒY‚ğ—}‚¦‚é‚½‚ß’·•Ó‚ğ2048px‚É§ŒÀ‚µA
-	// k¬Œã‚Ì‰æ‘œ‚©‚çƒ~ƒbƒv‚ğ¶¬‚·‚éBƒ~ƒbƒv¶¬‚É¸”s‚µ‚Ä‚àŒ³‰æ‘œ‚Í•Û‘¶‚Å‚«‚éB
+	// DDSã¸çµ±ä¸€ã™ã‚‹å‰ã«RGBA8ã¸å¤‰æ›ã™ã‚‹ã€‚åŸ‹ã‚è¾¼ã¿ã‚µã‚¤ã‚ºã‚’æŠ‘ãˆã‚‹ãŸã‚é•·è¾ºã‚’2048pxã«åˆ¶é™ã—ã€
+	// ç¸®å°å¾Œã®ç”»åƒã‹ã‚‰ãƒŸãƒƒãƒ—ã‚’ç”Ÿæˆã™ã‚‹ã€‚ãƒŸãƒƒãƒ—ç”Ÿæˆã«å¤±æ•—ã—ã¦ã‚‚å…ƒç”»åƒã¯ä¿å­˜ã§ãã‚‹ã€‚
 	DirectX::ScratchImage rgbaImage;
 	HRESULT hr = S_OK;
 

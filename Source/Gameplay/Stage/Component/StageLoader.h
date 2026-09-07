@@ -29,6 +29,7 @@ class StageLoader : public Component
 	enum class EditorObjectType
 	{
 		None,
+		PlayerStart,
 		Prop
 	};
 
@@ -67,6 +68,13 @@ class StageLoader : public Component
 	bool SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction);
 	void ClearEditorSelection();
 	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint);
+	void SetEditorPlayerStart(const Vector3& terrainPoint);
+	bool HasPlayerStart() const { return hasPlayerStart; }
+	const Transform& GetPlayerStartTransform() const { return playerStartTransform; }
+	std::vector<std::string> GetMissingModelPaths() const;
+	bool ReplaceMissingModelPath(
+		const std::string& missingPath, const std::string& replacementPath);
+	void RemovePropsWithModelPath(const std::string& modelPath);
 	bool BuildEditorPropTransform(
 		VMDLModel& model, const Vector3& placementPoint, Transform& transform);
 	EditorObjectType GetSelectedEditorObjectType() const { return selectedEditorObjectType; }
@@ -116,8 +124,11 @@ class StageLoader : public Component
 		bool editorPreview = false;
 	};
 	std::vector<PropData> propDataList = {};
+	bool hasPlayerStart = false;
+	Transform playerStartTransform;
 	void DrawDestroyGUI(PropData& propData);
 	void DrawEditorGUI();
+	bool DrawPropEditor(int index);
 	Actor* CreatePropActor(PropData& propData);
 	void ConfigureSpawner(Actor* actor, const PropData& propData);
 	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;

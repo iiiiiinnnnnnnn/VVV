@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 #include "Animation/Animator.h"
 
 #include <memory>
+#include <unordered_set>
 
 #include "Gameplay/Actor/Entity.h"
 
@@ -14,6 +15,7 @@
 class ThirdPersonCameraController;
 class CharacterMotorComponent;
 class LockOnComponent;
+class AfterimageComponent;
 
 class Player : public Entity
 {
@@ -27,6 +29,11 @@ public:
 
     void OnDamaged(const DamageData& damageData) override;
     void OnDead(const DamageData& damageData) override;
+	void TakeDamage(const DamageData& damageData) override;
+	bool IsDodgeInvincible() const { return dodgeInvincible; }
+	bool IsJustDodging() const { return justDodgeTriggered; }
+	bool IsUsingJustDodgeSkill() const { return justDodgeSkillActive; }
+	bool IsSprinting() const { return sprinting; }
 
     void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
     void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
@@ -43,21 +50,27 @@ public:
 
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
+	void SetSpawnTransform(const Transform& spawnTransform);
 
 private:
     void UpdateMovement();
+	void UpdateFootSound();
+	bool HasIncomingEnemyAttack() const;
+	bool IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* collider) const;
+	void TriggerJustDodge();
 
 protected:
     PlayerController* controller = nullptr;
     std::shared_ptr<VMDLModel> model = nullptr;
 
-    // rendering
+    // 描画
     Animator* anim = nullptr;
     int stIdle = -1;
     int stWalk = -1;
     int stRun = -1;
     int stSprint = -1;
     VMDL* vmdl = nullptr;
+    
     ThirdPersonCameraController* cameraController = nullptr;
     bool  isFirstPerson = false;
     std::string bufferedQuickStepTrigger;
@@ -65,11 +78,22 @@ protected:
     const Vector2 idleSpineAngle = {0.8f, 0};
     const Vector2 readySpineAngle = {-0.25f, -0.38f};
     TrailRenderComponent* trail = nullptr;
+	AfterimageComponent* afterimage = nullptr;
+	bool dodgeInvincible = false;
+	bool justDodgeTriggered = false;
+	bool justDodgeSkillActive = false;
+	std::unordered_set<Actor*> justDodgeSkillHitActors;
+	float dodgeCooldownTimer = 0.0f;
+	float dodgeCooldownDuration = 0.35f;
 
-    // movement
+    // 移動
 	CharacterController* cc = nullptr;
 	CharacterMotorComponent* motor = nullptr;
 	LockOnComponent* lockOnComponent = nullptr;
     float speed = 5.0f;
+	bool sprinting = false;
 	bool terrainDeformKeyHeld = false;
+
+    // サウンド
+    VMDLModel::VmdlSoundSource* footSound = nullptr;
 };

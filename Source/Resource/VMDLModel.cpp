@@ -1,10 +1,12 @@
-﻿#include "Resource/VMDLModel.h"
+﻿// VMDLModel.cpp
+#include "Resource/VMDLModel.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"
 #include "Resource/GpuResourceUtils.h"
+#include "Resource/MeshCache.h"
 #include "Rendering/Core/Graphics.h"
 #include "Core/Foundation/DirectXTexConverts.h"
-#include "Core/Foundation/DirectXTexConverts.h"
+#include "Core/Foundation/Json.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -21,11 +23,84 @@
 
 namespace
 {
+std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data)
+{
+	json root;
+	root["version"] = 1;
+	root["emitters"] = json::array();
+	for (const auto& v : data.emitters)
+	{
+		root["emitters"].push_back({
+			{"rendererType", v.rendererType}, {"parent", v.parentEmitterIndex},
+			{"root", {v.ribbonRootOffset.x, v.ribbonRootOffset.y, v.ribbonRootOffset.z}},
+			{"tip", {v.ribbonTipOffset.x, v.ribbonTipOffset.y, v.ribbonTipOffset.z}},
+			{"lifetime", v.ribbonLifetime}, {"maxPoints", v.ribbonMaxPoints},
+			{"tipRatio", v.ribbonTipRatio}, {"sampleInterval", v.ribbonSampleInterval},
+			{"endColor", {v.ribbonEndColor.x, v.ribbonEndColor.y,
+				v.ribbonEndColor.z, v.ribbonEndColor.w}}
+		});
+	}
+	return root.dump();
+}
+
+void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData& data)
+{
+	if (source.empty()) return;
+	const json root = json::parse(source);
+	const auto found = root.find("emitters");
+	if (found == root.end() || !found->is_array()) return;
+	const auto vec3 = [](const json& a, Vector3 fallback) {
+		return a.is_array() && a.size() >= 3
+			? Vector3(a[0].get<float>(), a[1].get<float>(), a[2].get<float>()) : fallback;
+	};
+	for (size_t i = 0; i < found->size() && i < data.emitters.size(); ++i)
+	{
+		const json& j = (*found)[i];
+		auto& v = data.emitters[i];
+		v.rendererType = std::clamp(j.value("rendererType", 0), 0, 1);
+		v.parentEmitterIndex = j.value("parent", -1);
+		if (j.contains("root")) v.ribbonRootOffset = vec3(j["root"], v.ribbonRootOffset);
+		if (j.contains("tip")) v.ribbonTipOffset = vec3(j["tip"], v.ribbonTipOffset);
+		v.ribbonLifetime = std::max(0.01f, j.value("lifetime", v.ribbonLifetime));
+		v.ribbonMaxPoints = std::clamp(j.value("maxPoints", v.ribbonMaxPoints), 2, 1024);
+		v.ribbonTipRatio = std::clamp(j.value("tipRatio", v.ribbonTipRatio), 0.0f, 4.0f);
+		v.ribbonSampleInterval = std::clamp(
+			j.value("sampleInterval", v.ribbonSampleInterval), 0.001f, 1.0f);
+		if (const auto c = j.find("endColor"); c != j.end() && c->is_array() && c->size() >= 4)
+			v.ribbonEndColor = Color((*c)[0].get<float>(), (*c)[1].get<float>(),
+				(*c)[2].get<float>(), (*c)[3].get<float>());
+	}
+}
+
 std::string ToUpperAscii(std::string value)
 {
 	std::transform(value.begin(), value.end(), value.begin(),
 		[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 	return value;
+}
+
+// ノード名とマテリアル名からGLB内で安定するメッシュキーを作る
+std::vector<std::string> BuildMeshBindingKeys(
+	const std::vector<VMDLModel::Mesh>& meshes,
+	const std::vector<VMDLModel::Node>& nodes,
+	const std::vector<VMDLModel::Material>& materials)
+{
+	std::unordered_map<std::string, int> occurrences;
+	std::vector<std::string> keys;
+	keys.reserve(meshes.size());
+	for (const auto& mesh : meshes)
+	{
+		const std::string nodeName = mesh.nodeIndex >= 0 &&
+			mesh.nodeIndex < static_cast<int>(nodes.size()) ? nodes[mesh.nodeIndex].name : std::string{};
+		const std::string materialName = mesh.materialIndex >= 0 &&
+			mesh.materialIndex < static_cast<int>(materials.size())
+			? materials[mesh.materialIndex].name : std::string{};
+		const std::string base = std::to_string(nodeName.size()) + ':' + nodeName + '|' +
+			std::to_string(materialName.size()) + ':' + materialName;
+		const int occurrence = occurrences[base]++;
+		keys.push_back(base + '|' + std::to_string(occurrence));
+	}
+	return keys;
 }
 
 std::string NormalizeNodeMatchName(std::string_view value)
@@ -525,7 +600,7 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 	}
 	else
 	{
-		_ASSERT_EXPR_A(false, "found not model file");
+		throw std::runtime_error("Model file not found or unsupported: " + sourceFilepath.string());
 	}
 
 	if (extension == ".gltf" || extension == ".glb") ApplyForwardDirectionCorrection();
@@ -540,7 +615,16 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 	}
 	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
 	{
-		const Mesh& mesh = meshes[meshIndex];
+		Mesh& mesh = meshes[meshIndex];
+		if (const ExternalMeshGroup* group = GetExternalMeshGroupForMesh(
+				static_cast<int>(meshIndex)))
+		{
+			const auto found = std::find(group->meshIndices.begin(), group->meshIndices.end(),
+				static_cast<int>(meshIndex));
+			const size_t slot = static_cast<size_t>(found - group->meshIndices.begin());
+			mesh.isDraw = slot < group->initialVisibility.size() &&
+				group->initialVisibility[slot] != 0;
+		}
 		if (mesh.materialIndex < 0 || mesh.materialIndex >= static_cast<int>(materials.size()))
 			throw std::runtime_error("Invalid material index: mesh=" + std::to_string(meshIndex) +
 									 ", material=" + std::to_string(mesh.materialIndex) +
@@ -581,6 +665,17 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 		mesh.material = &materials.at(mesh.materialIndex);
 
 		mesh.node = &nodes.at(mesh.nodeIndex);
+		const int meshIndex = static_cast<int>(&mesh - meshes.data());
+		if (IsExternalMesh(meshIndex))
+		{
+			mesh.vertices.clear();
+			mesh.indices.clear();
+			mesh.vertexBuffer.Reset();
+			mesh.indexBuffer.Reset();
+			mesh.indexCount = 0;
+			for (Bone& bone : mesh.bones) bone.node = &nodes.at(bone.nodeIndex);
+			continue;
+		}
 
 		{
 			D3D11_BUFFER_DESC bufferDesc = {};
@@ -646,8 +741,11 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	  nodes(other.nodes), animations(other.animations), vmdlExtensionData(other.vmdlExtensionData),
 	  vmdlIKSettings(other.vmdlIKSettings), vmdlIKPoles(other.vmdlIKPoles),
 	  vmdlIKRaySettings(other.vmdlIKRaySettings),
+	  vmdlMultiLegIKSettings(other.vmdlMultiLegIKSettings),
 	  vmdlAnimationEditorData(other.vmdlAnimationEditorData),
 	  vmdlAnimationControlData(other.vmdlAnimationControlData), vmdlTrailData(other.vmdlTrailData),
+	  vmdlParticleData(other.vmdlParticleData),
+	  vmdlSoundData(other.vmdlSoundData), externalMeshGroups(other.externalMeshGroups),
 	  modelScale(other.modelScale), worldTransform(other.worldTransform),
 	  modelCacheFilepath(other.modelCacheFilepath)
 {
@@ -661,9 +759,13 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	  vmdlExtensionData(std::move(other.vmdlExtensionData)),
 	  vmdlIKSettings(std::move(other.vmdlIKSettings)), vmdlIKPoles(std::move(other.vmdlIKPoles)),
 	  vmdlIKRaySettings(std::move(other.vmdlIKRaySettings)),
+	  vmdlMultiLegIKSettings(std::move(other.vmdlMultiLegIKSettings)),
 	  vmdlAnimationEditorData(std::move(other.vmdlAnimationEditorData)),
 	  vmdlAnimationControlData(std::move(other.vmdlAnimationControlData)),
-	  vmdlTrailData(std::move(other.vmdlTrailData)), modelScale(other.modelScale),
+	  vmdlTrailData(std::move(other.vmdlTrailData)),
+	  vmdlParticleData(std::move(other.vmdlParticleData)),
+	  vmdlSoundData(std::move(other.vmdlSoundData)),
+	  externalMeshGroups(std::move(other.externalMeshGroups)), modelScale(other.modelScale),
 	  worldTransform(other.worldTransform), modelCacheFilepath(std::move(other.modelCacheFilepath))
 {
 	RebuildRuntimeReferences();
@@ -682,9 +784,13 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	vmdlIKSettings = other.vmdlIKSettings;
 	vmdlIKPoles = other.vmdlIKPoles;
 	vmdlIKRaySettings = other.vmdlIKRaySettings;
+	vmdlMultiLegIKSettings = other.vmdlMultiLegIKSettings;
 	vmdlAnimationEditorData = other.vmdlAnimationEditorData;
 	vmdlAnimationControlData = other.vmdlAnimationControlData;
 	vmdlTrailData = other.vmdlTrailData;
+	vmdlParticleData = other.vmdlParticleData;
+	vmdlSoundData = other.vmdlSoundData;
+	externalMeshGroups = other.externalMeshGroups;
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
 	modelCacheFilepath = other.modelCacheFilepath;
@@ -705,9 +811,13 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	vmdlIKSettings = std::move(other.vmdlIKSettings);
 	vmdlIKPoles = std::move(other.vmdlIKPoles);
 	vmdlIKRaySettings = std::move(other.vmdlIKRaySettings);
+	vmdlMultiLegIKSettings = std::move(other.vmdlMultiLegIKSettings);
 	vmdlAnimationEditorData = std::move(other.vmdlAnimationEditorData);
 	vmdlAnimationControlData = std::move(other.vmdlAnimationControlData);
 	vmdlTrailData = std::move(other.vmdlTrailData);
+	vmdlParticleData = std::move(other.vmdlParticleData);
+	vmdlSoundData = std::move(other.vmdlSoundData);
+	externalMeshGroups = std::move(other.externalMeshGroups);
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
 	modelCacheFilepath = std::move(other.modelCacheFilepath);
@@ -756,6 +866,285 @@ void VMDLModel::RebuildRuntimeReferences()
 std::shared_ptr<VMDLModel> VMDLModel::Clone() const
 {
 	return std::make_shared<VMDLModel>(*this);
+}
+
+// 指定メッシュを削除し、モーフとマテリアルの参照番号を詰め直す
+bool VMDLModel::RemoveMeshes(const std::vector<int>& meshIndices)
+{
+	if (meshIndices.empty() || meshes.empty()) return false;
+
+	std::vector<uint8_t> removeFlags(meshes.size(), 0);
+	for (int meshIndex : meshIndices)
+	{
+		if (meshIndex < 0 || meshIndex >= static_cast<int>(meshes.size())) return false;
+		removeFlags[meshIndex] = 1;
+	}
+	for (VmdlMorph& morph : vmdlExtensionData.morphs)
+	{
+		std::vector<uint8_t> visibility;
+		visibility.reserve(morph.meshVisibility.size());
+		for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
+		{
+			if (removeFlags[meshIndex] != 0) continue;
+			visibility.push_back(meshIndex < morph.meshVisibility.size()
+				? morph.meshVisibility[meshIndex]
+				: static_cast<uint8_t>(2));
+		}
+		morph.meshVisibility = std::move(visibility);
+	}
+
+	std::vector<Mesh> keptMeshes;
+	keptMeshes.reserve(meshes.size());
+	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
+	{
+		if (removeFlags[meshIndex] == 0) keptMeshes.push_back(std::move(meshes[meshIndex]));
+	}
+	meshes = std::move(keptMeshes);
+
+	std::vector<uint8_t> usedMaterials(materials.size(), 0);
+	for (const Mesh& mesh : meshes)
+	{
+		if (mesh.materialIndex >= 0 && mesh.materialIndex < static_cast<int>(usedMaterials.size()))
+			usedMaterials[mesh.materialIndex] = 1;
+	}
+	std::vector<int> materialRemap(materials.size(), -1);
+	std::vector<Material> keptMaterials;
+	std::vector<Material> keptSourceMaterials;
+	const bool hasSourceMaterials = !sourceMaterials.empty();
+	keptMaterials.reserve(materials.size());
+	keptSourceMaterials.reserve(sourceMaterials.size());
+	for (size_t materialIndex = 0; materialIndex < materials.size(); ++materialIndex)
+	{
+		if (usedMaterials[materialIndex] == 0) continue;
+		materialRemap[materialIndex] = static_cast<int>(keptMaterials.size());
+		keptMaterials.push_back(std::move(materials[materialIndex]));
+		if (hasSourceMaterials)
+		{
+			if (materialIndex < sourceMaterials.size())
+				keptSourceMaterials.push_back(std::move(sourceMaterials[materialIndex]));
+			else keptSourceMaterials.push_back(keptMaterials.back());
+		}
+	}
+	materials = std::move(keptMaterials);
+	if (hasSourceMaterials) sourceMaterials = std::move(keptSourceMaterials);
+	for (Mesh& mesh : meshes) mesh.materialIndex = materialRemap[mesh.materialIndex];
+
+	RebuildRuntimeReferences();
+	return true;
+}
+
+bool VMDLModel::ExternalizeMeshes(const std::string& path,
+	const std::vector<int>& meshIndices, int activationMorphIndex)
+{
+	if (path.empty() || meshIndices.empty() || activationMorphIndex < -1 ||
+		activationMorphIndex >= static_cast<int>(vmdlExtensionData.morphs.size())) return false;
+
+	ExternalMeshGroup group;
+	group.path = path;
+	group.meshIndices = meshIndices;
+	std::sort(group.meshIndices.begin(), group.meshIndices.end());
+	group.meshIndices.erase(std::unique(group.meshIndices.begin(), group.meshIndices.end()),
+		group.meshIndices.end());
+	group.initialVisibility.assign(group.meshIndices.size(), 0);
+	const auto bindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
+
+	for (int meshIndex : group.meshIndices)
+	{
+		if (meshIndex < 0 || meshIndex >= static_cast<int>(meshes.size()) ||
+			IsExternalMesh(meshIndex)) return false;
+		group.meshKeys.push_back(bindingKeys[meshIndex]);
+	}
+
+	std::vector<uint8_t>* activation = nullptr;
+	if (activationMorphIndex >= 0)
+	{
+		activation = &vmdlExtensionData.morphs[activationMorphIndex].meshVisibility;
+		activation->resize(meshes.size(), 2);
+	}
+	for (int meshIndex : group.meshIndices)
+	{
+		if (activation) (*activation)[meshIndex] = 1;
+		Mesh& mesh = meshes[meshIndex];
+		mesh.isDraw = false;
+		mesh.vertices.clear();
+		mesh.indices.clear();
+		mesh.vertices.shrink_to_fit();
+		mesh.indices.shrink_to_fit();
+		mesh.vertexBuffer.Reset();
+		mesh.indexBuffer.Reset();
+		mesh.indexCount = 0;
+	}
+	externalMeshGroups.push_back(std::move(group));
+
+	// 外部メッシュだけが使うテクスチャは VMSH 側に格納済みなので、VMDL との二重保持を避ける。
+	std::vector<uint8_t> candidateMaterials(materials.size(), 0);
+	for (int meshIndex : meshIndices)
+	{
+		if (meshIndex < 0 || meshIndex >= static_cast<int>(meshes.size())) continue;
+		const int materialIndex = meshes[meshIndex].materialIndex;
+		if (materialIndex >= 0 && materialIndex < static_cast<int>(candidateMaterials.size()))
+			candidateMaterials[materialIndex] = 1;
+	}
+	auto releaseTextures = [](Material& material) {
+		material.baseTextureFileName.clear();
+		material.normalTextureFileName.clear();
+		material.emissiveTextureFileName.clear();
+		material.occlusionTextureFileName.clear();
+		material.metalnessRoughnessTextureFileName.clear();
+		material.baseTextureDDS.clear();
+		material.normalTextureDDS.clear();
+		material.emissiveTextureDDS.clear();
+		material.occlusionTextureDDS.clear();
+		material.metalnessRoughnessTextureDDS.clear();
+		material.baseTextureDDS.shrink_to_fit();
+		material.normalTextureDDS.shrink_to_fit();
+		material.emissiveTextureDDS.shrink_to_fit();
+		material.occlusionTextureDDS.shrink_to_fit();
+		material.metalnessRoughnessTextureDDS.shrink_to_fit();
+		material.baseMap.Reset();
+		material.normalMap.Reset();
+		material.emissiveMap.Reset();
+		material.occlusionMap.Reset();
+		material.metalnessRoughnessMap.Reset();
+	};
+	for (int materialIndex = 0; materialIndex < static_cast<int>(candidateMaterials.size());
+		++materialIndex)
+	{
+		if (candidateMaterials[materialIndex] == 0) continue;
+		const bool usedByResidentMesh = std::any_of(meshes.begin(), meshes.end(),
+			[&](const Mesh& mesh) {
+				const int index = static_cast<int>(&mesh - meshes.data());
+				return mesh.materialIndex == materialIndex && !IsExternalMesh(index);
+			});
+		if (usedByResidentMesh) continue;
+		releaseTextures(materials[materialIndex]);
+		if (materialIndex < static_cast<int>(sourceMaterials.size()))
+			releaseTextures(sourceMaterials[materialIndex]);
+	}
+	CaptureRuntimeMorphVisibility();
+	return true;
+}
+
+bool VMDLModel::RestoreExternalMeshes(
+	int meshIndex, const std::filesystem::path& vmshPath, std::string* error)
+{
+	if (error) error->clear();
+	int groupIndex = -1;
+	for (int i = 0; i < static_cast<int>(externalMeshGroups.size()); ++i)
+	{
+		const auto& indices = externalMeshGroups[i].meshIndices;
+		if (std::find(indices.begin(), indices.end(), meshIndex) == indices.end()) continue;
+		groupIndex = i;
+		break;
+	}
+	if (groupIndex < 0)
+	{
+		if (error) *error = "The selected mesh is not linked to a VMSH.";
+		return false;
+	}
+
+	try
+	{
+		const ExternalMeshGroup group = externalMeshGroups[groupIndex];
+		MeshCache cache(vmshPath, *this, {}, true);
+		if (cache.meshes.size() != group.meshIndices.size())
+			throw std::runtime_error("The VMSH mesh count does not match its VMDL binding.");
+
+		for (size_t slot = 0; slot < group.meshIndices.size(); ++slot)
+		{
+			const int targetMeshIndex = group.meshIndices[slot];
+			if (targetMeshIndex < 0 || targetMeshIndex >= static_cast<int>(meshes.size()))
+				throw std::runtime_error("The VMDL mesh binding is invalid.");
+			const int targetMaterialIndex = meshes[targetMeshIndex].materialIndex;
+			Mesh restored = std::move(cache.meshes[slot]);
+			if (restored.materialIndex < 0 ||
+				restored.materialIndex >= static_cast<int>(cache.materials.size()) ||
+				targetMaterialIndex < 0 || targetMaterialIndex >= static_cast<int>(materials.size()))
+				throw std::runtime_error("The VMSH material binding is invalid.");
+
+			const bool visible = meshes[targetMeshIndex].isDraw;
+			const Material restoredMaterial = cache.materials[restored.materialIndex];
+			materials[targetMaterialIndex] = restoredMaterial;
+			if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
+			sourceMaterials[targetMaterialIndex] = restoredMaterial;
+			restored.materialIndex = targetMaterialIndex;
+			restored.isDraw = visible;
+			meshes[targetMeshIndex] = std::move(restored);
+		}
+
+		externalMeshGroups.erase(externalMeshGroups.begin() + groupIndex);
+		RebuildRuntimeReferences();
+		CaptureRuntimeMorphVisibility();
+		return true;
+	}
+	catch (const std::exception& exception)
+	{
+		if (error) *error = exception.what();
+		return false;
+	}
+}
+
+bool VMDLModel::IsExternalMesh(int meshIndex) const
+{
+	return GetExternalMeshGroupForMesh(meshIndex) != nullptr;
+}
+
+const VMDLModel::ExternalMeshGroup* VMDLModel::GetExternalMeshGroupForMesh(int meshIndex) const
+{
+	for (const ExternalMeshGroup& group : externalMeshGroups)
+		if (std::find(group.meshIndices.begin(), group.meshIndices.end(), meshIndex) !=
+			group.meshIndices.end()) return &group;
+	return nullptr;
+}
+
+VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
+	: nodes(other.nodes), modelScale(other.modelScale), worldTransform(other.worldTransform)
+{
+	materials.reserve(other.materials.size());
+	for (const Material& source : other.materials)
+	{
+		Material& target = materials.emplace_back();
+		target.name = source.name;
+		target.baseColor = source.baseColor;
+		target.emissiveColor = source.emissiveColor;
+		target.metalness = source.metalness;
+		target.roughness = source.roughness;
+		target.occlusion = source.occlusion;
+		target.occlusionStrength = source.occlusionStrength;
+		target.shadowStrength = source.shadowStrength;
+		target.alphaCutoff = source.alphaCutoff;
+		target.alphaMode = source.alphaMode;
+		target.fresnelColor = source.fresnelColor;
+		target.fresnelPower = source.fresnelPower;
+		target.fresnelStrength = source.fresnelStrength;
+		target.isFlatShading = source.isFlatShading;
+		target.baseMap = source.baseMap;
+		target.normalMap = source.normalMap;
+		target.emissiveMap = source.emissiveMap;
+		target.occlusionMap = source.occlusionMap;
+		target.metalnessRoughnessMap = source.metalnessRoughnessMap;
+	}
+
+	meshes.reserve(other.meshes.size());
+	for (const Mesh& source : other.meshes)
+	{
+		Mesh& target = meshes.emplace_back();
+		target.bones = source.bones;
+		target.nodeIndex = source.nodeIndex;
+		target.materialIndex = source.materialIndex;
+		target.isDraw = source.isDraw;
+		target.indexCount = source.indexCount;
+		target.vertexBuffer = source.vertexBuffer;
+		target.indexBuffer = source.indexBuffer;
+	}
+
+	RebuildRuntimeReferences();
+	UpdateTransform(other.worldTransform);
+}
+
+std::shared_ptr<VMDLModel> VMDLModel::CloneRenderPose() const
+{
+	return std::shared_ptr<VMDLModel>(new VMDLModel(*this, RenderPoseCloneTag{}));
 }
 
 bool VMDLModel::HasSkeleton() const
@@ -974,6 +1363,16 @@ void VMDLModel::NormalizeAttachmentNames()
 	{
 		trail.name = ToUpperAscii(trail.name);
 		if (trail.name.empty()) trail.name = "TRAIL";
+	}
+	for (VmdlParticleEmitter& emitter : vmdlParticleData.emitters)
+	{
+		emitter.name = ToUpperAscii(emitter.name);
+		if (emitter.name.empty()) emitter.name = "PARTICLE";
+	}
+	for (VmdlSoundSource& source : vmdlSoundData.sources)
+	{
+		source.name = ToUpperAscii(source.name);
+		if (source.name.empty()) source.name = "SOUND SOURCE";
 	}
 }
 
@@ -1463,6 +1862,57 @@ VMDLModel::VmdlTrailAnimationTrack& VMDLModel::GetOrCreateTrailAnimationTrack(
 	return track;
 }
 
+bool VMDLModel::GetParticleInitialActive(int emitterIndex) const
+{
+	if (emitterIndex < 0) return false;
+	if (emitterIndex >= static_cast<int>(vmdlParticleData.initialActive.size())) return false;
+	return vmdlParticleData.initialActive[emitterIndex] != 0;
+}
+
+void VMDLModel::SetParticleInitialActive(int emitterIndex, bool active)
+{
+	if (emitterIndex < 0) return;
+	auto& values = vmdlParticleData.initialActive;
+	if (values.size() <= static_cast<size_t>(emitterIndex)) values.resize(emitterIndex + 1, 0);
+	values[emitterIndex] = active ? 1 : 0;
+}
+
+bool VMDLModel::EvaluateParticleActive(int animationIndex, float time, int emitterIndex) const
+{
+	bool active = GetParticleInitialActive(emitterIndex);
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return active;
+	const Animation& animation = animations[animationIndex];
+	if (animation.secondsLength > 0.0f)
+	{
+		while (time < 0.0f) time += animation.secondsLength;
+		while (time > animation.secondsLength) time -= animation.secondsLength;
+	}
+	for (const auto& track : vmdlParticleData.tracks)
+	{
+		if (track.animationName != animation.name || track.emitterIndex != emitterIndex) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds > time) break;
+			active = key.value;
+		}
+		break;
+	}
+	return active;
+}
+
+VMDLModel::VmdlParticleAnimationTrack& VMDLModel::GetOrCreateParticleAnimationTrack(
+	const std::string& animationName, int emitterIndex)
+{
+	for (auto& track : vmdlParticleData.tracks)
+	{
+		if (track.animationName == animationName && track.emitterIndex == emitterIndex) return track;
+	}
+	auto& track = vmdlParticleData.tracks.emplace_back();
+	track.animationName = animationName;
+	track.emitterIndex = emitterIndex;
+	return track;
+}
+
 VMDLModel::VmdlMorphAnimationTrack& VMDLModel::GetOrCreateMorphAnimationTrack(
 	const std::string& animationName)
 {
@@ -1583,16 +2033,86 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 	}
 }
 
-bool VMDLModel::ReplaceGLBCache(const std::filesystem::path& filepath, float sampleRate)
+bool VMDLModel::ReplaceGLBCache(
+	const std::filesystem::path& filepath, float sampleRate, std::string* error)
 {
+	if (error) error->clear();
 	// 入力を確認
 	std::string extension = ToUpperAscii(filepath.extension().string());
 	if ((extension != ".GLB" && extension != ".GLTF") || !std::filesystem::exists(filepath))
+	{
+		if (error) *error = "The selected GLB file does not exist.";
 		return false;
+	}
 
 	// 新GLBを先に読込、VMDL側の編集値は後で同名マテリアルへ戻す
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
 	VMDLModel replacement(filepath.string().c_str(), sampleRate);
+
+	// VMSHの紐づけをメッシュ番号ではなく安定キーで新GLBへ移す
+	const auto oldBindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
+	const auto newBindingKeys = BuildMeshBindingKeys(
+		replacement.meshes, replacement.nodes, replacement.materials);
+	std::unordered_map<std::string, int> newMeshLookup;
+	newMeshLookup.reserve(newBindingKeys.size());
+	for (int i = 0; i < static_cast<int>(newBindingKeys.size()); ++i)
+		newMeshLookup.emplace(newBindingKeys[i], i);
+
+	std::vector<ExternalMeshGroup> remappedExternalGroups = externalMeshGroups;
+	std::vector<uint8_t> claimedMeshes(replacement.meshes.size(), 0);
+	for (ExternalMeshGroup& group : remappedExternalGroups)
+	{
+		if (group.meshKeys.size() != group.meshIndices.size())
+		{
+			group.meshKeys.clear();
+			for (int oldIndex : group.meshIndices)
+			{
+				if (oldIndex < 0 || oldIndex >= static_cast<int>(oldBindingKeys.size()))
+				{
+					if (error) *error = "An existing VMSH binding is invalid.";
+					return false;
+				}
+				group.meshKeys.push_back(oldBindingKeys[oldIndex]);
+			}
+		}
+
+		std::vector<int> remappedIndices;
+		remappedIndices.reserve(group.meshKeys.size());
+		for (const std::string& key : group.meshKeys)
+		{
+			const auto found = newMeshLookup.find(key);
+			if (found == newMeshLookup.end())
+			{
+				if (error) *error =
+					"A VMSH mesh could not be matched by node and material name.";
+				return false;
+			}
+			if (claimedMeshes[found->second] != 0)
+			{
+				if (error) *error = "Multiple VMSH bindings resolved to the same mesh.";
+				return false;
+			}
+			claimedMeshes[found->second] = 1;
+			remappedIndices.push_back(found->second);
+		}
+		group.meshIndices = std::move(remappedIndices);
+	}
+
+	// モーフの表示対象も同じ安定キーで新しいメッシュ番号へ移す
+	for (VmdlMorph& morph : vmdlExtensionData.morphs)
+	{
+		std::vector<uint8_t> remappedVisibility(replacement.meshes.size(), 2);
+		for (int oldIndex = 0;
+			oldIndex < static_cast<int>(morph.meshVisibility.size()) &&
+			oldIndex < static_cast<int>(oldBindingKeys.size()); ++oldIndex)
+		{
+			const auto found = newMeshLookup.find(oldBindingKeys[oldIndex]);
+			if (found != newMeshLookup.end())
+				remappedVisibility[found->second] = morph.meshVisibility[oldIndex];
+		}
+		morph.meshVisibility = std::move(remappedVisibility);
+	}
+
 	const std::vector<Node> oldNodes = nodes;
 	// ノード名を索引化
 	std::unordered_map<std::string, int> newNodeIndices;
@@ -1612,6 +2132,8 @@ bool VMDLModel::ReplaceGLBCache(const std::filesystem::path& filepath, float sam
 	for (auto& value : vmdlExtensionData.springColliders)
 		value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlTrailData.trails) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlParticleData.emitters) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlSoundData.sources) value.nodeIndex = remapNode(value.nodeIndex);
 
 	// GLB部分を交換
 	sourceMaterials = replacement.sourceMaterials;
@@ -1620,6 +2142,23 @@ bool VMDLModel::ReplaceGLBCache(const std::filesystem::path& filepath, float sam
 	meshes = std::move(replacement.meshes);
 	nodes = std::move(replacement.nodes);
 	animations = std::move(replacement.animations);
+	externalMeshGroups = std::move(remappedExternalGroups);
+	for (const ExternalMeshGroup& group : externalMeshGroups)
+	{
+		for (size_t slot = 0; slot < group.meshIndices.size(); ++slot)
+		{
+			Mesh& mesh = meshes[group.meshIndices[slot]];
+			mesh.isDraw = slot < group.initialVisibility.size() &&
+				group.initialVisibility[slot] != 0;
+			mesh.vertices.clear();
+			mesh.indices.clear();
+			mesh.vertices.shrink_to_fit();
+			mesh.indices.shrink_to_fit();
+			mesh.vertexBuffer.Reset();
+			mesh.indexBuffer.Reset();
+			mesh.indexCount = 0;
+		}
+	}
 	ApplyVmdlMaterialData(materialData);
 	RebuildRuntimeReferences();
 	return true;
@@ -1657,19 +2196,20 @@ void VMDLModel::ApplyForwardDirectionCorrection()
 
 bool VMDLModel::SaveVmdl()
 {
-	if (modelCacheFilepath.empty()) return false;
-
-	Serialize(modelCacheFilepath.string().c_str());
-	return true;
+	return SaveVmdl(modelCacheFilepath);
 }
 
 bool VMDLModel::SaveVmdl(const std::filesystem::path& filepath)
 {
 	if (filepath.empty()) return false;
-	modelCacheFilepath = filepath;
-	return SaveVmdl();
+	try
+	{
+		Serialize(filepath.string().c_str());
+		modelCacheFilepath = filepath;
+		return true;
+	}
+	catch (const std::exception&) { return false; }
 }
-
 void VMDLModel::SetNodePoses(const std::vector<NodePose>& nodePoses)
 {
 	for (size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex)
@@ -1704,8 +2244,24 @@ void VMDLModel::Serialize(const char* filename)
 {
 	NormalizeAttachmentNames();
 	NormalizeMorphNames();
+	const auto bindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
+	std::vector<std::vector<std::string>> externalMeshBindingKeys;
+	externalMeshBindingKeys.reserve(externalMeshGroups.size());
+	for (ExternalMeshGroup& group : externalMeshGroups)
+	{
+		group.meshKeys.clear();
+		for (int meshIndex : group.meshIndices)
+			if (meshIndex >= 0 && meshIndex < static_cast<int>(bindingKeys.size()))
+				group.meshKeys.push_back(bindingKeys[meshIndex]);
+		externalMeshBindingKeys.push_back(group.meshKeys);
+	}
 	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
+	std::vector<VmdlSoundSourceBinding> soundBindings;
+	soundBindings.reserve(vmdlSoundData.sources.size());
+	for (const auto& source : vmdlSoundData.sources)
+		soundBindings.push_back(
+			{source.track, source.variant, source.pitchMin, source.pitchMax});
 	const std::vector<Material>& glbMaterials =
 		sourceMaterials.empty() ? materials : sourceMaterials;
 
@@ -1726,22 +2282,31 @@ void VMDLModel::Serialize(const char* filename)
 				vmdlTrailData, vmdlAnimationEditorData, vmdlAnimationControlData,
 				vmdlIKRaySettings);
 		});
+		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
+		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
+		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
+		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
+		addFile("model.vfxdata", [&](auto& archive) {
+			const std::string vfxJson = BuildVfxExtensionJson(vmdlParticleData);
+			archive(vfxJson);
+		});
+		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
+		addFile("model.externalmeshbindings",
+			[&](auto& archive) { archive(externalMeshBindingKeys); });
 
 		cereal::BinaryOutputArchive package(serializedStream);
 		package(files);
 	}
 	catch (...)
 	{
-		_ASSERT_EXPR_A(false, "VMDLModel serialize failed.");
-		return;
+		throw std::runtime_error("VMDLModel serialize failed.");
 	}
 
 	const std::string serializedData = serializedStream.str();
 	COMPRESSOR_HANDLE compressor = nullptr;
 	if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &compressor))
 	{
-		_ASSERT_EXPR_A(false, "VMDLModel compressor creation failed.");
-		return;
+		throw std::runtime_error("VMDLModel compressor creation failed.");
 	}
 
 	SIZE_T compressedSize = 0;
@@ -1750,8 +2315,7 @@ void VMDLModel::Serialize(const char* filename)
 	if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || compressedSize == 0)
 	{
 		CloseCompressor(compressor);
-		_ASSERT_EXPR_A(false, "VMDLModel compressed size calculation failed.");
-		return;
+		throw std::runtime_error("VMDLModel compressed size calculation failed.");
 	}
 
 	std::vector<uint8_t> compressedData(compressedSize);
@@ -1759,17 +2323,17 @@ void VMDLModel::Serialize(const char* filename)
 			compressedData.size(), &compressedSize))
 	{
 		CloseCompressor(compressor);
-		_ASSERT_EXPR_A(false, "VMDLModel compression failed.");
-		return;
+		throw std::runtime_error("VMDLModel compression failed.");
 	}
 	CloseCompressor(compressor);
 	compressedData.resize(compressedSize);
 
-	std::ofstream ostream(std::filesystem::path(filename), std::ios::binary | std::ios::trunc);
+	const auto destination = std::filesystem::path(filename);
+	const auto temporary = std::filesystem::path(destination.wstring() + L".saving.tmp");
+	std::ofstream ostream(temporary, std::ios::binary | std::ios::trunc);
 	if (!ostream.is_open())
 	{
-		_ASSERT_EXPR_A(false, "VMDLModel file open failed.");
-		return;
+		throw std::runtime_error("VMDLModel file open failed.");
 	}
 
 	static constexpr std::array<char, 8> magic = {'V', 'M', 'D', 'L', 'C', 'M', 'P', '\0'};
@@ -1784,10 +2348,13 @@ void VMDLModel::Serialize(const char* filename)
 		reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
 	ostream.write(reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
 
+	ostream.close();
 	if (!ostream.good())
 	{
-		_ASSERT_EXPR_A(false, "VMDLModel file write failed.");
+		throw std::runtime_error("VMDLModel file write failed.");
 	}
+	if (!MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		throw std::runtime_error("VMDLModel file replacement failed.");
 }
 
 void VMDLModel::Deserialize(const char* filename)
@@ -1854,11 +2421,15 @@ void VMDLModel::Deserialize(const char* filename)
 				reinterpret_cast<const char*>(serializedData.data()), serializedData.size());
 			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
 			std::vector<VmdlMaterialData> materialData;
+			std::vector<VmdlSoundSourceBinding> soundBindings;
+			std::vector<std::vector<std::string>> externalMeshBindingKeys;
+			std::string vfxExtensionJson;
 			std::vector<std::pair<std::string, std::string>> files;
 			cereal::BinaryInputArchive package(serializedStream);
 			package(files);
 			bool loadedGlbCache = false;
 			bool loadedVmdlData = false;
+			bool loadedSoundBindings = false;
 			for (const auto& [name, data] : files)
 			{
 				std::istringstream section(data, std::ios::binary | std::ios::in);
@@ -1875,15 +2446,96 @@ void VMDLModel::Deserialize(const char* filename)
 						vmdlAnimationControlData, vmdlIKRaySettings);
 					loadedVmdlData = true;
 				}
+				else if (name == "model.sounddata")
+				{
+					archive(vmdlSoundData);
+				}
+				else if (name == "model.iksolver")
+				{
+					archive(vmdlMultiLegIKSettings);
+				}
+				else if (name == "model.soundbindings")
+				{
+					archive(soundBindings);
+					loadedSoundBindings = true;
+				}
+				else if (name == "model.particledata")
+				{
+					archive(vmdlParticleData);
+				}
+				else if (name == "model.vfxdata")
+				{
+					archive(vfxExtensionJson);
+				}
+				else if (name == "model.externalmeshes")
+				{
+					archive(externalMeshGroups);
+				}
+				else if (name == "model.externalmeshbindings")
+				{
+					archive(externalMeshBindingKeys);
+				}
 			}
 			if (!loadedGlbCache || !loadedVmdlData)
 				throw std::runtime_error("VMDL package is missing required data.");
+			const auto fallbackBindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
+			for (size_t groupIndex = 0; groupIndex < externalMeshGroups.size(); ++groupIndex)
+			{
+				auto& group = externalMeshGroups[groupIndex];
+				if (groupIndex < externalMeshBindingKeys.size() &&
+					externalMeshBindingKeys[groupIndex].size() == group.meshIndices.size())
+				{
+					group.meshKeys = std::move(externalMeshBindingKeys[groupIndex]);
+					continue;
+				}
+				group.meshKeys.clear();
+				for (int meshIndex : group.meshIndices)
+					if (meshIndex >= 0 && meshIndex < static_cast<int>(fallbackBindingKeys.size()))
+						group.meshKeys.push_back(fallbackBindingKeys[meshIndex]);
+			}
 			sourceMaterials = materials;
 			ApplyVmdlMaterialData(materialData);
 			SetModelScale(modelScale);
 			NormalizeAttachmentNames();
 			NormalizeVmdlIKRaySettings();
 			NormalizeMorphNames();
+			ApplyVfxExtensionJson(vfxExtensionJson, vmdlParticleData);
+			for (int sourceIndex = 0;
+				sourceIndex < static_cast<int>(vmdlSoundData.sources.size()); ++sourceIndex)
+			{
+				auto& source = vmdlSoundData.sources[sourceIndex];
+				if (loadedSoundBindings && sourceIndex < static_cast<int>(soundBindings.size()))
+				{
+					const auto& binding = soundBindings[sourceIndex];
+					source.track = binding.track;
+					source.variant = binding.variant;
+					source.pitchMin = binding.pitchMin;
+					source.pitchMax = binding.pitchMax;
+				}
+				else
+				{
+					bool migrated = false;
+					for (const auto& track : vmdlSoundData.tracks)
+					{
+						for (const auto& key : track.keys)
+						{
+							if (key.sourceIndex != sourceIndex) continue;
+							source.track = key.track;
+							source.variant = key.variant;
+							source.volume *= key.volume;
+							source.pitchMin = key.pitchMin;
+							source.pitchMax = key.pitchMax;
+							migrated = true;
+							break;
+						}
+						if (migrated) break;
+					}
+				}
+				source.track = std::clamp(source.track, 0, 10000);
+				source.volume = std::clamp(source.volume, 0.0f, 4.0f);
+				source.pitchMin = std::clamp(source.pitchMin, 0.125f, 8.0f);
+				source.pitchMax = std::clamp(source.pitchMax, source.pitchMin, 8.0f);
+			}
 		}
 	}
 	catch (...)

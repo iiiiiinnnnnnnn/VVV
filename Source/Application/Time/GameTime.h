@@ -5,9 +5,9 @@ namespace Game
 	class Time
 	{
 	public:
-		static float time; // �N������̗݌v����
-		static float scale; // ���Ԃ̃X�P�[��
-		static float deltaTime; // �O�t���[������̌o�ߎ���
-		static float unscaledDeltaTime; // �N������̗݌v���ԁi�X�P�[���̉e����󂯂Ȃ��j
+		static float time; // 起動してからの経過時間
+		static float scale; // 時間のスケール
+		static float deltaTime; // 前フレームからの経過時間
+		static float unscaledDeltaTime; // 時間スケールの影響を受けない経過時間
 	};
 }

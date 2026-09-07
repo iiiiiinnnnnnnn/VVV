@@ -21,7 +21,7 @@ public:
 			d->Update();
 		}
 
-		// 削除フラグありのオブジェクトを削除
+		// 蜑企勁繝輔Λ繧ｰ縺ゅｊ縺ｮ繧ｪ繝悶ず繧ｧ繧ｯ繝医ｒ蜑企勁
 		data.erase(
 			std::remove_if(
 			data.begin(),

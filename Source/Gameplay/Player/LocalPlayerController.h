@@ -14,4 +14,5 @@ private:
     bool quickStepKeyHeld = false;
     unsigned int quickStepDirectionMask = 0;
     float quickStepBufferTimer = 0.0f;
+	bool sprintLatched = false;
 };

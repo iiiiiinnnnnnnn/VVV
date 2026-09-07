@@ -1,4 +1,4 @@
-#include "Gameplay/Camera/ThirdPersonCameraController.h"
+ï»¿#include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
@@ -9,46 +9,78 @@ ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* 
     SetPlayer(character);
 }
 
+void ThirdPersonCameraController::RequestSkillFocus(float duration)
+{
+	if (duration <= 0.0f) return;
+	skillFocusDuration = duration;
+	skillFocusTimer = duration;
+}
+
 void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 {
     Vector3 playerPos = character->transform.position;
-    Vector3 targetFocus = playerPos + Vector3(0, heightOffset, 0);
+	Vector3 targetFocus = playerPos + Vector3(0, heightOffset, 0);
+	const float baseArmLength = std::clamp(
+		armLength + (character->IsSprinting() ? sprintArmExtension : 0.0f),
+		minArmLength,
+		maxArmLength);
+	float skillFocusWeight = 0.0f;
+	if (skillFocusTimer > 0.0f && skillFocusDuration > 0.0f)
+	{
+		const float elapsed = skillFocusDuration - skillFocusTimer;
+		const float fadeIn = std::clamp(elapsed / 0.12f, 0.0f, 1.0f);
+		const float fadeOut = std::clamp(skillFocusTimer / 0.28f, 0.0f, 1.0f);
+		skillFocusWeight = std::min(fadeIn, fadeOut);
+		skillFocusWeight =
+			skillFocusWeight * skillFocusWeight * (3.0f - 2.0f * skillFocusWeight);
+		skillFocusTimer = std::max(
+			skillFocusTimer - Game::Time::unscaledDeltaTime, 0.0f);
+	}
+	const float targetArmLength = std::lerp(
+		baseArmLength,
+		std::clamp(skillFocusArmLength, minArmLength, maxArmLength),
+		skillFocusWeight);
 
-    // Å‰‚ÌƒtƒŒ[ƒ€‚Ì‰Šú‰»
+    // æœ€åˆã®ãƒ•ãƒ¬ãƒ¼ãƒ ã®åˆæœŸåŒ–
     if (!initialized)
     {
-        // Šp“x‚©‚ç‰Šú‚ÌƒIƒtƒZƒbƒg‚ðŒvŽZ
+		currentArmLength = targetArmLength;
+        // è§’åº¦ã‹ã‚‰åˆæœŸã®ã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’è¨ˆç®—
         float sx = sinf(angleX); float cx = cosf(angleX);
         float sy = sinf(angleY); float cy = cosf(angleY);
-        Vector3 offset(cx * sy * armLength, -sx * armLength, cx * -cy * armLength);
+        Vector3 offset(cx * sy * currentArmLength, -sx * currentArmLength,
+			cx * -cy * currentArmLength);
 
         currentFocus = targetFocus;
         currentEye = targetFocus + offset;
         initialized = true;
     }
 
-    // 1. ‚Ü‚¸’Ž‹“_iFocusj‚ð Lerp ‚³‚¹‚é
+    // 1. ã¾ãšæ³¨è¦–ç‚¹ï¼ˆFocusï¼‰ã‚’ Lerp ã•ã›ã‚‹
     float t = 1.0f - expf(-followSpeed * Game::Time::deltaTime);
     currentFocus = Vector3::Lerp(currentFocus, targetFocus, t);
+	const float armResponse = skillFocusWeight > 0.0f ? 18.0f : sprintArmSpeed;
+	const float armT = 1.0f - expf(-armResponse * Game::Time::unscaledDeltaTime);
+	currentArmLength += (targetArmLength - currentArmLength) * armT;
 
-    // 2. Œ»Ý‚ÌŠp“x‚©‚çu—‘z‚ÌƒJƒƒ‰ˆÊ’ui‚ß‚èž‚Ý‘Ojv‚ðŒvŽZ‚·‚é
-    // ¦ Šp“x‚Ì•ÏX‚Í OnUpdate ‚Å‘¦À‚É”½‰f‚³‚ê‚Ä‚¢‚é‚½‚ßA
-    //    ‚à‚µƒJƒƒ‰‚Ì‰ñ“]Ž©‘Ì‚àƒkƒ‹ƒb‚Æ‚³‚¹‚½‚¢ê‡‚ÍAangleX/Y Ž©‘Ì‚à Lerp ‚µ‚Ä‚­‚¾‚³‚¢B
+    // 2. ç¾åœ¨ã®è§’åº¦ã‹ã‚‰ã€Œç†æƒ³ã®ã‚«ãƒ¡ãƒ©ä½ç½®ï¼ˆã‚ã‚Šè¾¼ã¿å‰ï¼‰ã€ã‚’è¨ˆç®—ã™ã‚‹
+    // â€» è§’åº¦ã®å¤‰æ›´ã¯ OnUpdate ã§å³åº§ã«åæ˜ ã•ã‚Œã¦ã„ã‚‹ãŸã‚ã€
+    //    ã‚‚ã—ã‚«ãƒ¡ãƒ©ã®å›žè»¢è‡ªä½“ã‚‚ãƒŒãƒ«ãƒƒã¨ã•ã›ãŸã„å ´åˆã¯ã€angleX/Y è‡ªä½“ã‚‚ Lerp ã—ã¦ãã ã•ã„ã€‚
     float sx = sinf(angleX);
     float cx = cosf(angleX);
     float sy = sinf(angleY);
     float cy = cosf(angleY);
 
     Vector3 offset(
-        cx * sy * armLength,
-        -sx * armLength,
-        cx * -cy * armLength
+        cx * sy * currentArmLength,
+        -sx * currentArmLength,
+        cx * -cy * currentArmLength
     );
 
-    // Lerp Ï‚Ý‚Ì currentFocus ‚ðŠî€‚ÉA—‘z‚ÌƒJƒƒ‰ˆÊ’u‚ðŒˆ‚ß‚é
+    // Lerp æ¸ˆã¿ã® currentFocus ã‚’åŸºæº–ã«ã€ç†æƒ³ã®ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’æ±ºã‚ã‚‹
     Vector3 idealEye = currentFocus + offset;
 
-    // 3. ÅŒã‚ÉƒŒƒCƒLƒƒƒXƒgi‚ß‚èž‚Ý–hŽ~j‚ðs‚¤
+    // 3. æœ€å¾Œã«ãƒ¬ã‚¤ã‚­ãƒ£ã‚¹ãƒˆï¼ˆã‚ã‚Šè¾¼ã¿é˜²æ­¢ï¼‰ã‚’è¡Œã†
     Vector3 dir = idealEye - currentFocus;
     float maxDist = dir.Length();
     dir.Normalize();
@@ -61,7 +93,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     PxQueryFilterData filterData;
     filterData.flags = PxQueryFlag::eSTATIC;
 
-    // ÅI“I‚È•\Ž¦ˆÊ’u‚ðŒˆ’è‚·‚é•Ï”
+    // æœ€çµ‚çš„ãªè¡¨ç¤ºä½ç½®ã‚’æ±ºå®šã™ã‚‹å¤‰æ•°
     Vector3 finalEye = idealEye;
 
     if (scene->raycast(origin, unitDir, maxDist, hit, PxHitFlag::eDEFAULT, filterData))
@@ -71,28 +103,35 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         finalEye = currentFocus + dir * hitDist;
     }
 
-    // ƒGƒtƒFƒNƒgŒn”½‰f
+    // ã‚¨ãƒ•ã‚§ã‚¯ãƒˆç³»åæ˜ 
     CameraEffectController::Update(camera, finalEye, currentFocus, Vector3::Up);
 
     camera.SetPerspectiveFov(
-        DirectX::XMConvertToRadians(fovYDegrees),
+        DirectX::XMConvertToRadians(
+			fovYDegrees + CameraEffectController::UpdateFovOffset() +
+			skillFocusFovOffset * skillFocusWeight),
         aspectRatio,
         nearClip,
         farClip
     );
 
-    // ŽŸƒtƒŒ[ƒ€‚Ì Lerp —p‚ÉŒ»Ý‚Ìu—‘zˆÊ’uv‚ð•Û‘¶‚µ‚Ä‚¨‚­i•K—v‚É‰ž‚¶‚Äj
+    // æ¬¡ãƒ•ãƒ¬ãƒ¼ãƒ ã® Lerp ç”¨ã«ç¾åœ¨ã®ã€Œç†æƒ³ä½ç½®ã€ã‚’ä¿å­˜ã—ã¦ãŠãï¼ˆå¿…è¦ã«å¿œã˜ã¦ï¼‰
     currentEye = finalEye;
 }
 
 void ThirdPersonCameraController::UpdateCamera()
 {
     Mouse& mouse = Game::Input::Instance().GetMouse();
+	GamePad& gamePad = Game::Input::Instance().GetGamePad();
     mouse.SetCursorLock(true);
     mouse.SetCursorVisible(false);
 
     float moveX = mouse.GetAxisX() * mouseSensX;
     float moveY = mouse.GetAxisY() * mouseSensY;
+	constexpr float gamePadHorizontalSpeed = 2.8f;
+	constexpr float gamePadVerticalSpeed = 2.2f;
+	moveX += gamePad.GetAxisRX() * gamePadHorizontalSpeed * Game::Time::unscaledDeltaTime;
+	moveY -= gamePad.GetAxisRY() * gamePadVerticalSpeed * Game::Time::unscaledDeltaTime;
 
     angleY -= moveX;
     if (angleY >  DirectX::XM_PI)  angleY -= DirectX::XM_2PI;
@@ -120,6 +159,10 @@ void ThirdPersonCameraController::OnDrawGUI()
     ImGui::DragFloat("Sens X",        &mouseSensX,   0.0005f, 0.0001f, 0.01f);
     ImGui::DragFloat("Sens Y",        &mouseSensY,   0.0005f, 0.0001f, 0.01f);
     ImGui::DragFloat("Follow Speed",  &followSpeed,  0.5f,   1.0f, 30.0f);
+	ImGui::DragFloat("Sprint Arm Extension", &sprintArmExtension, 0.05f, 0.0f, 10.0f);
+	ImGui::DragFloat("Sprint Arm Speed", &sprintArmSpeed, 0.1f, 0.1f, 30.0f);
+	ImGui::DragFloat("Skill Focus Arm Length", &skillFocusArmLength, 0.05f, minArmLength, maxArmLength);
+	ImGui::DragFloat("Skill Focus FOV Offset", &skillFocusFovOffset, 0.25f, -30.0f, 0.0f);
 
     ImGui::Separator();
 

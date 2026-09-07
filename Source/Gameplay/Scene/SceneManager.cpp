@@ -1,10 +1,16 @@
+﻿// SceneManager.cpp
 #include "Gameplay/Scene/SceneManager.h"
 
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/LoadingScene.h"
 #include "Gameplay/Scene/GameStartScene.h"
+#include "Gameplay/Scene/TestPlayScene.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Rendering/Core/Graphics.h"
+#include "imgui.h"
+#if defined(_DEBUG)
+#include "Resource/ResourceManager.h"
+#endif
 
 #include <stdexcept>
 
@@ -64,7 +70,11 @@ SceneManager::~SceneManager()
 
 void SceneManager::Initialize()
 {
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	currentScene = std::make_unique<GameStartScene>();
+#else
+	currentScene = std::make_unique<TestPlayScene>();
+#endif
 	loadProgress = 0.0f;
 }
 
@@ -146,6 +156,21 @@ bool SceneManager::RequestLoadScene(
 		return false;
 	}
 
+#if defined(_DEBUG)
+	// 次のシーンを作る前に変更分だけ更新
+	auto& resources = ResourceManager::Instance();
+	if (!resources.RefreshResources())
+	{
+		std::string error = "Resource cache refresh failed";
+		if (!resources.GetErrors().empty()) error += ": " + resources.GetErrors().back();
+		{
+			std::lock_guard<std::mutex> lock(loadMutex);
+			lastLoadError = error;
+		}
+		OutputDebugStringA(("[SceneManager] " + error + "\n").c_str());
+		return false;
+	}
+#endif
 	{
 		std::lock_guard<std::mutex> lock(loadMutex);
 
@@ -387,6 +412,17 @@ void SceneManager::ApplyLoadedScene()
 
 	currentScene =
 		std::move(result->scene);
+
+	// 読み込み画面や起動メニューに残ったフォーカスを、新しいゲーム画面へ戻す
+	if (ImGui::GetCurrentContext()) ImGui::SetWindowFocus(nullptr);
+	HWND window = Game::Graphics::Instance().GetWindowHandle();
+	if (window)
+	{
+		ShowWindow(window, SW_SHOW);
+		SetForegroundWindow(window);
+		SetActiveWindow(window);
+		SetFocus(window);
+	}
 }
 
 void SceneManager::JoinLoadThread()

@@ -42,6 +42,7 @@ private:
 
 protected:
 	virtual void OnUpdate() {}
+	virtual void ToggleDebugDisplay();
 	virtual void ConfigureRenderSettings(RenderSettings&) {}
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}

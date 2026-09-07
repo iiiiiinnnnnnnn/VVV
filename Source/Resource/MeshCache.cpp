@@ -8,11 +8,24 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 
+namespace
+{
+// エラー文字列を設定して失敗を返す
+bool FailMeshCacheSave(std::string* error, const std::string& message)
+{
+	if (error) *error = message;
+	return false;
+}
+} // namespace
+
+// 装備キャッシュを読込み、本体モデルの骨へ接続する
 MeshCache::MeshCache(
 	const std::filesystem::path& filepath,
 	VMDLModel& skeleton,
-	const std::string& fallbackNodeName)
+	const std::string& fallbackNodeName,
+	bool retainCpuData)
 {
 	// 圧縮データを読込
 	std::ifstream input(filepath, std::ios::binary);
@@ -100,17 +113,20 @@ MeshCache::MeshCache(
 	for (VMDLModel::Material& material : materials)
 	{
 		skeleton.BuildMaterialTextureResources(device, filepath.parent_path(), material);
-		// GPU転送後の埋め込み画像を解放
-		material.baseTextureDDS.clear();
-		material.normalTextureDDS.clear();
-		material.emissiveTextureDDS.clear();
-		material.occlusionTextureDDS.clear();
-		material.metalnessRoughnessTextureDDS.clear();
-		material.baseTextureDDS.shrink_to_fit();
-		material.normalTextureDDS.shrink_to_fit();
-		material.emissiveTextureDDS.shrink_to_fit();
-		material.occlusionTextureDDS.shrink_to_fit();
-		material.metalnessRoughnessTextureDDS.shrink_to_fit();
+		if (!retainCpuData)
+		{
+			// GPU転送後の埋め込み画像を解放
+			material.baseTextureDDS.clear();
+			material.normalTextureDDS.clear();
+			material.emissiveTextureDDS.clear();
+			material.occlusionTextureDDS.clear();
+			material.metalnessRoughnessTextureDDS.clear();
+			material.baseTextureDDS.shrink_to_fit();
+			material.normalTextureDDS.shrink_to_fit();
+			material.emissiveTextureDDS.shrink_to_fit();
+			material.occlusionTextureDDS.shrink_to_fit();
+			material.metalnessRoughnessTextureDDS.shrink_to_fit();
+		}
 	}
 	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
 	{
@@ -154,11 +170,139 @@ MeshCache::MeshCache(
 		if (FAILED(device->CreateBuffer(&indexDesc, &indexData, mesh.indexBuffer.GetAddressOf())))
 			throw std::runtime_error("MeshCache index buffer failed");
 
-		// GPU転送後のCPUメッシュを解放
 		mesh.indexCount = static_cast<uint32_t>(mesh.indices.size());
-		mesh.vertices.clear();
-		mesh.indices.clear();
-		mesh.vertices.shrink_to_fit();
-		mesh.indices.shrink_to_fit();
+		if (!retainCpuData)
+		{
+			// GPU転送後のCPUメッシュを解放
+			mesh.vertices.clear();
+			mesh.indices.clear();
+			mesh.vertices.shrink_to_fit();
+			mesh.indices.shrink_to_fit();
+		}
+	}
+}
+
+// 指定した複数メッシュを一つの装備キャッシュへ保存する
+bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& source,
+	const std::vector<int>& meshIndices, std::string* error)
+{
+	if (error) error->clear();
+	if (filepath.empty()) return FailMeshCacheSave(error, "Save path is empty.");
+	if (meshIndices.empty()) return FailMeshCacheSave(error, "No meshes are selected.");
+
+	try
+	{
+		std::vector<VMDLModel::Material> cacheMaterials;
+		std::vector<VMDLModel::Mesh> cacheMeshes;
+		std::vector<std::string> meshNodeNames;
+		std::vector<std::vector<std::string>> boneNodeNames;
+		std::vector<VMDLModel::MaterialPbrSettings> pbrSettings;
+		std::vector<VMDLModel::MaterialVMatSettings> vmatSettings;
+		std::unordered_map<int, int> materialRemap;
+		cacheMeshes.reserve(meshIndices.size());
+		meshNodeNames.reserve(meshIndices.size());
+		boneNodeNames.reserve(meshIndices.size());
+
+		for (int meshIndex : meshIndices)
+		{
+			if (meshIndex < 0 || meshIndex >= static_cast<int>(source.meshes.size()))
+				throw std::runtime_error("Selected mesh index is invalid.");
+			const VMDLModel::Mesh& sourceMesh = source.meshes[meshIndex];
+			if (sourceMesh.vertices.empty() || sourceMesh.indices.empty())
+				throw std::runtime_error("Selected mesh has no CPU vertex data.");
+			if (sourceMesh.nodeIndex < 0 ||
+				sourceMesh.nodeIndex >= static_cast<int>(source.nodes.size()))
+				throw std::runtime_error("Selected mesh node is invalid.");
+			if (sourceMesh.materialIndex < 0 ||
+				sourceMesh.materialIndex >= static_cast<int>(source.materials.size()))
+				throw std::runtime_error("Selected mesh material is invalid.");
+
+			int cacheMaterialIndex = -1;
+			const auto foundMaterial = materialRemap.find(sourceMesh.materialIndex);
+			if (foundMaterial != materialRemap.end())
+			{
+				cacheMaterialIndex = foundMaterial->second;
+			}
+			else
+			{
+				cacheMaterialIndex = static_cast<int>(cacheMaterials.size());
+				materialRemap.emplace(sourceMesh.materialIndex, cacheMaterialIndex);
+				const VMDLModel::Material& material = source.materials[sourceMesh.materialIndex];
+				cacheMaterials.push_back(material);
+				pbrSettings.push_back({material.occlusion, material.shadowStrength});
+				vmatSettings.push_back({material.fresnelColor, material.fresnelPower,
+					material.fresnelStrength, material.isFlatShading});
+			}
+
+			VMDLModel::Mesh mesh = sourceMesh;
+			mesh.materialIndex = cacheMaterialIndex;
+			mesh.material = nullptr;
+			mesh.node = nullptr;
+			mesh.vertexBuffer.Reset();
+			mesh.indexBuffer.Reset();
+			for (VMDLModel::Bone& bone : mesh.bones) bone.node = nullptr;
+			cacheMeshes.push_back(std::move(mesh));
+			meshNodeNames.push_back(source.nodes[sourceMesh.nodeIndex].name);
+
+			auto& names = boneNodeNames.emplace_back();
+			names.reserve(sourceMesh.bones.size());
+			for (const VMDLModel::Bone& bone : sourceMesh.bones)
+			{
+				if (bone.nodeIndex < 0 || bone.nodeIndex >= static_cast<int>(source.nodes.size()))
+					throw std::runtime_error("Selected mesh bone is invalid.");
+				names.push_back(source.nodes[bone.nodeIndex].name);
+			}
+		}
+
+		std::ostringstream sourceStream(std::ios::binary | std::ios::out);
+		{
+			cereal::BinaryOutputArchive archive(sourceStream);
+			archive(cacheMaterials, cacheMeshes, meshNodeNames, boneNodeNames, pbrSettings,
+				vmatSettings);
+		}
+		const std::string sourceData = sourceStream.str();
+		if (sourceData.empty() || sourceData.size() > std::numeric_limits<uint32_t>::max())
+			throw std::runtime_error("MeshCache source data is too large.");
+
+		COMPRESSOR_HANDLE compressor = nullptr;
+		if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &compressor))
+			throw std::runtime_error("MeshCache compressor creation failed.");
+
+		SIZE_T compressedSize = 0;
+		Compress(compressor, sourceData.data(), sourceData.size(), nullptr, 0, &compressedSize);
+		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || compressedSize == 0)
+		{
+			CloseCompressor(compressor);
+			throw std::runtime_error("MeshCache compressed size calculation failed.");
+		}
+		std::vector<uint8_t> compressedData(compressedSize);
+		if (!Compress(compressor, sourceData.data(), sourceData.size(), compressedData.data(),
+				compressedData.size(), &compressedSize))
+		{
+			CloseCompressor(compressor);
+			throw std::runtime_error("MeshCache compression failed.");
+		}
+		CloseCompressor(compressor);
+		compressedData.resize(compressedSize);
+
+		std::ofstream output(filepath, std::ios::binary | std::ios::trunc);
+		if (!output) throw std::runtime_error("MeshCache output could not be opened.");
+		static constexpr std::array<char, 8> magic = {'M', 'E', 'S', 'H', 'C', 'C', 'H', '\0'};
+		const uint32_t version = 1;
+		const uint64_t sourceSize = sourceData.size();
+		const uint64_t storedCompressedSize = compressedData.size();
+		output.write(magic.data(), magic.size());
+		output.write(reinterpret_cast<const char*>(&version), sizeof(version));
+		output.write(reinterpret_cast<const char*>(&sourceSize), sizeof(sourceSize));
+		output.write(
+			reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
+		output.write(
+			reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
+		if (!output.good()) throw std::runtime_error("MeshCache output write failed.");
+		return true;
+	}
+	catch (const std::exception& exception)
+	{
+		return FailMeshCacheSave(error, exception.what());
 	}
 }

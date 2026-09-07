@@ -46,11 +46,11 @@ namespace Game
 		// SSAO
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/SSAOPS.cso",
+			"Resources/Shader/SSAOPS.cso",
 			SSAOPixelShader.GetAddressOf());
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/SSAOCompositePS.cso",
+			"Resources/Shader/SSAOCompositePS.cso",
 			SSAOCompositePixelShader.GetAddressOf());
 		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbSSAO),
 			SSAOConstantBuffer.GetAddressOf());
@@ -58,7 +58,7 @@ namespace Game
 		// Radial Blur
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/RadialBlurPS.cso",
+			"Resources/Shader/RadialBlurPS.cso",
 			radialBlurPixelShader.GetAddressOf());
 		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbRadialBlur),
 			radialBlurConstantBuffer.GetAddressOf());
@@ -66,7 +66,7 @@ namespace Game
 		// Vignette
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/VignettePS.cso",
+			"Resources/Shader/VignettePS.cso",
 			vignettePixelShader.GetAddressOf());
 		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbVignette),
 			vignetteConstantBuffer.GetAddressOf());
@@ -74,7 +74,7 @@ namespace Game
 		// Chromatic Aberration
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/ChromaticAberrationPS.cso",
+			"Resources/Shader/ChromaticAberrationPS.cso",
 			chromaticAberrationPixelShader.GetAddressOf());
 		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbChromaticAberration),
 			chromaticAberrationConstantBuffer.GetAddressOf());
@@ -82,13 +82,13 @@ namespace Game
 		// FXAA
 		GpuResourceUtils::LoadPixelShader(
 			device,
-			"Data/Shader/FXAAPS.cso",
+			"Resources/Shader/FXAAPS.cso",
 			FXAAPixelShader.GetAddressOf());
 
 		// Fullscreen quad
 		GpuResourceUtils::LoadVertexShader(
 			device,
-			"Data/Shader/FullScreenQuadVS.cso",
+			"Resources/Shader/FullScreenQuadVS.cso",
 			InputElementDescs.data(),
 			static_cast<UINT>(InputElementDescs.size()),
 			fullscreenInputLayout.GetAddressOf(),

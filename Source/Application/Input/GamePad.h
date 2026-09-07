@@ -47,6 +47,9 @@ public:
 	// スロット設定
 	void SetSlot(int slot) { this->slot = slot; }
 
+	// Xboxコントローラーの接続状態
+	bool IsConnected() const { return connected; }
+
 	// ボタン入力状態の取得(長押し)
 	GamePadButton GetButton() const { return buttonState[0]; }
 
@@ -85,4 +88,5 @@ private:
 	float				triggerL = 0.0f;
 	float				triggerR = 0.0f;
 	int					slot = 0;
+	bool				connected = false;
 };

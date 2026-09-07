@@ -13,6 +13,7 @@ class MeshCache;
 class PhysicsComponent;
 class VMDLColliderComponent;
 class TrailRenderComponent;
+class VMDLParticleEmitterComponent;
 
 class VMDLModelComponent : public Component
 {
@@ -31,6 +32,8 @@ class VMDLModelComponent : public Component
 	void SetAutoUpdateTransform(bool value) { autoUpdateTransform = value; }
 	void SetModelYawOffset(float radians) { modelYawOffset = radians; }
 	void UpdateModelTransform(const Matrix& actorTransform);
+	bool PlaySoundSource(const std::string& name, const Vector3* positionOverride = nullptr);
+	float BurstParticleEmitter(const std::string& name);
 	void SetAttachmentLayerId(LayerId value) { attachmentLayerId = value; }
 
 	const ModelShaderId& GetShaderId() const { return shaderId; }
@@ -41,6 +44,10 @@ class VMDLModelComponent : public Component
 	void BuildAttachments();
 	void SetBuildEmbeddedTrails(bool value) { buildEmbeddedTrails = value; }
 	PhysicsComponent* GetAttachmentCollider(const std::string& name) const;
+	void SetAttachmentLayerEnabled(LayerId layerId, bool enabled)
+	{
+		attachmentLayerEnabled[layerId] = enabled;
+	}
 	const std::vector<VMDLColliderComponent*>& GetAttachmentColliders() const
 	{
 		return attachmentColliders;
@@ -52,10 +59,17 @@ class VMDLModelComponent : public Component
 	{
 		return meshCaches;
 	}
+	const std::unordered_map<int, std::shared_ptr<MeshCache>>& GetExternalMeshCaches() const
+	{
+		return externalMeshCaches;
+	}
 
   private:
 	void UpdateAnimationControls();
 	void RestoreAnimationControls();
+	void UpdateSoundEvents();
+	void PlaySoundEvents(int animationIndex, float beginTime, float endTime);
+	void SyncExternalMeshCaches();
 
 	std::shared_ptr<VMDLModel> model;
 	ModelShaderId shaderId;
@@ -67,7 +81,18 @@ class VMDLModelComponent : public Component
 	bool animationControlsApplied = false;
 	float modelYawOffset = 0.0f;
 	Animator* animator = nullptr;
+	int soundAnimationIndex = -1;
+	float soundAnimationTime = 0.0f;
+	struct ActiveSoundEvent
+	{
+		uint64_t voiceId = 0;
+		int sourceIndex = -1;
+	};
+	std::vector<ActiveSoundEvent> activeSoundEvents;
 	std::vector<VMDLColliderComponent*> attachmentColliders;
 	std::vector<TrailRenderComponent*> attachmentTrails;
+	std::vector<VMDLParticleEmitterComponent*> attachmentParticleEmitters;
+	std::unordered_map<LayerId, bool> attachmentLayerEnabled;
 	std::unordered_map<std::string, std::shared_ptr<MeshCache>> meshCaches;
+	std::unordered_map<int, std::shared_ptr<MeshCache>> externalMeshCaches;
 };

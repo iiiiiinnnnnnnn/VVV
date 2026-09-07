@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Scene/VstgEditorScene.h"
+﻿// VstgEditorScene.cpp
+#include "Gameplay/Scene/VstgEditorScene.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -31,11 +32,26 @@
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "IconsFontAwesome5.h"
 
+namespace
+{
+std::wstring Utf8ToWide(const std::string& text)
+{
+	if (text.empty()) return {};
+	const int length = MultiByteToWideChar(
+		CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+	if (length <= 0) return std::wstring(text.begin(), text.end());
+	std::wstring result(static_cast<size_t>(length), L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()),
+		result.data(), length);
+	return result;
+}
+}
+
 VstgEditorScene::VstgEditorScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
-	graphics.SetBorderlessFullscreen(true);
-	graphics.SetWindowMovementLocked(true);
+	graphics.SetBorderlessFullscreen(false);
+	graphics.SetWindowMovementLocked(false);
 	propPreviewTarget =
 		std::make_unique<RenderTarget>(graphics.GetDevice(), 256, 256, DXGI_FORMAT_R8G8B8A8_UNORM);
 	propPreviewCameraOwner = std::make_unique<Object>("VSTG Prop Preview Camera");
@@ -58,6 +74,33 @@ VstgEditorScene::~VstgEditorScene()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
+}
+
+// 通常ウィンドウの最大化と、3Dビューのアスペクト比同期を行う
+void VstgEditorScene::OnUpdate()
+{
+	Game::Graphics& graphics = Game::Graphics::Instance();
+	if (maximizeWindowPending && !graphics.IsBorderlessFullscreen())
+	{
+		// ボーダーレス解除後に通常ウィンドウとして最大化する。
+		HWND window = graphics.GetWindowHandle();
+		SetWindowLongPtr(window, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+		SetWindowPos(window, HWND_TOP, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+		ShowWindow(window, SW_MAXIMIZE);
+		maximizeWindowPending = false;
+	}
+
+	// 最大化や手動リサイズ後も、モデルが横方向へ潰れない投影比率を維持する。
+	if (currentStage)
+	{
+		if (Camera* camera = currentStage->GetActiveCamera())
+		{
+			const float width = std::max(Game::Graphics::ScreenWidth, 1.0f);
+			const float height = std::max(Game::Graphics::ScreenHeight, 1.0f);
+			camera->SetPerspectiveFov(RAD(45.0f), width / height, 0.1f, 2000.0f);
+		}
+	}
 }
 
 void VstgEditorScene::CreateStage()
@@ -96,6 +139,21 @@ void VstgEditorScene::OnRender(RenderContext& rc)
 {
 	if (currentStage && rc.renderSettings.showDebug && rc.renderSettings.showLightDebug)
 		currentStage->GetLightManager().DrawDebug();
+	if (stageLoader && stageLoader->HasPlayerStart())
+	{
+		const Transform& start = stageLoader->GetPlayerStartTransform();
+		const Matrix markerTransform = Matrix::CreateFromQuaternion(start.rotation) *
+			Matrix::CreateTranslation(start.position + Vector3(0.0f, 0.85f, 0.0f));
+		Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+			markerTransform, 0.3f, 1.1f, Color(1.0f, 0.68f, 0.08f, 0.9f));
+	}
+	if (showPlayerStartDragPreview)
+	{
+		const Matrix markerTransform = Matrix::CreateTranslation(
+			playerStartDragPreviewPosition + Vector3(0.0f, 0.85f, 0.0f));
+		Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+			markerTransform, 0.3f, 1.1f, Color(0.2f, 0.85f, 1.0f, 0.75f));
+	}
 	RenderPropPreview(rc);
 	RenderDragPreview(rc);
 }
@@ -171,6 +229,7 @@ void VstgEditorScene::OnDrawGUI()
 	auto& io = ImGui::GetIO();
 	propPreviewRequestPath.clear();
 	showDragPreview = false;
+	showPlayerStartDragPreview = false;
 	ImGuizmo::BeginFrame();
 
 	// VSTG Editorの青テーマ
@@ -321,17 +380,17 @@ void VstgEditorScene::OnDrawGUI()
 	}
 	ImGui::End();
 
-	// 右側のVMDL一覧と配置物一覧
+	// 右側の配置候補と配置済みオブジェクト
 	ImGui::SetNextWindowPos(
 		{workPosition.x + workSize.x - rightWidth, workPosition.y}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({rightWidth, workSize.y}, ImGuiCond_Always);
 	if (ImGui::Begin(
 			(const char*)u8"ステージオブジェクト###VSTG Stage Objects", nullptr, windowFlags))
 	{
-		ImGui::TextUnformatted((const char*)u8"VMDL一覧");
+		ImGui::TextUnformatted((const char*)u8"配置物一覧");
 		DrawPropBrowser(ImGui::GetContentRegionAvail().y * 0.35f);
 		ImGui::Separator();
-		ImGui::TextUnformatted((const char*)u8"配置物");
+		ImGui::TextUnformatted((const char*)u8"配置済み");
 		if (ImGui::BeginChild("##VSTG Placed Objects", ImVec2(0.0f, 0.0f), true))
 			if (stageLoader) stageLoader->DrawGUI();
 		ImGui::EndChild();
@@ -384,10 +443,17 @@ void VstgEditorScene::OnDrawGUI()
 
 void VstgEditorScene::RefreshPropModels()
 {
+	if (!ResourceManager::Instance().RefreshResources())
+	{
+		ErrorMessage("Runtime resource refresh failed.");
+		return;
+	}
+	propPreviewModel.reset();
+	propPreviewLoadedPath.clear();
 	propModelPaths.clear();
 	propModels.clear();
-	const std::filesystem::path dataRoot = ResourceManager::FindSourceDataRoot();
-	const std::filesystem::path modelRoot = dataRoot / "Model";
+	const std::filesystem::path resourceRoot = ResourceManager::FindSourceResourceRoot();
+	const std::filesystem::path modelRoot = resourceRoot / "Model";
 	std::error_code error;
 	for (std::filesystem::recursive_directory_iterator file(modelRoot, error), end;
 		file != end && !error; file.increment(error))
@@ -398,35 +464,13 @@ void VstgEditorScene::RefreshPropModels()
 			[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
 		if (extension != ".vmdl") continue;
 
-		const std::filesystem::path relativePath = file->path().lexically_relative(dataRoot);
+		const std::filesystem::path relativePath = file->path().lexically_relative(resourceRoot);
 		const std::string modelPath =
-			(std::filesystem::path("Data") / relativePath).generic_string();
-		const std::filesystem::path runtimePath = ResourceManager::Instance().ResolvePath(modelPath);
-		std::error_code copyError;
-		const bool runtimeExists = std::filesystem::exists(runtimePath, copyError);
-		copyError.clear();
-		const bool sameFile =
-			runtimeExists && std::filesystem::equivalent(file->path(), runtimePath, copyError);
-		copyError.clear();
-		if (!sameFile)
-		{
-			bool copyRequired = !runtimeExists;
-			if (!copyRequired)
-			{
-				const auto sourceWriteTime = std::filesystem::last_write_time(file->path(), copyError);
-				const auto runtimeWriteTime = std::filesystem::last_write_time(runtimePath, copyError);
-				copyRequired = !copyError && sourceWriteTime != runtimeWriteTime;
-			}
-			if (copyRequired)
-				std::filesystem::copy_file(file->path(), runtimePath,
-					std::filesystem::copy_options::overwrite_existing, copyError);
-		}
-		if (copyError) continue;
-
+			(std::filesystem::path("Resources") / relativePath).generic_string();
 		std::shared_ptr<VMDLModel> model;
 		try
 		{
-			model = std::make_shared<VMDLModel>(file->path().string().c_str());
+			model = ResourceManager::Instance().LoadModel(modelPath);
 		}
 		catch (const std::exception&)
 		{
@@ -448,6 +492,22 @@ void VstgEditorScene::DrawPropBrowser(float height)
 	if (ImGui::Button(ICON_FA_SYNC_ALT "##Refresh VSTG Props")) RefreshPropModels();
 	ImGui::Separator();
 	ImGui::BeginChild("##VSTG Prop Browser List", ImVec2(0.0f, height), true);
+
+	// VMDLではない特別な配置物を常に先頭に表示する。
+	ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(170, 112, 12, 255));
+	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 211, 96, 255));
+	ImGui::Selectable((const char*)u8"★  プレイヤー初期位置",
+		false, ImGuiSelectableFlags_None, ImVec2(0.0f, ImGui::GetFrameHeight() * 1.2f));
+	if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+	{
+		constexpr char payload[] = "PLAYER_START";
+		ImGui::SetDragDropPayload("VSTG_PLAYER_START", payload, sizeof(payload));
+		ImGui::TextUnformatted((const char*)u8"プレイヤー初期位置");
+		ImGui::EndDragDropSource();
+	}
+	ImGui::PopStyleColor(3);
+	ImGui::Separator();
 
 	// 検索結果のVMDL一覧
 	std::string search = propSearch;
@@ -507,12 +567,12 @@ bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
 	std::filesystem::path editorPath = modelPath;
-	const std::filesystem::path sourceDataRoot = ResourceManager::FindSourceDataRoot();
-	if (!sourceDataRoot.empty())
+	const std::filesystem::path sourceResourceRoot = ResourceManager::FindSourceResourceRoot();
+	if (!sourceResourceRoot.empty())
 	{
 		const std::filesystem::path relativePath =
-			editorPath.lexically_relative(std::filesystem::path("Data"));
-		editorPath = sourceDataRoot / relativePath;
+			editorPath.lexically_relative(std::filesystem::path("Resources"));
+		editorPath = sourceResourceRoot / relativePath;
 	}
 	return SceneManager::Instance().LoadScene<VmdlEditorScene>(editorPath);
 }
@@ -523,14 +583,22 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	// ドラッグ中の地形位置と配置プレビュー
 	const ImGuiPayload* draggingPayload = ImGui::GetDragDropPayload();
 	const bool draggingProp = draggingPayload && draggingPayload->IsDataType("VSTG_PROP");
-	if (!draggingProp) return;
-	const std::string modelPath = static_cast<const char*>(draggingPayload->Data);
+	const bool draggingPlayerStart =
+		draggingPayload && draggingPayload->IsDataType("VSTG_PLAYER_START");
+	if (!draggingProp && !draggingPlayerStart) return;
+	const std::string modelPath = draggingProp
+		? static_cast<const char*>(draggingPayload->Data) : std::string{};
 	Vector3 terrainPoint;
 	const bool hasTerrainPoint =
 		stageLoader && ScreenToTerrainPoint(ImGui::GetMousePos(), terrainPoint);
 	if (hasTerrainPoint)
 	{
-		if (dragPreviewModelPath != modelPath)
+		if (draggingPlayerStart)
+		{
+			playerStartDragPreviewPosition = terrainPoint;
+			showPlayerStartDragPreview = true;
+		}
+		else if (dragPreviewModelPath != modelPath)
 		{
 			const auto found = propModels.find(modelPath);
 			dragPreviewModel =
@@ -551,9 +619,10 @@ void VstgEditorScene::DrawPlacementDropTarget(
 				}
 			}
 		}
-		showDragPreview =
-			dragPreviewModel && stageLoader->BuildEditorPropTransform(
-									*dragPreviewModel, terrainPoint, dragPreviewTransform);
+		if (draggingProp)
+			showDragPreview =
+				dragPreviewModel && stageLoader->BuildEditorPropTransform(
+					*dragPreviewModel, terrainPoint, dragPreviewTransform);
 	}
 
 	// 3Dビュー全体をドロップ領域として受け付ける
@@ -576,6 +645,15 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					stageLoader->AddEditorProp(
 						static_cast<const char*>(payload->Data), terrainPoint))
 				{
+					dirty = true;
+				}
+			}
+			if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("VSTG_PLAYER_START"))
+			{
+				if (payload->IsDelivery() && hasTerrainPoint && stageLoader)
+				{
+					stageLoader->SetEditorPlayerStart(terrainPoint);
 					dirty = true;
 				}
 			}
@@ -813,7 +891,7 @@ bool VstgEditorScene::OnRequestExit()
 void VstgEditorScene::Open()
 {
 	const std::string initialDirectory =
-		(ResourceManager::FindSourceDataRoot() / "Stages").string();
+		(ResourceManager::FindSourceResourceRoot() / "Stage").string();
 	std::string filename;
 	if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
 			(const char*)u8"VSTGを開く", initialDirectory.c_str()) != DialogResult::OK)
@@ -835,14 +913,71 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 		ErrorMessage(loaded.GetError());
 		return false;
 	}
+	const bool recoveredMissingModels = ResolveMissingModels();
 	data = std::move(loaded);
 	path = stagePath;
 	recentStagePath = stagePath;
 	SaveEditorSettings();
 	cleanStateHash = data.BuildEditorStateHash(
 		*terrain, *navMesh, *stageLoader, currentStage->GetLightManager());
-	dirty = false;
+	dirty = recoveredMissingModels;
 	return true;
+}
+
+bool VstgEditorScene::ResolveMissingModels()
+{
+	if (!stageLoader) return false;
+	bool changed = false;
+	for (;;)
+	{
+		const std::vector<std::string> missingPaths = stageLoader->GetMissingModelPaths();
+		if (missingPaths.empty()) break;
+		const std::string& missingPath = missingPaths.front();
+		const std::wstring message =
+			L"VMDLリソースが見つかりません。\n\n" + Utf8ToWide(missingPath) +
+			L"\n\n代わりとなるファイルを探しますか？\n"
+			L"はい: 代替VMDLを選択\nいいえ: このVMDLの配置物をすべて破棄";
+		const int choice = MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
+			message.c_str(), L"VSTG リソースの復旧", MB_YESNO | MB_ICONWARNING);
+		if (choice == IDNO)
+		{
+			stageLoader->RemovePropsWithModelPath(missingPath);
+			changed = true;
+			continue;
+		}
+
+		const std::filesystem::path resourceRoot = ResourceManager::FindSourceResourceRoot();
+		const std::filesystem::path modelRoot = resourceRoot / "Model";
+		std::string replacementFile;
+		if (Dialog::OpenFileName(replacementFile, "VMDL (*.vmdl)\0*.vmdl\0\0",
+				(const char*)u8"代わりとなるVMDLを選択", modelRoot.string().c_str()) !=
+			DialogResult::OK)
+			continue;
+
+		std::error_code pathError;
+		const std::filesystem::path selectedPath =
+			std::filesystem::weakly_canonical(replacementFile, pathError);
+		const std::filesystem::path canonicalRoot =
+			std::filesystem::weakly_canonical(resourceRoot, pathError);
+		const std::filesystem::path relativePath = selectedPath.lexically_relative(canonicalRoot);
+		if (pathError || relativePath.empty() ||
+			(!relativePath.empty() && *relativePath.begin() == ".."))
+		{
+			ErrorMessage((const char*)u8"Resourcesフォルダ内のVMDLを選択してください。");
+			continue;
+		}
+
+		const std::string replacementPath =
+			(std::filesystem::path("Resources") / relativePath).generic_string();
+		RefreshPropModels();
+		if (!stageLoader->ReplaceMissingModelPath(missingPath, replacementPath))
+		{
+			ErrorMessage((const char*)u8"選択したVMDLを読み込めませんでした。");
+			continue;
+		}
+		changed = true;
+	}
+	return changed;
 }
 
 void VstgEditorScene::Save()
@@ -852,6 +987,7 @@ void VstgEditorScene::Save()
 		SaveAs();
 		return;
 	}
+	path = ResourceManager::ResolveSourcePath(path);
 	terrain->BakeCollider();
 	if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()) ||
 		!data.Save(path))
@@ -859,7 +995,11 @@ void VstgEditorScene::Save()
 		ErrorMessage(data.GetError());
 		return;
 	}
-	ResourceManager::Instance().RegisterGeneratedCache(path.generic_string());
+	if (!ResourceManager::Instance().RefreshResources(path))
+	{
+		ErrorMessage("Stage saved, but runtime cache refresh failed. Save again to retry.");
+		return;
+	}
 	recentStagePath = path;
 	SaveEditorSettings();
 	cleanStateHash = data.BuildEditorStateHash(
@@ -880,7 +1020,7 @@ void VstgEditorScene::SaveAs()
 
 void VstgEditorScene::LoadEditorSettings()
 {
-	std::ifstream stream("Data/VstgEditorSettings.json");
+	std::ifstream stream("Resources/VstgEditorSettings.json");
 	if (!stream) return;
 	try
 	{
@@ -889,6 +1029,7 @@ void VstgEditorScene::LoadEditorSettings()
 		const std::string recentPathUtf8 = root.value("recentStagePath", std::string{});
 		recentStagePath = std::filesystem::path(std::u8string(
 			reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
+		recentStagePath = ResourceManager::ResolveSourcePath(recentStagePath);
 	}
 	catch (const json::exception&)
 	{}
@@ -897,7 +1038,7 @@ void VstgEditorScene::LoadEditorSettings()
 void VstgEditorScene::SaveEditorSettings() const
 {
 	if (recentStagePath.empty()) return;
-	std::ofstream stream("Data/VstgEditorSettings.json");
+	std::ofstream stream("Resources/VstgEditorSettings.json");
 	if (!stream) return;
 	const std::u8string recentPathUtf8 = recentStagePath.u8string();
 	const std::string recentPath(

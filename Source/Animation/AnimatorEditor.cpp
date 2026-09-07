@@ -50,7 +50,7 @@ void Animator::DrawEditor(bool* pOpen)
 				std::string path;
 				if (Dialog::SaveFileName(path,
                     "Animator File\0*.animator\0All Files\0*.*\0\0",
-                    "Save Animator", "animator", "Data/Animator",
+                    "Save Animator", "animator", "Resources/Animator",
                     Game::Graphics::Instance().GetWindowHandle()) ==
                     DialogResult::OK)
                 {
@@ -75,7 +75,7 @@ void Animator::DrawEditor(bool* pOpen)
             const std::string initialDirectory =
                 currentPath.has_parent_path()
                 ? currentPath.parent_path().string()
-                : std::string("Data/Animator");
+                : std::string("Resources/Animator");
 			if (Dialog::SaveFileName(path,
                 "Animator File\0*.animator\0All Files\0*.*\0\0",
                 "Save As Animator", "animator",
