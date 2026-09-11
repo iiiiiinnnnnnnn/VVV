@@ -88,7 +88,7 @@ class VmdlEditorScene : public Scene
 
 	// レイアウト設定
 	void LoadLayoutSettings();
-	void SaveLayoutSettings() const;
+	void SaveLayoutSettings();
 
 	// プレビュー制御
 	void ApplyAnimationPreview();
@@ -118,9 +118,14 @@ class VmdlEditorScene : public Scene
 	void ImportGlb();
 	void ReplaceGlbCache();
 	void AppendAnimationGlb();
-	// 選択メッシュを着脱単位の衣装キャッシュへ書き出す
-	void ExportSelectedMeshCache(bool removeFromModel);
+	// 選択メッシュをVMSHへ分離する
+	void SeparateMeshToCache(int meshIndex);
+	void SeparateMorphMeshes(int morphIndex);
+	std::filesystem::path MakeMeshCachePath(
+		int meshIndex, const std::string& morphName = {}) const;
 	void RestoreExternalMesh(int meshIndex);
+	bool ResolveExternalMeshPath(int meshIndex, std::filesystem::path& resolvedPath);
+	void ResolveMissingExternalMeshes();
 	void SaveVmdl();
 	void SaveVmdlAs();
 	void LoadModel(
@@ -167,7 +172,8 @@ class VmdlEditorScene : public Scene
 	float layoutColumnWidth = 0.0f;
 	float layoutTotalHeight = 0.0f;
 	bool layoutInitialized = false;
-	bool layoutDirty = false;
+	// Win32のサイズ変更が次のImGuiフレームへ反映されるまで初期化を待つ
+	bool layoutWindowMetricsPending = true;
 
 	// カメラ状態
 	float cameraYaw = 0.55f;

@@ -26,6 +26,7 @@ private:
 	bool loadRequested = false;
 	bool windowConfigured = false;
 	std::shared_ptr<SpriteWidget> headerWidget;
+	std::shared_ptr<SpriteWidget> headerVignetteWidget;
 	Vector2 headerParallaxOffset = Vector2::Zero;
 	float headerLayoutHeight = 176.0f;
 	float headerTop = 34.0f;

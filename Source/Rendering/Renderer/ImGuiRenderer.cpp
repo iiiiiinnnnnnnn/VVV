@@ -1,8 +1,64 @@
 ﻿#include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
+#include <imgui_internal.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include <filesystem>
+
+namespace
+{
+VmdlEditorLayoutSettings vmdlEditorLayoutSettings;
+
+void RegisterVmdlEditorSettingsHandler()
+{
+	ImGuiSettingsHandler handler;
+	handler.TypeName = "VmdlEditor";
+	handler.TypeHash = ImHashStr(handler.TypeName);
+	handler.UserData = &vmdlEditorLayoutSettings;
+	handler.ReadInitFn = [](ImGuiContext*, ImGuiSettingsHandler* value) {
+		static_cast<VmdlEditorLayoutSettings*>(value->UserData)->loaded = false;
+	};
+	handler.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler* value, const char* name) -> void* {
+		if (strcmp(name, "Layout") != 0) return nullptr;
+		auto* settings = static_cast<VmdlEditorLayoutSettings*>(value->UserData);
+		settings->loaded = true;
+		return settings;
+	};
+	handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line) {
+		auto* settings = static_cast<VmdlEditorLayoutSettings*>(entry);
+		int maximized = 0;
+		if (sscanf_s(line, "Window=%d,%d,%d,%d,%d", &settings->windowX,
+			&settings->windowY, &settings->windowWidth, &settings->windowHeight,
+			&maximized) == 5)
+		{
+			settings->windowMaximized = maximized != 0;
+			return;
+		}
+		if (sscanf_s(line, "PropertyPanelRatio=%f", &settings->propertyPanelRatio) == 1)
+			return;
+		if (sscanf_s(line, "ViewportPanelRatio=%f", &settings->viewportPanelRatio) == 1)
+			return;
+		if (sscanf_s(line, "BottomPanelRatio=%f", &settings->bottomPanelRatio) == 1)
+			return;
+		constexpr const char* prefix = "RecentModelPath=";
+		if (strncmp(line, prefix, strlen(prefix)) == 0)
+			settings->recentModelPath = line + strlen(prefix);
+	};
+	handler.WriteAllFn = [](ImGuiContext*, ImGuiSettingsHandler* value, ImGuiTextBuffer* output) {
+		const auto* settings = static_cast<VmdlEditorLayoutSettings*>(value->UserData);
+		if (!settings->loaded) return;
+		output->append("[VmdlEditor][Layout]\n");
+		output->appendf("Window=%d,%d,%d,%d,%d\n", settings->windowX, settings->windowY,
+			settings->windowWidth, settings->windowHeight,
+			settings->windowMaximized ? 1 : 0);
+		output->appendf("PropertyPanelRatio=%.8f\n", settings->propertyPanelRatio);
+		output->appendf("ViewportPanelRatio=%.8f\n", settings->viewportPanelRatio);
+		output->appendf("BottomPanelRatio=%.8f\n", settings->bottomPanelRatio);
+		output->appendf("RecentModelPath=%s\n\n", settings->recentModelPath.c_str());
+	};
+	ImGui::AddSettingsHandler(&handler);
+}
+}
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -14,7 +70,23 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
 
-	io.IniFilename = "Resources/Editor.ini";
+	// Editor.iniはユーザー設定なのでリソースキャッシュの外へ置く
+	static std::string editorIniPath;
+	const std::filesystem::path destination =
+		std::filesystem::current_path() / "Editor.ini";
+	const std::filesystem::path legacy =
+		std::filesystem::current_path() / "Resources" / "Editor.ini";
+	if (!std::filesystem::exists(destination) && std::filesystem::exists(legacy))
+	{
+		std::error_code error;
+		std::filesystem::copy_file(
+			legacy, destination, std::filesystem::copy_options::overwrite_existing, error);
+	}
+	editorIniPath = destination.string();
+	io.IniFilename = editorIniPath.c_str();
+	RegisterVmdlEditorSettingsHandler();
+	// 別スレッドで生成されるエディタシーンより先に設定を確定させる
+	ImGui::LoadIniSettingsFromDisk(io.IniFilename);
 
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -154,4 +226,17 @@ void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 LRESULT ImGuiRenderer::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+}
+
+VmdlEditorLayoutSettings& ImGuiRenderer::GetVmdlEditorLayoutSettings()
+{
+	return vmdlEditorLayoutSettings;
+}
+
+void ImGuiRenderer::SaveSettings()
+{
+	if (!ImGui::GetCurrentContext()) return;
+	ImGui::MarkIniSettingsDirty();
+	if (const char* filename = ImGui::GetIO().IniFilename)
+		ImGui::SaveIniSettingsToDisk(filename);
 }

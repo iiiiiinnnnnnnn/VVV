@@ -17,7 +17,7 @@ public:
 		ID3D11ShaderResourceView* srv,
 		Vector2 textureSize,
 		const Color& color,
-		const Vector4& parameters) override;
+		const SpriteRenderParams* params) override;
 	void End(const RenderContext& rc) override;
 
 	static constexpr int KernelMax = 25;

@@ -753,6 +753,9 @@
     <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
+	  <Filter>Rendering\Core</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Rendering\Core\RenderState.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>

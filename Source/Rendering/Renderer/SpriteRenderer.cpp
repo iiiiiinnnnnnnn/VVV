@@ -24,6 +24,8 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);
 	shaders[static_cast<int>(SpriteShaderId::Vignette)] =
 		std::make_unique<VignetteSpriteShader>(device);
+	shaders[static_cast<int>(SpriteShaderId::VignetteOverlay)] =
+		std::make_unique<VignetteSpriteShader>(device, true);
 }
 
 // 頂点計算（Texture版）
@@ -36,13 +38,13 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 swh,
 	float angle,
 	const Color& color,
-	const Vector4& parameters)
+	const SpriteRenderParams* params)
 {
 	return BuildDrawInfo(
 		shaderId,
 		texture->GetShaderResourceView().Get(),
 		{ static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight()) },
-		dxyz, dwh, sxy, swh, angle, color, parameters);
+		dxyz, dwh, sxy, swh, angle, color, params);
 }
 
 SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
@@ -55,14 +57,14 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	Vector2 swh,
 	float angle,
 	const Color& color,
-	const Vector4& parameters)
+	const SpriteRenderParams* params)
 {
 	DrawInfo info = {};
 	info.shaderId = shaderId;
 	info.srv = srv;
 	info.textureSize = textureSize;
 	info.color = color;
-	info.parameters = parameters;
+	info.params = params;
 
 	// 頂点座標（スクリーン空間）
 	DirectX::XMFLOAT2 positions[4] = {
@@ -118,9 +120,9 @@ void SpriteRenderer::Draw(
 	Vector2 swh,
 	float angle,
 	const Color& color,
-	const Vector4& parameters)
+	const SpriteRenderParams* params)
 {
-	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, color, parameters));
+	drawCalls.push_back(BuildDrawInfo(shaderId, texture, dxyz, size, sxy, swh, angle, color, params));
 }
 
 void SpriteRenderer::Render(const RenderContext& rc)
@@ -177,7 +179,7 @@ void SpriteRenderer::Render(const RenderContext& rc)
 		memcpy(mapped.pData, verts, sizeof(verts));
 		dc->Unmap(vertexBuffer.Get(), 0);
 
-		shader->Update(rc, call.srv.Get(), call.textureSize, call.color, call.parameters);
+		shader->Update(rc, call.srv.Get(), call.textureSize, call.color, call.params);
 
 		// 描画
 		dc->Draw(4, 0);

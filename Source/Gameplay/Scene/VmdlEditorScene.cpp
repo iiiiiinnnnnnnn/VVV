@@ -36,6 +36,7 @@
 #include "Application/Time/GameTime.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/MeshCache.h"
+#include "Rendering/Renderer/ImGuiRenderer.h"
 
 constexpr UINT PreviewWidth = 1024;
 constexpr UINT PreviewHeight = 1024;
@@ -46,6 +47,47 @@ constexpr float PreviewMaxCameraDistance = 100000.0f;
 
 namespace
 {
+std::wstring Utf8ToWide(const std::string& text)
+{
+	if (text.empty()) return {};
+	const int length = MultiByteToWideChar(
+		CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+	if (length <= 0) return std::wstring(text.begin(), text.end());
+	std::wstring result(static_cast<size_t>(length), L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()),
+		result.data(), length);
+	return result;
+}
+
+std::string MakeVmshFileLabel(const std::string& source)
+{
+	std::string result;
+	result.reserve(std::min<size_t>(source.size(), 48));
+	for (unsigned char c : source)
+	{
+		if (result.size() >= 48) break;
+		if (std::isalnum(c) || c == '_' || c == '-') result.push_back(static_cast<char>(c));
+		else if (std::isspace(c) && !result.empty() && result.back() != '_') result.push_back('_');
+	}
+	return result.empty() ? "mesh" : result;
+}
+
+bool IsSameFilePath(const std::filesystem::path& left, const std::filesystem::path& right)
+{
+	std::error_code error;
+	if (std::filesystem::exists(left, error) && std::filesystem::exists(right, error) &&
+		std::filesystem::equivalent(left, right, error))
+		return true;
+	error.clear();
+	const std::wstring normalizedLeft =
+		std::filesystem::weakly_canonical(std::filesystem::absolute(left), error).wstring();
+	error.clear();
+	const std::wstring normalizedRight =
+		std::filesystem::weakly_canonical(std::filesystem::absolute(right), error).wstring();
+	return CompareStringOrdinal(normalizedLeft.c_str(), -1, normalizedRight.c_str(), -1, TRUE) ==
+		CSTR_EQUAL;
+}
+
 json ParticleEmitterToJson(const VMDLModel::VmdlParticleEmitter& v)
 {
 	return {
@@ -151,6 +193,7 @@ std::string PortableResourcePath(const std::filesystem::path& path)
 	}
 	return path.lexically_normal().generic_string();
 }
+
 }
 
 VmdlEditorScene::VmdlEditorScene() : VmdlEditorScene(std::filesystem::path{}) {}
@@ -235,7 +278,31 @@ bool VmdlEditorScene::DrawSoundTrackSelector(const char* label, int& track)
 
 void VmdlEditorScene::LoadLayoutSettings()
 {
-	std::ifstream stream("Resources/VmdlEditorLayout.json");
+	const VmdlEditorLayoutSettings& settings =
+		ImGuiRenderer::GetVmdlEditorLayoutSettings();
+	if (settings.loaded)
+	{
+		savedWindowX = settings.windowX;
+		savedWindowY = settings.windowY;
+		savedWindowWidth = settings.windowWidth;
+		savedWindowHeight = settings.windowHeight;
+		savedWindowMaximized = settings.windowMaximized;
+		savedWindowPlacementValid = savedWindowWidth >= 640 && savedWindowHeight >= 480;
+		loadedPropertyPanelRatio = settings.propertyPanelRatio;
+		loadedViewportPanelRatio = settings.viewportPanelRatio;
+		loadedBottomPanelRatio = settings.bottomPanelRatio;
+		const std::string& path = settings.recentModelPath;
+		recentModelPath = std::filesystem::path(std::u8string(
+			reinterpret_cast<const char8_t*>(path.data()), path.size()));
+		return;
+	}
+
+	// 旧専用JSONがあれば初回だけ読み込み、シーン破棄時にEditor.iniへ移行する
+	const std::filesystem::path settingsPath =
+		std::filesystem::current_path() / "VmdlEditorLayout.json";
+	const std::filesystem::path legacyPath =
+		std::filesystem::current_path() / "Resources" / "VmdlEditorLayout.json";
+	std::ifstream stream(std::filesystem::exists(settingsPath) ? settingsPath : legacyPath);
 	if (!stream) return;
 
 	try
@@ -245,9 +312,6 @@ void VmdlEditorScene::LoadLayoutSettings()
 		const std::string recentPathUtf8 = root.value("recentModelPath", std::string{});
 		recentModelPath = std::filesystem::path(std::u8string(
 			reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
-		const int version = root.value("version", 0);
-		if (version != 1 && version != 2) return;
-
 		if (const auto window = root.find("window"); window != root.end() && window->is_object())
 		{
 			savedWindowX = window->value("x", savedWindowX);
@@ -274,41 +338,52 @@ void VmdlEditorScene::LoadLayoutSettings()
 	{}
 }
 
-void VmdlEditorScene::SaveLayoutSettings() const
+void VmdlEditorScene::SaveLayoutSettings()
 {
-	std::ofstream stream("Resources/VmdlEditorLayout.json");
-	if (!stream) return;
-	const std::u8string recentPathUtf8 = recentModelPath.u8string();
-	const std::string recentPath(
-		reinterpret_cast<const char*>(recentPathUtf8.data()), recentPathUtf8.size());
-
+	auto& settings = ImGuiRenderer::GetVmdlEditorLayoutSettings();
 	HWND window = Game::Graphics::Instance().GetWindowHandle();
 	WINDOWPLACEMENT placement{sizeof(WINDOWPLACEMENT)};
-	RECT normalRect{};
+	RECT rect{};
 	bool maximized = false;
 	if (window && GetWindowPlacement(window, &placement))
 	{
 		maximized = placement.showCmd == SW_SHOWMAXIMIZED || IsZoomed(window);
-		if (maximized) normalRect = placement.rcNormalPosition;
-		else GetWindowRect(window, &normalRect);
+		if (maximized) rect = placement.rcNormalPosition;
+		else GetWindowRect(window, &rect);
 	}
-	else if (window)
-	{
-		GetWindowRect(window, &normalRect);
-	}
+	const int windowWidth = std::max(1L, rect.right - rect.left);
+	const int windowHeight = std::max(1L, rect.bottom - rect.top);
+	const float propertyRatio = layoutInitialized && layoutColumnWidth > 0.0f
+		? propertyPanelWidth / layoutColumnWidth : loadedPropertyPanelRatio;
+	const float viewportRatio = layoutInitialized && layoutColumnWidth > 0.0f
+		? viewportPanelWidth / layoutColumnWidth : loadedViewportPanelRatio;
+	const float bottomRatio = layoutInitialized && layoutTotalHeight > 0.0f
+		? bottomPanelHeight / layoutTotalHeight : loadedBottomPanelRatio;
+	const std::u8string recentUtf8 = recentModelPath.u8string();
+	const std::string recentPath(
+		reinterpret_cast<const char*>(recentUtf8.data()), recentUtf8.size());
 
-	json root = {{"version", 2}, {"recentModelPath", recentPath},
-		{"window", {{"x", normalRect.left}, {"y", normalRect.top},
-			{"width", std::max(1L, normalRect.right - normalRect.left)},
-			{"height", std::max(1L, normalRect.bottom - normalRect.top)},
-			{"maximized", maximized}}}};
-	if (layoutInitialized && layoutColumnWidth > 0.0f && layoutTotalHeight > 0.0f)
-	{
-		root["propertyPanelRatio"] = propertyPanelWidth / layoutColumnWidth;
-		root["viewportPanelRatio"] = viewportPanelWidth / layoutColumnWidth;
-		root["bottomPanelRatio"] = bottomPanelHeight / layoutTotalHeight;
-	}
-	stream << root.dump(1);
+	settings.windowX = rect.left;
+	settings.windowY = rect.top;
+	settings.windowWidth = windowWidth;
+	settings.windowHeight = windowHeight;
+	settings.windowMaximized = maximized;
+	settings.propertyPanelRatio = propertyRatio;
+	settings.viewportPanelRatio = viewportRatio;
+	settings.bottomPanelRatio = bottomRatio;
+	settings.recentModelPath = recentPath;
+	settings.loaded = true;
+	ImGuiRenderer::SaveSettings();
+
+	savedWindowX = rect.left;
+	savedWindowY = rect.top;
+	savedWindowWidth = windowWidth;
+	savedWindowHeight = windowHeight;
+	savedWindowMaximized = maximized;
+	savedWindowPlacementValid = windowWidth >= 640 && windowHeight >= 480;
+	loadedPropertyPanelRatio = propertyRatio;
+	loadedViewportPanelRatio = viewportRatio;
+	loadedBottomPanelRatio = bottomRatio;
 }
 
 void VmdlEditorScene::OnUpdate()
@@ -449,6 +524,7 @@ void VmdlEditorScene::OnDrawGUI()
 	const float previewAspect =
 		static_cast<float>(PreviewWidth) / static_cast<float>(PreviewHeight);
 	const bool canInitializeLayout =
+		!restoreWindowPending && !layoutWindowMetricsPending &&
 		availableColumnWidth >= 660.0f &&
 		totalHeight >= 360.0f;
 	if (!layoutInitialized)
@@ -489,6 +565,10 @@ void VmdlEditorScene::OnDrawGUI()
 		layoutColumnWidth = availableColumnWidth;
 		layoutTotalHeight = totalHeight;
 	}
+	// SetWindowPosはImGui::NewFrameより後に実行されるため、このフレームの
+	// DisplaySizeはまだランチャーの値。次フレームから保存値を適用する
+	if (!restoreWindowPending && layoutWindowMetricsPending)
+		layoutWindowMetricsPending = false;
 
 	// 上段のプロパティ、3Dビュー、階層
 	ImGui::BeginChild("Property", ImVec2(propertyPanelWidth, upperHeight), true);
@@ -503,7 +583,6 @@ void VmdlEditorScene::OnDrawGUI()
 			std::max(220.0f, availableColumnWidth - viewportPanelWidth - 220.0f);
 		const float nextWidth = std::clamp(
 			propertyPanelWidth + io.MouseDelta.x, 220.0f, maximumPropertyWidth);
-		if (std::abs(propertyPanelWidth - nextWidth) > 0.5f) layoutDirty = true;
 		propertyPanelWidth = nextWidth;
 	}
 	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
@@ -521,7 +600,6 @@ void VmdlEditorScene::OnDrawGUI()
 	{
 		const float nextWidth = std::clamp(viewportPanelWidth + io.MouseDelta.x,
 			minimumViewportWidth, maximumStoredViewportWidth);
-		if (std::abs(viewportPanelWidth - nextWidth) > 0.5f) layoutDirty = true;
 		viewportPanelWidth = nextWidth;
 	}
 	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
@@ -538,17 +616,10 @@ void VmdlEditorScene::OnDrawGUI()
 	{
 		const float nextHeight =
 			std::clamp(bottomPanelHeight - io.MouseDelta.y, 140.0f, totalHeight - 220.0f);
-		if (std::abs(bottomPanelHeight - nextHeight) > 0.5f) layoutDirty = true;
 		bottomPanelHeight = nextHeight;
 	}
 	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
 		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-	if (layoutDirty && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
-	{
-		SaveLayoutSettings();
-		layoutDirty = false;
-	}
-
 	// 下段の編集タブ
 	ImGui::BeginChild("Editor Bottom", ImVec2(0.0f, 0.0f), true);
 	const ImVec4 menuColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
@@ -1130,11 +1201,16 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 			}
 		}
 		auto& cacheMeshes = loaded->second->GetMeshes();
-		for (size_t slot = 0; slot < cacheMeshes.size(); ++slot)
+		for (auto& cacheMesh : cacheMeshes) cacheMesh.isDraw = false;
+		for (size_t bindingSlot = 0; bindingSlot < group.meshIndices.size(); ++bindingSlot)
 		{
-			const int meshIndex = slot < group.meshIndices.size() ? group.meshIndices[slot] : -1;
-			cacheMeshes[slot].isDraw = meshIndex >= 0 && meshIndex < static_cast<int>(meshes.size()) &&
-				meshes[meshIndex].isDraw;
+			const int cacheSlot = bindingSlot < group.cacheMeshIndices.size()
+				? group.cacheMeshIndices[bindingSlot]
+				: static_cast<int>(bindingSlot);
+			const int meshIndex = group.meshIndices[bindingSlot];
+			if (cacheSlot < 0 || cacheSlot >= static_cast<int>(cacheMeshes.size())) continue;
+			cacheMeshes[cacheSlot].isDraw = meshIndex >= 0 &&
+				meshIndex < static_cast<int>(meshes.size()) && meshes[meshIndex].isDraw;
 		}
 	}
 }
@@ -1793,19 +1869,19 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		}
 		if (ImGui::BeginPopupContextItem("Mesh Actions"))
 		{
-			if (!IsMeshSelected(meshIndex)) SelectMesh(meshIndex, false);
+			// コンテキストメニューの操作対象は右クリックした1メッシュだけに限定する
+			if (selectedMeshes.size() != 1 || !IsMeshSelected(meshIndex))
+				SelectMesh(meshIndex, false);
 			if (external)
 			{
-				if (ImGui::MenuItem((const char*)u8"VMSHからVMDLへ戻す"))
+				if (ImGui::MenuItem((const char*)u8"VMDLへ結合"))
 					RestoreExternalMesh(meshIndex);
 			}
 			else
 			{
-				if (ImGui::MenuItem((const char*)u8"VMSHとして書き出す..."))
-					ExportSelectedMeshCache(false);
 				if (ImGui::MenuItem((const char*)u8"VMSHへ分離...", nullptr, false,
 						selectedMorph >= 0))
-					ExportSelectedMeshCache(true);
+					SeparateMeshToCache(meshIndex);
 				if (selectedMorph < 0)
 					ImGui::TextDisabled((const char*)u8"分離には適用先モーフの選択が必要です");
 			}
@@ -4740,6 +4816,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		ImGui::BeginChild("Morph List", ImVec2(0.0f, 0.0f), true);
 		for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
 		{
+			ImGui::PushID(i);
 			if (ImGui::Selectable(morphs[i].name.c_str(), selectedMorph == i)) selectedMorph = i;
 			const ImVec2 itemMin = ImGui::GetItemRectMin();
 			const ImVec2 itemMax = ImGui::GetItemRectMax();
@@ -4750,6 +4827,29 @@ void VmdlEditorScene::DrawMorphEditor()
 				ImGui::GetWindowDrawList()->AddRectFilled(
 					itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
 			}
+			if (ImGui::BeginPopupContextItem("Morph Actions"))
+			{
+				selectedMorph = i;
+				bool hasResidentMesh = false;
+				for (size_t meshIndex = 0;
+					meshIndex < morphs[i].meshVisibility.size() &&
+					meshIndex < model->GetMeshes().size(); ++meshIndex)
+				{
+					if (morphs[i].meshVisibility[meshIndex] == 1 &&
+						!model->IsExternalMesh(static_cast<int>(meshIndex)))
+					{
+						hasResidentMesh = true;
+						break;
+					}
+				}
+				if (ImGui::MenuItem((const char*)u8"モーフに関連するメッシュを分離",
+						nullptr, false, hasResidentMesh))
+					SeparateMorphMeshes(i);
+				if (!hasResidentMesh)
+					ImGui::TextDisabled((const char*)u8"分離できる表示メッシュがありません");
+				ImGui::EndPopup();
+			}
+			ImGui::PopID();
 		}
 		ImGui::EndChild();
 
@@ -5232,47 +5332,63 @@ void VmdlEditorScene::ReplaceGlbCache()
 	}
 }
 
-// 選択メッシュを着脱単位の衣装キャッシュへ書き出す
-void VmdlEditorScene::ExportSelectedMeshCache(bool removeFromModel)
+std::filesystem::path VmdlEditorScene::MakeMeshCachePath(
+	int meshIndex, const std::string& morphName) const
 {
-	if (!model || selectedMeshes.empty()) return;
+	if (!model || meshIndex < 0 ||
+		meshIndex >= static_cast<int>(model->GetMeshes().size())) return {};
+	const auto& mesh = model->GetMeshes()[meshIndex];
+	std::string meshLabel;
+	if (mesh.materialIndex >= 0 &&
+		mesh.materialIndex < static_cast<int>(model->GetMaterials().size()))
+		meshLabel = model->GetMaterials()[mesh.materialIndex].name;
+	if (meshLabel.empty() && mesh.nodeIndex >= 0 &&
+		mesh.nodeIndex < static_cast<int>(model->GetNodes().size()))
+		meshLabel = model->GetNodes()[mesh.nodeIndex].name;
 
-	std::vector<int> meshIndices = selectedMeshes;
-	std::sort(meshIndices.begin(), meshIndices.end());
-	meshIndices.erase(std::unique(meshIndices.begin(), meshIndices.end()), meshIndices.end());
-	if (removeFromModel)
-	{
-		if (selectedMorph < 0 ||
-			selectedMorph >= static_cast<int>(model->GetVmdlExtensionData().morphs.size()))
-		{
-			ErrorMessage("Select the activation morph before externalizing meshes.");
-			return;
-		}
-		const std::wstring message =
-			L"選択メッシュの頂点実体をVMSHへ分離します。\n"
-			L"現在選択中のモーフで表示されたときだけ遅延読み込みされます。\n"
-			L"VMDL本体への変更は、VMDLを保存するまで確定しません。\n\n"
-			L"続行しますか？";
-		if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
-				L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
-			return;
-	}
-
-	std::filesystem::path proposedPath;
+	std::string suffix;
+	if (!morphName.empty()) suffix += "_morph_" + MakeVmshFileLabel(morphName);
+	suffix += "_mesh_" + std::to_string(meshIndex) + "_" +
+		MakeVmshFileLabel(meshLabel) + ".vmsh";
 	if (!documentPath.empty())
+		return documentPath.parent_path() / (documentPath.stem().string() + suffix);
+	return ResourceManager::FindSourceResourceRoot() / "Model" / ("model" + suffix);
+}
+
+// 右クリックした1メッシュをVMSHへ分離する
+void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
+{
+	if (!model || meshIndex < 0 ||
+		meshIndex >= static_cast<int>(model->GetMeshes().size())) return;
+	const std::vector<int> meshIndices = {meshIndex};
+	if (selectedMorph < 0 ||
+		selectedMorph >= static_cast<int>(model->GetVmdlExtensionData().morphs.size()))
 	{
-		proposedPath = documentPath.parent_path() /
-			(documentPath.stem().string() + "_outfit.vmsh");
+		ErrorMessage("Select the activation morph before externalizing meshes.");
+		return;
 	}
-	else
-	{
-		proposedPath = ResourceManager::FindSourceResourceRoot() / "Model" / "outfit.vmsh";
-	}
+	const std::wstring message =
+		L"選択メッシュの頂点実体をVMSHへ分離します。\n"
+		L"現在選択中のモーフで表示されたときだけ遅延読み込みされます。\n"
+		L"VMDL本体への変更は、VMDLを保存するまで確定しません。\n\n"
+		L"続行しますか？";
+	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
+			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+		return;
+
+	const std::filesystem::path proposedPath = MakeMeshCachePath(meshIndex);
 	std::string filepath = proposedPath.string();
 	if (Dialog::SaveFileName(filepath, "VMDL Mesh Cache (*.vmsh)\0*.vmsh\0",
-			removeFromModel ? (const char*)u8"VMSHの分離先" : (const char*)u8"VMSHの保存先",
-			"vmsh") != DialogResult::OK)
+			(const char*)u8"VMSHの分離先", "vmsh") != DialogResult::OK)
 		return;
+	for (const auto& group : model->GetExternalMeshGroups())
+	{
+		const std::filesystem::path existingPath =
+			ResourceManager::ResolveSourcePath(group.path);
+		if (!IsSameFilePath(existingPath, filepath)) continue;
+		ErrorMessage((const char*)u8"このVMSHは別の分離メッシュが使用しています。別のファイル名を指定してください。");
+		return;
+	}
 
 	std::string error;
 	if (!MeshCache::Save(filepath, *model, meshIndices, &error))
@@ -5283,7 +5399,6 @@ void VmdlEditorScene::ExportSelectedMeshCache(bool removeFromModel)
 
 	if (!ResourceManager::Instance().RefreshResources(filepath))
 		ErrorMessage("Mesh saved, but runtime cache refresh failed.");
-	if (!removeFromModel) return;
 	const std::string portablePath = PortableResourcePath(filepath);
 	if (!model->ExternalizeMeshes(portablePath, meshIndices, selectedMorph))
 	{
@@ -5296,24 +5411,94 @@ void VmdlEditorScene::ExportSelectedMeshCache(bool removeFromModel)
 	MarkDirty();
 }
 
+void VmdlEditorScene::SeparateMorphMeshes(int morphIndex)
+{
+	if (!model || morphIndex < 0 ||
+		morphIndex >= static_cast<int>(model->GetVmdlExtensionData().morphs.size())) return;
+	const auto& morph = model->GetVmdlExtensionData().morphs[morphIndex];
+	std::vector<int> meshIndices;
+	for (size_t meshIndex = 0;
+		meshIndex < morph.meshVisibility.size() && meshIndex < model->GetMeshes().size();
+		++meshIndex)
+	{
+		// 「+ 表示」のメッシュが、このモーフを適用したときに必要となる実体
+		if (morph.meshVisibility[meshIndex] == 1 &&
+			!model->IsExternalMesh(static_cast<int>(meshIndex)))
+			meshIndices.push_back(static_cast<int>(meshIndex));
+	}
+	if (meshIndices.empty()) return;
+
+	const std::wstring message =
+		L"モーフ「" + Utf8ToWide(morph.name) + L"」で表示する" +
+		std::to_wstring(meshIndices.size()) +
+		L"個のメッシュを、それぞれ個別のVMSHへ分離します。\n"
+		L"既存のVMSHファイルは上書きしません。\n\n続行しますか？";
+	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
+			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+		return;
+
+	int separatedCount = 0;
+	std::string failures;
+	for (int meshIndex : meshIndices)
+	{
+		std::filesystem::path filepath = MakeMeshCachePath(meshIndex, morph.name);
+		const std::filesystem::path originalPath = filepath;
+		for (int suffix = 2; std::filesystem::exists(filepath); ++suffix)
+			filepath = originalPath.parent_path() /
+				(originalPath.stem().string() + "_" + std::to_string(suffix) + ".vmsh");
+
+		std::string error;
+		if (!MeshCache::Save(filepath, *model, {meshIndex}, &error))
+		{
+			failures += "mesh " + std::to_string(meshIndex) + ": " + error + "\n";
+			continue;
+		}
+		if (!ResourceManager::Instance().RefreshResources(filepath))
+		{
+			failures += "mesh " + std::to_string(meshIndex) + ": cache refresh failed\n";
+		}
+		if (!model->ExternalizeMeshes(
+				PortableResourcePath(filepath), {meshIndex}, morphIndex))
+		{
+			failures += "mesh " + std::to_string(meshIndex) + ": externalize failed\n";
+			std::error_code removeError;
+			std::filesystem::remove(filepath, removeError);
+			continue;
+		}
+		++separatedCount;
+	}
+
+	if (separatedCount > 0)
+	{
+		externalMeshPreviewCaches.clear();
+		UpdateModelFraming();
+		MarkDirty();
+	}
+	if (!failures.empty())
+		ErrorMessage("Some morph meshes could not be separated:\n" + failures);
+}
+
 void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 {
 	if (!model) return;
 	const auto* group = model->GetExternalMeshGroupForMesh(meshIndex);
 	if (!group) return;
-	const std::string vmshPath = group->path;
-	const size_t meshCount = group->meshIndices.size();
 	const std::wstring message =
-		L"VMSHに分離した" + std::to_wstring(meshCount) +
-		L"個のメッシュをVMDL本体へ戻します\n"
-		L"VMSHファイル自体は削除されません\n\n"
+		L"選択したメッシュをVMDL本体へ結合します\n"
+		L"ほかのメッシュが使用していなければ、結合内容をVMDLへ保存して\n"
+		L"VMSHファイルも削除します\n\n"
 		L"続行しますか？";
 	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
 			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
 		return;
 
+	std::filesystem::path resolved;
+	if (!ResolveExternalMeshPath(meshIndex, resolved)) return;
+	// 代替VMSHが選ばれた場合も含め、結合後の参照確認に使うパスを保持する
+	group = model->GetExternalMeshGroupForMesh(meshIndex);
+	if (!group) return;
+	const std::string linkedPath = group->path;
 	std::string error;
-	const std::filesystem::path resolved = ResourceManager::Instance().ResolvePath(vmshPath);
 	if (!model->RestoreExternalMeshes(meshIndex, resolved, &error))
 	{
 		ErrorMessage(error.empty() ? "Failed to restore the VMSH meshes." : error);
@@ -5322,6 +5507,103 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 	externalMeshPreviewCaches.clear();
 	UpdateModelFraming();
 	MarkDirty();
+
+	bool stillReferenced = false;
+	for (const auto& remainingGroup : model->GetExternalMeshGroups())
+	{
+		if (remainingGroup.path != linkedPath &&
+			!IsSameFilePath(ResourceManager::ResolveSourcePath(remainingGroup.path), resolved))
+			continue;
+		stillReferenced = true;
+		break;
+	}
+	if (!stillReferenced)
+	{
+		// VMDLが古い外部参照を保持したままVMSHだけ消える状態を防ぐ
+		if (documentPath.empty())
+		{
+			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
+				L"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。",
+				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+			return;
+		}
+		documentPath = ResourceManager::ResolveSourcePath(documentPath);
+		if (!model->SaveVmdl(documentPath) ||
+			!ResourceManager::Instance().RefreshResources(documentPath))
+		{
+			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
+				L"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。",
+				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+			return;
+		}
+		dirty = false;
+
+		std::error_code removeError;
+		const bool removed = std::filesystem::remove(resolved, removeError);
+		if (removeError || (!removed && std::filesystem::exists(resolved)))
+		{
+			const std::wstring warning =
+				L"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n" +
+				resolved.wstring();
+			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), warning.c_str(),
+				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+		}
+		else
+		{
+			ResourceManager::Instance().RefreshResources();
+		}
+	}
+}
+
+bool VmdlEditorScene::ResolveExternalMeshPath(
+	int meshIndex, std::filesystem::path& resolvedPath)
+{
+	if (!model) return false;
+	const auto* group = model->GetExternalMeshGroupForMesh(meshIndex);
+	if (!group) return false;
+	// エディターでは実行用キャッシュではなくResources側の正本が移動していないかを確認する
+	resolvedPath = ResourceManager::ResolveSourcePath(group->path);
+	if (std::filesystem::is_regular_file(resolvedPath)) return true;
+
+	const std::wstring message =
+		L"VMSHリソースが見つかりません。\n\n" +
+		Utf8ToWide(group->path) +
+		L"\n\n代わりとなるVMSHを選択してください";
+	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
+		L"VMSH リソースの復旧", MB_OK | MB_ICONWARNING);
+
+	const std::filesystem::path modelRoot = ResourceManager::FindSourceResourceRoot() / "Model";
+	std::string replacementFile;
+	if (Dialog::OpenFileName(replacementFile, "VMSH (*.vmsh)\0*.vmsh\0\0",
+			(const char*)u8"代わりとなるVMSHを選択", modelRoot.string().c_str()) !=
+		DialogResult::OK)
+		return false;
+	if (!std::filesystem::is_regular_file(replacementFile))
+	{
+		ErrorMessage("The selected VMSH file does not exist.");
+		return false;
+	}
+
+	const std::string portablePath = PortableResourcePath(replacementFile);
+	if (!model->SetExternalMeshPath(meshIndex, portablePath)) return false;
+	ResourceManager::Instance().RefreshResources(replacementFile);
+	resolvedPath = replacementFile;
+	externalMeshPreviewCaches.clear();
+	MarkDirty();
+	return true;
+}
+
+void VmdlEditorScene::ResolveMissingExternalMeshes()
+{
+	if (!model) return;
+	std::vector<int> representatives;
+	for (const auto& group : model->GetExternalMeshGroups())
+		if (!group.meshIndices.empty()) representatives.push_back(group.meshIndices.front());
+	for (int meshIndex : representatives)
+	{
+		std::filesystem::path resolved;
+		ResolveExternalMeshPath(meshIndex, resolved);
+	}
 }
 
 void VmdlEditorScene::SaveVmdl()
@@ -5437,6 +5719,7 @@ void VmdlEditorScene::LoadModel(
 		UpdateModelFraming();
 		ResetAnimationControlPreview();
 		model->ApplyInitialMorphs();
+		ResolveMissingExternalMeshes();
 	}
 	catch (const std::exception& exception)
 	{

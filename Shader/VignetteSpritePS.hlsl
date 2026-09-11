@@ -11,6 +11,8 @@ cbuffer CbVignette : register(b2)
     float2 textureSize;
     float vignetteRange;
     float vignetteSoftness;
+    float overlayOnly;
+    float3 padding;
 };
 
 float4 main(VS_OUT pin) : SV_TARGET
@@ -32,6 +34,10 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float4 finalColor = spriteTexture.Sample(spriteSampler, uv);
     const float amount = vignette * saturate(vignetteColor.a);
+    if (overlayOnly > 0.5f)
+    {
+        return float4(vignetteColor.rgb, amount);
+    }
     finalColor.rgb = lerp(finalColor.rgb, vignetteColor.rgb, amount);
     return finalColor;
 }

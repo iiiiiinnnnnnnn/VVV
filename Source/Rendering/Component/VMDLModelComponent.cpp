@@ -456,10 +456,15 @@ void VMDLModelComponent::SyncExternalMeshCaches()
 		}
 
 		auto& cacheMeshes = loaded->second->GetMeshes();
-		for (size_t slot = 0; slot < cacheMeshes.size(); ++slot)
+		for (auto& cacheMesh : cacheMeshes) cacheMesh.isDraw = false;
+		for (size_t bindingSlot = 0; bindingSlot < group.meshIndices.size(); ++bindingSlot)
 		{
-			const int meshIndex = slot < group.meshIndices.size() ? group.meshIndices[slot] : -1;
-			cacheMeshes[slot].isDraw = meshIndex >= 0 &&
+			const int cacheSlot = bindingSlot < group.cacheMeshIndices.size()
+				? group.cacheMeshIndices[bindingSlot]
+				: static_cast<int>(bindingSlot);
+			const int meshIndex = group.meshIndices[bindingSlot];
+			if (cacheSlot < 0 || cacheSlot >= static_cast<int>(cacheMeshes.size())) continue;
+			cacheMeshes[cacheSlot].isDraw = meshIndex >= 0 &&
 				meshIndex < static_cast<int>(modelMeshes.size()) && modelMeshes[meshIndex].isDraw;
 		}
 	}

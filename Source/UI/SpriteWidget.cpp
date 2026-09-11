@@ -5,9 +5,11 @@
 #include "Rendering/Component/SpriteRenderComponent.h"
 
 SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
-                           SpriteShaderId shaderId, const Color& color)
+						   SpriteShaderId shaderId, const Color& color,
+						   SpriteRenderParams renderParams)
     : Widget(spritePath.filename().string().c_str())
 {
     AddComponent<SpriteRenderComponent>(
-        ResourceManager::Instance().LoadTexture(spritePath.generic_string()), shaderId, color);
+		ResourceManager::Instance().LoadTexture(spritePath.generic_string()), shaderId, color,
+		std::move(renderParams));
 }

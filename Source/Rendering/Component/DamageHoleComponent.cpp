@@ -1,4 +1,4 @@
-﻿#include "Rendering/Component/DamageHoleComponent.h"
+#include "Rendering/Component/DamageHoleComponent.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Component/VMDLModelComponent.h"
@@ -169,6 +169,8 @@ void DamageHoleComponent::SetHoleDepth(float depth)
 void DamageHoleComponent::UpdateRenderParams()
 {
 	if (!modelRenderer) return;
+
+	// ダメージホールのパラメータをモデルレンダラーに設定
 
 	VMatDamageHoleParams& params = modelRenderer->GetRenderParams().damageHoles;
 	params.count = static_cast<int>(damageHoles.size());

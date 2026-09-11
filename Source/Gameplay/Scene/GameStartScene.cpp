@@ -56,14 +56,20 @@ GameStartScene::GameStartScene()
 	// 起動画面のヘッダー画像を生成
 	const std::string headerPath = "Resources/UI/header.png";
 
-	headerWidget = std::make_shared<SpriteWidget>(
-		headerPath, SpriteShaderId::Vignette,
-		Color(0, 0, 0, headerVignetteStrength));
+	headerWidget = std::make_shared<SpriteWidget>(headerPath, SpriteShaderId::Basic);
 	headerWidget->SetName("Launcher Header");
-	headerWidget->GetComponent<SpriteRenderComponent>()->SetVignetteParameters(
-		headerVignetteRange, headerVignetteSoftness);
 	headerWidget->SetAffectedByPostProcess(false);
 	widgetManager.Register(headerWidget);
+
+	// 画像とは別に固定表示するヴィネットを生成
+	headerVignetteWidget = std::make_shared<SpriteWidget>(
+		headerPath, SpriteShaderId::VignetteOverlay,
+		Color(0, 0, 0, headerVignetteStrength),
+		SpriteRenderParams{
+			SpriteVignetteParams{headerVignetteRange, headerVignetteSoftness}});
+	headerVignetteWidget->SetName("Launcher Header Vignette");
+	headerVignetteWidget->SetAffectedByPostProcess(false);
+	widgetManager.Register(headerVignetteWidget);
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// デバッグ用サウンド一覧を準備
 	ReloadSoundTracks();
@@ -83,10 +89,12 @@ void GameStartScene::UpdateLauncherWidgetLayout()
 	headerLayoutHeight = 176.0f;
 	if (headerWidget)
 	{
+		SpriteRenderComponent* headerSprite =
+			headerWidget->GetComponent<SpriteRenderComponent>();
 		// 元画像の縦横比を維持
-		if (auto* sprite = headerWidget->GetComponent<SpriteRenderComponent>())
+		if (headerSprite)
 		{
-			if (Texture* texture = sprite->GetTexture();
+			if (Texture* texture = headerSprite->GetTexture();
 				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
 			{
 				const float aspect = static_cast<float>(texture->GetWidth()) /
@@ -104,11 +112,36 @@ void GameStartScene::UpdateLauncherWidgetLayout()
 		const Vector2 baseSize(headerWidth, headerLayoutHeight);
 		const Vector2 displaySize = baseSize * headerOverscan;
 		const Vector2 headerPosition(
-			(screenWidth - headerWidth) * 0.5f - (displaySize.x - baseSize.x) * 0.5f,
-			headerTop - (displaySize.y - baseSize.y) * 0.5f);
-		headerWidget->rect.position = headerPosition + headerParallaxOffset;
+			(screenWidth - headerWidth) * 0.5f, headerTop);
+		headerWidget->rect.position = headerPosition;
 		headerWidget->rect.anchor = Vector2::Zero;
-		headerWidget->rect.size = displaySize;
+		headerWidget->rect.size = baseSize;
+
+		// 表示領域は固定し、拡大画像の切り出し位置だけをカーソルへ追従させる
+		if (headerSprite)
+		{
+			if (Texture* texture = headerSprite->GetTexture();
+				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
+			{
+				const Vector2 textureSize(
+					static_cast<float>(texture->GetWidth()),
+					static_cast<float>(texture->GetHeight()));
+				const Vector2 cropSize = textureSize / headerOverscan;
+				const Vector2 pixelsPerSource(
+					displaySize.x / textureSize.x,
+					displaySize.y / textureSize.y);
+				const Vector2 cropPosition = (textureSize - cropSize) * 0.5f - Vector2(
+					headerParallaxOffset.x / pixelsPerSource.x,
+					headerParallaxOffset.y / pixelsPerSource.y);
+				headerSprite->SetSourceRect(cropPosition, cropSize);
+			}
+		}
+		if (headerVignetteWidget)
+		{
+			headerVignetteWidget->rect.position = headerPosition;
+			headerVignetteWidget->rect.anchor = Vector2::Zero;
+			headerVignetteWidget->rect.size = baseSize;
+		}
 	}
 }
 
@@ -157,6 +190,7 @@ void GameStartScene::OnDrawGUI()
 	// 管理画面ではヘッダーを隠す
 	const bool showLauncherHeader = !showCacheManager && !showSoundManager;
 	if (headerWidget) headerWidget->SetActive(showLauncherHeader);
+	if (headerVignetteWidget) headerVignetteWidget->SetActive(showLauncherHeader);
 #endif
 
 	// ウィンドウ全体を起動メニューの操作領域として使用
@@ -279,10 +313,11 @@ void GameStartScene::ConfigureWindow()
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	const bool managerOpen = showCacheManager || showSoundManager;
 	const int clientWidth = managerOpen ? 900 : 960;
-	const int clientHeight = managerOpen ? 640 : 550;
+	// ヘッダーとボタン列の下に、上端と同程度の余白だけを残す
+	const int clientHeight = managerOpen ? 640 : 490;
 #else
 	constexpr int clientWidth = 960;
-	constexpr int clientHeight = 550;
+	constexpr int clientHeight = 490;
 #endif
 	// 使用中のモニター中央へ配置
 	RECT rect{0, 0, clientWidth, clientHeight};

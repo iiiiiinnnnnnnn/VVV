@@ -16,6 +16,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <limits>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -946,6 +947,8 @@ bool VMDLModel::ExternalizeMeshes(const std::string& path,
 	group.meshIndices.erase(std::unique(group.meshIndices.begin(), group.meshIndices.end()),
 		group.meshIndices.end());
 	group.initialVisibility.assign(group.meshIndices.size(), 0);
+	group.cacheMeshIndices.resize(group.meshIndices.size());
+	std::iota(group.cacheMeshIndices.begin(), group.cacheMeshIndices.end(), 0);
 	const auto bindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
 
 	for (int meshIndex : group.meshIndices)
@@ -1045,34 +1048,45 @@ bool VMDLModel::RestoreExternalMeshes(
 
 	try
 	{
-		const ExternalMeshGroup group = externalMeshGroups[groupIndex];
+		ExternalMeshGroup& group = externalMeshGroups[groupIndex];
 		MeshCache cache(vmshPath, *this, {}, true);
-		if (cache.meshes.size() != group.meshIndices.size())
-			throw std::runtime_error("The VMSH mesh count does not match its VMDL binding.");
+		const auto found = std::find(group.meshIndices.begin(), group.meshIndices.end(), meshIndex);
+		const size_t bindingSlot = static_cast<size_t>(found - group.meshIndices.begin());
+		const int cacheSlot = bindingSlot < group.cacheMeshIndices.size()
+			? group.cacheMeshIndices[bindingSlot]
+			: static_cast<int>(bindingSlot);
+		if (cacheSlot < 0 || cacheSlot >= static_cast<int>(cache.meshes.size()))
+			throw std::runtime_error("The selected VMSH mesh binding is invalid.");
 
-		for (size_t slot = 0; slot < group.meshIndices.size(); ++slot)
-		{
-			const int targetMeshIndex = group.meshIndices[slot];
-			if (targetMeshIndex < 0 || targetMeshIndex >= static_cast<int>(meshes.size()))
-				throw std::runtime_error("The VMDL mesh binding is invalid.");
-			const int targetMaterialIndex = meshes[targetMeshIndex].materialIndex;
-			Mesh restored = std::move(cache.meshes[slot]);
-			if (restored.materialIndex < 0 ||
-				restored.materialIndex >= static_cast<int>(cache.materials.size()) ||
-				targetMaterialIndex < 0 || targetMaterialIndex >= static_cast<int>(materials.size()))
-				throw std::runtime_error("The VMSH material binding is invalid.");
+		const int targetMaterialIndex = meshes[meshIndex].materialIndex;
+		Mesh restored = std::move(cache.meshes[cacheSlot]);
+		if (restored.materialIndex < 0 ||
+			restored.materialIndex >= static_cast<int>(cache.materials.size()) ||
+			targetMaterialIndex < 0 || targetMaterialIndex >= static_cast<int>(materials.size()))
+			throw std::runtime_error("The VMSH material binding is invalid.");
 
-			const bool visible = meshes[targetMeshIndex].isDraw;
-			const Material restoredMaterial = cache.materials[restored.materialIndex];
-			materials[targetMaterialIndex] = restoredMaterial;
-			if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
-			sourceMaterials[targetMaterialIndex] = restoredMaterial;
-			restored.materialIndex = targetMaterialIndex;
-			restored.isDraw = visible;
-			meshes[targetMeshIndex] = std::move(restored);
-		}
+		// 外部化中の常駐メッシュは遅延読み込みのため非表示になっている
+		// 結合時はVMSHへ保存した元の表示状態を残しつつ、現在のモーフで
+		// 表示中ならその状態も引き継ぐ
+		const bool placeholderVisible = meshes[meshIndex].isDraw;
+		const bool cachedVisible = restored.isDraw;
+		const Material restoredMaterial = cache.materials[restored.materialIndex];
+		materials[targetMaterialIndex] = restoredMaterial;
+		if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
+		sourceMaterials[targetMaterialIndex] = restoredMaterial;
+		restored.materialIndex = targetMaterialIndex;
+		restored.isDraw = cachedVisible || placeholderVisible;
+		meshes[meshIndex] = std::move(restored);
 
-		externalMeshGroups.erase(externalMeshGroups.begin() + groupIndex);
+		group.meshIndices.erase(group.meshIndices.begin() + bindingSlot);
+		if (bindingSlot < group.initialVisibility.size())
+			group.initialVisibility.erase(group.initialVisibility.begin() + bindingSlot);
+		if (bindingSlot < group.cacheMeshIndices.size())
+			group.cacheMeshIndices.erase(group.cacheMeshIndices.begin() + bindingSlot);
+		if (bindingSlot < group.meshKeys.size())
+			group.meshKeys.erase(group.meshKeys.begin() + bindingSlot);
+		if (group.meshIndices.empty())
+			externalMeshGroups.erase(externalMeshGroups.begin() + groupIndex);
 		RebuildRuntimeReferences();
 		CaptureRuntimeMorphVisibility();
 		return true;
@@ -1082,6 +1096,19 @@ bool VMDLModel::RestoreExternalMeshes(
 		if (error) *error = exception.what();
 		return false;
 	}
+}
+
+bool VMDLModel::SetExternalMeshPath(int meshIndex, const std::string& path)
+{
+	for (ExternalMeshGroup& group : externalMeshGroups)
+	{
+		if (std::find(group.meshIndices.begin(), group.meshIndices.end(), meshIndex) ==
+			group.meshIndices.end())
+			continue;
+		group.path = path;
+		return true;
+	}
+	return false;
 }
 
 bool VMDLModel::IsExternalMesh(int meshIndex) const
@@ -2246,14 +2273,22 @@ void VMDLModel::Serialize(const char* filename)
 	NormalizeMorphNames();
 	const auto bindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
 	std::vector<std::vector<std::string>> externalMeshBindingKeys;
+	std::vector<std::vector<int>> externalMeshCacheIndices;
 	externalMeshBindingKeys.reserve(externalMeshGroups.size());
+	externalMeshCacheIndices.reserve(externalMeshGroups.size());
 	for (ExternalMeshGroup& group : externalMeshGroups)
 	{
+		if (group.cacheMeshIndices.size() != group.meshIndices.size())
+		{
+			group.cacheMeshIndices.resize(group.meshIndices.size());
+			std::iota(group.cacheMeshIndices.begin(), group.cacheMeshIndices.end(), 0);
+		}
 		group.meshKeys.clear();
 		for (int meshIndex : group.meshIndices)
 			if (meshIndex >= 0 && meshIndex < static_cast<int>(bindingKeys.size()))
 				group.meshKeys.push_back(bindingKeys[meshIndex]);
 		externalMeshBindingKeys.push_back(group.meshKeys);
+		externalMeshCacheIndices.push_back(group.cacheMeshIndices);
 	}
 	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
@@ -2293,6 +2328,8 @@ void VMDLModel::Serialize(const char* filename)
 		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
 		addFile("model.externalmeshbindings",
 			[&](auto& archive) { archive(externalMeshBindingKeys); });
+		addFile("model.externalmeshslots",
+			[&](auto& archive) { archive(externalMeshCacheIndices); });
 
 		cereal::BinaryOutputArchive package(serializedStream);
 		package(files);
@@ -2423,6 +2460,7 @@ void VMDLModel::Deserialize(const char* filename)
 			std::vector<VmdlMaterialData> materialData;
 			std::vector<VmdlSoundSourceBinding> soundBindings;
 			std::vector<std::vector<std::string>> externalMeshBindingKeys;
+			std::vector<std::vector<int>> externalMeshCacheIndices;
 			std::string vfxExtensionJson;
 			std::vector<std::pair<std::string, std::string>> files;
 			cereal::BinaryInputArchive package(serializedStream);
@@ -2475,6 +2513,10 @@ void VMDLModel::Deserialize(const char* filename)
 				{
 					archive(externalMeshBindingKeys);
 				}
+				else if (name == "model.externalmeshslots")
+				{
+					archive(externalMeshCacheIndices);
+				}
 			}
 			if (!loadedGlbCache || !loadedVmdlData)
 				throw std::runtime_error("VMDL package is missing required data.");
@@ -2482,6 +2524,16 @@ void VMDLModel::Deserialize(const char* filename)
 			for (size_t groupIndex = 0; groupIndex < externalMeshGroups.size(); ++groupIndex)
 			{
 				auto& group = externalMeshGroups[groupIndex];
+				if (groupIndex < externalMeshCacheIndices.size() &&
+					externalMeshCacheIndices[groupIndex].size() == group.meshIndices.size())
+				{
+					group.cacheMeshIndices = std::move(externalMeshCacheIndices[groupIndex]);
+				}
+				else
+				{
+					group.cacheMeshIndices.resize(group.meshIndices.size());
+					std::iota(group.cacheMeshIndices.begin(), group.cacheMeshIndices.end(), 0);
+				}
 				if (groupIndex < externalMeshBindingKeys.size() &&
 					externalMeshBindingKeys[groupIndex].size() == group.meshIndices.size())
 				{

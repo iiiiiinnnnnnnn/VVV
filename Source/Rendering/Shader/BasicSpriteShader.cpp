@@ -41,7 +41,7 @@ void BasicSpriteShader::Update(
 	ID3D11ShaderResourceView* srv,
 	Vector2 textureSize,
 	const Color& color,
-	const Vector4& parameters)
+	const SpriteRenderParams* params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 

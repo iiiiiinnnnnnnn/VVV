@@ -6,12 +6,12 @@
 class VignetteSpriteShader : public SpriteShader
 {
 public:
-	explicit VignetteSpriteShader(ID3D11Device* device);
+	explicit VignetteSpriteShader(ID3D11Device* device, bool overlayOnly = false);
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv,
 		Vector2 textureSize, const Color& color,
-		const Vector4& parameters) override;
+		const SpriteRenderParams* params) override;
 	void End(const RenderContext& rc) override;
 
 private:
@@ -21,7 +21,10 @@ private:
 		Vector2 textureSize;
 		float range;
 		float softness;
+		float overlayOnly;
+		float padding[3];
 	};
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	bool overlayOnly = false;
 };

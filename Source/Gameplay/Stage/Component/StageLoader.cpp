@@ -569,7 +569,8 @@ void StageLoader::DrawEditorGUI()
 		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(170, 112, 12, 255));
 		const bool selected = selectedEditorObjectType == EditorObjectType::PlayerStart;
-		const bool open = ImGui::TreeNodeEx((const char*)u8"★ プレイヤー初期位置###PlayerStart",
+		const bool open = ImGui::TreeNodeEx(
+			ICON_FA_MAP_MARKER_ALT " プレイヤー初期位置###PlayerStart",
 			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
 			(selected ? ImGuiTreeNodeFlags_Selected : 0));
 		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::PlayerStart, -1);

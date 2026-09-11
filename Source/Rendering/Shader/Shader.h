@@ -6,6 +6,7 @@
 
 #include "Core/Foundation/Common.h"
 #include "Rendering/Core/RenderContext.h"
+#include "Rendering/Core/SpriteRenderParams.h"
 #include "Rendering/Core/VMatRenderParams.h"
 #include "Resource/VMDLModel.h"
 
@@ -31,7 +32,7 @@ public:
 		ID3D11ShaderResourceView* srv,
 		Vector2 textureSize,
 		const Color& color,
-		const Vector4& parameters) = 0;
+		const SpriteRenderParams* params) = 0;
 	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
 };
 

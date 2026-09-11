@@ -10,5 +10,6 @@ class SpriteWidget : public Widget
 public:
     SpriteWidget(std::filesystem::path spritePath,
                  SpriteShaderId shaderId = SpriteShaderId::Basic,
-				 const Color& color = Color(1, 1, 1, 1));
+				 const Color& color = Color(1, 1, 1, 1),
+				 SpriteRenderParams renderParams = {});
 };

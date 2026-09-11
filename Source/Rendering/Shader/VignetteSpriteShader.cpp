@@ -2,7 +2,8 @@
 
 #include "Resource/GpuResourceUtils.h"
 
-VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device)
+VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device, bool overlayOnly)
+	: overlayOnly(overlayOnly)
 {
 	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/BasicSpriteVS.cso",
 		SpriteShader::InputElementDescs.data(),
@@ -26,13 +27,16 @@ void VignetteSpriteShader::Begin(const RenderContext& rc)
 
 void VignetteSpriteShader::Update(const RenderContext& rc,
 	ID3D11ShaderResourceView* srv, Vector2 textureSize, const Color& color,
-	const Vector4& parameters)
+	const SpriteRenderParams* params)
 {
 	CbVignette constant{};
 	constant.color = color;
 	constant.textureSize = textureSize;
-	constant.range = std::clamp(parameters.x, 0.001f, 1.0f);
-	constant.softness = std::clamp(parameters.y, 0.001f, constant.range);
+	const SpriteVignetteParams* vignette = params ? &params->vignette : nullptr;
+	constant.range = std::clamp(vignette ? vignette->range : 0.92f, 0.001f, 1.0f);
+	constant.softness = std::clamp(
+		vignette ? vignette->softness : 0.92f, 0.001f, constant.range);
+	constant.overlayOnly = overlayOnly ? 1.0f : 0.0f;
 	rc.deviceContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constant, 0, 0);
 	ID3D11Buffer* buffers[] = {constantBuffer.Get()};
 	rc.deviceContext->PSSetConstantBuffers(2, _countof(buffers), buffers);

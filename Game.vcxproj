@@ -258,6 +258,7 @@
     <ClInclude Include="Source\Physics\Core\PhysicsManager.h" />
     <ClInclude Include="Source\Rendering\Renderer\PrimitiveRenderer.h" />
     <ClInclude Include="Source\Rendering\Core\RenderContext.h" />
+	<ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h" />
     <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h" />
     <ClInclude Include="Source\Rendering\Core\RenderState.h" />
     <ClInclude Include="Source\Gameplay\Scene\Scene.h" />

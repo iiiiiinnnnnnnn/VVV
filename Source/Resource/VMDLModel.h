@@ -232,6 +232,9 @@ class VMDLModel
 		std::string path;
 		std::vector<int> meshIndices;
 		std::vector<uint8_t> initialVisibility;
+		// meshIndices の各要素が VMSH 内の何番目に対応するか
+		// 一部だけVMDLへ戻した後も、残ったメッシュを正しく遅延読み込みするために使う
+		std::vector<int> cacheMeshIndices;
 		// GLB再取込時にメッシュ番号を復元するための安定キー
 		std::vector<std::string> meshKeys;
 
@@ -618,6 +621,7 @@ class VMDLModel
 		int activationMorphIndex);
 	bool RestoreExternalMeshes(int meshIndex, const std::filesystem::path& vmshPath,
 		std::string* error = nullptr);
+	bool SetExternalMeshPath(int meshIndex, const std::string& path);
 	bool IsExternalMesh(int meshIndex) const;
 	const ExternalMeshGroup* GetExternalMeshGroupForMesh(int meshIndex) const;
 	const std::vector<ExternalMeshGroup>& GetExternalMeshGroups() const
