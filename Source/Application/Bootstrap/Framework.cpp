@@ -1,4 +1,4 @@
-﻿// Framework.cpp
+// Framework.cpp
 #include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
@@ -67,7 +67,10 @@ void Framework::Update(float elapsedTime)
 {
 	// 時間更新処理
 	Game::Time::time += elapsedTime;
-	Game::Time::deltaTime = elapsedTime * Game::Time::scale;
+
+	// 一時停止してなかったら時間を進める
+	Game::Time::deltaTime = Game::Time::paused ? 0.0f : elapsedTime * Game::Time::scale;
+	
 	Game::Time::unscaledDeltaTime = elapsedTime;
 	TimeScaleController::Update();
 

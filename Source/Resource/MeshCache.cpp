@@ -228,7 +228,31 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 				cacheMaterialIndex = static_cast<int>(cacheMaterials.size());
 				materialRemap.emplace(sourceMesh.materialIndex, cacheMaterialIndex);
 				const VMDLModel::Material& material = source.materials[sourceMesh.materialIndex];
-				cacheMaterials.push_back(material);
+				VMDLModel::Material cacheMaterial = material;
+				auto* device = Game::Graphics::Instance().GetDevice();
+				const auto directory = filepath.parent_path();
+				const auto rebuildTexture = [device, &directory](bool hasTexture,
+					const std::string& filename, ID3D11ShaderResourceView* srv,
+					std::vector<uint8_t>& dds)
+				{
+					if (hasTexture)
+						VMDLModel::BuildEmbeddedDDSFromFileOrSRV(device, directory, filename, srv, dds);
+					else
+						dds.clear();
+				};
+				rebuildTexture(cacheMaterial.hasBaseTexture, cacheMaterial.baseTextureFileName,
+					cacheMaterial.baseMap.Get(), cacheMaterial.baseTextureDDS);
+				rebuildTexture(cacheMaterial.hasNormalTexture, cacheMaterial.normalTextureFileName,
+					cacheMaterial.normalMap.Get(), cacheMaterial.normalTextureDDS);
+				rebuildTexture(cacheMaterial.hasEmissiveTexture, cacheMaterial.emissiveTextureFileName,
+					cacheMaterial.emissiveMap.Get(), cacheMaterial.emissiveTextureDDS);
+				rebuildTexture(cacheMaterial.hasOcclusionTexture, cacheMaterial.occlusionTextureFileName,
+					cacheMaterial.occlusionMap.Get(), cacheMaterial.occlusionTextureDDS);
+				rebuildTexture(cacheMaterial.hasMetalnessRoughnessTexture,
+					cacheMaterial.metalnessRoughnessTextureFileName,
+					cacheMaterial.metalnessRoughnessMap.Get(),
+					cacheMaterial.metalnessRoughnessTextureDDS);
+				cacheMaterials.push_back(std::move(cacheMaterial));
 				pbrSettings.push_back({material.occlusion, material.shadowStrength});
 				vmatSettings.push_back({material.fresnelColor, material.fresnelPower,
 					material.fresnelStrength, material.isFlatShading});

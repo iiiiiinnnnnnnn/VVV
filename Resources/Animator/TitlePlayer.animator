@@ -1,0 +1,33 @@
+{
+    "animationMode": "VMDLModel",
+    "layers": [
+        {
+            "anyStateEditorPosX": -180.0,
+            "anyStateEditorPosY": 60.0,
+            "anyStateTransitions": [],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Title Preview",
+            "states": [
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 100.0,
+                    "editorPosY": 0.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Idle",
+                    "speed": 1.0,
+                    "transitions": []
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [],
+    "triggers": []
+}

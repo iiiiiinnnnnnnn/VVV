@@ -237,6 +237,7 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 
 VmdlEditorScene::~VmdlEditorScene()
 {
+	SoundSystem::Instance().SetListenerOverride(nullptr);
 	SaveLayoutSettings();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	if (GetCapture() == graphics.GetWindowHandle()) ReleaseCapture();
@@ -449,13 +450,11 @@ void VmdlEditorScene::OnDrawGUI()
 		else SaveVmdl();
 	}
 	else if (!io.WantTextInput && !io.KeyCtrl && !io.KeyShift && !io.KeyAlt && model &&
-			 selectedAnimation >= 0 &&
-			 selectedAnimation < static_cast<int>(model->GetAnimations().size()) &&
 			 !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) &&
 			 ImGui::IsKeyPressed(ImGuiKey_Space, false))
 	{
-		animationPlaying = !animationPlaying;
-		if (animationPlaying) animationSoundPreviewStarting = true;
+		if (animationPlaying) StopUnifiedPreview(false);
+		else StartUnifiedPreview();
 	}
 
 	// アニメーションプレビューの再生
@@ -485,10 +484,13 @@ void VmdlEditorScene::OnDrawGUI()
 		{
 			PlayAnimationSoundPreview(selectedAnimation, soundBegin, length);
 			PlayAnimationSoundPreview(selectedAnimation, -0.0001f, animationTime);
+			PlayPresentationPreviewEvents(selectedAnimation, soundBegin, length);
+			PlayPresentationPreviewEvents(selectedAnimation, -0.0001f, animationTime);
 		}
 		else
 		{
 			PlayAnimationSoundPreview(selectedAnimation, soundBegin, animationTime);
+			PlayPresentationPreviewEvents(selectedAnimation, soundBegin, animationTime);
 		}
 		animationSoundPreviewStarting = false;
 		ApplyAnimationPreview();
@@ -513,7 +515,13 @@ void VmdlEditorScene::OnDrawGUI()
 		return;
 	}
 
+	// メニューは背後のプロパティや3Dビューが透けると読みにくいため、
+	// VMDL Editor内だけ完全に不透明なポップアップとして描画する。
+	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	DrawMenuBar();
+	ImGui::PopStyleColor();
+	ImGui::PopStyleVar();
 
 	// 保存値と現在の画面サイズからパネル幅を決定
 	const float totalHeight = ImGui::GetContentRegionAvail().y;
@@ -728,9 +736,174 @@ void VmdlEditorScene::OnDrawGUI()
 	style = gameStyle;
 }
 
+void VmdlEditorScene::StartUnifiedPreview()
+{
+	if (!model) return;
+	if (unifiedPreviewActive)
+	{
+		animationPlaying = true;
+		animationSoundPreviewStarting = true;
+		return;
+	}
+	if (selectedAnimation >= 0 && selectedAnimation < static_cast<int>(model->GetAnimations().size()) &&
+		animationTime >= model->GetAnimations()[selectedAnimation].secondsLength - 0.0001f)
+	{
+		animationTime = 0.0f;
+		ApplyAnimationPreview();
+	}
+	unifiedPreviewActive = true;
+	animationPlaying = true;
+	animationSoundPreviewStarting = true;
+	particlePreviewBurstPending = true;
+	springPreviewSignature.clear();
+	StartPresentationPreview();
+	if (model->GetVmdlIKSettings().type != 0)
+	{
+		showFootIkTestStage = true;
+		if (!footIkTestStageModel) LoadFootIkTestStage();
+	}
+}
+
+void VmdlEditorScene::StopUnifiedPreview(bool rewind)
+{
+	animationPlaying = false;
+	particlePreviewBurstPending = false;
+	if (!rewind) return;
+
+	unifiedPreviewActive = false;
+	animationTime = 0.0f;
+	ApplyAnimationPreview();
+	ResetAnimationControlPreview();
+	animationSoundPreviewStarting = true;
+	cameraShakePreviewTimer = cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
+	radialBlurPreviewTimer = radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
+	springPreviewOwner.reset();
+	springPreviewComponents.clear();
+	springPreviewSignature.clear();
+	trailPreviewOwner.reset();
+	trailPreviewComponents.clear();
+	trailPreviewSignature.clear();
+	particlePreviewOwner.reset();
+	particlePreviewComponents.clear();
+	SoundSystem::Instance().StopAll();
+}
+
+void VmdlEditorScene::StartPresentationPreview()
+{
+	cameraShakePreviewTimer = cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
+	radialBlurPreviewTimer = radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
+	if (!model || !editorCamera) return;
+	if (selectedAnimation >= 0 && selectedAnimation < static_cast<int>(model->GetAnimations().size()))
+	{
+		const std::string& animationName = model->GetAnimations()[selectedAnimation].name;
+		const auto& presentation = model->GetVmdlPresentationData();
+		const auto hasTrack = [&animationName](const auto& tracks) {
+			return std::any_of(tracks.begin(), tracks.end(), [&animationName](const auto& track) {
+				return track.animationName == animationName && !track.keys.empty();
+			});
+		};
+		if (hasTrack(presentation.cameraShakeTracks) || hasTrack(presentation.radialBlurTracks))
+			return;
+	}
+	model->UpdateTransform(Matrix::Identity);
+	const Vector3 listener = editorCamera->GetEye();
+	const auto strengthAt = [this, &listener](int node, float range, bool attenuate) {
+		const Vector3 origin = node >= 0 && node < static_cast<int>(model->GetNodes().size())
+			? (model->GetNodes()[node].worldTransform * model->GetRenderScaleTransform()).Translation()
+			: Vector3::Zero;
+		const float distance = Vector3::Distance(origin, listener);
+		if (distance > range) return 0.0f;
+		if (!attenuate) return 1.0f;
+		const float t = std::clamp(1.0f - distance / std::max(range, 0.01f), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	};
+	for (const auto& value : model->GetVmdlPresentationData().cameraShakes)
+	{
+		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+		cameraShakePreviewDuration = std::max(cameraShakePreviewDuration, value.duration);
+		cameraShakePreviewTimer = std::max(cameraShakePreviewTimer, value.duration);
+		cameraShakePreviewIntensity = std::max(cameraShakePreviewIntensity, value.intensity * strength);
+	}
+	for (const auto& value : model->GetVmdlPresentationData().radialBlurs)
+	{
+		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+		if (value.power * strength <= radialBlurPreviewPower) continue;
+		radialBlurPreviewDuration = value.duration;
+		radialBlurPreviewTimer = value.duration;
+		radialBlurPreviewPower = value.power * strength;
+		radialBlurPreviewAttackRate = value.attackRate;
+	}
+}
+
+void VmdlEditorScene::PlayPresentationPreviewEvents(
+	int animationIndex, float beginTime, float endTime)
+{
+	if (!model || !editorCamera || animationIndex < 0 ||
+		animationIndex >= static_cast<int>(model->GetAnimations().size()) || endTime < beginTime)
+		return;
+	const std::string& animationName = model->GetAnimations()[animationIndex].name;
+	const auto& presentation = model->GetVmdlPresentationData();
+	const Vector3 listener = editorCamera->GetEye();
+	const auto strengthAt = [this, &listener](int node, float range, bool attenuate) {
+		const Vector3 origin = node >= 0 && node < static_cast<int>(model->GetNodes().size())
+			? (model->GetNodes()[node].worldTransform * model->GetRenderScaleTransform()).Translation()
+			: Vector3::Zero;
+		const float distance = Vector3::Distance(origin, listener);
+		if (distance > range) return 0.0f;
+		if (!attenuate) return 1.0f;
+		const float t = std::clamp(1.0f - distance / std::max(range, 0.01f), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	};
+	for (const auto& track : presentation.cameraShakeTracks)
+	{
+		if (track.animationName != animationName) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds <= beginTime || key.seconds > endTime + 0.0001f ||
+				key.componentIndex < 0 ||
+				key.componentIndex >= static_cast<int>(presentation.cameraShakes.size())) continue;
+			const auto& value = presentation.cameraShakes[key.componentIndex];
+			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			cameraShakePreviewDuration = cameraShakePreviewTimer = value.duration;
+			cameraShakePreviewIntensity = value.intensity * strength;
+		}
+	}
+	for (const auto& track : presentation.radialBlurTracks)
+	{
+		if (track.animationName != animationName) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds <= beginTime || key.seconds > endTime + 0.0001f ||
+				key.componentIndex < 0 ||
+				key.componentIndex >= static_cast<int>(presentation.radialBlurs.size())) continue;
+			const auto& value = presentation.radialBlurs[key.componentIndex];
+			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			radialBlurPreviewDuration = radialBlurPreviewTimer = value.duration;
+			radialBlurPreviewPower = value.power * strength;
+			radialBlurPreviewAttackRate = value.attackRate;
+		}
+	}
+}
+
 void VmdlEditorScene::RenderPreview()
 {
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
+
+	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_LEFT_TRIGGER)
+		cameraReturningToFront = true;
+	if (cameraReturningToFront)
+	{
+		const float returnT = 1.0f - std::exp(-7.0f * Game::Time::unscaledDeltaTime);
+		cameraYaw = std::remainder(cameraYaw, DirectX::XM_2PI);
+		cameraYaw = std::lerp(cameraYaw, 0.0f, returnT);
+		cameraPitch = std::lerp(cameraPitch, 0.0f, returnT);
+		if (std::abs(cameraYaw) < 0.001f && std::abs(cameraPitch) < 0.001f)
+		{
+			cameraYaw = 0.0f;
+			cameraPitch = 0.0f;
+			cameraReturningToFront = false;
+		}
+	}
 
 	const float zoomLerp = 1.0f - std::exp(-12.0f * Game::Time::unscaledDeltaTime);
 	cameraDistance = std::lerp(cameraDistance, targetCameraDistance, zoomLerp);
@@ -740,6 +913,24 @@ void VmdlEditorScene::RenderPreview()
 									std::sin(cameraPitch) * cameraDistance,
 									-std::cos(cameraYaw) * horizontalDistance);
 	editorCamera->SetLookAt(eye, focus, Vector3::Up);
+	if (cameraShakePreviewTimer > 0.0f)
+	{
+		cameraShakePreviewTimer = std::max(0.0f,
+			cameraShakePreviewTimer - Game::Time::unscaledDeltaTime);
+		const float fade = cameraShakePreviewDuration > 0.0f
+			? cameraShakePreviewTimer / cameraShakePreviewDuration : 0.0f;
+		// VMDLプレビューはモデル全体を収めるためゲームカメラより遠くなることがある。
+		// ワールド単位の強度をそのまま使うと画面上でサブピクセルになるので、
+		// 基準距離5mに対する表示距離で補正し、見た目の揺れ幅を維持する。
+		const float previewDistanceScale = std::max(cameraDistance / 5.0f, 1.0f);
+		const float elapsed = std::max(cameraShakePreviewDuration - cameraShakePreviewTimer, 0.0f);
+		const float horizontal = std::sin(elapsed * 71.0f) * cameraShakePreviewIntensity;
+		const float vertical = std::sin(elapsed * 97.0f + 1.3f) * cameraShakePreviewIntensity;
+		const Vector3 offset = (editorCamera->GetRight() * horizontal +
+			editorCamera->GetUp() * vertical) * previewDistanceScale * fade;
+		editorCamera->SetLookAt(eye + offset, focus + offset, Vector3::Up);
+	}
+	SoundSystem::Instance().SetListenerOverride(editorCamera);
 	const float nearClip = std::max(0.01f, cameraDistance * 0.0001f);
 	const float farClip = std::max(1000.0f, cameraDistance * 2.0f);
 	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f), 1.0f, nearClip, farClip);
@@ -784,8 +975,8 @@ void VmdlEditorScene::RenderPreview()
 	{
 		model->UpdateTransform(Matrix::Identity);
 		std::vector<VMDLModel::NodePose> animationPose;
-		const bool useFootIk = footIkPreviewEnabled && showFootIkTestStage && footIkTestStageModel;
-		if (useFootIk || springPreviewEnabled) model->GetNodePoses(animationPose);
+		const bool useFootIk = animationPlaying && showFootIkTestStage && footIkTestStageModel;
+		if (useFootIk || animationPlaying) model->GetNodePoses(animationPose);
 		const bool footIkApplied = useFootIk && ApplyFootIkPreview();
 		const bool springApplied = UpdateSpringPreview();
 
@@ -973,6 +1164,25 @@ void VmdlEditorScene::RenderPreview()
 				hasShapes = true;
 			}
 		}
+		if (showDebugOverlays && showSoundRange)
+		{
+			const auto& nodes = model->GetNodes();
+			const auto& presentation = model->GetVmdlPresentationData();
+			for (const auto& value : presentation.cameraShakes)
+			{
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
+				graphics.GetShapeRenderer()->DrawSphere(nodes[value.nodeIndex].worldTransform.Translation(),
+					value.range, Color(1.0f, 0.65f, 0.1f, 0.7f));
+				hasShapes = true;
+			}
+			for (const auto& value : presentation.radialBlurs)
+			{
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
+				graphics.GetShapeRenderer()->DrawSphere(nodes[value.nodeIndex].worldTransform.Translation(),
+					value.range, Color(0.7f, 0.25f, 1.0f, 0.7f));
+				hasShapes = true;
+			}
+		}
 		if (showDebugOverlays && showSpringCollider)
 		{
 			for (const auto& value : data.springColliders)
@@ -1041,6 +1251,18 @@ void VmdlEditorScene::RenderPreview()
 
 	previewTarget->Clear(dc);
 	previewTarget->Activate(dc);
+	postProcess.ClearRuntimeEffects();
+	if (radialBlurPreviewTimer > 0.0f)
+	{
+		radialBlurPreviewTimer = std::max(0.0f,
+			radialBlurPreviewTimer - Game::Time::unscaledDeltaTime);
+		const float elapsed = radialBlurPreviewDuration - radialBlurPreviewTimer;
+		const float attackDuration = radialBlurPreviewDuration * radialBlurPreviewAttackRate;
+		const float intensity = elapsed < attackDuration
+			? elapsed / std::max(attackDuration, 0.001f)
+			: radialBlurPreviewTimer / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
+		postProcess.AddRuntimeRadialBlur(radialBlurPreviewPower * std::clamp(intensity, 0.0f, 1.0f));
+	}
 	postProcess.ToneMapping(rc, previewSceneTarget->GetSRV());
 	previewTarget->Deactivate(dc);
 }
@@ -1092,7 +1314,7 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem((const char*)u8"IKポール", "I", &showIkPole);
 		ImGui::MenuItem((const char*)u8"リジッドボディ", "R", &showRigidBody);
 		ImGui::MenuItem((const char*)u8"コライダー", "C", &showCollider);
-		ImGui::MenuItem((const char*)u8"サウンド減衰範囲", nullptr, &showSoundRange);
+		ImGui::MenuItem((const char*)u8"サウンド・演出範囲", nullptr, &showSoundRange);
 		ImGui::MenuItem((const char*)u8"スプリング", "S", &showSpring);
 		ImGui::MenuItem((const char*)u8"スプリングコライダー", "Shift+C", &showSpringCollider);
 		ImGui::MenuItem((const char*)u8"トレイル", "T", &showTrail);
@@ -1111,20 +1333,12 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)u8"ツール"))
 	{
-		if (ImGui::MenuItem(
-				(const char*)u8"Springプレビュー", nullptr, &springPreviewEnabled) &&
-			!springPreviewEnabled)
-		{
-			springPreviewOwner.reset();
-			springPreviewComponents.clear();
-			springPreviewSignature.clear();
-		}
 		if (ImGui::MenuItem((const char*)u8"スケール設定...", nullptr, false, model != nullptr))
 		{
 			setScaleValue = model->GetModelScale();
 			showSetScaleWindow = true;
 		}
-		if (ImGui::MenuItem((const char*)u8"Foot IKプレビュー..."))
+		if (ImGui::MenuItem((const char*)u8"Foot IKテストステージ設定..."))
 		{
 			showFootIkPreviewWindow = true;
 			showFootIkTestStage = true;
@@ -1229,7 +1443,7 @@ void VmdlEditorScene::DrawFootIkPreviewWindow()
 		if (showFootIkTestStage) LoadFootIkTestStage();
 		UpdateFootIkTestStage();
 	}
-	ImGui::Checkbox((const char*)u8"Foot IKを適用", &footIkPreviewEnabled);
+	ImGui::TextDisabled((const char*)u8"Foot IKは上部の再生ボタンと連動します");
 	ImGui::Checkbox((const char*)u8"IKターゲットとレイを表示", &showFootIkDebug);
 
 	bool stageChanged =
@@ -1501,6 +1715,12 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 				(const char*)u8"サウンドソース SOUND SOURCE", value.name))
 			return true;
 	}
+	for (const auto& value : model->GetVmdlPresentationData().cameraShakes)
+		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
+				(const char*)u8"カメラシェイク CAMERA SHAKE", value.name)) return true;
+	for (const auto& value : model->GetVmdlPresentationData().radialBlurs)
+		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
+				(const char*)u8"ラジアルブラー RADIAL BLUR", value.name)) return true;
 
 	for (const VMDLModel::Node* child : node.children)
 	{
@@ -1615,6 +1835,12 @@ std::string VmdlEditorScene::MakeUniqueAttachedComponentName(
 	case AttachedComponentType::SoundSource:
 		for (const auto& value : model->GetVmdlSoundData().sources) names.push_back(value.name);
 		break;
+	case AttachedComponentType::CameraShake:
+		for (const auto& value : model->GetVmdlPresentationData().cameraShakes) names.push_back(value.name);
+		break;
+	case AttachedComponentType::RadialBlur:
+		for (const auto& value : model->GetVmdlPresentationData().radialBlurs) names.push_back(value.name);
+		break;
 	default:
 		break;
 	}
@@ -1710,6 +1936,24 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 			value.nodeIndex = nodeIndex;
 			break;
 		}
+		case AttachedComponentType::CameraShake:
+		{
+			auto& values = model->GetVmdlPresentationData().cameraShakes;
+			componentIndex = static_cast<int>(values.size());
+			auto& value = values.emplace_back();
+			value.name = MakeUniqueAttachedComponentName(type, "CAMERA SHAKE");
+			value.nodeIndex = nodeIndex;
+			break;
+		}
+		case AttachedComponentType::RadialBlur:
+		{
+			auto& values = model->GetVmdlPresentationData().radialBlurs;
+			componentIndex = static_cast<int>(values.size());
+			auto& value = values.emplace_back();
+			value.name = MakeUniqueAttachedComponentName(type, "RADIAL BLUR");
+			value.nodeIndex = nodeIndex;
+			break;
+		}
 		default:
 			break;
 		}
@@ -1773,6 +2017,12 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
 		std::any_of(model->GetVmdlSoundData().sources.begin(),
 			model->GetVmdlSoundData().sources.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
+		std::any_of(model->GetVmdlPresentationData().cameraShakes.begin(),
+			model->GetVmdlPresentationData().cameraShakes.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
+		std::any_of(model->GetVmdlPresentationData().radialBlurs.begin(),
+			model->GetVmdlPresentationData().radialBlurs.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; });
 
 	const bool selected = IsNodeSelected(nodeIndex) && selectedMesh < 0;
@@ -1834,6 +2084,12 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	if (std::any_of(soundSources.begin(), soundSources.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
 		drawBadge("[SS]");
+	const auto& cameraShakes = model->GetVmdlPresentationData().cameraShakes;
+	if (std::any_of(cameraShakes.begin(), cameraShakes.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; })) drawBadge("[CS]");
+	const auto& radialBlurs = model->GetVmdlPresentationData().radialBlurs;
+	if (std::any_of(radialBlurs.begin(), radialBlurs.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; })) drawBadge("[RB]");
 	if (nodeClicked)
 	{
 		SelectNode(nodeIndex, io.KeyCtrl);
@@ -1959,6 +2215,20 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::SoundSource, i,
 			(const char*)u8"サウンドソース", value.name);
 	}
+	for (int i = 0; i < static_cast<int>(cameraShakes.size()); ++i)
+	{
+		const auto& value = cameraShakes[i];
+		if (value.nodeIndex != nodeIndex) continue;
+		DrawHierarchyComponent(nodeIndex, AttachedComponentType::CameraShake, i,
+			(const char*)u8"カメラシェイク", value.name);
+	}
+	for (int i = 0; i < static_cast<int>(radialBlurs.size()); ++i)
+	{
+		const auto& value = radialBlurs[i];
+		if (value.nodeIndex != nodeIndex) continue;
+		DrawHierarchyComponent(nodeIndex, AttachedComponentType::RadialBlur, i,
+			(const char*)u8"ラジアルブラー", value.name);
+	}
 	for (const VMDLModel::Node* child : node.children)
 	{
 		const int childIndex = static_cast<int>(child - nodes.data());
@@ -1982,6 +2252,18 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 		ImGui::Separator();
 		if (ImGui::BeginMenu((const char*)u8"追加"))
 		{
+			if (ImGui::BeginMenu((const char*)u8"カメラ"))
+			{
+				if (ImGui::MenuItem((const char*)u8"カメラシェイク"))
+					AddAttachedComponentToSelectedNodes(AttachedComponentType::CameraShake);
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu((const char*)u8"ポストエフェクト"))
+			{
+				if (ImGui::MenuItem((const char*)u8"ラジアルブラー"))
+					AddAttachedComponentToSelectedNodes(AttachedComponentType::RadialBlur);
+				ImGui::EndMenu();
+			}
 			if (ImGui::MenuItem((const char*)u8"リジッドボディ"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::RigidBody);
 			if (ImGui::MenuItem((const char*)u8"コライダー"))
@@ -2007,6 +2289,19 @@ void VmdlEditorScene::DrawViewport()
 {
 	auto& io = ImGui::GetIO();
 	ImGui::TextUnformatted((const char*)u8"3Dビュー");
+	const float transportButtonWidth = 42.0f;
+	const float transportWidth = transportButtonWidth * 2.0f + ImGui::GetStyle().ItemSpacing.x;
+	ImGui::SameLine();
+	ImGui::SetCursorPosX(std::max(
+		ImGui::GetCursorPosX(), (ImGui::GetWindowWidth() - transportWidth) * 0.5f));
+	if (ImGui::Button(animationPlaying ? ICON_FA_PAUSE "##UnifiedPlay" : ICON_FA_PLAY "##UnifiedPlay",
+			ImVec2(transportButtonWidth, 0.0f)))
+	{
+		if (animationPlaying) StopUnifiedPreview(false); else StartUnifiedPreview();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button(ICON_FA_STOP "##UnifiedStop", ImVec2(transportButtonWidth, 0.0f)))
+		StopUnifiedPreview(true);
 	ImGui::SameLine();
 	if (ImGui::SmallButton((const char*)u8"移動")) gizmoOperation = ImGuizmo::TRANSLATE;
 	ImGui::SameLine();
@@ -2022,6 +2317,12 @@ void VmdlEditorScene::DrawViewport()
 	ImGui::Image(previewTarget->GetSRV(), imageSize);
 	const ImVec2 imageMin = ImGui::GetItemRectMin();
 	const ImVec2 imageMax = ImGui::GetItemRectMax();
+	if (viewportRotationDragging)
+	{
+		const std::string speedText = std::format("移動速度 {:.1f}  ホイールで調整", previewCameraMoveSpeed);
+		ImGui::GetWindowDrawList()->AddText(
+			ImVec2(imageMin.x + 10.0f, imageMin.y + 10.0f), IM_COL32(255, 255, 255, 220), speedText.c_str());
+	}
 	const bool imageHovered = ImGui::IsItemHovered();
 	if (imageHovered && !io.WantTextInput && !io.KeyCtrl)
 	{
@@ -2070,8 +2371,25 @@ void VmdlEditorScene::DrawViewport()
 	{
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
+			cameraReturningToFront = false;
 			cameraYaw -= io.MouseDelta.x * 0.01f;
 			cameraPitch = std::clamp(cameraPitch + io.MouseDelta.y * 0.01f, -1.45f, 1.45f);
+			if (io.MouseWheel != 0.0f)
+				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
+					std::pow(1.1f, io.MouseWheel), 0.1f, 500.0f);
+			Vector3 move = Vector3::Zero;
+			if (ImGui::IsKeyDown(ImGuiKey_W)) move += editorCamera->GetFront();
+			if (ImGui::IsKeyDown(ImGuiKey_S)) move -= editorCamera->GetFront();
+			if (ImGui::IsKeyDown(ImGuiKey_A)) move -= editorCamera->GetRight();
+			if (ImGui::IsKeyDown(ImGuiKey_D)) move += editorCamera->GetRight();
+			if (ImGui::IsKeyDown(ImGuiKey_E)) move += editorCamera->GetUp();
+			if (ImGui::IsKeyDown(ImGuiKey_Q)) move -= editorCamera->GetUp();
+			if (move.LengthSquared() > 0.0f)
+			{
+				move.Normalize();
+				cameraFocusOffset += move * previewCameraMoveSpeed *
+					(io.KeyShift ? 3.0f : 1.0f) * Game::Time::unscaledDeltaTime;
+			}
 		}
 		else
 		{
@@ -2152,7 +2470,7 @@ void VmdlEditorScene::DrawViewport()
 		cameraFocusOffset -= editorCamera->GetRight() * io.MouseDelta.x * panScale;
 		cameraFocusOffset += editorCamera->GetUp() * io.MouseDelta.y * panScale;
 	}
-	if (io.MouseWheel != 0.0f)
+	if (io.MouseWheel != 0.0f && !viewportRotationDragging)
 	{
 		if (io.KeyShift) targetCameraDistance *= std::pow(2.0f, -io.MouseWheel);
 		else targetCameraDistance -= io.MouseWheel * 0.4f;
@@ -2715,10 +3033,6 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			changed |= ImGui::DragFloat((const char*)u8"フェードイン", &value.fadeInDuration, 0.01f, 0.0f, 30.0f);
 			changed |= ImGui::DragFloat((const char*)u8"フェードアウト", &value.fadeOutDuration, 0.01f, 0.0f, 30.0f);
 
-			if (ImGui::Button((const char*)u8"プレビュー再発生") &&
-				i < static_cast<int>(particlePreviewComponents.size()) && particlePreviewComponents[i])
-				particlePreviewComponents[i]->Burst();
-			ImGui::SameLine();
 			if (ImGui::Button((const char*)u8"VFX書き出し...")) ExportParticlePrefab(i);
 			ImGui::SameLine();
 			if (ImGui::Button((const char*)u8"VFX読込...")) { ImportParticlePrefab(i); changed = true; }
@@ -2843,6 +3157,98 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		MarkDirty();
 	}
+
+	auto& presentation = model->GetVmdlPresentationData();
+	auto drawDistanceMode = [](bool& attenuate) {
+		bool fixed = !attenuate;
+		if (ImGui::Checkbox((const char*)u8"範囲内は固定強度", &fixed) && fixed)
+			attenuate = false;
+		bool distance = attenuate;
+		if (ImGui::Checkbox((const char*)u8"プレイヤーとの距離に応じて減衰", &distance) && distance)
+			attenuate = true;
+	};
+	int deleteCameraShake = -1;
+	for (int i = 0; i < static_cast<int>(presentation.cameraShakes.size()); ++i)
+	{
+		auto& value = presentation.cameraShakes[i];
+		if (value.nodeIndex != nodeIndex) continue;
+		ImGui::PushID(7000 + i);
+		const bool selected = selectedComponentType == AttachedComponentType::CameraShake && selectedComponentIndex == i;
+		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
+		if (ImGui::TreeNodeEx((const char*)u8"カメラシェイク", selected ? ImGuiTreeNodeFlags_Selected : 0))
+		{
+			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
+			if (changed) value.name = ToUpperString(value.name);
+			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
+			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
+			changed |= oldMode != value.distanceAttenuation;
+			changed |= ImGui::DragFloat((const char*)u8"継続時間", &value.duration, 0.05f, 0.01f, 30.0f);
+			changed |= ImGui::DragFloat((const char*)u8"揺れの強さ", &value.intensity, 0.005f, 0.0f, 10.0f);
+			value.range = std::max(0.01f, value.range); value.duration = std::max(0.01f, value.duration);
+			value.intensity = std::max(0.0f, value.intensity);
+			if (changed) MarkDirty();
+			if (ImGui::Button((const char*)u8"削除")) deleteCameraShake = i;
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
+	if (deleteCameraShake >= 0)
+	{
+		presentation.cameraShakes.erase(presentation.cameraShakes.begin() + deleteCameraShake);
+		for (auto& track : presentation.cameraShakeTracks)
+		{
+			std::erase_if(track.keys, [deleteCameraShake](const auto& key) {
+				return key.componentIndex == deleteCameraShake;
+			});
+			for (auto& key : track.keys) if (key.componentIndex > deleteCameraShake) --key.componentIndex;
+		}
+		std::erase_if(presentation.cameraShakeTracks,
+			[](const auto& track) { return track.keys.empty(); });
+		if (selectedComponentType == AttachedComponentType::CameraShake) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; }
+		MarkDirty();
+	}
+
+	int deleteRadialBlur = -1;
+	for (int i = 0; i < static_cast<int>(presentation.radialBlurs.size()); ++i)
+	{
+		auto& value = presentation.radialBlurs[i];
+		if (value.nodeIndex != nodeIndex) continue;
+		ImGui::PushID(8000 + i);
+		const bool selected = selectedComponentType == AttachedComponentType::RadialBlur && selectedComponentIndex == i;
+		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
+		if (ImGui::TreeNodeEx((const char*)u8"ラジアルブラー", selected ? ImGuiTreeNodeFlags_Selected : 0))
+		{
+			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
+			if (changed) value.name = ToUpperString(value.name);
+			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
+			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
+			changed |= oldMode != value.distanceAttenuation;
+			changed |= ImGui::DragFloat((const char*)u8"継続時間", &value.duration, 0.05f, 0.01f, 30.0f);
+			changed |= ImGui::DragFloat((const char*)u8"ブラー強度", &value.power, 0.05f, 0.0f, 20.0f);
+			changed |= ImGui::SliderFloat((const char*)u8"立ち上がり割合", &value.attackRate, 0.01f, 0.95f);
+			value.range = std::max(0.01f, value.range); value.duration = std::max(0.01f, value.duration);
+			value.power = std::max(0.0f, value.power);
+			if (changed) MarkDirty();
+			if (ImGui::Button((const char*)u8"削除")) deleteRadialBlur = i;
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
+	if (deleteRadialBlur >= 0)
+	{
+		presentation.radialBlurs.erase(presentation.radialBlurs.begin() + deleteRadialBlur);
+		for (auto& track : presentation.radialBlurTracks)
+		{
+			std::erase_if(track.keys, [deleteRadialBlur](const auto& key) {
+				return key.componentIndex == deleteRadialBlur;
+			});
+			for (auto& key : track.keys) if (key.componentIndex > deleteRadialBlur) --key.componentIndex;
+		}
+		std::erase_if(presentation.radialBlurTracks,
+			[](const auto& track) { return track.keys.empty(); });
+		if (selectedComponentType == AttachedComponentType::RadialBlur) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; }
+		MarkDirty();
+	}
 }
 
 void VmdlEditorScene::DrawTimeline()
@@ -2939,6 +3345,13 @@ void VmdlEditorScene::DrawTimeline()
 					std::erase_if(particleData.tracks, [&deletedName](const auto& track) {
 						return track.animationName == deletedName;
 					});
+					auto& presentation = model->GetVmdlPresentationData();
+					std::erase_if(presentation.cameraShakeTracks, [&deletedName](const auto& track) {
+						return track.animationName == deletedName;
+					});
+					std::erase_if(presentation.radialBlurTracks, [&deletedName](const auto& track) {
+						return track.animationName == deletedName;
+					});
 				}
 				selectedAnimation =
 					animations.empty()
@@ -2987,19 +3400,9 @@ void VmdlEditorScene::DrawTimeline()
 
 	if (recordClicked) animationRecording = !animationRecording;
 	ImGui::SameLine();
-	if (ImGui::Button(
-			animationPlaying ? ICON_FA_PAUSE "##Play" : ICON_FA_PLAY "##Play", ImVec2(38.0f, 0.0f)))
-	{
-		animationPlaying = !animationPlaying;
-		if (animationPlaying) animationSoundPreviewStarting = true;
-	}
-	ImGui::SameLine();
 	if (ImGui::Button(ICON_FA_STOP "##Stop", ImVec2(38.0f, 0.0f)))
 	{
-		animationPlaying = false;
-		animationTime = 0.0f;
-		ApplyAnimationPreview();
-		ResetAnimationControlPreview();
+		StopUnifiedPreview(true);
 	}
 	ImGui::SameLine();
 	ImGui::Checkbox((const char*)u8"ループ", &animationLoop);
@@ -3014,7 +3417,6 @@ void VmdlEditorScene::DrawTimeline()
 	{
 		DrawAnimationCurves();
 	}
-	DrawAnimationEventEditor();
 }
 
 void VmdlEditorScene::DrawAnimationCurves()
@@ -3103,9 +3505,15 @@ void VmdlEditorScene::DrawAnimationCurves()
 	const float rowsTopOffset = rulerHeight + footWeightsHeight;
 	const int colliderRowCount = static_cast<int>(model->GetVmdlExtensionData().colliders.size());
 	const int trailRowCount = static_cast<int>(model->GetVmdlTrailData().trails.size());
+	const int particleRowCount = static_cast<int>(model->GetVmdlParticleData().emitters.size());
 	const int morphRowCount = static_cast<int>(model->GetVmdlExtensionData().morphs.size());
 	const int soundRowCount = static_cast<int>(model->GetVmdlSoundData().sources.size());
-	const int eventRowCount = colliderRowCount + trailRowCount + morphRowCount + soundRowCount;
+	const int cameraShakeRowCount =
+		static_cast<int>(model->GetVmdlPresentationData().cameraShakes.size());
+	const int radialBlurRowCount =
+		static_cast<int>(model->GetVmdlPresentationData().radialBlurs.size());
+	const int eventRowCount = colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
+		soundRowCount + cameraShakeRowCount + radialBlurRowCount;
 	const float eventRowsTopOffset = rowsTopOffset + rowHeight * static_cast<float>(rows.size());
 	const float sheetHeight = eventRowsTopOffset + rowHeight * static_cast<float>(eventRowCount);
 	ImGui::InvisibleButton(
@@ -3280,9 +3688,12 @@ void VmdlEditorScene::DrawAnimationCurves()
 
 	const auto& colliders = model->GetVmdlExtensionData().colliders;
 	const auto& trails = model->GetVmdlTrailData().trails;
+	const auto& particles = model->GetVmdlParticleData().emitters;
 	const auto& morphs = model->GetVmdlExtensionData().morphs;
 	auto& controlData = model->GetVmdlAnimationControlData();
+	auto& particleData = model->GetVmdlParticleData();
 	auto& soundData = model->GetVmdlSoundData();
+	auto& presentation = model->GetVmdlPresentationData();
 	const auto drawEventDiamond = [&](float seconds, float centerY, ImU32 color) {
 		const ImVec2 position(timeToX(seconds), centerY);
 		const ImVec2 diamond[] = {ImVec2(position.x, position.y - 5.0f),
@@ -3333,9 +3744,24 @@ void VmdlEditorScene::DrawAnimationCurves()
 				break;
 			}
 		}
-		else if (eventRow < colliderRowCount + trailRowCount + morphRowCount)
+		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount)
 		{
-			const int morphIndex = eventRow - colliderRowCount - trailRowCount;
+			const int particleIndex = eventRow - colliderRowCount - trailRowCount;
+			const std::string label = (const char*)u8"パーティクル／" + particles[particleIndex].name;
+			drawList->AddText(
+				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(95, 210, 255, 255), label.c_str());
+			for (const auto& track : particleData.tracks)
+			{
+				if (track.animationName != animation.name || track.emitterIndex != particleIndex) continue;
+				for (const auto& key : track.keys)
+					drawEventDiamond(key.seconds, centerY,
+						key.value ? IM_COL32(80, 235, 115, 255) : IM_COL32(235, 75, 75, 255));
+				break;
+			}
+		}
+		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount)
+		{
+			const int morphIndex = eventRow - colliderRowCount - trailRowCount - particleRowCount;
 			const std::string label = (const char*)u8"モーフ／" + morphs[morphIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(210, 125, 255, 255), label.c_str());
@@ -3350,10 +3776,10 @@ void VmdlEditorScene::DrawAnimationCurves()
 				break;
 			}
 		}
-		else
+		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount + soundRowCount)
 		{
 			const int soundIndex =
-				eventRow - colliderRowCount - trailRowCount - morphRowCount;
+				eventRow - colliderRowCount - trailRowCount - particleRowCount - morphRowCount;
 			const std::string label =
 				(const char*)u8"サウンド／" + soundData.sources[soundIndex].name;
 			drawList->AddText(
@@ -3368,6 +3794,33 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 				break;
 			}
+		}
+		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
+			soundRowCount + cameraShakeRowCount)
+		{
+			const int index = eventRow - colliderRowCount - trailRowCount - particleRowCount -
+				morphRowCount - soundRowCount;
+			const std::string label = (const char*)u8"カメラシェイク／" + presentation.cameraShakes[index].name;
+			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f),
+				IM_COL32(255, 180, 65, 255), label.c_str());
+			for (const auto& track : presentation.cameraShakeTracks)
+				if (track.animationName == animation.name)
+					for (const auto& key : track.keys)
+						if (key.componentIndex == index)
+							drawEventDiamond(key.seconds, centerY, IM_COL32(255, 180, 65, 255));
+		}
+		else
+		{
+			const int index = eventRow - colliderRowCount - trailRowCount - particleRowCount -
+				morphRowCount - soundRowCount - cameraShakeRowCount;
+			const std::string label = (const char*)u8"ラジアルブラー／" + presentation.radialBlurs[index].name;
+			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f),
+				IM_COL32(190, 105, 255, 255), label.c_str());
+			for (const auto& track : presentation.radialBlurTracks)
+				if (track.animationName == animation.name)
+					for (const auto& key : track.keys)
+						if (key.componentIndex == index)
+							drawEventDiamond(key.seconds, centerY, IM_COL32(190, 105, 255, 255));
 		}
 	}
 
@@ -3396,16 +3849,35 @@ void VmdlEditorScene::DrawAnimationCurves()
 				timelineEventContextKind = 2;
 				timelineEventContextTarget = eventRow - colliderRowCount;
 			}
-			else if (eventRow < colliderRowCount + trailRowCount + morphRowCount)
+			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount)
 			{
-				timelineEventContextKind = 1;
+				timelineEventContextKind = 4;
 				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount;
 			}
-			else
+			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount)
+			{
+				timelineEventContextKind = 1;
+				timelineEventContextTarget =
+					eventRow - colliderRowCount - trailRowCount - particleRowCount;
+			}
+			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount + soundRowCount)
 			{
 				timelineEventContextKind = 3;
 				timelineEventContextTarget =
-					eventRow - colliderRowCount - trailRowCount - morphRowCount;
+					eventRow - colliderRowCount - trailRowCount - particleRowCount - morphRowCount;
+			}
+			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
+				soundRowCount + cameraShakeRowCount)
+			{
+				timelineEventContextKind = 5;
+				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount -
+					particleRowCount - morphRowCount - soundRowCount;
+			}
+			else
+			{
+				timelineEventContextKind = 6;
+				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount -
+					particleRowCount - morphRowCount - soundRowCount - cameraShakeRowCount;
 			}
 			timelineEventContextTime = xToTime(mouse.x);
 			timelineEventContextKey = -1;
@@ -3472,6 +3944,36 @@ void VmdlEditorScene::DrawAnimationCurves()
 						if (distance >= closest) continue;
 						closest = distance;
 						timelineEventContextKey = i;
+					}
+					break;
+				}
+			}
+			else if (timelineEventContextKind == 4)
+			{
+				for (const auto& track : particleData.tracks)
+				{
+					if (track.animationName != animation.name ||
+						track.emitterIndex != timelineEventContextTarget) continue;
+					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					{
+						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
+						if (distance < closest) { closest = distance; timelineEventContextKey = i; }
+					}
+					break;
+				}
+			}
+			else if (timelineEventContextKind == 5 || timelineEventContextKind == 6)
+			{
+				const auto& tracks = timelineEventContextKind == 5
+					? presentation.cameraShakeTracks : presentation.radialBlurTracks;
+				for (const auto& track : tracks)
+				{
+					if (track.animationName != animation.name) continue;
+					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					{
+						if (track.keys[i].componentIndex != timelineEventContextTarget) continue;
+						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
+						if (distance < closest) { closest = distance; timelineEventContextKey = i; }
 					}
 					break;
 				}
@@ -3723,6 +4225,95 @@ void VmdlEditorScene::DrawAnimationCurves()
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
 					MarkDirty();
 					ImGui::CloseCurrentPopup();
+				}
+			}
+		}
+		else if (timelineEventContextKind == 4 && timelineEventContextTarget >= 0 &&
+			timelineEventContextTarget < particleRowCount)
+		{
+			ImGui::Text((const char*)u8"パーティクル: %s",
+				particles[timelineEventContextTarget].name.c_str());
+			VMDLModel::VmdlParticleAnimationTrack* track = nullptr;
+			for (auto& candidate : particleData.tracks)
+				if (candidate.animationName == animation.name &&
+					candidate.emitterIndex == timelineEventContextTarget) { track = &candidate; break; }
+			if (track && timelineEventContextKey >= 0 &&
+				timelineEventContextKey < static_cast<int>(track->keys.size()))
+			{
+				auto& key = track->keys[timelineEventContextKey];
+				bool changed = ImGui::DragFloat(
+					(const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec");
+				changed |= ImGui::Checkbox((const char*)u8"発生", &key.value);
+				if (changed) { std::sort(track->keys.begin(), track->keys.end(), byTime); MarkDirty(); }
+				if (ImGui::Button((const char*)u8"キーを削除"))
+				{
+					track->keys.erase(track->keys.begin() + timelineEventContextKey);
+					MarkDirty(); ImGui::CloseCurrentPopup();
+				}
+			}
+			else
+			{
+				if (ImGui::MenuItem((const char*)u8"ONキーを追加"))
+				{
+					auto& value = model->GetOrCreateParticleAnimationTrack(
+						animation.name, timelineEventContextTarget);
+					value.keys.push_back({timelineEventContextTime, true});
+					std::sort(value.keys.begin(), value.keys.end(), byTime); MarkDirty();
+				}
+				if (ImGui::MenuItem((const char*)u8"OFFキーを追加"))
+				{
+					auto& value = model->GetOrCreateParticleAnimationTrack(
+						animation.name, timelineEventContextTarget);
+					value.keys.push_back({timelineEventContextTime, false});
+					std::sort(value.keys.begin(), value.keys.end(), byTime); MarkDirty();
+				}
+			}
+		}
+		else if ((timelineEventContextKind == 5 || timelineEventContextKind == 6) &&
+			timelineEventContextTarget >= 0)
+		{
+			auto& tracks = timelineEventContextKind == 5
+				? presentation.cameraShakeTracks : presentation.radialBlurTracks;
+			const int componentCount = timelineEventContextKind == 5
+				? cameraShakeRowCount : radialBlurRowCount;
+			if (timelineEventContextTarget < componentCount)
+			{
+				const std::string& name = timelineEventContextKind == 5
+					? presentation.cameraShakes[timelineEventContextTarget].name
+					: presentation.radialBlurs[timelineEventContextTarget].name;
+				ImGui::Text("%s: %s", timelineEventContextKind == 5
+					? (const char*)u8"カメラシェイク" : (const char*)u8"ラジアルブラー", name.c_str());
+				VMDLModel::VmdlPresentationAnimationTrack* track = nullptr;
+				for (auto& candidate : tracks)
+					if (candidate.animationName == animation.name) { track = &candidate; break; }
+				const bool hasKey = track && timelineEventContextKey >= 0 &&
+					timelineEventContextKey < static_cast<int>(track->keys.size()) &&
+					track->keys[timelineEventContextKey].componentIndex == timelineEventContextTarget;
+				if (hasKey)
+				{
+					auto& key = track->keys[timelineEventContextKey];
+					if (ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f,
+						0.0f, length, "%.3f sec"))
+					{
+						std::sort(track->keys.begin(), track->keys.end(), byTime); MarkDirty();
+					}
+					if (ImGui::Button((const char*)u8"キーを削除"))
+					{
+						track->keys.erase(track->keys.begin() + timelineEventContextKey);
+						std::erase_if(tracks, [](const auto& value) { return value.keys.empty(); });
+						MarkDirty(); ImGui::CloseCurrentPopup();
+					}
+				}
+				else if (ImGui::MenuItem((const char*)u8"再生キーを追加"))
+				{
+					if (!track)
+					{
+						track = &tracks.emplace_back();
+						track->animationName = animation.name;
+					}
+					track->keys.push_back({timelineEventContextTime, timelineEventContextTarget});
+					std::sort(track->keys.begin(), track->keys.end(), byTime);
+					MarkDirty(); ImGui::CloseCurrentPopup();
 				}
 			}
 		}
@@ -3998,7 +4589,21 @@ void VmdlEditorScene::PlayAnimationSoundPreview(
 			options.volume = source.volume;
 			options.pitch = source.pitchMax > source.pitchMin
 				? Random::Range(source.pitchMin, source.pitchMax) : source.pitchMin;
-			SoundSystem::Instance().PlayTrack(source.track, source.variant, options);
+			if (source.spatial && source.nodeIndex >= 0 &&
+				source.nodeIndex < static_cast<int>(model->GetNodes().size()))
+			{
+				SoundSystem::SpatialOptions spatial;
+				static_cast<SoundSystem::PlayOptions&>(spatial) = options;
+				spatial.minDistance = source.minDistance;
+				spatial.maxDistance = source.maxDistance;
+				spatial.lowPassHz = source.lowPassHz;
+				spatial.farLowPassHz = source.farLowPassHz;
+				spatial.reverbMix = source.reverbMix;
+				SoundSystem::Instance().PlayTrack3DAt(source.track,
+					model->GetNodes()[source.nodeIndex].worldTransform.Translation(),
+					source.variant, spatial);
+			}
+			else SoundSystem::Instance().PlayTrack(source.track, source.variant, options);
 		}
 	}
 }
@@ -4055,7 +4660,7 @@ void VmdlEditorScene::RebuildSpringPreview()
 
 bool VmdlEditorScene::UpdateSpringPreview()
 {
-	if (!springPreviewEnabled || !model || model->GetVmdlExtensionData().springs.empty())
+	if (!animationPlaying || !model || model->GetVmdlExtensionData().springs.empty())
 	{
 		springPreviewOwner.reset();
 		springPreviewComponents.clear();
@@ -4127,7 +4732,7 @@ void VmdlEditorScene::RebuildTrailPreview()
 
 void VmdlEditorScene::UpdateTrailPreview(const RenderContext& rc)
 {
-	if (!model || model->GetVmdlTrailData().trails.empty())
+	if (!unifiedPreviewActive || !model || model->GetVmdlTrailData().trails.empty())
 	{
 		trailPreviewOwner.reset();
 		trailPreviewComponents.clear();
@@ -4210,7 +4815,12 @@ void VmdlEditorScene::RebuildParticlePreview()
 
 void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 {
-	if (!showParticle || !model) return;
+	if (!unifiedPreviewActive || !showParticle || !model)
+	{
+		particlePreviewOwner.reset();
+		particlePreviewComponents.clear();
+		return;
+	}
 	if (!particlePreviewOwner || particlePreviewComponents.size() !=
 		model->GetVmdlParticleData().emitters.size())
 		RebuildParticlePreview();
@@ -4219,15 +4829,15 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 	for (int i = 0; i < static_cast<int>(particlePreviewComponents.size()); ++i)
 	{
 		if (!particlePreviewComponents[i]) continue;
-		const bool selectedPreview = selectedComponentType == AttachedComponentType::Particle &&
-			selectedComponentIndex == i;
 		const bool eventActive = selectedAnimation >= 0
 			? model->EvaluateParticleActive(selectedAnimation, animationTime, i)
 			: model->GetParticleInitialActive(i);
-		const bool active = selectedPreview || eventActive;
+		const bool active = animationPlaying && eventActive;
 		previewParticleActive[i] = active ? 1 : 0;
 		particlePreviewComponents[i]->SetEmitting(active);
+		if (particlePreviewBurstPending) particlePreviewComponents[i]->Burst();
 	}
+	particlePreviewBurstPending = false;
 	particlePreviewOwner->LateUpdate();
 	for (VMDLParticleEmitterComponent* emitter : particlePreviewComponents)
 		if (emitter) emitter->RenderParticles(rc);

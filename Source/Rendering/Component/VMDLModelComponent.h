@@ -33,7 +33,10 @@ class VMDLModelComponent : public Component
 	void SetModelYawOffset(float radians) { modelYawOffset = radians; }
 	void UpdateModelTransform(const Matrix& actorTransform);
 	bool PlaySoundSource(const std::string& name, const Vector3* positionOverride = nullptr);
+	bool PlayPresentation(const std::string& name, const Vector3& listenerPosition);
 	float BurstParticleEmitter(const std::string& name);
+	bool SetParticleEmitterSettings(
+		const std::string& name, const VMDLModel::VmdlParticleEmitter& settings);
 	void SetAttachmentLayerId(LayerId value) { attachmentLayerId = value; }
 
 	const ModelShaderId& GetShaderId() const { return shaderId; }
@@ -69,6 +72,9 @@ class VMDLModelComponent : public Component
 	void RestoreAnimationControls();
 	void UpdateSoundEvents();
 	void PlaySoundEvents(int animationIndex, float beginTime, float endTime);
+	void UpdatePresentationEvents();
+	void PlayPresentationEvents(
+		int animationIndex, float beginTime, float endTime, const Vector3& listenerPosition);
 	void SyncExternalMeshCaches();
 
 	std::shared_ptr<VMDLModel> model;
@@ -83,6 +89,8 @@ class VMDLModelComponent : public Component
 	Animator* animator = nullptr;
 	int soundAnimationIndex = -1;
 	float soundAnimationTime = 0.0f;
+	int presentationAnimationIndex = -1;
+	float presentationAnimationTime = 0.0f;
 	struct ActiveSoundEvent
 	{
 		uint64_t voiceId = 0;

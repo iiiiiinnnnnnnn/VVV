@@ -11,6 +11,7 @@
 #include <imguizmo/ImGuizmo.h>
 
 #include "Application/Tools/Dialog.h"
+#include "Application/Input/Input.h"
 #include "Core/Foundation/Json.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
@@ -52,6 +53,9 @@ VstgEditorScene::VstgEditorScene()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
+	Mouse& mouse = Game::Input::Instance().GetMouse();
+	mouse.SetCursorLock(false);
+	mouse.ForceCursorVisible(true);
 	propPreviewTarget =
 		std::make_unique<RenderTarget>(graphics.GetDevice(), 256, 256, DXGI_FORMAT_R8G8B8A8_UNORM);
 	propPreviewCameraOwner = std::make_unique<Object>("VSTG Prop Preview Camera");
@@ -80,6 +84,10 @@ VstgEditorScene::~VstgEditorScene()
 void VstgEditorScene::OnUpdate()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
+	// ロード画面やゲームシーンが残した非表示状態をエディタへ持ち越さない。
+	Mouse& mouse = Game::Input::Instance().GetMouse();
+	mouse.SetCursorLock(false);
+	mouse.SetCursorVisible(true);
 	if (maximizeWindowPending && !graphics.IsBorderlessFullscreen())
 	{
 		// ボーダーレス解除後に通常ウィンドウとして最大化する。
@@ -141,11 +149,13 @@ void VstgEditorScene::OnRender(RenderContext& rc)
 		currentStage->GetLightManager().DrawDebug();
 	if (stageLoader && stageLoader->HasPlayerStart())
 	{
-		const Transform& start = stageLoader->GetPlayerStartTransform();
-		const Matrix markerTransform = Matrix::CreateFromQuaternion(start.rotation) *
-			Matrix::CreateTranslation(start.position + Vector3(0.0f, 0.85f, 0.0f));
-		Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
-			markerTransform, 0.3f, 1.1f, Color(1.0f, 0.68f, 0.08f, 0.9f));
+		for (const Transform& start : stageLoader->GetPlayerStartTransforms())
+		{
+			const Matrix markerTransform = Matrix::CreateFromQuaternion(start.rotation) *
+				Matrix::CreateTranslation(start.position + Vector3(0.0f, 0.85f, 0.0f));
+			Game::Graphics::Instance().GetShapeRenderer()->DrawCapsule(
+				markerTransform, 0.3f, 1.1f, Color(1.0f, 0.68f, 0.08f, 0.9f));
+		}
 	}
 	if (showPlayerStartDragPreview)
 	{
@@ -497,7 +507,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 	ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
 	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(170, 112, 12, 255));
 	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 211, 96, 255));
-	ImGui::Selectable((const char*)u8"★  プレイヤー初期位置",
+	ImGui::Selectable(ICON_FA_MAP_MARKER_ALT "  プレイヤー初期位置",
 		false, ImGuiSelectableFlags_None, ImVec2(0.0f, ImGui::GetFrameHeight() * 1.2f));
 	if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 	{

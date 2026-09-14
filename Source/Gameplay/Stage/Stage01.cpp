@@ -28,7 +28,10 @@ Stage01::Stage01(Player* player) : Stage()
 
 	stageLoader = GetComponent<StageLoader>();
 	if (player && stageLoader && stageLoader->HasPlayerStart())
-		player->SetSpawnTransform(stageLoader->GetPlayerStartTransform());
+	{
+		// まぁ使わないとは思うけど、複数ある場合はランダムな初期位置から開始する
+		player->SetSpawnTransform(stageLoader->GetRandomPlayerStartTransform());
+	}
 	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");

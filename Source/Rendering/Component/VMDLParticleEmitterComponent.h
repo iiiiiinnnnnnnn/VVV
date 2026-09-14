@@ -25,6 +25,7 @@ public:
 	void SetEmitting(bool value);
 	bool IsEmitting() const { return emitting; }
 	void Burst();
+	void SetSettings(const VMDLModel::VmdlParticleEmitter& value) { settings = value; }
 	const std::string& GetEmitterName() const { return settings.name; }
 	float GetMaximumLifetime() const { return settings.lifetimeMax; }
 

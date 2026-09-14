@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <random>
 #include <set>
 #include <sstream>
 #include "Resource/ResourceManager.h"
@@ -97,9 +98,9 @@ StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonTex
 std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 {
 	std::vector<EditorObjectReference> objects;
-	objects.reserve(propDataList.size() + (hasPlayerStart ? 1 : 0));
-	if (hasPlayerStart)
-		objects.push_back({EditorObjectType::PlayerStart, -1, &playerStartTransform});
+	objects.reserve(propDataList.size() + playerStartTransforms.size());
+	for (int i = 0; i < static_cast<int>(playerStartTransforms.size()); ++i)
+		objects.push_back({EditorObjectType::PlayerStart, i, &playerStartTransforms[i]});
 	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 		objects.push_back({EditorObjectType::Prop, i, &propDataList[i].transform});
 	return objects;
@@ -107,7 +108,8 @@ std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 
 bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
 {
-	const bool valid = (type == EditorObjectType::PlayerStart && hasPlayerStart) ||
+	const bool valid = (type == EditorObjectType::PlayerStart && index >= 0 &&
+		index < static_cast<int>(playerStartTransforms.size())) ||
 		(type == EditorObjectType::Prop && index >= 0 &&
 		 index < static_cast<int>(propDataList.size()));
 	if (!valid) return false;
@@ -230,10 +232,13 @@ void StageLoader::ClearEditorSelection()
 
 Transform* StageLoader::GetSelectedEditorTransform()
 {
-	if (selectedEditorObjectType == EditorObjectType::PlayerStart && hasPlayerStart)
+	if (selectedEditorObjectType == EditorObjectType::PlayerStart &&
+		selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
 	{
-		playerStartTransform.Update();
-		return &playerStartTransform;
+		Transform& playerStart = playerStartTransforms[selectedEditorObjectIndex];
+		playerStart.Update();
+		return &playerStart;
 	}
 	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(propDataList.size()))
@@ -254,9 +259,11 @@ Transform* StageLoader::GetSelectedEditorTransform()
 
 void StageLoader::RefreshSelectedEditorObject()
 {
-	if (selectedEditorObjectType == EditorObjectType::PlayerStart && hasPlayerStart)
+	if (selectedEditorObjectType == EditorObjectType::PlayerStart &&
+		selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
 	{
-		playerStartTransform.Update();
+		playerStartTransforms[selectedEditorObjectIndex].Update();
 		return;
 	}
 	if (selectedEditorObjectType != EditorObjectType::Prop || selectedEditorObjectIndex < 0 ||
@@ -491,12 +498,20 @@ bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& ter
 
 void StageLoader::SetEditorPlayerStart(const Vector3& terrainPoint)
 {
-	hasPlayerStart = true;
-	playerStartTransform.position = terrainPoint;
-	playerStartTransform.scale = Vector3::One;
-	playerStartTransform.Update();
+	Transform playerStart;
+	playerStart.position = terrainPoint;
+	playerStart.scale = Vector3::One;
+	playerStart.Update();
+	playerStartTransforms.push_back(playerStart);
 	selectedEditorObjectType = EditorObjectType::PlayerStart;
-	selectedEditorObjectIndex = -1;
+	selectedEditorObjectIndex = static_cast<int>(playerStartTransforms.size()) - 1;
+}
+
+const Transform& StageLoader::GetRandomPlayerStartTransform() const
+{
+	static std::mt19937 generator(std::random_device{}());
+	std::uniform_int_distribution<size_t> distribution(0, playerStartTransforms.size() - 1);
+	return playerStartTransforms[distribution(generator)];
 }
 
 std::vector<std::string> StageLoader::GetMissingModelPaths() const
@@ -564,26 +579,52 @@ bool StageLoader::BuildEditorPropTransform(
 void StageLoader::DrawEditorGUI()
 {
 	// プレイヤー初期位置は通常のVMDLと区別し、常に先頭へ表示する。
-	if (hasPlayerStart)
+	for (int index = 0; index < static_cast<int>(playerStartTransforms.size()); ++index)
 	{
+		Transform& playerStart = playerStartTransforms[index];
+		ImGui::PushID(index);
 		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(170, 112, 12, 255));
-		const bool selected = selectedEditorObjectType == EditorObjectType::PlayerStart;
+		const bool selected = selectedEditorObjectType == EditorObjectType::PlayerStart &&
+			selectedEditorObjectIndex == index;
+		const std::string label = std::string(ICON_FA_MAP_MARKER_ALT " プレイヤー初期位置 ") +
+			std::to_string(index + 1) + "###PlayerStart";
 		const bool open = ImGui::TreeNodeEx(
-			ICON_FA_MAP_MARKER_ALT " プレイヤー初期位置###PlayerStart",
+			label.c_str(),
 			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
 			(selected ? ImGuiTreeNodeFlags_Selected : 0));
-		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::PlayerStart, -1);
+		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::PlayerStart, index);
+		bool duplicate = false;
+		bool remove = false;
+		if (ImGui::BeginPopupContextItem("PlayerStartContext"))
+		{
+			duplicate = ImGui::MenuItem((const char*)u8"複製");
+			remove = ImGui::MenuItem((const char*)u8"削除");
+			ImGui::EndPopup();
+		}
 		ImGui::PopStyleColor(2);
 		if (open)
 		{
-			playerStartTransform.DrawGUI(true);
-			if (ImGui::Button((const char*)u8"初期位置を削除"))
-			{
-				hasPlayerStart = false;
-				ClearEditorSelection();
-			}
+			playerStart.DrawGUI(true);
 			ImGui::TreePop();
+		}
+		ImGui::PopID();
+		if (duplicate)
+		{
+			playerStartTransforms.push_back(playerStart);
+			SelectEditorObject(EditorObjectType::PlayerStart,
+				static_cast<int>(playerStartTransforms.size()) - 1);
+			break;
+		}
+		if (remove)
+		{
+			playerStartTransforms.erase(playerStartTransforms.begin() + index);
+			if (selectedEditorObjectType == EditorObjectType::PlayerStart)
+			{
+				if (selectedEditorObjectIndex == index) ClearEditorSelection();
+				else if (selectedEditorObjectIndex > index) --selectedEditorObjectIndex;
+			}
+			break;
 		}
 	}
 
@@ -707,8 +748,7 @@ void StageLoader::LoadJson()
 	}
 
 	propDataList.clear();
-	hasPlayerStart = false;
-	playerStartTransform = Transform{};
+	playerStartTransforms.clear();
 	ClearEditorSelection();
 
 	for (auto addedActor : addedRealActors)
@@ -717,12 +757,26 @@ void StageLoader::LoadJson()
 	}
 	addedRealActors.clear();
 	addedPropActors.clear();
-	if (root.contains("playerStart") && root["playerStart"].is_object())
+	if (root.contains("playerStarts") && root["playerStarts"].is_array())
 	{
-		LoadTransformJson(root["playerStart"], playerStartTransform);
-		playerStartTransform.scale = Vector3::One;
-		playerStartTransform.Update();
-		hasPlayerStart = true;
+		for (const auto& playerStartJson : root["playerStarts"])
+		{
+			if (!playerStartJson.is_object()) continue;
+			Transform playerStart;
+			LoadTransformJson(playerStartJson, playerStart);
+			playerStart.scale = Vector3::One;
+			playerStart.Update();
+			playerStartTransforms.push_back(playerStart);
+		}
+	}
+	else if (root.contains("playerStart") && root["playerStart"].is_object())
+	{
+		// 旧VSTGの単一初期位置もそのまま読み込めるようにする。
+		Transform playerStart;
+		LoadTransformJson(root["playerStart"], playerStart);
+		playerStart.scale = Vector3::One;
+		playerStart.Update();
+		playerStartTransforms.push_back(playerStart);
 	}
 
 	if (root.contains("props") && root["props"].is_array())
@@ -864,15 +918,18 @@ std::string StageLoader::SaveJsonText()
 void StageLoader::SaveJson()
 {
 	json root;
-	if (hasPlayerStart)
+	root["playerStarts"] = json::array();
+	for (const Transform& playerStart : playerStartTransforms)
 	{
-		root["playerStart"]["position"] = {
-			{"x", playerStartTransform.position.x}, {"y", playerStartTransform.position.y},
-			{"z", playerStartTransform.position.z}};
-		root["playerStart"]["rotation"] = {
-			{"x", playerStartTransform.rotation.x}, {"y", playerStartTransform.rotation.y},
-			{"z", playerStartTransform.rotation.z}, {"w", playerStartTransform.rotation.w}};
-		root["playerStart"]["scale"] = {{"x", 1.0f}, {"y", 1.0f}, {"z", 1.0f}};
+		json playerStartJson;
+		playerStartJson["position"] = {
+			{"x", playerStart.position.x}, {"y", playerStart.position.y},
+			{"z", playerStart.position.z}};
+		playerStartJson["rotation"] = {
+			{"x", playerStart.rotation.x}, {"y", playerStart.rotation.y},
+			{"z", playerStart.rotation.z}, {"w", playerStart.rotation.w}};
+		playerStartJson["scale"] = {{"x", 1.0f}, {"y", 1.0f}, {"z", 1.0f}};
+		root["playerStarts"].push_back(std::move(playerStartJson));
 	}
 
 	root["props"] = json::array();

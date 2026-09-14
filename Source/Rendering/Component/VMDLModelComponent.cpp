@@ -9,6 +9,13 @@
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Audio/SoundSystem.h"
 #include "Audio/SoundTrackRegistry.h"
+#include "Gameplay/Scene/CameraEffectController.h"
+#include "Gameplay/Scene/PostProcessController.h"
+#include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Scene/Scene.h"
+#include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Camera/Camera.h"
+#include "Core/Foundation/Easing.h"
 #include "Resource/MeshCache.h"
 #include "Resource/ResourceManager.h"
 #include "IconsFontAwesome5.h"
@@ -135,6 +142,19 @@ float VMDLModelComponent::BurstParticleEmitter(const std::string& name)
 	return 0.0f;
 }
 
+bool VMDLModelComponent::SetParticleEmitterSettings(
+	const std::string& name, const VMDLModel::VmdlParticleEmitter& settings)
+{
+	for (VMDLParticleEmitterComponent* emitter : attachmentParticleEmitters)
+	{
+		if (!emitter || ::_stricmp(emitter->GetEmitterName().c_str(), name.c_str()) != 0)
+			continue;
+		emitter->SetSettings(settings);
+		return true;
+	}
+	return false;
+}
+
 void VMDLModelComponent::LateUpdate()
 {
 	Actor* actor = dynamic_cast<Actor*>(owner);
@@ -151,6 +171,91 @@ void VMDLModelComponent::LateUpdate()
 		if (collider) collider->UpdateFromNode();
 	}
 	UpdateSoundEvents();
+	UpdatePresentationEvents();
+}
+
+void VMDLModelComponent::UpdatePresentationEvents()
+{
+	if (!model) return;
+	const auto& presentation = model->GetVmdlPresentationData();
+	if (presentation.cameraShakeTracks.empty() && presentation.radialBlurTracks.empty()) return;
+	if (!animator) animator = owner->GetComponent<Animator>();
+	if (!animator || animator->IsDynamicMode()) return;
+
+	int animationIndex = -1;
+	float time = 0.0f;
+	int nextAnimationIndex = -1;
+	float nextTime = 0.0f;
+	if (!animator->GetAnimationControlState(animationIndex, time, nextAnimationIndex, nextTime))
+	{
+		presentationAnimationIndex = -1;
+		presentationAnimationTime = 0.0f;
+		return;
+	}
+	if (nextAnimationIndex >= 0) { animationIndex = nextAnimationIndex; time = nextTime; }
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(model->GetAnimations().size())) return;
+
+	Vector3 listenerPosition = dynamic_cast<Actor*>(owner)->transform.position;
+	if (Scene* scene = SceneManager::Instance().GetCurrentScene())
+		if (Stage* stage = scene->GetCurrentStage())
+			if (Camera* camera = stage->GetActiveCamera()) listenerPosition = camera->GetEye();
+
+	if (presentationAnimationIndex != animationIndex)
+		PlayPresentationEvents(animationIndex, -0.0001f, time, listenerPosition);
+	else if (time + 0.0001f >= presentationAnimationTime)
+		PlayPresentationEvents(animationIndex, presentationAnimationTime, time, listenerPosition);
+	else
+	{
+		PlayPresentationEvents(animationIndex, presentationAnimationTime,
+			model->GetAnimations()[animationIndex].secondsLength, listenerPosition);
+		PlayPresentationEvents(animationIndex, -0.0001f, time, listenerPosition);
+	}
+	presentationAnimationIndex = animationIndex;
+	presentationAnimationTime = time;
+}
+
+void VMDLModelComponent::PlayPresentationEvents(
+	int animationIndex, float beginTime, float endTime, const Vector3& listenerPosition)
+{
+	if (!model || endTime <= beginTime + 0.00001f || animationIndex < 0 ||
+		animationIndex >= static_cast<int>(model->GetAnimations().size())) return;
+	const auto& data = model->GetVmdlPresentationData();
+	const std::string& animationName = model->GetAnimations()[animationIndex].name;
+	const auto strengthAt = [this, &listenerPosition](int nodeIndex, float range, bool attenuate) {
+		const Vector3 origin = nodeIndex >= 0 && nodeIndex < static_cast<int>(model->GetNodes().size())
+			? model->GetNodes()[nodeIndex].worldTransform.Translation()
+			: dynamic_cast<Actor*>(owner)->transform.position;
+		const float distance = Vector3::Distance(origin, listenerPosition);
+		if (distance > range) return 0.0f;
+		if (!attenuate) return 1.0f;
+		const float t = std::clamp(1.0f - distance / std::max(range, 0.01f), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	};
+	for (const auto& track : data.cameraShakeTracks)
+	{
+		if (track.animationName != animationName) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds <= beginTime + 0.00001f || key.seconds > endTime + 0.00001f ||
+				key.componentIndex < 0 || key.componentIndex >= static_cast<int>(data.cameraShakes.size())) continue;
+			const auto& value = data.cameraShakes[key.componentIndex];
+			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			if (strength > 0.0f) CameraEffectController::Request(value.duration, value.intensity * strength);
+		}
+	}
+	for (const auto& track : data.radialBlurTracks)
+	{
+		if (track.animationName != animationName) continue;
+		for (const auto& key : track.keys)
+		{
+			if (key.seconds <= beginTime + 0.00001f || key.seconds > endTime + 0.00001f ||
+				key.componentIndex < 0 || key.componentIndex >= static_cast<int>(data.radialBlurs.size())) continue;
+			const auto& value = data.radialBlurs[key.componentIndex];
+			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			if (strength > 0.0f) PostProcessController::Instance().RequestThreaten(value.duration,
+				value.power * strength, value.attackRate, Easing::Type::InSine, Easing::Type::OutCubic);
+		}
+	}
 }
 
 void VMDLModelComponent::UpdateSoundEvents()
@@ -311,6 +416,46 @@ bool VMDLModelComponent::PlaySoundSource(
 	options.reverbMix = found->reverbMix;
 	return SoundSystem::Instance().PlayTrack3DAt(
 		found->track, position, found->variant, options) != SoundSystem::InvalidVoiceId;
+}
+
+bool VMDLModelComponent::PlayPresentation(
+	const std::string& name, const Vector3& listenerPosition)
+{
+	if (!model) return false;
+	const auto effectOrigin = [this](int nodeIndex) {
+		if (nodeIndex >= 0 && nodeIndex < static_cast<int>(model->GetNodes().size()))
+			return model->GetNodes()[nodeIndex].worldTransform.Translation();
+		return dynamic_cast<Actor*>(owner)->transform.position;
+	};
+	const auto strengthAt = [&listenerPosition, &effectOrigin](
+		int nodeIndex, float range, bool attenuate) {
+		const float distance = Vector3::Distance(effectOrigin(nodeIndex), listenerPosition);
+		if (distance > range) return 0.0f;
+		if (!attenuate) return 1.0f;
+		const float t = std::clamp(1.0f - distance / std::max(range, 0.01f), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	};
+
+	bool played = false;
+	const auto& data = model->GetVmdlPresentationData();
+	for (const auto& value : data.cameraShakes)
+	{
+		if (!name.empty() && ::_stricmp(value.name.c_str(), name.c_str()) != 0) continue;
+		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+		if (strength <= 0.0f) continue;
+		CameraEffectController::Request(value.duration, value.intensity * strength);
+		played = true;
+	}
+	for (const auto& value : data.radialBlurs)
+	{
+		if (!name.empty() && ::_stricmp(value.name.c_str(), name.c_str()) != 0) continue;
+		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+		if (strength <= 0.0f) continue;
+		PostProcessController::Instance().RequestThreaten(value.duration,
+			value.power * strength, value.attackRate, Easing::Type::InSine, Easing::Type::OutCubic);
+		played = true;
+	}
+	return played;
 }
 
 void VMDLModelComponent::UpdateModelTransform(const Matrix& actorTransform)

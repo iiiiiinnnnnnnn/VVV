@@ -23,6 +23,25 @@ int SelectShadowCascade(float cameraDistance, float4 cascadeSplits)
     return cascadeIndex;
 }
 
+// カスケード末端を次のマップへ徐々に混ぜ、解像度差が境界線になるのを修正
+float CalcShadowCascadeBlend(float cameraDistance, int cascadeIndex, float4 cascadeSplits)
+{
+    float nearDistance = 0.0f;
+    float farDistance = cascadeSplits.x;
+    if (cascadeIndex == 1)
+    {
+        nearDistance = cascadeSplits.x;
+        farDistance = cascadeSplits.y;
+    }
+    else if (cascadeIndex == 2)
+    {
+        nearDistance = cascadeSplits.y;
+        farDistance = cascadeSplits.z;
+    }
+    float blendWidth = max((farDistance - nearDistance) * 0.15f, 0.001f);
+    return saturate((cameraDistance - (farDistance - blendWidth)) / blendWidth);
+}
+
 bool IsShadowTexcoordValid(float3 shadowTexcoord)
 {
     return all(shadowTexcoord >= 0.0f.xxx) &&

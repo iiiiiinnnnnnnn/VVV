@@ -48,7 +48,6 @@ private:
 	void PlayThreatPresentation();
 	// AIの対象取得を監視し、Threat状態の開始通知を取りこぼしても演出する。
 	void UpdateThreatPresentation();
-	void Threat();
 	void UpdateAnimatedModelTransform();
 	void DeformTerrainAtLanding();
 	void SpawnDeerFromSky();
@@ -58,6 +57,7 @@ private:
 	void UpdateChaseBgm();
 	void StopChaseBgm();
 	void SetPlayerDetected(bool detected);
+	void UpdateDeathSequence();
 	bool IsMovementAnimationReady() const;
 	bool PushPlayer(PhysicsComponent* self, PhysicsComponent* other);
 
@@ -71,10 +71,19 @@ private:
 	std::vector<Vector3> colPositions;
 	Vector3 jumpStartPosition = Vector3::Zero;
 	Vector3 jumpLandingPosition = Vector3::Zero;
+	Vector3 spawnPosition = Vector3::Zero;
+	Vector3 deathJumpStartPosition = Vector3::Zero;
 	Terrain* terrain = nullptr;
 	StageLoader* stageLoader = nullptr;
 	bool jumpLanded = false;
 	bool landingDeformPending = false;
+	bool deathSequenceActive = false;
+	bool deathAnimationStarted = false;
+	bool deathThreatStarted = false;
+	float deathSequenceTimer = 0.0f;
+	float deathJumpDuration = 1.8f;
+	float deathJumpHeight = 9.0f;
+	float deathThreatDuration = 2.2f;
 	float requestedAnimationMoveSpeed = 0.0f;
 	std::string requiredMovementAnimation;
 	bool movementAnimationGateActive = false;

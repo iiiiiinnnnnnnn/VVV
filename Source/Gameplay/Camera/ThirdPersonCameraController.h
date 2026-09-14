@@ -1,7 +1,11 @@
 ﻿#pragma once
 
+#include <algorithm>
+
 #include "Gameplay/Camera/CameraController.h"
 #include "Gameplay/Player/Player.h"
+
+class Actor;
 
 class ThirdPersonCameraController : public CameraController
 {
@@ -16,8 +20,16 @@ public:
 
     void SetPlayer(Player* character) { this->character = character; }
 
-    float GetCameraYaw() const { return -angleY; }
+	float GetCameraYaw() const { return -angleY; }
+	float GetSensitivityScale() const { return mouseSensX / 0.005f; }
+	void SetSensitivityScale(float scale)
+	{
+		scale = std::clamp(scale, 0.4f, 2.0f);
+		mouseSensX = 0.005f * scale;
+		mouseSensY = 0.003f * scale;
+	}
 	void RequestSkillFocus(float duration);
+	void RequestBossDefeatFocus(Actor* target, float duration);
 
 protected:
 	// プレイ中のカーソル解放はScene側で管理するため、ImGuiの残留フォーカスでは止めない
@@ -40,6 +52,9 @@ private:
 	float skillFocusDuration = 0.0f;
 	float skillFocusArmLength = 4.5f;
 	float skillFocusFovOffset = -6.0f;
+	Actor* bossDefeatTarget = nullptr;
+	float bossDefeatFocusTimer = 0.0f;
+	float bossDefeatFocusDuration = 0.0f;
 
 	const float FOV_DEFAULT = 50.0f;
     float fovYDegrees = 50.0f;

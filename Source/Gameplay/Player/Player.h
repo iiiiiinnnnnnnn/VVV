@@ -51,9 +51,12 @@ public:
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);
+	void RequestBossDefeatCamera(Actor* target, float duration);
 
 private:
     void UpdateMovement();
+	void UpdateHealth();
+	void UpdateDeathSequence();
 	void UpdateFootSound();
 	bool HasIncomingEnemyAttack() const;
 	bool IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* collider) const;
@@ -90,9 +93,20 @@ protected:
 	CharacterController* cc = nullptr;
 	CharacterMotorComponent* motor = nullptr;
 	LockOnComponent* lockOnComponent = nullptr;
-    float speed = 5.0f;
+	float speed = 5.0f;
 	bool sprinting = false;
+	bool crouching = false;
+	bool crouchAnimationsAvailable = false;
+	float crouchRootMotionScale = 0.55f;
 	bool terrainDeformKeyHeld = false;
+	bool actionInputThisFrame = false;
+	float healthRecoveryTimer = 0.0f;
+	float healthRecoveryInterval = 2.0f;
+	float healthRecoveryAmount = 5.0f;
+	bool deathSequenceActive = false;
+	bool deathReloadRequested = false;
+	float deathSequenceTimer = 0.0f;
+	float deathVignetteDuration = 2.0f;
 
     // サウンド
     VMDLModel::VmdlSoundSource* footSound = nullptr;

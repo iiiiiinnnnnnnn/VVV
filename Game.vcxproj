@@ -70,6 +70,7 @@
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Prop.cpp" />
@@ -132,6 +133,11 @@
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp" />
     <ClCompile Include="Source\UI\SpriteWidget.cpp" />
 	<ClCompile Include="Source\UI\BossBar.cpp" />
+    <ClCompile Include="Source\UI\Button.cpp" />
+    <ClCompile Include="Source\UI\GaugeHUD.cpp" />
+    <ClCompile Include="Source\UI\HUDWidget.cpp" />
+    <ClCompile Include="Source\UI\TextWidget.cpp" />
+    <ClCompile Include="Source\UI\UIFont.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Application\Time\GameTime.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp" />
@@ -197,6 +203,7 @@
     <ClInclude Include="Source\Gameplay\Lighting\LightManager.h" />
     <ClInclude Include="Source\Gameplay\Scene\LoadingScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h" />
+    <ClInclude Include="Source\Gameplay\Scene\TitleScene.h" />
     <ClInclude Include="Source\Physics\Core\PhysicsComponent.h" />
     <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Prop.h" />
@@ -271,6 +278,11 @@
     <ClInclude Include="Source\Rendering\Renderer\SpriteRenderer.h" />
     <ClInclude Include="Source\UI\SpriteWidget.h" />
 	<ClInclude Include="Source\UI\BossBar.h" />
+    <ClInclude Include="Source\UI\Button.h" />
+    <ClInclude Include="Source\UI\GaugeHUD.h" />
+    <ClInclude Include="Source\UI\HUDWidget.h" />
+    <ClInclude Include="Source\UI\TextWidget.h" />
+    <ClInclude Include="Source\UI\UIFont.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
     <ClInclude Include="Source\Application\Time\GameTime.h" />
     <ClInclude Include="Source\Gameplay\Camera\ThirdPersonCameraController.h" />

@@ -95,9 +95,29 @@ void Mouse::SetCursorLock(bool lock)
 
 void Mouse::SetCursorVisible(bool visible)
 {
-	if (cursorVisible != visible)
+	CURSORINFO info{sizeof(CURSORINFO)};
+	const bool systemVisible = ::GetCursorInfo(&info) && (info.flags & CURSOR_SHOWING) != 0;
+	// ImGuiのWin32バックエンドなどがShowCursorを直接変更する場合があるため、
+	// 内部フラグだけでなくOS上の実表示も要求状態へ戻す。
+	if (cursorVisible != visible || systemVisible != visible)
+		ForceCursorVisible(visible);
+}
+
+void Mouse::ForceCursorVisible(bool visible)
+{
+	CURSORINFO info{sizeof(CURSORINFO)};
+	if (::GetCursorInfo(&info) && ((info.flags & CURSOR_SHOWING) != 0) == visible)
 	{
-		ShowCursor(visible);
 		cursorVisible = visible;
+		return;
 	}
+	if (visible)
+	{
+		while (::ShowCursor(TRUE) < 0) {}
+	}
+	else
+	{
+		while (::ShowCursor(FALSE) >= 0) {}
+	}
+	cursorVisible = visible;
 }

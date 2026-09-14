@@ -47,6 +47,8 @@ class VmdlEditorScene : public Scene
 		Trail,
 		Particle,
 		SoundSource,
+		CameraShake,
+		RadialBlur,
 	};
 
 	// 画面描画
@@ -73,12 +75,12 @@ class VmdlEditorScene : public Scene
 	void DrawIkSettings();
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
-	void DrawAnimationEventEditor();
 	bool DrawSoundTrackSelector(const char* label, int& track);
 	std::string SoundTrackLabel(int track) const;
 	void DrawAttachedData(int nodeIndex);
 	void DrawNodeContextMenu(int nodeIndex);
 	void DrawAnimationCurves();
+	void DrawAnimationEventEditor();
 	void DrawFootIkPreviewWindow();
 
 	// 階層検索
@@ -92,6 +94,10 @@ class VmdlEditorScene : public Scene
 
 	// プレビュー制御
 	void ApplyAnimationPreview();
+	void StartUnifiedPreview();
+	void StopUnifiedPreview(bool rewind);
+	void StartPresentationPreview();
+	void PlayPresentationPreviewEvents(int animationIndex, float beginTime, float endTime);
 	void PlayAnimationSoundPreview(int animationIndex, float beginTime, float endTime);
 	bool ApplyFootIkPreview();
 	void RebuildFootIkPreview();
@@ -180,7 +186,9 @@ class VmdlEditorScene : public Scene
 	float cameraPitch = 0.35f;
 	float cameraDistance = 5.0f;
 	float targetCameraDistance = 5.0f;
+	float previewCameraMoveSpeed = 5.0f;
 	Vector3 cameraFocusOffset = Vector3::Zero;
+	bool cameraReturningToFront = false;
 	int gizmoOperation = 120;
 	bool viewportRotationDragging = false;
 	int selectedMorph = -1;
@@ -200,8 +208,17 @@ class VmdlEditorScene : public Scene
 
 	// 編集状態
 	bool dirty = false;
+	bool unifiedPreviewActive = false;
 	bool animationPlaying = false;
 	bool animationSoundPreviewStarting = true;
+	bool particlePreviewBurstPending = false;
+	float cameraShakePreviewTimer = 0.0f;
+	float cameraShakePreviewDuration = 0.0f;
+	float cameraShakePreviewIntensity = 0.0f;
+	float radialBlurPreviewTimer = 0.0f;
+	float radialBlurPreviewDuration = 0.0f;
+	float radialBlurPreviewPower = 0.0f;
+	float radialBlurPreviewAttackRate = 0.15f;
 	bool animationLoop = true;
 	bool animationRecording = false;
 	bool draggingAnimationKey = false;
@@ -257,7 +274,6 @@ class VmdlEditorScene : public Scene
 	std::string springPreviewSignature;
 	int springPreviewAnimation = -1;
 	float springPreviewAnimationTime = 0.0f;
-	bool springPreviewEnabled = false;
 
 	// トレイルプレビュー
 	std::unique_ptr<Object> trailPreviewOwner;
@@ -285,6 +301,5 @@ class VmdlEditorScene : public Scene
 	float footIkTestStageSize = 100.0f;
 	bool showFootIkPreviewWindow = false;
 	bool showFootIkTestStage = false;
-	bool footIkPreviewEnabled = true;
 	bool showFootIkDebug = true;
 };

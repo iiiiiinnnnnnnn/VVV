@@ -12,9 +12,7 @@
 #include "Physics/Collider/SphereCollider.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Physics/Navigation/NavMeshAgent.h"
-#include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Scene/CameraEffectController.h"
-#include "Core/Foundation/Easing.h"
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Application/Time/GameTime.h"
 #include "Animation/MultiLegFootIK.h"
@@ -36,6 +34,7 @@ AracoreQueen::AracoreQueen(Player* player_init,
 {
 	this->player = player_init;
 	this->terrain = terrain_init;
+	this->spawnPosition = position;
 
     // 蜘蛛の部分
     {
@@ -373,11 +372,10 @@ bool AracoreQueen::IsMovementAnimationReady() const
     return state == requiredMovementAnimation;
 }
 
-// 威嚇アニメーションとカメラ・ポストエフェクトを同時に開始する。
+// 威嚇アニメーションを開始する。画面演出はVMDLのタイムラインキーから再生される。
 void AracoreQueen::PlayThreatPresentation()
 {
     if (anim) anim->SetTrigger("Threat");
-    Threat();
 }
 
 // 現在の索敵対象ごとに、威嚇演出が必ず一度は再生されるよう保証する。
@@ -401,18 +399,6 @@ void AracoreQueen::UpdateThreatPresentation()
     PlayThreatPresentation();
 }
 
-// 威嚇中の画面演出をリクエストする。
-void AracoreQueen::Threat()
-{
-    PostProcessController::Instance().RequestThreaten(
-        5.0f,
-        3.0f,
-        0.15f,
-        Easing::Type::InSine,
-        Easing::Type::OutCubic);
-    CameraEffectController::Request(2.0f, 0.1f);
-}
-
 void AracoreQueen::OnUpdate()
 {
 	if (landingDeformPending)
@@ -421,6 +407,11 @@ void AracoreQueen::OnUpdate()
 		DeformTerrainAtLanding();
 	}
     Entity::OnUpdate();
+	if (deathSequenceActive)
+	{
+		UpdateDeathSequence();
+		return;
+	}
     anim->SetFloat("speed", requestedAnimationMoveSpeed);
     if (movementAnimationGateActive)
         navMeshAgent->SetMovementPaused(!IsMovementAnimationReady());
@@ -428,7 +419,7 @@ void AracoreQueen::OnUpdate()
 
 void AracoreQueen::OnLateUpdate()
 {
-    UpdateThreatPresentation();
+	if (!IsDead()) UpdateThreatPresentation();
 	UpdateChaseBgm();
 
     // The eight EnemyAtk attachments are the foot hitboxes. Walking feet can hit,
@@ -682,10 +673,84 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
 void AracoreQueen::OnDead(const DamageData& damageData)
 {
 	SetPlayerDetected(false);
-    if (controller) controller->SetActive(false);
+	StopChaseBgm();
+	if (controller)
+	{
+		controller->StopMovement();
+		controller->SetActive(false);
+	}
+	StopAnimatedMovement();
+	if (navMeshAgent) navMeshAgent->SetMovementPaused(true);
+
+	deathSequenceActive = true;
+	deathAnimationStarted = false;
+	deathThreatStarted = false;
+	deathSequenceTimer = 0.0f;
+	deathJumpStartPosition = transform.position;
+	jumpLandingPosition = spawnPosition;
+	knockBackVelocity = Vector3::Zero;
+	if (characterController) characterController->SetUseGravity(false);
+
+	Vector3 direction = jumpLandingPosition - deathJumpStartPosition;
+	direction.y = 0.0f;
+	if (direction.LengthSquared() > eps)
+	{
+		direction.Normalize();
+		const float targetYaw = atan2f(direction.x, direction.z);
+		transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
+	}
+	if (anim)
+	{
+		anim->SetBool("Dead", false);
+		anim->SetFloat("speed", 0.0f);
+		anim->SetTrigger("Jump");
+	}
+	if (player)
+		player->RequestBossDefeatCamera(
+			this, deathJumpDuration + deathThreatDuration + 2.4f);
     printf("AracoreQueen Dead!\n");
-	anim->SetBool("Dead", true);
     //Destroy(5);
+}
+
+void AracoreQueen::UpdateDeathSequence()
+{
+	deathSequenceTimer += std::max(Game::Time::unscaledDeltaTime, 0.0f);
+	const float duration = std::max(deathJumpDuration, 0.01f);
+	const float t = std::clamp(deathSequenceTimer / duration, 0.0f, 1.0f);
+	Vector3 position = Vector3::Lerp(deathJumpStartPosition, jumpLandingPosition, t);
+	position.y += 4.0f * deathJumpHeight * t * (1.0f - t);
+	if (characterController) characterController->SetPosition(position);
+	else transform.SetPosition(position);
+
+	if (t < 1.0f) return;
+	if (!deathThreatStarted)
+	{
+		deathThreatStarted = true;
+		if (characterController)
+		{
+			characterController->SetPosition(jumpLandingPosition);
+			characterController->SetUseGravity(true);
+		}
+		else transform.SetPosition(jumpLandingPosition);
+
+		Vector3 faceDirection = player
+			? player->transform.position - jumpLandingPosition : transform.forward;
+		faceDirection.y = 0.0f;
+		if (faceDirection.LengthSquared() > eps)
+		{
+			faceDirection.Normalize();
+			transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
+				atan2f(faceDirection.x, faceDirection.z), 0.0f, 0.0f));
+		}
+		PlayThreatPresentation();
+		ShakeCameraAtLanding();
+	}
+
+	if (deathAnimationStarted ||
+		deathSequenceTimer < deathJumpDuration + deathThreatDuration) return;
+	deathAnimationStarted = true;
+	deathSequenceActive = false;
+	if (anim) anim->SetBool("Dead", true);
 }
 
 void AracoreQueen::SetBossBar(BossBar* value)

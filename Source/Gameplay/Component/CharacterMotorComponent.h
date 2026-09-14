@@ -22,6 +22,7 @@ public:
 
 	void SetRootMotionNode(const std::string& nodeName);
 	void SetExternalVelocity(const Vector3& velocity) { externalVelocity = velocity; }
+	void SetRootMotionScale(float value) { rootMotionScale = (std::max)(value, 0.0f); }
 	void SetUseRootMotion(bool value) { useRootMotion = value; }
 	void SetGravity(float value) { gravity = value; }
 	void SetUseGravity(bool value) { useGravity = value; }
@@ -44,6 +45,7 @@ private:
 	Vector3 externalVelocity = Vector3::Zero;
 	Vector3 rootMotionDelta = Vector3::Zero;
 	Vector3 lastMoveDelta = Vector3::Zero;
+	float rootMotionScale = 1.0f;
 	float gravity = -9.81f;
 	float verticalVelocity = 0.0f;
 	float groundSnapUpDistance = 0.2f;

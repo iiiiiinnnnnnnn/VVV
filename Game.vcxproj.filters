@@ -286,6 +286,11 @@
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\Button.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\GaugeHUD.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\HUDWidget.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\TextWidget.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\UIFont.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\Application\Tools\DynamicAnimationSerializer.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
@@ -341,6 +346,9 @@
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp">
+      <Filter>Gameplay\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp">
@@ -630,6 +638,11 @@
     <ClInclude Include="Source\UI\SpriteWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\Button.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\GaugeHUD.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\HUDWidget.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\TextWidget.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\UIFont.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\Application\Tools\DynamicAnimationEditorWindow.h">
       <Filter>Application\Tools</Filter>
     </ClInclude>
@@ -697,6 +710,9 @@
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\TitleScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\Scene.h">

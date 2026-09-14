@@ -3,6 +3,7 @@
 #include "Application/Input/Input.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/Graphics.h"
@@ -26,6 +27,27 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(RAD(180.0f));
+	for (auto& emitter : model->GetVmdlParticleData().emitters)
+	{
+		if (::_stricmp(emitter.name.c_str(), "DODGE_WIND") != 0) continue;
+		// モデルのローカル+Zはプレイヤーの後方。細長い粒をそこへ流して風の尾にする。
+		emitter.offset = Vector3(0.0f, 0.15f, 0.55f);
+		emitter.spawnExtents = Vector3(0.28f, 0.34f, 0.18f);
+		emitter.velocityMin = Vector3(-0.8f, 0.05f, 5.5f);
+		emitter.velocityMax = Vector3(0.8f, 0.35f, 9.0f);
+		emitter.acceleration = Vector3(0.0f, 0.15f, 0.0f);
+		emitter.burstCount = 26;
+		emitter.lifetimeMin = 0.16f;
+		emitter.lifetimeMax = 0.30f;
+		emitter.sizeMin = Vector2(0.45f, 0.045f);
+		emitter.sizeMax = Vector2(1.15f, 0.13f);
+		emitter.color = Color(0.58f, 0.86f, 1.0f, 0.42f);
+		emitter.fadeOutDuration = 0.20f;
+		emitter.localVelocity = true;
+		if (VMDLModelComponent* renderer = vmdl->GetRenderer())
+			renderer->SetParticleEmitterSettings("DODGE_WIND", emitter);
+		break;
+	}
 
 	// 足音切り替え用
 	footSound = vmdl->GetSoundSource("footsound");
@@ -33,6 +55,57 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する
 	anim = vmdl->GetAnimator();
 	anim->Load("Resources/Animator/Player.animator");
+
+	// しゃがみモーションはプレイヤーVMDLに同梱されているため、名前で解決して
+	// 既存Animatorへ追加する。攻撃・回避などのAny State遷移は従来どおり優先される。
+	const int crouchIdleAnimation = model->GetAnimationIndex("SS_CrouchIdle");
+	const int crouchWalkAnimation = model->GetAnimationIndex("SS_CrouchWalk");
+	if (crouchIdleAnimation >= 0 && crouchWalkAnimation >= 0 && anim->GetLayerCount() > 0)
+	{
+		anim->AddBool("IsCrouching", false);
+		const int crouchIdleState =
+			anim->AddState(0, "CrouchIdle", crouchIdleAnimation, true, 1.0f);
+		const int crouchWalkState =
+			anim->AddState(0, "CrouchWalk", crouchWalkAnimation, true, 1.0f);
+
+		int transition = anim->AddAnyStateTransition(
+			0, crouchWalkState, 0.12f, false, 1.0f, -1, false);
+		anim->AddAnyStateCondition(
+			0, transition, "IsCrouching", Animator::ConditionMode::IsTrue);
+		anim->AddAnyStateCondition(
+			0, transition, "Speed", Animator::ConditionMode::Greater, 0.1f);
+
+		transition = anim->AddAnyStateTransition(
+			0, crouchIdleState, 0.12f, false, 1.0f, -2, false);
+		anim->AddAnyStateCondition(
+			0, transition, "IsCrouching", Animator::ConditionMode::IsTrue);
+		anim->AddAnyStateCondition(
+			0, transition, "Speed", Animator::ConditionMode::Less, 0.11f);
+
+		auto addStandTransitions = [this](int crouchState)
+		{
+			int toIdle = anim->AddTransition(
+				0, crouchState, 0, 0.12f, false, 1.0f, 1, false);
+			anim->AddCondition(
+				0, crouchState, toIdle,
+				"IsCrouching", Animator::ConditionMode::IsFalse);
+			anim->AddCondition(
+				0, crouchState, toIdle,
+				"Speed", Animator::ConditionMode::Less, 0.11f);
+
+			int toWalk = anim->AddTransition(
+				0, crouchState, 1, 0.12f, false, 1.0f, 0, false);
+			anim->AddCondition(
+				0, crouchState, toWalk,
+				"IsCrouching", Animator::ConditionMode::IsFalse);
+			anim->AddCondition(
+				0, crouchState, toWalk,
+				"Speed", Animator::ConditionMode::Greater, 0.1f);
+		};
+		addStandTransitions(crouchIdleState);
+		addStandTransitions(crouchWalkState);
+		crouchAnimationsAvailable = true;
+	}
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
@@ -83,9 +156,20 @@ void Player::SetSpawnTransform(const Transform& spawnTransform)
 	if (cc) cc->SetFootPosition(spawnTransform.position);
 }
 
+void Player::RequestBossDefeatCamera(Actor* target, float duration)
+{
+	if (cameraController) cameraController->RequestBossDefeatFocus(target, duration);
+}
+
 void Player::OnUpdate()
 {
 	Entity::OnUpdate();
+	if (deathSequenceActive)
+	{
+		UpdateDeathSequence();
+		if (motor) motor->SetExternalVelocity(knockBackVelocity);
+		return;
+	}
 	dodgeCooldownTimer = std::max(
 		dodgeCooldownTimer - Game::Time::unscaledDeltaTime, 0.0f);
 
@@ -98,6 +182,7 @@ void Player::OnUpdate()
 
 	UpdateFootSound();
 	UpdateMovement();
+	UpdateHealth();
 	if (dodgeInvincible)
 		PostProcessController::Instance().RequestInvincibilityAura();
 	if (motor)
@@ -162,6 +247,7 @@ void Player::OnDrawGUI()
 
 void Player::OnDamaged(const DamageData& damageData)
 {
+	healthRecoveryTimer = 0.0f;
 	CameraEffectController::Request(0.13f, 0.07f);
 	float lifeIntensity = (1 - (life / maxLife)) * 0.5f;
 	PostProcessController::Instance().RequestDamagedVignette(
@@ -304,8 +390,29 @@ bool Player::HasIncomingEnemyAttack() const
 
 void Player::OnDead(const DamageData& damageData)
 {
+	deathSequenceActive = true;
+	deathReloadRequested = false;
+	deathSequenceTimer = 0.0f;
+	healthRecoveryTimer = 0.0f;
+	sprinting = false;
+	if (anim) anim->SetBool("IsDead", true);
 	lockOnComponent->ClearTarget();
 	lockOnComponent->SetActive(false);
+}
+
+void Player::UpdateDeathSequence()
+{
+	deathSequenceTimer += Game::Time::unscaledDeltaTime;
+	const float progress = std::clamp(
+		deathSequenceTimer / deathVignetteDuration, 0.0f, 1.0f);
+	const float easedProgress = Easing::Evaluate(progress, Easing::Type::InSine);
+	PostProcessController::Instance().RequestDeathVignette(easedProgress);
+
+	if (progress >= 1.0f && !deathReloadRequested)
+	{
+		deathReloadRequested =
+			SceneManager::Instance().LoadScene<TestPlayScene>();
+	}
 }
 
 void Player::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
@@ -387,6 +494,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 // プレイヤーの移動処理
 void Player::UpdateMovement()
 {
+	actionInputThisFrame = false;
 	if (!controller)
 	{
 		sprinting = false;
@@ -405,6 +513,12 @@ void Player::UpdateMovement()
 	const bool justDodgeSkillAnimationActive =
 		currentStateName.starts_with("SpSkill") ||
 		nextStateName.starts_with("SpSkill");
+	const bool attackAnimationActive =
+		currentStateName.starts_with("Attack") ||
+		nextStateName.starts_with("Attack");
+	const bool hitAnimationActive =
+		currentStateName.starts_with("Hit_") ||
+		nextStateName.starts_with("Hit_");
 	const bool quickStepActive =
 		ctx.quickForwardPressed ||
 		ctx.quickBackwardPressed ||
@@ -416,6 +530,15 @@ void Player::UpdateMovement()
 		ctx.quickLeftStarted ||
 		ctx.quickRightStarted ||
 		ctx.quickDefaultForwardStarted;
+	const bool crouchBlocked =
+		isFreeze || IsDead() || attackAnimationActive ||
+		dodgeAnimationActive || justDodgeSkillAnimationActive ||
+		hitAnimationActive || ctx.attackPressed || quickStepStarted;
+	crouching =
+		crouchAnimationsAvailable && ctx.crouch && !crouchBlocked;
+	actionInputThisFrame =
+		inputLen > 0.1f || ctx.crouch || ctx.sprint || ctx.attackPressed ||
+		quickStepActive || quickStepStarted;
 
 	// ジャスト回避から派生したスキル中は、残像と同じく無敵もアニメーション終了まで延長する
 	if (justDodgeSkillActive &&
@@ -498,6 +621,7 @@ void Player::UpdateMovement()
 
 	// Speed / Sprint パラメータをAnimatorへ
 	sprinting =
+		!crouching &&
 		!dodgeAnimationActive &&
 		ctx.sprint &&
 		inputLen > 0.1f;
@@ -507,8 +631,11 @@ void Player::UpdateMovement()
 		: sprinting ? 1.5f : inputLen;
 	anim->SetFloat("Speed", speedParam);
 	anim->SetBool("IsSprinting", sprinting);
+	anim->SetBool("IsCrouching", crouching);
 	anim->SetBool("IsDead", IsDead());
 	anim->SetBool("IsJustDodge", false);
+	if (motor)
+		motor->SetRootMotionScale(crouching ? crouchRootMotionScale : 1.0f);
 
 	const bool startJustDodgeSkill =
 		ctx.attackPressed &&
@@ -582,6 +709,8 @@ void Player::UpdateMovement()
 		justDodgeSkillActive = false;
 		if (cc) cc->SetLayerIgnored(Layers::Get("Enemy"), true);
 		if (cc) cc->SetActorTagIgnored("Enemy", true);
+		if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
+			renderer->BurstParticleEmitter("DODGE_WIND");
 		if (HasIncomingEnemyAttack()) TriggerJustDodge();
 		anim->SetFloat("Speed", 0.0f);
 		anim->SetBool("IsSprinting", false);
@@ -595,4 +724,33 @@ void Player::UpdateMovement()
 		bufferedQuickStepTrigger.clear();
 	}
 
+}
+
+void Player::UpdateHealth()
+{
+	if (!anim || IsDead() || life >= maxLife)
+	{
+		healthRecoveryTimer = 0.0f;
+		return;
+	}
+
+	const std::string& currentState = anim->GetCurrentStateName();
+	const std::string& nextState = anim->GetNextStateName();
+	const bool idle =
+		(currentState == "Idle" || currentState == "CrouchIdle") &&
+		(!anim->IsTransitioning() || nextState.empty() ||
+			nextState == "Idle" || nextState == "CrouchIdle") &&
+		!actionInputThisFrame && !dodgeInvincible && !justDodgeSkillActive;
+	if (!idle)
+	{
+		healthRecoveryTimer = 0.0f;
+		return;
+	}
+
+	healthRecoveryTimer += Game::Time::deltaTime;
+	while (healthRecoveryTimer >= healthRecoveryInterval && life < maxLife)
+	{
+		healthRecoveryTimer -= healthRecoveryInterval;
+		Heal(healthRecoveryAmount);
+	}
 }

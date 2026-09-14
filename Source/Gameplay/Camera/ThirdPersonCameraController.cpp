@@ -2,6 +2,7 @@
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
+#include "Gameplay/Actor/Actor.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* character)
 	: CameraController(owner)
@@ -14,6 +15,14 @@ void ThirdPersonCameraController::RequestSkillFocus(float duration)
 	if (duration <= 0.0f) return;
 	skillFocusDuration = duration;
 	skillFocusTimer = duration;
+}
+
+void ThirdPersonCameraController::RequestBossDefeatFocus(Actor* target, float duration)
+{
+	if (!target || duration <= 0.0f) return;
+	bossDefeatTarget = target;
+	bossDefeatFocusDuration = duration;
+	bossDefeatFocusTimer = duration;
 }
 
 void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
@@ -103,12 +112,66 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         finalEye = currentFocus + dir * hitDist;
     }
 
+	float bossFocusWeight = 0.0f;
+	float bossFocusFov = fovYDegrees;
+	Vector3 cameraEye = finalEye;
+	Vector3 cameraFocus = currentFocus;
+	if (bossDefeatTarget && bossDefeatFocusTimer > 0.0f && bossDefeatFocusDuration > 0.0f)
+	{
+		const float elapsed = bossDefeatFocusDuration - bossDefeatFocusTimer;
+		const float fadeIn = std::clamp(elapsed / 0.55f, 0.0f, 1.0f);
+		const float fadeOut = std::clamp(bossDefeatFocusTimer / 0.9f, 0.0f, 1.0f);
+		bossFocusWeight = std::min(fadeIn, fadeOut);
+		bossFocusWeight = bossFocusWeight * bossFocusWeight *
+			(3.0f - 2.0f * bossFocusWeight);
+
+		const Vector3 bossPosition = bossDefeatTarget->transform.position;
+		Vector3 viewDirection = character->transform.position - bossPosition;
+		viewDirection.y = 0.0f;
+		if (viewDirection.LengthSquared() < 0.001f) viewDirection = Vector3::Backward;
+		viewDirection.Normalize();
+		const float orbitAngle = std::min(elapsed * 0.16f, 0.75f);
+		viewDirection = Vector3::TransformNormal(
+			viewDirection, Matrix::CreateRotationY(orbitAngle));
+		const Vector3 cinematicFocus = bossPosition + Vector3(0.0f, 2.6f, 0.0f);
+		const Vector3 cinematicEye = cinematicFocus + viewDirection * 12.5f +
+			Vector3(0.0f, 4.6f, 0.0f);
+		cameraEye = Vector3::Lerp(finalEye, cinematicEye, bossFocusWeight);
+		cameraFocus = Vector3::Lerp(currentFocus, cinematicFocus, bossFocusWeight);
+		bossFocusFov = std::lerp(fovYDegrees, 41.0f, bossFocusWeight);
+
+		bossDefeatFocusTimer = std::max(
+			bossDefeatFocusTimer - Game::Time::unscaledDeltaTime, 0.0f);
+		if (bossDefeatFocusTimer <= 0.0f) bossDefeatTarget = nullptr;
+	}
+
+	// 撃破カメラの移動中も地形へ潜り込まないよう、最終位置でも遮蔽判定する。
+	if (bossFocusWeight > 0.0f)
+	{
+		Vector3 cinematicDirection = cameraEye - cameraFocus;
+		const float cinematicDistance = cinematicDirection.Length();
+		if (cinematicDistance > 0.001f)
+		{
+			cinematicDirection /= cinematicDistance;
+			PxRaycastBuffer cinematicHit;
+			PxQueryFilterData cinematicFilter;
+			cinematicFilter.flags = PxQueryFlag::eSTATIC;
+			if (scene->raycast(PxVec3(cameraFocus.x, cameraFocus.y, cameraFocus.z),
+				PxVec3(cinematicDirection.x, cinematicDirection.y, cinematicDirection.z),
+				cinematicDistance, cinematicHit, PxHitFlag::eDEFAULT, cinematicFilter))
+			{
+				const float distance = std::max(cinematicHit.block.distance - 0.1f, 0.1f);
+				cameraEye = cameraFocus + cinematicDirection * distance;
+			}
+		}
+	}
+
     // エフェクト系反映
-    CameraEffectController::Update(camera, finalEye, currentFocus, Vector3::Up);
+    CameraEffectController::Update(camera, cameraEye, cameraFocus, Vector3::Up);
 
     camera.SetPerspectiveFov(
         DirectX::XMConvertToRadians(
-			fovYDegrees + CameraEffectController::UpdateFovOffset() +
+			bossFocusFov + CameraEffectController::UpdateFovOffset() +
 			skillFocusFovOffset * skillFocusWeight),
         aspectRatio,
         nearClip,
@@ -125,6 +188,11 @@ void ThirdPersonCameraController::UpdateCamera()
 	GamePad& gamePad = Game::Input::Instance().GetGamePad();
     mouse.SetCursorLock(true);
     mouse.SetCursorVisible(false);
+	if (bossDefeatTarget && bossDefeatFocusTimer > 0.0f)
+	{
+		character->SetFirstPerson(false);
+		return;
+	}
 
     float moveX = mouse.GetAxisX() * mouseSensX;
     float moveY = mouse.GetAxisY() * mouseSensY;

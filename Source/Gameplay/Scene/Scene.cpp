@@ -92,20 +92,6 @@ void Scene::ToggleDebugDisplay()
 
 void Scene::Update()
 {
-	// ESCキーで起動画面戻る
-	if (Game::Input::Instance().GetGamePad().GetButtonUp() & GamePad::BTN_ESCAPE)
-	{
-		if (OnRequestExit())
-		{
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-			SceneManager::Instance().LoadScene<GameStartScene>();
-#else
-			PostQuitMessage(0);
-#endif
-			return;
-		}
-	}
-
 	OnUpdate();
 
 	// ステージを持たないツールシーンでもF3を受け取れるよう、早期returnより前で処理する
@@ -148,10 +134,16 @@ void Scene::Update()
 		}
 	}
 
+	const bool shouldUpdateWorld = ShouldUpdateWorld();
 	if (CameraController* controller = stage.GetActiveCameraController())
-		controller->SetInputEnabled(!isCursorReleased);
+		controller->SetInputEnabled(!isCursorReleased && shouldUpdateWorld);
 
 	SelectPausedActor();
+	if (!shouldUpdateWorld)
+	{
+		widgetManager.Update();
+		return;
+	}
 
 	if (Game::Time::deltaTime > 0.0f)
 	{

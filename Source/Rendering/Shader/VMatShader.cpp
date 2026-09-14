@@ -121,12 +121,10 @@ void VMatShader::Update(
 			: mesh.material->baseColor;
 		cb.useBaseColorTexture = materialParams && materialParams->useBaseColorTexture
 			? (*materialParams->useBaseColorTexture ? 1 : 0)
-			: 1;
+			: (mesh.material->hasBaseTexture ? 1 : 0);
 
 		// Metal Rough
-		const bool hasMetalRoughTexture =
-			!mesh.material->metalnessRoughnessTextureFileName.empty() ||
-			!mesh.material->metalnessRoughnessTextureDDS.empty();
+		const bool hasMetalRoughTexture = mesh.material->hasMetalnessRoughnessTexture;
 		cb.metalness = std::clamp(
 			materialParams && materialParams->metalness
 				? *materialParams->metalness
@@ -143,9 +141,7 @@ void VMatShader::Update(
 		cb.useRoughnessTexture = hasMetalRoughTexture && !(materialParams && materialParams->roughness) ? 1 : 0;
 
 		// Occlusion
-		const bool hasOcclusionTexture =
-			!mesh.material->occlusionTextureFileName.empty() ||
-			!mesh.material->occlusionTextureDDS.empty();
+		const bool hasOcclusionTexture = mesh.material->hasOcclusionTexture;
 		cb.occlusion = std::clamp(
 			materialParams && materialParams->occlusion
 				? *materialParams->occlusion
@@ -161,9 +157,7 @@ void VMatShader::Update(
 		cb.useOcclusionTexture = hasOcclusionTexture && !(materialParams && materialParams->occlusion) ? 1 : 0;
 
 		// Emissive
-		const bool hasEmissiveTexture =
-			!mesh.material->emissiveTextureFileName.empty() ||
-			!mesh.material->emissiveTextureDDS.empty();
+		const bool hasEmissiveTexture = mesh.material->hasEmissiveTexture;
 		cb.emissiveColor = mesh.material->emissiveColor;
 		cb.emissionColor = materialParams && materialParams->emissionColor
 			? *materialParams->emissionColor

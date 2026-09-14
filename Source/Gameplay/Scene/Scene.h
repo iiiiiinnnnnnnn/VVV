@@ -46,6 +46,7 @@ protected:
 	virtual void ConfigureRenderSettings(RenderSettings&) {}
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
+	virtual bool ShouldUpdateWorld() const { return true; }
 
 	virtual bool UsesGameDebugGUI() const { return true; }
 	virtual bool OnRequestExit() { return true; }

@@ -2,7 +2,7 @@
 #include "Gameplay/Scene/GameStartScene.h"
 
 #include "Gameplay/Scene/SceneManager.h"
-#include "Gameplay/Scene/TestPlayScene.h"
+#include "Gameplay/Scene/TitleScene.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Scene/VstgEditorScene.h"
 #include "Rendering/Core/Graphics.h"
@@ -262,7 +262,7 @@ void GameStartScene::OnDrawGUI()
 	// 各ボタンから対応するシーンへ移動
 	if (menuButton((const char*)u8"PLAY\nゲーム開始", ImGuiTheme::YellowButton,
 		ImGuiTheme::YellowButtonHovered, ImGuiTheme::YellowButtonActive))
-		loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
+		loadRequested = SceneManager::Instance().LoadScene<TitleScene>();
 	ImGui::SameLine();
 	if (menuButton((const char*)u8"VMDL\nモデル編集", ImGuiTheme::RedButton,
 		ImGuiTheme::RedButtonHovered, ImGuiTheme::RedButtonActive))

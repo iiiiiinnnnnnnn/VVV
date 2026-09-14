@@ -52,9 +52,13 @@ public:
 
 	// カーソルロック設定
 	void SetCursorLock(bool lock);
+	bool IsCursorLocked() const { return cursorLocked; }
 
 	// カーソル可視設定
 	void SetCursorVisible(bool visible);
+	// Win32の表示カウンターが外部UIでずれた場合も、要求した状態へ確実に合わせる。
+	void ForceCursorVisible(bool visible);
+	bool IsCursorVisible() const { return cursorVisible; }
 
 private:
 	MouseButton buttonState[2] = {};

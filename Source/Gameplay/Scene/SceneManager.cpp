@@ -2,9 +2,10 @@
 #include "Gameplay/Scene/SceneManager.h"
 
 #include "Application/Time/GameTime.h"
+#include "Audio/SoundSystem.h"
 #include "Gameplay/Scene/LoadingScene.h"
 #include "Gameplay/Scene/GameStartScene.h"
-#include "Gameplay/Scene/TestPlayScene.h"
+#include "Gameplay/Scene/TitleScene.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Rendering/Core/Graphics.h"
 #include "imgui.h"
@@ -73,7 +74,7 @@ void SceneManager::Initialize()
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	currentScene = std::make_unique<GameStartScene>();
 #else
-	currentScene = std::make_unique<TestPlayScene>();
+	currentScene = std::make_unique<TitleScene>();
 #endif
 	loadProgress = 0.0f;
 }
@@ -228,6 +229,9 @@ void SceneManager::BeginPendingLoad()
 	loadProgress = 0.0f;
 
 	currentScene.reset();
+	// 破棄されたシーンのBGM・SEをローディング画面や次シーンへ持ち越さない。
+	SoundSystem::Instance().SetPaused(false);
+	SoundSystem::Instance().StopAll();
 	currentScene = std::make_unique<LoadingScene>();
 
 	if (!StartLoadThread(std::move(sceneFactory)))

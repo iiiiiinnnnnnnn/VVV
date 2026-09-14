@@ -89,6 +89,10 @@ void PostProcessController::Update()
 	if (!invincibilityAuraRequested && invincibilityAuraIntensity < 0.001f)
 		invincibilityAuraIntensity = 0.0f;
 	invincibilityAuraRequested = false;
+
+	if (!deathVignetteRequested)
+		deathVignetteProgress = 0.0f;
+	deathVignetteRequested = false;
 }
 
 void PostProcessController::DrawGUI()
@@ -136,6 +140,13 @@ void PostProcessController::DrawGUI()
 
 void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 {
+	if (deathVignetteProgress > 0.001f)
+	{
+		constexpr float DeathVignetteMaximum = 5.0f;
+		postProcess.AddRuntimeVignette(
+			deathVignetteProgress * DeathVignetteMaximum, {0, 0, 0, 1});
+	}
+
 	const float threaten = GetIntensity(
 		threatenTimer,
 		threatenDuration,

@@ -234,6 +234,32 @@ float3 TerrainCalcShadowColorPCF(
 
     return lerp(shadowColor, 1.0f.xxx, factor / max(count, 1.0f));
 }
+
+float3 SampleTerrainShadowCascade(int cascadeIndex, float3 worldPosition)
+{
+    float3 coord = float3(0.0f, 0.0f, 0.0f);
+    switch (cascadeIndex)
+    {
+    case 0: coord = CalcShadowTexcoord(worldPosition, light_view_projections[0]); break;
+    case 1: coord = CalcShadowTexcoord(worldPosition, light_view_projections[1]); break;
+    case 2: coord = CalcShadowTexcoord(worldPosition, light_view_projections[2]); break;
+    default: coord = CalcShadowTexcoord(worldPosition, light_view_projections[3]); break;
+    }
+    if (!IsShadowTexcoordValid(coord)) return 1.0f.xxx;
+    float3 result = 1.0f.xxx;
+    switch (cascadeIndex)
+    {
+    case 0: result = TerrainCalcShadowColorPCF(shadowMaps[0], shadowSampler, coord,
+        shadowColor.rgb, shadowBias, pcfKernelSize); break;
+    case 1: result = TerrainCalcShadowColorPCF(shadowMaps[1], shadowSampler, coord,
+        shadowColor.rgb, shadowBias, pcfKernelSize); break;
+    case 2: result = TerrainCalcShadowColorPCF(shadowMaps[2], shadowSampler, coord,
+        shadowColor.rgb, shadowBias, pcfKernelSize); break;
+    default: result = TerrainCalcShadowColorPCF(shadowMaps[3], shadowSampler, coord,
+        shadowColor.rgb, shadowBias, pcfKernelSize); break;
+    }
+	return result;
+}
 #endif
 
 float4 main(VS_OUT pin) : SV_TARGET
@@ -478,39 +504,16 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     float3 shadow = 1.0f.xxx;
 
-    int cascadeIndex = SelectShadowCascade(
-        dot(pin.position - viewPosition, camera_front.xyz),
-        cascade_splits);
+    float cameraDistance = dot(pin.position - viewPosition, camera_front.xyz);
+    int cascadeIndex = SelectShadowCascade(cameraDistance, cascade_splits);
     if (cascadeIndex >= 0)
     {
-        float3 shadowTexcoord = CalcShadowTexcoord(
-            pin.position,
-            light_view_projections[cascadeIndex]);
-        if (IsShadowTexcoordValid(shadowTexcoord))
+        shadow = SampleTerrainShadowCascade(cascadeIndex, pin.position);
+        if (cascadeIndex < 3)
         {
-            switch (cascadeIndex)
-            {
-            case 0:
-                shadow = TerrainCalcShadowColorPCF(
-                    shadowMaps[0], shadowSampler, shadowTexcoord,
-                    shadowColor.rgb, shadowBias, pcfKernelSize);
-                break;
-            case 1:
-                shadow = TerrainCalcShadowColorPCF(
-                    shadowMaps[1], shadowSampler, shadowTexcoord,
-                    shadowColor.rgb, shadowBias, pcfKernelSize);
-                break;
-            case 2:
-                shadow = TerrainCalcShadowColorPCF(
-                    shadowMaps[2], shadowSampler, shadowTexcoord,
-                    shadowColor.rgb, shadowBias, pcfKernelSize);
-                break;
-            default:
-                shadow = TerrainCalcShadowColorPCF(
-                    shadowMaps[3], shadowSampler, shadowTexcoord,
-                    shadowColor.rgb, shadowBias, pcfKernelSize);
-                break;
-            }
+            float blend = CalcShadowCascadeBlend(cameraDistance, cascadeIndex, cascade_splits);
+            shadow = lerp(shadow,
+                SampleTerrainShadowCascade(cascadeIndex + 1, pin.position), blend);
         }
     }
 

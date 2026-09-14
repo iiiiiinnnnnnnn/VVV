@@ -2,13 +2,13 @@
 
 #include <memory>
 
-#include "UI/Widget.h"
+#include "UI/GaugeHUD.h"
 
 class Entity;
 class Texture;
 
 // ボスの検知状態とHP表示をひとつにまとめた専用HUD。
-class BossBar final : public Widget
+class BossBar final : public GaugeHUD
 {
 public:
 	BossBar();
@@ -19,12 +19,7 @@ public:
 
 protected:
 	void OnUpdate() override;
-	void OnRender(const RenderContext& rc) override;
 
 private:
 	Entity* boss = nullptr;
-	std::shared_ptr<Texture> frameTexture;
-	std::shared_ptr<Texture> fillTexture;
-	float lifeRatio = 1.0f;
-	float delayedLifeRatio = 1.0f;
 };

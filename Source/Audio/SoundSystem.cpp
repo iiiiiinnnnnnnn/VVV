@@ -24,10 +24,12 @@
 namespace
 {
 constexpr UINT32 SpatialSampleRate = 48000;
+const Camera* listenerOverride = nullptr;
 
 // 現在のカメラを聞き手にする
 const Camera* GetListenerCamera()
 {
+	if (listenerOverride) return listenerOverride;
 	Scene* scene = SceneManager::Instance().GetCurrentScene();
 	Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
 	const Camera* camera = stage ? stage->GetActiveCamera() : nullptr;
@@ -141,7 +143,7 @@ bool SoundSystem::Initialize()
 		Finalize();
 		return false;
 	}
-	masteringVoice->SetVolume(masterVolume);
+	ApplyMasterVolume();
 	return true;
 }
 
@@ -216,6 +218,11 @@ SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter
 	const float distance = Vector3::Distance(emitter->transform.position, listener->GetEye());
 	if (GetDistanceGain(distance, options) <= 0.0f) return InvalidVoiceId;
 	return StartVoice(path, options, emitter, &options, listener);
+}
+
+void SoundSystem::SetListenerOverride(const Camera* camera)
+{
+	listenerOverride = camera;
 }
 
 SoundSystem::VoiceId SoundSystem::PlayTrack(

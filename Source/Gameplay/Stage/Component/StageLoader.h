@@ -69,8 +69,9 @@ class StageLoader : public Component
 	void ClearEditorSelection();
 	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint);
 	void SetEditorPlayerStart(const Vector3& terrainPoint);
-	bool HasPlayerStart() const { return hasPlayerStart; }
-	const Transform& GetPlayerStartTransform() const { return playerStartTransform; }
+	bool HasPlayerStart() const { return !playerStartTransforms.empty(); }
+	const std::vector<Transform>& GetPlayerStartTransforms() const { return playerStartTransforms; }
+	const Transform& GetRandomPlayerStartTransform() const;
 	std::vector<std::string> GetMissingModelPaths() const;
 	bool ReplaceMissingModelPath(
 		const std::string& missingPath, const std::string& replacementPath);
@@ -124,8 +125,7 @@ class StageLoader : public Component
 		bool editorPreview = false;
 	};
 	std::vector<PropData> propDataList = {};
-	bool hasPlayerStart = false;
-	Transform playerStartTransform;
+	std::vector<Transform> playerStartTransforms;
 	void DrawDestroyGUI(PropData& propData);
 	void DrawEditorGUI();
 	bool DrawPropEditor(int index);

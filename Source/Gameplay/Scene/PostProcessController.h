@@ -40,6 +40,12 @@ public:
 	void RequestSkillHit(float duration = 0.30f, float power = 1.0f);
 	// 無敵中は毎フレーム呼び出す。呼び出しが止まると自然にフェードする。
 	void RequestInvincibilityAura() { invincibilityAuraRequested = true; }
+	// 死亡中は毎フレーム呼び出す。呼び出しが止まると次のフレームで解除する。
+	void RequestDeathVignette(float progress)
+	{
+		deathVignetteProgress = std::clamp(progress, 0.0f, 1.0f);
+		deathVignetteRequested = true;
+	}
 
 	void Update();
 
@@ -79,4 +85,6 @@ private:
 	float skillHitPower = 0.0f;
 	float invincibilityAuraIntensity = 0.0f;
 	bool invincibilityAuraRequested = false;
+	float deathVignetteProgress = 0.0f;
+	bool deathVignetteRequested = false;
 };

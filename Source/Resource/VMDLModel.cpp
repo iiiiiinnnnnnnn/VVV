@@ -24,7 +24,8 @@
 
 namespace
 {
-std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data)
+std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data,
+	const VMDLModel::VmdlPresentationData& presentation)
 {
 	json root;
 	root["version"] = 1;
@@ -41,19 +42,43 @@ std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data)
 				v.ribbonEndColor.z, v.ribbonEndColor.w}}
 		});
 	}
+	root["cameraShakes"] = json::array();
+	for (const auto& value : presentation.cameraShakes)
+		root["cameraShakes"].push_back({{"name", value.name}, {"node", value.nodeIndex},
+			{"range", value.range}, {"distanceAttenuation", value.distanceAttenuation},
+			{"duration", value.duration}, {"intensity", value.intensity}});
+	root["radialBlurs"] = json::array();
+	for (const auto& value : presentation.radialBlurs)
+		root["radialBlurs"].push_back({{"name", value.name}, {"node", value.nodeIndex},
+			{"range", value.range}, {"distanceAttenuation", value.distanceAttenuation},
+			{"duration", value.duration}, {"power", value.power},
+			{"attackRate", value.attackRate}});
+	const auto savePresentationTracks = [&root](const char* key, const auto& tracks) {
+		root[key] = json::array();
+		for (const auto& track : tracks)
+		{
+			json keys = json::array();
+			for (const auto& value : track.keys)
+				keys.push_back({{"seconds", value.seconds}, {"component", value.componentIndex}});
+			root[key].push_back({{"animation", track.animationName}, {"keys", std::move(keys)}});
+		}
+	};
+	savePresentationTracks("cameraShakeTracks", presentation.cameraShakeTracks);
+	savePresentationTracks("radialBlurTracks", presentation.radialBlurTracks);
 	return root.dump();
 }
 
-void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData& data)
+void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData& data,
+	VMDLModel::VmdlPresentationData& presentation)
 {
 	if (source.empty()) return;
 	const json root = json::parse(source);
 	const auto found = root.find("emitters");
-	if (found == root.end() || !found->is_array()) return;
 	const auto vec3 = [](const json& a, Vector3 fallback) {
 		return a.is_array() && a.size() >= 3
 			? Vector3(a[0].get<float>(), a[1].get<float>(), a[2].get<float>()) : fallback;
 	};
+	if (found != root.end() && found->is_array())
 	for (size_t i = 0; i < found->size() && i < data.emitters.size(); ++i)
 	{
 		const json& j = (*found)[i];
@@ -71,6 +96,44 @@ void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleDat
 			v.ribbonEndColor = Color((*c)[0].get<float>(), (*c)[1].get<float>(),
 				(*c)[2].get<float>(), (*c)[3].get<float>());
 	}
+	presentation = {};
+	if (const auto values = root.find("cameraShakes"); values != root.end() && values->is_array())
+		for (const auto& j : *values)
+		{
+			auto& value = presentation.cameraShakes.emplace_back();
+			value.name = j.value("name", value.name); value.nodeIndex = j.value("node", -1);
+			value.range = std::max(0.01f, j.value("range", value.range));
+			value.distanceAttenuation = j.value("distanceAttenuation", true);
+			value.duration = std::max(0.01f, j.value("duration", value.duration));
+			value.intensity = std::max(0.0f, j.value("intensity", value.intensity));
+		}
+	if (const auto values = root.find("radialBlurs"); values != root.end() && values->is_array())
+		for (const auto& j : *values)
+		{
+			auto& value = presentation.radialBlurs.emplace_back();
+			value.name = j.value("name", value.name); value.nodeIndex = j.value("node", -1);
+			value.range = std::max(0.01f, j.value("range", value.range));
+			value.distanceAttenuation = j.value("distanceAttenuation", true);
+			value.duration = std::max(0.01f, j.value("duration", value.duration));
+			value.power = std::max(0.0f, j.value("power", value.power));
+			value.attackRate = std::clamp(j.value("attackRate", value.attackRate), 0.01f, 0.95f);
+		}
+	const auto loadPresentationTracks = [&root](const char* key, auto& tracks) {
+		const auto values = root.find(key);
+		if (values == root.end() || !values->is_array()) return;
+		for (const auto& j : *values)
+		{
+			auto& track = tracks.emplace_back();
+			track.animationName = j.value("animation", std::string{});
+			const auto keys = j.find("keys");
+			if (keys == j.end() || !keys->is_array()) continue;
+			for (const auto& k : *keys)
+				track.keys.push_back({std::max(0.0f, k.value("seconds", 0.0f)),
+					k.value("component", -1)});
+		}
+	};
+	loadPresentationTracks("cameraShakeTracks", presentation.cameraShakeTracks);
+	loadPresentationTracks("radialBlurTracks", presentation.radialBlurTracks);
 }
 
 std::string ToUpperAscii(std::string value)
@@ -318,6 +381,18 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
 void VMDLModel::BuildMaterialTextureResources(
 	ID3D11Device* device, const std::filesystem::path& dirpath, VMDLModel::Material& material)
 {
+	material.hasBaseTexture = !material.baseTextureFileName.empty() ||
+		!material.baseTextureDDS.empty();
+	material.hasNormalTexture = !material.normalTextureFileName.empty() ||
+		!material.normalTextureDDS.empty();
+	material.hasEmissiveTexture = !material.emissiveTextureFileName.empty() ||
+		!material.emissiveTextureDDS.empty();
+	material.hasOcclusionTexture = !material.occlusionTextureFileName.empty() ||
+		!material.occlusionTextureDDS.empty();
+	material.hasMetalnessRoughnessTexture =
+		!material.metalnessRoughnessTextureFileName.empty() ||
+		!material.metalnessRoughnessTextureDDS.empty();
+
 	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.baseTextureFileName,
 		material.baseTextureDDS, 0xFFFFFFFF, material.baseMap);
 
@@ -373,35 +448,41 @@ bool VMDLModel::ReplaceMaterialTexture(
 	std::string* filename = nullptr;
 	std::vector<uint8_t>* embeddedDDS = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
+	bool* hasTexture = nullptr;
 	switch (slot)
 	{
 	case MaterialTextureSlot::BaseColor:
 		filename = &material.baseTextureFileName;
 		embeddedDDS = &material.baseTextureDDS;
 		srv = &material.baseMap;
+		hasTexture = &material.hasBaseTexture;
 		break;
 	case MaterialTextureSlot::Normal:
 		filename = &material.normalTextureFileName;
 		embeddedDDS = &material.normalTextureDDS;
 		srv = &material.normalMap;
+		hasTexture = &material.hasNormalTexture;
 		break;
 	case MaterialTextureSlot::MetalnessRoughness:
 		filename = &material.metalnessRoughnessTextureFileName;
 		embeddedDDS = &material.metalnessRoughnessTextureDDS;
 		srv = &material.metalnessRoughnessMap;
+		hasTexture = &material.hasMetalnessRoughnessTexture;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		filename = &material.occlusionTextureFileName;
 		embeddedDDS = &material.occlusionTextureDDS;
 		srv = &material.occlusionMap;
+		hasTexture = &material.hasOcclusionTexture;
 		break;
 	case MaterialTextureSlot::Emissive:
 		filename = &material.emissiveTextureFileName;
 		embeddedDDS = &material.emissiveTextureDDS;
 		srv = &material.emissiveMap;
+		hasTexture = &material.hasEmissiveTexture;
 		break;
 	}
-	if (!filename || !embeddedDDS || !srv) return false;
+	if (!filename || !embeddedDDS || !srv || !hasTexture) return false;
 
 	std::vector<uint8_t> convertedDDS;
 	if (FAILED(ConvertTextureFileToDDSBytes(texturePath, convertedDDS)) || convertedDDS.empty())
@@ -415,6 +496,7 @@ bool VMDLModel::ReplaceMaterialTexture(
 	*filename = texturePath.filename().string();
 	*embeddedDDS = std::move(convertedDDS);
 	*srv = std::move(replacement);
+	*hasTexture = true;
 	SyncMaterialTextureToSource(materialIndex, slot);
 	return true;
 }
@@ -482,6 +564,7 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 	std::string* filename = nullptr;
 	std::vector<uint8_t>* embeddedDDS = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* srv = nullptr;
+	bool* hasTexture = nullptr;
 	uint32_t dummyColor = 0xFFFFFFFF;
 	switch (slot)
 	{
@@ -489,32 +572,37 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 		filename = &material.baseTextureFileName;
 		embeddedDDS = &material.baseTextureDDS;
 		srv = &material.baseMap;
+		hasTexture = &material.hasBaseTexture;
 		break;
 	case MaterialTextureSlot::Normal:
 		filename = &material.normalTextureFileName;
 		embeddedDDS = &material.normalTextureDDS;
 		srv = &material.normalMap;
+		hasTexture = &material.hasNormalTexture;
 		dummyColor = 0xFFFF7F7F;
 		break;
 	case MaterialTextureSlot::MetalnessRoughness:
 		filename = &material.metalnessRoughnessTextureFileName;
 		embeddedDDS = &material.metalnessRoughnessTextureDDS;
 		srv = &material.metalnessRoughnessMap;
+		hasTexture = &material.hasMetalnessRoughnessTexture;
 		dummyColor = 0xFF00FF00;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		filename = &material.occlusionTextureFileName;
 		embeddedDDS = &material.occlusionTextureDDS;
 		srv = &material.occlusionMap;
+		hasTexture = &material.hasOcclusionTexture;
 		break;
 	case MaterialTextureSlot::Emissive:
 		filename = &material.emissiveTextureFileName;
 		embeddedDDS = &material.emissiveTextureDDS;
 		srv = &material.emissiveMap;
+		hasTexture = &material.hasEmissiveTexture;
 		dummyColor = 0xFF000000;
 		break;
 	}
-	if (!filename || !embeddedDDS || !srv) return false;
+	if (!filename || !embeddedDDS || !srv || !hasTexture) return false;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
 	if (FAILED(GpuResourceUtils::CreateDummyTexture(
@@ -524,6 +612,7 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 	filename->clear();
 	embeddedDDS->clear();
 	*srv = std::move(replacement);
+	*hasTexture = false;
 	SyncMaterialTextureToSource(materialIndex, slot);
 	return true;
 }
@@ -746,7 +835,8 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	  vmdlAnimationEditorData(other.vmdlAnimationEditorData),
 	  vmdlAnimationControlData(other.vmdlAnimationControlData), vmdlTrailData(other.vmdlTrailData),
 	  vmdlParticleData(other.vmdlParticleData),
-	  vmdlSoundData(other.vmdlSoundData), externalMeshGroups(other.externalMeshGroups),
+	  vmdlSoundData(other.vmdlSoundData), vmdlPresentationData(other.vmdlPresentationData),
+	  externalMeshGroups(other.externalMeshGroups),
 	  modelScale(other.modelScale), worldTransform(other.worldTransform),
 	  modelCacheFilepath(other.modelCacheFilepath)
 {
@@ -766,6 +856,7 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	  vmdlTrailData(std::move(other.vmdlTrailData)),
 	  vmdlParticleData(std::move(other.vmdlParticleData)),
 	  vmdlSoundData(std::move(other.vmdlSoundData)),
+	  vmdlPresentationData(std::move(other.vmdlPresentationData)),
 	  externalMeshGroups(std::move(other.externalMeshGroups)), modelScale(other.modelScale),
 	  worldTransform(other.worldTransform), modelCacheFilepath(std::move(other.modelCacheFilepath))
 {
@@ -791,6 +882,7 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	vmdlTrailData = other.vmdlTrailData;
 	vmdlParticleData = other.vmdlParticleData;
 	vmdlSoundData = other.vmdlSoundData;
+	vmdlPresentationData = other.vmdlPresentationData;
 	externalMeshGroups = other.externalMeshGroups;
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
@@ -818,6 +910,7 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	vmdlTrailData = std::move(other.vmdlTrailData);
 	vmdlParticleData = std::move(other.vmdlParticleData);
 	vmdlSoundData = std::move(other.vmdlSoundData);
+	vmdlPresentationData = std::move(other.vmdlPresentationData);
 	externalMeshGroups = std::move(other.externalMeshGroups);
 	modelScale = other.modelScale;
 	worldTransform = other.worldTransform;
@@ -2161,6 +2254,8 @@ bool VMDLModel::ReplaceGLBCache(
 	for (auto& value : vmdlTrailData.trails) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlParticleData.emitters) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlSoundData.sources) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlPresentationData.cameraShakes) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlPresentationData.radialBlurs) value.nodeIndex = remapNode(value.nodeIndex);
 
 	// GLB部分を交換
 	sourceMaterials = replacement.sourceMaterials;
@@ -2322,7 +2417,7 @@ void VMDLModel::Serialize(const char* filename)
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
 		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
 		addFile("model.vfxdata", [&](auto& archive) {
-			const std::string vfxJson = BuildVfxExtensionJson(vmdlParticleData);
+			const std::string vfxJson = BuildVfxExtensionJson(vmdlParticleData, vmdlPresentationData);
 			archive(vfxJson);
 		});
 		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
@@ -2551,7 +2646,7 @@ void VMDLModel::Deserialize(const char* filename)
 			NormalizeAttachmentNames();
 			NormalizeVmdlIKRaySettings();
 			NormalizeMorphNames();
-			ApplyVfxExtensionJson(vfxExtensionJson, vmdlParticleData);
+			ApplyVfxExtensionJson(vfxExtensionJson, vmdlParticleData, vmdlPresentationData);
 			for (int sourceIndex = 0;
 				sourceIndex < static_cast<int>(vmdlSoundData.sources.size()); ++sourceIndex)
 			{

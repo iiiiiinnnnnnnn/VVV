@@ -14,6 +14,7 @@ namespace Game
 	// 更新処理
 	void Input::Update()
 	{
+		if (gameplayInputSuppressionFrames > 0) --gameplayInputSuppressionFrames;
 		const bool acceptsInput = GetForegroundWindow() == hWnd;
 		gamePad->Update(acceptsInput);
 		mouse->Update();

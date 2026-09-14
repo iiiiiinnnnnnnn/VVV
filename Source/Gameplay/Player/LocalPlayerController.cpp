@@ -8,6 +8,7 @@
 InputContext LocalPlayerController::Poll()
 {
     constexpr float quickStepBufferDuration = 0.2f;
+	if (Game::Input::Instance().IsGameplayInputSuppressed()) return {};
 	// プレイ中のカーソル解放はScene側で管理するため、OSウィンドウのフォーカスだけを見る
     if (!Game::Input::IsFocusedWindow(true))
     {
@@ -139,7 +140,7 @@ InputContext LocalPlayerController::Poll()
 	context.sprint = sprintLatched;
     context.crouch =
 		(pad.GetButton() & GamePad::BTN_RIGHT_THUMB) ||
-		(GetAsyncKeyState(VK_LCONTROL) & 0x8000);
+		(GetAsyncKeyState(VK_CONTROL) & 0x8000);
     context.attackPressed =
 		(pad.GetButtonDown() &
 			(GamePad::BTN_A | GamePad::BTN_X | GamePad::BTN_RIGHT_TRIGGER)) ||

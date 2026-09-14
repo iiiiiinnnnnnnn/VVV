@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -25,6 +25,7 @@ class MeshCache;
 class VMDLModel
 {
   public:
+	// ノードに追従する物理剛体の設定
 	struct VmdlRigidBody
 	{
 		std::string name = "RIGIDBODY";
@@ -37,6 +38,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// ノードに追従する当たり判定の設定
 	struct VmdlCollider
 	{
 		std::string name = "COLLIDER";
@@ -51,6 +53,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// 揺れ物に使うスプリングの設定
 	struct VmdlSpring
 	{
 		std::string name = "SPRING";
@@ -63,6 +66,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// スプリング専用の当たり判定設定
 	struct VmdlSpringCollider
 	{
 		std::string name = "SPRING COLLIDER";
@@ -73,6 +77,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// メッシュ表示を切り替えるモーフ設定
 	struct VmdlMorph
 	{
 		std::string name = "Morph";
@@ -82,6 +87,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// VMDLへ追加する付加設定のまとめ
 	struct VmdlExtensionData
 	{
 		Vector3 rootOffset = Vector3::Zero;
@@ -94,6 +100,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// IKで制御する脚のノード設定
 	struct VmdlIKLeg
 	{
 		std::string name = "Leg";
@@ -105,6 +112,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// VMDL全体のIK設定
 	struct VmdlIKSettings
 	{
 		static constexpr size_t MaxLegCount = 8;
@@ -116,6 +124,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// IKの曲がる方向を決めるポール設定
 	struct VmdlIKPole
 	{
 		bool custom = false;
@@ -124,6 +133,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// 接地判定に使うIKレイ設定
 	struct VmdlIKRaySettings
 	{
 		bool custom = false;
@@ -133,6 +143,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// アニメーションごとのFootIKウェイト
 	struct VmdlFootWeightTrack
 	{
 		static constexpr float DefaultSampleRate = 120.0f;
@@ -144,6 +155,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// アニメーション編集用データのまとめ
 	struct VmdlAnimationEditorData
 	{
 		std::vector<VmdlFootWeightTrack> footWeightTracks;
@@ -151,6 +163,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// ノードに追従するトレイル設定
 	struct VmdlTrail
 	{
 		std::string name = "TRAIL";
@@ -166,6 +179,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// 有効状態を切り替えるキーフレーム
 	struct VmdlBoolKeyframe
 	{
 		float seconds = 0.0f;
@@ -174,6 +188,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// コライダーの有効状態を制御するトラック
 	struct VmdlColliderAnimationTrack
 	{
 		std::string animationName;
@@ -183,6 +198,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// モーフを切り替えるキーフレーム
 	struct VmdlMorphKeyframe
 	{
 		float seconds = 0.0f;
@@ -191,6 +207,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// モーフを制御するアニメーショントラック
 	struct VmdlMorphAnimationTrack
 	{
 		std::string animationName;
@@ -199,6 +216,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// トレイルの有効状態を制御するトラック
 	struct VmdlTrailAnimationTrack
 	{
 		std::string animationName;
@@ -208,6 +226,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// トレイルと再生トラックのまとめ
 	struct VmdlTrailData
 	{
 		std::vector<VmdlTrail> trails;
@@ -217,6 +236,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// アニメーション連動設定のまとめ
 	struct VmdlAnimationControlData
 	{
 		std::vector<uint8_t> colliderInitialActive;
@@ -241,8 +261,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
-	// VMDLのノードに追従する軽量パーティクルエミッタ。
-	// 外部エディタに依存せず、VMDL Editorで調整できる値だけを保持する。
+	// ノードに追従する軽量パーティクル設定
 	struct VmdlParticleEmitter
 	{
 		// 0: Sprite, 1: Ribbon（拡張値はmodel.vfxdataへ保存）
@@ -284,6 +303,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// パーティクルの有効状態を制御するトラック
 	struct VmdlParticleAnimationTrack
 	{
 		std::string animationName;
@@ -293,6 +313,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// パーティクルと再生トラックのまとめ
 	struct VmdlParticleData
 	{
 		std::vector<VmdlParticleEmitter> emitters;
@@ -302,6 +323,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// 多脚モデル向けのIK補正設定
 	struct VmdlMultiLegIKSettings
 	{
 		float bodyHeightOffset = 0.0f;
@@ -312,6 +334,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// ノードに配置する空間サウンド設定
 	struct VmdlSoundSource
 	{
 		std::string name = "SOUND SOURCE";
@@ -331,6 +354,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// サウンドトラックの再生バリエーション設定
 	struct VmdlSoundSourceBinding
 	{
 		int track = 0;
@@ -341,6 +365,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// サウンドを再生するキーフレーム
 	struct VmdlSoundKeyframe
 	{
 		float seconds = 0.0f;
@@ -354,6 +379,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// サウンド再生を制御するアニメーショントラック
 	struct VmdlSoundAnimationTrack
 	{
 		std::string animationName;
@@ -362,12 +388,59 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// サウンドソースと再生トラックのまとめ
 	struct VmdlSoundData
 	{
 		std::vector<VmdlSoundSource> sources;
 		std::vector<VmdlSoundAnimationTrack> tracks;
 
 		template <class Archive> void serialize(Archive& archive);
+	};
+
+	// 範囲内のカメラへ適用する揺れ設定
+	struct VmdlCameraShake
+	{
+		std::string name = "CAMERA SHAKE";
+		int nodeIndex = -1;
+		float range = 25.0f;
+		bool distanceAttenuation = true;
+		float duration = 2.0f;
+		float intensity = 0.1f;
+	};
+
+	// 範囲内のカメラへ適用するラジアルブラー設定
+	struct VmdlRadialBlur
+	{
+		std::string name = "RADIAL BLUR";
+		int nodeIndex = -1;
+		float range = 25.0f;
+		bool distanceAttenuation = true;
+		float duration = 5.0f;
+		float power = 3.0f;
+		float attackRate = 0.15f;
+	};
+
+	// カメラ演出を再生するキーフレーム
+	struct VmdlPresentationKeyframe
+	{
+		float seconds = 0.0f;
+		int componentIndex = -1;
+	};
+
+	// カメラ演出を制御するアニメーショントラック
+	struct VmdlPresentationAnimationTrack
+	{
+		std::string animationName;
+		std::vector<VmdlPresentationKeyframe> keys;
+	};
+
+	// カメラ演出と再生トラックのまとめ
+	struct VmdlPresentationData
+	{
+		std::vector<VmdlCameraShake> cameraShakes;
+		std::vector<VmdlRadialBlur> radialBlurs;
+		std::vector<VmdlPresentationAnimationTrack> cameraShakeTracks;
+		std::vector<VmdlPresentationAnimationTrack> radialBlurTracks;
 	};
 
 	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr);
@@ -443,6 +516,13 @@ class VMDLModel
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> occlusionMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalnessRoughnessMap;
 
+		// GPU転送後にDDSを解放しても、実テクスチャの有無は保持する
+		bool hasBaseTexture = false;
+		bool hasNormalTexture = false;
+		bool hasEmissiveTexture = false;
+		bool hasOcclusionTexture = false;
+		bool hasMetalnessRoughnessTexture = false;
+
 		template <class Archive> void serialize(Archive& archive);
 	};
 
@@ -464,8 +544,7 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
-	// VMDL側で編集するマテリアルパラメーター
-	// GLBを差し替えても、同名マテリアルへ再適用する
+	// VMDL側で保持するマテリアル調整値
 	struct VmdlMaterialData
 	{
 		std::string name;
@@ -721,6 +800,8 @@ class VMDLModel
 	const VmdlParticleData& GetVmdlParticleData() const { return vmdlParticleData; }
 	VmdlSoundData& GetVmdlSoundData() { return vmdlSoundData; }
 	const VmdlSoundData& GetVmdlSoundData() const { return vmdlSoundData; }
+	VmdlPresentationData& GetVmdlPresentationData() { return vmdlPresentationData; }
+	const VmdlPresentationData& GetVmdlPresentationData() const { return vmdlPresentationData; }
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
 
 	void GetNodePoses(std::vector<NodePose>& nodePoses) const;
@@ -742,7 +823,7 @@ class VMDLModel
 	// 分割形式
 	static constexpr uint32_t VmdlCompressionVersion = 9;
 
-	void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
+	static void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
 		const std::string& textureFileName, ID3D11ShaderResourceView* srv,
 		std::vector<uint8_t>& outDDS);
 	void BuildMaterialEmbeddedDDS(
@@ -775,6 +856,7 @@ class VMDLModel
 	VmdlTrailData vmdlTrailData;
 	VmdlParticleData vmdlParticleData;
 	VmdlSoundData vmdlSoundData;
+	VmdlPresentationData vmdlPresentationData;
 	std::vector<uint8_t> runtimeMorphVisibility;
 	std::vector<ExternalMeshGroup> externalMeshGroups;
 	float modelScale = 1.0f;

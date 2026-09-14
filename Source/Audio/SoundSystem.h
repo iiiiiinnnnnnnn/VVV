@@ -1,4 +1,4 @@
-﻿// SoundSystem.h
+// SoundSystem.h
 #pragma once
 
 #include <xaudio2.h>
@@ -59,6 +59,9 @@ class SoundSystem
 
 	void Update();
 
+	// エディタなど独立したプレビューだけが聞き手を差し替える
+	void SetListenerOverride(const Camera* camera);
+
 	// WAVを再生してボイスIDを返す
 	VoiceId Play(const std::string& path, const PlayOptions& options = {});
 
@@ -108,11 +111,19 @@ class SoundSystem
 	void SetMasterVolume(float volume)
 	{
 		masterVolume = std::max(0.0f, volume);
-		if (masteringVoice) masteringVoice->SetVolume(masterVolume);
+		ApplyMasterVolume();
 	}
 
 	// マスター音量を取得
 	float GetMasterVolume() const { return masterVolume; }
+
+	// 一時停止中だけマスター音量へ減衰を掛ける
+	void SetPaused(bool paused)
+	{
+		if (pauseDucking == paused) return;
+		pauseDucking = paused;
+		ApplyMasterVolume();
+	}
 
 	// ボイスの音量を設定
 	bool SetVolume(VoiceId voiceId, float volume)
@@ -243,6 +254,12 @@ class SoundSystem
 
 	// 洞窟の残響バスを作成
 	bool InitializeReverb();
+	void ApplyMasterVolume()
+	{
+		constexpr float PauseVolumeScale = 0.25f;
+		if (masteringVoice)
+			masteringVoice->SetVolume(masterVolume * (pauseDucking ? PauseVolumeScale : 1.0f));
+	}
 
 	IXAudio2* xaudio = nullptr;
 	IXAudio2MasteringVoice* masteringVoice = nullptr;
@@ -252,6 +269,7 @@ class SoundSystem
 	uint32_t outputChannels = 0;
 	VoiceId nextVoiceId = 1;
 	float masterVolume = 1.0f;
+	bool pauseDucking = false;
 	std::unordered_map<std::string, std::shared_ptr<SoundData>> sounds;
 	std::unordered_map<VoiceId, std::unique_ptr<ActiveVoice>> voices;
 };

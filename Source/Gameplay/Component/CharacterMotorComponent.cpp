@@ -29,7 +29,9 @@ void CharacterMotorComponent::OnUpdate()
 		actor->transform.SetRotation(actor->transform.rotation * rootMotionRotation);
 
 		const Vector3 localRootMotionDelta = animator->GetRootMotionVec();
-		rootMotionDelta = Vector3::Transform(localRootMotionDelta, actor->transform.rotation);
+		rootMotionDelta =
+			Vector3::Transform(localRootMotionDelta, actor->transform.rotation) *
+			rootMotionScale;
 	}
 	UpdateGravity();
 	const Vector3 motorVelocity = externalVelocity + Vector3(0.0f, verticalVelocity, 0.0f);
