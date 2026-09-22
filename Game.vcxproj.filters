@@ -289,6 +289,7 @@
     <ClCompile Include="Source\UI\Button.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\UI\GaugeHUD.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\UI\HUDWidget.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\PauseMenu.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\UI\TextWidget.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\UI\UIFont.cpp"><Filter>UI</Filter></ClCompile>
     <ClCompile Include="Source\Application\Tools\DynamicAnimationSerializer.cpp">
@@ -315,6 +316,15 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClCompile>
+	<ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp">
+	  <Filter>Gameplay\Stage\Component</Filter>
+	</ClCompile>
+	<ClCompile Include="Source\Gameplay\Actor\Water.cpp">
+	  <Filter>Gameplay\Actor</Filter>
+	</ClCompile>
+	<ClCompile Include="Source\Rendering\Renderer\WaterRenderer.cpp">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Entity.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -641,6 +651,7 @@
     <ClInclude Include="Source\UI\Button.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\UI\GaugeHUD.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\UI\HUDWidget.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\PauseMenu.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\UI\TextWidget.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\UI\UIFont.h"><Filter>UI</Filter></ClInclude>
     <ClInclude Include="Source\Application\Tools\DynamicAnimationEditorWindow.h">
@@ -676,6 +687,15 @@
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClInclude>
+	<ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h">
+	  <Filter>Gameplay\Stage\Component</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Gameplay\Actor\Water.h">
+	  <Filter>Gameplay\Actor</Filter>
+	</ClInclude>
+	<ClInclude Include="Source\Rendering\Renderer\WaterRenderer.h">
+	  <Filter>Rendering\Renderer</Filter>
+	</ClInclude>
     <ClInclude Include="Source\Gameplay\Player\Player.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
@@ -942,6 +962,9 @@
     <None Include="Shader\GeometryParticle.hlsli">
       <Filter>Shaders\Particle</Filter>
     </None>
+	<None Include="Shader\TerrainGrass.hlsli">
+	  <Filter>Shaders\3D</Filter>
+	</None>
     <None Include="Shader\Scene.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
@@ -1006,12 +1029,27 @@
     <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
+	<FxCompile Include="Shader\TerrainGrassVS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
+	<FxCompile Include="Shader\TerrainGrassGS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
+	<FxCompile Include="Shader\TerrainGrassPS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
     <FxCompile Include="Shader\TrailRendererVS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
+	<FxCompile Include="Shader\WaterSurfaceVS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
+	<FxCompile Include="Shader\WaterSurfacePS.hlsl">
+	  <Filter>Shaders\3D</Filter>
+	</FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>

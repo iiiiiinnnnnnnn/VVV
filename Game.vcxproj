@@ -112,7 +112,10 @@
     <ClCompile Include="Source\Gameplay\Stage\Stage01.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Stage.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp" />
+	<ClCompile Include="Source\Gameplay\Actor\Water.cpp" />
+	<ClCompile Include="Source\Rendering\Renderer\WaterRenderer.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp" />
+	<ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp" />
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
     <ClCompile Include="Source\Resource\ResourceManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp" />
@@ -136,6 +139,7 @@
     <ClCompile Include="Source\UI\Button.cpp" />
     <ClCompile Include="Source\UI\GaugeHUD.cpp" />
     <ClCompile Include="Source\UI\HUDWidget.cpp" />
+	<ClCompile Include="Source\UI\PauseMenu.cpp" />
     <ClCompile Include="Source\UI\TextWidget.cpp" />
     <ClCompile Include="Source\UI\UIFont.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
@@ -252,7 +256,10 @@
     <ClInclude Include="Source\Gameplay\Stage\Stage.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage01.h" />
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h" />
+	<ClInclude Include="Source\Gameplay\Actor\Water.h" />
+	<ClInclude Include="Source\Rendering\Renderer\WaterRenderer.h" />
     <ClInclude Include="Source\Gameplay\Stage\Component\Terrain.h" />
+	<ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h" />
     <ClInclude Include="Source\Physics\Collider\TerrainMeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Application\Input\Mouse.h" />
@@ -281,6 +288,7 @@
     <ClInclude Include="Source\UI\Button.h" />
     <ClInclude Include="Source\UI\GaugeHUD.h" />
     <ClInclude Include="Source\UI\HUDWidget.h" />
+	<ClInclude Include="Source\UI\PauseMenu.h" />
     <ClInclude Include="Source\UI\TextWidget.h" />
     <ClInclude Include="Source\UI\UIFont.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
@@ -299,6 +307,7 @@
     <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\gbuffer.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
+	<None Include="Shader\TerrainGrass.hlsli" />
     <None Include="Shader\PBR.hlsli" />
     <None Include="Shader\PBRFunctions.hlsli" />
     <None Include="Shader\FullScreenQuad.hlsli" />
@@ -336,6 +345,20 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+	<FxCompile Include="Shader\TerrainGrassGS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+	  <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
+	  <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+	</FxCompile>
+	<FxCompile Include="Shader\TerrainGrassPS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+	</FxCompile>
+	<FxCompile Include="Shader\TerrainGrassVS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+	</FxCompile>
     <FxCompile Include="Shader\SSAOCompositePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -446,6 +469,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+	<FxCompile Include="Shader\WaterSurfacePS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+	</FxCompile>
+	<FxCompile Include="Shader\WaterSurfaceVS.hlsl">
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+	  <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+	</FxCompile>
     <FxCompile Include="Shader\VignettePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>

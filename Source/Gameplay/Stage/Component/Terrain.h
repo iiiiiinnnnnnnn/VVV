@@ -7,11 +7,13 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "Core/Object/Component.h"
 #include "Gameplay/Lighting/CbLightData.h"
+#include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
 #include "Rendering/Core/RenderContext.h"
 
 class Terrain : public Component
@@ -38,8 +40,13 @@ public:
 
 	float GetHeightByUV(float u, float v) const;
 	float GetSurfaceHeightByUV(float u, float v) const;
+	Vector3 GetSurfaceNormalByUV(float u, float v) const;
+	float GetGrassMaskByUV(float u, float v) const;
 	int GetSurfaceLayerIndex(const Vector3& worldPosition) const;
+	int GetSurfaceLayerIndexByUV(float u, float v) const;
 	std::string GetSurfaceLayerName(const Vector3& worldPosition) const;
+	int GetTerrainLayerCount() const { return static_cast<int>(terrainLayers.size()); }
+	const std::string& GetTerrainLayerName(int index) const { return terrainLayers.at(index).name; }
 	void Deform(const Vector3& worldPosition, const Vector3& direction, float power,
 		float radius = 0.0f);
 
@@ -65,6 +72,10 @@ public:
 
 	int GetHeightMapWidth() const { return TerrainTextureWidth; }
 	int GetHeightMapHeight() const { return TerrainTextureHeight; }
+	ID3D11ShaderResourceView* GetTerrainDataView() const
+	{
+		return terrainTextureShaderResourceView.Get();
+	}
 
 	// コライダー
 
@@ -111,6 +122,7 @@ private:
 		RaiseLower,
 		SetHeight,
 		Paint,
+		GrassPaint,
 	};
 
 	// 頂点
@@ -206,7 +218,8 @@ private:
 	struct CbTerrainLayer
 	{
 		int layerCount = 0;
-		int dummy[3] = {};
+		int grassMaskPreview = 0;
+		int dummy[2] = {};
 	};
 
 	// ブラシ
@@ -252,7 +265,7 @@ private:
 		float maxZ,
 		std::vector<TerrainVertex>& vertices,
 		std::vector<uint32_t>& indices) const;
-	void MarkTerrainMeshDirty();
+	void MarkTerrainMeshDirty(bool rebuildGrass = true);
 
 	// 定数バッファ更新
 
@@ -374,4 +387,14 @@ private:
 	std::string terrainFilePath;
 	std::string terrainIoMessage;
 	bool pendingColliderRebuild = false;
+
+	// 草描画
+	std::unique_ptr<TerrainGrassRenderer> grassRenderer;
+	TerrainGrassRenderer::Settings grassSettings;
+	TerrainGrassRenderer::Settings grassDraftSettings;
+	bool grassDirty = true;
+	bool grassDraftInitialized = false;
+	bool grassPaintSessionActive = false;
+	bool migrateLegacyGrassMask = false;
+	int legacyGrassTerrainLayer = -1;
 };

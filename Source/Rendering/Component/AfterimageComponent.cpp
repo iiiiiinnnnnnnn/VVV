@@ -24,7 +24,9 @@ void AfterimageComponent::Play(float duration)
 	if (!sourceModel || duration <= 0.0f) return;
 
 	captureTimeRemaining = duration;
-	captureTimer = 0.0f;
+	// 発動フレームの姿勢を必ず残す
+	CapturePose();
+	captureTimer = std::max(captureInterval, 0.001f);
 }
 
 void AfterimageComponent::Clear()

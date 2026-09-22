@@ -12,6 +12,7 @@
 #include "Core/Object/Object.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Camera/Camera.h"
+#include "Gameplay/Camera/CameraMoveSpeedOverlay.h"
 #include "Physics/Collider/MeshCollider.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Component/TrailRenderComponent.h"
@@ -2375,8 +2376,11 @@ void VmdlEditorScene::DrawViewport()
 			cameraYaw -= io.MouseDelta.x * 0.01f;
 			cameraPitch = std::clamp(cameraPitch + io.MouseDelta.y * 0.01f, -1.45f, 1.45f);
 			if (io.MouseWheel != 0.0f)
+			{
 				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
 					std::pow(1.1f, io.MouseWheel), 0.1f, 500.0f);
+				CameraMoveSpeedOverlay::Show(previewCameraMoveSpeedOverlayTimer);
+			}
 			Vector3 move = Vector3::Zero;
 			if (ImGui::IsKeyDown(ImGuiKey_W)) move += editorCamera->GetFront();
 			if (ImGui::IsKeyDown(ImGuiKey_S)) move -= editorCamera->GetFront();
@@ -2397,6 +2401,8 @@ void VmdlEditorScene::DrawViewport()
 			if (GetCapture() == Game::Graphics::Instance().GetWindowHandle()) ReleaseCapture();
 		}
 	}
+	CameraMoveSpeedOverlay::Draw(
+		previewCameraMoveSpeed, previewCameraMoveSpeedOverlayTimer);
 	if (!imageHovered || ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
 
 	if (model && showDebugOverlays && showBones && ImGui::IsMouseClicked(ImGuiMouseButton_Left))

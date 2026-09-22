@@ -23,15 +23,8 @@ TextureCube specular_pmrem : register(t18); // 事前計算鏡面反射キュー
 TextureCube diffuse_iem : register(t19); // 事前計算拡散反射キューブマップ
 
 // -----------------------------------------------------------------------------
-// 影の付きやすさを調整できる直接光BRDF
-//
-// shadowStrength:
-//   1.0 = 通常のトゥーン影
-//   0.0 = 影がかなり付きにくい、肌向け
-//
-// 重要:
-//   完全にNdotLを消すと顔だけ白く浮くので、
-//   shadowStrengthが低い時は「柔らかい肌用陰影」に寄せる。
+// 入射角に応じて明るさが変わる直接光BRDF
+// shadowStrengthは後段のシャドウマップ合成で使用する
 // -----------------------------------------------------------------------------
 void DirectBRDFShadowStrength(
     float3 diffuse_reflectance,
@@ -57,27 +50,13 @@ void DirectBRDFShadowStrength(
     float NdotH = max(0.0001f, dot(N, H));
     float VdotH = max(0.0001f, dot(V, H));
 
-    float s = saturate(shadow_strength);
-
-    // 通常のトゥーン影
-    float hardThreshold = step(0.25f, NdotL);
-    float hardToonFactor = lerp(0.2f, 1.0f, hardThreshold);
-
-    // 肌用の柔らかい陰影
-    // 鼻や頬の変な黒い段差を減らす。
-    // ただし完全に1.0にはしないので、顔だけ白く浮きにくい。
-    float softLight = smoothstep(-0.30f, 0.45f, rawNdotL);
-    float softToonFactor = lerp(0.60f, 1.0f, softLight);
-
-    // shadowStrengthが低いほど肌用の柔らかい陰影に近づく
-    float toonFactor = lerp(softToonFactor, hardToonFactor, s);
-
-    float3 irradiance = light_color * NdotL;
+    // 光源に背を向けた面には直接光を当てない
+    float lightFacingRate = saturate(rawNdotL);
+    float3 irradiance = light_color * lightFacingRate;
 
     out_diffuse =
         DiffuseBRDF(VdotH, F0, diffuse_reflectance)
-        * light_color
-        * toonFactor;
+        * irradiance;
 
     out_specular =
         SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughness)

@@ -19,6 +19,7 @@ Terrain::Terrain(Object* owner)
 	: Component(owner)
 {
 	InitializeGpuResources();
+	grassRenderer = std::make_unique<TerrainGrassRenderer>(Game::Graphics::Instance().GetDevice());
 	ClearTerrainTexture();
 
 	AddBrushTexture("Resources/Terrain/Brushes/brush_default.png");
@@ -329,10 +330,11 @@ void Terrain::BuildTerrainMesh(
 	}
 }
 
-void Terrain::MarkTerrainMeshDirty()
+void Terrain::MarkTerrainMeshDirty(bool rebuildGrass)
 {
 	terrainMeshDirty = true;
 	pendingColliderRebuild = true;
+	if (rebuildGrass) grassDirty = true;
 }
 
 void Terrain::CreateTerrainTexture(ID3D11Device* device)
@@ -554,6 +556,7 @@ void Terrain::Render(const RenderContext& rc)
 
 	CbTerrainLayer cbTerrainLayer{};
 	cbTerrainLayer.layerCount = static_cast<int>(terrainLayers.size());
+	if (grassPaintSessionActive) cbTerrainLayer.grassMaskPreview = 1;
 	dc->UpdateSubresource(
 		terrainLayerConstantBuffer.Get(),
 		0,
@@ -672,6 +675,26 @@ void Terrain::Render(const RenderContext& rc)
 	dc->VSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader(nullptr, nullptr, 0);
 	dc->IASetInputLayout(nullptr);
+
+	if (grassRenderer && grassSettings.enabled && !grassPaintSessionActive)
+	{
+		if (grassDirty)
+		{
+			grassRenderer->Rebuild(*this, grassSettings);
+			grassDirty = false;
+		}
+		Matrix terrainWorld = Matrix::Identity;
+		if (owner)
+		{
+			const Transform* transform = owner->GetTransform();
+			if (transform)
+			{
+				terrainWorld = transform->matrix;
+			}
+		}
+		grassRenderer->Render(rc, terrainWorld, grassSettings,
+			GetTerrainDataView(), terrainSize);
+	}
 }
 
 void Terrain::RenderShadowMap(
@@ -759,6 +782,10 @@ void Terrain::PaintByMouse(const RenderContext& rc)
 {
 	auto& io = ImGui::GetIO();
 	if (!use_brush)
+	{
+		return;
+	}
+	if (brushMode == BrushMode::GrassPaint && !grassPaintSessionActive)
 	{
 		return;
 	}
@@ -926,6 +953,14 @@ void Terrain::ApplyBrush(float u, float v, float heightSign)
 
 				pixel.y += (targetLayer - pixel.y) * paintAmount;
 				pixel.y = std::clamp(pixel.y, 0.0f, 1.0f);
+			}
+			else if (brushMode == BrushMode::GrassPaint)
+			{
+				const float paintAmount = std::clamp(paintOpacity * mask, 0.0f, 1.0f);
+				float targetGrass = 1.0f;
+				if (heightSign < 0.0f) targetGrass = 0.0f;
+				pixel.z += (targetGrass - pixel.z) * paintAmount;
+				pixel.z = std::clamp(pixel.z, 0.0f, 1.0f);
 			}
 		}
 	}
@@ -1403,6 +1438,17 @@ std::string Terrain::SaveSettingsJson() const
 		{"end", distanceFogEnd},
 		{"strength", distanceFogStrength},
 		{"color", saveColor(distanceFogColor)}};
+	root["grass"] = {
+		{"enabled", grassSettings.enabled},
+		{"density", grassSettings.density},
+		{"width", grassSettings.width},
+		{"height", grassSettings.height},
+		{"sizeVariation", grassSettings.sizeVariation},
+		{"windStrength", grassSettings.windStrength},
+		{"windSpeed", grassSettings.windSpeed},
+		{"drawDistance", grassSettings.drawDistance},
+		{"usesPaintMask", true},
+		{"tint", saveColor(grassSettings.tint)}};
 	root["clearColor"] = saveColor(terrain_texture_clear_color);
 	root["selectedLayer"] = currentTerrainLayerIndex;
 	root["layers"] = json::array();
@@ -1467,6 +1513,30 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 			if (it->contains("color"))
 				distanceFogColor = loadColor((*it)["color"], distanceFogColor);
 		}
+		if (const auto it = root.find("grass"); it != root.end())
+		{
+			grassSettings.enabled = it->value("enabled", grassSettings.enabled);
+			grassSettings.density = it->value("density", grassSettings.density);
+			constexpr float previousGrassDensity = 2.0f;
+			constexpr float increasedGrassDensity = 20.0f;
+			if (grassSettings.density == previousGrassDensity)
+			{
+				// 旧ステージの草密度を三角葉の叢に合わせて引き上げる
+				grassSettings.density = increasedGrassDensity;
+			}
+			grassSettings.width = it->value("width", grassSettings.width);
+			grassSettings.height = it->value("height", grassSettings.height);
+			grassSettings.sizeVariation = it->value("sizeVariation", grassSettings.sizeVariation);
+			grassSettings.windStrength = it->value("windStrength", grassSettings.windStrength);
+			grassSettings.windSpeed = it->value("windSpeed", grassSettings.windSpeed);
+			grassSettings.drawDistance = it->value("drawDistance", grassSettings.drawDistance);
+			migrateLegacyGrassMask = !it->value("usesPaintMask", false);
+			legacyGrassTerrainLayer = it->value("terrainLayer", -1);
+			if (it->contains("tint")) grassSettings.tint = loadColor((*it)["tint"], grassSettings.tint);
+			grassDraftSettings = grassSettings;
+			grassDraftInitialized = true;
+			grassDirty = true;
+		}
 		if (root.contains("clearColor"))
 			terrain_texture_clear_color = loadColor(root["clearColor"], terrain_texture_clear_color);
 
@@ -1484,7 +1554,7 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 		use_brush = false;
 		if (const auto it = root.find("brush"); it != root.end())
 		{
-			brushMode = static_cast<BrushMode>(std::clamp(it->value("mode", 0), 0, 2));
+			brushMode = static_cast<BrushMode>(std::clamp(it->value("mode", 0), 0, 3));
 			brush_size = it->value("size", brush_size);
 			heightBrushStrength = it->value("heightStrength", heightBrushStrength);
 			setHeightValue = it->value("setHeight", setHeightValue);
@@ -1568,6 +1638,24 @@ bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const
 			static_cast<size_t>(y) * destinationRowPitch;
 
 		memcpy(destinationRow, sourceRow, destinationRowPitch);
+	}
+
+	if (migrateLegacyGrassMask)
+	{
+		for (Vector4& pixel : terrainPixels)
+		{
+			bool growsGrass = legacyGrassTerrainLayer < 0;
+			if (!growsGrass && !terrainLayers.empty())
+			{
+				const int lastLayerIndex = static_cast<int>(terrainLayers.size()) - 1;
+				const float scaledLayer = std::clamp(pixel.y, 0.0f, 1.0f) * lastLayerIndex;
+				const int surfaceLayer = static_cast<int>(std::round(scaledLayer));
+				growsGrass = surfaceLayer == legacyGrassTerrainLayer;
+			}
+			pixel.z = 0.0f;
+			if (growsGrass) pixel.z = 1.0f;
+		}
+		migrateLegacyGrassMask = false;
 	}
 
 	terrainTextureDirty = true;
@@ -1781,6 +1869,12 @@ void Terrain::DrawBrushGUI()
 
 void Terrain::DrawGUI()
 {
+	if (!grassDraftInitialized)
+	{
+		grassDraftSettings = grassSettings;
+		grassDraftInitialized = true;
+	}
+
 	// よく使う地形ブラシ
 	ImGui::TextUnformatted((const char*)u8"地形ブラシ");
 	ImGui::Checkbox((const char*)u8"ブラシを使用", &use_brush);
@@ -1791,6 +1885,7 @@ void Terrain::DrawGUI()
 		(const char*)u8"上げる／下げる",
 		(const char*)u8"高さを指定",
 		(const char*)u8"ペイント",
+		(const char*)u8"草を塗る",
 	};
 
 	if (ImGui::Combo(
@@ -1820,6 +1915,13 @@ void Terrain::DrawGUI()
 			(const char*)u8"ペイント不透明度", &paintOpacity, 0.001f, 0.0f, 1.0f);
 		ImGui::Text((const char*)u8"左ドラッグ：ペイント");
 	}
+	else if (brushMode == BrushMode::GrassPaint)
+	{
+		ImGui::DragFloat(
+			(const char*)u8"草の塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGui::Text((const char*)u8"左ドラッグ：草を生やす");
+		ImGui::Text((const char*)u8"Shift + 左ドラッグ：草を消す");
+	}
 	ImGui::Text((const char*)u8"Alt + 左ドラッグ：カメラ回転のみ");
 	ImGui::Separator();
 
@@ -1837,6 +1939,63 @@ void Terrain::DrawGUI()
 		ImGui::SliderFloat((const char*)u8"オクルージョン", &occlusion, 0.0f, 1.0f);
 		ImGui::SliderFloat((const char*)u8"オクルージョン強度", &occlusionStrength, 0.0f, 1.0f);
 		ImGui::SliderFloat((const char*)u8"影の強度", &shadowStrength, 0.0f, 1.0f);
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode((const char*)u8"草"))
+	{
+		ImGui::Checkbox((const char*)u8"草を表示", &grassDraftSettings.enabled);
+		ImGui::DragFloat((const char*)u8"密度", &grassDraftSettings.density,
+			0.05f, 0.0f, 0.0f);
+		ImGui::DragFloat((const char*)u8"横幅", &grassDraftSettings.width,
+			0.01f, 0.05f, 5.0f);
+		ImGui::DragFloat((const char*)u8"高さ", &grassDraftSettings.height,
+			0.01f, 0.05f, 8.0f);
+		ImGui::SliderFloat((const char*)u8"大きさのばらつき",
+			&grassDraftSettings.sizeVariation, 0.0f, 0.9f);
+		ImGui::DragFloat((const char*)u8"風の強さ", &grassDraftSettings.windStrength,
+			0.01f, 0.0f, 2.0f);
+		ImGui::DragFloat((const char*)u8"風の速度", &grassDraftSettings.windSpeed,
+			0.01f, 0.0f, 8.0f);
+		ImGui::DragFloat((const char*)u8"描画距離", &grassDraftSettings.drawDistance,
+			1.0f, 5.0f, 500.0f);
+		ImGui::ColorEdit4((const char*)u8"草の色", &grassDraftSettings.tint.x);
+
+		const char* paintButtonLabel = (const char*)u8"草ペイントを開始";
+		if (grassPaintSessionActive)
+			paintButtonLabel = (const char*)u8"草ペイントを停止";
+		if (ImGui::Button(paintButtonLabel))
+		{
+			if (grassPaintSessionActive)
+			{
+				grassPaintSessionActive = false;
+				use_brush = false;
+				grassDirty = true;
+			}
+			else
+			{
+				grassPaintSessionActive = true;
+				use_brush = true;
+				brushMode = BrushMode::GrassPaint;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button((const char*)u8"更新"))
+		{
+			grassSettings = grassDraftSettings;
+			grassDirty = true;
+		}
+		int generatedTuftCount = 0;
+		if (grassRenderer)
+		{
+			generatedTuftCount = grassRenderer->GetTuftCount();
+		}
+		ImGui::Text((const char*)u8"生成株数: %d", generatedTuftCount);
+		if (grassPaintSessionActive)
+			ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.42f, 1.0f),
+				(const char*)u8"編集中：緑は草あり、赤は草なし");
+		else
+			ImGui::TextDisabled((const char*)u8"停止時に自動更新します");
 		ImGui::TreePop();
 	}
 
@@ -1994,6 +2153,82 @@ float Terrain::GetSurfaceHeightByUV(float u, float v) const
 		height11 * (xRatio + zRatio - 1.0f);
 }
 
+Vector3 Terrain::GetSurfaceNormalByUV(float u, float v) const
+{
+	u = std::clamp(u, 0.0f, 1.0f);
+	v = std::clamp(v, 0.0f, 1.0f);
+
+	const int tessellationFactor = std::max(
+		static_cast<int>(std::ceil(std::max(
+			tesselation_constant.edge_factor,
+			tesselation_constant.inner_factor))),
+		1);
+	const int meshSegments = std::max(gridResolution * tessellationFactor, 1);
+	const float gridX = u * meshSegments;
+	const float gridZ = v * meshSegments;
+	const int x = std::clamp(static_cast<int>(std::floor(gridX)), 0, meshSegments - 1);
+	const int z = std::clamp(static_cast<int>(std::floor(gridZ)), 0, meshSegments - 1);
+	const float xRatio = gridX - x;
+	const float zRatio = gridZ - z;
+	const float u0 = static_cast<float>(x) / meshSegments;
+	const float u1 = static_cast<float>(x + 1) / meshSegments;
+	const float v0 = static_cast<float>(z) / meshSegments;
+	const float v1 = static_cast<float>(z + 1) / meshSegments;
+
+	const Vector3 position00 = {
+		(u0 - 0.5f) * terrainSize,
+		GetHeightByUV(u0, v0),
+		(v0 - 0.5f) * terrainSize};
+	const Vector3 position10 = {
+		(u1 - 0.5f) * terrainSize,
+		GetHeightByUV(u1, v0),
+		(v0 - 0.5f) * terrainSize};
+	const Vector3 position01 = {
+		(u0 - 0.5f) * terrainSize,
+		GetHeightByUV(u0, v1),
+		(v1 - 0.5f) * terrainSize};
+
+	Vector3 normal;
+	if (xRatio + zRatio <= 1.0f)
+	{
+		// 草を配置した地形三角形と同じ面から傾きを求める
+		normal = (position01 - position00).Cross(position10 - position00);
+	}
+	else
+	{
+		const Vector3 position11 = {
+			(u1 - 0.5f) * terrainSize,
+			GetHeightByUV(u1, v1),
+			(v1 - 0.5f) * terrainSize};
+		normal = (position01 - position10).Cross(position11 - position10);
+	}
+
+	if (normal.LengthSquared() <= eps)
+	{
+		return Vector3::UnitY;
+	}
+
+	normal.Normalize();
+	return normal;
+}
+
+float Terrain::GetGrassMaskByUV(float u, float v) const
+{
+	if (terrainPixels.empty()) return 0.0f;
+
+	const float clampedU = std::clamp(u, 0.0f, 1.0f);
+	const float clampedV = std::clamp(v, 0.0f, 1.0f);
+	const int x = std::clamp(
+		static_cast<int>(clampedU * static_cast<float>(TerrainTextureWidth)),
+		0, TerrainTextureWidth - 1);
+	const int y = std::clamp(
+		static_cast<int>(clampedV * static_cast<float>(TerrainTextureHeight)),
+		0, TerrainTextureHeight - 1);
+	const Vector4& pixel = terrainPixels[
+		static_cast<size_t>(y) * TerrainTextureWidth + static_cast<size_t>(x)];
+	return std::clamp(pixel.z, 0.0f, 1.0f);
+}
+
 // ワールド座標に描かれている割合が最も大きい地形レイヤー番号を返す
 int Terrain::GetSurfaceLayerIndex(const Vector3& worldPosition) const
 {
@@ -2004,7 +2239,14 @@ int Terrain::GetSurfaceLayerIndex(const Vector3& worldPosition) const
 	const Vector3 localPosition = Vector3::Transform(worldPosition, transform->matrix.Invert());
 	const float u = localPosition.x / terrainSize + 0.5f;
 	const float v = localPosition.z / terrainSize + 0.5f;
-	if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f) return -1;
+	return GetSurfaceLayerIndexByUV(u, v);
+}
+
+int Terrain::GetSurfaceLayerIndexByUV(float u, float v) const
+{
+	if (terrainPixels.empty() || terrainLayers.empty() ||
+		u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f)
+		return -1;
 
 	const int x = std::clamp(
 		static_cast<int>(std::floor(u * static_cast<float>(TerrainTextureWidth))),
@@ -2063,12 +2305,15 @@ void Terrain::Deform(
 		power,
 		terrainSize / static_cast<float>(TerrainTextureWidth),
 		meshSpacing * 2.0f});
+	// へこみの縁に草が残らないように少し広く消す
+	const float grassRemovalMargin = std::max(grassSettings.height, 0.5f);
+	const float grassRemovalRadius = radius + grassRemovalMargin;
 	const float u = localPosition.x / terrainSize + 0.5f;
 	const float v = localPosition.z / terrainSize + 0.5f;
 	const int centerX = static_cast<int>(u * static_cast<float>(TerrainTextureWidth - 1));
 	const int centerY = static_cast<int>(v * static_cast<float>(TerrainTextureHeight - 1));
 	const int pixelRadius = std::max(static_cast<int>(ceilf(
-		radius / terrainSize * static_cast<float>(TerrainTextureWidth - 1))), 1);
+		grassRemovalRadius / terrainSize * static_cast<float>(TerrainTextureWidth - 1))), 1);
 
 	const int x0 = std::max(centerX - pixelRadius, 0);
 	const int y0 = std::max(centerY - pixelRadius, 0);
@@ -2084,19 +2329,24 @@ void Terrain::Deform(
 			const float deltaX = static_cast<float>(x - centerX) * texelSize;
 			const float deltaZ = static_cast<float>(y - centerY) * texelSize;
 			const float distance = sqrtf(deltaX * deltaX + deltaZ * deltaZ);
-			if (distance > radius) continue;
+			if (distance > grassRemovalRadius) continue;
 
-			float falloff = 1.0f - distance / radius;
-			falloff = falloff * falloff * (3.0f - 2.0f * falloff);
 			Vector4& pixel = terrainPixels[
 				static_cast<size_t>(y) * TerrainTextureWidth + static_cast<size_t>(x)];
-			pixel.x += heightOffset * falloff / tesselation_constant.height_scaler;
+			pixel.z = 0.0f;
+			if (distance <= radius)
+			{
+				float falloff = 1.0f - distance / radius;
+				falloff = falloff * falloff * (3.0f - 2.0f * falloff);
+				pixel.x += heightOffset * falloff / tesselation_constant.height_scaler;
+			}
 		}
 	}
 
 	terrainTextureDirty = true;
 	is_terrain_texture_clear_color = false;
-	MarkTerrainMeshDirty();
+	// 既存の草頂点はGPU側のマスクで消すため再生成しない
+	MarkTerrainMeshDirty(false);
 
 	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
 	{

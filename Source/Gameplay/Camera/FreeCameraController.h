@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// FreeCameraController.h
+#pragma once
 #include "Gameplay/Camera/CameraController.h"
 
 class FreeCameraController : public CameraController
@@ -18,4 +19,5 @@ protected:
 
 private:
 	float moveSpeed = 5.0f;
+	float moveSpeedOverlayTimer = 0.0f;
 };

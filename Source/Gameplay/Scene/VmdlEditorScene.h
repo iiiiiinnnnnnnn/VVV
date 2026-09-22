@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// VmdlEditorScene.h
+#pragma once
 
 #include "Audio/SoundTrackRegistry.h"
 #include "Gameplay/Lighting/LightManager.h"
@@ -34,6 +35,7 @@ class VmdlEditorScene : public Scene
 	void OnUpdate() override;
 	void ToggleDebugDisplay() override;
 	void OnDrawGUI() override;
+	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 	bool OnRequestExit() override;
 
   private:
@@ -187,6 +189,7 @@ class VmdlEditorScene : public Scene
 	float cameraDistance = 5.0f;
 	float targetCameraDistance = 5.0f;
 	float previewCameraMoveSpeed = 5.0f;
+	float previewCameraMoveSpeedOverlayTimer = 0.0f;
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	bool cameraReturningToFront = false;
 	int gizmoOperation = 120;

@@ -13,6 +13,7 @@ public:
 
     const Vector3& GetSize() const { return size; }
     const Vector3& GetLocalPosition() const { return localPosition; }
+	void SetSize(const Vector3& value);
 private:
     PxTransform MakeLocalPose() const;
     void UpdateShape();

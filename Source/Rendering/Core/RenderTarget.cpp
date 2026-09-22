@@ -1,3 +1,4 @@
+// RenderTarget.cpp
 #include "Rendering/Core/RenderTarget.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 
@@ -46,6 +47,10 @@ RenderTarget::RenderTarget(ID3D11Device* device, UINT width, UINT height, DXGI_F
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
         hr = device->CreateDepthStencilView(tex.Get(), &dsvDesc, dsv.GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+
+		dsvDesc.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
+		hr = device->CreateDepthStencilView(tex.Get(), &dsvDesc, readOnlyDsv.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -98,6 +103,10 @@ RenderTarget::RenderTarget(ID3D11Device* device, IDXGISwapChain* swapchain, UINT
         hr = device->CreateDepthStencilView(tex.Get(), &dsvDesc, dsv.GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
+		dsvDesc.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
+		hr = device->CreateDepthStencilView(tex.Get(), &dsvDesc, readOnlyDsv.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -131,6 +140,11 @@ void RenderTarget::Deactivate(ID3D11DeviceContext* dc)
 
     prevRtv.Reset();
     prevDsv.Reset();
+}
+
+void RenderTarget::SetDepthReadOnly(ID3D11DeviceContext* dc, bool readOnly)
+{
+	dc->OMSetRenderTargets(1, rtv.GetAddressOf(), readOnly ? readOnlyDsv.Get() : dsv.Get());
 }
 
 void RenderTarget::Clear(ID3D11DeviceContext* dc, float r, float g, float b, float a)

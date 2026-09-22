@@ -18,6 +18,9 @@
 #include "Gameplay/Actor/CrystalProp.h"
 #include "Gameplay/Actor/Spawner.h"
 #include "Core\Foundation\Json.h"
+#include "Gameplay/Actor/Water.h"
+#include "Physics/Collider/BoxCollider.h"
+#include "Physics/RigidBody/Rigidbody.h"
 
 static void LoadTransformJson(const json& transformJson, Transform& transform)
 {
@@ -98,9 +101,12 @@ StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonTex
 std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 {
 	std::vector<EditorObjectReference> objects;
-	objects.reserve(propDataList.size() + playerStartTransforms.size());
+	objects.reserve(propDataList.size() + playerStartTransforms.size() + blockedAreas.size() + 1);
+	objects.push_back({EditorObjectType::WorldWater, 0, &worldWater.transform});
 	for (int i = 0; i < static_cast<int>(playerStartTransforms.size()); ++i)
 		objects.push_back({EditorObjectType::PlayerStart, i, &playerStartTransforms[i]});
+	for (int i = 0; i < static_cast<int>(blockedAreas.size()); ++i)
+		objects.push_back({EditorObjectType::BlockedArea, i, &blockedAreas[i].transform});
 	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 		objects.push_back({EditorObjectType::Prop, i, &propDataList[i].transform});
 	return objects;
@@ -108,10 +114,23 @@ std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 
 bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
 {
-	const bool valid = (type == EditorObjectType::PlayerStart && index >= 0 &&
-		index < static_cast<int>(playerStartTransforms.size())) ||
-		(type == EditorObjectType::Prop && index >= 0 &&
-		 index < static_cast<int>(propDataList.size()));
+	bool valid = false;
+	if (type == EditorObjectType::WorldWater)
+	{
+		valid = index == 0;
+	}
+	else if (type == EditorObjectType::PlayerStart)
+	{
+		valid = index >= 0 && index < static_cast<int>(playerStartTransforms.size());
+	}
+	else if (type == EditorObjectType::BlockedArea)
+	{
+		valid = index >= 0 && index < static_cast<int>(blockedAreas.size());
+	}
+	else if (type == EditorObjectType::Prop)
+	{
+		valid = index >= 0 && index < static_cast<int>(propDataList.size());
+	}
 	if (!valid) return false;
 	selectedEditorObjectType = type;
 	selectedEditorObjectIndex = index;
@@ -121,9 +140,74 @@ bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
 bool StageLoader::SelectEditorActor(const Actor* actor)
 {
 	if (!actor) return false;
+	if (actor == worldWaterActor)
+	{
+		return SelectEditorObject(EditorObjectType::WorldWater, 0);
+	}
 	for (int i = 0; i < static_cast<int>(addedPropActors.size()); ++i)
 		if (addedPropActors[i] == actor) return SelectEditorObject(EditorObjectType::Prop, i);
+	for (int i = 0; i < static_cast<int>(blockedAreaActors.size()); ++i)
+		if (blockedAreaActors[i] == actor)
+			return SelectEditorObject(EditorObjectType::BlockedArea, i);
 	return false;
+}
+
+static Color LoadWaterColor(const json& colorJson, const Color& defaultColor)
+{
+	Color color = defaultColor;
+	color.x = colorJson.value("r", defaultColor.x);
+	color.y = colorJson.value("g", defaultColor.y);
+	color.z = colorJson.value("b", defaultColor.z);
+	color.w = colorJson.value("a", defaultColor.w);
+	return color;
+}
+
+static void LoadWaterSettingsJson(
+	const json& waterJson,
+	WaterRenderer::Settings& settings)
+{
+	if (waterJson.contains("shallowColor"))
+	{
+		settings.shallowColor =
+			LoadWaterColor(waterJson["shallowColor"], settings.shallowColor);
+	}
+	if (waterJson.contains("deepColor"))
+	{
+		settings.deepColor =
+			LoadWaterColor(waterJson["deepColor"], settings.deepColor);
+	}
+	settings.waveScale = waterJson.value("waveScale", settings.waveScale);
+	settings.waveSpeed = waterJson.value("waveSpeed", settings.waveSpeed);
+	settings.waveStrength = waterJson.value("waveStrength", settings.waveStrength);
+	settings.fresnelPower = waterJson.value("fresnelPower", settings.fresnelPower);
+	settings.fresnelStrength = waterJson.value("fresnelStrength", settings.fresnelStrength);
+	settings.opacity = waterJson.value("opacity", settings.opacity);
+	settings.shoreFadeDistance = waterJson.value(
+		"shoreFadeDistance", settings.shoreFadeDistance);
+}
+
+static json SaveWaterColor(const Color& color)
+{
+	return {
+		{"r", color.x},
+		{"g", color.y},
+		{"b", color.z},
+		{"a", color.w}};
+}
+
+static json SaveWaterSettingsJson(const WaterRenderer::Settings& settings)
+{
+	json waterJson;
+	waterJson["shallowColor"] = SaveWaterColor(settings.shallowColor);
+	waterJson["deepColor"] = SaveWaterColor(settings.deepColor);
+	waterJson["waveScale"] = settings.waveScale;
+	waterJson["waveSpeed"] = settings.waveSpeed;
+	waterJson["waveStrength"] = settings.waveStrength;
+	waterJson["fresnelPower"] = settings.fresnelPower;
+	waterJson["fresnelStrength"] = settings.fresnelStrength;
+	waterJson["opacity"] = settings.opacity;
+	waterJson["shoreFadeDistance"] = settings.shoreFadeDistance;
+	return waterJson;
 }
 
 bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction)
@@ -135,6 +219,36 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 
 	float nearestDistance = std::numeric_limits<float>::max();
 	int nearestIndex = -1;
+	EditorObjectType nearestType = EditorObjectType::None;
+
+	if (worldWater.enabled)
+	{
+		worldWater.transform.Update();
+		DirectX::BoundingBox localBounds({0.0f, 0.0f, 0.0f}, {0.5f, 0.1f, 0.5f});
+		DirectX::BoundingBox waterBounds;
+		localBounds.Transform(waterBounds, worldWater.transform.matrix);
+		float waterDistance = 0.0f;
+		if (ray.Intersects(waterBounds, waterDistance))
+		{
+			nearestDistance = waterDistance;
+			nearestType = EditorObjectType::WorldWater;
+		}
+	}
+	for (int areaIndex = 0; areaIndex < static_cast<int>(blockedAreas.size()); ++areaIndex)
+	{
+		BlockedAreaData& area = blockedAreas[areaIndex];
+		area.transform.Update();
+		DirectX::BoundingBox localBounds(Vector3::Zero, Vector3(0.5f, 0.5f, 0.5f));
+		DirectX::BoundingBox worldBounds;
+		localBounds.Transform(worldBounds, area.transform.matrix);
+		float distance = 0.0f;
+		if (ray.Intersects(worldBounds, distance) && distance < nearestDistance)
+		{
+			nearestDistance = distance;
+			nearestIndex = areaIndex;
+			nearestType = EditorObjectType::BlockedArea;
+		}
+	}
 	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
 	{
 		PropData& propData = propDataList[propIndex];
@@ -217,11 +331,24 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 
 				nearestDistance = distance;
 				nearestIndex = propIndex;
+				nearestType = EditorObjectType::Prop;
 			}
 		}
 	}
 
-	return nearestIndex >= 0 && SelectEditorObject(EditorObjectType::Prop, nearestIndex);
+	if (nearestType == EditorObjectType::WorldWater)
+	{
+		return SelectEditorObject(EditorObjectType::WorldWater, 0);
+	}
+	if (nearestType == EditorObjectType::Prop && nearestIndex >= 0)
+	{
+		return SelectEditorObject(EditorObjectType::Prop, nearestIndex);
+	}
+	if (nearestType == EditorObjectType::BlockedArea && nearestIndex >= 0)
+	{
+		return SelectEditorObject(EditorObjectType::BlockedArea, nearestIndex);
+	}
+	return false;
 }
 
 void StageLoader::ClearEditorSelection()
@@ -232,6 +359,11 @@ void StageLoader::ClearEditorSelection()
 
 Transform* StageLoader::GetSelectedEditorTransform()
 {
+	if (selectedEditorObjectType == EditorObjectType::WorldWater)
+	{
+		worldWater.transform.Update();
+		return &worldWater.transform;
+	}
 	if (selectedEditorObjectType == EditorObjectType::PlayerStart &&
 		selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
@@ -239,6 +371,14 @@ Transform* StageLoader::GetSelectedEditorTransform()
 		Transform& playerStart = playerStartTransforms[selectedEditorObjectIndex];
 		playerStart.Update();
 		return &playerStart;
+	}
+	if (selectedEditorObjectType == EditorObjectType::BlockedArea &&
+		selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(blockedAreas.size()))
+	{
+		BlockedAreaData& area = blockedAreas[selectedEditorObjectIndex];
+		area.transform.Update();
+		return &area.transform;
 	}
 	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(propDataList.size()))
@@ -259,11 +399,24 @@ Transform* StageLoader::GetSelectedEditorTransform()
 
 void StageLoader::RefreshSelectedEditorObject()
 {
+	if (selectedEditorObjectType == EditorObjectType::WorldWater)
+	{
+		worldWater.transform.Update();
+		ApplyWorldWaterData();
+		return;
+	}
 	if (selectedEditorObjectType == EditorObjectType::PlayerStart &&
 		selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
 	{
 		playerStartTransforms[selectedEditorObjectIndex].Update();
+		return;
+	}
+	if (selectedEditorObjectType == EditorObjectType::BlockedArea &&
+		selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(blockedAreas.size()))
+	{
+		ApplyBlockedAreaData(selectedEditorObjectIndex);
 		return;
 	}
 	if (selectedEditorObjectType != EditorObjectType::Prop || selectedEditorObjectIndex < 0 ||
@@ -295,6 +448,9 @@ void StageLoader::RefreshSelectedEditorObject()
 
 void StageLoader::Update()
 {
+	ApplyWorldWaterData();
+	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
+		ApplyBlockedAreaData(index);
 	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
 	{
 		auto& prop = propDataList[propIndex];
@@ -414,6 +570,72 @@ Actor* StageLoader::CreatePropActor(PropData& propData)
 	return result;
 }
 
+Actor* StageLoader::CreateBlockedAreaActor(BlockedAreaData& area)
+{
+	auto actor = std::make_shared<Actor>(area.name, "BlockedArea");
+	actor->transform.position = area.transform.position;
+	actor->transform.rotation = area.transform.rotation;
+	actor->transform.scale = Vector3::One;
+	actor->transform.Update();
+	RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
+	const Vector3 halfSize = area.transform.scale * 0.5f;
+	actor->AddComponent<BoxCollider>(Layers::Get("Terrain"), rigidbody, halfSize);
+	Actor* result = actor.get();
+	stage->GetActorManager().Register(std::move(actor));
+	return result;
+}
+
+void StageLoader::ApplyBlockedAreaData(int index)
+{
+	if (index < 0 || index >= static_cast<int>(blockedAreas.size()) ||
+		index >= static_cast<int>(blockedAreaActors.size()))
+		return;
+	Actor* actor = blockedAreaActors[index];
+	if (!actor) return;
+	BlockedAreaData& area = blockedAreas[index];
+	area.transform.scale.x = std::max(area.transform.scale.x, 0.02f);
+	area.transform.scale.y = std::max(area.transform.scale.y, 0.02f);
+	area.transform.scale.z = std::max(area.transform.scale.z, 0.02f);
+	area.transform.Update();
+	actor->SetName(area.name);
+	actor->transform.position = area.transform.position;
+	actor->transform.rotation = area.transform.rotation;
+	actor->transform.Update();
+	Rigidbody* rigidbody = actor->GetComponent<Rigidbody>();
+	if (rigidbody)
+	{
+		rigidbody->SetPosition(area.transform.position);
+		rigidbody->SetRotation(area.transform.rotation);
+	}
+	BoxCollider* collider = actor->GetComponent<BoxCollider>();
+	if (collider) collider->SetSize(area.transform.scale * 0.5f);
+}
+
+void StageLoader::CreateWorldWaterActor()
+{
+	if (worldWaterActor)
+	{
+		worldWaterActor->Destroy();
+		worldWaterActor = nullptr;
+	}
+
+	auto actor = std::make_shared<Water>(worldWater.transform, worldWater.settings);
+	worldWaterActor = actor.get();
+	stage->GetActorManager().Register(actor);
+	ApplyWorldWaterData();
+}
+
+void StageLoader::ApplyWorldWaterData()
+{
+	if (!worldWaterActor) return;
+
+	worldWater.transform.Update();
+	worldWaterActor->ApplySettings(
+		worldWater.enabled,
+		worldWater.transform,
+		worldWater.settings);
+}
+
 void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 {
 	if (!actor) return;
@@ -507,6 +729,19 @@ void StageLoader::SetEditorPlayerStart(const Vector3& terrainPoint)
 	selectedEditorObjectIndex = static_cast<int>(playerStartTransforms.size()) - 1;
 }
 
+void StageLoader::AddEditorBlockedArea()
+{
+	BlockedAreaData area;
+	area.name = std::string((const char*)u8"侵入不可エリア ") +
+		std::to_string(blockedAreas.size() + 1);
+	area.transform.scale = {4.0f, 3.0f, 4.0f};
+	area.transform.Update();
+	blockedAreas.push_back(std::move(area));
+	blockedAreaActors.push_back(CreateBlockedAreaActor(blockedAreas.back()));
+	selectedEditorObjectType = EditorObjectType::BlockedArea;
+	selectedEditorObjectIndex = static_cast<int>(blockedAreas.size()) - 1;
+}
+
 const Transform& StageLoader::GetRandomPlayerStartTransform() const
 {
 	static std::mt19937 generator(std::random_device{}());
@@ -578,6 +813,57 @@ bool StageLoader::BuildEditorPropTransform(
 
 void StageLoader::DrawEditorGUI()
 {
+	if (ImGui::Button((const char*)u8"侵入不可エリアを追加"))
+	{
+		AddEditorBlockedArea();
+	}
+	ImGui::TextDisabled((const char*)u8"選択後にW / E / Rのギズモで調整");
+	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
+	{
+		BlockedAreaData& area = blockedAreas[index];
+		ImGui::PushID(index);
+		const bool selected = selectedEditorObjectType == EditorObjectType::BlockedArea &&
+			selectedEditorObjectIndex == index;
+		const std::string label = area.name + "###BlockedArea";
+		ImGuiTreeNodeFlags areaFlags = ImGuiTreeNodeFlags_SpanAvailWidth;
+		if (selected) areaFlags |= ImGuiTreeNodeFlags_Selected;
+		const bool open = ImGui::TreeNodeEx(label.c_str(), areaFlags);
+		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::BlockedArea, index);
+		if (open)
+		{
+			ImGui::InputText((const char*)u8"名前", &area.name);
+			area.transform.DrawGUI();
+			ApplyBlockedAreaData(index);
+			if (ImGui::Button((const char*)u8"複製"))
+			{
+				BlockedAreaData copy = area;
+				copy.name += " Copy";
+				blockedAreas.insert(blockedAreas.begin() + index + 1, copy);
+				blockedAreaActors.insert(blockedAreaActors.begin() + index + 1,
+					CreateBlockedAreaActor(blockedAreas[index + 1]));
+				SelectEditorObject(EditorObjectType::BlockedArea, index + 1);
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button((const char*)u8"削除"))
+			{
+				if (blockedAreaActors[index]) blockedAreaActors[index]->Destroy();
+				blockedAreaActors.erase(blockedAreaActors.begin() + index);
+				blockedAreas.erase(blockedAreas.begin() + index);
+				ClearEditorSelection();
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
+	ImGui::Separator();
+	DrawWorldWaterEditor();
+
 	// プレイヤー初期位置は通常のVMDLと区別し、常に先頭へ表示する。
 	for (int index = 0; index < static_cast<int>(playerStartTransforms.size()); ++index)
 	{
@@ -633,10 +919,17 @@ void StageLoader::DrawEditorGUI()
 		groups[propDataList[index].modelPath].push_back(index);
 	for (const auto& [modelPath, indices] : groups)
 	{
-		const std::string modelName = modelPath.empty()
-			? (const char*)u8"モデルなし"
-			: std::filesystem::path(modelPath).stem().string();
-		const std::string groupLabel = std::string(ICON_FA_CUBE "  ") + modelName +
+		std::string modelName;
+		std::string groupIcon = ICON_FA_CUBE "  ";
+		if (modelPath.empty())
+		{
+			modelName = (const char*)u8"モデルなし";
+		}
+		else
+		{
+			modelName = std::filesystem::path(modelPath).stem().string();
+		}
+		const std::string groupLabel = groupIcon + modelName +
 			" (" + std::to_string(indices.size()) + ")###ModelGroup" + modelPath;
 		if (!ImGui::TreeNodeEx(groupLabel.c_str(),
 			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
@@ -654,6 +947,63 @@ void StageLoader::DrawEditorGUI()
 		ImGui::TreePop();
 		if (changed) break;
 	}
+}
+
+void StageLoader::DrawWorldWaterEditor()
+{
+	ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(8, 82, 125, 255));
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(12, 118, 170, 255));
+	const bool selected = selectedEditorObjectType == EditorObjectType::WorldWater;
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen |
+		ImGuiTreeNodeFlags_SpanAvailWidth;
+	if (selected)
+	{
+		flags |= ImGuiTreeNodeFlags_Selected;
+	}
+	const bool open = ImGui::TreeNodeEx(
+		ICON_FA_WATER " ワールド水面###WorldWater", flags);
+	if (ImGui::IsItemClicked())
+	{
+		SelectEditorObject(EditorObjectType::WorldWater, 0);
+	}
+	ImGui::PopStyleColor(2);
+
+	if (!open) return;
+
+	bool changed = ImGui::Checkbox((const char*)u8"有効##WorldWater", &worldWater.enabled);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"水位", &worldWater.transform.position.y, 0.05f, -500.0f, 500.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"横幅", &worldWater.transform.scale.x, 1.0f, 1.0f, 10000.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"奥行き", &worldWater.transform.scale.z, 1.0f, 1.0f, 10000.0f);
+
+	ImGui::SeparatorText((const char*)u8"水面表現");
+	changed |= ImGui::ColorEdit4(
+		(const char*)u8"浅瀬の色", &worldWater.settings.shallowColor.x);
+	changed |= ImGui::ColorEdit4(
+		(const char*)u8"深い色", &worldWater.settings.deepColor.x);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"波の細かさ", &worldWater.settings.waveScale, 0.01f, 0.01f, 10.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"波の速度", &worldWater.settings.waveSpeed, 0.01f, -5.0f, 5.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"波の強さ", &worldWater.settings.waveStrength, 0.005f, 0.0f, 2.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"フレネル範囲", &worldWater.settings.fresnelPower, 0.05f, 0.1f, 12.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"縁の明るさ", &worldWater.settings.fresnelStrength, 0.01f, 0.0f, 3.0f);
+	changed |= ImGui::SliderFloat(
+		(const char*)u8"水面の濃さ", &worldWater.settings.opacity, 0.0f, 1.0f);
+	changed |= ImGui::DragFloat(
+		(const char*)u8"岸際のぼかし", &worldWater.settings.shoreFadeDistance,
+		0.01f, 0.01f, 5.0f);
+
+	if (changed)
+	{
+		ApplyWorldWaterData();
+	}
+	ImGui::TreePop();
 }
 
 bool StageLoader::DrawPropEditor(int index)
@@ -749,7 +1099,18 @@ void StageLoader::LoadJson()
 
 	propDataList.clear();
 	playerStartTransforms.clear();
+	blockedAreas.clear();
+	for (Actor* actor : blockedAreaActors)
+		if (actor) actor->Destroy();
+	blockedAreaActors.clear();
 	ClearEditorSelection();
+	if (worldWaterActor)
+	{
+		worldWaterActor->Destroy();
+		worldWaterActor = nullptr;
+	}
+	worldWater = WorldWaterData{};
+	bool loadedWorldWater = false;
 
 	for (auto addedActor : addedRealActors)
 	{
@@ -757,6 +1118,23 @@ void StageLoader::LoadJson()
 	}
 	addedRealActors.clear();
 	addedPropActors.clear();
+
+	if (root.contains("worldWater") && root["worldWater"].is_object())
+	{
+		const json& waterJson = root["worldWater"];
+		worldWater.enabled = waterJson.value("enabled", false);
+		if (waterJson.contains("transform") && waterJson["transform"].is_object())
+		{
+			LoadTransformJson(waterJson["transform"], worldWater.transform);
+		}
+		if (waterJson.contains("settings") && waterJson["settings"].is_object())
+		{
+			LoadWaterSettingsJson(waterJson["settings"], worldWater.settings);
+		}
+		worldWater.transform.Update();
+		loadedWorldWater = true;
+	}
+
 	if (root.contains("playerStarts") && root["playerStarts"].is_array())
 	{
 		for (const auto& playerStartJson : root["playerStarts"])
@@ -777,6 +1155,21 @@ void StageLoader::LoadJson()
 		playerStart.scale = Vector3::One;
 		playerStart.Update();
 		playerStartTransforms.push_back(playerStart);
+	}
+
+	for (const auto& areaJson : root.value("blockedAreas", json::array()))
+	{
+		if (!areaJson.is_object()) continue;
+		BlockedAreaData area;
+		area.name = areaJson.value("name", std::string("Blocked Area"));
+		if (areaJson.contains("transform"))
+			LoadTransformJson(areaJson["transform"], area.transform);
+		area.transform.scale.x = std::max(area.transform.scale.x, 0.02f);
+		area.transform.scale.y = std::max(area.transform.scale.y, 0.02f);
+		area.transform.scale.z = std::max(area.transform.scale.z, 0.02f);
+		area.transform.Update();
+		blockedAreas.push_back(std::move(area));
+		blockedAreaActors.push_back(CreateBlockedAreaActor(blockedAreas.back()));
 	}
 
 	if (root.contains("props") && root["props"].is_array())
@@ -831,6 +1224,24 @@ void StageLoader::LoadJson()
 			propData.spawnerEntityName =
 				propJson.value("spawnerEntityName", std::string("EnemySmall"));
 			propData.editorPreview = editorModels != nullptr;
+			if (propData.type == PropType::Water && propJson.contains("water"))
+			{
+				LoadWaterSettingsJson(propJson["water"], propData.waterSettings);
+			}
+
+			// 旧VSTGのProp水面は、最初の1つをワールド水面へ移行する
+			if (propData.type == PropType::Water)
+			{
+				if (!loadedWorldWater)
+				{
+					worldWater.enabled = true;
+					worldWater.transform = propData.transform;
+					worldWater.settings = propData.waterSettings;
+					worldWater.transform.Update();
+					loadedWorldWater = true;
+				}
+				continue;
+			}
 
 			propData.modelPath = propJson.value("modelPath", "");
 			std::string lowerModelPath = propData.modelPath;
@@ -843,8 +1254,11 @@ void StageLoader::LoadJson()
 			propData.model = LoadPropModel(propData.modelPath);
 
 			propDataList.push_back(std::move(propData));
-			Actor* propActor = propDataList.back().model
-				? CreatePropActor(propDataList.back()) : nullptr;
+			Actor* propActor = nullptr;
+			if (propDataList.back().model)
+			{
+				propActor = CreatePropActor(propDataList.back());
+			}
 			addedRealActors.push_back(propActor);
 			addedPropActors.push_back(propActor);
 		}
@@ -897,6 +1311,7 @@ void StageLoader::LoadJson()
 		}
 	}
 
+	CreateWorldWaterActor();
 }
 
 void StageLoader::LoadJsonText(const std::string& text)
@@ -918,6 +1333,22 @@ std::string StageLoader::SaveJsonText()
 void StageLoader::SaveJson()
 {
 	json root;
+	root["worldWater"]["enabled"] = worldWater.enabled;
+	root["worldWater"]["transform"]["position"] = {
+		{"x", worldWater.transform.position.x},
+		{"y", worldWater.transform.position.y},
+		{"z", worldWater.transform.position.z}};
+	root["worldWater"]["transform"]["rotation"] = {
+		{"x", worldWater.transform.rotation.x},
+		{"y", worldWater.transform.rotation.y},
+		{"z", worldWater.transform.rotation.z},
+		{"w", worldWater.transform.rotation.w}};
+	root["worldWater"]["transform"]["scale"] = {
+		{"x", worldWater.transform.scale.x},
+		{"y", worldWater.transform.scale.y},
+		{"z", worldWater.transform.scale.z}};
+	root["worldWater"]["settings"] = SaveWaterSettingsJson(worldWater.settings);
+
 	root["playerStarts"] = json::array();
 	for (const Transform& playerStart : playerStartTransforms)
 	{
@@ -932,10 +1363,32 @@ void StageLoader::SaveJson()
 		root["playerStarts"].push_back(std::move(playerStartJson));
 	}
 
+	root["blockedAreas"] = json::array();
+	for (const BlockedAreaData& area : blockedAreas)
+	{
+		json areaJson;
+		areaJson["name"] = area.name;
+		areaJson["transform"]["position"] = {
+			{"x", area.transform.position.x}, {"y", area.transform.position.y},
+			{"z", area.transform.position.z}};
+		areaJson["transform"]["rotation"] = {
+			{"x", area.transform.rotation.x}, {"y", area.transform.rotation.y},
+			{"z", area.transform.rotation.z}, {"w", area.transform.rotation.w}};
+		areaJson["transform"]["scale"] = {
+			{"x", area.transform.scale.x}, {"y", area.transform.scale.y},
+			{"z", area.transform.scale.z}};
+		root["blockedAreas"].push_back(std::move(areaJson));
+	}
+
 	root["props"] = json::array();
 
 	for (const auto& propData : propDataList)
 	{
+		if (propData.type == PropType::Water)
+		{
+			continue;
+		}
+
 		json propJson;
 		propJson["name"] = propData.name;
 		propJson["tag"] = propData.tag;
@@ -963,7 +1416,6 @@ void StageLoader::SaveJson()
 		propJson["spawnerEntityName"] = propData.spawnerEntityName;
 
 		propJson["modelPath"] = propData.modelPath;
-
 		root["props"].push_back(propJson);
 	}
 

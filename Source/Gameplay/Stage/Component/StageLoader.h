@@ -14,6 +14,7 @@
 #include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 #include "Gameplay/Actor/Actor.h"
+#include "Rendering/Renderer/WaterRenderer.h"
 #include "nlohmann/json.hpp"
 #include "IconsFontAwesome5.h"
 
@@ -22,6 +23,7 @@ class CrystalProp;
 class ParticleSystem;
 class Spawner;
 class Stage;
+class Water;
 
 class StageLoader : public Component
 {
@@ -29,7 +31,9 @@ class StageLoader : public Component
 	enum class EditorObjectType
 	{
 		None,
+		WorldWater,
 		PlayerStart,
+		BlockedArea,
 		Prop
 	};
 
@@ -69,6 +73,7 @@ class StageLoader : public Component
 	void ClearEditorSelection();
 	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint);
 	void SetEditorPlayerStart(const Vector3& terrainPoint);
+	void AddEditorBlockedArea();
 	bool HasPlayerStart() const { return !playerStartTransforms.empty(); }
 	const std::vector<Transform>& GetPlayerStartTransforms() const { return playerStartTransforms; }
 	const Transform& GetRandomPlayerStartTransform() const;
@@ -104,7 +109,8 @@ class StageLoader : public Component
 	enum class PropType
 	{
 		Standard,
-		Crystal
+		Crystal,
+		Water // 旧VSTGの水面を読み込むために残す
 	};
 
 	struct PropData
@@ -120,16 +126,41 @@ class StageLoader : public Component
 		uint32_t destroyLayerMask = 0;
 		bool isSpawner = false;
 		std::string spawnerEntityName = "EnemySmall";
+		WaterRenderer::Settings waterSettings; // 旧VSTGの水面設定を移行するために使う
 
 		std::shared_ptr<VMDLModel> model = nullptr;
 		bool editorPreview = false;
 	};
+
+	struct WorldWaterData
+	{
+		bool enabled = false;
+		Transform transform;
+		WaterRenderer::Settings settings;
+
+		WorldWaterData()
+		{
+			transform.scale = {1000.0f, 1.0f, 1000.0f};
+			transform.Update();
+		}
+	};
+	struct BlockedAreaData
+	{
+		std::string name = "Blocked Area";
+		Transform transform;
+	};
 	std::vector<PropData> propDataList = {};
 	std::vector<Transform> playerStartTransforms;
+	std::vector<BlockedAreaData> blockedAreas;
 	void DrawDestroyGUI(PropData& propData);
 	void DrawEditorGUI();
+	void DrawWorldWaterEditor();
 	bool DrawPropEditor(int index);
 	Actor* CreatePropActor(PropData& propData);
+	Actor* CreateBlockedAreaActor(BlockedAreaData& area);
+	void ApplyBlockedAreaData(int index);
+	void CreateWorldWaterActor();
+	void ApplyWorldWaterData();
 	void ConfigureSpawner(Actor* actor, const PropData& propData);
 	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;
 	Vector3 GetPropPlacementOffset(VMDLModel& model);
@@ -139,8 +170,11 @@ class StageLoader : public Component
 	std::string jsonText;
 	Stage* stage = nullptr;
 	ParticleSystem* crystalBreakParticleSystem = nullptr;
+	WorldWaterData worldWater;
+	Water* worldWaterActor = nullptr;
 	std::vector<Actor*> addedRealActors = {};
 	std::vector<Actor*> addedPropActors = {};
+	std::vector<Actor*> blockedAreaActors;
 	std::unordered_map<std::string, SpawnerFactory> spawnerFactories = {};
 	const std::unordered_map<std::string, std::shared_ptr<VMDLModel>>* editorModels = nullptr;
 	std::unordered_map<std::string, DirectX::BoundingBox> editorSelectionBounds;

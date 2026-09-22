@@ -18,10 +18,6 @@ constexpr const char* LoadingImagePath = "Resources/UI/loading.png";
 
 LoadingScene::LoadingScene()
 {
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	mouse.SetCursorLock(false);
-	mouse.ForceCursorVisible(false);
-
 	background = std::make_shared<SpriteWidget>(
 		LoadingImagePath, SpriteShaderId::Basic, Color(1, 1, 1, 1));
 	background->SetName("Loading Background");
@@ -54,10 +50,6 @@ LoadingScene::LoadingScene()
 
 void LoadingScene::OnUpdate()
 {
-	// ImGuiのWin32バックエンドがフレーム開始時に再表示しても、
-	// ロード画面ではカーソルを常に隠す。
-	Game::Input::Instance().GetMouse().SetCursorVisible(false);
-
 	elapsedTime += std::max(Game::Time::unscaledDeltaTime, 0.0f);
 	UpdateLayout();
 

@@ -1,3 +1,4 @@
+// RenderTarget.h
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -18,6 +19,7 @@ public:
 
     void Activate(ID3D11DeviceContext* dc);
     void Deactivate(ID3D11DeviceContext* dc);
+    void SetDepthReadOnly(ID3D11DeviceContext* dc, bool readOnly);
     void Clear(ID3D11DeviceContext* dc, float r = 0, float g = 0, float b = 0, float a = 1);
 
     ID3D11ShaderResourceView* GetSRV() const { return srv.Get(); }
@@ -29,6 +31,7 @@ public:
 private:
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   rtv;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   dsv;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   readOnlyDsv;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> depthSrv;
 

@@ -669,13 +669,10 @@ void Player::UpdateMovement()
 
 			const float skillDuration =
 				model->GetAnimations()[skillAnimationIndex].secondsLength;
-			// 必殺技へ入ったら残像は終了するが、時間はゲーム全体を遅くする。
-			if (afterimage) afterimage->Clear();
+			// SP攻撃の入りだけを遅くして、以降は通常速度に戻す
 			constexpr float skillTimeScale = 0.45f;
-			// アニメーション自体もスケール時間で進むため、
-			// 実時間の継続時間を倍率で補正してSP終了まで保つ。
-			TimeScaleController::Request(
-				skillDuration / skillTimeScale + 0.2f, skillTimeScale);
+			constexpr float skillSlowDuration = 0.18f;
+			TimeScaleController::Request(skillSlowDuration, skillTimeScale);
 			anim->SetFloat("Speed", 0.0f);
 			anim->SetBool("IsSprinting", false);
 			anim->SetBool("IsJustDodge", true);

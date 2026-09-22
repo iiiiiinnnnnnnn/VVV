@@ -1,6 +1,8 @@
-﻿#include <imgui.h>
+﻿// FreeCameraController.cpp
+#include <imgui.h>
 #include <cmath>
 #include "Gameplay/Camera/FreeCameraController.h"
+#include "Gameplay/Camera/CameraMoveSpeedOverlay.h"
 #include "Application/Time/GameTime.h"
 
 FreeCameraController::FreeCameraController(Object* owner)
@@ -129,6 +131,7 @@ void FreeCameraController::UpdateCamera()
 			moveSpeed = (std::clamp)(
 				moveSpeed * std::pow(speedStep, static_cast<float>(wheel)),
 				minimumSpeed, maximumSpeed);
+			CameraMoveSpeedOverlay::Show(moveSpeedOverlayTimer);
 		}
 
         // 右ドラッグ中のみ、WASDキーによるFPS移動を許可
@@ -189,6 +192,8 @@ void FreeCameraController::UpdateCamera()
 
     right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
     up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
+
+	CameraMoveSpeedOverlay::Draw(moveSpeed, moveSpeedOverlayTimer);
 }
 
 void FreeCameraController::OnFocusLost()

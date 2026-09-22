@@ -15,7 +15,8 @@ TextureCube diffuse_iem : register(t19);
 cbuffer CbTerrainLayer : register(b4)
 {
     int terrain_layer_count;
-    int3 terrain_layer_dummy;
+    int terrain_grass_mask_preview;
+    int2 terrain_layer_dummy;
 };
 
 Texture2D<float4> terrainBaseTextures[MAX_TERRAIN_LAYERS] : register(t20);
@@ -166,21 +167,13 @@ void DirectBRDFShadowStrength(
     float NdotH = max(0.0001f, dot(N, H));
     float VdotH = max(0.0001f, dot(V, H));
 
-    float s = saturate(shadow_strength);
-
-    float hardThreshold = step(0.25f, NdotL);
-    float hardToonFactor = lerp(0.2f, 1.0f, hardThreshold);
-
-    float softLight = smoothstep(-0.30f, 0.45f, rawNdotL);
-    float softToonFactor = lerp(0.60f, 1.0f, softLight);
-
-    float toonFactor = lerp(softToonFactor, hardToonFactor, s);
-    float3 irradiance = light_color * NdotL;
+    // 光源に背を向けた地形へ白い直接光が回り込まないようにする
+    float lightFacingRate = saturate(rawNdotL);
+    float3 irradiance = light_color * lightFacingRate;
 
     out_diffuse =
         DiffuseBRDF(VdotH, F0, diffuse_reflectance)
-        * light_color
-        * toonFactor;
+        * irradiance;
 
     out_specular =
         SpecularBRDF(NdotV, NdotL, NdotH, VdotH, F0, roughnessValue)
@@ -562,6 +555,16 @@ float4 main(VS_OUT pin) : SV_TARGET
         + emissive;
 
     color = ApplyDistanceFog(color, pin.position);
+
+    if (terrain_grass_mask_preview != 0)
+    {
+        // 草がない場所を赤、生える場所を緑で大まかに表示する
+        float grassMask = saturate(terrainDataMap.Sample(shadowSampler, pin.texcoord).b);
+        float3 emptyColor = float3(0.85f, 0.12f, 0.08f);
+        float3 grassColor = float3(0.10f, 0.95f, 0.22f);
+        float3 previewColor = lerp(emptyColor, grassColor, grassMask);
+        color = lerp(color, previewColor, 0.48f);
+    }
 
     return float4(color, albedo.a);
 }

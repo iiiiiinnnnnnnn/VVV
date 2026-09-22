@@ -6,7 +6,7 @@
 class VignetteSpriteShader : public SpriteShader
 {
 public:
-	explicit VignetteSpriteShader(ID3D11Device* device, bool overlayOnly = false);
+	VignetteSpriteShader(ID3D11Device* device, bool overlayOnly = false);
 
 	void Begin(const RenderContext& rc) override;
 	void Update(const RenderContext& rc, ID3D11ShaderResourceView* srv,

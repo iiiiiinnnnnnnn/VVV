@@ -11,7 +11,7 @@ class Texture;
 class GaugeHUD : public Widget
 {
 public:
-	explicit GaugeHUD(const std::string& name);
+	GaugeHUD(const std::string& name);
 
 	void SetFrameTexture(const std::string& path);
 	void SetEmblemTexture(const std::string& path);

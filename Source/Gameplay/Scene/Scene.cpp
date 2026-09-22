@@ -93,6 +93,7 @@ void Scene::ToggleDebugDisplay()
 void Scene::Update()
 {
 	OnUpdate();
+	ApplyMouseCursorMode();
 
 	// ステージを持たないツールシーンでもF3を受け取れるよう、早期returnより前で処理する
 	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
@@ -171,6 +172,36 @@ void Scene::Update()
 	widgetManager.Update();
 
 	PostProcessController::Instance().Update();
+}
+
+void Scene::ApplyMouseCursorMode()
+{
+	MouseCursorMode mode = GetMouseCursorMode();
+	if (hudMouseCursorMode.has_value())
+	{
+		// ポーズHUDなどの一時的な指定はシーン既定値より優先する
+		mode = hudMouseCursorMode.value();
+	}
+	else if (UsesGameDebugGUI() && isCursorReleased)
+	{
+		mode = MouseCursorMode::VisibleFree;
+	}
+
+	bool visible = true;
+	bool locked = false;
+	if (mode == MouseCursorMode::HiddenFree)
+	{
+		visible = false;
+	}
+	else if (mode == MouseCursorMode::HiddenLocked)
+	{
+		visible = false;
+		locked = true;
+	}
+
+	Mouse& mouse = Game::Input::Instance().GetMouse();
+	mouse.SetCursorLock(locked);
+	mouse.SetCursorVisible(visible);
 }
 
 void Scene::SelectPausedActor()

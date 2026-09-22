@@ -17,6 +17,7 @@ public:
 
 	void OnUpdate() override;
 	void OnDrawGUI() override;
+	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 
 private:
 	void ConfigureWindow();

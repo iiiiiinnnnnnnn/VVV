@@ -93,6 +93,7 @@ private:
 	bool chaseBgmEngaged = false;
 	bool playerDetected = false;
 	BossBar* bossBar = nullptr;
+	std::vector<Actor*> bossSummonedDeer;
 	float chaseBgmVolume = 0.0f;
 	float chaseBgmFadeInSeconds = 1.0f;
 	float chaseBgmFadeOutSeconds = 1.5f;

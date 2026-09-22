@@ -28,6 +28,8 @@ TitleScene::TitleScene()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(true);
 	graphics.SetWindowMovementLocked(true);
+	// タイトルでは通常UIを優先し、F2が押されたときだけエディタを開く
+	showGameEditorGUI = false;
 
 	background = std::make_shared<SpriteWidget>(
 		"Resources/UI/title.png", SpriteShaderId::Basic, Color(1, 1, 1, 1));
@@ -135,9 +137,6 @@ TitleScene::TitleScene()
 	fadeOverlay->SetAffectedByPostProcess(false);
 	widgetManager.Register(fadeOverlay);
 
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	mouse.SetCursorLock(false);
-	mouse.ForceCursorVisible(true);
 }
 
 void TitleScene::CreateTitleWorld()
@@ -357,9 +356,6 @@ void TitleScene::UpdateMenu()
 
 void TitleScene::OnUpdate()
 {
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	mouse.SetCursorLock(false);
-	mouse.ForceCursorVisible(true);
 	cameraTime += Game::Time::unscaledDeltaTime;
 	UpdateTitleCamera();
 	UpdateLayout();

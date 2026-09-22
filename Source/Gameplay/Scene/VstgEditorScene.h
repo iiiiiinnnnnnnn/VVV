@@ -31,6 +31,7 @@ class VstgEditorScene : public Scene
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
+	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 	bool UsesGameDebugGUI() const override { return false; }
 	bool OnRequestExit() override;
 

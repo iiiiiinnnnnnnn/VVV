@@ -17,7 +17,7 @@ public:
 
 protected:
 	void OnUpdate() override;
-	bool UsesGameDebugGUI() const override { return false; }
+	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 
 private:
 	enum class MenuPage

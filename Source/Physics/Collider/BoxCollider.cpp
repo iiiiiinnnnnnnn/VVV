@@ -1,4 +1,5 @@
 #include "Physics/Collider/BoxCollider.h"
+#include <algorithm>
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
@@ -101,4 +102,15 @@ void BoxCollider::DrawGUI()
             material->setRestitution(restitution);
         ImGui::TreePop();
     }
+}
+
+void BoxCollider::SetSize(const Vector3& value)
+{
+	Vector3 nextSize;
+	nextSize.x = std::max(value.x, 0.01f);
+	nextSize.y = std::max(value.y, 0.01f);
+	nextSize.z = std::max(value.z, 0.01f);
+	if ((nextSize - size).LengthSquared() <= 0.000001f) return;
+	size = nextSize;
+	UpdateShape();
 }

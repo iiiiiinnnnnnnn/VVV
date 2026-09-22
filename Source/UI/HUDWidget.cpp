@@ -1,33 +1,42 @@
 #include "UI/HUDWidget.h"
 
+#include <algorithm>
 #include <imgui.h>
 
-HUDWidget::HUDWidget(const std::string& name) : Widget(name)
+WidgetGroup::WidgetGroup(const std::string& name) : Widget(name)
 {
 	SetAffectedByPostProcess(false);
 }
 
-void HUDWidget::SetChildrenActive(bool active)
+void WidgetGroup::SetChildrenActive(bool active)
 {
 	for (const auto& child : children)
 		if (child) child->SetActive(active);
 }
 
-void HUDWidget::OnUpdate()
+void WidgetGroup::OnUpdate()
 {
 	for (const auto& child : children)
-		if (child) child->Update();
+		if (child && !child->IsPendingDestroy()) child->Update();
+
+	children.erase(
+		std::remove_if(children.begin(), children.end(),
+			[](const std::shared_ptr<Widget>& child)
+			{
+				return !child || child->IsPendingDestroy();
+			}),
+		children.end());
 }
 
-void HUDWidget::OnRender(const RenderContext& rc)
+void WidgetGroup::OnRender(const RenderContext& rc)
 {
 	for (const auto& child : children)
-		if (child) child->Render(rc);
+		if (child && !child->IsPendingDestroy()) child->Render(rc);
 }
 
-void HUDWidget::OnDrawGUI()
+void WidgetGroup::OnDrawGUI()
 {
-	ImGui::TextDisabled("HUD children: %zu", children.size());
+	ImGui::TextDisabled((const char*)u8"子Widget: %zu", children.size());
 	for (const auto& child : children)
 	{
 		if (!child) continue;

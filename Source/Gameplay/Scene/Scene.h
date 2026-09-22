@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,13 @@
 class Scene
 {
 public:
+	enum class MouseCursorMode
+	{
+		VisibleFree,
+		HiddenFree,
+		HiddenLocked,
+	};
+
 	Scene() = default;
 
 	virtual ~Scene() = default;
@@ -35,12 +43,16 @@ public:
 	}
 
 private:
+	void ApplyMouseCursorMode();
 	void SwitchToDebugMode();
 	void SwitchToPlayMode();
 	void SelectPausedActor();
 	void DrawGUI(RenderContext& rc);
 
 protected:
+	virtual MouseCursorMode GetMouseCursorMode() const = 0;
+	void SetHudMouseCursorMode(MouseCursorMode mode) { hudMouseCursorMode = mode; }
+	void ClearHudMouseCursorMode() { hudMouseCursorMode.reset(); }
 	virtual void OnUpdate() {}
 	virtual void ToggleDebugDisplay();
 	virtual void ConfigureRenderSettings(RenderSettings&) {}
@@ -59,6 +71,7 @@ protected:
 
 	// ゲーム内エディタ
 	bool isCursorReleased = false;
+	std::optional<MouseCursorMode> hudMouseCursorMode;
 	bool showGameEditorGUI = true;
 	float gameEditorLeftWidth = 600.0f;
 	float gameEditorRightWidth = 680.0f;

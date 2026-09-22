@@ -53,9 +53,6 @@ VstgEditorScene::VstgEditorScene()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	mouse.SetCursorLock(false);
-	mouse.ForceCursorVisible(true);
 	propPreviewTarget =
 		std::make_unique<RenderTarget>(graphics.GetDevice(), 256, 256, DXGI_FORMAT_R8G8B8A8_UNORM);
 	propPreviewCameraOwner = std::make_unique<Object>("VSTG Prop Preview Camera");
@@ -84,10 +81,6 @@ VstgEditorScene::~VstgEditorScene()
 void VstgEditorScene::OnUpdate()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
-	// ロード画面やゲームシーンが残した非表示状態をエディタへ持ち越さない。
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	mouse.SetCursorLock(false);
-	mouse.SetCursorVisible(true);
 	if (maximizeWindowPending && !graphics.IsBorderlessFullscreen())
 	{
 		// ボーダーレス解除後に通常ウィンドウとして最大化する。

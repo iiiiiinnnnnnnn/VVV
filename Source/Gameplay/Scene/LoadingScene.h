@@ -14,6 +14,7 @@ public:
 	~LoadingScene() override = default;
 
 	void OnUpdate() override;
+	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::HiddenFree; }
 
 private:
 	void UpdateLayout();

@@ -17,6 +17,7 @@
 #include "Application/Time/GameTime.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Player/Player.h"
+#include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Spawner.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -308,16 +309,34 @@ void AracoreQueen::SpawnDeerFromSky()
 {
 	if (!stageLoader) return;
 
+	ActorManager* actorManager = ActorManager::GetActive();
+	if (!actorManager) return;
+
+	// 倒された召喚鹿を上限の対象から外す
+	bossSummonedDeer.erase(
+		std::remove_if(
+			bossSummonedDeer.begin(),
+			bossSummonedDeer.end(),
+			[actorManager](Actor* deer)
+			{
+				if (!actorManager->Contains(deer)) return true;
+				return deer->IsPendingDestroy();
+			}),
+		bossSummonedDeer.end());
+
 	constexpr float spawnHeight = 12.0f;
+	constexpr size_t maxBossSummonedDeer = 7;
 	for (Spawner* spawner : stageLoader->GetSpawners())
 	{
+		if (bossSummonedDeer.size() >= maxBossSummonedDeer) break;
 		if (!spawner || spawner->GetEntityName() != "EnemySmall") continue;
 		if (std::rand() % 3 != 0) continue;
 
 		Transform spawnTransform = spawner->GetSummonTransform();
 		spawnTransform.position.y += spawnHeight;
 		spawnTransform.Update();
-		spawner->Summon(spawnTransform);
+		Actor* summonedDeer = spawner->Summon(spawnTransform);
+		if (summonedDeer) bossSummonedDeer.push_back(summonedDeer);
 	}
 }
 

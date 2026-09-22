@@ -95,7 +95,7 @@ bool VSTG::Load(const std::filesystem::path& path)
 	class MemoryBuffer : public std::streambuf
 	{
 	public:
-		explicit MemoryBuffer(const std::vector<uint8_t>& data)
+		MemoryBuffer(const std::vector<uint8_t>& data)
 		{
 			auto begin = const_cast<char*>(reinterpret_cast<const char*>(data.data()));
 			if (!data.empty()) setg(begin, begin, begin + data.size());
