@@ -12,7 +12,6 @@
 #include <chrono>
 #include <cctype>
 #include <cstdint>
-#include <cwctype>
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -74,18 +73,6 @@ std::string Trim(const std::string& value)
 	return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
 
-// 大文字小文字を無視して包含を判定
-bool Contains(const fs::path& root, const fs::path& path)
-{
-	auto base = fs::weakly_canonical(root).generic_wstring();
-	auto value = fs::weakly_canonical(path).generic_wstring();
-	std::transform(base.begin(), base.end(), base.begin(), std::towlower);
-	std::transform(value.begin(), value.end(), value.begin(), std::towlower);
-	if (base == value) return true;
-	if (!base.ends_with(L'/')) base += L'/';
-	return value.starts_with(base);
-}
-
 // 出力用の相対パスを検証
 fs::path RelativePath(const std::string& value)
 {
@@ -98,19 +85,9 @@ fs::path RelativePath(const std::string& value)
 	return path.lexically_normal();
 }
 
-// リンクを介した出力先の逸脱を防止
 fs::path Destination(const fs::path& root, const fs::path& relative)
 {
-	const fs::path destination = root / RelativePath(Text(relative));
-	if (!Contains(root, destination)) throw std::runtime_error("Output escapes Resources: " + Text(destination));
-	for (auto current = destination; !current.empty(); current = current.parent_path())
-	{
-		const DWORD attributes = GetFileAttributesW(current.c_str());
-		if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
-			throw std::runtime_error("Output cannot contain links: " + Text(current));
-		if (current == current.root_path()) break;
-	}
-	return destination;
+	return root / RelativePath(Text(relative));
 }
 
 // 生成済みvxの形式とサイズを検証
@@ -171,11 +148,7 @@ std::vector<std::pair<int, fs::path>> FindSoundVariants(
 {
 	fs::path relative = Path(registeredPath);
 	if (relative.is_absolute())
-	{
-		if (!Contains(sourceRoot, relative))
-			throw std::runtime_error("Sound track is outside Resources: " + registeredPath);
 		relative = fs::weakly_canonical(relative).lexically_relative(sourceRoot);
-	}
 	else
 	{
 		auto iterator = relative.begin();
@@ -189,9 +162,6 @@ std::vector<std::pair<int, fs::path>> FindSoundVariants(
 	if (Lower(Text(relative.extension())) != ".wav")
 		throw std::runtime_error("Sound track must reference WAV: " + registeredPath);
 	const fs::path selected = sourceRoot / relative;
-	if (!Contains(sourceRoot, selected))
-		throw std::runtime_error("Sound track escapes Resources: " + registeredPath);
-
 	std::string baseStem = Text(selected.stem());
 	const size_t bracket = baseStem.rfind('[');
 	if (bracket != std::string::npos && baseStem.back() == ']')
@@ -301,7 +271,6 @@ std::vector<Asset> Collect(const fs::path& sourceRoot)
 	std::map<std::string, Asset> assets;
 	std::set<std::string> typedKeys;
 	auto add = [&](const fs::path& root, const fs::path& path, bool prebuilt) {
-		if (!Contains(root, path)) throw std::runtime_error("Source escapes root: " + Text(path));
 		const auto relative = path.lexically_relative(root);
 		if (!prebuilt && IsExcluded(relative)) return;
 		const auto extension = Lower(Text(relative.extension()));
@@ -458,8 +427,7 @@ std::vector<std::string> CacheBuilder::Build(const fs::path& sourceRoot, const f
 	const auto source = fs::weakly_canonical(fs::absolute(sourceRoot));
 	const auto output = fs::weakly_canonical(fs::absolute(outputRoot));
 	if (!fs::is_directory(source)) throw std::runtime_error("Source Resources is missing");
-	if (Contains(source, output) || Contains(output, source))
-		throw std::runtime_error("Source and output directories must not overlap");
+	if (source == output) throw std::runtime_error("Source and output directories must be different");
 	const auto saved = savedSource.empty() ? fs::path{} : fs::weakly_canonical(fs::absolute(savedSource));
 	auto assets = Collect(source);
 	CacheSettings settings;
