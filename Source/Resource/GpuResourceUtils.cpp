@@ -1,4 +1,6 @@
-﻿#include <filesystem>
+// GpuResourceUtils.cpp
+
+#include <filesystem>
 #include <wrl.h>
 #include <DirectXTex.h>
 #include <WICTextureLoader.h> 
@@ -304,6 +306,28 @@ HRESULT GpuResourceUtils::CreateConstantBuffer(
 	HRESULT hr = device->CreateBuffer(&desc, 0, constantBuffer);
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
+	return hr;
+}
+
+// 静的頂点バッファ作成
+HRESULT GpuResourceUtils::CreateVertexBuffer(
+	ID3D11Device* device,
+	const void* vertexData,
+	UINT bufferSize,
+	ID3D11Buffer** vertexBuffer)
+{
+	if (!device || !vertexData || bufferSize == 0 || !vertexBuffer) return E_INVALIDARG;
+
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = bufferSize;
+	desc.Usage = D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA initialData{};
+	initialData.pSysMem = vertexData;
+
+	const HRESULT hr = device->CreateBuffer(&desc, &initialData, vertexBuffer);
+	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 	return hr;
 }
 

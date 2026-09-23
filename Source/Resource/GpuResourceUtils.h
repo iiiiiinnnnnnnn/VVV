@@ -1,4 +1,5 @@
-﻿#pragma once
+// GpuResourceUtils.h
+#pragma once
 #include <cstddef>
 
 #include <d3d11.h>
@@ -68,6 +69,13 @@ public:
 		ID3D11Device* device,
 		UINT bufferSize,
 		ID3D11Buffer** constantBuffer);
+
+	// 静的頂点バッファ作成
+	static HRESULT CreateVertexBuffer(
+		ID3D11Device* device,
+		const void* vertexData,
+		UINT bufferSize,
+		ID3D11Buffer** vertexBuffer);
 
 	// バイナリファイル読み込み
 	static std::vector<uint8_t> LoadBinaryFile(

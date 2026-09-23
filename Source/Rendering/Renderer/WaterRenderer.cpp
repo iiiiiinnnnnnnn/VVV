@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Application/Time/GameTime.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
@@ -74,15 +73,11 @@ WaterRenderer::WaterRenderer(Object* owner) : Component(owner)
 	}
 	vertexCount = static_cast<UINT>(vertices.size());
 
-	D3D11_BUFFER_DESC description{};
-	description.ByteWidth = static_cast<UINT>(vertices.size() * sizeof(Vertex));
-	description.Usage = D3D11_USAGE_IMMUTABLE;
-	description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA initialData{};
-	initialData.pSysMem = vertices.data();
-	const HRESULT result =
-		device->CreateBuffer(&description, &initialData, vertexBuffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(result), HRTrace(result));
+	GpuResourceUtils::CreateVertexBuffer(
+		device,
+		vertices.data(),
+		static_cast<UINT>(vertices.size() * sizeof(Vertex)),
+		vertexBuffer.GetAddressOf());
 }
 
 void WaterRenderer::OnRender(const RenderContext& rc)
