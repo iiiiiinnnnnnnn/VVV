@@ -9,6 +9,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
+#include "Rendering/Effect/EffectManager.h"
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -28,6 +29,7 @@ Framework::Framework(HWND hWnd) : hWnd(hWnd)
 
 	// サウンドシステム初期化
 	SoundSystem::Instance().Initialize();
+	EffectManager::Instance().Initialize();
 
 	// 一覧と先読み対象を読み込む
 	ResourceManager::Instance().PrepareGameResources();
@@ -60,6 +62,7 @@ Framework::~Framework()
 
 	// サウンドシステム終了化
 	SoundSystem::Instance().Finalize();
+	EffectManager::Instance().Finalize();
 }
 
 // 更新処理
@@ -91,6 +94,7 @@ void Framework::Update(float elapsedTime)
 
 	// 最新の位置で3D音声を更新
 	SoundSystem::Instance().Update();
+	EffectManager::Instance().Update();
 }
 
 // 描画処理

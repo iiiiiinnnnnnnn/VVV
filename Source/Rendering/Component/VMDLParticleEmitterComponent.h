@@ -1,54 +1,38 @@
+// VMDLParticleEmitterComponent.h
+// VMDLParticleEmitterComponent.h
 #pragma once
 
 #include <memory>
-#include <deque>
 
 #include "Core/Object/Component.h"
+#include "Rendering/Effect/Effect.h"
 #include "Resource/VMDLModel.h"
 
-class ParticleSystem;
-class Texture;
-
-// VMDLのボーンへ追従する、エディタ設定型の軽量パーティクルエミッタ。
+// VMDLに埋め込まれたEffekseerエフェクトをノードへ追従させる。
 class VMDLParticleEmitterComponent : public Component
 {
 public:
 	VMDLParticleEmitterComponent(Object* owner, VMDLModel* model,
 		const VMDLModel::VmdlParticleEmitter& settings, bool initiallyEmitting);
 	~VMDLParticleEmitterComponent() override;
-
 	void OnLateUpdate() override;
-	void RenderParticles(const RenderContext& rc);
+	void RenderParticles(const RenderContext&) {}
 	void OnDrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MAGIC " Particle Emitter"; }
-
+	const char* GetDebugName() const override { return ICON_FA_MAGIC " Effekseer Effect"; }
 	void SetEmitting(bool value);
 	bool IsEmitting() const { return emitting; }
+	bool IsPlaying() const { return handle >= 0; }
 	void Burst();
-	void SetSettings(const VMDLModel::VmdlParticleEmitter& value) { settings = value; }
+	void SetSettings(const VMDLModel::VmdlParticleEmitter& value);
 	const std::string& GetEmitterName() const { return settings.name; }
-	float GetMaximumLifetime() const { return settings.lifetimeMax; }
+	float GetMaximumLifetime() const { return effect && effect->IsValid() ? 1.0f : 0.0f; }
 
 private:
-	void SpawnOne();
-	void UpdateRibbon();
-	void RenderRibbon(const RenderContext& rc);
-
-	struct RibbonPoint
-	{
-		Vector3 root;
-		Vector3 tip;
-		Vector3 fullTip;
-		float age = 0.0f;
-	};
-
+	void Play();
+	void Stop();
 	VMDLModel* model = nullptr;
 	VMDLModel::VmdlParticleEmitter settings;
-	std::shared_ptr<Texture> texture;
-	std::unique_ptr<ParticleSystem> particleSystem;
+	std::unique_ptr<Effect> effect;
+	Effekseer::Handle handle = -1;
 	bool emitting = false;
-	bool burstPending = false;
-	float emissionAccumulator = 0.0f;
-	float ribbonSampleTimer = 0.0f;
-	std::deque<RibbonPoint> ribbonPoints;
 };

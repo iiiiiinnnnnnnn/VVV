@@ -1,3 +1,4 @@
+// Terrain.h
 #pragma once
 
 #include <d3d11.h>
@@ -265,7 +266,7 @@ private:
 		float maxZ,
 		std::vector<TerrainVertex>& vertices,
 		std::vector<uint32_t>& indices) const;
-	void MarkTerrainMeshDirty(bool rebuildGrass = true);
+	void MarkTerrainMeshDirty();
 
 	// 定数バッファ更新
 

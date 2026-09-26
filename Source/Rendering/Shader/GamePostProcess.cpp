@@ -1,4 +1,4 @@
-﻿
+﻿// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"
@@ -250,7 +250,10 @@ namespace Game
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
-		const float totalIntensity = vignetteIntensity + runtimeVignetteIntensity;
+		const float baseVignetteIntensity =
+			enableVignette ? vignetteIntensity : 0.0f;
+		const float totalIntensity =
+			baseVignetteIntensity + runtimeVignetteIntensity;
 		const float runtimeBlend = totalIntensity > 0.001f
 			? runtimeVignetteIntensity / totalIntensity
 			: 0.0f;
@@ -266,6 +269,8 @@ namespace Game
 		cb.smoothness = vignetteSmoothness;
 		cb.rounded = vignetteRounded ? 1.0f : 0.0f;
 		cb.roundness = vignetteRoundness;
+		cb.tintColor = runtimeColorTint;
+		cb.tintIntensity = runtimeColorTintIntensity;
 
 		dc->UpdateSubresource(vignetteConstantBuffer.Get(), 0, 0, &cb, 0, 0);
 
@@ -362,7 +367,8 @@ namespace Game
 			enableChromaticAberration || runtimeChromaticAberrationIntensity > 0.001f;
 
 		const bool useVignette =
-			enableVignette || runtimeVignetteIntensity > 0.001f;
+			enableVignette || runtimeVignetteIntensity > 0.001f ||
+			runtimeColorTintIntensity > 0.001f;
 
 		int passCount = 1;
 		if (useRadialBlur) ++passCount;
@@ -692,6 +698,8 @@ namespace Game
 		runtimeChromaticAberrationIntensity = 0.0f;
 		runtimeVignetteIntensity = 0.0f;
 		runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
+		runtimeColorTintIntensity = 0.0f;
+		runtimeColorTint = {1.0f, 1.0f, 1.0f, 1.0f};
 	}
 
 	void PostProcess::AddRuntimeRadialBlur(float intensity)
@@ -711,5 +719,12 @@ namespace Game
 			runtimeVignetteIntensity = intensity;
 			runtimeVignetteColor = color;
 		}
+	}
+
+	void PostProcess::AddRuntimeColorTint(float intensity, const Color& color)
+	{
+		if (intensity <= runtimeColorTintIntensity) return;
+		runtimeColorTintIntensity = intensity;
+		runtimeColorTint = color;
 	}
 }

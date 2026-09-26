@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// MeshCache.h
+#pragma once
 
 #include <filesystem>
 #include <string>
@@ -20,6 +21,7 @@ public:
 	// 指定した複数メッシュを一つの装備キャッシュへ保存する
 	static bool Save(const std::filesystem::path& filepath, const VMDLModel& source,
 		const std::vector<int>& meshIndices, std::string* error = nullptr);
+	void SyncMaterialsFrom(const VMDLModel& source);
 
 	// 装備キャッシュ内の描画メッシュを取得する
 	const std::vector<VMDLModel::Mesh>& GetMeshes() const { return meshes; }

@@ -33,6 +33,7 @@ public:
 
 	// Effeckseerマネージャーの取得
 	Effekseer::ManagerRef GetEffekseerManager() { return effekseerManager; }
+	EffekseerRenderer::RendererRef GetEffekseerRenderer() { return effekseerRenderer; }
 
 private:
 	Effekseer::ManagerRef effekseerManager = nullptr;

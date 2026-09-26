@@ -39,6 +39,7 @@ public:
     void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
     
     PlayerController* GetController() const { return controller; }
+	ThirdPersonCameraController* GetCameraController() const { return cameraController; }
 
     VMDLModel* GetModel() const { return model.get(); }
 
@@ -51,7 +52,6 @@ public:
     // ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
     void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);
-	void RequestBossDefeatCamera(Actor* target, float duration);
 
 private:
     void UpdateMovement();
@@ -106,7 +106,7 @@ protected:
 	bool deathSequenceActive = false;
 	bool deathReloadRequested = false;
 	float deathSequenceTimer = 0.0f;
-	float deathVignetteDuration = 2.0f;
+	float deathVignetteDuration = 10.0f;
 
     // サウンド
     VMDLModel::VmdlSoundSource* footSound = nullptr;

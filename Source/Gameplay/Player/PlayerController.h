@@ -1,3 +1,4 @@
+// PlayerController.h
 #pragma once
 
 #include "Core/Object/Component.h"
@@ -9,6 +10,7 @@ struct InputContext
     bool crouch = false;
     bool sprint = false;
     bool attackPressed = false;
+    bool alignCameraPressed = false;
     bool quickForwardPressed = false;
     bool quickBackwardPressed = false;
     bool quickLeftPressed = false;

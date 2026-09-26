@@ -37,7 +37,8 @@ TrailRenderComponent::TrailRenderComponent(
 	float tipRatio,
 	float lifeTime,
 	int maxPoints,
-    Vector3 offsetAngle)
+	Vector3 offsetAngle,
+	const Matrix& componentTransform)
 	: Component(owner),
 	model(model),
 	nodeIndex(nodeIndex),
@@ -47,7 +48,8 @@ TrailRenderComponent::TrailRenderComponent(
 	lifeTime(lifeTime),
 	maxPoints(maxPoints),
 	color(color),
-	offsetAngle(offsetAngle)
+	offsetAngle(offsetAngle),
+	componentTransform(componentTransform)
 {
 }
 
@@ -77,9 +79,9 @@ void TrailRenderComponent::LateUpdate()
 	const Matrix offsetRotation = Matrix::CreateFromYawPitchRoll(
 		RAD(offsetAngle.y), RAD(offsetAngle.x), RAD(offsetAngle.z));
 	const Matrix rootMat = model->GetScaledAttachmentTransform(
-		offsetRotation * Matrix::CreateTranslation(rootOffset) * node.worldTransform);
+		offsetRotation * Matrix::CreateTranslation(rootOffset) * componentTransform * node.worldTransform);
 	const Matrix tipMat = model->GetScaledAttachmentTransform(
-		offsetRotation * Matrix::CreateTranslation(tipOffset) * node.worldTransform);
+		offsetRotation * Matrix::CreateTranslation(tipOffset) * componentTransform * node.worldTransform);
 
     TrailPoint pt;
     pt.root    = { rootMat._41, rootMat._42, rootMat._43 };

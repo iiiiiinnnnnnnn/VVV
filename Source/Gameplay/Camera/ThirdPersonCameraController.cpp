@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Camera/ThirdPersonCameraController.h"
+﻿// ThirdPersonCameraController.cpp
+#include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
@@ -23,6 +24,12 @@ void ThirdPersonCameraController::RequestBossDefeatFocus(Actor* target, float du
 	bossDefeatTarget = target;
 	bossDefeatFocusDuration = duration;
 	bossDefeatFocusTimer = duration;
+}
+
+void ThirdPersonCameraController::RequestAlignToPlayerForward()
+{
+	const Vector3 forward = character->transform.forward;
+	RequestYawAlignment(-atan2f(forward.x, forward.z), 10.0f);
 }
 
 void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
@@ -200,10 +207,13 @@ void ThirdPersonCameraController::UpdateCamera()
 	constexpr float gamePadVerticalSpeed = 2.2f;
 	moveX += gamePad.GetAxisRX() * gamePadHorizontalSpeed * Game::Time::unscaledDeltaTime;
 	moveY -= gamePad.GetAxisRY() * gamePadVerticalSpeed * Game::Time::unscaledDeltaTime;
+	if (fabsf(moveX) > 0.0001f || fabsf(moveY) > 0.0001f)
+		CancelYawAlignment();
 
     angleY -= moveX;
     if (angleY >  DirectX::XM_PI)  angleY -= DirectX::XM_2PI;
     if (angleY < -DirectX::XM_PI)  angleY += DirectX::XM_2PI;
+	UpdateYawAlignment(Game::Time::unscaledDeltaTime);
 
     angleX -= moveY;
     angleX = std::clamp(angleX,

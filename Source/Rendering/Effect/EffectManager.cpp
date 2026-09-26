@@ -1,4 +1,4 @@
-﻿#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Application/Time/GameTime.h"
 
@@ -32,7 +32,7 @@ void EffectManager::Initialize()
 // 終了化
 void EffectManager::Finalize()
 {
-	// EffekseerManagerなどはスマートポインタによって破棄されるので何もしない
+
 }
 
 // 更新処理

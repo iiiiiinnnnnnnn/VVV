@@ -1,3 +1,4 @@
+// VMDLModel.h
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -25,6 +26,23 @@ class MeshCache;
 class VMDLModel
 {
   public:
+	// ノードに紐づくコンポーネント共通のローカルTransform
+	struct VmdlComponentTransform
+	{
+		Vector3 position = Vector3::Zero;
+		Vector3 rotation = Vector3::Zero;
+		Vector3 scale = Vector3::One;
+
+		Matrix ToMatrix() const
+		{
+			return Matrix::CreateScale(scale) *
+				Matrix::CreateFromYawPitchRoll(RAD(rotation.y), RAD(rotation.x), RAD(rotation.z)) *
+				Matrix::CreateTranslation(position);
+		}
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
 	// ノードに追従する物理剛体の設定
 	struct VmdlRigidBody
 	{
@@ -32,6 +50,7 @@ class VMDLModel
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
 		Vector3 offsetRotation = Vector3::Zero;
+		VmdlComponentTransform transform;
 		float mass = 1.0f;
 		bool kinematic = false;
 
@@ -48,6 +67,7 @@ class VMDLModel
 		Vector3 center = Vector3::Zero;
 		Vector3 rotation = Vector3::Zero;
 		Vector3 size = Vector3::One;
+		VmdlComponentTransform transform;
 		bool trigger = false;
 
 		template <class Archive> void serialize(Archive& archive);
@@ -60,6 +80,7 @@ class VMDLModel
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
 		Vector3 offsetRotation = Vector3::Zero;
+		VmdlComponentTransform transform;
 		float stiffness = 0.5f;
 		float drag = 0.2f;
 
@@ -72,6 +93,7 @@ class VMDLModel
 		std::string name = "SPRING COLLIDER";
 		int nodeIndex = -1;
 		Vector3 offsetPosition = Vector3::Zero;
+		VmdlComponentTransform transform;
 		float radius = 0.1f;
 
 		template <class Archive> void serialize(Archive& archive);
@@ -175,6 +197,7 @@ class VMDLModel
 		float lifeTime = 0.5f;
 		int maxPoints = 40;
 		Vector3 offsetAngle = Vector3::Zero;
+		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -264,6 +287,9 @@ class VMDLModel
 	// ノードに追従する軽量パーティクル設定
 	struct VmdlParticleEmitter
 	{
+		// Effekseerのエフェクト本体。旧パーティクル設定は既存VMDL読込互換のため残す。
+		std::string effekseerFileName;
+		std::vector<uint8_t> effekseerData;
 		// 0: Sprite, 1: Ribbon（拡張値はmodel.vfxdataへ保存）
 		int rendererType = 0;
 		int parentEmitterIndex = -1;
@@ -299,6 +325,7 @@ class VMDLModel
 		float ribbonTipRatio = 1.0f;
 		float ribbonSampleInterval = 0.01f;
 		Color ribbonEndColor = Color(0.1f, 0.4f, 1.0f, 0.0f);
+		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -350,6 +377,7 @@ class VMDLModel
 		float lowPassHz = 6500.0f;
 		float farLowPassHz = 2200.0f;
 		float reverbMix = 0.12f;
+		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -406,6 +434,7 @@ class VMDLModel
 		bool distanceAttenuation = true;
 		float duration = 2.0f;
 		float intensity = 0.1f;
+		VmdlComponentTransform transform;
 	};
 
 	// 範囲内のカメラへ適用するラジアルブラー設定
@@ -418,6 +447,23 @@ class VMDLModel
 		float duration = 5.0f;
 		float power = 3.0f;
 		float attackRate = 0.15f;
+		VmdlComponentTransform transform;
+	};
+
+	// 既存セクションの互換性を保ったまま、付加コンポーネントのTransformだけを保存する
+	struct VmdlComponentTransformData
+	{
+		std::vector<VmdlComponentTransform> rigidBodies;
+		std::vector<VmdlComponentTransform> colliders;
+		std::vector<VmdlComponentTransform> springs;
+		std::vector<VmdlComponentTransform> springColliders;
+		std::vector<VmdlComponentTransform> trails;
+		std::vector<VmdlComponentTransform> particles;
+		std::vector<VmdlComponentTransform> sounds;
+		std::vector<VmdlComponentTransform> cameraShakes;
+		std::vector<VmdlComponentTransform> radialBlurs;
+
+		template <class Archive> void serialize(Archive& archive);
 	};
 
 	// カメラ演出を再生するキーフレーム

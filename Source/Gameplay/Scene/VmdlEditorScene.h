@@ -215,6 +215,7 @@ class VmdlEditorScene : public Scene
 	bool animationPlaying = false;
 	bool animationSoundPreviewStarting = true;
 	bool particlePreviewBurstPending = false;
+	int manualParticlePreviewIndex = -1;
 	float cameraShakePreviewTimer = 0.0f;
 	float cameraShakePreviewDuration = 0.0f;
 	float cameraShakePreviewIntensity = 0.0f;

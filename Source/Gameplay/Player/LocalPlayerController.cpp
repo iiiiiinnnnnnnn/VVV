@@ -1,3 +1,4 @@
+// LocalPlayerController.cpp
 #include "Gameplay/Player/LocalPlayerController.h"
 
 #include <windows.h>
@@ -12,17 +13,19 @@ InputContext LocalPlayerController::Poll()
 	// プレイ中のカーソル解放はScene側で管理するため、OSウィンドウのフォーカスだけを見る
     if (!Game::Input::IsFocusedWindow(true))
     {
-        quickStepKeyHeld = false;
-        quickStepDirectionMask = 0;
-        quickStepBufferTimer = 0.0f;
+		quickStepDirectionMask = 0;
+		quickStepBufferTimer = 0.0f;
 		sprintLatched = false;
-        return {};
+		quickStepKeyHeld = false;
+		return {};
     }
 
     auto& pad = Game::Input::Instance().GetGamePad();
-    auto& mouse = Game::Input::Instance().GetMouse();
+	auto& mouse = Game::Input::Instance().GetMouse();
 
-    InputContext context;
+	InputContext context;
+	context.alignCameraPressed =
+		(mouse.GetButtonDown() & Mouse::BTN_RIGHT) != 0;
     const int quickStepKeys[4] = {
         'W',
         'S',
@@ -74,14 +77,12 @@ InputContext LocalPlayerController::Poll()
 	if (pad.GetAxisLX() < -gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 2;
 	if (pad.GetAxisLX() > gamePadDodgeDirectionThreshold) heldDirectionMask |= 1u << 3;
 
-    const bool keyboardDodgeDown =
-        (GetAsyncKeyState(VK_SPACE) &
-         0x8000) != 0;
-    const bool quickStepStartedNow =
-        (keyboardDodgeDown && !quickStepKeyHeld) ||
+	const bool quickStepKeyDown =
+		(GetAsyncKeyState(VK_SPACE) & 0x8000) != 0;
+	const bool quickStepStartedNow =
+		(quickStepKeyDown && !quickStepKeyHeld) ||
 		(pad.GetButtonDown() & GamePad::BTN_LEFT_TRIGGER);
-    quickStepKeyHeld =
-        keyboardDodgeDown;
+	quickStepKeyHeld = quickStepKeyDown;
 
     if (quickStepStartedNow)
     {

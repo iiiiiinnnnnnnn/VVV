@@ -1,3 +1,4 @@
+// PostProcessController.cpp
 #include "Gameplay/Scene/PostProcessController.h"
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
@@ -178,6 +179,8 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 		postProcess.AddRuntimeRadialBlur(justDodge * 0.22f);
 		postProcess.AddRuntimeChromaticAberration(justDodge * 1.05f);
 		postProcess.AddRuntimeVignette(justDodge * 0.32f, {0.05f, 0.48f, 0.95f, 1.0f});
+		postProcess.AddRuntimeColorTint(
+			justDodge * 0.16f, {0.72f, 1.04f, 1.20f, 1.0f});
 	}
 
 	const float skillStart = GetIntensity(skillStartTimer, skillStartDuration,

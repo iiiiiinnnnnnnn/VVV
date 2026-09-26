@@ -6,6 +6,7 @@
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Effect/EffectManager.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -365,6 +366,7 @@ void Scene::Render()
 				actor->GetComponents<VMDLParticleEmitterComponent>())
 				emitter->RenderParticles(rc);
 		}
+		EffectManager::Instance().Render(camera.GetView(), camera.GetProjection());
 
 		OnRender(rc);
 	}

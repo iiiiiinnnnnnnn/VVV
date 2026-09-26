@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// GamePostProcess.h
+#pragma once
 
 #include <memory>
 #include <d3d11.h>
@@ -51,6 +52,7 @@ namespace Game
 		void AddRuntimeRadialBlur(float intensity);
 		void AddRuntimeChromaticAberration(float intensity);
 		void AddRuntimeVignette(float intensity, const Color& color);
+		void AddRuntimeColorTint(float intensity, const Color& color);
 
 	private:
 		void DrawFullscreen(
@@ -148,6 +150,9 @@ namespace Game
 			float rounded;
 			float roundness;
 			float DUMMY[2];
+			Color tintColor;
+			float tintIntensity;
+			float DUMMY2[3];
 		};
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> vignettePixelShader;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> vignetteConstantBuffer;
@@ -212,5 +217,7 @@ namespace Game
 		float runtimeChromaticAberrationIntensity = 0.0f;
 		float runtimeVignetteIntensity = 0.0f;
 		Color runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
+		float runtimeColorTintIntensity = 0.0f;
+		Color runtimeColorTint = {1.0f, 1.0f, 1.0f, 1.0f};
 	};
 }

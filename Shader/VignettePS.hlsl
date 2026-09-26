@@ -12,6 +12,10 @@ cbuffer CbVignette : register(b2)
     float rounded;
     float roundness;
     float2 DUMMY;
+
+	float4 tintColor;
+	float tintIntensity;
+	float3 DUMMY2;
 };
 
 Texture2D sceneMap : register(t0);
@@ -23,6 +27,10 @@ float4 main(VS_OUT pin) : SV_TARGET
     sceneMap.GetDimensions(sceneMapSize.x, sceneMapSize.y);
 
     float4 sceneColor = sceneMap.Sample(linearSamplerState, pin.texcoord);
+	sceneColor.rgb = lerp(
+		sceneColor.rgb,
+		sceneColor.rgb * tintColor.rgb,
+		saturate(tintIntensity));
 
     //  周辺減光処理
     float2 d = abs(pin.texcoord - center) * intensity;

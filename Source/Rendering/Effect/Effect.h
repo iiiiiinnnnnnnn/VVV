@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Effect.h
+#pragma once
 
 #include "Core/Foundation/Common.h"
 #include <DirectXMath.h>
@@ -9,7 +10,9 @@ class Effect
 {
 public:
 	Effect(const char* filename);
+	Effect(const void* data, size_t size);
 	~Effect();
+	static bool IsPackageValid(const void* data, size_t size);
 
 	// 再生
 	Effekseer::Handle Play(const Vector3& position, float scale = 1.0f);
@@ -22,6 +25,8 @@ public:
 
 	// スケール設定
 	void SetScale(Effekseer::Handle handle, const Vector3& scale);
+	void SetTransform(Effekseer::Handle handle, const Matrix& transform);
+	bool IsValid() const { return effekseerEffect != nullptr; }
 
 private:
 	Effekseer::EffectRef effekseerEffect = nullptr;

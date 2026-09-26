@@ -1,4 +1,4 @@
-﻿// VmdlEditorScene.cpp
+// VmdlEditorScene.cpp
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -18,6 +18,7 @@
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Rendering/Core/Graphics.h"
+#include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/VMDLModel.h"
 
@@ -193,6 +194,21 @@ std::string PortableResourcePath(const std::filesystem::path& path)
 			return (std::filesystem::path("Resources") / relative).lexically_normal().generic_string();
 	}
 	return path.lexically_normal().generic_string();
+}
+
+bool DrawComponentTransform(VMDLModel& model, VMDLModel::VmdlComponentTransform& transform)
+{
+	ImGui::SeparatorText("Transform Offset");
+	bool changed = false;
+	Vector3 position = model.GetScaledAttachmentVector(transform.position);
+	if (ImGui::DragFloat3((const char*)u8"位置", &position.x, 0.01f))
+	{
+		transform.position = model.GetUnscaledAttachmentVector(position);
+		changed = true;
+	}
+	changed |= ImGui::DragFloat3((const char*)u8"回転", &transform.rotation.x, 0.1f);
+	changed |= ImGui::DragFloat3((const char*)u8"スケール", &transform.scale.x, 0.01f);
+	return changed;
 }
 
 }
@@ -483,6 +499,7 @@ void VmdlEditorScene::OnDrawGUI()
 			? previousTime - 0.0001f : previousTime;
 		if (looped)
 		{
+			particlePreviewBurstPending = true;
 			PlayAnimationSoundPreview(selectedAnimation, soundBegin, length);
 			PlayAnimationSoundPreview(selectedAnimation, -0.0001f, animationTime);
 			PlayPresentationPreviewEvents(selectedAnimation, soundBegin, length);
@@ -769,6 +786,7 @@ void VmdlEditorScene::StopUnifiedPreview(bool rewind)
 {
 	animationPlaying = false;
 	particlePreviewBurstPending = false;
+	manualParticlePreviewIndex = -1;
 	if (!rewind) return;
 
 	unifiedPreviewActive = false;
@@ -1005,6 +1023,8 @@ void VmdlEditorScene::RenderPreview()
 		}
 		UpdateTrailPreview(rc);
 		UpdateParticlePreview(rc);
+		if (unifiedPreviewActive && showParticle)
+			EffectManager::Instance().Render(editorCamera->GetView(), editorCamera->GetProjection());
 		dc->OMSetDepthStencilState(
 			rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
 
@@ -1101,8 +1121,9 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.rigidBodies)
 			{
-				Matrix transform = nodeOffsetTransform(
-					value.nodeIndex, value.offsetPosition, value.offsetRotation);
+				Matrix transform = value.transform.ToMatrix();
+				if (value.nodeIndex >= 0 && value.nodeIndex < static_cast<int>(model->GetNodes().size()))
+					transform *= model->GetNodes()[value.nodeIndex].worldTransform;
 				Vector3 scale;
 				Vector3 position;
 				Quaternion rotation;
@@ -1120,9 +1141,14 @@ void VmdlEditorScene::RenderPreview()
 					previewColliderActive[i] == 0)
 					continue;
 				const auto& value = data.colliders[i];
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+					continue;
 				Matrix transform = model->GetScaledAttachmentTransform(
-					nodeOffsetTransform(value.nodeIndex, value.center, value.rotation));
-				const Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
+					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform);
+				const Vector3 scaledSize = model->GetScaledAttachmentVector(Vector3(
+					value.size.x * std::abs(value.transform.scale.x),
+					value.size.y * std::abs(value.transform.scale.y),
+					value.size.z * std::abs(value.transform.scale.z)));
 				Vector3 transformScale;
 				Vector3 position;
 				Quaternion rotation;
@@ -1155,7 +1181,7 @@ void VmdlEditorScene::RenderPreview()
 					continue;
 
 				const Vector3 position = matrixPosition(model->GetScaledAttachmentTransform(
-					nodes[source.nodeIndex].worldTransform));
+					source.transform.ToMatrix() * nodes[source.nodeIndex].worldTransform));
 				graphics.GetShapeRenderer()->DrawSphere(position,
 					std::max(source.maxDistance, source.minDistance + 0.01f),
 					Color(0.95f, 0.20f, 0.75f, 0.7f));
@@ -1172,14 +1198,16 @@ void VmdlEditorScene::RenderPreview()
 			for (const auto& value : presentation.cameraShakes)
 			{
 				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
-				graphics.GetShapeRenderer()->DrawSphere(nodes[value.nodeIndex].worldTransform.Translation(),
+				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
+					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(1.0f, 0.65f, 0.1f, 0.7f));
 				hasShapes = true;
 			}
 			for (const auto& value : presentation.radialBlurs)
 			{
 				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
-				graphics.GetShapeRenderer()->DrawSphere(nodes[value.nodeIndex].worldTransform.Translation(),
+				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
+					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(0.7f, 0.25f, 1.0f, 0.7f));
 				hasShapes = true;
 			}
@@ -1188,9 +1216,13 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.springColliders)
 			{
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+					continue;
 				graphics.GetShapeRenderer()->DrawSphere(
-					matrixPosition(nodeOffsetTransform(value.nodeIndex, value.offsetPosition)),
-					value.radius, Color(1.0f, 0.2f, 0.9f, 0.7f));
+					matrixPosition(value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform),
+					value.radius * std::max({std::abs(value.transform.scale.x),
+						std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)}),
+					Color(1.0f, 0.2f, 0.9f, 0.7f));
 				hasShapes = true;
 			}
 		}
@@ -1201,10 +1233,12 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.springs)
 			{
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+					continue;
 				const Vector3 start =
 					matrixPosition(nodeOffsetTransform(value.nodeIndex, Vector3::Zero));
 				const Vector3 end =
-					matrixPosition(nodeOffsetTransform(value.nodeIndex, value.offsetPosition));
+					matrixPosition(value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform);
 				graphics.GetPrimitiveRenderer()->DrawLine(
 					start, end, Color(0.3f, 1.0f, 0.3f, 1.0f), Color(0.1f, 0.5f, 0.1f, 1.0f));
 			}
@@ -1219,10 +1253,16 @@ void VmdlEditorScene::RenderPreview()
 				if (i < static_cast<int>(previewTrailActive.size()) && previewTrailActive[i] == 0)
 					continue;
 				const auto& value = trails[i];
+				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+					continue;
 				const Vector3 root = matrixPosition(model->GetScaledAttachmentTransform(
-					nodeOffsetTransform(value.nodeIndex, value.rootOffset, value.offsetAngle)));
+					Matrix::CreateFromYawPitchRoll(RAD(value.offsetAngle.y), RAD(value.offsetAngle.x),
+						RAD(value.offsetAngle.z)) * Matrix::CreateTranslation(value.rootOffset) *
+					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform));
 				const Vector3 tip = matrixPosition(model->GetScaledAttachmentTransform(
-					nodeOffsetTransform(value.nodeIndex, value.tipOffset, value.offsetAngle)));
+					Matrix::CreateFromYawPitchRoll(RAD(value.offsetAngle.y), RAD(value.offsetAngle.x),
+						RAD(value.offsetAngle.z)) * Matrix::CreateTranslation(value.tipOffset) *
+					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform));
 				graphics.GetPrimitiveRenderer()->DrawLine(root, tip, value.color, value.color);
 			}
 			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
@@ -1405,8 +1445,9 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 			try
 			{
 				const auto resolved = ResourceManager::Instance().ResolvePath(group.path);
-				loaded = externalMeshPreviewCaches.emplace(groupIndex,
-					std::make_shared<MeshCache>(resolved, *model)).first;
+				auto cache = std::make_shared<MeshCache>(resolved, *model);
+				cache->SyncMaterialsFrom(*model);
+				loaded = externalMeshPreviewCaches.emplace(groupIndex, std::move(cache)).first;
 			}
 			catch (const std::exception& exception)
 			{
@@ -1974,7 +2015,8 @@ void VmdlEditorScene::DrawHierarchyComponent(int nodeIndex, AttachedComponentTyp
 {
 	ImGui::PushID(static_cast<int>(type));
 	ImGui::PushID(componentIndex);
-	const std::string displayName = name.empty() ? label : std::string(label) + " : " + name;
+	const std::string componentName = name.empty() ? label : std::string(label) + " : " + name;
+	const std::string displayName = std::string((const char*)u8"│  ") + componentName;
 	const bool selected = selectedNode == nodeIndex && selectedMesh < 0 &&
 		selectedComponentType == type && selectedComponentIndex == componentIndex;
 	if (ImGui::Selectable(displayName.c_str(), selected))
@@ -2026,7 +2068,8 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			model->GetVmdlPresentationData().radialBlurs.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; });
 
-	const bool selected = IsNodeSelected(nodeIndex) && selectedMesh < 0;
+	const bool selected = IsNodeSelected(nodeIndex) && selectedMesh < 0 &&
+		selectedComponentType == AttachedComponentType::None;
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen |
 							   ImGuiTreeNodeFlags_SpanAvailWidth;
 	if (node.children.empty() && !hasMesh && !hasComponent) flags |= ImGuiTreeNodeFlags_Leaf;
@@ -2291,7 +2334,10 @@ void VmdlEditorScene::DrawViewport()
 	auto& io = ImGui::GetIO();
 	ImGui::TextUnformatted((const char*)u8"3Dビュー");
 	const float transportButtonWidth = 42.0f;
-	const float transportWidth = transportButtonWidth * 2.0f + ImGui::GetStyle().ItemSpacing.x;
+	const float loopWidth = 58.0f;
+	const float speedWidth = 74.0f;
+	const float transportWidth = transportButtonWidth * 2.0f + loopWidth + speedWidth +
+		ImGui::GetStyle().ItemSpacing.x * 3.0f;
 	ImGui::SameLine();
 	ImGui::SetCursorPosX(std::max(
 		ImGui::GetCursorPosX(), (ImGui::GetWindowWidth() - transportWidth) * 0.5f));
@@ -2303,6 +2349,13 @@ void VmdlEditorScene::DrawViewport()
 	ImGui::SameLine();
 	if (ImGui::Button(ICON_FA_STOP "##UnifiedStop", ImVec2(transportButtonWidth, 0.0f)))
 		StopUnifiedPreview(true);
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(loopWidth);
+	ImGui::Checkbox((const char*)u8"ループ", &animationLoop);
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(speedWidth);
+	ImGui::DragFloat("##PlaybackSpeed", &playbackSpeed, 0.05f, 0.05f, 4.0f, "x%.2f");
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生速度");
 	ImGui::SameLine();
 	if (ImGui::SmallButton((const char*)u8"移動")) gizmoOperation = ImGuizmo::TRANSLATE;
 	ImGui::SameLine();
@@ -2494,6 +2547,11 @@ void VmdlEditorScene::DrawProperty()
 		ImGui::TextDisabled((const char*)u8"ノードまたはメッシュを選択してください");
 		return;
 	}
+	if (selectedComponentType != AttachedComponentType::None && selectedComponentIndex >= 0)
+	{
+		DrawAttachedData(selectedNode);
+		return;
+	}
 
 	// 選択ノードのローカルトランスフォーム
 	VMDLModel::Node& node = model->GetNodes()[selectedNode];
@@ -2536,11 +2594,6 @@ void VmdlEditorScene::DrawProperty()
 	}
 	if (previewShadingMode == PreviewShadingMode::Solid)
 		ImGui::ColorEdit4((const char*)u8"ソリッド色", &solidColor.x);
-
-	// 選択ノードに付いているコンポーネント
-	ImGui::SeparatorText((const char*)u8"付加設定");
-	ImGui::TextDisabled((const char*)u8"階層でノードを右クリックすると付加設定を追加できます");
-	DrawAttachedData(selectedNode);
 }
 
 void VmdlEditorScene::DrawAttachedData(int nodeIndex)
@@ -2554,7 +2607,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(data.rigidBodies.size()); ++i)
 	{
 		auto& value = data.rigidBodies[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RigidBody ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(1000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::RigidBody &&
 			selectedComponentIndex == i;
@@ -2565,10 +2619,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"位置オフセット", &value.offsetPosition.x, 0.01f);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"回転オフセット", &value.offsetRotation.x, 0.01f);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"質量", &value.mass, 0.05f, 0.0f);
 			changed |= ImGui::Checkbox((const char*)u8"キネマティック", &value.kinematic);
 			if (changed) MarkDirty();
@@ -2598,7 +2649,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(data.colliders.size()); ++i)
 	{
 		auto& value = data.colliders[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Collider ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(2000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::Collider &&
 			selectedComponentIndex == i;
@@ -2641,14 +2693,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				if (value.shape == 1) value.size.y = value.size.z = value.size.x;
 				changed = true;
 			}
-			Vector3 scaledCenter = model->GetScaledAttachmentVector(value.center);
 			Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
-			if (ImGui::DragFloat3((const char*)u8"位置オフセット", &scaledCenter.x, 0.01f))
-			{
-				value.center = model->GetUnscaledAttachmentVector(scaledCenter);
-				changed = true;
-			}
-			changed |= ImGui::DragFloat3((const char*)u8"回転オフセット", &value.rotation.x, 0.01f);
+			changed |= DrawComponentTransform(*model, value.transform);
 			if (value.shape == 1)
 			{
 				if (ImGui::DragFloat((const char*)u8"半径", &scaledSize.x, 0.01f, 0.001f))
@@ -2732,7 +2778,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(data.springs.size()); ++i)
 	{
 		auto& value = data.springs[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Spring ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(3000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::Spring &&
 			selectedComponentIndex == i;
@@ -2743,10 +2790,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"位置オフセット", &value.offsetPosition.x, 0.01f);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"回転オフセット", &value.offsetRotation.x, 0.01f);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"硬さ", &value.stiffness, 0.01f, 0.0f, 1.0f);
 			changed |= ImGui::DragFloat((const char*)u8"抵抗", &value.drag, 0.01f, 0.0f, 1.0f);
 			if (changed) MarkDirty();
@@ -2777,7 +2821,9 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(data.springColliders.size()); ++i)
 	{
 		auto& value = data.springColliders[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex ||
+			selectedComponentType != AttachedComponentType::SpringCollider ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(4000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::SpringCollider &&
 			selectedComponentIndex == i;
@@ -2788,8 +2834,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"位置オフセット", &value.offsetPosition.x, 0.01f);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"半径", &value.radius, 0.01f, 0.001f);
 			if (changed) MarkDirty();
 
@@ -2820,7 +2865,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(trailData.trails.size()); ++i)
 	{
 		auto& value = trailData.trails[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Trail ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(5000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::Trail &&
 			selectedComponentIndex == i;
@@ -2832,6 +2878,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			bool initialActive = model->GetTrailInitialActive(i);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |=
 				ImGui::DragFloat3((const char*)u8"根元オフセット", &value.rootOffset.x, 0.01f);
 			changed |=
@@ -2899,16 +2946,48 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(particleData.emitters.size()); ++i)
 	{
 		auto& value = particleData.emitters[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Particle ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(5500 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::Particle &&
 			selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)u8"パーティクル",
+		if (ImGui::TreeNodeEx((const char*)u8"Effekseer",
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
+			ImGui::Text((const char*)u8"埋め込みEFKPKG: %s",
+				value.effekseerFileName.empty() ? (const char*)u8"なし" : value.effekseerFileName.c_str());
+			ImGui::Text((const char*)u8"バイナリサイズ: %zu bytes", value.effekseerData.size());
+			if (ImGui::Button((const char*)u8"EFKPKGを埋め込む...")) ImportParticlePrefab(i);
+			ImGui::SameLine();
+			if (ImGui::Button((const char*)u8"EFKPKGを書き出す...")) ExportParticlePrefab(i);
+			ImGui::BeginDisabled(value.effekseerData.empty());
+			if (ImGui::Button((const char*)u8"埋め込みエフェクトを再生"))
+			{
+				showParticle = true;
+				unifiedPreviewActive = true;
+				if (!particlePreviewOwner || particlePreviewComponents.size() !=
+					particleData.emitters.size())
+					RebuildParticlePreview();
+				if (i < static_cast<int>(particlePreviewComponents.size()) &&
+					particlePreviewComponents[i])
+				{
+					manualParticlePreviewIndex = i;
+					particlePreviewComponents[i]->Burst();
+				}
+			}
+			ImGui::EndDisabled();
+			if (ImGui::Button((const char*)u8"EFKPKGをクリア"))
+			{
+				value.effekseerFileName.clear();
+				value.effekseerData.clear();
+				changed = true;
+			}
+			if (ImGui::Button((const char*)u8"削除")) deleteParticle = i;
+#if 0 // 旧独自VFXエディタ。既存VMDL読込互換が不要になった時点でデータ定義と共に削除する。
 			const char* rendererNames[] = {"Sprite", "Ribbon"};
 			changed |= ImGui::Combo((const char*)u8"描画タイプ", &value.rendererType,
 				rendererNames, static_cast<int>(std::size(rendererNames)));
@@ -3055,6 +3134,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			value.spawnExtents.x = std::max(0.0f, value.spawnExtents.x);
 			value.spawnExtents.y = std::max(0.0f, value.spawnExtents.y);
 			value.spawnExtents.z = std::max(0.0f, value.spawnExtents.z);
+#endif
 			if (changed) { MarkDirty(); RebuildParticlePreview(); }
 			ImGui::TreePop();
 		}
@@ -3085,7 +3165,9 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(soundData.sources.size()); ++i)
 	{
 		auto& value = soundData.sources[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex ||
+			selectedComponentType != AttachedComponentType::SoundSource ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(6000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::SoundSource &&
 			selectedComponentIndex == i;
@@ -3096,6 +3178,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
 			if (DrawSoundTrackSelector((const char*)u8"サウンド", value.track)) changed = true;
 			bool randomVariant = value.variant < 0;
 			if (ImGui::Checkbox((const char*)u8"音源番号をランダム選択", &randomVariant))
@@ -3177,7 +3260,9 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(presentation.cameraShakes.size()); ++i)
 	{
 		auto& value = presentation.cameraShakes[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex ||
+			selectedComponentType != AttachedComponentType::CameraShake ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(7000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::CameraShake && selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
@@ -3185,6 +3270,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
 			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
 			changed |= oldMode != value.distanceAttenuation;
@@ -3218,7 +3304,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	for (int i = 0; i < static_cast<int>(presentation.radialBlurs.size()); ++i)
 	{
 		auto& value = presentation.radialBlurs[i];
-		if (value.nodeIndex != nodeIndex) continue;
+		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RadialBlur ||
+			selectedComponentIndex != i) continue;
 		ImGui::PushID(8000 + i);
 		const bool selected = selectedComponentType == AttachedComponentType::RadialBlur && selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
@@ -3226,6 +3313,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
 			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
 			changed |= oldMode != value.distanceAttenuation;
@@ -3405,16 +3493,6 @@ void VmdlEditorScene::DrawTimeline()
 	}
 
 	if (recordClicked) animationRecording = !animationRecording;
-	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_STOP "##Stop", ImVec2(38.0f, 0.0f)))
-	{
-		StopUnifiedPreview(true);
-	}
-	ImGui::SameLine();
-	ImGui::Checkbox((const char*)u8"ループ", &animationLoop);
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(110.0f);
-	ImGui::DragFloat((const char*)u8"速度", &playbackSpeed, 0.05f, 0.05f, 4.0f, "x %.2f");
 	ImGui::SameLine();
 	ImGui::Text("%.3f / %.3f sec", animationTime, animation.secondsLength);
 
@@ -4643,9 +4721,10 @@ void VmdlEditorScene::RebuildSpringPreview()
 	for (const auto& value : data.springColliders)
 	{
 		SpringBone::SpringCapsule collider;
-		collider.start = value.offsetPosition;
-		collider.end = value.offsetPosition;
-		collider.radius = value.radius;
+		collider.start = value.transform.position;
+		collider.end = value.transform.position;
+		collider.radius = value.radius * std::max({std::abs(value.transform.scale.x),
+			std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)});
 		collider.nodeIndex = value.nodeIndex;
 		springColliders.push_back(collider);
 	}
@@ -4678,15 +4757,17 @@ bool VmdlEditorScene::UpdateSpringPreview()
 	std::string signature;
 	for (const auto& value : data.springs)
 	{
-		signature += std::format("{}|{},{},{}|{},{},{}|{}|{}|", value.nodeIndex,
-			value.offsetPosition.x, value.offsetPosition.y, value.offsetPosition.z,
-			value.offsetRotation.x, value.offsetRotation.y, value.offsetRotation.z,
+		signature += std::format("{}|{},{},{}|{},{},{}|{},{},{}|{}|{}|", value.nodeIndex,
+			value.transform.position.x, value.transform.position.y, value.transform.position.z,
+			value.transform.rotation.x, value.transform.rotation.y, value.transform.rotation.z,
+			value.transform.scale.x, value.transform.scale.y, value.transform.scale.z,
 			value.stiffness, value.drag);
 	}
 	for (const auto& value : data.springColliders)
 	{
-		signature += std::format("{}|{},{},{}|{}|", value.nodeIndex, value.offsetPosition.x,
-			value.offsetPosition.y, value.offsetPosition.z, value.radius);
+		signature += std::format("{}|{},{},{}|{},{},{}|{}|", value.nodeIndex,
+			value.transform.position.x, value.transform.position.y, value.transform.position.z,
+			value.transform.scale.x, value.transform.scale.y, value.transform.scale.z, value.radius);
 	}
 	if (signature != springPreviewSignature)
 	{
@@ -4729,7 +4810,7 @@ void VmdlEditorScene::RebuildTrailPreview()
 		TrailRenderComponent* trail = trailPreviewOwner->AddComponent<TrailRenderComponent>(
 			model.get(), value.nodeIndex, value.rootOffset, value.tipOffset, value.color,
 			value.tipRatio, std::max(0.01f, value.lifeTime), std::max(2, value.maxPoints),
-			value.offsetAngle);
+			value.offsetAngle, value.transform.ToMatrix());
 		trail->SetUseUnscaledTime(true);
 		trailPreviewComponents[i] = trail;
 	}
@@ -4750,12 +4831,15 @@ void VmdlEditorScene::UpdateTrailPreview(const RenderContext& rc)
 	std::string signature;
 	for (const auto& value : trails)
 	{
-		signature += std::format(
-			"{}|{},{},{}|{},{},{}|{},{},{},{}|{}|{}|{}|{},{},{}|", value.nodeIndex,
+			signature += std::format(
+			"{}|{},{},{}|{},{},{}|{},{},{},{}|{}|{}|{}|{},{},{}|{},{},{}|{},{},{}|{},{},{}|", value.nodeIndex,
 			value.rootOffset.x, value.rootOffset.y, value.rootOffset.z, value.tipOffset.x,
 			value.tipOffset.y, value.tipOffset.z, value.color.x, value.color.y, value.color.z,
 			value.color.w, value.tipRatio, value.lifeTime, value.maxPoints, value.offsetAngle.x,
-			value.offsetAngle.y, value.offsetAngle.z);
+			value.offsetAngle.y, value.offsetAngle.z, value.transform.position.x,
+			value.transform.position.y, value.transform.position.z, value.transform.rotation.x,
+			value.transform.rotation.y, value.transform.rotation.z, value.transform.scale.x,
+			value.transform.scale.y, value.transform.scale.z);
 	}
 	if (signature != trailPreviewSignature)
 	{
@@ -4801,6 +4885,7 @@ void VmdlEditorScene::RebuildParticlePreview()
 {
 	particlePreviewOwner.reset();
 	particlePreviewComponents.clear();
+	manualParticlePreviewIndex = -1;
 	particlePreviewAnimation = -1;
 	particlePreviewAnimationTime = 0.0f;
 	if (!model) return;
@@ -4835,13 +4920,17 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 	for (int i = 0; i < static_cast<int>(particlePreviewComponents.size()); ++i)
 	{
 		if (!particlePreviewComponents[i]) continue;
+		const bool manualPreview = manualParticlePreviewIndex == i &&
+			particlePreviewComponents[i]->IsPlaying();
+		if (manualParticlePreviewIndex == i && !manualPreview)
+			manualParticlePreviewIndex = -1;
 		const bool eventActive = selectedAnimation >= 0
 			? model->EvaluateParticleActive(selectedAnimation, animationTime, i)
 			: model->GetParticleInitialActive(i);
 		const bool active = animationPlaying && eventActive;
 		previewParticleActive[i] = active ? 1 : 0;
-		particlePreviewComponents[i]->SetEmitting(active);
-		if (particlePreviewBurstPending) particlePreviewComponents[i]->Burst();
+		if (!manualPreview) particlePreviewComponents[i]->SetEmitting(active);
+		if (particlePreviewBurstPending && active) particlePreviewComponents[i]->Burst();
 	}
 	particlePreviewBurstPending = false;
 	particlePreviewOwner->LateUpdate();
@@ -4855,23 +4944,21 @@ void VmdlEditorScene::ExportParticlePrefab(int emitterIndex)
 {
 	if (!model || emitterIndex < 0 ||
 		emitterIndex >= static_cast<int>(model->GetVmdlParticleData().emitters.size())) return;
+	const auto& effect = model->GetVmdlParticleData().emitters[emitterIndex];
+	if (effect.effekseerData.empty()) return;
 	const auto root = ResourceManager::FindSourceResourceRoot();
-	std::filesystem::path proposed = root.empty() ? std::filesystem::path("particle.vfx")
-		: root / "Effect" / (model->GetVmdlParticleData().emitters[emitterIndex].name + ".vfx");
+	std::filesystem::path proposed = root.empty() ? std::filesystem::path("effect.efkpkg")
+		: root / "Effect" / (effect.name + ".efkpkg");
 	std::error_code ec;
 	std::filesystem::create_directories(proposed.parent_path(), ec);
 	std::string path = proposed.string();
-	if (Dialog::SaveFileName(path, "VFX Asset (*.vfx)\0*.vfx\0",
-		"Export VFX Asset", "vfx") != DialogResult::OK) return;
-	std::ofstream output(path, std::ios::trunc);
-	if (!output) { ErrorMessage("Failed to open the particle prefab for writing."); return; }
-	json asset = {
-		{"format", "VVV_VFX"},
-		{"version", 1},
-		{"emitter", ParticleEmitterToJson(model->GetVmdlParticleData().emitters[emitterIndex])}
-	};
-	output << asset.dump(2);
-	if (!output.good()) ErrorMessage("Failed to write the particle prefab.");
+	if (Dialog::SaveFileName(path, "Effekseer Package (*.efkpkg)\0*.efkpkg\0",
+		"Export Effekseer Package", "efkpkg") != DialogResult::OK) return;
+	std::ofstream output(path, std::ios::binary | std::ios::trunc);
+	if (!output) { ErrorMessage("Failed to open the EFKPKG file for writing."); return; }
+	output.write(reinterpret_cast<const char*>(effect.effekseerData.data()),
+		static_cast<std::streamsize>(effect.effekseerData.size()));
+	if (!output.good()) ErrorMessage("Failed to write the EFKPKG file.");
 }
 
 void VmdlEditorScene::ImportParticlePrefab(int emitterIndex)
@@ -4881,34 +4968,28 @@ void VmdlEditorScene::ImportParticlePrefab(int emitterIndex)
 	const auto root = ResourceManager::FindSourceResourceRoot();
 	const std::string initial = root.empty() ? std::string{} : (root / "Effect").string();
 	std::string path;
-	if (Dialog::OpenFileName(path, "VFX Asset (*.vfx;*.vfxp)\0*.vfx;*.vfxp\0",
-		"Import VFX Asset", initial.empty() ? nullptr : initial.c_str()) != DialogResult::OK) return;
-	std::ifstream input(path);
-	if (!input) { ErrorMessage("Failed to open the particle prefab."); return; }
-	try
+	if (Dialog::OpenFileName(path, "Effekseer Package (*.efkpkg)\0*.efkpkg\0",
+		"Import Effekseer Package", initial.empty() ? nullptr : initial.c_str()) != DialogResult::OK) return;
+	std::ifstream input(path, std::ios::binary | std::ios::ate);
+	if (!input) { ErrorMessage("Failed to open the EFKPKG file."); return; }
+	const std::streamsize size = input.tellg();
+	if (size <= 0) { ErrorMessage("The EFKPKG file is empty."); return; }
+	input.seekg(0);
+	std::vector<uint8_t> packageData(static_cast<size_t>(size));
+	input.read(reinterpret_cast<char*>(packageData.data()), size);
+	if (!input) { ErrorMessage("Failed to read the EFKPKG file."); return; }
+	if (!Effect::IsPackageValid(packageData.data(), packageData.size()))
 	{
-		json data; input >> data;
-		const json* emitterData = &data;
-		if (data.is_object() && data.value("format", std::string{}) == "VVV_VFX")
-		{
-			const auto found = data.find("emitter");
-			if (found == data.end() || !found->is_object())
-			{
-				ErrorMessage("Invalid VFX asset: emitter is missing."); return;
-			}
-			emitterData = &*found;
-		}
-		auto& emitter = model->GetVmdlParticleData().emitters[emitterIndex];
-		const int nodeIndex = emitter.nodeIndex;
-		if (!ParticleEmitterFromJson(*emitterData, emitter))
-		{
-			ErrorMessage("Invalid particle prefab."); return;
-		}
-		emitter.nodeIndex = nodeIndex;
-		MarkDirty();
-		RebuildParticlePreview();
+		ErrorMessage("The EFKPKG file is invalid or unsupported.");
+		return;
 	}
-	catch (const std::exception& e) { ErrorMessage(std::string("Particle prefab load failed: ") + e.what()); }
+	auto& effect = model->GetVmdlParticleData().emitters[emitterIndex];
+	effect.effekseerData = std::move(packageData);
+	effect.effekseerFileName = std::filesystem::path(path).filename().string();
+	if (effect.name.empty() || effect.name == "PARTICLE")
+		effect.name = std::filesystem::path(path).stem().string();
+	MarkDirty();
+	RebuildParticlePreview();
 }
 
 void VmdlEditorScene::DrawAnimationEventEditor()
@@ -5579,15 +5660,16 @@ void VmdlEditorScene::DrawMaterialEditor()
 	auto& material = materials[selectedMaterial];
 	ImGui::Text((const char*)u8"マテリアル: %s", material.name.c_str());
 	ImGui::SameLine();
+	bool changed = false;
 	if (ImGui::Button((const char*)u8"GLB設定に初期化") &&
 		model->ResetMaterialToGLB(static_cast<size_t>(selectedMaterial)))
 	{
-		MarkDirty();
+		changed = true;
 	}
 
 	// PBRパラメーター
 	ImGui::SeparatorText("PBR");
-	bool changed = ImGui::ColorEdit4((const char*)u8"基本色", &material.baseColor.x);
+	changed |= ImGui::ColorEdit4((const char*)u8"基本色", &material.baseColor.x);
 	changed |= ImGui::ColorEdit4((const char*)u8"発光色", &material.emissiveColor.x,
 		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 	changed |= ImGui::SliderFloat((const char*)u8"メタリック", &material.metalness, 0.0f, 1.0f);
@@ -5702,7 +5784,12 @@ void VmdlEditorScene::DrawMaterialEditor()
 			material.emissiveTextureFileName, material.emissiveTextureDDS);
 		ImGui::EndTable();
 	}
-	if (changed) MarkDirty();
+	if (changed)
+	{
+		for (auto& [groupIndex, cache] : externalMeshPreviewCaches)
+			if (cache) cache->SyncMaterialsFrom(*model);
+		MarkDirty();
+	}
 	ImGui::EndChild();
 	ImGui::EndTable();
 }

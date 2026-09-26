@@ -1,3 +1,4 @@
+// AracoreQueen.cpp
 #include "Gameplay/Actor/AracoreQueen.h"
 #include "Animation/Animator.h"
 
@@ -14,6 +15,7 @@
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Scene/TimeScaleController.h"
+#include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Time/GameTime.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Player/Player.h"
@@ -324,8 +326,8 @@ void AracoreQueen::SpawnDeerFromSky()
 			}),
 		bossSummonedDeer.end());
 
-	constexpr float spawnHeight = 12.0f;
-	constexpr size_t maxBossSummonedDeer = 7;
+	constexpr float spawnHeight = 20.0f;
+	constexpr size_t maxBossSummonedDeer = 3; // 召喚最大数
 	for (Spawner* spawner : stageLoader->GetSpawners())
 	{
 		if (bossSummonedDeer.size() >= maxBossSummonedDeer) break;
@@ -545,9 +547,19 @@ void AracoreQueen::OnDrawGUI()
 {
     Entity::OnDrawGUI();
 
-    if (ImGui::Button("THREAT"))
+    if (ImGui::Button("Threat"))
     {
         PlayThreatPresentation();
+    }
+
+    if (ImGui::Button("Damage"))
+	{
+		TakeDamage(DamageData{.damage = 20.0f});
+	}
+
+    if (ImGui::Button("Kill"))
+    {
+		TakeDamage(DamageData{.damage = 10000.0f});
     }
 
 	ImGui::DragFloat("Chase BGM Fade In", &chaseBgmFadeInSeconds, 0.05f, 0.0f, 10.0f, "%.2f sec");
@@ -681,9 +693,12 @@ void AracoreQueen::OnDamaged(const DamageData& damageData)
 		: nullptr;
 	if (attacker && attacker->CompareTag("Player"))
 	{
+		const bool newlyDetected =
+			!playerDetected || attacker != threatenedTarget;
 		if (controller) controller->LockOn(attacker);
 		threatenedTarget = attacker;
 		SetPlayerDetected(true);
+		if (newlyDetected && !IsDead()) PlayThreatPresentation();
 	}
     TimeScaleController::Request(0.15f);
     CameraEffectController::Request(0.2f, 0.1f);
@@ -703,7 +718,6 @@ void AracoreQueen::OnDead(const DamageData& damageData)
 
 	deathSequenceActive = true;
 	deathAnimationStarted = false;
-	deathThreatStarted = false;
 	deathSequenceTimer = 0.0f;
 	deathJumpStartPosition = transform.position;
 	jumpLandingPosition = spawnPosition;
@@ -725,8 +739,8 @@ void AracoreQueen::OnDead(const DamageData& damageData)
 		anim->SetTrigger("Jump");
 	}
 	if (player)
-		player->RequestBossDefeatCamera(
-			this, deathJumpDuration + deathThreatDuration + 2.4f);
+		player->GetCameraController()->RequestBossDefeatFocus(
+			this, deathJumpDuration + 2.4f);
     printf("AracoreQueen Dead!\n");
     //Destroy(5);
 }
@@ -742,31 +756,24 @@ void AracoreQueen::UpdateDeathSequence()
 	else transform.SetPosition(position);
 
 	if (t < 1.0f) return;
-	if (!deathThreatStarted)
+	if (deathAnimationStarted) return;
+	if (characterController)
 	{
-		deathThreatStarted = true;
-		if (characterController)
-		{
-			characterController->SetPosition(jumpLandingPosition);
-			characterController->SetUseGravity(true);
-		}
-		else transform.SetPosition(jumpLandingPosition);
-
-		Vector3 faceDirection = player
-			? player->transform.position - jumpLandingPosition : transform.forward;
-		faceDirection.y = 0.0f;
-		if (faceDirection.LengthSquared() > eps)
-		{
-			faceDirection.Normalize();
-			transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
-				atan2f(faceDirection.x, faceDirection.z), 0.0f, 0.0f));
-		}
-		PlayThreatPresentation();
-		ShakeCameraAtLanding();
+		characterController->SetPosition(jumpLandingPosition);
+		characterController->SetUseGravity(true);
 	}
+	else transform.SetPosition(jumpLandingPosition);
 
-	if (deathAnimationStarted ||
-		deathSequenceTimer < deathJumpDuration + deathThreatDuration) return;
+	Vector3 faceDirection = player
+		? player->transform.position - jumpLandingPosition : transform.forward;
+	faceDirection.y = 0.0f;
+	if (faceDirection.LengthSquared() > eps)
+	{
+		faceDirection.Normalize();
+		transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
+			atan2f(faceDirection.x, faceDirection.z), 0.0f, 0.0f));
+	}
+	ShakeCameraAtLanding();
 	deathAnimationStarted = true;
 	deathSequenceActive = false;
 	if (anim) anim->SetBool("Dead", true);

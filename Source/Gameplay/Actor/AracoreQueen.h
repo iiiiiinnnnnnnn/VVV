@@ -1,3 +1,4 @@
+// AracoreQueen.h
 #pragma once
 #include "Rendering/Core/VMatRenderParams.h"
 #include <memory>
@@ -79,11 +80,9 @@ private:
 	bool landingDeformPending = false;
 	bool deathSequenceActive = false;
 	bool deathAnimationStarted = false;
-	bool deathThreatStarted = false;
 	float deathSequenceTimer = 0.0f;
 	float deathJumpDuration = 1.8f;
 	float deathJumpHeight = 9.0f;
-	float deathThreatDuration = 2.2f;
 	float requestedAnimationMoveSpeed = 0.0f;
 	std::string requiredMovementAnimation;
 	bool movementAnimationGateActive = false;

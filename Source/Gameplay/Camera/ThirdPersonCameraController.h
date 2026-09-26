@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// ThirdPersonCameraController.h
+#pragma once
 
 #include <algorithm>
 
@@ -30,6 +31,7 @@ public:
 	}
 	void RequestSkillFocus(float duration);
 	void RequestBossDefeatFocus(Actor* target, float duration);
+	void RequestAlignToPlayerForward();
 
 protected:
 	// プレイ中のカーソル解放はScene側で管理するため、ImGuiの残留フォーカスでは止めない

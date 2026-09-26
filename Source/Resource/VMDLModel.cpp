@@ -24,24 +24,11 @@
 
 namespace
 {
-std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data,
+std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData&,
 	const VMDLModel::VmdlPresentationData& presentation)
 {
 	json root;
 	root["version"] = 1;
-	root["emitters"] = json::array();
-	for (const auto& v : data.emitters)
-	{
-		root["emitters"].push_back({
-			{"rendererType", v.rendererType}, {"parent", v.parentEmitterIndex},
-			{"root", {v.ribbonRootOffset.x, v.ribbonRootOffset.y, v.ribbonRootOffset.z}},
-			{"tip", {v.ribbonTipOffset.x, v.ribbonTipOffset.y, v.ribbonTipOffset.z}},
-			{"lifetime", v.ribbonLifetime}, {"maxPoints", v.ribbonMaxPoints},
-			{"tipRatio", v.ribbonTipRatio}, {"sampleInterval", v.ribbonSampleInterval},
-			{"endColor", {v.ribbonEndColor.x, v.ribbonEndColor.y,
-				v.ribbonEndColor.z, v.ribbonEndColor.w}}
-		});
-	}
 	root["cameraShakes"] = json::array();
 	for (const auto& value : presentation.cameraShakes)
 		root["cameraShakes"].push_back({{"name", value.name}, {"node", value.nodeIndex},
@@ -68,34 +55,11 @@ std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& data,
 	return root.dump();
 }
 
-void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData& data,
+void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData&,
 	VMDLModel::VmdlPresentationData& presentation)
 {
 	if (source.empty()) return;
 	const json root = json::parse(source);
-	const auto found = root.find("emitters");
-	const auto vec3 = [](const json& a, Vector3 fallback) {
-		return a.is_array() && a.size() >= 3
-			? Vector3(a[0].get<float>(), a[1].get<float>(), a[2].get<float>()) : fallback;
-	};
-	if (found != root.end() && found->is_array())
-	for (size_t i = 0; i < found->size() && i < data.emitters.size(); ++i)
-	{
-		const json& j = (*found)[i];
-		auto& v = data.emitters[i];
-		v.rendererType = std::clamp(j.value("rendererType", 0), 0, 1);
-		v.parentEmitterIndex = j.value("parent", -1);
-		if (j.contains("root")) v.ribbonRootOffset = vec3(j["root"], v.ribbonRootOffset);
-		if (j.contains("tip")) v.ribbonTipOffset = vec3(j["tip"], v.ribbonTipOffset);
-		v.ribbonLifetime = std::max(0.01f, j.value("lifetime", v.ribbonLifetime));
-		v.ribbonMaxPoints = std::clamp(j.value("maxPoints", v.ribbonMaxPoints), 2, 1024);
-		v.ribbonTipRatio = std::clamp(j.value("tipRatio", v.ribbonTipRatio), 0.0f, 4.0f);
-		v.ribbonSampleInterval = std::clamp(
-			j.value("sampleInterval", v.ribbonSampleInterval), 0.001f, 1.0f);
-		if (const auto c = j.find("endColor"); c != j.end() && c->is_array() && c->size() >= 4)
-			v.ribbonEndColor = Color((*c)[0].get<float>(), (*c)[1].get<float>(),
-				(*c)[2].get<float>(), (*c)[3].get<float>());
-	}
 	presentation = {};
 	if (const auto values = root.find("cameraShakes"); values != root.end() && values->is_array())
 		for (const auto& j : *values)
@@ -2392,6 +2356,25 @@ void VMDLModel::Serialize(const char* filename)
 	for (const auto& source : vmdlSoundData.sources)
 		soundBindings.push_back(
 			{source.track, source.variant, source.pitchMin, source.pitchMax});
+	VmdlComponentTransformData componentTransforms;
+	for (const auto& value : vmdlExtensionData.rigidBodies)
+		componentTransforms.rigidBodies.push_back(value.transform);
+	for (const auto& value : vmdlExtensionData.colliders)
+		componentTransforms.colliders.push_back(value.transform);
+	for (const auto& value : vmdlExtensionData.springs)
+		componentTransforms.springs.push_back(value.transform);
+	for (const auto& value : vmdlExtensionData.springColliders)
+		componentTransforms.springColliders.push_back(value.transform);
+	for (const auto& value : vmdlTrailData.trails)
+		componentTransforms.trails.push_back(value.transform);
+	for (const auto& value : vmdlParticleData.emitters)
+		componentTransforms.particles.push_back(value.transform);
+	for (const auto& value : vmdlSoundData.sources)
+		componentTransforms.sounds.push_back(value.transform);
+	for (const auto& value : vmdlPresentationData.cameraShakes)
+		componentTransforms.cameraShakes.push_back(value.transform);
+	for (const auto& value : vmdlPresentationData.radialBlurs)
+		componentTransforms.radialBlurs.push_back(value.transform);
 	const std::vector<Material>& glbMaterials =
 		sourceMaterials.empty() ? materials : sourceMaterials;
 
@@ -2415,7 +2398,20 @@ void VMDLModel::Serialize(const char* filename)
 		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
 		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
+		addFile("model.componenttransforms", [&](auto& archive) { archive(componentTransforms); });
 		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
+		addFile("model.effekseer", [&](auto& archive) {
+			std::vector<std::string> filenames;
+			std::vector<std::vector<uint8_t>> binaries;
+			filenames.reserve(vmdlParticleData.emitters.size());
+			binaries.reserve(vmdlParticleData.emitters.size());
+			for (const auto& effect : vmdlParticleData.emitters)
+			{
+				filenames.push_back(effect.effekseerFileName);
+				binaries.push_back(effect.effekseerData);
+			}
+			archive(filenames, binaries);
+		});
 		addFile("model.vfxdata", [&](auto& archive) {
 			const std::string vfxJson = BuildVfxExtensionJson(vmdlParticleData, vmdlPresentationData);
 			archive(vfxJson);
@@ -2557,12 +2553,16 @@ void VMDLModel::Deserialize(const char* filename)
 			std::vector<std::vector<std::string>> externalMeshBindingKeys;
 			std::vector<std::vector<int>> externalMeshCacheIndices;
 			std::string vfxExtensionJson;
+			std::vector<std::string> effekseerFilenames;
+			std::vector<std::vector<uint8_t>> effekseerBinaries;
+			VmdlComponentTransformData componentTransforms;
 			std::vector<std::pair<std::string, std::string>> files;
 			cereal::BinaryInputArchive package(serializedStream);
 			package(files);
 			bool loadedGlbCache = false;
 			bool loadedVmdlData = false;
 			bool loadedSoundBindings = false;
+			bool loadedComponentTransforms = false;
 			for (const auto& [name, data] : files)
 			{
 				std::istringstream section(data, std::ios::binary | std::ios::in);
@@ -2592,9 +2592,18 @@ void VMDLModel::Deserialize(const char* filename)
 					archive(soundBindings);
 					loadedSoundBindings = true;
 				}
+				else if (name == "model.componenttransforms")
+				{
+					archive(componentTransforms);
+					loadedComponentTransforms = true;
+				}
 				else if (name == "model.particledata")
 				{
 					archive(vmdlParticleData);
+				}
+				else if (name == "model.effekseer")
+				{
+					archive(effekseerFilenames, effekseerBinaries);
 				}
 				else if (name == "model.vfxdata")
 				{
@@ -2647,6 +2656,52 @@ void VMDLModel::Deserialize(const char* filename)
 			NormalizeVmdlIKRaySettings();
 			NormalizeMorphNames();
 			ApplyVfxExtensionJson(vfxExtensionJson, vmdlParticleData, vmdlPresentationData);
+			auto applyTransforms = [](auto& values, const auto& transforms) {
+				const size_t count = std::min(values.size(), transforms.size());
+				for (size_t i = 0; i < count; ++i) values[i].transform = transforms[i];
+			};
+			if (loadedComponentTransforms)
+			{
+				applyTransforms(vmdlExtensionData.rigidBodies, componentTransforms.rigidBodies);
+				applyTransforms(vmdlExtensionData.colliders, componentTransforms.colliders);
+				applyTransforms(vmdlExtensionData.springs, componentTransforms.springs);
+				applyTransforms(vmdlExtensionData.springColliders, componentTransforms.springColliders);
+				applyTransforms(vmdlTrailData.trails, componentTransforms.trails);
+				applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
+				applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
+				applyTransforms(vmdlPresentationData.cameraShakes, componentTransforms.cameraShakes);
+				applyTransforms(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
+			}
+			else
+			{
+				for (auto& value : vmdlExtensionData.rigidBodies)
+				{
+					value.transform.position = value.offsetPosition;
+					value.transform.rotation = value.offsetRotation;
+				}
+				for (auto& value : vmdlExtensionData.colliders)
+				{
+					value.transform.position = value.center;
+					value.transform.rotation = value.rotation;
+				}
+				for (auto& value : vmdlExtensionData.springs)
+				{
+					value.transform.position = value.offsetPosition;
+					value.transform.rotation = value.offsetRotation;
+				}
+				for (auto& value : vmdlExtensionData.springColliders)
+					value.transform.position = value.offsetPosition;
+				for (auto& value : vmdlParticleData.emitters)
+					value.transform.position = value.offset;
+			}
+			const size_t effekseerCount = std::min(
+				vmdlParticleData.emitters.size(),
+				std::min(effekseerFilenames.size(), effekseerBinaries.size()));
+			for (size_t i = 0; i < effekseerCount; ++i)
+			{
+				vmdlParticleData.emitters[i].effekseerFileName = std::move(effekseerFilenames[i]);
+				vmdlParticleData.emitters[i].effekseerData = std::move(effekseerBinaries[i]);
+			}
 			for (int sourceIndex = 0;
 				sourceIndex < static_cast<int>(vmdlSoundData.sources.size()); ++sourceIndex)
 			{

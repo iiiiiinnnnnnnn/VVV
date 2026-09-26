@@ -1,4 +1,5 @@
-﻿#include "Rendering/Component/VMDLModelComponent.h"
+﻿// VMDLModelComponent.cpp
+#include "Rendering/Component/VMDLModelComponent.h"
 #include <cstring>
 #include "Animation/Animator.h"
 #include "Animation/SpringBone.h"
@@ -19,6 +20,17 @@
 #include "Resource/MeshCache.h"
 #include "Resource/ResourceManager.h"
 #include "IconsFontAwesome5.h"
+
+namespace
+{
+Vector3 AttachmentPosition(const VMDLModel& model, int nodeIndex,
+	const VMDLModel::VmdlComponentTransform& transform, const Vector3& fallback)
+{
+	if (nodeIndex < 0 || nodeIndex >= static_cast<int>(model.GetNodes().size())) return fallback;
+	return model.GetScaledAttachmentTransform(
+		transform.ToMatrix() * model.GetNodes()[nodeIndex].worldTransform).Translation();
+}
+}
 
 VMDLModelComponent::VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel> model,
 	ModelShaderId shaderId, VMatRenderParams renderParams)
@@ -54,15 +66,19 @@ void VMDLModelComponent::BuildAttachments()
 		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
 			continue;
 
-		const Matrix offset = Matrix::CreateFromYawPitchRoll(RAD(value.rotation.y),
-								  RAD(value.rotation.x), RAD(value.rotation.z)) *
-							  Matrix::CreateTranslation(value.center);
+		auto colliderTransform = value.transform;
+		colliderTransform.scale = Vector3::One;
+		const Matrix offset = colliderTransform.ToMatrix();
+		const Vector3 colliderSize(
+			value.size.x * std::abs(value.transform.scale.x),
+			value.size.y * std::abs(value.transform.scale.y),
+			value.size.z * std::abs(value.transform.scale.z));
 
 		const LayerId colliderLayer = value.layer >= 0 && value.layer < EditableLayerCount
 										  ? static_cast<LayerId>(value.layer)
 										  : attachmentLayerId;
 		auto* collider = owner->AddComponent<VMDLColliderComponent>(colliderLayer, model.get(),
-			value.nodeIndex, value.shape, value.size, offset, nullptr, value.trigger);
+			value.nodeIndex, value.shape, colliderSize, offset, nullptr, value.trigger);
 
 		collider->SetName(value.name);
 		collider->SetActive(model->GetColliderInitialActive(colliderIndex));
@@ -73,9 +89,10 @@ void VMDLModelComponent::BuildAttachments()
 	for (const auto& value : data.springColliders)
 	{
 		SpringBone::SpringCapsule collider;
-		collider.start = value.offsetPosition;
-		collider.end = value.offsetPosition;
-		collider.radius = value.radius;
+		collider.start = value.transform.position;
+		collider.end = value.transform.position;
+		collider.radius = value.radius * std::max({std::abs(value.transform.scale.x),
+			std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)});
 		collider.nodeIndex = value.nodeIndex;
 		springColliders.push_back(collider);
 	}
@@ -99,7 +116,8 @@ void VMDLModelComponent::BuildAttachments()
 				continue;
 			auto* trail = owner->AddComponent<TrailRenderComponent>(model.get(), value.nodeIndex,
 				value.rootOffset, value.tipOffset, value.color, value.tipRatio,
-				std::max(0.01f, value.lifeTime), std::max(2, value.maxPoints), value.offsetAngle);
+				std::max(0.01f, value.lifeTime), std::max(2, value.maxPoints), value.offsetAngle,
+				value.transform.ToMatrix());
 			if (!model->GetTrailInitialActive(trailIndex)) trail->StopTrail();
 			attachmentTrails[trailIndex] = trail;
 		}
@@ -221,10 +239,10 @@ void VMDLModelComponent::PlayPresentationEvents(
 		animationIndex >= static_cast<int>(model->GetAnimations().size())) return;
 	const auto& data = model->GetVmdlPresentationData();
 	const std::string& animationName = model->GetAnimations()[animationIndex].name;
-	const auto strengthAt = [this, &listenerPosition](int nodeIndex, float range, bool attenuate) {
-		const Vector3 origin = nodeIndex >= 0 && nodeIndex < static_cast<int>(model->GetNodes().size())
-			? model->GetNodes()[nodeIndex].worldTransform.Translation()
-			: dynamic_cast<Actor*>(owner)->transform.position;
+	const auto strengthAt = [this, &listenerPosition](int nodeIndex,
+		const VMDLModel::VmdlComponentTransform& transform, float range, bool attenuate) {
+		const Vector3 origin = AttachmentPosition(*model, nodeIndex, transform,
+			dynamic_cast<Actor*>(owner)->transform.position);
 		const float distance = Vector3::Distance(origin, listenerPosition);
 		if (distance > range) return 0.0f;
 		if (!attenuate) return 1.0f;
@@ -239,7 +257,8 @@ void VMDLModelComponent::PlayPresentationEvents(
 			if (key.seconds <= beginTime + 0.00001f || key.seconds > endTime + 0.00001f ||
 				key.componentIndex < 0 || key.componentIndex >= static_cast<int>(data.cameraShakes.size())) continue;
 			const auto& value = data.cameraShakes[key.componentIndex];
-			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			const float strength = strengthAt(
+				value.nodeIndex, value.transform, value.range, value.distanceAttenuation);
 			if (strength > 0.0f) CameraEffectController::Request(value.duration, value.intensity * strength);
 		}
 	}
@@ -251,7 +270,8 @@ void VMDLModelComponent::PlayPresentationEvents(
 			if (key.seconds <= beginTime + 0.00001f || key.seconds > endTime + 0.00001f ||
 				key.componentIndex < 0 || key.componentIndex >= static_cast<int>(data.radialBlurs.size())) continue;
 			const auto& value = data.radialBlurs[key.componentIndex];
-			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
+			const float strength = strengthAt(
+				value.nodeIndex, value.transform, value.range, value.distanceAttenuation);
 			if (strength > 0.0f) PostProcessController::Instance().RequestThreaten(value.duration,
 				value.power * strength, value.attackRate, Easing::Type::InSine, Easing::Type::OutCubic);
 		}
@@ -273,7 +293,8 @@ void VMDLModelComponent::UpdateSoundEvents()
 		const auto& source = soundData.sources[event->sourceIndex];
 		if (source.nodeIndex < 0 || source.nodeIndex >= static_cast<int>(model->GetNodes().size()) ||
 			!SoundSystem::Instance().SetPosition(event->voiceId,
-				model->GetNodes()[source.nodeIndex].worldTransform.Translation()))
+				AttachmentPosition(*model, source.nodeIndex, source.transform,
+					dynamic_cast<Actor*>(owner)->transform.position)))
 		{
 			event = activeSoundEvents.erase(event);
 			continue;
@@ -352,7 +373,8 @@ void VMDLModelComponent::PlaySoundEvents(int animationIndex, float beginTime, fl
 				options.farLowPassHz = source.farLowPassHz;
 				options.reverbMix = source.reverbMix;
 				const auto voiceId = SoundSystem::Instance().PlayTrack3DAt(source.track,
-					model->GetNodes()[source.nodeIndex].worldTransform.Translation(), source.variant, options);
+					AttachmentPosition(*model, source.nodeIndex, source.transform,
+						dynamic_cast<Actor*>(owner)->transform.position), source.variant, options);
 				if (voiceId != SoundSystem::InvalidVoiceId)
 					activeSoundEvents.push_back({voiceId, key.sourceIndex});
 			}
@@ -589,6 +611,7 @@ void VMDLModelComponent::SyncExternalMeshCaches()
 				const std::filesystem::path resolved =
 					ResourceManager::Instance().ResolvePath(group.path);
 				auto cache = std::make_shared<MeshCache>(resolved, *model);
+				cache->SyncMaterialsFrom(*model);
 				loaded = externalMeshCaches.emplace(groupIndex, std::move(cache)).first;
 			}
 			catch (const std::exception& exception)

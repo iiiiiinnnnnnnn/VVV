@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Stage/Component/Terrain.h"
+﻿// Terrain.cpp
+#include "Gameplay/Stage/Component/Terrain.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -330,11 +331,10 @@ void Terrain::BuildTerrainMesh(
 	}
 }
 
-void Terrain::MarkTerrainMeshDirty(bool rebuildGrass)
+void Terrain::MarkTerrainMeshDirty()
 {
 	terrainMeshDirty = true;
 	pendingColliderRebuild = true;
-	if (rebuildGrass) grassDirty = true;
 }
 
 void Terrain::CreateTerrainTexture(ID3D11Device* device)
@@ -1970,7 +1970,6 @@ void Terrain::DrawGUI()
 			{
 				grassPaintSessionActive = false;
 				use_brush = false;
-				grassDirty = true;
 			}
 			else
 			{
@@ -1995,7 +1994,7 @@ void Terrain::DrawGUI()
 			ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.42f, 1.0f),
 				(const char*)u8"編集中：緑は草あり、赤は草なし");
 		else
-			ImGui::TextDisabled((const char*)u8"停止時に自動更新します");
+			ImGui::TextDisabled((const char*)u8"反映するには更新を押してください");
 		ImGui::TreePop();
 	}
 
@@ -2346,7 +2345,7 @@ void Terrain::Deform(
 	terrainTextureDirty = true;
 	is_terrain_texture_clear_color = false;
 	// 既存の草頂点はGPU側のマスクで消すため再生成しない
-	MarkTerrainMeshDirty(false);
+	MarkTerrainMeshDirty();
 
 	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
 	{

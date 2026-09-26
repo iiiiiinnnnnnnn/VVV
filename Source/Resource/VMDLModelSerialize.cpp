@@ -1,3 +1,4 @@
+// VMDLModelSerialize.cpp
 #include "Resource/VMDLModel.h"
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
@@ -151,6 +152,18 @@ template <class Archive> void VMDLModel::VmdlIKRaySettings::serialize(Archive& a
 	archive(CEREAL_NVP(custom), CEREAL_NVP(startOffset), CEREAL_NVP(length));
 }
 
+template <class Archive> void VMDLModel::VmdlComponentTransform::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(position), CEREAL_NVP(rotation), CEREAL_NVP(scale));
+}
+
+template <class Archive> void VMDLModel::VmdlComponentTransformData::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(rigidBodies), CEREAL_NVP(colliders), CEREAL_NVP(springs),
+		CEREAL_NVP(springColliders), CEREAL_NVP(trails), CEREAL_NVP(particles),
+		CEREAL_NVP(sounds), CEREAL_NVP(cameraShakes), CEREAL_NVP(radialBlurs));
+}
+
 template <class Archive> void VMDLModel::ExternalMeshGroup::serialize(Archive& archive)
 {
 	archive(CEREAL_NVP(path), CEREAL_NVP(meshIndices), CEREAL_NVP(initialVisibility));
@@ -259,6 +272,14 @@ template <class Archive> void VMDLModel::VmdlSoundData::serialize(Archive& archi
 
 template void VMDLModel::Node::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Node::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlComponentTransform::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlComponentTransform::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlComponentTransformData::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlComponentTransformData::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
 template void VMDLModel::Material::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::Material::serialize<cereal::BinaryOutputArchive>(

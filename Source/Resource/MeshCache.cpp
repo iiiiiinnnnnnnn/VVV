@@ -1,4 +1,5 @@
-﻿#include "Resource/MeshCache.h"
+﻿// MeshCache.cpp
+#include "Resource/MeshCache.h"
 
 #include "Rendering/Core/Graphics.h"
 
@@ -19,6 +20,41 @@ bool FailMeshCacheSave(std::string* error, const std::string& message)
 	return false;
 }
 } // namespace
+
+void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
+{
+	const auto& sourceMaterials = source.GetMaterials();
+	for (VMDLModel::Material& target : materials)
+	{
+		const auto found = std::find_if(sourceMaterials.begin(), sourceMaterials.end(),
+			[&](const VMDLModel::Material& material) { return material.name == target.name; });
+		if (found == sourceMaterials.end()) continue;
+
+		target.baseColor = found->baseColor;
+		target.emissiveColor = found->emissiveColor;
+		target.metalness = found->metalness;
+		target.roughness = found->roughness;
+		target.occlusion = found->occlusion;
+		target.occlusionStrength = found->occlusionStrength;
+		target.shadowStrength = found->shadowStrength;
+		target.alphaCutoff = found->alphaCutoff;
+		target.alphaMode = found->alphaMode;
+		target.fresnelColor = found->fresnelColor;
+		target.fresnelPower = found->fresnelPower;
+		target.fresnelStrength = found->fresnelStrength;
+		target.isFlatShading = found->isFlatShading;
+		target.baseMap = found->baseMap;
+		target.normalMap = found->normalMap;
+		target.emissiveMap = found->emissiveMap;
+		target.occlusionMap = found->occlusionMap;
+		target.metalnessRoughnessMap = found->metalnessRoughnessMap;
+		target.hasBaseTexture = found->hasBaseTexture;
+		target.hasNormalTexture = found->hasNormalTexture;
+		target.hasEmissiveTexture = found->hasEmissiveTexture;
+		target.hasOcclusionTexture = found->hasOcclusionTexture;
+		target.hasMetalnessRoughnessTexture = found->hasMetalnessRoughnessTexture;
+	}
+}
 
 // 装備キャッシュを読込み、本体モデルの骨へ接続する
 MeshCache::MeshCache(

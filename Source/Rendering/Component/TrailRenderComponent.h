@@ -28,7 +28,8 @@ public:
 		float tipRatio = 1.0f,
 		float lifeTime = 0.5f,
 		int maxPoints = 40,
-        Vector3 offsetAngle = {0, 0, 0});
+		Vector3 offsetAngle = {0, 0, 0},
+		const Matrix& componentTransform = Matrix::Identity);
 
     void LateUpdate() override;
     void Render(const RenderContext& rc);
@@ -64,6 +65,7 @@ private:
     int   maxPoints;
 
 	Vector3 offsetAngle;
+	Matrix componentTransform = Matrix::Identity;
 
     // trail cbuffer data
     Color color;

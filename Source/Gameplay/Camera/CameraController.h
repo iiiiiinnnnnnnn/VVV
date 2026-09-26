@@ -1,4 +1,7 @@
-﻿#pragma once
+﻿// CameraController.h
+#pragma once
+
+#include <cmath>
 #include "Core/Object/Component.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
@@ -55,6 +58,31 @@ public:
 	}
 
 protected:
+	void RequestYawAlignment(float target, float speed)
+	{
+		targetYaw = target;
+		yawAlignmentSpeed = speed;
+		yawAlignmentActive = true;
+	}
+
+	void CancelYawAlignment() { yawAlignmentActive = false; }
+
+	void UpdateYawAlignment(float deltaTime)
+	{
+		if (!yawAlignmentActive) return;
+		const float difference = std::remainder(
+			targetYaw - angleY, DirectX::XM_2PI);
+		const float blend = 1.0f - expf(-yawAlignmentSpeed * deltaTime);
+		angleY += difference * blend;
+		if (fabsf(difference) < DirectX::XMConvertToRadians(0.25f))
+		{
+			angleY = targetYaw;
+			yawAlignmentActive = false;
+		}
+		if (angleY > DirectX::XM_PI) angleY -= DirectX::XM_2PI;
+		if (angleY < -DirectX::XM_PI) angleY += DirectX::XM_2PI;
+	}
+
 	void SyncFromCamera()
 	{
 		Camera* camera = owner->GetComponent<Camera>();
@@ -76,4 +104,7 @@ protected:
 	float		angleX;
 	float		angleY;
 	bool inputEnabled = true;
+	bool yawAlignmentActive = false;
+	float targetYaw = 0.0f;
+	float yawAlignmentSpeed = 10.0f;
 };

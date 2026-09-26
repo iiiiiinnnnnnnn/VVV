@@ -1,3 +1,4 @@
+// Player.cpp
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundTracks.generated.h"
 #include "Application/Input/Input.h"
@@ -20,6 +21,32 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/AfterimageComponent.h"
 
+namespace
+{
+void RemapQuickshiftWindTracks(VMDLModel& model)
+{
+	auto& particleData = model.GetVmdlParticleData();
+	const auto findEmitter = [&particleData](const char* name) {
+		for (int i = 0; i < static_cast<int>(particleData.emitters.size()); ++i)
+			if (::_stricmp(particleData.emitters[i].name.c_str(), name) == 0) return i;
+		return -1;
+	};
+	const int front = findEmitter("WIND_F");
+	const int back = findEmitter("WIND_B");
+	const int left = findEmitter("WIND_L");
+	const int right = findEmitter("WIND_R");
+	if (front < 0 || back < 0 || left < 0 || right < 0) return;
+
+	for (auto& track : particleData.tracks)
+	{
+		if (track.animationName == "SS_Quickshift_F") track.emitterIndex = back;
+		else if (track.animationName == "SS_Quickshift_B") track.emitterIndex = front;
+		else if (track.animationName == "SS_Quickshift_L") track.emitterIndex = right;
+		else if (track.animationName == "SS_Quickshift_R") track.emitterIndex = left;
+	}
+}
+}
+
 Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 {
 	// VMDL読み込み
@@ -27,28 +54,7 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(RAD(180.0f));
-	for (auto& emitter : model->GetVmdlParticleData().emitters)
-	{
-		if (::_stricmp(emitter.name.c_str(), "DODGE_WIND") != 0) continue;
-		// モデルのローカル+Zはプレイヤーの後方。細長い粒をそこへ流して風の尾にする。
-		emitter.offset = Vector3(0.0f, 0.15f, 0.55f);
-		emitter.spawnExtents = Vector3(0.28f, 0.34f, 0.18f);
-		emitter.velocityMin = Vector3(-0.8f, 0.05f, 5.5f);
-		emitter.velocityMax = Vector3(0.8f, 0.35f, 9.0f);
-		emitter.acceleration = Vector3(0.0f, 0.15f, 0.0f);
-		emitter.burstCount = 26;
-		emitter.lifetimeMin = 0.16f;
-		emitter.lifetimeMax = 0.30f;
-		emitter.sizeMin = Vector2(0.45f, 0.045f);
-		emitter.sizeMax = Vector2(1.15f, 0.13f);
-		emitter.color = Color(0.58f, 0.86f, 1.0f, 0.42f);
-		emitter.fadeOutDuration = 0.20f;
-		emitter.localVelocity = true;
-		if (VMDLModelComponent* renderer = vmdl->GetRenderer())
-			renderer->SetParticleEmitterSettings("DODGE_WIND", emitter);
-		break;
-	}
-
+	RemapQuickshiftWindTracks(*model);
 	// 足音切り替え用
 	footSound = vmdl->GetSoundSource("footsound");
 
@@ -154,11 +160,6 @@ void Player::SetSpawnTransform(const Transform& spawnTransform)
 	transform.rotation = spawnTransform.rotation;
 	transform.Update();
 	if (cc) cc->SetFootPosition(spawnTransform.position);
-}
-
-void Player::RequestBossDefeatCamera(Actor* target, float duration)
-{
-	if (cameraController) cameraController->RequestBossDefeatFocus(target, duration);
 }
 
 void Player::OnUpdate()
@@ -404,7 +405,7 @@ void Player::UpdateDeathSequence()
 {
 	deathSequenceTimer += Game::Time::unscaledDeltaTime;
 	const float progress = std::clamp(
-		deathSequenceTimer / deathVignetteDuration, 0.0f, 1.0f);
+		deathSequenceTimer / deathVignetteDuration, 0.0f, 0.3f);
 	const float easedProgress = Easing::Evaluate(progress, Easing::Type::InSine);
 	PostProcessController::Instance().RequestDeathVignette(easedProgress);
 
@@ -501,6 +502,8 @@ void Player::UpdateMovement()
 		return;
 	}
 	InputContext ctx = controller->Poll();
+	if (ctx.alignCameraPressed && cameraController)
+		cameraController->RequestAlignToPlayerForward();
 
 	// ---- 入力ベクトルをカメラYaw基準のワールド方向に変換 ----
 	float inputLen = sqrtf(ctx.moveX * ctx.moveX + ctx.moveZ * ctx.moveZ);
