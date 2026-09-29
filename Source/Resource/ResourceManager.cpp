@@ -15,32 +15,7 @@
 #include <system_error>
 #include <unordered_set>
 
-namespace
-{
-constexpr const char* ResourceSection = "[resources]";
-
-// フォルダー改名前の履歴を、移行先が存在する場合だけ新しいパスへ解決
-std::filesystem::path ResolveRenamedResourcePath(const std::filesystem::path& path)
-{
-	if (path.empty() || std::filesystem::exists(path)) return path;
-	std::filesystem::path migrated;
-	bool afterResources = false;
-	bool changed = false;
-	for (const auto& part : path)
-	{
-		const auto name = CacheSettings::Key(part.generic_string());
-		if (afterResources && (name == "vmdl" || name == "vstg"))
-		{
-			migrated /= name == "vmdl" ? "Model" : "Stage";
-			changed = true;
-		}
-		else migrated /= part;
-		afterResources = name == "resources";
-	}
-	return changed && std::filesystem::exists(migrated) ? migrated : path;
-}
-
-} // namespace
+static constexpr const char* ResourceSection = "[resources]";
 
 bool ResourceManager::PrepareGameResources()
 {
@@ -120,10 +95,9 @@ bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
 #endif
 }
 
-// 実行用パスを編集用の正本へ解決し、旧フォルダー名の履歴も移行
-std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::path& requestedPath)
+// 実行用パスを編集用の正本へ解決
+std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::path& path)
 {
-	const auto path = ResolveRenamedResourcePath(requestedPath);
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	const auto sourceRoot = FindSourceResourceRoot();
 	if (sourceRoot.empty() || path.empty()) return path;
@@ -131,7 +105,7 @@ std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::
 	const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
 	const auto relative = absolute.lexically_relative(runtime);
 	if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..")
-		return ResolveRenamedResourcePath(sourceRoot / relative);
+		return sourceRoot / relative;
 #endif
 	return path;
 }
@@ -435,13 +409,7 @@ std::filesystem::path ResourceManager::FindSourceResourceRoot()
 
 std::string ResourceManager::NormalizePath(const std::string& path)
 {
-	std::string normalized = std::filesystem::path(path).lexically_normal().generic_string();
-	std::string lower = normalized;
-	std::transform(lower.begin(), lower.end(), lower.begin(),
-		[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
-	if (lower == "data") return "Resources";
-	if (lower.starts_with("data/")) normalized.replace(0, 4, "Resources");
-	return normalized;
+	return std::filesystem::path(path).lexically_normal().generic_string();
 }
 
 std::string ResourceManager::MakeLookupKey(const std::string& path)

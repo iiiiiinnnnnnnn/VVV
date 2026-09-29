@@ -58,7 +58,7 @@ private:
 	float bossDefeatFocusDuration = 0.0f;
 
 	const float FOV_DEFAULT = 85.0f;
-    float fovYDegrees = 50.0f;
+	float fovYDegrees = FOV_DEFAULT;
     float aspectRatio = 1280.0f / 720.0f;
     float nearClip = 0.1f;
     float farClip = 1000.0f;

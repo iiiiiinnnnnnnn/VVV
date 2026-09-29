@@ -1,3 +1,4 @@
+// Terrain.h
 #pragma once
 
 #include <d3d11.h>
@@ -395,6 +396,4 @@ private:
 	bool grassDirty = true;
 	bool grassDraftInitialized = false;
 	bool grassPaintSessionActive = false;
-	bool migrateLegacyGrassMask = false;
-	int legacyGrassTerrainLayer = -1;
 };

@@ -1,3 +1,4 @@
+// Terrain.cpp
 #include "Gameplay/Stage/Component/Terrain.h"
 
 #include "Gameplay/Actor/Actor.h"
@@ -1446,7 +1447,6 @@ std::string Terrain::SaveSettingsJson() const
 		{"windStrength", grassSettings.windStrength},
 		{"windSpeed", grassSettings.windSpeed},
 		{"drawDistance", grassSettings.drawDistance},
-		{"usesPaintMask", true},
 		{"tint", saveColor(grassSettings.tint)}};
 	root["clearColor"] = saveColor(terrain_texture_clear_color);
 	root["selectedLayer"] = currentTerrainLayerIndex;
@@ -1516,21 +1516,12 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 		{
 			grassSettings.enabled = it->value("enabled", grassSettings.enabled);
 			grassSettings.density = it->value("density", grassSettings.density);
-			constexpr float previousGrassDensity = 2.0f;
-			constexpr float increasedGrassDensity = 20.0f;
-			if (grassSettings.density == previousGrassDensity)
-			{
-				// 旧ステージの草密度を三角葉の叢に合わせて引き上げる
-				grassSettings.density = increasedGrassDensity;
-			}
 			grassSettings.width = it->value("width", grassSettings.width);
 			grassSettings.height = it->value("height", grassSettings.height);
 			grassSettings.sizeVariation = it->value("sizeVariation", grassSettings.sizeVariation);
 			grassSettings.windStrength = it->value("windStrength", grassSettings.windStrength);
 			grassSettings.windSpeed = it->value("windSpeed", grassSettings.windSpeed);
 			grassSettings.drawDistance = it->value("drawDistance", grassSettings.drawDistance);
-			migrateLegacyGrassMask = !it->value("usesPaintMask", false);
-			legacyGrassTerrainLayer = it->value("terrainLayer", -1);
 			if (it->contains("tint")) grassSettings.tint = loadColor((*it)["tint"], grassSettings.tint);
 			grassDraftSettings = grassSettings;
 			grassDraftInitialized = true;
@@ -1637,24 +1628,6 @@ bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const
 			static_cast<size_t>(y) * destinationRowPitch;
 
 		memcpy(destinationRow, sourceRow, destinationRowPitch);
-	}
-
-	if (migrateLegacyGrassMask)
-	{
-		for (Vector4& pixel : terrainPixels)
-		{
-			bool growsGrass = legacyGrassTerrainLayer < 0;
-			if (!growsGrass && !terrainLayers.empty())
-			{
-				const int lastLayerIndex = static_cast<int>(terrainLayers.size()) - 1;
-				const float scaledLayer = std::clamp(pixel.y, 0.0f, 1.0f) * lastLayerIndex;
-				const int surfaceLayer = static_cast<int>(std::round(scaledLayer));
-				growsGrass = surfaceLayer == legacyGrassTerrainLayer;
-			}
-			pixel.z = 0.0f;
-			if (growsGrass) pixel.z = 1.0f;
-		}
-		migrateLegacyGrassMask = false;
 	}
 
 	terrainTextureDirty = true;

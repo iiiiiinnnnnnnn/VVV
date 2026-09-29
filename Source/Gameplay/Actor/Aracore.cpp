@@ -34,7 +34,7 @@ Aracore::~Aracore()
 
 Aracore::Aracore(Player* player_init,
     const Transform& transform, Terrain* terrain_init)
-    : Entity("Aracore", "Enemy", true, transform, 1000.0f, 1000.0f)
+	: Entity("Aracore", "Enemy", true, transform, 3000.0f, 3000.0f)
 {
 	this->player = player_init;
 	this->terrain = terrain_init;
@@ -97,6 +97,7 @@ Aracore::Aracore(Player* player_init,
     ensureFloat("ChargeMaxDuration", 2.5f);
     ensureFloat("RecoveryDuration", 1.5f);
     ensureFloat("JumpChance", 0.25f);
+	ensureFloat("JumpTakeoffDelay", 0.65f);
     ensureFloat("JumpDuration", 2.4f);
     ensureFloat("JumpHeight", 10.0f);
     ensureFloat("JumpLandingRecovery", 0.9f);
@@ -290,9 +291,11 @@ Aracore::Aracore(Player* player_init,
 	// ジャンプ更新
     const auto updateJump = [&](const EnemyAIFlow::State&)
     {
+		const float takeoffDelay =
+			std::max(controller->GetFloat("JumpTakeoffDelay", 0.65f), 0.0f);
         const float duration = std::max(controller->GetFloat("JumpDuration", 2.4f), 0.01f);
 		const float stateTime = controller->GetFloat("StateTime");
-		const float t = std::clamp(stateTime / duration, 0.0f, 1.0f);
+		const float t = std::clamp((stateTime - takeoffDelay) / duration, 0.0f, 1.0f);
 		Vector3 position = Vector3::Lerp(jumpStartPosition, jumpLandingPosition, t);
         position.y += 4.0f * controller->GetFloat("JumpHeight", 10.0f) * t * (1.0f - t);
         characterController->SetPosition(position);
@@ -307,7 +310,8 @@ Aracore::Aracore(Player* player_init,
 		}
 		const float landingRecovery =
 			std::max(controller->GetFloat("JumpLandingRecovery", 0.9f), 0.0f);
-		controller->SetBool("ActionFinished", jumpLanded && stateTime >= duration + landingRecovery, true);
+		controller->SetBool("ActionFinished",
+			jumpLanded && stateTime >= takeoffDelay + duration + landingRecovery, true);
     };
 	// ジャンプ終了
     const auto exitJump = [&](const EnemyAIFlow::State&)

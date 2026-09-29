@@ -26,6 +26,7 @@
         {"name":"ChargeMaxDuration","type":1,"bool":false,"float":2.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"RecoveryDuration","type":1,"bool":false,"float":1.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"JumpChance","type":1,"bool":false,"float":0.25,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+		{"name":"JumpTakeoffDelay","type":1,"bool":false,"float":0.65,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"JumpDuration","type":1,"bool":false,"float":2.4,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"JumpHeight","type":1,"bool":false,"float":10.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"JumpLandingRecovery","type":1,"bool":false,"float":0.9,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},

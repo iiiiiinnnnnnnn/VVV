@@ -1,3 +1,4 @@
+// ResourceRefreshTest.cpp
 #include "Resource/CacheBuilder.h"
 #include "Resource/ResourceManager.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -73,12 +74,6 @@ int wmain(int argc, wchar_t** argv)
 		fs::current_path(runtime.parent_path());
 		auto& resources = ResourceManager::Instance();
 		Check(resources.PrepareGameResources(), "load generated resource list");
-		Check(resources.ResolveSourcePath(source / "Vmdl/empty.vmdl") == source / "Model/empty.vmdl",
-			"old model history resolves to renamed source folder");
-		Check(resources.ResolveSourcePath(source / "Vstg/test.vstg") == source / "Stage/test.vstg",
-			"old stage history resolves to renamed source folder");
-		Check(resources.ResolveSourcePath("Resources/Vmdl/empty.vmdl") == source / "Model/empty.vmdl",
-			"old relative model history resolves to source");
 		fs::rename(runtime / "Model/empty.vmdl", runtime / "Model/empty.hold");
 		auto oldModel = resources.LoadModel("Resources/Model/empty.vmdl");
 		Check(oldModel != nullptr, "configured model is already in memory at startup");
