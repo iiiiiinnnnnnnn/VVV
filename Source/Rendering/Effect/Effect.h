@@ -1,4 +1,4 @@
-﻿// Effect.h
+// Effect.h
 #pragma once
 
 #include "Core/Foundation/Common.h"
@@ -16,9 +16,12 @@ public:
 
 	// 再生
 	Effekseer::Handle Play(const Vector3& position, float scale = 1.0f);
+	void SetBillboard(bool value);
+	bool IsBillboard() const { return billboard; }
 
 	// 停止
 	void Stop(Effekseer::Handle handle);
+	void StopRoot(Effekseer::Handle handle);
 
 	// 座標設定
 	void SetPosition(Effekseer::Handle handle, const Vector3& position);
@@ -30,4 +33,5 @@ public:
 
 private:
 	Effekseer::EffectRef effekseerEffect = nullptr;
+	bool billboard = false;
 };

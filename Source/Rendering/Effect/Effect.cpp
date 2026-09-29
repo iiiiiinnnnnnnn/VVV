@@ -1,4 +1,4 @@
-﻿// Effect.cpp
+// Effect.cpp
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/Effect.h"
 #include "Rendering/Effect/EffectManager.h"
@@ -116,15 +116,24 @@ class PackageArchive
 			const std::string text(metadata->second.begin(), metadata->second.end());
 			const json root = json::parse(text);
 			const auto& entries = root.at("files");
+			std::vector<std::pair<std::string, std::string>> aliases;
 			for (auto it = entries.begin(); it != entries.end(); ++it)
 			{
+				const std::string storedName = FileNameOnly(it.key());
+				const std::string relativePath = it.value().value(
+					"relative_path", it.value().value("name", std::string{}));
+				if (!relativePath.empty())
+					aliases.emplace_back(FileNameOnly(relativePath), storedName);
 				if (it.value().value("type", std::string{}) != "Effect") continue;
-				const auto effect = files.find(FileNameOnly(it.key()));
+				const auto effect = files.find(storedName);
 				if (effect == files.end() || effect->second.empty()) continue;
 				effectData = effect->second;
-				effectName = it.value().value("relative_path",
-					it.value().value("name", std::string("effect.efkefc")));
-				break;
+				effectName = relativePath.empty() ? "effect.efkefc" : relativePath;
+			}
+			for (const auto& [alias, storedName] : aliases)
+			{
+				const auto source = files.find(storedName);
+				if (source != files.end() && !source->second.empty()) files[alias] = source->second;
 			}
 		}
 		catch (const json::exception&)
@@ -255,6 +264,7 @@ bool Effect::IsPackageValid(const void* data, size_t size)
 // デストラクタ
 Effect::~Effect()
 {
+	EffectManager::Instance().ReleaseEffect(this);
 }
 
 // 再生
@@ -263,9 +273,19 @@ Effekseer::Handle Effect::Play(const Vector3& position, float scale)
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
 	if (!effekseerEffect) return -1;
 
-	Effekseer::Handle handle = effekseerManager->Play(effekseerEffect, position.x, position.y, position.z);
-	effekseerManager->SetScale(handle, scale, scale, scale);
+	Effekseer::Handle handle = effekseerManager->Play(effekseerEffect, 0.0f, 0.0f, 0.0f);
+	if (handle < 0) return handle;
+	EffectManager::Instance().RegisterPlayback(this, handle, billboard);
+	SetTransform(handle,
+		Matrix::CreateScale(scale) * Matrix::CreateTranslation(position));
 	return handle;
+}
+
+void Effect::SetBillboard(bool value)
+{
+	if (billboard == value) return;
+	billboard = value;
+	EffectManager::Instance().SetBillboard(this, value);
 }
 
 // 停止
@@ -274,31 +294,29 @@ void Effect::Stop(Effekseer::Handle handle)
 	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
 
 	effekseerManager->StopEffect(handle);
+	EffectManager::Instance().StopPlayback(this, handle);
+}
+
+void Effect::StopRoot(Effekseer::Handle handle)
+{
+	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
+
+	effekseerManager->StopRoot(handle);
 }
 
 // 座標設定
 void Effect::SetPosition(Effekseer::Handle handle, const Vector3& position)
 {
-	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
-
-	effekseerManager->SetLocation(handle, position.x, position.y, position.z);
+	EffectManager::Instance().SetPlaybackPosition(this, handle, position);
 }
 
 // スケール設定
 void Effect::SetScale(Effekseer::Handle handle, const Vector3& scale)
 {
-	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
-
-	effekseerManager->SetScale(handle, scale.x, scale.y, scale.z);
+	EffectManager::Instance().SetPlaybackScale(this, handle, scale);
 }
 
 void Effect::SetTransform(Effekseer::Handle handle, const Matrix& transform)
 {
-	Effekseer::Matrix43 matrix;
-	for (int row = 0; row < 4; ++row)
-		for (int column = 0; column < 3; ++column)
-			matrix.Value[row][column] = transform.m[row][column];
-	// ノード追従はエフェクト内部のシミュレーション座標を
-	// 書き換えるのではなく、エフェクト全体のベース行列で移動させる。
-	EffectManager::Instance().GetEffekseerManager()->SetBaseMatrix(handle, matrix);
+	EffectManager::Instance().SetPlaybackTransform(this, handle, transform);
 }

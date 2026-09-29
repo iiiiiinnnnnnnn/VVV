@@ -1,4 +1,3 @@
-// GpuResourceUtils.h
 #pragma once
 #include <cstddef>
 

@@ -1,4 +1,3 @@
-﻿// FreeCameraController.h
 #pragma once
 #include "Gameplay/Camera/CameraController.h"
 

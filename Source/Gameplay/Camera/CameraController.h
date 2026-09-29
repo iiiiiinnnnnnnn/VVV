@@ -1,4 +1,3 @@
-﻿// CameraController.h
 #pragma once
 
 #include <cmath>

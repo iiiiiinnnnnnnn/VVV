@@ -23,7 +23,7 @@ public:
 
 	bool IsReady() const { return atlas != nullptr; }
 	float MeasureWidth(const std::string& text, float fontSize) const;
-	void DrawText(const std::string& text, const Vector2& position, const Vector2& boxSize,
+	void DrawFont(const std::string& text, const Vector2& position, const Vector2& boxSize,
 		float fontSize, const Color& color, UITextAlignment alignment = UITextAlignment::Left) const;
 
 private:

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <optional>
 #include <string>
 #include "Gameplay/Stage/Stage.h"
@@ -22,8 +22,9 @@ struct DamageData
 class Entity : public Actor
 {
 public:
-    Entity(std::string name = "", std::string tag = "", bool isActive = true, float life = 100.0f, float maxLife = 100.0f)
-        : Actor(name, tag, isActive), life(life), maxLife(maxLife) {}
+	Entity(std::string name = "", std::string tag = "", bool isActive = true,
+		const Transform& transform = {}, float life = 100.0f, float maxLife = 100.0f)
+        : Actor(name, tag, isActive, transform), life(life), maxLife(maxLife) {}
 
     virtual void OnUpdate() override;
 

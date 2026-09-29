@@ -1,9 +1,7 @@
-﻿// VSTG.cpp
 #include "Resource/VSTG.h"
 #include "Resource/ResourceManager.h"
 
 #include <fstream>
-#include <functional>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -11,9 +9,7 @@
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Core/Foundation/Json.h"
 
-namespace
-{
-constexpr uint32_t VstgVersion = 3;
+constexpr uint32_t VstgVersion = 4;
 
 json SaveVector3(const Vector3& value)
 {
@@ -71,16 +67,17 @@ void LoadLight(const json& value, Light& light)
 	light.transform.Update();
 }
 
-template <typename T> bool Read(std::istream& stream, T& value)
+template <typename T>
+bool Read(std::istream& stream, T& value)
 {
 	return static_cast<bool>(stream.read(reinterpret_cast<char*>(&value), sizeof(value)));
 }
 
-template <typename T> void Write(std::ofstream& stream, const T& value)
+template <typename T>
+void Write(std::ofstream& stream, const T& value)
 {
 	stream.write(reinterpret_cast<const char*>(&value), sizeof(value));
 }
-} // namespace
 
 bool VSTG::Load(const std::filesystem::path& path)
 {

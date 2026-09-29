@@ -1,4 +1,3 @@
-﻿// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"

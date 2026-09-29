@@ -1,4 +1,3 @@
-﻿// GamePostProcess.h
 #pragma once
 
 #include <memory>

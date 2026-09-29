@@ -1,4 +1,5 @@
-﻿#include "Animation/Animator.h"
+﻿// Animator.cpp
+#include "Animation/Animator.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Application/Time/GameTime.h"
 #include "Application/Tools/DynamicAnimationSerializer.h"
@@ -310,12 +311,20 @@ void Animator::Update()
 
     const int nodeCount = static_cast<int>(model->GetNodes().size());
     std::vector<VMDLModel::NodePose> finalPoses(nodeCount);
+    bool hasActiveState = false;
 
     for (auto& layer : layers)
     {
         if (layer.currentStateIndex < 0)
             continue;
+        hasActiveState = true;
         UpdateLayer(layer, finalPoses);
+    }
+
+    if (!hasActiveState)
+    {
+        ResetTriggers();
+        return;
     }
 
     model->SetNodePoses(finalPoses);

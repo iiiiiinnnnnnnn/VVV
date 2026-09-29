@@ -1,4 +1,3 @@
-﻿// CacheBuilder.h
 #pragma once
 
 #include <filesystem>

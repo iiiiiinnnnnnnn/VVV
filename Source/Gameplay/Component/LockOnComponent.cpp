@@ -1,3 +1,4 @@
+// LockOnComponent.cpp
 #include "Gameplay/Component/LockOnComponent.h"
 
 #include "Application/Time/GameTime.h"
@@ -98,12 +99,7 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 		return;
 	}
 
-	const Matrix offset =
-		Matrix::CreateFromYawPitchRoll(
-			RAD(anchor.rotation.y),
-			RAD(anchor.rotation.x),
-			RAD(anchor.rotation.z)) *
-		Matrix::CreateTranslation(anchor.center);
+	const Matrix offset = anchor.transform.ToMatrix();
 	const Matrix anchorWorld = targetModel->GetScaledAttachmentTransform(
 		offset * nodes[anchor.nodeIndex].worldTransform);
 	const Vector3 worldPosition = anchorWorld.Translation();

@@ -1,4 +1,4 @@
-﻿// VMDLModelComponent.cpp
+// VMDLModelComponent.cpp
 #include "Rendering/Component/VMDLModelComponent.h"
 #include <cstring>
 #include "Animation/Animator.h"
@@ -69,10 +69,11 @@ void VMDLModelComponent::BuildAttachments()
 		auto colliderTransform = value.transform;
 		colliderTransform.scale = Vector3::One;
 		const Matrix offset = colliderTransform.ToMatrix();
-		const Vector3 colliderSize(
-			value.size.x * std::abs(value.transform.scale.x),
-			value.size.y * std::abs(value.transform.scale.y),
-			value.size.z * std::abs(value.transform.scale.z));
+		const Vector3 colliderSize = value.shape >= 3
+			? value.transform.scale
+			: Vector3(value.size.x * std::abs(value.transform.scale.x),
+				value.size.y * std::abs(value.transform.scale.y),
+				value.size.z * std::abs(value.transform.scale.z));
 
 		const LayerId colliderLayer = value.layer >= 0 && value.layer < EditableLayerCount
 										  ? static_cast<LayerId>(value.layer)
@@ -148,16 +149,17 @@ PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& n
 	return nullptr;
 }
 
-float VMDLModelComponent::BurstParticleEmitter(const std::string& name)
+bool VMDLModelComponent::PlayParticleEmitter(const std::string& name)
 {
 	for (VMDLParticleEmitterComponent* emitter : attachmentParticleEmitters)
 	{
 		if (!emitter || ::_stricmp(emitter->GetEmitterName().c_str(), name.c_str()) != 0)
 			continue;
-		emitter->Burst();
-		return std::max(0.0f, emitter->GetMaximumLifetime());
+		if (!emitter->IsValid()) return false;
+		emitter->Play();
+		return true;
 	}
-	return 0.0f;
+	return false;
 }
 
 bool VMDLModelComponent::SetParticleEmitterSettings(

@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// Spawner.h
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -17,7 +18,7 @@ class Spawner : public Component
   public:
 	using Factory = std::function<std::shared_ptr<Actor>(const Transform&)>;
 
-	Spawner(Object* owner, std::string entityName = "EnemySmall");
+	Spawner(Object* owner, std::string entityName = {});
 
 	// 召喚
 	Actor* Summon();
@@ -46,7 +47,7 @@ class Spawner : public Component
 
   private:
 	// 召喚設定
-	std::string entityName = "EnemySmall";
+	std::string entityName;
 	Factory factory = {};
 	ActorManager* actorManager = nullptr;
 	Transform summonTransform = {};

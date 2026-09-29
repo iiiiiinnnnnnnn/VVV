@@ -1,4 +1,3 @@
-﻿// ThirdPersonCameraController.h
 #pragma once
 
 #include <algorithm>
@@ -40,13 +39,13 @@ protected:
 private:
     Player* character;
 
-    float armLength    = 11.0f;
-    float heightOffset = 1.5f;
+    float armLength    = 3.55f;
+    float heightOffset = 1.3f;
     float mouseSensX   = 0.005f;
     float mouseSensY   = 0.003f;
     float minArmLength = 0.5f;
     float maxArmLength = 50.0f;
-    float followSpeed  = 4.5f;
+    float followSpeed  = 3.7f;
 	float sprintArmExtension = 2.0f;
 	float sprintArmSpeed = 5.5f;
 	float currentArmLength = 11.0f;
@@ -58,7 +57,7 @@ private:
 	float bossDefeatFocusTimer = 0.0f;
 	float bossDefeatFocusDuration = 0.0f;
 
-	const float FOV_DEFAULT = 50.0f;
+	const float FOV_DEFAULT = 85.0f;
     float fovYDegrees = 50.0f;
     float aspectRatio = 1280.0f / 720.0f;
     float nearClip = 0.1f;

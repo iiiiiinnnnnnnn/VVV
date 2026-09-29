@@ -81,7 +81,7 @@ void Button::OnRender(const RenderContext&)
 			{topLeft.x + rect.size.x * 0.08f, topLeft.y + rect.size.y - 2.0f, 0.0f},
 			{rect.size.x * 0.78f, 2.0f}, Vector2::Zero, Vector2(1, 1), 0.0f,
 			highlighted ? Color(0.05f, 0.82f, 1.0f, 0.95f) : Color(0.3f, 0.65f, 0.74f, 0.7f));
-	UIFont::Default().DrawText(label,
+	UIFont::Default().DrawFont(label,
 		{topLeft.x + rect.size.x * 0.08f, topLeft.y}, {rect.size.x * 0.86f, rect.size.y},
 		fontSize, highlighted ? Color(0.72f, 0.94f, 1.0f, 1.0f) : Color(0.86f, 0.88f, 0.9f, 0.95f));
 

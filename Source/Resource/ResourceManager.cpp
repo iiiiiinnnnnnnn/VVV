@@ -10,10 +10,10 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <stdexcept>
 #include <sstream>
 #include <system_error>
 #include <unordered_set>
-#include <windows.h>
 
 namespace
 {
@@ -56,7 +56,10 @@ bool ResourceManager::PrepareGameResources()
 	runtimeResourceRoot = std::filesystem::current_path() / "Resources";
 	cachedPathList = runtimeResourceRoot / "ResourceManifest.ini";
 
-	if (!LoadCachedPathList()) return false;
+	if (!LoadCachedPathList())
+		throw std::runtime_error(errors.empty()
+			? "Resource manifest load failed."
+			: errors.back());
 
 	resourcesPrepared = PreloadConfiguredResources();
 	return resourcesPrepared;
@@ -152,10 +155,8 @@ bool ResourceManager::PreloadFile(const std::string& path)
 		if (found != assetPaths.end()) value = &*found;
 	}
 	if (!value)
-	{
-		ReportError("Preload resource is not in Resources/ResourceManifest.ini: " + NormalizePath(path));
-		return false;
-	}
+		throw std::runtime_error(
+			"Preload resource is not in Resources/ResourceManifest.ini: " + NormalizePath(path));
 
 	bool loaded = true;
 	if (value->type == AssetType::VMDLModel)
@@ -184,21 +185,13 @@ bool ResourceManager::PreloadFile(const std::string& path)
 // Manifestから読み込んだ先読み設定に従ってリソースを準備
 bool ResourceManager::PreloadConfiguredResources()
 {
-	try
+	bool success = true;
+	for (const auto& asset : assetPaths)
 	{
-		bool success = true;
-		for (const auto& asset : assetPaths)
-		{
-			const auto options = cacheSettings.Get(asset.path);
-			if (!options.excluded && options.preload && !PreloadFile(asset.path)) success = false;
-		}
-		return success;
+		const auto options = cacheSettings.Get(asset.path);
+		if (!options.excluded && options.preload && !PreloadFile(asset.path)) success = false;
 	}
-	catch (const std::exception& error)
-	{
-		ReportError(error.what());
-		return false;
-	}
+	return success;
 }
 
 std::shared_ptr<const std::vector<uint8_t>> ResourceManager::LoadFile(const std::string& path)
@@ -208,16 +201,13 @@ std::shared_ptr<const std::vector<uint8_t>> ResourceManager::LoadFile(const std:
 	const auto key = CacheSettings::Key(resolved);
 	if (const auto found = files.find(key); found != files.end()) return found->second;
 	std::ifstream input(resolved, std::ios::binary | std::ios::ate);
-	if (!input) { ReportError("Resource not found: " + resolved); return nullptr; }
+	if (!input) throw std::runtime_error("Resource not found: " + resolved);
 	const auto size = input.tellg();
-	if (size < 0) { ReportError("Resource size failed: " + resolved); return nullptr; }
+	if (size < 0) throw std::runtime_error("Resource size failed: " + resolved);
 	auto bytes = std::make_shared<std::vector<uint8_t>>(static_cast<size_t>(size));
 	input.seekg(0);
 	if (!input.read(reinterpret_cast<char*>(bytes->data()), static_cast<std::streamsize>(bytes->size())))
-	{
-		ReportError("Resource read failed: " + resolved);
-		return nullptr;
-	}
+		throw std::runtime_error("Resource read failed: " + resolved);
 	if (cacheSettings.Get(resolved).preload) files.emplace(key, bytes);
 	return bytes;
 }
@@ -263,20 +253,15 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 	const std::string lookupKey = MakeLookupKey(key);
 	const auto pathIt = assetPathLookup.find(lookupKey);
 	if (pathIt == assetPathLookup.end() || assetPaths[pathIt->second].type != AssetType::VMDLModel)
-	{
-		ReportError("VMDLModel is not in Resources/ResourceManifest.ini: " + NormalizePath(key));
-		return nullptr;
-	}
+		throw std::runtime_error(
+			"VMDLModel is not in Resources/ResourceManifest.ini: " + NormalizePath(key));
 
 	auto it = models.find(lookupKey);
 	if (it == models.end())
 	{
 		const std::string& vmdlPath = assetPaths[pathIt->second].path;
 		if (!std::filesystem::exists(vmdlPath))
-		{
-			ReportError("VMDLModel not found: " + vmdlPath);
-			return nullptr;
-		}
+			throw std::runtime_error("VMDLModel not found: " + vmdlPath);
 
 		try
 		{
@@ -285,8 +270,8 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 		}
 		catch (const std::exception& exception)
 		{
-			ReportError("VMDLModel load failed: " + vmdlPath + " (" + exception.what() + ")");
-			return nullptr;
+			throw std::runtime_error(
+				"VMDLModel load failed: " + vmdlPath + " (" + exception.what() + ")");
 		}
 	}
 
@@ -302,10 +287,7 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key)
 	if (it == textures.end())
 	{
 		if (!std::filesystem::exists(resolvedPath))
-		{
-			ReportError("Texture not found: " + resolvedPath);
-			return nullptr;
-		}
+			throw std::runtime_error("Texture not found: " + resolvedPath);
 
 		auto texture = std::make_shared<Texture>(resolvedPath.c_str());
 		it = textures.emplace(lookupKey, std::move(texture)).first;
@@ -434,8 +416,6 @@ bool ResourceManager::AddAssetPath(
 void ResourceManager::ReportError(const std::string& message)
 {
 	errors.push_back(message);
-	const std::string output = "[ResourceManager] " + message + "\n";
-	OutputDebugStringA(output.c_str());
 }
 
 std::filesystem::path ResourceManager::FindSourceResourceRoot()

@@ -1,4 +1,3 @@
-﻿// FreeCameraController.cpp
 #include <imgui.h>
 #include <cmath>
 #include "Gameplay/Camera/FreeCameraController.h"

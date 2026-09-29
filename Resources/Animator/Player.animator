@@ -298,6 +298,54 @@
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 11,
                     "transitionDuration": 0.0
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "IsCrouching",
+                            "threshold": 0.0
+                        },
+                        {
+                            "mode": 0,
+                            "paramName": "Speed",
+                            "threshold": 0.10000000149011612
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": -1,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 19,
+                    "transitionDuration": 0.11999999731779099
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 4,
+                            "paramName": "IsCrouching",
+                            "threshold": 0.0
+                        },
+                        {
+                            "mode": 1,
+                            "paramName": "Speed",
+                            "threshold": 0.10999999940395355
+                        }
+                    ],
+                    "excludedFromStateIndices": [],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": -2,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 18,
+                    "transitionDuration": 0.11999999731779099
                 }
             ],
             "blendMode": 0,
@@ -1055,7 +1103,7 @@
                     ]
                 },
                 {
-                    "animationIndex": 20,
+                    "animationIndex": 21,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
                     "dynamicClipPath": "",
@@ -1134,6 +1182,130 @@
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
+                },
+                {
+                    "animationIndex": 4,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 1048.0,
+                    "editorPosY": -397.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "CrouchIdle",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsCrouching",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10999999940395355
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsCrouching",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.11999999731779099
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 6,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "dynamicClipPath": "",
+                    "editorPosX": 1228.0,
+                    "editorPosY": -267.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "CrouchWalk",
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsCrouching",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 1,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10999999940395355
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "IsCrouching",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "Speed",
+                                    "threshold": 0.10000000149011612
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.11999999731779099
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -1161,14 +1333,19 @@
             "value": false
         },
         {
+            "name": "SkillVariant",
+            "type": "int",
+            "value": 1
+        },
+        {
             "name": "IsJustDodge",
             "type": "bool",
             "value": false
         },
         {
-            "name": "SkillVariant",
-            "type": "int",
-            "value": 1
+            "name": "IsCrouching",
+            "type": "bool",
+            "value": false
         }
     ],
     "triggers": [

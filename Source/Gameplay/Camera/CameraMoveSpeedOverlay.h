@@ -1,4 +1,3 @@
-// CameraMoveSpeedOverlay.h
 #pragma once
 
 #include <algorithm>

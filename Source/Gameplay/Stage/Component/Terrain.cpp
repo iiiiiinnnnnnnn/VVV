@@ -1,4 +1,3 @@
-﻿// Terrain.cpp
 #include "Gameplay/Stage/Component/Terrain.h"
 
 #include "Gameplay/Actor/Actor.h"

@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
-    <ClCompile Include="Source\Resource\CacheBuilder.cpp"><Filter>Resource</Filter></ClCompile>
-    <ClInclude Include="Source\Resource\CacheBuilder.h"><Filter>Resource</Filter></ClInclude>
-    <ClInclude Include="Source\Resource\CacheSettings.h"><Filter>Resource</Filter></ClInclude>
+    <ClCompile Include="Source\Resource\CacheBuilder.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClInclude Include="Source\Resource\CacheBuilder.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\CacheSettings.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Audio\SoundSystem.cpp">
-	  <Filter>Audio</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Audio\SoundTrackRegistry.cpp">
-	  <Filter>Audio</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Audio\SoundSystem.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Audio\SoundTrackRegistry.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -25,9 +31,9 @@
     <Filter Include="Animation">
       <UniqueIdentifier>{bec44de4-182a-5342-9af4-1e54aa2fe358}</UniqueIdentifier>
     </Filter>
-	<Filter Include="Audio">
-	  <UniqueIdentifier>{e012eb59-b425-4f08-88cd-07c83c835ec1}</UniqueIdentifier>
-	</Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{e012eb59-b425-4f08-88cd-07c83c835ec1}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Application">
       <UniqueIdentifier>{26d30179-1711-5c6f-b1fd-77306bab4640}</UniqueIdentifier>
     </Filter>
@@ -148,21 +154,25 @@
     <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp">
       <Filter>Physics\Collider</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\EnemySmall.cpp" />
+    <ClCompile Include="Source\Rendering\Component\VMDLParticleEmitterComponent.cpp" />
+    <ClCompile Include="Source\UI\BossBar.cpp" />
+    <ClCompile Include="Source\Gameplay\Actor\Deer.cpp">
+      <Filter>Gameplay\Actor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-	<ClInclude Include="Source\Audio\SoundSystem.h">
-	  <Filter>Audio</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Audio\SoundTrackRegistry.h">
-	  <Filter>Audio</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Audio\SoundTracks.generated.h">
-	  <Filter>Audio</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Audio\VSoundFormat.h">
-	  <Filter>Audio</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Audio\SoundSystem.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio\SoundTrackRegistry.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio\SoundTracks.generated.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio\VSoundFormat.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
@@ -226,15 +236,15 @@
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp">
-	  <Filter>Rendering\Shader</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp">
+      <Filter>Rendering\Shader</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Resource\VMDLModel.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Resource\MeshCache.cpp">
-	  <Filter>Resource</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Resource\MeshCache.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Resource\VSTG.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -286,12 +296,24 @@
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\Button.cpp"><Filter>UI</Filter></ClCompile>
-    <ClCompile Include="Source\UI\GaugeHUD.cpp"><Filter>UI</Filter></ClCompile>
-    <ClCompile Include="Source\UI\HUDWidget.cpp"><Filter>UI</Filter></ClCompile>
-    <ClCompile Include="Source\UI\PauseMenu.cpp"><Filter>UI</Filter></ClCompile>
-    <ClCompile Include="Source\UI\TextWidget.cpp"><Filter>UI</Filter></ClCompile>
-    <ClCompile Include="Source\UI\UIFont.cpp"><Filter>UI</Filter></ClCompile>
+    <ClCompile Include="Source\UI\Button.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\GaugeHUD.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\HUDWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\PauseMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\TextWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIFont.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Application\Tools\DynamicAnimationSerializer.cpp">
       <Filter>Application\Tools</Filter>
     </ClCompile>
@@ -316,15 +338,15 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp">
-	  <Filter>Gameplay\Stage\Component</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Gameplay\Actor\Water.cpp">
-	  <Filter>Gameplay\Actor</Filter>
-	</ClCompile>
-	<ClCompile Include="Source\Rendering\Renderer\WaterRenderer.cpp">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp">
+      <Filter>Gameplay\Stage\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Actor\Water.cpp">
+      <Filter>Gameplay\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Renderer\WaterRenderer.cpp">
+      <Filter>Rendering\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Entity.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -340,16 +362,13 @@
     <ClCompile Include="Source\Gameplay\Actor\Apple.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\AracoreQueen.cpp">
-      <Filter>Gameplay\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\Prop.cpp">
+    <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Spawner.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\CrystalProp.cpp">
+    <ClCompile Include="Source\Gameplay\Actor\Crystal.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp">
@@ -391,9 +410,9 @@
     <ClCompile Include="Source\Rendering\Renderer\ShapeRenderer.cpp">
       <Filter>Rendering\Renderer</Filter>
     </ClCompile>
-	<ClCompile Include="Source\Rendering\Renderer\DebugSolidRenderer.cpp">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClCompile>
+    <ClCompile Include="Source\Rendering\Renderer\DebugSolidRenderer.cpp">
+      <Filter>Rendering\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Rendering\Renderer\SkyBoxRenderer.cpp">
       <Filter>Rendering\Renderer</Filter>
     </ClCompile>
@@ -529,9 +548,11 @@
     <ClInclude Include="Source\Core\Foundation\Json.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\EnemySmall.h">
+    <ClInclude Include="Source\Gameplay\Actor\Deer.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\VMDLParticleEmitterComponent.h" />
+    <ClInclude Include="Source\UI\BossBar.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
@@ -585,15 +606,15 @@
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h">
-	  <Filter>Rendering\Shader</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h">
+      <Filter>Rendering\Shader</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Resource\VMDLModel.h">
       <Filter>Resource</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Resource\MeshCache.h">
-	  <Filter>Resource</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Resource\MeshCache.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Resource\VSTG.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -648,12 +669,24 @@
     <ClInclude Include="Source\UI\SpriteWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\Button.h"><Filter>UI</Filter></ClInclude>
-    <ClInclude Include="Source\UI\GaugeHUD.h"><Filter>UI</Filter></ClInclude>
-    <ClInclude Include="Source\UI\HUDWidget.h"><Filter>UI</Filter></ClInclude>
-    <ClInclude Include="Source\UI\PauseMenu.h"><Filter>UI</Filter></ClInclude>
-    <ClInclude Include="Source\UI\TextWidget.h"><Filter>UI</Filter></ClInclude>
-    <ClInclude Include="Source\UI\UIFont.h"><Filter>UI</Filter></ClInclude>
+    <ClInclude Include="Source\UI\Button.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\GaugeHUD.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\HUDWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\PauseMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\TextWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIFont.h">
+      <Filter>UI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Application\Tools\DynamicAnimationEditorWindow.h">
       <Filter>Application\Tools</Filter>
     </ClInclude>
@@ -687,15 +720,15 @@
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h">
-	  <Filter>Gameplay\Stage\Component</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Gameplay\Actor\Water.h">
-	  <Filter>Gameplay\Actor</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Rendering\Renderer\WaterRenderer.h">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h">
+      <Filter>Gameplay\Stage\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Actor\Water.h">
+      <Filter>Gameplay\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer\WaterRenderer.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Player\Player.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
@@ -708,19 +741,16 @@
     <ClInclude Include="Source\Gameplay\Actor\Entity.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\AracoreQueen.h">
+    <ClInclude Include="Source\Gameplay\Actor\Aracore.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Apple.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\Prop.h">
-      <Filter>Gameplay\Actor</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Spawner.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\CrystalProp.h">
+    <ClInclude Include="Source\Gameplay\Actor\Crystal.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h">
@@ -756,18 +786,18 @@
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClInclude>
-	<ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\ShapeRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Rendering\Renderer\DebugSolidRenderer.h">
-	  <Filter>Rendering\Renderer</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer\DebugSolidRenderer.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\SkyBoxRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
@@ -789,9 +819,9 @@
     <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
-	<ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
-	  <Filter>Rendering\Core</Filter>
-	</ClInclude>
+    <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Core\RenderState.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
@@ -962,9 +992,9 @@
     <None Include="Shader\GeometryParticle.hlsli">
       <Filter>Shaders\Particle</Filter>
     </None>
-	<None Include="Shader\TerrainGrass.hlsli">
-	  <Filter>Shaders\3D</Filter>
-	</None>
+    <None Include="Shader\TerrainGrass.hlsli">
+      <Filter>Shaders\3D</Filter>
+    </None>
     <None Include="Shader\Scene.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
@@ -984,12 +1014,12 @@
     <FxCompile Include="Shader\PBRGS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
-	<FxCompile Include="Shader\PBRPS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
-	<FxCompile Include="Shader\UnlitPS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
+    <FxCompile Include="Shader\PBRPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\UnlitPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\PBRVS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
@@ -1029,36 +1059,36 @@
     <FxCompile Include="Shader\TerrainPrimitivePS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
-	<FxCompile Include="Shader\TerrainGrassVS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
-	<FxCompile Include="Shader\TerrainGrassGS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
-	<FxCompile Include="Shader\TerrainGrassPS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
+    <FxCompile Include="Shader\TerrainGrassVS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainGrassGS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\TerrainGrassPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\TrailRendererVS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
-	<FxCompile Include="Shader\WaterSurfaceVS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
-	<FxCompile Include="Shader\WaterSurfacePS.hlsl">
-	  <Filter>Shaders\3D</Filter>
-	</FxCompile>
+    <FxCompile Include="Shader\WaterSurfaceVS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\WaterSurfacePS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>
-	<FxCompile Include="Shader\VignetteSpritePS.hlsl">
-	  <Filter>Shaders\2D</Filter>
-	</FxCompile>
+    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
+      <Filter>Shaders\2D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\RadialBlurPS.hlsl">
       <Filter>Shaders\PostProcess</Filter>
     </FxCompile>

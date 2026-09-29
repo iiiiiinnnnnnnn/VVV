@@ -8,7 +8,6 @@
 #include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
 #include "Audio/SoundSystem.h"
-#include "Core/Foundation/Json.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Camera/Camera.h"
@@ -33,6 +32,7 @@
 #include <cfloat>
 #include <cmath>
 #include <fstream>
+#include <iterator>
 #include <string_view>
 #include "GameStartScene.h"
 #include "Application/Time/GameTime.h"
@@ -47,16 +47,26 @@ constexpr float PreviewGridScale = 0.5f;
 constexpr float PreviewMinCameraDistance = 0.2f;
 constexpr float PreviewMaxCameraDistance = 100000.0f;
 
-namespace
+template<typename T>
+int Count(const T& values)
 {
+	return static_cast<int>(values.size());
+}
+
+template<typename T, size_t Size>
+constexpr int Count(const T (&)[Size])
+{
+	return static_cast<int>(Size);
+}
+
 std::wstring Utf8ToWide(const std::string& text)
 {
 	if (text.empty()) return {};
 	const int length = MultiByteToWideChar(
-		CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+		CP_UTF8, 0, text.data(), Count(text), nullptr, 0);
 	if (length <= 0) return std::wstring(text.begin(), text.end());
-	std::wstring result(static_cast<size_t>(length), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()),
+	std::wstring result(length, L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, text.data(), Count(text),
 		result.data(), length);
 	return result;
 }
@@ -68,10 +78,21 @@ std::string MakeVmshFileLabel(const std::string& source)
 	for (unsigned char c : source)
 	{
 		if (result.size() >= 48) break;
-		if (std::isalnum(c) || c == '_' || c == '-') result.push_back(static_cast<char>(c));
+		if (std::isalnum(c) || c == '_' || c == '-') result.push_back(c);
 		else if (std::isspace(c) && !result.empty() && result.back() != '_') result.push_back('_');
 	}
 	return result.empty() ? "mesh" : result;
+}
+
+std::string MakeMeshLabel(const VMDLModel& model, int meshIndex)
+{
+	const auto& meshes = model.GetMeshes();
+	if (meshIndex < 0 || meshIndex >= Count(meshes)) return (const char*)u8"メッシュなし";
+
+	const auto& mesh = meshes[meshIndex];
+	const std::string nodeName = mesh.node ? mesh.node->name : (const char*)u8"ノードなし";
+	const std::string materialName = mesh.material ? mesh.material->name : (const char*)u8"マテリアルなし";
+	return std::format("{}: {} / {}", meshIndex, nodeName, materialName);
 }
 
 bool IsSameFilePath(const std::filesystem::path& left, const std::filesystem::path& right)
@@ -88,98 +109,6 @@ bool IsSameFilePath(const std::filesystem::path& left, const std::filesystem::pa
 		std::filesystem::weakly_canonical(std::filesystem::absolute(right), error).wstring();
 	return CompareStringOrdinal(normalizedLeft.c_str(), -1, normalizedRight.c_str(), -1, TRUE) ==
 		CSTR_EQUAL;
-}
-
-json ParticleEmitterToJson(const VMDLModel::VmdlParticleEmitter& v)
-{
-	return {
-		{"version", 2}, {"rendererType", v.rendererType}, {"parent", v.parentEmitterIndex},
-		{"name", v.name}, {"texture", v.texturePath},
-		{"sheet", {v.columns, v.rows, v.frame}}, {"animated", v.animated},
-		{"animationSpeed", v.animationSpeed}, {"capacity", v.capacity},
-		{"offset", {v.offset.x, v.offset.y, v.offset.z}},
-		{"spawnExtents", {v.spawnExtents.x, v.spawnExtents.y, v.spawnExtents.z}},
-		{"velocityMin", {v.velocityMin.x, v.velocityMin.y, v.velocityMin.z}},
-		{"velocityMax", {v.velocityMax.x, v.velocityMax.y, v.velocityMax.z}},
-		{"acceleration", {v.acceleration.x, v.acceleration.y, v.acceleration.z}},
-		{"emissionRate", v.emissionRate}, {"burstCount", v.burstCount},
-		{"lifetime", {v.lifetimeMin, v.lifetimeMax}},
-		{"sizeMin", {v.sizeMin.x, v.sizeMin.y}}, {"sizeMax", {v.sizeMax.x, v.sizeMax.y}},
-		{"color", {v.color.x, v.color.y, v.color.z, v.color.w}},
-		{"fade", {v.fadeInDuration, v.fadeOutDuration}},
-		{"localVelocity", v.localVelocity}, {"additive", v.additive},
-		{"ribbon", {{"root", {v.ribbonRootOffset.x, v.ribbonRootOffset.y, v.ribbonRootOffset.z}},
-			{"tip", {v.ribbonTipOffset.x, v.ribbonTipOffset.y, v.ribbonTipOffset.z}},
-			{"lifetime", v.ribbonLifetime}, {"maxPoints", v.ribbonMaxPoints},
-			{"tipRatio", v.ribbonTipRatio}, {"sampleInterval", v.ribbonSampleInterval},
-			{"endColor", {v.ribbonEndColor.x, v.ribbonEndColor.y,
-				v.ribbonEndColor.z, v.ribbonEndColor.w}}}}
-	};
-}
-
-bool ParticleEmitterFromJson(const json& j, VMDLModel::VmdlParticleEmitter& v)
-{
-	try
-	{
-		auto vec2 = [](const json& a, Vector2 fallback) {
-			return a.is_array() && a.size() >= 2
-				? Vector2(a[0].get<float>(), a[1].get<float>()) : fallback;
-		};
-		auto vec3 = [](const json& a, Vector3 fallback) {
-			return a.is_array() && a.size() >= 3
-				? Vector3(a[0].get<float>(), a[1].get<float>(), a[2].get<float>()) : fallback;
-		};
-		v.name = j.value("name", v.name);
-		v.rendererType = std::clamp(j.value("rendererType", v.rendererType), 0, 1);
-		v.parentEmitterIndex = j.value("parent", v.parentEmitterIndex);
-		v.texturePath = j.value("texture", v.texturePath);
-		if (const auto it = j.find("sheet"); it != j.end() && it->is_array() && it->size() >= 3)
-		{
-			v.columns = (*it)[0].get<int>(); v.rows = (*it)[1].get<int>();
-			v.frame = (*it)[2].get<int>();
-		}
-		v.animated = j.value("animated", v.animated);
-		v.animationSpeed = j.value("animationSpeed", v.animationSpeed);
-		v.capacity = j.value("capacity", v.capacity);
-		if (j.contains("offset")) v.offset = vec3(j["offset"], v.offset);
-		if (j.contains("spawnExtents")) v.spawnExtents = vec3(j["spawnExtents"], v.spawnExtents);
-		if (j.contains("velocityMin")) v.velocityMin = vec3(j["velocityMin"], v.velocityMin);
-		if (j.contains("velocityMax")) v.velocityMax = vec3(j["velocityMax"], v.velocityMax);
-		if (j.contains("acceleration")) v.acceleration = vec3(j["acceleration"], v.acceleration);
-		v.emissionRate = j.value("emissionRate", v.emissionRate);
-		v.burstCount = j.value("burstCount", v.burstCount);
-		if (const auto it = j.find("lifetime"); it != j.end() && it->is_array() && it->size() >= 2)
-		{
-			v.lifetimeMin = (*it)[0].get<float>(); v.lifetimeMax = (*it)[1].get<float>();
-		}
-		if (j.contains("sizeMin")) v.sizeMin = vec2(j["sizeMin"], v.sizeMin);
-		if (j.contains("sizeMax")) v.sizeMax = vec2(j["sizeMax"], v.sizeMax);
-		if (const auto it = j.find("color"); it != j.end() && it->is_array() && it->size() >= 4)
-			v.color = Color((*it)[0].get<float>(), (*it)[1].get<float>(),
-				(*it)[2].get<float>(), (*it)[3].get<float>());
-		if (const auto it = j.find("fade"); it != j.end() && it->is_array() && it->size() >= 2)
-		{
-			v.fadeInDuration = (*it)[0].get<float>(); v.fadeOutDuration = (*it)[1].get<float>();
-		}
-		v.localVelocity = j.value("localVelocity", v.localVelocity);
-		v.additive = j.value("additive", v.additive);
-		if (const auto ribbon = j.find("ribbon"); ribbon != j.end() && ribbon->is_object())
-		{
-			if (ribbon->contains("root")) v.ribbonRootOffset = vec3((*ribbon)["root"], v.ribbonRootOffset);
-			if (ribbon->contains("tip")) v.ribbonTipOffset = vec3((*ribbon)["tip"], v.ribbonTipOffset);
-			v.ribbonLifetime = ribbon->value("lifetime", v.ribbonLifetime);
-			v.ribbonMaxPoints = ribbon->value("maxPoints", v.ribbonMaxPoints);
-			v.ribbonTipRatio = ribbon->value("tipRatio", v.ribbonTipRatio);
-			v.ribbonSampleInterval = ribbon->value("sampleInterval", v.ribbonSampleInterval);
-			if (const auto c = ribbon->find("endColor"); c != ribbon->end() && c->is_array() && c->size() >= 4)
-				v.ribbonEndColor = Color((*c)[0].get<float>(), (*c)[1].get<float>(),
-					(*c)[2].get<float>(), (*c)[3].get<float>());
-		}
-		v.columns = std::clamp(v.columns, 1, 32); v.rows = std::clamp(v.rows, 1, 32);
-		v.capacity = std::clamp(v.capacity, 1, 8192);
-		return true;
-	}
-	catch (...) { return false; }
 }
 
 std::string PortableResourcePath(const std::filesystem::path& path)
@@ -209,8 +138,6 @@ bool DrawComponentTransform(VMDLModel& model, VMDLModel::VmdlComponentTransform&
 	changed |= ImGui::DragFloat3((const char*)u8"回転", &transform.rotation.x, 0.1f);
 	changed |= ImGui::DragFloat3((const char*)u8"スケール", &transform.scale.x, 0.01f);
 	return changed;
-}
-
 }
 
 VmdlEditorScene::VmdlEditorScene() : VmdlEditorScene(std::filesystem::path{}) {}
@@ -314,46 +241,6 @@ void VmdlEditorScene::LoadLayoutSettings()
 			reinterpret_cast<const char8_t*>(path.data()), path.size()));
 		return;
 	}
-
-	// 旧専用JSONがあれば初回だけ読み込み、シーン破棄時にEditor.iniへ移行する
-	const std::filesystem::path settingsPath =
-		std::filesystem::current_path() / "VmdlEditorLayout.json";
-	const std::filesystem::path legacyPath =
-		std::filesystem::current_path() / "Resources" / "VmdlEditorLayout.json";
-	std::ifstream stream(std::filesystem::exists(settingsPath) ? settingsPath : legacyPath);
-	if (!stream) return;
-
-	try
-	{
-		json root;
-		stream >> root;
-		const std::string recentPathUtf8 = root.value("recentModelPath", std::string{});
-		recentModelPath = std::filesystem::path(std::u8string(
-			reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
-		if (const auto window = root.find("window"); window != root.end() && window->is_object())
-		{
-			savedWindowX = window->value("x", savedWindowX);
-			savedWindowY = window->value("y", savedWindowY);
-			savedWindowWidth = window->value("width", savedWindowWidth);
-			savedWindowHeight = window->value("height", savedWindowHeight);
-			savedWindowMaximized = window->value("maximized", savedWindowMaximized);
-			savedWindowPlacementValid = savedWindowWidth >= 640 && savedWindowHeight >= 480;
-		}
-
-		const float propertyRatio = root.value("propertyPanelRatio", -1.0f);
-		const float viewportRatio = root.value("viewportPanelRatio", -1.0f);
-		const float bottomRatio = root.value("bottomPanelRatio", -1.0f);
-		if (propertyRatio < 0.1f || propertyRatio > 0.6f || viewportRatio < 0.2f ||
-			viewportRatio > 0.6f || propertyRatio + viewportRatio > 0.85f ||
-			bottomRatio < 0.1f || bottomRatio > 0.7f)
-			return;
-
-		loadedPropertyPanelRatio = propertyRatio;
-		loadedViewportPanelRatio = viewportRatio;
-		loadedBottomPanelRatio = bottomRatio;
-	}
-	catch (const json::exception&)
-	{}
 }
 
 void VmdlEditorScene::SaveLayoutSettings()
@@ -423,10 +310,10 @@ void VmdlEditorScene::OnUpdate()
 			MONITORINFO monitorInfo{sizeof(MONITORINFO)};
 			GetMonitorInfo(MonitorFromRect(&desired, MONITOR_DEFAULTTONEAREST), &monitorInfo);
 			const RECT work = monitorInfo.rcWork;
-			const int workLeft = static_cast<int>(work.left);
-			const int workTop = static_cast<int>(work.top);
-			const int workRight = static_cast<int>(work.right);
-			const int workBottom = static_cast<int>(work.bottom);
+			const int workLeft = work.left;
+			const int workTop = work.top;
+			const int workRight = work.right;
+			const int workBottom = work.bottom;
 			const int width = std::clamp(savedWindowWidth, 640, workRight - workLeft);
 			const int height = std::clamp(savedWindowHeight, 480, workBottom - workTop);
 			const int x = std::clamp(savedWindowX, workLeft, workRight - width);
@@ -476,7 +363,7 @@ void VmdlEditorScene::OnDrawGUI()
 
 	// アニメーションプレビューの再生
 	if (animationPlaying && model && selectedAnimation >= 0 &&
-		selectedAnimation < static_cast<int>(model->GetAnimations().size()))
+		selectedAnimation < Count(model->GetAnimations()))
 	{
 		const float length = model->GetAnimations()[selectedAnimation].secondsLength;
 		const float previousTime = animationTime;
@@ -499,7 +386,7 @@ void VmdlEditorScene::OnDrawGUI()
 			? previousTime - 0.0001f : previousTime;
 		if (looped)
 		{
-			particlePreviewBurstPending = true;
+			particlePreviewPlayPending = true;
 			PlayAnimationSoundPreview(selectedAnimation, soundBegin, length);
 			PlayAnimationSoundPreview(selectedAnimation, -0.0001f, animationTime);
 			PlayPresentationPreviewEvents(selectedAnimation, soundBegin, length);
@@ -548,7 +435,7 @@ void VmdlEditorScene::OnDrawGUI()
 	const float columnSplitterWidth = 6.0f;
 	const float availableColumnWidth = totalWidth - columnSplitterWidth * 2.0f;
 	const float previewAspect =
-		static_cast<float>(PreviewWidth) / static_cast<float>(PreviewHeight);
+		static_cast<float>(PreviewWidth) / PreviewHeight;
 	const bool canInitializeLayout =
 		!restoreWindowPending && !layoutWindowMetricsPending &&
 		availableColumnWidth >= 660.0f &&
@@ -763,7 +650,7 @@ void VmdlEditorScene::StartUnifiedPreview()
 		animationSoundPreviewStarting = true;
 		return;
 	}
-	if (selectedAnimation >= 0 && selectedAnimation < static_cast<int>(model->GetAnimations().size()) &&
+	if (selectedAnimation >= 0 && selectedAnimation < Count(model->GetAnimations()) &&
 		animationTime >= model->GetAnimations()[selectedAnimation].secondsLength - 0.0001f)
 	{
 		animationTime = 0.0f;
@@ -772,7 +659,7 @@ void VmdlEditorScene::StartUnifiedPreview()
 	unifiedPreviewActive = true;
 	animationPlaying = true;
 	animationSoundPreviewStarting = true;
-	particlePreviewBurstPending = true;
+	particlePreviewPlayPending = true;
 	springPreviewSignature.clear();
 	StartPresentationPreview();
 	if (model->GetVmdlIKSettings().type != 0)
@@ -785,7 +672,7 @@ void VmdlEditorScene::StartUnifiedPreview()
 void VmdlEditorScene::StopUnifiedPreview(bool rewind)
 {
 	animationPlaying = false;
-	particlePreviewBurstPending = false;
+	particlePreviewPlayPending = false;
 	manualParticlePreviewIndex = -1;
 	if (!rewind) return;
 
@@ -812,7 +699,7 @@ void VmdlEditorScene::StartPresentationPreview()
 	cameraShakePreviewTimer = cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
 	radialBlurPreviewTimer = radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
 	if (!model || !editorCamera) return;
-	if (selectedAnimation >= 0 && selectedAnimation < static_cast<int>(model->GetAnimations().size()))
+	if (selectedAnimation >= 0 && selectedAnimation < Count(model->GetAnimations()))
 	{
 		const std::string& animationName = model->GetAnimations()[selectedAnimation].name;
 		const auto& presentation = model->GetVmdlPresentationData();
@@ -827,7 +714,7 @@ void VmdlEditorScene::StartPresentationPreview()
 	model->UpdateTransform(Matrix::Identity);
 	const Vector3 listener = editorCamera->GetEye();
 	const auto strengthAt = [this, &listener](int node, float range, bool attenuate) {
-		const Vector3 origin = node >= 0 && node < static_cast<int>(model->GetNodes().size())
+		const Vector3 origin = node >= 0 && node < Count(model->GetNodes())
 			? (model->GetNodes()[node].worldTransform * model->GetRenderScaleTransform()).Translation()
 			: Vector3::Zero;
 		const float distance = Vector3::Distance(origin, listener);
@@ -858,13 +745,13 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 	int animationIndex, float beginTime, float endTime)
 {
 	if (!model || !editorCamera || animationIndex < 0 ||
-		animationIndex >= static_cast<int>(model->GetAnimations().size()) || endTime < beginTime)
+		animationIndex >= Count(model->GetAnimations()) || endTime < beginTime)
 		return;
 	const std::string& animationName = model->GetAnimations()[animationIndex].name;
 	const auto& presentation = model->GetVmdlPresentationData();
 	const Vector3 listener = editorCamera->GetEye();
 	const auto strengthAt = [this, &listener](int node, float range, bool attenuate) {
-		const Vector3 origin = node >= 0 && node < static_cast<int>(model->GetNodes().size())
+		const Vector3 origin = node >= 0 && node < Count(model->GetNodes())
 			? (model->GetNodes()[node].worldTransform * model->GetRenderScaleTransform()).Translation()
 			: Vector3::Zero;
 		const float distance = Vector3::Distance(origin, listener);
@@ -880,7 +767,7 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 		{
 			if (key.seconds <= beginTime || key.seconds > endTime + 0.0001f ||
 				key.componentIndex < 0 ||
-				key.componentIndex >= static_cast<int>(presentation.cameraShakes.size())) continue;
+				key.componentIndex >= Count(presentation.cameraShakes)) continue;
 			const auto& value = presentation.cameraShakes[key.componentIndex];
 			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
 			cameraShakePreviewDuration = cameraShakePreviewTimer = value.duration;
@@ -894,7 +781,7 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 		{
 			if (key.seconds <= beginTime || key.seconds > endTime + 0.0001f ||
 				key.componentIndex < 0 ||
-				key.componentIndex >= static_cast<int>(presentation.radialBlurs.size())) continue;
+				key.componentIndex >= Count(presentation.radialBlurs)) continue;
 			const auto& value = presentation.radialBlurs[key.componentIndex];
 			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
 			radialBlurPreviewDuration = radialBlurPreviewTimer = value.duration;
@@ -1033,7 +920,7 @@ void VmdlEditorScene::RenderPreview()
 		{
 			const auto& nodes = model->GetNodes();
 			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
-			for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+			for (int nodeIndex = 0; nodeIndex < Count(nodes); ++nodeIndex)
 			{
 				const VMDLModel::Node& node = nodes[nodeIndex];
 				if (!node.parent) continue;
@@ -1059,7 +946,7 @@ void VmdlEditorScene::RenderPreview()
 			const Matrix local =
 				Matrix::CreateFromYawPitchRoll(RAD(rotation.y), RAD(rotation.x), RAD(rotation.z)) *
 				Matrix::CreateTranslation(offset);
-			if (nodeIndex < 0 || nodeIndex >= static_cast<int>(model->GetNodes().size()))
+			if (nodeIndex < 0 || nodeIndex >= Count(model->GetNodes()))
 				return local;
 			return local * model->GetNodes()[nodeIndex].worldTransform;
 		};
@@ -1073,7 +960,7 @@ void VmdlEditorScene::RenderPreview()
 			const auto& ikSettings = model->GetVmdlIKSettings();
 			const auto& poles = model->GetVmdlIKPoles();
 			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
-			for (int i = 0; i < static_cast<int>(ikSettings.legs.size()); ++i)
+			for (int i = 0; i < Count(ikSettings.legs); ++i)
 			{
 				const auto& leg = ikSettings.legs[i];
 				const int rootIndex = model->GetNodeIndex(leg.root.c_str());
@@ -1082,7 +969,7 @@ void VmdlEditorScene::RenderPreview()
 				if (rootIndex < 0 || midIndex < 0 || tipIndex < 0) continue;
 
 				Vector3 polePosition;
-				if (i < static_cast<int>(poles.size()) && poles[i].custom)
+				if (i < Count(poles) && poles[i].custom)
 				{
 					polePosition = Vector3::Transform(poles[i].position, renderScaleTransform);
 				}
@@ -1122,26 +1009,28 @@ void VmdlEditorScene::RenderPreview()
 			for (const auto& value : data.rigidBodies)
 			{
 				Matrix transform = value.transform.ToMatrix();
-				if (value.nodeIndex >= 0 && value.nodeIndex < static_cast<int>(model->GetNodes().size()))
+				if (value.nodeIndex >= 0 && value.nodeIndex < Count(model->GetNodes()))
 					transform *= model->GetNodes()[value.nodeIndex].worldTransform;
 				Vector3 scale;
 				Vector3 position;
 				Quaternion rotation;
 				transform.Decompose(scale, rotation, position);
 				graphics.GetShapeRenderer()->DrawBox(position, rotation.ToEuler(),
-					Vector3(0.2f, 0.2f, 0.2f), Color(1.0f, 0.75f, 0.1f, 0.7f));
+					Vector3(0.2f, 0.2f, 0.2f), value.kinematic
+						? Color(0.25f, 0.75f, 1.0f, 0.7f)
+						: Color(1.0f, 0.75f, 0.1f, 0.7f));
 				hasShapes = true;
 			}
 		}
 		if (showDebugOverlays && showCollider)
 		{
-			for (int i = 0; i < static_cast<int>(data.colliders.size()); ++i)
+			for (int i = 0; i < Count(data.colliders); ++i)
 			{
-				if (i < static_cast<int>(previewColliderActive.size()) &&
+				if (i < Count(previewColliderActive) &&
 					previewColliderActive[i] == 0)
 					continue;
 				const auto& value = data.colliders[i];
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 					continue;
 				Matrix transform = model->GetScaledAttachmentTransform(
 					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform);
@@ -1155,7 +1044,31 @@ void VmdlEditorScene::RenderPreview()
 				transform.Decompose(transformScale, rotation, position);
 				const Matrix pose =
 					Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
-				if (value.shape == 1)
+				if (value.shape >= 3)
+				{
+					const int meshIndex = value.shape - 3;
+					if (meshIndex >= 0 && meshIndex < Count(model->GetMeshes()))
+					{
+						const auto& mesh = model->GetMeshes()[meshIndex];
+						const Matrix meshNodeTransform = mesh.node
+							? mesh.node->globalTransform : Matrix::Identity;
+						const Matrix meshWorld = meshNodeTransform *
+							model->GetNodes()[value.nodeIndex].globalTransform.Invert() * transform;
+						Vector3 minimum(FLT_MAX, FLT_MAX, FLT_MAX);
+						Vector3 maximum(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+						for (const auto& vertex : mesh.vertices)
+						{
+							const Vector3 position = Vector3::Transform(vertex.position, meshWorld);
+							minimum = Vector3::Min(minimum, position);
+							maximum = Vector3::Max(maximum, position);
+						}
+						if (!mesh.vertices.empty())
+							graphics.GetShapeRenderer()->DrawBox((minimum + maximum) * 0.5f,
+								Vector3::Zero, (maximum - minimum) * 0.5f,
+								Color(0.1f, 0.9f, 1.0f, 0.7f));
+					}
+				}
+				else if (value.shape == 1)
 					graphics.GetShapeRenderer()->DrawSphere(
 						position, std::max(0.001f, scaledSize.x), Color(0.1f, 0.9f, 1.0f, 0.7f));
 				else if (value.shape == 2)
@@ -1177,7 +1090,7 @@ void VmdlEditorScene::RenderPreview()
 			for (const auto& source : soundSources)
 			{
 				if (!source.spatial || source.nodeIndex < 0 ||
-					source.nodeIndex >= static_cast<int>(nodes.size()))
+					source.nodeIndex >= Count(nodes))
 					continue;
 
 				const Vector3 position = matrixPosition(model->GetScaledAttachmentTransform(
@@ -1197,7 +1110,7 @@ void VmdlEditorScene::RenderPreview()
 			const auto& presentation = model->GetVmdlPresentationData();
 			for (const auto& value : presentation.cameraShakes)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(nodes)) continue;
 				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
 					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(1.0f, 0.65f, 0.1f, 0.7f));
@@ -1205,7 +1118,7 @@ void VmdlEditorScene::RenderPreview()
 			}
 			for (const auto& value : presentation.radialBlurs)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(nodes.size())) continue;
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(nodes)) continue;
 				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
 					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(0.7f, 0.25f, 1.0f, 0.7f));
@@ -1216,7 +1129,7 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.springColliders)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 					continue;
 				graphics.GetShapeRenderer()->DrawSphere(
 					matrixPosition(value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform),
@@ -1233,7 +1146,7 @@ void VmdlEditorScene::RenderPreview()
 		{
 			for (const auto& value : data.springs)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 					continue;
 				const Vector3 start =
 					matrixPosition(nodeOffsetTransform(value.nodeIndex, Vector3::Zero));
@@ -1248,12 +1161,12 @@ void VmdlEditorScene::RenderPreview()
 		if (showDebugOverlays && showTrail)
 		{
 			const auto& trails = model->GetVmdlTrailData().trails;
-			for (int i = 0; i < static_cast<int>(trails.size()); ++i)
+			for (int i = 0; i < Count(trails); ++i)
 			{
-				if (i < static_cast<int>(previewTrailActive.size()) && previewTrailActive[i] == 0)
+				if (i < Count(previewTrailActive) && previewTrailActive[i] == 0)
 					continue;
 				const auto& value = trails[i];
-				if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 					continue;
 				const Vector3 root = matrixPosition(model->GetScaledAttachmentTransform(
 					Matrix::CreateFromYawPitchRoll(RAD(value.offsetAngle.y), RAD(value.offsetAngle.x),
@@ -1427,12 +1340,12 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 	}
 	const auto& groups = model->GetExternalMeshGroups();
 	const auto& meshes = model->GetMeshes();
-	for (int groupIndex = 0; groupIndex < static_cast<int>(groups.size()); ++groupIndex)
+	for (int groupIndex = 0; groupIndex < Count(groups); ++groupIndex)
 	{
 		const auto& group = groups[groupIndex];
 		bool active = false;
 		for (int meshIndex : group.meshIndices)
-			if (meshIndex >= 0 && meshIndex < static_cast<int>(meshes.size()) &&
+			if (meshIndex >= 0 && meshIndex < Count(meshes) &&
 				meshes[meshIndex].isDraw) { active = true; break; }
 		auto loaded = externalMeshPreviewCaches.find(groupIndex);
 		if (!active)
@@ -1458,15 +1371,15 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 		}
 		auto& cacheMeshes = loaded->second->GetMeshes();
 		for (auto& cacheMesh : cacheMeshes) cacheMesh.isDraw = false;
-		for (size_t bindingSlot = 0; bindingSlot < group.meshIndices.size(); ++bindingSlot)
+		for (int bindingSlot = 0; bindingSlot < Count(group.meshIndices); ++bindingSlot)
 		{
 			const int cacheSlot = bindingSlot < group.cacheMeshIndices.size()
 				? group.cacheMeshIndices[bindingSlot]
-				: static_cast<int>(bindingSlot);
+				: bindingSlot;
 			const int meshIndex = group.meshIndices[bindingSlot];
-			if (cacheSlot < 0 || cacheSlot >= static_cast<int>(cacheMeshes.size())) continue;
+			if (cacheSlot < 0 || cacheSlot >= Count(cacheMeshes)) continue;
 			cacheMeshes[cacheSlot].isDraw = meshIndex >= 0 &&
-				meshIndex < static_cast<int>(meshes.size()) && meshes[meshIndex].isDraw;
+				meshIndex < Count(meshes) && meshes[meshIndex].isDraw;
 		}
 	}
 }
@@ -1506,14 +1419,14 @@ void VmdlEditorScene::DrawFootIkPreviewWindow()
 		ImGui::TextDisabled((const char*)u8"IK設定がありません");
 	}
 	else if (selectedAnimation < 0 ||
-			 selectedAnimation >= static_cast<int>(model->GetAnimations().size()))
+			 selectedAnimation >= Count(model->GetAnimations()))
 	{
 		ImGui::TextDisabled((const char*)u8"アニメーションが選択されていません");
 	}
 	else
 	{
 		const auto& legs = model->GetVmdlIKSettings().legs;
-		for (int footIndex = 0; footIndex < static_cast<int>(legs.size()); ++footIndex)
+		for (int footIndex = 0; footIndex < Count(legs); ++footIndex)
 		{
 			const char* name =
 				legs[footIndex].name.empty() ? (const char*)u8"脚" : legs[footIndex].name.c_str();
@@ -1579,7 +1492,7 @@ void VmdlEditorScene::RebuildFootIkPreview()
 	auto owner = std::make_unique<Actor>("VMDL Foot IK Preview");
 	Animator* animator = owner->AddComponent<Animator>(model, true);
 	animator->AddLayer("Preview");
-	for (int animationIndex = 0; animationIndex < static_cast<int>(model->GetAnimations().size());
+	for (int animationIndex = 0; animationIndex < Count(model->GetAnimations());
 		++animationIndex)
 	{
 		animator->AddState(0, model->GetAnimations()[animationIndex].name, animationIndex, true);
@@ -1621,7 +1534,7 @@ void VmdlEditorScene::RebuildFootIkPreview()
 bool VmdlEditorScene::ApplyFootIkPreview()
 {
 	if (!model || selectedAnimation < 0 ||
-		selectedAnimation >= static_cast<int>(model->GetAnimations().size()))
+		selectedAnimation >= Count(model->GetAnimations()))
 		return false;
 
 	const auto& settings = model->GetVmdlIKSettings();
@@ -1649,7 +1562,7 @@ bool VmdlEditorScene::ApplyFootIkPreview()
 	if (!footIkPreviewOwner || !footIkPreviewAnimator) return false;
 
 	auto& layer = footIkPreviewAnimator->GetLayer(0);
-	if (selectedAnimation >= static_cast<int>(layer.states.size())) return false;
+	if (selectedAnimation >= Count(layer.states)) return false;
 	layer.currentStateIndex = selectedAnimation;
 	layer.currentTime = animationTime;
 	model->UpdateTransform(Matrix::Identity);
@@ -1677,7 +1590,7 @@ void VmdlEditorScene::DrawHierarchy()
 	// 検索条件に一致したノードツリー
 	const auto& nodes = model->GetNodes();
 	bool found = false;
-	for (int index = 0; index < static_cast<int>(nodes.size()); ++index)
+	for (int index = 0; index < Count(nodes); ++index)
 	{
 		if (nodes[index].parentIndex >= 0 || !NodeMatchesHierarchySearch(index)) continue;
 		DrawNodeTree(index);
@@ -1773,7 +1686,7 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 
 void VmdlEditorScene::SelectNode(int nodeIndex, bool toggleSelection)
 {
-	if (!model || nodeIndex < 0 || nodeIndex >= static_cast<int>(model->GetNodes().size())) return;
+	if (!model || nodeIndex < 0 || nodeIndex >= Count(model->GetNodes())) return;
 
 	const auto selected = std::find(selectedNodes.begin(), selectedNodes.end(), nodeIndex);
 	if (!toggleSelection)
@@ -1810,7 +1723,7 @@ bool VmdlEditorScene::IsNodeSelected(int nodeIndex) const
 // メッシュを単独選択またはCtrlによる複数選択へ反映する
 void VmdlEditorScene::SelectMesh(int meshIndex, bool toggleSelection)
 {
-	if (!model || meshIndex < 0 || meshIndex >= static_cast<int>(model->GetMeshes().size())) return;
+	if (!model || meshIndex < 0 || meshIndex >= Count(model->GetMeshes())) return;
 
 	const auto selected = std::find(selectedMeshes.begin(), selectedMeshes.end(), meshIndex);
 	if (!toggleSelection)
@@ -1904,7 +1817,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 	int primaryComponentIndex = -1;
 	for (int nodeIndex : selectedNodes)
 	{
-		if (nodeIndex < 0 || nodeIndex >= static_cast<int>(model->GetNodes().size())) continue;
+		if (nodeIndex < 0 || nodeIndex >= Count(model->GetNodes())) continue;
 
 		int componentIndex = -1;
 		switch (type)
@@ -1913,7 +1826,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		{
 			const std::string name =
 				MakeUniqueAttachedComponentName(type, "RIGIDBODY");
-			componentIndex = static_cast<int>(data.rigidBodies.size());
+			componentIndex = Count(data.rigidBodies);
 			auto& value = data.rigidBodies.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1922,7 +1835,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		case AttachedComponentType::Collider:
 		{
 			const std::string name = MakeUniqueAttachedComponentName(type, "COLLIDER");
-			componentIndex = static_cast<int>(data.colliders.size());
+			componentIndex = Count(data.colliders);
 			auto& value = data.colliders.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1931,7 +1844,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		case AttachedComponentType::Spring:
 		{
 			const std::string name = MakeUniqueAttachedComponentName(type, "SPRING");
-			componentIndex = static_cast<int>(data.springs.size());
+			componentIndex = Count(data.springs);
 			auto& value = data.springs.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1941,7 +1854,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		{
 			const std::string name =
 				MakeUniqueAttachedComponentName(type, "SPRING COLLIDER");
-			componentIndex = static_cast<int>(data.springColliders.size());
+			componentIndex = Count(data.springColliders);
 			auto& value = data.springColliders.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1951,7 +1864,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		{
 			const std::string name = MakeUniqueAttachedComponentName(type, "TRAIL");
 			auto& trails = model->GetVmdlTrailData().trails;
-			componentIndex = static_cast<int>(trails.size());
+			componentIndex = Count(trails);
 			auto& value = trails.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1961,7 +1874,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		{
 			const std::string name = MakeUniqueAttachedComponentName(type, "PARTICLE");
 			auto& emitters = model->GetVmdlParticleData().emitters;
-			componentIndex = static_cast<int>(emitters.size());
+			componentIndex = Count(emitters);
 			auto& value = emitters.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1972,7 +1885,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		{
 			const std::string name = MakeUniqueAttachedComponentName(type, "SOUND SOURCE");
 			auto& sources = model->GetVmdlSoundData().sources;
-			componentIndex = static_cast<int>(sources.size());
+			componentIndex = Count(sources);
 			auto& value = sources.emplace_back();
 			value.name = name;
 			value.nodeIndex = nodeIndex;
@@ -1981,7 +1894,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		case AttachedComponentType::CameraShake:
 		{
 			auto& values = model->GetVmdlPresentationData().cameraShakes;
-			componentIndex = static_cast<int>(values.size());
+			componentIndex = Count(values);
 			auto& value = values.emplace_back();
 			value.name = MakeUniqueAttachedComponentName(type, "CAMERA SHAKE");
 			value.nodeIndex = nodeIndex;
@@ -1990,7 +1903,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		case AttachedComponentType::RadialBlur:
 		{
 			auto& values = model->GetVmdlPresentationData().radialBlurs;
-			componentIndex = static_cast<int>(values.size());
+			componentIndex = Count(values);
 			auto& value = values.emplace_back();
 			value.name = MakeUniqueAttachedComponentName(type, "RADIAL BLUR");
 			value.nodeIndex = nodeIndex;
@@ -2007,6 +1920,165 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 	selectedComponentType = type;
 	selectedComponentIndex = primaryComponentIndex;
 	focusSelectedComponent = primaryComponentIndex >= 0;
+	MarkDirty();
+}
+
+void VmdlEditorScene::DuplicateSelectedAttachedComponent()
+{
+	if (!model || selectedComponentIndex < 0) return;
+
+	auto& extension = model->GetVmdlExtensionData();
+	const int sourceIndex = selectedComponentIndex;
+	int duplicateIndex = -1;
+
+	switch (selectedComponentType)
+	{
+	case AttachedComponentType::RigidBody:
+		if (sourceIndex >= Count(extension.rigidBodies)) return;
+		duplicateIndex = Count(extension.rigidBodies);
+		extension.rigidBodies.push_back(extension.rigidBodies[sourceIndex]);
+		extension.rigidBodies.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, extension.rigidBodies[sourceIndex].name);
+		break;
+	case AttachedComponentType::Collider:
+	{
+		if (sourceIndex >= Count(extension.colliders)) return;
+		const bool initialActive = model->GetColliderInitialActive(sourceIndex);
+		duplicateIndex = Count(extension.colliders);
+		extension.colliders.push_back(extension.colliders[sourceIndex]);
+		extension.colliders.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, extension.colliders[sourceIndex].name);
+		model->SetColliderInitialActive(duplicateIndex, initialActive);
+		auto& tracks = model->GetVmdlAnimationControlData().colliderTracks;
+		std::vector<VMDLModel::VmdlColliderAnimationTrack> duplicates;
+		for (const auto& track : tracks)
+		{
+			if (track.colliderIndex != sourceIndex) continue;
+			duplicates.push_back(track);
+			duplicates.back().colliderIndex = duplicateIndex;
+		}
+		tracks.insert(tracks.end(), duplicates.begin(), duplicates.end());
+		previewColliderActive.push_back(initialActive ? 1 : 0);
+		break;
+	}
+	case AttachedComponentType::Spring:
+		if (sourceIndex >= Count(extension.springs)) return;
+		duplicateIndex = Count(extension.springs);
+		extension.springs.push_back(extension.springs[sourceIndex]);
+		extension.springs.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, extension.springs[sourceIndex].name);
+		RebuildSpringPreview();
+		break;
+	case AttachedComponentType::SpringCollider:
+		if (sourceIndex >= Count(extension.springColliders)) return;
+		duplicateIndex = Count(extension.springColliders);
+		extension.springColliders.push_back(extension.springColliders[sourceIndex]);
+		extension.springColliders.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, extension.springColliders[sourceIndex].name);
+		RebuildSpringPreview();
+		break;
+	case AttachedComponentType::Trail:
+	{
+		auto& data = model->GetVmdlTrailData();
+		if (sourceIndex >= Count(data.trails)) return;
+		const bool initialActive = model->GetTrailInitialActive(sourceIndex);
+		duplicateIndex = Count(data.trails);
+		data.trails.push_back(data.trails[sourceIndex]);
+		data.trails.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, data.trails[sourceIndex].name);
+		model->SetTrailInitialActive(duplicateIndex, initialActive);
+		std::vector<VMDLModel::VmdlTrailAnimationTrack> duplicates;
+		for (const auto& track : data.tracks)
+		{
+			if (track.trailIndex != sourceIndex) continue;
+			duplicates.push_back(track);
+			duplicates.back().trailIndex = duplicateIndex;
+		}
+		data.tracks.insert(data.tracks.end(), duplicates.begin(), duplicates.end());
+		previewTrailActive.push_back(initialActive ? 1 : 0);
+		RebuildTrailPreview();
+		break;
+	}
+	case AttachedComponentType::Particle:
+	{
+		auto& data = model->GetVmdlParticleData();
+		if (sourceIndex >= Count(data.emitters)) return;
+		const bool initialActive = model->GetParticleInitialActive(sourceIndex);
+		duplicateIndex = Count(data.emitters);
+		data.emitters.push_back(data.emitters[sourceIndex]);
+		data.emitters.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, data.emitters[sourceIndex].name);
+		model->SetParticleInitialActive(duplicateIndex, initialActive);
+		std::vector<VMDLModel::VmdlParticleAnimationTrack> duplicates;
+		for (const auto& track : data.tracks)
+		{
+			if (track.emitterIndex != sourceIndex) continue;
+			duplicates.push_back(track);
+			duplicates.back().emitterIndex = duplicateIndex;
+		}
+		data.tracks.insert(data.tracks.end(), duplicates.begin(), duplicates.end());
+		previewParticleActive.push_back(initialActive ? 1 : 0);
+		RebuildParticlePreview();
+		break;
+	}
+	case AttachedComponentType::SoundSource:
+	{
+		auto& data = model->GetVmdlSoundData();
+		if (sourceIndex >= Count(data.sources)) return;
+		duplicateIndex = Count(data.sources);
+		data.sources.push_back(data.sources[sourceIndex]);
+		data.sources.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, data.sources[sourceIndex].name);
+		for (auto& track : data.tracks)
+		{
+			std::vector<VMDLModel::VmdlSoundKeyframe> duplicates;
+			for (const auto& key : track.keys)
+			{
+				if (key.sourceIndex != sourceIndex) continue;
+				duplicates.push_back(key);
+				duplicates.back().sourceIndex = duplicateIndex;
+			}
+			track.keys.insert(track.keys.end(), duplicates.begin(), duplicates.end());
+		}
+		break;
+	}
+	case AttachedComponentType::CameraShake:
+	case AttachedComponentType::RadialBlur:
+	{
+		auto& data = model->GetVmdlPresentationData();
+		auto duplicatePresentation = [this, sourceIndex, &duplicateIndex](auto& values, auto& tracks)
+		{
+			if (sourceIndex >= Count(values)) return false;
+			duplicateIndex = Count(values);
+			values.push_back(values[sourceIndex]);
+			values.back().name = MakeUniqueAttachedComponentName(
+				selectedComponentType, values[sourceIndex].name);
+			for (auto& track : tracks)
+			{
+				std::vector<VMDLModel::VmdlPresentationKeyframe> duplicates;
+				for (const auto& key : track.keys)
+				{
+					if (key.componentIndex != sourceIndex) continue;
+					duplicates.push_back(key);
+					duplicates.back().componentIndex = duplicateIndex;
+				}
+				track.keys.insert(track.keys.end(), duplicates.begin(), duplicates.end());
+			}
+			return true;
+		};
+		if (selectedComponentType == AttachedComponentType::CameraShake)
+		{
+			if (!duplicatePresentation(data.cameraShakes, data.cameraShakeTracks)) return;
+		}
+		else if (!duplicatePresentation(data.radialBlurs, data.radialBlurTracks)) return;
+		break;
+	}
+	default:
+		return;
+	}
+
+	selectedComponentIndex = duplicateIndex;
+	focusSelectedComponent = true;
 	MarkDirty();
 }
 
@@ -2141,7 +2213,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	if (!open) return;
 
 	auto& meshes = model->GetMeshes();
-	for (int meshIndex = 0; meshIndex < static_cast<int>(meshes.size()); ++meshIndex)
+	for (int meshIndex = 0; meshIndex < Count(meshes); ++meshIndex)
 	{
 		VMDLModel::Mesh& mesh = meshes[meshIndex];
 		if (mesh.nodeIndex != nodeIndex) continue;
@@ -2188,7 +2260,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			ImGui::EndPopup();
 		}
 	}
-	for (int i = 0; i < static_cast<int>(extension.rigidBodies.size()); ++i)
+	for (int i = 0; i < Count(extension.rigidBodies); ++i)
 	{
 		const auto& value = extension.rigidBodies[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2198,7 +2270,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(
 			nodeIndex, AttachedComponentType::RigidBody, i, (const char*)u8"リジッドボディ", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(extension.colliders.size()); ++i)
+	for (int i = 0; i < Count(extension.colliders); ++i)
 	{
 		const auto& value = extension.colliders[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2208,7 +2280,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(
 			nodeIndex, AttachedComponentType::Collider, i, (const char*)u8"コライダー", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(extension.springs.size()); ++i)
+	for (int i = 0; i < Count(extension.springs); ++i)
 	{
 		const auto& value = extension.springs[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2218,7 +2290,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(
 			nodeIndex, AttachedComponentType::Spring, i, (const char*)u8"スプリング", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(extension.springColliders.size()); ++i)
+	for (int i = 0; i < Count(extension.springColliders); ++i)
 	{
 		const auto& value = extension.springColliders[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2229,7 +2301,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			(const char*)u8"スプリングコライダー", value.name);
 	}
 	const auto& trailComponents = model->GetVmdlTrailData().trails;
-	for (int i = 0; i < static_cast<int>(trailComponents.size()); ++i)
+	for (int i = 0; i < Count(trailComponents); ++i)
 	{
 		const auto& value = trailComponents[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2239,7 +2311,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(
 			nodeIndex, AttachedComponentType::Trail, i, (const char*)u8"トレイル", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(particleEmitters.size()); ++i)
+	for (int i = 0; i < Count(particleEmitters); ++i)
 	{
 		const auto& value = particleEmitters[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2249,7 +2321,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::Particle, i,
 			(const char*)u8"パーティクル", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(soundSources.size()); ++i)
+	for (int i = 0; i < Count(soundSources); ++i)
 	{
 		const auto& value = soundSources[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2259,14 +2331,14 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::SoundSource, i,
 			(const char*)u8"サウンドソース", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(cameraShakes.size()); ++i)
+	for (int i = 0; i < Count(cameraShakes); ++i)
 	{
 		const auto& value = cameraShakes[i];
 		if (value.nodeIndex != nodeIndex) continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::CameraShake, i,
 			(const char*)u8"カメラシェイク", value.name);
 	}
-	for (int i = 0; i < static_cast<int>(radialBlurs.size()); ++i)
+	for (int i = 0; i < Count(radialBlurs); ++i)
 	{
 		const auto& value = radialBlurs[i];
 		if (value.nodeIndex != nodeIndex) continue;
@@ -2397,7 +2469,7 @@ void VmdlEditorScene::DrawViewport()
 		}
 	}
 
-	if (model && selectedNode >= 0 && selectedNode < static_cast<int>(model->GetNodes().size()))
+	if (model && selectedNode >= 0 && selectedNode < Count(model->GetNodes()))
 	{
 		Matrix view = editorCamera->GetView();
 		Matrix projection = editorCamera->GetProjection();
@@ -2470,7 +2542,7 @@ void VmdlEditorScene::DrawViewport()
 		float nearestDistanceSquared = 14.0f * 14.0f;
 		float nearestDepth = FLT_MAX;
 		int nearestNode = -1;
-		for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+		for (int nodeIndex = 0; nodeIndex < Count(nodes); ++nodeIndex)
 		{
 			const VMDLModel::Node& node = nodes[nodeIndex];
 			if (!node.parent) continue;
@@ -2542,13 +2614,16 @@ void VmdlEditorScene::DrawProperty()
 {
 	ImGui::TextUnformatted((const char*)u8"プロパティ");
 	ImGui::Separator();
-	if (!model || selectedNode < 0 || selectedNode >= static_cast<int>(model->GetNodes().size()))
+	if (!model || selectedNode < 0 || selectedNode >= Count(model->GetNodes()))
 	{
 		ImGui::TextDisabled((const char*)u8"ノードまたはメッシュを選択してください");
 		return;
 	}
 	if (selectedComponentType != AttachedComponentType::None && selectedComponentIndex >= 0)
 	{
+		if (ImGui::Button((const char*)u8"コンポーネントを複製"))
+			DuplicateSelectedAttachedComponent();
+		ImGui::Separator();
 		DrawAttachedData(selectedNode);
 		return;
 	}
@@ -2577,7 +2652,7 @@ void VmdlEditorScene::DrawProperty()
 	}
 
 	// 選択メッシュの情報
-	if (selectedMesh >= 0 && selectedMesh < static_cast<int>(model->GetMeshes().size()))
+	if (selectedMesh >= 0 && selectedMesh < Count(model->GetMeshes()))
 	{
 		VMDLModel::Mesh& mesh = model->GetMeshes()[selectedMesh];
 		ImGui::SeparatorText((const char*)u8"メッシュ");
@@ -2604,7 +2679,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 
 	// リジッドボディ
 	int deleteRigidBody = -1;
-	for (int i = 0; i < static_cast<int>(data.rigidBodies.size()); ++i)
+	for (int i = 0; i < Count(data.rigidBodies); ++i)
 	{
 		auto& value = data.rigidBodies[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RigidBody ||
@@ -2620,8 +2695,16 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::DragFloat((const char*)u8"質量", &value.mass, 0.05f, 0.0f);
-			changed |= ImGui::Checkbox((const char*)u8"キネマティック", &value.kinematic);
+			const char* rigidBodyTypes[] = {(const char*)u8"静的", (const char*)u8"動的"};
+			int rigidBodyType = value.kinematic ? 0 : 1;
+			if (ImGui::Combo((const char*)u8"種類", &rigidBodyType,
+					rigidBodyTypes, IM_ARRAYSIZE(rigidBodyTypes)))
+			{
+				value.kinematic = rigidBodyType == 0;
+				changed = true;
+			}
+			if (rigidBodyType == 1)
+				changed |= ImGui::DragFloat((const char*)u8"質量", &value.mass, 0.05f, 0.001f);
 			if (changed) MarkDirty();
 			if (ImGui::Button((const char*)u8"削除")) deleteRigidBody = i;
 			ImGui::TreePop();
@@ -2646,7 +2729,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 
 	// コライダー
 	int deleteCollider = -1;
-	for (int i = 0; i < static_cast<int>(data.colliders.size()); ++i)
+	for (int i = 0; i < Count(data.colliders); ++i)
 	{
 		auto& value = data.colliders[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Collider ||
@@ -2659,8 +2742,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			const char* shapes[] = {
-				(const char*)u8"ボックス", (const char*)u8"球", (const char*)u8"カプセル"};
+			const char* shapes[] = {(const char*)u8"ボックス", (const char*)u8"球",
+				(const char*)u8"カプセル", "Mesh"};
 			bool initialActive = model->GetColliderInitialActive(i);
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
@@ -2688,14 +2771,49 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::Combo((const char*)u8"形状", &value.shape, shapes, IM_ARRAYSIZE(shapes)))
+			int shape = value.shape >= 3 ? 3 : value.shape;
+			if (ImGui::Combo((const char*)u8"形状", &shape, shapes, IM_ARRAYSIZE(shapes)))
 			{
-				if (value.shape == 1) value.size.y = value.size.z = value.size.x;
+				value.shape = shape == 3 ? 3 : shape;
+				if (shape == 1) value.size.y = value.size.z = value.size.x;
 				changed = true;
 			}
 			Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
 			changed |= DrawComponentTransform(*model, value.transform);
-			if (value.shape == 1)
+			if (shape == 3)
+			{
+				auto& meshes = model->GetMeshes();
+				int meshIndex = value.shape - 3;
+				if (meshes.empty())
+				{
+					ImGui::TextDisabled((const char*)u8"参照できるメッシュがありません");
+				}
+				else
+				{
+					meshIndex = std::clamp(meshIndex, 0, Count(meshes) - 1);
+					if (value.shape != meshIndex + 3)
+					{
+						value.shape = meshIndex + 3;
+						changed = true;
+					}
+					const std::string preview = MakeMeshLabel(*model, meshIndex);
+					if (ImGui::BeginCombo((const char*)u8"参照メッシュ", preview.c_str()))
+					{
+						for (int candidate = 0; candidate < Count(meshes); ++candidate)
+						{
+							const std::string label = MakeMeshLabel(*model, candidate);
+							if (ImGui::Selectable(label.c_str(), candidate == meshIndex))
+							{
+								meshIndex = candidate;
+								value.shape = candidate + 3;
+								changed = true;
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
+			}
+			else if (shape == 1)
 			{
 				if (ImGui::DragFloat((const char*)u8"半径", &scaledSize.x, 0.01f, 0.001f))
 				{
@@ -2729,7 +2847,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
 			{
 				model->SetColliderInitialActive(i, initialActive);
-				if (previewColliderActive.size() <= static_cast<size_t>(i))
+				if (Count(previewColliderActive) <= i)
 					previewColliderActive.resize(i + 1, 1);
 				previewColliderActive[i] = initialActive ? 1 : 0;
 				MarkDirty();
@@ -2754,7 +2872,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				--selectedComponentIndex;
 		}
 		auto& control = model->GetVmdlAnimationControlData();
-		if (deleteCollider < static_cast<int>(control.colliderInitialActive.size()))
+		if (deleteCollider < Count(control.colliderInitialActive))
 			control.colliderInitialActive.erase(
 				control.colliderInitialActive.begin() + deleteCollider);
 		std::erase_if(control.colliderTracks,
@@ -2763,19 +2881,19 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			if (track.colliderIndex > deleteCollider) --track.colliderIndex;
 		}
-		if (deleteCollider < static_cast<int>(previewColliderActive.size()))
+		if (deleteCollider < Count(previewColliderActive))
 			previewColliderActive.erase(previewColliderActive.begin() + deleteCollider);
 		selectedColliderEventTarget = data.colliders.empty()
 										  ? 0
 										  : std::min(selectedColliderEventTarget,
-												static_cast<int>(data.colliders.size()) - 1);
+												Count(data.colliders) - 1);
 		if (timelineEventContextKind == 0) timelineEventContextKind = -1;
 		MarkDirty();
 	}
 
 	// スプリング
 	int deleteSpring = -1;
-	for (int i = 0; i < static_cast<int>(data.springs.size()); ++i)
+	for (int i = 0; i < Count(data.springs); ++i)
 	{
 		auto& value = data.springs[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Spring ||
@@ -2818,7 +2936,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 
 	// スプリングコライダー
 	int deleteSpringCollider = -1;
-	for (int i = 0; i < static_cast<int>(data.springColliders.size()); ++i)
+	for (int i = 0; i < Count(data.springColliders); ++i)
 	{
 		auto& value = data.springColliders[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -2862,7 +2980,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	// トレイル
 	auto& trailData = model->GetVmdlTrailData();
 	int deleteTrail = -1;
-	for (int i = 0; i < static_cast<int>(trailData.trails.size()); ++i)
+	for (int i = 0; i < Count(trailData.trails); ++i)
 	{
 		auto& value = trailData.trails[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Trail ||
@@ -2899,7 +3017,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
 			{
 				model->SetTrailInitialActive(i, initialActive);
-				if (previewTrailActive.size() <= static_cast<size_t>(i))
+				if (Count(previewTrailActive) <= i)
 					previewTrailActive.resize(i + 1, 1);
 				previewTrailActive[i] = initialActive ? 1 : 0;
 				MarkDirty();
@@ -2922,7 +3040,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			else if (selectedComponentIndex > deleteTrail)
 				--selectedComponentIndex;
 		}
-		if (deleteTrail < static_cast<int>(trailData.initialActive.size()))
+		if (deleteTrail < Count(trailData.initialActive))
 			trailData.initialActive.erase(trailData.initialActive.begin() + deleteTrail);
 		std::erase_if(trailData.tracks,
 			[deleteTrail](const auto& track) { return track.trailIndex == deleteTrail; });
@@ -2930,12 +3048,12 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			if (track.trailIndex > deleteTrail) --track.trailIndex;
 		}
-		if (deleteTrail < static_cast<int>(previewTrailActive.size()))
+		if (deleteTrail < Count(previewTrailActive))
 			previewTrailActive.erase(previewTrailActive.begin() + deleteTrail);
 		selectedTrailEventTarget =
 			trailData.trails.empty()
 				? 0
-				: std::min(selectedTrailEventTarget, static_cast<int>(trailData.trails.size()) - 1);
+				: std::min(selectedTrailEventTarget, Count(trailData.trails) - 1);
 		if (timelineEventContextKind == 2) timelineEventContextKind = -1;
 		MarkDirty();
 	}
@@ -2943,7 +3061,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	// パーティクルエミッタ
 	auto& particleData = model->GetVmdlParticleData();
 	int deleteParticle = -1;
-	for (int i = 0; i < static_cast<int>(particleData.emitters.size()); ++i)
+	for (int i = 0; i < Count(particleData.emitters); ++i)
 	{
 		auto& value = particleData.emitters[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Particle ||
@@ -2957,184 +3075,38 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		{
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
+			changed |= ImGui::Checkbox((const char*)u8"ノードに追従", &value.modelDerived);
+			changed |= ImGui::Checkbox((const char*)u8"ビルボード", &value.billboard);
 			changed |= DrawComponentTransform(*model, value.transform);
 			ImGui::Text((const char*)u8"埋め込みEFKPKG: %s",
 				value.effekseerFileName.empty() ? (const char*)u8"なし" : value.effekseerFileName.c_str());
 			ImGui::Text((const char*)u8"バイナリサイズ: %zu bytes", value.effekseerData.size());
-			if (ImGui::Button((const char*)u8"EFKPKGを埋め込む...")) ImportParticlePrefab(i);
+			if (ImGui::Button((const char*)u8"埋め込み")) ImportParticlePrefab(i);
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"EFKPKGを書き出す...")) ExportParticlePrefab(i);
+			if (ImGui::Button((const char*)u8"書き出し")) ExportParticlePrefab(i);
 			ImGui::BeginDisabled(value.effekseerData.empty());
-			if (ImGui::Button((const char*)u8"埋め込みエフェクトを再生"))
+			if (ImGui::Button((const char*)u8"再生"))
 			{
 				showParticle = true;
 				unifiedPreviewActive = true;
 				if (!particlePreviewOwner || particlePreviewComponents.size() !=
 					particleData.emitters.size())
 					RebuildParticlePreview();
-				if (i < static_cast<int>(particlePreviewComponents.size()) &&
+				if (i < Count(particlePreviewComponents) &&
 					particlePreviewComponents[i])
 				{
 					manualParticlePreviewIndex = i;
-					particlePreviewComponents[i]->Burst();
+					particlePreviewComponents[i]->Play();
 				}
 			}
 			ImGui::EndDisabled();
-			if (ImGui::Button((const char*)u8"EFKPKGをクリア"))
+			if (ImGui::Button((const char*)u8"埋め込み情報をクリア"))
 			{
 				value.effekseerFileName.clear();
 				value.effekseerData.clear();
 				changed = true;
 			}
 			if (ImGui::Button((const char*)u8"削除")) deleteParticle = i;
-#if 0 // 旧独自VFXエディタ。既存VMDL読込互換が不要になった時点でデータ定義と共に削除する。
-			const char* rendererNames[] = {"Sprite", "Ribbon"};
-			changed |= ImGui::Combo((const char*)u8"描画タイプ", &value.rendererType,
-				rendererNames, static_cast<int>(std::size(rendererNames)));
-
-			ImGui::SeparatorText((const char*)u8"プリセット");
-			if (ImGui::Button((const char*)u8"走行風"))
-			{
-				value.rendererType = 0;
-				value.texturePath = "Resources/Image/fog_particle.png";
-				value.columns = value.rows = 1; value.frame = 0; value.animated = false;
-				value.emissionRate = 20.0f; value.burstCount = 0;
-				value.spawnExtents = Vector3(0.35f, 0.15f, 0.2f);
-				value.velocityMin = Vector3(-0.15f, 0.1f, -2.5f);
-				value.velocityMax = Vector3(0.15f, 0.45f, -1.5f);
-				value.acceleration = Vector3::Zero; value.lifetimeMin = 0.18f; value.lifetimeMax = 0.35f;
-				value.sizeMin = Vector2(0.08f, 0.3f); value.sizeMax = Vector2(0.18f, 0.7f);
-				value.color = Color(0.7f, 0.9f, 1.0f, 1.0f); value.fadeOutDuration = 0.12f;
-				value.localVelocity = true; value.additive = false; changed = true;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"剣の火花"))
-			{
-				value.rendererType = 0;
-				value.texturePath = "Resources/Image/particle256x256.png";
-				value.columns = value.rows = 4; value.frame = 7; value.animated = false;
-				value.emissionRate = 0.0f; value.burstCount = 24;
-				value.spawnExtents = Vector3(0.05f, 0.05f, 0.05f);
-				value.velocityMin = Vector3(-2.0f, -0.4f, -2.0f);
-				value.velocityMax = Vector3(2.0f, 2.5f, 2.0f);
-				value.acceleration = Vector3(0.0f, -5.0f, 0.0f);
-				value.lifetimeMin = 0.12f; value.lifetimeMax = 0.35f;
-				value.sizeMin = Vector2(0.04f, 0.04f); value.sizeMax = Vector2(0.12f, 0.12f);
-				value.color = Color(1.0f, 0.65f, 0.15f, 1.0f); value.fadeOutDuration = 0.15f;
-				value.localVelocity = true; value.additive = true; changed = true;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"オーラ"))
-			{
-				value.rendererType = 0;
-				value.texturePath = "Resources/Image/particle256x256.png";
-				value.columns = value.rows = 4; value.frame = 10; value.animated = true;
-				value.emissionRate = 28.0f; value.burstCount = 8;
-				value.spawnExtents = Vector3(0.45f, 0.8f, 0.45f);
-				value.velocityMin = Vector3(-0.1f, 0.4f, -0.1f);
-				value.velocityMax = Vector3(0.1f, 1.2f, 0.1f);
-				value.acceleration = Vector3::Zero; value.lifetimeMin = 0.35f; value.lifetimeMax = 0.7f;
-				value.sizeMin = Vector2(0.12f, 0.12f); value.sizeMax = Vector2(0.35f, 0.35f);
-				value.color = Color(0.25f, 0.65f, 1.0f, 0.75f); value.fadeOutDuration = 0.25f;
-				value.localVelocity = true; value.additive = true; changed = true;
-			}
-			if (ImGui::Button((const char*)u8"剣リボン"))
-			{
-				value.rendererType = 1;
-				value.emissionRate = 0.0f; value.burstCount = 0;
-				value.ribbonRootOffset = Vector3::Zero;
-				value.ribbonTipOffset = Vector3(-1.0f, 0.0f, 0.0f);
-				value.ribbonLifetime = 0.16f; value.ribbonMaxPoints = 36;
-				value.ribbonTipRatio = 0.8f; value.ribbonSampleInterval = 0.008f;
-				value.color = Color(0.75f, 0.95f, 1.4f, 1.0f);
-				value.ribbonEndColor = Color(0.08f, 0.25f, 1.0f, 0.0f);
-				value.additive = true; changed = true;
-			}
-
-			if (value.rendererType == 1)
-			{
-				ImGui::SeparatorText((const char*)u8"Ribbon形状");
-				ImGui::TextDisabled((const char*)u8"剣ボーン基準の根元と先端を、過去フレームへ帯状に接続します");
-				changed |= ImGui::DragFloat3((const char*)u8"リボン根元", &value.ribbonRootOffset.x, 0.01f);
-				changed |= ImGui::DragFloat3((const char*)u8"リボン先端", &value.ribbonTipOffset.x, 0.01f);
-				changed |= ImGui::DragFloat((const char*)u8"残存時間", &value.ribbonLifetime,
-					0.005f, 0.01f, 5.0f, "%.3f sec");
-				changed |= ImGui::DragInt((const char*)u8"最大サンプル数", &value.ribbonMaxPoints, 1, 2, 1024);
-				changed |= ImGui::DragFloat((const char*)u8"先細り", &value.ribbonTipRatio, 0.01f, 0.0f, 4.0f);
-				changed |= ImGui::DragFloat((const char*)u8"サンプル間隔", &value.ribbonSampleInterval,
-					0.001f, 0.001f, 0.1f, "%.3f sec");
-				changed |= ImGui::ColorEdit4((const char*)u8"終端色", &value.ribbonEndColor.x,
-					ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-			}
-
-			ImGui::SeparatorText((const char*)u8"描画素材");
-			changed |= ImGui::InputText((const char*)u8"テクスチャ", &value.texturePath);
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"参照..."))
-			{
-				std::string path = value.texturePath;
-				if (Dialog::OpenFileName(path,
-					"Image (*.png;*.dds;*.tga)\0*.png;*.dds;*.tga\0", "Particle Texture") == DialogResult::OK)
-				{
-					value.texturePath = PortableResourcePath(path);
-					changed = true;
-				}
-			}
-			changed |= ImGui::DragInt((const char*)u8"横コマ", &value.columns, 1, 1, 32);
-			changed |= ImGui::DragInt((const char*)u8"縦コマ", &value.rows, 1, 1, 32);
-			changed |= ImGui::DragInt((const char*)u8"開始コマ", &value.frame, 1, 0,
-				std::max(0, value.columns * value.rows - 1));
-			changed |= ImGui::Checkbox((const char*)u8"スプライトアニメ", &value.animated);
-			if (value.animated)
-				changed |= ImGui::DragFloat((const char*)u8"アニメ速度", &value.animationSpeed, 0.5f, 0.0f, 120.0f);
-			changed |= ImGui::Checkbox((const char*)u8"加算合成", &value.additive);
-
-			ImGui::SeparatorText((const char*)u8"発生");
-			changed |= ImGui::DragFloat3((const char*)u8"位置オフセット", &value.offset.x, 0.01f);
-			changed |= ImGui::DragFloat3((const char*)u8"発生範囲", &value.spawnExtents.x, 0.01f, 0.0f, 100.0f);
-			changed |= ImGui::DragFloat((const char*)u8"毎秒発生数", &value.emissionRate, 0.5f, 0.0f, 2000.0f);
-			changed |= ImGui::DragInt((const char*)u8"開始バースト数", &value.burstCount, 1, 0, 8192);
-			changed |= ImGui::DragInt((const char*)u8"最大保持数", &value.capacity, 1, 1, 8192);
-			bool initialActive = model->GetParticleInitialActive(i);
-			if (ImGui::Checkbox((const char*)u8"初期状態で発生", &initialActive))
-			{
-				model->SetParticleInitialActive(i, initialActive); changed = true;
-			}
-
-			ImGui::SeparatorText((const char*)u8"動き");
-			changed |= ImGui::DragFloat3((const char*)u8"初速 最小", &value.velocityMin.x, 0.05f);
-			changed |= ImGui::DragFloat3((const char*)u8"初速 最大", &value.velocityMax.x, 0.05f);
-			changed |= ImGui::DragFloat3((const char*)u8"加速度／重力", &value.acceleration.x, 0.05f);
-			changed |= ImGui::Checkbox((const char*)u8"ボーンの向きを使用", &value.localVelocity);
-			changed |= ImGui::DragFloatRange2((const char*)u8"寿命", &value.lifetimeMin,
-				&value.lifetimeMax, 0.01f, 0.01f, 30.0f, "%.2f", "%.2f");
-
-			ImGui::SeparatorText((const char*)u8"見た目");
-			changed |= ImGui::DragFloat2((const char*)u8"サイズ 最小", &value.sizeMin.x, 0.01f, 0.001f, 100.0f);
-			changed |= ImGui::DragFloat2((const char*)u8"サイズ 最大", &value.sizeMax.x, 0.01f, 0.001f, 100.0f);
-			changed |= ImGui::ColorEdit4((const char*)u8"色", &value.color.x,
-				ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-			changed |= ImGui::SliderFloat((const char*)u8"不透明度", &value.color.w, 0.0f, 1.0f);
-			changed |= ImGui::DragFloat((const char*)u8"フェードイン", &value.fadeInDuration, 0.01f, 0.0f, 30.0f);
-			changed |= ImGui::DragFloat((const char*)u8"フェードアウト", &value.fadeOutDuration, 0.01f, 0.0f, 30.0f);
-
-			if (ImGui::Button((const char*)u8"VFX書き出し...")) ExportParticlePrefab(i);
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"VFX読込...")) { ImportParticlePrefab(i); changed = true; }
-			if (ImGui::Button((const char*)u8"削除")) deleteParticle = i;
-
-			value.columns = std::clamp(value.columns, 1, 32);
-			value.rows = std::clamp(value.rows, 1, 32);
-			value.capacity = std::clamp(value.capacity, 1, 8192);
-			value.ribbonLifetime = std::clamp(value.ribbonLifetime, 0.01f, 5.0f);
-			value.ribbonMaxPoints = std::clamp(value.ribbonMaxPoints, 2, 1024);
-			value.ribbonTipRatio = std::clamp(value.ribbonTipRatio, 0.0f, 4.0f);
-			value.ribbonSampleInterval = std::clamp(
-				value.ribbonSampleInterval, 0.001f, 1.0f);
-			value.spawnExtents.x = std::max(0.0f, value.spawnExtents.x);
-			value.spawnExtents.y = std::max(0.0f, value.spawnExtents.y);
-			value.spawnExtents.z = std::max(0.0f, value.spawnExtents.z);
-#endif
 			if (changed) { MarkDirty(); RebuildParticlePreview(); }
 			ImGui::TreePop();
 		}
@@ -3143,7 +3115,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	if (deleteParticle >= 0)
 	{
 		particleData.emitters.erase(particleData.emitters.begin() + deleteParticle);
-		if (deleteParticle < static_cast<int>(particleData.initialActive.size()))
+		if (deleteParticle < Count(particleData.initialActive))
 			particleData.initialActive.erase(particleData.initialActive.begin() + deleteParticle);
 		std::erase_if(particleData.tracks,
 			[deleteParticle](const auto& track) { return track.emitterIndex == deleteParticle; });
@@ -3155,14 +3127,14 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			else if (selectedComponentIndex > deleteParticle) --selectedComponentIndex;
 		}
 		selectedParticleEventTarget = particleData.emitters.empty() ? 0 :
-			std::min(selectedParticleEventTarget, static_cast<int>(particleData.emitters.size()) - 1);
+			std::min(selectedParticleEventTarget, Count(particleData.emitters) - 1);
 		MarkDirty(); RebuildParticlePreview();
 	}
 
 	// サウンドソース
 	auto& soundData = model->GetVmdlSoundData();
 	int deleteSoundSource = -1;
-	for (int i = 0; i < static_cast<int>(soundData.sources.size()); ++i)
+	for (int i = 0; i < Count(soundData.sources); ++i)
 	{
 		auto& value = soundData.sources[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -3257,7 +3229,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			attenuate = true;
 	};
 	int deleteCameraShake = -1;
-	for (int i = 0; i < static_cast<int>(presentation.cameraShakes.size()); ++i)
+	for (int i = 0; i < Count(presentation.cameraShakes); ++i)
 	{
 		auto& value = presentation.cameraShakes[i];
 		if (value.nodeIndex != nodeIndex ||
@@ -3301,7 +3273,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 	}
 
 	int deleteRadialBlur = -1;
-	for (int i = 0; i < static_cast<int>(presentation.radialBlurs.size()); ++i)
+	for (int i = 0; i < Count(presentation.radialBlurs); ++i)
 	{
 		auto& value = presentation.radialBlurs[i];
 		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RadialBlur ||
@@ -3356,7 +3328,7 @@ void VmdlEditorScene::DrawTimeline()
 	// アニメーションの選択と削除
 	auto& animations = model->GetAnimations();
 	const char* preview =
-		selectedAnimation >= 0 && selectedAnimation < static_cast<int>(animations.size())
+		selectedAnimation >= 0 && selectedAnimation < Count(animations)
 			? animations[selectedAnimation].name.c_str()
 			: (const char*)u8"（なし）";
 	ImGui::AlignTextToFramePadding();
@@ -3368,7 +3340,7 @@ void VmdlEditorScene::DrawTimeline()
 							ImGui::GetStyle().ItemSpacing.x));
 	if (ImGui::BeginCombo("##Animation", preview))
 	{
-		for (int i = 0; i < static_cast<int>(animations.size()); ++i)
+		for (int i = 0; i < Count(animations); ++i)
 		{
 			const bool selected =
 				ImGui::Selectable(animations[i].name.c_str(), selectedAnimation == i);
@@ -3393,7 +3365,7 @@ void VmdlEditorScene::DrawTimeline()
 	}
 	ImGui::SameLine();
 	const bool canDeleteAnimation =
-		selectedAnimation >= 0 && selectedAnimation < static_cast<int>(animations.size());
+		selectedAnimation >= 0 && selectedAnimation < Count(animations);
 	ImGui::BeginDisabled(!canDeleteAnimation);
 	if (ImGui::Button(
 			(const char*)u8"×##DeleteAnimation", ImVec2(deleteAnimationButtonWidth, 0.0f)))
@@ -3450,7 +3422,7 @@ void VmdlEditorScene::DrawTimeline()
 				selectedAnimation =
 					animations.empty()
 						? -1
-						: std::min(selectedAnimation, static_cast<int>(animations.size()) - 1);
+						: std::min(selectedAnimation, Count(animations) - 1);
 				animationTime = 0.0f;
 				animationPlaying = false;
 				animationRecording = false;
@@ -3473,7 +3445,7 @@ void VmdlEditorScene::DrawTimeline()
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
-	if (selectedAnimation < 0 || selectedAnimation >= static_cast<int>(animations.size())) return;
+	if (selectedAnimation < 0 || selectedAnimation >= Count(animations)) return;
 
 	VMDLModel::Animation& animation = animations[selectedAnimation];
 
@@ -3497,7 +3469,7 @@ void VmdlEditorScene::DrawTimeline()
 	ImGui::Text("%.3f / %.3f sec", animationTime, animation.secondsLength);
 
 	// 選択ノードのキーとカーブ
-	if (selectedNode >= 0 && selectedNode < static_cast<int>(animation.nodeAnims.size()))
+	if (selectedNode >= 0 && selectedNode < Count(animation.nodeAnims))
 	{
 		DrawAnimationCurves();
 	}
@@ -3508,14 +3480,13 @@ void VmdlEditorScene::DrawAnimationCurves()
 	auto& io = ImGui::GetIO();
 	if (!model || selectedAnimation < 0 || selectedNode < 0) return;
 	auto& animation = model->GetAnimations()[selectedAnimation];
-	if (selectedNode >= static_cast<int>(animation.nodeAnims.size())) return;
+	if (selectedNode >= Count(animation.nodeAnims)) return;
 	auto& keys = animation.nodeAnims[selectedNode];
 	const float length = std::max(0.001f, animation.secondsLength);
 	const auto& ikSettings = model->GetVmdlIKSettings();
 	const int footWeightCount = ikSettings.type == 0
-									? 0
-									: static_cast<int>(std::min(ikSettings.legs.size(),
-										  VMDLModel::VmdlIKSettings::MaxLegCount));
+		? 0
+		: std::min(Count(ikSettings.legs), VMDLModel::VmdlIKSettings::MaxLegCount);
 	const auto footWeightLabel = [&](int index) { return ikSettings.legs[index].name.c_str(); };
 	std::vector<VMDLModel::VmdlFootWeightTrack*> footWeightTracks(footWeightCount, nullptr);
 	for (int i = 0; i < footWeightCount; ++i)
@@ -3541,13 +3512,13 @@ void VmdlEditorScene::DrawAnimationCurves()
 	const auto hasSelectedKey = [&]() {
 		if (selectedKeyTrack == 0)
 			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < static_cast<int>(keys.positionKeyframes.size());
+				   selectedKeyIndex < Count(keys.positionKeyframes);
 		if (selectedKeyTrack == 1)
 			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < static_cast<int>(keys.rotationKeyframes.size());
+				   selectedKeyIndex < Count(keys.rotationKeyframes);
 		if (selectedKeyTrack == 2)
 			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < static_cast<int>(keys.scaleKeyframes.size());
+				   selectedKeyIndex < Count(keys.scaleKeyframes);
 		return false;
 	};
 	const auto deleteSelectedKey = [&]() {
@@ -3585,21 +3556,21 @@ void VmdlEditorScene::DrawAnimationCurves()
 	const float footWeightHeight = 20.0f;
 	const float rowHeight = 20.0f;
 	const float labelWidth = 250.0f;
-	const float footWeightsHeight = footWeightHeight * static_cast<float>(footWeightCount);
+	const float footWeightsHeight = footWeightHeight * footWeightCount;
 	const float rowsTopOffset = rulerHeight + footWeightsHeight;
-	const int colliderRowCount = static_cast<int>(model->GetVmdlExtensionData().colliders.size());
-	const int trailRowCount = static_cast<int>(model->GetVmdlTrailData().trails.size());
-	const int particleRowCount = static_cast<int>(model->GetVmdlParticleData().emitters.size());
-	const int morphRowCount = static_cast<int>(model->GetVmdlExtensionData().morphs.size());
-	const int soundRowCount = static_cast<int>(model->GetVmdlSoundData().sources.size());
+	const int colliderRowCount = Count(model->GetVmdlExtensionData().colliders);
+	const int trailRowCount = Count(model->GetVmdlTrailData().trails);
+	const int particleRowCount = Count(model->GetVmdlParticleData().emitters);
+	const int morphRowCount = Count(model->GetVmdlExtensionData().morphs);
+	const int soundRowCount = Count(model->GetVmdlSoundData().sources);
 	const int cameraShakeRowCount =
-		static_cast<int>(model->GetVmdlPresentationData().cameraShakes.size());
+		Count(model->GetVmdlPresentationData().cameraShakes);
 	const int radialBlurRowCount =
-		static_cast<int>(model->GetVmdlPresentationData().radialBlurs.size());
+		Count(model->GetVmdlPresentationData().radialBlurs);
 	const int eventRowCount = colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
 		soundRowCount + cameraShakeRowCount + radialBlurRowCount;
-	const float eventRowsTopOffset = rowsTopOffset + rowHeight * static_cast<float>(rows.size());
-	const float sheetHeight = eventRowsTopOffset + rowHeight * static_cast<float>(eventRowCount);
+	const float eventRowsTopOffset = rowsTopOffset + rowHeight * rows.size();
+	const float sheetHeight = eventRowsTopOffset + rowHeight * eventRowCount;
 	ImGui::InvisibleButton(
 		"Animation Dope Sheet", ImVec2(-1.0f, sheetHeight), ImGuiButtonFlags_MouseButtonLeft);
 	const ImVec2 sheetMin = ImGui::GetItemRectMin();
@@ -3642,7 +3613,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 			ImVec4(0.95f, 0.02f, 0.0f, 1.0f)};
 		const float scaled = value * 4.0f;
 		const int index = std::min(static_cast<int>(scaled), 3);
-		const float t = scaled - static_cast<float>(index);
+		const float t = scaled - index;
 		ImVec4 color(std::lerp(stops[index].x, stops[index + 1].x, t),
 			std::lerp(stops[index].y, stops[index + 1].y, t),
 			std::lerp(stops[index].z, stops[index + 1].z, t), 1.0f);
@@ -3680,8 +3651,8 @@ void VmdlEditorScene::DrawAnimationCurves()
 		auto* track = footWeightTracks[footIndex];
 		if (track && !track->weights.empty())
 		{
-			const float sampleWidth = timeWidth / static_cast<float>(track->weights.size());
-			for (int i = 0; i < static_cast<int>(track->weights.size()); ++i)
+			const float sampleWidth = timeWidth / track->weights.size();
+			for (int i = 0; i < Count(track->weights); ++i)
 			{
 				const float x0 = timeLeft + i * sampleWidth;
 				const float x1 = timeLeft + (i + 1) * sampleWidth + 1.0f;
@@ -3699,23 +3670,23 @@ void VmdlEditorScene::DrawAnimationCurves()
 		if (track == 0)
 		{
 			if (selectedKeyTrack == track && selectedKeyIndex >= 0 &&
-				selectedKeyIndex < static_cast<int>(keys.positionKeyframes.size()))
+				selectedKeyIndex < Count(keys.positionKeyframes))
 				return (&keys.positionKeyframes[selectedKeyIndex].value.x)[component];
 			return (&model->GetNodes()[selectedNode].position.x)[component];
 		}
 		if (track == 1)
 		{
 			if (selectedKeyTrack == track && selectedKeyIndex >= 0 &&
-				selectedKeyIndex < static_cast<int>(keys.rotationKeyframes.size()))
+				selectedKeyIndex < Count(keys.rotationKeyframes))
 				return (&keys.rotationKeyframes[selectedKeyIndex].value.x)[component];
 			return (&model->GetNodes()[selectedNode].rotation.x)[component];
 		}
 		if (selectedKeyTrack == track && selectedKeyIndex >= 0 &&
-			selectedKeyIndex < static_cast<int>(keys.scaleKeyframes.size()))
+			selectedKeyIndex < Count(keys.scaleKeyframes))
 			return (&keys.scaleKeyframes[selectedKeyIndex].value.x)[component];
 		return (&model->GetNodes()[selectedNode].scale.x)[component];
 	};
-	for (int row = 0; row < static_cast<int>(rows.size()); ++row)
+	for (int row = 0; row < Count(rows); ++row)
 	{
 		const float y0 = sheetMin.y + rowsTopOffset + row * rowHeight;
 		const float centerY = y0 + rowHeight * 0.5f;
@@ -3749,7 +3720,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		}
 
 		const auto drawTrackKeys = [&](const auto& trackKeys) {
-			for (int keyIndex = 0; keyIndex < static_cast<int>(trackKeys.size()); ++keyIndex)
+			for (int keyIndex = 0; keyIndex < Count(trackKeys); ++keyIndex)
 			{
 				const ImVec2 position(timeToX(trackKeys[keyIndex].seconds), centerY);
 				const bool selected =
@@ -3973,7 +3944,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 					if (track.animationName != animation.name ||
 						track.colliderIndex != timelineEventContextTarget)
 						continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
 						if (distance >= closest) continue;
@@ -3988,7 +3959,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				for (const auto& track : controlData.morphTracks)
 				{
 					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						if (track.keys[i].morphIndex != timelineEventContextTarget) continue;
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
@@ -4006,7 +3977,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 					if (track.animationName != animation.name ||
 						track.trailIndex != timelineEventContextTarget)
 						continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
 						if (distance >= closest) continue;
@@ -4021,7 +3992,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				for (const auto& track : soundData.tracks)
 				{
 					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						if (track.keys[i].sourceIndex != timelineEventContextTarget) continue;
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
@@ -4038,7 +4009,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				{
 					if (track.animationName != animation.name ||
 						track.emitterIndex != timelineEventContextTarget) continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
 						if (distance < closest) { closest = distance; timelineEventContextKey = i; }
@@ -4053,7 +4024,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				for (const auto& track : tracks)
 				{
 					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < static_cast<int>(track.keys.size()); ++i)
+					for (int i = 0; i < Count(track.keys); ++i)
 					{
 						if (track.keys[i].componentIndex != timelineEventContextTarget) continue;
 						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
@@ -4086,7 +4057,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 			}
 			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < static_cast<int>(track->keys.size()))
+				timelineEventContextKey < Count(track->keys))
 			{
 				auto& key = track->keys[timelineEventContextKey];
 				bool changed = ImGui::DragFloat(
@@ -4096,7 +4067,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				{
 					const float editedSeconds = key.seconds;
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < static_cast<int>(track->keys.size()); ++i)
+					for (int i = 0; i < Count(track->keys); ++i)
 					{
 						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f)
 							timelineEventContextKey = i;
@@ -4149,7 +4120,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 			}
 			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < static_cast<int>(track->keys.size()))
+				timelineEventContextKey < Count(track->keys))
 			{
 				auto& key = track->keys[timelineEventContextKey];
 				if (ImGui::DragFloat(
@@ -4157,7 +4128,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				{
 					const float editedSeconds = key.seconds;
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < static_cast<int>(track->keys.size()); ++i)
+					for (int i = 0; i < Count(track->keys); ++i)
 					{
 						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f &&
 							track->keys[i].morphIndex == timelineEventContextTarget)
@@ -4199,7 +4170,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 			}
 			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < static_cast<int>(track->keys.size()))
+				timelineEventContextKey < Count(track->keys))
 			{
 				auto& key = track->keys[timelineEventContextKey];
 				bool changed = ImGui::DragFloat(
@@ -4209,7 +4180,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				{
 					const float editedSeconds = key.seconds;
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < static_cast<int>(track->keys.size()); ++i)
+					for (int i = 0; i < Count(track->keys); ++i)
 					{
 						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f)
 							timelineEventContextKey = i;
@@ -4263,7 +4234,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				}
 			}
 			const bool hasKey = track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < static_cast<int>(track->keys.size()) &&
+				timelineEventContextKey < Count(track->keys) &&
 				track->keys[timelineEventContextKey].sourceIndex == timelineEventContextTarget;
 			if (hasKey)
 			{
@@ -4273,7 +4244,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				if (ImGui::DragInt((const char*)u8"フレーム", &frame, 1.0f, 0,
 						static_cast<int>(std::ceil(length * 60.0f))))
 				{
-					key.seconds = static_cast<float>(frame) / 60.0f;
+					key.seconds = frame / 60.0f;
 					changed = true;
 				}
 				if (changed) MarkDirty();
@@ -4322,7 +4293,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				if (candidate.animationName == animation.name &&
 					candidate.emitterIndex == timelineEventContextTarget) { track = &candidate; break; }
 			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < static_cast<int>(track->keys.size()))
+				timelineEventContextKey < Count(track->keys))
 			{
 				auto& key = track->keys[timelineEventContextKey];
 				bool changed = ImGui::DragFloat(
@@ -4371,7 +4342,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 				for (auto& candidate : tracks)
 					if (candidate.animationName == animation.name) { track = &candidate; break; }
 				const bool hasKey = track && timelineEventContextKey >= 0 &&
-					timelineEventContextKey < static_cast<int>(track->keys.size()) &&
+					timelineEventContextKey < Count(track->keys) &&
 					track->keys[timelineEventContextKey].componentIndex == timelineEventContextTarget;
 				if (hasKey)
 				{
@@ -4436,7 +4407,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		{
 			const int row =
 				std::clamp(static_cast<int>((mouse.y - sheetMin.y - rowsTopOffset) / rowHeight), 0,
-					static_cast<int>(rows.size()) - 1);
+					Count(rows) - 1);
 			if (!rows[row].child)
 			{
 				if (rows[row].track == 0) positionTrackExpanded = !positionTrackExpanded;
@@ -4538,7 +4509,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		if (draggingNumericTrack == 0)
 		{
 			if (selectedKeyTrack == 0 && selectedKeyIndex >= 0 &&
-				selectedKeyIndex < static_cast<int>(keys.positionKeyframes.size()))
+				selectedKeyIndex < Count(keys.positionKeyframes))
 				(&keys.positionKeyframes[selectedKeyIndex].value.x)[draggingNumericComponent] +=
 					delta;
 			else (&node.position.x)[draggingNumericComponent] += delta;
@@ -4546,7 +4517,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else if (draggingNumericTrack == 1)
 		{
 			if (selectedKeyTrack == 1 && selectedKeyIndex >= 0 &&
-				selectedKeyIndex < static_cast<int>(keys.rotationKeyframes.size()))
+				selectedKeyIndex < Count(keys.rotationKeyframes))
 			{
 				(&keys.rotationKeyframes[selectedKeyIndex].value.x)[draggingNumericComponent] +=
 					delta;
@@ -4561,7 +4532,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else
 		{
 			if (selectedKeyTrack == 2 && selectedKeyIndex >= 0 &&
-				selectedKeyIndex < static_cast<int>(keys.scaleKeyframes.size()))
+				selectedKeyIndex < Count(keys.scaleKeyframes))
 				(&keys.scaleKeyframes[selectedKeyIndex].value.x)[draggingNumericComponent] += delta;
 			else (&node.scale.x)[draggingNumericComponent] += delta;
 		}
@@ -4578,13 +4549,13 @@ void VmdlEditorScene::DrawAnimationCurves()
 	{
 		const float seconds = xToTime(io.MousePos.x);
 		if (selectedKeyTrack == 0 &&
-			selectedKeyIndex < static_cast<int>(keys.positionKeyframes.size()))
+			selectedKeyIndex < Count(keys.positionKeyframes))
 			keys.positionKeyframes[selectedKeyIndex].seconds = seconds;
 		else if (selectedKeyTrack == 1 &&
-				 selectedKeyIndex < static_cast<int>(keys.rotationKeyframes.size()))
+				 selectedKeyIndex < Count(keys.rotationKeyframes))
 			keys.rotationKeyframes[selectedKeyIndex].seconds = seconds;
 		else if (selectedKeyTrack == 2 &&
-				 selectedKeyIndex < static_cast<int>(keys.scaleKeyframes.size()))
+				 selectedKeyIndex < Count(keys.scaleKeyframes))
 			keys.scaleKeyframes[selectedKeyIndex].seconds = seconds;
 		animationTime = seconds;
 		animationPlaying = false;
@@ -4606,7 +4577,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		const auto findSelected = [&](const auto& trackKeys) {
 			int closestIndex = -1;
 			float closestDistance = FLT_MAX;
-			for (int i = 0; i < static_cast<int>(trackKeys.size()); ++i)
+			for (int i = 0; i < Count(trackKeys); ++i)
 			{
 				const float distance = std::abs(trackKeys[i].seconds - selectedTime);
 				if (distance >= closestDistance) continue;
@@ -4625,26 +4596,26 @@ void VmdlEditorScene::DrawAnimationCurves()
 void VmdlEditorScene::ApplyAnimationPreview()
 {
 	if (!model || selectedAnimation < 0 ||
-		selectedAnimation >= static_cast<int>(model->GetAnimations().size()))
+		selectedAnimation >= Count(model->GetAnimations()))
 		return;
 	const auto& animation = model->GetAnimations()[selectedAnimation];
 	auto& nodes = model->GetNodes();
-	const size_t count = std::min(nodes.size(), animation.nodeAnims.size());
-	for (size_t i = 0; i < count; ++i)
+	const int count = std::min(Count(nodes), Count(animation.nodeAnims));
+	for (int i = 0; i < count; ++i)
 	{
 		VMDLModel::NodePose pose{nodes[i].position, nodes[i].rotation, nodes[i].scale};
-		model->ComputeAnimation(selectedAnimation, static_cast<int>(i), animationTime, pose);
+		model->ComputeAnimation(selectedAnimation, i, animationTime, pose);
 		nodes[i].position = pose.position;
 		nodes[i].rotation = pose.rotation;
 		nodes[i].scale = pose.scale;
 	}
 	if (previewColliderActive.size() != model->GetVmdlExtensionData().colliders.size())
 		previewColliderActive.resize(model->GetVmdlExtensionData().colliders.size(), 1);
-	for (int i = 0; i < static_cast<int>(previewColliderActive.size()); ++i)
+	for (int i = 0; i < Count(previewColliderActive); ++i)
 		previewColliderActive[i] =
 			model->EvaluateColliderActive(selectedAnimation, animationTime, i) ? 1 : 0;
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
-	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
+	for (int i = 0; i < Count(previewTrailActive); ++i)
 		previewTrailActive[i] =
 			model->EvaluateTrailActive(selectedAnimation, animationTime, i) ? 1 : 0;
 	model->ApplyMorphAnimation(selectedAnimation, animationTime);
@@ -4654,7 +4625,7 @@ void VmdlEditorScene::PlayAnimationSoundPreview(
 	int animationIndex, float beginTime, float endTime)
 {
 	if (!model || animationIndex < 0 ||
-		animationIndex >= static_cast<int>(model->GetAnimations().size()) || endTime < beginTime)
+		animationIndex >= Count(model->GetAnimations()) || endTime < beginTime)
 		return;
 
 	const auto& animation = model->GetAnimations()[animationIndex];
@@ -4665,7 +4636,7 @@ void VmdlEditorScene::PlayAnimationSoundPreview(
 		for (const auto& key : track.keys)
 		{
 			if (key.seconds <= beginTime || key.seconds > endTime + 0.0001f ||
-				key.sourceIndex < 0 || key.sourceIndex >= static_cast<int>(soundData.sources.size()))
+				key.sourceIndex < 0 || key.sourceIndex >= Count(soundData.sources))
 				continue;
 
 			const auto& source = soundData.sources[key.sourceIndex];
@@ -4674,7 +4645,7 @@ void VmdlEditorScene::PlayAnimationSoundPreview(
 			options.pitch = source.pitchMax > source.pitchMin
 				? Random::Range(source.pitchMin, source.pitchMax) : source.pitchMin;
 			if (source.spatial && source.nodeIndex >= 0 &&
-				source.nodeIndex < static_cast<int>(model->GetNodes().size()))
+				source.nodeIndex < Count(model->GetNodes()))
 			{
 				SoundSystem::SpatialOptions spatial;
 				static_cast<SoundSystem::PlayOptions&>(spatial) = options;
@@ -4696,13 +4667,13 @@ void VmdlEditorScene::ResetAnimationControlPreview()
 {
 	if (!model) return;
 	previewColliderActive.resize(model->GetVmdlExtensionData().colliders.size(), 1);
-	for (int i = 0; i < static_cast<int>(previewColliderActive.size()); ++i)
+	for (int i = 0; i < Count(previewColliderActive); ++i)
 		previewColliderActive[i] = model->GetColliderInitialActive(i) ? 1 : 0;
 	previewTrailActive.resize(model->GetVmdlTrailData().trails.size(), 1);
-	for (int i = 0; i < static_cast<int>(previewTrailActive.size()); ++i)
+	for (int i = 0; i < Count(previewTrailActive); ++i)
 		previewTrailActive[i] = model->GetTrailInitialActive(i) ? 1 : 0;
 	previewParticleActive.resize(model->GetVmdlParticleData().emitters.size(), 0);
-	for (int i = 0; i < static_cast<int>(previewParticleActive.size()); ++i)
+	for (int i = 0; i < Count(previewParticleActive); ++i)
 		previewParticleActive[i] = model->GetParticleInitialActive(i) ? 1 : 0;
 	model->RestoreRuntimeMorphVisibility();
 }
@@ -4732,7 +4703,7 @@ void VmdlEditorScene::RebuildSpringPreview()
 	springPreviewOwner = std::make_unique<Object>("VMDL Spring Preview");
 	for (const auto& value : data.springs)
 	{
-		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+		if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 			continue;
 		SpringBone* spring = springPreviewOwner->AddComponent<SpringBone>(
 			0, model.get(), value.nodeIndex, springColliders, value.stiffness, value.drag);
@@ -4802,10 +4773,10 @@ void VmdlEditorScene::RebuildTrailPreview()
 	const auto& trails = model->GetVmdlTrailData().trails;
 	trailPreviewOwner = std::make_unique<Object>("VMDL Trail Preview");
 	trailPreviewComponents.resize(trails.size(), nullptr);
-	for (int i = 0; i < static_cast<int>(trails.size()); ++i)
+	for (int i = 0; i < Count(trails); ++i)
 	{
 		const auto& value = trails[i];
-		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+		if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 			continue;
 		TrailRenderComponent* trail = trailPreviewOwner->AddComponent<TrailRenderComponent>(
 			model.get(), value.nodeIndex, value.rootOffset, value.tipOffset, value.color,
@@ -4862,12 +4833,12 @@ void VmdlEditorScene::UpdateTrailPreview(const RenderContext& rc)
 	trailPreviewAnimation = selectedAnimation;
 	trailPreviewAnimationTime = animationTime;
 
-	for (int i = 0; i < static_cast<int>(trailPreviewComponents.size()); ++i)
+	for (int i = 0; i < Count(trailPreviewComponents); ++i)
 	{
 		TrailRenderComponent* trail = trailPreviewComponents[i];
 		if (!trail) continue;
 		const bool eventActive =
-			i < static_cast<int>(previewTrailActive.size())
+			i < Count(previewTrailActive)
 				? previewTrailActive[i] != 0
 				: model->GetTrailInitialActive(i);
 		if (showTrail && eventActive && (animationPlaying || timelineAdvanced)) trail->StartTrail();
@@ -4892,10 +4863,10 @@ void VmdlEditorScene::RebuildParticlePreview()
 	particlePreviewOwner = std::make_unique<Object>("VMDL Particle Preview");
 	const auto& data = model->GetVmdlParticleData();
 	particlePreviewComponents.assign(data.emitters.size(), nullptr);
-	for (int i = 0; i < static_cast<int>(data.emitters.size()); ++i)
+	for (int i = 0; i < Count(data.emitters); ++i)
 	{
 		const auto& value = data.emitters[i];
-		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
+		if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 			continue;
 		particlePreviewComponents[i] = particlePreviewOwner->AddComponent<VMDLParticleEmitterComponent>(
 			model.get(), value, model->GetParticleInitialActive(i));
@@ -4917,7 +4888,7 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 		RebuildParticlePreview();
 	if (!particlePreviewOwner) return;
 	previewParticleActive.resize(particlePreviewComponents.size(), 0);
-	for (int i = 0; i < static_cast<int>(particlePreviewComponents.size()); ++i)
+	for (int i = 0; i < Count(particlePreviewComponents); ++i)
 	{
 		if (!particlePreviewComponents[i]) continue;
 		const bool manualPreview = manualParticlePreviewIndex == i &&
@@ -4930,9 +4901,9 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 		const bool active = animationPlaying && eventActive;
 		previewParticleActive[i] = active ? 1 : 0;
 		if (!manualPreview) particlePreviewComponents[i]->SetEmitting(active);
-		if (particlePreviewBurstPending && active) particlePreviewComponents[i]->Burst();
+		if (particlePreviewPlayPending && active) particlePreviewComponents[i]->Play();
 	}
-	particlePreviewBurstPending = false;
+	particlePreviewPlayPending = false;
 	particlePreviewOwner->LateUpdate();
 	for (VMDLParticleEmitterComponent* emitter : particlePreviewComponents)
 		if (emitter) emitter->RenderParticles(rc);
@@ -4943,7 +4914,7 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 void VmdlEditorScene::ExportParticlePrefab(int emitterIndex)
 {
 	if (!model || emitterIndex < 0 ||
-		emitterIndex >= static_cast<int>(model->GetVmdlParticleData().emitters.size())) return;
+		emitterIndex >= Count(model->GetVmdlParticleData().emitters)) return;
 	const auto& effect = model->GetVmdlParticleData().emitters[emitterIndex];
 	if (effect.effekseerData.empty()) return;
 	const auto root = ResourceManager::FindSourceResourceRoot();
@@ -4964,7 +4935,7 @@ void VmdlEditorScene::ExportParticlePrefab(int emitterIndex)
 void VmdlEditorScene::ImportParticlePrefab(int emitterIndex)
 {
 	if (!model || emitterIndex < 0 ||
-		emitterIndex >= static_cast<int>(model->GetVmdlParticleData().emitters.size())) return;
+		emitterIndex >= Count(model->GetVmdlParticleData().emitters)) return;
 	const auto root = ResourceManager::FindSourceResourceRoot();
 	const std::string initial = root.empty() ? std::string{} : (root / "Effect").string();
 	std::string path;
@@ -4995,7 +4966,7 @@ void VmdlEditorScene::ImportParticlePrefab(int emitterIndex)
 void VmdlEditorScene::DrawAnimationEventEditor()
 {
 	if (!model || selectedAnimation < 0 ||
-		selectedAnimation >= static_cast<int>(model->GetAnimations().size()))
+		selectedAnimation >= Count(model->GetAnimations()))
 		return;
 	auto& animation = model->GetAnimations()[selectedAnimation];
 	auto& colliders = model->GetVmdlExtensionData().colliders;
@@ -5015,11 +4986,11 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 		else
 		{
 			selectedColliderEventTarget =
-				std::clamp(selectedColliderEventTarget, 0, static_cast<int>(colliders.size()) - 1);
+				std::clamp(selectedColliderEventTarget, 0, Count(colliders) - 1);
 			if (ImGui::BeginCombo((const char*)u8"コライダー",
 					colliders[selectedColliderEventTarget].name.c_str()))
 			{
-				for (int i = 0; i < static_cast<int>(colliders.size()); ++i)
+				for (int i = 0; i < Count(colliders); ++i)
 				{
 					if (ImGui::Selectable(
 							colliders[i].name.c_str(), selectedColliderEventTarget == i))
@@ -5069,7 +5040,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				int removeIndex = -1;
 				bool sortKeys = false;
 				bool valueChanged = false;
-				for (int i = 0; i < static_cast<int>(selectedTrack->keys.size()); ++i)
+				for (int i = 0; i < Count(selectedTrack->keys); ++i)
 				{
 					auto& key = selectedTrack->keys[i];
 					ImGui::PushID(i);
@@ -5109,11 +5080,11 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 		else
 		{
 			selectedParticleEventTarget = std::clamp(selectedParticleEventTarget, 0,
-				static_cast<int>(particleData.emitters.size()) - 1);
+				Count(particleData.emitters) - 1);
 			if (ImGui::BeginCombo((const char*)u8"エミッタ",
 					particleData.emitters[selectedParticleEventTarget].name.c_str()))
 			{
-				for (int i = 0; i < static_cast<int>(particleData.emitters.size()); ++i)
+				for (int i = 0; i < Count(particleData.emitters); ++i)
 					if (ImGui::Selectable(particleData.emitters[i].name.c_str(),
 						selectedParticleEventTarget == i)) selectedParticleEventTarget = i;
 				ImGui::EndCombo();
@@ -5146,7 +5117,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 			if (selectedTrack)
 			{
 				int remove = -1; bool changed = false;
-				for (int i = 0; i < static_cast<int>(selectedTrack->keys.size()); ++i)
+				for (int i = 0; i < Count(selectedTrack->keys); ++i)
 				{
 					auto& key = selectedTrack->keys[i]; ImGui::PushID(7000 + i);
 					ImGui::SetNextItemWidth(150.0f);
@@ -5172,11 +5143,11 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 		else
 		{
 			selectedMorphEventTarget =
-				std::clamp(selectedMorphEventTarget, 0, static_cast<int>(morphs.size()) - 1);
+				std::clamp(selectedMorphEventTarget, 0, Count(morphs) - 1);
 			if (ImGui::BeginCombo(
 					(const char*)u8"モーフ", morphs[selectedMorphEventTarget].name.c_str()))
 			{
-				for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
+				for (int i = 0; i < Count(morphs); ++i)
 				{
 					if (ImGui::Selectable(morphs[i].name.c_str(), selectedMorphEventTarget == i))
 						selectedMorphEventTarget = i;
@@ -5214,7 +5185,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 			{
 				int removeIndex = -1;
 				bool changed = false;
-				for (int i = 0; i < static_cast<int>(selectedTrack->keys.size()); ++i)
+				for (int i = 0; i < Count(selectedTrack->keys); ++i)
 				{
 					auto& key = selectedTrack->keys[i];
 					ImGui::PushID(i);
@@ -5224,13 +5195,13 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 						changed = true;
 					ImGui::SameLine();
 					const char* keyMorphName =
-						key.morphIndex >= 0 && key.morphIndex < static_cast<int>(morphs.size())
+						key.morphIndex >= 0 && key.morphIndex < Count(morphs)
 							? morphs[key.morphIndex].name.c_str()
 							: "(missing)";
 					ImGui::SetNextItemWidth(220.0f);
 					if (ImGui::BeginCombo("##Morph", keyMorphName))
 					{
-						for (int morphIndex = 0; morphIndex < static_cast<int>(morphs.size());
+						for (int morphIndex = 0; morphIndex < Count(morphs);
 							++morphIndex)
 						{
 							if (ImGui::Selectable(
@@ -5311,7 +5282,7 @@ void VmdlEditorScene::DrawIkSettings()
 				changed = true;
 			}
 			const auto& nodes = model->GetNodes();
-			for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
+			for (int nodeIndex = 0; nodeIndex < Count(nodes); ++nodeIndex)
 			{
 				const auto& node = nodes[nodeIndex];
 				const std::string nodeLabel = MakeNodeLabel(nodeIndex, node.name);
@@ -5359,7 +5330,7 @@ void VmdlEditorScene::DrawIkSettings()
 	}
 
 	// 各脚のボーン、ポール、レイ
-	for (int i = 0; i < static_cast<int>(settings.legs.size()); ++i)
+	for (int i = 0; i < Count(settings.legs); ++i)
 	{
 		auto& leg = settings.legs[i];
 		ImGui::PushID(i);
@@ -5437,7 +5408,7 @@ void VmdlEditorScene::DrawMorphEditor()
 
 	auto& morphs = model->GetVmdlExtensionData().morphs;
 	const bool hasSelectedMorph =
-		selectedMorph >= 0 && selectedMorph < static_cast<int>(morphs.size());
+		selectedMorph >= 0 && selectedMorph < Count(morphs);
 
 	// モーフの追加と操作
 	if (ImGui::Button((const char*)u8"現在のモーフを登録"))
@@ -5447,7 +5418,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		morph.meshVisibility.reserve(model->GetMeshes().size());
 		for (const VMDLModel::Mesh& mesh : model->GetMeshes())
 			morph.meshVisibility.push_back(mesh.isDraw ? 1 : 0);
-		selectedMorph = static_cast<int>(morphs.size()) - 1;
+		selectedMorph = Count(morphs) - 1;
 		MarkDirty();
 	}
 	ImGui::SameLine();
@@ -5475,7 +5446,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		duplicate.name = MakeUniqueMorphName(duplicate.name + " COPY");
 		duplicate.applyOnInitialize = false;
 		morphs.push_back(std::move(duplicate));
-		selectedMorph = static_cast<int>(morphs.size()) - 1;
+		selectedMorph = Count(morphs) - 1;
 		MarkDirty();
 	}
 	ImGui::EndDisabled();
@@ -5494,7 +5465,7 @@ void VmdlEditorScene::DrawMorphEditor()
 			}
 		}
 		if (morphs.empty()) selectedMorph = -1;
-		else selectedMorph = std::min(selectedMorph, static_cast<int>(morphs.size()) - 1);
+		else selectedMorph = std::min(selectedMorph, Count(morphs) - 1);
 		MarkDirty();
 	}
 	ImGui::EndDisabled();
@@ -5511,7 +5482,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		// 左側のモーフ一覧
 		ImGui::TableSetColumnIndex(0);
 		ImGui::BeginChild("Morph List", ImVec2(0.0f, 0.0f), true);
-		for (int i = 0; i < static_cast<int>(morphs.size()); ++i)
+		for (int i = 0; i < Count(morphs); ++i)
 		{
 			ImGui::PushID(i);
 			if (ImGui::Selectable(morphs[i].name.c_str(), selectedMorph == i)) selectedMorph = i;
@@ -5528,12 +5499,12 @@ void VmdlEditorScene::DrawMorphEditor()
 			{
 				selectedMorph = i;
 				bool hasResidentMesh = false;
-				for (size_t meshIndex = 0;
-					meshIndex < morphs[i].meshVisibility.size() &&
-					meshIndex < model->GetMeshes().size(); ++meshIndex)
+				for (int meshIndex = 0;
+					meshIndex < Count(morphs[i].meshVisibility) &&
+					meshIndex < Count(model->GetMeshes()); ++meshIndex)
 				{
 					if (morphs[i].meshVisibility[meshIndex] == 1 &&
-						!model->IsExternalMesh(static_cast<int>(meshIndex)))
+						!model->IsExternalMesh(meshIndex))
 					{
 						hasResidentMesh = true;
 						break;
@@ -5553,7 +5524,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		// 右側のモーフ設定
 		ImGui::TableSetColumnIndex(1);
 		ImGui::BeginChild("Morph Property", ImVec2(0.0f, 0.0f), true);
-		if (selectedMorph >= 0 && selectedMorph < static_cast<int>(morphs.size()))
+		if (selectedMorph >= 0 && selectedMorph < Count(morphs))
 		{
 			auto& morph = morphs[selectedMorph];
 			std::string name = morph.name;
@@ -5576,7 +5547,7 @@ void VmdlEditorScene::DrawMorphEditor()
 			ImGui::SameLine();
 			ImGui::TextDisabled((const char*)u8"中点：変更なし");
 			ImGui::Separator();
-			for (int i = 0; i < static_cast<int>(model->GetMeshes().size()); ++i)
+			for (int i = 0; i < Count(model->GetMeshes()); ++i)
 			{
 				uint8_t& state = morph.meshVisibility[i];
 				if (state > 2) state = 2;
@@ -5623,7 +5594,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 		ImGui::TextDisabled((const char*)u8"このモデルにはマテリアルがありません");
 		return;
 	}
-	selectedMaterial = std::clamp(selectedMaterial, 0, static_cast<int>(materials.size()) - 1);
+	selectedMaterial = std::clamp(selectedMaterial, 0, Count(materials) - 1);
 
 	constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable |
 										   ImGuiTableFlags_BordersInnerV |
@@ -5636,7 +5607,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 	// 左側のマテリアル一覧
 	ImGui::TableSetColumnIndex(0);
 	ImGui::BeginChild("Material List", ImVec2(0.0f, 0.0f), true);
-	for (int i = 0; i < static_cast<int>(materials.size()); ++i)
+	for (int i = 0; i < Count(materials); ++i)
 	{
 		ImGui::PushID(i);
 		if (ImGui::Selectable(materials[i].name.c_str(), selectedMaterial == i))
@@ -5949,9 +5920,9 @@ void VmdlEditorScene::AppendAnimationGlb()
 
 	try
 	{
-		const int firstAppendedIndex = static_cast<int>(model->GetAnimations().size());
+		const int firstAppendedIndex = Count(model->GetAnimations());
 		model->AppendAnimations(filepath.c_str());
-		if (firstAppendedIndex >= static_cast<int>(model->GetAnimations().size()))
+		if (firstAppendedIndex >= Count(model->GetAnimations()))
 		{
 			ErrorMessage("The selected GLB contains no animations.");
 			return;
@@ -6016,7 +5987,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 		selectedMaterial = model->GetMaterials().empty() ? -1 : 0;
 		selectedAnimation = model->GetAnimations().empty() ? -1 : 0;
 		selectedMorph = model->GetVmdlExtensionData().morphs.empty() ? -1 : 0;
-		for (int i = 0; i < static_cast<int>(model->GetVmdlExtensionData().morphs.size()); ++i)
+		for (int i = 0; i < Count(model->GetVmdlExtensionData().morphs); ++i)
 		{
 			if (!model->GetVmdlExtensionData().morphs[i].applyOnInitialize) continue;
 			selectedMorph = i;
@@ -6039,14 +6010,14 @@ std::filesystem::path VmdlEditorScene::MakeMeshCachePath(
 	int meshIndex, const std::string& morphName) const
 {
 	if (!model || meshIndex < 0 ||
-		meshIndex >= static_cast<int>(model->GetMeshes().size())) return {};
+		meshIndex >= Count(model->GetMeshes())) return {};
 	const auto& mesh = model->GetMeshes()[meshIndex];
 	std::string meshLabel;
 	if (mesh.materialIndex >= 0 &&
-		mesh.materialIndex < static_cast<int>(model->GetMaterials().size()))
+		mesh.materialIndex < Count(model->GetMaterials()))
 		meshLabel = model->GetMaterials()[mesh.materialIndex].name;
 	if (meshLabel.empty() && mesh.nodeIndex >= 0 &&
-		mesh.nodeIndex < static_cast<int>(model->GetNodes().size()))
+		mesh.nodeIndex < Count(model->GetNodes()))
 		meshLabel = model->GetNodes()[mesh.nodeIndex].name;
 
 	std::string suffix;
@@ -6062,10 +6033,10 @@ std::filesystem::path VmdlEditorScene::MakeMeshCachePath(
 void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 {
 	if (!model || meshIndex < 0 ||
-		meshIndex >= static_cast<int>(model->GetMeshes().size())) return;
+		meshIndex >= Count(model->GetMeshes())) return;
 	const std::vector<int> meshIndices = {meshIndex};
 	if (selectedMorph < 0 ||
-		selectedMorph >= static_cast<int>(model->GetVmdlExtensionData().morphs.size()))
+		selectedMorph >= Count(model->GetVmdlExtensionData().morphs))
 	{
 		ErrorMessage("Select the activation morph before externalizing meshes.");
 		return;
@@ -6117,17 +6088,17 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 void VmdlEditorScene::SeparateMorphMeshes(int morphIndex)
 {
 	if (!model || morphIndex < 0 ||
-		morphIndex >= static_cast<int>(model->GetVmdlExtensionData().morphs.size())) return;
+		morphIndex >= Count(model->GetVmdlExtensionData().morphs)) return;
 	const auto& morph = model->GetVmdlExtensionData().morphs[morphIndex];
 	std::vector<int> meshIndices;
-	for (size_t meshIndex = 0;
-		meshIndex < morph.meshVisibility.size() && meshIndex < model->GetMeshes().size();
+	for (int meshIndex = 0;
+		meshIndex < Count(morph.meshVisibility) && meshIndex < Count(model->GetMeshes());
 		++meshIndex)
 	{
 		// 「+ 表示」のメッシュが、このモーフを適用したときに必要となる実体
 		if (morph.meshVisibility[meshIndex] == 1 &&
-			!model->IsExternalMesh(static_cast<int>(meshIndex)))
-			meshIndices.push_back(static_cast<int>(meshIndex));
+			!model->IsExternalMesh(meshIndex))
+			meshIndices.push_back(meshIndex);
 	}
 	if (meshIndices.empty()) return;
 
@@ -6409,7 +6380,7 @@ void VmdlEditorScene::LoadModel(
 		selectedMaterial = model->GetMaterials().empty() ? -1 : 0;
 		selectedAnimation = model->GetAnimations().empty() ? -1 : 0;
 		selectedMorph = model->GetVmdlExtensionData().morphs.empty() ? -1 : 0;
-		for (int i = 0; i < static_cast<int>(model->GetVmdlExtensionData().morphs.size()); ++i)
+		for (int i = 0; i < Count(model->GetVmdlExtensionData().morphs); ++i)
 		{
 			if (!model->GetVmdlExtensionData().morphs[i].applyOnInitialize) continue;
 			selectedMorph = i;

@@ -270,6 +270,7 @@ template <class Archive> void VMDLModel::VmdlSoundData::serialize(Archive& archi
 	archive(CEREAL_NVP(sources), CEREAL_NVP(tracks));
 }
 
+
 template void VMDLModel::Node::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Node::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
 template void VMDLModel::VmdlComponentTransform::serialize<cereal::BinaryInputArchive>(

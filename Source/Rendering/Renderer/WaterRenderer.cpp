@@ -1,4 +1,3 @@
-// WaterRenderer.cpp
 #include "Rendering/Renderer/WaterRenderer.h"
 
 #include <algorithm>

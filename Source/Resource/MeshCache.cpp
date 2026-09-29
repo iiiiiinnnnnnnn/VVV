@@ -1,4 +1,3 @@
-﻿// MeshCache.cpp
 #include "Resource/MeshCache.h"
 
 #include "Rendering/Core/Graphics.h"

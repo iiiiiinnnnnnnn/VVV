@@ -1,4 +1,3 @@
-﻿// CacheSettings.h
 #pragma once
 
 #include <algorithm>

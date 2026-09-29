@@ -22,6 +22,7 @@
 #include <functional>
 #include <map>
 #endif
+#include "TestPlayScene.h"
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 namespace
@@ -261,9 +262,18 @@ void GameStartScene::OnDrawGUI()
 	};
 
 	// 各ボタンから対応するシーンへ移動
-	if (menuButton((const char*)u8"PLAY\nゲーム開始", ImGuiTheme::YellowButton,
-		ImGuiTheme::YellowButtonHovered, ImGuiTheme::YellowButtonActive))
-		loadRequested = SceneManager::Instance().LoadScene<TitleScene>();
+	if (menuButton((const char*)u8"PLAY\nゲーム開始\n(LShiftで直ゲーム)", ImGuiTheme::YellowButton,
+			ImGuiTheme::YellowButtonHovered, ImGuiTheme::YellowButtonActive))
+	{
+		if (ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftShift))
+		{
+			loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
+		}
+		else
+		{
+			loadRequested = SceneManager::Instance().LoadScene<TitleScene>();
+		}
+	}
 	ImGui::SameLine();
 	if (menuButton((const char*)u8"VMDL\nモデル編集", ImGuiTheme::RedButton,
 		ImGuiTheme::RedButtonHovered, ImGuiTheme::RedButtonActive))

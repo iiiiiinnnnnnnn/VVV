@@ -79,7 +79,7 @@ float UIFont::MeasureWidth(const std::string& text, float fontSize) const
 	return width;
 }
 
-void UIFont::DrawText(const std::string& text, const Vector2& position, const Vector2& boxSize,
+void UIFont::DrawFont(const std::string& text, const Vector2& position, const Vector2& boxSize,
 	float fontSize, const Color& color, UITextAlignment alignment) const
 {
 	if (!atlas || fontSize <= 0.0f) return;

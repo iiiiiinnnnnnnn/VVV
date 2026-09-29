@@ -1,4 +1,3 @@
-﻿// CacheBuilder.cpp
 #include "Resource/CacheBuilder.h"
 #include "Resource/CacheSettings.h"
 #include "Audio/SoundTrackRegistry.h"

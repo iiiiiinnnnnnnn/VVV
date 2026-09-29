@@ -1,4 +1,3 @@
-﻿// MeshCache.h
 #pragma once
 
 #include <filesystem>

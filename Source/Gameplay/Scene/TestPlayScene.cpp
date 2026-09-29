@@ -4,7 +4,7 @@
 
 #include "Application/Time/GameTime.h"
 #include "Audio/SoundSystem.h"
-#include "Gameplay/Actor/AracoreQueen.h"
+#include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Player/LocalPlayer.h"
@@ -68,7 +68,7 @@ TestPlayScene::TestPlayScene()
 	widgetManager.Register(gameHud);
 	for (Actor* actor : actorManager.GetActors())
 	{
-		AracoreQueen* boss = dynamic_cast<AracoreQueen*>(actor);
+		Aracore* boss = dynamic_cast<Aracore*>(actor);
 		if (boss) boss->SetBossBar(bossBar.get());
 	}
 
@@ -89,7 +89,7 @@ TestPlayScene::~TestPlayScene()
 	{
 		for (Actor* actor : currentStage->GetActorManager().GetActors())
 		{
-			AracoreQueen* boss = dynamic_cast<AracoreQueen*>(actor);
+			Aracore* boss = dynamic_cast<Aracore*>(actor);
 			if (boss) boss->SetBossBar(nullptr);
 		}
 	}
@@ -131,7 +131,7 @@ void TestPlayScene::OnUpdate()
 	{
 		for (Actor* actor : currentStage->GetActorManager().GetActors())
 		{
-			AracoreQueen* boss = dynamic_cast<AracoreQueen*>(actor);
+			Aracore* boss = dynamic_cast<Aracore*>(actor);
 			if (boss) boss->SetBossBar(bossBar.get());
 		}
 	}

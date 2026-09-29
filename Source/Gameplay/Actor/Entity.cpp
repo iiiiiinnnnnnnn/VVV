@@ -40,10 +40,10 @@ void Entity::OnUpdate()
     }
     #endif
 
-    #if 0 // 落下死
-    {
-        if (transform.position.y < -50.0f)
-            TakeDamage(9999.0f, {});
+    #if 1 // 落下死
+	{
+		if (transform.position.y < -50.0f)
+			TakeDamage({9999.0f});
     }
     #endif
 }

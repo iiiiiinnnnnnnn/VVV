@@ -1,11 +1,5 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <filesystem>
-#include <string>
-#include <vector>
-
 #include "Core\Foundation\Common.h"
 
 class LightManager;

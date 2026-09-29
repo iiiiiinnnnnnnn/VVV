@@ -137,7 +137,7 @@ class VMDLModel
 	// VMDL全体のIK設定
 	struct VmdlIKSettings
 	{
-		static constexpr size_t MaxLegCount = 8;
+		static constexpr int MaxLegCount = 8;
 
 		int type = 0;
 		std::string centerNode = "pelvis";
@@ -284,13 +284,13 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
-	// ノードに追従する軽量パーティクル設定
+	// ノードに追従するパーティクル設定
 	struct VmdlParticleEmitter
 	{
-		// Effekseerのエフェクト本体。旧パーティクル設定は既存VMDL読込互換のため残す。
 		std::string effekseerFileName;
 		std::vector<uint8_t> effekseerData;
-		// 0: Sprite, 1: Ribbon（拡張値はmodel.vfxdataへ保存）
+		bool modelDerived = false;
+		bool billboard = false;
 		int rendererType = 0;
 		int parentEmitterIndex = -1;
 		std::string name = "PARTICLE";
@@ -382,7 +382,6 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
-	// サウンドトラックの再生バリエーション設定
 	struct VmdlSoundSourceBinding
 	{
 		int track = 0;
@@ -412,6 +411,21 @@ class VMDLModel
 	{
 		std::string animationName;
 		std::vector<VmdlSoundKeyframe> keys;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlComponentTransformData
+	{
+		std::vector<VmdlComponentTransform> rigidBodies;
+		std::vector<VmdlComponentTransform> colliders;
+		std::vector<VmdlComponentTransform> springs;
+		std::vector<VmdlComponentTransform> springColliders;
+		std::vector<VmdlComponentTransform> trails;
+		std::vector<VmdlComponentTransform> particles;
+		std::vector<VmdlComponentTransform> sounds;
+		std::vector<VmdlComponentTransform> cameraShakes;
+		std::vector<VmdlComponentTransform> radialBlurs;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -448,22 +462,6 @@ class VMDLModel
 		float power = 3.0f;
 		float attackRate = 0.15f;
 		VmdlComponentTransform transform;
-	};
-
-	// 既存セクションの互換性を保ったまま、付加コンポーネントのTransformだけを保存する
-	struct VmdlComponentTransformData
-	{
-		std::vector<VmdlComponentTransform> rigidBodies;
-		std::vector<VmdlComponentTransform> colliders;
-		std::vector<VmdlComponentTransform> springs;
-		std::vector<VmdlComponentTransform> springColliders;
-		std::vector<VmdlComponentTransform> trails;
-		std::vector<VmdlComponentTransform> particles;
-		std::vector<VmdlComponentTransform> sounds;
-		std::vector<VmdlComponentTransform> cameraShakes;
-		std::vector<VmdlComponentTransform> radialBlurs;
-
-		template <class Archive> void serialize(Archive& archive);
 	};
 
 	// カメラ演出を再生するキーフレーム
@@ -867,7 +865,7 @@ class VMDLModel
 	void Deserialize(const char* filename);
 
 	// 分割形式
-	static constexpr uint32_t VmdlCompressionVersion = 9;
+	static constexpr uint32_t VmdlCompressionVersion = 10;
 
 	static void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
 		const std::string& textureFileName, ID3D11ShaderResourceView* srv,

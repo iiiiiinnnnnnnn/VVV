@@ -16,12 +16,13 @@ class ThirdPersonCameraController;
 class CharacterMotorComponent;
 class LockOnComponent;
 class AfterimageComponent;
+class Effect;
 
 class Player : public Entity
 {
 public:
     Player();
-    ~Player() override = default;
+    ~Player() override;
 
     void OnUpdate() override;
     void OnLateUpdate() override;
@@ -61,6 +62,8 @@ private:
 	bool HasIncomingEnemyAttack() const;
 	bool IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* collider) const;
 	void TriggerJustDodge();
+	void PlayJustDodgeFeedback();
+	void PlayAttackHitEffect(const Vector3& position);
 
 protected:
     PlayerController* controller = nullptr;
@@ -82,8 +85,10 @@ protected:
     const Vector2 readySpineAngle = {-0.25f, -0.38f};
     TrailRenderComponent* trail = nullptr;
 	AfterimageComponent* afterimage = nullptr;
+	std::unique_ptr<Effect> attackHitEffect;
 	bool dodgeInvincible = false;
 	bool justDodgeTriggered = false;
+	bool justDodgeSoundPlayed = false;
 	bool justDodgeSkillActive = false;
 	std::unordered_set<Actor*> justDodgeSkillHitActors;
 	float dodgeCooldownTimer = 0.0f;
@@ -96,7 +101,6 @@ protected:
 	float speed = 5.0f;
 	bool sprinting = false;
 	bool crouching = false;
-	bool crouchAnimationsAvailable = false;
 	float crouchRootMotionScale = 0.55f;
 	bool terrainDeformKeyHeld = false;
 	bool actionInputThisFrame = false;

@@ -1,4 +1,4 @@
-﻿#include "Core/Object/Transform.h"
+#include "Core/Object/Transform.h"
 
 #include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
@@ -145,7 +145,9 @@ void Transform::SetDirection(
 }
 
 void Transform::Update() {
-	matrix = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+	matrix = Matrix::CreateScale(scale) 
+		* Matrix::CreateFromQuaternion(rotation) 
+		* Matrix::CreateTranslation(position);
 	forward = Vector3::TransformNormal(Vector3::UnitZ, matrix);
 	right = Vector3::TransformNormal(Vector3::UnitX, matrix);
 }

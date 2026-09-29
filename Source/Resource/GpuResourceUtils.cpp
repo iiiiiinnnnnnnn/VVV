@@ -1,4 +1,3 @@
-// GpuResourceUtils.cpp
 
 #include <filesystem>
 #include <wrl.h>

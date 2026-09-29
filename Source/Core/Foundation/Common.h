@@ -1,12 +1,14 @@
-﻿#pragma once
+#pragma once
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <cstddef>
 #include <cwctype>
 #include <filesystem>
 #include <string>
 #include <fstream>
+#include <stdexcept>
 #include <vector>
 
 // Convert a string to lowercase

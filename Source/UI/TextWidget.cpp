@@ -9,5 +9,5 @@ TextWidget::TextWidget(const std::string& name, const std::string& text, float f
 void TextWidget::OnRender(const RenderContext&)
 {
 	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	UIFont::Default().DrawText(text, topLeft, rect.size, fontSize, color, alignment);
+	UIFont::Default().DrawFont(text, topLeft, rect.size, fontSize, color, alignment);
 }

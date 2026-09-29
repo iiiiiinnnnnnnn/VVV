@@ -1,4 +1,5 @@
-﻿#pragma once
+// StageLoader.h
+#pragma once
 #include "Resource/VMDLModel.h"
 
 #include <imgui.h>
@@ -8,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -18,9 +20,6 @@
 #include "nlohmann/json.hpp"
 #include "IconsFontAwesome5.h"
 
-class Prop;
-class CrystalProp;
-class ParticleSystem;
 class Spawner;
 class Stage;
 class Water;
@@ -56,10 +55,9 @@ class StageLoader : public Component
 	void LoadJsonText(const std::string& text);
 	void SaveJson();
 	std::string SaveJsonText();
-	void SetCrystalBreakParticleSystem(ParticleSystem* particleSystem);
 	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&)>;
 	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);
-	std::vector<Spawner*> GetSpawners() const;
+	std::vector<Spawner*> GetSpawners(std::string_view entityName = {}) const;
 	void SetEditorModels(
 		const std::unordered_map<std::string, std::shared_ptr<VMDLModel>>* models)
 	{
@@ -89,44 +87,14 @@ class StageLoader : public Component
 	void RefreshSelectedEditorObject();
 
   private:
-	friend class Prop;
-	friend class CrystalProp;
 	static constexpr const char* PlacementColliderName = "PLACEMENT";
-
-	struct RigidbodyData
-	{
-		bool isDynamic = false;
-		void DrawGUI()
-		{
-			if (ImGui::TreeNode((const char*)u8"リジッドボディ設定"))
-			{
-				ImGui::Checkbox((const char*)u8"動的オブジェクト", &isDynamic);
-				ImGui::TreePop();
-			}
-		}
-	};
-
-	enum class PropType
-	{
-		Standard,
-		Crystal,
-		Water // 旧VSTGの水面を読み込むために残す
-	};
 
 	struct PropData
 	{
-		std::string name = "Prop";
-		std::string tag = "Prop";
-		PropType type = PropType::Standard;
 		Transform transform = {};
-		RigidbodyData rigidbodyData = {};
 		std::string modelPath = "";
-		bool useDestroy = false;
-		float destroyLife = 0.0f;
-		uint32_t destroyLayerMask = 0;
 		bool isSpawner = false;
-		std::string spawnerEntityName = "EnemySmall";
-		WaterRenderer::Settings waterSettings; // 旧VSTGの水面設定を移行するために使う
+		std::string spawnerEntityName;
 
 		std::shared_ptr<VMDLModel> model = nullptr;
 		bool editorPreview = false;
@@ -152,11 +120,11 @@ class StageLoader : public Component
 	std::vector<PropData> propDataList = {};
 	std::vector<Transform> playerStartTransforms;
 	std::vector<BlockedAreaData> blockedAreas;
-	void DrawDestroyGUI(PropData& propData);
 	void DrawEditorGUI();
 	void DrawWorldWaterEditor();
 	bool DrawPropEditor(int index);
 	Actor* CreatePropActor(PropData& propData);
+	void ApplyPropData(Actor* actor, PropData& propData);
 	Actor* CreateBlockedAreaActor(BlockedAreaData& area);
 	void ApplyBlockedAreaData(int index);
 	void CreateWorldWaterActor();
@@ -164,12 +132,10 @@ class StageLoader : public Component
 	void ConfigureSpawner(Actor* actor, const PropData& propData);
 	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;
 	Vector3 GetPropPlacementOffset(VMDLModel& model);
-	static uint32_t GetDefaultDestroyLayerMask();
 
 	std::filesystem::path jsonPath = {};
 	std::string jsonText;
 	Stage* stage = nullptr;
-	ParticleSystem* crystalBreakParticleSystem = nullptr;
 	WorldWaterData worldWater;
 	Water* worldWaterActor = nullptr;
 	std::vector<Actor*> addedRealActors = {};

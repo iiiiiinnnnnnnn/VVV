@@ -1,5 +1,5 @@
-﻿#pragma once
-
+﻿// VMDLColliderComponent.h
+#pragma once
 #include <string>
 
 #include "Physics/Core/CollidersDef.h"
@@ -29,6 +29,7 @@ class VMDLColliderComponent : public PhysicsComponent
 
   private:
 	void CreateShape();
+	void CreateMeshShape();
 	void UpdateScaledSize(const Matrix& world);
 	PxTransform GetShapeLocalPose() const;
 

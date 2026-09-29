@@ -1,7 +1,5 @@
 #include "Rendering/Component/VMDL.h"
 
-#include <stdexcept>
-
 #include "Animation/Animator.h"
 #include "Animation/HumanoidFootIK.h"
 #include "Animation/MultiLegFootIK.h"

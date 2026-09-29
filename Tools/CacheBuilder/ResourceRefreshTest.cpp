@@ -1,4 +1,3 @@
-﻿// ResourceRefreshTest.cpp
 #include "Resource/CacheBuilder.h"
 #include "Resource/ResourceManager.h"
 #include "Gameplay/Scene/SceneManager.h"

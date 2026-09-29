@@ -5,14 +5,15 @@
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
-#include "Gameplay/Actor/EnemySmall.h"
+#include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Actor/Spawner.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
-#include "Gameplay/Actor/AracoreQueen.h"
+#include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundSystem.h"
 #include "Audio/SoundTracks.generated.h"
+#include "Gameplay/Actor/Crystal.h"
 
 Stage01::Stage01(Player* player) : Stage()
 {
@@ -32,7 +33,6 @@ Stage01::Stage01(Player* player) : Stage()
 		// まぁ使わないとは思うけど、複数ある場合はランダムな初期位置から開始する
 		player->SetSpawnTransform(stageLoader->GetRandomPlayerStartTransform());
 	}
-	stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
 		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
@@ -62,7 +62,6 @@ Stage01::Stage01(Player* player) : Stage()
 			device,
 			sozai ? sozai->GetShaderResourceView() : nullptr,
 			4, 4, 1000);
-		stageLoader->SetCrystalBreakParticleSystem(particleSystem.get());
 	}
 
 	{
@@ -76,26 +75,21 @@ Stage01::Stage01(Player* player) : Stage()
 	}
 
 	// 登録したスポナー動作させるためのファクトリ関数
-	#if 1
-	stageLoader->RegisterSpawnerFactory("EnemySmall", [](const Transform& transform)
+	stageLoader->RegisterSpawnerFactory("Deer", [](const Transform& transform)
 	{
-		auto enemy = std::make_shared<EnemySmall>(transform.position);
-		enemy->transform.SetRotation(transform.rotation);
-		enemy->transform.SetScale(transform.scale);
-		return enemy;
+		return std::make_shared<Deer>(transform);
 	});
-	#endif
-	#if 1
 	Terrain* terrain = GetComponent<Terrain>();
-	stageLoader->RegisterSpawnerFactory("AracoreQueen", [player, terrain, loader = stageLoader](const Transform& transform)
+	stageLoader->RegisterSpawnerFactory("Aracore", [player, terrain, loader = stageLoader](const Transform& transform)
 	{
-		auto queen = std::make_shared<AracoreQueen>(player, transform.position, terrain);
+			auto queen = std::make_shared<Aracore>(player, transform, terrain);
 		queen->SetStageLoader(loader);
-		queen->transform.SetRotation(transform.rotation);
-		queen->transform.SetScale(transform.scale);
 		return queen;
 	});
-	#endif
+	stageLoader->RegisterSpawnerFactory("Crystal", [](const Transform& transform)
+	{
+		return std::make_shared<Crystal>(transform);
+	});
 	for (Spawner* spawner : stageLoader->GetSpawners())
 	{
 		spawner->Summon();

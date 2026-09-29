@@ -8,6 +8,7 @@
 #include <stb_image.h>
 #include <DirectXTex.h>
 #include <sstream>
+#include <stdexcept>
 
 #include "Rendering/Core/Graphics.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
@@ -122,21 +123,12 @@ Texture::Texture(const char* filename)
 		{
 			std::ostringstream output;
 			output << "[Texture] Load failed: " << filename
-				<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")\n";
-			OutputDebugStringA(output.str().c_str());
-			GpuResourceUtils::CreateDummyTexture(
-				device, 0xFFFFFFFF, shaderResourceView.ReleaseAndGetAddressOf(), &texture2dDesc);
+				<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")";
+			throw std::runtime_error(output.str());
 		}
 	}
 	else
-	{
-		// ダミーテクスチャ
-		GpuResourceUtils::CreateDummyTexture(
-			device,
-			0xFFFFFFFF,
-			shaderResourceView.GetAddressOf(),
-			&texture2dDesc);
-	}
+		throw std::runtime_error(std::string("Texture not found: ") + filename);
 }
 
 Texture::Texture(const Color& color)

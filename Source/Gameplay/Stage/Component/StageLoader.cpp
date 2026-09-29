@@ -1,9 +1,7 @@
-﻿// StageLoader.cpp
+// StageLoader.cpp
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
-#include "magic_enum/magic_enum.hpp"
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -14,13 +12,15 @@
 #include "Resource/ResourceManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/ActorManager.h"
-#include "Gameplay/Actor/Prop.h"
-#include "Gameplay/Actor/CrystalProp.h"
 #include "Gameplay/Actor/Spawner.h"
-#include "Core\Foundation\Json.h"
+#include "Core/Foundation/Json.h"
 #include "Gameplay/Actor/Water.h"
 #include "Physics/Collider/BoxCollider.h"
+#include "Physics/Collider/MeshCollider.h"
 #include "Physics/RigidBody/Rigidbody.h"
+#include "Rendering/Component/VMDLModelComponent.h"
+
+static constexpr uint32_t StageDataVersion = 1;
 
 static void LoadTransformJson(const json& transformJson, Transform& transform)
 {
@@ -47,45 +47,6 @@ static void LoadTransformJson(const json& transformJson, Transform& transform)
 	}
 }
 
-void StageLoader::DrawDestroyGUI(PropData& propData)
-{
-	// 破壊設定
-	ImGui::Checkbox((const char*)u8"破壊可能", &propData.useDestroy);
-	if (propData.useDestroy)
-	{
-		ImGui::DragFloat((const char*)u8"耐久値", &propData.destroyLife, 0.1f, 0.0f, 100000.0f);
-		if (propData.destroyLife < 0.0f) propData.destroyLife = 0.0f;
-
-		// ダメージを受ける物理レイヤー
-		if (ImGui::TreeNode((const char*)u8"ダメージを受けるレイヤー"))
-		{
-			PhysicsLayerManager& layerManager = PhysicsLayerManager::Instance();
-			for (int layer = 0; layer < EditableLayerCount; ++layer)
-			{
-				if (layerManager.GetLayerName(static_cast<LayerId>(layer)).empty()) continue;
-				bool enabled = (propData.destroyLayerMask & (1u << layer)) != 0;
-				const std::string label =
-					layerManager.GetLayerDisplayName(static_cast<LayerId>(layer));
-				if (ImGui::Checkbox(label.c_str(), &enabled))
-				{
-					if (enabled) propData.destroyLayerMask |= 1u << layer;
-					else propData.destroyLayerMask &= ~(1u << layer);
-				}
-			}
-			ImGui::TreePop();
-		}
-	}
-}
-
-uint32_t StageLoader::GetDefaultDestroyLayerMask()
-{
-	uint32_t mask = 0;
-	const LayerId playerAttack = Layers::Get("PlayerAtk");
-	const LayerId enemyAttack = Layers::Get("EnemyAtk");
-	if (playerAttack < EditableLayerCount) mask |= 1u << playerAttack;
-	if (enemyAttack < EditableLayerCount) mask |= 1u << enemyAttack;
-	return mask;
-}
 StageLoader::StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
 {
@@ -435,15 +396,7 @@ void StageLoader::RefreshSelectedEditorObject()
 		selectedEditorTransform.position -
 		Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
 	propData.transform.Update();
-	if (Prop* prop = dynamic_cast<Prop*>(addedPropActors[selectedEditorObjectIndex]))
-	{
-		prop->ApplyStageData(propData);
-	}
-	else if (CrystalProp* crystal =
-				 dynamic_cast<CrystalProp*>(addedPropActors[selectedEditorObjectIndex]))
-	{
-		crystal->ApplyStageData(propData);
-	}
+	ApplyPropData(addedPropActors[selectedEditorObjectIndex], propData);
 }
 
 void StageLoader::Update()
@@ -473,42 +426,8 @@ void StageLoader::Update()
 				addedPropActors[propIndex] = nullptr;
 				addedActor = nullptr;
 			}
-			if (Prop* actor = dynamic_cast<Prop*>(addedActor))
-				actor->ApplyStageData(prop);
-			else if (CrystalProp* actor = dynamic_cast<CrystalProp*>(addedActor))
-				actor->ApplyStageData(prop);
-			else if (addedActor)
-			{
-				addedActor->SetName(prop.name);
-				addedActor->SetTag(prop.tag);
-				addedActor->transform = prop.transform;
-				addedActor->transform.Update();
-			}
+			ApplyPropData(addedActor, prop);
 			ConfigureSpawner(addedActor, prop);
-		}
-	}
-}
-
-void StageLoader::SetCrystalBreakParticleSystem(ParticleSystem* particleSystem)
-{
-	crystalBreakParticleSystem = particleSystem;
-
-	for (Actor* actor : addedPropActors)
-	{
-		CrystalProp* crystalActor = dynamic_cast<CrystalProp*>(actor);
-		if (crystalActor)
-		{
-			crystalActor->SetDestroyedCallback([this](CrystalProp* destroyedCrystal) {
-				for (Actor*& addedActor : addedRealActors)
-				{
-					if (addedActor == destroyedCrystal) addedActor = nullptr;
-				}
-				for (Actor*& addedActor : addedPropActors)
-				{
-					if (addedActor == destroyedCrystal) addedActor = nullptr;
-				}
-			});
-			crystalActor->SetBreakParticleSystem(crystalBreakParticleSystem);
 		}
 	}
 }
@@ -524,14 +443,16 @@ void StageLoader::RegisterSpawnerFactory(const std::string& entityName, SpawnerF
 	}
 }
 
-std::vector<Spawner*> StageLoader::GetSpawners() const
+std::vector<Spawner*> StageLoader::GetSpawners(std::string_view entityName) const
 {
 	std::vector<Spawner*> result;
 	for (Actor* actor : addedPropActors)
 	{
 		if (!actor) continue;
 		Spawner* spawner = actor->GetComponent<Spawner>();
-		if (spawner && spawner->IsActive()) result.push_back(spawner);
+		if (!spawner || !spawner->IsActive()) continue;
+		if (!entityName.empty() && spawner->GetEntityName() != entityName) continue;
+		result.push_back(spawner);
 	}
 	return result;
 }
@@ -543,31 +464,45 @@ void StageLoader::DrawGUI()
 
 Actor* StageLoader::CreatePropActor(PropData& propData)
 {
-	std::shared_ptr<Actor> actor;
-	if (propData.isSpawner && !propData.editorPreview)
+	const std::string name = std::filesystem::path(propData.modelPath).stem().string();
+	auto actor = std::make_shared<Actor>(name, "Prop", true, propData.transform);
+	if (!propData.isSpawner || propData.editorPreview)
 	{
-		actor = std::make_shared<Actor>(propData.name, propData.tag, true);
-		actor->transform = propData.transform;
-		actor->transform.Update();
+		auto renderer = actor->AddComponent<VMDLModelComponent>(
+			propData.model, ModelShaderId::VMat);
+		renderer->SetAttachmentLayerId(Layers::Get("Prop"));
+
+		if (!propData.isSpawner)
+		{
+			RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
+			actor->AddComponent<MeshCollider>(
+				Layers::Get("Prop"), rigidbody, propData.model, false);
+		}
 	}
-	else if (propData.type == PropType::Crystal)
-	{
-		auto crystal = std::make_shared<CrystalProp>(propData);
-		crystal->SetDestroyedCallback([this](CrystalProp* destroyedCrystal) {
-			for (Actor*& addedActor : addedRealActors)
-				if (addedActor == destroyedCrystal) addedActor = nullptr;
-			for (Actor*& addedActor : addedPropActors)
-				if (addedActor == destroyedCrystal) addedActor = nullptr;
-		});
-		crystal->SetBreakParticleSystem(crystalBreakParticleSystem);
-		actor = std::move(crystal);
-	}
-	else actor = std::make_shared<Prop>(propData);
 
 	Actor* result = actor.get();
+	ApplyPropData(result, propData);
 	ConfigureSpawner(result, propData);
 	stage->GetActorManager().Register(actor);
 	return result;
+}
+
+void StageLoader::ApplyPropData(Actor* actor, PropData& propData)
+{
+	if (!actor) return;
+
+	const bool scaleChanged =
+		(actor->transform.scale - propData.transform.scale).LengthSquared() > 0.000001f;
+	actor->transform = propData.transform;
+	actor->transform.Update();
+	if (Rigidbody* rigidbody = actor->GetComponent<Rigidbody>())
+	{
+		rigidbody->SetPosition(propData.transform.position);
+		rigidbody->SetRotation(propData.transform.rotation);
+	}
+	if (scaleChanged)
+		if (MeshCollider* collider = actor->GetComponent<MeshCollider>())
+			collider->UpdateShape();
 }
 
 Actor* StageLoader::CreateBlockedAreaActor(BlockedAreaData& area)
@@ -639,26 +574,29 @@ void StageLoader::ApplyWorldWaterData()
 void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 {
 	if (!actor) return;
+
 	Spawner* spawner = actor->GetComponent<Spawner>();
+
 	if (!spawner && propData.isSpawner)
+	{
 		spawner = actor->AddComponent<Spawner>(propData.spawnerEntityName);
+	}
+
 	if (!spawner) return;
 
 	spawner->SetEntityName(propData.spawnerEntityName);
 	spawner->SetActorManager(&stage->GetActorManager());
+
 	spawner->SetActive(propData.isSpawner);
 	spawner->SetEditorPreview(propData.isSpawner && propData.editorPreview);
+
 	Transform summonTransform = propData.transform;
-	if (propData.model)
-	{
-		const Matrix rotationScale = Matrix::CreateScale(propData.transform.scale) *
-			Matrix::CreateFromQuaternion(propData.transform.rotation);
-		summonTransform.position +=
-			Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
-		summonTransform.Update();
-	}
+	summonTransform.Update();
+
 	spawner->SetSummonTransform(summonTransform);
+
 	const auto factory = spawnerFactories.find(propData.spawnerEntityName);
+
 	spawner->SetFactory(factory == spawnerFactories.end() ? SpawnerFactory{} : factory->second);
 }
 
@@ -682,9 +620,7 @@ Vector3 StageLoader::GetPropPlacementOffset(VMDLModel& model)
 			collider.nodeIndex >= static_cast<int>(model.GetNodes().size()))
 			continue;
 
-		const Matrix offset = Matrix::CreateFromYawPitchRoll(RAD(collider.rotation.y),
-								  RAD(collider.rotation.x), RAD(collider.rotation.z)) *
-							  Matrix::CreateTranslation(collider.center);
+		const Matrix offset = collider.transform.ToMatrix();
 		return model
 			.GetScaledAttachmentTransform(
 				offset * model.GetNodes()[collider.nodeIndex].worldTransform)
@@ -697,8 +633,6 @@ bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& ter
 {
 	PropData propData;
 	propData.modelPath = modelPath;
-	propData.name = std::filesystem::path(modelPath).stem().string();
-	propData.destroyLayerMask = GetDefaultDestroyLayerMask();
 	propData.editorPreview = editorModels != nullptr;
 	propData.model = LoadPropModel(modelPath);
 	if (!propData.model) return false;
@@ -771,8 +705,6 @@ bool StageLoader::ReplaceMissingModelPath(
 		if (propData.modelPath != missingPath) continue;
 		propData.modelPath = replacementPath;
 		propData.model = replacement->Clone();
-		if (propData.name.empty() || propData.name == std::filesystem::path(missingPath).stem().string())
-			propData.name = std::filesystem::path(replacementPath).stem().string();
 
 		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
 			addedPropActors[index]->Destroy();
@@ -1013,7 +945,7 @@ bool StageLoader::DrawPropEditor(int index)
 	const bool selected = selectedEditorObjectType == EditorObjectType::Prop &&
 		selectedEditorObjectIndex == index;
 	const std::string label =
-		(propData.name.empty() ? (const char*)u8"名前なし" : propData.name) + "###Prop";
+		std::filesystem::path(propData.modelPath).stem().string() + "###Prop";
 	const bool open = ImGui::TreeNodeEx(
 		label.c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);
 	if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::Prop, index);
@@ -1023,22 +955,14 @@ bool StageLoader::DrawPropEditor(int index)
 		return false;
 	}
 
-	ImGui::InputText((const char*)u8"名前", &propData.name);
-	ImGui::InputText((const char*)u8"タグ", &propData.tag);
 	propData.transform.DrawGUI();
 	ImGui::Checkbox((const char*)u8"スポナー", &propData.isSpawner);
 	if (propData.isSpawner)
 		ImGui::InputText((const char*)u8"生成対象", &propData.spawnerEntityName);
-	if (propData.type == PropType::Standard)
-	{
-		propData.rigidbodyData.DrawGUI();
-		DrawDestroyGUI(propData);
-	}
 
 	if (ImGui::Button((const char*)u8"複製"))
 	{
 		PropData copy = propData;
-		copy.name += " Copy";
 		propDataList.insert(propDataList.begin() + index + 1, std::move(copy));
 		Actor* actor = CreatePropActor(propDataList[index + 1]);
 		addedRealActors.insert(addedRealActors.begin() + index + 1, actor);
@@ -1096,6 +1020,7 @@ void StageLoader::LoadJson()
 	{
 		return;
 	}
+	if (!root.is_object() || root.value("version", 0u) != StageDataVersion) return;
 
 	propDataList.clear();
 	playerStartTransforms.clear();
@@ -1110,8 +1035,6 @@ void StageLoader::LoadJson()
 		worldWaterActor = nullptr;
 	}
 	worldWater = WorldWaterData{};
-	bool loadedWorldWater = false;
-
 	for (auto addedActor : addedRealActors)
 	{
 		if (addedActor) addedActor->Destroy();
@@ -1132,7 +1055,6 @@ void StageLoader::LoadJson()
 			LoadWaterSettingsJson(waterJson["settings"], worldWater.settings);
 		}
 		worldWater.transform.Update();
-		loadedWorldWater = true;
 	}
 
 	if (root.contains("playerStarts") && root["playerStarts"].is_array())
@@ -1147,16 +1069,6 @@ void StageLoader::LoadJson()
 			playerStartTransforms.push_back(playerStart);
 		}
 	}
-	else if (root.contains("playerStart") && root["playerStart"].is_object())
-	{
-		// 旧VSTGの単一初期位置もそのまま読み込めるようにする。
-		Transform playerStart;
-		LoadTransformJson(root["playerStart"], playerStart);
-		playerStart.scale = Vector3::One;
-		playerStart.Update();
-		playerStartTransforms.push_back(playerStart);
-	}
-
 	for (const auto& areaJson : root.value("blockedAreas", json::array()))
 	{
 		if (!areaJson.is_object()) continue;
@@ -1177,81 +1089,16 @@ void StageLoader::LoadJson()
 		for (const auto& propJson : root["props"])
 		{
 			PropData propData;
-			propData.name = propJson.value("name", std::string());
-			propData.tag = propJson.value("tag", std::string("Prop"));
-			const auto type =
-				magic_enum::enum_cast<PropType>(propJson.value("type", std::string("Standard")));
-			if (type.has_value()) propData.type = type.value();
-
 			if (propJson.contains("transform"))
-			{
-				const auto& transformJson = propJson["transform"];
-
-				if (transformJson.contains("position"))
-				{
-					propData.transform.position.x = transformJson["position"].value("x", 0.0f);
-					propData.transform.position.y = transformJson["position"].value("y", 0.0f);
-					propData.transform.position.z = transformJson["position"].value("z", 0.0f);
-				}
-
-				if (transformJson.contains("rotation"))
-				{
-					propData.transform.rotation.x = transformJson["rotation"].value("x", 0.0f);
-					propData.transform.rotation.y = transformJson["rotation"].value("y", 0.0f);
-					propData.transform.rotation.z = transformJson["rotation"].value("z", 0.0f);
-					propData.transform.rotation.w = transformJson["rotation"].value("w", 1.0f);
-				}
-
-				if (transformJson.contains("scale"))
-				{
-					propData.transform.scale.x = transformJson["scale"].value("x", 1.0f);
-					propData.transform.scale.y = transformJson["scale"].value("y", 1.0f);
-					propData.transform.scale.z = transformJson["scale"].value("z", 1.0f);
-				}
-			}
-
-			if (propJson.contains("rigidbody"))
-			{
-				const auto& rigidbodyJson = propJson["rigidbody"];
-				propData.rigidbodyData.isDynamic = rigidbodyJson.value("isDynamic", false);
-			}
-
-			propData.useDestroy = propJson.value("useDestroy", false);
-			propData.destroyLife = propJson.value("destroyLife", 0.0f);
-			propData.destroyLayerMask =
-				propJson.value("destroyLayerMask", GetDefaultDestroyLayerMask());
+				LoadTransformJson(propJson["transform"], propData.transform);
 			propData.isSpawner = propJson.value("isSpawner", false);
 			propData.spawnerEntityName =
-				propJson.value("spawnerEntityName", std::string("EnemySmall"));
+				propJson.value("spawnerEntityName", std::string());
 			propData.editorPreview = editorModels != nullptr;
-			if (propData.type == PropType::Water && propJson.contains("water"))
-			{
-				LoadWaterSettingsJson(propJson["water"], propData.waterSettings);
-			}
-
-			// 旧VSTGのProp水面は、最初の1つをワールド水面へ移行する
-			if (propData.type == PropType::Water)
-			{
-				if (!loadedWorldWater)
-				{
-					worldWater.enabled = true;
-					worldWater.transform = propData.transform;
-					worldWater.settings = propData.waterSettings;
-					worldWater.transform.Update();
-					loadedWorldWater = true;
-				}
-				continue;
-			}
 
 			propData.modelPath = propJson.value("modelPath", "");
-			std::string lowerModelPath = propData.modelPath;
-			std::transform(lowerModelPath.begin(), lowerModelPath.end(), lowerModelPath.begin(),
-				[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
-			if (lowerModelPath.starts_with("data/"))
-				propData.modelPath.replace(0, 4, "Resources");
-			if (propData.name.empty())
-				propData.name = std::filesystem::path(propData.modelPath).stem().string();
-			propData.model = LoadPropModel(propData.modelPath);
+			if (!propData.modelPath.empty())
+				propData.model = LoadPropModel(propData.modelPath);
 
 			propDataList.push_back(std::move(propData));
 			Actor* propActor = nullptr;
@@ -1261,53 +1108,6 @@ void StageLoader::LoadJson()
 			}
 			addedRealActors.push_back(propActor);
 			addedPropActors.push_back(propActor);
-		}
-	}
-
-	if (root.contains("crystals") && root["crystals"].is_array())
-	{
-		for (const auto& crystalJson : root["crystals"])
-		{
-			std::vector<Transform> transforms;
-			if (crystalJson.contains("transforms") && crystalJson["transforms"].is_array())
-			{
-				Transform parentTransform;
-				if (crystalJson.contains("transform"))
-					LoadTransformJson(crystalJson["transform"], parentTransform);
-				parentTransform.Update();
-
-				for (const auto& transformJson : crystalJson["transforms"])
-				{
-					Transform transform;
-					LoadTransformJson(transformJson, transform);
-					transform.Update();
-					transforms.emplace_back(transform.matrix * parentTransform.matrix);
-				}
-			}
-			else
-			{
-				Transform transform;
-				if (crystalJson.contains("transform"))
-					LoadTransformJson(crystalJson["transform"], transform);
-				transforms.push_back(transform);
-			}
-
-			for (const Transform& transform : transforms)
-			{
-				PropData propData;
-				propData.name = "Crystal";
-				propData.tag = "CrystalProp";
-				propData.type = PropType::Crystal;
-				propData.modelPath = "Resources/Model/Prop/crystals_from_space";
-				propData.transform = transform;
-				propData.editorPreview = editorModels != nullptr;
-				propData.model = LoadPropModel(propData.modelPath);
-				propDataList.push_back(std::move(propData));
-				Actor* crystalActor = propDataList.back().model
-					? CreatePropActor(propDataList.back()) : nullptr;
-				addedRealActors.push_back(crystalActor);
-				addedPropActors.push_back(crystalActor);
-			}
 		}
 	}
 
@@ -1333,6 +1133,7 @@ std::string StageLoader::SaveJsonText()
 void StageLoader::SaveJson()
 {
 	json root;
+	root["version"] = StageDataVersion;
 	root["worldWater"]["enabled"] = worldWater.enabled;
 	root["worldWater"]["transform"]["position"] = {
 		{"x", worldWater.transform.position.x},
@@ -1384,15 +1185,7 @@ void StageLoader::SaveJson()
 
 	for (const auto& propData : propDataList)
 	{
-		if (propData.type == PropType::Water)
-		{
-			continue;
-		}
-
 		json propJson;
-		propJson["name"] = propData.name;
-		propJson["tag"] = propData.tag;
-		propJson["type"] = std::string(magic_enum::enum_name(propData.type));
 
 		propJson["transform"]["position"]["x"] = propData.transform.position.x;
 		propJson["transform"]["position"]["y"] = propData.transform.position.y;
@@ -1407,11 +1200,6 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["y"] = propData.transform.scale.y;
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
 
-		propJson["rigidbody"]["isDynamic"] = propData.rigidbodyData.isDynamic;
-
-		propJson["useDestroy"] = propData.useDestroy;
-		propJson["destroyLife"] = propData.destroyLife;
-		propJson["destroyLayerMask"] = propData.destroyLayerMask;
 		propJson["isSpawner"] = propData.isSpawner;
 		propJson["spawnerEntityName"] = propData.spawnerEntityName;
 

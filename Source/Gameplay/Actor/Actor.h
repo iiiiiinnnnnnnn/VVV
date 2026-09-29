@@ -1,4 +1,4 @@
-﻿// Actor.h
+// Actor.h
 #pragma once
 
 #include "Core/Object/Object.h"
@@ -9,8 +9,9 @@ class PhysicsComponent;
 class Actor : public Object, public std::enable_shared_from_this<Actor>
 {
 public:
-    Actor(std::string name = "", std::string tag = "", bool isActive = true)
-        : Object(name, tag, isActive) {}
+	Actor(std::string name = "", std::string tag = "", bool isActive = true,
+		const Transform& transform = {})
+        : Object(name, tag, isActive), transform(transform) {}
     ~Actor() override = default;
 
 	void Update() override;

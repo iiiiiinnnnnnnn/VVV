@@ -1,0 +1,98 @@
+{
+    "agentRadius": 3.0,
+    "entryStateId": 1,
+    "targetTag": "Player",
+    "trackingTurnSpeed": 2.0,
+    "parameters": [
+        {"name":"SearchRange","type":1,"bool":false,"float":35.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"LostRange","type":1,"bool":false,"float":50.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightRayHeight","type":1,"bool":false,"float":2.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightRayLength","type":1,"bool":false,"float":35.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightTargetHeight","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightHorizontalFov","type":1,"bool":false,"float":120.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"SightVerticalFov","type":1,"bool":false,"float":75.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"TurnThreshold","type":1,"bool":false,"float":8.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMinDistance","type":1,"bool":false,"float":5.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMaxDistance","type":1,"bool":false,"float":18.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomMoveSpeed","type":1,"bool":false,"float":1.4,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"FreedomWaitDuration","type":1,"bool":false,"float":1.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ThreatDuration","type":1,"bool":false,"float":3.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChaseMoveSpeed","type":1,"bool":false,"float":3.2,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChaseDuration","type":1,"bool":false,"float":6.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"TurningMoveSpeed","type":1,"bool":false,"float":1.4,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChargePrepareDuration","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChargeMoveSpeed","type":1,"bool":false,"float":6.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChargeOverDistance","type":1,"bool":false,"float":10.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ChargeMaxDuration","type":1,"bool":false,"float":2.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"RecoveryDuration","type":1,"bool":false,"float":1.5,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpChance","type":1,"bool":false,"float":0.25,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpDuration","type":1,"bool":false,"float":2.4,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpHeight","type":1,"bool":false,"float":10.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpLandingRecovery","type":1,"bool":false,"float":0.9,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpTerrainDeformPower","type":1,"bool":false,"float":1.25,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"JumpTerrainDeformRadius","type":1,"bool":false,"float":8.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ShouldJump","type":0,"bool":false,"float":0.0,"runtimeOnly":true,"vector":{"x":0.0,"y":0.0,"z":0.0}},
+        {"name":"ActionFinished","type":0,"bool":false,"float":0.0,"runtimeOnly":true,"vector":{"x":0.0,"y":0.0,"z":0.0}}
+    ],
+    "states": [
+        {
+            "id":1,"parentStateId":-1,"entrySubStateId":3,"name":"Freedom","callback":"","hasEditorPosition":true,"editorPosX":80.0,"editorPosY":180.0,
+            "transitions":[{"id":1,"targetStateId":6,"conditionLogic":"AND","conditions":[{"parameter":"IsTargetInSearchRange","compare":0,"threshold":0.0},{"parameter":"IsTargetVisible","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":2,"parentStateId":-1,"entrySubStateId":8,"name":"Attacking","callback":"","hasEditorPosition":true,"editorPosX":760.0,"editorPosY":180.0,
+            "transitions":[{"id":2,"targetStateId":1,"conditionLogic":"AND","conditions":[{"parameter":"IsTargetInLostRange","compare":1,"threshold":0.0}]}]
+        },
+        {
+            "id":3,"parentStateId":1,"entrySubStateId":-1,"name":"Wait","callback":"FreedomWait","hasEditorPosition":true,"editorPosX":20.0,"editorPosY":390.0,
+            "transitions":[{"id":3,"targetStateId":4,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":4,"parentStateId":1,"entrySubStateId":-1,"name":"Wander","callback":"FreedomWander","hasEditorPosition":true,"editorPosX":250.0,"editorPosY":390.0,
+            "transitions":[
+                {"id":4,"targetStateId":5,"conditionLogic":"AND","conditions":[{"parameter":"IsTurning","compare":0,"threshold":0.0}]},
+                {"id":5,"targetStateId":3,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]}
+            ]
+        },
+        {
+            "id":5,"parentStateId":1,"entrySubStateId":-1,"name":"Wander Turn","callback":"WanderTurn","hasEditorPosition":true,"editorPosX":250.0,"editorPosY":570.0,
+            "transitions":[
+                {"id":6,"targetStateId":4,"conditionLogic":"AND","conditions":[{"parameter":"IsTurning","compare":1,"threshold":0.0},{"parameter":"HasDestination","compare":0,"threshold":0.0}]},
+                {"id":7,"targetStateId":3,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]}
+            ]
+        },
+        {
+            "id":6,"parentStateId":-1,"entrySubStateId":-1,"name":"Threat","callback":"Threat","hasEditorPosition":true,"editorPosX":470.0,"editorPosY":180.0,
+            "transitions":[
+                {"id":8,"targetStateId":1,"conditionLogic":"AND","conditions":[{"parameter":"IsTargetInLostRange","compare":1,"threshold":0.0}]},
+                {"id":9,"targetStateId":2,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0}]}
+            ]
+        },
+        {
+            "id":8,"parentStateId":2,"entrySubStateId":-1,"name":"Chase","callback":"Chase","hasEditorPosition":true,"editorPosX":650.0,"editorPosY":390.0,
+            "transitions":[{"id":10,"targetStateId":9,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":9,"parentStateId":2,"entrySubStateId":-1,"name":"Charge Turn","callback":"ChargeTurn","hasEditorPosition":true,"editorPosX":880.0,"editorPosY":390.0,
+            "transitions":[{"id":11,"targetStateId":10,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0},{"parameter":"IsFacingTarget","compare":0,"threshold":0.0}]}]
+        },
+        {
+            "id":10,"parentStateId":2,"entrySubStateId":-1,"name":"Charge","callback":"Charge","hasEditorPosition":true,"editorPosX":1110.0,"editorPosY":390.0,
+            "transitions":[
+                {"id":12,"targetStateId":11,"conditionLogic":"AND","conditions":[{"parameter":"HasDestination","compare":1,"threshold":0.0}]},
+                {"id":13,"targetStateId":11,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0}]}
+            ]
+        },
+        {
+            "id":11,"parentStateId":2,"entrySubStateId":-1,"name":"Recovery","callback":"Recovery","hasEditorPosition":true,"editorPosX":880.0,"editorPosY":590.0,
+            "transitions":[
+                {"id":14,"targetStateId":12,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0},{"parameter":"ShouldJump","compare":0,"threshold":0.0}]},
+                {"id":15,"targetStateId":9,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0},{"parameter":"ShouldJump","compare":1,"threshold":0.0}]}
+            ]
+        },
+        {
+            "id":12,"parentStateId":2,"entrySubStateId":-1,"name":"Jump To Center","callback":"JumpCenter","hasEditorPosition":true,"editorPosX":1110.0,"editorPosY":590.0,
+            "transitions":[{"id":16,"targetStateId":9,"conditionLogic":"AND","conditions":[{"parameter":"ActionFinished","compare":0,"threshold":0.0}]}]
+        }
+    ]
+}

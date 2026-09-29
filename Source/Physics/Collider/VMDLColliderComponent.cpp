@@ -1,4 +1,5 @@
-﻿#include "Physics/Collider/VMDLColliderComponent.h"
+﻿// VMDLColliderComponent.cpp
+#include "Physics/Collider/VMDLColliderComponent.h"
 
 #include <algorithm>
 
@@ -85,7 +86,11 @@ void VMDLColliderComponent::CreateShape()
 
 	PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
 
-	switch (shapeType)
+	if (shapeType >= 3)
+	{
+		CreateMeshShape();
+	}
+	else switch (shapeType)
 	{
 	case 1:
 		shape =
@@ -122,6 +127,65 @@ void VMDLColliderComponent::CreateShape()
 	{
 		PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*ghostActor);
 	}
+}
+
+void VMDLColliderComponent::CreateMeshShape()
+{
+	if (!model || nodeIndex < 0 || nodeIndex >= static_cast<int>(model->GetNodes().size())) return;
+	const int meshIndex = shapeType - 3;
+	const auto& meshes = model->GetMeshes();
+	if (meshIndex < 0 || meshIndex >= static_cast<int>(meshes.size())) return;
+
+	const auto& mesh = meshes[meshIndex];
+	if (mesh.vertices.size() < 3 || mesh.indices.size() < 3) return;
+	const auto& nodes = model->GetNodes();
+	const Matrix meshNodeTransform = mesh.node ? mesh.node->globalTransform : Matrix::Identity;
+	const Matrix meshToCollider =
+		meshNodeTransform * nodes[nodeIndex].globalTransform.Invert();
+	std::vector<PxVec3> vertices;
+	vertices.reserve(mesh.vertices.size());
+	for (const auto& vertex : mesh.vertices)
+	{
+		Vector3 position = Vector3::Transform(vertex.position, meshToCollider);
+		position *= scaledSize;
+		vertices.emplace_back(position.x, position.y, position.z);
+	}
+
+	PxCookingParams* cooking = PhysicsManager::Instance().GetCooking();
+	PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
+	if (!cooking || !physics) return;
+	PxDefaultMemoryOutputStream cookedData;
+	if (isTrigger)
+	{
+		PxConvexMeshDesc description;
+		description.points.count = static_cast<PxU32>(vertices.size());
+		description.points.stride = sizeof(PxVec3);
+		description.points.data = vertices.data();
+		description.flags = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eQUANTIZE_INPUT;
+		description.quantizedCount = 255;
+		if (!PxCookConvexMesh(*cooking, description, cookedData) || cookedData.getSize() == 0)
+			return;
+		PxDefaultMemoryInputData input(cookedData.getData(), cookedData.getSize());
+		PxConvexMesh* convexMesh = physics->createConvexMesh(input);
+		if (!convexMesh) return;
+		shape = physics->createShape(PxConvexMeshGeometry(convexMesh), *material, true);
+		convexMesh->release();
+		return;
+	}
+
+	PxTriangleMeshDesc description;
+	description.points.count = static_cast<PxU32>(vertices.size());
+	description.points.stride = sizeof(PxVec3);
+	description.points.data = vertices.data();
+	description.triangles.count = static_cast<PxU32>(mesh.indices.size() / 3);
+	description.triangles.stride = sizeof(uint32_t) * 3;
+	description.triangles.data = mesh.indices.data();
+	if (!PxCookTriangleMesh(*cooking, description, cookedData) || cookedData.getSize() == 0) return;
+	PxDefaultMemoryInputData input(cookedData.getData(), cookedData.getSize());
+	PxTriangleMesh* triangleMesh = physics->createTriangleMesh(input);
+	if (!triangleMesh) return;
+	shape = physics->createShape(PxTriangleMeshGeometry(triangleMesh), *material, true);
+	triangleMesh->release();
 }
 
 void VMDLColliderComponent::UpdateScaledSize(const Matrix&)
@@ -196,7 +260,7 @@ void VMDLColliderComponent::UpdateFromNode()
 		return;
 	}
 
-	if (isTrigger && shape)
+	if (isTrigger && shape && shapeType < 3)
 	{
 		const PxTransform startPose = PxShapeExt::getGlobalPose(*shape, *ghostActor);
 		const PxTransform endPose = targetActorPose * shape->getLocalPose();
@@ -284,6 +348,15 @@ void VMDLColliderComponent::Render(const RenderContext& rc)
 
 	const PxTransform pose =
 		shape ? PxShapeExt::getGlobalPose(*shape, *ghostActor) : ghostActor->getGlobalPose();
+
+	if (shapeType >= 3 && shape)
+	{
+		const PxBounds3 bounds = PxShapeExt::getWorldBounds(*shape, *ghostActor);
+		Game::Graphics::Instance().GetShapeRenderer()->DrawBox(
+			Conv::ToVector3(bounds.getCenter()), Vector3::Zero,
+			Conv::ToVector3(bounds.getExtents()), Color(0.1f, 0.9f, 1.0f, 1.0f));
+		return;
+	}
 
 	switch (shapeType)
 	{

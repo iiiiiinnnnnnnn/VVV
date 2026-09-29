@@ -1,4 +1,3 @@
-﻿// Main.cpp
 #include "Resource/CacheBuilder.h"
 
 #include <iostream>

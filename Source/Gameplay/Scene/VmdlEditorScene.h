@@ -1,4 +1,3 @@
-﻿// VmdlEditorScene.h
 #pragma once
 
 #include "Audio/SoundTrackRegistry.h"
@@ -69,6 +68,7 @@ class VmdlEditorScene : public Scene
 	// 指定メッシュが複数選択に含まれているかを返す
 	bool IsMeshSelected(int meshIndex) const;
 	void AddAttachedComponentToSelectedNodes(AttachedComponentType type);
+	void DuplicateSelectedAttachedComponent();
 	std::string MakeUniqueAttachedComponentName(
 		AttachedComponentType type, const std::string& baseName) const;
 	void DrawViewport();
@@ -214,7 +214,7 @@ class VmdlEditorScene : public Scene
 	bool unifiedPreviewActive = false;
 	bool animationPlaying = false;
 	bool animationSoundPreviewStarting = true;
-	bool particlePreviewBurstPending = false;
+	bool particlePreviewPlayPending = false;
 	int manualParticlePreviewIndex = -1;
 	float cameraShakePreviewTimer = 0.0f;
 	float cameraShakePreviewDuration = 0.0f;

@@ -34,7 +34,7 @@ class VMDLModelComponent : public Component
 	void UpdateModelTransform(const Matrix& actorTransform);
 	bool PlaySoundSource(const std::string& name, const Vector3* positionOverride = nullptr);
 	bool PlayPresentation(const std::string& name, const Vector3& listenerPosition);
-	float BurstParticleEmitter(const std::string& name);
+	bool PlayParticleEmitter(const std::string& name);
 	bool SetParticleEmitterSettings(
 		const std::string& name, const VMDLModel::VmdlParticleEmitter& settings);
 	void SetAttachmentLayerId(LayerId value) { attachmentLayerId = value; }

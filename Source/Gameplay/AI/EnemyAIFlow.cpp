@@ -18,26 +18,26 @@
 EnemyAIFlow::EnemyAIFlow(Object* owner)
     : AIFlow(owner)
 {
-    SetGraphPath("Resources/AI/EnemyAI.json");
-    SetFloat("SearchRange", 15.0f);
-    SetFloat("LostRange", 22.5f);
-    SetFloat("SightRayLength", 16.5f);
-    SetFloat("SightRayHeight", 0.05f);
-    SetFloat("SightTargetHeight", 1.0f);
-    SetFloat("SightHorizontalFov", 90.0f);
-    SetFloat("SightVerticalFov", 60.0f);
-    SetBool("HasTarget", false, true);
-    SetBool("IsTargetInSearchRange", false, true);
-    SetBool("IsTargetInLostRange", false, true);
-    SetBool("IsTargetInSightAngle", false, true);
-    SetBool("IsTargetVisible", false, true);
-    SetBool("HasDestination", false, true);
-    SetBool("IsTurning", false, true);
-    SetBool("IsFacingTarget", false, true);
-    SetFloat("TurnAngle", 0.0f, true);
-    SetFloat("TurnThreshold", 15.0f);
-    SetFloat("TargetDistance", std::numeric_limits<float>::max(), true);
-    SetVector3("TargetPosition", Vector3::Zero, true);
+    SetGraphPath("Resources/AI/EnemyAI.json"); // パス
+	SetFloat("SearchRange", 15.0f);			   // 追跡開始距離
+	SetFloat("LostRange", 22.5f);			   // 追跡終了距離
+	SetFloat("SightRayLength", 16.5f);		   // 視線判定の長さ
+	SetFloat("SightRayHeight", 0.05f);		   // 視線判定の高さ
+	SetFloat("SightTargetHeight", 1.0f);	   // 視線判定のターゲットの高さ
+	SetFloat("SightHorizontalFov", 90.0f);	   // 視線判定の水平視野角
+	SetFloat("SightVerticalFov", 60.0f);	   // 視線判定の垂直視野角
+	SetBool("HasTarget", false, true);		   // ターゲットしているかどうか
+	SetBool("IsTargetInSearchRange", false, true); // ターゲットが追跡開始距離内にいるかどうか
+	SetBool("IsTargetInLostRange", false, true);   // ターゲットが追跡終了距離内にいるかどうか
+	SetBool("IsTargetInSightAngle", false, true);  // ターゲットが視線判定の角度内にいるかどうか
+    SetBool("IsTargetVisible", false, true); // ターゲットが視線判定の角度内にいて、かつ視線判定の障害物に遮られていないかどうか
+	SetBool("HasDestination", false, true); // ナビメッシュの目的地が設定されているかどうか
+	SetBool("IsTurning", false, true);		 // ナビメッシュの目的地に向かって回転中かどうか
+	SetBool("IsFacingTarget", false, true); // ターゲットの方向を向いているかどうか
+	SetFloat("TurnAngle", 0.0f, true);		 // ナビメッシュの目的地に向かって回転中の角度
+	SetFloat("TurnThreshold", 15.0f);		// ナビメッシュの目的地に向かって回転中の角度の閾値
+	SetFloat("TargetDistance", std::numeric_limits<float>::max(), true); // ターゲットまでの距離
+	SetVector3("TargetPosition", Vector3::Zero, true);					 // ターゲットの位置
 }
 
 void EnemyAIFlow::OnDisabled()
@@ -53,6 +53,7 @@ void EnemyAIFlow::OnRender(const RenderContext&)
     const Actor* ownerActor = dynamic_cast<const Actor*>(owner);
     if (!ownerActor) return;
 
+    // 視線判定のデバッグ描画
     const float searchRange = GetFloat("SearchRange", 20.0f);
     const float lostRange = std::max(
         GetFloat("LostRange", searchRange * 1.5f),

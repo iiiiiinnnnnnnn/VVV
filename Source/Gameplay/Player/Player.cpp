@@ -1,4 +1,3 @@
-// Player.cpp
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundTracks.generated.h"
 #include "Application/Input/Input.h"
@@ -12,17 +11,17 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Gameplay/Actor/ActorManager.h"
-#include "Gameplay/Actor/AracoreQueen.h"
-#include "Gameplay/Actor/EnemySmall.h"
+#include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Component/CharacterMotorComponent.h"
 #include "Gameplay/Component/LockOnComponent.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/AfterimageComponent.h"
+#include "Rendering/Effect/Effect.h"
+#include "Resource/ResourceManager.h"
+#include "Audio/SoundSystem.h"
 
-namespace
-{
 void RemapQuickshiftWindTracks(VMDLModel& model)
 {
 	auto& particleData = model.GetVmdlParticleData();
@@ -45,9 +44,8 @@ void RemapQuickshiftWindTracks(VMDLModel& model)
 		else if (track.animationName == "SS_Quickshift_R") track.emitterIndex = left;
 	}
 }
-}
 
-Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
+Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 {
 	// VMDL読み込み
 	vmdl = AddComponent<VMDL>("Resources/Model/Player/CombatGirls_Sword_Shield");
@@ -61,57 +59,6 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する
 	anim = vmdl->GetAnimator();
 	anim->Load("Resources/Animator/Player.animator");
-
-	// しゃがみモーションはプレイヤーVMDLに同梱されているため、名前で解決して
-	// 既存Animatorへ追加する。攻撃・回避などのAny State遷移は従来どおり優先される。
-	const int crouchIdleAnimation = model->GetAnimationIndex("SS_CrouchIdle");
-	const int crouchWalkAnimation = model->GetAnimationIndex("SS_CrouchWalk");
-	if (crouchIdleAnimation >= 0 && crouchWalkAnimation >= 0 && anim->GetLayerCount() > 0)
-	{
-		anim->AddBool("IsCrouching", false);
-		const int crouchIdleState =
-			anim->AddState(0, "CrouchIdle", crouchIdleAnimation, true, 1.0f);
-		const int crouchWalkState =
-			anim->AddState(0, "CrouchWalk", crouchWalkAnimation, true, 1.0f);
-
-		int transition = anim->AddAnyStateTransition(
-			0, crouchWalkState, 0.12f, false, 1.0f, -1, false);
-		anim->AddAnyStateCondition(
-			0, transition, "IsCrouching", Animator::ConditionMode::IsTrue);
-		anim->AddAnyStateCondition(
-			0, transition, "Speed", Animator::ConditionMode::Greater, 0.1f);
-
-		transition = anim->AddAnyStateTransition(
-			0, crouchIdleState, 0.12f, false, 1.0f, -2, false);
-		anim->AddAnyStateCondition(
-			0, transition, "IsCrouching", Animator::ConditionMode::IsTrue);
-		anim->AddAnyStateCondition(
-			0, transition, "Speed", Animator::ConditionMode::Less, 0.11f);
-
-		auto addStandTransitions = [this](int crouchState)
-		{
-			int toIdle = anim->AddTransition(
-				0, crouchState, 0, 0.12f, false, 1.0f, 1, false);
-			anim->AddCondition(
-				0, crouchState, toIdle,
-				"IsCrouching", Animator::ConditionMode::IsFalse);
-			anim->AddCondition(
-				0, crouchState, toIdle,
-				"Speed", Animator::ConditionMode::Less, 0.11f);
-
-			int toWalk = anim->AddTransition(
-				0, crouchState, 1, 0.12f, false, 1.0f, 0, false);
-			anim->AddCondition(
-				0, crouchState, toWalk,
-				"IsCrouching", Animator::ConditionMode::IsFalse);
-			anim->AddCondition(
-				0, crouchState, toWalk,
-				"Speed", Animator::ConditionMode::Greater, 0.1f);
-		};
-		addStandTransitions(crouchIdleState);
-		addStandTransitions(crouchWalkState);
-		crouchAnimationsAvailable = true;
-	}
 	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
@@ -152,7 +99,17 @@ Player::Player() : Entity("Player", "Player", true, 100.0f, 100.0f)
 
 	// 回避の残像には描画リソースと取得時の姿勢だけを保持する
 	afterimage = AddComponent<AfterimageComponent>(model);
+
+	const auto effectData =
+		ResourceManager::Instance().LoadFile("Resources/Effect/critical.efkpkg");
+	if (effectData && !effectData->empty())
+	{
+		attackHitEffect = std::make_unique<Effect>(effectData->data(), effectData->size());
+		attackHitEffect->SetBillboard(true);
+	}
 }
+
+Player::~Player() = default;
 
 void Player::SetSpawnTransform(const Transform& spawnTransform)
 {
@@ -285,10 +242,10 @@ void Player::TakeDamage(const DamageData& damageData)
 		Actor* attacker = damageData.hitColliderSelf
 			? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
 			: nullptr;
-		if (!justDodgeSkillActive &&
-			IsEnemyAttackActive(attacker, damageData.hitColliderSelf))
+		if (IsEnemyAttackActive(attacker, damageData.hitColliderSelf))
 		{
-			TriggerJustDodge();
+			PlayJustDodgeFeedback();
+			if (!justDodgeSkillActive) TriggerJustDodge();
 		}
 		return;
 	}
@@ -307,6 +264,17 @@ void Player::TriggerJustDodge()
 	PostProcessController::Instance().RequestJustDodge();
 }
 
+void Player::PlayJustDodgeFeedback()
+{
+	VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr;
+	if (!renderer) return;
+
+	renderer->PlayParticleEmitter("JUSTDODGE");
+	if (justDodgeSoundPlayed) return;
+	justDodgeSoundPlayed = true;
+	renderer->PlaySoundSource("JUSTDODGE");
+}
+
 bool Player::IsEnemyAttackActive(
 	const Actor* enemy, const PhysicsComponent* collider) const
 {
@@ -318,27 +286,8 @@ bool Player::IsEnemyAttackActive(
 	}
 
 	const LayerId layer = collider->GetLayerId();
-	if (layer != Layers::Get("EnemyAtk") &&
-		layer != Layers::Get("AracoreAtkStamp"))
-	{
-		return false;
-	}
-
-	const Animator* enemyAnimator = enemy->GetComponent<Animator>();
-	if (!enemyAnimator) return false;
-	const std::string& state = enemyAnimator->IsTransitioning()
-		? enemyAnimator->GetNextStateName()
-		: enemyAnimator->GetCurrentStateName();
-
-	if (dynamic_cast<const AracoreQueen*>(enemy))
-		return state == "walk" || state == "attack" || state == "Jump";
-	if (dynamic_cast<const EnemySmall*>(enemy))
-		return state == "run";
-
-	return state.find("Attack") != std::string::npos ||
-		state.find("attack") != std::string::npos ||
-		state.find("Charge") != std::string::npos ||
-		state.find("charge") != std::string::npos;
+	return layer == Layers::Get("EnemyAtk") ||
+		layer == Layers::Get("AracoreAtkStamp");
 }
 
 bool Player::HasIncomingEnemyAttack() const
@@ -405,9 +354,10 @@ void Player::UpdateDeathSequence()
 {
 	deathSequenceTimer += Game::Time::unscaledDeltaTime;
 	const float progress = std::clamp(
-		deathSequenceTimer / deathVignetteDuration, 0.0f, 0.3f);
-	const float easedProgress = Easing::Evaluate(progress, Easing::Type::InSine);
-	PostProcessController::Instance().RequestDeathVignette(easedProgress);
+		deathSequenceTimer / deathVignetteDuration, 0.0f, 1.0f);
+	constexpr float maximumVignetteProgress = 0.3f;
+	PostProcessController::Instance().RequestDeathVignette(
+		Easing::Evaluate(progress, Easing::Type::InSine) * maximumVignetteProgress);
 
 	if (progress >= 1.0f && !deathReloadRequested)
 	{
@@ -433,7 +383,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor) return;
-	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("CrystalProp")) return;
+	if (!otherActor->CompareTag("Enemy") && !otherActor->CompareTag("Crystal")) return;
 	Entity* entity = dynamic_cast<Entity*>(otherActor);
 	if (!entity) return;
 	const bool skillAttack =
@@ -472,7 +422,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 
 	entity->TakeDamage({
 		.damage = skillAttack
-			? (dynamic_cast<EnemySmall*>(otherActor) ? entity->GetLife() : 300.0f)
+			? (dynamic_cast<Deer*>(otherActor) ? entity->GetLife() : 300.0f)
 			: footAtk ? Random::Range(45.0f, 55.0f) : Random::Range(30.0f, 40.0f),
 		.knockBackPower = footAtk ? 5.0f : 0.0f,
 		.ignoreDamageCooldown = skillAttack,
@@ -481,6 +431,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 		.hitPosition = hitPosition,
 		.hitNormal = hitNormal,
 		});
+	PlayAttackHitEffect(hitPosition);
 	if (skillAttack)
 	{
 		// SPのヒットストップもグローバル時間倍率で行う。
@@ -490,6 +441,13 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 	}
 
 	if (!entity->IsDead()) lockOnComponent->LockOn(otherActor);
+}
+
+// バコーンエフェクト
+void Player::PlayAttackHitEffect(const Vector3& position)
+{
+	if (!attackHitEffect || !attackHitEffect->IsValid()) return;
+	attackHitEffect->Play(position, 0.15f);
 }
 
 // プレイヤーの移動処理
@@ -537,8 +495,7 @@ void Player::UpdateMovement()
 		isFreeze || IsDead() || attackAnimationActive ||
 		dodgeAnimationActive || justDodgeSkillAnimationActive ||
 		hitAnimationActive || ctx.attackPressed || quickStepStarted;
-	crouching =
-		crouchAnimationsAvailable && ctx.crouch && !crouchBlocked;
+	crouching = ctx.crouch && !crouchBlocked;
 	actionInputThisFrame =
 		inputLen > 0.1f || ctx.crouch || ctx.sprint || ctx.attackPressed ||
 		quickStepActive || quickStepStarted;
@@ -551,7 +508,11 @@ void Player::UpdateMovement()
 		justDodgeSkillActive = false;
 	}
 	dodgeInvincible = dodgeAnimationActive || justDodgeSkillActive;
-	if (!dodgeInvincible) justDodgeTriggered = false;
+	if (!dodgeInvincible)
+	{
+		justDodgeTriggered = false;
+		justDodgeSoundPlayed = false;
+	}
 	if (cc)
 	{
 		cc->SetLayerIgnored(Layers::Get("Enemy"), dodgeInvincible);
@@ -706,11 +667,13 @@ void Player::UpdateMovement()
 		dodgeCooldownTimer = dodgeCooldownDuration;
 		dodgeInvincible = true;
 		justDodgeTriggered = false;
+		justDodgeSoundPlayed = false;
 		justDodgeSkillActive = false;
 		if (cc) cc->SetLayerIgnored(Layers::Get("Enemy"), true);
 		if (cc) cc->SetActorTagIgnored("Enemy", true);
+		// 回避パーティクル
 		if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
-			renderer->BurstParticleEmitter("DODGE_WIND");
+			renderer->PlayParticleEmitter("DODGE_WIND");
 		if (HasIncomingEnemyAttack()) TriggerJustDodge();
 		anim->SetFloat("Speed", 0.0f);
 		anim->SetBool("IsSprinting", false);
@@ -752,5 +715,8 @@ void Player::UpdateHealth()
 	{
 		healthRecoveryTimer -= healthRecoveryInterval;
 		Heal(healthRecoveryAmount);
+
+		// 回復エフェクト
+		vmdl->GetRenderer()->PlayParticleEmitter("HEAL");
 	}
 }

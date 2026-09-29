@@ -94,7 +94,8 @@ void Framework::Update(float elapsedTime)
 
 	// 最新の位置で3D音声を更新
 	SoundSystem::Instance().Update();
-	EffectManager::Instance().Update();
+	if (!SceneManager::Instance().IsLoading())
+		EffectManager::Instance().Update();
 }
 
 // 描画処理

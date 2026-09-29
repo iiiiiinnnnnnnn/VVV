@@ -1,6 +1,10 @@
+// Graphics.cpp
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/GpuResourceUtils.h"
+
+#include <d3d11_4.h>
+#include <stdexcept>
 
 namespace Game
 {
@@ -78,6 +82,16 @@ namespace Game
 				immediateContext.GetAddressOf()
 			);
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+			if (FAILED(hr) || !immediateContext)
+				throw std::runtime_error("D3D11 device creation failed.");
+
+			// マルチスレッド保護の有効化
+			Microsoft::WRL::ComPtr<ID3D11Multithread> multithread;
+			hr = immediateContext.As(&multithread);
+			if (FAILED(hr) || !multithread)
+				throw std::runtime_error(
+					"D3D11 immediate context does not support multithread protection.");
+			multithread->SetMultithreadProtected(TRUE);
 		}
 
 		// フレームバッファ生成
