@@ -117,7 +117,7 @@ namespace Game
 		float paperWhiteNits = 200.0f;
 
 		// Color Filter
-		bool enableColorFilter = false;
+		bool enableColorFilter = true;
 		float colorFilterHueShift = 0.0f;
 		float colorFilterSaturation = 1.5f;
 		float colorFilterBrightness = 1.0f;
