@@ -29,23 +29,14 @@ void Entity::OnDrawGUI()
 
 void Entity::OnUpdate()
 {
-    cooldowns.Update();
+	cooldowns.Update();
 
-    // ノックバック
-    #if 1
-    {
-        knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
-        if (knockBackVelocity.LengthSquared() < 0.01f)
-            knockBackVelocity = Vector3::Zero;
-    }
-    #endif
+	// ノックバック
+	knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
+	if (knockBackVelocity.LengthSquared() < 0.01f) knockBackVelocity = Vector3::Zero;
 
-    #if 1 // 落下死
-	{
-		if (transform.position.y < -50.0f)
-			TakeDamage({9999.0f});
-    }
-    #endif
+	// 落下死
+	if (transform.position.y < -50.0f) TakeDamage({9999.0f});
 }
 
 // ダメージを受ける
