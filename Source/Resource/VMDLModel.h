@@ -287,8 +287,7 @@ class VMDLModel
 	// ノードに追従するパーティクル設定
 	struct VmdlParticleEmitter
 	{
-		std::string effekseerFileName;
-		std::vector<uint8_t> effekseerData;
+		std::string effectName;
 		bool modelDerived = false;
 		bool billboard = false;
 		int rendererType = 0;
@@ -366,7 +365,7 @@ class VMDLModel
 	{
 		std::string name = "SOUND SOURCE";
 		int nodeIndex = -1;
-		int track = 0;
+		std::string trackName = "SE_PLAYER_PL_WALK";
 		int variant = -1;
 		float pitchMin = 1.0f;
 		float pitchMax = 1.0f;
@@ -384,7 +383,7 @@ class VMDLModel
 
 	struct VmdlSoundSourceBinding
 	{
-		int track = 0;
+		std::string trackName;
 		int variant = -1;
 		float pitchMin = 1.0f;
 		float pitchMax = 1.0f;
@@ -397,7 +396,6 @@ class VMDLModel
 	{
 		float seconds = 0.0f;
 		int sourceIndex = -1;
-		int track = 0;
 		int variant = -1;
 		float volume = 1.0f;
 		float pitchMin = 1.0f;
@@ -865,7 +863,7 @@ class VMDLModel
 	void Deserialize(const char* filename);
 
 	// 分割形式
-	static constexpr uint32_t VmdlCompressionVersion = 10;
+	static constexpr uint32_t VmdlCompressionVersion = 13;
 
 	static void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
 		const std::string& textureFileName, ID3D11ShaderResourceView* srv,

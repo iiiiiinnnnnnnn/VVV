@@ -5,14 +5,13 @@
 #include <DirectXMath.h>
 #include <Effekseer.h>
 
+class EffectManager;
+
 // エフェクト
 class Effect
 {
 public:
-	Effect(const char* filename);
-	Effect(const void* data, size_t size);
 	~Effect();
-	static bool IsPackageValid(const void* data, size_t size);
 
 	// 再生
 	Effekseer::Handle Play(const Vector3& position, float scale = 1.0f);
@@ -32,6 +31,9 @@ public:
 	bool IsValid() const { return effekseerEffect != nullptr; }
 
 private:
+	friend class EffectManager;
+	Effect(const void* data, size_t size);
+
 	Effekseer::EffectRef effekseerEffect = nullptr;
 	bool billboard = false;
 };

@@ -160,13 +160,6 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 
 	editorLightDirection = {0.6f, -0.7f, 0.0f};
 	LoadLayoutSettings();
-	try
-	{
-		const auto source = ResourceManager::FindSourceResourceRoot();
-		if (!source.empty()) editorSoundTracks.Load(source / "Sound" / "tracks.ini");
-	}
-	catch (const std::exception&)
-	{}
 	if (filepath.empty() && !recentModelPath.empty()) filepath = recentModelPath;
 	if (!filepath.empty() && filepath.is_relative() && !ResourceManager::FindSourceResourceRoot().empty())
 	{
@@ -189,30 +182,69 @@ VmdlEditorScene::~VmdlEditorScene()
 	graphics.SetWindowMovementLocked(false);
 }
 
-std::string VmdlEditorScene::SoundTrackLabel(int track) const
+std::string VmdlEditorScene::SoundTrackLabel(const std::string& trackName) const
 {
-	const auto* entry = editorSoundTracks.Find(track);
-	if (!entry) return (const char*)u8"未登録";
-	const std::string normalized =
-		std::filesystem::path(entry->path).lexically_normal().generic_string();
+	if (trackName.empty()) return (const char*)u8"なし";
+	const auto* sound = FindSoundDefinition(trackName);
+	if (!sound) return (const char*)u8"未登録";
+	const std::string normalized = std::filesystem::path(std::string(sound->path)).generic_string();
 	constexpr std::string_view prefix = "Resources/Sound/";
 	const std::string display = normalized.starts_with(prefix)
 		? normalized.substr(prefix.size()) : normalized;
-	return "SoundTrack::" + SoundTrackRegistry::ConstantName(entry->path) + "  -  " + display;
+	return "SoundTrack::" + std::string(sound->name) + "  -  " + display;
 }
 
-bool VmdlEditorScene::DrawSoundTrackSelector(const char* label, int& track)
+bool VmdlEditorScene::DrawSoundTrackSelector(const char* label, std::string& trackName)
 {
-	const std::string preview = SoundTrackLabel(track);
+	const std::string preview = SoundTrackLabel(trackName);
 	bool changed = false;
 	if (ImGui::BeginCombo(label, preview.c_str()))
 	{
-		for (const auto& [candidate, entry] : editorSoundTracks.GetEntries())
+		for (const auto& sound : SoundDefinitions)
 		{
+			const std::string candidate(sound.name);
 			const std::string item = SoundTrackLabel(candidate);
-			if (ImGui::Selectable(item.c_str(), track == candidate))
+			if (ImGui::Selectable(item.c_str(), trackName == candidate))
 			{
-				track = candidate;
+				trackName = candidate;
+				changed = true;
+			}
+		}
+		ImGui::EndCombo();
+	}
+	return changed;
+}
+
+std::string VmdlEditorScene::EffectLabel(const std::string& effectName) const
+{
+	if (effectName.empty()) return (const char*)u8"なし";
+	const auto* effect = FindEffectDefinition(effectName);
+	if (!effect) return (const char*)u8"未登録";
+	const std::string normalized = std::filesystem::path(std::string(effect->path)).generic_string();
+	constexpr std::string_view prefix = "Resources/Effect/";
+	const std::string display = normalized.starts_with(prefix)
+		? normalized.substr(prefix.size()) : normalized;
+	return "EffectId::" + std::string(effect->name) + "  -  " + display;
+}
+
+bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectName)
+{
+	const std::string preview = EffectLabel(effectName);
+	bool changed = false;
+	if (ImGui::BeginCombo(label, preview.c_str()))
+	{
+		if (ImGui::Selectable((const char*)u8"なし", effectName.empty()))
+		{
+			effectName.clear();
+			changed = true;
+		}
+		for (const auto& effect : EffectDefinitions)
+		{
+			const std::string candidate(effect.name);
+			const std::string item = EffectLabel(candidate);
+			if (ImGui::Selectable(item.c_str(), effectName == candidate))
+			{
+				effectName = candidate;
 				changed = true;
 			}
 		}
@@ -3078,13 +3110,8 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			changed |= ImGui::Checkbox((const char*)u8"ノードに追従", &value.modelDerived);
 			changed |= ImGui::Checkbox((const char*)u8"ビルボード", &value.billboard);
 			changed |= DrawComponentTransform(*model, value.transform);
-			ImGui::Text((const char*)u8"埋め込みEFKPKG: %s",
-				value.effekseerFileName.empty() ? (const char*)u8"なし" : value.effekseerFileName.c_str());
-			ImGui::Text((const char*)u8"バイナリサイズ: %zu bytes", value.effekseerData.size());
-			if (ImGui::Button((const char*)u8"埋め込み")) ImportParticlePrefab(i);
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"書き出し")) ExportParticlePrefab(i);
-			ImGui::BeginDisabled(value.effekseerData.empty());
+			changed |= DrawEffectSelector((const char*)u8"エフェクト", value.effectName);
+			ImGui::BeginDisabled(value.effectName.empty());
 			if (ImGui::Button((const char*)u8"再生"))
 			{
 				showParticle = true;
@@ -3100,12 +3127,6 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				}
 			}
 			ImGui::EndDisabled();
-			if (ImGui::Button((const char*)u8"埋め込み情報をクリア"))
-			{
-				value.effekseerFileName.clear();
-				value.effekseerData.clear();
-				changed = true;
-			}
 			if (ImGui::Button((const char*)u8"削除")) deleteParticle = i;
 			if (changed) { MarkDirty(); RebuildParticlePreview(); }
 			ImGui::TreePop();
@@ -3151,16 +3172,16 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			changed |= DrawComponentTransform(*model, value.transform);
-			if (DrawSoundTrackSelector((const char*)u8"サウンド", value.track)) changed = true;
+			if (DrawSoundTrackSelector((const char*)u8"サウンド", value.trackName)) changed = true;
 			bool randomVariant = value.variant < 0;
-			if (ImGui::Checkbox((const char*)u8"音源番号をランダム選択", &randomVariant))
+			if (ImGui::Checkbox((const char*)u8"バリエーションをランダム選択", &randomVariant))
 			{
 				value.variant = randomVariant ? -1 : 0;
 				changed = true;
 			}
 			if (!randomVariant)
 				changed |= ImGui::DragInt(
-					(const char*)u8"音源番号", &value.variant, 1.0f, 0, 10000);
+					(const char*)u8"バリエーション番号", &value.variant, 1.0f, 0, 10000);
 			changed |= ImGui::DragFloat((const char*)u8"音量", &value.volume, 0.01f, 0.0f, 4.0f);
 			changed |= ImGui::DragFloatRange2((const char*)u8"ランダムピッチ",
 				&value.pitchMin, &value.pitchMax, 0.01f, 0.125f, 8.0f, "%.2f", "%.2f");
@@ -3179,7 +3200,6 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 					(const char*)u8"残響", &value.reverbMix, 0.0f, 1.0f);
 			}
 			value.volume = std::clamp(value.volume, 0.0f, 4.0f);
-			value.track = std::clamp(value.track, 0, SoundTrackRegistry::MaximumTrack);
 			value.pitchMin = std::clamp(value.pitchMin, 0.125f, 8.0f);
 			value.pitchMax = std::clamp(value.pitchMax, value.pitchMin, 8.0f);
 			value.minDistance = std::max(0.01f, value.minDistance);
@@ -4223,7 +4243,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		{
 			auto& source = soundData.sources[timelineEventContextTarget];
 			ImGui::Text((const char*)u8"サウンドソース: %s", source.name.c_str());
-			ImGui::TextUnformatted(SoundTrackLabel(source.track).c_str());
+			ImGui::TextUnformatted(SoundTrackLabel(source.trackName).c_str());
 			VMDLModel::VmdlSoundAnimationTrack* track = nullptr;
 			for (auto& candidate : soundData.tracks)
 			{
@@ -4254,7 +4274,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 					options.volume = source.volume;
 					options.pitch = source.pitchMax > source.pitchMin
 						? Random::Range(source.pitchMin, source.pitchMax) : source.pitchMin;
-					SoundSystem::Instance().PlayTrack(source.track, source.variant, options);
+					SoundSystem::Instance().PlayTrack(source.trackName, source.variant, options);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button((const char*)u8"キーを削除"))
@@ -4276,7 +4296,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 						track->animationName = animation.name;
 					}
 					track->keys.push_back({timelineEventContextTime, timelineEventContextTarget,
-						source.track, source.variant, 1.0f, source.pitchMin, source.pitchMax});
+						source.variant, 1.0f, source.pitchMin, source.pitchMax});
 					std::sort(track->keys.begin(), track->keys.end(), byTime);
 					MarkDirty();
 					ImGui::CloseCurrentPopup();
@@ -4654,11 +4674,11 @@ void VmdlEditorScene::PlayAnimationSoundPreview(
 				spatial.lowPassHz = source.lowPassHz;
 				spatial.farLowPassHz = source.farLowPassHz;
 				spatial.reverbMix = source.reverbMix;
-				SoundSystem::Instance().PlayTrack3DAt(source.track,
+				SoundSystem::Instance().PlayTrack3DAt(source.trackName,
 					model->GetNodes()[source.nodeIndex].worldTransform.Translation(),
 					source.variant, spatial);
 			}
-			else SoundSystem::Instance().PlayTrack(source.track, source.variant, options);
+			else SoundSystem::Instance().PlayTrack(source.trackName, source.variant, options);
 		}
 	}
 }
@@ -4909,58 +4929,6 @@ void VmdlEditorScene::UpdateParticlePreview(const RenderContext& rc)
 		if (emitter) emitter->RenderParticles(rc);
 	particlePreviewAnimation = selectedAnimation;
 	particlePreviewAnimationTime = animationTime;
-}
-
-void VmdlEditorScene::ExportParticlePrefab(int emitterIndex)
-{
-	if (!model || emitterIndex < 0 ||
-		emitterIndex >= Count(model->GetVmdlParticleData().emitters)) return;
-	const auto& effect = model->GetVmdlParticleData().emitters[emitterIndex];
-	if (effect.effekseerData.empty()) return;
-	const auto root = ResourceManager::FindSourceResourceRoot();
-	std::filesystem::path proposed = root.empty() ? std::filesystem::path("effect.efkpkg")
-		: root / "Effect" / (effect.name + ".efkpkg");
-	std::error_code ec;
-	std::filesystem::create_directories(proposed.parent_path(), ec);
-	std::string path = proposed.string();
-	if (Dialog::SaveFileName(path, "Effekseer Package (*.efkpkg)\0*.efkpkg\0",
-		"Export Effekseer Package", "efkpkg") != DialogResult::OK) return;
-	std::ofstream output(path, std::ios::binary | std::ios::trunc);
-	if (!output) { ErrorMessage("Failed to open the EFKPKG file for writing."); return; }
-	output.write(reinterpret_cast<const char*>(effect.effekseerData.data()),
-		static_cast<std::streamsize>(effect.effekseerData.size()));
-	if (!output.good()) ErrorMessage("Failed to write the EFKPKG file.");
-}
-
-void VmdlEditorScene::ImportParticlePrefab(int emitterIndex)
-{
-	if (!model || emitterIndex < 0 ||
-		emitterIndex >= Count(model->GetVmdlParticleData().emitters)) return;
-	const auto root = ResourceManager::FindSourceResourceRoot();
-	const std::string initial = root.empty() ? std::string{} : (root / "Effect").string();
-	std::string path;
-	if (Dialog::OpenFileName(path, "Effekseer Package (*.efkpkg)\0*.efkpkg\0",
-		"Import Effekseer Package", initial.empty() ? nullptr : initial.c_str()) != DialogResult::OK) return;
-	std::ifstream input(path, std::ios::binary | std::ios::ate);
-	if (!input) { ErrorMessage("Failed to open the EFKPKG file."); return; }
-	const std::streamsize size = input.tellg();
-	if (size <= 0) { ErrorMessage("The EFKPKG file is empty."); return; }
-	input.seekg(0);
-	std::vector<uint8_t> packageData(static_cast<size_t>(size));
-	input.read(reinterpret_cast<char*>(packageData.data()), size);
-	if (!input) { ErrorMessage("Failed to read the EFKPKG file."); return; }
-	if (!Effect::IsPackageValid(packageData.data(), packageData.size()))
-	{
-		ErrorMessage("The EFKPKG file is invalid or unsupported.");
-		return;
-	}
-	auto& effect = model->GetVmdlParticleData().emitters[emitterIndex];
-	effect.effekseerData = std::move(packageData);
-	effect.effekseerFileName = std::filesystem::path(path).filename().string();
-	if (effect.name.empty() || effect.name == "PARTICLE")
-		effect.name = std::filesystem::path(path).stem().string();
-	MarkDirty();
-	RebuildParticlePreview();
 }
 
 void VmdlEditorScene::DrawAnimationEventEditor()

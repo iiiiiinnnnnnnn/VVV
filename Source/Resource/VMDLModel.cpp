@@ -2372,7 +2372,7 @@ void VMDLModel::Serialize(const char* filename)
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
 	std::vector<VmdlSoundSourceBinding> soundBindings;
 	for (const auto& source : vmdlSoundData.sources)
-		soundBindings.push_back({source.track, source.variant, source.pitchMin, source.pitchMax});
+		soundBindings.push_back({source.trackName, source.variant, source.pitchMin, source.pitchMax});
 	VmdlComponentTransformData componentTransforms;
 	for (const auto& value : vmdlExtensionData.rigidBodies)
 		componentTransforms.rigidBodies.push_back(value.transform);
@@ -2417,15 +2417,11 @@ void VMDLModel::Serialize(const char* filename)
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
 		addFile("model.componenttransforms", [&](auto& archive) { archive(componentTransforms); });
 		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
-		addFile("model.effekseer", [&](auto& archive) {
-			std::vector<std::string> filenames;
-			std::vector<std::vector<uint8_t>> binaries;
-			for (const auto& effect : vmdlParticleData.emitters)
-			{
-				filenames.push_back(effect.effekseerFileName);
-				binaries.push_back(effect.effekseerData);
-			}
-			archive(filenames, binaries);
+		addFile("model.effectbindings", [&](auto& archive) {
+			std::vector<std::string> effects;
+			for (const auto& emitter : vmdlParticleData.emitters)
+				effects.push_back(emitter.effectName);
+			archive(effects);
 		});
 		addFile("model.vfxdata", [&](auto& archive) {
 			const std::string value = BuildVfxExtensionJson(vmdlParticleData, vmdlPresentationData);
@@ -2564,8 +2560,7 @@ void VMDLModel::Deserialize(const char* filename)
 			std::vector<VmdlMaterialData> materialData;
 			std::vector<VmdlSoundSourceBinding> soundBindings;
 			VmdlComponentTransformData componentTransforms;
-			std::vector<std::string> effekseerFilenames;
-			std::vector<std::vector<uint8_t>> effekseerBinaries;
+			std::vector<std::string> effectBindings;
 			std::string vfxExtensionJson;
 			std::vector<std::vector<std::string>> externalMeshBindingKeys;
 			std::vector<std::vector<int>> externalMeshCacheIndices;
@@ -2579,7 +2574,7 @@ void VMDLModel::Deserialize(const char* filename)
 			bool loadedSoundBindings = false;
 			bool loadedComponentTransforms = false;
 			bool loadedParticleData = false;
-			bool loadedEffekseer = false;
+			bool loadedEffectBindings = false;
 			bool loadedVfxData = false;
 			bool loadedExternalMeshes = false;
 			bool loadedExternalMeshBindings = false;
@@ -2625,10 +2620,10 @@ void VMDLModel::Deserialize(const char* filename)
 					archive(vmdlParticleData);
 					loadedParticleData = true;
 				}
-				else if (name == "model.effekseer")
+				else if (name == "model.effectbindings")
 				{
-					archive(effekseerFilenames, effekseerBinaries);
-					loadedEffekseer = true;
+					archive(effectBindings);
+					loadedEffectBindings = true;
 				}
 				else if (name == "model.vfxdata")
 				{
@@ -2653,12 +2648,11 @@ void VMDLModel::Deserialize(const char* filename)
 			}
 			if (!loadedGlbCache || !loadedVmdlData || !loadedSoundData || !loadedIkSolver ||
 				!loadedSoundBindings || !loadedComponentTransforms || !loadedParticleData ||
-				!loadedEffekseer || !loadedVfxData || !loadedExternalMeshes ||
+				!loadedEffectBindings || !loadedVfxData || !loadedExternalMeshes ||
 				!loadedExternalMeshBindings || !loadedExternalMeshSlots)
 				throw std::runtime_error("VMDL package is missing required data.");
 			if (soundBindings.size() != vmdlSoundData.sources.size() ||
-				effekseerFilenames.size() != vmdlParticleData.emitters.size() ||
-				effekseerBinaries.size() != vmdlParticleData.emitters.size() ||
+				effectBindings.size() != vmdlParticleData.emitters.size() ||
 				externalMeshBindingKeys.size() != externalMeshGroups.size() ||
 				externalMeshCacheIndices.size() != externalMeshGroups.size())
 				throw std::runtime_error("VMDL component data count mismatch.");
@@ -2696,13 +2690,10 @@ void VMDLModel::Deserialize(const char* filename)
 			applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
 			applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
 			for (size_t i = 0; i < vmdlParticleData.emitters.size(); ++i)
-			{
-				vmdlParticleData.emitters[i].effekseerFileName = std::move(effekseerFilenames[i]);
-				vmdlParticleData.emitters[i].effekseerData = std::move(effekseerBinaries[i]);
-			}
+				vmdlParticleData.emitters[i].effectName = std::move(effectBindings[i]);
 			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
 			{
-				vmdlSoundData.sources[i].track = soundBindings[i].track;
+				vmdlSoundData.sources[i].trackName = std::move(soundBindings[i].trackName);
 				vmdlSoundData.sources[i].variant = soundBindings[i].variant;
 				vmdlSoundData.sources[i].pitchMin = soundBindings[i].pitchMin;
 				vmdlSoundData.sources[i].pitchMax = soundBindings[i].pitchMax;
@@ -2720,7 +2711,6 @@ void VMDLModel::Deserialize(const char* filename)
 			NormalizeMorphNames();
 			for (auto& source : vmdlSoundData.sources)
 			{
-				source.track = std::clamp(source.track, 0, 10000);
 				source.volume = std::clamp(source.volume, 0.0f, 4.0f);
 				source.pitchMin = std::clamp(source.pitchMin, 0.125f, 8.0f);
 				source.pitchMax = std::clamp(source.pitchMax, source.pitchMin, 8.0f);

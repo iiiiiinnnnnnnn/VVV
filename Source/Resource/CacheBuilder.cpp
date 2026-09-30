@@ -1,6 +1,7 @@
+// CacheBuilder.cpp
 #include "Resource/CacheBuilder.h"
 #include "Resource/CacheSettings.h"
-#include "Audio/SoundTrackRegistry.h"
+#include "Audio/SoundTracks.generated.h"
 #include "Audio/VSoundFormat.h"
 
 #include <combaseapi.h>
@@ -115,8 +116,7 @@ bool IsExcluded(const fs::path& relative)
 	const auto name = Lower(Text(relative.filename()));
 	const auto extension = Lower(Text(relative.extension()));
 	if (name == "resourcemanifest.ini" || name == "resourcesettings.ini" || name == "cached" ||
-		name == "nothing" || name == "editor.ini" ||
-		Lower(Text(relative)) == "sound/tracks.ini") return true;
+		name == "nothing" || name == "editor.ini") return true;
 	if (extension == ".glb" || extension == ".gltf" || extension == ".bat" ||
 		extension == ".exe" || extension == ".pdb" || extension == ".tmp" ||
 		extension == ".wav") return true;
@@ -295,20 +295,24 @@ std::vector<Asset> Collect(const fs::path& sourceRoot)
 		if (file.is_regular_file())
 			add(sourceRoot, file.path(), Lower(Text(file.path().extension())) == ".vx");
 
-	SoundTrackRegistry registry;
-	registry.Load(sourceRoot / "Sound" / "tracks.ini");
-	for (const auto& [track, trackEntry] : registry.GetEntries())
+	if (fs::is_directory(sourceRoot / "Sound"))
 	{
-		Asset asset;
-		asset.sound = true;
-		asset.soundVariants = FindSoundVariants(sourceRoot, trackEntry.path);
-		asset.source = asset.soundVariants.front().second;
-		asset.entry.type = "file";
-		asset.entry.relative = fs::path("Sound") / "Tracks" /
-			(std::to_string(track) + VSound::Extension);
-		const auto key = Lower(Text(asset.entry.relative));
-		if (assets.contains(key)) throw std::runtime_error("Duplicate output: " + key);
-		assets.emplace(key, std::move(asset));
+		for (const auto& sound : SoundDefinitions)
+		{
+			Asset asset;
+			asset.sound = true;
+			asset.soundVariants = FindSoundVariants(sourceRoot, std::string(sound.path));
+			asset.source = asset.soundVariants.front().second;
+			asset.entry.type = "file";
+			fs::path registeredPath(std::string(sound.path));
+			auto part = registeredPath.begin();
+			if (part != registeredPath.end() && Lower(Text(*part)) == "resources") ++part;
+			for (; part != registeredPath.end(); ++part) asset.entry.relative /= *part;
+			asset.entry.relative.replace_extension(VSound::Extension);
+			const auto key = Lower(Text(asset.entry.relative));
+			if (assets.contains(key)) throw std::runtime_error("Duplicate output: " + key);
+			assets.emplace(key, std::move(asset));
+		}
 	}
 	std::vector<Asset> result;
 	for (auto& [key, asset] : assets) result.push_back(std::move(asset));

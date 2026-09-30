@@ -25,9 +25,7 @@
 #include "TestPlayScene.h"
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-namespace
-{
-std::string LowerText(std::string value)
+static std::string LowerText(std::string value)
 {
 	// パス比較用に英字を小文字へ揃える
 	std::transform(value.begin(), value.end(), value.begin(),
@@ -35,22 +33,6 @@ std::string LowerText(std::string value)
 	return value;
 }
 
-std::string LogicalSoundPath(std::filesystem::path path)
-{
-	// 連番付きWAVを同じ論理トラックへまとめる
-	std::string stem = path.stem().string();
-	const size_t bracket = stem.rfind('[');
-	if (bracket != std::string::npos && !stem.empty() && stem.back() == ']')
-	{
-		const std::string number = stem.substr(bracket + 1, stem.size() - bracket - 2);
-		if (!number.empty() && std::all_of(number.begin(), number.end(),
-			[](unsigned char c) { return std::isdigit(c) != 0; })) stem.resize(bracket);
-	}
-	path.replace_filename(stem + ".wav");
-	return path.lexically_normal().generic_string();
-}
-
-}
 #endif
 
 GameStartScene::GameStartScene()
@@ -72,10 +54,6 @@ GameStartScene::GameStartScene()
 	headerVignetteWidget->SetName("Launcher Header Vignette");
 	headerVignetteWidget->SetAffectedByPostProcess(false);
 	widgetManager.Register(headerVignetteWidget);
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	// デバッグ用サウンド一覧を準備
-	ReloadSoundTracks();
-#endif
 }
 
 GameStartScene::~GameStartScene() = default;
@@ -190,7 +168,7 @@ void GameStartScene::OnDrawGUI()
 {
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 管理画面ではヘッダーを隠す
-	const bool showLauncherHeader = !showCacheManager && !showSoundManager;
+	const bool showLauncherHeader = !showCacheManager && !showSoundManager && !showEffectManager;
 	if (headerWidget) headerWidget->SetActive(showLauncherHeader);
 	if (headerVignetteWidget) headerVignetteWidget->SetActive(showLauncherHeader);
 #endif
@@ -226,6 +204,13 @@ void GameStartScene::OnDrawGUI()
 		ImGui::PopStyleVar();
 		return;
 	}
+	if (showEffectManager)
+	{
+		DrawEffectManager();
+		ImGui::End();
+		ImGui::PopStyleVar();
+		return;
+	}
 #endif
 	// ヘッダー下へ横一列の起動ボタンを配置
 	const ImVec2 windowSize = ImGui::GetWindowSize();
@@ -236,7 +221,7 @@ void GameStartScene::OnDrawGUI()
 	const float headerHeight = headerLayoutHeight;
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	constexpr int buttonCount = 5;
+	constexpr int buttonCount = 6;
 #else
 	constexpr int buttonCount = 3;
 #endif
@@ -300,7 +285,13 @@ void GameStartScene::OnDrawGUI()
 	{
 		showSoundManager = true;
 		windowConfigured = false;
-		ReloadSoundTracks();
+	}
+	ImGui::SameLine();
+	if (menuButton((const char*)u8"EFFECT\nエフェクト管理", utilityNormal,
+		utilityHovered, utilityActive))
+	{
+		showEffectManager = true;
+		windowConfigured = false;
 	}
 #endif
 	ImGui::PopStyleVar(3);
@@ -322,7 +313,7 @@ void GameStartScene::ConfigureWindow()
 	SetWindowTextW(window, L"TPS V Editor");
 	constexpr LONG_PTR style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	const bool managerOpen = showCacheManager || showSoundManager;
+	const bool managerOpen = showCacheManager || showSoundManager || showEffectManager;
 	const int clientWidth = managerOpen ? 900 : 960;
 	// ヘッダーとボタン列の下に、上端と同程度の余白だけを残す
 	const int clientHeight = managerOpen ? 640 : 490;
@@ -366,83 +357,137 @@ void GameStartScene::ReloadCacheList()
 	catch (const std::exception& error) { cacheMessage = error.what(); }
 }
 
-void GameStartScene::ReloadSoundTracks()
+void GameStartScene::DrawEffectManager()
 {
-	// 登録済みトラックとWAVファイルを同期
-	try
+	// エフェクトをフォルダー階層へまとめて表示
+	ImGui::TextUnformatted((const char*)u8"エフェクト管理");
+	if (ImGui::Button((const char*)u8"戻る"))
 	{
-		const auto source = ResourceManager::FindSourceResourceRoot();
-		if (source.empty()) throw std::runtime_error("Source Resources was not found");
-		const auto registryPath = source / "Sound" / "tracks.ini";
-		SoundTrackRegistry loaded;
-		loaded.Load(registryPath);
-
-		// Resources以下のWAVを収集
-		std::map<std::string, std::string> discovered;
-		const auto soundRoot = source / "Sound";
-		if (std::filesystem::exists(soundRoot))
-		{
-			for (const auto& item : std::filesystem::recursive_directory_iterator(soundRoot))
-			{
-				if (!item.is_regular_file() || LowerText(item.path().extension().string()) != ".wav") continue;
-				const auto relative = item.path().lexically_relative(source);
-				const std::string logical = LogicalSoundPath(std::filesystem::path("Resources") / relative);
-				discovered.try_emplace(LowerText(logical), logical);
-			}
-		}
-
-		// 消えたトラックを除外して既存番号を維持
-		int nextTrack = 0;
-		if (!loaded.GetEntries().empty()) nextTrack = loaded.GetEntries().rbegin()->first + 1;
-		SoundTrackRegistry synchronized;
-		std::set<std::string> registered;
-		for (const auto& [track, entry] : loaded.GetEntries())
-		{
-			const auto found = discovered.find(LowerText(entry.path));
-			if (found == discovered.end() || registered.contains(found->first)) continue;
-			SoundTrackRegistry::Entry current = entry;
-			current.path = found->second;
-			synchronized.Set(track, current);
-			registered.insert(found->first);
-		}
-
-		// 未登録WAVへ新しいトラック番号を割り当て
-		int added = 0;
-		for (const auto& [key, path] : discovered)
-		{
-			if (registered.contains(key)) continue;
-			while (synchronized.Find(nextTrack)) ++nextTrack;
-			if (nextTrack > SoundTrackRegistry::MaximumTrack)
-				throw std::runtime_error("Sound track number exceeded 10000");
-			synchronized.Set(nextTrack++, {path});
-			++added;
-		}
-
-		bool changed = synchronized.GetEntries().size() != loaded.GetEntries().size();
-		if (!changed)
-		{
-			auto oldEntry = loaded.GetEntries().begin();
-			auto newEntry = synchronized.GetEntries().begin();
-			for (; oldEntry != loaded.GetEntries().end(); ++oldEntry, ++newEntry)
-			{
-				if (oldEntry->first != newEntry->first ||
-					oldEntry->second.path != newEntry->second.path)
-				{
-					changed = true;
-					break;
-				}
-			}
-		}
-		// 設定と列挙ヘッダーを更新
-		if (changed) synchronized.Save(registryPath);
-		synchronized.GenerateHeader(
-			source.parent_path() / "Source" / "Audio" / "SoundTracks.generated.h");
-		soundTracks = std::move(synchronized);
-		soundMessage = added > 0
-			? std::to_string(added) + (const char*)u8"トラックを自動登録しました"
-			: std::string{};
+		showEffectManager = false;
+		windowConfigured = false;
+		return;
 	}
-	catch (const std::exception& error) { soundMessage = error.what(); }
+	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+	if (!ImGui::BeginTable("EffectList", 2, flags, ImVec2(0, -1))) return;
+	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("Enum", ImGuiTableColumnFlags_WidthFixed, 360.0f);
+	ImGui::TableSetupScrollFreeze(0, 1);
+	ImGui::TableHeadersRow();
+
+	struct EffectTreeNode
+	{
+		std::string name;
+		std::string path;
+		std::string enumName;
+		bool file = false;
+		std::map<std::string, EffectTreeNode> children;
+	};
+	EffectTreeNode root{"Resources", "Resources"};
+	for (const auto& effect : EffectDefinitions)
+	{
+		std::vector<std::string> parts;
+		for (const auto& part : std::filesystem::path(std::string(effect.path)))
+			parts.push_back(part.string());
+		if (!parts.empty() && LowerText(parts.front()) == "resources") parts.erase(parts.begin());
+		if (parts.empty()) continue;
+		EffectTreeNode* parent = &root;
+		for (size_t index = 0; index + 1 < parts.size(); ++index)
+		{
+			const std::string key = "0:" + parts[index];
+			auto [item, inserted] = parent->children.try_emplace(key);
+			if (inserted)
+			{
+				item->second.name = parts[index];
+				item->second.path = parent->path + '/' + parts[index];
+			}
+			parent = &item->second;
+		}
+		const std::string key = "1:" + parts.back();
+		auto [item, inserted] = parent->children.try_emplace(key);
+		item->second.name = parts.back();
+		item->second.path = std::string(effect.path);
+		item->second.enumName = std::string(effect.name);
+		item->second.file = true;
+	}
+
+	// ツリーの枝線と簡易アイコンを描画
+	auto drawTreeLabel = [](const char* label, int depth, const std::vector<bool>& guides,
+		bool last, bool folder)
+	{
+		const ImVec2 cursor = ImGui::GetCursorScreenPos();
+		const ImGuiStyle& style = ImGui::GetStyle();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		constexpr float step = 21.0f;
+		const float rowTop = cursor.y - style.CellPadding.y;
+		const float rowBottom = rowTop + 24.0f;
+		const float centerY = cursor.y + ImGui::GetTextLineHeight() * 0.5f;
+		const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Border);
+		for (size_t level = 0; level < guides.size(); ++level)
+		{
+			if (!guides[level]) continue;
+			const float x = cursor.x + static_cast<float>(level) * step + 8.0f;
+			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, rowBottom), lineColor, 1.0f);
+		}
+		if (depth > 0)
+		{
+			const float x = cursor.x + static_cast<float>(depth - 1) * step + 8.0f;
+			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, last ? centerY : rowBottom), lineColor, 1.0f);
+			drawList->AddLine(ImVec2(x, centerY), ImVec2(x + 10.0f, centerY), lineColor, 1.0f);
+		}
+		const float iconX = cursor.x + static_cast<float>(depth) * step;
+		if (folder)
+		{
+			const ImU32 color = IM_COL32(225, 178, 70, 255);
+			drawList->AddRectFilled(ImVec2(iconX + 1.0f, cursor.y + 4.0f),
+				ImVec2(iconX + 17.0f, cursor.y + 15.0f), color, 2.0f);
+			drawList->AddRectFilled(ImVec2(iconX + 2.0f, cursor.y + 1.0f),
+				ImVec2(iconX + 9.0f, cursor.y + 6.0f), color, 2.0f);
+		}
+		else
+		{
+			const ImU32 color = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+			drawList->AddRect(ImVec2(iconX + 3.0f, cursor.y + 1.0f),
+				ImVec2(iconX + 15.0f, cursor.y + 16.0f), color, 1.0f, 0, 1.0f);
+			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 6.0f),
+				ImVec2(iconX + 12.0f, cursor.y + 6.0f), color);
+			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 10.0f),
+				ImVec2(iconX + 12.0f, cursor.y + 10.0f), color);
+		}
+		ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
+		ImGui::TextUnformatted(label);
+	};
+
+	std::function<void(EffectTreeNode&, int, const std::vector<bool>&, bool)> drawNode;
+	drawNode = [&](EffectTreeNode& node, int depth, const std::vector<bool>& guides, bool last)
+	{
+		ImGui::PushID(node.path.c_str());
+		ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
+		if (!node.file)
+		{
+			const ImU32 background = depth == 0 ? IM_COL32(47, 61, 78, 255) : IM_COL32(39, 45, 54, 255);
+			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
+		}
+		ImGui::TableNextColumn();
+		drawTreeLabel(node.name.c_str(), depth, guides, last, !node.file);
+		if (node.file)
+		{
+			ImGui::TableNextColumn();
+			const std::string constant = "EffectId::" + node.enumName;
+			ImGui::TextUnformatted(constant.c_str());
+		}
+		size_t childIndex = 0;
+		for (auto& [key, child] : node.children)
+		{
+			const bool childLast = ++childIndex == node.children.size();
+			std::vector<bool> childGuides = guides;
+			if (depth > 0) childGuides.push_back(!last);
+			drawNode(child, depth + 1, childGuides, childLast);
+		}
+		ImGui::PopID();
+	};
+	drawNode(root, 0, {}, true);
+	ImGui::EndTable();
 }
 
 void GameStartScene::DrawSoundManager()
@@ -455,8 +500,6 @@ void GameStartScene::DrawSoundManager()
 		windowConfigured = false;
 		return;
 	}
-	if (!soundMessage.empty()) ImGui::TextWrapped("%s", soundMessage.c_str());
-
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
 	if (!ImGui::BeginTable("SoundTrackList", 2, flags, ImVec2(0, -1))) return;
@@ -469,15 +512,16 @@ void GameStartScene::DrawSoundManager()
 	{
 		std::string name;
 		std::string path;
+		std::string enumName;
 		bool file = false;
-		SoundTrackRegistry::Entry entry;
 		std::map<std::string, SoundTreeNode> children;
 	};
 	SoundTreeNode root{"Resources", "Resources"};
-	for (const auto& [track, sound] : soundTracks.GetEntries())
+	for (const auto& sound : SoundDefinitions)
 	{
 		std::vector<std::string> parts;
-		for (const auto& part : std::filesystem::path(sound.path)) parts.push_back(part.string());
+		for (const auto& part : std::filesystem::path(std::string(sound.path)))
+			parts.push_back(part.string());
 		if (!parts.empty() && LowerText(parts.front()) == "resources") parts.erase(parts.begin());
 		if (parts.empty()) continue;
 		SoundTreeNode* parent = &root;
@@ -495,9 +539,9 @@ void GameStartScene::DrawSoundManager()
 		const std::string key = "1:" + parts.back();
 		auto [item, inserted] = parent->children.try_emplace(key);
 		item->second.name = parts.back();
-		item->second.path = sound.path;
+		item->second.path = std::string(sound.path);
+		item->second.enumName = std::string(sound.name);
 		item->second.file = true;
-		item->second.entry = sound;
 	}
 
 	// ツリーの枝線と簡易アイコンを描画
@@ -562,8 +606,7 @@ void GameStartScene::DrawSoundManager()
 		if (node.file)
 		{
 			ImGui::TableNextColumn();
-			const std::string constant =
-				"SoundTrack::" + SoundTrackRegistry::ConstantName(node.entry.path);
+			const std::string constant = "SoundTrack::" + node.enumName;
 			ImGui::TextUnformatted(constant.c_str());
 		}
 		size_t childIndex = 0;

@@ -183,6 +183,7 @@ void Deer::OnDamaged(const DamageData& damageData)
 {
 	TimeScaleController::Request(0.15f);
 	CameraEffectController::Request(0.2f, 0.1f);
+
 	navMeshAgent->Stop();
 	controller->LockOn((Actor*)damageData.hitColliderSelf->GetOwner());
 

@@ -1,8 +1,10 @@
+// VmdlEditorScene.h
 #pragma once
 
-#include "Audio/SoundTrackRegistry.h"
+#include "Audio/SoundTracks.generated.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/Scene.h"
+#include "Rendering/Effect/Effects.generated.h"
 
 #include <filesystem>
 #include <memory>
@@ -77,8 +79,10 @@ class VmdlEditorScene : public Scene
 	void DrawIkSettings();
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
-	bool DrawSoundTrackSelector(const char* label, int& track);
-	std::string SoundTrackLabel(int track) const;
+	bool DrawSoundTrackSelector(const char* label, std::string& trackName);
+	std::string SoundTrackLabel(const std::string& trackName) const;
+	bool DrawEffectSelector(const char* label, std::string& effectName);
+	std::string EffectLabel(const std::string& effectName) const;
 	void DrawAttachedData(int nodeIndex);
 	void DrawNodeContextMenu(int nodeIndex);
 	void DrawAnimationCurves();
@@ -113,8 +117,6 @@ class VmdlEditorScene : public Scene
 	void RebuildParticlePreview();
 	void UpdateParticlePreview(const RenderContext& rc);
 	void UpdateExternalMeshPreview();
-	void ExportParticlePrefab(int emitterIndex);
-	void ImportParticlePrefab(int emitterIndex);
 	void RecordSelectedNodeKey();
 	void MarkDirty();
 	void UpdateModelFraming();
@@ -143,7 +145,6 @@ class VmdlEditorScene : public Scene
 	// 編集対象
 	std::shared_ptr<VMDLModel> model;
 	std::unordered_map<int, std::shared_ptr<MeshCache>> externalMeshPreviewCaches;
-	SoundTrackRegistry editorSoundTracks;
 	std::filesystem::path documentPath;
 	std::filesystem::path recentModelPath;
 	std::unique_ptr<RenderTarget> previewSceneTarget;

@@ -1,4 +1,3 @@
-// Crystal.cpp
 #include "Gameplay/Actor/Crystal.h"
 
 #include "Gameplay/Scene/CameraEffectController.h"
@@ -23,15 +22,15 @@ Crystal::Crystal(const Transform& transform) : Entity("Crystal", "Crystal", true
 	vmdl = AddComponent<VMDL>("Resources/Model/Crystal");
 }
 
-// 音、パーティクル、破壊処理
-void Crystal::Break()
+void Crystal::OnUpdate()
 {
-	if (broken || IsPendingDestroy()) return;
-	broken = true;
-	life = 0.0f;
-	PlayBreakSound();
-	vmdl->GetRenderer()->PlayParticleEmitter("BREAK");
-	Destroy();
+	if (deathCleanupPending)
+	{
+		Destroy();
+		return;
+	}
+
+	Entity::OnUpdate();
 }
 
 // 音
@@ -54,5 +53,11 @@ void Crystal::OnDamaged(const DamageData& damageData)
 
 void Crystal::OnDead(const DamageData& damageData)
 {
-	Break();
+	if (deathCleanupPending) return;
+
+	life = 0.0f;
+	PlayBreakSound();
+	vmdl->GetRenderer()->PlayParticleEmitter("BREAK");
+
+	deathCleanupPending = true;
 }

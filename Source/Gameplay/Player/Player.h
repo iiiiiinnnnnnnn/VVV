@@ -1,3 +1,4 @@
+// Player.h
 #pragma once
 #include "Animation/Animator.h"
 
@@ -85,7 +86,7 @@ protected:
     const Vector2 readySpineAngle = {-0.25f, -0.38f};
     TrailRenderComponent* trail = nullptr;
 	AfterimageComponent* afterimage = nullptr;
-	std::unique_ptr<Effect> attackHitEffect;
+	std::shared_ptr<Effect> attackHitEffect;
 	bool dodgeInvincible = false;
 	bool justDodgeTriggered = false;
 	bool justDodgeSoundPlayed = false;

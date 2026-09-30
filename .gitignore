@@ -381,6 +381,4 @@ imgui.ini
 /dist
 /Resources/Terrain/Layers/*.dds
 /.assets/
-/Release.bat
-/CreateZip.ps1
 /Tools/Effekseer

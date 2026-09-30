@@ -1,5 +1,7 @@
+// Player.cpp
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundTracks.generated.h"
+#include "Rendering/Effect/Effects.generated.h"
 #include "Application/Input/Input.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -19,7 +21,7 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/AfterimageComponent.h"
 #include "Rendering/Effect/Effect.h"
-#include "Resource/ResourceManager.h"
+#include "Rendering/Effect/EffectManager.h"
 #include "Audio/SoundSystem.h"
 
 void RemapQuickshiftWindTracks(VMDLModel& model)
@@ -100,13 +102,8 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	// 回避の残像には描画リソースと取得時の姿勢だけを保持する
 	afterimage = AddComponent<AfterimageComponent>(model);
 
-	const auto effectData =
-		ResourceManager::Instance().LoadFile("Resources/Effect/critical.efkpkg");
-	if (effectData && !effectData->empty())
-	{
-		attackHitEffect = std::make_unique<Effect>(effectData->data(), effectData->size());
-		attackHitEffect->SetBillboard(true);
-	}
+	attackHitEffect = EffectManager::Instance().LoadEffect(EffectId::CRITICAL);
+	attackHitEffect->SetBillboard(true);
 }
 
 Player::~Player() = default;
@@ -173,15 +170,15 @@ void Player::UpdateFootSound()
 	const std::string layerName = terrain->GetSurfaceLayerName(transform.position);
 	if (layerName == "grass")
 	{
-		footSound->track = static_cast<int>(SoundTrack::SE_PLAYER_PL_WALK_GRASS);
+		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK_GRASS));
 	}
 	else if (layerName == "rock" || layerName == "stone")
 	{
-		footSound->track = static_cast<int>(SoundTrack::SE_PLAYER_PL_WALK_ROCK);
+		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK_ROCK));
 	}
 	else
 	{
-		footSound->track = static_cast<int>(SoundTrack::SE_PLAYER_PL_WALK);
+		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK));
 	}
 }
 

@@ -4,8 +4,11 @@
 #include "Rendering/Effect/Effect.h"
 #include "Application/Time/GameTime.h"
 #include "Core/Object/Object.h"
+#include "Resource/ResourceManager.h"
 
 #include <algorithm>
+#include <fstream>
+#include <stdexcept>
 
 namespace
 {
@@ -96,6 +99,7 @@ void EffectManager::Initialize()
 
 	// Effekseerを左手座標系で計算する
 	effekseerManager->SetCoordinateSystem(Effekseer::CoordinateSystem::LH);
+
 }
 
 // 終了化
@@ -103,6 +107,7 @@ void EffectManager::Finalize()
 {
 	playbackObjects.clear();
 	effectPlaybacks.clear();
+	effectData.clear();
 }
 
 // 更新処理
@@ -134,6 +139,42 @@ Effekseer::Handle EffectManager::PlayDetached(
 	object->Start();
 	playbackObjects.push_back(std::move(object));
 	return handle;
+}
+
+std::shared_ptr<Effect> EffectManager::LoadEffect(std::string_view effectName)
+{
+	const auto* definition = FindEffectDefinition(effectName);
+	if (!definition) throw std::runtime_error("Effect is not registered: " + std::string(effectName));
+	return LoadEffect(definition->id);
+}
+
+std::shared_ptr<Effect> EffectManager::LoadEffect(EffectId effect)
+{
+	const auto* definition = FindEffectDefinition(effect);
+	if (!definition) throw std::runtime_error("EffectId is not registered");
+	const std::vector<uint8_t>* data = nullptr;
+	std::filesystem::path path;
+	if (const auto found = effectData.find(effect); found != effectData.end()) data = &found->second;
+	else
+	{
+		path = ResourceManager::Instance().ResolveSourcePath(
+			std::filesystem::path(std::string(definition->path)));
+		std::ifstream input(path, std::ios::binary | std::ios::ate);
+		if (!input) throw std::runtime_error("Effect file was not found: " + path.string());
+		const std::streamsize size = input.tellg();
+		if (size <= 0) throw std::runtime_error("Effect file is empty: " + path.string());
+		input.seekg(0);
+		std::vector<uint8_t> loadedData(static_cast<size_t>(size));
+		if (!input.read(reinterpret_cast<char*>(loadedData.data()), size))
+			throw std::runtime_error("Effect file read failed: " + path.string());
+		data = &effectData.emplace(effect, std::move(loadedData)).first->second;
+	}
+
+	auto loaded = std::shared_ptr<Effect>(new Effect(data->data(), data->size()));
+	if (!loaded->IsValid())
+		throw std::runtime_error("Effect load failed: " + (path.empty()
+			? std::string(definition->name) : path.string()));
+	return loaded;
 }
 
 void EffectManager::RegisterPlayback(

@@ -16,9 +16,6 @@
     <ClCompile Include="Source\Audio\SoundSystem.cpp">
       <Filter>Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Audio\SoundTrackRegistry.cpp">
-      <Filter>Audio</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -162,9 +159,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
-      <Filter>Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Audio\SoundTrackRegistry.h">
       <Filter>Audio</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\SoundTracks.generated.h">
@@ -595,6 +589,9 @@
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h">
+      <Filter>Rendering\Effect</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Effect\Effects.generated.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\Effect.h">

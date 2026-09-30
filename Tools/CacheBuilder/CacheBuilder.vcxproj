@@ -49,9 +49,8 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="..\..\Source\Resource\CacheBuilder.cpp" />
-	<ClCompile Include="..\..\Source\Audio\SoundTrackRegistry.cpp" />
     <ClInclude Include="..\..\Source\Resource\CacheBuilder.h" />
-	<ClInclude Include="..\..\Source\Audio\SoundTrackRegistry.h" />
+	<ClInclude Include="..\..\Source\Audio\SoundTracks.generated.h" />
 	<ClInclude Include="..\..\Source\Audio\VSoundFormat.h" />
     <None Include="README.md" />
   </ItemGroup>

@@ -22,7 +22,6 @@
     <ClInclude Include="Source\Resource\CacheSettings.h" />
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp" />
     <ClCompile Include="Source\Audio\SoundSystem.cpp" />
-    <ClCompile Include="Source\Audio\SoundTrackRegistry.cpp" />
     <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
@@ -152,7 +151,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h" />
-    <ClInclude Include="Source\Audio\SoundTrackRegistry.h" />
     <ClInclude Include="Source\Audio\SoundTracks.generated.h" />
     <ClInclude Include="Source\Audio\VSoundFormat.h" />
     <ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h" />
@@ -224,6 +222,7 @@
     <ClInclude Include="Source\Application\Tools\Dialog.h" />
     <ClInclude Include="Source\Rendering\Effect\Effect.h" />
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h" />
+      <ClInclude Include="Source\Rendering\Effect\Effects.generated.h" />
     <ClInclude Include="Source\Gameplay\AI\AIFlow.h" />
     <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h" />
     <ClInclude Include="Source\Gameplay\Camera\FpsCameraController.h" />

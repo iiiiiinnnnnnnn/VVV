@@ -226,15 +226,25 @@ void SoundSystem::SetListenerOverride(const Camera* camera)
 }
 
 SoundSystem::VoiceId SoundSystem::PlayTrack(
-	int track, int variant, const PlayOptions& options)
+	SoundTrack track, int variant, const PlayOptions& options)
 {
-	auto sound = LoadTrackSound(track, variant);
-	return sound ? StartVoiceData("track " + std::to_string(track), std::move(sound),
+	const auto* definition = FindSoundDefinition(track);
+	if (!definition) return InvalidVoiceId;
+	auto sound = LoadTrackSound(*definition, variant);
+	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
 		options, nullptr, nullptr, nullptr) : InvalidVoiceId;
 }
 
+SoundSystem::VoiceId SoundSystem::PlayTrack(
+	std::string_view trackName, int variant, const PlayOptions& options)
+{
+	const auto* definition = FindSoundDefinition(trackName);
+	if (!definition) return InvalidVoiceId;
+	return PlayTrack(definition->id, variant, options);
+}
+
 SoundSystem::VoiceId SoundSystem::PlayTrack3D(
-	int track, Actor* emitter, int variant, const SpatialOptions& options)
+	SoundTrack track, Actor* emitter, int variant, const SpatialOptions& options)
 {
 	if (!emitter || !emitter->IsActive() || emitter->IsPendingDestroy() ||
 		!IsValidSpatialOptions(options)) return InvalidVoiceId;
@@ -247,21 +257,42 @@ SoundSystem::VoiceId SoundSystem::PlayTrack3D(
 	if (!listener) return InvalidVoiceId;
 	const float distance = Vector3::Distance(emitter->transform.position, listener->GetEye());
 	if (GetDistanceGain(distance, options) <= 0.0f) return InvalidVoiceId;
-	auto sound = LoadTrackSound(track, variant);
-	return sound ? StartVoiceData("track " + std::to_string(track), std::move(sound),
+	const auto* definition = FindSoundDefinition(track);
+	if (!definition) return InvalidVoiceId;
+	auto sound = LoadTrackSound(*definition, variant);
+	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
 		options, emitter, &options, listener) : InvalidVoiceId;
 }
 
+SoundSystem::VoiceId SoundSystem::PlayTrack3D(
+	std::string_view trackName, Actor* emitter, int variant, const SpatialOptions& options)
+{
+	const auto* definition = FindSoundDefinition(trackName);
+	if (!definition) return InvalidVoiceId;
+	return PlayTrack3D(definition->id, emitter, variant, options);
+}
+
 SoundSystem::VoiceId SoundSystem::PlayTrack3DAt(
-	int track, const Vector3& position, int variant, const SpatialOptions& options)
+	SoundTrack track, const Vector3& position, int variant, const SpatialOptions& options)
 {
 	if (!IsValidSpatialOptions(options)) return InvalidVoiceId;
 	const Camera* listener = GetListenerCamera();
 	if (!listener || GetDistanceGain(Vector3::Distance(position, listener->GetEye()), options) <= 0.0f)
 		return InvalidVoiceId;
-	auto sound = LoadTrackSound(track, variant);
-	return sound ? StartVoiceData("track " + std::to_string(track), std::move(sound),
+	const auto* definition = FindSoundDefinition(track);
+	if (!definition) return InvalidVoiceId;
+	auto sound = LoadTrackSound(*definition, variant);
+	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
 		options, nullptr, &options, listener, &position) : InvalidVoiceId;
+}
+
+SoundSystem::VoiceId SoundSystem::PlayTrack3DAt(
+	std::string_view trackName, const Vector3& position, int variant,
+	const SpatialOptions& options)
+{
+	const auto* definition = FindSoundDefinition(trackName);
+	if (!definition) return InvalidVoiceId;
+	return PlayTrack3DAt(definition->id, position, variant, options);
 }
 
 // ボイスを作成して再生
@@ -430,15 +461,12 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 	}
 }
 
-std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadTrackSound(int track, int variant)
+std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadTrackSound(
+	const SoundDefinition& track, int variant)
 {
-	if (track < 0 || track > 10000)
-	{
-		ReportSoundError("Track number must be between 0 and 10000");
-		return nullptr;
-	}
-	const std::string logicalPath =
-		"Resources/Sound/Tracks/" + std::to_string(track) + VSound::Extension;
+	std::filesystem::path cachePath(std::string(track.path));
+	cachePath.replace_extension(VSound::Extension);
+	const std::string logicalPath = cachePath.generic_string();
 	const std::filesystem::path resolved = ResourceManager::Instance().ResolvePath(logicalPath);
 	try
 	{

@@ -16,6 +16,9 @@
 #include "UI/GaugeHUD.h"
 #include "UI/HUDWidget.h"
 #include "UI/PauseMenu.h"
+#include "Gameplay/Actor/Deer.h"
+#include "Gameplay/Actor/Crystal.h"
+#include "Gameplay/Stage/Component/Terrain.h"
 
 TestPlayScene::TestPlayScene()
 {
@@ -126,6 +129,30 @@ bool TestPlayScene::ShouldUpdateWorld() const
 
 void TestPlayScene::OnUpdate()
 {
+#ifdef _DEBUG // ちょうデバッグ
+	if (ImGui::IsKeyPressed(ImGuiKey_1))
+	{
+		currentStage->GetActorManager().Register(std::make_shared<Deer>(
+			Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)))
+		);
+	}
+	if (ImGui::IsKeyPressed(ImGuiKey_2))
+	{
+		currentStage->GetActorManager().Register(std::make_shared<Crystal>(
+			Transform::FromPosition(player->transform.position + Vector3(0, 0.0f, 0)))
+		);
+	}
+	if (ImGui::IsKeyPressed(ImGuiKey_3))
+	{
+		currentStage->GetActorManager().Register(
+			std::make_shared<Aracore>(
+			player.get(),
+			Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)),
+			currentStage->GetComponent<Terrain>())
+		);
+	}
+#endif
+
 	// スポナーが後から生成したボスにもHUDを接続する
 	if (currentStage && bossBar)
 	{

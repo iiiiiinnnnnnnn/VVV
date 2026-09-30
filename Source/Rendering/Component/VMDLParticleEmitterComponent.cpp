@@ -1,3 +1,4 @@
+// VMDLParticleEmitterComponent.cpp
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 
 #include "Gameplay/Camera/Camera.h"
@@ -32,9 +33,9 @@ VMDLParticleEmitterComponent::VMDLParticleEmitterComponent(Object* owner, VMDLMo
 
 VMDLParticleEmitterComponent::~VMDLParticleEmitterComponent()
 {
-	if (!effect) return;
-	for (const Playback& playback : playbacks)
-		effect->Stop(playback.handle);
+	if (effect && settings.modelDerived)
+		for (const Playback& playback : playbacks)
+			effect->Stop(playback.handle);
 	playbacks.clear();
 }
 
@@ -44,9 +45,8 @@ void VMDLParticleEmitterComponent::SetSettings(const VMDLModel::VmdlParticleEmit
 	Stop();
 	settings = value;
 	effect.reset();
-	if (!settings.effekseerData.empty())
-		effect = std::make_shared<Effect>(
-			settings.effekseerData.data(), settings.effekseerData.size());
+	if (!settings.effectName.empty())
+		effect = EffectManager::Instance().LoadEffect(settings.effectName);
 	if (restart) Play();
 }
 
@@ -115,7 +115,7 @@ void VMDLParticleEmitterComponent::RenderParticles(const RenderContext& rc)
 void VMDLParticleEmitterComponent::OnDrawGUI()
 {
 	ImGui::Text("Effect: %s", settings.name.c_str());
-	ImGui::Text("EFKPKG: %s", settings.effekseerFileName.c_str());
+	ImGui::Text("Effect: %s", settings.effectName.c_str());
 	bool active = emitting;
 	if (ImGui::Checkbox((const char*)u8"再生中", &active)) SetEmitting(active);
 	if (ImGui::Button((const char*)u8"再生")) Play();

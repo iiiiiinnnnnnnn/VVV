@@ -205,26 +205,6 @@ class PackageFileInterface : public Effekseer::FileInterface
 };
 }
 
-// コンストラクタ
-Effect::Effect(const char* filename)
-{
-	// エフェクトを読み込みする前にロックする
-	// ※マルチスレッドでEffectを作成するとDeviceContextを同時アクセスして
-	// 　フリーズする可能性があるので排他制御する
-	//std::lock_guard<std::mutex> lock(Game::Graphics::Instance().());
-
-	// Effekseerのリソースを読み込む
-	// EffekseerはUTF-16のファイルパス以外は対応していないため文字コード変換が必要
-	char16_t utf16Filename[256];
-	Effekseer::ConvertUtf8ToUtf16(utf16Filename, 256, filename);
-
-	// Effekseer::Managerを取得
-	Effekseer::ManagerRef effekseerManager = EffectManager::Instance().GetEffekseerManager();
-
-	// Effekseerエフェクトを読み込み
-	effekseerEffect = Effekseer::Effect::Create(effekseerManager, (EFK_CHAR*)utf16Filename);
-}
-
 Effect::Effect(const void* data, size_t size)
 {
 	if (!data || size == 0 || size > static_cast<size_t>(INT32_MAX)) return;
@@ -253,12 +233,6 @@ Effect::Effect(const void* data, size_t size)
 	}
 	effekseerEffect = Effekseer::Effect::Create(
 		manager, data, static_cast<int32_t>(size));
-}
-
-bool Effect::IsPackageValid(const void* data, size_t size)
-{
-	PackageArchive package;
-	return package.Load(data, size);
 }
 
 // デストラクタ

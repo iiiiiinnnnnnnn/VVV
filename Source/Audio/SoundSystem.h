@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -69,29 +70,21 @@ class SoundSystem
 	VoiceId Play3D(const std::string& path, Actor* emitter, const SpatialOptions& options = {});
 
 	// 登録済みトラックを再生。variant=-1はコンテナ内からランダム選択
-	VoiceId PlayTrack(int track, int variant = -1, const PlayOptions& options = {});
-	VoiceId PlayTrack(SoundTrack track, int variant = -1, const PlayOptions& options = {})
-	{
-		return PlayTrack(static_cast<int>(track), variant, options);
-	}
+	VoiceId PlayTrack(SoundTrack track, int variant = -1, const PlayOptions& options = {});
+	VoiceId PlayTrack(std::string_view trackName, int variant = -1,
+		const PlayOptions& options = {});
 
 	// 登録済みトラックをActorの位置から3D再生
-	VoiceId PlayTrack3D(int track, Actor* emitter, int variant = -1,
-		const SpatialOptions& options = {});
 	VoiceId PlayTrack3D(SoundTrack track, Actor* emitter, int variant = -1,
-		const SpatialOptions& options = {})
-	{
-		return PlayTrack3D(static_cast<int>(track), emitter, variant, options);
-	}
+		const SpatialOptions& options = {});
+	VoiceId PlayTrack3D(std::string_view trackName, Actor* emitter, int variant = -1,
+		const SpatialOptions& options = {});
 
 	// 登録済みトラックを指定したワールド座標から3D再生
-	VoiceId PlayTrack3DAt(int track, const Vector3& position, int variant = -1,
-		const SpatialOptions& options = {});
 	VoiceId PlayTrack3DAt(SoundTrack track, const Vector3& position, int variant = -1,
-		const SpatialOptions& options = {})
-	{
-		return PlayTrack3DAt(static_cast<int>(track), position, variant, options);
-	}
+		const SpatialOptions& options = {});
+	VoiceId PlayTrack3DAt(std::string_view trackName, const Vector3& position, int variant = -1,
+		const SpatialOptions& options = {});
 
 	// ボイスを停止・解放
 	void Stop(VoiceId voiceId);
@@ -231,7 +224,7 @@ class SoundSystem
 
 	// WAVのパスを解決してキャッシュに読み込む
 	std::shared_ptr<SoundData> LoadSound(const std::string& path);
-	std::shared_ptr<SoundData> LoadTrackSound(int track, int variant);
+	std::shared_ptr<SoundData> LoadTrackSound(const SoundDefinition& track, int variant);
 	std::shared_ptr<SoundData> DecodeWave(
 		const uint8_t* bytes, size_t size, const std::string& name) const;
 

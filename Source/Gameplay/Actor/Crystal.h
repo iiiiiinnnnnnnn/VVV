@@ -14,11 +14,11 @@ class Crystal : public Entity
 	~Crystal() override = default;
 
   private:
-	void Break();
+	void OnUpdate() override;
 	void PlayBreakSound();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 
 	VMDL* vmdl = nullptr;
-	bool broken = false;
+	bool deathCleanupPending = false;
 };

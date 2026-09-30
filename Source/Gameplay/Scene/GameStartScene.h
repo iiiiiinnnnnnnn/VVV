@@ -1,10 +1,10 @@
-﻿// GameStartScene.h
 #pragma once
 
 #include "Gameplay/Scene/Scene.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheSettings.h"
-#include "Audio/SoundTrackRegistry.h"
+#include "Audio/SoundTracks.generated.h"
+#include "Rendering/Effect/Effects.generated.h"
 #endif
 
 class SpriteWidget;
@@ -38,13 +38,12 @@ private:
 	void DrawCacheManager();
 	void ReloadCacheList();
 	void DrawSoundManager();
-	void ReloadSoundTracks();
+	void DrawEffectManager();
 	bool showCacheManager = false;
 	bool showSoundManager = false;
+	bool showEffectManager = false;
 	CacheSettings cacheSettings;
 	std::vector<std::string> cachePaths;
 	std::string cacheMessage;
-	SoundTrackRegistry soundTracks;
-	std::string soundMessage;
 #endif
 };

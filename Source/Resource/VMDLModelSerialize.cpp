@@ -251,13 +251,13 @@ template <class Archive> void VMDLModel::VmdlSoundSource::serialize(Archive& arc
 
 template <class Archive> void VMDLModel::VmdlSoundSourceBinding::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(track), CEREAL_NVP(variant), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
+	archive(CEREAL_NVP(trackName), CEREAL_NVP(variant), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
 }
 
 template <class Archive> void VMDLModel::VmdlSoundKeyframe::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(seconds), CEREAL_NVP(sourceIndex), CEREAL_NVP(track),
-		CEREAL_NVP(variant), CEREAL_NVP(volume), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
+	archive(CEREAL_NVP(seconds), CEREAL_NVP(sourceIndex), CEREAL_NVP(variant),
+		CEREAL_NVP(volume), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
 }
 
 template <class Archive> void VMDLModel::VmdlSoundAnimationTrack::serialize(Archive& archive)
