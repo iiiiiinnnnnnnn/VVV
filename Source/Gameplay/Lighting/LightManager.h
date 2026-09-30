@@ -1,4 +1,3 @@
-// LightManager.h
 #pragma once
 #include <deque>
 #include <memory>

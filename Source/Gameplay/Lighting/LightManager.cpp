@@ -1,4 +1,3 @@
-﻿// LightManager.cpp
 #include "Gameplay/Lighting/LightManager.h"
 
 #include <algorithm>

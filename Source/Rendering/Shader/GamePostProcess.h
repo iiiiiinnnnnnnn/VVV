@@ -119,7 +119,7 @@ namespace Game
 		// Color Filter
 		bool enableColorFilter = false;
 		float colorFilterHueShift = 0.0f;
-		float colorFilterSaturation = 1.0f;
+		float colorFilterSaturation = 1.5f;
 		float colorFilterBrightness = 1.0f;
 		struct CbColorFilter
 		{
