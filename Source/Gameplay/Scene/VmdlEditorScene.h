@@ -50,6 +50,7 @@ class VmdlEditorScene : public Scene
 		Trail,
 		Particle,
 		SoundSource,
+		PointLight,
 		CameraShake,
 		RadialBlur,
 	};
@@ -116,6 +117,7 @@ class VmdlEditorScene : public Scene
 	void UpdateTrailPreview(const RenderContext& rc);
 	void RebuildParticlePreview();
 	void UpdateParticlePreview(const RenderContext& rc);
+	void UpdatePointLightPreview();
 	void UpdateExternalMeshPreview();
 	void RecordSelectedNodeKey();
 	void MarkDirty();
@@ -152,6 +154,7 @@ class VmdlEditorScene : public Scene
 	std::unique_ptr<Object> cameraOwner;
 	Camera* editorCamera = nullptr;
 	LightManager editorLights;
+	std::vector<std::shared_ptr<PointLight>> editorPointLights;
 
 	// 選択状態
 	int selectedNode = -1;
@@ -258,6 +261,7 @@ class VmdlEditorScene : public Scene
 	bool showRigidBody = true;
 	bool showCollider = true;
 	bool showSoundRange = true;
+	bool showPointLight = true;
 	bool showSpring = true;
 	bool showSpringCollider = true;
 	bool showTrail = true;

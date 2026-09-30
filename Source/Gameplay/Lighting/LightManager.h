@@ -1,5 +1,8 @@
+// LightManager.h
 #pragma once
 #include <deque>
+#include <memory>
+#include <vector>
 
 #include "Core/Foundation/Common.h"
 #include "Gameplay/Lighting/Light.h"
@@ -91,6 +94,12 @@ public:
 		return pointLights.back();
 	}
 
+	void RegisterAttachedPointLight(const std::shared_ptr<PointLight>& light)
+	{
+		if (light) attachedPointLights.emplace_back(light);
+	}
+	void ClearAttachedPointLights() { attachedPointLights.clear(); }
+
 	SpotLight& AddSpotLight()
 	{
 		spotLights.emplace_back();
@@ -114,6 +123,7 @@ private:
 	DirectionalLight directionalLight;
 
 	std::deque<PointLight> pointLights;
+	std::vector<std::weak_ptr<PointLight>> attachedPointLights;
 	std::deque<SpotLight> spotLights;
 	std::deque<AreaLight> areaLights;
 

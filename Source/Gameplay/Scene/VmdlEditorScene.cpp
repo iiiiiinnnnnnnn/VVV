@@ -823,6 +823,48 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 	}
 }
 
+void VmdlEditorScene::UpdatePointLightPreview()
+{
+	if (!model)
+	{
+		editorPointLights.clear();
+		editorLights.ClearAttachedPointLights();
+		return;
+	}
+
+	const auto& values = model->GetVmdlLightData().pointLights;
+	if (editorPointLights.size() != values.size())
+	{
+		editorPointLights.clear();
+		editorLights.ClearAttachedPointLights();
+		for (const auto& value : values)
+		{
+			auto light = std::make_shared<PointLight>(value.name);
+			editorLights.RegisterAttachedPointLight(light);
+			editorPointLights.push_back(std::move(light));
+		}
+	}
+
+	const auto& nodes = model->GetNodes();
+	for (size_t i = 0; i < values.size(); ++i)
+	{
+		const auto& value = values[i];
+		PointLight& light = *editorPointLights[i];
+		light.SetName(value.name);
+		light.SetActive(value.active);
+		light.SetColor(value.color);
+		light.SetIntensity(value.intensity);
+		light.SetRange(value.range);
+		if (value.nodeIndex < 0 || value.nodeIndex >= Count(nodes))
+		{
+			light.transform.position = Vector3::Zero;
+			continue;
+		}
+		light.transform.position = model->GetScaledAttachmentTransform(
+			value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform).Translation();
+	}
+}
+
 void VmdlEditorScene::RenderPreview()
 {
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
@@ -917,6 +959,7 @@ void VmdlEditorScene::RenderPreview()
 		if (useFootIk || animationPlaying) model->GetNodePoses(animationPose);
 		const bool footIkApplied = useFootIk && ApplyFootIkPreview();
 		const bool springApplied = UpdateSpringPreview();
+		UpdatePointLightPreview();
 
 		if (showMesh)
 		{
@@ -1136,6 +1179,20 @@ void VmdlEditorScene::RenderPreview()
 				hasShapes = true;
 			}
 		}
+		if (showDebugOverlays && showPointLight)
+		{
+			for (const auto& light : editorPointLights)
+			{
+				if (!light || !light->IsActive()) continue;
+				Color color = light->GetColor();
+				color.w = 0.75f;
+				graphics.GetShapeRenderer()->DrawSphere(
+					light->transform.position, light->GetRange(), color);
+				graphics.GetShapeRenderer()->DrawSphere(
+					light->transform.position, 0.08f, Color(color.x, color.y, color.z, 1.0f));
+				hasShapes = true;
+			}
+		}
 		if (showDebugOverlays && showSoundRange)
 		{
 			const auto& nodes = model->GetNodes();
@@ -1301,6 +1358,7 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem((const char*)u8"リジッドボディ", "R", &showRigidBody);
 		ImGui::MenuItem((const char*)u8"コライダー", "C", &showCollider);
 		ImGui::MenuItem((const char*)u8"サウンド・演出範囲", nullptr, &showSoundRange);
+		ImGui::MenuItem((const char*)u8"ポイントライト", nullptr, &showPointLight);
 		ImGui::MenuItem((const char*)u8"スプリング", "S", &showSpring);
 		ImGui::MenuItem((const char*)u8"スプリングコライダー", "Shift+C", &showSpringCollider);
 		ImGui::MenuItem((const char*)u8"トレイル", "T", &showTrail);
@@ -1702,6 +1760,12 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 				(const char*)u8"サウンドソース SOUND SOURCE", value.name))
 			return true;
 	}
+	for (const auto& value : model->GetVmdlLightData().pointLights)
+	{
+		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
+				(const char*)u8"ポイントライト POINT LIGHT", value.name))
+			return true;
+	}
 	for (const auto& value : model->GetVmdlPresentationData().cameraShakes)
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
 				(const char*)u8"カメラシェイク CAMERA SHAKE", value.name)) return true;
@@ -1822,6 +1886,9 @@ std::string VmdlEditorScene::MakeUniqueAttachedComponentName(
 	case AttachedComponentType::SoundSource:
 		for (const auto& value : model->GetVmdlSoundData().sources) names.push_back(value.name);
 		break;
+	case AttachedComponentType::PointLight:
+		for (const auto& value : model->GetVmdlLightData().pointLights) names.push_back(value.name);
+		break;
 	case AttachedComponentType::CameraShake:
 		for (const auto& value : model->GetVmdlPresentationData().cameraShakes) names.push_back(value.name);
 		break;
@@ -1920,6 +1987,15 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 			componentIndex = Count(sources);
 			auto& value = sources.emplace_back();
 			value.name = name;
+			value.nodeIndex = nodeIndex;
+			break;
+		}
+		case AttachedComponentType::PointLight:
+		{
+			auto& values = model->GetVmdlLightData().pointLights;
+			componentIndex = Count(values);
+			auto& value = values.emplace_back();
+			value.name = MakeUniqueAttachedComponentName(type, "POINT LIGHT");
 			value.nodeIndex = nodeIndex;
 			break;
 		}
@@ -2074,6 +2150,16 @@ void VmdlEditorScene::DuplicateSelectedAttachedComponent()
 		}
 		break;
 	}
+	case AttachedComponentType::PointLight:
+	{
+		auto& values = model->GetVmdlLightData().pointLights;
+		if (sourceIndex >= Count(values)) return;
+		duplicateIndex = Count(values);
+		values.push_back(values[sourceIndex]);
+		values.back().name = MakeUniqueAttachedComponentName(
+			selectedComponentType, values[sourceIndex].name);
+		break;
+	}
 	case AttachedComponentType::CameraShake:
 	case AttachedComponentType::RadialBlur:
 	{
@@ -2165,6 +2251,9 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		std::any_of(model->GetVmdlSoundData().sources.begin(),
 			model->GetVmdlSoundData().sources.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
+		std::any_of(model->GetVmdlLightData().pointLights.begin(),
+			model->GetVmdlLightData().pointLights.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
 		std::any_of(model->GetVmdlPresentationData().cameraShakes.begin(),
 			model->GetVmdlPresentationData().cameraShakes.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }) ||
@@ -2232,6 +2321,10 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	if (std::any_of(soundSources.begin(), soundSources.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
 		drawBadge("[SS]");
+	const auto& pointLights = model->GetVmdlLightData().pointLights;
+	if (std::any_of(pointLights.begin(), pointLights.end(),
+			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; }))
+		drawBadge("[PL]");
 	const auto& cameraShakes = model->GetVmdlPresentationData().cameraShakes;
 	if (std::any_of(cameraShakes.begin(), cameraShakes.end(),
 			[nodeIndex](const auto& value) { return value.nodeIndex == nodeIndex; })) drawBadge("[CS]");
@@ -2363,6 +2456,16 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::SoundSource, i,
 			(const char*)u8"サウンドソース", value.name);
 	}
+	for (int i = 0; i < Count(pointLights); ++i)
+	{
+		const auto& value = pointLights[i];
+		if (value.nodeIndex != nodeIndex ||
+			(!showAllContents && !ComponentMatchesHierarchySearch(
+				(const char*)u8"ポイントライト POINT LIGHT", value.name)))
+			continue;
+		DrawHierarchyComponent(nodeIndex, AttachedComponentType::PointLight, i,
+			(const char*)u8"ポイントライト", value.name);
+	}
 	for (int i = 0; i < Count(cameraShakes); ++i)
 	{
 		const auto& value = cameraShakes[i];
@@ -2410,6 +2513,12 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 			{
 				if (ImGui::MenuItem((const char*)u8"ラジアルブラー"))
 					AddAttachedComponentToSelectedNodes(AttachedComponentType::RadialBlur);
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu((const char*)u8"ライト"))
+			{
+				if (ImGui::MenuItem((const char*)u8"ポイントライト"))
+					AddAttachedComponentToSelectedNodes(AttachedComponentType::PointLight);
 				ImGui::EndMenu();
 			}
 			if (ImGui::MenuItem((const char*)u8"リジッドボディ"))
@@ -3234,6 +3343,57 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				selectedComponentIndex = -1;
 			}
 			else if (selectedComponentIndex > deleteSoundSource)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+	}
+
+	// ポイントライト
+	auto& pointLights = model->GetVmdlLightData().pointLights;
+	int deletePointLight = -1;
+	for (int i = 0; i < Count(pointLights); ++i)
+	{
+		auto& value = pointLights[i];
+		if (value.nodeIndex != nodeIndex ||
+			selectedComponentType != AttachedComponentType::PointLight ||
+			selectedComponentIndex != i) continue;
+		ImGui::PushID(6500 + i);
+		const bool selected = selectedComponentType == AttachedComponentType::PointLight &&
+			selectedComponentIndex == i;
+		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
+		if (ImGui::TreeNodeEx((const char*)u8"ポイントライト",
+				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
+		{
+			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
+			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
+			if (changed) value.name = ToUpperString(value.name);
+			changed |= DrawComponentTransform(*model, value.transform);
+			changed |= ImGui::Checkbox((const char*)u8"有効", &value.active);
+			changed |= ImGui::ColorEdit3((const char*)u8"色", &value.color.x,
+				ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+			changed |= ImGui::DragFloat(
+				(const char*)u8"強度", &value.intensity, 0.1f, 0.0f, 100000.0f);
+			changed |= ImGui::DragFloat(
+				(const char*)u8"範囲", &value.range, 0.1f, 0.0f, 10000.0f);
+			value.intensity = std::max(0.0f, value.intensity);
+			value.range = std::max(0.0f, value.range);
+			if (changed) MarkDirty();
+			if (ImGui::Button((const char*)u8"削除")) deletePointLight = i;
+			ImGui::TreePop();
+		}
+		ImGui::PopID();
+	}
+	if (deletePointLight >= 0)
+	{
+		pointLights.erase(pointLights.begin() + deletePointLight);
+		if (selectedComponentType == AttachedComponentType::PointLight)
+		{
+			if (selectedComponentIndex == deletePointLight)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+			}
+			else if (selectedComponentIndex > deletePointLight)
 				--selectedComponentIndex;
 		}
 		MarkDirty();
@@ -5933,6 +6093,8 @@ void VmdlEditorScene::ReplaceGlbCache()
 	trailPreviewSignature.clear();
 	particlePreviewOwner.reset();
 	particlePreviewComponents.clear();
+	editorPointLights.clear();
+	editorLights.ClearAttachedPointLights();
 	externalMeshPreviewCaches.clear();
 	try
 	{
@@ -6318,6 +6480,8 @@ void VmdlEditorScene::LoadModel(
 	trailPreviewSignature.clear();
 	particlePreviewOwner.reset();
 	particlePreviewComponents.clear();
+	editorPointLights.clear();
+	editorLights.ClearAttachedPointLights();
 	externalMeshPreviewCaches.clear();
 	try
 	{

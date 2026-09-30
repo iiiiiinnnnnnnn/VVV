@@ -14,6 +14,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/Scene.h"
 #include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Core/Foundation/Easing.h"
 #include "Resource/MeshCache.h"
@@ -133,6 +134,12 @@ void VMDLModelComponent::BuildAttachments()
 		attachmentParticleEmitters[i] = owner->AddComponent<VMDLParticleEmitterComponent>(
 			model.get(), value, model->GetParticleInitialActive(i));
 	}
+
+	const auto& pointLightData = model->GetVmdlLightData().pointLights;
+	attachmentPointLights.reserve(pointLightData.size());
+	for (const auto& value : pointLightData)
+		attachmentPointLights.push_back(std::make_shared<PointLight>(value.name));
+	SyncPointLights();
 }
 
 PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& name) const
@@ -184,6 +191,7 @@ void VMDLModelComponent::LateUpdate()
 
 	if (autoUpdateTransform)
 		UpdateModelTransform(actor->transform.matrix);
+	SyncPointLights();
 
 	for (VMDLColliderComponent* collider : attachmentColliders)
 	{
@@ -191,6 +199,36 @@ void VMDLModelComponent::LateUpdate()
 	}
 	UpdateSoundEvents();
 	UpdatePresentationEvents();
+}
+
+void VMDLModelComponent::SyncPointLights()
+{
+	if (!model) return;
+	const auto& values = model->GetVmdlLightData().pointLights;
+	if (attachmentPointLights.size() != values.size()) return;
+
+	LightManager* lightManager = nullptr;
+	if (Scene* scene = SceneManager::Instance().GetCurrentScene())
+		if (Stage* stage = scene->GetCurrentStage()) lightManager = &stage->GetLightManager();
+	if (lightManager && lightManager != registeredPointLightManager)
+	{
+		for (const auto& light : attachmentPointLights)
+			lightManager->RegisterAttachedPointLight(light);
+		registeredPointLightManager = lightManager;
+	}
+
+	for (size_t i = 0; i < values.size(); ++i)
+	{
+		const auto& value = values[i];
+		PointLight& light = *attachmentPointLights[i];
+		light.SetName(value.name);
+		light.SetActive(value.active);
+		light.SetColor(value.color);
+		light.SetIntensity(value.intensity);
+		light.SetRange(value.range);
+		light.transform.position = AttachmentPosition(*model, value.nodeIndex, value.transform,
+			dynamic_cast<Actor*>(owner)->transform.position);
+	}
 }
 
 void VMDLModelComponent::UpdatePresentationEvents()

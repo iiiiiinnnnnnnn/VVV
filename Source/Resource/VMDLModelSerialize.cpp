@@ -270,6 +270,17 @@ template <class Archive> void VMDLModel::VmdlSoundData::serialize(Archive& archi
 	archive(CEREAL_NVP(sources), CEREAL_NVP(tracks));
 }
 
+template <class Archive> void VMDLModel::VmdlPointLight::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(name), CEREAL_NVP(nodeIndex), CEREAL_NVP(color), CEREAL_NVP(intensity),
+		CEREAL_NVP(range), CEREAL_NVP(active), CEREAL_NVP(transform));
+}
+
+template <class Archive> void VMDLModel::VmdlLightData::serialize(Archive& archive)
+{
+	archive(CEREAL_NVP(pointLights));
+}
+
 
 template void VMDLModel::Node::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Node::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&);
@@ -443,4 +454,12 @@ template void VMDLModel::VmdlSoundAnimationTrack::serialize<cereal::BinaryOutput
 template void VMDLModel::VmdlSoundData::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::VmdlSoundData::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlPointLight::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlPointLight::serialize<cereal::BinaryOutputArchive>(
+	cereal::BinaryOutputArchive&);
+template void VMDLModel::VmdlLightData::serialize<cereal::BinaryInputArchive>(
+	cereal::BinaryInputArchive&);
+template void VMDLModel::VmdlLightData::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);

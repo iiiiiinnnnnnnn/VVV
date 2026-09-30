@@ -817,7 +817,8 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	  vmdlAnimationEditorData(other.vmdlAnimationEditorData),
 	  vmdlAnimationControlData(other.vmdlAnimationControlData), vmdlTrailData(other.vmdlTrailData),
 	  vmdlParticleData(other.vmdlParticleData),
-	  vmdlSoundData(other.vmdlSoundData), vmdlPresentationData(other.vmdlPresentationData),
+	  vmdlSoundData(other.vmdlSoundData), vmdlLightData(other.vmdlLightData),
+	  vmdlPresentationData(other.vmdlPresentationData),
 	  externalMeshGroups(other.externalMeshGroups),
 	  modelScale(other.modelScale), worldTransform(other.worldTransform),
 	  modelCacheFilepath(other.modelCacheFilepath)
@@ -838,6 +839,7 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	  vmdlTrailData(std::move(other.vmdlTrailData)),
 	  vmdlParticleData(std::move(other.vmdlParticleData)),
 	  vmdlSoundData(std::move(other.vmdlSoundData)),
+	  vmdlLightData(std::move(other.vmdlLightData)),
 	  vmdlPresentationData(std::move(other.vmdlPresentationData)),
 	  externalMeshGroups(std::move(other.externalMeshGroups)), modelScale(other.modelScale),
 	  worldTransform(other.worldTransform), modelCacheFilepath(std::move(other.modelCacheFilepath))
@@ -864,6 +866,7 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	vmdlTrailData = other.vmdlTrailData;
 	vmdlParticleData = other.vmdlParticleData;
 	vmdlSoundData = other.vmdlSoundData;
+	vmdlLightData = other.vmdlLightData;
 	vmdlPresentationData = other.vmdlPresentationData;
 	externalMeshGroups = other.externalMeshGroups;
 	modelScale = other.modelScale;
@@ -892,6 +895,7 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	vmdlTrailData = std::move(other.vmdlTrailData);
 	vmdlParticleData = std::move(other.vmdlParticleData);
 	vmdlSoundData = std::move(other.vmdlSoundData);
+	vmdlLightData = std::move(other.vmdlLightData);
 	vmdlPresentationData = std::move(other.vmdlPresentationData);
 	externalMeshGroups = std::move(other.externalMeshGroups);
 	modelScale = other.modelScale;
@@ -1475,6 +1479,11 @@ void VMDLModel::NormalizeAttachmentNames()
 	{
 		source.name = ToUpperAscii(source.name);
 		if (source.name.empty()) source.name = "SOUND SOURCE";
+	}
+	for (VmdlPointLight& light : vmdlLightData.pointLights)
+	{
+		light.name = ToUpperAscii(light.name);
+		if (light.name.empty()) light.name = "POINT LIGHT";
 	}
 }
 
@@ -2236,6 +2245,7 @@ bool VMDLModel::ReplaceGLBCache(
 	for (auto& value : vmdlTrailData.trails) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlParticleData.emitters) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlSoundData.sources) value.nodeIndex = remapNode(value.nodeIndex);
+	for (auto& value : vmdlLightData.pointLights) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlPresentationData.cameraShakes) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlPresentationData.radialBlurs) value.nodeIndex = remapNode(value.nodeIndex);
 
@@ -2414,6 +2424,7 @@ void VMDLModel::Serialize(const char* filename)
 		});
 		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
 		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
+		addFile("model.lightdata", [&](auto& archive) { archive(vmdlLightData); });
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
 		addFile("model.componenttransforms", [&](auto& archive) { archive(componentTransforms); });
 		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
@@ -2570,6 +2581,7 @@ void VMDLModel::Deserialize(const char* filename)
 			bool loadedGlbCache = false;
 			bool loadedVmdlData = false;
 			bool loadedSoundData = false;
+			bool loadedLightData = false;
 			bool loadedIkSolver = false;
 			bool loadedSoundBindings = false;
 			bool loadedComponentTransforms = false;
@@ -2599,6 +2611,11 @@ void VMDLModel::Deserialize(const char* filename)
 				{
 					archive(vmdlSoundData);
 					loadedSoundData = true;
+				}
+				else if (name == "model.lightdata")
+				{
+					archive(vmdlLightData);
+					loadedLightData = true;
 				}
 				else if (name == "model.iksolver")
 				{
@@ -2651,6 +2668,7 @@ void VMDLModel::Deserialize(const char* filename)
 				!loadedEffectBindings || !loadedVfxData || !loadedExternalMeshes ||
 				!loadedExternalMeshBindings || !loadedExternalMeshSlots)
 				throw std::runtime_error("VMDL package is missing required data.");
+			if (!loadedLightData) vmdlLightData = {};
 			if (soundBindings.size() != vmdlSoundData.sources.size() ||
 				effectBindings.size() != vmdlParticleData.emitters.size() ||
 				externalMeshBindingKeys.size() != externalMeshGroups.size() ||
@@ -2714,6 +2732,11 @@ void VMDLModel::Deserialize(const char* filename)
 				source.volume = std::clamp(source.volume, 0.0f, 4.0f);
 				source.pitchMin = std::clamp(source.pitchMin, 0.125f, 8.0f);
 				source.pitchMax = std::clamp(source.pitchMax, source.pitchMin, 8.0f);
+			}
+			for (auto& light : vmdlLightData.pointLights)
+			{
+				light.intensity = std::max(0.0f, light.intensity);
+				light.range = std::max(0.0f, light.range);
 			}
 		}
 	}

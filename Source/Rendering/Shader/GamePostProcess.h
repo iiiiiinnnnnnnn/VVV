@@ -1,3 +1,4 @@
+// GamePostProcess.h
 #pragma once
 
 #include <memory>
@@ -21,6 +22,7 @@ namespace Game
 		void BloomBlur(const RenderContext& rc, ID3D11ShaderResourceView* bloomMap, bool horizontal);
 		void Bloom(const RenderContext& rc, ID3D11ShaderResourceView* colorMap, ID3D11ShaderResourceView* bloomMap);
 		void ToneMapping(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
+		void ColorFilter(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 		void SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap);
 		void ApplySSAO(const RenderContext& rc, ID3D11ShaderResourceView* colorMap, ID3D11ShaderResourceView* ssaoMap);
 		void RadialBlur(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
@@ -39,6 +41,7 @@ namespace Game
 		bool IsDualEffectEnabled() const { return enableDualEffect; }
 		bool IsSSAOEnabled() const { return enableSSAO; }
 		bool IsToneMappingEnabled() const { return enableToneMapping; }
+		bool IsColorFilterEnabled() const { return enableColorFilter; }
 		bool IsRadialBlurEnabled() const { return enableRadialBlur; }
 		bool IsVignetteEnabled() const { return enableVignette; }
 		bool IsChromaticAberrationEnabled() const { return enableChromaticAberration; }
@@ -112,6 +115,21 @@ namespace Game
 		int colorRotationIndex = DirectX::ToneMapPostProcess::HDTV_to_UHDTV;
 		float exposure = 1.0f;
 		float paperWhiteNits = 200.0f;
+
+		// Color Filter
+		bool enableColorFilter = false;
+		float colorFilterHueShift = 0.0f;
+		float colorFilterSaturation = 1.0f;
+		float colorFilterBrightness = 1.0f;
+		struct CbColorFilter
+		{
+			float hueShift;
+			float saturation;
+			float brightness;
+			float DUMMY;
+		};
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> colorFilterPixelShader;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> colorFilterConstantBuffer;
 
 		// Radial Blur
 		bool enableRadialBlur = false;

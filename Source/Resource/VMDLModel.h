@@ -437,6 +437,27 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
+	// ノードに追従するポイントライト設定
+	struct VmdlPointLight
+	{
+		std::string name = "POINT LIGHT";
+		int nodeIndex = -1;
+		Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		float intensity = 10.0f;
+		float range = 10.0f;
+		bool active = true;
+		VmdlComponentTransform transform;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlLightData
+	{
+		std::vector<VmdlPointLight> pointLights;
+
+		template <class Archive> void serialize(Archive& archive);
+	};
+
 	// 範囲内のカメラへ適用する揺れ設定
 	struct VmdlCameraShake
 	{
@@ -842,6 +863,8 @@ class VMDLModel
 	const VmdlParticleData& GetVmdlParticleData() const { return vmdlParticleData; }
 	VmdlSoundData& GetVmdlSoundData() { return vmdlSoundData; }
 	const VmdlSoundData& GetVmdlSoundData() const { return vmdlSoundData; }
+	VmdlLightData& GetVmdlLightData() { return vmdlLightData; }
+	const VmdlLightData& GetVmdlLightData() const { return vmdlLightData; }
 	VmdlPresentationData& GetVmdlPresentationData() { return vmdlPresentationData; }
 	const VmdlPresentationData& GetVmdlPresentationData() const { return vmdlPresentationData; }
 	void SetNodePoses(const std::vector<NodePose>& nodePoses);
@@ -898,6 +921,7 @@ class VMDLModel
 	VmdlTrailData vmdlTrailData;
 	VmdlParticleData vmdlParticleData;
 	VmdlSoundData vmdlSoundData;
+	VmdlLightData vmdlLightData;
 	VmdlPresentationData vmdlPresentationData;
 	std::vector<uint8_t> runtimeMorphVisibility;
 	std::vector<ExternalMeshGroup> externalMeshGroups;

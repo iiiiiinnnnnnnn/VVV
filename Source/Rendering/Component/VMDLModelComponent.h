@@ -1,3 +1,4 @@
+// VMDLModelComponent.h
 #pragma once
 #include <memory>
 #include <string>
@@ -14,6 +15,8 @@ class PhysicsComponent;
 class VMDLColliderComponent;
 class TrailRenderComponent;
 class VMDLParticleEmitterComponent;
+class LightManager;
+class PointLight;
 
 class VMDLModelComponent : public Component
 {
@@ -76,6 +79,7 @@ class VMDLModelComponent : public Component
 	void PlayPresentationEvents(
 		int animationIndex, float beginTime, float endTime, const Vector3& listenerPosition);
 	void SyncExternalMeshCaches();
+	void SyncPointLights();
 
 	std::shared_ptr<VMDLModel> model;
 	ModelShaderId shaderId;
@@ -100,6 +104,8 @@ class VMDLModelComponent : public Component
 	std::vector<VMDLColliderComponent*> attachmentColliders;
 	std::vector<TrailRenderComponent*> attachmentTrails;
 	std::vector<VMDLParticleEmitterComponent*> attachmentParticleEmitters;
+	std::vector<std::shared_ptr<PointLight>> attachmentPointLights;
+	LightManager* registeredPointLightManager = nullptr;
 	std::unordered_map<LayerId, bool> attachmentLayerEnabled;
 	std::unordered_map<std::string, std::shared_ptr<MeshCache>> meshCaches;
 	std::unordered_map<int, std::shared_ptr<MeshCache>> externalMeshCaches;

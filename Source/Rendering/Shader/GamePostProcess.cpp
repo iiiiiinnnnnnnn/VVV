@@ -1,3 +1,4 @@
+// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"
@@ -41,6 +42,14 @@ namespace Game
 		toneMap = std::make_unique<DirectX::ToneMapPostProcess>(device);
 		toneMap->SetOperator(DirectX::ToneMapPostProcess::ACESFilmic);
 		toneMap->SetTransferFunction(DirectX::ToneMapPostProcess::SRGB);
+
+		// Color Filter
+		GpuResourceUtils::LoadPixelShader(
+			device,
+			"Resources/Shader/ColorFilterPS.cso",
+			colorFilterPixelShader.GetAddressOf());
+		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbColorFilter),
+			colorFilterConstantBuffer.GetAddressOf());
 
 		// SSAO
 		GpuResourceUtils::LoadPixelShader(
@@ -169,6 +178,19 @@ namespace Game
 		toneMap->SetST2084Parameter(paperWhiteNits);
 		toneMap->Process(rc.deviceContext);
 		UnbindShaderResources(rc.deviceContext);
+	}
+
+	void PostProcess::ColorFilter(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
+	{
+		CbColorFilter cb = {};
+		cb.hueShift = colorFilterHueShift;
+		cb.saturation = colorFilterSaturation;
+		cb.brightness = colorFilterBrightness;
+		rc.deviceContext->UpdateSubresource(
+			colorFilterConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+		DrawFullscreen(
+			rc, colorFilterPixelShader.Get(), colorMap, colorFilterConstantBuffer.Get());
 	}
 
 	void PostProcess::SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap)
@@ -370,6 +392,7 @@ namespace Game
 			runtimeColorTintIntensity > 0.001f;
 
 		int passCount = 1;
+		if (enableColorFilter) ++passCount;
 		if (useRadialBlur) ++passCount;
 		if (useChromaticAberration) ++passCount;
 		if (useVignette) ++passCount;
@@ -408,6 +431,14 @@ namespace Game
 				Copy(rc, passSource);
 			}
 		});
+
+		if (enableColorFilter)
+		{
+			renderPass([&](ID3D11ShaderResourceView* passSource)
+			{
+				ColorFilter(rc, passSource);
+			});
+		}
 
 		if (useRadialBlur)
 		{
@@ -540,6 +571,24 @@ namespace Game
 			}
 			ImGui::DragFloat((const char*)u8"露出", &exposure, 0.01f, 0.0f, 5.0f);
 			ImGui::DragFloat((const char*)u8"基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode((const char*)u8"カラーフィルター"))
+		{
+			ImGui::Checkbox((const char*)u8"有効##ColorFilter", &enableColorFilter);
+			ImGui::SliderFloat(
+				(const char*)u8"色相シフト", &colorFilterHueShift, 0.0f, 360.0f, "%.1f deg");
+			ImGui::SliderFloat(
+				(const char*)u8"彩度", &colorFilterSaturation, 0.0f, 2.0f);
+			ImGui::SliderFloat(
+				(const char*)u8"明るさ", &colorFilterBrightness, 0.0f, 2.0f);
+			if (ImGui::Button((const char*)u8"初期値に戻す##ColorFilter"))
+			{
+				colorFilterHueShift = 0.0f;
+				colorFilterSaturation = 1.0f;
+				colorFilterBrightness = 1.0f;
+			}
 			ImGui::TreePop();
 		}
 

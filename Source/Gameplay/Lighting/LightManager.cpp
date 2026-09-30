@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Lighting/LightManager.h"
+﻿// LightManager.cpp
+#include "Gameplay/Lighting/LightManager.h"
 
 #include <algorithm>
 #include "Gameplay/Lighting/CbLightData.h"
@@ -9,11 +10,16 @@
 
 void LightManager::Update()
 {
+	std::erase_if(attachedPointLights, [](const auto& light) { return light.expired(); });
 	directionalLight.Update();
 
 	for (PointLight& pointLight : pointLights)
 	{
 		if (!pointLight.IsPendingDestroy()) pointLight.Update();
+	}
+	for (const auto& weakLight : attachedPointLights)
+	{
+		if (const auto light = weakLight.lock(); light && !light->IsPendingDestroy()) light->Update();
 	}
 
 	for (SpotLight& spotLight : spotLights)
@@ -34,6 +40,10 @@ void LightManager::Render(const RenderContext& rc)
 	for (PointLight& pointLight : pointLights)
 	{
 		if (!pointLight.IsPendingDestroy()) pointLight.Render(rc);
+	}
+	for (const auto& weakLight : attachedPointLights)
+	{
+		if (const auto light = weakLight.lock(); light && !light->IsPendingDestroy()) light->Render(rc);
 	}
 	for (SpotLight& spotLight : spotLights)
 	{
@@ -59,6 +69,16 @@ void LightManager::DrawDebug() const
 		color.w = 1.0f;
 		renderer->DrawSphere(pointLight.transform.position, 0.15f, color);
 		renderer->DrawSphere(pointLight.transform.position, pointLight.GetRange(), color);
+	}
+	for (const auto& weakLight : attachedPointLights)
+	{
+		const auto pointLight = weakLight.lock();
+		if (!pointLight || !pointLight->IsActive() || pointLight->IsPendingDestroy()) continue;
+
+		Color color = pointLight->GetColor();
+		color.w = 1.0f;
+		renderer->DrawSphere(pointLight->transform.position, 0.15f, color);
+		renderer->DrawSphere(pointLight->transform.position, pointLight->GetRange(), color);
 	}
 
 	for (const AreaLight& areaLight : areaLights)
@@ -109,6 +129,9 @@ void LightManager::DrawGUI()
 	{
 		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(pointLights),
 			CbLightData::MaxPointLights);
+		const int attachedCount = static_cast<int>(std::count_if(attachedPointLights.begin(),
+			attachedPointLights.end(), [](const auto& light) { return !light.expired(); }));
+		if (attachedCount > 0) ImGui::Text((const char*)u8"VMDL付属: %d", attachedCount);
 
 		for (int i = 0; i < static_cast<int>(pointLights.size()); ++i)
 		{
@@ -226,6 +249,20 @@ CbLightData LightManager::ConvertToCb() const
 
 		cbPointLight.range = pointLight.GetRange();
 
+		++cbLightData.pointLightCount;
+	}
+	for (const auto& weakLight : attachedPointLights)
+	{
+		const auto pointLight = weakLight.lock();
+		if (!pointLight || !pointLight->IsActive() || pointLight->IsPendingDestroy()) continue;
+		if (cbLightData.pointLightCount >= CbLightData::MaxPointLights) break;
+
+		CbLightData::CbPointLight& cbPointLight =
+			cbLightData.pointLights[cbLightData.pointLightCount];
+		cbPointLight.position = pointLight->transform.position;
+		cbPointLight.color = pointLight->GetColor();
+		cbPointLight.color.w = pointLight->GetIntensity();
+		cbPointLight.range = pointLight->GetRange();
 		++cbLightData.pointLightCount;
 	}
 
