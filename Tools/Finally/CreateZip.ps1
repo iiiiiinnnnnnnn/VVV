@@ -30,8 +30,16 @@ if (Test-Path -LiteralPath $destinationPath) {
 $archive = [System.IO.Compression.ZipFile]::OpenRead($destinationPath)
 try {
     $entryPaths = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-    if ($entryPaths -notcontains 'Game.exe') { throw 'Game.exe is missing from the zip.' }
-    if ($entryPaths -notcontains 'Resources/cached.ini') { throw 'Resources/cached.ini is missing from the zip.' }
+    $gameExecutablePath = 'Game.exe'
+    $resourceManifestPath = 'Resources/ResourceManifest.ini'
+
+    if ($entryPaths -notcontains $gameExecutablePath) {
+        throw "$gameExecutablePath is missing from the zip."
+    }
+
+    if ($entryPaths -notcontains $resourceManifestPath) {
+        throw "$resourceManifestPath is missing from the zip."
+    }
     $entryCount = $archive.Entries.Count
 }
 finally {

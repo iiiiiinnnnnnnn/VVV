@@ -1,6 +1,7 @@
 #include "Resource/VSTG.h"
 #include "Resource/ResourceManager.h"
 
+#include <array>
 #include <fstream>
 
 #include "Gameplay/Lighting/LightManager.h"
@@ -115,6 +116,43 @@ bool VSTG::Load(const std::filesystem::path& path)
 		error = "Invalid VSTG header.";
 		return false;
 	}
+
+	const uint64_t fileSize = static_cast<uint64_t>(bytes->size());
+	const uint64_t headerSize =
+		sizeof(magic) + sizeof(version) +
+		sizeof(lightingSize) + sizeof(stageSize) + sizeof(terrainSize) +
+		sizeof(terrainSettingsSize) + sizeof(navMeshSettingsSize);
+	if (fileSize < headerSize)
+	{
+		error = "VSTG file is smaller than its header.";
+		return false;
+	}
+
+	const uint64_t payloadSize = fileSize - headerSize;
+	const std::array<uint64_t, 5> sectionSizes = {
+		lightingSize,
+		stageSize,
+		terrainSize,
+		terrainSettingsSize,
+		navMeshSettingsSize,
+	};
+	uint64_t expectedPayloadSize = 0;
+	for (const uint64_t sectionSize : sectionSizes)
+	{
+		const uint64_t remainingSize = payloadSize - expectedPayloadSize;
+		if (sectionSize > remainingSize)
+		{
+			error = "VSTG section sizes exceed file size.";
+			return false;
+		}
+		expectedPayloadSize += sectionSize;
+	}
+	if (expectedPayloadSize != payloadSize)
+	{
+		error = "VSTG file size does not match section sizes.";
+		return false;
+	}
+
 	lightingJson.resize(static_cast<size_t>(lightingSize));
 	stageJson.resize(static_cast<size_t>(stageSize));
 	terrainDds.resize(static_cast<size_t>(terrainSize));

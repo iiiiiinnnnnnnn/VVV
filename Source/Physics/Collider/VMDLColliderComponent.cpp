@@ -217,6 +217,11 @@ void VMDLColliderComponent::OnEnabled()
 void VMDLColliderComponent::OnDisabled()
 {
 	sweepReady = false;
+	CollisionEventCallback& eventCallback =
+		PhysicsManager::Instance().GetSceneContext().GetEventCallback();
+	eventCallback.RemoveCollider(this);
+	CCHitReport::RemoveColliderFromAll(this);
+
 	if (!ghostActor)
 	{
 		return;

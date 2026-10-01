@@ -9,7 +9,7 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Rendering/Core/Graphics.h"
 #include "imgui.h"
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/ResourceManager.h"
 #endif
 
@@ -157,7 +157,7 @@ bool SceneManager::RequestLoadScene(
 		return false;
 	}
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 次のシーンを作る前に変更分だけ更新
 	auto& resources = ResourceManager::Instance();
 	if (!resources.RefreshResources())

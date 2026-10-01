@@ -74,14 +74,6 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	static std::string editorIniPath;
 	const std::filesystem::path destination =
 		std::filesystem::current_path() / "Editor.ini";
-	const std::filesystem::path legacy =
-		std::filesystem::current_path() / "Resources" / "Editor.ini";
-	if (!std::filesystem::exists(destination) && std::filesystem::exists(legacy))
-	{
-		std::error_code error;
-		std::filesystem::copy_file(
-			legacy, destination, std::filesystem::copy_options::overwrite_existing, error);
-	}
 	editorIniPath = destination.string();
 	io.IniFilename = editorIniPath.c_str();
 	RegisterVmdlEditorSettingsHandler();

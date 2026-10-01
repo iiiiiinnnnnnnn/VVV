@@ -41,6 +41,7 @@ public:
 
 	// 描画処理
 	void Render(const Matrix& view, const Matrix& projection);
+	static Matrix CreateBillboardTransform(const Matrix& source, const Matrix& view);
 
 	// 再生元とは独立したObjectとしてエフェクトを再生
 	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform);

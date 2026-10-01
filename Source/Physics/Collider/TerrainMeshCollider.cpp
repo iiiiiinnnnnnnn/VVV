@@ -361,7 +361,7 @@ bool TerrainMeshCollider::SaveCachedMesh(
     const std::vector<Vector3>& vertices,
     const std::vector<uint32_t>& indices)
 {
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && !defined(VVV_DEVELOPMENT)
     return false;
 #else
     Terrain* terrain = owner->GetComponent<Terrain>();

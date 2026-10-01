@@ -1,6 +1,6 @@
 ﻿// Texture.cpp
 #include "Resource/Texture.h"
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
 #endif
 
@@ -212,7 +212,7 @@ HRESULT MipmapTexture::LoadTexture(
 		const std::filesystem::path ddsPath = GetDDSCachePath(sourcePath);
 		if (!std::filesystem::exists(ddsPath))
 		{
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && !defined(VVV_DEVELOPMENT)
 			return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
 #else
 			HRESULT hr = CreateDDSCache(sourcePath, ddsPath);
@@ -254,7 +254,7 @@ std::filesystem::path MipmapTexture::GetDDSCachePath(const std::filesystem::path
 
 HRESULT MipmapTexture::CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath)
 {
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	return CacheBuilder::CreateDDSCache(sourcePath, ddsPath);
 #else
 	return E_NOTIMPL;

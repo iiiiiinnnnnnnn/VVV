@@ -522,9 +522,6 @@ std::vector<std::string> CacheBuilder::Build(const fs::path& sourceRoot, const f
 		++removed;
 	}
 	WriteText(manifestPath, ManifestText(next));
-	// 統合前の実行用設定を整理し、実行時はManifestだけを使う
-	const auto legacySettings = Destination(output, "ResourceSettings.ini");
-	if (fs::is_regular_file(legacySettings)) fs::remove(legacySettings);
 	std::cout << "CacheBuilder: " << assets.size() << " resources, " << converted << " converted, "
 		<< copied << " copied, " << skipped << " unchanged, " << removed << " removed\n";
 	return changed;

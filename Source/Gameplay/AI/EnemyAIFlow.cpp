@@ -511,32 +511,6 @@ bool EnemyAIFlow::LoadFlowExtension(const std::string& path)
                 "LostRange",
                 searchRange * 1.5f));
         SetBool("IsTargetInLostRange", false, true);
-
-        // Migrate old loss conditions while keeping acquisition conditions unchanged.
-        for (AIFlow::State& state : GetStates())
-        {
-            for (AIFlow::Transition& transition :
-                state.transitions)
-            {
-                for (AIFlow::Condition& condition :
-                    transition.conditions)
-                {
-                    if (condition.parameterName !=
-                        "IsTargetInSearchRange")
-                    {
-                        continue;
-                    }
-                    if (condition.compare !=
-                        CompareOp::IsFalse)
-                    {
-                        continue;
-                    }
-
-                    condition.parameterName =
-                        "IsTargetInLostRange";
-                }
-            }
-        }
         return true;
     }
     catch (...)

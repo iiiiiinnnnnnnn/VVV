@@ -241,8 +241,14 @@ void Player::TakeDamage(const DamageData& damageData)
 			: nullptr;
 		if (IsEnemyAttackActive(attacker, damageData.hitColliderSelf))
 		{
-			PlayJustDodgeFeedback();
-			if (!justDodgeSkillActive) TriggerJustDodge();
+			if (justDodgeSkillActive)
+			{
+				PlayJustDodgeFeedback();
+			}
+			else
+			{
+				TriggerJustDodge();
+			}
 		}
 		return;
 	}
@@ -251,6 +257,7 @@ void Player::TakeDamage(const DamageData& damageData)
 
 void Player::TriggerJustDodge()
 {
+	PlayJustDodgeFeedback();
 	if (justDodgeTriggered) return;
 	justDodgeTriggered = true;
 	if (afterimage) afterimage->Play();
@@ -268,8 +275,12 @@ void Player::PlayJustDodgeFeedback()
 
 	renderer->PlayParticleEmitter("JUSTDODGE");
 	if (justDodgeSoundPlayed) return;
-	justDodgeSoundPlayed = true;
-	renderer->PlaySoundSource("JUSTDODGE");
+
+	const bool soundStarted = renderer->PlaySoundSource("JUSTDODGE");
+	if (soundStarted)
+	{
+		justDodgeSoundPlayed = true;
+	}
 }
 
 bool Player::IsEnemyAttackActive(

@@ -129,7 +129,7 @@ bool TestPlayScene::ShouldUpdateWorld() const
 
 void TestPlayScene::OnUpdate()
 {
-#ifdef _DEBUG // ちょうデバッグ
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT) // ちょうデバッグ
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
 		currentStage->GetActorManager().Register(std::make_shared<Deer>(

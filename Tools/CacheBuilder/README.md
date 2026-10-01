@@ -1,23 +1,22 @@
 ﻿# CacheBuilder
 
 生成処理は `Source/Resource/CacheBuilder.h/.cpp` に共通化しています
-同じ `Game.sln` の開発ツールからDebug・Releaseのビルド後に呼び出します
+同じ `Game.sln` の開発ツールからDebug・Development・Releaseのビルド後に呼び出します
 
-元素材はルートの `Resources`、出力は `Bin/Debug/Resources` または `Bin/Release/Resources` です
+元素材はルートの `Resources`、出力は `Bin/Debug/Resources`、`Bin/Development/Resources`、`Bin/Release/Resources` です
 ルートの `Resources/ResourceSettings.ini` は編集する除外・先読み設定です。
 ビルド時に先読み設定を `Bin/<構成>/Resources/ResourceManifest.ini` に含めます。
 このManifestは、その出力先に生成済みのファイル・更新日時・先読み設定の一覧です。
 一覧はルートからコピーするものではなく、出力先ごとに生成します。
 ゲームはBin側のManifestだけを読み込み、Bin単独で配布できます。
 除外設定はビルド時に適用し、除外対象はManifestにも含めません。
-旧Bin側の `ResourceSettings.ini` はビルド成功時に削除します。直下Resourcesの設定は残ります。
 ゲーム起動時は生成せず、生成済みの一覧と先読み対象を読み込みます
-Debugではシーン移動を受け付ける前にも更新時刻を確認します
+DebugとDevelopmentではシーン移動を受け付ける前にも更新時刻を確認します
 変更分を生成して古いメモリキャッシュを破棄した後、次のシーンを読み込みます
 未変更なら再生成せず、更新失敗時は現在のシーンに留まります
 Release実行時は配布済みのキャッシュを読み込み、生成は行いません
 
-Debugの起動画面にある `CACHE MANAGER` で候補一覧を検索し、除外とプレを切り替えます
+DebugとDevelopmentの起動画面にある `CACHE MANAGER` で候補一覧を検索し、除外とプレを切り替えます
 チェックは元素材側の `Resources/ResourceSettings.ini` に自動保存され、ビルド時にも使われます
 戻る、キャッシュに反映、次のシーン移動のいずれかで変更を反映します
 除外は先読みより優先し、元素材を残して生成済みファイルとメモリキャッシュを外します
