@@ -82,10 +82,22 @@ TestPlayScene::TestPlayScene()
 
 #ifndef _RELEASE // ちょうデバッグ
 	developText = std::make_shared<TextWidget>("dev",
-		(const char*)u8"これはデバッグ/デベロップビルドです\r\nF1 : カーソルをロック/解除\r\nF2 : "
-					 u8"ゲーム内エディタ表示/非表示\r\nF3 : デバッグ表示/非表示\r\nF4 : "
-					 u8"ゲーム時間を停止\r\nF5 : ゲーム時間を再開\r\nF6 : ImGuiBindを表示/非表示",
-		36.0f, "Resources/Font/NotoSansJP.ttf");
+		(const char*)u8"これはデバッグ/デベロップビルドです\r\n"
+					 u8"F1 : カーソルをロック/解除\r\n"
+					 u8"F2 : ゲーム内エディタ表示/非表示\r\n"
+					 u8"F3 : デバッグ表示/非表示\r\n"
+					 u8"F4 : ゲーム時間を停止(右クリック+WASDQEで飛び回れます)\r\n"
+					 u8"F5 : ゲーム時間を再開\r\n"
+					 u8"F6 : ImGuiBindを表示/非表示\r\n"
+					 u8"\r\n"
+					 u8"[WASD] 移動\r\n"
+					 u8"[スペース] 回避(+パリィ)\r\n"
+					 u8"[LSHIFT]ダッシュ\r\n"
+					 u8"[LCTRL] しゃがみ\r\n"
+					 u8"[マウス] 視点操作\r\n"
+					 u8"[左クリック] 攻撃(+連続攻撃)\r\n"
+					 u8"[右クリック] キャラにカメラを合わせる",
+		28.0f, "Resources/Font/NotoSansJP.ttf");
 	widgetManager.Register(developText);
 #endif
 }
@@ -136,7 +148,9 @@ bool TestPlayScene::ShouldUpdateWorld() const
 void TestPlayScene::OnUpdate()
 {
 #ifndef _RELEASE // ちょうデバッグ
-	if (developText) developText->GetRectTransform()->position = (ImGuiBind)Vector2(1450.0f, 870.0f);
+	if (developText) developText->GetRectTransform()->position = 
+		(ImGuiBind)Vector2(1380.0f, 800.0f);
+
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
 		currentStage->GetActorManager().Register(std::make_shared<Deer>(
