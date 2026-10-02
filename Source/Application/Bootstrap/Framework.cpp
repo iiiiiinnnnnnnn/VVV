@@ -11,6 +11,7 @@
 #include "Audio/SoundSystem.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Renderer/ImGuiBinding.h"
+#include "Animation/Animator.h"
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -102,12 +103,13 @@ void Framework::Update(float elapsedTime)
 	}
 #endif
 
-	// 物理シミュレーション
-	PhysicsManager::Instance().GetSceneContext().Simulate();
-
-	// 最新の位置で3D音声を更新
-	SoundSystem::Instance().Update();
-	if (!SceneManager::Instance().IsLoading()) EffectManager::Instance().Update();
+	// ロード中は旧シーンの処理を動かさず、ロードスレッドによる生成と競合させない。
+	if (!SceneManager::Instance().IsLoading())
+	{
+		PhysicsManager::Instance().GetSceneContext().Simulate();
+		SoundSystem::Instance().Update();
+		EffectManager::Instance().Update();
+	}
 }
 
 // 描画処理
@@ -125,6 +127,8 @@ void Framework::Render(float elapsedTime)
 	// シーン通常描画＆GUI描画処理
 	// GUI描画もSceneに任せちゃうお(rc拾えるようにするため)
 	SceneManager::Instance().Render();
+	// AnimatorはInspectorの開閉に依存しない独立したエディター。
+	Animator::DrawOpenEditor();
 
 	// IMGUI描画
 	ImGuiRenderer::Render(dc);

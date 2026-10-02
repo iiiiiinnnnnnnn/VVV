@@ -1,5 +1,7 @@
+// PhysicsComponent.h
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -14,16 +16,20 @@ public:
 	PhysicsComponent(Object* owner, LayerId layerId, std::string name = {})
 		: Component(owner), layerId(layerId), name(std::move(name))
 	{
+		std::lock_guard<std::mutex> lock(liveComponentsMutex);
 		liveComponents.insert(this);
 	}
 	~PhysicsComponent() override
 	{
+		std::lock_guard<std::mutex> lock(liveComponentsMutex);
 		liveComponents.erase(this);
 	}
 
 	static bool IsLive(const PhysicsComponent* collider)
 	{
-		return collider && liveComponents.contains(collider);
+		if (!collider) return false;
+		std::lock_guard<std::mutex> lock(liveComponentsMutex);
+		return liveComponents.contains(collider);
 	}
 
 	LayerId GetLayerId() const { return layerId; }
@@ -43,5 +49,6 @@ protected:
 	std::string name;
 
 private:
+	inline static std::mutex liveComponentsMutex;
 	inline static std::unordered_set<const PhysicsComponent*> liveComponents;
 };

@@ -82,6 +82,7 @@ Animator::Animator(Object* owner, bool unscaledTime)
 
 Animator::~Animator()
 {
+	if (activeEditor == this) activeEditor = nullptr;
     if (editorContext) ax::NodeEditor::DestroyEditor(editorContext);
 }
 
@@ -377,7 +378,6 @@ void Animator::DrawGUI()
     if (ImGui::Button("Open Animator"))
         OpenEditor();
 
-    DrawEditor(&editorOpen);
 }
 
 void Animator::_print() const
@@ -393,6 +393,8 @@ void Animator::_print() const
 
 void Animator::OpenEditor()
 {
+	if (activeEditor && activeEditor != this) activeEditor->editorOpen = false;
+	activeEditor = this;
     if (!editorContext)
     {
         ax::NodeEditor::Config config;
@@ -401,6 +403,13 @@ void Animator::OpenEditor()
         editorContext = ax::NodeEditor::CreateEditor(&config);
     }
     editorOpen = true;
+}
+
+void Animator::DrawOpenEditor()
+{
+	if (!activeEditor) return;
+	activeEditor->DrawEditor(&activeEditor->editorOpen);
+	if (!activeEditor->editorOpen) activeEditor = nullptr;
 }
 
 void Animator::UpdateLayer(

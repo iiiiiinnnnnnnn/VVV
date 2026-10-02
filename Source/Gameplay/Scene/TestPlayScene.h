@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Effect/ParticleSystem.h"
+#include "UI/TextWidget.h"
 
 class LocalPlayer;
 class BossBar;
@@ -28,6 +29,9 @@ private:
 	void ReturnToTitle();
 	bool ShouldUpdateWorld() const override;
 
+#ifndef _RELEASE // ちょうデバッグ
+	std::shared_ptr<TextWidget> developText;
+#endif
 	std::shared_ptr<LocalPlayer> player;
 	std::shared_ptr<HUDWidget> gameHud;
 	std::shared_ptr<WidgetGroup> playerHudGroup;

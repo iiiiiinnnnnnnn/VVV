@@ -41,10 +41,7 @@ TestPlayScene::TestPlayScene()
 
 	actorManager.Register(player);
 	camera->SetPerspectiveFov(
-		DirectX::XMConvertToRadians(45),
-		screenWidth / screenHeight,
-		0.1f,
-		1000.0f);
+		DirectX::XMConvertToRadians(45), screenWidth / screenHeight, 0.1f, 1000.0f);
 	camera->SetLookAt({0, 3, 5}, {0, 0, 0}, {0, 1, 0});
 
 	thirdPersonCamera = cameraActor->AddComponent<ThirdPersonCameraController>(player.get());
@@ -78,11 +75,19 @@ TestPlayScene::TestPlayScene()
 
 	// ポーズ画面の内部状態とWidgetはPauseMenu自身が管理する
 	auto ownedPauseMenu = std::make_shared<PauseMenu>(
-		thirdPersonCamera,
-		[this](bool paused) { OnPauseChanged(paused); },
+		thirdPersonCamera, [this](bool paused) { OnPauseChanged(paused); },
 		[this] { ReturnToTitle(); });
 	pauseMenu = ownedPauseMenu.get();
 	widgetManager.Register(std::move(ownedPauseMenu));
+
+#ifndef _RELEASE // ちょうデバッグ
+	developText = std::make_shared<TextWidget>("dev",
+		(const char*)u8"これはデバッグ/デベロップビルドです\r\nF1 : カーソルをロック/解除\r\nF2 : "
+					 u8"ゲーム内エディタ表示/非表示\r\nF3 : デバッグ表示/非表示\r\nF4 : "
+					 u8"ゲーム時間を停止\r\nF5 : ゲーム時間を再開\r\nF6 : ImGuiBindを表示/非表示",
+		36.0f, "Resources/Font/NotoSansJP.ttf");
+	widgetManager.Register(developText);
+#endif
 }
 
 TestPlayScene::~TestPlayScene()
@@ -131,6 +136,7 @@ bool TestPlayScene::ShouldUpdateWorld() const
 void TestPlayScene::OnUpdate()
 {
 #ifndef _RELEASE // ちょうデバッグ
+	if (developText) developText->GetRectTransform()->position = (ImGuiBind)Vector2(1450.0f, 870.0f);
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
 		currentStage->GetActorManager().Register(std::make_shared<Deer>(

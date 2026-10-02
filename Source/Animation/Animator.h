@@ -1,4 +1,5 @@
-﻿#pragma once
+// Animator.h
+#pragma once
 #include <functional>
 #include <memory>
 #include <string>
@@ -143,6 +144,7 @@ public:
     };
 
     void OpenEditor();
+	static void DrawOpenEditor();
 
     int GetLayerCount() const { return (int)layers.size(); }
 
@@ -329,6 +331,7 @@ private:
     std::string m_lastPath;
     ax::NodeEditor::EditorContext* editorContext = nullptr;
     bool editorOpen = false;
+	inline static Animator* activeEditor = nullptr;
     int currentEditorLayer = 0;
     std::string currentAnimatorPath;
     static constexpr int ANY_STATE_INDEX = 999;

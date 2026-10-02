@@ -593,7 +593,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			maximumPanelTotal - gameEditorLeftWidth);
 
 		constexpr ImGuiWindowFlags panelWindowFlags = ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoSavedSettings;
 
 		// オブジェクト系統デバッグ

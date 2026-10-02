@@ -156,6 +156,7 @@
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\ColorWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -288,9 +289,6 @@
       <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
-      <Filter>UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UI\ColorWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\Button.cpp">
@@ -553,6 +551,7 @@
     <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\ColorWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
@@ -670,9 +669,6 @@
       <Filter>Gameplay\Stage\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\SpriteWidget.h">
-      <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\ColorWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\Button.h">
