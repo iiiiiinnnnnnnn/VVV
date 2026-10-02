@@ -95,7 +95,7 @@ namespace Game
 
 		// Bloom Blur
 		bool enableBloomBlur = true;
-		float bloomBlurSize = 2.5f;
+		float bloomBlurSize = 7.0f;
 		float bloomBlurBrightness = 1.0f;
 
 		// Dual Effect
@@ -117,10 +117,10 @@ namespace Game
 		float paperWhiteNits = 200.0f;
 
 		// Color Filter
-		bool enableColorFilter = false;
+		bool enableColorFilter = true;
 		float colorFilterHueShift = 0.0f;
-		float colorFilterSaturation = 1.0f;
-		float colorFilterBrightness = 1.0f;
+		float colorFilterSaturation = 1.5f;
+		float colorFilterBrightness = 1.5f;
 		struct CbColorFilter
 		{
 			float hueShift;

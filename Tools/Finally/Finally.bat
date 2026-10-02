@@ -10,12 +10,20 @@ set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
 set RELEASE_TAG=vvv-latest
 set ZIP_NAME=VVV.zip
 set OUT_DIR=Bin\Development
+set CACHE_BUILDER=Bin\Tools\Development\CacheBuilder.exe
 set DIST_DIR=dist
 
 echo [1/5] Checking development build...
 
 if not exist "%OUT_DIR%\Game.exe" (
     echo Game.exe が見つかりません。
+    echo 先に Visual Studio で Development x64 ビルドしてください。
+    pause
+    exit /b 1
+)
+
+if not exist "%CACHE_BUILDER%" (
+    echo CacheBuilder.exe が見つかりません。
     echo 先に Visual Studio で Development x64 ビルドしてください。
     pause
     exit /b 1
@@ -31,7 +39,7 @@ if errorlevel 1 (
 
 echo [2/5] Building development Resources...
 
-start "" /wait "%OUT_DIR%\Game.exe" 1
+"%CACHE_BUILDER%" --source "%ROOT_DIR%\Resources" --output "%ROOT_DIR%\%OUT_DIR%\Resources"
 
 if errorlevel 1 (
     echo Resourcesの生成に失敗しました。

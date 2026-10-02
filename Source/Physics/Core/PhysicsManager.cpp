@@ -429,7 +429,6 @@ void PhysicsSceneContext::ProcessTriggerSweeps()
 			const PxRigidActor* actor, PxHitFlags&) override
 		{
 			if (!shape || actor == ignoreActor) return PxQueryHitType::eNONE;
-			if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) return PxQueryHitType::eNONE;
 
 			PhysicsComponent* other = static_cast<PhysicsComponent*>(shape->userData);
 			if (!PhysicsComponent::IsLive(other) || !other->IsActive())

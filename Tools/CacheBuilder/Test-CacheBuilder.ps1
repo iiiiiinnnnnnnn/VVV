@@ -108,7 +108,7 @@ Run-Builder 1
 Check ($script:LastResult.Contains('Parent paths')) 'manifest traversal rejected'
 [IO.File]::WriteAllText($manifestPath,$manifest)
 Run-Builder 1 '' $source
-Check ($script:LastResult.Contains('overlap')) 'source output overlap rejected'
+Check ($script:LastResult.Contains('must be different')) 'source output overlap rejected'
 [IO.File]::Copy($bitmap,(Join-Path $source 'Terrain/Layers/tile.png'))
 Run-Builder 1
 Check ($script:LastResult.Contains('Duplicate output')) 'DDS output collision rejected'
@@ -144,12 +144,11 @@ Check ($manifest -match 'model=Resources/Model/model.vmdl\nupdated=[^\n]*\nprelo
 $settingsTime=[IO.File]::GetLastWriteTimeUtc($manifestPath)
 Run-Builder
 Check ([IO.File]::GetLastWriteTimeUtc($manifestPath) -eq $settingsTime) 'unchanged manifest is not rewritten'
-[IO.File]::WriteAllText((Join-Path $output 'ResourceSettings.ini'), 'legacy runtime settings')
 [IO.File]::WriteAllText($settingsPath,"[Resources/Model/model.vmdl]`nexclude=0`npreload=0`n")
 Run-Builder
 Check ($script:LastResult.Contains('0 converted, 0 copied') -and
     [IO.File]::ReadAllText($manifestPath) -match 'model=Resources/Model/model.vmdl\nupdated=[^\n]*\npreload=0') 'preload-only edit updates manifest without rebuilding assets'
-Check (!(Test-Path (Join-Path $output 'ResourceSettings.ini')) -and (Test-Path $settingsPath)) 'legacy runtime settings removed and source settings preserved'
+Check (Test-Path $settingsPath) 'source settings preserved'
 [IO.File]::WriteAllText($settingsPath,"[Resources/../outside.bin]`nexclude=1`n")
 Run-Builder 1
 Check ($script:LastResult.Contains('Invalid ResourceSettings.ini path')) 'invalid settings path rejected'

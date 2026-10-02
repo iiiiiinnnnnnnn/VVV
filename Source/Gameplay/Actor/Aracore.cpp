@@ -57,7 +57,12 @@ Aracore::Aracore(Player* player_init,
 
         // キャラクターコントローラー
         characterController = AddComponent<CharacterController>(
-            Layers::Get("Foot"), 3.0f, 0.01f);
+            Layers::Get("Enemy"), 3.0f, 0.01f);
+
+        // 移動の衝突対象は元のFootレイヤーと同じ範囲に保つ
+        characterController->SetLayerIgnored(Layers::Get("Default"), true);
+        characterController->SetLayerIgnored(Layers::Get("Player"), true);
+        characterController->SetLayerIgnored(Layers::Get("Enemy"), true);
         characterController->SetPushable(false);
         characterController->SetStepOffset(0.0f);
         characterController->SetConstrainedClimbing(true);

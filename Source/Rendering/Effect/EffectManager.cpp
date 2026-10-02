@@ -12,25 +12,6 @@
 
 namespace
 {
-Matrix CreateBillboardTransform(const Matrix& source, const Matrix& view)
-{
-	Vector3 scale;
-	Quaternion rotation;
-	Vector3 position;
-	Matrix matrix = source;
-	if (!matrix.Matrix::Decompose(scale, rotation, position)) return source;
-
-	const Matrix camera = view.Invert();
-	const Vector3 right = Vector3(camera._11, camera._12, camera._13) * scale.x;
-	const Vector3 up = Vector3(camera._21, camera._22, camera._23) * scale.y;
-	const Vector3 front = Vector3(camera._31, camera._32, camera._33) * scale.z;
-	return Matrix(
-		right.x, right.y, right.z, 0.0f,
-		up.x, up.y, up.z, 0.0f,
-		front.x, front.y, front.z, 0.0f,
-		position.x, position.y, position.z, 1.0f);
-}
-
 void SetBaseMatrix(const Effekseer::ManagerRef& manager, Effekseer::Handle handle,
 	const Matrix& transform)
 {
@@ -181,6 +162,10 @@ void EffectManager::RegisterPlayback(
 	const Effect* effect, Effekseer::Handle handle, bool billboard)
 {
 	if (!effect || handle < 0) return;
+	std::erase_if(effectPlaybacks, [handle](const EffectPlayback& playback)
+	{
+		return playback.handle == handle;
+	});
 	effectPlaybacks.push_back({effect, handle, Matrix::Identity, billboard});
 }
 
@@ -194,6 +179,31 @@ void EffectManager::SetPlaybackTransform(
 		SetBaseMatrix(effekseerManager, handle, transform);
 		return;
 	}
+}
+
+Matrix EffectManager::CreateBillboardTransform(const Matrix& source, const Matrix& view)
+{
+	const Vector3 sourceRight(source._11, source._12, source._13);
+	const Vector3 sourceUp(source._21, source._22, source._23);
+	const Vector3 sourceFront(source._31, source._32, source._33);
+	const float scaleX = sourceRight.Length();
+	const float scaleY = sourceUp.Length();
+	const float scaleZ = sourceFront.Length();
+	const Vector3 position(source._41, source._42, source._43);
+
+	// 元の回転を捨ててカメラの各軸へ置き換える
+	const Matrix cameraTransform = view.Invert();
+	const Vector3 right =
+		Vector3(cameraTransform._11, cameraTransform._12, cameraTransform._13) * scaleX;
+	const Vector3 up =
+		Vector3(cameraTransform._21, cameraTransform._22, cameraTransform._23) * scaleY;
+	const Vector3 front =
+		Vector3(cameraTransform._31, cameraTransform._32, cameraTransform._33) * scaleZ;
+	return Matrix(
+		right.x, right.y, right.z, 0.0f,
+		up.x, up.y, up.z, 0.0f,
+		front.x, front.y, front.z, 0.0f,
+		position.x, position.y, position.z, 1.0f);
 }
 
 void EffectManager::SetPlaybackPosition(
@@ -264,7 +274,7 @@ void EffectManager::Render(const Matrix& view, const Matrix& projection)
 	for (const EffectPlayback& playback : effectPlaybacks)
 		if (playback.billboard)
 			SetBaseMatrix(effekseerManager, playback.handle,
-				CreateBillboardTransform(playback.transform, view));
+				EffectManager::CreateBillboardTransform(playback.transform, view));
 
 	// Effekseer描画開始
 	effekseerRenderer->BeginRendering();

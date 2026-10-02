@@ -5,24 +5,6 @@
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Effect/EffectManager.h"
 
-Matrix CreateBillboardTransform(const Matrix& source, const Camera& camera)
-{
-	Vector3 scale;
-	Quaternion rotation;
-	Vector3 position;
-	Matrix matrix = source;
-	if (!matrix.Matrix::Decompose(scale, rotation, position)) return source;
-
-	const Vector3 right = camera.GetRight() * scale.x;
-	const Vector3 up = camera.GetUp() * scale.y;
-	const Vector3 front = camera.GetFront() * scale.z;
-	return Matrix(
-		right.x, right.y, right.z, 0.0f,
-		up.x, up.y, up.z, 0.0f,
-		front.x, front.y, front.z, 0.0f,
-		position.x, position.y, position.z, 1.0f);
-}
-
 VMDLParticleEmitterComponent::VMDLParticleEmitterComponent(Object* owner, VMDLModel* model,
 	const VMDLModel::VmdlParticleEmitter& settings, bool initiallyEmitting)
 	: Component(owner), model(model), settings(settings)
@@ -108,7 +90,9 @@ void VMDLParticleEmitterComponent::RenderParticles(const RenderContext& rc)
 	for (const Playback& playback : playbacks)
 	{
 		const Matrix& transform = settings.modelDerived ? modelTransform : playback.initialTransform;
-		effect->SetTransform(playback.handle, CreateBillboardTransform(transform, *rc.camera));
+		const Matrix billboardTransform = EffectManager::CreateBillboardTransform(
+			transform, rc.camera->GetView());
+		effect->SetTransform(playback.handle, billboardTransform);
 	}
 }
 
