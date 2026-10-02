@@ -19,6 +19,7 @@
 #include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Actor/Crystal.h"
 #include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Renderer/ImGuiBinding.h"
 
 TestPlayScene::TestPlayScene()
 {
@@ -129,11 +130,12 @@ bool TestPlayScene::ShouldUpdateWorld() const
 
 void TestPlayScene::OnUpdate()
 {
-#ifdef _DEBUG // ちょうデバッグ
+	Vector3 spawn = ((ImGuiBind)Vector3(0, 3.0f, 0));
+#ifndef _RELEASE // ちょうデバッグ
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
 		currentStage->GetActorManager().Register(std::make_shared<Deer>(
-			Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)))
+			Transform::FromPosition(player->transform.position + spawn))
 		);
 	}
 	if (ImGui::IsKeyPressed(ImGuiKey_2))

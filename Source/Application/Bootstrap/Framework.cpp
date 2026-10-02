@@ -10,6 +10,7 @@
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
 #include "Rendering/Effect/EffectManager.h"
+#include "Rendering/Renderer/ImGuiBinding.h"
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -73,7 +74,7 @@ void Framework::Update(float elapsedTime)
 
 	// 一時停止してなかったら時間を進める
 	Game::Time::deltaTime = Game::Time::paused ? 0.0f : elapsedTime * Game::Time::scale;
-	
+
 	Game::Time::unscaledDeltaTime = elapsedTime;
 	TimeScaleController::Update();
 
@@ -89,13 +90,24 @@ void Framework::Update(float elapsedTime)
 	// シーン更新処理
 	SceneManager::Instance().Update();
 
+// ImGuiBindingMemory
+#ifndef _RELEASE
+	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F6)
+	{
+		showImGuiBindingMemory = !showImGuiBindingMemory;
+	}
+	if (showImGuiBindingMemory)
+	{
+		ImGuiBind::Draw();
+	}
+#endif
+
 	// 物理シミュレーション
 	PhysicsManager::Instance().GetSceneContext().Simulate();
 
 	// 最新の位置で3D音声を更新
 	SoundSystem::Instance().Update();
-	if (!SceneManager::Instance().IsLoading())
-		EffectManager::Instance().Update();
+	if (!SceneManager::Instance().IsLoading()) EffectManager::Instance().Update();
 }
 
 // 描画処理

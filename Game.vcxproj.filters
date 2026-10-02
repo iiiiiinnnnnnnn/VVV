@@ -547,6 +547,9 @@
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\VMDLParticleEmitterComponent.h" />
     <ClInclude Include="Source\UI\BossBar.h" />
+    <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">

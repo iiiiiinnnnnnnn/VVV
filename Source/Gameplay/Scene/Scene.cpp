@@ -1,4 +1,4 @@
-﻿#include "Gameplay/Scene/Scene.h"
+#include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Lighting/Light.h"
 #include "Rendering/Component/VMDLModelComponent.h"
@@ -97,6 +97,7 @@ void Scene::Update()
 	ApplyMouseCursorMode();
 
 	// ステージを持たないツールシーンでもF3を受け取れるよう、早期returnより前で処理する
+	// F3でデバッグ表示切り替え
 	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
 	{
 		ToggleDebugDisplay();
@@ -115,25 +116,35 @@ void Scene::Update()
 	if (UsesGameDebugGUI())
 	{
 		GamePad& gamePad = Game::Input::Instance().GetGamePad();
-		if (gamePad.GetButtonDown() & GamePad::BTN_F2)
-		{
-			showGameEditorGUI = !showGameEditorGUI;
-		}
-		if (gamePad.GetButtonDown() & GamePad::BTN_F5)
-		{
-			SwitchToPlayMode();
-		}
 
+		// F1でマウスカーソル解放切り替え
 		if (gamePad.GetButtonDown() & GamePad::BTN_F1)
 		{
 			isCursorReleased = !isCursorReleased;
 		}
 
-		if (gamePad.GetButtonDown() & GamePad::BTN_F6)
+		// F2でゲーム内エディタ表示切り替え
+		if (gamePad.GetButtonDown() & GamePad::BTN_F2)
+		{
+			showGameEditorGUI = !showGameEditorGUI;
+		}
+
+		// F3でデバッグ表示切り替え => 95行目～
+
+		// F4でゲーム止める
+		if (gamePad.GetButtonDown() & GamePad::BTN_F4)
 		{
 			if (Game::Time::scale > 0.0f) SwitchToDebugMode();
 			else SwitchToPlayMode();
 		}
+
+		// F5でゲーム再開
+		if (gamePad.GetButtonDown() & GamePad::BTN_F5)
+		{
+			SwitchToPlayMode();
+		}
+
+		// F6でImGuiBinding表示 => Framework.cpp
 	}
 
 	const bool shouldUpdateWorld = ShouldUpdateWorld();

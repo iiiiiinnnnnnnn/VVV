@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -23,4 +23,5 @@ class Framework
   private:
 	const HWND hWnd;
 	HighResolutionTimer timer;
+	bool showImGuiBindingMemory = false;
 };
