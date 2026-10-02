@@ -29,7 +29,8 @@ FootIK::FootIK(Object* owner, LayerId layerId, VMDLModel* model, const char* thi
 	}
 }
 
-bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, float contactOffset)
+bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, float contactOffset,
+	const Vector3& syncOffset)
 {
 	if (!chain.enabled)
 	{
@@ -45,7 +46,10 @@ bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, 
 
 	Vector3 currentContactPosition = GetContactWorldPosition();
 
-	rayStart = currentContactPosition + rayStartOffset;
+	// ボーンとの位置関係を保ったまま接地レイだけを移動する。
+	const Vector3 worldSyncOffset =
+		Vector3::TransformNormal(syncOffset, GetScaledModelOwnerWorldTransform());
+	rayStart = currentContactPosition + rayStartOffset + worldSyncOffset;
 	rayEnd = rayStart - Vector3(0.0f, std::max(0.01f, rayLength), 0.0f);
 
 	Vector3 direction = rayEnd - rayStart;
@@ -85,7 +89,9 @@ bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, 
 		return false;
 	}
 
-	Vector3 targetContactPosition = hit.position + hit.normal * contactOffset;
+	// 横方向のレイ移動をボーンへ加算しない。高さは実際の接地面から求める。
+	const Vector3 horizontalSyncOffset(worldSyncOffset.x, 0.0f, worldSyncOffset.z);
+	Vector3 targetContactPosition = hit.position + hit.normal * contactOffset - horizontalSyncOffset;
 	float targetGroundOffsetY = targetContactPosition.y - currentContactPosition.y;
 	float targetWeight = 1.0f;
 
@@ -118,7 +124,7 @@ bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, 
 		targetGroundOffsetY *= targetWeight;
 	}
 
-	SetTargetFromContact(hit.position, hit.normal, contactOffset);
+	SetTargetFromContact(hit.position - horizontalSyncOffset, hit.normal, contactOffset);
 
 	if (targetWeight < 0.999f)
 	{
@@ -277,6 +283,11 @@ void FootIK::ResetGroundState()
 
 void FootIK::KeepPreviousGroundTarget()
 {
+	if (model && model->GetVmdlMultiLegIKSettings().interpolationEasing < 0)
+	{
+		ResetGroundState();
+		return;
+	}
 	lostGroundFrameCount++;
 	if (lostGroundFrameCount <= maxLostGroundFrames && hasSmoothedTarget)
 	{
@@ -303,8 +314,9 @@ void FootIK::SetSmoothedTarget(const Vector3& targetPosition, float targetGround
 		hasSmoothedTarget = true;
 	}
 
-	float targetRate = 1.0f - expf(-targetSmoothSpeed * Game::Time::deltaTime);
-	float offsetRate = 1.0f - expf(-groundOffsetSmoothSpeed * Game::Time::deltaTime);
+	const auto& interpolation = model->GetVmdlMultiLegIKSettings();
+	float targetRate = interpolation.InterpolationRate(targetSmoothSpeed, Game::Time::deltaTime);
+	float offsetRate = interpolation.InterpolationRate(groundOffsetSmoothSpeed, Game::Time::deltaTime);
 
 	targetRate = std::clamp(targetRate, 0.0f, 1.0f);
 	offsetRate = std::clamp(offsetRate, 0.0f, 1.0f);
@@ -398,7 +410,8 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 	const Matrix ownerWorldTransform = GetModelOwnerWorldTransform();
 
 	float targetWeight = hasGroundContact ? ikWeight : 0.0f;
-	float blendRate = 1.0f - expf(-ikBlendSpeed * Game::Time::deltaTime);
+	float blendRate = model->GetVmdlMultiLegIKSettings().InterpolationRate(
+		ikBlendSpeed, Game::Time::deltaTime);
 	blendRate = std::clamp(blendRate, 0.0f, 1.0f);
 	chain.weight += (targetWeight - chain.weight) * blendRate;
 	if (chain.weight <= 0.001f) return;

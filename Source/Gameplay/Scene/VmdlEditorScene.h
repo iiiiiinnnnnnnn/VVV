@@ -78,6 +78,9 @@ class VmdlEditorScene : public Scene
 	void DrawProperty();
 	void DrawTimeline();
 	void DrawIkSettings();
+	enum class IkGizmoTarget { None, Pole, RayStart, RaySync };
+	bool DrawIkVector3(const char* label, Vector3& value, float speed, int legIndex,
+		IkGizmoTarget target);
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
 	bool DrawSoundTrackSelector(const char* label, std::string& trackName);
@@ -197,6 +200,9 @@ class VmdlEditorScene : public Scene
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	bool cameraReturningToFront = false;
 	int gizmoOperation = 120;
+	bool showSelectionGizmo = true;
+	IkGizmoTarget ikGizmoTarget = IkGizmoTarget::None;
+	int ikGizmoLeg = -1;
 	bool viewportRotationDragging = false;
 	int selectedMorph = -1;
 	int selectedMaterial = -1;

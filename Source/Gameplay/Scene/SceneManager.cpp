@@ -14,6 +14,7 @@
 #endif
 
 #include <stdexcept>
+#include <fstream>
 
 namespace
 {
@@ -252,9 +253,18 @@ bool SceneManager::StartLoadThread(
 		{
 			std::unique_ptr<LoadedScene> result;
 			std::exception_ptr exception;
+			const char* loadStage = "Starting worker";
+			const auto traceLoad = [](const std::string& message) {
+				OutputDebugStringA(("[SceneManager] " + message + "\n").c_str());
+				std::ofstream log("SceneLoad.log", std::ios::app);
+				log << message << '\n';
+			};
+			traceLoad("--- Scene load started ---");
 
 			try
 			{
+				loadStage = "Loading sky maps";
+				traceLoad(loadStage);
 				Game::Graphics& graphics = Game::Graphics::Instance();
 				const std::string skyMapName = graphics.GetSkyMapName();
 				graphics.RefreshSkyMapList();
@@ -263,6 +273,8 @@ bool SceneManager::StartLoadThread(
 				result =
 					std::make_unique<LoadedScene>();
 
+				loadStage = "Creating physics scene";
+				traceLoad(loadStage);
 				result->physicsContext =
 					PhysicsManager::Instance().
 					CreateSceneContext();
@@ -271,6 +283,8 @@ bool SceneManager::StartLoadThread(
 					ThreadSceneContextScope contextScope(
 						result->physicsContext.get());
 
+					loadStage = "Constructing scene and resources";
+					traceLoad(loadStage);
 					result->scene = sceneFactory();
 				}
 
@@ -282,8 +296,10 @@ bool SceneManager::StartLoadThread(
 			}
 			catch (...)
 			{
-				exception =
-					std::current_exception();
+				const std::string error = std::string(loadStage) + ": " +
+					GetExceptionMessage(std::current_exception());
+				traceLoad("FAILED: " + error);
+				exception = std::make_exception_ptr(std::runtime_error(error));
 
 				result.reset();
 			}
@@ -299,6 +315,7 @@ bool SceneManager::StartLoadThread(
 			loadFinished.store(
 				true,
 				std::memory_order_release);
+			traceLoad(exception ? "Worker finished with error" : "Worker finished successfully");
 		});
 	}
 	catch (...)

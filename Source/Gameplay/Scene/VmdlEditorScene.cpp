@@ -1167,14 +1167,17 @@ void VmdlEditorScene::RenderPreview()
 				hasShapes = true;
 			}
 		}
-		// 3Dサウンドの減衰開始範囲と再生限界範囲を表示
-		if (showDebugOverlays && showSoundRange)
+		// Inspectorで選択している3Dサウンドだけ範囲を表示する。
+		if (showDebugOverlays && showSoundRange &&
+			selectedComponentType == AttachedComponentType::SoundSource)
 		{
 			const auto& soundSources = model->GetVmdlSoundData().sources;
 			const auto& nodes = model->GetNodes();
-			for (const auto& source : soundSources)
+			for (int i = 0; i < Count(soundSources); ++i)
 			{
-				if (!source.spatial || source.nodeIndex < 0 ||
+				const auto& source = soundSources[i];
+				if (i != selectedComponentIndex || source.nodeIndex != selectedNode ||
+					!source.spatial || source.nodeIndex < 0 ||
 					source.nodeIndex >= Count(nodes))
 					continue;
 
@@ -1276,6 +1279,36 @@ void VmdlEditorScene::RenderPreview()
 						RAD(value.offsetAngle.z)) * Matrix::CreateTranslation(value.tipOffset) *
 					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform));
 				graphics.GetPrimitiveRenderer()->DrawLine(root, tip, value.color, value.color);
+			}
+			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
+				editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		}
+		// 停止中も接地レイの編集結果を表示する。
+		if (!footIkApplied && showDebugOverlays && showFootIkDebug)
+		{
+			const auto& settings = model->GetVmdlIKSettings();
+			const auto& rays = model->GetVmdlIKRaySettings();
+			const Matrix scaleTransform = model->GetRenderScaleTransform();
+			for (int i = 0; i < Count(settings.legs); ++i)
+			{
+				const auto& leg = settings.legs[i];
+				const int contactIndex = model->GetNodeIndex(
+					(leg.contact.empty() ? leg.tip : leg.contact).c_str());
+				if (contactIndex < 0) continue;
+				Vector3 startOffset(0.0f, settings.type == 1 ? 0.2f : 1.0f, 0.0f);
+				float length = settings.type == 1 ? 0.7f : 6.0f;
+				Vector3 syncOffset = Vector3::Zero;
+				if (i < Count(rays) && rays[i].custom)
+				{
+					startOffset = rays[i].startOffset;
+					length = rays[i].length;
+					syncOffset = rays[i].syncOffset;
+				}
+				const Vector3 start =
+					(model->GetNodes()[contactIndex].worldTransform * scaleTransform).Translation() +
+					startOffset + Vector3::TransformNormal(syncOffset, scaleTransform);
+				graphics.GetPrimitiveRenderer()->DrawLine(start,
+					start - Vector3::Up * std::max(0.01f, length), Color(1, 0, 0, 1), Color(1, 0, 0, 1));
 			}
 			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
 				editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -1641,6 +1674,7 @@ bool VmdlEditorScene::ApplyFootIkPreview()
 	std::string signature = std::to_string(settings.type) + "|" + settings.centerNode + "|";
 	const auto& solverSettings = model->GetVmdlMultiLegIKSettings();
 	signature += std::to_string(solverSettings.bodyHeightOffset) + "|" +
+		std::to_string(solverSettings.interpolationEasing) + "|" +
 		std::to_string(solverSettings.contactOffset) + "|" +
 		std::to_string(solverSettings.maxUpCorrection) + "|" +
 		std::to_string(solverSettings.maxDownCorrection) + "|";
@@ -1793,6 +1827,8 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 void VmdlEditorScene::SelectNode(int nodeIndex, bool toggleSelection)
 {
 	if (!model || nodeIndex < 0 || nodeIndex >= Count(model->GetNodes())) return;
+	showSelectionGizmo = true;
+	ikGizmoTarget = IkGizmoTarget::None;
 
 	const auto selected = std::find(selectedNodes.begin(), selectedNodes.end(), nodeIndex);
 	if (!toggleSelection)
@@ -1830,6 +1866,8 @@ bool VmdlEditorScene::IsNodeSelected(int nodeIndex) const
 void VmdlEditorScene::SelectMesh(int meshIndex, bool toggleSelection)
 {
 	if (!model || meshIndex < 0 || meshIndex >= Count(model->GetMeshes())) return;
+	showSelectionGizmo = true;
+	ikGizmoTarget = IkGizmoTarget::None;
 
 	const auto selected = std::find(selectedMeshes.begin(), selectedMeshes.end(), meshIndex);
 	if (!toggleSelection)
@@ -2620,7 +2658,57 @@ void VmdlEditorScene::DrawViewport()
 		}
 	}
 
-	if (model && selectedNode >= 0 && selectedNode < Count(model->GetNodes()))
+	if (model && ikGizmoTarget != IkGizmoTarget::None)
+	{
+		const auto& legs = model->GetVmdlIKSettings().legs;
+		auto& poles = model->GetVmdlIKPoles();
+		auto& rays = model->GetVmdlIKRaySettings();
+		if (ikGizmoLeg < 0 || ikGizmoLeg >= Count(legs) ||
+			ikGizmoLeg >= Count(poles) || ikGizmoLeg >= Count(rays))
+			ikGizmoTarget = IkGizmoTarget::None;
+		else
+		{
+			auto& pole = poles[ikGizmoLeg];
+			auto& ray = rays[ikGizmoLeg];
+			const auto& leg = legs[ikGizmoLeg];
+			const int contactIndex = model->GetNodeIndex(
+				(leg.contact.empty() ? leg.tip : leg.contact).c_str());
+			if ((ikGizmoTarget == IkGizmoTarget::Pole && !pole.custom) ||
+				(ikGizmoTarget != IkGizmoTarget::Pole && (!ray.custom || contactIndex < 0)))
+				ikGizmoTarget = IkGizmoTarget::None;
+			else
+			{
+				const Matrix scaleTransform = model->GetRenderScaleTransform();
+				const Vector3 contactPosition = contactIndex >= 0
+					? (model->GetNodes()[contactIndex].worldTransform * scaleTransform).Translation()
+					: Vector3::Zero;
+				const Vector3 position = ikGizmoTarget == IkGizmoTarget::Pole
+					? Vector3::Transform(pole.position, scaleTransform)
+					: contactPosition + ray.startOffset +
+						Vector3::TransformNormal(ray.syncOffset, scaleTransform);
+				Matrix world = Matrix::CreateTranslation(position);
+				Matrix view = editorCamera->GetView();
+				Matrix projection = editorCamera->GetProjection();
+				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+				ImGuizmo::SetRect(imageMin.x, imageMin.y,
+					imageMax.x - imageMin.x, imageMax.y - imageMin.y);
+				if (ImGuizmo::Manipulate(&view._11, &projection._11,
+						ImGuizmo::TRANSLATE, ImGuizmo::WORLD, &world._11))
+				{
+					if (ikGizmoTarget == IkGizmoTarget::Pole)
+						pole.position = Vector3::Transform(world.Translation(), scaleTransform.Invert());
+					else if (ikGizmoTarget == IkGizmoTarget::RayStart)
+						ray.startOffset = world.Translation() - contactPosition -
+							Vector3::TransformNormal(ray.syncOffset, scaleTransform);
+					else
+						ray.syncOffset = Vector3::TransformNormal(
+							world.Translation() - contactPosition - ray.startOffset, scaleTransform.Invert());
+					MarkDirty();
+				}
+			}
+		}
+	}
+	else if (model && showSelectionGizmo && selectedNode >= 0 && selectedNode < Count(model->GetNodes()))
 	{
 		Matrix view = editorCamera->GetView();
 		Matrix projection = editorCamera->GetProjection();
@@ -2681,7 +2769,7 @@ void VmdlEditorScene::DrawViewport()
 		previewCameraMoveSpeed, previewCameraMoveSpeedOverlayTimer);
 	if (!imageHovered || ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
 
-	if (model && showDebugOverlays && showBones && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+	if (model && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
 		const auto& nodes = model->GetNodes();
 		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
@@ -2695,6 +2783,7 @@ void VmdlEditorScene::DrawViewport()
 		int nearestNode = -1;
 		for (int nodeIndex = 0; nodeIndex < Count(nodes); ++nodeIndex)
 		{
+			if (!showDebugOverlays || !showBones) break;
 			const VMDLModel::Node& node = nodes[nodeIndex];
 			if (!node.parent) continue;
 			const Vector3 start =
@@ -2743,6 +2832,11 @@ void VmdlEditorScene::DrawViewport()
 		if (nearestNode >= 0)
 		{
 			SelectNode(nearestNode, io.KeyCtrl);
+		}
+		else
+		{
+			showSelectionGizmo = false;
+			ikGizmoTarget = IkGizmoTarget::None;
 		}
 	}
 	if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
@@ -5371,6 +5465,29 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 
 }
 
+bool VmdlEditorScene::DrawIkVector3(const char* label, Vector3& value, float speed,
+	int legIndex, IkGizmoTarget target)
+{
+	ImGui::PushID(label);
+	ImGui::TextUnformatted(label);
+	const float buttonWidth = ImGui::CalcTextSize("Pickup").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+	ImGui::SetNextItemWidth(std::min(210.0f, std::max(90.0f,
+		ImGui::GetContentRegionAvail().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x)));
+	const bool changed = ImGui::DragFloat3("##Value", &value.x, speed);
+	ImGui::SameLine();
+	if (ImGui::Button("Pickup"))
+	{
+		ikGizmoLeg = legIndex;
+		ikGizmoTarget = target;
+		showSelectionGizmo = false;
+		showDebugOverlays = true;
+		showFootIkDebug = true;
+		if (target == IkGizmoTarget::Pole) showIkPole = true;
+	}
+	ImGui::PopID();
+	return changed;
+}
+
 void VmdlEditorScene::DrawIkSettings()
 {
 	if (!model)
@@ -5382,6 +5499,17 @@ void VmdlEditorScene::DrawIkSettings()
 	auto& settings = model->GetVmdlIKSettings();
 	auto& poles = model->GetVmdlIKPoles();
 	auto& raySettings = model->GetVmdlIKRaySettings();
+	auto& interpolation = model->GetVmdlMultiLegIKSettings();
+	const char* easingNames[] = {"None", "Linear", "InQuad", "OutQuad", "InOutQuad",
+		"InCubic", "OutCubic", "InOutCubic", "InSine", "OutSine", "InOutSine"};
+	int easingIndex = std::clamp(interpolation.interpolationEasing + 1, 0,
+		static_cast<int>(Easing::Type::Count));
+	if (ImGui::Combo((const char*)u8"補間イージング (Interpolation Easing)",
+			&easingIndex, easingNames, static_cast<int>(Easing::Type::Count) + 1))
+	{
+		interpolation.interpolationEasing = easingIndex - 1;
+		MarkDirty();
+	}
 
 	// IKの種類と自動割り当て
 	const char* types[] = {
@@ -5487,6 +5615,7 @@ void VmdlEditorScene::DrawIkSettings()
 			if (ImGui::Checkbox((const char*)u8"カスタムポール (Custom Pole)", &pole.custom))
 			{
 				changed = true;
+				if (!pole.custom) pole = VMDLModel::VmdlIKPole{};
 				if (!wasCustom && pole.custom)
 				{
 					const int rootIndex = model->GetNodeIndex(leg.root.c_str());
@@ -5518,17 +5647,32 @@ void VmdlEditorScene::DrawIkSettings()
 			}
 			if (pole.custom)
 			{
-				changed |= ImGui::DragFloat3(
-					(const char*)u8"ポール位置 (Pole Position)", &pole.position.x, 0.01f);
+				changed |= DrawIkVector3((const char*)u8"ポール位置 (Pole Position)",
+					pole.position, 0.01f, i, IkGizmoTarget::Pole);
 				ImGui::TextDisabled((const char*)u8"モデルのローカル座標");
 			}
 
 			auto& ray = raySettings[i];
-			changed |= ImGui::Checkbox((const char*)u8"カスタムレイ (Custom Ray)", &ray.custom);
+			if (ImGui::Checkbox((const char*)u8"カスタムレイ (Custom Ray)", &ray.custom))
+			{
+				changed = true;
+				if (!ray.custom)
+				{
+					ray = VMDLModel::VmdlIKRaySettings{};
+					if (settings.type != 1)
+					{
+						ray.startOffset = Vector3(0.0f, 1.0f, 0.0f);
+						ray.length = 6.0f;
+					}
+				}
+			}
 			if (ray.custom)
 			{
-				changed |= ImGui::DragFloat3(
-					(const char*)u8"開始位置 (Start Offset)", &ray.startOffset.x, 0.01f);
+				changed |= DrawIkVector3((const char*)u8"開始位置 (Start Offset)",
+					ray.startOffset, 0.01f, i, IkGizmoTarget::RayStart);
+				changed |= DrawIkVector3((const char*)u8"同期オフセット (Sync Offset)",
+					ray.syncOffset, 0.001f, i, IkGizmoTarget::RaySync);
+				ImGui::TextDisabled((const char*)u8"ボーンからレイをずらす量（モデルのローカル座標）");
 				changed |= ImGui::DragFloat(
 					(const char*)u8"レイの長さ (Ray Length)", &ray.length, 0.01f, 0.01f, 100.0f);
 				ray.length = std::max(0.01f, ray.length);
@@ -6117,6 +6261,9 @@ void VmdlEditorScene::ReplaceGlbCache()
 			return;
 		}
 		selectedNode = model->GetNodes().empty() ? -1 : 0;
+		ikGizmoTarget = IkGizmoTarget::None;
+		ikGizmoLeg = -1;
+		showSelectionGizmo = true;
 		selectedNodes.clear();
 		if (selectedNode >= 0) selectedNodes.push_back(selectedNode);
 		selectedMesh = -1;
@@ -6511,6 +6658,9 @@ void VmdlEditorScene::LoadModel(
 		}
 		recentModelPath = documentPath;
 		dirty = false;
+		ikGizmoTarget = IkGizmoTarget::None;
+		ikGizmoLeg = -1;
+		showSelectionGizmo = true;
 		selectedNode = model->GetNodes().empty() ? -1 : 0;
 		selectedNodes.clear();
 		if (selectedNode >= 0) selectedNodes.push_back(selectedNode);

@@ -1,4 +1,5 @@
-﻿#include "Animation/HumanoidFootIK.h"
+// HumanoidFootIK.cpp
+#include "Animation/HumanoidFootIK.h"
 
 #include "Animation/Animator.h"
 #include "Application/Time/GameTime.h"
@@ -60,17 +61,19 @@ void HumanoidFootIK::LateUpdate()
 	if (footIK_L && footIK_L->IsIKEnabled())
 	{
 		Vector3 startOffset;
+		Vector3 syncOffset;
 		float length = 0.0f;
-		GetRaySettings(0, startOffset, length);
-		footIK_L->UpdateGroundTarget(startOffset, length, contactOffset);
+		GetRaySettings(0, startOffset, length, syncOffset);
+		footIK_L->UpdateGroundTarget(startOffset, length, contactOffset, syncOffset);
 	}
 
 	if (footIK_R && footIK_R->IsIKEnabled())
 	{
 		Vector3 startOffset;
+		Vector3 syncOffset;
 		float length = 0.0f;
-		GetRaySettings(1, startOffset, length);
-		footIK_R->UpdateGroundTarget(startOffset, length, contactOffset);
+		GetRaySettings(1, startOffset, length, syncOffset);
+		footIK_R->UpdateGroundTarget(startOffset, length, contactOffset, syncOffset);
 	}
 
 	ApplyHipOffset(baseHipLocalPosition);
@@ -125,10 +128,11 @@ float HumanoidFootIK::GetVmdlFootWeight(int footIndex) const
 		animator->GetCurrentAnimationIndex(), animator->GetCurrentAnimationTime(), footIndex);
 }
 
-void HumanoidFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length) const
+void HumanoidFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length, Vector3& syncOffset) const
 {
 	startOffset = Vector3(0.0f, rayUp, 0.0f);
 	length = rayUp + rayDown;
+	syncOffset = Vector3::Zero;
 	if (!model) return;
 	const auto& settings = model->GetVmdlIKRaySettings();
 	if (footIndex < 0 || footIndex >= static_cast<int>(settings.size())) return;
@@ -136,6 +140,7 @@ void HumanoidFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& 
 	if (!ray.custom) return;
 	startOffset = ray.startOffset;
 	length = ray.length;
+	syncOffset = ray.syncOffset;
 }
 
 void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
@@ -166,7 +171,8 @@ void HumanoidFootIK::ApplyHipOffset(const Vector3& baseHipLocalPosition)
 
 	targetOffsetY = std::clamp(targetOffsetY, minHipOffsetY, maxHipOffsetY);
 
-	const float t = 1.0f - expf(-14.0f * Game::Time::deltaTime);
+	const float t = model->GetVmdlMultiLegIKSettings().InterpolationRate(
+		14.0f, Game::Time::deltaTime);
 
 	visualHipOffsetY += (targetOffsetY - visualHipOffsetY) * t;
 

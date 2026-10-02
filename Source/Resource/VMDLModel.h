@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Core/Foundation/Common.h"
+#include "Core/Foundation/Easing.h"
 #include "Core/Foundation/DirectXSerialization.h"
 #include "Rendering/Core/RenderContext.h"
 
@@ -161,6 +162,7 @@ class VMDLModel
 		bool custom = false;
 		Vector3 startOffset = Vector3(0.0f, 0.2f, 0.0f);
 		float length = 0.7f;
+		Vector3 syncOffset = Vector3::Zero;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -356,6 +358,17 @@ class VMDLModel
 		float contactOffset = 0.295f;
 		float maxUpCorrection = 2.0f;
 		float maxDownCorrection = 5.0f;
+		// -1は補間なし。Linearは従来の補間速度を維持する。
+		int interpolationEasing = static_cast<int>(Easing::Type::Linear);
+		float InterpolationRate(float speed, float deltaTime) const
+		{
+			if (interpolationEasing < 0) return 1.0f;
+			const auto easing = static_cast<Easing::Type>(std::clamp(
+				interpolationEasing, 0, static_cast<int>(Easing::Type::Count) - 1));
+			// 60Hzでの応答にイージングを適用し、実際の経過時間へ換算する。
+			const float rate = Easing::Evaluate(1.0f - std::exp(-speed / 60.0f), easing);
+			return 1.0f - std::pow(1.0f - rate, std::max(deltaTime, 0.0f) * 60.0f);
+		}
 
 		template <class Archive> void serialize(Archive& archive);
 	};

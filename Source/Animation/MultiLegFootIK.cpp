@@ -26,9 +26,10 @@ void MultiLegFootIK::LateUpdate()
 		footIK->SetDownwardWeight(weight);
 		footIK->SetMaxDownCorrection(maxDownCorrection);
 		Vector3 startOffset;
+		Vector3 syncOffset;
 		float length = 0.0f;
-		GetRaySettings(footIndex, startOffset, length);
-		footIK->UpdateGroundTarget(startOffset, length, contactOffset);
+		GetRaySettings(footIndex, startOffset, length, syncOffset);
+		footIK->UpdateGroundTarget(startOffset, length, contactOffset, syncOffset);
 		footIK->SolveIK(model->GetWorldTransform());
 	}
 }
@@ -195,10 +196,11 @@ float MultiLegFootIK::GetFootIKWeight(int footIndex) const
 
 }
 
-void MultiLegFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length) const
+void MultiLegFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& length, Vector3& syncOffset) const
 {
 	startOffset = Vector3(0.0f, rayUp, 0.0f);
 	length = rayUp + rayDown;
+	syncOffset = Vector3::Zero;
 	if (!model) return;
 	const auto& settings = model->GetVmdlIKRaySettings();
 	if (footIndex < 0 || footIndex >= static_cast<int>(settings.size())) return;
@@ -206,4 +208,5 @@ void MultiLegFootIK::GetRaySettings(int footIndex, Vector3& startOffset, float& 
 	if (!ray.custom) return;
 	startOffset = ray.startOffset;
 	length = ray.length;
+	syncOffset = ray.syncOffset;
 }

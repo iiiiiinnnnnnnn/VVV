@@ -134,6 +134,7 @@
     <ClCompile Include="Source\Rendering\Renderer\SpriteRenderer.cpp" />
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp" />
     <ClCompile Include="Source\UI\SpriteWidget.cpp" />
+    <ClCompile Include="Source\UI\ColorWidget.cpp" />
     <ClCompile Include="Source\UI\BossBar.cpp" />
     <ClCompile Include="Source\UI\Button.cpp" />
     <ClCompile Include="Source\UI\GaugeHUD.cpp" />
@@ -282,6 +283,7 @@
     <ClInclude Include="Source\Rendering\Component\SpriteRenderComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\SpriteRenderer.h" />
     <ClInclude Include="Source\UI\SpriteWidget.h" />
+    <ClInclude Include="Source\UI\ColorWidget.h" />
     <ClInclude Include="Source\UI\BossBar.h" />
     <ClInclude Include="Source\UI\Button.h" />
     <ClInclude Include="Source\UI\GaugeHUD.h" />

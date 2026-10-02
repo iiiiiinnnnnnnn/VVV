@@ -1,3 +1,4 @@
+// GameStartScene.h
 #pragma once
 
 #include "Gameplay/Scene/Scene.h"
@@ -8,6 +9,8 @@
 #endif
 
 class SpriteWidget;
+class ColorWidget;
+class TextWidget;
 
 class GameStartScene : public Scene
 {
@@ -27,7 +30,7 @@ private:
 	bool loadRequested = false;
 	bool windowConfigured = false;
 	std::shared_ptr<SpriteWidget> headerWidget;
-	std::shared_ptr<SpriteWidget> headerVignetteWidget;
+	std::shared_ptr<TextWidget> headerText;
 	Vector2 headerParallaxOffset = Vector2::Zero;
 	float headerLayoutHeight = 176.0f;
 	float headerTop = 34.0f;

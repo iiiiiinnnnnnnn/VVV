@@ -61,7 +61,6 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する
 	anim = vmdl->GetAnimator();
 	anim->Load("Resources/Animator/Player.animator");
-	anim->BindCallbacks();
 
 	// キャラクターコントローラ生成
 	float radius = 0.25f;
@@ -86,6 +85,20 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	lockOnComponent->SetAcquireRange(10.0f);
 	lockOnComponent->SetLostRange(20.0f);
 	lockOnComponent->SetRotationSpeed(6.0f);
+	// 遷移先の開始時に両方のフラグを更新し、攻撃中断や連続攻撃にも対応する。
+	anim->AddCallbackFunc("LockOnAttack", [this](const Animator::State&) {
+		lockOnComponent->SetAimActive(true);
+		lockOnComponent->SetRotationPaused(false);
+	}, {});
+	anim->AddCallbackFunc("LockOnHit", [this](const Animator::State&) {
+		lockOnComponent->SetAimActive(false);
+		lockOnComponent->SetRotationPaused(true);
+	}, {});
+	anim->AddCallbackFunc("LockOnIdle", [this](const Animator::State&) {
+		lockOnComponent->SetAimActive(false);
+		lockOnComponent->SetRotationPaused(false);
+	}, {});
+	anim->BindCallbacks();
 
 	// SetFootPositionとSetPositionは両方呼ばない
 	cc->SetFootPosition({36.82f, 0.4f, 5.148f});
@@ -127,13 +140,6 @@ void Player::OnUpdate()
 	}
 	dodgeCooldownTimer = std::max(
 		dodgeCooldownTimer - Game::Time::unscaledDeltaTime, 0.0f);
-
-	const std::string& stateName = anim->GetCurrentStateName();
-	const bool isAttacking =
-		stateName.starts_with("Attack") || stateName.starts_with("SpSkill");
-	const bool isHit = stateName == "Hit_RFreeze" || stateName == "Hit_LFreeze";
-	lockOnComponent->SetAimActive(isAttacking);
-	lockOnComponent->SetRotationPaused(isHit || IsDead());
 
 	UpdateFootSound();
 	UpdateMovement();
@@ -626,7 +632,6 @@ void Player::UpdateMovement()
 			justDodgeSkillActive = true;
 			justDodgeSkillHitActors.clear();
 			lockOnComponent->LockOnNearestEnemy();
-			lockOnComponent->SetAimActive(true);
 			if (Actor* target = lockOnComponent->GetTarget())
 			{
 				Vector3 direction = target->transform.position - transform.position;
@@ -660,7 +665,6 @@ void Player::UpdateMovement()
 	else if (ctx.attackPressed && !dodgeAnimationActive && !justDodgeSkillActive)
 	{
 		lockOnComponent->LockOnNearestEnemy();
-		lockOnComponent->SetAimActive(true);
 		anim->SetTrigger("Attack");
 	}
 	const bool canStartDodge =

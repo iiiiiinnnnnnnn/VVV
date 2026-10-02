@@ -1,4 +1,5 @@
-﻿#pragma once
+// LoadingScene.h
+#pragma once
 
 #include <memory>
 
@@ -14,7 +15,8 @@ public:
 	~LoadingScene() override = default;
 
 	void OnUpdate() override;
-	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::HiddenFree; }
+	void OnDrawGUI() override;
+	MouseCursorMode GetMouseCursorMode() const override;
 
 private:
 	void UpdateLayout();

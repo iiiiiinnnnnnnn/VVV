@@ -13,6 +13,8 @@
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "UI/SpriteWidget.h"
+#include "UI/ColorWidget.h"
+#include "UI/TextWidget.h"
 #include "UI/Widget.h"
 #include <algorithm>
 #include <cmath>
@@ -23,6 +25,7 @@
 #include <map>
 #endif
 #include "TestPlayScene.h"
+#include "Rendering/Renderer/ImGuiBinding.h"
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 static std::string LowerText(std::string value)
@@ -45,15 +48,13 @@ GameStartScene::GameStartScene()
 	headerWidget->SetAffectedByPostProcess(false);
 	widgetManager.Register(headerWidget);
 
-	// 画像とは別に固定表示するヴィネットを生成
-	headerVignetteWidget = std::make_shared<SpriteWidget>(
-		headerPath, SpriteShaderId::VignetteOverlay,
-		Color(0, 0, 0, headerVignetteStrength),
-		SpriteRenderParams{
-			SpriteVignetteParams{headerVignetteRange, headerVignetteSoftness}});
-	headerVignetteWidget->SetName("Launcher Header Vignette");
-	headerVignetteWidget->SetAffectedByPostProcess(false);
-	widgetManager.Register(headerVignetteWidget);
+	headerText = std::make_shared<TextWidget>("Header Text", "TPS V Editor", 36.0f);
+	headerText->rect.position = Vector2(-240.0f, 260.0f);
+	headerText->rect.size = Vector2(860, 100);
+	headerText->rect.anchor = Vector2::Zero;
+	headerText->SetColor(Color(1, 1, 1, 1));
+	headerText->SetAlignment(UITextAlignment::Center);
+	widgetManager.Register(headerText);
 }
 
 GameStartScene::~GameStartScene() = default;
@@ -116,12 +117,6 @@ void GameStartScene::UpdateLauncherWidgetLayout()
 				headerSprite->SetSourceRect(cropPosition, cropSize);
 			}
 		}
-		if (headerVignetteWidget)
-		{
-			headerVignetteWidget->rect.position = headerPosition;
-			headerVignetteWidget->rect.anchor = Vector2::Zero;
-			headerVignetteWidget->rect.size = baseSize;
-		}
 	}
 }
 
@@ -170,7 +165,7 @@ void GameStartScene::OnDrawGUI()
 	// 管理画面ではヘッダーを隠す
 	const bool showLauncherHeader = !showCacheManager && !showSoundManager && !showEffectManager;
 	if (headerWidget) headerWidget->SetActive(showLauncherHeader);
-	if (headerVignetteWidget) headerVignetteWidget->SetActive(showLauncherHeader);
+	if (headerText) headerText->SetActive(showLauncherHeader);
 #endif
 
 	// ウィンドウ全体を起動メニューの操作領域として使用
@@ -220,6 +215,7 @@ void GameStartScene::OnDrawGUI()
 
 	const float headerHeight = headerLayoutHeight;
 
+	// リリース版は3つだけ(というかそもそも起動画面すらない)
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	constexpr int buttonCount = 6;
 #else

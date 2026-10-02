@@ -1,4 +1,5 @@
-﻿#pragma once
+// FootIK.h
+#pragma once
 #include <algorithm>
 #include <cmath>
 #include <cfloat>
@@ -22,7 +23,8 @@ class FootIK : public PhysicsComponent
 	int GetUpdateOrder() const override { return 200; }
 
 	bool UpdateGroundTarget(
-		const Vector3& rayStartOffset, float rayLength, float contactOffset = 0.01f);
+		const Vector3& rayStartOffset, float rayLength, float contactOffset = 0.01f,
+		const Vector3& syncOffset = Vector3::Zero);
 
 	void InitializeFromCurrentPose(float poleDistance = 0.5f);
 	void SetPoleLiftY(float liftY) { poleLiftY = liftY; }

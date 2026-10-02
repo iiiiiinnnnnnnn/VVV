@@ -71,6 +71,7 @@ void LockOnComponent::OnDisabled()
 
 void LockOnComponent::OnRender(const RenderContext& rc)
 {
+	if (target && !IsTargetValid()) ClearTarget();
 	EnsureIndicator();
 	if (!indicator || !target || !rc.camera)
 	{
@@ -147,16 +148,33 @@ void LockOnComponent::OnDrawGUI()
 void LockOnComponent::LockOn(Actor* actor)
 {
 	if (!actor || actor == owner || actor->IsPendingDestroy()) return;
+	const Entity* entity = dynamic_cast<const Entity*>(actor);
+	if (entity && entity->IsDead())
+	{
+		if (target == actor) ClearTarget();
+		return;
+	}
 	target = actor;
 	ResolveTargetAnchor();
 }
 
-// 攻撃時に取得範囲内で最も近い生存中のEnemyをロックする
+// 攻撃が当たった対象を優先し、対象がない場合だけ最寄りのEnemyを取得する。
 bool LockOnComponent::LockOnNearestEnemy()
 {
-	ActorManager* actorManager = ActorManager::GetActive();
 	Transform* ownerTransform = owner ? owner->GetTransform() : nullptr;
-	if (!actorManager || !ownerTransform) return false;
+	if (!ownerTransform) return false;
+	if (target)
+	{
+		if (IsTargetValid())
+		{
+			Vector3 difference = target->transform.position - ownerTransform->position;
+			difference.y = 0.0f;
+			if (difference.LengthSquared() <= lostRange * lostRange) return true;
+		}
+		ClearTarget();
+	}
+	ActorManager* actorManager = ActorManager::GetActive();
+	if (!actorManager) return false;
 
 	Actor* nearest = nullptr;
 	float nearestDistanceSquared = acquireRange * acquireRange;

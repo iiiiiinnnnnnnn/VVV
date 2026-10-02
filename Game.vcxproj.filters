@@ -290,6 +290,9 @@
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\ColorWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\UI\Button.cpp">
       <Filter>UI</Filter>
     </ClCompile>
@@ -667,6 +670,9 @@
       <Filter>Gameplay\Stage\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\SpriteWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\ColorWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\Button.h">

@@ -1,3 +1,4 @@
+// LoadingScene.cpp
 #include "Gameplay/Scene/LoadingScene.h"
 
 #include <algorithm>
@@ -6,6 +7,8 @@
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Scene/GameStartScene.h"
+#include "Gameplay/Scene/TitleScene.h"
 #include "Rendering/Component/SpriteRenderComponent.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/SpriteWidget.h"
@@ -64,6 +67,37 @@ void LoadingScene::OnUpdate()
 			sprite->SetColor(Color(0.52f, 0.76f, 1.0f, pulse));
 		}
 	}
+}
+
+Scene::MouseCursorMode LoadingScene::GetMouseCursorMode() const
+{
+	return SceneManager::Instance().IsLoading()
+		? MouseCursorMode::HiddenFree : MouseCursorMode::VisibleFree;
+}
+
+void LoadingScene::OnDrawGUI()
+{
+	auto& manager = SceneManager::Instance();
+	const std::string error = manager.GetLastLoadError();
+	if (manager.IsLoading() || error.empty()) return;
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize(ImVec2(620.0f, 0.0f), ImGuiCond_Always);
+	if (ImGui::Begin("Load failed", nullptr,
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
+	{
+		ImGui::TextUnformatted((const char*)u8"読み込みに失敗しました");
+		ImGui::TextWrapped("%s", error.c_str());
+		if (ImGui::Button((const char*)u8"起動画面へ戻る"))
+		{
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+			manager.LoadScene<GameStartScene>();
+#else
+			manager.LoadScene<TitleScene>();
+#endif
+		}
+	}
+	ImGui::End();
 }
 
 void LoadingScene::UpdateLayout()

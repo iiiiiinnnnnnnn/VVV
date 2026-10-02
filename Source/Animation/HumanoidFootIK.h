@@ -1,4 +1,5 @@
-﻿#pragma once
+// HumanoidFootIK.h
+#pragma once
 
 #include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
@@ -27,7 +28,7 @@ class HumanoidFootIK : public Component
   private:
 	bool ShouldUseIK() const;
 	float GetVmdlFootWeight(int footIndex) const;
-	void GetRaySettings(int footIndex, Vector3& startOffset, float& length) const;
+	void GetRaySettings(int footIndex, Vector3& startOffset, float& length, Vector3& syncOffset) const;
 	void ApplyHipOffset(const Vector3& baseHipLocalPosition);
 	void ResetHipOffset(const Vector3& baseHipLocalPosition);
 

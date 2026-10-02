@@ -2423,6 +2423,14 @@ void VMDLModel::Serialize(const char* filename)
 				vmdlIKRaySettings);
 		});
 		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
+		addFile("model.ikeasing", [&](auto& archive) {
+			archive(vmdlMultiLegIKSettings.interpolationEasing);
+		});
+		addFile("model.iksyncoffsets", [&](auto& archive) {
+			std::vector<Vector3> offsets;
+			for (const auto& ray : vmdlIKRaySettings) offsets.push_back(ray.syncOffset);
+			archive(offsets);
+		});
 		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
 		addFile("model.lightdata", [&](auto& archive) { archive(vmdlLightData); });
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
@@ -2572,6 +2580,8 @@ void VMDLModel::Deserialize(const char* filename)
 			std::vector<VmdlSoundSourceBinding> soundBindings;
 			VmdlComponentTransformData componentTransforms;
 			std::vector<std::string> effectBindings;
+			std::vector<Vector3> ikSyncOffsets;
+			int ikInterpolationEasing = static_cast<int>(Easing::Type::Linear);
 			std::string vfxExtensionJson;
 			std::vector<std::vector<std::string>> externalMeshBindingKeys;
 			std::vector<std::vector<int>> externalMeshCacheIndices;
@@ -2606,6 +2616,14 @@ void VMDLModel::Deserialize(const char* filename)
 						modelScale, vmdlTrailData, vmdlAnimationEditorData,
 						vmdlAnimationControlData, vmdlIKRaySettings);
 					loadedVmdlData = true;
+				}
+				else if (name == "model.iksyncoffsets")
+				{
+					archive(ikSyncOffsets);
+				}
+				else if (name == "model.ikeasing")
+				{
+					archive(ikInterpolationEasing);
 				}
 				else if (name == "model.sounddata")
 				{
@@ -2726,6 +2744,11 @@ void VMDLModel::Deserialize(const char* filename)
 			SetModelScale(modelScale);
 			NormalizeAttachmentNames();
 			NormalizeVmdlIKRaySettings();
+			vmdlMultiLegIKSettings.interpolationEasing = std::clamp(
+				ikInterpolationEasing, -1, static_cast<int>(Easing::Type::Count) - 1);
+			for (size_t i = 0; i < vmdlIKRaySettings.size(); ++i)
+				vmdlIKRaySettings[i].syncOffset =
+					i < ikSyncOffsets.size() ? ikSyncOffsets[i] : Vector3::Zero;
 			NormalizeMorphNames();
 			for (auto& source : vmdlSoundData.sources)
 			{

@@ -1,4 +1,5 @@
-﻿#pragma once
+// MultiLegFootIK.h
+#pragma once
 
 #include <string>
 #include <vector>
@@ -37,7 +38,7 @@ class MultiLegFootIK : public Component
 	void UpdateModelTransform();
 	void ApplyFootSettings();
 	float GetFootIKWeight(int footIndex) const;
-	void GetRaySettings(int footIndex, Vector3& startOffset, float& length) const;
+	void GetRaySettings(int footIndex, Vector3& startOffset, float& length, Vector3& syncOffset) const;
 
 	VMDLModel* model = nullptr;
 	Animator* animator = nullptr;

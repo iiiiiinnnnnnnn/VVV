@@ -19,7 +19,7 @@ UIFont& UIFont::Default()
 
 UIFont::UIFont()
 {
-	std::ifstream stream("Resources/Font/ArialUni.ttf", std::ios::binary | std::ios::ate);
+	std::ifstream stream("Resources/Font/Isometra.ttf", std::ios::binary | std::ios::ate);
 	if (!stream) return;
 	const std::streamsize length = stream.tellg();
 	if (length <= 0) return;
