@@ -31,11 +31,6 @@ TitleScene::TitleScene()
 	// タイトルでは通常UIを優先し、F2が押されたときだけエディタを開く
 	showGameEditorGUI = false;
 
-	background = std::make_shared<SpriteWidget>(
-		"Resources/UI/title.png", SpriteShaderId::Basic, Color(1, 1, 1, 1));
-	background->SetName("Title Background");
-	background->SetAffectedByPostProcess(false);
-	widgetManager.Register(background);
 	CreateTitleWorld();
 
 	const auto makeFill = [](const char* name, const Color& color)
@@ -167,7 +162,6 @@ void TitleScene::CreateTitleWorld()
 	titleStage->GetActorManager().Register(showcasePlayer);
 	currentStage = std::move(titleStage);
 	titleWorldReady = true;
-	background->SetActive(false);
 	// ゲーム本編と同じくVSTGのライトだけを使い、共有Skybox光を持ち越さない。
 	Game::Graphics::Instance().GetSkyBoxRenderer()->SetIntensity(0.0f);
 	UpdateTitleCamera();
@@ -192,39 +186,6 @@ void TitleScene::UpdateLayout()
 	const float screenWidth = Game::Graphics::ScreenWidth;
 	const float screenHeight = Game::Graphics::ScreenHeight;
 	if (screenWidth <= 0.0f || screenHeight <= 0.0f) return;
-
-	if (background)
-	{
-		background->rect.position = Vector2::Zero;
-		background->rect.anchor = Vector2::Zero;
-		background->rect.size = {screenWidth, screenHeight};
-
-		// 画面比率が変わっても画像を引き伸ばさず、中央をクロップして全面表示する。
-		if (auto* sprite = background->GetComponent<SpriteRenderComponent>())
-		{
-			if (Texture* texture = sprite->GetTexture();
-				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
-			{
-				const float textureWidth = static_cast<float>(texture->GetWidth());
-				const float textureHeight = static_cast<float>(texture->GetHeight());
-				const float textureAspect = textureWidth / textureHeight;
-				const float screenAspect = screenWidth / screenHeight;
-				Vector2 sourcePosition = Vector2::Zero;
-				Vector2 sourceSize(textureWidth, textureHeight);
-				if (textureAspect > screenAspect)
-				{
-					sourceSize.x = textureHeight * screenAspect;
-					sourcePosition.x = (textureWidth - sourceSize.x) * 0.5f;
-				}
-				else
-				{
-					sourceSize.y = textureWidth / screenAspect;
-					sourcePosition.y = (textureHeight - sourceSize.y) * 0.5f;
-				}
-				sprite->SetSourceRect(sourcePosition, sourceSize);
-			}
-		}
-	}
 
 	if (fadeOverlay)
 	{

@@ -34,7 +34,6 @@ private:
 	void SetMenuPage(MenuPage page);
 	void RequestExit();
 
-	std::shared_ptr<SpriteWidget> background;
 	std::shared_ptr<Actor> showcasePlayer;
 	Vector3 showcasePosition = Vector3::Zero;
 	std::shared_ptr<HUDWidget> titleHud;
