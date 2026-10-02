@@ -1,8 +1,10 @@
-﻿#include "Animation/MultiLegFootIK.h"
+// MultiLegFootIK.cpp
+#include "Animation/MultiLegFootIK.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Animation/Animator.h"
 #include "Core/Object/Object.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 
 MultiLegFootIK::MultiLegFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator)
 	: Component(owner), model(model), animator(animator), layerId(layerId)
@@ -148,8 +150,14 @@ void MultiLegFootIK::UpdateModelTransform()
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 
-	model->UpdateTransform(
-		actor->transform.matrix * Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f));
+	const Matrix actorTransform =
+		actor->transform.matrix * Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f);
+	if (auto* renderer = owner->GetComponent<VMDLModelComponent>())
+	{
+		renderer->UpdateModelTransform(actorTransform);
+		return;
+	}
+	model->UpdateTransform(actorTransform);
 }
 
 void MultiLegFootIK::ApplyFootSettings()

@@ -1,4 +1,5 @@
-﻿#include "Animation/FootIK.h"
+// FootIK.cpp
+#include "Animation/FootIK.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
@@ -294,23 +295,22 @@ void FootIK::KeepPreviousGroundTarget()
 
 void FootIK::SetSmoothedTarget(const Vector3& targetPosition, float targetGroundOffsetY)
 {
-	if (!hasSmoothedTarget || Vector3::Distance(smoothedTargetPosition, targetPosition) > 0.75f)
+	if (!hasSmoothedTarget)
 	{
-		smoothedTargetPosition = targetPosition;
-		smoothedGroundOffsetY = targetGroundOffsetY;
+		if (!chain.tip) return;
+		smoothedTargetPosition = GetScaledNodeWorldPosition(*chain.tip);
+		smoothedGroundOffsetY = 0.0f;
 		hasSmoothedTarget = true;
 	}
-	else
-	{
-		float targetRate = 1.0f - expf(-targetSmoothSpeed * Game::Time::deltaTime);
-		float offsetRate = 1.0f - expf(-groundOffsetSmoothSpeed * Game::Time::deltaTime);
 
-		targetRate = std::clamp(targetRate, 0.0f, 1.0f);
-		offsetRate = std::clamp(offsetRate, 0.0f, 1.0f);
+	float targetRate = 1.0f - expf(-targetSmoothSpeed * Game::Time::deltaTime);
+	float offsetRate = 1.0f - expf(-groundOffsetSmoothSpeed * Game::Time::deltaTime);
 
-		smoothedTargetPosition = Vector3::Lerp(smoothedTargetPosition, targetPosition, targetRate);
-		smoothedGroundOffsetY += (targetGroundOffsetY - smoothedGroundOffsetY) * offsetRate;
-	}
+	targetRate = std::clamp(targetRate, 0.0f, 1.0f);
+	offsetRate = std::clamp(offsetRate, 0.0f, 1.0f);
+
+	smoothedTargetPosition = Vector3::Lerp(smoothedTargetPosition, targetPosition, targetRate);
+	smoothedGroundOffsetY += (targetGroundOffsetY - smoothedGroundOffsetY) * offsetRate;
 
 	chain.targetPosition = smoothedTargetPosition;
 	groundOffsetY = smoothedGroundOffsetY;

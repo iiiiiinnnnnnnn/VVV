@@ -4,6 +4,7 @@
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Application/Tools/Dialog.h"
 #include "Animation/Animator.h"
+#include "Animation/FootIK.h"
 #include "Animation/HumanoidFootIK.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
@@ -1035,6 +1036,8 @@ void VmdlEditorScene::RenderPreview()
 			const auto& ikSettings = model->GetVmdlIKSettings();
 			const auto& poles = model->GetVmdlIKPoles();
 			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
+			const auto previewFeet = footIkApplied
+				? footIkPreviewOwner->GetComponents<FootIK>() : std::vector<FootIK*>{};
 			for (int i = 0; i < Count(ikSettings.legs); ++i)
 			{
 				const auto& leg = ikSettings.legs[i];
@@ -1042,6 +1045,13 @@ void VmdlEditorScene::RenderPreview()
 				const int midIndex = model->GetNodeIndex(leg.mid.c_str());
 				const int tipIndex = model->GetNodeIndex(leg.tip.c_str());
 				if (rootIndex < 0 || midIndex < 0 || tipIndex < 0) continue;
+				if (i < Count(previewFeet) && previewFeet[i]->IsPoleInitialized())
+				{
+					graphics.GetShapeRenderer()->DrawSphere(previewFeet[i]->GetPoleWorldPosition(),
+						0.05f, Color(0.0f, 1.0f, 1.0f, 1.0f));
+					hasShapes = true;
+					continue;
+				}
 
 				Vector3 polePosition;
 				if (i < Count(poles) && poles[i].custom)

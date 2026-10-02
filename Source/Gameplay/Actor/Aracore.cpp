@@ -45,6 +45,7 @@ Aracore::Aracore(Player* player_init,
         // モデル
         vmdl = AddComponent<VMDL>("Resources/Model/Aracore");
         vmdl->SetAutoUpdateTransform(false);
+        vmdl->SetModelYawOffset(DirectX::XM_PI);
         model = vmdl->GetSharedModel();
 		this->transform = transform;
         vmdl->UpdateTransform(transform.matrix);
@@ -57,7 +58,7 @@ Aracore::Aracore(Player* player_init,
 
         // キャラクターコントローラー
         characterController = AddComponent<CharacterController>(
-            Layers::Get("Enemy"), 3.0f, 0.01f);
+            Layers::Get("Enemy"), 1.84f, 0.01f);
 
         // 移動の衝突対象は元のFootレイヤーと同じ範囲に保つ
         characterController->SetLayerIgnored(Layers::Get("Default"), true);
@@ -583,21 +584,6 @@ void Aracore::DeformTerrainAtLanding()
 void Aracore::UpdateAnimatedModelTransform()
 {
     if (!model || !vmdl) return;
-
-    // アニメーターは更新時にポーズ全体を書き込みます。ここでアニメーションのルートポーズを修正し、
-	// ソースモデルの -Z 方向の前面がゲームプレイの +Z 方向の前面と一致するようにします
-    const Matrix facingCorrection = Matrix::CreateRotationY(DirectX::XM_PI);
-    for (VMDLModel::Node& node : model->GetNodes())
-    {
-        if (node.parentIndex >= 0) continue;
-
-        const Matrix animatedLocal =
-            Matrix::CreateScale(node.scale) *
-            Matrix::CreateFromQuaternion(node.rotation) *
-            Matrix::CreateTranslation(node.position);
-        (animatedLocal * facingCorrection).Decompose(node.scale, node.rotation, node.position);
-        node.rotation.Normalize();
-    }
 
     vmdl->UpdateTransform(transform.matrix);
 }

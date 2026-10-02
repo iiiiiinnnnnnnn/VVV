@@ -130,12 +130,11 @@ bool TestPlayScene::ShouldUpdateWorld() const
 
 void TestPlayScene::OnUpdate()
 {
-	Vector3 spawn = ((ImGuiBind)Vector3(0, 3.0f, 0));
 #ifndef _RELEASE // ちょうデバッグ
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
 		currentStage->GetActorManager().Register(std::make_shared<Deer>(
-			Transform::FromPosition(player->transform.position + spawn))
+			Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)))
 		);
 	}
 	if (ImGui::IsKeyPressed(ImGuiKey_2))
