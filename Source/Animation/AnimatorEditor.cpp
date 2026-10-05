@@ -1,4 +1,5 @@
-﻿#include "Animation/Animator.h"
+// AnimatorEditor.cpp
+#include "Animation/Animator.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -1355,9 +1356,11 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
             ImGui::SameLine();
 
+            ImGui::Checkbox("Seconds", &cb.useSeconds);
+            ImGui::SameLine();
             float range[2] = { cb.enterTimePer, cb.exitTimePer };
             ImGui::SetNextItemWidth(150.0f);
-            if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, 1.0f, "%.2f"))
+            if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, cb.useSeconds ? 0.0f : 1.0f, "%.2f"))
             {
                 cb.enterTimePer = range[0];
                 cb.exitTimePer  = std::max(range[1], range[0] + 0.01f);

@@ -94,6 +94,7 @@ void AfterimageComponent::OnDrawGUI()
 void AfterimageComponent::CapturePose()
 {
 	if (!sourceModel || sourceModel->GetNodes().empty()) return;
+	if (static_cast<int>(afterimages.size()) >= maxAfterimages) return;
 
 	Afterimage& afterimage = afterimages.emplace_back();
 	std::vector<std::shared_ptr<MeshCache>> caches;
@@ -103,7 +104,7 @@ void AfterimageComponent::CapturePose()
 		for (const auto& [group, cache] : renderer->GetExternalMeshCaches()) caches.push_back(cache);
 	}
 	afterimage.model = sourceModel->CloneRenderPose(caches);
-	afterimage.renderParams.unlit = true;
+	afterimage.renderParams.justDodgeUnlit = true;
 
 	for (const VMDLModel::Material& material : afterimage.model->GetMaterials())
 	{
@@ -113,18 +114,13 @@ void AfterimageComponent::CapturePose()
 	}
 	UpdateRenderParams(afterimage);
 
-	if (static_cast<int>(afterimages.size()) > maxAfterimages)
-		afterimages.erase(afterimages.begin());
 }
 
 void AfterimageComponent::UpdateRenderParams(Afterimage& afterimage) const
 {
-	const float normalizedAge = lifetime > 0.0f
-		? std::clamp(afterimage.age / lifetime, 0.0f, 1.0f)
-		: 1.0f;
-	// 回避中に見やすくするため最初だけ濃く保持してから滑らかに薄くする
-	const float fade = 1.0f - normalizedAge * normalizedAge;
-	const float alpha = std::clamp(maxOpacity * fade, 0.0f, 0.98f);
+	afterimage.renderParams.justDodgeFade =
+	{afterimage.age, lifetime, lifetime * 0.2f, lifetime};
+	const float alpha = std::clamp(maxOpacity, 0.0f, 0.98f);
 
 	for (auto& [name, params] : afterimage.renderParams.materials)
 	{

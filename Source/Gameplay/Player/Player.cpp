@@ -1,4 +1,4 @@
-#include "Gameplay/Player/Player.h"
+﻿#include "Gameplay/Player/Player.h"
 #include "Audio/SoundTracks.generated.h"
 #include "Rendering/Effect/Effects.generated.h"
 #include "Application/Input/Input.h"
@@ -87,7 +87,7 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	// 遷移先の開始時に両方のフラグを更新し、攻撃中断や連続攻撃にも対応する。
 	anim->AddCallbackFunc("LockOnAttack", [this](const Animator::State&) {
 		lockOnComponent->SetAimActive(true);
-		lockOnComponent->SetRotationPaused(false);
+		lockOnComponent->SetRotationPaused(justDodgeSkillActive);
 	}, {});
 	anim->AddCallbackFunc("LockOnHit", [this](const Animator::State&) {
 		lockOnComponent->SetAimActive(false);
@@ -95,8 +95,15 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	}, {});
 	anim->AddCallbackFunc("LockOnIdle", [this](const Animator::State&) {
 		lockOnComponent->SetAimActive(false);
-		lockOnComponent->SetRotationPaused(false);
+		lockOnComponent->SetRotationPaused(justDodgeSkillActive);
 	}, {});
+	anim->AddCallbackFunc("DodgeInvincible", [this](const Animator::State&) {
+		justDodgeWindowActive = true;
+		dodgeInvincible = true;
+	}, [this](const Animator::State&) {
+		justDodgeWindowActive = false;
+		dodgeInvincible = justDodgeSkillActive;
+	});
 	anim->BindCallbacks();
 
 	// SetFootPositionとSetPositionは両方呼ばない
@@ -255,7 +262,7 @@ void Player::TakeDamage(const DamageData& damageData)
 
 void Player::TriggerJustDodge(Actor* attacker)
 {
-	if (justDodgeTriggered || justDodgeSkillActive || justDodgeWindowRemaining <= 0.0f) return;
+	if (justDodgeTriggered || justDodgeSkillActive || !justDodgeWindowActive) return;
 	justDodgeAttacker = attacker;
 	PlayJustDodgeFeedback();
 	justDodgeTriggered = true;
@@ -298,7 +305,7 @@ bool Player::IsEnemyAttackActive(
 
 void Player::OnDead(const DamageData& damageData)
 {
-	justDodgeWindowRemaining = 0.0f;
+	justDodgeWindowActive = false;
 	justDodgeAttacker = nullptr;
 	deathSequenceActive = true;
 	deathReloadRequested = false;
@@ -436,9 +443,6 @@ void Player::UpdateMovement()
 	const bool dodgeAnimationActive =
 		currentStateName.find("Quickshift") != std::string::npos ||
 		nextStateName.find("Quickshift") != std::string::npos;
-	justDodgeWindowRemaining = dodgeAnimationActive
-		? std::max(0.0f, justDodgeWindowRemaining - Game::Time::deltaTime)
-		: 0.0f;
 	const bool justDodgeSkillAnimationActive =
 		currentStateName.starts_with("SpSkill") ||
 		nextStateName.starts_with("SpSkill");
@@ -474,9 +478,11 @@ void Player::UpdateMovement()
 		!dodgeAnimationActive)
 	{
 		justDodgeSkillActive = false;
+		lockOnComponent->SetRotationPaused(false);
 	}
-	dodgeInvincible = dodgeAnimationActive || justDodgeSkillActive;
-	if (!dodgeInvincible)
+	if (!dodgeAnimationActive) justDodgeWindowActive = false;
+	dodgeInvincible = justDodgeWindowActive || justDodgeSkillActive;
+	if (!dodgeAnimationActive && !justDodgeSkillActive)
 	{
 		justDodgeTriggered = false;
 		justDodgeAttacker = nullptr;
@@ -593,10 +599,10 @@ void Player::UpdateMovement()
 			justDodgeTriggered = false;
 			justDodgeSkillActive = true;
 			justDodgeSkillHitActors.clear();
-			lockOnComponent->LockOn(parryTarget);
-			if (Actor* target = lockOnComponent->GetTarget())
+			if (lockOnComponent->GetTarget() != parryTarget)
 			{
-				Vector3 direction = target->transform.position - transform.position;
+				lockOnComponent->LockOn(parryTarget);
+				Vector3 direction = parryTarget->transform.position - transform.position;
 				direction.y = 0.0f;
 				if (direction.LengthSquared() > eps)
 				{
@@ -605,6 +611,7 @@ void Player::UpdateMovement()
 						Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
 				}
 			}
+			lockOnComponent->SetRotationPaused(true);
 
 			const float skillDuration = 0.5f;
 			if (afterimage) afterimage->Play(skillDuration); // ずつきまで
@@ -639,14 +646,12 @@ void Player::UpdateMovement()
 		canStartDodge)
 	{
 		dodgeCooldownTimer = dodgeCooldownDuration;
-		dodgeInvincible = true;
-		justDodgeWindowRemaining = JustDodgeWindowDuration;
+		dodgeInvincible = false;
+		justDodgeWindowActive = false;
 		justDodgeTriggered = false;
 		justDodgeAttacker = nullptr;
 		justDodgeSoundPlayed = false;
 		justDodgeSkillActive = false;
-		if (cc) cc->SetLayerIgnored(Layers::Get("Enemy"), true);
-		if (cc) cc->SetActorTagIgnored("Enemy", true);
 		// 回避パーティクル
 		if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
 			renderer->PlayParticleEmitter("DODGE_WIND");

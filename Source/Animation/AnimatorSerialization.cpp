@@ -1,4 +1,5 @@
-﻿#include "Animation/Animator.h"
+// AnimatorSerialization.cpp
+#include "Animation/Animator.h"
 
 #include <algorithm>
 #include <fstream>
@@ -118,6 +119,7 @@ bool Animator::Serialize(const std::string& path) const
                     jCb["label"]        = cb.label;
                     jCb["enterTimePer"] = cb.enterTimePer;
                     jCb["exitTimePer"]  = cb.exitTimePer;
+                    jCb["useSeconds"] = cb.useSeconds;
                     jCallbacks.push_back(jCb);
                 }
                 jState["callbacks"] = jCallbacks;
@@ -308,6 +310,7 @@ void Animator::Deserialize(const std::string& path)
                             jCb["label"].get<std::string>(),
                             jCb["enterTimePer"].get<float>(),
                             jCb["exitTimePer"].get<float>());
+                        stateRef.callbacks.back().useSeconds = jCb.value("useSeconds", false);
                     }
                 }
             }

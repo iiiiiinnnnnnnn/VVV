@@ -83,6 +83,7 @@ public:
             std::function<void(const State& state)> onEnter;
             std::function<void(const State& state)> onExit;
             bool entering = false;
+            bool useSeconds = false;
         };
 
         std::string             name;

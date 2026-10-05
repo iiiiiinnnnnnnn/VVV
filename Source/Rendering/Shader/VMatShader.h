@@ -82,4 +82,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	unlitPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> justDodgeUnlitPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> justDodgeFadeConstantBuffer;
 };

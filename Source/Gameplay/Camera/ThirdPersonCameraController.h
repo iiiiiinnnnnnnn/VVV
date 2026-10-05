@@ -1,3 +1,4 @@
+// ThirdPersonCameraController.h
 #pragma once
 
 #include <algorithm>
@@ -61,6 +62,7 @@ private:
 	float fovYDegrees = FOV_DEFAULT;
     float aspectRatio = 1280.0f / 720.0f;
     float nearClip = 0.1f;
+	float cameraCollisionRadius = 0.25f;
     float farClip = 1000.0f;
 
     bool initialized = false;

@@ -22,6 +22,10 @@ VMatShader::VMatShader(ID3D11Device* device)
 		device,
 		"Resources/Shader/UnlitPS.cso",
 		unlitPixelShader.GetAddressOf());
+	GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/JustDodgeUnlit.cso",
+		justDodgeUnlitPixelShader.GetAddressOf());
+	GpuResourceUtils::CreateConstantBuffer(device, sizeof(Vector4),
+		justDodgeFadeConstantBuffer.GetAddressOf());
 
 	GpuResourceUtils::LoadGeometryShader(
 		device,
@@ -79,7 +83,13 @@ void VMatShader::Update(
 	const VMatRenderParams* params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	dc->PSSetShader(params && params->unlit ? unlitPixelShader.Get() : pixelShader.Get(), nullptr, 0);
+	dc->PSSetShader(params && params->justDodgeUnlit ? justDodgeUnlitPixelShader.Get()
+		: params && params->unlit ? unlitPixelShader.Get() : pixelShader.Get(), nullptr, 0);
+	if (params && params->justDodgeUnlit)
+	{
+		dc->UpdateSubresource(justDodgeFadeConstantBuffer.Get(), 0, nullptr, &params->justDodgeFade, 0, 0);
+		dc->PSSetConstantBuffers(3, 1, justDodgeFadeConstantBuffer.GetAddressOf());
+	}
 	const VMatMaterialParams* materialParams = nullptr;
 	if (params)
 	{
@@ -286,7 +296,7 @@ void VMatShader::End(const RenderContext& rc)
 	dc->IASetInputLayout(nullptr);
 
 	// 定数バッファ解除
-	ID3D11Buffer* nullCbs[] = { nullptr, nullptr, nullptr };
+	ID3D11Buffer* nullCbs[] = { nullptr, nullptr, nullptr, nullptr };
 	dc->PSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->VSSetConstantBuffers(0, _countof(nullCbs), nullCbs);
 	dc->GSSetConstantBuffers(0, _countof(nullCbs), nullCbs);

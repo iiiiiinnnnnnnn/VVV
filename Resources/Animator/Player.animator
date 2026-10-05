@@ -912,6 +912,12 @@
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnIdle"
+                        },
+                        {
+                            "enterTimePer": -0.001,
+                            "exitTimePer": 0.2,
+                            "label": "DodgeInvincible",
+                            "useSeconds": true
                         }
                     ],
                     "dynamicClipPath": "",
@@ -983,6 +989,12 @@
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnIdle"
+                        },
+                        {
+                            "enterTimePer": -0.001,
+                            "exitTimePer": 0.2,
+                            "label": "DodgeInvincible",
+                            "useSeconds": true
                         }
                     ],
                     "dynamicClipPath": "",
@@ -1054,6 +1066,12 @@
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnIdle"
+                        },
+                        {
+                            "enterTimePer": -0.001,
+                            "exitTimePer": 0.2,
+                            "label": "DodgeInvincible",
+                            "useSeconds": true
                         }
                     ],
                     "dynamicClipPath": "",
@@ -1125,6 +1143,12 @@
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnIdle"
+                        },
+                        {
+                            "enterTimePer": -0.001,
+                            "exitTimePer": 0.2,
+                            "label": "DodgeInvincible",
+                            "useSeconds": true
                         }
                     ],
                     "dynamicClipPath": "",

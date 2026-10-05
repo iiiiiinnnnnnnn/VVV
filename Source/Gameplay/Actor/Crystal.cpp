@@ -5,6 +5,7 @@
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/VMDL.h"
+#include "Physics/Core/PhysicsComponent.h"
 
 Crystal::Crystal(const Transform& transform) : Entity("Crystal", "Crystal", true, transform)
 {
@@ -57,8 +58,9 @@ void Crystal::OnDead(const DamageData& damageData)
 	if (deathCleanupPending) return;
 
 	life = 0.0f;
+	deathCleanupPending = true;
+	for (PhysicsComponent* collider : GetComponents<PhysicsComponent>())
+		if (collider) collider->SetActive(false);
 	PlayBreakSound();
 	vmdl->GetRenderer()->PlayParticleEmitter("BREAK");
-
-	deathCleanupPending = true;
 }

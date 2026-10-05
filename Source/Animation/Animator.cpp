@@ -1947,7 +1947,9 @@ void Animator::EvaluateCallbacks(State& state, float currentTime, float animLeng
 {
     for (auto& callback : state.callbacks)
     {
-        float nowPer = animLength > 0.0f ? currentTime / animLength : 0.0f;
+          float nowPer = callback.useSeconds
+              ? currentTime / std::max(fabsf(state.speed), 0.0001f)
+              : animLength > 0.0f ? currentTime / animLength : 0.0f;
         if (nowPer > callback.enterTimePer && nowPer < callback.exitTimePer)
         {
             if (!callback.entering)

@@ -1,3 +1,4 @@
+// AfterimageComponent.h
 #pragma once
 
 #include <memory>
@@ -43,8 +44,8 @@ private:
 
 	float captureDuration = 0.22f;
 	float captureInterval = 0.045f;
-	float lifetime = 0.30f;
+	float lifetime = 0.5f;
 	float maxOpacity = 0.28f;
 	float emissiveIntensity = 4.0f;
-	int maxAfterimages = 7;
+	int maxAfterimages = 16;
 };

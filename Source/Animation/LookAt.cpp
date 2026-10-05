@@ -1,4 +1,8 @@
-﻿#include "Animation/LookAt.h"
+// LookAt.cpp
+#include "Animation/LookAt.h"
+#include "Gameplay/Actor/Entity.h"
+#include "Physics/Collider/VMDLColliderComponent.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/VMDLModel.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -58,31 +62,33 @@ void LookAt::Update()
 	ActorManager* actorManager = ActorManager::GetActive();
 	found = false;
 	if (!actorManager) return;
+	if (lookDistance <= 0.0f) return;
+	float nearestDistanceSq = lookDistance * lookDistance;
 
 	for (Actor* actor : actorManager->GetActors())
 	{
-		if (!actor) continue;
-		if (actor == owner) continue;
-
-		float dist = Vector3::Distance(
-			actor->transform.position, owner->GetTransform()->position);
-		if (dist < lookDistance)
+		if (!actor || actor == owner || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+		if (const auto* entity = dynamic_cast<const Entity*>(actor); entity && entity->IsDead()) continue;
+		bool matchesFilter = false;
+		for (const auto& filterTag : filterTags)
 		{
-			bool matchesFilter = false;
-			for (auto& filterTag : filterTags)
+			if (actor->CompareTag(filterTag))
 			{
-				if (actor->CompareTag(filterTag))
-				{
-					matchesFilter = true;
-					break;
-				}
+				matchesFilter = true;
+				break;
 			}
-			if (!matchesFilter) continue;
-
-			found = true;
-			target = actor->transform.position;
-			return;
 		}
+		if (!matchesFilter) continue;
+		const auto* renderer = actor->GetComponent<VMDLModelComponent>();
+		if (!renderer) continue;
+		const auto* lookHead = dynamic_cast<const VMDLColliderComponent*>(renderer->GetAttachmentCollider("LOOKHEAD"));
+		if (!lookHead) continue;
+		const float distanceSq = Vector3::DistanceSquared(
+			actor->transform.position, owner->GetTransform()->position);
+		if (distanceSq >= nearestDistanceSq) continue;
+		nearestDistanceSq = distanceSq;
+		found = true;
+		target = lookHead->GetWorldPosition();
 	}
 }
 

@@ -1011,6 +1011,9 @@
     <FxCompile Include="Shader\PBRPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\JustDodgeUnlit.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\UnlitPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>

@@ -41,4 +41,6 @@ struct VMatRenderParams
 	std::unordered_map<std::string, VMatMaterialParams> materials;
 	VMatDamageHoleParams damageHoles;
 	bool unlit = false;
+	bool justDodgeUnlit = false;
+	Vector4 justDodgeFade = {0.0f, 0.30f, 0.03f, 0.22f};
 };

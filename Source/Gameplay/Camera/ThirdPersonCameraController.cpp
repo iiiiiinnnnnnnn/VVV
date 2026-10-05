@@ -1,3 +1,4 @@
+// ThirdPersonCameraController.cpp
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
@@ -95,28 +96,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
     // Lerp 済みの currentFocus を基準に、理想のカメラ位置を決める
     Vector3 idealEye = currentFocus + offset;
 
-    // 3. 最後にレイキャスト（めり込み防止）を行う
-    Vector3 dir = idealEye - currentFocus;
-    float maxDist = dir.Length();
-    dir.Normalize();
-
-    PxScene* scene = PhysicsManager::Instance().GetSceneContext().GetScene();
-    PxVec3 origin(currentFocus.x, currentFocus.y, currentFocus.z);
-    PxVec3 unitDir(dir.x, dir.y, dir.z);
-
-    PxRaycastBuffer hit;
-    PxQueryFilterData filterData;
-    filterData.flags = PxQueryFlag::eSTATIC;
-
-    // 最終的な表示位置を決定する変数
     Vector3 finalEye = idealEye;
-
-    if (scene->raycast(origin, unitDir, maxDist, hit, PxHitFlag::eDEFAULT, filterData))
-    {
-        float hitDist = hit.block.distance - 0.1f;
-        if (hitDist < 0.1f) hitDist = 0.1f;
-        finalEye = currentFocus + dir * hitDist;
-    }
 
 	float bossFocusWeight = 0.0f;
 	float bossFocusFov = fovYDegrees;
@@ -151,27 +131,6 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 		if (bossDefeatFocusTimer <= 0.0f) bossDefeatTarget = nullptr;
 	}
 
-	// 撃破カメラの移動中も地形へ潜り込まないよう、最終位置でも遮蔽判定する。
-	if (bossFocusWeight > 0.0f)
-	{
-		Vector3 cinematicDirection = cameraEye - cameraFocus;
-		const float cinematicDistance = cinematicDirection.Length();
-		if (cinematicDistance > 0.001f)
-		{
-			cinematicDirection /= cinematicDistance;
-			PxRaycastBuffer cinematicHit;
-			PxQueryFilterData cinematicFilter;
-			cinematicFilter.flags = PxQueryFlag::eSTATIC;
-			if (scene->raycast(PxVec3(cameraFocus.x, cameraFocus.y, cameraFocus.z),
-				PxVec3(cinematicDirection.x, cinematicDirection.y, cinematicDirection.z),
-				cinematicDistance, cinematicHit, PxHitFlag::eDEFAULT, cinematicFilter))
-			{
-				const float distance = std::max(cinematicHit.block.distance - 0.1f, 0.1f);
-				cameraEye = cameraFocus + cinematicDirection * distance;
-			}
-		}
-	}
-
     // エフェクト系反映
     CameraEffectController::Update(camera, cameraEye, cameraFocus, Vector3::Up);
 
@@ -183,6 +142,34 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         nearClip,
         farClip
     );
+
+    // シェイクとFOV変更を反映した最終位置で、近クリップ面まで地形から守る。
+    const Vector3 actualFocus = camera.GetFocus();
+    const Vector3 actualEye = camera.GetEye();
+    Vector3 collisionDirection = actualEye - actualFocus;
+    const float collisionDistance = collisionDirection.Length();
+    PxScene* scene = PhysicsManager::Instance().GetSceneContext().GetScene();
+    if (scene && collisionDistance > 0.001f)
+    {
+        collisionDirection /= collisionDistance;
+        const float planeHeight = nearClip / std::max(fabsf(camera.GetProjection()._22), 0.0001f);
+        const float planeRadius = sqrtf(nearClip * nearClip +
+            planeHeight * planeHeight * (1.0f + aspectRatio * aspectRatio));
+        const float radius = std::max(cameraCollisionRadius, planeRadius);
+        PxSweepBuffer hit;
+        PxQueryFilterData filter;
+        filter.flags = PxQueryFlag::eSTATIC;
+        if (scene->sweep(PxSphereGeometry(radius),
+            PxTransform(PxVec3(actualFocus.x, actualFocus.y, actualFocus.z)),
+            PxVec3(collisionDirection.x, collisionDirection.y, collisionDirection.z),
+            collisionDistance, hit, PxHitFlag::eDEFAULT | PxHitFlag::eMESH_BOTH_SIDES, filter))
+        {
+            const float safeDistance = std::max(hit.block.distance - 0.03f, 0.0f);
+            const Vector3 safeEye = actualFocus + collisionDirection * safeDistance;
+            if (safeDistance > 0.001f) camera.SetLookAt(safeEye, actualFocus, Vector3::Up);
+            else camera.SetLookAt(actualFocus, actualFocus - collisionDirection, Vector3::Up);
+        }
+    }
 
     // 次フレームの Lerp 用に現在の「理想位置」を保存しておく（必要に応じて）
     currentEye = finalEye;
@@ -244,6 +231,7 @@ void ThirdPersonCameraController::OnDrawGUI()
     ImGui::Separator();
 
     ImGui::DragFloat("FOV Y", &fovYDegrees, 0.5f, 10.0f, 120.0f, "%.1f");
+    ImGui::DragFloat("Camera Collision Radius", &cameraCollisionRadius, 0.01f, 0.05f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::DragFloat("Near Clip", &nearClip, 0.01f, 0.01f, 10.0f);
     ImGui::DragFloat("Far Clip", &farClip, 10.0f, 10.0f, 10000.0f);
 

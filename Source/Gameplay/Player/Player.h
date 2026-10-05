@@ -88,8 +88,7 @@ protected:
 	std::shared_ptr<Effect> attackHitEffect;
 	bool dodgeInvincible = false;
 	bool justDodgeTriggered = false;
-	float justDodgeWindowRemaining = 0.0f;
-	static constexpr float JustDodgeWindowDuration = 0.2f;
+	bool justDodgeWindowActive = false;
 	Actor* justDodgeAttacker = nullptr;
 	bool justDodgeSoundPlayed = false;
 	bool justDodgeSkillActive = false;

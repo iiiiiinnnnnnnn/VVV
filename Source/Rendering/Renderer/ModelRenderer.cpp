@@ -171,7 +171,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 				if (it != drawInfo.params->materials.end() && it->second.transmission)
 					transmission = *it->second.transmission;
 			}
-			if (mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
+			if ((drawInfo.params && drawInfo.params->justDodgeUnlit) ||
+				mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
 				transmission > 0.0f || (w > 0.01f && w < 0.99f))
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
