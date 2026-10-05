@@ -1,4 +1,5 @@
-﻿#pragma once
+// SkyBoxRenderer.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -26,6 +27,8 @@ public:
                 const RenderSettings& renderSettings);
 
     void DrawGUI();
+
+    float GetIntensity() const { return skyboxData.skyIntensity; }
 
     void SetIntensity(float intensity)
     {

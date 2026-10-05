@@ -1,3 +1,4 @@
+﻿// VMatRenderParams.h
 #pragma once
 
 #include <array>
@@ -14,6 +15,7 @@ struct VMatMaterialParams
 	std::optional<Color> fresnelColor;
 	std::optional<float> metalness;
 	std::optional<float> roughness;
+	std::optional<float> transmission;
 	std::optional<float> occlusion;
 	std::optional<float> occlusionStrength;
 	std::optional<float> shadowStrength;

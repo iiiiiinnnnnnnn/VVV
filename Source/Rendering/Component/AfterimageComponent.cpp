@@ -1,3 +1,4 @@
+// AfterimageComponent.cpp
 #include "Rendering/Component/AfterimageComponent.h"
 
 #include <algorithm>
@@ -6,6 +7,8 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ModelRenderer.h"
 #include "Resource/VMDLModel.h"
+#include "Core/Object/Object.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 
 AfterimageComponent::AfterimageComponent(
 	Object* owner, std::shared_ptr<VMDLModel> sourceModel)
@@ -93,14 +96,22 @@ void AfterimageComponent::CapturePose()
 	if (!sourceModel || sourceModel->GetNodes().empty()) return;
 
 	Afterimage& afterimage = afterimages.emplace_back();
-	afterimage.model = sourceModel->CloneRenderPose();
+	std::vector<std::shared_ptr<MeshCache>> caches;
+	if (const auto* renderer = owner->GetComponent<VMDLModelComponent>())
+	{
+		for (const auto& [slot, cache] : renderer->GetMeshCaches()) caches.push_back(cache);
+		for (const auto& [group, cache] : renderer->GetExternalMeshCaches()) caches.push_back(cache);
+	}
+	afterimage.model = sourceModel->CloneRenderPose(caches);
 	afterimage.renderParams.unlit = true;
 
 	for (const VMDLModel::Material& material : afterimage.model->GetMaterials())
 	{
 		VMatMaterialParams& params = afterimage.renderParams.materials[material.name];
 		params.useBaseColorTexture = false;
+		params.transmission = 0.0f;
 	}
+	UpdateRenderParams(afterimage);
 
 	if (static_cast<int>(afterimages.size()) > maxAfterimages)
 		afterimages.erase(afterimages.begin());

@@ -556,6 +556,9 @@ float4 main(VS_OUT pin) : SV_TARGET
 
     color = ApplyDistanceFog(color, pin.position);
 
+    const float waterDepth = max(-0.5f - pin.position.y, 0.0f);
+    color *= exp(-0.6f * waterDepth);
+
     if (terrain_grass_mask_preview != 0)
     {
         // 草がない場所を赤、生える場所を緑で大まかに表示する

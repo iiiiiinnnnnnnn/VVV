@@ -531,6 +531,7 @@ class VMDLModel
 	// Lightweight snapshot used by transient visual effects. CPU mesh and
 	// animation data are omitted while GPU buffers and the current pose are kept.
 	std::shared_ptr<VMDLModel> CloneRenderPose() const;
+	std::shared_ptr<VMDLModel> CloneRenderPose(const std::vector<std::shared_ptr<MeshCache>>& caches) const;
 	bool HasSkeleton() const;
 
 	struct Node
@@ -577,6 +578,10 @@ class VMDLModel
 		Color emissiveColor = {0, 0, 0, 1};
 		float metalness = 0.0f;
 		float roughness = 0.0f;
+		float transmission = 0.0f;
+		float indexOfRefraction = 1.5f;
+		float refractionDistance = 0.18f;
+		float crystalRoughness = 0.12f;
 		float occlusion = 1.0f;
 		float occlusionStrength = 0.0f;
 		float shadowStrength = 1.0f;

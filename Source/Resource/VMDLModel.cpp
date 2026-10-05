@@ -1263,6 +1263,33 @@ std::shared_ptr<VMDLModel> VMDLModel::CloneRenderPose() const
 	return std::shared_ptr<VMDLModel>(new VMDLModel(*this, RenderPoseCloneTag{}));
 }
 
+std::shared_ptr<VMDLModel> VMDLModel::CloneRenderPose(
+	const std::vector<std::shared_ptr<MeshCache>>& caches) const
+{
+	auto result = CloneRenderPose();
+	for (const auto& cache : caches)
+	{
+		if (!cache) continue;
+		const int materialOffset = static_cast<int>(result->materials.size());
+		result->materials.insert(result->materials.end(), cache->materials.begin(), cache->materials.end());
+		for (const Mesh& source : cache->meshes)
+		{
+			if (!source.isDraw || !source.vertexBuffer || !source.indexBuffer) continue;
+			Mesh& target = result->meshes.emplace_back();
+			target.bones = source.bones;
+			target.nodeIndex = source.nodeIndex;
+			target.materialIndex = materialOffset + source.materialIndex;
+			target.isDraw = true;
+			target.indexCount = source.indexCount;
+			target.vertexBuffer = source.vertexBuffer;
+			target.indexBuffer = source.indexBuffer;
+		}
+	}
+	result->RebuildRuntimeReferences();
+	result->UpdateTransform(worldTransform);
+	return result;
+}
+
 bool VMDLModel::HasSkeleton() const
 {
 	for (const Mesh& mesh : meshes)
@@ -2169,6 +2196,16 @@ bool VMDLModel::ReplaceGLBCache(
 	// 新GLBを先に読込、VMDL側の編集値は後で同名マテリアルへ戻す
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
 	VMDLModel replacement(filepath.string().c_str(), sampleRate);
+	for (Material& material : replacement.materials)
+	{
+		const auto old = std::find_if(materials.begin(), materials.end(),
+			[&](const Material& value) { return value.name == material.name; });
+		if (old == materials.end()) continue;
+		material.transmission = old->transmission;
+		material.indexOfRefraction = old->indexOfRefraction;
+		material.refractionDistance = old->refractionDistance;
+		material.crystalRoughness = old->crystalRoughness;
+	}
 
 	// VMSHの紐づけをメッシュ番号ではなく安定キーで新GLBへ移す
 	const auto oldBindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
@@ -2456,6 +2493,14 @@ void VMDLModel::Serialize(const char* filename)
 			const std::string value = BuildVfxExtensionJson(vmdlParticleData, vmdlPresentationData);
 			archive(value);
 		});
+		addFile("model.crystalsettings", [&](auto& archive) {
+			json settings = json::object();
+			for (const Material& material : materials)
+				settings[material.name] = {{"transmission", material.transmission},
+					{"ior", material.indexOfRefraction}, {"distance", material.refractionDistance},
+					{"roughness", material.crystalRoughness}};
+			archive(settings.dump());
+		});
 		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
 		addFile("model.externalmeshbindings",
 			[&](auto& archive) { archive(externalMeshBindingKeys); });
@@ -2598,6 +2643,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			std::vector<Vector3> ikSyncOffsets;
 			int ikInterpolationEasing = static_cast<int>(Easing::Type::Linear);
 			std::string vfxExtensionJson;
+			std::string crystalSettingsJson;
 			std::vector<std::vector<std::string>> externalMeshBindingKeys;
 			std::vector<std::vector<int>> externalMeshCacheIndices;
 			std::vector<std::pair<std::string, std::string>> files;
@@ -2680,6 +2726,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 					archive(vfxExtensionJson);
 					loadedVfxData = true;
 				}
+				else if (name == "model.crystalsettings") archive(crystalSettingsJson);
 				else if (name == "model.externalmeshes")
 				{
 					archive(externalMeshGroups);
@@ -2756,6 +2803,19 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			applyTransforms(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
 			sourceMaterials = materials;
 			ApplyVmdlMaterialData(materialData);
+			if (!crystalSettingsJson.empty())
+			{
+				const json settings = json::parse(crystalSettingsJson);
+				for (Material& material : materials)
+				{
+					const auto it = settings.find(material.name);
+					if (it == settings.end()) continue;
+					material.transmission = std::clamp(it->value("transmission", 0.0f), 0.0f, 1.0f);
+					material.indexOfRefraction = std::clamp(it->value("ior", 1.5f), 1.0f, 2.5f);
+					material.refractionDistance = std::clamp(it->value("distance", 0.18f), 0.0f, 5.0f);
+					material.crystalRoughness = std::clamp(it->value("roughness", 0.12f), 0.0001f, 1.0f);
+				}
+			}
 			SetModelScale(modelScale);
 			NormalizeAttachmentNames();
 			NormalizeVmdlIKRaySettings();

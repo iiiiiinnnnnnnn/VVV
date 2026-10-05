@@ -1,3 +1,4 @@
+﻿// ModelRenderer.h
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -66,6 +67,7 @@ private:
 
 	struct TransparencyDrawInfo
 	{
+		bool refractive = false;
 		ModelShaderId				shaderId;
 		const VMDLModel::Mesh*		mesh;
 		Matrix					renderScaleTransform;
@@ -79,4 +81,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	sceneConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	skeletonConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> transmissionBackground;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> transmissionBackgroundView;
 };

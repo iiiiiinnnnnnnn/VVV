@@ -1,4 +1,3 @@
-// Aracore.cpp
 #include "Gameplay/Actor/Aracore.h"
 #include "Animation/Animator.h"
 

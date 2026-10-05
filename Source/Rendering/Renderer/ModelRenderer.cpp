@@ -162,16 +162,20 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 			// 半透明メッシュ登録
 			float w = mesh.material->baseColor.w;
+			float transmission = mesh.material->transmission;
 			if (drawInfo.params)
 			{
 				const auto it = drawInfo.params->materials.find(mesh.material->name);
 				if (it != drawInfo.params->materials.end() && it->second.baseColor)
 					w = it->second.baseColor->w;
+				if (it != drawInfo.params->materials.end() && it->second.transmission)
+					transmission = *it->second.transmission;
 			}
 			if (mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
-				(w > 0.01f && w < 0.99f))
+				transmission > 0.0f || (w > 0.01f && w < 0.99f))
 			{
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
+				transparencyDrawInfo.refractive = transmission > 0.0f;
 				transparencyDrawInfo.mesh = &mesh;
 				transparencyDrawInfo.shaderId = drawInfo.shaderId;
 				transparencyDrawInfo.renderScaleTransform = renderScaleTransform;
@@ -192,6 +196,52 @@ void ModelRenderer::Render(const RenderContext& rc)
 	}
 	drawInfos.clear();
 
+	// Copy the opaque scene before rendering refractive surfaces; never sample the active RTV.
+	ID3D11ShaderResourceView* nullBackground = nullptr;
+	dc->PSSetShaderResources(5, 1, &nullBackground);
+	const bool needsTransmission = std::any_of(transparencyDrawInfos.begin(), transparencyDrawInfos.end(),
+		[](const TransparencyDrawInfo& info) { return info.refractive; });
+	bool backgroundAvailable = false;
+	if (needsTransmission)
+	{
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> target;
+		dc->OMGetRenderTargets(1, target.GetAddressOf(), nullptr);
+		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> source;
+		if (target) target->GetResource(resource.GetAddressOf());
+		if (resource) resource.As(&source);
+		if (source)
+		{
+			D3D11_TEXTURE2D_DESC desc{}, previous{};
+			source->GetDesc(&desc);
+			if (transmissionBackground) transmissionBackground->GetDesc(&previous);
+			if (desc.SampleDesc.Count == 1 && desc.ArraySize == 1)
+			{
+				if (!transmissionBackground || !transmissionBackgroundView || desc.Width != previous.Width ||
+					desc.Height != previous.Height || desc.Format != previous.Format || desc.MipLevels != previous.MipLevels)
+				{
+					transmissionBackgroundView.Reset();
+					transmissionBackground.Reset();
+					desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					desc.Usage = D3D11_USAGE_DEFAULT;
+					desc.CPUAccessFlags = 0;
+					desc.MiscFlags = 0;
+					Microsoft::WRL::ComPtr<ID3D11Device> device;
+					dc->GetDevice(device.GetAddressOf());
+					if (SUCCEEDED(device->CreateTexture2D(&desc, nullptr, transmissionBackground.GetAddressOf())))
+						device->CreateShaderResourceView(transmissionBackground.Get(), nullptr, transmissionBackgroundView.GetAddressOf());
+				}
+				if (transmissionBackgroundView)
+				{
+					dc->CopyResource(transmissionBackground.Get(), source.Get());
+					backgroundAvailable = true;
+				}
+			}
+		}
+	}
+	ID3D11ShaderResourceView* background = backgroundAvailable ? transmissionBackgroundView.Get() : nullptr;
+	dc->PSSetShaderResources(5, 1, &background);
+
 	// ブレンドステート設定
 	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
 
@@ -203,8 +253,12 @@ void ModelRenderer::Render(const RenderContext& rc)
 		});
 
 	// 半透明描画処理
+	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestOnly), 0);
 	for (const TransparencyDrawInfo& transparencyDrawInfo : transparencyDrawInfos)
 	{
+		const bool refractive = transparencyDrawInfo.refractive;
+		dc->RSSetState(rc.renderState->GetRasterizerState(rc.renderSettings.wireframe
+			? RasterizerState::WireCullNone : refractive ? RasterizerState::SolidCullBack : RasterizerState::SolidCullNone));
 		ModelShader* shader = shaders[static_cast<int>(transparencyDrawInfo.shaderId)].get();
 
 		shader->Begin(rc);
@@ -218,6 +272,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 		shader->End(rc);
 	}
 	transparencyDrawInfos.clear();
+	dc->PSSetShaderResources(5, 1, &nullBackground);
+	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
+	dc->RSSetState(rc.renderState->GetRasterizerState(
+		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
 
 	// 定数バッファ設定解除
 	for (ID3D11Buffer*& vsConstantBuffer : vsConstantBuffers) { vsConstantBuffer = nullptr; }

@@ -60,9 +60,8 @@ private:
 	void UpdateHealth();
 	void UpdateDeathSequence();
 	void UpdateFootSound();
-	bool HasIncomingEnemyAttack() const;
 	bool IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* collider) const;
-	void TriggerJustDodge();
+	void TriggerJustDodge(Actor* attacker);
 	void PlayJustDodgeFeedback();
 	void PlayAttackHitEffect(const Vector3& position);
 
@@ -89,6 +88,9 @@ protected:
 	std::shared_ptr<Effect> attackHitEffect;
 	bool dodgeInvincible = false;
 	bool justDodgeTriggered = false;
+	float justDodgeWindowRemaining = 0.0f;
+	static constexpr float JustDodgeWindowDuration = 0.2f;
+	Actor* justDodgeAttacker = nullptr;
 	bool justDodgeSoundPlayed = false;
 	bool justDodgeSkillActive = false;
 	std::unordered_set<Actor*> justDodgeSkillHitActors;
@@ -102,7 +104,7 @@ protected:
 	float speed = 5.0f;
 	bool sprinting = false;
 	bool crouching = false;
-	float crouchRootMotionScale = 0.55f;
+	float crouchRootMotionScale = 0.75f;
 	bool terrainDeformKeyHeld = false;
 	bool actionInputThisFrame = false;
 	float healthRecoveryTimer = 0.0f;

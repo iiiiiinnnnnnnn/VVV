@@ -1,4 +1,3 @@
-// Player.cpp
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundTracks.generated.h"
 #include "Rendering/Effect/Effects.generated.h"
@@ -247,26 +246,20 @@ void Player::TakeDamage(const DamageData& damageData)
 			: nullptr;
 		if (IsEnemyAttackActive(attacker, damageData.hitColliderSelf))
 		{
-			if (justDodgeSkillActive)
-			{
-				PlayJustDodgeFeedback();
-			}
-			else
-			{
-				TriggerJustDodge();
-			}
+			TriggerJustDodge(attacker);
 		}
 		return;
 	}
 	Entity::TakeDamage(damageData);
 }
 
-void Player::TriggerJustDodge()
+void Player::TriggerJustDodge(Actor* attacker)
 {
+	if (justDodgeTriggered || justDodgeSkillActive || justDodgeWindowRemaining <= 0.0f) return;
+	justDodgeAttacker = attacker;
 	PlayJustDodgeFeedback();
-	if (justDodgeTriggered) return;
 	justDodgeTriggered = true;
-	if (afterimage) afterimage->Play();
+	if (afterimage) afterimage->Play(0.5f);
 
 	CameraEffectController::Request(0.13f, 0.045f);
 	CameraEffectController::RequestFovOffset(0.24f, 8.0f);
@@ -293,8 +286,7 @@ bool Player::IsEnemyAttackActive(
 	const Actor* enemy, const PhysicsComponent* collider) const
 {
 	if (!enemy || !collider || !collider->IsActive() ||
-		!enemy->IsActive() || enemy->IsPendingDestroy() ||
-		!enemy->CompareTag("Enemy"))
+		!enemy->IsActive() || enemy->IsPendingDestroy())
 	{
 		return false;
 	}
@@ -304,56 +296,10 @@ bool Player::IsEnemyAttackActive(
 		layer == Layers::Get("AracoreAtkStamp");
 }
 
-bool Player::HasIncomingEnemyAttack() const
-{
-	ActorManager* actorManager = ActorManager::GetActive();
-	if (!actorManager) return false;
-
-	const LayerId enemyAttackLayer = Layers::Get("EnemyAtk");
-	const LayerId aracoreStampLayer = Layers::Get("AracoreAtkStamp");
-	constexpr float justDodgeThreatRange = 4.0f;
-	constexpr float justDodgeThreatRangeSq =
-		justDodgeThreatRange * justDodgeThreatRange;
-
-	for (Actor* enemy : actorManager->GetActors())
-	{
-		if (!enemy || enemy == this || !enemy->IsActive() ||
-			enemy->IsPendingDestroy() || !enemy->CompareTag("Enemy"))
-		{
-			continue;
-		}
-
-		const Entity* entity = dynamic_cast<const Entity*>(enemy);
-		if (entity && entity->IsDead()) continue;
-
-		for (PhysicsComponent* collider : enemy->GetComponents<PhysicsComponent>())
-		{
-			if (!collider ||
-				(collider->GetLayerId() != enemyAttackLayer &&
-				 collider->GetLayerId() != aracoreStampLayer) ||
-				!IsEnemyAttackActive(enemy, collider))
-			{
-				continue;
-			}
-
-			Vector3 attackPosition = enemy->transform.position;
-			if (const auto* attachment =
-				dynamic_cast<const VMDLColliderComponent*>(collider))
-			{
-				attackPosition = attachment->GetWorldPosition();
-			}
-
-			Vector3 toAttack = attackPosition - transform.position;
-			toAttack.y = 0.0f;
-			if (toAttack.LengthSquared() <= justDodgeThreatRangeSq) return true;
-		}
-	}
-
-	return false;
-}
-
 void Player::OnDead(const DamageData& damageData)
 {
+	justDodgeWindowRemaining = 0.0f;
+	justDodgeAttacker = nullptr;
 	deathSequenceActive = true;
 	deathReloadRequested = false;
 	deathSequenceTimer = 0.0f;
@@ -389,6 +335,11 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 {
 	if (!self || !other) return;
 	if (!self->IsActive()) return;
+	if (self->GetLayerId() == Layers::Get("Player") && dodgeInvincible && !justDodgeSkillActive)
+	{
+		Actor* attacker = dynamic_cast<Actor*>(other->GetOwner());
+		if (IsEnemyAttackActive(attacker, other)) TriggerJustDodge(attacker);
+	}
 	if (self->GetLayerId() != Layers::Get("PlayerAtk")) return;
 
 	const bool footAtk = self->CompareName("kick");
@@ -454,7 +405,7 @@ void Player::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, con
 		PostProcessController::Instance().RequestSkillHit();
 	}
 
-	if (!entity->IsDead()) lockOnComponent->LockOn(otherActor);
+	if (!skillAttack && !entity->IsDead()) lockOnComponent->LockOn(otherActor);
 }
 
 // バコーンエフェクト
@@ -485,6 +436,9 @@ void Player::UpdateMovement()
 	const bool dodgeAnimationActive =
 		currentStateName.find("Quickshift") != std::string::npos ||
 		nextStateName.find("Quickshift") != std::string::npos;
+	justDodgeWindowRemaining = dodgeAnimationActive
+		? std::max(0.0f, justDodgeWindowRemaining - Game::Time::deltaTime)
+		: 0.0f;
 	const bool justDodgeSkillAnimationActive =
 		currentStateName.starts_with("SpSkill") ||
 		nextStateName.starts_with("SpSkill");
@@ -525,6 +479,7 @@ void Player::UpdateMovement()
 	if (!dodgeInvincible)
 	{
 		justDodgeTriggered = false;
+		justDodgeAttacker = nullptr;
 		justDodgeSoundPlayed = false;
 	}
 	if (cc)
@@ -582,11 +537,11 @@ void Player::UpdateMovement()
 		worldMoveDir.x = ctx.moveX * cosY + ctx.moveZ * sinY;
 		worldMoveDir.z = ctx.moveX * (-sinY) + ctx.moveZ * cosY;
 		worldMoveDir.Normalize();
-		lockOnComponent->ReleaseIfMovingAway(worldMoveDir);
+		if (!justDodgeSkillActive) lockOnComponent->ReleaseIfMovingAway(worldMoveDir);
 
 		// 攻撃中は入力による方向転換を止める
 		if (!isFreeze &&
-			!dodgeAnimationActive)
+			!dodgeAnimationActive && !justDodgeSkillActive)
 		{
 			const bool sprintTurn = ctx.sprint && inputLen > 0.1f;
 			float turnSpeed = sprintTurn ? 8.0f : 12.0f;
@@ -615,9 +570,16 @@ void Player::UpdateMovement()
 	if (motor)
 		motor->SetRootMotionScale(crouching ? crouchRootMotionScale : 1.0f);
 
+	ActorManager* actorManager = ActorManager::GetActive();
+	Actor* parryTarget = justDodgeTriggered && actorManager && actorManager->Contains(justDodgeAttacker)
+		? justDodgeAttacker : nullptr;
+	if (parryTarget && (!parryTarget->IsActive() || parryTarget->IsPendingDestroy())) parryTarget = nullptr;
+	if (const auto* entity = dynamic_cast<const Entity*>(parryTarget); entity && entity->IsDead())
+		parryTarget = nullptr;
 	const bool startJustDodgeSkill =
 		ctx.attackPressed &&
 		justDodgeTriggered &&
+		parryTarget &&
 		dodgeAnimationActive &&
 		!justDodgeSkillActive &&
 		!IsDead();
@@ -631,7 +593,7 @@ void Player::UpdateMovement()
 			justDodgeTriggered = false;
 			justDodgeSkillActive = true;
 			justDodgeSkillHitActors.clear();
-			lockOnComponent->LockOnNearestEnemy();
+			lockOnComponent->LockOn(parryTarget);
 			if (Actor* target = lockOnComponent->GetTarget())
 			{
 				Vector3 direction = target->transform.position - transform.position;
@@ -644,8 +606,8 @@ void Player::UpdateMovement()
 				}
 			}
 
-			const float skillDuration =
-				model->GetAnimations()[skillAnimationIndex].secondsLength;
+			const float skillDuration = 0.5f;
+			if (afterimage) afterimage->Play(skillDuration); // ずつきまで
 			// SP攻撃の入りだけを遅くして、以降は通常速度に戻す
 			constexpr float skillTimeScale = 0.45f;
 			constexpr float skillSlowDuration = 0.18f;
@@ -678,7 +640,9 @@ void Player::UpdateMovement()
 	{
 		dodgeCooldownTimer = dodgeCooldownDuration;
 		dodgeInvincible = true;
+		justDodgeWindowRemaining = JustDodgeWindowDuration;
 		justDodgeTriggered = false;
+		justDodgeAttacker = nullptr;
 		justDodgeSoundPlayed = false;
 		justDodgeSkillActive = false;
 		if (cc) cc->SetLayerIgnored(Layers::Get("Enemy"), true);
@@ -686,7 +650,6 @@ void Player::UpdateMovement()
 		// 回避パーティクル
 		if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
 			renderer->PlayParticleEmitter("DODGE_WIND");
-		if (HasIncomingEnemyAttack()) TriggerJustDodge();
 		anim->SetFloat("Speed", 0.0f);
 		anim->SetBool("IsSprinting", false);
 		sprinting = false;

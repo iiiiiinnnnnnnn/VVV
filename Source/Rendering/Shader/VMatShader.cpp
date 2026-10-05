@@ -1,8 +1,10 @@
-﻿#include "Rendering/Shader/VMatShader.h"
+﻿// VMatShader.cpp
+#include "Rendering/Shader/VMatShader.h"
 #include "Resource/GpuResourceUtils.h"
 
 VMatShader::VMatShader(ID3D11Device* device)
 {
+	static_assert(sizeof(CbMaterial) == 144, "PBR material buffer layout must match HLSL.");
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Resources/Shader/PBRVS.cso",
@@ -84,6 +86,8 @@ void VMatShader::Update(
 		const auto it = params->materials.find(mesh.material->name);
 		if (it != params->materials.end()) materialParams = &it->second;
 	}
+	float transmission = std::clamp(materialParams && materialParams->transmission
+		? *materialParams->transmission : mesh.material->transmission, 0.0f, 1.0f);
 
 	// シャドウCB更新
 	{
@@ -194,6 +198,19 @@ void VMatShader::Update(
 		cb.isFlatShading = isFlatShading ? 1 : 0;
 
 		// 定数バッファ更新
+		cb.transmission = transmission;
+		cb.indexOfRefraction = std::clamp(mesh.material->indexOfRefraction, 1.0f, 2.5f);
+		cb.refractionDistance = std::clamp(mesh.material->refractionDistance, 0.0f, 5.0f);
+		if (cb.transmission > 0.0f)
+		{
+			cb.metalness = 0.0f;
+			cb.roughness = std::clamp(mesh.material->crystalRoughness, 0.0001f, 1.0f);
+			cb.useMetalnessTexture = 0;
+			cb.useRoughnessTexture = 0;
+			cb.occlusionStrength = 0.0f;
+			cb.fresnelStrength = 0.0f;
+			cb.isFlatShading = 1;
+		}
 		dc->UpdateSubresource(
 			materialConstantBuffer.Get(),
 			0,
@@ -215,7 +232,7 @@ void VMatShader::Update(
 	const bool isFlatShading = materialParams && materialParams->isFlatShading
 		? *materialParams->isFlatShading
 		: mesh.material->isFlatShading != 0;
-	const bool useGeometryShader = useDamageHoleGeometry || isFlatShading;
+	const bool useGeometryShader = useDamageHoleGeometry || isFlatShading || transmission > 0.0f;
 
 	for (int i = 0; i < damageHoles.count; ++i)
 	{
@@ -240,7 +257,7 @@ void VMatShader::Update(
 	};
 
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
-	dc->VSSetConstantBuffers(0, 1, shadowMapConstantBuffer.GetAddressOf());
+	dc->VSSetConstantBuffers(0, _countof(cbs), cbs);
 	dc->GSSetShader(useGeometryShader ? geometryShader.Get() : nullptr, nullptr, 0);
 	dc->GSSetConstantBuffers(0, _countof(cbs), cbs);
 

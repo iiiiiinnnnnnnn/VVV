@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// VMatShader.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -58,9 +59,11 @@ private:
 		int		isFlatShading;
 
 		int		useBaseColorTexture;
-
-	private:
 		int		dummy[3];
+		float transmission;
+		float indexOfRefraction;
+		float refractionDistance;
+		float transmissionDummy;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 

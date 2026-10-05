@@ -1,4 +1,4 @@
-// VmdlEditorScene.h
+﻿// VmdlEditorScene.h
 #pragma once
 
 #include "Audio/SoundTracks.generated.h"
@@ -144,6 +144,7 @@ class VmdlEditorScene : public Scene
 	void SaveVmdl();
 	void SaveVmdlAs();
 	void ExportGlb();
+	void ApplyVstgLighting();
 	void LoadModel(
 		const std::filesystem::path& filepath, const std::filesystem::path& importDestination = {});
 	void ErrorMessage(const std::string& message);
@@ -153,11 +154,14 @@ class VmdlEditorScene : public Scene
 	std::unordered_map<int, std::shared_ptr<MeshCache>> externalMeshPreviewCaches;
 	std::filesystem::path documentPath;
 	std::filesystem::path recentModelPath;
+	std::unique_ptr<RenderTarget> previewLuminance, previewBloomWork, previewSsao;
+	std::unique_ptr<RenderTarget> previewPostA, previewPostB;
 	std::unique_ptr<RenderTarget> previewSceneTarget;
 	std::unique_ptr<RenderTarget> previewTarget;
 	std::unique_ptr<Object> cameraOwner;
 	Camera* editorCamera = nullptr;
 	LightManager editorLights;
+	bool usesVstgLighting = false;
 	std::vector<std::shared_ptr<PointLight>> editorPointLights;
 
 	// 選択状態

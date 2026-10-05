@@ -366,6 +366,10 @@ void VstgEditorScene::OnDrawGUI()
 					dirty = true;
 				}
 				currentStage->GetLightManager().DrawGUI();
+				ImGui::Separator();
+				ImGui::TextUnformatted((const char*)u8"IBL・スカイボックス");
+				Game::Graphics::Instance().DrawSkyMapGUI();
+				Game::Graphics::Instance().GetSkyBoxRenderer()->DrawGUI();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem((const char*)u8"地形"))

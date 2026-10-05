@@ -1,3 +1,4 @@
+﻿// Scene.h
 #pragma once
 #include <memory>
 #include <optional>
@@ -28,6 +29,7 @@ public:
 
 	virtual ~Scene() = default;
 
+	void CapturePreviewEnvironment();
 	virtual void Update();
 	virtual void Render();
 	CameraController* GetActiveCameraController() const;
@@ -77,6 +79,9 @@ protected:
 	float gameEditorRightWidth = 680.0f;
 	std::string pendingStagePath;
 
+	static std::unique_ptr<LightManager> previewLighting;
+	static std::unique_ptr<Game::PostProcess> previewPostProcess;
+	static RenderSettings previewRenderSettings;
 	Game::PostProcess postProcess;
 	RenderSettings renderSettings;
 	ShadowMapData shadowMapData;

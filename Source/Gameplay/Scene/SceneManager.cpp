@@ -2,6 +2,8 @@
 #include "Gameplay/Scene/SceneManager.h"
 
 #include "Application/Time/GameTime.h"
+#include "Gameplay/Scene/HitStop.h"
+#include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Scene/LoadingScene.h"
 #include "Gameplay/Scene/GameStartScene.h"
@@ -229,7 +231,13 @@ void SceneManager::BeginPendingLoad()
 
 	loadProgress = 0.0f;
 
+	if (currentScene) currentScene->CapturePreviewEnvironment();
 	currentScene.reset();
+	TimeScaleController::CancelAll();
+	HitStop::CancelAll();
+	Game::Time::scale = 1.0f;
+	Game::Time::paused = false;
+	Game::Time::deltaTime = Game::Time::unscaledDeltaTime;
 	// 破棄されたシーンのBGM・SEをローディング画面や次シーンへ持ち越さない。
 	SoundSystem::Instance().SetPaused(false);
 	SoundSystem::Instance().StopAll();
@@ -426,6 +434,12 @@ void SceneManager::ApplyLoadedScene()
 	loadProgress = 1.0f;
 
 	currentScene.reset();
+	TimeScaleController::CancelAll();
+	HitStop::CancelAll();
+	Game::Time::scale = 1.0f;
+	Game::Time::paused = false;
+	Game::Time::deltaTime = Game::Time::unscaledDeltaTime;
+	SoundSystem::Instance().SetPaused(false);
 
 	PhysicsManager::Instance().
 		SetCurrentSceneContext(

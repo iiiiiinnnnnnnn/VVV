@@ -1,3 +1,4 @@
+﻿// Deer.cpp
 #include "Deer.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Scene/TimeScaleController.h"
@@ -159,14 +160,16 @@ void Deer::OnDrawGUI()
 
 void Deer::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
+	if (!self || !other || !self->IsActive() || !other->IsActive()) return;
 	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;
 	if (anim->GetCurrentStateName() != "run") return;
 
-	anim->SetTrigger("Damage");
-	navMeshAgent->Stop();
-
 	Entity* player = dynamic_cast<Entity*>(other->GetOwner());
 	if (!player || !player->CompareTag("Player")) return;
+	if (other->GetLayerId() != Layers::Get("Player")) return;
+
+	anim->SetTrigger("Damage");
+	navMeshAgent->Stop();
 
 	DamageData damageData{
 		.damage = 10.0f,

@@ -1,4 +1,6 @@
+// VSTG.cpp
 #include "Resource/VSTG.h"
+#include "Rendering/Core/Graphics.h"
 #include "Resource/ResourceManager.h"
 
 #include <array>
@@ -267,11 +269,22 @@ size_t VSTG::BuildEditorStateHash(const Terrain& terrain, const NavMeshActor& na
 	return hash;
 }
 
+bool VSTG::ApplyLighting(LightManager& lights) const
+{
+	error.clear();
+	if (ApplyLightingJson(lightingJson, lights)) return true;
+	if (error.empty()) error = "Lighting settings could not be applied.";
+	return false;
+}
+
 std::string VSTG::BuildLightingJson(const LightManager& lights) const
 {
 	json root;
 	root["ambient"] = SaveColor(lights.GetAmbientColor());
 	root["directional"] = SaveLight(lights.GetDirectionalLight());
+	const auto& graphics = Game::Graphics::Instance();
+	root["ibl"] = {{"skyMap", graphics.GetSkyMapName()},
+		{"skyIntensity", graphics.GetSkyBoxRenderer()->GetIntensity()}};
 	for (const PointLight& light : lights.GetPointLights())
 	{
 		if (light.IsPendingDestroy()) continue;
@@ -308,6 +321,19 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 	try
 	{
 		const json root = json::parse(text);
+		if (root.contains("ibl"))
+		{
+			auto& graphics = Game::Graphics::Instance();
+			const auto& ibl = root["ibl"];
+			const std::string skyMap = ibl.value("skyMap", graphics.GetSkyMapName());
+			const float intensity = ibl.value("skyIntensity", 1.0f);
+			if (skyMap != graphics.GetSkyMapName() && !graphics.LoadSkyMap(skyMap))
+			{
+				error = "Could not load the VSTG IBL: " + skyMap;
+				return false;
+			}
+			graphics.GetSkyBoxRenderer()->SetIntensity(intensity);
+		}
 		if (root.contains("ambient")) lights.SetAmbientColor(LoadColor(root["ambient"]));
 		if (root.contains("directional"))
 			LoadLight(root["directional"], lights.GetDirectionalLight());

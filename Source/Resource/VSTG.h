@@ -1,3 +1,4 @@
+// VSTG.h
 #pragma once
 
 #include "Core\Foundation\Common.h"
@@ -12,6 +13,7 @@ class VSTG
   public:
 	bool Load(const std::filesystem::path& path);
 	bool Save(const std::filesystem::path& path) const;
+	bool ApplyLighting(LightManager& lights) const;
 	bool Capture(Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader,
 		const LightManager& lights);
 	bool Apply(Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader,

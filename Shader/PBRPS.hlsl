@@ -10,6 +10,7 @@ Texture2D normalMap : register(t1); // 法線マップ (linear)
 Texture2D metalnessRoughnessMap : register(t2); // G=roughness, B=metalness (linear)
 Texture2D occlusionMap : register(t3); // AO (linear)
 Texture2D emissiveMap : register(t4); // エミッシブ (sRGB)
+Texture2D transmissionBackground : register(t5);
 
 SamplerState linearSampler : register(s0);
 SamplerState materialSampler : register(s2);
@@ -107,6 +108,11 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedoSRGB.a)
     * baseColor;
 
+    const float waterDepth = max(-0.5f - pin.position.y, 0.0f);
+    // Y=-2.0では元の光を約0.5～1%まで減衰させる。
+    const float3 waterTransmittance = exp(-float3(3.5f, 3.2f, 3.0f) * waterDepth);
+    const float3 deepWaterColor = float3(0.012f, 0.065f, 0.11f);
+
     float3 emissive;
     if (useEmissiveTexture != 0)
     {
@@ -153,6 +159,11 @@ float4 main(VS_OUT pin) : SV_TARGET
     // PBRパラメーター
     float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, finalMetalness);
     float3 F0 = lerp(0.04f, albedo.rgb, finalMetalness);
+    if (transmission > 0.0f)
+    {
+        float dielectricF0 = (indexOfRefraction - 1.0f) / (indexOfRefraction + 1.0f);
+        F0 = (dielectricF0 * dielectricF0).xxx;
+    }
 
     float3 N = normalize(pin.normal);
     float3 V = normalize(viewPosition - pin.position);
@@ -367,7 +378,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             lut_ggx,
             specular_pmrem,
             linearSampler)
-        * ambient;
+        * (transmission > 0.0f ? 1.0f.xxx : ambient);
 
     // AO適用
     iblDiffuse *= finalAO;
@@ -381,7 +392,33 @@ float4 main(VS_OUT pin) : SV_TARGET
         + emissive
         + rimEmission;
 
+    uint backgroundWidth, backgroundHeight;
+    transmissionBackground.GetDimensions(backgroundWidth, backgroundHeight);
+    if (transmission > 0.0f && backgroundWidth > 0 && backgroundHeight > 0)
+    {
+        float2 screenUV = pin.vertex.xy / float2(backgroundWidth, backgroundHeight);
+        float3 refractedDirection = refract(-V, N, 1.0f / indexOfRefraction);
+        float4 projected = mul(float4(pin.position + refractedDirection * refractionDistance, 1.0f), viewProjection);
+        float2 refractedUV = projected.xy / max(projected.w, 0.0001f) * float2(0.5f, -0.5f) + 0.5f;
+        // Fade distortion at screen edges to avoid stretching unrelated edge pixels.
+        float edge = saturate(min(min(screenUV.x, screenUV.y), min(1.0f - screenUV.x, 1.0f - screenUV.y)) * 20.0f);
+        float2 uv = saturate(lerp(screenUV, refractedUV, edge));
+        float3 backgroundColor = transmissionBackground.SampleLevel(shadowSampler, uv, 0).rgb;
+        float3 tint = lerp(1.0f.xxx, saturate(albedo.rgb), 0.35f);
+        float3 surfaceFresnel = CalcFresnel(F0, saturate(dot(N, V)));
+        float3 surface = (totalDiffuse * (1.0f - transmission) + totalSpecular) * shadow
+            + iblDiffuse * (1.0f - transmission) + iblSpecular + emissive * 0.12f;
+        float fog = DistanceFogFactor(pin.position);
+        color = surface * (1.0f - fog)
+            + backgroundColor * tint * transmission * (1.0f - surfaceFresnel);
+        color += DistanceFogColor() * fog * (1.0f - transmission * (1.0f - surfaceFresnel));
+        // Background is already included: keep reflection independent of material alpha.
+        color = color * waterTransmittance + deepWaterColor * (1.0f - waterTransmittance);
+        return float4(color, 1.0f);
+    }
+
     color = ApplyDistanceFog(color, pin.position);
+    color = color * waterTransmittance + deepWaterColor * (1.0f - waterTransmittance);
 
     return float4(color, albedo.a);
 }

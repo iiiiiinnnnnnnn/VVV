@@ -1,4 +1,4 @@
-// GamePostProcess.cpp
+﻿// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"
@@ -13,6 +13,133 @@ namespace Game
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
+
+	void PostProcess::CopySettingsFrom(const PostProcess& source)
+	{
+		enableBloomExtract = source.enableBloomExtract;
+		bloomThreshold = source.bloomThreshold;
+		enableBloomBlur = source.enableBloomBlur;
+		bloomBlurSize = source.bloomBlurSize;
+		bloomBlurBrightness = source.bloomBlurBrightness;
+		enableDualEffect = source.enableDualEffect;
+		dualEffectIndex = source.dualEffectIndex;
+		bloomIntensity = source.bloomIntensity;
+		baseIntensity = source.baseIntensity;
+		bloomSaturation = source.bloomSaturation;
+		baseSaturation = source.baseSaturation;
+		mergeWeight1 = source.mergeWeight1;
+		mergeWeight2 = source.mergeWeight2;
+		enableToneMapping = source.enableToneMapping;
+		toneMapOperatorIndex = source.toneMapOperatorIndex;
+		transferFunctionIndex = source.transferFunctionIndex;
+		colorRotationIndex = source.colorRotationIndex;
+		exposure = source.exposure;
+		paperWhiteNits = source.paperWhiteNits;
+		enableColorFilter = source.enableColorFilter;
+		colorFilterHueShift = source.colorFilterHueShift;
+		colorFilterSaturation = source.colorFilterSaturation;
+		colorFilterBrightness = source.colorFilterBrightness;
+		enableRadialBlur = source.enableRadialBlur;
+		radialBlurRadius = source.radialBlurRadius;
+		radialBlurSamplingCount = source.radialBlurSamplingCount;
+		radialBlurCenter = source.radialBlurCenter;
+		radialBlurMaskRadius = source.radialBlurMaskRadius;
+		enableVignette = source.enableVignette;
+		vignetteColor = source.vignetteColor;
+		vignetteCenter = source.vignetteCenter;
+		vignetteIntensity = source.vignetteIntensity;
+		vignetteSmoothness = source.vignetteSmoothness;
+		vignetteRounded = source.vignetteRounded;
+		vignetteRoundness = source.vignetteRoundness;
+		enableChromaticAberration = source.enableChromaticAberration;
+		chromaticAberrationAmount = source.chromaticAberrationAmount;
+		chromaticAberrationMaxSamples = source.chromaticAberrationMaxSamples;
+		enableSSAO = source.enableSSAO;
+		ssaoRadius = source.ssaoRadius;
+		ssaoIntensity = source.ssaoIntensity;
+		ssaoMinDistance = source.ssaoMinDistance;
+		ssaoMaxDistance = source.ssaoMaxDistance;
+		enableFXAA = source.enableFXAA;
+		enableBasicEffect = source.enableBasicEffect;
+		basicEffectIndex = source.basicEffectIndex;
+		gaussianMultiplier = source.gaussianMultiplier;
+		finalBloomThreshold = source.finalBloomThreshold;
+		finalBloomBlurSize = source.finalBloomBlurSize;
+		finalBloomBlurBrightness = source.finalBloomBlurBrightness;
+		for (int i = 0; i < 3; ++i) chromaticAberrationShift[i] = source.chromaticAberrationShift[i];
+	}
+
+	void PostProcess::PrepareSceneColor(const RenderContext& rc, RenderTarget* scene,
+		RenderTarget* luminance, RenderTarget* bloomWork, RenderTarget* ssao,
+		RenderTarget* workA, RenderTarget* workB)
+	{
+		auto* dc = rc.deviceContext;
+		ID3D11ShaderResourceView* sceneColorMap = scene->GetSRV();
+		if (IsSSAOEnabled())
+		{
+			ssao->Clear(dc, 1, 1, 1, 1);
+			ssao->Activate(dc);
+			{
+				SSAO(rc, scene->GetDepthSRV());
+			}
+			ssao->Deactivate(dc);
+
+			workB->Clear(dc);
+			workB->Activate(dc);
+			{
+				ApplySSAO(rc, scene->GetSRV(), ssao->GetSRV());
+			}
+			workB->Deactivate(dc);
+			sceneColorMap = workB->GetSRV();
+		}
+
+		// ---- 輝度抽出: scene → luminance --------------------------
+		luminance->Clear(dc);
+		luminance->Activate(dc);
+		{
+			if (IsBloomExtractEnabled())
+			{
+				LuminanceExtraction(rc, sceneColorMap);
+			}
+			else
+			{
+				Copy(rc, sceneColorMap);
+			}
+		}
+		luminance->Deactivate(dc);
+
+		if (IsBloomBlurEnabled())
+		{
+			bloomWork->Clear(dc);
+			bloomWork->Activate(dc);
+			{
+				BloomBlur(rc, luminance->GetSRV(), true);
+			}
+			bloomWork->Deactivate(dc);
+
+			luminance->Clear(dc);
+			luminance->Activate(dc);
+			{
+				BloomBlur(rc, bloomWork->GetSRV(), false);
+			}
+			luminance->Deactivate(dc);
+		}
+
+		// ---- Bloom合成 / Merge: scene + luminance → workA -----
+		workA->Clear(dc);
+		workA->Activate(dc);
+		{
+			if (IsDualEffectEnabled())
+			{
+				Bloom(rc, sceneColorMap, luminance->GetSRV());
+			}
+			else
+			{
+				Copy(rc, sceneColorMap);
+			}
+		}
+		workA->Deactivate(dc);
+	}
 
 	PostProcess::PostProcess()
 	{
@@ -380,7 +507,7 @@ namespace Game
 		int workBufferIndex = 0;
 
 		// エフェクトが有効ならパス増やす
-		
+
 		const bool useRadialBlur =
 			enableRadialBlur || runtimeRadialBlurIntensity > 0.001f;
 

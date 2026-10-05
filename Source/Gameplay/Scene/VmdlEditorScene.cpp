@@ -1,4 +1,3 @@
-// VmdlEditorScene.cpp
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -21,6 +20,7 @@
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/VMDLModel.h"
+#include "Resource/VSTG.h"
 #include "Resource/EmbeddedResources.h"
 
 #include "SceneManager.h"
@@ -155,6 +155,24 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 
 	previewTarget = std::make_unique<RenderTarget>(
 		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R8G8B8A8_UNORM);
+
+	previewLuminance = std::make_unique<RenderTarget>(
+		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewBloomWork = std::make_unique<RenderTarget>(
+		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewSsao = std::make_unique<RenderTarget>(
+		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewPostA = std::make_unique<RenderTarget>(
+		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewPostB = std::make_unique<RenderTarget>(
+		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	if (previewPostProcess) postProcess.CopySettingsFrom(*previewPostProcess);
+	if (previewLighting)
+	{
+		editorLights.SetDirectionalLight(previewLighting->GetDirectionalLight());
+		editorLights.SetAmbientColor(previewLighting->GetAmbientColor());
+		renderSettings = previewRenderSettings;
+	}
 
 	cameraOwner = std::make_unique<Object>("VMDL Editor Camera");
 
@@ -917,20 +935,38 @@ void VmdlEditorScene::RenderPreview()
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
-	previewSceneTarget->Clear(dc, 0, 0, 0, 1.0f);
-	previewSceneTarget->Activate(dc);
 
 	RenderContext rc{};
 	rc.deviceContext = dc;
 	rc.renderState = graphics.GetRenderState();
 	rc.camera = editorCamera;
-	editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
-	editorLightDirection.y += Game::Time::unscaledDeltaTime * 50.0f;
-	if (editorLightDirection.y > 360.0f) editorLightDirection.y -= 360.0f;
+	if (!previewLighting && !usesVstgLighting)
+		editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
+	editorLights.GetDirectionalLight().transform.Update();
+	rc.renderSettings = renderSettings;
+	rc.renderSettings.distanceFogEnabled = false;
 	rc.lightManager = &editorLights;
 	rc.iblData.diffuseIrradianceEnvironmentMap = graphics.GetIBLDiffuseIEM();
 	rc.iblData.specularPremappingRadianceEnvironmentMap = graphics.GetIBLSpecularPMREM();
 	rc.iblData.ggxLookUpTableMap = graphics.GetIBLGGXLUT();
+	if (model)
+	{
+		model->UpdateTransform(Matrix::Identity);
+		graphics.GetShadowMapRenderer()->Draw(model.get());
+	}
+	graphics.GetShadowMapRenderer()->Render(rc,
+		editorLights.GetDirectionalLight().GetDirection(), 500.0f);
+	for (int i = 0; i < ShadowMapData::CascadeCount; ++i)
+	{
+		rc.shadowMapData.shadowMaps[i] = graphics.GetShadowMapRenderer()->GetDepthSRV(i);
+		rc.shadowMapData.lightViewProjections[i] =
+			graphics.GetShadowMapRenderer()->GetLightViewProjection(i);
+	}
+	rc.shadowMapData.cascadeSplits = graphics.GetShadowMapRenderer()->GetCascadeSplits();
+	previewSceneTarget->Clear(dc, 0, 0, 0, 1.0f);
+	previewSceneTarget->Activate(dc);
+	graphics.GetSkyBoxRenderer()->Render(dc, rc.renderState, *editorCamera,
+		graphics.GetIBLSpecularPMREM(), rc.renderSettings);
 	if (showFootIkTestStage && footIkTestStageModel)
 	{
 		const Matrix stageTransform =
@@ -979,6 +1015,8 @@ void VmdlEditorScene::RenderPreview()
 					};
 				}
 			}
+			if (previewShadingMode != PreviewShadingMode::Pbr)
+				for (const auto& material : model->GetMaterials()) params.materials[material.name].transmission = 0.0f;
 			graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, model, &params);
 			for (const auto& [groupIndex, cache] : externalMeshPreviewCaches)
 				graphics.GetModelRenderer()->DrawMeshCache(
@@ -1336,8 +1374,8 @@ void VmdlEditorScene::RenderPreview()
 
 	previewSceneTarget->Deactivate(dc);
 
-	previewTarget->Clear(dc);
-	previewTarget->Activate(dc);
+	postProcess.PrepareSceneColor(rc, previewSceneTarget.get(), previewLuminance.get(),
+		previewBloomWork.get(), previewSsao.get(), previewPostA.get(), previewPostB.get());
 	postProcess.ClearRuntimeEffects();
 	if (radialBlurPreviewTimer > 0.0f)
 	{
@@ -1350,7 +1388,8 @@ void VmdlEditorScene::RenderPreview()
 			: radialBlurPreviewTimer / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
 		postProcess.AddRuntimeRadialBlur(radialBlurPreviewPower * std::clamp(intensity, 0.0f, 1.0f));
 	}
-	postProcess.ToneMapping(rc, previewSceneTarget->GetSRV());
+	postProcess.RenderFinal(rc, previewPostA->GetSRV(),
+		previewPostB.get(), previewPostA.get(), previewTarget.get());
 	previewTarget->Deactivate(dc);
 }
 
@@ -1412,6 +1451,7 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)u8"ツール"))
 	{
+		if (ImGui::MenuItem((const char*)u8"VSTGからライティング環境を適用")) ApplyVstgLighting();
 		if (ImGui::MenuItem((const char*)u8"スケール設定", nullptr, false, model != nullptr))
 		{
 			setScaleValue = model->GetModelScale();
@@ -5934,6 +5974,22 @@ void VmdlEditorScene::DrawMaterialEditor()
 		(const char*)u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
 	changed |= ImGui::SliderFloat((const char*)u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
 
+	ImGui::SeparatorText((const char*)u8"クリスタル");
+	bool crystalEnabled = material.transmission > 0.0f;
+	if (ImGui::Checkbox((const char*)u8"クリスタル表現", &crystalEnabled))
+	{
+		material.transmission = crystalEnabled ? 0.88f : 0.0f;
+		changed = true;
+	}
+	if (crystalEnabled)
+	{
+		changed |= ImGui::SliderFloat((const char*)u8"透過率", &material.transmission, 0.001f, 1.0f);
+		changed |= ImGui::SliderFloat((const char*)u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
+		changed |= ImGui::DragFloat((const char*)u8"屈折の距離", &material.refractionDistance,
+			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+		changed |= ImGui::SliderFloat((const char*)u8"クリスタルの粗さ", &material.crystalRoughness, 0.0001f, 1.0f);
+	}
+
 	const char* alphaModes[] = {
 		(const char*)u8"不透明", (const char*)u8"マスク", (const char*)u8"ブレンド"};
 	int alphaMode = static_cast<int>(material.alphaMode);
@@ -6160,6 +6216,28 @@ std::string VmdlEditorScene::MakeUniqueMorphName(const std::string& baseName) co
 std::string VmdlEditorScene::MakeNodeLabel(int nodeIndex, const std::string& nodeName)
 {
 	return std::to_string(nodeIndex) + ":" + nodeName;
+}
+
+void VmdlEditorScene::ApplyVstgLighting()
+{
+	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Stage").string();
+	std::string filepath;
+	if (Dialog::OpenFileName(filepath, "VSTG (*.vstg)\0*.vstg\0\0",
+			"Apply VSTG lighting environment", initialDirectory.c_str()) != DialogResult::OK) return;
+	try
+	{
+		VSTG stage;
+		if (!stage.Load(filepath) || !stage.ApplyLighting(editorLights))
+		{
+			ErrorMessage(stage.GetError());
+			return;
+		}
+		usesVstgLighting = true;
+	}
+	catch (const std::exception& exception)
+	{
+		ErrorMessage(std::string("VSTG lighting import failed: ") + exception.what());
+	}
 }
 
 void VmdlEditorScene::OpenVmdl()

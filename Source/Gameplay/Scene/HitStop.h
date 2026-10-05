@@ -1,3 +1,4 @@
+// HitStop.h
 #pragma once
 
 class HitStop
@@ -6,6 +7,8 @@ public:
     static void Request(float duration);
 
     static void Update();
+
+    static void CancelAll();
 
     static bool IsPlaying() { return isPlaying; }
 

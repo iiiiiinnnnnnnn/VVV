@@ -51,6 +51,10 @@ cbuffer CbMaterial : register(b1)
 
     int useBaseColorTexture;
     int3 _dummyCbMaterial;
+    float transmission;
+    float indexOfRefraction;
+    float refractionDistance;
+    float _dummyTransmission;
 };
 
 static const int MaxDamageHoles = 8;

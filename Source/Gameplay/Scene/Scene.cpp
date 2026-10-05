@@ -1,3 +1,4 @@
+﻿// Scene.cpp
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Lighting/Light.h"
@@ -383,71 +384,8 @@ void Scene::Render()
 	}
 	sceneBuffer->Deactivate(dc);
 
-	ID3D11ShaderResourceView* sceneColorMap = sceneBuffer->GetSRV();
-	if (postProcess.IsSSAOEnabled())
-	{
-		ssaoBuffer->Clear(dc, 1, 1, 1, 1);
-		ssaoBuffer->Activate(dc);
-		{
-			postProcess.SSAO(rc, sceneBuffer->GetDepthSRV());
-		}
-		ssaoBuffer->Deactivate(dc);
-
-		postProcessBuffer2->Clear(dc);
-		postProcessBuffer2->Activate(dc);
-		{
-			postProcess.ApplySSAO(rc, sceneBuffer->GetSRV(), ssaoBuffer->GetSRV());
-		}
-		postProcessBuffer2->Deactivate(dc);
-		sceneColorMap = postProcessBuffer2->GetSRV();
-	}
-
-	// ---- 輝度抽出: sceneBuffer → luminanceBuffer --------------------------
-	luminanceBuffer->Clear(dc);
-	luminanceBuffer->Activate(dc);
-	{
-		if (postProcess.IsBloomExtractEnabled())
-		{
-			postProcess.LuminanceExtraction(rc, sceneColorMap);
-		}
-		else
-		{
-			postProcess.Copy(rc, sceneColorMap);
-		}
-	}
-	luminanceBuffer->Deactivate(dc);
-
-	if (postProcess.IsBloomBlurEnabled())
-	{
-		bloomWorkBuffer->Clear(dc);
-		bloomWorkBuffer->Activate(dc);
-		{
-			postProcess.BloomBlur(rc, luminanceBuffer->GetSRV(), true);
-		}
-		bloomWorkBuffer->Deactivate(dc);
-
-		luminanceBuffer->Clear(dc);
-		luminanceBuffer->Activate(dc);
-		{
-			postProcess.BloomBlur(rc, bloomWorkBuffer->GetSRV(), false);
-		}
-		luminanceBuffer->Deactivate(dc);
-	}
-
-	// ---- Bloom合成 / Merge: sceneBuffer + luminanceBuffer → postProcessBuffer -----
-	postProcessBuffer->Clear(dc);
-	postProcessBuffer->Activate(dc);
-	{
-		if (postProcess.IsDualEffectEnabled())
-		{
-			postProcess.Bloom(rc, sceneColorMap, luminanceBuffer->GetSRV());
-		}
-		else
-		{
-			postProcess.Copy(rc, sceneColorMap);
-		}
-	}
-	postProcessBuffer->Deactivate(dc);
+	postProcess.PrepareSceneColor(rc, sceneBuffer, luminanceBuffer, bloomWorkBuffer,
+		ssaoBuffer, postProcessBuffer, postProcessBuffer2);
 
 	// PostProcessありのウィジェット
 	postProcessBuffer->Activate(dc);
@@ -753,4 +691,19 @@ void Scene::DrawGUI(RenderContext& rc)
 CameraController* Scene::GetActiveCameraController() const
 {
 	return currentStage ? currentStage->GetActiveCameraController() : nullptr;
+}
+
+std::unique_ptr<LightManager> Scene::previewLighting;
+std::unique_ptr<Game::PostProcess> Scene::previewPostProcess;
+RenderSettings Scene::previewRenderSettings;
+
+void Scene::CapturePreviewEnvironment()
+{
+	if (!currentStage) return;
+	previewLighting = std::make_unique<LightManager>();
+	previewLighting->SetDirectionalLight(currentStage->GetLightManager().GetDirectionalLight());
+	previewLighting->SetAmbientColor(currentStage->GetLightManager().GetAmbientColor());
+	if (!previewPostProcess) previewPostProcess = std::make_unique<Game::PostProcess>();
+	previewPostProcess->CopySettingsFrom(postProcess);
+	previewRenderSettings = renderSettings;
 }

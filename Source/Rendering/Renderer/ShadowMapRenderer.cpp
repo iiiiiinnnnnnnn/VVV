@@ -1,3 +1,4 @@
+// ShadowMapRenderer.cpp
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
@@ -141,6 +142,13 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
         return;
     }
 
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> previousTarget;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> previousDepth;
+    dc->OMGetRenderTargets(1, previousTarget.GetAddressOf(), previousDepth.GetAddressOf());
+    D3D11_VIEWPORT previousViewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE]{};
+    UINT previousViewportCount = _countof(previousViewports);
+    dc->RSGetViewports(&previousViewportCount, previousViewports);
+
     ID3D11ShaderResourceView* nullShadowSrvs[CascadeCount] = {};
     dc->PSSetShaderResources(8, CascadeCount, nullShadowSrvs);
 
@@ -159,6 +167,8 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
 
     ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
     dc->VSSetConstantBuffers(6, _countof(nullCbs), nullCbs);
+    dc->OMSetRenderTargets(1, previousTarget.GetAddressOf(), previousDepth.Get());
+    dc->RSSetViewports(previousViewportCount, previousViewports);
 }
 
 void ShadowMapRenderer::CalculateCascadeMatrices(

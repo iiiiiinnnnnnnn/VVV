@@ -89,6 +89,9 @@ TestPlayScene::TestPlayScene()
 					 u8"F4 : ゲーム時間を停止(右クリック+WASDQEで飛び回れます)\r\n"
 					 u8"F5 : ゲーム時間を再開\r\n"
 					 u8"F6 : ImGuiBindを表示/非表示\r\n"
+					 u8"1  : Deerを出現させる\r\n"
+					 u8"2  : クリスタルを出現させる\r\n"
+					 u8"3  : Aracoreを出現させる\r\n"
 					 u8"\r\n"
 					 u8"[WASD] 移動\r\n"
 					 u8"[スペース] 回避(+パリィ)\r\n"
@@ -149,7 +152,7 @@ void TestPlayScene::OnUpdate()
 {
 #ifndef _RELEASE // ちょうデバッグ
 	if (developText) developText->GetRectTransform()->position = 
-		(ImGuiBind)Vector2(1380.0f, 800.0f);
+		(ImGuiBind)Vector2(1380.0f, 750.0f);
 
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{

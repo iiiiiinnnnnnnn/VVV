@@ -172,6 +172,11 @@ private:
 
 		int useBaseColorTexture;
 		int dummy[3];
+		// Match the shared PBR material buffer; transmission is unused by terrain.
+		float transmission = 0.0f;
+		float indexOfRefraction = 1.45f;
+		float refractionDistance = 0.0f;
+		float transmissionDummy = 0.0f;
 	};
 
 	struct CbTerrainObject

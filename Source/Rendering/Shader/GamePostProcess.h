@@ -1,4 +1,4 @@
-// GamePostProcess.h
+﻿// GamePostProcess.h
 #pragma once
 
 #include <memory>
@@ -17,6 +17,9 @@ namespace Game
 	public:
 		PostProcess();
 
+		void CopySettingsFrom(const PostProcess& source);
+		void PrepareSceneColor(const RenderContext& rc, RenderTarget* scene, RenderTarget* luminance,
+			RenderTarget* bloomWork, RenderTarget* ssao, RenderTarget* workA, RenderTarget* workB);
 		void Copy(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 		void LuminanceExtraction(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);
 		void BloomBlur(const RenderContext& rc, ID3D11ShaderResourceView* bloomMap, bool horizontal);

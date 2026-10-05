@@ -1,4 +1,5 @@
-﻿#pragma once
+// CharacterController.h
+#pragma once
 
 #include <bitset>
 

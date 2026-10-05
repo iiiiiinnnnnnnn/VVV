@@ -1,3 +1,4 @@
+// HitStop.cpp
 #include "Gameplay/Scene/HitStop.h"
 #include "Core/Foundation/Common.h"
 #include "Application/Time/GameTime.h"
@@ -25,4 +26,11 @@ void HitStop::Update()
         isPlaying = false;
         Game::Time::scale = 1.0f;
     }
+}
+
+void HitStop::CancelAll()
+{
+    if (isPlaying) Game::Time::scale = 1.0f;
+    timer = 0.0f;
+    isPlaying = false;
 }
