@@ -314,7 +314,7 @@ class VmdlEditorScene : public Scene
 	std::string footIkPreviewSignature;
 	Vector3 footIkTestStagePosition = Vector3::Zero;
 	Vector3 footIkTestStageRotation = Vector3::Zero;
-	float footIkTestStageSize = 100.0f;
+	float footIkTestStageSize = 1.0f;
 	bool showFootIkPreviewWindow = false;
 	bool showFootIkTestStage = true;
 	bool showFootIkDebug = true;

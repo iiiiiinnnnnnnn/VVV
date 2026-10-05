@@ -1,6 +1,8 @@
+﻿// LocalPlayerController.cpp
 #include "Gameplay/Player/LocalPlayerController.h"
 
 #include <windows.h>
+#include <imgui.h>
 
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
@@ -8,9 +10,11 @@
 InputContext LocalPlayerController::Poll()
 {
     constexpr float quickStepBufferDuration = 0.2f;
-	if (Game::Input::Instance().IsGameplayInputSuppressed()) return {};
-	// プレイ中のカーソル解放はScene側で管理するため、OSウィンドウのフォーカスだけを見る
-    if (!Game::Input::IsFocusedWindow(true))
+	const auto& io = ImGui::GetIO();
+	// UI操作の入力と、その間に蓄積した操作をプレイヤーへ渡さない。
+	if (Game::Input::Instance().IsGameplayInputSuppressed() ||
+		!Game::Input::IsFocusedWindow(true) ||
+		io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput)
     {
 		quickStepDirectionMask = 0;
 		quickStepBufferTimer = 0.0f;

@@ -1,4 +1,4 @@
-﻿// VmdlEditorScene.cpp
+// VmdlEditorScene.cpp
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -1528,9 +1528,9 @@ void VmdlEditorScene::DrawFootIkPreviewWindow()
 	bool stageChanged =
 		ImGui::DragFloat3((const char*)u8"ステージ位置", &footIkTestStagePosition.x, 0.1f);
 	stageChanged |=
-		ImGui::DragFloat3((const char*)u8"ステージ回転", &footIkTestStageRotation.x, 1.0f);
+		ImGui::DragFloat3((const char*)u8"ステージ回転", &footIkTestStageRotation.x);
 	stageChanged |= ImGui::DragFloat(
-		(const char*)u8"ステージサイズ", &footIkTestStageSize, 1.0f, 0.01f, 100000.0f);
+		(const char*)u8"ステージサイズ", &footIkTestStageSize, 0.1f, 0.01f, 100000.0f);
 	if (stageChanged) UpdateFootIkTestStage();
 
 	ImGui::Separator();

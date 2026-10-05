@@ -1,4 +1,5 @@
-﻿#include <imgui_impl_win32.h>
+// ImGuiRenderer.cpp
+#include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_internal.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
@@ -69,6 +70,8 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
+	// シングルクリックでテキスト入力にフォーカスしないようにする
+	io.ConfigDragClickToInputText = false;
 
 	// Editor.iniはユーザー設定なのでリソースキャッシュの外へ置く
 	static std::string editorIniPath;
