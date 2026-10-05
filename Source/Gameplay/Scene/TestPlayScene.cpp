@@ -157,6 +157,7 @@ void TestPlayScene::OnUpdate()
 	if (ImGui::IsKeyPressed(ImGuiKey_F7))
 	{
 		showDevelopText = !showDevelopText;
+		developText->SetActive(showDevelopText);
 	}
 	if (ImGui::IsKeyPressed(ImGuiKey_1))
 	{
