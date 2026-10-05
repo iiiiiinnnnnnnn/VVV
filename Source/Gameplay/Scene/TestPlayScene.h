@@ -40,4 +40,6 @@ private:
 	std::shared_ptr<BossBar> bossBar;
 	ThirdPersonCameraController* thirdPersonCamera = nullptr;
 	PauseMenu* pauseMenu = nullptr;
+
+	bool showDevelopText = true;
 };
