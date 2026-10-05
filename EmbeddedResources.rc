@@ -1,0 +1,3 @@
+// EmbeddedResources.rc
+#include "Source/Resource/EmbeddedResources.h"
+IDR_PREVIEW_STAGE RCDATA "PreviewStage.vmdl"

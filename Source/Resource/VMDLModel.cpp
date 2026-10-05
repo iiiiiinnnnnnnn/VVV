@@ -629,7 +629,8 @@ bool VMDLModel::ResetMaterialToGLB(size_t materialIndex)
 	return true;
 }
 
-VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePath)
+VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePath,
+	const uint8_t* embeddedVmdl, size_t embeddedSize)
 {
 	auto device = Game::Graphics::Instance().GetDevice();
 
@@ -648,7 +649,16 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 	}
 	modelCacheFilepath = cerealFilepath;
 
-	if (extension == ".vmdl" && std::filesystem::exists(sourceFilepath))
+	if (embeddedVmdl)
+	{
+		if (!embeddedSize || extension != ".vmdl")
+			throw std::runtime_error("Invalid embedded VMDL resource.");
+		modelCacheFilepath.clear();
+		std::istringstream stream(std::string(reinterpret_cast<const char*>(embeddedVmdl), embeddedSize),
+			std::ios::binary | std::ios::in);
+		Deserialize(stream);
+	}
+	else if (extension == ".vmdl" && std::filesystem::exists(sourceFilepath))
 	{
 		Deserialize(sourceFilepath.string().c_str());
 	}
@@ -2521,6 +2531,11 @@ void VMDLModel::Deserialize(const char* filename)
 	std::ifstream fileStream(std::filesystem::path(filename), std::ios::binary);
 	if (!fileStream.is_open())
 		throw std::runtime_error("VMDLModel file not found: " + std::string(filename));
+	Deserialize(fileStream);
+}
+
+void VMDLModel::Deserialize(std::istream& fileStream)
+{
 
 	try
 	{

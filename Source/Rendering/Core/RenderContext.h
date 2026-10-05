@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// RenderContext.h
+#pragma once
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -18,6 +19,7 @@ struct RenderSettings
 	bool showNavMeshDebug = true;
 	bool showLightDebug = true;
 	bool wireframe = false;
+	bool pointMaterialTextures = false;
 	bool distanceFogEnabled = true;
 	float distanceFogStart = 18.0f;
 	float distanceFogEnd = 65.0f;

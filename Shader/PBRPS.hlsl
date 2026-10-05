@@ -12,6 +12,7 @@ Texture2D occlusionMap : register(t3); // AO (linear)
 Texture2D emissiveMap : register(t4); // エミッシブ (sRGB)
 
 SamplerState linearSampler : register(s0);
+SamplerState materialSampler : register(s2);
 
 // シャドウマップ (slot 8)
 Texture2D shadowMaps[ShadowCascadeCount] : register(t8);
@@ -97,7 +98,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     // metalness/roughness/AO はリニアデータなのでそのまま使う
     // -------------------------------------------------------------------------
     float4 albedoSRGB = useBaseColorTexture != 0
-        ? baseMap.Sample(linearSampler, pin.texcoord)
+        ? baseMap.Sample(materialSampler, pin.texcoord)
         : float4(1.0, 1.0, 1.0, 1.0);
 
     float4 albedo =
@@ -110,7 +111,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     if (useEmissiveTexture != 0)
     {
         float3 emissiveSRGB =
-        emissiveMap.Sample(linearSampler, pin.texcoord).rgb;
+        emissiveMap.Sample(materialSampler, pin.texcoord).rgb;
         float3 emissiveMask = pow(emissiveSRGB, GammaFactor);
         float emissiveStrength = max(emissiveMask.r, max(emissiveMask.g, emissiveMask.b));
         emissive = emissiveColor.rgb * emissiveColor.a * emissiveStrength;
@@ -127,7 +128,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     if (useMetalnessTexture != 0 || useRoughnessTexture != 0)
     {
         // glTF系は G = roughness, B = metalness
-        float2 mrSample = metalnessRoughnessMap.Sample(linearSampler, pin.texcoord).gb;
+        float2 mrSample = metalnessRoughnessMap.Sample(materialSampler, pin.texcoord).gb;
 
         if (useRoughnessTexture != 0)
         {
@@ -144,7 +145,7 @@ float4 main(VS_OUT pin) : SV_TARGET
 
 	if (useOcclusionTexture != 0)
 	{
-		finalAO = occlusionMap.Sample(linearSampler, pin.texcoord).r * occlusion;
+		finalAO = occlusionMap.Sample(materialSampler, pin.texcoord).r * occlusion;
 	}
 
     finalAO = lerp(1.0f, finalAO, occlusionStrength);

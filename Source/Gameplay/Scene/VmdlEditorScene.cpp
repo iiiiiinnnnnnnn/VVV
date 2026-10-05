@@ -1,4 +1,4 @@
-// VmdlEditorScene.cpp
+﻿// VmdlEditorScene.cpp
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -21,6 +21,7 @@
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/VMDLModel.h"
+#include "Resource/EmbeddedResources.h"
 
 #include "SceneManager.h"
 
@@ -171,6 +172,8 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 		if (std::filesystem::exists(sourcePath)) filepath = sourcePath;
 	}
 	if (!filepath.empty()) LoadModel(filepath);
+
+	if (!footIkTestStageModel) LoadFootIkTestStage();
 }
 
 VmdlEditorScene::~VmdlEditorScene()
@@ -695,11 +698,7 @@ void VmdlEditorScene::StartUnifiedPreview()
 	particlePreviewPlayPending = true;
 	springPreviewSignature.clear();
 	StartPresentationPreview();
-	if (model->GetVmdlIKSettings().type != 0)
-	{
-		showFootIkTestStage = true;
-		if (!footIkTestStageModel) LoadFootIkTestStage();
-	}
+	showFootIkTestStage = true;
 }
 
 void VmdlEditorScene::StopUnifiedPreview(bool rewind)
@@ -942,7 +941,9 @@ void VmdlEditorScene::RenderPreview()
 			Matrix::CreateTranslation(footIkTestStagePosition);
 		footIkTestStageModel->UpdateTransform(stageTransform);
 		graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, footIkTestStageModel);
-		graphics.GetModelRenderer()->Render(rc);
+		RenderContext stageContext = rc;
+		stageContext.renderSettings.pointMaterialTextures = true;
+		graphics.GetModelRenderer()->Render(stageContext);
 	}
 
 	if (showDebugOverlays && showGrid)
@@ -1361,22 +1362,14 @@ void VmdlEditorScene::DrawMenuBar()
 	// ファイル操作
 	if (ImGui::BeginMenu((const char*)u8"ファイル"))
 	{
-		if (ImGui::MenuItem((const char*)u8"VMDLを開く...", "Ctrl+O")) OpenVmdl();
-		if (ImGui::MenuItem((const char*)u8"VMDLを保存", "Ctrl+S", false, model != nullptr))
-			SaveVmdl();
-		if (ImGui::MenuItem(
-				(const char*)u8"名前を付けて保存...", "Ctrl+Shift+S", false, model != nullptr))
-			SaveVmdlAs();
+		if (ImGui::MenuItem((const char*)u8"VMDLを開く", "Ctrl+O")) OpenVmdl();
+		if (ImGui::MenuItem((const char*)u8"VMDLを保存", "Ctrl+S", false, model != nullptr)) SaveVmdl();
+		if (ImGui::MenuItem((const char*)u8"名前を付けて保存", "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
 		ImGui::Separator();
-		if (ImGui::MenuItem((const char*)u8"GLBをインポート...")) ImportGlb();
-		if (ImGui::MenuItem(
-				(const char*)u8"GLBキャッシュを置換...", nullptr, false, model != nullptr))
-			ReplaceGlbCache();
-		if (ImGui::MenuItem(
-				(const char*)u8"アニメーションGLBを追加...", nullptr, false, model != nullptr))
-		{
-			AppendAnimationGlb();
-		}
+		if (ImGui::MenuItem((const char*)u8"GLBをインポート")) ImportGlb();
+		if (ImGui::MenuItem((const char*)u8"GLBをエクスポート", nullptr, false, model != nullptr)) ExportGlb();
+		if (ImGui::MenuItem((const char*)u8"GLBキャッシュを置換", nullptr, false, model != nullptr)) ReplaceGlbCache();
+		if (ImGui::MenuItem((const char*)u8"アニメーションGLBを追加", nullptr, false, model != nullptr)) AppendAnimationGlb();
 		ImGui::Separator();
 		if (ImGui::MenuItem((const char*)u8"終了") && OnRequestExit()) exiting = true;
 		ImGui::EndMenu();
@@ -1389,8 +1382,7 @@ void VmdlEditorScene::DrawMenuBar()
 			previewShadingMode = PreviewShadingMode::Pbr;
 		if (ImGui::MenuItem("Unlit", nullptr, previewShadingMode == PreviewShadingMode::Unlit))
 			previewShadingMode = PreviewShadingMode::Unlit;
-		if (ImGui::MenuItem(
-				(const char*)u8"ソリッド", nullptr, previewShadingMode == PreviewShadingMode::Solid))
+		if (ImGui::MenuItem((const char*)u8"ソリッド", nullptr, previewShadingMode == PreviewShadingMode::Solid))
 			previewShadingMode = PreviewShadingMode::Solid;
 		ImGui::Separator();
 		ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &showDebugOverlays);
@@ -1420,16 +1412,15 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)u8"ツール"))
 	{
-		if (ImGui::MenuItem((const char*)u8"スケール設定...", nullptr, false, model != nullptr))
+		if (ImGui::MenuItem((const char*)u8"スケール設定", nullptr, false, model != nullptr))
 		{
 			setScaleValue = model->GetModelScale();
 			showSetScaleWindow = true;
 		}
-		if (ImGui::MenuItem((const char*)u8"Foot IKテストステージ設定..."))
+		if (ImGui::MenuItem((const char*)u8"プレビュー設定"))
 		{
 			showFootIkPreviewWindow = true;
 			showFootIkTestStage = true;
-			LoadFootIkTestStage();
 		}
 		ImGui::EndMenu();
 	}
@@ -1574,10 +1565,21 @@ void VmdlEditorScene::LoadFootIkTestStage()
 {
 	if (footIkTestStageModel) return;
 
-	footIkTestStageModel = ResourceManager::Instance().LoadModel("Resources/Model/teststage.vmdl");
-	if (!footIkTestStageModel)
+	try
 	{
-		ErrorMessage("Resources/Model/teststage.vmdl could not be loaded.");
+		const HMODULE module = GetModuleHandleW(nullptr);
+		const HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(IDR_PREVIEW_STAGE),
+			MAKEINTRESOURCEW(10)); // RT_RCDATA
+		if (!resource) throw std::runtime_error("Embedded PreviewStage.vmdl was not found.");
+		const HGLOBAL loaded = LoadResource(module, resource);
+		const auto* data = static_cast<const uint8_t*>(loaded ? LockResource(loaded) : nullptr);
+		const DWORD size = SizeofResource(module, resource);
+		if (!data || !size) throw std::runtime_error("Embedded PreviewStage.vmdl could not be read.");
+		footIkTestStageModel = std::make_shared<VMDLModel>("PreviewStage.vmdl", 60.0f, nullptr, data, size);
+	}
+	catch (const std::exception& exception)
+	{
+		ErrorMessage(exception.what());
 		return;
 	}
 
@@ -2424,7 +2426,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			}
 			else
 			{
-				if (ImGui::MenuItem((const char*)u8"VMSHへ分離...", nullptr, false,
+				if (ImGui::MenuItem((const char*)u8"VMSHへ分離", nullptr, false,
 						selectedMorph >= 0))
 					SeparateMeshToCache(meshIndex);
 				if (selectedMorph < 0)
@@ -6186,6 +6188,21 @@ void VmdlEditorScene::ImportGlb()
 		return;
 
 	LoadModel(filepath, destination);
+}
+
+void VmdlEditorScene::ExportGlb()
+{
+	if (!model) return;
+	std::filesystem::path proposedPath = documentPath;
+	if (proposedPath.empty()) proposedPath = "model.vmdl";
+	proposedPath.replace_extension(".glb");
+	std::string filepath = proposedPath.string();
+	if (Dialog::SaveFileName(filepath, "glTF Binary (*.glb)\0*.glb\0", "Export GLB", "glb") != DialogResult::OK)
+		return;
+	std::filesystem::path destination = filepath;
+	destination.replace_extension(".glb");
+	std::string error;
+	if (!model->ExportGlb(destination, &error)) ErrorMessage("GLB export failed: " + error);
 }
 
 void VmdlEditorScene::AppendAnimationGlb()

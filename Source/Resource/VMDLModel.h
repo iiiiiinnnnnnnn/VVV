@@ -4,6 +4,7 @@
 #include <wrl.h>
 
 #include <filesystem>
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -519,7 +520,8 @@ class VMDLModel
 		std::vector<VmdlPresentationAnimationTrack> radialBlurTracks;
 	};
 
-	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr);
+	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr,
+		const uint8_t* embeddedVmdl = nullptr, size_t embeddedSize = 0);
 	VMDLModel(const VMDLModel& other);
 	VMDLModel(VMDLModel&& other) noexcept;
 	VMDLModel& operator=(const VMDLModel& other);
@@ -840,6 +842,7 @@ class VMDLModel
 	int GetMorphIndex(const char* name) const;
 	void NormalizeMorphNames();
 	bool SaveVmdl();
+	bool ExportGlb(const std::filesystem::path& filepath, std::string* error = nullptr) const;
 	bool SaveVmdl(const std::filesystem::path& filepath);
 
 	// GLB部分のみ交換
@@ -897,6 +900,7 @@ class VMDLModel
 
 	void Serialize(const char* filename);
 	void Deserialize(const char* filename);
+	void Deserialize(std::istream& fileStream);
 
 	// 分割形式
 	static constexpr uint32_t VmdlCompressionVersion = 13;

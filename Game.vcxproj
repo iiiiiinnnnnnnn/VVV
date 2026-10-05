@@ -15,9 +15,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="EmbeddedResources.rc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ResourceCompile>
+    <ClInclude Include="Source\Resource\EmbeddedResources.h" />
     <ClCompile Include="Source\Resource\CacheBuilder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Resource\GLBExporter.cpp" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h" />
     <ClInclude Include="Source\Resource\CacheBuilder.h" />
     <ClInclude Include="Source\Resource\CacheSettings.h" />

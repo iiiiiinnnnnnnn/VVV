@@ -1,3 +1,4 @@
+﻿// ModelRenderer.cpp
 #include <algorithm>
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
@@ -88,12 +89,15 @@ void ModelRenderer::Render(const RenderContext& rc)
 	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
 
 	// サンプラステート設定
-	// s0 = LinearWrap  : マテリアルテクスチャ & IBL用
+	// s0 = LinearWrap  : IBL用
 	// s1 = LinearClamp : シャドウマップ用
+	// s2 = マテリアルテクスチャ用
 	ID3D11SamplerState* samplerStates[] =
 	{
 		rc.renderState->GetSamplerState(SamplerState::LinearWrap),
 		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
+		rc.renderState->GetSamplerState(rc.renderSettings.pointMaterialTextures
+			? SamplerState::PointWrapBaseLevel : SamplerState::LinearWrap),
 	};
 	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
 

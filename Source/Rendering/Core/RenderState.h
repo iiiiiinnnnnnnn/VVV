@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// RenderState.h
+#pragma once
 
 #include <wrl.h>
 #include <d3d11.h>
@@ -7,6 +8,7 @@
 enum class SamplerState
 {
 	PointWrap,
+	PointWrapBaseLevel,
 	PointClamp,
 	LinearWrap,
 	LinearClamp,

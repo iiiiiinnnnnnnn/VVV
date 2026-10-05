@@ -143,6 +143,7 @@ class VmdlEditorScene : public Scene
 	void ResolveMissingExternalMeshes();
 	void SaveVmdl();
 	void SaveVmdlAs();
+	void ExportGlb();
 	void LoadModel(
 		const std::filesystem::path& filepath, const std::filesystem::path& importDestination = {});
 	void ErrorMessage(const std::string& message);
@@ -315,6 +316,6 @@ class VmdlEditorScene : public Scene
 	Vector3 footIkTestStageRotation = Vector3::Zero;
 	float footIkTestStageSize = 100.0f;
 	bool showFootIkPreviewWindow = false;
-	bool showFootIkTestStage = false;
+	bool showFootIkTestStage = true;
 	bool showFootIkDebug = true;
 };

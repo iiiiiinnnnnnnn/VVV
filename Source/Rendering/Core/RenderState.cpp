@@ -1,4 +1,5 @@
-﻿#include "Application/SettingsAndDebug/DebugUtil.h"
+﻿// RenderState.cpp
+#include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/RenderState.h"
 
 // コンストラクタ
@@ -24,6 +25,12 @@ RenderState::RenderState(ID3D11Device* device)
 			desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 			HRESULT hr = device->CreateSamplerState(&desc,
 				samplerStates[static_cast<int>(SamplerState::PointWrap)].GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+			// Tiny checker textures must not use their averaged mip.
+			desc.MinLOD = 0.0f;
+			desc.MaxLOD = 0.0f;
+			hr = device->CreateSamplerState(&desc,
+				samplerStates[static_cast<int>(SamplerState::PointWrapBaseLevel)].GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 		}
 		// ポイントサンプリング＆テクスチャ繰り返しなし

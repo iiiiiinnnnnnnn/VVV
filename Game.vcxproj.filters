@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
+    <ResourceCompile Include="EmbeddedResources.rc" />
+    <ClInclude Include="Source\Resource\EmbeddedResources.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\Resource\GLBExporter.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Resource\CacheBuilder.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -145,18 +152,9 @@
     <Filter Include="Gameplay\Component">
       <UniqueIdentifier>{882aaaf8-bba7-4c11-a204-b940791c64e0}</UniqueIdentifier>
     </Filter>
-    <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp">
-      <Filter>Physics\Collider</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\VMDLParticleEmitterComponent.cpp" />
-    <ClCompile Include="Source\UI\BossBar.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\ColorWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -234,13 +232,7 @@
     <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resource\VMDLModel.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Resource\MeshCache.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\VSTG.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp">
@@ -257,12 +249,6 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\GaussianFilterShader.cpp">
       <Filter>Rendering\Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp">
-      <Filter>Rendering\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\VMDL.cpp">
-      <Filter>Rendering\Component</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\SpriteRenderComponent.cpp">
       <Filter>Rendering\Component</Filter>
@@ -537,21 +523,39 @@
     <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h">
-      <Filter>Physics\Collider</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Foundation\Json.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Deer.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\VMDLParticleEmitterComponent.h" />
-    <ClInclude Include="Source\UI\BossBar.h" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\ColorWidget.h" />
+    <ClInclude Include="Source\UI\BossBar.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\ColorWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\VMDLModel.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\VMDLParticleEmitterComponent.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\VMDL.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\VSTG.h">
+      <Filter>VSTG</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
@@ -611,13 +615,7 @@
     <ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Resource\VMDLModel.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Resource\MeshCache.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\VSTG.h">
       <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Object\Object.h">
@@ -637,12 +635,6 @@
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h">
       <Filter>Rendering\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h">
-      <Filter>Rendering\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\VMDL.h">
-      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h">
       <Filter>Rendering\Component</Filter>
@@ -1130,5 +1122,42 @@
     <FxCompile Include="Shader\GeometryParticlePS.hlsl">
       <Filter>Shaders\Particle</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\UI\BossBar.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\ColorWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\VMDLModel.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\VMDLParticleEmitterComponent.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\Collider\VMDLColliderComponent.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\VMDL.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\VSTG.cpp">
+      <Filter>VSTG</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="VMDL">
+      <UniqueIdentifier>{3ff446f1-14d5-4a87-add7-21fecc1e6b73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VSTG">
+      <UniqueIdentifier>{2598fc7a-8b88-4524-aac4-925a911f6cfc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
