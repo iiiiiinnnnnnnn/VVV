@@ -7,7 +7,7 @@
 #include "Rendering/Component/VMDL.h"
 #include "Physics/Core/PhysicsComponent.h"
 
-Crystal::Crystal(const Transform& transform) : Entity("Crystal", "Crystal", true, transform)
+Crystal::Crystal(const Transform& transform, const std::string& modelPath) : Entity("Crystal", "Crystal", true, transform)
 {
 	this->transform.Update();
 
@@ -21,7 +21,7 @@ Crystal::Crystal(const Transform& transform) : Entity("Crystal", "Crystal", true
 	maxLife = std::clamp(maxLife, 1.0f, 100.0f);
 	life = maxLife;
 
-	vmdl = AddComponent<VMDL>("Resources/Model/Crystal");
+	vmdl = AddComponent<VMDL>(modelPath);
 }
 
 void Crystal::OnUpdate()

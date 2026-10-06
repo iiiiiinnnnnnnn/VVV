@@ -8,10 +8,10 @@
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Audio/SoundSystem.h"
 
-Deer::Deer(const Transform& transform)
+Deer::Deer(const Transform& transform, const std::string& modelPath)
 	: Entity("Deer", "Enemy", true, transform, 200.0f, 200.0f)
 {
-	vmdl = AddComponent<VMDL>("Resources/Model/Deer");
+	vmdl = AddComponent<VMDL>(modelPath);
 	anim = vmdl->GetAnimator();
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
@@ -47,7 +47,6 @@ Deer::Deer(const Transform& transform)
 	controller->SetGraphPath("Resources/AI/Deer.json");
 	if (!controller->Load(controller->GetGraphPath()))
 		controller->CreateDefaultChaseGraph();
-	controller->SetAgentRadius(1.5f);
 	controller->SetTrackingTurnSpeed(1.0f);
 
 	// FootIK

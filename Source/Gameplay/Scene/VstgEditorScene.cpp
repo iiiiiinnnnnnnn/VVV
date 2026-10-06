@@ -1,10 +1,8 @@
-﻿// VstgEditorScene.cpp
 #include "Gameplay/Scene/VstgEditorScene.h"
 
 #include <algorithm>
 #include <cfloat>
 #include <cctype>
-#include <fstream>
 #include <format>
 #include <limits>
 
@@ -12,7 +10,6 @@
 
 #include "Application/Tools/Dialog.h"
 #include "Application/Input/Input.h"
-#include "Core/Foundation/Json.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -31,6 +28,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderTarget.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
+#include "Rendering/Renderer/ImGuiRenderer.h"
 #include "IconsFontAwesome5.h"
 
 namespace
@@ -133,7 +131,7 @@ void VstgEditorScene::CreateStage()
 
 void VstgEditorScene::ConfigureRenderSettings(RenderSettings& settings)
 {
-	settings.distanceFogEnabled = settings.distanceFogEnabled && showFog;
+	settings.distanceFogEnabled = settings.distanceFogEnabled && settings.showFog;
 }
 
 void VstgEditorScene::OnRender(RenderContext& rc)
@@ -230,6 +228,13 @@ void VstgEditorScene::RenderDragPreview(const RenderContext& rc)
 void VstgEditorScene::OnDrawGUI()
 {
 	auto& io = ImGui::GetIO();
+	if (!io.WantTextInput && !io.KeyCtrl && !io.KeyAlt && !io.KeySuper)
+	{
+		if (ImGui::IsKeyPressed(ImGuiKey_F, false)) renderSettings.showFog = !renderSettings.showFog;
+		if (ImGui::IsKeyPressed(ImGuiKey_G, false)) renderSettings.showGrass = !renderSettings.showGrass;
+		if (terrain && ImGui::IsKeyPressed(ImGuiKey_B, false))
+			terrain->SetBrushEnabled(!terrain->IsBrushEnabled());
+	}
 	propPreviewRequestPath.clear();
 	showDragPreview = false;
 	showPlayerStartDragPreview = false;
@@ -288,13 +293,15 @@ void VstgEditorScene::OnDrawGUI()
 		}
 		if (ImGui::BeginMenu((const char*)u8"表示"))
 		{
+			ImGui::Checkbox((const char*)u8"草マップ", &renderSettings.showGrass);
+			ImGui::Checkbox((const char*)u8"フォグ", &renderSettings.showFog);
+			ImGui::Separator();
 			ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &renderSettings.showDebug);
 			ImGui::Checkbox((const char*)u8"コライダー", &renderSettings.showColliderDebug);
 			ImGui::Checkbox((const char*)u8"コンポーネント", &renderSettings.showComponentDebug);
 			ImGui::Checkbox((const char*)u8"ライト", &renderSettings.showLightDebug);
 			ImGui::Checkbox((const char*)u8"ナビメッシュ", &renderSettings.showNavMeshDebug);
 			ImGui::Checkbox((const char*)u8"ワイヤーフレーム", &renderSettings.wireframe);
-			ImGui::Checkbox((const char*)u8"フォグ", &showFog);
 			ImGui::EndMenu();
 		}
 		std::string displayPath = (const char*)u8"名称未設定";
@@ -377,11 +384,6 @@ void VstgEditorScene::OnDrawGUI()
 				if (terrain) terrain->DrawGUI();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem((const char*)u8"ナビメッシュ"))
-			{
-				if (navMesh) navMesh->DrawGUI();
-				ImGui::EndTabItem();
-			}
 			ImGui::EndTabBar();
 		}
 	}
@@ -437,7 +439,7 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::End();
 
 	// 3Dビュー上の配置と選択操作
-	DrawPlacementDropTarget(viewportMin, viewportMax);
+	DrawPlacementDropTarget({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
 	DrawObjectGizmo(viewportMin, viewportMax);
 
 	// UI編集後の変更検出
@@ -632,6 +634,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					*dragPreviewModel, terrainPoint, dragPreviewTransform);
 	}
 
+	if (terrain) terrain->SetBrushViewportInputAllowed(false);
 	// 3Dビュー全体をドロップ領域として受け付ける
 	ImGui::SetNextWindowPos(viewportMin, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(
@@ -644,15 +647,15 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	if (ImGui::Begin("##VSTG Prop Drop Target", nullptr, flags))
 	{
 		ImGui::InvisibleButton("##VSTG Terrain Drop", ImGui::GetContentRegionAvail());
+		if (terrain) terrain->SetBrushViewportInputAllowed(ImGui::IsItemHovered());
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_PROP"))
 			{
-				if (payload->IsDelivery() && showDragPreview &&
-					stageLoader->AddEditorProp(
-						static_cast<const char*>(payload->Data), terrainPoint))
+				if (payload->IsDelivery() && showDragPreview)
 				{
-					dirty = true;
+					if (stageLoader->AddEditorProp(static_cast<const char*>(payload->Data), terrainPoint)) dirty = true;
+					else if (!stageLoader->GetError().empty()) ErrorMessage(stageLoader->GetError());
 				}
 			}
 			if (const ImGuiPayload* payload =
@@ -772,6 +775,7 @@ bool VstgEditorScene::ScreenToTerrainPoint(const ImVec2& mousePosition, Vector3&
 
 void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& viewportMax)
 {
+	if (terrain && terrain->IsBrushEnabled()) return;
 	if (!stageLoader || !currentStage) return;
 	Camera* camera = currentStage->GetActiveCamera();
 	Transform* transform = stageLoader->GetSelectedEditorTransform();
@@ -979,7 +983,8 @@ bool VstgEditorScene::ResolveMissingModels()
 		RefreshPropModels();
 		if (!stageLoader->ReplaceMissingModelPath(missingPath, replacementPath))
 		{
-			ErrorMessage((const char*)u8"選択したVMDLを読み込めませんでした。");
+			ErrorMessage(stageLoader->GetError().empty()
+				? (const char*)u8"選択したVMDLを読み込めませんでした。" : stageLoader->GetError());
 			continue;
 		}
 		changed = true;
@@ -1027,31 +1032,23 @@ void VstgEditorScene::SaveAs()
 
 void VstgEditorScene::LoadEditorSettings()
 {
-	std::ifstream stream("Resources/VstgEditorSettings.json");
-	if (!stream) return;
-	try
-	{
-		json root;
-		stream >> root;
-		const std::string recentPathUtf8 = root.value("recentStagePath", std::string{});
-		recentStagePath = std::filesystem::path(std::u8string(
-			reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
-		recentStagePath = ResourceManager::ResolveSourcePath(recentStagePath);
-	}
-	catch (const json::exception&)
-	{}
+	const auto& settings = ImGuiRenderer::GetVstgEditorSettings();
+	if (!settings.loaded || settings.recentStagePath.empty()) return;
+	const std::string& recentPathUtf8 = settings.recentStagePath;
+	recentStagePath = std::filesystem::path(std::u8string(
+		reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
+	recentStagePath = ResourceManager::ResolveSourcePath(recentStagePath);
 }
 
 void VstgEditorScene::SaveEditorSettings() const
 {
 	if (recentStagePath.empty()) return;
-	std::ofstream stream("Resources/VstgEditorSettings.json");
-	if (!stream) return;
 	const std::u8string recentPathUtf8 = recentStagePath.u8string();
-	const std::string recentPath(
+	auto& settings = ImGuiRenderer::GetVstgEditorSettings();
+	settings.loaded = true;
+	settings.recentStagePath.assign(
 		reinterpret_cast<const char*>(recentPathUtf8.data()), recentPathUtf8.size());
-	const json root = {{"recentStagePath", recentPath}};
-	stream << root.dump(1);
+	ImGuiRenderer::SaveSettings();
 }
 
 void VstgEditorScene::UpdateTitle()

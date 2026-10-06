@@ -3,6 +3,7 @@
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
 #include "IconsFontAwesome5.h"
+#include <cmath>
 
 Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
 {
@@ -10,7 +11,7 @@ Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
     Vector3 ownerScale = transform ? transform->scale : Vector3::One;
 	return nodeTransform *
 		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset) *
-		Matrix::CreateScale(ownerScale * localScale);
+		Matrix::CreateScale(ownerScale * localScale * model->GetModelScale());
 }
 bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
 {
@@ -119,6 +120,15 @@ void MeshCollider::OnAwake()
     UpdateShape();
 }
 
+void MeshCollider::Update()
+{
+    if (!collisionEnabled || !model) return;
+    Transform* transform = owner->GetComponent<Transform>();
+    const Vector3 ownerScale = transform ? transform->scale : Vector3::One;
+    if ((ownerScale - appliedOwnerScale).LengthSquared() > 0.000001f ||
+        fabsf(model->GetModelScale() - appliedModelScale) > 0.000001f) UpdateShape();
+}
+
 void MeshCollider::SetLocalScale(const Vector3& scale)
 {
     if ((localScale - scale).LengthSquared() < 0.000001f) return;
@@ -158,7 +168,7 @@ void MeshCollider::DetachShapes()
     rigidActor->getShapes(shapes.data(), shapeCount);
     for (PxShape* shape : shapes)
     {
-        rigidActor->detachShape(*shape);
+        if (shape->userData == this) rigidActor->detachShape(*shape);
     }
 }
 
@@ -168,6 +178,10 @@ void MeshCollider::UpdateShape()
 
     PxRigidActor* rigidActor = rigidbody->GetRigidActor();
     if (!rigidActor) return;
+
+    Transform* transform = owner->GetComponent<Transform>();
+    appliedOwnerScale = transform ? transform->scale : Vector3::One;
+    appliedModelScale = model->GetModelScale();
 
     PxPhysics* physics = PhysicsManager::Instance().GetPhysics();
     PxCookingParams* cookingParams = PhysicsManager::Instance().GetCooking();

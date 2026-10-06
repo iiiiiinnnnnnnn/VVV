@@ -1,4 +1,3 @@
-// Stage01.cpp
 #include "Gameplay/Stage/Stage01.h"
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
@@ -6,7 +5,6 @@
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/Deer.h"
-#include "Gameplay/Actor/Spawner.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Aracore.h"
@@ -63,8 +61,8 @@ Stage01::Stage01(Player* player) : Stage()
 			sozai ? sozai->GetShaderResourceView() : nullptr,
 			4, 4, 1000);
 	}
-
 	{
+		// フォグ(霧)パーティクル用画像ロード
 		auto fogTexture = ResourceManager::Instance().LoadTexture("Resources/Image/fog_particle.png");
 		fogParticleSystem = std::make_unique<ParticleSystem>(
 			device,
@@ -75,25 +73,21 @@ Stage01::Stage01(Player* player) : Stage()
 	}
 
 	// 登録したスポナー動作させるためのファクトリ関数
-	stageLoader->RegisterSpawnerFactory("Deer", [](const Transform& transform)
+	stageLoader->RegisterSpawnerFactory("Deer", [](const Transform& transform, const std::string& modelPath)
 	{
-		return std::make_shared<Deer>(transform);
+		return std::make_shared<Deer>(transform, modelPath);
 	});
 	Terrain* terrain = GetComponent<Terrain>();
-	stageLoader->RegisterSpawnerFactory("Aracore", [player, terrain, loader = stageLoader](const Transform& transform)
+	stageLoader->RegisterSpawnerFactory("Aracore", [player, terrain, loader = stageLoader](const Transform& transform, const std::string& modelPath)
 	{
-			auto queen = std::make_shared<Aracore>(player, transform, terrain);
+		auto queen = std::make_shared<Aracore>(player, transform, terrain, modelPath);
 		queen->SetStageLoader(loader);
 		return queen;
 	});
-	stageLoader->RegisterSpawnerFactory("Crystal", [](const Transform& transform)
+	stageLoader->RegisterSpawnerFactory("Crystal", [](const Transform& transform, const std::string& modelPath)
 	{
-		return std::make_shared<Crystal>(transform);
+		return std::make_shared<Crystal>(transform, modelPath);
 	});
-	for (Spawner* spawner : stageLoader->GetSpawners())
-	{
-		spawner->Summon();
-	}
 }
 
 void Stage01::OnUpdate()

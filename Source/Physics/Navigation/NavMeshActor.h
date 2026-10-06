@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <vector>
 
@@ -14,12 +14,6 @@ struct RenderContext;
 class NavMeshActor : public Component
 {
   public:
-	struct WalkableArea
-	{
-		Vector3 center = Vector3::Zero;
-		Vector3 size = Vector3::One;
-	};
-
 	NavMeshActor(Object* owner);
 	~NavMeshActor() override;
 
@@ -29,27 +23,24 @@ class NavMeshActor : public Component
 	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshActor"; }
 
 	bool FindNextPoint(const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-		Vector3* reachableGoal = nullptr) const;
+		Vector3* reachableGoal = nullptr, float radius = 0.0f, float height = 0.0f) const;
 	bool FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const;
+	bool IsOutsideOrNearBoundary(const Vector3& position, float distance) const;
 	bool FindRecoveryPoint(
 		const Vector3& position, float safeDistance, Vector3& recoveryPoint) const;
 	bool FindRandomPoint(
 		const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const;
 	bool FindObstacleDetourPoint(
-		const Vector3& start, const Vector3& goal, Vector3& nextPoint) const;
-	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
+		const Vector3& start, const Vector3& goal, Vector3& nextPoint,
+		float radius = 0.0f, float height = 0.0f) const;
+	bool IsCliffAlongSegment(const Vector3& start, const Vector3& goal, float maxSlope) const;
+	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal,
+		float radius = 0.0f, float height = 0.0f) const;
 
 	void RequestBuild(int delayFrames = 1);
 	void RequestBuildRegion(const Vector3& center, float radius, int delayFrames = 1);
-	void SetAgentRadius(float value);
-	void SetResolution(int value);
-	void AddWalkableArea(const Vector3& center, const Vector3& size);
-	void ClearWalkableAreas();
 	std::string SaveSettingsJson() const;
 	bool LoadSettingsJson(const std::string& text);
-	float GetAgentRadius() const { return agentRadius; }
-	int GetResolution() const { return resolution; }
-	const std::vector<WalkableArea>& GetWalkableAreas() const { return walkableAreas; }
 
 	static NavMeshActor* GetActive() { return active; }
 
@@ -80,16 +71,11 @@ class NavMeshActor : public Component
 	bool BuildTile(
 		int tileX,
 		int tileZ,
-		Terrain& terrain,
-		const std::vector<ObstacleBounds>& obstacles);
+		Terrain& terrain);
 	void RebuildRegion();
 	void RefreshDebugCells();
 	void Release();
 	void CollectObstacles(std::vector<ObstacleBounds>& obstacles) const;
-	bool IsBlockedByObstacle(const Vector3& center, const std::vector<ObstacleBounds>& obstacles,
-		float cellHalfSize) const;
-	bool IsInsideWalkableArea(const Vector3& center, float cellHalfSize) const;
-	bool IsSegmentInsideWalkableAreas(const Vector3& start, const Vector3& goal) const;
 
 	static NavMeshActor* active;
 
@@ -99,26 +85,18 @@ class NavMeshActor : public Component
 	bool buildRequested = true;
 	bool regionBuildRequested = false;
 	bool built = false;
-	bool showWalkableCells = true;
-	bool showBlockedCells = true;
-	bool showObstacleBounds = true;
-	bool showWalkableAreaBounds = true;
-	bool showNavMeshDebug = true;
 	int buildDelayFrames = 1;
 	int tileCountX = 0;
 	int tileCountZ = 0;
-	int resolution = 128;
-	float agentHeight = 2.0f;
-	float agentRadius = 0.6f;
-	float agentClimb = 1.2f;
-	float agentMaxSlope = 70.0f;
-	float nearestPolyExtent = 8.0f;
+	bool simplifyFlatAreas = true;
+	float simplifyHeightError = 0.02f;
+	int simplifyMaxCells = 8;
+	static constexpr float nearestPolyExtent = 8.0f;
 	float navMinY = -100.0f;
 	float navMaxY = 100.0f;
 	std::string statusMessage;
 	std::vector<DebugCell> debugCells;
 	std::vector<NavTile> navTiles;
-	std::vector<WalkableArea> walkableAreas;
 	Vector3 rebuildRegionMin = Vector3::Zero;
 	Vector3 rebuildRegionMax = Vector3::Zero;
 };

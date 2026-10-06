@@ -18,6 +18,8 @@ struct RenderSettings
 	bool showColliderDebug = true;
 	bool showNavMeshDebug = true;
 	bool showLightDebug = true;
+	bool showGrass = true;
+	bool showFog = true;
 	bool wireframe = false;
 	bool pointMaterialTextures = false;
 	bool distanceFogEnabled = true;

@@ -28,10 +28,10 @@ public:
 	void SetSpeed(float value) { speed = value; }
 	void SetTurnSpeed(float value) { turnSpeed = std::max(value, 0.0f); }
 	void SetStoppingDistance(float value) { stoppingDistance = std::max(value, 0.0f); }
-	void SetRecoveryInsetDistance(float value) { recoveryInsetDistance = std::max(value, 0.0f); }
+	void SetDirectMoveBoundaryDistance(float value) { directMoveBoundaryDistance = std::max(value, 0.0f); }
 	float GetSpeed() const { return speed; }
 	float GetStoppingDistance() const { return stoppingDistance; }
-	float GetRecoveryInsetDistance() const { return recoveryInsetDistance; }
+	float GetDirectMoveBoundaryDistance() const { return directMoveBoundaryDistance; }
 	float GetMoveAmount() const { return currentSpeed; }
 	float GetTurnAngle() const { return currentTurnAngle; }
 	const Vector3& GetMoveDelta() const { return lastMoveDelta; }
@@ -41,7 +41,6 @@ public:
 
 private:
 	Actor* FindTargetByTag();
-	bool RecoverToNavMesh(Actor* actor);
 	bool MoveToPosition(Actor* actor, const Vector3& targetPosition);
 
 	Actor* target = nullptr;
@@ -56,14 +55,13 @@ private:
 	bool useLastValidPathOnFail = true;
 	bool directMoveOnPathFail = true;
 	bool hasLastNextPoint = false;
-	bool recoveredThisUpdate = false;
 	Vector3 lastNextPoint = Vector3::Zero;
 	Vector3 destination = Vector3::Zero;
 	float randomMinDistance = 3.0f;
 	float randomMaxDistance = 10.0f;
 	float stoppingDistance = 1.5f;
 	float pathFailGraceTime = 0.5f;
-	float recoveryInsetDistance = 0.5f;
+	float directMoveBoundaryDistance = 0.5f;
 	float pathFailTimer = 0.0f;
 	float turnSpeed = 8.0f;
 	float currentTurnAngle = 0.0f;

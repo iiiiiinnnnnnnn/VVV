@@ -26,7 +26,6 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 void NavMeshAgent::Update()
 {
 	lastMoveDelta = Vector3::Zero;
-	recoveredThisUpdate = false;
 
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
@@ -40,7 +39,6 @@ void NavMeshAgent::Update()
 		return;
 	}
 
-	if (RecoverToNavMesh(actor)) return;
 	if (!autoMove) return;
 
 	if (hasDestination)
@@ -164,90 +162,6 @@ Actor* NavMeshAgent::FindTargetByTag()
 	return nullptr;
 }
 
-bool NavMeshAgent::RecoverToNavMesh(Actor* actor)
-{
-	if (recoveredThisUpdate || !actor || !characterController) return recoveredThisUpdate;
-	if (!IsFinite(actor->transform.position))
-	{
-		statusMessage = "Recovery stopped: Actor position is invalid.";
-		currentSpeed = 0.0f;
-		return false;
-	}
-
-	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
-	if (!navMeshActor) return false;
-
-	Vector3 recoveryPoint;
-	if (!navMeshActor->FindRecoveryPoint(
-			actor->transform.position,
-			recoveryInsetDistance,
-			recoveryPoint))
-	{
-		return false;
-	}
-	if (!IsFinite(recoveryPoint))
-	{
-		statusMessage = "Recovery stopped: NavMesh returned an invalid point.";
-		currentSpeed = 0.0f;
-		return false;
-	}
-
-	Vector3 recoveryDirection = recoveryPoint - actor->transform.position;
-	recoveryDirection.y = 0.0f;
-	const float recoveryDistance = recoveryDirection.Length();
-	constexpr float recoveryThreshold = 0.005f;
-	if (!std::isfinite(recoveryDistance) || recoveryDistance <= recoveryThreshold) return false;
-	if (!std::isfinite(speed) || !std::isfinite(Game::Time::deltaTime) ||
-		Game::Time::deltaTime <= 0.0f)
-	{
-		statusMessage = "Recovery stopped: Movement timing is invalid.";
-		currentSpeed = 0.0f;
-		return false;
-	}
-
-	recoveryDirection /= recoveryDistance;
-	currentTurnAngle = atan2f(
-		recoveryDirection.Dot(actor->transform.right),
-		recoveryDirection.Dot(actor->transform.forward));
-	if (rotateToMoveDirection)
-	{
-		const float targetYaw = atan2f(
-			recoveryDirection.x,
-			recoveryDirection.z);
-		const Quaternion targetRotation =
-			Quaternion::CreateFromYawPitchRoll(
-				targetYaw,
-				0.0f,
-				0.0f);
-		const float rate =
-			1.0f - expf(-turnSpeed * Game::Time::deltaTime);
-		actor->transform.SetRotation(
-			Quaternion::Slerp(
-				actor->transform.rotation,
-				targetRotation,
-				rate));
-	}
-
-	const float moveDistance = std::min(
-		speed * Game::Time::deltaTime,
-		recoveryDistance);
-	lastMoveDelta = recoveryDirection * moveDistance;
-	if (!IsFinite(lastMoveDelta))
-	{
-		statusMessage = "Recovery stopped: Movement delta is invalid.";
-		currentSpeed = 0.0f;
-		lastMoveDelta = Vector3::Zero;
-		return false;
-	}
-	currentSpeed = speed;
-	characterController->Move(lastMoveDelta);
-	pathFailTimer = 0.0f;
-	hasLastNextPoint = false;
-	recoveredThisUpdate = true;
-	statusMessage = "Returning to NavMesh with CharacterController.";
-	return true;
-}
-
 bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
@@ -258,7 +172,6 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		currentSpeed = 0.0f;
 		return false;
 	}
-	if (RecoverToNavMesh(actor)) return false;
 
 	const Vector3 toTarget = targetPosition - actor->transform.position;
 	Vector3 flatToTarget = toTarget;
@@ -281,11 +194,20 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		directMove = true;
 		statusMessage = "Direct move: NavMeshActor not found.";
 	}
+	else if (navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, directMoveBoundaryDistance) ||
+		navMeshActor->IsOutsideOrNearBoundary(targetPosition, directMoveBoundaryDistance))
+	{
+		nextPoint = targetPosition;
+		directMove = true;
+		pathFailTimer = 0.0f;
+		hasLastNextPoint = false;
+		statusMessage = "Direct move: Outside or near NavMesh boundary.";
+	}
 	else if (!navMeshActor->FindNextPoint(
 		actor->transform.position,
 		targetPosition,
 		nextPoint,
-		&reachableTarget))
+		&reachableTarget, characterController->GetRadius(), characterController->GetHeight()))
 	{
 		pathFailTimer += Game::Time::deltaTime;
 		if (!useLastValidPathOnFail || !hasLastNextPoint || pathFailTimer > pathFailGraceTime)
@@ -293,7 +215,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 			if (navMeshActor->FindObstacleDetourPoint(
 				actor->transform.position,
 				targetPosition,
-				nextPoint))
+				nextPoint, characterController->GetRadius(), characterController->GetHeight()))
 			{
 				directMove = true;
 				statusMessage = "Local obstacle detour.";
@@ -301,7 +223,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 			else if (directMoveOnPathFail &&
 				!navMeshActor->IsDirectPathBlocked(
 					actor->transform.position,
-					targetPosition))
+					targetPosition, characterController->GetRadius(), characterController->GetHeight()))
 			{
 				nextPoint = targetPosition;
 				directMove = true;
@@ -343,7 +265,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	{
 		if (navMeshActor && navMeshActor->IsDirectPathBlocked(
 			actor->transform.position,
-			targetPosition))
+			targetPosition, characterController->GetRadius(), characterController->GetHeight()))
 		{
 			statusMessage = "Next point too close and direct path blocked.";
 			currentSpeed = 0.0f;
@@ -403,6 +325,14 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		lastMoveDelta = Vector3::Zero;
 		return false;
 	}
+	if (directMove && navMeshActor && navMeshActor->IsCliffAlongSegment(actor->transform.position,
+		actor->transform.position + lastMoveDelta, characterController->GetSlopeLimitDeg()))
+	{
+		currentSpeed = 0.0f;
+		lastMoveDelta = Vector3::Zero;
+		statusMessage = "Movement stopped: Authored cliff.";
+		return false;
+	}
 	characterController->Move(lastMoveDelta);
 
 	if (!directMove && pathFailTimer <= 0.0f)
@@ -423,7 +353,7 @@ void NavMeshAgent::DrawGUI()
 	ImGui::DragFloat("Speed", &speed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Stopping Distance", &stoppingDistance, 0.1f, 0.0f, 20.0f);
 	ImGui::DragFloat("Path Fail Grace Time", &pathFailGraceTime, 0.01f, 0.0f, 5.0f);
-	ImGui::DragFloat("Recovery Inset Distance", &recoveryInsetDistance, 0.01f, 0.0f, 5.0f);
+	ImGui::DragFloat("Direct Move Boundary Distance", &directMoveBoundaryDistance, 0.01f, 0.0f, 5.0f);
 	ImGui::DragFloat("Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Random Min Distance", &randomMinDistance, 0.1f, 0.0f, 100.0f);
 	ImGui::DragFloat("Random Max Distance", &randomMaxDistance, 0.1f, 0.0f, 100.0f);

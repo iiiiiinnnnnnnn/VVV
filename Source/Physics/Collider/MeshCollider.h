@@ -15,6 +15,7 @@ public:
     MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount = 32, PxMaterial* material = nullptr);
 
     void OnAwake() override;
+    void Update() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
 	void UpdateShape();
@@ -32,6 +33,8 @@ private:
     PxMaterial* material = nullptr;
     std::shared_ptr<VMDLModel> model;
     Vector3 localScale = Vector3::One;
+    Vector3 appliedOwnerScale = Vector3::One;
+    float appliedModelScale = 1.0f;
     bool useConvex = false;
     bool collisionEnabled = true;
 	bool isTrigger = false;

@@ -19,6 +19,12 @@ struct VmdlEditorLayoutSettings
 	std::string recentModelPath;
 };
 
+struct VstgEditorSettings
+{
+	bool loaded = false;
+	std::string recentStagePath;
+};
+
 class ImGuiRenderer
 {
 public:
@@ -38,6 +44,7 @@ public:
 	static LRESULT HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	static VmdlEditorLayoutSettings& GetVmdlEditorLayoutSettings();
+	static VstgEditorSettings& GetVstgEditorSettings();
 	static void SaveSettings();
 
 };

@@ -44,15 +44,12 @@ public:
 private:
 	int GetUpdateOrder() const override { return 200; }
 	bool IsTargetValid() const;
-	void EnsureIndicator();
 	void ResolveTargetAnchor();
-	void HideIndicator();
 
 	Entity* ownerEntity = nullptr;
 	Actor* target = nullptr;
 	VMDLModel* targetModel = nullptr;
 	int targetAnchorIndex = -1;
-	std::shared_ptr<SpriteWidget> indicator;
 	float acquireRange = 10.0f;
 	float lostRange = 30.0f;
 	float rotationSpeed = 8.0f;

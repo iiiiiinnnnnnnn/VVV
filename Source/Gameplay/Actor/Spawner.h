@@ -19,14 +19,12 @@ class Spawner : public Component
 	using Factory = std::function<std::shared_ptr<Actor>(const Transform&)>;
 
 	Spawner(Object* owner, std::string entityName = {});
+	~Spawner() override;
 
 	// 召喚
 	Actor* Summon();
 	Actor* Summon(const Transform& transform);
 	void ClearSummonedActors();
-
-	// エディタ表示
-	void SetEditorPreview(bool enabled);
 
 	// 召喚位置
 	void SetSummonTransform(const Transform& transform) { summonTransform = transform; }
@@ -39,7 +37,6 @@ class Spawner : public Component
 	ActorManager* GetActorManager() const { return actorManager; }
 
 	// 生成対象
-	void SetEntityName(const std::string& name) { entityName = name; }
 	const std::string& GetEntityName() const { return entityName; }
 
 	void DrawGUI() override;
@@ -47,12 +44,11 @@ class Spawner : public Component
 
   private:
 	// 召喚設定
-	std::string entityName;
+	const std::string entityName;
 	Factory factory = {};
 	ActorManager* actorManager = nullptr;
 	Transform summonTransform = {};
 
 	// 生成状態
 	std::vector<std::weak_ptr<Actor>> summonedActors;
-	bool editorPreview = false;
 };

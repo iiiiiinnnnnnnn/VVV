@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 #include "Gameplay/Actor/Entity.h"
 
@@ -10,7 +11,7 @@ class VMDL;
 class Crystal : public Entity
 {
   public:
-	Crystal(const Transform& transform);
+	Crystal(const Transform& transform, const std::string& modelPath = "Resources/Model/Crystal");
 	~Crystal() override = default;
 
   private:

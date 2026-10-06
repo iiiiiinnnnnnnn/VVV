@@ -98,7 +98,6 @@ class VstgEditorScene : public Scene
 	// 編集状態
 	int gizmoOperation = 7;
 	bool terrainSnapActive = false;
-	bool showFog = true;
 	bool dirty = false;
 	size_t cleanStateHash = 0;
 	bool maximizeWindowPending = true;

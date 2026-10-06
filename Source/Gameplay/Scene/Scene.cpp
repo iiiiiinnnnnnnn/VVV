@@ -283,6 +283,7 @@ void Scene::Render()
 	if (Terrain* terrain = stage.GetComponent<Terrain>())
 		terrain->ApplyDistanceFogSettings(renderSettings);
 	ConfigureRenderSettings(renderSettings);
+	renderSettings.distanceFogEnabled &= renderSettings.showFog;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
 	RenderState* renderState = graphics.GetRenderState();
@@ -429,6 +430,11 @@ void Scene::DrawGUI(RenderContext& rc)
 		OnDrawGUI();
 		return;
 	}
+	if (!io.WantTextInput && !io.KeyCtrl && !io.KeyAlt && !io.KeySuper)
+	{
+		if (ImGui::IsKeyPressed(ImGuiKey_F, false)) renderSettings.showFog = !renderSettings.showFog;
+		if (ImGui::IsKeyPressed(ImGuiKey_G, false)) renderSettings.showGrass = !renderSettings.showGrass;
+	}
 	if (!showGameEditorGUI)
 	{
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -477,6 +483,9 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 			if (ImGui::BeginMenu((const char*)u8"表示"))
 			{
+				ImGui::MenuItem((const char*)u8"草", "G", &renderSettings.showGrass);
+				ImGui::MenuItem((const char*)u8"フォグ", "F", &renderSettings.showFog);
+				ImGui::Separator();
 				ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &renderSettings.showDebug);
 				ImGui::Checkbox((const char*)u8"コライダー", &renderSettings.showColliderDebug);
 				ImGui::Checkbox(

@@ -37,7 +37,6 @@ void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& setti
 	vertexBuffer.Reset();
 	tuftCount = 0;
 	if (!device) return;
-	if (!settings.enabled) return;
 	if (settings.density <= 0.0f) return;
 
 	const float terrainSize = terrain.GetTerrainSize();
@@ -65,9 +64,9 @@ void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& setti
 			const float u = std::clamp(gridU, 0.0f, 1.0f);
 			const float v = std::clamp(gridV, 0.0f, 1.0f);
 
-			// 専用マスクの濃さをそのまま草の生える確率に使う
+			// 緑の表示と同じ閾値で草の有無を確定する
 			const float grassMask = terrain.GetGrassMaskByUV(u, v);
-			if (variation(random) > grassMask) continue;
+			if (grassMask < 0.5f) continue;
 
 			const float localX = (u - 0.5f) * terrainSize;
 			const float localZ = (v - 0.5f) * terrainSize;
@@ -96,7 +95,6 @@ void TerrainGrassRenderer::Render(
 	const RenderContext& rc, const Matrix& world, const Settings& settings,
 	ID3D11ShaderResourceView* terrainDataView, float terrainSize)
 {
-	if (!settings.enabled) return;
 	if (tuftCount <= 0) return;
 	if (!vertexBuffer || !constantBuffer) return;
 	if (!rc.camera || !rc.deviceContext || !rc.renderState) return;

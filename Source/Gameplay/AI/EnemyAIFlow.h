@@ -18,7 +18,6 @@ public:
     void SetTargetTag(const std::string& value) { targetTag = value; }
     void SetSearchRange(float value);
     void SetLostRange(float value);
-    void SetAgentRadius(float value) { agentRadius = value; }
     void SetTrackingTurnSpeed(float value) { trackingTurnSpeed = std::max(value, 0.0f); }
     Actor* GetTarget() const { return target; }
     void LockOn(Actor* actor);
@@ -40,7 +39,6 @@ private:
     Actor* target = nullptr;
     Actor* lockedTarget = nullptr;
     NavMeshAgent* navMeshAgent = nullptr;
-    float agentRadius = 1.0f;
     float trackingTurnSpeed = 8.0f;
     Vector3 sightRayStart = Vector3::Zero;
     Vector3 sightRayEnd = Vector3::Zero;

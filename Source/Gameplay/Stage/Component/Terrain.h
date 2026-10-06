@@ -40,8 +40,12 @@ public:
 	// 地形変形
 
 	float GetHeightByUV(float u, float v) const;
-	float GetSurfaceHeightByUV(float u, float v) const;
-	Vector3 GetSurfaceNormalByUV(float u, float v) const;
+	float GetSurfaceHeightByUV(float u, float v, bool navigationBase = false) const;
+	float GetNavigationHeightByUV(float u, float v) const;
+	float GetNavMeshMaskByUV(float u, float v) const;
+	void SetNavMeshMaskByUV(float u, float v, float value);
+	bool HasNavMeshMask() const { return navMeshMaskInitialized; }
+	Vector3 GetSurfaceNormalByUV(float u, float v, bool navigationBase = false) const;
 	float GetGrassMaskByUV(float u, float v) const;
 	int GetSurfaceLayerIndex(const Vector3& worldPosition) const;
 	int GetSurfaceLayerIndexByUV(float u, float v) const;
@@ -80,7 +84,7 @@ public:
 
 	// コライダー
 
-	uint64_t GetTerrainDataHash() const;
+	uint64_t GetTerrainDataHash(bool includeMasks = false) const;
 	std::filesystem::path GetColliderVertexPath() const;
 	bool BuildGpuColliderMesh(
 		float minX,
@@ -103,6 +107,10 @@ public:
 
 	// ブラシ
 
+	bool IsBrushEnabled() const { return use_brush; }
+	void SetBrushEnabled(bool enabled) { use_brush = enabled; }
+	void SetBrushViewportInputAllowed(bool allowed) { useBrushViewportInput = true; brushViewportInputAllowed = allowed; }
+	bool IsNavMeshPreviewActive() const { return use_brush && brushMode == BrushMode::NavMeshPaint; }
 	int GetBrushTextureIndex() const { return currentBrushIndex; }
 	bool SetBrushTexture(int index);
 
@@ -124,6 +132,7 @@ private:
 		SetHeight,
 		Paint,
 		GrassPaint,
+		NavMeshPaint,
 	};
 
 	// 頂点
@@ -224,8 +233,11 @@ private:
 	struct CbTerrainLayer
 	{
 		int layerCount = 0;
-		int grassMaskPreview = 0;
-		int dummy[2] = {};
+		int brushPreviewMode = 0;
+		int brushFlags = 0;
+		int brushUsesAlpha = 0;
+		Vector4 brushArea = {};
+		Vector4 brushParams = {};
 	};
 
 	// ブラシ
@@ -237,6 +249,7 @@ private:
 		int width = 0;
 		int height = 0;
 		std::vector<float> mask;
+		bool usesAlpha = false;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 	};
 
@@ -347,7 +360,11 @@ private:
 	// 地形テクスチャ
 
 	std::vector<Vector4> terrainPixels;
+	std::vector<float> navigationBaseHeights;
+	bool navMeshMaskInitialized = false;
 	bool terrainTextureDirty = true;
+	mutable bool terrainEditHashDirty = true;
+	mutable uint64_t terrainEditHash = 0;
 	bool is_terrain_texture_clear_color = true;
 	Color terrain_texture_clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> terrainTexture;
@@ -379,6 +396,8 @@ private:
 	// 地形ブラシ
 
 	bool use_brush = false;
+	bool useBrushViewportInput = false;
+	bool brushViewportInputAllowed = false;
 	BrushMode brushMode = BrushMode::RaiseLower;
 	int brush_size = 32;
 	float heightBrushStrength = 0.02f;
@@ -400,5 +419,4 @@ private:
 	TerrainGrassRenderer::Settings grassDraftSettings;
 	bool grassDirty = true;
 	bool grassDraftInitialized = false;
-	bool grassPaintSessionActive = false;
 };

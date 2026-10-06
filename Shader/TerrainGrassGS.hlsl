@@ -7,7 +7,7 @@ void main(point GrassGSInput input[1], inout TriangleStream<GrassPSInput> stream
 	const float2 terrainUV = input[0].position.xz / terrainSize + 0.5f;
 	const float grassMask = terrainDataMap.SampleLevel(
 		terrainPointSampler, terrainUV, 0.0f).b;
-	if (grassMask <= 0.0001f)
+	if (grassMask < 0.5f)
 	{
 		return;
 	}

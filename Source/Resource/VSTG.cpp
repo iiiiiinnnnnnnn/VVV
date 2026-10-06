@@ -1,4 +1,3 @@
-// VSTG.cpp
 #include "Resource/VSTG.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/ResourceManager.h"
@@ -54,7 +53,7 @@ void LoadLight(const json& value, Light& light)
 	{
 		const Color color = LoadColor(value["color"]);
 		light.SetColor(color);
-		light.SetIntensity(value.value("intensity", color.w));
+		light.SetIntensity(value.value("intensity", light.GetIntensity()));
 	}
 	else
 	{
@@ -248,6 +247,11 @@ bool VSTG::Apply(
 		return false;
 	}
 	stageLoader.LoadJsonText(stageJson);
+	if (!stageLoader.GetError().empty())
+	{
+		error = stageLoader.GetError();
+		return false;
+	}
 	if (!ApplyLightingJson(lightingJson, lights))
 	{
 		error = "Lighting settings could not be applied.";
@@ -260,7 +264,7 @@ bool VSTG::Apply(
 size_t VSTG::BuildEditorStateHash(const Terrain& terrain, const NavMeshActor& navMesh,
 	StageLoader& stageLoader, const LightManager& lights) const
 {
-	size_t hash = static_cast<size_t>(terrain.GetTerrainDataHash());
+	size_t hash = static_cast<size_t>(terrain.GetTerrainDataHash(true));
 	const std::hash<std::string> stringHash;
 	hash ^= stringHash(terrain.SaveSettingsJson()) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
 	hash ^= stringHash(navMesh.SaveSettingsJson()) + 0x9e3779b9 + (hash << 6) + (hash >> 2);

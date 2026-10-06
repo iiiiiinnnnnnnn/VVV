@@ -15,7 +15,6 @@ class TerrainGrassRenderer
 public:
 	struct Settings
 	{
-		bool enabled = false;
 		float density = 20.0f;
 		float width = 0.75f;
 		float height = 1.15f;

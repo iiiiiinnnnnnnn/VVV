@@ -9,6 +9,36 @@
 namespace
 {
 VmdlEditorLayoutSettings vmdlEditorLayoutSettings;
+VstgEditorSettings vstgEditorSettings;
+
+void RegisterVstgEditorSettingsHandler()
+{
+	ImGuiSettingsHandler handler;
+	handler.TypeName = "VstgEditor";
+	handler.TypeHash = ImHashStr(handler.TypeName);
+	handler.UserData = &vstgEditorSettings;
+	handler.ReadInitFn = [](ImGuiContext*, ImGuiSettingsHandler* value) {
+		*static_cast<VstgEditorSettings*>(value->UserData) = {};
+	};
+	handler.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler* value, const char* name) -> void* {
+		if (strcmp(name, "Settings") != 0) return nullptr;
+		auto* settings = static_cast<VstgEditorSettings*>(value->UserData);
+		settings->loaded = true;
+		return settings;
+	};
+	handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line) {
+		constexpr const char* prefix = "RecentStagePath=";
+		if (strncmp(line, prefix, strlen(prefix)) == 0)
+			static_cast<VstgEditorSettings*>(entry)->recentStagePath = line + strlen(prefix);
+	};
+	handler.WriteAllFn = [](ImGuiContext*, ImGuiSettingsHandler* value, ImGuiTextBuffer* output) {
+		const auto* settings = static_cast<VstgEditorSettings*>(value->UserData);
+		if (!settings->loaded) return;
+		output->append("[VstgEditor][Settings]\n");
+		output->appendf("RecentStagePath=%s\n\n", settings->recentStagePath.c_str());
+	};
+	ImGui::AddSettingsHandler(&handler);
+}
 
 void RegisterVmdlEditorSettingsHandler()
 {
@@ -80,6 +110,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	editorIniPath = destination.string();
 	io.IniFilename = editorIniPath.c_str();
 	RegisterVmdlEditorSettingsHandler();
+	RegisterVstgEditorSettingsHandler();
 	// 別スレッドで生成されるエディタシーンより先に設定を確定させる
 	ImGui::LoadIniSettingsFromDisk(io.IniFilename);
 
@@ -226,6 +257,11 @@ LRESULT ImGuiRenderer::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 VmdlEditorLayoutSettings& ImGuiRenderer::GetVmdlEditorLayoutSettings()
 {
 	return vmdlEditorLayoutSettings;
+}
+
+VstgEditorSettings& ImGuiRenderer::GetVstgEditorSettings()
+{
+	return vstgEditorSettings;
 }
 
 void ImGuiRenderer::SaveSettings()

@@ -1,7 +1,9 @@
 // CharacterController.h
 #pragma once
 
+#include <algorithm>
 #include <bitset>
+#include <cmath>
 
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Core/PhysicsManager.h"
@@ -51,6 +53,18 @@ public:
     void SetSlopeLimitDeg(float value);
     void SetContactOffset(float value);
     void ReleaseController();
+    float GetSlopeLimitDeg() const
+    {
+        if (!controller) return 45.0f;
+        return DirectX::XMConvertToDegrees(acosf(std::clamp(controller->getSlopeLimit(), 0.0f, 1.0f)));
+    }
+    float GetRadius() const { return controller ? static_cast<PxCapsuleController*>(controller)->getRadius() : 0.0f; }
+    float GetHeight() const
+    {
+        if (!controller) return 0.0f;
+        auto* capsule = static_cast<PxCapsuleController*>(controller);
+        return capsule->getHeight() + capsule->getRadius() * 2.0f;
+    }
     bool IsGrounded() const { return grounded; }
 private:
     void ApplyGravity();

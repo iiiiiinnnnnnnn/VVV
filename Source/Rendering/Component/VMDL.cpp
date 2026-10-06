@@ -93,6 +93,7 @@ LayerId VMDL::GetAttachmentLayer() const
 {
 	if (owner->CompareTag("Player")) return Layers::Get("PlayerAtk");
 	if (owner->CompareTag("Enemy")) return Layers::Get("EnemyAtk");
+	if (owner->CompareTag("Prop")) return Layers::Get("Prop");
 	return 0;
 }
 

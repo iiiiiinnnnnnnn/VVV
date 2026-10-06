@@ -1,4 +1,3 @@
-﻿// VMDLModel.cpp
 #include "Resource/VMDLModel.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"

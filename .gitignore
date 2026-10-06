@@ -382,3 +382,5 @@ imgui.ini
 /Resources/Terrain/Layers/*.dds
 /.assets/
 /Tools/Effekseer
+/VstgEditorSettings.ini
+/Editor.ini

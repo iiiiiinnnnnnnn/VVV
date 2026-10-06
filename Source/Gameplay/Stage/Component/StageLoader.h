@@ -55,7 +55,8 @@ class StageLoader : public Component
 	void LoadJsonText(const std::string& text);
 	void SaveJson();
 	std::string SaveJsonText();
-	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&)>;
+	const std::string& GetError() const { return error; }
+	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&, const std::string&)>;
 	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);
 	std::vector<Spawner*> GetSpawners(std::string_view entityName = {}) const;
 	void SetEditorModels(
@@ -93,8 +94,7 @@ class StageLoader : public Component
 	{
 		Transform transform = {};
 		std::string modelPath = "";
-		bool isSpawner = false;
-		std::string spawnerEntityName;
+		bool initialSpawned = false;
 
 		std::shared_ptr<VMDLModel> model = nullptr;
 		bool editorPreview = false;
@@ -130,11 +130,13 @@ class StageLoader : public Component
 	void CreateWorldWaterActor();
 	void ApplyWorldWaterData();
 	void ConfigureSpawner(Actor* actor, const PropData& propData);
+	bool ValidateModelName(const std::string& modelPath, const std::string& replacedPath = {});
 	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;
 	Vector3 GetPropPlacementOffset(VMDLModel& model);
 
 	std::filesystem::path jsonPath = {};
 	std::string jsonText;
+	std::string error;
 	Stage* stage = nullptr;
 	WorldWaterData worldWater;
 	Water* worldWaterActor = nullptr;

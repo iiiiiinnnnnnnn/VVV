@@ -32,7 +32,7 @@ Aracore::~Aracore()
 }
 
 Aracore::Aracore(Player* player_init,
-    const Transform& transform, Terrain* terrain_init)
+    const Transform& transform, Terrain* terrain_init, const std::string& modelPath)
 	: Entity("Aracore", "Enemy", true, transform, 3000.0f, 3000.0f)
 {
 	this->player = player_init;
@@ -42,7 +42,7 @@ Aracore::Aracore(Player* player_init,
     // 蜘蛛の部分
     {
         // モデル
-        vmdl = AddComponent<VMDL>("Resources/Model/Aracore");
+        vmdl = AddComponent<VMDL>(modelPath);
         vmdl->SetAutoUpdateTransform(false);
         vmdl->SetModelYawOffset(DirectX::XM_PI);
         model = vmdl->GetSharedModel();
@@ -78,7 +78,6 @@ Aracore::Aracore(Player* player_init,
     controller->SetGraphPath("Resources/AI/Aracore.json");
     if (!controller->Load(controller->GetGraphPath()))
         controller->CreateDefaultChaseGraph();
-    controller->SetAgentRadius(3.0f);
     controller->SetTrackingTurnSpeed(2.0f);
 
     // AIパラメータの初期値
@@ -345,17 +344,10 @@ void Aracore::SpawnDeerFromSky()
 	ActorManager* actorManager = ActorManager::GetActive();
 	if (!actorManager) return;
 
-	// 倒された召喚鹿を上限の対象から外す
-	bossSummonedDeer.erase(
-		std::remove_if(
-			bossSummonedDeer.begin(),
-			bossSummonedDeer.end(),
-			[actorManager](Actor* deer)
-			{
-				if (!actorManager->Contains(deer)) return true;
-				return deer->IsPendingDestroy();
-			}),
-		bossSummonedDeer.end());
+	// 倒された召喚鹿を上限の対象から外す(erase_if覚える)
+	std::erase_if(bossSummonedDeer, [actorManager](Actor* deer) {
+		return !actorManager->Contains(deer) || deer->IsPendingDestroy();
+	});
 
 	constexpr float spawnHeight = 20.0f;
 	constexpr size_t maxBossSummonedDeer = 3; // 召喚最大数

@@ -204,8 +204,6 @@ void EnemyAIFlow::MoveToTarget(float speed)
         return;
     }
 
-    if (NavMeshActor* navMeshActor = NavMeshActor::GetActive())
-        navMeshActor->SetAgentRadius(agentRadius);
     navMeshAgent->SetSpeed(speed);
     navMeshAgent->MoveToTarget(target);
     FaceTarget();
@@ -502,7 +500,6 @@ bool EnemyAIFlow::LoadFlowExtension(const std::string& path)
         json root;
         stream >> root;
         targetTag = root.value("targetTag", targetTag);
-        agentRadius = root.value("agentRadius", agentRadius);
         trackingTurnSpeed = root.value("trackingTurnSpeed", trackingTurnSpeed);
         const float searchRange =
             GetFloat("SearchRange", 20.0f);
@@ -536,7 +533,6 @@ bool EnemyAIFlow::SaveFlowExtension(const std::string& path) const
     }
 
     root["targetTag"] = targetTag;
-    root["agentRadius"] = agentRadius;
     root["trackingTurnSpeed"] = trackingTurnSpeed;
     std::ofstream stream(path);
     if (!stream) return false;

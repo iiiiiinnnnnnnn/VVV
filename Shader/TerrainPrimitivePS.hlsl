@@ -4,6 +4,8 @@
 #include "PBRFunctions.hlsli"
 #include "ShadowmapFunctions.hlsli"
 
+Texture2D<float4> terrainBrushMap : register(t1);
+
 Texture2D shadowMaps[ShadowCascadeCount] : register(t8);
 
 Texture2D lut_ggx : register(t17);
@@ -15,8 +17,11 @@ TextureCube diffuse_iem : register(t19);
 cbuffer CbTerrainLayer : register(b4)
 {
     int terrain_layer_count;
-    int terrain_grass_mask_preview;
-    int2 terrain_layer_dummy;
+    int terrain_brush_preview_mode;
+    int terrain_brush_flags;
+    int terrain_brush_uses_alpha;
+    float4 terrain_brush_area;
+    float4 terrain_brush_params;
 };
 
 Texture2D<float4> terrainBaseTextures[MAX_TERRAIN_LAYERS] : register(t20);
@@ -559,14 +564,39 @@ float4 main(VS_OUT pin) : SV_TARGET
     const float waterDepth = max(-0.5f - pin.position.y, 0.0f);
     color *= exp(-0.6f * waterDepth);
 
-    if (terrain_grass_mask_preview != 0)
+    if (terrain_brush_preview_mode != 0)
     {
-        // 草がない場所を赤、生える場所を緑で大まかに表示する
-        float grassMask = saturate(terrainDataMap.Sample(shadowSampler, pin.texcoord).b);
-        float3 emptyColor = float3(0.85f, 0.12f, 0.08f);
-        float3 grassColor = float3(0.10f, 0.95f, 0.22f);
-        float3 previewColor = lerp(emptyColor, grassColor, grassMask);
-        color = lerp(color, previewColor, 0.48f);
+        float4 data = terrainDataMap.SampleLevel(terrainPointClampSampler, pin.texcoord, 0);
+        float influence = 0.0f;
+        if (terrain_brush_preview_mode == 4 || terrain_brush_preview_mode == 5)
+        {
+            float coverage = terrain_brush_preview_mode == 4 ? data.b : data.a;
+            float3 previewColor = coverage >= 0.5f
+                ? float3(0.10f, 0.95f, 0.22f)
+                : float3(0.85f, 0.12f, 0.08f);
+            color = lerp(color, previewColor, 0.15f);
+        }
+
+        if (terrain_brush_area.w > 0.0f && terrain_brush_area.z > 0.0f)
+        {
+            float2 brushUV = (pin.texcoord - terrain_brush_area.xy) / (terrain_brush_area.z * 2.0f) + 0.5f;
+            if (all(brushUV >= 0.0f) && all(brushUV <= 1.0f))
+            {
+                uint width, height;
+                terrainBrushMap.GetDimensions(width, height);
+                float2 dimensions = float2(width, height);
+                float2 sampleUV = (brushUV * max(dimensions - 1.0f, 0.0f) + 0.5f) / max(dimensions, 1.0f);
+                float4 brushSample = terrainBrushMap.SampleLevel(shadowSampler, sampleUV, 0);
+                influence = terrain_brush_uses_alpha != 0 ? brushSample.a : dot(brushSample.rgb, float3(0.2126f, 0.7152f, 0.0722f));
+                if ((terrain_brush_flags & 1) != 0) influence = 1.0f - influence;
+                float strength = terrain_brush_preview_mode == 1 ? terrain_brush_params.x : terrain_brush_params.w;
+                if (terrain_brush_preview_mode == 2) strength = 1.0f;
+                influence *= saturate(0.25f + strength * 4.0f);
+                float3 brushColor = (terrain_brush_flags & 2) != 0 ? float3(1.0f, 0.2f, 0.05f) : float3(1.0f, 0.85f, 0.12f);
+                float brushOpacity = terrain_brush_preview_mode >= 4 ? 0.35f : 0.8f;
+                color = lerp(color, brushColor, influence * brushOpacity);
+            }
+        }
     }
 
     return float4(color, albedo.a);

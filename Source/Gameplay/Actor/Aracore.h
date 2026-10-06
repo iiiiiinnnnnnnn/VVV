@@ -1,6 +1,7 @@
 #pragma once
 #include "Rendering/Core/VMatRenderParams.h"
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "Gameplay/Actor/Entity.h"
@@ -26,7 +27,8 @@ class MultiLegFootIK;
 class Aracore : public Entity
 {
 public:
-	Aracore(Player* player_init, const Transform& transform, Terrain* terrain_init = nullptr);
+	Aracore(Player* player_init, const Transform& transform, Terrain* terrain_init = nullptr,
+		const std::string& modelPath = "Resources/Model/Aracore");
 	~Aracore() override;
 	void OnUpdate() override;
 	void OnLateUpdate() override;

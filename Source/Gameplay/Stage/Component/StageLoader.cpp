@@ -19,6 +19,7 @@
 #include "Physics/Collider/MeshCollider.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Component/VMDLModelComponent.h"
+#include "Rendering/Component/VMDL.h"
 
 static constexpr uint32_t StageDataVersion = 1;
 
@@ -428,6 +429,11 @@ void StageLoader::Update()
 			}
 			ApplyPropData(addedActor, prop);
 			ConfigureSpawner(addedActor, prop);
+			if (addedActor && !prop.editorPreview && !prop.initialSpawned)
+			{
+				Spawner* spawner = addedActor->GetComponent<Spawner>();
+				if (spawner && spawner->Summon()) prop.initialSpawned = true;
+			}
 		}
 	}
 }
@@ -448,7 +454,7 @@ std::vector<Spawner*> StageLoader::GetSpawners(std::string_view entityName) cons
 	std::vector<Spawner*> result;
 	for (Actor* actor : addedPropActors)
 	{
-		if (!actor) continue;
+		if (!actor || !stage->GetActorManager().Contains(actor)) continue;
 		Spawner* spawner = actor->GetComponent<Spawner>();
 		if (!spawner || !spawner->IsActive()) continue;
 		if (!entityName.empty() && spawner->GetEntityName() != entityName) continue;
@@ -466,18 +472,11 @@ Actor* StageLoader::CreatePropActor(PropData& propData)
 {
 	const std::string name = std::filesystem::path(propData.modelPath).stem().string();
 	auto actor = std::make_shared<Actor>(name, "Prop", true, propData.transform);
-	if (!propData.isSpawner || propData.editorPreview)
+	if (propData.editorPreview)
 	{
 		auto renderer = actor->AddComponent<VMDLModelComponent>(
 			propData.model, ModelShaderId::VMat);
 		renderer->SetAttachmentLayerId(Layers::Get("Prop"));
-
-		if (!propData.isSpawner)
-		{
-			RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
-			actor->AddComponent<MeshCollider>(
-				Layers::Get("Prop"), rigidbody, propData.model, false);
-		}
 	}
 
 	Actor* result = actor.get();
@@ -574,30 +573,53 @@ void StageLoader::ApplyWorldWaterData()
 void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 {
 	if (!actor) return;
-
+	const std::string name = std::filesystem::path(propData.modelPath).stem().string();
 	Spawner* spawner = actor->GetComponent<Spawner>();
-
-	if (!spawner && propData.isSpawner)
-	{
-		spawner = actor->AddComponent<Spawner>(propData.spawnerEntityName);
-	}
-
-	if (!spawner) return;
-
-	spawner->SetEntityName(propData.spawnerEntityName);
+	if (!spawner) spawner = actor->AddComponent<Spawner>(name);
 	spawner->SetActorManager(&stage->GetActorManager());
-
-	spawner->SetActive(propData.isSpawner);
-	spawner->SetEditorPreview(propData.isSpawner && propData.editorPreview);
-
 	Transform summonTransform = propData.transform;
 	summonTransform.Update();
-
 	spawner->SetSummonTransform(summonTransform);
+	if (propData.editorPreview)
+	{
+		spawner->SetFactory({});
+		return;
+	}
 
-	const auto factory = spawnerFactories.find(propData.spawnerEntityName);
+	const auto factory = spawnerFactories.find(name);
+	if (factory != spawnerFactories.end())
+	{
+		spawner->SetFactory([create = factory->second, path = propData.modelPath](const Transform& transform) {
+			return create(transform, path);
+		});
+	}
+	else
+	{
+		spawner->SetFactory([name, path = propData.modelPath](const Transform& transform) {
+			auto actor = std::make_shared<Actor>(name, "Prop", true, transform);
+			auto vmdl = actor->AddComponent<VMDL>(path);
+			vmdl->GetRenderer()->SetAttachmentLayerId(Layers::Get("Prop"));
+			RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
+			actor->AddComponent<MeshCollider>(Layers::Get("Prop"), rigidbody, vmdl->GetSharedModel(), false);
+			return actor;
+		});
+	}
+}
 
-	spawner->SetFactory(factory == spawnerFactories.end() ? SpawnerFactory{} : factory->second);
+bool StageLoader::ValidateModelName(const std::string& modelPath, const std::string& replacedPath)
+{
+	error.clear();
+	const auto path = std::filesystem::path(modelPath).lexically_normal();
+	for (const PropData& prop : propDataList)
+	{
+		if (prop.modelPath == replacedPath) continue;
+		const auto existing = std::filesystem::path(prop.modelPath).lexically_normal();
+		if (existing == path || existing.stem() != path.stem()) continue;
+		error = "Duplicate VMDL filename: " + path.stem().string() + " (" +
+			existing.generic_string() + " / " + path.generic_string() + ")";
+		return false;
+	}
+	return true;
 }
 
 std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPath) const
@@ -631,6 +653,7 @@ Vector3 StageLoader::GetPropPlacementOffset(VMDLModel& model)
 
 bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint)
 {
+	if (!ValidateModelName(modelPath)) return false;
 	PropData propData;
 	propData.modelPath = modelPath;
 	propData.editorPreview = editorModels != nullptr;
@@ -695,6 +718,7 @@ bool StageLoader::ReplaceMissingModelPath(
 	const std::string& missingPath, const std::string& replacementPath)
 {
 	if (missingPath.empty() || replacementPath.empty()) return false;
+	if (!ValidateModelName(replacementPath, missingPath)) return false;
 	std::shared_ptr<VMDLModel> replacement = LoadPropModel(replacementPath);
 	if (!replacement) return false;
 
@@ -703,11 +727,16 @@ bool StageLoader::ReplaceMissingModelPath(
 	{
 		PropData& propData = propDataList[index];
 		if (propData.modelPath != missingPath) continue;
+		propData.initialSpawned = false;
 		propData.modelPath = replacementPath;
 		propData.model = replacement->Clone();
 
-		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
+			stage->GetActorManager().Contains(addedPropActors[index]))
+		{
+			if (Spawner* spawner = addedPropActors[index]->GetComponent<Spawner>()) spawner->ClearSummonedActors();
 			addedPropActors[index]->Destroy();
+		}
 		Actor* actor = CreatePropActor(propData);
 		if (index < static_cast<int>(addedPropActors.size())) addedPropActors[index] = actor;
 		if (index < static_cast<int>(addedRealActors.size())) addedRealActors[index] = actor;
@@ -721,8 +750,12 @@ void StageLoader::RemovePropsWithModelPath(const std::string& modelPath)
 	for (int index = static_cast<int>(propDataList.size()) - 1; index >= 0; --index)
 	{
 		if (propDataList[index].modelPath != modelPath) continue;
-		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
+			stage->GetActorManager().Contains(addedPropActors[index]))
+		{
+			if (Spawner* spawner = addedPropActors[index]->GetComponent<Spawner>()) spawner->ClearSummonedActors();
 			addedPropActors[index]->Destroy();
+		}
 		propDataList.erase(propDataList.begin() + index);
 		if (index < static_cast<int>(addedPropActors.size()))
 			addedPropActors.erase(addedPropActors.begin() + index);
@@ -956,13 +989,13 @@ bool StageLoader::DrawPropEditor(int index)
 	}
 
 	propData.transform.DrawGUI();
-	ImGui::Checkbox((const char*)u8"スポナー", &propData.isSpawner);
-	if (propData.isSpawner)
-		ImGui::InputText((const char*)u8"生成対象", &propData.spawnerEntityName);
+	ImGui::Text((const char*)u8"生成対象: %s", std::filesystem::path(propData.modelPath).stem().string().c_str());
 
 	if (ImGui::Button((const char*)u8"複製"))
 	{
 		PropData copy = propData;
+		copy.initialSpawned = false;
+		if (copy.model) copy.model = copy.model->Clone();
 		propDataList.insert(propDataList.begin() + index + 1, std::move(copy));
 		Actor* actor = CreatePropActor(propDataList[index + 1]);
 		addedRealActors.insert(addedRealActors.begin() + index + 1, actor);
@@ -980,8 +1013,12 @@ bool StageLoader::DrawPropEditor(int index)
 			if (selectedEditorObjectIndex == index) ClearEditorSelection();
 			else if (selectedEditorObjectIndex > index) --selectedEditorObjectIndex;
 		}
-		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index])
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
+			stage->GetActorManager().Contains(addedPropActors[index]))
+		{
+			if (Spawner* spawner = addedPropActors[index]->GetComponent<Spawner>()) spawner->ClearSummonedActors();
 			addedPropActors[index]->Destroy();
+		}
 		if (index < static_cast<int>(addedRealActors.size()))
 			addedRealActors.erase(addedRealActors.begin() + index);
 		if (index < static_cast<int>(addedPropActors.size()))
@@ -999,6 +1036,7 @@ bool StageLoader::DrawPropEditor(int index)
 
 void StageLoader::LoadJson()
 {
+	error.clear();
 	std::ifstream file;
 	std::istringstream memory(jsonText);
 	std::istream* input = &memory;
@@ -1021,6 +1059,17 @@ void StageLoader::LoadJson()
 		return;
 	}
 	if (!root.is_object() || root.value("version", 0u) != StageDataVersion) return;
+	std::map<std::string, std::filesystem::path> modelNames;
+	for (const auto& prop : root.value("props", json::array()))
+	{
+		const auto path = std::filesystem::path(prop.value("modelPath", std::string())).lexically_normal();
+		if (path.empty()) continue;
+		auto [found, inserted] = modelNames.emplace(path.stem().string(), path);
+		if (inserted || found->second == path) continue;
+		error = "Duplicate VMDL filename: " + path.stem().string() + " (" +
+			found->second.generic_string() + " / " + path.generic_string() + ")";
+		return;
+	}
 
 	propDataList.clear();
 	playerStartTransforms.clear();
@@ -1037,7 +1086,9 @@ void StageLoader::LoadJson()
 	worldWater = WorldWaterData{};
 	for (auto addedActor : addedRealActors)
 	{
-		if (addedActor) addedActor->Destroy();
+		if (!addedActor || !stage->GetActorManager().Contains(addedActor)) continue;
+		if (Spawner* spawner = addedActor->GetComponent<Spawner>()) spawner->ClearSummonedActors();
+		addedActor->Destroy();
 	}
 	addedRealActors.clear();
 	addedPropActors.clear();
@@ -1091,9 +1142,6 @@ void StageLoader::LoadJson()
 			PropData propData;
 			if (propJson.contains("transform"))
 				LoadTransformJson(propJson["transform"], propData.transform);
-			propData.isSpawner = propJson.value("isSpawner", false);
-			propData.spawnerEntityName =
-				propJson.value("spawnerEntityName", std::string());
 			propData.editorPreview = editorModels != nullptr;
 
 			propData.modelPath = propJson.value("modelPath", "");
@@ -1199,9 +1247,6 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["x"] = propData.transform.scale.x;
 		propJson["transform"]["scale"]["y"] = propData.transform.scale.y;
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
-
-		propJson["isSpawner"] = propData.isSpawner;
-		propJson["spawnerEntityName"] = propData.spawnerEntityName;
 
 		propJson["modelPath"] = propData.modelPath;
 		root["props"].push_back(propJson);

@@ -5974,9 +5974,9 @@ void VmdlEditorScene::DrawMaterialEditor()
 		(const char*)u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
 	changed |= ImGui::SliderFloat((const char*)u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
 
-	ImGui::SeparatorText((const char*)u8"クリスタル");
+	ImGui::SeparatorText((const char*)u8"リフレクション");
 	bool crystalEnabled = material.transmission > 0.0f;
-	if (ImGui::Checkbox((const char*)u8"クリスタル表現", &crystalEnabled))
+	if (ImGui::Checkbox((const char*)u8"リフレクション", &crystalEnabled))
 	{
 		material.transmission = crystalEnabled ? 0.88f : 0.0f;
 		changed = true;
@@ -5987,7 +5987,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 		changed |= ImGui::SliderFloat((const char*)u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
 		changed |= ImGui::DragFloat((const char*)u8"屈折の距離", &material.refractionDistance,
 			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		changed |= ImGui::SliderFloat((const char*)u8"クリスタルの粗さ", &material.crystalRoughness, 0.0001f, 1.0f);
+		changed |= ImGui::SliderFloat((const char*)u8"リフレクションの粗さ", &material.crystalRoughness, 0.0001f, 1.0f);
 	}
 
 	const char* alphaModes[] = {

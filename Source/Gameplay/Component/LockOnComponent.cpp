@@ -1,4 +1,3 @@
-// LockOnComponent.cpp
 #include "Gameplay/Component/LockOnComponent.h"
 
 #include "Application/Time/GameTime.h"
@@ -11,7 +10,6 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/VMDLModel.h"
-#include "UI/SpriteWidget.h"
 
 LockOnComponent::LockOnComponent(Object* owner)
 	: Component(owner), ownerEntity(dynamic_cast<Entity*>(owner))
@@ -20,7 +18,7 @@ LockOnComponent::LockOnComponent(Object* owner)
 
 LockOnComponent::~LockOnComponent()
 {
-	if (indicator) indicator->Destroy();
+
 }
 
 void LockOnComponent::OnUpdate()
@@ -66,23 +64,16 @@ void LockOnComponent::OnUpdate()
 
 void LockOnComponent::OnDisabled()
 {
-	HideIndicator();
+
 }
 
 void LockOnComponent::OnRender(const RenderContext& rc)
 {
 	if (target && !IsTargetValid()) ClearTarget();
-	EnsureIndicator();
-	if (!indicator || !target || !rc.camera)
-	{
-		HideIndicator();
-		return;
-	}
 
 	if (!targetModel || targetAnchorIndex < 0) ResolveTargetAnchor();
 	if (!targetModel || targetAnchorIndex < 0)
 	{
-		HideIndicator();
 		return;
 	}
 
@@ -90,13 +81,11 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 	const auto& nodes = targetModel->GetNodes();
 	if (targetAnchorIndex >= static_cast<int>(colliders.size()))
 	{
-		HideIndicator();
 		return;
 	}
 	const VMDLModel::VmdlCollider& anchor = colliders[targetAnchorIndex];
 	if (anchor.nodeIndex < 0 || anchor.nodeIndex >= static_cast<int>(nodes.size()))
 	{
-		HideIndicator();
 		return;
 	}
 
@@ -110,7 +99,6 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 		viewProjection);
 	if (clipPosition.w <= eps)
 	{
-		HideIndicator();
 		return;
 	}
 
@@ -122,14 +110,8 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 		ndcY < -1.0f || ndcY > 1.0f ||
 		ndcZ < 0.0f || ndcZ > 1.0f)
 	{
-		HideIndicator();
 		return;
 	}
-
-	indicator->rect.position = {
-		(ndcX + 1.0f) * 0.5f * Game::Graphics::ScreenWidth,
-		(1.0f - ndcY) * 0.5f * Game::Graphics::ScreenHeight};
-	indicator->SetActive(true);
 }
 
 void LockOnComponent::OnDrawGUI()
@@ -222,7 +204,6 @@ void LockOnComponent::ClearTarget()
 	target = nullptr;
 	targetModel = nullptr;
 	targetAnchorIndex = -1;
-	HideIndicator();
 }
 
 void LockOnComponent::PauseRotation(float duration)
@@ -236,22 +217,6 @@ bool LockOnComponent::IsTargetValid() const
 
 	const Entity* targetEntity = dynamic_cast<const Entity*>(target);
 	return !targetEntity || !targetEntity->IsDead();
-}
-
-void LockOnComponent::EnsureIndicator()
-{
-	if (indicator) return;
-
-	Scene* scene = SceneManager::Instance().GetCurrentScene();
-	if (!scene) return;
-
-	indicator = std::make_shared<SpriteWidget>("Resources/UI/arrow.png");
-	indicator->rect.anchor = {0.5f, 0.5f};
-	indicator->rect.size = Vector2(583.0f, 392.0f) * 0.1f;
-	indicator->rect.angle = -90.0f;
-	indicator->SetAffectedByPostProcess(false);
-	indicator->SetActive(false);
-	scene->RegisterWidget(indicator);
 }
 
 void LockOnComponent::ResolveTargetAnchor()
@@ -272,9 +237,4 @@ void LockOnComponent::ResolveTargetAnchor()
 		targetAnchorIndex = i;
 		return;
 	}
-}
-
-void LockOnComponent::HideIndicator()
-{
-	if (indicator) indicator->SetActive(false);
 }

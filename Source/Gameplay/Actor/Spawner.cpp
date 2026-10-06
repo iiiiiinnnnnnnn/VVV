@@ -1,14 +1,16 @@
 #include "Gameplay/Actor/Spawner.h"
 
-#include <algorithm>
-
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Actor/ActorManager.h"
-#include "Rendering/Component/VMDLModelComponent.h"
 
 Spawner::Spawner(Object* owner, std::string entityName)
 	: Component(owner), entityName(std::move(entityName))
 {}
+
+Spawner::~Spawner()
+{
+	ClearSummonedActors();
+}
 
 Actor* Spawner::Summon()
 {
@@ -35,26 +37,6 @@ void Spawner::ClearSummonedActors()
 		if (std::shared_ptr<Actor> actor = reference.lock()) actor->Destroy();
 	}
 	summonedActors.clear();
-}
-
-void Spawner::SetEditorPreview(bool enabled)
-{
-	if (editorPreview == enabled) return;
-	editorPreview = enabled;
-
-	VMDLModelComponent* modelComponent = owner->GetComponent<VMDLModelComponent>();
-	if (!modelComponent || !modelComponent->GetModel()) return;
-
-	auto& materialParams = modelComponent->GetRenderParams().materials;
-	materialParams.clear();
-	if (!editorPreview) return;
-
-	for (const VMDLModel::Material& material : modelComponent->GetModel()->GetMaterials())
-	{
-		Color color = material.baseColor;
-		color.w = std::min(color.w, 0.35f);
-		materialParams[material.name].baseColor = color;
-	}
 }
 
 void Spawner::DrawGUI()

@@ -1,4 +1,4 @@
-﻿// GamePostProcess.h
+// GamePostProcess.h
 #pragma once
 
 #include <memory>
@@ -122,7 +122,7 @@ namespace Game
 		// Color Filter
 		bool enableColorFilter = true;
 		float colorFilterHueShift = 0.0f;
-		float colorFilterSaturation = 1.42f;
+		float colorFilterSaturation = 2.0f;
 		float colorFilterBrightness = 1.3f;
 		struct CbColorFilter
 		{

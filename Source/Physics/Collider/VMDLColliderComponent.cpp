@@ -188,9 +188,19 @@ void VMDLColliderComponent::CreateMeshShape()
 	triangleMesh->release();
 }
 
-void VMDLColliderComponent::UpdateScaledSize(const Matrix&)
+void VMDLColliderComponent::UpdateScaledSize(const Matrix& world)
 {
-	scaledSize = model ? model->GetScaledAttachmentVector(size) : size;
+	if (shapeType < 3)
+	{
+		scaledSize = model ? model->GetScaledAttachmentVector(size) : size;
+		return;
+	}
+
+	const Vector3 worldScale(
+		Vector3(world._11, world._12, world._13).Length(),
+		Vector3(world._21, world._22, world._23).Length(),
+		Vector3(world._31, world._32, world._33).Length());
+	scaledSize = size * worldScale;
 }
 
 PxTransform VMDLColliderComponent::GetShapeLocalPose() const
