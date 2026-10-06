@@ -1,4 +1,3 @@
-﻿// NavMeshActor.cpp
 #include "Physics/Navigation/NavMeshActor.h"
 
 #include "Gameplay/Actor/Actor.h"
