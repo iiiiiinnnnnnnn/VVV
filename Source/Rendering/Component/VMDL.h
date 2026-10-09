@@ -17,6 +17,7 @@ class VMDL : public Component
 {
   public:
 	VMDL(Object* owner, const std::string& path);
+	VMDL(Object* owner, std::shared_ptr<VMDLModel> model);
 
 	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDL"; }
 	void OnDrawGUI() override;
@@ -51,6 +52,7 @@ class VMDL : public Component
 	}
 
   private:
+	void BuildModelComponents();
 	LayerId GetAttachmentLayer() const;
 	void BuildFootIK();
 

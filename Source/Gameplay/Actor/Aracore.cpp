@@ -33,7 +33,7 @@ Aracore::~Aracore()
 
 Aracore::Aracore(Player* player_init,
     const Transform& transform, Terrain* terrain_init, const std::string& modelPath)
-	: Entity("Aracore", "Enemy", true, transform, 3000.0f, 3000.0f)
+	: Entity("Aracore", "Enemy", true, transform, 2000.0f, 2000.0f)
 {
 	this->player = player_init;
 	this->terrain = terrain_init;
@@ -615,6 +615,7 @@ void Aracore::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, 
 	PushPlayer(self, other);
 
     Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+	if (!otherActor) return;
 
     if (self->GetLayerId() == Layers::Get("EnemyAtk"))
     {

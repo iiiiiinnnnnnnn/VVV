@@ -8,7 +8,6 @@ enum class EffectId
 {
 	CRITICAL,
 	CRYSTAL_BREAK,
-	CRYSTAL_BREAK2,
 	ENEMY_DEAD,
 	GUARD_COMMON,
 	HEAL,
@@ -29,7 +28,6 @@ inline constexpr std::array EffectDefinitions =
 {
 	EffectDefinition{EffectId::CRITICAL, "CRITICAL", "Resources/Effect/critical.efkpkg"},
 	EffectDefinition{EffectId::CRYSTAL_BREAK, "CRYSTAL_BREAK", "Resources/Effect/crystal_break.efkpkg"},
-	EffectDefinition{EffectId::CRYSTAL_BREAK2, "CRYSTAL_BREAK2", "Resources/Effect/crystal_break2.efkpkg"},
 	EffectDefinition{EffectId::ENEMY_DEAD, "ENEMY_DEAD", "Resources/Effect/enemy_dead.efkpkg"},
 	EffectDefinition{EffectId::GUARD_COMMON, "GUARD_COMMON", "Resources/Effect/guard_common.efkpkg"},
 	EffectDefinition{EffectId::HEAL, "HEAL", "Resources/Effect/heal.efkpkg"},

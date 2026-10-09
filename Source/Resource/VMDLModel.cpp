@@ -1224,6 +1224,10 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		target.emissiveColor = source.emissiveColor;
 		target.metalness = source.metalness;
 		target.roughness = source.roughness;
+		target.transmission = source.transmission;
+		target.indexOfRefraction = source.indexOfRefraction;
+		target.refractionDistance = source.refractionDistance;
+		target.crystalRoughness = source.crystalRoughness;
 		target.occlusion = source.occlusion;
 		target.occlusionStrength = source.occlusionStrength;
 		target.shadowStrength = source.shadowStrength;
@@ -1238,6 +1242,11 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		target.emissiveMap = source.emissiveMap;
 		target.occlusionMap = source.occlusionMap;
 		target.metalnessRoughnessMap = source.metalnessRoughnessMap;
+		target.hasBaseTexture = source.hasBaseTexture;
+		target.hasNormalTexture = source.hasNormalTexture;
+		target.hasEmissiveTexture = source.hasEmissiveTexture;
+		target.hasOcclusionTexture = source.hasOcclusionTexture;
+		target.hasMetalnessRoughnessTexture = source.hasMetalnessRoughnessTexture;
 	}
 
 	meshes.reserve(other.meshes.size());
@@ -1255,6 +1264,28 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 
 	RebuildRuntimeReferences();
 	UpdateTransform(other.worldTransform);
+}
+
+std::shared_ptr<VMDLModel> VMDLModel::CloneRuntimeInstance() const
+{
+	auto result = CloneRenderPose();
+	result->animations = animations;
+	result->vmdlExtensionData = vmdlExtensionData;
+	result->vmdlIKSettings = vmdlIKSettings;
+	result->vmdlIKPoles = vmdlIKPoles;
+	result->vmdlIKRaySettings = vmdlIKRaySettings;
+	result->vmdlMultiLegIKSettings = vmdlMultiLegIKSettings;
+	result->vmdlAnimationControlData = vmdlAnimationControlData;
+	result->vmdlTrailData = vmdlTrailData;
+	result->vmdlParticleData = vmdlParticleData;
+	result->vmdlSoundData = vmdlSoundData;
+	result->vmdlLightData = vmdlLightData;
+	result->vmdlPresentationData = vmdlPresentationData;
+	result->externalMeshGroups = externalMeshGroups;
+	result->modelCacheFilepath = modelCacheFilepath;
+	result->RebuildRuntimeReferences();
+	result->UpdateTransform(worldTransform);
+	return result;
 }
 
 std::shared_ptr<VMDLModel> VMDLModel::CloneRenderPose() const

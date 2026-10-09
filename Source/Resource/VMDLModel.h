@@ -531,6 +531,7 @@ class VMDLModel
 	// Lightweight snapshot used by transient visual effects. CPU mesh and
 	// animation data are omitted while GPU buffers and the current pose are kept.
 	std::shared_ptr<VMDLModel> CloneRenderPose() const;
+	std::shared_ptr<VMDLModel> CloneRuntimeInstance() const;
 	std::shared_ptr<VMDLModel> CloneRenderPose(const std::vector<std::shared_ptr<MeshCache>>& caches) const;
 	bool HasSkeleton() const;
 

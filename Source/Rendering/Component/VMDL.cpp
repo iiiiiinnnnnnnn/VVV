@@ -17,7 +17,18 @@ VMDL::VMDL(Object* owner, const std::string& path) : Component(owner), path(path
 	auto loaded = ResourceManager::Instance().LoadModel(path);
 	if (!loaded) throw std::runtime_error("VMDL could not be loaded: " + path);
 	model = std::move(loaded);
+	BuildModelComponents();
+}
 
+VMDL::VMDL(Object* owner, std::shared_ptr<VMDLModel> model)
+	: Component(owner), model(std::move(model))
+{
+	if (!this->model) throw std::runtime_error("VMDL requires a model.");
+	BuildModelComponents();
+}
+
+void VMDL::BuildModelComponents()
+{
 	renderer = owner->AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());
 	renderer->BuildAttachments();

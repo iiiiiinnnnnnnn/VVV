@@ -243,8 +243,38 @@ void VMDLColliderComponent::OnDisabled()
 	}
 }
 
+bool VMDLColliderComponent::StartDynamicMotion(const Vector3& velocity, const Vector3& angularVelocity)
+{
+	// VMDLの非トリガー・プリミティブ形状を、そのまま動く物理ボディに使う。
+	if (!ghostActor || !shape || isTrigger || shapeType >= 3 || !IsActive()) return false;
+	auto* actor = dynamic_cast<Actor*>(owner);
+	if (!actor) return false;
+	scaledSize *= Vector3(fabsf(actor->transform.scale.x), fabsf(actor->transform.scale.y),
+		fabsf(actor->transform.scale.z));
+	CreateShape();
+	ownerFromBody = actor->transform.matrix * Conv::ToMatrix(ghostActor->getGlobalPose()).Invert();
+	drivesOwner = true;
+	ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, false);
+	ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+	ghostActor->setLinearVelocity(Conv::ToPxVec3(velocity));
+	ghostActor->setAngularVelocity(Conv::ToPxVec3(angularVelocity));
+	ghostActor->setLinearDamping(0.5f);
+	ghostActor->setAngularDamping(2.0f);
+	return true;
+}
+
+void VMDLColliderComponent::SyncOwnerTransform()
+{
+	if (!drivesOwner || !ghostActor || !IsActive()) return;
+	auto* actor = dynamic_cast<Actor*>(owner);
+	if (!actor) return;
+	actor->transform = Transform(ownerFromBody * Conv::ToMatrix(ghostActor->getGlobalPose()));
+	actor->transform.Update();
+}
+
 void VMDLColliderComponent::UpdateFromNode()
 {
+	if (drivesOwner) return;
 	if (!ghostActor || !model || nodeIndex < 0)
 	{
 		return;

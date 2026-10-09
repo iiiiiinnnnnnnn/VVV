@@ -24,6 +24,8 @@ class VMDLColliderComponent : public PhysicsComponent
 	const char* GetDebugName() const override { return ICON_FA_SHAPES " VMDLColliderComponent"; }
 
 	void UpdateFromNode();
+	bool StartDynamicMotion(const Vector3& velocity, const Vector3& angularVelocity);
+	void SyncOwnerTransform();
 	Vector3 GetWorldPosition() const;
 	Actor* FindOverlapActorByTag(const std::string& tag) const;
 
@@ -41,6 +43,8 @@ class VMDLColliderComponent : public PhysicsComponent
 	Matrix offset = Matrix::Identity;
 	bool isTrigger = true;
 	bool sweepReady = false;
+	bool drivesOwner = false;
+	Matrix ownerFromBody = Matrix::Identity;
 
 	PxMaterial* material = nullptr;
 	PxRigidDynamic* ghostActor = nullptr;

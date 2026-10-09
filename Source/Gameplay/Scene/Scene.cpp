@@ -1,4 +1,5 @@
-﻿// Scene.cpp
+﻿#include "IconsFontAwesome5.h"
+// Scene.cpp
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Lighting/Light.h"
@@ -462,9 +463,9 @@ void Scene::DrawGUI(RenderContext& rc)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu((const char*)u8"ファイル"))
+			if (ImGui::BeginMenu((const char*)(ICON_FA_FILE " " u8"ファイル")))
 			{
-				if (ImGui::MenuItem((const char*)u8"ステージを開く"))
+				if (ImGui::MenuItem((const char*)(ICON_FA_FOLDER_OPEN " " u8"ステージを開く")))
 				{
 					std::string filename;
 					if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
@@ -472,7 +473,7 @@ void Scene::DrawGUI(RenderContext& rc)
 						pendingStagePath = filename;
 				}
 				ImGui::Separator();
-				if (ImGui::MenuItem((const char*)u8"終了"))
+				if (ImGui::MenuItem((const char*)(ICON_FA_SIGN_OUT_ALT " " u8"終了")))
 				{
 					if (OnRequestExit())
 					{
@@ -481,42 +482,38 @@ void Scene::DrawGUI(RenderContext& rc)
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu((const char*)u8"表示"))
+			if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
 			{
-				ImGui::MenuItem((const char*)u8"草", "G", &renderSettings.showGrass);
-				ImGui::MenuItem((const char*)u8"フォグ", "F", &renderSettings.showFog);
+				ImGui::MenuItem((const char*)(ICON_FA_LEAF " " u8"草"), "G", &renderSettings.showGrass);
+				ImGui::MenuItem((const char*)(ICON_FA_SMOG " " u8"フォグ"), "F", &renderSettings.showFog);
 				ImGui::Separator();
-				ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &renderSettings.showDebug);
-				ImGui::Checkbox((const char*)u8"コライダー", &renderSettings.showColliderDebug);
+				ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &renderSettings.showDebug);
+				ImGui::Checkbox((const char*)(ICON_FA_SHAPES " " u8"コライダー"), &renderSettings.showColliderDebug);
 				ImGui::Checkbox(
-					(const char*)u8"コンポーネント", &renderSettings.showComponentDebug);
+					(const char*)(ICON_FA_PUZZLE_PIECE " " u8"コンポーネント"), &renderSettings.showComponentDebug);
 				ImGui::Checkbox(
-					(const char*)u8"ナビメッシュ移動範囲", &renderSettings.showNavMeshDebug);
+					(const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"ナビメッシュ移動範囲"), &renderSettings.showNavMeshDebug);
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu((const char*)u8"ウィンドウ"))
+			if (ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")))
 			{
-				if (ImGui::MenuItem((const char*)u8"物理レイヤー")) showPhysicsLayerWindow = true;
-				if (ImGui::MenuItem((const char*)u8"動的アニメーションエディタ"))
+				if (ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"))) showPhysicsLayerWindow = true;
+				if (ImGui::MenuItem((const char*)(ICON_FA_FILM " " u8"動的アニメーションエディタ")))
 					showDynamicAnimationEditorWindow = true;
 				ImGui::EndMenu();
 			}
 			ImGui::Separator();
-			if (ImGui::MenuItem((const char*)u8"再生", "F5", false, Game::Time::scale <= 0.0f))
+			if (ImGui::MenuItem(ICON_FA_PLAY "##PlayGame", nullptr, false, Game::Time::scale <= 0.0f))
 				SwitchToPlayMode();
-			if (ImGui::MenuItem((const char*)u8"停止", "F6", false, Game::Time::scale > 0.0f))
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生 (F5)");
+			if (ImGui::MenuItem(ICON_FA_STOP "##StopGame", nullptr, false, Game::Time::scale > 0.0f))
 				SwitchToDebugMode();
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"停止 (F6)");
 
-			const char* shortcutText = (const char*)u8"F1: カーソル  F2: エディタ表示  F3: "
-												u8"デバッグ  F5: 再生  F6: 再生／停止";
 			const std::string fpsText = std::format("FPS: {:.0f}", io.Framerate);
-			const float shortcutWidth = ImGui::CalcTextSize(shortcutText).x;
 			const float fpsWidth = ImGui::CalcTextSize(fpsText.c_str()).x;
-			ImGui::SetCursorPosX(std::max(
-				ImGui::GetCursorPosX() + 20.0f, ImGui::GetWindowWidth() - shortcutWidth - fpsWidth -
-													20.0f - ImGui::GetStyle().WindowPadding.x));
-			ImGui::TextUnformatted(shortcutText);
-			ImGui::SameLine(0.0f, 20.0f);
+			ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX() + 20.0f,
+				ImGui::GetWindowWidth() - fpsWidth - ImGui::GetStyle().WindowPadding.x));
 			ImGui::TextColored(
 				ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "%s", fpsText.c_str());
 			ImGui::EndMainMenuBar();

@@ -31,21 +31,6 @@
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "IconsFontAwesome5.h"
 
-namespace
-{
-std::wstring Utf8ToWide(const std::string& text)
-{
-	if (text.empty()) return {};
-	const int length = MultiByteToWideChar(
-		CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-	if (length <= 0) return std::wstring(text.begin(), text.end());
-	std::wstring result(static_cast<size_t>(length), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()),
-		result.data(), length);
-	return result;
-}
-}
-
 VstgEditorScene::VstgEditorScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -277,12 +262,12 @@ void VstgEditorScene::OnDrawGUI()
 	if (ImGui::BeginMainMenuBar())
 	{
 		mainMenuBarHeight = ImGui::GetWindowHeight();
-		if (ImGui::BeginMenu((const char*)u8"ファイル"))
+		if (ImGui::BeginMenu((const char*)(ICON_FA_FILE " " u8"ファイル")))
 		{
-			if (ImGui::MenuItem((const char*)u8"VSTGを開く", "Ctrl+O")) Open();
-			if (ImGui::MenuItem((const char*)u8"VSTGを保存", "Ctrl+S")) Save();
-			if (ImGui::MenuItem((const char*)u8"名前を付けて保存", "Ctrl+Shift+S")) SaveAs();
-			if (ImGui::MenuItem((const char*)u8"終了"))
+			if (ImGui::MenuItem((const char*)(ICON_FA_FOLDER_OPEN " " u8"VSTGを開く"), "Ctrl+O")) Open();
+			if (ImGui::MenuItem((const char*)(ICON_FA_SAVE " " u8"VSTGを保存"), "Ctrl+S")) Save();
+			if (ImGui::MenuItem((const char*)(ICON_FA_COPY " " u8"名前を付けて保存"), "Ctrl+Shift+S")) SaveAs();
+			if (ImGui::MenuItem((const char*)(ICON_FA_SIGN_OUT_ALT " " u8"終了")))
 			{
 				if (OnRequestExit())
 				{
@@ -291,17 +276,17 @@ void VstgEditorScene::OnDrawGUI()
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu((const char*)u8"表示"))
+		if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
 		{
-			ImGui::Checkbox((const char*)u8"草マップ", &renderSettings.showGrass);
-			ImGui::Checkbox((const char*)u8"フォグ", &renderSettings.showFog);
+			ImGui::Checkbox((const char*)(ICON_FA_LEAF " " u8"草マップ"), &renderSettings.showGrass);
+			ImGui::Checkbox((const char*)(ICON_FA_SMOG " " u8"フォグ"), &renderSettings.showFog);
 			ImGui::Separator();
-			ImGui::MenuItem((const char*)u8"デバッグ表示", "F3", &renderSettings.showDebug);
-			ImGui::Checkbox((const char*)u8"コライダー", &renderSettings.showColliderDebug);
-			ImGui::Checkbox((const char*)u8"コンポーネント", &renderSettings.showComponentDebug);
-			ImGui::Checkbox((const char*)u8"ライト", &renderSettings.showLightDebug);
-			ImGui::Checkbox((const char*)u8"ナビメッシュ", &renderSettings.showNavMeshDebug);
-			ImGui::Checkbox((const char*)u8"ワイヤーフレーム", &renderSettings.wireframe);
+			ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &renderSettings.showDebug);
+			ImGui::Checkbox((const char*)(ICON_FA_SHAPES " " u8"コライダー"), &renderSettings.showColliderDebug);
+			ImGui::Checkbox((const char*)(ICON_FA_PUZZLE_PIECE " " u8"コンポーネント"), &renderSettings.showComponentDebug);
+			ImGui::Checkbox((const char*)(ICON_FA_LIGHTBULB " " u8"ライト"), &renderSettings.showLightDebug);
+			ImGui::Checkbox((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"ナビメッシュ"), &renderSettings.showNavMeshDebug);
+			ImGui::Checkbox((const char*)(ICON_FA_DRAW_POLYGON " " u8"ワイヤーフレーム"), &renderSettings.wireframe);
 			ImGui::EndMenu();
 		}
 		std::string displayPath = (const char*)u8"名称未設定";
@@ -430,11 +415,11 @@ void VstgEditorScene::OnDrawGUI()
 	{
 		ImGui::TextUnformatted((const char*)u8"3Dビュー");
 		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)u8"移動")) gizmoOperation = ImGuizmo::TRANSLATE;
+		if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT " " u8"移動"))) gizmoOperation = ImGuizmo::TRANSLATE;
 		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)u8"回転")) gizmoOperation = ImGuizmo::ROTATE;
+		if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT " " u8"回転"))) gizmoOperation = ImGuizmo::ROTATE;
 		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)u8"拡大縮小")) gizmoOperation = ImGuizmo::SCALE;
+		if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"サイズ"))) gizmoOperation = ImGuizmo::SCALE;
 	}
 	ImGui::End();
 

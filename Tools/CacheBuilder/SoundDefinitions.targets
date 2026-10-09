@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)..\..\Resources\Sound\**\*.wav" />
+    <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)..\..\Resources\Sound" />
+    <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)Generate-Sounds.ps1" />
+    <UpToDateCheckOutput Include="$(MSBuildThisFileDirectory)..\..\Source\Audio\SoundTracks.generated.h" />
+  </ItemGroup>
+  <Target Name="GenerateSoundDefinitions" BeforeTargets="ResolveProjectReferences;ClCompile"
+          Condition="'$(DesignTimeBuild)'!='true'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)Generate-Sounds.ps1&quot; -SourceDirectory &quot;$(MSBuildThisFileDirectory)..\..\Resources\Sound&quot; -HeaderPath &quot;$(MSBuildThisFileDirectory)..\..\Source\Audio\SoundTracks.generated.h&quot;" />
+  </Target>
+</Project>

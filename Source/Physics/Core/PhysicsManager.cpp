@@ -25,7 +25,8 @@ static PxFilterFlags LayerFilterShader(
     pairFlags = PxPairFlag::eCONTACT_DEFAULT
         | PxPairFlag::eNOTIFY_TOUCH_FOUND
         | PxPairFlag::eNOTIFY_TOUCH_PERSISTS
-        | PxPairFlag::eNOTIFY_TOUCH_LOST;
+        | PxPairFlag::eNOTIFY_TOUCH_LOST
+        | PxPairFlag::eNOTIFY_CONTACT_POINTS;
     return PxFilterFlag::eDEFAULT;
 }
 
@@ -52,24 +53,26 @@ static bool IsValidActor(Actor* actor)
         && actor->IsActive();
 }
 
-static PhysicsComponent* ToCollider(PxShape* shape)
+static PhysicsComponent* ToCollider(PxShape* shape, bool requireActor = true)
 {
     if (!shape) return nullptr;
 
     PhysicsComponent* collider = static_cast<PhysicsComponent*>(shape->userData);
     if (!PhysicsComponent::IsLive(collider) || !collider->IsActive()) return nullptr;
 
-    Actor* actor = dynamic_cast<Actor*>(collider->GetOwner());
-    if (!IsValidActor(actor)) return nullptr;
+    Object* owner = collider->GetOwner();
+    if (!owner || owner->IsPendingDestroy() || !owner->IsActive()) return nullptr;
+    if (requireActor && !dynamic_cast<Actor*>(owner)) return nullptr;
 
     return collider;
 }
 
-static bool IsValidCollider(PhysicsComponent* collider)
+static bool IsValidCollider(PhysicsComponent* collider, bool requireActor = true)
 {
-    return PhysicsComponent::IsLive(collider)
-        && collider->IsActive()
-        && IsValidActor(dynamic_cast<Actor*>(collider->GetOwner()));
+    if (!PhysicsComponent::IsLive(collider) || !collider->IsActive()) return false;
+    Object* owner = collider->GetOwner();
+    return owner && !owner->IsPendingDestroy() && owner->IsActive()
+        && (!requireActor || dynamic_cast<Actor*>(owner));
 }
 
 static PxTransform GetShapeGlobalPose(PxActor* actor, PxShape* shape)
@@ -107,10 +110,11 @@ static void DispatchCollisionEnter(
 {
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidCollider(a) || !IsValidCollider(b)) return;
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
-    actorA->OnCollisionEnter(a, b, point, normal);
-    actorB->OnCollisionEnter(b, a, point, -normal);
+    if (IsValidActor(actorA)) actorA->OnCollisionEnter(a, b, point, normal);
+    if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
+        actorB->OnCollisionEnter(b, a, point, -normal);
 }
 
 static void DispatchCollisionStay(
@@ -121,10 +125,11 @@ static void DispatchCollisionStay(
 {
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidCollider(a) || !IsValidCollider(b)) return;
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
-    actorA->OnCollisionStay(a, b, point, normal);
-    actorB->OnCollisionStay(b, a, point, -normal);
+    if (IsValidActor(actorA)) actorA->OnCollisionStay(a, b, point, normal);
+    if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
+        actorB->OnCollisionStay(b, a, point, -normal);
 }
 
 static void DispatchCollisionExit(
@@ -135,10 +140,11 @@ static void DispatchCollisionExit(
 {
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidActor(actorA) || !IsValidActor(actorB)) return;
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
-    actorA->OnCollisionExit(a, b, point, normal);
-    actorB->OnCollisionExit(b, a, point, -normal);
+    if (IsValidActor(actorA)) actorA->OnCollisionExit(a, b, point, normal);
+    if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
+        actorB->OnCollisionExit(b, a, point, -normal);
 }
 
 static void DispatchTriggerEnter(
@@ -198,8 +204,8 @@ void CollisionEventCallback::onContact(const PxContactPairHeader& pairHeader, co
             continue;
         }
 
-        PhysicsComponent* a = ToCollider(cp.shapes[0]);
-        PhysicsComponent* b = ToCollider(cp.shapes[1]);
+        PhysicsComponent* a = ToCollider(cp.shapes[0], false);
+        PhysicsComponent* b = ToCollider(cp.shapes[1], false);
 
         if (!a || !b)
         {
@@ -316,7 +322,7 @@ void CollisionEventCallback::DispatchStayEvents()
 		PhysicsComponent* a = pair.second.a;
 		PhysicsComponent* b = pair.second.b;
 
-		return !a || !b || !IsValidCollider(a) || !IsValidCollider(b);
+		return !IsValidCollider(a, false) || !IsValidCollider(b, false);
 	});
 
 	std::erase_if(currentTriggerPairs, [](const auto& pair) {

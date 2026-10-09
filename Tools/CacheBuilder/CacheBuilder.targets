@@ -11,6 +11,7 @@
   -->
   <ItemGroup>
     <UpToDateCheckInput Include="$(ProjectDir)Resources\**\*" />
+    <UpToDateCheckInput Include="$(ProjectDir)Resources\Effect" />
     <UpToDateCheckOutput Include="$(GameResourcesUpToDateMarker)" />
   </ItemGroup>
   <ItemGroup>
@@ -21,6 +22,10 @@
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemGroup>
+  <Target Name="GenerateEffectDefinitions" BeforeTargets="ClCompile"
+          Condition="'$(DesignTimeBuild)'!='true'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)Generate-Effects.ps1&quot; -SourceDirectory &quot;$(ProjectDir)Resources\Effect&quot; -HeaderPath &quot;$(ProjectDir)Source\Rendering\Effect\Effects.generated.h&quot;" />
+  </Target>
   <Target Name="BuildGameResources" AfterTargets="Build"
           DependsOnTargets="ResolveProjectReferences"
           Condition="'$(SelectedFiles)'=='' and '$(DesignTimeBuild)'!='true'">
@@ -29,4 +34,5 @@
           WorkingDirectory="$(ProjectDir)" />
     <Touch Files="$(GameResourcesUpToDateMarker)" AlwaysCreate="true" />
   </Target>
+  <Import Project="$(MSBuildThisFileDirectory)SoundDefinitions.targets" />
 </Project>

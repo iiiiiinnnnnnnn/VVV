@@ -10,8 +10,9 @@ Matrix MeshCollider::MakeLocalVertexTransform(const Matrix& nodeTransform) const
     Transform* transform = owner->GetComponent<Transform>();
     Vector3 ownerScale = transform ? transform->scale : Vector3::One;
 	return nodeTransform *
+		Matrix::CreateScale(model->GetModelScale()) *
 		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset) *
-		Matrix::CreateScale(ownerScale * localScale * model->GetModelScale());
+		Matrix::CreateScale(ownerScale * localScale);
 }
 bool MeshCollider::GetBounds(Vector3& center, Vector3& size) const
 {

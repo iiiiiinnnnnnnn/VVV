@@ -1,6 +1,7 @@
 ﻿#include "Application/Tools/Dialog.h"
 #include <array>
 #include <filesystem>
+#include "imgui.h"
 
 static std::string lastPath;
 
@@ -62,6 +63,16 @@ DialogResult Dialog::OpenFileName(
 	{
 		::SetForegroundWindow(hWnd);
 		::BringWindowToTop(hWnd);
+	}
+	// ダイアログ中に届かなかったキー・マウスの解放を反映する。
+	// Ctrlの押下状態が残ると、DragFloatがクリックで直接入力に入ってしまう。
+	if (ImGui::GetCurrentContext())
+	{
+		auto& io = ImGui::GetIO();
+		io.ClearEventsQueue();
+		io.ClearInputKeys();
+		io.ClearInputMouse();
+		io.AddFocusEvent(::GetActiveWindow() != nullptr);
 	}
 	if (accepted == FALSE)
 	{
@@ -149,6 +160,16 @@ DialogResult Dialog::SaveFileName(
 	{
 		::SetForegroundWindow(hWnd);
 		::BringWindowToTop(hWnd);
+	}
+	// ダイアログ中に届かなかったキー・マウスの解放を反映する。
+	// Ctrlの押下状態が残ると、DragFloatがクリックで直接入力に入ってしまう。
+	if (ImGui::GetCurrentContext())
+	{
+		auto& io = ImGui::GetIO();
+		io.ClearEventsQueue();
+		io.ClearInputKeys();
+		io.ClearInputMouse();
+		io.AddFocusEvent(::GetActiveWindow() != nullptr);
 	}
 	if (accepted == FALSE)
 	{

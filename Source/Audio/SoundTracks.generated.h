@@ -28,6 +28,7 @@ enum class SoundTrack
 	SE_PLAYER_PL_JUSTDODGE,
 	SE_BOSS_ARACORE_THREAT,
 	SE_PLAYER_PL_HIT,
+	SE_CRYSTAL_C_ATTACK,
 };
 
 struct SoundDefinition
@@ -61,6 +62,7 @@ inline constexpr std::array SoundDefinitions =
 	SoundDefinition{SoundTrack::SE_PLAYER_PL_JUSTDODGE, "SE_PLAYER_PL_JUSTDODGE", "Resources/Sound/SE/Player/pl_justdodge.wav"},
 	SoundDefinition{SoundTrack::SE_BOSS_ARACORE_THREAT, "SE_BOSS_ARACORE_THREAT", "Resources/Sound/SE/Boss/aracore_threat.wav"},
 	SoundDefinition{SoundTrack::SE_PLAYER_PL_HIT, "SE_PLAYER_PL_HIT", "Resources/Sound/SE/Player/pl_hit.wav"},
+	SoundDefinition{SoundTrack::SE_CRYSTAL_C_ATTACK, "SE_CRYSTAL_C_ATTACK", "Resources/Sound/SE/Crystal/c_attack.wav"},
 };
 
 constexpr const SoundDefinition* FindSoundDefinition(SoundTrack id)

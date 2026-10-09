@@ -108,6 +108,7 @@ class VmdlEditorScene : public Scene
 	void StopUnifiedPreview(bool rewind);
 	void StartPresentationPreview();
 	void PlayPresentationPreviewEvents(int animationIndex, float beginTime, float endTime);
+	void PlaySoundSourcePreview(int sourceIndex);
 	void PlayAnimationSoundPreview(int animationIndex, float beginTime, float endTime);
 	bool ApplyFootIkPreview();
 	void RebuildFootIkPreview();

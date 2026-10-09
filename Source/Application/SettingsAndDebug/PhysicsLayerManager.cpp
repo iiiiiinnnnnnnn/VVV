@@ -75,104 +75,10 @@ bool PhysicsLayerManager::Save() const
 
 void PhysicsLayerManager::CreateDefault()
 {
-    settings.layerNames =
-    {
-        "Default",
-        "Player",
-        "Enemy",
-        "Stage",
-        "PlayerAttack",
-        "EnemyAttack",
-        "OnStage",
-        "Prop",
-        "Item",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        ""
-    };
-
-    for (int y = 0; y < EditableLayerCount; ++y)
-    {
-        for (int x = 0; x < EditableLayerCount; ++x)
-        {
-            settings.collisionMatrix[y][x] = 0;
-        }
-    }
-
-    auto set = [&](int a, int b)
-    {
-        settings.collisionMatrix[a][b] = 1;
-        settings.collisionMatrix[b][a] = 1;
-    };
-
-    const int Default      = 0;
-    const int Player       = 1;
-    const int Enemy        = 2;
-    const int Stage        = 3;
-    const int PlayerAttack = 4;
-    const int EnemyAttack  = 5;
-    const int OnStage      = 6;
-    const int Prop         = 7;
-    const int Item         = 8;
-
-    set(Default, Default);
-    set(Default, Player);
-    set(Default, Enemy);
-    set(Default, Stage);
-    set(Default, Prop);
-    set(Default, Item);
-
-    set(Player, Enemy);
-    set(Player, Stage);
-    set(Player, EnemyAttack);
-    set(Player, OnStage);
-    set(Player, Prop);
-    set(Player, Item);
-
-    set(Enemy, Stage);
-    set(Enemy, PlayerAttack);
-    set(Enemy, OnStage);
-    set(Enemy, Prop);
-
-    set(Stage, Player);
-    set(Stage, Enemy);
-    set(Stage, PlayerAttack);
-    set(Stage, EnemyAttack);
-    set(Stage, OnStage);
-    set(Stage, Prop);
-    set(Stage, Item);
-
-    set(PlayerAttack, Enemy);
-    set(PlayerAttack, Stage);
-    set(PlayerAttack, Prop);
-
-    set(EnemyAttack, Player);
-    set(EnemyAttack, Stage);
-    set(EnemyAttack, Prop);
-
-    set(OnStage, Player);
-    set(OnStage, Enemy);
-    set(OnStage, Stage);
-
-    set(Prop, Default);
-    set(Prop, Player);
-    set(Prop, Enemy);
-    set(Prop, Stage);
-    set(Prop, PlayerAttack);
-    set(Prop, EnemyAttack);
-    set(Prop, Item);
-
-    set(Item, Player);
-    set(Item, Stage);
-    set(Item, Prop);
+    settings = {};
+    settings.layerNames[0] = "Default";
+    settings.collisionMatrix[0][0] = 1;
+    PhysicsManager::Instance().RefreshLayerFiltering();
 }
 
 bool PhysicsLayerManager::Collides(LayerId a, LayerId b) const
@@ -268,6 +174,30 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             return static_cast<LayerId>(index);
         };
 
+        static int selectedLayer = 0;
+        if (ImGui::BeginCombo("Layer", getDisplayLayerName(selectedLayer).c_str()))
+        {
+            for (int i = 0; i < DisplayLayerCount; ++i)
+            {
+                ImGui::PushID(i);
+                if (ImGui::Selectable(getDisplayLayerName(i).c_str(), selectedLayer == i))
+                    selectedLayer = i;
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SetNextItemWidth(240.0f);
+        if (ImGui::InputText("Name##SelectedLayerName", &settings.layerNames[selectedLayer]))
+            PhysicsManager::Instance().RefreshLayerFiltering();
+
+        if (ImGui::Button("Copy Default Collisions"))
+        {
+            const auto defaults = settings.collisionMatrix[0];
+            for (int i = 0; i < DisplayLayerCount; ++i)
+                SetCollides(static_cast<LayerId>(selectedLayer), static_cast<LayerId>(i),
+                    defaults[i == selectedLayer ? 0 : i] != 0);
+        }
+
         if (ImGui::BeginTable(
             "CollisionMatrix",
             DisplayLayerCount + 1,
@@ -277,7 +207,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             ImGuiTableFlags_ScrollY |
             ImGuiTableFlags_SizingFixedFit))
         {
-            constexpr float LayerColumnWidth = 160.0f;
+            constexpr float LayerColumnWidth = 220.0f;
             constexpr float CollisionColumnWidth = 100.0f;
 
             ImGui::TableSetupColumn(
@@ -293,6 +223,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
                     CollisionColumnWidth);
             }
 
+            ImGui::TableSetupScrollFreeze(1, 1);
             ImGui::TableHeadersRow();
 
             for (int y = 0; y < DisplayLayerCount; ++y)
@@ -301,13 +232,14 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 
                 ImGui::TableSetColumnIndex(0);
 
-                const std::string nameId = "##LayerName_" + std::to_string(y);
-
+                ImGui::PushID(y);
                 ImGui::Text("%d:", y);
                 ImGui::SameLine();
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-                ImGui::InputText(nameId.c_str(), &settings.layerNames[y]);
+                ImGui::SetNextItemWidth(175.0f);
+                if (ImGui::InputTextWithHint("##LayerName", "(Empty)", &settings.layerNames[y]))
+                    PhysicsManager::Instance().RefreshLayerFiltering();
+                if (ImGui::IsItemActivated()) selectedLayer = y;
+                ImGui::PopID();
 
                 for (int x = 0; x < DisplayLayerCount; ++x)
                 {
