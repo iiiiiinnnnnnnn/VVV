@@ -56,7 +56,8 @@ class StageLoader : public Component
 	void SaveJson();
 	std::string SaveJsonText();
 	const std::string& GetError() const { return error; }
-	using SpawnerFactory = std::function<std::shared_ptr<Actor>(const Transform&, const std::string&)>;
+	using SpawnerFactory = std::function<std::shared_ptr<Actor>(
+		const Transform&, const std::string&, const std::string&)>;
 	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);
 	std::vector<Spawner*> GetSpawners(std::string_view entityName = {}) const;
 	void SetEditorModels(
@@ -66,6 +67,7 @@ class StageLoader : public Component
 		editorSelectionBounds.clear();
 	}
 	std::vector<EditorObjectReference> GetEditorObjects();
+	void DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewportMax);
 	bool SelectEditorObject(EditorObjectType type, int index);
 	bool SelectEditorActor(const Actor* actor);
 	bool SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction);
@@ -94,6 +96,7 @@ class StageLoader : public Component
 	{
 		Transform transform = {};
 		std::string modelPath = "";
+		std::string spawnTag;
 		bool initialSpawned = false;
 
 		std::shared_ptr<VMDLModel> model = nullptr;
@@ -130,6 +133,7 @@ class StageLoader : public Component
 	void CreateWorldWaterActor();
 	void ApplyWorldWaterData();
 	void ConfigureSpawner(Actor* actor, const PropData& propData);
+	bool GetPropWorldBounds(PropData& propData, DirectX::BoundingBox& worldBounds);
 	bool ValidateModelName(const std::string& modelPath, const std::string& replacedPath = {});
 	std::shared_ptr<VMDLModel> LoadPropModel(const std::string& modelPath) const;
 	Vector3 GetPropPlacementOffset(VMDLModel& model);

@@ -60,16 +60,14 @@
     <ClCompile Include="Source\Animation\AnimatorSerialization.cpp" />
     <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp" />
     <ClCompile Include="Source\Animation\BoneFollower.cpp" />
+    <ClCompile Include="Source\Rendering\Shader\DissolveSpriteShader.cpp" />
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Apple.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Crystal.cpp" />
-    <ClCompile Include="Source\Rendering\Component\DamageHoleComponent.cpp" />
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp" />
-    <ClCompile Include="Source\Application\Tools\DynamicAnimation.cpp" />
-    <ClCompile Include="Source\Application\Tools\DynamicAnimationSerializer.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Entity.cpp" />
     <ClCompile Include="Source\Gameplay\Lighting\Light.cpp" />
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp" />
@@ -142,6 +140,7 @@
     <ClCompile Include="Source\UI\ColorWidget.cpp" />
     <ClCompile Include="Source\UI\BossBar.cpp" />
     <ClCompile Include="Source\UI\Button.cpp" />
+    <ClCompile Include="Source\UI\DissolveWidget.cpp" />
     <ClCompile Include="Source\UI\GaugeHUD.cpp" />
     <ClCompile Include="Source\UI\HUDWidget.cpp" />
     <ClCompile Include="Source\UI\PauseMenu.cpp" />
@@ -197,15 +196,13 @@
     <ClInclude Include="Source\Animation\Animator.h" />
     <ClInclude Include="Source\Rendering\Shader\VMatShader.h" />
     <ClInclude Include="Source\Animation\BoneFollower.h" />
+    <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
     <ClInclude Include="Source\Gameplay\Camera\Camera.h" />
     <ClInclude Include="Source\Gameplay\Camera\CameraController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Apple.h" />
     <ClInclude Include="Source\Gameplay\Lighting\CbLightData.h" />
-    <ClInclude Include="Source\Application\Tools\DynamicAnimation.h" />
-    <ClInclude Include="Source\Application\Tools\DynamicAnimationEditorWindow.h" />
-    <ClInclude Include="Source\Application\Tools\DynamicAnimationSerializer.h" />
     <ClInclude Include="Source\Gameplay\Actor\Entity.h" />
     <ClInclude Include="Source\Gameplay\Lighting\Light.h" />
     <ClInclude Include="Source\Gameplay\Lighting\LightManager.h" />
@@ -224,7 +221,6 @@
     <ClInclude Include="Source\Physics\Collider\CharacterController.h" />
     <ClInclude Include="Source\Core\Object\Component.h" />
     <ClInclude Include="Source\Gameplay\Actor\Crystal.h" />
-    <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h" />
     <ClInclude Include="Source\Rendering\Component\AfterimageComponent.h" />
     <ClInclude Include="Source\Application\Tools\Dialog.h" />
     <ClInclude Include="Source\Rendering\Effect\Effect.h" />
@@ -291,6 +287,7 @@
     <ClInclude Include="Source\UI\ColorWidget.h" />
     <ClInclude Include="Source\UI\BossBar.h" />
     <ClInclude Include="Source\UI\Button.h" />
+    <ClInclude Include="Source\UI\DissolveWidget.h" />
     <ClInclude Include="Source\UI\GaugeHUD.h" />
     <ClInclude Include="Source\UI\HUDWidget.h" />
     <ClInclude Include="Source\UI\PauseMenu.h" />
@@ -310,7 +307,6 @@
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="Shader\filter_functions.hlsli" />
-    <None Include="Shader\gbuffer.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\TerrainGrass.hlsli" />
     <None Include="Shader\PBR.hlsli" />
@@ -422,6 +418,9 @@
     <FxCompile Include="Shader\ShapeRendererVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\DissolveSpritePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

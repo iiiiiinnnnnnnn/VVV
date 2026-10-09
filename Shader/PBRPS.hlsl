@@ -93,6 +93,7 @@ float3 SamplePbrShadowCascade(int cascadeIndex, float3 worldPosition)
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
+    ApplyDissolve(pin.texcoord);
     // -------------------------------------------------------------------------
     // テクスチャサンプリング
     // albedo と emissive は sRGB テクスチャ → PBR計算はリニア空間で行うため変換

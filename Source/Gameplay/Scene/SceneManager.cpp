@@ -17,6 +17,17 @@
 
 #include <stdexcept>
 #include <fstream>
+#include <chrono>
+
+static void LogSceneLoadTime(const char* phase, std::chrono::steady_clock::time_point started)
+{
+	const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::steady_clock::now() - started).count();
+	const std::string message = std::string("[SceneLoad] ") + phase + ": " +
+		std::to_string(milliseconds) + " ms\n";
+	OutputDebugStringA(message.c_str());
+	std::ofstream("SceneLoad.log", std::ios::app) << message;
+}
 
 namespace
 {
@@ -163,7 +174,10 @@ bool SceneManager::RequestLoadScene(
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 次のシーンを作る前に変更分だけ更新
 	auto& resources = ResourceManager::Instance();
-	if (!resources.RefreshResources())
+	const auto refreshStarted = std::chrono::steady_clock::now();
+	const bool refreshed = resources.RefreshResources();
+	LogSceneLoadTime("Resource refresh", refreshStarted);
+	if (!refreshed)
 	{
 		std::string error = "Resource cache refresh failed";
 		if (!resources.GetErrors().empty()) error += ": " + resources.GetErrors().back();
@@ -232,7 +246,9 @@ void SceneManager::BeginPendingLoad()
 	loadProgress = 0.0f;
 
 	if (currentScene) currentScene->CapturePreviewEnvironment();
+	const auto destructionStarted = std::chrono::steady_clock::now();
 	currentScene.reset();
+	LogSceneLoadTime("Previous scene destruction", destructionStarted);
 	TimeScaleController::CancelAll();
 	HitStop::CancelAll();
 	Game::Time::scale = 1.0f;
@@ -241,7 +257,9 @@ void SceneManager::BeginPendingLoad()
 	// 破棄されたシーンのBGM・SEをローディング画面や次シーンへ持ち越さない。
 	SoundSystem::Instance().SetPaused(false);
 	SoundSystem::Instance().StopAll();
+	const auto loadingSceneStarted = std::chrono::steady_clock::now();
 	currentScene = std::make_unique<LoadingScene>();
+	LogSceneLoadTime("Loading screen creation", loadingSceneStarted);
 
 	if (!StartLoadThread(std::move(sceneFactory)))
 	{
@@ -261,26 +279,33 @@ bool SceneManager::StartLoadThread(
 		{
 			std::unique_ptr<LoadedScene> result;
 			std::exception_ptr exception;
+			const auto loadStarted = std::chrono::steady_clock::now();
 
 			try
 			{
 				Game::Graphics& graphics = Game::Graphics::Instance();
+				const auto skyStarted = std::chrono::steady_clock::now();
 				const std::string skyMapName = graphics.GetSkyMapName();
 				graphics.RefreshSkyMapList();
 				if (!graphics.LoadSkyMap(skyMapName)) graphics.LoadSkyMap("Default");
+				LogSceneLoadTime("Sky textures", skyStarted);
 
 				result =
 					std::make_unique<LoadedScene>();
 
+				const auto physicsStarted = std::chrono::steady_clock::now();
 				result->physicsContext =
 					PhysicsManager::Instance().
 					CreateSceneContext();
+				LogSceneLoadTime("Physics scene creation", physicsStarted);
 
 				{
 					ThreadSceneContextScope contextScope(
 						result->physicsContext.get());
 
+					const auto sceneStarted = std::chrono::steady_clock::now();
 					result->scene = sceneFactory();
+					LogSceneLoadTime("Scene construction", sceneStarted);
 				}
 
 				if (!result->scene)
@@ -305,6 +330,7 @@ bool SceneManager::StartLoadThread(
 				loadException = exception;
 			}
 
+			LogSceneLoadTime("Background load total", loadStarted);
 			loadFinished.store(
 				true,
 				std::memory_order_release);

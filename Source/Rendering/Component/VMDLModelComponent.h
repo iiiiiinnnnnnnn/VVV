@@ -84,6 +84,7 @@ class VMDLModelComponent : public Component
 	std::shared_ptr<VMDLModel> model;
 	ModelShaderId shaderId;
 	VMatRenderParams renderParams;
+	VMatRenderParams animatedRenderParams;
 	bool autoUpdateTransform = true;
 	LayerId attachmentLayerId = 0;
 	bool buildEmbeddedTrails = true;

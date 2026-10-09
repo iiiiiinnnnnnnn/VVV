@@ -1,4 +1,13 @@
 #pragma once
+#include <memory>
+
+class Texture;
+
+struct SpriteDissolveParams
+{
+	std::shared_ptr<Texture> mask;
+	float amount = 0.0f;
+};
 
 struct SpriteVignetteParams
 {
@@ -9,4 +18,5 @@ struct SpriteVignetteParams
 struct SpriteRenderParams
 {
 	SpriteVignetteParams vignette;
+	SpriteDissolveParams dissolve;
 };

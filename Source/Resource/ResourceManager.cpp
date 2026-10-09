@@ -221,8 +221,9 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 	return assetPaths[it->second].path;
 }
 
-std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
+std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bool runtimeInstance)
 {
+	const auto loadStarted = std::chrono::steady_clock::now();
 	if (cacheSettings.Get(ResolvePath(key)).excluded) return nullptr;
 	const std::string lookupKey = MakeLookupKey(key);
 	const auto pathIt = assetPathLookup.find(lookupKey);
@@ -249,7 +250,17 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key)
 		}
 	}
 
-	return it->second->Clone();
+	auto result = runtimeInstance ? it->second->CloneRuntimeInstance(true) : it->second->Clone();
+	const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::steady_clock::now() - loadStarted).count();
+	if (milliseconds >= 50)
+	{
+		const std::string message = "[SceneLoad] Model " + key + ": " +
+			std::to_string(milliseconds) + " ms\n";
+		OutputDebugStringA(message.c_str());
+		std::ofstream("SceneLoad.log", std::ios::app) << message;
+	}
+	return result;
 }
 
 std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key)

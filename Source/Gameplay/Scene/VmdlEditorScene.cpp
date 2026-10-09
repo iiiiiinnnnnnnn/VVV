@@ -1,4 +1,4 @@
-#include "Gameplay/Scene/VmdlEditorScene.h"
+﻿#include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Application/Tools/Dialog.h"
@@ -623,17 +623,7 @@ void VmdlEditorScene::OnDrawGUI()
 			DrawIkSettings();
 			ImGui::EndTabItem();
 		}
-		if (ImGui::BeginTabItem((const char*)u8"マテリアル"))
-		{
-			const ImVec2 tabMin = ImGui::GetItemRectMin();
-			const ImVec2 tabMax = ImGui::GetItemRectMax();
-			ImGui::GetWindowDrawList()->AddRect(
-				tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
-			DrawMaterialEditor();
-			ImGui::EndTabItem();
-		}
+
 		ImGui::EndTabBar();
 	}
 	ImGui::PopStyleColor(10);
@@ -1013,6 +1003,7 @@ void VmdlEditorScene::RenderPreview()
 			UpdateExternalMeshPreview();
 			rc.renderSettings.wireframe = false;
 			VMatRenderParams params;
+			model->ApplyMaterialAnimation(selectedAnimation, animationTime, params);
 			params.unlit = previewShadingMode == PreviewShadingMode::Unlit;
 			if (previewShadingMode == PreviewShadingMode::Solid)
 			{
@@ -1135,24 +1126,6 @@ void VmdlEditorScene::RenderPreview()
 
 				graphics.GetShapeRenderer()->DrawSphere(
 					polePosition, 0.05f, Color(0.0f, 1.0f, 1.0f, 1.0f));
-				hasShapes = true;
-			}
-		}
-		if (showDebugOverlays && showRigidBody)
-		{
-			for (const auto& value : data.rigidBodies)
-			{
-				Matrix transform = value.transform.ToMatrix();
-				if (value.nodeIndex >= 0 && value.nodeIndex < Count(model->GetNodes()))
-					transform *= model->GetNodes()[value.nodeIndex].worldTransform;
-				Vector3 scale;
-				Vector3 position;
-				Quaternion rotation;
-				transform.Decompose(scale, rotation, position);
-				graphics.GetShapeRenderer()->DrawBox(position, rotation.ToEuler(),
-					Vector3(0.2f, 0.2f, 0.2f), value.kinematic
-						? Color(0.25f, 0.75f, 1.0f, 0.7f)
-						: Color(1.0f, 0.75f, 0.1f, 0.7f));
 				hasShapes = true;
 			}
 		}
@@ -1416,13 +1389,12 @@ void VmdlEditorScene::DrawMenuBar()
 			previewShadingMode = PreviewShadingMode::Unlit;
 		if (ImGui::MenuItem((const char*)(ICON_FA_ADJUST " " u8"ソリッド"), nullptr, previewShadingMode == PreviewShadingMode::Solid))
 			previewShadingMode = PreviewShadingMode::Solid;
+		ImGui::MenuItem((const char*)(ICON_FA_CUBE " " u8"メッシュ"), "M", &showMesh);
 		ImGui::Separator();
 		ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &showDebugOverlays);
 		ImGui::Separator();
-		ImGui::MenuItem((const char*)(ICON_FA_CUBE " " u8"メッシュ"), "M", &showMesh);
 		ImGui::MenuItem((const char*)(ICON_FA_BONE " " u8"ボーン"), "B", &showBones);
 		ImGui::MenuItem((const char*)(ICON_FA_BULLSEYE " " u8"IKポール"), "I", &showIkPole);
-		ImGui::MenuItem((const char*)(ICON_FA_CUBE " " u8"リジッドボディ"), "R", &showRigidBody);
 		ImGui::MenuItem((const char*)(ICON_FA_SHAPES " " u8"コライダー"), "C", &showCollider);
 		ImGui::MenuItem((const char*)(ICON_FA_VOLUME_UP " " u8"サウンド・演出範囲"), nullptr, &showSoundRange);
 		ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"), nullptr, &showPointLight);
@@ -2686,7 +2658,6 @@ void VmdlEditorScene::DrawViewport()
 			if (ImGui::IsKeyPressed(ImGuiKey_M, false)) showMesh = !showMesh;
 			else if (ImGui::IsKeyPressed(ImGuiKey_B, false)) showBones = !showBones;
 			else if (ImGui::IsKeyPressed(ImGuiKey_I, false)) showIkPole = !showIkPole;
-			else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) showRigidBody = !showRigidBody;
 			else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) showCollider = !showCollider;
 			else if (ImGui::IsKeyPressed(ImGuiKey_S, false)) showSpring = !showSpring;
 			else if (ImGui::IsKeyPressed(ImGuiKey_T, false)) showTrail = !showTrail;
@@ -2944,6 +2915,8 @@ void VmdlEditorScene::DrawProperty()
 			ImGui::TextDisabled((const char*)u8"頂点・インデックスはVMDLに保持されず、表示時だけ読み込みます");
 		}
 		if (ImGui::Checkbox((const char*)u8"表示", &mesh.isDraw)) MarkDirty();
+		selectedMaterial = mesh.materialIndex;
+		DrawMaterialEditor();
 	}
 	if (previewShadingMode == PreviewShadingMode::Solid)
 		ImGui::ColorEdit4((const char*)u8"ソリッド色", &solidColor.x);
@@ -3768,6 +3741,9 @@ void VmdlEditorScene::DrawTimeline()
 					std::erase_if(controlData.colliderTracks, [&deletedName](const auto& track) {
 						return track.animationName == deletedName;
 					});
+					std::erase_if(model->GetMaterialAnimationTracks(), [&deletedName](const auto& track) {
+						return track.animationName == deletedName;
+					});
 					std::erase_if(controlData.morphTracks, [&deletedName](const auto& track) {
 						return track.animationName == deletedName;
 					});
@@ -3935,8 +3911,10 @@ void VmdlEditorScene::DrawAnimationCurves()
 		Count(model->GetVmdlPresentationData().cameraShakes);
 	const int radialBlurRowCount =
 		Count(model->GetVmdlPresentationData().radialBlurs);
+	const int materialRowCount = selectedMesh >= 0 && selectedMaterial >= 0 &&
+		selectedMaterial < Count(model->GetMaterials()) ? 1 : 0;
 	const int eventRowCount = colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
-		soundRowCount + cameraShakeRowCount + radialBlurRowCount;
+		soundRowCount + cameraShakeRowCount + radialBlurRowCount + materialRowCount;
 	const float eventRowsTopOffset = rowsTopOffset + rowHeight * rows.size();
 	const float sheetHeight = eventRowsTopOffset + rowHeight * eventRowCount;
 	ImGui::InvisibleButton(
@@ -4232,7 +4210,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 						if (key.componentIndex == index)
 							drawEventDiamond(key.seconds, centerY, IM_COL32(255, 180, 65, 255));
 		}
-		else
+		else if (eventRow < eventRowCount - materialRowCount)
 		{
 			const int index = eventRow - colliderRowCount - trailRowCount - particleRowCount -
 				morphRowCount - soundRowCount - cameraShakeRowCount;
@@ -4245,6 +4223,16 @@ void VmdlEditorScene::DrawAnimationCurves()
 						if (key.componentIndex == index)
 							drawEventDiamond(key.seconds, centerY, IM_COL32(190, 105, 255, 255));
 		}
+		else
+		{
+			const std::string label = (const char*)u8"マテリアル／" + model->GetMaterials()[selectedMaterial].name;
+			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(255, 205, 95, 255), label.c_str());
+			for (const auto& track : model->GetMaterialAnimationTracks())
+				if (track.animationName == animation.name && track.materialIndex == selectedMaterial)
+					for (const auto& key : track.keys)
+						drawEventDiamond(key.seconds, centerY, IM_COL32(255, 205, 95, 255));
+		}
+
 	}
 
 	const float playheadX = timeToX(animationTime);
@@ -4254,10 +4242,16 @@ void VmdlEditorScene::DrawAnimationCurves()
 		ImVec2(playheadX + 5.0f, sheetMin.y), ImVec2(playheadX, sheetMin.y + 7.0f)};
 	drawList->AddConvexPolyFilled(playheadTriangle, 3, IM_COL32(90, 190, 255, 255));
 
+	const float materialRowTop = sheetMin.y + eventRowsTopOffset + rowHeight * (eventRowCount - materialRowCount);
+	if (materialRowCount && hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && io.MousePos.y >= materialRowTop)
+	{
+		model->RecordMaterialKey(selectedAnimation, selectedMaterial, xToTime(io.MousePos.x));
+		MarkDirty();
+	}
 	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 	{
 		const ImVec2 mouse = io.MousePos;
-		if (mouse.y >= sheetMin.y + eventRowsTopOffset && mouse.y < sheetMax.y)
+		if (mouse.y >= sheetMin.y + eventRowsTopOffset && mouse.y < materialRowTop)
 		{
 			const int eventRow = std::clamp(
 				static_cast<int>((mouse.y - sheetMin.y - eventRowsTopOffset) / rowHeight), 0,
@@ -5959,43 +5953,10 @@ void VmdlEditorScene::DrawMaterialEditor()
 		ImGui::TextDisabled((const char*)u8"このモデルにはマテリアルがありません");
 		return;
 	}
-	selectedMaterial = std::clamp(selectedMaterial, 0, Count(materials) - 1);
-
-	constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable |
-										   ImGuiTableFlags_BordersInnerV |
-										   ImGuiTableFlags_SizingStretchProp;
-	if (!ImGui::BeginTable("Material Editor Layout", 2, tableFlags, ImVec2(0.0f, 0.0f))) return;
-	ImGui::TableSetupColumn("Material List Column", ImGuiTableColumnFlags_WidthStretch, 0.28f);
-	ImGui::TableSetupColumn("Material Property Column", ImGuiTableColumnFlags_WidthStretch, 0.72f);
-	ImGui::TableNextRow();
-
-	// 左側のマテリアル一覧
-	ImGui::TableSetColumnIndex(0);
-	ImGui::BeginChild("Material List", ImVec2(0.0f, 0.0f), true);
-	for (int i = 0; i < Count(materials); ++i)
-	{
-		ImGui::PushID(i);
-		if (ImGui::Selectable(materials[i].name.c_str(), selectedMaterial == i))
-			selectedMaterial = i;
-		const ImVec2 itemMin = ImGui::GetItemRectMin();
-		const ImVec2 itemMax = ImGui::GetItemRectMax();
-		if (selectedMaterial == i)
-		{
-			ImGui::GetWindowDrawList()->AddRect(
-				itemMin, itemMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
-		}
-		ImGui::PopID();
-	}
-	ImGui::EndChild();
-
-	// 右側のマテリアル設定
-	ImGui::TableSetColumnIndex(1);
-	ImGui::BeginChild("Material Property", ImVec2(0.0f, 0.0f), true);
+	if (selectedMaterial < 0 || selectedMaterial >= Count(materials)) return;
+	ImGui::SeparatorText((const char*)(ICON_FA_PALETTE " " u8"マテリアル"));
 	auto& material = materials[selectedMaterial];
 	ImGui::Text((const char*)u8"マテリアル: %s", material.name.c_str());
-	ImGui::SameLine();
 	bool changed = false;
 	if (ImGui::Button((const char*)u8"GLB設定に初期化") &&
 		model->ResetMaterialToGLB(static_cast<size_t>(selectedMaterial)))
@@ -6121,9 +6082,9 @@ void VmdlEditorScene::DrawMaterialEditor()
 	if (ImGui::BeginTable("Material Textures", 3,
 			ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp))
 	{
-		ImGui::TableSetupColumn((const char*)u8"種類", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+		ImGui::TableSetupColumn((const char*)u8"種類", ImGuiTableColumnFlags_WidthStretch);
 		ImGui::TableSetupColumn((const char*)u8"参照元", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn((const char*)u8"操作", ImGuiTableColumnFlags_WidthFixed, 300.0f);
+		ImGui::TableSetupColumn((const char*)u8"操作", ImGuiTableColumnFlags_WidthStretch);
 		textureRow("Base Color", VMDLModel::MaterialTextureSlot::BaseColor,
 			material.baseTextureFileName, material.baseTextureDDS);
 		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal, material.normalTextureFileName,
@@ -6141,9 +6102,66 @@ void VmdlEditorScene::DrawMaterialEditor()
 		for (auto& [groupIndex, cache] : externalMeshPreviewCaches)
 			if (cache) cache->SyncMaterialsFrom(*model);
 		MarkDirty();
+		if (animationRecording) model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
 	}
-	ImGui::EndChild();
-	ImGui::EndTable();
+	DrawMaterialAnimationKeys();
+}
+
+void VmdlEditorScene::DrawMaterialAnimationKeys()
+{
+	if (selectedAnimation < 0 || selectedAnimation >= Count(model->GetAnimations()))
+	{
+		ImGui::TextDisabled((const char*)u8"アニメーションを選択するとキー登録できます");
+		return;
+	}
+	const auto& animation = model->GetAnimations()[selectedAnimation];
+	ImGui::SeparatorText((const char*)(ICON_FA_KEY " " u8"マテリアルキー"));
+	ImGui::Text("%s / %.3f sec", animation.name.c_str(), animationTime);
+	if (ImGui::Button((const char*)u8"現在のマテリアルをキー登録"))
+	{
+		model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
+		MarkDirty();
+	}
+	ImGui::TextDisabled((const char*)u8"基本色・発光色・メタリック・粗さを補間します");
+	for (auto& track : model->GetMaterialAnimationTracks())
+	{
+		if (track.animationName != animation.name || track.materialIndex != selectedMaterial) continue;
+		bool changed = false;
+		int remove = -1;
+		for (int i = 0; i < Count(track.keys); ++i)
+		{
+			auto& key = track.keys[i];
+			ImGui::PushID(i);
+			if (ImGui::TreeNode(std::format("{:.3f} sec###MaterialKey", key.seconds).c_str()))
+			{
+				changed |= ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f,
+					0.0f, animation.secondsLength, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+				changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
+				changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x,
+					ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
+				changed |= ImGui::SliderFloat((const char*)u8"粗さ", &key.roughness, 0.0001f, 1.0f);
+				if (ImGui::SmallButton((const char*)u8"このキーへ移動"))
+				{
+					animationPlaying = false;
+					animationTime = key.seconds;
+					ApplyAnimationPreview();
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton((const char*)u8"削除")) remove = i;
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		if (remove >= 0) track.keys.erase(track.keys.begin() + remove);
+		if (changed || remove >= 0)
+		{
+			std::stable_sort(track.keys.begin(), track.keys.end(),
+				[](const auto& left, const auto& right) { return left.seconds < right.seconds; });
+			MarkDirty();
+		}
+		break;
+	}
 }
 
 void VmdlEditorScene::RecordSelectedNodeKey()

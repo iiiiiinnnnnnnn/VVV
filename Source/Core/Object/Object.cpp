@@ -1,4 +1,5 @@
 ﻿#include "Core/Object/Object.h"
+#include "IconsFontAwesome5.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/RenderContext.h"
@@ -102,7 +103,7 @@ void Object::Render(const RenderContext& rc)
 
 void Object::DrawGUI()
 {
-    if (ImGui::TreeNode((const char*)u8"オブジェクト情報"))
+    if (ImGui::TreeNode((const char*)(ICON_FA_INFO_CIRCLE " " u8"オブジェクト情報")))
     {
         ImGui::Checkbox((const char*)u8"有効", &isActive);
         ImGui::Text((const char*)u8"名前: %s、タグ: %s", name.c_str(), tag.c_str());

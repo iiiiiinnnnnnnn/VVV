@@ -76,6 +76,7 @@ class NavMeshActor : public Component
 	void RefreshDebugCells();
 	void Release();
 	void CollectObstacles(std::vector<ObstacleBounds>& obstacles) const;
+	Vector3 ProjectTerrainPosition(const Vector3& position, bool navigationBase) const;
 
 	static NavMeshActor* active;
 

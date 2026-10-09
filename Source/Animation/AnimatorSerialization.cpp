@@ -10,7 +10,7 @@
 bool Animator::Serialize(const std::string& path) const
     {
         json root;
-        root["animationMode"] = IsDynamicMode() ? "Dynamic" : "VMDLModel";
+        root["animationMode"] = "VMDLModel";
 
         // Parameters
         json jParams = json::array();
@@ -68,7 +68,6 @@ bool Animator::Serialize(const std::string& path) const
                 json jState;
                 jState["name"]           = state.name;
                 jState["animationIndex"] = state.animationIndex;
-                jState["dynamicClipPath"] = state.dynamicClipPath;
                 jState["speed"]          = state.speed;
                 jState["loop"]           = state.loop;
                 jState["blockAnyStateTransitions"] = state.blockAnyStateTransitions;
@@ -196,7 +195,7 @@ void Animator::Deserialize(const std::string& path)
 			return;
 		}
 
-		const std::string expectedMode = IsDynamicMode() ? "Dynamic" : "VMDLModel";
+		const std::string expectedMode = "VMDLModel";
 		const std::string fileMode = root.value("animationMode", expectedMode);
 		if (fileMode != expectedMode)
         {
@@ -236,25 +235,13 @@ void Animator::Deserialize(const std::string& path)
 
             for (const auto& jState : jLayer["states"])
             {
-                int si = -1;
-                if (IsDynamicMode())
-                {
-                    si = AddDynamicState(
-                        li,
-                        jState["name"].get<std::string>(),
-                        jState.value("dynamicClipPath", std::string()),
-                        jState["loop"].get<bool>(),
-                        jState["speed"].get<float>());
-                }
-                else
-                {
-                    si = AddState(
-                        li,
-                        jState["name"].get<std::string>(),
-                        jState.value("animationIndex", -1),
-                        jState["loop"].get<bool>(),
-                        jState["speed"].get<float>());
-                }
+                const int si = AddState(
+                    li,
+                    jState["name"].get<std::string>(),
+                    jState.value("animationIndex", -1),
+                    jState["loop"].get<bool>(),
+                    jState["speed"].get<float>());
+
                 GetLayer(li).states[si].blockAnyStateTransitions =
                     jState.value("blockAnyStateTransitions", false);
                 GetLayer(li).states[si].hasEditorPosition =

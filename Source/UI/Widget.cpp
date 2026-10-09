@@ -1,4 +1,5 @@
 ﻿#include "UI/Widget.h"
+#include "IconsFontAwesome5.h"
 
 void Widget::Update()
 {
@@ -11,17 +12,19 @@ void Widget::Update()
 void Widget::DrawGUI()
 {
     ImGui::PushID(this);
-    if (ImGui::CollapsingHeader(name.empty() ? "Unnamed Object" : name.c_str()))
+	const std::string label = std::string(ICON_FA_WINDOW_MAXIMIZE " ") +
+		(name.empty() ? "Unnamed Object" : name) + "###WidgetInspector";
+    if (ImGui::CollapsingHeader(label.c_str()))
     {
 		Object::DrawGUI();
 
-        if(ImGui::TreeNode("Widget Info"))
+        if(ImGui::TreeNode(ICON_FA_INFO_CIRCLE " Widget Info"))
         {
 			ImGui::TextDisabled("Widget info is void");
             ImGui::TreePop();
 		}
 
-        if (ImGui::TreeNode("RectTransform"))
+        if (ImGui::TreeNode(ICON_FA_VECTOR_SQUARE " RectTransform"))
         {
             ImGui::DragFloat2("Position", &rect.position.x);
             ImGui::DragFloat("Angle", &rect.angle);
@@ -30,7 +33,7 @@ void Widget::DrawGUI()
             ImGui::TreePop();
         }
 
-        if (ImGui::TreeNode("User param"))
+        if (ImGui::TreeNode(ICON_FA_SLIDERS_H " User param"))
         {
             OnDrawGUI();
             ImGui::TreePop();

@@ -116,6 +116,7 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 
 void LockOnComponent::OnDrawGUI()
 {
+	if (target && !IsTargetValid()) ClearTarget();
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
 	ImGui::Text("ArrowUI: %s", targetAnchorIndex >= 0 ? "Found" : "Not Found");
 	ImGui::DragFloat("Acquire Range", &acquireRange, 0.1f, 0.0f, 1000.0f);
@@ -137,6 +138,7 @@ void LockOnComponent::LockOn(Actor* actor)
 		return;
 	}
 	target = actor;
+	targetLifetime = actor->weak_from_this();
 	ResolveTargetAnchor();
 }
 
@@ -183,6 +185,11 @@ bool LockOnComponent::LockOnNearestEnemy()
 void LockOnComponent::ReleaseIfMovingAway(const Vector3& worldMoveDirection)
 {
 	if (!target) return;
+	if (!IsTargetValid())
+	{
+		ClearTarget();
+		return;
+	}
 
 	Vector3 moveDirection = worldMoveDirection;
 	moveDirection.y = 0.0f;
@@ -202,6 +209,7 @@ void LockOnComponent::ReleaseIfMovingAway(const Vector3& worldMoveDirection)
 void LockOnComponent::ClearTarget()
 {
 	target = nullptr;
+	targetLifetime.reset();
 	targetModel = nullptr;
 	targetAnchorIndex = -1;
 }
@@ -213,6 +221,8 @@ void LockOnComponent::PauseRotation(float duration)
 
 bool LockOnComponent::IsTargetValid() const
 {
+	const auto targetOwner = targetLifetime.lock();
+	if (!targetOwner || targetOwner.get() != target) return false;
 	if (!ownerEntity || !target || !target->IsActive() || target->IsPendingDestroy()) return false;
 
 	const Entity* targetEntity = dynamic_cast<const Entity*>(target);
@@ -223,7 +233,7 @@ void LockOnComponent::ResolveTargetAnchor()
 {
 	targetModel = nullptr;
 	targetAnchorIndex = -1;
-	if (!target) return;
+	if (!IsTargetValid()) return;
 
 	VMDLModelComponent* modelComponent = target->GetComponent<VMDLModelComponent>();
 	if (!modelComponent) return;

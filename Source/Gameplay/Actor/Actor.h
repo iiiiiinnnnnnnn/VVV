@@ -21,6 +21,8 @@ public:
 	const Transform* GetTransform() const override { return &transform; }
 
 	void Destroy(float delay = 0.0f) override;
+	void SetSpawnTag(const std::string& value) { spawnTag = value; }
+	const std::string& GetSpawnTag() const { return spawnTag; }
 
     virtual void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
     virtual void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) {}
@@ -31,4 +33,7 @@ public:
 
 public:
     Transform transform;
+
+private:
+	std::string spawnTag;
 };

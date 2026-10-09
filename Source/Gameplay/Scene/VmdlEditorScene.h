@@ -1,4 +1,4 @@
-﻿// VmdlEditorScene.h
+// VmdlEditorScene.h
 #pragma once
 
 #include "Audio/SoundTracks.generated.h"
@@ -83,6 +83,7 @@ class VmdlEditorScene : public Scene
 		IkGizmoTarget target);
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
+	void DrawMaterialAnimationKeys();
 	bool DrawSoundTrackSelector(const char* label, std::string& trackName);
 	std::string SoundTrackLabel(const std::string& trackName) const;
 	bool DrawEffectSelector(const char* label, std::string& effectName);
@@ -270,16 +271,15 @@ class VmdlEditorScene : public Scene
 	Color solidColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
 	bool showMesh = true;
 	bool showDebugOverlays = true;
-	bool showRigidBody = true;
 	bool showCollider = true;
-	bool showSoundRange = true;
+	bool showSoundRange = false;
 	bool showPointLight = true;
-	bool showSpring = true;
-	bool showSpringCollider = true;
+	bool showSpring = false;
+	bool showSpringCollider = false;
 	bool showTrail = true;
 	bool showParticle = true;
-	bool showBones = true;
-	bool showIkPole = true;
+	bool showBones = false;
+	bool showIkPole = false;
 	bool showGrid = true;
 	bool showSetScaleWindow = false;
 	float setScaleValue = 1.0f;

@@ -2,7 +2,6 @@
 
 #include "FullScreenQuad.hlsli"
 
-#include "gbuffer.hlsli"
 #include "filter_functions.hlsli"
 #include "ShadingFunctions.hlsli"
 

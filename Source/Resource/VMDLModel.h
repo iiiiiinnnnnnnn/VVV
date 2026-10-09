@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <iosfwd>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@
 #include <cereal/types/utility.hpp>
 
 class MeshCache;
+struct VMatRenderParams;
 
 #include <DirectXTex.h>
 #include <DDSTextureLoader.h>
@@ -531,7 +533,7 @@ class VMDLModel
 	// Lightweight snapshot used by transient visual effects. CPU mesh and
 	// animation data are omitted while GPU buffers and the current pose are kept.
 	std::shared_ptr<VMDLModel> CloneRenderPose() const;
-	std::shared_ptr<VMDLModel> CloneRuntimeInstance() const;
+	std::shared_ptr<VMDLModel> CloneRuntimeInstance(bool includeGeometry = false) const;
 	std::shared_ptr<VMDLModel> CloneRenderPose(const std::vector<std::shared_ptr<MeshCache>>& caches) const;
 	bool HasSkeleton() const;
 
@@ -647,6 +649,32 @@ class VMDLModel
 		int isFlatShading = false;
 
 		template <class Archive> void serialize(Archive& archive);
+	};
+
+	struct VmdlMaterialKeyframe
+	{
+		float seconds = 0.0f;
+		Color baseColor = {1, 1, 1, 1};
+		Color emissiveColor = {0, 0, 0, 1};
+		float metalness = 0.0f;
+		float roughness = 0.0f;
+
+		template <class Archive> void serialize(Archive& archive)
+		{
+			archive(seconds, baseColor, emissiveColor, metalness, roughness);
+		}
+	};
+
+	struct VmdlMaterialAnimationTrack
+	{
+		std::string animationName;
+		int materialIndex = -1;
+		std::vector<VmdlMaterialKeyframe> keys;
+
+		template <class Archive> void serialize(Archive& archive)
+		{
+			archive(animationName, materialIndex, keys);
+		}
 	};
 
 	enum class MaterialTextureSlot
@@ -839,6 +867,11 @@ class VMDLModel
 		const std::string& animationName, int emitterIndex);
 	VmdlMorphAnimationTrack& GetOrCreateMorphAnimationTrack(const std::string& animationName);
 	const VmdlMorphAnimationTrack* FindMorphAnimationTrack(const std::string& animationName) const;
+	std::vector<VmdlMaterialAnimationTrack>& GetMaterialAnimationTracks() { return materialAnimationTracks; }
+	const std::vector<VmdlMaterialAnimationTrack>& GetMaterialAnimationTracks() const { return materialAnimationTracks; }
+	void RecordMaterialKey(int animationIndex, int materialIndex, float time);
+	void ApplyMaterialAnimation(int animationIndex, float time, VMatRenderParams& params) const;
+	std::optional<VmdlMaterialKeyframe> EvaluateMaterialAnimation(int animationIndex, float time, int materialIndex) const;
 	void ApplyMorphAnimation(int animationIndex, float time);
 	void RestoreMorphVisibility(const std::vector<uint8_t>& visibility);
 	void RestoreRuntimeMorphVisibility();
@@ -941,6 +974,7 @@ class VMDLModel
 	VmdlMultiLegIKSettings vmdlMultiLegIKSettings;
 	VmdlAnimationEditorData vmdlAnimationEditorData;
 	VmdlAnimationControlData vmdlAnimationControlData;
+	std::vector<VmdlMaterialAnimationTrack> materialAnimationTracks;
 	VmdlTrailData vmdlTrailData;
 	VmdlParticleData vmdlParticleData;
 	VmdlSoundData vmdlSoundData;

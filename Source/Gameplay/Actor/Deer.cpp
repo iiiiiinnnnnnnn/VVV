@@ -1,4 +1,3 @@
-﻿// Deer.cpp
 #include "Deer.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Scene/TimeScaleController.h"
@@ -8,8 +7,8 @@
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Audio/SoundSystem.h"
 
-Deer::Deer(const Transform& transform, const std::string& modelPath)
-	: Entity("Deer", "Enemy", true, transform, 200.0f, 200.0f)
+Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBossField)
+	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f)
 {
 	vmdl = AddComponent<VMDL>(modelPath);
 	anim = vmdl->GetAnimator();
@@ -43,6 +42,11 @@ Deer::Deer(const Transform& transform, const std::string& modelPath)
 	lookAt->SetLookDistance(8.0f);
 
 	// EnemyAIFlow
+	ConfigureAI();
+}
+
+void Deer::ConfigureAI()
+{
 	controller = AddComponent<EnemyAIFlow>();
 	controller->SetGraphPath("Resources/AI/Deer.json");
 	if (!controller->Load(controller->GetGraphPath()))
@@ -64,7 +68,7 @@ Deer::Deer(const Transform& transform, const std::string& modelPath)
 	ensureFloat("FreedomMaxDistance", 10.0f);
 	ensureFloat("FreedomMoveSpeed", 1.0f);
 	ensureFloat("AttackMoveSpeed", 6.0f);
-	ensureFloat("AttackOverDistance", 8.0f);
+	ensureFloat("AttackOverDistance", 16.0f);
 
 	const auto stop = [this](const EnemyAIFlow::State&)
 	{
@@ -74,9 +78,20 @@ Deer::Deer(const Transform& transform, const std::string& modelPath)
 	{
 		anim->SetBool("ready", false);
 	};
-	const auto updateAttacking = [this](const EnemyAIFlow::State&)
+	const auto canCharge = [this]()
 	{
-		anim->SetBool("ready", true);
+		Actor* target = controller->GetTarget();
+		if (!target) return false;
+		NavMeshActor* navMesh = NavMeshActor::GetActive();
+		if (!navMesh) return true;
+		// NavMeshの外側や境界付近にいる場合はチャージしない
+		const bool deerOutside = navMesh->IsOutsideOrNearBoundary(this->transform.position, 0.0f);
+		const bool targetOutside = navMesh->IsOutsideOrNearBoundary(target->transform.position, 0.0f);
+		return !deerOutside && !targetOutside;
+	};
+	const auto updateAttacking = [this, canCharge](const EnemyAIFlow::State&)
+	{
+		anim->SetBool("ready", canCharge());
 	};
 	const auto enterWander = [this](const EnemyAIFlow::State&)
 	{
@@ -103,18 +118,36 @@ Deer::Deer(const Transform& transform, const std::string& modelPath)
 	{
 		controller->FaceTarget();
 	};
-	const auto enterChase = [this](const EnemyAIFlow::State&)
+	const auto enterChase = [this, canCharge](const EnemyAIFlow::State&)
 	{
+		if (!canCharge())
+		{
+			controller->StopMovement();
+			controller->SetBool("HasDestination", false, true);
+			anim->SetBool("ready", false);
+			anim->SetFloat("speed", 0.0f);
+			return;
+		}
 		Actor* target = controller->GetTarget();
 		if (!target) return;
 
 		Vector3 over = target->transform.position - this->transform.position;
 		over.y = 0.0f;
 		if (over.LengthSquared() > eps) over.Normalize();
-		const Vector3 destination = target->transform.position +
-			over * controller->GetFloat("AttackOverDistance", 8.0f);
-		navMeshAgent->SetSpeed(controller->GetFloat("AttackMoveSpeed", 6.0f));
+		const float overDistance = controller->GetFloat("AttackOverDistance", 16.0f);
+		const float moveSpeed = controller->GetFloat("AttackMoveSpeed", 6.0f);
+		const Vector3 chargeOffset = over * overDistance;
+		const Vector3 destination = target->transform.position + chargeOffset;
+		navMeshAgent->SetSpeed(moveSpeed);
 		navMeshAgent->MoveToPosition(destination);
+	};
+	const auto updateChase = [this, canCharge](const EnemyAIFlow::State&)
+	{
+		if (canCharge()) return;
+		controller->StopMovement();
+		controller->SetBool("HasDestination", false, true);
+		anim->SetBool("ready", false);
+		anim->SetFloat("speed", 0.0f);
 	};
 
 	controller->AddCallbackFunc("Freedom", stop, updateFreedom, {}, stop);
@@ -123,7 +156,7 @@ Deer::Deer(const Transform& transform, const std::string& modelPath)
 	controller->AddCallbackFunc("Turn", {}, updateTurn, {}, exitTurn);
 	controller->AddCallbackFunc("Attacking", stop, updateAttacking, {}, stop);
 	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
-	controller->AddCallbackFunc("AttackChase", enterChase);
+	controller->AddCallbackFunc("AttackChase", enterChase, updateChase);
 	controller->AddCallbackFunc("Stop", stop);
 	controller->BindCallbacks();
 }
@@ -187,7 +220,11 @@ void Deer::OnDamaged(const DamageData& damageData)
 	CameraEffectController::Request(0.2f, 0.1f);
 
 	navMeshAgent->Stop();
-	controller->LockOn((Actor*)damageData.hitColliderSelf->GetOwner());
+	if (damageData.hitColliderSelf)
+	{
+		Actor* attacker = dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner());
+		if (attacker) controller->LockOn(attacker);
+	}
 
 	// ダメージサウンド
 	vmdl->GetRenderer()->PlaySoundSource("DAMAGED");

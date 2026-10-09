@@ -16,6 +16,9 @@
 #include "Gameplay/Lighting/CbLightData.h"
 #include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
 #include "Rendering/Core/RenderContext.h"
+#include "Application/SettingsAndDebug/PhysicsLayerManager.h"
+
+class Effect;
 
 class Terrain : public Component
 {
@@ -54,6 +57,7 @@ public:
 	const std::string& GetTerrainLayerName(int index) const { return terrainLayers.at(index).name; }
 	void Deform(const Vector3& worldPosition, const Vector3& direction, float power,
 		float radius = 0.0f);
+	bool RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius, LayerId sourceLayer);
 
 	// 地形設定
 
@@ -310,6 +314,7 @@ private:
 		float& outU,
 		float& outV) const;
 	void ApplyBrush(float u, float v, float heightSign);
+	void PlayGrassRemovalEffect(const Vector3& worldPosition);
 
 	// ブラシ処理
 
@@ -418,5 +423,7 @@ private:
 	TerrainGrassRenderer::Settings grassSettings;
 	TerrainGrassRenderer::Settings grassDraftSettings;
 	bool grassDirty = true;
+	std::shared_ptr<Effect> grassRemovalEffect;
+	float grassRemovalEffectCooldown = 0.0f;
 	bool grassDraftInitialized = false;
 };

@@ -44,11 +44,7 @@ VMatShader::VMatShader(ID3D11Device* device)
 		sizeof(CbMaterial),
 		materialConstantBuffer.GetAddressOf());
 
-	// ダメージ穴用定数バッファ (PSスロット2)
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbDamageHoles),
-		damageHolesConstantBuffer.GetAddressOf());
+
 }
 
 // 描画開始
@@ -128,11 +124,13 @@ void VMatShader::Update(
 	// マテリアルCB更新
 	{
 		CbMaterial cb{};
+		cb.dissolveAmount = params ? std::clamp(params->dissolveAmount, 0.0f, 1.0f) : 0.0f;
 
 		// Base Color
 		cb.baseColor = materialParams && materialParams->baseColor
 			? *materialParams->baseColor
 			: mesh.material->baseColor;
+		if (params) cb.baseColor *= params->baseColorTint;
 		cb.useBaseColorTexture = materialParams && materialParams->useBaseColorTexture
 			? (*materialParams->useBaseColorTexture ? 1 : 0)
 			: (mesh.material->hasBaseTexture ? 1 : 0);
@@ -230,40 +228,16 @@ void VMatShader::Update(
 			0);
 	}
 
-	// ダメージ穴CB更新
-	CbDamageHoles damageHoles{};
-	const VMatDamageHoleParams* holeParams = params ? &params->damageHoles : nullptr;
-	damageHoles.count = holeParams
-		? std::clamp(holeParams->count, 0, VMatDamageHoleParams::MaxCount)
-		: 0;
-	damageHoles.edgeWidth = holeParams ? std::max(holeParams->edgeWidth, 0.001f) : 1.5f;
-	damageHoles.depth = holeParams ? std::max(holeParams->depth, 0.0f) : 0.4f;
-	const bool useDamageHoleGeometry = damageHoles.count > 0 && damageHoles.depth > 0.0f;
 	const bool isFlatShading = materialParams && materialParams->isFlatShading
 		? *materialParams->isFlatShading
 		: mesh.material->isFlatShading != 0;
-	const bool useGeometryShader = useDamageHoleGeometry || isFlatShading || transmission > 0.0f;
-
-	for (int i = 0; i < damageHoles.count; ++i)
-	{
-		damageHoles.holes[i] = holeParams->holes[i];
-		damageHoles.directions[i] = holeParams->directions[i];
-	}
-
-	dc->UpdateSubresource(
-		damageHolesConstantBuffer.Get(),
-		0,
-		nullptr,
-		&damageHoles,
-		0,
-		0);
+	const bool useGeometryShader = isFlatShading || transmission > 0.0f;
 
 	// CBセット
 	ID3D11Buffer* cbs[] =
 	{
 		shadowMapConstantBuffer.Get(),
-		materialConstantBuffer.Get(),
-		damageHolesConstantBuffer.Get()
+		materialConstantBuffer.Get()
 	};
 
 	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);

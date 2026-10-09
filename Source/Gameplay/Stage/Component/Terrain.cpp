@@ -1,4 +1,5 @@
 
+#include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 
 #include "Gameplay/Actor/Actor.h"
@@ -6,15 +7,19 @@
 #include "Resource/GpuResourceUtils.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Application/Input/Input.h"
+#include "Application/Time/GameTime.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Resource/Texture.h"
 #include "Resource/ResourceManager.h"
 #include "Core/Foundation/Json.h"
+#include "Rendering/Effect/Effect.h"
+#include "Rendering/Effect/EffectManager.h"
 #include <DirectXTex.h>
 
 #include <cfloat>
+#include <cmath>
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)
@@ -520,6 +525,8 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 
 void Terrain::Update()
 {
+	grassRemovalEffectCooldown = std::max(
+		grassRemovalEffectCooldown - Game::Time::deltaTime, 0.0f);
 }
 
 void Terrain::Render(const RenderContext& rc)
@@ -1788,7 +1795,7 @@ void Terrain::BakeCollider()
 
 void Terrain::DrawTerrainLayerGUI()
 {
-	if (!ImGui::TreeNode((const char*)u8"地形ペイントレイヤー"))
+	if (!ImGui::TreeNode((const char*)(ICON_FA_LAYER_GROUP " " u8"地形ペイントレイヤー")))
 	{
 		return;
 	}
@@ -1868,7 +1875,7 @@ void Terrain::DrawTerrainLayerGUI()
 
 void Terrain::DrawBrushGUI()
 {
-	if (!ImGui::TreeNode((const char*)u8"ブラシテクスチャ"))
+	if (!ImGui::TreeNode((const char*)(ICON_FA_IMAGE " " u8"ブラシテクスチャ")))
 	{
 		return;
 	}
@@ -1939,7 +1946,7 @@ void Terrain::DrawBrushGUI()
 		ImGui::EndChild();
 	}
 
-	ImGui::Checkbox((const char*)u8"ブラシマスクを反転", &invertBrushMask);
+	ImGui::Checkbox((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシマスクを反転"), &invertBrushMask);
 
 	ImGui::Text((const char*)u8"ブラシ数: %d", static_cast<int>(brushes.size()));
 	ImGui::TreePop();
@@ -1954,8 +1961,8 @@ void Terrain::DrawGUI()
 	}
 
 	// よく使う地形ブラシ
-	ImGui::TextUnformatted((const char*)u8"地形ブラシ");
-	ImGui::Checkbox((const char*)u8"ブラシを使用（B）", &use_brush);
+	ImGui::TextUnformatted((const char*)(ICON_FA_PAINT_BRUSH " " u8"地形ブラシ"));
+	ImGui::Checkbox((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシを使用（B）"), &use_brush);
 
 	int brushModeIndex = static_cast<int>(brushMode);
 	const char* brushModeItems[] =
@@ -1963,47 +1970,47 @@ void Terrain::DrawGUI()
 		(const char*)u8"上げる／下げる",
 		(const char*)u8"高さを指定",
 		(const char*)u8"ペイント",
-		(const char*)u8"草マップ",
+		(const char*)(ICON_FA_LEAF " " u8"草マップ"),
 		(const char*)u8"NavMesh範囲",
 	};
 
 	if (ImGui::Combo(
-			(const char*)u8"ブラシモード", &brushModeIndex, brushModeItems,
+			(const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシモード"), &brushModeIndex, brushModeItems,
 			_countof(brushModeItems)))
 	{
 		brushMode = static_cast<BrushMode>(brushModeIndex);
 		use_brush = true;
 	}
 
-	ImGui::DragInt((const char*)u8"ブラシサイズ", &brush_size, 1.0f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
+	ImGui::DragInt((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシサイズ"), &brush_size, 1.0f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
 	if (brushMode == BrushMode::RaiseLower)
 	{
 		ImGui::DragFloat(
-			(const char*)u8"上下の強さ", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
+			(const char*)(ICON_FA_COG " " u8"上下の強さ"), &heightBrushStrength, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::SetHeight)
 	{
 		ImGui::DragFloat(
-			(const char*)u8"指定する高さ", &setHeightValue, 0.001f, -10.0f, 10.0f);
+			(const char*)(ICON_FA_COG " " u8"指定する高さ"), &setHeightValue, 0.001f, -10.0f, 10.0f);
 	}
 	else if (brushMode == BrushMode::Paint)
 	{
 		ImGui::DragFloat(
-			(const char*)u8"ペイント不透明度", &paintOpacity, 0.001f, 0.0f, 1.0f);
+			(const char*)(ICON_FA_PAINT_BRUSH " " u8"ペイント不透明度"), &paintOpacity, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::GrassPaint)
 	{
 		ImGui::DragFloat(
-			(const char*)u8"草の塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
+			(const char*)(ICON_FA_COG " " u8"草の塗り強さ"), &paintOpacity, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::NavMeshPaint)
 	{
-		ImGui::DragFloat((const char*)u8"塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"塗り強さ"), &paintOpacity, 0.001f, 0.0f, 1.0f);
 		ImGui::TextUnformatted((const char*)u8"左ドラッグ：範囲を追加 / Shift：範囲を削除");
 		ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.3f, 1.0f), (const char*)u8"緑：入力範囲 / 赤：範囲外 / 水色の線：生成結果");
 		if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
 		{
-			if (ImGui::TreeNode((const char*)u8"NavMesh生成設定"))
+			if (ImGui::TreeNode((const char*)(ICON_FA_MAP " " u8"NavMesh生成設定")))
 			{
 				navMesh->DrawGUI();
 				ImGui::TreePop();
@@ -2017,36 +2024,36 @@ void Terrain::DrawGUI()
 	if (brushMode == BrushMode::Paint) DrawTerrainLayerGUI();
 
 	// 地形のマテリアル
-	if (ImGui::TreeNode((const char*)u8"地形PBR"))
+	if (ImGui::TreeNode((const char*)(ICON_FA_SLIDERS_H " " u8"地形PBR")))
 	{
-		ImGui::ColorEdit4((const char*)u8"基本色", &baseColor.x);
-		ImGui::ColorEdit4((const char*)u8"発光色", &emissiveColor.x);
-		ImGui::SliderFloat((const char*)u8"メタリック", &metalness, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)u8"粗さ", &roughness, 0.0001f, 1.0f);
-		ImGui::SliderFloat((const char*)u8"オクルージョン", &occlusion, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)u8"オクルージョン強度", &occlusionStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)u8"影の強度", &shadowStrength, 0.0f, 1.0f);
+		ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"基本色"), &baseColor.x);
+		ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"発光色"), &emissiveColor.x);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"メタリック"), &metalness, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"粗さ"), &roughness, 0.0001f, 1.0f);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"オクルージョン"), &occlusion, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"オクルージョン強度"), &occlusionStrength, 0.0f, 1.0f);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"影の強度"), &shadowStrength, 0.0f, 1.0f);
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode((const char*)u8"草マップ"))
+	if (ImGui::TreeNode((const char*)(ICON_FA_LEAF " " u8"草マップ")))
 	{
 		bool changed = false;
-		changed |= ImGui::DragFloat((const char*)u8"密度", &grassDraftSettings.density,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"密度"), &grassDraftSettings.density,
 			0.05f, 0.0f, 0.0f);
-		changed |= ImGui::DragFloat((const char*)u8"横幅", &grassDraftSettings.width,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"横幅"), &grassDraftSettings.width,
 			0.01f, 0.05f, 5.0f);
-		changed |= ImGui::DragFloat((const char*)u8"高さ", &grassDraftSettings.height,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"高さ"), &grassDraftSettings.height,
 			0.01f, 0.05f, 8.0f);
-		changed |= ImGui::SliderFloat((const char*)u8"大きさのばらつき",
+		changed |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"大きさのばらつき"),
 			&grassDraftSettings.sizeVariation, 0.0f, 0.9f);
-		changed |= ImGui::DragFloat((const char*)u8"風の強さ", &grassDraftSettings.windStrength,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"風の強さ"), &grassDraftSettings.windStrength,
 			0.01f, 0.0f, 2.0f);
-		changed |= ImGui::DragFloat((const char*)u8"風の速度", &grassDraftSettings.windSpeed,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"風の速度"), &grassDraftSettings.windSpeed,
 			0.01f, 0.0f, 8.0f);
-		changed |= ImGui::DragFloat((const char*)u8"描画距離", &grassDraftSettings.drawDistance,
+		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"描画距離"), &grassDraftSettings.drawDistance,
 			1.0f, 5.0f, 500.0f);
-		changed |= ImGui::ColorEdit4((const char*)u8"草の色", &grassDraftSettings.tint.x);
+		changed |= ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"草の色"), &grassDraftSettings.tint.x);
 
 		if (changed)
 		{
@@ -2064,41 +2071,41 @@ void Terrain::DrawGUI()
 	}
 
 	// 地形に適用する距離フォグ
-	if (ImGui::TreeNode((const char*)u8"距離フォグ"))
+	if (ImGui::TreeNode((const char*)(ICON_FA_CLOUD " " u8"距離フォグ")))
 	{
-		ImGui::Checkbox((const char*)u8"有効##TerrainDistanceFog", &distanceFogEnabled);
+		ImGui::Checkbox((const char*)(ICON_FA_COG " " u8"有効##TerrainDistanceFog"), &distanceFogEnabled);
 		ImGui::DragFloat(
-			(const char*)u8"開始距離##TerrainDistanceFog",
+			(const char*)(ICON_FA_COG " " u8"開始距離##TerrainDistanceFog"),
 			&distanceFogStart,
 			0.5f,
 			0.0f,
 			std::max(distanceFogEnd - 0.1f, 0.0f));
 		ImGui::DragFloat(
-			(const char*)u8"終了距離##TerrainDistanceFog",
+			(const char*)(ICON_FA_COG " " u8"終了距離##TerrainDistanceFog"),
 			&distanceFogEnd,
 			0.5f,
 			distanceFogStart + 0.1f,
 			1000.0f);
 		ImGui::DragFloat(
-			(const char*)u8"強度##TerrainDistanceFog",
+			(const char*)(ICON_FA_COG " " u8"強度##TerrainDistanceFog"),
 			&distanceFogStrength,
 			0.01f,
 			0.0f,
 			1.0f);
-		ImGui::ColorEdit3((const char*)u8"色##TerrainDistanceFog", &distanceFogColor.x);
+		ImGui::ColorEdit3((const char*)(ICON_FA_COG " " u8"色##TerrainDistanceFog"), &distanceFogColor.x);
 		ImGui::TreePop();
 	}
 
 	// 高さとペイントを保持する地形データ
-	if (ImGui::TreeNode((const char*)u8"地形データ"))
+	if (ImGui::TreeNode((const char*)(ICON_FA_DATABASE " " u8"地形データ")))
 	{
-		if (ImGui::Button((const char*)u8"地形テクスチャをクリア"))
+		if (ImGui::Button((const char*)(ICON_FA_MOUNTAIN " " u8"地形テクスチャをクリア")))
 		{
 			ClearTerrainTexture();
 		}
 
 		ImGui::Text((const char*)u8"R：高さ / G：レイヤー / B：草 / A：NavMesh範囲");
-		ImGui::DragFloat4((const char*)u8"クリア時のRGBA", &terrain_texture_clear_color.x, 0.01f);
+		ImGui::DragFloat4((const char*)(ICON_FA_COG " " u8"クリア時のRGBA"), &terrain_texture_clear_color.x, 0.01f);
 
 		if (terrainTextureShaderResourceView)
 		{
@@ -2113,31 +2120,31 @@ void Terrain::DrawGUI()
 	}
 
 	// 地形メッシュとテセレーション
-	if (ImGui::TreeNode((const char*)u8"地形レンダリング"))
+	if (ImGui::TreeNode((const char*)(ICON_FA_MOUNTAIN " " u8"地形レンダリング")))
 	{
 		float newTerrainSize = terrainSize;
-		if (ImGui::DragFloat((const char*)u8"地形サイズ", &newTerrainSize, 1.0f, 1.0f, 10000.0f))
+		if (ImGui::DragFloat((const char*)(ICON_FA_MOUNTAIN " " u8"地形サイズ"), &newTerrainSize, 1.0f, 1.0f, 10000.0f))
 		{
 			terrainSize = newTerrainSize;
 			MarkTerrainMeshDirty();
 		}
 
 		int newGridResolution = gridResolution;
-		if (ImGui::DragInt((const char*)u8"グリッド解像度", &newGridResolution, 1, 1, 256))
+		if (ImGui::DragInt((const char*)(ICON_FA_COG " " u8"グリッド解像度"), &newGridResolution, 1, 1, 256))
 		{
 			gridResolution = newGridResolution;
 			MarkTerrainMeshDirty();
 		}
 
 		bool meshSettingChanged = false;
-		meshSettingChanged |= ImGui::SliderFloat((const char*)u8"外周分割", &tesselation_constant.edge_factor, 1.0f, 16.0f);
-		meshSettingChanged |= ImGui::SliderFloat((const char*)u8"内部分割", &tesselation_constant.inner_factor, 1.0f, 16.0f);
-		if (ImGui::SliderFloat((const char*)u8"高さ倍率", &tesselation_constant.height_scaler, -200.0f, 200.0f))
+		meshSettingChanged |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"外周分割"), &tesselation_constant.edge_factor, 1.0f, 16.0f);
+		meshSettingChanged |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"内部分割"), &tesselation_constant.inner_factor, 1.0f, 16.0f);
+		if (ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"高さ倍率"), &tesselation_constant.height_scaler, -200.0f, 200.0f))
 		{
 			meshSettingChanged = true;
 		}
 		if (meshSettingChanged) MarkTerrainMeshDirty();
-		ImGui::SliderFloat((const char*)u8"タイリング倍率", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
+		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"タイリング倍率"), &tesselation_constant.tilling_scale, 1.0f, 300.0f);
 
 		ImGui::TreePop();
 	}
@@ -2361,6 +2368,72 @@ std::string Terrain::GetSurfaceLayerName(const Vector3& worldPosition) const
 		? terrainLayers[index].name : std::string{};
 }
 
+void Terrain::PlayGrassRemovalEffect(const Vector3& worldPosition)
+{
+	if (grassRemovalEffectCooldown > 0.0f) return;
+	auto& effects = EffectManager::Instance();
+	if (!grassRemovalEffect) grassRemovalEffect = effects.LoadEffect(EffectId::FEATHER);
+	effects.PlayDetached(grassRemovalEffect, 
+		 Matrix::CreateScale(0.3f) * Matrix::CreateTranslation(worldPosition));
+	grassRemovalEffectCooldown = 0.08f;
+}
+
+// sphereの中にある草マップを範囲内で削除する
+bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius, LayerId sourceLayer)
+{
+	if (!PhysicsLayerManager::Instance().Collides(sourceLayer, Layers::Get("GrassMap"))) return false;
+	if (terrainPixels.empty() || worldRadius <= 0.0f || !std::isfinite(worldRadius) ||
+		!std::isfinite(worldCenter.x) || !std::isfinite(worldCenter.y) || !std::isfinite(worldCenter.z)) return false;
+	const Transform* transform = owner ? owner->GetTransform() : nullptr;
+	if (!transform) return false;
+	const Matrix& world = transform->matrix;
+	const Matrix inverse = world.Invert();
+	const Vector3 center = Vector3::Transform(worldCenter, inverse);
+	const float radiusX = worldRadius * Vector3(inverse._11, inverse._21, inverse._31).Length();
+	const float radiusZ = worldRadius * Vector3(inverse._13, inverse._23, inverse._33).Length();
+	const float halfSize = terrainSize * 0.5f;
+	if (center.x + radiusX < -halfSize || center.x - radiusX > halfSize ||
+		center.z + radiusZ < -halfSize || center.z - radiusZ > halfSize) return false;
+	const auto texel = [&](float coordinate, int count) {
+		return static_cast<int>(std::clamp(coordinate / terrainSize + 0.5f, 0.0f, 1.0f) * (count - 1));
+	};
+	const int x0 = std::max(texel(center.x - radiusX, TerrainTextureWidth) - 1, 0);
+	const int x1 = std::min(texel(center.x + radiusX, TerrainTextureWidth) + 1, TerrainTextureWidth - 1);
+	const int z0 = std::max(texel(center.z - radiusZ, TerrainTextureHeight) - 1, 0);
+	const int z1 = std::min(texel(center.z + radiusZ, TerrainTextureHeight) + 1, TerrainTextureHeight - 1);
+	Vector3 removedPosition = Vector3::Zero;
+	int removedCount = 0;
+	const float grassHeight = grassSettings.height * (1.0f + grassSettings.sizeVariation);
+	const Vector3 blade = Vector3::TransformNormal(Vector3(0.0f, grassHeight, 0.0f), world);
+	const float lengthSquared = blade.LengthSquared();
+	const float radiusSquared = worldRadius * worldRadius;
+	for (int z = z0; z <= z1; ++z)
+	{
+		for (int x = x0; x <= x1; ++x)
+		{
+			Vector4& pixel = terrainPixels[static_cast<size_t>(z) * TerrainTextureWidth + x];
+			if (pixel.z < 0.5f) continue;
+			const float u = (static_cast<float>(x) + 0.5f) / TerrainTextureWidth;
+			const float v = (static_cast<float>(z) + 0.5f) / TerrainTextureHeight;
+			const Vector3 localRoot((u - 0.5f) * terrainSize, GetSurfaceHeightByUV(u, v), (v - 0.5f) * terrainSize);
+			const Vector3 root = Vector3::Transform(localRoot, world);
+			const float t = lengthSquared > eps
+				? std::clamp((worldCenter - root).Dot(blade) / lengthSquared, 0.0f, 1.0f) : 0.0f;
+			if ((worldCenter - root - blade * t).LengthSquared() > radiusSquared) continue;
+			pixel.z = 0.0f;
+			removedPosition += root;
+			++removedCount;
+		}
+	}
+	if (!removedCount) return false;
+	terrainTextureDirty = true;
+	terrainEditHashDirty = true;
+	is_terrain_texture_clear_color = false;
+	// 既存の草頂点はGPU側のマスクで消すため再生成しない。
+	PlayGrassRemovalEffect(removedPosition / static_cast<float>(removedCount));
+	return true;
+}
+
 void Terrain::Deform(
 	const Vector3& worldPosition, const Vector3& direction, float power, float requestedRadius)
 {
@@ -2419,6 +2492,8 @@ void Terrain::Deform(
 		for (const Vector4& pixel : terrainPixels) navigationBaseHeights.push_back(pixel.x);
 	}
 	const float texelSize = terrainSize / static_cast<float>(TerrainTextureWidth - 1);
+	Vector3 removedGrassPosition = Vector3::Zero;
+	int removedGrassCount = 0;
 	for (int y = y0; y <= y1; ++y)
 	{
 		for (int x = x0; x <= x1; ++x)
@@ -2430,6 +2505,14 @@ void Terrain::Deform(
 
 			Vector4& pixel = terrainPixels[
 				static_cast<size_t>(y) * TerrainTextureWidth + static_cast<size_t>(x)];
+			if (pixel.z >= 0.5f)
+			{
+				removedGrassPosition += Vector3(
+					(static_cast<float>(x) / (TerrainTextureWidth - 1) - 0.5f) * terrainSize,
+					pixel.x * tesselation_constant.height_scaler,
+					(static_cast<float>(y) / (TerrainTextureHeight - 1) - 0.5f) * terrainSize);
+				++removedGrassCount;
+			}
 			pixel.z = 0.0f;
 			if (distance <= radius)
 			{
@@ -2446,6 +2529,9 @@ void Terrain::Deform(
 	is_terrain_texture_clear_color = false;
 	// 既存の草頂点はGPU側のマスクで消すため再生成しない
 	MarkTerrainMeshDirty();
+	if (removedGrassCount)
+		PlayGrassRemovalEffect(Vector3::Transform(
+			removedGrassPosition / static_cast<float>(removedGrassCount), transform->matrix));
 
 	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
 	{
@@ -2455,8 +2541,7 @@ void Terrain::Deform(
 		pendingColliderRebuild = false;
 	}
 
-	if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
-		navMesh->RequestBuildRegion(localPosition, radius);
+	// 戦闘中の変形では通行範囲を維持し、接地だけコライダーで更新する。
 }
 
 uint64_t Terrain::GetTerrainDataHash(bool includeMasks) const

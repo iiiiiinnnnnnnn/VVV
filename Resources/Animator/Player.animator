@@ -3,7 +3,7 @@
     "layers": [
         {
             "anyStateEditorPosX": -189.0,
-            "anyStateEditorPosY": 67.0,
+            "anyStateEditorPosY": 57.0,
             "anyStateTransitions": [
                 {
                     "canInterrupt": false,
@@ -20,10 +20,56 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 6,
+                    "priority": 12,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 10,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_L",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        8,
+                        10,
+                        9
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 11,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 9,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Hit_R",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        9,
+                        10,
+                        8
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 10,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 8,
                     "transitionDuration": 0.10000000149011612
                 },
                 {
@@ -56,7 +102,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 5,
+                    "priority": 9,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 17,
@@ -92,7 +138,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 4,
+                    "priority": 8,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 16,
@@ -128,57 +174,11 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 3,
+                    "priority": 7,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 15,
                     "transitionDuration": 0.0
-                },
-                {
-                    "canInterrupt": false,
-                    "conditions": [
-                        {
-                            "mode": 6,
-                            "paramName": "Hit_R",
-                            "threshold": 0.0
-                        }
-                    ],
-                    "excludedFromStateIndices": [
-                        9,
-                        10,
-                        8
-                    ],
-                    "exitTime": 1.0,
-                    "hasExitTime": false,
-                    "isAny": true,
-                    "priority": 2,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
-                    "toStateIndex": 8,
-                    "transitionDuration": 0.10000000149011612
-                },
-                {
-                    "canInterrupt": false,
-                    "conditions": [
-                        {
-                            "mode": 6,
-                            "paramName": "Hit_L",
-                            "threshold": 0.0
-                        }
-                    ],
-                    "excludedFromStateIndices": [
-                        8,
-                        10,
-                        9
-                    ],
-                    "exitTime": 1.0,
-                    "hasExitTime": false,
-                    "isAny": true,
-                    "priority": 1,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
-                    "toStateIndex": 9,
-                    "transitionDuration": 0.10000000149011612
                 },
                 {
                     "canInterrupt": false,
@@ -201,7 +201,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 6,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 4,
@@ -224,7 +224,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 5,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 14,
@@ -247,7 +247,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 4,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 13,
@@ -270,7 +270,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 3,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 12,
@@ -293,7 +293,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 2,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 11,
@@ -317,7 +317,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": -1,
+                    "priority": 1,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 19,
@@ -341,7 +341,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": -2,
+                    "priority": 0,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 18,
@@ -361,10 +361,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 100.0,
                     "editorPosY": -12.0,
                     "hasEditorPosition": true,
@@ -419,10 +419,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 216.0,
                     "editorPosY": -237.0,
                     "hasEditorPosition": true,
@@ -477,10 +477,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 472.0,
                     "editorPosY": -109.0,
                     "hasEditorPosition": true,
@@ -554,10 +554,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 612.0,
                     "editorPosY": 51.0,
                     "hasEditorPosition": true,
@@ -612,15 +612,16 @@
                         {
                             "enterTimePer": 0.25,
                             "exitTimePer": 0.3499999940395355,
-                            "label": "OnAnim"
+                            "label": "OnAnim",
+                            "useSeconds": false
                         },
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 56.0,
                     "editorPosY": 323.0,
                     "hasEditorPosition": true,
@@ -669,15 +670,16 @@
                         {
                             "enterTimePer": 0.10000000149011612,
                             "exitTimePer": 0.20000000298023224,
-                            "label": "OnAnim"
+                            "label": "OnAnim",
+                            "useSeconds": false
                         },
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 248.0,
                     "editorPosY": 291.0,
                     "hasEditorPosition": true,
@@ -726,15 +728,16 @@
                         {
                             "enterTimePer": 0.20000000298023224,
                             "exitTimePer": 0.4000000059604645,
-                            "label": "OnAnim"
+                            "label": "OnAnim",
+                            "useSeconds": false
                         },
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 456.0,
                     "editorPosY": 243.0,
                     "hasEditorPosition": true,
@@ -783,20 +786,22 @@
                         {
                             "enterTimePer": 0.10000000149011612,
                             "exitTimePer": 0.25,
-                            "label": "OnAnim"
+                            "label": "OnAnim",
+                            "useSeconds": false
                         },
                         {
                             "enterTimePer": 0.3700000047683716,
                             "exitTimePer": 0.6100000143051147,
-                            "label": "OnAttack4B"
+                            "label": "OnAttack4B",
+                            "useSeconds": false
                         },
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 632.0,
                     "editorPosY": 179.0,
                     "hasEditorPosition": true,
@@ -826,10 +831,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnHit"
+                            "label": "LockOnHit",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -184.0,
                     "editorPosY": 355.0,
                     "hasEditorPosition": true,
@@ -859,10 +864,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnHit"
+                            "label": "LockOnHit",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -268.0,
                     "editorPosY": 227.0,
                     "hasEditorPosition": true,
@@ -892,10 +897,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -8.0,
                     "editorPosY": 467.0,
                     "hasEditorPosition": true,
@@ -911,16 +916,16 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         },
                         {
-                            "enterTimePer": -0.001,
-                            "exitTimePer": 0.2,
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 0.20000000298023224,
                             "label": "DodgeInvincible",
                             "useSeconds": true
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -140.0,
                     "editorPosY": -285.0,
                     "hasEditorPosition": true,
@@ -988,16 +993,16 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         },
                         {
-                            "enterTimePer": -0.001,
-                            "exitTimePer": 0.2,
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 0.20000000298023224,
                             "label": "DodgeInvincible",
                             "useSeconds": true
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -184.0,
                     "editorPosY": -157.0,
                     "hasEditorPosition": true,
@@ -1065,16 +1070,16 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         },
                         {
-                            "enterTimePer": -0.001,
-                            "exitTimePer": 0.2,
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 0.20000000298023224,
                             "label": "DodgeInvincible",
                             "useSeconds": true
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -408.0,
                     "editorPosY": -61.0,
                     "hasEditorPosition": true,
@@ -1142,16 +1147,16 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         },
                         {
-                            "enterTimePer": -0.001,
-                            "exitTimePer": 0.2,
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 0.20000000298023224,
                             "label": "DodgeInvincible",
                             "useSeconds": true
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -408.0,
                     "editorPosY": -237.0,
                     "hasEditorPosition": true,
@@ -1219,10 +1224,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -105.0,
                     "editorPosY": -390.0,
                     "hasEditorPosition": true,
@@ -1252,10 +1257,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 90.0,
                     "editorPosY": -390.0,
                     "hasEditorPosition": true,
@@ -1285,10 +1290,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnAttack"
+                            "label": "LockOnAttack",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 285.0,
                     "editorPosY": -390.0,
                     "hasEditorPosition": true,
@@ -1318,10 +1323,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 568.0,
                     "editorPosY": -285.0,
                     "hasEditorPosition": true,
@@ -1386,10 +1391,10 @@
                         {
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
-                            "label": "LockOnIdle"
+                            "label": "LockOnIdle",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": 748.0,
                     "editorPosY": -155.0,
                     "hasEditorPosition": true,
@@ -1468,14 +1473,14 @@
             "value": false
         },
         {
-            "name": "SkillVariant",
-            "type": "int",
-            "value": 1
-        },
-        {
             "name": "IsDead",
             "type": "bool",
             "value": false
+        },
+        {
+            "name": "SkillVariant",
+            "type": "int",
+            "value": 1
         },
         {
             "name": "IsJustDodge",
@@ -1493,8 +1498,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QR",
         "QB",
+        "QR",
         "QL"
     ]
 }

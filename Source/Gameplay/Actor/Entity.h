@@ -11,6 +11,7 @@ struct DamageData
     float damage = 0.0f;
     float knockBackPower = 0.0f;
 	bool ignoreDamageCooldown = false;
+	bool specialAttack = false;
 
 	PhysicsComponent* hitColliderSelf = nullptr;
     PhysicsComponent* hitColliderOther = nullptr;
@@ -43,7 +44,7 @@ public:
 private:
     struct Cooldowns
     {
-        float DamageCooldownDuration = 0.1f;
+        float DamageCooldownDuration = 0.05f;
         float damageCooldown = 0.0f;
 
         void Update();

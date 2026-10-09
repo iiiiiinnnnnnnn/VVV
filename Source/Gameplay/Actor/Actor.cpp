@@ -1,4 +1,5 @@
 ﻿#include "Gameplay/Actor/Actor.h"
+#include "IconsFontAwesome5.h"
 
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/CharacterController.h"
@@ -51,7 +52,9 @@ void Actor::DrawGUI(bool selected)
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, selectedColor);
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, selectedColor);
 	}
-    const bool inspectorOpen = ImGui::CollapsingHeader(name.empty() ? (const char*)u8"名前なしオブジェクト" : name.c_str(), flags);
+	const std::string label = std::string(ICON_FA_CUBE " ") +
+		(name.empty() ? (const char*)u8"名前なしオブジェクト" : name) + "###ActorInspector";
+    const bool inspectorOpen = ImGui::CollapsingHeader(label.c_str(), flags);
 	if (selected)
 	{
 		const ImVec2 itemMin = ImGui::GetItemRectMin();

@@ -11,7 +11,6 @@
 #include "UI/Widget.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Shader/GamePostProcess.h"
-#include "Application/Tools/DynamicAnimationEditorWindow.h"
 #include "UI/WidgetManager.h"
 #include "Gameplay/Stage/Stage01.h"
 
@@ -67,9 +66,7 @@ protected:
 
 	std::unique_ptr<Stage> currentStage;
 
-	bool showDynamicAnimationEditorWindow = false;
 	bool showPhysicsLayerWindow = false;
-	DynamicAnimationEditorWindow dynamicAnimationEditorWindow;
 
 	// ゲーム内エディタ
 	bool isCursorReleased = false;

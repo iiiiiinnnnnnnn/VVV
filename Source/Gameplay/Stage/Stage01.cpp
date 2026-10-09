@@ -19,8 +19,8 @@ Stage01::Stage01(Player* player) : Stage()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	SoundSystem::Instance().PlayTrack(SoundTrack::BGM_CAVE_AMBIENT, -1,
-		SoundSystem::PlayOptions{.loop = true});
+	SoundSystem::Instance().PlayTrack(
+		SoundTrack::BGM_CAVE_AMBIENT, -1, SoundSystem::PlayOptions{.loop = true});
 
 	const bool loadedVstg = LoadVSTG("Resources/Stage/cave_01.vstg");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
@@ -34,15 +34,11 @@ Stage01::Stage01(Player* player) : Stage()
 	{
 		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
 		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
-		debugCamera->SetPerspectiveFov(
-			DirectX::XMConvertToRadians(45.0f),
-			Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight,
-			0.1f,
-			1000.0f);
+		debugCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f),
+			Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 1000.0f);
 		debugCamera->SetLookAt({0.0f, 3.0f, 5.0f}, Vector3::Zero, Vector3::Up);
 
-		FreeCameraController* controller =
-			debugCameraActor->AddComponent<FreeCameraController>();
+		FreeCameraController* controller = debugCameraActor->AddComponent<FreeCameraController>();
 		debugCamera->SetActive(false);
 		controller->SetActive(false);
 
@@ -57,37 +53,34 @@ Stage01::Stage01(Player* player) : Stage()
 
 		//	パーティクルシステム生成
 		particleSystem = std::make_unique<ParticleSystem>(
-			device,
-			sozai ? sozai->GetShaderResourceView() : nullptr,
-			4, 4, 1000);
+			device, sozai ? sozai->GetShaderResourceView() : nullptr, 4, 4, 1000);
 	}
 	{
 		// フォグ(霧)パーティクル用画像ロード
-		auto fogTexture = ResourceManager::Instance().LoadTexture("Resources/Image/fog_particle.png");
+		auto fogTexture =
+			ResourceManager::Instance().LoadTexture("Resources/Image/fog_particle.png");
 		fogParticleSystem = std::make_unique<ParticleSystem>(
-			device,
-			fogTexture ? fogTexture->GetShaderResourceView() : nullptr,
-			1,
-			1,
-			256);
+			device, fogTexture ? fogTexture->GetShaderResourceView() : nullptr, 1, 1, 256);
 	}
 
 	// 登録したスポナー動作させるためのファクトリ関数
-	stageLoader->RegisterSpawnerFactory("Deer", [](const Transform& transform, const std::string& modelPath)
-	{
-		return std::make_shared<Deer>(transform, modelPath);
-	});
+	stageLoader->RegisterSpawnerFactory("Deer",
+		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
+			return std::make_shared<Deer>(
+				transform, modelPath, spawnTag == "BossField" ? true : false);
+		});
 	Terrain* terrain = GetComponent<Terrain>();
-	stageLoader->RegisterSpawnerFactory("Aracore", [player, terrain, loader = stageLoader](const Transform& transform, const std::string& modelPath)
-	{
-		auto queen = std::make_shared<Aracore>(player, transform, terrain, modelPath);
-		queen->SetStageLoader(loader);
-		return queen;
-	});
-	stageLoader->RegisterSpawnerFactory("Crystal", [](const Transform& transform, const std::string& modelPath)
-	{
-		return std::make_shared<Crystal>(transform, modelPath);
-	});
+	stageLoader->RegisterSpawnerFactory(
+		"Aracore", [player, terrain, loader = stageLoader](const Transform& transform,
+					   const std::string& modelPath, const std::string& spawnTag) {
+			auto queen = std::make_shared<Aracore>(player, transform, terrain, modelPath);
+			queen->SetStageLoader(loader);
+			return queen;
+		});
+	stageLoader->RegisterSpawnerFactory("Crystal",
+		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
+			return std::make_shared<Crystal>(transform, modelPath);
+		});
 }
 
 void Stage01::OnUpdate()

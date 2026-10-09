@@ -5,6 +5,7 @@ SamplerState materialSampler : register(s2);
 
 float4 main(VS_OUT input) : SV_TARGET
 {
+    ApplyDissolve(input.texcoord);
     float4 textureColorSRGB = useBaseColorTexture != 0
         ? baseMap.Sample(materialSampler, input.texcoord)
         : float4(1.0f, 1.0f, 1.0f, 1.0f);

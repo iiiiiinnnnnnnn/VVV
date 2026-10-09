@@ -1,9 +1,43 @@
 ﻿#include "Application/Tools/Dialog.h"
 #include <array>
+#include <algorithm>
 #include <filesystem>
+#include <cstring>
+#include <vector>
 #include "imgui.h"
 
 static std::string lastPath;
+
+static std::wstring DialogToWide(const char* text, UINT codePage, int length = -1)
+{
+	if (!text) return {};
+	const int count = MultiByteToWideChar(codePage, 0, text, length, nullptr, 0);
+	if (!count) return {};
+	std::wstring result(count, L'\0');
+	MultiByteToWideChar(codePage, 0, text, length, result.data(), count);
+	return result;
+}
+
+static std::wstring DialogFilterToWide(const char* filter)
+{
+	const char* end = filter;
+	while (*end) end += strlen(end) + 1;
+	return DialogToWide(filter, CP_UTF8, static_cast<int>(end - filter + 1));
+}
+
+static bool CopyDialogPath(const wchar_t* source, char* destination, int size, bool multiSelect = false)
+{
+	const wchar_t* end = source + wcslen(source);
+	if (multiSelect)
+	{
+		++end;
+		while (*end) end += wcslen(end) + 1;
+	}
+	const int length = static_cast<int>(end - source + 1);
+	const int count = WideCharToMultiByte(CP_ACP, 0, source, length, nullptr, 0, nullptr, nullptr);
+	if (!count || count > size) return false;
+	return WideCharToMultiByte(CP_ACP, 0, source, length, destination, size, nullptr, nullptr) != 0;
+}
 
 // [ファイルを開く]ダイアログボックスを表示
 DialogResult Dialog::OpenFileName(
@@ -15,6 +49,7 @@ DialogResult Dialog::OpenFileName(
 	HWND hWnd,
 	bool multiSelect)
 {
+	if (!filepath || size <= 0) return DialogResult::Cancel;
 	std::string dirname;
 	if (!hWnd) hWnd = ::GetActiveWindow();
 	if (!hWnd) hWnd = ::GetForegroundWindow();
@@ -39,15 +74,22 @@ DialogResult Dialog::OpenFileName(
 		filter = "All Files\0*.*\0\0";
 	}
 
-	OPENFILENAMEA ofn{};
+	const auto wideFilter = DialogFilterToWide(filter);
+	const auto wideTitle = DialogToWide(title, CP_UTF8);
+	const auto wideDirectory = DialogToWide(dirname.c_str(), CP_ACP);
+	const auto initialFile = DialogToWide(filepath, CP_ACP);
+	std::vector<wchar_t> wideFile(size);
+	if (initialFile.size() > wideFile.size()) return DialogResult::Cancel;
+	std::copy(initialFile.begin(), initialFile.end(), wideFile.begin());
+	OPENFILENAMEW ofn{};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hWnd;
-	ofn.lpstrFilter = filter;
+	ofn.lpstrFilter = wideFilter.c_str();
 	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = filepath;
+	ofn.lpstrFile = wideFile.data();
 	ofn.nMaxFile = size;
-	ofn.lpstrTitle = title;
-	ofn.lpstrInitialDir = dirname.empty() ? nullptr : dirname.c_str();
+	ofn.lpstrTitle = title ? wideTitle.c_str() : nullptr;
+	ofn.lpstrInitialDir = dirname.empty() ? nullptr : wideDirectory.c_str();
 	ofn.Flags =
 		OFN_FILEMUSTEXIST |
 		OFN_HIDEREADONLY |
@@ -58,7 +100,7 @@ DialogResult Dialog::OpenFileName(
 		ofn.Flags |= OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 	}
 
-	const BOOL accepted = ::GetOpenFileNameA(&ofn);
+	const BOOL accepted = ::GetOpenFileNameW(&ofn);
 	if (hWnd)
 	{
 		::SetForegroundWindow(hWnd);
@@ -79,6 +121,7 @@ DialogResult Dialog::OpenFileName(
 		return DialogResult::Cancel;
 	}
 
+	if (!CopyDialogPath(wideFile.data(), filepath, size, multiSelect)) return DialogResult::Cancel;
 	lastPath = filepath;
 	return DialogResult::OK;
 }
@@ -109,6 +152,7 @@ DialogResult Dialog::SaveFileName(
 	const char* initialDir,
 	HWND hWnd)
 {
+	if (!filepath || size <= 0) return DialogResult::Cancel;
 	std::filesystem::path initialDirectory;
 	if (!hWnd) hWnd = ::GetActiveWindow();
 	if (!hWnd) hWnd = ::GetForegroundWindow();
@@ -132,17 +176,25 @@ DialogResult Dialog::SaveFileName(
 		filter = "All Files\0*.*\0\0";
 	}
 
-	OPENFILENAMEA ofn{};
+	const auto wideFilter = DialogFilterToWide(filter);
+	const auto wideTitle = DialogToWide(title, CP_UTF8);
+	const auto wideDirectory = DialogToWide(dirname.c_str(), CP_ACP);
+	const auto wideExtension = DialogToWide(ext, CP_UTF8);
+	const auto initialFile = DialogToWide(filepath, CP_ACP);
+	std::vector<wchar_t> wideFile(size);
+	if (initialFile.size() > wideFile.size()) return DialogResult::Cancel;
+	std::copy(initialFile.begin(), initialFile.end(), wideFile.begin());
+	OPENFILENAMEW ofn{};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hWnd;
-	ofn.lpstrFilter = filter;
+	ofn.lpstrFilter = wideFilter.c_str();
 	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = filepath;
+	ofn.lpstrFile = wideFile.data();
 	ofn.nMaxFile = size;
-	ofn.lpstrTitle = title;
+	ofn.lpstrTitle = title ? wideTitle.c_str() : nullptr;
 	ofn.lpstrInitialDir =
-		dirname.empty() ? nullptr : dirname.c_str();
-	ofn.lpstrDefExt = ext;
+		dirname.empty() ? nullptr : wideDirectory.c_str();
+	ofn.lpstrDefExt = ext ? wideExtension.c_str() : nullptr;
 	ofn.Flags =
 		OFN_OVERWRITEPROMPT |
 		OFN_HIDEREADONLY |
@@ -155,7 +207,7 @@ DialogResult Dialog::SaveFileName(
 		currentDir[0] = '\0';
 	}
 
-	const BOOL accepted = ::GetSaveFileNameA(&ofn);
+	const BOOL accepted = ::GetSaveFileNameW(&ofn);
 	if (hWnd)
 	{
 		::SetForegroundWindow(hWnd);
@@ -186,6 +238,7 @@ DialogResult Dialog::SaveFileName(
 		::SetCurrentDirectoryA(currentDir);
 	}
 
+	if (!CopyDialogPath(wideFile.data(), filepath, size)) return DialogResult::Cancel;
 	std::filesystem::path selectedPath(filepath);
 	if (ext && ext[0] != '\0')
 	{

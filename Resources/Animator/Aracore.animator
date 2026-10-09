@@ -115,7 +115,6 @@
                     "animationIndex": 4,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": 251.0,
                     "editorPosY": 161.0,
                     "hasEditorPosition": true,
@@ -167,7 +166,6 @@
                     "animationIndex": 8,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": 180.0,
                     "editorPosY": 307.0,
                     "hasEditorPosition": true,
@@ -219,13 +217,12 @@
                     "animationIndex": 6,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": -92.0,
                     "editorPosY": 227.0,
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "run",
-                    "speed": 0.5,
+                    "speed": 0.699999988079071,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -276,7 +273,6 @@
                     "animationIndex": 1,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": 200.0,
                     "editorPosY": 19.0,
                     "hasEditorPosition": true,
@@ -351,7 +347,6 @@
                     "animationIndex": 2,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": -60.0,
                     "editorPosY": 3.0,
                     "hasEditorPosition": true,
@@ -359,49 +354,6 @@
                     "name": "damage",
                     "speed": 0.5600000023841858,
                     "transitions": [
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 0,
-                                    "paramName": "speed",
-                                    "threshold": 4.0
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 2,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 2,
-                            "transitionDuration": 0.10000000149011612
-                        },
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 1,
-                                    "paramName": "speed",
-                                    "threshold": 4.0
-                                },
-                                {
-                                    "mode": 0,
-                                    "paramName": "speed",
-                                    "threshold": 0.009999999776482582
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 1,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
-                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -421,7 +373,6 @@
                     "animationIndex": 3,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": -328.0,
                     "editorPosY": 131.0,
                     "hasEditorPosition": true,
@@ -457,10 +408,10 @@
                         {
                             "enterTimePer": 0.0,
                             "exitTimePer": 1.0,
-                            "label": "ThreatFunc"
+                            "label": "ThreatFunc",
+                            "useSeconds": false
                         }
                     ],
-                    "dynamicClipPath": "",
                     "editorPosX": -280.0,
                     "editorPosY": -61.0,
                     "hasEditorPosition": true,
@@ -487,7 +438,6 @@
                     "animationIndex": 5,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": -428.0,
                     "editorPosY": 19.0,
                     "hasEditorPosition": true,
@@ -523,12 +473,12 @@
         {
             "name": "speed",
             "type": "float",
-            "value": 0.0
+            "value": 1.399999976158142
         }
     ],
     "triggers": [
-        "Attack",
         "Jump",
+        "Attack",
         "Damage",
         "Threat"
     ]

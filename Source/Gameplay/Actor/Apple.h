@@ -4,7 +4,6 @@
 
 #include "Gameplay/Actor/Entity.h"
 
-class DamageHoleComponent;
 
 class Apple : public Entity
 {

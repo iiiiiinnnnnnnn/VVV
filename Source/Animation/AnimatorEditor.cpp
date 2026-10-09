@@ -22,9 +22,7 @@ void Animator::DrawEditor(bool* pOpen)
             currentAnimatorPath = GetLastPath();
 
         ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
-        const char* windowTitle = IsDynamicMode()
-            ? "Animator (Dynamic)"
-            : "Animator (VMDLModel)";
+        const char* windowTitle = "Animator";
         if (!ImGui::Begin(windowTitle, pOpen,
             ImGuiWindowFlags_NoScrollbar |
             ImGuiWindowFlags_NoScrollWithMouse))
@@ -36,22 +34,40 @@ void Animator::DrawEditor(bool* pOpen)
         const int layerCount = (int)GetLayerCount();
         if (layerCount == 0)
         {
-            ImGui::TextDisabled("No layers.");
-            if (ImGui::Button("+ Add Layer"))
-                AddLayer("Base Layer", Animator::BlendMode::Override, 1.0f, {});
+            ImGui::TextDisabled((const char*)u8"レイヤーがありません。");
+            if (ImGui::Button((const char*)u8"+ レイヤーを追加"))
+                AddLayer((const char*)u8"基本レイヤー", Animator::BlendMode::Override, 1.0f, {});
             ImGui::End();
             return;
         }
 
         // Toolbar
-        if (ImGui::Button("Save"))
+        if (ImGui::Button((const char*)u8"開く"))
+        {
+			std::string path;
+			if (Dialog::OpenFileName(path,
+                (const char*)u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                (const char*)u8"Animatorを開く", "Resources/Animator",
+                Game::Graphics::Instance().GetWindowHandle()) == DialogResult::OK)
+            {
+				currentAnimatorPath = path;
+                Load(currentAnimatorPath.c_str());
+                {
+                    editorPositionSet.clear();
+                    selectedTransition = {};
+                    currentEditorLayer = 0;
+                }
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button((const char*)u8"保存"))
         {
             if (currentAnimatorPath.empty())
             {
 				std::string path;
 				if (Dialog::SaveFileName(path,
-                    "Animator File\0*.animator\0All Files\0*.*\0\0",
-                    "Save Animator", "animator", "Resources/Animator",
+                    (const char*)u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                    (const char*)u8"Animatorを保存", "animator", "Resources/Animator",
                     Game::Graphics::Instance().GetWindowHandle()) ==
                     DialogResult::OK)
                 {
@@ -65,7 +81,7 @@ void Animator::DrawEditor(bool* pOpen)
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Save As"))
+        if (ImGui::Button((const char*)u8"名前を付けて保存"))
         {
 			std::string path;
 			const std::filesystem::path currentPath =
@@ -78,8 +94,8 @@ void Animator::DrawEditor(bool* pOpen)
                 ? currentPath.parent_path().string()
                 : std::string("Resources/Animator");
 			if (Dialog::SaveFileName(path,
-                "Animator File\0*.animator\0All Files\0*.*\0\0",
-                "Save As Animator", "animator",
+                (const char*)u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                (const char*)u8"Animatorに名前を付けて保存", "animator",
                 initialDirectory.c_str(),
                 Game::Graphics::Instance().GetWindowHandle()) ==
                 DialogResult::OK)
@@ -89,31 +105,8 @@ void Animator::DrawEditor(bool* pOpen)
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Load"))
-        {
-			std::string path;
-			if (Dialog::OpenFileName(path,
-                "Animator File\0*.animator\0All Files\0*.*\0\0",
-                "Open Animator") == DialogResult::OK)
-            {
-				currentAnimatorPath = path;
-                Load(currentAnimatorPath.c_str());
-                {
-                    editorPositionSet.clear();
-                    selectedTransition = {};
-                    currentEditorLayer = 0;
-                }
-            }
-        }
-        ImGui::SameLine();
         ImGui::TextDisabled(
-            currentAnimatorPath.empty() ? "(unsaved)" : currentAnimatorPath.c_str());
-        ImGui::SameLine();
-        ImGui::TextColored(
-            IsDynamicMode()
-                ? ImVec4(0.4f, 0.85f, 1.0f, 1.0f)
-                : ImVec4(0.6f, 1.0f, 0.6f, 1.0f),
-            IsDynamicMode() ? "Dynamic Mode" : "VMDLModel Mode");
+            currentAnimatorPath.empty() ? (const char*)u8"（未保存）" : currentAnimatorPath.c_str());
         ImGui::Separator();
 
         if (ImGui::BeginTabBar("Layers"))
@@ -160,7 +153,7 @@ void Animator::DrawEditor(bool* pOpen)
                     ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
                     ImGui::SameLine();
-                    ImGui::TextDisabled("Layer %d (left = higher priority)", li);
+                    ImGui::TextDisabled((const char*)u8"レイヤー %d（左ほど優先）", li);
                     ImGui::Separator();
 
                     DrawLayerEditor(layer, li);
@@ -169,7 +162,7 @@ void Animator::DrawEditor(bool* pOpen)
             }
 
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing))
-                AddLayer("New Layer", Animator::BlendMode::Override, 1.0f, {});
+                AddLayer((const char*)u8"新規レイヤー", Animator::BlendMode::Override, 1.0f, {});
 
             ImGui::EndTabBar();
         }
@@ -178,51 +171,41 @@ void Animator::DrawEditor(bool* pOpen)
         if (ImGui::BeginPopupModal("AddLayerModal", nullptr,
             ImGuiWindowFlags_NoResize))
         {
-            ImGui::Text("Layer Name:");
+            ImGui::Text((const char*)u8"レイヤー名:");
             ImGui::SetNextItemWidth(-1.0f);
             ImGui::InputText("##layername", &addLayerName);
 
             ImGui::Spacing();
-            if (!IsDynamicMode())
-            {
-                ImGui::Text("Bone Mask (unchecked = all bones):");
-                ImGui::Separator();
+            ImGui::Text((const char*)u8"ボーンマスク（未選択なら全ボーン）:");
+            ImGui::Separator();
 
-                const auto& nodes = GetModel()->GetNodes();
-                ImGui::BeginChild("BoneList", ImVec2(0, 300), true);
-                for (int ni = 0; ni < (int)nodes.size(); ++ni)
-                {
-                    if (ni >= (int)maskSelection.size())
-                        maskSelection.resize(ni + 1, false);
-                    ImGui::PushID(ni);
-                    bool bsel = maskSelection[ni];
-                    if (ImGui::Checkbox(nodes[ni].name.c_str(), &bsel))
-                        maskSelection[ni] = bsel;
-                    ImGui::PopID();
-                }
-                ImGui::EndChild();
-            }
-            else
+            const auto& nodes = GetModel()->GetNodes();
+            ImGui::BeginChild("BoneList", ImVec2(0, 300), true);
+            for (int ni = 0; ni < (int)nodes.size(); ++ni)
             {
-                ImGui::TextDisabled("Dynamic layers animate Widget and Sprite Color values.");
-                ImGui::Dummy(ImVec2(0.0f, 300.0f));
+                if (ni >= (int)maskSelection.size())
+                    maskSelection.resize(ni + 1, false);
+                ImGui::PushID(ni);
+                bool bsel = maskSelection[ni];
+                if (ImGui::Checkbox(nodes[ni].name.c_str(), &bsel))
+                    maskSelection[ni] = bsel;
+                ImGui::PopID();
             }
+            ImGui::EndChild();
 
             ImGui::Spacing();
-            if (ImGui::Button("Add", ImVec2(120, 0)))
+            if (ImGui::Button((const char*)u8"追加", ImVec2(120, 0)))
             {
                 Animator::AvatarMask mask;
-                if (!IsDynamicMode())
-                {
-                    for (int ni = 0; ni < (int)maskSelection.size(); ++ni)
-                        if (maskSelection[ni]) mask.nodes.push_back(ni);
-                }
+                for (int ni = 0; ni < (int)maskSelection.size(); ++ni)
+                    if (maskSelection[ni]) mask.nodes.push_back(ni);
+
                 AddLayer(addLayerName,
                                    Animator::BlendMode::Override, 1.0f, mask);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            if (ImGui::Button((const char*)u8"キャンセル", ImVec2(120, 0)))
                 ImGui::CloseCurrentPopup();
 
             ImGui::EndPopup();
@@ -230,7 +213,6 @@ void Animator::DrawEditor(bool* pOpen)
 
         ImGui::End();
     }
-
 
 ed::PinId Animator::OutPin(int li, int si)
     {
@@ -365,10 +347,8 @@ void Animator::DrawNodes(Animator::AnimatorLayer& layer, int li)
             ImGui::PushID(li * 10000 + ANY_STATE_INDEX);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.3f, 1.0f));
-            ImGui::TextUnformatted("AnyState");
+            ImGui::TextUnformatted((const char*)u8"AnyState");
             ImGui::PopStyleColor();
-
-            ImGui::TextDisabled("From any state");
 
             ax::NodeEditor::BeginPin(OutPin(li, ANY_STATE_INDEX), ax::NodeEditor::PinKind::Output);
             ImGui::PushID((int)OutPin(li, ANY_STATE_INDEX).Get());
@@ -436,7 +416,7 @@ void Animator::DrawNodes(Animator::AnimatorLayer& layer, int li)
 
             ImGui::TextUnformatted(state.name.c_str());
             if (isCurrent)
-                ImGui::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), ">> RUNNING <<");
+                ImGui::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), (const char*)u8">> 再生中 <<");
 
             const std::string animationName =
                 GetStateAnimationName(state);
@@ -698,12 +678,10 @@ void Animator::HandleInteractions(Animator::AnimatorLayer& layer, int li)
 
         if (ImGui::BeginPopup("BackgroundContextMenu"))
         {
-            if (ImGui::MenuItem("+ State"))
+            if (ImGui::MenuItem((const char*)u8"+ ステートを追加"))
             {
                 pendingNodePlacement = true;
-                pendingNodeStateIndex = IsDynamicMode()
-                    ? AddDynamicState(li, "New State", "", true, 1.0f)
-                    : AddState(li, "New State", 0, true, 1.0f);
+                pendingNodeStateIndex = AddState(li, (const char*)u8"新規ステート", 0, true, 1.0f);
                 pendingNodePosition = editorContextMenuPosition;
             }
             ImGui::EndPopup();
@@ -734,7 +712,7 @@ void Animator::HandleInteractions(Animator::AnimatorLayer& layer, int li)
     // -------------------------------------------------------------------
 void Animator::DrawParameterPanel()
     {
-        ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "Parameters");
+        ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), (const char*)u8"パラメーター");
 
         static std::string newParamName;
         static int  newParamType = 0; // 0=Float 1=Int 2=Bool 3=Trigger
@@ -746,7 +724,7 @@ void Animator::DrawParameterPanel()
         ImGui::SetNextItemWidth(70.0f);
         ImGui::Combo("##newtype", &newParamType, typeLabels, 4);
         ImGui::SameLine();
-        if (ImGui::SmallButton("+ Add") && !newParamName.empty())
+        if (ImGui::SmallButton((const char*)u8"+ 追加") && !newParamName.empty())
         {
             switch (newParamType)
             {
@@ -840,74 +818,58 @@ void Animator::DrawParameterPanel()
     // -------------------------------------------------------------------
 void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
     {
-        ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Layer Settings");
+        ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), (const char*)u8"レイヤー設定");
 
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::InputText("##layername", &layer.name);
 
-        if (!IsDynamicMode())
-        {
-            ImGui::TextDisabled("Weight");
-            ImGui::SetNextItemWidth(-1.0f);
-            ImGui::DragFloat("##weight", &layer.weight, 0.01f, 0.0f, 1.0f, "%.2f");
+        ImGui::TextDisabled((const char*)u8"ウェイト");
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::DragFloat("##weight", &layer.weight, 0.01f, 0.0f, 1.0f, "%.2f");
 
-            ImGui::TextDisabled("Blend Mode");
-            const char* blendModes[] = { "Override", "Additive" };
-            int blendMode = static_cast<int>(layer.blendMode);
-            ImGui::SetNextItemWidth(-1.0f);
-            if (ImGui::Combo("##blendmode", &blendMode, blendModes, 2))
-                layer.blendMode = static_cast<Animator::BlendMode>(blendMode);
-        }
-        else
-        {
-            ImGui::TextDisabled("Dynamic layers are applied in layer order.");
-        }
+        ImGui::TextDisabled((const char*)u8"ブレンドモード");
+        const char* blendModes[] = { "Override", "Additive" };
+        int blendMode = static_cast<int>(layer.blendMode);
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::Combo("##blendmode", &blendMode, blendModes, 2))
+            layer.blendMode = static_cast<Animator::BlendMode>(blendMode);
 
         ImGui::Spacing();
-        if (!IsDynamicMode())
+        ImGui::TextDisabled((const char*)u8"ボーンマスク");
+        const auto& nodes = GetModel()->GetNodes();
+        ImGui::BeginChild("BoneMask", ImVec2(0, 120), true);
+        for (int ni = 0; ni < (int)nodes.size(); ++ni)
         {
-            ImGui::TextDisabled("Bone Mask");
-            const auto& nodes = GetModel()->GetNodes();
-            ImGui::BeginChild("BoneMask", ImVec2(0, 120), true);
-            for (int ni = 0; ni < (int)nodes.size(); ++ni)
+            ImGui::PushID(ni);
+            bool inMask = layer.mask.Contains(ni) && !layer.mask.nodes.empty();
+            if (ImGui::Checkbox(nodes[ni].name.c_str(), &inMask))
             {
-                ImGui::PushID(ni);
-                bool inMask = layer.mask.Contains(ni) && !layer.mask.nodes.empty();
-                if (ImGui::Checkbox(nodes[ni].name.c_str(), &inMask))
+                if (inMask)
                 {
-                    if (inMask)
+                    if (std::find(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni)
+                        == layer.mask.nodes.end())
                     {
-                        if (std::find(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni)
-                            == layer.mask.nodes.end())
-                        {
-                            layer.mask.nodes.push_back(ni);
-                        }
-                    }
-                    else
-                    {
-                        layer.mask.nodes.erase(
-                            std::remove(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni),
-                            layer.mask.nodes.end());
+                        layer.mask.nodes.push_back(ni);
                     }
                 }
-                ImGui::PopID();
+                else
+                {
+                    layer.mask.nodes.erase(
+                        std::remove(layer.mask.nodes.begin(), layer.mask.nodes.end(), ni),
+                        layer.mask.nodes.end());
+                }
             }
-            ImGui::EndChild();
+            ImGui::PopID();
         }
-        else
-        {
-            ImGui::TextDisabled(
-                "Dynamic Mode: later layers overwrite the same Widget/Sprite Color target.");
-        }
+        ImGui::EndChild();
 
         ImGui::Spacing();
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), "AnyState Transitions");
+        ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), (const char*)u8"トランジション優先");
 
-        int anyDragFrom = -1;
-        int anyDragTo = -1;
+        int anyMoveFrom = -1;
+        int anyMoveTo = -1;
         int anyDeleteIndex = -1;
-
         const ImGuiTableFlags anyTransitionTableFlags =
             ImGuiTableFlags_SizingStretchProp |
             ImGuiTableFlags_NoSavedSettings |
@@ -921,16 +883,14 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
             const float rowHeight = ImGui::GetFrameHeight();
 
             ImGui::TableSetupColumn(
-                "##AnyStateDragHandle",
-                ImGuiTableColumnFlags_WidthFixed,
-                rowHeight);
-            ImGui::TableSetupColumn(
-                "Transition",
+                (const char*)u8"トランジション",
                 ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn(
                 "##AnyStateDelete",
                 ImGuiTableColumnFlags_WidthFixed,
                 rowHeight);
+			ImGui::TableSetupColumn("##AnyStateMove", ImGuiTableColumnFlags_WidthFixed,
+				rowHeight * 2.0f + ImGui::GetStyle().ItemSpacing.x);
 
             for (int ti = 0;
                  ti < static_cast<int>(layer.anyStateTransitions.size());
@@ -949,26 +909,6 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, rowHeight);
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
-                ImGui::Button("::##handle", ImVec2(rowHeight, rowHeight));
-                ImGui::PopStyleColor(2);
-
-                if (ImGui::BeginDragDropSource(
-                    ImGuiDragDropFlags_SourceNoPreviewTooltip))
-                {
-                    ImGui::SetDragDropPayload(
-                        "ANYTRANS_REORDER",
-                        &ti,
-                        sizeof(int));
-                    ImGui::EndDragDropSource();
-                }
-
-                ImGui::TableSetColumnIndex(1);
 
                 const bool isSelected =
                     selectedTransition.layerIndex == li &&
@@ -979,7 +919,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                     std::to_string(ti + 1) + ". -> " + toName;
 
                 const ImVec2 itemPos = ImGui::GetCursorScreenPos();
-                const float itemWidth = ImGui::GetContentRegionAvail().x;
+                const float itemWidth = std::max(ImGui::GetContentRegionAvail().x, 1.0f);
                 ImGui::InvisibleButton(
                     "##AnyStateTransitionSelect",
                     ImVec2(itemWidth, rowHeight));
@@ -1019,18 +959,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                     label.c_str());
                 drawList->PopClipRect();
 
-                if (ImGui::BeginDragDropTarget())
-                {
-                    if (const ImGuiPayload* payload =
-                        ImGui::AcceptDragDropPayload("ANYTRANS_REORDER"))
-                    {
-                        anyDragFrom = *static_cast<const int*>(payload->Data);
-                        anyDragTo = ti;
-                    }
-                    ImGui::EndDragDropTarget();
-                }
-
-                ImGui::TableSetColumnIndex(2);
+                ImGui::TableSetColumnIndex(1);
                 ImGui::PushStyleColor(
                     ImGuiCol_Button,
                     ImVec4(0.55f, 0.15f, 0.15f, 1.0f));
@@ -1045,6 +974,22 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                 }
 
                 ImGui::PopStyleColor(2);
+				ImGui::TableSetColumnIndex(2);
+				ImGui::BeginDisabled(ti == 0);
+				if (ImGui::ArrowButton("##MoveUp", ImGuiDir_Up))
+				{
+					anyMoveFrom = ti;
+					anyMoveTo = ti - 1;
+				}
+				ImGui::EndDisabled();
+				ImGui::SameLine();
+				ImGui::BeginDisabled(ti + 1 == static_cast<int>(layer.anyStateTransitions.size()));
+				if (ImGui::ArrowButton("##MoveDown", ImGuiDir_Down))
+				{
+					anyMoveFrom = ti;
+					anyMoveTo = ti + 1;
+				}
+				ImGui::EndDisabled();
                 ImGui::PopID();
             }
 
@@ -1078,23 +1023,23 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
                     static_cast<int>(layer.anyStateTransitions.size()) - 1 - i;
             }
 
-            anyDragFrom = -1;
-            anyDragTo = -1;
+            anyMoveFrom = -1;
+            anyMoveTo = -1;
         }
 
-        if (anyDragFrom >= 0 &&
-            anyDragTo >= 0 &&
-            anyDragFrom != anyDragTo &&
-            anyDragFrom < static_cast<int>(layer.anyStateTransitions.size()) &&
-            anyDragTo < static_cast<int>(layer.anyStateTransitions.size()))
+        if (anyMoveFrom >= 0 &&
+            anyMoveTo >= 0 &&
+            anyMoveFrom != anyMoveTo &&
+            anyMoveFrom < static_cast<int>(layer.anyStateTransitions.size()) &&
+            anyMoveTo < static_cast<int>(layer.anyStateTransitions.size()))
         {
             Animator::Transition moved =
-                layer.anyStateTransitions[anyDragFrom];
+                layer.anyStateTransitions[anyMoveFrom];
 
             layer.anyStateTransitions.erase(
-                layer.anyStateTransitions.begin() + anyDragFrom);
+                layer.anyStateTransitions.begin() + anyMoveFrom);
 
-            int insertAt = anyDragTo;
+            int insertAt = anyMoveTo;
             if (insertAt > static_cast<int>(layer.anyStateTransitions.size()))
             {
                 insertAt = static_cast<int>(layer.anyStateTransitions.size());
@@ -1117,31 +1062,22 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
             {
                 const int selectedIndex = selectedTransition.transIndex;
 
-                if (selectedIndex == anyDragFrom)
+                if (selectedIndex == anyMoveFrom)
                 {
                     selectedTransition.transIndex = insertAt;
                 }
-                else if (anyDragFrom < anyDragTo &&
-                         selectedIndex > anyDragFrom &&
-                         selectedIndex <= anyDragTo)
+                else if (anyMoveFrom < anyMoveTo &&
+                         selectedIndex > anyMoveFrom &&
+                         selectedIndex <= anyMoveTo)
                 {
                     selectedTransition.transIndex = selectedIndex - 1;
                 }
-                else if (anyDragFrom > anyDragTo &&
-                         selectedIndex >= anyDragTo &&
-                         selectedIndex < anyDragFrom)
+                else if (anyMoveFrom > anyMoveTo &&
+                         selectedIndex >= anyMoveTo &&
+                         selectedIndex < anyMoveFrom)
                 {
                     selectedTransition.transIndex = selectedIndex + 1;
                 }
-            }
-        }
-
-        ImGui::Spacing();
-        if (ImGui::Button("+ AnyState Transition", ImVec2(160, 0)))
-        {
-            if (!layer.states.empty())
-            {
-                AddAnyStateTransition(li, 0, 0.1f, false, 1.0f, 0, false);
             }
         }
 
@@ -1149,7 +1085,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
         {
             ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
-            if (ImGui::Button("Delete Layer", ImVec2(-1, 0)))
+            if (ImGui::Button((const char*)u8"レイヤーを削除", ImVec2(-1, 0)))
                 RemoveLayer(li);
             ImGui::PopStyleColor();
         }
@@ -1164,7 +1100,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
         Animator::State& state = layer.states[si];
 
-        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "State");
+        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), (const char*)u8"ステート");
         ImGui::Separator();
 
         ImGui::SetNextItemWidth(-1.0f);
@@ -1172,87 +1108,53 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
         ImGui::Spacing();
 
-        if (IsDynamicMode())
+        const auto& animations = GetModel()->GetAnimations();
+        const char* currentAnimationName =
+            (state.animationIndex >= 0 &&
+             state.animationIndex < static_cast<int>(animations.size()))
+            ? animations[state.animationIndex].name.c_str()
+            : (const char*)u8"（なし）";
+
+        ImGui::Text((const char*)u8"アニメーション");
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::BeginCombo("##anim", currentAnimationName))
         {
-            ImGui::Text("Dynamic Animation Clip");
-            ImGui::SetNextItemWidth(-1.0f);
-            ImGui::InputText("##dynamicClipPath", &state.dynamicClipPath);
-
-            if (ImGui::Button("Browse .danim", ImVec2(-1.0f, 0.0f)))
+            for (int animationIndex = 0;
+                 animationIndex < static_cast<int>(animations.size());
+                 ++animationIndex)
             {
-				std::string path = state.dynamicClipPath;
-
-				if (Dialog::OpenFileName(
-					path,
-					"Dynamic Animation Clip\0*.danim\0All Files\0*.*\0\0",
-                    "Open Dynamic Animation Clip") == DialogResult::OK)
+                const bool selected =
+                    state.animationIndex == animationIndex;
+                if (ImGui::Selectable(
+                    animations[animationIndex].name.c_str(),
+                    selected))
                 {
-					SetDynamicClipPath(li, si, path);
+                    state.animationIndex = animationIndex;
                 }
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
             }
-
-            if (ImGui::Button("Reload Clip", ImVec2(-1.0f, 0.0f)))
-                ReloadDynamicClips();
-
-            const float clipLength = GetStateLength(state);
-            if (state.dynamicClipPath.empty())
-                ImGui::TextDisabled("No .danim assigned.");
-            else if (clipLength <= 0.0f)
-                ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "Failed to load clip.");
-            else
-                ImGui::TextDisabled("Length: %.3f sec", clipLength);
-        }
-        else
-        {
-            const auto& animations = GetModel()->GetAnimations();
-            const char* currentAnimationName =
-                (state.animationIndex >= 0 &&
-                 state.animationIndex < static_cast<int>(animations.size()))
-                ? animations[state.animationIndex].name.c_str()
-                : "(none)";
-
-            ImGui::Text("Animation");
-            ImGui::SetNextItemWidth(-1.0f);
-            if (ImGui::BeginCombo("##anim", currentAnimationName))
-            {
-                for (int animationIndex = 0;
-                     animationIndex < static_cast<int>(animations.size());
-                     ++animationIndex)
-                {
-                    const bool selected =
-                        state.animationIndex == animationIndex;
-                    if (ImGui::Selectable(
-                        animations[animationIndex].name.c_str(),
-                        selected))
-                    {
-                        state.animationIndex = animationIndex;
-                    }
-                    if (selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-
+            ImGui::EndCombo();
         }
 
         ImGui::Spacing();
-        ImGui::DragFloat("Speed", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
-        ImGui::Checkbox("Loop", &state.loop);
-        ImGui::Checkbox("Block AnyState Transition", &state.blockAnyStateTransitions);
+        ImGui::DragFloat((const char*)u8"再生速度", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
+        ImGui::Checkbox((const char*)u8"ループ", &state.loop);
+        ImGui::Checkbox((const char*)u8"AnyStateからのトランジションを禁止", &state.blockAnyStateTransitions);
 
         ImGui::Spacing();
         bool isDefault = (layer.defaultStateIndex == si);
         if (isDefault)
-            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "* Default State");
+            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), (const char*)u8"* デフォルトステート");
         else
-            if (ImGui::Button("Set as Default"))
+            if (ImGui::Button((const char*)u8"デフォルトステートに設定"))
                 SetDefaultState(li, si);
 
         if (!state.transitions.empty())
         {
             ImGui::Spacing();
             ImGui::Separator();
-            ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Transition Order");
+            ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), (const char*)u8"トランジションの順番（上から下）");
 
             int dragFrom = -1, dragTo = -1;
             for (int ti = 0; ti < (int)state.transitions.size(); ++ti)
@@ -1341,7 +1243,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         // ---- Callbacks ----
         ImGui::Spacing();
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Callbacks");
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), (const char*)u8"コールバック");
 
         auto& callbacks = state.callbacks;
         int removeIdx = -1;
@@ -1352,15 +1254,15 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
             ImGui::PushID(ci);
 
             ImGui::SetNextItemWidth(120.0f);
-            ImGui::InputText("Label##cblabel", &cb.label);
+            ImGui::InputText((const char*)u8"ラベル##cblabel", &cb.label);
 
             ImGui::SameLine();
 
-            ImGui::Checkbox("Seconds", &cb.useSeconds);
+            ImGui::Checkbox((const char*)u8"秒単位", &cb.useSeconds);
             ImGui::SameLine();
             float range[2] = { cb.enterTimePer, cb.exitTimePer };
             ImGui::SetNextItemWidth(150.0f);
-            if (ImGui::DragFloat2("Range##cbrange", range, 0.01f, 0.0f, cb.useSeconds ? 0.0f : 1.0f, "%.2f"))
+            if (ImGui::DragFloat2((const char*)u8"範囲##cbrange", range, 0.01f, 0.0f, cb.useSeconds ? 0.0f : 1.0f, "%.2f"))
             {
                 cb.enterTimePer = range[0];
                 cb.exitTimePer  = std::max(range[1], range[0] + 0.01f);
@@ -1372,9 +1274,9 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
                 removeIdx = ci;
 
             ImGui::Indent();
-            ImGui::TextDisabled("onEnter: %s", cb.onEnter ? "bound" : "(none)");
+            ImGui::TextDisabled((const char*)u8"onEnter: %s", cb.onEnter ? (const char*)u8"登録済み" : (const char*)u8"（なし）");
             ImGui::SameLine();
-            ImGui::TextDisabled("onExit: %s",  cb.onExit  ? "bound" : "(none)");
+            ImGui::TextDisabled((const char*)u8"onExit: %s",  cb.onExit  ? (const char*)u8"登録済み" : (const char*)u8"（なし）");
             ImGui::Unindent();
 
             ImGui::PopID();
@@ -1383,7 +1285,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         if (removeIdx >= 0)
             callbacks.erase(callbacks.begin() + removeIdx);
 
-        if (ImGui::Button("+ Add Callback"))
+        if (ImGui::Button((const char*)u8"+ コールバックを追加"))
             state.callbacks.push_back({ "(unnamed)", 0.0f, 1.0f, nullptr, nullptr });
     }
 
@@ -1407,16 +1309,16 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             ? layer.anyStateTransitions[ti]
             : layer.states[si].transitions[ti];
 
-        const std::string& fromName = (si == ANY_STATE_INDEX) ? "AnyState" : layer.states[si].name;
+        const std::string& fromName = (si == ANY_STATE_INDEX) ? (const char*)u8"AnyState" : layer.states[si].name;
         const std::string& toName =
             (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
             ? layer.states[tr.toStateIndex].name : "???";
 
-        ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "Transition");
+        ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), (const char*)u8"トランジション");
         ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.18f, 0.18f, 1.0f));
-        if (ImGui::Button("Delete Transition", ImVec2(-1.0f, 0.0f)))
+        if (ImGui::Button((const char*)u8"トランジションを削除", ImVec2(-1.0f, 0.0f)))
         {
             suppressNodeEditorInteractions = true;
 
@@ -1439,24 +1341,24 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
 
         ImGui::Separator();
 
-        ImGui::DragFloat("Blend Duration", &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
-        ImGui::Checkbox("Has Exit Time", &tr.hasExitTime);
+        ImGui::DragFloat((const char*)u8"トランジション時間", &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
+        ImGui::Checkbox((const char*)u8"ExitTimeを使用", &tr.hasExitTime);
         if (tr.hasExitTime)
-            ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
-        ImGui::Checkbox("Is Any", &tr.isAny);
+            ImGui::DragFloat((const char*)u8"Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
+        ImGui::Checkbox((const char*)u8"再生進行度を問わない", &tr.isAny);
         if (!tr.isAny)
         {
-            ImGui::DragFloat("From Progress", &tr.sourceProgressMin, 0.01f, 0.0f, 1.0f, "%.2f");
-            ImGui::DragFloat("To Progress",   &tr.sourceProgressMax, 0.01f, 0.0f, 1.0f, "%.2f");
+            ImGui::DragFloat((const char*)u8"開始進行度", &tr.sourceProgressMin, 0.01f, 0.0f, 1.0f, "%.2f");
+            ImGui::DragFloat((const char*)u8"終了進行度",   &tr.sourceProgressMax, 0.01f, 0.0f, 1.0f, "%.2f");
             if (tr.sourceProgressMin > tr.sourceProgressMax) tr.sourceProgressMax = tr.sourceProgressMin;
         }
-        ImGui::TextDisabled("Priority: %d  (order in State detail)", tr.priority);
-        ImGui::Checkbox("Can Interrupt", &tr.canInterrupt);
+        ImGui::TextDisabled((const char*)u8"優先度: %d（トランジション一覧で並べ替え）", tr.priority);
+        ImGui::Checkbox((const char*)u8"トランジション中の割り込みを許可", &tr.canInterrupt);
 
         if (si == ANY_STATE_INDEX)
         {
             ImGui::Separator();
-            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), "Do Not Transition From");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), (const char*)u8"トランジションを禁止する元のステート");
             ImGui::BeginChild("ExcludedAnyStateSources", ImVec2(0, 120), true);
             for (int st = 0; st < (int)layer.states.size(); ++st)
             {
@@ -1486,7 +1388,7 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
         }
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.8f, 0.8f, 1, 1), "Conditions");
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 1, 1), (const char*)u8"条件");
 
         const auto& params = GetParameters();
         const auto& triggers = GetTriggers();
@@ -1608,7 +1510,7 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             ImGui::PopID();
         }
 
-        if (ImGui::Button("+ Condition"))
+        if (ImGui::Button((const char*)u8"+ 条件を追加"))
         {
             Animator::Condition newC;
             if (!params.empty())
@@ -1638,7 +1540,6 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             }
             tr.conditions.push_back(newC);
         }
-
 
     }
 

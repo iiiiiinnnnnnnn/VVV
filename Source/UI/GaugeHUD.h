@@ -1,14 +1,14 @@
-#pragma once
+﻿#pragma once
 
 #include <memory>
 #include <string>
 #include <functional>
 
-#include "UI/Widget.h"
+#include "UI/DissolveWidget.h"
 
 class Texture;
 
-class GaugeHUD : public Widget
+class GaugeHUD : public DissolveWidget
 {
 public:
 	GaugeHUD(const std::string& name);
@@ -17,6 +17,7 @@ public:
 	void SetEmblemTexture(const std::string& path);
 	void SetTargetValue(float ratio);
 	void SnapToTarget();
+	void SetDamageTrailEnabled(bool value) { damageTrailEnabled = value; }
 	float GetDisplayedValue() const { return displayedValue; }
 	void SetSmoothingSpeed(float value) { smoothingSpeed = value; }
 	void SetFillRect(const Vector2& position, const Vector2& size);
@@ -32,8 +33,10 @@ public:
 protected:
 	void OnUpdate() override;
 	void OnRender(const RenderContext& rc) override;
+	void OnDrawGUI() override;
 
 private:
+	void DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color);
 	std::shared_ptr<Texture> frameTexture;
 	std::shared_ptr<Texture> emblemTexture;
 	std::shared_ptr<Texture> fillTexture;
@@ -48,6 +51,12 @@ private:
 	float targetValue = 1.0f;
 	float displayedValue = 1.0f;
 	float smoothingSpeed = 5.5f;
+	bool damageTrailEnabled = false;
+	float damageTrailValue = 1.0f;
+	float damageTrailDelay = 0.25f;
+	float damageTrailTimer = 0.0f;
+	float damageTrailSpeed = 0.65f;
+	Color damageTrailColor = Color(0.48f, 0.52f, 0.57f, 0.98f);
 	std::function<void(float)> onValueChanged;
 	bool dragging = false;
 };

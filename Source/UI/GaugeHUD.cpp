@@ -1,4 +1,4 @@
-#include "UI/GaugeHUD.h"
+﻿#include "UI/GaugeHUD.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +11,7 @@
 #include "Resource/Texture.h"
 
 GaugeHUD::GaugeHUD(const std::string& name)
-	: Widget(name), fillTexture(std::make_shared<Texture>(Color(1, 1, 1, 1)))
+	: DissolveWidget(name, ""), fillTexture(ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png"))
 {
 	SetAffectedByPostProcess(false);
 }
@@ -28,12 +28,21 @@ void GaugeHUD::SetEmblemTexture(const std::string& path)
 
 void GaugeHUD::SetTargetValue(float ratio)
 {
-	targetValue = std::clamp(ratio, 0.0f, 1.0f);
+	const float value = std::clamp(ratio, 0.0f, 1.0f);
+	if (damageTrailEnabled && value < targetValue)
+	{
+		damageTrailValue = std::max(damageTrailValue, displayedValue);
+		damageTrailTimer = damageTrailDelay;
+		displayedValue = std::min(displayedValue, value);
+	}
+	targetValue = value;
 }
 
 void GaugeHUD::SnapToTarget()
 {
 	displayedValue = targetValue;
+	damageTrailValue = targetValue;
+	damageTrailTimer = 0.0f;
 }
 
 void GaugeHUD::SetFillRect(const Vector2& position, const Vector2& size)
@@ -84,34 +93,59 @@ void GaugeHUD::OnUpdate()
 	const float blend = 1.0f - std::exp(-smoothingSpeed * dt);
 	displayedValue += (targetValue - displayedValue) * blend;
 	if (std::abs(displayedValue - targetValue) < 0.0005f) displayedValue = targetValue;
+	if (damageTrailEnabled)
+	{
+		const float trailDt = std::max(dt - damageTrailTimer, 0.0f);
+		damageTrailTimer = std::max(damageTrailTimer - dt, 0.0f);
+		damageTrailValue = std::max(displayedValue, damageTrailValue - damageTrailSpeed * trailDt);
+	}
+}
+
+void GaugeHUD::OnDrawGUI()
+{
+	DissolveWidget::OnDrawGUI();
+	ImGui::Checkbox((const char*)u8"ダメージ残像", &damageTrailEnabled);
+	ImGui::SliderFloat((const char*)u8"残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
+	ImGui::SliderFloat((const char*)u8"残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
+	ImGui::ColorEdit4((const char*)u8"残像の色", &damageTrailColor.x);
+}
+
+void GaugeHUD::DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color)
+{
+	if (!fillTexture || size.x <= 0.0f || size.y <= 0.0f || ratio <= 0.0f) return;
+	const Vector2 sourceSize = {
+		static_cast<float>(fillTexture->GetWidth()), static_cast<float>(fillTexture->GetHeight())};
+	if (sourceSize.x <= 0.0f || sourceSize.y <= 0.0f) return;
+	const float tileWidth = size.y * sourceSize.x / sourceSize.y;
+	const float width = size.x * std::clamp(ratio, 0.0f, 1.0f);
+	for (float x = 0.0f; x < width; x += tileWidth)
+	{
+		const float visibleWidth = std::min(tileWidth, width - x);
+		DrawSprite(fillTexture, position + Vector2(x, 0.0f), {visibleWidth, size.y},
+			{sourceSize.x * visibleWidth / tileWidth, sourceSize.y}, 0.0f, color);
+	}
 }
 
 void GaugeHUD::OnRender(const RenderContext&)
 {
-	SpriteRenderer* renderer = Game::Graphics::Instance().GetSpriteRenderer();
 	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
 	if (frameTexture)
-		renderer->Draw(SpriteShaderId::Basic, frameTexture, {topLeft.x, topLeft.y, 0.0f}, rect.size,
-			Vector2::Zero, {static_cast<float>(frameTexture->GetWidth()),
+		DrawSprite(frameTexture, topLeft, rect.size,
+			{static_cast<float>(frameTexture->GetWidth()),
 				static_cast<float>(frameTexture->GetHeight())}, rect.angle, frameColor);
 	const Vector2 fillTopLeft = topLeft + Vector2(rect.size.x * fillPosition.x, rect.size.y * fillPosition.y);
 	const Vector2 maximumFill = {rect.size.x * fillSize.x, rect.size.y * fillSize.y};
 	const float ratio = std::clamp(displayedValue, 0.0f, 1.0f);
-	if (fillTexture)
-		renderer->Draw(SpriteShaderId::Basic, fillTexture,
-			{fillTopLeft.x, fillTopLeft.y, 0.0f}, maximumFill,
-			Vector2::Zero, Vector2(1, 1), 0.0f, trackColor);
-	if (fillTexture && ratio > 0.0f)
-		renderer->Draw(SpriteShaderId::Basic, fillTexture,
-			{fillTopLeft.x, fillTopLeft.y, 0.0f}, {maximumFill.x * ratio, maximumFill.y},
-			Vector2::Zero, Vector2(1, 1), 0.0f, ratio < 0.3f ? lowColor : normalColor);
+	DrawFillTiles(fillTopLeft, maximumFill, 1.0f, trackColor);
+	if (damageTrailEnabled && damageTrailValue > ratio)
+		DrawFillTiles(fillTopLeft, maximumFill, damageTrailValue, damageTrailColor);
+	DrawFillTiles(fillTopLeft, maximumFill, ratio, ratio < 0.3f ? lowColor : normalColor);
 	if (emblemTexture && emblemSize.x > 0.0f && emblemSize.y > 0.0f)
 	{
 		const Vector2 emblemTopLeft = topLeft + Vector2(
 			rect.size.x * emblemPosition.x, rect.size.y * emblemPosition.y);
-		renderer->Draw(SpriteShaderId::Basic, emblemTexture,
-			{emblemTopLeft.x, emblemTopLeft.y, 0.0f},
-			{rect.size.x * emblemSize.x, rect.size.y * emblemSize.y}, Vector2::Zero,
+		DrawSprite(emblemTexture, emblemTopLeft,
+			{rect.size.x * emblemSize.x, rect.size.y * emblemSize.y},
 			{static_cast<float>(emblemTexture->GetWidth()), static_cast<float>(emblemTexture->GetHeight())},
 			0.0f, frameColor);
 	}

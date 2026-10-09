@@ -19,7 +19,7 @@ BaseCrystal::BaseCrystal(const Transform& placement, const std::string& name, co
 	: Entity(name, "Crystal", true, placement)
 {
 	transform.Update();
-	loadedModel = ResourceManager::Instance().LoadModel(modelPath);
+	loadedModel = ResourceManager::Instance().LoadModel(modelPath, true);
 }
 
 BaseCrystal::BaseCrystal(const Transform& placement, const std::string& name, std::shared_ptr<VMDLModel> model)
@@ -83,8 +83,9 @@ CrystalPart::CrystalPart(const Transform& placement, std::shared_ptr<VMDLModel> 
 {
 }
 
-void CrystalPart::StartMoving(const Vector3& velocity, const Vector3& rotationSpeed)
+void CrystalPart::StartMoving(const Vector3& velocity, const Vector3& rotationSpeed, Actor* source)
 {
+	if (source) sourceActor = source->weak_from_this();
 	vmdl->UpdateTransform(transform.matrix);
 	for (auto* collider : GetComponents<VMDLColliderComponent>())
 	{
@@ -126,6 +127,8 @@ void CrystalPart::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* oth
 	const Vector3& point, const Vector3& normal)
 {
 	if (contactPending || IsPendingDestroy()) return;
+	const auto source = sourceActor.lock();
+	if (source && other && other->GetOwner() == source.get()) return;
 	contactPending = true;
 }
 
@@ -146,7 +149,7 @@ Crystal::Crystal(const Transform& transform, const std::string& modelPath) : Bas
 	life = maxLife;
 
 	// サイズの走査と描画用モデルの準備は、破壊時ではなく生成時に済ませる。
-	auto source = ResourceManager::Instance().LoadModel("Resources/Model/CrystalPart.vmdl");
+	auto source = ResourceManager::Instance().LoadModel("Resources/Model/CrystalPart.vmdl", true);
 	Vector3 partCenter;
 	if (!source || !GetCrystalModelBounds(*source, partCenter, partSize)) return;
 	if (!GetCrystalModelBounds(*loadedModel, crystalCenter, crystalSize)) return;

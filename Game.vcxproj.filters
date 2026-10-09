@@ -226,6 +226,9 @@
     <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Rendering\Shader\DissolveSpriteShader.cpp">
+      <Filter>Rendering\Shader</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
@@ -268,9 +271,6 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\DamageHoleComponent.cpp">
-      <Filter>Rendering\Component</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
@@ -278,6 +278,9 @@
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\Button.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\DissolveWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\GaugeHUD.cpp">
@@ -294,12 +297,6 @@
     </ClCompile>
     <ClCompile Include="Source\UI\UIFont.cpp">
       <Filter>UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\Tools\DynamicAnimationSerializer.cpp">
-      <Filter>Application\Tools</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\Tools\DynamicAnimation.cpp">
-      <Filter>Application\Tools</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp">
       <Filter>Gameplay\Lighting</Filter>
@@ -609,6 +606,9 @@
     <ClInclude Include="Source\Rendering\Shader\VMatShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h">
+      <Filter>Rendering\Shader</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
@@ -635,9 +635,6 @@
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h">
       <Filter>Rendering\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\DamageHoleComponent.h">
-      <Filter>Rendering\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\AfterimageComponent.h">
       <Filter>Rendering\Component</Filter>
@@ -666,6 +663,9 @@
     <ClInclude Include="Source\UI\Button.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\DissolveWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\UI\GaugeHUD.h">
       <Filter>UI</Filter>
     </ClInclude>
@@ -680,15 +680,6 @@
     </ClInclude>
     <ClInclude Include="Source\UI\UIFont.h">
       <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Tools\DynamicAnimationEditorWindow.h">
-      <Filter>Application\Tools</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Tools\DynamicAnimationSerializer.h">
-      <Filter>Application\Tools</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Tools\DynamicAnimation.h">
-      <Filter>Application\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Lighting\Light.h">
       <Filter>Gameplay\Lighting</Filter>
@@ -977,9 +968,6 @@
     <None Include="Shader\FullScreenQuad.hlsli">
       <Filter>Shaders\PostProcess</Filter>
     </None>
-    <None Include="Shader\gbuffer.hlsli">
-      <Filter>Shaders\PostProcess</Filter>
-    </None>
     <None Include="Shader\filter_functions.hlsli">
       <Filter>Shaders\PostProcess</Filter>
     </None>
@@ -1078,6 +1066,9 @@
       <Filter>Shaders\3D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpriteVS.hlsl">
+      <Filter>Shaders\2D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\DissolveSpritePS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">

@@ -1,3 +1,4 @@
+#include "Rendering/Core/VMatRenderParams.h"
 #include "Resource/VMDLModel.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"
@@ -872,6 +873,7 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 	vmdlMultiLegIKSettings = other.vmdlMultiLegIKSettings;
 	vmdlAnimationEditorData = other.vmdlAnimationEditorData;
 	vmdlAnimationControlData = other.vmdlAnimationControlData;
+	materialAnimationTracks = other.materialAnimationTracks;
 	vmdlTrailData = other.vmdlTrailData;
 	vmdlParticleData = other.vmdlParticleData;
 	vmdlSoundData = other.vmdlSoundData;
@@ -901,6 +903,7 @@ VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 	vmdlMultiLegIKSettings = std::move(other.vmdlMultiLegIKSettings);
 	vmdlAnimationEditorData = std::move(other.vmdlAnimationEditorData);
 	vmdlAnimationControlData = std::move(other.vmdlAnimationControlData);
+	materialAnimationTracks = std::move(other.materialAnimationTracks);
 	vmdlTrailData = std::move(other.vmdlTrailData);
 	vmdlParticleData = std::move(other.vmdlParticleData);
 	vmdlSoundData = std::move(other.vmdlSoundData);
@@ -1266,16 +1269,26 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 	UpdateTransform(other.worldTransform);
 }
 
-std::shared_ptr<VMDLModel> VMDLModel::CloneRuntimeInstance() const
+std::shared_ptr<VMDLModel> VMDLModel::CloneRuntimeInstance(bool includeGeometry) const
 {
 	auto result = CloneRenderPose();
+	if (includeGeometry)
+	{
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			result->meshes[i].vertices = meshes[i].vertices;
+			result->meshes[i].indices = meshes[i].indices;
+		}
+	}
 	result->animations = animations;
 	result->vmdlExtensionData = vmdlExtensionData;
 	result->vmdlIKSettings = vmdlIKSettings;
 	result->vmdlIKPoles = vmdlIKPoles;
 	result->vmdlIKRaySettings = vmdlIKRaySettings;
 	result->vmdlMultiLegIKSettings = vmdlMultiLegIKSettings;
+	result->vmdlAnimationEditorData = vmdlAnimationEditorData;
 	result->vmdlAnimationControlData = vmdlAnimationControlData;
+	result->materialAnimationTracks = materialAnimationTracks;
 	result->vmdlTrailData = vmdlTrailData;
 	result->vmdlParticleData = vmdlParticleData;
 	result->vmdlSoundData = vmdlSoundData;
@@ -2148,6 +2161,67 @@ void VMDLModel::RestoreRuntimeMorphVisibility()
 	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = runtimeMorphVisibility[i] != 0;
 }
 
+void VMDLModel::ApplyMaterialAnimation(int animationIndex, float time, VMatRenderParams& params) const
+{
+	for (int i = 0; i < static_cast<int>(materials.size()); ++i)
+	{
+		const auto value = EvaluateMaterialAnimation(animationIndex, time, i);
+		if (!value) continue;
+		auto& material = params.materials[materials[i].name];
+		material.baseColor = value->baseColor;
+		material.emissionColor = value->emissiveColor;
+		material.metalness = value->metalness;
+		material.roughness = value->roughness;
+	}
+}
+
+void VMDLModel::RecordMaterialKey(int animationIndex, int materialIndex, float time)
+{
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size()) ||
+		materialIndex < 0 || materialIndex >= static_cast<int>(materials.size())) return;
+	const std::string& name = animations[animationIndex].name;
+	auto found = std::find_if(materialAnimationTracks.begin(), materialAnimationTracks.end(),
+		[&](const auto& track) { return track.animationName == name && track.materialIndex == materialIndex; });
+	if (found == materialAnimationTracks.end())
+	{
+		materialAnimationTracks.push_back({name, materialIndex, {}});
+		found = std::prev(materialAnimationTracks.end());
+	}
+	const auto& material = materials[materialIndex];
+	const VmdlMaterialKeyframe value{std::clamp(time, 0.0f, animations[animationIndex].secondsLength),
+		material.baseColor, material.emissiveColor, material.metalness, material.roughness};
+	auto key = std::find_if(found->keys.begin(), found->keys.end(),
+		[&](const auto& candidate) { return std::abs(candidate.seconds - value.seconds) < 0.0005f; });
+	if (key == found->keys.end()) found->keys.push_back(value);
+	else *key = value;
+	std::sort(found->keys.begin(), found->keys.end(),
+		[](const auto& left, const auto& right) { return left.seconds < right.seconds; });
+}
+
+std::optional<VMDLModel::VmdlMaterialKeyframe> VMDLModel::EvaluateMaterialAnimation(
+	int animationIndex, float time, int materialIndex) const
+{
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return std::nullopt;
+	for (const auto& track : materialAnimationTracks)
+	{
+		if (track.animationName != animations[animationIndex].name || track.materialIndex != materialIndex ||
+			track.keys.empty()) continue;
+		if (time <= track.keys.front().seconds) return track.keys.front();
+		for (size_t i = 1; i < track.keys.size(); ++i)
+		{
+			const auto& right = track.keys[i];
+			if (time > right.seconds) continue;
+			const auto& left = track.keys[i - 1];
+			const float t = std::clamp((time - left.seconds) / std::max(right.seconds - left.seconds, 0.00001f), 0.0f, 1.0f);
+			return VmdlMaterialKeyframe{time, Color::Lerp(left.baseColor, right.baseColor, t),
+				Color::Lerp(left.emissiveColor, right.emissiveColor, t),
+				std::lerp(left.metalness, right.metalness, t), std::lerp(left.roughness, right.roughness, t)};
+		}
+		return track.keys.back();
+	}
+	return std::nullopt;
+}
+
 void VMDLModel::ApplyMorphAnimation(int animationIndex, float time)
 {
 	RestoreRuntimeMorphVisibility();
@@ -2325,6 +2399,21 @@ bool VMDLModel::ReplaceGLBCache(
 	for (auto& value : vmdlLightData.pointLights) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlPresentationData.cameraShakes) value.nodeIndex = remapNode(value.nodeIndex);
 	for (auto& value : vmdlPresentationData.radialBlurs) value.nodeIndex = remapNode(value.nodeIndex);
+
+	for (auto& track : materialAnimationTracks)
+	{
+		if (track.materialIndex < 0 || track.materialIndex >= static_cast<int>(materials.size()))
+		{
+			track.materialIndex = -1;
+			continue;
+		}
+		const std::string& name = materials[track.materialIndex].name;
+		const auto found = std::find_if(replacement.materials.begin(), replacement.materials.end(),
+			[&](const Material& material) { return material.name == name; });
+		track.materialIndex = found == replacement.materials.end() ? -1
+			: static_cast<int>(std::distance(replacement.materials.begin(), found));
+	}
+	std::erase_if(materialAnimationTracks, [](const auto& track) { return track.materialIndex < 0; });
 
 	// GLB部分を交換
 	sourceMaterials = replacement.sourceMaterials;
@@ -2531,6 +2620,7 @@ void VMDLModel::Serialize(const char* filename)
 					{"roughness", material.crystalRoughness}};
 			archive(settings.dump());
 		});
+		addFile("model.materialanimation", [&](auto& archive) { archive(materialAnimationTracks); });
 		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
 		addFile("model.externalmeshbindings",
 			[&](auto& archive) { archive(externalMeshBindingKeys); });
@@ -2666,6 +2756,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			std::string serializedString(
 				reinterpret_cast<const char*>(serializedData.data()), serializedData.size());
 			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
+			materialAnimationTracks.clear();
 			std::vector<VmdlMaterialData> materialData;
 			std::vector<VmdlSoundSourceBinding> soundBindings;
 			VmdlComponentTransformData componentTransforms;
@@ -2700,6 +2791,10 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				{
 					archive(nodes, materials, meshes, animations);
 					loadedGlbCache = true;
+				}
+				else if (name == "model.materialanimation")
+				{
+					archive(materialAnimationTracks);
 				}
 				else if (name == "model.vmdldata")
 				{

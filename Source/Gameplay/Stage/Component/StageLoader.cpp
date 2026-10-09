@@ -1,5 +1,7 @@
 #include "Gameplay/Stage/Component/StageLoader.h"
+#include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Camera/Camera.h"
 #include "Rendering/Core/Graphics.h"
 #include <fstream>
 #include <iomanip>
@@ -213,48 +215,8 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
 	{
 		PropData& propData = propDataList[propIndex];
-		if (!propData.model) propData.model = LoadPropModel(propData.modelPath);
-		if (!propData.model) continue;
-
-		propData.transform.Update();
-		auto bounds = editorSelectionBounds.find(propData.modelPath);
-		if (bounds == editorSelectionBounds.end())
-		{
-			propData.model->UpdateTransform(
-				Matrix::CreateTranslation(propData.model->GetVmdlExtensionData().rootOffset));
-			const Matrix renderScale = propData.model->GetRenderScaleTransform();
-			Vector3 minimum(
-				std::numeric_limits<float>::max(),
-				std::numeric_limits<float>::max(),
-				std::numeric_limits<float>::max());
-			Vector3 maximum(
-				std::numeric_limits<float>::lowest(),
-				std::numeric_limits<float>::lowest(),
-				std::numeric_limits<float>::lowest());
-			bool hasVertex = false;
-			for (const VMDLModel::Mesh& mesh : propData.model->GetMeshes())
-			{
-				if (!mesh.isDraw || !mesh.node) continue;
-				const Matrix vertexTransform = mesh.node->worldTransform * renderScale;
-				for (const VMDLModel::Vertex& vertex : mesh.vertices)
-				{
-					const Vector3 position =
-						Vector3::Transform(vertex.position, vertexTransform);
-					minimum = Vector3::Min(minimum, position);
-					maximum = Vector3::Max(maximum, position);
-					hasVertex = true;
-				}
-			}
-			if (!hasVertex) continue;
-
-			DirectX::BoundingBox localBounds;
-			localBounds.Center = (minimum + maximum) * 0.5f;
-			localBounds.Extents = (maximum - minimum) * 0.5f;
-			bounds = editorSelectionBounds.emplace(propData.modelPath, localBounds).first;
-		}
-
 		DirectX::BoundingBox worldBounds;
-		bounds->second.Transform(worldBounds, propData.transform.matrix);
+		if (!GetPropWorldBounds(propData, worldBounds)) continue;
 		float boundsDistance = 0.0f;
 		if (!ray.Intersects(worldBounds, boundsDistance) || boundsDistance >= nearestDistance)
 			continue;
@@ -462,6 +424,35 @@ std::vector<Spawner*> StageLoader::GetSpawners(std::string_view entityName) cons
 	return result;
 }
 
+void StageLoader::DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewportMax)
+{
+	Camera* camera = stage->GetActiveCamera();
+	if (!camera) return;
+	const Matrix viewProjection = camera->GetView() * camera->GetProjection();
+	const ImVec2 screenOrigin = ImGui::GetMainViewport()->Pos;
+	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+	drawList->PushClipRect({viewportMin.x, viewportMin.y}, {viewportMax.x, viewportMax.y}, true);
+	for (PropData& prop : propDataList)
+	{
+		if (prop.spawnTag.empty()) continue;
+		DirectX::BoundingBox bounds;
+		if (!GetPropWorldBounds(prop, bounds)) continue;
+		const Vector3 anchor(bounds.Center.x, bounds.Center.y + bounds.Extents.y, bounds.Center.z);
+		const Vector4 clip = Vector4::Transform(Vector4(anchor.x, anchor.y, anchor.z, 1.0f), viewProjection);
+		if (clip.w <= eps) continue;
+		const float depth = clip.z / clip.w;
+		if (depth < 0.0f || depth > 1.0f) continue;
+		const ImVec2 textSize = ImGui::CalcTextSize(prop.spawnTag.c_str());
+		const ImVec2 position(
+			screenOrigin.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth - textSize.x * 0.5f,
+			screenOrigin.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight - textSize.y - 12.0f);
+		drawList->AddRectFilled({position.x - 5.0f, position.y - 3.0f},
+			{position.x + textSize.x + 5.0f, position.y + textSize.y + 3.0f}, IM_COL32(0, 0, 0, 170), 4.0f);
+		drawList->AddText(position, IM_COL32(255, 255, 255, 255), prop.spawnTag.c_str());
+	}
+	drawList->PopClipRect();
+}
+
 void StageLoader::DrawGUI()
 {
 	DrawEditorGUI();
@@ -575,6 +566,8 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 	const std::string name = std::filesystem::path(propData.modelPath).stem().string();
 	Spawner* spawner = actor->GetComponent<Spawner>();
 	if (!spawner) spawner = actor->AddComponent<Spawner>(name);
+	actor->SetSpawnTag(propData.spawnTag);
+	spawner->SetSpawnTag(propData.spawnTag);
 	spawner->SetActorManager(&stage->GetActorManager());
 	Transform summonTransform = propData.transform;
 	summonTransform.Update();
@@ -588,8 +581,9 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 	const auto factory = spawnerFactories.find(name);
 	if (factory != spawnerFactories.end())
 	{
-		spawner->SetFactory([create = factory->second, path = propData.modelPath](const Transform& transform) {
-			return create(transform, path);
+		spawner->SetFactory([create = factory->second, path = propData.modelPath,
+			tag = propData.spawnTag](const Transform& transform) {
+			return create(transform, path, tag);
 		});
 	}
 	else
@@ -777,7 +771,7 @@ bool StageLoader::BuildEditorPropTransform(
 
 void StageLoader::DrawEditorGUI()
 {
-	if (ImGui::Button((const char*)u8"侵入不可エリアを追加"))
+	if (ImGui::Button((const char*)(ICON_FA_COG " " u8"侵入不可エリアを追加")))
 	{
 		AddEditorBlockedArea();
 	}
@@ -795,10 +789,10 @@ void StageLoader::DrawEditorGUI()
 		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::BlockedArea, index);
 		if (open)
 		{
-			ImGui::InputText((const char*)u8"名前", &area.name);
+			ImGui::InputText((const char*)(ICON_FA_COG " " u8"名前"), &area.name);
 			area.transform.DrawGUI();
 			ApplyBlockedAreaData(index);
-			if (ImGui::Button((const char*)u8"複製"))
+			if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
 			{
 				BlockedAreaData copy = area;
 				copy.name += " Copy";
@@ -811,7 +805,7 @@ void StageLoader::DrawEditorGUI()
 				break;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"削除"))
+			if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
 			{
 				if (blockedAreaActors[index]) blockedAreaActors[index]->Destroy();
 				blockedAreaActors.erase(blockedAreaActors.begin() + index);
@@ -934,33 +928,33 @@ void StageLoader::DrawWorldWaterEditor()
 
 	if (!open) return;
 
-	bool changed = ImGui::Checkbox((const char*)u8"有効##WorldWater", &worldWater.enabled);
+	bool changed = ImGui::Checkbox((const char*)(ICON_FA_COG " " u8"有効##WorldWater"), &worldWater.enabled);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"水位", &worldWater.transform.position.y, 0.05f, -500.0f, 500.0f);
+		(const char*)(ICON_FA_COG " " u8"水位"), &worldWater.transform.position.y, 0.05f, -500.0f, 500.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"横幅", &worldWater.transform.scale.x, 1.0f, 1.0f, 10000.0f);
+		(const char*)(ICON_FA_COG " " u8"横幅"), &worldWater.transform.scale.x, 1.0f, 1.0f, 10000.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"奥行き", &worldWater.transform.scale.z, 1.0f, 1.0f, 10000.0f);
+		(const char*)(ICON_FA_COG " " u8"奥行き"), &worldWater.transform.scale.z, 1.0f, 1.0f, 10000.0f);
 
 	ImGui::SeparatorText((const char*)u8"水面表現");
 	changed |= ImGui::ColorEdit4(
-		(const char*)u8"浅瀬の色", &worldWater.settings.shallowColor.x);
+		(const char*)(ICON_FA_COG " " u8"浅瀬の色"), &worldWater.settings.shallowColor.x);
 	changed |= ImGui::ColorEdit4(
-		(const char*)u8"深い色", &worldWater.settings.deepColor.x);
+		(const char*)(ICON_FA_COG " " u8"深い色"), &worldWater.settings.deepColor.x);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"波の細かさ", &worldWater.settings.waveScale, 0.01f, 0.01f, 10.0f);
+		(const char*)(ICON_FA_COG " " u8"波の細かさ"), &worldWater.settings.waveScale, 0.01f, 0.01f, 10.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"波の速度", &worldWater.settings.waveSpeed, 0.01f, -5.0f, 5.0f);
+		(const char*)(ICON_FA_COG " " u8"波の速度"), &worldWater.settings.waveSpeed, 0.01f, -5.0f, 5.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"波の強さ", &worldWater.settings.waveStrength, 0.005f, 0.0f, 2.0f);
+		(const char*)(ICON_FA_COG " " u8"波の強さ"), &worldWater.settings.waveStrength, 0.005f, 0.0f, 2.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"フレネル範囲", &worldWater.settings.fresnelPower, 0.05f, 0.1f, 12.0f);
+		(const char*)(ICON_FA_COG " " u8"フレネル範囲"), &worldWater.settings.fresnelPower, 0.05f, 0.1f, 12.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"縁の明るさ", &worldWater.settings.fresnelStrength, 0.01f, 0.0f, 3.0f);
+		(const char*)(ICON_FA_COG " " u8"縁の明るさ"), &worldWater.settings.fresnelStrength, 0.01f, 0.0f, 3.0f);
 	changed |= ImGui::SliderFloat(
-		(const char*)u8"水面の濃さ", &worldWater.settings.opacity, 0.0f, 1.0f);
+		(const char*)(ICON_FA_COG " " u8"水面の濃さ"), &worldWater.settings.opacity, 0.0f, 1.0f);
 	changed |= ImGui::DragFloat(
-		(const char*)u8"岸際のぼかし", &worldWater.settings.shoreFadeDistance,
+		(const char*)(ICON_FA_COG " " u8"岸際のぼかし"), &worldWater.settings.shoreFadeDistance,
 		0.01f, 0.01f, 5.0f);
 
 	if (changed)
@@ -977,7 +971,8 @@ bool StageLoader::DrawPropEditor(int index)
 	const bool selected = selectedEditorObjectType == EditorObjectType::Prop &&
 		selectedEditorObjectIndex == index;
 	const std::string label =
-		std::filesystem::path(propData.modelPath).stem().string() + "###Prop";
+		std::string(ICON_FA_CUBE " ") + std::filesystem::path(propData.modelPath).stem().string() +
+		" - [ " + propData.spawnTag + " ]###Prop";
 	const bool open = ImGui::TreeNodeEx(
 		label.c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);
 	if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::Prop, index);
@@ -988,9 +983,13 @@ bool StageLoader::DrawPropEditor(int index)
 	}
 
 	propData.transform.DrawGUI();
+	if (ImGui::InputText(ICON_FA_TAG " SpawnTag", &propData.spawnTag))
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
+			stage->GetActorManager().Contains(addedPropActors[index]))
+			ConfigureSpawner(addedPropActors[index], propData);
 	ImGui::Text((const char*)u8"生成対象: %s", std::filesystem::path(propData.modelPath).stem().string().c_str());
 
-	if (ImGui::Button((const char*)u8"複製"))
+	if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
 	{
 		PropData copy = propData;
 		copy.initialSpawned = false;
@@ -1005,7 +1004,7 @@ bool StageLoader::DrawPropEditor(int index)
 		return true;
 	}
 	ImGui::SameLine();
-	if (ImGui::Button((const char*)u8"削除"))
+	if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
 	{
 		if (selectedEditorObjectType == EditorObjectType::Prop)
 		{
@@ -1144,6 +1143,7 @@ void StageLoader::LoadJson()
 			propData.editorPreview = editorModels != nullptr;
 
 			propData.modelPath = propJson.value("modelPath", "");
+			propData.spawnTag = propJson.value("spawnTag", std::string());
 			if (!propData.modelPath.empty())
 				propData.model = LoadPropModel(propData.modelPath);
 
@@ -1248,6 +1248,7 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
 
 		propJson["modelPath"] = propData.modelPath;
+		propJson["spawnTag"] = propData.spawnTag;
 		root["props"].push_back(propJson);
 	}
 
@@ -1266,4 +1267,50 @@ void StageLoader::SaveJson()
 	}
 
 	ofs << jsonText;
+}
+
+bool StageLoader::GetPropWorldBounds(PropData& propData, DirectX::BoundingBox& worldBounds)
+{
+	if (!propData.model) propData.model = LoadPropModel(propData.modelPath);
+	if (!propData.model) return false;
+
+	propData.transform.Update();
+	auto bounds = editorSelectionBounds.find(propData.modelPath);
+	if (bounds == editorSelectionBounds.end())
+	{
+		propData.model->UpdateTransform(
+			Matrix::CreateTranslation(propData.model->GetVmdlExtensionData().rootOffset));
+		const Matrix renderScale = propData.model->GetRenderScaleTransform();
+		Vector3 minimum(
+			std::numeric_limits<float>::max(),
+			std::numeric_limits<float>::max(),
+			std::numeric_limits<float>::max());
+		Vector3 maximum(
+			std::numeric_limits<float>::lowest(),
+			std::numeric_limits<float>::lowest(),
+			std::numeric_limits<float>::lowest());
+		bool hasVertex = false;
+		for (const VMDLModel::Mesh& mesh : propData.model->GetMeshes())
+		{
+			if (!mesh.isDraw || !mesh.node) continue;
+			const Matrix vertexTransform = mesh.node->worldTransform * renderScale;
+			for (const VMDLModel::Vertex& vertex : mesh.vertices)
+			{
+				const Vector3 position =
+					Vector3::Transform(vertex.position, vertexTransform);
+				minimum = Vector3::Min(minimum, position);
+				maximum = Vector3::Max(maximum, position);
+				hasVertex = true;
+			}
+		}
+		if (!hasVertex) return false;
+
+		DirectX::BoundingBox localBounds;
+		localBounds.Center = (minimum + maximum) * 0.5f;
+		localBounds.Extents = (maximum - minimum) * 0.5f;
+		bounds = editorSelectionBounds.emplace(propData.modelPath, localBounds).first;
+	}
+
+	bounds->second.Transform(worldBounds, propData.transform.matrix);
+	return true;
 }

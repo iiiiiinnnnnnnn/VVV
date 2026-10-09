@@ -13,21 +13,14 @@
 #include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
 #include "Core/Object/Component.h"
-#include "Application/Tools/DynamicAnimation.h"
 
 #define ANIM(name) model->GetAnimationIndex(name)
 
 class Animator : public Component
 {
 public:
-    enum class AnimationMode
-    {
-        VMDLModel,
-        Dynamic
-    };
 
     Animator(Object* owner, std::shared_ptr<VMDLModel> model, bool unscaledTime = false);
-    Animator(Object* owner, bool unscaledTime = true);
     ~Animator() override;
     void Update() override;
     void DrawGUI() override;
@@ -88,7 +81,6 @@ public:
 
         std::string             name;
         int                     animationIndex = -1;
-        std::string             dynamicClipPath;
         float                   speed = 1.0f;
         bool                    loop = true;
         bool                    blockAnyStateTransitions = false;
@@ -155,14 +147,9 @@ public:
     std::unordered_map<std::string, bool>&       GetTriggers_Mutable()   { return triggers; }
 
     std::shared_ptr<VMDLModel> GetModel() const { return model; }
-    AnimationMode GetAnimationMode() const { return animationMode; }
-    bool IsDynamicMode() const { return animationMode == AnimationMode::Dynamic; }
 
     float GetStateLength(const State& state) const;
     std::string GetStateAnimationName(const State& state) const;
-    bool SetDynamicClipPath(int layerIndex, int stateIndex, const std::string& path);
-    void ReloadDynamicClips();
-    const std::string& GetDynamicAnimationError() const { return dynamicAnimationError; }
 
     // =========================================================
     // =========================================================
@@ -183,10 +170,6 @@ public:
     // =========================================================
     int  AddState(int layerIndex, const std::string& name,
                   int animationIndex, bool loop = true, float speed = 1.0f);
-
-    int  AddDynamicState(int layerIndex, const std::string& name,
-                         const std::string& clipPath = "",
-                         bool loop = true, float speed = 1.0f);
 
     int  AddTransition(int layerIndex, int fromState, int toState,
                        float transitionDuration = 0.1f,
@@ -260,7 +243,6 @@ public:
         triggers.clear();
         nodePoses.clear();
         nextNodePoses.clear();
-        dynamicClipCache.clear();
     }
 
     void SetRootMotion(const std::string& rootNodeName);
@@ -300,26 +282,8 @@ private:
     void EvaluateCallbacks(State& state, float currentTime, float animLength);
     void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer, std::vector<VMDLModel::NodePose>& finalPoses);
-    void UpdateDynamicLayer(AnimatorLayer& layer);
-    void ApplyDynamicState(const State& state, float time);
-    void ApplyDynamicTransition(const State& currentState, float currentTime,
-                                const State& nextState, float nextTime, float blendWeight);
-    void ApplyDynamicTrack(const DynamicAnimationTrack& track, const DynamicValue& value);
-    std::shared_ptr<DynamicAnimationClip> GetDynamicClip(const std::string& path) const;
-    void ReloadActiveDynamicClipsIfChanged();
-    bool ReloadDynamicClipIfChanged(const std::string& path);
-    const DynamicAnimationTrack* FindMatchingTrack(
-        const DynamicAnimationClip& clip,
-        const DynamicAnimationTrack& sourceTrack) const;
-
-    AnimationMode animationMode = AnimationMode::VMDLModel;
     std::shared_ptr<VMDLModel> model;
     bool unscaledTime = false;
-    mutable std::unordered_map<std::string, std::shared_ptr<DynamicAnimationClip>> dynamicClipCache;
-    mutable std::unordered_map<std::string, long long> dynamicClipWriteStamps;
-    mutable std::string dynamicAnimationError;
-    float dynamicClipWatchTimer = 0.0f;
-    static constexpr float DynamicClipWatchInterval = 0.25f;
 
     std::vector<AnimatorLayer> layers;
 
@@ -356,7 +320,7 @@ private:
     bool suppressNodeEditorInteractions = false;
     float editorLeftPanelWidth = 230.0f;
     bool addLayerPopupOpen = false;
-    std::string addLayerName = "New Layer";
+    std::string addLayerName = (const char*)u8"新規レイヤー";
     std::vector<bool> maskSelection;
     int contextLayerIndex = -1;
 

@@ -6,6 +6,7 @@
 class VMDL;
 class VMDLModel;
 class VMDLColliderComponent;
+bool GetCrystalModelBounds(const VMDLModel& model, Vector3& center, Vector3& size);
 
 class BaseCrystal : public Entity
 {
@@ -23,7 +24,7 @@ class CrystalPart : public BaseCrystal
 {
 public:
 	CrystalPart(const Transform& placement, std::shared_ptr<VMDLModel> model);
-	void StartMoving(const Vector3& velocity, const Vector3& rotationSpeed);
+	void StartMoving(const Vector3& velocity, const Vector3& rotationSpeed, Actor* source = nullptr);
 
 private:
 	void OnUpdate() override;
@@ -31,6 +32,7 @@ private:
 		const Vector3& point, const Vector3& normal) override;
 	VMDLColliderComponent* body = nullptr;
 	Vector3 initialScale;
+	std::weak_ptr<Actor> sourceActor;
 	float elapsedTime = 0.0f;
 	bool contactPending = false;
 	bool shrinking = false;

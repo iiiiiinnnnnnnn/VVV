@@ -33,6 +33,7 @@ public:
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;
+	void TakeDamage(const DamageData& damageData) override;
 
 	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 	void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
@@ -45,11 +46,23 @@ public:
 	void SetBossBar(BossBar* value);
 	void SetStageLoader(StageLoader* value) { stageLoader = value; }
 
+	bool IsThreating() const { return phaseThreatActive; }
+
 private:
 	// 威嚇モーションと画面演出をまとめて開始する。
 	void PlayThreatPresentation();
+	void BeginPhaseChange();
+	void SpawnPhaseFragments();
+	void UpdateHealthPresentation();
+	void UpdateHealthDissolve(float deltaTime);
+	void UpdatePhaseColor();
+	void ApplyEnragedAIParameters();
+	void ConfigureAI();
+	void RegisterAICallbacks();
+	int GetJumpSequenceCount() const;
 	// AIの対象取得を監視し、Threat状態の開始通知を取りこぼしても演出する。
 	void UpdateThreatPresentation();
+	void UpdateReactionAnimation();
 	void UpdateAnimatedModelTransform();
 	void DeformTerrainAtLanding();
 	void SpawnDeerFromSky();
@@ -79,6 +92,7 @@ private:
 	Terrain* terrain = nullptr;
 	StageLoader* stageLoader = nullptr;
 	bool jumpLanded = false;
+	bool jumpAnimationPending = false;
 	bool jumpAnimationWaitingForLanding = false;
 	bool landingDeformPending = false;
 	bool deathSequenceActive = false;
@@ -94,11 +108,23 @@ private:
 	uint64_t voiceIdChase = 0;
 	bool chaseBgmEngaged = false;
 	bool playerDetected = false;
+	bool damageAnimationPending = false;
+	bool threatAnimationPending = false;
 	BossBar* bossBar = nullptr;
-	std::vector<Actor*> bossSummonedDeer;
 	float chaseBgmVolume = 0.0f;
 	float chaseBgmFadeInSeconds = 1.0f;
 	float chaseBgmFadeOutSeconds = 1.5f;
+
+	bool enraged = false;
+	bool phaseChangeQueued = false;
+	bool phasePresentationPending = false;
+	bool phaseThreatActive = false;
+	float phaseThreatElapsed = 0.0f;
+	float phaseColorElapsed = 0.0f;
+	float healthDissolveAmount = 0.0f;
+	int remainingJumps = 0;
+	std::shared_ptr<VMDLModel> phaseFragmentModel;
+	Vector3 phaseFragmentSize = Vector3::One;
 
 	VMatRenderParams renderParams;
 };

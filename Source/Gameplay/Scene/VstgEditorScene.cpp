@@ -334,39 +334,39 @@ void VstgEditorScene::OnDrawGUI()
 	// 左側のステージ設定
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({leftWidth, workSize.y}, ImGuiCond_Always);
-	if (ImGui::Begin((const char*)u8"ステージ設定###VSTG Stage Settings", nullptr, windowFlags))
+	if (ImGui::Begin((const char*)(ICON_FA_COG " " u8"ステージ設定###VSTG Stage Settings"), nullptr, windowFlags))
 	{
 		if (ImGui::BeginTabBar("VSTG Settings Tabs"))
 		{
-			if (ImGui::BeginTabItem((const char*)u8"ライト"))
+			if (ImGui::BeginTabItem((const char*)(ICON_FA_MOUNTAIN " " u8"地形")))
 			{
-				if (ImGui::Button((const char*)u8"ポイントライト追加"))
+				if (terrain) terrain->DrawGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem((const char*)(ICON_FA_LIGHTBULB " " u8"ライト")))
+			{
+				if (ImGui::Button((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト追加")))
 				{
 					currentStage->GetLightManager().AddPointLight();
 					dirty = true;
 				}
 				ImGui::SameLine();
-				if (ImGui::Button((const char*)u8"スポットライト追加"))
+				if (ImGui::Button((const char*)(ICON_FA_LIGHTBULB " " u8"スポットライト追加")))
 				{
 					currentStage->GetLightManager().AddSpotLight();
 					dirty = true;
 				}
 				ImGui::SameLine();
-				if (ImGui::Button((const char*)u8"エリアライト追加"))
+				if (ImGui::Button((const char*)(ICON_FA_LIGHTBULB " " u8"エリアライト追加")))
 				{
 					currentStage->GetLightManager().AddAreaLight();
 					dirty = true;
 				}
 				currentStage->GetLightManager().DrawGUI();
 				ImGui::Separator();
-				ImGui::TextUnformatted((const char*)u8"IBL・スカイボックス");
+				ImGui::TextUnformatted((const char*)(ICON_FA_CLOUD " " u8"IBL・スカイボックス"));
 				Game::Graphics::Instance().DrawSkyMapGUI();
 				Game::Graphics::Instance().GetSkyBoxRenderer()->DrawGUI();
-				ImGui::EndTabItem();
-			}
-			if (ImGui::BeginTabItem((const char*)u8"地形"))
-			{
-				if (terrain) terrain->DrawGUI();
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
@@ -379,12 +379,12 @@ void VstgEditorScene::OnDrawGUI()
 		{workPosition.x + workSize.x - rightWidth, workPosition.y}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({rightWidth, workSize.y}, ImGuiCond_Always);
 	if (ImGui::Begin(
-			(const char*)u8"ステージオブジェクト###VSTG Stage Objects", nullptr, windowFlags))
+			(const char*)(ICON_FA_CUBES " " u8"ステージオブジェクト###VSTG Stage Objects"), nullptr, windowFlags))
 	{
-		ImGui::TextUnformatted((const char*)u8"配置物一覧");
+		ImGui::TextUnformatted((const char*)(ICON_FA_CUBES " " u8"配置物一覧"));
 		DrawPropBrowser(ImGui::GetContentRegionAvail().y * 0.35f);
 		ImGui::Separator();
-		ImGui::TextUnformatted((const char*)u8"配置済み");
+		ImGui::TextUnformatted((const char*)(ICON_FA_LIST " " u8"配置済み"));
 		if (ImGui::BeginChild("##VSTG Placed Objects", ImVec2(0.0f, 0.0f), true))
 			if (stageLoader) stageLoader->DrawGUI();
 		ImGui::EndChild();
@@ -413,7 +413,7 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::SetNextWindowSize({viewportMax.x - viewportMin.x, toolbarHeight}, ImGuiCond_Always);
 	if (ImGui::Begin("###VSTG Viewport Toolbar", nullptr, toolbarFlags))
 	{
-		ImGui::TextUnformatted((const char*)u8"3Dビュー");
+		ImGui::TextUnformatted((const char*)(ICON_FA_CUBE " " u8"3Dビュー"));
 		ImGui::SameLine();
 		if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT " " u8"移動"))) gizmoOperation = ImGuizmo::TRANSLATE;
 		ImGui::SameLine();
@@ -426,6 +426,9 @@ void VstgEditorScene::OnDrawGUI()
 	// 3Dビュー上の配置と選択操作
 	DrawPlacementDropTarget({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
 	DrawObjectGizmo(viewportMin, viewportMax);
+	if (stageLoader)
+		stageLoader->DrawSpawnTags({viewportMin.x, viewportMin.y + toolbarHeight},
+			{viewportMax.x, viewportMax.y});
 
 	// UI編集後の変更検出
 	if (!dirty && (ImGui::IsAnyItemActive() || ImGui::IsMouseReleased(ImGuiMouseButton_Left)) &&

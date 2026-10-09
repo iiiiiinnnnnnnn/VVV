@@ -16,7 +16,7 @@
         {"name":"FreedomMaxDistance","type":1,"bool":false,"float":10.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"FreedomMoveSpeed","type":1,"bool":false,"float":1.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
         {"name":"AttackMoveSpeed","type":1,"bool":false,"float":6.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}},
-        {"name":"AttackOverDistance","type":1,"bool":false,"float":8.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}}
+        {"name":"AttackOverDistance","type":1,"bool":false,"float":16.0,"runtimeOnly":false,"vector":{"x":0.0,"y":0.0,"z":0.0}}
     ],
     "states": [
         {

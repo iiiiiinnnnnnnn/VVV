@@ -1,7 +1,6 @@
 ﻿#if 0
 
 #include "Gameplay/Actor/Apple.h"
-#include "Rendering/Component/DamageHoleComponent.h"
 #include "Resource/ResourceManager.h"
 #include "HitEffect.h"
 

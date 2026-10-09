@@ -1,6 +1,7 @@
 ﻿#include "Rendering/Renderer/SpriteRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Shader/BasicSpriteShader.h"
+#include "Rendering/Shader/DissolveSpriteShader.h"
 
 // 追加
 #include "Rendering/Shader/GaussianFilterShader.h"
@@ -19,6 +20,7 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
 	shaders[static_cast<int>(SpriteShaderId::Basic)] = std::make_unique<BasicSpriteShader>(device);
+	shaders[static_cast<int>(SpriteShaderId::Dissolve)] = std::make_unique<DissolveSpriteShader>(device);
 
 	// 追加
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);

@@ -38,6 +38,8 @@ class Spawner : public Component
 
 	// 生成対象
 	const std::string& GetEntityName() const { return entityName; }
+	void SetSpawnTag(const std::string& value) { spawnTag = value; }
+	const std::string& GetSpawnTag() const { return spawnTag; }
 
 	void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_MAP_MARKED_ALT " Spawner"; }
@@ -45,6 +47,7 @@ class Spawner : public Component
   private:
 	// 召喚設定
 	const std::string entityName;
+	std::string spawnTag;
 	Factory factory = {};
 	ActorManager* actorManager = nullptr;
 	Transform summonTransform = {};

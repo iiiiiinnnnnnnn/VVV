@@ -33,8 +33,8 @@ public:
 	void PauseRotation(float duration);
 	void ReleaseIfMovingAway(const Vector3& worldMoveDirection);
 
-	Actor* GetTarget() const { return target; }
-	bool IsLockedOn() const { return target; }
+	Actor* GetTarget() const { return IsTargetValid() ? target : nullptr; }
+	bool IsLockedOn() const { return GetTarget(); }
 	void SetAimActive(bool value) { aimActive = value; }
 	void SetRotationPaused(bool value) { rotationPaused = value; }
 	void SetLostRange(float value) { lostRange = std::max(value, 0.0f); }
@@ -48,6 +48,7 @@ private:
 
 	Entity* ownerEntity = nullptr;
 	Actor* target = nullptr;
+	std::weak_ptr<Actor> targetLifetime;
 	VMDLModel* targetModel = nullptr;
 	int targetAnchorIndex = -1;
 	float acquireRange = 10.0f;

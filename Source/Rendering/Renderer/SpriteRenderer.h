@@ -15,6 +15,7 @@ enum class SpriteShaderId
 	GaussianFilter,
 	Vignette,
 	VignetteOverlay,
+	Dissolve,
 
 	EnumCount
 };

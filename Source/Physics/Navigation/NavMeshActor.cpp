@@ -295,7 +295,7 @@ bool NavMeshActor::BuildTile(
 			Vector3& position = worldVertices[vertexIndex];
 			position = Vector3(
 				(u - 0.5f) * terrainSize,
-				terrain.GetSurfaceHeightByUV(u, v),
+				terrain.GetSurfaceHeightByUV(u, v, true),
 				(v - 0.5f) * terrainSize);
 
 			verts[static_cast<size_t>(vertexIndex) * 3] =
@@ -682,8 +682,10 @@ bool NavMeshActor::FindNextPoint(
 
 	const float horizontalExtent = nearestPolyExtent;
 	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
-	const float startPos[3] = {start.x, start.y, start.z};
-	const float goalPos[3] = {goal.x, goal.y, goal.z};
+	const Vector3 navigationStart = ProjectTerrainPosition(start, true);
+	const Vector3 navigationGoal = ProjectTerrainPosition(goal, true);
+	const float startPos[3] = {navigationStart.x, navigationStart.y, navigationStart.z};
+	const float goalPos[3] = {navigationGoal.x, navigationGoal.y, navigationGoal.z};
 	float nearestStart[3] = {};
 	float nearestGoal[3] = {};
 	dtPolyRef startRef = 0;
@@ -705,10 +707,11 @@ bool NavMeshActor::FindNextPoint(
 	radius = std::max(radius, 0.0f);
 	height = std::max(height, 0.0f);
 	auto pointFits = [&](dtPolyRef reference, const Vector3& point) {
+		const Vector3 surfacePoint = ProjectTerrainPosition(point, false);
 		for (const ObstacleBounds& obstacle : obstacles)
 		{
 			const Vector3 half = obstacle.size * 0.5f;
-			if (point.y + height <= obstacle.center.y - half.y || point.y >= obstacle.center.y + half.y) continue;
+			if (surfacePoint.y + height <= obstacle.center.y - half.y || surfacePoint.y >= obstacle.center.y + half.y) continue;
 			const float dx = std::max(fabsf(point.x - obstacle.center.x) - half.x, 0.0f);
 			const float dz = std::max(fabsf(point.z - obstacle.center.z) - half.z, 0.0f);
 			if (dx * dx + dz * dz <= radius * radius) return false;
@@ -825,6 +828,16 @@ bool NavMeshActor::FindNextPoint(
 	return true;
 }
 
+Vector3 NavMeshActor::ProjectTerrainPosition(const Vector3& position, bool navigationBase) const
+{
+	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
+	if (!terrain || terrain->GetTerrainSize() <= 0.0f) return position;
+	const float size = terrain->GetTerrainSize();
+	return Vector3(position.x,
+		terrain->GetSurfaceHeightByUV(position.x / size + 0.5f, position.z / size + 0.5f, navigationBase),
+		position.z);
+}
+
 bool NavMeshActor::FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const
 {
 	if (!built || !navQuery) return false;
@@ -835,7 +848,8 @@ bool NavMeshActor::FindNearestPoint(const Vector3& position, Vector3& nearestPoi
 
 	const float horizontalExtent = nearestPolyExtent;
 	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
-	const float queryPosition[3] = {position.x, position.y, position.z};
+	const Vector3 navigationPosition = ProjectTerrainPosition(position, true);
+	const float queryPosition[3] = {navigationPosition.x, navigationPosition.y, navigationPosition.z};
 	float nearestPosition[3] = {};
 	dtPolyRef nearestRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
@@ -858,7 +872,8 @@ bool NavMeshActor::IsOutsideOrNearBoundary(const Vector3& position, float distan
 	filter.setIncludeFlags(1);
 	const float extent = nearestPolyExtent;
 	const float halfExtents[] = {extent, 20.0f, extent};
-	const float queryPosition[] = {position.x, position.y, position.z};
+	const Vector3 navigationPosition = ProjectTerrainPosition(position, true);
+	const float queryPosition[] = {navigationPosition.x, navigationPosition.y, navigationPosition.z};
 	float nearestPosition[3] = {};
 	dtPolyRef reference = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(queryPosition, halfExtents,
@@ -889,7 +904,8 @@ bool NavMeshActor::FindRecoveryPoint(
 
 	const float horizontalExtent = nearestPolyExtent;
 	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
-	const float queryPosition[3] = {position.x, position.y, position.z};
+	const Vector3 navigationPosition = ProjectTerrainPosition(position, true);
+	const float queryPosition[3] = {navigationPosition.x, navigationPosition.y, navigationPosition.z};
 	float nearestPosition[3] = {};
 	dtPolyRef nearestRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
@@ -936,7 +952,8 @@ bool NavMeshActor::FindRandomPoint(
 
 	const float horizontalExtent = nearestPolyExtent;
 	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
-	const float centerPos[3] = {center.x, center.y, center.z};
+	const Vector3 navigationCenter = ProjectTerrainPosition(center, true);
+	const float centerPos[3] = {navigationCenter.x, navigationCenter.y, navigationCenter.z};
 	float nearestCenter[3] = {};
 	dtPolyRef centerRef = 0;
 	if (dtStatusFailed(navQuery->findNearestPoly(
@@ -953,8 +970,9 @@ bool NavMeshActor::FindRandomPoint(
 	{
 		const float angle = Random::Range(-DirectX::XM_PI, DirectX::XM_PI);
 		const float distance = sqrtf(Random::Range(minDistanceSq, maxDistanceSq));
-		const float candidate[3] = {
-			center.x + sinf(angle) * distance, center.y, center.z + cosf(angle) * distance};
+		const Vector3 navigationCandidate = ProjectTerrainPosition(Vector3(
+			center.x + sinf(angle) * distance, center.y, center.z + cosf(angle) * distance), true);
+		const float candidate[3] = {navigationCandidate.x, navigationCandidate.y, navigationCandidate.z};
 
 		dtPolyRef goalRef = 0;
 		float nearestGoal[3] = {};

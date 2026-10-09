@@ -313,6 +313,16 @@ namespace Game
 		}
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newGGXLUT;
+		const std::array paths = {lutPath, specularPath, diffusePath};
+		std::array<std::filesystem::file_time_type, 3> updated{};
+		std::array<std::uintmax_t, 3> sizes{};
+		for (size_t i = 0; i < paths.size(); ++i)
+		{
+			updated[i] = std::filesystem::last_write_time(paths[i]);
+			sizes[i] = std::filesystem::file_size(paths[i]);
+		}
+		if (name == skyMapName && iblGGXLUT && iblSpecularPMREM && iblDiffuseIEM &&
+			updated == skyMapUpdated && sizes == skyMapSizes) return true;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newDiffuseIEM;
 
@@ -338,6 +348,8 @@ namespace Game
 		iblSpecularPMREM = newSpecularPMREM;
 		iblDiffuseIEM = newDiffuseIEM;
 		skyMapName = name;
+		skyMapUpdated = updated;
+		skyMapSizes = sizes;
 		return true;
 	}
 

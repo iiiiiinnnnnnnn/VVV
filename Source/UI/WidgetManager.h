@@ -1,4 +1,5 @@
 #pragma once
+#include "IconsFontAwesome5.h"
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -100,7 +101,7 @@ private:
 		const std::string& widgetName = widget->GetName();
 		const char* label = widgetName.c_str();
 		if (widgetName.empty()) label = (const char*)u8"名前なし";
-		const bool open = ImGui::TreeNodeEx("##WidgetNode", flags, "%s", label);
+		const bool open = ImGui::TreeNodeEx("##WidgetNode", flags, ICON_FA_WINDOW_MAXIMIZE " %s", label);
 		if (ImGui::IsItemClicked()) selectedWidget = widget;
 		if (open)
 		{

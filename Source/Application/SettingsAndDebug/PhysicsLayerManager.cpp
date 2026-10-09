@@ -135,27 +135,23 @@ void PhysicsLayerManager::Initialize()
 
 void PhysicsLayerManager::DrawGUI(bool* open)
 {
-    if (ImGui::Begin("Physics Layer", open))
+	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+	ImGui::SetNextWindowBgAlpha(1.0f);
+	if (ImGui::Begin((const char*)(ICON_FA_LAYER_GROUP u8" 物理レイヤー"), open))
     {
-        if (ImGui::Button("Save"))
+		if (ImGui::Button((const char*)(ICON_FA_SAVE u8" 保存")))
         {
             Save();
         }
 
         ImGui::SameLine();
 
-        if (ImGui::Button("Reload"))
+        if (ImGui::Button((const char*)(ICON_FA_RECYCLE u8" 再読み込み")))
         {
             Load();
         }
 
         ImGui::SameLine();
-
-        if (ImGui::Button("Create Default"))
-        {
-            CreateDefault();
-            Save();
-        }
 
         ImGui::Separator();
 
@@ -166,7 +162,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             const int realIndex = index;
             const std::string& name = settings.layerNames[realIndex];
 
-            return std::to_string(index) + ": " + (name.empty() ? "(Empty)" : name);
+            return std::to_string(index) + ": " + (name.empty() ? ((const char*)u8"(空)") : name);
         };
 
         auto getDisplayLayerId = [&](int index) -> LayerId
@@ -175,7 +171,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
         };
 
         static int selectedLayer = 0;
-        if (ImGui::BeginCombo("Layer", getDisplayLayerName(selectedLayer).c_str()))
+        if (ImGui::BeginCombo((const char*)(ICON_FA_LAYER_GROUP u8" レイヤー"), getDisplayLayerName(selectedLayer).c_str()))
         {
             for (int i = 0; i < DisplayLayerCount; ++i)
             {
@@ -236,7 +232,8 @@ void PhysicsLayerManager::DrawGUI(bool* open)
                 ImGui::Text("%d:", y);
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(175.0f);
-                if (ImGui::InputTextWithHint("##LayerName", "(Empty)", &settings.layerNames[y]))
+				if (ImGui::InputTextWithHint(
+						"##LayerName", ((const char*)u8"(空)"), &settings.layerNames[y]))
                     PhysicsManager::Instance().RefreshLayerFiltering();
                 if (ImGui::IsItemActivated()) selectedLayer = y;
                 ImGui::PopID();
@@ -265,6 +262,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
     }
 
     ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 LayerId PhysicsLayerManager::GetLayerId(const char* name) const
@@ -298,5 +296,5 @@ std::string PhysicsLayerManager::GetLayerDisplayName(LayerId id) const
 {
     if (id >= EditableLayerCount) return std::to_string(id) + ": (Invalid)";
     const std::string& name = GetLayerName(id);
-    return std::to_string(id) + ": " + (name.empty() ? "(Empty)" : name);
+	return std::to_string(id) + ": " + (name.empty() ? ((const char*)u8"(空)") : name);
 }

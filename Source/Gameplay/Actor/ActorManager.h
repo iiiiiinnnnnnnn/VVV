@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <cstddef>
 
 #include <algorithm>
@@ -149,6 +149,17 @@ public:
 		for (const auto& actor : data)
 		{
 			if (!actor || !actor->CompareTag(tag)) continue;
+			result.push_back(actor.get());
+		}
+		return result;
+	}
+
+	std::vector<Actor*> GetActorsByName(const std::string& name) const
+	{
+		std::vector<Actor*> result;
+		for (const auto& actor : data)
+		{
+			if (!actor || actor->GetName() != name) continue;
 			result.push_back(actor.get());
 		}
 		return result;

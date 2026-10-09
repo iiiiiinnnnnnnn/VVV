@@ -15,7 +15,6 @@
                     "animationIndex": 11,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "dynamicClipPath": "",
                     "editorPosX": 100.0,
                     "editorPosY": 0.0,
                     "hasEditorPosition": true,

@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cmath>
+#include <stdexcept>
 
 DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 {
@@ -35,20 +36,23 @@ DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA data{};
 	data.pSysMem = vertices.data();
-	_ASSERT_EXPR(SUCCEEDED(device->CreateBuffer(&bufferDesc, &data, vertexBuffer.GetAddressOf())), L"Debug bone buffer failed");
+	HRESULT hr = device->CreateBuffer(&bufferDesc, &data, vertexBuffer.GetAddressOf());
+	if (FAILED(hr)) throw std::runtime_error("Debug bone buffer failed");
 
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerDesc.CullMode = D3D11_CULL_NONE;
 	rasterizerDesc.DepthClipEnable = true;
-	_ASSERT_EXPR(SUCCEEDED(device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf())), L"Debug bone rasterizer failed");
+	hr = device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf());
+	if (FAILED(hr)) throw std::runtime_error("Debug bone rasterizer failed");
 
 	D3D11_RASTERIZER_DESC outlineRasterizerDesc = rasterizerDesc;
 	outlineRasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
 	outlineRasterizerDesc.AntialiasedLineEnable = true;
-	_ASSERT_EXPR(SUCCEEDED(device->CreateRasterizerState(
+	hr = device->CreateRasterizerState(
 		&outlineRasterizerDesc,
-		outlineRasterizerState.GetAddressOf())), L"Debug bone outline rasterizer failed");
+		outlineRasterizerState.GetAddressOf());
+	if (FAILED(hr)) throw std::runtime_error("Debug bone outline rasterizer failed");
 
 	D3D11_BLEND_DESC blendDesc{};
 	D3D11_RENDER_TARGET_BLEND_DESC& target = blendDesc.RenderTarget[0];
@@ -60,7 +64,8 @@ DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 	target.DestBlendAlpha = D3D11_BLEND_ZERO;
 	target.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	target.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	_ASSERT_EXPR(SUCCEEDED(device->CreateBlendState(&blendDesc, blendState.GetAddressOf())), L"Debug bone blend state failed");
+	hr = device->CreateBlendState(&blendDesc, blendState.GetAddressOf());
+	if (FAILED(hr)) throw std::runtime_error("Debug bone blend state failed");
 }
 
 void DebugSolidRenderer::DrawBone(const Vector3& start, const Vector3& end, float width, const Color& color)

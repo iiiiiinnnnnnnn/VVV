@@ -59,7 +59,8 @@ private:
 		int		isFlatShading;
 
 		int		useBaseColorTexture;
-		int		dummy[3];
+		float	dissolveAmount;
+		float	materialDummy[2];
 		float transmission;
 		float indexOfRefraction;
 		float refractionDistance;
@@ -67,19 +68,6 @@ private:
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 
-	// b2
-	struct CbDamageHoles
-	{
-		Vector4 holes[VMatDamageHoleParams::MaxCount]; // xyz: world center, w: radius
-		Vector4 directions[VMatDamageHoleParams::MaxCount]; // xyz: world dent direction
-		int count;
-		float edgeWidth;
-		float depth;
-
-	private:
-		float dummy;
-	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	damageHolesConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	unlitPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> justDodgeUnlitPixelShader;

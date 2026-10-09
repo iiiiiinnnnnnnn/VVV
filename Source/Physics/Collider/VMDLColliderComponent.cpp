@@ -336,6 +336,16 @@ Vector3 VMDLColliderComponent::GetWorldPosition() const
 	return Conv::ToVector3(PxShapeExt::getGlobalPose(*shape, *ghostActor).p);
 }
 
+bool VMDLColliderComponent::GetBoundingSphere(Vector3& center, float& radius) const
+{
+	if (!ghostActor || !shape) return false;
+	const PxBounds3 bounds = PxShapeExt::getWorldBounds(*shape, *ghostActor, 1.0f);
+	if (bounds.isEmpty()) return false;
+	center = Conv::ToVector3(bounds.getCenter());
+	radius = shapeType == 1 ? scaledSize.x : bounds.getExtents().magnitude();
+	return radius > 0.0f;
+}
+
 Actor* VMDLColliderComponent::FindOverlapActorByTag(const std::string& tag) const
 {
 	if (!ghostActor || !shape)

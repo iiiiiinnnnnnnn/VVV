@@ -1,4 +1,8 @@
 #pragma once
+
+#include <array>
+#include <cstdint>
+#include <filesystem>
 #include <atomic>
 #include <string>
 #include <vector>
@@ -108,6 +112,8 @@ namespace Game
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iblDiffuseIEM;
 		std::string skyMapName = "Default";
+		std::array<std::filesystem::file_time_type, 3> skyMapUpdated{};
+		std::array<std::uintmax_t, 3> skyMapSizes{};
 		std::vector<std::string> skyMapNames;
 
 		bool requestToggleBorderlessFullscreen = false;

@@ -27,6 +27,7 @@ class VMDLColliderComponent : public PhysicsComponent
 	bool StartDynamicMotion(const Vector3& velocity, const Vector3& angularVelocity);
 	void SyncOwnerTransform();
 	Vector3 GetWorldPosition() const;
+	bool GetBoundingSphere(Vector3& center, float& radius) const;
 	Actor* FindOverlapActorByTag(const std::string& tag) const;
 
   private:

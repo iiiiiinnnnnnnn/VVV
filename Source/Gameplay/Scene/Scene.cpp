@@ -498,8 +498,6 @@ void Scene::DrawGUI(RenderContext& rc)
 			if (ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")))
 			{
 				if (ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"))) showPhysicsLayerWindow = true;
-				if (ImGui::MenuItem((const char*)(ICON_FA_FILM " " u8"動的アニメーションエディタ")))
-					showDynamicAnimationEditorWindow = true;
 				ImGui::EndMenu();
 			}
 			ImGui::Separator();
@@ -545,14 +543,14 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::SetNextWindowPos(contentPosition, ImGuiCond_Always);
 			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
 			const bool actorsWindowOpen =
-				ImGui::Begin((const char*)u8"アクター", nullptr, panelWindowFlags);
+				ImGui::Begin((const char*)(ICON_FA_CUBE " " u8"アクター"), nullptr, panelWindowFlags);
 			actorManager.DrawGUI(actorsWindowOpen);
 			ImGui::End();
 
 			ImGui::SetNextWindowPos(
 				{contentPosition.x, contentPosition.y + panelHeight}, ImGuiCond_Always);
 			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
-			if (ImGui::Begin((const char*)u8"ウィジェット", nullptr, panelWindowFlags))
+			if (ImGui::Begin((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィジェット"), nullptr, panelWindowFlags))
 			{
 				widgetManager.DrawGUI();
 			}
@@ -561,7 +559,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			ImGui::SetNextWindowPos(
 				{contentPosition.x, contentPosition.y + panelHeight * 2.0f}, ImGuiCond_Always);
 			ImGui::SetNextWindowSize({gameEditorLeftWidth, panelHeight}, ImGuiCond_Always);
-			if (ImGui::Begin((const char*)u8"ライト", nullptr, panelWindowFlags))
+			if (ImGui::Begin((const char*)(ICON_FA_LIGHTBULB " " u8"ライト"), nullptr, panelWindowFlags))
 			{
 				lightManager.DrawGUI();
 			}
@@ -577,10 +575,10 @@ void Scene::DrawGUI(RenderContext& rc)
 			{contentPosition.x + contentSize.x - gameEditorRightWidth, contentPosition.y},
 			ImGuiCond_Always);
 		ImGui::SetNextWindowSize({gameEditorRightWidth, contentSize.y}, ImGuiCond_Always);
-		if (ImGui::Begin((const char*)u8"シーン", nullptr, panelWindowFlags))
+		if (ImGui::Begin((const char*)(ICON_FA_COG " " u8"シーン"), nullptr, panelWindowFlags))
 		{
 			// カメラ
-			if (ImGui::CollapsingHeader((const char*)u8"カメラ", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((const char*)(ICON_FA_CAMERA " " u8"カメラ"), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text((const char*)u8"優先度: %d", camera.GetPriority());
 				if (CameraController* controller = stage.GetActiveCameraController())
@@ -588,17 +586,17 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 
 			// Time
-			if (ImGui::CollapsingHeader((const char*)u8"時間", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((const char*)(ICON_FA_CLOCK " " u8"時間"), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Text((const char*)u8"経過時間: %.4f", Game::Time::time);
 				ImGui::Text(
 					(const char*)u8"非スケール差分時間: %.4f", Game::Time::unscaledDeltaTime);
 				ImGui::Text((const char*)u8"差分時間: %.4f", Game::Time::deltaTime);
-				ImGui::DragFloat((const char*)u8"時間倍率", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
+				ImGui::DragFloat((const char*)(ICON_FA_CLOCK " " u8"時間倍率"), &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 			}
 
 			if (ImGui::CollapsingHeader(
-					(const char*)u8"スカイボックス", ImGuiTreeNodeFlags_DefaultOpen))
+					(const char*)(ICON_FA_CLOUD " " u8"スカイボックス"), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				Game::Graphics& graphics = Game::Graphics::Instance();
 				graphics.GetSkyBoxRenderer()->DrawGUI();
@@ -607,7 +605,7 @@ void Scene::DrawGUI(RenderContext& rc)
 
 			// PostProcess
 			if (ImGui::CollapsingHeader(
-					(const char*)u8"ポストプロセス", ImGuiTreeNodeFlags_DefaultOpen))
+					(const char*)(ICON_FA_MAGIC " " u8"ポストプロセス"), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				postProcess.DrawGUI();
 
@@ -690,7 +688,6 @@ void Scene::DrawGUI(RenderContext& rc)
 		ImGui::End();
 		ImGui::PopStyleVar();
 
-		dynamicAnimationEditorWindow.Draw(&showDynamicAnimationEditorWindow);
 	}
 }
 

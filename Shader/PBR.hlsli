@@ -50,24 +50,31 @@ cbuffer CbMaterial : register(b1)
     int isFlatShading;
 
     int useBaseColorTexture;
-    int3 _dummyCbMaterial;
+    float dissolveAmount;
+    float2 _dummyCbMaterial;
     float transmission;
     float indexOfRefraction;
     float refractionDistance;
     float _dummyTransmission;
 };
 
-static const int MaxDamageHoles = 8;
-
-cbuffer CbDamageHoles : register(b2)
+float DissolveNoise(float2 uv)
 {
-    float4 damageHoles[MaxDamageHoles]; // xyz: world center, w: radius
-    float4 damageHoleDirections[MaxDamageHoles]; // xyz: world dent direction
-    int damageHoleCount;
-    float damageHoleEdgeWidth;
-    float damageHoleDepth;
-    float _dummyCbDamageHoles;
-};
+    float2 cell = floor(uv * 32.0f);
+    float2 blend = frac(uv * 32.0f);
+    blend = blend * blend * (3.0f - 2.0f * blend);
+    float4 samples = frac(sin(float4(
+        dot(cell, float2(127.1f, 311.7f)),
+        dot(cell + float2(1, 0), float2(127.1f, 311.7f)),
+        dot(cell + float2(0, 1), float2(127.1f, 311.7f)),
+        dot(cell + float2(1, 1), float2(127.1f, 311.7f)))) * 43758.5453f);
+    return lerp(lerp(samples.x, samples.y, blend.x), lerp(samples.z, samples.w, blend.x), blend.y);
+}
+
+void ApplyDissolve(float2 uv)
+{
+    if (dissolveAmount > 0.0f) clip(DissolveNoise(uv) - dissolveAmount);
+}
 
 float DistanceFogFactor(float3 worldPosition)
 {

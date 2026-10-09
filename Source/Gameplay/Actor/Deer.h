@@ -12,12 +12,14 @@
 class Deer : public Entity
 {
 public:
-	Deer(const Transform& transform, const std::string& modelPath = "Resources/Model/Deer");
+	Deer(const Transform& transform, const std::string& modelPath = "Resources/Model/Deer", bool inBossField = false);
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
-private:
+
+  private:
+	void ConfigureAI();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 	VMDL* vmdl;

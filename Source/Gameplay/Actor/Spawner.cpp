@@ -23,6 +23,7 @@ Actor* Spawner::Summon(const Transform& transform)
 
 	std::shared_ptr<Actor> summoned = factory(transform);
 	if (!summoned) return nullptr;
+	summoned->SetSpawnTag(spawnTag);
 
 	Actor* result = summoned.get();
 	summonedActors.emplace_back(summoned);
@@ -42,5 +43,6 @@ void Spawner::ClearSummonedActors()
 void Spawner::DrawGUI()
 {
 	ImGui::Text((const char*)u8"生成対象: %s", entityName.c_str());
+	ImGui::Text("SpawnTag: %s", spawnTag.c_str());
 	ImGui::Text((const char*)u8"生成数: %d", static_cast<int>(summonedActors.size()));
 }

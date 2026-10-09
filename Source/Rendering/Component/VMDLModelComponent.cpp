@@ -14,6 +14,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/Scene.h"
 #include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Stage/Component/Terrain.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Core/Foundation/Easing.h"
@@ -193,9 +194,20 @@ void VMDLModelComponent::LateUpdate()
 		UpdateModelTransform(actor->transform.matrix);
 	SyncPointLights();
 
+	Scene* scene = actor ? SceneManager::Instance().GetCurrentScene() : nullptr;
+	Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
+	Terrain* terrain = stage ? stage->GetComponent<Terrain>() : nullptr;
+	auto& layers = PhysicsLayerManager::Instance();
+	const LayerId grassLayer = Layers::Get("GrassMap");
 	for (VMDLColliderComponent* collider : attachmentColliders)
 	{
-		if (collider) collider->UpdateFromNode();
+		if (!collider) continue;
+		collider->UpdateFromNode();
+		if (!terrain || !collider->IsActive() || !layers.Collides(collider->GetLayerId(), grassLayer)) continue;
+		Vector3 center;
+		float radius = 0.0f;
+		if (collider->GetBoundingSphere(center, radius))
+			terrain->RemoveGrassInSphere(center, radius, collider->GetLayerId());
 	}
 	UpdateSoundEvents();
 	UpdatePresentationEvents();
@@ -237,7 +249,7 @@ void VMDLModelComponent::UpdatePresentationEvents()
 	const auto& presentation = model->GetVmdlPresentationData();
 	if (presentation.cameraShakeTracks.empty() && presentation.radialBlurTracks.empty()) return;
 	if (!animator) animator = owner->GetComponent<Animator>();
-	if (!animator || animator->IsDynamicMode()) return;
+	if (!animator) return;
 
 	int animationIndex = -1;
 	float time = 0.0f;
@@ -342,7 +354,7 @@ void VMDLModelComponent::UpdateSoundEvents()
 	}
 	if (soundData.tracks.empty()) return;
 	if (!animator) animator = owner->GetComponent<Animator>();
-	if (!animator || animator->IsDynamicMode()) return;
+	if (!animator) return;
 
 	int animationIndex = -1;
 	float time = 0.0f;
@@ -531,7 +543,7 @@ void VMDLModelComponent::UpdateAnimationControls()
 {
 	if (!model) return;
 	if (!animator) animator = owner->GetComponent<Animator>();
-	if (!animator || animator->IsDynamicMode()) return;
+	if (!animator) return;
 
 	int animationIndex = -1;
 	float time = 0.0f;
@@ -614,12 +626,20 @@ void VMDLModelComponent::Render(const RenderContext& rc)
 {
 	if (model)
 	{
+		animatedRenderParams = renderParams;
+		int animationIndex = -1;
+		int nextAnimationIndex = -1;
+		float time = 0.0f;
+		float nextTime = 0.0f;
+		if (animator && animator->GetAnimationControlState(animationIndex, time, nextAnimationIndex, nextTime))
+			model->ApplyMaterialAnimation(nextAnimationIndex >= 0 ? nextAnimationIndex : animationIndex,
+				nextAnimationIndex >= 0 ? nextTime : time, animatedRenderParams);
 		auto* modelRenderer = Game::Graphics::Instance().GetModelRenderer();
-		modelRenderer->Draw(shaderId, model, &renderParams);
+		modelRenderer->Draw(shaderId, model, &animatedRenderParams);
 		for (const auto& [slot, meshCache] : meshCaches)
-			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &renderParams);
+			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &animatedRenderParams);
 		for (const auto& [groupIndex, meshCache] : externalMeshCaches)
-			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &renderParams);
+			modelRenderer->DrawMeshCache(shaderId, meshCache, model, &animatedRenderParams);
 	}
 }
 

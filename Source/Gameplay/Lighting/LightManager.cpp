@@ -1,4 +1,5 @@
 #include "Gameplay/Lighting/LightManager.h"
+#include "IconsFontAwesome5.h"
 
 #include <algorithm>
 #include "Gameplay/Lighting/CbLightData.h"
@@ -109,14 +110,14 @@ void LightManager::DrawGUI()
 	};
 
 	// 環境光
-	if (ImGui::CollapsingHeader((const char*)u8"環境光", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader((const char*)(ICON_FA_SUN " " u8"環境光"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::ColorEdit4((const char*)u8"環境光の色", &ambientColor.x, ImGuiColorEditFlags_Float);
+		ImGui::ColorEdit4((const char*)(ICON_FA_SUN " " u8"環境光の色"), &ambientColor.x, ImGuiColorEditFlags_Float);
 	}
 
 	// ディレクショナルライト
 	if (ImGui::CollapsingHeader(
-			(const char*)u8"ディレクショナルライト", ImGuiTreeNodeFlags_DefaultOpen))
+			(const char*)(ICON_FA_SUN " " u8"ディレクショナルライト"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::PushID(&directionalLight);
 		directionalLight.DrawGUI();
@@ -124,7 +125,7 @@ void LightManager::DrawGUI()
 	}
 
 	// ポイントライト一覧
-	if (ImGui::CollapsingHeader((const char*)u8"ポイントライト", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(pointLights),
 			CbLightData::MaxPointLights);
@@ -137,7 +138,7 @@ void LightManager::DrawGUI()
 			if (pointLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&pointLights[i]);
-			const std::string label = pointLights[i].GetName() + "###PointLight";
+			const std::string label = std::string(ICON_FA_LIGHTBULB " ") + pointLights[i].GetName() + "###PointLight";
 			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				pointLights[i].DrawGUI();
@@ -148,7 +149,7 @@ void LightManager::DrawGUI()
 	}
 
 	// スポットライト一覧
-	if (ImGui::CollapsingHeader((const char*)u8"スポットライト", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"スポットライト"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(spotLights),
 			CbLightData::MaxSpotLights);
@@ -158,7 +159,7 @@ void LightManager::DrawGUI()
 			if (spotLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&spotLights[i]);
-			const std::string label = spotLights[i].GetName() + "###SpotLight";
+			const std::string label = std::string(ICON_FA_LIGHTBULB " ") + spotLights[i].GetName() + "###SpotLight";
 			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				spotLights[i].DrawGUI();
@@ -169,7 +170,7 @@ void LightManager::DrawGUI()
 	}
 
 	// エリアライト一覧
-	if (ImGui::CollapsingHeader((const char*)u8"エリアライト", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"エリアライト"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(areaLights),
 			CbLightData::MaxAreaLights);
@@ -179,7 +180,7 @@ void LightManager::DrawGUI()
 			if (areaLights[i].IsPendingDestroy()) continue;
 
 			ImGui::PushID(&areaLights[i]);
-			const std::string label = areaLights[i].GetName() + "###AreaLight";
+			const std::string label = std::string(ICON_FA_LIGHTBULB " ") + areaLights[i].GetName() + "###AreaLight";
 			if (ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				areaLights[i].DrawGUI();
