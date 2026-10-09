@@ -1,4 +1,3 @@
-// StageLoader.cpp
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
