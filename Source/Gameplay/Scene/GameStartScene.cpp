@@ -21,8 +21,6 @@
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
 #include <cctype>
-#include <functional>
-#include <map>
 #endif
 #include "TestPlayScene.h"
 #include "Rendering/Renderer/ImGuiBinding.h"
@@ -31,8 +29,11 @@
 static std::string LowerText(std::string value)
 {
 	// パス比較用に英字を小文字へ揃える
-	std::transform(value.begin(), value.end(), value.begin(),
-		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	for (char& character : value)
+	{
+		const unsigned char unsignedCharacter = static_cast<unsigned char>(character);
+		character = static_cast<char>(std::tolower(unsignedCharacter));
+	}
 	return value;
 }
 
@@ -48,12 +49,12 @@ GameStartScene::GameStartScene()
 	headerWidget->SetAffectedByPostProcess(false);
 	widgetManager.Register(headerWidget);
 
-	headerText = std::make_shared<TextWidget>("Header Text", "TPS V Editor", 36.0f);
-	headerText->rect.position = Vector2(-240.0f, 260.0f);
+	headerText = std::make_shared<TextWidget>("Header Text", (const char*)u8"VEER", 36.0f);
+	headerText->rect.position = Vector2(50, 260.0f);
 	headerText->rect.size = Vector2(860, 100);
 	headerText->rect.anchor = Vector2::Zero;
 	headerText->SetColor(Color(1, 1, 1, 1));
-	headerText->SetAlignment(UITextAlignment::Center);
+	headerText->SetAlignment(UITextAlignment::Left);
 	widgetManager.Register(headerText);
 }
 
@@ -61,63 +62,45 @@ GameStartScene::~GameStartScene() = default;
 
 void GameStartScene::UpdateLauncherWidgetLayout()
 {
-	// ウィンドウ幅に合わせてヘッダーの基準サイズを計算
+	// 横幅を基準に画像を拡大し、縦横比を保ったまま画面全体を覆う
 	const float screenWidth = Game::Graphics::ScreenWidth;
 	const float screenHeight = Game::Graphics::ScreenHeight;
-	if (screenWidth <= 0.0f || screenHeight <= 0.0f) return;
-	const float contentWidth = std::min(860.0f, std::max(320.0f, screenWidth - 80.0f));
-	float headerWidth = contentWidth;
-	headerLayoutHeight = 176.0f;
-	if (headerWidget)
+	SpriteRenderComponent* headerSprite = headerWidget->GetComponent<SpriteRenderComponent>();
+	Texture* texture = headerSprite->GetTexture();
+	if (screenWidth <= 0.0f || screenHeight <= 0.0f || texture == nullptr)
 	{
-		SpriteRenderComponent* headerSprite =
-			headerWidget->GetComponent<SpriteRenderComponent>();
-		// 元画像の縦横比を維持
-		if (headerSprite)
-		{
-			if (Texture* texture = headerSprite->GetTexture();
-				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
-			{
-				const float aspect = static_cast<float>(texture->GetWidth()) /
-					static_cast<float>(texture->GetHeight());
-				headerLayoutHeight = headerWidth / aspect;
-				if (headerLayoutHeight > 320.0f)
-				{
-					headerLayoutHeight = 320.0f;
-					headerWidth = headerLayoutHeight * aspect;
-				}
-			}
-		}
-		// 移動しても基準領域の端が露出しないよう画像を少し拡大
-		constexpr float headerOverscan = 1.065f;
-		const Vector2 baseSize(headerWidth, headerLayoutHeight);
-		const Vector2 displaySize = baseSize * headerOverscan;
-		const Vector2 headerPosition(
-			(screenWidth - headerWidth) * 0.5f, headerTop);
-		headerWidget->rect.position = headerPosition;
-		headerWidget->rect.anchor = Vector2::Zero;
-		headerWidget->rect.size = baseSize;
-
-		// 表示領域は固定し、拡大画像の切り出し位置だけをカーソルへ追従させる
-		if (headerSprite)
-		{
-			if (Texture* texture = headerSprite->GetTexture();
-				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
-			{
-				const Vector2 textureSize(
-					static_cast<float>(texture->GetWidth()),
-					static_cast<float>(texture->GetHeight()));
-				const Vector2 cropSize = textureSize / headerOverscan;
-				const Vector2 pixelsPerSource(
-					displaySize.x / textureSize.x,
-					displaySize.y / textureSize.y);
-				const Vector2 cropPosition = (textureSize - cropSize) * 0.5f - Vector2(
-					headerParallaxOffset.x / pixelsPerSource.x,
-					headerParallaxOffset.y / pixelsPerSource.y);
-				headerSprite->SetSourceRect(cropPosition, cropSize);
-			}
-		}
+		return;
 	}
+
+	const float textureWidth = static_cast<float>(texture->GetWidth());
+	const float textureHeight = static_cast<float>(texture->GetHeight());
+	const float windowAspect = screenWidth / screenHeight;
+	const float textureAspect = textureWidth / textureHeight;
+
+	// カーソル移動分を確保するため画像の切り出し範囲を少し狭める
+	constexpr float overscan = 1.065f;
+	float cropWidth = textureWidth / overscan;
+	float cropHeight = cropWidth / windowAspect;
+	if (windowAspect < textureAspect)
+	{
+		cropHeight = textureHeight / overscan;
+		cropWidth = cropHeight * windowAspect;
+	}
+
+	const float sourcePixelsPerScreenX = cropWidth / screenWidth;
+	const float sourcePixelsPerScreenY = cropHeight / screenHeight;
+	const float parallaxSourceX = headerParallaxOffset.x * sourcePixelsPerScreenX;
+	const float parallaxSourceY = headerParallaxOffset.y * sourcePixelsPerScreenY;
+	const float centeredCropX = (textureWidth - cropWidth) * 0.5f;
+	const float centeredCropY = (textureHeight - cropHeight) * 0.5f;
+	const Vector2 cropPosition(
+		centeredCropX - parallaxSourceX,
+		centeredCropY - parallaxSourceY);
+
+	headerWidget->rect.position = Vector2::Zero;
+	headerWidget->rect.anchor = Vector2::Zero;
+	headerWidget->rect.size = Vector2(screenWidth, screenHeight);
+	headerSprite->SetSourceRect(cropPosition, Vector2(cropWidth, cropHeight));
 }
 
 void GameStartScene::UpdateHeaderParallax()
@@ -151,12 +134,14 @@ void GameStartScene::OnUpdate()
 	if (!windowConfigured)
 	{
 		ConfigureWindow();
-		if (!windowConfigured) return;
+		if (!windowConfigured)
+		{
+			return;
+		}
 	}
 	// ヘッダーの動きとレイアウトを更新
 	UpdateHeaderParallax();
 	UpdateLauncherWidgetLayout();
-	if (loadRequested) return;
 }
 
 void GameStartScene::OnDrawGUI()
@@ -164,8 +149,8 @@ void GameStartScene::OnDrawGUI()
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 管理画面ではヘッダーを隠す
 	const bool showLauncherHeader = !showCacheManager && !showSoundManager && !showEffectManager;
-	if (headerWidget) headerWidget->SetActive(showLauncherHeader);
-	if (headerText) headerText->SetActive(showLauncherHeader);
+	headerWidget->SetActive(showLauncherHeader);
+	headerText->SetActive(showLauncherHeader);
 #endif
 
 	// ウィンドウ全体を起動メニューの操作領域として使用
@@ -213,8 +198,6 @@ void GameStartScene::OnDrawGUI()
 	const float contentWidth = std::min(860.0f, std::max(320.0f, windowSize.x - 80.0f));
 	const float contentX = (windowSize.x - contentWidth) * 0.5f;
 
-	const float headerHeight = headerLayoutHeight;
-
 	// リリース版は3つだけ(というかそもそも起動画面すらない)
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	constexpr int buttonCount = 6;
@@ -224,27 +207,17 @@ void GameStartScene::OnDrawGUI()
 	constexpr float buttonGap = 12.0f;
 	const float buttonWidth = (contentWidth - buttonGap * (buttonCount - 1)) / buttonCount;
 	const ImVec2 buttonSize(buttonWidth, 68.0f);
-	const float buttonY = headerTop + headerHeight + 34.0f;
+	constexpr float bottomMargin = 34.0f;
+	const float buttonY = windowSize.y - buttonSize.y - bottomMargin;
 	ImGui::SetCursorPos(ImVec2(contentX, buttonY));
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 7.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(buttonGap, 10.0f));
-	auto menuButton = [&](const char* label, const ImVec4& normal, const ImVec4& hovered,
-		const ImVec4& active) {
-		ImGui::PushStyleColor(ImGuiCol_Button, normal);
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hovered);
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, active);
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(
-			std::min(1.0f, hovered.x + 0.15f), std::min(1.0f, hovered.y + 0.15f),
-			std::min(1.0f, hovered.z + 0.15f), 0.82f));
-		const bool clicked = ImGui::Button(label, buttonSize);
-		ImGui::PopStyleColor(4);
-		return clicked;
-	};
 
 	// 各ボタンから対応するシーンへ移動
-	if (menuButton((const char*)u8"PLAY\nゲーム開始\n(LShiftで直ゲーム)", ImGuiTheme::YellowButton,
-			ImGuiTheme::YellowButtonHovered, ImGuiTheme::YellowButtonActive))
+	if (DrawMenuButton((const char*)u8"PLAY\nゲーム開始\n(LShiftで直ゲーム)",
+		ImGuiTheme::YellowButton, ImGuiTheme::YellowButtonHovered,
+		ImGuiTheme::YellowButtonActive, buttonSize))
 	{
 		if (ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftShift))
 		{
@@ -256,35 +229,39 @@ void GameStartScene::OnDrawGUI()
 		}
 	}
 	ImGui::SameLine();
-	if (menuButton((const char*)u8"VMDL\nモデル編集", ImGuiTheme::RedButton,
-		ImGuiTheme::RedButtonHovered, ImGuiTheme::RedButtonActive))
+	if (DrawMenuButton((const char*)u8"VMDL\nモデル編集", ImGuiTheme::RedButton,
+		ImGuiTheme::RedButtonHovered, ImGuiTheme::RedButtonActive, buttonSize))
+	{
 		loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>();
+	}
 	ImGui::SameLine();
-	if (menuButton((const char*)u8"VSTG\nステージ編集", ImGuiTheme::StartVstgButton,
-		ImGuiTheme::StartVstgButtonHovered, ImGuiTheme::StartVstgButtonActive))
+	if (DrawMenuButton((const char*)u8"VSTG\nステージ編集", ImGuiTheme::StartVstgButton,
+		ImGuiTheme::StartVstgButtonHovered, ImGuiTheme::StartVstgButtonActive, buttonSize))
+	{
 		loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>();
+	}
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	const ImVec4 utilityNormal(0.12f, 0.16f, 0.22f, 0.96f);
 	const ImVec4 utilityHovered(0.20f, 0.29f, 0.39f, 1.0f);
 	const ImVec4 utilityActive(0.28f, 0.40f, 0.53f, 1.0f);
 	ImGui::SameLine();
-	if (menuButton((const char*)u8"CACHE\nキャッシュ管理", utilityNormal,
-		utilityHovered, utilityActive))
+	if (DrawMenuButton((const char*)u8"CACHE\nキャッシュ管理", utilityNormal,
+		utilityHovered, utilityActive, buttonSize))
 	{
 		showCacheManager = true;
 		windowConfigured = false;
 		ReloadCacheList();
 	}
 	ImGui::SameLine();
-	if (menuButton((const char*)u8"SOUND\nサウンド管理", utilityNormal,
-		utilityHovered, utilityActive))
+	if (DrawMenuButton((const char*)u8"SOUND\nサウンド管理", utilityNormal,
+		utilityHovered, utilityActive, buttonSize))
 	{
 		showSoundManager = true;
 		windowConfigured = false;
 	}
 	ImGui::SameLine();
-	if (menuButton((const char*)u8"EFFECT\nエフェクト管理", utilityNormal,
-		utilityHovered, utilityActive))
+	if (DrawMenuButton((const char*)u8"EFFECT\nエフェクト管理", utilityNormal,
+		utilityHovered, utilityActive, buttonSize))
 	{
 		showEffectManager = true;
 		windowConfigured = false;
@@ -293,6 +270,24 @@ void GameStartScene::OnDrawGUI()
 	ImGui::PopStyleVar(3);
 	ImGui::End();
 	ImGui::PopStyleVar();
+}
+
+bool GameStartScene::DrawMenuButton(const char* label, const ImVec4& normal,
+	const ImVec4& hovered, const ImVec4& active, const ImVec2& size)
+{
+	// ボタンごとの色を適用してクリック状態だけを返す
+	ImGui::PushStyleColor(ImGuiCol_Button, normal);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, active);
+	const float borderRed = std::min(1.0f, hovered.x + 0.15f);
+	const float borderGreen = std::min(1.0f, hovered.y + 0.15f);
+	const float borderBlue = std::min(1.0f, hovered.z + 0.15f);
+	const ImVec4 borderColor(borderRed, borderGreen, borderBlue, 0.82f);
+	ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+
+	const bool clicked = ImGui::Button(label, size);
+	ImGui::PopStyleColor(4);
+	return clicked;
 }
 
 void GameStartScene::ConfigureWindow()
@@ -310,9 +305,14 @@ void GameStartScene::ConfigureWindow()
 	constexpr LONG_PTR style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	const bool managerOpen = showCacheManager || showSoundManager || showEffectManager;
-	const int clientWidth = managerOpen ? 900 : 960;
+	int clientWidth = 960;
+	int clientHeight = 490;
+	if (managerOpen)
+	{
+		clientWidth = 900;
+		clientHeight = 640;
+	}
 	// ヘッダーとボタン列の下に、上端と同程度の余白だけを残す
-	const int clientHeight = managerOpen ? 640 : 490;
 #else
 	constexpr int clientWidth = 960;
 	constexpr int clientHeight = 490;
@@ -342,15 +342,157 @@ void GameStartScene::ConfigureWindow()
 void GameStartScene::ReloadCacheList()
 {
 	// リソース設定とキャッシュ対象を読み直す
+	const auto source = ResourceManager::FindSourceResourceRoot();
+	if (source.empty())
+	{
+		cacheMessage = "Source Resources was not found";
+		return;
+	}
+
 	try
 	{
-		const auto source = ResourceManager::FindSourceResourceRoot();
-		if (source.empty()) throw std::runtime_error("Source Resources was not found");
 		cacheSettings.Load(source / "ResourceSettings.ini");
 		cachePaths = CacheBuilder::ListResources(source);
 		cacheMessage.clear();
 	}
-	catch (const std::exception& error) { cacheMessage = error.what(); }
+	catch (const std::exception& error)
+	{
+		cacheMessage = error.what();
+	}
+}
+
+void GameStartScene::AddResourceTreePath(ResourceTreeNode& root,
+	const std::string& path, const std::string& enumName)
+{
+	// パスをフォルダー単位へ分けてツリーへ追加
+	std::vector<std::string> parts;
+	for (const auto& part : std::filesystem::path(path))
+	{
+		parts.push_back(part.string());
+	}
+	if (!parts.empty() && LowerText(parts.front()) == "resources")
+	{
+		parts.erase(parts.begin());
+	}
+	if (parts.empty())
+	{
+		return;
+	}
+
+	ResourceTreeNode* parent = &root;
+	for (size_t index = 0; index + 1 < parts.size(); ++index)
+	{
+		const std::string key = "0:" + parts[index];
+		auto [item, inserted] = parent->children.try_emplace(key);
+		if (inserted)
+		{
+			item->second.name = parts[index];
+			item->second.path = parent->path + '/' + parts[index];
+		}
+		parent = &item->second;
+	}
+
+	const std::string key = "1:" + parts.back();
+	auto item = parent->children.try_emplace(key).first;
+	item->second.name = parts.back();
+	item->second.path = path;
+	item->second.enumName = enumName;
+	item->second.file = true;
+}
+
+void GameStartScene::DrawTreeLabel(const ResourceTreeNode& node, int depth,
+	const std::vector<bool>& guides, bool last)
+{
+	// 階層が追いやすいように枝線と簡易アイコンを描画
+	const ImVec2 cursor = ImGui::GetCursorScreenPos();
+	const ImGuiStyle& style = ImGui::GetStyle();
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	constexpr float step = 21.0f;
+	const float rowTop = cursor.y - style.CellPadding.y;
+	const float rowBottom = rowTop + 24.0f;
+	const float centerY = cursor.y + ImGui::GetTextLineHeight() * 0.5f;
+	const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Border);
+
+	for (size_t level = 0; level < guides.size(); ++level)
+	{
+		if (guides[level])
+		{
+			const float x = cursor.x + static_cast<float>(level) * step + 8.0f;
+			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, rowBottom), lineColor, 1.0f);
+		}
+	}
+	if (depth > 0)
+	{
+		const float x = cursor.x + static_cast<float>(depth - 1) * step + 8.0f;
+		float branchBottom = rowBottom;
+		if (last)
+		{
+			branchBottom = centerY;
+		}
+		drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, branchBottom), lineColor, 1.0f);
+		drawList->AddLine(ImVec2(x, centerY), ImVec2(x + 10.0f, centerY), lineColor, 1.0f);
+	}
+
+	const float iconX = cursor.x + static_cast<float>(depth) * step;
+	if (!node.file)
+	{
+		const ImU32 folderColor = IM_COL32(225, 178, 70, 255);
+		drawList->AddRectFilled(ImVec2(iconX + 1.0f, cursor.y + 4.0f),
+			ImVec2(iconX + 17.0f, cursor.y + 15.0f), folderColor, 2.0f);
+		drawList->AddRectFilled(ImVec2(iconX + 2.0f, cursor.y + 1.0f),
+			ImVec2(iconX + 9.0f, cursor.y + 6.0f), folderColor, 2.0f);
+	}
+	else
+	{
+		const ImU32 fileColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+		drawList->AddRect(ImVec2(iconX + 3.0f, cursor.y + 1.0f),
+			ImVec2(iconX + 15.0f, cursor.y + 16.0f), fileColor, 1.0f, 0, 1.0f);
+		drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 6.0f),
+			ImVec2(iconX + 12.0f, cursor.y + 6.0f), fileColor);
+		drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 10.0f),
+			ImVec2(iconX + 12.0f, cursor.y + 10.0f), fileColor);
+	}
+	ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
+	ImGui::TextUnformatted(node.name.c_str());
+}
+
+void GameStartScene::DrawEnumTreeNode(ResourceTreeNode& node,
+	const std::string& enumPrefix, int depth, const std::vector<bool>& guides, bool last)
+{
+	ImGui::PushID(node.path.c_str());
+	ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
+	if (!node.file)
+	{
+		ImU32 background = IM_COL32(39, 45, 54, 255);
+		if (depth == 0)
+		{
+			background = IM_COL32(47, 61, 78, 255);
+		}
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
+	}
+	ImGui::TableNextColumn();
+	DrawTreeLabel(node, depth, guides, last);
+	if (node.file)
+	{
+		ImGui::TableNextColumn();
+		const std::string constant = enumPrefix + node.enumName;
+		ImGui::TextUnformatted(constant.c_str());
+	}
+
+	size_t childIndex = 0;
+	for (auto& childEntry : node.children)
+	{
+		ResourceTreeNode& child = childEntry.second;
+		++childIndex;
+		const bool childLast = childIndex == node.children.size();
+		std::vector<bool> childGuides = guides;
+		if (depth > 0)
+		{
+			childGuides.push_back(!last);
+		}
+		DrawEnumTreeNode(child, enumPrefix, depth + 1, childGuides, childLast);
+	}
+	ImGui::PopID();
 }
 
 void GameStartScene::DrawEffectManager()
@@ -365,124 +507,21 @@ void GameStartScene::DrawEffectManager()
 	}
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("EffectList", 2, flags, ImVec2(0, -1))) return;
+	if (!ImGui::BeginTable("EffectList", 2, flags, ImVec2(0, -1)))
+	{
+		return;
+	}
 	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn("Enum", ImGuiTableColumnFlags_WidthFixed, 360.0f);
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 
-	struct EffectTreeNode
-	{
-		std::string name;
-		std::string path;
-		std::string enumName;
-		bool file = false;
-		std::map<std::string, EffectTreeNode> children;
-	};
-	EffectTreeNode root{"Resources", "Resources"};
+	ResourceTreeNode root{"Resources", "Resources"};
 	for (const auto& effect : EffectDefinitions)
 	{
-		std::vector<std::string> parts;
-		for (const auto& part : std::filesystem::path(std::string(effect.path)))
-			parts.push_back(part.string());
-		if (!parts.empty() && LowerText(parts.front()) == "resources") parts.erase(parts.begin());
-		if (parts.empty()) continue;
-		EffectTreeNode* parent = &root;
-		for (size_t index = 0; index + 1 < parts.size(); ++index)
-		{
-			const std::string key = "0:" + parts[index];
-			auto [item, inserted] = parent->children.try_emplace(key);
-			if (inserted)
-			{
-				item->second.name = parts[index];
-				item->second.path = parent->path + '/' + parts[index];
-			}
-			parent = &item->second;
-		}
-		const std::string key = "1:" + parts.back();
-		auto [item, inserted] = parent->children.try_emplace(key);
-		item->second.name = parts.back();
-		item->second.path = std::string(effect.path);
-		item->second.enumName = std::string(effect.name);
-		item->second.file = true;
+		AddResourceTreePath(root, std::string(effect.path), std::string(effect.name));
 	}
-
-	// ツリーの枝線と簡易アイコンを描画
-	auto drawTreeLabel = [](const char* label, int depth, const std::vector<bool>& guides,
-		bool last, bool folder)
-	{
-		const ImVec2 cursor = ImGui::GetCursorScreenPos();
-		const ImGuiStyle& style = ImGui::GetStyle();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		constexpr float step = 21.0f;
-		const float rowTop = cursor.y - style.CellPadding.y;
-		const float rowBottom = rowTop + 24.0f;
-		const float centerY = cursor.y + ImGui::GetTextLineHeight() * 0.5f;
-		const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Border);
-		for (size_t level = 0; level < guides.size(); ++level)
-		{
-			if (!guides[level]) continue;
-			const float x = cursor.x + static_cast<float>(level) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, rowBottom), lineColor, 1.0f);
-		}
-		if (depth > 0)
-		{
-			const float x = cursor.x + static_cast<float>(depth - 1) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, last ? centerY : rowBottom), lineColor, 1.0f);
-			drawList->AddLine(ImVec2(x, centerY), ImVec2(x + 10.0f, centerY), lineColor, 1.0f);
-		}
-		const float iconX = cursor.x + static_cast<float>(depth) * step;
-		if (folder)
-		{
-			const ImU32 color = IM_COL32(225, 178, 70, 255);
-			drawList->AddRectFilled(ImVec2(iconX + 1.0f, cursor.y + 4.0f),
-				ImVec2(iconX + 17.0f, cursor.y + 15.0f), color, 2.0f);
-			drawList->AddRectFilled(ImVec2(iconX + 2.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 9.0f, cursor.y + 6.0f), color, 2.0f);
-		}
-		else
-		{
-			const ImU32 color = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-			drawList->AddRect(ImVec2(iconX + 3.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 15.0f, cursor.y + 16.0f), color, 1.0f, 0, 1.0f);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 6.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 6.0f), color);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 10.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 10.0f), color);
-		}
-		ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
-		ImGui::TextUnformatted(label);
-	};
-
-	std::function<void(EffectTreeNode&, int, const std::vector<bool>&, bool)> drawNode;
-	drawNode = [&](EffectTreeNode& node, int depth, const std::vector<bool>& guides, bool last)
-	{
-		ImGui::PushID(node.path.c_str());
-		ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
-		if (!node.file)
-		{
-			const ImU32 background = depth == 0 ? IM_COL32(47, 61, 78, 255) : IM_COL32(39, 45, 54, 255);
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
-		}
-		ImGui::TableNextColumn();
-		drawTreeLabel(node.name.c_str(), depth, guides, last, !node.file);
-		if (node.file)
-		{
-			ImGui::TableNextColumn();
-			const std::string constant = "EffectId::" + node.enumName;
-			ImGui::TextUnformatted(constant.c_str());
-		}
-		size_t childIndex = 0;
-		for (auto& [key, child] : node.children)
-		{
-			const bool childLast = ++childIndex == node.children.size();
-			std::vector<bool> childGuides = guides;
-			if (depth > 0) childGuides.push_back(!last);
-			drawNode(child, depth + 1, childGuides, childLast);
-		}
-		ImGui::PopID();
-	};
-	drawNode(root, 0, {}, true);
+	DrawEnumTreeNode(root, "EffectId::", 0, {}, true);
 	ImGui::EndTable();
 }
 
@@ -498,125 +537,113 @@ void GameStartScene::DrawSoundManager()
 	}
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("SoundTrackList", 2, flags, ImVec2(0, -1))) return;
+	if (!ImGui::BeginTable("SoundTrackList", 2, flags, ImVec2(0, -1)))
+	{
+		return;
+	}
 	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn("Enum", ImGuiTableColumnFlags_WidthFixed, 360.0f);
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 
-	struct SoundTreeNode
-	{
-		std::string name;
-		std::string path;
-		std::string enumName;
-		bool file = false;
-		std::map<std::string, SoundTreeNode> children;
-	};
-	SoundTreeNode root{"Resources", "Resources"};
+	ResourceTreeNode root{"Resources", "Resources"};
 	for (const auto& sound : SoundDefinitions)
 	{
-		std::vector<std::string> parts;
-		for (const auto& part : std::filesystem::path(std::string(sound.path)))
-			parts.push_back(part.string());
-		if (!parts.empty() && LowerText(parts.front()) == "resources") parts.erase(parts.begin());
-		if (parts.empty()) continue;
-		SoundTreeNode* parent = &root;
-		for (size_t index = 0; index + 1 < parts.size(); ++index)
-		{
-			const std::string key = "0:" + parts[index];
-			auto [item, inserted] = parent->children.try_emplace(key);
-			if (inserted)
-			{
-				item->second.name = parts[index];
-				item->second.path = parent->path + '/' + parts[index];
-			}
-			parent = &item->second;
-		}
-		const std::string key = "1:" + parts.back();
-		auto [item, inserted] = parent->children.try_emplace(key);
-		item->second.name = parts.back();
-		item->second.path = std::string(sound.path);
-		item->second.enumName = std::string(sound.name);
-		item->second.file = true;
+		AddResourceTreePath(root, std::string(sound.path), std::string(sound.name));
 	}
+	DrawEnumTreeNode(root, "SoundTrack::", 0, {}, true);
+	ImGui::EndTable();
+}
 
-	// ツリーの枝線と簡易アイコンを描画
-	auto drawTreeLabel = [](const char* label, int depth, const std::vector<bool>& guides,
-		bool last, bool folder)
+void GameStartScene::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
+	const std::vector<bool>& guides, bool last)
+{
+	ImGui::PushID(node.path.c_str());
+	ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
+	if (!node.file)
 	{
-		const ImVec2 cursor = ImGui::GetCursorScreenPos();
-		const ImGuiStyle& style = ImGui::GetStyle();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		constexpr float step = 21.0f;
-		const float rowTop = cursor.y - style.CellPadding.y;
-		const float rowBottom = rowTop + 24.0f;
-		const float centerY = cursor.y + ImGui::GetTextLineHeight() * 0.5f;
-		const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Border);
-		for (size_t level = 0; level < guides.size(); ++level)
+		ImU32 background = IM_COL32(39, 45, 54, 255);
+		if (depth == 0)
 		{
-			if (!guides[level]) continue;
-			const float x = cursor.x + static_cast<float>(level) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, rowBottom), lineColor, 1.0f);
+			background = IM_COL32(47, 61, 78, 255);
 		}
-		if (depth > 0)
-		{
-			const float x = cursor.x + static_cast<float>(depth - 1) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, last ? centerY : rowBottom), lineColor, 1.0f);
-			drawList->AddLine(ImVec2(x, centerY), ImVec2(x + 10.0f, centerY), lineColor, 1.0f);
-		}
-		const float iconX = cursor.x + static_cast<float>(depth) * step;
-		if (folder)
-		{
-			const ImU32 color = IM_COL32(225, 178, 70, 255);
-			drawList->AddRectFilled(ImVec2(iconX + 1.0f, cursor.y + 4.0f),
-				ImVec2(iconX + 17.0f, cursor.y + 15.0f), color, 2.0f);
-			drawList->AddRectFilled(ImVec2(iconX + 2.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 9.0f, cursor.y + 6.0f), color, 2.0f);
-		}
-		else
-		{
-			const ImU32 color = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-			drawList->AddRect(ImVec2(iconX + 3.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 15.0f, cursor.y + 16.0f), color, 1.0f, 0, 1.0f);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 6.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 6.0f), color);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 10.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 10.0f), color);
-		}
-		ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
-		ImGui::TextUnformatted(label);
-	};
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
+	}
+	ImGui::TableNextColumn();
+	DrawTreeLabel(node, depth, guides, last);
 
-	std::function<void(SoundTreeNode&, int, const std::vector<bool>&, bool)> drawNode;
-	drawNode = [&](SoundTreeNode& node, int depth, const std::vector<bool>& guides, bool last)
+	// 除外と先読み設定を一覧から編集
+	if (node.file)
 	{
-		ImGui::PushID(node.path.c_str());
-		ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
-		if (!node.file)
+		const std::string& path = node.path;
+		auto options = cacheSettings.Get(path);
+		const bool cacheExists = std::filesystem::exists(path);
+		const char* statusText = (const char*)u8"未生成";
+		if (cacheExists)
 		{
-			const ImU32 background = depth == 0 ? IM_COL32(47, 61, 78, 255) : IM_COL32(39, 45, 54, 255);
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
+			statusText = (const char*)u8"生成済み";
+		}
+		if (options.excluded)
+		{
+			statusText = (const char*)u8"除外";
+		}
+
+		ImGui::TableNextColumn();
+		ImGui::TextUnformatted(statusText);
+		ImGui::TableNextColumn();
+		bool changed = ImGui::Checkbox("##Exclude", &options.excluded);
+		if (options.excluded)
+		{
+			options.preload = false;
 		}
 		ImGui::TableNextColumn();
-		drawTreeLabel(node.name.c_str(), depth, guides, last, !node.file);
-		if (node.file)
+		ImGui::BeginDisabled(options.excluded);
+		const bool preloadChanged = ImGui::Checkbox("##Preload", &options.preload);
+		ImGui::EndDisabled();
+		if (preloadChanged)
 		{
-			ImGui::TableNextColumn();
-			const std::string constant = "SoundTrack::" + node.enumName;
-			ImGui::TextUnformatted(constant.c_str());
+			changed = true;
 		}
-		size_t childIndex = 0;
-		for (auto& [key, child] : node.children)
+
+		if (changed)
 		{
-			const bool childLast = ++childIndex == node.children.size();
-			std::vector<bool> childGuides = guides;
-			if (depth > 0) childGuides.push_back(!last);
-			drawNode(child, depth + 1, childGuides, childLast);
+			const auto source = ResourceManager::FindSourceResourceRoot();
+			if (source.empty())
+			{
+				cacheMessage = "Source Resources was not found";
+			}
+			else
+			{
+				try
+				{
+					auto nextSettings = cacheSettings;
+					nextSettings.Set(path, options);
+					nextSettings.Save(source / "ResourceSettings.ini");
+					cacheSettings = std::move(nextSettings);
+					cacheMessage.clear();
+				}
+				catch (const std::exception& error)
+				{
+					cacheMessage = error.what();
+				}
+			}
 		}
-		ImGui::PopID();
-	};
-	drawNode(root, 0, {}, true);
-	ImGui::EndTable();
+	}
+
+	size_t childIndex = 0;
+	for (auto& childEntry : node.children)
+	{
+		ResourceTreeNode& child = childEntry.second;
+		++childIndex;
+		const bool childLast = childIndex == node.children.size();
+		std::vector<bool> childGuides = guides;
+		if (depth > 0)
+		{
+			childGuides.push_back(!last);
+		}
+		DrawCacheTreeNode(child, depth + 1, childGuides, childLast);
+	}
+	ImGui::PopID();
 }
 
 void GameStartScene::DrawCacheManager()
@@ -629,10 +656,16 @@ void GameStartScene::DrawCacheManager()
 		windowConfigured = false;
 		return;
 	}
-	if (!cacheMessage.empty()) ImGui::TextWrapped("%s", cacheMessage.c_str());
+	if (!cacheMessage.empty())
+	{
+		ImGui::TextWrapped("%s", cacheMessage.c_str());
+	}
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("CacheList", 4, flags, ImVec2(0, -1))) return;
+	if (!ImGui::BeginTable("CacheList", 4, flags, ImVec2(0, -1)))
+	{
+		return;
+	}
 	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn((const char*)u8"状態", ImGuiTableColumnFlags_WidthFixed, 80);
 	ImGui::TableSetupColumn((const char*)u8"除外", ImGuiTableColumnFlags_WidthFixed, 45);
@@ -640,144 +673,12 @@ void GameStartScene::DrawCacheManager()
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 
-	struct CacheTreeNode
-	{
-		std::string name;
-		std::string path;
-		bool file = false;
-		std::map<std::string, CacheTreeNode> children;
-	};
-	CacheTreeNode root{ "Resources", "Resources" };
+	ResourceTreeNode root{"Resources", "Resources"};
 	for (const auto& path : cachePaths)
 	{
-		std::vector<std::string> parts;
-		for (const auto& part : std::filesystem::path(path)) parts.push_back(part.string());
-		if (!parts.empty() && parts.front() == "Resources") parts.erase(parts.begin());
-		if (parts.empty()) continue;
-
-		CacheTreeNode* parent = &root;
-		for (size_t index = 0; index + 1 < parts.size(); ++index)
-		{
-			const std::string key = "0:" + parts[index];
-			auto [entry, inserted] = parent->children.try_emplace(key);
-			if (inserted)
-			{
-				entry->second.name = parts[index];
-				entry->second.path = parent->path + '/' + parts[index];
-			}
-			parent = &entry->second;
-		}
-		const std::string key = "1:" + parts.back();
-		auto [entry, inserted] = parent->children.try_emplace(key);
-		entry->second.name = parts.back();
-		entry->second.path = path;
-		entry->second.file = true;
+		AddResourceTreePath(root, path);
 	}
-
-	// ツリーの枝線と簡易アイコンを描画
-	auto drawTreeLabel = [](const char* label, int depth, const std::vector<bool>& guides,
-		bool last, bool folder)
-	{
-		const ImVec2 cursor = ImGui::GetCursorScreenPos();
-		const ImGuiStyle& style = ImGui::GetStyle();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		constexpr float step = 21.0f;
-		const float rowTop = cursor.y - style.CellPadding.y;
-		const float rowBottom = rowTop + 24.0f;
-		const float centerY = cursor.y + ImGui::GetTextLineHeight() * 0.5f;
-		const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Border);
-
-		for (size_t level = 0; level < guides.size(); ++level)
-		{
-			if (!guides[level]) continue;
-			const float x = cursor.x + static_cast<float>(level) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, rowBottom), lineColor, 1.0f);
-		}
-		if (depth > 0)
-		{
-			const float x = cursor.x + static_cast<float>(depth - 1) * step + 8.0f;
-			drawList->AddLine(ImVec2(x, rowTop), ImVec2(x, last ? centerY : rowBottom), lineColor, 1.0f);
-			drawList->AddLine(ImVec2(x, centerY), ImVec2(x + 10.0f, centerY), lineColor, 1.0f);
-		}
-
-		const float iconX = cursor.x + static_cast<float>(depth) * step;
-		if (folder)
-		{
-			const ImU32 folderColor = IM_COL32(225, 178, 70, 255);
-			drawList->AddRectFilled(ImVec2(iconX + 1.0f, cursor.y + 4.0f),
-				ImVec2(iconX + 17.0f, cursor.y + 15.0f), folderColor, 2.0f);
-			drawList->AddRectFilled(ImVec2(iconX + 2.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 9.0f, cursor.y + 6.0f), folderColor, 2.0f);
-		}
-		else
-		{
-			const ImU32 fileColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-			drawList->AddRect(ImVec2(iconX + 3.0f, cursor.y + 1.0f),
-				ImVec2(iconX + 15.0f, cursor.y + 16.0f), fileColor, 1.0f, 0, 1.0f);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 6.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 6.0f), fileColor);
-			drawList->AddLine(ImVec2(iconX + 6.0f, cursor.y + 10.0f),
-				ImVec2(iconX + 12.0f, cursor.y + 10.0f), fileColor);
-		}
-		ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
-		ImGui::TextUnformatted(label);
-	};
-
-	std::function<void(CacheTreeNode&, int, const std::vector<bool>&, bool)> drawNode;
-	drawNode = [&](CacheTreeNode& node, int depth, const std::vector<bool>& guides, bool last)
-	{
-		ImGui::PushID(node.path.c_str());
-		ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
-		if (!node.file)
-		{
-			const ImU32 background = depth == 0 ? IM_COL32(47, 61, 78, 255) : IM_COL32(39, 45, 54, 255);
-			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
-		}
-		ImGui::TableNextColumn();
-		drawTreeLabel(node.name.c_str(), depth, guides, last, !node.file);
-
-		// 除外と先読み設定を一覧から編集
-		if (node.file)
-		{
-			const std::string& path = node.path;
-			auto options = cacheSettings.Get(path);
-			ImGui::TableNextColumn();
-			ImGui::TextUnformatted(options.excluded ? (const char*)u8"除外" :
-				std::filesystem::exists(path) ? (const char*)u8"生成済み" : (const char*)u8"未生成");
-			ImGui::TableNextColumn();
-			bool changed = ImGui::Checkbox("##Exclude", &options.excluded);
-			if (options.excluded) options.preload = false;
-			ImGui::TableNextColumn();
-			ImGui::BeginDisabled(options.excluded);
-			changed |= ImGui::Checkbox("##Preload", &options.preload);
-			ImGui::EndDisabled();
-			if (changed)
-			{
-				try
-				{
-					auto next = cacheSettings;
-					next.Set(path, options);
-					const auto source = ResourceManager::FindSourceResourceRoot();
-					if (source.empty()) throw std::runtime_error("Source Resources was not found");
-					next.Save(source / "ResourceSettings.ini");
-					cacheSettings = std::move(next);
-					cacheMessage.clear();
-				}
-				catch (const std::exception& error) { cacheMessage = error.what(); }
-			}
-		}
-
-		size_t childIndex = 0;
-		for (auto& [key, child] : node.children)
-		{
-			const bool childLast = ++childIndex == node.children.size();
-			std::vector<bool> childGuides = guides;
-			if (depth > 0) childGuides.push_back(!last);
-			drawNode(child, depth + 1, childGuides, childLast);
-		}
-		ImGui::PopID();
-	};
-	drawNode(root, 0, {}, true);
+	DrawCacheTreeNode(root, 0, {}, true);
 	ImGui::EndTable();
 }
 #endif
