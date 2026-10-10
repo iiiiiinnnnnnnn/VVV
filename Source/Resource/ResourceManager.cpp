@@ -408,7 +408,7 @@ std::filesystem::path ResourceManager::FindSourceResourceRoot()
 	for (std::filesystem::path directory = std::filesystem::current_path(); !directory.empty();
 		directory = directory.parent_path())
 	{
-		if (std::filesystem::exists(directory / "Game.sln") &&
+		if (std::filesystem::exists(directory / "VEER.sln") &&
 			std::filesystem::is_directory(directory / "Resources"))
 		{
 			return std::filesystem::weakly_canonical(directory / "Resources");

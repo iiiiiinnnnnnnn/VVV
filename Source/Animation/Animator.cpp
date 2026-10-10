@@ -17,7 +17,7 @@ namespace
         {
             const std::filesystem::path resourceRoot =
                 directory / "Resources";
-            if (std::filesystem::exists(directory / "Game.sln") &&
+            if (std::filesystem::exists(directory / "VEER.sln") &&
                 std::filesystem::is_directory(resourceRoot))
             {
                 return resourceRoot.lexically_normal();

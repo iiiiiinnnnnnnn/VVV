@@ -306,7 +306,7 @@ void GameStartScene::ConfigureWindow()
 	}
 
 	HWND window = graphics.GetWindowHandle();
-	SetWindowTextW(window, L"TPS V Editor");
+	SetWindowTextW(window, L"VEER");
 	constexpr LONG_PTR style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	const bool managerOpen = showCacheManager || showSoundManager || showEffectManager;

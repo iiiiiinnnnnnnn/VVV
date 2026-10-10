@@ -873,7 +873,7 @@ bool VstgEditorScene::OnRequestExit()
 	if (dirty)
 	{
 		int result = MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-			L"変更を保存しますか？", L"VSTG Editor", MB_YESNOCANCEL | MB_ICONQUESTION);
+			L"変更を保存しますか？", L"VEER", MB_YESNOCANCEL | MB_ICONQUESTION);
 		if (result == IDYES)
 		{
 			Save();
@@ -1041,11 +1041,11 @@ void VstgEditorScene::SaveEditorSettings() const
 
 void VstgEditorScene::UpdateTitle()
 {
-	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VSTG Editor");
+	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VEER");
 }
 
 void VstgEditorScene::ErrorMessage(const std::string& message)
 {
 	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		std::wstring(message.begin(), message.end()).c_str(), L"VSTG Editor", MB_ICONERROR);
+		std::wstring(message.begin(), message.end()).c_str(), L"VEER", MB_ICONERROR);
 }

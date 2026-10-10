@@ -1,7 +1,7 @@
 ﻿# CacheBuilder
 
 生成処理は `Source/Resource/CacheBuilder.h/.cpp` に共通化しています
-同じ `Game.sln` の開発ツールからDebug・Development・Releaseのビルド後に呼び出します
+同じ `VEER.sln` の開発ツールからDebug・Development・Releaseのビルド後に呼び出します
 
 元素材はルートの `Resources`、出力は `Bin/Debug/Resources`、`Bin/Development/Resources`、`Bin/Release/Resources` です
 ルートの `Resources/ResourceSettings.ini` は編集する除外・先読み設定です。

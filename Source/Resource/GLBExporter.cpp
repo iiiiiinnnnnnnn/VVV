@@ -20,7 +20,7 @@ bool VMDLModel::ExportGlb(const std::filesystem::path& filepath, std::string* er
 	try
 	{
 		if (filepath.empty() || nodes.empty() || meshes.empty()) throw std::runtime_error("No model to export.");
-		json gltf = {{"asset", {{"version", "2.0"}, {"generator", "VMDL Editor"}}},
+		json gltf = {{"asset", {{"version", "2.0"}, {"generator", "VEER"}}},
 			{"scene", 0}};
 		for (const char* key : {"nodes", "meshes", "materials", "skins", "animations",
 			"accessors", "bufferViews", "images", "textures"}) gltf[key] = json::array();

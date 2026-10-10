@@ -337,7 +337,7 @@ void VmdlEditorScene::OnUpdate()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	HWND window = graphics.GetWindowHandle();
-	SetWindowTextW(window, L"VMDL Editor");
+	SetWindowTextW(window, L"VEER");
 
 	// ボーダーレス解除後に、前回の通常ウィンドウ位置・サイズ・最大化状態を復元する。
 	if (restoreWindowPending && !graphics.IsBorderlessFullscreen())
@@ -6204,7 +6204,7 @@ bool VmdlEditorScene::OnRequestExit()
 	{
 		int result = MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
 			L"\u7D42\u4E86\u3059\u308B\u524D\u306B\u4FDD\u5B58\u3057\u307E\u3059\u304B\uFF1F",
-			L"VMDL Editor", MB_YESNOCANCEL | MB_ICONQUESTION);
+			L"VEER", MB_YESNOCANCEL | MB_ICONQUESTION);
 		if (result == IDYES)
 		{
 			SaveVmdl();
@@ -6488,7 +6488,7 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 		L"VMDL本体への変更は、VMDLを保存するまで確定しません。\n\n"
 		L"続行しますか？";
 	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
-			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+			L"VEER", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
 		return;
 
 	const std::filesystem::path proposedPath = MakeMeshCachePath(meshIndex);
@@ -6549,7 +6549,7 @@ void VmdlEditorScene::SeparateMorphMeshes(int morphIndex)
 		L"個のメッシュを、それぞれ個別のVMSHへ分離します。\n"
 		L"既存のVMSHファイルは上書きしません。\n\n続行しますか？";
 	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
-			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+			L"VEER", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
 		return;
 
 	int separatedCount = 0;
@@ -6604,7 +6604,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		L"VMSHファイルも削除します\n\n"
 		L"続行しますか？";
 	if (MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
-			L"VMDL Editor", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+			L"VEER", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
 		return;
 
 	std::filesystem::path resolved;
@@ -6639,7 +6639,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		{
 			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
 				L"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。",
-				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+				L"VEER", MB_OK | MB_ICONWARNING);
 			return;
 		}
 		documentPath = ResourceManager::ResolveSourcePath(documentPath);
@@ -6648,7 +6648,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		{
 			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
 				L"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。",
-				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+				L"VEER", MB_OK | MB_ICONWARNING);
 			return;
 		}
 		dirty = false;
@@ -6661,7 +6661,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 				L"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n" +
 				resolved.wstring();
 			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), warning.c_str(),
-				L"VMDL Editor", MB_OK | MB_ICONWARNING);
+				L"VEER", MB_OK | MB_ICONWARNING);
 		}
 		else
 		{
@@ -6854,5 +6854,5 @@ void VmdlEditorScene::LoadModel(
 void VmdlEditorScene::ErrorMessage(const std::string& message)
 {
 	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		std::wstring(message.begin(), message.end()).c_str(), L"VMDL Editor", MB_ICONERROR);
+		std::wstring(message.begin(), message.end()).c_str(), L"VEER", MB_ICONERROR);
 }

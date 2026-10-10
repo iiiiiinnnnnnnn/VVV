@@ -44,7 +44,7 @@ int wmain(int argc, wchar_t** argv)
 		const auto runtime = root / "Bin/Debug/Resources";
 		fs::create_directories(source / "Model");
 		fs::create_directories(runtime);
-		std::ofstream(root / "Game.sln") << "fixture";
+		std::ofstream(root / "VEER.sln") << "fixture";
 		const auto gltf = source / "Model/empty.gltf";
 		std::ofstream(gltf) << R"({"asset":{"version":"2.0"},"nodes":[{"name":"root"}],"scenes":[{"nodes":[0]}],"scene":0})";
 		const auto modelPath = source / "Model/empty.vmdl";

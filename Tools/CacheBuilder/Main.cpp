@@ -32,9 +32,9 @@ int wmain(int argc, wchar_t** argv)
 			if (!GetModuleFileNameW(nullptr, filename, 32768)) throw std::runtime_error("Cannot find executable");
 			const auto directory = std::filesystem::path(filename).parent_path();
 			auto root = directory;
-			while (!std::filesystem::exists(root / "Game.sln"))
+			while (!std::filesystem::exists(root / "VEER.sln"))
 			{
-				if (root == root.root_path()) throw std::runtime_error("Game.sln was not found");
+				if (root == root.root_path()) throw std::runtime_error("VEER.sln was not found");
 				root = root.parent_path();
 			}
 			if (source.empty()) source = root / "Resources";

@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $build=Join-Path $repo 'Obj/ResourceRefreshTests'
 [IO.Directory]::CreateDirectory($build)|Out-Null
-[xml]$game=[IO.File]::ReadAllText((Join-Path $repo 'Game.vcxproj'))
+[xml]$game=[IO.File]::ReadAllText((Join-Path $repo 'VEER.vcxproj'))
 $settings=@($game.Project.ItemDefinitionGroup | Where-Object { $_.Condition -like '*Debug*' })[0]
 function Escape([string]$Value) { [Security.SecurityElement]::Escape($Value) }
 function Paths([string]$Value) {
@@ -14,8 +14,8 @@ function Paths([string]$Value) {
 $includes=Escape (Paths $settings.ClCompile.AdditionalIncludeDirectories)
 $libraries=Escape (Paths $settings.Link.AdditionalLibraryDirectories)
 $objects=@($game.Project.ItemGroup.ClCompile | Where-Object { $_.Include -and $_.Include -notlike '*Bootstrap\Main.cpp' } | ForEach-Object {
-    $object=Join-Path $repo ('Obj/Debug/Game/'+[IO.Path]::GetFileNameWithoutExtension($_.Include)+'.obj')
-    if(!(Test-Path -LiteralPath $object)){throw "Build Game Debug first: $object"}
+    $object=Join-Path $repo ('Obj/Debug/VEER/'+[IO.Path]::GetFileNameWithoutExtension($_.Include)+'.obj')
+    if(!(Test-Path -LiteralPath $object)){throw "Build VEER Debug first: $object"}
     '"'+$object+'"'
 })
 $dependencies=Escape (($objects -join ';')+';'+$settings.Link.AdditionalDependencies)

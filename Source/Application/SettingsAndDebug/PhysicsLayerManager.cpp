@@ -23,7 +23,7 @@ std::filesystem::path GetPhysicsLayerPath()
     for (std::filesystem::path directory = std::filesystem::current_path();
         !directory.empty(); directory = directory.parent_path())
     {
-        if (std::filesystem::exists(directory / "Game.sln"))
+        if (std::filesystem::exists(directory / "VEER.sln"))
             return directory / "Resources/PhysicsLayers.physicslayers";
         if (directory == directory.root_path()) break;
     }

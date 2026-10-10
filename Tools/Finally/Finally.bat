@@ -15,8 +15,8 @@ set DIST_DIR=dist
 
 echo [1/5] Checking development build...
 
-if not exist "%OUT_DIR%\Game.exe" (
-    echo Game.exe が見つかりません。
+if not exist "%OUT_DIR%\VEER.exe" (
+    echo VEER.exe が見つかりません。
     echo 先に Visual Studio で Development x64 ビルドしてください。
     pause
     exit /b 1

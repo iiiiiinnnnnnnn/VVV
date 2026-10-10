@@ -30,7 +30,7 @@ if (Test-Path -LiteralPath $destinationPath) {
 $archive = [System.IO.Compression.ZipFile]::OpenRead($destinationPath)
 try {
     $entryPaths = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
-    $gameExecutablePath = 'Game.exe'
+    $gameExecutablePath = 'VEER.exe'
     $resourceManifestPath = 'Resources/ResourceManifest.ini'
 
     if ($entryPaths -notcontains $gameExecutablePath) {
