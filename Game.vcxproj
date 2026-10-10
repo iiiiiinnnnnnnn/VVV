@@ -145,6 +145,7 @@
     <ClCompile Include="Source\UI\HUDWidget.cpp" />
     <ClCompile Include="Source\UI\PauseMenu.cpp" />
     <ClCompile Include="Source\UI\TextWidget.cpp" />
+    <ClCompile Include="Source\UI\WidgetShadow.cpp" />
     <ClCompile Include="Source\UI\UIFont.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Application\Time\GameTime.cpp" />
@@ -292,6 +293,7 @@
     <ClInclude Include="Source\UI\HUDWidget.h" />
     <ClInclude Include="Source\UI\PauseMenu.h" />
     <ClInclude Include="Source\UI\TextWidget.h" />
+    <ClInclude Include="Source\UI\WidgetShadow.h" />
     <ClInclude Include="Source\UI\UIFont.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
     <ClInclude Include="Source\Application\Time\GameTime.h" />

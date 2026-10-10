@@ -295,6 +295,9 @@
     <ClCompile Include="Source\UI\TextWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\WidgetShadow.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\UI\UIFont.cpp">
       <Filter>UI</Filter>
     </ClCompile>
@@ -676,6 +679,9 @@
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\TextWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\WidgetShadow.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\UIFont.h">

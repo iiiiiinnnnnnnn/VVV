@@ -28,8 +28,22 @@ bool TextWidget::SetFont(const std::string& path)
 void TextWidget::OnRender(const RenderContext&)
 {
 	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
+	DrawText(topLeft, color);
+}
+
+void TextWidget::DrawShadow(const RenderContext&, const Vector2& offset,
+	const Color& shadowColor)
+{
+	// 本体と同じ文字を指定された距離だけずらして描画
+	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
+	const Vector2 shadowPosition = topLeft + offset;
+	DrawText(shadowPosition, shadowColor);
+}
+
+void TextWidget::DrawText(const Vector2& topLeft, const Color& drawColor)
+{
 	UIFont& selectedFont = font ? *font : UIFont::Default();
-	selectedFont.DrawFont(text, topLeft, rect.size, fontSize, color, alignment);
+	selectedFont.DrawFont(text, topLeft, rect.size, fontSize, drawColor, alignment);
 }
 
 void TextWidget::OnDrawGUI()

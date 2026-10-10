@@ -25,6 +25,8 @@ public:
 
 	void SetAffectedByPostProcess(bool affected) { affectedByPostProcess = affected; }
 	bool GetAffectedByPostProcess() const { return affectedByPostProcess; }
+	virtual void DrawShadow(const RenderContext& rc, const Vector2& offset,
+		const Color& color) {}
 
 protected:
 	friend class WidgetManager;

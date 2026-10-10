@@ -16,6 +16,7 @@
 #include "UI/ColorWidget.h"
 #include "UI/TextWidget.h"
 #include "UI/Widget.h"
+#include "UI/WidgetShadow.h"
 #include <algorithm>
 #include <cmath>
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
@@ -49,12 +50,16 @@ GameStartScene::GameStartScene()
 	headerWidget->SetAffectedByPostProcess(false);
 	widgetManager.Register(headerWidget);
 
-	headerText = std::make_shared<TextWidget>("Header Text", (const char*)u8"VEER", 36.0f);
-	headerText->rect.position = Vector2(50, 260.0f);
+	headerText =
+		std::make_shared<TextWidget>("Header Text", (const char*)u8"VEER", 36.0f);
+	headerText->rect.position = Vector2(50, 280.0f);
 	headerText->rect.size = Vector2(860, 100);
 	headerText->rect.anchor = Vector2::Zero;
 	headerText->SetColor(Color(1, 1, 1, 1));
 	headerText->SetAlignment(UITextAlignment::Left);
+	// 文字本体と同じ情報を使って影を先に描画
+	headerText->AddComponent<WidgetShadow>(
+		Vector2(3.0f, 6.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
 	widgetManager.Register(headerText);
 }
 
