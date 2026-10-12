@@ -66,7 +66,7 @@ namespace Game
 		Color underwaterColor = {0.025f, 0.22f, 0.28f, 1.0f};
 		float underwaterDensity = 0.12f;
 		float underwaterTint = 0.12f;
-		Vector3 underwaterAbsorption = {0.12f, 0.035f, 0.015f};
+		Vector3 underwaterAbsorption = {0.023f, 0.117f, 0.278f, 1.000f};
 		struct CbUnderwater
 		{
 			Matrix inverseViewProjection;
