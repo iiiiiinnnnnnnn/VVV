@@ -1,4 +1,3 @@
-// LoadingScene.cpp
 #include "Gameplay/Scene/LoadingScene.h"
 
 #include <algorithm>

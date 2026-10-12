@@ -59,4 +59,6 @@ struct RenderContext
 	RenderSettings			renderSettings;
 	ShadowMapData			shadowMapData;
 	IBLData					iblData;
+	float underwaterBlend = 0.0f;
+	Matrix underwaterInverseWorld = Matrix::Identity;
 };

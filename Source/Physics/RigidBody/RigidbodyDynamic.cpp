@@ -83,6 +83,11 @@ void RigidbodyDynamic::SetPosition(const Vector3& pos)
     rb->setGlobalPose(t);
 }
 
+void RigidbodyDynamic::SetPosition(float x, float y, float z)
+{
+    SetPosition(Vector3(x, y, z));
+}
+
 void RigidbodyDynamic::SetRotation(const Quaternion& rot)
 {
 	if (!rb) return;
@@ -90,6 +95,14 @@ void RigidbodyDynamic::SetRotation(const Quaternion& rot)
     PxTransform t = rb->getGlobalPose();
     t.q = { rot.x, rot.y, rot.z, rot.w };
     rb->setGlobalPose(t);
+}
+
+void RigidbodyDynamic::SetRotation(float x, float y, float z, float w) {
+	SetRotation(Quaternion(x, y, z, w));
+}
+
+void RigidbodyDynamic::SetRotation(float yaw, float pitch, float roll) {
+	SetRotation(Quaternion::CreateFromYawPitchRoll(yaw, pitch, roll));
 }
 
 void RigidbodyDynamic::SetKinematic(bool isKinematic)

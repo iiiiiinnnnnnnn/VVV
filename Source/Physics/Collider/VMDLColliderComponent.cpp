@@ -346,6 +346,16 @@ bool VMDLColliderComponent::GetBoundingSphere(Vector3& center, float& radius) co
 	return radius > 0.0f;
 }
 
+bool VMDLColliderComponent::GetBounds(Vector3& center, Vector3& size) const
+{
+	if (!ghostActor || !shape || !IsActive()) return false;
+	const PxBounds3 bounds = PxShapeExt::getWorldBounds(*shape, *ghostActor, 1.0f);
+	if (bounds.isEmpty()) return false;
+	center = Conv::ToVector3(bounds.getCenter());
+	size = Conv::ToVector3(bounds.getExtents()) * 2.0f;
+	return true;
+}
+
 Actor* VMDLColliderComponent::FindOverlapActorByTag(const std::string& tag) const
 {
 	if (!ghostActor || !shape)

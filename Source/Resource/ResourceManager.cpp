@@ -136,7 +136,7 @@ bool ResourceManager::PreloadFile(const std::string& path)
 	if (value->type == AssetType::VMDLModel)
 	{
 		// モデルをキャッシュ
-		loaded = LoadModel(path) != nullptr;
+		loaded = LoadModel(path, true) != nullptr;
 	}
 	else
 	{

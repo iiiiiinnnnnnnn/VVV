@@ -14,7 +14,8 @@ VMDL::VMDL(Object* owner, const std::string& path) : Component(owner), path(path
 	// モデルを事前読込
 	if (!SetPreloadResourceFiles({path})) throw std::runtime_error("VMDL preload failed: " + path);
 
-	auto loaded = ResourceManager::Instance().LoadModel(path);
+	// キャラクターごとに埋め込みテクスチャをコピーせず、描画リソースを共有する。
+	auto loaded = ResourceManager::Instance().LoadModel(path, true);
 	if (!loaded) throw std::runtime_error("VMDL could not be loaded: " + path);
 	model = std::move(loaded);
 	BuildModelComponents();

@@ -623,7 +623,9 @@ std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPa
 		if (found != editorModels->end() && found->second) return found->second->Clone();
 		return nullptr;
 	}
-	return ResourceManager::Instance().LoadModel(modelPath);
+
+	// ゲーム用の配置物は、テクスチャ本体を共有して複製する。
+	return ResourceManager::Instance().LoadModel(modelPath, true);
 }
 
 Vector3 StageLoader::GetPropPlacementOffset(VMDLModel& model)

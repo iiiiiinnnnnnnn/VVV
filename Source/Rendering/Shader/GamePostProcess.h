@@ -60,6 +60,28 @@ namespace Game
 		void AddRuntimeColorTint(float intensity, const Color& color);
 
 	private:
+		void Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
+			ID3D11ShaderResourceView* depthMap);
+		bool enableUnderwater = true;
+		Color underwaterColor = {0.025f, 0.22f, 0.28f, 1.0f};
+		float underwaterDensity = 0.12f;
+		float underwaterTint = 0.12f;
+		Vector3 underwaterAbsorption = {0.12f, 0.035f, 0.015f};
+		struct CbUnderwater
+		{
+			Matrix inverseViewProjection;
+			Matrix inverseWaterWorld;
+			Vector3 cameraPosition;
+			float blend;
+			Color fogColor;
+			Vector3 absorption;
+			float density;
+			float tint;
+			float padding[3];
+		};
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> underwaterPixelShader;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> underwaterConstantBuffer;
+
 		void DrawFullscreen(
 			const RenderContext& rc,
 			ID3D11PixelShader* pixelShader,

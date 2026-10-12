@@ -23,7 +23,7 @@ class NavMeshActor : public Component
 	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshActor"; }
 
 	bool FindNextPoint(const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-		Vector3* reachableGoal = nullptr, float radius = 0.0f, float height = 0.0f) const;
+		Vector3* reachableGoal = nullptr) const;
 	bool FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const;
 	bool IsOutsideOrNearBoundary(const Vector3& position, float distance) const;
 	bool FindRecoveryPoint(

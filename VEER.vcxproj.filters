@@ -1065,6 +1065,9 @@
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\UnderwaterPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\WaterSurfaceVS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>

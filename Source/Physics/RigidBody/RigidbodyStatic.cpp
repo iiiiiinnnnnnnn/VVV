@@ -49,6 +49,11 @@ void RigidbodyStatic::SetPosition(const Vector3& pos)
     rb->setGlobalPose(t);
 }
 
+void RigidbodyStatic::SetPosition(float x, float y, float z)
+{
+    SetPosition(Vector3(x, y, z));
+}
+
 void RigidbodyStatic::SetRotation(const Quaternion& rot)
 {
 	if (!rb) return;
@@ -56,4 +61,14 @@ void RigidbodyStatic::SetRotation(const Quaternion& rot)
     PxTransform t = rb->getGlobalPose();
     t.q = { rot.x, rot.y, rot.z, rot.w };
     rb->setGlobalPose(t);
+}
+
+void RigidbodyStatic::SetRotation(float x, float y, float z, float w)
+{
+	SetRotation(Quaternion(x, y, z, w));
+}
+
+void RigidbodyStatic::SetRotation(float yaw, float pitch, float roll)
+{
+    SetRotation(Quaternion::CreateFromYawPitchRoll(yaw, pitch, roll));
 }

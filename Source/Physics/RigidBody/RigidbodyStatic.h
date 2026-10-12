@@ -16,9 +16,12 @@ public:
 
 	Vector3 GetPosition() const { return Conv::ToVector3(rb->getGlobalPose().p); }
 	void SetPosition(const Vector3& pos);
+	void SetPosition(float x, float y, float z);
 
 	Quaternion GetRotation() const { return Conv::ToQuaternion(rb->getGlobalPose().q); }
 	void SetRotation(const Quaternion& rot);
+	void SetRotation(float x, float y, float z, float w);
+	void SetRotation(float yaw, float pitch, float roll);
 
 protected:
 	PxRigidStatic* rb = nullptr;

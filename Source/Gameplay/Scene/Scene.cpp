@@ -9,6 +9,7 @@
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Rendering/Effect/EffectManager.h"
+#include "Rendering/Renderer/WaterRenderer.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -385,6 +386,15 @@ void Scene::Render()
 		OnRender(rc);
 	}
 	sceneBuffer->Deactivate(dc);
+
+	for (WaterRenderer* water : stage.GetComponents<WaterRenderer>())
+		water->ApplyUnderwaterContext(rc);
+	for (Actor* actor : actorManager.GetActors())
+	{
+		if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+		for (WaterRenderer* water : actor->GetComponents<WaterRenderer>())
+			water->ApplyUnderwaterContext(rc);
+	}
 
 	postProcess.PrepareSceneColor(rc, sceneBuffer, luminanceBuffer, bloomWorkBuffer,
 		ssaoBuffer, postProcessBuffer, postProcessBuffer2);

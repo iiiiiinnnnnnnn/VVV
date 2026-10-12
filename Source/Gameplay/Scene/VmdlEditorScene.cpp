@@ -3099,6 +3099,9 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 				changed = true;
 			}
 			changed |= ImGui::Checkbox((const char*)u8"トリガー", &value.trigger);
+			changed |= ImGui::Checkbox((const char*)u8"NavMesh障害物", &value.navMeshObstacle);
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip((const char*)u8"このコライダーの範囲を、経路探索で避ける障害物にします");
 			if (changed) MarkDirty();
 			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
 			{

@@ -4,6 +4,7 @@
 #include "Gameplay/Actor/ActorManager.h"
 #include "Rendering/Core/Graphics.h"
 #include "Physics/Navigation/NavMeshObstacle.h"
+#include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -15,8 +16,6 @@
 
 #include <cmath>
 #include <map>
-#include <queue>
-#include <functional>
 #include <set>
 
 NavMeshActor* NavMeshActor::active = nullptr;
@@ -158,6 +157,17 @@ void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) cons
 
 		NavMeshObstacle* obstacle = other->GetComponent<NavMeshObstacle>();
 		if (!obstacle) continue;
+
+		// VMDLでは、指定されたコライダーを個別の障害物として扱う。
+		bool hasVmdlObstacles = false;
+		for (auto* collider : other->GetComponents<VMDLColliderComponent>())
+		{
+			if (!collider->IsNavMeshObstacle()) continue;
+			hasVmdlObstacles = true;
+			ObstacleBounds bounds;
+			if (collider->GetBounds(bounds.center, bounds.size)) obstacles.push_back(bounds);
+		}
+		if (hasVmdlObstacles) continue;
 
 		ObstacleBounds bounds;
 		if (!obstacle->GetBounds(bounds.center, bounds.size)) continue;
@@ -672,159 +682,56 @@ void NavMeshActor::RefreshDebugCells()
 }
 
 bool NavMeshActor::FindNextPoint(
-	const Vector3& start, const Vector3& goal, Vector3& nextPoint, Vector3* reachableGoal, float radius, float height) const
+	const Vector3& start, const Vector3& goal, Vector3& nextPoint,
+	Vector3* reachableGoal) const
 {
 	if (!built || !navQuery) return false;
 
 	dtQueryFilter filter;
 	filter.setIncludeFlags(1);
-	filter.setExcludeFlags(0);
 
-	const float horizontalExtent = nearestPolyExtent;
-	const float halfExtents[3] = {horizontalExtent, 20.0f, horizontalExtent};
+	const float extents[] = {nearestPolyExtent, 20.0f, nearestPolyExtent};
 	const Vector3 navigationStart = ProjectTerrainPosition(start, true);
 	const Vector3 navigationGoal = ProjectTerrainPosition(goal, true);
-	const float startPos[3] = {navigationStart.x, navigationStart.y, navigationStart.z};
-	const float goalPos[3] = {navigationGoal.x, navigationGoal.y, navigationGoal.z};
+	const float startPos[] = {navigationStart.x, navigationStart.y, navigationStart.z};
+	const float goalPos[] = {navigationGoal.x, navigationGoal.y, navigationGoal.z};
 	float nearestStart[3] = {};
 	float nearestGoal[3] = {};
 	dtPolyRef startRef = 0;
 	dtPolyRef goalRef = 0;
 
-	if (dtStatusFailed(
-			navQuery->findNearestPoly(startPos, halfExtents, &filter, &startRef, nearestStart)) ||
-		!startRef)
-		return false;
+	if (dtStatusFailed(navQuery->findNearestPoly(
+		startPos, extents, &filter, &startRef, nearestStart)) || !startRef) return false;
+	if (dtStatusFailed(navQuery->findNearestPoly(
+		goalPos, extents, &filter, &goalRef, nearestGoal)) || !goalRef) return false;
 
-	if (dtStatusFailed(
-			navQuery->findNearestPoly(goalPos, halfExtents, &filter, &goalRef, nearestGoal)) ||
-		!goalRef)
-		return false;
+	// Detour標準の経路探索で、次に進む曲がり角だけを求める。
+	constexpr int maxPathPoints = 256;
+	dtPolyRef path[maxPathPoints] = {};
+	int pathCount = 0;
+	if (dtStatusFailed(navQuery->findPath(startRef, goalRef,
+		nearestStart, nearestGoal, &filter, path, &pathCount, maxPathPoints)) || !pathCount) return false;
 
-	std::vector<ObstacleBounds> obstacles;
-	CollectObstacles(obstacles);
-	const dtNavMesh& mesh = *navMesh;
-	radius = std::max(radius, 0.0f);
-	height = std::max(height, 0.0f);
-	auto pointFits = [&](dtPolyRef reference, const Vector3& point) {
-		const Vector3 surfacePoint = ProjectTerrainPosition(point, false);
-		for (const ObstacleBounds& obstacle : obstacles)
-		{
-			const Vector3 half = obstacle.size * 0.5f;
-			if (surfacePoint.y + height <= obstacle.center.y - half.y || surfacePoint.y >= obstacle.center.y + half.y) continue;
-			const float dx = std::max(fabsf(point.x - obstacle.center.x) - half.x, 0.0f);
-			const float dz = std::max(fabsf(point.z - obstacle.center.z) - half.z, 0.0f);
-			if (dx * dx + dz * dz <= radius * radius) return false;
-		}
-		if (radius <= 0.0f) return true;
-		const float position[] = {point.x, point.y, point.z};
-		float distance = radius;
-		float hit[3] = {};
-		float normal[3] = {};
-		return dtStatusSucceed(navQuery->findDistanceToWall(reference, position, radius,
-			&filter, &distance, hit, normal)) && distance >= radius - 0.001f;
-	};
-	auto segmentFits = [&](const Vector3& from, const Vector3& to) {
-		const float spacing = std::max(radius * 0.5f, 0.1f);
-		const int steps = std::max(static_cast<int>(ceilf(Vector3::Distance(from, to) / spacing)), 1);
-		for (int i = 0; i <= steps; ++i)
-		{
-			const Vector3 point = Vector3::Lerp(from, to, static_cast<float>(i) / steps);
-			const float position[] = {point.x, point.y, point.z};
-			const float extent[] = {0.05f, 20.0f, 0.05f};
-			float nearest[3] = {};
-			dtPolyRef reference = 0;
-			if (dtStatusFailed(navQuery->findNearestPoly(position, extent, &filter, &reference, nearest)) || !reference) return false;
-			if (!pointFits(reference, Vector3(nearest[0], nearest[1], nearest[2]))) return false;
-		}
-		return true;
-	};
-	const Vector3 pathStart(nearestStart[0], nearestStart[1], nearestStart[2]);
-	const Vector3 pathGoal(nearestGoal[0], nearestGoal[1], nearestGoal[2]);
-	if (!pointFits(startRef, pathStart) || !pointFits(goalRef, pathGoal)) return false;
-	if (segmentFits(pathStart, pathGoal))
+	float pathEnd[3] = {};
+	if (dtStatusFailed(navQuery->closestPointOnPoly(
+		path[pathCount - 1], nearestGoal, pathEnd, nullptr))) return false;
+
+	float points[maxPathPoints * 3] = {};
+	int pointCount = 0;
+	if (dtStatusFailed(navQuery->findStraightPath(nearestStart, pathEnd,
+		path, pathCount, points, nullptr, nullptr, &pointCount, maxPathPoints)) || !pointCount) return false;
+
+	if (reachableGoal) *reachableGoal = Vector3(pathEnd[0], pathEnd[1], pathEnd[2]);
+	nextPoint = Vector3(pathEnd[0], pathEnd[1], pathEnd[2]);
+	for (int i = 1; i < pointCount; ++i)
 	{
-		nextPoint = pathGoal;
-		if (reachableGoal) *reachableGoal = pathGoal;
-		return true;
+		const Vector3 point(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+		Vector3 distance = point - start;
+		distance.y = 0.0f;
+		if (distance.LengthSquared() <= 0.01f) continue;
+		nextPoint = point;
+		break;
 	}
-
-
-	struct PathNode
-	{
-		Vector3 point = Vector3::Zero;
-		float cost = FLT_MAX;
-		dtPolyRef parent = 0;
-		bool closed = false;
-	};
-	std::map<dtPolyRef, PathNode> nodes;
-	auto nodeFor = [&](dtPolyRef reference) -> PathNode& {
-		auto [it, inserted] = nodes.try_emplace(reference);
-		if (inserted)
-		{
-			const dtMeshTile* tile = nullptr;
-			const dtPoly* poly = nullptr;
-			if (dtStatusSucceed(mesh.getTileAndPolyByRef(reference, &tile, &poly)))
-			{
-				for (int i = 0; i < poly->vertCount; ++i)
-				{
-					const float* vertex = &tile->verts[poly->verts[i] * 3];
-					it->second.point += Vector3(vertex[0], vertex[1], vertex[2]);
-				}
-				it->second.point /= static_cast<float>(poly->vertCount);
-			}
-		}
-		return it->second;
-	};
-	using Candidate = std::pair<float, dtPolyRef>;
-	std::priority_queue<Candidate, std::vector<Candidate>, std::greater<Candidate>> pending;
-	PathNode& first = nodeFor(startRef);
-	first.point = pathStart;
-	first.cost = 0.0f;
-	nodeFor(goalRef).point = pathGoal;
-	pending.emplace(Vector3::Distance(pathStart, pathGoal), startRef);
-	int visited = 0;
-	bool found = false;
-	while (!pending.empty() && visited < 32768)
-	{
-		const dtPolyRef reference = pending.top().second;
-		pending.pop();
-		PathNode& current = nodeFor(reference);
-		if (current.closed) continue;
-		current.closed = true;
-		++visited;
-		if (reference == goalRef) { found = true; break; }
-		const dtMeshTile* tile = nullptr;
-		const dtPoly* poly = nullptr;
-		if (dtStatusFailed(mesh.getTileAndPolyByRef(reference, &tile, &poly))) continue;
-		for (unsigned int link = poly->firstLink; link != DT_NULL_LINK; link = tile->links[link].next)
-		{
-			const dtPolyRef neighborRef = tile->links[link].ref;
-			if (!neighborRef) continue;
-			PathNode& neighbor = nodeFor(neighborRef);
-			if (neighbor.closed) continue;
-			const float cost = current.cost + Vector3::Distance(current.point, neighbor.point);
-			if (cost >= neighbor.cost || !segmentFits(current.point, neighbor.point)) continue;
-			neighbor.cost = cost;
-			neighbor.parent = reference;
-			pending.emplace(cost + Vector3::Distance(neighbor.point, pathGoal), neighborRef);
-		}
-	}
-	if (!found) return false;
-	std::vector<Vector3> path;
-	for (dtPolyRef reference = goalRef; reference; reference = nodes.at(reference).parent)
-		path.push_back(nodes.at(reference).point);
-	std::reverse(path.begin(), path.end());
-	if (reachableGoal) *reachableGoal = pathGoal;
-	if (path.size() == 1 && !segmentFits(pathStart, pathGoal)) return false;
-	nextPoint = path.size() > 1 ? path[1] : pathGoal;
-	// Keep the enemy's full footprint clear when smoothing the polygon route.
-	for (size_t i = 1; i < path.size(); ++i)
-	{
-		if (!segmentFits(pathStart, path[i])) break;
-		nextPoint = path[i];
-	}
-
 	return true;
 }
 

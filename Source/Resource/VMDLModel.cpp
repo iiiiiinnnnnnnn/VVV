@@ -2598,6 +2598,12 @@ void VMDLModel::Serialize(const char* filename)
 			archive(offsets);
 		});
 		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
+		addFile("model.navmeshobstacles", [&](auto& archive) {
+			std::vector<uint8_t> enabled;
+			for (const auto& collider : vmdlExtensionData.colliders)
+				enabled.push_back(collider.navMeshObstacle ? 1 : 0);
+			archive(enabled);
+		});
 		addFile("model.lightdata", [&](auto& archive) { archive(vmdlLightData); });
 		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
 		addFile("model.componenttransforms", [&](auto& archive) { archive(componentTransforms); });
@@ -2783,6 +2789,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			bool loadedExternalMeshes = false;
 			bool loadedExternalMeshBindings = false;
 			bool loadedExternalMeshSlots = false;
+			std::vector<uint8_t> navMeshObstacles;
 			for (const auto& [name, data] : files)
 			{
 				std::istringstream section(data, std::ios::binary | std::ios::in);
@@ -2811,6 +2818,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				{
 					archive(ikInterpolationEasing);
 				}
+				else if (name == "model.navmeshobstacles") archive(navMeshObstacles);
 				else if (name == "model.sounddata")
 				{
 					archive(vmdlSoundData);
@@ -2868,6 +2876,13 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 					loadedExternalMeshSlots = true;
 				}
 			}
+			// 旧VMDLにはこの設定がないため、未指定なら障害物を無効にする。
+			if (!navMeshObstacles.empty() && navMeshObstacles.size() != vmdlExtensionData.colliders.size())
+				throw std::runtime_error("VMDL NavMesh obstacle count mismatch.");
+			for (size_t i = 0; i < vmdlExtensionData.colliders.size(); ++i)
+				vmdlExtensionData.colliders[i].navMeshObstacle =
+					!navMeshObstacles.empty() && navMeshObstacles[i] != 0;
+
 			if (!loadedGlbCache || !loadedVmdlData || !loadedSoundData || !loadedIkSolver ||
 				!loadedSoundBindings || !loadedComponentTransforms || !loadedParticleData ||
 				!loadedEffectBindings || !loadedVfxData || !loadedExternalMeshes ||

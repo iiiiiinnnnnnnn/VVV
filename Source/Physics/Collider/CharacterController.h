@@ -20,6 +20,7 @@ public:
 	const char* GetDebugName() const override { return ICON_FA_STREET_VIEW " CharacterController"; }
     void Move(const Vector3& velocity);
     void SetPosition(const Vector3& pos);
+	void SetPosition(float x, float y, float z) { SetPosition(Vector3(x, y, z)); }
     void SetFootPosition(const Vector3& pos);
     void SetOwnerAnchorOffsetY(float value);
     void SetOwnerAnchorAtCenter(bool value);

@@ -1,4 +1,4 @@
-﻿// GamePostProcess.cpp
+// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 
 #include "Resource/GpuResourceUtils.h"
@@ -16,6 +16,11 @@ namespace Game
 
 	void PostProcess::CopySettingsFrom(const PostProcess& source)
 	{
+		enableUnderwater = source.enableUnderwater;
+		underwaterColor = source.underwaterColor;
+		underwaterDensity = source.underwaterDensity;
+		underwaterTint = source.underwaterTint;
+		underwaterAbsorption = source.underwaterAbsorption;
 		enableBloomExtract = source.enableBloomExtract;
 		bloomThreshold = source.bloomThreshold;
 		enableBloomBlur = source.enableBloomBlur;
@@ -139,11 +144,26 @@ namespace Game
 			}
 		}
 		workA->Deactivate(dc);
+		// 水潜りシェーダー
+		if (enableUnderwater && rc.underwaterBlend > 0.0f && scene->GetDepthSRV())
+		{
+			workB->Activate(dc);
+			Underwater(rc, workA->GetSRV(), scene->GetDepthSRV());
+			workB->Deactivate(dc);
+			workA->Activate(dc);
+			Copy(rc, workB->GetSRV());
+			workA->Deactivate(dc);
+		}
 	}
 
 	PostProcess::PostProcess()
 	{
 		ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+		static_assert(sizeof(CbUnderwater) % 16 == 0);
+		GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/UnderwaterPS.cso",
+			underwaterPixelShader.GetAddressOf());
+		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbUnderwater),
+			underwaterConstantBuffer.GetAddressOf());
 
 		// Copy
 		copyEffect = std::make_unique<DirectX::BasicPostProcess>(device);
@@ -318,6 +338,22 @@ namespace Game
 
 		DrawFullscreen(
 			rc, colorFilterPixelShader.Get(), colorMap, colorFilterConstantBuffer.Get());
+	}
+
+	void PostProcess::Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
+		ID3D11ShaderResourceView* depthMap)
+	{
+		CbUnderwater cb{};
+		cb.inverseViewProjection = (rc.camera->GetView() * rc.camera->GetProjection()).Invert();
+		cb.inverseWaterWorld = rc.underwaterInverseWorld;
+		cb.cameraPosition = rc.camera->GetEye();
+		cb.blend = rc.underwaterBlend;
+		cb.fogColor = underwaterColor;
+		cb.absorption = underwaterAbsorption;
+		cb.density = underwaterDensity;
+		cb.tint = underwaterTint;
+		rc.deviceContext->UpdateSubresource(underwaterConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+		DrawFullscreen(rc, underwaterPixelShader.Get(), colorMap, underwaterConstantBuffer.Get(), depthMap);
 	}
 
 	void PostProcess::SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap)
@@ -610,6 +646,16 @@ namespace Game
 
 	void PostProcess::DrawGUI()
 	{
+		if (ImGui::TreeNode((const char*)u8"水中"))
+		{
+			ImGui::Checkbox((const char*)u8"有効##Underwater", &enableUnderwater);
+			ImGui::ColorEdit3((const char*)u8"フォグ色##Underwater", &underwaterColor.x);
+			ImGui::DragFloat((const char*)u8"濃さ##Underwater", &underwaterDensity, 0.005f, 0.0f, 2.0f);
+			ImGui::DragFloat3((const char*)u8"RGB吸収##Underwater", &underwaterAbsorption.x, 0.005f, 0.0f, 2.0f);
+			ImGui::SliderFloat((const char*)u8"色補正##Underwater", &underwaterTint, 0.0f, 1.0f);
+			ImGui::TreePop();
+		}
+
 		// Extract bright pixels for Bloom.
 		if (ImGui::TreeNode((const char*)u8"ブルーム抽出"))
 		{

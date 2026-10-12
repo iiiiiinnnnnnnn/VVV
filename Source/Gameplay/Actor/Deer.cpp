@@ -14,6 +14,7 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 	anim = vmdl->GetAnimator();
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
+
 	auto footIK = vmdl->GetMultiLegFootIK();
 	footIK->SetContactOffset(-0.864f);
 	footIK->SetModelVisualOffsetY(-0.22f);
@@ -49,8 +50,10 @@ void Deer::ConfigureAI()
 {
 	controller = AddComponent<EnemyAIFlow>();
 	controller->SetGraphPath("Resources/AI/Deer.json");
+
 	if (!controller->Load(controller->GetGraphPath()))
 		controller->CreateDefaultChaseGraph();
+
 	controller->SetTrackingTurnSpeed(1.0f);
 
 	// FootIK
@@ -58,41 +61,46 @@ void Deer::ConfigureAI()
 	ik->SetModelVisualOffsetY(-0.07f);
 	ik->SetContactOffset(-0.044f);
 
+	// グラフに未設定のパラメーターだけ、初期値を補う。
 	const auto ensureFloat = [this](const std::string& name, float value)
 	{
 		for (const AIFlow::Parameter& parameter : controller->GetParameters())
 			if (parameter.name == name) return;
 		controller->SetFloat(name, value);
 	};
+
 	ensureFloat("FreedomMinDistance", 3.0f);
 	ensureFloat("FreedomMaxDistance", 10.0f);
 	ensureFloat("FreedomMoveSpeed", 1.0f);
 	ensureFloat("AttackMoveSpeed", 6.0f);
 	ensureFloat("AttackOverDistance", 16.0f);
 
+	// 共通：移動停止
 	const auto stop = [this](const EnemyAIFlow::State&)
 	{
 		controller->StopMovement();
 	};
+
+	controller->AddCallbackFunc("FreedomWait", stop);
+	controller->AddCallbackFunc("Stop", stop);
+
+	// 非戦闘：構えを解除する。
 	const auto updateFreedom = [this](const EnemyAIFlow::State&)
 	{
 		anim->SetBool("ready", false);
 	};
-	const auto canCharge = [this]()
+
+	controller->AddCallbackFunc("Freedom", stop, updateFreedom, {}, stop);
+
+	// 戦闘：突進に備えて構える。
+	const auto updateAttacking = [this](const EnemyAIFlow::State&)
 	{
-		Actor* target = controller->GetTarget();
-		if (!target) return false;
-		NavMeshActor* navMesh = NavMeshActor::GetActive();
-		if (!navMesh) return true;
-		// NavMeshの外側や境界付近にいる場合はチャージしない
-		const bool deerOutside = navMesh->IsOutsideOrNearBoundary(this->transform.position, 0.0f);
-		const bool targetOutside = navMesh->IsOutsideOrNearBoundary(target->transform.position, 0.0f);
-		return !deerOutside && !targetOutside;
+		anim->SetBool("ready", true);
 	};
-	const auto updateAttacking = [this, canCharge](const EnemyAIFlow::State&)
-	{
-		anim->SetBool("ready", canCharge());
-	};
+
+	controller->AddCallbackFunc("Attacking", stop, updateAttacking, {}, stop);
+
+	// 徘徊：ランダムな目的地へ歩く。
 	const auto enterWander = [this](const EnemyAIFlow::State&)
 	{
 		navMeshAgent->SetSpeed(controller->GetFloat("FreedomMoveSpeed", 1.0f));
@@ -100,6 +108,10 @@ void Deer::ConfigureAI()
 			controller->GetFloat("FreedomMinDistance", 3.0f),
 			controller->GetFloat("FreedomMaxDistance", 10.0f));
 	};
+
+	controller->AddCallbackFunc("FreedomWander", enterWander);
+
+	// 旋回：移動を止め、向きを合わせる。
 	const auto updateTurn = [this](const EnemyAIFlow::State&)
 	{
 		const float angle = controller->GetFloat("TurnAngle");
@@ -108,56 +120,45 @@ void Deer::ConfigureAI()
 		navMeshAgent->SetMovementPaused(true);
 		if (!navMeshAgent->HasDestination()) controller->FaceTarget();
 	};
+
 	const auto exitTurn = [this](const EnemyAIFlow::State&)
 	{
 		anim->SetBool("turnR", false);
 		anim->SetBool("turnL", false);
 		navMeshAgent->SetMovementPaused(false);
 	};
+
+	controller->AddCallbackFunc("Turn", {}, updateTurn, {}, exitTurn);
+
+	// 突進準備：プレイヤーの方向を向く。
 	const auto updateFaceTarget = [this](const EnemyAIFlow::State&)
 	{
 		controller->FaceTarget();
 	};
-	const auto enterChase = [this, canCharge](const EnemyAIFlow::State&)
+
+	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
+
+	// 突進：プレイヤーを通り越す位置を目的地にする。
+	const auto enterChase = [this](const EnemyAIFlow::State&)
 	{
-		if (!canCharge())
-		{
-			controller->StopMovement();
-			controller->SetBool("HasDestination", false, true);
-			anim->SetBool("ready", false);
-			anim->SetFloat("speed", 0.0f);
-			return;
-		}
 		Actor* target = controller->GetTarget();
 		if (!target) return;
 
 		Vector3 over = target->transform.position - this->transform.position;
 		over.y = 0.0f;
 		if (over.LengthSquared() > eps) over.Normalize();
+
 		const float overDistance = controller->GetFloat("AttackOverDistance", 16.0f);
 		const float moveSpeed = controller->GetFloat("AttackMoveSpeed", 6.0f);
 		const Vector3 chargeOffset = over * overDistance;
 		const Vector3 destination = target->transform.position + chargeOffset;
+
 		navMeshAgent->SetSpeed(moveSpeed);
 		navMeshAgent->MoveToPosition(destination);
 	};
-	const auto updateChase = [this, canCharge](const EnemyAIFlow::State&)
-	{
-		if (canCharge()) return;
-		controller->StopMovement();
-		controller->SetBool("HasDestination", false, true);
-		anim->SetBool("ready", false);
-		anim->SetFloat("speed", 0.0f);
-	};
 
-	controller->AddCallbackFunc("Freedom", stop, updateFreedom, {}, stop);
-	controller->AddCallbackFunc("FreedomWait", stop);
-	controller->AddCallbackFunc("FreedomWander", enterWander);
-	controller->AddCallbackFunc("Turn", {}, updateTurn, {}, exitTurn);
-	controller->AddCallbackFunc("Attacking", stop, updateAttacking, {}, stop);
-	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
-	controller->AddCallbackFunc("AttackChase", enterChase, updateChase);
-	controller->AddCallbackFunc("Stop", stop);
+	controller->AddCallbackFunc("AttackChase", enterChase);
+
 	controller->BindCallbacks();
 }
 
