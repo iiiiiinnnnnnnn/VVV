@@ -23,17 +23,15 @@ json SaveColor(const Color& value)
 	return {value.x, value.y, value.z, value.w};
 }
 
-Vector3 LoadVector3(const json& value, const Vector3& fallback = Vector3::Zero)
+Vector3 LoadVector3(const json& value)
 {
-	if (!value.is_array() || value.size() < 3) return fallback;
-	return {value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
+	return {value.at(0).get<float>(), value.at(1).get<float>(), value.at(2).get<float>()};
 }
 
-Color LoadColor(const json& value, const Color& fallback = Color(1, 1, 1, 1))
+Color LoadColor(const json& value)
 {
-	if (!value.is_array() || value.size() < 4) return fallback;
 	return {
-		value[0].get<float>(), value[1].get<float>(), value[2].get<float>(), value[3].get<float>()};
+		value.at(0).get<float>(), value.at(1).get<float>(), value.at(2).get<float>(), value.at(3).get<float>()};
 }
 
 json SaveLight(const Light& light)
@@ -47,25 +45,16 @@ json SaveLight(const Light& light)
 
 void LoadLight(const json& value, Light& light)
 {
-	light.SetName(value.value("name", light.GetName()));
-	light.SetActive(value.value("active", true));
-	if (value.contains("color"))
-	{
-		const Color color = LoadColor(value["color"]);
-		light.SetColor(color);
-		light.SetIntensity(value.value("intensity", light.GetIntensity()));
-	}
-	else
-	{
-		light.SetIntensity(value.value("intensity", light.GetIntensity()));
-	}
-	if (value.contains("position")) light.transform.position = LoadVector3(value["position"]);
-	if (value.contains("rotation") && value["rotation"].is_array() && value["rotation"].size() >= 4)
-	{
-		light.transform.rotation = {value["rotation"][0].get<float>(),
-			value["rotation"][1].get<float>(), value["rotation"][2].get<float>(),
-			value["rotation"][3].get<float>()};
-	}
+	light.SetName(value.at("name").get<std::string>());
+	light.SetActive(value.at("active").get<bool>());
+	light.SetColor(LoadColor(value.at("color")));
+	light.SetIntensity(value.at("intensity").get<float>());
+	light.transform.position = LoadVector3(value.at("position"));
+	const auto& rotation = value.at("rotation");
+	light.transform.rotation = {
+		rotation.at(0).get<float>(), rotation.at(1).get<float>(),
+		rotation.at(2).get<float>(), rotation.at(3).get<float>()
+	};
 	light.transform.Update();
 }
 
@@ -325,12 +314,12 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 	try
 	{
 		const json root = json::parse(text);
-		if (root.contains("ibl"))
+		
 		{
 			auto& graphics = Game::Graphics::Instance();
-			const auto& ibl = root["ibl"];
-			const std::string skyMap = ibl.value("skyMap", graphics.GetSkyMapName());
-			const float intensity = ibl.value("skyIntensity", 1.0f);
+			const auto& ibl = root.at("ibl");
+			const std::string skyMap = ibl.at("skyMap").get<std::string>();
+			const float intensity = ibl.at("skyIntensity").get<float>();
 			if (skyMap != graphics.GetSkyMapName() && !graphics.LoadSkyMap(skyMap))
 			{
 				error = "Could not load the VSTG IBL: " + skyMap;
@@ -338,9 +327,9 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 			}
 			graphics.GetSkyBoxRenderer()->SetIntensity(intensity);
 		}
-		if (root.contains("ambient")) lights.SetAmbientColor(LoadColor(root["ambient"]));
-		if (root.contains("directional"))
-			LoadLight(root["directional"], lights.GetDirectionalLight());
+		lights.SetAmbientColor(LoadColor(root.at("ambient")));
+		
+		LoadLight(root.at("directional"), lights.GetDirectionalLight());
 		lights.GetPointLights().clear();
 		lights.GetSpotLights().clear();
 		lights.GetAreaLights().clear();
@@ -348,28 +337,29 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 		{
 			PointLight& light = lights.AddPointLight();
 			LoadLight(value, light);
-			light.SetRange(value.value("range", 10.0f));
+			light.SetRange(value.at("range").get<float>());
 		}
 		for (const auto& value : root.value("spots", json::array()))
 		{
 			SpotLight& light = lights.AddSpotLight();
 			LoadLight(value, light);
-			light.SetRange(value.value("range", 10.0f));
-			light.SetInnerConeAngle(value.value("innerCone", 0.9f));
-			light.SetOuterConeAngle(value.value("outerCone", 0.8f));
+			light.SetRange(value.at("range").get<float>());
+			light.SetInnerConeAngle(value.at("innerCone").get<float>());
+			light.SetOuterConeAngle(value.at("outerCone").get<float>());
 		}
 		for (const auto& value : root.value("areas", json::array()))
 		{
 			AreaLight& light = lights.AddAreaLight();
 			LoadLight(value, light);
-			light.SetRange(value.value("range", 10.0f));
-			light.SetWidth(value.value("width", 1.0f));
-			light.SetHeight(value.value("height", 1.0f));
+			light.SetRange(value.at("range").get<float>());
+			light.SetWidth(value.at("width").get<float>());
+			light.SetHeight(value.at("height").get<float>());
 		}
 		return true;
 	}
-	catch (const json::exception&)
+	catch (const json::exception& exception)
 	{
+		error = "Invalid VSTG lighting data: " + std::string(exception.what());
 		return false;
 	}
 }

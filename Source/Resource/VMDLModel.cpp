@@ -2776,6 +2776,24 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			std::vector<std::pair<std::string, std::string>> files;
 			cereal::BinaryInputArchive package(serializedStream);
 			package(files);
+
+			// 現行の保存処理が出力する全セクション
+			constexpr const char* requiredSections[] = {
+				"model.glbcache", "model.vmdldata", "model.materialanimation",
+				"model.iksolver", "model.ikeasing", "model.iksyncoffsets",
+				"model.sounddata", "model.lightdata", "model.navmeshobstacles",
+				"model.soundbindings", "model.componenttransforms", "model.particledata",
+				"model.effectbindings", "model.vfxdata", "model.crystalsettings",
+				"model.externalmeshes", "model.externalmeshbindings", "model.externalmeshslots"
+			};
+			for (const char* required : requiredSections)
+			{
+				const auto missing = std::none_of(files.begin(), files.end(), [&](const auto& file) {
+					return file.first == required;
+				});
+				if (missing) throw std::runtime_error("VMDL package is missing required data: " + std::string(required));
+			}
+
 			bool loadedGlbCache = false;
 			bool loadedVmdlData = false;
 			bool loadedSoundData = false;
@@ -2876,19 +2894,17 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 					loadedExternalMeshSlots = true;
 				}
 			}
-			// 旧VMDLにはこの設定がないため、未指定なら障害物を無効にする。
-			if (!navMeshObstacles.empty() && navMeshObstacles.size() != vmdlExtensionData.colliders.size())
+			if (navMeshObstacles.size() != vmdlExtensionData.colliders.size())
 				throw std::runtime_error("VMDL NavMesh obstacle count mismatch.");
 			for (size_t i = 0; i < vmdlExtensionData.colliders.size(); ++i)
 				vmdlExtensionData.colliders[i].navMeshObstacle =
-					!navMeshObstacles.empty() && navMeshObstacles[i] != 0;
+					navMeshObstacles[i] != 0;
 
 			if (!loadedGlbCache || !loadedVmdlData || !loadedSoundData || !loadedIkSolver ||
 				!loadedSoundBindings || !loadedComponentTransforms || !loadedParticleData ||
 				!loadedEffectBindings || !loadedVfxData || !loadedExternalMeshes ||
-				!loadedExternalMeshBindings || !loadedExternalMeshSlots)
+				!loadedExternalMeshBindings || !loadedExternalMeshSlots || !loadedLightData)
 				throw std::runtime_error("VMDL package is missing required data.");
-			if (!loadedLightData) vmdlLightData = {};
 			if (soundBindings.size() != vmdlSoundData.sources.size() ||
 				effectBindings.size() != vmdlParticleData.emitters.size() ||
 				externalMeshBindingKeys.size() != externalMeshGroups.size() ||
@@ -2961,9 +2977,11 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			NormalizeVmdlIKRaySettings();
 			vmdlMultiLegIKSettings.interpolationEasing = std::clamp(
 				ikInterpolationEasing, -1, static_cast<int>(Easing::Type::Count) - 1);
+			if (ikSyncOffsets.size() != vmdlIKRaySettings.size())
+				throw std::runtime_error("VMDL IK sync offset count mismatch.");
 			for (size_t i = 0; i < vmdlIKRaySettings.size(); ++i)
 				vmdlIKRaySettings[i].syncOffset =
-					i < ikSyncOffsets.size() ? ikSyncOffsets[i] : Vector3::Zero;
+					ikSyncOffsets[i];
 			NormalizeMorphNames();
 			for (auto& source : vmdlSoundData.sources)
 			{

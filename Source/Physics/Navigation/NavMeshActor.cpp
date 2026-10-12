@@ -120,20 +120,14 @@ std::string NavMeshActor::SaveSettingsJson() const
 
 bool NavMeshActor::LoadSettingsJson(const std::string& text)
 {
-	if (text.empty())
-	{
-		RequestBuild();
-		return true;
-	}
-
 	try
 	{
 		const json root = json::parse(text);
-		simplifyFlatAreas = root.value("simplifyFlatAreas", simplifyFlatAreas);
-		simplifyHeightError = std::clamp(root.value("simplifyHeightError", simplifyHeightError), 0.0f, 1.0f);
-		simplifyMaxCells = std::clamp(root.value("simplifyMaxCells", simplifyMaxCells), 1, CellsPerTile);
-		navMinY = root.value("navMinY", navMinY);
-		navMaxY = root.value("navMaxY", navMaxY);
+		simplifyFlatAreas = root.at("simplifyFlatAreas").get<bool>();
+		simplifyHeightError = std::clamp(root.at("simplifyHeightError").get<float>(), 0.0f, 1.0f);
+		simplifyMaxCells = std::clamp(root.at("simplifyMaxCells").get<int>(), 1, CellsPerTile);
+		navMinY = root.at("navMinY").get<float>();
+		navMaxY = root.at("navMaxY").get<float>();
 		if (navMinY > navMaxY) std::swap(navMinY, navMaxY);
 
 		RequestBuild();
