@@ -1,4 +1,4 @@
-﻿#include "Gameplay/Scene/VmdlEditorScene.h"
+#include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Application/Tools/Dialog.h"
@@ -1378,7 +1378,7 @@ void VmdlEditorScene::DrawMenuBar()
 		if (ImGui::MenuItem((const char*)(ICON_FA_COPY " " u8"名前を付けて保存"), "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
 		ImGui::Separator();
 		if (ImGui::MenuItem((const char*)(ICON_FA_FILE_IMPORT " " u8"GLBをインポート"))) ImportGlb();
-		if (ImGui::MenuItem((const char*)(ICON_FA_FILE_EXPORT " " u8"GLBをエクスポート"), nullptr, false, model != nullptr)) ExportGlb();
+		//if (ImGui::MenuItem((const char*)(ICON_FA_FILE_EXPORT " " u8"GLBをエクスポート"), nullptr, false, model != nullptr)) ExportGlb();
 		if (ImGui::MenuItem((const char*)(ICON_FA_EXCHANGE_ALT " " u8"GLBキャッシュを置換"), nullptr, false, model != nullptr)) ReplaceGlbCache();
 		if (ImGui::MenuItem((const char*)(ICON_FA_PLUS " " u8"アニメーションGLBを追加"), nullptr, false, model != nullptr)) AppendAnimationGlb();
 		ImGui::Separator();
