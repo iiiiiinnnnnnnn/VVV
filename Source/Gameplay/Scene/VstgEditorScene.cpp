@@ -966,11 +966,20 @@ bool VstgEditorScene::ResolveMissingModels()
 		std::error_code pathError;
 		const std::filesystem::path selectedPath =
 			std::filesystem::weakly_canonical(replacementFile, pathError);
-		const std::filesystem::path canonicalRoot =
-			std::filesystem::weakly_canonical(resourceRoot, pathError);
-		const std::filesystem::path relativePath = selectedPath.lexically_relative(canonicalRoot);
-		if (pathError || relativePath.empty() ||
-			(!relativePath.empty() && *relativePath.begin() == ".."))
+		std::filesystem::path relativePath;
+		if (!pathError)
+		{
+			for (const auto& root : {resourceRoot, std::filesystem::absolute("Resources")})
+			{
+				std::error_code rootError;
+				const auto candidate = std::filesystem::relative(selectedPath, root, rootError);
+				if (rootError || candidate.empty() || candidate.is_absolute() ||
+					*candidate.begin() == "..") continue;
+				relativePath = candidate;
+				break;
+			}
+		}
+		if (relativePath.empty())
 		{
 			ErrorMessage((const char*)u8"Resourcesフォルダ内のVMDLを選択してください。");
 			continue;

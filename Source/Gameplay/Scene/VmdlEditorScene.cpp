@@ -6863,5 +6863,5 @@ void VmdlEditorScene::LoadModel(
 void VmdlEditorScene::ErrorMessage(const std::string& message)
 {
 	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		std::wstring(message.begin(), message.end()).c_str(), L"VEER", MB_ICONERROR);
+		Utf8ToWide(message).c_str(), L"VEER", MB_ICONERROR);
 }

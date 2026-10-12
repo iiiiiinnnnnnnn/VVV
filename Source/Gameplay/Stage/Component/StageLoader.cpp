@@ -619,7 +619,7 @@ std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPa
 {
 	if (editorModels)
 	{
-		const auto found = editorModels->find(modelPath);
+		const auto found = editorModels->find(ResourceManager::Instance().ResolvePath(modelPath));
 		if (found != editorModels->end() && found->second) return found->second->CloneRuntimeInstance(true);
 		return nullptr;
 	}
