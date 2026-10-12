@@ -49,7 +49,8 @@ VstgEditorScene::VstgEditorScene()
 	CreateStage();
 	RefreshPropModels();
 	LoadEditorSettings();
-	if (!recentStagePath.empty() && std::filesystem::exists(recentStagePath))
+	std::error_code error;
+	if (!recentStagePath.empty() && std::filesystem::is_regular_file(recentStagePath, error))
 		LoadStage(recentStagePath);
 }
 

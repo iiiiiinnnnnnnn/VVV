@@ -168,7 +168,8 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 
 	editorLightDirection = {0.6f, -0.7f, 0.0f};
 	LoadLayoutSettings();
-	if (filepath.empty() && !recentModelPath.empty()) filepath = recentModelPath;
+	const bool restoreRecentModel = filepath.empty();
+	if (restoreRecentModel && !recentModelPath.empty()) filepath = recentModelPath;
 	if (!filepath.empty() && filepath.is_relative() && !ResourceManager::FindSourceResourceRoot().empty())
 	{
 		const std::filesystem::path relativePath =
@@ -177,7 +178,12 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 			ResourceManager::FindSourceResourceRoot() / relativePath;
 		if (std::filesystem::exists(sourcePath)) filepath = sourcePath;
 	}
-	if (!filepath.empty()) LoadModel(filepath);
+	if (!filepath.empty())
+	{
+		std::error_code error;
+		if (!restoreRecentModel || std::filesystem::is_regular_file(
+			ResourceManager::ResolveSourcePath(filepath), error)) LoadModel(filepath);
+	}
 
 	if (!footIkTestStageModel) LoadFootIkTestStage();
 }
