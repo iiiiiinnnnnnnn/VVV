@@ -1,3 +1,4 @@
 // EmbeddedResources.rc
 #include "Source/Resource/EmbeddedResources.h"
 IDR_PREVIEW_STAGE RCDATA "PreviewStage.vmdl"
+IDR_FONT_AWESOME RCDATA "fa-solid-900.ttf"

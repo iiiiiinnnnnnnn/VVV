@@ -4,6 +4,7 @@
 #include <imgui_internal.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
+#include "Resource/EmbeddedResources.h"
 #include <filesystem>
 
 namespace
@@ -180,7 +181,18 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	config.MergeMode = true;
 	config.PixelSnapH = true;
 	config.GlyphMinAdvanceX = 16.0f;
-	io.Fonts->AddFontFromFileTTF("Resources/Font/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
+	config.FontDataOwnedByAtlas = false;
+	const HMODULE module = GetModuleHandleW(nullptr);
+	const HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(IDR_FONT_AWESOME),
+		MAKEINTRESOURCEW(10)); // RT_RCDATA
+	if (resource)
+	{
+		const HGLOBAL loaded = LoadResource(module, resource);
+		void* data = loaded ? LockResource(loaded) : nullptr;
+		const DWORD size = SizeofResource(module, resource);
+		if (data && size)
+			io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), 18.0f, &config, icon_ranges);
+	}
 }
 
 void ImGuiRenderer::Finalize()
