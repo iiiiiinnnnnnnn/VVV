@@ -78,7 +78,7 @@ void Deer::ConfigureAI()
 	// 共通：移動停止
 	const auto stop = [this](const EnemyAIFlow::State&)
 	{
-		controller->StopMovement();
+		StopCharge();
 	};
 
 	controller->AddCallbackFunc("FreedomWait", stop);
@@ -138,15 +138,30 @@ void Deer::ConfigureAI()
 
 	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
 
-	// 突進：プレイヤーを通り越す位置を目的地にする。
+	// 突進：開始時の方向に固定して直進する。
 	const auto enterChase = [this](const EnemyAIFlow::State&)
 	{
 		Actor* target = controller->GetTarget();
-		if (!target) return;
+		if (!target)
+		{
+			StopCharge();
+			return;
+		}
 
 		Vector3 over = target->transform.position - this->transform.position;
 		over.y = 0.0f;
-		if (over.LengthSquared() > eps) over.Normalize();
+		if (over.LengthSquared() <= eps)
+		{
+			StopCharge();
+			return;
+		}
+		over.Normalize();
+		chargeDirection = over;
+		normalSlopeLimit = cc->GetSlopeLimitDeg();
+		cc->SetSlopeLimitDeg(45.0f);
+		charging = true;
+		this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
+			atan2f(over.x, over.z), 0.0f, 0.0f));
 
 		const float overDistance = controller->GetFloat("AttackOverDistance", 16.0f);
 		const float moveSpeed = controller->GetFloat("AttackMoveSpeed", 6.0f);
@@ -154,12 +169,38 @@ void Deer::ConfigureAI()
 		const Vector3 destination = target->transform.position + chargeOffset;
 
 		navMeshAgent->SetSpeed(moveSpeed);
+		navMeshAgent->SetChargeMovement(true);
 		navMeshAgent->MoveToPosition(destination);
 	};
 
-	controller->AddCallbackFunc("AttackChase", enterChase);
+	const auto updateChase = [this](const EnemyAIFlow::State&)
+	{
+		Actor* target = controller->GetTarget();
+		if (!charging || !target || !navMeshAgent->HasDestination())
+		{
+			StopCharge();
+			return;
+		}
+
+		// 突進方向に対して、プレイヤーが後方へ抜けたら空振りとして終了する。
+		Vector3 toTarget = target->transform.position - this->transform.position;
+		toTarget.y = 0.0f;
+		if (chargeDirection.Dot(toTarget) < 0.0f) StopCharge();
+	};
+
+	controller->AddCallbackFunc("AttackChase", enterChase, updateChase, {}, stop);
 
 	controller->BindCallbacks();
+}
+
+void Deer::StopCharge()
+{
+	if (charging) cc->SetSlopeLimitDeg(normalSlopeLimit);
+	charging = false;
+	navMeshAgent->SetChargeMovement(false);
+	controller->StopMovement();
+	controller->SetBool("HasDestination", false, true);
+	anim->SetFloat("speed", 0.0f);
 }
 
 void Deer::OnUpdate()
@@ -202,7 +243,7 @@ void Deer::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const
 	if (other->GetLayerId() != Layers::Get("Player")) return;
 
 	anim->SetTrigger("Damage");
-	navMeshAgent->Stop();
+	StopCharge();
 
 	DamageData damageData{
 		.damage = 10.0f,
@@ -220,7 +261,7 @@ void Deer::OnDamaged(const DamageData& damageData)
 	TimeScaleController::Request(0.15f);
 	CameraEffectController::Request(0.2f, 0.1f);
 
-	navMeshAgent->Stop();
+	StopCharge();
 	if (damageData.hitColliderSelf)
 	{
 		Actor* attacker = dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner());
@@ -241,7 +282,7 @@ void Deer::OnDead(const DamageData& damageData)
 	SoundSystem::Instance().PlayTrack3DAt(
 		SoundTrack::SE_DEER_DIE, transform.position, -1, deathSoundOptions);
 
-	navMeshAgent->Stop();
+	StopCharge();
 	navMeshAgent->SetActive(false);
 	controller->SetActive(false);
 

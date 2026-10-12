@@ -229,10 +229,6 @@ void TestPlayScene::OnUpdate()
 	playerHealthGauge->SetTargetValue(playerLifeRatio);
 }
 
-void TestPlayScene::OnRender(RenderContext& rc)
-{
-}
-
 void TestPlayScene::OnDrawGUI()
 {
 	if (ImGui::CollapsingHeader("SceneManager"))

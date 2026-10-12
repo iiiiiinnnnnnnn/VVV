@@ -152,7 +152,7 @@ void VstgEditorScene::RenderPropPreview(const RenderContext& rc)
 	{
 		const auto found = propModels.find(propPreviewRequestPath);
 		propPreviewModel =
-			found == propModels.end() || !found->second ? nullptr : found->second->Clone();
+			found == propModels.end() || !found->second ? nullptr : found->second->CloneRuntimeInstance(true);
 		propPreviewLoadedPath = propPreviewRequestPath;
 		propPreviewRenderParams.materials.clear();
 	}
@@ -467,7 +467,7 @@ void VstgEditorScene::RefreshPropModels()
 		std::shared_ptr<VMDLModel> model;
 		try
 		{
-			model = ResourceManager::Instance().LoadModel(modelPath);
+			model = ResourceManager::Instance().LoadModel(modelPath, true);
 		}
 		catch (const std::exception&)
 		{
@@ -599,7 +599,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 		{
 			const auto found = propModels.find(modelPath);
 			dragPreviewModel =
-				found == propModels.end() || !found->second ? nullptr : found->second->Clone();
+				found == propModels.end() || !found->second ? nullptr : found->second->CloneRuntimeInstance(true);
 			dragPreviewModelPath = modelPath;
 			dragPreviewRenderParams.materials.clear();
 			if (dragPreviewModel)

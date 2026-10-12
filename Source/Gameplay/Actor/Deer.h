@@ -20,6 +20,7 @@ public:
 
   private:
 	void ConfigureAI();
+	void StopCharge();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 	VMDL* vmdl;
@@ -28,5 +29,8 @@ public:
 	EnemyAIFlow* controller;
 	NavMeshAgent* navMeshAgent;
 	CharacterController* cc;
+	Vector3 chargeDirection = Vector3::Zero;
+	float normalSlopeLimit = 70.0f;
+	bool charging = false;
 	bool deathCleanupPending = false;
 };

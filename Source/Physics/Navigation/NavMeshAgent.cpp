@@ -173,7 +173,8 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
 
 	// 自身がNavMesh内なら経路を使い、外なら目的地へ直線移動する。
-	if (navMeshActor && !navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f))
+	if (!chargeMovement && navMeshActor &&
+		!navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f))
 	{
 		directMove = !navMeshActor->FindNextPoint(
 			actor->transform.position, targetPosition, nextPoint);
@@ -210,7 +211,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		direction.Dot(actor->transform.right),
 		direction.Dot(actor->transform.forward));
 
-	if (rotateToMoveDirection)
+	if (rotateToMoveDirection && !chargeMovement)
 	{
 		const float targetYaw = atan2f(direction.x, direction.z);
 		const Quaternion targetRotation =
@@ -239,7 +240,27 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		lastMoveDelta = Vector3::Zero;
 		return false;
 	}
+
+	// 突進は迂回せず直進し、崖や接触した障害物で終了する。
+	if (chargeMovement && navMeshActor &&
+		(navMeshActor->IsCliffAlongSegment(actor->transform.position,
+			actor->transform.position + lastMoveDelta, 45.0f) ||
+		 navMeshActor->IsDirectPathBlocked(actor->transform.position,
+			actor->transform.position + lastMoveDelta,
+			characterController->GetRadius(), characterController->GetHeight())))
+	{
+		Stop();
+		statusMessage = "Charge stopped: Cliff or obstacle contact.";
+		return true;
+	}
+
 	characterController->Move(lastMoveDelta);
+	if (chargeMovement && characterController->HitSideOnLastMove())
+	{
+		Stop();
+		statusMessage = "Charge stopped: Collision.";
+		return true;
+	}
 
 	statusMessage = directMove ? "Direct move." : "NavMesh move.";
 

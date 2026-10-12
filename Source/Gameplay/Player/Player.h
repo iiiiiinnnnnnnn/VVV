@@ -1,4 +1,4 @@
-﻿// Player.h
+// Player.h
 #pragma once
 #include "Animation/Animator.h"
 
@@ -33,6 +33,7 @@ public:
 
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
+	void OnHeal(float amount) override;
 	void TakeDamage(const DamageData& damageData) override;
 	bool IsDodgeInvincible() const { return dodgeInvincible; }
 	bool IsJustDodging() const { return justDodgeTriggered; }

@@ -68,5 +68,7 @@ void Entity::TakeDamage(const DamageData& damageData)
 // 回復する
 void Entity::Heal(float amount)
 {
+	if (life >= maxLife) return;
     life = min(life + amount, maxLife);
+	OnHeal(amount);
 }

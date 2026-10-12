@@ -67,6 +67,7 @@ public:
         return capsule->getHeight() + capsule->getRadius() * 2.0f;
     }
     bool IsGrounded() const { return grounded; }
+    bool HitSideOnLastMove() const { return hitSideOnLastMove; }
 private:
     void ApplyGravity();
     void SyncOwnerTransform();
@@ -75,6 +76,7 @@ private:
     PxController* controller = nullptr;
     CCHitReport* hitReport = nullptr;
     bool grounded = false;
+    bool hitSideOnLastMove = false;
     bool useGravity = true;
     bool pushable = true;
 	std::bitset<EditableLayerCount> ignoredLayers;

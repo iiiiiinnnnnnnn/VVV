@@ -20,6 +20,7 @@ public:
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }
 	void SetAutoMove(bool enabled) { autoMove = enabled; }
 	void SetMovementPaused(bool value) { movementPaused = value; }
+	void SetChargeMovement(bool value) { chargeMovement = value; }
 	void MoveToTarget(Actor* targetActor);
 	void MoveToPosition(const Vector3& targetPosition);
 	bool MoveToRandomPosition(float minDistance, float maxDistance);
@@ -50,6 +51,7 @@ private:
 	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
 	bool movementPaused = false;
+	bool chargeMovement = false;
 	Vector3 destination = Vector3::Zero;
 	float randomMinDistance = 3.0f;
 	float randomMaxDistance = 10.0f;

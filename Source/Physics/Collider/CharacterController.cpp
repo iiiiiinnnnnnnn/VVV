@@ -249,6 +249,7 @@ private:
 
 void CharacterController::Move(const Vector3& velocity)
 {
+    hitSideOnLastMove = false;
     if (!controller || !hitReport || !IsFinite(velocity)) return;
 
     static CCFilterCallback      ccFilter;
@@ -280,6 +281,7 @@ void CharacterController::Move(const Vector3& velocity)
         0.001f, elapsedTime, filters
     );
     grounded = (flags & PxControllerCollisionFlag::eCOLLISION_DOWN) != PxControllerCollisionFlags(0);
+    hitSideOnLastMove = (flags & PxControllerCollisionFlag::eCOLLISION_SIDES) != PxControllerCollisionFlags(0);
     if (grounded && velocity.y <= 0.0f)
         verticalVelocity = 0.0f;
 

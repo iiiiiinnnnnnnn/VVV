@@ -754,9 +754,6 @@ void Player::UpdateHealth()
 	{
 		healthRecoveryTimer -= healthRecoveryInterval;
 		Heal(healthRecoveryAmount);
-
-		// 回復エフェクト
-		vmdl->GetRenderer()->PlayParticleEmitter("HEAL");
 	}
 }
 
@@ -772,6 +769,12 @@ void Player::OnDead(const DamageData& damageData)
 	if (anim) anim->SetBool("IsDead", true);
 	lockOnComponent->ClearTarget();
 	lockOnComponent->SetActive(false);
+}
+
+void Player::OnHeal(float amount)
+{
+	// 回復エフェクト
+	vmdl->GetRenderer()->PlayParticleEmitter("HEAL");
 }
 
 void Player::UpdateDeathSequence()

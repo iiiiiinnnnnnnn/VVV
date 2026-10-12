@@ -28,6 +28,7 @@ public:
         : Actor(name, tag, isActive, transform), life(life), maxLife(maxLife) {}
 
     virtual void OnUpdate() override;
+	virtual void OnHeal(float amount) {};
 
     virtual void TakeDamage(const DamageData& damageData);
     void Heal(float amount);

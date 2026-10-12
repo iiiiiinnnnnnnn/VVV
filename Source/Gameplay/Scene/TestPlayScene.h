@@ -20,7 +20,6 @@ public:
 	~TestPlayScene() override;
 
 	void OnUpdate() override;
-	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
 	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::HiddenLocked; }
 

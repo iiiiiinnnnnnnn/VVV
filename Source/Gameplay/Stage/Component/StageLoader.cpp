@@ -620,7 +620,7 @@ std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPa
 	if (editorModels)
 	{
 		const auto found = editorModels->find(modelPath);
-		if (found != editorModels->end() && found->second) return found->second->Clone();
+		if (found != editorModels->end() && found->second) return found->second->CloneRuntimeInstance(true);
 		return nullptr;
 	}
 
@@ -724,7 +724,7 @@ bool StageLoader::ReplaceMissingModelPath(
 		if (propData.modelPath != missingPath) continue;
 		propData.initialSpawned = false;
 		propData.modelPath = replacementPath;
-		propData.model = replacement->Clone();
+		propData.model = replacement->CloneRuntimeInstance(true);
 
 		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
 			stage->GetActorManager().Contains(addedPropActors[index]))
@@ -995,7 +995,7 @@ bool StageLoader::DrawPropEditor(int index)
 	{
 		PropData copy = propData;
 		copy.initialSpawned = false;
-		if (copy.model) copy.model = copy.model->Clone();
+		if (copy.model) copy.model = copy.model->CloneRuntimeInstance(true);
 		propDataList.insert(propDataList.begin() + index + 1, std::move(copy));
 		Actor* actor = CreatePropActor(propDataList[index + 1]);
 		addedRealActors.insert(addedRealActors.begin() + index + 1, actor);
