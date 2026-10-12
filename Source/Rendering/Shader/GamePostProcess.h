@@ -45,6 +45,7 @@ namespace Game
 		bool IsSSAOEnabled() const { return enableSSAO; }
 		bool IsToneMappingEnabled() const { return enableToneMapping; }
 		bool IsColorFilterEnabled() const { return enableColorFilter; }
+		bool IsColorGradientEnabled() const { return enableColorGradient; }
 		bool IsRadialBlurEnabled() const { return enableRadialBlur; }
 		bool IsVignetteEnabled() const { return enableVignette; }
 		bool IsChromaticAberrationEnabled() const { return enableChromaticAberration; }
@@ -66,7 +67,7 @@ namespace Game
 		Color underwaterColor = {0.025f, 0.22f, 0.28f, 1.0f};
 		float underwaterDensity = 0.12f;
 		float underwaterTint = 0.12f;
-		Vector3 underwaterAbsorption = {0.023f, 0.117f, 0.278f, 1.000f};
+		Vector3 underwaterAbsorption = {0.023f, 0.117f, 0.278f};
 		struct CbUnderwater
 		{
 			Matrix inverseViewProjection;
@@ -146,12 +147,20 @@ namespace Game
 		float colorFilterHueShift = 0.0f;
 		float colorFilterSaturation = 2.0f;
 		float colorFilterBrightness = 1.3f;
+		bool enableColorGradient = false;
+		float colorGradientStrength = 0.25f;
+		Color colorGradientShadows = {0.02f, 0.04f, 0.10f, 1.0f};
+		Color colorGradientMidtones = {0.45f, 0.50f, 0.55f, 1.0f};
+		Color colorGradientHighlights = {1.0f, 0.92f, 0.78f, 1.0f};
 		struct CbColorFilter
 		{
 			float hueShift;
 			float saturation;
 			float brightness;
-			float DUMMY;
+			float gradientStrength;
+			Color gradientShadows;
+			Color gradientMidtones;
+			Color gradientHighlights;
 		};
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> colorFilterPixelShader;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> colorFilterConstantBuffer;

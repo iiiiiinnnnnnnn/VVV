@@ -44,6 +44,11 @@ namespace Game
 		colorFilterHueShift = source.colorFilterHueShift;
 		colorFilterSaturation = source.colorFilterSaturation;
 		colorFilterBrightness = source.colorFilterBrightness;
+		enableColorGradient = source.enableColorGradient;
+		colorGradientStrength = source.colorGradientStrength;
+		colorGradientShadows = source.colorGradientShadows;
+		colorGradientMidtones = source.colorGradientMidtones;
+		colorGradientHighlights = source.colorGradientHighlights;
 		enableRadialBlur = source.enableRadialBlur;
 		radialBlurRadius = source.radialBlurRadius;
 		radialBlurSamplingCount = source.radialBlurSamplingCount;
@@ -330,9 +335,13 @@ namespace Game
 	void PostProcess::ColorFilter(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
 		CbColorFilter cb = {};
-		cb.hueShift = colorFilterHueShift;
-		cb.saturation = colorFilterSaturation;
-		cb.brightness = colorFilterBrightness;
+		cb.hueShift = enableColorFilter ? colorFilterHueShift : 0.0f;
+		cb.saturation = enableColorFilter ? colorFilterSaturation : 1.0f;
+		cb.brightness = enableColorFilter ? colorFilterBrightness : 1.0f;
+		cb.gradientStrength = enableColorGradient ? colorGradientStrength : 0.0f;
+		cb.gradientShadows = colorGradientShadows;
+		cb.gradientMidtones = colorGradientMidtones;
+		cb.gradientHighlights = colorGradientHighlights;
 		rc.deviceContext->UpdateSubresource(
 			colorFilterConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
@@ -555,7 +564,7 @@ namespace Game
 			runtimeColorTintIntensity > 0.001f;
 
 		int passCount = 1;
-		if (enableColorFilter) ++passCount;
+		if (enableColorFilter || enableColorGradient) ++passCount;
 		if (useRadialBlur) ++passCount;
 		if (useChromaticAberration) ++passCount;
 		if (useVignette) ++passCount;
@@ -595,7 +604,7 @@ namespace Game
 			}
 		});
 
-		if (enableColorFilter)
+		if (enableColorFilter || enableColorGradient)
 		{
 			renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
@@ -761,6 +770,23 @@ namespace Game
 				colorFilterHueShift = 0.0f;
 				colorFilterSaturation = 1.0f;
 				colorFilterBrightness = 1.0f;
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode((const char*)u8"カラーグレーディング"))
+		{
+			ImGui::Checkbox((const char*)u8"有効##ColorGradient", &enableColorGradient);
+			ImGui::SliderFloat((const char*)u8"適用強度", &colorGradientStrength, 0.0f, 1.0f);
+			ImGui::ColorEdit3((const char*)u8"暗部", &colorGradientShadows.x);
+			ImGui::ColorEdit3((const char*)u8"中間色", &colorGradientMidtones.x);
+			ImGui::ColorEdit3((const char*)u8"明部", &colorGradientHighlights.x);
+			if (ImGui::Button((const char*)u8"初期値に戻す##ColorGradient"))
+			{
+				colorGradientStrength = 0.25f;
+				colorGradientShadows = {0.02f, 0.04f, 0.10f, 1.0f};
+				colorGradientMidtones = {0.45f, 0.50f, 0.55f, 1.0f};
+				colorGradientHighlights = {1.0f, 0.92f, 0.78f, 1.0f};
 			}
 			ImGui::TreePop();
 		}

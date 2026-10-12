@@ -7,7 +7,10 @@ cbuffer CbColorFilter : register(b2)
     float hueShift;
     float saturation;
     float brightness;
-    float DUMMY;
+    float gradientStrength;
+    float4 gradientShadows;
+    float4 gradientMidtones;
+    float4 gradientHighlights;
 };
 
 Texture2D sceneMap : register(t0);
@@ -62,5 +65,13 @@ float4 main(VS_OUT pin) : SV_TARGET
     hsv.y = saturate(hsv.y * saturation);
     hsv.z = max(hsv.z * brightness, 0.0f);
     color.rgb = HSVToRGB(hsv);
+    if (gradientStrength > 0.0f)
+    {
+        const float luminance = saturate(dot(color.rgb, float3(0.2126f, 0.7152f, 0.0722f)));
+        const float3 gradient = luminance < 0.5f
+            ? lerp(gradientShadows.rgb, gradientMidtones.rgb, luminance * 2.0f)
+            : lerp(gradientMidtones.rgb, gradientHighlights.rgb, (luminance - 0.5f) * 2.0f);
+        color.rgb = lerp(color.rgb, gradient, saturate(gradientStrength));
+    }
     return color;
 }
