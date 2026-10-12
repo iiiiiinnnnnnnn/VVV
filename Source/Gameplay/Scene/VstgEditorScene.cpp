@@ -31,6 +31,15 @@
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "IconsFontAwesome5.h"
 
+static std::filesystem::path GetVstgEditorResourceRoot()
+{
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	const auto sourceRoot = ResourceManager::FindSourceResourceRoot();
+	if (!sourceRoot.empty()) return sourceRoot;
+#endif
+	return std::filesystem::absolute("Resources");
+}
+
 VstgEditorScene::VstgEditorScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -450,7 +459,7 @@ void VstgEditorScene::RefreshPropModels()
 	propPreviewLoadedPath.clear();
 	propModelPaths.clear();
 	propModels.clear();
-	const std::filesystem::path resourceRoot = ResourceManager::FindSourceResourceRoot();
+	const std::filesystem::path resourceRoot = GetVstgEditorResourceRoot();
 	const std::filesystem::path modelRoot = resourceRoot / "Model";
 	std::error_code error;
 	for (std::filesystem::recursive_directory_iterator file(modelRoot, error), end;
@@ -565,7 +574,7 @@ bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
 	std::filesystem::path editorPath = modelPath;
-	const std::filesystem::path sourceResourceRoot = ResourceManager::FindSourceResourceRoot();
+	const std::filesystem::path sourceResourceRoot = GetVstgEditorResourceRoot();
 	if (!sourceResourceRoot.empty())
 	{
 		const std::filesystem::path relativePath =
@@ -891,7 +900,7 @@ bool VstgEditorScene::OnRequestExit()
 void VstgEditorScene::Open()
 {
 	const std::string initialDirectory =
-		(ResourceManager::FindSourceResourceRoot() / "Stage").string();
+		(GetVstgEditorResourceRoot() / "Stage").string();
 	std::string filename;
 	if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
 			(const char*)u8"VSTGを開く", initialDirectory.c_str()) != DialogResult::OK)
@@ -946,7 +955,7 @@ bool VstgEditorScene::ResolveMissingModels()
 			continue;
 		}
 
-		const std::filesystem::path resourceRoot = ResourceManager::FindSourceResourceRoot();
+		const std::filesystem::path resourceRoot = GetVstgEditorResourceRoot();
 		const std::filesystem::path modelRoot = resourceRoot / "Model";
 		std::string replacementFile;
 		if (Dialog::OpenFileName(replacementFile, "VMDL (*.vmdl)\0*.vmdl\0\0",
@@ -1048,5 +1057,5 @@ void VstgEditorScene::UpdateTitle()
 void VstgEditorScene::ErrorMessage(const std::string& message)
 {
 	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		std::wstring(message.begin(), message.end()).c_str(), L"VEER", MB_ICONERROR);
+		Utf8ToWide(message).c_str(), L"VEER", MB_ICONERROR);
 }
