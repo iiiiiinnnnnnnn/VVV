@@ -6,6 +6,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Stage/Component/Terrain.h"
+#include "Gameplay/Stage/Component/StageLoader.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -153,16 +154,7 @@ void Player::OnUpdate()
 {
 	Entity::OnUpdate();
 	UpdateAttackContacts();
-
-	if (deathSequenceActive)
-	{
-		UpdateDeathSequence();
-		if (motor) motor->SetExternalVelocity(knockBackVelocity);
-		return;
-	}
-	const float remainingCooldown = dodgeCooldownTimer - Game::Time::unscaledDeltaTime;
-	dodgeCooldownTimer = std::max(remainingCooldown, 0.0f);
-
+	UpdateWaterDamage();
 	UpdateFootSound();
 	UpdateMovement();
 	UpdateHealth();
@@ -249,7 +241,50 @@ void Player::UpdateFootSound()
 	}
 }
 
-// 移動・回避・攻撃入力
+void Player::UpdateWaterDamage()
+{
+	// Sceneから水位持ってくるのめっちゃめんどいですが、とりあえずこのままでいきます。
+	// 何か問題あれば直す
+	Scene* scene = SceneManager::Instance().GetCurrentScene();
+	Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
+	StageLoader* stageLoader = stage ? stage->GetComponent<StageLoader>() : nullptr;
+	// 水ある＝水-0.4でダメージ、ない＝-0.3でダメージ
+	float waterDamageHeight = stageLoader ? stageLoader->GetWorldWaterHeight() - 0.4f : -0.3f;
+	isInWater = transform.position.y < waterDamageHeight;
+
+	// vignette : 毒沼
+	PostProcessController::Instance().SetPoisonVignette(!deathSequenceActive && isInWater);
+
+	if (deathSequenceActive)
+	{
+		UpdateDeathSequence();
+		if (motor) motor->SetExternalVelocity(knockBackVelocity);
+		return;
+	}
+	const float remainingCooldown = dodgeCooldownTimer - Game::Time::unscaledDeltaTime;
+	dodgeCooldownTimer = std::max(remainingCooldown, 0.0f);
+
+	// damageHeightCoolDownでダメージ食らわせる
+	if (isInWater)
+	{
+		if (damageLowerHeightTimer > damageLowerHeightCoolDown)
+		{
+			DamageData dmgData;
+			dmgData.damage = 10.0f;
+			dmgData.hitPosition.reset();
+			dmgData.hitColliderOther = nullptr;
+
+			TakeDamage(dmgData);
+
+			damageLowerHeightTimer = 0;
+		}
+		damageLowerHeightTimer += Game::Time::deltaTime; // 増
+	}
+	else
+	{
+		damageLowerHeightTimer = 0.0f;
+	}
+}
 
 void Player::UpdateMovement()
 {
@@ -540,11 +575,8 @@ void Player::OnDamaged(const DamageData& damageData)
 {
 	healthRecoveryTimer = 0.0f;
 	CameraEffectController::Request(0.13f, 0.07f);
-	const float healthRatio = life / maxLife;
-	const float lostHealthRatio = 1.0f - healthRatio;
-	const float lifeIntensity = lostHealthRatio * 0.5f;
 	PostProcessController::Instance().RequestDamagedVignette(
-		5.0f * lifeIntensity, 3.0f * lifeIntensity, 0.15f, Easing::Type::InSine, Easing::Type::OutCubic);
+		0.6f, 0.5f, 0.15f, Easing::Type::InSine, Easing::Type::OutCubic);
 
 	// 本来はanimatorに任せたほうがいいとは思う
 	if (damageData.hitPosition.has_value())
@@ -566,7 +598,7 @@ void Player::OnDamaged(const DamageData& damageData)
 	}
 	else
 	{
-		anim->SetTrigger("Hit_R");
+		if (damageData.hitColliderOther != nullptr) anim->SetTrigger("Hit_R");
 	}
 	lockOnComponent->PauseRotation(0.15f);
 }
@@ -702,7 +734,7 @@ float Player::GetAttackDamage(const Entity* target, bool skillAttack, bool kick)
 	if (skillAttack)
 	{
 		if (dynamic_cast<const Deer*>(target)) return target->GetLife();
-		return 300.0f;
+		return 200.0f;
 	}
 
 	if (kick) return Random::Range(45.0f, 55.0f);

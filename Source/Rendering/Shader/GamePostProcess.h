@@ -64,7 +64,7 @@ namespace Game
 		void Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
 			ID3D11ShaderResourceView* depthMap);
 		bool enableUnderwater = true;
-		Color underwaterColor = {0.025f, 0.22f, 0.28f, 1.0f};
+		Color underwaterColor = {0.023529f, 0.278431f, 0.219608f, 1.0f};
 		float underwaterDensity = 0.12f;
 		float underwaterTint = 0.12f;
 		Vector3 underwaterAbsorption = {0.023f, 0.117f, 0.278f};

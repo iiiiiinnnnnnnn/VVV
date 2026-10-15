@@ -13,16 +13,19 @@
 #include <random>
 #include "Physics/Collider/VMDLColliderComponent.h"
 
-// Base
+// クリスタル＋破片の基底
+#if 1
 
-BaseCrystal::BaseCrystal(const Transform& placement, const std::string& name, const std::string& modelPath)
+BaseCrystal::BaseCrystal(
+	const Transform& placement, const std::string& name, const std::string& modelPath)
 	: Entity(name, "Crystal", true, placement)
 {
 	transform.Update();
 	loadedModel = ResourceManager::Instance().LoadModel(modelPath, true);
 }
 
-BaseCrystal::BaseCrystal(const Transform& placement, const std::string& name, std::shared_ptr<VMDLModel> model)
+BaseCrystal::BaseCrystal(
+	const Transform& placement, const std::string& name, std::shared_ptr<VMDLModel> model)
 	: Entity(name, "Crystal", true, placement)
 {
 	transform.Update();
@@ -51,7 +54,10 @@ bool BaseCrystal::PlayBreakParticle()
 	return vmdl->GetRenderer()->PlayParticleEmitter("BREAK");
 }
 
-// Crystal Part
+#endif
+
+// 破片処理
+#if 1
 
 // 破壊時に破片を生成するため、モデルのバウンディングボックスを計算する。
 bool GetCrystalModelBounds(const VMDLModel& model, Vector3& center, Vector3& size)
@@ -132,7 +138,10 @@ void CrystalPart::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* oth
 	contactPending = true;
 }
 
-// Crystal
+#endif
+
+// クリスタル
+#if 1
 
 Crystal::Crystal(const Transform& transform, const std::string& modelPath) : BaseCrystal(transform, "Crystal", modelPath)
 {
@@ -246,3 +255,5 @@ void Crystal::SpawnFragments()
 		}
 	}
 }
+
+#endif

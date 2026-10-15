@@ -2,7 +2,6 @@
 #include "Gameplay/Scene/SceneManager.h"
 
 #include "Application/Time/GameTime.h"
-#include "Gameplay/Scene/HitStop.h"
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Scene/LoadingScene.h"
@@ -250,7 +249,6 @@ void SceneManager::BeginPendingLoad()
 	currentScene.reset();
 	LogSceneLoadTime("Previous scene destruction", destructionStarted);
 	TimeScaleController::CancelAll();
-	HitStop::CancelAll();
 	Game::Time::scale = 1.0f;
 	Game::Time::paused = false;
 	Game::Time::deltaTime = Game::Time::unscaledDeltaTime;
@@ -445,7 +443,6 @@ void SceneManager::ApplyLoadedScene()
 
 	currentScene.reset();
 	TimeScaleController::CancelAll();
-	HitStop::CancelAll();
 	Game::Time::scale = 1.0f;
 	Game::Time::paused = false;
 	Game::Time::deltaTime = Game::Time::unscaledDeltaTime;

@@ -340,9 +340,6 @@
     <ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp">
       <Filter>Gameplay\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Actor\Apple.cpp">
-      <Filter>Gameplay\Actor</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
@@ -369,12 +366,6 @@
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp">
       <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Camera\FpsCameraController.cpp">
-      <Filter>Gameplay\Camera</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp">
-      <Filter>Gameplay\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp">
       <Filter>Gameplay\Camera</Filter>
@@ -425,9 +416,6 @@
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\CameraEffectController.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\HitStop.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp">
@@ -735,9 +723,6 @@
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Actor\Apple.h">
-      <Filter>Gameplay\Actor</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\Actor\Spawner.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
@@ -763,12 +748,6 @@
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\ThirdPersonCameraController.h">
-      <Filter>Gameplay\Camera</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Camera\FpsCameraController.h">
-      <Filter>Gameplay\Camera</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h">
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\ModelRenderer.h">
@@ -847,9 +826,6 @@
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\HitStop.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h">

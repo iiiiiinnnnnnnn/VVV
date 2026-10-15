@@ -961,11 +961,15 @@ namespace Game
 
 	void PostProcess::AddRuntimeVignette(float intensity, const Color& color)
 	{
-		if (intensity > runtimeVignetteIntensity)
-		{
-			runtimeVignetteIntensity = intensity;
-			runtimeVignetteColor = color;
-		}
+		if (intensity <= 0.0f) return;
+		const float combinedIntensity = std::max(runtimeVignetteIntensity, intensity);
+		// 強度を掛けた各色の寄与を加算し、描画時の強度で正規化する。
+		runtimeVignetteColor = {
+			(runtimeVignetteColor.x * runtimeVignetteIntensity + color.x * intensity) / combinedIntensity,
+			(runtimeVignetteColor.y * runtimeVignetteIntensity + color.y * intensity) / combinedIntensity,
+			(runtimeVignetteColor.z * runtimeVignetteIntensity + color.z * intensity) / combinedIntensity,
+			1.0f};
+		runtimeVignetteIntensity = combinedIntensity;
 	}
 
 	void PostProcess::AddRuntimeColorTint(float intensity, const Color& color)

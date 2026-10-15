@@ -15,6 +15,24 @@ void MultiLegFootIK::LateUpdate()
 	if (!model) return;
 
 	UpdateModelTransform();
+	float animatedContactOffset = contactOffset;
+	int animationIndex = -1;
+	int nextAnimationIndex = -1;
+	float time = 0.0f;
+	float nextTime = 0.0f;
+	if (animator && animator->GetAnimationControlState(animationIndex, time, nextAnimationIndex, nextTime))
+	{
+		const float defaultOffset = model->GetVmdlMultiLegIKSettings().contactOffset;
+		animatedContactOffset += model->EvaluateIkContactOffset(animationIndex, time) - defaultOffset;
+		if (nextAnimationIndex >= 0)
+		{
+			const auto& layer = animator->GetLayer(0);
+			const float blend = layer.blendDuration > 0.0f
+				? std::clamp(layer.blendTime / layer.blendDuration, 0.0f, 1.0f) : 1.0f;
+			const float nextOffset = contactOffset + model->EvaluateIkContactOffset(nextAnimationIndex, nextTime) - defaultOffset;
+			animatedContactOffset = std::lerp(animatedContactOffset, nextOffset, blend);
+		}
+	}
 
 	for (int footIndex = 0; footIndex < static_cast<int>(footIKs.size()); ++footIndex)
 	{
@@ -29,7 +47,7 @@ void MultiLegFootIK::LateUpdate()
 		Vector3 syncOffset;
 		float length = 0.0f;
 		GetRaySettings(footIndex, startOffset, length, syncOffset);
-		footIK->UpdateGroundTarget(startOffset, length, contactOffset, syncOffset);
+		footIK->UpdateGroundTarget(startOffset, length, animatedContactOffset, syncOffset);
 		footIK->SolveIK(model->GetWorldTransform());
 	}
 }

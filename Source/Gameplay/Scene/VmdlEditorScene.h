@@ -92,7 +92,6 @@ class VmdlEditorScene : public Scene
 	void DrawNodeContextMenu(int nodeIndex);
 	void DrawAnimationCurves();
 	void DrawAnimationEventEditor();
-	void DrawFootIkPreviewWindow();
 
 	// 階層検索
 	bool MatchesHierarchySearch(const std::string& text) const;
@@ -254,6 +253,26 @@ class VmdlEditorScene : public Scene
 	int timelineEventContextTarget = -1;
 	int timelineEventContextKey = -1;
 	float timelineEventContextTime = 0.0f;
+	struct TimelineKeyId
+	{
+		int kind = -1;
+		int track = -1;
+		int index = -1;
+		bool operator==(const TimelineKeyId&) const = default;
+	};
+	std::vector<TimelineKeyId> timelineSelectedKeys;
+	std::vector<float> timelineDragStartTimes;
+	int timelineSelectionAnimation = -1;
+	int timelineSelectionNode = -1;
+	int timelineSelectionMesh = -1;
+	bool timelineBoxSelecting = false;
+	bool timelineBoxRemoving = false;
+	bool timelineKeysDragging = false;
+	Vector2 timelineDragStart = Vector2::Zero;
+	TimelineKeyId timelineDetailKey;
+	int timelineAddKind = -1;
+	int timelineAddTarget = -1;
+	float timelineAddTime = 0.0f;
 	int selectedKeyTrack = -1;
 	int selectedKeyIndex = -1;
 	int draggingNumericTrack = -1;
@@ -280,7 +299,6 @@ class VmdlEditorScene : public Scene
 	bool showParticle = true;
 	bool showBones = false;
 	bool showIkPole = false;
-	bool showGrid = true;
 	bool showSetScaleWindow = false;
 	float setScaleValue = 1.0f;
 	bool showPhysicsLayerWindow = false;
@@ -320,7 +338,7 @@ class VmdlEditorScene : public Scene
 	Vector3 footIkTestStagePosition = Vector3::Zero;
 	Vector3 footIkTestStageRotation = Vector3::Zero;
 	float footIkTestStageSize = 1.0f;
-	bool showFootIkPreviewWindow = false;
+	bool previewStageSelected = false;
 	bool showFootIkTestStage = true;
 	bool showFootIkDebug = true;
 };

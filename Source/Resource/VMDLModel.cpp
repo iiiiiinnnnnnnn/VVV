@@ -1852,6 +1852,45 @@ bool VMDLModel::AutoAssignVmdlIKNodes()
 	return changed;
 }
 
+VMDLModel::VmdlIkContactOffsetTrack* VMDLModel::FindIkContactOffsetTrack(const std::string& animationName)
+{
+	for (auto& track : vmdlAnimationEditorData.ikContactOffsetTracks)
+		if (track.animationName == animationName) return &track;
+	return nullptr;
+}
+
+VMDLModel::VmdlIkContactOffsetTrack& VMDLModel::GetOrCreateIkContactOffsetTrack(const std::string& animationName)
+{
+	if (auto* track = FindIkContactOffsetTrack(animationName)) return *track;
+	auto& track = vmdlAnimationEditorData.ikContactOffsetTracks.emplace_back();
+	track.animationName = animationName;
+	return track;
+}
+
+float VMDLModel::EvaluateIkContactOffset(int animationIndex, float time) const
+{
+	const float defaultOffset = vmdlMultiLegIKSettings.contactOffset;
+	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return defaultOffset;
+	for (const auto& track : vmdlAnimationEditorData.ikContactOffsetTracks)
+	{
+		if (track.animationName != animations[animationIndex].name || track.keys.empty()) continue;
+		if (time <= track.keys.front().seconds) return track.keys.front().contactOffset;
+		for (size_t i = 1; i < track.keys.size(); ++i)
+		{
+			const auto& left = track.keys[i - 1];
+			const auto& right = track.keys[i];
+			if (time > right.seconds) continue;
+			const float duration = right.seconds - left.seconds;
+			if (duration <= 0.00001f) return right.contactOffset;
+			const float progress = std::clamp((time - left.seconds) / duration, 0.0f, 1.0f);
+			const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
+			return std::lerp(left.contactOffset, right.contactOffset, smoothProgress);
+		}
+		return track.keys.back().contactOffset;
+	}
+	return defaultOffset;
+}
+
 float VMDLModel::EvaluateFootIKWeight(int animationIndex, float time, int footIndex) const
 {
 	if (animationIndex < 0) return 0.0f;
@@ -2589,6 +2628,9 @@ void VMDLModel::Serialize(const char* filename)
 				vmdlIKRaySettings);
 		});
 		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
+		addFile("model.ikheighttracks", [&](auto& archive) {
+			archive(vmdlAnimationEditorData.ikContactOffsetTracks);
+		});
 		addFile("model.ikeasing", [&](auto& archive) {
 			archive(vmdlMultiLegIKSettings.interpolationEasing);
 		});
@@ -2763,6 +2805,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				reinterpret_cast<const char*>(serializedData.data()), serializedData.size());
 			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
 			materialAnimationTracks.clear();
+			vmdlAnimationEditorData.ikContactOffsetTracks.clear();
 			std::vector<VmdlMaterialData> materialData;
 			std::vector<VmdlSoundSourceBinding> soundBindings;
 			VmdlComponentTransformData componentTransforms;
@@ -2780,7 +2823,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			// 現行の保存処理が出力する全セクション
 			constexpr const char* requiredSections[] = {
 				"model.glbcache", "model.vmdldata", "model.materialanimation",
-				"model.iksolver", "model.ikeasing", "model.iksyncoffsets",
+				"model.iksolver", "model.ikheighttracks", "model.ikeasing", "model.iksyncoffsets",
 				"model.sounddata", "model.lightdata", "model.navmeshobstacles",
 				"model.soundbindings", "model.componenttransforms", "model.particledata",
 				"model.effectbindings", "model.vfxdata", "model.crystalsettings",
@@ -2793,20 +2836,6 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				});
 				if (missing) throw std::runtime_error("VMDL package is missing required data: " + std::string(required));
 			}
-
-			bool loadedGlbCache = false;
-			bool loadedVmdlData = false;
-			bool loadedSoundData = false;
-			bool loadedLightData = false;
-			bool loadedIkSolver = false;
-			bool loadedSoundBindings = false;
-			bool loadedComponentTransforms = false;
-			bool loadedParticleData = false;
-			bool loadedEffectBindings = false;
-			bool loadedVfxData = false;
-			bool loadedExternalMeshes = false;
-			bool loadedExternalMeshBindings = false;
-			bool loadedExternalMeshSlots = false;
 			std::vector<uint8_t> navMeshObstacles;
 			for (const auto& [name, data] : files)
 			{
@@ -2815,7 +2844,14 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				if (name == "model.glbcache")
 				{
 					archive(nodes, materials, meshes, animations);
-					loadedGlbCache = true;
+				}
+				else if (name == "model.ikheighttracks")
+				{
+					archive(vmdlAnimationEditorData.ikContactOffsetTracks);
+					for (auto& track : vmdlAnimationEditorData.ikContactOffsetTracks)
+						std::stable_sort(track.keys.begin(), track.keys.end(), [](const auto& left, const auto& right) {
+							return left.seconds < right.seconds;
+						});
 				}
 				else if (name == "model.materialanimation")
 				{
@@ -2826,7 +2862,6 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 					archive(materialData, vmdlExtensionData, vmdlIKSettings, vmdlIKPoles,
 						modelScale, vmdlTrailData, vmdlAnimationEditorData,
 						vmdlAnimationControlData, vmdlIKRaySettings);
-					loadedVmdlData = true;
 				}
 				else if (name == "model.iksyncoffsets")
 				{
@@ -2840,58 +2875,47 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				else if (name == "model.sounddata")
 				{
 					archive(vmdlSoundData);
-					loadedSoundData = true;
 				}
 				else if (name == "model.lightdata")
 				{
 					archive(vmdlLightData);
-					loadedLightData = true;
 				}
 				else if (name == "model.iksolver")
 				{
 					archive(vmdlMultiLegIKSettings);
-					loadedIkSolver = true;
 				}
 				else if (name == "model.soundbindings")
 				{
 					archive(soundBindings);
-					loadedSoundBindings = true;
 				}
 				else if (name == "model.componenttransforms")
 				{
 					archive(componentTransforms);
-					loadedComponentTransforms = true;
 				}
 				else if (name == "model.particledata")
 				{
 					archive(vmdlParticleData);
-					loadedParticleData = true;
 				}
 				else if (name == "model.effectbindings")
 				{
 					archive(effectBindings);
-					loadedEffectBindings = true;
 				}
 				else if (name == "model.vfxdata")
 				{
 					archive(vfxExtensionJson);
-					loadedVfxData = true;
 				}
 				else if (name == "model.crystalsettings") archive(crystalSettingsJson);
 				else if (name == "model.externalmeshes")
 				{
 					archive(externalMeshGroups);
-					loadedExternalMeshes = true;
 				}
 				else if (name == "model.externalmeshbindings")
 				{
 					archive(externalMeshBindingKeys);
-					loadedExternalMeshBindings = true;
 				}
 				else if (name == "model.externalmeshslots")
 				{
 					archive(externalMeshCacheIndices);
-					loadedExternalMeshSlots = true;
 				}
 			}
 			if (navMeshObstacles.size() != vmdlExtensionData.colliders.size())
@@ -2900,11 +2924,6 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				vmdlExtensionData.colliders[i].navMeshObstacle =
 					navMeshObstacles[i] != 0;
 
-			if (!loadedGlbCache || !loadedVmdlData || !loadedSoundData || !loadedIkSolver ||
-				!loadedSoundBindings || !loadedComponentTransforms || !loadedParticleData ||
-				!loadedEffectBindings || !loadedVfxData || !loadedExternalMeshes ||
-				!loadedExternalMeshBindings || !loadedExternalMeshSlots || !loadedLightData)
-				throw std::runtime_error("VMDL package is missing required data.");
 			if (soundBindings.size() != vmdlSoundData.sources.size() ||
 				effectBindings.size() != vmdlParticleData.emitters.size() ||
 				externalMeshBindingKeys.size() != externalMeshGroups.size() ||

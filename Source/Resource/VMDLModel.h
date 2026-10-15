@@ -183,10 +183,26 @@ class VMDLModel
 		template <class Archive> void serialize(Archive& archive);
 	};
 
-	// アニメーション編集用データのまとめ
+	// アニメーションごとのIK接地オフセット。
+	struct VmdlIkContactOffsetKeyframe
+	{
+		float seconds = 0.0f;
+		float contactOffset = 0.0f;
+		template <class Archive> void serialize(Archive& archive) { archive(seconds, contactOffset); }
+	};
+
+	struct VmdlIkContactOffsetTrack
+	{
+		std::string animationName;
+		std::vector<VmdlIkContactOffsetKeyframe> keys;
+		template <class Archive> void serialize(Archive& archive) { archive(animationName, keys); }
+	};
+
 	struct VmdlAnimationEditorData
 	{
 		std::vector<VmdlFootWeightTrack> footWeightTracks;
+		// model.ikheighttracksセクションへ保存する。
+		std::vector<VmdlIkContactOffsetTrack> ikContactOffsetTracks;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -847,6 +863,9 @@ class VMDLModel
 	void ComputeAnimation(int animationIndex, float time, std::vector<NodePose>& nodePoses) const;
 	float EvaluateFootIKWeight(int animationIndex, float time, int footIndex = -1) const;
 	VmdlFootWeightTrack* FindFootWeightTrack(const std::string& animationName, int footIndex);
+	float EvaluateIkContactOffset(int animationIndex, float time) const;
+	VmdlIkContactOffsetTrack* FindIkContactOffsetTrack(const std::string& animationName);
+	VmdlIkContactOffsetTrack& GetOrCreateIkContactOffsetTrack(const std::string& animationName);
 	const VmdlFootWeightTrack* FindFootWeightTrack(
 		const std::string& animationName, int footIndex) const;
 	VmdlFootWeightTrack& GetOrCreateFootWeightTrack(

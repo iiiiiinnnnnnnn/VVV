@@ -8,6 +8,7 @@ class VMDLModel;
 class VMDLColliderComponent;
 bool GetCrystalModelBounds(const VMDLModel& model, Vector3& center, Vector3& size);
 
+// クリスタル・破片の基底
 class BaseCrystal : public Entity
 {
 protected:
@@ -20,6 +21,7 @@ protected:
 	VMDL* vmdl = nullptr;
 };
 
+// 破片
 class CrystalPart : public BaseCrystal
 {
 public:
@@ -38,6 +40,7 @@ private:
 	bool shrinking = false;
 };
 
+// クリスタル
 class Crystal : public BaseCrystal
 {
 public:

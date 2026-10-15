@@ -365,7 +365,7 @@
             }
         },
         {
-            "name": "EnragedIdleScale",
+            "name": "AngryIdleScale",
             "type": 1,
             "bool": false,
             "float": 0.4,
@@ -377,7 +377,7 @@
             }
         },
         {
-            "name": "EnragedJumpChance",
+            "name": "AngryJumpChance",
             "type": 1,
             "bool": false,
             "float": 0.7,
@@ -389,7 +389,7 @@
             }
         },
         {
-            "name": "EnragedJumpCount",
+            "name": "AngryJumpCount",
             "type": 1,
             "bool": false,
             "float": 2.0,
@@ -401,7 +401,7 @@
             }
         },
         {
-            "name": "EnragedLowHpJumpCount",
+            "name": "AngryLowHpJumpCount",
             "type": 1,
             "bool": false,
             "float": 3.0,

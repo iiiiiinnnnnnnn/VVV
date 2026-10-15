@@ -8,6 +8,7 @@
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/CameraController.h"
 #include "Rendering/Effect/ParticleSystem.h"
+#include "Component/Terrain.h"
 
 #include <limits>
 #include <algorithm>
@@ -69,6 +70,16 @@ public:
 	const Camera* GetActiveCamera() const
 	{
 		return const_cast<Stage*>(this)->GetActiveCamera();
+	}
+
+	Terrain* GetTerrain() const
+	{
+		for (Actor* actor : actorManager.GetActors())
+		{
+			if (Terrain* terrain = actor->GetComponent<Terrain>())
+				return terrain;
+		}
+		return nullptr;
 	}
 
 	bool SetCameraPriority(Camera* camera, int priority)

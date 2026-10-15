@@ -55,8 +55,8 @@ private:
 	void SpawnPhaseFragments();
 	void UpdateHealthPresentation();
 	void UpdateHealthDissolve(float deltaTime);
-	void UpdatePhaseColor();
-	void ApplyEnragedAIParameters();
+	void UpdateAngryColor();
+	void ApplyAngryAIParameters();
 	void ConfigureAI();
 	void RegisterAICallbacks();
 	int GetJumpSequenceCount() const;
@@ -115,12 +115,11 @@ private:
 	float chaseBgmFadeInSeconds = 1.0f;
 	float chaseBgmFadeOutSeconds = 1.5f;
 
-	bool enraged = false;
+	bool angry = false;
 	bool phaseChangeQueued = false;
 	bool phasePresentationPending = false;
 	bool phaseThreatActive = false;
 	float phaseThreatElapsed = 0.0f;
-	float phaseColorElapsed = 0.0f;
 	float healthDissolveAmount = 0.0f;
 	int remainingJumps = 0;
 	std::shared_ptr<VMDLModel> phaseFragmentModel;

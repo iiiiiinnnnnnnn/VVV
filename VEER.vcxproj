@@ -42,7 +42,6 @@
     <ClCompile Include="Source\Gameplay\Scene\CameraEffectController.cpp" />
     <ClCompile Include="Source\Physics\Collider\CapsuleCollider.cpp" />
     <ClCompile Include="Source\Animation\FootIK.cpp" />
-    <ClCompile Include="Source\Gameplay\Scene\HitStop.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp" />
     <ClCompile Include="Source\Animation\HumanoidFootIK.cpp" />
     <ClCompile Include="Source\Animation\LookAt.cpp" />
@@ -53,7 +52,6 @@
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyStatic.cpp" />
     <ClCompile Include="Source\Animation\MultiLegFootIK.cpp" />
     <ClCompile Include="Source\Physics\Collider\MeshCollider.cpp" />
-    <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Actor.cpp" />
     <ClCompile Include="Source\Animation\Animator.cpp" />
     <ClCompile Include="Source\Animation\AnimatorEditor.cpp" />
@@ -65,7 +63,6 @@
     <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp" />
-    <ClCompile Include="Source\Gameplay\Actor\Apple.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Crystal.cpp" />
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Entity.cpp" />
@@ -87,7 +84,6 @@
     <ClCompile Include="Source\Application\Tools\Dialog.cpp" />
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp" />
     <ClCompile Include="Source\Rendering\Effect\EffectManager.cpp" />
-    <ClCompile Include="Source\Gameplay\Camera\FpsCameraController.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Framework.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\FreeCameraController.cpp" />
     <ClCompile Include="Source\Application\Input\GamePad.cpp" />
@@ -191,7 +187,6 @@
     <ClInclude Include="Source\Physics\RigidBody\RigidbodyStatic.h" />
     <ClInclude Include="Source\Animation\MultiLegFootIK.h" />
     <ClInclude Include="Source\Physics\Collider\MeshCollider.h" />
-    <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h" />
     <ClInclude Include="Source\Gameplay\Actor\Actor.h" />
     <ClInclude Include="Source\Gameplay\Actor\ActorManager.h" />
     <ClInclude Include="Source\Animation\Animator.h" />
@@ -202,7 +197,6 @@
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
     <ClInclude Include="Source\Gameplay\Camera\Camera.h" />
     <ClInclude Include="Source\Gameplay\Camera\CameraController.h" />
-    <ClInclude Include="Source\Gameplay\Actor\Apple.h" />
     <ClInclude Include="Source\Gameplay\Lighting\CbLightData.h" />
     <ClInclude Include="Source\Gameplay\Actor\Entity.h" />
     <ClInclude Include="Source\Gameplay\Lighting\Light.h" />
@@ -216,7 +210,6 @@
     <ClInclude Include="Source\Gameplay\Scene\SceneManager.h" />
     <ClInclude Include="Source\Physics\Collider\SphereCollider.h" />
     <ClInclude Include="Source\Animation\SpringBone.h" />
-    <ClInclude Include="Source\Gameplay\Scene\HitStop.h" />
     <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h" />
     <ClInclude Include="Source\Gameplay\Player\Player.h" />
     <ClInclude Include="Source\Physics\Collider\CharacterController.h" />
@@ -229,7 +222,6 @@
     <ClInclude Include="Source\Rendering\Effect\Effects.generated.h" />
     <ClInclude Include="Source\Gameplay\AI\AIFlow.h" />
     <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h" />
-    <ClInclude Include="Source\Gameplay\Camera\FpsCameraController.h" />
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />
     <ClInclude Include="Source\Application\Input\GamePad.h" />

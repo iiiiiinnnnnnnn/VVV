@@ -36,6 +36,7 @@
 #include <fstream>
 #include <iterator>
 #include <string_view>
+#include <type_traits>
 #include "GameStartScene.h"
 #include "Application/Time/GameTime.h"
 #include "Resource/ResourceManager.h"
@@ -44,8 +45,6 @@
 
 constexpr UINT PreviewWidth = 1024;
 constexpr UINT PreviewHeight = 1024;
-constexpr int PreviewGridSubdivisions = 20;
-constexpr float PreviewGridScale = 0.5f;
 constexpr float PreviewMinCameraDistance = 0.2f;
 constexpr float PreviewMaxCameraDistance = 100000.0f;
 
@@ -650,7 +649,6 @@ void VmdlEditorScene::OnDrawGUI()
 
 	ImGui::End();
 	if (showPhysicsLayerWindow) PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
-	if (showFootIkPreviewWindow) DrawFootIkPreviewWindow();
 
 	if (showSetScaleWindow) ImGui::OpenPopup((const char*)u8"スケール設定");
 	showSetScaleWindow = false;
@@ -986,12 +984,6 @@ void VmdlEditorScene::RenderPreview()
 		}
 		postProcess.RenderFinal(rc, previewPostA->GetSRV(),
 			previewPostB.get(), previewPostA.get(), previewTarget.get());
-		if (showDebugOverlays && showGrid)
-		{
-			graphics.GetPrimitiveRenderer()->DrawGrid(PreviewGridSubdivisions, PreviewGridScale);
-			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
-				editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-		}
 	};
 
 	if (model)
@@ -1408,7 +1400,6 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::MenuItem((const char*)(ICON_FA_BULLSEYE " " u8"スプリングコライダー"), "Shift+C", &showSpringCollider);
 		ImGui::MenuItem((const char*)(ICON_FA_WIND " " u8"トレイル"), "T", &showTrail);
 		ImGui::MenuItem((const char*)(ICON_FA_MAGIC " " u8"パーティクル"), "P", &showParticle);
-		ImGui::MenuItem((const char*)(ICON_FA_TH " " u8"グリッド"), "G", &showGrid);
 		ImGui::EndMenu();
 	}
 
@@ -1427,11 +1418,6 @@ void VmdlEditorScene::DrawMenuBar()
 		{
 			setScaleValue = model->GetModelScale();
 			showSetScaleWindow = true;
-		}
-		if (ImGui::MenuItem((const char*)(ICON_FA_COG " " u8"プレビュー設定")))
-		{
-			showFootIkPreviewWindow = true;
-			showFootIkTestStage = true;
 		}
 		ImGui::EndMenu();
 	}
@@ -1517,59 +1503,6 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 				meshIndex < Count(meshes) && meshes[meshIndex].isDraw;
 		}
 	}
-}
-
-void VmdlEditorScene::DrawFootIkPreviewWindow()
-{
-	if (!ImGui::Begin((const char*)u8"Foot IKプレビュー", &showFootIkPreviewWindow,
-			ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		ImGui::End();
-		return;
-	}
-
-	if (ImGui::Checkbox((const char*)u8"テストステージを表示", &showFootIkTestStage))
-	{
-		if (showFootIkTestStage) LoadFootIkTestStage();
-		UpdateFootIkTestStage();
-	}
-	ImGui::TextDisabled((const char*)u8"Foot IKは上部の再生ボタンと連動します");
-	ImGui::Checkbox((const char*)u8"IKターゲットとレイを表示", &showFootIkDebug);
-
-	bool stageChanged =
-		ImGui::DragFloat3((const char*)u8"ステージ位置", &footIkTestStagePosition.x, 0.1f);
-	stageChanged |=
-		ImGui::DragFloat3((const char*)u8"ステージ回転", &footIkTestStageRotation.x);
-	stageChanged |= ImGui::DragFloat(
-		(const char*)u8"ステージサイズ", &footIkTestStageSize, 0.1f, 0.01f, 100000.0f);
-	if (stageChanged) UpdateFootIkTestStage();
-
-	ImGui::Separator();
-	if (!model)
-	{
-		ImGui::TextDisabled((const char*)u8"VMDLを開くとIK割合を確認できます");
-	}
-	else if (model->GetVmdlIKSettings().type == 0)
-	{
-		ImGui::TextDisabled((const char*)u8"IK設定がありません");
-	}
-	else if (selectedAnimation < 0 ||
-			 selectedAnimation >= Count(model->GetAnimations()))
-	{
-		ImGui::TextDisabled((const char*)u8"アニメーションが選択されていません");
-	}
-	else
-	{
-		const auto& legs = model->GetVmdlIKSettings().legs;
-		for (int footIndex = 0; footIndex < Count(legs); ++footIndex)
-		{
-			const char* name =
-				legs[footIndex].name.empty() ? (const char*)u8"脚" : legs[footIndex].name.c_str();
-			ImGui::Text((const char*)u8"%s %d  IK割合 %.2f", name, footIndex + 1,
-				model->EvaluateFootIKWeight(selectedAnimation, animationTime, footIndex));
-		}
-	}
-	ImGui::End();
 }
 
 void VmdlEditorScene::LoadFootIkTestStage()
@@ -1719,16 +1652,34 @@ bool VmdlEditorScene::ApplyFootIkPreview()
 
 void VmdlEditorScene::DrawHierarchy()
 {
-	ImGui::TextUnformatted((const char*)u8"階層");
+	ImGui::TextUnformatted((const char*)u8"ヒエラルキー");
 	ImGui::Separator();
 
 	// ノードとコンポーネントの検索
 	ImGui::SetNextItemWidth(-1.0f);
 	if (ImGui::InputTextWithHint("##HierarchySearch",
-			(const char*)ICON_FA_SEARCH u8"ノード・メッシュ・コンポーネントを検索",
+			(const char*)(ICON_FA_SEARCH u8" ノード・メッシュ・コンポーネントを検索"),
 			&hierarchySearch))
 		hierarchySearchUpper = ToUpperString(hierarchySearch);
 	ImGui::Separator();
+	if (MatchesHierarchySearch((const char*)u8"プレビューステージ Preview Stage"))
+	{
+		if (ImGui::Selectable((const char*)u8"プレビューステージ", previewStageSelected))
+		{
+			previewStageSelected = true;
+			selectedNode = -1;
+			selectedNodes.clear();
+			selectedMesh = -1;
+			selectedMeshes.clear();
+			selectedComponentType = AttachedComponentType::None;
+			selectedComponentIndex = -1;
+			focusSelectedComponent = false;
+			showSelectionGizmo = false;
+			ikGizmoTarget = IkGizmoTarget::None;
+			selectedKeyTrack = -1;
+			selectedKeyIndex = -1;
+		}
+	}
 	if (!model)
 	{
 		ImGui::TextDisabled((const char*)u8"モデルが読み込まれていません");
@@ -1737,7 +1688,7 @@ void VmdlEditorScene::DrawHierarchy()
 
 	// 検索条件に一致したノードツリー
 	const auto& nodes = model->GetNodes();
-	bool found = false;
+	bool found = MatchesHierarchySearch((const char*)u8"プレビューステージ Preview Stage");
 	for (int index = 0; index < Count(nodes); ++index)
 	{
 		if (nodes[index].parentIndex >= 0 || !NodeMatchesHierarchySearch(index)) continue;
@@ -1840,6 +1791,7 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 
 void VmdlEditorScene::SelectNode(int nodeIndex, bool toggleSelection)
 {
+	previewStageSelected = false;
 	if (!model || nodeIndex < 0 || nodeIndex >= Count(model->GetNodes())) return;
 	showSelectionGizmo = true;
 	ikGizmoTarget = IkGizmoTarget::None;
@@ -1879,6 +1831,7 @@ bool VmdlEditorScene::IsNodeSelected(int nodeIndex) const
 // メッシュを単独選択またはCtrlによる複数選択へ反映する
 void VmdlEditorScene::SelectMesh(int meshIndex, bool toggleSelection)
 {
+	previewStageSelected = false;
 	if (!model || meshIndex < 0 || meshIndex >= Count(model->GetMeshes())) return;
 	showSelectionGizmo = true;
 	ikGizmoTarget = IkGizmoTarget::None;
@@ -2607,7 +2560,7 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 void VmdlEditorScene::DrawViewport()
 {
 	auto& io = ImGui::GetIO();
-	ImGui::TextUnformatted((const char*)u8"3Dビュー");
+	ImGui::TextUnformatted((const char*)u8"プレビュー");
 	const float transportButtonWidth = 42.0f;
 	const float loopWidth = 58.0f;
 	const float speedWidth = 74.0f;
@@ -2667,7 +2620,6 @@ void VmdlEditorScene::DrawViewport()
 			else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) showCollider = !showCollider;
 			else if (ImGui::IsKeyPressed(ImGuiKey_S, false)) showSpring = !showSpring;
 			else if (ImGui::IsKeyPressed(ImGuiKey_T, false)) showTrail = !showTrail;
-			else if (ImGui::IsKeyPressed(ImGuiKey_G, false)) showGrid = !showGrid;
 		}
 	}
 
@@ -2872,6 +2824,21 @@ void VmdlEditorScene::DrawProperty()
 {
 	ImGui::TextUnformatted((const char*)u8"プロパティ");
 	ImGui::Separator();
+	if (previewStageSelected)
+	{
+		ImGui::TextUnformatted((const char*)u8"プレビューステージ");
+		if (ImGui::Checkbox((const char*)u8"表示", &showFootIkTestStage))
+		{
+			if (showFootIkTestStage) LoadFootIkTestStage();
+			UpdateFootIkTestStage();
+		}
+		ImGui::SeparatorText("Transform");
+		bool changed = ImGui::DragFloat3((const char*)u8"位置", &footIkTestStagePosition.x, 0.1f);
+		changed |= ImGui::DragFloat3((const char*)u8"回転", &footIkTestStageRotation.x, 0.1f);
+		changed |= ImGui::DragFloat((const char*)u8"スケール", &footIkTestStageSize, 0.1f, 0.01f, 100000.0f);
+		if (changed) UpdateFootIkTestStage();
+		return;
+	}
 	if (!model || selectedNode < 0 || selectedNode >= Count(model->GetNodes()))
 	{
 		ImGui::TextDisabled((const char*)u8"ノードまたはメッシュを選択してください");
@@ -3742,6 +3709,9 @@ void VmdlEditorScene::DrawTimeline()
 				{
 					const std::string footWeightPrefix = deletedName + "::FootWeight:";
 					auto& editorData = model->GetVmdlAnimationEditorData();
+					std::erase_if(editorData.ikContactOffsetTracks, [&deletedName](const auto& track) {
+						return track.animationName == deletedName;
+					});
 					std::erase_if(
 						editorData.footWeightTracks, [&footWeightPrefix](const auto& track) {
 							return track.animationName.starts_with(footWeightPrefix);
@@ -3821,20 +3791,26 @@ void VmdlEditorScene::DrawTimeline()
 	ImGui::SameLine();
 	ImGui::Text("%.3f / %.3f sec", animationTime, animation.secondsLength);
 
-	// 選択ノードのキーとカーブ
-	if (selectedNode >= 0 && selectedNode < Count(animation.nodeAnims))
-	{
-		DrawAnimationCurves();
-	}
+	// IK・イベントのトラックはノード未選択でも表示する。
+	DrawAnimationCurves();
 }
 
 void VmdlEditorScene::DrawAnimationCurves()
 {
 	auto& io = ImGui::GetIO();
-	if (!model || selectedAnimation < 0 || selectedNode < 0) return;
+	if (!model || selectedAnimation < 0 || selectedAnimation >= Count(model->GetAnimations())) return;
 	auto& animation = model->GetAnimations()[selectedAnimation];
-	if (selectedNode >= Count(animation.nodeAnims)) return;
-	auto& keys = animation.nodeAnims[selectedNode];
+	const bool hasNode = selectedNode >= 0 && selectedNode < Count(animation.nodeAnims) &&
+		selectedNode < Count(model->GetNodes());
+	VMDLModel::NodeAnim emptyKeys;
+	auto& keys = hasNode ? animation.nodeAnims[selectedNode] : emptyKeys;
+	if (!hasNode)
+	{
+		draggingNumericTrack = -1;
+		draggingAnimationKey = false;
+		selectedKeyTrack = -1;
+		selectedKeyIndex = -1;
+	}
 	const float length = std::max(0.001f, animation.secondsLength);
 	const auto& ikSettings = model->GetVmdlIKSettings();
 	const int footWeightCount = ikSettings.type == 0
@@ -3859,36 +3835,12 @@ void VmdlEditorScene::DrawAnimationCurves()
 		constexpr const char* components[] = {"X", "Y", "Z", "W"};
 		for (int i = 0; i < componentCount; ++i) rows.push_back({components[i], track, true, i});
 	};
-	addRows((const char*)u8"位置", 0, positionTrackExpanded, 3);
-	addRows((const char*)u8"回転", 1, rotationTrackExpanded, 4);
-	addRows((const char*)u8"スケール", 2, scaleTrackExpanded, 3);
-	const auto hasSelectedKey = [&]() {
-		if (selectedKeyTrack == 0)
-			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < Count(keys.positionKeyframes);
-		if (selectedKeyTrack == 1)
-			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < Count(keys.rotationKeyframes);
-		if (selectedKeyTrack == 2)
-			return selectedKeyIndex >= 0 &&
-				   selectedKeyIndex < Count(keys.scaleKeyframes);
-		return false;
-	};
-	const auto deleteSelectedKey = [&]() {
-		if (!hasSelectedKey()) return;
-		if (selectedKeyTrack == 0)
-			keys.positionKeyframes.erase(keys.positionKeyframes.begin() + selectedKeyIndex);
-		else if (selectedKeyTrack == 1)
-			keys.rotationKeyframes.erase(keys.rotationKeyframes.begin() + selectedKeyIndex);
-		else keys.scaleKeyframes.erase(keys.scaleKeyframes.begin() + selectedKeyIndex);
-		selectedKeyTrack = -1;
-		selectedKeyIndex = -1;
-		draggingAnimationKey = false;
-		draggingNumericTrack = -1;
-		draggingNumericComponent = -1;
-		MarkDirty();
-		ApplyAnimationPreview();
-	};
+	if (hasNode)
+	{
+		addRows((const char*)u8"  位置", 0, positionTrackExpanded, 3);
+		addRows((const char*)u8"  回転", 1, rotationTrackExpanded, 4);
+		addRows((const char*)u8"  スケール", 2, scaleTrackExpanded, 3);
+	}
 	struct KeyHit
 	{
 		ImVec2 position;
@@ -3898,19 +3850,34 @@ void VmdlEditorScene::DrawAnimationCurves()
 	std::vector<KeyHit> hitKeys;
 
 	ImGui::SeparatorText((const char*)u8"ドープシート");
-	ImGui::BeginDisabled(!hasSelectedKey());
-	if (ImGui::SmallButton((const char*)u8"選択キーを削除")) deleteSelectedKey();
+	if (timelineSelectionAnimation != selectedAnimation || timelineSelectionNode != selectedNode ||
+		timelineSelectionMesh != selectedMesh)
+	{
+		timelineSelectedKeys.clear();
+		timelineKeysDragging = false;
+		timelineBoxSelecting = false;
+		timelineSelectionAnimation = selectedAnimation;
+		timelineSelectionNode = selectedNode;
+		timelineSelectionMesh = selectedMesh;
+		paintingFootWeight = false;
+		draggingNumericTrack = -1;
+	}
+	if (timelineSelectedKeys.size() == 1 && timelineSelectedKeys.front().kind < 3)
+	{
+		selectedKeyTrack = timelineSelectedKeys.front().kind;
+		selectedKeyIndex = timelineSelectedKeys.front().index;
+	}
+	else selectedKeyTrack = selectedKeyIndex = -1;
+	ImGui::BeginDisabled(timelineSelectedKeys.empty());
+	const bool deleteTimelineKeys = ImGui::SmallButton((const char*)u8"選択キーを削除");
 	ImGui::EndDisabled();
-	ImGui::SameLine();
-	if (hasSelectedKey() && !io.WantTextInput &&
-		ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-		deleteSelectedKey();
 	const float rulerHeight = 26.0f;
 	const float footWeightHeight = 20.0f;
 	const float rowHeight = 20.0f;
 	const float labelWidth = 250.0f;
 	const float footWeightsHeight = footWeightHeight * footWeightCount;
-	const float rowsTopOffset = rulerHeight + footWeightsHeight;
+	const float ikContactOffsetRowHeight = rowHeight;
+	const float rowsTopOffset = rulerHeight + ikContactOffsetRowHeight + footWeightsHeight;
 	const int colliderRowCount = Count(model->GetVmdlExtensionData().colliders);
 	const int trailRowCount = Count(model->GetVmdlTrailData().trails);
 	const int particleRowCount = Count(model->GetVmdlParticleData().emitters);
@@ -3974,7 +3941,22 @@ void VmdlEditorScene::DrawAnimationCurves()
 			std::lerp(stops[index].z, stops[index + 1].z, t), 1.0f);
 		return ImGui::ColorConvertFloat4ToU32(color);
 	};
-	const float weightTop = sheetMin.y + rulerHeight;
+	const float ikRowTop = sheetMin.y + rulerHeight;
+	const float ikRowCenter = ikRowTop + ikContactOffsetRowHeight * 0.5f;
+	drawList->AddText(ImVec2(sheetMin.x + 8.0f, ikRowTop + 2.0f), IM_COL32(100, 220, 185, 255),
+		(const char*)u8"IK接地オフセット");
+	drawList->AddText(ImVec2(sheetMin.x + labelWidth - 20.0f, ikRowTop + 2.0f), IM_COL32(100, 220, 185, 255), "+");
+	if (auto* heightTrack = model->FindIkContactOffsetTrack(animation.name))
+	{
+		for (const auto& key : heightTrack->keys)
+		{
+			const ImVec2 p(timeToX(key.seconds), ikRowCenter);
+			const ImVec2 diamond[] = {ImVec2(p.x, p.y - 5.0f), ImVec2(p.x + 5.0f, p.y),
+				ImVec2(p.x, p.y + 5.0f), ImVec2(p.x - 5.0f, p.y)};
+			drawList->AddConvexPolyFilled(diamond, 4, IM_COL32(100, 220, 185, 255));
+		}
+	}
+	const float weightTop = sheetMin.y + rulerHeight + ikContactOffsetRowHeight;
 	const float weightBottom = weightTop + footWeightsHeight;
 	for (int footIndex = 0; footIndex < footWeightCount; ++footIndex)
 	{
@@ -4251,566 +4233,212 @@ void VmdlEditorScene::DrawAnimationCurves()
 		ImVec2(playheadX + 5.0f, sheetMin.y), ImVec2(playheadX, sheetMin.y + 7.0f)};
 	drawList->AddConvexPolyFilled(playheadTriangle, 3, IM_COL32(90, 190, 255, 255));
 
-	const float materialRowTop = sheetMin.y + eventRowsTopOffset + rowHeight * (eventRowCount - materialRowCount);
-	if (materialRowCount && hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && io.MousePos.y >= materialRowTop)
-	{
-		model->RecordMaterialKey(selectedAnimation, selectedMaterial, xToTime(io.MousePos.x));
-		MarkDirty();
-	}
-	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-	{
-		const ImVec2 mouse = io.MousePos;
-		if (mouse.y >= sheetMin.y + eventRowsTopOffset && mouse.y < materialRowTop)
-		{
-			const int eventRow = std::clamp(
-				static_cast<int>((mouse.y - sheetMin.y - eventRowsTopOffset) / rowHeight), 0,
-				eventRowCount - 1);
-			if (eventRow < colliderRowCount)
-			{
-				timelineEventContextKind = 0;
-				timelineEventContextTarget = eventRow;
-			}
-			else if (eventRow < colliderRowCount + trailRowCount)
-			{
-				timelineEventContextKind = 2;
-				timelineEventContextTarget = eventRow - colliderRowCount;
-			}
-			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount)
-			{
-				timelineEventContextKind = 4;
-				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount;
-			}
-			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount)
-			{
-				timelineEventContextKind = 1;
-				timelineEventContextTarget =
-					eventRow - colliderRowCount - trailRowCount - particleRowCount;
-			}
-			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount + soundRowCount)
-			{
-				timelineEventContextKind = 3;
-				timelineEventContextTarget =
-					eventRow - colliderRowCount - trailRowCount - particleRowCount - morphRowCount;
-			}
-			else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount +
-				soundRowCount + cameraShakeRowCount)
-			{
-				timelineEventContextKind = 5;
-				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount -
-					particleRowCount - morphRowCount - soundRowCount;
-			}
-			else
-			{
-				timelineEventContextKind = 6;
-				timelineEventContextTarget = eventRow - colliderRowCount - trailRowCount -
-					particleRowCount - morphRowCount - soundRowCount - cameraShakeRowCount;
-			}
-			timelineEventContextTime = xToTime(mouse.x);
-			timelineEventContextKey = -1;
-			float closest = 9.0f;
-			if (timelineEventContextKind == 0)
-			{
-				for (const auto& track : controlData.colliderTracks)
-				{
-					if (track.animationName != animation.name ||
-						track.colliderIndex != timelineEventContextTarget)
-						continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance >= closest) continue;
-						closest = distance;
-						timelineEventContextKey = i;
-					}
-					break;
-				}
-			}
-			else if (timelineEventContextKind == 1)
-			{
-				for (const auto& track : controlData.morphTracks)
-				{
-					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						if (track.keys[i].morphIndex != timelineEventContextTarget) continue;
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance >= closest) continue;
-						closest = distance;
-						timelineEventContextKey = i;
-					}
-					break;
-				}
-			}
-			else if (timelineEventContextKind == 2)
-			{
-				for (const auto& track : model->GetVmdlTrailData().tracks)
-				{
-					if (track.animationName != animation.name ||
-						track.trailIndex != timelineEventContextTarget)
-						continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance >= closest) continue;
-						closest = distance;
-						timelineEventContextKey = i;
-					}
-					break;
-				}
-			}
-			else if (timelineEventContextKind == 3)
-			{
-				for (const auto& track : soundData.tracks)
-				{
-					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						if (track.keys[i].sourceIndex != timelineEventContextTarget) continue;
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance >= closest) continue;
-						closest = distance;
-						timelineEventContextKey = i;
-					}
-					break;
-				}
-			}
-			else if (timelineEventContextKind == 4)
-			{
-				for (const auto& track : particleData.tracks)
-				{
-					if (track.animationName != animation.name ||
-						track.emitterIndex != timelineEventContextTarget) continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance < closest) { closest = distance; timelineEventContextKey = i; }
-					}
-					break;
-				}
-			}
-			else if (timelineEventContextKind == 5 || timelineEventContextKind == 6)
-			{
-				const auto& tracks = timelineEventContextKind == 5
-					? presentation.cameraShakeTracks : presentation.radialBlurTracks;
-				for (const auto& track : tracks)
-				{
-					if (track.animationName != animation.name) continue;
-					for (int i = 0; i < Count(track.keys); ++i)
-					{
-						if (track.keys[i].componentIndex != timelineEventContextTarget) continue;
-						const float distance = std::abs(mouse.x - timeToX(track.keys[i].seconds));
-						if (distance < closest) { closest = distance; timelineEventContextKey = i; }
-					}
-					break;
-				}
-			}
-			ImGui::OpenPopup((const char*)u8"タイムラインイベントキー");
-		}
-	}
-	if (ImGui::BeginPopup((const char*)u8"タイムラインイベントキー"))
-	{
-		const auto byTime = [](const auto& left, const auto& right) {
-			return left.seconds < right.seconds;
+	// すべてのキーを同じ識別子・選択・ドラッグ処理で扱う。
+	const auto visitTrack = [&](const TimelineKeyId& id, auto&& action) {
+		const auto visitGroup = [&](auto& tracks) {
+			if (id.track >= 0 && id.track < Count(tracks)) action(tracks[id.track].keys);
 		};
-		if (timelineEventContextKind == 0 && timelineEventContextTarget >= 0 &&
-			timelineEventContextTarget < colliderRowCount)
+		switch (id.kind)
 		{
-			ImGui::Text((const char*)u8"コライダー: %s",
-				colliders[timelineEventContextTarget].name.c_str());
-			VMDLModel::VmdlColliderAnimationTrack* track = nullptr;
-			for (auto& candidate : controlData.colliderTracks)
-			{
-				if (candidate.animationName == animation.name &&
-					candidate.colliderIndex == timelineEventContextTarget)
-				{
-					track = &candidate;
-					break;
-				}
-			}
-			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < Count(track->keys))
-			{
-				auto& key = track->keys[timelineEventContextKey];
-				bool changed = ImGui::DragFloat(
-					(const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec");
-				changed |= ImGui::Checkbox((const char*)u8"有効", &key.value);
-				if (changed)
-				{
-					const float editedSeconds = key.seconds;
-					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < Count(track->keys); ++i)
-					{
-						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f)
-							timelineEventContextKey = i;
-					}
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-				if (ImGui::Button((const char*)u8"キーを削除"))
-				{
-					track->keys.erase(track->keys.begin() + timelineEventContextKey);
-					MarkDirty();
-					ApplyAnimationPreview();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-			else
-			{
-				if (ImGui::MenuItem((const char*)u8"ONキーを追加"))
-				{
-					auto& newTrack = model->GetOrCreateColliderAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					newTrack.keys.push_back({timelineEventContextTime, true});
-					std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-				if (ImGui::MenuItem((const char*)u8"OFFキーを追加"))
-				{
-					auto& newTrack = model->GetOrCreateColliderAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					newTrack.keys.push_back({timelineEventContextTime, false});
-					std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-			}
+		case 0: if (hasNode && id.track == selectedNode) action(keys.positionKeyframes); break;
+		case 1: if (hasNode && id.track == selectedNode) action(keys.rotationKeyframes); break;
+		case 2: if (hasNode && id.track == selectedNode) action(keys.scaleKeyframes); break;
+		case 3: visitGroup(model->GetVmdlAnimationEditorData().ikContactOffsetTracks); break;
+		case 4: visitGroup(controlData.colliderTracks); break;
+		case 5: visitGroup(model->GetVmdlTrailData().tracks); break;
+		case 6: visitGroup(particleData.tracks); break;
+		case 7: visitGroup(controlData.morphTracks); break;
+		case 8: visitGroup(soundData.tracks); break;
+		case 9: visitGroup(presentation.cameraShakeTracks); break;
+		case 10: visitGroup(presentation.radialBlurTracks); break;
+		case 11: visitGroup(model->GetMaterialAnimationTracks()); break;
 		}
-		else if (timelineEventContextKind == 1 && timelineEventContextTarget >= 0 &&
-				 timelineEventContextTarget < morphRowCount)
-		{
-			ImGui::Text(
-				(const char*)u8"モーフ: %s", morphs[timelineEventContextTarget].name.c_str());
-			VMDLModel::VmdlMorphAnimationTrack* track = nullptr;
-			for (auto& candidate : controlData.morphTracks)
-			{
-				if (candidate.animationName == animation.name)
-				{
-					track = &candidate;
-					break;
-				}
-			}
-			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < Count(track->keys))
-			{
-				auto& key = track->keys[timelineEventContextKey];
-				if (ImGui::DragFloat(
-						(const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec"))
-				{
-					const float editedSeconds = key.seconds;
-					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < Count(track->keys); ++i)
-					{
-						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f &&
-							track->keys[i].morphIndex == timelineEventContextTarget)
-							timelineEventContextKey = i;
-					}
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-				if (ImGui::Button((const char*)u8"キーを削除"))
-				{
-					track->keys.erase(track->keys.begin() + timelineEventContextKey);
-					MarkDirty();
-					ApplyAnimationPreview();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-			else if (ImGui::MenuItem((const char*)u8"モーフキーを追加"))
-			{
-				auto& newTrack = model->GetOrCreateMorphAnimationTrack(animation.name);
-				newTrack.keys.push_back({timelineEventContextTime, timelineEventContextTarget});
-				std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
-				MarkDirty();
-				ApplyAnimationPreview();
-			}
-		}
-		else if (timelineEventContextKind == 2 && timelineEventContextTarget >= 0 &&
-				 timelineEventContextTarget < trailRowCount)
-		{
-			ImGui::Text(
-				(const char*)u8"トレイル: %s", trails[timelineEventContextTarget].name.c_str());
-			VMDLModel::VmdlTrailAnimationTrack* track = nullptr;
-			for (auto& candidate : model->GetVmdlTrailData().tracks)
-			{
-				if (candidate.animationName == animation.name &&
-					candidate.trailIndex == timelineEventContextTarget)
-				{
-					track = &candidate;
-					break;
-				}
-			}
-			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < Count(track->keys))
-			{
-				auto& key = track->keys[timelineEventContextKey];
-				bool changed = ImGui::DragFloat(
-					(const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec");
-				changed |= ImGui::Checkbox((const char*)u8"有効", &key.value);
-				if (changed)
-				{
-					const float editedSeconds = key.seconds;
-					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					for (int i = 0; i < Count(track->keys); ++i)
-					{
-						if (std::abs(track->keys[i].seconds - editedSeconds) < 0.0001f)
-							timelineEventContextKey = i;
-					}
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-				if (ImGui::Button((const char*)u8"キーを削除"))
-				{
-					track->keys.erase(track->keys.begin() + timelineEventContextKey);
-					MarkDirty();
-					ApplyAnimationPreview();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-			else
-			{
-				if (ImGui::MenuItem((const char*)u8"ONキーを追加"))
-				{
-					auto& newTrack = model->GetOrCreateTrailAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					newTrack.keys.push_back({timelineEventContextTime, true});
-					std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-				if (ImGui::MenuItem((const char*)u8"OFFキーを追加"))
-				{
-					auto& newTrack = model->GetOrCreateTrailAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					newTrack.keys.push_back({timelineEventContextTime, false});
-					std::sort(newTrack.keys.begin(), newTrack.keys.end(), byTime);
-					MarkDirty();
-					ApplyAnimationPreview();
-				}
-			}
-		}
-		else if (timelineEventContextKind == 3 && timelineEventContextTarget >= 0 &&
-				 timelineEventContextTarget < soundRowCount)
-		{
-			auto& source = soundData.sources[timelineEventContextTarget];
-			ImGui::Text((const char*)u8"サウンドソース: %s", source.name.c_str());
-			ImGui::TextUnformatted(SoundTrackLabel(source.trackName).c_str());
-			VMDLModel::VmdlSoundAnimationTrack* track = nullptr;
-			for (auto& candidate : soundData.tracks)
-			{
-				if (candidate.animationName == animation.name)
-				{
-					track = &candidate;
-					break;
-				}
-			}
-			const bool hasKey = track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < Count(track->keys) &&
-				track->keys[timelineEventContextKey].sourceIndex == timelineEventContextTarget;
-			if (hasKey)
-			{
-				auto& key = track->keys[timelineEventContextKey];
-				int frame = static_cast<int>(std::round(key.seconds * 60.0f));
-				bool changed = false;
-				if (ImGui::DragInt((const char*)u8"フレーム", &frame, 1.0f, 0,
-						static_cast<int>(std::ceil(length * 60.0f))))
-				{
-					key.seconds = frame / 60.0f;
-					changed = true;
-				}
-				if (changed) MarkDirty();
-				if (ImGui::Button(ICON_FA_PLAY "##TestSound")) PlaySoundSourcePreview(key.sourceIndex);
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"テスト再生");
-				ImGui::SameLine();
-				if (ImGui::Button((const char*)u8"キーを削除"))
-				{
-					track->keys.erase(track->keys.begin() + timelineEventContextKey);
-					std::erase_if(soundData.tracks,
-						[](const auto& candidate) { return candidate.keys.empty(); });
-					MarkDirty();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-			else
-			{
-				if (ImGui::Button((const char*)u8"Playキーを追加"))
-				{
-					if (!track)
-					{
-						track = &soundData.tracks.emplace_back();
-						track->animationName = animation.name;
-					}
-					track->keys.push_back({timelineEventContextTime, timelineEventContextTarget,
-						source.variant, 1.0f, source.pitchMin, source.pitchMax});
-					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					MarkDirty();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-		}
-		else if (timelineEventContextKind == 4 && timelineEventContextTarget >= 0 &&
-			timelineEventContextTarget < particleRowCount)
-		{
-			ImGui::Text((const char*)u8"パーティクル: %s",
-				particles[timelineEventContextTarget].name.c_str());
-			VMDLModel::VmdlParticleAnimationTrack* track = nullptr;
-			for (auto& candidate : particleData.tracks)
-				if (candidate.animationName == animation.name &&
-					candidate.emitterIndex == timelineEventContextTarget) { track = &candidate; break; }
-			if (track && timelineEventContextKey >= 0 &&
-				timelineEventContextKey < Count(track->keys))
-			{
-				auto& key = track->keys[timelineEventContextKey];
-				bool changed = ImGui::DragFloat(
-					(const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec");
-				changed |= ImGui::Checkbox((const char*)u8"発生", &key.value);
-				if (changed) { std::sort(track->keys.begin(), track->keys.end(), byTime); MarkDirty(); }
-				if (ImGui::Button((const char*)u8"キーを削除"))
-				{
-					track->keys.erase(track->keys.begin() + timelineEventContextKey);
-					MarkDirty(); ImGui::CloseCurrentPopup();
-				}
-			}
-			else
-			{
-				if (ImGui::MenuItem((const char*)u8"ONキーを追加"))
-				{
-					auto& value = model->GetOrCreateParticleAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					value.keys.push_back({timelineEventContextTime, true});
-					std::sort(value.keys.begin(), value.keys.end(), byTime); MarkDirty();
-				}
-				if (ImGui::MenuItem((const char*)u8"OFFキーを追加"))
-				{
-					auto& value = model->GetOrCreateParticleAnimationTrack(
-						animation.name, timelineEventContextTarget);
-					value.keys.push_back({timelineEventContextTime, false});
-					std::sort(value.keys.begin(), value.keys.end(), byTime); MarkDirty();
-				}
-			}
-		}
-		else if ((timelineEventContextKind == 5 || timelineEventContextKind == 6) &&
-			timelineEventContextTarget >= 0)
-		{
-			auto& tracks = timelineEventContextKind == 5
-				? presentation.cameraShakeTracks : presentation.radialBlurTracks;
-			const int componentCount = timelineEventContextKind == 5
-				? cameraShakeRowCount : radialBlurRowCount;
-			if (timelineEventContextTarget < componentCount)
-			{
-				const std::string& name = timelineEventContextKind == 5
-					? presentation.cameraShakes[timelineEventContextTarget].name
-					: presentation.radialBlurs[timelineEventContextTarget].name;
-				ImGui::Text("%s: %s", timelineEventContextKind == 5
-					? (const char*)u8"カメラシェイク" : (const char*)u8"ラジアルブラー", name.c_str());
-				VMDLModel::VmdlPresentationAnimationTrack* track = nullptr;
-				for (auto& candidate : tracks)
-					if (candidate.animationName == animation.name) { track = &candidate; break; }
-				const bool hasKey = track && timelineEventContextKey >= 0 &&
-					timelineEventContextKey < Count(track->keys) &&
-					track->keys[timelineEventContextKey].componentIndex == timelineEventContextTarget;
-				if (hasKey)
-				{
-					auto& key = track->keys[timelineEventContextKey];
-					if (ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f,
-						0.0f, length, "%.3f sec"))
-					{
-						std::sort(track->keys.begin(), track->keys.end(), byTime); MarkDirty();
-					}
-					if (ImGui::Button((const char*)u8"キーを削除"))
-					{
-						track->keys.erase(track->keys.begin() + timelineEventContextKey);
-						std::erase_if(tracks, [](const auto& value) { return value.keys.empty(); });
-						MarkDirty(); ImGui::CloseCurrentPopup();
-					}
-				}
-				else if (ImGui::MenuItem((const char*)u8"再生キーを追加"))
-				{
-					if (!track)
-					{
-						track = &tracks.emplace_back();
-						track->animationName = animation.name;
-					}
-					track->keys.push_back({timelineEventContextTime, timelineEventContextTarget});
-					std::sort(track->keys.begin(), track->keys.end(), byTime);
-					MarkDirty(); ImGui::CloseCurrentPopup();
-				}
-			}
-		}
-		ImGui::EndPopup();
+	};
+	const auto isSelected = [&](const TimelineKeyId& id) {
+		return std::find(timelineSelectedKeys.begin(), timelineSelectedKeys.end(), id) != timelineSelectedKeys.end();
+	};
+	const auto sortTrack = [&](TimelineKeyId id) {
+		visitTrack(id, [&](auto& trackKeys) {
+			std::vector<int> order(trackKeys.size());
+			for (int i = 0; i < Count(order); ++i) order[i] = i;
+			std::stable_sort(order.begin(), order.end(), [&](int left, int right) {
+				return trackKeys[left].seconds < trackKeys[right].seconds;
+			});
+			auto sorted = trackKeys;
+			for (int i = 0; i < Count(order); ++i) sorted[i] = trackKeys[order[i]];
+			const auto remap = [&](TimelineKeyId& keyId) {
+				if (keyId.kind != id.kind || keyId.track != id.track) return;
+				const auto found = std::find(order.begin(), order.end(), keyId.index);
+				keyId.index = found == order.end() ? -1 : static_cast<int>(found - order.begin());
+			};
+			for (auto& selected : timelineSelectedKeys) remap(selected);
+			remap(timelineDetailKey);
+			trackKeys = std::move(sorted);
+		});
+	};
+	struct VisibleKey { TimelineKeyId id; ImVec2 position; float seconds; };
+	std::vector<VisibleKey> visibleKeys;
+	for (const auto& hit : hitKeys)
+	{
+		const TimelineKeyId id{hit.track, selectedNode, hit.index};
+		visitTrack(id, [&](const auto& trackKeys) {
+			if (id.index >= 0 && id.index < Count(trackKeys))
+				visibleKeys.push_back({id, hit.position, trackKeys[id.index].seconds});
+		});
 	}
-
+	const auto gatherTracks = [&](int kind, const auto& tracks, auto&& rowForKey) {
+		for (int trackIndex = 0; trackIndex < Count(tracks); ++trackIndex)
+		{
+			const auto& track = tracks[trackIndex];
+			if (track.animationName != animation.name) continue;
+			for (int i = 0; i < Count(track.keys); ++i)
+			{
+				const auto& key = track.keys[i];
+				const int row = rowForKey(track, key);
+				if (row < 0 || row >= eventRowCount) continue;
+				visibleKeys.push_back({{kind, trackIndex, i},
+					ImVec2(timeToX(key.seconds), sheetMin.y + eventRowsTopOffset + (row + 0.5f) * rowHeight), key.seconds});
+			}
+		}
+	};
+	const auto& heightTracks = model->GetVmdlAnimationEditorData().ikContactOffsetTracks;
+	for (int t = 0; t < Count(heightTracks); ++t)
+		if (heightTracks[t].animationName == animation.name)
+			for (int i = 0; i < Count(heightTracks[t].keys); ++i)
+				visibleKeys.push_back({{3, t, i}, ImVec2(timeToX(heightTracks[t].keys[i].seconds), ikRowCenter), heightTracks[t].keys[i].seconds});
+	gatherTracks(4, controlData.colliderTracks, [&](const auto& track, const auto&) {
+		return track.colliderIndex >= 0 && track.colliderIndex < colliderRowCount ? track.colliderIndex : -1;
+	});
+	gatherTracks(5, model->GetVmdlTrailData().tracks, [&](const auto& track, const auto&) {
+		return track.trailIndex >= 0 && track.trailIndex < trailRowCount ? colliderRowCount + track.trailIndex : -1;
+	});
+	gatherTracks(6, particleData.tracks, [&](const auto& track, const auto&) {
+		return track.emitterIndex >= 0 && track.emitterIndex < particleRowCount ? colliderRowCount + trailRowCount + track.emitterIndex : -1;
+	});
+	const int morphStart = colliderRowCount + trailRowCount + particleRowCount;
+	const int soundStart = morphStart + morphRowCount;
+	const int shakeStart = soundStart + soundRowCount;
+	const int blurStart = shakeStart + cameraShakeRowCount;
+	gatherTracks(7, controlData.morphTracks, [&](const auto&, const auto& key) {
+		return key.morphIndex >= 0 && key.morphIndex < morphRowCount ? morphStart + key.morphIndex : -1;
+	});
+	gatherTracks(8, soundData.tracks, [&](const auto&, const auto& key) {
+		return key.sourceIndex >= 0 && key.sourceIndex < soundRowCount ? soundStart + key.sourceIndex : -1;
+	});
+	gatherTracks(9, presentation.cameraShakeTracks, [&](const auto&, const auto& key) {
+		return key.componentIndex >= 0 && key.componentIndex < cameraShakeRowCount ? shakeStart + key.componentIndex : -1;
+	});
+	gatherTracks(10, presentation.radialBlurTracks, [&](const auto&, const auto& key) {
+		return key.componentIndex >= 0 && key.componentIndex < radialBlurRowCount ? blurStart + key.componentIndex : -1;
+	});
+	gatherTracks(11, model->GetMaterialAnimationTracks(), [&](const auto& track, const auto&) {
+		return materialRowCount && track.materialIndex == selectedMaterial ? eventRowCount - 1 : -1;
+	});
+	int hitKey = -1;
+	float hitDistance = 10.0f;
+	for (int i = 0; i < Count(visibleKeys); ++i)
+	{
+		const auto& key = visibleKeys[i];
+		const float distance = std::abs(io.MousePos.x - key.position.x) + std::abs(io.MousePos.y - key.position.y);
+		if (hovered && distance < hitDistance) { hitDistance = distance; hitKey = i; }
+		if (isSelected(key.id))
+			drawList->AddCircle(key.position, 7.0f, IM_COL32(255, 230, 80, 255), 4, 2.0f);
+	}
+	if (hitKey >= 0) ImGui::SetTooltip("%.3f sec", visibleKeys[hitKey].seconds);
+	const auto eraseSelected = [&]() {
+		auto deleting = timelineSelectedKeys;
+		std::sort(deleting.begin(), deleting.end(), [](const auto& left, const auto& right) {
+			if (left.kind != right.kind) return left.kind < right.kind;
+			if (left.track != right.track) return left.track < right.track;
+			return left.index > right.index;
+		});
+		for (const auto& id : deleting)
+			visitTrack(id, [&](auto& trackKeys) {
+				if (id.index >= 0 && id.index < Count(trackKeys)) trackKeys.erase(trackKeys.begin() + id.index);
+			});
+		timelineSelectedKeys.clear();
+		timelineKeysDragging = false;
+		selectedKeyTrack = selectedKeyIndex = -1;
+		MarkDirty();
+		ApplyAnimationPreview();
+	};
+	const auto sortSelectedTracks = [&]() {
+		std::vector<TimelineKeyId> tracks;
+		for (const auto& id : timelineSelectedKeys)
+			if (std::none_of(tracks.begin(), tracks.end(), [&](const auto& other) {
+				return other.kind == id.kind && other.track == id.track;
+			})) tracks.push_back(id);
+		for (const auto& id : tracks) sortTrack(id);
+	};
+	if (deleteTimelineKeys || (!timelineSelectedKeys.empty() && ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) &&
+		!io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))) eraseSelected();
 	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
-		const ImVec2 mouse = io.MousePos;
-		const bool clickedNoneButton = mouse.x >= sheetMin.x + labelWidth - 42.0f &&
-									   mouse.x <= sheetMin.x + labelWidth - 24.0f;
-		const bool clickedApplyButton =
-			mouse.x >= sheetMin.x + labelWidth - 22.0f && mouse.x <= sheetMin.x + labelWidth - 4.0f;
-		if ((clickedNoneButton || clickedApplyButton) && mouse.y >= weightTop &&
-			mouse.y < weightBottom)
+		if ((io.KeyShift || io.KeyCtrl) && io.MousePos.x >= timeLeft)
 		{
-			const int footIndex = std::clamp(
-				static_cast<int>((mouse.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
-			auto& track = model->GetOrCreateFootWeightTrack(animation.name, footIndex);
-			const int sampleCount =
-				std::max(2, static_cast<int>(std::ceil(length * track.sampleRate)) + 1);
-			track.weights.assign(sampleCount, clickedNoneButton ? 0.0f : 1.0f);
-			MarkDirty();
-			ApplyAnimationPreview();
-			return;
+			timelineBoxSelecting = true;
+			timelineBoxRemoving = io.KeyCtrl;
+			timelineDragStart = {io.MousePos.x, io.MousePos.y};
+			if (io.KeyCtrl && hitKey >= 0) std::erase(timelineSelectedKeys, visibleKeys[hitKey].id);
 		}
-		if (mouse.x >= timeLeft && mouse.y >= weightTop && mouse.y < weightBottom)
+		else if (hitKey >= 0)
+		{
+			const auto id = visibleKeys[hitKey].id;
+			if (!isSelected(id)) { timelineSelectedKeys.clear(); timelineSelectedKeys.push_back(id); }
+			selectedKeyTrack = id.kind < 3 ? id.kind : -1;
+			selectedKeyIndex = id.kind < 3 ? id.index : -1;
+			timelineKeysDragging = true;
+			timelineDragStart = {io.MousePos.x, io.MousePos.y};
+			timelineDragStartTimes.clear();
+			for (const auto& selected : timelineSelectedKeys)
+			{
+				float seconds = 0.0f;
+				visitTrack(selected, [&](const auto& trackKeys) {
+					if (selected.index >= 0 && selected.index < Count(trackKeys)) seconds = trackKeys[selected.index].seconds;
+				});
+				timelineDragStartTimes.push_back(seconds);
+			}
+		}
+		else if (io.MousePos.x >= timeLeft && io.MousePos.y >= weightTop && io.MousePos.y < weightBottom && footWeightCount > 0)
 		{
 			paintingFootWeight = true;
-			paintingFootWeightIndex = std::clamp(
-				static_cast<int>((mouse.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
+			paintingFootWeightIndex = std::clamp(static_cast<int>((io.MousePos.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
 			paintingFootWeightLastSample = -1;
 		}
-		else if (mouse.x < sheetMin.x + labelWidth && mouse.y >= sheetMin.y + rowsTopOffset &&
-				 mouse.y < sheetMin.y + eventRowsTopOffset)
+		else if (io.MousePos.x >= timeLeft)
 		{
-			const int row =
-				std::clamp(static_cast<int>((mouse.y - sheetMin.y - rowsTopOffset) / rowHeight), 0,
-					Count(rows) - 1);
+			timelineSelectedKeys.clear();
+			animationPlaying = false;
+			scrubbingAnimationTime = true;
+		}
+		else if (io.MousePos.y >= ikRowTop && io.MousePos.y < weightTop)
+		{
+			timelineAddKind = 3; timelineAddTarget = -1; timelineAddTime = animationTime;
+			ImGui::OpenPopup("Timeline Add Key");
+		}
+		else if (io.MousePos.y >= weightTop && io.MousePos.y < weightBottom && footWeightCount > 0)
+		{
+			const int footIndex = std::clamp(static_cast<int>((io.MousePos.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
+			auto& track = model->GetOrCreateFootWeightTrack(animation.name, footIndex);
+			const int samples = std::max(2, static_cast<int>(std::ceil(length * track.sampleRate)) + 1);
+			const bool clear = io.MousePos.x < sheetMin.x + labelWidth - 24.0f;
+			track.weights.assign(samples, clear ? 0.0f : 1.0f);
+			MarkDirty(); ApplyAnimationPreview();
+		}
+		else if (io.MousePos.y >= sheetMin.y + rowsTopOffset && io.MousePos.y < sheetMin.y + eventRowsTopOffset && !rows.empty())
+		{
+			const int row = std::clamp(static_cast<int>((io.MousePos.y - sheetMin.y - rowsTopOffset) / rowHeight), 0, Count(rows) - 1);
 			if (!rows[row].child)
 			{
 				if (rows[row].track == 0) positionTrackExpanded = !positionTrackExpanded;
 				else if (rows[row].track == 1) rotationTrackExpanded = !rotationTrackExpanded;
 				else scaleTrackExpanded = !scaleTrackExpanded;
 			}
-			else if (mouse.x >= sheetMin.x + 92.0f)
+			else if (io.MousePos.x >= sheetMin.x + 92.0f)
 			{
 				draggingNumericTrack = rows[row].track;
 				draggingNumericComponent = rows[row].component;
 			}
-			return;
-		}
-		if (paintingFootWeight) return;
-		int hitTrack = -1;
-		int hitIndex = -1;
-		float closest = 9.0f;
-		for (const KeyHit& hit : hitKeys)
-		{
-			const float distance =
-				std::abs(mouse.x - hit.position.x) + std::abs(mouse.y - hit.position.y);
-			if (distance >= closest) continue;
-			closest = distance;
-			hitTrack = hit.track;
-			hitIndex = hit.index;
-		}
-		if (hitTrack >= 0)
-		{
-			selectedKeyTrack = hitTrack;
-			selectedKeyIndex = hitIndex;
-			draggingAnimationKey = true;
-		}
-		else if (mouse.x >= timeLeft)
-		{
-			animationPlaying = false;
-			scrubbingAnimationTime = true;
-			animationTime = xToTime(mouse.x);
-			ApplyAnimationPreview();
 		}
 	}
 	if (paintingFootWeight && ImGui::IsMouseDown(ImGuiMouseButton_Left))
@@ -4859,14 +4487,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		paintingFootWeightIndex = -1;
 		paintingFootWeightLastSample = -1;
 	}
-	if (scrubbingAnimationTime && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-	{
-		animationPlaying = false;
-		animationTime = xToTime(io.MousePos.x);
-		ApplyAnimationPreview();
-	}
-	if (scrubbingAnimationTime && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-		scrubbingAnimationTime = false;
+
 	if (draggingNumericTrack >= 0 && ImGui::IsMouseDown(ImGuiMouseButton_Left))
 	{
 		const float delta = io.MouseDelta.x * 0.01f;
@@ -4910,51 +4531,221 @@ void VmdlEditorScene::DrawAnimationCurves()
 		draggingNumericTrack = -1;
 		draggingNumericComponent = -1;
 	}
-	if (draggingAnimationKey && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+
+	if (timelineBoxSelecting)
 	{
-		const float seconds = xToTime(io.MousePos.x);
-		if (selectedKeyTrack == 0 &&
-			selectedKeyIndex < Count(keys.positionKeyframes))
-			keys.positionKeyframes[selectedKeyIndex].seconds = seconds;
-		else if (selectedKeyTrack == 1 &&
-				 selectedKeyIndex < Count(keys.rotationKeyframes))
-			keys.rotationKeyframes[selectedKeyIndex].seconds = seconds;
-		else if (selectedKeyTrack == 2 &&
-				 selectedKeyIndex < Count(keys.scaleKeyframes))
-			keys.scaleKeyframes[selectedKeyIndex].seconds = seconds;
-		animationTime = seconds;
+		const ImVec2 boxMin(std::min(timelineDragStart.x, io.MousePos.x), std::min(timelineDragStart.y, io.MousePos.y));
+		const ImVec2 boxMax(std::max(timelineDragStart.x, io.MousePos.x), std::max(timelineDragStart.y, io.MousePos.y));
+		drawList->AddRectFilled(boxMin, boxMax, timelineBoxRemoving ? IM_COL32(230, 80, 80, 40) : IM_COL32(80, 160, 255, 40));
+		drawList->AddRect(boxMin, boxMax, IM_COL32(150, 190, 255, 255));
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+		{
+			for (const auto& key : visibleKeys)
+				if (key.position.x >= boxMin.x && key.position.x <= boxMax.x && key.position.y >= boxMin.y && key.position.y <= boxMax.y)
+				{
+					if (timelineBoxRemoving) std::erase(timelineSelectedKeys, key.id);
+					else if (!isSelected(key.id)) timelineSelectedKeys.push_back(key.id);
+				}
+			timelineBoxSelecting = false;
+		}
+	}
+	if (timelineKeysDragging && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 2.0f))
+	{
+		float delta = (io.MousePos.x - timelineDragStart.x) / timeWidth * length;
+		float minimum = -length, maximum = length;
+		for (float time : timelineDragStartTimes) { minimum = std::max(minimum, -time); maximum = std::min(maximum, length - time); }
+		delta = std::clamp(delta, minimum, maximum);
+		for (int i = 0; i < Count(timelineSelectedKeys); ++i)
+		{
+			const auto& id = timelineSelectedKeys[i];
+			visitTrack(id, [&](auto& trackKeys) {
+				if (id.index >= 0 && id.index < Count(trackKeys)) trackKeys[id.index].seconds = timelineDragStartTimes[i] + delta;
+			});
+		}
 		animationPlaying = false;
+		sortSelectedTracks();
 		MarkDirty();
 		ApplyAnimationPreview();
 	}
-	if (draggingAnimationKey && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+	if (timelineKeysDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 	{
-		const float selectedTime = animationTime;
-		const auto byTime = [](const auto& left, const auto& right) {
-			return left.seconds < right.seconds;
-		};
-		if (selectedKeyTrack == 0)
-			std::sort(keys.positionKeyframes.begin(), keys.positionKeyframes.end(), byTime);
-		else if (selectedKeyTrack == 1)
-			std::sort(keys.rotationKeyframes.begin(), keys.rotationKeyframes.end(), byTime);
-		else if (selectedKeyTrack == 2)
-			std::sort(keys.scaleKeyframes.begin(), keys.scaleKeyframes.end(), byTime);
-		const auto findSelected = [&](const auto& trackKeys) {
-			int closestIndex = -1;
-			float closestDistance = FLT_MAX;
-			for (int i = 0; i < Count(trackKeys); ++i)
+		sortSelectedTracks();
+		timelineKeysDragging = false;
+	}
+	if (scrubbingAnimationTime && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+	{
+		animationTime = xToTime(io.MousePos.x); ApplyAnimationPreview();
+	}
+	if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) scrubbingAnimationTime = false;
+	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	{
+		if (hitKey >= 0 && timelineSelectedKeys.size() == 1 && isSelected(visibleKeys[hitKey].id))
+		{
+			timelineDetailKey = timelineSelectedKeys.front();
+			ImGui::OpenPopup("Timeline Key Details");
+		}
+		else if (hitKey < 0 && io.MousePos.x >= timeLeft)
+		{
+			timelineAddTime = xToTime(io.MousePos.x);
+			timelineAddKind = -1;
+			if (io.MousePos.y >= ikRowTop && io.MousePos.y < weightTop) timelineAddKind = 3;
+			else if (io.MousePos.y >= sheetMin.y + eventRowsTopOffset)
 			{
-				const float distance = std::abs(trackKeys[i].seconds - selectedTime);
-				if (distance >= closestDistance) continue;
-				closestDistance = distance;
-				closestIndex = i;
+				const int row = static_cast<int>((io.MousePos.y - sheetMin.y - eventRowsTopOffset) / rowHeight);
+				if (row < colliderRowCount) { timelineAddKind = 4; timelineAddTarget = row; }
+				else if (row < colliderRowCount + trailRowCount) { timelineAddKind = 5; timelineAddTarget = row - colliderRowCount; }
+				else if (row < morphStart) { timelineAddKind = 6; timelineAddTarget = row - colliderRowCount - trailRowCount; }
+				else if (row < soundStart) { timelineAddKind = 7; timelineAddTarget = row - morphStart; }
+				else if (row < shakeStart) { timelineAddKind = 8; timelineAddTarget = row - soundStart; }
+				else if (row < blurStart) { timelineAddKind = 9; timelineAddTarget = row - shakeStart; }
+				else if (row < blurStart + radialBlurRowCount) { timelineAddKind = 10; timelineAddTarget = row - blurStart; }
+				else if (materialRowCount) { timelineAddKind = 11; timelineAddTarget = selectedMaterial; }
 			}
-			return closestIndex;
-		};
-		if (selectedKeyTrack == 0) selectedKeyIndex = findSelected(keys.positionKeyframes);
-		else if (selectedKeyTrack == 1) selectedKeyIndex = findSelected(keys.rotationKeyframes);
-		else if (selectedKeyTrack == 2) selectedKeyIndex = findSelected(keys.scaleKeyframes);
-		draggingAnimationKey = false;
+			else if (io.MousePos.y >= sheetMin.y + rowsTopOffset && !rows.empty())
+			{
+				const int row = std::clamp(static_cast<int>((io.MousePos.y - sheetMin.y - rowsTopOffset) / rowHeight), 0, Count(rows) - 1);
+				timelineAddKind = rows[row].track; timelineAddTarget = selectedNode;
+			}
+			if (timelineAddKind >= 0) ImGui::OpenPopup("Timeline Add Key");
+		}
+	}
+	if (ImGui::BeginPopup("Timeline Key Details"))
+	{
+		if (timelineSelectedKeys.size() != 1 || timelineSelectedKeys.front() != timelineDetailKey)
+			ImGui::CloseCurrentPopup();
+		else
+		{
+			bool changed = false, remove = false;
+			ImGui::TextUnformatted((const char*)u8"キー詳細");
+			visitTrack(timelineDetailKey, [&](auto& trackKeys) {
+				if (timelineDetailKey.index < 0 || timelineDetailKey.index >= Count(trackKeys)) return;
+				auto& key = trackKeys[timelineDetailKey.index];
+				changed |= ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec", ImGuiSliderFlags_AlwaysClamp);
+				if constexpr (requires { key.contactOffset; })
+					changed |= ImGui::DragFloat((const char*)u8"接地オフセット", &key.contactOffset, 0.005f);
+				if constexpr (requires { key.value; })
+				{
+					if constexpr (std::is_same_v<decltype(key.value), bool>)
+						changed |= ImGui::Checkbox((const char*)u8"有効", &key.value);
+					else if constexpr (requires { key.value.w; })
+					{
+						if (ImGui::DragFloat4((const char*)u8"回転", &key.value.x, 0.01f))
+						{
+							key.value.Normalize(); changed = true;
+						}
+					}
+					else changed |= ImGui::DragFloat3((const char*)u8"値", &key.value.x, 0.01f);
+				}
+				if constexpr (requires { key.sourceIndex; })
+				{
+					if (key.sourceIndex >= 0 && key.sourceIndex < Count(soundData.sources))
+						ImGui::TextUnformatted(soundData.sources[key.sourceIndex].name.c_str());
+					changed |= ImGui::DragInt((const char*)u8"バリエーション", &key.variant, 1.0f, -1, 100);
+					changed |= ImGui::DragFloat((const char*)u8"音量", &key.volume, 0.01f, 0.0f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					changed |= ImGui::DragFloat((const char*)u8"ピッチ最小", &key.pitchMin, 0.01f, 0.125f, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					changed |= ImGui::DragFloat((const char*)u8"ピッチ最大", &key.pitchMax, 0.01f, key.pitchMin, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					if (ImGui::Button((const char*)u8"試聴")) PlaySoundSourcePreview(key.sourceIndex);
+				}
+				if constexpr (requires { key.morphIndex; })
+					if (key.morphIndex >= 0 && key.morphIndex < Count(morphs)) ImGui::TextUnformatted(morphs[key.morphIndex].name.c_str());
+				if constexpr (requires { key.baseColor; })
+				{
+					changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
+					changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
+					changed |= ImGui::SliderFloat((const char*)u8"粗さ", &key.roughness, 0.0001f, 1.0f);
+				}
+				remove = ImGui::Button((const char*)u8"キーを削除");
+			});
+			if (changed)
+			{
+				sortTrack(timelineDetailKey); MarkDirty(); ApplyAnimationPreview();
+			}
+			if (remove) { eraseSelected(); ImGui::CloseCurrentPopup(); }
+		}
+		ImGui::EndPopup();
+	}
+	if (ImGui::BeginPopup("Timeline Add Key"))
+	{
+		ImGui::Text("%.3f sec", timelineAddTime);
+		const bool booleanKey = timelineAddKind == 4 || timelineAddKind == 5 || timelineAddKind == 6;
+		const bool addOn = ImGui::MenuItem(booleanKey ? (const char*)u8"ONキーを追加" : (const char*)u8"キーを追加");
+		const bool addOff = booleanKey && ImGui::MenuItem((const char*)u8"OFFキーを追加");
+		if (addOn || addOff)
+		{
+			TimelineKeyId added{timelineAddKind, -1, -1};
+			const auto addKey = [&](auto& trackKeys, const auto& key) {
+				added.index = Count(trackKeys); trackKeys.push_back(key);
+			};
+			const auto animationTrack = [&](auto& tracks) -> auto& {
+				for (int i = 0; i < Count(tracks); ++i)
+					if (tracks[i].animationName == animation.name) { added.track = i; return tracks[i]; }
+				added.track = Count(tracks);
+				auto& track = tracks.emplace_back(); track.animationName = animation.name; return track;
+			};
+			switch (timelineAddKind)
+			{
+			case 0: if (hasNode) { added.track = selectedNode; addKey(keys.positionKeyframes, VMDLModel::VectorKeyframe{timelineAddTime, model->GetNodes()[selectedNode].position}); } break;
+			case 1: if (hasNode) { added.track = selectedNode; addKey(keys.rotationKeyframes, VMDLModel::QuaternionKeyframe{timelineAddTime, model->GetNodes()[selectedNode].rotation}); } break;
+			case 2: if (hasNode) { added.track = selectedNode; addKey(keys.scaleKeyframes, VMDLModel::VectorKeyframe{timelineAddTime, model->GetNodes()[selectedNode].scale}); } break;
+			case 3:
+			{
+				const float offset = model->EvaluateIkContactOffset(selectedAnimation, timelineAddTime);
+				auto& track = animationTrack(model->GetVmdlAnimationEditorData().ikContactOffsetTracks);
+				addKey(track.keys, VMDLModel::VmdlIkContactOffsetKeyframe{timelineAddTime, offset}); break;
+			}
+			case 4:
+			{
+				auto& track = model->GetOrCreateColliderAnimationTrack(animation.name, timelineAddTarget);
+				added.track = static_cast<int>(&track - controlData.colliderTracks.data());
+				addKey(track.keys, VMDLModel::VmdlBoolKeyframe{timelineAddTime, addOn}); break;
+			}
+			case 5:
+			{
+				auto& tracks = model->GetVmdlTrailData().tracks;
+				auto& track = model->GetOrCreateTrailAnimationTrack(animation.name, timelineAddTarget);
+				added.track = static_cast<int>(&track - tracks.data());
+				addKey(track.keys, VMDLModel::VmdlBoolKeyframe{timelineAddTime, addOn}); break;
+			}
+			case 6:
+			{
+				auto& track = model->GetOrCreateParticleAnimationTrack(animation.name, timelineAddTarget);
+				added.track = static_cast<int>(&track - particleData.tracks.data());
+				addKey(track.keys, VMDLModel::VmdlBoolKeyframe{timelineAddTime, addOn}); break;
+			}
+			case 7:
+			{
+				auto& track = animationTrack(controlData.morphTracks);
+				addKey(track.keys, VMDLModel::VmdlMorphKeyframe{timelineAddTime, timelineAddTarget}); break;
+			}
+			case 8:
+			{
+				auto& track = animationTrack(soundData.tracks);
+				VMDLModel::VmdlSoundKeyframe key; key.seconds = timelineAddTime; key.sourceIndex = timelineAddTarget;
+				addKey(track.keys, key); break;
+			}
+			case 9: case 10:
+			{
+				auto& tracks = timelineAddKind == 9 ? presentation.cameraShakeTracks : presentation.radialBlurTracks;
+				auto& track = animationTrack(tracks);
+				addKey(track.keys, VMDLModel::VmdlPresentationKeyframe{timelineAddTime, timelineAddTarget}); break;
+			}
+			case 11:
+			{
+				model->RecordMaterialKey(selectedAnimation, selectedMaterial, timelineAddTime);
+				auto& tracks = model->GetMaterialAnimationTracks();
+				for (int t = 0; t < Count(tracks); ++t)
+					if (tracks[t].animationName == animation.name && tracks[t].materialIndex == selectedMaterial)
+						for (int i = 0; i < Count(tracks[t].keys); ++i)
+							if (std::abs(tracks[t].keys[i].seconds - timelineAddTime) < 0.0005f) added = {11, t, i};
+				break;
+			}
+			}
+			timelineSelectedKeys.clear();
+			if (added.index >= 0) { timelineSelectedKeys.push_back(added); sortTrack(added); }
+			MarkDirty(); ApplyAnimationPreview(); ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
 	}
 }
 
@@ -6423,6 +6214,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 				: "Failed to replace the GLB cache: " + replaceError);
 			return;
 		}
+		previewStageSelected = false;
 		selectedNode = model->GetNodes().empty() ? -1 : 0;
 		ikGizmoTarget = IkGizmoTarget::None;
 		ikGizmoLeg = -1;
@@ -6824,6 +6616,7 @@ void VmdlEditorScene::LoadModel(
 		ikGizmoTarget = IkGizmoTarget::None;
 		ikGizmoLeg = -1;
 		showSelectionGizmo = true;
+		previewStageSelected = false;
 		selectedNode = model->GetNodes().empty() ? -1 : 0;
 		selectedNodes.clear();
 		if (selectedNode >= 0) selectedNodes.push_back(selectedNode);

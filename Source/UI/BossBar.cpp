@@ -33,6 +33,7 @@ void BossBar::Show(Entity* value)
 		: 0.0f;
 	if (changedBoss || !showing)
 	{
+		phaseColorElapsed = 0.0f;
 		visibilityStart = GetDissolveAmount();
 		visibilityTime = 0.0f;
 		visibilityAnimating = true;
@@ -76,6 +77,16 @@ void BossBar::OnUpdate()
 	{
 		const float lifeRatio = boss->GetMaxLife() > 0.0f
 			? std::clamp(boss->GetLife() / boss->GetMaxLife(), 0.0f, 1.0f) : 0.0f;
+
+		// Aracoreから持ってきた色変化の演出。HPが半分以下の時に赤くなる。
+		phaseColorElapsed = lifeRatio <= 0.5f ? std::min(phaseColorElapsed + dt, 3.0f) : 0.0f;
+		const float progress = phaseColorElapsed / 3.0f;
+		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
+		const Color normalColor(0.04f, 0.48f, 0.95f, 0.98f);
+		const Color angryColor(1.0f, 0.28f, 0.25f, 0.98f);
+		const Color fillColor = Color::Lerp(normalColor, angryColor, smoothProgress);
+		SetColors(fillColor, fillColor, Color(0.32f, 0.27f, 0.34f, 0.94f));
+
 		if (filling)
 		{
 			fillTime += dt;

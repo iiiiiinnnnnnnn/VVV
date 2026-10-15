@@ -23,7 +23,7 @@ class VMDLColliderComponent;
 
 class Player : public Entity
 {
-public:
+  public:
 	Player();
 	~Player() override;
 
@@ -40,8 +40,10 @@ public:
 	bool IsUsingJustDodgeSkill() const { return justDodgeSkillActive; }
 	bool IsSprinting() const { return sprinting; }
 
-	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
-	void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
+	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point,
+		const Vector3& normal) override;
+	void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point,
+		const Vector3& normal) override;
 
 	PlayerController* GetController() const { return controller; }
 	ThirdPersonCameraController* GetCameraController() const { return cameraController; }
@@ -58,7 +60,7 @@ public:
 	void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);
 
-private:
+  private:
 	struct ActionState
 	{
 		bool frozen = false;
@@ -73,16 +75,20 @@ private:
 	void RegisterAnimationCallbacks();
 	void UpdateAttackContacts();
 	bool RegisterAttackContact(PhysicsComponent* attack, PhysicsComponent* other, Actor* target);
-	void ResolveAttackHit(VMDLColliderComponent* attack, Actor* target, Vector3& hitPosition, Vector3& hitNormal);
+	void ResolveAttackHit(
+		VMDLColliderComponent* attack, Actor* target, Vector3& hitPosition, Vector3& hitNormal);
 	float GetAttackDamage(const Entity* target, bool skillAttack, bool kick) const;
-	void HandleAttackContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal);
+	void HandleAttackContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point,
+		const Vector3& normal);
 	void UpdateTerrainDeformInput();
 	ActionState GetActionState() const;
 	void UpdateDodgeState(const ActionState& state);
 	Vector3 GetCameraRelativeDirection(float inputX, float inputZ) const;
 	void UpdateQuickStepDirection(const InputContext& input);
-	void UpdateMoveDirection(const InputContext& input, float inputLength, const ActionState& state);
-	void UpdateMovementAnimation(const InputContext& input, float inputLength, const ActionState& state);
+	void UpdateMoveDirection(
+		const InputContext& input, float inputLength, const ActionState& state);
+	void UpdateMovementAnimation(
+		const InputContext& input, float inputLength, const ActionState& state);
 	Actor* GetJustDodgeTarget() const;
 	void HandleAttackInput(const InputContext& input, const ActionState& state);
 	void StartJustDodgeSkill(Actor* target);
@@ -94,6 +100,7 @@ private:
 		std::unordered_set<PhysicsComponent*> colliders;
 	};
 	std::unordered_map<PhysicsComponent*, std::unordered_map<Actor*, AttackContact>> attackContacts;
+	void UpdateWaterDamage();
 	void UpdateMovement();
 	void UpdateHealth();
 	void UpdateDeathSequence();
@@ -103,7 +110,7 @@ private:
 	void PlayJustDodgeFeedback();
 	void PlayAttackHitEffect(const Vector3& position);
 
-protected:
+  protected:
 	PlayerController* controller = nullptr;
 	std::shared_ptr<VMDLModel> model = nullptr;
 
@@ -116,7 +123,7 @@ protected:
 	VMDL* vmdl = nullptr;
 
 	ThirdPersonCameraController* cameraController = nullptr;
-	bool  isFirstPerson = false;
+	bool isFirstPerson = false;
 	std::string bufferedQuickStepTrigger;
 	float spineAngleX = 0.0f;
 	const Vector2 idleSpineAngle = {0.8f, 0};
@@ -132,6 +139,11 @@ protected:
 	bool justDodgeSkillActive = false;
 	float dodgeCooldownTimer = 0.0f;
 	float dodgeCooldownDuration = 0.35f;
+
+	// 水に触れたらダメージ
+	const float damageLowerHeightCoolDown = 2.0f;
+	float damageLowerHeightTimer = 0;
+	bool isInWater = false;
 
 	// 移動
 	CharacterController* cc = nullptr;

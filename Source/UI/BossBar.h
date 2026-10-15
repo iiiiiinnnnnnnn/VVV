@@ -31,6 +31,7 @@ private:
 	float visibilityTime = 0.0f;
 	float visibilityStart = 1.0f;
 	float fillTime = 0.0f;
+	float phaseColorElapsed = 0.0f;
 	float showDuration = 0.45f;
 	float hideDuration = 0.55f;
 	float fillDuration = 0.9f;

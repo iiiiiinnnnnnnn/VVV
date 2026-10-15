@@ -119,12 +119,11 @@ void Aracore::ConfigureAI()
 	ensureFloat("JumpDuration", 2.4f);
 	ensureFloat("JumpHeight", 10.0f);
 	ensureFloat("JumpLandingRecovery", 0.9f);
-	ensureFloat("EnragedIdleScale", 0.4f);
-	ensureFloat("EnragedJumpChance", 0.7f);
-	ensureFloat("EnragedJumpCount", 2.0f);
-	ensureFloat("EnragedLowHpJumpCount", 3.0f);
+	ensureFloat("AngryIdleScale", 0.4f);
+	ensureFloat("AngryJumpChance", 0.7f);
+	ensureFloat("AngryJumpCount", 2.0f);
+	ensureFloat("AngryLowHpJumpCount", 3.0f);
 	ensureFloat("PhaseThreatDuration", 3.2f);
-	ensureFloat("PhaseColorChangeDuration", 3.0f);
 	ensureFloat("DeathDissolveAmount", 0.35f);
 
 }
@@ -221,6 +220,13 @@ void Aracore::RegisterAICallbacks()
 	{
 		if (Actor* target = controller->GetTarget())
 		{
+			if (GetDistanceTo(target) < 5.0f)
+			{
+				controller->StopMovement();
+				StopAnimatedMovement();
+				controller->SetBool("ActionFinished", true, true);
+				return;
+			}
 			const float moveSpeed = controller->GetFloat("ChaseMoveSpeed", 3.2f);
 			RequestAnimatedMovement(moveSpeed, "walk");
 			navMeshAgent->SetSpeed(moveSpeed);
@@ -244,10 +250,20 @@ void Aracore::RegisterAICallbacks()
 	{
 		if (Actor* target = controller->GetTarget())
 		{
-			const float moveSpeed = controller->GetFloat("TurningMoveSpeed", 1.4f);
-			RequestAnimatedMovement(moveSpeed, "walk");
-			navMeshAgent->SetSpeed(moveSpeed);
-			navMeshAgent->MoveToTarget(target);
+			// 近すぎたら攻撃
+			if (GetDistanceTo(target) < 5.0f)
+			{
+				controller->StopMovement();
+				StopAnimatedMovement();
+				controller->FaceTarget();
+			}
+			else
+			{
+				const float moveSpeed = controller->GetFloat("TurningMoveSpeed", 1.4f);
+				RequestAnimatedMovement(moveSpeed, "walk");
+				navMeshAgent->SetSpeed(moveSpeed);
+				navMeshAgent->MoveToTarget(target);
+			}
 		}
 		const float stateTime = controller->GetFloat("StateTime");
 		const float duration = controller->GetFloat("ChargePrepareDuration", 1.0f);
@@ -494,29 +510,28 @@ bool Aracore::IsMovementAnimationReady() const
 // HP半分で一度だけ演出と攻撃パターンを切り替える。
 void Aracore::BeginPhaseChange()
 {
-	enraged = true;
+	angry = true;
 	jumpAnimationPending = false;
 	phaseChangeQueued = false;
 	phaseThreatActive = true;
 	phasePresentationPending = true;
 	phaseThreatElapsed = 0.0f;
-	phaseColorElapsed = 0.0f;
 	remainingJumps = 0;
 	damageAnimationPending = false;
 	controller->SetBool("PhaseChangeRequested", false, true);
 	controller->SetBool("ActionFinished", false, true);
 	controller->StopMovement();
 	StopAnimatedMovement();
-	ApplyEnragedAIParameters();
+	ApplyAngryAIParameters();
 
 	if (anim->GetLayerCount() > 0 && anim->GetCurrentStateName() == "Threat")
 		anim->GetLayer(0).currentTime = 0.0f;
 	PlayThreatPresentation();
 }
 
-void Aracore::ApplyEnragedAIParameters()
+void Aracore::ApplyAngryAIParameters()
 {
-	const float configuredIdleScale = controller->GetFloat("EnragedIdleScale", 0.4f);
+	const float configuredIdleScale = controller->GetFloat("AngryIdleScale", 0.4f);
 	const float idleScale = std::clamp(configuredIdleScale, 0.1f, 1.0f);
 	const char* waitParameters[] = {
 		"FreedomWaitDuration",
@@ -529,24 +544,24 @@ void Aracore::ApplyEnragedAIParameters()
 	for (const char* name : waitParameters)
 	{
 		const float normalDuration = controller->GetFloat(name);
-		const float enragedDuration = normalDuration * idleScale;
-		controller->SetFloat(name, enragedDuration);
+		const float angryDuration = normalDuration * idleScale;
+		controller->SetFloat(name, angryDuration);
 	}
 
-	const float jumpChance = controller->GetFloat("EnragedJumpChance", 0.7f);
+	const float jumpChance = controller->GetFloat("AngryJumpChance", 0.7f);
 	controller->SetFloat("JumpChance", jumpChance);
 	controller->SetTrackingTurnSpeed(4.0f);
 }
 
 int Aracore::GetJumpSequenceCount() const
 {
-	if (!enraged) return 1;
+	if (!angry) return 1;
 
 	const float lowHealthThreshold = GetMaxLife() * 0.25f;
 	const bool hasLowHealth = GetLife() <= lowHealthThreshold;
 	const char* parameter = hasLowHealth
-		? "EnragedLowHpJumpCount"
-		: "EnragedJumpCount";
+		? "AngryLowHpJumpCount"
+		: "AngryJumpCount";
 
 	const float configuredCount = controller->GetFloat(parameter, 2.0f);
 	const int jumpCount = static_cast<int>(configuredCount);
@@ -597,15 +612,12 @@ void Aracore::UpdateHealthPresentation()
 	if (phaseChangeQueued && canChangePhase)
 		controller->SetBool("PhaseChangeRequested", true, true);
 
-	// Threatが始まった時点から、色変化と演出時間を進める。
-	if (enraged && !phasePresentationPending)
-	{
-		phaseColorElapsed += deltaTime;
-		if (phaseThreatActive) phaseThreatElapsed += deltaTime;
-	}
+	// Threatが始まった時点から演出時間を進める。
+	if (angry && !phasePresentationPending && phaseThreatActive)
+		phaseThreatElapsed += deltaTime;
 
 	UpdateHealthDissolve(deltaTime);
-	UpdatePhaseColor();
+	UpdateAngryColor();
 }
 
 void Aracore::UpdateHealthDissolve(float deltaTime)
@@ -636,25 +648,21 @@ void Aracore::UpdateHealthDissolve(float deltaTime)
 	params.dissolveAmount = std::clamp(healthDissolveAmount, 0.0f, 1.0f);
 }
 
-void Aracore::UpdatePhaseColor()
+void Aracore::UpdateAngryColor()
 {
-	float progress = 0.0f;
-	if (enraged && !phasePresentationPending)
+	if (!angry) return;
+
+	const Color angryBaseColor(0.7f, 0.7f, 0.7f, 1.0f);
+	const Color angryEmisColor(1.0f, 0.0f, 0.0f, 0.056f);
+	const float deltaTime = std::max(Game::Time::deltaTime, 0.0f);
+	const float blend = 1.0f - expf(-3.0f * deltaTime);
+
+	// 現在の色から怒り色へ、フレーム時間に依存せず滑らかに近づける。
+	for (auto& material : model->GetMaterials())
 	{
-		const float configuredDuration = controller->GetFloat("PhaseColorChangeDuration", 3.0f);
-		const float duration = std::max(configuredDuration, 0.01f);
-		const float elapsedRatio = phaseColorElapsed / duration;
-		progress = std::clamp(elapsedRatio, 0.0f, 1.0f);
+		material.baseColor = Color::Lerp(material.baseColor, angryBaseColor, blend);
+		material.emissiveColor = Color::Lerp(material.emissiveColor, angryEmisColor, blend);
 	}
-
-	// 始めと終わりが急にならないように補間し、元の模様を残したまま赤くする。
-	const float progressSquared = progress * progress;
-	const float smoothProgress = progressSquared * (3.0f - 2.0f * progress);
-	const Color normalTint(1.0f, 1.0f, 1.0f, 1.0f);
-	const Color enragedTint(1.0f, 0.28f, 0.25f, 1.0f);
-
-	auto& params = vmdl->GetRenderer()->GetRenderParams();
-	params.baseColorTint = Color::Lerp(normalTint, enragedTint, smoothProgress);
 }
 
 void Aracore::PlayThreatPresentation()
@@ -693,7 +701,6 @@ void Aracore::UpdateReactionAnimation()
 		{
 			phasePresentationPending = false;
 			phaseThreatElapsed = 0.0f;
-			phaseColorElapsed = 0.0f;
 			SpawnPhaseFragments();
 		}
 		return;
@@ -981,12 +988,12 @@ void Aracore::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, co
 
 void Aracore::OnDamaged(const DamageData& damageData)
 {
-	if (!enraged && !IsDead() && GetLife() <= GetMaxLife() * 0.5f)
+	if (!angry && !IsDead() && GetLife() <= GetMaxLife() * 0.5f)
 		phaseChangeQueued = true;
 	Actor* attacker = damageData.hitColliderSelf
 		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
 		: nullptr;
-	float timeStopTime = 0.15f;
+	float timeStopTime = 0.1f;
 	if (attacker && attacker->CompareTag("Player"))
 	{
 		const bool newlyDetected =
@@ -998,10 +1005,11 @@ void Aracore::OnDamaged(const DamageData& damageData)
 		{
 			PlayThreatPresentation();
 		}
+		// sp攻撃ならダメージアニメーション待機しつつhitstopを長くする
 		if (damageData.specialAttack && !phaseThreatActive)
 		{
 			damageAnimationPending = true;
-			timeStopTime *= 2.0f;
+			timeStopTime *= 1.5f;
 		}
 	}
 	TimeScaleController::Request(timeStopTime);

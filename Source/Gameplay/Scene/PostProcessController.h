@@ -34,6 +34,10 @@ public:
 		Easing::Type attackEasing = Easing::Type::InSine,
 		Easing::Type releaseEasing = Easing::Type::OutCubic);
 
+	void SetPoisonVignette(bool enabled,
+		Easing::Type easing = Easing::Type::InOutCubic,
+		float duration = 0.5f);
+
 	// ジャスト回避・SP攻撃の短い画面演出。タイマーは非スケール時間で進む。
 	void RequestJustDodge(float duration = 0.28f, float power = 1.0f);
 	void RequestSkillStart(float duration = 0.38f, float power = 1.0f);
@@ -73,6 +77,13 @@ private:
 	float damagedVigAttackRate = 0.25f;
 	Easing::Type damagedVigAttackEasing = Easing::Type::InSine;
 	Easing::Type damagedVigReleaseEasing = Easing::Type::OutCubic;
+
+	bool poisonVignetteEnabled = false;
+	float poisonVignetteIntensity = 0.0f;
+	float poisonVignetteStartIntensity = 0.0f;
+	float poisonVignetteProgress = 1.0f;
+	float poisonVignetteDuration = 0.5f;
+	Easing::Type poisonVignetteEasing = Easing::Type::InOutCubic;
 
 	float justDodgeTimer = 0.0f;
 	float justDodgeDuration = 0.0f;

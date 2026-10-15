@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -56,6 +57,7 @@ class StageLoader : public Component
 	void SaveJson();
 	std::string SaveJsonText();
 	const std::string& GetError() const { return error; }
+	float GetWorldWaterHeight() const { return worldWater.transform.position.y; }
 	using SpawnerFactory = std::function<std::shared_ptr<Actor>(
 		const Transform&, const std::string&, const std::string&)>;
 	void RegisterSpawnerFactory(const std::string& entityName, SpawnerFactory factory);

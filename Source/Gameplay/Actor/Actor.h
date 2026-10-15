@@ -20,6 +20,11 @@ public:
 	Transform* GetTransform() override { return &transform; }
 	const Transform* GetTransform() const override { return &transform; }
 
+	float GetDistanceTo(Actor* other) const
+	{
+		return Vector3::Distance(transform.position, other->transform.position);
+	}
+
 	void Destroy(float delay = 0.0f) override;
 	void SetSpawnTag(const std::string& value) { spawnTag = value; }
 	const std::string& GetSpawnTag() const { return spawnTag; }

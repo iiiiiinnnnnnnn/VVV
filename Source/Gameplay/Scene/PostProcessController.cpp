@@ -20,6 +20,17 @@ void PostProcessController::RequestDamagedVignette(float duration, float power, 
 	damagedVigReleaseEasing = releaseEasing;
 }
 
+void PostProcessController::SetPoisonVignette(bool enabled, Easing::Type easing, float duration)
+{
+	if (poisonVignetteEnabled == enabled) return;
+	poisonVignetteEnabled = enabled;
+	poisonVignetteStartIntensity = poisonVignetteIntensity;
+	poisonVignetteEasing = easing;
+	poisonVignetteDuration = duration;
+	poisonVignetteProgress = duration > 0.0f ? 0.0f : 1.0f;
+	if (duration <= 0.0f) poisonVignetteIntensity = enabled ? 0.8f : 0.0f;
+}
+
 void PostProcessController::RequestJustDodge(float duration, float power)
 {
 	justDodgeTimer = std::max(justDodgeTimer, duration);
@@ -44,6 +55,16 @@ void PostProcessController::RequestSkillHit(float duration, float power)
 void PostProcessController::Update()
 {
 	const float dt = Game::Time::unscaledDeltaTime;
+	if (poisonVignetteProgress < 1.0f)
+	{
+		poisonVignetteProgress = std::clamp(
+			poisonVignetteProgress + dt / poisonVignetteDuration, 0.0f, 1.0f);
+		const float target = poisonVignetteEnabled ? 0.8f : 0.0f;
+		const float blend = Easing::Evaluate(poisonVignetteProgress, poisonVignetteEasing);
+		poisonVignetteIntensity = poisonVignetteStartIntensity +
+			(target - poisonVignetteStartIntensity) * blend;
+	}
+
 	const auto updatePulse = [dt](float& timer, float& duration, float& power)
 	{
 		if (timer <= 0.0f) return;
@@ -170,6 +191,9 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	{
 		postProcess.AddRuntimeVignette(damagedVig, {0.7f, 0, 0, 1});
 	}
+
+	if (poisonVignetteIntensity > 0.001f)
+		postProcess.AddRuntimeVignette(poisonVignetteIntensity, ColorFromRGBA(0x70EEB6FF));
 
 	const float justDodge = GetIntensity(justDodgeTimer, justDodgeDuration,
 		justDodgePower, 0.12f, Easing::Type::OutQuad, Easing::Type::OutCubic);
