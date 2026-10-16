@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "Gameplay/Actor/Entity.h"
-#include "Gameplay/AI/EnemyAIFlow.h"
+#include "Gameplay/AI/EnemyAI.h"
 
 class Aracore;
 class VMDL;
@@ -56,10 +56,8 @@ private:
 	void UpdateHealthPresentation();
 	void UpdateHealthDissolve(float deltaTime);
 	void UpdateAngryColor();
-	void ApplyAngryAIParameters();
 	void ConfigureAI();
-	void RegisterAICallbacks();
-	int GetJumpSequenceCount() const;
+	void RegisterAIActions();
 	// AIの対象取得を監視し、Threat状態の開始通知を取りこぼしても演出する。
 	void UpdateThreatPresentation();
 	void UpdateReactionAnimation();
@@ -83,7 +81,7 @@ private:
 	CharacterController* characterController = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
 	MultiLegFootIK* multiLegFootIK = nullptr;
-	EnemyAIFlow* controller = nullptr;
+	EnemyAI* controller = nullptr;
 	std::vector<Vector3> colPositions;
 	Vector3 jumpStartPosition = Vector3::Zero;
 	Vector3 jumpLandingPosition = Vector3::Zero;
@@ -116,12 +114,10 @@ private:
 	float chaseBgmFadeOutSeconds = 1.5f;
 
 	bool angry = false;
-	bool phaseChangeQueued = false;
 	bool phasePresentationPending = false;
 	bool phaseThreatActive = false;
 	float phaseThreatElapsed = 0.0f;
 	float healthDissolveAmount = 0.0f;
-	int remainingJumps = 0;
 	std::shared_ptr<VMDLModel> phaseFragmentModel;
 	Vector3 phaseFragmentSize = Vector3::One;
 

@@ -15,6 +15,7 @@ enum class EffectId
 	PLAYER_QUIT,
 	SMOKE,
 	SWORD_TRAIL,
+	WATER,
 	WIND,
 };
 
@@ -36,6 +37,7 @@ inline constexpr std::array EffectDefinitions =
 	EffectDefinition{EffectId::PLAYER_QUIT, "PLAYER_QUIT", "Resources/Effect/player_quit.efkpkg"},
 	EffectDefinition{EffectId::SMOKE, "SMOKE", "Resources/Effect/smoke.efkpkg"},
 	EffectDefinition{EffectId::SWORD_TRAIL, "SWORD_TRAIL", "Resources/Effect/sword_trail.efkpkg"},
+	EffectDefinition{EffectId::WATER, "WATER", "Resources/Effect/water.efkpkg"},
 	EffectDefinition{EffectId::WIND, "WIND", "Resources/Effect/wind.efkpkg"},
 };
 

@@ -11,7 +11,7 @@
                         {
                             "mode": 4,
                             "paramName": "IsDead",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
@@ -32,13 +32,16 @@
                         {
                             "mode": 6,
                             "paramName": "Hit_L",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         8,
                         10,
-                        9
+                        9,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -55,13 +58,16 @@
                         {
                             "mode": 6,
                             "paramName": "Hit_R",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         9,
                         10,
-                        8
+                        8,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -78,12 +84,12 @@
                         {
                             "mode": 6,
                             "paramName": "Attack",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 4,
                             "paramName": "IsJustDodge",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 2,
@@ -97,7 +103,10 @@
                         10,
                         15,
                         16,
-                        17
+                        17,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -105,7 +114,7 @@
                     "priority": 9,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
-                    "toStateIndex": 17,
+                    "toStateIndex": 22,
                     "transitionDuration": 0.0
                 },
                 {
@@ -114,12 +123,12 @@
                         {
                             "mode": 6,
                             "paramName": "Attack",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 4,
                             "paramName": "IsJustDodge",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 2,
@@ -133,7 +142,10 @@
                         10,
                         15,
                         16,
-                        17
+                        17,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -141,7 +153,7 @@
                     "priority": 8,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
-                    "toStateIndex": 16,
+                    "toStateIndex": 21,
                     "transitionDuration": 0.0
                 },
                 {
@@ -150,12 +162,12 @@
                         {
                             "mode": 6,
                             "paramName": "Attack",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 4,
                             "paramName": "IsJustDodge",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 2,
@@ -169,7 +181,10 @@
                         10,
                         15,
                         16,
-                        17
+                        17,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -177,7 +192,7 @@
                     "priority": 7,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
-                    "toStateIndex": 15,
+                    "toStateIndex": 20,
                     "transitionDuration": 0.0
                 },
                 {
@@ -186,7 +201,7 @@
                         {
                             "mode": 6,
                             "paramName": "Attack",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
@@ -196,7 +211,10 @@
                         7,
                         10,
                         9,
-                        8
+                        8,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -213,13 +231,16 @@
                         {
                             "mode": 6,
                             "paramName": "QL",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         9,
                         8,
-                        10
+                        10,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -236,13 +257,16 @@
                         {
                             "mode": 6,
                             "paramName": "QR",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         10,
                         9,
-                        8
+                        8,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -259,13 +283,16 @@
                         {
                             "mode": 6,
                             "paramName": "QB",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         10,
                         9,
-                        8
+                        8,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -282,13 +309,16 @@
                         {
                             "mode": 6,
                             "paramName": "QF",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
                         10,
                         9,
-                        8
+                        8,
+                        20,
+                        21,
+                        22
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -305,7 +335,7 @@
                         {
                             "mode": 4,
                             "paramName": "IsCrouching",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 0,
@@ -313,7 +343,11 @@
                             "threshold": 0.10000000149011612
                         }
                     ],
-                    "excludedFromStateIndices": [],
+                    "excludedFromStateIndices": [
+                        20,
+                        21,
+                        22
+                    ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
@@ -329,7 +363,7 @@
                         {
                             "mode": 4,
                             "paramName": "IsCrouching",
-                            "threshold": 0.0
+                            "threshold": 0
                         },
                         {
                             "mode": 1,
@@ -337,7 +371,11 @@
                             "threshold": 0.10999999940395355
                         }
                     ],
-                    "excludedFromStateIndices": [],
+                    "excludedFromStateIndices": [
+                        20,
+                        21,
+                        22
+                    ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
@@ -1226,6 +1264,12 @@
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnAttack",
                             "useSeconds": false
+                        },
+                        {
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "JustDodgeSkillStart",
+                            "useSeconds": false
                         }
                     ],
                     "editorPosX": -105.0,
@@ -1259,6 +1303,12 @@
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnAttack",
                             "useSeconds": false
+                        },
+                        {
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "JustDodgeSkillStart",
+                            "useSeconds": false
                         }
                     ],
                     "editorPosX": 90.0,
@@ -1291,6 +1341,12 @@
                             "enterTimePer": -1.0,
                             "exitTimePer": 3.4028234663852886e+38,
                             "label": "LockOnAttack",
+                            "useSeconds": false
+                        },
+                        {
+                            "enterTimePer": -0.0010000000474974513,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "JustDodgeSkillStart",
                             "useSeconds": false
                         }
                     ],
@@ -1451,6 +1507,105 @@
                             "transitionDuration": 0.11999999731779099
                         }
                     ]
+                },
+                {
+                    "animationIndex": 13,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": -1.0,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "LockOnIdle",
+                            "useSeconds": false
+                        }
+                    ],
+                    "editorPosX": -105.0,
+                    "editorPosY": -520.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "SpSkill1QuickshiftB",
+                    "speed": 2.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.14000000059604645,
+                            "hasExitTime": true,
+                            "isAny": false,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 15,
+                            "transitionDuration": 0.02500000037252903
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 13,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": -1.0,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "LockOnIdle",
+                            "useSeconds": false
+                        }
+                    ],
+                    "editorPosX": 90.0,
+                    "editorPosY": -520.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "SpSkill2QuickshiftB",
+                    "speed": 2.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.14000000059604645,
+                            "hasExitTime": true,
+                            "isAny": false,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 16,
+                            "transitionDuration": 0.02500000037252903
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 13,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": -1.0,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "LockOnIdle",
+                            "useSeconds": false
+                        }
+                    ],
+                    "editorPosX": 285.0,
+                    "editorPosY": -520.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "SpSkill3QuickshiftB",
+                    "speed": 2.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.14000000059604645,
+                            "hasExitTime": true,
+                            "isAny": false,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 17,
+                            "transitionDuration": 0.02500000037252903
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -1473,14 +1628,14 @@
             "value": false
         },
         {
-            "name": "IsDead",
-            "type": "bool",
-            "value": false
-        },
-        {
             "name": "SkillVariant",
             "type": "int",
             "value": 1
+        },
+        {
+            "name": "IsDead",
+            "type": "bool",
+            "value": false
         },
         {
             "name": "IsJustDodge",
@@ -1498,8 +1653,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QB",
         "QR",
+        "QB",
         "QL"
     ]
 }

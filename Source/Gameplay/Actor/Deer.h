@@ -6,7 +6,7 @@
 #include "Animation/Animator.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Component/CharacterMotorComponent.h"
-#include "Gameplay/AI/EnemyAIFlow.h"
+#include "Gameplay/AI/EnemyAI.h"
 #include "Animation/LookAt.h"
 
 class Deer : public Entity
@@ -26,7 +26,7 @@ public:
 	VMDL* vmdl;
 	std::shared_ptr<VMDLModel> model;
 	Animator* anim;
-	EnemyAIFlow* controller;
+	EnemyAI* controller;
 	NavMeshAgent* navMeshAgent;
 	CharacterController* cc;
 	Vector3 chargeDirection = Vector3::Zero;

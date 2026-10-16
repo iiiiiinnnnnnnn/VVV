@@ -95,6 +95,7 @@ TestPlayScene::TestPlayScene()
 					 u8"3  : Aracoreを出現させる\r\n"
 					 u8"4  : プレイヤーボスの間にTP\r\n"
 					 u8"5  : プレイヤーを回復\r\n"
+					 u8"6  : すべての敵をキル\r\n"
 					 u8"\r\n"
 					 u8"[WASD] 移動\r\n"
 					 u8"[スペース] 回避(+パリィ)\r\n"
@@ -155,7 +156,7 @@ void TestPlayScene::OnUpdate()
 {
 #ifndef _RELEASE // ちょうデバッグ
 	if (developText) developText->GetRectTransform()->position = 
-		(ImGuiBind)Vector2(1380.0f, 730.0f);
+		(ImGuiBind)Vector2(1380.0f, 720.0f);
 	if (ImGui::IsKeyPressed(ImGuiKey_F7))
 	{
 		showDevelopText = !showDevelopText;
@@ -189,6 +190,14 @@ void TestPlayScene::OnUpdate()
 	if (ImGui::IsKeyPressed(ImGuiKey_5))
 	{
 		player->Heal(player->GetMaxLife());
+	}
+	if (ImGui::IsKeyPressed(ImGuiKey_6))
+	{
+		auto& acts = currentStage->GetActorManager();
+		for (auto& enem : acts.GetActorsByTag("Enemy"))
+		{
+			reinterpret_cast<Entity*>(enem)->TakeDamage(DamageData{.damage = 1000000.0f});
+		}
 	}
 #endif
 

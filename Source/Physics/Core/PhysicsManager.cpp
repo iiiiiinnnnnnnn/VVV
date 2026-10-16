@@ -108,9 +108,9 @@ static void DispatchCollisionEnter(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
     if (IsValidActor(actorA)) actorA->OnCollisionEnter(a, b, point, normal);
     if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
@@ -123,9 +123,9 @@ static void DispatchCollisionStay(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
     if (IsValidActor(actorA)) actorA->OnCollisionStay(a, b, point, normal);
     if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
@@ -138,9 +138,9 @@ static void DispatchCollisionExit(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
     Actor* actorA = dynamic_cast<Actor*>(a->GetOwner());
     Actor* actorB = dynamic_cast<Actor*>(b->GetOwner());
-    if (!IsValidCollider(a, false) || !IsValidCollider(b, false)) return;
 
     if (IsValidActor(actorA)) actorA->OnCollisionExit(a, b, point, normal);
     if (IsValidCollider(a, false) && IsValidCollider(b, false) && IsValidActor(actorB))
@@ -153,11 +153,12 @@ static void DispatchTriggerEnter(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
     Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
-    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
 
     triggerActor->OnTriggerEnter(trigger, other, point, normal);
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     otherActor->OnTriggerEnter(other, trigger, point, -normal);
 }
 
@@ -167,11 +168,12 @@ static void DispatchTriggerStay(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
     Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
-    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
 
     triggerActor->OnTriggerStay(trigger, other, point, normal);
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     otherActor->OnTriggerStay(other, trigger, point, -normal);
 }
 
@@ -181,11 +183,12 @@ static void DispatchTriggerExit(
     const Vector3& point,
     const Vector3& normal)
 {
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     Actor* triggerActor = dynamic_cast<Actor*>(trigger->GetOwner());
     Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
-    if (!IsValidActor(triggerActor) || !IsValidActor(otherActor)) return;
 
     triggerActor->OnTriggerExit(trigger, other, point, normal);
+    if (!IsValidCollider(trigger) || !IsValidCollider(other)) return;
     otherActor->OnTriggerExit(other, trigger, point, -normal);
 }
 
@@ -339,22 +342,26 @@ void CollisionEventCallback::DispatchStayEvents()
 		return !IsValidCollider(pair.second.a) || !IsValidCollider(pair.second.b);
 	});
 
-	for (auto& [_, state] : currentCollisionPairs)
+	const auto currentCollisionPairsSnapshot = currentCollisionPairs;
+	for (auto& [_, state] : currentCollisionPairsSnapshot)
 	{
 		DispatchCollisionStay(state.a, state.b, state.point, state.normal);
 	}
 
-	for (auto& [_, state] : currentTriggerPairs)
+	const auto currentTriggerPairsSnapshot = currentTriggerPairs;
+	for (auto& [_, state] : currentTriggerPairsSnapshot)
 	{
 		DispatchTriggerStay(state.a, state.b, state.point, state.normal);
 	}
 
-	for (auto& [pair, state] : reportedSweptTriggerPairs)
+	const auto reportedSweptTriggerPairsSnapshot = reportedSweptTriggerPairs;
+	for (auto& [pair, state] : reportedSweptTriggerPairsSnapshot)
 	{
 		if (!currentTriggerPairs.contains(pair) && activeSweptTriggerPairs.contains(pair))
 			DispatchTriggerStay(state.a, state.b, state.point, state.normal);
 	}
-	for (auto& [pair, state] : activeSweptTriggerPairs)
+	const auto activeSweptTriggerPairsSnapshot = activeSweptTriggerPairs;
+	for (auto& [pair, state] : activeSweptTriggerPairsSnapshot)
 	{
 		if (!currentTriggerPairs.contains(pair) && !reportedSweptTriggerPairs.contains(pair))
 			DispatchTriggerExit(state.a, state.b, state.point, state.normal);
@@ -813,33 +820,29 @@ void CCHitReport::DispatchEvents()
         return;
     }
 
-    for (auto& [otherCollider, state] : currentFrameColliders)
+    const auto currentSnapshot = currentFrameColliders;
+    const auto previousSnapshot = prevFrameColliders;
+    for (auto& [otherCollider, state] : currentSnapshot)
     {
-        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (prevFrameColliders.find(otherCollider) == prevFrameColliders.end())
         {
-            owner->OnCollisionEnter(ownerCollider, otherCollider, state.point, state.normal);
-            otherActor->OnCollisionEnter(otherCollider, ownerCollider, state.point, -state.normal);
+            DispatchCollisionEnter(ownerCollider, otherCollider, state.point, state.normal);
         }
     }
 
-    for (auto& [otherCollider, state] : currentFrameColliders)
+    for (auto& [otherCollider, state] : currentSnapshot)
     {
-        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (prevFrameColliders.find(otherCollider) != prevFrameColliders.end())
         {
-            owner->OnCollisionStay(ownerCollider, otherCollider, state.point, state.normal);
-            otherActor->OnCollisionStay(otherCollider, ownerCollider, state.point, -state.normal);
+            DispatchCollisionStay(ownerCollider, otherCollider, state.point, state.normal);
         }
     }
 
-    for (auto& [otherCollider, state] : prevFrameColliders)
+    for (auto& [otherCollider, state] : previousSnapshot)
     {
-        Actor* otherActor = dynamic_cast<Actor*>(otherCollider->GetOwner());
         if (currentFrameColliders.find(otherCollider) == currentFrameColliders.end())
         {
-            owner->OnCollisionExit(ownerCollider, otherCollider, state.point, state.normal);
-            otherActor->OnCollisionExit(otherCollider, ownerCollider, state.point, -state.normal);
+            DispatchCollisionExit(ownerCollider, otherCollider, state.point, state.normal);
         }
     }
 

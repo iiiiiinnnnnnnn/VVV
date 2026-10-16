@@ -461,7 +461,7 @@ void StageLoader::DrawGUI()
 Actor* StageLoader::CreatePropActor(PropData& propData)
 {
 	const std::string name = std::filesystem::path(propData.modelPath).stem().string();
-	auto actor = std::make_shared<Actor>(name, "Prop", true, propData.transform);
+	auto actor = std::make_shared<Actor>(name + "(Spawner)", "Prop", true, propData.transform);
 	if (propData.editorPreview)
 	{
 		auto renderer = actor->AddComponent<VMDLModelComponent>(

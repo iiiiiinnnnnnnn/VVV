@@ -146,7 +146,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 
         ImGui::SameLine();
 
-        if (ImGui::Button((const char*)(ICON_FA_RECYCLE u8" 再読み込み")))
+        if (ImGui::Button((const char*)(ICON_FA_RECYCLE u8" 読み込み")))
         {
             Load();
         }

@@ -18,7 +18,10 @@
     <ResourceCompile Include="EmbeddedResources.rc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ResourceCompile>
+    <ClInclude Include="Source\Gameplay\AI\LuaScript.h" />
+    <ClInclude Include="Source\Gameplay\Player\PlayerInput.h" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h" />
+    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp" />
     <ClCompile Include="Source\Resource\CacheBuilder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
@@ -32,8 +35,7 @@
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
-    <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp" />
-    <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp" />
+    <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneBoxCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCapsuleCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCollider.cpp" />
@@ -96,7 +98,7 @@
     <ClCompile Include="Source\Core\Object\Object.cpp" />
     <ClCompile Include="Source\Core\Object\Component.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayer.cpp" />
-    <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp" />
+    <ClCompile Include="Source\Gameplay\Player\LocalPlayerInput.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp" />
     <ClCompile Include="Source\Resource\VMDLModel.cpp" />
     <ClCompile Include="Source\Resource\MeshCache.cpp" />
@@ -220,8 +222,7 @@
     <ClInclude Include="Source\Rendering\Effect\Effect.h" />
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h" />
     <ClInclude Include="Source\Rendering\Effect\Effects.generated.h" />
-    <ClInclude Include="Source\Gameplay\AI\AIFlow.h" />
-    <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h" />
+    <ClInclude Include="Source\Gameplay\AI\EnemyAI.h" />
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />
     <ClInclude Include="Source\Application\Input\GamePad.h" />
@@ -235,7 +236,7 @@
     <ClInclude Include="Source\Application\Input\Input.h" />
     <ClInclude Include="Source\Core\Object\Object.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
-    <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h" />
+    <ClInclude Include="Source\Gameplay\Player\LocalPlayerInput.h" />
     <ClInclude Include="Source\Resource\VMDLModel.h" />
     <ClInclude Include="Source\Resource\MeshCache.h" />
     <ClInclude Include="Source\Resource\VSTG.h" />
@@ -256,7 +257,6 @@
     <ClInclude Include="Source\Physics\Collider\TerrainMeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Application\Input\Mouse.h" />
-    <ClInclude Include="Source\Gameplay\Player\PlayerController.h" />
     <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
     <ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
@@ -563,7 +563,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -575,8 +575,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -602,7 +602,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_RELEASE;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -615,8 +615,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\$(PlatformTarget)\$(Configuration);.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -645,10 +645,10 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>VVV_DEVELOPMENT;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <AdditionalOptions>/FS /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -658,8 +658,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\$(PlatformTarget)\Release;.\External\imgui\lib\$(PlatformTarget)\Release;.\External\PhysX\lib\$(PlatformTarget)\Release;.\External\RecastNavigation\lib\$(PlatformTarget)\Release;.\External\Effekseer\lib\$(PlatformTarget)\Release;.\External\DirectXTK\lib\$(PlatformTarget)\Release;.\External\DirectXTex\lib\$(PlatformTarget)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\Release;.\External\PhysX\lib\$(PlatformTarget)\Release;.\External\RecastNavigation\lib\$(PlatformTarget)\Release;.\External\Effekseer\lib\$(PlatformTarget)\Release;.\External\DirectXTK\lib\$(PlatformTarget)\Release;.\External\DirectXTex\lib\$(PlatformTarget)\Release;.\External\lua\lib\$(PlatformTarget)\Release;%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>

@@ -23,13 +23,13 @@
     <ClCompile Include="Source\Audio\SoundSystem.cpp">
       <Filter>Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\AI\AIFlow.cpp">
+    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\AI\EnemyAIFlow.cpp">
+    <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Player\LocalPlayerController.cpp">
+    <ClCompile Include="Source\Gameplay\Player\LocalPlayerInput.cpp">
       <Filter>Gameplay\Player</Filter>
     </ClCompile>
     <Filter Include="Animation">
@@ -166,7 +166,7 @@
     <ClInclude Include="Source\Audio\VSoundFormat.h">
       <Filter>Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Player\LocalPlayerController.h">
+    <ClInclude Include="Source\Gameplay\Player\LocalPlayerInput.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
@@ -544,6 +544,9 @@
     <ClInclude Include="Source\Resource\VSTG.h">
       <Filter>VSTG</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Gameplay\Player\PlayerInput.h">
+      <Filter>Gameplay\Player</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
@@ -578,9 +581,6 @@
     </ClInclude>
     <ClInclude Include="Source\UI\Widget.h">
       <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Player\PlayerController.h">
-      <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h">
       <Filter>Gameplay\Player</Filter>
@@ -618,10 +618,10 @@
     <ClInclude Include="Source\Resource\Texture.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\AI\AIFlow.h">
+    <ClInclude Include="Source\Gameplay\AI\LuaScript.h">
       <Filter>Gameplay\AI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\AI\EnemyAIFlow.h">
+    <ClInclude Include="Source\Gameplay\AI\EnemyAI.h">
       <Filter>Gameplay\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h">

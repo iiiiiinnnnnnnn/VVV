@@ -59,6 +59,7 @@ namespace Game
 		void AddRuntimeChromaticAberration(float intensity);
 		void AddRuntimeVignette(float intensity, const Color& color);
 		void AddRuntimeColorTint(float intensity, const Color& color);
+		const Color& GetUnderwaterColor() const { return underwaterColor; }
 
 	private:
 		void Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,

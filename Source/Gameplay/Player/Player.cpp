@@ -1,4 +1,5 @@
 #include "Gameplay/Player/Player.h"
+#include "Gameplay/Player/PlayerInput.h"
 #include "Audio/SoundTracks.generated.h"
 #include "Rendering/Effect/Effects.generated.h"
 #include "Application/Input/Input.h"
@@ -23,6 +24,8 @@
 #include "Rendering/Effect/Effect.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Audio/SoundSystem.h"
+#include <sol/sol.hpp>
+#include <cassert>
 
 void RemapQuickshiftWindTracks(VMDLModel& model)
 {
@@ -72,6 +75,15 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 
 	attackHitEffect = EffectManager::Instance().LoadEffect(EffectId::CRITICAL);
 	attackHitEffect->SetBillboard(true);
+
+	// luaです
+	{
+		sol::state lua;
+
+		lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table);
+
+		int result = lua.script("return 10 + 20");
+	}
 }
 
 Player::~Player() = default;
@@ -137,6 +149,9 @@ void Player::RegisterAnimationCallbacks()
 		justDodgeWindowActive = false;
 		dodgeInvincible = justDodgeSkillActive;
 	});
+	anim->AddCallbackFunc("JustDodgeSkillStart", [this](const Animator::State&) {
+		ActivateJustDodgeSkill();
+	}, {});
 	anim->BindCallbacks();
 }
 
@@ -181,9 +196,9 @@ void Player::OnLateUpdate()
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-	ImGui::Text("Dodge invincible: %s", dodgeInvincible ? "Yes" : "No");
-	ImGui::Text("Just dodge: %s", justDodgeTriggered ? "Yes" : "No");
-	ImGui::Text("Dodge cooldown: %.2f", dodgeCooldownTimer);
+	ImGui::Text((const char*)u8"回避無敵時間: %s", dodgeInvincible ? "Yes" : "No");
+	ImGui::Text((const char*)u8"ジャスト回避: %s", justDodgeTriggered ? "Yes" : "No");
+	ImGui::Text((const char*)u8"回避待機時間: %.2f", dodgeCooldownTimer);
 }
 
 void Player::UpdateAttackContacts()
@@ -270,7 +285,7 @@ void Player::UpdateWaterDamage()
 		if (damageLowerHeightTimer > damageLowerHeightCoolDown)
 		{
 			DamageData dmgData;
-			dmgData.damage = 10.0f;
+			dmgData.damage = damageWaterAmount;
 			dmgData.hitPosition.reset();
 			dmgData.hitColliderOther = nullptr;
 
@@ -289,38 +304,51 @@ void Player::UpdateWaterDamage()
 void Player::UpdateMovement()
 {
 	actionInputThisFrame = false;
-	if (!controller)
+	auto* playerInput = GetPlayerInput();
+	if (!playerInput)
 	{
 		sprinting = false;
 		return;
 	}
 
-	const InputContext input = controller->Poll();
+	const InputContext input = playerInput->IsActive() ? playerInput->Poll() : InputContext{};
 	const ActionState state = GetActionState();
 	const float inputLengthSquared = input.moveX * input.moveX + input.moveZ * input.moveZ;
 	const float inputLength = sqrtf(inputLengthSquared);
-	const bool quickStepHeld = input.quickForwardPressed || input.quickBackwardPressed ||
-		input.quickLeftPressed || input.quickRightPressed;
-	const bool quickStepStarted = input.quickForwardStarted || input.quickBackwardStarted ||
-		input.quickLeftStarted || input.quickRightStarted || input.quickDefaultForwardStarted;
+	const bool quickStepHeld = input.Held(PlayerAction::QuickForward) || input.Held(PlayerAction::QuickBackward) ||
+		input.Held(PlayerAction::QuickLeft) || input.Held(PlayerAction::QuickRight);
+	const bool quickStepStarted = input.Down(PlayerAction::QuickForward) || input.Down(PlayerAction::QuickBackward) ||
+		input.Down(PlayerAction::QuickLeft) || input.Down(PlayerAction::QuickRight) || input.Down(PlayerAction::QuickDefaultForward);
 
-	if (input.alignCameraPressed && cameraController)
+	if (input.Down(PlayerAction::AlignCamera) && cameraController)
 		cameraController->RequestAlignToPlayerForward();
 
 	const bool actionBlocksCrouch = state.frozen || IsDead() || state.attacking ||
 		state.dodging || state.skill || state.hit;
-	const bool inputBlocksCrouch = input.attackPressed || quickStepStarted;
-	crouching = input.crouch && !actionBlocksCrouch && !inputBlocksCrouch;
+	const bool inputBlocksCrouch = input.Down(PlayerAction::Attack) || quickStepStarted;
+	crouching = input.Held(PlayerAction::Crouch) && !actionBlocksCrouch && !inputBlocksCrouch;
 
-	actionInputThisFrame = inputLength > 0.1f || input.crouch || input.sprint ||
-		input.attackPressed || quickStepHeld || quickStepStarted;
+	actionInputThisFrame = inputLength > 0.1f || input.Held(PlayerAction::Crouch) || input.Held(PlayerAction::Sprint) ||
+		input.Down(PlayerAction::Attack) || quickStepHeld || quickStepStarted;
 
 	UpdateDodgeState(state);
-	UpdateQuickStepDirection(input);
+	// 移動による旋回の前に、カメラ基準の回避方向を確定する。
+	Vector3 quickShiftDirection(0.0f, 0.0f, 0.0f);
+	if (input.Down(PlayerAction::QuickDefaultForward))
+		quickShiftDirection = transform.forward;
+	else if (quickStepStarted)
+	{
+		const float directionX = (input.Down(PlayerAction::QuickRight) ? 1.0f : 0.0f) -
+			(input.Down(PlayerAction::QuickLeft) ? 1.0f : 0.0f);
+		const float directionZ = (input.Down(PlayerAction::QuickForward) ? 1.0f : 0.0f) -
+			(input.Down(PlayerAction::QuickBackward) ? 1.0f : 0.0f);
+		if (fabsf(directionX) > eps || fabsf(directionZ) > eps)
+			quickShiftDirection = GetCameraRelativeDirection(directionX, directionZ);
+	}
 	UpdateMoveDirection(input, inputLength, state);
 	UpdateMovementAnimation(input, inputLength, state);
 	HandleAttackInput(input, state);
-	HandleDodgeInput(state, quickStepStarted, quickStepHeld);
+	if (quickStepStarted) QuickShift(quickShiftDirection);
 }
 
 Player::ActionState Player::GetActionState() const
@@ -346,6 +374,7 @@ void Player::UpdateDodgeState(const ActionState& state)
 		!state.dodging)
 	{
 		justDodgeSkillActive = false;
+		justDodgeSkillTarget.reset();
 		lockOnComponent->SetRotationPaused(false);
 	}
 	if (!state.dodging) justDodgeWindowActive = false;
@@ -376,29 +405,6 @@ Vector3 Player::GetCameraRelativeDirection(float inputX, float inputZ) const
 	return direction;
 }
 
-void Player::UpdateQuickStepDirection(const InputContext& input)
-{
-	if (input.quickDefaultForwardStarted)
-	{
-		bufferedQuickStepTrigger = "QF";
-		return;
-	}
-
-	const float inputX = (input.quickRightStarted ? 1.0f : 0.0f) -
-		(input.quickLeftStarted ? 1.0f : 0.0f);
-	const float inputZ = (input.quickForwardStarted ? 1.0f : 0.0f) -
-		(input.quickBackwardStarted ? 1.0f : 0.0f);
-	if (fabsf(inputX) <= eps && fabsf(inputZ) <= eps) return;
-
-	const Vector3 direction = GetCameraRelativeDirection(inputX, inputZ);
-	const float localRight = direction.Dot(transform.right);
-	const float localForward = direction.Dot(transform.forward);
-	if (fabsf(localForward) >= fabsf(localRight))
-		bufferedQuickStepTrigger = localForward >= 0.0f ? "QF" : "QB";
-	else
-		bufferedQuickStepTrigger = localRight >= 0.0f ? "QR" : "QL";
-}
-
 void Player::UpdateMoveDirection(const InputContext& input, float inputLength, const ActionState& state)
 {
 	if (inputLength <= 0.1f) return;
@@ -407,7 +413,7 @@ void Player::UpdateMoveDirection(const InputContext& input, float inputLength, c
 	if (!justDodgeSkillActive) lockOnComponent->ReleaseIfMovingAway(moveDirection);
 	if (state.frozen || state.dodging || justDodgeSkillActive) return;
 
-	const float turnSpeed = input.sprint ? 8.0f : 12.0f;
+	const float turnSpeed = input.Held(PlayerAction::Sprint) ? 8.0f : 12.0f;
 	const float targetYaw = atan2f(moveDirection.x, moveDirection.z);
 	const Quaternion targetRotation = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
 
@@ -423,11 +429,11 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 	// Speed / Sprint パラメータをAnimatorへ
 	sprinting =
 		!crouching &&
-		!state.dodging &&
-		input.sprint &&
+		!state.dodging && !justDodgeSkillActive &&
+		input.Held(PlayerAction::Sprint) &&
 		inputLength > 0.1f;
 	float speedParam = 0.0f;
-	if (!state.dodging && inputLength >= 0.1f)
+	if (!state.dodging && !justDodgeSkillActive && inputLength >= 0.1f)
 		speedParam = sprinting ? 1.5f : inputLength;
 
 	anim->SetFloat("Speed", speedParam);
@@ -441,7 +447,7 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 
 void Player::HandleAttackInput(const InputContext& input, const ActionState& state)
 {
-	if (!input.attackPressed) return;
+	if (!input.Down(PlayerAction::Attack)) return;
 
 	Actor* target = GetJustDodgeTarget();
 	const bool canUseSkill = justDodgeTriggered && target && state.dodging &&
@@ -471,23 +477,49 @@ Actor* Player::GetJustDodgeTarget() const
 
 void Player::StartJustDodgeSkill(Actor* target)
 {
-	const int skillAnimationIndex = model
-		? model->GetAnimationIndex("SS_Sp_Skill1")
-		: -1;
-	if (skillAnimationIndex < 0) return;
+	if (!target || !anim || !model || anim->GetLayerCount() == 0 || IsDead()) return;
+	const std::string retreatState = "SpSkill" + std::to_string(anim->GetInt("SkillVariant")) + "QuickshiftB";
+	if (!anim->GetLayer(0).GetState(retreatState)) return;
 
-	justDodgeTriggered = false;
-	justDodgeSkillActive = true;
-	if (lockOnComponent->GetTarget() != target)
+	// 対象へ向ける処理だけを行い、後方回避から必殺技への接続はAnimatorに任せる。
+	Vector3 direction = target->transform.position - transform.position;
+	direction.y = 0.0f;
+	if (direction.LengthSquared() > eps * eps)
 	{
-		lockOnComponent->LockOn(target);
+		const float targetYaw = atan2f(direction.x, direction.z);
+		transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
+	}
+	justDodgeTriggered = false;
+	justDodgeSkillTarget = target->weak_from_this();
+	justDodgeSkillActive = true;
+	dodgeInvincible = true;
+	crouching = false;
+	sprinting = false;
+	dodgeCooldownTimer = dodgeCooldownDuration;
+	lockOnComponent->LockOn(target);
+	lockOnComponent->SetRotationPaused(true);
+	anim->SetFloat("Speed", 0.0f);
+	anim->SetBool("IsSprinting", false);
+	anim->SetBool("IsCrouching", false);
+	anim->SetBool("IsJustDodge", true);
+	anim->SetTrigger("Attack");
+}
+
+void Player::ActivateJustDodgeSkill()
+{
+	if (!justDodgeSkillActive || IsDead()) return;
+
+	// 必殺技ステートの開始コールバック。離脱後の対象の位置へ向き直す。
+	auto target = justDodgeSkillTarget.lock();
+	const auto* manager = ActorManager::GetActive();
+	if (target && manager && manager->Contains(target.get()) && target->IsActive() && !target->IsPendingDestroy())
+	{
 		Vector3 direction = target->transform.position - transform.position;
 		direction.y = 0.0f;
-		if (direction.LengthSquared() > eps)
+		if (direction.LengthSquared() > eps * eps)
 		{
 			const float targetYaw = atan2f(direction.x, direction.z);
-			transform.SetRotation(
-				Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
+			transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
 		}
 	}
 	lockOnComponent->SetRotationPaused(true);
@@ -506,41 +538,6 @@ void Player::StartJustDodgeSkill(Actor* target)
 		cameraController->RequestSkillFocus(skillDuration);
 	PostProcessController::Instance().RequestSkillStart();
 
-	// 同じAttack入力を、ジャスト回避中だけSp Skill側へ優先遷移させる
-	anim->SetTrigger("Attack");
-}
-
-void Player::HandleDodgeInput(const ActionState& state, bool quickStepStarted, bool quickStepHeld)
-{
-	const bool canStartDodge =
-		dodgeCooldownTimer <= 0.0f &&
-		!state.dodging &&
-		!state.frozen &&
-		!IsDead();
-	if (quickStepStarted &&
-		!bufferedQuickStepTrigger.empty() &&
-		canStartDodge)
-	{
-		dodgeCooldownTimer = dodgeCooldownDuration;
-		dodgeInvincible = false;
-		justDodgeWindowActive = false;
-		justDodgeTriggered = false;
-		justDodgeAttacker = nullptr;
-		justDodgeSoundPlayed = false;
-		justDodgeSkillActive = false;
-		// 回避パーティクル
-		if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
-			renderer->PlayParticleEmitter("DODGE_WIND");
-		anim->SetFloat("Speed", 0.0f);
-		anim->SetBool("IsSprinting", false);
-		sprinting = false;
-		anim->SetTrigger(bufferedQuickStepTrigger);
-		bufferedQuickStepTrigger.clear();
-	}
-	else if (quickStepStarted || !quickStepHeld)
-	{
-		bufferedQuickStepTrigger.clear();
-	}
 }
 
 // 被ダメージとジャスト回避
@@ -573,6 +570,7 @@ bool Player::IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* col
 
 void Player::OnDamaged(const DamageData& damageData)
 {
+	justDodgeSkillTarget.reset();
 	healthRecoveryTimer = 0.0f;
 	CameraEffectController::Request(0.13f, 0.07f);
 	PostProcessController::Instance().RequestDamagedVignette(
@@ -758,6 +756,47 @@ void Player::PlayAttackHitEffect(const Vector3& position)
 	attackHitEffect->Play(position, 0.15f);
 }
 
+void Player::QuickShift(const Vector3& direction, bool force)
+{
+	if (!anim || IsDead()) return;
+	if (!force)
+	{
+		if (dodgeCooldownTimer > 0.0f || justDodgeSkillActive) return;
+		const ActionState state = GetActionState();
+		if (state.frozen || state.dodging) return;
+	}
+
+	Vector3 dodgeDirection(direction.x, 0.0f, direction.z);
+	if (dodgeDirection.LengthSquared() <= eps * eps) return;
+	dodgeDirection.Normalize();
+
+	const float localRight = dodgeDirection.Dot(transform.right);
+	const float localForward = dodgeDirection.Dot(transform.forward);
+	const char* trigger;
+	if (fabsf(localForward) >= fabsf(localRight))
+		trigger = localForward >= 0.0f ? "QF" : "QB";
+	else
+		trigger = localRight >= 0.0f ? "QR" : "QL";
+
+	dodgeCooldownTimer = dodgeCooldownDuration;
+	dodgeInvincible = false;
+	justDodgeWindowActive = false;
+	justDodgeTriggered = false;
+	justDodgeAttacker = nullptr;
+	justDodgeSoundPlayed = false;
+	justDodgeSkillActive = false;
+	crouching = false;
+	sprinting = false;
+	actionInputThisFrame = true;
+
+	if (VMDLModelComponent* renderer = vmdl ? vmdl->GetRenderer() : nullptr)
+		renderer->PlayParticleEmitter("DODGE_WIND");
+	anim->SetFloat("Speed", 0.0f);
+	anim->SetBool("IsSprinting", false);
+	anim->SetBool("IsCrouching", false);
+	anim->SetTrigger(trigger);
+}
+
 // 回復と死亡演出
 
 void Player::UpdateHealth()
@@ -791,6 +830,7 @@ void Player::UpdateHealth()
 
 void Player::OnDead(const DamageData& damageData)
 {
+	justDodgeSkillTarget.reset();
 	justDodgeWindowActive = false;
 	justDodgeAttacker = nullptr;
 	deathSequenceActive = true;

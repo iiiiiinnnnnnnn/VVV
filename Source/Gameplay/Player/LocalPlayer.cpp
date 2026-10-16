@@ -1,9 +1,9 @@
 #include "Gameplay/Player/LocalPlayer.h"
 
-#include "Gameplay/Player/LocalPlayerController.h"
+#include "Gameplay/Player/LocalPlayerInput.h"
 
 LocalPlayer::LocalPlayer()
     : Player()
 {
-    controller = AddComponent<LocalPlayerController>();
+    AddComponent<LocalPlayerInput>();
 }

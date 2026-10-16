@@ -8,7 +8,7 @@
 
 #include "Gameplay/Actor/Entity.h"
 
-#include "Gameplay/Player/PlayerController.h"
+#include "Gameplay/Player/PlayerInput.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Rendering/Component/VMDL.h"
 #include "Rendering/Component/TrailRenderComponent.h"
@@ -39,13 +39,15 @@ class Player : public Entity
 	bool IsJustDodging() const { return justDodgeTriggered; }
 	bool IsUsingJustDodgeSkill() const { return justDodgeSkillActive; }
 	bool IsSprinting() const { return sprinting; }
+	// ワールド座標の方向へ回避する。forceでクールダウンと行動制限を無視する（死亡時は不可）。
+	void QuickShift(const Vector3& direction, bool force = false);
 
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point,
 		const Vector3& normal) override;
 	void OnTriggerExit(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point,
 		const Vector3& normal) override;
 
-	PlayerController* GetController() const { return controller; }
+	PlayerInput* GetPlayerInput() const { return GetComponent<PlayerInput>(); }
 	ThirdPersonCameraController* GetCameraController() const { return cameraController; }
 
 	VMDLModel* GetModel() const { return model.get(); }
@@ -84,7 +86,6 @@ class Player : public Entity
 	ActionState GetActionState() const;
 	void UpdateDodgeState(const ActionState& state);
 	Vector3 GetCameraRelativeDirection(float inputX, float inputZ) const;
-	void UpdateQuickStepDirection(const InputContext& input);
 	void UpdateMoveDirection(
 		const InputContext& input, float inputLength, const ActionState& state);
 	void UpdateMovementAnimation(
@@ -92,7 +93,7 @@ class Player : public Entity
 	Actor* GetJustDodgeTarget() const;
 	void HandleAttackInput(const InputContext& input, const ActionState& state);
 	void StartJustDodgeSkill(Actor* target);
-	void HandleDodgeInput(const ActionState& state, bool quickStepStarted, bool quickStepHeld);
+	void ActivateJustDodgeSkill();
 
 	struct AttackContact
 	{
@@ -110,8 +111,8 @@ class Player : public Entity
 	void PlayJustDodgeFeedback();
 	void PlayAttackHitEffect(const Vector3& position);
 
+
   protected:
-	PlayerController* controller = nullptr;
 	std::shared_ptr<VMDLModel> model = nullptr;
 
 	// 描画
@@ -124,7 +125,6 @@ class Player : public Entity
 
 	ThirdPersonCameraController* cameraController = nullptr;
 	bool isFirstPerson = false;
-	std::string bufferedQuickStepTrigger;
 	float spineAngleX = 0.0f;
 	const Vector2 idleSpineAngle = {0.8f, 0};
 	const Vector2 readySpineAngle = {-0.25f, -0.38f};
@@ -137,11 +137,13 @@ class Player : public Entity
 	Actor* justDodgeAttacker = nullptr;
 	bool justDodgeSoundPlayed = false;
 	bool justDodgeSkillActive = false;
+	std::weak_ptr<Actor> justDodgeSkillTarget;
 	float dodgeCooldownTimer = 0.0f;
 	float dodgeCooldownDuration = 0.35f;
 
 	// 水に触れたらダメージ
-	const float damageLowerHeightCoolDown = 2.0f;
+	const float damageLowerHeightCoolDown = 0.2f;
+	const float damageWaterAmount = 3.0f;
 	float damageLowerHeightTimer = 0;
 	bool isInWater = false;
 

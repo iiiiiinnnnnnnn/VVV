@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "movement": {
+    "xAxis": 1,
+    "zAxis": 2,
+    "deadZone": 0.1,
+    "sprintStopThreshold": 0.1,
+    "normalizeKeyboard": true
+  },
+  "latchSprint": true,
+  "dodge": {
+    "directionThreshold": 0.35,
+    "bufferSeconds": 0.2,
+    "defaultForward": true
+  },
+  "actions": {
+    "Move Forward": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 87
+      }
+    ],
+    "Move Backward": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 83
+      }
+    ],
+    "Move Left": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 65
+      }
+    ],
+    "Move Right": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 68
+      }
+    ],
+    "Sprint": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 160
+      },
+      {
+        "downOnly": true,
+        "device": "GamePad",
+        "code": 1024
+      }
+    ],
+    "QuickShift": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 32
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 16384
+      }
+    ],
+    "Crouch": [
+      {
+        "downOnly": false,
+        "device": "Keyboard",
+        "code": 17
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 2048
+      }
+    ],
+    "Attack": [
+      {
+        "downOnly": false,
+        "device": "Mouse",
+        "code": 1
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 16
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 64
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 32768
+      }
+    ],
+    "Align Camera": [
+      {
+        "downOnly": false,
+        "device": "Mouse",
+        "code": 4
+      }
+    ]
+  }
+}

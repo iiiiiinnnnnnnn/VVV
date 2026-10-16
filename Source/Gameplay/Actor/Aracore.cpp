@@ -26,6 +26,7 @@
 #include "UI/BossBar.h"
 #include "Gameplay/Actor/Crystal.h"
 #include "Resource/ResourceManager.h"
+#include "Deer.h"
 
 Aracore::~Aracore()
 {
@@ -77,7 +78,7 @@ Aracore::Aracore(Player* player_init,
 	}
 
 	ConfigureAI();
-	RegisterAICallbacks();
+	RegisterAIActions();
 
 	// 破片のモデルは、形態変化が起こる前に準備する。
 	phaseFragmentModel = ResourceManager::Instance().LoadModel("Resources/Model/CrystalPart.vmdl", true);
@@ -88,74 +89,31 @@ Aracore::Aracore(Player* player_init,
 
 void Aracore::ConfigureAI()
 {
-	controller = AddComponent<EnemyAIFlow>();
-	controller->SetGraphPath("Resources/AI/Aracore.json");
-	if (!controller->Load(controller->GetGraphPath()))
-		controller->CreateDefaultChaseGraph();
+	controller = AddComponent<EnemyAI>();
+	controller->Load("Resources/AI/Aracore.lua");
 	controller->SetTrackingTurnSpeed(2.0f);
-
-	// AIパラメータの初期値
-	const auto ensureFloat = [this](const std::string& name, float value)
-	{
-		for (const AIFlow::Parameter& parameter : controller->GetParameters())
-			if (parameter.name == name) return;
-		controller->SetFloat(name, value);
-	};
-	ensureFloat("FreedomMinDistance", 5.0f);
-	ensureFloat("FreedomMaxDistance", 18.0f);
-	ensureFloat("FreedomMoveSpeed", 1.4f);
-	ensureFloat("FreedomWaitDuration", 1.5f);
-	ensureFloat("ThreatDuration", 3.0f);
-	ensureFloat("ChaseMoveSpeed", 3.2f);
-	ensureFloat("ChaseDuration", 6.0f);
-	ensureFloat("TurningMoveSpeed", 1.4f);
-	ensureFloat("ChargePrepareDuration", 1.0f);
-	ensureFloat("ChargeMoveSpeed", 6.5f);
-	ensureFloat("ChargeOverDistance", 10.0f);
-	ensureFloat("ChargeMaxDuration", 2.5f);
-	ensureFloat("RecoveryDuration", 1.5f);
-	ensureFloat("JumpChance", 0.25f);
-	ensureFloat("JumpTakeoffDelay", 0.65f);
-	ensureFloat("JumpDuration", 2.4f);
-	ensureFloat("JumpHeight", 10.0f);
-	ensureFloat("JumpLandingRecovery", 0.9f);
-	ensureFloat("AngryIdleScale", 0.4f);
-	ensureFloat("AngryJumpChance", 0.7f);
-	ensureFloat("AngryJumpCount", 2.0f);
-	ensureFloat("AngryLowHpJumpCount", 3.0f);
-	ensureFloat("PhaseThreatDuration", 3.2f);
-	ensureFloat("DeathDissolveAmount", 0.35f);
 
 }
 
-void Aracore::RegisterAICallbacks()
+void Aracore::RegisterAIActions()
 {
 	// 共通ストップ
-	const auto stop = [this](const EnemyAIFlow::State&)
+	const auto stop = [this]()
 	{
 		controller->StopMovement();
 		StopAnimatedMovement();
 	};
 
 	// 自由行動
-	const auto enterFreedomWait = [this](const EnemyAIFlow::State&)
+	const auto enterFreedomWait = [this]()
 	{
 		controller->StopMovement();
 		StopAnimatedMovement();
-		controller->SetBool("ActionFinished", false, true);
-	};
-
-	// 自由行動待機時間
-	const auto updateFreedomWait = [this](const EnemyAIFlow::State&)
-	{
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("FreedomWaitDuration", 1.5f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
+		controller->SetBool("ActionFinished", false);
 	};
 
 	// 自由行動
-	const auto enterWander = [this](const EnemyAIFlow::State&)
+	const auto enterWander = [this]()
 	{
 		const float moveSpeed = controller->GetFloat("FreedomMoveSpeed", 1.4f);
 		RequestAnimatedMovement(moveSpeed, "walk");
@@ -167,7 +125,7 @@ void Aracore::RegisterAICallbacks()
 	};
 
 	// 旋回中(歩かない)
-	const auto updateTurn = [this](const EnemyAIFlow::State&)
+	const auto updateTurn = [this]()
 	{
 		// 既存の経路をたどり続けることで、大きな進行方向の変化が歩行弧になります
 		const float moveSpeed = controller->GetFloat("FreedomMoveSpeed", 1.4f);
@@ -176,18 +134,18 @@ void Aracore::RegisterAICallbacks()
 	};
 
 	// 旋回終了
-	const auto exitTurn = [this](const EnemyAIFlow::State&)
+	const auto exitTurn = [this]()
 	{
 		navMeshAgent->SetMovementPaused(false);
 	};
 
 	// 威嚇演出
-	const auto enterThreat = [this](const EnemyAIFlow::State&)
+	const auto enterThreat = [this]()
 	{
 		SetPlayerDetected(true);
 		controller->StopMovement();
 		StopAnimatedMovement();
-		controller->SetBool("ActionFinished", false, true);
+		controller->SetBool("ActionFinished", false);
 		//controller->FaceTarget();
 		Actor* target = controller->GetTarget();
 		if (target != threatenedTarget)
@@ -197,61 +155,41 @@ void Aracore::RegisterAICallbacks()
 		}
 	};
 
-	// 威嚇演出更新
-	const auto updateThreat = [this](const EnemyAIFlow::State&)
-	{
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("ThreatDuration", 3.0f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
-	};
-
 	// 追跡開始
-	const auto enterChase = [this](const EnemyAIFlow::State&)
+	const auto enterChase = [this]()
 	{
 		chaseBgmEngaged = true;
 		SetPlayerDetected(true);
 		RequestAnimatedMovement(controller->GetFloat("ChaseMoveSpeed", 3.2f), "walk");
-		controller->SetBool("ActionFinished", false, true);
+		controller->SetBool("ActionFinished", false);
 	};
 
 	// 追跡更新
-	const auto updateChase = [this](const EnemyAIFlow::State&)
+	const auto updateChase = [this]()
 	{
 		if (Actor* target = controller->GetTarget())
 		{
-			if (GetDistanceTo(target) < 5.0f)
-			{
-				controller->StopMovement();
-				StopAnimatedMovement();
-				controller->SetBool("ActionFinished", true, true);
-				return;
-			}
 			const float moveSpeed = controller->GetFloat("ChaseMoveSpeed", 3.2f);
 			RequestAnimatedMovement(moveSpeed, "walk");
 			navMeshAgent->SetSpeed(moveSpeed);
 			navMeshAgent->MoveToTarget(target);
 		}
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("ChaseDuration", 6.0f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
+
 	};
 
 	// 突進旋回開始
-	const auto enterChargeTurn = [this](const EnemyAIFlow::State&)
+	const auto enterChargeTurn = [this]()
 	{
 		RequestAnimatedMovement(controller->GetFloat("TurningMoveSpeed", 1.4f), "walk");
-		controller->SetBool("ActionFinished", false, true);
+		controller->SetBool("ActionFinished", false);
 	};
 
 	// 突進旋回更新
-	const auto updateChargeTurn = [this](const EnemyAIFlow::State&)
+	const auto updateChargeTurn = [this]()
 	{
 		if (Actor* target = controller->GetTarget())
 		{
-			// 近すぎたら攻撃
-			if (GetDistanceTo(target) < 5.0f)
+			if (controller->GetBool("CloseToTarget"))
 			{
 				controller->StopMovement();
 				StopAnimatedMovement();
@@ -265,17 +203,14 @@ void Aracore::RegisterAICallbacks()
 				navMeshAgent->MoveToTarget(target);
 			}
 		}
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("ChargePrepareDuration", 1.0f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
+
 	};
 
 	// 突進開始
-	const auto enterCharge = [this](const EnemyAIFlow::State&)
+	const auto enterCharge = [this]()
 	{
 		controller->StopMovement();
-		controller->SetBool("ActionFinished", false, true);
+		controller->SetBool("ActionFinished", false);
 		const float chargeSpeed = controller->GetFloat("ChargeMoveSpeed", 6.5f);
 		RequestAnimatedMovement(chargeSpeed, "charge");
 		anim->SetTrigger("Attack");
@@ -294,48 +229,32 @@ void Aracore::RegisterAICallbacks()
 	};
 
 	// 突進更新
-	const auto updateCharge = [this](const EnemyAIFlow::State&)
+	const auto updateCharge = [this]()
 	{
 		RequestAnimatedMovement(controller->GetFloat("ChargeMoveSpeed", 6.5f), "charge");
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("ChargeMaxDuration", 2.5f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
+
 	};
 
 	// 回復開始
-	const auto enterRecovery = [this](const EnemyAIFlow::State&)
+	const auto enterRecovery = [this]()
 	{
-		remainingJumps = 0;
+
 		controller->StopMovement();
 		StopAnimatedMovement();
-		controller->SetBool("ActionFinished", false, true);
-		const float chance = std::clamp(controller->GetFloat("JumpChance", 0.25f), 0.0f, 1.0f);
-		const float roll = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-		controller->SetBool("ShouldJump", roll < chance, true);
-	};
+		controller->SetBool("ActionFinished", false);
 
-	// 回復更新
-	const auto updateRecovery = [this](const EnemyAIFlow::State&)
-	{
-		const float stateTime = controller->GetFloat("StateTime");
-		const float duration = controller->GetFloat("RecoveryDuration", 1.5f);
-		const bool actionFinished = stateTime >= duration;
-		controller->SetBool("ActionFinished", actionFinished, true);
 	};
 
 	// ジャンプ開始
-	const auto enterJump = [&](const EnemyAIFlow::State&)
+	const auto enterJump = [&]()
 	{
-		if (remainingJumps <= 0) remainingJumps = GetJumpSequenceCount();
-		--remainingJumps;
-		controller->SetBool("ContinueJump", false, true);
 		controller->StopMovement();
 		StopAnimatedMovement();
-		controller->SetBool("ActionFinished", false, true);
+		controller->SetBool("ActionFinished", false);
 		jumpStartPosition = this->transform.position;
 		jumpLandingPosition = this->player ? this->player->transform.position : jumpStartPosition;
 		jumpLanded = false;
+		controller->SetBool("JumpLanded", false);
 		jumpAnimationWaitingForLanding = true;
 		landingDeformPending = false;
 		characterController->SetUseGravity(false);
@@ -359,7 +278,7 @@ void Aracore::RegisterAICallbacks()
 	};
 
 	// ジャンプ更新
-	const auto updateJump = [&](const EnemyAIFlow::State&)
+	const auto updateJump = [&]()
 	{
 		const float takeoffDelay =
 			std::max(controller->GetFloat("JumpTakeoffDelay", 0.65f), 0.0f);
@@ -384,17 +303,11 @@ void Aracore::RegisterAICallbacks()
 			ShakeCameraAtLanding();
 			landingDeformPending = terrain != nullptr;
 		}
-		const float landingRecovery =
-			std::max(controller->GetFloat("JumpLandingRecovery", 0.9f), 0.0f);
-		const float finishedTime = takeoffDelay + duration + landingRecovery;
-		const bool actionFinished = jumpLanded && stateTime >= finishedTime;
-		const bool continueJump = remainingJumps > 0 && !phaseChangeQueued;
-		controller->SetBool("ContinueJump", continueJump, true);
-		controller->SetBool("ActionFinished", actionFinished, true);
+		controller->SetBool("JumpLanded", jumpLanded);
 	};
 
 	// ジャンプ終了
-	const auto exitJump = [&](const EnemyAIFlow::State&)
+	const auto exitJump = [&]()
 	{
 		jumpAnimationWaitingForLanding = false;
 		characterController->SetPosition(jumpLandingPosition);
@@ -402,34 +315,32 @@ void Aracore::RegisterAICallbacks()
 	};
 
 	// 形態変化の演出中は、Threatの開始と演出時間の終了を待つ。
-	const auto enterPhaseThreat = [this](const EnemyAIFlow::State&)
+	const auto enterPhaseThreat = [this]()
 	{
 		BeginPhaseChange();
 	};
-	const auto updatePhaseThreat = [this](const EnemyAIFlow::State&)
+	const auto updatePhaseThreat = [this]()
 	{
-		const float duration = controller->GetFloat("PhaseThreatDuration", 3.2f);
-		const bool presentationStarted = !phasePresentationPending;
-		const bool elapsedEnough = phaseThreatElapsed >= duration;
-		controller->SetBool("ActionFinished", presentationStarted && elapsedEnough, true);
+		controller->SetBool("PhasePresentationStarted", !phasePresentationPending);
+		controller->SetFloat("PhaseThreatElapsed", phaseThreatElapsed);
 	};
-	const auto exitPhaseThreat = [this, stop](const EnemyAIFlow::State& state)
+	const auto exitPhaseThreat = [this, stop]()
 	{
 		phaseThreatActive = false;
-		stop(state);
+		stop();
 	};
 
-	controller->AddCallbackFunc("FreedomWait", enterFreedomWait, updateFreedomWait);
-	controller->AddCallbackFunc("FreedomWander", enterWander);
-	controller->AddCallbackFunc("WanderTurn", {}, updateTurn, {}, exitTurn);
-	controller->AddCallbackFunc("Threat", enterThreat, updateThreat, {}, stop);
-	controller->AddCallbackFunc("PhaseThreat", enterPhaseThreat, updatePhaseThreat, {}, exitPhaseThreat);
-	controller->AddCallbackFunc("Chase", enterChase, updateChase, {}, stop);
-	controller->AddCallbackFunc("ChargeTurn", enterChargeTurn, updateChargeTurn, {}, stop);
-	controller->AddCallbackFunc("Charge", enterCharge, updateCharge, {}, stop);
-	controller->AddCallbackFunc("Recovery", enterRecovery, updateRecovery, {}, stop);
-	controller->AddCallbackFunc("JumpCenter", enterJump, updateJump, {}, exitJump);
-	controller->BindCallbacks();
+	controller->AddAction("FreedomWait", enterFreedomWait);
+	controller->AddAction("FreedomWander", enterWander);
+	controller->AddAction("WanderTurn", {}, updateTurn, {}, exitTurn);
+	controller->AddAction("Threat", enterThreat, {}, {}, stop);
+	controller->AddAction("PhaseThreat", enterPhaseThreat, updatePhaseThreat, {}, exitPhaseThreat);
+	controller->AddAction("Chase", enterChase, updateChase, {}, stop);
+	controller->AddAction("ChargeTurn", enterChargeTurn, updateChargeTurn, {}, stop);
+	controller->AddAction("Charge", enterCharge, updateCharge, {}, stop);
+	controller->AddAction("Recovery", enterRecovery, {}, {}, stop);
+	controller->AddAction("JumpCenter", enterJump, updateJump, {}, exitJump);
+
 }
 
 void Aracore::SpawnDeerFromSky()
@@ -512,60 +423,20 @@ void Aracore::BeginPhaseChange()
 {
 	angry = true;
 	jumpAnimationPending = false;
-	phaseChangeQueued = false;
 	phaseThreatActive = true;
 	phasePresentationPending = true;
 	phaseThreatElapsed = 0.0f;
-	remainingJumps = 0;
+
 	damageAnimationPending = false;
-	controller->SetBool("PhaseChangeRequested", false, true);
-	controller->SetBool("ActionFinished", false, true);
+	controller->SetBool("PhaseChangeRequested", false);
+	controller->SetBool("ActionFinished", false);
 	controller->StopMovement();
 	StopAnimatedMovement();
-	ApplyAngryAIParameters();
+	controller->SetBool("Angry", true);
 
 	if (anim->GetLayerCount() > 0 && anim->GetCurrentStateName() == "Threat")
 		anim->GetLayer(0).currentTime = 0.0f;
 	PlayThreatPresentation();
-}
-
-void Aracore::ApplyAngryAIParameters()
-{
-	const float configuredIdleScale = controller->GetFloat("AngryIdleScale", 0.4f);
-	const float idleScale = std::clamp(configuredIdleScale, 0.1f, 1.0f);
-	const char* waitParameters[] = {
-		"FreedomWaitDuration",
-		"ChaseDuration",
-		"ChargePrepareDuration",
-		"RecoveryDuration",
-		"JumpLandingRecovery",
-	};
-
-	for (const char* name : waitParameters)
-	{
-		const float normalDuration = controller->GetFloat(name);
-		const float angryDuration = normalDuration * idleScale;
-		controller->SetFloat(name, angryDuration);
-	}
-
-	const float jumpChance = controller->GetFloat("AngryJumpChance", 0.7f);
-	controller->SetFloat("JumpChance", jumpChance);
-	controller->SetTrackingTurnSpeed(4.0f);
-}
-
-int Aracore::GetJumpSequenceCount() const
-{
-	if (!angry) return 1;
-
-	const float lowHealthThreshold = GetMaxLife() * 0.25f;
-	const bool hasLowHealth = GetLife() <= lowHealthThreshold;
-	const char* parameter = hasLowHealth
-		? "AngryLowHpJumpCount"
-		: "AngryJumpCount";
-
-	const float configuredCount = controller->GetFloat(parameter, 2.0f);
-	const int jumpCount = static_cast<int>(configuredCount);
-	return std::clamp(jumpCount, 1, 5);
 }
 
 void Aracore::SpawnPhaseFragments()
@@ -606,11 +477,6 @@ void Aracore::SpawnPhaseFragments()
 void Aracore::UpdateHealthPresentation()
 {
 	const float deltaTime = std::max(Game::Time::deltaTime, 0.0f);
-
-	// 空中では形態変化へ移らず、着地を待つ。
-	const bool canChangePhase = !IsDead() && !jumpAnimationWaitingForLanding;
-	if (phaseChangeQueued && canChangePhase)
-		controller->SetBool("PhaseChangeRequested", true, true);
 
 	// Threatが始まった時点から演出時間を進める。
 	if (angry && !phasePresentationPending && phaseThreatActive)
@@ -733,6 +599,9 @@ void Aracore::UpdateThreatPresentation()
 
 void Aracore::OnUpdate()
 {
+	controller->SetFloat("Life", GetLife());
+	controller->SetFloat("MaxLife", GetMaxLife());
+	controller->SetBool("CanChangePhase", !IsDead() && !jumpAnimationWaitingForLanding);
 	UpdateJumpAnimationLandingHold();
 	if (landingDeformPending)
 	{
@@ -847,8 +716,8 @@ void Aracore::StopChaseBgm()
 void Aracore::DeformTerrainAtLanding()
 {
 	if (!terrain || !controller) return;
-	constexpr float power = 1.5f; // 強さ
-	constexpr float radius = 8.5f; // 半径
+	constexpr float power = 2.0f; // 強さ
+	constexpr float radius = 9.0f; // 半径
 	terrain->Deform(jumpLandingPosition, Vector3::Down, power, radius);
 }
 
@@ -893,10 +762,11 @@ void Aracore::TakeDamage(const DamageData& damageData)
 {
 	DamageData realDMG = damageData;
 	const std::string& state = anim->GetCurrentStateName();
+	// 威嚇中はダメージを軽減する
 	if (state == "Threat" || 
 		threatAnimationPending)
 	{
-		realDMG.damage *= 0.3f;
+		realDMG.damage *= 0.2f;
 	}
 	Entity::TakeDamage(realDMG);
 }
@@ -904,6 +774,8 @@ void Aracore::TakeDamage(const DamageData& damageData)
 void Aracore::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	if (IsDead()) return;
+	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
+	if (!self->IsActive() || !other->IsActive()) return;
 	PushPlayer(self, other);
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
@@ -929,12 +801,14 @@ void Aracore::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, 
 void Aracore::OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	if (IsDead()) return;
+	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
+	if (!self->IsActive() || !other->IsActive()) return;
 	PushPlayer(self, other);
 }
 
 bool Aracore::PushPlayer(PhysicsComponent* self, PhysicsComponent* other)
 {
-	if (self->CompareName("Enemy") || !other) return false;
+	if (!self || !other || self->CompareName("Enemy")) return false;
 
 	Entity* player = dynamic_cast<Entity*>(other->GetOwner());
 	if (!player || !player->CompareTag("Player")) return false;
@@ -951,36 +825,37 @@ bool Aracore::PushPlayer(PhysicsComponent* self, PhysicsComponent* other)
 	return true;
 }
 
-void Aracore::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+void Aracore::OnTriggerEnter(
+	PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
 	if (IsDead()) return;
+	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
+	if (!self->IsActive() || !other->IsActive()) return;
 	PushPlayer(self, other);
 
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
+	if (!otherActor || otherActor->IsPendingDestroy()) return;
 
+	// 自分が攻撃トリガーなら
 	if (self->GetLayerId() == Layers::Get("EnemyAtk"))
 	{
 		if (otherActor->CompareTag("Player"))
 		{
-			static_cast<Entity*>(otherActor)->TakeDamage({
-				.damage = 10.0f,
-				.knockBackPower = 10.0f,
-				.hitColliderSelf = self,
-				.hitColliderOther = other,
-				.hitPosition = point,
-				.hitNormal = normal
-				});
+			static_cast<Entity*>(otherActor)
+				->TakeDamage({.damage = 10.0f,
+					.knockBackPower = 10.0f,
+					.hitColliderSelf = self,
+					.hitColliderOther = other,
+					.hitPosition = point,
+					.hitNormal = normal});
 		}
-		else if (otherActor->CompareTag("Crystal"))
+		else if (auto crystal = dynamic_cast<Crystal*>(otherActor))
 		{
-			static_cast<Entity*>(otherActor)->TakeDamage({.damage = 9999.0f});
+			crystal->TakeDamage({.damage = 9999.0f});
 		}
-		else if (otherActor->CompareTag("Enemy"))
+		else if (auto deer = dynamic_cast<Deer*>(otherActor))
 		{
-			if (otherActor->GetName() == "Deer")
-			{
-				static_cast<Entity*>(otherActor)->TakeDamage({.damage = 9999.0f});
-			}
+			deer->TakeDamage({.damage = 9999.0f, .ignoreDamageCooldown = true});
 		}
 		return;
 	}
@@ -988,8 +863,6 @@ void Aracore::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, co
 
 void Aracore::OnDamaged(const DamageData& damageData)
 {
-	if (!angry && !IsDead() && GetLife() <= GetMaxLife() * 0.5f)
-		phaseChangeQueued = true;
 	Actor* attacker = damageData.hitColliderSelf
 		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
 		: nullptr;
@@ -1022,11 +895,10 @@ void Aracore::OnDamaged(const DamageData& damageData)
 void Aracore::OnDead(const DamageData& damageData)
 {
 	jumpAnimationPending = false;
-	phaseChangeQueued = false;
 	phasePresentationPending = false;
 	phaseThreatActive = false;
-	remainingJumps = 0;
-	controller->SetBool("PhaseChangeRequested", false, true);
+
+	controller->SetBool("PhaseChangeRequested", false);
 	damageAnimationPending = false;
 	threatAnimationPending = false;
 	SetPlayerDetected(false);

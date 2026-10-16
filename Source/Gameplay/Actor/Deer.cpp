@@ -42,17 +42,15 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 	lookAt->SetFilterTags({"Player", "Enemy"});
 	lookAt->SetLookDistance(8.0f);
 
-	// EnemyAIFlow
+	// EnemyAI
 	ConfigureAI();
+
 }
 
 void Deer::ConfigureAI()
 {
-	controller = AddComponent<EnemyAIFlow>();
-	controller->SetGraphPath("Resources/AI/Deer.json");
-
-	if (!controller->Load(controller->GetGraphPath()))
-		controller->CreateDefaultChaseGraph();
+	controller = AddComponent<EnemyAI>();
+	controller->Load("Resources/AI/Deer.lua");
 
 	controller->SetTrackingTurnSpeed(1.0f);
 
@@ -61,47 +59,33 @@ void Deer::ConfigureAI()
 	ik->SetModelVisualOffsetY(-0.07f);
 	ik->SetContactOffset(-0.044f);
 
-	// グラフに未設定のパラメーターだけ、初期値を補う。
-	const auto ensureFloat = [this](const std::string& name, float value)
-	{
-		for (const AIFlow::Parameter& parameter : controller->GetParameters())
-			if (parameter.name == name) return;
-		controller->SetFloat(name, value);
-	};
-
-	ensureFloat("FreedomMinDistance", 3.0f);
-	ensureFloat("FreedomMaxDistance", 10.0f);
-	ensureFloat("FreedomMoveSpeed", 1.0f);
-	ensureFloat("AttackMoveSpeed", 6.0f);
-	ensureFloat("AttackOverDistance", 16.0f);
-
 	// 共通：移動停止
-	const auto stop = [this](const EnemyAIFlow::State&)
+	const auto stop = [this]()
 	{
 		StopCharge();
 	};
 
-	controller->AddCallbackFunc("FreedomWait", stop);
-	controller->AddCallbackFunc("Stop", stop);
+	controller->AddAction("FreedomWait", stop);
+	controller->AddAction("Stop", stop);
 
 	// 非戦闘：構えを解除する。
-	const auto updateFreedom = [this](const EnemyAIFlow::State&)
+	const auto updateFreedom = [this]()
 	{
 		anim->SetBool("ready", false);
 	};
 
-	controller->AddCallbackFunc("Freedom", stop, updateFreedom, {}, stop);
+	controller->AddAction("Freedom", stop, updateFreedom, {}, stop);
 
 	// 戦闘：突進に備えて構える。
-	const auto updateAttacking = [this](const EnemyAIFlow::State&)
+	const auto updateAttacking = [this]()
 	{
 		anim->SetBool("ready", true);
 	};
 
-	controller->AddCallbackFunc("Attacking", stop, updateAttacking, {}, stop);
+	controller->AddAction("Attacking", stop, updateAttacking, {}, stop);
 
 	// 徘徊：ランダムな目的地へ歩く。
-	const auto enterWander = [this](const EnemyAIFlow::State&)
+	const auto enterWander = [this]()
 	{
 		navMeshAgent->SetSpeed(controller->GetFloat("FreedomMoveSpeed", 1.0f));
 		navMeshAgent->MoveToRandomPosition(
@@ -109,10 +93,10 @@ void Deer::ConfigureAI()
 			controller->GetFloat("FreedomMaxDistance", 10.0f));
 	};
 
-	controller->AddCallbackFunc("FreedomWander", enterWander);
+	controller->AddAction("FreedomWander", enterWander);
 
 	// 旋回：移動を止め、向きを合わせる。
-	const auto updateTurn = [this](const EnemyAIFlow::State&)
+	const auto updateTurn = [this]()
 	{
 		const float angle = controller->GetFloat("TurnAngle");
 		anim->SetBool("turnR", angle > 0.0f);
@@ -121,25 +105,25 @@ void Deer::ConfigureAI()
 		if (!navMeshAgent->HasDestination()) controller->FaceTarget();
 	};
 
-	const auto exitTurn = [this](const EnemyAIFlow::State&)
+	const auto exitTurn = [this]()
 	{
 		anim->SetBool("turnR", false);
 		anim->SetBool("turnL", false);
 		navMeshAgent->SetMovementPaused(false);
 	};
 
-	controller->AddCallbackFunc("Turn", {}, updateTurn, {}, exitTurn);
+	controller->AddAction("Turn", {}, updateTurn, {}, exitTurn);
 
 	// 突進準備：プレイヤーの方向を向く。
-	const auto updateFaceTarget = [this](const EnemyAIFlow::State&)
+	const auto updateFaceTarget = [this]()
 	{
 		controller->FaceTarget();
 	};
 
-	controller->AddCallbackFunc("FaceTarget", {}, updateFaceTarget);
+	controller->AddAction("FaceTarget", {}, updateFaceTarget);
 
 	// 突進：開始時の方向に固定して直進する。
-	const auto enterChase = [this](const EnemyAIFlow::State&)
+	const auto enterChase = [this]()
 	{
 		Actor* target = controller->GetTarget();
 		if (!target)
@@ -173,7 +157,7 @@ void Deer::ConfigureAI()
 		navMeshAgent->MoveToPosition(destination);
 	};
 
-	const auto updateChase = [this](const EnemyAIFlow::State&)
+	const auto updateChase = [this]()
 	{
 		Actor* target = controller->GetTarget();
 		if (!charging || !target || !navMeshAgent->HasDestination())
@@ -188,9 +172,8 @@ void Deer::ConfigureAI()
 		if (chargeDirection.Dot(toTarget) < 0.0f) StopCharge();
 	};
 
-	controller->AddCallbackFunc("AttackChase", enterChase, updateChase, {}, stop);
+	controller->AddAction("AttackChase", enterChase, updateChase, {}, stop);
 
-	controller->BindCallbacks();
 }
 
 void Deer::StopCharge()
@@ -199,7 +182,7 @@ void Deer::StopCharge()
 	charging = false;
 	navMeshAgent->SetChargeMovement(false);
 	controller->StopMovement();
-	controller->SetBool("HasDestination", false, true);
+	controller->SetBool("HasDestination", false);
 	anim->SetFloat("speed", 0.0f);
 }
 
@@ -229,31 +212,37 @@ void Deer::OnLateUpdate()
 
 void Deer::OnDrawGUI()
 {
-	ImGui::TextDisabled("AI timings and movement values are edited in the AI Flow graph.");
+	ImGui::TextDisabled("AI behavior and timings are edited in Resources/AI/Deer.lua.");
 }
 
-void Deer::OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+void Deer::OnTriggerEnter(
+	PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
-	if (!self || !other || !self->IsActive() || !other->IsActive()) return;
+	if (IsDead() || deathCleanupPending) return;
+	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
+	if (!self->IsActive() || !other->IsActive()) return;
+	// 自分がEnemyAtkじゃない場合　無視
 	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;
-	if (anim->GetCurrentStateName() != "run") return;
 
-	Entity* player = dynamic_cast<Entity*>(other->GetOwner());
-	if (!player || !player->CompareTag("Player")) return;
-	if (other->GetLayerId() != Layers::Get("Player")) return;
+	// プレイヤーが当たってきた
+	if (other->GetLayerId() == Layers::Get("Player"))
+	{
+		Entity* player = dynamic_cast<Entity*>(other->GetOwner());
+		if (!player || !player->CompareTag("Player")) return;
 
-	anim->SetTrigger("Damage");
-	StopCharge();
+		anim->SetTrigger("Damage");
+		StopCharge();
 
-	DamageData damageData{
-		.damage = 10.0f,
-		.knockBackPower = 5.0f,
-		.hitColliderSelf = self,
-		.hitColliderOther = other,
-		.hitPosition = point,
-		.hitNormal = normal,
-	};
-	player->TakeDamage(damageData);
+		DamageData damageData{
+			.damage = 10.0f,
+			.knockBackPower = 5.0f,
+			.hitColliderSelf = self,
+			.hitColliderOther = other,
+			.hitPosition = point,
+			.hitNormal = normal,
+		};
+		player->TakeDamage(damageData);
+	}
 }
 
 void Deer::OnDamaged(const DamageData& damageData)

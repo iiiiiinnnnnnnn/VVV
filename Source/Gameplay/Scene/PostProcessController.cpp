@@ -193,7 +193,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	}
 
 	if (poisonVignetteIntensity > 0.001f)
-		postProcess.AddRuntimeVignette(poisonVignetteIntensity, ColorFromRGBA(0x70EEB6FF));
+		postProcess.AddRuntimeVignette(poisonVignetteIntensity, postProcess.GetUnderwaterColor());
 
 	const float justDodge = GetIntensity(justDodgeTimer, justDodgeDuration,
 		justDodgePower, 0.12f, Easing::Type::OutQuad, Easing::Type::OutCubic);
