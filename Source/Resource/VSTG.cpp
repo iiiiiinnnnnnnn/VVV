@@ -1,6 +1,7 @@
 #include "Resource/VSTG.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 
 #include <array>
 #include <fstream>
@@ -74,7 +75,7 @@ bool VSTG::Load(const std::filesystem::path& path)
 {
 	terrainSettingsJson.clear();
 	navMeshSettingsJson.clear();
-	const auto bytes = ResourceManager::Instance().LoadFile(path.generic_string());
+	const auto bytes = ResourceManager::Instance().LoadFile(ResourcePath::Stage(ResourcePath::Text(path)));
 	if (!bytes)
 	{
 		error = "VSTG not found: " + path.generic_string();

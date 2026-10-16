@@ -44,7 +44,7 @@ private:
 class Crystal : public BaseCrystal
 {
 public:
-	Crystal(const Transform& transform, const std::string& modelPath = "Resources/Model/Crystal");
+	Crystal(const Transform& transform, const std::string& modelPath = "Crystal");
 
 private:
 	void OnUpdate() override;

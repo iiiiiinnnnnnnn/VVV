@@ -10,7 +10,6 @@
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundSystem.h"
-#include "Audio/SoundTracks.generated.h"
 #include "Gameplay/Actor/Crystal.h"
 
 Stage01::Stage01(Player* player) : Stage()
@@ -19,10 +18,9 @@ Stage01::Stage01(Player* player) : Stage()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	SoundSystem::Instance().PlayTrack(
-		SoundTrack::BGM_CAVE_AMBIENT, -1, SoundSystem::PlayOptions{.loop = true});
+	SoundSystem::Instance().Play("BGM/cave_ambient", SoundSystem::PlayOptions{.loop = true}, -1);
 
-	const bool loadedVstg = LoadVSTG("Resources/Stage/cave_01.vstg");
+	const bool loadedVstg = LoadVSTG("cave_01");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
 	stageLoader = GetComponent<StageLoader>();
@@ -85,6 +83,9 @@ Stage01::Stage01(Player* player) : Stage()
 
 void Stage01::OnUpdate()
 {
+	// particle systemを直接計算(ParticleSystemは手動で使うEffectみたいな感じ)
+	// しかしジオメトリシェーダーで位置やカメラ情報から4頂点を生成してる
+
 	//	降雪
 	Vector3 pos = Vector3((rand() % 30 - 15) * 0.1f, rand() % 30 * 0.1f + 1, (rand() % 30 - 15) * 0.1f + 3);
 	int max = 2;

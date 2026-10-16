@@ -58,9 +58,7 @@ TestPlayScene::TestPlayScene()
 
 	playerHealthGauge = std::make_shared<GaugeHUD>("Player Health Gauge");
 	playerHealthGauge->SetFrameTexture("Resources/UI/window.png");
-	playerHealthGauge->SetEmblemTexture("Resources/UI/circle.png");
 	playerHealthGauge->SetFillRect({0.108f, 0.43f}, {0.82f, 0.31f});
-	playerHealthGauge->SetEmblemRect({-0.12f, 0.08f}, {0.285f, 0.9f});
 	playerHealthGauge->SetSmoothingSpeed(4.5f);
 	playerHudGroup->AddChild(playerHealthGauge);
 

@@ -24,6 +24,7 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderTarget.h"
@@ -573,7 +574,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
-	std::filesystem::path editorPath = modelPath;
+	std::filesystem::path editorPath = ResourcePath::Path(ResourcePath::Model(modelPath));
 	const std::filesystem::path sourceResourceRoot = GetVstgEditorResourceRoot();
 	if (!sourceResourceRoot.empty())
 	{
@@ -924,8 +925,8 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 	}
 	const bool recoveredMissingModels = ResolveMissingModels();
 	data = std::move(loaded);
-	path = stagePath;
-	recentStagePath = stagePath;
+	path = ResourcePath::Path(ResourcePath::Stage(ResourcePath::Text(stagePath)));
+	recentStagePath = path;
 	SaveEditorSettings();
 	cleanStateHash = data.BuildEditorStateHash(
 		*terrain, *navMesh, *stageLoader, currentStage->GetLightManager());

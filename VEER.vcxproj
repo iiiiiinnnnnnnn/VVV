@@ -21,7 +21,11 @@
     <ClInclude Include="Source\Gameplay\AI\LuaScript.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerInput.h" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h" />
-    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp" />
+    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)%(Filename).compiler.pdb</ProgramDataBaseFileName>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
     <ClCompile Include="Source\Resource\CacheBuilder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
@@ -35,7 +39,11 @@
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
-    <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp" />
+    <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)%(Filename).compiler.pdb</ProgramDataBaseFileName>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
     <ClCompile Include="Source\Physics\Collider\BoneBoxCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCapsuleCollider.cpp" />
     <ClCompile Include="Source\Physics\Collider\BoneCollider.cpp" />
@@ -156,7 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h" />
-    <ClInclude Include="Source\Audio\SoundTracks.generated.h" />
+    <ClInclude Include="Source\Audio\SoundPaths.h" />
     <ClInclude Include="Source\Audio\VSoundFormat.h" />
     <ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h" />
@@ -233,6 +241,7 @@
     <ClInclude Include="Source\Application\Time\HighResolutionTimer.h" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h" />
+    <ClInclude Include="Source\Rendering\Renderer\ImGuiPath.h" />
     <ClInclude Include="Source\Application\Input\Input.h" />
     <ClInclude Include="Source\Core\Object\Object.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
@@ -262,6 +271,7 @@
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
     <ClInclude Include="Source\Rendering\Core\RenderTarget.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />
+    <ClInclude Include="Source\Resource\ResourcePath.h" />
     <ClInclude Include="Source\Physics\Core\PhysicsManager.h" />
     <ClInclude Include="Source\Rendering\Renderer\PrimitiveRenderer.h" />
     <ClInclude Include="Source\Rendering\Core\RenderContext.h" />

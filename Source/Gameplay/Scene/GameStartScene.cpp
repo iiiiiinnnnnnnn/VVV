@@ -9,6 +9,9 @@
 #include "Rendering/Component/SpriteRenderComponent.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/ResourceManager.h"
+#include "Audio/SoundSystem.h"
+#include "Resource/ResourcePath.h"
+#include "Rendering/Renderer/ImGuiPath.h"
 #include "Resource/Texture.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
@@ -532,7 +535,6 @@ void GameStartScene::DrawEffectManager()
 
 void GameStartScene::DrawSoundManager()
 {
-	// サウンドをフォルダー階層へまとめて表示
 	ImGui::TextUnformatted((const char*)u8"サウンド管理");
 	if (ImGui::Button((const char*)u8"戻る"))
 	{
@@ -540,23 +542,27 @@ void GameStartScene::DrawSoundManager()
 		windowConfigured = false;
 		return;
 	}
+	ImGui::TextDisabled((const char*)u8"ファイルを追加・削除すると一覧へ反映されます。クリックでパスをコピー。");
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("SoundTrackList", 2, flags, ImVec2(0, -1)))
-	{
-		return;
-	}
-	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
-	ImGui::TableSetupColumn("Enum", ImGuiTableColumnFlags_WidthFixed, 360.0f);
+	if (!ImGui::BeginTable("SoundPathList", 2, flags, ImVec2(0, -1))) return;
+	ImGui::TableSetupColumn((const char*)u8"ファイル", ImGuiTableColumnFlags_WidthFixed, 240.0f);
+	ImGui::TableSetupColumn((const char*)u8"パス", ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
-
-	ResourceTreeNode root{"Resources", "Resources"};
-	for (const auto& sound : SoundDefinitions)
+	for (const auto& path : SoundSystem::GetSoundPaths())
 	{
-		AddResourceTreePath(root, std::string(sound.path), std::string(sound.name));
+		ImGui::PushID(path.c_str());
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		const auto filename = ResourcePath::Text(ResourcePath::Path(path).filename());
+		ImGui::TextUnformatted(ImGuiPath::Tail(filename, ImGui::GetContentRegionAvail().x).c_str());
+		ImGui::TableNextColumn();
+		const std::string label = ImGuiPath::Tail(path, ImGui::GetContentRegionAvail().x);
+		if (ImGui::Selectable(label.c_str())) ImGui::SetClipboardText(path.c_str());
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", path.c_str());
+		ImGui::PopID();
 	}
-	DrawEnumTreeNode(root, "SoundTrack::", 0, {}, true);
 	ImGui::EndTable();
 }
 

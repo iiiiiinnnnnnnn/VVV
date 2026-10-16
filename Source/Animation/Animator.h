@@ -137,7 +137,6 @@ public:
     };
 
     void OpenEditor();
-	static void DrawOpenEditor();
 
     int GetLayerCount() const { return (int)layers.size(); }
 
@@ -232,6 +231,7 @@ public:
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
 
+    // Resources/Animatorと拡張子は省略できる（例：Aracore）。
     bool Save(const std::string& path);
     void Load(const std::string& path);
     const std::string& GetLastPath() const { return m_lastPath; }
@@ -245,7 +245,8 @@ public:
         nextNodePoses.clear();
     }
 
-    void SetRootMotion(const std::string& rootNodeName);
+    // 回転をActorへ渡さない場合はfalseにし、胴体の傾きをアニメーションに残す。
+    void SetRootMotion(const std::string& rootNodeName, bool extractRotation = true);
 
     Vector3 GetRootMotionVec() const { return rootMotionVec; }
     Quaternion GetRootMotionRot() const { return rootMotionRot; }
@@ -259,6 +260,8 @@ public:
 private:
     bool Serialize(const std::string& path) const;
     void Deserialize(const std::string& path);
+    friend class Scene;
+    void OpenEditorWindow();
     void DrawEditor(bool* open);
     void DrawLayerEditor(AnimatorLayer& layer, int layerIndex);
     void DrawNodes(AnimatorLayer& layer, int layerIndex);
@@ -296,7 +299,6 @@ private:
     std::string m_lastPath;
     ax::NodeEditor::EditorContext* editorContext = nullptr;
     bool editorOpen = false;
-	inline static Animator* activeEditor = nullptr;
     int currentEditorLayer = 0;
     std::string currentAnimatorPath;
     static constexpr int ANY_STATE_INDEX = 999;
@@ -330,6 +332,7 @@ private:
     // root motion
 
     bool useRootMotion = false;
+    bool extractRootRotation = true;
     std::string rootNodeName = "";
     int rootNodeIndex = -1;
     VMDLModel::NodePose rootMotionBasePose;

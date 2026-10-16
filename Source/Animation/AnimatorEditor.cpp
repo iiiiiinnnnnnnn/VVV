@@ -8,6 +8,7 @@
 
 #include "Application/Tools/Dialog.h"
 #include "Rendering/Core/Graphics.h"
+#include "Gameplay/Scene/SceneManager.h"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -31,16 +32,6 @@ void Animator::DrawEditor(bool* pOpen)
             return;
         }
 
-        const int layerCount = (int)GetLayerCount();
-        if (layerCount == 0)
-        {
-            ImGui::TextDisabled((const char*)u8"レイヤーがありません。");
-            if (ImGui::Button((const char*)u8"+ レイヤーを追加"))
-                AddLayer((const char*)u8"基本レイヤー", Animator::BlendMode::Override, 1.0f, {});
-            ImGui::End();
-            return;
-        }
-
         // Toolbar
         if (ImGui::Button((const char*)u8"開く"))
         {
@@ -50,13 +41,8 @@ void Animator::DrawEditor(bool* pOpen)
                 (const char*)u8"Animatorを開く", "Resources/Animator",
                 Game::Graphics::Instance().GetWindowHandle()) == DialogResult::OK)
             {
-				currentAnimatorPath = path;
-                Load(currentAnimatorPath.c_str());
-                {
-                    editorPositionSet.clear();
-                    selectedTransition = {};
-                    currentEditorLayer = 0;
-                }
+                if (Scene* scene = SceneManager::Instance().GetCurrentScene())
+                    scene->OpenAnimatorEditor(path);
             }
         }
         ImGui::SameLine();
@@ -108,6 +94,16 @@ void Animator::DrawEditor(bool* pOpen)
         ImGui::TextDisabled(
             currentAnimatorPath.empty() ? (const char*)u8"（未保存）" : currentAnimatorPath.c_str());
         ImGui::Separator();
+
+        const int layerCount = (int)GetLayerCount();
+        if (layerCount == 0)
+        {
+            ImGui::TextDisabled((const char*)u8"レイヤーがありません。");
+            if (ImGui::Button((const char*)u8"+ レイヤーを追加"))
+                AddLayer((const char*)u8"基本レイヤー", Animator::BlendMode::Override, 1.0f, {});
+            ImGui::End();
+            return;
+        }
 
         if (ImGui::BeginTabBar("Layers"))
         {
@@ -179,7 +175,8 @@ void Animator::DrawEditor(bool* pOpen)
             ImGui::Text((const char*)u8"ボーンマスク（未選択なら全ボーン）:");
             ImGui::Separator();
 
-            const auto& nodes = GetModel()->GetNodes();
+            const std::vector<VMDLModel::Node> emptyNodes;
+            const auto& nodes = model ? model->GetNodes() : emptyNodes;
             ImGui::BeginChild("BoneList", ImVec2(0, 300), true);
             for (int ni = 0; ni < (int)nodes.size(); ++ni)
             {
@@ -836,7 +833,8 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
 
         ImGui::Spacing();
         ImGui::TextDisabled((const char*)u8"ボーンマスク");
-        const auto& nodes = GetModel()->GetNodes();
+        const std::vector<VMDLModel::Node> emptyNodes;
+        const auto& nodes = model ? model->GetNodes() : emptyNodes;
         ImGui::BeginChild("BoneMask", ImVec2(0, 120), true);
         for (int ni = 0; ni < (int)nodes.size(); ++ni)
         {
@@ -1108,7 +1106,8 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
         ImGui::Spacing();
 
-        const auto& animations = GetModel()->GetAnimations();
+        const std::vector<VMDLModel::Animation> emptyAnimations;
+        const auto& animations = model ? model->GetAnimations() : emptyAnimations;
         const char* currentAnimationName =
             (state.animationIndex >= 0 &&
              state.animationIndex < static_cast<int>(animations.size()))
@@ -1138,6 +1137,12 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         }
 
         ImGui::Spacing();
+        if (!model)
+        {
+            ImGui::TextDisabled((const char*)u8"モデル未選択のため、クリップ番号で編集します。");
+            if (ImGui::InputInt((const char*)u8"クリップ番号", &state.animationIndex))
+                state.animationIndex = std::max(state.animationIndex, -1);
+        }
         ImGui::DragFloat((const char*)u8"再生速度", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
         ImGui::Checkbox((const char*)u8"ループ", &state.loop);
         ImGui::Checkbox((const char*)u8"AnyStateからのトランジションを禁止", &state.blockAnyStateTransitions);

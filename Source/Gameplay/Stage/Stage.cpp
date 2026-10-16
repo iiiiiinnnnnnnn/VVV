@@ -7,11 +7,12 @@
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VSTG.h"
+#include "Resource/ResourcePath.h"
 
 bool Stage::LoadVSTG(const std::string& path)
 {
 	VSTG data;
-	const std::string resolvedPath = ResourceManager::Instance().ResolvePath(path);
+	const std::string resolvedPath = ResourceManager::Instance().ResolvePath(ResourcePath::Stage(path));
 	if (!data.Load(resolvedPath))
 	{
 		vstgError = data.GetError();

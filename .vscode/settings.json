@@ -1,0 +1,46 @@
+{
+    "files.exclude": {
+        "**.agents": true,
+        "**/.assets": true,
+        "**/.clang-format": true,
+        "**/.editorconfig": true,
+        "**/.gitattributes": true,
+        "**/.luarc.json": true,
+        "**/.vs": true,
+        "**/*.aps": true,
+        "**/*.efkpkg": true,
+        "**/*.lnk": true,
+        "**/*.rc": true,
+        "**/*.sln": true,
+        "**/*.ttf": true,
+        "**/*.user": true,
+        "**/*.vcxproj": true,
+        "**/*.vcxproj.filters": true,
+        "**/*.vmdl": true,
+        "**/*.vstg": true,
+        "**/Bin": true,
+        "**/External": true,
+        "**/Obj": true,
+        "**/Resources": false,
+        "**/Source": true,
+        "**/Tools": true
+    },
+    "files.associations": {
+        "*.lua": "lua"
+    },
+    "[lua]": {
+        "editor.semanticHighlighting.enabled": true
+    },
+    "editor.semanticTokenColorCustomizations": {
+        "rules": {
+            "function:lua": "#DCDCAA",
+            "function.defaultLibrary:lua": "#DCDCAA",
+            "method:lua": "#DCDCAA",
+            "variable:lua": "#9CDCFE",
+            "parameter:lua": "#9CDCFE",
+            "property:lua": "#9CDCFE",
+            "variable.readonly:lua": "#4FC1FF",
+            "class:lua": "#4EC9B0"
+        }
+    }
+}

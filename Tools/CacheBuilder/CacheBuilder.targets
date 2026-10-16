@@ -12,6 +12,8 @@
   <ItemGroup>
     <UpToDateCheckInput Include="$(ProjectDir)Resources\**\*" />
     <UpToDateCheckInput Include="$(ProjectDir)Resources\Effect" />
+    <UpToDateCheckInput Include="$(ProjectDir)Resources\Sound" />
+    <UpToDateCheckInput Include="$([System.IO.Directory]::GetDirectories('$(ProjectDir)Resources\Sound', '*', System.IO.SearchOption.AllDirectories))" Condition="Exists('$(ProjectDir)Resources\Sound')" />
     <UpToDateCheckOutput Include="$(GameResourcesUpToDateMarker)" />
   </ItemGroup>
   <ItemGroup>
@@ -34,5 +36,4 @@
           WorkingDirectory="$(ProjectDir)" />
     <Touch Files="$(GameResourcesUpToDateMarker)" AlwaysCreate="true" />
   </Target>
-  <Import Project="$(MSBuildThisFileDirectory)SoundDefinitions.targets" />
 </Project>

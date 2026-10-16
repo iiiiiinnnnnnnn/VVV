@@ -126,6 +126,44 @@
                             "canInterrupt": false,
                             "conditions": [
                                 {
+                                    "mode": 4,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 9,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 8,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
                                     "mode": 0,
                                     "paramName": "speed",
                                     "threshold": 4.0
@@ -177,6 +215,44 @@
                             "canInterrupt": false,
                             "conditions": [
                                 {
+                                    "mode": 4,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 9,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 8,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
                                     "mode": 0,
                                     "paramName": "speed",
                                     "threshold": 4.0
@@ -224,6 +300,44 @@
                     "name": "run",
                     "speed": 0.699999988079071,
                     "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 9,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 8,
+                            "transitionDuration": 0.11999999731779099
+                        },
                         {
                             "canInterrupt": false,
                             "conditions": [
@@ -459,6 +573,186 @@
                             "transitionDuration": 0.10000000149011612
                         }
                     ]
+                },
+                {
+                    "animationIndex": 9,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 300.0,
+                    "editorPosY": 650.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "turn_left",
+                    "speed": 0.800000011920929,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 9,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.11999999731779099
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 10,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 560.0,
+                    "editorPosY": 650.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "turn_right",
+                    "speed": 0.800000011920929,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 8,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.11999999731779099
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnLeft",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnRight",
+                                    "threshold": 0.0
+                                },
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 3,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.11999999731779099
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -466,7 +760,17 @@
     ],
     "parameters": [
         {
+            "name": "turnLeft",
+            "type": "bool",
+            "value": false
+        },
+        {
             "name": "Dead",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "turnRight",
             "type": "bool",
             "value": false
         },
@@ -477,8 +781,8 @@
         }
     ],
     "triggers": [
-        "Jump",
         "Attack",
+        "Jump",
         "Damage",
         "Threat"
     ]

@@ -410,7 +410,7 @@ void VMDLModelComponent::PlaySoundEvents(int animationIndex, float beginTime, fl
 				key.sourceIndex < 0 || key.sourceIndex >= static_cast<int>(soundData.sources.size()))
 				continue;
 			const auto& source = soundData.sources[key.sourceIndex];
-			if (source.trackName.empty()) continue;
+			if (source.soundPath.empty()) continue;
 			const float pitchMin = std::min(source.pitchMin, source.pitchMax);
 			const float pitchMax = std::max(source.pitchMin, source.pitchMax);
 			const float pitch = pitchMax > pitchMin
@@ -427,9 +427,8 @@ void VMDLModelComponent::PlaySoundEvents(int animationIndex, float beginTime, fl
 				options.lowPassHz = source.lowPassHz;
 				options.farLowPassHz = source.farLowPassHz;
 				options.reverbMix = source.reverbMix;
-				const auto voiceId = SoundSystem::Instance().PlayTrack3DAt(source.trackName,
-					AttachmentPosition(*model, source.nodeIndex, source.transform,
-						dynamic_cast<Actor*>(owner)->transform.position), source.variant, options);
+				const auto voiceId = SoundSystem::Instance().Play3DAt(source.soundPath, AttachmentPosition(*model, source.nodeIndex, source.transform,
+						dynamic_cast<Actor*>(owner)->transform.position), options, source.variant);
 				if (voiceId != SoundSystem::InvalidVoiceId)
 					activeSoundEvents.push_back({voiceId, key.sourceIndex});
 			}
@@ -438,7 +437,7 @@ void VMDLModelComponent::PlaySoundEvents(int animationIndex, float beginTime, fl
 				SoundSystem::PlayOptions options;
 				options.volume = std::max(0.0f, source.volume);
 				options.pitch = pitch;
-				SoundSystem::Instance().PlayTrack(source.trackName, source.variant, options);
+				SoundSystem::Instance().Play(source.soundPath, options, source.variant);
 			}
 		}
 	}
@@ -453,7 +452,7 @@ bool VMDLModelComponent::PlaySoundSource(
 	const auto found = std::find_if(sources.begin(), sources.end(), [&name](const auto& source) {
 		return source.name == name;
 	});
-	if (found == sources.end() || found->trackName.empty())
+	if (found == sources.end() || found->soundPath.empty())
 	{
 		return false;
 	}
@@ -466,7 +465,7 @@ bool VMDLModelComponent::PlaySoundSource(
 		SoundSystem::PlayOptions options;
 		options.volume = std::max(0.0f, found->volume);
 		options.pitch = pitch;
-		return SoundSystem::Instance().PlayTrack(found->trackName, found->variant, options) !=
+		return SoundSystem::Instance().Play(found->soundPath, options, found->variant) !=
 			SoundSystem::InvalidVoiceId;
 	}
 
@@ -490,8 +489,7 @@ bool VMDLModelComponent::PlaySoundSource(
 	options.lowPassHz = found->lowPassHz;
 	options.farLowPassHz = found->farLowPassHz;
 	options.reverbMix = found->reverbMix;
-	return SoundSystem::Instance().PlayTrack3DAt(
-		found->trackName, position, found->variant, options) != SoundSystem::InvalidVoiceId;
+	return SoundSystem::Instance().Play3DAt(found->soundPath, position, options, found->variant) != SoundSystem::InvalidVoiceId;
 }
 
 bool VMDLModelComponent::PlayPresentation(

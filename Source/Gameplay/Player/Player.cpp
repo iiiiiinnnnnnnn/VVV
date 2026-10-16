@@ -1,6 +1,5 @@
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Player/PlayerInput.h"
-#include "Audio/SoundTracks.generated.h"
 #include "Rendering/Effect/Effects.generated.h"
 #include "Application/Input/Input.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
@@ -91,17 +90,18 @@ Player::~Player() = default;
 void Player::InitializeModel()
 {
 	// VMDL読み込み
-	vmdl = AddComponent<VMDL>("Resources/Model/Player/CombatGirls_Sword_Shield");
+	vmdl = AddComponent<VMDL>("Player/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(RAD(180.0f));
 	RemapQuickshiftWindTracks(*model);
 	// 足音切り替え用
-	footSound = vmdl->GetSoundSource("footsound");
+	footSound = vmdl->GetSoundSource("FOOTSTEP");
 
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する
-	anim = vmdl->GetAnimator();
-	anim->Load("Resources/Animator/Player.animator");
+	anim = AddComponent<Animator>(model);
+	vmdl->BuildFootIK(anim);
+	anim->Load("Player.animator");
 }
 
 void Player::InitializeMovement()
@@ -242,17 +242,21 @@ void Player::UpdateFootSound()
 	if (!terrain) return;
 
 	const std::string layerName = terrain->GetSurfaceLayerName(transform.position);
-	if (layerName == "grass")
+	if (isInWater)
 	{
-		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK_GRASS));
+		footSound->soundPath = "SE/Player/pl_water";
 	}
-	else if (layerName == "rock" || layerName == "stone")
+	else if (layerName == "grass")
 	{
-		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK_ROCK));
+		footSound->soundPath = "SE/Player/pl_walk_grass";
+	}
+	else if (layerName == "rock" || layerName == "stone" || layerName == "dirt")
+	{
+		footSound->soundPath = "SE/Player/pl_walk_rock";
 	}
 	else
 	{
-		footSound->trackName = std::string(SoundTrackName(SoundTrack::SE_PLAYER_PL_WALK));
+		footSound->soundPath = "";
 	}
 }
 
@@ -442,7 +446,12 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 	anim->SetBool("IsDead", IsDead());
 	anim->SetBool("IsJustDodge", false);
 	if (motor)
-		motor->SetRootMotionScale(crouching ? crouchRootMotionScale : 1.0f);
+	{
+		// 水に入ってたらゆっくり
+		float rootMotionScale = crouching ? crouchRootMotionScale : 1.0f;
+		if (isInWater) rootMotionScale *= waterMoveSpeedScale;
+		motor->SetRootMotionScale(rootMotionScale);
+	}
 }
 
 void Player::HandleAttackInput(const InputContext& input, const ActionState& state)

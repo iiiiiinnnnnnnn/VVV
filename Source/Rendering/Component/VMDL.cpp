@@ -1,6 +1,5 @@
 #include "Rendering/Component/VMDL.h"
 
-#include "Animation/Animator.h"
 #include "Animation/HumanoidFootIK.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -8,11 +7,12 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 
 VMDL::VMDL(Object* owner, const std::string& path) : Component(owner), path(path)
 {
 	// モデルを事前読込
-	if (!SetPreloadResourceFiles({path})) throw std::runtime_error("VMDL preload failed: " + path);
+	if (!SetPreloadResourceFiles({ResourcePath::Model(path)})) throw std::runtime_error("VMDL preload failed: " + path);
 
 	// キャラクターごとに埋め込みテクスチャをコピーせず、描画リソースを共有する。
 	auto loaded = ResourceManager::Instance().LoadModel(path, true);
@@ -33,9 +33,6 @@ void VMDL::BuildModelComponents()
 	renderer = owner->AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());
 	renderer->BuildAttachments();
-
-	animator = owner->AddComponent<Animator>(model);
-	BuildFootIK();
 
 	model->ApplyInitialMorphs();
 }
@@ -88,9 +85,10 @@ bool VMDL::EquipMeshCache(
 {
 	// 装備ファイルも事前読込一覧へ追加
 	std::vector<std::string> files = GetPreloadResourceFiles();
-	if (std::find(files.begin(), files.end(), path) == files.end())
+	const std::string modelPath = ResourcePath::Model(path);
+	if (std::find(files.begin(), files.end(), modelPath) == files.end())
 	{
-		files.push_back(path);
+		files.push_back(modelPath);
 		if (!SetPreloadResourceFiles(std::move(files))) return false;
 	}
 	return renderer && renderer->EquipMeshCache(slot, path, fallbackNodeName);
@@ -109,8 +107,9 @@ LayerId VMDL::GetAttachmentLayer() const
 	return 0;
 }
 
-void VMDL::BuildFootIK()
+void VMDL::BuildFootIK(Animator* animator)
 {
+	if (!animator || humanFootIK || multiLegFootIK) return;
 	const auto& settings = model->GetVmdlIKSettings();
 	if (settings.type == 0) return;
 

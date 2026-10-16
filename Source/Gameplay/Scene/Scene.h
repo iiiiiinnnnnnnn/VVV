@@ -14,6 +14,9 @@
 #include "UI/WidgetManager.h"
 #include "Gameplay/Stage/Stage01.h"
 
+class Animator;
+class VMDLModel;
+
 class Scene
 {
 public:
@@ -24,9 +27,12 @@ public:
 		HiddenLocked,
 	};
 
-	Scene() = default;
+	Scene();
 
-	virtual ~Scene() = default;
+	virtual ~Scene();
+
+	void OpenAnimatorEditor(const std::string& path = {}, std::shared_ptr<VMDLModel> model = {});
+	void DrawAnimatorEditor();
 
 	void CapturePreviewEnvironment();
 	virtual void Update();
@@ -44,6 +50,11 @@ public:
 	}
 
 private:
+	std::unique_ptr<Animator> animatorEditor;
+	std::string pendingAnimatorPath;
+	std::shared_ptr<VMDLModel> pendingAnimatorModel;
+	bool animatorOpenRequested = false;
+
 	void ApplyMouseCursorMode();
 	void SwitchToDebugMode();
 	void SwitchToPlayMode();

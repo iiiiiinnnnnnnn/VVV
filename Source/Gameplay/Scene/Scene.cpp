@@ -2,9 +2,11 @@
 // Scene.cpp
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
+#include "Animation/Animator.h"
 #include "Gameplay/Lighting/Light.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/MeshCache.h"
+#include "Resource/ResourceManager.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -21,6 +23,50 @@
 #include "Physics/Collider/CharacterController.h"
 
 #include <format>
+
+Scene::Scene() = default;
+Scene::~Scene() = default;
+
+void Scene::OpenAnimatorEditor(const std::string& path, std::shared_ptr<VMDLModel> model)
+{
+	// エディター自身の「開く」からも呼ばれるため、描画中には作り直さない。
+	pendingAnimatorPath = path;
+	pendingAnimatorModel = std::move(model);
+	animatorOpenRequested = true;
+}
+
+void Scene::DrawAnimatorEditor()
+{
+	if (animatorOpenRequested)
+	{
+		animatorOpenRequested = false;
+		if (!animatorEditor || !pendingAnimatorPath.empty() ||
+			(pendingAnimatorModel && animatorEditor->GetModel() != pendingAnimatorModel))
+		{
+			auto model = std::move(pendingAnimatorModel);
+			if (!model && !pendingAnimatorPath.empty())
+			{
+				const auto modelPath = ResourceManager::FindSourceResourceRoot() / "Model" /
+					(std::filesystem::path(pendingAnimatorPath).stem().string() + ".vmdl");
+				if (std::filesystem::is_regular_file(modelPath))
+					model = ResourceManager::Instance().LoadModel(modelPath.string(), true);
+			}
+
+			// 再生中のコンポーネントではなく、Scene専用の編集データを保持する。
+			animatorEditor = std::make_unique<Animator>(nullptr, std::move(model), true);
+			if (!pendingAnimatorPath.empty())
+				animatorEditor->Load(pendingAnimatorPath);
+			else
+				animatorEditor->AddLayer("Base Layer");
+		}
+		pendingAnimatorPath.clear();
+		pendingAnimatorModel.reset();
+		animatorEditor->OpenEditorWindow();
+	}
+
+	if (animatorEditor && animatorEditor->editorOpen)
+		animatorEditor->DrawEditor(&animatorEditor->editorOpen);
+}
 
 void Scene::SwitchToDebugMode()
 {
@@ -507,6 +553,8 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 			if (ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")))
 			{
+				if (ImGui::MenuItem((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター")))
+					OpenAnimatorEditor();
 				if (ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"))) showPhysicsLayerWindow = true;
 				ImGui::EndMenu();
 			}

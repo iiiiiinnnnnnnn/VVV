@@ -1,8 +1,8 @@
 // CacheBuilder.cpp
 #include "Resource/CacheBuilder.h"
 #include "Resource/CacheSettings.h"
-#include "Audio/SoundTracks.generated.h"
 #include "Audio/VSoundFormat.h"
+#include "Audio/SoundPaths.h"
 
 #include <combaseapi.h>
 #include <compressapi.h>
@@ -297,17 +297,24 @@ std::vector<Asset> Collect(const fs::path& sourceRoot)
 
 	if (fs::is_directory(sourceRoot / "Sound"))
 	{
-		for (const auto& sound : SoundDefinitions)
+		std::set<std::string> groups;
+		for (const auto& file : fs::recursive_directory_iterator(sourceRoot / "Sound"))
+		{
+			if (!file.is_regular_file() || Lower(Text(file.path().extension())) != ".wav") continue;
+			const auto relative = SoundPaths::Group(file.path()).lexically_relative(sourceRoot);
+			bool excluded = false;
+			for (const auto& part : relative)
+				if (Lower(Text(part)).starts_with("ninclude_")) excluded = true;
+			if (!excluded) groups.insert(Text(relative));
+		}
+		for (const auto& soundPath : groups)
 		{
 			Asset asset;
 			asset.sound = true;
-			asset.soundVariants = FindSoundVariants(sourceRoot, std::string(sound.path));
+			asset.soundVariants = FindSoundVariants(sourceRoot, "Resources/" + soundPath);
 			asset.source = asset.soundVariants.front().second;
 			asset.entry.type = "file";
-			fs::path registeredPath(std::string(sound.path));
-			auto part = registeredPath.begin();
-			if (part != registeredPath.end() && Lower(Text(*part)) == "resources") ++part;
-			for (; part != registeredPath.end(); ++part) asset.entry.relative /= *part;
+			asset.entry.relative = Path(soundPath);
 			asset.entry.relative.replace_extension(VSound::Extension);
 			const auto key = Lower(Text(asset.entry.relative));
 			if (assets.contains(key)) throw std::runtime_error("Duplicate output: " + key);

@@ -251,7 +251,7 @@ template <class Archive> void VMDLModel::VmdlSoundSource::serialize(Archive& arc
 
 template <class Archive> void VMDLModel::VmdlSoundSourceBinding::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(trackName), CEREAL_NVP(variant), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
+	archive(CEREAL_NVP(soundPath), CEREAL_NVP(variant), CEREAL_NVP(pitchMin), CEREAL_NVP(pitchMax));
 }
 
 template <class Archive> void VMDLModel::VmdlSoundKeyframe::serialize(Archive& archive)

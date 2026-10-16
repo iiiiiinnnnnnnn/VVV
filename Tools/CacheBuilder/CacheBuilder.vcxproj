@@ -50,10 +50,8 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="..\..\Source\Resource\CacheBuilder.cpp" />
     <ClInclude Include="..\..\Source\Resource\CacheBuilder.h" />
-	<ClInclude Include="..\..\Source\Audio\SoundTracks.generated.h" />
 	<ClInclude Include="..\..\Source\Audio\VSoundFormat.h" />
     <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Import Project="$(MSBuildThisFileDirectory)SoundDefinitions.targets" />
 </Project>

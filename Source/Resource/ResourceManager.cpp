@@ -1,5 +1,6 @@
 ﻿// ResourceManager.cpp
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
 #endif
@@ -223,9 +224,10 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 
 std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bool runtimeInstance)
 {
+	const std::string modelPath = ResourcePath::Model(key);
 	const auto loadStarted = std::chrono::steady_clock::now();
-	if (cacheSettings.Get(ResolvePath(key)).excluded) return nullptr;
-	const std::string lookupKey = MakeLookupKey(key);
+	if (cacheSettings.Get(ResolvePath(modelPath)).excluded) return nullptr;
+	const std::string lookupKey = MakeLookupKey(modelPath);
 	const auto pathIt = assetPathLookup.find(lookupKey);
 	if (pathIt == assetPathLookup.end() || assetPaths[pathIt->second].type != AssetType::VMDLModel)
 		throw std::runtime_error(

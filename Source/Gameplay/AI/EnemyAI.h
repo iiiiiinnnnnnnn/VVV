@@ -12,7 +12,8 @@ class NavMeshAgent;
 class EnemyAI : public LuaScript
 {
 public:
-	EnemyAI(Object* owner);
+	// LuaはResources/AIと拡張子を省略できる。省略時は後からLoadで指定する。
+	EnemyAI(Object* owner, const std::string& path = {});
 
 	void OnDisabled() override;
 	void OnRender(const RenderContext& rc) override;

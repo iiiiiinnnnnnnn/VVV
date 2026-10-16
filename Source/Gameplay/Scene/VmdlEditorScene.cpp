@@ -8,6 +8,8 @@
 #include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
 #include "Audio/SoundSystem.h"
+#include "Resource/ResourcePath.h"
+#include "Rendering/Renderer/ImGuiPath.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Camera/Camera.h"
@@ -197,33 +199,37 @@ VmdlEditorScene::~VmdlEditorScene()
 	graphics.SetWindowMovementLocked(false);
 }
 
-std::string VmdlEditorScene::SoundTrackLabel(const std::string& trackName) const
+std::string VmdlEditorScene::SoundPathLabel(const std::string& soundPath) const
 {
-	if (trackName.empty()) return (const char*)u8"なし";
-	const auto* sound = FindSoundDefinition(trackName);
-	if (!sound) return (const char*)u8"未登録";
-	const std::string normalized = std::filesystem::path(std::string(sound->path)).generic_string();
-	constexpr std::string_view prefix = "Resources/Sound/";
-	const std::string display = normalized.starts_with(prefix)
-		? normalized.substr(prefix.size()) : normalized;
-	return "SoundTrack::" + std::string(sound->name) + "  -  " + display;
+	return soundPath.empty() ? (const char*)u8"なし" : ResourcePath::Short(soundPath, "Sound");
 }
 
-bool VmdlEditorScene::DrawSoundTrackSelector(const char* label, std::string& trackName)
+bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soundPath)
 {
-	const std::string preview = SoundTrackLabel(trackName);
+	const std::string display = SoundPathLabel(soundPath);
+	const float previewWidth = ImGui::CalcItemWidth() - ImGui::GetFrameHeight() - ImGui::GetStyle().FramePadding.x * 2;
+	const std::string preview = ImGuiPath::Tail(display, previewWidth);
 	bool changed = false;
-	if (ImGui::BeginCombo(label, preview.c_str()))
+	const bool open = ImGui::BeginCombo(label, preview.c_str());
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", display.c_str());
+	if (open)
 	{
-		for (const auto& sound : SoundDefinitions)
+		if (ImGui::Selectable((const char*)u8"なし", soundPath.empty()))
 		{
-			const std::string candidate(sound.name);
-			const std::string item = SoundTrackLabel(candidate);
-			if (ImGui::Selectable(item.c_str(), trackName == candidate))
+			soundPath.clear();
+			changed = true;
+		}
+		for (const auto& candidate : SoundSystem::GetSoundPaths())
+		{
+			ImGui::PushID(candidate.c_str());
+			const std::string item = ImGuiPath::Tail(candidate, ImGui::GetContentRegionAvail().x);
+			if (ImGui::Selectable(item.c_str(), ResourcePath::Short(soundPath, "Sound") == candidate))
 			{
-				trackName = candidate;
+				soundPath = candidate;
 				changed = true;
 			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", candidate.c_str());
+			ImGui::PopID();
 		}
 		ImGui::EndCombo();
 	}
@@ -1406,6 +1412,8 @@ void VmdlEditorScene::DrawMenuBar()
 	// 補助ウィンドウ
 	if (ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")))
 	{
+		if (ImGui::MenuItem((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター")))
+			OpenAnimatorEditor();
 		if (ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"))) showPhysicsLayerWindow = true;
 		ImGui::EndMenu();
 	}
@@ -3395,7 +3403,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			changed |= DrawComponentTransform(*model, value.transform);
-			if (DrawSoundTrackSelector((const char*)u8"サウンド", value.trackName)) changed = true;
+			if (DrawSoundPathSelector((const char*)u8"サウンド", value.soundPath)) changed = true;
 			bool randomVariant = value.variant < 0;
 			if (ImGui::Checkbox((const char*)u8"バリエーションをランダム選択", &randomVariant))
 			{
@@ -3432,7 +3440,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			value.reverbMix = std::clamp(value.reverbMix, 0.0f, 1.0f);
 			if (changed) MarkDirty();
 
-			ImGui::BeginDisabled(value.trackName.empty());
+			ImGui::BeginDisabled(value.soundPath.empty());
 			if (ImGui::Button(ICON_FA_PLAY "##TestSound")) PlaySoundSourcePreview(i);
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 				ImGui::SetTooltip((const char*)u8"テスト再生");
@@ -4796,9 +4804,9 @@ void VmdlEditorScene::PlaySoundSourcePreview(int sourceIndex)
 		spatial.reverbMix = source.reverbMix;
 		const Vector3 position = model->GetScaledAttachmentTransform(
 			source.transform.ToMatrix() * model->GetNodes()[source.nodeIndex].worldTransform).Translation();
-		SoundSystem::Instance().PlayTrack3DAt(source.trackName, position, source.variant, spatial);
+		SoundSystem::Instance().Play3DAt(source.soundPath, position, spatial, source.variant);
 	}
-	else SoundSystem::Instance().PlayTrack(source.trackName, source.variant, options);
+	else SoundSystem::Instance().Play(source.soundPath, options, source.variant);
 }
 
 void VmdlEditorScene::PlayAnimationSoundPreview(
@@ -6574,7 +6582,7 @@ void VmdlEditorScene::SaveVmdlAs()
 void VmdlEditorScene::LoadModel(
 	const std::filesystem::path& requestedPath, const std::filesystem::path& requestedDestination)
 {
-	const auto filepath = ResourceManager::ResolveSourcePath(requestedPath);
+	const auto filepath = ResourceManager::ResolveSourcePath(ResourcePath::Path(ResourcePath::Model(ResourcePath::Text(requestedPath))));
 	const auto importDestination = ResourceManager::ResolveSourcePath(requestedDestination);
 	if (!std::filesystem::is_regular_file(filepath))
 	{

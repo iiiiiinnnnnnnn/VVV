@@ -1,5 +1,6 @@
 #include "Rendering/Core/VMatRenderParams.h"
 #include "Resource/VMDLModel.h"
+#include "Resource/ResourcePath.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"
 #include "Resource/GpuResourceUtils.h"
@@ -2587,7 +2588,7 @@ void VMDLModel::Serialize(const char* filename)
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
 	std::vector<VmdlSoundSourceBinding> soundBindings;
 	for (const auto& source : vmdlSoundData.sources)
-		soundBindings.push_back({source.trackName, source.variant, source.pitchMin, source.pitchMax});
+		soundBindings.push_back({ResourcePath::Short(source.soundPath, "Sound"), source.variant, source.pitchMin, source.pitchMax});
 	VmdlComponentTransformData componentTransforms;
 	for (const auto& value : vmdlExtensionData.rigidBodies)
 		componentTransforms.rigidBodies.push_back(value.transform);
@@ -2966,7 +2967,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				vmdlParticleData.emitters[i].effectName = std::move(effectBindings[i]);
 			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
 			{
-				vmdlSoundData.sources[i].trackName = std::move(soundBindings[i].trackName);
+				vmdlSoundData.sources[i].soundPath = ResourcePath::Short(soundBindings[i].soundPath, "Sound");
 				vmdlSoundData.sources[i].variant = soundBindings[i].variant;
 				vmdlSoundData.sources[i].pitchMin = soundBindings[i].pitchMin;
 				vmdlSoundData.sources[i].pitchMax = soundBindings[i].pitchMax;

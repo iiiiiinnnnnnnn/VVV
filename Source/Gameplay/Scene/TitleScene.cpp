@@ -137,7 +137,7 @@ TitleScene::TitleScene()
 void TitleScene::CreateTitleWorld()
 {
 	auto titleStage = std::make_unique<Stage>();
-	if (!titleStage->LoadVSTG("Resources/Stage/cave_01.vstg")) return;
+	if (!titleStage->LoadVSTG("cave_01")) return;
 
 	StageLoader* loader = titleStage->GetComponent<StageLoader>();
 	showcasePosition = loader && loader->HasPlayerStart()
@@ -148,10 +148,11 @@ void TitleScene::CreateTitleWorld()
 	showcasePlayer->transform.SetPosition(showcasePosition);
 	showcasePlayer->transform.SetRotation(Quaternion::Identity);
 	VMDL* playerVmdl = showcasePlayer->AddComponent<VMDL>(
-		"Resources/Model/Player/CombatGirls_Sword_Shield");
+		"Player/CombatGirls_Sword_Shield");
 	playerVmdl->SetModelYawOffset(RAD(180.0f));
-	if (Animator* animator = playerVmdl->GetAnimator())
-		animator->Load("Resources/Animator/TitlePlayer.animator");
+	Animator* animator = showcasePlayer->AddComponent<Animator>(playerVmdl->GetSharedModel());
+	playerVmdl->BuildFootIK(animator);
+	animator->Load("TitlePlayer.animator");
 
 	Camera* camera = titleStage->GetActiveCamera();
 	if (!camera) return;

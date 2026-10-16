@@ -20,6 +20,8 @@ public:
 	void SetTargetTag(const std::string& tag) { targetTag = tag; }
 	void SetAutoMove(bool enabled) { autoMove = enabled; }
 	void SetMovementPaused(bool value) { movementPaused = value; }
+	void SetRotationPaused(bool value) { rotationPaused = value; }
+	void SetAngularSpeed(float degrees) { angularSpeed = std::max(degrees, 0.0f); }
 	void SetChargeMovement(bool value) { chargeMovement = value; }
 	void MoveToTarget(Actor* targetActor);
 	void MoveToPosition(const Vector3& targetPosition);
@@ -51,12 +53,14 @@ private:
 	bool chaseTargetTag = false;
 	bool rotateToMoveDirection = true;
 	bool movementPaused = false;
+	bool rotationPaused = false;
 	bool chargeMovement = false;
 	Vector3 destination = Vector3::Zero;
 	float randomMinDistance = 3.0f;
 	float randomMaxDistance = 10.0f;
 	float stoppingDistance = 1.5f;
 	float turnSpeed = 8.0f;
+	float angularSpeed = 0.0f;
 	float currentTurnAngle = 0.0f;
 	Vector3 lastMoveDelta = Vector3::Zero;
 	float currentSpeed = 0.0f;

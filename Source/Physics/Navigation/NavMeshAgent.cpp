@@ -211,12 +211,14 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		direction.Dot(actor->transform.right),
 		direction.Dot(actor->transform.forward));
 
-	if (rotateToMoveDirection && !chargeMovement)
+	if (rotateToMoveDirection && !chargeMovement && !rotationPaused)
 	{
 		const float targetYaw = atan2f(direction.x, direction.z);
 		const Quaternion targetRotation =
 			Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
-		const float rate = 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
+		const float rate = angularSpeed > 0.0f
+			? std::min(1.0f, RAD(angularSpeed) * Game::Time::deltaTime / std::max(fabsf(currentTurnAngle), eps))
+			: 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
 		actor->transform.SetRotation(
 			Quaternion::Slerp(actor->transform.rotation, targetRotation, rate));
 	}

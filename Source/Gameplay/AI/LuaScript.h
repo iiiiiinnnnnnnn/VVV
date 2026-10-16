@@ -15,6 +15,7 @@ class LuaScript : public Component
 	explicit LuaScript(Object* owner);
 	~LuaScript() override;
 
+	// Resources/AIを基準に読み込む（例：Aracore.lua、Aracore）。
 	bool Load(const std::string& path);
 	bool Reload();
 

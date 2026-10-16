@@ -28,7 +28,7 @@ class Aracore : public Entity
 {
 public:
 	Aracore(Player* player_init, const Transform& transform, Terrain* terrain_init = nullptr,
-		const std::string& modelPath = "Resources/Model/Aracore");
+		const std::string& modelPath = "Aracore");
 	~Aracore() override;
 	void OnUpdate() override;
 	void OnLateUpdate() override;
@@ -67,6 +67,7 @@ private:
 	void ShakeCameraAtLanding();
 	void RequestAnimatedMovement(float speed, const char* requiredAnimation);
 	void StopAnimatedMovement();
+	void UpdateTurningAnimation();
 	void UpdateJumpAnimationLandingHold();
 	void UpdateChaseBgm();
 	void StopChaseBgm();

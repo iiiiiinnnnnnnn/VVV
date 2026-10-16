@@ -153,6 +153,7 @@ void SceneManager::Render()
 	if (currentScene)
 	{
 		currentScene->Render();
+		currentScene->DrawAnimatorEditor();
 	}
 }
 

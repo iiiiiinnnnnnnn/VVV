@@ -12,7 +12,7 @@
 class Deer : public Entity
 {
 public:
-	Deer(const Transform& transform, const std::string& modelPath = "Resources/Model/Deer", bool inBossField = false);
+	Deer(const Transform& transform, const std::string& modelPath = "Deer", bool inBossField = false);
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;

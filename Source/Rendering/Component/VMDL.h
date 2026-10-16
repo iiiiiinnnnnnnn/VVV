@@ -26,7 +26,8 @@ class VMDL : public Component
 	const std::shared_ptr<VMDLModel>& GetSharedModel() const { return model; }
 	VMDLModel* GetModel() const { return model.get(); }
 	VMDLModelComponent* GetRenderer() const { return renderer; }
-	Animator* GetAnimator() const { return animator; }
+	// 呼び出し側で追加したAnimatorを使い、VMDLの設定からFootIKを構築する。
+	void BuildFootIK(Animator* animator);
 	HumanoidFootIK* GetHumanFootIK() const { return humanFootIK; }
 	MultiLegFootIK* GetMultiLegFootIK() const { return multiLegFootIK; }
 	PhysicsComponent* GetCollider(const std::string& name) const;
@@ -54,12 +55,10 @@ class VMDL : public Component
   private:
 	void BuildModelComponents();
 	LayerId GetAttachmentLayer() const;
-	void BuildFootIK();
 
 	std::string path;
 	std::shared_ptr<VMDLModel> model;
 	VMDLModelComponent* renderer = nullptr;
-	Animator* animator = nullptr;
 	HumanoidFootIK* humanFootIK = nullptr;
 	MultiLegFootIK* multiLegFootIK = nullptr;
 };

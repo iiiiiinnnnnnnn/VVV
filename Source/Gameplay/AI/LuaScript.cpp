@@ -6,6 +6,8 @@
 #include <utility>
 
 #include "Application/Time/GameTime.h"
+#include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 
 LuaScript::LuaScript(Object* owner) : Component(owner)
 {
@@ -24,7 +26,13 @@ LuaScript::~LuaScript()
 
 bool LuaScript::Load(const std::string& path)
 {
-	scriptPath = path;
+	// Debug/Developmentで親階層にVEER.slnがあれば、プロジェクトのResourcesを使う。
+	// 見つからない場合とReleaseは、実行ファイル側のキャッシュを使う。
+	// 解決した絶対パスを保持し、読み込みと更新日時の監視を同じファイルへ向ける。
+	scriptPath = std::filesystem::absolute(ResourceManager::ResolveSourcePath(
+		ResourcePath::Path(ResourcePath::AI(path))))
+		.lexically_normal().string();
+	hasWriteTime = false;
 	return Reload();
 }
 

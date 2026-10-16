@@ -14,7 +14,7 @@
 
 #include "imgui.h"
 
-EnemyAI::EnemyAI(Object* owner)
+EnemyAI::EnemyAI(Object* owner, const std::string& path)
 	: LuaScript(owner)
 {
 	SetFloat("SearchRange", 15.0f); // 追跡開始距離
@@ -36,6 +36,7 @@ EnemyAI::EnemyAI(Object* owner)
 	SetFloat("TurnThreshold", 15.0f); // ナビメッシュの目的地に向かって回転中の角度の閾値
 	SetFloat("TargetDistance", std::numeric_limits<float>::max()); // ターゲットまでの距離
 	SetVector3("TargetPosition", Vector3::Zero); // ターゲットの位置
+	if (!path.empty()) Load(path);
 }
 
 void EnemyAI::OnDisabled()
@@ -171,7 +172,7 @@ void EnemyAI::StopMovement()
 
 void EnemyAI::FaceTarget()
 {
-	if (!target) return;
+	if (!target || GetBool("RotationPaused")) return;
 
 	Vector3 direction = target->transform.position - owner->GetTransform()->position;
 	direction.y = 0.0f;
@@ -181,7 +182,12 @@ void EnemyAI::FaceTarget()
 	const Quaternion targetRotation = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
 	const float deltaTime = Game::Time::deltaTime;
 	const float remainingAngle = expf(-trackingTurnSpeed * deltaTime);
-	const float turnAmount = 1.0f - remainingAngle;
+	const float angularSpeed = GetFloat("TurnAngularSpeed");
+	const float dot = fabsf(owner->GetTransform()->rotation.Dot(targetRotation));
+	const float angle = 2.0f * acosf(std::clamp(dot, 0.0f, 1.0f));
+	const float turnAmount = angularSpeed > 0.0f
+		? std::min(1.0f, RAD(angularSpeed) * deltaTime / std::max(angle, eps))
+		: 1.0f - remainingAngle;
 	const Quaternion currentRotation = owner->GetTransform()->rotation;
 	const Quaternion nextRotation = Quaternion::Slerp(currentRotation, targetRotation, turnAmount);
 	owner->GetTransform()->SetRotation(nextRotation);

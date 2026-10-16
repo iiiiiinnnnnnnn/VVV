@@ -1,5 +1,6 @@
 ﻿// SoundSystem.cpp
 #include "Audio/SoundSystem.h"
+#include "Audio/SoundPaths.h"
 #include "Audio/VSoundFormat.h"
 
 #include "Resource/ResourceManager.h"
@@ -197,27 +198,39 @@ void SoundSystem::Update()
 	}
 }
 
-// WAVを再生してボイスIDを返す
-SoundSystem::VoiceId SoundSystem::Play(const std::string& path, const PlayOptions& options)
+// パスで再生する。enum登録やソースの再コンパイルは不要。
+SoundSystem::VoiceId SoundSystem::Play(const std::string& path, const PlayOptions& options, int variant)
 {
-	return StartVoice(path, options, nullptr, nullptr, nullptr);
+	auto sound = LoadPathSound(path, variant);
+	return sound ? StartVoiceData(path, std::move(sound), options, nullptr, nullptr, nullptr) : InvalidVoiceId;
 }
 
-// Actorに追従して再生、範囲外なら無効ID
-SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter, const SpatialOptions& options)
+SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter,
+	const SpatialOptions& options, int variant)
 {
-	if (!emitter || !emitter->IsActive() || emitter->IsPendingDestroy() || !IsValidSpatialOptions(options))
-		return InvalidVoiceId;
+	if (!emitter || !emitter->IsActive() || emitter->IsPendingDestroy() ||
+		!IsValidSpatialOptions(options)) return InvalidVoiceId;
 	if (emitter->weak_from_this().expired())
 	{
 		ReportSoundError("Play3D requires a shared_ptr-managed Actor");
 		return InvalidVoiceId;
 	}
 	const Camera* listener = GetListenerCamera();
-	if (!listener) return InvalidVoiceId;
-	const float distance = Vector3::Distance(emitter->transform.position, listener->GetEye());
-	if (GetDistanceGain(distance, options) <= 0.0f) return InvalidVoiceId;
-	return StartVoice(path, options, emitter, &options, listener);
+	if (!listener || GetDistanceGain(Vector3::Distance(emitter->transform.position, listener->GetEye()), options) <= 0.0f)
+		return InvalidVoiceId;
+	auto sound = LoadPathSound(path, variant);
+	return sound ? StartVoiceData(path, std::move(sound), options, emitter, &options, listener) : InvalidVoiceId;
+}
+
+SoundSystem::VoiceId SoundSystem::Play3DAt(const std::string& path, const Vector3& position,
+	const SpatialOptions& options, int variant)
+{
+	if (!IsValidSpatialOptions(options)) return InvalidVoiceId;
+	const Camera* listener = GetListenerCamera();
+	if (!listener || GetDistanceGain(Vector3::Distance(position, listener->GetEye()), options) <= 0.0f)
+		return InvalidVoiceId;
+	auto sound = LoadPathSound(path, variant);
+	return sound ? StartVoiceData(path, std::move(sound), options, nullptr, &options, listener, &position) : InvalidVoiceId;
 }
 
 void SoundSystem::SetListenerOverride(const Camera* camera)
@@ -225,87 +238,27 @@ void SoundSystem::SetListenerOverride(const Camera* camera)
 	listenerOverride = camera;
 }
 
-SoundSystem::VoiceId SoundSystem::PlayTrack(
-	SoundTrack track, int variant, const PlayOptions& options)
+std::vector<std::string> SoundSystem::GetSoundPaths()
 {
-	const auto* definition = FindSoundDefinition(track);
-	if (!definition) return InvalidVoiceId;
-	auto sound = LoadTrackSound(*definition, variant);
-	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
-		options, nullptr, nullptr, nullptr) : InvalidVoiceId;
-}
-
-SoundSystem::VoiceId SoundSystem::PlayTrack(
-	std::string_view trackName, int variant, const PlayOptions& options)
-{
-	const auto* definition = FindSoundDefinition(trackName);
-	if (!definition) return InvalidVoiceId;
-	return PlayTrack(definition->id, variant, options);
-}
-
-SoundSystem::VoiceId SoundSystem::PlayTrack3D(
-	SoundTrack track, Actor* emitter, int variant, const SpatialOptions& options)
-{
-	if (!emitter || !emitter->IsActive() || emitter->IsPendingDestroy() ||
-		!IsValidSpatialOptions(options)) return InvalidVoiceId;
-	if (emitter->weak_from_this().expired())
+	auto root = ResourceManager::FindSourceResourceRoot();
+	if (root.empty()) root = std::filesystem::current_path() / "Resources";
+	root /= "Sound";
+	std::vector<std::string> paths;
+	std::error_code error;
+	for (std::filesystem::recursive_directory_iterator iterator(root, error), end;
+		!error && iterator != end; iterator.increment(error))
 	{
-		ReportSoundError("PlayTrack3D requires a shared_ptr-managed Actor");
-		return InvalidVoiceId;
+		if (!iterator->is_regular_file()) continue;
+		const auto extension = SoundPaths::Lower(ResourcePath::Text(iterator->path().extension()));
+		if (extension != ".wav" && extension != ".vsnd") continue;
+		auto relative = iterator->path().lexically_relative(root);
+		paths.push_back(ResourcePath::Short(ResourcePath::Text(relative), "Sound"));
+		if (SoundPaths::Variant(relative) >= 0)
+			paths.push_back(ResourcePath::Short(ResourcePath::Text(SoundPaths::Group(relative)), "Sound"));
 	}
-	const Camera* listener = GetListenerCamera();
-	if (!listener) return InvalidVoiceId;
-	const float distance = Vector3::Distance(emitter->transform.position, listener->GetEye());
-	if (GetDistanceGain(distance, options) <= 0.0f) return InvalidVoiceId;
-	const auto* definition = FindSoundDefinition(track);
-	if (!definition) return InvalidVoiceId;
-	auto sound = LoadTrackSound(*definition, variant);
-	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
-		options, emitter, &options, listener) : InvalidVoiceId;
-}
-
-SoundSystem::VoiceId SoundSystem::PlayTrack3D(
-	std::string_view trackName, Actor* emitter, int variant, const SpatialOptions& options)
-{
-	const auto* definition = FindSoundDefinition(trackName);
-	if (!definition) return InvalidVoiceId;
-	return PlayTrack3D(definition->id, emitter, variant, options);
-}
-
-SoundSystem::VoiceId SoundSystem::PlayTrack3DAt(
-	SoundTrack track, const Vector3& position, int variant, const SpatialOptions& options)
-{
-	if (!IsValidSpatialOptions(options)) return InvalidVoiceId;
-	const Camera* listener = GetListenerCamera();
-	if (!listener || GetDistanceGain(Vector3::Distance(position, listener->GetEye()), options) <= 0.0f)
-		return InvalidVoiceId;
-	const auto* definition = FindSoundDefinition(track);
-	if (!definition) return InvalidVoiceId;
-	auto sound = LoadTrackSound(*definition, variant);
-	return sound ? StartVoiceData(std::string(definition->name), std::move(sound),
-		options, nullptr, &options, listener, &position) : InvalidVoiceId;
-}
-
-SoundSystem::VoiceId SoundSystem::PlayTrack3DAt(
-	std::string_view trackName, const Vector3& position, int variant,
-	const SpatialOptions& options)
-{
-	const auto* definition = FindSoundDefinition(trackName);
-	if (!definition) return InvalidVoiceId;
-	return PlayTrack3DAt(definition->id, position, variant, options);
-}
-
-// ボイスを作成して再生
-SoundSystem::VoiceId SoundSystem::StartVoice(const std::string& path, const PlayOptions& options,
-	Actor* emitter, const SpatialOptions* spatial, const Camera* listener,
-	const Vector3* fixedPosition)
-{
-	if (!IsInitialized() && !Initialize()) return InvalidVoiceId;
-	if (spatial && !InitializeReverb()) return InvalidVoiceId;
-
-	std::shared_ptr<SoundData> sound = LoadSound(path);
-	if (!sound) return InvalidVoiceId;
-	return StartVoiceData(path, std::move(sound), options, emitter, spatial, listener, fixedPosition);
+	std::sort(paths.begin(), paths.end());
+	paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+	return paths;
 }
 
 SoundSystem::VoiceId SoundSystem::StartVoiceData(const std::string& name,
@@ -436,7 +389,14 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 		const std::filesystem::path dataPath = std::filesystem::path("Resources") / path;
 		if (std::filesystem::exists(dataPath)) resolved = dataPath;
 	}
-	const std::string key = MakeSoundKey(resolved);
+	std::error_code error;
+	const auto writeTime = std::filesystem::last_write_time(resolved, error);
+	if (error)
+	{
+		ReportSoundError("WAV was not found: " + path);
+		return nullptr;
+	}
+	const std::string key = MakeSoundKey(resolved) + "#" + std::to_string(writeTime.time_since_epoch().count());
 	if (const auto found = sounds.find(key); found != sounds.end()) return found->second;
 
 	try
@@ -461,17 +421,57 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 	}
 }
 
-std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadTrackSound(
-	const SoundDefinition& track, int variant)
+std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::string& path, int variant)
 {
-	std::filesystem::path cachePath(std::string(track.path));
+	if (path.empty()) return nullptr;
+	const auto requested = ResourcePath::Path(ResourcePath::Sound(path));
+	const int pathVariant = SoundPaths::Variant(requested);
+	if (pathVariant >= 0) variant = pathVariant;
+
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	// 開発時は新規追加・削除されたWAVも、生成ヘッダーを介さず直接反映する。
+	auto source = ResourceManager::ResolveSourcePath(requested);
+#else
+	auto source = requested;
+#endif
+	source.replace_extension(".wav");
+	const auto waves = SoundPaths::Waves(source);
+	if (!waves.empty())
+	{
+		if (variant >= 0)
+		{
+			for (const auto& [index, wave] : waves)
+				if (index == variant) return LoadSound(ResourcePath::Text(wave));
+			ReportSoundError("Sound variant was not found: " + path);
+			return nullptr;
+		}
+		static thread_local std::mt19937 random(std::random_device{}());
+		std::uniform_int_distribution<size_t> distribution(0, waves.size() - 1);
+		return LoadSound(ResourcePath::Text(waves[distribution(random)].second));
+	}
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	auto runtimeWave = requested;
+	runtimeWave.replace_extension(".wav");
+	if (source != runtimeWave)
+	{
+		ReportSoundError("Source WAV was not found: " + path);
+		return nullptr;
+	}
+#endif
+	return LoadCachedSound(path, variant);
+}
+
+std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadCachedSound(
+	const std::string& path, int variant)
+{
+	std::filesystem::path cachePath = SoundPaths::Group(ResourcePath::Path(ResourcePath::Sound(path)));
 	cachePath.replace_extension(VSound::Extension);
-	const std::string logicalPath = cachePath.generic_string();
+	const std::string logicalPath = ResourcePath::Text(cachePath);
 	const std::filesystem::path resolved = ResourceManager::Instance().ResolvePath(logicalPath);
 	try
 	{
 		std::ifstream input(resolved, std::ios::binary | std::ios::ate);
-		if (!input) throw std::runtime_error("track is not registered or cached");
+		if (!input) throw std::runtime_error("sound cache was not found");
 		const auto fileSizeValue = input.tellg();
 		if (fileSizeValue < 12) throw std::runtime_error("truncated VSND header");
 		const uint64_t fileSize = static_cast<uint64_t>(fileSizeValue);
@@ -499,7 +499,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadTrackSound(
 		{
 			const auto found = std::find_if(entries.begin(), entries.end(),
 				[variant](const VSound::Entry& entry) { return entry.variant == variant; });
-			if (found == entries.end()) throw std::runtime_error("variant is not registered");
+			if (found == entries.end()) throw std::runtime_error("sound variant was not found");
 			selected = &*found;
 		}
 		else

@@ -155,6 +155,7 @@ class Player : public Entity
 	bool sprinting = false;
 	bool crouching = false;
 	float crouchRootMotionScale = 0.75f;
+	float waterMoveSpeedScale = 0.6f; // 水中の歩行・走行速度の倍率（1.0で通常速度）
 	bool terrainDeformKeyHeld = false;
 	bool actionInputThisFrame = false;
 	float healthRecoveryTimer = 0.0f;

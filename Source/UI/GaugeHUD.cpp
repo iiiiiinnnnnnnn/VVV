@@ -21,11 +21,6 @@ void GaugeHUD::SetFrameTexture(const std::string& path)
 	frameTexture = ResourceManager::Instance().LoadTexture(path);
 }
 
-void GaugeHUD::SetEmblemTexture(const std::string& path)
-{
-	emblemTexture = ResourceManager::Instance().LoadTexture(path);
-}
-
 void GaugeHUD::SetTargetValue(float ratio)
 {
 	const float value = std::clamp(ratio, 0.0f, 1.0f);
@@ -49,12 +44,6 @@ void GaugeHUD::SetFillRect(const Vector2& position, const Vector2& size)
 {
 	fillPosition = position;
 	fillSize = size;
-}
-
-void GaugeHUD::SetEmblemRect(const Vector2& position, const Vector2& size)
-{
-	emblemPosition = position;
-	emblemSize = size;
 }
 
 void GaugeHUD::SetColors(const Color& normal, const Color& low, const Color& frame)
@@ -140,13 +129,4 @@ void GaugeHUD::OnRender(const RenderContext&)
 	if (damageTrailEnabled && damageTrailValue > ratio)
 		DrawFillTiles(fillTopLeft, maximumFill, damageTrailValue, damageTrailColor);
 	DrawFillTiles(fillTopLeft, maximumFill, ratio, ratio < 0.3f ? lowColor : normalColor);
-	if (emblemTexture && emblemSize.x > 0.0f && emblemSize.y > 0.0f)
-	{
-		const Vector2 emblemTopLeft = topLeft + Vector2(
-			rect.size.x * emblemPosition.x, rect.size.y * emblemPosition.y);
-		DrawSprite(emblemTexture, emblemTopLeft,
-			{rect.size.x * emblemSize.x, rect.size.y * emblemSize.y},
-			{static_cast<float>(emblemTexture->GetWidth()), static_cast<float>(emblemTexture->GetHeight())},
-			0.0f, frameColor);
-	}
 }

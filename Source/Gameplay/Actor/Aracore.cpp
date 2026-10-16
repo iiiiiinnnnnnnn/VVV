@@ -53,9 +53,11 @@ Aracore::Aracore(Player* player_init,
 		vmdl->UpdateTransform(transform.matrix);
 
 		// アニメータ
-		anim = vmdl->GetAnimator();
-		anim->SetRootMotion("Box01");
-		anim->Load("Resources/Animator/Aracore.animator");
+		anim = AddComponent<Animator>(vmdl->GetSharedModel());
+		vmdl->BuildFootIK(anim);
+		// 旋回はNavMesh側で制御し、威嚇・死亡時の胴体の傾きはモデルへ残す。
+		anim->SetRootMotion("Box01", false);
+		anim->Load("Aracore.animator");
 		anim->BindCallbacks();
 
 		// キャラクターコントローラー
@@ -73,6 +75,7 @@ Aracore::Aracore(Player* player_init,
 		characterController->SetContactOffset(0.2f);
 		navMeshAgent = AddComponent<NavMeshAgent>();
 		navMeshAgent->SetTurnSpeed(1.8f);
+		navMeshAgent->SetAngularSpeed(45.0f);
 
 		multiLegFootIK = vmdl->GetMultiLegFootIK();
 	}
@@ -81,7 +84,7 @@ Aracore::Aracore(Player* player_init,
 	RegisterAIActions();
 
 	// 破片のモデルは、形態変化が起こる前に準備する。
-	phaseFragmentModel = ResourceManager::Instance().LoadModel("Resources/Model/CrystalPart.vmdl", true);
+	phaseFragmentModel = ResourceManager::Instance().LoadModel("CrystalPart", true);
 	Vector3 fragmentCenter;
 	if (phaseFragmentModel && GetCrystalModelBounds(*phaseFragmentModel, fragmentCenter, phaseFragmentSize))
 		phaseFragmentModel->GetVmdlExtensionData().rootOffset -= fragmentCenter;
@@ -89,10 +92,9 @@ Aracore::Aracore(Player* player_init,
 
 void Aracore::ConfigureAI()
 {
-	controller = AddComponent<EnemyAI>();
-	controller->Load("Resources/AI/Aracore.lua");
+	controller = AddComponent<EnemyAI>("Aracore.lua");
 	controller->SetTrackingTurnSpeed(2.0f);
-
+	controller->SetFloat("TurnAngularSpeed", 45.0f);
 }
 
 void Aracore::RegisterAIActions()
@@ -124,10 +126,9 @@ void Aracore::RegisterAIActions()
 			controller->GetFloat("FreedomMaxDistance", 18.0f));
 	};
 
-	// 旋回中(歩かない)
+	// 旋回中は踏み替えアニメーションに合わせて、その場で向きを変える。
 	const auto updateTurn = [this]()
 	{
-		// 既存の経路をたどり続けることで、大きな進行方向の変化が歩行弧になります
 		const float moveSpeed = controller->GetFloat("FreedomMoveSpeed", 1.4f);
 		RequestAnimatedMovement(moveSpeed, "walk");
 		navMeshAgent->SetSpeed(moveSpeed);
@@ -192,7 +193,7 @@ void Aracore::RegisterAIActions()
 			if (controller->GetBool("CloseToTarget"))
 			{
 				controller->StopMovement();
-				StopAnimatedMovement();
+				RequestAnimatedMovement(0.0f, "turn");
 				controller->FaceTarget();
 			}
 			else
@@ -395,7 +396,7 @@ void Aracore::RequestAnimatedMovement(float speed, const char* requiredAnimation
 	requiredMovementAnimation = requiredAnimation ? requiredAnimation : "";
 	movementAnimationGateActive = !requiredMovementAnimation.empty();
 	if (anim) anim->SetFloat("speed", requestedAnimationMoveSpeed);
-	if (navMeshAgent) navMeshAgent->SetMovementPaused(!IsMovementAnimationReady());
+	UpdateTurningAnimation();
 }
 
 void Aracore::StopAnimatedMovement()
@@ -403,8 +404,31 @@ void Aracore::StopAnimatedMovement()
 	requestedAnimationMoveSpeed = 0.0f;
 	requiredMovementAnimation.clear();
 	movementAnimationGateActive = false;
-	if (anim) anim->SetFloat("speed", 0.0f);
-	if (navMeshAgent) navMeshAgent->SetMovementPaused(false);
+	if (anim)
+	{
+		anim->SetFloat("speed", 0.0f);
+		anim->SetBool("turnLeft", false);
+		anim->SetBool("turnRight", false);
+	}
+	controller->SetBool("RotationPaused", false);
+	if (navMeshAgent)
+	{
+		navMeshAgent->SetMovementPaused(false);
+		navMeshAgent->SetRotationPaused(false);
+	}
+}
+
+void Aracore::UpdateTurningAnimation()
+{
+	const float angle = controller->GetFloat("TurnAngle");
+	const bool turning = (requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn") &&
+		fabsf(angle) > controller->GetFloat("TurnThreshold", 8.0f);
+	anim->SetBool("turnLeft", turning && angle < 0.0f);
+	anim->SetBool("turnRight", turning && angle > 0.0f);
+	const bool ready = IsMovementAnimationReady();
+	controller->SetBool("RotationPaused", !ready);
+	navMeshAgent->SetRotationPaused(!ready);
+	navMeshAgent->SetMovementPaused(turning || requiredMovementAnimation == "turn" || !ready);
 }
 
 bool Aracore::IsMovementAnimationReady() const
@@ -415,6 +439,13 @@ bool Aracore::IsMovementAnimationReady() const
 	const std::string& state = anim->GetCurrentStateName();
 	if (requiredMovementAnimation == "charge")
 		return state == "attack" || state == "run";
+	if (requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn")
+	{
+		const float angle = controller->GetFloat("TurnAngle");
+		if (fabsf(angle) > controller->GetFloat("TurnThreshold", 8.0f))
+			return state == (angle > 0.0f ? "turn_right" : "turn_left");
+	}
+	if (requiredMovementAnimation == "turn") return state == "Idle";
 	return state == requiredMovementAnimation;
 }
 
@@ -616,8 +647,7 @@ void Aracore::OnUpdate()
 		return;
 	}
 	anim->SetFloat("speed", requestedAnimationMoveSpeed);
-	if (movementAnimationGateActive)
-		navMeshAgent->SetMovementPaused(!IsMovementAnimationReady());
+	UpdateTurningAnimation();
 }
 
 void Aracore::UpdateJumpAnimationLandingHold()
@@ -673,7 +703,7 @@ void Aracore::UpdateChaseBgm()
 		SoundSystem::PlayOptions options;
 		options.volume = 0.0f;
 		options.loop = true;
-		voiceIdChase = sound.PlayTrack(SoundTrack::BGM_CHASE, -1, options);
+		voiceIdChase = sound.Play("BGM/chase", options, -1);
 		chaseBgmVolume = 0.0f;
 	}
 

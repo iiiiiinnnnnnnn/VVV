@@ -16,7 +16,6 @@
 #include <vector>
 
 #include "Core/Foundation/Common.h"
-#include "Audio/SoundTracks.generated.h"
 
 class Actor;
 class Camera;
@@ -63,28 +62,16 @@ class SoundSystem
 	// エディタなど独立したプレビューだけが聞き手を差し替える
 	void SetListenerOverride(const Camera* camera);
 
-	// WAVを再生してボイスIDを返す
-	VoiceId Play(const std::string& path, const PlayOptions& options = {});
+	// Resources/Soundと拡張子は省略できる（例：SE/Player/pl_walk）。
+	// 連番をまとめたVSNDではvariant=-1でランダム再生する。
+	VoiceId Play(const std::string& path, const PlayOptions& options = {}, int variant = -1);
+	VoiceId Play3D(const std::string& path, Actor* emitter,
+		const SpatialOptions& options = {}, int variant = -1);
+	VoiceId Play3DAt(const std::string& path, const Vector3& position,
+		const SpatialOptions& options = {}, int variant = -1);
 
-	// shared_ptr管理のActorに追従、範囲外なら停止
-	VoiceId Play3D(const std::string& path, Actor* emitter, const SpatialOptions& options = {});
-
-	// 登録済みトラックを再生。variant=-1はコンテナ内からランダム選択
-	VoiceId PlayTrack(SoundTrack track, int variant = -1, const PlayOptions& options = {});
-	VoiceId PlayTrack(std::string_view trackName, int variant = -1,
-		const PlayOptions& options = {});
-
-	// 登録済みトラックをActorの位置から3D再生
-	VoiceId PlayTrack3D(SoundTrack track, Actor* emitter, int variant = -1,
-		const SpatialOptions& options = {});
-	VoiceId PlayTrack3D(std::string_view trackName, Actor* emitter, int variant = -1,
-		const SpatialOptions& options = {});
-
-	// 登録済みトラックを指定したワールド座標から3D再生
-	VoiceId PlayTrack3DAt(SoundTrack track, const Vector3& position, int variant = -1,
-		const SpatialOptions& options = {});
-	VoiceId PlayTrack3DAt(std::string_view trackName, const Vector3& position, int variant = -1,
-		const SpatialOptions& options = {});
+	// エディター用。現在存在するWAV/VSNDからパス一覧を作る（enumや生成ヘッダーは不要）。
+	static std::vector<std::string> GetSoundPaths();
 
 	// ボイスを停止・解放
 	void Stop(VoiceId voiceId);
@@ -224,7 +211,8 @@ class SoundSystem
 
 	// WAVのパスを解決してキャッシュに読み込む
 	std::shared_ptr<SoundData> LoadSound(const std::string& path);
-	std::shared_ptr<SoundData> LoadTrackSound(const SoundDefinition& track, int variant);
+	std::shared_ptr<SoundData> LoadPathSound(const std::string& path, int variant);
+	std::shared_ptr<SoundData> LoadCachedSound(const std::string& path, int variant);
 	std::shared_ptr<SoundData> DecodeWave(
 		const uint8_t* bytes, size_t size, const std::string& name) const;
 
@@ -232,9 +220,6 @@ class SoundSystem
 	bool ApplyPan(ActiveVoice& voice, float pan);
 
 	// ボイスを作成して再生
-	VoiceId StartVoice(const std::string& path, const PlayOptions& options,
-		Actor* emitter, const SpatialOptions* spatial, const Camera* listener,
-		const Vector3* fixedPosition = nullptr);
 	VoiceId StartVoiceData(const std::string& name, std::shared_ptr<SoundData> sound,
 		const PlayOptions& options, Actor* emitter, const SpatialOptions* spatial,
 		const Camera* listener, const Vector3* fixedPosition = nullptr);

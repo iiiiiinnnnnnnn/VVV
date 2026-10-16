@@ -398,7 +398,7 @@ class VMDLModel
 	{
 		std::string name = "SOUND SOURCE";
 		int nodeIndex = -1;
-		std::string trackName = "SE_PLAYER_PL_WALK";
+		std::string soundPath = "SE/Player/pl_walk";
 		int variant = -1;
 		float pitchMin = 1.0f;
 		float pitchMax = 1.0f;
@@ -416,7 +416,7 @@ class VMDLModel
 
 	struct VmdlSoundSourceBinding
 	{
-		std::string trackName;
+		std::string soundPath;
 		int variant = -1;
 		float pitchMin = 1.0f;
 		float pitchMax = 1.0f;

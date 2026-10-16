@@ -11,15 +11,16 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f)
 {
 	vmdl = AddComponent<VMDL>(modelPath);
-	anim = vmdl->GetAnimator();
+	anim = AddComponent<Animator>(vmdl->GetSharedModel());
+	vmdl->BuildFootIK(anim);
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 
 	auto footIK = vmdl->GetMultiLegFootIK();
 	footIK->SetContactOffset(-0.864f);
 	footIK->SetModelVisualOffsetY(-0.22f);
-	anim->Load("Resources/Animator/Deer.animator");
-	anim->SetRootMotion("armature");
+	anim->Load("Deer.animator");
+	anim->SetRootMotion("armature", false);
 
 	// キャラクターコントローラー
 	cc = AddComponent<CharacterController>(
@@ -27,10 +28,6 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 	cc->SetStepOffset(0.15f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.1f);
-
-	/*motor = AddComponent<CharacterMotorComponent>(anim, cc);
-	motor->SetRootMotionNode("armature");
-	motor->SetUseRootMotion(false);*/
 
 	// NavMeshAgent
 	navMeshAgent = AddComponent<NavMeshAgent>();
@@ -44,13 +41,11 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 
 	// EnemyAI
 	ConfigureAI();
-
 }
 
 void Deer::ConfigureAI()
 {
-	controller = AddComponent<EnemyAI>();
-	controller->Load("Resources/AI/Deer.lua");
+	controller = AddComponent<EnemyAI>("Deer.lua");
 
 	controller->SetTrackingTurnSpeed(1.0f);
 
@@ -268,8 +263,7 @@ void Deer::OnDead(const DamageData& damageData)
 	SoundSystem::SpatialOptions deathSoundOptions;
 	deathSoundOptions.minDistance = 15.0f;
 	deathSoundOptions.maxDistance = 20.0f;
-	SoundSystem::Instance().PlayTrack3DAt(
-		SoundTrack::SE_DEER_DIE, transform.position, -1, deathSoundOptions);
+	SoundSystem::Instance().Play3DAt("SE/Deer/die", transform.position, deathSoundOptions, -1);
 
 	StopCharge();
 	navMeshAgent->SetActive(false);

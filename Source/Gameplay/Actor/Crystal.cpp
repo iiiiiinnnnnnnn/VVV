@@ -158,7 +158,7 @@ Crystal::Crystal(const Transform& transform, const std::string& modelPath) : Bas
 	life = maxLife;
 
 	// サイズの走査と描画用モデルの準備は、破壊時ではなく生成時に済ませる。
-	auto source = ResourceManager::Instance().LoadModel("Resources/Model/CrystalPart.vmdl", true);
+	auto source = ResourceManager::Instance().LoadModel("CrystalPart", true);
 	Vector3 partCenter;
 	if (!source || !GetCrystalModelBounds(*source, partCenter, partSize)) return;
 	if (!GetCrystalModelBounds(*loadedModel, crystalCenter, crystalSize)) return;

@@ -1,6 +1,7 @@
-﻿// Animator.cpp
 #include "Animation/Animator.h"
+#include "Resource/ResourcePath.h"
 #include "Gameplay/Actor/Actor.h"
+#include "Gameplay/Scene/SceneManager.h"
 #include "Application/Time/GameTime.h"
 #include "IconsFontAwesome5.h"
 #include <filesystem>
@@ -56,7 +57,6 @@ Animator::Animator(Object* owner, std::shared_ptr<VMDLModel> model, bool unscale
 
 Animator::~Animator()
 {
-	if (activeEditor == this) activeEditor = nullptr;
     if (editorContext) ax::NodeEditor::DestroyEditor(editorContext);
 }
 
@@ -232,7 +232,7 @@ void Animator::Update()
 
     if (useRootMotion && rootNodeIndex == -1)
     {
-        SetRootMotion(rootNodeName);
+        SetRootMotion(rootNodeName, extractRootRotation);
     }
 
     const int nodeCount = static_cast<int>(model->GetNodes().size());
@@ -303,23 +303,20 @@ void Animator::_print() const
 
 void Animator::OpenEditor()
 {
-	if (activeEditor && activeEditor != this) activeEditor->editorOpen = false;
-	activeEditor = this;
-    if (!editorContext)
-    {
-        ax::NodeEditor::Config config;
-        config.SettingsFile = nullptr;
-        config.CanvasSizeMode = ax::NodeEditor::CanvasSizeMode::FitVerticalView;
-        editorContext = ax::NodeEditor::CreateEditor(&config);
-    }
-    editorOpen = true;
+	if (Scene* scene = SceneManager::Instance().GetCurrentScene())
+		scene->OpenAnimatorEditor(GetLastPath(), model);
 }
 
-void Animator::DrawOpenEditor()
+void Animator::OpenEditorWindow()
 {
-	if (!activeEditor) return;
-	activeEditor->DrawEditor(&activeEditor->editorOpen);
-	if (!activeEditor->editorOpen) activeEditor = nullptr;
+	if (!editorContext)
+	{
+		ax::NodeEditor::Config config;
+		config.SettingsFile = nullptr;
+		config.CanvasSizeMode = ax::NodeEditor::CanvasSizeMode::FitVerticalView;
+		editorContext = ax::NodeEditor::CreateEditor(&config);
+	}
+	editorOpen = true;
 }
 
 void Animator::UpdateLayer(
@@ -807,12 +804,9 @@ void Animator::UpdateLayer(
             frameRootMotionVec *
             layer.weight;
 
-        rootMotionRot =
-            rootMotionRot *
-            Quaternion::Lerp(
-                Quaternion::Identity,
-                frameRootMotionRot,
-                layer.weight);
+        if (extractRootRotation)
+            rootMotionRot = rootMotionRot * Quaternion::Lerp(
+                Quaternion::Identity, frameRootMotionRot, layer.weight);
     }
 
     for (int nodeIndex = 0;
@@ -831,6 +825,8 @@ void Animator::UpdateLayer(
                 rootMotionBasePose;
             finalPoses[nodeIndex].position.y =
                 nodePoses[nodeIndex].position.y;
+            if (!extractRootRotation)
+                finalPoses[nodeIndex].rotation = nodePoses[nodeIndex].rotation;
 
             continue;
         }
@@ -910,11 +906,12 @@ void Animator::Stop(int layerIndex)
     layer.isTransitioning = false;
 }
 
-void Animator::SetRootMotion(const std::string& name)
+void Animator::SetRootMotion(const std::string& name, bool extractRotation)
 {
 
     rootNodeName = name;
     useRootMotion = true;
+    extractRootRotation = extractRotation;
     rootNodeIndex = -1;
     rootMotionBasePose = {};
 
@@ -1143,10 +1140,10 @@ bool Animator::GetAnimationControlState(int& animationIndex, float& time,
 }
 bool Animator::Save(const std::string& path)
 {
-    m_lastPath = path;
+    m_lastPath = ResourcePath::Animator(path);
 
     const std::filesystem::path selectedPath =
-        std::filesystem::absolute(path).lexically_normal();
+        std::filesystem::absolute(ResourcePath::Path(m_lastPath)).lexically_normal();
     const std::filesystem::path runtimeResourceRoot =
         (std::filesystem::current_path() / "Resources")
         .lexically_normal();
@@ -1213,6 +1210,6 @@ std::string Animator::GetStateAnimationName(const State& state) const
 
 void Animator::Load(const std::string& path)
 {
-    m_lastPath = path;
-    Deserialize(path);
+    m_lastPath = ResourcePath::Animator(path);
+    Deserialize(m_lastPath);
 }

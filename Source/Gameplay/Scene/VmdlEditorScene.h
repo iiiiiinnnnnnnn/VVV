@@ -1,7 +1,6 @@
 // VmdlEditorScene.h
 #pragma once
 
-#include "Audio/SoundTracks.generated.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Effect/Effects.generated.h"
@@ -84,8 +83,8 @@ class VmdlEditorScene : public Scene
 	void DrawMorphEditor();
 	void DrawMaterialEditor();
 	void DrawMaterialAnimationKeys();
-	bool DrawSoundTrackSelector(const char* label, std::string& trackName);
-	std::string SoundTrackLabel(const std::string& trackName) const;
+	bool DrawSoundPathSelector(const char* label, std::string& soundPath);
+	std::string SoundPathLabel(const std::string& soundPath) const;
 	bool DrawEffectSelector(const char* label, std::string& effectName);
 	std::string EffectLabel(const std::string& effectName) const;
 	void DrawAttachedData(int nodeIndex);
