@@ -1,4 +1,4 @@
-﻿#include "IconsFontAwesome5.h"
+#include "IconsFontAwesome5.h"
 // Scene.cpp
 #include "Gameplay/Scene/Scene.h"
 #include "Application/Time/GameTime.h"
@@ -48,8 +48,9 @@ void Scene::DrawAnimatorEditor()
 			{
 				const auto modelPath = ResourceManager::FindSourceResourceRoot() / "Model" /
 					(std::filesystem::path(pendingAnimatorPath).stem().string() + ".vmdl");
+				// ソースの絶対パスはマニフェストの検索キーと一致しないため、直接読み込む
 				if (std::filesystem::is_regular_file(modelPath))
-					model = ResourceManager::Instance().LoadModel(modelPath.string(), true);
+					model = std::make_shared<VMDLModel>(modelPath.string().c_str());
 			}
 
 			// 再生中のコンポーネントではなく、Scene専用の編集データを保持する。
