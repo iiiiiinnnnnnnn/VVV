@@ -50,7 +50,7 @@ local parameters = {
 
     -- 怒り状態・形態変化
     AngryIdleScale           = 0.4,    -- 怒り状態で待ち時間に掛ける倍率
-    AngryJumpChance          = 0.7,    -- 怒り状態でジャンプを選ぶ確率（0～1）
+    AngryJumpChance          = 0.5,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
