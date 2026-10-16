@@ -238,14 +238,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 
 std::string VmdlEditorScene::EffectLabel(const std::string& effectName) const
 {
-	if (effectName.empty()) return (const char*)u8"なし";
-	const auto* effect = FindEffectDefinition(effectName);
-	if (!effect) return (const char*)u8"未登録";
-	const std::string normalized = std::filesystem::path(std::string(effect->path)).generic_string();
-	constexpr std::string_view prefix = "Resources/Effect/";
-	const std::string display = normalized.starts_with(prefix)
-		? normalized.substr(prefix.size()) : normalized;
-	return "EffectId::" + std::string(effect->name) + "  -  " + display;
+	return effectName.empty() ? (const char*)u8"なし" : ResourcePath::Short(effectName, "Effect");
 }
 
 bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectName)
@@ -259,11 +252,10 @@ bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectN
 			effectName.clear();
 			changed = true;
 		}
-		for (const auto& effect : EffectDefinitions)
+		for (const auto& candidate : EffectManager::GetEffectPaths())
 		{
-			const std::string candidate(effect.name);
 			const std::string item = EffectLabel(candidate);
-			if (ImGui::Selectable(item.c_str(), effectName == candidate))
+			if (ImGui::Selectable(item.c_str(), ResourcePath::Short(effectName, "Effect") == candidate))
 			{
 				effectName = candidate;
 				changed = true;

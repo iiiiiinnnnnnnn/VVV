@@ -6,7 +6,10 @@
 #include "Core/Object/Object.h"
 #include "Resource/ResourceManager.h"
 
+#include "Resource/ResourcePath.h"
+
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <stdexcept>
 
@@ -122,39 +125,49 @@ Effekseer::Handle EffectManager::PlayDetached(
 	return handle;
 }
 
-std::shared_ptr<Effect> EffectManager::LoadEffect(std::string_view effectName)
+std::vector<std::string> EffectManager::GetEffectPaths()
 {
-	const auto* definition = FindEffectDefinition(effectName);
-	if (!definition) throw std::runtime_error("Effect is not registered: " + std::string(effectName));
-	return LoadEffect(definition->id);
+	auto root = ResourceManager::FindSourceResourceRoot();
+	if (root.empty()) root = std::filesystem::current_path() / "Resources";
+	root /= "Effect";
+	std::vector<std::string> paths;
+	std::error_code error;
+	for (std::filesystem::recursive_directory_iterator iterator(root, error), end;
+		!error && iterator != end; iterator.increment(error))
+	{
+		if (!iterator->is_regular_file(error)) continue;
+		auto extension = ResourcePath::Text(iterator->path().extension());
+		std::transform(extension.begin(), extension.end(), extension.begin(),
+			[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+		if (extension != ".efkpkg") continue;
+		auto relative = iterator->path().lexically_relative(root);
+	}
+	std::sort(paths.begin(), paths.end());
+	return paths;
 }
 
-std::shared_ptr<Effect> EffectManager::LoadEffect(EffectId effect)
+std::shared_ptr<Effect> EffectManager::LoadEffect(std::string_view effectPath)
 {
-	const auto* definition = FindEffectDefinition(effect);
-	if (!definition) throw std::runtime_error("EffectId is not registered");
+	if (effectPath.empty()) throw std::runtime_error("Effect path is empty");
+	const auto path = std::filesystem::weakly_canonical(ResourceManager::ResolveSourcePath(
+		ResourcePath::Path(ResourcePath::Effect(effectPath))));
+	const std::string key = ResourcePath::Text(path);
 	const std::vector<uint8_t>* data = nullptr;
-	std::filesystem::path path;
-	if (const auto found = effectData.find(effect); found != effectData.end()) data = &found->second;
+	if (const auto found = effectData.find(key); found != effectData.end()) data = &found->second;
 	else
 	{
-		path = ResourceManager::Instance().ResolveSourcePath(
-			std::filesystem::path(std::string(definition->path)));
 		std::ifstream input(path, std::ios::binary | std::ios::ate);
-		if (!input) throw std::runtime_error("Effect file was not found: " + path.string());
+		if (!input) throw std::runtime_error("Effect file was not found: " + key);
 		const std::streamsize size = input.tellg();
-		if (size <= 0) throw std::runtime_error("Effect file is empty: " + path.string());
+		if (size <= 0) throw std::runtime_error("Effect file is empty: " + key);
 		input.seekg(0);
 		std::vector<uint8_t> loadedData(static_cast<size_t>(size));
 		if (!input.read(reinterpret_cast<char*>(loadedData.data()), size))
-			throw std::runtime_error("Effect file read failed: " + path.string());
-		data = &effectData.emplace(effect, std::move(loadedData)).first->second;
+			throw std::runtime_error("Effect file read failed: " + key);
+		data = &effectData.emplace(key, std::move(loadedData)).first->second;
 	}
-
 	auto loaded = std::shared_ptr<Effect>(new Effect(data->data(), data->size()));
-	if (!loaded->IsValid())
-		throw std::runtime_error("Effect load failed: " + (path.empty()
-			? std::string(definition->name) : path.string()));
+	if (!loaded->IsValid()) throw std::runtime_error("Effect load failed: " + key);
 	return loaded;
 }
 

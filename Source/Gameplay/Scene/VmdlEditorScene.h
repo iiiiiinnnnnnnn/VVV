@@ -3,7 +3,6 @@
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/Scene.h"
-#include "Rendering/Effect/Effects.generated.h"
 
 #include <filesystem>
 #include <memory>

@@ -1,6 +1,5 @@
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Player/PlayerInput.h"
-#include "Rendering/Effect/Effects.generated.h"
 #include "Application/Input/Input.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -72,7 +71,7 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	// 回避の残像には描画リソースと取得時の姿勢だけを保持する
 	afterimage = AddComponent<AfterimageComponent>(model);
 
-	attackHitEffect = EffectManager::Instance().LoadEffect(EffectId::CRITICAL);
+	attackHitEffect = EffectManager::Instance().LoadEffect("critical");
 	attackHitEffect->SetBillboard(true);
 
 	// luaです

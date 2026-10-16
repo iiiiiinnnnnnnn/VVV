@@ -18,7 +18,7 @@ local parameters = {
     SightTargetHeight        = 1.0,    -- 相手のどの高さを見るか
     SightHorizontalFov       = 120.0,  -- 左右の視野角（度）
     SightVerticalFov         = 75.0,   -- 上下の視野角（度）
-    TurnThreshold            = 8.0,    -- この角度よりずれていたら旋回する（度）
+    TurnThreshold            = 10.0,    -- この角度よりずれていたら旋回する（度）
 
     -- 徘徊
     FreedomMinDistance       = 5.0,    -- 徘徊先を選ぶ最小距離
@@ -34,16 +34,16 @@ local parameters = {
     ChaseDuration            = 6.0,    -- 追跡してから突進準備に移るまでの時間（秒）
     TurningMoveSpeed         = 1.4,    -- 突進前に近づくときの移動速度
     ChargePrepareDuration    = 1.0,    -- 突進準備の最短時間（秒）
-    ChargeMoveSpeed          = 6.5,    -- 突進の移動速度
+    ChargeMoveSpeed          = 10.5,    -- 突進の移動速度
     ChargeOverDistance       = 10.0,   -- 相手の位置を越えて走る距離
-    ChargeMaxDuration        = 2.5,    -- 突進を続ける最長時間（秒）
-    RecoveryDuration         = 1.5,    -- 攻撃後に休む時間（秒）
+    ChargeMaxDuration        = 2.0,    -- 突進を続ける最長時間（秒）
+    RecoveryDuration         = 0.8,    -- 攻撃後に休む時間（秒）
 
     -- ジャンプ
     JumpChance               = 0.25,   -- 休憩後にジャンプを選ぶ確率（0～1）
     JumpTakeoffDelay         = 0.65,   -- ジャンプ開始から離陸までの時間（秒）
     JumpDuration             = 2.4,    -- 空中にいる時間（秒）
-    JumpHeight               = 10.0,   -- ジャンプの高さ
+    JumpHeight               = 15.0,   -- ジャンプの高さ
     JumpLandingRecovery      = 0.9,    -- 着地後に動き出すまでの時間（秒）
     JumpTerrainDeformPower   = 1.25,   -- 着地時の地形変形の強さ
     JumpTerrainDeformRadius  = 8.0,    -- 着地時の地形変形の半径
@@ -54,8 +54,8 @@ local parameters = {
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
-    PhaseColorChangeDuration = 3.0,    -- 形態変化で体色が変わる時間（秒）
-    DeathDissolveAmount      = 0.35,   -- HP減少に応じたディゾルブの最大量
+    PhaseColorChangeDuration = 5.0,    -- 形態変化で体色が変わる時間（秒）
+    DeathDissolveAmount      = 0.5,   -- HP減少に応じたディゾルブの最大量
 }
 
 -- 同名のC++パラメーターへ渡す。以降はGetFloatで最新値を読む。

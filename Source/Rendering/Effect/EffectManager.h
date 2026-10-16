@@ -10,7 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Rendering/Effect/Effects.generated.h"
+#include <string>
+#include <string_view>
 
 class Effect;
 class Object;
@@ -45,8 +46,8 @@ public:
 
 	// 再生元とは独立したObjectとしてエフェクトを再生
 	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform);
-	std::shared_ptr<Effect> LoadEffect(EffectId effect);
-	std::shared_ptr<Effect> LoadEffect(std::string_view effectName);
+	std::shared_ptr<Effect> LoadEffect(std::string_view path);
+	static std::vector<std::string> GetEffectPaths();
 
 	// Effeckseerマネージャーの取得
 	Effekseer::ManagerRef GetEffekseerManager() { return effekseerManager; }
@@ -73,7 +74,7 @@ private:
 
 	Effekseer::ManagerRef effekseerManager = nullptr;
 	EffekseerRenderer::RendererRef effekseerRenderer = nullptr;
-	std::unordered_map<EffectId, std::vector<uint8_t>> effectData;
+	std::unordered_map<std::string, std::vector<uint8_t>> effectData;
 	std::vector<std::shared_ptr<Object>> playbackObjects;
 	std::vector<EffectPlayback> effectPlaybacks;
 };

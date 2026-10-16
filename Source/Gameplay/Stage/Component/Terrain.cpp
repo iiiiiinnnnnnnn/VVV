@@ -2372,7 +2372,7 @@ void Terrain::PlayGrassRemovalEffect(const Vector3& worldPosition)
 {
 	if (grassRemovalEffectCooldown > 0.0f) return;
 	auto& effects = EffectManager::Instance();
-	if (!grassRemovalEffect) grassRemovalEffect = effects.LoadEffect(EffectId::FEATHER);
+	if (!grassRemovalEffect) grassRemovalEffect = effects.LoadEffect("feather");
 	effects.PlayDetached(grassRemovalEffect, 
 		 Matrix::CreateScale(0.3f) * Matrix::CreateTranslation(worldPosition));
 	grassRemovalEffectCooldown = 0.08f;

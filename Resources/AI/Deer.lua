@@ -31,7 +31,7 @@ local parameters = {
 
     -- 突進
     AttackMoveSpeed       = 7.0,    -- 突進の移動速度
-    AttackOverDistance    = 30.0,   -- 相手の位置を越えて走る距離
+    AttackOverDistance    = 20.0,   -- 相手の位置を越えて走る距離
 }
 
 -- 同名のC++パラメーターへ渡す。以降はGetFloatで最新値を読む。

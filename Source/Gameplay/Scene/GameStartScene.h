@@ -4,7 +4,6 @@
 #include "Gameplay/Scene/Scene.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheSettings.h"
-#include "Rendering/Effect/Effects.generated.h"
 #include <map>
 #endif
 
@@ -39,26 +38,18 @@ private:
 	{
 		std::string name;
 		std::string path;
-		std::string enumName;
 		bool file = false;
 		std::map<std::string, ResourceTreeNode> children;
 	};
 
 	void DrawTreeLabel(const ResourceTreeNode& node, int depth,
 		const std::vector<bool>& guides, bool last);
-	void AddResourceTreePath(ResourceTreeNode& root, const std::string& path,
-		const std::string& enumName = "");
-	void DrawEnumTreeNode(ResourceTreeNode& node, const std::string& enumPrefix,
-		int depth, const std::vector<bool>& guides, bool last);
+	void AddResourceTreePath(ResourceTreeNode& root, const std::string& path);
 	void DrawCacheTreeNode(ResourceTreeNode& node, int depth,
 		const std::vector<bool>& guides, bool last);
-	void DrawCacheManager();
+	void DrawResourceSettings();
 	void ReloadCacheList();
-	void DrawSoundManager();
-	void DrawEffectManager();
-	bool showCacheManager = false;
-	bool showSoundManager = false;
-	bool showEffectManager = false;
+	bool showResourceSettings = false;
 	CacheSettings cacheSettings;
 	std::vector<std::string> cachePaths;
 	std::string cacheMessage;

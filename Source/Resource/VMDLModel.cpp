@@ -2964,7 +2964,20 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
 			applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
 			for (size_t i = 0; i < vmdlParticleData.emitters.size(); ++i)
-				vmdlParticleData.emitters[i].effectName = std::move(effectBindings[i]);
+			{
+				auto path = std::move(effectBindings[i]);
+				// 旧形式のID文字列をエフェクトパスへ移行する。
+				if (!path.empty() && ResourcePath::Path(path).extension().empty() &&
+					path.find_first_of("/\\") == std::string::npos &&
+					std::all_of(path.begin(), path.end(), [](unsigned char character)
+					{ return std::isupper(character) || std::isdigit(character) || character == '_'; }))
+				{
+					std::transform(path.begin(), path.end(), path.begin(),
+						[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+					path += ".efkpkg";
+				}
+				vmdlParticleData.emitters[i].effectName = ResourcePath::Short(path, "Effect");
+			}
 			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
 			{
 				vmdlSoundData.sources[i].soundPath = ResourcePath::Short(soundBindings[i].soundPath, "Sound");

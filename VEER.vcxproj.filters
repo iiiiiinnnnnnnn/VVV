@@ -588,9 +588,6 @@
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Effect\Effects.generated.h">
-      <Filter>Rendering\Effect</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\Effect.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>

@@ -229,7 +229,6 @@
     <ClInclude Include="Source\Application\Tools\Dialog.h" />
     <ClInclude Include="Source\Rendering\Effect\Effect.h" />
     <ClInclude Include="Source\Rendering\Effect\EffectManager.h" />
-    <ClInclude Include="Source\Rendering\Effect\Effects.generated.h" />
     <ClInclude Include="Source\Gameplay\AI\EnemyAI.h" />
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />

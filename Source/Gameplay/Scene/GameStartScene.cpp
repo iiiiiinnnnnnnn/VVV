@@ -9,9 +9,6 @@
 #include "Rendering/Component/SpriteRenderComponent.h"
 #include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/ResourceManager.h"
-#include "Audio/SoundSystem.h"
-#include "Resource/ResourcePath.h"
-#include "Rendering/Renderer/ImGuiPath.h"
 #include "Resource/Texture.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
@@ -156,7 +153,7 @@ void GameStartScene::OnDrawGUI()
 {
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 管理画面ではヘッダーを隠す
-	const bool showLauncherHeader = !showCacheManager && !showSoundManager && !showEffectManager;
+	const bool showLauncherHeader = !showResourceSettings;
 	headerWidget->SetActive(showLauncherHeader);
 	headerText->SetActive(showLauncherHeader);
 #endif
@@ -178,23 +175,9 @@ void GameStartScene::OnDrawGUI()
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	// 選択中の管理画面へ切り替え
-	if (showCacheManager)
+	if (showResourceSettings)
 	{
-		DrawCacheManager();
-		ImGui::End();
-		ImGui::PopStyleVar();
-		return;
-	}
-	if (showSoundManager)
-	{
-		DrawSoundManager();
-		ImGui::End();
-		ImGui::PopStyleVar();
-		return;
-	}
-	if (showEffectManager)
-	{
-		DrawEffectManager();
+		DrawResourceSettings();
 		ImGui::End();
 		ImGui::PopStyleVar();
 		return;
@@ -208,7 +191,7 @@ void GameStartScene::OnDrawGUI()
 
 	// リリース版は3つだけ(というかそもそも起動画面すらない)
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	constexpr int buttonCount = 6;
+	constexpr int buttonCount = 4;
 #else
 	constexpr int buttonCount = 3;
 #endif
@@ -253,26 +236,12 @@ void GameStartScene::OnDrawGUI()
 	const ImVec4 utilityHovered(0.20f, 0.29f, 0.39f, 1.0f);
 	const ImVec4 utilityActive(0.28f, 0.40f, 0.53f, 1.0f);
 	ImGui::SameLine();
-	if (DrawMenuButton((const char*)u8"CACHE\nキャッシュ管理", utilityNormal,
+	if (DrawMenuButton((const char*)u8"RESOURCES\nリソース設定", utilityNormal,
 		utilityHovered, utilityActive, buttonSize))
 	{
-		showCacheManager = true;
+		showResourceSettings = true;
 		windowConfigured = false;
 		ReloadCacheList();
-	}
-	ImGui::SameLine();
-	if (DrawMenuButton((const char*)u8"SOUND\nサウンド管理", utilityNormal,
-		utilityHovered, utilityActive, buttonSize))
-	{
-		showSoundManager = true;
-		windowConfigured = false;
-	}
-	ImGui::SameLine();
-	if (DrawMenuButton((const char*)u8"EFFECT\nエフェクト管理", utilityNormal,
-		utilityHovered, utilityActive, buttonSize))
-	{
-		showEffectManager = true;
-		windowConfigured = false;
 	}
 #endif
 	ImGui::PopStyleVar(3);
@@ -312,7 +281,7 @@ void GameStartScene::ConfigureWindow()
 	SetWindowTextW(window, L"VEER");
 	constexpr LONG_PTR style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	const bool managerOpen = showCacheManager || showSoundManager || showEffectManager;
+	const bool managerOpen = showResourceSettings;
 	int clientWidth = 960;
 	int clientHeight = 490;
 	if (managerOpen)
@@ -370,7 +339,7 @@ void GameStartScene::ReloadCacheList()
 }
 
 void GameStartScene::AddResourceTreePath(ResourceTreeNode& root,
-	const std::string& path, const std::string& enumName)
+	const std::string& path)
 {
 	// パスをフォルダー単位へ分けてツリーへ追加
 	std::vector<std::string> parts;
@@ -404,7 +373,6 @@ void GameStartScene::AddResourceTreePath(ResourceTreeNode& root,
 	auto item = parent->children.try_emplace(key).first;
 	item->second.name = parts.back();
 	item->second.path = path;
-	item->second.enumName = enumName;
 	item->second.file = true;
 }
 
@@ -462,108 +430,6 @@ void GameStartScene::DrawTreeLabel(const ResourceTreeNode& node, int depth,
 	}
 	ImGui::SetCursorScreenPos(ImVec2(iconX + 22.0f, cursor.y));
 	ImGui::TextUnformatted(node.name.c_str());
-}
-
-void GameStartScene::DrawEnumTreeNode(ResourceTreeNode& node,
-	const std::string& enumPrefix, int depth, const std::vector<bool>& guides, bool last)
-{
-	ImGui::PushID(node.path.c_str());
-	ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
-	if (!node.file)
-	{
-		ImU32 background = IM_COL32(39, 45, 54, 255);
-		if (depth == 0)
-		{
-			background = IM_COL32(47, 61, 78, 255);
-		}
-		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, background);
-	}
-	ImGui::TableNextColumn();
-	DrawTreeLabel(node, depth, guides, last);
-	if (node.file)
-	{
-		ImGui::TableNextColumn();
-		const std::string constant = enumPrefix + node.enumName;
-		ImGui::TextUnformatted(constant.c_str());
-	}
-
-	size_t childIndex = 0;
-	for (auto& childEntry : node.children)
-	{
-		ResourceTreeNode& child = childEntry.second;
-		++childIndex;
-		const bool childLast = childIndex == node.children.size();
-		std::vector<bool> childGuides = guides;
-		if (depth > 0)
-		{
-			childGuides.push_back(!last);
-		}
-		DrawEnumTreeNode(child, enumPrefix, depth + 1, childGuides, childLast);
-	}
-	ImGui::PopID();
-}
-
-void GameStartScene::DrawEffectManager()
-{
-	// エフェクトをフォルダー階層へまとめて表示
-	ImGui::TextUnformatted((const char*)u8"エフェクト管理");
-	if (ImGui::Button((const char*)u8"戻る"))
-	{
-		showEffectManager = false;
-		windowConfigured = false;
-		return;
-	}
-	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
-		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("EffectList", 2, flags, ImVec2(0, -1)))
-	{
-		return;
-	}
-	ImGui::TableSetupColumn((const char*)u8"名前", ImGuiTableColumnFlags_WidthStretch);
-	ImGui::TableSetupColumn("Enum", ImGuiTableColumnFlags_WidthFixed, 360.0f);
-	ImGui::TableSetupScrollFreeze(0, 1);
-	ImGui::TableHeadersRow();
-
-	ResourceTreeNode root{"Resources", "Resources"};
-	for (const auto& effect : EffectDefinitions)
-	{
-		AddResourceTreePath(root, std::string(effect.path), std::string(effect.name));
-	}
-	DrawEnumTreeNode(root, "EffectId::", 0, {}, true);
-	ImGui::EndTable();
-}
-
-void GameStartScene::DrawSoundManager()
-{
-	ImGui::TextUnformatted((const char*)u8"サウンド管理");
-	if (ImGui::Button((const char*)u8"戻る"))
-	{
-		showSoundManager = false;
-		windowConfigured = false;
-		return;
-	}
-	ImGui::TextDisabled((const char*)u8"ファイルを追加・削除すると一覧へ反映されます。クリックでパスをコピー。");
-	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
-		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-	if (!ImGui::BeginTable("SoundPathList", 2, flags, ImVec2(0, -1))) return;
-	ImGui::TableSetupColumn((const char*)u8"ファイル", ImGuiTableColumnFlags_WidthFixed, 240.0f);
-	ImGui::TableSetupColumn((const char*)u8"パス", ImGuiTableColumnFlags_WidthStretch);
-	ImGui::TableSetupScrollFreeze(0, 1);
-	ImGui::TableHeadersRow();
-	for (const auto& path : SoundSystem::GetSoundPaths())
-	{
-		ImGui::PushID(path.c_str());
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		const auto filename = ResourcePath::Text(ResourcePath::Path(path).filename());
-		ImGui::TextUnformatted(ImGuiPath::Tail(filename, ImGui::GetContentRegionAvail().x).c_str());
-		ImGui::TableNextColumn();
-		const std::string label = ImGuiPath::Tail(path, ImGui::GetContentRegionAvail().x);
-		if (ImGui::Selectable(label.c_str())) ImGui::SetClipboardText(path.c_str());
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", path.c_str());
-		ImGui::PopID();
-	}
-	ImGui::EndTable();
 }
 
 void GameStartScene::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
@@ -657,13 +523,13 @@ void GameStartScene::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
 	ImGui::PopID();
 }
 
-void GameStartScene::DrawCacheManager()
+void GameStartScene::DrawResourceSettings()
 {
 	// キャッシュ対象をフォルダー階層へまとめて表示
-	ImGui::TextUnformatted((const char*)u8"キャッシュ管理");
+	ImGui::TextUnformatted((const char*)u8"リソース設定");
 	if (ImGui::Button((const char*)u8"戻る"))
 	{
-		showCacheManager = false;
+		showResourceSettings = false;
 		windowConfigured = false;
 		return;
 	}
