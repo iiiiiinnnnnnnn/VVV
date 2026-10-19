@@ -16,9 +16,11 @@ public:
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;
+	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
 
   private:
+	void BreakCrystalOnContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal);
 	void ConfigureAI();
 	void StopCharge();
 	void OnDamaged(const DamageData& damageData) override;

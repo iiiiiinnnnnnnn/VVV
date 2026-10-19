@@ -70,6 +70,8 @@ bool Animator::Serialize(const std::string& path) const
                 jState["animationIndex"] = state.animationIndex;
                 jState["speed"]          = state.speed;
                 jState["loop"]           = state.loop;
+                jState["playbackStart"] = state.playbackStart;
+                jState["playbackEnd"] = state.playbackEnd;
                 jState["blockAnyStateTransitions"] = state.blockAnyStateTransitions;
                 jState["hasEditorPosition"] = state.hasEditorPosition;
                 jState["editorPosX"] = state.editorPosX;
@@ -252,6 +254,8 @@ void Animator::Deserialize(const std::string& path)
                     jState.value("editorPosY", 0.0f);
 
                 auto& stateRef = GetLayer(li).states[si];
+                stateRef.playbackStart = std::clamp(jState.value("playbackStart", 0.0f), 0.0f, 1.0f);
+                stateRef.playbackEnd = std::clamp(jState.value("playbackEnd", 1.0f), stateRef.playbackStart, 1.0f);
                 for (const auto& jTr : jState["transitions"])
                 {
                     Animator::Transition tr;

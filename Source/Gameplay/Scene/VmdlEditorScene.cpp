@@ -3789,7 +3789,10 @@ void VmdlEditorScene::DrawTimeline()
 
 	if (recordClicked) animationRecording = !animationRecording;
 	ImGui::SameLine();
-	ImGui::Text("%.3f / %.3f sec", animationTime, animation.secondsLength);
+	const float progress = animation.secondsLength > 0.0f
+		? std::clamp(animationTime / animation.secondsLength, 0.0f, 1.0f) : 0.0f;
+	ImGui::Text("%.3f / %.3f sec  (%.3f / 1.000)",
+		animationTime, animation.secondsLength, progress);
 
 	// IK・イベントのトラックはノード未選択でも表示する。
 	DrawAnimationCurves();

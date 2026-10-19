@@ -141,6 +141,7 @@ std::vector<std::string> EffectManager::GetEffectPaths()
 			[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
 		if (extension != ".efkpkg") continue;
 		auto relative = iterator->path().lexically_relative(root);
+		paths.push_back(ResourcePath::Short(ResourcePath::Text(relative), "Effect"));
 	}
 	std::sort(paths.begin(), paths.end());
 	return paths;

@@ -1,4 +1,3 @@
-// Animator.h
 #pragma once
 #include <functional>
 #include <memory>
@@ -83,6 +82,9 @@ public:
         int                     animationIndex = -1;
         float                   speed = 1.0f;
         bool                    loop = true;
+        // Normalized positions in the original clip, also used by transitions and callbacks.
+        float                   playbackStart = 0.0f;
+        float                   playbackEnd = 1.0f;
         bool                    blockAnyStateTransitions = false;
         bool                    hasEditorPosition = false;
         float                   editorPosX = 0.0f;
@@ -148,6 +150,8 @@ public:
     std::shared_ptr<VMDLModel> GetModel() const { return model; }
 
     float GetStateLength(const State& state) const;
+    float GetStateStartTime(const State& state) const;
+    float GetStateEndTime(const State& state) const;
     std::string GetStateAnimationName(const State& state) const;
 
     // =========================================================

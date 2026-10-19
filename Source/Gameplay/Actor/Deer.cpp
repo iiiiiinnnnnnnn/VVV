@@ -211,6 +211,34 @@ void Deer::OnDrawGUI()
 	ImGui::TextDisabled("AI behavior and timings are edited in Resources/AI/Deer.lua.");
 }
 
+void Deer::OnCollisionEnter(
+	PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+{
+	if (IsDead() || deathCleanupPending) return;
+	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
+	if (!self->IsActive() || !other->IsActive()) return;
+
+	BreakCrystalOnContact(self, other, point, normal);
+}
+
+void Deer::BreakCrystalOnContact(
+	PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
+{
+	if (!anim || anim->GetCurrentStateName() != "run") return;
+
+	auto* crystal = dynamic_cast<Crystal*>(other->GetOwner());
+	if (!crystal || crystal->IsDead()) return;
+
+	crystal->TakeDamage({
+		.damage = crystal->GetLife(),
+		.isForceDamage = true,
+		.attackerCollider = self,
+		.targetCollider = other,
+		.hitPosition = point,
+		.hitNormal = normal,
+	});
+}
+
 void Deer::OnTriggerEnter(
 	PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal)
 {
@@ -219,21 +247,7 @@ void Deer::OnTriggerEnter(
 	if (!self->IsActive() || !other->IsActive()) return;
 
 	// クリスタルが当たってきた
-	if (other->GetOwner()->CompareTag("Crystal"))
-	{
-		auto crystal = dynamic_cast<Crystal*>(other->GetOwner());
-		if (crystal)
-		{
-			crystal->TakeDamage({
-				.damage = 20.0f,
-				.knockBackPower = 5.0f,
-				.attackerCollider = self,
-				.targetCollider = other,
-				.hitPosition = point,
-				.hitNormal = normal,
-			});
-		}
-	}
+	BreakCrystalOnContact(self, other, point, normal);
 
 	// 自分がEnemyAtkじゃない場合　無視
 	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;

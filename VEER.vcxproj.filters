@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
+    <ClInclude Include="Source\pch.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
     <ResourceCompile Include="EmbeddedResources.rc" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h">
       <Filter>Resource</Filter>

@@ -18,10 +18,16 @@
     <ResourceCompile Include="EmbeddedResources.rc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ResourceCompile>
+    <ClInclude Include="Source\pch.h" />
+    <ClCompile Include="Source\pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClInclude Include="Source\Gameplay\AI\LuaScript.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerInput.h" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h" />
     <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)%(Filename).compiler.pdb</ProgramDataBaseFileName>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -33,13 +39,18 @@
     <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h" />
     <ClInclude Include="Source\Resource\CacheBuilder.h" />
     <ClInclude Include="Source\Resource\CacheSettings.h" />
-    <ClCompile Include="External\imguizmo\ImGuizmo.cpp" />
+    <ClCompile Include="External\imguizmo\ImGuizmo.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
     <ClCompile Include="Source\Audio\SoundSystem.cpp" />
     <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)%(Filename).compiler.pdb</ProgramDataBaseFileName>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -98,7 +109,10 @@
     <ClCompile Include="Source\Gameplay\Camera\FreeCameraController.cpp" />
     <ClCompile Include="Source\Application\Input\GamePad.cpp" />
     <ClCompile Include="Source\Rendering\Shader\GaussianFilterShader.cpp" />
-    <ClCompile Include="Source\Resource\GLTFImporter.cpp" />
+    <ClCompile Include="Source\Resource\GLTFImporter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
     <ClCompile Include="Source\Resource\GpuResourceUtils.cpp" />
     <ClCompile Include="Source\Rendering\Core\Graphics.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ImGuiRenderer.cpp" />
@@ -152,7 +166,10 @@
     <ClCompile Include="Source\UI\PauseMenu.cpp" />
     <ClCompile Include="Source\UI\TextWidget.cpp" />
     <ClCompile Include="Source\UI\WidgetShadow.cpp" />
-    <ClCompile Include="Source\UI\UIFont.cpp" />
+    <ClCompile Include="Source\UI\UIFont.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Application\Time\GameTime.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp" />
@@ -566,8 +583,10 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION</PreprocessorDefinitions>
@@ -604,8 +623,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -647,8 +668,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>

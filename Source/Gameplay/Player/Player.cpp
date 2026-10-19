@@ -73,15 +73,6 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 
 	attackHitEffect = EffectManager::Instance().LoadEffect("critical");
 	attackHitEffect->SetBillboard(true);
-
-	// luaです
-	{
-		sol::state lua;
-
-		lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table);
-
-		int result = lua.script("return 10 + 20");
-	}
 }
 
 Player::~Player() = default;
@@ -94,6 +85,7 @@ void Player::InitializeModel()
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(RAD(180.0f));
 	RemapQuickshiftWindTracks(*model);
+
 	// 足音切り替え用
 	footSound = vmdl->GetSoundSource("FOOTSTEP");
 
@@ -455,7 +447,19 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 
 void Player::HandleAttackInput(const InputContext& input, const ActionState& state)
 {
+	// もしSpSkill2Freezeなら、0.235f~0.345fにクリックすると続きの攻撃(剣で刺すやつ)になります
+	const bool skillContinuationWindow = anim->GetCurrentStateName() == "SpSkill2Freeze";
+	if (!skillContinuationWindow) anim->SetBool("SkillContinue", false);
 	if (!input.Down(PlayerAction::Attack)) return;
+	if (skillContinuationWindow)
+	{
+		const auto& layer = anim->GetLayer(0);
+		const float length = anim->GetStateLength(layer.states[layer.currentStateIndex]);
+		const float progress = length > 0.0f ? layer.currentTime / length : 0.0f;
+		if (!anim->IsTransitioning() && progress >= 0.235f && progress <= 0.345f)
+			anim->SetBool("SkillContinue", true);
+		return;
+	}
 
 	Actor* target = GetJustDodgeTarget();
 	const bool canUseSkill = justDodgeTriggered && target && state.dodging &&

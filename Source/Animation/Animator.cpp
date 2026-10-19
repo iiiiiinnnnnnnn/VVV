@@ -161,7 +161,7 @@ void Animator::SetDefaultState(int li, int stateIndex)
     auto& layer = layers[li];
     layer.defaultStateIndex = stateIndex;
     layer.currentStateIndex = stateIndex;
-    layer.currentTime = 0.0f;
+    layer.currentTime = GetStateStartTime(layer.states[stateIndex]);
 }
 
 // =========================================================
@@ -337,6 +337,9 @@ void Animator::UpdateLayer(
     const VMDLModel::Animation& curAnim =
         model->GetAnimations()[curState.animationIndex];
 
+    const float playbackStart = GetStateStartTime(curState);
+    const float playbackEnd = GetStateEndTime(curState);
+    layer.currentTime = std::clamp(layer.currentTime, playbackStart, playbackEnd);
     float prevTime = layer.currentTime;
 
     float dt = unscaledTime
@@ -347,28 +350,30 @@ void Animator::UpdateLayer(
 
     float transitionNormalizedTime =
         curAnim.secondsLength > 0.0f
-        ? layer.currentTime / curAnim.secondsLength
+        ? (curState.playbackEnd < 1.0f
+            ? std::min(layer.currentTime / curAnim.secondsLength, curState.playbackEnd)
+            : layer.currentTime / curAnim.secondsLength)
         : 0.0f;
 
     EvaluateCallbacks(
         curState,
-        layer.currentTime,
+        curState.playbackEnd < 1.0f ? std::min(layer.currentTime, playbackEnd) : layer.currentTime,
         curAnim.secondsLength);
 
     bool looped = false;
 
 	// ループ境界をまたいだフレームは、後段のルートモーション計算で終端→先頭を分割して扱う。
-    if (layer.currentTime > curAnim.secondsLength)
+    if (layer.currentTime > playbackEnd)
     {
-        if (curState.loop)
+        if (curState.loop && playbackEnd > playbackStart)
         {
-            layer.currentTime -= curAnim.secondsLength;
+            layer.currentTime = playbackStart +
+                fmodf(layer.currentTime - playbackStart, playbackEnd - playbackStart);
             looped = true;
         }
         else
         {
-            layer.currentTime =
-                curAnim.secondsLength;
+            layer.currentTime = playbackEnd;
         }
     }
 
@@ -425,7 +430,7 @@ void Animator::UpdateLayer(
                 VMDLModel::NodePose poseStart =
                     SampleNodePose(
                     state.animationIndex,
-                    0.0f,
+                    GetStateStartTime(state),
                     rootNodeIndex);
 
                 deltaPos =
@@ -463,7 +468,7 @@ void Animator::UpdateLayer(
             curState,
             prevTime,
             layer.currentTime,
-            curAnim.secondsLength,
+            playbackEnd,
             looped,
             frameRootMotionVec,
             frameRootMotionRot);
@@ -489,27 +494,27 @@ void Animator::UpdateLayer(
             model->GetAnimations()[
                 nextState.animationIndex];
 
-        const float previousNextTime =
-            layer.nextTime;
+        const float nextPlaybackStart = GetStateStartTime(nextState);
+        const float nextPlaybackEnd = GetStateEndTime(nextState);
+        layer.nextTime = std::clamp(layer.nextTime, nextPlaybackStart, nextPlaybackEnd);
+        const float previousNextTime = layer.nextTime;
 
         layer.nextTime +=
             dt * nextState.speed;
 
         bool nextLooped = false;
 
-        if (layer.nextTime >
-            nextAnim.secondsLength)
+        if (layer.nextTime > nextPlaybackEnd)
         {
-            if (nextState.loop)
+            if (nextState.loop && nextPlaybackEnd > nextPlaybackStart)
             {
-                layer.nextTime -=
-                    nextAnim.secondsLength;
+                layer.nextTime = nextPlaybackStart +
+                    fmodf(layer.nextTime - nextPlaybackStart, nextPlaybackEnd - nextPlaybackStart);
                 nextLooped = true;
             }
             else
             {
-                layer.nextTime =
-                    nextAnim.secondsLength;
+                layer.nextTime = nextPlaybackEnd;
             }
         }
 
@@ -546,7 +551,7 @@ void Animator::UpdateLayer(
                 nextState,
                 previousNextTime,
                 layer.nextTime,
-                nextAnim.secondsLength,
+                nextPlaybackEnd,
                 nextLooped,
                 nextRootMotionVec,
                 nextRootMotionRot);
@@ -642,7 +647,7 @@ void Animator::UpdateLayer(
                 layer.nextStateIndex =
                     transition.toStateIndex;
 
-                layer.nextTime = 0.0f;
+                layer.nextTime = GetStateStartTime(layer.states[layer.nextStateIndex]);
                 layer.blendTime = 0.0f;
 
                 layer.blendDuration =
@@ -718,7 +723,7 @@ void Animator::UpdateLayer(
                 layer.nextStateIndex =
                     transition.toStateIndex;
 
-                layer.nextTime = 0.0f;
+                layer.nextTime = GetStateStartTime(layer.states[layer.nextStateIndex]);
                 layer.blendTime = 0.0f;
 
                 layer.blendDuration =
@@ -733,7 +738,7 @@ void Animator::UpdateLayer(
                     layer.currentStateIndex =
                         layer.nextStateIndex;
 
-                    layer.currentTime = 0.0f;
+                    layer.currentTime = layer.nextTime;
                     layer.nextStateIndex = -1;
                 }
 
@@ -776,7 +781,7 @@ void Animator::UpdateLayer(
                 layer.nextStateIndex =
                     transition.toStateIndex;
 
-                layer.nextTime = 0.0f;
+                layer.nextTime = GetStateStartTime(layer.states[layer.nextStateIndex]);
                 layer.blendTime = 0.0f;
 
                 layer.blendDuration =
@@ -791,7 +796,7 @@ void Animator::UpdateLayer(
                     layer.currentStateIndex =
                         layer.nextStateIndex;
 
-                    layer.currentTime = 0.0f;
+                    layer.currentTime = layer.nextTime;
                     layer.nextStateIndex = -1;
                 }
 
@@ -1202,6 +1207,17 @@ float Animator::GetStateLength(const State& state) const
     if (!model || state.animationIndex < 0 ||
         state.animationIndex >= static_cast<int>(model->GetAnimations().size())) return 0.0f;
     return model->GetAnimations()[state.animationIndex].secondsLength;
+}
+
+float Animator::GetStateStartTime(const State& state) const
+{
+    return GetStateLength(state) * std::clamp(state.playbackStart, 0.0f, 1.0f);
+}
+
+float Animator::GetStateEndTime(const State& state) const
+{
+    return GetStateLength(state) *
+        std::clamp(state.playbackEnd, std::clamp(state.playbackStart, 0.0f, 1.0f), 1.0f);
 }
 
 std::string Animator::GetStateAnimationName(const State& state) const

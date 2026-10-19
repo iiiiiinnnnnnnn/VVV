@@ -18,7 +18,9 @@ local parameters = {
     SightTargetHeight        = 1.0,    -- 相手のどの高さを見るか
     SightHorizontalFov       = 120.0,  -- 左右の視野角（度）
     SightVerticalFov         = 75.0,   -- 上下の視野角（度）
-    TurnThreshold            = 10.0,    -- この角度よりずれていたら旋回する（度）
+    TurnAngularSpeed         = 50.0,   -- 通常時の旋回速度（度/秒）
+    AngryTurnAngularSpeed    = 70.0,   -- 怒り状態の旋回速度（度/秒）
+    TurnThreshold            = 30.0,    -- この角度よりずれていたら旋回する（度）
 
     -- 徘徊
     FreedomMinDistance       = 5.0,    -- 徘徊先を選ぶ最小距離
@@ -30,6 +32,7 @@ local parameters = {
 
     -- 戦闘行動
     ThreatDuration           = 3.0,    -- 発見時に威嚇する時間（秒）
+    AngryChaseMoveSpeed      = 6.2,    -- 怒り状態で追跡の移動速度
     ChaseMoveSpeed           = 3.2,    -- 追跡の移動速度
     ChaseDuration            = 6.0,    -- 追跡してから突進準備に移るまでの時間（秒）
     TurningMoveSpeed         = 1.4,    -- 突進前に近づくときの移動速度
@@ -40,7 +43,7 @@ local parameters = {
     RecoveryDuration         = 0.8,    -- 攻撃後に休む時間（秒）
 
     -- ジャンプ
-    JumpChance               = 0.25,   -- 休憩後にジャンプを選ぶ確率（0～1）
+    JumpChance               = 0.4,   -- 休憩後にジャンプを選ぶ確率（0～1）
     JumpTakeoffDelay         = 0.65,   -- ジャンプ開始から離陸までの時間（秒）
     JumpDuration             = 2.4,    -- 空中にいる時間（秒）
     JumpHeight               = 15.0,   -- ジャンプの高さ
@@ -49,12 +52,12 @@ local parameters = {
     JumpTerrainDeformRadius  = 8.0,    -- 着地時の地形変形の半径
 
     -- 怒り状態・形態変化
-    AngryIdleScale           = 0.4,    -- 怒り状態で待ち時間に掛ける倍率
-    AngryJumpChance          = 0.5,    -- 怒り状態でジャンプを選ぶ確率（0～1）
+    AngryIdleScale           = 0.6,    -- 怒り状態で待ち時間に掛ける倍率
+    AngryJumpChance          = 0.6,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
-    PhaseColorChangeDuration = 5.0,    -- 形態変化で体色が変わる時間（秒）
+    PhaseColorChangeDuration = 6.0,    -- 形態変化で体色が変わる時間（秒）
     DeathDissolveAmount      = 0.5,   -- HP減少に応じたディゾルブの最大量
 }
 
@@ -443,6 +446,8 @@ local function ApplyAngryParametersOnce()
 
     -- 倍率を毎フレーム掛け続けないよう、怒り状態に入った後に一度だけ適用する。
     angryParametersApplied = true
+    SetFloat("ChaseMoveSpeed", GetFloat("AngryChaseMoveSpeed"))
+    SetFloat("TurnAngularSpeed", GetFloat("AngryTurnAngularSpeed"))
     SetTrackingTurnSpeed(4)
 
     local durationScale = math.max(0.1, math.min(1, GetFloat("AngryIdleScale")))

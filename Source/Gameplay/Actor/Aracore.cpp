@@ -73,9 +73,10 @@ Aracore::Aracore(Player* player_init,
 		characterController->SetConstrainedClimbing(true);
 		characterController->SetSlopeLimitDeg(70.0f);
 		characterController->SetContactOffset(0.2f);
+
+		// nav
 		navMeshAgent = AddComponent<NavMeshAgent>();
 		navMeshAgent->SetTurnSpeed(1.8f);
-		navMeshAgent->SetAngularSpeed(45.0f);
 
 		multiLegFootIK = vmdl->GetMultiLegFootIK();
 	}
@@ -92,9 +93,9 @@ Aracore::Aracore(Player* player_init,
 
 void Aracore::ConfigureAI()
 {
+	// Enemy AI
 	controller = AddComponent<EnemyAI>("Aracore.lua");
 	controller->SetTrackingTurnSpeed(2.0f);
-	controller->SetFloat("TurnAngularSpeed", 45.0f);
 }
 
 void Aracore::RegisterAIActions()
@@ -422,6 +423,7 @@ void Aracore::StopAnimatedMovement()
 
 void Aracore::UpdateTurningAnimation()
 {
+	navMeshAgent->SetAngularSpeed(controller->GetFloat("TurnAngularSpeed", 45.0f));
 	const float angle = controller->GetFloat("TurnAngle");
 	const bool turning = (requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn") &&
 		fabsf(angle) > controller->GetFloat("TurnThreshold", 8.0f);
@@ -448,6 +450,7 @@ bool Aracore::IsMovementAnimationReady() const
 			return state == (angle > 0.0f ? "turn_right" : "turn_left");
 	}
 	if (requiredMovementAnimation == "turn") return state == "Idle";
+	if (requiredMovementAnimation == "walk") return state == "walk" || state == "run";
 	return state == requiredMovementAnimation;
 }
 

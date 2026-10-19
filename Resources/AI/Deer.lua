@@ -22,7 +22,7 @@ local parameters = {
     SightTargetHeight     = 1.0,    -- 相手のどの高さを見るか
     SightHorizontalFov    = 90.0,   -- 左右の視野角（度）
     SightVerticalFov      = 60.0,   -- 上下の視野角（度）
-    TurnThreshold         = 15.0,   -- この角度よりずれていたら旋回する（度）
+    TurnThreshold         = 20.0,   -- この角度よりずれていたら旋回する（度）
 
     -- 徘徊
     FreedomMinDistance    = 3.0,    -- 徘徊先を選ぶ最小距離

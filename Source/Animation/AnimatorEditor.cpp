@@ -1144,6 +1144,15 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
                 state.animationIndex = std::max(state.animationIndex, -1);
         }
         ImGui::DragFloat((const char*)u8"再生速度", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
+        ImGui::TextDisabled((const char*)u8"再生区間（元クリップの0〜1）");
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::DragFloat((const char*)u8"開始##playbackStart", &state.playbackStart, 0.001f,
+            0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+            state.playbackEnd = std::max(state.playbackEnd, state.playbackStart);
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::DragFloat((const char*)u8"終了##playbackEnd", &state.playbackEnd, 0.001f,
+            state.playbackStart, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
         ImGui::Checkbox((const char*)u8"ループ", &state.loop);
         ImGui::Checkbox((const char*)u8"AnyStateからのトランジションを禁止", &state.blockAnyStateTransitions);
 

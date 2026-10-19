@@ -245,17 +245,15 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 
 	// 突進は迂回せず直進し、崖や接触した障害物で終了する。
 	if (chargeMovement && navMeshActor &&
-		(navMeshActor->IsCliffAlongSegment(actor->transform.position,
-			actor->transform.position + lastMoveDelta, 45.0f) ||
-		 navMeshActor->IsDirectPathBlocked(actor->transform.position,
-			actor->transform.position + lastMoveDelta,
-			characterController->GetRadius(), characterController->GetHeight())))
+		navMeshActor->IsCliffAlongSegment(actor->transform.position,
+			actor->transform.position + lastMoveDelta, 45.0f))
 	{
 		Stop();
-		statusMessage = "Charge stopped: Cliff or obstacle contact.";
+		statusMessage = "Charge stopped: Cliff.";
 		return true;
 	}
 
+	// Move first so contact callbacks run before the charge stops.
 	characterController->Move(lastMoveDelta);
 	if (chargeMovement && characterController->HitSideOnLastMove())
 	{

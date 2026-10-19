@@ -94,46 +94,7 @@
                         {
                             "mode": 2,
                             "paramName": "SkillVariant",
-                            "threshold": 3
-                        }
-                    ],
-                    "excludedFromStateIndices": [
-                        8,
-                        9,
-                        10,
-                        15,
-                        16,
-                        17,
-                        20,
-                        21,
-                        22
-                    ],
-                    "exitTime": 1.0,
-                    "hasExitTime": false,
-                    "isAny": true,
-                    "priority": 9,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
-                    "toStateIndex": 22,
-                    "transitionDuration": 0.0
-                },
-                {
-                    "canInterrupt": false,
-                    "conditions": [
-                        {
-                            "mode": 6,
-                            "paramName": "Attack",
-                            "threshold": 0
-                        },
-                        {
-                            "mode": 4,
-                            "paramName": "IsJustDodge",
-                            "threshold": 0
-                        },
-                        {
-                            "mode": 2,
-                            "paramName": "SkillVariant",
-                            "threshold": 2
+                            "threshold": 1
                         }
                     ],
                     "excludedFromStateIndices": [
@@ -154,45 +115,6 @@
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 21,
-                    "transitionDuration": 0.0
-                },
-                {
-                    "canInterrupt": false,
-                    "conditions": [
-                        {
-                            "mode": 6,
-                            "paramName": "Attack",
-                            "threshold": 0
-                        },
-                        {
-                            "mode": 4,
-                            "paramName": "IsJustDodge",
-                            "threshold": 0
-                        },
-                        {
-                            "mode": 2,
-                            "paramName": "SkillVariant",
-                            "threshold": 1
-                        }
-                    ],
-                    "excludedFromStateIndices": [
-                        8,
-                        9,
-                        10,
-                        15,
-                        16,
-                        17,
-                        20,
-                        21,
-                        22
-                    ],
-                    "exitTime": 1.0,
-                    "hasExitTime": false,
-                    "isAny": true,
-                    "priority": 7,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
-                    "toStateIndex": 20,
                     "transitionDuration": 0.0
                 },
                 {
@@ -408,6 +330,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -466,6 +390,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Walk",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -524,6 +450,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Run",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.100000023841858,
                     "transitions": [
                         {
@@ -601,6 +529,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Sprint",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.100000023841858,
                     "transitions": [
                         {
@@ -665,6 +595,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack1Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.4500000476837158,
                     "transitions": [
                         {
@@ -723,6 +655,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack2Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.4500000476837158,
                     "transitions": [
                         {
@@ -781,6 +715,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack3Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.4500000476837158,
                     "transitions": [
                         {
@@ -845,6 +781,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Attack4Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.4500000476837158,
                     "transitions": [
                         {
@@ -878,6 +816,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Hit_RFreeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -911,6 +851,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Hit_LFreeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -944,6 +886,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "DeadFreeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": []
                 },
@@ -969,6 +913,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftF",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.25,
                     "transitions": [
                         {
@@ -1046,6 +992,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftB",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.25,
                     "transitions": [
                         {
@@ -1123,6 +1071,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftR",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.25,
                     "transitions": [
                         {
@@ -1200,6 +1150,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "QuickshiftL",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.25,
                     "transitions": [
                         {
@@ -1277,6 +1229,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill1Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -1311,25 +1265,46 @@
                             "useSeconds": false
                         }
                     ],
-                    "editorPosX": 90.0,
-                    "editorPosY": -390.0,
+                    "editorPosX": 164.0,
+                    "editorPosY": -701.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill2Freeze",
+                    "playbackEnd": 0.3449999988079071,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 4,
+                                    "paramName": "SkillContinue",
+                                    "threshold": 0.0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.3449999988079071,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 23,
+                            "transitionDuration": 0.0
+                        },
+                        {
+                            "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
+                            "exitTime": 0.3449999988079071,
                             "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
+                            "transitionDuration": 0.20000000298023224
                         }
                     ]
                 },
@@ -1355,6 +1330,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill3Freeze",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -1388,6 +1365,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "CrouchIdle",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -1456,6 +1435,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "CrouchWalk",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -1524,6 +1505,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill1QuickshiftB",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 2.0,
                     "transitions": [
                         {
@@ -1552,11 +1535,13 @@
                             "useSeconds": false
                         }
                     ],
-                    "editorPosX": 90.0,
-                    "editorPosY": -520.0,
+                    "editorPosX": -28.0,
+                    "editorPosY": -701.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill2QuickshiftB",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 2.0,
                     "transitions": [
                         {
@@ -1590,6 +1575,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "SpSkill3QuickshiftB",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 2.0,
                     "transitions": [
                         {
@@ -1606,12 +1593,62 @@
                             "transitionDuration": 0.02500000037252903
                         }
                     ]
+                },
+                {
+                    "animationIndex": 21,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [
+                        {
+                            "enterTimePer": -1.0,
+                            "exitTimePer": 3.4028234663852886e+38,
+                            "label": "LockOnAttack",
+                            "useSeconds": false
+                        }
+                    ],
+                    "editorPosX": 84.0,
+                    "editorPosY": -589.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "SpSkill2Freeze2",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.3449999988079071,
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
         }
     ],
     "parameters": [
+        {
+            "name": "IsDead",
+            "type": "bool",
+            "value": false
+        },
+        {
+            "name": "SkillVariant",
+            "type": "int",
+            "value": 1
+        },
+        {
+            "name": "SkillContinue",
+            "type": "bool",
+            "value": false
+        },
         {
             "name": "Speed",
             "type": "float",
@@ -1624,16 +1661,6 @@
         },
         {
             "name": "IsSprinting",
-            "type": "bool",
-            "value": false
-        },
-        {
-            "name": "SkillVariant",
-            "type": "int",
-            "value": 1
-        },
-        {
-            "name": "IsDead",
             "type": "bool",
             "value": false
         },
@@ -1653,8 +1680,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QR",
         "QB",
+        "QR",
         "QL"
     ]
 }
