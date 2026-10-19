@@ -184,30 +184,17 @@ void Aracore::RegisterAIActions()
 	// 突進旋回開始
 	const auto enterChargeTurn = [this]()
 	{
-		RequestAnimatedMovement(controller->GetFloat("TurningMoveSpeed", 1.4f), "walk");
+		controller->StopMovement();
+		RequestAnimatedMovement(0.0f, "turn");
 		controller->SetBool("ActionFinished", false);
 	};
 
 	// 突進旋回更新
 	const auto updateChargeTurn = [this]()
 	{
-		if (Actor* target = controller->GetTarget())
-		{
-			if (controller->GetBool("CloseToTarget"))
-			{
-				controller->StopMovement();
-				RequestAnimatedMovement(0.0f, "turn");
-				controller->FaceTarget();
-			}
-			else
-			{
-				const float moveSpeed = controller->GetFloat("TurningMoveSpeed", 1.4f);
-				RequestAnimatedMovement(moveSpeed, "walk");
-				navMeshAgent->SetSpeed(moveSpeed);
-				navMeshAgent->MoveToTarget(target);
-			}
-		}
-
+		if (!controller->GetTarget()) return;
+		RequestAnimatedMovement(0.0f, "turn");
+		controller->FaceTarget();
 	};
 
 	// 突進開始
@@ -230,7 +217,7 @@ void Aracore::RegisterAIActions()
 			atan2f(direction.x, direction.z), 0.0f, 0.0f));
 		const Vector3 destination = target->transform.position +
 			direction * controller->GetFloat("ChargeOverDistance", 10.0f);
-		navMeshAgent->SetChargeMovement(true);
+		navMeshAgent->SetDirectMovement(true);
 		navMeshAgent->SetSpeed(chargeSpeed);
 		navMeshAgent->MoveToPosition(destination);
 	};
@@ -408,6 +395,7 @@ void Aracore::RequestAnimatedMovement(float speed, const char* requiredAnimation
 void Aracore::StopAnimatedMovement()
 {
 	requestedAnimationMoveSpeed = 0.0f;
+	turningDirection = 0;
 	requiredMovementAnimation.clear();
 	movementAnimationGateActive = false;
 	if (anim)
@@ -419,7 +407,7 @@ void Aracore::StopAnimatedMovement()
 	controller->SetBool("RotationPaused", false);
 	if (navMeshAgent)
 	{
-		navMeshAgent->SetChargeMovement(false);
+		navMeshAgent->SetDirectMovement(false);
 		navMeshAgent->SetMovementPaused(false);
 		navMeshAgent->SetRotationPaused(false);
 	}
@@ -428,13 +416,24 @@ void Aracore::StopAnimatedMovement()
 void Aracore::UpdateTurningAnimation()
 {
 	navMeshAgent->SetAngularSpeed(controller->GetFloat("TurnAngularSpeed", 45.0f));
-	const float angle = controller->GetFloat("TurnAngle");
-	const bool turning = (requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn") &&
-		fabsf(angle) > controller->GetFloat("TurnThreshold", 8.0f);
-	anim->SetBool("turnLeft", turning && angle < 0.0f);
-	anim->SetBool("turnRight", turning && angle > 0.0f);
+	const float angle = requiredMovementAnimation == "turn"
+		? controller->GetFloat("TargetTurnAngle", controller->GetFloat("TurnAngle"))
+		: controller->GetFloat("TurnAngle");
+	const bool canTurn = requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn";
+	const float startThreshold = std::max(controller->GetFloat("TurnThreshold", 8.0f), 0.1f);
+	const float stopThreshold = std::min(startThreshold * 0.5f, 5.0f);
+	if (!canTurn || fabsf(angle) <= stopThreshold) turningDirection = 0;
+	else if ((!turningDirection || turningDirection * angle < 0.0f) && fabsf(angle) > startThreshold)
+		turningDirection = angle > 0.0f ? 1 : -1;
+	const bool turning = turningDirection != 0;
+	controller->SetBool("IsTurning", turning);
+	anim->SetBool("turnLeft", turningDirection < 0);
+	anim->SetBool("turnRight", turningDirection > 0);
+	if (multiLegFootIK)
+		multiLegFootIK->SetPreventGroundPenetration(turning ||
+			anim->GetCurrentStateName().starts_with("turn_") || anim->GetNextStateName().starts_with("turn_"));
 	const bool ready = IsMovementAnimationReady();
-	const bool rotationPaused = requiredMovementAnimation == "charge" || !ready;
+	const bool rotationPaused = requiredMovementAnimation == "charge" || (!ready && !turning);
 	controller->SetBool("RotationPaused", rotationPaused);
 	navMeshAgent->SetRotationPaused(rotationPaused);
 	navMeshAgent->SetMovementPaused(turning || requiredMovementAnimation == "turn" || !ready);
@@ -450,9 +449,8 @@ bool Aracore::IsMovementAnimationReady() const
 		return state == "attack" || state == "run";
 	if (requiredMovementAnimation == "walk" || requiredMovementAnimation == "turn")
 	{
-		const float angle = controller->GetFloat("TurnAngle");
-		if (fabsf(angle) > controller->GetFloat("TurnThreshold", 8.0f))
-			return state == (angle > 0.0f ? "turn_right" : "turn_left");
+		if (turningDirection)
+			return state == (turningDirection > 0 ? "turn_right" : "turn_left");
 	}
 	if (requiredMovementAnimation == "turn") return state == "Idle";
 	if (requiredMovementAnimation == "walk") return state == "walk" || state == "run";

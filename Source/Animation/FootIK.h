@@ -34,6 +34,7 @@ class FootIK : public PhysicsComponent
 	void SetDownwardWeight(float weight) { downwardWeight = std::clamp(weight, 0.0f, 1.0f); }
 	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
 	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
+	void SetPreventGroundPenetration(bool value) { preventGroundPenetration = value; }
 
 	void SetTarget(const Vector3& targetPosition);
 	void SetTargetFromContact(
@@ -96,6 +97,8 @@ class FootIK : public PhysicsComponent
 	float lastHitNormalY = 0.0f;
 	Vector3 smoothedTargetPosition = Vector3::Zero;
 	bool hasSmoothedTarget = false;
+	bool preventGroundPenetration = false;
+	bool correctingGroundPenetration = false;
 	float smoothedGroundOffsetY = 0.0f;
 	float targetSmoothSpeed = 24.0f;
 	float groundOffsetSmoothSpeed = 18.0f;

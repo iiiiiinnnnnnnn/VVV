@@ -16,6 +16,12 @@ void Entity::SpawnBloodParticles(const Vector3& position, const Vector3& normal,
 
 }
 
+void Entity::DeathOfFall()
+{
+	// 落下死
+	TakeDamage({9999.0f});
+}
+
 void Entity::OnDrawGUI()
 {
     if (ImGui::TreeNode("Entity Info"))
@@ -35,8 +41,7 @@ void Entity::OnUpdate()
 	knockBackVelocity *= powf(0.01f, Game::Time::deltaTime);
 	if (knockBackVelocity.LengthSquared() < 0.01f) knockBackVelocity = Vector3::Zero;
 
-	// 落下死
-	if (transform.position.y < -50.0f) TakeDamage({9999.0f});
+	if (transform.position.y < deathOfFallHeight) DeathOfFall();
 }
 
 // ダメージを受ける

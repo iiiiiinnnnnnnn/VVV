@@ -173,7 +173,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
 
 	// 自身がNavMesh内なら経路を使い、外なら目的地へ直線移動する。
-	if (!chargeMovement && navMeshActor &&
+	if (!chargeMovement && !directMovement && navMeshActor &&
 		!navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f))
 	{
 		directMove = !navMeshActor->FindNextPoint(

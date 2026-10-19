@@ -34,16 +34,15 @@ local parameters = {
     ThreatDuration           = 3.0,    -- 発見時に威嚇する時間（秒）
     AngryChaseMoveSpeed      = 6.2,    -- 怒り状態で追跡の移動速度
     ChaseMoveSpeed           = 3.2,    -- 追跡の移動速度
-    ChaseDuration            = 6.0,    -- 追跡してから突進準備に移るまでの時間（秒）
-    TurningMoveSpeed         = 1.4,    -- 突進前に近づくときの移動速度
-    ChargePrepareDuration    = 1.0,    -- 突進準備の最短時間（秒）
-    ChargeMoveSpeed          = 10.5,    -- 突進の移動速度
+    ChaseDuration            = 2.0,    -- 追跡してから突進準備に移るまでの時間（秒）
+    ChargePrepareDuration    = 0.6,    -- 突進準備の最短時間（秒）
+    ChargeMoveSpeed          = 10.5,   -- 突進の移動速度
     ChargeOverDistance       = 10.0,   -- 相手の位置を越えて走る距離
-    ChargeMaxDuration        = 2.0,    -- 突進を続ける最長時間（秒）
-    RecoveryDuration         = 0.8,    -- 攻撃後に休む時間（秒）
+    ChargeMaxDuration        = 3.0,    -- 突進を続ける最長時間（秒）
+    RecoveryDuration         = 0.35,    -- 攻撃後に休む時間（秒）
 
     -- ジャンプ
-    JumpChance               = 0.4,   -- 休憩後にジャンプを選ぶ確率（0～1）
+    JumpChance               = 0.2,   -- 休憩後にジャンプを選ぶ確率（0～1）
     JumpTakeoffDelay         = 0.65,   -- ジャンプ開始から離陸までの時間（秒）
     JumpDuration             = 2.4,    -- 空中にいる時間（秒）
     JumpHeight               = 15.0,   -- ジャンプの高さ
@@ -53,7 +52,7 @@ local parameters = {
 
     -- 怒り状態・形態変化
     AngryIdleScale           = 0.6,    -- 怒り状態で待ち時間に掛ける倍率
-    AngryJumpChance          = 0.6,    -- 怒り状態でジャンプを選ぶ確率（0～1）
+    AngryJumpChance          = 0.35,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
@@ -77,7 +76,7 @@ local stateActions = {
     Wander_Turn = "WanderTurn",  -- 徘徊中の旋回
     Threat = "Threat",  -- 発見時の威嚇
     Chase = "Chase",  -- プレイヤーを追跡
-    Charge_Turn = "ChargeTurn",  -- 接近・突進方向の調整
+    Charge_Turn = "ChargeTurn",  -- 突進方向の調整
     Charge = "Charge",  -- 突進
     Recovery = "Recovery",  -- 攻撃後の休憩
     Jump_To_Center = "JumpCenter",  -- ジャンプ
@@ -272,10 +271,10 @@ local function UpdateChasing()
     end
 end
 
--- 接近・突進方向の調整
+-- 突進方向の調整
 local function UpdateChargePreparation()
-    -- 準備時間が過ぎ、相手の方向も向けたら突進する。
-    if GetBool("ActionFinished") and GetBool("IsFacingTarget") then
+    -- 距離に関係なく、準備時間が過ぎて旋回を終えたら突進する。
+    if GetBool("ActionFinished") and GetBool("IsFacingTarget") and not GetBool("IsTurning") then
         ChangeState("Charge")
         return
     end

@@ -33,6 +33,7 @@ class MultiLegFootIK : public Component
 	void SetContactOffset(float offset) { contactOffset = offset; }
 	void SetMaxUpCorrection(float value) { maxUpCorrection = value; }
 	void SetMaxDownCorrection(float value) { maxDownCorrection = value; }
+	void SetPreventGroundPenetration(bool value) { preventGroundPenetration = value; }
 
   private:
 	void UpdateModelTransform();
@@ -53,4 +54,5 @@ class MultiLegFootIK : public Component
 	float maxUpCorrection = 2.0f;
 	float maxDownCorrection = 5.0f;
 	bool showFootDebug = true;
+	bool preventGroundPenetration = false;
 };

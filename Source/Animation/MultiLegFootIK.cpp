@@ -40,6 +40,7 @@ void MultiLegFootIK::LateUpdate()
 		if (!footIK || !footIK->IsIKEnabled()) continue;
 
 		const float weight = GetFootIKWeight(footIndex);
+		footIK->SetPreventGroundPenetration(preventGroundPenetration);
 		footIK->SetWeight(weight);
 		footIK->SetDownwardWeight(weight);
 		footIK->SetMaxDownCorrection(maxDownCorrection);

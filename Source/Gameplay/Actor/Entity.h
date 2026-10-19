@@ -63,7 +63,9 @@ public:
     }
 
 protected:
-    void OnDrawGUI() override;
+	void OnDrawGUI() override;
+
+	virtual void DeathOfFall();
 
     virtual void OnDead(const DamageData& damageData) {}
     virtual void OnDamaged(const DamageData& damageData) {}
@@ -72,4 +74,5 @@ protected:
 
     float life = 100.0f;
     float maxLife = 100.0f;
+	float deathOfFallHeight = -50.0f;
 };

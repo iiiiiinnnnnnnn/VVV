@@ -32,6 +32,7 @@ FootIK::FootIK(Object* owner, LayerId layerId, VMDLModel* model, const char* thi
 bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, float contactOffset,
 	const Vector3& syncOffset)
 {
+	correctingGroundPenetration = false;
 	if (!chain.enabled)
 	{
 		return false;
@@ -133,7 +134,15 @@ bool FootIK::UpdateGroundTarget(const Vector3& rayStartOffset, float rayLength, 
 			Vector3::Lerp(currentTipPosition, chain.targetPosition, targetWeight);
 	}
 
-	SetSmoothedTarget(chain.targetPosition, targetGroundOffsetY);
+	const Vector3 groundTargetPosition = chain.targetPosition;
+	SetSmoothedTarget(groundTargetPosition, targetGroundOffsetY);
+	correctingGroundPenetration = preventGroundPenetration && targetGroundOffsetY > 0.001f;
+	if (correctingGroundPenetration)
+	{
+		// Upward correction must not lag below the ground during a turn.
+		smoothedTargetPosition.y = std::max(smoothedTargetPosition.y, groundTargetPosition.y);
+		chain.targetPosition = smoothedTargetPosition;
+	}
 
 	hasGroundContact = true;
 	lostGroundFrameCount = 0;
@@ -268,6 +277,7 @@ void FootIK::SetIKEnabled(bool enabled)
 
 void FootIK::ResetGroundState()
 {
+	correctingGroundPenetration = false;
 	hasGroundContact = false;
 	groundOffsetY = 0.0f;
 	smoothedGroundOffsetY = 0.0f;
@@ -409,11 +419,12 @@ void FootIK::SolveIK(const DirectX::XMFLOAT4X4& modelWorldTransform)
 
 	const Matrix ownerWorldTransform = GetModelOwnerWorldTransform();
 
-	float targetWeight = hasGroundContact ? ikWeight : 0.0f;
+	float targetWeight = hasGroundContact ? (correctingGroundPenetration ? 1.0f : ikWeight) : 0.0f;
 	float blendRate = model->GetVmdlMultiLegIKSettings().InterpolationRate(
 		ikBlendSpeed, Game::Time::deltaTime);
 	blendRate = std::clamp(blendRate, 0.0f, 1.0f);
 	chain.weight += (targetWeight - chain.weight) * blendRate;
+	if (correctingGroundPenetration) chain.weight = targetWeight;
 	if (chain.weight <= 0.001f) return;
 	if (chain.root == nullptr) return;
 	if (chain.mid == nullptr) return;

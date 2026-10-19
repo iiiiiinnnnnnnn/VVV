@@ -146,6 +146,15 @@ void Player::RegisterAnimationCallbacks()
 	anim->BindCallbacks();
 }
 
+void Player::DeathOfFall()
+{
+	// プレイヤーは落下死せずに上にTP
+	transform.SetPosition(
+		transform.position.x, 
+		transform.position.y + (deathOfFallHeight * -1.0f), 
+		transform.position.z);
+}
+
 void Player::SetSpawnTransform(const Transform& spawnTransform)
 {
 	transform.position = spawnTransform.position;

@@ -58,6 +58,8 @@ class Player : public Entity
 	void SetFirstPerson(bool firstPerson) { isFirstPerson = firstPerson; }
 	bool IsFirstPerson() const { return isFirstPerson; }
 
+	void DeathOfFall() override;
+
 	// ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
 	void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);

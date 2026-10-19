@@ -102,6 +102,7 @@ private:
 	float requestedAnimationMoveSpeed = 0.0f;
 	std::string requiredMovementAnimation;
 	bool movementAnimationGateActive = false;
+	int turningDirection = 0;
 	Player* player;
 	Actor* threatenedTarget = nullptr;
 	uint64_t voiceIdChase = 0;

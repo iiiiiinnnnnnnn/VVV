@@ -23,6 +23,8 @@ public:
 	void SetRotationPaused(bool value) { rotationPaused = value; }
 	void SetAngularSpeed(float degrees) { angularSpeed = std::max(degrees, 0.0f); }
 	void SetChargeMovement(bool value) { chargeMovement = value; }
+	// Bypass pathfinding without charge-specific cliff/contact stops.
+	void SetDirectMovement(bool value) { directMovement = value; }
 	void MoveToTarget(Actor* targetActor);
 	void MoveToPosition(const Vector3& targetPosition);
 	bool MoveToRandomPosition(float minDistance, float maxDistance);
@@ -55,6 +57,7 @@ private:
 	bool movementPaused = false;
 	bool rotationPaused = false;
 	bool chargeMovement = false;
+	bool directMovement = false;
 	Vector3 destination = Vector3::Zero;
 	float randomMinDistance = 3.0f;
 	float randomMaxDistance = 10.0f;

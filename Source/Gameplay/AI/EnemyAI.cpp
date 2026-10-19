@@ -302,7 +302,13 @@ void EnemyAI::UpdateTurnSensors(bool hasTarget)
 	const float turnThreshold = RAD(thresholdDegrees);
 	SetBool("HasDestination", navMeshAgent && navMeshAgent->HasDestination());
 	SetBool("IsTurning", fabsf(turnAngle) > turnThreshold);
-	SetBool("IsFacingTarget", hasTarget && fabsf(turnAngle) <= turnThreshold);
+	Vector3 toTarget = hasTarget && target
+		? target->transform.position - owner->GetTransform()->position : Vector3::Zero;
+	toTarget.y = 0.0f;
+	const float targetAngle = toTarget.LengthSquared() > eps
+		? atan2f(toTarget.Dot(owner->GetTransform()->right), toTarget.Dot(owner->GetTransform()->forward)) : 0.0f;
+	SetFloat("TargetTurnAngle", DEG(targetAngle));
+	SetBool("IsFacingTarget", hasTarget && fabsf(targetAngle) <= turnThreshold);
 	SetFloat("TurnAngle", DEG(turnAngle));
 }
 
