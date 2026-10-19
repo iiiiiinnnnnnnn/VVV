@@ -14,6 +14,7 @@
 #include "UI/WidgetManager.h"
 #include "Gameplay/Stage/Stage01.h"
 
+class Actor;
 class Animator;
 class VMDLModel;
 
@@ -31,7 +32,8 @@ public:
 
 	virtual ~Scene();
 
-	void OpenAnimatorEditor(const std::string& path = {}, std::shared_ptr<VMDLModel> model = {});
+	void OpenAnimatorEditor(const std::string& path = {}, std::shared_ptr<VMDLModel> model = {},
+		std::weak_ptr<Actor> liveOwner = {});
 	void DrawAnimatorEditor();
 
 	void CapturePreviewEnvironment();
@@ -51,6 +53,8 @@ public:
 
 private:
 	std::unique_ptr<Animator> animatorEditor;
+	std::weak_ptr<Actor> liveAnimatorOwner;
+	std::weak_ptr<Actor> pendingLiveAnimatorOwner;
 	std::string pendingAnimatorPath;
 	std::shared_ptr<VMDLModel> pendingAnimatorModel;
 	bool animatorOpenRequested = false;

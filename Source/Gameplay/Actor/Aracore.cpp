@@ -121,6 +121,8 @@ void Aracore::RegisterAIActions()
 		RequestAnimatedMovement(moveSpeed, "walk");
 		navMeshAgent->SetMovementPaused(false);
 		navMeshAgent->SetSpeed(moveSpeed);
+		// Keep the destination when returning from WanderTurn.
+		if (navMeshAgent->HasDestination()) return;
 		navMeshAgent->MoveToRandomPosition(
 			controller->GetFloat("FreedomMinDistance", 5.0f),
 			controller->GetFloat("FreedomMaxDistance", 18.0f));

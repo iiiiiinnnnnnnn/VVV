@@ -27,11 +27,13 @@
 Scene::Scene() = default;
 Scene::~Scene() = default;
 
-void Scene::OpenAnimatorEditor(const std::string& path, std::shared_ptr<VMDLModel> model)
+void Scene::OpenAnimatorEditor(const std::string& path, std::shared_ptr<VMDLModel> model,
+	std::weak_ptr<Actor> liveOwner)
 {
 	// エディター自身の「開く」からも呼ばれるため、描画中には作り直さない。
 	pendingAnimatorPath = path;
 	pendingAnimatorModel = std::move(model);
+	pendingLiveAnimatorOwner = std::move(liveOwner);
 	animatorOpenRequested = true;
 }
 
@@ -40,29 +42,52 @@ void Scene::DrawAnimatorEditor()
 	if (animatorOpenRequested)
 	{
 		animatorOpenRequested = false;
-		if (!animatorEditor || !pendingAnimatorPath.empty() ||
-			(pendingAnimatorModel && animatorEditor->GetModel() != pendingAnimatorModel))
+		liveAnimatorOwner = std::move(pendingLiveAnimatorOwner);
+		const auto liveOwner = liveAnimatorOwner.lock();
+		Animator* liveAnimator = liveOwner && !liveOwner->IsPendingDestroy()
+			? liveOwner->GetComponent<Animator>() : nullptr;
+		if (liveAnimator)
 		{
-			auto model = std::move(pendingAnimatorModel);
-			if (!model && !pendingAnimatorPath.empty())
+			if (animatorEditor) animatorEditor->editorOpen = false;
+			liveAnimator->OpenEditorWindow();
+		}
+		else
+		{
+			if (!animatorEditor || !pendingAnimatorPath.empty() ||
+				(pendingAnimatorModel && animatorEditor->GetModel() != pendingAnimatorModel))
 			{
-				const auto modelPath = ResourceManager::FindSourceResourceRoot() / "Model" /
-					(std::filesystem::path(pendingAnimatorPath).stem().string() + ".vmdl");
-				// ソースの絶対パスはマニフェストの検索キーと一致しないため、直接読み込む
-				if (std::filesystem::is_regular_file(modelPath))
-					model = std::make_shared<VMDLModel>(modelPath.string().c_str());
-			}
+				auto model = std::move(pendingAnimatorModel);
+				if (!model && !pendingAnimatorPath.empty())
+				{
+					const auto modelPath = ResourceManager::FindSourceResourceRoot() / "Model" /
+						(std::filesystem::path(pendingAnimatorPath).stem().string() + ".vmdl");
+					// ソースの絶対パスはマニフェストの検索キーと一致しないため、直接読み込む
+					if (std::filesystem::is_regular_file(modelPath))
+						model = std::make_shared<VMDLModel>(modelPath.string().c_str());
+				}
 
-			// 再生中のコンポーネントではなく、Scene専用の編集データを保持する。
-			animatorEditor = std::make_unique<Animator>(nullptr, std::move(model), true);
-			if (!pendingAnimatorPath.empty())
-				animatorEditor->Load(pendingAnimatorPath);
-			else
-				animatorEditor->AddLayer("Base Layer");
+				// 再生中のコンポーネントではなく、Scene専用の編集データを保持する。
+				animatorEditor = std::make_unique<Animator>(nullptr, std::move(model), true);
+				if (!pendingAnimatorPath.empty())
+					animatorEditor->Load(pendingAnimatorPath);
+				else
+					animatorEditor->AddLayer("Base Layer");
+			}
+			animatorEditor->OpenEditorWindow();
 		}
 		pendingAnimatorPath.clear();
 		pendingAnimatorModel.reset();
-		animatorEditor->OpenEditorWindow();
+	}
+
+	if (const auto liveOwner = liveAnimatorOwner.lock())
+	{
+		if (liveOwner->IsPendingDestroy()) return;
+		if (Animator* liveAnimator = liveOwner->GetComponent<Animator>())
+		{
+			if (liveAnimator->editorOpen)
+				liveAnimator->DrawEditor(&liveAnimator->editorOpen);
+			return;
+		}
 	}
 
 	if (animatorEditor && animatorEditor->editorOpen)

@@ -304,7 +304,10 @@ void Animator::_print() const
 void Animator::OpenEditor()
 {
 	if (Scene* scene = SceneManager::Instance().GetCurrentScene())
-		scene->OpenAnimatorEditor(GetLastPath(), model);
+	{
+		Actor* actor = dynamic_cast<Actor*>(owner);
+		scene->OpenAnimatorEditor(GetLastPath(), model, actor ? actor->weak_from_this() : std::weak_ptr<Actor>{});
+	}
 }
 
 void Animator::OpenEditorWindow()

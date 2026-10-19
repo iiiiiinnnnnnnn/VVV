@@ -217,6 +217,24 @@ void Deer::OnTriggerEnter(
 	if (IsDead() || deathCleanupPending) return;
 	if (!PhysicsComponent::IsLive(self) || !PhysicsComponent::IsLive(other)) return;
 	if (!self->IsActive() || !other->IsActive()) return;
+
+	// クリスタルが当たってきた
+	if (other->GetOwner()->CompareTag("Crystal"))
+	{
+		auto crystal = dynamic_cast<Crystal*>(other->GetOwner());
+		if (crystal)
+		{
+			crystal->TakeDamage({
+				.damage = 20.0f,
+				.knockBackPower = 5.0f,
+				.attackerCollider = self,
+				.targetCollider = other,
+				.hitPosition = point,
+				.hitNormal = normal,
+			});
+		}
+	}
+
 	// 自分がEnemyAtkじゃない場合　無視
 	if (self->GetLayerId() != Layers::Get("EnemyAtk")) return;
 
@@ -238,19 +256,6 @@ void Deer::OnTriggerEnter(
 			.hitNormal = normal,
 		};
 		player->TakeDamage(damageData);
-	}
-	// クリスタルが当たってきた
-	else if (other->GetOwner()->CompareTag("Crystal"))
-	{
-		dynamic_cast<Crystal*>(other->GetOwner())
-			->TakeDamage({
-				.damage = 20.0f,
-				.knockBackPower = 5.0f,
-				.attackerCollider = self,
-				.targetCollider = other,
-				.hitPosition = point,
-				.hitNormal = normal,
-			});
 	}
 }
 
