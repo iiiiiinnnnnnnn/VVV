@@ -198,8 +198,17 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 	switch (msg)
 	{
 	case WM_CLOSE:
-		PostQuitMessage(0);
+	{
+		// ×ボタンとAlt+F4でも、シーンの未保存変更を確認してから終了する。
+		static bool confirmingExit = false;
+		if (confirmingExit) return 0;
+		confirmingExit = true;
+		Scene* scene = SceneManager::Instance().GetCurrentScene();
+		const bool canExit = !scene || scene->ConfirmExit();
+		confirmingExit = false;
+		if (canExit) PostQuitMessage(0);
 		return 0;
+	}
 	case WM_NCHITTEST:
 	{
 		const LRESULT hit = DefWindowProc(hWnd, msg, wParam, lParam);

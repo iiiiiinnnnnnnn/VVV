@@ -36,6 +36,7 @@ public:
 		std::weak_ptr<Actor> liveOwner = {});
 	void DrawAnimatorEditor();
 
+	bool ConfirmExit() { return OnRequestExit(); }
 	void CapturePreviewEnvironment();
 	virtual void Update();
 	virtual void Render();

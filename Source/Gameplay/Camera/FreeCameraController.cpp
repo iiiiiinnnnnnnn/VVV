@@ -53,7 +53,7 @@ void FreeCameraController::SyncCameraToController(const Camera& camera)
 // コントローラーからカメラへパラメータを同期する
 void FreeCameraController::SyncControllerToCamera(Camera& camera)
 {
-	const float lerpSpeed = 5.0f;
+	const float lerpSpeed = CameraFollowSpeed;
     camera.SetLookAt(
         Vector3::Lerp(camera.GetEye(), eye, Game::Time::unscaledDeltaTime * lerpSpeed),
         Vector3::Lerp(camera.GetFocus(), focus, Game::Time::unscaledDeltaTime * lerpSpeed),
@@ -90,10 +90,10 @@ void FreeCameraController::UpdateCamera()
     if (isAltLeftMouseDown || isRightMouseDown)
     {
         // Y軸回転
-        angleY += moveX * 0.5f;
+        angleY += mouse.GetAxisX() * MouseRotationSensitivity;
 
         // X軸回転
-        angleX += moveY * 0.5f;
+        angleX += mouse.GetAxisY() * MouseRotationSensitivity;
 
         // ジンバルロック防止
         const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;

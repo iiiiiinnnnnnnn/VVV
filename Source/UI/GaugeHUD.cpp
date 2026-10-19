@@ -1,4 +1,4 @@
-﻿#include "UI/GaugeHUD.h"
+#include "UI/GaugeHUD.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,9 +10,11 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/Texture.h"
 
-GaugeHUD::GaugeHUD(const std::string& name)
-	: DissolveWidget(name, ""), fillTexture(ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png"))
+GaugeHUD::GaugeHUD(const std::string& name, bool revealOnStart)
+	: DissolveWidget(name), fillTexture(ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png")),
+	  revealing(revealOnStart)
 {
+	SetDissolveAmount(revealOnStart ? 1.0f : 0.0f);
 	SetAffectedByPostProcess(false);
 }
 
@@ -21,7 +23,7 @@ void GaugeHUD::SetFrameTexture(const std::string& path)
 	frameTexture = ResourceManager::Instance().LoadTexture(path);
 }
 
-void GaugeHUD::SetTargetValue(float ratio)
+void GaugeHUD::SetValue(float ratio)
 {
 	const float value = std::clamp(ratio, 0.0f, 1.0f);
 	if (damageTrailEnabled && value < targetValue)
@@ -33,8 +35,9 @@ void GaugeHUD::SetTargetValue(float ratio)
 	targetValue = value;
 }
 
-void GaugeHUD::SnapToTarget()
+void GaugeHUD::SetValueImmediate(float ratio)
 {
+	SetValue(ratio);
 	displayedValue = targetValue;
 	damageTrailValue = targetValue;
 	damageTrailTimer = 0.0f;
@@ -46,11 +49,10 @@ void GaugeHUD::SetFillRect(const Vector2& position, const Vector2& size)
 	fillSize = size;
 }
 
-void GaugeHUD::SetColors(const Color& normal, const Color& low, const Color& frame)
+void GaugeHUD::SetColor(const Color& value)
 {
-	normalColor = normal;
-	lowColor = low;
-	frameColor = frame;
+	normalColor = value;
+	lowColor = value;
 }
 
 void GaugeHUD::OnUpdate()
@@ -73,12 +75,21 @@ void GaugeHUD::OnUpdate()
 		if (dragging && fillWidth > 0.0f)
 		{
 			const float value = std::clamp((mouseX - fillLeft) / fillWidth, 0.0f, 1.0f);
-			SetTargetValue(value);
+			SetValue(value);
 			onValueChanged(value);
 		}
 	}
 
 	const float dt = std::max(Game::Time::unscaledDeltaTime, 0.0f);
+	if (revealing)
+	{
+		revealElapsed += dt;
+		const float progress = revealDuration > 0.0f
+			? std::clamp(revealElapsed / revealDuration, 0.0f, 1.0f) : 1.0f;
+		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
+		SetDissolveAmount(1.0f - smoothProgress);
+		revealing = progress < 1.0f;
+	}
 	const float blend = 1.0f - std::exp(-smoothingSpeed * dt);
 	displayedValue += (targetValue - displayedValue) * blend;
 	if (std::abs(displayedValue - targetValue) < 0.0005f) displayedValue = targetValue;

@@ -4,6 +4,10 @@
 class FreeCameraController : public CameraController
 {
 public:
+	static constexpr float MouseRotationSensitivity = 0.005f;
+	static constexpr float CameraFollowSpeed = 5.0f;
+	static constexpr float VerticalFovDegrees = 45.0f;
+
 	FreeCameraController(Object* owner);
 	void SetMoveSpeed(float speed) { moveSpeed = (std::max)(speed, 0.0f); }
 	float GetMoveSpeed() const { return moveSpeed; }

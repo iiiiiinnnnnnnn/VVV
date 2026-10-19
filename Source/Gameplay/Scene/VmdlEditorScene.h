@@ -55,6 +55,7 @@ class VmdlEditorScene : public Scene
 
 	// 画面描画
 	void RenderPreview();
+	void ResizePreviewTargets();
 	Vector3 GetPreviewCameraOffset() const;
 	void RotatePreviewCamera(float yawDelta, float pitchDelta, bool orbitModel);
 	void DrawMenuBar();
@@ -74,7 +75,8 @@ class VmdlEditorScene : public Scene
 	void DuplicateSelectedAttachedComponent();
 	std::string MakeUniqueAttachedComponentName(
 		AttachedComponentType type, const std::string& baseName) const;
-	void DrawViewport();
+	void DrawPreviewToolbar();
+	void DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax);
 	void DrawProperty();
 	void DrawTimeline();
 	void DrawIkSettings();
@@ -148,6 +150,7 @@ class VmdlEditorScene : public Scene
 	void SaveVmdl();
 	void SaveVmdlAs();
 	void ExportGlb();
+	void ResetLightingEnvironment();
 	void ApplyVstgLighting();
 	void LoadModel(
 		const std::filesystem::path& filepath, const std::filesystem::path& importDestination = {});
@@ -165,7 +168,7 @@ class VmdlEditorScene : public Scene
 	std::unique_ptr<Object> cameraOwner;
 	Camera* editorCamera = nullptr;
 	LightManager editorLights;
-	bool usesVstgLighting = false;
+	bool usesCustomLighting = false;
 	std::vector<std::shared_ptr<PointLight>> editorPointLights;
 
 	// 選択状態
@@ -205,10 +208,13 @@ class VmdlEditorScene : public Scene
 	float cameraPitch = 0.35f;
 	float cameraDistance = 5.0f;
 	float targetCameraDistance = 5.0f;
-	float previewCameraMoveSpeed = 5.0f;
+	float previewCameraMoveSpeed = 10.0f;
 	float previewCameraMoveSpeedOverlayTimer = 0.0f;
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	Vector3 cameraOrbitPivot = Vector3(0.0f, 1.0f, 0.0f);
+	Vector3 previewCameraEye = Vector3::Zero;
+	Vector3 previewCameraFocus = Vector3::Zero;
+	bool previewCameraViewInitialized = false;
 	bool cameraReturningToFront = false;
 	int gizmoOperation = 120;
 	bool showSelectionGizmo = true;

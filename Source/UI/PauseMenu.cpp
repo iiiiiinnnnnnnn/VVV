@@ -88,8 +88,8 @@ PauseMenu::PauseMenu(
 	addText(optionsPage, "Volume Label", "MASTER VOLUME", 31.0f);
 	volumeGauge = std::make_shared<GaugeHUD>("Master Volume Gauge");
 	volumeGauge->SetFillRect({0.0f, 0.35f}, {1.0f, 0.3f});
-	volumeGauge->SetSmoothingSpeed(12.0f);
-	volumeGauge->SetInteractive([](float ratio)
+	volumeGauge->SetValueSmoothingSpeed(12.0f);
+	volumeGauge->SetOnValueChanged([](float ratio)
 	{
 		SoundSystem::Instance().SetMasterVolume(ratio);
 	});
@@ -98,8 +98,8 @@ PauseMenu::PauseMenu(
 	addText(optionsPage, "Sensitivity Label", "CAMERA SENSITIVITY", 31.0f);
 	sensitivityGauge = std::make_shared<GaugeHUD>("Camera Sensitivity Gauge");
 	sensitivityGauge->SetFillRect({0.0f, 0.35f}, {1.0f, 0.3f});
-	sensitivityGauge->SetSmoothingSpeed(12.0f);
-	sensitivityGauge->SetInteractive([this](float ratio)
+	sensitivityGauge->SetValueSmoothingSpeed(12.0f);
+	sensitivityGauge->SetOnValueChanged([this](float ratio)
 	{
 		if (!this->cameraController) return;
 		const float sensitivity = 0.4f + ratio * 1.6f;
@@ -171,8 +171,7 @@ void PauseMenu::SetPage(Page value)
 	}
 
 	if (!showOptions) return;
-	volumeGauge->SetTargetValue(SoundSystem::Instance().GetMasterVolume());
-	volumeGauge->SnapToTarget();
+	volumeGauge->SetValueImmediate(SoundSystem::Instance().GetMasterVolume());
 
 	float sensitivityRatio = 0.5f;
 	if (cameraController)
@@ -180,8 +179,7 @@ void PauseMenu::SetPage(Page value)
 		const float sensitivity = cameraController->GetSensitivityScale();
 		sensitivityRatio = (sensitivity - 0.4f) / 1.6f;
 	}
-	sensitivityGauge->SetTargetValue(sensitivityRatio);
-	sensitivityGauge->SnapToTarget();
+	sensitivityGauge->SetValueImmediate(sensitivityRatio);
 }
 
 void PauseMenu::OnUpdate()
@@ -287,14 +285,14 @@ void PauseMenu::UpdateInput()
 			}
 		}
 
-		volumeGauge->SetTargetValue(SoundSystem::Instance().GetMasterVolume());
+		volumeGauge->SetValue(SoundSystem::Instance().GetMasterVolume());
 		float sensitivityRatio = 0.5f;
 		if (cameraController)
 		{
 			const float sensitivity = cameraController->GetSensitivityScale();
 			sensitivityRatio = (sensitivity - 0.4f) / 1.6f;
 		}
-		sensitivityGauge->SetTargetValue(sensitivityRatio);
+		sensitivityGauge->SetValue(sensitivityRatio);
 	}
 	else if (page == Page::TitleConfirm)
 	{

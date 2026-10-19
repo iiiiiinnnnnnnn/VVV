@@ -111,13 +111,12 @@ TitleScene::TitleScene()
 	addText(optionsHud, "Volume Label", "MASTER VOLUME", 31.0f);
 	volumeGauge = std::make_shared<GaugeHUD>("Master Volume Gauge");
 	volumeGauge->SetFillRect({0.0f, 0.35f}, {1.0f, 0.3f});
-	volumeGauge->SetSmoothingSpeed(12.0f);
-	volumeGauge->SetInteractive([](float ratio)
+	volumeGauge->SetValueSmoothingSpeed(12.0f);
+	volumeGauge->SetOnValueChanged([](float ratio)
 	{
 		SoundSystem::Instance().SetMasterVolume(ratio);
 	});
-	volumeGauge->SetTargetValue(SoundSystem::Instance().GetMasterVolume());
-	volumeGauge->SnapToTarget();
+	volumeGauge->SetValueImmediate(SoundSystem::Instance().GetMasterVolume());
 	optionsHud->AddChild(volumeGauge);
 	addText(optionsHud, "Options Help", "LEFT / RIGHT  ADJUST", 23.0f);
 
@@ -312,7 +311,7 @@ void TitleScene::UpdateMenu()
 				SoundSystem::Instance().GetMasterVolume() + direction * 0.05f, 0.0f, 1.0f));
 
 		if (volumeGauge)
-			volumeGauge->SetTargetValue(SoundSystem::Instance().GetMasterVolume());
+			volumeGauge->SetValue(SoundSystem::Instance().GetMasterVolume());
 	}
 }
 

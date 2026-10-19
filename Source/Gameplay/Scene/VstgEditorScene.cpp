@@ -94,7 +94,7 @@ void VstgEditorScene::OnUpdate()
 		{
 			const float width = std::max(Game::Graphics::ScreenWidth, 1.0f);
 			const float height = std::max(Game::Graphics::ScreenHeight, 1.0f);
-			camera->SetPerspectiveFov(RAD(45.0f), width / height, 0.1f, 2000.0f);
+			camera->SetPerspectiveFov(RAD(FreeCameraController::VerticalFovDegrees), width / height, 0.1f, 2000.0f);
 		}
 	}
 }
@@ -120,7 +120,7 @@ void VstgEditorScene::CreateStage()
 	stageLoader->SetEditorModels(&propModels);
 	Camera* camera = currentStage->GetActiveCamera();
 	camera->SetPerspectiveFov(
-		RAD(45.0f), Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 2000.0f);
+		RAD(FreeCameraController::VerticalFovDegrees), Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 2000.0f);
 	camera->SetLookAt({0.0f, 20.0f, -30.0f}, Vector3::Zero, Vector3::Up);
 	freeCameraController =
 		currentStage->GetDefaultCameraActor()->AddComponent<FreeCameraController>();
@@ -198,7 +198,7 @@ void VstgEditorScene::RenderPropPreview(const RenderContext& rc)
 	propPreviewCamera->SetLookAt(
 		center + Vector3(radius * 1.4f, radius * 0.7f, -radius * 2.5f), center, Vector3::Up);
 	propPreviewCamera->SetPerspectiveFov(
-		RAD(45.0f), 1.0f, std::max(0.01f, radius * 0.01f), radius * 10.0f);
+		RAD(FreeCameraController::VerticalFovDegrees), 1.0f, std::max(0.01f, radius * 0.01f), radius * 10.0f);
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();

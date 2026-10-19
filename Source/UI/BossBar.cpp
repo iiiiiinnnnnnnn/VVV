@@ -5,20 +5,25 @@
 #include "Gameplay/Actor/Entity.h"
 #include "Rendering/Core/Graphics.h"
 
-BossBar::BossBar() : GaugeHUD("Boss Bar")
+BossBar::BossBar() : GaugeHUD("Boss Bar", false)
 {
 	SetFrameTexture("Resources/UI/window.png");
 	SetDissolveMask("Resources/UI/dissolve_animation.png");
 	SetFillRect({0.10f, 0.33f}, {0.80f, 0.33f});
-	SetColors(Color(0.04f, 0.48f, 0.95f, 0.98f),
-		Color(0.04f, 0.48f, 0.95f, 0.98f), Color(0.32f, 0.27f, 0.34f, 0.94f));
+	SetColor(baseColor);
+	SetFrameColor(Color(0.32f, 0.27f, 0.34f, 0.94f));
 	SetDamageTrailEnabled(true);
 	SetDissolveAmount(1.0f);
-	SetTargetValue(0.0f);
-	SnapToTarget();
-	SetSmoothingSpeed(5.0f);
+	SetValueImmediate(0.0f);
+	SetValueSmoothingSpeed(5.0f);
 	SetAffectedByPostProcess(false);
 	SetActive(false);
+}
+
+void BossBar::SetColor(const Color& value)
+{
+	baseColor = value;
+	GaugeHUD::SetColor(value);
 }
 
 void BossBar::Show(Entity* value)
@@ -39,10 +44,9 @@ void BossBar::Show(Entity* value)
 		visibilityAnimating = true;
 		fillTime = 0.0f;
 		filling = true;
-		SetTargetValue(0.0f);
-		SnapToTarget();
+		SetValueImmediate(0.0f);
 	}
-	else if (!filling) SetTargetValue(ratio);
+	else if (!filling) SetValue(ratio);
 	showing = true;
 	SetActive(true);
 }
@@ -53,7 +57,7 @@ void BossBar::Hide(const Entity* value)
 	if (value && value != boss) return;
 	if (!showing) return;
 	const auto bossOwner = bossLifetime.lock();
-	if (bossOwner && boss->IsDead()) SetTargetValue(0.0f);
+	if (bossOwner && boss->IsDead()) SetValue(0.0f);
 	boss = nullptr;
 	bossLifetime.reset();
 	showing = false;
@@ -68,7 +72,7 @@ void BossBar::OnUpdate()
 	const auto bossOwner = bossLifetime.lock();
 	if (showing && (!bossOwner || boss->IsPendingDestroy() || !boss->IsActive() || boss->IsDead()))
 	{
-		if (bossOwner && boss->IsDead()) SetTargetValue(0.0f);
+		if (bossOwner && boss->IsDead()) SetValue(0.0f);
 		Hide(boss);
 	}
 
@@ -82,20 +86,17 @@ void BossBar::OnUpdate()
 		phaseColorElapsed = lifeRatio <= 0.5f ? std::min(phaseColorElapsed + dt, 3.0f) : 0.0f;
 		const float progress = phaseColorElapsed / 3.0f;
 		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
-		const Color normalColor(0.04f, 0.48f, 0.95f, 0.98f);
-		const Color angryColor(1.0f, 0.28f, 0.25f, 0.98f);
-		const Color fillColor = Color::Lerp(normalColor, angryColor, smoothProgress);
-		SetColors(fillColor, fillColor, Color(0.32f, 0.27f, 0.34f, 0.94f));
+		const Color fillColor = Color::Lerp(baseColor, phaseColor, smoothProgress);
+		GaugeHUD::SetColor(fillColor);
 
 		if (filling)
 		{
 			fillTime += dt;
 			const float t = std::clamp(fillTime / fillDuration, 0.0f, 1.0f);
-			SetTargetValue(lifeRatio * t * t * (3.0f - 2.0f * t));
-			SnapToTarget();
+			SetValueImmediate(lifeRatio * t * t * (3.0f - 2.0f * t));
 			filling = t < 1.0f;
 		}
-		else SetTargetValue(lifeRatio);
+		else SetValue(lifeRatio);
 	}
 	GaugeHUD::OnUpdate();
 	if (visibilityAnimating)

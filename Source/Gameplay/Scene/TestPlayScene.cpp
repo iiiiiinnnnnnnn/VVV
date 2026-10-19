@@ -20,6 +20,7 @@
 #include "Gameplay/Actor/Crystal.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Rendering/Renderer/ImGuiBinding.h"
+#include "UI/WidgetShadow.h"
 
 TestPlayScene::TestPlayScene()
 {
@@ -59,7 +60,7 @@ TestPlayScene::TestPlayScene()
 	playerHealthGauge = std::make_shared<GaugeHUD>("Player Health Gauge");
 	playerHealthGauge->SetFrameTexture("Resources/UI/window.png");
 	playerHealthGauge->SetFillRect({0.108f, 0.43f}, {0.82f, 0.31f});
-	playerHealthGauge->SetSmoothingSpeed(4.5f);
+	playerHealthGauge->SetValueSmoothingSpeed(4.5f);
 	playerHudGroup->AddChild(playerHealthGauge);
 
 	bossBar = std::make_shared<BossBar>();
@@ -97,13 +98,15 @@ TestPlayScene::TestPlayScene()
 					 u8"7  : すべての敵をキル\r\n"
 					 u8"\r\n"
 					 u8"[WASD] 移動\r\n"
-					 u8"[スペース] 回避(+パリィ)\r\n"
+					 u8"[スペース] 回避(ジャスト回避時クリックで必殺技+2コンボ)\r\n"
 					 u8"[LSHIFT]ダッシュ\r\n"
 					 u8"[LCTRL] しゃがみ\r\n"
 					 u8"[マウス] 視点操作\r\n"
-					 u8"[左クリック] 攻撃(+連続攻撃)\r\n"
+					 u8"[左クリック] 攻撃+4コンボ\r\n"
 					 u8"[右クリック] キャラにカメラを合わせる",
 		28.0f, "Resources/Font/NotoSansJP.ttf");
+	developText->AddComponent<WidgetShadow>(
+		Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
 	widgetManager.Register(developText);
 #endif
 }
@@ -238,7 +241,7 @@ void TestPlayScene::OnUpdate()
 	playerHealthGauge->rect.position = {78.0f * hudScale, playerHudTop + 26.0f * hudScale};
 	playerHealthGauge->rect.anchor = Vector2::Zero;
 	playerHealthGauge->rect.size = {500.0f * hudScale, 92.0f * hudScale};
-	playerHealthGauge->SetTargetValue(playerLifeRatio);
+	playerHealthGauge->SetValue(playerLifeRatio);
 }
 
 void TestPlayScene::OnDrawGUI()

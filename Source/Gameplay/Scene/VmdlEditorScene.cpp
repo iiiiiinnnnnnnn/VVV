@@ -13,6 +13,7 @@
 #include "Core/Object/Object.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Camera/Camera.h"
+#include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/CameraMoveSpeedOverlay.h"
 #include "Physics/Collider/MeshCollider.h"
 #include "Physics/RigidBody/Rigidbody.h"
@@ -45,9 +46,7 @@
 #include "Resource/MeshCache.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 
-constexpr UINT PreviewWidth = 1024;
-constexpr UINT PreviewHeight = 1024;
-constexpr float PreviewMinCameraDistance = 0.2f;
+constexpr float PreviewMinCameraDistance = 0.1f;
 constexpr float PreviewMaxCameraDistance = 100000.0f;
 
 template<typename T>
@@ -139,25 +138,11 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
 
-	previewSceneTarget = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-	previewTarget = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R8G8B8A8_UNORM);
-
-	previewLuminance = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
-	previewBloomWork = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
-	previewSsao = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
-	previewPostA = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
-	previewPostB = std::make_unique<RenderTarget>(
-		graphics.GetDevice(), PreviewWidth, PreviewHeight, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	ResizePreviewTargets();
 	if (previewPostProcess) postProcess.CopySettingsFrom(*previewPostProcess);
 	if (previewLighting)
 	{
+		usesCustomLighting = true;
 		editorLights.SetDirectionalLight(previewLighting->GetDirectionalLight());
 		editorLights.SetAmbientColor(previewLighting->GetAmbientColor());
 		renderSettings = previewRenderSettings;
@@ -449,193 +434,127 @@ void VmdlEditorScene::OnDrawGUI()
 	RenderPreview();
 	ImGuizmo::BeginFrame();
 
-	// 画面全体を覆うエディタウィンドウ
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
+	if (previewTarget)
+		ImGui::GetBackgroundDrawList()->AddImage(previewTarget->GetSRV(), viewport->Pos,
+			ImVec2(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y));
 
-	constexpr ImGuiWindowFlags flags =
-		ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoSavedSettings;
-
-	if (!ImGui::Begin((const char*)u8"VMDLエディタ", nullptr, flags))
-	{
-		ImGui::End();
-		style = gameStyle;
-		return;
-	}
-
-	// メニューは背後のプロパティや3Dビューが透けると読みにくいため、
-	// VMDL Editor内だけ完全に不透明なポップアップとして描画する。
+	// 全画面の3D描画に、不透明な独立パネルを重ねる。
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	DrawMenuBar();
-	ImGui::PopStyleColor();
-	ImGui::PopStyleVar();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
 
-	// 保存値と現在の画面サイズからパネル幅を決定
-	const float totalHeight = ImGui::GetContentRegionAvail().y;
-	const float splitterHeight = 6.0f;
-	const float totalWidth = ImGui::GetContentRegionAvail().x;
-	const float columnSplitterWidth = 6.0f;
-	const float availableColumnWidth = totalWidth - columnSplitterWidth * 2.0f;
-	const float previewAspect =
-		static_cast<float>(PreviewWidth) / PreviewHeight;
-	const bool canInitializeLayout =
-		!restoreWindowPending && !layoutWindowMetricsPending &&
-		availableColumnWidth >= 660.0f &&
-		totalHeight >= 360.0f;
-	if (!layoutInitialized)
-	{
-		bottomPanelHeight = 430.0f;
-		if (canInitializeLayout && loadedBottomPanelRatio > 0.0f)
-			bottomPanelHeight = totalHeight * loadedBottomPanelRatio;
-		bottomPanelHeight = std::clamp(
-			bottomPanelHeight, 140.0f, std::max(140.0f, totalHeight - 220.0f));
-
-		const float upperHeight =
-			std::max(220.0f, totalHeight - bottomPanelHeight - splitterHeight);
-		const float defaultViewportWidth =
-			std::min(upperHeight * previewAspect, std::max(220.0f, totalWidth - 440.0f));
-		viewportPanelWidth = defaultViewportWidth;
-		propertyPanelWidth =
-			std::max(220.0f, (availableColumnWidth - viewportPanelWidth) * 0.5f);
-		if (canInitializeLayout && loadedPropertyPanelRatio > 0.0f)
-		{
-			propertyPanelWidth = availableColumnWidth * loadedPropertyPanelRatio;
-			viewportPanelWidth = availableColumnWidth * loadedViewportPanelRatio;
-		}
-		layoutInitialized = canInitializeLayout;
-	}
-
-	bottomPanelHeight =
-		std::clamp(bottomPanelHeight, 140.0f, std::max(140.0f, totalHeight - 220.0f));
-	const float upperHeight = std::max(220.0f, totalHeight - bottomPanelHeight - splitterHeight);
-	const float minimumViewportWidth = std::clamp(totalWidth * 0.25f, 300.0f, 480.0f);
-	const float maximumStoredViewportWidth =
-		std::max(minimumViewportWidth, availableColumnWidth - 440.0f);
-	viewportPanelWidth =
-		std::clamp(viewportPanelWidth, minimumViewportWidth, maximumStoredViewportWidth);
-	propertyPanelWidth = std::clamp(propertyPanelWidth, 220.0f,
-		std::max(220.0f, availableColumnWidth - viewportPanelWidth - 220.0f));
+	constexpr float gap = 3.0f;
+	const ImVec2 workPosition(viewport->Pos.x + gap, viewport->Pos.y + ImGui::GetFrameHeight() + gap);
+	const float totalWidth = std::max(1.0f, viewport->Size.x - gap * 2.0f);
+	const float totalHeight = std::max(1.0f, viewport->Pos.y + viewport->Size.y - workPosition.y - gap);
+	const bool canInitializeLayout = !restoreWindowPending && !layoutWindowMetricsPending &&
+		totalWidth >= 660.0f && totalHeight >= 360.0f;
+	propertyPanelWidth = std::min(340.0f, totalWidth * 0.25f);
+	const float hierarchyWidth = std::min(300.0f, totalWidth * 0.23f);
+	viewportPanelWidth = std::max(1.0f, totalWidth - propertyPanelWidth - hierarchyWidth - gap * 2.0f);
+	bottomPanelHeight = totalHeight * 0.36f;
+	const float upperHeight = std::max(1.0f, totalHeight - bottomPanelHeight - gap);
+	if (canInitializeLayout) layoutInitialized = true;
 	if (layoutInitialized)
 	{
-		layoutColumnWidth = availableColumnWidth;
+		layoutColumnWidth = totalWidth;
 		layoutTotalHeight = totalHeight;
 	}
-	// SetWindowPosはImGui::NewFrameより後に実行されるため、このフレームの
-	// DisplaySizeはまだランチャーの値。次フレームから保存値を適用する
-	if (!restoreWindowPending && layoutWindowMetricsPending)
-		layoutWindowMetricsPending = false;
+	if (!restoreWindowPending && layoutWindowMetricsPending) layoutWindowMetricsPending = false;
 
-	// 上段のプロパティ、3Dビュー、階層
-	ImGui::BeginChild("Property", ImVec2(propertyPanelWidth, upperHeight), true);
-	DrawProperty();
-	ImGui::EndChild();
+	constexpr ImGuiWindowFlags panelFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
+	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(propertyPanelWidth, upperHeight), ImGuiCond_Always);
+	if (ImGui::Begin((const char*)(ICON_FA_COG " " u8"インスペクタ###VMDL Inspector"), nullptr, panelFlags))
+		DrawProperty();
+	ImGui::End();
 
-	ImGui::SameLine(0.0f, 0.0f);
-	ImGui::InvisibleButton("##PropertySplitter", ImVec2(columnSplitterWidth, upperHeight));
-	if (ImGui::IsItemActive())
+	ImGui::SetNextWindowPos(ImVec2(workPosition.x + totalWidth - hierarchyWidth, workPosition.y), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(hierarchyWidth, upperHeight), ImGuiCond_Always);
+	if (ImGui::Begin((const char*)(ICON_FA_LIST " " u8"ヒエラルキー###VMDL Hierarchy"), nullptr, panelFlags))
+		DrawHierarchy();
+	ImGui::End();
+
+	const ImVec2 toolbarPosition(workPosition.x + propertyPanelWidth + gap, workPosition.y);
+	const float toolbarHeight = ImGui::GetFrameHeightWithSpacing() + ImGui::GetTextLineHeightWithSpacing() +
+		ImGui::GetStyle().WindowPadding.y * 2.0f;
+	ImGui::SetNextWindowPos(toolbarPosition, ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(viewportPanelWidth, toolbarHeight), ImGuiCond_Always);
+	if (ImGui::Begin("###VMDL Preview Toolbar", nullptr, panelFlags | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar))
+		DrawPreviewToolbar();
+	ImGui::End();
+
+	ImGui::SetNextWindowPos(ImVec2(workPosition.x, workPosition.y + upperHeight + gap), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(totalWidth, bottomPanelHeight), ImGuiCond_Always);
+	const bool bottomVisible = ImGui::Begin((const char*)u8"アニメーション・編集###VMDL Bottom", nullptr, panelFlags);
+	if (bottomVisible)
 	{
-		const float maximumPropertyWidth =
-			std::max(220.0f, availableColumnWidth - viewportPanelWidth - 220.0f);
-		const float nextWidth = std::clamp(
-			propertyPanelWidth + io.MouseDelta.x, 220.0f, maximumPropertyWidth);
-		propertyPanelWidth = nextWidth;
-	}
-	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-
-	ImGui::SameLine(0.0f, 0.0f);
-	ImGui::BeginChild(
-		"3D View", ImVec2(viewportPanelWidth, upperHeight), true, ImGuiWindowFlags_NoScrollbar);
-	DrawViewport();
-	ImGui::EndChild();
-
-	ImGui::SameLine(0.0f, 0.0f);
-	ImGui::InvisibleButton("##ViewportSplitter", ImVec2(columnSplitterWidth, upperHeight));
-	if (ImGui::IsItemActive())
-	{
-		const float nextWidth = std::clamp(viewportPanelWidth + io.MouseDelta.x,
-			minimumViewportWidth, maximumStoredViewportWidth);
-		viewportPanelWidth = nextWidth;
-	}
-	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-
-	ImGui::SameLine(0.0f, 0.0f);
-	ImGui::BeginChild("Hierarchy", ImVec2(0.0f, upperHeight), true);
-	DrawHierarchy();
-	ImGui::EndChild();
-
-	// 上段と下段の高さ調整
-	ImGui::Button("##BottomSplitter", ImVec2(-1.0f, splitterHeight));
-	if (ImGui::IsItemActive())
-	{
-		const float nextHeight =
-			std::clamp(bottomPanelHeight - io.MouseDelta.y, 140.0f, totalHeight - 220.0f);
-		bottomPanelHeight = nextHeight;
-	}
-	if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-	// 下段の編集タブ
-	ImGui::BeginChild("Editor Bottom", ImVec2(0.0f, 0.0f), true);
-	const ImVec4 menuColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
-	ImGui::PushStyleColor(ImGuiCol_Tab, menuColor);
-	ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiTheme::Selected);
-	ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiTheme::Selected);
-	ImGui::PushStyleColor(ImGuiCol_TabDimmed, menuColor);
-	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiTheme::Selected);
-	ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiTheme::SelectedBorder);
-	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiTheme::SelectedBorder);
-	ImGui::PushStyleColor(ImGuiCol_Header, ImGuiTheme::Selected);
-	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiTheme::Selected);
-	ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiTheme::Selected);
-	if (ImGui::BeginTabBar("VMDL Editor Tabs"))
-	{
-		if (ImGui::BeginTabItem((const char*)u8"アニメーション"))
+		const ImVec4 menuColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
+		ImGui::PushStyleColor(ImGuiCol_Tab, menuColor);
+		ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabDimmed, menuColor);
+		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiTheme::SelectedBorder);
+		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiTheme::SelectedBorder);
+		ImGui::PushStyleColor(ImGuiCol_Header, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiTheme::Selected);
+		if (ImGui::BeginTabBar("VMDL Editor Tabs"))
 		{
-			const ImVec2 tabMin = ImGui::GetItemRectMin();
-			const ImVec2 tabMax = ImGui::GetItemRectMax();
-			ImGui::GetWindowDrawList()->AddRect(
-				tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
-			DrawTimeline();
-			ImGui::EndTabItem();
-		}
-		if (ImGui::BeginTabItem((const char*)u8"モーフ"))
-		{
-			const ImVec2 tabMin = ImGui::GetItemRectMin();
-			const ImVec2 tabMax = ImGui::GetItemRectMax();
-			ImGui::GetWindowDrawList()->AddRect(
-				tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
-			DrawMorphEditor();
-			ImGui::EndTabItem();
-		}
-		if (ImGui::BeginTabItem((const char*)u8"IK設定"))
-		{
-			const ImVec2 tabMin = ImGui::GetItemRectMin();
-			const ImVec2 tabMax = ImGui::GetItemRectMax();
-			ImGui::GetWindowDrawList()->AddRect(
-				tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
-			DrawIkSettings();
-			ImGui::EndTabItem();
-		}
+			if (ImGui::BeginTabItem((const char*)u8"アニメーション"))
+			{
+				const ImVec2 tabMin = ImGui::GetItemRectMin();
+				const ImVec2 tabMax = ImGui::GetItemRectMax();
+				ImGui::GetWindowDrawList()->AddRect(
+					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+				ImGui::GetWindowDrawList()->AddRectFilled(
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+				DrawTimeline();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem((const char*)u8"モーフ"))
+			{
+				const ImVec2 tabMin = ImGui::GetItemRectMin();
+				const ImVec2 tabMax = ImGui::GetItemRectMax();
+				ImGui::GetWindowDrawList()->AddRect(
+					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+				ImGui::GetWindowDrawList()->AddRectFilled(
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+				DrawMorphEditor();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem((const char*)u8"IK設定"))
+			{
+				const ImVec2 tabMin = ImGui::GetItemRectMin();
+				const ImVec2 tabMax = ImGui::GetItemRectMax();
+				ImGui::GetWindowDrawList()->AddRect(
+					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+				ImGui::GetWindowDrawList()->AddRectFilled(
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+				DrawIkSettings();
+				ImGui::EndTabItem();
+			}
 
-		ImGui::EndTabBar();
+			ImGui::EndTabBar();
+		}
+		ImGui::PopStyleColor(10);
 	}
-	ImGui::PopStyleColor(10);
-	ImGui::EndChild();
+	ImGui::End();
+
+	const ImVec2 inputMin(toolbarPosition.x, toolbarPosition.y + toolbarHeight);
+	const ImVec2 inputMax(workPosition.x + totalWidth - hierarchyWidth - gap, workPosition.y + upperHeight);
+	DrawViewport(inputMin, inputMax);
 
 	if (animationRecording)
 	{
-		const ImVec2 position = ImGui::GetWindowPos();
-		const ImVec2 size = ImGui::GetWindowSize();
+		const ImVec2 position = viewport->Pos;
+		const ImVec2 size = viewport->Size;
 
 		constexpr float thickness = 4.0f;
 		constexpr float inset = thickness * 0.5f;
@@ -645,7 +564,6 @@ void VmdlEditorScene::OnDrawGUI()
 			IM_COL32(255, 0, 0, 255), 0.0f, ImDrawFlags_None, thickness);
 	}
 
-	ImGui::End();
 	if (showPhysicsLayerWindow) PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
 	if (showSetScaleWindow) ImGui::OpenPopup((const char*)u8"スケール設定");
@@ -672,6 +590,8 @@ void VmdlEditorScene::OnDrawGUI()
 		ImGui::EndPopup();
 	}
 
+	ImGui::PopStyleColor(3);
+	ImGui::PopStyleVar(2);
 	style = gameStyle;
 }
 
@@ -876,7 +796,8 @@ void VmdlEditorScene::RotatePreviewCamera(float yawDelta, float pitchDelta, bool
 	const Vector3 oldOffset = GetPreviewCameraOffset();
 	const Matrix oldRotation = Matrix::CreateFromYawPitchRoll(-cameraYaw, cameraPitch, 0.0f);
 	cameraYaw = std::remainder(cameraYaw + yawDelta, DirectX::XM_2PI);
-	cameraPitch = std::clamp(cameraPitch + pitchDelta, -1.45f, 1.45f);
+	const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
+	cameraPitch = std::clamp(cameraPitch + pitchDelta, -pitchLimit, pitchLimit);
 	if (orbitModel)
 	{
 		// 視点と注視点を同じだけモデル中心の周囲へ回す。見渡し後も位置が飛ばない。
@@ -893,8 +814,24 @@ void VmdlEditorScene::RotatePreviewCamera(float yawDelta, float pitchDelta, bool
 	}
 }
 
+void VmdlEditorScene::ResizePreviewTargets()
+{
+	const UINT width = static_cast<UINT>(std::max(1.0f, Game::Graphics::ScreenWidth));
+	const UINT height = static_cast<UINT>(std::max(1.0f, Game::Graphics::ScreenHeight));
+	if (previewTarget && previewTarget->GetWidth() == width && previewTarget->GetHeight() == height) return;
+	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+	previewSceneTarget = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewTarget = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
+	previewLuminance = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewBloomWork = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewSsao = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewPostA = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	previewPostB = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+}
+
 void VmdlEditorScene::RenderPreview()
 {
+	ResizePreviewTargets();
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
 
 	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_LEFT_TRIGGER)
@@ -913,11 +850,23 @@ void VmdlEditorScene::RenderPreview()
 		}
 	}
 
-	const float zoomLerp = 1.0f - std::exp(-12.0f * Game::Time::unscaledDeltaTime);
-	cameraDistance = std::lerp(cameraDistance, targetCameraDistance, zoomLerp);
+	cameraDistance = targetCameraDistance;
 	const Vector3 focus = Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
 	const Vector3 eye = focus + GetPreviewCameraOffset();
-	editorCamera->SetLookAt(eye, focus, Vector3::Up);
+	if (!previewCameraViewInitialized)
+	{
+		previewCameraEye = eye;
+		previewCameraFocus = focus;
+		previewCameraViewInitialized = true;
+	}
+	else
+	{
+		const float follow = std::clamp(Game::Time::unscaledDeltaTime *
+			FreeCameraController::CameraFollowSpeed, 0.0f, 1.0f);
+		previewCameraEye = Vector3::Lerp(previewCameraEye, eye, follow);
+		previewCameraFocus = Vector3::Lerp(previewCameraFocus, focus, follow);
+	}
+	editorCamera->SetLookAt(previewCameraEye, previewCameraFocus, Vector3::Up);
 	if (cameraShakePreviewTimer > 0.0f)
 	{
 		cameraShakePreviewTimer = std::max(0.0f,
@@ -933,12 +882,13 @@ void VmdlEditorScene::RenderPreview()
 		const float vertical = std::sin(elapsed * 97.0f + 1.3f) * cameraShakePreviewIntensity;
 		const Vector3 offset = (editorCamera->GetRight() * horizontal +
 			editorCamera->GetUp() * vertical) * previewDistanceScale * fade;
-		editorCamera->SetLookAt(eye + offset, focus + offset, Vector3::Up);
+		editorCamera->SetLookAt(previewCameraEye + offset, previewCameraFocus + offset, Vector3::Up);
 	}
 	SoundSystem::Instance().SetListenerOverride(editorCamera);
 	const float nearClip = std::max(0.01f, cameraDistance * 0.0001f);
 	const float farClip = std::max(1000.0f, cameraDistance * 2.0f);
-	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f), 1.0f, nearClip, farClip);
+	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(FreeCameraController::VerticalFovDegrees),
+		static_cast<float>(previewTarget->GetWidth()) / previewTarget->GetHeight(), nearClip, farClip);
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
@@ -947,7 +897,7 @@ void VmdlEditorScene::RenderPreview()
 	rc.deviceContext = dc;
 	rc.renderState = graphics.GetRenderState();
 	rc.camera = editorCamera;
-	if (!previewLighting && !usesVstgLighting)
+	if (!usesCustomLighting)
 		editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
 	editorLights.GetDirectionalLight().transform.Update();
 	rc.renderSettings = renderSettings;
@@ -1385,7 +1335,7 @@ void VmdlEditorScene::RenderPreview()
 void VmdlEditorScene::DrawMenuBar()
 {
 	auto& io = ImGui::GetIO();
-	if (!ImGui::BeginMenuBar()) return;
+	if (!ImGui::BeginMainMenuBar()) return;
 
 	// ファイル操作
 	if (ImGui::BeginMenu((const char*)(ICON_FA_FILE " " u8"ファイル")))
@@ -1440,6 +1390,7 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
 	{
+		if (ImGui::MenuItem((const char*)(ICON_FA_UNDO " " u8"ライティング環境をリセット"))) ResetLightingEnvironment();
 		if (ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"VSTGからライティング環境を適用"))) ApplyVstgLighting();
 		if (ImGui::MenuItem((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"スケール設定"), nullptr, false, model != nullptr))
 		{
@@ -1474,7 +1425,7 @@ void VmdlEditorScene::DrawMenuBar()
 		ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "%s", fpsText.c_str());
 	ImGui::SameLine(0.0f, 20.0f);
 	ImGui::TextUnformatted(title.c_str());
-	ImGui::EndMenuBar();
+	ImGui::EndMainMenuBar();
 
 	if (exiting && SceneManager::Instance().LoadScene<GameStartScene>()) exiting = false;
 }
@@ -2614,18 +2565,13 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 	ImGui::PopID();
 }
 
-void VmdlEditorScene::DrawViewport()
+void VmdlEditorScene::DrawPreviewToolbar()
 {
-	auto& io = ImGui::GetIO();
 	ImGui::TextUnformatted((const char*)u8"プレビュー");
 	const float transportButtonWidth = 42.0f;
 	const float loopWidth = 58.0f;
 	const float speedWidth = 74.0f;
-	const float transportWidth = transportButtonWidth * 2.0f + loopWidth + speedWidth +
-		ImGui::GetStyle().ItemSpacing.x * 3.0f;
 	ImGui::SameLine();
-	ImGui::SetCursorPosX(std::max(
-		ImGui::GetCursorPosX(), (ImGui::GetWindowWidth() - transportWidth) * 0.5f));
 	if (ImGui::Button(animationPlaying ? ICON_FA_PAUSE "##UnifiedPlay" : ICON_FA_PLAY "##UnifiedPlay",
 			ImVec2(transportButtonWidth, 0.0f)))
 	{
@@ -2648,22 +2594,27 @@ void VmdlEditorScene::DrawViewport()
 	ImGui::SameLine();
 	if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"サイズ"))) gizmoOperation = ImGuizmo::SCALE;
 	ImGui::TextDisabled((const char*)u8"右ドラッグ: 見渡し / Alt+左ドラッグ: 回り込み / 中ドラッグ: 平行移動");
-	ImGui::Separator();
+}
 
-	ImVec2 available = ImGui::GetContentRegionAvail();
-	const float side = std::min(available.x, available.y);
-	const ImVec2 imageSize(side, side);
-	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (available.x - side) * 0.5f);
-	ImGui::Image(previewTarget->GetSRV(), imageSize);
-	const ImVec2 imageMin = ImGui::GetItemRectMin();
-	const ImVec2 imageMax = ImGui::GetItemRectMax();
+void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax)
+{
+	auto& io = ImGui::GetIO();
+	const Mouse& mouseInput = Game::Input::Instance().GetMouse();
+	const float yawDelta = -mouseInput.GetAxisX() * FreeCameraController::MouseRotationSensitivity;
+	const float pitchDelta = mouseInput.GetAxisY() * FreeCameraController::MouseRotationSensitivity;
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	const ImVec2 imageMin = viewport->Pos;
+	const ImVec2 imageMax(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y);
 	if (viewportRotationDragging)
 	{
 		const std::string speedText = std::format("移動速度 {:.1f}  ホイールで調整", previewCameraMoveSpeed);
-		ImGui::GetWindowDrawList()->AddText(
-			ImVec2(imageMin.x + 10.0f, imageMin.y + 10.0f), IM_COL32(255, 255, 255, 220), speedText.c_str());
+		ImGui::GetForegroundDrawList()->AddText(
+			ImVec2(inputMin.x + 10.0f, inputMin.y + 10.0f), IM_COL32(255, 255, 255, 220), speedText.c_str());
 	}
-	const bool imageHovered = ImGui::IsItemHovered();
+	const bool imageHovered = io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
+		io.MousePos.y >= inputMin.y && io.MousePos.y <= inputMax.y &&
+		!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
+		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
 	if (imageHovered && !io.WantTextInput && !io.KeyCtrl)
 	{
 		if (io.KeyShift && io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Z, false))
@@ -2690,7 +2641,7 @@ void VmdlEditorScene::DrawViewport()
 	if (viewportOrbitDragging)
 	{
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && io.KeyAlt)
-			RotatePreviewCamera(-io.MouseDelta.x * 0.01f, io.MouseDelta.y * 0.01f, true);
+			RotatePreviewCamera(yawDelta, pitchDelta, true);
 		else
 		{
 			viewportOrbitDragging = false;
@@ -2699,6 +2650,8 @@ void VmdlEditorScene::DrawViewport()
 	}
 	const bool navigatingCamera = viewportRotationDragging || viewportOrbitDragging ||
 		(imageHovered && (io.KeyAlt || ImGui::IsMouseDown(ImGuiMouseButton_Right)));
+	ImGuizmo::Enable(imageHovered || ImGuizmo::IsUsing());
+	ImGui::GetForegroundDrawList()->PushClipRect(inputMin, inputMax, true);
 	if (!navigatingCamera && model && ikGizmoTarget != IkGizmoTarget::None)
 	{
 		const auto& legs = model->GetVmdlIKSettings().legs;
@@ -2730,7 +2683,7 @@ void VmdlEditorScene::DrawViewport()
 				Matrix world = Matrix::CreateTranslation(position);
 				Matrix view = editorCamera->GetView();
 				Matrix projection = editorCamera->GetProjection();
-				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+				ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 				ImGuizmo::SetRect(imageMin.x, imageMin.y,
 					imageMax.x - imageMin.x, imageMax.y - imageMin.y);
 				if (ImGuizmo::Manipulate(&view._11, &projection._11,
@@ -2755,7 +2708,7 @@ void VmdlEditorScene::DrawViewport()
 		Matrix projection = editorCamera->GetProjection();
 		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
 		Matrix world = model->GetNodes()[selectedNode].worldTransform * renderScaleTransform;
-		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 		ImGuizmo::SetRect(imageMin.x, imageMin.y, imageMax.x - imageMin.x, imageMax.y - imageMin.y);
 		if (ImGuizmo::Manipulate(&view._11, &projection._11,
 				static_cast<ImGuizmo::OPERATION>(gizmoOperation), ImGuizmo::LOCAL, &world._11))
@@ -2768,6 +2721,8 @@ void VmdlEditorScene::DrawViewport()
 			if (animationRecording) RecordSelectedNodeKey();
 		}
 	}
+	ImGui::GetForegroundDrawList()->PopClipRect();
+	ImGuizmo::Enable(true);
 	if (imageHovered && !viewportOrbitDragging && !ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 	{
 		viewportRotationDragging = true;
@@ -2777,7 +2732,7 @@ void VmdlEditorScene::DrawViewport()
 	{
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
-			RotatePreviewCamera(-io.MouseDelta.x * 0.01f, io.MouseDelta.y * 0.01f, false);
+			RotatePreviewCamera(yawDelta, pitchDelta, false);
 			if (io.MouseWheel != 0.0f)
 			{
 				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
@@ -2881,15 +2836,13 @@ void VmdlEditorScene::DrawViewport()
 	}
 	if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
 	{
-		float panScale = cameraDistance * 0.0015f;
-		if (io.KeyShift) panScale *= 10.0f;
-		cameraFocusOffset -= editorCamera->GetRight() * io.MouseDelta.x * panScale;
-		cameraFocusOffset += editorCamera->GetUp() * io.MouseDelta.y * panScale;
+		const float panScale = cameraDistance * 0.002f;
+		cameraFocusOffset -= editorCamera->GetRight() * mouseInput.GetAxisX() * panScale;
+		cameraFocusOffset += editorCamera->GetUp() * mouseInput.GetAxisY() * panScale;
 	}
 	if (io.MouseWheel != 0.0f && !viewportRotationDragging)
 	{
-		if (io.KeyShift) targetCameraDistance *= std::pow(2.0f, -io.MouseWheel);
-		else targetCameraDistance -= io.MouseWheel * 0.4f;
+		targetCameraDistance -= static_cast<float>(mouseInput.GetWheel()) * targetCameraDistance * 0.1f;
 		targetCameraDistance =
 			std::clamp(targetCameraDistance, PreviewMinCameraDistance, PreviewMaxCameraDistance);
 	}
@@ -6388,22 +6341,13 @@ void VmdlEditorScene::MarkDirty()
 
 bool VmdlEditorScene::OnRequestExit()
 {
-	if (dirty)
-	{
-		int result = MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-			L"\u7D42\u4E86\u3059\u308B\u524D\u306B\u4FDD\u5B58\u3057\u307E\u3059\u304B\uFF1F",
-			L"VEER", MB_YESNOCANCEL | MB_ICONQUESTION);
-		if (result == IDYES)
-		{
-			SaveVmdl();
-			if (dirty) return false;
-		}
-		else if (result == IDCANCEL)
-		{
-			return false; // Cancel exit
-		}
-	}
-	return true;
+	if (!dirty) return true;
+	const int result = MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
+		L"変更を保存しますか？", L"VEER", MB_YESNOCANCEL | MB_ICONQUESTION);
+	if (result == IDNO) return true;
+	if (result != IDYES) return false;
+	SaveVmdl();
+	return !dirty;
 }
 
 void VmdlEditorScene::UpdateModelFraming()
@@ -6445,6 +6389,7 @@ void VmdlEditorScene::UpdateModelFraming()
 
 	cameraFocusOffset = center - Vector3(0.0f, 1.0f, 0.0f);
 	cameraOrbitPivot = center;
+	previewCameraViewInitialized = false;
 
 	cameraDistance = std::clamp(size.Length() * 1.25f, 2.0f, 50.0f);
 	targetCameraDistance = cameraDistance;
@@ -6466,6 +6411,28 @@ std::string VmdlEditorScene::MakeNodeLabel(int nodeIndex, const std::string& nod
 	return std::to_string(nodeIndex) + ":" + nodeName;
 }
 
+void VmdlEditorScene::ResetLightingEnvironment()
+{
+	auto& graphics = Game::Graphics::Instance();
+	if (!graphics.LoadSkyMap("Default"))
+	{
+		ErrorMessage("Default lighting environment could not be loaded.");
+		return;
+	}
+	graphics.GetSkyBoxRenderer()->SetIntensity(1.0f);
+
+	const LightManager defaults;
+	editorLights.SetAmbientColor(defaults.GetAmbientColor());
+	editorLights.SetDirectionalLight(defaults.GetDirectionalLight());
+	editorLights.GetPointLights().clear();
+	editorLights.GetSpotLights().clear();
+	editorLights.GetAreaLights().clear();
+	editorLightDirection = {0.6f, -0.7f, 0.0f};
+	editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
+	editorLights.GetDirectionalLight().transform.Update();
+	usesCustomLighting = false;
+}
+
 void VmdlEditorScene::ApplyVstgLighting()
 {
 	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Stage").string();
@@ -6480,7 +6447,7 @@ void VmdlEditorScene::ApplyVstgLighting()
 			ErrorMessage(stage.GetError());
 			return;
 		}
-		usesVstgLighting = true;
+		usesCustomLighting = true;
 	}
 	catch (const std::exception& exception)
 	{
@@ -6971,6 +6938,7 @@ void VmdlEditorScene::LoadModel(
 		ErrorMessage("Model file not found. Open an existing file from Resources/Model.");
 		return;
 	}
+	if (model && !OnRequestExit()) return;
 	footIkPreviewOwner.reset();
 	footIkPreviewAnimator = nullptr;
 	footIkPreviewSignature.clear();

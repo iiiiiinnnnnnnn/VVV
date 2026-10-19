@@ -60,6 +60,8 @@ class Player : public Entity
 
 	void DeathOfFall() override;
 
+	bool IsInBattle() const { return inBattleTimer > 0.0f; }
+
 	// ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
 	void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);
@@ -108,9 +110,9 @@ class Player : public Entity
 	void UpdateHealth();
 	void UpdateDeathSequence();
 	void UpdateFootSound();
+	void UpdateBattleStatus();
 	bool IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* collider) const;
 	void TriggerJustDodge(Actor* attacker);
-	void PlayJustDodgeFeedback();
 	void PlayAttackHitEffect(const Vector3& position);
 
 
@@ -137,11 +139,16 @@ class Player : public Entity
 	bool justDodgeTriggered = false;
 	bool justDodgeWindowActive = false;
 	Actor* justDodgeAttacker = nullptr;
-	bool justDodgeSoundPlayed = false;
 	bool justDodgeSkillActive = false;
 	std::weak_ptr<Actor> justDodgeSkillTarget;
 	float dodgeCooldownTimer = 0.0f;
 	float dodgeCooldownDuration = 0.35f;
+	bool dodgeWasActive = false;
+	float dodgeInputBufferTimer = 0.0f;
+	const float dodgeInputBufferDuration = 0.15f;
+	Vector3 bufferedDodgeDirection = Vector3::Zero;
+	float inBattleTimer = 0.0f; // バトル中(idleモーションが変わったり自動回復止まったりする)
+	const float BattleTimerDuration = 10.0f;
 
 	// 水に触れたらダメージ
 	const float damageLowerHeightCoolDown = 0.2f;

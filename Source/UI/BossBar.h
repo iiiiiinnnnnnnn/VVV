@@ -14,6 +14,10 @@ class BossBar final : public GaugeHUD
 public:
 	BossBar();
 
+	// 通常時の色は共通API、HP低下時の変化先はボス固有の設定。
+	void SetColor(const Color& value) override;
+	void SetPhaseColor(const Color& value) { phaseColor = value; }
+
 	void Show(Entity* value);
 	void Hide(const Entity* value = nullptr);
 	Entity* GetBoss() const { return boss; }
@@ -23,6 +27,8 @@ protected:
 	void OnDrawGUI() override;
 
 private:
+	Color baseColor = Color(0.04f, 0.48f, 0.95f, 0.98f);
+	Color phaseColor = Color(1.0f, 0.28f, 0.25f, 0.98f);
 	Entity* boss = nullptr;
 	std::weak_ptr<Actor> bossLifetime;
 	bool showing = false;
