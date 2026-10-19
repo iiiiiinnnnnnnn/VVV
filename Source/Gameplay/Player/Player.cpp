@@ -264,6 +264,7 @@ void Player::UpdateFootSound()
 void Player::UpdateBattleStatus()
 {
 	inBattleTimer -= Game::Time::deltaTime;
+	if (anim) anim->SetBool("isInBattle", IsInBattle());
 }
 
 void Player::UpdateWaterDamage()
@@ -846,8 +847,8 @@ void Player::UpdateHealth()
 
 	const std::string& currentState = anim->GetCurrentStateName();
 	const std::string& nextState = anim->GetNextStateName();
-	const bool currentIdle = currentState == "Idle" || currentState == "CrouchIdle";
-	const bool nextIdle = nextState == "Idle" || nextState == "CrouchIdle";
+	const bool currentIdle = currentState == "Idle" || currentState == "BattleIdle" || currentState == "CrouchIdle";
+	const bool nextIdle = nextState == "Idle" || nextState == "BattleIdle" || nextState == "CrouchIdle";
 	const bool stayingIdle = !anim->IsTransitioning() || nextState.empty() || nextIdle;
 	const bool actionActive = actionInputThisFrame || dodgeInvincible || justDodgeSkillActive;
 	const bool idle = currentIdle && stayingIdle && !actionActive;

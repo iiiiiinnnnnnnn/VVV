@@ -8,7 +8,7 @@ cd /d "%ROOT_DIR%"
 
 set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
 set RELEASE_TAG=vvv-latest
-set ZIP_NAME=VVV.zip
+set ZIP_NAME=Development.zip
 set OUT_DIR=Bin\Development
 set CACHE_BUILDER=Bin\Tools\Development\CacheBuilder.exe
 set DIST_DIR=dist
@@ -91,5 +91,5 @@ if errorlevel 1 (
 )
 
 echo 完了しました。
-echo https://github.com/iiiiiinnnnnnnn/shuushoku-download-site/releases/download/vvv-latest/VVV.zip
+echo https://github.com/iiiiiinnnnnnnn/shuushoku-download-site/releases/download/vvv-latest/Development.zip
 pause
