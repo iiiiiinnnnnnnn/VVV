@@ -42,7 +42,7 @@ void Entity::OnUpdate()
 // ダメージを受ける
 void Entity::TakeDamage(const DamageData& damageData)
 {
-    if (!damageData.ignoreDamageCooldown && cooldowns.damageCooldown > 0.0f) return;
+    if (!damageData.isForceDamage && cooldowns.damageCooldown > 0.0f) return;
     if (IsDead()) return;
 
     if (damageData.knockBackPower > 0 && damageData.hitPosition.has_value())

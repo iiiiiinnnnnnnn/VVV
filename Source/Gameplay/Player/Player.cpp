@@ -290,7 +290,7 @@ void Player::UpdateWaterDamage()
 			DamageData dmgData;
 			dmgData.damage = damageWaterAmount;
 			dmgData.hitPosition.reset();
-			dmgData.hitColliderOther = nullptr;
+			dmgData.targetCollider = nullptr;
 
 			TakeDamage(dmgData);
 
@@ -552,14 +552,14 @@ void Player::ActivateJustDodgeSkill()
 
 void Player::TakeDamage(const DamageData& damageData)
 {
-	Actor* attacker = damageData.hitColliderSelf
-		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
+	Actor* attacker = damageData.attackerCollider
+		? dynamic_cast<Actor*>(damageData.attackerCollider->GetOwner())
 		: nullptr;
-	if (damageData.hitColliderSelf && damageData.hitColliderSelf->GetLayerId() == Layers::Get("EnemyAtk") &&
-		!IsEnemyAttackActive(attacker, damageData.hitColliderSelf)) return;
+	if (damageData.attackerCollider && damageData.attackerCollider->GetLayerId() == Layers::Get("EnemyAtk") &&
+		!IsEnemyAttackActive(attacker, damageData.attackerCollider)) return;
 	if (dodgeInvincible)
 	{
-		if (IsEnemyAttackActive(attacker, damageData.hitColliderSelf)) TriggerJustDodge(attacker);
+		if (IsEnemyAttackActive(attacker, damageData.attackerCollider)) TriggerJustDodge(attacker);
 		return;
 	}
 	Entity::TakeDamage(damageData);
@@ -604,7 +604,7 @@ void Player::OnDamaged(const DamageData& damageData)
 	}
 	else
 	{
-		if (damageData.hitColliderOther != nullptr) anim->SetTrigger("Hit_R");
+		if (damageData.targetCollider) anim->SetTrigger("Hit_R");
 	}
 	lockOnComponent->PauseRotation(0.15f);
 }
@@ -682,10 +682,10 @@ void Player::HandleAttackContact(
 	target->TakeDamage({
 		.damage = damage,
 		.knockBackPower = knockBackPower,
-		.ignoreDamageCooldown = skillAttack,
+		.isForceDamage = skillAttack,
 		.specialAttack = skillAttack,
-		.hitColliderSelf = self,
-		.hitColliderOther = other,
+		.attackerCollider = self,
+		.targetCollider = other,
 		.hitPosition = hitPosition,
 		.hitNormal = hitNormal,
 	});

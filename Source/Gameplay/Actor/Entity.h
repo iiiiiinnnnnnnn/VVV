@@ -10,11 +10,11 @@ struct DamageData
 {
     float damage = 0.0f;
     float knockBackPower = 0.0f;
-	bool ignoreDamageCooldown = false;
+	bool isForceDamage = false; // Bypasses only the damage cooldown.
 	bool specialAttack = false;
 
-	PhysicsComponent* hitColliderSelf = nullptr;
-    PhysicsComponent* hitColliderOther = nullptr;
+	PhysicsComponent* attackerCollider = nullptr;
+    PhysicsComponent* targetCollider = nullptr;
 
     std::optional<Vector3> hitPosition;
 	std::optional<Vector3> hitNormal;

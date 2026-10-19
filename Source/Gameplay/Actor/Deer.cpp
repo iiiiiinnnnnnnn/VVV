@@ -232,8 +232,8 @@ void Deer::OnTriggerEnter(
 		DamageData damageData{
 			.damage = 10.0f,
 			.knockBackPower = 5.0f,
-			.hitColliderSelf = self,
-			.hitColliderOther = other,
+			.attackerCollider = self,
+			.targetCollider = other,
 			.hitPosition = point,
 			.hitNormal = normal,
 		};
@@ -246,8 +246,8 @@ void Deer::OnTriggerEnter(
 			->TakeDamage({
 				.damage = 20.0f,
 				.knockBackPower = 5.0f,
-				.hitColliderSelf = self,
-				.hitColliderOther = other,
+				.attackerCollider = self,
+				.targetCollider = other,
 				.hitPosition = point,
 				.hitNormal = normal,
 			});
@@ -256,7 +256,7 @@ void Deer::OnTriggerEnter(
 
 void Deer::OnDamaged(const DamageData& damageData)
 {
-	if (damageData.hitColliderOther->GetLayerId() == Layers::Get("PlayerAtk"))
+	if (damageData.attackerCollider && damageData.attackerCollider->GetLayerId() == Layers::Get("PlayerAtk"))
 	{
 		// aracoreの攻撃はhitstopいらない
 		TimeScaleController::Request(0.15f);
@@ -264,9 +264,9 @@ void Deer::OnDamaged(const DamageData& damageData)
 	}
 
 	StopCharge();
-	if (damageData.hitColliderSelf)
+	if (damageData.attackerCollider)
 	{
-		Actor* attacker = dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner());
+		Actor* attacker = dynamic_cast<Actor*>(damageData.attackerCollider->GetOwner());
 		if (attacker) controller->LockOn(attacker);
 	}
 

@@ -818,8 +818,8 @@ void Aracore::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, 
 			static_cast<Entity*>(otherActor)->TakeDamage({
 				.damage = 10.0f,
 				.knockBackPower = 10.0f,
-				.hitColliderSelf = self,
-				.hitColliderOther = other,
+				.attackerCollider = self,
+				.targetCollider = other,
 				.hitPosition = point,
 				.hitNormal = normal
 				});
@@ -874,18 +874,22 @@ void Aracore::OnTriggerEnter(
 			static_cast<Entity*>(otherActor)
 				->TakeDamage({.damage = 10.0f,
 					.knockBackPower = 10.0f,
-					.hitColliderSelf = self,
-					.hitColliderOther = other,
+					.attackerCollider = self,
+					.targetCollider = other,
 					.hitPosition = point,
 					.hitNormal = normal});
 		}
 		else if (auto crystal = dynamic_cast<Crystal*>(otherActor))
 		{
-			crystal->TakeDamage({.damage = 9999.0f});
+			crystal->TakeDamage({.damage = 9999.0f,
+				.attackerCollider = self, .targetCollider = other,
+				.hitPosition = point, .hitNormal = normal});
 		}
 		else if (auto deer = dynamic_cast<Deer*>(otherActor))
 		{
-			deer->TakeDamage({.damage = 9999.0f, .ignoreDamageCooldown = true});
+			deer->TakeDamage({.damage = 9999.0f, .isForceDamage = true,
+				.attackerCollider = self, .targetCollider = other,
+				.hitPosition = point, .hitNormal = normal});
 		}
 		return;
 	}
@@ -893,8 +897,8 @@ void Aracore::OnTriggerEnter(
 
 void Aracore::OnDamaged(const DamageData& damageData)
 {
-	Actor* attacker = damageData.hitColliderSelf
-		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
+	Actor* attacker = damageData.attackerCollider
+		? dynamic_cast<Actor*>(damageData.attackerCollider->GetOwner())
 		: nullptr;
 	float timeStopTime = 0.07f;
 	if (attacker && attacker->CompareTag("Player"))
