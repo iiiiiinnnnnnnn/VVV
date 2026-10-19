@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -52,6 +53,8 @@ public:
 
     void Reset();
 	void SetUseUnscaledTime(bool value) { useUnscaledTime = value; }
+    void SetMaxAngle(float degrees) { maxAngleDegrees = std::clamp(degrees, 0.0f, 180.0f); }
+    void SetAngleLimits(const Vector3& minimum, const Vector3& maximum);
 
 private:
     void BuildBones(const std::vector<std::string>& boneContainNames);
@@ -63,6 +66,10 @@ private:
     Matrix GetNodeWorldTransform(int nodeIndex) const;
     void ApplyCapsuleCollision(Vector3& worldPosition) const;
     int GetNodeDepth(int nodeIndex) const;
+    void ApplyAngleLimit(Vector3& position, const Vector3& origin,
+        const Vector3& restDirection, float boneLength) const;
+    Quaternion ApplyAxisAngleLimits(Vector3& position, const Matrix& baseWorld,
+        const Vector3& localDirection, float boneLength) const;
 
     static bool ContainsAnyName(
         const std::string& nodeName,
@@ -78,6 +85,9 @@ private:
 
     float collisionRadius = 0.03f;
     float stiffness = 0.05f;
+    float maxAngleDegrees = 180.0f;
+    Vector3 minAnglesDegrees = { -180.0f, -180.0f, -180.0f };
+    Vector3 maxAnglesDegrees = { 180.0f, 180.0f, 180.0f };
     float maxSubStepTime = 1.0f / 120.0f;
     int maxSubSteps = 16;
     int solverIterations = 4;

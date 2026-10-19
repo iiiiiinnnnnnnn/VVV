@@ -1,81 +1,229 @@
 #pragma once
-#include "Rendering/Core/VMatRenderParams.h"
+
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "Gameplay/Actor/Entity.h"
-#include "Gameplay/AI/EnemyAI.h"
 
-class Aracore;
-class VMDL;
-class CharacterController;
-class Player;
-class Terrain;
+class Animator;
 class BossBar;
-class StageLoader;
-
-// component
-#include "Physics/RigidBody/RigidbodyDynamic.h"
-#include "Physics/Navigation/NavMeshAgent.h"
-#include "Animation/Animator.h"
-#include "Resource/VMDLModel.h"
-#include "Rendering/Component/VMDLModelComponent.h"
-#include "Physics/Core/PhysicsComponent.h"
+class CharacterController;
+class EnemyAI;
 class MultiLegFootIK;
+class NavMeshAgent;
+class Player;
+class StageLoader;
+class Terrain;
+class VMDL;
+class VMDLModel;
+
+// Luaが選んだ移動を、移動・旋回アニメーションと物理移動へ反映する。
+// 行動の選択や攻撃タイミングは担当しない。
+class AracoreAINavigation
+{
+public:
+	void Initialize(EnemyAI* ai, NavMeshAgent* agent, Animator* animator, MultiLegFootIK* feet);
+
+	void Walk(float speed) { Request(Movement::Walk, speed); }
+	void TurnInPlace() { Request(Movement::TurnInPlace, 0.0f); }
+	void Charge(float speed) { Request(Movement::Charge, speed); }
+	void Stop();
+	void Update();
+
+private:
+	enum class Movement { Stopped, Walk, TurnInPlace, Charge };
+
+	void Request(Movement movement, float speed);
+	void UpdateTurnDirection(float angle);
+	bool IsAnimationReady() const;
+
+	EnemyAI* controller = nullptr;
+	NavMeshAgent* agent = nullptr;
+	Animator* animator = nullptr;
+	MultiLegFootIK* feet = nullptr;
+
+	Movement movement = Movement::Stopped;
+	float speed = 0.0f;
+	int turningDirection = 0;
+};
 
 class Aracore : public Entity
 {
 public:
-	Aracore(Player* player_init, const Transform& transform, Terrain* terrain_init = nullptr,
+	Aracore(Player* player, const Transform& transform, Terrain* terrain = nullptr,
 		const std::string& modelPath = "Aracore");
 	~Aracore() override;
+
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;
+
+	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other,
+		const Vector3& point, const Vector3& normal) override;
+	void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other,
+		const Vector3& point, const Vector3& normal) override;
+	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other,
+		const Vector3& point, const Vector3& normal) override;
+
 	void TakeDamage(const DamageData& damageData) override;
-
-	void OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
-	void OnCollisionStay(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
-	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal) override;
-
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
-	bool IsChasingPlayer() const { return chaseBgmEngaged; }
+
+	bool IsChasingPlayer() const { return chaseAudio.IsEngaged(); }
 	bool HasDetectedPlayer() const { return playerDetected; }
+	bool IsThreating() const { return phase.threatActive; }
 	void SetBossBar(BossBar* value);
 	void SetStageLoader(StageLoader* value) { stageLoader = value; }
 
-	bool IsThreating() const { return phaseThreatActive; }
-
 private:
-	// 威嚇モーションと画面演出をまとめて開始する。
+	// ジャンプの移動・アニメーション待機・着地後の処理。
+	struct JumpState
+	{
+		Vector3 startPosition = Vector3::Zero;
+		Vector3 landingPosition = Vector3::Zero;
+		bool landed = false;
+		bool animationPending = false;
+		bool waitingForLanding = false;
+		bool deformPending = false;
+	};
+
+	// 形態変化の開始、Threat再生の確認、演出時間をひとまとまりに扱う。
+	struct PhaseState
+	{
+		void Begin()
+		{
+			angry = true;
+			threatActive = true;
+			waitingForAnimation = true;
+			elapsed = 0.0f;
+		}
+
+		void AnimationStarted()
+		{
+			waitingForAnimation = false;
+			elapsed = 0.0f;
+		}
+
+		void Advance(float deltaTime)
+		{
+			if (angry && !waitingForAnimation && threatActive) elapsed += deltaTime;
+		}
+
+		bool angry = false;
+		bool threatActive = false;
+		bool waitingForAnimation = false;
+		float elapsed = 0.0f;
+		std::shared_ptr<VMDLModel> fragmentModel;
+		Vector3 fragmentSize = Vector3::One;
+	};
+
+	// Animatorが要求を受理するまで保持する。優先順位は被ダメージ→ジャンプ→威嚇。
+	struct ReactionState
+	{
+		void RequestDamage() { damagePending = true; }
+		void RequestThreat() { threatPending = true; }
+
+		bool damagePending = false;
+		bool threatPending = false;
+		Actor* lastThreatTarget = nullptr;
+	};
+
+	// 帰還ジャンプと死亡アニメーションは同時に進めない。
+	struct DeathState
+	{
+		enum class Stage { Inactive, Returning, Animation };
+
+		void Begin(const Vector3& start, const Vector3& landing)
+		{
+			stage = Stage::Returning;
+			elapsed = 0.0f;
+			startPosition = start;
+			landingPosition = landing;
+		}
+
+		void Landed() { stage = Stage::Animation; }
+
+		bool IsReturning() const { return stage == Stage::Returning; }
+		bool IsAnimationPlaying() const { return stage == Stage::Animation; }
+
+		Stage stage = Stage::Inactive;
+		Vector3 startPosition = Vector3::Zero;
+		Vector3 landingPosition = Vector3::Zero;
+		float elapsed = 0.0f;
+		float duration = 1.8f;
+		float height = 9.0f;
+	};
+
+	// 追跡の有無と、再生中BGMのフェードを管理する。
+	class ChaseAudio
+	{
+	public:
+		void Engage() { engaged = true; }
+		void Disengage() { engaged = false; }
+		bool IsEngaged() const { return engaged; }
+		void Update();
+		void Stop();
+
+		float fadeInSeconds = 1.0f;
+		float fadeOutSeconds = 1.5f;
+
+	private:
+		uint64_t voiceId = 0;
+		float volume = 0.0f;
+		bool engaged = false;
+	};
+
+	// 初期化とLuaへの行動登録。
+	void ConfigureAI();
+	void RegisterAIActions();
+
+	// Luaから呼ばれる行動。開始・更新・終了を同じ順に並べる。
+	void StopAIAction();
+	void BeginFreedomWait();
+	void BeginWander();
+	void UpdateWanderTurn();
+	void EndWanderTurn();
+	void BeginThreat();
+	void BeginChase();
+	void UpdateChase();
+	void BeginChargeTurn();
+	void UpdateChargeTurn();
+	void BeginCharge();
+	void UpdateCharge();
+	void BeginRecovery();
+	void BeginJump();
+	void UpdateJump();
+	void EndJump();
+	void BeginPhaseThreat();
+	void UpdatePhaseThreat();
+	void EndPhaseThreat();
+
+	// アニメーション要求の再送と、ジャンプの着地待ち。
 	void PlayThreatPresentation();
+	void UpdateThreatPresentation();
+	void UpdateReactionAnimation();
+	void UpdateJumpAnimationLandingHold();
+	void UpdateAnimatedModelTransform();
+
+	// 形態変化・体力表示・着地演出。
 	void BeginPhaseChange();
 	void SpawnPhaseFragments();
 	void UpdateHealthPresentation();
 	void UpdateHealthDissolve(float deltaTime);
 	void UpdateAngryColor();
-	void ConfigureAI();
-	void RegisterAIActions();
-	// AIの対象取得を監視し、Threat状態の開始通知を取りこぼしても演出する。
-	void UpdateThreatPresentation();
-	void UpdateReactionAnimation();
-	void UpdateAnimatedModelTransform();
 	void DeformTerrainAtLanding();
 	void SpawnDeerFromSky();
 	void ShakeCameraAtLanding();
-	void RequestAnimatedMovement(float speed, const char* requiredAnimation);
-	void StopAnimatedMovement();
-	void UpdateTurningAnimation();
-	void UpdateJumpAnimationLandingHold();
-	void UpdateChaseBgm();
-	void StopChaseBgm();
-	void SetPlayerDetected(bool detected);
 	void UpdateDeathSequence();
-	bool IsMovementAnimationReady() const;
-	bool PushPlayer(PhysicsComponent* self, PhysicsComponent* other);
 
+	// 接触・追跡BGM・HUD。
+	bool PushPlayer(PhysicsComponent* self, PhysicsComponent* other);
+	void UpdateChaseBgm();
+	void SetPlayerDetected(bool detected);
+
+	// コンポーネントの所有権はEntity側にある。
 	Animator* anim = nullptr;
 	VMDL* vmdl = nullptr;
 	std::shared_ptr<VMDLModel> model;
@@ -83,45 +231,21 @@ private:
 	NavMeshAgent* navMeshAgent = nullptr;
 	MultiLegFootIK* multiLegFootIK = nullptr;
 	EnemyAI* controller = nullptr;
-	std::vector<Vector3> colPositions;
-	Vector3 jumpStartPosition = Vector3::Zero;
-	Vector3 jumpLandingPosition = Vector3::Zero;
-	Vector3 spawnPosition = Vector3::Zero;
-	Vector3 deathJumpStartPosition = Vector3::Zero;
+
+	AracoreAINavigation navigation;
+	JumpState jump;
+	PhaseState phase;
+	ReactionState reaction;
+	DeathState death;
+	ChaseAudio chaseAudio;
+
+	// シーン側から渡される参照と、ボス全体の情報。
+	Player* player = nullptr;
 	Terrain* terrain = nullptr;
 	StageLoader* stageLoader = nullptr;
-	bool jumpLanded = false;
-	bool jumpAnimationPending = false;
-	bool jumpAnimationWaitingForLanding = false;
-	bool landingDeformPending = false;
-	bool deathSequenceActive = false;
-	bool deathAnimationStarted = false;
-	float deathSequenceTimer = 0.0f;
-	float deathJumpDuration = 1.8f;
-	float deathJumpHeight = 9.0f;
-	float requestedAnimationMoveSpeed = 0.0f;
-	std::string requiredMovementAnimation;
-	bool movementAnimationGateActive = false;
-	int turningDirection = 0;
-	Player* player;
-	Actor* threatenedTarget = nullptr;
-	uint64_t voiceIdChase = 0;
-	bool chaseBgmEngaged = false;
-	bool playerDetected = false;
-	bool damageAnimationPending = false;
-	bool threatAnimationPending = false;
 	BossBar* bossBar = nullptr;
-	float chaseBgmVolume = 0.0f;
-	float chaseBgmFadeInSeconds = 1.0f;
-	float chaseBgmFadeOutSeconds = 1.5f;
-
-	bool angry = false;
-	bool phasePresentationPending = false;
-	bool phaseThreatActive = false;
-	float phaseThreatElapsed = 0.0f;
+	Vector3 spawnPosition = Vector3::Zero;
+	bool playerDetected = false;
 	float healthDissolveAmount = 0.0f;
-	std::shared_ptr<VMDLModel> phaseFragmentModel;
-	Vector3 phaseFragmentSize = Vector3::One;
-
-	VMatRenderParams renderParams;
+	std::vector<Vector3> colPositions;
 };

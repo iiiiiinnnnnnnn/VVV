@@ -55,6 +55,8 @@ class VmdlEditorScene : public Scene
 
 	// 画面描画
 	void RenderPreview();
+	Vector3 GetPreviewCameraOffset() const;
+	void RotatePreviewCamera(float yawDelta, float pitchDelta, bool orbitModel);
 	void DrawMenuBar();
 	void DrawHierarchy();
 	void DrawNodeTree(int nodeIndex);
@@ -87,6 +89,9 @@ class VmdlEditorScene : public Scene
 	bool DrawEffectSelector(const char* label, std::string& effectName);
 	std::string EffectLabel(const std::string& effectName) const;
 	void DrawAttachedData(int nodeIndex);
+	void DrawSelectedComponents();
+	void DrawBatchComponentProperties();
+	int GetComponentNodeIndex(int componentIndex) const;
 	void DrawNodeContextMenu(int nodeIndex);
 	void DrawAnimationCurves();
 	void DrawAnimationEventEditor();
@@ -170,6 +175,7 @@ class VmdlEditorScene : public Scene
 	std::vector<int> selectedMeshes;
 	AttachedComponentType selectedComponentType = AttachedComponentType::None;
 	int selectedComponentIndex = -1;
+	std::vector<int> selectedComponentIndices;
 	bool focusSelectedComponent = false;
 
 	// 階層検索
@@ -202,12 +208,14 @@ class VmdlEditorScene : public Scene
 	float previewCameraMoveSpeed = 5.0f;
 	float previewCameraMoveSpeedOverlayTimer = 0.0f;
 	Vector3 cameraFocusOffset = Vector3::Zero;
+	Vector3 cameraOrbitPivot = Vector3(0.0f, 1.0f, 0.0f);
 	bool cameraReturningToFront = false;
 	int gizmoOperation = 120;
 	bool showSelectionGizmo = true;
 	IkGizmoTarget ikGizmoTarget = IkGizmoTarget::None;
 	int ikGizmoLeg = -1;
 	bool viewportRotationDragging = false;
+	bool viewportOrbitDragging = false;
 	int selectedMorph = -1;
 	int selectedMaterial = -1;
 	int selectedColliderEventTarget = 0;

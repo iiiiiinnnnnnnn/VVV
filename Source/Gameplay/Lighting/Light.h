@@ -49,6 +49,7 @@ public:
 	}
 
 protected:
+	virtual void DrawLightSettings();
 	friend class LightManager;
 	Color color = { 1, 1, 1, 1 };
 	float intensity = 1.0f;
@@ -63,7 +64,8 @@ public:
 	{
 	}
 
-	void DrawGUI() override;
+protected:
+	void DrawLightSettings() override;
 };
 
 class PointLight : public Light
@@ -73,8 +75,6 @@ public:
 		: Light(name, tag, isActive, color, intensity), range(range)
 	{
 	}
-
-	void DrawGUI() override;
 
 	void SetRange(float range)
 	{
@@ -87,6 +87,7 @@ public:
 	}
 
 protected:
+	void DrawLightSettings() override;
 	float range;
 };
 
@@ -97,8 +98,6 @@ public:
 		: Light(name, tag, isActive, color, intensity), range(range), innerConeAngle(innerConeAngle), outerConeAngle(outerConeAngle)
 	{
 	}
-
-	void DrawGUI() override;
 
 	void SetRange(float range)
 	{
@@ -131,6 +130,7 @@ public:
 	}
 
 protected:
+	void DrawLightSettings() override;
 	float range;
 	float innerConeAngle;
 	float outerConeAngle;
@@ -143,8 +143,6 @@ public:
 		: Light(name, tag, isActive, color, intensity), width(width), height(height), range(range)
 	{
 	}
-
-	void DrawGUI() override;
 
 	void SetRange(float range)
 	{
@@ -177,6 +175,7 @@ public:
 	}
 
 protected:
+	void DrawLightSettings() override;
 	float range;
 	float width;
 	float height;

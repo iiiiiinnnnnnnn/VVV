@@ -69,6 +69,8 @@ class StageLoader : public Component
 		editorSelectionBounds.clear();
 	}
 	std::vector<EditorObjectReference> GetEditorObjects();
+	bool DrawEditorHierarchy();
+	void DrawSelectedEditorInspector();
 	void DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewportMax);
 	bool SelectEditorObject(EditorObjectType type, int index);
 	bool SelectEditorActor(const Actor* actor);

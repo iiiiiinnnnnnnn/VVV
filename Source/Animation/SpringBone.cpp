@@ -346,6 +346,67 @@ void SpringBone::ApplyCapsuleCollision(Vector3& worldPosition) const
     }
 }
 
+void SpringBone::ApplyAngleLimit(Vector3& position, const Vector3& origin,
+    const Vector3& restDirection, float boneLength) const
+{
+    if (maxAngleDegrees >= 180.0f) return;
+
+    // アニメーションの向きを円錐の中心とし、超過した方向を境界へ戻す。
+    const Vector3 axis = SafeNormalize(restDirection, { 0.0f, 0.0f, 1.0f });
+    const Vector3 direction = SafeNormalize(position - origin, axis);
+    const float limit = DirectX::XMConvertToRadians(maxAngleDegrees);
+    const float dot = std::clamp(axis.Dot(direction), -1.0f, 1.0f);
+    if (dot >= cosf(limit))
+    {
+        position = origin + direction * boneLength;
+        return;
+    }
+
+    Vector3 tangent = direction - axis * dot;
+    if (tangent.LengthSquared() <= 0.000001f)
+    {
+        const Vector3 reference = fabsf(axis.y) < 0.9f
+            ? Vector3(0.0f, 1.0f, 0.0f) : Vector3(1.0f, 0.0f, 0.0f);
+        tangent = reference.Cross(axis);
+    }
+    tangent.Normalize();
+    position = origin + (axis * cosf(limit) + tangent * sinf(limit)) * boneLength;
+}
+
+void SpringBone::SetAngleLimits(const Vector3& minimum, const Vector3& maximum)
+{
+    const Vector3 lower = Vector3::Min(minimum, maximum);
+    const Vector3 upper = Vector3::Max(minimum, maximum);
+    minAnglesDegrees = lower;
+    maxAnglesDegrees = upper;
+    minAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
+    maxAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
+}
+
+Quaternion SpringBone::ApplyAxisAngleLimits(Vector3& position, const Matrix& baseWorld,
+    const Vector3& localDirection, float boneLength) const
+{
+    const Vector3 target = SafeNormalize(
+        Vector3::Transform(position, baseWorld.Invert()), localDirection);
+    Quaternion rotation = MakeRotationBetweenDirections(localDirection, target);
+    if (minAnglesDegrees == Vector3(-180.0f) && maxAnglesDegrees == Vector3(180.0f))
+        return rotation;
+
+    // 絶対姿勢ではなく、アニメーション姿勢からの追加回転をローカルXYZで制限する。
+    Vector3 angles = rotation.ToEuler();
+    angles.x = std::clamp(angles.x, DirectX::XMConvertToRadians(minAnglesDegrees.x), DirectX::XMConvertToRadians(maxAnglesDegrees.x));
+    angles.y = std::clamp(angles.y, DirectX::XMConvertToRadians(minAnglesDegrees.y), DirectX::XMConvertToRadians(maxAnglesDegrees.y));
+    angles.z = std::clamp(angles.z, DirectX::XMConvertToRadians(minAnglesDegrees.z), DirectX::XMConvertToRadians(maxAnglesDegrees.z));
+    rotation = Quaternion::CreateFromYawPitchRoll(angles.y, angles.x, angles.z);
+    rotation.Normalize();
+
+    // 制限した回転と次フレームの物理位置を一致させる。
+    const Vector3 worldDirection = SafeNormalize(Vector3::TransformNormal(
+        Vector3::Transform(localDirection, rotation), baseWorld), baseWorld.Forward());
+    position = baseWorld.Translation() + worldDirection * boneLength;
+    return rotation;
+}
+
 void SpringBone::Reset()
 {
     initialized = true;
@@ -523,6 +584,8 @@ void SpringBone::LateUpdate()
             nextChildWorldPosition +=
                 (animatedChildWorldPosition - nextChildWorldPosition) * stepStiffness;
 
+            const Vector3 localDirection = SafeNormalize(
+                childBone->localPosition, { 0.0f, 0.0f, 1.0f });
             const int iterations = std::max(solverIterations, 1);
             for (int iteration = 0; iteration < iterations; ++iteration)
             {
@@ -537,26 +600,16 @@ void SpringBone::LateUpdate()
                 nextChildWorldPosition = parentWorldPosition + toChild * boneLength;
 
                 ApplyCapsuleCollision(nextChildWorldPosition);
+                ApplyAngleLimit(nextChildWorldPosition, parentWorldPosition, restDirection, boneLength);
+                ApplyAxisAngleLimits(nextChildWorldPosition, bone.worldTransform, localDirection, boneLength);
             }
 
             ApplyCapsuleCollision(nextChildWorldPosition);
+            ApplyAngleLimit(nextChildWorldPosition, parentWorldPosition, restDirection, boneLength);
 
+            const Quaternion springRotation = ApplyAxisAngleLimits(
+                nextChildWorldPosition, bone.worldTransform, localDirection, boneLength);
             childBone->currentWorldPosition = nextChildWorldPosition;
-
-            Vector3 localDirection = SafeNormalize(
-                childBone->localPosition,
-                { 0.0f, 0.0f, 1.0f });
-
-            Matrix inverseBaseWorld = bone.worldTransform.Invert();
-
-            Vector3 localTargetDirection =
-                Vector3::Transform(nextChildWorldPosition, inverseBaseWorld);
-
-            localTargetDirection = SafeNormalize(localTargetDirection, localDirection);
-
-            Quaternion springRotation = MakeRotationBetweenDirections(
-                localDirection,
-                localTargetDirection);
 
             bone.localRotation = springRotation * baseLocalRotation;
             bone.localRotation.Normalize();
@@ -688,6 +741,10 @@ void SpringBone::DrawGUI()
     ImGui::Text("Collision / Solver");
     ImGui::DragFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
     ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGui::SliderFloat("Max Angle (deg)", &maxAngleDegrees, 0.0f, 180.0f, "%.1f");
+    bool angleChanged = ImGui::SliderFloat3("Min XYZ (deg)", &minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
+    angleChanged |= ImGui::SliderFloat3("Max XYZ (deg)", &maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
+    if (angleChanged) SetAngleLimits(minAnglesDegrees, maxAnglesDegrees);
     ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
     ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
     ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);

@@ -50,6 +50,15 @@ class VstgEditorScene : public Scene
 	void UpdateTitle();
 	void ErrorMessage(const std::string& message);
 
+	enum class EditorLightType { None, Point, Spot, Area };
+	Light* GetSelectedLight();
+	void SelectLight(EditorLightType type, int index);
+	void DrawHierarchy();
+	void DrawInspector();
+	void DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& viewportMax);
+	void DuplicateSelectedLight();
+	void DeleteSelectedLight();
+
 	// エディタ操作
 	void RefreshPropModels();
 	void DrawPropBrowser(float height);
@@ -93,9 +102,14 @@ class VstgEditorScene : public Scene
 	VMatRenderParams dragPreviewRenderParams;
 	bool showDragPreview = false;
 	bool showPlayerStartDragPreview = false;
+	bool showLightDragPreview = false;
+	Vector3 lightDragPreviewPosition = Vector3::Zero;
 	Vector3 playerStartDragPreviewPosition = Vector3::Zero;
 
 	// 編集状態
+	EditorLightType selectedLightType = EditorLightType::None;
+	int selectedLightIndex = -1;
+	bool lightingSettingsSelected = false;
 	int gizmoOperation = 7;
 	bool terrainSnapActive = false;
 	bool dirty = false;

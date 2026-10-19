@@ -2669,6 +2669,22 @@ void VMDLModel::Serialize(const char* filename)
 					{"roughness", material.crystalRoughness}};
 			archive(settings.dump());
 		});
+		// スプリングの角度設定。
+		addFile("model.springangles", [&](auto& archive) {
+			std::vector<float> angles;
+			for (const auto& spring : vmdlExtensionData.springs)
+				angles.push_back(spring.maxAngleDegrees);
+			archive(angles);
+		});
+		addFile("model.springaxisangles", [&](auto& archive) {
+			std::vector<Vector3> minimums, maximums;
+			for (const auto& spring : vmdlExtensionData.springs)
+			{
+				minimums.push_back(spring.minAnglesDegrees);
+				maximums.push_back(spring.maxAnglesDegrees);
+			}
+			archive(minimums, maximums);
+		});
 		addFile("model.materialanimation", [&](auto& archive) { archive(materialAnimationTracks); });
 		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
 		addFile("model.externalmeshbindings",
@@ -2812,6 +2828,8 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			VmdlComponentTransformData componentTransforms;
 			std::vector<std::string> effectBindings;
 			std::vector<Vector3> ikSyncOffsets;
+			std::vector<float> springAngles;
+			std::vector<Vector3> springMinimums, springMaximums;
 			int ikInterpolationEasing = static_cast<int>(Easing::Type::Linear);
 			std::string vfxExtensionJson;
 			std::string crystalSettingsJson;
@@ -2828,7 +2846,8 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				"model.sounddata", "model.lightdata", "model.navmeshobstacles",
 				"model.soundbindings", "model.componenttransforms", "model.particledata",
 				"model.effectbindings", "model.vfxdata", "model.crystalsettings",
-				"model.externalmeshes", "model.externalmeshbindings", "model.externalmeshslots"
+				"model.externalmeshes", "model.externalmeshbindings", "model.externalmeshslots",
+				"model.springangles", "model.springaxisangles"
 			};
 			for (const char* required : requiredSections)
 			{
@@ -2871,6 +2890,14 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				else if (name == "model.ikeasing")
 				{
 					archive(ikInterpolationEasing);
+				}
+				else if (name == "model.springangles")
+				{
+					archive(springAngles);
+				}
+				else if (name == "model.springaxisangles")
+				{
+					archive(springMinimums, springMaximums);
 				}
 				else if (name == "model.navmeshobstacles") archive(navMeshObstacles);
 				else if (name == "model.sounddata")
@@ -2919,6 +2946,21 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 					archive(externalMeshCacheIndices);
 				}
 			}
+			if (springAngles.size() != vmdlExtensionData.springs.size())
+				throw std::runtime_error("VMDL spring angle count mismatch.");
+			for (size_t i = 0; i < vmdlExtensionData.springs.size(); ++i)
+				vmdlExtensionData.springs[i].maxAngleDegrees = std::clamp(springAngles[i], 0.0f, 180.0f);
+			if (springMinimums.size() != vmdlExtensionData.springs.size() ||
+				springMaximums.size() != vmdlExtensionData.springs.size())
+				throw std::runtime_error("VMDL spring axis angle count mismatch.");
+			for (size_t i = 0; i < vmdlExtensionData.springs.size(); ++i)
+			{
+				auto& spring = vmdlExtensionData.springs[i];
+				spring.minAnglesDegrees = Vector3::Min(springMinimums[i], springMaximums[i]);
+				spring.maxAnglesDegrees = Vector3::Max(springMinimums[i], springMaximums[i]);
+				spring.minAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
+				spring.maxAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
+			}
 			if (navMeshObstacles.size() != vmdlExtensionData.colliders.size())
 				throw std::runtime_error("VMDL NavMesh obstacle count mismatch.");
 			for (size_t i = 0; i < vmdlExtensionData.colliders.size(); ++i)
@@ -2964,20 +3006,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
 			applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
 			for (size_t i = 0; i < vmdlParticleData.emitters.size(); ++i)
-			{
-				auto path = std::move(effectBindings[i]);
-				// 旧形式のID文字列をエフェクトパスへ移行する。
-				if (!path.empty() && ResourcePath::Path(path).extension().empty() &&
-					path.find_first_of("/\\") == std::string::npos &&
-					std::all_of(path.begin(), path.end(), [](unsigned char character)
-					{ return std::isupper(character) || std::isdigit(character) || character == '_'; }))
-				{
-					std::transform(path.begin(), path.end(), path.begin(),
-						[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
-					path += ".efkpkg";
-				}
-				vmdlParticleData.emitters[i].effectName = ResourcePath::Short(path, "Effect");
-			}
+				vmdlParticleData.emitters[i].effectName = ResourcePath::Short(effectBindings[i], "Effect");
 			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
 			{
 				vmdlSoundData.sources[i].soundPath = ResourcePath::Short(soundBindings[i].soundPath, "Sound");
@@ -2992,18 +3021,14 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			applyTransforms(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
 			sourceMaterials = materials;
 			ApplyVmdlMaterialData(materialData);
-			if (!crystalSettingsJson.empty())
+			const json crystalSettings = json::parse(crystalSettingsJson);
+			for (Material& material : materials)
 			{
-				const json settings = json::parse(crystalSettingsJson);
-				for (Material& material : materials)
-				{
-					const auto it = settings.find(material.name);
-					if (it == settings.end()) continue;
-					material.transmission = std::clamp(it->value("transmission", 0.0f), 0.0f, 1.0f);
-					material.indexOfRefraction = std::clamp(it->value("ior", 1.5f), 1.0f, 2.5f);
-					material.refractionDistance = std::clamp(it->value("distance", 0.18f), 0.0f, 5.0f);
-					material.crystalRoughness = std::clamp(it->value("roughness", 0.12f), 0.0001f, 1.0f);
-				}
+				const auto& settings = crystalSettings.at(material.name);
+				material.transmission = std::clamp(settings.at("transmission").get<float>(), 0.0f, 1.0f);
+				material.indexOfRefraction = std::clamp(settings.at("ior").get<float>(), 1.0f, 2.5f);
+				material.refractionDistance = std::clamp(settings.at("distance").get<float>(), 0.0f, 5.0f);
+				material.crystalRoughness = std::clamp(settings.at("roughness").get<float>(), 0.0001f, 1.0f);
 			}
 			SetModelScale(modelScale);
 			NormalizeAttachmentNames();

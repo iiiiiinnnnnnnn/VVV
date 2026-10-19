@@ -863,6 +863,36 @@ void VmdlEditorScene::UpdatePointLightPreview()
 	}
 }
 
+Vector3 VmdlEditorScene::GetPreviewCameraOffset() const
+{
+	const float horizontalDistance = cameraDistance * std::cos(cameraPitch);
+	return Vector3(std::sin(cameraYaw) * horizontalDistance,
+		std::sin(cameraPitch) * cameraDistance, -std::cos(cameraYaw) * horizontalDistance);
+}
+
+void VmdlEditorScene::RotatePreviewCamera(float yawDelta, float pitchDelta, bool orbitModel)
+{
+	cameraReturningToFront = false;
+	const Vector3 oldOffset = GetPreviewCameraOffset();
+	const Matrix oldRotation = Matrix::CreateFromYawPitchRoll(-cameraYaw, cameraPitch, 0.0f);
+	cameraYaw = std::remainder(cameraYaw + yawDelta, DirectX::XM_2PI);
+	cameraPitch = std::clamp(cameraPitch + pitchDelta, -1.45f, 1.45f);
+	if (orbitModel)
+	{
+		// 視点と注視点を同じだけモデル中心の周囲へ回す。見渡し後も位置が飛ばない。
+		const Matrix rotation = oldRotation.Invert() *
+			Matrix::CreateFromYawPitchRoll(-cameraYaw, cameraPitch, 0.0f);
+		const Vector3 focus = Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
+		cameraFocusOffset = cameraOrbitPivot +
+			Vector3::TransformNormal(focus - cameraOrbitPivot, rotation) - Vector3(0.0f, 1.0f, 0.0f);
+	}
+	else
+	{
+		// 注視点を補正してカメラ位置を固定し、視線だけを回す。
+		cameraFocusOffset += oldOffset - GetPreviewCameraOffset();
+	}
+}
+
 void VmdlEditorScene::RenderPreview()
 {
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
@@ -886,10 +916,7 @@ void VmdlEditorScene::RenderPreview()
 	const float zoomLerp = 1.0f - std::exp(-12.0f * Game::Time::unscaledDeltaTime);
 	cameraDistance = std::lerp(cameraDistance, targetCameraDistance, zoomLerp);
 	const Vector3 focus = Vector3(0.0f, 1.0f, 0.0f) + cameraFocusOffset;
-	const float horizontalDistance = cameraDistance * std::cos(cameraPitch);
-	const Vector3 eye = focus + Vector3(std::sin(cameraYaw) * horizontalDistance,
-									std::sin(cameraPitch) * cameraDistance,
-									-std::cos(cameraYaw) * horizontalDistance);
+	const Vector3 eye = focus + GetPreviewCameraOffset();
 	editorCamera->SetLookAt(eye, focus, Vector3::Up);
 	if (cameraShakePreviewTimer > 0.0f)
 	{
@@ -1673,6 +1700,7 @@ void VmdlEditorScene::DrawHierarchy()
 			selectedMeshes.clear();
 			selectedComponentType = AttachedComponentType::None;
 			selectedComponentIndex = -1;
+			selectedComponentIndices.clear();
 			focusSelectedComponent = false;
 			showSelectionGizmo = false;
 			ikGizmoTarget = IkGizmoTarget::None;
@@ -1818,6 +1846,7 @@ void VmdlEditorScene::SelectNode(int nodeIndex, bool toggleSelection)
 	selectedMeshes.clear();
 	selectedComponentType = AttachedComponentType::None;
 	selectedComponentIndex = -1;
+	selectedComponentIndices.clear();
 	focusSelectedComponent = false;
 	selectedKeyTrack = -1;
 	selectedKeyIndex = -1;
@@ -1861,6 +1890,7 @@ void VmdlEditorScene::SelectMesh(int meshIndex, bool toggleSelection)
 	}
 	selectedComponentType = AttachedComponentType::None;
 	selectedComponentIndex = -1;
+	selectedComponentIndices.clear();
 	focusSelectedComponent = false;
 	selectedKeyTrack = -1;
 	selectedKeyIndex = -1;
@@ -1929,6 +1959,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 
 	auto& data = model->GetVmdlExtensionData();
 	int primaryComponentIndex = -1;
+	selectedComponentIndices.clear();
 	for (int nodeIndex : selectedNodes)
 	{
 		if (nodeIndex < 0 || nodeIndex >= Count(model->GetNodes())) continue;
@@ -2035,6 +2066,7 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 		default:
 			break;
 		}
+		if (componentIndex >= 0) selectedComponentIndices.push_back(componentIndex);
 		if (nodeIndex == selectedNode) primaryComponentIndex = componentIndex;
 	}
 
@@ -2211,6 +2243,7 @@ void VmdlEditorScene::DuplicateSelectedAttachedComponent()
 	}
 
 	selectedComponentIndex = duplicateIndex;
+	selectedComponentIndices.assign(1, duplicateIndex);
 	focusSelectedComponent = true;
 	MarkDirty();
 }
@@ -2222,13 +2255,35 @@ void VmdlEditorScene::DrawHierarchyComponent(int nodeIndex, AttachedComponentTyp
 	ImGui::PushID(componentIndex);
 	const std::string componentName = name.empty() ? label : std::string(label) + " : " + name;
 	const std::string displayName = std::string((const char*)u8"│  ") + componentName;
-	const bool selected = selectedNode == nodeIndex && selectedMesh < 0 &&
-		selectedComponentType == type && selectedComponentIndex == componentIndex;
+	const bool selected = selectedComponentType == type &&
+		(selectedComponentIndex == componentIndex ||
+			std::find(selectedComponentIndices.begin(), selectedComponentIndices.end(), componentIndex) != selectedComponentIndices.end());
 	if (ImGui::Selectable(displayName.c_str(), selected))
 	{
-		SelectNode(nodeIndex, false);
-		selectedComponentType = type;
-		selectedComponentIndex = componentIndex;
+		const bool extendSelection = ImGui::GetIO().KeyCtrl && selectedComponentType == type;
+		if (!extendSelection)
+		{
+			SelectNode(nodeIndex, false);
+			selectedComponentIndices.assign(1, componentIndex);
+		}
+		else
+		{
+			if (selectedComponentIndices.empty() && selectedComponentIndex >= 0)
+				selectedComponentIndices.push_back(selectedComponentIndex);
+			const auto found = std::find(selectedComponentIndices.begin(), selectedComponentIndices.end(), componentIndex);
+			if (found == selectedComponentIndices.end()) selectedComponentIndices.push_back(componentIndex);
+			else selectedComponentIndices.erase(found);
+		}
+		selectedComponentType = selectedComponentIndices.empty() ? AttachedComponentType::None : type;
+		selectedComponentIndex = selectedComponentIndices.empty() ? -1 : selectedComponentIndices.back();
+		selectedNode = GetComponentNodeIndex(selectedComponentIndex);
+		selectedNodes.clear();
+		if (selectedNode >= 0) selectedNodes.push_back(selectedNode);
+		selectedMesh = -1;
+		selectedMeshes.clear();
+		previewStageSelected = false;
+		showSelectionGizmo = true;
+		ikGizmoTarget = IkGizmoTarget::None;
 		focusSelectedComponent = true;
 		selectedKeyTrack = -1;
 		selectedKeyIndex = -1;
@@ -2510,7 +2565,9 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 	{
 		if (!IsNodeSelected(nodeIndex)) SelectNode(nodeIndex, false);
 		const auto& node = model->GetNodes()[nodeIndex];
-		if (selectedNodes.size() > 1)
+		if (selectedComponentIndices.size() > 1)
+			ImGui::TextDisabled((const char*)u8"選択中: %zuコンポーネント", selectedComponentIndices.size());
+		else if (selectedNodes.size() > 1)
 			ImGui::TextDisabled((const char*)u8"選択中: %zuノード", selectedNodes.size());
 		else
 			ImGui::TextDisabled(
@@ -2590,6 +2647,7 @@ void VmdlEditorScene::DrawViewport()
 	if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT " " u8"回転"))) gizmoOperation = ImGuizmo::ROTATE;
 	ImGui::SameLine();
 	if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"サイズ"))) gizmoOperation = ImGuizmo::SCALE;
+	ImGui::TextDisabled((const char*)u8"右ドラッグ: 見渡し / Alt+左ドラッグ: 回り込み / 中ドラッグ: 平行移動");
 	ImGui::Separator();
 
 	ImVec2 available = ImGui::GetContentRegionAvail();
@@ -2623,7 +2681,25 @@ void VmdlEditorScene::DrawViewport()
 		}
 	}
 
-	if (model && ikGizmoTarget != IkGizmoTarget::None)
+	if (imageHovered && io.KeyAlt && !viewportRotationDragging && !ImGuizmo::IsUsing() &&
+		ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+	{
+		viewportOrbitDragging = true;
+		SetCapture(Game::Graphics::Instance().GetWindowHandle());
+	}
+	if (viewportOrbitDragging)
+	{
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && io.KeyAlt)
+			RotatePreviewCamera(-io.MouseDelta.x * 0.01f, io.MouseDelta.y * 0.01f, true);
+		else
+		{
+			viewportOrbitDragging = false;
+			if (GetCapture() == Game::Graphics::Instance().GetWindowHandle()) ReleaseCapture();
+		}
+	}
+	const bool navigatingCamera = viewportRotationDragging || viewportOrbitDragging ||
+		(imageHovered && (io.KeyAlt || ImGui::IsMouseDown(ImGuiMouseButton_Right)));
+	if (!navigatingCamera && model && ikGizmoTarget != IkGizmoTarget::None)
 	{
 		const auto& legs = model->GetVmdlIKSettings().legs;
 		auto& poles = model->GetVmdlIKPoles();
@@ -2673,7 +2749,7 @@ void VmdlEditorScene::DrawViewport()
 			}
 		}
 	}
-	else if (model && showSelectionGizmo && selectedNode >= 0 && selectedNode < Count(model->GetNodes()))
+	else if (!navigatingCamera && model && showSelectionGizmo && selectedNode >= 0 && selectedNode < Count(model->GetNodes()))
 	{
 		Matrix view = editorCamera->GetView();
 		Matrix projection = editorCamera->GetProjection();
@@ -2692,7 +2768,7 @@ void VmdlEditorScene::DrawViewport()
 			if (animationRecording) RecordSelectedNodeKey();
 		}
 	}
-	if (imageHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	if (imageHovered && !viewportOrbitDragging && !ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 	{
 		viewportRotationDragging = true;
 		SetCapture(Game::Graphics::Instance().GetWindowHandle());
@@ -2701,9 +2777,7 @@ void VmdlEditorScene::DrawViewport()
 	{
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
-			cameraReturningToFront = false;
-			cameraYaw -= io.MouseDelta.x * 0.01f;
-			cameraPitch = std::clamp(cameraPitch + io.MouseDelta.y * 0.01f, -1.45f, 1.45f);
+			RotatePreviewCamera(-io.MouseDelta.x * 0.01f, io.MouseDelta.y * 0.01f, false);
 			if (io.MouseWheel != 0.0f)
 			{
 				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
@@ -2732,7 +2806,8 @@ void VmdlEditorScene::DrawViewport()
 	}
 	CameraMoveSpeedOverlay::Draw(
 		previewCameraMoveSpeed, previewCameraMoveSpeedOverlayTimer);
-	if (!imageHovered || ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
+	if (!imageHovered || viewportOrbitDragging || viewportRotationDragging ||
+		io.KeyAlt || ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
 
 	if (model && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
@@ -2846,7 +2921,7 @@ void VmdlEditorScene::DrawProperty()
 	}
 	if (selectedComponentType != AttachedComponentType::None && selectedComponentIndex >= 0)
 	{
-		DrawAttachedData(selectedNode);
+		DrawSelectedComponents();
 		return;
 	}
 
@@ -2893,6 +2968,288 @@ void VmdlEditorScene::DrawProperty()
 	}
 	if (previewShadingMode == PreviewShadingMode::Solid)
 		ImGui::ColorEdit4((const char*)u8"ソリッド色", &solidColor.x);
+}
+
+// 同種のコンポーネントだけを選択集合として保持する。ノードは主選択の表示に使う。
+int VmdlEditorScene::GetComponentNodeIndex(int componentIndex) const
+{
+	if (!model || componentIndex < 0) return -1;
+	const auto nodeIndex = [componentIndex](const auto& values) {
+		return componentIndex < Count(values) ? values[componentIndex].nodeIndex : -1;
+	};
+	switch (selectedComponentType)
+	{
+	case AttachedComponentType::RigidBody: return nodeIndex(model->GetVmdlExtensionData().rigidBodies);
+	case AttachedComponentType::Collider: return nodeIndex(model->GetVmdlExtensionData().colliders);
+	case AttachedComponentType::Spring: return nodeIndex(model->GetVmdlExtensionData().springs);
+	case AttachedComponentType::SpringCollider: return nodeIndex(model->GetVmdlExtensionData().springColliders);
+	case AttachedComponentType::Trail: return nodeIndex(model->GetVmdlTrailData().trails);
+	case AttachedComponentType::Particle: return nodeIndex(model->GetVmdlParticleData().emitters);
+	case AttachedComponentType::SoundSource: return nodeIndex(model->GetVmdlSoundData().sources);
+	case AttachedComponentType::PointLight: return nodeIndex(model->GetVmdlLightData().pointLights);
+	case AttachedComponentType::CameraShake: return nodeIndex(model->GetVmdlPresentationData().cameraShakes);
+	case AttachedComponentType::RadialBlur: return nodeIndex(model->GetVmdlPresentationData().radialBlurs);
+	default: return -1;
+	}
+}
+
+void VmdlEditorScene::DrawSelectedComponents()
+{
+	if (selectedComponentIndices.empty() && GetComponentNodeIndex(selectedComponentIndex) >= 0)
+		selectedComponentIndices.push_back(selectedComponentIndex);
+	std::erase_if(selectedComponentIndices, [this](int index) { return GetComponentNodeIndex(index) < 0; });
+	if (selectedComponentIndices.empty()) return;
+	selectedComponentIndex = selectedComponentIndices.back();
+	selectedNode = GetComponentNodeIndex(selectedComponentIndex);
+	if (selectedComponentIndices.size() > 1) DrawBatchComponentProperties();
+	else DrawAttachedData(selectedNode);
+}
+
+void VmdlEditorScene::DrawBatchComponentProperties()
+{
+	ImGui::Text((const char*)u8"同種コンポーネントの一括編集: %zu個", selectedComponentIndices.size());
+	ImGui::TextWrapped((const char*)u8"* は値が異なる項目です。最後に選んだ値を表示しています。操作した項目・軸だけを全選択へ反映します。「=」で表示中の値へ揃えられます。");
+	ImGui::Separator();
+
+	// 一括編集専用の入力。名前・所属ノード・再生トラックには触れない。
+	const auto drawBatch = [this](auto& values, auto drawFields) {
+		using Component = typename std::remove_reference_t<decltype(values)>::value_type;
+		std::vector<Component*> targets;
+		for (int index : selectedComponentIndices)
+			if (index >= 0 && index < Count(values)) targets.push_back(&values[index]);
+		if (targets.size() < 2) return;
+		bool changed = false;
+		const auto edit = [&](const char* label, auto field, float minimum = -100000.0f, float maximum = 100000.0f, float displayScale = 1.0f) {
+			auto value = field(*targets.back());
+			using Value = std::remove_cvref_t<decltype(value)>;
+			const bool mixed = std::any_of(targets.begin(), targets.end(), [&](const auto* target) {
+				return field(*target) != value;
+			});
+			const std::string display = std::string(label) + (mixed ? " *" : "") + "###" + label;
+			bool edited = false;
+			if constexpr (std::is_same_v<Value, bool>) edited = ImGui::Checkbox(display.c_str(), &value);
+			else if constexpr (std::is_same_v<Value, int>)
+			{
+				edited = ImGui::DragInt(display.c_str(), &value, 1.0f, static_cast<int>(minimum), static_cast<int>(maximum));
+				value = std::clamp(value, static_cast<int>(minimum), static_cast<int>(maximum));
+			}
+			else if constexpr (std::is_same_v<Value, float>)
+			{
+				value *= displayScale;
+				edited = ImGui::DragFloat(display.c_str(), &value, 0.01f, minimum, maximum);
+				value = std::clamp(value, minimum, maximum);
+			}
+			else if constexpr (std::is_same_v<Value, std::string>)
+			{
+				if (std::string_view(label) == (const char*)u8"エフェクト") edited = DrawEffectSelector(display.c_str(), value);
+				else edited = DrawSoundPathSelector(display.c_str(), value);
+			}
+			// 代表値と同じ数値を全員へ揃える操作も用意する。
+			ImGui::SameLine();
+			ImGui::PushID(label);
+			ImGui::BeginDisabled(!mixed);
+			edited |= ImGui::SmallButton("=##Unify");
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				ImGui::SetTooltip((const char*)u8"表示中の値を全選択へ適用");
+			ImGui::EndDisabled();
+			ImGui::PopID();
+			if (!edited) return;
+			for (auto* target : targets)
+			{
+				if constexpr (std::is_same_v<Value, float>) field(*target) = value / displayScale;
+				else field(*target) = value;
+			}
+			changed = true;
+		};
+		const auto choice = [&](const char* label, auto field, const std::vector<std::pair<int, std::string>>& options) {
+			const int current = field(*targets.back());
+			const bool mixed = std::any_of(targets.begin(), targets.end(), [&](const auto* target) {
+				return field(*target) != current;
+			});
+			const auto selected = std::find_if(options.begin(), options.end(), [current](const auto& option) {
+				return option.first == current;
+			});
+			const std::string preview = mixed ? (const char*)u8"複数の値" :
+				(selected != options.end() ? selected->second : std::to_string(current));
+			if (!ImGui::BeginCombo(label, preview.c_str())) return;
+			for (const auto& [index, name] : options)
+			{
+				if (!ImGui::Selectable(name.c_str(), !mixed && current == index)) continue;
+				for (auto* target : targets) field(*target) = index;
+				changed = true;
+			}
+			ImGui::EndCombo();
+		};
+		const auto vector = [&](const char* label, auto field, float minimum = -100000.0f, float maximum = 100000.0f, float displayScale = 1.0f) {
+			ImGui::PushID(label);
+			ImGui::TextUnformatted(label);
+			edit("X", [&](auto& target) -> auto& { return field(target).x; }, minimum, maximum, displayScale);
+			edit("Y", [&](auto& target) -> auto& { return field(target).y; }, minimum, maximum, displayScale);
+			edit("Z", [&](auto& target) -> auto& { return field(target).z; }, minimum, maximum, displayScale);
+			ImGui::PopID();
+		};
+		vector((const char*)u8"ローカル位置", [](auto& target) -> auto& { return target.transform.position; }, -100000.0f, 100000.0f, model->GetModelScale());
+		vector((const char*)u8"ローカル回転 (度)", [](auto& target) -> auto& { return target.transform.rotation; });
+		vector((const char*)u8"ローカルスケール", [](auto& target) -> auto& { return target.transform.scale; });
+		drawFields(edit, vector, choice);
+		if (changed)
+		{
+			for (auto* target : targets)
+			{
+				if constexpr (std::is_same_v<Component, VMDLModel::VmdlSpring>)
+				{
+					const Vector3 minimum = Vector3::Min(target->minAnglesDegrees, target->maxAnglesDegrees);
+					target->maxAnglesDegrees = Vector3::Max(target->minAnglesDegrees, target->maxAnglesDegrees);
+					target->minAnglesDegrees = minimum;
+				}
+				else if constexpr (std::is_same_v<Component, VMDLModel::VmdlSoundSource>)
+				{
+					target->pitchMax = std::max(target->pitchMin, target->pitchMax);
+					target->maxDistance = std::max(target->minDistance + 0.01f, target->maxDistance);
+				}
+				else if constexpr (std::is_same_v<Component, VMDLModel::VmdlCollider>)
+				{
+					if (target->shape == 1) target->size.y = target->size.z = target->size.x;
+				}
+			}
+			MarkDirty();
+			if (selectedComponentType == AttachedComponentType::Particle) RebuildParticlePreview();
+		}
+	};
+
+	switch (selectedComponentType)
+	{
+	case AttachedComponentType::RigidBody:
+		drawBatch(model->GetVmdlExtensionData().rigidBodies, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"静的", [](auto& target) -> auto& { return target.kinematic; });
+			edit((const char*)u8"質量", [](auto& target) -> auto& { return target.mass; }, 0.001f, 100000.0f);
+		});
+		break;
+	case AttachedComponentType::Collider:
+		drawBatch(model->GetVmdlExtensionData().colliders, [&](auto edit, auto vector, auto choice) {
+			std::vector<std::pair<int, std::string>> layers = {{-1, (const char*)u8"継承"}};
+			for (int layer = 0; layer < EditableLayerCount; ++layer)
+				layers.emplace_back(layer, PhysicsLayerManager::Instance().GetLayerDisplayName(static_cast<LayerId>(layer)));
+			choice((const char*)u8"レイヤー", [](auto& target) -> auto& { return target.layer; }, layers);
+			std::vector<std::pair<int, std::string>> shapes = {
+				{0, (const char*)u8"ボックス"}, {1, (const char*)u8"球"}, {2, (const char*)u8"カプセル"}};
+			for (int mesh = 0; mesh < Count(model->GetMeshes()); ++mesh)
+				shapes.emplace_back(mesh + 3, MakeMeshLabel(*model, mesh));
+			choice((const char*)u8"形状", [](auto& target) -> auto& { return target.shape; }, shapes);
+			vector((const char*)u8"大きさ", [](auto& target) -> auto& { return target.size; }, 0.001f, 100000.0f, model->GetModelScale());
+			edit((const char*)u8"トリガー", [](auto& target) -> auto& { return target.trigger; });
+			edit((const char*)u8"NavMesh障害物", [](auto& target) -> auto& { return target.navMeshObstacle; });
+		});
+		break;
+	case AttachedComponentType::Spring:
+		drawBatch(model->GetVmdlExtensionData().springs, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"硬さ", [](auto& target) -> auto& { return target.stiffness; }, 0.0f, 1.0f);
+			edit((const char*)u8"抵抗", [](auto& target) -> auto& { return target.drag; }, 0.0f, 1.0f);
+			edit((const char*)u8"全方向の最大角度 (度)", [](auto& target) -> auto& { return target.maxAngleDegrees; }, 0.0f, 180.0f);
+			vector((const char*)u8"最小角度 XYZ (度)", [](auto& target) -> auto& { return target.minAnglesDegrees; }, -180.0f, 180.0f);
+			vector((const char*)u8"最大角度 XYZ (度)", [](auto& target) -> auto& { return target.maxAnglesDegrees; }, -180.0f, 180.0f);
+		});
+		break;
+	case AttachedComponentType::SpringCollider:
+		drawBatch(model->GetVmdlExtensionData().springColliders, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"半径", [](auto& target) -> auto& { return target.radius; }, 0.001f, 100000.0f);
+		});
+		break;
+	case AttachedComponentType::Trail:
+		drawBatch(model->GetVmdlTrailData().trails, [&](auto edit, auto vector, auto choice) {
+			vector((const char*)u8"根元オフセット", [](auto& target) -> auto& { return target.rootOffset; });
+			vector((const char*)u8"先端オフセット", [](auto& target) -> auto& { return target.tipOffset; });
+			edit("R", [](auto& target) -> auto& { return target.color.x; }, 0.0f, 100000.0f);
+			edit("G", [](auto& target) -> auto& { return target.color.y; }, 0.0f, 100000.0f);
+			edit("B", [](auto& target) -> auto& { return target.color.z; }, 0.0f, 100000.0f);
+			edit("A", [](auto& target) -> auto& { return target.color.w; }, 0.0f, 1.0f);
+			edit((const char*)u8"先端比率", [](auto& target) -> auto& { return target.tipRatio; }, 0.0f, 4.0f);
+			edit((const char*)u8"生存時間", [](auto& target) -> auto& { return target.lifeTime; }, 0.01f, 10.0f);
+			edit((const char*)u8"最大頂点数", [](auto& target) -> auto& { return target.maxPoints; }, 2.0f, 1024.0f);
+			vector((const char*)u8"角度オフセット", [](auto& target) -> auto& { return target.offsetAngle; });
+		});
+		break;
+	case AttachedComponentType::Particle:
+		drawBatch(model->GetVmdlParticleData().emitters, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"ノードに追従", [](auto& target) -> auto& { return target.modelDerived; });
+			edit((const char*)u8"ビルボード", [](auto& target) -> auto& { return target.billboard; });
+			edit((const char*)u8"エフェクト", [](auto& target) -> auto& { return target.effectName; });
+		});
+		break;
+	case AttachedComponentType::SoundSource:
+		drawBatch(model->GetVmdlSoundData().sources, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"サウンド", [](auto& target) -> auto& { return target.soundPath; });
+			edit((const char*)u8"バリエーション番号 (-1: ランダム)", [](auto& target) -> auto& { return target.variant; }, -1.0f, 10000.0f);
+			edit((const char*)u8"音量", [](auto& target) -> auto& { return target.volume; }, 0.0f, 4.0f);
+			edit((const char*)u8"最小ピッチ", [](auto& target) -> auto& { return target.pitchMin; }, 0.125f, 8.0f);
+			edit((const char*)u8"最大ピッチ", [](auto& target) -> auto& { return target.pitchMax; }, 0.125f, 8.0f);
+			edit((const char*)u8"3Dサウンド", [](auto& target) -> auto& { return target.spatial; });
+			edit((const char*)u8"減衰開始距離", [](auto& target) -> auto& { return target.minDistance; }, 0.01f, 1000.0f);
+			edit((const char*)u8"再生限界距離", [](auto& target) -> auto& { return target.maxDistance; }, 0.02f, 1000.0f);
+			edit((const char*)u8"近距離ローパス", [](auto& target) -> auto& { return target.lowPassHz; }, 20.0f, 20000.0f);
+			edit((const char*)u8"遠距離ローパス", [](auto& target) -> auto& { return target.farLowPassHz; }, 20.0f, 20000.0f);
+			edit((const char*)u8"残響", [](auto& target) -> auto& { return target.reverbMix; }, 0.0f, 1.0f);
+		});
+		break;
+	case AttachedComponentType::PointLight:
+		drawBatch(model->GetVmdlLightData().pointLights, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"有効", [](auto& target) -> auto& { return target.active; });
+			edit("R", [](auto& target) -> auto& { return target.color.x; }, 0.0f, 100000.0f);
+			edit("G", [](auto& target) -> auto& { return target.color.y; }, 0.0f, 100000.0f);
+			edit("B", [](auto& target) -> auto& { return target.color.z; }, 0.0f, 100000.0f);
+			edit((const char*)u8"強度", [](auto& target) -> auto& { return target.intensity; }, 0.0f, 100000.0f);
+			edit((const char*)u8"範囲", [](auto& target) -> auto& { return target.range; }, 0.0f, 10000.0f);
+		});
+		break;
+	case AttachedComponentType::CameraShake:
+		drawBatch(model->GetVmdlPresentationData().cameraShakes, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"効果範囲", [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
+			edit((const char*)u8"距離に応じて減衰", [](auto& target) -> auto& { return target.distanceAttenuation; });
+			edit((const char*)u8"継続時間", [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
+			edit((const char*)u8"揺れの強さ", [](auto& target) -> auto& { return target.intensity; }, 0.0f, 10.0f);
+		});
+		break;
+	case AttachedComponentType::RadialBlur:
+		drawBatch(model->GetVmdlPresentationData().radialBlurs, [&](auto edit, auto vector, auto choice) {
+			edit((const char*)u8"効果範囲", [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
+			edit((const char*)u8"距離に応じて減衰", [](auto& target) -> auto& { return target.distanceAttenuation; });
+			edit((const char*)u8"継続時間", [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
+			edit((const char*)u8"ブラー強度", [](auto& target) -> auto& { return target.power; }, 0.0f, 20.0f);
+			edit((const char*)u8"立ち上がり割合", [](auto& target) -> auto& { return target.attackRate; }, 0.01f, 0.95f);
+		});
+		break;
+	default: break;
+	}
+
+	// 初期有効状態はコンポーネント本体ではなく別の配列に保持されている。
+	const auto initialActive = [this](auto get, auto set) {
+		bool value = get(selectedComponentIndex);
+		const bool mixed = std::any_of(selectedComponentIndices.begin(), selectedComponentIndices.end(),
+			[&](int index) { return get(index) != value; });
+		const char* label = mixed ? (const char*)u8"初期状態で有効 *" : (const char*)u8"初期状態で有効";
+		bool changed = ImGui::Checkbox(label, &value);
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!mixed);
+		changed |= ImGui::SmallButton("=##InitialActive");
+		ImGui::EndDisabled();
+		if (!changed) return;
+		for (int index : selectedComponentIndices) set(index, value);
+		MarkDirty();
+	};
+	if (selectedComponentType == AttachedComponentType::Collider)
+		initialActive([this](int index) { return model->GetColliderInitialActive(index); },
+			[this](int index, bool active) {
+				model->SetColliderInitialActive(index, active);
+				if (Count(previewColliderActive) <= index) previewColliderActive.resize(index + 1, 1);
+				previewColliderActive[index] = active ? 1 : 0;
+			});
+	else if (selectedComponentType == AttachedComponentType::Trail)
+		initialActive([this](int index) { return model->GetTrailInitialActive(index); },
+			[this](int index, bool active) {
+				model->SetTrailInitialActive(index, active);
+				if (Count(previewTrailActive) <= index) previewTrailActive.resize(index + 1, 1);
+				previewTrailActive[index] = active ? 1 : 0;
+			});
 }
 
 void VmdlEditorScene::DrawAttachedData(int nodeIndex)
@@ -2949,6 +3306,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteRigidBody)
 				--selectedComponentIndex;
@@ -3103,6 +3461,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteCollider)
 				--selectedComponentIndex;
@@ -3147,6 +3506,22 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			changed |= DrawComponentTransform(*model, value.transform);
 			changed |= ImGui::DragFloat((const char*)u8"硬さ", &value.stiffness, 0.01f, 0.0f, 1.0f);
 			changed |= ImGui::DragFloat((const char*)u8"抵抗", &value.drag, 0.01f, 0.0f, 1.0f);
+			changed |= ImGui::SliderFloat((const char*)u8"最大角度 (度)",
+				&value.maxAngleDegrees, 0.0f, 180.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip(
+				(const char*)u8"アニメーションの向きを中心に揺れる範囲を制限します。0度で揺れなし、180度で制限なし。コライダーと両立できない場合は角度制限を優先します。");
+			bool angleChanged = ImGui::SliderFloat3((const char*)u8"最小角度 XYZ (度)",
+				&value.minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
+			angleChanged |= ImGui::SliderFloat3((const char*)u8"最大角度 XYZ (度)",
+				&value.maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
+			if (angleChanged)
+			{
+				const Vector3 minimum = Vector3::Min(value.minAnglesDegrees, value.maxAnglesDegrees);
+				value.maxAnglesDegrees = Vector3::Max(value.minAnglesDegrees, value.maxAnglesDegrees);
+				value.minAnglesDegrees = minimum;
+			}
+			ImGui::TextDisabled((const char*)u8"アニメーション姿勢からのローカル追加回転。X=Pitch / Y=Yaw / Z=Roll");
+			changed |= angleChanged;
 			if (changed) MarkDirty();
 
 			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSpring = i;
@@ -3167,6 +3542,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteSpring)
 				--selectedComponentIndex;
@@ -3214,6 +3590,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteSpringCollider)
 				--selectedComponentIndex;
@@ -3284,6 +3661,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteTrail)
 				--selectedComponentIndex;
@@ -3367,7 +3745,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			if (track.emitterIndex > deleteParticle) --track.emitterIndex;
 		if (selectedComponentType == AttachedComponentType::Particle)
 		{
-			if (selectedComponentIndex == deleteParticle) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; }
+			if (selectedComponentIndex == deleteParticle) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
 			else if (selectedComponentIndex > deleteParticle) --selectedComponentIndex;
 		}
 		selectedParticleEventTarget = particleData.emitters.empty() ? 0 :
@@ -3465,6 +3843,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deleteSoundSource)
 				--selectedComponentIndex;
@@ -3520,6 +3899,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 			{
 				selectedComponentType = AttachedComponentType::None;
 				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
 			}
 			else if (selectedComponentIndex > deletePointLight)
 				--selectedComponentIndex;
@@ -3580,7 +3960,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		std::erase_if(presentation.cameraShakeTracks,
 			[](const auto& track) { return track.keys.empty(); });
-		if (selectedComponentType == AttachedComponentType::CameraShake) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; }
+		if (selectedComponentType == AttachedComponentType::CameraShake) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
 		MarkDirty();
 	}
 
@@ -3628,7 +4008,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		std::erase_if(presentation.radialBlurTracks,
 			[](const auto& track) { return track.keys.empty(); });
-		if (selectedComponentType == AttachedComponentType::RadialBlur) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; }
+		if (selectedComponentType == AttachedComponentType::RadialBlur) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
 		MarkDirty();
 	}
 	if (duplicatePending) DuplicateSelectedAttachedComponent();
@@ -4873,6 +5253,8 @@ void VmdlEditorScene::RebuildSpringPreview()
 			0, model.get(), value.nodeIndex, springColliders, value.stiffness, value.drag);
 		spring->SetName(value.name);
 		spring->SetUseUnscaledTime(true);
+		spring->SetMaxAngle(value.maxAngleDegrees);
+		spring->SetAngleLimits(value.minAnglesDegrees, value.maxAnglesDegrees);
 		springPreviewComponents.push_back(spring);
 	}
 	springPreviewOwner->Awake();
@@ -4897,6 +5279,9 @@ bool VmdlEditorScene::UpdateSpringPreview()
 			value.transform.rotation.x, value.transform.rotation.y, value.transform.rotation.z,
 			value.transform.scale.x, value.transform.scale.y, value.transform.scale.z,
 			value.stiffness, value.drag);
+		signature += std::format("{}|{},{},{}|{},{},{}|", value.maxAngleDegrees,
+			value.minAnglesDegrees.x, value.minAnglesDegrees.y, value.minAnglesDegrees.z,
+			value.maxAnglesDegrees.x, value.maxAnglesDegrees.y, value.maxAnglesDegrees.z);
 	}
 	for (const auto& value : data.springColliders)
 	{
@@ -6059,6 +6444,7 @@ void VmdlEditorScene::UpdateModelFraming()
 	const Vector3 size = maxPosition - minPosition;
 
 	cameraFocusOffset = center - Vector3(0.0f, 1.0f, 0.0f);
+	cameraOrbitPivot = center;
 
 	cameraDistance = std::clamp(size.Length() * 1.25f, 2.0f, 50.0f);
 	targetCameraDistance = cameraDistance;
@@ -6228,6 +6614,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 		selectedMeshes.clear();
 		selectedComponentType = AttachedComponentType::None;
 		selectedComponentIndex = -1;
+		selectedComponentIndices.clear();
 		focusSelectedComponent = false;
 		selectedMaterial = model->GetMaterials().empty() ? -1 : 0;
 		selectedAnimation = model->GetAnimations().empty() ? -1 : 0;
@@ -6627,6 +7014,7 @@ void VmdlEditorScene::LoadModel(
 		selectedMeshes.clear();
 		selectedComponentType = AttachedComponentType::None;
 		selectedComponentIndex = -1;
+		selectedComponentIndices.clear();
 		focusSelectedComponent = false;
 		selectedMaterial = model->GetMaterials().empty() ? -1 : 0;
 		selectedAnimation = model->GetAnimations().empty() ? -1 : 0;

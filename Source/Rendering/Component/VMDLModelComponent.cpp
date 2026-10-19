@@ -109,6 +109,8 @@ void VMDLModelComponent::BuildAttachments()
 		auto* spring = owner->AddComponent<SpringBone>(attachmentLayerId, model.get(),
 			value.nodeIndex, springColliders, value.stiffness, value.drag);
 		spring->SetName(value.name);
+		spring->SetMaxAngle(value.maxAngleDegrees);
+		spring->SetAngleLimits(value.minAnglesDegrees, value.maxAnglesDegrees);
 	}
 
 	const auto& trailData = model->GetVmdlTrailData();

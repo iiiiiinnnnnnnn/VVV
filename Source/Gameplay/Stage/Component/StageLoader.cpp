@@ -774,13 +774,72 @@ bool StageLoader::BuildEditorPropTransform(
 
 void StageLoader::DrawEditorGUI()
 {
-	if (ImGui::Button((const char*)(ICON_FA_COG " " u8"侵入不可エリアを追加")))
+	if (ImGui::Button((const char*)(ICON_FA_COG " " u8"侵入不可エリアを追加"))) AddEditorBlockedArea();
+	DrawEditorHierarchy();
+	ImGui::Separator();
+	DrawSelectedEditorInspector();
+}
+
+bool StageLoader::DrawEditorHierarchy()
+{
+	bool changed = false;
+	const auto item = [&](EditorObjectType type, int index, const std::string& label) {
+		ImGui::PushID(static_cast<int>(type));
+		ImGui::PushID(index);
+		if (ImGui::Selectable(label.c_str(), selectedEditorObjectType == type && selectedEditorObjectIndex == index))
+		{
+			SelectEditorObject(type, index);
+			changed = true;
+		}
+		ImGui::PopID();
+		ImGui::PopID();
+	};
+	item(EditorObjectType::WorldWater, 0, ICON_FA_WATER " ワールド水面");
+	for (int index = 0; index < static_cast<int>(playerStartTransforms.size()); ++index)
+		item(EditorObjectType::PlayerStart, index, ICON_FA_MAP_MARKER_ALT " プレイヤー初期位置 " + std::to_string(index + 1));
+	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
+		item(EditorObjectType::BlockedArea, index, ICON_FA_COG " " + blockedAreas[index].name);
+	std::map<std::string, std::vector<int>> groups;
+	for (int index = 0; index < static_cast<int>(propDataList.size()); ++index)
+		groups[propDataList[index].modelPath].push_back(index);
+	for (const auto& [modelPath, indices] : groups)
 	{
-		AddEditorBlockedArea();
+		const std::string name = std::filesystem::path(modelPath).stem().string();
+		const std::string label = ICON_FA_CUBE " " + name + " (" + std::to_string(indices.size()) + ")###" + modelPath;
+		if (!ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) continue;
+		for (int index : indices)
+		{
+			const auto& prop = propDataList[index];
+			item(EditorObjectType::Prop, index, name + " " + std::to_string(index + 1) +
+				(prop.spawnTag.empty() ? "" : " [" + prop.spawnTag + "]"));
+		}
+		ImGui::TreePop();
 	}
-	ImGui::TextDisabled((const char*)u8"選択後にW / E / Rのギズモで調整");
+	return changed;
+}
+
+void StageLoader::DrawSelectedEditorInspector()
+{
+	if (selectedEditorObjectType == EditorObjectType::None)
+	{
+		ImGui::TextDisabled((const char*)u8"配置物を選択してください");
+		return;
+	}
+	if (selectedEditorObjectType == EditorObjectType::WorldWater)
+	{
+		DrawWorldWaterEditor();
+		return;
+	}
+	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(propDataList.size()))
+	{
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		DrawPropEditor(selectedEditorObjectIndex);
+		return;
+	}
 	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
 	{
+		if (selectedEditorObjectType != EditorObjectType::BlockedArea || selectedEditorObjectIndex != index) continue;
 		BlockedAreaData& area = blockedAreas[index];
 		ImGui::PushID(index);
 		const bool selected = selectedEditorObjectType == EditorObjectType::BlockedArea &&
@@ -788,6 +847,7 @@ void StageLoader::DrawEditorGUI()
 		const std::string label = area.name + "###BlockedArea";
 		ImGuiTreeNodeFlags areaFlags = ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (selected) areaFlags |= ImGuiTreeNodeFlags_Selected;
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		const bool open = ImGui::TreeNodeEx(label.c_str(), areaFlags);
 		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::BlockedArea, index);
 		if (open)
@@ -822,12 +882,9 @@ void StageLoader::DrawEditorGUI()
 		}
 		ImGui::PopID();
 	}
-	ImGui::Separator();
-	DrawWorldWaterEditor();
-
-	// プレイヤー初期位置は通常のVMDLと区別し、常に先頭へ表示する。
 	for (int index = 0; index < static_cast<int>(playerStartTransforms.size()); ++index)
 	{
+		if (selectedEditorObjectType != EditorObjectType::PlayerStart || selectedEditorObjectIndex != index) continue;
 		Transform& playerStart = playerStartTransforms[index];
 		ImGui::PushID(index);
 		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(125, 82, 8, 255));
@@ -853,6 +910,9 @@ void StageLoader::DrawEditorGUI()
 		if (open)
 		{
 			playerStart.DrawGUI(true);
+			duplicate |= ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"));
+			ImGui::SameLine();
+			remove |= ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除"));
 			ImGui::TreePop();
 		}
 		ImGui::PopID();
@@ -873,40 +933,6 @@ void StageLoader::DrawEditorGUI()
 			}
 			break;
 		}
-	}
-
-	std::map<std::string, std::vector<int>> groups;
-	for (int index = 0; index < static_cast<int>(propDataList.size()); ++index)
-		groups[propDataList[index].modelPath].push_back(index);
-	for (const auto& [modelPath, indices] : groups)
-	{
-		std::string modelName;
-		std::string groupIcon = ICON_FA_CUBE "  ";
-		if (modelPath.empty())
-		{
-			modelName = (const char*)u8"モデルなし";
-		}
-		else
-		{
-			modelName = std::filesystem::path(modelPath).stem().string();
-		}
-		const std::string groupLabel = groupIcon + modelName +
-			" (" + std::to_string(indices.size()) + ")###ModelGroup" + modelPath;
-		if (!ImGui::TreeNodeEx(groupLabel.c_str(),
-			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
-			continue;
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", modelPath.c_str());
-		bool changed = false;
-		for (int index : indices)
-		{
-			if (DrawPropEditor(index))
-			{
-				changed = true;
-				break;
-			}
-		}
-		ImGui::TreePop();
-		if (changed) break;
 	}
 }
 

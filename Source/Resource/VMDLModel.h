@@ -88,6 +88,9 @@ class VMDLModel
 		VmdlComponentTransform transform;
 		float stiffness = 0.5f;
 		float drag = 0.2f;
+		float maxAngleDegrees = 180.0f; // アニメーションの向きからの最大角度。180度は制限なし。
+		Vector3 minAnglesDegrees = { -180.0f, -180.0f, -180.0f };
+		Vector3 maxAnglesDegrees = { 180.0f, 180.0f, 180.0f };
 
 		template <class Archive> void serialize(Archive& archive);
 	};
