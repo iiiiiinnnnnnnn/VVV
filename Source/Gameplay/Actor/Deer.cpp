@@ -6,6 +6,7 @@
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Audio/SoundSystem.h"
+#include "Crystal.h"
 
 Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBossField)
 	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f)
@@ -238,12 +239,29 @@ void Deer::OnTriggerEnter(
 		};
 		player->TakeDamage(damageData);
 	}
+	// クリスタルが当たってきた
+	else if (other->GetOwner()->CompareTag("Crystal"))
+	{
+		dynamic_cast<Crystal*>(other->GetOwner())
+			->TakeDamage({
+				.damage = 20.0f,
+				.knockBackPower = 5.0f,
+				.hitColliderSelf = self,
+				.hitColliderOther = other,
+				.hitPosition = point,
+				.hitNormal = normal,
+			});
+	}
 }
 
 void Deer::OnDamaged(const DamageData& damageData)
 {
-	TimeScaleController::Request(0.15f);
-	CameraEffectController::Request(0.2f, 0.1f);
+	if (damageData.hitColliderOther->GetLayerId() == Layers::Get("PlayerAtk"))
+	{
+		// aracoreの攻撃はhitstopいらない
+		TimeScaleController::Request(0.15f);
+		CameraEffectController::Request(0.2f, 0.1f);
+	}
 
 	StopCharge();
 	if (damageData.hitColliderSelf)

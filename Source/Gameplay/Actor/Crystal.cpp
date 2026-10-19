@@ -182,8 +182,12 @@ void Crystal::OnUpdate()
 void Crystal::OnDamaged(const DamageData& damageData)
 {
 	vmdl->GetRenderer()->PlaySoundSource("ATTACK", &transform.position);
-	TimeScaleController::Request(0.06f);
-	CameraEffectController::Request(0.1f, 0.06f);
+	if (damageData.hitColliderOther->GetLayerId() == Layers::Get("PlayerAtk"))
+	{
+		// aracoreとかはhitstopいらない
+		TimeScaleController::Request(0.06f);
+		CameraEffectController::Request(0.1f, 0.06f);
+	}
 }
 
 void Crystal::OnDead(const DamageData& damageData)

@@ -30,7 +30,7 @@ local parameters = {
     FreedomMoveSpeed      = 1.0,    -- 徘徊の移動速度
 
     -- 突進
-    AttackMoveSpeed       = 7.0,    -- 突進の移動速度
+    AttackMoveSpeed       = 8.0,    -- 突進の移動速度
     AttackOverDistance    = 20.0,   -- 相手の位置を越えて走る距離
 }
 

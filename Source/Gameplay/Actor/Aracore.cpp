@@ -896,7 +896,7 @@ void Aracore::OnDamaged(const DamageData& damageData)
 	Actor* attacker = damageData.hitColliderSelf
 		? dynamic_cast<Actor*>(damageData.hitColliderSelf->GetOwner())
 		: nullptr;
-	float timeStopTime = 0.1f;
+	float timeStopTime = 0.07f;
 	if (attacker && attacker->CompareTag("Player"))
 	{
 		const bool newlyDetected =
