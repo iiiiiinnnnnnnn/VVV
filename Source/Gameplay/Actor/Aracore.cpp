@@ -226,8 +226,11 @@ void Aracore::RegisterAIActions()
 		if (direction.LengthSquared() > eps) direction.Normalize();
 		else direction = this->transform.forward;
 
+		this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
+			atan2f(direction.x, direction.z), 0.0f, 0.0f));
 		const Vector3 destination = target->transform.position +
 			direction * controller->GetFloat("ChargeOverDistance", 10.0f);
+		navMeshAgent->SetChargeMovement(true);
 		navMeshAgent->SetSpeed(chargeSpeed);
 		navMeshAgent->MoveToPosition(destination);
 	};
@@ -416,6 +419,7 @@ void Aracore::StopAnimatedMovement()
 	controller->SetBool("RotationPaused", false);
 	if (navMeshAgent)
 	{
+		navMeshAgent->SetChargeMovement(false);
 		navMeshAgent->SetMovementPaused(false);
 		navMeshAgent->SetRotationPaused(false);
 	}
@@ -430,8 +434,9 @@ void Aracore::UpdateTurningAnimation()
 	anim->SetBool("turnLeft", turning && angle < 0.0f);
 	anim->SetBool("turnRight", turning && angle > 0.0f);
 	const bool ready = IsMovementAnimationReady();
-	controller->SetBool("RotationPaused", !ready);
-	navMeshAgent->SetRotationPaused(!ready);
+	const bool rotationPaused = requiredMovementAnimation == "charge" || !ready;
+	controller->SetBool("RotationPaused", rotationPaused);
+	navMeshAgent->SetRotationPaused(rotationPaused);
 	navMeshAgent->SetMovementPaused(turning || requiredMovementAnimation == "turn" || !ready);
 }
 
