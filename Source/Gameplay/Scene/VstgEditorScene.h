@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -40,6 +40,7 @@ class VstgEditorScene : public Scene
 	void CreateStage();
 
 	// ファイル操作
+	void New();
 	void Open();
 	bool LoadStage(const std::filesystem::path& stagePath);
 	bool ResolveMissingModels();
@@ -67,7 +68,10 @@ class VstgEditorScene : public Scene
 	bool OpenVmdlEditor(const std::string& modelPath);
 	void DrawPlacementDropTarget(const ImVec2& viewportMin, const ImVec2& viewportMax);
 	void DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& viewportMax);
-	bool ScreenToTerrainPoint(const ImVec2& mousePosition, Vector3& point) const;
+	bool ScreenToTerrainPoint(
+		const ImVec2& mousePosition, Vector3& point, Vector3* normal = nullptr) const;
+	bool ScreenToPlacementSurface(const ImVec2& mousePosition, Vector3& point,
+		Vector3& normal, int ignoredPropIndex = -1) const;
 	void SelectObjectAt(
 		const ImVec2& mousePosition, const ImVec2& viewportMin, const ImVec2& viewportMax);
 

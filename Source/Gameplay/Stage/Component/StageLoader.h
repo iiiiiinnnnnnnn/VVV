@@ -76,7 +76,10 @@ class StageLoader : public Component
 	bool SelectEditorActor(const Actor* actor);
 	bool SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction);
 	void ClearEditorSelection();
-	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint);
+	int RaycastEditorProps(const Vector3& origin, const Vector3& direction,
+		float& nearestDistance, Vector3& normal, int ignoredPropIndex = -1);
+	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint,
+		const Quaternion& rotation = Quaternion::Identity);
 	void SetEditorPlayerStart(const Vector3& terrainPoint);
 	void AddEditorBlockedArea();
 	bool HasPlayerStart() const { return !playerStartTransforms.empty(); }

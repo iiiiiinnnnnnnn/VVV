@@ -171,6 +171,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 				if (it != drawInfo.params->materials.end() && it->second.transmission)
 					transmission = *it->second.transmission;
 			}
+			if (rc.renderSettings.shadingMode != ShadingMode::Pbr) transmission = 0.0f;
 			if ((drawInfo.params && drawInfo.params->justDodgeUnlit) ||
 				mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
 				transmission > 0.0f || (w > 0.01f && w < 0.99f))

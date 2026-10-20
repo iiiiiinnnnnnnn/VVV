@@ -20,7 +20,7 @@ Stage01::Stage01(Player* player) : Stage()
 
 	SoundSystem::Instance().Play("BGM/cave_ambient", SoundSystem::PlayOptions{.loop = true}, -1);
 
-	const bool loadedVstg = LoadVSTG("cave_01");
+	const bool loadedVstg = LoadVSTG("cave_02");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
 
 	stageLoader = GetComponent<StageLoader>();

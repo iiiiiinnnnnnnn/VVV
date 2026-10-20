@@ -46,7 +46,7 @@ struct CbAreaLight
     float4 color;
 };
 
-#define MaxPointLights 32
+#define MaxPointLights 100
 #define MaxSpotLights 32
 #define MaxAreaLights 32
 struct CbLightData
@@ -66,7 +66,7 @@ cbuffer CbScene : register(b7)
 {
     row_major float4x4 viewProjection;
     float3 viewPosition;
-    float _dummyCbScene;
+    float previewShadingMode;
     CbLightData lightData;
     float4 distanceFogColor;
     float4 distanceFogParams;

@@ -11,7 +11,7 @@ cbuffer TerrainGrassConstants : register(b0)
     float sizeVariation;
     float drawDistance;
     float terrainSize;
-    float padding;
+    float shadingMode;
     float4 tint;
     float4 fogColor;
     float fogStart;

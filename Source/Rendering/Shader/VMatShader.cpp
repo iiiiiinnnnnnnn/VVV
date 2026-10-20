@@ -79,8 +79,9 @@ void VMatShader::Update(
 	const VMatRenderParams* params)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
+	const bool unlit = (params && params->unlit) || rc.renderSettings.shadingMode == ShadingMode::Unlit;
 	dc->PSSetShader(params && params->justDodgeUnlit ? justDodgeUnlitPixelShader.Get()
-		: params && params->unlit ? unlitPixelShader.Get() : pixelShader.Get(), nullptr, 0);
+		: unlit ? unlitPixelShader.Get() : pixelShader.Get(), nullptr, 0);
 	if (params && params->justDodgeUnlit)
 	{
 		dc->UpdateSubresource(justDodgeFadeConstantBuffer.Get(), 0, nullptr, &params->justDodgeFade, 0, 0);
@@ -91,6 +92,18 @@ void VMatShader::Update(
 	{
 		const auto it = params->materials.find(mesh.material->name);
 		if (it != params->materials.end()) materialParams = &it->second;
+	}
+	VMatMaterialParams previewMaterial;
+	if (rc.renderSettings.shadingMode != ShadingMode::Pbr)
+	{
+		if (materialParams) previewMaterial = *materialParams;
+		previewMaterial.transmission = 0.0f;
+		if (rc.renderSettings.shadingMode == ShadingMode::Solid)
+		{
+			previewMaterial.baseColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
+			previewMaterial.useBaseColorTexture = false;
+		}
+		materialParams = &previewMaterial;
 	}
 	float transmission = std::clamp(materialParams && materialParams->transmission
 		? *materialParams->transmission : mesh.material->transmission, 0.0f, 1.0f);

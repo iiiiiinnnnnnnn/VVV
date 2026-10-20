@@ -11,6 +11,8 @@
 class LightManager;
 
 // レンダリング設定
+enum class ShadingMode { Pbr, Unlit, Solid };
+
 struct RenderSettings
 {
 	bool showDebug = false;
@@ -21,6 +23,7 @@ struct RenderSettings
 	bool showGrass = true;
 	bool showFog = true;
 	bool wireframe = false;
+	ShadingMode shadingMode = ShadingMode::Pbr;
 	bool pointMaterialTextures = false;
 	bool distanceFogEnabled = true;
 	float distanceFogStart = 18.0f;

@@ -5,7 +5,7 @@
 // コンスタントバッファに渡す用のライトデータ
 struct CbLightData
 {
-	static constexpr int MaxPointLights = 32;
+	static constexpr int MaxPointLights = 100;
 	static constexpr int MaxSpotLights = 32;
 	static constexpr int MaxAreaLights = 32;
 

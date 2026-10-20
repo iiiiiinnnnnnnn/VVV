@@ -279,6 +279,8 @@ float4 main(VS_OUT pin) : SV_TARGET
         SampleTerrainBaseLayer(layer1, tilingCoord, worldXZ),
         layerBlend);
 
+    if (previewShadingMode > 1.5f) albedoSRGB = float4(0.72f, 0.72f, 0.75f, 1.0f);
+
     float4 albedo =
         float4(pow(albedoSRGB.rgb, GammaFactor), albedoSRGB.a)
         * baseColor;
@@ -558,6 +560,9 @@ float4 main(VS_OUT pin) : SV_TARGET
         + iblDiffuse
         + iblSpecular
         + emissive;
+
+    if (previewShadingMode > 0.5f && previewShadingMode < 1.5f)
+        color = albedo.rgb;
 
     color = ApplyDistanceFog(color, pin.position);
 

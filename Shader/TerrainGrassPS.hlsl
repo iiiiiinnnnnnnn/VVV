@@ -2,7 +2,8 @@
 
 float4 main(GrassPSInput input) : SV_TARGET
 {
-    float3 color = tint.rgb * input.shade;
+    float3 baseColor = shadingMode > 1.5f ? float3(0.72f, 0.72f, 0.75f) : tint.rgb;
+    float3 color = baseColor * (shadingMode > 0.5f && shadingMode < 1.5f ? 1.0f : input.shade);
     if (fogEnabled > 0.5f)
     {
         const float distanceToCamera = distance(input.worldPosition, cameraPosition);

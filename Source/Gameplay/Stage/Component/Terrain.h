@@ -212,7 +212,7 @@ private:
 	{
 		Matrix viewProjection;
 		Vector3 viewPosition;
-		float dummy;
+		float shadingMode = 0.0f;
 		CbLightData lightData;
 		Color distanceFogColor;
 		Vector4 distanceFogParams;

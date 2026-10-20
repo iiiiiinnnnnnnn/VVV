@@ -52,7 +52,7 @@ private:
 		float sizeVariation;
 		float drawDistance;
 		float terrainSize;
-		float padding;
+		float shadingMode;
 		Color tint;
 		Color fogColor;
 		float fogStart;

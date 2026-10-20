@@ -42,6 +42,28 @@ static std::filesystem::path GetVstgEditorResourceRoot()
 	return std::filesystem::absolute("Resources");
 }
 
+// 現在の向きを保ちながら、上方向だけを接地面に合わせる。
+static Quaternion AlignPropRotationToSurface(const Quaternion& rotation, const Vector3& normal)
+{
+	if (normal.LengthSquared() < 0.000001f) return rotation;
+	Vector3 targetUp = normal;
+	targetUp.Normalize();
+	const Matrix currentRotation = Matrix::CreateFromQuaternion(rotation);
+	const Vector3 currentUp = Vector3::TransformNormal(Vector3::Up, currentRotation);
+	const float dot = std::clamp(currentUp.Dot(targetUp), -1.0f, 1.0f);
+	if (dot > 0.999999f) return rotation;
+
+	Vector3 axis = currentUp.Cross(targetUp);
+	if (dot < -0.999999f)
+		axis = Vector3::TransformNormal(Vector3::UnitX, currentRotation);
+	axis.Normalize();
+	const Quaternion adjustment = Quaternion::CreateFromAxisAngle(axis, std::acos(dot));
+	Quaternion aligned = Quaternion::CreateFromRotationMatrix(
+		currentRotation * Matrix::CreateFromQuaternion(adjustment));
+	aligned.Normalize();
+	return aligned;
+}
+
 VstgEditorScene::VstgEditorScene()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -293,6 +315,7 @@ void VstgEditorScene::OnDrawGUI()
 		mainMenuBarHeight = ImGui::GetWindowHeight();
 		if (ImGui::BeginMenu((const char*)(ICON_FA_FILE " " u8"ファイル")))
 		{
+			if (ImGui::MenuItem((const char*)(ICON_FA_FILE " " u8"VSTGを新規作成"), "Ctrl+N")) New();
 			if (ImGui::MenuItem((const char*)(ICON_FA_FOLDER_OPEN " " u8"VSTGを開く"), "Ctrl+O")) Open();
 			if (ImGui::MenuItem((const char*)(ICON_FA_SAVE " " u8"VSTGを保存"), "Ctrl+S")) Save();
 			if (ImGui::MenuItem((const char*)(ICON_FA_COPY " " u8"名前を付けて保存"), "Ctrl+Shift+S")) SaveAs();
@@ -307,6 +330,13 @@ void VstgEditorScene::OnDrawGUI()
 		}
 		if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
 		{
+			if (ImGui::MenuItem(ICON_FA_ADJUST " PBR", nullptr, renderSettings.shadingMode == ShadingMode::Pbr))
+				renderSettings.shadingMode = ShadingMode::Pbr;
+			if (ImGui::MenuItem(ICON_FA_SUN " Unlit", nullptr, renderSettings.shadingMode == ShadingMode::Unlit))
+				renderSettings.shadingMode = ShadingMode::Unlit;
+			if (ImGui::MenuItem((const char*)(ICON_FA_ADJUST " " u8"ソリッド"), nullptr, renderSettings.shadingMode == ShadingMode::Solid))
+				renderSettings.shadingMode = ShadingMode::Solid;
+			ImGui::Separator();
 			ImGui::Checkbox((const char*)(ICON_FA_LEAF " " u8"草マップ"), &renderSettings.showGrass);
 			ImGui::Checkbox((const char*)(ICON_FA_SMOG " " u8"フォグ"), &renderSettings.showFog);
 			ImGui::Separator();
@@ -339,7 +369,11 @@ void VstgEditorScene::OnDrawGUI()
 	}
 
 	// ファイル操作のショートカット
-	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N, false))
+	{
+		New();
+	}
+	else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
 	{
 		Open();
 	}
@@ -783,7 +817,7 @@ bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 void VstgEditorScene::DrawPlacementDropTarget(
 	const ImVec2& viewportMin, const ImVec2& viewportMax)
 {
-	// ドラッグ中の地形位置と配置プレビュー
+	// ドラッグ中の接地面と配置プレビュー
 	const ImGuiPayload* draggingPayload = ImGui::GetDragDropPayload();
 	const bool draggingProp = draggingPayload && draggingPayload->IsDataType("VSTG_PROP");
 	const bool draggingPlayerStart =
@@ -793,22 +827,23 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	if (!draggingProp && !draggingPlayerStart && !draggingLight && !draggingBlockedArea) return;
 	const std::string modelPath = draggingProp
 		? static_cast<const char*>(draggingPayload->Data) : std::string{};
-	Vector3 terrainPoint;
+	Vector3 surfacePoint;
+	Vector3 surfaceNormal;
 	const ImVec2 mouse = ImGui::GetMousePos();
 	const bool insideViewport = mouse.x >= viewportMin.x && mouse.x <= viewportMax.x &&
 		mouse.y >= viewportMin.y && mouse.y <= viewportMax.y;
-	const bool hasTerrainPoint =
-		insideViewport && stageLoader && ScreenToTerrainPoint(mouse, terrainPoint);
-	if (hasTerrainPoint)
+	const bool hasSurfacePoint =
+		insideViewport && stageLoader && ScreenToPlacementSurface(mouse, surfacePoint, surfaceNormal);
+	if (hasSurfacePoint)
 	{
 		if (draggingPlayerStart)
 		{
-			playerStartDragPreviewPosition = terrainPoint;
+			playerStartDragPreviewPosition = surfacePoint;
 			showPlayerStartDragPreview = true;
 		}
 		else if (draggingLight)
 		{
-			lightDragPreviewPosition = terrainPoint + Vector3::Up;
+			lightDragPreviewPosition = surfacePoint + Vector3::Up;
 			showLightDragPreview = true;
 		}
 		else if (draggingProp && dragPreviewModelPath != modelPath)
@@ -833,9 +868,13 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			}
 		}
 		if (draggingProp)
+		{
+			dragPreviewTransform.rotation =
+				AlignPropRotationToSurface(Quaternion::Identity, surfaceNormal);
 			showDragPreview =
 				dragPreviewModel && stageLoader->BuildEditorPropTransform(
-					*dragPreviewModel, terrainPoint, dragPreviewTransform);
+					*dragPreviewModel, surfacePoint, dragPreviewTransform);
+		}
 	}
 
 	if (terrain) terrain->SetBrushViewportInputAllowed(false);
@@ -850,7 +889,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	if (ImGui::Begin("##VSTG Prop Drop Target", nullptr, flags))
 	{
-		ImGui::InvisibleButton("##VSTG Terrain Drop", ImGui::GetContentRegionAvail());
+		ImGui::InvisibleButton("##VSTG Surface Drop", ImGui::GetContentRegionAvail());
 		if (terrain) terrain->SetBrushViewportInputAllowed(false);
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -858,7 +897,8 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			{
 				if (payload->IsDelivery() && showDragPreview)
 				{
-					if (stageLoader->AddEditorProp(static_cast<const char*>(payload->Data), terrainPoint))
+					if (stageLoader->AddEditorProp(static_cast<const char*>(payload->Data),
+						surfacePoint, dragPreviewTransform.rotation))
 					{
 						if (terrain) terrain->SetBrushEnabled(false);
 						selectedLightType = EditorLightType::None;
@@ -872,9 +912,9 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			if (const ImGuiPayload* payload =
 					ImGui::AcceptDragDropPayload("VSTG_PLAYER_START"))
 			{
-				if (payload->IsDelivery() && hasTerrainPoint && stageLoader)
+				if (payload->IsDelivery() && hasSurfacePoint && stageLoader)
 				{
-					stageLoader->SetEditorPlayerStart(terrainPoint);
+					stageLoader->SetEditorPlayerStart(surfacePoint);
 					if (terrain) terrain->SetBrushEnabled(false);
 					selectedLightType = EditorLightType::None;
 					selectedLightIndex = -1;
@@ -884,7 +924,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			}
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_LIGHT"))
 			{
-				if (payload->IsDelivery() && hasTerrainPoint && currentStage && payload->DataSize == sizeof(int))
+				if (payload->IsDelivery() && hasSurfacePoint && currentStage && payload->DataSize == sizeof(int))
 				{
 					const auto type = static_cast<EditorLightType>(*static_cast<const int*>(payload->Data));
 					auto& lights = currentStage->GetLightManager();
@@ -916,13 +956,13 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			}
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_BLOCKED_AREA"))
 			{
-				if (payload->IsDelivery() && hasTerrainPoint && stageLoader)
+				if (payload->IsDelivery() && hasSurfacePoint && stageLoader)
 				{
 					stageLoader->AddEditorBlockedArea();
 					if (terrain) terrain->SetBrushEnabled(false);
 					if (Transform* transform = stageLoader->GetSelectedEditorTransform())
 					{
-						transform->position = terrainPoint;
+						transform->position = surfacePoint;
 						stageLoader->RefreshSelectedEditorObject();
 					}
 					selectedLightType = EditorLightType::None;
@@ -940,7 +980,30 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	ImGui::PopStyleVar();
 }
 
-bool VstgEditorScene::ScreenToTerrainPoint(const ImVec2& mousePosition, Vector3& point) const
+bool VstgEditorScene::ScreenToPlacementSurface(const ImVec2& mousePosition,
+	Vector3& point, Vector3& normal, int ignoredPropIndex) const
+{
+	if (!currentStage || !stageLoader) return false;
+	Camera* camera = currentStage->GetActiveCamera();
+	if (!camera) return false;
+	const Vector2 ndc = Game::Graphics::Instance().GetMouseNDC(mousePosition.x, mousePosition.y);
+	const Matrix inverse = (camera->GetView() * camera->GetProjection()).Invert();
+	const Vector3 origin = Vector3::Transform(Vector3(ndc.x, ndc.y, 0.0f), inverse);
+	Vector3 direction = Vector3::Transform(Vector3(ndc.x, ndc.y, 1.0f), inverse) - origin;
+	if (direction.LengthSquared() < 0.000001f) return false;
+	direction.Normalize();
+	bool found = ScreenToTerrainPoint(mousePosition, point, &normal);
+	float distance = found ? (point - origin).Length() : 10000.0f;
+	if (stageLoader->RaycastEditorProps(origin, direction, distance, normal, ignoredPropIndex) >= 0)
+	{
+		point = origin + direction * distance;
+		found = true;
+	}
+	return found;
+}
+
+bool VstgEditorScene::ScreenToTerrainPoint(
+	const ImVec2& mousePosition, Vector3& point, Vector3* normal) const
 {
 	if (!currentStage) return false;
 	Camera* camera = currentStage->GetActiveCamera();
@@ -1029,6 +1092,11 @@ bool VstgEditorScene::ScreenToTerrainPoint(const ImVec2& mousePosition, Vector3&
 			const float v = localPoint.z / terrain->GetTerrainSize() + 0.5f;
 			localPoint.y = terrain->GetSurfaceHeightByUV(u, v);
 			point = Vector3::Transform(localPoint, terrainWorld);
+			if (normal)
+			{
+				*normal = Vector3::TransformNormal(terrain->GetSurfaceNormalByUV(u, v), inverseTerrainWorld.Transpose());
+				normal->Normalize();
+			}
 			return true;
 		}
 		previousDistance = distance;
@@ -1042,6 +1110,14 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	if (terrain && terrain->IsBrushEnabled()) return;
 	if (ImGui::GetDragDropPayload()) return;
 	if (!stageLoader || !currentStage) return;
+	const bool uiCapturesMouse = ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyItemActive() ||
+		ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
+		ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
+	if (uiCapturesMouse && !ImGuizmo::IsUsing())
+	{
+		terrainSnapActive = false;
+		return;
+	}
 	Camera* camera = currentStage->GetActiveCamera();
 	Light* selectedLight = GetSelectedLight();
 	Transform* transform = selectedLight ? &selectedLight->transform : stageLoader->GetSelectedEditorTransform();
@@ -1074,9 +1150,17 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 			world.Decompose(transform->scale, transform->rotation, transform->position);
 			if (!selectedLight && terrainSnapActive)
 			{
-				Vector3 terrainPoint;
-				if (ScreenToTerrainPoint(ImGui::GetMousePos(), terrainPoint))
-					transform->position = terrainPoint;
+				Vector3 surfacePoint;
+				Vector3 surfaceNormal;
+				const int ignoredPropIndex =
+					stageLoader->GetSelectedEditorObjectType() == StageLoader::EditorObjectType::Prop
+					? stageLoader->GetSelectedEditorObjectIndex() : -1;
+				if (ScreenToPlacementSurface(ImGui::GetMousePos(), surfacePoint, surfaceNormal, ignoredPropIndex))
+				{
+					transform->position = surfacePoint;
+					if (ignoredPropIndex >= 0)
+						transform->rotation = AlignPropRotationToSurface(transform->rotation, surfaceNormal);
+				}
 			}
 			if (selectedLight) selectedLight->transform.Update();
 			else stageLoader->RefreshSelectedEditorObject();
@@ -1085,8 +1169,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	}
 	if (!ImGuizmo::IsUsing()) terrainSnapActive = false;
 
-	if (ImGuizmo::IsUsing() || ImGuizmo::IsOver() ||
-		ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
+	if (uiCapturesMouse || ImGuizmo::IsUsing() || ImGuizmo::IsOver() ||
 		!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		return;
 	SelectObjectAt(ImGui::GetMousePos(), viewportMin, viewportMax);
@@ -1201,6 +1284,32 @@ bool VstgEditorScene::OnRequestExit()
 		}
 	}
 	return true;
+}
+
+void VstgEditorScene::New()
+{
+	if (!OnRequestExit()) return;
+
+	auto& graphics = Game::Graphics::Instance();
+	if (!graphics.LoadSkyMap("Default"))
+	{
+		ErrorMessage((const char*)u8"デフォルトのライティング環境を読み込めませんでした。");
+		return;
+	}
+	graphics.GetSkyBoxRenderer()->SetIntensity(1.0f);
+
+	showDragPreview = false;
+	showPlayerStartDragPreview = false;
+	showLightDragPreview = false;
+	dragPreviewModel.reset();
+	dragPreviewModelPath.clear();
+	terrainSnapActive = false;
+	path.clear();
+	recentStagePath.clear();
+	data = VSTG{};
+	CreateStage();
+	dirty = false;
+	SaveEditorSettings();
 }
 
 void VstgEditorScene::Open()
@@ -1355,7 +1464,6 @@ void VstgEditorScene::LoadEditorSettings()
 
 void VstgEditorScene::SaveEditorSettings() const
 {
-	if (recentStagePath.empty()) return;
 	const std::u8string recentPathUtf8 = recentStagePath.u8string();
 	auto& settings = ImGuiRenderer::GetVstgEditorSettings();
 	settings.loaded = true;

@@ -213,8 +213,40 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 			nearestType = EditorObjectType::BlockedArea;
 		}
 	}
+	Vector3 surfaceNormal;
+	const int propIndex = RaycastEditorProps(origin, normalizedDirection, nearestDistance, surfaceNormal);
+	if (propIndex >= 0)
+	{
+		nearestIndex = propIndex;
+		nearestType = EditorObjectType::Prop;
+	}
+
+	if (nearestType == EditorObjectType::WorldWater)
+	{
+		return SelectEditorObject(EditorObjectType::WorldWater, 0);
+	}
+	if (nearestType == EditorObjectType::Prop && nearestIndex >= 0)
+	{
+		return SelectEditorObject(EditorObjectType::Prop, nearestIndex);
+	}
+	if (nearestType == EditorObjectType::BlockedArea && nearestIndex >= 0)
+	{
+		return SelectEditorObject(EditorObjectType::BlockedArea, nearestIndex);
+	}
+	return false;
+}
+
+int StageLoader::RaycastEditorProps(const Vector3& origin, const Vector3& direction,
+	float& nearestDistance, Vector3& normal, int ignoredPropIndex)
+{
+	if (direction.LengthSquared() < 0.000001f) return -1;
+	Vector3 normalizedDirection = direction;
+	normalizedDirection.Normalize();
+	const DirectX::SimpleMath::Ray ray(origin, normalizedDirection);
+	int nearestIndex = -1;
 	for (int propIndex = 0; propIndex < static_cast<int>(propDataList.size()); ++propIndex)
 	{
+		if (propIndex == ignoredPropIndex) continue;
 		PropData& propData = propDataList[propIndex];
 		DirectX::BoundingBox worldBounds;
 		if (!GetPropWorldBounds(propData, worldBounds)) continue;
@@ -253,26 +285,18 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 					distance >= nearestDistance)
 					continue;
 
+				Vector3 faceNormal = (vertex1 - vertex0).Cross(vertex2 - vertex0);
+				if (faceNormal.LengthSquared() < 0.000001f) continue;
+				faceNormal.Normalize();
+				if (faceNormal.Dot(normalizedDirection) > 0.0f) faceNormal = -faceNormal;
+				normal = faceNormal;
 				nearestDistance = distance;
 				nearestIndex = propIndex;
-				nearestType = EditorObjectType::Prop;
 			}
 		}
 	}
 
-	if (nearestType == EditorObjectType::WorldWater)
-	{
-		return SelectEditorObject(EditorObjectType::WorldWater, 0);
-	}
-	if (nearestType == EditorObjectType::Prop && nearestIndex >= 0)
-	{
-		return SelectEditorObject(EditorObjectType::Prop, nearestIndex);
-	}
-	if (nearestType == EditorObjectType::BlockedArea && nearestIndex >= 0)
-	{
-		return SelectEditorObject(EditorObjectType::BlockedArea, nearestIndex);
-	}
-	return false;
+	return nearestIndex;
 }
 
 void StageLoader::ClearEditorSelection()
@@ -647,7 +671,8 @@ Vector3 StageLoader::GetPropPlacementOffset(VMDLModel& model)
 	return Vector3::Zero;
 }
 
-bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint)
+bool StageLoader::AddEditorProp(
+	const std::string& modelPath, const Vector3& terrainPoint, const Quaternion& rotation)
 {
 	if (!ValidateModelName(modelPath)) return false;
 	PropData propData;
@@ -655,6 +680,7 @@ bool StageLoader::AddEditorProp(const std::string& modelPath, const Vector3& ter
 	propData.editorPreview = editorModels != nullptr;
 	propData.model = LoadPropModel(modelPath);
 	if (!propData.model) return false;
+	propData.transform.rotation = rotation;
 	const Matrix rotationScale = Matrix::CreateScale(propData.transform.scale) *
 								 Matrix::CreateFromQuaternion(propData.transform.rotation);
 	propData.transform.position =

@@ -113,6 +113,7 @@ void TerrainGrassRenderer::Render(
 	constants.sizeVariation = settings.sizeVariation;
 	constants.drawDistance = settings.drawDistance;
 	constants.terrainSize = terrainSize;
+	constants.shadingMode = static_cast<float>(rc.renderSettings.shadingMode);
 	constants.tint = settings.tint;
 	constants.fogColor = rc.renderSettings.distanceFogColor;
 	float fogEnabled = 0.0f;

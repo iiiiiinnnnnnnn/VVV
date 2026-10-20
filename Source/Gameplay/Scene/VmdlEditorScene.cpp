@@ -1640,6 +1640,8 @@ void VmdlEditorScene::DrawHierarchy()
 			&hierarchySearch))
 		hierarchySearchUpper = ToUpperString(hierarchySearch);
 	ImGui::Separator();
+	ImGui::BeginChild("HierarchyTree", ImVec2(0.0f, 0.0f), false,
+		ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 	if (MatchesHierarchySearch((const char*)u8"プレビューステージ Preview Stage"))
 	{
 		if (ImGui::Selectable((const char*)u8"プレビューステージ", previewStageSelected))
@@ -1662,6 +1664,7 @@ void VmdlEditorScene::DrawHierarchy()
 	if (!model)
 	{
 		ImGui::TextDisabled((const char*)u8"モデルが読み込まれていません");
+		ImGui::EndChild();
 		return;
 	}
 
@@ -1675,6 +1678,7 @@ void VmdlEditorScene::DrawHierarchy()
 		found = true;
 	}
 	if (!found) ImGui::TextDisabled((const char*)u8"一致する項目がありません");
+	ImGui::EndChild();
 }
 
 bool VmdlEditorScene::MatchesHierarchySearch(const std::string& text) const
@@ -2613,6 +2617,7 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	}
 	const bool imageHovered = io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
 		io.MousePos.y >= inputMin.y && io.MousePos.y <= inputMax.y &&
+		!io.WantCaptureMouse && !ImGui::IsAnyItemActive() &&
 		!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
 		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
 	if (imageHovered && !io.WantTextInput && !io.KeyCtrl)

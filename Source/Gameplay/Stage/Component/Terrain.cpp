@@ -441,6 +441,7 @@ void Terrain::UpdateTerrainSceneConstantBuffer(
 	CbTerrainScene cbScene{};
 	cbScene.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	cbScene.viewPosition = rc.camera->GetEye();
+	cbScene.shadingMode = static_cast<float>(rc.renderSettings.shadingMode);
 	cbScene.lightData = rc.lightManager->ConvertToCb();
 	cbScene.distanceFogColor = rc.renderSettings.distanceFogColor;
 	cbScene.distanceFogParams = {

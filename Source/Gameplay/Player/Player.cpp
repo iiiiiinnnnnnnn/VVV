@@ -264,7 +264,6 @@ void Player::UpdateFootSound()
 void Player::UpdateBattleStatus()
 {
 	inBattleTimer -= Game::Time::deltaTime;
-	if (anim) anim->SetBool("isInBattle", IsInBattle());
 }
 
 void Player::UpdateWaterDamage()
