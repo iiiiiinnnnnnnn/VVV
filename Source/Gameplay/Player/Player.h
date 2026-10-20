@@ -151,7 +151,7 @@ class Player : public Entity
 	const float BattleTimerDuration = 10.0f;
 
 	// 水に触れたらダメージ
-	const float damageLowerHeightCoolDown = 3.0f;
+	const float damageLowerHeightCoolDown = 2.0f;
 	const float damageWaterAmount = 3.0f;
 	float damageLowerHeightTimer = 0;
 	bool isInWater = false;
