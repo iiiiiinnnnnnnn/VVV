@@ -176,9 +176,10 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 totalSpecular = 0.0f;
 
     // ディレクショナルライト
+    for (uint directionalIndex = 0; directionalIndex < lightData.directionalLightCount && directionalIndex < MaxDirectionalLights; ++directionalIndex)
     {
-        float3 L = normalize(-lightData.directionalLight.direction);
-        float3 LC = lightData.directionalLight.color.rgb * lightData.directionalLight.color.a;
+        float3 L = normalize(-lightData.directionalLights[directionalIndex].direction);
+        float3 LC = lightData.directionalLights[directionalIndex].color.rgb * lightData.directionalLights[directionalIndex].color.a;
 
         float3 d, s;
         DirectBRDFShadowStrength(

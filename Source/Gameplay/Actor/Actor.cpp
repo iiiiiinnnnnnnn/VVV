@@ -6,6 +6,38 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include <imgui.h>
 
+Actor::~Actor()
+{
+	Uninit();
+}
+
+void Actor::Uninit()
+{
+	if (uninitialized) return;
+	uninitialized = true;
+	if (components.empty()) Object::Destroy();
+	else Destroy();
+	if (initialized) OnUninit();
+	initialized = false;
+	isActive = false;
+	while (!components.empty()) components.pop_back();
+}
+
+void Actor::Init()
+{
+	if (initialized || uninitialized) return;
+	initialized = true;
+	try
+	{
+		OnInit();
+	}
+	catch (...)
+	{
+		Uninit();
+		throw;
+	}
+}
+
 void Actor::Destroy(float delay)
 {
     Object::Destroy(delay);

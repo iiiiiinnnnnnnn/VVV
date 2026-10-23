@@ -998,6 +998,7 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 		OutputDebugStringA(output.c_str());
 	}
 
+	bool importedDirectional = false;
 	for (int nodeIdx = 0; nodeIdx < (int)gltfModel.nodes.size(); ++nodeIdx)
 	{
 		const tinygltf::Node& gltfNode = gltfModel.nodes[nodeIdx];
@@ -1029,7 +1030,9 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 
 		if (l.type == "point")
 		{
-			auto& light = lightData.AddPointLight();
+			auto* addedLight = lightData.AddPointLight();
+			if (!addedLight) continue;
+			auto& light = *addedLight;
 			light.SetName(l.name);
 			light.transform.position = position;
 			light.SetColor(color);
@@ -1038,7 +1041,9 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 		}
 		else if (l.type == "spot")
 		{
-			auto& light = lightData.AddSpotLight();
+			auto* addedLight = lightData.AddSpotLight();
+			if (!addedLight) continue;
+			auto& light = *addedLight;
 			light.SetName(l.name);
 			light.transform.position = position;
 			light.transform.SetDirection(direction);
@@ -1050,8 +1055,10 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 		}
 		else if (l.type == "directional")
 		{
-			DirectionalLight& light =
-				lightData.GetDirectionalLight();
+			auto* addedLight = importedDirectional ? lightData.AddDirectionalLight() : &lightData.GetDirectionalLight();
+			importedDirectional = true;
+			if (!addedLight) continue;
+			auto& light = *addedLight;
 
 			light.SetName(l.name);
 			light.transform.SetDirection(direction);

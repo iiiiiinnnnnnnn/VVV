@@ -49,12 +49,32 @@ void Camera::SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& 
 	// 視点、注視点を保存
 	this->eye = eye;
 	this->focus = focus;
+	focusDistance = Vector3::Distance(eye, focus);
 
 	Transform* transform = owner->GetComponent<Transform>();
 	if (!transform) return;
 
 	transform->SetPosition(eye);
 	transform->SetRotation(Quaternion::CreateFromRotationMatrix(world));
+	transformPosition = transform->position;
+	transformRotation = transform->rotation;
+}
+
+void Camera::SyncTransform() const
+{
+	const auto* transform = owner->GetComponent<Transform>();
+	if (!transform) return;
+	if (transform->position == transformPosition && transform->rotation == transformRotation) return;
+
+	const Matrix rotation = Matrix::CreateFromQuaternion(transform->rotation);
+	right = {rotation._11, rotation._12, rotation._13};
+	up = {rotation._21, rotation._22, rotation._23};
+	front = {rotation._31, rotation._32, rotation._33};
+	eye = transform->position;
+	focus = eye + front * focusDistance;
+	view = DirectX::XMMatrixLookAtLH(eye, focus, up);
+	transformPosition = transform->position;
+	transformRotation = transform->rotation;
 }
 
 // パースペクティブ設定

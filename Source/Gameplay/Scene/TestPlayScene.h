@@ -8,7 +8,6 @@ class LocalPlayer;
 class BossBar;
 class ThirdPersonCameraController;
 class GaugeHUD;
-class HUDWidget;
 class WidgetGroup;
 class PauseMenu;
 
@@ -23,6 +22,10 @@ public:
 	void OnDrawGUI() override;
 	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::HiddenLocked; }
 
+protected:
+	void OnInit() override;
+	void OnUninit() override;
+
 private:
 	void OnPauseChanged(bool paused);
 	void ReturnToTitle();
@@ -32,7 +35,7 @@ private:
 	std::shared_ptr<TextWidget> developText;
 #endif
 	std::shared_ptr<LocalPlayer> player;
-	std::shared_ptr<HUDWidget> gameHud;
+	std::shared_ptr<WidgetGroup> gameHud;
 	std::shared_ptr<WidgetGroup> playerHudGroup;
 	std::shared_ptr<WidgetGroup> bossHudGroup;
 	std::shared_ptr<GaugeHUD> playerHealthGauge;

@@ -13,7 +13,7 @@
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
-#include "Gameplay/Scene/GameStartScene.h"
+#include "Gameplay/Scene/TitleScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -32,6 +32,7 @@
 #include "Rendering/Renderer/ShapeRenderer.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "IconsFontAwesome5.h"
+#include "Rendering/Effect/EffectManager.h"
 
 static std::filesystem::path GetVstgEditorResourceRoot()
 {
@@ -64,7 +65,9 @@ static Quaternion AlignPropRotationToSurface(const Quaternion& rotation, const V
 	return aligned;
 }
 
-VstgEditorScene::VstgEditorScene()
+VstgEditorScene::VstgEditorScene() = default;
+
+void VstgEditorScene::OnInit()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
@@ -75,6 +78,7 @@ VstgEditorScene::VstgEditorScene()
 	propPreviewCamera = propPreviewCameraOwner->AddComponent<Camera>();
 	propPreviewLights.SetAmbientColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
 	propPreviewRenderParams.unlit = true;
+	dragPreviewRenderParams.unlit = true;
 	DirectionalLight& previewLight = propPreviewLights.GetDirectionalLight();
 	previewLight.transform.rotation =
 		Quaternion::CreateFromYawPitchRoll(RAD(-30.0f), RAD(35.0f), 0.0f);
@@ -85,10 +89,22 @@ VstgEditorScene::VstgEditorScene()
 	std::error_code error;
 	if (!recentStagePath.empty() && std::filesystem::is_regular_file(recentStagePath, error))
 		LoadStage(recentStagePath);
+	terrain->PrepareRenderResources();
 }
 
 VstgEditorScene::~VstgEditorScene()
 {
+	Uninit();
+}
+
+void VstgEditorScene::OnUninit()
+{
+	propPreviewModel.reset();
+	dragPreviewModel.reset();
+	propModels.clear();
+	propPreviewTarget.reset();
+	propPreviewCameraOwner.reset();
+	propPreviewCamera = nullptr;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
@@ -116,13 +132,16 @@ void VstgEditorScene::OnUpdate()
 		{
 			const float width = std::max(Game::Graphics::ScreenWidth, 1.0f);
 			const float height = std::max(Game::Graphics::ScreenHeight, 1.0f);
-			camera->SetPerspectiveFov(RAD(FreeCameraController::VerticalFovDegrees), width / height, 0.1f, 2000.0f);
+			const float fov = freeCameraController ? freeCameraController->GetVerticalFovDegrees()
+				: FreeCameraController::VerticalFovDegrees;
+			camera->SetPerspectiveFov(RAD(fov), width / height, 0.1f, 2000.0f);
 		}
 	}
 }
 
 void VstgEditorScene::CreateStage()
 {
+	effectPopupPending = false;
 	selectedLightType = EditorLightType::None;
 	selectedLightIndex = -1;
 	lightingSettingsSelected = false;
@@ -147,6 +166,7 @@ void VstgEditorScene::CreateStage()
 	freeCameraController =
 		currentStage->GetDefaultCameraActor()->AddComponent<FreeCameraController>();
 	freeCameraController->SetMoveSpeed(10.0f);
+	freeCameraController->SetFovWheelEnabled(true);
 	cleanStateHash = data.BuildEditorStateHash(
 		*terrain, *navMesh, *stageLoader, currentStage->GetLightManager());
 }
@@ -323,7 +343,7 @@ void VstgEditorScene::OnDrawGUI()
 			{
 				if (OnRequestExit())
 				{
-					SceneManager::Instance().LoadScene<GameStartScene>();
+					SceneManager::Instance().LoadScene<TitleScene>();
 				}
 			}
 			ImGui::EndMenu();
@@ -434,6 +454,14 @@ void VstgEditorScene::OnDrawGUI()
 	}
 	ImGui::End();
 
+	if (Game::Input::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
+		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) && !ImGuizmo::IsUsing() &&
+		ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+	{
+		if (GetSelectedLight()) DeleteSelectedLight();
+		else if (stageLoader && stageLoader->DeleteSelectedEditorObject()) dirty = true;
+	}
+
 	// ギズモ操作のショートカット
 	if (!io.WantTextInput &&
 		(Game::Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT) == 0)
@@ -475,6 +503,37 @@ void VstgEditorScene::OnDrawGUI()
 
 	// 3Dビュー上の配置と選択操作
 	DrawPlacementDropTarget({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
+	if (effectPopupPending)
+	{
+		ImGui::OpenPopup("VSTG Effect Placement");
+		effectPopupPending = false;
+	}
+	if (ImGui::BeginPopup("VSTG Effect Placement"))
+	{
+		if (ImGui::BeginCombo((const char*)u8"エフェクト", placementEffectName.empty()
+			? (const char*)u8"選択してください" : placementEffectName.c_str()))
+		{
+			for (const auto& candidate : EffectManager::GetEffectPaths())
+				if (ImGui::Selectable(candidate.c_str(), candidate == placementEffectName))
+					placementEffectName = candidate;
+			ImGui::EndCombo();
+		}
+		ImGui::BeginDisabled(placementEffectName.empty());
+		if (ImGui::Button((const char*)u8"配置") && stageLoader)
+		{
+			stageLoader->AddEditorEffect(placementEffectName, effectPlacementPosition);
+			if (terrain) terrain->SetBrushEnabled(false);
+			selectedLightType = EditorLightType::None;
+			selectedLightIndex = -1;
+			lightingSettingsSelected = false;
+			dirty = true;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		if (ImGui::Button((const char*)u8"キャンセル")) ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
 	DrawLightMarkers({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
 	DrawObjectGizmo({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
 	if (stageLoader)
@@ -494,13 +553,14 @@ Light* VstgEditorScene::GetSelectedLight()
 {
 	if (!currentStage || selectedLightIndex < 0) return nullptr;
 	auto& lights = currentStage->GetLightManager();
-	const auto get = [this](auto& values) -> Light* {
+	const auto get = [this](auto&& values) -> Light* {
 		if (selectedLightIndex >= static_cast<int>(values.size())) return nullptr;
 		Light* light = &values[selectedLightIndex];
 		return light->IsPendingDestroy() ? nullptr : light;
 	};
 	switch (selectedLightType)
 	{
+	case EditorLightType::Directional: return get(lights.GetDirectionalLights());
 	case EditorLightType::Point: return get(lights.GetPointLights());
 	case EditorLightType::Spot: return get(lights.GetSpotLights());
 	case EditorLightType::Area: return get(lights.GetAreaLights());
@@ -536,22 +596,35 @@ void VstgEditorScene::DrawHierarchy()
 		lightingSettingsSelected = false;
 	}
 	auto& lights = currentStage->GetLightManager();
-	const auto group = [this](const char* label, auto& values, EditorLightType type) {
-		if (!ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) return;
+	ImGui::Text("Lights: %d / %d", lights.GetLightCount(), CbLightData::MaxLights);
+	if (!lights.CanAddLight()) ImGui::TextDisabled("Light limit reached");
+	const auto group = [this](const char* icon, const char* label, auto&& values, EditorLightType type) {
+		int count = 0;
+		for (const auto& light : values)
+			if (!light.IsPendingDestroy()) ++count;
+		const std::string category = std::string(icon) + " " + label + " (" +
+			std::to_string(count) + ")###" + label;
+		if (!ImGui::TreeNodeEx(category.c_str(),
+			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) return;
 		for (int index = 0; index < static_cast<int>(values.size()); ++index)
 		{
 			if (values[index].IsPendingDestroy()) continue;
 			ImGui::PushID(index);
-			const std::string name = std::string(ICON_FA_LIGHTBULB " ") + values[index].GetName();
+			const std::string name = std::string(icon) + " " + values[index].GetName();
 			if (ImGui::Selectable(name.c_str(), selectedLightType == type && selectedLightIndex == index))
 				SelectLight(type, index);
 			ImGui::PopID();
 		}
 		ImGui::TreePop();
 	};
-	group((const char*)u8"ポイントライト", lights.GetPointLights(), EditorLightType::Point);
-	group((const char*)u8"スポットライト", lights.GetSpotLights(), EditorLightType::Spot);
-	group((const char*)u8"エリアライト", lights.GetAreaLights(), EditorLightType::Area);
+	group(ICON_FA_SUN, (const char*)u8"ディレクショナルライト",
+		lights.GetDirectionalLights(), EditorLightType::Directional);
+	group(ICON_FA_LIGHTBULB, (const char*)u8"ポイントライト",
+		lights.GetPointLights(), EditorLightType::Point);
+	group(ICON_FA_LIGHTBULB, (const char*)u8"スポットライト",
+		lights.GetSpotLights(), EditorLightType::Spot);
+	group(ICON_FA_LIGHTBULB, (const char*)u8"エリアライト",
+		lights.GetAreaLights(), EditorLightType::Area);
 }
 
 void VstgEditorScene::DrawInspector()
@@ -572,9 +645,9 @@ void VstgEditorScene::DrawInspector()
 		if (ImGui::InputText((const char*)u8"名前", &name)) { light->SetName(name); dirty = true; }
 		light->DrawGUI();
 		light->transform.Update();
-		if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"))) DuplicateSelectedLight();
-		ImGui::SameLine();
 		if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除"))) DeleteSelectedLight();
+		ImGui::SameLine();
+		if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"))) DuplicateSelectedLight();
 		ImGui::PopID();
 		return;
 	}
@@ -588,10 +661,17 @@ void VstgEditorScene::DuplicateSelectedLight()
 	auto& lights = currentStage->GetLightManager();
 	Light* copy = nullptr;
 	int index = -1;
-	if (selectedLightType == EditorLightType::Point)
+	if (selectedLightType == EditorLightType::Directional)
+	{
+		copy = lights.AddDirectionalLight();
+		index = static_cast<int>(lights.GetDirectionalLights().size()) - 1;
+	}
+	else if (selectedLightType == EditorLightType::Point)
 	{
 		const float range = static_cast<PointLight*>(source)->GetRange();
-		auto& light = lights.AddPointLight();
+		auto* addedLight = lights.AddPointLight();
+		if (!addedLight) return;
+		auto& light = *addedLight;
 		light.SetRange(range);
 		copy = &light;
 		index = static_cast<int>(lights.GetPointLights().size()) - 1;
@@ -599,7 +679,9 @@ void VstgEditorScene::DuplicateSelectedLight()
 	else if (selectedLightType == EditorLightType::Spot)
 	{
 		const auto* original = static_cast<SpotLight*>(source);
-		auto& light = lights.AddSpotLight();
+		auto* addedLight = lights.AddSpotLight();
+		if (!addedLight) return;
+		auto& light = *addedLight;
 		light.SetRange(original->GetRange());
 		light.SetInnerConeAngle(original->GetInnerConeAngle());
 		light.SetOuterConeAngle(original->GetOuterConeAngle());
@@ -609,7 +691,9 @@ void VstgEditorScene::DuplicateSelectedLight()
 	else if (selectedLightType == EditorLightType::Area)
 	{
 		const auto* original = static_cast<AreaLight*>(source);
-		auto& light = lights.AddAreaLight();
+		auto* addedLight = lights.AddAreaLight();
+		if (!addedLight) return;
+		auto& light = *addedLight;
 		light.SetRange(original->GetRange());
 		light.SetWidth(original->GetWidth());
 		light.SetHeight(original->GetHeight());
@@ -648,7 +732,7 @@ void VstgEditorScene::DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& 
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImDrawList* draw = ImGui::GetForegroundDrawList();
 	draw->PushClipRect(viewportMin, viewportMax, true);
-	const auto markers = [&](auto& values, EditorLightType type) {
+	const auto markers = [&](auto&& values, EditorLightType type) {
 		for (int index = 0; index < static_cast<int>(values.size()); ++index)
 		{
 			const auto& light = values[index];
@@ -663,6 +747,7 @@ void VstgEditorScene::DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& 
 		}
 	};
 	auto& lights = currentStage->GetLightManager();
+	markers(lights.GetDirectionalLights(), EditorLightType::Directional);
 	markers(lights.GetPointLights(), EditorLightType::Point);
 	markers(lights.GetSpotLights(), EditorLightType::Spot);
 	markers(lights.GetAreaLights(), EditorLightType::Area);
@@ -740,9 +825,11 @@ void VstgEditorScene::DrawPropBrowser(float height)
 		nextTile();
 	};
 	specialTile((const char*)(ICON_FA_MAP_MARKER_ALT "\n" u8"プレイヤー初期位置"), "VSTG_PLAYER_START", 0);
+	specialTile((const char*)(ICON_FA_SUN "\n" u8"ディレクショナルライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Directional));
 	specialTile((const char*)(ICON_FA_LIGHTBULB "\n" u8"ポイントライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Point));
 	specialTile((const char*)(ICON_FA_LIGHTBULB "\n" u8"スポットライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Spot));
 	specialTile((const char*)(ICON_FA_LIGHTBULB "\n" u8"エリアライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Area));
+	specialTile((const char*)(ICON_FA_MAGIC "\n" u8"エフェクト"), "VSTG_EFFECT", 0);
 	specialTile((const char*)(ICON_FA_COG "\n" u8"侵入不可エリア"), "VSTG_BLOCKED_AREA", 0);
 
 	// 検索結果のVMDL一覧
@@ -803,7 +890,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
-	std::filesystem::path editorPath = ResourcePath::Path(ResourcePath::Model(modelPath));
+	std::filesystem::path editorPath = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(modelPath, ResourceManager::ResourceType::Model));
 	const std::filesystem::path sourceResourceRoot = GetVstgEditorResourceRoot();
 	if (!sourceResourceRoot.empty())
 	{
@@ -824,7 +911,8 @@ void VstgEditorScene::DrawPlacementDropTarget(
 		draggingPayload && draggingPayload->IsDataType("VSTG_PLAYER_START");
 	const bool draggingLight = draggingPayload && draggingPayload->IsDataType("VSTG_LIGHT");
 	const bool draggingBlockedArea = draggingPayload && draggingPayload->IsDataType("VSTG_BLOCKED_AREA");
-	if (!draggingProp && !draggingPlayerStart && !draggingLight && !draggingBlockedArea) return;
+	const bool draggingEffect = draggingPayload && draggingPayload->IsDataType("VSTG_EFFECT");
+	if (!draggingProp && !draggingPlayerStart && !draggingLight && !draggingBlockedArea && !draggingEffect) return;
 	const std::string modelPath = draggingProp
 		? static_cast<const char*>(draggingPayload->Data) : std::string{};
 	Vector3 surfacePoint;
@@ -841,7 +929,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			playerStartDragPreviewPosition = surfacePoint;
 			showPlayerStartDragPreview = true;
 		}
-		else if (draggingLight)
+		else if (draggingLight || draggingEffect)
 		{
 			lightDragPreviewPosition = surfacePoint + Vector3::Up;
 			showLightDragPreview = true;
@@ -922,6 +1010,15 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					dirty = true;
 				}
 			}
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_EFFECT"))
+			{
+				if (payload->IsDelivery() && hasSurfacePoint)
+				{
+					effectPlacementPosition = surfacePoint;
+					placementEffectName.clear();
+					effectPopupPending = true;
+				}
+			}
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_LIGHT"))
 			{
 				if (payload->IsDelivery() && hasSurfacePoint && currentStage && payload->DataSize == sizeof(int))
@@ -930,19 +1027,24 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					auto& lights = currentStage->GetLightManager();
 					Light* light = nullptr;
 					int index = -1;
-					if (type == EditorLightType::Point)
+					if (type == EditorLightType::Directional)
 					{
-						light = &lights.AddPointLight();
+						light = lights.AddDirectionalLight();
+						index = static_cast<int>(lights.GetDirectionalLights().size()) - 1;
+					}
+					else if (type == EditorLightType::Point)
+					{
+						light = lights.AddPointLight();
 						index = static_cast<int>(lights.GetPointLights().size()) - 1;
 					}
 					else if (type == EditorLightType::Spot)
 					{
-						light = &lights.AddSpotLight();
+						light = lights.AddSpotLight();
 						index = static_cast<int>(lights.GetSpotLights().size()) - 1;
 					}
 					else if (type == EditorLightType::Area)
 					{
-						light = &lights.AddAreaLight();
+						light = lights.AddAreaLight();
 						index = static_cast<int>(lights.GetAreaLights().size()) - 1;
 					}
 					if (light)
@@ -1110,7 +1212,8 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	if (terrain && terrain->IsBrushEnabled()) return;
 	if (ImGui::GetDragDropPayload()) return;
 	if (!stageLoader || !currentStage) return;
-	const bool uiCapturesMouse = ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyItemActive() ||
+	// ImGuizmo自身もWantCaptureMouseを設定するため、実際のUI操作だけを調べる。
+	const bool uiCapturesMouse = ImGui::IsAnyItemActive() ||
 		ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
 		ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
 	if (uiCapturesMouse && !ImGuizmo::IsUsing())
@@ -1118,6 +1221,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 		terrainSnapActive = false;
 		return;
 	}
+	bool gizmoHovered = false;
 	Camera* camera = currentStage->GetActiveCamera();
 	Light* selectedLight = GetSelectedLight();
 	Transform* transform = selectedLight ? &selectedLight->transform : stageLoader->GetSelectedEditorTransform();
@@ -1139,6 +1243,8 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 		const bool manipulated = ImGuizmo::Manipulate(&view._11, &projection._11,
 			static_cast<ImGuizmo::OPERATION>(gizmoOperation), ImGuizmo::LOCAL, &world._11);
 		draw->PopClipRect();
+		gizmoHovered = ImGuizmo::IsOver(ImGuizmo::UNIVERSAL) ||
+			ImGuizmo::IsOver(&world._41, 24.0f);
 		ImGuizmo::Enable(true);
 		if (!selectedLight && gizmoOperation == ImGuizmo::TRANSLATE &&
 			ImGuizmo::GetActiveHandleType() == ImGuizmo::MT_MOVE_SCREEN)
@@ -1169,7 +1275,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	}
 	if (!ImGuizmo::IsUsing()) terrainSnapActive = false;
 
-	if (uiCapturesMouse || ImGuizmo::IsUsing() || ImGuizmo::IsOver() ||
+	if (uiCapturesMouse || gizmoHovered || ImGuizmo::IsUsingAny() || ImGuizmo::IsOver() ||
 		!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		return;
 	SelectObjectAt(ImGui::GetMousePos(), viewportMin, viewportMax);
@@ -1202,7 +1308,7 @@ void VstgEditorScene::SelectObjectAt(
 	float lightDistanceSquared = 18.0f * 18.0f;
 	EditorLightType hitLightType = EditorLightType::None;
 	int hitLightIndex = -1;
-	const auto pickLights = [&](auto& values, EditorLightType type) {
+	const auto pickLights = [&](auto&& values, EditorLightType type) {
 		for (int index = 0; index < static_cast<int>(values.size()); ++index)
 		{
 			if (values[index].IsPendingDestroy()) continue;
@@ -1219,6 +1325,7 @@ void VstgEditorScene::SelectObjectAt(
 		}
 	};
 	auto& lights = currentStage->GetLightManager();
+	pickLights(lights.GetDirectionalLights(), EditorLightType::Directional);
 	pickLights(lights.GetPointLights(), EditorLightType::Point);
 	pickLights(lights.GetSpotLights(), EditorLightType::Spot);
 	pickLights(lights.GetAreaLights(), EditorLightType::Area);
@@ -1226,6 +1333,27 @@ void VstgEditorScene::SelectObjectAt(
 	selectedLightType = EditorLightType::None;
 	selectedLightIndex = -1;
 	lightingSettingsSelected = false;
+	StageLoader::EditorObjectReference effectHit;
+	float effectDistanceSquared = 18.0f * 18.0f;
+	for (const auto& object : stageLoader->GetEditorObjects())
+	{
+		if (object.type != StageLoader::EditorObjectType::Effect || !object.transform) continue;
+		const Vector4 clip = Vector4::Transform(Vector4(object.transform->position.x,
+			object.transform->position.y, object.transform->position.z, 1.0f), viewProjection);
+		if (clip.w <= eps || clip.z < 0.0f || clip.z > clip.w) continue;
+		const float x = viewport->Pos.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth;
+		const float y = viewport->Pos.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight;
+		const float dx = x - mousePosition.x, dy = y - mousePosition.y;
+		const float distance = dx * dx + dy * dy;
+		if (distance >= effectDistanceSquared) continue;
+		effectDistanceSquared = distance;
+		effectHit = object;
+	}
+	if (effectHit.transform)
+	{
+		stageLoader->SelectEditorObject(effectHit.type, effectHit.index);
+		return;
+	}
 	PhysicsManager::PhysicsRaycastHit hit;
 	bool selected =
 		PhysicsManager::Instance().Raycast(nearPoint, farPoint - nearPoint, 10000.0f, hit) &&
@@ -1339,12 +1467,13 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 	}
 	const bool recoveredMissingModels = ResolveMissingModels();
 	data = std::move(loaded);
-	path = ResourcePath::Path(ResourcePath::Stage(ResourcePath::Text(stagePath)));
+	path = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(stagePath), ResourceManager::ResourceType::Stage));
 	recentStagePath = path;
 	SaveEditorSettings();
 	cleanStateHash = data.BuildEditorStateHash(
 		*terrain, *navMesh, *stageLoader, currentStage->GetLightManager());
 	dirty = recoveredMissingModels;
+	terrain->PrepareRenderResources();
 	return true;
 }
 

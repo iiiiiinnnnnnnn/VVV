@@ -2,7 +2,7 @@
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
 {
-	threatenTimer = std::max(threatenTimer, duration);
+	threatenTimer.Extend(duration);
 	threatenDuration = std::max(threatenDuration, duration);
 	threatenPower = std::max(threatenPower, power);
 	threatenAttackRate = std::clamp(attackRate, 0.01f, 0.95f);
@@ -12,7 +12,7 @@ void PostProcessController::RequestThreaten(float duration, float power, float a
 
 void PostProcessController::RequestDamagedVignette(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
 {
-	damagedVigTimer = std::max(damagedVigTimer, duration);
+	damagedVigTimer.Extend(duration);
 	damagedVigDuration = std::max(damagedVigDuration, duration);
 	damagedVigPower = std::max(damagedVigPower, power);
 	damagedVigAttackRate = std::clamp(attackRate, 0.01f, 0.95f);
@@ -33,21 +33,21 @@ void PostProcessController::SetPoisonVignette(bool enabled, Easing::Type easing,
 
 void PostProcessController::RequestJustDodge(float duration, float power)
 {
-	justDodgeTimer = std::max(justDodgeTimer, duration);
+	justDodgeTimer.Extend(duration);
 	justDodgeDuration = std::max(justDodgeDuration, duration);
 	justDodgePower = std::max(justDodgePower, power);
 }
 
 void PostProcessController::RequestSkillStart(float duration, float power)
 {
-	skillStartTimer = std::max(skillStartTimer, duration);
+	skillStartTimer.Extend(duration);
 	skillStartDuration = std::max(skillStartDuration, duration);
 	skillStartPower = std::max(skillStartPower, power);
 }
 
 void PostProcessController::RequestSkillHit(float duration, float power)
 {
-	skillHitTimer = std::max(skillHitTimer, duration);
+	skillHitTimer.Extend(duration);
 	skillHitDuration = std::max(skillHitDuration, duration);
 	skillHitPower = std::max(skillHitPower, power);
 }
@@ -65,34 +65,34 @@ void PostProcessController::Update()
 			(target - poisonVignetteStartIntensity) * blend;
 	}
 
-	const auto updatePulse = [dt](float& timer, float& duration, float& power)
+	const auto updatePulse = [dt](Game::Timer& timer, float& duration, float& power)
 	{
-		if (timer <= 0.0f) return;
-		timer = std::max(timer - dt, 0.0f);
-		if (timer <= 0.0f)
+		if (timer.GetRemaining() <= 0.0f) return;
+		timer.Update(dt);
+		if (timer.GetRemaining() <= 0.0f)
 		{
 			duration = 0.0f;
 			power = 0.0f;
 		}
 	};
 
-	if (threatenTimer > 0.0f)
+	if (threatenTimer.GetRemaining() > 0.0f)
 	{
-		threatenTimer -= dt;
-		if (threatenTimer <= 0.0f)
+		threatenTimer.Update(dt);
+		if (threatenTimer.GetRemaining() <= 0.0f)
 		{
-			threatenTimer = 0.0f;
+			threatenTimer.Stop();
 			threatenDuration = 0.0f;
 			threatenPower = 0.0f;
 		}
 	}
 
-	if (damagedVigTimer > 0.0f)
+	if (damagedVigTimer.GetRemaining() > 0.0f)
 	{
-		damagedVigTimer -= dt;
-		if (damagedVigTimer <= 0.0f)
+		damagedVigTimer.Update(dt);
+		if (damagedVigTimer.GetRemaining() <= 0.0f)
 		{
-			damagedVigTimer = 0.0f;
+			damagedVigTimer.Stop();
 			damagedVigDuration = 0.0f;
 			damagedVigPower = 0.0f;
 		}
@@ -169,7 +169,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	}
 
 	const float threaten = GetIntensity(
-		threatenTimer,
+		threatenTimer.GetRemaining(),
 		threatenDuration,
 		threatenPower,
 		threatenAttackRate,
@@ -181,7 +181,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	}
 
 	const float damagedVig = GetIntensity(
-		damagedVigTimer,
+		damagedVigTimer.GetRemaining(),
 		damagedVigDuration,
 		damagedVigPower,
 		damagedVigAttackRate,
@@ -195,7 +195,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	if (poisonVignetteIntensity > 0.001f)
 		postProcess.AddRuntimeVignette(poisonVignetteIntensity, postProcess.GetUnderwaterColor());
 
-	const float justDodge = GetIntensity(justDodgeTimer, justDodgeDuration,
+	const float justDodge = GetIntensity(justDodgeTimer.GetRemaining(), justDodgeDuration,
 		justDodgePower, 0.12f, Easing::Type::OutQuad, Easing::Type::OutCubic);
 	if (justDodge > 0.001f)
 	{
@@ -206,7 +206,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 			justDodge * 0.16f, {0.72f, 1.04f, 1.20f, 1.0f});
 	}
 
-	const float skillStart = GetIntensity(skillStartTimer, skillStartDuration,
+	const float skillStart = GetIntensity(skillStartTimer.GetRemaining(), skillStartDuration,
 		skillStartPower, 0.10f, Easing::Type::OutQuad, Easing::Type::OutCubic);
 	if (skillStart > 0.001f)
 	{
@@ -224,7 +224,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 			invincibilityAuraIntensity * 0.26f, {0.08f, 0.5f, 1.0f, 1.0f});
 	}
 
-	const float skillHit = GetIntensity(skillHitTimer, skillHitDuration,
+	const float skillHit = GetIntensity(skillHitTimer.GetRemaining(), skillHitDuration,
 		skillHitPower, 0.08f, Easing::Type::OutQuad, Easing::Type::OutCubic);
 	if (skillHit > 0.001f)
 	{

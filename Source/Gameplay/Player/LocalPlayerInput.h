@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <array>
 #include <string>
 #include <vector>
@@ -61,6 +63,6 @@ private:
     std::array<bool, 256> keys{};
     std::array<bool, 256> previousKeys{};
     unsigned int bufferedDirections = 0;
-    float bufferTimer = 0.0f;
+    Game::Timer bufferTimer{0.0f};
     bool sprintLatched = false;
 };

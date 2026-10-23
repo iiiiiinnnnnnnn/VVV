@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <imgui.h>
@@ -10,17 +12,17 @@ namespace CameraMoveSpeedOverlay
 constexpr float Duration = 1.0f;
 constexpr float FadeDuration = 0.2f;
 
-inline void Show(float& timer)
+inline void Show(Game::Timer& timer)
 {
-	timer = Duration;
+	timer.Reset(Duration);
 }
 
-inline void Draw(float moveSpeed, float& timer)
+inline void Draw(float moveSpeed, Game::Timer& timer)
 {
-	if (timer <= 0.0f) return;
+	if (timer.GetRemaining() <= 0.0f) return;
 
-	timer = std::max(timer - Game::Time::unscaledDeltaTime, 0.0f);
-	const float alpha = std::min(timer / FadeDuration, 1.0f);
+	timer.Update(Game::Time::unscaledDeltaTime);
+	const float alpha = std::min(timer.GetRemaining() / FadeDuration, 1.0f);
 
 	char text[64];
 	sprintf_s(text, "%.1f", moveSpeed);

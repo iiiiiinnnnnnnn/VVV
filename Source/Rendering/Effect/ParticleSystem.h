@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Application/Time/Timer.h"
+
 #include "Core/Foundation/Common.h"
 
 #include <vector>
@@ -29,12 +31,10 @@ private:
 		float vx, vy, vz;
 		float ax, ay, az;
 		float alpha;
-		float initialTimer;
 		float fadeInDuration;
 		float fadeOutDuration;
 		Color color;
-		float timer;
-		float animeTimer;
+		Game::Timer lifetime{0.0f};
 		float type;
 
 		bool anime;

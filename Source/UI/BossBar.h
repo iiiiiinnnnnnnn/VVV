@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <memory>
 
 #include "UI/GaugeHUD.h"
@@ -34,10 +36,10 @@ private:
 	bool showing = false;
 	bool visibilityAnimating = false;
 	bool filling = false;
-	float visibilityTime = 0.0f;
+	Game::Timer visibilityTime{0.0f};
 	float visibilityStart = 1.0f;
-	float fillTime = 0.0f;
-	float phaseColorElapsed = 0.0f;
+	Game::Timer fillTime{0.0f};
+	Game::Timer phaseColorElapsed{3.0f};
 	float showDuration = 0.45f;
 	float hideDuration = 0.55f;
 	float fillDuration = 0.9f;

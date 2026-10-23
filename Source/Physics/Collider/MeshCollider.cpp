@@ -150,6 +150,13 @@ void MeshCollider::SetCollisionEnabled(bool enabled)
         DetachShapes();
 }
 
+void MeshCollider::SetSimulationIgnoredLayers(PxU32 mask)
+{
+    if (simulationIgnoredLayers == mask) return;
+    simulationIgnoredLayers = mask;
+    if (collisionEnabled) UpdateShape();
+}
+
 void MeshCollider::SetTrigger(bool trigger)
 {
 	if (isTrigger == trigger) return;
@@ -278,10 +285,17 @@ void MeshCollider::UpdateShape()
 		shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, isTrigger);
 
         PhysicsManager::SetLayerToShape(shape, layerId);
+        PxFilterData filter = shape->getSimulationFilterData();
+        filter.word2 = simulationIgnoredLayers;
+        shape->setSimulationFilterData(filter);
         rigidActor->attachShape(*shape);
 
         shape->release();
     }
+
+    if (auto* dynamic = rigidActor->is<PxRigidDynamic>())
+        if (useConvex && !isTrigger && dynamic->getNbShapes())
+            PxRigidBodyExt::updateMassAndInertia(*dynamic, 1.0f);
 }
 
 void MeshCollider::DrawGUI()

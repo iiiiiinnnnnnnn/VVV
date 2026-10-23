@@ -13,6 +13,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
+#include "Resource/ResourceManager.h"
 
 // テクスチャ読み込み
 HRESULT Texture::LoadTexture(
@@ -34,7 +35,9 @@ HRESULT Texture::LoadTexture(
 	thread_local const ComScope com;
 	if (FAILED(com.result) && com.result != RPC_E_CHANGED_MODE) return com.result;
 	// 拡張子を取得
-	std::filesystem::path filepath(filename);
+	const auto& resources = ResourceManager::Instance();
+	const auto resolved = resources.ResolveResourcePath(filename, ResourceManager::ResourceType::Texture);
+	std::filesystem::path filepath(resolved);
 	std::string extension = filepath.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
 
@@ -106,29 +109,14 @@ HRESULT Texture::LoadTexture(
 Texture::Texture(const char* filename)
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
-
-	if (std::filesystem::exists(filename))
+	HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
+	if (FAILED(hr))
 	{
-		// 拡張子を取得
-		std::filesystem::path filepath(filename);
-		std::string extension = filepath.extension().string();
-		std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
-
-		// ワイド文字に変換
-		std::wstring wfilename = filepath.wstring();
-
-		// フォーマット毎に画像読み込み処理
-		HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
-		if (FAILED(hr))
-		{
-			std::ostringstream output;
-			output << "[Texture] Load failed: " << filename
-				<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")";
-			throw std::runtime_error(output.str());
-		}
+		std::ostringstream output;
+		output << "[Texture] Load failed: " << filename
+			<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")";
+		throw std::runtime_error(output.str());
 	}
-	else
-		throw std::runtime_error(std::string("Texture not found: ") + filename);
 }
 
 Texture::Texture(const Color& color)
@@ -203,7 +191,9 @@ HRESULT MipmapTexture::LoadTexture(
 		return E_INVALIDARG;
 	}
 
-	const std::filesystem::path sourcePath = std::filesystem::path(filename).lexically_normal();
+	const auto& resources = ResourceManager::Instance();
+	const std::filesystem::path sourcePath = resources.ResolveResourcePath(
+		filename, ResourceManager::ResourceType::Texture);
 	const std::wstring extension = ToLowerWString(sourcePath.extension().wstring());
 
 	std::filesystem::path loadPath = sourcePath;

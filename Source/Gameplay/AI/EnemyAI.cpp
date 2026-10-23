@@ -283,12 +283,11 @@ float EnemyAI::UpdateTarget(
 
 void EnemyAI::UpdateTurnSensors(bool hasTarget)
 {
-	float turnAngle = navMeshAgent ? navMeshAgent->GetTurnAngle() : 0.0f;
+	const bool hasDestination = navMeshAgent && navMeshAgent->HasDestination();
+	float turnAngle = hasDestination ? navMeshAgent->GetTurnAngle() : 0.0f;
 	Vector3 turnDirection = Vector3::Zero;
-	if (fabsf(turnAngle) <= eps && navMeshAgent && navMeshAgent->HasDestination())
+	if (fabsf(turnAngle) <= eps && hasDestination)
 		turnDirection = navMeshAgent->GetDestination() - owner->GetTransform()->position;
-	if (fabsf(turnAngle) <= eps && turnDirection.LengthSquared() <= eps && target)
-		turnDirection = target->transform.position - owner->GetTransform()->position;
 	turnDirection.y = 0.0f;
 	if (fabsf(turnAngle) <= eps && turnDirection.LengthSquared() > eps)
 	{
@@ -300,8 +299,8 @@ void EnemyAI::UpdateTurnSensors(bool hasTarget)
 	const float configuredThreshold = GetFloat("TurnThreshold", 15.0f);
 	const float thresholdDegrees = std::max(configuredThreshold, 0.0f);
 	const float turnThreshold = RAD(thresholdDegrees);
-	SetBool("HasDestination", navMeshAgent && navMeshAgent->HasDestination());
-	SetBool("IsTurning", fabsf(turnAngle) > turnThreshold);
+	SetBool("HasDestination", hasDestination);
+	SetBool("IsTurning", hasDestination && fabsf(turnAngle) > turnThreshold);
 	Vector3 toTarget = hasTarget && target
 		? target->transform.position - owner->GetTransform()->position : Vector3::Zero;
 	toTarget.y = 0.0f;

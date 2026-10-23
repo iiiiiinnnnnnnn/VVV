@@ -2,6 +2,7 @@
 #include <deque>
 #include <memory>
 #include <vector>
+#include <ranges>
 
 #include "Core/Foundation/Common.h"
 #include "Gameplay/Lighting/Light.h"
@@ -18,17 +19,21 @@ public:
 
 	DirectionalLight& GetDirectionalLight()
 	{
-		return directionalLight;
+		for (auto& light : directionalLights)
+			if (!light.IsPendingDestroy()) return light;
+		return directionalLights.front();
 	}
 
 	const DirectionalLight& GetDirectionalLight() const
 	{
-		return directionalLight;
+		for (auto& light : directionalLights)
+			if (!light.IsPendingDestroy()) return light;
+		return directionalLights.front();
 	}
 
-	std::deque<PointLight>& GetPointLights()
+	auto GetPointLights()
 	{
-		return pointLights;
+		return std::ranges::subrange(pointLights.begin(), pointLights.end());
 	}
 
 	const std::deque<PointLight>& GetPointLights() const
@@ -36,9 +41,9 @@ public:
 		return pointLights;
 	}
 
-	std::deque<SpotLight>& GetSpotLights()
+	auto GetSpotLights()
 	{
-		return spotLights;
+		return std::ranges::subrange(spotLights.begin(), spotLights.end());
 	}
 
 	const std::deque<SpotLight>& GetSpotLights() const
@@ -46,9 +51,9 @@ public:
 		return spotLights;
 	}
 
-	std::deque<AreaLight>& GetAreaLights()
+	auto GetAreaLights()
 	{
-		return areaLights;
+		return std::ranges::subrange(areaLights.begin(), areaLights.end());
 	}
 
 	const std::deque<AreaLight>& GetAreaLights() const
@@ -69,6 +74,7 @@ public:
 	void SetDirectionalLight(
 		const DirectionalLight& light)
 	{
+		auto& directionalLight = GetDirectionalLight();
 		directionalLight.SetName(
 			light.GetName());
 
@@ -87,29 +93,17 @@ public:
 		directionalLight.transform.Update();
 	}
 
-	PointLight& AddPointLight()
-	{
-		pointLights.emplace_back();
-		return pointLights.back();
-	}
-
-	void RegisterAttachedPointLight(const std::shared_ptr<PointLight>& light)
-	{
-		if (light) attachedPointLights.emplace_back(light);
-	}
+	int GetLightCount() const;
+	bool CanAddLight() const { return GetLightCount() < CbLightData::MaxLights; }
+	auto GetDirectionalLights() { return std::ranges::subrange(directionalLights.begin(), directionalLights.end()); }
+	const std::deque<DirectionalLight>& GetDirectionalLights() const { return directionalLights; }
+	DirectionalLight* AddDirectionalLight();
+	PointLight* AddPointLight();
+	SpotLight* AddSpotLight();
+	AreaLight* AddAreaLight();
+	bool RegisterAttachedPointLight(const std::shared_ptr<PointLight>& light);
 	void ClearAttachedPointLights() { attachedPointLights.clear(); }
-
-	SpotLight& AddSpotLight()
-	{
-		spotLights.emplace_back();
-		return spotLights.back();
-	}
-
-	AreaLight& AddAreaLight()
-	{
-		areaLights.emplace_back();
-		return areaLights.back();
-	}
+	void ClearLights();
 
 	void SetAmbientColor(const Color& color)
 	{
@@ -119,7 +113,7 @@ public:
 	CbLightData ConvertToCb() const;
 
 private:
-	DirectionalLight directionalLight;
+	std::deque<DirectionalLight> directionalLights{1};
 
 	std::deque<PointLight> pointLights;
 	std::vector<std::weak_ptr<PointLight>> attachedPointLights;

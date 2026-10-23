@@ -13,6 +13,7 @@ public:
 	ActorManager() { active = this; }
 	~ActorManager()
 	{
+		Clear();
 		if (active == this)
 			active = nullptr;
 	}
@@ -21,8 +22,9 @@ public:
 
 	void Register(std::shared_ptr<Actor> actor)
 	{
-		if (!actor) return;
+		if (!actor || actor->IsPendingDestroy()) return;
 
+		actor->Init();
 		actor->Awake();
 		actor->Start();
 		pendingActors.emplace_back(actor);
@@ -30,6 +32,10 @@ public:
 
 	void Clear()
 	{
+		for (const auto& actor : data)
+			if (actor) actor->Uninit();
+		for (const auto& actor : pendingActors)
+			if (actor) actor->Uninit();
 		data.clear();
 		pendingActors.clear();
 		selectedActor = nullptr;
@@ -91,6 +97,7 @@ public:
 			{
 				const bool remove = !actor || actor->IsPendingDestroy();
 				if (remove && actor.get() == selectedActor) selectedActor = nullptr;
+				if (remove && actor) actor->Uninit();
 				return remove;
 			}),
 			data.end());

@@ -26,25 +26,25 @@ public:
 	void SetPerspectiveFov(float fovY, float aspect, float nearZ, float farZ);
 
 	// ビュー行列取得
-	const Matrix& GetView() const { return view; }
+	const Matrix& GetView() const { SyncTransform(); return view; }
 
 	// プロジェクション行列取得
 	const Matrix& GetProjection() const { return projection; }
 
 	// 視点取得
-	const Vector3& GetEye() const { return eye; }
+	const Vector3& GetEye() const { SyncTransform(); return eye; }
 
 	// 注視点取得
-	const Vector3& GetFocus() const { return focus; }
+	const Vector3& GetFocus() const { SyncTransform(); return focus; }
 
 	// 上方向取得
-	const Vector3& GetUp() const { return up; }
+	const Vector3& GetUp() const { SyncTransform(); return up; }
 
 	// 前方向取得
-	const Vector3& GetFront() const { return front; }
+	const Vector3& GetFront() const { SyncTransform(); return front; }
 
 	// 右方向取得
-	const Vector3& GetRight() const { return right; }
+	const Vector3& GetRight() const { SyncTransform(); return right; }
 
 	int GetPriority() const { return priority; }
 	void SetPriority(int value)
@@ -54,15 +54,19 @@ public:
 	}
 
 private:
-	Matrix		view;
+	void SyncTransform() const;
+	mutable Vector3 transformPosition;
+	mutable Quaternion transformRotation;
+	float focusDistance = 5.0f;
+	mutable Matrix view;
 	Matrix		projection;
 
-	Vector3		eye;
-	Vector3		focus;
+	mutable Vector3 eye;
+	mutable Vector3 focus;
 
-	Vector3		up;
-	Vector3		front;
-	Vector3		right;
+	mutable Vector3 up;
+	mutable Vector3 front;
+	mutable Vector3 right;
 	int priority = 0;
 	bool priorityChanged = false;
 	int normalizedPriority = 0;

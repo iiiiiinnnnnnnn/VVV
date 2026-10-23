@@ -13,6 +13,7 @@
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Deer.h"
+#include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Component/CharacterMotorComponent.h"
 #include "Gameplay/Component/LockOnComponent.h"
 #include "Physics/Core/PhysicsManager.h"
@@ -50,7 +51,9 @@ void RemapQuickshiftWindTracks(VMDLModel& model)
 
 // 生成と初期設定
 
-Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
+Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f) {}
+
+void Player::OnInit()
 {
 	InitializeModel();
 	InitializeMovement();
@@ -75,7 +78,27 @@ Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f)
 	attackHitEffect->SetBillboard(true);
 }
 
-Player::~Player() = default;
+Player::~Player()
+{
+	Uninit();
+}
+
+void Player::OnUninit()
+{
+	attackHitEffect.reset();
+	model.reset();
+	justDodgeSkillTarget.reset();
+	anim = nullptr;
+	vmdl = nullptr;
+	cc = nullptr;
+	motor = nullptr;
+	lockOnComponent = nullptr;
+	trail = nullptr;
+	afterimage = nullptr;
+	footSound = nullptr;
+	cameraController = nullptr;
+	justDodgeAttacker = nullptr;
+}
 
 void Player::InitializeModel()
 {
@@ -83,7 +106,7 @@ void Player::InitializeModel()
 	vmdl = AddComponent<VMDL>("Player/CombatGirls_Sword_Shield");
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
-	vmdl->SetModelYawOffset(RAD(180.0f));
+	vmdl->SetModelYawOffset(RAD(180.0f)); // 反転
 	RemapQuickshiftWindTracks(*model);
 
 	// 足音切り替え用
@@ -92,7 +115,7 @@ void Player::InitializeModel()
 	// 状態遷移とゲーム固有コールバックはAnimator側で設定する
 	anim = AddComponent<Animator>(model);
 	vmdl->BuildFootIK(anim);
-	anim->Load("Player.animator");
+	anim->Load("Player");
 }
 
 void Player::InitializeMovement()
@@ -199,7 +222,7 @@ void Player::OnDrawGUI()
 	Entity::OnDrawGUI();
 	ImGui::Text((const char*)u8"回避無敵時間: %s", dodgeInvincible ? "Yes" : "No");
 	ImGui::Text((const char*)u8"ジャスト回避: %s", justDodgeTriggered ? "Yes" : "No");
-	ImGui::Text((const char*)u8"回避待機時間: %.2f", dodgeCooldownTimer);
+	ImGui::Text((const char*)u8"回避待機時間: %.2f", dodgeCooldownTimer.GetRemaining());
 }
 
 void Player::UpdateAttackContacts()
@@ -263,7 +286,7 @@ void Player::UpdateFootSound()
 
 void Player::UpdateBattleStatus()
 {
-	inBattleTimer -= Game::Time::deltaTime;
+	inBattleTimer.Update(Game::Time::deltaTime);
 }
 
 void Player::UpdateWaterDamage()
@@ -286,13 +309,12 @@ void Player::UpdateWaterDamage()
 		if (motor) motor->SetExternalVelocity(knockBackVelocity);
 		return;
 	}
-	const float remainingCooldown = dodgeCooldownTimer - Game::Time::unscaledDeltaTime;
-	dodgeCooldownTimer = std::max(remainingCooldown, 0.0f);
+	dodgeCooldownTimer.Update(Game::Time::unscaledDeltaTime);
 
-	// damageHeightCoolDownでダメージ食らわせる
+	// 水中にいる間、一定間隔でダメージを与える。
 	if (isInWater)
 	{
-		if (damageLowerHeightTimer > damageLowerHeightCoolDown)
+		if (damageLowerHeightTimer.GetElapsed() > damageLowerHeightTimer.GetDuration())
 		{
 			DamageData dmgData;
 			dmgData.damage = damageWaterAmount;
@@ -303,13 +325,13 @@ void Player::UpdateWaterDamage()
 
 			vmdl->GetRenderer()->PlaySoundSource("WATER_DAMAGE");
 
-			damageLowerHeightTimer = 0;
+			damageLowerHeightTimer.Reset();
 		}
-		damageLowerHeightTimer += Game::Time::deltaTime; // 増
+		damageLowerHeightTimer.Advance();
 	}
 	else
 	{
-		damageLowerHeightTimer = 0.0f;
+		damageLowerHeightTimer.Reset();
 	}
 }
 
@@ -319,7 +341,7 @@ void Player::UpdateMovement()
 	auto* playerInput = GetPlayerInput();
 	if (!playerInput)
 	{
-		dodgeInputBufferTimer = 0.0f;
+		dodgeInputBufferTimer.Stop();
 		sprinting = false;
 		return;
 	}
@@ -359,18 +381,18 @@ void Player::UpdateMovement()
 			quickShiftDirection = GetCameraRelativeDirection(directionX, directionZ);
 	}
 	// 回避終了直前の押下を短時間保持し、操作可能になった最初のフレームで使う。
-	dodgeInputBufferTimer = std::max(dodgeInputBufferTimer - Game::Time::unscaledDeltaTime, 0.0f);
+	dodgeInputBufferTimer.Update(Game::Time::unscaledDeltaTime);
 	if (!playerInput->IsActive() || IsDead() || state.frozen || justDodgeSkillActive)
-		dodgeInputBufferTimer = 0.0f;
+		dodgeInputBufferTimer.Stop();
 	else if (quickStepStarted && quickShiftDirection.LengthSquared() > eps * eps)
 	{
 		bufferedDodgeDirection = quickShiftDirection;
-		dodgeInputBufferTimer = dodgeInputBufferDuration;
+		dodgeInputBufferTimer.Reset(dodgeInputBufferDuration);
 	}
 	UpdateMoveDirection(input, inputLength, state);
 	UpdateMovementAnimation(input, inputLength, state);
 	HandleAttackInput(input, state);
-	if (dodgeInputBufferTimer > 0.0f) QuickShift(bufferedDodgeDirection);
+	if (dodgeInputBufferTimer.GetRemaining() > 0.0f) QuickShift(bufferedDodgeDirection);
 }
 
 Player::ActionState Player::GetActionState() const
@@ -391,7 +413,7 @@ Player::ActionState Player::GetActionState() const
 void Player::UpdateDodgeState(const ActionState& state)
 {
 	// 歩行へ戻った後まで、固定クールタイムだけが残らないようにする。
-	if (dodgeWasActive && !state.dodging) dodgeCooldownTimer = 0.0f;
+	if (dodgeWasActive && !state.dodging) dodgeCooldownTimer.Stop();
 	dodgeWasActive = state.dodging;
 
 	// ジャスト回避から派生したスキル中は、残像と同じく無敵もアニメーション終了まで延長する
@@ -534,11 +556,11 @@ void Player::StartJustDodgeSkill(Actor* target)
 	justDodgeTriggered = false;
 	justDodgeSkillTarget = target->weak_from_this();
 	justDodgeSkillActive = true;
-	dodgeInputBufferTimer = 0.0f;
+	dodgeInputBufferTimer.Stop();
 	dodgeInvincible = true;
 	crouching = false;
 	sprinting = false;
-	dodgeCooldownTimer = dodgeCooldownDuration;
+	dodgeCooldownTimer.Reset(dodgeCooldownDuration);
 	lockOnComponent->LockOn(target);
 	lockOnComponent->SetRotationPaused(true);
 	anim->SetFloat("Speed", 0.0f);
@@ -587,9 +609,30 @@ void Player::ActivateJustDodgeSkill()
 
 void Player::TakeDamage(const DamageData& damageData)
 {
+	// Aracoreが全員倒されていれば、クリア後のダメージを無効にする。
+	if (const auto* manager = ActorManager::GetActive())
+	{
+		bool bossExists = false;
+		bool allBossesDead = true;
+		for (auto* actor : manager->GetActors())
+		{
+			const auto* boss = dynamic_cast<const Aracore*>(actor);
+			if (!boss || !boss->IsActive()) continue;
+			bossExists = true;
+			if (!boss->IsDead())
+			{
+				allBossesDead = false;
+				break;
+			}
+		}
+		if (bossExists && allBossesDead) return;
+	}
+
 	Actor* attacker = damageData.attackerCollider
 		? dynamic_cast<Actor*>(damageData.attackerCollider->GetOwner())
 		: nullptr;
+	const auto* attackerEntity = dynamic_cast<const Entity*>(attacker);
+	if (attackerEntity && attackerEntity->IsDead()) return;
 	if (damageData.attackerCollider && damageData.attackerCollider->GetLayerId() == Layers::Get("EnemyAtk") &&
 		!IsEnemyAttackActive(attacker, damageData.attackerCollider)) return;
 	if (dodgeInvincible) // 回避中
@@ -621,7 +664,7 @@ bool Player::IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* col
 void Player::OnDamaged(const DamageData& damageData)
 {
 	justDodgeSkillTarget.reset();
-	healthRecoveryTimer = 0.0f;
+	healthRecoveryTimer.Reset();
 	CameraEffectController::Request(0.13f, 0.07f);
 	PostProcessController::Instance().RequestDamagedVignette(
 		0.7f, 0.6f, 0.17f, Easing::Type::InSine, Easing::Type::OutCubic);
@@ -644,7 +687,7 @@ void Player::OnDamaged(const DamageData& damageData)
 			anim->SetTrigger("Hit_L");
 		}
 
-		inBattleTimer = BattleTimerDuration;
+		inBattleTimer.Reset(BattleTimerDuration);
 	}
 	else
 	{
@@ -718,7 +761,7 @@ void Player::HandleAttackContact(
 		.hitNormal = hitNormal,
 	});
 
-	inBattleTimer = BattleTimerDuration;
+	inBattleTimer.Reset(BattleTimerDuration);
 
 	PlayAttackHitEffect(hitPosition);
 	if (skillAttack)
@@ -799,7 +842,7 @@ void Player::QuickShift(const Vector3& direction, bool force)
 	if (!anim || IsDead()) return;
 	if (!force)
 	{
-		if (dodgeCooldownTimer > 0.0f || justDodgeSkillActive) return;
+		if (dodgeCooldownTimer.GetRemaining() > 0.0f || justDodgeSkillActive) return;
 		const ActionState state = GetActionState();
 		if (state.frozen || state.dodging) return;
 	}
@@ -809,7 +852,7 @@ void Player::QuickShift(const Vector3& direction, bool force)
 	if (dodgeDirection.LengthSquared() <= eps * eps) return;
 	dodgeDirection.Normalize();
 
-	dodgeInputBufferTimer = 0.0f;
+	dodgeInputBufferTimer.Stop();
 
 	// 向きを判断
 	const float localRight = dodgeDirection.Dot(transform.right);
@@ -818,7 +861,7 @@ void Player::QuickShift(const Vector3& direction, bool force)
 	if (fabsf(localForward) >= fabsf(localRight)) trigger = localForward >= 0.0f ? "QF" : "QB";
 	else trigger = localRight >= 0.0f ? "QR" : "QL";
 
-	dodgeCooldownTimer = dodgeCooldownDuration;
+	dodgeCooldownTimer.Reset(dodgeCooldownDuration);
 	dodgeInvincible = false;
 	justDodgeWindowActive = false;
 	justDodgeTriggered = false;
@@ -838,43 +881,27 @@ void Player::QuickShift(const Vector3& direction, bool force)
 
 void Player::UpdateHealth()
 {
-	if (!anim || IsDead() || life >= maxLife || IsInBattle())
+	if (IsDead() || life >= maxLife || IsInBattle())
 	{
-		healthRecoveryTimer = 0.0f;
+		healthRecoveryTimer.Reset();
 		return;
 	}
 
-	const std::string& currentState = anim->GetCurrentStateName();
-	const std::string& nextState = anim->GetNextStateName();
-	const bool currentIdle = currentState == "Idle" || currentState == "BattleIdle" || currentState == "CrouchIdle";
-	const bool nextIdle = nextState == "Idle" || nextState == "BattleIdle" || nextState == "CrouchIdle";
-	const bool stayingIdle = !anim->IsTransitioning() || nextState.empty() || nextIdle;
-	const bool actionActive = actionInputThisFrame || dodgeInvincible || justDodgeSkillActive;
-	const bool idle = currentIdle && stayingIdle && !actionActive;
-	if (!idle)
-	{
-		healthRecoveryTimer = 0.0f;
-		return;
-	}
-
-	healthRecoveryTimer += Game::Time::deltaTime;
-	while (healthRecoveryTimer >= healthRecoveryInterval && life < maxLife)
-	{
-		healthRecoveryTimer -= healthRecoveryInterval;
+	const auto recoveryCount = healthRecoveryTimer.TickCount();
+	for (std::size_t i = 0; i < recoveryCount && life < maxLife; ++i)
 		Heal(healthRecoveryAmount);
-	}
 }
 
 void Player::OnDead(const DamageData& damageData)
 {
-	dodgeInputBufferTimer = 0.0f;
+	dodgeInputBufferTimer.Stop();
 	justDodgeSkillTarget.reset();
 	justDodgeWindowActive = false;
 	justDodgeAttacker = nullptr;
 	deathSequenceActive = true;
 	deathReloadRequested = false;
-	deathSequenceTimer = 0.0f;
-	healthRecoveryTimer = 0.0f;
+	deathSequenceTimer.Reset();
+	healthRecoveryTimer.Reset();
 	sprinting = false;
 	if (anim) anim->SetBool("IsDead", true);
 	lockOnComponent->ClearTarget();
@@ -889,9 +916,9 @@ void Player::OnHeal(float amount)
 
 void Player::UpdateDeathSequence()
 {
-	deathSequenceTimer += Game::Time::unscaledDeltaTime;
+	deathSequenceTimer.Advance(Game::Time::unscaledDeltaTime);
 	const float progress = std::clamp(
-		deathSequenceTimer / deathVignetteDuration, 0.0f, 1.0f);
+		deathSequenceTimer.GetElapsed() / deathVignetteDuration, 0.0f, 1.0f);
 	constexpr float maximumVignetteProgress = 0.3f;
 	PostProcessController::Instance().RequestDeathVignette(
 		Easing::Evaluate(progress, Easing::Type::InSine) * maximumVignetteProgress);

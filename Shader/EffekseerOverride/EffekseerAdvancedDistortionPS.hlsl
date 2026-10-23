@@ -1,0 +1,9 @@
+#define main EffekseerMain
+#include "Original/ad_model_distortion_ps.fx"
+#undef main
+#include "EffekseerFog.hlsli"
+
+float4 main(const PS_Input input) : SV_TARGET
+{
+	return ApplyEffectFog(EffekseerMain(input), input.PosVS);
+}

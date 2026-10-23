@@ -1,5 +1,6 @@
 ﻿#include "UI/Widget.h"
 #include "IconsFontAwesome5.h"
+#include <cmath>
 
 void Widget::Update()
 {
@@ -42,4 +43,18 @@ void Widget::DrawGUI()
     ImGui::PopID();
 
     ImGui::Separator();
+}
+
+bool Widget::ContainsPoint(const Vector2& point) const
+{
+	if (!IsActive() || IsPendingDestroy() || rect.size.x <= 0 || rect.size.y <= 0) return false;
+	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
+	const Vector2 center = topLeft + rect.size * 0.5f;
+	const Vector2 offset = point - center;
+	// SpriteRendererと同じく、矩形の中心を回転の原点にする。
+	const float angle = DirectX::XMConvertToRadians(rect.angle);
+	const float cosine = std::cos(angle);
+	const float sine = std::sin(angle);
+	const Vector2 local(offset.x * cosine + offset.y * sine, -offset.x * sine + offset.y * cosine);
+	return std::abs(local.x) <= rect.size.x * 0.5f && std::abs(local.y) <= rect.size.y * 0.5f;
 }

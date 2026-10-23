@@ -120,6 +120,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.6299999952316284,
                     "transitions": [
                         {
@@ -209,6 +211,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "walk",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.5,
                     "transitions": [
                         {
@@ -298,6 +302,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "run",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.699999988079071,
                     "transitions": [
                         {
@@ -392,6 +398,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "attack",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.5,
                     "transitions": [
                         {
@@ -466,6 +474,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "damage",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.5600000023841858,
                     "transitions": [
                         {
@@ -492,6 +502,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Dead",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.5400000214576721,
                     "transitions": [
                         {
@@ -531,6 +543,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Threat",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.5,
                     "transitions": [
                         {
@@ -557,6 +571,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Jump",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -583,6 +599,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "turn_left",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.800000011920929,
                     "transitions": [
                         {
@@ -673,6 +691,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "turn_right",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.800000011920929,
                     "transitions": [
                         {
@@ -760,29 +780,29 @@
     ],
     "parameters": [
         {
-            "name": "turnLeft",
-            "type": "bool",
-            "value": false
-        },
-        {
             "name": "Dead",
             "type": "bool",
             "value": false
         },
         {
-            "name": "turnRight",
+            "name": "turnLeft",
             "type": "bool",
             "value": false
         },
         {
             "name": "speed",
             "type": "float",
-            "value": 1.399999976158142
+            "value": 0.0
+        },
+        {
+            "name": "turnRight",
+            "type": "bool",
+            "value": false
         }
     ],
     "triggers": [
-        "Attack",
         "Jump",
+        "Attack",
         "Damage",
         "Threat"
     ]

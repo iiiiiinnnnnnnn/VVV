@@ -161,6 +161,12 @@
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
+    <ClInclude Include="Source\Gameplay\Player\DummyPlayer.h">
+      <Filter>Gameplay\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Actor\RigidRock.h">
+      <Filter>Gameplay\Actor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -184,6 +190,9 @@
     <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
+    <ClCompile Include="Source\Gameplay\Camera\TitleCamera.cpp">
+      <Filter>Gameplay\Camera</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -283,7 +292,22 @@
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\TitleHUD.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\TitleLogo.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\PressAnyButton.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\UI\Button.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\EventTrigger.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\UIEventSystem.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\DissolveWidget.cpp">
@@ -292,7 +316,7 @@
     <ClCompile Include="Source\UI\GaugeHUD.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\HUDWidget.cpp">
+    <ClCompile Include="Source\UI\WidgetGroup.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\PauseMenu.cpp">
@@ -356,9 +380,6 @@
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp">
@@ -523,9 +544,6 @@
     <ClInclude Include="Source\Gameplay\Actor\Deer.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h">
-      <Filter>Rendering\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\UI\BossBar.h">
       <Filter>UI</Filter>
     </ClInclude>
@@ -555,6 +573,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Gameplay\Camera\TitleCamera.h">
+      <Filter>Gameplay\Camera</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
@@ -657,7 +678,25 @@
     <ClInclude Include="Source\UI\SpriteWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\TitleHUD.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\TitleLogo.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\PressAnyButton.h">
+      <Filter>UI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\UI\Button.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\EventTrigger.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UILayout.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\UIEventSystem.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\DissolveWidget.h">
@@ -666,7 +705,7 @@
     <ClInclude Include="Source\UI\GaugeHUD.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\HUDWidget.h">
+    <ClInclude Include="Source\UI\WidgetGroup.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\PauseMenu.h">
@@ -741,9 +780,6 @@
     <ClInclude Include="Source\Gameplay\Scene\LoadingScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\TitleScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
@@ -814,6 +850,9 @@
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\Time\HighResolutionTimer.h">
+      <Filter>Application\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Application\Time\Timer.h">
       <Filter>Application\Time</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\Time\GameTime.h">
@@ -1139,6 +1178,12 @@
     <ClCompile Include="Source\Resource\VSTG.cpp">
       <Filter>VSTG</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Player\DummyPlayer.cpp">
+      <Filter>Gameplay\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Actor\RigidRock.cpp">
+      <Filter>Gameplay\Actor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="VMDL">
@@ -1147,5 +1192,146 @@
     <Filter Include="VSTG">
       <UniqueIdentifier>{2598fc7a-8b88-4524-aac4-925a911f6cfc}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedDistortionVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedLitVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedUnlitVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerDistortionVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerLitVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerUnlitVS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedDistortionPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedLitPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedUnlitPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerDistortionPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerLitPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerUnlitPS.hlsl">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </FxCompile>
+    <None Include="Shader\EffekseerOverride\EffekseerFog.hlsli">
+      <Filter>Shaders\Particle\EffekseerOverride</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_common_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_model_distortion_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_model_lit_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_model_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_model_unlit_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_common_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_distortion_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_lit_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_unlit_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\Distortion_Common_PS.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\FlipbookInterpolationUtils.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\FlipbookInterpolationUtils_PS.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\LICENSE">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\Linear_sRGB.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\model_distortion_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\model_lit_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\model_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\model_unlit_ps.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\README.md">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\SoftParticle_PS.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\sprite_distortion_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\sprite_lit_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\sprite_unlit_vs.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\TextureBlendingUtils_PS.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+    <None Include="Shader\EffekseerOverride\Original\UVDistortionUtils_PS.fx">
+      <Filter>Shaders\Particle\EffekseerOverride\Original</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders\Particle\EffekseerOverride">
+      <UniqueIdentifier>{1ba8872a-fbc0-4eb4-8ace-444b01bc96fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Particle\EffekseerOverride\Original">
+      <UniqueIdentifier>{0f085aa7-f58b-4f40-a4bf-a73d45f361ef}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Rendering\Effect\EffekseerOverride">
+      <UniqueIdentifier>{758fbc70-2c1c-4731-9cf1-0d8f2e7b1ded}</UniqueIdentifier>
+    </Filter>
+    <ClInclude Include="Source\Rendering\Effect\EffekseerOverride\Shader.h">
+      <Filter>Rendering\Effect\EffekseerOverride</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Effect\EffekseerOverride\GraphicsDevice.h">
+      <Filter>Rendering\Effect\EffekseerOverride</Filter>
+    </ClInclude>
+    <None Include="Source\Rendering\Effect\EffekseerOverride\LICENSE">
+      <Filter>Rendering\Effect\EffekseerOverride</Filter>
+    </None>
+    <None Include="Source\Rendering\Effect\EffekseerOverride\README.md">
+      <Filter>Rendering\Effect\EffekseerOverride</Filter>
+    </None>
   </ItemGroup>
 </Project>

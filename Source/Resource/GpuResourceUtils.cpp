@@ -1,10 +1,10 @@
-
 #include <filesystem>
 #include <wrl.h>
 #include <DirectXTex.h>
 #include <WICTextureLoader.h> 
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
+#include "Resource/ResourceManager.h"
 
 // 頂点シェーダー読み込み
 HRESULT GpuResourceUtils::LoadVertexShader(
@@ -109,7 +109,8 @@ HRESULT GpuResourceUtils::LoadTexture(
 	D3D11_TEXTURE2D_DESC* texture2dDesc)
 {
 	// 拡張子を取得
-	std::filesystem::path filepath(filename);
+	const auto& resources = ResourceManager::Instance();
+	std::filesystem::path filepath = resources.ResolveResourcePath(filename, ResourceManager::ResourceType::Texture);
 	std::string extension = filepath.extension().string();
 	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
 
@@ -332,7 +333,10 @@ HRESULT GpuResourceUtils::CreateVertexBuffer(
 
 std::vector<uint8_t> GpuResourceUtils::LoadBinaryFile(const char* filename)
 {
-	std::ifstream file(filename, std::ios::binary | std::ios::ate);
+	const auto& resources = ResourceManager::Instance();
+	const auto path = resources.ResolvePath(
+		resources.ResolveResourcePath(filename, ResourceManager::ResourceType::Shader));
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	_ASSERT_EXPR_A(file.is_open(), filename);
 
 	std::streamsize size = file.tellg();
@@ -375,8 +379,11 @@ HRESULT GpuResourceUtils::LoadImageFile(
 	DirectX::TexMetadata& metadata,
 	DirectX::ScratchImage& image)
 {
-	const std::wstring extension = ToLowerWString(filepath.extension().wstring());
-	const std::wstring filename = filepath.wstring();
+	const auto& resources = ResourceManager::Instance();
+	const std::filesystem::path resolved = resources.ResolveResourcePath(
+		filepath.generic_string(), ResourceManager::ResourceType::Texture);
+	const std::wstring extension = ToLowerWString(resolved.extension().wstring());
+	const std::wstring filename = resolved.wstring();
 
 	if (extension == L".dds")
 	{

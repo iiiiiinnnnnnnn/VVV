@@ -1,4 +1,6 @@
 #pragma once
+
+#include "Application/Time/Timer.h"
 #include <optional>
 #include <string>
 #include "Gameplay/Stage/Stage.h"
@@ -46,7 +48,7 @@ private:
     struct Cooldowns
     {
         float DamageCooldownDuration = 0.05f;
-        float damageCooldown = 0.0f;
+        Game::Timer damageCooldown{0.0f};
 
         void Update();
     } cooldowns;

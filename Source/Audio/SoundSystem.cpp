@@ -252,9 +252,9 @@ std::vector<std::string> SoundSystem::GetSoundPaths()
 		const auto extension = SoundPaths::Lower(ResourcePath::Text(iterator->path().extension()));
 		if (extension != ".wav" && extension != ".vsnd") continue;
 		auto relative = iterator->path().lexically_relative(root);
-		paths.push_back(ResourcePath::Short(ResourcePath::Text(relative), "Sound"));
+		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), "Sound"));
 		if (SoundPaths::Variant(relative) >= 0)
-			paths.push_back(ResourcePath::Short(ResourcePath::Text(SoundPaths::Group(relative)), "Sound"));
+			paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(SoundPaths::Group(relative)), "Sound"));
 	}
 	std::sort(paths.begin(), paths.end());
 	paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
@@ -383,12 +383,9 @@ void SoundSystem::ClearCache()
 // WAVのパスを解決してキャッシュに読み込む
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string& path)
 {
-	std::filesystem::path resolved = ResourceManager::Instance().ResolvePath(path);
-	if (!std::filesystem::exists(resolved))
-	{
-		const std::filesystem::path dataPath = std::filesystem::path("Resources") / path;
-		if (std::filesystem::exists(dataPath)) resolved = dataPath;
-	}
+	const auto& resources = ResourceManager::Instance();
+	const std::filesystem::path resolved = resources.ResolvePath(
+		resources.ResolveResourcePath(path, ResourceManager::ResourceType::Sound));
 	std::error_code error;
 	const auto writeTime = std::filesystem::last_write_time(resolved, error);
 	if (error)
@@ -424,7 +421,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::string& path, int variant)
 {
 	if (path.empty()) return nullptr;
-	const auto requested = ResourcePath::Path(ResourcePath::Sound(path));
+	const auto requested = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Sound));
 	const int pathVariant = SoundPaths::Variant(requested);
 	if (pathVariant >= 0) variant = pathVariant;
 
@@ -464,7 +461,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::st
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadCachedSound(
 	const std::string& path, int variant)
 {
-	std::filesystem::path cachePath = SoundPaths::Group(ResourcePath::Path(ResourcePath::Sound(path)));
+	std::filesystem::path cachePath = SoundPaths::Group(ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Sound)));
 	cachePath.replace_extension(VSound::Extension);
 	const std::string logicalPath = ResourcePath::Text(cachePath);
 	const std::filesystem::path resolved = ResourceManager::Instance().ResolvePath(logicalPath);

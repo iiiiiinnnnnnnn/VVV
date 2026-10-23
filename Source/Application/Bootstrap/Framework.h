@@ -9,7 +9,7 @@
 class Framework
 {
   public:
-	Framework(HWND hWnd);
+	Framework(HWND hWnd, const wchar_t* commandLine = L"");
 	~Framework();
 
   private:
@@ -23,5 +23,4 @@ class Framework
   private:
 	const HWND hWnd;
 	HighResolutionTimer timer;
-	bool showImGuiBindingMemory = false;
 };

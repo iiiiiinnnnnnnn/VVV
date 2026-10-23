@@ -29,7 +29,7 @@ void GaugeHUD::SetValue(float ratio)
 	if (damageTrailEnabled && value < targetValue)
 	{
 		damageTrailValue = std::max(damageTrailValue, displayedValue);
-		damageTrailTimer = damageTrailDelay;
+		damageTrailTimer.Reset(damageTrailDelay);
 		displayedValue = std::min(displayedValue, value);
 	}
 	targetValue = value;
@@ -40,7 +40,7 @@ void GaugeHUD::SetValueImmediate(float ratio)
 	SetValue(ratio);
 	displayedValue = targetValue;
 	damageTrailValue = targetValue;
-	damageTrailTimer = 0.0f;
+	damageTrailTimer.Stop();
 }
 
 void GaugeHUD::SetFillRect(const Vector2& position, const Vector2& size)
@@ -83,9 +83,9 @@ void GaugeHUD::OnUpdate()
 	const float dt = std::max(Game::Time::unscaledDeltaTime, 0.0f);
 	if (revealing)
 	{
-		revealElapsed += dt;
+		revealElapsed.Advance(dt);
 		const float progress = revealDuration > 0.0f
-			? std::clamp(revealElapsed / revealDuration, 0.0f, 1.0f) : 1.0f;
+			? std::clamp(revealElapsed.GetElapsed() / revealDuration, 0.0f, 1.0f) : 1.0f;
 		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
 		SetDissolveAmount(1.0f - smoothProgress);
 		revealing = progress < 1.0f;
@@ -95,8 +95,8 @@ void GaugeHUD::OnUpdate()
 	if (std::abs(displayedValue - targetValue) < 0.0005f) displayedValue = targetValue;
 	if (damageTrailEnabled)
 	{
-		const float trailDt = std::max(dt - damageTrailTimer, 0.0f);
-		damageTrailTimer = std::max(damageTrailTimer - dt, 0.0f);
+		const float trailDt = std::max(dt - damageTrailTimer.GetRemaining(), 0.0f);
+		damageTrailTimer.Update(dt);
 		damageTrailValue = std::max(displayedValue, damageTrailValue - damageTrailSpeed * trailDt);
 	}
 }

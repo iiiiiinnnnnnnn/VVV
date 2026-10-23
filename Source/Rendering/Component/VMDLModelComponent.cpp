@@ -35,8 +35,9 @@ Vector3 AttachmentPosition(const VMDLModel& model, int nodeIndex,
 }
 
 VMDLModelComponent::VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel> model,
-	ModelShaderId shaderId, VMatRenderParams renderParams)
-	: Component(owner), model(model), shaderId(shaderId), renderParams(std::move(renderParams))
+	ModelShaderId shaderId, VMatRenderParams renderParams, bool buildEmbeddedColliders)
+	: Component(owner), model(model), shaderId(shaderId), renderParams(std::move(renderParams)),
+	  buildEmbeddedColliders(buildEmbeddedColliders)
 {
 	// エラー用
 	dynamic_cast<Actor*>(owner);
@@ -61,7 +62,8 @@ void VMDLModelComponent::BuildAttachments()
 
 	const auto& data = model->GetVmdlExtensionData();
 	attachmentColliders.assign(data.colliders.size(), nullptr);
-	for (int colliderIndex = 0; colliderIndex < static_cast<int>(data.colliders.size());
+	for (int colliderIndex = 0;
+		buildEmbeddedColliders && colliderIndex < static_cast<int>(data.colliders.size());
 		++colliderIndex)
 	{
 		const auto& value = data.colliders[colliderIndex];
@@ -228,7 +230,7 @@ void VMDLModelComponent::SyncPointLights()
 	LightManager* lightManager = nullptr;
 	if (Scene* scene = SceneManager::Instance().GetCurrentScene())
 		if (Stage* stage = scene->GetCurrentStage()) lightManager = &stage->GetLightManager();
-	if (lightManager && lightManager != registeredPointLightManager)
+	if (lightManager)
 	{
 		for (const auto& light : attachmentPointLights)
 			lightManager->RegisterAttachedPointLight(light);

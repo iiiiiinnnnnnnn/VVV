@@ -27,6 +27,8 @@ class VstgEditorScene : public Scene
 	~VstgEditorScene() override;
 
   protected:
+	void OnInit() override;
+	void OnUninit() override;
 	void OnUpdate() override;
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
@@ -51,7 +53,7 @@ class VstgEditorScene : public Scene
 	void UpdateTitle();
 	void ErrorMessage(const std::string& message);
 
-	enum class EditorLightType { None, Point, Spot, Area };
+	enum class EditorLightType { None, Point, Spot, Area, Directional };
 	Light* GetSelectedLight();
 	void SelectLight(EditorLightType type, int index);
 	void DrawHierarchy();
@@ -109,6 +111,10 @@ class VstgEditorScene : public Scene
 	bool showLightDragPreview = false;
 	Vector3 lightDragPreviewPosition = Vector3::Zero;
 	Vector3 playerStartDragPreviewPosition = Vector3::Zero;
+
+	Vector3 effectPlacementPosition = Vector3::Zero;
+	std::string placementEffectName;
+	bool effectPopupPending = false;
 
 	// 編集状態
 	EditorLightType selectedLightType = EditorLightType::None;

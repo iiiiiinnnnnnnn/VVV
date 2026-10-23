@@ -7,10 +7,16 @@
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
+#include "Gameplay/Scene/TitleScene.h"
+#include "Gameplay/Scene/VmdlEditorScene.h"
+#include "Gameplay/Scene/VstgEditorScene.h"
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
 #include "Rendering/Effect/EffectManager.h"
-#include "Rendering/Renderer/ImGuiBinding.h"
+
+#include <cwchar>
+#include <iomanip>
+#include <sstream>
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -20,7 +26,7 @@ static constexpr float DefaultClearGreen = 0.04f;
 static constexpr float DefaultClearBlue = 0.065f;
 
 // コンストラクタ
-Framework::Framework(HWND hWnd) : hWnd(hWnd)
+Framework::Framework(HWND hWnd, const wchar_t* commandLine) : hWnd(hWnd)
 {
 	// 入力初期化
 	Game::Input::Instance().Initialize(hWnd);
@@ -45,8 +51,20 @@ Framework::Framework(HWND hWnd) : hWnd(hWnd)
 	// 物理マネージャ初期化
 	PhysicsManager::Instance().Initialize();
 
-	// シーンマネージャー初期化
-	SceneManager::Instance().Initialize();
+	// 起動引数の先頭で初期シーンを選ぶ。エディター起動ではタイトルを生成しない。
+	std::wistringstream arguments(commandLine ? commandLine : L"");
+	std::wstring startupMode;
+	arguments >> std::quoted(startupMode);
+
+	std::unique_ptr<Scene> initialScene;
+	if (!_wcsicmp(startupMode.c_str(), L"vmdl"))
+		initialScene = std::make_unique<VmdlEditorScene>();
+	else if (!_wcsicmp(startupMode.c_str(), L"vstg"))
+		initialScene = std::make_unique<VstgEditorScene>();
+	else
+		initialScene = std::make_unique<TitleScene>();
+
+	SceneManager::Instance().Initialize(std::move(initialScene));
 }
 
 // デストラクタ
@@ -89,18 +107,6 @@ void Framework::Update(float elapsedTime)
 
 	// シーン更新処理
 	SceneManager::Instance().Update();
-
-// ImGuiBindingMemory
-#ifndef _RELEASE
-	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F6)
-	{
-		showImGuiBindingMemory = !showImGuiBindingMemory;
-	}
-	if (showImGuiBindingMemory)
-	{
-		ImGuiBind::Draw();
-	}
-#endif
 
 	// ロード中は旧シーンの処理を動かさず、ロードスレッドによる生成と競合させない。
 	if (!SceneManager::Instance().IsLoading())

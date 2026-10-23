@@ -61,7 +61,7 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	HWND hWnd = CreateWindow(
 		_T("VEER"),
 		_T("VEER"),
-		WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME | WS_VISIBLE,
+		(WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME),
 		initializeWindowPosX,
 		initializeWindowPosY,
 		rc.right - rc.left,
@@ -70,12 +70,12 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 		NULL,
 		instance,
 		NULL);
-	ShowWindow(hWnd, cmd_show);
 
 	int result = 0;
 	{
-		Framework framework(hWnd);
+		Framework framework(hWnd, cmd_line);
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&framework));
+		ShowWindow(hWnd, cmd_show);
 		result = framework.Run();
 	}
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);

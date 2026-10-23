@@ -17,6 +17,9 @@ public:
 
     RectTransform rect;
 
+	// テクスチャの有無に依存しない、回転を考慮した矩形の当たり判定。
+	bool ContainsPoint(const Vector2& point) const;
+
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
     void Update() override;
     void DrawGUI() override;

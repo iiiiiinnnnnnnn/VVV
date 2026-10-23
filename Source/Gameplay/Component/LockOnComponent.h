@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <algorithm>
 #include <memory>
 
@@ -55,7 +57,7 @@ private:
 	float lostRange = 30.0f;
 	float rotationSpeed = 8.0f;
 	float releaseMoveDot = -0.25f;
-	float rotationPauseTimer = 0.0f;
+	Game::Timer rotationPauseTimer{0.0f};
 	bool aimActive = false;
 	bool rotationPaused = false;
 };

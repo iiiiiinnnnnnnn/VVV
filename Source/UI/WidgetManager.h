@@ -5,7 +5,8 @@
 #include <vector>
 
 #include "UI/Widget.h"
-#include "UI/HUDWidget.h"
+#include "UI/WidgetGroup.h"
+#include "UI/UIEventSystem.h"
 
 class WidgetManager
 {
@@ -34,6 +35,9 @@ public:
 			return widget->IsPendingDestroy();
 		}),
 			data.end());
+
+		// 全Widgetのレイアウト更新後に、イベントを1回だけ配送する。
+		eventSystem.Update(data);
 	}
 
 	void Render(const RenderContext& rc, bool affectedByPostProcess)
@@ -115,6 +119,7 @@ private:
 		ImGui::PopID();
 	}
 
+	UIEventSystem eventSystem;
 	std::vector<std::shared_ptr<Widget>> data;
 	std::weak_ptr<Widget> selectedWidget;
 };

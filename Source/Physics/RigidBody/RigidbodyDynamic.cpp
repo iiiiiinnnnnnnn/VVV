@@ -22,6 +22,8 @@ void RigidbodyDynamic::OnAwake()
 
     rb->userData = owner;
 	SetKinematic(isKinematic);
+    if (maxDepenetrationVelocity >= 0.0f)
+        rb->setMaxDepenetrationVelocity(maxDepenetrationVelocity);
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rb);
 }
 
@@ -124,6 +126,12 @@ void RigidbodyDynamic::SetKinematic(bool isKinematic)
             dynamic->setRigidBodyFlag(PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, false);
         }
     }
+}
+
+void RigidbodyDynamic::SetMaxDepenetrationVelocity(float velocity)
+{
+    maxDepenetrationVelocity = velocity;
+    if (rb) rb->setMaxDepenetrationVelocity(velocity);
 }
 
 void RigidbodyDynamic::AddForce(const Vector3& force)

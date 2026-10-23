@@ -9,7 +9,7 @@ void TimeScaleController::Request(float duration, float scale)
 	if (duration <= 0.0f) return;
 
 	if (effects.empty()) baseScale = Game::Time::scale;
-	effects.push_back({duration, std::clamp(scale, 0.0f, 1.0f)});
+	effects.push_back({Game::Timer(duration), std::clamp(scale, 0.0f, 1.0f)});
 	ApplyStrongestEffect();
 }
 
@@ -18,9 +18,9 @@ void TimeScaleController::Update()
 	if (effects.empty()) return;
 
 	for (Effect& effect : effects)
-		effect.remaining -= Game::Time::unscaledDeltaTime;
+		effect.remaining.Update(Game::Time::unscaledDeltaTime);
 
-	std::erase_if(effects, [](const Effect& effect) { return effect.remaining <= 0.0f; });
+	std::erase_if(effects, [](const Effect& effect) { return effect.remaining.GetRemaining() <= 0.0f; });
 	if (effects.empty())
 	{
 		Game::Time::scale = baseScale;

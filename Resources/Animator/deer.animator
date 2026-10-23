@@ -131,6 +131,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "idle",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -163,6 +165,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "walk",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 0.699999988079071,
                     "transitions": [
                         {
@@ -195,6 +199,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "dead",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -225,8 +231,10 @@
                     "editorPosX": -76.0,
                     "editorPosY": 211.0,
                     "hasEditorPosition": true,
-                    "loop": false,
+                    "loop": true,
                     "name": "ready",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -278,6 +286,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "run",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -310,6 +320,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "turnL",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -342,6 +354,8 @@
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "turnR",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -374,6 +388,8 @@
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Damage",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
                     "speed": 1.0,
                     "transitions": [
                         {
@@ -402,14 +418,14 @@
             "value": false
         },
         {
-            "name": "turnR",
-            "type": "bool",
-            "value": false
-        },
-        {
             "name": "speed",
             "type": "float",
             "value": 0.5
+        },
+        {
+            "name": "turnR",
+            "type": "bool",
+            "value": false
         },
         {
             "name": "ready",

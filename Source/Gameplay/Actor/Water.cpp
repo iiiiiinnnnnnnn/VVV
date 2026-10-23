@@ -1,10 +1,17 @@
 #include "Gameplay/Actor/Water.h"
 
 Water::Water(const Transform& transform, const WaterRenderer::Settings& settings)
-	: Actor((const char*)u8"ワールド水面", "WorldWater", true)
+	: Actor((const char*)u8"ワールド水面", "WorldWater", true, transform), settings(settings)
+{}
+
+Water::~Water()
 {
-	this->transform = transform;
-	this->transform.Update();
+	Uninit();
+}
+
+void Water::OnInit()
+{
+	transform.Update();
 	renderer = AddComponent<WaterRenderer>();
 	renderer->SetSettings(settings);
 }
@@ -17,6 +24,7 @@ void Water::ApplySettings(
 	this->transform = transform;
 	this->transform.Update();
 	SetActive(enabled);
+	this->settings = settings;
 
 	if (renderer)
 	{

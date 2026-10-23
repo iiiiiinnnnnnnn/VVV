@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <algorithm>
 #include "Core/Foundation/Easing.h"
 #include "Application/Time/GameTime.h"
@@ -64,14 +66,14 @@ private:
 	float GetIntensity(float timer, float duration, float power, float attackRate, Easing::Type attack, Easing::Type release) const;
 
 private:
-	float threatenTimer = 0.0f;
+	Game::Timer threatenTimer{0.0f};
 	float threatenDuration = 0.0f;
 	float threatenPower = 0.0f;
 	float threatenAttackRate = 0.25f;
 	Easing::Type threatenAttackEasing = Easing::Type::InSine;
 	Easing::Type threatenReleaseEasing = Easing::Type::OutCubic;
 
-	float damagedVigTimer = 0.0f;
+	Game::Timer damagedVigTimer{0.0f};
 	float damagedVigDuration = 0.0f;
 	float damagedVigPower = 0.0f;
 	float damagedVigAttackRate = 0.25f;
@@ -85,13 +87,13 @@ private:
 	float poisonVignetteDuration = 0.5f;
 	Easing::Type poisonVignetteEasing = Easing::Type::InOutCubic;
 
-	float justDodgeTimer = 0.0f;
+	Game::Timer justDodgeTimer{0.0f};
 	float justDodgeDuration = 0.0f;
 	float justDodgePower = 0.0f;
-	float skillStartTimer = 0.0f;
+	Game::Timer skillStartTimer{0.0f};
 	float skillStartDuration = 0.0f;
 	float skillStartPower = 0.0f;
-	float skillHitTimer = 0.0f;
+	Game::Timer skillHitTimer{0.0f};
 	float skillHitDuration = 0.0f;
 	float skillHitPower = 0.0f;
 	float invincibilityAuraIntensity = 0.0f;

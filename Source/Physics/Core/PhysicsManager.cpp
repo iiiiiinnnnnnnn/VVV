@@ -3,12 +3,17 @@
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
+#include <cmath>
 
 static PxFilterFlags LayerFilterShader(
     PxFilterObjectAttributes attr0, PxFilterData fd0,
     PxFilterObjectAttributes attr1, PxFilterData fd1,
     PxPairFlags& pairFlags, const void*, PxU32)
 {
+    // word2 excludes layers from simulation while scene queries still block them.
+    if ((fd0.word2 & fd1.word0) || (fd1.word2 & fd0.word0))
+        return PxFilterFlag::eSUPPRESS;
+
     int layer0 = (int)fd0.word1;
     int layer1 = (int)fd1.word1;
 
@@ -544,9 +549,22 @@ void PhysicsSceneContext::ProcessTriggerSweeps()
 
 void PhysicsSceneContext::Simulate()
 {
+	const float deltaTime = Game::Time::deltaTime;
+	if (!(deltaTime > 0.0f)) return;
+
+	// Bound catch-up work after loading and keep each physics step at most 1/60 second.
+	constexpr float maximumStep = 1.0f / 60.0f;
+	constexpr int maximumSteps = 4;
+	const float simulationTime = std::min(deltaTime, maximumStep * maximumSteps);
+	const int stepCount = std::clamp(static_cast<int>(std::ceil(simulationTime / maximumStep)), 1, maximumSteps);
+	const float stepTime = simulationTime / stepCount;
+
 	ProcessTriggerSweeps();
-	scene->simulate(Game::Time::deltaTime);
-	scene->fetchResults(true);
+	for (int step = 0; step < stepCount; ++step)
+	{
+		scene->simulate(stepTime);
+		scene->fetchResults(true);
+	}
 
 	// Stay イベントを配信（接触継続中のペアに毎フレーム通知）
 	eventCallback.DispatchStayEvents();

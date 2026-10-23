@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+#include "Application/Time/Timer.h"
 #include <deque>
 
 #include "Core/Object/Component.h"
@@ -42,7 +44,7 @@ public:
         Vector3 root;
         Vector3 tip;
         Vector3 tipFull;
-        float   age;
+        Game::Timer age{0.0f};
     };
     const std::deque<TrailPoint>& GetPoints() const { return points; }
     float GetLifeTime() const { return lifeTime; }
@@ -76,5 +78,5 @@ private:
     std::deque<TrailPoint> points;
 
     static constexpr float SAMPLE_INTERVAL = 0.01f;
-    float sampleTimer = 0.0f;
+    Game::Timer sampleTimer{SAMPLE_INTERVAL};
 };

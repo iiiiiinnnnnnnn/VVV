@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <vector>
 
 // Global, unscaled-time driven controller for short slow-motion and freeze
@@ -18,7 +20,7 @@ public:
 private:
 	struct Effect
 	{
-		float remaining = 0.0f;
+		Game::Timer remaining{0.0f};
 		float scale = 1.0f;
 	};
 

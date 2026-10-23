@@ -1,4 +1,4 @@
-﻿#include "Core/Object/Object.h"
+#include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
@@ -57,8 +57,7 @@ void Object::Update()
 	if (!isAwake) Awake();
 	if (!isStarted) Start();
 
-    if (destroyTimer.has_value() && destroyTimer.value() > 0.0f)
-        destroyTimer.value() -= Game::Time::deltaTime;
+    if (destroyTimer) destroyTimer->Update();
 
     OnUpdate();
 
@@ -107,7 +106,7 @@ void Object::DrawGUI()
     {
         ImGui::Checkbox((const char*)u8"有効", &isActive);
         ImGui::Text((const char*)u8"名前: %s、タグ: %s", name.c_str(), tag.c_str());
-        ImGui::Text((const char*)u8"破棄タイマー: %s", destroyTimer.has_value() ? std::to_string(destroyTimer.value()).c_str() : (const char*)u8"なし");
+        ImGui::Text((const char*)u8"破棄タイマー: %s", destroyTimer.has_value() ? std::to_string(destroyTimer->GetRemaining()).c_str() : (const char*)u8"なし");
 
         if (ImGui::Button((const char*)u8"破棄"))
             Destroy();

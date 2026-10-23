@@ -15,7 +15,9 @@ namespace Game
 	class PostProcess
 	{
 	public:
-		PostProcess();
+		PostProcess() = default;
+		void Init();
+		void Uninit();
 
 		void CopySettingsFrom(const PostProcess& source);
 		void PrepareSceneColor(const RenderContext& rc, RenderTarget* scene, RenderTarget* luminance,
@@ -263,6 +265,8 @@ namespace Game
 		float finalBloomThreshold = 0.25f;
 		float finalBloomBlurSize = 4.0f;
 		float finalBloomBlurBrightness = 1.0f;
+
+		bool initialized = false;
 
 		// Runtime effects
 		float runtimeRadialBlurIntensity = 0.0f;

@@ -21,13 +21,13 @@ BraceWrapping:
   BeforeLambdaBody: false
   BeforeWhile: false
   IndentBraces: false
-  SplitEmptyFunction: false
+  SplitEmptyFunction: true
   SplitEmptyNamespace: false
   SplitEmptyRecord: false
 AlignAfterOpenBracket: DontAlign
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: None
 AllowShortLambdasOnASingleLine: All
 BinPackArguments: true
 BinPackParameters: true

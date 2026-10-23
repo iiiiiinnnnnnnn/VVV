@@ -18,7 +18,11 @@
     <ResourceCompile Include="EmbeddedResources.rc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ResourceCompile>
+    <ClInclude Include="Source\Gameplay\Actor\RigidRock.h" />
+    <ClInclude Include="Source\Gameplay\Player\DummyPlayer.h" />
     <ClInclude Include="Source\pch.h" />
+    <ClCompile Include="Source\Gameplay\Actor\RigidRock.cpp" />
+    <ClCompile Include="Source\Gameplay\Player\DummyPlayer.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -36,7 +40,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Resource\GLBExporter.cpp" />
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiBinding.h" />
     <ClInclude Include="Source\Resource\CacheBuilder.h" />
     <ClInclude Include="Source\Resource\CacheSettings.h" />
     <ClCompile Include="External\imguizmo\ImGuizmo.cpp">
@@ -83,6 +86,7 @@
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
+    <ClCompile Include="Source\Gameplay\Camera\TitleCamera.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Crystal.cpp" />
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp" />
@@ -90,7 +94,6 @@
     <ClCompile Include="Source\Gameplay\Lighting\Light.cpp" />
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp" />
-    <ClCompile Include="Source\Gameplay\Scene\GameStartScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp" />
@@ -157,12 +160,17 @@
     <ClCompile Include="Source\Rendering\Renderer\SpriteRenderer.cpp" />
     <ClCompile Include="Source\Resource\VMDLModelSerialize.cpp" />
     <ClCompile Include="Source\UI\SpriteWidget.cpp" />
+    <ClCompile Include="Source\UI\TitleHUD.cpp" />
+    <ClCompile Include="Source\UI\TitleLogo.cpp" />
+    <ClCompile Include="Source\UI\PressAnyButton.cpp" />
     <ClCompile Include="Source\UI\ColorWidget.cpp" />
     <ClCompile Include="Source\UI\BossBar.cpp" />
     <ClCompile Include="Source\UI\Button.cpp" />
+    <ClCompile Include="Source\UI\EventTrigger.cpp" />
+    <ClCompile Include="Source\UI\UIEventSystem.cpp" />
     <ClCompile Include="Source\UI\DissolveWidget.cpp" />
     <ClCompile Include="Source\UI\GaugeHUD.cpp" />
-    <ClCompile Include="Source\UI\HUDWidget.cpp" />
+    <ClCompile Include="Source\UI\WidgetGroup.cpp" />
     <ClCompile Include="Source\UI\PauseMenu.cpp" />
     <ClCompile Include="Source\UI\TextWidget.cpp" />
     <ClCompile Include="Source\UI\WidgetShadow.cpp" />
@@ -222,6 +230,7 @@
     <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
+    <ClInclude Include="Source\Gameplay\Camera\TitleCamera.h" />
     <ClInclude Include="Source\Gameplay\Camera\Camera.h" />
     <ClInclude Include="Source\Gameplay\Camera\CameraController.h" />
     <ClInclude Include="Source\Gameplay\Lighting\CbLightData.h" />
@@ -229,7 +238,6 @@
     <ClInclude Include="Source\Gameplay\Lighting\Light.h" />
     <ClInclude Include="Source\Gameplay\Lighting\LightManager.h" />
     <ClInclude Include="Source\Gameplay\Scene\LoadingScene.h" />
-    <ClInclude Include="Source\Gameplay\Scene\GameStartScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\TitleScene.h" />
     <ClInclude Include="Source\Physics\Core\PhysicsComponent.h" />
     <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h" />
@@ -303,17 +311,24 @@
     <ClInclude Include="Source\Rendering\Component\SpriteRenderComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\SpriteRenderer.h" />
     <ClInclude Include="Source\UI\SpriteWidget.h" />
+    <ClInclude Include="Source\UI\TitleHUD.h" />
+    <ClInclude Include="Source\UI\TitleLogo.h" />
+    <ClInclude Include="Source\UI\PressAnyButton.h" />
     <ClInclude Include="Source\UI\ColorWidget.h" />
     <ClInclude Include="Source\UI\BossBar.h" />
     <ClInclude Include="Source\UI\Button.h" />
+    <ClInclude Include="Source\UI\EventTrigger.h" />
+    <ClInclude Include="Source\UI\UILayout.h" />
+    <ClInclude Include="Source\UI\UIEventSystem.h" />
     <ClInclude Include="Source\UI\DissolveWidget.h" />
     <ClInclude Include="Source\UI\GaugeHUD.h" />
-    <ClInclude Include="Source\UI\HUDWidget.h" />
+    <ClInclude Include="Source\UI\WidgetGroup.h" />
     <ClInclude Include="Source\UI\PauseMenu.h" />
     <ClInclude Include="Source\UI\TextWidget.h" />
     <ClInclude Include="Source\UI\WidgetShadow.h" />
     <ClInclude Include="Source\UI\UIFont.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
+    <ClInclude Include="Source\Application\Time\Timer.h" />
     <ClInclude Include="Source\Application\Time\GameTime.h" />
     <ClInclude Include="Source\Gameplay\Camera\ThirdPersonCameraController.h" />
     <ClInclude Include="Source\Rendering\Component\TrailRenderComponent.h" />
@@ -548,7 +563,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -718,6 +733,56 @@
       <ShaderType>Compute</ShaderType>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerUnlitVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerUnlitPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerLitVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerLitPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerDistortionVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerDistortionPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedUnlitVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedUnlitPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedLitVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedLitPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedDistortionVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shader\EffekseerOverride\EffekseerAdvancedDistortionPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <Target Name="CopyRuntimeFiles" AfterTargets="Build">
@@ -728,4 +793,38 @@
     <Copy SourceFiles="@(PhysXRuntimeDll)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
   </Target>
   <Import Project="Tools\CacheBuilder\CacheBuilder.targets" />
+  <ItemGroup>
+    <None Include="Shader\EffekseerOverride\EffekseerFog.hlsli" />
+    <None Include="Shader\EffekseerOverride\Original\ad_common_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_model_distortion_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_model_lit_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_model_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_model_unlit_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_common_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_distortion_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_lit_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\ad_sprite_unlit_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\Distortion_Common_PS.fx" />
+    <None Include="Shader\EffekseerOverride\Original\FlipbookInterpolationUtils.fx" />
+    <None Include="Shader\EffekseerOverride\Original\FlipbookInterpolationUtils_PS.fx" />
+    <None Include="Shader\EffekseerOverride\Original\LICENSE" />
+    <None Include="Shader\EffekseerOverride\Original\Linear_sRGB.fx" />
+    <None Include="Shader\EffekseerOverride\Original\model_distortion_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\model_lit_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\model_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\model_unlit_ps.fx" />
+    <None Include="Shader\EffekseerOverride\Original\README.md" />
+    <None Include="Shader\EffekseerOverride\Original\SoftParticle_PS.fx" />
+    <None Include="Shader\EffekseerOverride\Original\sprite_distortion_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\sprite_lit_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\sprite_unlit_vs.fx" />
+    <None Include="Shader\EffekseerOverride\Original\TextureBlendingUtils_PS.fx" />
+    <None Include="Shader\EffekseerOverride\Original\UVDistortionUtils_PS.fx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Rendering\Effect\EffekseerOverride\Shader.h" />
+    <ClInclude Include="Source\Rendering\Effect\EffekseerOverride\GraphicsDevice.h" />
+    <None Include="Source\Rendering\Effect\EffekseerOverride\LICENSE" />
+    <None Include="Source\Rendering\Effect\EffekseerOverride\README.md" />
+  </ItemGroup>
 </Project>

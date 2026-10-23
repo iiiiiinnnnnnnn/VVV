@@ -1,5 +1,6 @@
-// LoadingScene.h
 #pragma once
+
+#include "Application/Time/Timer.h"
 
 #include <memory>
 
@@ -7,23 +8,28 @@
 
 class SpriteWidget;
 class Widget;
+class TextWidget;
 
 class LoadingScene : public Scene
 {
-public:
+  public:
 	LoadingScene();
-	~LoadingScene() override = default;
+	~LoadingScene() override;
 
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 	MouseCursorMode GetMouseCursorMode() const override;
 
-private:
-	void UpdateLayout();
+  protected:
+	void OnInit() override;
+	void OnUninit() override;
 
-	std::shared_ptr<SpriteWidget> background;
-	std::shared_ptr<SpriteWidget> vignetteOverlay;
-	std::shared_ptr<Widget> progressTrack;
-	std::shared_ptr<Widget> progressFill;
-	float elapsedTime = 0.0f;
+  private:
+	void UpdateLayout();
+	std::shared_ptr<TextWidget> resourceFileIsLoading = nullptr;
+	std::shared_ptr<SpriteWidget> background = nullptr;
+	std::shared_ptr<SpriteWidget> vignetteOverlay = nullptr;
+	std::shared_ptr<Widget> progressTrack = nullptr;
+	std::shared_ptr<Widget> progressFill = nullptr;
+	Game::Timer elapsedTime{0.0f};
 };

@@ -24,6 +24,7 @@ public:
 	void SetTrigger(bool trigger);
 	const char* GetDebugName() const override { return ICON_FA_SHAPES " MeshCollider"; }
 
+    void SetSimulationIgnoredLayers(PxU32 mask);
     bool GetBounds(Vector3& center, Vector3& size) const;
     Vector3 GetWorldPosition() const;
 private:
@@ -35,6 +36,7 @@ private:
     Vector3 localScale = Vector3::One;
     Vector3 appliedOwnerScale = Vector3::One;
     float appliedModelScale = 1.0f;
+    PxU32 simulationIgnoredLayers = 0;
     bool useConvex = false;
     bool collisionEnabled = true;
 	bool isTrigger = false;

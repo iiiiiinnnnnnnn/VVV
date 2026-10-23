@@ -1,4 +1,5 @@
 #include "Rendering/Core/VMatRenderParams.h"
+#include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
 #include "Resource/ResourcePath.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
@@ -986,6 +987,35 @@ bool VMDLModel::RemoveMeshes(const std::vector<int>& meshIndices)
 		morph.meshVisibility = std::move(visibility);
 	}
 
+	std::vector<int> meshRemap(meshes.size(), -1);
+	int nextMesh = 0;
+	for (size_t index = 0; index < meshes.size(); ++index)
+		if (!removeFlags[index]) meshRemap[index] = nextMesh++;
+	for (auto& group : externalMeshGroups)
+	{
+		const size_t existingSlots = group.cacheMeshIndices.size();
+		group.cacheMeshIndices.resize(group.meshIndices.size());
+		for (size_t slot = existingSlots; slot < group.meshIndices.size(); ++slot)
+			group.cacheMeshIndices[slot] = static_cast<int>(slot);
+		for (int slot = static_cast<int>(group.meshIndices.size()) - 1; slot >= 0; --slot)
+		{
+			const int index = group.meshIndices[slot];
+			if (index >= 0 && index < static_cast<int>(meshRemap.size()) && meshRemap[index] >= 0)
+			{
+				group.meshIndices[slot] = meshRemap[index];
+				continue;
+			}
+			group.meshIndices.erase(group.meshIndices.begin() + slot);
+			if (slot < static_cast<int>(group.initialVisibility.size()))
+				group.initialVisibility.erase(group.initialVisibility.begin() + slot);
+			if (slot < static_cast<int>(group.cacheMeshIndices.size()))
+				group.cacheMeshIndices.erase(group.cacheMeshIndices.begin() + slot);
+			if (slot < static_cast<int>(group.meshKeys.size()))
+				group.meshKeys.erase(group.meshKeys.begin() + slot);
+		}
+	}
+	std::erase_if(externalMeshGroups, [](const auto& group) { return group.meshIndices.empty(); });
+
 	std::vector<Mesh> keptMeshes;
 	keptMeshes.reserve(meshes.size());
 	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
@@ -1021,7 +1051,89 @@ bool VMDLModel::RemoveMeshes(const std::vector<int>& meshIndices)
 	materials = std::move(keptMaterials);
 	if (hasSourceMaterials) sourceMaterials = std::move(keptSourceMaterials);
 	for (Mesh& mesh : meshes) mesh.materialIndex = materialRemap[mesh.materialIndex];
+	std::erase_if(materialAnimationTracks, [&](const auto& track) {
+		return track.materialIndex < 0 || track.materialIndex >= static_cast<int>(materialRemap.size()) ||
+			materialRemap[track.materialIndex] < 0;
+	});
+	for (auto& track : materialAnimationTracks) track.materialIndex = materialRemap[track.materialIndex];
 
+	RebuildRuntimeReferences();
+	return true;
+}
+
+// 付加コンポーネントの削除後に、ノードとアニメーションの参照番号を詰め直す。
+bool VMDLModel::RemoveNodes(const std::vector<int>& nodeIndices)
+{
+	if (nodeIndices.empty()) return false;
+	std::vector<int> remap(nodes.size());
+	for (size_t index = 0; index < nodes.size(); ++index) remap[index] = static_cast<int>(index);
+	for (int index : nodeIndices)
+	{
+		if (index < 0 || index >= static_cast<int>(nodes.size())) return false;
+		remap[index] = -1;
+	}
+	for (size_t index = 0; index < nodes.size(); ++index)
+		if (remap[index] >= 0 && nodes[index].parentIndex >= 0 &&
+			remap[nodes[index].parentIndex] < 0) return false;
+	const auto validComponents = [&](const auto& values) {
+		return std::all_of(values.begin(), values.end(), [&](const auto& value) {
+			return value.nodeIndex < 0 ||
+				(value.nodeIndex < static_cast<int>(remap.size()) && remap[value.nodeIndex] >= 0);
+		});
+	};
+	if (!validComponents(vmdlExtensionData.rigidBodies) || !validComponents(vmdlExtensionData.colliders) ||
+		!validComponents(vmdlExtensionData.springs) || !validComponents(vmdlExtensionData.springColliders) ||
+		!validComponents(vmdlTrailData.trails) || !validComponents(vmdlParticleData.emitters) ||
+		!validComponents(vmdlSoundData.sources) || !validComponents(vmdlLightData.pointLights) ||
+		!validComponents(vmdlPresentationData.cameraShakes) ||
+		!validComponents(vmdlPresentationData.radialBlurs)) return false;
+	std::vector<int> deletingMeshes;
+	for (size_t index = 0; index < meshes.size(); ++index)
+	{
+		const auto& mesh = meshes[index];
+		if (mesh.nodeIndex >= 0 && remap[mesh.nodeIndex] < 0)
+		{
+			deletingMeshes.push_back(static_cast<int>(index));
+			continue;
+		}
+		for (const auto& bone : mesh.bones)
+			if (bone.nodeIndex >= 0 && remap[bone.nodeIndex] < 0) return false;
+	}
+	if (!deletingMeshes.empty()) RemoveMeshes(deletingMeshes);
+
+	int next = 0;
+	for (int& index : remap) if (index >= 0) index = next++;
+	for (auto& animation : animations)
+	{
+		for (int index = static_cast<int>(remap.size()) - 1; index >= 0; --index)
+			if (remap[index] < 0 && index < static_cast<int>(animation.nodeAnims.size()))
+				animation.nodeAnims.erase(animation.nodeAnims.begin() + index);
+	}
+	for (auto& mesh : meshes)
+	{
+		mesh.nodeIndex = remap[mesh.nodeIndex];
+		for (auto& bone : mesh.bones) bone.nodeIndex = remap[bone.nodeIndex];
+	}
+	const auto remapComponents = [&](auto& values) {
+		for (auto& value : values)
+			if (value.nodeIndex >= 0) value.nodeIndex = remap[value.nodeIndex];
+	};
+	remapComponents(vmdlExtensionData.rigidBodies);
+	remapComponents(vmdlExtensionData.colliders);
+	remapComponents(vmdlExtensionData.springs);
+	remapComponents(vmdlExtensionData.springColliders);
+	remapComponents(vmdlTrailData.trails);
+	remapComponents(vmdlParticleData.emitters);
+	remapComponents(vmdlSoundData.sources);
+	remapComponents(vmdlLightData.pointLights);
+	remapComponents(vmdlPresentationData.cameraShakes);
+	remapComponents(vmdlPresentationData.radialBlurs);
+	for (int index = static_cast<int>(nodes.size()) - 1; index >= 0; --index)
+	{
+		if (remap[index] < 0) nodes.erase(nodes.begin() + index);
+		else if (nodes[index].parentIndex >= 0)
+			nodes[index].parentIndex = remap[nodes[index].parentIndex];
+	}
 	RebuildRuntimeReferences();
 	return true;
 }
@@ -2588,7 +2700,7 @@ void VMDLModel::Serialize(const char* filename)
 	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
 	std::vector<VmdlSoundSourceBinding> soundBindings;
 	for (const auto& source : vmdlSoundData.sources)
-		soundBindings.push_back({ResourcePath::Short(source.soundPath, "Sound"), source.variant, source.pitchMin, source.pitchMax});
+		soundBindings.push_back({ResourceManager::ShortResourcePath(source.soundPath, "Sound"), source.variant, source.pitchMin, source.pitchMax});
 	VmdlComponentTransformData componentTransforms;
 	for (const auto& value : vmdlExtensionData.rigidBodies)
 		componentTransforms.rigidBodies.push_back(value.transform);
@@ -3006,10 +3118,10 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
 			applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
 			for (size_t i = 0; i < vmdlParticleData.emitters.size(); ++i)
-				vmdlParticleData.emitters[i].effectName = ResourcePath::Short(effectBindings[i], "Effect");
+				vmdlParticleData.emitters[i].effectName = ResourceManager::ShortResourcePath(effectBindings[i], "Effect");
 			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
 			{
-				vmdlSoundData.sources[i].soundPath = ResourcePath::Short(soundBindings[i].soundPath, "Sound");
+				vmdlSoundData.sources[i].soundPath = ResourceManager::ShortResourcePath(soundBindings[i].soundPath, "Sound");
 				vmdlSoundData.sources[i].variant = soundBindings[i].variant;
 				vmdlSoundData.sources[i].pitchMin = soundBindings[i].pitchMin;
 				vmdlSoundData.sources[i].pitchMax = soundBindings[i].pitchMax;

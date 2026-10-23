@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <memory>
 #include <string>
 #include <functional>
@@ -54,7 +56,7 @@ private:
 	Color frameColor = Color(0.5f, 0.55f, 0.7f, 0.95f);
 	Color trackColor = Color(0.015f, 0.035f, 0.055f, 0.88f);
 	bool revealing = true;
-	float revealElapsed = 0.0f;
+	Game::Timer revealElapsed{0.0f};
 	float revealDuration = 2.0f;
 	float targetValue = 1.0f;
 	float displayedValue = 1.0f;
@@ -62,7 +64,7 @@ private:
 	bool damageTrailEnabled = false;
 	float damageTrailValue = 1.0f;
 	float damageTrailDelay = 0.25f;
-	float damageTrailTimer = 0.0f;
+	Game::Timer damageTrailTimer{0.0f};
 	float damageTrailSpeed = 0.65f;
 	Color damageTrailColor = Color(0.48f, 0.52f, 0.57f, 0.98f);
 	std::function<void(float)> onValueChanged;

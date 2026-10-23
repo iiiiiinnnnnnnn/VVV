@@ -6,35 +6,55 @@
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/SceneManager.h"
-#include "Gameplay/Scene/GameStartScene.h"
 #include "Gameplay/Scene/TitleScene.h"
 #include "Rendering/Component/SpriteRenderComponent.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/SpriteWidget.h"
 #include "UI/Widget.h"
+#include "UI/TextWidget.h"
+#include "UI/UILayout.h"
 
-namespace
+LoadingScene::LoadingScene() = default;
+
+LoadingScene::~LoadingScene()
 {
-constexpr const char* LoadingImagePath = "Resources/UI/loading.png";
+	Uninit();
 }
 
-LoadingScene::LoadingScene()
+void LoadingScene::OnUninit()
+{
+	background.reset();
+	vignetteOverlay.reset();
+	progressTrack.reset();
+	progressFill.reset();
+}
+
+void LoadingScene::OnInit()
 {
 	background = std::make_shared<SpriteWidget>(
-		LoadingImagePath, SpriteShaderId::Basic, Color(1, 1, 1, 1));
+		"Resources/UI/loading.png",
+		SpriteShaderId::Basic, Color(1, 1, 1, 0.3f));
 	background->SetName("Loading Background");
 	background->SetAffectedByPostProcess(false);
 	widgetManager.Register(background);
 
 	// 背景とは別レイヤーにして、画像の移動に影響されない画面端の暗さを作る。
 	vignetteOverlay = std::make_shared<SpriteWidget>(
-		LoadingImagePath,
+		"Resources/UI/loading.png",
 		SpriteShaderId::VignetteOverlay,
 		Color(0.0f, 0.01f, 0.03f, 0.82f),
-		SpriteRenderParams{SpriteVignetteParams{0.98f, 0.86f}});
+		SpriteRenderParams{SpriteVignetteParams{0.38f, 0.36f}});
 	vignetteOverlay->SetName("Loading Vignette Overlay");
 	vignetteOverlay->SetAffectedByPostProcess(false);
 	widgetManager.Register(vignetteOverlay);
+
+	resourceFileIsLoading =
+		std::make_shared<TextWidget>("ldt", (const char*)u8"リソースを読み込み中...", 30,
+			"NotoSansJP");
+	resourceFileIsLoading->SetColor({1, 1, 1, 1});
+	resourceFileIsLoading->SetAlignment(UITextAlignment::Center);
+	resourceFileIsLoading->SetAffectedByPostProcess(false);
+	widgetManager.Register(resourceFileIsLoading);
 
 	const auto makeFill = [this](const char* name, const Color& color)
 	{
@@ -48,11 +68,12 @@ LoadingScene::LoadingScene()
 	};
 	progressTrack = makeFill("Loading Progress Track", Color(0.02f, 0.05f, 0.09f, 0.72f));
 	progressFill = makeFill("Loading Progress Fill", Color(0.52f, 0.76f, 1.0f, 0.95f));
+	UpdateLayout();
 }
 
 void LoadingScene::OnUpdate()
 {
-	elapsedTime += std::max(Game::Time::unscaledDeltaTime, 0.0f);
+	elapsedTime.Advance(std::max(Game::Time::unscaledDeltaTime, 0.0f));
 	UpdateLayout();
 
 	const float progress = std::clamp(
@@ -62,7 +83,7 @@ void LoadingScene::OnUpdate()
 		if (auto* sprite = progressFill->GetComponent<SpriteRenderComponent>())
 		{
 			sprite->SetHorizontalFill(progress);
-			const float pulse = 0.86f + std::sin(elapsedTime * 4.0f) * 0.12f;
+			const float pulse = 0.86f + std::sin(elapsedTime.GetElapsed() * 4.0f) * 0.12f;
 			sprite->SetColor(Color(0.52f, 0.76f, 1.0f, pulse));
 		}
 	}
@@ -87,13 +108,9 @@ void LoadingScene::OnDrawGUI()
 	{
 		ImGui::TextUnformatted((const char*)u8"読み込みに失敗しました");
 		ImGui::TextWrapped("%s", error.c_str());
-		if (ImGui::Button((const char*)u8"起動画面へ戻る"))
+		if (ImGui::Button((const char*)u8"タイトルへ戻る"))
 		{
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-			manager.LoadScene<GameStartScene>();
-#else
 			manager.LoadScene<TitleScene>();
-#endif
 		}
 	}
 	ImGui::End();
@@ -104,6 +121,9 @@ void LoadingScene::UpdateLayout()
 	const float screenWidth = Game::Graphics::ScreenWidth;
 	const float screenHeight = Game::Graphics::ScreenHeight;
 	if (screenWidth <= 0.0f || screenHeight <= 0.0f) return;
+
+	UILayout::Apply(resourceFileIsLoading, {0.5f, 0.9f}, {0.8f, 0.05f},
+		38, Vector2::Zero, {0.5f, 0.5f});
 
 	if (background)
 	{
@@ -125,11 +145,11 @@ void LoadingScene::UpdateLayout()
 			height = screenHeight;
 			width = height * imageAspect;
 		}
-		const float zoom = 1.09f + 0.025f * (0.5f + 0.5f * std::sin(elapsedTime * 0.35f));
+		const float zoom = 1.09f + 0.025f * (0.5f + 0.5f * std::sin(elapsedTime.GetElapsed() * 0.35f));
 		width *= zoom;
 		height *= zoom;
-		const float driftX = (width - screenWidth) * 0.38f * std::sin(elapsedTime * 0.12f);
-		const float driftY = (height - screenHeight) * 0.34f * std::sin(elapsedTime * 0.09f + 1.2f);
+		const float driftX = (width - screenWidth) * 0.38f * std::sin(elapsedTime.GetElapsed() * 0.12f);
+		const float driftY = (height - screenHeight) * 0.34f * std::sin(elapsedTime.GetElapsed() * 0.09f + 1.2f);
 
 		background->rect.position = {
 			screenWidth * 0.5f + driftX,

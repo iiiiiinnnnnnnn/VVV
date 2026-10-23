@@ -78,7 +78,7 @@ void LocalPlayerInput::ResetRuntime()
     keys.fill(false);
     previousKeys.fill(false);
     bufferedDirections = 0;
-    bufferTimer = 0.0f;
+    bufferTimer.Stop();
     sprintLatched = false;
 }
 
@@ -170,8 +170,8 @@ InputContext LocalPlayerInput::Poll()
     context.Set(PlayerAction::Sprint, sprintLatched, sprintLatched && !previousInput.Held(PlayerAction::Sprint));
 
     // 回避方向は移動の優先順位とは独立して、両方のデバイスを受け付ける。
-    bufferTimer = std::max(bufferTimer - Game::Time::unscaledDeltaTime, 0.0f);
-    if (bufferTimer <= 0.0f) bufferedDirections = 0;
+    bufferTimer.Update(Game::Time::unscaledDeltaTime);
+    if (bufferTimer.GetRemaining() <= 0.0f) bufferedDirections = 0;
     unsigned int pressed = bufferedDirections;
     unsigned int started = 0;
     const bool dodgeDown = rawStates[static_cast<size_t>(Action::QuickShift)].down;
@@ -183,7 +183,7 @@ InputContext LocalPlayerInput::Poll()
         if (right || stickX > settings.dodgeDirectionThreshold) started |= 1u << 3;
         pressed |= started;
         bufferedDirections = started;
-        bufferTimer = settings.dodgeBufferSeconds;
+        bufferTimer.Reset(settings.dodgeBufferSeconds);
     }
     const PlayerAction directions[] = { PlayerAction::QuickForward, PlayerAction::QuickBackward,
         PlayerAction::QuickLeft, PlayerAction::QuickRight };

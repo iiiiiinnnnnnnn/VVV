@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Gameplay/Actor/Entity.h"
+#include "Application/Time/Timer.h"
 
 class Animator;
 class BossBar;
@@ -27,13 +28,14 @@ public:
 	void Initialize(EnemyAI* ai, NavMeshAgent* agent, Animator* animator, MultiLegFootIK* feet);
 
 	void Walk(float speed) { Request(Movement::Walk, speed); }
+	void Chase(float speed) { Request(Movement::Chase, speed); }
 	void TurnInPlace() { Request(Movement::TurnInPlace, 0.0f); }
 	void Charge(float speed) { Request(Movement::Charge, speed); }
 	void Stop();
 	void Update();
 
 private:
-	enum class Movement { Stopped, Walk, TurnInPlace, Charge };
+	enum class Movement { Stopped, Walk, Chase, TurnInPlace, Charge };
 
 	void Request(Movement movement, float speed);
 	void UpdateTurnDirection(float angle);
@@ -97,24 +99,24 @@ private:
 			angry = true;
 			threatActive = true;
 			waitingForAnimation = true;
-			elapsed = 0.0f;
+			elapsed.Reset();
 		}
 
 		void AnimationStarted()
 		{
 			waitingForAnimation = false;
-			elapsed = 0.0f;
+			elapsed.Reset();
 		}
 
 		void Advance(float deltaTime)
 		{
-			if (angry && !waitingForAnimation && threatActive) elapsed += deltaTime;
+			if (angry && !waitingForAnimation && threatActive) elapsed.Advance(deltaTime);
 		}
 
 		bool angry = false;
 		bool threatActive = false;
 		bool waitingForAnimation = false;
-		float elapsed = 0.0f;
+		Game::Timer elapsed{0.0f};
 		std::shared_ptr<VMDLModel> fragmentModel;
 		Vector3 fragmentSize = Vector3::One;
 	};
@@ -138,7 +140,7 @@ private:
 		void Begin(const Vector3& start, const Vector3& landing)
 		{
 			stage = Stage::Returning;
-			elapsed = 0.0f;
+			elapsed.Reset();
 			startPosition = start;
 			landingPosition = landing;
 		}
@@ -151,7 +153,7 @@ private:
 		Stage stage = Stage::Inactive;
 		Vector3 startPosition = Vector3::Zero;
 		Vector3 landingPosition = Vector3::Zero;
-		float elapsed = 0.0f;
+		Game::Timer elapsed{0.0f};
 		float duration = 1.8f;
 		float height = 9.0f;
 	};
@@ -175,7 +177,12 @@ private:
 		bool engaged = false;
 	};
 
+	Game::Timer healTime{10.0f};
+
 	// 初期化とLuaへの行動登録。
+	void OnInit() override;
+	void OnUninit() override;
+	void OnHeal(float amount) override;
 	void ConfigureAI();
 	void RegisterAIActions();
 
@@ -224,6 +231,7 @@ private:
 	void SetPlayerDetected(bool detected);
 
 	// コンポーネントの所有権はEntity側にある。
+	std::string modelPath;
 	Animator* anim = nullptr;
 	VMDL* vmdl = nullptr;
 	std::shared_ptr<VMDLModel> model;

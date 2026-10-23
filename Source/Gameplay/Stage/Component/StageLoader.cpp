@@ -3,6 +3,8 @@
 #include "Gameplay/Stage/Stage.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Rendering/Core/Graphics.h"
+#include "Rendering/Effect/Effect.h"
+#include "Rendering/Effect/EffectManager.h"
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -62,6 +64,43 @@ StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonTex
 	LoadJson();
 }
 
+StageLoader::~StageLoader()
+{
+	StopEffects();
+}
+
+void StageLoader::StopEffects()
+{
+	for (auto& value : effects)
+		if (value.effect && value.handle >= 0) value.effect->Stop(value.handle);
+	effects.clear();
+}
+
+void StageLoader::UpdateEffect(EffectData& value)
+{
+	value.transform.Update();
+	if (!value.effect) value.effect = EffectManager::Instance().LoadEffect(value.effectName);
+	if (!value.effect || !value.effect->IsValid()) return;
+	auto manager = EffectManager::Instance().GetEffekseerManager();
+	if (!manager) return;
+	if (!value.started || (value.loop && !manager->Exists(value.handle)))
+	{
+		value.handle = value.effect->Play(value.transform.position);
+		value.started = true;
+	}
+	if (value.handle >= 0) value.effect->SetTransform(value.handle, value.transform.matrix);
+}
+
+void StageLoader::AddEditorEffect(const std::string& effectName, const Vector3& position)
+{
+	EffectData value;
+	value.effectName = effectName;
+	value.transform.position = position;
+	effects.push_back(std::move(value));
+	UpdateEffect(effects.back());
+	SelectEditorObject(EditorObjectType::Effect, static_cast<int>(effects.size()) - 1);
+}
+
 std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 {
 	std::vector<EditorObjectReference> objects;
@@ -73,6 +112,8 @@ std::vector<StageLoader::EditorObjectReference> StageLoader::GetEditorObjects()
 		objects.push_back({EditorObjectType::BlockedArea, i, &blockedAreas[i].transform});
 	for (int i = 0; i < static_cast<int>(propDataList.size()); ++i)
 		objects.push_back({EditorObjectType::Prop, i, &propDataList[i].transform});
+	for (int i = 0; i < static_cast<int>(effects.size()); ++i)
+		objects.push_back({EditorObjectType::Effect, i, &effects[i].transform});
 	return objects;
 }
 
@@ -95,6 +136,8 @@ bool StageLoader::SelectEditorObject(EditorObjectType type, int index)
 	{
 		valid = index >= 0 && index < static_cast<int>(propDataList.size());
 	}
+	if (type == EditorObjectType::Effect)
+		valid = index >= 0 && index < static_cast<int>(effects.size());
 	if (!valid) return false;
 	selectedEditorObjectType = type;
 	selectedEditorObjectIndex = index;
@@ -341,12 +384,25 @@ Transform* StageLoader::GetSelectedEditorTransform()
 		selectedEditorTransform.Update();
 		return &selectedEditorTransform;
 	}
+	if (selectedEditorObjectType == EditorObjectType::Effect && selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(effects.size()))
+	{
+		auto& transform = effects[selectedEditorObjectIndex].transform;
+		transform.Update();
+		return &transform;
+	}
 	ClearEditorSelection();
 	return nullptr;
 }
 
 void StageLoader::RefreshSelectedEditorObject()
 {
+	if (selectedEditorObjectType == EditorObjectType::Effect && selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(effects.size()))
+	{
+		UpdateEffect(effects[selectedEditorObjectIndex]);
+		return;
+	}
 	if (selectedEditorObjectType == EditorObjectType::WorldWater)
 	{
 		worldWater.transform.Update();
@@ -388,6 +444,7 @@ void StageLoader::RefreshSelectedEditorObject()
 
 void StageLoader::Update()
 {
+	for (auto& value : effects) UpdateEffect(value);
 	ApplyWorldWaterData();
 	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
 		ApplyBlockedAreaData(index);
@@ -474,6 +531,18 @@ void StageLoader::DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewp
 		drawList->AddRectFilled({position.x - 5.0f, position.y - 3.0f},
 			{position.x + textSize.x + 5.0f, position.y + textSize.y + 3.0f}, IM_COL32(0, 0, 0, 170), 4.0f);
 		drawList->AddText(position, IM_COL32(255, 255, 255, 255), prop.spawnTag.c_str());
+	}
+	for (const auto& value : effects)
+	{
+		const Vector4 clip = Vector4::Transform(Vector4(value.transform.position.x,
+			value.transform.position.y, value.transform.position.z, 1.0f), viewProjection);
+		if (clip.w <= eps || clip.z < 0.0f || clip.z > clip.w) continue;
+		const ImVec2 position(
+			screenOrigin.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth,
+			screenOrigin.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight);
+		drawList->AddCircle(position, 10.0f, IM_COL32(100, 220, 255, 255), 16, 2.0f);
+		drawList->AddText({position.x + 14.0f, position.y - 7.0f},
+			IM_COL32(100, 220, 255, 255), value.effectName.c_str());
 	}
 	drawList->PopClipRect();
 }
@@ -603,7 +672,8 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 		return;
 	}
 
-	const auto factory = spawnerFactories.find(name);
+	auto factory = spawnerFactories.find(propData.spawnTag);
+	if (factory == spawnerFactories.end()) factory = spawnerFactories.find(name);
 	if (factory != spawnerFactories.end())
 	{
 		spawner->SetFactory([create = factory->second, path = propData.modelPath,
@@ -617,8 +687,8 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 			auto actor = std::make_shared<Actor>(name, "Prop", true, transform);
 			auto vmdl = actor->AddComponent<VMDL>(path);
 			vmdl->GetRenderer()->SetAttachmentLayerId(Layers::Get("Prop"));
-			RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
-			actor->AddComponent<MeshCollider>(Layers::Get("Prop"), rigidbody, vmdl->GetSharedModel(), false);
+			auto* rigidbody = actor->AddComponent<RigidbodyStatic>();
+			actor->AddComponent<MeshCollider>(Layers::Get("Prop"), rigidbody, vmdl->GetSharedModel());
 			return actor;
 		});
 	}
@@ -627,11 +697,11 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 bool StageLoader::ValidateModelName(const std::string& modelPath, const std::string& replacedPath)
 {
 	error.clear();
-	const auto path = ResourcePath::Path(ResourcePath::Short(modelPath, "Model")).lexically_normal();
+	const auto path = ResourcePath::Path(ResourceManager::ShortResourcePath(modelPath, "Model")).lexically_normal();
 	for (const PropData& prop : propDataList)
 	{
 		if (prop.modelPath == replacedPath) continue;
-		const auto existing = ResourcePath::Path(ResourcePath::Short(prop.modelPath, "Model")).lexically_normal();
+		const auto existing = ResourcePath::Path(ResourceManager::ShortResourcePath(prop.modelPath, "Model")).lexically_normal();
 		if (existing == path || existing.stem() != path.stem()) continue;
 		error = "Duplicate VMDL filename: " + path.stem().string() + " (" +
 			existing.generic_string() + " / " + path.generic_string() + ")";
@@ -644,7 +714,7 @@ std::shared_ptr<VMDLModel> StageLoader::LoadPropModel(const std::string& modelPa
 {
 	if (editorModels)
 	{
-		const auto found = editorModels->find(ResourceManager::Instance().ResolvePath(ResourcePath::Model(modelPath)));
+		const auto found = editorModels->find(ResourceManager::Instance().ResolvePath(ResourceManager::Instance().ResolveResourcePath(modelPath, ResourceManager::ResourceType::Model)));
 		if (found != editorModels->end() && found->second) return found->second->CloneRuntimeInstance(true);
 		return nullptr;
 	}
@@ -676,7 +746,7 @@ bool StageLoader::AddEditorProp(
 {
 	if (!ValidateModelName(modelPath)) return false;
 	PropData propData;
-	propData.modelPath = ResourcePath::Short(modelPath, "Model");
+	propData.modelPath = ResourceManager::ShortResourcePath(modelPath, "Model");
 	propData.editorPreview = editorModels != nullptr;
 	propData.model = LoadPropModel(modelPath);
 	if (!propData.model) return false;
@@ -750,7 +820,7 @@ bool StageLoader::ReplaceMissingModelPath(
 		PropData& propData = propDataList[index];
 		if (propData.modelPath != missingPath) continue;
 		propData.initialSpawned = false;
-		propData.modelPath = ResourcePath::Short(replacementPath, "Model");
+		propData.modelPath = ResourceManager::ShortResourcePath(replacementPath, "Model");
 		propData.model = replacement->CloneRuntimeInstance(true);
 
 		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
@@ -820,6 +890,16 @@ bool StageLoader::DrawEditorHierarchy()
 		ImGui::PopID();
 		ImGui::PopID();
 	};
+	const std::string effectLabel = ICON_FA_MAGIC " エフェクト (" +
+		std::to_string(effects.size()) + ")###Effects";
+	if (ImGui::TreeNodeEx(effectLabel.c_str(),
+		ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
+	{
+		for (int index = 0; index < static_cast<int>(effects.size()); ++index)
+			item(EditorObjectType::Effect, index, ICON_FA_MAGIC " " +
+				effects[index].effectName + " " + std::to_string(index + 1));
+		ImGui::TreePop();
+	}
 	item(EditorObjectType::WorldWater, 0, ICON_FA_WATER " ワールド水面");
 	for (int index = 0; index < static_cast<int>(playerStartTransforms.size()); ++index)
 		item(EditorObjectType::PlayerStart, index, ICON_FA_MAP_MARKER_ALT " プレイヤー初期位置 " + std::to_string(index + 1));
@@ -844,8 +924,91 @@ bool StageLoader::DrawEditorHierarchy()
 	return changed;
 }
 
+bool StageLoader::DeleteSelectedEditorObject()
+{
+	const int index = selectedEditorObjectIndex;
+	switch (selectedEditorObjectType)
+	{
+	case EditorObjectType::Prop:
+		if (index < 0 || index >= static_cast<int>(propDataList.size())) return false;
+		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
+			stage->GetActorManager().Contains(addedPropActors[index]))
+		{
+			if (auto* spawner = addedPropActors[index]->GetComponent<Spawner>())
+				spawner->ClearSummonedActors();
+			addedPropActors[index]->Destroy();
+		}
+		if (index < static_cast<int>(addedRealActors.size()))
+			addedRealActors.erase(addedRealActors.begin() + index);
+		if (index < static_cast<int>(addedPropActors.size()))
+			addedPropActors.erase(addedPropActors.begin() + index);
+		propDataList.erase(propDataList.begin() + index);
+		break;
+	case EditorObjectType::BlockedArea:
+		if (index < 0 || index >= static_cast<int>(blockedAreas.size())) return false;
+		if (index < static_cast<int>(blockedAreaActors.size()))
+		{
+			if (blockedAreaActors[index]) blockedAreaActors[index]->Destroy();
+			blockedAreaActors.erase(blockedAreaActors.begin() + index);
+		}
+		blockedAreas.erase(blockedAreas.begin() + index);
+		break;
+	case EditorObjectType::PlayerStart:
+		if (index < 0 || index >= static_cast<int>(playerStartTransforms.size())) return false;
+		playerStartTransforms.erase(playerStartTransforms.begin() + index);
+		break;
+	case EditorObjectType::Effect:
+		if (index < 0 || index >= static_cast<int>(effects.size())) return false;
+		if (effects[index].effect && effects[index].handle >= 0)
+			effects[index].effect->Stop(effects[index].handle);
+		effects.erase(effects.begin() + index);
+		break;
+	case EditorObjectType::WorldWater:
+		if (!worldWater.enabled) return false;
+		worldWater.enabled = false;
+		ApplyWorldWaterData();
+		break;
+	default: return false;
+	}
+	ClearEditorSelection();
+	return true;
+}
+
 void StageLoader::DrawSelectedEditorInspector()
 {
+	if (selectedEditorObjectType == EditorObjectType::Effect && selectedEditorObjectIndex >= 0 &&
+		selectedEditorObjectIndex < static_cast<int>(effects.size()))
+	{
+		auto& value = effects[selectedEditorObjectIndex];
+		if (ImGui::BeginCombo((const char*)u8"エフェクト", value.effectName.c_str()))
+		{
+			for (const auto& candidate : EffectManager::GetEffectPaths())
+				if (ImGui::Selectable(candidate.c_str(), candidate == value.effectName))
+				{
+					if (value.effect && value.handle >= 0) value.effect->Stop(value.handle);
+					value.effect.reset();
+					value.effectName = candidate;
+					value.handle = -1;
+					value.started = false;
+				}
+			ImGui::EndCombo();
+		}
+		value.transform.DrawGUI();
+		ImGui::Checkbox((const char*)u8"ループ再生", &value.loop);
+		if (ImGui::Button((const char*)u8"再生"))
+		{
+			if (value.effect && value.handle >= 0) value.effect->Stop(value.handle);
+			value.started = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button((const char*)u8"削除"))
+		{
+			DeleteSelectedEditorObject();
+			return;
+		}
+		UpdateEffect(value);
+		return;
+	}
 	if (selectedEditorObjectType == EditorObjectType::None)
 	{
 		ImGui::TextDisabled((const char*)u8"配置物を選択してください");
@@ -881,6 +1044,14 @@ void StageLoader::DrawSelectedEditorInspector()
 			ImGui::InputText((const char*)(ICON_FA_COG " " u8"名前"), &area.name);
 			area.transform.DrawGUI();
 			ApplyBlockedAreaData(index);
+			if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
+			{
+				DeleteSelectedEditorObject();
+				ImGui::TreePop();
+				ImGui::PopID();
+				break;
+			}
+			ImGui::SameLine();
 			if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
 			{
 				BlockedAreaData copy = area;
@@ -889,17 +1060,6 @@ void StageLoader::DrawSelectedEditorInspector()
 				blockedAreaActors.insert(blockedAreaActors.begin() + index + 1,
 					CreateBlockedAreaActor(blockedAreas[index + 1]));
 				SelectEditorObject(EditorObjectType::BlockedArea, index + 1);
-				ImGui::TreePop();
-				ImGui::PopID();
-				break;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
-			{
-				if (blockedAreaActors[index]) blockedAreaActors[index]->Destroy();
-				blockedAreaActors.erase(blockedAreaActors.begin() + index);
-				blockedAreas.erase(blockedAreas.begin() + index);
-				ClearEditorSelection();
 				ImGui::TreePop();
 				ImGui::PopID();
 				break;
@@ -936,9 +1096,9 @@ void StageLoader::DrawSelectedEditorInspector()
 		if (open)
 		{
 			playerStart.DrawGUI(true);
-			duplicate |= ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"));
-			ImGui::SameLine();
 			remove |= ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除"));
+			ImGui::SameLine();
+			duplicate |= ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"));
 			ImGui::TreePop();
 		}
 		ImGui::PopID();
@@ -951,12 +1111,7 @@ void StageLoader::DrawSelectedEditorInspector()
 		}
 		if (remove)
 		{
-			playerStartTransforms.erase(playerStartTransforms.begin() + index);
-			if (selectedEditorObjectType == EditorObjectType::PlayerStart)
-			{
-				if (selectedEditorObjectIndex == index) ClearEditorSelection();
-				else if (selectedEditorObjectIndex > index) --selectedEditorObjectIndex;
-			}
+			DeleteSelectedEditorObject();
 			break;
 		}
 	}
@@ -1044,6 +1199,14 @@ bool StageLoader::DrawPropEditor(int index)
 			ConfigureSpawner(addedPropActors[index], propData);
 	ImGui::Text((const char*)u8"生成対象: %s", std::filesystem::path(propData.modelPath).stem().string().c_str());
 
+	if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
+	{
+		DeleteSelectedEditorObject();
+		ImGui::TreePop();
+		ImGui::PopID();
+		return true;
+	}
+	ImGui::SameLine();
 	if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
 	{
 		PropData copy = propData;
@@ -1054,29 +1217,6 @@ bool StageLoader::DrawPropEditor(int index)
 		addedRealActors.insert(addedRealActors.begin() + index + 1, actor);
 		addedPropActors.insert(addedPropActors.begin() + index + 1, actor);
 		SelectEditorObject(EditorObjectType::Prop, index + 1);
-		ImGui::TreePop();
-		ImGui::PopID();
-		return true;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
-	{
-		if (selectedEditorObjectType == EditorObjectType::Prop)
-		{
-			if (selectedEditorObjectIndex == index) ClearEditorSelection();
-			else if (selectedEditorObjectIndex > index) --selectedEditorObjectIndex;
-		}
-		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
-			stage->GetActorManager().Contains(addedPropActors[index]))
-		{
-			if (Spawner* spawner = addedPropActors[index]->GetComponent<Spawner>()) spawner->ClearSummonedActors();
-			addedPropActors[index]->Destroy();
-		}
-		if (index < static_cast<int>(addedRealActors.size()))
-			addedRealActors.erase(addedRealActors.begin() + index);
-		if (index < static_cast<int>(addedPropActors.size()))
-			addedPropActors.erase(addedPropActors.begin() + index);
-		propDataList.erase(propDataList.begin() + index);
 		ImGui::TreePop();
 		ImGui::PopID();
 		return true;
@@ -1124,6 +1264,7 @@ void StageLoader::LoadJson()
 		return;
 	}
 
+	StopEffects();
 	propDataList.clear();
 	playerStartTransforms.clear();
 	blockedAreas.clear();
@@ -1197,7 +1338,7 @@ void StageLoader::LoadJson()
 				LoadTransformJson(propJson["transform"], propData.transform);
 			propData.editorPreview = editorModels != nullptr;
 
-			propData.modelPath = ResourcePath::Short(propJson.value("modelPath", ""), "Model");
+			propData.modelPath = ResourceManager::ShortResourcePath(propJson.value("modelPath", ""), "Model");
 			propData.spawnTag = propJson.value("spawnTag", std::string());
 			if (!propData.modelPath.empty())
 				propData.model = LoadPropModel(propData.modelPath);
@@ -1213,6 +1354,17 @@ void StageLoader::LoadJson()
 		}
 	}
 
+	for (const auto& effectJson : root.value("effects", json::array()))
+	{
+		if (!effectJson.is_object()) continue;
+		EffectData value;
+		value.effectName = effectJson.value("effectName", std::string());
+		value.loop = effectJson.value("loop", true);
+		if (effectJson.contains("transform")) LoadTransformJson(effectJson["transform"], value.transform);
+		if (value.effectName.empty()) continue;
+		effects.push_back(std::move(value));
+		UpdateEffect(effects.back());
+	}
 	CreateWorldWaterActor();
 }
 
@@ -1283,6 +1435,18 @@ void StageLoader::SaveJson()
 		root["blockedAreas"].push_back(std::move(areaJson));
 	}
 
+	root["effects"] = json::array();
+	for (const auto& value : effects)
+	{
+		const auto& t = value.transform;
+		json entry;
+		entry["effectName"] = value.effectName;
+		entry["loop"] = value.loop;
+		entry["transform"]["position"] = {{"x", t.position.x}, {"y", t.position.y}, {"z", t.position.z}};
+		entry["transform"]["rotation"] = {{"x", t.rotation.x}, {"y", t.rotation.y}, {"z", t.rotation.z}, {"w", t.rotation.w}};
+		entry["transform"]["scale"] = {{"x", t.scale.x}, {"y", t.scale.y}, {"z", t.scale.z}};
+		root["effects"].push_back(std::move(entry));
+	}
 	root["props"] = json::array();
 
 	for (const auto& propData : propDataList)
@@ -1302,7 +1466,7 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["y"] = propData.transform.scale.y;
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
 
-		propJson["modelPath"] = ResourcePath::Short(propData.modelPath, "Model");
+		propJson["modelPath"] = ResourceManager::ShortResourcePath(propData.modelPath, "Model");
 		propJson["spawnTag"] = propData.spawnTag;
 		root["props"].push_back(propJson);
 	}

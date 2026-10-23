@@ -27,6 +27,7 @@ public:
 	void SetRotation(float yaw, float pitch, float roll);
 
 	void SetKinematic(bool isKinematic);
+	void SetMaxDepenetrationVelocity(float velocity);
 	void AddForce(const Vector3& force);
 
 	const Vector3 GetVelocity() const { return Conv::ToVector3(rb->getLinearVelocity()); }
@@ -36,4 +37,5 @@ public:
 protected:
 	PxRigidDynamic* rb = nullptr;
 	bool isKinematic = false;
+	float maxDepenetrationVelocity = -1.0f;
 };

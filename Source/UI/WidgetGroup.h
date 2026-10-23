@@ -29,10 +29,3 @@ protected:
 private:
 	std::vector<std::shared_ptr<Widget>> children;
 };
-
-// 画面単位のルートWidgetGroup
-class HUDWidget : public WidgetGroup
-{
-public:
-	HUDWidget(const std::string& name) : WidgetGroup(name) {}
-};

@@ -30,7 +30,7 @@ bool LuaScript::Load(const std::string& path)
 	// 見つからない場合とReleaseは、実行ファイル側のキャッシュを使う。
 	// 解決した絶対パスを保持し、読み込みと更新日時の監視を同じファイルへ向ける。
 	scriptPath = std::filesystem::absolute(ResourceManager::ResolveSourcePath(
-		ResourcePath::Path(ResourcePath::AI(path))))
+		ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::AI))))
 		.lexically_normal().string();
 	hasWriteTime = false;
 	return Reload();

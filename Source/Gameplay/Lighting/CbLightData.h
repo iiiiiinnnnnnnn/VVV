@@ -5,9 +5,11 @@
 // コンスタントバッファに渡す用のライトデータ
 struct CbLightData
 {
-	static constexpr int MaxPointLights = 100;
-	static constexpr int MaxSpotLights = 32;
-	static constexpr int MaxAreaLights = 32;
+	static constexpr int MaxLights = 150;
+	static constexpr int MaxDirectionalLights = MaxLights;
+	static constexpr int MaxPointLights = MaxLights;
+	static constexpr int MaxSpotLights = MaxLights;
+	static constexpr int MaxAreaLights = MaxLights;
 
 	struct CbDirectionalLight
 	{
@@ -15,7 +17,7 @@ struct CbLightData
 		float DUMMY;
 
 		Color color;
-	} directionalLight;
+	} directionalLights[MaxDirectionalLights];
 
 	struct CbPointLight
 	{
@@ -60,5 +62,7 @@ struct CbLightData
 	int pointLightCount;
 	int spotLightCount;
 	int areaLightCount;
-	float DUMMY;
+	int directionalLightCount;
 };
+
+static_assert(sizeof(CbLightData) == 28832);

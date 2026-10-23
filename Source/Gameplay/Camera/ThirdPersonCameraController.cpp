@@ -1,9 +1,9 @@
-// ThirdPersonCameraController.cpp
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/Actor.h"
+#include "Physics/Core/PhysicsComponent.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* character)
 	: CameraController(owner)
@@ -15,7 +15,7 @@ void ThirdPersonCameraController::RequestSkillFocus(float duration)
 {
 	if (duration <= 0.0f) return;
 	skillFocusDuration = duration;
-	skillFocusTimer = duration;
+	skillFocusTimer.Reset(duration);
 }
 
 void ThirdPersonCameraController::RequestBossDefeatFocus(Actor* target, float duration)
@@ -23,7 +23,7 @@ void ThirdPersonCameraController::RequestBossDefeatFocus(Actor* target, float du
 	if (!target || duration <= 0.0f) return;
 	bossDefeatTarget = target;
 	bossDefeatFocusDuration = duration;
-	bossDefeatFocusTimer = duration;
+	bossDefeatFocusTimer.Reset(duration);
 }
 
 void ThirdPersonCameraController::RequestAlignToPlayerForward()
@@ -41,16 +41,15 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 		minArmLength,
 		maxArmLength);
 	float skillFocusWeight = 0.0f;
-	if (skillFocusTimer > 0.0f && skillFocusDuration > 0.0f)
+	if (skillFocusTimer.GetRemaining() > 0.0f && skillFocusDuration > 0.0f)
 	{
-		const float elapsed = skillFocusDuration - skillFocusTimer;
+		const float elapsed = skillFocusDuration - skillFocusTimer.GetRemaining();
 		const float fadeIn = std::clamp(elapsed / 0.12f, 0.0f, 1.0f);
-		const float fadeOut = std::clamp(skillFocusTimer / 0.28f, 0.0f, 1.0f);
+		const float fadeOut = std::clamp(skillFocusTimer.GetRemaining() / 0.28f, 0.0f, 1.0f);
 		skillFocusWeight = std::min(fadeIn, fadeOut);
 		skillFocusWeight =
 			skillFocusWeight * skillFocusWeight * (3.0f - 2.0f * skillFocusWeight);
-		skillFocusTimer = std::max(
-			skillFocusTimer - Game::Time::unscaledDeltaTime, 0.0f);
+		skillFocusTimer.Update(Game::Time::unscaledDeltaTime);
 	}
 	const float targetArmLength = std::lerp(
 		baseArmLength,
@@ -102,11 +101,11 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 	float bossFocusFov = fovYDegrees;
 	Vector3 cameraEye = finalEye;
 	Vector3 cameraFocus = currentFocus;
-	if (bossDefeatTarget && bossDefeatFocusTimer > 0.0f && bossDefeatFocusDuration > 0.0f)
+	if (bossDefeatTarget && bossDefeatFocusTimer.GetRemaining() > 0.0f && bossDefeatFocusDuration > 0.0f)
 	{
-		const float elapsed = bossDefeatFocusDuration - bossDefeatFocusTimer;
+		const float elapsed = bossDefeatFocusDuration - bossDefeatFocusTimer.GetRemaining();
 		const float fadeIn = std::clamp(elapsed / 0.55f, 0.0f, 1.0f);
-		const float fadeOut = std::clamp(bossDefeatFocusTimer / 0.9f, 0.0f, 1.0f);
+		const float fadeOut = std::clamp(bossDefeatFocusTimer.GetRemaining() / 0.9f, 0.0f, 1.0f);
 		bossFocusWeight = std::min(fadeIn, fadeOut);
 		bossFocusWeight = bossFocusWeight * bossFocusWeight *
 			(3.0f - 2.0f * bossFocusWeight);
@@ -126,9 +125,8 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 		cameraFocus = Vector3::Lerp(currentFocus, cinematicFocus, bossFocusWeight);
 		bossFocusFov = std::lerp(fovYDegrees, 41.0f, bossFocusWeight);
 
-		bossDefeatFocusTimer = std::max(
-			bossDefeatFocusTimer - Game::Time::unscaledDeltaTime, 0.0f);
-		if (bossDefeatFocusTimer <= 0.0f) bossDefeatTarget = nullptr;
+		bossDefeatFocusTimer.Update(Game::Time::unscaledDeltaTime);
+		if (bossDefeatFocusTimer.GetRemaining() <= 0.0f) bossDefeatTarget = nullptr;
 	}
 
     // エフェクト系反映
@@ -143,7 +141,7 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         farClip
     );
 
-    // シェイクとFOV変更を反映した最終位置で、近クリップ面まで地形から守る。
+    // シェイクとFOV変更を反映した最終位置で、近クリップ面まで地形・Propから守る
     const Vector3 actualFocus = camera.GetFocus();
     const Vector3 actualEye = camera.GetEye();
     Vector3 collisionDirection = actualEye - actualFocus;
@@ -156,13 +154,45 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
         const float planeRadius = sqrtf(nearClip * nearClip +
             planeHeight * planeHeight * (1.0f + aspectRatio * aspectRatio));
         const float radius = std::max(cameraCollisionRadius, planeRadius);
+        struct CameraCollisionFilter : PxQueryFilterCallback
+        {
+            const Object* player = nullptr;
+            LayerId propLayer = 0;
+
+            PxQueryHitType::Enum preFilter(const PxFilterData&, const PxShape* shape,
+                const PxRigidActor* actor, PxHitFlags&) override
+            {
+                if (!shape || !actor || (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE))
+                    return PxQueryHitType::eNONE;
+
+                const auto* collider = static_cast<const PhysicsComponent*>(shape->userData);
+                if (collider && (!PhysicsComponent::IsLive(collider) || !collider->IsActive()))
+                    return PxQueryHitType::eNONE;
+                const Object* owner = collider ? collider->GetOwner() : static_cast<const Object*>(actor->userData);
+                if (owner && (owner == player || !owner->IsActive() || owner->IsPendingDestroy()))
+                    return PxQueryHitType::eNONE;
+                if (actor->is<PxRigidStatic>()) return PxQueryHitType::eBLOCK;
+                if ((collider && collider->GetLayerId() == propLayer) || (owner && owner->CompareTag("Prop")))
+                    return PxQueryHitType::eBLOCK;
+                return PxQueryHitType::eNONE;
+            }
+
+            PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&,
+                const PxShape*, const PxRigidActor*) override
+            {
+                return PxQueryHitType::eBLOCK;
+            }
+        } collisionFilter;
+        collisionFilter.player = character;
+        collisionFilter.propLayer = Layers::Get("Prop");
+
         PxSweepBuffer hit;
         PxQueryFilterData filter;
-        filter.flags = PxQueryFlag::eSTATIC;
+        filter.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
         if (scene->sweep(PxSphereGeometry(radius),
             PxTransform(PxVec3(actualFocus.x, actualFocus.y, actualFocus.z)),
             PxVec3(collisionDirection.x, collisionDirection.y, collisionDirection.z),
-            collisionDistance, hit, PxHitFlag::eDEFAULT | PxHitFlag::eMESH_BOTH_SIDES, filter))
+            collisionDistance, hit, PxHitFlag::eDEFAULT | PxHitFlag::eMESH_BOTH_SIDES, filter, &collisionFilter) && hit.hasBlock)
         {
             const float safeDistance = std::max(hit.block.distance - 0.03f, 0.0f);
             const Vector3 safeEye = actualFocus + collisionDirection * safeDistance;
@@ -181,7 +211,7 @@ void ThirdPersonCameraController::UpdateCamera()
 	GamePad& gamePad = Game::Input::Instance().GetGamePad();
     mouse.SetCursorLock(true);
     mouse.SetCursorVisible(false);
-	if (bossDefeatTarget && bossDefeatFocusTimer > 0.0f)
+	if (bossDefeatTarget && bossDefeatFocusTimer.GetRemaining() > 0.0f)
 	{
 		character->SetFirstPerson(false);
 		return;

@@ -1548,7 +1548,7 @@
                             "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
-                            "exitTime": 0.14000000059604645,
+                            "exitTime": 0.10000000149011612,
                             "hasExitTime": true,
                             "isAny": false,
                             "priority": 0,
@@ -1635,7 +1635,7 @@
     ],
     "parameters": [
         {
-            "name": "IsDead",
+            "name": "SkillContinue",
             "type": "bool",
             "value": false
         },
@@ -1645,7 +1645,7 @@
             "value": 1
         },
         {
-            "name": "SkillContinue",
+            "name": "IsDead",
             "type": "bool",
             "value": false
         },
@@ -1680,8 +1680,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QB",
         "QR",
+        "QB",
         "QL"
     ]
 }

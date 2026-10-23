@@ -1,6 +1,7 @@
 #include "UI/UIFont.h"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <vector>
 #include <filesystem>
@@ -13,6 +14,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Resource/Texture.h"
+#include "Resource/ResourceManager.h"
 
 UIFont& UIFont::Default()
 {
@@ -24,7 +26,9 @@ std::shared_ptr<UIFont> UIFont::Load(const std::string& path)
 {
 	static std::mutex fontMutex;
 	static std::unordered_map<std::string, std::shared_ptr<UIFont>> fonts;
-	const std::string key = std::filesystem::path(path).lexically_normal().generic_string();
+	const auto& resources = ResourceManager::Instance();
+	const std::string key = resources.ResolvePath(
+		resources.ResolveResourcePath(path, ResourceManager::ResourceType::Font));
 	std::lock_guard<std::mutex> lock(fontMutex);
 	if (const auto it = fonts.find(key); it != fonts.end()) return it->second;
 	auto font = std::shared_ptr<UIFont>(new UIFont(key));
@@ -35,7 +39,10 @@ std::shared_ptr<UIFont> UIFont::Load(const std::string& path)
 
 UIFont::UIFont(const std::string& path)
 {
-	std::ifstream stream(path, std::ios::binary | std::ios::ate);
+	const auto& resources = ResourceManager::Instance();
+	const auto resolved = resources.ResolvePath(
+		resources.ResolveResourcePath(path, ResourceManager::ResourceType::Font));
+	std::ifstream stream(resolved, std::ios::binary | std::ios::ate);
 	if (!stream) return;
 	const std::streamsize length = stream.tellg();
 	if (length <= 0) return;
@@ -143,10 +150,14 @@ float UIFont::MeasureWidth(const std::string& text, float fontSize) const
 }
 
 void UIFont::DrawFont(const std::string& text, const Vector2& position, const Vector2& boxSize,
-	float fontSize, const Color& color, UITextAlignment alignment) const
+	float fontSize, const Color& color, UITextAlignment alignment,
+	float angle, const Vector2& rotationCenter) const
 {
 	if (!IsReady() || fontSize <= 0.0f) return;
 	const float scale = fontSize / bakedPixelSize;
+	const float radians = DirectX::XMConvertToRadians(angle);
+	const float cosine = std::cos(radians);
+	const float sine = std::sin(radians);
 	const size_t lineCount = 1 + std::count(text.begin(), text.end(), '\n');
 	float penY = position.y + (boxSize.y - fontSize - (lineCount - 1) * lineHeight * scale) * 0.5f
 		+ baseline * scale;
@@ -166,9 +177,19 @@ void UIFont::DrawFont(const std::string& text, const Vector2& position, const Ve
 			if (c < 32) continue;
 			const Glyph& glyph = GetGlyph(c);
 			if (glyph.texture)
+			{
+				const Vector2 size = glyph.sourceSize * scale;
+				const Vector2 center = Vector2(penX + glyph.offset.x * scale,
+					penY + glyph.offset.y * scale) + size * 0.5f;
+				const Vector2 offset = center - rotationCenter;
+				const Vector2 rotatedCenter = rotationCenter + Vector2(
+					offset.x * cosine - offset.y * sine,
+					offset.x * sine + offset.y * cosine);
+				const Vector2 topLeft = rotatedCenter - size * 0.5f;
 				renderer->Draw(SpriteShaderId::Basic, glyph.texture,
-					{penX + glyph.offset.x * scale, penY + glyph.offset.y * scale, 0.0f},
-					glyph.sourceSize * scale, glyph.sourcePosition, glyph.sourceSize, 0.0f, color);
+					{topLeft.x, topLeft.y, 0.0f}, size,
+					glyph.sourcePosition, glyph.sourceSize, angle, color);
+			}
 			penX += glyph.advance * scale;
 		}
 		if (end == std::string::npos) break;

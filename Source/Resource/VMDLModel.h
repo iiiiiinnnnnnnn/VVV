@@ -828,6 +828,7 @@ class VMDLModel
 
 	// 指定メッシュを削除し、モーフとマテリアルの参照番号を詰め直す
 	bool RemoveMeshes(const std::vector<int>& meshIndices);
+	bool RemoveNodes(const std::vector<int>& nodeIndices);
 	bool ExternalizeMeshes(const std::string& path, const std::vector<int>& meshIndices,
 		int activationMorphIndex);
 	bool RestoreExternalMeshes(int meshIndex, const std::filesystem::path& vmshPath,

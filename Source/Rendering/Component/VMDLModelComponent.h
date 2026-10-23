@@ -22,7 +22,8 @@ class VMDLModelComponent : public Component
 {
   public:
 	VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel> model,
-		ModelShaderId shaderId = ModelShaderId::VMat, VMatRenderParams renderParams = {});
+		ModelShaderId shaderId = ModelShaderId::VMat, VMatRenderParams renderParams = {},
+		bool buildEmbeddedColliders = true);
 
 	void OnAwake() override;
 	void LateUpdate() override;
@@ -88,6 +89,7 @@ class VMDLModelComponent : public Component
 	bool autoUpdateTransform = true;
 	LayerId attachmentLayerId = 0;
 	bool buildEmbeddedTrails = true;
+	bool buildEmbeddedColliders = true;
 	bool attachmentsBuilt = false;
 	bool animationControlsApplied = false;
 	float modelYawOffset = 0.0f;

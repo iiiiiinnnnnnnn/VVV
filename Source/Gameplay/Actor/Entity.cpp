@@ -7,8 +7,7 @@ using std::min;
 
 void Entity::Cooldowns::Update()
 {
-    if (damageCooldown >= 0.0f)
-        damageCooldown -= Game::Time::unscaledDeltaTime;
+    damageCooldown.Update(Game::Time::unscaledDeltaTime);
 }
 
 void Entity::SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale)
@@ -26,9 +25,9 @@ void Entity::OnDrawGUI()
 {
     if (ImGui::TreeNode("Entity Info"))
     {
-        ImGui::Text("Life: %.1f / %.1f", life, maxLife);
-        ImGui::Text("Damage Cooldown: %.2f", cooldowns.damageCooldown);
-        ImGui::Text("IsDead: %s", IsDead() ? "Yes" : "No");
+        ImGui::Text((const char*)u8"ライフ: %.1f / %.1f", life, maxLife);
+		ImGui::Text((const char*)u8"ダメージクールダウン: %.2f", cooldowns.damageCooldown.GetRemaining());
+		ImGui::Text((const char*)u8"死亡: %s", IsDead() ? "Yes" : "No");
         ImGui::TreePop();
     }
 }
@@ -47,7 +46,7 @@ void Entity::OnUpdate()
 // ダメージを受ける
 void Entity::TakeDamage(const DamageData& damageData)
 {
-    if (!damageData.isForceDamage && cooldowns.damageCooldown > 0.0f) return;
+    if (!damageData.isForceDamage && cooldowns.damageCooldown.GetRemaining() > 0.0f) return;
     if (IsDead()) return;
 
     if (damageData.knockBackPower > 0 && damageData.hitPosition.has_value())
@@ -62,7 +61,7 @@ void Entity::TakeDamage(const DamageData& damageData)
     life -= damageData.damage;
     life = max(life, 0.0f);
 
-    cooldowns.damageCooldown = cooldowns.DamageCooldownDuration;
+    cooldowns.damageCooldown.Reset(cooldowns.DamageCooldownDuration);
 
     OnDamaged(damageData);
 

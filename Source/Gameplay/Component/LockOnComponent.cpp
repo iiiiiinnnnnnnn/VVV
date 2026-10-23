@@ -23,9 +23,7 @@ LockOnComponent::~LockOnComponent()
 
 void LockOnComponent::OnUpdate()
 {
-	rotationPauseTimer = std::max(
-		rotationPauseTimer - Game::Time::deltaTime,
-		0.0f);
+	rotationPauseTimer.Update(Game::Time::deltaTime);
 
 	if (!target) return;
 	if (!IsTargetValid())
@@ -44,7 +42,7 @@ void LockOnComponent::OnUpdate()
 		ClearTarget();
 		return;
 	}
-	if (!aimActive || ownerEntity->IsDead() || rotationPaused || rotationPauseTimer > 0.0f) return;
+	if (!aimActive || ownerEntity->IsDead() || rotationPaused || rotationPauseTimer.GetRemaining() > 0.0f) return;
 	if (direction.LengthSquared() <= eps) return;
 	direction.Normalize();
 
@@ -124,7 +122,7 @@ void LockOnComponent::OnDrawGUI()
 	ImGui::DragFloat("Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::Text("Aim Active: %s", aimActive ? "true" : "false");
 	ImGui::Text("Rotation Paused: %s", rotationPaused ? "true" : "false");
-	ImGui::Text("Rotation Pause: %.2f", rotationPauseTimer);
+	ImGui::Text("Rotation Pause: %.2f", rotationPauseTimer.GetRemaining());
 	if (target && ImGui::Button("Clear Target")) ClearTarget();
 }
 
@@ -216,7 +214,7 @@ void LockOnComponent::ClearTarget()
 
 void LockOnComponent::PauseRotation(float duration)
 {
-	rotationPauseTimer = std::max(rotationPauseTimer, duration);
+	rotationPauseTimer.Extend(duration);
 }
 
 bool LockOnComponent::IsTargetValid() const

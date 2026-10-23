@@ -16,7 +16,7 @@ class PhysicsComponent;
 class VMDL : public Component
 {
   public:
-	VMDL(Object* owner, const std::string& path);
+	VMDL(Object* owner, const std::string& path, bool buildEmbeddedColliders = true);
 	VMDL(Object* owner, std::shared_ptr<VMDLModel> model);
 
 	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDL"; }
@@ -53,7 +53,7 @@ class VMDL : public Component
 	}
 
   private:
-	void BuildModelComponents();
+	void BuildModelComponents(bool buildEmbeddedColliders = true);
 	LayerId GetAttachmentLayer() const;
 
 	std::string path;

@@ -1,6 +1,9 @@
 ﻿// Scene.h
 #pragma once
+#include <cstdio>
 #include <memory>
+#include <source_location>
+#include <string_view>
 #include <optional>
 #include <string>
 #include <vector>
@@ -21,6 +24,27 @@ class VMDLModel;
 class Scene
 {
 public:
+	struct LogFormat
+	{
+		const char* text;
+		std::source_location location;
+
+		LogFormat(const char* value,
+			std::source_location source = std::source_location::current())
+			: text(value), location(source) {}
+	};
+
+	template<class... Args>
+	static void Log(LogFormat format, Args... args)
+	{
+		const int length = std::snprintf(nullptr, 0, format.text, args...);
+		if (length < 0) return;
+		std::string message(static_cast<size_t>(length) + 1, '\0');
+		std::snprintf(message.data(), message.size(), format.text, args...);
+		message.resize(length);
+		WriteLog(message, format.location);
+	}
+
 	enum class MouseCursorMode
 	{
 		VisibleFree,
@@ -29,6 +53,9 @@ public:
 	};
 
 	Scene();
+	// 初期化・終了処理は一度だけ実行する。再使用時は新しいインスタンスを生成する。
+	void Init();
+	void Uninit();
 
 	virtual ~Scene();
 
@@ -53,6 +80,10 @@ public:
 	}
 
 private:
+	static void WriteLog(std::string_view message, const std::source_location& location);
+
+	bool initialized = false;
+	bool uninitialized = false;
 	std::unique_ptr<Animator> animatorEditor;
 	std::weak_ptr<Actor> liveAnimatorOwner;
 	std::weak_ptr<Actor> pendingLiveAnimatorOwner;
@@ -70,6 +101,8 @@ protected:
 	virtual MouseCursorMode GetMouseCursorMode() const = 0;
 	void SetHudMouseCursorMode(MouseCursorMode mode) { hudMouseCursorMode = mode; }
 	void ClearHudMouseCursorMode() { hudMouseCursorMode.reset(); }
+	virtual void OnInit() {}
+	virtual void OnUninit() {}
 	virtual void OnUpdate() {}
 	virtual void ToggleDebugDisplay();
 	virtual void ConfigureRenderSettings(RenderSettings&) {}

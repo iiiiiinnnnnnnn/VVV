@@ -1,333 +1,108 @@
 #include "Gameplay/Scene/TitleScene.h"
 
-#include <algorithm>
-#include <cmath>
 #include <windows.h>
-
-#include "Application/Time/GameTime.h"
-#include "Audio/SoundSystem.h"
-#include "Animation/Animator.h"
-#include "Gameplay/Actor/Actor.h"
-#include "Gameplay/Camera/Camera.h"
+#include "Core/Foundation/Common.h"
+#include "Gameplay/Player/DummyPlayer.h"
+#include "Gameplay/Camera/TitleCamera.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
+#include "Gameplay/Scene/VmdlEditorScene.h"
+#include "Gameplay/Scene/VstgEditorScene.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Stage.h"
-#include "Rendering/Component/SpriteRenderComponent.h"
-#include "Rendering/Component/VMDL.h"
 #include "Rendering/Core/Graphics.h"
-#include "UI/SpriteWidget.h"
-#include "UI/Button.h"
-#include "UI/GaugeHUD.h"
-#include "UI/HUDWidget.h"
-#include "UI/TextWidget.h"
-#include "UI/Widget.h"
 
-TitleScene::TitleScene()
+TitleScene::TitleScene() = default;
+
+TitleScene::~TitleScene()
+{
+	Uninit();
+}
+
+void TitleScene::OnUninit()
+{
+	dummyPlayer.reset();
+	titleHud.reset();
+}
+
+void TitleScene::OnInit()
 {
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(true);
 	graphics.SetWindowMovementLocked(true);
-	// タイトルでは通常UIを優先し、F2が押されたときだけエディタを開く
 	showGameEditorGUI = false;
-
 	CreateTitleWorld();
-
-	const auto makeFill = [](const char* name, const Color& color)
-	{
-		auto widget = std::make_shared<Widget>(name);
-		widget->AddComponent<SpriteRenderComponent>(
-			std::make_shared<Texture>(Color(1, 1, 1, 1)),
-			SpriteShaderId::Basic, color);
-		widget->SetAffectedByPostProcess(false);
-		return widget;
-	};
-	const auto addText = [](const std::shared_ptr<HUDWidget>& parent,
-		const char* name, const char* text, float fontSize)
-	{
-		auto widget = std::make_shared<TextWidget>(name, text, fontSize);
-		parent->AddChild(widget);
-		return widget;
-	};
-
-	// タイトル画面もポーズ画面と同じCanvas構成と見た目に統一する。
-	titleHud = std::make_shared<HUDWidget>("HUD / Title Menu");
-	mainHud = std::make_shared<HUDWidget>("Main Menu");
-	controlsHud = std::make_shared<HUDWidget>("Controls");
-	optionsHud = std::make_shared<HUDWidget>("Options");
-	dimmer = makeFill("Background Dimmer", Color(0.01f, 0.02f, 0.04f, 0.42f));
-	titleHud->AddChild(dimmer);
-	titleHud->AddChild(mainHud);
-	titleHud->AddChild(controlsHud);
-	titleHud->AddChild(optionsHud);
-
-	menuHeader = addText(mainHud, "Header", "MAIN MENU", 58.0f);
-	menuHeader->SetColor(Color(0.88f, 0.94f, 1.0f, 1.0f));
-	const char* labels[] = {"PLAY", "CONTROLS", "OPTIONS", "EXIT"};
-	for (const char* label : labels)
-	{
-		auto button = std::make_shared<Button>(std::string("Button / ") + label, label);
-		button->SetSelectionTexture("Resources/UI/pause_selection.png");
-		button->SetSelectionSourceRect({100.0f, 260.0f}, {1900.0f, 240.0f});
-		button->SetFontSize(44.0f);
-		mainHud->AddChild(button);
-		menuButtons.push_back(button);
-	}
-	menuButtons[0]->SetOnClick([this]
-	{
-		if (!loadRequested)
-			loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
-	});
-	menuButtons[1]->SetOnClick([this]
-	{
-		menuSelection = 1;
-		SetMenuPage(MenuPage::Controls);
-	});
-	menuButtons[2]->SetOnClick([this]
-	{
-		menuSelection = 2;
-		SetMenuPage(MenuPage::Options);
-	});
-	menuButtons[3]->SetOnClick([this]
-	{
-		menuSelection = 3;
-		RequestExit();
-	});
-
-	addText(controlsHud, "Controls Header", "CONTROLS", 52.0f);
-	const char* controlRows[] = {
-		"MOVE                 W A S D  /  LEFT STICK",
-		"CAMERA               MOUSE  /  RIGHT STICK",
-		"SPRINT               SHIFT  /  L3",
-		"ATTACK               LEFT CLICK  /  A",
-		"DODGE                SPACE  /  LT",
-		"CROUCH               CTRL  /  R3"
-	};
-	for (int i = 0; i < 6; ++i)
-		addText(controlsHud, (std::string("Control Row ") + std::to_string(i)).c_str(),
-			controlRows[i], 29.0f);
-
-	addText(optionsHud, "Options Header", "OPTIONS", 52.0f);
-	addText(optionsHud, "Volume Label", "MASTER VOLUME", 31.0f);
-	volumeGauge = std::make_shared<GaugeHUD>("Master Volume Gauge");
-	volumeGauge->SetFillRect({0.0f, 0.35f}, {1.0f, 0.3f});
-	volumeGauge->SetValueSmoothingSpeed(12.0f);
-	volumeGauge->SetOnValueChanged([](float ratio)
-	{
-		SoundSystem::Instance().SetMasterVolume(ratio);
-	});
-	volumeGauge->SetValueImmediate(SoundSystem::Instance().GetMasterVolume());
-	optionsHud->AddChild(volumeGauge);
-	addText(optionsHud, "Options Help", "LEFT / RIGHT  ADJUST", 23.0f);
-
+	titleHud = std::make_shared<TitleHUD>([this](int index) { OnMenuSelected(index); });
 	widgetManager.Register(titleHud);
-	SetMenuPage(MenuPage::Main);
+}
 
-	fadeOverlay = std::make_shared<Widget>("Title Fade");
-	fadeOverlay->AddComponent<SpriteRenderComponent>(
-		std::make_shared<Texture>(Color(1, 1, 1, 1)),
-		SpriteShaderId::Basic,
-		Color(0, 0, 0, 1));
-	fadeOverlay->SetAffectedByPostProcess(false);
-	widgetManager.Register(fadeOverlay);
-
+void TitleScene::OnMenuSelected(int index)
+{
+	if (showGameEditorGUI || loadRequested || exitRequested) return;
+	switch (index)
+	{
+	case 0: loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>(); break;
+	case 1: RequestExit(); break;
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	case 2: loadRequested = SceneManager::Instance().LoadScene<VmdlEditorScene>(); break;
+	case 3: loadRequested = SceneManager::Instance().LoadScene<VstgEditorScene>(); break;
+#endif
+	}
 }
 
 void TitleScene::CreateTitleWorld()
 {
 	auto titleStage = std::make_unique<Stage>();
-	if (!titleStage->LoadVSTG("cave_01")) return;
+	if (!titleStage->LoadVSTG("cave_title")) return;
 
 	StageLoader* loader = titleStage->GetComponent<StageLoader>();
-	showcasePosition = loader && loader->HasPlayerStart()
+	const Vector3 showcasePosition = loader && loader->HasPlayerStart()
 		? loader->GetPlayerStartTransforms().front().position
 		: Vector3::Zero;
 
-	showcasePlayer = std::make_shared<Actor>("Title Player", "TitlePreview");
-	showcasePlayer->transform.SetPosition(showcasePosition);
-	showcasePlayer->transform.SetRotation(Quaternion::Identity);
-	VMDL* playerVmdl = showcasePlayer->AddComponent<VMDL>(
-		"Player/CombatGirls_Sword_Shield");
-	playerVmdl->SetModelYawOffset(RAD(180.0f));
-	Animator* animator = showcasePlayer->AddComponent<Animator>(playerVmdl->GetSharedModel());
-	playerVmdl->BuildFootIK(animator);
-	animator->Load("TitlePlayer.animator");
+	// dummy player
+	dummyPlayer = std::make_shared<DummyPlayer>();
 
-	Camera* camera = titleStage->GetActiveCamera();
-	if (!camera) return;
-	const float width = (std::max)(Game::Graphics::ScreenWidth, 1.0f);
-	const float height = (std::max)(Game::Graphics::ScreenHeight, 1.0f);
-	camera->SetPerspectiveFov(
-		DirectX::XMConvertToRadians(39.0f), width / height, 0.1f, 1000.0f);
-	titleStage->GetActorManager().Register(showcasePlayer);
+	titleStage->GetDefaultCameraActor()->AddComponent<TitleCamera>(showcasePosition);
+	dummyPlayer->transform.SetPosition(showcasePosition);
+	titleStage->GetActorManager().Register(dummyPlayer);
 	currentStage = std::move(titleStage);
-	titleWorldReady = true;
-	// ゲーム本編と同じくVSTGのライトだけを使い、共有Skybox光を持ち越さない。
+
+	// ゲーム本編と同じくVSTGのライトだけを使い、共有Skybox光を持ち越さない
 	Game::Graphics::Instance().GetSkyBoxRenderer()->SetIntensity(0.0f);
-	UpdateTitleCamera();
-}
-
-void TitleScene::UpdateTitleCamera()
-{
-	if (!titleWorldReady || !currentStage) return;
-	Camera* camera = currentStage->GetActiveCamera();
-	if (!camera) return;
-
-	// プレイヤーを画面中央より少し右へ置き、静止画に見えない程度にゆっくり漂わせる。
-	const float driftX = std::sin(cameraTime * 0.23f) * 0.18f;
-	const float driftY = std::sin(cameraTime * 0.31f) * 0.06f;
-	const Vector3 eye = showcasePosition + Vector3(3.15f + driftX, 1.55f + driftY, 5.0f);
-	const Vector3 focus = showcasePosition + Vector3(0.25f, 0.92f, 0.0f);
-	camera->SetLookAt(eye, focus, Vector3::Up);
-}
-
-void TitleScene::UpdateLayout()
-{
-	const float screenWidth = Game::Graphics::ScreenWidth;
-	const float screenHeight = Game::Graphics::ScreenHeight;
-	if (screenWidth <= 0.0f || screenHeight <= 0.0f) return;
-
-	if (fadeOverlay)
-	{
-		fadeOverlay->rect.position = Vector2::Zero;
-		fadeOverlay->rect.anchor = Vector2::Zero;
-		fadeOverlay->rect.size = {screenWidth, screenHeight};
-	}
-
-	const float uiScale = std::clamp(screenHeight / 1080.0f, 0.65f, 1.5f);
-	const float ease = 1.0f - std::pow(1.0f - menuTransition, 3.0f);
-	const float leftSlide = (1.0f - ease) * screenWidth * 0.05f;
-	const float rightSlide = (1.0f - ease) * screenWidth * 0.04f;
-	if (dimmer)
-	{
-		dimmer->rect.position = Vector2::Zero;
-		dimmer->rect.anchor = Vector2::Zero;
-		dimmer->rect.size = {screenWidth, screenHeight};
-		if (auto* sprite = dimmer->GetComponent<SpriteRenderComponent>())
-			sprite->SetColor(Color(0.01f, 0.02f, 0.04f, 0.42f * ease));
-	}
-	if (menuHeader)
-	{
-		menuHeader->rect = RectTransform(
-			{screenWidth * 0.045f - leftSlide, screenHeight * 0.055f}, 0.0f,
-			{screenWidth * 0.34f, screenHeight * 0.105f});
-		menuHeader->SetFontSize(58.0f * uiScale);
-	}
-	for (size_t i = 0; i < menuButtons.size(); ++i)
-	{
-		menuButtons[i]->rect = RectTransform(
-			{screenWidth * 0.035f - leftSlide,
-			 screenHeight * (0.225f + static_cast<float>(i) * 0.09f)}, 0.0f,
-			{screenWidth * 0.31f, screenHeight * 0.075f});
-		menuButtons[i]->SetFontSize(44.0f * uiScale);
-	}
-	if (controlsHud)
-	{
-		const auto& children = controlsHud->GetChildren();
-		for (size_t i = 0; i < children.size(); ++i)
-		{
-			children[i]->rect = RectTransform(
-				{screenWidth * 0.47f + rightSlide,
-				 screenHeight * (i == 0 ? 0.15f : 0.26f + static_cast<float>(i - 1) * 0.082f)},
-				0.0f, {screenWidth * 0.48f, screenHeight * (i == 0 ? 0.09f : 0.062f)});
-			if (auto* text = dynamic_cast<TextWidget*>(children[i].get()))
-				text->SetFontSize((i == 0 ? 52.0f : 29.0f) * uiScale);
-		}
-	}
-	if (optionsHud)
-	{
-		const auto& children = optionsHud->GetChildren();
-		const float x = screenWidth * 0.50f + rightSlide;
-		if (children.size() >= 4)
-		{
-			children[0]->rect = RectTransform({x, screenHeight * 0.20f}, 0.0f,
-				{screenWidth * 0.42f, screenHeight * 0.09f});
-			children[1]->rect = RectTransform({x, screenHeight * 0.38f}, 0.0f,
-				{screenWidth * 0.22f, screenHeight * 0.065f});
-			children[2]->rect = RectTransform({screenWidth * 0.72f + rightSlide, screenHeight * 0.38f}, 0.0f,
-				{screenWidth * 0.22f, screenHeight * 0.065f});
-			children[3]->rect = RectTransform({x, screenHeight * 0.55f}, 0.0f,
-				{screenWidth * 0.42f, screenHeight * 0.06f});
-			if (auto* text = dynamic_cast<TextWidget*>(children[0].get())) text->SetFontSize(52.0f * uiScale);
-			if (auto* text = dynamic_cast<TextWidget*>(children[1].get())) text->SetFontSize(31.0f * uiScale);
-			if (auto* text = dynamic_cast<TextWidget*>(children[3].get())) text->SetFontSize(23.0f * uiScale);
-		}
-	}
-}
-
-void TitleScene::SetMenuPage(MenuPage page)
-{
-	menuPage = page;
-	if (controlsHud) controlsHud->SetActive(page == MenuPage::Controls);
-	if (optionsHud) optionsHud->SetActive(page == MenuPage::Options);
-	for (size_t i = 0; i < menuButtons.size(); ++i)
-		menuButtons[i]->SetSelected(static_cast<int>(i) == menuSelection);
 }
 
 void TitleScene::RequestExit()
 {
 	if (exitRequested) return;
 	exitRequested = true;
+
+	// quit
 	PostMessageW(Game::Graphics::Instance().GetWindowHandle(), WM_CLOSE, 0, 0);
-}
-
-void TitleScene::UpdateMenu()
-{
-	GamePad& gamePad = Game::Input::Instance().GetGamePad();
-	const GamePadButton down = gamePad.GetButtonDown();
-	if (down & GamePad::BTN_UP) menuSelection = (menuSelection + 3) % 4;
-	if (down & GamePad::BTN_DOWN) menuSelection = (menuSelection + 1) % 4;
-	for (size_t i = 0; i < menuButtons.size(); ++i)
-		menuButtons[i]->SetSelected(static_cast<int>(i) == menuSelection);
-
-	const bool confirmHeld =
-		(GetAsyncKeyState(VK_RETURN) & 0x8000) != 0 ||
-		(GetAsyncKeyState(VK_SPACE) & 0x8000) != 0 ||
-		(gamePad.GetButton() & GamePad::BTN_A) != 0;
-	if (!inputArmed)
-	{
-		inputArmed = !confirmHeld;
-		confirmWasHeld = confirmHeld;
-		return;
-	}
-	if (confirmHeld && !confirmWasHeld && menuSelection >= 0 &&
-		menuSelection < static_cast<int>(menuButtons.size()))
-		menuButtons[menuSelection]->Activate();
-	confirmWasHeld = confirmHeld;
-
-	if ((down & GamePad::BTN_B) || (down & GamePad::BTN_ESCAPE))
-	{
-		if (menuPage == MenuPage::Main) return;
-		SetMenuPage(MenuPage::Main);
-	}
-
-	if (menuPage == MenuPage::Options)
-	{
-		float direction = 0.0f;
-		if (down & GamePad::BTN_LEFT) direction = -1.0f;
-		if (down & GamePad::BTN_RIGHT) direction = 1.0f;
-		if (direction != 0.0f)
-			SoundSystem::Instance().SetMasterVolume(std::clamp(
-				SoundSystem::Instance().GetMasterVolume() + direction * 0.05f, 0.0f, 1.0f));
-
-		if (volumeGauge)
-			volumeGauge->SetValue(SoundSystem::Instance().GetMasterVolume());
-	}
 }
 
 void TitleScene::OnUpdate()
 {
-	cameraTime += Game::Time::unscaledDeltaTime;
-	UpdateTitleCamera();
-	UpdateLayout();
-	menuTransition = std::min(
-		menuTransition + Game::Time::unscaledDeltaTime * 4.5f, 1.0f);
+	if (currentStage)
+		if (auto* camera = currentStage->GetDefaultCameraActor()->GetComponent<TitleCamera>())
+			camera->SetMotionEnabled(!showGameEditorGUI);
+	titleHud->SetInputEnabled(!showGameEditorGUI && !loadRequested && !exitRequested);
 
-	fadeAlpha = std::max(0.0f, fadeAlpha - Game::Time::unscaledDeltaTime / 0.8f);
-	if (fadeOverlay)
-		if (auto* sprite = fadeOverlay->GetComponent<SpriteRenderComponent>())
-			sprite->SetColor(Color(0, 0, 0, fadeAlpha));
+	// 遷移状況監視してプレイヤー動かす
+	if (prevMenuPage == TitleHUD::MenuPage::Prompt &&
+		titleHud->GetMenuPage() == TitleHUD::MenuPage::Main)
+	{
+		dummyPlayer->GetAnimator()->SetTrigger("trigger");
+	}
+	prevMenuPage = titleHud->GetMenuPage();
+}
 
-	if (loadRequested || exitRequested || !Game::Input::IsFocusedWindow(true)) return;
-	UpdateMenu();
+void TitleScene::OnDrawGUI()
+{
+	titleHud->DrawResources();
+}
+
+bool TitleScene::UsesGameDebugGUI() const
+{
+	return !titleHud || !titleHud->IsResourcesPage();
 }

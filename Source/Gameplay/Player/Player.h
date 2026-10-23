@@ -1,5 +1,7 @@
 // Player.h
 #pragma once
+
+#include "Application/Time/Timer.h"
 #include "Animation/Animator.h"
 
 #include <memory>
@@ -60,7 +62,7 @@ class Player : public Entity
 
 	void DeathOfFall() override;
 
-	bool IsInBattle() const { return inBattleTimer > 0.0f; }
+	bool IsInBattle() const { return inBattleTimer.GetRemaining() > 0.0f; }
 
 	// ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
 	void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
@@ -115,23 +117,18 @@ class Player : public Entity
 	void TriggerJustDodge(Actor* attacker);
 	void PlayAttackHitEffect(const Vector3& position);
 
-
   protected:
+	void OnInit() override;
+	void OnUninit() override;
 	std::shared_ptr<VMDLModel> model = nullptr;
 
 	// 描画
 	Animator* anim = nullptr;
-	int stIdle = -1;
-	int stWalk = -1;
-	int stRun = -1;
-	int stSprint = -1;
 	VMDL* vmdl = nullptr;
 
 	ThirdPersonCameraController* cameraController = nullptr;
 	bool isFirstPerson = false;
 	float spineAngleX = 0.0f;
-	const Vector2 idleSpineAngle = {0.8f, 0};
-	const Vector2 readySpineAngle = {-0.25f, -0.38f};
 	TrailRenderComponent* trail = nullptr;
 	AfterimageComponent* afterimage = nullptr;
 	std::shared_ptr<Effect> attackHitEffect;
@@ -141,19 +138,18 @@ class Player : public Entity
 	Actor* justDodgeAttacker = nullptr;
 	bool justDodgeSkillActive = false;
 	std::weak_ptr<Actor> justDodgeSkillTarget;
-	float dodgeCooldownTimer = 0.0f;
+	Game::Timer dodgeCooldownTimer{0.0f};
 	float dodgeCooldownDuration = 0.35f;
 	bool dodgeWasActive = false;
-	float dodgeInputBufferTimer = 0.0f;
+	Game::Timer dodgeInputBufferTimer{0.0f};
 	const float dodgeInputBufferDuration = 0.15f;
 	Vector3 bufferedDodgeDirection = Vector3::Zero;
-	float inBattleTimer = 0.0f; // バトル中(idleモーションが変わったり自動回復止まったりする)
+	Game::Timer inBattleTimer{0.0f}; // バトル中(idleモーションが変わったり自動回復止まったりする)
 	const float BattleTimerDuration = 10.0f;
 
 	// 水に触れたらダメージ
-	const float damageLowerHeightCoolDown = 2.0f;
 	const float damageWaterAmount = 3.0f;
-	float damageLowerHeightTimer = 0;
+	Game::Timer damageLowerHeightTimer{2.0f};
 	bool isInWater = false;
 
 	// 移動
@@ -167,12 +163,11 @@ class Player : public Entity
 	float waterMoveSpeedScale = 0.6f; // 水中の歩行・走行速度の倍率（1.0で通常速度）
 	bool terrainDeformKeyHeld = false;
 	bool actionInputThisFrame = false;
-	float healthRecoveryTimer = 0.0f;
-	float healthRecoveryInterval = 2.0f;
+	Game::Timer healthRecoveryTimer{2.0f};
 	float healthRecoveryAmount = 5.0f;
 	bool deathSequenceActive = false;
 	bool deathReloadRequested = false;
-	float deathSequenceTimer = 0.0f;
+	Game::Timer deathSequenceTimer{0.0f};
 	float deathVignetteDuration = 10.0f;
 
 	// サウンド

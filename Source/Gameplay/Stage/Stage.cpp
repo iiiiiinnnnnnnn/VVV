@@ -12,7 +12,7 @@
 bool Stage::LoadVSTG(const std::string& path)
 {
 	VSTG data;
-	const std::string resolvedPath = ResourceManager::Instance().ResolvePath(ResourcePath::Stage(path));
+	const std::string resolvedPath = ResourceManager::Instance().ResolvePath(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Stage));
 	if (!data.Load(resolvedPath))
 	{
 		vstgError = data.GetError();

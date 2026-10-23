@@ -1,4 +1,5 @@
 #include "Animation/Animator.h"
+#include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -1148,7 +1149,7 @@ bool Animator::GetAnimationControlState(int& animationIndex, float& time,
 }
 bool Animator::Save(const std::string& path)
 {
-    m_lastPath = ResourcePath::Animator(path);
+    m_lastPath = ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Animator);
 
     const std::filesystem::path selectedPath =
         std::filesystem::absolute(ResourcePath::Path(m_lastPath)).lexically_normal();
@@ -1229,6 +1230,6 @@ std::string Animator::GetStateAnimationName(const State& state) const
 
 void Animator::Load(const std::string& path)
 {
-    m_lastPath = ResourcePath::Animator(path);
+    m_lastPath = ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Animator);
     Deserialize(m_lastPath);
 }

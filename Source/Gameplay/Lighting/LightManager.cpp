@@ -8,10 +8,71 @@
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "imgui.h"
 
+int LightManager::GetLightCount() const
+{
+	const auto count = [](const auto& lights) {
+		return static_cast<int>(std::count_if(lights.begin(), lights.end(),
+			[](const auto& light) { return !light.IsPendingDestroy(); }));
+	};
+	int total = count(directionalLights) + count(pointLights) + count(spotLights) + count(areaLights);
+	for (const auto& weakLight : attachedPointLights)
+		if (const auto light = weakLight.lock(); light && !light->IsPendingDestroy()) ++total;
+	return total;
+}
+
+void LightManager::ClearLights()
+{
+	directionalLights.clear();
+	directionalLights.emplace_back();
+	pointLights.clear();
+	spotLights.clear();
+	areaLights.clear();
+	attachedPointLights.clear();
+}
+
+bool LightManager::RegisterAttachedPointLight(const std::shared_ptr<PointLight>& light)
+{
+	if (!light || light->IsPendingDestroy()) return false;
+	for (const auto& existing : attachedPointLights)
+		if (existing.lock() == light) return true;
+	if (!CanAddLight()) return false;
+	attachedPointLights.emplace_back(light);
+	return true;
+}
+
+DirectionalLight* LightManager::AddDirectionalLight()
+{
+	if (!CanAddLight()) return nullptr;
+	directionalLights.emplace_back();
+	return &directionalLights.back();
+}
+
+PointLight* LightManager::AddPointLight()
+{
+	if (!CanAddLight()) return nullptr;
+	pointLights.emplace_back();
+	return &pointLights.back();
+}
+
+SpotLight* LightManager::AddSpotLight()
+{
+	if (!CanAddLight()) return nullptr;
+	spotLights.emplace_back();
+	return &spotLights.back();
+}
+
+AreaLight* LightManager::AddAreaLight()
+{
+	if (!CanAddLight()) return nullptr;
+	areaLights.emplace_back();
+	return &areaLights.back();
+}
+
 void LightManager::Update()
 {
 	std::erase_if(attachedPointLights, [](const auto& light) { return light.expired(); });
-	directionalLight.Update();
+	for (auto& light : directionalLights)
+		if (!light.IsPendingDestroy()) light.Update();
 
 	for (PointLight& pointLight : pointLights)
 	{
@@ -35,7 +96,8 @@ void LightManager::Update()
 
 void LightManager::Render(const RenderContext& rc)
 {
-	directionalLight.Render(rc);
+	for (auto& light : directionalLights)
+		if (!light.IsPendingDestroy()) light.Render(rc);
 
 	for (PointLight& pointLight : pointLights)
 	{
@@ -109,6 +171,7 @@ void LightManager::DrawGUI()
 			[](const auto& light) { return !light.IsPendingDestroy(); }));
 	};
 
+	ImGui::Text("Lights: %d / %d", GetLightCount(), CbLightData::MaxLights);
 	// 環境光
 	if (ImGui::CollapsingHeader((const char*)(ICON_FA_SUN " " u8"環境光"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -119,9 +182,16 @@ void LightManager::DrawGUI()
 	if (ImGui::CollapsingHeader(
 			(const char*)(ICON_FA_SUN " " u8"ディレクショナルライト"), ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::PushID(&directionalLight);
-		directionalLight.DrawGUI();
-		ImGui::PopID();
+		ImGui::BeginDisabled(!CanAddLight());
+		if (ImGui::Button("Add Directional Light")) AddDirectionalLight();
+		ImGui::EndDisabled();
+		for (auto& directionalLight : directionalLights)
+		{
+			if (directionalLight.IsPendingDestroy()) continue;
+			ImGui::PushID(&directionalLight);
+			directionalLight.DrawGUI();
+			ImGui::PopID();
+		}
 	}
 
 	// ポイントライト一覧
@@ -197,32 +267,20 @@ CbLightData LightManager::ConvertToCb() const
 
 	cbLightData.ambientColor = ambientColor;
 
-	// Directional Light
+	int remainingLights = CbLightData::MaxLights;
+	for (const auto& directionalLight : directionalLights)
 	{
+		if (!directionalLight.IsActive() || directionalLight.IsPendingDestroy()) continue;
+		if (remainingLights <= 0) break;
 		Vector3 direction = Vector3::TransformNormal(
 			Vector3::UnitZ, Matrix::CreateFromQuaternion(directionalLight.transform.rotation));
-
-		if (direction.LengthSquared() > 0.000001f)
-		{
-			direction.Normalize();
-		}
-		else
-		{
-			direction = Vector3::UnitZ;
-		}
-
-		cbLightData.directionalLight.direction = direction;
-
-		if (directionalLight.IsActive())
-		{
-			cbLightData.directionalLight.color = directionalLight.GetColor();
-
-			cbLightData.directionalLight.color.w = directionalLight.GetIntensity();
-		}
-		else
-		{
-			cbLightData.directionalLight.color = {0.0f, 0.0f, 0.0f, 0.0f};
-		}
+		if (direction.LengthSquared() > 0.000001f) direction.Normalize();
+		else direction = Vector3::UnitZ;
+		auto& light = cbLightData.directionalLights[cbLightData.directionalLightCount++];
+		light.direction = direction;
+		light.color = directionalLight.GetColor();
+		light.color.w = directionalLight.GetIntensity();
+		--remainingLights;
 	}
 
 	// Point Lights
@@ -233,7 +291,7 @@ CbLightData LightManager::ConvertToCb() const
 			continue;
 		}
 
-		if (cbLightData.pointLightCount >= CbLightData::MaxPointLights)
+		if (remainingLights <= 0)
 		{
 			break;
 		}
@@ -250,12 +308,13 @@ CbLightData LightManager::ConvertToCb() const
 		cbPointLight.range = pointLight.GetRange();
 
 		++cbLightData.pointLightCount;
+		--remainingLights;
 	}
 	for (const auto& weakLight : attachedPointLights)
 	{
 		const auto pointLight = weakLight.lock();
 		if (!pointLight || !pointLight->IsActive() || pointLight->IsPendingDestroy()) continue;
-		if (cbLightData.pointLightCount >= CbLightData::MaxPointLights) break;
+		if (remainingLights <= 0) break;
 
 		CbLightData::CbPointLight& cbPointLight =
 			cbLightData.pointLights[cbLightData.pointLightCount];
@@ -264,6 +323,7 @@ CbLightData LightManager::ConvertToCb() const
 		cbPointLight.color.w = pointLight->GetIntensity();
 		cbPointLight.range = pointLight->GetRange();
 		++cbLightData.pointLightCount;
+		--remainingLights;
 	}
 
 	// Spot Lights
@@ -274,7 +334,7 @@ CbLightData LightManager::ConvertToCb() const
 			continue;
 		}
 
-		if (cbLightData.spotLightCount >= CbLightData::MaxSpotLights)
+		if (remainingLights <= 0)
 		{
 			break;
 		}
@@ -308,6 +368,7 @@ CbLightData LightManager::ConvertToCb() const
 		cbSpotLight.outerConeAngle = spotLight.GetOuterConeAngle();
 
 		++cbLightData.spotLightCount;
+		--remainingLights;
 	}
 
 	// Area Lights
@@ -318,7 +379,7 @@ CbLightData LightManager::ConvertToCb() const
 			continue;
 		}
 
-		if (cbLightData.areaLightCount >= CbLightData::MaxAreaLights)
+		if (remainingLights <= 0)
 		{
 			break;
 		}
@@ -366,6 +427,7 @@ CbLightData LightManager::ConvertToCb() const
 		cbAreaLight.color.w = areaLight.GetIntensity();
 
 		++cbLightData.areaLightCount;
+		--remainingLights;
 	}
 
 	return cbLightData;

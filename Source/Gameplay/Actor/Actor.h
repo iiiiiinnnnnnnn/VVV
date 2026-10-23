@@ -12,8 +12,11 @@ public:
 	Actor(std::string name = "", std::string tag = "", bool isActive = true,
 		const Transform& transform = {})
         : Object(name, tag, isActive), transform(transform) {}
-    ~Actor() override = default;
+    ~Actor() override;
 
+	// 初期化・終了処理は一度だけ実行する。再使用時は新しいインスタンスを生成する。
+	void Init();
+	void Uninit();
 	void Update() override;
 	void DrawGUI() override;
 	void DrawGUI(bool selected);
@@ -39,6 +42,12 @@ public:
 public:
     Transform transform;
 
+protected:
+	virtual void OnInit() {}
+	virtual void OnUninit() {}
+
 private:
+	bool initialized = false;
+	bool uninitialized = false;
 	std::string spawnTag;
 };

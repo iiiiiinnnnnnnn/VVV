@@ -40,7 +40,7 @@
 #include <iterator>
 #include <string_view>
 #include <type_traits>
-#include "GameStartScene.h"
+#include "TitleScene.h"
 #include "Application/Time/GameTime.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/MeshCache.h"
@@ -133,7 +133,12 @@ bool DrawComponentTransform(VMDLModel& model, VMDLModel::VmdlComponentTransform&
 VmdlEditorScene::VmdlEditorScene() : VmdlEditorScene(std::filesystem::path{}) {}
 
 VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
+	: initialModelPath(std::move(filepath))
+{}
+
+void VmdlEditorScene::OnInit()
 {
+	auto filepath = initialModelPath;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
@@ -176,8 +181,37 @@ VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
 
 VmdlEditorScene::~VmdlEditorScene()
 {
+	Uninit();
+}
+
+void VmdlEditorScene::OnUninit()
+{
 	SoundSystem::Instance().SetListenerOverride(nullptr);
 	SaveLayoutSettings();
+	springPreviewOwner.reset();
+	trailPreviewOwner.reset();
+	particlePreviewOwner.reset();
+	footIkPreviewOwner.reset();
+	footIkTestStageActor.reset();
+	footIkTestStageModel.reset();
+	cameraOwner.reset();
+	previewLuminance.reset();
+	previewBloomWork.reset();
+	previewSsao.reset();
+	previewPostA.reset();
+	previewPostB.reset();
+	previewSceneTarget.reset();
+	previewTarget.reset();
+	model.reset();
+	externalMeshPreviewCaches.clear();
+	editorPointLights.clear();
+	springPreviewComponents.clear();
+	trailPreviewComponents.clear();
+	particlePreviewComponents.clear();
+	editorCamera = nullptr;
+	footIkPreviewAnimator = nullptr;
+	footIkTestStageRigidbody = nullptr;
+	footIkTestStageCollider = nullptr;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	if (GetCapture() == graphics.GetWindowHandle()) ReleaseCapture();
 	graphics.SetBorderlessFullscreen(false);
@@ -186,7 +220,7 @@ VmdlEditorScene::~VmdlEditorScene()
 
 std::string VmdlEditorScene::SoundPathLabel(const std::string& soundPath) const
 {
-	return soundPath.empty() ? (const char*)u8"なし" : ResourcePath::Short(soundPath, "Sound");
+	return soundPath.empty() ? (const char*)u8"なし" : ResourceManager::ShortResourcePath(soundPath, "Sound");
 }
 
 bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soundPath)
@@ -208,7 +242,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 		{
 			ImGui::PushID(candidate.c_str());
 			const std::string item = ImGuiPath::Tail(candidate, ImGui::GetContentRegionAvail().x);
-			if (ImGui::Selectable(item.c_str(), ResourcePath::Short(soundPath, "Sound") == candidate))
+			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(soundPath, "Sound") == candidate))
 			{
 				soundPath = candidate;
 				changed = true;
@@ -223,7 +257,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 
 std::string VmdlEditorScene::EffectLabel(const std::string& effectName) const
 {
-	return effectName.empty() ? (const char*)u8"なし" : ResourcePath::Short(effectName, "Effect");
+	return effectName.empty() ? (const char*)u8"なし" : ResourceManager::ShortResourcePath(effectName, "Effect");
 }
 
 bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectName)
@@ -240,7 +274,7 @@ bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectN
 		for (const auto& candidate : EffectManager::GetEffectPaths())
 		{
 			const std::string item = EffectLabel(candidate);
-			if (ImGui::Selectable(item.c_str(), ResourcePath::Short(effectName, "Effect") == candidate))
+			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(effectName, "Effect") == candidate))
 			{
 				effectName = candidate;
 				changed = true;
@@ -371,6 +405,7 @@ void VmdlEditorScene::OnDrawGUI()
 	auto& io = ImGui::GetIO();
 	ImGuiStyle& style = ImGui::GetStyle();
 	const ImGuiStyle gameStyle = style;
+	bool selectionFocused = false;
 	ImGuiTheme::ApplyRedTheme(style);
 
 	// エディタのショートカット
@@ -471,13 +506,19 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(propertyPanelWidth, upperHeight), ImGuiCond_Always);
 	if (ImGui::Begin((const char*)(ICON_FA_COG " " u8"インスペクタ###VMDL Inspector"), nullptr, panelFlags))
+	{
 		DrawProperty();
+		selectionFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+	}
 	ImGui::End();
 
 	ImGui::SetNextWindowPos(ImVec2(workPosition.x + totalWidth - hierarchyWidth, workPosition.y), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(hierarchyWidth, upperHeight), ImGuiCond_Always);
 	if (ImGui::Begin((const char*)(ICON_FA_LIST " " u8"ヒエラルキー###VMDL Hierarchy"), nullptr, panelFlags))
+	{
 		DrawHierarchy();
+		selectionFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+	}
 	ImGui::End();
 
 	const ImVec2 toolbarPosition(workPosition.x + propertyPanelWidth + gap, workPosition.y);
@@ -492,6 +533,7 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGui::SetNextWindowPos(ImVec2(workPosition.x, workPosition.y + upperHeight + gap), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(totalWidth, bottomPanelHeight), ImGuiCond_Always);
 	const bool bottomVisible = ImGui::Begin((const char*)u8"アニメーション・編集###VMDL Bottom", nullptr, panelFlags);
+	const bool bottomFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 	if (bottomVisible)
 	{
 		const ImVec4 menuColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
@@ -550,6 +592,10 @@ void VmdlEditorScene::OnDrawGUI()
 	const ImVec2 inputMin(toolbarPosition.x, toolbarPosition.y + toolbarHeight);
 	const ImVec2 inputMax(workPosition.x + totalWidth - hierarchyWidth - gap, workPosition.y + upperHeight);
 	DrawViewport(inputMin, inputMax);
+	if (!bottomFocused && (selectionFocused || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow)) &&
+		Game::Input::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
+		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) && !ImGuizmo::IsUsing() &&
+		ImGui::IsKeyPressed(ImGuiKey_Delete, false)) DeleteSelection();
 
 	if (animationRecording)
 	{
@@ -631,8 +677,10 @@ void VmdlEditorScene::StopUnifiedPreview(bool rewind)
 	ApplyAnimationPreview();
 	ResetAnimationControlPreview();
 	animationSoundPreviewStarting = true;
-	cameraShakePreviewTimer = cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
-	radialBlurPreviewTimer = radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
+	cameraShakePreviewTimer.Stop();
+	cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
+	radialBlurPreviewTimer.Stop();
+	radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
 	springPreviewOwner.reset();
 	springPreviewComponents.clear();
 	springPreviewSignature.clear();
@@ -646,8 +694,10 @@ void VmdlEditorScene::StopUnifiedPreview(bool rewind)
 
 void VmdlEditorScene::StartPresentationPreview()
 {
-	cameraShakePreviewTimer = cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
-	radialBlurPreviewTimer = radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
+	cameraShakePreviewTimer.Stop();
+	cameraShakePreviewDuration = cameraShakePreviewIntensity = 0.0f;
+	radialBlurPreviewTimer.Stop();
+	radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
 	if (!model || !editorCamera) return;
 	if (selectedAnimation >= 0 && selectedAnimation < Count(model->GetAnimations()))
 	{
@@ -677,7 +727,7 @@ void VmdlEditorScene::StartPresentationPreview()
 	{
 		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
 		cameraShakePreviewDuration = std::max(cameraShakePreviewDuration, value.duration);
-		cameraShakePreviewTimer = std::max(cameraShakePreviewTimer, value.duration);
+		cameraShakePreviewTimer.Extend(value.duration);
 		cameraShakePreviewIntensity = std::max(cameraShakePreviewIntensity, value.intensity * strength);
 	}
 	for (const auto& value : model->GetVmdlPresentationData().radialBlurs)
@@ -685,7 +735,7 @@ void VmdlEditorScene::StartPresentationPreview()
 		const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
 		if (value.power * strength <= radialBlurPreviewPower) continue;
 		radialBlurPreviewDuration = value.duration;
-		radialBlurPreviewTimer = value.duration;
+		radialBlurPreviewTimer.Reset(value.duration);
 		radialBlurPreviewPower = value.power * strength;
 		radialBlurPreviewAttackRate = value.attackRate;
 	}
@@ -720,7 +770,8 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 				key.componentIndex >= Count(presentation.cameraShakes)) continue;
 			const auto& value = presentation.cameraShakes[key.componentIndex];
 			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
-			cameraShakePreviewDuration = cameraShakePreviewTimer = value.duration;
+			cameraShakePreviewDuration = value.duration;
+			cameraShakePreviewTimer.Reset(value.duration);
 			cameraShakePreviewIntensity = value.intensity * strength;
 		}
 	}
@@ -734,7 +785,8 @@ void VmdlEditorScene::PlayPresentationPreviewEvents(
 				key.componentIndex >= Count(presentation.radialBlurs)) continue;
 			const auto& value = presentation.radialBlurs[key.componentIndex];
 			const float strength = strengthAt(value.nodeIndex, value.range, value.distanceAttenuation);
-			radialBlurPreviewDuration = radialBlurPreviewTimer = value.duration;
+			radialBlurPreviewDuration = value.duration;
+			radialBlurPreviewTimer.Reset(value.duration);
 			radialBlurPreviewPower = value.power * strength;
 			radialBlurPreviewAttackRate = value.attackRate;
 		}
@@ -763,6 +815,7 @@ void VmdlEditorScene::UpdatePointLightPreview()
 		}
 	}
 
+	for (const auto& light : editorPointLights) editorLights.RegisterAttachedPointLight(light);
 	const auto& nodes = model->GetNodes();
 	for (size_t i = 0; i < values.size(); ++i)
 	{
@@ -867,17 +920,16 @@ void VmdlEditorScene::RenderPreview()
 		previewCameraFocus = Vector3::Lerp(previewCameraFocus, focus, follow);
 	}
 	editorCamera->SetLookAt(previewCameraEye, previewCameraFocus, Vector3::Up);
-	if (cameraShakePreviewTimer > 0.0f)
+	if (cameraShakePreviewTimer.GetRemaining() > 0.0f)
 	{
-		cameraShakePreviewTimer = std::max(0.0f,
-			cameraShakePreviewTimer - Game::Time::unscaledDeltaTime);
+		cameraShakePreviewTimer.Update(Game::Time::unscaledDeltaTime);
 		const float fade = cameraShakePreviewDuration > 0.0f
-			? cameraShakePreviewTimer / cameraShakePreviewDuration : 0.0f;
+			? cameraShakePreviewTimer.GetRemaining() / cameraShakePreviewDuration : 0.0f;
 		// VMDLプレビューはモデル全体を収めるためゲームカメラより遠くなることがある。
 		// ワールド単位の強度をそのまま使うと画面上でサブピクセルになるので、
 		// 基準距離5mに対する表示距離で補正し、見た目の揺れ幅を維持する。
 		const float previewDistanceScale = std::max(cameraDistance / 5.0f, 1.0f);
-		const float elapsed = std::max(cameraShakePreviewDuration - cameraShakePreviewTimer, 0.0f);
+		const float elapsed = std::max(cameraShakePreviewDuration - cameraShakePreviewTimer.GetRemaining(), 0.0f);
 		const float horizontal = std::sin(elapsed * 71.0f) * cameraShakePreviewIntensity;
 		const float vertical = std::sin(elapsed * 97.0f + 1.3f) * cameraShakePreviewIntensity;
 		const Vector3 offset = (editorCamera->GetRight() * horizontal +
@@ -887,7 +939,7 @@ void VmdlEditorScene::RenderPreview()
 	SoundSystem::Instance().SetListenerOverride(editorCamera);
 	const float nearClip = std::max(0.01f, cameraDistance * 0.0001f);
 	const float farClip = std::max(1000.0f, cameraDistance * 2.0f);
-	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(FreeCameraController::VerticalFovDegrees),
+	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(previewVerticalFovDegrees),
 		static_cast<float>(previewTarget->GetWidth()) / previewTarget->GetHeight(), nearClip, farClip);
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -946,15 +998,14 @@ void VmdlEditorScene::RenderPreview()
 		postProcess.PrepareSceneColor(rc, previewSceneTarget.get(), previewLuminance.get(),
 			previewBloomWork.get(), previewSsao.get(), previewPostA.get(), previewPostB.get());
 		postProcess.ClearRuntimeEffects();
-		if (radialBlurPreviewTimer > 0.0f)
+		if (radialBlurPreviewTimer.GetRemaining() > 0.0f)
 		{
-			radialBlurPreviewTimer = std::max(0.0f,
-				radialBlurPreviewTimer - Game::Time::unscaledDeltaTime);
-			const float elapsed = radialBlurPreviewDuration - radialBlurPreviewTimer;
+			radialBlurPreviewTimer.Update(Game::Time::unscaledDeltaTime);
+			const float elapsed = radialBlurPreviewDuration - radialBlurPreviewTimer.GetRemaining();
 			const float attackDuration = radialBlurPreviewDuration * radialBlurPreviewAttackRate;
 			const float intensity = elapsed < attackDuration
 				? elapsed / std::max(attackDuration, 0.001f)
-				: radialBlurPreviewTimer / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
+				: radialBlurPreviewTimer.GetRemaining() / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
 			postProcess.AddRuntimeRadialBlur(radialBlurPreviewPower * std::clamp(intensity, 0.0f, 1.0f));
 		}
 		postProcess.RenderFinal(rc, previewPostA->GetSRV(),
@@ -999,7 +1050,7 @@ void VmdlEditorScene::RenderPreview()
 		UpdateTrailPreview(rc);
 		UpdateParticlePreview(rc);
 		if (unifiedPreviewActive && showParticle)
-			EffectManager::Instance().Render(editorCamera->GetView(), editorCamera->GetProjection());
+			EffectManager::Instance().Render(rc);
 		finishSceneColor();
 		dc->OMSetDepthStencilState(
 			rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
@@ -1427,7 +1478,7 @@ void VmdlEditorScene::DrawMenuBar()
 	ImGui::TextUnformatted(title.c_str());
 	ImGui::EndMainMenuBar();
 
-	if (exiting && SceneManager::Instance().LoadScene<GameStartScene>()) exiting = false;
+	if (exiting && SceneManager::Instance().LoadScene<TitleScene>()) exiting = false;
 }
 
 void VmdlEditorScene::UpdateExternalMeshPreview()
@@ -1461,10 +1512,8 @@ void VmdlEditorScene::UpdateExternalMeshPreview()
 				cache->SyncMaterialsFrom(*model);
 				loaded = externalMeshPreviewCaches.emplace(groupIndex, std::move(cache)).first;
 			}
-			catch (const std::exception& exception)
+			catch (const std::exception&)
 			{
-				OutputDebugStringA(("VMSH preview load failed: " + group.path + " (" +
-					exception.what() + ")\n").c_str());
 				continue;
 			}
 		}
@@ -2030,6 +2079,93 @@ void VmdlEditorScene::AddAttachedComponentToSelectedNodes(AttachedComponentType 
 	selectedComponentType = type;
 	selectedComponentIndex = primaryComponentIndex;
 	focusSelectedComponent = primaryComponentIndex >= 0;
+	MarkDirty();
+}
+
+void VmdlEditorScene::DeleteSelection()
+{
+	if (!model || previewStageSelected) return;
+	if (selectedComponentType != AttachedComponentType::None)
+	{
+		const auto type = selectedComponentType;
+		auto indices = selectedComponentIndices;
+		if (indices.empty() && selectedComponentIndex >= 0) indices.push_back(selectedComponentIndex);
+		std::sort(indices.begin(), indices.end());
+		indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
+		StopUnifiedPreview(true);
+		for (auto it = indices.rbegin(); it != indices.rend(); ++it) DeleteAttachedComponent(type, *it);
+		selectedComponentType = AttachedComponentType::None;
+		selectedComponentIndex = -1;
+		selectedComponentIndices.clear();
+		timelineSelectedKeys.clear();
+		selectedKeyTrack = selectedKeyIndex = -1;
+		StopUnifiedPreview(true);
+		return;
+	}
+
+	auto meshes = selectedMeshes;
+	std::vector<int> nodes;
+	if (meshes.empty())
+	{
+		const auto& values = model->GetNodes();
+		for (int index = 0; index < Count(values); ++index)
+		{
+			for (int parent = index; parent >= 0; parent = values[parent].parentIndex)
+			{
+				if (!IsNodeSelected(parent)) continue;
+				nodes.push_back(index);
+				break;
+			}
+		}
+	}
+	if (meshes.empty() && nodes.empty()) return;
+	const auto deletingNode = [&](int index) {
+		return std::find(nodes.begin(), nodes.end(), index) != nodes.end();
+	};
+	// ほかのメッシュが使用中のボーンは、スキニングを壊すため削除しない。
+	for (const auto& mesh : model->GetMeshes())
+	{
+		if (deletingNode(mesh.nodeIndex)) continue;
+		for (const auto& bone : mesh.bones)
+		{
+			if (!deletingNode(bone.nodeIndex)) continue;
+			ErrorMessage("This node is used by another mesh as a bone.");
+			return;
+		}
+	}
+	StopUnifiedPreview(true);
+	footIkPreviewOwner.reset();
+	footIkPreviewAnimator = nullptr;
+	footIkPreviewSignature.clear();
+	const auto deleteOnNodes = [&](AttachedComponentType type, const auto& values) {
+		for (int index = Count(values) - 1; index >= 0; --index)
+			if (deletingNode(values[index].nodeIndex)) DeleteAttachedComponent(type, index);
+	};
+	auto& data = model->GetVmdlExtensionData();
+	deleteOnNodes(AttachedComponentType::RigidBody, data.rigidBodies);
+	deleteOnNodes(AttachedComponentType::Collider, data.colliders);
+	deleteOnNodes(AttachedComponentType::Spring, data.springs);
+	deleteOnNodes(AttachedComponentType::SpringCollider, data.springColliders);
+	deleteOnNodes(AttachedComponentType::Trail, model->GetVmdlTrailData().trails);
+	deleteOnNodes(AttachedComponentType::Particle, model->GetVmdlParticleData().emitters);
+	deleteOnNodes(AttachedComponentType::SoundSource, model->GetVmdlSoundData().sources);
+	deleteOnNodes(AttachedComponentType::PointLight, model->GetVmdlLightData().pointLights);
+	deleteOnNodes(AttachedComponentType::CameraShake, model->GetVmdlPresentationData().cameraShakes);
+	deleteOnNodes(AttachedComponentType::RadialBlur, model->GetVmdlPresentationData().radialBlurs);
+	const bool changed = nodes.empty() ? model->RemoveMeshes(meshes) : model->RemoveNodes(nodes);
+	if (!changed) return;
+	selectedNode = selectedMesh = selectedMaterial = -1;
+	selectedNodes.clear();
+	selectedMeshes.clear();
+	selectedComponentType = AttachedComponentType::None;
+	selectedComponentIndex = -1;
+	selectedComponentIndices.clear();
+	showSelectionGizmo = false;
+	timelineSelectedKeys.clear();
+	selectedKeyTrack = selectedKeyIndex = -1;
+	externalMeshPreviewCaches.clear();
+	StopUnifiedPreview(true);
+	UpdateModelFraming();
 	MarkDirty();
 }
 
@@ -2615,11 +2751,14 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 		ImGui::GetForegroundDrawList()->AddText(
 			ImVec2(inputMin.x + 10.0f, inputMin.y + 10.0f), IM_COL32(255, 255, 255, 220), speedText.c_str());
 	}
+	// ImGuizmo自身のマウスキャプチャでギズモを無効にしない。
 	const bool imageHovered = io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
 		io.MousePos.y >= inputMin.y && io.MousePos.y <= inputMax.y &&
-		!io.WantCaptureMouse && !ImGui::IsAnyItemActive() &&
+		!ImGui::IsAnyItemActive() &&
 		!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
 		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
+	if ((imageHovered || viewportRotationDragging) && !io.WantTextInput && io.KeyCtrl && io.MouseWheel != 0.0f)
+		previewVerticalFovDegrees = std::clamp(previewVerticalFovDegrees - io.MouseWheel * 2.0f, 10.0f, 120.0f);
 	if (imageHovered && !io.WantTextInput && !io.KeyCtrl)
 	{
 		if (io.KeyShift && io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Z, false))
@@ -2655,7 +2794,8 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	}
 	const bool navigatingCamera = viewportRotationDragging || viewportOrbitDragging ||
 		(imageHovered && (io.KeyAlt || ImGui::IsMouseDown(ImGuiMouseButton_Right)));
-	ImGuizmo::Enable(imageHovered || ImGuizmo::IsUsing());
+	bool gizmoHovered = false;
+	ImGuizmo::Enable(imageHovered || ImGuizmo::IsUsingAny());
 	ImGui::GetForegroundDrawList()->PushClipRect(inputMin, inputMax, true);
 	if (!navigatingCamera && model && ikGizmoTarget != IkGizmoTarget::None)
 	{
@@ -2704,6 +2844,8 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 							world.Translation() - contactPosition - ray.startOffset, scaleTransform.Invert());
 					MarkDirty();
 				}
+				gizmoHovered = ImGuizmo::IsOver(ImGuizmo::UNIVERSAL) ||
+					ImGuizmo::IsOver(&world._41, 24.0f);
 			}
 		}
 	}
@@ -2725,6 +2867,8 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 			MarkDirty();
 			if (animationRecording) RecordSelectedNodeKey();
 		}
+		gizmoHovered = ImGuizmo::IsOver(ImGuizmo::UNIVERSAL) ||
+			ImGuizmo::IsOver(&world._41, 24.0f);
 	}
 	ImGui::GetForegroundDrawList()->PopClipRect();
 	ImGuizmo::Enable(true);
@@ -2738,7 +2882,7 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
 			RotatePreviewCamera(yawDelta, pitchDelta, false);
-			if (io.MouseWheel != 0.0f)
+			if (io.MouseWheel != 0.0f && !io.KeyCtrl)
 			{
 				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
 					std::pow(1.1f, io.MouseWheel), 0.1f, 500.0f);
@@ -2767,10 +2911,11 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	CameraMoveSpeedOverlay::Draw(
 		previewCameraMoveSpeed, previewCameraMoveSpeedOverlayTimer);
 	if (!imageHovered || viewportOrbitDragging || viewportRotationDragging ||
-		io.KeyAlt || ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
+		io.KeyAlt || gizmoHovered || ImGuizmo::IsUsingAny() || ImGuizmo::IsOver()) return;
 
 	if (model && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
+		ImGui::SetWindowFocus(nullptr);
 		const auto& nodes = model->GetNodes();
 		const Matrix renderScaleTransform = model->GetRenderScaleTransform();
 		const Matrix viewProjection = editorCamera->GetView() * editorCamera->GetProjection();
@@ -2842,10 +2987,10 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
 	{
 		const float panScale = cameraDistance * 0.002f;
-		cameraFocusOffset -= editorCamera->GetRight() * mouseInput.GetAxisX() * panScale;
-		cameraFocusOffset += editorCamera->GetUp() * mouseInput.GetAxisY() * panScale;
+		cameraFocusOffset -= editorCamera->GetRight() * static_cast<float>(mouseInput.GetAxisX()) * panScale;
+		cameraFocusOffset += editorCamera->GetUp() * static_cast<float>(mouseInput.GetAxisY()) * panScale;
 	}
-	if (io.MouseWheel != 0.0f && !viewportRotationDragging)
+	if (io.MouseWheel != 0.0f && !io.KeyCtrl && !viewportRotationDragging)
 	{
 		targetCameraDistance -= static_cast<float>(mouseInput.GetWheel()) * targetCameraDistance * 0.1f;
 		targetCameraDistance =
@@ -3210,6 +3355,242 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 			});
 }
 
+void VmdlEditorScene::DeleteAttachedComponent(AttachedComponentType type, int index)
+{
+	if (!model || index < 0) return;
+	auto& data = model->GetVmdlExtensionData();
+	auto& trailData = model->GetVmdlTrailData();
+	auto& particleData = model->GetVmdlParticleData();
+	auto& soundData = model->GetVmdlSoundData();
+	auto& pointLights = model->GetVmdlLightData().pointLights;
+	auto& presentation = model->GetVmdlPresentationData();
+	switch (type)
+	{
+	case AttachedComponentType::RigidBody:
+	{
+		if (index >= Count(data.rigidBodies)) return;
+		data.rigidBodies.erase(data.rigidBodies.begin() + index);
+		if (selectedComponentType == AttachedComponentType::RigidBody)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::Collider:
+	{
+		if (index >= Count(data.colliders)) return;
+		data.colliders.erase(data.colliders.begin() + index);
+		if (selectedComponentType == AttachedComponentType::Collider)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		auto& control = model->GetVmdlAnimationControlData();
+		if (index < Count(control.colliderInitialActive))
+			control.colliderInitialActive.erase(
+				control.colliderInitialActive.begin() + index);
+		std::erase_if(control.colliderTracks,
+			[index](const auto& track) { return track.colliderIndex == index; });
+		for (auto& track : control.colliderTracks)
+		{
+			if (track.colliderIndex > index) --track.colliderIndex;
+		}
+		if (index < Count(previewColliderActive))
+			previewColliderActive.erase(previewColliderActive.begin() + index);
+		selectedColliderEventTarget = data.colliders.empty()
+										  ? 0
+										  : std::min(selectedColliderEventTarget,
+												Count(data.colliders) - 1);
+		if (timelineEventContextKind == 0) timelineEventContextKind = -1;
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::Spring:
+	{
+		if (index >= Count(data.springs)) return;
+		data.springs.erase(data.springs.begin() + index);
+		if (selectedComponentType == AttachedComponentType::Spring)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::SpringCollider:
+	{
+		if (index >= Count(data.springColliders)) return;
+		data.springColliders.erase(data.springColliders.begin() + index);
+		if (selectedComponentType == AttachedComponentType::SpringCollider)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::Trail:
+	{
+		if (index >= Count(trailData.trails)) return;
+		trailData.trails.erase(trailData.trails.begin() + index);
+		if (selectedComponentType == AttachedComponentType::Trail)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		if (index < Count(trailData.initialActive))
+			trailData.initialActive.erase(trailData.initialActive.begin() + index);
+		std::erase_if(trailData.tracks,
+			[index](const auto& track) { return track.trailIndex == index; });
+		for (auto& track : trailData.tracks)
+		{
+			if (track.trailIndex > index) --track.trailIndex;
+		}
+		if (index < Count(previewTrailActive))
+			previewTrailActive.erase(previewTrailActive.begin() + index);
+		selectedTrailEventTarget =
+			trailData.trails.empty()
+				? 0
+				: std::min(selectedTrailEventTarget, Count(trailData.trails) - 1);
+		if (timelineEventContextKind == 2) timelineEventContextKind = -1;
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::Particle:
+	{
+		if (index >= Count(particleData.emitters)) return;
+		particleData.emitters.erase(particleData.emitters.begin() + index);
+		if (index < Count(particleData.initialActive))
+			particleData.initialActive.erase(particleData.initialActive.begin() + index);
+		std::erase_if(particleData.tracks,
+			[index](const auto& track) { return track.emitterIndex == index; });
+		for (auto& track : particleData.tracks)
+			if (track.emitterIndex > index) --track.emitterIndex;
+		if (selectedComponentType == AttachedComponentType::Particle)
+		{
+			if (selectedComponentIndex == index) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
+			else if (selectedComponentIndex > index) --selectedComponentIndex;
+		}
+		selectedParticleEventTarget = particleData.emitters.empty() ? 0 :
+			std::min(selectedParticleEventTarget, Count(particleData.emitters) - 1);
+		MarkDirty(); RebuildParticlePreview();
+		break;
+	}
+	case AttachedComponentType::SoundSource:
+	{
+		if (index >= Count(soundData.sources)) return;
+		soundData.sources.erase(soundData.sources.begin() + index);
+		for (auto& track : soundData.tracks)
+		{
+			std::erase_if(track.keys, [index](const auto& key)
+				{ return key.sourceIndex == index; });
+			for (auto& key : track.keys)
+				if (key.sourceIndex > index) --key.sourceIndex;
+		}
+		std::erase_if(soundData.tracks,
+			[](const auto& track) { return track.keys.empty(); });
+		if (selectedComponentType == AttachedComponentType::SoundSource)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::PointLight:
+	{
+		if (index >= Count(pointLights)) return;
+		pointLights.erase(pointLights.begin() + index);
+		if (selectedComponentType == AttachedComponentType::PointLight)
+		{
+			if (selectedComponentIndex == index)
+			{
+				selectedComponentType = AttachedComponentType::None;
+				selectedComponentIndex = -1;
+				selectedComponentIndices.clear();
+			}
+			else if (selectedComponentIndex > index)
+				--selectedComponentIndex;
+		}
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::CameraShake:
+	{
+		if (index >= Count(presentation.cameraShakes)) return;
+		presentation.cameraShakes.erase(presentation.cameraShakes.begin() + index);
+		for (auto& track : presentation.cameraShakeTracks)
+		{
+			std::erase_if(track.keys, [index](const auto& key) {
+				return key.componentIndex == index;
+			});
+			for (auto& key : track.keys) if (key.componentIndex > index) --key.componentIndex;
+		}
+		std::erase_if(presentation.cameraShakeTracks,
+			[](const auto& track) { return track.keys.empty(); });
+		if (selectedComponentType == AttachedComponentType::CameraShake) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
+		MarkDirty();
+		break;
+	}
+	case AttachedComponentType::RadialBlur:
+	{
+		if (index >= Count(presentation.radialBlurs)) return;
+		presentation.radialBlurs.erase(presentation.radialBlurs.begin() + index);
+		for (auto& track : presentation.radialBlurTracks)
+		{
+			std::erase_if(track.keys, [index](const auto& key) {
+				return key.componentIndex == index;
+			});
+			for (auto& key : track.keys) if (key.componentIndex > index) --key.componentIndex;
+		}
+		std::erase_if(presentation.radialBlurTracks,
+			[](const auto& track) { return track.keys.empty(); });
+		if (selectedComponentType == AttachedComponentType::RadialBlur) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
+		MarkDirty();
+		break;
+	}
+	default: break;
+	}
+}
+
 void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 {
 	bool duplicatePending = false;
@@ -3255,22 +3636,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteRigidBody >= 0)
-	{
-		data.rigidBodies.erase(data.rigidBodies.begin() + deleteRigidBody);
-		if (selectedComponentType == AttachedComponentType::RigidBody)
-		{
-			if (selectedComponentIndex == deleteRigidBody)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteRigidBody)
-				--selectedComponentIndex;
-		}
-		MarkDirty();
-	}
+	if (deleteRigidBody >= 0) DeleteAttachedComponent(AttachedComponentType::RigidBody, deleteRigidBody);
 
 	// コライダー
 	int deleteCollider = -1;
@@ -3410,39 +3776,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteCollider >= 0)
-	{
-		data.colliders.erase(data.colliders.begin() + deleteCollider);
-		if (selectedComponentType == AttachedComponentType::Collider)
-		{
-			if (selectedComponentIndex == deleteCollider)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteCollider)
-				--selectedComponentIndex;
-		}
-		auto& control = model->GetVmdlAnimationControlData();
-		if (deleteCollider < Count(control.colliderInitialActive))
-			control.colliderInitialActive.erase(
-				control.colliderInitialActive.begin() + deleteCollider);
-		std::erase_if(control.colliderTracks,
-			[deleteCollider](const auto& track) { return track.colliderIndex == deleteCollider; });
-		for (auto& track : control.colliderTracks)
-		{
-			if (track.colliderIndex > deleteCollider) --track.colliderIndex;
-		}
-		if (deleteCollider < Count(previewColliderActive))
-			previewColliderActive.erase(previewColliderActive.begin() + deleteCollider);
-		selectedColliderEventTarget = data.colliders.empty()
-										  ? 0
-										  : std::min(selectedColliderEventTarget,
-												Count(data.colliders) - 1);
-		if (timelineEventContextKind == 0) timelineEventContextKind = -1;
-		MarkDirty();
-	}
+	if (deleteCollider >= 0) DeleteAttachedComponent(AttachedComponentType::Collider, deleteCollider);
 
 	// スプリング
 	int deleteSpring = -1;
@@ -3491,22 +3825,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteSpring >= 0)
-	{
-		data.springs.erase(data.springs.begin() + deleteSpring);
-		if (selectedComponentType == AttachedComponentType::Spring)
-		{
-			if (selectedComponentIndex == deleteSpring)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteSpring)
-				--selectedComponentIndex;
-		}
-		MarkDirty();
-	}
+	if (deleteSpring >= 0) DeleteAttachedComponent(AttachedComponentType::Spring, deleteSpring);
 
 	// スプリングコライダー
 	int deleteSpringCollider = -1;
@@ -3539,22 +3858,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteSpringCollider >= 0)
-	{
-		data.springColliders.erase(data.springColliders.begin() + deleteSpringCollider);
-		if (selectedComponentType == AttachedComponentType::SpringCollider)
-		{
-			if (selectedComponentIndex == deleteSpringCollider)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteSpringCollider)
-				--selectedComponentIndex;
-		}
-		MarkDirty();
-	}
+	if (deleteSpringCollider >= 0) DeleteAttachedComponent(AttachedComponentType::SpringCollider, deleteSpringCollider);
 
 	// トレイル
 	auto& trailData = model->GetVmdlTrailData();
@@ -3610,37 +3914,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteTrail >= 0)
-	{
-		trailData.trails.erase(trailData.trails.begin() + deleteTrail);
-		if (selectedComponentType == AttachedComponentType::Trail)
-		{
-			if (selectedComponentIndex == deleteTrail)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteTrail)
-				--selectedComponentIndex;
-		}
-		if (deleteTrail < Count(trailData.initialActive))
-			trailData.initialActive.erase(trailData.initialActive.begin() + deleteTrail);
-		std::erase_if(trailData.tracks,
-			[deleteTrail](const auto& track) { return track.trailIndex == deleteTrail; });
-		for (auto& track : trailData.tracks)
-		{
-			if (track.trailIndex > deleteTrail) --track.trailIndex;
-		}
-		if (deleteTrail < Count(previewTrailActive))
-			previewTrailActive.erase(previewTrailActive.begin() + deleteTrail);
-		selectedTrailEventTarget =
-			trailData.trails.empty()
-				? 0
-				: std::min(selectedTrailEventTarget, Count(trailData.trails) - 1);
-		if (timelineEventContextKind == 2) timelineEventContextKind = -1;
-		MarkDirty();
-	}
+	if (deleteTrail >= 0) DeleteAttachedComponent(AttachedComponentType::Trail, deleteTrail);
 
 	// パーティクルエミッタ
 	auto& particleData = model->GetVmdlParticleData();
@@ -3692,24 +3966,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteParticle >= 0)
-	{
-		particleData.emitters.erase(particleData.emitters.begin() + deleteParticle);
-		if (deleteParticle < Count(particleData.initialActive))
-			particleData.initialActive.erase(particleData.initialActive.begin() + deleteParticle);
-		std::erase_if(particleData.tracks,
-			[deleteParticle](const auto& track) { return track.emitterIndex == deleteParticle; });
-		for (auto& track : particleData.tracks)
-			if (track.emitterIndex > deleteParticle) --track.emitterIndex;
-		if (selectedComponentType == AttachedComponentType::Particle)
-		{
-			if (selectedComponentIndex == deleteParticle) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
-			else if (selectedComponentIndex > deleteParticle) --selectedComponentIndex;
-		}
-		selectedParticleEventTarget = particleData.emitters.empty() ? 0 :
-			std::min(selectedParticleEventTarget, Count(particleData.emitters) - 1);
-		MarkDirty(); RebuildParticlePreview();
-	}
+	if (deleteParticle >= 0) DeleteAttachedComponent(AttachedComponentType::Particle, deleteParticle);
 
 	// サウンドソース
 	auto& soundData = model->GetVmdlSoundData();
@@ -3783,31 +4040,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteSoundSource >= 0)
-	{
-		soundData.sources.erase(soundData.sources.begin() + deleteSoundSource);
-		for (auto& track : soundData.tracks)
-		{
-			std::erase_if(track.keys, [deleteSoundSource](const auto& key)
-				{ return key.sourceIndex == deleteSoundSource; });
-			for (auto& key : track.keys)
-				if (key.sourceIndex > deleteSoundSource) --key.sourceIndex;
-		}
-		std::erase_if(soundData.tracks,
-			[](const auto& track) { return track.keys.empty(); });
-		if (selectedComponentType == AttachedComponentType::SoundSource)
-		{
-			if (selectedComponentIndex == deleteSoundSource)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deleteSoundSource)
-				--selectedComponentIndex;
-		}
-		MarkDirty();
-	}
+	if (deleteSoundSource >= 0) DeleteAttachedComponent(AttachedComponentType::SoundSource, deleteSoundSource);
 
 	// ポイントライト
 	auto& pointLights = model->GetVmdlLightData().pointLights;
@@ -3848,22 +4081,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deletePointLight >= 0)
-	{
-		pointLights.erase(pointLights.begin() + deletePointLight);
-		if (selectedComponentType == AttachedComponentType::PointLight)
-		{
-			if (selectedComponentIndex == deletePointLight)
-			{
-				selectedComponentType = AttachedComponentType::None;
-				selectedComponentIndex = -1;
-				selectedComponentIndices.clear();
-			}
-			else if (selectedComponentIndex > deletePointLight)
-				--selectedComponentIndex;
-		}
-		MarkDirty();
-	}
+	if (deletePointLight >= 0) DeleteAttachedComponent(AttachedComponentType::PointLight, deletePointLight);
 
 	auto& presentation = model->GetVmdlPresentationData();
 	auto drawDistanceMode = [](bool& attenuate) {
@@ -3906,21 +4124,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteCameraShake >= 0)
-	{
-		presentation.cameraShakes.erase(presentation.cameraShakes.begin() + deleteCameraShake);
-		for (auto& track : presentation.cameraShakeTracks)
-		{
-			std::erase_if(track.keys, [deleteCameraShake](const auto& key) {
-				return key.componentIndex == deleteCameraShake;
-			});
-			for (auto& key : track.keys) if (key.componentIndex > deleteCameraShake) --key.componentIndex;
-		}
-		std::erase_if(presentation.cameraShakeTracks,
-			[](const auto& track) { return track.keys.empty(); });
-		if (selectedComponentType == AttachedComponentType::CameraShake) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
-		MarkDirty();
-	}
+	if (deleteCameraShake >= 0) DeleteAttachedComponent(AttachedComponentType::CameraShake, deleteCameraShake);
 
 	int deleteRadialBlur = -1;
 	for (int i = 0; i < Count(presentation.radialBlurs); ++i)
@@ -3954,21 +4158,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 		}
 		ImGui::PopID();
 	}
-	if (deleteRadialBlur >= 0)
-	{
-		presentation.radialBlurs.erase(presentation.radialBlurs.begin() + deleteRadialBlur);
-		for (auto& track : presentation.radialBlurTracks)
-		{
-			std::erase_if(track.keys, [deleteRadialBlur](const auto& key) {
-				return key.componentIndex == deleteRadialBlur;
-			});
-			for (auto& key : track.keys) if (key.componentIndex > deleteRadialBlur) --key.componentIndex;
-		}
-		std::erase_if(presentation.radialBlurTracks,
-			[](const auto& track) { return track.keys.empty(); });
-		if (selectedComponentType == AttachedComponentType::RadialBlur) { selectedComponentType = AttachedComponentType::None; selectedComponentIndex = -1; selectedComponentIndices.clear(); }
-		MarkDirty();
-	}
+	if (deleteRadialBlur >= 0) DeleteAttachedComponent(AttachedComponentType::RadialBlur, deleteRadialBlur);
 	if (duplicatePending) DuplicateSelectedAttachedComponent();
 }
 
@@ -4715,7 +4905,16 @@ void VmdlEditorScene::DrawAnimationCurves()
 		!io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))) eraseSelected();
 	if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 	{
-		if ((io.KeyShift || io.KeyCtrl) && io.MousePos.x >= timeLeft)
+		if (io.MousePos.x >= timeLeft && io.MousePos.y >= weightTop && io.MousePos.y < weightBottom && footWeightCount > 0)
+		{
+			timelineBoxSelecting = false;
+			timelineKeysDragging = false;
+			scrubbingAnimationTime = false;
+			paintingFootWeight = true;
+			paintingFootWeightIndex = std::clamp(static_cast<int>((io.MousePos.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
+			paintingFootWeightLastSample = -1;
+		}
+		else if ((io.KeyShift || io.KeyCtrl) && io.MousePos.x >= timeLeft)
 		{
 			timelineBoxSelecting = true;
 			timelineBoxRemoving = io.KeyCtrl;
@@ -4739,12 +4938,6 @@ void VmdlEditorScene::DrawAnimationCurves()
 				});
 				timelineDragStartTimes.push_back(seconds);
 			}
-		}
-		else if (io.MousePos.x >= timeLeft && io.MousePos.y >= weightTop && io.MousePos.y < weightBottom && footWeightCount > 0)
-		{
-			paintingFootWeight = true;
-			paintingFootWeightIndex = std::clamp(static_cast<int>((io.MousePos.y - weightTop) / footWeightHeight), 0, footWeightCount - 1);
-			paintingFootWeightLastSample = -1;
 		}
 		else if (io.MousePos.x >= timeLeft)
 		{
@@ -6428,10 +6621,8 @@ void VmdlEditorScene::ResetLightingEnvironment()
 
 	const LightManager defaults;
 	editorLights.SetAmbientColor(defaults.GetAmbientColor());
+	editorLights.ClearLights();
 	editorLights.SetDirectionalLight(defaults.GetDirectionalLight());
-	editorLights.GetPointLights().clear();
-	editorLights.GetSpotLights().clear();
-	editorLights.GetAreaLights().clear();
 	editorLightDirection = {0.6f, -0.7f, 0.0f};
 	editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
 	editorLights.GetDirectionalLight().transform.Update();
@@ -6936,7 +7127,7 @@ void VmdlEditorScene::SaveVmdlAs()
 void VmdlEditorScene::LoadModel(
 	const std::filesystem::path& requestedPath, const std::filesystem::path& requestedDestination)
 {
-	const auto filepath = ResourceManager::ResolveSourcePath(ResourcePath::Path(ResourcePath::Model(ResourcePath::Text(requestedPath))));
+	const auto filepath = ResourceManager::ResolveSourcePath(ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(requestedPath), ResourceManager::ResourceType::Model)));
 	const auto importDestination = ResourceManager::ResolveSourcePath(requestedDestination);
 	if (!std::filesystem::is_regular_file(filepath))
 	{

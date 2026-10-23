@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include "Core/Object/Component.h"
 #include "Core/Object/Transform.h"
 
@@ -26,8 +28,8 @@ public:
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
 
-	virtual void Destroy(float delay = 0.0f) { destroyTimer = delay; }
-	bool IsPendingDestroy() const { return destroyTimer.has_value() && destroyTimer.value() <= 0.0f; }
+	virtual void Destroy(float delay = 0.0f) { destroyTimer.emplace(delay); }
+	bool IsPendingDestroy() const { return destroyTimer.has_value() && !destroyTimer->IsRunning(); }
 	void SetComponentDebugVisible(bool visible) { componentDebugVisible = visible; }
 
 	template<typename T, typename... Args>
@@ -87,7 +89,7 @@ protected:
 protected:
 	std::string name, tag;
 	bool isActive;
-	std::optional<float> destroyTimer;
+	std::optional<Game::Timer> destroyTimer;
 	std::vector<std::unique_ptr<Component>> components;
 	bool isAwake = false;
 	bool isStarted = false;

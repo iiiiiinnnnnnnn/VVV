@@ -1,6 +1,8 @@
 // ThirdPersonCameraController.h
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <algorithm>
 
 #include "Gameplay/Camera/CameraController.h"
@@ -50,12 +52,12 @@ private:
 	float sprintArmExtension = 2.0f;
 	float sprintArmSpeed = 5.5f;
 	float currentArmLength = 11.0f;
-	float skillFocusTimer = 0.0f;
+	Game::Timer skillFocusTimer{0.0f};
 	float skillFocusDuration = 0.0f;
 	float skillFocusArmLength = 4.5f;
 	float skillFocusFovOffset = -6.0f;
 	Actor* bossDefeatTarget = nullptr;
-	float bossDefeatFocusTimer = 0.0f;
+	Game::Timer bossDefeatFocusTimer{0.0f};
 	float bossDefeatFocusDuration = 0.0f;
 
 	const float FOV_DEFAULT = 85.0f;

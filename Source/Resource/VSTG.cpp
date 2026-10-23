@@ -75,7 +75,7 @@ bool VSTG::Load(const std::filesystem::path& path)
 {
 	terrainSettingsJson.clear();
 	navMeshSettingsJson.clear();
-	const auto bytes = ResourceManager::Instance().LoadFile(ResourcePath::Stage(ResourcePath::Text(path)));
+	const auto bytes = ResourceManager::Instance().LoadFile(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(path), ResourceManager::ResourceType::Stage));
 	if (!bytes)
 	{
 		error = "VSTG not found: " + path.generic_string();
@@ -275,7 +275,9 @@ std::string VSTG::BuildLightingJson(const LightManager& lights) const
 {
 	json root;
 	root["ambient"] = SaveColor(lights.GetAmbientColor());
-	root["directional"] = SaveLight(lights.GetDirectionalLight());
+	root["directionals"] = json::array();
+	for (const auto& light : lights.GetDirectionalLights())
+		if (!light.IsPendingDestroy()) root["directionals"].push_back(SaveLight(light));
 	const auto& graphics = Game::Graphics::Instance();
 	root["ibl"] = {{"skyMap", graphics.GetSkyMapName()},
 		{"skyIntensity", graphics.GetSkyBoxRenderer()->GetIntensity()}};
@@ -330,19 +332,39 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 		}
 		lights.SetAmbientColor(LoadColor(root.at("ambient")));
 		
-		LoadLight(root.at("directional"), lights.GetDirectionalLight());
-		lights.GetPointLights().clear();
-		lights.GetSpotLights().clear();
-		lights.GetAreaLights().clear();
+		const auto directionals = root.contains("directionals")
+			? root.at("directionals") : json::array({root.at("directional")});
+		const size_t count = directionals.size()
+			+ root.value("points", json::array()).size()
+			+ root.value("spots", json::array()).size()
+			+ root.value("areas", json::array()).size();
+		if (count > CbLightData::MaxLights)
+		{
+			error = "VSTG lighting exceeds the shared limit of 150 lights.";
+			return false;
+		}
+		lights.ClearLights();
+		if (directionals.empty()) lights.GetDirectionalLight().Destroy();
+		for (size_t i = 0; i < directionals.size(); ++i)
+		{
+			auto* light = i == 0 ? &lights.GetDirectionalLight() : lights.AddDirectionalLight();
+			if (!light) return false;
+			LoadLight(directionals[i], *light);
+		}
+
 		for (const auto& value : root.value("points", json::array()))
 		{
-			PointLight& light = lights.AddPointLight();
+			auto* addedLight = lights.AddPointLight();
+			if (!addedLight) return false;
+			auto& light = *addedLight;
 			LoadLight(value, light);
 			light.SetRange(value.at("range").get<float>());
 		}
 		for (const auto& value : root.value("spots", json::array()))
 		{
-			SpotLight& light = lights.AddSpotLight();
+			auto* addedLight = lights.AddSpotLight();
+			if (!addedLight) return false;
+			auto& light = *addedLight;
 			LoadLight(value, light);
 			light.SetRange(value.at("range").get<float>());
 			light.SetInnerConeAngle(value.at("innerCone").get<float>());
@@ -350,7 +372,9 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 		}
 		for (const auto& value : root.value("areas", json::array()))
 		{
-			AreaLight& light = lights.AddAreaLight();
+			auto* addedLight = lights.AddAreaLight();
+			if (!addedLight) return false;
+			auto& light = *addedLight;
 			LoadLight(value, light);
 			light.SetRange(value.at("range").get<float>());
 			light.SetWidth(value.at("width").get<float>());

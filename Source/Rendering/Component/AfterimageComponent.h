@@ -1,6 +1,8 @@
 // AfterimageComponent.h
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <memory>
 #include <vector>
 
@@ -30,7 +32,7 @@ private:
 	{
 		std::shared_ptr<VMDLModel> model;
 		VMatRenderParams renderParams;
-		float age = 0.0f;
+		Game::Timer age{0.0f};
 	};
 
 	void CapturePose();
@@ -39,8 +41,8 @@ private:
 	std::shared_ptr<VMDLModel> sourceModel;
 	std::vector<Afterimage> afterimages;
 
-	float captureTimeRemaining = 0.0f;
-	float captureTimer = 0.0f;
+	Game::Timer captureTimeRemaining{0.0f};
+	Game::Timer captureTimer{0.0f};
 
 	float captureDuration = 0.22f;
 	float captureInterval = 0.045f;

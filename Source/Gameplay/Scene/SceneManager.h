@@ -24,7 +24,7 @@ class SceneManager
 		return instance;
 	}
 
-	void Initialize();
+	void Initialize(std::unique_ptr<Scene> initialScene);
 	void Finalize();
 	void ApplyPendingChanges();
 	void Update();

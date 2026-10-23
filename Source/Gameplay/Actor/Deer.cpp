@@ -9,7 +9,26 @@
 #include "Crystal.h"
 
 Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBossField)
-	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f)
+	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f),
+	  modelPath(modelPath)
+{}
+
+Deer::~Deer()
+{
+	Uninit();
+}
+
+void Deer::OnUninit()
+{
+	model.reset();
+	vmdl = nullptr;
+	anim = nullptr;
+	controller = nullptr;
+	navMeshAgent = nullptr;
+	cc = nullptr;
+}
+
+void Deer::OnInit()
 {
 	vmdl = AddComponent<VMDL>(modelPath);
 	anim = AddComponent<Animator>(vmdl->GetSharedModel());
@@ -20,7 +39,7 @@ Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBoss
 	auto footIK = vmdl->GetMultiLegFootIK();
 	footIK->SetContactOffset(-0.864f);
 	footIK->SetModelVisualOffsetY(-0.22f);
-	anim->Load("Deer.animator");
+	anim->Load("Deer");
 	anim->SetRootMotion("armature", false);
 
 	// キャラクターコントローラー

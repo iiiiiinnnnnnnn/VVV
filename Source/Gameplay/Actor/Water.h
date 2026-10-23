@@ -9,11 +9,16 @@ class Water : public Actor
 public:
 	Water(const Transform& transform, const WaterRenderer::Settings& settings);
 
+	~Water() override;
+
 	void ApplySettings(
 		bool enabled,
 		const Transform& transform,
 		const WaterRenderer::Settings& settings);
 
 private:
+	void OnInit() override;
+	void OnUninit() override { renderer = nullptr; }
+	WaterRenderer::Settings settings;
 	WaterRenderer* renderer = nullptr;
 };

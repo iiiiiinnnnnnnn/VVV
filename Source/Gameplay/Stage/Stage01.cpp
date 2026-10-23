@@ -11,6 +11,10 @@
 #include "Gameplay/Player/Player.h"
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Actor/Crystal.h"
+#include "Rendering/Component/VMDL.h"
+#include "Physics/Collider/MeshCollider.h"
+#include "Physics/RigidBody/RigidbodyDynamic.h"
+#include "Gameplay/Actor/RigidRock.h"
 
 Stage01::Stage01(Player* player) : Stage()
 {
@@ -61,12 +65,25 @@ Stage01::Stage01(Player* player) : Stage()
 			device, fogTexture ? fogTexture->GetShaderResourceView() : nullptr, 1, 1, 256);
 	}
 
+	//////////////////////////////////////////////////////
 	// 登録したスポナー動作させるためのファクトリ関数
+	// StageLoaderから読み込んでスポナーであるならここに来る
+	//////////////////////////////////////////////////////
+
+	// 動く石
+	stageLoader->RegisterSpawnerFactory("RigidRock",
+		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
+			return std::make_shared<RigidRock>(transform, modelPath);
+		});
+
+	// deer
 	stageLoader->RegisterSpawnerFactory("Deer",
 		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
 			return std::make_shared<Deer>(
 				transform, modelPath, spawnTag == "BossField" ? true : false);
 		});
+
+	// aracore
 	Terrain* terrain = GetComponent<Terrain>();
 	stageLoader->RegisterSpawnerFactory(
 		"Aracore", [player, terrain, loader = stageLoader](const Transform& transform,
@@ -75,6 +92,8 @@ Stage01::Stage01(Player* player) : Stage()
 			queen->SetStageLoader(loader);
 			return queen;
 		});
+
+	// crystal
 	stageLoader->RegisterSpawnerFactory("Crystal",
 		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
 			return std::make_shared<Crystal>(transform, modelPath);
@@ -83,8 +102,10 @@ Stage01::Stage01(Player* player) : Stage()
 
 void Stage01::OnUpdate()
 {
+	////////////////////////////////////////////////////////////////////////
 	// particle systemを直接計算(ParticleSystemは手動で使うEffectみたいな感じ)
 	// しかしジオメトリシェーダーで位置やカメラ情報から4頂点を生成してる
+	////////////////////////////////////////////////////////////////////////
 
 	//	降雪
 	Vector3 pos = Vector3((rand() % 30 - 15) * 0.1f, rand() % 30 * 0.1f + 1, (rand() % 30 - 15) * 0.1f + 3);
@@ -120,12 +141,9 @@ void Stage01::OnUpdate()
 		fogPrewarmed = true;
 	}
 
-	fogSpawnAccumulator += fogSpawnRate * Game::Time::deltaTime;
-	while (fogSpawnAccumulator >= 1.0f)
-	{
+	const auto spawnCount = fogSpawnTimer.TickCount(fogSpawnRate * Game::Time::deltaTime);
+	for (std::size_t i = 0; i < spawnCount; ++i)
 		SpawnFogParticle();
-		fogSpawnAccumulator -= 1.0f;
-	}
 	fogParticleSystem->Update();
 }
 

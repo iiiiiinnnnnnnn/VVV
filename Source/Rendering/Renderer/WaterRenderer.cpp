@@ -136,8 +136,8 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 	if (rc.lightManager)
 	{
 		const CbLightData lightData = rc.lightManager->ConvertToCb();
-		constants.lightDirection = lightData.directionalLight.direction;
-		constants.lightColor = lightData.directionalLight.color;
+		constants.lightDirection = lightData.directionalLightCount ? lightData.directionalLights[0].direction : Vector3(0.0f, -1.0f, 0.0f);
+		constants.lightColor = lightData.directionalLightCount ? lightData.directionalLights[0].color : Color(0.0f, 0.0f, 0.0f, 0.0f);
 		constants.ambientColor = lightData.ambientColor;
 	}
 	else

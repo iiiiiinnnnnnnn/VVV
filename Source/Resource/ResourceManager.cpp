@@ -1,4 +1,3 @@
-﻿// ResourceManager.cpp
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
@@ -110,6 +109,7 @@ std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::
 #endif
 	return path;
 }
+
 bool ResourceManager::PreloadFile(const std::string& path)
 {
 	if (cacheSettings.Get(path).excluded) return false;
@@ -222,9 +222,85 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 	return assetPaths[it->second].path;
 }
 
+std::string ResourceManager::ResolveResourcePath(std::string_view value, ResourceType type) const
+{
+	if (value.empty()) return {};
+	const char* directory = "";
+	const char* extension = "";
+	switch (type)
+	{
+	case ResourceType::Model: directory = "Model"; extension = ".vmdl"; break;
+	case ResourceType::Effect: directory = "Effect"; extension = ".efkpkg"; break;
+	case ResourceType::Stage: directory = "Stage"; extension = ".vstg"; break;
+	case ResourceType::Sound: directory = "Sound"; extension = ".vsnd"; break;
+	case ResourceType::Animator: directory = "Animator"; extension = ".animator"; break;
+	case ResourceType::AI: directory = "AI"; extension = ".lua"; break;
+	case ResourceType::Texture: directory = "Image"; extension = ".png"; break;
+	case ResourceType::Shader: directory = "Shader"; extension = ".cso"; break;
+	case ResourceType::Font: directory = "Font"; extension = ".ttf"; break;
+	}
+
+	auto path = ResourcePath::Path(value).lexically_normal();
+	if (!path.has_extension()) path += extension;
+	if (path.is_absolute() || *path.begin() == "Resources") return ResourcePath::Text(path);
+
+	std::error_code error;
+	if (std::filesystem::exists(path, error)) return ResourcePath::Text(path);
+	const auto relative = path;
+	const std::string first = ResourcePath::Text(*path.begin());
+	const bool rooted = first == directory || (type == ResourceType::Texture &&
+		(first == "UI" || first == "Image" || first == "Texture" ||
+		 first == "Terrain" || first == "Sky" || first == "Model"));
+	path = rooted ? std::filesystem::path("Resources") / path
+		: std::filesystem::path("Resources") / directory / path;
+	const std::string expanded = ResourcePath::Text(path);
+	const std::string resolved = ResolvePath(expanded);
+	if (std::filesystem::exists(path, error)) return expanded;
+	if (std::filesystem::exists(ResourcePath::Path(resolved), error)) return resolved;
+
+	// Use the manifest for names in subdirectories, including textures outside Image.
+	const std::string suffix = "/" + MakeLookupKey(ResourcePath::Text(relative));
+	const std::string prefix = "Resources/" + std::string(directory) + "/";
+	std::string match;
+	for (const auto& asset : assetPaths)
+	{
+		std::string ext = ResourcePath::Text(ResourcePath::Path(asset.path).extension());
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+		if (type == ResourceType::Texture)
+		{
+			if (ext != ".png" && ext != ".dds" && ext != ".jpg" && ext != ".jpeg" &&
+				ext != ".bmp" && ext != ".tga" && ext != ".hdr") continue;
+		}
+		else if (!asset.path.starts_with(prefix) || (ext != extension &&
+			!(type == ResourceType::Font && ext == ".otf") &&
+			!(type == ResourceType::Sound && ext == ".wav"))) continue;
+		if (!MakeLookupKey(asset.path).ends_with(suffix)) continue;
+		if (!match.empty() && match != asset.path)
+			throw std::runtime_error("Ambiguous resource name: " + std::string(value) +
+				" (" + match + " / " + asset.path + ")");
+		match = asset.path;
+	}
+	return match.empty() ? expanded : match;
+}
+
+std::string ResourceManager::ShortResourcePath(std::string_view value, const char* directory)
+{
+	auto path = ResourcePath::Path(value).lexically_normal();
+	const std::string text = ResourcePath::Text(path);
+	const std::string prefix = std::string("Resources/") + directory + "/";
+	if (text.starts_with(prefix)) path = ResourcePath::Path(text.substr(prefix.size()));
+	const auto extension = path.extension();
+	if (extension == ".wav" || extension == ".vsnd" || extension == ".vmdl" ||
+		extension == ".vstg" || extension == ".efkpkg" || extension == ".animator" ||
+		extension == ".lua" || extension == ".png" || extension == ".dds" ||
+		extension == ".ttf" || extension == ".otf" || extension == ".cso")
+		path.replace_extension();
+	return ResourcePath::Text(path);
+}
+
 std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bool runtimeInstance)
 {
-	const std::string modelPath = ResourcePath::Model(key);
+	const std::string modelPath = ResolveResourcePath(key, ResourceType::Model);
 	const auto loadStarted = std::chrono::steady_clock::now();
 	if (cacheSettings.Get(ResolvePath(modelPath)).excluded) return nullptr;
 	const std::string lookupKey = MakeLookupKey(modelPath);
@@ -265,16 +341,20 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bo
 	return result;
 }
 
-std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key)
+std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key, bool required)
 {
-	const std::string resolvedPath = ResolvePath(key);
+	const std::string resolvedPath = ResolvePath(ResolveResourcePath(key, ResourceType::Texture));
 	if (cacheSettings.Get(resolvedPath).excluded) return nullptr;
 	const std::string lookupKey = CacheSettings::Key(resolvedPath);
 	auto it = textures.find(lookupKey);
 	if (it == textures.end())
 	{
+		// 任意のUI画像は、未設定・未存在なら例外を投げずに省略する。
 		if (!std::filesystem::exists(resolvedPath))
-			throw std::runtime_error("Texture not found: " + resolvedPath);
+		{
+			if (required) throw std::runtime_error("Texture not found: " + resolvedPath);
+			return {};
+		}
 
 		auto texture = std::make_shared<Texture>(resolvedPath.c_str());
 		it = textures.emplace(lookupKey, std::move(texture)).first;

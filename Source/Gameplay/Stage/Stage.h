@@ -20,15 +20,16 @@ class Stage : public Object
 public:
 	Stage()
 	{
-		defaultCameraActor = std::make_unique<Actor>("Stage Camera");
+		defaultCameraActor = std::make_shared<Actor>("Stage Camera");
 		defaultCameraActor->AddComponent<Camera>();
+		actorManager.Register(defaultCameraActor);
+		actorManager.FlushPendingActors();
 	}
 
 	void Update() override
 	{
 		transform.Update();
 		Object::Update();
-		defaultCameraActor->Update();
 		actorManager.Update();
 		NormalizeCameraPriorities();
 		lightManager.Update();
@@ -141,9 +142,6 @@ private:
 	std::vector<Camera*> GetCameras() const
 	{
 		std::vector<Camera*> cameras;
-		if (Camera* camera = defaultCameraActor->GetComponent<Camera>())
-			cameras.push_back(camera);
-
 		for (Actor* actor : actorManager.GetActors())
 		{
 			if (Camera* camera = actor->GetComponent<Camera>())
@@ -207,7 +205,7 @@ public:
 
 protected:
 	Transform transform;
-	std::unique_ptr<Actor> defaultCameraActor;
+	std::shared_ptr<Actor> defaultCameraActor;
 	Camera* debugCamera = nullptr;
 
 	ActorManager actorManager;

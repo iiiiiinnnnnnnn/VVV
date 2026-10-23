@@ -524,10 +524,19 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 		0);
 }
 
+void Terrain::PrepareRenderResources()
+{
+	if (terrainMeshDirty) CreateGridMesh(Game::Graphics::Instance().GetDevice());
+	if (grassRenderer && grassDirty)
+	{
+		grassRenderer->Rebuild(*this, grassSettings);
+		grassDirty = false;
+	}
+}
+
 void Terrain::Update()
 {
-	grassRemovalEffectCooldown = std::max(
-		grassRemovalEffectCooldown - Game::Time::deltaTime, 0.0f);
+	grassRemovalEffectCooldown.Update(Game::Time::deltaTime);
 }
 
 void Terrain::Render(const RenderContext& rc)
@@ -2371,12 +2380,12 @@ std::string Terrain::GetSurfaceLayerName(const Vector3& worldPosition) const
 
 void Terrain::PlayGrassRemovalEffect(const Vector3& worldPosition)
 {
-	if (grassRemovalEffectCooldown > 0.0f) return;
+	if (grassRemovalEffectCooldown.GetRemaining() > 0.0f) return;
 	auto& effects = EffectManager::Instance();
 	if (!grassRemovalEffect) grassRemovalEffect = effects.LoadEffect("feather");
 	effects.PlayDetached(grassRemovalEffect, 
 		 Matrix::CreateScale(0.3f) * Matrix::CreateTranslation(worldPosition));
-	grassRemovalEffectCooldown = 0.08f;
+	grassRemovalEffectCooldown.Reset(0.08f);
 }
 
 // sphereの中にある草マップを範囲内で削除する

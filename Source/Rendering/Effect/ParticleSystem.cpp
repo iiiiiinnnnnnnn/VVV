@@ -12,8 +12,7 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 	HRESULT hr;
 
 	//	パーティクル情報リスト
-	data = new ParticleData[num];
-	ZeroMemory(data, sizeof(ParticleData) * num);
+	data = new ParticleData[num]{};
 
 	//	頂点情報リスト
 	vertices = new Vertex[num];
@@ -94,15 +93,15 @@ void ParticleSystem::Update()
 		data[i].y += data[i].vy * Game::Time::deltaTime;
 		data[i].z += data[i].vz * Game::Time::deltaTime;
 
-		data[i].timer -= Game::Time::deltaTime;
+		data[i].lifetime.Update();
 		if (data[i].fadeInDuration > 0.0f || data[i].fadeOutDuration > 0.0f)
 		{
-			const float age = data[i].initialTimer - data[i].timer;
+			const float age = data[i].lifetime.GetElapsed();
 			const float fadeIn = data[i].fadeInDuration > 0.0f
 				? std::clamp(age / data[i].fadeInDuration, 0.0f, 1.0f)
 				: 1.0f;
 			const float fadeOut = data[i].fadeOutDuration > 0.0f
-				? std::clamp(data[i].timer / data[i].fadeOutDuration, 0.0f, 1.0f)
+				? std::clamp(data[i].lifetime.GetRemaining() / data[i].fadeOutDuration, 0.0f, 1.0f)
 				: 1.0f;
 			data[i].alpha = std::min(fadeIn, fadeOut);
 		}
@@ -121,7 +120,7 @@ void ParticleSystem::Update()
 		}
 
 		// 終了判定
-		if (data[i].timer <= 0)
+		if (data[i].lifetime.GetRemaining() <= 0)
 			data[i].type = -1;
 	}
 }
@@ -227,11 +226,10 @@ void ParticleSystem::Set(
 		data[i].w = size.x;
 		data[i].h = size.y;
 		data[i].alpha = 1.0f;
-		data[i].initialTimer = timer;
 		data[i].fadeInDuration = fadeInDuration;
 		data[i].fadeOutDuration = fadeOutDuration;
 		data[i].color = color;
-		data[i].timer = timer;
+		data[i].lifetime.Reset(timer);
 		data[i].anime = anime;
 		data[i].animeSpeed = animeSpeed;
 		break;

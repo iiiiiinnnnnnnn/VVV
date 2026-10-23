@@ -2,6 +2,10 @@
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Effect/Effect.h"
+#include "Rendering/Core/RenderContext.h"
+#include "Resource/GpuResourceUtils.h"
+#include "Rendering/Effect/EffekseerOverride/Shader.h"
+#include <EffekseerRendererCommon/EffekseerRenderer.Renderer_Impl.h>
 #include "Application/Time/GameTime.h"
 #include "Core/Object/Object.h"
 #include "Resource/ResourceManager.h"
@@ -66,6 +70,7 @@ void EffectManager::Initialize()
 	// Effekseerレンダラ生成
 	effekseerRenderer = EffekseerRendererDX11::Renderer::Create(graphics.GetDevice(),
 		graphics.GetDeviceContext(), 2048);
+	InitializeFog();
 
 	// Effekseerマネージャー生成
 	effekseerManager = Effekseer::Manager::Create(2048);
@@ -86,12 +91,47 @@ void EffectManager::Initialize()
 
 }
 
+void EffectManager::InitializeFog()
+{
+	auto* impl = effekseerRenderer->GetImpl();
+	const auto replace = [this](std::unique_ptr<EffekseerRenderer::ShaderBase>& shader,
+		EffekseerRenderer::RendererShaderType type, const char* name) {
+		const std::string base = std::string("Resources/Shader/Effekseer") + name;
+		const auto vs = GpuResourceUtils::LoadBinaryFile((base + "VS.cso").c_str());
+		const auto ps = GpuResourceUtils::LoadBinaryFile((base + "PS.cso").c_str());
+		auto replacement = effekseerRenderer->GetGraphicsDevice()->CreateShaderFromBinary(
+			vs.data(), static_cast<int32_t>(vs.size()),
+			ps.data(), static_cast<int32_t>(ps.size()));
+		if (!replacement) throw std::runtime_error("Failed to create effect fog shader: " + base);
+		auto device = effekseerRenderer->GetGraphicsDevice();
+		auto layout = EffekseerRenderer::GetVertexLayout(device, type);
+		std::unique_ptr<EffekseerRendererDX11::Shader> fogShader(
+			EffekseerRendererDX11::Shader::Create(device, replacement, layout, name));
+		if (!fogShader) throw std::runtime_error("Failed to create effect fog layout: " + base);
+		const auto* original = static_cast<EffekseerRendererDX11::Shader*>(shader.get());
+		fogShader->SetVertexConstantBufferSize(original->GetVertexConstantBufferSize());
+		fogShader->SetPixelConstantBufferSize(original->GetPixelConstantBufferSize());
+		// UnlitのOverrideShader(nullptr)でもフォグ対応版が使われるよう、本体を置き換える。
+		shader = std::move(fogShader);
+	};
+	replace(impl->ShaderUnlit, EffekseerRenderer::RendererShaderType::Unlit, "Unlit");
+	replace(impl->ShaderLit, EffekseerRenderer::RendererShaderType::Lit, "Lit");
+	replace(impl->ShaderDistortion, EffekseerRenderer::RendererShaderType::BackDistortion, "Distortion");
+	replace(impl->ShaderAdUnlit, EffekseerRenderer::RendererShaderType::AdvancedUnlit, "AdvancedUnlit");
+	replace(impl->ShaderAdLit, EffekseerRenderer::RendererShaderType::AdvancedLit, "AdvancedLit");
+	replace(impl->ShaderAdDistortion, EffekseerRenderer::RendererShaderType::AdvancedBackDistortion, "AdvancedDistortion");
+	if (FAILED(GpuResourceUtils::CreateConstantBuffer(Game::Graphics::Instance().GetDevice(),
+		sizeof(FogConstants), fogConstantBuffer.ReleaseAndGetAddressOf())))
+		throw std::runtime_error("Failed to create effect fog constant buffer");
+}
+
 // 終了化
 void EffectManager::Finalize()
 {
 	playbackObjects.clear();
 	effectPlaybacks.clear();
 	effectData.clear();
+	fogConstantBuffer.Reset();
 }
 
 // 更新処理
@@ -141,7 +181,7 @@ std::vector<std::string> EffectManager::GetEffectPaths()
 			[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
 		if (extension != ".efkpkg") continue;
 		auto relative = iterator->path().lexically_relative(root);
-		paths.push_back(ResourcePath::Short(ResourcePath::Text(relative), "Effect"));
+		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), "Effect"));
 	}
 	std::sort(paths.begin(), paths.end());
 	return paths;
@@ -151,7 +191,7 @@ std::shared_ptr<Effect> EffectManager::LoadEffect(std::string_view effectPath)
 {
 	if (effectPath.empty()) throw std::runtime_error("Effect path is empty");
 	const auto path = std::filesystem::weakly_canonical(ResourceManager::ResolveSourcePath(
-		ResourcePath::Path(ResourcePath::Effect(effectPath))));
+		ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(effectPath, ResourceManager::ResourceType::Effect))));
 	const std::string key = ResourcePath::Text(path);
 	const std::vector<uint8_t>* data = nullptr;
 	if (const auto found = effectData.find(key); found != effectData.end()) data = &found->second;
@@ -280,18 +320,44 @@ void EffectManager::ReleaseEffect(const Effect* effect)
 }
 
 // 描画処理
-void EffectManager::Render(const Matrix& view, const Matrix& projection)
+void EffectManager::Render(const RenderContext& rc)
 {
+	if (!rc.camera) return;
+	const Matrix& view = rc.camera->GetView();
+	const Matrix& projection = rc.camera->GetProjection();
+	const RenderSettings& settings = rc.renderSettings;
 	// ビュー＆プロジェクション行列をEffekseerレンダラに設定
 	effekseerRenderer->SetCameraMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&view));
 	effekseerRenderer->SetProjectionMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&projection));
 	for (const EffectPlayback& playback : effectPlaybacks)
+	{
+		if (!effekseerManager->Exists(playback.handle)) continue;
 		if (playback.billboard)
 			SetBaseMatrix(effekseerManager, playback.handle,
 				EffectManager::CreateBillboardTransform(playback.transform, view));
 
+
+	}
+
 	// Effekseer描画開始
 	effekseerRenderer->BeginRendering();
+
+	ID3D11DeviceContext* dc = rc.deviceContext;
+	D3D11_VIEWPORT viewport{};
+	UINT count = 1;
+	dc->RSGetViewports(&count, &viewport);
+	FogConstants fog{};
+	fog.inverseViewProjection = (view * projection).Invert();
+	const Vector3 eye = rc.camera->GetEye();
+	fog.cameraPosition = {eye.x, eye.y, eye.z, 1.0f};
+	fog.viewport = {viewport.TopLeftX, viewport.TopLeftY,
+		1.0f / std::max(viewport.Width, 1.0f), 1.0f / std::max(viewport.Height, 1.0f)};
+	fog.parameters = {settings.distanceFogStart, settings.distanceFogEnd,
+		settings.distanceFogStrength, settings.showFog && settings.distanceFogEnabled ? 1.0f : 0.0f};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> previousFogBuffer;
+	dc->PSGetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+	dc->UpdateSubresource(fogConstantBuffer.Get(), 0, nullptr, &fog, 0, 0);
+	dc->PSSetConstantBuffers(13, 1, fogConstantBuffer.GetAddressOf());
 
 	// Effekseer描画実行
 	// マネージャー単位で描画するので描画順を制御する場合はマネージャーを複数個作成し、
@@ -300,4 +366,5 @@ void EffectManager::Render(const Matrix& view, const Matrix& projection)
 
 	// Effekseer描画終了
 	effekseerRenderer->EndRendering();
+	dc->PSSetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
 }

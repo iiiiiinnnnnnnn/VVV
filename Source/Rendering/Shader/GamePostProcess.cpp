@@ -16,16 +16,23 @@ namespace Game
 
 	void PostProcess::CopySettingsFrom(const PostProcess& source)
 	{
+		// 水中のフォグ・色補正・吸収
 		enableUnderwater = source.enableUnderwater;
 		underwaterColor = source.underwaterColor;
 		underwaterDensity = source.underwaterDensity;
 		underwaterTint = source.underwaterTint;
 		underwaterAbsorption = source.underwaterAbsorption;
+
+		// ブルーム用の高輝度抽出
 		enableBloomExtract = source.enableBloomExtract;
 		bloomThreshold = source.bloomThreshold;
+
+		// ブルームのぼかし
 		enableBloomBlur = source.enableBloomBlur;
 		bloomBlurSize = source.bloomBlurSize;
 		bloomBlurBrightness = source.bloomBlurBrightness;
+
+		// ブルーム合成・画像の混合
 		enableDualEffect = source.enableDualEffect;
 		dualEffectIndex = source.dualEffectIndex;
 		bloomIntensity = source.bloomIntensity;
@@ -34,26 +41,36 @@ namespace Game
 		baseSaturation = source.baseSaturation;
 		mergeWeight1 = source.mergeWeight1;
 		mergeWeight2 = source.mergeWeight2;
+
+		// トーンマッピング・出力色空間
 		enableToneMapping = source.enableToneMapping;
 		toneMapOperatorIndex = source.toneMapOperatorIndex;
 		transferFunctionIndex = source.transferFunctionIndex;
 		colorRotationIndex = source.colorRotationIndex;
 		exposure = source.exposure;
 		paperWhiteNits = source.paperWhiteNits;
+
+		// 色相・彩度・明るさ
 		enableColorFilter = source.enableColorFilter;
 		colorFilterHueShift = source.colorFilterHueShift;
 		colorFilterSaturation = source.colorFilterSaturation;
 		colorFilterBrightness = source.colorFilterBrightness;
+
+		// 暗部・中間色・明部のグラデーション
 		enableColorGradient = source.enableColorGradient;
 		colorGradientStrength = source.colorGradientStrength;
 		colorGradientShadows = source.colorGradientShadows;
 		colorGradientMidtones = source.colorGradientMidtones;
 		colorGradientHighlights = source.colorGradientHighlights;
+
+		// 放射ブラー
 		enableRadialBlur = source.enableRadialBlur;
 		radialBlurRadius = source.radialBlurRadius;
 		radialBlurSamplingCount = source.radialBlurSamplingCount;
 		radialBlurCenter = source.radialBlurCenter;
 		radialBlurMaskRadius = source.radialBlurMaskRadius;
+
+		// ビネット
 		enableVignette = source.enableVignette;
 		vignetteColor = source.vignetteColor;
 		vignetteCenter = source.vignetteCenter;
@@ -61,21 +78,31 @@ namespace Game
 		vignetteSmoothness = source.vignetteSmoothness;
 		vignetteRounded = source.vignetteRounded;
 		vignetteRoundness = source.vignetteRoundness;
+
+		// 色収差
 		enableChromaticAberration = source.enableChromaticAberration;
 		chromaticAberrationAmount = source.chromaticAberrationAmount;
 		chromaticAberrationMaxSamples = source.chromaticAberrationMaxSamples;
+
+		// スクリーンスペースのアンビエントオクルージョン
 		enableSSAO = source.enableSSAO;
 		ssaoRadius = source.ssaoRadius;
 		ssaoIntensity = source.ssaoIntensity;
 		ssaoMinDistance = source.ssaoMinDistance;
 		ssaoMaxDistance = source.ssaoMaxDistance;
+
+		// FXAAによるアンチエイリアス
 		enableFXAA = source.enableFXAA;
+
+		// 最後に適用する基本エフェクト
 		enableBasicEffect = source.enableBasicEffect;
 		basicEffectIndex = source.basicEffectIndex;
 		gaussianMultiplier = source.gaussianMultiplier;
 		finalBloomThreshold = source.finalBloomThreshold;
 		finalBloomBlurSize = source.finalBloomBlurSize;
 		finalBloomBlurBrightness = source.finalBloomBlurBrightness;
+
+		// 色収差で使用する各チャンネルのシフト色
 		for (int i = 0; i < 3; ++i) chromaticAberrationShift[i] = source.chromaticAberrationShift[i];
 	}
 
@@ -161,8 +188,14 @@ namespace Game
 		}
 	}
 
-	PostProcess::PostProcess()
+	void PostProcess::Uninit()
 	{
+		*this = PostProcess{};
+	}
+
+	void PostProcess::Init()
+	{
+		if (initialized) return;
 		ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 		static_assert(sizeof(CbUnderwater) % 16 == 0);
 		GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/UnderwaterPS.cso",
@@ -267,6 +300,7 @@ namespace Game
 		D3D11_SUBRESOURCE_DATA vertexData = {};
 		vertexData.pSysMem = vertices;
 		device->CreateBuffer(&vertexBufferDesc, &vertexData, fullscreenVertexBuffer.GetAddressOf());
+		initialized = true;
 	}
 
 	void PostProcess::Copy(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)

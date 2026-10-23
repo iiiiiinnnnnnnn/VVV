@@ -1,6 +1,8 @@
 // VmdlEditorScene.h
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/Scene.h"
 
@@ -31,6 +33,8 @@ class VmdlEditorScene : public Scene
 	~VmdlEditorScene() override;
 
   protected:
+	void OnInit() override;
+	void OnUninit() override;
 	void OnUpdate() override;
 	void ToggleDebugDisplay() override;
 	void OnDrawGUI() override;
@@ -38,6 +42,8 @@ class VmdlEditorScene : public Scene
 	bool OnRequestExit() override;
 
   private:
+	std::filesystem::path initialModelPath;
+
 	enum class AttachedComponentType
 	{
 		None,
@@ -73,6 +79,8 @@ class VmdlEditorScene : public Scene
 	bool IsMeshSelected(int meshIndex) const;
 	void AddAttachedComponentToSelectedNodes(AttachedComponentType type);
 	void DuplicateSelectedAttachedComponent();
+	void DeleteAttachedComponent(AttachedComponentType type, int index);
+	void DeleteSelection();
 	std::string MakeUniqueAttachedComponentName(
 		AttachedComponentType type, const std::string& baseName) const;
 	void DrawPreviewToolbar();
@@ -207,9 +215,10 @@ class VmdlEditorScene : public Scene
 	float cameraYaw = 0.55f;
 	float cameraPitch = 0.35f;
 	float cameraDistance = 5.0f;
+	float previewVerticalFovDegrees = 45.0f;
 	float targetCameraDistance = 5.0f;
 	float previewCameraMoveSpeed = 10.0f;
-	float previewCameraMoveSpeedOverlayTimer = 0.0f;
+	Game::Timer previewCameraMoveSpeedOverlayTimer{0.0f};
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	Vector3 cameraOrbitPivot = Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 previewCameraEye = Vector3::Zero;
@@ -244,10 +253,10 @@ class VmdlEditorScene : public Scene
 	bool animationSoundPreviewStarting = true;
 	bool particlePreviewPlayPending = false;
 	int manualParticlePreviewIndex = -1;
-	float cameraShakePreviewTimer = 0.0f;
+	Game::Timer cameraShakePreviewTimer{0.0f};
 	float cameraShakePreviewDuration = 0.0f;
 	float cameraShakePreviewIntensity = 0.0f;
-	float radialBlurPreviewTimer = 0.0f;
+	Game::Timer radialBlurPreviewTimer{0.0f};
 	float radialBlurPreviewDuration = 0.0f;
 	float radialBlurPreviewPower = 0.0f;
 	float radialBlurPreviewAttackRate = 0.15f;

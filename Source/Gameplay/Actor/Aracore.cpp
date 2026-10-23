@@ -37,18 +37,17 @@
 
 Aracore::Aracore(Player* player_init,
 	const Transform& transform, Terrain* terrain_init, const std::string& modelPath)
-	: Entity("Aracore", "Enemy", true, transform, 3000.0f, 3000.0f)
-{
-	this->player = player_init;
-	this->terrain = terrain_init;
-	this->spawnPosition = transform.position;
+	: Entity("Aracore", "Enemy", true, transform, 3000.0f, 3000.0f),
+	  modelPath(modelPath), player(player_init), terrain(terrain_init), spawnPosition(transform.position)
+{}
 
+void Aracore::OnInit()
+{
 	// モデル
 	vmdl = AddComponent<VMDL>(modelPath);
 	vmdl->SetAutoUpdateTransform(false);
-	vmdl->SetModelYawOffset(DirectX::XM_PI);
+	vmdl->SetModelYawOffset(DirectX::XM_PI); // 反転
 	model = vmdl->GetSharedModel();
-	this->transform = transform;
 	vmdl->UpdateTransform(transform.matrix);
 
 	// アニメーション。
@@ -57,7 +56,7 @@ Aracore::Aracore(Player* player_init,
 
 	// 旋回はNavMesh側で制御し、威嚇・死亡時の胴体の傾きはモデルへ残す。
 	anim->SetRootMotion("Box01", false);
-	anim->Load("Aracore.animator");
+	anim->Load("Aracore");
 	anim->BindCallbacks();
 
 	// 移動用コライダー。
@@ -93,8 +92,31 @@ Aracore::Aracore(Player* player_init,
 
 Aracore::~Aracore()
 {
+	Uninit();
+}
+
+void Aracore::OnUninit()
+{
 	if (bossBar) bossBar->Hide(this);
 	chaseAudio.Stop();
+	phase.fragmentModel.reset();
+	model.reset();
+	vmdl = nullptr;
+	anim = nullptr;
+	controller = nullptr;
+	navMeshAgent = nullptr;
+	multiLegFootIK = nullptr;
+	characterController = nullptr;
+	bossBar = nullptr;
+	stageLoader = nullptr;
+	player = nullptr;
+	terrain = nullptr;
+}
+
+void Aracore::OnHeal(float amount)
+{
+	// 回復エフェクト
+	vmdl->GetRenderer()->PlayParticleEmitter("HEAL");
 }
 
 void Aracore::ConfigureAI()
@@ -164,6 +186,11 @@ void Aracore::OnUpdate()
 	}
 
 	Entity::OnUpdate();
+
+	// 自動回復
+	if (!IsDead() && healTime.Tick()) Heal(5.0f);
+
+	// 状態変化
 	UpdateHealthPresentation();
 
 	if (death.IsReturning())
@@ -243,7 +270,7 @@ void Aracore::BeginChase()
 {
 	chaseAudio.Engage();
 	SetPlayerDetected(true);
-	navigation.Walk(controller->GetFloat("ChaseMoveSpeed", 3.2f));
+	navigation.Chase(controller->GetFloat("ChaseMoveSpeed", 3.2f));
 	controller->SetBool("ActionFinished", false);
 }
 
@@ -252,7 +279,7 @@ void Aracore::UpdateChase()
 	if (Actor* target = controller->GetTarget())
 	{
 		const float moveSpeed = controller->GetFloat("ChaseMoveSpeed", 3.2f);
-		navigation.Walk(moveSpeed);
+		navigation.Chase(moveSpeed);
 		navMeshAgent->SetSpeed(moveSpeed);
 		navMeshAgent->MoveToTarget(target);
 	}
@@ -383,7 +410,7 @@ void Aracore::BeginPhaseThreat()
 void Aracore::UpdatePhaseThreat()
 {
 	controller->SetBool("PhasePresentationStarted", !phase.waitingForAnimation);
-	controller->SetFloat("PhaseThreatElapsed", phase.elapsed);
+	controller->SetFloat("PhaseThreatElapsed", phase.elapsed.GetElapsed());
 }
 
 void Aracore::EndPhaseThreat()
@@ -454,6 +481,7 @@ void Aracore::UpdateReactionAnimation()
 		reaction.threatPending = false;
 		if (phase.waitingForAnimation)
 		{
+			SoundSystem::Instance().Play("SE/Threat");
 			phase.AnimationStarted();
 			SpawnPhaseFragments();
 		}
@@ -694,6 +722,19 @@ void Aracore::OnCollisionEnter(
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor) return;
 
+	// クリスタルは問答無用でぶっこわす(進行の邪魔)
+	if (otherActor->CompareTag("Crystal"))
+	{
+		if (auto crystal = dynamic_cast<Crystal*>(otherActor))
+		{
+			crystal->TakeDamage({.damage = 9999.0f,
+				.attackerCollider = self,
+				.targetCollider = other,
+				.hitPosition = point,
+				.hitNormal = normal});
+		}
+	}
+
 	if (self->GetLayerId() == Layers::Get("EnemyAtk"))
 	{
 		if (otherActor->CompareTag("Player"))
@@ -731,6 +772,19 @@ void Aracore::OnTriggerEnter(
 	Actor* otherActor = dynamic_cast<Actor*>(other->GetOwner());
 	if (!otherActor || otherActor->IsPendingDestroy()) return;
 
+	// クリスタルは問答無用でぶっこわす(進行の邪魔)
+	if (otherActor->CompareTag("Crystal"))
+	{
+		if (auto crystal = dynamic_cast<Crystal*>(otherActor))
+		{
+			crystal->TakeDamage({.damage = 9999.0f,
+				.attackerCollider = self,
+				.targetCollider = other,
+				.hitPosition = point,
+				.hitNormal = normal});
+		}
+	}
+
 	// 自分が攻撃トリガーなら
 	if (self->GetLayerId() == Layers::Get("EnemyAtk"))
 	{
@@ -743,12 +797,6 @@ void Aracore::OnTriggerEnter(
 					.targetCollider = other,
 					.hitPosition = point,
 					.hitNormal = normal});
-		}
-		else if (auto crystal = dynamic_cast<Crystal*>(otherActor))
-		{
-			crystal->TakeDamage({.damage = 9999.0f,
-				.attackerCollider = self, .targetCollider = other,
-				.hitPosition = point, .hitNormal = normal});
 		}
 		else if (auto deer = dynamic_cast<Deer*>(otherActor))
 		{
@@ -787,6 +835,8 @@ void Aracore::OnDamaged(const DamageData& damageData)
 	float timeStopTime = 0.07f;
 	if (attacker && attacker->CompareTag("Player"))
 	{
+		healTime.Reset();
+
 		const bool newlyDetected =
 			!playerDetected || attacker != reaction.lastThreatTarget;
 		if (controller) controller->LockOn(attacker);
@@ -853,13 +903,15 @@ void Aracore::OnDead(const DamageData& damageData)
 		player->GetCameraController()->RequestBossDefeatFocus(
 			this, death.duration + 2.4f);
 	printf("Aracore Dead!\n");
+
+	SoundSystem::Instance().Play("SE/Dead");
 }
 
 void Aracore::UpdateDeathSequence()
 {
-	death.elapsed += std::max(Game::Time::unscaledDeltaTime, 0.0f);
+	death.elapsed.Advance(Game::Time::unscaledDeltaTime);
 	const float duration = std::max(death.duration, 0.01f);
-	const float flightProgress = death.elapsed / duration;
+	const float flightProgress = death.elapsed.GetElapsed() / duration;
 	const float t = std::clamp(flightProgress, 0.0f, 1.0f);
 	const float arcShape = 4.0f * t * (1.0f - t);
 	const float heightOffset = death.height * arcShape;
@@ -986,12 +1038,13 @@ void AracoreAINavigation::Stop()
 		animator->SetBool("turnRight", false);
 	}
 
-	controller->SetBool("RotationPaused", false);
+	controller->SetBool("IsTurning", false);
+	controller->SetBool("RotationPaused", true);
 	if (agent)
 	{
 		agent->SetDirectMovement(false);
-		agent->SetMovementPaused(false);
-		agent->SetRotationPaused(false);
+		agent->SetMovementPaused(true);
+		agent->SetRotationPaused(true);
 	}
 }
 
@@ -1002,7 +1055,7 @@ void AracoreAINavigation::Update()
 
 	const float angle = movement == Movement::TurnInPlace
 		? controller->GetFloat("TargetTurnAngle", controller->GetFloat("TurnAngle"))
-		: controller->GetFloat("TurnAngle");
+		: movement == Movement::Chase ? DEG(agent->GetTurnAngle()) : controller->GetFloat("TurnAngle");
 	UpdateTurnDirection(angle);
 
 	const bool turning = turningDirection != 0;
@@ -1015,16 +1068,19 @@ void AracoreAINavigation::Update()
 			animator->GetCurrentStateName().starts_with("turn_") || animator->GetNextStateName().starts_with("turn_"));
 
 	const bool ready = IsAnimationReady();
-	const bool rotationPaused = movement == Movement::Charge || (!ready && !turning);
+	const bool rotationPaused = movement == Movement::Stopped ||
+		movement == Movement::Charge || (!ready && !turning);
 	controller->SetBool("RotationPaused", rotationPaused);
 
 	agent->SetRotationPaused(rotationPaused);
-	agent->SetMovementPaused(turning || movement == Movement::TurnInPlace || !ready);
+	agent->SetMovementPaused(movement == Movement::Stopped ||
+		turning || movement == Movement::TurnInPlace || !ready);
 }
 
 void AracoreAINavigation::UpdateTurnDirection(float angle)
 {
-	const bool canTurn = movement == Movement::Walk || movement == Movement::TurnInPlace;
+	const bool canTurn = (movement == Movement::Walk && agent && agent->HasDestination()) ||
+		movement == Movement::Chase || movement == Movement::TurnInPlace;
 	const float startThreshold = std::max(controller->GetFloat("TurnThreshold", 8.0f), 0.1f);
 	const float stopThreshold = std::min(startThreshold * 0.5f, 5.0f);
 	if (!canTurn || fabsf(angle) <= stopThreshold) turningDirection = 0;
@@ -1040,13 +1096,14 @@ bool AracoreAINavigation::IsAnimationReady() const
 	const std::string& state = animator->GetCurrentStateName();
 	if (movement == Movement::Charge)
 		return state == "attack" || state == "run";
-	if (movement == Movement::Walk || movement == Movement::TurnInPlace)
+	if (movement == Movement::Walk || movement == Movement::Chase || movement == Movement::TurnInPlace)
 	{
 		if (turningDirection)
 			return state == (turningDirection > 0 ? "turn_right" : "turn_left");
 	}
 	if (movement == Movement::TurnInPlace) return state == "Idle";
-	if (movement == Movement::Walk) return state == "walk" || state == "run";
+	if (movement == Movement::Walk || movement == Movement::Chase)
+		return state == "walk" || state == "run";
 	return false;
 }
 
@@ -1060,7 +1117,7 @@ void Aracore::ChaseAudio::Update()
 		SoundSystem::PlayOptions options;
 		options.volume = 0.0f;
 		options.loop = true;
-		voiceId = sound.Play("BGM/chase", options, -1);
+		voiceId = sound.Play("BGM/boss_battle", options, -1);
 		volume = 0.0f;
 	}
 
@@ -1075,7 +1132,7 @@ void Aracore::ChaseAudio::Update()
 	if (engaged)
 	{
 		const float duration = std::max(fadeInSeconds, 0.001f);
-		volume = std::min(volume + deltaTime / duration, 1.0f);
+		volume = std::min(volume + deltaTime / duration, 0.7f);
 	}
 	else
 	{

@@ -21,6 +21,7 @@
 #include "nlohmann/json.hpp"
 #include "IconsFontAwesome5.h"
 
+class Effect;
 class Spawner;
 class Stage;
 class Water;
@@ -34,7 +35,8 @@ class StageLoader : public Component
 		WorldWater,
 		PlayerStart,
 		BlockedArea,
-		Prop
+		Prop,
+		Effect
 	};
 
 	struct EditorObjectReference
@@ -46,7 +48,7 @@ class StageLoader : public Component
 
 	StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath);
 	StageLoader(Object* owner, Stage* stage, const std::string& jsonText, bool fromMemory);
-	~StageLoader() = default;
+	~StageLoader() override;
 
 	void Update() override;
 	void DrawGUI() override;
@@ -76,12 +78,14 @@ class StageLoader : public Component
 	bool SelectEditorActor(const Actor* actor);
 	bool SelectEditorObjectAtRay(const Vector3& origin, const Vector3& direction);
 	void ClearEditorSelection();
+	bool DeleteSelectedEditorObject();
 	int RaycastEditorProps(const Vector3& origin, const Vector3& direction,
 		float& nearestDistance, Vector3& normal, int ignoredPropIndex = -1);
 	bool AddEditorProp(const std::string& modelPath, const Vector3& terrainPoint,
 		const Quaternion& rotation = Quaternion::Identity);
 	void SetEditorPlayerStart(const Vector3& terrainPoint);
 	void AddEditorBlockedArea();
+	void AddEditorEffect(const std::string& effectName, const Vector3& position);
 	bool HasPlayerStart() const { return !playerStartTransforms.empty(); }
 	const std::vector<Transform>& GetPlayerStartTransforms() const { return playerStartTransforms; }
 	const Transform& GetRandomPlayerStartTransform() const;
@@ -98,6 +102,19 @@ class StageLoader : public Component
 
   private:
 	static constexpr const char* PlacementColliderName = "PLACEMENT";
+
+	struct EffectData
+	{
+		Transform transform;
+		std::string effectName;
+		bool loop = true;
+		std::shared_ptr<Effect> effect;
+		int handle = -1;
+		bool started = false;
+	};
+	std::vector<EffectData> effects;
+	void UpdateEffect(EffectData& value);
+	void StopEffects();
 
 	struct PropData
 	{

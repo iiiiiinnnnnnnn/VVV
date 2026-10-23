@@ -16,16 +16,78 @@
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
-#include "Gameplay/Scene/GameStartScene.h"
+#include "Gameplay/Scene/TitleScene.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Application/Tools/Dialog.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/Collider/CharacterController.h"
 
+#include <chrono>
+#include <ctime>
+#include <filesystem>
 #include <format>
+#include <fstream>
+#include <mutex>
+
+void Scene::WriteLog(std::string_view message, const std::source_location& location)
+{
+	static std::mutex mutex;
+	const std::lock_guard lock(mutex);
+	const auto now = std::chrono::system_clock::now();
+	const std::time_t time = std::chrono::system_clock::to_time_t(now);
+	std::tm localTime{};
+	localtime_s(&localTime, &time);
+	char timestamp[20];
+	std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &localTime);
+	const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+		now.time_since_epoch()).count() % 1000;
+	const std::string file = std::filesystem::path(location.file_name()).filename().string();
+	std::ofstream("scene.log", std::ios::app | std::ios::binary) << std::format(
+		"[{}.{:03}] [{}:{}] {}\n",
+		timestamp, milliseconds, file, location.line(), message);
+}
 
 Scene::Scene() = default;
-Scene::~Scene() = default;
+Scene::~Scene()
+{
+	Uninit();
+}
+
+void Scene::Uninit()
+{
+	if (uninitialized) return;
+	uninitialized = true;
+	if (initialized) OnUninit();
+	initialized = false;
+	animatorEditor.reset();
+	pendingAnimatorModel.reset();
+	liveAnimatorOwner.reset();
+	pendingLiveAnimatorOwner.reset();
+	currentStage.reset();
+	widgetManager = WidgetManager{};
+	postProcess.Uninit();
+}
+
+void Scene::Init()
+{
+	if (initialized || uninitialized) return;
+	try
+	{
+		postProcess.Init();
+		initialized = true;
+		OnInit();
+		if (currentStage)
+		{
+			currentStage->Awake();
+			currentStage->Start();
+		}
+	}
+	catch (...)
+	{
+		Uninit();
+		throw;
+	}
+}
 
 void Scene::OpenAnimatorEditor(const std::string& path, std::shared_ptr<VMDLModel> model,
 	std::weak_ptr<Actor> liveOwner)
@@ -39,6 +101,7 @@ void Scene::OpenAnimatorEditor(const std::string& path, std::shared_ptr<VMDLMode
 
 void Scene::DrawAnimatorEditor()
 {
+	if (!initialized) return;
 	if (animatorOpenRequested)
 	{
 		animatorOpenRequested = false;
@@ -168,6 +231,7 @@ void Scene::ToggleDebugDisplay()
 
 void Scene::Update()
 {
+	if (!initialized) return;
 	OnUpdate();
 	ApplyMouseCursorMode();
 
@@ -184,7 +248,11 @@ void Scene::Update()
 		if (openedStage->LoadVSTG(pendingStagePath)) currentStage = std::move(openedStage);
 		pendingStagePath.clear();
 	}
-	if (!currentStage) return;
+	if (!currentStage)
+	{
+		widgetManager.Update();
+		return;
+	}
 
 	Stage& stage = *currentStage;
 
@@ -218,8 +286,6 @@ void Scene::Update()
 		{
 			SwitchToPlayMode();
 		}
-
-		// F6でImGuiBinding表示 => Framework.cpp
 	}
 
 	const bool shouldUpdateWorld = ShouldUpdateWorld();
@@ -333,6 +399,7 @@ void Scene::SelectPausedActor()
 
 void Scene::Render()
 {
+	if (!initialized) return;
 	if (!currentStage)
 	{
 		OnDrawGUI();
@@ -453,7 +520,7 @@ void Scene::Render()
 				actor->GetComponents<VMDLParticleEmitterComponent>())
 				emitter->RenderParticles(rc);
 		}
-		EffectManager::Instance().Render(camera.GetView(), camera.GetProjection());
+		EffectManager::Instance().Render(rc);
 
 		OnRender(rc);
 	}
@@ -559,7 +626,7 @@ void Scene::DrawGUI(RenderContext& rc)
 				{
 					if (OnRequestExit())
 					{
-						SceneManager::Instance().LoadScene<GameStartScene>();
+						SceneManager::Instance().LoadScene<TitleScene>();
 					}
 				}
 				ImGui::EndMenu();
@@ -590,7 +657,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生 (F5)");
 			if (ImGui::MenuItem(ICON_FA_STOP "##StopGame", nullptr, false, Game::Time::scale > 0.0f))
 				SwitchToDebugMode();
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"停止 (F6)");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"停止 (F4)");
 
 			const std::string fpsText = std::format("FPS: {:.0f}", io.Framerate);
 			const float fpsWidth = ImGui::CalcTextSize(fpsText.c_str()).x;

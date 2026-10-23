@@ -18,22 +18,29 @@
 
 BaseCrystal::BaseCrystal(
 	const Transform& placement, const std::string& name, const std::string& modelPath)
-	: Entity(name, "Crystal", true, placement)
-{
-	transform.Update();
-	loadedModel = ResourceManager::Instance().LoadModel(modelPath, true);
-}
+	: Entity(name, "Crystal", true, placement), modelPath(modelPath)
+{}
 
 BaseCrystal::BaseCrystal(
 	const Transform& placement, const std::string& name, std::shared_ptr<VMDLModel> model)
-	: Entity(name, "Crystal", true, placement)
+	: Entity(name, "Crystal", true, placement), loadedModel(std::move(model))
+{}
+
+BaseCrystal::~BaseCrystal()
 {
-	transform.Update();
-	loadedModel = std::move(model);
+	Uninit();
 }
 
-void BaseCrystal::OnAwake()
+void BaseCrystal::OnUninit()
 {
+	loadedModel.reset();
+	vmdl = nullptr;
+}
+
+void BaseCrystal::OnInit()
+{
+	transform.Update();
+	if (!loadedModel) loadedModel = ResourceManager::Instance().LoadModel(modelPath, true);
 	vmdl = AddComponent<VMDL>(loadedModel);
 	vmdl->UpdateTransform(transform.matrix);
 }
@@ -89,6 +96,18 @@ CrystalPart::CrystalPart(const Transform& placement, std::shared_ptr<VMDLModel> 
 {
 }
 
+CrystalPart::~CrystalPart()
+{
+	Uninit();
+}
+
+void CrystalPart::OnUninit()
+{
+	body = nullptr;
+	sourceActor.reset();
+	BaseCrystal::OnUninit();
+}
+
 void CrystalPart::StartMoving(const Vector3& velocity, const Vector3& rotationSpeed, Actor* source)
 {
 	if (source) sourceActor = source->weak_from_this();
@@ -114,11 +133,9 @@ void CrystalPart::OnUpdate()
 		return;
 	}
 
-	constexpr float lifetime = 6.0f;
 	constexpr float shrinkDuration = 1.0f;
-	elapsedTime += Game::Time::deltaTime;
-	if (elapsedTime >= lifetime) { Destroy(); return; }
-	const float remainingTime = lifetime - elapsedTime;
+	if (lifetimeTimer.Update()) { Destroy(); return; }
+	const float remainingTime = lifetimeTimer.GetRemaining();
 	if (remainingTime > shrinkDuration) return;
 	if (!shrinking)
 	{
@@ -143,8 +160,22 @@ void CrystalPart::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* oth
 // クリスタル
 #if 1
 
-Crystal::Crystal(const Transform& transform, const std::string& modelPath) : BaseCrystal(transform, "Crystal", modelPath)
+Crystal::Crystal(const Transform& transform, const std::string& modelPath) : BaseCrystal(transform, "Crystal", modelPath) {}
+
+Crystal::~Crystal()
 {
+	Uninit();
+}
+
+void Crystal::OnUninit()
+{
+	partModel.reset();
+	BaseCrystal::OnUninit();
+}
+
+void Crystal::OnInit()
+{
+	BaseCrystal::OnInit();
 	this->transform.Update();
 
 	float largestScale = std::max(fabsf(this->transform.scale.x), fabsf(this->transform.scale.y));

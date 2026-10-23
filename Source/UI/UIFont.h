@@ -26,7 +26,8 @@ public:
 	bool IsReady() const { return !fontData.empty(); }
 	float MeasureWidth(const std::string& text, float fontSize) const;
 	void DrawFont(const std::string& text, const Vector2& position, const Vector2& boxSize,
-		float fontSize, const Color& color, UITextAlignment alignment = UITextAlignment::Left) const;
+		float fontSize, const Color& color, UITextAlignment alignment = UITextAlignment::Left,
+		float angle = 0.0f, const Vector2& rotationCenter = Vector2::Zero) const;
 
 private:
 	struct Glyph
@@ -38,7 +39,7 @@ private:
 		float advance = 0.0f;
 	};
 
-	UIFont(const std::string& path = "Resources/Font/Isometra.ttf");
+	UIFont(const std::string& path = "Isometra");
 	const Glyph& GetGlyph(unsigned int codepoint) const;
 	static unsigned int NextCodepoint(const std::string& text, size_t& index);
 	std::vector<unsigned char> fontData;

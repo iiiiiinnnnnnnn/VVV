@@ -1,6 +1,8 @@
 // Terrain.h
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include <d3d11.h>
 #include <wrl.h>
 #include <DirectXTex.h>
@@ -39,6 +41,7 @@ public:
 		ID3D11DeviceContext* dc,
 		const Matrix& lightViewProjection);
 	void ApplyDistanceFogSettings(RenderSettings& settings) const;
+	void PrepareRenderResources();
 
 	// 地形変形
 
@@ -424,6 +427,6 @@ private:
 	TerrainGrassRenderer::Settings grassDraftSettings;
 	bool grassDirty = true;
 	std::shared_ptr<Effect> grassRemovalEffect;
-	float grassRemovalEffectCooldown = 0.0f;
+	Game::Timer grassRemovalEffectCooldown{0.0f};
 	bool grassDraftInitialized = false;
 };

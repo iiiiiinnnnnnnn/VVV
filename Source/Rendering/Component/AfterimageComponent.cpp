@@ -26,17 +26,17 @@ void AfterimageComponent::Play(float duration)
 {
 	if (!sourceModel || duration <= 0.0f) return;
 
-	captureTimeRemaining = duration;
+	captureTimeRemaining.Reset(duration);
 	// 発動フレームの姿勢を必ず残す
 	CapturePose();
-	captureTimer = std::max(captureInterval, 0.001f);
+	captureTimer.Reset(std::max(captureInterval, 0.001f));
 }
 
 void AfterimageComponent::Clear()
 {
 	afterimages.clear();
-	captureTimeRemaining = 0.0f;
-	captureTimer = 0.0f;
+	captureTimeRemaining.Stop();
+	captureTimer.Stop();
 }
 
 void AfterimageComponent::OnLateUpdate()
@@ -44,23 +44,23 @@ void AfterimageComponent::OnLateUpdate()
 	const float deltaTime = std::max(Game::Time::deltaTime, 0.0f);
 
 	for (Afterimage& afterimage : afterimages)
-		afterimage.age += deltaTime;
+		afterimage.age.Advance(deltaTime);
 
 	afterimages.erase(
 		std::remove_if(afterimages.begin(), afterimages.end(),
-			[this](const Afterimage& afterimage) { return afterimage.age >= lifetime; }),
+			[this](const Afterimage& afterimage) { return afterimage.age.GetElapsed() >= lifetime; }),
 		afterimages.end());
 
-	if (captureTimeRemaining > 0.0f)
+	if (captureTimeRemaining.GetRemaining() > 0.0f)
 	{
-		captureTimer -= deltaTime;
-		if (captureTimer <= 0.0f)
+		captureTimer.Update(deltaTime);
+		if (captureTimer.GetRemaining() <= 0.0f)
 		{
 			CapturePose();
-			captureTimer = std::max(captureInterval, 0.001f);
+			captureTimer.Reset(std::max(captureInterval, 0.001f));
 		}
 
-		captureTimeRemaining = std::max(captureTimeRemaining - deltaTime, 0.0f);
+		captureTimeRemaining.Update(deltaTime);
 	}
 
 	for (Afterimage& afterimage : afterimages)
@@ -119,7 +119,7 @@ void AfterimageComponent::CapturePose()
 void AfterimageComponent::UpdateRenderParams(Afterimage& afterimage) const
 {
 	afterimage.renderParams.justDodgeFade =
-	{afterimage.age, lifetime, lifetime * 0.2f, lifetime};
+	{afterimage.age.GetElapsed(), lifetime, lifetime * 0.2f, lifetime};
 	const float alpha = std::clamp(maxOpacity, 0.0f, 0.98f);
 
 	for (auto& [name, params] : afterimage.renderParams.materials)

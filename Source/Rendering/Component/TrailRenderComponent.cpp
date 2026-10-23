@@ -60,20 +60,19 @@ void TrailRenderComponent::LateUpdate()
     for (auto& p : points)
     {
 		// 古い点ほど刃先を根元へ縮め、残像の終端が自然に細くなるよう二乗イージングする。
-        p.age += dt;
-        float t = p.age / lifeTime;
+        p.age.Advance(dt);
+        float t = p.age.GetElapsed() / lifeTime;
         float easedT = t * t;  // EaseIn
         p.tip = Vector3::Lerp(p.tipFull, p.root, easedT * tipRatio);
     }
 
-    while (!points.empty() && points.back().age >= lifeTime)
+    while (!points.empty() && points.back().age.GetElapsed() >= lifeTime)
         points.pop_back();
 
     if (!IsActive() || stopping) return;
 
-    sampleTimer += dt;
-    if (sampleTimer < SAMPLE_INTERVAL) return;
-    sampleTimer = 0.0f;
+    if (!sampleTimer.Update(dt)) return;
+    sampleTimer.Reset();
 
 	const VMDLModel::Node& node = model->GetNodes()[nodeIndex];
 	const Matrix offsetRotation = Matrix::CreateFromYawPitchRoll(
@@ -87,7 +86,7 @@ void TrailRenderComponent::LateUpdate()
     pt.root    = { rootMat._41, rootMat._42, rootMat._43 };
     pt.tipFull = { tipMat._41,  tipMat._42,  tipMat._43  };
     pt.tip     = pt.tipFull;
-    pt.age     = 0.0f;
+    pt.age.Reset();
 
     points.push_front(pt);
 
@@ -98,7 +97,7 @@ void TrailRenderComponent::LateUpdate()
 void TrailRenderComponent::ResetTrail()
 {
 	points.clear();
-	sampleTimer = 0.0f;
+	sampleTimer.Reset();
 }
 
 void TrailRenderComponent::BuildTrailVertices()
@@ -125,8 +124,8 @@ void TrailRenderComponent::BuildTrailVertices()
             Vector3 interpolatedRoot = Vector3::CatmullRom(p0root, points[i].root, points[i + 1].root, p3root, t);
             Vector3 interpolatedTip  = Vector3::CatmullRom(p0tip,  points[i].tip,  points[i + 1].tip,  p3tip,  t);
 
-            float age0 = points[i].age;
-            float age1 = points[i + 1].age;
+            float age0 = points[i].age.GetElapsed();
+            float age1 = points[i + 1].age.GetElapsed();
             float uvY  = std::lerp(age0, age1, t) / lifeTime;
 
             trailRenderer->AddPoint(interpolatedRoot, interpolatedTip, uvY);

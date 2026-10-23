@@ -7,9 +7,12 @@
 
 BossBar::BossBar() : GaugeHUD("Boss Bar", false)
 {
+	rect.position = {Game::Graphics::ScreenWidth / 2.0f, 37.800f};
+	rect.size = {819.000f, 57.720f};
+	rect.anchor = {0.5f, 0.0f};
 	SetFrameTexture("Resources/UI/window.png");
 	SetDissolveMask("Resources/UI/dissolve_animation.png");
-	SetFillRect({0.10f, 0.33f}, {0.80f, 0.33f});
+	SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
 	SetColor(baseColor);
 	SetFrameColor(Color(0.32f, 0.27f, 0.34f, 0.94f));
 	SetDamageTrailEnabled(true);
@@ -38,11 +41,11 @@ void BossBar::Show(Entity* value)
 		: 0.0f;
 	if (changedBoss || !showing)
 	{
-		phaseColorElapsed = 0.0f;
+		phaseColorElapsed.Reset();
 		visibilityStart = GetDissolveAmount();
-		visibilityTime = 0.0f;
+		visibilityTime.Reset();
 		visibilityAnimating = true;
-		fillTime = 0.0f;
+		fillTime.Reset();
 		filling = true;
 		SetValueImmediate(0.0f);
 	}
@@ -63,7 +66,7 @@ void BossBar::Hide(const Entity* value)
 	showing = false;
 	filling = false;
 	visibilityStart = GetDissolveAmount();
-	visibilityTime = 0.0f;
+	visibilityTime.Reset();
 	visibilityAnimating = true;
 }
 
@@ -83,16 +86,17 @@ void BossBar::OnUpdate()
 			? std::clamp(boss->GetLife() / boss->GetMaxLife(), 0.0f, 1.0f) : 0.0f;
 
 		// Aracoreから持ってきた色変化の演出。HPが半分以下の時に赤くなる。
-		phaseColorElapsed = lifeRatio <= 0.5f ? std::min(phaseColorElapsed + dt, 3.0f) : 0.0f;
-		const float progress = phaseColorElapsed / 3.0f;
+		if (lifeRatio <= 0.5f) phaseColorElapsed.Update(dt);
+		else phaseColorElapsed.Reset();
+		const float progress = 1.0f - phaseColorElapsed.GetRemaining() / phaseColorElapsed.GetDuration();
 		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
 		const Color fillColor = Color::Lerp(baseColor, phaseColor, smoothProgress);
 		GaugeHUD::SetColor(fillColor);
 
 		if (filling)
 		{
-			fillTime += dt;
-			const float t = std::clamp(fillTime / fillDuration, 0.0f, 1.0f);
+			fillTime.Advance(dt);
+			const float t = std::clamp(fillTime.GetElapsed() / fillDuration, 0.0f, 1.0f);
 			SetValueImmediate(lifeRatio * t * t * (3.0f - 2.0f * t));
 			filling = t < 1.0f;
 		}
@@ -101,23 +105,14 @@ void BossBar::OnUpdate()
 	GaugeHUD::OnUpdate();
 	if (visibilityAnimating)
 	{
-		visibilityTime += dt;
+		visibilityTime.Advance(dt);
 		const float duration = showing ? showDuration : hideDuration;
-		const float t = std::clamp(visibilityTime / duration, 0.0f, 1.0f);
+		const float t = std::clamp(visibilityTime.GetElapsed() / duration, 0.0f, 1.0f);
 		const float target = showing ? 0.0f : 1.0f;
 		SetDissolveAmount(visibilityStart + (target - visibilityStart) * t * t * (3.0f - 2.0f * t));
 		visibilityAnimating = t < 1.0f;
 		if (!showing && !visibilityAnimating) SetActive(false);
 	}
-
-	const float screenWidth = Game::Graphics::ScreenWidth;
-	const float screenHeight = Game::Graphics::ScreenHeight;
-	const float hudScale = std::clamp(
-		std::min(screenWidth / 1920.0f, screenHeight / 1080.0f), 0.68f, 1.35f) *
-		0.78f;
-	rect.position = {screenWidth * 0.5f, 22.0f * hudScale};
-	rect.anchor = {0.5f, 0.0f};
-	rect.size = {540.0f * hudScale, 58.0f * hudScale};
 }
 
 void BossBar::OnDrawGUI()

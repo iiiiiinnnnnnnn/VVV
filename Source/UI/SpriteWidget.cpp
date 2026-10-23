@@ -10,6 +10,6 @@ SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
     : Widget(spritePath.filename().string().c_str())
 {
     AddComponent<SpriteRenderComponent>(
-		ResourceManager::Instance().LoadTexture(spritePath.generic_string()), shaderId, color,
+		ResourceManager::Instance().LoadTexture(spritePath.generic_string(), false), shaderId, color,
 		std::move(renderParams));
 }

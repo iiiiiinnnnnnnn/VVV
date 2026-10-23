@@ -1,9 +1,9 @@
-// ResourceManager.h
 #pragma once
 
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -15,6 +15,11 @@
 class ResourceManager
 {
 public:
+	enum class ResourceType
+	{
+		Model, Effect, Stage, Sound, Animator, AI, Texture, Shader, Font,
+	};
+
 	enum class AssetType
 	{
 		File,
@@ -46,17 +51,20 @@ public:
 	bool PrepareGameResources();
 	bool RefreshResources(const std::filesystem::path& savedSource = {});
 	bool AreGameResourcesPrepared() const { return resourcesPrepared; }
+
 	// 一度だけ読込
 	bool PreloadFile(const std::string& path);
     bool PreloadConfiguredResources();
     std::shared_ptr<const std::vector<uint8_t>> LoadFile(const std::string& path);
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
+	std::string ResolveResourcePath(std::string_view value, ResourceType type) const;
+	static std::string ShortResourcePath(std::string_view value, const char* directory);
 	const std::vector<std::string>& GetErrors() const { return errors; }
 	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
 
 	std::shared_ptr<VMDLModel> LoadModel(const std::string& key, bool runtimeInstance = false);
-	std::shared_ptr<Texture> LoadTexture(const std::string& key);
+	std::shared_ptr<Texture> LoadTexture(const std::string& key, bool required = true);
 
 private:
 	bool LoadCachedPathList();
@@ -76,6 +84,7 @@ private:
 	std::unordered_map<std::string, size_t> assetPathLookup;
 	std::unordered_map<std::string, std::shared_ptr<VMDLModel>> models;
 	std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
+
 	// 読込済み一覧
 	std::unordered_set<std::string> preloadedFiles;
 	std::vector<std::string> errors;

@@ -9,16 +9,17 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 
-VMDL::VMDL(Object* owner, const std::string& path) : Component(owner), path(path)
+VMDL::VMDL(Object* owner, const std::string& path, bool buildEmbeddedColliders)
+	: Component(owner), path(path)
 {
 	// モデルを事前読込
-	if (!SetPreloadResourceFiles({ResourcePath::Model(path)})) throw std::runtime_error("VMDL preload failed: " + path);
+	if (!SetPreloadResourceFiles({ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Model)})) throw std::runtime_error("VMDL preload failed: " + path);
 
 	// キャラクターごとに埋め込みテクスチャをコピーせず、描画リソースを共有する。
 	auto loaded = ResourceManager::Instance().LoadModel(path, true);
 	if (!loaded) throw std::runtime_error("VMDL could not be loaded: " + path);
 	model = std::move(loaded);
-	BuildModelComponents();
+	BuildModelComponents(buildEmbeddedColliders);
 }
 
 VMDL::VMDL(Object* owner, std::shared_ptr<VMDLModel> model)
@@ -28,9 +29,10 @@ VMDL::VMDL(Object* owner, std::shared_ptr<VMDLModel> model)
 	BuildModelComponents();
 }
 
-void VMDL::BuildModelComponents()
+void VMDL::BuildModelComponents(bool buildEmbeddedColliders)
 {
-	renderer = owner->AddComponent<VMDLModelComponent>(model, ModelShaderId::VMat);
+	renderer = owner->AddComponent<VMDLModelComponent>(
+		model, ModelShaderId::VMat, VMatRenderParams{}, buildEmbeddedColliders);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());
 	renderer->BuildAttachments();
 
@@ -85,7 +87,7 @@ bool VMDL::EquipMeshCache(
 {
 	// 装備ファイルも事前読込一覧へ追加
 	std::vector<std::string> files = GetPreloadResourceFiles();
-	const std::string modelPath = ResourcePath::Model(path);
+	const std::string modelPath = ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Model);
 	if (std::find(files.begin(), files.end(), modelPath) == files.end())
 	{
 		files.push_back(modelPath);

@@ -2,8 +2,10 @@
 
 #include "Gameplay/Player/LocalPlayerInput.h"
 
-LocalPlayer::LocalPlayer()
-    : Player()
+LocalPlayer::LocalPlayer() = default;
+
+void LocalPlayer::OnInit()
 {
+    Player::OnInit();
     AddComponent<LocalPlayerInput>();
 }

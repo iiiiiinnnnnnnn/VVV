@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Application/Time/Timer.h"
+
 #include "Gameplay/Stage/Stage.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 
@@ -18,7 +20,7 @@ private:
 
 	StageLoader* stageLoader = nullptr;
 	std::unique_ptr<ParticleSystem> fogParticleSystem;
-	float fogSpawnAccumulator = 0.0f;
+	Game::Timer fogSpawnTimer{1.0f};
 	float fogSpawnRate = 12.0f;
 	float fogAreaHalfWidth = 35.0f;
 	float fogAreaHalfDepth = 35.0f;

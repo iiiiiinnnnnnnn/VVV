@@ -13,6 +13,7 @@ class Deer : public Entity
 {
 public:
 	Deer(const Transform& transform, const std::string& modelPath = "Deer", bool inBossField = false);
+	~Deer() override;
 	void OnUpdate() override;
 	void OnLateUpdate() override;
 	void OnDrawGUI() override;
@@ -21,16 +22,19 @@ public:
 
   private:
 	void BreakCrystalOnContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal);
+	void OnInit() override;
+	void OnUninit() override;
 	void ConfigureAI();
 	void StopCharge();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
-	VMDL* vmdl;
+	std::string modelPath;
+	VMDL* vmdl = nullptr;
 	std::shared_ptr<VMDLModel> model;
-	Animator* anim;
-	EnemyAI* controller;
-	NavMeshAgent* navMeshAgent;
-	CharacterController* cc;
+	Animator* anim = nullptr;
+	EnemyAI* controller = nullptr;
+	NavMeshAgent* navMeshAgent = nullptr;
+	CharacterController* cc = nullptr;
 	Vector3 chargeDirection = Vector3::Zero;
 	float normalSlopeLimit = 70.0f;
 	bool charging = false;

@@ -1,0 +1,90 @@
+{
+    "animationMode": "VMDLModel",
+    "layers": [
+        {
+            "anyStateEditorPosX": 19.0,
+            "anyStateEditorPosY": 57.0,
+            "anyStateTransitions": [],
+            "blendMode": 0,
+            "defaultState": 0,
+            "hasAnyStateEditorPosition": true,
+            "mask": [],
+            "name": "Base",
+            "states": [
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 100.0,
+                    "editorPosY": -12.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "Idle",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 6,
+                                    "paramName": "trigger",
+                                    "threshold": 1
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.800000011920929,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.30000001192092896
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 28,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 100.0,
+                    "editorPosY": 163.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "Take",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 1.4500000476837158,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 0.800000011920929,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.30000001192092896
+                        }
+                    ]
+                }
+            ],
+            "weight": 1.0
+        }
+    ],
+    "parameters": [
+        {
+            "name": "menuPage",
+            "type": "int",
+            "value": 1
+        }
+    ],
+    "triggers": [
+        "trigger"
+    ]
+}
