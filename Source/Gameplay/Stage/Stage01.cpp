@@ -9,11 +9,7 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Player/Player.h"
-#include "Audio/SoundSystem.h"
 #include "Gameplay/Actor/Crystal.h"
-#include "Rendering/Component/VMDL.h"
-#include "Physics/Collider/MeshCollider.h"
-#include "Physics/RigidBody/RigidbodyDynamic.h"
 #include "Gameplay/Actor/RigidRock.h"
 
 Stage01::Stage01(Player* player) : Stage()
@@ -22,7 +18,8 @@ Stage01::Stage01(Player* player) : Stage()
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetSkyBoxRenderer()->SetIntensity(0.0f);
 
-	SoundSystem::Instance().Play("BGM/cave_ambient", SoundSystem::PlayOptions{.loop = true}, -1);
+	bgmId = SoundSystem::Instance().Play("BGM/cave_ambient",
+		SoundSystem::PlayOptions{.loop = true}, -1);
 
 	const bool loadedVstg = LoadVSTG("cave_02");
 	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
@@ -98,6 +95,35 @@ Stage01::Stage01(Player* player) : Stage()
 		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
 			return std::make_shared<Crystal>(transform, modelPath);
 		});
+}
+
+Stage01::~Stage01()
+{
+	SoundSystem::Instance().Stop(bgmId);
+}
+
+void Stage01::Update()
+{
+	Stage::Update();
+	UpdateAmbientBgm();
+}
+
+void Stage01::UpdateAmbientBgm()
+{
+	for (const auto* arac : actorManager.GetActorsByTag("Aracore"))
+	{
+		const auto* aracore = dynamic_cast<const Aracore*>(arac);
+		if (!aracore || !aracore->IsBattleBgmPlaying()) continue;
+
+		SoundSystem::Instance().Stop(bgmId);
+		bgmId = SoundSystem::InvalidVoiceId;
+		return;
+	}
+	if (!SoundSystem::Instance().IsPlaying(bgmId))
+	{
+		bgmId = SoundSystem::Instance().Play(
+			"BGM/cave_ambient", SoundSystem::PlayOptions{.loop = true}, -1);
+	}
 }
 
 void Stage01::OnUpdate()

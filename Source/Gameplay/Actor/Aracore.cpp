@@ -113,12 +113,6 @@ void Aracore::OnUninit()
 	terrain = nullptr;
 }
 
-void Aracore::OnHeal(float amount)
-{
-	// 回復エフェクト
-	vmdl->GetRenderer()->PlayParticleEmitter("HEAL");
-}
-
 void Aracore::ConfigureAI()
 {
 	controller = AddComponent<EnemyAI>("Aracore.lua");
@@ -188,7 +182,7 @@ void Aracore::OnUpdate()
 	Entity::OnUpdate();
 
 	// 自動回復
-	if (!IsDead() && healTime.Tick()) Heal(5.0f);
+	if (!IsDead() && healTime.Tick()) Heal(50.0f);
 
 	// 状態変化
 	UpdateHealthPresentation();
@@ -1109,6 +1103,11 @@ bool AracoreAINavigation::IsAnimationReady() const
 
 // 追跡BGMの再生とフェード
 
+bool Aracore::ChaseAudio::IsPlaying() const
+{
+	return SoundSystem::Instance().IsPlaying(voiceId);
+}
+
 void Aracore::ChaseAudio::Update()
 {
 	SoundSystem& sound = SoundSystem::Instance();
@@ -1132,7 +1131,7 @@ void Aracore::ChaseAudio::Update()
 	if (engaged)
 	{
 		const float duration = std::max(fadeInSeconds, 0.001f);
-		volume = std::min(volume + deltaTime / duration, 0.7f);
+		volume = std::min(volume + deltaTime / duration, 1.0f);
 	}
 	else
 	{

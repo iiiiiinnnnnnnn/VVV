@@ -284,18 +284,8 @@ float EnemyAI::UpdateTarget(
 void EnemyAI::UpdateTurnSensors(bool hasTarget)
 {
 	const bool hasDestination = navMeshAgent && navMeshAgent->HasDestination();
-	float turnAngle = hasDestination ? navMeshAgent->GetTurnAngle() : 0.0f;
-	Vector3 turnDirection = Vector3::Zero;
-	if (fabsf(turnAngle) <= eps && hasDestination)
-		turnDirection = navMeshAgent->GetDestination() - owner->GetTransform()->position;
-	turnDirection.y = 0.0f;
-	if (fabsf(turnAngle) <= eps && turnDirection.LengthSquared() > eps)
-	{
-		turnDirection.Normalize();
-		const float rightDistance = turnDirection.Dot(owner->GetTransform()->right);
-		const float forwardDistance = turnDirection.Dot(owner->GetTransform()->forward);
-		turnAngle = atan2f(rightDistance, forwardDistance);
-	}
+	// 0も進行方向に揃った正しい角度。最終目的地への角度に置き換えない。
+	const float turnAngle = hasDestination ? navMeshAgent->GetTurnAngle() : 0.0f;
 	const float configuredThreshold = GetFloat("TurnThreshold", 15.0f);
 	const float thresholdDegrees = std::max(configuredThreshold, 0.0f);
 	const float turnThreshold = RAD(thresholdDegrees);

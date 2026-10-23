@@ -74,6 +74,7 @@ public:
 	void OnDead(const DamageData& damageData) override;
 
 	bool IsChasingPlayer() const { return chaseAudio.IsEngaged(); }
+	bool IsBattleBgmPlaying() const { return chaseAudio.IsPlaying(); }
 	bool HasDetectedPlayer() const { return playerDetected; }
 	bool IsThreating() const { return phase.threatActive; }
 	void SetBossBar(BossBar* value);
@@ -165,6 +166,7 @@ private:
 		void Engage() { engaged = true; }
 		void Disengage() { engaged = false; }
 		bool IsEngaged() const { return engaged; }
+		bool IsPlaying() const;
 		void Update();
 		void Stop();
 
@@ -182,7 +184,6 @@ private:
 	// 初期化とLuaへの行動登録。
 	void OnInit() override;
 	void OnUninit() override;
-	void OnHeal(float amount) override;
 	void ConfigureAI();
 	void RegisterAIActions();
 
