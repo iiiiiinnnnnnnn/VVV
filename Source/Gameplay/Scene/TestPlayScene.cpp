@@ -105,6 +105,7 @@ void TestPlayScene::OnInit()
 					 u8"[5] プレイヤーにダメージ\r\n"
 					 u8"[6] プレイヤーを回復\r\n"
 					 u8"[7] すべての敵をキル\r\n"
+					 u8"[8] 現在のシーンをリロード\r\n"
 					 u8"\r\n"
 					 u8"[ゲーム内エディタ操作]\r\n"
 					 u8"[F1] カーソルをロック/解除\r\n"
@@ -112,6 +113,7 @@ void TestPlayScene::OnInit()
 					 u8"[F3] デバッグ表示/非表示\r\n"
 					 u8"[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
 					 u8"[F5] ゲーム時間を再開\r\n"
+					 u8"[F6] (予備)"
 					 u8"[F7] この文字を表示/非表示",
 		25.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(
@@ -233,6 +235,10 @@ void TestPlayScene::OnUpdate()
 			{
 				reinterpret_cast<Entity*>(enem)->TakeDamage(DamageData{.damage = 1000000.0f});
 			}
+		}
+		if (ImGui::IsKeyPressed(ImGuiKey_8))
+		{
+			if (ImGui::Button("ReloadScene")) SceneManager::Instance().LoadScene<TestPlayScene>();
 		}
 	}
 #endif

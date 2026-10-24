@@ -110,9 +110,9 @@ void Stage01::Update()
 
 void Stage01::UpdateAmbientBgm()
 {
-	for (const auto* arac : actorManager.GetActorsByTag("Aracore"))
+	for (const auto* actor : actorManager.GetActors())
 	{
-		const auto* aracore = dynamic_cast<const Aracore*>(arac);
+		const auto* aracore = dynamic_cast<const Aracore*>(actor);
 		if (!aracore || !aracore->IsBattleBgmPlaying()) continue;
 
 		SoundSystem::Instance().Stop(bgmId);
