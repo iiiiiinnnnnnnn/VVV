@@ -701,6 +701,7 @@ void Player::TriggerJustDodge(Actor* attacker)
 	if (justDodgeTriggered || justDodgeSkillActive || !justDodgeWindowActive) return;
 	justDodgeAttacker = attacker;
 	justDodgeTriggered = true;
+	vmdl->GetRenderer()->PlaySoundSource("JUSTDODGE");
 	if (afterimage) afterimage->Play(0.5f);
 
 	CameraEffectController::Request(0.13f, 0.045f);
