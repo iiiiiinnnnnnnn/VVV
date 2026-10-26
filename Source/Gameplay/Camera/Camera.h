@@ -31,6 +31,13 @@ public:
 	// プロジェクション行列取得
 	const Matrix& GetProjection() const { return projection; }
 
+	// ワールド座標の点、または球が視錐台に入っているか。遮蔽物は考慮しない。
+	bool IsInView(const Vector3& position, float radius = 0.0f) const;
+	// 点が画面内にあり、地形・Propに遮られていないか。target自身は遮蔽物から除外する。
+	bool IsVisible(const Vector3& position, const Object* target = nullptr) const;
+	// 対象のローカル座標で指定した球を、複数点の遮蔽物判定で確認する。
+	bool IsVisible(const Object& target, const Vector3& centerOffset, float radius) const;
+
 	// 視点取得
 	const Vector3& GetEye() const { SyncTransform(); return eye; }
 

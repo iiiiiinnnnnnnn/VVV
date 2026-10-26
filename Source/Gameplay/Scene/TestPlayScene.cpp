@@ -222,7 +222,7 @@ void TestPlayScene::OnUpdate()
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_5))
 		{
-			player->TakeDamage(DamageData{.damage = 5.0f});
+			player->TakeDamage(DamageData{.damage = 50.0f});
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_6))
 		{

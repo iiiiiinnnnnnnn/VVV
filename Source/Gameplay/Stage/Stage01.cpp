@@ -12,7 +12,7 @@
 #include "Gameplay/Actor/Crystal.h"
 #include "Gameplay/Actor/RigidRock.h"
 
-Stage01::Stage01(Player* player) : Stage()
+Stage01::Stage01(Player* player) : Stage(), player(player)
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -99,6 +99,7 @@ Stage01::Stage01(Player* player) : Stage()
 
 Stage01::~Stage01()
 {
+	chaseAudio.Stop();
 	SoundSystem::Instance().Stop(bgmId);
 }
 
@@ -110,11 +111,30 @@ void Stage01::Update()
 
 void Stage01::UpdateAmbientBgm()
 {
+	// player死んだらbgm全部止める
+	if (player && player->IsDead())
+	{
+		chaseAudio.Stop();
+		SoundSystem::Instance().Stop(bgmId);
+		bgmId = SoundSystem::InvalidVoiceId;
+		return;
+	}
+
+	bool chasingPlayer = false;
 	for (const auto* actor : actorManager.GetActors())
 	{
+		// aracoreで管理すると複数音が鳴るので多少余計な計算が入ってもステージ側でまとめて管理する
 		const auto* aracore = dynamic_cast<const Aracore*>(actor);
-		if (!aracore || !aracore->IsBattleBgmPlaying()) continue;
+		if (!aracore || !aracore->IsActive() || aracore->IsPendingDestroy() ||
+			aracore->IsDead() || !aracore->IsChasingPlayer()) continue;
 
+		chasingPlayer = true;
+		break;
+	}
+	chaseAudio.Update(chasingPlayer);
+
+	if (chaseAudio.IsPlaying())
+	{
 		SoundSystem::Instance().Stop(bgmId);
 		bgmId = SoundSystem::InvalidVoiceId;
 		return;
@@ -192,6 +212,16 @@ void Stage01::RenderEffects(const RenderContext& rc)
 
 void Stage01::OnDrawGUI()
 {
+	if (ImGui::TreeNode("Chase BGM"))
+	{
+		float fadeIn = chaseAudio.GetFadeInSeconds();
+		float fadeOut = chaseAudio.GetFadeOutSeconds();
+		if (ImGui::DragFloat("Fade In", &fadeIn, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+			chaseAudio.SetFadeInSeconds(fadeIn);
+		if (ImGui::DragFloat("Fade Out", &fadeOut, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+			chaseAudio.SetFadeOutSeconds(fadeOut);
+		ImGui::TreePop();
+	}
 	if (!ImGui::TreeNode("Fog")) return;
 	ImGui::DragFloat("Spawn Rate", &fogSpawnRate, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Area Half Width", &fogAreaHalfWidth, 0.5f, 1.0f, 500.0f);
@@ -239,4 +269,53 @@ void Stage01::SpawnFogParticle()
 		fogColor,
 		fogFadeInDuration,
 		fogFadeOutDuration);
+}
+
+// 追跡BGMの再生とフェード
+
+bool Stage01::ChaseAudio::IsPlaying() const
+{
+	return SoundSystem::Instance().IsPlaying(voiceId);
+}
+
+void Stage01::ChaseAudio::Update(bool engaged)
+{
+	SoundSystem& sound = SoundSystem::Instance();
+	if (engaged && !sound.IsPlaying(voiceId))
+	{
+		SoundSystem::PlayOptions options;
+		options.volume = 0.0f;
+		options.loop = true;
+		voiceId = sound.Play("BGM/boss_battle", options, -1);
+		volume = 0.0f;
+	}
+
+	if (!sound.IsPlaying(voiceId))
+	{
+		voiceId = SoundSystem::InvalidVoiceId;
+		volume = 0.0f;
+		return;
+	}
+
+	const float deltaTime = std::max(Game::Time::unscaledDeltaTime, 0.0f);
+	if (engaged)
+		volume = std::min(volume + deltaTime / std::max(fadeInSeconds, 0.001f), 1.0f);
+	else
+		volume = std::max(volume - deltaTime / std::max(fadeOutSeconds, 0.001f), 0.0f);
+
+	if (volume <= 0.0f && !engaged)
+	{
+		Stop();
+		return;
+	}
+
+	if (!sound.SetVolume(voiceId, volume)) Stop();
+}
+
+void Stage01::ChaseAudio::Stop()
+{
+	if (voiceId != SoundSystem::InvalidVoiceId)
+		SoundSystem::Instance().Stop(voiceId);
+	voiceId = SoundSystem::InvalidVoiceId;
+	volume = 0.0f;
 }

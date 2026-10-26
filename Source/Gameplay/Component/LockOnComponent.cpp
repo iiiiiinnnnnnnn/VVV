@@ -91,25 +91,7 @@ void LockOnComponent::OnRender(const RenderContext& rc)
 	const Matrix anchorWorld = targetModel->GetScaledAttachmentTransform(
 		offset * nodes[anchor.nodeIndex].worldTransform);
 	const Vector3 worldPosition = anchorWorld.Translation();
-	const Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
-	const Vector4 clipPosition = Vector4::Transform(
-		Vector4(worldPosition.x, worldPosition.y, worldPosition.z, 1.0f),
-		viewProjection);
-	if (clipPosition.w <= eps)
-	{
-		return;
-	}
-
-	const float inverseW = 1.0f / clipPosition.w;
-	const float ndcX = clipPosition.x * inverseW;
-	const float ndcY = clipPosition.y * inverseW;
-	const float ndcZ = clipPosition.z * inverseW;
-	if (ndcX < -1.0f || ndcX > 1.0f ||
-		ndcY < -1.0f || ndcY > 1.0f ||
-		ndcZ < 0.0f || ndcZ > 1.0f)
-	{
-		return;
-	}
+	if (!rc.camera->IsInView(worldPosition)) return;
 }
 
 void LockOnComponent::OnDrawGUI()

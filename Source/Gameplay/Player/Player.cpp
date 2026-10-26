@@ -915,6 +915,9 @@ void Player::OnDead(const DamageData& damageData)
 	if (anim) anim->SetBool("IsDead", true);
 	lockOnComponent->ClearTarget();
 	lockOnComponent->SetActive(false);
+
+	CameraEffectController::Request(0.45f, 0.09f);
+	TimeScaleController::Request(0.45f, 0.0f);
 }
 
 void Player::OnHeal(float amount)

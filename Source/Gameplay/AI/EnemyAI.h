@@ -15,6 +15,12 @@ public:
 	// LuaはResources/AIと拡張子を省略できる。省略時は後からLoadで指定する。
 	EnemyAI(Object* owner, const std::string& path = {});
 
+	void OnStart() override;
+	void OnUpdate() override;
+	// 初期化時に指定すると、一度カメラに映るまでLuaの開始・更新を待つ。
+	void WaitForCamera(const Vector3& centerOffset, float radius);
+	bool IsWaitingForCamera() const { return waitingForCamera; }
+
 	void OnDisabled() override;
 	void OnRender(const RenderContext& rc) override;
 	const char* GetDebugName() const override { return ICON_FA_COG " EnemyAI"; }
@@ -48,6 +54,7 @@ private:
 	float UpdateTarget(Actor* ownerActor, ActorManager* actorManager, float searchRange, float lostRange);
 	void UpdateTurnSensors(bool hasTarget);
 	void UpdateSightRay();
+	bool IsVisibleToCamera() const;
 
 	std::unordered_map<std::string, bool> bools;
 	std::unordered_map<std::string, float> floats;
@@ -64,4 +71,7 @@ private:
 	bool sightRayHit = false;
 	bool movementLocked = false;
 	bool showSightDebug = true;
+	bool waitingForCamera = false;
+	Vector3 cameraActivationCenter = Vector3::Zero;
+	float cameraActivationRadius = 0.0f;
 };

@@ -168,7 +168,7 @@ class Player : public Entity
 	bool deathSequenceActive = false;
 	bool deathReloadRequested = false;
 	Game::Timer deathSequenceTimer{0.0f};
-	float deathVignetteDuration = 10.0f;
+	float deathVignetteDuration = 5.0f;
 
 	// サウンド
 	VMDLModel::VmdlSoundSource* footSound = nullptr;

@@ -20,6 +20,7 @@ class Terrain;
 class VMDL;
 class VMDLModel;
 class HitstopVibrationComponent;
+class AfterimageComponent;
 
 // Luaが選んだ移動を、移動・旋回アニメーションと物理移動へ反映する。
 // 行動の選択や攻撃タイミングは担当しない。
@@ -74,17 +75,44 @@ public:
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 
-	bool IsChasingPlayer() const { return chaseAudio.IsEngaged(); }
-	bool IsBattleBgmPlaying() const { return chaseAudio.IsPlaying(); }
+	bool IsChasingPlayer() const { return chasingPlayer; }
 	bool HasDetectedPlayer() const { return playerDetected; }
-	bool IsThreating() const { return phase.threatActive; }
+	bool IsThreating() const { return phase.IsThreatActive(); }
 	void SetBossBar(BossBar* value);
 	void SetStageLoader(StageLoader* value) { stageLoader = value; }
 
 private:
 	// ジャンプの移動・アニメーション待機・着地後の処理。
-	struct JumpState
+	class JumpState
 	{
+	public:
+		void Begin(const Vector3& start, const Vector3& landing)
+		{
+			startPosition = start;
+			landingPosition = landing;
+			landed = false;
+			waitingForLanding = true;
+			deformPending = false;
+			animationPending = true;
+		}
+
+		void Landed()
+		{
+			landed = true;
+			waitingForLanding = false;
+		}
+
+		void SetWaitingForLanding(bool value) { waitingForLanding = value; }
+		void SetAnimationPending(bool value) { animationPending = value; }
+		void SetDeformPending(bool value) { deformPending = value; }
+		bool IsLanded() const { return landed; }
+		bool IsWaitingForLanding() const { return waitingForLanding; }
+		bool IsAnimationPending() const { return animationPending; }
+		bool IsDeformPending() const { return deformPending; }
+		const Vector3& GetStartPosition() const { return startPosition; }
+		const Vector3& GetLandingPosition() const { return landingPosition; }
+
+	private:
 		Vector3 startPosition = Vector3::Zero;
 		Vector3 landingPosition = Vector3::Zero;
 		bool landed = false;
@@ -94,8 +122,9 @@ private:
 	};
 
 	// 形態変化の開始、Threat再生の確認、演出時間をひとまとまりに扱う。
-	struct PhaseState
+	class PhaseState
 	{
+	public:
 		void Begin()
 		{
 			angry = true;
@@ -115,6 +144,23 @@ private:
 			if (angry && !waitingForAnimation && threatActive) elapsed.Advance(deltaTime);
 		}
 
+		void EndThreat() { threatActive = false; }
+		void CancelPresentation()
+		{
+			waitingForAnimation = false;
+			threatActive = false;
+		}
+
+		bool IsAngry() const { return angry; }
+		bool IsThreatActive() const { return threatActive; }
+		bool IsWaitingForAnimation() const { return waitingForAnimation; }
+		float GetElapsedTime() const { return elapsed.GetElapsed(); }
+		void SetFragmentModel(const std::shared_ptr<VMDLModel>& value) { fragmentModel = value; }
+		void SetFragmentSize(const Vector3& value) { fragmentSize = value; }
+		const std::shared_ptr<VMDLModel>& GetFragmentModel() const { return fragmentModel; }
+		const Vector3& GetFragmentSize() const { return fragmentSize; }
+
+	private:
 		bool angry = false;
 		bool threatActive = false;
 		bool waitingForAnimation = false;
@@ -124,21 +170,34 @@ private:
 	};
 
 	// Animatorが要求を受理するまで保持する。優先順位は被ダメージ→ジャンプ→威嚇。
-	struct ReactionState
+	class ReactionState
 	{
-		void RequestDamage() { damagePending = true; }
-		void RequestThreat() { threatPending = true; }
+	public:
+		void RequestDamage() { SetDamagePending(true); }
+		void RequestThreat() { SetThreatPending(true); }
+		void SetDamagePending(bool value) { damagePending = value; }
+		void SetThreatPending(bool value) { threatPending = value; }
+		void SetLastThreatTarget(Actor* value) { lastThreatTarget = value; }
+		bool IsDamagePending() const { return damagePending; }
+		bool IsThreatPending() const { return threatPending; }
+		Actor* GetLastThreatTarget() const { return lastThreatTarget; }
 
+		void ClearPending()
+		{
+			damagePending = false;
+			threatPending = false;
+		}
+
+	private:
 		bool damagePending = false;
 		bool threatPending = false;
 		Actor* lastThreatTarget = nullptr;
 	};
 
 	// 帰還ジャンプと死亡アニメーションは同時に進めない。
-	struct DeathState
+	class DeathState
 	{
-		enum class Stage { Inactive, Returning, Animation };
-
+	public:
 		void Begin(const Vector3& start, const Vector3& landing)
 		{
 			stage = Stage::Returning;
@@ -148,9 +207,17 @@ private:
 		}
 
 		void Landed() { stage = Stage::Animation; }
-
+		void Advance(float deltaTime) { elapsed.Advance(deltaTime); }
 		bool IsReturning() const { return stage == Stage::Returning; }
 		bool IsAnimationPlaying() const { return stage == Stage::Animation; }
+		const Vector3& GetStartPosition() const { return startPosition; }
+		const Vector3& GetLandingPosition() const { return landingPosition; }
+		float GetElapsedTime() const { return elapsed.GetElapsed(); }
+		float GetDuration() const { return duration; }
+		float GetHeight() const { return height; }
+
+	private:
+		enum class Stage { Inactive, Returning, Animation };
 
 		Stage stage = Stage::Inactive;
 		Vector3 startPosition = Vector3::Zero;
@@ -158,26 +225,6 @@ private:
 		Game::Timer elapsed{0.0f};
 		float duration = 1.8f;
 		float height = 9.0f;
-	};
-
-	// 追跡の有無と、再生中BGMのフェードを管理する。
-	class ChaseAudio
-	{
-	public:
-		void Engage() { engaged = true; }
-		void Disengage() { engaged = false; }
-		bool IsEngaged() const { return engaged; }
-		bool IsPlaying() const;
-		void Update();
-		void Stop();
-
-		float fadeInSeconds = 1.0f;
-		float fadeOutSeconds = 1.5f;
-
-	private:
-		uint64_t voiceId = 0;
-		float volume = 0.0f;
-		bool engaged = false;
 	};
 
 	Game::Timer healTime{10.0f};
@@ -229,7 +276,7 @@ private:
 
 	// 接触・追跡BGM・HUD。
 	bool PushPlayer(PhysicsComponent* self, PhysicsComponent* other);
-	void UpdateChaseBgm();
+	void UpdateChaseState();
 	void SetPlayerDetected(bool detected);
 
 	// コンポーネントの所有権はEntity側にある。
@@ -242,13 +289,14 @@ private:
 	MultiLegFootIK* multiLegFootIK = nullptr;
 	EnemyAI* controller = nullptr;
 	HitstopVibrationComponent* hitstopVibration = nullptr;
+	AfterimageComponent* afterImage = nullptr;
 
 	AracoreAINavigation navigation;
 	JumpState jump;
 	PhaseState phase;
 	ReactionState reaction;
 	DeathState death;
-	ChaseAudio chaseAudio;
+	bool chasingPlayer = false;
 
 	// シーン側から渡される参照と、ボス全体の情報。
 	Player* player = nullptr;

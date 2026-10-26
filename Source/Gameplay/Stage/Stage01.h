@@ -19,9 +19,29 @@ public:
 	void OnDrawGUI() override;
 
 private:
+	// ステージ内の追跡状態をまとめて、戦闘BGMを1つだけ再生する。
+	class ChaseAudio
+	{
+	public:
+		bool IsPlaying() const;
+		void Update(bool engaged);
+		void Stop();
+		void SetFadeInSeconds(float value) { fadeInSeconds = value; }
+		void SetFadeOutSeconds(float value) { fadeOutSeconds = value; }
+		float GetFadeInSeconds() const { return fadeInSeconds; }
+		float GetFadeOutSeconds() const { return fadeOutSeconds; }
+
+	private:
+		SoundSystem::VoiceId voiceId = SoundSystem::InvalidVoiceId;
+		float volume = 0.0f;
+		float fadeInSeconds = 1.0f;
+		float fadeOutSeconds = 1.5f;
+	};
+
 	void SpawnFogParticle();
 	void UpdateAmbientBgm();
 
+	Player* player = nullptr;
 	StageLoader* stageLoader = nullptr;
 	std::unique_ptr<ParticleSystem> fogParticleSystem;
 	Game::Timer fogSpawnTimer{1.0f};
@@ -40,5 +60,6 @@ private:
 	Color fogColor = {0.72f, 0.78f, 0.82f, 0.025f};
 	bool fogPrewarmed = false;
 
+	ChaseAudio chaseAudio;
 	SoundSystem::VoiceId bgmId = SoundSystem::InvalidVoiceId;
 };

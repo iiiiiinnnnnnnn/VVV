@@ -7,6 +7,8 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Actor/ActorManager.h"
+#include "Gameplay/Camera/Camera.h"
+#include "Gameplay/Scene/SceneManager.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/Navigation/NavMeshAgent.h"
@@ -37,6 +39,40 @@ EnemyAI::EnemyAI(Object* owner, const std::string& path)
 	SetFloat("TargetDistance", std::numeric_limits<float>::max()); // ターゲットまでの距離
 	SetVector3("TargetPosition", Vector3::Zero); // ターゲットの位置
 	if (!path.empty()) Load(path);
+}
+
+void EnemyAI::WaitForCamera(const Vector3& centerOffset, float radius)
+{
+	cameraActivationCenter = centerOffset;
+	cameraActivationRadius = std::max(radius, 0.0f);
+	waitingForCamera = true;
+}
+
+void EnemyAI::OnStart()
+{
+	if (waitingForCamera) return;
+	LuaScript::OnStart();
+}
+
+void EnemyAI::OnUpdate()
+{
+	if (waitingForCamera)
+	{
+		StopMovement();
+		if (!IsVisibleToCamera()) return;
+		waitingForCamera = false;
+		LuaScript::OnStart();
+	}
+	LuaScript::OnUpdate();
+}
+
+bool EnemyAI::IsVisibleToCamera() const
+{
+	Scene* scene = SceneManager::Instance().GetCurrentScene();
+	Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
+	Camera* camera = stage ? stage->GetActiveCamera() : nullptr;
+	return camera && camera->IsVisible(
+		*owner, cameraActivationCenter, cameraActivationRadius);
 }
 
 void EnemyAI::OnDisabled()
@@ -394,6 +430,7 @@ void EnemyAI::UpdateSightRay()
 
 void EnemyAI::OnDrawGUI()
 {
+	ImGui::Text("Waiting for camera: %s", waitingForCamera ? "true" : "false");
 	ImGui::Text("Lua state: %s", stateName.c_str());
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
 	ImGui::Text("Locked Target: %s", lockedTarget ? lockedTarget->GetName().c_str() : "None");
@@ -516,10 +553,12 @@ void EnemyAI::BindEnvironment(sol::environment& environment)
 
 void EnemyAI::OnEnabled()
 {
+	if (waitingForCamera) return;
 	CallScript("Start");
 }
 
 void EnemyAI::OnLateUpdate()
 {
+	if (waitingForCamera) return;
 	CallScript("LateUpdate");
 }
