@@ -56,7 +56,6 @@ void LoadLight(const json& value, Light& light)
 		rotation.at(0).get<float>(), rotation.at(1).get<float>(),
 		rotation.at(2).get<float>(), rotation.at(3).get<float>()
 	};
-	light.transform.Update();
 }
 
 template <typename T>

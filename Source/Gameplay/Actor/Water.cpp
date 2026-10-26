@@ -11,7 +11,6 @@ Water::~Water()
 
 void Water::OnInit()
 {
-	transform.Update();
 	renderer = AddComponent<WaterRenderer>();
 	renderer->SetSettings(settings);
 }
@@ -22,7 +21,6 @@ void Water::ApplySettings(
 	const WaterRenderer::Settings& settings)
 {
 	this->transform = transform;
-	this->transform.Update();
 	SetActive(enabled);
 	this->settings = settings;
 

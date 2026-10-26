@@ -78,7 +78,6 @@ void StageLoader::StopEffects()
 
 void StageLoader::UpdateEffect(EffectData& value)
 {
-	value.transform.Update();
 	if (!value.effect) value.effect = EffectManager::Instance().LoadEffect(value.effectName);
 	if (!value.effect || !value.effect->IsValid()) return;
 	auto manager = EffectManager::Instance().GetEffekseerManager();
@@ -88,7 +87,7 @@ void StageLoader::UpdateEffect(EffectData& value)
 		value.handle = value.effect->Play(value.transform.position);
 		value.started = true;
 	}
-	if (value.handle >= 0) value.effect->SetTransform(value.handle, value.transform.matrix);
+	if (value.handle >= 0) value.effect->SetTransform(value.handle, value.transform.GetMatrix());
 }
 
 void StageLoader::AddEditorEffect(const std::string& effectName, const Vector3& position)
@@ -230,10 +229,9 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 
 	if (worldWater.enabled)
 	{
-		worldWater.transform.Update();
 		DirectX::BoundingBox localBounds({0.0f, 0.0f, 0.0f}, {0.5f, 0.1f, 0.5f});
 		DirectX::BoundingBox waterBounds;
-		localBounds.Transform(waterBounds, worldWater.transform.matrix);
+		localBounds.Transform(waterBounds, worldWater.transform.GetMatrix());
 		float waterDistance = 0.0f;
 		if (ray.Intersects(waterBounds, waterDistance))
 		{
@@ -244,10 +242,9 @@ bool StageLoader::SelectEditorObjectAtRay(const Vector3& origin, const Vector3& 
 	for (int areaIndex = 0; areaIndex < static_cast<int>(blockedAreas.size()); ++areaIndex)
 	{
 		BlockedAreaData& area = blockedAreas[areaIndex];
-		area.transform.Update();
 		DirectX::BoundingBox localBounds(Vector3::Zero, Vector3(0.5f, 0.5f, 0.5f));
 		DirectX::BoundingBox worldBounds;
-		localBounds.Transform(worldBounds, area.transform.matrix);
+		localBounds.Transform(worldBounds, area.transform.GetMatrix());
 		float distance = 0.0f;
 		if (ray.Intersects(worldBounds, distance) && distance < nearestDistance)
 		{
@@ -299,7 +296,7 @@ int StageLoader::RaycastEditorProps(const Vector3& origin, const Vector3& direct
 
 		const Matrix modelTransform =
 			Matrix::CreateTranslation(propData.model->GetVmdlExtensionData().rootOffset) *
-			propData.transform.matrix;
+			propData.transform.GetMatrix();
 		propData.model->UpdateTransform(modelTransform);
 		const Matrix renderScale = propData.model->GetRenderScaleTransform();
 
@@ -352,7 +349,6 @@ Transform* StageLoader::GetSelectedEditorTransform()
 {
 	if (selectedEditorObjectType == EditorObjectType::WorldWater)
 	{
-		worldWater.transform.Update();
 		return &worldWater.transform;
 	}
 	if (selectedEditorObjectType == EditorObjectType::PlayerStart &&
@@ -360,7 +356,6 @@ Transform* StageLoader::GetSelectedEditorTransform()
 		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
 	{
 		Transform& playerStart = playerStartTransforms[selectedEditorObjectIndex];
-		playerStart.Update();
 		return &playerStart;
 	}
 	if (selectedEditorObjectType == EditorObjectType::BlockedArea &&
@@ -368,7 +363,6 @@ Transform* StageLoader::GetSelectedEditorTransform()
 		selectedEditorObjectIndex < static_cast<int>(blockedAreas.size()))
 	{
 		BlockedAreaData& area = blockedAreas[selectedEditorObjectIndex];
-		area.transform.Update();
 		return &area.transform;
 	}
 	if (selectedEditorObjectType == EditorObjectType::Prop && selectedEditorObjectIndex >= 0 &&
@@ -380,15 +374,13 @@ Transform* StageLoader::GetSelectedEditorTransform()
 		if (!propData.model) return nullptr;
 		selectedEditorTransform = propData.transform;
 		selectedEditorTransform.position =
-			Vector3::Transform(GetPropPlacementOffset(*propData.model), propData.transform.matrix);
-		selectedEditorTransform.Update();
+			Vector3::Transform(GetPropPlacementOffset(*propData.model), propData.transform.GetMatrix());
 		return &selectedEditorTransform;
 	}
 	if (selectedEditorObjectType == EditorObjectType::Effect && selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(effects.size()))
 	{
 		auto& transform = effects[selectedEditorObjectIndex].transform;
-		transform.Update();
 		return &transform;
 	}
 	ClearEditorSelection();
@@ -405,7 +397,6 @@ void StageLoader::RefreshSelectedEditorObject()
 	}
 	if (selectedEditorObjectType == EditorObjectType::WorldWater)
 	{
-		worldWater.transform.Update();
 		ApplyWorldWaterData();
 		return;
 	}
@@ -413,7 +404,6 @@ void StageLoader::RefreshSelectedEditorObject()
 		selectedEditorObjectIndex >= 0 &&
 		selectedEditorObjectIndex < static_cast<int>(playerStartTransforms.size()))
 	{
-		playerStartTransforms[selectedEditorObjectIndex].Update();
 		return;
 	}
 	if (selectedEditorObjectType == EditorObjectType::BlockedArea &&
@@ -429,7 +419,6 @@ void StageLoader::RefreshSelectedEditorObject()
 		!addedPropActors[selectedEditorObjectIndex])
 		return;
 
-	selectedEditorTransform.Update();
 	PropData& propData = propDataList[selectedEditorObjectIndex];
 	propData.transform.scale = selectedEditorTransform.scale;
 	propData.transform.rotation = selectedEditorTransform.rotation;
@@ -438,7 +427,6 @@ void StageLoader::RefreshSelectedEditorObject()
 	propData.transform.position =
 		selectedEditorTransform.position -
 		Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
-	propData.transform.Update();
 	ApplyPropData(addedPropActors[selectedEditorObjectIndex], propData);
 }
 
@@ -457,8 +445,7 @@ void StageLoader::Update()
 		}
 		if (!prop.model) continue;
 
-		prop.transform.Update();
-		prop.model->UpdateTransform(prop.transform.matrix);
+		prop.model->UpdateTransform(prop.transform.GetMatrix());
 
 		if (propIndex < static_cast<int>(addedPropActors.size()))
 		{
@@ -577,7 +564,6 @@ void StageLoader::ApplyPropData(Actor* actor, PropData& propData)
 	const bool scaleChanged =
 		(actor->transform.scale - propData.transform.scale).LengthSquared() > 0.000001f;
 	actor->transform = propData.transform;
-	actor->transform.Update();
 	if (Rigidbody* rigidbody = actor->GetComponent<Rigidbody>())
 	{
 		rigidbody->SetPosition(propData.transform.position);
@@ -594,7 +580,6 @@ Actor* StageLoader::CreateBlockedAreaActor(BlockedAreaData& area)
 	actor->transform.position = area.transform.position;
 	actor->transform.rotation = area.transform.rotation;
 	actor->transform.scale = Vector3::One;
-	actor->transform.Update();
 	RigidbodyStatic* rigidbody = actor->AddComponent<RigidbodyStatic>();
 	const Vector3 halfSize = area.transform.scale * 0.5f;
 	actor->AddComponent<BoxCollider>(Layers::Get("Terrain"), rigidbody, halfSize);
@@ -614,11 +599,9 @@ void StageLoader::ApplyBlockedAreaData(int index)
 	area.transform.scale.x = std::max(area.transform.scale.x, 0.02f);
 	area.transform.scale.y = std::max(area.transform.scale.y, 0.02f);
 	area.transform.scale.z = std::max(area.transform.scale.z, 0.02f);
-	area.transform.Update();
 	actor->SetName(area.name);
 	actor->transform.position = area.transform.position;
 	actor->transform.rotation = area.transform.rotation;
-	actor->transform.Update();
 	Rigidbody* rigidbody = actor->GetComponent<Rigidbody>();
 	if (rigidbody)
 	{
@@ -647,7 +630,6 @@ void StageLoader::ApplyWorldWaterData()
 {
 	if (!worldWaterActor) return;
 
-	worldWater.transform.Update();
 	worldWaterActor->ApplySettings(
 		worldWater.enabled,
 		worldWater.transform,
@@ -664,7 +646,6 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 	spawner->SetSpawnTag(propData.spawnTag);
 	spawner->SetActorManager(&stage->GetActorManager());
 	Transform summonTransform = propData.transform;
-	summonTransform.Update();
 	spawner->SetSummonTransform(summonTransform);
 	if (propData.editorPreview)
 	{
@@ -756,7 +737,6 @@ bool StageLoader::AddEditorProp(
 	propData.transform.position =
 		terrainPoint -
 		Vector3::TransformNormal(GetPropPlacementOffset(*propData.model), rotationScale);
-	propData.transform.Update();
 
 	propDataList.push_back(std::move(propData));
 	Actor* propActor = CreatePropActor(propDataList.back());
@@ -772,7 +752,6 @@ void StageLoader::SetEditorPlayerStart(const Vector3& terrainPoint)
 	Transform playerStart;
 	playerStart.position = terrainPoint;
 	playerStart.scale = Vector3::One;
-	playerStart.Update();
 	playerStartTransforms.push_back(playerStart);
 	selectedEditorObjectType = EditorObjectType::PlayerStart;
 	selectedEditorObjectIndex = static_cast<int>(playerStartTransforms.size()) - 1;
@@ -784,7 +763,6 @@ void StageLoader::AddEditorBlockedArea()
 	area.name = std::string((const char*)u8"侵入不可エリア ") +
 		std::to_string(blockedAreas.size() + 1);
 	area.transform.scale = {4.0f, 3.0f, 4.0f};
-	area.transform.Update();
 	blockedAreas.push_back(std::move(area));
 	blockedAreaActors.push_back(CreateBlockedAreaActor(blockedAreas.back()));
 	selectedEditorObjectType = EditorObjectType::BlockedArea;
@@ -864,7 +842,6 @@ bool StageLoader::BuildEditorPropTransform(
 		Matrix::CreateScale(transform.scale) * Matrix::CreateFromQuaternion(transform.rotation);
 	transform.position =
 		placementPoint - Vector3::TransformNormal(GetPropPlacementOffset(model), rotationScale);
-	transform.Update();
 	return true;
 }
 
@@ -1299,7 +1276,6 @@ void StageLoader::LoadJson()
 		{
 			LoadWaterSettingsJson(waterJson["settings"], worldWater.settings);
 		}
-		worldWater.transform.Update();
 	}
 
 	if (root.contains("playerStarts") && root["playerStarts"].is_array())
@@ -1310,7 +1286,6 @@ void StageLoader::LoadJson()
 			Transform playerStart;
 			LoadTransformJson(playerStartJson, playerStart);
 			playerStart.scale = Vector3::One;
-			playerStart.Update();
 			playerStartTransforms.push_back(playerStart);
 		}
 	}
@@ -1324,7 +1299,6 @@ void StageLoader::LoadJson()
 		area.transform.scale.x = std::max(area.transform.scale.x, 0.02f);
 		area.transform.scale.y = std::max(area.transform.scale.y, 0.02f);
 		area.transform.scale.z = std::max(area.transform.scale.z, 0.02f);
-		area.transform.Update();
 		blockedAreas.push_back(std::move(area));
 		blockedAreaActors.push_back(CreateBlockedAreaActor(blockedAreas.back()));
 	}
@@ -1493,7 +1467,6 @@ bool StageLoader::GetPropWorldBounds(PropData& propData, DirectX::BoundingBox& w
 	if (!propData.model) propData.model = LoadPropModel(propData.modelPath);
 	if (!propData.model) return false;
 
-	propData.transform.Update();
 	auto bounds = editorSelectionBounds.find(propData.modelPath);
 	if (bounds == editorSelectionBounds.end())
 	{
@@ -1530,6 +1503,6 @@ bool StageLoader::GetPropWorldBounds(PropData& propData, DirectX::BoundingBox& w
 		bounds = editorSelectionBounds.emplace(propData.modelPath, localBounds).first;
 	}
 
-	bounds->second.Transform(worldBounds, propData.transform.matrix);
+	bounds->second.Transform(worldBounds, propData.transform.GetMatrix());
 	return true;
 }

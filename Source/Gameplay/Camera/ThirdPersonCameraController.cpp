@@ -28,7 +28,7 @@ void ThirdPersonCameraController::RequestBossDefeatFocus(Actor* target, float du
 
 void ThirdPersonCameraController::RequestAlignToPlayerForward()
 {
-	const Vector3 forward = character->transform.forward;
+	const Vector3 forward = character->transform.GetForward();
 	RequestYawAlignment(-atan2f(forward.x, forward.z), 10.0f);
 }
 

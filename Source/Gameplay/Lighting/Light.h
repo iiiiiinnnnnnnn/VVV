@@ -13,12 +13,6 @@ public:
 		: Object(name, tag, isActive), color(color), intensity(intensity) {}
 	virtual ~Light() = default;
 
-	void Update() override
-	{
-		transform.Update();
-		Object::Update();
-	}
-
 	virtual void DrawGUI() override;
 
 	Transform transform;
@@ -45,7 +39,7 @@ public:
 
 	const Vector3 GetDirection() const
 	{
-		return transform.forward;
+		return transform.GetForward();
 	}
 
 protected:

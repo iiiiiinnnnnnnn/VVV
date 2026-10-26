@@ -46,7 +46,7 @@ void LockOnComponent::OnUpdate()
 	if (direction.LengthSquared() <= eps) return;
 	direction.Normalize();
 
-	Vector3 forward = ownerTransform->forward;
+	Vector3 forward = ownerTransform->GetForward();
 	forward.y = 0.0f;
 	if (forward.LengthSquared() <= eps) forward = Vector3::UnitZ;
 	forward.Normalize();

@@ -108,7 +108,6 @@ void CharacterController::SyncOwnerTransform()
             (float)pos.x,
             (float)pos.y - ownerAnchorOffsetY,
             (float)pos.z);
-        actor->transform.Update();
         return;
     }
 
@@ -117,7 +116,6 @@ void CharacterController::SyncOwnerTransform()
         (float)pos.x,
         (float)pos.y - footToCenter + ownerAnchorOffsetY,
         (float)pos.z);
-    actor->transform.Update();
 }
 
 void CharacterController::Render(const RenderContext& rc)

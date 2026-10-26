@@ -13,7 +13,6 @@ BoneFollower::BoneFollower(
 	: Component(owner)
 	, offset(offset)
 {
-	this->offset.Update();
 	SetTarget(targetModel, targetNodeName);
 }
 
@@ -25,7 +24,6 @@ BoneFollower::BoneFollower(
 	: Component(owner)
 	, offset(offset)
 {
-	this->offset.Update();
 	SetTarget(targetModel, targetNodeIndex);
 }
 
@@ -69,7 +67,6 @@ void BoneFollower::SetTarget(VMDLModel* targetModel, int targetNodeIndex)
 void BoneFollower::SetOffset(const Transform& offset)
 {
 	this->offset = offset;
-	this->offset.Update();
 }
 
 void BoneFollower::SetOffset(
@@ -80,7 +77,6 @@ void BoneFollower::SetOffset(
 	offset.position = position;
 	offset.rotation = rotation;
 	offset.scale = scale;
-	offset.Update();
 }
 
 void BoneFollower::ApplyFollow()
@@ -101,14 +97,13 @@ void BoneFollower::ApplyFollow()
 		Matrix::CreateScale(targetScale) *
 		Matrix::CreateFromQuaternion(targetRotation) *
 		Matrix::CreateTranslation(targetPosition);
-	Matrix worldTransform = offset.matrix * targetTransform;
+	Matrix worldTransform = offset.GetMatrix() * targetTransform;
 
 	worldTransform.Decompose(
 		ownerActor->transform.scale,
 		ownerActor->transform.rotation,
 		ownerActor->transform.position);
 
-	ownerActor->transform.Update();
 
 	SyncRigidbody(ownerActor);
 }

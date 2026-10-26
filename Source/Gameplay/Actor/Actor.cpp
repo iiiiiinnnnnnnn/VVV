@@ -62,7 +62,6 @@ void Actor::Destroy(float delay)
 }
 void Actor::Update()
 {
-    transform.Update();
 
     Object::Update();
 }

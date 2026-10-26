@@ -217,7 +217,7 @@ void Deer::OnUpdate()
 
 void Deer::OnLateUpdate()
 {
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 
 	if (cc)
 	{

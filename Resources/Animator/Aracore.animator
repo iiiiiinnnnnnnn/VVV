@@ -2,8 +2,8 @@
     "animationMode": "VMDLModel",
     "layers": [
         {
-            "anyStateEditorPosX": 60.0,
-            "anyStateEditorPosY": 100.0,
+            "anyStateEditorPosX": 19.0,
+            "anyStateEditorPosY": 105.0,
             "anyStateTransitions": [
                 {
                     "canInterrupt": false,
@@ -12,18 +12,59 @@
                             "mode": 6,
                             "paramName": "Attack",
                             "threshold": 0.0
+                        },
+                        {
+                            "mode": 2,
+                            "paramName": "attackRand",
+                            "threshold": 0.0
                         }
                     ],
                     "excludedFromStateIndices": [
-                        3
+                        3,
+                        5,
+                        4,
+                        7,
+                        6,
+                        10
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 1,
+                    "priority": 5,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 3,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
+                    "canInterrupt": false,
+                    "conditions": [
+                        {
+                            "mode": 6,
+                            "paramName": "Attack",
+                            "threshold": 0.0
+                        },
+                        {
+                            "mode": 2,
+                            "paramName": "attackRand",
+                            "threshold": 1
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        3,
+                        5,
+                        4,
+                        6,
+                        7,
+                        10
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 4,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 10,
                     "transitionDuration": 0.10000000149011612
                 },
                 {
@@ -39,7 +80,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 3,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 4,
@@ -58,7 +99,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 2,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 6,
@@ -79,7 +120,7 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 0,
+                    "priority": 1,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 5,
@@ -390,11 +431,11 @@
                     ]
                 },
                 {
-                    "animationIndex": 1,
+                    "animationIndex": 0,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "editorPosX": 200.0,
-                    "editorPosY": 19.0,
+                    "editorPosX": 20.0,
+                    "editorPosY": -189.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "attack",
@@ -402,54 +443,6 @@
                     "playbackStart": 0.0,
                     "speed": 0.5,
                     "transitions": [
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 1,
-                                    "paramName": "speed",
-                                    "threshold": 4.0
-                                },
-                                {
-                                    "mode": 0,
-                                    "paramName": "speed",
-                                    "threshold": 0.009999999776482582
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 2,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 2,
-                            "transitionDuration": 0.10000000149011612
-                        },
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 1,
-                                    "paramName": "speed",
-                                    "threshold": 4.0
-                                },
-                                {
-                                    "mode": 0,
-                                    "paramName": "speed",
-                                    "threshold": 0.009999999776482582
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 1,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 1,
-                            "transitionDuration": 0.10000000149011612
-                        },
                         {
                             "canInterrupt": false,
                             "conditions": [],
@@ -469,8 +462,8 @@
                     "animationIndex": 2,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "editorPosX": -60.0,
-                    "editorPosY": 3.0,
+                    "editorPosX": -200.0,
+                    "editorPosY": -268.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "damage",
@@ -773,6 +766,82 @@
                             "transitionDuration": 0.11999999731779099
                         }
                     ]
+                },
+                {
+                    "animationIndex": 1,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 276.0,
+                    "editorPosY": -157.0,
+                    "hasEditorPosition": true,
+                    "loop": false,
+                    "name": "attack2",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 0.5,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 2,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [
+                                {
+                                    "mode": 1,
+                                    "paramName": "speed",
+                                    "threshold": 4.0
+                                },
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.009999999776482582
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 1,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 0,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
                 }
             ],
             "weight": 1.0
@@ -780,12 +849,17 @@
     ],
     "parameters": [
         {
+            "name": "turnLeft",
+            "type": "bool",
+            "value": false
+        },
+        {
             "name": "Dead",
             "type": "bool",
             "value": false
         },
         {
-            "name": "turnLeft",
+            "name": "turnRight",
             "type": "bool",
             "value": false
         },
@@ -795,14 +869,14 @@
             "value": 0.0
         },
         {
-            "name": "turnRight",
-            "type": "bool",
-            "value": false
+            "name": "attackRand",
+            "type": "int",
+            "value": 0
         }
     ],
     "triggers": [
-        "Jump",
         "Attack",
+        "Jump",
         "Damage",
         "Threat"
     ]

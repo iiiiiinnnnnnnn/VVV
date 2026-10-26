@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -315,17 +315,17 @@ class PhysicsManager
     PxMaterial* GetDefaultMaterial() { return gDefaultMaterial; }
     PxDefaultCpuDispatcher* GetDispatcher() { return gDispatcher; }
 
-    PxRigidStatic* CreateStatic(Matrix& transform) {
+    PxRigidStatic* CreateStatic(Matrix transform) {
         PxTransform t;
         Vector3 scale, pos;
         Quaternion rot;
-        transform.Decompose(scale, rot, pos);
+		transform.Decompose(scale, rot, pos);
         t.p = PxVec3(pos.x, pos.y, pos.z);
         t.q = PxQuat(rot.x, rot.y, rot.z, rot.w);
         return gPhysics->createRigidStatic(t);
     }
 
-    PxRigidDynamic* CreateDynamic(Matrix& transform) {
+    PxRigidDynamic* CreateDynamic(Matrix transform) {
         PxTransform t;
         Vector3 scale, pos;
         Quaternion rot;

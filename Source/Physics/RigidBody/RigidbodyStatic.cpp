@@ -18,7 +18,7 @@ void RigidbodyStatic::OnAwake()
     auto* transform = owner->GetComponent<Transform>();
     _ASSERT_EXPR(transform, "Rigidbody needs transform");
 
-    rb = PhysicsManager::Instance().CreateStatic(transform->matrix);
+    rb = PhysicsManager::Instance().CreateStatic(transform->GetMatrix());
 
     rb->userData = owner;
     PhysicsManager::Instance().GetSceneContext().GetScene()->addActor(*rb);

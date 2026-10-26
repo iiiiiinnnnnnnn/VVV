@@ -252,7 +252,7 @@ bool VMDLColliderComponent::StartDynamicMotion(const Vector3& velocity, const Ve
 	scaledSize *= Vector3(fabsf(actor->transform.scale.x), fabsf(actor->transform.scale.y),
 		fabsf(actor->transform.scale.z));
 	CreateShape();
-	ownerFromBody = actor->transform.matrix * Conv::ToMatrix(ghostActor->getGlobalPose()).Invert();
+	ownerFromBody = actor->transform.GetMatrix() * Conv::ToMatrix(ghostActor->getGlobalPose()).Invert();
 	drivesOwner = true;
 	ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, false);
 	ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
@@ -269,7 +269,6 @@ void VMDLColliderComponent::SyncOwnerTransform()
 	auto* actor = dynamic_cast<Actor*>(owner);
 	if (!actor) return;
 	actor->transform = Transform(ownerFromBody * Conv::ToMatrix(ghostActor->getGlobalPose()));
-	actor->transform.Update();
 }
 
 void VMDLColliderComponent::UpdateFromNode()

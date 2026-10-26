@@ -28,7 +28,6 @@ public:
 
 	void Update() override
 	{
-		transform.Update();
 		Object::Update();
 		actorManager.Update();
 		NormalizeCameraPriorities();

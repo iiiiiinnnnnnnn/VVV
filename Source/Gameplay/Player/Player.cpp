@@ -182,7 +182,6 @@ void Player::SetSpawnTransform(const Transform& spawnTransform)
 {
 	transform.position = spawnTransform.position;
 	transform.rotation = spawnTransform.rotation;
-	transform.Update();
 	if (cc) cc->SetFootPosition(spawnTransform.position);
 }
 
@@ -209,7 +208,7 @@ void Player::OnUpdate()
 
 void Player::OnLateUpdate()
 {
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 
 	if (cc)
 	{
@@ -370,7 +369,7 @@ void Player::UpdateMovement()
 	// 移動による旋回の前に、カメラ基準の回避方向を確定する。
 	Vector3 quickShiftDirection(0.0f, 0.0f, 0.0f);
 	if (input.Down(PlayerAction::QuickDefaultForward))
-		quickShiftDirection = transform.forward;
+		quickShiftDirection = transform.GetForward();
 	else if (quickStepStarted)
 	{
 		const float directionX = (input.Down(PlayerAction::QuickRight) ? 1.0f : 0.0f) -
@@ -676,7 +675,7 @@ void Player::OnDamaged(const DamageData& damageData)
 		Vector3 dir = damageData.hitPosition.value() - transform.position;
 		dir.Normalize();
 
-		float dot = transform.right.Dot(dir);
+		float dot = transform.GetRight().Dot(dir);
 
 		if (dot >= 0.0f)
 		{
@@ -857,8 +856,8 @@ void Player::QuickShift(const Vector3& direction, bool force)
 	dodgeInputBufferTimer.Stop();
 
 	// 向きを判断
-	const float localRight = dodgeDirection.Dot(transform.right);
-	const float localForward = dodgeDirection.Dot(transform.forward);
+	const float localRight = dodgeDirection.Dot(transform.GetRight());
+	const float localForward = dodgeDirection.Dot(transform.GetForward());
 	const char* trigger;
 	if (fabsf(localForward) >= fabsf(localRight)) trigger = localForward >= 0.0f ? "QF" : "QB";
 	else trigger = localRight >= 0.0f ? "QR" : "QL";

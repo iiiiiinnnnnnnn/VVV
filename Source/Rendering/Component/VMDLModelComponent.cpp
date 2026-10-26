@@ -200,7 +200,7 @@ void VMDLModelComponent::LateUpdate()
 	SyncExternalMeshCaches();
 
 	if (autoUpdateTransform)
-		UpdateModelTransform(actor->transform.matrix);
+		UpdateModelTransform(actor->transform.GetMatrix());
 	SyncPointLights();
 
 	// 多脚IKを使うモデルは、IKで姿勢が確定してから判定を同期

@@ -82,7 +82,6 @@ void VstgEditorScene::OnInit()
 	DirectionalLight& previewLight = propPreviewLights.GetDirectionalLight();
 	previewLight.transform.rotation =
 		Quaternion::CreateFromYawPitchRoll(RAD(-30.0f), RAD(35.0f), 0.0f);
-	previewLight.transform.Update();
 	CreateStage();
 	RefreshPropModels();
 	LoadEditorSettings();
@@ -149,7 +148,6 @@ void VstgEditorScene::CreateStage()
 	DirectionalLight& directionalLight = currentStage->GetLightManager().GetDirectionalLight();
 	directionalLight.transform.rotation =
 		Quaternion::CreateFromYawPitchRoll(RAD(-35.0f), RAD(35.0f), 0.0f);
-	directionalLight.transform.Update();
 	currentStage->GetLightManager().SetAmbientColor(ColorFromRGBA(0x2A4C7DFF));
 	auto* rigidbody = currentStage->AddComponent<RigidbodyStatic>();
 	terrain = currentStage->AddComponent<Terrain>();
@@ -262,7 +260,7 @@ void VstgEditorScene::RenderDragPreview(const RenderContext& rc)
 	if (!showDragPreview || !dragPreviewModel) return;
 	const Matrix modelTransform =
 		Matrix::CreateTranslation(dragPreviewModel->GetVmdlExtensionData().rootOffset) *
-		dragPreviewTransform.matrix;
+		dragPreviewTransform.GetMatrix();
 	dragPreviewModel->UpdateTransform(modelTransform);
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetModelRenderer()->Draw(
@@ -644,7 +642,6 @@ void VstgEditorScene::DrawInspector()
 		std::string name = light->GetName();
 		if (ImGui::InputText((const char*)u8"名前", &name)) { light->SetName(name); dirty = true; }
 		light->DrawGUI();
-		light->transform.Update();
 		if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除"))) DeleteSelectedLight();
 		ImGui::SameLine();
 		if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"))) DuplicateSelectedLight();
@@ -1050,7 +1047,6 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					if (light)
 					{
 						light->transform.position = lightDragPreviewPosition;
-						light->transform.Update();
 						SelectLight(type, index);
 						dirty = true;
 					}
@@ -1122,7 +1118,7 @@ bool VstgEditorScene::ScreenToTerrainPoint(
 	Vector3 farPoint;
 	DirectX::XMStoreFloat3(&nearPoint, nearValue);
 	DirectX::XMStoreFloat3(&farPoint, farValue);
-	const Matrix terrainWorld = currentStage->GetTransform()->matrix;
+	const Matrix terrainWorld = currentStage->GetTransform()->GetMatrix();
 	const Matrix inverseTerrainWorld = terrainWorld.Invert();
 	const Vector3 localOrigin = Vector3::Transform(nearPoint, inverseTerrainWorld);
 	Vector3 localDirection = Vector3::TransformNormal(farPoint - nearPoint, inverseTerrainWorld);
@@ -1229,7 +1225,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	{
 		Matrix view = camera->GetView();
 		Matrix projection = camera->GetProjection();
-		Matrix world = transform->matrix;
+		Matrix world = transform->GetMatrix();
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 		const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
 		ImGuizmo::SetRect(mainViewport->Pos.x, mainViewport->Pos.y,
@@ -1268,8 +1264,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 						transform->rotation = AlignPropRotationToSurface(transform->rotation, surfaceNormal);
 				}
 			}
-			if (selectedLight) selectedLight->transform.Update();
-			else stageLoader->RefreshSelectedEditorObject();
+			if (!selectedLight) stageLoader->RefreshSelectedEditorObject();
 			dirty = true;
 		}
 	}

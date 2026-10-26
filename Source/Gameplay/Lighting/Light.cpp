@@ -35,9 +35,9 @@ void DirectionalLight::DrawLightSettings()
 	Light::DrawLightSettings();
 	ImGui::TextDisabled(
 		(const char*)u8"向き: %.3f, %.3f, %.3f",
-		transform.forward.x,
-		transform.forward.y,
-		transform.forward.z);
+		transform.GetForward().x,
+		transform.GetForward().y,
+		transform.GetForward().z);
 }
 
 void PointLight::DrawLightSettings()
@@ -103,9 +103,9 @@ void SpotLight::DrawLightSettings()
 
 	ImGui::TextDisabled(
 		(const char*)u8"向き: %.3f, %.3f, %.3f",
-		transform.forward.x,
-		transform.forward.y,
-		transform.forward.z);
+		transform.GetForward().x,
+		transform.GetForward().y,
+		transform.GetForward().z);
 }
 
 void AreaLight::DrawLightSettings()
@@ -143,13 +143,13 @@ void AreaLight::DrawLightSettings()
 
 	ImGui::TextDisabled(
 		(const char*)u8"向き: %.3f, %.3f, %.3f",
-		transform.forward.x,
-		transform.forward.y,
-		transform.forward.z);
+		transform.GetForward().x,
+		transform.GetForward().y,
+		transform.GetForward().z);
 
 	ImGui::TextDisabled(
 		(const char*)u8"右方向: %.3f, %.3f, %.3f",
-		transform.right.x,
-		transform.right.y,
-		transform.right.z);
+		transform.GetRight().x,
+		transform.GetRight().y,
+		transform.GetRight().z);
 }

@@ -421,7 +421,7 @@ void Terrain::UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc)
 	if (!transform) return;
 
 	CbTerrainObject cbObject{};
-	cbObject.world = transform->matrix;
+	cbObject.world = transform->GetMatrix();
 	cbObject.terrainSize = terrainSize;
 	cbObject.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
 
@@ -734,7 +734,7 @@ void Terrain::Render(const RenderContext& rc)
 			const Transform* transform = owner->GetTransform();
 			if (transform)
 			{
-				terrainWorld = transform->matrix;
+				terrainWorld = transform->GetMatrix();
 			}
 		}
 		grassRenderer->Render(rc, terrainWorld, grassSettings,
@@ -903,7 +903,7 @@ bool Terrain::ScreenToTerrainUV(const RenderContext& rc, float& outU, float& out
 
 	Transform* transform = owner->GetComponent<Transform>();
 	if (!transform) return false;
-	Matrix invWorld = transform->matrix.Invert();
+	Matrix invWorld = transform->GetMatrix().Invert();
 
 	Vector3 rayOriginLocal = Vector3::Transform(rayOriginWorld, invWorld);
 	Vector3 rayDirectionLocal = Vector3::TransformNormal(rayDirectionWorld, invWorld);
@@ -2345,7 +2345,7 @@ int Terrain::GetSurfaceLayerIndex(const Vector3& worldPosition) const
 	const Transform* transform = owner ? owner->GetComponent<Transform>() : nullptr;
 	if (!transform) return -1;
 
-	const Vector3 localPosition = Vector3::Transform(worldPosition, transform->matrix.Invert());
+	const Vector3 localPosition = Vector3::Transform(worldPosition, transform->GetMatrix().Invert());
 	const float u = localPosition.x / terrainSize + 0.5f;
 	const float v = localPosition.z / terrainSize + 0.5f;
 	return GetSurfaceLayerIndexByUV(u, v);
@@ -2396,7 +2396,7 @@ bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius,
 		!std::isfinite(worldCenter.x) || !std::isfinite(worldCenter.y) || !std::isfinite(worldCenter.z)) return false;
 	const Transform* transform = owner ? owner->GetTransform() : nullptr;
 	if (!transform) return false;
-	const Matrix& world = transform->matrix;
+	const Matrix& world = transform->GetMatrix();
 	const Matrix inverse = world.Invert();
 	const Vector3 center = Vector3::Transform(worldCenter, inverse);
 	const float radiusX = worldRadius * Vector3(inverse._11, inverse._21, inverse._31).Length();
@@ -2456,7 +2456,7 @@ void Terrain::Deform(
 	Transform* transform = owner->GetComponent<Transform>();
 	if (!transform) return;
 
-	const Matrix inverseWorld = transform->matrix.Invert();
+	const Matrix inverseWorld = transform->GetMatrix().Invert();
 	const Vector3 localPosition = Vector3::Transform(worldPosition, inverseWorld);
 	Vector3 localDirection = Vector3::TransformNormal(direction, inverseWorld);
 	if (localDirection.LengthSquared() <= eps) return;
@@ -2541,7 +2541,7 @@ void Terrain::Deform(
 	MarkTerrainMeshDirty();
 	if (removedGrassCount)
 		PlayGrassRemovalEffect(Vector3::Transform(
-			removedGrassPosition / static_cast<float>(removedGrassCount), transform->matrix));
+			removedGrassPosition / static_cast<float>(removedGrassCount), transform->GetMatrix()));
 
 	if (TerrainMeshCollider* collider = owner->GetComponent<TerrainMeshCollider>())
 	{

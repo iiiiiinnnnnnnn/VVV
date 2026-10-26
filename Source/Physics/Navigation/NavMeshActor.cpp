@@ -910,7 +910,7 @@ bool NavMeshActor::IsCliffAlongSegment(
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 	if (!terrain) return false;
 	const Transform* transform = owner->GetTransform();
-	const Matrix world = transform ? transform->matrix : Matrix::Identity;
+	const Matrix world = transform ? transform->GetMatrix() : Matrix::Identity;
 	const Matrix inverse = world.Invert();
 	const Vector3 localStart = Vector3::Transform(start, inverse);
 	const Vector3 localGoal = Vector3::Transform(goal, inverse);

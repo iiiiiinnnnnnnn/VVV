@@ -951,7 +951,6 @@ void VmdlEditorScene::RenderPreview()
 	rc.camera = editorCamera;
 	if (!usesCustomLighting)
 		editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
-	editorLights.GetDirectionalLight().transform.Update();
 	rc.renderSettings = renderSettings;
 	rc.renderSettings.distanceFogEnabled = false;
 	rc.lightManager = &editorLights;
@@ -6710,7 +6709,6 @@ void VmdlEditorScene::ResetLightingEnvironment()
 	editorLights.SetDirectionalLight(defaults.GetDirectionalLight());
 	editorLightDirection = {0.6f, -0.7f, 0.0f};
 	editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
-	editorLights.GetDirectionalLight().transform.Update();
 	usesCustomLighting = false;
 }
 

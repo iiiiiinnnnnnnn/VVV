@@ -295,7 +295,7 @@ void EnemyAI::UpdateTurnSensors(bool hasTarget)
 		? target->transform.position - owner->GetTransform()->position : Vector3::Zero;
 	toTarget.y = 0.0f;
 	const float targetAngle = toTarget.LengthSquared() > eps
-		? atan2f(toTarget.Dot(owner->GetTransform()->right), toTarget.Dot(owner->GetTransform()->forward)) : 0.0f;
+		? atan2f(toTarget.Dot(owner->GetTransform()->GetRight()), toTarget.Dot(owner->GetTransform()->GetForward())) : 0.0f;
 	SetFloat("TargetTurnAngle", DEG(targetAngle));
 	SetBool("IsFacingTarget", hasTarget && fabsf(targetAngle) <= turnThreshold);
 	SetFloat("TurnAngle", DEG(turnAngle));
@@ -319,8 +319,8 @@ void EnemyAI::UpdateSightRay()
 	const float verticalFov = std::clamp(
 		GetFloat("SightVerticalFov", 60.0f), 1.0f, 179.0f);
 
-	Vector3 forward = ownerActor->transform.forward;
-	Vector3 right = ownerActor->transform.right;
+	Vector3 forward = ownerActor->transform.GetForward();
+	Vector3 right = ownerActor->transform.GetRight();
 	Vector3 up = Vector3::TransformNormal(
 		Vector3::Up, Matrix::CreateFromQuaternion(ownerActor->transform.rotation));
 	if (forward.LengthSquared() <= eps) forward = Vector3::UnitZ;

@@ -90,7 +90,6 @@ public:
 		directionalLight.transform =
 			light.transform;
 
-		directionalLight.transform.Update();
 	}
 
 	int GetLightCount() const;

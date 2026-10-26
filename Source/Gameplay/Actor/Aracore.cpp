@@ -48,7 +48,7 @@ void Aracore::OnInit()
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(DirectX::XM_PI); // 反転
 	model = vmdl->GetSharedModel();
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 
 	// アニメーション。
 	anim = AddComponent<Animator>(vmdl->GetSharedModel());
@@ -298,28 +298,44 @@ void Aracore::BeginTossin()
 	controller->StopMovement();
 	controller->SetBool("ActionFinished", false);
 	const float tossinSpeed = controller->GetFloat("TossinMoveSpeed", 6.5f);
-	navigation.Tossin(tossinSpeed);
-	anim->SetTrigger("Attack");
+
 	Actor* target = controller->GetTarget();
-	if (!target) return;
+	if (!target)
+	{
+		anim->SetInt("attackRand", 1); // 0 or 1
+		anim->SetTrigger("Attack");
+		return;
+	}
 
 	Vector3 direction = target->transform.position - this->transform.position;
 	direction.y = 0.0f;
-	if (direction.LengthSquared() > eps) direction.Normalize();
-	else direction = this->transform.forward;
+	float distSq = direction.LengthSquared();
 
-	this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
-		atan2f(direction.x, direction.z), 0.0f, 0.0f));
-	const Vector3 destination = target->transform.position +
-		direction * controller->GetFloat("TossinOverDistance", 10.0f);
+	if (distSq > eps) direction.Normalize();
+	else direction = this->transform.GetForward();
+
+	int attackRand = distSq <= 20.0f ? 0 : 1; // 0 or 1
+	anim->SetInt("attackRand", attackRand);
+	anim->SetTrigger("Attack");
+	// attackはattack2の速度40％で前進(少しは前進しないと攻撃＝＞回避＝＞攻撃の無限ループになるため)
+	const float moveSpeed = attackRand ? tossinSpeed : tossinSpeed * 0.4f;
+	navigation.Tossin(moveSpeed);
+
+	this->transform.SetRotation(
+		Quaternion::CreateFromYawPitchRoll(atan2f(direction.x, direction.z), 0.0f, 0.0f));
+	const Vector3 destination =
+		target->transform.position + direction * controller->GetFloat("TossinOverDistance", 10.0f);
 	navMeshAgent->SetDirectMovement(true);
-	navMeshAgent->SetSpeed(tossinSpeed);
+	navMeshAgent->SetSpeed(moveSpeed);
 	navMeshAgent->MoveToPosition(destination);
 }
 
 void Aracore::UpdateTossin()
 {
-	navigation.Tossin(controller->GetFloat("TossinMoveSpeed", 6.5f));
+	const float tossinSpeed = controller->GetFloat("TossinMoveSpeed", 6.5f);
+	const float moveSpeed = anim->GetInt("attackRand") ? tossinSpeed : tossinSpeed * 0.4f;
+	navigation.Tossin(moveSpeed);
+	navMeshAgent->SetSpeed(moveSpeed);
 }
 
 void Aracore::BeginRecovery()
@@ -518,7 +534,7 @@ void Aracore::UpdateAnimatedModelTransform()
 {
 	if (!model || !vmdl) return;
 
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 }
 
 // 形態変化・体力に応じた見た目
@@ -564,7 +580,6 @@ void Aracore::SpawnPhaseFragments()
 		placement.position = burstCenter + radialOffset;
 		placement.scale = Vector3(scale);
 		placement.rotation = Quaternion::CreateFromYawPitchRoll(angle, 0.4f * i, 0.3f * i);
-		placement.Update();
 
 		auto fragment = std::make_shared<CrystalPart>(placement, phase.fragmentModel->CloneRuntimeInstance());
 		manager->Register(fragment);
@@ -656,7 +671,6 @@ void Aracore::SpawnDeerFromSky()
 
 		Transform spawnTransform = spawner->GetSummonTransform();
 		spawnTransform.position.y += spawnHeight;
-		spawnTransform.Update();
 		Actor* summonedDeer = spawner->Summon(spawnTransform);
 	}
 }
@@ -811,7 +825,7 @@ bool Aracore::PushPlayer(PhysicsComponent* self, PhysicsComponent* other)
 
 	Vector3 direction = player->transform.position - transform.position;
 	direction.y = 0.0f;
-	if (direction.LengthSquared() <= eps) direction = transform.forward;
+	if (direction.LengthSquared() <= eps) direction = transform.GetForward();
 	direction.Normalize();
 
 	constexpr float pushSpeed = 10.0f;
@@ -925,7 +939,7 @@ void Aracore::UpdateDeathSequence()
 	else transform.SetPosition(death.landingPosition);
 
 	Vector3 faceDirection = player
-		? player->transform.position - death.landingPosition : transform.forward;
+		? player->transform.position - death.landingPosition : transform.GetForward();
 	faceDirection.y = 0.0f;
 	if (faceDirection.LengthSquared() > eps)
 	{
@@ -1089,7 +1103,7 @@ bool AracoreAINavigation::IsAnimationReady() const
 
 	const std::string& state = animator->GetCurrentStateName();
 	if (movement == Movement::Tossin)
-		return state == "attack" || state == "run";
+		return speed > 0.0f && (state == "run" || state == "attack" || state == "attack2");
 	if (movement == Movement::Walk || movement == Movement::Chase || movement == Movement::TurnInPlace)
 	{
 		if (turningDirection)

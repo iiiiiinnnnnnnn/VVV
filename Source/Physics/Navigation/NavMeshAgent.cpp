@@ -208,8 +208,8 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	}
 	direction /= nextPointDistance;
 	currentTurnAngle = atan2f(
-		direction.Dot(actor->transform.right),
-		direction.Dot(actor->transform.forward));
+		direction.Dot(actor->transform.GetRight()),
+		direction.Dot(actor->transform.GetForward()));
 
 	if (rotateToMoveDirection && !chargeMovement && !rotationPaused)
 	{

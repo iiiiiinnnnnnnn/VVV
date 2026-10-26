@@ -85,12 +85,12 @@ void WaterRenderer::ApplyUnderwaterContext(RenderContext& rc) const
 	if (!IsActive() || !owner->IsActive() || owner->IsPendingDestroy() || !rc.camera) return;
 	const Transform* transform = owner->GetTransform();
 	if (!transform) return;
-	if (std::abs(transform->matrix.Determinant()) < 0.000001f) return;
-	const Matrix inverseWorld = transform->matrix.Invert();
+	if (std::abs(transform->GetMatrix().Determinant()) < 0.000001f) return;
+	const Matrix inverseWorld = transform->GetMatrix().Invert();
 	const Vector3 localEye = Vector3::Transform(rc.camera->GetEye(), inverseWorld);
 	if (std::abs(localEye.x) > 0.5f || std::abs(localEye.z) > 0.5f || localEye.y >= 0.0f) return;
 	// 水面直下の10cmで効果を滑らかに立ち上げる。波の細かな上下では切り替えない。
-	const Vector3 surface = Vector3::Transform({localEye.x, 0.0f, localEye.z}, transform->matrix);
+	const Vector3 surface = Vector3::Transform({localEye.x, 0.0f, localEye.z}, transform->GetMatrix());
 	const float blend = std::clamp((surface - rc.camera->GetEye()).Length() / 0.1f, 0.0f, 1.0f);
 	if (blend <= rc.underwaterBlend) return;
 	rc.underwaterBlend = blend;
@@ -109,7 +109,7 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 	const Vector3 cameraPosition = rc.camera->GetEye();
 	// 湖面はワールドへ固定する。カメラ追従させるとTerrainとの交差と頂点格子が
 	// 毎フレームずれ、移動中に波が暴れて見える。
-	const Matrix renderWorld = transform->matrix;
+	const Matrix renderWorld = transform->GetMatrix();
 
 	ConstantBuffer constants{};
 	constants.world = renderWorld;

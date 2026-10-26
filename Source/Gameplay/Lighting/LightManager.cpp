@@ -158,7 +158,7 @@ void LightManager::DrawDebug() const
 
 		Color rangeColor = color;
 		rangeColor.w = 0.45f;
-		const Vector3 rangeEnd = areaLight.transform.position - areaLight.transform.forward * range;
+		const Vector3 rangeEnd = areaLight.transform.position - areaLight.transform.GetForward() * range;
 		primitiveRenderer->DrawLine(areaLight.transform.position, rangeEnd, color, rangeColor);
 		renderer->DrawSphere(rangeEnd, 0.1f, color);
 	}

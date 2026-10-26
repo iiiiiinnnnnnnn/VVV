@@ -1,5 +1,7 @@
 #include "Core/Object/Transform.h"
 
+#include <cmath>
+
 #include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
 
@@ -15,61 +17,52 @@ Transform::Transform(Matrix m)
 Transform Transform::FromPosition(const Vector3& position)
 {
 	Transform res(position);
-	res.Update();
 	return res;
 }
 
 Transform Transform::FromRotation(const Quaternion& rotation)
 {
 	Transform res(Vector3::Zero, rotation);
-	res.Update();
 	return res;
 }
 
 Transform Transform::FromAngle(const Vector3& euler)
 {
 	Transform res(Vector3::Zero, Quaternion::CreateFromYawPitchRoll(euler.y, euler.x, euler.z));
-	res.Update();
 	return res;
 }
 
 Transform Transform::FromScale(const Vector3& scale)
 {
 	Transform res(Vector3::Zero, Quaternion::Identity, scale);
-	res.Update();
 	return res;
 }
 
 Transform Transform::FromScale(float scale)
 {
 	Transform res(Vector3::Zero, Quaternion::Identity, Vector3(scale, scale, scale));
-	res.Update();
 	return res;
 }
 
 void Transform::SetPosition(const Vector3& position)
 {
 	this->position = position;
-	Update();
 }
 
 void Transform::SetRotation(const Quaternion& rotation)
 {
 	this->rotation = rotation;
-	Update();
 }
 
 void Transform::SetAngle(const Vector3& euler)
 {
 	this->rotation = Quaternion::CreateFromYawPitchRoll(
 		RAD(euler.y), RAD(euler.x), RAD(euler.z));
-	Update();
 }
 
 void Transform::SetScale(const Vector3& scale)
 {
 	this->scale = scale;
-	Update();
 }
 
 void Transform::SetPosition(float x, float y, float z)
@@ -140,16 +133,33 @@ void Transform::SetDirection(
 	rotation =
 		Quaternion::CreateFromRotationMatrix(
 		world);
-
-	Update();
 }
 
-void Transform::Update() {
-	matrix = Matrix::CreateScale(scale) 
-		* Matrix::CreateFromQuaternion(rotation) 
+Matrix Transform::GetMatrix() const
+{
+	return Matrix::CreateScale(scale)
+		* Matrix::CreateFromQuaternion(rotation)
 		* Matrix::CreateTranslation(position);
-	forward = Vector3::TransformNormal(Vector3::UnitZ, matrix);
-	right = Vector3::TransformNormal(Vector3::UnitX, matrix);
+}
+
+Vector3 Transform::GetForward() const
+{
+	Vector3 direction = Vector3::TransformNormal(
+		Vector3::UnitZ, Matrix::CreateFromQuaternion(rotation));
+	const float lengthSquared = direction.LengthSquared();
+	if (!std::isfinite(lengthSquared) || lengthSquared <= 0.000001f) return Vector3::UnitZ;
+	direction.Normalize();
+	return direction;
+}
+
+Vector3 Transform::GetRight() const
+{
+	Vector3 direction = Vector3::TransformNormal(
+		Vector3::UnitX, Matrix::CreateFromQuaternion(rotation));
+	const float lengthSquared = direction.LengthSquared();
+	if (!std::isfinite(lengthSquared) || lengthSquared <= 0.000001f) return Vector3::UnitX;
+	direction.Normalize();
+	return direction;
 }
 
 Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
@@ -178,11 +188,6 @@ Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
 		if (!hideScale)
 			res.scaleChanged = ImGui::DragFloat3((const char*)u8"拡大率", &scale.x, 0.1f);
 		ImGui::TreePop();
-
-		if (res.positionChanged || res.rotationChanged || res.scaleChanged)
-		{
-			Update();
-		}
 	}
 
 	return res;

@@ -39,10 +39,9 @@ void BaseCrystal::OnUninit()
 
 void BaseCrystal::OnInit()
 {
-	transform.Update();
 	if (!loadedModel) loadedModel = ResourceManager::Instance().LoadModel(modelPath, true);
 	vmdl = AddComponent<VMDL>(loadedModel);
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 }
 
 bool BaseCrystal::PlayBreakSound()
@@ -111,7 +110,7 @@ void CrystalPart::OnUninit()
 void CrystalPart::StartMoving(const Vector3& velocity, const Vector3& rotationSpeed, Actor* source)
 {
 	if (source) sourceActor = source->weak_from_this();
-	vmdl->UpdateTransform(transform.matrix);
+	vmdl->UpdateTransform(transform.GetMatrix());
 	for (auto* collider : GetComponents<VMDLColliderComponent>())
 	{
 		collider->UpdateFromNode();
@@ -126,7 +125,7 @@ void CrystalPart::OnUpdate()
 	if (body) body->SyncOwnerTransform();
 	if (contactPending)
 	{
-		vmdl->UpdateTransform(transform.matrix);
+		vmdl->UpdateTransform(transform.GetMatrix());
 		PlayBreakSound();
 		PlayBreakParticle();
 		Destroy();
@@ -143,7 +142,6 @@ void CrystalPart::OnUpdate()
 		shrinking = true;
 	}
 	transform.scale = initialScale * (remainingTime / shrinkDuration);
-	transform.Update();
 }
 
 void CrystalPart::OnCollisionEnter(PhysicsComponent* self, PhysicsComponent* other,
@@ -176,7 +174,6 @@ void Crystal::OnUninit()
 void Crystal::OnInit()
 {
 	BaseCrystal::OnInit();
-	this->transform.Update();
 
 	float largestScale = std::max(fabsf(this->transform.scale.x), fabsf(this->transform.scale.y));
 	largestScale = std::max(largestScale, fabsf(this->transform.scale.z));
@@ -266,16 +263,15 @@ void Crystal::SpawnFragments()
 					(z + 0.5f - countZ * 0.5f) * cellSize.z);
 				Transform placement;
 				placement.position =
-					Vector3::Transform(crystalCenter + localOffset, transform.matrix);
+					Vector3::Transform(crystalCenter + localOffset, transform.GetMatrix());
 				placement.rotation = Quaternion::CreateFromYawPitchRoll(
 					angle(random), angle(random), angle(random));
 				placement.scale = Vector3(partScale);
-				placement.Update();
 
 				Vector3 direction =
 					Vector3::TransformNormal(Vector3(localOffset.x, 0.0f, localOffset.z),
 						Matrix::CreateFromQuaternion(transform.rotation));
-				if (direction.LengthSquared() < 0.0001f) direction = transform.forward;
+				if (direction.LengthSquared() < 0.0001f) direction = transform.GetForward();
 				direction.Normalize();
 				Vector3 velocity = direction * outwardSpeed;
 				velocity.y = upwardSpeed * (0.8f + 0.4f * (y + 0.5f) / countY);

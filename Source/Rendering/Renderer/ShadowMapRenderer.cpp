@@ -192,6 +192,9 @@ void ShadowMapRenderer::CalculateCascadeMatrices(
     cascadeSplits = Vector4(splits[0], splits[1], splits[2], splits[3]);
 
     Vector3 normalizedLightDir = lightDir;
+    const float lightLengthSquared = normalizedLightDir.LengthSquared();
+    if (!std::isfinite(lightLengthSquared) || lightLengthSquared <= 0.000001f)
+        normalizedLightDir = Vector3::UnitZ;
     normalizedLightDir.Normalize();
     const Vector3 lightUp = std::abs(normalizedLightDir.Dot(Vector3::Up)) > 0.98f
         ? Vector3::Right

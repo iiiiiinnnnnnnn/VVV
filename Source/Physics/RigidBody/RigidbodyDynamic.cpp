@@ -18,7 +18,7 @@ void RigidbodyDynamic::OnAwake()
     auto* transform = owner->GetComponent<Transform>();
     _ASSERT_EXPR(transform, "Rigidbody needs transform");
 
-    rb = PhysicsManager::Instance().CreateDynamic(transform->matrix);
+    rb = PhysicsManager::Instance().CreateDynamic(transform->GetMatrix());
 
     rb->userData = owner;
 	SetKinematic(isKinematic);

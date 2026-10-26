@@ -136,7 +136,6 @@ class StageLoader : public Component
 		WorldWaterData()
 		{
 			transform.scale = {1000.0f, 1.0f, 1000.0f};
-			transform.Update();
 		}
 	};
 	struct BlockedAreaData

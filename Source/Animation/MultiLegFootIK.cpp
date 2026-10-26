@@ -173,7 +173,7 @@ void MultiLegFootIK::UpdateModelTransform()
 	if (!actor) return;
 
 	const Matrix actorTransform =
-		actor->transform.matrix * Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f);
+		actor->transform.GetMatrix() * Matrix::CreateTranslation(0.0f, modelVisualOffsetY, 0.0f);
 	if (auto* renderer = owner->GetComponent<VMDLModelComponent>())
 	{
 		renderer->UpdateModelTransform(actorTransform);

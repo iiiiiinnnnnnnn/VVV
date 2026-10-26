@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Foundation/Common.h"
 
@@ -9,9 +9,6 @@ struct Transform
 	Vector3 position = Vector3::Zero;
 	Quaternion rotation = Quaternion::Identity;
 	Vector3 scale = Vector3::One;
-	Vector3 forward = Vector3::Zero;
-	Vector3 right = Vector3::Zero;
-	Matrix matrix = Matrix::Identity;
 
 	Transform(const Vector3& pos = Vector3::Zero, const Quaternion& rot = Quaternion::Identity, const Vector3& sca = Vector3::One);
 
@@ -23,7 +20,7 @@ struct Transform
 	static Transform FromScale(const Vector3& scale);
 	static Transform FromScale(float scale);
 
-	// Updateの再計算が入るだけ
+	// 位置・回転・スケールを設定する
 	void SetPosition(const Vector3& position);
 	void SetRotation(const Quaternion& rotation);
 	void SetAngle(const Vector3& euler);
@@ -38,7 +35,10 @@ struct Transform
 		const Vector3& direction,
 		const Vector3& up = Vector3::Up);
 
-	void Update();
+	Matrix GetMatrix() const;
+	// 回転から方向を取得する。スケールには依存しない。
+	Vector3 GetForward() const;
+	Vector3 GetRight() const;
 
 	struct TransformChangedResult
 	{
