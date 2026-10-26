@@ -36,6 +36,7 @@ class VMDLModelComponent : public Component
 	void SetAutoUpdateTransform(bool value) { autoUpdateTransform = value; }
 	void SetModelYawOffset(float radians) { modelYawOffset = radians; }
 	void UpdateModelTransform(const Matrix& actorTransform);
+	void SyncAttachmentColliders();
 	bool PlaySoundSource(const std::string& name, const Vector3* positionOverride = nullptr);
 	bool PlayPresentation(const std::string& name, const Vector3& listenerPosition);
 	bool PlayParticleEmitter(const std::string& name);

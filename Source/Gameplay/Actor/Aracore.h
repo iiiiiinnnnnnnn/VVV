@@ -30,12 +30,12 @@ public:
 	void Walk(float speed) { Request(Movement::Walk, speed); }
 	void Chase(float speed) { Request(Movement::Chase, speed); }
 	void TurnInPlace() { Request(Movement::TurnInPlace, 0.0f); }
-	void Charge(float speed) { Request(Movement::Charge, speed); }
+	void Tossin(float speed) { Request(Movement::Tossin, speed); }
 	void Stop();
 	void Update();
 
 private:
-	enum class Movement { Stopped, Walk, Chase, TurnInPlace, Charge };
+	enum class Movement { Stopped, Walk, Chase, TurnInPlace, Tossin };
 
 	void Request(Movement movement, float speed);
 	void UpdateTurnDirection(float angle);
@@ -196,10 +196,10 @@ private:
 	void BeginThreat();
 	void BeginChase();
 	void UpdateChase();
-	void BeginChargeTurn();
-	void UpdateChargeTurn();
-	void BeginCharge();
-	void UpdateCharge();
+	void BeginTossinTurn();
+	void UpdateTossinTurn();
+	void BeginTossin();
+	void UpdateTossin();
 	void BeginRecovery();
 	void BeginJump();
 	void UpdateJump();

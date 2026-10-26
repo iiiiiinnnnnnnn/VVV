@@ -144,15 +144,15 @@ void Aracore::RegisterAIActions()
 		{},
 		[this] { StopAIAction(); });
 	controller->AddAction(
-		"ChargeTurn",
-		[this] { BeginChargeTurn(); },
-		[this] { UpdateChargeTurn(); },
+		"TossinTurn",
+		[this] { BeginTossinTurn(); },
+		[this] { UpdateTossinTurn(); },
 		{},
 		[this] { StopAIAction(); });
 	controller->AddAction(
-		"Charge",
-		[this] { BeginCharge(); },
-		[this] { UpdateCharge(); },
+		"Tossin",
+		[this] { BeginTossin(); },
+		[this] { UpdateTossin(); },
 		{},
 		[this] { StopAIAction(); });
 	controller->AddAction("Recovery", [this] { BeginRecovery(); }, {}, {}, [this] { StopAIAction(); });
@@ -279,26 +279,26 @@ void Aracore::UpdateChase()
 	}
 }
 
-void Aracore::BeginChargeTurn()
+void Aracore::BeginTossinTurn()
 {
 	controller->StopMovement();
 	navigation.TurnInPlace();
 	controller->SetBool("ActionFinished", false);
 }
 
-void Aracore::UpdateChargeTurn()
+void Aracore::UpdateTossinTurn()
 {
 	if (!controller->GetTarget()) return;
 	navigation.TurnInPlace();
 	controller->FaceTarget();
 }
 
-void Aracore::BeginCharge()
+void Aracore::BeginTossin()
 {
 	controller->StopMovement();
 	controller->SetBool("ActionFinished", false);
-	const float chargeSpeed = controller->GetFloat("ChargeMoveSpeed", 6.5f);
-	navigation.Charge(chargeSpeed);
+	const float tossinSpeed = controller->GetFloat("TossinMoveSpeed", 6.5f);
+	navigation.Tossin(tossinSpeed);
 	anim->SetTrigger("Attack");
 	Actor* target = controller->GetTarget();
 	if (!target) return;
@@ -311,15 +311,15 @@ void Aracore::BeginCharge()
 	this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
 		atan2f(direction.x, direction.z), 0.0f, 0.0f));
 	const Vector3 destination = target->transform.position +
-		direction * controller->GetFloat("ChargeOverDistance", 10.0f);
+		direction * controller->GetFloat("TossinOverDistance", 10.0f);
 	navMeshAgent->SetDirectMovement(true);
-	navMeshAgent->SetSpeed(chargeSpeed);
+	navMeshAgent->SetSpeed(tossinSpeed);
 	navMeshAgent->MoveToPosition(destination);
 }
 
-void Aracore::UpdateCharge()
+void Aracore::UpdateTossin()
 {
-	navigation.Charge(controller->GetFloat("ChargeMoveSpeed", 6.5f));
+	navigation.Tossin(controller->GetFloat("TossinMoveSpeed", 6.5f));
 }
 
 void Aracore::BeginRecovery()
@@ -1063,7 +1063,7 @@ void AracoreAINavigation::Update()
 
 	const bool ready = IsAnimationReady();
 	const bool rotationPaused = movement == Movement::Stopped ||
-		movement == Movement::Charge || (!ready && !turning);
+		movement == Movement::Tossin || (!ready && !turning);
 	controller->SetBool("RotationPaused", rotationPaused);
 
 	agent->SetRotationPaused(rotationPaused);
@@ -1088,7 +1088,7 @@ bool AracoreAINavigation::IsAnimationReady() const
 	if (animator->IsTransitioning()) return false;
 
 	const std::string& state = animator->GetCurrentStateName();
-	if (movement == Movement::Charge)
+	if (movement == Movement::Tossin)
 		return state == "attack" || state == "run";
 	if (movement == Movement::Walk || movement == Movement::Chase || movement == Movement::TurnInPlace)
 	{

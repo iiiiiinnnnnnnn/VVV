@@ -35,10 +35,10 @@ local parameters = {
     AngryChaseMoveSpeed      = 6.2,    -- 怒り状態で追跡の移動速度
     ChaseMoveSpeed           = 3.2,    -- 追跡の移動速度
     ChaseDuration            = 2.0,    -- 追跡してから突進準備に移るまでの時間（秒）
-    ChargePrepareDuration    = 0.6,    -- 突進準備の最短時間（秒）
-    ChargeMoveSpeed          = 10.5,   -- 突進の移動速度
-    ChargeOverDistance       = 10.0,   -- 相手の位置を越えて走る距離
-    ChargeMaxDuration        = 3.0,    -- 突進を続ける最長時間（秒）
+    TossinPrepareDuration    = 0.6,    -- 突進準備の最短時間（秒）
+    TossinMoveSpeed          = 10.5,   -- 突進の移動速度
+    TossinOverDistance       = 10.0,   -- 相手の位置を越えて走る距離
+    TossinMaxDuration        = 3.0,    -- 突進を続ける最長時間（秒）
     RecoveryDuration         = 0.35,    -- 攻撃後に休む時間（秒）
 
     -- ジャンプ
@@ -54,6 +54,7 @@ local parameters = {
     AngryIdleScale           = 0.6,    -- 怒り状態で待ち時間に掛ける倍率
     AngryJumpChance          = 0.35,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
+    AngryTossinCount         = 4.0,    -- 怒り状態の突進回数
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
     PhaseColorChangeDuration = 6.0,    -- 形態変化で体色が変わる時間（秒）
@@ -76,17 +77,17 @@ local stateActions = {
     Wander_Turn = "WanderTurn",  -- 徘徊中の旋回
     Threat = "Threat",  -- 発見時の威嚇
     Chase = "Chase",  -- プレイヤーを追跡
-    Charge_Turn = "ChargeTurn",  -- 突進方向の調整
-    Charge = "Charge",  -- 突進
+    Tossin_Turn = "TossinTurn",  -- 突進方向の調整
+    Tossin = "Tossin",  -- 突進
     Recovery = "Recovery",  -- 攻撃後の休憩
     Jump_To_Center = "JumpCenter",  -- ジャンプ
     Phase_Threat = "PhaseThreat",  -- 形態変化の威嚇
-    Repeat_Jump = "JumpCenter",  -- 連続ジャンプの次の1回
 }
 
 local currentState = nil
 local stateElapsed = 0
 local remainingJumps = 0
+local remainingTossins = 0
 local angryParametersApplied = false
 
 -- ============================================================================
@@ -107,13 +108,23 @@ local function RunStateAction(stateName, actionPhase)
     end
 end
 
-local function ChangeState(nextState)
-    if nextState == currentState then
+-- 通常は1回、怒り状態では指定パラメーターの回数だけ繰り返す。
+local function GetRepeatCount(parameterName)
+    if not GetBool("Angry") then
+        return 1
+    end
+
+    return math.max(1, math.floor(GetFloat(parameterName)))
+end
+
+local function ChangeState(nextState, restart)
+    if nextState == currentState and not restart then
         return
     end
 
     -- 今の行動を終了してから、次の行動を開始する。
     -- 連続ジャンプも、1回ごとに終了・開始を呼んで跳び直す。
+    local previousState = currentState
     RunStateAction(currentState, ACTION_EXIT)
 
     currentState = nextState
@@ -123,28 +134,31 @@ local function ChangeState(nextState)
     SetState(currentState)
     RunStateAction(nextState, ACTION_ENTER)
 
+    -- 中断した連続攻撃の残り回数を、次の攻撃へ持ち越さない。
+    if currentState ~= "Tossin_Turn" and currentState ~= "Tossin" then
+        remainingTossins = 0
+    end
+    if currentState ~= "Jump_To_Center" then
+        remainingJumps = 0
+    end
+
     -- 休憩に入った時点で、次にジャンプするか抽選する。
     if currentState == "Recovery" then
-        remainingJumps = 0
         local jumpChance = math.max(0, math.min(1, GetFloat("JumpChance")))
         local shouldJump = math.random() < jumpChance
         SetBool("ShouldJump", shouldJump)
 
-    -- ジャンプ開始時に連続回数を決め、今回の1回分を消費する。
-    elseif currentState == "Jump_To_Center" or currentState == "Repeat_Jump" then
-        if remainingJumps <= 0 then
-            remainingJumps = 1
+    -- 連続突進の最初の準備で回数を決め、突進開始ごとに1回消費する。
+    elseif currentState == "Tossin_Turn" and previousState ~= "Tossin" then
+        remainingTossins = GetRepeatCount("AngryTossinCount")
+    elseif currentState == "Tossin" then
+        remainingTossins = remainingTossins - 1
 
-            if GetBool("Angry") then
-                local countParameter = "AngryJumpCount"
-
-                if GetBool("LowHealth") then
-                    countParameter = "AngryLowHpJumpCount"
-                end
-
-                local jumpCount = math.floor(GetFloat(countParameter))
-                remainingJumps = math.max(1, math.min(5, jumpCount))
-            end
+    -- 同じジャンプ状態を再開するときは、残り回数を初期化しない。
+    elseif currentState == "Jump_To_Center" then
+        if previousState ~= "Jump_To_Center" then
+            local countParameter = GetBool("LowHealth") and "AngryLowHpJumpCount" or "AngryJumpCount"
+            remainingJumps = GetRepeatCount(countParameter)
         end
 
         remainingJumps = remainingJumps - 1
@@ -254,7 +268,7 @@ end
 local function UpdateChasing()
     -- 今の行動が完了したら、接近・突進方向の調整へ進む。
     if GetBool("ActionFinished") then
-        ChangeState("Charge_Turn")
+        ChangeState("Tossin_Turn")
         return
     end
 
@@ -272,13 +286,7 @@ local function UpdateChasing()
 end
 
 -- 突進方向の調整
-local function UpdateChargePreparation()
-    -- 距離に関係なく、準備時間が過ぎて旋回を終えたら突進する。
-    if GetBool("ActionFinished") and GetBool("IsFacingTarget") and not GetBool("IsTurning") then
-        ChangeState("Charge")
-        return
-    end
-
+local function UpdateTossinPreparation()
     -- HP減少による形態変化が可能なら、威嚇演出へ進む。
     if GetBool("PhaseChangeRequested") then
         ChangeState("Phase_Threat")
@@ -288,24 +296,18 @@ local function UpdateChargePreparation()
     -- 追跡範囲の外に出たら、待機に戻る。
     if not GetBool("IsTargetInLostRange") then
         ChangeState("Wait")
+        return
+    end
+
+    -- 距離に関係なく、準備時間が過ぎて旋回を終えたら突進する。
+    if GetBool("ActionFinished") and GetBool("IsFacingTarget") and not GetBool("IsTurning") then
+        ChangeState("Tossin")
         return
     end
 end
 
 -- 突進
-local function UpdateCharging()
-    -- 目的地への移動が終わったら、次の行動へ進む。
-    if not GetBool("HasDestination") then
-        ChangeState("Recovery")
-        return
-    end
-
-    -- 今の行動が完了したら、攻撃後の休憩へ進む。
-    if GetBool("ActionFinished") then
-        ChangeState("Recovery")
-        return
-    end
-
+local function UpdateTossin()
     -- HP減少による形態変化が可能なら、威嚇演出へ進む。
     if GetBool("PhaseChangeRequested") then
         ChangeState("Phase_Threat")
@@ -316,6 +318,15 @@ local function UpdateCharging()
     if not GetBool("IsTargetInLostRange") then
         ChangeState("Wait")
         return
+    end
+
+    -- 残り回数があれば向き直って再突進し、全回数が終わってから休憩する。
+    if not GetBool("HasDestination") or GetBool("ActionFinished") then
+        if remainingTossins > 0 and not GetBool("PhaseChangeQueued") then
+            ChangeState("Tossin_Turn")
+        else
+            ChangeState("Recovery")
+        end
     end
 end
 
@@ -329,7 +340,7 @@ local function UpdateRecovery()
 
     -- ジャンプしない場合は、次の突進を準備する。
     if GetBool("ActionFinished") and not GetBool("ShouldJump") then
-        ChangeState("Charge_Turn")
+        ChangeState("Tossin_Turn")
         return
     end
 
@@ -348,17 +359,8 @@ end
 
 -- ジャンプ
 local function UpdateJumping()
-    -- 着地後の待ち時間が終わり、残り回数があればもう一度跳ぶ。
-    if GetBool("ActionFinished") and GetBool("ContinueJump") then
-        ChangeState("Repeat_Jump")
-        return
-    end
-
-    -- 連続ジャンプが終わったら、次の突進を準備する。
-    if GetBool("ActionFinished") and not GetBool("ContinueJump") then
-        ChangeState("Charge_Turn")
-        return
-    end
+    -- 空中では中断せず、着地と着地後の待ち時間が完了するまで待つ。
+    if not GetBool("ActionFinished") then return end
 
     -- HP減少による形態変化が可能なら、威嚇演出へ進む。
     if GetBool("PhaseChangeRequested") then
@@ -370,6 +372,12 @@ local function UpdateJumping()
     if not GetBool("IsTargetInLostRange") then
         ChangeState("Wait")
         return
+    end
+
+    if remainingJumps > 0 and not GetBool("PhaseChangeQueued") then
+        ChangeState("Jump_To_Center", true)
+    else
+        ChangeState("Tossin_Turn")
     end
 end
 
@@ -382,33 +390,6 @@ local function UpdatePhaseThreat()
     end
 end
 
--- 連続ジャンプの次の1回
-local function UpdateRepeatedJump()
-    -- 着地後の待ち時間が終わり、残り回数があればもう一度跳ぶ。
-    if GetBool("ActionFinished") and GetBool("ContinueJump") then
-        ChangeState("Jump_To_Center")
-        return
-    end
-
-    -- 連続ジャンプが終わったら、次の突進を準備する。
-    if GetBool("ActionFinished") and not GetBool("ContinueJump") then
-        ChangeState("Charge_Turn")
-        return
-    end
-
-    -- HP減少による形態変化が可能なら、威嚇演出へ進む。
-    if GetBool("PhaseChangeRequested") then
-        ChangeState("Phase_Threat")
-        return
-    end
-
-    -- 追跡範囲の外に出たら、待機に戻る。
-    if not GetBool("IsTargetInLostRange") then
-        ChangeState("Wait")
-        return
-    end
-end
-
 -- 現在の状態に対応する判断処理を選ぶ。
 local stateUpdates = {
     Wait = UpdateWaiting,
@@ -416,12 +397,11 @@ local stateUpdates = {
     Wander_Turn = UpdateWanderTurning,
     Threat = UpdateThreat,
     Chase = UpdateChasing,
-    Charge_Turn = UpdateChargePreparation,
-    Charge = UpdateCharging,
+    Tossin_Turn = UpdateTossinPreparation,
+    Tossin = UpdateTossin,
     Recovery = UpdateRecovery,
     Jump_To_Center = UpdateJumping,
     Phase_Threat = UpdatePhaseThreat,
-    Repeat_Jump = UpdateRepeatedJump,
 }
 
 -- ============================================================================
@@ -453,7 +433,7 @@ local function ApplyAngryParametersOnce()
     local shortenedDurations = {
         "FreedomWaitDuration",
         "ChaseDuration",
-        "ChargePrepareDuration",
+        "TossinPrepareDuration",
         "RecoveryDuration",
         "JumpLandingRecovery",
     }
@@ -470,8 +450,8 @@ local actionDurations = {
     Wait = "FreedomWaitDuration",
     Threat = "ThreatDuration",
     Chase = "ChaseDuration",
-    Charge_Turn = "ChargePrepareDuration",
-    Charge = "ChargeMaxDuration",
+    Tossin_Turn = "TossinPrepareDuration",
+    Tossin = "TossinMaxDuration",
     Recovery = "RecoveryDuration",
 }
 
@@ -488,7 +468,7 @@ local function UpdateActionCompletion()
         SetBool("ActionFinished", true)
     end
 
-    if currentState == "Jump_To_Center" or currentState == "Repeat_Jump" then
+    if currentState == "Jump_To_Center" then
         local takeoffDelay = math.max(0, GetFloat("JumpTakeoffDelay"))
         local flightDuration = math.max(0.01, GetFloat("JumpDuration"))
         local landingRecovery = math.max(0, GetFloat("JumpLandingRecovery"))
@@ -496,10 +476,8 @@ local function UpdateActionCompletion()
 
         -- 時間だけで終えず、C++から着地済みの通知が来るまで待つ。
         local jumpFinished = GetBool("JumpLanded") and stateElapsed >= finishedTime
-        local continueJump = remainingJumps > 0 and not GetBool("PhaseChangeQueued")
 
         SetBool("ActionFinished", jumpFinished)
-        SetBool("ContinueJump", continueJump)
     elseif currentState == "Phase_Threat" then
         -- 威嚇アニメーションが実際に始まってからの時間で判定する。
         local presentationStarted = GetBool("PhasePresentationStarted")
@@ -519,6 +497,8 @@ function Stop()
 
     currentState = nil
     stateElapsed = 0
+    remainingTossins = 0
+    remainingJumps = 0
     SetState("Stopped")
 end
 

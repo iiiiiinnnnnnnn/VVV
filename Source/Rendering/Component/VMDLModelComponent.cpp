@@ -2,6 +2,7 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include <cstring>
 #include "Animation/Animator.h"
+#include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/Actor.h"
@@ -202,6 +203,18 @@ void VMDLModelComponent::LateUpdate()
 		UpdateModelTransform(actor->transform.matrix);
 	SyncPointLights();
 
+	// 多脚IKを使うモデルは、IKで姿勢が確定してから判定を同期
+	// (IKは動いてるのにコライダーが埋まってるとかの問題が出る)
+	const auto* footIK = owner->GetComponent<MultiLegFootIK>();
+	if (!footIK || !footIK->IsActive()) SyncAttachmentColliders();
+	UpdateSoundEvents();
+	UpdatePresentationEvents();
+}
+
+void VMDLModelComponent::SyncAttachmentColliders()
+{
+	if (!model) return;
+	Actor* actor = dynamic_cast<Actor*>(owner);
 	Scene* scene = actor ? SceneManager::Instance().GetCurrentScene() : nullptr;
 	Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
 	Terrain* terrain = stage ? stage->GetComponent<Terrain>() : nullptr;
@@ -217,8 +230,6 @@ void VMDLModelComponent::LateUpdate()
 		if (collider->GetBoundingSphere(center, radius))
 			terrain->RemoveGrassInSphere(center, radius, collider->GetLayerId());
 	}
-	UpdateSoundEvents();
-	UpdatePresentationEvents();
 }
 
 void VMDLModelComponent::SyncPointLights()

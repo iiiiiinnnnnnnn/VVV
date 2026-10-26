@@ -51,6 +51,8 @@ void MultiLegFootIK::LateUpdate()
 		footIK->UpdateGroundTarget(startOffset, length, animatedContactOffset, syncOffset);
 		footIK->SolveIK(model->GetWorldTransform());
 	}
+	if (auto* renderer = owner->GetComponent<VMDLModelComponent>())
+		renderer->SyncAttachmentColliders();
 }
 
 void MultiLegFootIK::DrawGUI()
