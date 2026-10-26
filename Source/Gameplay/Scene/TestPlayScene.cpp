@@ -113,7 +113,7 @@ void TestPlayScene::OnInit()
 					 u8"[F3] デバッグ表示/非表示\r\n"
 					 u8"[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
 					 u8"[F5] ゲーム時間を再開\r\n"
-					 u8"[F6] (予備)"
+					 u8"[F6] (予備)\r\n"
 					 u8"[F7] この文字を表示/非表示",
 		25.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(

@@ -14,7 +14,7 @@ class HitstopVibrationComponent : public Component
 	HitstopVibrationComponent(Object* owner, std::shared_ptr<VMDLModel> sourceModel);
 
 	// durationは秒、powerはワールド座標での最大振幅。実行中は残り時間に加算する
-	void HitStop();
+	void HitStop(float duration, float power);
 	void OnUpdate() override;
 	void OnDisabled() override;
 	const char* GetDebugName() const override { return ICON_FA_CROSSHAIRS " HitstopVibrationComponent"; }

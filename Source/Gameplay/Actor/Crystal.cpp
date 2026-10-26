@@ -12,6 +12,7 @@
 #include <cfloat>
 #include <random>
 #include "Physics/Collider/VMDLColliderComponent.h"
+#include "Rendering/Component/HitstopVibrationComponent.h"
 
 // クリスタル＋破片の基底
 #if 1
@@ -175,6 +176,9 @@ void Crystal::OnInit()
 {
 	BaseCrystal::OnInit();
 
+	// HitStop振動用コンポーネント
+	hitstopVibration = AddComponent<HitstopVibrationComponent>(loadedModel);
+
 	float largestScale = std::max(fabsf(this->transform.scale.x), fabsf(this->transform.scale.y));
 	largestScale = std::max(largestScale, fabsf(this->transform.scale.z));
 
@@ -212,9 +216,10 @@ void Crystal::OnDamaged(const DamageData& damageData)
 	vmdl->GetRenderer()->PlaySoundSource("ATTACK", &transform.position);
 	if (damageData.attackerCollider && damageData.attackerCollider->GetOwner()->CompareTag("Player"))
 	{
-		// aracoreとかはhitstopいらない
+		// プレイヤーだけhitstop
 		TimeScaleController::Request(0.07f);
 		CameraEffectController::Request(0.1f, 0.06f);
+		hitstopVibration->HitStop(0.1f, 0.1f);
 	}
 }
 

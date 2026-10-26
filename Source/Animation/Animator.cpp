@@ -582,7 +582,30 @@ void Animator::UpdateLayer(
                 weight);
         }
 
-        if (weight >= 1.0f)
+		// ブレンド中も割り込み可能なAnyStateを通常遷移より先に評価する。
+        const Transition* interruptTransition = nullptr;
+        if (!curState.blockAnyStateTransitions &&
+            !layer.states[layer.nextStateIndex].blockAnyStateTransitions)
+        {
+            for (const Transition& transition : layer.anyStateTransitions)
+            {
+                if (!transition.canInterrupt ||
+                    transition.toStateIndex == layer.nextStateIndex) continue;
+                if (transition.toStateIndex == layer.currentStateIndex &&
+                    !HasActiveTriggerCondition(transition)) continue;
+
+                const auto& excluded = transition.excludedFromStateIndices;
+                if (std::find(excluded.begin(), excluded.end(), layer.currentStateIndex) != excluded.end() ||
+                    std::find(excluded.begin(), excluded.end(), layer.nextStateIndex) != excluded.end()) continue;
+                if (transition.hasExitTime && transitionNormalizedTime < transition.exitTime) continue;
+                if (!EvaluateTransition(transition, transitionNormalizedTime)) continue;
+
+                interruptTransition = &transition;
+                break;
+            }
+        }
+
+        if (weight >= 1.0f && !interruptTransition)
         {
             for (auto& callback :
                 curState.callbacks)
@@ -610,33 +633,43 @@ void Animator::UpdateLayer(
         }
         else
         {
-			// ブレンド中断を許可した遷移だけ再評価する。同じ遷移先は再開始しない。
-            for (const Transition& transition :
-                curState.transitions)
+            // AnyStateで割り込まなかった場合だけ状態固有の遷移を調べる。
+            if (!interruptTransition)
             {
-                if (!transition.canInterrupt)
-                    continue;
-
-                if (transition.toStateIndex ==
-                    layer.nextStateIndex)
+                for (const Transition& transition :
+                    curState.transitions)
                 {
-                    continue;
-                }
+                    if (!transition.canInterrupt)
+                        continue;
 
-                if (transition.hasExitTime &&
-                    transitionNormalizedTime <
-                    transition.exitTime)
-                {
-                    continue;
-                }
+                    if (transition.toStateIndex ==
+                        layer.nextStateIndex)
+                    {
+                        continue;
+                    }
 
-                if (!EvaluateTransition(
-                    transition,
-                    transitionNormalizedTime))
-                {
-                    continue;
-                }
+                    if (transition.hasExitTime &&
+                        transitionNormalizedTime <
+                        transition.exitTime)
+                    {
+                        continue;
+                    }
 
+                    if (!EvaluateTransition(
+                        transition,
+                        transitionNormalizedTime))
+                    {
+                        continue;
+                    }
+
+                    interruptTransition = &transition;
+                    break;
+                }
+            }
+
+            if (interruptTransition)
+            {
+                const Transition& transition = *interruptTransition;
                 for (auto& callback :
                     layer.states[
                         layer.nextStateIndex]
@@ -662,7 +695,13 @@ void Animator::UpdateLayer(
                     callback.entering = false;
                 }
 
-                break;
+                layer.isTransitioning = transition.transitionDuration > 0.0f;
+                if (!layer.isTransitioning)
+                {
+                    layer.currentStateIndex = layer.nextStateIndex;
+                    layer.currentTime = layer.nextTime;
+                    layer.nextStateIndex = -1;
+                }
             }
         }
     }

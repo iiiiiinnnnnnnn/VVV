@@ -8,6 +8,7 @@
 class VMDL;
 class VMDLModel;
 class VMDLColliderComponent;
+class HitstopVibrationComponent;
 bool GetCrystalModelBounds(const VMDLModel& model, Vector3& center, Vector3& size);
 
 // クリスタル・破片の基底
@@ -64,6 +65,7 @@ private:
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
 	std::shared_ptr<VMDLModel> partModel;
+	HitstopVibrationComponent* hitstopVibration = nullptr;
 	Vector3 crystalCenter, crystalSize, partSize;
 	bool deathCleanupPending = false;
 };

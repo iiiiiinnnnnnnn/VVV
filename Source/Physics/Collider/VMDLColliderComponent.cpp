@@ -1,4 +1,4 @@
-﻿// VMDLColliderComponent.cpp
+// VMDLColliderComponent.cpp
 #include "Physics/Collider/VMDLColliderComponent.h"
 
 #include <algorithm>
@@ -179,7 +179,15 @@ void VMDLColliderComponent::CreateMeshShape()
 	description.points.data = vertices.data();
 	description.triangles.count = static_cast<PxU32>(mesh.indices.size() / 3);
 	description.triangles.stride = sizeof(uint32_t) * 3;
-	description.triangles.data = mesh.indices.data();
+	// 反転で頂点の並びが裏返る場合は、外側から衝突できる向きに戻す。
+	std::vector<uint32_t> reversedIndices;
+	if (meshToCollider.Determinant() * scaledSize.x * scaledSize.y * scaledSize.z < 0.0f)
+	{
+		reversedIndices = mesh.indices;
+		for (size_t i = 0; i + 2 < reversedIndices.size(); i += 3)
+			std::swap(reversedIndices[i + 1], reversedIndices[i + 2]);
+	}
+	description.triangles.data = reversedIndices.empty() ? mesh.indices.data() : reversedIndices.data();
 	if (!PxCookTriangleMesh(*cooking, description, cookedData) || cookedData.getSize() == 0) return;
 	PxDefaultMemoryInputData input(cookedData.getData(), cookedData.getSize());
 	PxTriangleMesh* triangleMesh = physics->createTriangleMesh(input);
@@ -188,7 +196,7 @@ void VMDLColliderComponent::CreateMeshShape()
 	triangleMesh->release();
 }
 
-void VMDLColliderComponent::UpdateScaledSize(const Matrix& world)
+void VMDLColliderComponent::UpdateScaledSize(Matrix world)
 {
 	if (shapeType < 3)
 	{
@@ -196,7 +204,16 @@ void VMDLColliderComponent::UpdateScaledSize(const Matrix& world)
 		return;
 	}
 
-	const Vector3 worldScale(
+	Vector3 worldScale;
+	Quaternion rotation;
+	Vector3 position;
+	// PhysXの姿勢と同じ分解を使い、負スケールの符号も頂点側へ反映する。
+	if (world.Decompose(worldScale, rotation, position))
+	{
+		scaledSize = size * worldScale;
+		return;
+	}
+	worldScale = Vector3(
 		Vector3(world._11, world._12, world._13).Length(),
 		Vector3(world._21, world._22, world._23).Length(),
 		Vector3(world._31, world._32, world._33).Length());

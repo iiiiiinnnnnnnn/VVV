@@ -3,6 +3,7 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/Actor.h"
+#include "Gameplay/Actor/Crystal.h"
 #include "Physics/Core/PhysicsComponent.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* character)
@@ -171,6 +172,16 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
                 const Object* owner = collider ? collider->GetOwner() : static_cast<const Object*>(actor->userData);
                 if (owner && (owner == player || !owner->IsActive() || owner->IsPendingDestroy()))
                     return PxQueryHitType::eNONE;
+                if (dynamic_cast<const CrystalPart*>(owner)) return PxQueryHitType::eNONE;
+                if (collider)
+                {
+                    const auto& layerName = PhysicsLayerManager::Instance().GetLayerName(collider->GetLayerId());
+                    if (layerName == "CrystalPart" ||
+						layerName.find("Atk") != std::string::npos ||
+						layerName == "DestroyGrass" ||
+						layerName == "GrassMap")
+                        return PxQueryHitType::eNONE;
+                }
                 if (actor->is<PxRigidStatic>()) return PxQueryHitType::eBLOCK;
                 if ((collider && collider->GetLayerId() == propLayer) || (owner && owner->CompareTag("Prop")))
                     return PxQueryHitType::eBLOCK;

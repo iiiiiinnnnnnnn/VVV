@@ -148,7 +148,7 @@
                     "transitionDuration": 0.10000000149011612
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 6,
@@ -174,7 +174,7 @@
                     "transitionDuration": 0.0
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 6,
@@ -200,7 +200,7 @@
                     "transitionDuration": 0.0
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 6,
@@ -226,7 +226,7 @@
                     "transitionDuration": 0.0
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 6,

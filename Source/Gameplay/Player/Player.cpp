@@ -845,7 +845,15 @@ void Player::QuickShift(const Vector3& direction, bool force)
 		if (dodgeCooldownTimer.GetRemaining() > 0.0f || justDodgeSkillActive) return;
 		const ActionState state = GetActionState();
 		if (state.frozen || state.dodging || state.hit) return;
-		if (anim->IsTransitioning()) return;
+		if (anim->IsTransitioning())
+		{
+			const auto isMovementState = [](const std::string& name) {
+				return name == "Idle" || name == "Walk" || name == "Run" ||
+					name == "Sprint" || name == "CrouchIdle" || name == "CrouchWalk";
+			};
+			if (!isMovementState(anim->GetCurrentStateName()) ||
+				!isMovementState(anim->GetNextStateName())) return;
+		}
 	}
 
 	Vector3 dodgeDirection = direction;
