@@ -69,6 +69,7 @@ class VmdlEditorScene : public Scene
 	void DrawNodeTree(int nodeIndex);
 	void DrawHierarchyComponent(int nodeIndex, AttachedComponentType type, int componentIndex,
 		const char* label, const std::string& name);
+	void ReparentAttachedComponents();
 
 	// 階層選択と一括操作
 	void SelectNode(int nodeIndex, bool toggleSelection);
@@ -188,6 +189,9 @@ class VmdlEditorScene : public Scene
 	int selectedComponentIndex = -1;
 	std::vector<int> selectedComponentIndices;
 	bool focusSelectedComponent = false;
+	AttachedComponentType pendingComponentParentType = AttachedComponentType::None;
+	std::vector<int> pendingComponentParentIndices;
+	int pendingComponentParentNode = -1;
 
 	// 階層検索
 	std::string hierarchySearch;

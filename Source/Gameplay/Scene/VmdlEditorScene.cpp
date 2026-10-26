@@ -1728,6 +1728,8 @@ void VmdlEditorScene::DrawHierarchy()
 	}
 	if (!found) ImGui::TextDisabled((const char*)u8"一致する項目がありません");
 	ImGui::EndChild();
+	// ツリーを描画し終えてから移動し、同じフレームでの二重表示を防ぐ。
+	ReparentAttachedComponents();
 }
 
 bool VmdlEditorScene::MatchesHierarchySearch(const std::string& text) const
@@ -2379,8 +2381,76 @@ void VmdlEditorScene::DrawHierarchyComponent(int nodeIndex, AttachedComponentTyp
 		selectedKeyTrack = -1;
 		selectedKeyIndex = -1;
 	}
+	if (ImGui::BeginDragDropSource())
+	{
+		std::vector<int> payload{static_cast<int>(type)};
+		if (selectedComponentType == type &&
+			std::find(selectedComponentIndices.begin(), selectedComponentIndices.end(), componentIndex) !=
+				selectedComponentIndices.end())
+			payload.insert(payload.end(), selectedComponentIndices.begin(), selectedComponentIndices.end());
+		else payload.push_back(componentIndex);
+		ImGui::SetDragDropPayload("VMDL_COMPONENT_PARENT", payload.data(), payload.size() * sizeof(int));
+		ImGui::TextUnformatted(componentName.c_str());
+		if (payload.size() > 2)
+			ImGui::Text((const char*)u8"%dコンポーネント", static_cast<int>(payload.size()) - 1);
+		ImGui::EndDragDropSource();
+	}
 	ImGui::PopID();
 	ImGui::PopID();
+}
+
+void VmdlEditorScene::ReparentAttachedComponents()
+{
+	if (pendingComponentParentNode < 0) return;
+	const int nodeIndex = pendingComponentParentNode;
+	const auto type = pendingComponentParentType;
+	auto indices = std::move(pendingComponentParentIndices);
+	pendingComponentParentNode = -1;
+	pendingComponentParentType = AttachedComponentType::None;
+	pendingComponentParentIndices.clear();
+	if (!model || nodeIndex >= Count(model->GetNodes())) return;
+
+	bool changed = false;
+	const auto reparent = [&](auto& values) {
+		std::erase_if(indices, [&](int index) { return index < 0 || index >= Count(values); });
+		for (int index : indices)
+		{
+			if (values[index].nodeIndex == nodeIndex) continue;
+			values[index].nodeIndex = nodeIndex;
+			changed = true;
+		}
+	};
+	auto& extension = model->GetVmdlExtensionData();
+	switch (type)
+	{
+	case AttachedComponentType::RigidBody: reparent(extension.rigidBodies); break;
+	case AttachedComponentType::Collider: reparent(extension.colliders); break;
+	case AttachedComponentType::Spring: reparent(extension.springs); break;
+	case AttachedComponentType::SpringCollider: reparent(extension.springColliders); break;
+	case AttachedComponentType::Trail: reparent(model->GetVmdlTrailData().trails); break;
+	case AttachedComponentType::Particle: reparent(model->GetVmdlParticleData().emitters); break;
+	case AttachedComponentType::SoundSource: reparent(model->GetVmdlSoundData().sources); break;
+	case AttachedComponentType::PointLight: reparent(model->GetVmdlLightData().pointLights); break;
+	case AttachedComponentType::CameraShake: reparent(model->GetVmdlPresentationData().cameraShakes); break;
+	case AttachedComponentType::RadialBlur: reparent(model->GetVmdlPresentationData().radialBlurs); break;
+	default: return;
+	}
+	if (!changed) return;
+
+	selectedComponentType = type;
+	selectedComponentIndices = std::move(indices);
+	selectedComponentIndex = selectedComponentIndices.back();
+	selectedNode = nodeIndex;
+	selectedNodes.assign(1, nodeIndex);
+	selectedMesh = -1;
+	selectedMeshes.clear();
+	previewStageSelected = false;
+	showSelectionGizmo = true;
+	ikGizmoTarget = IkGizmoTarget::None;
+	focusSelectedComponent = true;
+	selectedKeyTrack = selectedKeyIndex = -1;
+	StopUnifiedPreview(true);
+	MarkDirty();
 }
 
 void VmdlEditorScene::DrawNodeTree(int nodeIndex)
@@ -2453,6 +2523,21 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
 	}
 	const bool nodeClicked = ImGui::IsItemClicked();
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VMDL_COMPONENT_PARENT"))
+		{
+			if (payload->DataSize >= static_cast<int>(2 * sizeof(int)) &&
+				payload->DataSize % sizeof(int) == 0)
+			{
+				const int* values = static_cast<const int*>(payload->Data);
+				pendingComponentParentType = static_cast<AttachedComponentType>(values[0]);
+				pendingComponentParentIndices.assign(values + 1, values + payload->DataSize / sizeof(int));
+				pendingComponentParentNode = nodeIndex;
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
 	DrawNodeContextMenu(nodeIndex);
 	const auto drawBadge = [](const char* text) {
 		ImGui::SameLine(0.0f, 4.0f);
