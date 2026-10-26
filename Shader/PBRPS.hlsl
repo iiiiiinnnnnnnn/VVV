@@ -1,5 +1,3 @@
-// PBRPS.hlsl
-
 #include "PBR.hlsli"
 #include "PBRFunctions.hlsli"
 #include "ShadowmapFunctions.hlsli"

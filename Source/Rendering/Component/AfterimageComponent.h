@@ -1,4 +1,3 @@
-// AfterimageComponent.h
 #pragma once
 
 #include "Application/Time/Timer.h"

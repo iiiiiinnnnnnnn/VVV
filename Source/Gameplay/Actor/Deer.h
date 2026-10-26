@@ -2,12 +2,13 @@
 
 #include "Gameplay/Actor/Entity.h"
 
-#include "Rendering/Component/VMDL.h"
-#include "Animation/Animator.h"
-#include "Physics/Collider/CharacterController.h"
-#include "Gameplay/Component/CharacterMotorComponent.h"
-#include "Gameplay/AI/EnemyAI.h"
-#include "Animation/LookAt.h"
+class VMDL;
+class VMDLModel;
+class Animator;
+class CharacterController;
+class EnemyAI;
+class NavMeshAgent;
+class HitstopVibrationComponent;
 
 class Deer : public Entity
 {
@@ -35,6 +36,7 @@ public:
 	EnemyAI* controller = nullptr;
 	NavMeshAgent* navMeshAgent = nullptr;
 	CharacterController* cc = nullptr;
+	HitstopVibrationComponent* hitstopVibration = nullptr;
 	Vector3 chargeDirection = Vector3::Zero;
 	float normalSlopeLimit = 70.0f;
 	bool charging = false;

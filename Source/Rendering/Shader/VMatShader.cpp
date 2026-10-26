@@ -1,10 +1,10 @@
-﻿// VMatShader.cpp
+// VMatShader.cpp
 #include "Rendering/Shader/VMatShader.h"
 #include "Resource/GpuResourceUtils.h"
 
 VMatShader::VMatShader(ID3D11Device* device)
 {
-	static_assert(sizeof(CbMaterial) == 144, "PBR material buffer layout must match HLSL.");
+	static_assert(sizeof(CbMaterial) == 160, "PBR material buffer layout must match HLSL.");
 	GpuResourceUtils::LoadVertexShader(
 		device,
 		"Resources/Shader/PBRVS.cso",
@@ -43,8 +43,6 @@ VMatShader::VMatShader(ID3D11Device* device)
 		device,
 		sizeof(CbMaterial),
 		materialConstantBuffer.GetAddressOf());
-
-
 }
 
 // 描画開始
@@ -137,6 +135,8 @@ void VMatShader::Update(
 	// マテリアルCB更新
 	{
 		CbMaterial cb{};
+		cb.vivraDir = params ? params->vibrationDirection : Vector3::Zero;
+		cb.vivraPower = params ? params->vibrationPower : 0.0f;
 		cb.dissolveAmount = params ? std::clamp(params->dissolveAmount, 0.0f, 1.0f) : 0.0f;
 
 		// Base Color

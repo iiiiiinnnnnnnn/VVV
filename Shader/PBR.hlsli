@@ -1,4 +1,3 @@
-// PBR.hlsli
 #ifndef __PBR_HLSLI__
 #define __PBR_HLSLI__
 
@@ -56,6 +55,9 @@ cbuffer CbMaterial : register(b1)
     float indexOfRefraction;
     float refractionDistance;
     float _dummyTransmission;
+    
+    float3 vivDir;
+    float vivPower;
 };
 
 float DissolveNoise(float2 uv)

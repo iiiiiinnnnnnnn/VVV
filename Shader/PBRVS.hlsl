@@ -1,5 +1,3 @@
-// PBRVS.hlsl
-
 #include "Skinning.hlsli"
 #include "PBR.hlsli"
 
@@ -18,9 +16,11 @@ VS_OUT main(
     float3 worldNormal   = SkinningVector(normal, boneWeights, boneIndices);
     float3 worldTangent  = SkinningVector(tangent.xyz, boneWeights, boneIndices);
 
+    worldPos.xyz += vivDir.xyz * vivPower;
+
     // クリップ空間
     vout.vertex   = mul(float4(worldPos.xyz, 1.0f), viewProjection);
-    vout.position = worldPos.xyz;   // ワールド座標をPSに渡す
+    vout.position = worldPos.xyz; // ワールド座標をPSに渡す
 
     vout.normal   = normalize(worldNormal);
     vout.tangent  = normalize(worldTangent);

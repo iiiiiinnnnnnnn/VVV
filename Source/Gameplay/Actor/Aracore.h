@@ -19,6 +19,7 @@ class StageLoader;
 class Terrain;
 class VMDL;
 class VMDLModel;
+class HitstopVibrationComponent;
 
 // Luaが選んだ移動を、移動・旋回アニメーションと物理移動へ反映する。
 // 行動の選択や攻撃タイミングは担当しない。
@@ -240,6 +241,7 @@ private:
 	NavMeshAgent* navMeshAgent = nullptr;
 	MultiLegFootIK* multiLegFootIK = nullptr;
 	EnemyAI* controller = nullptr;
+	HitstopVibrationComponent* hitstopVibration = nullptr;
 
 	AracoreAINavigation navigation;
 	JumpState jump;

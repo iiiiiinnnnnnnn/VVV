@@ -4,9 +4,14 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Navigation/NavMeshAgent.h"
-#include "Physics/Navigation/NavMeshActor.h"
 #include "Audio/SoundSystem.h"
 #include "Crystal.h"
+#include "Gameplay/AI/EnemyAI.h"
+#include "Animation/LookAt.h"
+#include "Physics/Collider/CharacterController.h"
+#include "Animation/Animator.h"
+#include "Rendering/Component/VMDL.h"
+#include "Rendering/Component/HitstopVibrationComponent.h"
 
 Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBossField)
 	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f),
@@ -48,6 +53,9 @@ void Deer::OnInit()
 	cc->SetStepOffset(0.15f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.1f);
+
+	// HitstopVibrationComponent
+	hitstopVibration = AddComponent<HitstopVibrationComponent>(model);
 
 	// NavMeshAgent
 	navMeshAgent = AddComponent<NavMeshAgent>();
@@ -296,9 +304,10 @@ void Deer::OnDamaged(const DamageData& damageData)
 {
 	if (damageData.attackerCollider && damageData.attackerCollider->GetLayerId() == Layers::Get("PlayerAtk"))
 	{
-		// aracoreの攻撃はhitstopいらない
+		// プレイヤーからの攻撃だけhitstopとか再生
 		TimeScaleController::Request(0.15f);
 		CameraEffectController::Request(0.2f, 0.1f);
+		hitstopVibration->HitStop(0.12f, 0.1f);
 	}
 
 	StopCharge();

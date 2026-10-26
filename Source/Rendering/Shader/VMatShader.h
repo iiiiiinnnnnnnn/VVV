@@ -1,4 +1,4 @@
-﻿// VMatShader.h
+// VMatShader.h
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -33,7 +33,7 @@ private:
 	private:
 		float	dummy[2];
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	shadowMapConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapConstantBuffer;
 
 	// b1
 	struct CbMaterial
@@ -61,15 +61,19 @@ private:
 		int		useBaseColorTexture;
 		float	dissolveAmount;
 		float	materialDummy[2];
-		float transmission;
-		float indexOfRefraction;
-		float refractionDistance;
-		float transmissionDummy;
-	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	materialConstantBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader>	geometryShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>	unlitPixelShader;
+		float	transmission;
+		float	indexOfRefraction;
+		float	refractionDistance;
+		float	transmissionDummy;
+
+		Vector3 vivraDir;
+		float	vivraPower;
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> materialConstantBuffer;
+
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader> geometryShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> unlitPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> justDodgeUnlitPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> justDodgeFadeConstantBuffer;
 };

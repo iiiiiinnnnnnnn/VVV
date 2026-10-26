@@ -130,6 +130,7 @@
     <ClCompile Include="Source\Resource\VSTG.cpp" />
     <ClCompile Include="Source\Rendering\Component\VMDL.cpp" />
     <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp" />
+    <ClCompile Include="Source\Rendering\Component\HitstopVibrationComponent.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ModelRenderer.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshAgent.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshActor.cpp" />
@@ -275,6 +276,7 @@
     <ClInclude Include="Source\Resource\VSTG.h" />
     <ClInclude Include="Source\Rendering\Component\VMDL.h" />
     <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h" />
+    <ClInclude Include="Source\Rendering\Component\HitstopVibrationComponent.h" />
     <ClInclude Include="Source\Rendering\Renderer\ModelRenderer.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshAgent.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshActor.h" />

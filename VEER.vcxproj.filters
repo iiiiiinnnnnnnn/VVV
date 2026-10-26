@@ -565,6 +565,9 @@
     <ClInclude Include="Source\Rendering\Component\VMDLModelComponent.h">
       <Filter>VMDL</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Component\HitstopVibrationComponent.h">
+      <Filter>VMDL</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Resource\VSTG.h">
       <Filter>VSTG</Filter>
     </ClInclude>
@@ -1173,6 +1176,9 @@
       <Filter>VMDL</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\VMDLModelComponent.cpp">
+      <Filter>VMDL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Component\HitstopVibrationComponent.cpp">
       <Filter>VMDL</Filter>
     </ClCompile>
     <ClCompile Include="Source\Resource\VSTG.cpp">

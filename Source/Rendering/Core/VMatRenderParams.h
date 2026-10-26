@@ -29,6 +29,8 @@ struct VMatRenderParams
 {
 	std::unordered_map<std::string, VMatMaterialParams> materials;
 	float dissolveAmount = 0.0f;
+	Vector3 vibrationDirection = Vector3::Zero;
+	float vibrationPower = 0.0f;
 	Color baseColorTint = Color(1, 1, 1, 1);
 	bool unlit = false;
 	bool justDodgeUnlit = false;

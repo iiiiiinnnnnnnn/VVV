@@ -32,6 +32,7 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
 #include "UI/BossBar.h"
+#include "Rendering/Component/HitstopVibrationComponent.h"
 
 // 初期化
 
@@ -50,8 +51,10 @@ void Aracore::OnInit()
 	model = vmdl->GetSharedModel();
 	vmdl->UpdateTransform(transform.GetMatrix());
 
+	hitstopVibration = AddComponent<HitstopVibrationComponent>(model);
+
 	// アニメーション。
-	anim = AddComponent<Animator>(vmdl->GetSharedModel());
+	anim = AddComponent<Animator>(model);
 	vmdl->BuildFootIK(anim);
 
 	// 旋回はNavMesh側で制御し、威嚇・死亡時の胴体の傾きはモデルへ残す。
@@ -863,6 +866,7 @@ void Aracore::OnDamaged(const DamageData& damageData)
 	}
 	TimeScaleController::Request(timeStopTime);
 	CameraEffectController::Request(0.2f, 0.1f);
+	hitstopVibration->HitStop(0.22f, 0.15f);
 
 	// ダメージサウンド
 	vmdl->GetRenderer()->PlaySoundSource("DAMAGED");
