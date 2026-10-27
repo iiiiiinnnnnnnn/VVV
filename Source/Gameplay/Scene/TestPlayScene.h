@@ -10,6 +10,7 @@ class ThirdPersonCameraController;
 class GaugeHUD;
 class WidgetGroup;
 class PauseMenu;
+class MovieCameraController;
 
 class TestPlayScene : public Scene
 {
@@ -20,7 +21,12 @@ public:
 
 	void OnUpdate() override;
 	void OnDrawGUI() override;
-	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::HiddenLocked; }
+	MouseCursorMode GetMouseCursorMode() const override;
+	bool UsesGameDebugGUI() const override;
+	bool ShouldRenderWorldEffects() const override;
+	void OnDrawOverlayGUI() override;
+	void ConfigurePostProcess(Game::PostProcess& value) override;
+	bool ShouldApplyGameplayPostEffects() const override;
 
 protected:
 	void OnInit() override;
@@ -42,6 +48,8 @@ private:
 	std::shared_ptr<BossBar> bossBar;
 	ThirdPersonCameraController* thirdPersonCamera = nullptr;
 	PauseMenu* pauseMenu = nullptr;
+	MovieCameraController* movieCamera = nullptr;
+	bool moviePreviewTransition = false;
 
 	bool showDevelopText = true;
 };

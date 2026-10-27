@@ -15,7 +15,7 @@ void TimeScaleController::Request(float duration, float scale)
 
 void TimeScaleController::Update()
 {
-	if (effects.empty()) return;
+	if (Game::Time::paused || effects.empty()) return;
 
 	for (Effect& effect : effects)
 		effect.remaining.Update(Game::Time::unscaledDeltaTime);

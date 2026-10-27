@@ -6,6 +6,7 @@
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Camera/FreeCameraController.h"
+#include "Gameplay/Camera/MovieCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Player/LocalPlayer.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -51,6 +52,7 @@ void TestPlayScene::OnInit()
 	player->SetCameraController(thirdPersonCamera);
 	FreeCameraController* freeCamera = cameraActor->AddComponent<FreeCameraController>();
 	freeCamera->SetActive(false);
+	movieCamera = cameraActor->AddComponent<MovieCameraController>();
 
 	// 画面単位のWidgetだけをManagerへ登録する
 	gameHud = std::make_shared<WidgetGroup>("HUD / Gameplay");
@@ -113,7 +115,7 @@ void TestPlayScene::OnInit()
 					 u8"[F3] デバッグ表示/非表示\r\n"
 					 u8"[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
 					 u8"[F5] ゲーム時間を再開\r\n"
-					 u8"[F6] (予備)\r\n"
+					 u8"[F6] ムービーカメラ・タイムライン編集\r\n"
 					 u8"[F7] この文字を表示/非表示",
 		25.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(
@@ -132,6 +134,8 @@ TestPlayScene::~TestPlayScene()
 
 void TestPlayScene::OnUninit()
 {
+	if (movieCamera) movieCamera->End();
+	movieCamera = nullptr;
 	Game::Time::paused = false;
 	SoundSystem::Instance().SetPaused(false);
 	if (currentStage)
@@ -180,12 +184,45 @@ void TestPlayScene::ReturnToTitle()
 
 bool TestPlayScene::ShouldUpdateWorld() const
 {
+	if (moviePreviewTransition || (movieCamera && movieCamera->IsEditing())) return false;
 	if (!pauseMenu) return true;
 	return !pauseMenu->IsPaused();
 }
 
 void TestPlayScene::OnUpdate()
 {
+	moviePreviewTransition = false;
+#ifndef _RELEASE
+	if (movieCamera && ImGui::IsKeyPressed(ImGuiKey_F6, false) && (!pauseMenu || !pauseMenu->IsPaused()))
+	{
+		if (movieCamera->IsEditing()) movieCamera->End();
+		else if (currentStage && player)
+		{
+			Actor* boss = nullptr;
+			for (Actor* actor : currentStage->GetActorManager().GetActors())
+				if (dynamic_cast<Aracore*>(actor) && !actor->IsPendingDestroy()) { boss = actor; break; }
+			if (!movieCamera->Begin(*currentStage, *player, boss, postProcess))
+				MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
+					Utf8ToWide(movieCamera->GetMessage()).c_str(), L"Movie camera", MB_OK | MB_ICONERROR);
+		}
+		if (gameHud) gameHud->SetActive(!movieCamera->IsEditing());
+		if (developText) developText->SetActive(!movieCamera->IsEditing() && showDevelopText);
+		moviePreviewTransition = true;
+		if (pauseMenu) pauseMenu->SetCanPause(false);
+		return;
+	}
+#endif
+	if (movieCamera && movieCamera->IsEditing())
+	{
+		movieCamera->Tick();
+		moviePreviewTransition = !movieCamera->IsEditing();
+		if (gameHud) gameHud->SetActive(!movieCamera->IsEditing());
+#ifndef _RELEASE
+		if (developText) developText->SetActive(!movieCamera->IsEditing() && showDevelopText);
+#endif
+		if (pauseMenu) pauseMenu->SetCanPause(false);
+		return;
+	}
 #ifndef _RELEASE // ちょうデバッグ
 	if (ImGui::IsKeyPressed(ImGuiKey_F7))
 	{
@@ -279,9 +316,40 @@ void TestPlayScene::OnUpdate()
 
 void TestPlayScene::OnDrawGUI()
 {
+	if (movieCamera && movieCamera->IsEditing()) return;
 	if (ImGui::CollapsingHeader("SceneManager"))
 	{
 		if (ImGui::Button("ReloadScene"))
 			SceneManager::Instance().LoadScene<TestPlayScene>();
 	}
+}
+
+Scene::MouseCursorMode TestPlayScene::GetMouseCursorMode() const
+{
+	return movieCamera && movieCamera->IsEditing() ? MouseCursorMode::VisibleFree : MouseCursorMode::HiddenLocked;
+}
+
+bool TestPlayScene::UsesGameDebugGUI() const
+{
+	return !movieCamera || !movieCamera->IsEditing();
+}
+
+bool TestPlayScene::ShouldRenderWorldEffects() const
+{
+	return !movieCamera || !movieCamera->IsEditing();
+}
+
+void TestPlayScene::OnDrawOverlayGUI()
+{
+	if (movieCamera) movieCamera->DrawEditor();
+}
+
+void TestPlayScene::ConfigurePostProcess(Game::PostProcess& value)
+{
+	if (movieCamera) movieCamera->ApplyPostEffects(value);
+}
+
+bool TestPlayScene::ShouldApplyGameplayPostEffects() const
+{
+	return !movieCamera || !movieCamera->IsEditing();
 }

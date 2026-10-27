@@ -121,6 +121,7 @@ void Stage01::UpdateAmbientBgm()
 	}
 
 	bool chasingPlayer = false;
+	float largeLife = 0.0f;
 	for (const auto* actor : actorManager.GetActors())
 	{
 		// aracoreで管理すると複数音が鳴るので多少余計な計算が入ってもステージ側でまとめて管理する
@@ -128,10 +129,11 @@ void Stage01::UpdateAmbientBgm()
 		if (!aracore || !aracore->IsActive() || aracore->IsPendingDestroy() ||
 			aracore->IsDead() || !aracore->IsChasingPlayer()) continue;
 
+		largeLife = std::max(aracore->GetLife(), largeLife);
 		chasingPlayer = true;
 		break;
 	}
-	chaseAudio.Update(chasingPlayer);
+	chaseAudio.Update(chasingPlayer, largeLife);
 
 	if (chaseAudio.IsPlaying())
 	{
@@ -278,15 +280,18 @@ bool Stage01::ChaseAudio::IsPlaying() const
 	return SoundSystem::Instance().IsPlaying(voiceId);
 }
 
-void Stage01::ChaseAudio::Update(bool engaged)
+void Stage01::ChaseAudio::Update(bool engaged, float life)
 {
 	SoundSystem& sound = SoundSystem::Instance();
+	const bool lastTime = engaged && life <= 0.0f;
+	if (engaged && sound.IsPlaying(voiceId) && playingLastTime != lastTime) Stop();
 	if (engaged && !sound.IsPlaying(voiceId))
 	{
 		SoundSystem::PlayOptions options;
 		options.volume = 0.0f;
 		options.loop = true;
-		voiceId = sound.Play("BGM/boss_battle", options, -1);
+		voiceId = sound.Play(lastTime ? "BGM/the_lasttime" : "BGM/boss_battle", options, -1);
+		playingLastTime = lastTime;
 		volume = 0.0f;
 	}
 

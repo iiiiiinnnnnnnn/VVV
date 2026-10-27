@@ -397,6 +397,9 @@
     <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp">
+      <Filter>Gameplay\Camera</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -583,6 +586,9 @@
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
+      <Filter>Gameplay\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h">
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h">
@@ -1030,6 +1036,12 @@
     </None>
     <None Include=".gitignore" />
     <None Include="README.md" />
+    <None Include="Resources\AI\Aracore.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="Resources\AI\Deer.lua">
+      <Filter>Lua</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
@@ -1203,6 +1215,9 @@
     </Filter>
     <Filter Include="VSTG">
       <UniqueIdentifier>{2598fc7a-8b88-4524-aac4-925a911f6cfc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lua">
+      <UniqueIdentifier>{a28bb1be-2835-4ba9-a521-1a4b7fa777aa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

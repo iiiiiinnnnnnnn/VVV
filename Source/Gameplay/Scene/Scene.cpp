@@ -465,7 +465,7 @@ void Scene::Render()
 
 		for (Actor* actor : actorManager.GetActors())
 		{
-			if (!actor || actor->IsPendingDestroy()) continue;
+			if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
 
 			auto* mrc = actor->GetComponent<VMDLModelComponent>();
 			if (mrc && mrc->IsActive())
@@ -508,19 +508,22 @@ void Scene::Render()
 		stage.Render(rc);
 
 		graphics.GetModelRenderer()->Render(rc);
-		stage.RenderEffects(rc);
-
-		for (Actor* actor : actorManager.GetActors())
+		if (ShouldRenderWorldEffects())
 		{
-			if (!actor || actor->IsPendingDestroy()) continue;
+			stage.RenderEffects(rc);
 
-			for (TrailRenderComponent* trail : actor->GetComponents<TrailRenderComponent>())
-				trail->RenderTrail(rc);
-			for (VMDLParticleEmitterComponent* emitter :
-				actor->GetComponents<VMDLParticleEmitterComponent>())
-				emitter->RenderParticles(rc);
+			for (Actor* actor : actorManager.GetActors())
+			{
+				if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+
+				for (TrailRenderComponent* trail : actor->GetComponents<TrailRenderComponent>())
+					trail->RenderTrail(rc);
+				for (VMDLParticleEmitterComponent* emitter :
+					actor->GetComponents<VMDLParticleEmitterComponent>())
+					emitter->RenderParticles(rc);
+			}
+			EffectManager::Instance().Render(rc);
 		}
-		EffectManager::Instance().Render(rc);
 
 		OnRender(rc);
 	}
@@ -535,6 +538,7 @@ void Scene::Render()
 			water->ApplyUnderwaterContext(rc);
 	}
 
+	ConfigurePostProcess(postProcess);
 	postProcess.PrepareSceneColor(rc, sceneBuffer, luminanceBuffer, bloomWorkBuffer,
 		ssaoBuffer, postProcessBuffer, postProcessBuffer2);
 
@@ -548,7 +552,7 @@ void Scene::Render()
 
 	postProcess.ClearRuntimeEffects();
 
-	PostProcessController::Instance().ApplyTo(postProcess);
+	if (ShouldApplyGameplayPostEffects()) PostProcessController::Instance().ApplyTo(postProcess);
 
 	// ---- Final PostProcess: postProcessBuffer → displayBuffer -------------
 	postProcess.RenderFinal(
@@ -573,6 +577,7 @@ void Scene::Render()
 
 void Scene::DrawGUI(RenderContext& rc)
 {
+	OnDrawOverlayGUI();
 	auto& io = ImGui::GetIO();
 	if (!currentStage) return;
 	if (!UsesGameDebugGUI())

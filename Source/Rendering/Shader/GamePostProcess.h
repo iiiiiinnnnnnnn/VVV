@@ -7,6 +7,7 @@
 
 #include <PostProcess.h>
 #include "Rendering/Core/RenderContext.h"
+#include "Core/Foundation/Json.h"
 
 class RenderTarget;
 
@@ -20,6 +21,9 @@ namespace Game
 		void Uninit();
 
 		void CopySettingsFrom(const PostProcess& source);
+		json CaptureMovieSettings() const;
+		static void ValidateMovieSettings(const json& settings);
+		void ApplyMovieSettings(const json& settings);
 		void PrepareSceneColor(const RenderContext& rc, RenderTarget* scene, RenderTarget* luminance,
 			RenderTarget* bloomWork, RenderTarget* ssao, RenderTarget* workA, RenderTarget* workB);
 		void Copy(const RenderContext& rc, ID3D11ShaderResourceView* colorMap);

@@ -1,0 +1,295 @@
+{
+  "boss": {
+    "keys": [
+      {
+        "easing": 9,
+        "position": [
+          -2.200000286102295,
+          -1.649999976158142,
+          -17.200000762939453
+        ],
+        "time": 0.0,
+        "yaw": 179.5
+      }
+    ],
+    "motions": [
+      {
+        "animation": "attack2",
+        "loop": false,
+        "offset": 0.0,
+        "speed": 1.0,
+        "time": 0.0
+      },
+      {
+        "animation": "threat",
+        "loop": false,
+        "offset": 0.0,
+        "speed": 0.5,
+        "time": 1.6151046752929688
+      }
+    ]
+  },
+  "camera": [
+    {
+      "cut": false,
+      "easing": 9,
+      "eye": [
+        -2.181000232696533,
+        0.29977285861968994,
+        -20.106000900268555
+      ],
+      "focus": [
+        -1.2578134536743164,
+        -3.770559787750244,
+        -38.06496047973633
+      ],
+      "fov": 83.59199523925781,
+      "time": 0.0
+    },
+    {
+      "cut": false,
+      "easing": 9,
+      "eye": [
+        -1.987320899963379,
+        -0.5671881437301636,
+        -29.401626586914063
+      ],
+      "focus": [
+        -0.051566123962402344,
+        -1.7616873979568481,
+        -40.001434326171875
+      ],
+      "fov": 24.81899642944336,
+      "time": 0.5095541477203369
+    },
+    {
+      "cut": false,
+      "easing": 9,
+      "eye": [
+        -2.1606011390686035,
+        -0.3309791684150696,
+        -29.1579647064209
+      ],
+      "focus": [
+        0.555964469909668,
+        -0.36833494901657104,
+        -37.588287353515625
+      ],
+      "fov": 26.45838737487793,
+      "time": 0.9326660633087158
+    },
+    {
+      "cut": false,
+      "easing": 9,
+      "eye": [
+        -2.1868271827697754,
+        -0.37172412872314453,
+        -30.156545639038086
+      ],
+      "focus": [
+        -0.7229461669921875,
+        0.4012833833694458,
+        -27.80181121826172
+      ],
+      "fov": 35.46505355834961,
+      "time": 1.515013575553894
+    },
+    {
+      "cut": false,
+      "easing": 9,
+      "eye": [
+        -1.3323659896850586,
+        5.835988521575928,
+        -26.030357360839844
+      ],
+      "focus": [
+        -1.5634703636169434,
+        5.389174461364746,
+        -15.08594036102295
+      ],
+      "fov": 42.56299591064453,
+      "time": 2.0154685974121094
+    }
+  ],
+  "duration": 5.0,
+  "effects": [
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 0,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.399999976158142,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.014999999664723873,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.2999999523162842,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": false,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": false,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": true,
+        "enableVignette": true,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 80.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 0.0
+    }
+  ],
+  "format": "VEER.Movie",
+  "player": {
+    "keys": [
+      {
+        "easing": 9,
+        "position": [
+          -1.9000000953674316,
+          -1.600000023841858,
+          -28.0
+        ],
+        "time": 0.0,
+        "yaw": 0.0
+      },
+      {
+        "easing": 9,
+        "position": [
+          -1.9000000953674316,
+          -1.600000023841858,
+          -28.0
+        ],
+        "time": 1.5195631980895996,
+        "yaw": 0.0
+      },
+      {
+        "easing": 9,
+        "position": [
+          -1.9000000953674316,
+          5.400000095367432,
+          -21.149999618530273
+        ],
+        "time": 2.0063693523406982,
+        "yaw": 0.0
+      }
+    ],
+    "motions": [
+      {
+        "animation": "SS_Quickshift_B",
+        "loop": false,
+        "offset": 0.0,
+        "speed": 1.0,
+        "time": 0.0
+      },
+      {
+        "animation": "SS_Sp_Skill3",
+        "loop": false,
+        "offset": 0.0,
+        "speed": 1.0,
+        "time": 1.683348536491394
+      }
+    ]
+  },
+  "qte": {
+    "enabled": true,
+    "end": 3.5,
+    "start": 2.5
+  },
+  "version": 2
+}

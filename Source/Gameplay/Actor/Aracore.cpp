@@ -749,6 +749,12 @@ void Aracore::TakeDamage(const DamageData& damageData)
 		realDMG.damage *= 0.2f;
 	}
 
+	if (life - damageData.damage <= 0.0f)
+	{
+		phase.Begin();
+		return;
+	}
+
 	Entity::TakeDamage(realDMG);
 }
 

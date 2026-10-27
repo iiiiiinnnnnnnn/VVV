@@ -106,8 +106,12 @@ protected:
 	virtual void OnUpdate() {}
 	virtual void ToggleDebugDisplay();
 	virtual void ConfigureRenderSettings(RenderSettings&) {}
+	virtual void ConfigurePostProcess(Game::PostProcess&) {}
+	virtual bool ShouldApplyGameplayPostEffects() const { return true; }
 	virtual void OnRender(RenderContext& rc) {}
 	virtual void OnDrawGUI() {}
+	virtual void OnDrawOverlayGUI() {}
+	virtual bool ShouldRenderWorldEffects() const { return true; }
 	virtual bool ShouldUpdateWorld() const { return true; }
 
 	virtual bool UsesGameDebugGUI() const { return true; }

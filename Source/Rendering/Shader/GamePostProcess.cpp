@@ -1,5 +1,7 @@
 // GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
+#include <cmath>
+#include <stdexcept>
 
 #include "Resource/GpuResourceUtils.h"
 #include "Rendering/Core/Graphics.h"
@@ -1012,4 +1014,181 @@ namespace Game
 		runtimeColorTintIntensity = intensity;
 		runtimeColorTint = color;
 	}
+
+	json PostProcess::CaptureMovieSettings() const
+	{
+		json settings;
+		settings["enableUnderwater"] = enableUnderwater;
+		settings["underwaterColor"] = json::array({underwaterColor.x, underwaterColor.y, underwaterColor.z, underwaterColor.w});
+		settings["underwaterDensity"] = underwaterDensity;
+		settings["underwaterTint"] = underwaterTint;
+		settings["underwaterAbsorption"] = json::array({underwaterAbsorption.x, underwaterAbsorption.y, underwaterAbsorption.z});
+		settings["enableBloomExtract"] = enableBloomExtract;
+		settings["bloomThreshold"] = bloomThreshold;
+		settings["enableBloomBlur"] = enableBloomBlur;
+		settings["bloomBlurSize"] = bloomBlurSize;
+		settings["bloomBlurBrightness"] = bloomBlurBrightness;
+		settings["enableDualEffect"] = enableDualEffect;
+		settings["dualEffectIndex"] = dualEffectIndex;
+		settings["bloomIntensity"] = bloomIntensity;
+		settings["baseIntensity"] = baseIntensity;
+		settings["bloomSaturation"] = bloomSaturation;
+		settings["baseSaturation"] = baseSaturation;
+		settings["mergeWeight1"] = mergeWeight1;
+		settings["mergeWeight2"] = mergeWeight2;
+		settings["enableToneMapping"] = enableToneMapping;
+		settings["toneMapOperatorIndex"] = toneMapOperatorIndex;
+		settings["transferFunctionIndex"] = transferFunctionIndex;
+		settings["colorRotationIndex"] = colorRotationIndex;
+		settings["exposure"] = exposure;
+		settings["paperWhiteNits"] = paperWhiteNits;
+		settings["enableColorFilter"] = enableColorFilter;
+		settings["colorFilterHueShift"] = colorFilterHueShift;
+		settings["colorFilterSaturation"] = colorFilterSaturation;
+		settings["colorFilterBrightness"] = colorFilterBrightness;
+		settings["enableColorGradient"] = enableColorGradient;
+		settings["colorGradientStrength"] = colorGradientStrength;
+		settings["colorGradientShadows"] = json::array({colorGradientShadows.x, colorGradientShadows.y, colorGradientShadows.z, colorGradientShadows.w});
+		settings["colorGradientMidtones"] = json::array({colorGradientMidtones.x, colorGradientMidtones.y, colorGradientMidtones.z, colorGradientMidtones.w});
+		settings["colorGradientHighlights"] = json::array({colorGradientHighlights.x, colorGradientHighlights.y, colorGradientHighlights.z, colorGradientHighlights.w});
+		settings["enableRadialBlur"] = enableRadialBlur;
+		settings["radialBlurRadius"] = radialBlurRadius;
+		settings["radialBlurSamplingCount"] = radialBlurSamplingCount;
+		settings["radialBlurCenter"] = json::array({radialBlurCenter.x, radialBlurCenter.y});
+		settings["radialBlurMaskRadius"] = radialBlurMaskRadius;
+		settings["enableVignette"] = enableVignette;
+		settings["vignetteColor"] = json::array({vignetteColor.x, vignetteColor.y, vignetteColor.z, vignetteColor.w});
+		settings["vignetteCenter"] = json::array({vignetteCenter.x, vignetteCenter.y});
+		settings["vignetteIntensity"] = vignetteIntensity;
+		settings["vignetteSmoothness"] = vignetteSmoothness;
+		settings["vignetteRounded"] = vignetteRounded;
+		settings["vignetteRoundness"] = vignetteRoundness;
+		settings["enableChromaticAberration"] = enableChromaticAberration;
+		settings["chromaticAberrationAmount"] = chromaticAberrationAmount;
+		settings["chromaticAberrationMaxSamples"] = chromaticAberrationMaxSamples;
+		settings["enableSSAO"] = enableSSAO;
+		settings["ssaoRadius"] = ssaoRadius;
+		settings["ssaoIntensity"] = ssaoIntensity;
+		settings["ssaoMinDistance"] = ssaoMinDistance;
+		settings["ssaoMaxDistance"] = ssaoMaxDistance;
+		settings["enableFXAA"] = enableFXAA;
+		settings["enableBasicEffect"] = enableBasicEffect;
+		settings["basicEffectIndex"] = basicEffectIndex;
+		settings["gaussianMultiplier"] = gaussianMultiplier;
+		settings["finalBloomThreshold"] = finalBloomThreshold;
+		settings["finalBloomBlurSize"] = finalBloomBlurSize;
+		settings["finalBloomBlurBrightness"] = finalBloomBlurBrightness;
+		settings["chromaticAberrationShift"] = json::array();
+		for (const Color& value : chromaticAberrationShift)
+			settings["chromaticAberrationShift"].push_back(json::array({value.x, value.y, value.z, value.w}));
+		return settings;
+	}
+
+	void PostProcess::ValidateMovieSettings(const json& settings)
+	{
+		const json schema = PostProcess{}.CaptureMovieSettings();
+		if (!settings.is_object() || settings.size() != schema.size())
+			throw std::runtime_error("Invalid movie post-process settings.");
+		const auto validate = [](const auto& self, const json& value, const json& expected) -> void {
+			if (expected.is_array())
+			{
+				if (!value.is_array() || value.size() != expected.size()) throw std::runtime_error("Invalid movie effect vector.");
+				for (size_t i = 0; i < expected.size(); ++i) self(self, value[i], expected[i]);
+			}
+			else if (expected.is_boolean())
+			{
+				if (!value.is_boolean()) throw std::runtime_error("Invalid movie effect switch.");
+			}
+			else
+			{
+				if (!value.is_number() || !std::isfinite(value.get<double>()) ||
+					std::abs(value.get<double>()) > 100000.0 ||
+					(expected.is_number_integer() && !value.is_number_integer()))
+					throw std::runtime_error("Invalid movie effect value.");
+			}
+		};
+		for (const auto& [name, expected] : schema.items()) validate(validate, settings.at(name), expected);
+		const auto index = [&](const char* name, int maximum) {
+			const int value = settings.at(name).get<int>();
+			if (value < 0 || value >= maximum) throw std::runtime_error("Invalid movie effect mode.");
+		};
+		index("dualEffectIndex", DirectX::DualPostProcess::Effect_Max);
+		index("basicEffectIndex", DirectX::BasicPostProcess::Effect_Max);
+		index("toneMapOperatorIndex", DirectX::ToneMapPostProcess::Operator_Max);
+		index("transferFunctionIndex", DirectX::ToneMapPostProcess::TransferFunction_Max);
+		index("colorRotationIndex", DirectX::ToneMapPostProcess::HDTV_to_DCI_P3_D65 + 1);
+		if (settings.at("radialBlurSamplingCount").get<int>() < 1 || settings.at("radialBlurSamplingCount").get<int>() > 64 ||
+			settings.at("chromaticAberrationMaxSamples").get<int>() < 1 || settings.at("chromaticAberrationMaxSamples").get<int>() > 64)
+			throw std::runtime_error("Movie effect sample counts must be between 1 and 64.");
+	}
+
+	void PostProcess::ApplyMovieSettings(const json& settings)
+	{
+		enableUnderwater = settings.at("enableUnderwater").get<bool>();
+		underwaterColor = Color(settings.at("underwaterColor").at(0).get<float>(), settings.at("underwaterColor").at(1).get<float>(), settings.at("underwaterColor").at(2).get<float>(), settings.at("underwaterColor").at(3).get<float>());
+		underwaterDensity = settings.at("underwaterDensity").get<float>();
+		underwaterTint = settings.at("underwaterTint").get<float>();
+		underwaterAbsorption = Vector3(settings.at("underwaterAbsorption").at(0).get<float>(), settings.at("underwaterAbsorption").at(1).get<float>(), settings.at("underwaterAbsorption").at(2).get<float>());
+		enableBloomExtract = settings.at("enableBloomExtract").get<bool>();
+		bloomThreshold = settings.at("bloomThreshold").get<float>();
+		enableBloomBlur = settings.at("enableBloomBlur").get<bool>();
+		bloomBlurSize = settings.at("bloomBlurSize").get<float>();
+		bloomBlurBrightness = settings.at("bloomBlurBrightness").get<float>();
+		enableDualEffect = settings.at("enableDualEffect").get<bool>();
+		dualEffectIndex = settings.at("dualEffectIndex").get<int>();
+		bloomIntensity = settings.at("bloomIntensity").get<float>();
+		baseIntensity = settings.at("baseIntensity").get<float>();
+		bloomSaturation = settings.at("bloomSaturation").get<float>();
+		baseSaturation = settings.at("baseSaturation").get<float>();
+		mergeWeight1 = settings.at("mergeWeight1").get<float>();
+		mergeWeight2 = settings.at("mergeWeight2").get<float>();
+		enableToneMapping = settings.at("enableToneMapping").get<bool>();
+		toneMapOperatorIndex = settings.at("toneMapOperatorIndex").get<int>();
+		transferFunctionIndex = settings.at("transferFunctionIndex").get<int>();
+		colorRotationIndex = settings.at("colorRotationIndex").get<int>();
+		exposure = settings.at("exposure").get<float>();
+		paperWhiteNits = settings.at("paperWhiteNits").get<float>();
+		enableColorFilter = settings.at("enableColorFilter").get<bool>();
+		colorFilterHueShift = settings.at("colorFilterHueShift").get<float>();
+		colorFilterSaturation = settings.at("colorFilterSaturation").get<float>();
+		colorFilterBrightness = settings.at("colorFilterBrightness").get<float>();
+		enableColorGradient = settings.at("enableColorGradient").get<bool>();
+		colorGradientStrength = settings.at("colorGradientStrength").get<float>();
+		colorGradientShadows = Color(settings.at("colorGradientShadows").at(0).get<float>(), settings.at("colorGradientShadows").at(1).get<float>(), settings.at("colorGradientShadows").at(2).get<float>(), settings.at("colorGradientShadows").at(3).get<float>());
+		colorGradientMidtones = Color(settings.at("colorGradientMidtones").at(0).get<float>(), settings.at("colorGradientMidtones").at(1).get<float>(), settings.at("colorGradientMidtones").at(2).get<float>(), settings.at("colorGradientMidtones").at(3).get<float>());
+		colorGradientHighlights = Color(settings.at("colorGradientHighlights").at(0).get<float>(), settings.at("colorGradientHighlights").at(1).get<float>(), settings.at("colorGradientHighlights").at(2).get<float>(), settings.at("colorGradientHighlights").at(3).get<float>());
+		enableRadialBlur = settings.at("enableRadialBlur").get<bool>();
+		radialBlurRadius = settings.at("radialBlurRadius").get<float>();
+		radialBlurSamplingCount = settings.at("radialBlurSamplingCount").get<int>();
+		radialBlurCenter = Vector2(settings.at("radialBlurCenter").at(0).get<float>(), settings.at("radialBlurCenter").at(1).get<float>());
+		radialBlurMaskRadius = settings.at("radialBlurMaskRadius").get<float>();
+		enableVignette = settings.at("enableVignette").get<bool>();
+		vignetteColor = Color(settings.at("vignetteColor").at(0).get<float>(), settings.at("vignetteColor").at(1).get<float>(), settings.at("vignetteColor").at(2).get<float>(), settings.at("vignetteColor").at(3).get<float>());
+		vignetteCenter = Vector2(settings.at("vignetteCenter").at(0).get<float>(), settings.at("vignetteCenter").at(1).get<float>());
+		vignetteIntensity = settings.at("vignetteIntensity").get<float>();
+		vignetteSmoothness = settings.at("vignetteSmoothness").get<float>();
+		vignetteRounded = settings.at("vignetteRounded").get<bool>();
+		vignetteRoundness = settings.at("vignetteRoundness").get<float>();
+		enableChromaticAberration = settings.at("enableChromaticAberration").get<bool>();
+		chromaticAberrationAmount = settings.at("chromaticAberrationAmount").get<float>();
+		chromaticAberrationMaxSamples = settings.at("chromaticAberrationMaxSamples").get<int>();
+		enableSSAO = settings.at("enableSSAO").get<bool>();
+		ssaoRadius = settings.at("ssaoRadius").get<float>();
+		ssaoIntensity = settings.at("ssaoIntensity").get<float>();
+		ssaoMinDistance = settings.at("ssaoMinDistance").get<float>();
+		ssaoMaxDistance = settings.at("ssaoMaxDistance").get<float>();
+		enableFXAA = settings.at("enableFXAA").get<bool>();
+		enableBasicEffect = settings.at("enableBasicEffect").get<bool>();
+		basicEffectIndex = settings.at("basicEffectIndex").get<int>();
+		gaussianMultiplier = settings.at("gaussianMultiplier").get<float>();
+		finalBloomThreshold = settings.at("finalBloomThreshold").get<float>();
+		finalBloomBlurSize = settings.at("finalBloomBlurSize").get<float>();
+		finalBloomBlurBrightness = settings.at("finalBloomBlurBrightness").get<float>();
+		for (size_t i = 0; i < 3; ++i)
+		{
+			const auto& value = settings.at("chromaticAberrationShift").at(i);
+			chromaticAberrationShift[i] = Color(value.at(0).get<float>(), value.at(1).get<float>(), value.at(2).get<float>(), value.at(3).get<float>());
+		}
+	}
+
 }

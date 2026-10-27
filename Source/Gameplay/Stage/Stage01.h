@@ -24,7 +24,7 @@ private:
 	{
 	public:
 		bool IsPlaying() const;
-		void Update(bool engaged);
+		void Update(bool engaged, float life);
 		void Stop();
 		void SetFadeInSeconds(float value) { fadeInSeconds = value; }
 		void SetFadeOutSeconds(float value) { fadeOutSeconds = value; }
@@ -33,6 +33,7 @@ private:
 
 	private:
 		SoundSystem::VoiceId voiceId = SoundSystem::InvalidVoiceId;
+		bool playingLastTime = false;
 		float volume = 0.0f;
 		float fadeInSeconds = 1.0f;
 		float fadeOutSeconds = 1.5f;

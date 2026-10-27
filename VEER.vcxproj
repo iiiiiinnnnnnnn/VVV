@@ -183,6 +183,7 @@
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Application\Time\GameTime.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp" />
+    <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp" />
     <ClCompile Include="Source\Rendering\Component\TrailRenderComponent.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\TrailRenderer.cpp" />
     <ClCompile Include="Source\Core\Object\Transform.cpp" />
@@ -259,6 +260,7 @@
     <ClInclude Include="Source\Gameplay\AI\EnemyAI.h" />
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />
+    <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h" />
     <ClInclude Include="Source\Application\Input\GamePad.h" />
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h" />
     <ClInclude Include="Source\Resource\GLTFImporter.h" />
@@ -345,6 +347,8 @@
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="README.md" />
+    <None Include="Resources\AI\Aracore.lua" />
+    <None Include="Resources\AI\Deer.lua" />
     <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\TerrainGrass.hlsli" />
