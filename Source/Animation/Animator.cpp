@@ -1,3 +1,4 @@
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Animation/Animator.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
@@ -224,6 +225,8 @@ void Animator::Update()
 {
     rootMotionVec = Vector3::Zero;
     rootMotionRot = Quaternion::Identity;
+
+    if (ActorHitstopComponent::IsModelStopping(owner, model.get())) return;
 
     if (!model)
     {

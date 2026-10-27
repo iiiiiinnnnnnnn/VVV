@@ -5,6 +5,7 @@
 #include "Core/Object/Transform.h"
 
 class PhysicsComponent;
+class ActorHitstopComponent;
 
 class Actor : public Object, public std::enable_shared_from_this<Actor>
 {
@@ -47,6 +48,9 @@ protected:
 	virtual void OnUninit() {}
 
 private:
+	bool IsUpdateSuspended() const override;
+	ActorHitstopComponent* hitstop = nullptr;
+	bool hitstopThisFrame = false;
 	bool initialized = false;
 	bool uninitialized = false;
 	std::string spawnTag;

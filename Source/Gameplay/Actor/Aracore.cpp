@@ -19,7 +19,7 @@
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Scene/CameraEffectController.h"
-#include "Gameplay/Scene/TimeScaleController.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 
@@ -54,6 +54,7 @@ void Aracore::OnInit()
 
 	// HitstopVibrationComponent
 	hitstopVibration = AddComponent<HitstopVibrationComponent>(model);
+	AddComponent<ActorHitstopComponent>(model);
 
 	// 残像だ
 	afterImage = AddComponent<AfterimageComponent>(model);
@@ -893,7 +894,7 @@ void Aracore::OnDamaged(const DamageData& damageData)
 			timeStopTime *= 1.5f;
 		}
 	}
-	TimeScaleController::Request(timeStopTime);
+	GetComponent<ActorHitstopComponent>()->Request(timeStopTime);
 	CameraEffectController::Request(0.2f, 0.1f);
 	hitstopVibration->HitStop(0.22f, 0.15f);
 

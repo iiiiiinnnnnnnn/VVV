@@ -1,5 +1,6 @@
 ﻿#include "Gameplay/Actor/Actor.h"
 #include "IconsFontAwesome5.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/CharacterController.h"
@@ -62,8 +63,15 @@ void Actor::Destroy(float delay)
 }
 void Actor::Update()
 {
+	if (!IsActive()) return;
+	hitstop = GetComponent<ActorHitstopComponent>();
+	hitstopThisFrame = hitstop && hitstop->IsStopping();
+	Object::Update();
+}
 
-    Object::Update();
+bool Actor::IsUpdateSuspended() const
+{
+	return hitstopThisFrame || (hitstop && hitstop->IsStopping());
 }
 
 void Actor::DrawGUI()

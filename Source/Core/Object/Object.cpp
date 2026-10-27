@@ -57,13 +57,13 @@ void Object::Update()
 	if (!isAwake) Awake();
 	if (!isStarted) Start();
 
-    if (destroyTimer) destroyTimer->Update();
+    if (destroyTimer && !IsUpdateSuspended()) destroyTimer->Update();
 
-    OnUpdate();
+    if (!IsUpdateSuspended()) OnUpdate();
 
     for (auto& c : components)
     {
-        if (c->IsActive())
+        if (c->IsActive() && (!IsUpdateSuspended() || c->RunsWhenOwnerSuspended()))
             c->Update();
     }
 }
@@ -72,11 +72,11 @@ void Object::LateUpdate()
 {
     if (!isActive) return;
 
-    OnLateUpdate();
+    if (!IsUpdateSuspended()) OnLateUpdate();
 
     for (auto& c : components)
     {
-        if(c->IsActive())
+        if (c->IsActive() && (!IsUpdateSuspended() || c->RunsWhenOwnerSuspended()))
             c->LateUpdate();
     }
 }

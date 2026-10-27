@@ -1,6 +1,6 @@
 #include "Deer.h"
 #include "Animation/MultiLegFootIK.h"
-#include "Gameplay/Scene/TimeScaleController.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include "Physics/Navigation/NavMeshAgent.h"
@@ -48,14 +48,14 @@ void Deer::OnInit()
 	anim->SetRootMotion("armature", false);
 
 	// キャラクターコントローラー
-	cc = AddComponent<CharacterController>(
-		Layers::Get("Enemy"), 0.39f, 1.23f);
+	cc = AddComponent<CharacterController>(Layers::Get("Enemy"), 0.39f, 1.23f);
 	cc->SetStepOffset(0.15f);
 	cc->SetSlopeLimitDeg(70.0f);
 	cc->SetContactOffset(0.1f);
 
 	// HitstopVibrationComponent
 	hitstopVibration = AddComponent<HitstopVibrationComponent>(model);
+	AddComponent<ActorHitstopComponent>(model);
 
 	// NavMeshAgent
 	navMeshAgent = AddComponent<NavMeshAgent>();
@@ -69,6 +69,9 @@ void Deer::OnInit()
 
 	// EnemyAI
 	ConfigureAI();
+
+	// 1/3 == メス
+	if (Random::Range(0, 2) == 0) vmdl->ApplyMorph("HIDE_CRYSTAL");
 }
 
 void Deer::ConfigureAI()
@@ -213,6 +216,7 @@ void Deer::OnUpdate()
 {
 	if (deathCleanupPending)
 	{
+		if (GetComponent<ActorHitstopComponent>()->IsStopping()) return;
 		Destroy();
 		return;
 	}
@@ -305,7 +309,7 @@ void Deer::OnDamaged(const DamageData& damageData)
 	if (damageData.attackerCollider && damageData.attackerCollider->GetLayerId() == Layers::Get("PlayerAtk"))
 	{
 		// プレイヤーからの攻撃だけhitstopとか再生
-		TimeScaleController::Request(0.15f);
+		GetComponent<ActorHitstopComponent>()->Request(0.15f);
 		CameraEffectController::Request(0.2f, 0.1f);
 		hitstopVibration->HitStop(0.12f, 0.1f);
 	}

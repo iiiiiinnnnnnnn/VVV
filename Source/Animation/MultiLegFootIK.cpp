@@ -1,5 +1,6 @@
 // MultiLegFootIK.cpp
 #include "Animation/MultiLegFootIK.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 
 #include "Gameplay/Actor/Actor.h"
 #include "Animation/Animator.h"
@@ -12,6 +13,7 @@ MultiLegFootIK::MultiLegFootIK(Object* owner, LayerId layerId, VMDLModel* model,
 
 void MultiLegFootIK::LateUpdate()
 {
+	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
 	if (!model) return;
 
 	UpdateModelTransform();

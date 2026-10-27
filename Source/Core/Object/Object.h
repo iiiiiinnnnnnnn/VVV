@@ -79,6 +79,7 @@ public:
 	virtual const RectTransform* GetRectTransform() const { return nullptr; }
 
 protected:
+	virtual bool IsUpdateSuspended() const { return false; }
 	virtual void OnAwake() {}
 	virtual void OnStart() {}
 	virtual void OnUpdate() {}

@@ -331,8 +331,7 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 		}
 		lights.SetAmbientColor(LoadColor(root.at("ambient")));
 		
-		const auto directionals = root.contains("directionals")
-			? root.at("directionals") : json::array({root.at("directional")});
+		const auto& directionals = root.at("directionals");
 		const size_t count = directionals.size()
 			+ root.value("points", json::array()).size()
 			+ root.value("spots", json::array()).size()

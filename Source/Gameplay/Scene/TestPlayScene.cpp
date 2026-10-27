@@ -195,18 +195,28 @@ void TestPlayScene::OnUpdate()
 	// F2デバッグ画面操作中は不可
 	if (!showGameEditorGUI)
 	{
+		// deer
 		if (ImGui::IsKeyPressed(ImGuiKey_1))
 		{
-			currentStage->GetActorManager().Register(std::make_shared<Deer>(
-				Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)))
-			);
+			if (Random::Range(0, 10) != 0)
+			{
+				currentStage->GetActorManager().Register(std::make_shared<Deer>(
+					Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0))));
+			}
+			else
+			{
+				currentStage->GetActorManager().Register(std::make_shared<Deer>(
+					Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)), "GoldenDeer"));
+			}
 		}
+		// crystal
 		if (ImGui::IsKeyPressed(ImGuiKey_2))
 		{
 			currentStage->GetActorManager().Register(std::make_shared<Crystal>(
 				Transform::FromPosition(player->transform.position + Vector3(0, 0.0f, 0)))
 			);
 		}
+		// aracore
 		if (ImGui::IsKeyPressed(ImGuiKey_3))
 		{
 			currentStage->GetActorManager().Register(

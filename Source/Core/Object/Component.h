@@ -36,6 +36,8 @@ public:
 	bool SetPreloadResourceFiles(std::vector<std::string> files);
 	const std::vector<std::string>& GetPreloadResourceFiles() const { return preloadResourceFiles; }
 
+	virtual bool RunsWhenOwnerSuspended() const { return false; }
+
     bool IsActive() const { return isActive; }
 	void SetShowDebug(bool enabled) { showDebug = enabled; }
     void SetActive(bool active)

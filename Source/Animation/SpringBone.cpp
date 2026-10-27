@@ -1,4 +1,5 @@
 ﻿#include "Animation/SpringBone.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
@@ -435,6 +436,7 @@ void SpringBone::Reset()
 
 void SpringBone::LateUpdate()
 {
+	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
     if (model == nullptr || bones.empty())
         return;
 

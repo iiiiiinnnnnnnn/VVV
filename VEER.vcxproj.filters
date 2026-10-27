@@ -364,6 +364,9 @@
     <ClCompile Include="Source\Gameplay\Player\Player.cpp">
       <Filter>Gameplay\Player</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Component\ActorHitstopComponent.cpp">
+      <Filter>Gameplay\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp">
       <Filter>Gameplay\Component</Filter>
     </ClCompile>
@@ -758,6 +761,9 @@
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Player\Player.h">
       <Filter>Gameplay\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Component\ActorHitstopComponent.h">
+      <Filter>Gameplay\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h">
       <Filter>Gameplay\Component</Filter>

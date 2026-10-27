@@ -2594,6 +2594,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		if (!showAllContents && !MatchesHierarchySearch(label) &&
 			!MatchesHierarchySearch((const char*)u8"メッシュ MESH"))
 			continue;
+		ImGui::PushID(meshIndex);
 		if (external)
 			ImGui::PushStyleColor(ImGuiCol_Text, mesh.isDraw
 				? ImVec4(0.20f, 0.85f, 1.0f, 1.0f) : ImVec4(0.20f, 0.60f, 0.70f, 0.65f));
@@ -2629,6 +2630,7 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 			}
 			ImGui::EndPopup();
 		}
+		ImGui::PopID();
 	}
 	for (int i = 0; i < Count(extension.rigidBodies); ++i)
 	{
@@ -5271,7 +5273,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 					changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
 					changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 					changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
-					changed |= ImGui::SliderFloat((const char*)u8"粗さ", &key.roughness, 0.0001f, 1.0f);
+					changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
 				}
 				remove = ImGui::Button((const char*)u8"キーを削除");
 			});
@@ -6393,7 +6395,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 	changed |= ImGui::ColorEdit4((const char*)u8"発光色", &material.emissiveColor.x,
 		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 	changed |= ImGui::SliderFloat((const char*)u8"メタリック", &material.metalness, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"粗さ", &material.roughness, 0.0001f, 1.0f);
+	changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &material.roughness, 0.0001f, 1.0f);
 	changed |= ImGui::SliderFloat((const char*)u8"オクルージョン", &material.occlusion, 0.0f, 1.0f);
 	changed |= ImGui::SliderFloat(
 		(const char*)u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
@@ -6412,7 +6414,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 		changed |= ImGui::SliderFloat((const char*)u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
 		changed |= ImGui::DragFloat((const char*)u8"屈折の距離", &material.refractionDistance,
 			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		changed |= ImGui::SliderFloat((const char*)u8"リフレクションの粗さ", &material.crystalRoughness, 0.0001f, 1.0f);
+		changed |= ImGui::SliderFloat((const char*)u8"リフレクションのラフネス", &material.crystalRoughness, 0.0001f, 1.0f);
 	}
 
 	const char* alphaModes[] = {
@@ -6545,7 +6547,7 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 		model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
 		MarkDirty();
 	}
-	ImGui::TextDisabled((const char*)u8"基本色・発光色・メタリック・粗さを補間します");
+	ImGui::TextDisabled((const char*)u8"基本色・発光色・メタリック・ラフネスを補間します");
 	for (auto& track : model->GetMaterialAnimationTracks())
 	{
 		if (track.animationName != animation.name || track.materialIndex != selectedMaterial) continue;
@@ -6563,7 +6565,7 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 				changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x,
 					ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
-				changed |= ImGui::SliderFloat((const char*)u8"粗さ", &key.roughness, 0.0001f, 1.0f);
+				changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
 				if (ImGui::SmallButton((const char*)u8"このキーへ移動"))
 				{
 					animationPlaying = false;
@@ -7185,14 +7187,21 @@ void VmdlEditorScene::SaveVmdl()
 void VmdlEditorScene::SaveVmdlAs()
 {
 	if (!model) return;
-	std::string filepath = documentPath.string();
-	if (Dialog::SaveFileName(filepath, "VMDL (*.vmdl)\0*.vmdl\0", "Save VMDL", "vmdl") !=
-		DialogResult::OK)
+	const auto sourcePath = ResourceManager::ResolveSourcePath(documentPath);
+	const auto initialDirectory = sourcePath.empty()
+		? ResourceManager::FindSourceResourceRoot() / "Model"
+		: std::filesystem::absolute(sourcePath).parent_path();
+	const std::string directory = initialDirectory.string();
+	std::string filepath = sourcePath.filename().string();
+	if (Dialog::SaveFileName(filepath, "VMDL (*.vmdl)\0*.vmdl\0", "Save VMDL", "vmdl",
+			directory.c_str(), Game::Graphics::Instance().GetWindowHandle()) != DialogResult::OK)
 		return;
-	documentPath = filepath;
-	documentPath = ResourceManager::ResolveSourcePath(documentPath);
-	if (model->SaveVmdl(documentPath))
+
+	const auto destination = ResourceManager::ResolveSourcePath(std::filesystem::path(filepath));
+	if (model->SaveVmdl(destination))
 	{
+		documentPath = destination;
+		recentModelPath = destination;
 		if (!ResourceManager::Instance().RefreshResources(documentPath))
 		{
 			ErrorMessage("VMDL saved, but runtime cache refresh failed. Save again to retry.");

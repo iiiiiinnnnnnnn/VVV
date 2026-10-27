@@ -1274,7 +1274,12 @@ bool VMDLModel::RestoreExternalMeshes(
 		// 表示中ならその状態も引き継ぐ
 		const bool placeholderVisible = meshes[meshIndex].isDraw;
 		const bool cachedVisible = restored.isDraw;
-		const Material restoredMaterial = cache.materials[restored.materialIndex];
+		Material restoredMaterial = cache.materials[restored.materialIndex];
+		const Material& currentMaterial = materials[targetMaterialIndex];
+		restoredMaterial.transmission = currentMaterial.transmission;
+		restoredMaterial.indexOfRefraction = currentMaterial.indexOfRefraction;
+		restoredMaterial.refractionDistance = currentMaterial.refractionDistance;
+		restoredMaterial.crystalRoughness = currentMaterial.crystalRoughness;
 		materials[targetMaterialIndex] = restoredMaterial;
 		if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
 		sourceMaterials[targetMaterialIndex] = restoredMaterial;

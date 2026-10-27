@@ -1,5 +1,6 @@
 // HumanoidFootIK.cpp
 #include "Animation/HumanoidFootIK.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 
 #include "Animation/Animator.h"
 #include "Application/Time/GameTime.h"
@@ -42,6 +43,7 @@ HumanoidFootIK::HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model,
 
 void HumanoidFootIK::LateUpdate()
 {
+	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
 	if (!model) return;
 
 	Vector3 baseHipLocalPosition = Vector3::Zero;

@@ -1,7 +1,7 @@
 #include "Gameplay/Actor/Crystal.h"
 
 #include "Gameplay/Scene/CameraEffectController.h"
-#include "Gameplay/Scene/TimeScaleController.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Component/VMDL.h"
 #include "Physics/Core/PhysicsComponent.h"
@@ -178,6 +178,7 @@ void Crystal::OnInit()
 
 	// HitStop振動用コンポーネント
 	hitstopVibration = AddComponent<HitstopVibrationComponent>(loadedModel);
+	AddComponent<ActorHitstopComponent>(loadedModel);
 
 	float largestScale = std::max(fabsf(this->transform.scale.x), fabsf(this->transform.scale.y));
 	largestScale = std::max(largestScale, fabsf(this->transform.scale.z));
@@ -203,6 +204,7 @@ void Crystal::OnUpdate()
 {
 	if (deathCleanupPending)
 	{
+		if (GetComponent<ActorHitstopComponent>()->IsStopping()) return;
 		SpawnFragments();
 		Destroy();
 		return;
@@ -217,7 +219,7 @@ void Crystal::OnDamaged(const DamageData& damageData)
 	if (damageData.attackerCollider && damageData.attackerCollider->GetOwner()->CompareTag("Player"))
 	{
 		// プレイヤーだけhitstop
-		TimeScaleController::Request(0.07f);
+		GetComponent<ActorHitstopComponent>()->Request(0.07f);
 		CameraEffectController::Request(0.1f, 0.06f);
 		hitstopVibration->HitStop(0.1f, 0.1f);
 	}

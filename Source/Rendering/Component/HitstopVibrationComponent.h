@@ -15,9 +15,13 @@ class HitstopVibrationComponent : public Component
 
 	// durationは秒、powerはワールド座標での最大振幅。実行中は残り時間に加算する
 	void HitStop(float duration, float power);
+	bool RunsWhenOwnerSuspended() const override { return true; }
 	void OnUpdate() override;
 	void OnDisabled() override;
-	const char* GetDebugName() const override { return ICON_FA_CROSSHAIRS " HitstopVibrationComponent"; }
+	const char* GetDebugName() const override
+	{
+		return ICON_FA_TIMES " HitstopVibrationComponent";
+	}
 
   private:
 	void ApplyVibration(const Vector3& direction, float power);

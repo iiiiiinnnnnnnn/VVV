@@ -169,7 +169,10 @@ DialogResult Dialog::SaveFileName(
 	else if (!lastPath.empty())
 		initialDirectory = std::filesystem::path(lastPath).parent_path();
 
+	if (!initialDirectory.empty())
+		initialDirectory = std::filesystem::absolute(initialDirectory).lexically_normal().make_preferred();
 	const std::string dirname = initialDirectory.string();
+	const std::string filename = std::filesystem::path(filepath).filename().string();
 
 	if (filter == nullptr)
 	{
@@ -180,7 +183,7 @@ DialogResult Dialog::SaveFileName(
 	const auto wideTitle = DialogToWide(title, CP_UTF8);
 	const auto wideDirectory = DialogToWide(dirname.c_str(), CP_ACP);
 	const auto wideExtension = DialogToWide(ext, CP_UTF8);
-	const auto initialFile = DialogToWide(filepath, CP_ACP);
+	const auto initialFile = DialogToWide(filename.c_str(), CP_ACP);
 	std::vector<wchar_t> wideFile(size);
 	if (initialFile.size() > wideFile.size()) return DialogResult::Cancel;
 	std::copy(initialFile.begin(), initialFile.end(), wideFile.begin());
@@ -208,6 +211,7 @@ DialogResult Dialog::SaveFileName(
 	}
 
 	const BOOL accepted = ::GetSaveFileNameW(&ofn);
+	const DWORD dialogError = accepted ? 0 : ::CommDlgExtendedError();
 	if (hWnd)
 	{
 		::SetForegroundWindow(hWnd);
@@ -230,6 +234,12 @@ DialogResult Dialog::SaveFileName(
 			::SetCurrentDirectoryA(currentDir);
 		}
 
+		if (dialogError)
+		{
+			const std::wstring message = L"Could not open the save dialog. Error code: " +
+				std::to_wstring(dialogError);
+			::MessageBoxW(hWnd, message.c_str(), L"Save File", MB_OK | MB_ICONERROR);
+		}
 		return DialogResult::Cancel;
 	}
 

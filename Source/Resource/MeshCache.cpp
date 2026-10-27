@@ -33,6 +33,10 @@ void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
 		target.emissiveColor = found->emissiveColor;
 		target.metalness = found->metalness;
 		target.roughness = found->roughness;
+		target.transmission = found->transmission;
+		target.indexOfRefraction = found->indexOfRefraction;
+		target.refractionDistance = found->refractionDistance;
+		target.crystalRoughness = found->crystalRoughness;
 		target.occlusion = found->occlusion;
 		target.occlusionStrength = found->occlusionStrength;
 		target.shadowStrength = found->shadowStrength;

@@ -27,6 +27,7 @@ VMatShader::VMatShader(ID3D11Device* device)
 	GpuResourceUtils::CreateConstantBuffer(device, sizeof(Vector4),
 		justDodgeFadeConstantBuffer.GetAddressOf());
 
+	// 現在フラットシェーディングだけです。
 	GpuResourceUtils::LoadGeometryShader(
 		device,
 		"Resources/Shader/PBRGS.cso",

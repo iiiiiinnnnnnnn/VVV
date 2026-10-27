@@ -102,6 +102,7 @@
     <ClCompile Include="Source\Physics\Collider\SphereCollider.cpp" />
     <ClCompile Include="Source\Animation\SpringBone.cpp" />
     <ClCompile Include="Source\Gameplay\Player\Player.cpp" />
+    <ClCompile Include="Source\Gameplay\Component\ActorHitstopComponent.cpp" />
     <ClCompile Include="Source\Gameplay\Component\CharacterMotorComponent.cpp" />
     <ClCompile Include="Source\Gameplay\Component\LockOnComponent.cpp" />
     <ClCompile Include="Source\Physics\Collider\CharacterController.cpp" />
@@ -292,6 +293,7 @@
     <ClInclude Include="Source\Physics\Collider\TerrainMeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Application\Input\Mouse.h" />
+    <ClInclude Include="Source\Gameplay\Component\ActorHitstopComponent.h" />
     <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
     <ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />

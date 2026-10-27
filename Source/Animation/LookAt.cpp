@@ -1,5 +1,6 @@
 // LookAt.cpp
 #include "Animation/LookAt.h"
+#include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Entity.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Component/VMDLModelComponent.h"
@@ -94,6 +95,7 @@ void LookAt::Update()
 
 void LookAt::LateUpdate()
 {
+	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
 	if (!model) return;
 	if (nodeIndex1 < 0) return;
 
