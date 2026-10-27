@@ -346,8 +346,8 @@ void Deer::OnDead(const DamageData& damageData)
 	}
 	if (cc) cc->ReleaseController();
 
-	vmdl->GetRenderer()->PlayParticleEmitter("DEAD");
-	vmdl->GetRenderer()->PlayParticleEmitter("DEAD2");
+	vmdl->GetRenderer()->PlayParticleEmitter("DEAD", true);
+	vmdl->GetRenderer()->PlayParticleEmitter("DEAD2", true);
 	vmdl->GetRenderer()->PlaySoundSource("DEAD");
 
 	deathCleanupPending = true;

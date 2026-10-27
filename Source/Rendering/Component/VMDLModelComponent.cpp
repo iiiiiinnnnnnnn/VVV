@@ -165,17 +165,18 @@ PhysicsComponent* VMDLModelComponent::GetAttachmentCollider(const std::string& n
 	return nullptr;
 }
 
-bool VMDLModelComponent::PlayParticleEmitter(const std::string& name)
+bool VMDLModelComponent::PlayParticleEmitter(const std::string& name, bool detached)
 {
+	bool played = false;
 	for (VMDLParticleEmitterComponent* emitter : attachmentParticleEmitters)
 	{
 		if (!emitter || ::_stricmp(emitter->GetEmitterName().c_str(), name.c_str()) != 0)
 			continue;
-		if (!emitter->IsValid()) return false;
-		emitter->Play();
-		return true;
+		if (!emitter->IsValid()) continue;
+		emitter->Play(detached);
+		played = true;
 	}
-	return false;
+	return played;
 }
 
 bool VMDLModelComponent::SetParticleEmitterSettings(

@@ -20,7 +20,7 @@ public:
 	void SetEmitting(bool value);
 	bool IsEmitting() const { return emitting; }
 	bool IsPlaying() const { return !playbacks.empty(); }
-	void Play();
+	void Play(bool detached = false);
 	void SetSettings(const VMDLModel::VmdlParticleEmitter& value);
 	const std::string& GetEmitterName() const { return settings.name; }
 	bool IsValid() const { return effect && effect->IsValid(); }

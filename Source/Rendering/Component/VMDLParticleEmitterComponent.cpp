@@ -40,10 +40,15 @@ void VMDLParticleEmitterComponent::SetEmitting(bool value)
 	else Stop();
 }
 
-void VMDLParticleEmitterComponent::Play()
+void VMDLParticleEmitterComponent::Play(bool detached)
 {
 	if (!effect || !effect->IsValid()) return;
 	const Matrix transform = GetWorldTransform();
+	if (detached)
+	{
+		EffectManager::Instance().PlayDetached(effect, transform, settings.billboard);
+		return;
+	}
 	const Effekseer::Handle handle = settings.modelDerived
 		? effect->Play(Vector3::Zero)
 		: EffectManager::Instance().PlayDetached(effect, transform);

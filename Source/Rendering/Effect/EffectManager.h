@@ -48,7 +48,8 @@ public:
 	static Matrix CreateBillboardTransform(const Matrix& source, const Matrix& view);
 
 	// 再生元とは独立したObjectとしてエフェクトを再生
-	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform);
+	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform,
+		bool billboard = false);
 	std::shared_ptr<Effect> LoadEffect(std::string_view path);
 	static std::vector<std::string> GetEffectPaths();
 

@@ -153,12 +153,18 @@ void EffectManager::Update()
 }
 
 Effekseer::Handle EffectManager::PlayDetached(
-	const std::shared_ptr<Effect>& effect, const Matrix& transform)
+	const std::shared_ptr<Effect>& effect, const Matrix& transform, bool billboard)
 {
 	if (!effect || !effect->IsValid()) return -1;
 	auto object = std::make_shared<DetachedEffectObject>(effect, transform);
 	const Effekseer::Handle handle = object->GetHandle();
 	if (handle < 0) return -1;
+	for (EffectPlayback& playback : effectPlaybacks)
+	{
+		if (playback.effect != effect.get() || playback.handle != handle) continue;
+		playback.billboard = billboard;
+		break;
+	}
 	object->Awake();
 	object->Start();
 	playbackObjects.push_back(std::move(object));
