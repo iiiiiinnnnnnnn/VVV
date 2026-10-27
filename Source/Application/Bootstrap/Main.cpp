@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <filesystem>
 #include <memory>
+#include <cstdlib>
+#include <random>
 #include <assert.h>
 #include <tchar.h>
 
@@ -32,6 +34,7 @@ LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line, INT cmd_show)
 {
 	SetExecutableWorkingDirectory();
+	std::srand(std::random_device{}());
 	DebugLog::Initialize();
 
 #if defined(DEBUG) || defined(_DEBUG)

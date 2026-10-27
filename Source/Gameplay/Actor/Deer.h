@@ -41,4 +41,5 @@ public:
 	float normalSlopeLimit = 70.0f;
 	bool charging = false;
 	bool deathCleanupPending = false;
+	bool isFemare = false;
 };

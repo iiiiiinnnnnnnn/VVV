@@ -41,6 +41,15 @@ void Deer::OnInit()
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 
+	// メス設定(1/3)
+	isFemare = Random::Range(0, 2) == 0;
+	if (isFemare) vmdl->ApplyMorph("HIDE_CRYSTAL");
+	if (isFemare)
+	{
+		vmdl->GetSoundSource("DEAD")->pitchMax = 1.1f;
+		vmdl->GetSoundSource("DEAD")->pitchMin = 1.2f;
+	}
+
 	auto footIK = vmdl->GetMultiLegFootIK();
 	footIK->SetContactOffset(-0.864f);
 	footIK->SetModelVisualOffsetY(-0.22f);
@@ -69,9 +78,6 @@ void Deer::OnInit()
 
 	// EnemyAI
 	ConfigureAI();
-
-	// 1/3 == メス
-	if (Random::Range(0, 2) == 0) vmdl->ApplyMorph("HIDE_CRYSTAL");
 }
 
 void Deer::ConfigureAI()
@@ -328,12 +334,6 @@ void Deer::OnDamaged(const DamageData& damageData)
 void Deer::OnDead(const DamageData& damageData)
 {
 	if (deathCleanupPending) return;
-
-	SoundSystem::SpatialOptions deathSoundOptions;
-	deathSoundOptions.minDistance = 15.0f;
-	deathSoundOptions.maxDistance = 20.0f;
-	SoundSystem::Instance().Play3DAt("SE/Deer/die", transform.position, deathSoundOptions, -1);
-
 	StopCharge();
 	navMeshAgent->SetActive(false);
 	controller->SetActive(false);
@@ -348,6 +348,7 @@ void Deer::OnDead(const DamageData& damageData)
 
 	vmdl->GetRenderer()->PlayParticleEmitter("DEAD");
 	vmdl->GetRenderer()->PlayParticleEmitter("DEAD2");
+	vmdl->GetRenderer()->PlaySoundSource("DEAD");
 
 	deathCleanupPending = true;
 }
