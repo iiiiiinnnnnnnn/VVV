@@ -176,6 +176,12 @@
     <ClInclude Include="Source\Gameplay\Actor\CrystalPart.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="External\TimelineProfiler\Profiler.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -1244,6 +1250,12 @@
     <ClCompile Include="Source\Gameplay\Actor\CrystalPart.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="External\TimelineProfiler\ProfilerWindow.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="External\TimelineProfiler\Profiler.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="VMDL">
@@ -1397,14 +1409,6 @@
       <Filter>Rendering\Effect\EffekseerOverride</Filter>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <ClCompile Include="External\TimelineProfiler\Profiler.cpp" />
-    <ClCompile Include="External\TimelineProfiler\ProfilerWindow.cpp" />
-    <ClInclude Include="External\TimelineProfiler\Profiler.h" />
-    <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h" />
-  </ItemGroup>
-
   <ItemGroup>
     <ClCompile Include="Source\Resource\SerialArchive.cpp">
       <Filter>Resource</Filter>
