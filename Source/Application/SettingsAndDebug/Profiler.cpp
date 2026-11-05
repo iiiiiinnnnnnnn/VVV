@@ -123,10 +123,5 @@ std::uint64_t Profiler::GetFrameCount()
 void Profiler::DrawGUI()
 {
 	if (!TimelineProfiler::gProfiler.IsInitialized()) return;
-	ImGui::TextUnformatted((const char*)u8"CPU実測タイムライン（親区間の時間には子区間を含みます）");
-	ImGui::TextUnformatted((const char*)u8"Ctrl＋ホイール：拡大縮小 / 右ドラッグ：移動 / バーをクリック：詳細");
-	if (lastDroppedEvents)
-		ImGui::Text((const char*)u8"記録上限により省略したイベント：%llu", static_cast<unsigned long long>(lastDroppedEvents));
-	ImGui::Separator();
 	TimelineProfiler::DrawProfilerHUD();
 }

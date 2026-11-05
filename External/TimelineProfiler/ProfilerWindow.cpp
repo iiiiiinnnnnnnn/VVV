@@ -5,7 +5,6 @@
 #if WITH_PROFILING
 
 #include "IconsFontAwesome4.h"
-#include <fstream>
 #include <algorithm>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
@@ -74,10 +73,8 @@ struct StyleOptions
 	float BarPadding	= 2;
 	float ScrollBarSize = 15.0f;
 
-	ImVec4 BarColorMultiplier = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 	ImVec4 BGTextColor		  = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 	ImVec4 FGTextColor		  = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-	ImVec4 BarHighlightColor  = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	bool DebugMode = false;
 
@@ -98,7 +95,6 @@ struct HUDContext
 
 	bool  IsSelectingRange	  = false;
 	float RangeSelectionStart = 0.0f;
-	char  SearchString[128]{};
 	bool  IsPaused			 = false;
 
 	struct SelectedStatData
@@ -145,10 +141,6 @@ static void EditStyle(StyleOptions& style)
 	ImGui::SliderFloat("Bar Height", &style.BarHeight, 1, 4);
 	ImGui::SliderFloat("Bar Padding", &style.BarPadding, 0, 5);
 	ImGui::SliderFloat("Scroll Bar Size", &style.ScrollBarSize, 1.0f, 40.0f);
-	ImGui::ColorEdit4("Bar Color Multiplier", &style.BarColorMultiplier.x);
-	ImGui::ColorEdit4("Background Text Color", &style.BGTextColor.x);
-	ImGui::ColorEdit4("Foreground Text Color", &style.FGTextColor.x);
-	ImGui::ColorEdit4("Bar Highlight Color", &style.BarHighlightColor.x);
 	ImGui::Separator();
 	ImGui::Checkbox("Debug Mode", &style.DebugMode);
 	ImGui::PopItemWidth();
@@ -172,58 +164,6 @@ static std::string Sprintf(const char* pFormat, Args... args)
 	return buffer; 
 }
 
-struct TraceContext
-{
-	TraceContext()
-	{
-		QueryPerformanceCounter((LARGE_INTEGER*)&BaseTime);
-	}
-
-	std::ofstream TraceStream;
-	uint64		  BaseTime = 0;
-};
-
-void BeginTrace(const char* pPath, TraceContext& context)
-{
-	if (context.TraceStream.is_open())
-		return;
-
-	context.TraceStream.open(pPath);
-	context.TraceStream << "{\n\"traceEvents\": [\n";
-
-	context.TraceStream << Sprintf("{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":0,\"args\":{\"name\":\"Track\"}},\n");
-	for (const Profiler::EventTrack& track : gProfiler.GetTracks())
-	{
-		context.TraceStream << Sprintf("{\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":0,\"tid\":%d,\"args\":{\"name\":\"%s\"}},\n", track.Index, track.Name);
-	}
-}
-
-void UpdateTrace(TraceContext& context)
-{
-	if (!context.TraceStream.is_open())
-		return;
-
-	uint64 frequency = 0;
-	QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
-	const float TicksToMs = 1000.0f / frequency;
-
-	URange cpuRange = gProfiler.GetFrameRange();
-	for (const Profiler::EventTrack& track : gProfiler.GetTracks())
-	{
-		for (const ProfilerEvent& event : track.GetFrameData(cpuRange.Begin))
-			context.TraceStream << Sprintf("{\"pid\":0,\"tid\":%d,\"ts\":%d,\"dur\":%d,\"ph\":\"X\",\"name\":\"%s\"},\n", track.Index, (int)(1000 * TicksToMs * (event.TicksBegin - context.BaseTime)), (int)(1000 * TicksToMs * (event.TicksEnd - event.TicksBegin)), event.pName);
-	}
-}
-
-void EndTrace(TraceContext& context)
-{
-	if (!context.TraceStream.is_open())
-		return;
-
-	context.TraceStream << "{}]\n}";
-	context.TraceStream.close();
-}
-
 static void DrawProfilerTimeline(const ImVec2& size = ImVec2(0, 0))
 {
 
@@ -231,9 +171,6 @@ static void DrawProfilerTimeline(const ImVec2& size = ImVec2(0, 0))
 	HUDContext&	  context = gHUDContext;
 	StyleOptions& style	  = context.Style;
 
-	static TraceContext traceContext;
-
-	UpdateTrace(traceContext);
 
 	ImVec2 sizeActual = ImGui::CalcItemSize(size, ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
 
@@ -333,15 +270,8 @@ static void DrawProfilerTimeline(const ImVec2& size = ImVec2(0, 0))
 					 {
 						 float ms = TicksToMs * (float)(event.TicksEnd - event.TicksBegin);
 
-						 ImColor color	   = ImColor(event.GetColor()).Value * style.BarColorMultiplier;
+						 ImColor color	   = ImColor(event.GetColor());
 						 ImColor textColor = style.FGTextColor;
-						 // Fade out the bars that don't match the filter
-						 if (context.SearchString[0] != 0 && !strstr(event.pName, context.SearchString))
-						 {
-							 color.Value.w *= 0.3f;
-							 textColor.Value.w *= 0.5f;
-						 }
-
 						 // Darken the bottom
 						 ImColor colorBottom = color.Value * ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
 
@@ -606,22 +536,6 @@ static void DrawProfilerTimeline(const ImVec2& size = ImVec2(0, 0))
 
 		ImGui::BeginGroup();
 
-		const char* pTracePath = "trace.json";
-		if (!traceContext.TraceStream.is_open())
-		{
-			if (ImGui::Button("Begin Trace", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
-			{
-				BeginTrace(pTracePath, traceContext);
-			}
-		}
-		else
-		{
-			if (ImGui::Button("End Trace", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
-			{
-				EndTrace(traceContext);
-			}
-		}
-
 		HUDContext::SelectedStatData& selectedEvent = context.SelectedEvent;
 		if ((uint32)selectedEvent.Hash != 0)
 		{
@@ -701,32 +615,21 @@ void DrawProfilerHUD()
 	ImGui::PushFont(context.TextFont);
 	ImGui::PushStyleColor(ImGuiCol_Text, style.FGTextColor);
 
-	if (gProfiler.IsPaused()) ImGui::TextUnformatted("Paused");
-	else ImGui::TextUnformatted("Recording");
+	if (gProfiler.IsPaused()) ImGui::TextUnformatted((const char*)u8"一時停止中");
+	else ImGui::TextUnformatted((const char*)u8"計測中");
 	ImGui::SameLine(100);
 
-	ImGui::Dummy(ImVec2(30, 0));
-	ImGui::SameLine();
+	if (ImGui::Button((const char*)u8"表示設定"))
+		ImGui::OpenPopup("Display Settings");
 
-	ImGui::Text("Filter");
-	ImGui::SetNextItemWidth(150);
-	ImGui::SameLine();
-	ImGui::InputText("##Search", context.SearchString, ARRAYSIZE(context.SearchString));
-	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_TIMES "##clearfilter"))
-		context.SearchString[0] = 0;
-	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_PAINT_BRUSH "##styleeditor"))
-		ImGui::OpenPopup("Style Editor");
-
-	if (ImGui::BeginPopup("Style Editor"))
+	if (ImGui::BeginPopup("Display Settings"))
 	{
 		EditStyle(style);
 		ImGui::EndPopup();
 	}
 
 
-	if (ImGui::Button(context.IsPaused ? "Resume" : "Pause")) context.IsPaused = !context.IsPaused;
+	if (ImGui::Button(context.IsPaused ? (const char*)u8"再開" : (const char*)u8"一時停止")) context.IsPaused = !context.IsPaused;
 	gProfiler.SetPaused(context.IsPaused);
 
 	if (ImGui::IsWindowHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Left)))

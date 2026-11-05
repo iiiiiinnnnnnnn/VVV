@@ -631,7 +631,7 @@ void Scene::DrawToolWindows()
 	ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
 	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (ImGui::Begin((const char*)u8"プロファイラ", &showProfilerWindow))
+	if (ImGui::Begin((const char*)u8"負荷プロファイラ", &showProfilerWindow))
 		Profiler::DrawGUI();
 	ImGui::End();
 }
