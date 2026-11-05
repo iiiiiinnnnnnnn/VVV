@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -23,6 +24,10 @@
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)
+{
+}
+
+void Terrain::OnAwake()
 {
 	InitializeGpuResources();
 	grassRenderer = std::make_unique<TerrainGrassRenderer>(Game::Graphics::Instance().GetDevice());
@@ -237,6 +242,7 @@ void Terrain::BuildTerrainMesh(
 	std::vector<TerrainVertex>& vertices,
 	std::vector<uint32_t>& indices) const
 {
+	PROFILE_FUNCTION();
 	minX = std::clamp(minX, 0.0f, 1.0f);
 	maxX = std::clamp(maxX, 0.0f, 1.0f);
 	minZ = std::clamp(minZ, 0.0f, 1.0f);
@@ -536,11 +542,13 @@ void Terrain::PrepareRenderResources()
 
 void Terrain::Update()
 {
+	PROFILE_FUNCTION();
 	grassRemovalEffectCooldown.Update(Game::Time::deltaTime);
 }
 
 void Terrain::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	if (is_terrain_texture_clear_color)
@@ -746,6 +754,7 @@ void Terrain::RenderShadowMap(
 	ID3D11DeviceContext* dc,
 	const Matrix& lightViewProjection)
 {
+	PROFILE_FUNCTION();
 	if (is_terrain_texture_clear_color)
 	{
 		ClearTerrainTexture();
@@ -1776,6 +1785,7 @@ bool Terrain::BuildGpuColliderMesh(
 	std::vector<Vector3>& vertices,
 	std::vector<uint32_t>& indices)
 {
+	PROFILE_FUNCTION();
 	std::vector<TerrainVertex> terrainVertices;
 	BuildTerrainMesh(minX, maxX, minZ, maxZ, terrainVertices, indices);
 

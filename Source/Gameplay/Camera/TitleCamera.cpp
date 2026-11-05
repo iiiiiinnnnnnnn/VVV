@@ -10,6 +10,10 @@
 TitleCamera::TitleCamera(Object* owner, const Vector3& position)
 	: Component(owner), position(position)
 {
+}
+
+void TitleCamera::OnAwake()
+{
 	UpdateView();
 }
 

@@ -7,6 +7,11 @@
 TitleLogo::TitleLogo() : SpriteWidget("Resources/UI/titleLogo.png")
 {
 	SetName("TitleLogo");
+}
+
+void TitleLogo::OnAwake()
+{
+	SpriteWidget::OnAwake();
 	UpdateLayout();
 }
 

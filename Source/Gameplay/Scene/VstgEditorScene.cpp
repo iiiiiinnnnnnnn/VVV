@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Scene/VstgEditorScene.h"
 
 #include <algorithm>
@@ -98,12 +99,7 @@ VstgEditorScene::~VstgEditorScene()
 
 void VstgEditorScene::OnUninit()
 {
-	propPreviewModel.reset();
-	dragPreviewModel.reset();
-	propModels.clear();
-	propPreviewTarget.reset();
 	propPreviewCameraOwner.reset();
-	propPreviewCamera = nullptr;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(false);
 	graphics.SetWindowMovementLocked(false);
@@ -112,6 +108,7 @@ void VstgEditorScene::OnUninit()
 // 通常ウィンドウの最大化と、3Dビューのアスペクト比同期を行う
 void VstgEditorScene::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	if (maximizeWindowPending && !graphics.IsBorderlessFullscreen())
 	{
@@ -157,6 +154,9 @@ void VstgEditorScene::CreateStage()
 	stageLoader =
 		currentStage->AddComponent<StageLoader>(currentStage.get(), std::string("{}"), true);
 	stageLoader->SetEditorModels(&propModels);
+	terrain->Awake();
+	navMesh->Awake();
+	stageLoader->Awake();
 	Camera* camera = currentStage->GetActiveCamera();
 	camera->SetPerspectiveFov(
 		RAD(FreeCameraController::VerticalFovDegrees), Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 2000.0f);
@@ -268,7 +268,23 @@ void VstgEditorScene::RenderDragPreview(const RenderContext& rc)
 	graphics.GetModelRenderer()->Render(rc);
 }
 
-void VstgEditorScene::OnDrawGUI()
+void VstgEditorScene::DrawSerialViewer()
+{
+	if (!showSerialViewer || !terrain || !navMesh || !stageLoader || !currentStage) return;
+	try
+	{
+		if (!serialViewerDocument)
+		{
+			if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager())) throw std::runtime_error(data.GetError());
+			serialViewerDocument = &data.GetSerialDocument();
+		}
+		if (serialViewer.Draw(*serialViewerDocument, &showSerialViewer))
+			dirty = true;
+	}
+	catch (const std::exception& exception) { showSerialViewer = false; ErrorMessage(exception.what()); }
+}
+
+void VstgEditorScene::HandleShortcuts()
 {
 	auto& io = ImGui::GetIO();
 	if (!io.WantTextInput && !io.KeyCtrl && !io.KeyAlt && !io.KeySuper)
@@ -278,6 +294,28 @@ void VstgEditorScene::OnDrawGUI()
 		if (terrain && ImGui::IsKeyPressed(ImGuiKey_B, false))
 			terrain->SetBrushEnabled(!terrain->IsBrushEnabled());
 	}
+
+	// ファイル操作のショートカット
+	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N, false))
+	{
+		New();
+	}
+	else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+	{
+		Open();
+	}
+	else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+	{
+		if (io.KeyShift) SaveAs();
+		else Save();
+	}
+}
+
+void VstgEditorScene::OnDrawGUI()
+{
+	PROFILE_FUNCTION();
+	HandleShortcuts();
+	auto& io = ImGui::GetIO();
 	propPreviewRequestPath.clear();
 	showDragPreview = false;
 	showPlayerStartDragPreview = false;
@@ -366,6 +404,17 @@ void VstgEditorScene::OnDrawGUI()
 			ImGui::Checkbox((const char*)(ICON_FA_DRAW_POLYGON " " u8"ワイヤーフレーム"), &renderSettings.wireframe);
 			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
+		{
+			if (ImGui::MenuItem((const char*)u8"シリアルビューアー"))
+			{
+				showSerialViewer = true;
+				serialViewerDocument = nullptr;
+			}
+			ImGui::MenuItem((const char*)u8"描画診断", nullptr, &showRenderDiagnostics);
+			ImGui::EndMenu();
+		}
+		DrawWindowMenu();
 		std::string displayPath = (const char*)u8"名称未設定";
 		if (!path.empty())
 		{
@@ -373,32 +422,8 @@ void VstgEditorScene::OnDrawGUI()
 			displayPath.assign(reinterpret_cast<const char*>(utf8Path.data()), utf8Path.size());
 		}
 		if (dirty) displayPath += " *";
-		const std::string fpsText = std::format("FPS: {:.0f}", io.Framerate);
-		const float pathWidth = ImGui::CalcTextSize(displayPath.c_str()).x;
-		const float fpsWidth = ImGui::CalcTextSize(fpsText.c_str()).x;
-		ImGui::SetCursorPosX(std::max(
-			ImGui::GetCursorPosX() + 20.0f, ImGui::GetWindowWidth() - fpsWidth - pathWidth - 32.0f -
-												ImGui::GetStyle().WindowPadding.x));
-		ImGui::TextColored(
-			ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "%s", fpsText.c_str());
-		ImGui::SameLine(0.0f, 20.0f);
-		ImGui::TextUnformatted(displayPath.c_str());
+		DrawEditorText(displayPath);
 		ImGui::EndMainMenuBar();
-	}
-
-	// ファイル操作のショートカット
-	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N, false))
-	{
-		New();
-	}
-	else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
-	{
-		Open();
-	}
-	else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
-	{
-		if (io.KeyShift) SaveAs();
-		else Save();
 	}
 
 	// 左インスペクタ・右ヒエラルキー・下アセット/Terrain。描画自体は全画面のまま。
@@ -545,6 +570,7 @@ void VstgEditorScene::OnDrawGUI()
 		dirty = true;
 	ImGui::PopStyleColor(31);
 	ImGui::PopStyleVar();
+	DrawSerialViewer();
 }
 
 Light* VstgEditorScene::GetSelectedLight()
@@ -577,6 +603,7 @@ void VstgEditorScene::SelectLight(EditorLightType type, int index)
 
 void VstgEditorScene::DrawHierarchy()
 {
+	PROFILE_FUNCTION();
 	if (!currentStage) return;
 	if (ImGui::Selectable((const char*)(ICON_FA_SUN " " u8"環境・ライト設定"), lightingSettingsSelected))
 	{
@@ -627,6 +654,7 @@ void VstgEditorScene::DrawHierarchy()
 
 void VstgEditorScene::DrawInspector()
 {
+	PROFILE_FUNCTION();
 	if (!currentStage) return;
 	if (lightingSettingsSelected)
 	{
@@ -727,7 +755,7 @@ void VstgEditorScene::DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& 
 	if (!camera) return;
 	const Matrix viewProjection = camera->GetView() * camera->GetProjection();
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImDrawList* draw = ImGui::GetForegroundDrawList();
+	ImDrawList* draw = ImGui::GetBackgroundDrawList(ImGui::GetMainViewport());
 	draw->PushClipRect(viewportMin, viewportMax, true);
 	const auto markers = [&](auto&& values, EditorLightType type) {
 		for (int index = 0; index < static_cast<int>(values.size()); ++index)
@@ -967,9 +995,9 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	ImGui::SetNextWindowPos(viewportMin, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(
 		{viewportMax.x - viewportMin.x, viewportMax.y - viewportMin.y}, ImGuiCond_Always);
-	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 	constexpr ImGuiWindowFlags flags =
-		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	if (ImGui::Begin("##VSTG Prop Drop Target", nullptr, flags))
@@ -1226,7 +1254,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 		Matrix view = camera->GetView();
 		Matrix projection = camera->GetProjection();
 		Matrix world = transform->GetMatrix();
-		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+		ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList(ImGui::GetMainViewport()));
 		const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
 		ImGuizmo::SetRect(mainViewport->Pos.x, mainViewport->Pos.y,
 			Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
@@ -1234,7 +1262,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 		const bool insideViewport = mouse.x >= viewportMin.x && mouse.x <= viewportMax.x &&
 			mouse.y >= viewportMin.y && mouse.y <= viewportMax.y;
 		ImGuizmo::Enable(insideViewport || ImGuizmo::IsUsing());
-		ImDrawList* draw = ImGui::GetForegroundDrawList();
+		ImDrawList* draw = ImGui::GetBackgroundDrawList(ImGui::GetMainViewport());
 		draw->PushClipRect(viewportMin, viewportMax, true);
 		const bool manipulated = ImGuizmo::Manipulate(&view._11, &projection._11,
 			static_cast<ImGuizmo::OPERATION>(gizmoOperation), ImGuizmo::LOCAL, &world._11);
@@ -1333,11 +1361,11 @@ void VstgEditorScene::SelectObjectAt(
 	for (const auto& object : stageLoader->GetEditorObjects())
 	{
 		if (object.type != StageLoader::EditorObjectType::Effect || !object.transform) continue;
-		const Vector4 clip = Vector4::Transform(Vector4(object.transform->position.x,
-			object.transform->position.y, object.transform->position.z, 1.0f), viewProjection);
-		if (clip.w <= eps || clip.z < 0.0f || clip.z > clip.w) continue;
-		const float x = viewport->Pos.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth;
-		const float y = viewport->Pos.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight;
+		const Vector2 viewportSize(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
+		Vector2 screenPosition;
+		if (!WorldToScreen(object.transform->position, viewProjection, viewportSize, screenPosition)) continue;
+		const float x = viewport->Pos.x + screenPosition.x;
+		const float y = viewport->Pos.y + screenPosition.y;
 		const float dx = x - mousePosition.x, dy = y - mousePosition.y;
 		const float distance = dx * dx + dy * dy;
 		if (distance >= effectDistanceSquared) continue;
@@ -1411,6 +1439,7 @@ bool VstgEditorScene::OnRequestExit()
 
 void VstgEditorScene::New()
 {
+	serialViewerDocument = nullptr;
 	if (!OnRequestExit()) return;
 
 	auto& graphics = Game::Graphics::Instance();
@@ -1448,6 +1477,8 @@ void VstgEditorScene::Open()
 
 bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 {
+	serialViewerDocument = nullptr;
+	PROFILE_FUNCTION();
 	VSTG loaded;
 	if (!loaded.Load(stagePath))
 	{
@@ -1460,6 +1491,13 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 		ErrorMessage(loaded.GetError());
 		return false;
 	}
+	// 現在のスキーマで扱う項目を確定し、それ以外は未知のまま保持する。
+	if (!loaded.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()))
+	{
+		ErrorMessage(loaded.GetError());
+		return false;
+	}
+	loaded.GetSerialDocument();
 	const bool recoveredMissingModels = ResolveMissingModels();
 	data = std::move(loaded);
 	path = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(stagePath), ResourceManager::ResourceType::Stage));
@@ -1540,6 +1578,7 @@ bool VstgEditorScene::ResolveMissingModels()
 
 void VstgEditorScene::Save()
 {
+	PROFILE_FUNCTION();
 	if (path.empty())
 	{
 		SaveAs();
@@ -1553,6 +1592,7 @@ void VstgEditorScene::Save()
 		ErrorMessage(data.GetError());
 		return;
 	}
+	serialViewerDocument = nullptr;
 	if (!ResourceManager::Instance().RefreshResources(path))
 	{
 		ErrorMessage("Stage saved, but runtime cache refresh failed. Save again to retry.");

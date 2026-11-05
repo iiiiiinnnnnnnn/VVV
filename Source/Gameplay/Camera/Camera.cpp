@@ -18,16 +18,23 @@ Camera::Camera(Object* owner, int priority)
 		0.1f,								// ニアクリップ
 		1000.0f								// ファークリップ
 	);
-	SetLookAt(
-		{ 0, 0, -5 },		// 視点
-		{ 0, 0, 0 },		// 注視点
-		{ 0, 1, 0 }			// 上ベクトル
-	);
+	eye = {0, 0, -5};
+	focus = Vector3::Zero;
+	up = Vector3::Up;
+	front = Vector3::UnitZ;
+	right = Vector3::Right;
+	view = DirectX::XMMatrixLookAtLH(eye, focus, up);
+}
+
+void Camera::OnAwake()
+{
+	if (!viewConfigured) SetLookAt(eye, focus, up);
 }
 
 // 指定方向を向く
 void Camera::SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& up)
 {
+	viewConfigured = true;
 	// 視点、注視点、上方向からビュー行列を作成
 	Matrix View = DirectX::XMMatrixLookAtLH(eye, focus, up);
 	view = View;

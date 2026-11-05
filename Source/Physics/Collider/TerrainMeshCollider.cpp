@@ -23,6 +23,10 @@ TerrainMeshCollider::TerrainMeshCollider(
       collisionArea(collisionArea),
       rebuildOnAwake(rebuildOnAwake)
 {
+}
+
+void TerrainMeshCollider::OnAwake()
+{
     _ASSERT_EXPR(rigidbody != nullptr, L"TerrainMeshCollider requires Rigidbody.");
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
@@ -38,10 +42,9 @@ TerrainMeshCollider::TerrainMeshCollider(
     {
         pendingGpuRebuild = true;
     }
-}
 
-void TerrainMeshCollider::OnAwake()
-{
+    if (rigidbody) rigidbody->Awake();
+    if (auto* terrain = owner->GetComponent<Terrain>()) terrain->Awake();
     if (!debugVertices.empty() && !debugIndices.empty())
         BuildChunksFromCachedMesh(debugVertices, debugIndices);
     else if (pendingGpuRebuild && rebuildOnAwake)

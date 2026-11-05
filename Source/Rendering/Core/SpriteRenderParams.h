@@ -7,6 +7,8 @@ struct SpriteDissolveParams
 {
 	std::shared_ptr<Texture> mask;
 	float amount = 0.0f;
+	float maskScale = 1.0f;
+	float softness = 0.0f;
 };
 
 struct SpriteVignetteParams

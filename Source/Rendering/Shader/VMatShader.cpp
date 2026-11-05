@@ -150,21 +150,20 @@ void VMatShader::Update(
 			: (mesh.material->hasBaseTexture ? 1 : 0);
 
 		// Metal Rough
-		const bool hasMetalRoughTexture = mesh.material->hasMetalnessRoughnessTexture;
 		cb.metalness = std::clamp(
 			materialParams && materialParams->metalness
 				? *materialParams->metalness
 				: mesh.material->metalness,
 			0.0f,
 			1.0f);
-		cb.useMetalnessTexture = hasMetalRoughTexture && !(materialParams && materialParams->metalness) ? 1 : 0;
+		cb.useMetalnessTexture = mesh.material->hasMetalnessTexture && !(materialParams && materialParams->metalness) ? 1 : 0;
 		cb.roughness = std::clamp(
 			materialParams && materialParams->roughness
 				? *materialParams->roughness
 				: mesh.material->roughness,
 			0.0001f,
 			1.0f);
-		cb.useRoughnessTexture = hasMetalRoughTexture && !(materialParams && materialParams->roughness) ? 1 : 0;
+		cb.useRoughnessTexture = mesh.material->hasRoughnessTexture && !(materialParams && materialParams->roughness) ? 1 : 0;
 
 		// Occlusion
 		const bool hasOcclusionTexture = mesh.material->hasOcclusionTexture;
@@ -264,12 +263,14 @@ void VMatShader::Update(
 	{
 		mesh.material->baseMap.Get(),
 		mesh.material->normalMap.Get(),
-		mesh.material->metalnessRoughnessMap.Get(),
+		mesh.material->metalnessMap.Get(),
 		mesh.material->occlusionMap.Get(),
 		mesh.material->emissiveMap.Get(),
 	};
 
 	dc->PSSetShaderResources(0, _countof(srvs), srvs);
+	ID3D11ShaderResourceView* scalarMaps[] = {mesh.material->roughnessMap.Get()};
+	dc->PSSetShaderResources(6, _countof(scalarMaps), scalarMaps);
 }
 
 // 描画終了
@@ -295,6 +296,8 @@ void VMatShader::End(const RenderContext& rc)
 	// slot 17?19: IBL
 	ID3D11ShaderResourceView* nullSrvs[5] = {};
 	dc->PSSetShaderResources(0, _countof(nullSrvs), nullSrvs);
+	ID3D11ShaderResourceView* nullScalarMaps[1]{};
+	dc->PSSetShaderResources(6, _countof(nullScalarMaps), nullScalarMaps);
 
 	ID3D11ShaderResourceView* nullShadowSrvs[ShadowMapData::CascadeCount] = {};
 	dc->PSSetShaderResources(

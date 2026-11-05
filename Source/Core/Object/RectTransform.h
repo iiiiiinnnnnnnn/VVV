@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Foundation/Common.h"
 
@@ -19,6 +19,4 @@ public:
     static RectTransform FromAngle(const float angle);
     static RectTransform FromSize(const Vector2& size);
     static RectTransform FromSize(float size);
-
-    void Update();
 };

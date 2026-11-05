@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -76,12 +77,22 @@ class SoundSystem
 	// ボイスを停止・解放
 	void Stop(VoiceId voiceId);
 
+	// バッファを保持したまま、個別の音声を一時停止・再開する。
+	bool SetVoicePaused(VoiceId voiceId, bool paused)
+	{
+		if (!IsInitialized()) return false;
+		const auto found = voices.find(voiceId);
+		if (found == voices.end()) return false;
+		return SUCCEEDED(paused ? found->second->source->Stop(0) : found->second->source->Start(0));
+	}
+
 	// 全ボイスを停止・解放
 	void StopAll();
 
 	// 再生中か確認
 	bool IsPlaying(VoiceId voiceId) const
 	{
+		if (!IsInitialized()) return false;
 		const auto found = voices.find(voiceId);
 		if (found == voices.end()) return false;
 		return !found->second->callback->finished.load();
@@ -112,8 +123,15 @@ class SoundSystem
 		const auto found = voices.find(voiceId);
 		if (found == voices.end()) return false;
 		ActiveVoice& voice = *found->second;
-		voice.volume = std::clamp(volume, 0.0f, XAUDIO2_MAX_VOLUME_LEVEL);
-		if (!voice.isSpatial) return SUCCEEDED(voice.source->SetVolume(voice.volume));
+		const float requestedVolume = std::clamp(volume, 0.0f, XAUDIO2_MAX_VOLUME_LEVEL);
+		if (!voice.isSpatial)
+		{
+			if (voice.volume == requestedVolume) return true;
+			if (FAILED(voice.source->SetVolume(requestedVolume))) return false;
+			voice.volume = requestedVolume;
+			return true;
+		}
+		voice.volume = requestedVolume;
 		if (UpdateSpatialVoice(voice)) return true;
 		voices.erase(found);
 		return false;
@@ -150,10 +168,20 @@ class SoundSystem
 	void ClearCache();
 
 	// 初期化済みか確認
-	bool IsInitialized() const { return xaudio != nullptr && masteringVoice != nullptr; }
+	bool IsInitialized() const { return xaudio && masteringVoice && !engineCallback.deviceInvalidated.load(); }
 
   private:
 	struct SoundData;
+
+	struct EngineCallback final : IXAudio2EngineCallback
+	{
+		std::atomic_bool deviceInvalidated = false;
+		void STDMETHODCALLTYPE OnProcessingPassStart() override {}
+		void STDMETHODCALLTYPE OnProcessingPassEnd() override {}
+		void STDMETHODCALLTYPE OnCriticalError(HRESULT) override { deviceInvalidated.store(true); }
+	};
+
+	void ReleaseDevice();
 
 	struct VoiceCallback final : IXAudio2VoiceCallback
 	{
@@ -239,6 +267,9 @@ class SoundSystem
 			masteringVoice->SetVolume(masterVolume * (pauseDucking ? PauseVolumeScale : 1.0f));
 	}
 
+	EngineCallback engineCallback;
+	bool engineCallbackRegistered = false;
+	std::chrono::steady_clock::time_point nextDeviceCheck{};
 	IXAudio2* xaudio = nullptr;
 	IXAudio2MasteringVoice* masteringVoice = nullptr;
 	IXAudio2SubmixVoice* spatialVoice = nullptr;

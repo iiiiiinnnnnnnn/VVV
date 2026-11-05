@@ -21,14 +21,6 @@ LoadingScene::~LoadingScene()
 	Uninit();
 }
 
-void LoadingScene::OnUninit()
-{
-	background.reset();
-	vignetteOverlay.reset();
-	progressTrack.reset();
-	progressFill.reset();
-}
-
 void LoadingScene::OnInit()
 {
 	background = std::make_shared<SpriteWidget>(

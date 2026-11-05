@@ -14,6 +14,7 @@ class Button;
 class TitleHUD final : public WidgetGroup
 {
 public:
+	void OnAwake() override;
 	TitleHUD(std::function<void(int)> onSelected);
 	void SetInputEnabled(bool enabled) { inputEnabled = enabled; }
 	bool IsResourcesPage() const { return menuPage == MenuPage::Resources; }

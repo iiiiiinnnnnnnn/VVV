@@ -1,12 +1,14 @@
-﻿#include "UI/Widget.h"
+#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "UI/Widget.h"
 #include "IconsFontAwesome5.h"
 #include <cmath>
 
 void Widget::Update()
 {
+	PROFILE_FUNCTION();
+	Awake();
     if (!isActive) return;
 
-    rect.Update();
     Object::Update();
 }
 
@@ -57,4 +59,19 @@ bool Widget::ContainsPoint(const Vector2& point) const
 	const float sine = std::sin(angle);
 	const Vector2 local(offset.x * cosine + offset.y * sine, -offset.x * sine + offset.y * cosine);
 	return std::abs(local.x) <= rect.size.x * 0.5f && std::abs(local.y) <= rect.size.y * 0.5f;
+}
+void Widget::DrawInspector()
+{
+	ImGui::PushID(this);
+	DrawBasicInspector();
+	if (ImGui::CollapsingHeader("RectTransform", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::DragFloat2("Position", &rect.position.x);
+		ImGui::DragFloat("Angle", &rect.angle);
+		ImGui::DragFloat2("Size", &rect.size.x);
+		ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
+	}
+	if (ImGui::CollapsingHeader((const char*)u8"ユーザーパラメーター", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	DrawComponentInspector();
+	ImGui::PopID();
 }

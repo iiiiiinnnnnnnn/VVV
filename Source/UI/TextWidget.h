@@ -9,6 +9,7 @@
 class TextWidget final : public Widget
 {
 public:
+	void OnAwake() override;
 	TextWidget(const std::string& name, const std::string& text, float fontSize = 36.0f,
 		const std::string& fontPath = "");
 	bool SetFont(const std::string& path);
@@ -27,7 +28,7 @@ protected:
 	void OnDrawGUI() override;
 
 private:
-	void DrawText(const Vector2& topLeft, const Color& drawColor);
+	void DrawFont(const Vector2& topLeft, const Color& drawColor);
 
 	std::string text;
 	std::shared_ptr<UIFont> font;

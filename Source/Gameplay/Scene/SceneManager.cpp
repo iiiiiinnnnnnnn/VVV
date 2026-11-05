@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 // SceneManager.cpp
 #include "Gameplay/Scene/SceneManager.h"
 
@@ -117,6 +118,7 @@ void SceneManager::Finalize()
 
 void SceneManager::ApplyPendingChanges()
 {
+	PROFILE_FUNCTION();
 	ApplyLoadedScene();
 
 	BeginPendingLoad();
@@ -126,6 +128,7 @@ void SceneManager::ApplyPendingChanges()
 
 void SceneManager::Update()
 {
+	PROFILE_FUNCTION();
 	if (currentScene)
 	{
 		currentScene->Update();
@@ -134,6 +137,7 @@ void SceneManager::Update()
 
 void SceneManager::Render()
 {
+	PROFILE_FUNCTION();
 	if (currentScene)
 	{
 		currentScene->Render();
@@ -187,6 +191,7 @@ bool SceneManager::RequestLoadScene(
 
 void SceneManager::BeginPendingLoad()
 {
+	PROFILE_FUNCTION();
 	if (!loadRequested.exchange(
 		false,
 		std::memory_order_acq_rel))
@@ -359,6 +364,7 @@ std::string SceneManager::GetLastLoadError() const
 
 void SceneManager::ApplyLoadedScene()
 {
+	PROFILE_FUNCTION();
 	if (!loadFinished.load(std::memory_order_acquire))
 	{
 		return;

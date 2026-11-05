@@ -10,7 +10,6 @@ BoneSphereCollider::BoneSphereCollider(Object* owner, LayerId layerId, VMDLModel
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , radius(radius)
 {
-    InitializeShape();
 }
 
 PxShape* BoneSphereCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const

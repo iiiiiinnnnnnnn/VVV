@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -24,9 +25,14 @@ namespace
 }
 
 CharacterController::CharacterController(Object* owner, LayerId layerId, float radius, float height)
-    : PhysicsComponent(owner, layerId)
+    : PhysicsComponent(owner, layerId), radius(radius), height(height)
+{
+}
+
+void CharacterController::OnAwake()
 {
     Actor* actor = dynamic_cast<Actor*>(owner);
+    if (!actor) return;
 
     hitReport = new CCHitReport(actor, this, layerId);
 
@@ -40,9 +46,10 @@ CharacterController::CharacterController(Object* owner, LayerId layerId, float r
         actor->transform.position.z
     );
     desc.upDirection = PxVec3(0, 1, 0);
-    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(45.0f));
-    desc.stepOffset = 0.1f;
-    desc.contactOffset = 0.1f;
+    desc.slopeLimit = cosf(DirectX::XMConvertToRadians(slopeLimitDeg));
+    desc.stepOffset = stepOffset;
+    desc.contactOffset = contactOffset;
+    desc.climbingMode = constrainedClimbing ? PxCapsuleClimbingMode::eCONSTRAINED : PxCapsuleClimbingMode::eEASY;
     desc.reportCallback = hitReport;
 
     controller = PhysicsManager::Instance()
@@ -52,7 +59,7 @@ CharacterController::CharacterController(Object* owner, LayerId layerId, float r
         OutputDebugStringA("CharacterController: failed to create PhysX controller.\n");
         return;
     }
-    SetFootPosition(actor->transform.position);
+    SetPosition(actor->transform.position);
 
     // 内部シェイプにlayerをセット＆userDataにActor*を格納（コールバック用）
     PxRigidDynamic* act = controller->getActor();
@@ -78,6 +85,7 @@ void CharacterController::ReleaseController()
 
 void CharacterController::Update()
 {
+    PROFILE_FUNCTION();
     ApplyGravity();
     SyncOwnerTransform();
 }
@@ -247,6 +255,7 @@ private:
 
 void CharacterController::Move(const Vector3& velocity)
 {
+    PROFILE_FUNCTION();
     hitSideOnLastMove = false;
     if (!controller || !hitReport || !IsFinite(velocity)) return;
 
@@ -285,18 +294,23 @@ void CharacterController::Move(const Vector3& velocity)
 
     SyncOwnerTransform();
 
-    hitReport->DispatchEvents();
+    if (hitReport) hitReport->DispatchEvents();
 }
 
 void CharacterController::LateUpdate()
 {
     // Move()はOnLateUpdateで呼ばれるため、その後に判定する
-    hitReport->DispatchEvents();
+    if (hitReport) hitReport->DispatchEvents();
 }
 
 void CharacterController::SetPosition(const Vector3& position)
 {
-    if (!controller || !IsFinite(position)) return;
+    if (!IsFinite(position)) return;
+    if (!controller)
+    {
+        if (auto* transform = owner->GetTransform()) transform->position = position;
+        return;
+    }
 
     if (ownerAnchorAtCenter)
     {
@@ -320,7 +334,15 @@ void CharacterController::SetPosition(const Vector3& position)
 
 void CharacterController::SetFootPosition(const Vector3& position)
 {
-    if (!controller || !IsFinite(position)) return;
+    if (!IsFinite(position)) return;
+    if (!controller)
+    {
+        if (auto* transform = owner->GetTransform())
+            transform->position = position + Vector3(0.0f,
+                ownerAnchorAtCenter ? GetFootToControllerCenter() - ownerAnchorOffsetY : ownerAnchorOffsetY,
+                0.0f);
+        return;
+    }
 
     const float footToCenter = GetFootToControllerCenter();
 
@@ -361,7 +383,7 @@ void CharacterController::ClearDebugRenderPosition()
 
 float CharacterController::GetFootToControllerCenter() const
 {
-    if (!controller) return 0.0f;
+    if (!controller) return height * 0.5f + radius;
 
     const PxCapsuleController* capsule =
         static_cast<const PxCapsuleController*>(controller);
@@ -391,22 +413,24 @@ bool CharacterController::IgnoresCollider(const PhysicsComponent& other) const
 
 void CharacterController::SetStepOffset(float value)
 {
+    stepOffset = std::max(value, 0.0f);
     if (!controller) return;
-    controller->setStepOffset(std::max(value, 0.0f));
+    controller->setStepOffset(stepOffset);
 }
 
 void CharacterController::SetSlopeLimitDeg(float value)
 {
+    slopeLimitDeg = std::clamp(value, 0.0f, 89.0f);
     if (!controller) return;
-    const float clamped = std::clamp(value, 0.0f, 89.0f);
-    controller->setSlopeLimit(cosf(RAD(clamped)));
+    controller->setSlopeLimit(cosf(RAD(slopeLimitDeg)));
 }
 
 void CharacterController::SetContactOffset(float value)
 {
+    contactOffset = std::max(value, 0.001f);
     if (!controller) return;
     Actor* actor = dynamic_cast<Actor*>(owner);
     const Vector3 anchorPosition = actor->transform.position;
-    controller->setContactOffset(std::max(value, 0.001f));
+    controller->setContactOffset(contactOffset);
     SetPosition(anchorPosition);
 }

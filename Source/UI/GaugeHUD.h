@@ -13,6 +13,7 @@ class Texture;
 class GaugeHUD : public DissolveWidget
 {
 public:
+	void OnAwake() override;
 	GaugeHUD(const std::string& name, bool revealOnStart = true);
 
 	// 値は0〜1。SetValueは補間し、SetValueImmediateは即時反映する。
@@ -47,6 +48,7 @@ protected:
 
 private:
 	void DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color);
+	std::string frameTexturePath;
 	std::shared_ptr<Texture> frameTexture;
 	std::shared_ptr<Texture> fillTexture;
 	Vector2 fillPosition = {0.1f, 0.3f};

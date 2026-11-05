@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Scene/PostProcessController.h"
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
@@ -54,6 +55,7 @@ void PostProcessController::RequestSkillHit(float duration, float power)
 
 void PostProcessController::Update()
 {
+	PROFILE_FUNCTION();
 	const float dt = Game::Time::unscaledDeltaTime;
 	if (poisonVignetteProgress < 1.0f)
 	{

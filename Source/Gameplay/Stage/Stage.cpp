@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Stage/Stage.h"
 
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -11,6 +12,7 @@
 
 bool Stage::LoadVSTG(const std::string& path)
 {
+	PROFILE_FUNCTION();
 	VSTG data;
 	const std::string resolvedPath = ResourceManager::Instance().ResolvePath(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Stage));
 	if (!data.Load(resolvedPath))
@@ -23,6 +25,9 @@ bool Stage::LoadVSTG(const std::string& path)
 	auto* terrain = AddComponent<Terrain>();
 	auto* navMesh = AddComponent<NavMeshActor>();
 	auto* loader = AddComponent<StageLoader>(this, std::string("{}"), true);
+	terrain->Awake();
+	navMesh->Awake();
+	loader->Awake();
 	if (!data.Apply(*terrain, *navMesh, *loader, lightManager))
 	{
 		vstgError = "VSTG content could not be applied.";

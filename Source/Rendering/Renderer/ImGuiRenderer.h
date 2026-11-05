@@ -25,6 +25,17 @@ struct VstgEditorSettings
 	std::string recentStagePath;
 };
 
+struct GameEditorLayoutSettings
+{
+	bool loaded = false;
+	float leftWidth = 320.0f;
+	float rightWidth = 440.0f;
+	float panelHeight = 0.0f;
+	int hierarchyTab = 0;
+	int inspectorTab = 0;
+	int sceneSettingsPage = 0;
+};
+
 class ImGuiRenderer
 {
 public:
@@ -45,6 +56,7 @@ public:
 
 	static VmdlEditorLayoutSettings& GetVmdlEditorLayoutSettings();
 	static VstgEditorSettings& GetVstgEditorSettings();
+	static GameEditorLayoutSettings& GetGameEditorLayoutSettings();
 	static void SaveSettings();
 
 };

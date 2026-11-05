@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Animation/Animator.h"
 #include "Resource/ResourceManager.h"
@@ -223,6 +224,7 @@ void Animator::ResetTriggers()
 
 void Animator::Update()
 {
+    PROFILE_FUNCTION();
     rootMotionVec = Vector3::Zero;
     rootMotionRot = Quaternion::Identity;
 
@@ -330,6 +332,7 @@ void Animator::UpdateLayer(
     AnimatorLayer& layer,
     std::vector<VMDLModel::NodePose>& finalPoses)
 {
+    PROFILE_FUNCTION();
     _ASSERT_EXPR(
         layer.currentStateIndex >= 0 &&
         layer.currentStateIndex < static_cast<int>(layer.states.size()),
@@ -945,6 +948,21 @@ void Animator::Play(int layerIndex, int animationIndex, bool loop)
     SetDefaultState(layerIndex, stateIndex);
 }
 
+bool Animator::PlayState(const std::string& name, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return false;
+    auto& layer = layers[layerIndex];
+    for (int i = 0; i < static_cast<int>(layer.states.size()); ++i)
+    {
+        if (layer.states[i].name != name) continue;
+        Stop(layerIndex);
+        layer.currentStateIndex = i;
+        layer.currentTime = GetStateStartTime(layer.states[i]);
+        return true;
+    }
+    return false;
+}
+
 void Animator::Stop(int layerIndex)
 {
     auto& layer = layers[layerIndex];
@@ -1124,6 +1142,20 @@ void Animator::EvaluateCallbacks(State& state, float currentTime, float animLeng
     }
 }
 
+bool Animator::HasState(const std::string& name, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return false;
+    for (const auto& state : layers[layerIndex].states)
+        if (state.name == name) return true;
+    return false;
+}
+
+bool Animator::IsStateActive(const std::string& name, int layerIndex) const
+{
+    if (name.empty()) return false;
+    return GetCurrentStateName(layerIndex) == name || GetNextStateName(layerIndex) == name;
+}
+
 const std::string& Animator::GetCurrentStateName(int li) const
 {
     static std::string empty;
@@ -1164,6 +1196,100 @@ float Animator::GetCurrentAnimationTime(int layerIndex) const
 {
     if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
     return layers[layerIndex].currentTime;
+}
+
+float Animator::GetCurrentAnimationProgress(int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
+    const auto& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0 ||
+        layer.currentStateIndex >= static_cast<int>(layer.states.size())) return 0.0f;
+
+    const float length = GetStateLength(layer.states[layer.currentStateIndex]);
+    return length > 0.0f ? layer.currentTime / length : 0.0f;
+}
+
+float Animator::GetCurrentAnimationRemainingTime(float endProgress, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size())) return 0.0f;
+    const auto& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0 ||
+        layer.currentStateIndex >= static_cast<int>(layer.states.size())) return 0.0f;
+
+    const auto& state = layer.states[layer.currentStateIndex];
+    const float end = std::min(GetStateLength(state) * std::clamp(endProgress, 0.0f, 1.0f),
+        GetStateEndTime(state));
+    return std::max(end - layer.currentTime, 0.0f) / std::max(state.speed, eps);
+}
+
+float Animator::GetMatchingAnimationRemainingTime(const std::string& namePart, int layerIndex) const
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size()) || namePart.empty()) return 0.0f;
+    const auto& layer = layers[layerIndex];
+    const auto matches = [&](int index) {
+        return index >= 0 && index < static_cast<int>(layer.states.size()) &&
+            layer.states[index].name.find(namePart) != std::string::npos;
+    };
+
+    // 状態群から抜けるブレンド中は、そのブレンドの残り時間を返す。
+    if (layer.isTransitioning && !matches(layer.nextStateIndex))
+        return matches(layer.currentStateIndex) ? std::max(layer.blendDuration - layer.blendTime, 0.0f) : 0.0f;
+
+    const int index = layer.isTransitioning ? layer.nextStateIndex : layer.currentStateIndex;
+    if (!matches(index)) return 0.0f;
+    const auto& state = layer.states[index];
+    const float time = layer.isTransitioning ? layer.nextTime : layer.currentTime;
+    float endTime = GetStateEndTime(state);
+    float transitionDuration = 0.0f;
+    for (const auto& transition : state.transitions)
+    {
+        if (!transition.hasExitTime || !transition.conditions.empty() || matches(transition.toStateIndex)) continue;
+        endTime = std::min(endTime, GetStateLength(state) * transition.exitTime);
+        transitionDuration = transition.transitionDuration;
+        break;
+    }
+    return std::max(endTime - time, 0.0f) / std::max(state.speed, eps) + transitionDuration;
+}
+
+void Animator::SetCurrentAnimationTime(float time, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size()) || !std::isfinite(time)) return;
+    auto& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0 ||
+        layer.currentStateIndex >= static_cast<int>(layer.states.size())) return;
+    const auto& state = layer.states[layer.currentStateIndex];
+    layer.currentTime = std::clamp(time, GetStateStartTime(state), GetStateEndTime(state));
+}
+
+void Animator::SetCurrentAnimationSpeed(float speed, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size()) || !std::isfinite(speed)) return;
+    auto& layer = layers[layerIndex];
+    if (layer.currentStateIndex < 0 ||
+        layer.currentStateIndex >= static_cast<int>(layer.states.size())) return;
+    layer.states[layer.currentStateIndex].speed = speed;
+}
+
+void Animator::SetStateTimeHold(const std::string& name, float time, bool enabled, int layerIndex)
+{
+    if (layerIndex < 0 || layerIndex >= static_cast<int>(layers.size()) || !std::isfinite(time)) return;
+    auto& layer = layers[layerIndex];
+    const float deltaTime = unscaledTime ? Game::Time::unscaledDeltaTime : Game::Time::deltaTime;
+    const auto update = [&](int index, float& currentTime) {
+        if (index < 0 || index >= static_cast<int>(layer.states.size())) return;
+        auto& state = layer.states[index];
+        if (state.name != name) return;
+        if (!enabled)
+        {
+            if (state.speed == 0.0f) state.speed = 1.0f;
+            return;
+        }
+        if (currentTime < time && currentTime + deltaTime * state.speed < time) return;
+        currentTime = time;
+        state.speed = 0.0f;
+    };
+    update(layer.currentStateIndex, layer.currentTime);
+    update(layer.nextStateIndex, layer.nextTime);
 }
 
 bool Animator::GetAnimationControlState(int& animationIndex, float& time,

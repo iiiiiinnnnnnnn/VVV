@@ -12,7 +12,7 @@
 #include "Resource/Texture.h"
 
 Button::Button(const std::string& name, const std::string& label)
-	: Widget(name), label(label), whiteTexture(std::make_shared<Texture>(Color(1, 1, 1, 1)))
+	: Widget(name), label(label)
 {
 	SetAffectedByPostProcess(false);
 }
@@ -31,13 +31,24 @@ static std::shared_ptr<Texture> LoadOptionalButtonTexture(const std::string& pat
 	}
 }
 
+void Button::OnAwake()
+{
+	whiteTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+	if (!texturePath.empty()) SetTexture(texturePath);
+	if (!selectionTexturePath.empty()) SetSelectionTexture(selectionTexturePath);
+}
+
 void Button::SetTexture(const std::string& path)
 {
+	texturePath = path;
+	if (!isAwake && !isAwaking) return;
 	texture = LoadOptionalButtonTexture(path);
 }
 
 void Button::SetSelectionTexture(const std::string& path)
 {
+	selectionTexturePath = path;
+	if (!isAwake && !isAwaking) return;
 	selectionTexture = LoadOptionalButtonTexture(path);
 }
 

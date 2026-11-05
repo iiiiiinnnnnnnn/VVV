@@ -3,11 +3,12 @@
 DummyPlayer::DummyPlayer() : Entity("DummyPlayer", "DummyPlayer", true, Transform(), 100.0f, 100.0f)
 {}
 
-void DummyPlayer::OnInit()
+void DummyPlayer::OnAwake()
 {
 	transform.SetRotation(Quaternion::Identity);
 
 	vmdl = AddComponent<VMDL>("Player/CombatGirls_Sword_Shield");
+	vmdl->Awake();
 	vmdl->SetModelYawOffset(RAD(180.0f));
 
 	anim = AddComponent<Animator>(vmdl->GetSharedModel());
@@ -20,10 +21,4 @@ void DummyPlayer::OnInit()
 DummyPlayer::~DummyPlayer()
 {
 	Uninit();
-}
-
-void DummyPlayer::OnUninit()
-{
-	vmdl = nullptr;
-	anim = nullptr;
 }

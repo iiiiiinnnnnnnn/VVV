@@ -205,12 +205,25 @@ public:
         return layers[layerIndex].anyStateTransitions;
     }
 
+    bool HasState(const std::string& name, int layerIndex = 0) const;
+    // 現在の状態、または遷移先が指定した名前かを判定する。
+    bool IsStateActive(const std::string& name, int layerIndex = 0) const;
     const std::string& GetCurrentStateName(int layerIndex = 0) const;
     const std::string& GetNextStateName(int layerIndex = 0) const;
     bool IsTransitioning(int layerIndex = 0) const;
     int  GetCurrentStateIndex(int layerIndex = 0) const { return layers[layerIndex].currentStateIndex; }
     int  GetCurrentAnimationIndex(int layerIndex = 0) const;
     float GetCurrentAnimationTime(int layerIndex = 0) const;
+    // 元アニメーション全体に対する現在の進行率。再生範囲の開始位置を0にはしない。
+    float GetCurrentAnimationProgress(int layerIndex = 0) const;
+    // 指定進行率までの残り秒数。ステートの再生終了位置と再生速度を考慮する。
+    float GetCurrentAnimationRemainingTime(float endProgress = 1.0f, int layerIndex = 0) const;
+    // 名前に指定文字列を含む状態群を抜けるまでの残り秒数。無条件の終了遷移とブレンドを含む。
+    float GetMatchingAnimationRemainingTime(const std::string& namePart, int layerIndex = 0) const;
+    void SetCurrentAnimationTime(float time, int layerIndex = 0);
+    void SetCurrentAnimationSpeed(float speed, int layerIndex = 0);
+    // 現在と遷移先の指定状態を指定秒で止める。解除時は停止中の速度を1に戻す。
+    void SetStateTimeHold(const std::string& name, float time, bool enabled, int layerIndex = 0);
     bool GetAnimationControlState(int& animationIndex, float& time,
         int& nextAnimationIndex, float& nextTime, int layerIndex = 0) const;
 
@@ -225,6 +238,7 @@ public:
     void SetInt(const std::string& name, int value);
     void SetBool(const std::string& name, bool value);
     void SetTrigger(const std::string& name);
+    void ResetTriggers();
 
     float GetFloat(const std::string& name) const { return parameters.find(name) != parameters.end() ? std::get<float>(parameters.at(name)) : 0.0f; }
     int   GetInt(const std::string& name)   const { return parameters.find(name) != parameters.end() ? std::get<int>(parameters.at(name)) : 0; }
@@ -234,6 +248,8 @@ public:
     // =========================================================
     void Play(int layerIndex, int animationIndex, bool loop = true);
     void Stop(int layerIndex);
+    // 初期状態の設定を変更せず、指定状態へ即座に切り替えて先頭から再生する。
+    bool PlayState(const std::string& name, int layerIndex = 0);
 
     // Resources/Animatorと拡張子は省略できる（例：Aracore）。
     bool Save(const std::string& path);
@@ -287,7 +303,6 @@ private:
     bool EvaluateTransition(const Transition& t, float normalizedTime) const;
 	bool HasActiveTriggerCondition(const Transition& transition) const;
     void EvaluateCallbacks(State& state, float currentTime, float animLength);
-    void ResetTriggers();
     void UpdateLayer(AnimatorLayer& layer, std::vector<VMDLModel::NodePose>& finalPoses);
     std::shared_ptr<VMDLModel> model;
     bool unscaledTime = false;

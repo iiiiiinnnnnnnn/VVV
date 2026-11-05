@@ -16,7 +16,9 @@ private:
 	{
 		Color color;
 		float amount;
-		float padding[3];
+		float maskScale;
+		float softness;
+		float padding;
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };

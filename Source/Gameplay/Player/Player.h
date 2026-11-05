@@ -39,6 +39,10 @@ class Player : public Entity
 	void TakeDamage(const DamageData& damageData) override;
 	bool IsDodgeInvincible() const { return dodgeInvincible; }
 	bool IsJustDodging() const { return justDodgeTriggered; }
+	float GetJustDodgeInputRemaining() const;
+	bool CanContinueJustDodgeSkill() const;
+	float GetJustDodgeSkillInputRemaining() const;
+	bool IsJustDodgeSkillContinuationQueued() const { return anim && anim->GetBool("SkillContinue"); }
 	bool IsUsingJustDodgeSkill() const { return justDodgeSkillActive; }
 	bool IsSprinting() const { return sprinting; }
 	// ワールド座標の方向へ回避する。forceでクールダウンと行動制限を無視する（死亡時は不可）。
@@ -67,8 +71,12 @@ class Player : public Entity
 	// ThirdPersonCameraController をセットすることでカメラ基準移動が有効になる
 	void SetCameraController(ThirdPersonCameraController* cam) { cameraController = cam; }
 	void SetSpawnTransform(const Transform& spawnTransform);
+	void FinishMovie();
 
   private:
+	static constexpr float SkillContinueStart = 0.235f;
+	static constexpr float SkillContinueEnd = 0.345f;
+
 	struct ActionState
 	{
 		bool frozen = false;
@@ -118,7 +126,7 @@ class Player : public Entity
 	void PlayAttackHitEffect(const Vector3& position);
 
   protected:
-	void OnInit() override;
+	void OnAwake() override;
 	void OnUninit() override;
 	std::shared_ptr<VMDLModel> model = nullptr;
 

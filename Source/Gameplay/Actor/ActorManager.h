@@ -1,4 +1,5 @@
 #pragma once
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include <cstddef>
 
 #include <algorithm>
@@ -24,7 +25,6 @@ public:
 	{
 		if (!actor || actor->IsPendingDestroy()) return;
 
-		actor->Init();
 		actor->Awake();
 		actor->Start();
 		pendingActors.emplace_back(actor);
@@ -69,6 +69,7 @@ public:
 
 	void Update()
 	{
+		PROFILE_FUNCTION();
 		FlushPendingActors();
 
 		const size_t count = data.size();
@@ -107,6 +108,7 @@ public:
 
 	void Render(const RenderContext& rc)
 	{
+		PROFILE_FUNCTION();
 		const size_t count = data.size();
 
 		for (size_t i = 0; i < count; ++i)

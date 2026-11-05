@@ -16,6 +16,7 @@ class PhysicsComponent;
 class VMDL : public Component
 {
   public:
+	void OnAwake() override;
 	VMDL(Object* owner, const std::string& path, bool buildEmbeddedColliders = true);
 	VMDL(Object* owner, std::shared_ptr<VMDLModel> model);
 
@@ -56,6 +57,7 @@ class VMDL : public Component
 	void BuildModelComponents(bool buildEmbeddedColliders = true);
 	LayerId GetAttachmentLayer() const;
 
+	bool buildEmbeddedColliders = true;
 	std::string path;
 	std::shared_ptr<VMDLModel> model;
 	VMDLModelComponent* renderer = nullptr;

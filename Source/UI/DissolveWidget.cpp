@@ -3,18 +3,27 @@
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Resource/ResourceManager.h"
 
-DissolveWidget::DissolveWidget(const std::string& name, const std::string& maskPath) : Widget(name)
+DissolveWidget::DissolveWidget(const std::string& name, const std::string& maskPath) : Widget(name), maskPath(maskPath)
+{
+}
+
+void DissolveWidget::OnAwake()
 {
 	if (!maskPath.empty()) SetDissolveMask(maskPath);
+	if (!texturePath.empty()) SetTexture(texturePath);
 }
 
 void DissolveWidget::SetTexture(const std::string& path)
 {
+	texturePath = path;
+	if (!isAwake && !isAwaking) return;
 	texture = ResourceManager::Instance().LoadTexture(path);
 }
 
 void DissolveWidget::SetDissolveMask(const std::string& path)
 {
+	maskPath = path;
+	if (!isAwake && !isAwaking) return;
 	renderParams.dissolve.mask = ResourceManager::Instance().LoadTexture(path);
 }
 
@@ -33,13 +42,15 @@ void DissolveWidget::OnRender(const RenderContext& rc)
 	if (!texture) return;
 	DrawSprite(texture, rect.position - rect.size * rect.anchor, rect.size,
 		{static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight())},
-		rect.angle, Color(1, 1, 1, 1));
+		rect.angle, spriteColor);
 }
 
 void DissolveWidget::OnDrawGUI()
 {
 	ImGui::SliderFloat((const char*)u8"ディソルブ影響度", &renderParams.dissolve.amount, 0.0f, 1.0f);
 	ImGui::TextDisabled((const char*)u8"0: 全表示 / 1: 全消去");
+	ImGui::DragFloat((const char*)u8"ノイズの表示範囲", &renderParams.dissolve.maskScale, 0.01f, 0.01f, 10.0f);
+	ImGui::DragFloat((const char*)u8"境界の柔らかさ", &renderParams.dissolve.softness, 0.005f, 0.0f, 0.5f);
 	if (!renderParams.dissolve.mask)
 		ImGui::TextDisabled((const char*)u8"マスク未設定");
 }

@@ -29,6 +29,7 @@ class Water;
 class StageLoader : public Component
 {
   public:
+	void OnAwake() override;
 	enum class EditorObjectType
 	{
 		None,

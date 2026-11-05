@@ -1,4 +1,5 @@
 #pragma once
+#include "Application/SettingsAndDebug/SerialViewer.h"
 
 #include <filesystem>
 #include <memory>
@@ -38,6 +39,14 @@ class VstgEditorScene : public Scene
 	bool OnRequestExit() override;
 
   private:
+	void HandleShortcuts();
+	void DrawSerialViewer();
+	void DrawRenderDiagnostics();
+	bool showRenderDiagnostics = false;
+	SerialViewer serialViewer;
+	SerialDocument* serialViewerDocument = nullptr;
+	bool showSerialViewer = false;
+
 	// ステージ操作
 	void CreateStage();
 

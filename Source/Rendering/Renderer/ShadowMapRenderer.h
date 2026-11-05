@@ -16,7 +16,7 @@ class ShadowMapRenderer
 public:
     static constexpr int CascadeCount = ShadowMapData::CascadeCount;
 
-    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 2048);
+    ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 1024 * 4);
     ~ShadowMapRenderer() = default;
 
     void Draw(VMDLModel* model);

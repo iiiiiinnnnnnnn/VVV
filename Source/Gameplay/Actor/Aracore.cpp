@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Actor/Aracore.h"
 
 #include <algorithm>
@@ -9,11 +10,13 @@
 #include "Animation/Animator.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Application/Time/GameTime.h"
+#include "Application/SettingsAndDebug/Profiler.h"
 #include "Audio/SoundSystem.h"
 
 #include "Gameplay/AI/EnemyAI.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Crystal.h"
+#include "Gameplay/Actor/CrystalPart.h"
 #include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Actor/Spawner.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
@@ -34,6 +37,8 @@
 #include "UI/BossBar.h"
 #include "Rendering/Component/HitstopVibrationComponent.h"
 #include "Rendering/Component/AfterimageComponent.h"
+#include "Rendering/Effect/EffectManager.h"
+#include "Rendering/Effect/Effect.h"
 
 // 初期化
 
@@ -43,10 +48,11 @@ Aracore::Aracore(Player* player_init,
 	  modelPath(modelPath), player(player_init), terrain(terrain_init), spawnPosition(transform.position)
 {}
 
-void Aracore::OnInit()
+void Aracore::OnAwake()
 {
 	// モデル
 	vmdl = AddComponent<VMDL>(modelPath);
+	vmdl->Awake();
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(DirectX::XM_PI); // 反転
 	model = vmdl->GetSharedModel();
@@ -91,16 +97,6 @@ void Aracore::OnInit()
 	ConfigureAI();
 	navigation.Initialize(controller, navMeshAgent, anim, multiLegFootIK);
 	RegisterAIActions();
-
-	// 破片のモデルは、形態変化が起こる前に準備する。
-	phase.SetFragmentModel(ResourceManager::Instance().LoadModel("CrystalPart", true));
-	Vector3 fragmentCenter;
-	Vector3 fragmentSize = phase.GetFragmentSize();
-	if (phase.GetFragmentModel() && GetCrystalModelBounds(*phase.GetFragmentModel(), fragmentCenter, fragmentSize))
-	{
-		phase.SetFragmentSize(fragmentSize);
-		phase.GetFragmentModel()->GetVmdlExtensionData().rootOffset -= fragmentCenter;
-	}
 }
 
 Aracore::~Aracore()
@@ -112,18 +108,6 @@ void Aracore::OnUninit()
 {
 	if (bossBar) bossBar->Hide(this);
 	chasingPlayer = false;
-	phase.SetFragmentModel(nullptr);
-	model.reset();
-	vmdl = nullptr;
-	anim = nullptr;
-	controller = nullptr;
-	navMeshAgent = nullptr;
-	multiLegFootIK = nullptr;
-	characterController = nullptr;
-	bossBar = nullptr;
-	stageLoader = nullptr;
-	player = nullptr;
-	terrain = nullptr;
 }
 
 void Aracore::ConfigureAI()
@@ -182,6 +166,9 @@ void Aracore::RegisterAIActions()
 
 void Aracore::OnUpdate()
 {
+	PROFILE_FUNCTION();
+	START_PROFILER("Aracore::OnUpdate");
+	if (movieDefeated) return;
 	controller->SetFloat("Life", GetLife());
 	controller->SetFloat("MaxLife", GetMaxLife());
 	controller->SetBool("CanChangePhase", !IsDead() && !jump.IsWaitingForLanding());
@@ -196,7 +183,7 @@ void Aracore::OnUpdate()
 	Entity::OnUpdate();
 
 	// 自動回復
-	if (!IsDead() && healTime.Tick()) Heal(50.0f);
+	if (life > 0.0f && healTime.Tick()) Heal(50.0f);
 
 	// 状態変化
 	UpdateHealthPresentation();
@@ -208,10 +195,17 @@ void Aracore::OnUpdate()
 	}
 
 	navigation.Update();
+	END_PROFILER();
 }
 
 void Aracore::OnLateUpdate()
 {
+	START_PROFILER("Aracore::OnLateUpdate");
+	if (movieDefeated)
+	{
+		UpdateAnimatedModelTransform();
+		return;
+	}
 	if (controller->IsWaitingForCamera() && !IsDead())
 	{
 		UpdateAnimatedModelTransform();
@@ -221,13 +215,13 @@ void Aracore::OnLateUpdate()
 	UpdateReactionAnimation();
 	UpdateChaseState();
 
-	if (!IsDead() && (anim->GetCurrentStateName() == "just_dodge" ||
-		anim->GetNextStateName() == "just_dodge"))
+	if (!IsDead() && anim->IsStateActive("just_dodge"))
 	{
 		characterController->Move(Vector3::Transform(anim->GetRootMotionVec(), transform.rotation));
 	}
 
 	UpdateAnimatedModelTransform();
+	END_PROFILER();
 }
 
 // Luaが呼び出す行動：待機・徘徊・追跡・突進・ジャンプ・形態変化
@@ -322,7 +316,8 @@ void Aracore::BeginTossin()
 {
 	controller->StopMovement();
 	controller->SetBool("ActionFinished", false);
-	const float tossinSpeed = controller->GetFloat("TossinMoveSpeed", 6.5f);
+	const float tossinSpeed =
+		controller->GetFloat(phase.IsAngry() ? "AngryTossinMoveSpeed" : "TossinMoveSpeed", 6.5f);
 
 	Actor* target = controller->GetTarget();
 	if (!target)
@@ -357,7 +352,8 @@ void Aracore::BeginTossin()
 
 void Aracore::UpdateTossin()
 {
-	const float tossinSpeed = controller->GetFloat("TossinMoveSpeed", 6.5f);
+	const float tossinSpeed =
+		controller->GetFloat(phase.IsAngry() ? "AngryTossinMoveSpeed" : "TossinMoveSpeed", 6.5f);
 	const float moveSpeed = anim->GetInt("attackRand") ? tossinSpeed : tossinSpeed * 0.4f;
 	navigation.Tossin(moveSpeed);
 	navMeshAgent->SetSpeed(moveSpeed);
@@ -379,11 +375,10 @@ void Aracore::BeginJump()
 	jump.Begin(transform.position, player ? player->transform.position : transform.position);
 	controller->SetBool("JumpLanded", false);
 	characterController->SetUseGravity(false);
-	if (anim->GetLayerCount() > 0 && anim->GetCurrentStateName() == "Jump" && anim->GetNextStateName().empty())
+	if (anim->GetCurrentStateName() == "Jump" && anim->GetNextStateName().empty())
 	{
-		auto& layer = anim->GetLayer(0);
-		layer.currentTime = 0.0f;
-		layer.states[layer.currentStateIndex].speed = 1.0f;
+		anim->SetCurrentAnimationTime(0.0f);
+		anim->SetCurrentAnimationSpeed(1.0f);
 		jump.SetAnimationPending(false);
 	}
 	else anim->SetTrigger("Jump");
@@ -399,6 +394,7 @@ void Aracore::BeginJump()
 
 void Aracore::UpdateJump()
 {
+	PROFILE_FUNCTION();
 	const float takeoffDelay =
 		std::max(controller->GetFloat("JumpTakeoffDelay", 0.65f), 0.0f);
 	const float duration = std::max(controller->GetFloat("JumpDuration", 2.4f), 0.01f);
@@ -478,6 +474,7 @@ void Aracore::UpdateThreatPresentation()
 
 void Aracore::UpdateReactionAnimation()
 {
+	PROFILE_FUNCTION();
 	if (!anim || IsDead()) return;
 	const auto& current = anim->GetCurrentStateName();
 	const auto& next = anim->GetNextStateName();
@@ -485,7 +482,7 @@ void Aracore::UpdateReactionAnimation()
 	// 被ダメージを優先し、未受理の要求だけを再送する。
 	if (reaction.IsDamagePending())
 	{
-		if (current == "damage" || next == "damage") reaction.SetDamagePending(false);
+		if (anim->IsStateActive("damage")) reaction.SetDamagePending(false);
 		else
 		{
 			anim->SetTrigger("Damage");
@@ -505,48 +502,29 @@ void Aracore::UpdateReactionAnimation()
 
 	if (!reaction.IsThreatPending()) return;
 
-	if (current == "Threat" || next == "Threat")
+	if (anim->IsStateActive("Threat"))
 	{
 		reaction.SetThreatPending(false);
 		if (phase.IsWaitingForAnimation())
 		{
 			SoundSystem::Instance().Play("SE/Threat");
 			phase.AnimationStarted();
-			SpawnPhaseFragments();
+			CrystalPart::Spawn(transform.position + Vector3(0.0f, 3.0f, 0.0f),
+				{0.0f, 7.0f, 0.0f}, 6, 2.5f, 7.0f, 2.0f, this);
+			vmdl->GetRenderer()->PlaySoundSource("DAMAGED");
+			CameraEffectController::Request(0.5f, 0.15f);
 		}
 		return;
 	}
 
-	if (current == "damage" || next == "damage") return;
+	if (anim->IsStateActive("damage")) return;
 	anim->SetTrigger("Threat");
 }
 
 void Aracore::UpdateJumpAnimationLandingHold()
 {
-	if (!anim || anim->GetLayerCount() == 0) return;
-
-	constexpr float landingAnimationTime = 1.082f;
-	auto& layer = anim->GetLayer(0);
-	const auto updateState = [&](int stateIndex, float& time)
-	{
-		if (stateIndex < 0 || stateIndex >= static_cast<int>(layer.states.size())) return;
-		auto& state = layer.states[stateIndex];
-		if (state.name != "Jump") return;
-
-		if (!jump.IsWaitingForLanding() && !death.IsReturning())
-		{
-			if (state.speed == 0.0f) state.speed = 1.0f;
-			return;
-		}
-
-		const float nextTime = time + Game::Time::deltaTime * state.speed;
-		if (time < landingAnimationTime && nextTime < landingAnimationTime) return;
-		time = landingAnimationTime;
-		state.speed = 0.0f;
-	};
-
-	updateState(layer.currentStateIndex, layer.currentTime);
-	updateState(layer.nextStateIndex, layer.nextTime);
+	if (!anim) return;
+	anim->SetStateTimeHold("Jump", 1.082f, jump.IsWaitingForLanding() || death.IsReturning());
 }
 
 void Aracore::UpdateAnimatedModelTransform()
@@ -570,47 +548,9 @@ void Aracore::BeginPhaseChange()
 	navigation.Stop();
 	controller->SetBool("Angry", true);
 
-	if (anim->GetLayerCount() > 0 && anim->GetCurrentStateName() == "Threat")
-		anim->GetLayer(0).currentTime = 0.0f;
+	if (anim->GetCurrentStateName() == "Threat")
+		anim->SetCurrentAnimationTime(0.0f);
 	PlayThreatPresentation();
-}
-
-void Aracore::SpawnPhaseFragments()
-{
-	auto* manager = ActorManager::GetActive();
-	if (!manager || !phase.GetFragmentModel()) return;
-	constexpr int count = 6;
-	constexpr float fragmentWorldSize = 2.5f;
-	const float modelSize = std::max({
-		phase.GetFragmentSize().x,
-		phase.GetFragmentSize().y,
-		phase.GetFragmentSize().z,
-		0.001f,
-	});
-	const float scale = fragmentWorldSize / modelSize;
-
-	for (int i = 0; i < count; ++i)
-	{
-		const float angle = DirectX::XM_2PI * i / count;
-		const Vector3 direction(sinf(angle), 0.0f, cosf(angle));
-		Transform placement;
-		const Vector3 burstCenter = transform.position + Vector3(0.0f, 3.0f, 0.0f);
-		const Vector3 radialOffset = direction * 2.0f;
-		placement.position = burstCenter + radialOffset;
-		placement.scale = Vector3(scale);
-		placement.rotation = Quaternion::CreateFromYawPitchRoll(angle, 0.4f * i, 0.3f * i);
-
-		auto fragment = std::make_shared<CrystalPart>(placement, phase.GetFragmentModel()->CloneRuntimeInstance());
-		manager->Register(fragment);
-
-		const Vector3 outwardVelocity = direction * 7.0f;
-		const Vector3 upwardVelocity(0.0f, 7.0f, 0.0f);
-		const Vector3 angularVelocity(0.8f, 1.2f, 0.6f);
-		fragment->StartMoving(outwardVelocity + upwardVelocity, angularVelocity, this);
-	}
-
-	vmdl->GetRenderer()->PlaySoundSource("DAMAGED");
-	CameraEffectController::Request(0.5f, 0.15f);
 }
 
 void Aracore::UpdateHealthPresentation()
@@ -728,10 +668,9 @@ void Aracore::ShakeCameraAtLanding()
 
 void Aracore::TakeDamage(const DamageData& damageData)
 {
-	DamageData realDMG = damageData;
-	const std::string& state = anim->GetCurrentStateName();
+	if (movieDefeated || defeatMovieRequested) return;
 
-	// とりあえず体力半分になって覚醒したらジャスト回避による必殺技しか効かなくします。
+	// 体力半分になって覚醒したらジャスト回避による必殺技しか効かなくする
 	if (phase.IsAngry())
 	{
 		if (!damageData.specialAttack)
@@ -743,17 +682,13 @@ void Aracore::TakeDamage(const DamageData& damageData)
 		}
 	}
 
-	// 威嚇中はダメージを軽減する
-	if (state == "Threat" || reaction.IsThreatPending())
-	{
-		realDMG.damage *= 0.2f;
-	}
+	if (life <= 0.0f) return;
 
-	if (life - damageData.damage <= 0.0f)
-	{
-		phase.Begin();
-		return;
-	}
+	DamageData realDMG = damageData;
+	const std::string& state = anim->GetCurrentStateName();
+
+	// 威嚇中はダメージを軽減する
+	if (state == "Threat" || reaction.IsThreatPending()) realDMG.damage *= 0.2f;
 
 	Entity::TakeDamage(realDMG);
 }
@@ -824,7 +759,7 @@ void Aracore::OnTriggerEnter(
 	{
 		if (auto crystal = dynamic_cast<Crystal*>(otherActor))
 		{
-			crystal->TakeDamage({.damage = 9999.0f,
+			crystal->TakeDamage({.damage = crystal->GetLife(),
 				.attackerCollider = self,
 				.targetCollider = other,
 				.hitPosition = point,
@@ -839,7 +774,7 @@ void Aracore::OnTriggerEnter(
 		{
 			static_cast<Entity*>(otherActor)
 				->TakeDamage({.damage = 10.0f,
-					.knockBackPower = 10.0f,
+					.knockBackPower = 15.0f,
 					.attackerCollider = self,
 					.targetCollider = other,
 					.hitPosition = point,
@@ -847,7 +782,7 @@ void Aracore::OnTriggerEnter(
 		}
 		else if (auto deer = dynamic_cast<Deer*>(otherActor))
 		{
-			deer->TakeDamage({.damage = 9999.0f, .isForceDamage = true,
+			deer->TakeDamage({.damage = deer->GetLife(), .isForceDamage = true,
 				.attackerCollider = self, .targetCollider = other,
 				.hitPosition = point, .hitNormal = normal});
 		}
@@ -910,6 +845,21 @@ void Aracore::OnDamaged(const DamageData& damageData)
 
 // 死亡演出
 
+void Aracore::RequestDefeatMovie()
+{
+	if (movieDefeated || defeatMovieRequested || life > 0.0f) return;
+	defeatMovieRequested = true;
+}
+
+void Aracore::CompleteDefeatMovie()
+{
+	if (movieDefeated) return;
+	movieDefeated = true;
+	defeatMovieRequested = false;
+	life = 0.0f;
+	OnDead({});
+}
+
 void Aracore::OnDead(const DamageData& damageData)
 {
 	jump.SetAnimationPending(false);
@@ -927,39 +877,23 @@ void Aracore::OnDead(const DamageData& damageData)
 	navigation.Stop();
 	if (navMeshAgent) navMeshAgent->SetMovementPaused(true);
 
-	death.Begin(transform.position, spawnPosition);
 	jump.SetWaitingForLanding(false);
 	knockBackVelocity = Vector3::Zero;
-	if (characterController) characterController->SetUseGravity(false);
-
-	Vector3 direction = death.GetLandingPosition() - death.GetStartPosition();
-	direction.y = 0.0f;
-	if (direction.LengthSquared() > eps)
-	{
-		direction.Normalize();
-		const float targetYaw = atan2f(direction.x, direction.z);
-		transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
-	}
+	if (characterController) characterController->SetActive(false);
 	if (anim)
 	{
-		anim->SetBool("Dead", false);
-		anim->SetFloat("speed", 0.0f);
-		jump.SetAnimationPending(true);
-		if (anim->GetLayerCount() > 0 && anim->GetCurrentStateName() == "Jump" && anim->GetNextStateName().empty())
-		{
-			auto& layer = anim->GetLayer(0);
-			layer.currentTime = 0.0f;
-			layer.states[layer.currentStateIndex].speed = 1.0f;
-			jump.SetAnimationPending(false);
-		}
-		else anim->SetTrigger("Jump");
+		anim->SetBool("Dead", true);
+		anim->SetActive(true);
 	}
-	if (player)
-		player->GetCameraController()->RequestBossDefeatFocus(
-			this, death.GetDuration() + 2.4f);
-	printf("Aracore Dead!\n");
 
+	if (player)
+		if (auto* cameraController = player->GetCameraController())
+			cameraController->RequestBossDefeatFocus(this, 2.4f);
 	SoundSystem::Instance().Play("SE/Dead");
+
+	// 飛び散りますの
+	CrystalPart::Spawn(transform.position + Vector3(0.0f, 10.0f, 0.0f),
+		{0.0f, 7.0f, 0.0f}, 10, 2.5f, 7.0f, 2.0f, this);
 }
 
 void Aracore::UpdateDeathSequence()
@@ -1041,6 +975,7 @@ void Aracore::SetPlayerDetected(bool detected)
 void Aracore::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
+	ImGui::TextUnformatted((const char*)u8"AIパス：Resources/AI/Aracore.lua");
 
 	if (ImGui::Button((const char*)u8"威嚇"))
 	{
@@ -1109,6 +1044,7 @@ void AracoreAINavigation::Stop()
 
 void AracoreAINavigation::Update()
 {
+	PROFILE_FUNCTION();
 	if (animator) animator->SetFloat("speed", speed);
 	agent->SetAngularSpeed(controller->GetFloat("TurnAngularSpeed", 45.0f));
 
@@ -1127,8 +1063,7 @@ void AracoreAINavigation::Update()
 			animator->GetCurrentStateName().starts_with("turn_") || animator->GetNextStateName().starts_with("turn_"));
 
 	const bool ready = IsAnimationReady();
-	const bool dodging = animator->GetCurrentStateName() == "just_dodge" ||
-		animator->GetNextStateName() == "just_dodge";
+	const bool dodging = animator->IsStateActive("just_dodge");
 	const bool rotationPaused = dodging || movement == Movement::Stopped ||
 		movement == Movement::Tossin || (!ready && !turning);
 	controller->SetBool("RotationPaused", rotationPaused);

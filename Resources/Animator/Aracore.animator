@@ -137,7 +137,7 @@
                     "transitionDuration": 0.10000000149011612
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 4,
@@ -151,11 +151,11 @@
                     "exitTime": 1.0,
                     "hasExitTime": false,
                     "isAny": true,
-                    "priority": 1,
+                    "priority": 7,
                     "sourceProgressMax": 1.0,
                     "sourceProgressMin": 0.0,
                     "toStateIndex": 5,
-                    "transitionDuration": 0.10000000149011612
+                    "transitionDuration": 0.0
                 },
                 {
                     "canInterrupt": false,
@@ -521,7 +521,7 @@
                 },
                 {
                     "animationIndex": 3,
-                    "blockAnyStateTransitions": false,
+                    "blockAnyStateTransitions": true,
                     "callbacks": [],
                     "editorPosX": -328.0,
                     "editorPosY": 131.0,
@@ -531,27 +531,7 @@
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
                     "speed": 0.5400000214576721,
-                    "transitions": [
-                        {
-                            "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 5,
-                                    "paramName": "Dead",
-                                    "threshold": 0.0
-                                }
-                            ],
-                            "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
-                            "hasExitTime": false,
-                            "isAny": true,
-                            "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
-                            "toStateIndex": 0,
-                            "transitionDuration": 0.10000000149011612
-                        }
-                    ]
+                    "transitions": []
                 },
                 {
                     "animationIndex": 7,

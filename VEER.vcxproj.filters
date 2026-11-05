@@ -29,9 +29,6 @@
     <ClCompile Include="Source\Audio\SoundSystem.cpp">
       <Filter>Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
-      <Filter>Gameplay\AI</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
       <Filter>Gameplay\AI</Filter>
     </ClCompile>
@@ -167,6 +164,18 @@
     <ClInclude Include="Source\Gameplay\Actor\RigidRock.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Source\UI\EffectWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\AI\LuaScript.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\AI\LuaManager.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Actor\CrystalPart.h">
+      <Filter>Gameplay\Actor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -182,6 +191,15 @@
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Application\SettingsAndDebug\ProfileScope.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Application\SettingsAndDebug\Profiler.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
@@ -212,6 +230,15 @@
       <Filter>Application\Bootstrap</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Application\SettingsAndDebug\ProfileScope.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Application\SettingsAndDebug\Profiler.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
@@ -288,6 +315,9 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp">
       <Filter>Rendering\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\CmdActionUI.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
@@ -657,9 +687,6 @@
     <ClInclude Include="Source\Resource\Texture.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\AI\LuaScript.h">
-      <Filter>Gameplay\AI</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\AI\EnemyAI.h">
       <Filter>Gameplay\AI</Filter>
     </ClInclude>
@@ -686,6 +713,9 @@
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Stage\Component\Terrain.h">
       <Filter>Gameplay\Stage\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\CmdActionUI.h">
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\SpriteWidget.h">
       <Filter>UI</Filter>
@@ -1036,12 +1066,6 @@
     </None>
     <None Include=".gitignore" />
     <None Include="README.md" />
-    <None Include="Resources\AI\Aracore.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="Resources\AI\Deer.lua">
-      <Filter>Lua</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
@@ -1208,6 +1232,18 @@
     <ClCompile Include="Source\Gameplay\Actor\RigidRock.cpp">
       <Filter>Gameplay\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\UI\EffectWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\AI\LuaManager.cpp">
+      <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
+      <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Actor\CrystalPart.cpp">
+      <Filter>Gameplay\Actor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="VMDL">
@@ -1360,5 +1396,32 @@
     <None Include="Source\Rendering\Effect\EffekseerOverride\README.md">
       <Filter>Rendering\Effect\EffekseerOverride</Filter>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="External\TimelineProfiler\Profiler.cpp" />
+    <ClCompile Include="External\TimelineProfiler\ProfilerWindow.cpp" />
+    <ClInclude Include="External\TimelineProfiler\Profiler.h" />
+    <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="Source\Resource\SerialArchive.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClInclude Include="Source\Resource\SerialArchive.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\Application\SettingsAndDebug\SerialViewer.cpp">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClInclude Include="Source\Application\SettingsAndDebug\SerialViewer.h">
+      <Filter>Application\SettingsAndDebug</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Resource\SerialJson.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 // VMDLModelComponent.cpp
 #include "Rendering/Component/VMDLModelComponent.h"
 #include <cstring>
@@ -40,15 +41,6 @@ VMDLModelComponent::VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel>
 	: Component(owner), model(model), shaderId(shaderId), renderParams(std::move(renderParams)),
 	  buildEmbeddedColliders(buildEmbeddedColliders)
 {
-	// エラー用
-	dynamic_cast<Actor*>(owner);
-
-	if (model)
-	{
-		const Matrix placementTransform =
-			Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
-		model->UpdateTransform(placementTransform);
-	}
 }
 
 void VMDLModelComponent::OnAwake()
@@ -60,6 +52,10 @@ void VMDLModelComponent::BuildAttachments()
 {
 	if (attachmentsBuilt || !model) return;
 	attachmentsBuilt = true;
+
+	const Matrix placementTransform =
+		Matrix::CreateTranslation(model->GetVmdlExtensionData().rootOffset);
+	model->UpdateTransform(placementTransform);
 
 	const auto& data = model->GetVmdlExtensionData();
 	attachmentColliders.assign(data.colliders.size(), nullptr);
@@ -172,6 +168,7 @@ bool VMDLModelComponent::PlayParticleEmitter(const std::string& name, bool detac
 	{
 		if (!emitter || ::_stricmp(emitter->GetEmitterName().c_str(), name.c_str()) != 0)
 			continue;
+		emitter->Awake();
 		if (!emitter->IsValid()) continue;
 		emitter->Play(detached);
 		played = true;
@@ -194,6 +191,7 @@ bool VMDLModelComponent::SetParticleEmitterSettings(
 
 void VMDLModelComponent::LateUpdate()
 {
+	PROFILE_FUNCTION();
 	Actor* actor = dynamic_cast<Actor*>(owner);
 
 	if (!model) return;
@@ -265,6 +263,7 @@ void VMDLModelComponent::SyncPointLights()
 
 void VMDLModelComponent::UpdatePresentationEvents()
 {
+	PROFILE_FUNCTION();
 	if (!model) return;
 	const auto& presentation = model->GetVmdlPresentationData();
 	if (presentation.cameraShakeTracks.empty() && presentation.radialBlurTracks.empty()) return;
@@ -351,6 +350,7 @@ void VMDLModelComponent::PlayPresentationEvents(
 
 void VMDLModelComponent::UpdateSoundEvents()
 {
+	PROFILE_FUNCTION();
 	if (!model) return;
 	const auto& soundData = model->GetVmdlSoundData();
 	for (auto event = activeSoundEvents.begin(); event != activeSoundEvents.end();)
@@ -550,6 +550,7 @@ bool VMDLModelComponent::PlayPresentation(
 
 void VMDLModelComponent::UpdateModelTransform(const Matrix& actorTransform)
 {
+	PROFILE_FUNCTION();
 	if (!model) return;
 	const Matrix placementTransform =
 		Matrix::CreateRotationY(modelYawOffset) *
@@ -642,6 +643,7 @@ void VMDLModelComponent::RestoreAnimationControls()
 
 void VMDLModelComponent::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	if (model)
 	{
 		animatedRenderParams = renderParams;

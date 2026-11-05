@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 
 #include "Gameplay/Actor/Actor.h"
@@ -22,6 +23,7 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 
 void NavMeshAgent::Update()
 {
+	PROFILE_FUNCTION();
 	lastMoveDelta = Vector3::Zero;
 
 	Actor* actor = dynamic_cast<Actor*>(owner);

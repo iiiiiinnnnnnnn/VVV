@@ -23,8 +23,7 @@ public:
 
   private:
 	void BreakCrystalOnContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal);
-	void OnInit() override;
-	void OnUninit() override;
+	void OnAwake() override;
 	void ConfigureAI();
 	void StopCharge();
 	void OnDamaged(const DamageData& damageData) override;

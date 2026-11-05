@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 // MultiLegFootIK.cpp
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
@@ -13,6 +14,7 @@ MultiLegFootIK::MultiLegFootIK(Object* owner, LayerId layerId, VMDLModel* model,
 
 void MultiLegFootIK::LateUpdate()
 {
+	PROFILE_FUNCTION();
 	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
 	if (!model) return;
 

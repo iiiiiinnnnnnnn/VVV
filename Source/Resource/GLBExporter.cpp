@@ -93,8 +93,14 @@ bool VMDLModel::ExportGlb(const std::filesystem::path& filepath, std::string* er
 			if (material.alphaMode == AlphaMode::Mask) output["alphaCutoff"] = material.alphaCutoff;
 			int texture = addTexture(material.baseTextureDDS);
 			if (texture >= 0) pbr["baseColorTexture"] = {{"index", texture}};
-			texture = addTexture(material.metalnessRoughnessTextureDDS);
+			texture = addTexture(PackMetalnessRoughnessTexture(material));
 			if (texture >= 0) pbr["metallicRoughnessTexture"] = {{"index", texture}};
+			if (material.hasMetalnessTexture || material.hasRoughnessTexture ||
+				!material.metalnessTextureDDS.empty() || !material.roughnessTextureDDS.empty())
+			{
+				pbr["metallicFactor"] = 1.0f;
+				pbr["roughnessFactor"] = 1.0f;
+			}
 			texture = addTexture(material.normalTextureDDS);
 			if (texture >= 0) output["normalTexture"] = {{"index", texture}};
 			texture = addTexture(material.emissiveTextureDDS);

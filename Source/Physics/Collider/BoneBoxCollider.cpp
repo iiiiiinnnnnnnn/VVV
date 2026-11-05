@@ -9,7 +9,6 @@ BoneBoxCollider::BoneBoxCollider(Object* owner, LayerId layerId, VMDLModel* mode
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , size(size)
 {
-    InitializeShape();
 }
 
 PxShape* BoneBoxCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const

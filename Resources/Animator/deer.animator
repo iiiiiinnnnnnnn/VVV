@@ -47,6 +47,34 @@
                     "transitionDuration": 0.05000000074505806
                 },
                 {
+                    "canInterrupt": true,
+                    "conditions": [
+                        {
+                            "mode": 0,
+                            "paramName": "speed",
+                            "threshold": 3.0
+                        },
+                        {
+                            "mode": 5,
+                            "paramName": "ready",
+                            "threshold": 0.0
+                        }
+                    ],
+                    "excludedFromStateIndices": [
+                        2,
+                        4,
+                        7
+                    ],
+                    "exitTime": 1.0,
+                    "hasExitTime": false,
+                    "isAny": true,
+                    "priority": 0,
+                    "sourceProgressMax": 1.0,
+                    "sourceProgressMin": 0.0,
+                    "toStateIndex": 4,
+                    "transitionDuration": 0.10000000149011612
+                },
+                {
                     "canInterrupt": false,
                     "conditions": [
                         {

@@ -1,4 +1,5 @@
-﻿#include "Gameplay/Actor/Actor.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Gameplay/Actor/Actor.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 
@@ -14,6 +15,7 @@ Actor::~Actor()
 
 void Actor::Uninit()
 {
+	PROFILE_FUNCTION();
 	if (uninitialized) return;
 	uninitialized = true;
 	if (components.empty()) Object::Destroy();
@@ -24,13 +26,14 @@ void Actor::Uninit()
 	while (!components.empty()) components.pop_back();
 }
 
-void Actor::Init()
+void Actor::Awake()
 {
+	PROFILE_FUNCTION();
 	if (initialized || uninitialized) return;
 	initialized = true;
 	try
 	{
-		OnInit();
+		Object::Awake();
 	}
 	catch (...)
 	{
@@ -63,6 +66,7 @@ void Actor::Destroy(float delay)
 }
 void Actor::Update()
 {
+	PROFILE_FUNCTION();
 	if (!IsActive()) return;
 	hitstop = GetComponent<ActorHitstopComponent>();
 	hitstopThisFrame = hitstop && hitstop->IsStopping();
@@ -144,4 +148,28 @@ void Actor::DrawGUI(bool selected)
         }
     }
     ImGui::PopID();
+}
+
+void Actor::DrawInspector()
+{
+	ImGui::PushID(this);
+	DrawBasicInspector();
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	const auto changed = transform.DrawGUI();
+	if (changed.positionChanged)
+	{
+		if (auto* rigidbody = GetComponent<Rigidbody>())
+		{
+			if (auto* dynamicBody = dynamic_cast<RigidbodyDynamic*>(rigidbody))
+				dynamicBody->SetVelocity(Vector3::Zero);
+			rigidbody->SetPosition(transform.position);
+		}
+		if (auto* controller = GetComponent<CharacterController>()) controller->SetPosition(transform.position);
+	}
+	if (changed.rotationChanged)
+		if (auto* rigidbody = GetComponent<Rigidbody>()) rigidbody->SetRotation(transform.rotation);
+
+	if (ImGui::CollapsingHeader((const char*)u8"ユーザーパラメーター", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	DrawComponentInspector();
+	ImGui::PopID();
 }

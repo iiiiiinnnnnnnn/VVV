@@ -5,10 +5,11 @@
 // マテリアルテクスチャ (slot 0〜4)
 Texture2D baseMap : register(t0); // アルベド (sRGB)
 Texture2D normalMap : register(t1); // 法線マップ (linear)
-Texture2D metalnessRoughnessMap : register(t2); // G=roughness, B=metalness (linear)
 Texture2D occlusionMap : register(t3); // AO (linear)
 Texture2D emissiveMap : register(t4); // エミッシブ (sRGB)
 Texture2D transmissionBackground : register(t5);
+Texture2D metalnessMap : register(t2); // R (linear)
+Texture2D roughnessMap : register(t6); // R (linear)
 
 SamplerState linearSampler : register(s0);
 SamplerState materialSampler : register(s2);
@@ -130,20 +131,15 @@ float4 main(VS_OUT pin) : SV_TARGET
     float finalMetalness = clamp(metalness, 0.0f, 1.0f);
     float finalRoughness = clamp(roughness, 0.0001f, 1.0f);
 
-    if (useMetalnessTexture != 0 || useRoughnessTexture != 0)
+    if (useRoughnessTexture != 0)
     {
-        // glTF系は G = roughness, B = metalness
-        float2 mrSample = metalnessRoughnessMap.Sample(materialSampler, pin.texcoord).gb;
-
-        if (useRoughnessTexture != 0)
-        {
-            finalRoughness = clamp(mrSample.x, 0.0001f, 1.0f);
-        }
-
-        if (useMetalnessTexture != 0)
-        {
-            finalMetalness = clamp(mrSample.y, 0.0f, 1.0f);
-        }
+        float value = roughnessMap.Sample(materialSampler, pin.texcoord).r;
+        finalRoughness = clamp(value, 0.0001f, 1.0f);
+    }
+    if (useMetalnessTexture != 0)
+    {
+        float value = metalnessMap.Sample(materialSampler, pin.texcoord).r;
+        finalMetalness = saturate(value);
     }
 
     float finalAO = clamp(occlusion, 0.0f, 1.0f);

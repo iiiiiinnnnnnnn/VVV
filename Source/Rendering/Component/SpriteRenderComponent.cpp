@@ -12,8 +12,6 @@ SpriteRenderComponent::SpriteRenderComponent(
 	: Component(owner), texture(texture), shaderId(shaderId), color(color),
 	renderParams(std::move(renderParams))
 {
-	// エラー用
-	dynamic_cast<Widget*>(owner);
 }
 
 void SpriteRenderComponent::Update()

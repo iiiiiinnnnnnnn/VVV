@@ -1,16 +1,21 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Scene/TestPlayScene.h"
 
 #include <algorithm>
 
 #include "Application/Time/GameTime.h"
+#include "Application/Input/Input.h"
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/MovieCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Player/LocalPlayer.h"
+#include "Gameplay/Player/LocalPlayerInput.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TitleScene.h"
+#include "Gameplay/Scene/TimeScaleController.h"
+#include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/BossBar.h"
@@ -21,11 +26,14 @@
 #include "Gameplay/Actor/Crystal.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "UI/WidgetShadow.h"
+#include "UI/CmdActionUI.h"
+#include "Physics/Collider/CharacterController.h"
 
 TestPlayScene::TestPlayScene() = default;
 
 void TestPlayScene::OnInit()
 {
+	PROFILE_FUNCTION();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.SetBorderlessFullscreen(true);
 	graphics.SetWindowMovementLocked(true);
@@ -35,8 +43,9 @@ void TestPlayScene::OnInit()
 	const float screenHeight = Game::Graphics::ScreenHeight;
 
 	player = std::make_shared<LocalPlayer>();
-	player->Init();
+	player->Awake();
 	currentStage = std::make_unique<Stage01>(player.get());
+	currentStage->Awake();
 
 	Stage& stage = *currentStage;
 	ActorManager& actorManager = stage.GetActorManager();
@@ -61,6 +70,18 @@ void TestPlayScene::OnInit()
 	gameHud->AddChild(playerHudGroup);
 	gameHud->AddChild(bossHudGroup);
 
+	// ジャスト回避したときのボタン
+	cmdBtnWidget = std::make_shared<CmdActionUI>(
+		CmdActionUI::ActionBtns::B, player.get(), camera);
+	gameHud->AddChild(cmdBtnWidget);
+	
+	// ムービー用
+	movieCmdWidget =
+		std::make_shared<CmdActionUI>(CmdActionUI::ActionBtns::B, player.get(), camera, Vector2{140, 140});
+	movieCmdWidget->SetName("Movie QTE");
+	movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
+	widgetManager.Register(movieCmdWidget);
+
 	playerHealthGauge = std::make_shared<GaugeHUD>("Player Health Gauge");
 	playerHealthGauge->SetFrameTexture("Resources/UI/window.png");
 	playerHealthGauge->SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
@@ -70,6 +91,7 @@ void TestPlayScene::OnInit()
 	playerHealthGauge->SetValueSmoothingSpeed(4.5f);
 	playerHudGroup->AddChild(playerHealthGauge);
 
+	// ボスバー
 	bossBar = std::make_shared<BossBar>();
 	bossHudGroup->AddChild(bossBar);
 	widgetManager.Register(gameHud);
@@ -106,8 +128,11 @@ void TestPlayScene::OnInit()
 					 u8"[4] プレイヤーボスの間にTP\r\n"
 					 u8"[5] プレイヤーにダメージ\r\n"
 					 u8"[6] プレイヤーを回復\r\n"
-					 u8"[7] すべての敵をキル\r\n"
+					 u8"[7] すべての敵に致死ダメージ\r\n"
 					 u8"[8] 現在のシーンをリロード\r\n"
+					 u8"[9] 空中浮遊\r\n"
+					 u8"[F] フォグを表示/非表示\r\n"
+					 u8"[G] 草マップを表示/非表示\r\n"
 					 u8"\r\n"
 					 u8"[ゲーム内エディタ操作]\r\n"
 					 u8"[F1] カーソルをロック/解除\r\n"
@@ -120,7 +145,7 @@ void TestPlayScene::OnInit()
 		25.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(
 		Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
-	developText->rect.position = {1414.400f, 113.000f};
+	developText->rect.position = {1414.1f, 100.0f};
 	developText->rect.size = {499.200f, 864.000f};
 	developText->rect.anchor = Vector2::Zero;
 	widgetManager.Register(developText);
@@ -134,8 +159,8 @@ TestPlayScene::~TestPlayScene()
 
 void TestPlayScene::OnUninit()
 {
+	if (movieCmdWidget) movieCmdWidget->ResetPrompt();
 	if (movieCamera) movieCamera->End();
-	movieCamera = nullptr;
 	Game::Time::paused = false;
 	SoundSystem::Instance().SetPaused(false);
 	if (currentStage)
@@ -147,17 +172,16 @@ void TestPlayScene::OnUninit()
 		}
 	}
 	Game::Graphics::Instance().SetWindowMovementLocked(false);
-	player.reset();
-	gameHud.reset();
-	playerHudGroup.reset();
-	bossHudGroup.reset();
-	playerHealthGauge.reset();
-	bossBar.reset();
-	thirdPersonCamera = nullptr;
-	pauseMenu = nullptr;
-#ifndef _RELEASE
-	developText.reset();
-#endif
+}
+
+void TestPlayScene::OnMovieQteResult(bool success)
+{
+	// キーン
+	if (success) SoundSystem::Instance().Play("SE/Player/pl_justdodge");
+	// QTEの確定結果をシーン側で受け取り、表示やゲーム固有の演出を行う。
+	if (!movieCmdWidget) return;
+	movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
+	if (success) movieCmdWidget->PlaySuccess();
 }
 
 void TestPlayScene::OnPauseChanged(bool paused)
@@ -191,19 +215,42 @@ bool TestPlayScene::ShouldUpdateWorld() const
 
 void TestPlayScene::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	moviePreviewTransition = false;
-#ifndef _RELEASE
-	if (movieCamera && ImGui::IsKeyPressed(ImGuiKey_F6, false) && (!pauseMenu || !pauseMenu->IsPaused()))
+	if (movieCmdWidget && (!movieCamera || !movieCamera->IsEditing())) movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
+	if (movieCamera && !movieCamera->IsEditing() && currentStage && player &&
+		(!pauseMenu || !pauseMenu->IsPaused()))
 	{
+		for (Actor* actor : currentStage->GetActorManager().GetActors())
+		{
+			auto* boss = dynamic_cast<Aracore*>(actor);
+			if (!boss || !boss->IsActive() || boss->IsPendingDestroy() || !boss->IsDefeatMovieRequested()) continue;
+			boss->ClearDefeatMovieRequest();
+			if (movieCamera->BeginPlayback(*currentStage, *player, *boss, postProcess))
+			{
+				movieBoss = boss;
+				if (movieCmdWidget) movieCmdWidget->ResetPrompt();
+				if (gameHud) gameHud->SetActive(false);
+#ifndef _RELEASE
+				if (developText) developText->SetActive(false);
+#endif
+				if (pauseMenu) pauseMenu->SetCanPause(false);
+				return;
+			}
+			break;
+		}
+	}
+#ifndef _RELEASE
+	if (movieCamera && !movieCamera->IsPlayback() && ImGui::IsKeyPressed(ImGuiKey_F6, false) && (!pauseMenu || !pauseMenu->IsPaused()))
+	{
+		if (movieCmdWidget) movieCmdWidget->ResetPrompt();
 		if (movieCamera->IsEditing()) movieCamera->End();
 		else if (currentStage && player)
 		{
 			Actor* boss = nullptr;
 			for (Actor* actor : currentStage->GetActorManager().GetActors())
 				if (dynamic_cast<Aracore*>(actor) && !actor->IsPendingDestroy()) { boss = actor; break; }
-			if (!movieCamera->Begin(*currentStage, *player, boss, postProcess))
-				MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-					Utf8ToWide(movieCamera->GetMessage()).c_str(), L"Movie camera", MB_OK | MB_ICONERROR);
+			movieCamera->Begin(*currentStage, *player, boss, postProcess);
 		}
 		if (gameHud) gameHud->SetActive(!movieCamera->IsEditing());
 		if (developText) developText->SetActive(!movieCamera->IsEditing() && showDevelopText);
@@ -214,7 +261,26 @@ void TestPlayScene::OnUpdate()
 #endif
 	if (movieCamera && movieCamera->IsEditing())
 	{
-		movieCamera->Tick();
+		auto* input = player->GetComponent<LocalPlayerInput>();
+		const bool qtePressed = input && input->PollAttackButton();
+		movieCamera->Tick(qtePressed);
+		if (movieCmdWidget)
+		{
+			const float scale = std::max(Game::Time::scale, 0.01f);
+			movieCmdWidget->SetExternalPrompt(movieCamera->GetQteRemaining() / scale,
+				movieCamera->GetQteDuration() / scale);
+		}
+		const auto qteResult = movieCamera->ConsumeQteResult();
+		if (qteResult != MovieCameraController::QteResult::None)
+			OnMovieQteResult(qteResult == MovieCameraController::QteResult::Success);
+		if (!movieCamera->IsEditing() && movieBoss)
+		{
+			player->FinishMovie();
+			TimeScaleController::CancelAll();
+			PostProcessController::Instance().Reset();
+			if (movieCamera->GetPlaybackResult() > 0) movieBoss->CompleteDefeatMovie();
+			movieBoss = nullptr;
+		}
 		moviePreviewTransition = !movieCamera->IsEditing();
 		if (gameHud) gameHud->SetActive(!movieCamera->IsEditing());
 #ifndef _RELEASE
@@ -287,6 +353,13 @@ void TestPlayScene::OnUpdate()
 		{
 			if (ImGui::Button("ReloadScene")) SceneManager::Instance().LoadScene<TestPlayScene>();
 		}
+		if (ImGui::IsKeyDown(ImGuiKey_9))
+		{
+			if (auto c = player->GetComponent<CharacterController>())
+			{
+				c->Move({0, 50.0f * Game::Time::deltaTime, 0});
+			}
+		}
 	}
 #endif
 
@@ -316,6 +389,7 @@ void TestPlayScene::OnUpdate()
 
 void TestPlayScene::OnDrawGUI()
 {
+	PROFILE_FUNCTION();
 	if (movieCamera && movieCamera->IsEditing()) return;
 	if (ImGui::CollapsingHeader("SceneManager"))
 	{

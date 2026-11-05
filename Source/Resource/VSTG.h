@@ -1,6 +1,8 @@
 // VSTG.h
 #pragma once
 
+#include "Resource/SerialArchive.h"
+
 #include "Core\Foundation\Common.h"
 
 class LightManager;
@@ -11,6 +13,7 @@ class Terrain;
 class VSTG
 {
   public:
+	SerialDocument& GetSerialDocument() const;
 	bool Load(const std::filesystem::path& path);
 	bool Save(const std::filesystem::path& path) const;
 	bool ApplyLighting(LightManager& lights) const;
@@ -24,6 +27,8 @@ class VSTG
 	const std::string& GetError() const { return error; }
 
   private:
+	bool LoadGokan(std::istream& stream);
+	mutable std::shared_ptr<SerialDocument> serialDocument;
 	std::string BuildLightingJson(const LightManager& lights) const;
 	bool ApplyLightingJson(const std::string& text, LightManager& lights) const;
 

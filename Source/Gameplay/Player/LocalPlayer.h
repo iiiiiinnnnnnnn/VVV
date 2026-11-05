@@ -8,5 +8,5 @@ public:
     LocalPlayer();
 
 protected:
-    void OnInit() override;
+    void OnAwake() override;
 };

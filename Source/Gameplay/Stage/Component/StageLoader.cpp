@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Stage.h"
@@ -55,12 +56,16 @@ static void LoadTransformJson(const json& transformJson, Transform& transform)
 StageLoader::StageLoader(Object* owner, Stage* stage, std::filesystem::path jsonPath)
 	: Component(owner), stage(stage), jsonPath(jsonPath)
 {
-	LoadJson();
 }
 
 StageLoader::StageLoader(Object* owner, Stage* stage, const std::string& jsonText, bool fromMemory)
 	: Component(owner), stage(stage), jsonText(jsonText)
 {
+}
+
+void StageLoader::OnAwake()
+{
+	PROFILE_FUNCTION();
 	LoadJson();
 }
 
@@ -432,6 +437,7 @@ void StageLoader::RefreshSelectedEditorObject()
 
 void StageLoader::Update()
 {
+	PROFILE_FUNCTION();
 	for (auto& value : effects) UpdateEffect(value);
 	ApplyWorldWaterData();
 	for (int index = 0; index < static_cast<int>(blockedAreas.size()); ++index)
@@ -499,7 +505,8 @@ void StageLoader::DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewp
 	if (!camera) return;
 	const Matrix viewProjection = camera->GetView() * camera->GetProjection();
 	const ImVec2 screenOrigin = ImGui::GetMainViewport()->Pos;
-	ImDrawList* drawList = ImGui::GetForegroundDrawList();
+	const Vector2 viewportSize(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList(ImGui::GetMainViewport());
 	drawList->PushClipRect({viewportMin.x, viewportMin.y}, {viewportMax.x, viewportMax.y}, true);
 	for (PropData& prop : propDataList)
 	{
@@ -507,26 +514,21 @@ void StageLoader::DrawSpawnTags(const Vector2& viewportMin, const Vector2& viewp
 		DirectX::BoundingBox bounds;
 		if (!GetPropWorldBounds(prop, bounds)) continue;
 		const Vector3 anchor(bounds.Center.x, bounds.Center.y + bounds.Extents.y, bounds.Center.z);
-		const Vector4 clip = Vector4::Transform(Vector4(anchor.x, anchor.y, anchor.z, 1.0f), viewProjection);
-		if (clip.w <= eps) continue;
-		const float depth = clip.z / clip.w;
-		if (depth < 0.0f || depth > 1.0f) continue;
+		Vector2 screenPosition;
+		if (!WorldToScreen(anchor, viewProjection, viewportSize, screenPosition)) continue;
 		const ImVec2 textSize = ImGui::CalcTextSize(prop.spawnTag.c_str());
 		const ImVec2 position(
-			screenOrigin.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth - textSize.x * 0.5f,
-			screenOrigin.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight - textSize.y - 12.0f);
+			screenOrigin.x + screenPosition.x - textSize.x * 0.5f,
+			screenOrigin.y + screenPosition.y - textSize.y - 12.0f);
 		drawList->AddRectFilled({position.x - 5.0f, position.y - 3.0f},
 			{position.x + textSize.x + 5.0f, position.y + textSize.y + 3.0f}, IM_COL32(0, 0, 0, 170), 4.0f);
 		drawList->AddText(position, IM_COL32(255, 255, 255, 255), prop.spawnTag.c_str());
 	}
 	for (const auto& value : effects)
 	{
-		const Vector4 clip = Vector4::Transform(Vector4(value.transform.position.x,
-			value.transform.position.y, value.transform.position.z, 1.0f), viewProjection);
-		if (clip.w <= eps || clip.z < 0.0f || clip.z > clip.w) continue;
-		const ImVec2 position(
-			screenOrigin.x + (clip.x / clip.w + 1.0f) * 0.5f * Game::Graphics::ScreenWidth,
-			screenOrigin.y + (1.0f - clip.y / clip.w) * 0.5f * Game::Graphics::ScreenHeight);
+		Vector2 screenPosition;
+		if (!WorldToScreen(value.transform.position, viewProjection, viewportSize, screenPosition)) continue;
+		const ImVec2 position(screenOrigin.x + screenPosition.x, screenOrigin.y + screenPosition.y);
 		drawList->AddCircle(position, 10.0f, IM_COL32(100, 220, 255, 255), 16, 2.0f);
 		drawList->AddText({position.x + 14.0f, position.y - 7.0f},
 			IM_COL32(100, 220, 255, 255), value.effectName.c_str());
@@ -667,6 +669,7 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 		spawner->SetFactory([name, path = propData.modelPath](const Transform& transform) {
 			auto actor = std::make_shared<Actor>(name, "Prop", true, transform);
 			auto vmdl = actor->AddComponent<VMDL>(path);
+			vmdl->Awake();
 			vmdl->GetRenderer()->SetAttachmentLayerId(Layers::Get("Prop"));
 			auto* rigidbody = actor->AddComponent<RigidbodyStatic>();
 			actor->AddComponent<MeshCollider>(Layers::Get("Prop"), rigidbody, vmdl->GetSharedModel());
@@ -1206,6 +1209,7 @@ bool StageLoader::DrawPropEditor(int index)
 
 void StageLoader::LoadJson()
 {
+	PROFILE_FUNCTION();
 	error.clear();
 	std::ifstream file;
 	std::istringstream memory(jsonText);
@@ -1344,6 +1348,7 @@ void StageLoader::LoadJson()
 
 void StageLoader::LoadJsonText(const std::string& text)
 {
+	PROFILE_FUNCTION();
 	jsonText = text;
 	jsonPath.clear();
 	LoadJson();

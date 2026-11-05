@@ -1,10 +1,12 @@
 #include "Resource/VSTG.h"
+#include "Resource/SerialJson.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 
 #include <array>
 #include <fstream>
+#include <sstream>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -12,7 +14,6 @@
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Core/Foundation/Json.h"
 
-constexpr uint32_t VstgVersion = 4;
 
 json SaveVector3(const Vector3& value)
 {
@@ -72,24 +73,39 @@ void Write(std::ofstream& stream, const T& value)
 
 bool VSTG::Load(const std::filesystem::path& path)
 {
-	terrainSettingsJson.clear();
-	navMeshSettingsJson.clear();
-	const auto bytes = ResourceManager::Instance().LoadFile(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(path), ResourceManager::ResourceType::Stage));
-	if (!bytes)
+	try
 	{
-		error = "VSTG not found: " + path.generic_string();
-		return false;
+		const auto bytes = ResourceManager::Instance().LoadFile(ResourceManager::Instance().ResolveResourcePath(
+			ResourcePath::Text(path), ResourceManager::ResourceType::Stage));
+		if (!bytes) throw std::runtime_error("VSTG not found: " + path.generic_string());
+		std::istringstream stream(std::string(bytes->begin(), bytes->end()), std::ios::binary);
+		serialDocument.reset();
+		lightingJson.clear(); stageJson.clear(); terrainSettingsJson.clear(); navMeshSettingsJson.clear(); terrainDds.clear();
+		if (!SerialDocument::IsCurrent(stream)) return LoadGokan(stream);
+		serialDocument = std::make_shared<SerialDocument>();
+		serialDocument->Load(stream, "VSTG");
+		auto& root = serialDocument->root;
+		root.understood = true;
+		const auto loadJson = [&](const char* name, std::string& text) {
+			auto* field = root.Find(SerialNode::FieldId(name));
+			if (!field || field->kind == SerialKind::Deleted) return;
+			try { text = ReadSerialJson(*field).dump(); field->understood = true; }
+			catch (const std::exception& exception) { field->error = exception.what(); }
+		};
+		loadJson("lighting", lightingJson);
+		loadJson("stage", stageJson);
+		loadJson("terrainSettings", terrainSettingsJson);
+		loadJson("navigationSettings", navMeshSettingsJson);
+		SerialInputArchive archive(root);
+		archive(CEREAL_NVP(terrainDds));
+		error.clear();
+		return true;
 	}
-	class MemoryBuffer : public std::streambuf
-	{
-	public:
-		MemoryBuffer(const std::vector<uint8_t>& data)
-		{
-			auto begin = const_cast<char*>(reinterpret_cast<const char*>(data.data()));
-			if (!data.empty()) setg(begin, begin, begin + data.size());
-		}
-	} buffer(*bytes);
-	std::istream stream(&buffer);
+	catch (const std::exception& exception) { error = exception.what(); return false; }
+}
+
+bool VSTG::LoadGokan(std::istream& stream)
+{
 	char magic[4]{};
 	uint32_t version = 0;
 	uint64_t lightingSize = 0;
@@ -101,13 +117,16 @@ bool VSTG::Load(const std::filesystem::path& path)
 	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) ||
 		!Read(stream, terrainSize) || !Read(stream, terrainSettingsSize) ||
 		!Read(stream, navMeshSettingsSize) || std::string(magic, sizeof(magic)) != "VSTG" ||
-		version != VstgVersion)
+		version != 4)
 	{
 		error = "Invalid VSTG header.";
 		return false;
 	}
 
-	const uint64_t fileSize = static_cast<uint64_t>(bytes->size());
+	const auto payloadStart = stream.tellg();
+	stream.seekg(0, std::ios::end);
+	const uint64_t fileSize = static_cast<uint64_t>(stream.tellg());
+	stream.seekg(payloadStart);
 	const uint64_t headerSize =
 		sizeof(magic) + sizeof(version) +
 		sizeof(lightingSize) + sizeof(stageSize) + sizeof(terrainSize) +
@@ -163,42 +182,30 @@ bool VSTG::Load(const std::filesystem::path& path)
 	return true;
 }
 
+SerialDocument& VSTG::GetSerialDocument() const
+{
+	if (!serialDocument) serialDocument = std::make_shared<SerialDocument>();
+	else if (serialDocument.use_count() > 1) serialDocument = std::make_shared<SerialDocument>(*serialDocument);
+	auto& document = *serialDocument;
+	document.type = "VSTG";
+	document.root.name = "VSTG";
+	document.root.understood = true;
+	const auto writeJson = [&](const char* name, const std::string& text) {
+		if (!text.empty()) WriteSerialJson(document.root.Field(name), json::parse(text));
+	};
+	writeJson("lighting", lightingJson);
+	writeJson("stage", stageJson);
+	writeJson("terrainSettings", terrainSettingsJson);
+	writeJson("navigationSettings", navMeshSettingsJson);
+	SerialOutputArchive archive(document.root);
+	archive(CEREAL_NVP(terrainDds));
+	return document;
+}
+
 bool VSTG::Save(const std::filesystem::path& path) const
 {
-	std::error_code directoryError;
-	if (!path.parent_path().empty())
-		std::filesystem::create_directories(path.parent_path(), directoryError);
-	if (directoryError)
-	{
-		error = "VSTG directory could not be created.";
-		return false;
-	}
-	std::ofstream stream(path, std::ios::binary);
-	if (!stream)
-	{
-		error = "VSTG could not be opened for writing.";
-		return false;
-	}
-	stream.write("VSTG", 4);
-	Write(stream, VstgVersion);
-	const uint64_t lightingSize = lightingJson.size();
-	const uint64_t stageSize = stageJson.size();
-	const uint64_t terrainSize = terrainDds.size();
-	const uint64_t terrainSettingsSize = terrainSettingsJson.size();
-	const uint64_t navMeshSettingsSize = navMeshSettingsJson.size();
-	Write(stream, lightingSize);
-	Write(stream, stageSize);
-	Write(stream, terrainSize);
-	Write(stream, terrainSettingsSize);
-	Write(stream, navMeshSettingsSize);
-	stream.write(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
-	stream.write(stageJson.data(), static_cast<std::streamsize>(stageSize));
-	stream.write(reinterpret_cast<const char*>(terrainDds.data()),
-		static_cast<std::streamsize>(terrainSize));
-	stream.write(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
-	stream.write(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
-	error = stream ? "" : "VSTG write failed.";
-	return static_cast<bool>(stream);
+	try { GetSerialDocument().Save(path); error.clear(); return true; }
+	catch (const std::exception& exception) { error = exception.what(); return false; }
 }
 
 bool VSTG::Capture(
@@ -220,28 +227,28 @@ bool VSTG::Capture(
 bool VSTG::Apply(
 	Terrain& terrain, NavMeshActor& navMesh, StageLoader& stageLoader, LightManager& lights) const
 {
-	if (!terrain.LoadSettingsJson(terrainSettingsJson))
+	if (!terrainSettingsJson.empty() && !terrain.LoadSettingsJson(terrainSettingsJson))
 	{
 		error = "Terrain settings could not be applied.";
 		return false;
 	}
-	if (!terrain.LoadTerrainMemory(terrainDds))
+	if (!terrainDds.empty() && !terrain.LoadTerrainMemory(terrainDds))
 	{
 		error = "Terrain data could not be applied.";
 		return false;
 	}
-	if (!navMesh.LoadSettingsJson(navMeshSettingsJson))
+	if (!navMeshSettingsJson.empty() && !navMesh.LoadSettingsJson(navMeshSettingsJson))
 	{
 		error = "NavMesh settings could not be applied.";
 		return false;
 	}
-	stageLoader.LoadJsonText(stageJson);
+	if (!stageJson.empty()) stageLoader.LoadJsonText(stageJson);
 	if (!stageLoader.GetError().empty())
 	{
 		error = stageLoader.GetError();
 		return false;
 	}
-	if (!ApplyLightingJson(lightingJson, lights))
+	if (!lightingJson.empty() && !ApplyLightingJson(lightingJson, lights))
 	{
 		error = "Lighting settings could not be applied.";
 		return false;

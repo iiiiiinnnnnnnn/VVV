@@ -10,6 +10,7 @@ class Camera : public Component
 {
 public:
 	Camera(Object* owner, int priority = 0);
+	void OnAwake() override;
 
 	void OnDrawGUI() override
 	{
@@ -64,6 +65,7 @@ private:
 	void SyncTransform() const;
 	mutable Vector3 transformPosition;
 	mutable Quaternion transformRotation;
+	bool viewConfigured = false;
 	float focusDistance = 5.0f;
 	mutable Matrix view;
 	Matrix		projection;

@@ -12,9 +12,10 @@ RigidRock::~RigidRock() {
 	Uninit();
 }
 
-void RigidRock::OnInit()
+void RigidRock::OnAwake()
 {
 	vmdl = AddComponent<VMDL>(modelPath, false);
+	vmdl->Awake();
 	vmdl->GetRenderer()->SetAttachmentLayerId(Layers::Get("Prop"));
 	auto* rigidbody = AddComponent<RigidbodyDynamic>();
 	rigidbody->SetMaxDepenetrationVelocity(1.0f);
@@ -27,9 +28,4 @@ void RigidRock::OnInit()
 		if (layer < EditableLayerCount) ignoredLayers |= 1u << layer;
 	}
 	collider->SetSimulationIgnoredLayers(ignoredLayers);
-}
-
-void RigidRock::OnUninit()
-{
-	modelPath.clear();
 }

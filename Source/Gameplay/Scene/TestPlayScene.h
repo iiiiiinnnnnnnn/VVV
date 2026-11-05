@@ -11,6 +11,8 @@ class GaugeHUD;
 class WidgetGroup;
 class PauseMenu;
 class MovieCameraController;
+class Aracore;
+class CmdActionUI;
 
 class TestPlayScene : public Scene
 {
@@ -33,6 +35,7 @@ protected:
 	void OnUninit() override;
 
 private:
+	void OnMovieQteResult(bool success);
 	void OnPauseChanged(bool paused);
 	void ReturnToTitle();
 	bool ShouldUpdateWorld() const override;
@@ -46,10 +49,13 @@ private:
 	std::shared_ptr<WidgetGroup> bossHudGroup;
 	std::shared_ptr<GaugeHUD> playerHealthGauge;
 	std::shared_ptr<BossBar> bossBar;
+	std::shared_ptr<CmdActionUI> cmdBtnWidget;
+	std::shared_ptr<CmdActionUI> movieCmdWidget;
 	ThirdPersonCameraController* thirdPersonCamera = nullptr;
 	PauseMenu* pauseMenu = nullptr;
 	MovieCameraController* movieCamera = nullptr;
 	bool moviePreviewTransition = false;
+	Aracore* movieBoss = nullptr;
 
 	bool showDevelopText = true;
 };

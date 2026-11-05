@@ -16,6 +16,11 @@ PauseMenu::PauseMenu(PauseChangedCallback pauseChanged, ReturnToTitleCallback re
 	: WidgetGroup("HUD / Pause Menu"), pauseChanged(std::move(pauseChanged)),
 	  returnToTitle(std::move(returnToTitle))
 {
+}
+
+void PauseMenu::OnAwake()
+{
+	WidgetGroup::OnAwake();
 	dimmer = std::make_shared<Widget>("Background Dimmer");
 	dimmer->AddComponent<SpriteRenderComponent>(
 		std::make_shared<Texture>(Color(1, 1, 1, 1)), SpriteShaderId::Basic,

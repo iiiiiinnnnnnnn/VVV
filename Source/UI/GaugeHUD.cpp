@@ -11,15 +11,23 @@
 #include "Resource/Texture.h"
 
 GaugeHUD::GaugeHUD(const std::string& name, bool revealOnStart)
-	: DissolveWidget(name), fillTexture(ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png")),
-	  revealing(revealOnStart)
+	: DissolveWidget(name), revealing(revealOnStart)
 {
 	SetDissolveAmount(revealOnStart ? 1.0f : 0.0f);
 	SetAffectedByPostProcess(false);
 }
 
+void GaugeHUD::OnAwake()
+{
+	DissolveWidget::OnAwake();
+	fillTexture = ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png");
+	if (!frameTexturePath.empty()) SetFrameTexture(frameTexturePath);
+}
+
 void GaugeHUD::SetFrameTexture(const std::string& path)
 {
+	frameTexturePath = path;
+	if (!isAwake && !isAwaking) return;
 	frameTexture = ResourceManager::Instance().LoadTexture(path);
 }
 

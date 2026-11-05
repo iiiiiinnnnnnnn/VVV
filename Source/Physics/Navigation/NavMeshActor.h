@@ -14,6 +14,7 @@ struct RenderContext;
 class NavMeshActor : public Component
 {
   public:
+	void OnAwake() override;
 	NavMeshActor(Object* owner);
 	~NavMeshActor() override;
 

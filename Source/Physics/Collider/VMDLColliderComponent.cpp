@@ -22,8 +22,13 @@ VMDLColliderComponent::VMDLColliderComponent(Object* owner, LayerId layerId, VMD
 	bool isTrigger)
 	: PhysicsComponent(owner, layerId), model(model), nodeIndex(nodeIndex), shapeType(shapeType),
 	  size(size), offset(offset), isTrigger(isTrigger),
-	  material(material ? material : PhysicsManager::Instance().GetDefaultMaterial())
+	  material(material)
 {
+}
+
+void VMDLColliderComponent::OnAwake()
+{
+	if (!material) material = PhysicsManager::Instance().GetDefaultMaterial();
 	_ASSERT_EXPR(model != nullptr, L"requires model.");
 	_ASSERT_EXPR(nodeIndex >= 0, L"invalid nodeIndex.");
 	_ASSERT_EXPR(model && nodeIndex < static_cast<int>(model->GetNodes().size()),

@@ -12,6 +12,7 @@ class Button;
 class PauseMenu : public WidgetGroup
 {
 public:
+	void OnAwake() override;
 	using PauseChangedCallback = std::function<void(bool)>;
 	using ReturnToTitleCallback = std::function<void()>;
 

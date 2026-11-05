@@ -17,6 +17,7 @@
 
 struct RenderContext;
 class Effect;
+class Camera;
 class Object;
 
 // エフェクトマネージャー
@@ -41,15 +42,17 @@ public:
 	void Finalize();
 
 	// 更新処理
-	void Update();
+	void Update(const Camera* camera = nullptr);
 
 	// 描画処理
 	void Render(const RenderContext& rc);
+	void Render2D(const RenderContext& rc, bool affectedByPostProcess);
 	static Matrix CreateBillboardTransform(const Matrix& source, const Matrix& view);
 
 	// 再生元とは独立したObjectとしてエフェクトを再生
-	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform,
-		bool billboard = false);
+	Effekseer::Handle PlayDetached(const std::shared_ptr<Effect>& effect, const Matrix& transform, bool billboard = false);
+	Effekseer::Handle Play2D(const std::shared_ptr<Effect>& effect, const Vector2& screenPosition,
+		float scale = 1.0f, bool affectedByPostProcess = false);
 	std::shared_ptr<Effect> LoadEffect(std::string_view path);
 	static std::vector<std::string> GetEffectPaths();
 
@@ -85,6 +88,7 @@ private:
 		Effekseer::Handle handle = -1;
 		Matrix transform = Matrix::Identity;
 		bool billboard = false;
+		int layer = 0; // 0 => 3D, 1 => 2D (affected by post process), 2 => 2D (not affected by post process)
 	};
 
 	Effekseer::ManagerRef effekseerManager = nullptr;

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
 
 #include <algorithm>
@@ -34,6 +35,7 @@ TerrainGrassRenderer::TerrainGrassRenderer(ID3D11Device* device) : device(device
 
 void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& settings)
 {
+	PROFILE_FUNCTION();
 	vertexBuffer.Reset();
 	tuftCount = 0;
 	if (!device) return;
@@ -95,6 +97,7 @@ void TerrainGrassRenderer::Render(
 	const RenderContext& rc, const Matrix& world, const Settings& settings,
 	ID3D11ShaderResourceView* terrainDataView, float terrainSize)
 {
+	PROFILE_FUNCTION();
 	if (tuftCount <= 0) return;
 	if (!vertexBuffer || !constantBuffer) return;
 	if (!rc.camera || !rc.deviceContext || !rc.renderState) return;

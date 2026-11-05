@@ -17,8 +17,7 @@ public:
 		const WaterRenderer::Settings& settings);
 
 private:
-	void OnInit() override;
-	void OnUninit() override { renderer = nullptr; }
+	void OnAwake() override;
 	WaterRenderer::Settings settings;
 	WaterRenderer* renderer = nullptr;
 };

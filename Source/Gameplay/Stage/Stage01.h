@@ -11,6 +11,7 @@ class Player;
 class Stage01 : public Stage
 {
 public:
+	void OnAwake() override;
 	Stage01(Player* player);
 	~Stage01() override;
 	void Update() override;
@@ -24,7 +25,7 @@ private:
 	{
 	public:
 		bool IsPlaying() const;
-		void Update(bool engaged, float life);
+		void Update(bool engaged, float life, bool threatening);
 		void Stop();
 		void SetFadeInSeconds(float value) { fadeInSeconds = value; }
 		void SetFadeOutSeconds(float value) { fadeOutSeconds = value; }
@@ -33,8 +34,8 @@ private:
 
 	private:
 		SoundSystem::VoiceId voiceId = SoundSystem::InvalidVoiceId;
-		bool playingLastTime = false;
 		float volume = 0.0f;
+		float retryRemaining = 0.0f;
 		float fadeInSeconds = 1.0f;
 		float fadeOutSeconds = 1.5f;
 	};
@@ -60,6 +61,7 @@ private:
 	float fogDriftSpeed = 0.12f;
 	Color fogColor = {0.72f, 0.78f, 0.82f, 0.025f};
 	bool fogPrewarmed = false;
+	bool aracoreThreating = false;
 
 	ChaseAudio chaseAudio;
 	SoundSystem::VoiceId bgmId = SoundSystem::InvalidVoiceId;

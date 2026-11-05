@@ -8,15 +8,15 @@
 BossBar::BossBar() : GaugeHUD("Boss Bar", false)
 {
 	rect.position = {Game::Graphics::ScreenWidth / 2.0f, 37.800f};
-	rect.size = {819.000f, 57.720f};
-	rect.anchor = {0.5f, 0.0f};
 	SetFrameTexture("Resources/UI/window.png");
 	SetDissolveMask("Resources/UI/dissolve_animation.png");
+	rect.size = {819.000f, 57.720f};
+	rect.anchor = {0.5f, 0.0f};
 	SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
 	SetColor(baseColor);
 	SetFrameColor(Color(0.32f, 0.27f, 0.34f, 0.94f));
 	SetDamageTrailEnabled(true);
-	SetDissolveAmount(1.0f);
+	SetDissolveAmount(2.0f);
 	SetValueImmediate(0.0f);
 	SetValueSmoothingSpeed(5.0f);
 	SetAffectedByPostProcess(false);

@@ -18,6 +18,7 @@
 #include "Gameplay/Stage/Stage01.h"
 
 class Actor;
+class Light;
 class Animator;
 class VMDLModel;
 
@@ -98,6 +99,9 @@ private:
 	void DrawGUI(RenderContext& rc);
 
 protected:
+	void DrawWindowMenu();
+	void DrawEditorText(const std::string& title = {}, bool alignRight = true);
+	void DrawToolWindows();
 	virtual MouseCursorMode GetMouseCursorMode() const = 0;
 	void SetHudMouseCursorMode(MouseCursorMode mode) { hudMouseCursorMode = mode; }
 	void ClearHudMouseCursorMode() { hudMouseCursorMode.reset(); }
@@ -120,13 +124,23 @@ protected:
 	std::unique_ptr<Stage> currentStage;
 
 	bool showPhysicsLayerWindow = false;
+	bool showProfilerWindow = false;
 
 	// ゲーム内エディタ
 	bool isCursorReleased = false;
 	std::optional<MouseCursorMode> hudMouseCursorMode;
 	bool showGameEditorGUI = true;
-	float gameEditorLeftWidth = 600.0f;
-	float gameEditorRightWidth = 680.0f;
+	float gameEditorLeftWidth = 320.0f;
+	float gameEditorRightWidth = 440.0f;
+	float gameEditorPanelHeight = 0.0f;
+	bool gameEditorLayoutLoaded = false;
+	int hierarchyTab = 0;
+	int inspectorTab = 0;
+	int sceneSettingsPage = 0;
+	int editorSelectionType = -1;
+	bool requestInspectorTab = false;
+	Light* selectedLight = nullptr;
+	char hierarchySearch[128] = {};
 	std::string pendingStagePath;
 
 	static std::unique_ptr<LightManager> previewLighting;

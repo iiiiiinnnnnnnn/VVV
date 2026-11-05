@@ -25,8 +25,28 @@ public:
 	virtual void OnRender(const RenderContext& rc) {}
     virtual void OnDrawGUI() {}
 
-    virtual void Awake() { OnAwake(); }
-    virtual void Start() { OnStart(); }
+	virtual void Awake()
+	{
+		if (isAwake || isAwaking) return;
+		isAwaking = true;
+		try
+		{
+			OnAwake();
+		}
+		catch (...)
+		{
+			isAwaking = false;
+			throw;
+		}
+		isAwaking = false;
+		isAwake = true;
+	}
+	virtual void Start()
+	{
+		if (isStarted || !isAwake) return;
+		isStarted = true;
+		OnStart();
+	}
     virtual void Update() { OnUpdate(); }
     virtual void LateUpdate() { OnLateUpdate(); }
     virtual void Render(const RenderContext& rc) { OnRender(rc); }
@@ -64,6 +84,7 @@ protected:
     Object* owner;
     bool isActive = true;
 	bool isAwake = false;
+	bool isAwaking = false;
 	bool isStarted = false;
 	bool showDebug = false;
 	// 事前読込一覧

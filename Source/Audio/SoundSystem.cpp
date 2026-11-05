@@ -1,4 +1,5 @@
-﻿// SoundSystem.cpp
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+// SoundSystem.cpp
 #include "Audio/SoundSystem.h"
 #include "Audio/SoundPaths.h"
 #include "Audio/VSoundFormat.h"
@@ -14,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -21,10 +23,32 @@
 #include <random>
 #include <stdexcept>
 #include <windows.h>
+#include <mmdeviceapi.h>
+#include <wrl/client.h>
 
 namespace
 {
 constexpr UINT32 SpatialSampleRate = 48000;
+
+bool HasActiveOutputDevice()
+{
+	struct ComScope
+	{
+		HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		~ComScope() { if (SUCCEEDED(result)) CoUninitialize(); }
+	};
+	thread_local const ComScope com;
+	if (FAILED(com.result) && com.result != RPC_E_CHANGED_MODE) return false;
+	Microsoft::WRL::ComPtr<IMMDeviceEnumerator> enumerator;
+	HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(enumerator.GetAddressOf()));
+	if (FAILED(result)) return false;
+	Microsoft::WRL::ComPtr<IMMDevice> device;
+	if (FAILED(enumerator->GetDefaultAudioEndpoint(eRender, eConsole, device.GetAddressOf()))) return false;
+	DWORD state = 0;
+	return SUCCEEDED(device->GetState(&state)) && (state & DEVICE_STATE_ACTIVE);
+}
+
 const Camera* listenerOverride = nullptr;
 
 // 現在のカメラを聞き手にする
@@ -73,8 +97,15 @@ bool IsFourCC(const std::array<char, 4>& value, const char (&expected)[5])
 // 音声エラーをデバッガーに出力
 void ReportSoundError(const std::string& message)
 {
+	static thread_local std::string previousMessage;
+	static thread_local std::chrono::steady_clock::time_point nextReport{};
+	const auto now = std::chrono::steady_clock::now();
+	if (message == previousMessage && now < nextReport) return;
+	previousMessage = message;
+	nextReport = now + std::chrono::seconds(2);
 	const std::string output = "[SoundSystem] " + message + "\n";
 	OutputDebugStringA(output.c_str());
+	Scene::Log("%s", output.c_str());
 }
 
 // キャッシュ用にパスを正規化
@@ -111,8 +142,17 @@ SoundSystem::~SoundSystem()
 // XAudio2とマスタリングボイスを初期化
 bool SoundSystem::Initialize()
 {
+	PROFILE_FUNCTION();
+	const auto now = std::chrono::steady_clock::now();
+	if (now < nextDeviceCheck) return IsInitialized();
+	nextDeviceCheck = now + std::chrono::seconds(1);
+	if (!HasActiveOutputDevice())
+	{
+		if (xaudio || masteringVoice) ReleaseDevice();
+		return false;
+	}
 	if (IsInitialized()) return true;
-	Finalize();
+	ReleaseDevice();
 
 	HRESULT result = XAudio2Create(&xaudio, 0, XAUDIO2_DEFAULT_PROCESSOR);
 	if (FAILED(result))
@@ -122,13 +162,19 @@ bool SoundSystem::Initialize()
 		return false;
 	}
 
+	result = xaudio->RegisterForCallbacks(&engineCallback);
+	if (FAILED(result))
+	{
+		ReportSoundError("RegisterForCallbacks failed: " + std::to_string(result));
+		ReleaseDevice();
+		return false;
+	}
+	engineCallbackRegistered = true;
 	result = xaudio->CreateMasteringVoice(&masteringVoice);
 	if (FAILED(result))
 	{
 		ReportSoundError("CreateMasteringVoice failed: " + std::to_string(result));
-		xaudio->Release();
-		xaudio = nullptr;
-		masteringVoice = nullptr;
+		ReleaseDevice();
 		return false;
 	}
 
@@ -141,7 +187,7 @@ bool SoundSystem::Initialize()
 	if (FAILED(result))
 	{
 		ReportSoundError("X3DAudioInitialize failed: " + std::to_string(result));
-		Finalize();
+		ReleaseDevice();
 		return false;
 	}
 	ApplyMasterVolume();
@@ -151,8 +197,14 @@ bool SoundSystem::Initialize()
 // 音声リソースを解放
 void SoundSystem::Finalize()
 {
-	StopAll();
+	ReleaseDevice();
 	sounds.clear();
+	nextDeviceCheck = {};
+}
+
+void SoundSystem::ReleaseDevice()
+{
+	StopAll();
 	if (masteringVoice)
 	{
 		masteringVoice->DestroyVoice();
@@ -160,16 +212,21 @@ void SoundSystem::Finalize()
 	}
 	if (xaudio)
 	{
+		if (engineCallbackRegistered) xaudio->UnregisterForCallbacks(&engineCallback);
 		xaudio->Release();
 		xaudio = nullptr;
 	}
+	engineCallbackRegistered = false;
+	engineCallback.deviceInvalidated.store(false);
 	outputChannels = 0;
-	nextVoiceId = 1;
+	// 再接続前のVoiceIdが、新しい別の音を指さないよう連番は維持する。
 }
 
 // 位置・音量の更新と終了音の解放
 void SoundSystem::Update()
 {
+	PROFILE_FUNCTION();
+	if (!Initialize()) return;
 	const Camera* listener = nullptr;
 	bool listenerResolved = false;
 	for (auto it = voices.begin(); it != voices.end();)
@@ -201,6 +258,8 @@ void SoundSystem::Update()
 // パスで再生する。enum登録やソースの再コンパイルは不要。
 SoundSystem::VoiceId SoundSystem::Play(const std::string& path, const PlayOptions& options, int variant)
 {
+	PROFILE_FUNCTION();
+	if (!Initialize()) return InvalidVoiceId;
 	auto sound = LoadPathSound(path, variant);
 	return sound ? StartVoiceData(path, std::move(sound), options, nullptr, nullptr, nullptr) : InvalidVoiceId;
 }
@@ -208,6 +267,7 @@ SoundSystem::VoiceId SoundSystem::Play(const std::string& path, const PlayOption
 SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter,
 	const SpatialOptions& options, int variant)
 {
+	if (!Initialize()) return InvalidVoiceId;
 	if (!emitter || !emitter->IsActive() || emitter->IsPendingDestroy() ||
 		!IsValidSpatialOptions(options)) return InvalidVoiceId;
 	if (emitter->weak_from_this().expired())
@@ -225,6 +285,7 @@ SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter
 SoundSystem::VoiceId SoundSystem::Play3DAt(const std::string& path, const Vector3& position,
 	const SpatialOptions& options, int variant)
 {
+	if (!Initialize()) return InvalidVoiceId;
 	if (!IsValidSpatialOptions(options)) return InvalidVoiceId;
 	const Camera* listener = GetListenerCamera();
 	if (!listener || GetDistanceGain(Vector3::Distance(position, listener->GetEye()), options) <= 0.0f)
@@ -265,7 +326,7 @@ SoundSystem::VoiceId SoundSystem::StartVoiceData(const std::string& name,
 	std::shared_ptr<SoundData> sound, const PlayOptions& options, Actor* emitter,
 	const SpatialOptions* spatial, const Camera* listener, const Vector3* fixedPosition)
 {
-	if (!IsInitialized() && !Initialize()) return InvalidVoiceId;
+	if (!Initialize()) return InvalidVoiceId;
 	if (spatial && !InitializeReverb()) return InvalidVoiceId;
 	if (!sound) return InvalidVoiceId;
 
@@ -383,6 +444,7 @@ void SoundSystem::ClearCache()
 // WAVのパスを解決してキャッシュに読み込む
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string& path)
 {
+	PROFILE_FUNCTION();
 	const auto& resources = ResourceManager::Instance();
 	const std::filesystem::path resolved = resources.ResolvePath(
 		resources.ResolveResourcePath(path, ResourceManager::ResourceType::Sound));
@@ -420,6 +482,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::string& path, int variant)
 {
+	PROFILE_FUNCTION();
 	if (path.empty()) return nullptr;
 	const auto requested = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Sound));
 	const int pathVariant = SoundPaths::Variant(requested);
@@ -461,6 +524,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::st
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadCachedSound(
 	const std::string& path, int variant)
 {
+	PROFILE_FUNCTION();
 	std::filesystem::path cachePath = SoundPaths::Group(ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Sound)));
 	cachePath.replace_extension(VSound::Extension);
 	const std::string logicalPath = ResourcePath::Text(cachePath);
@@ -544,6 +608,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadCachedSound(
 std::shared_ptr<SoundSystem::SoundData> SoundSystem::DecodeWave(
 	const uint8_t* bytes, size_t size, const std::string& name) const
 {
+	PROFILE_FUNCTION();
 	if (!bytes || size < 12 || std::memcmp(bytes, "RIFF", 4) != 0 ||
 		std::memcmp(bytes + 8, "WAVE", 4) != 0)
 		throw std::runtime_error("invalid RIFF/WAVE header: " + name);

@@ -25,6 +25,7 @@ class Effect;
 class Terrain : public Component
 {
 public:
+	void OnAwake() override;
 	// 基本処理
 
 	Terrain(Object* owner);

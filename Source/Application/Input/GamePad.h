@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 using GamePadButton = unsigned int;
 
 // ゲームパッド
@@ -46,7 +48,7 @@ public:
 	void Update(bool acceptsInput);
 
 	// スロット設定
-	void SetSlot(int slot) { this->slot = slot; }
+	void SetSlot(int slot) { this->slot = slot; connected = false; nextConnectionCheck = 0; }
 
 	// Xboxコントローラーの接続状態
 	bool IsConnected() const { return connected; }
@@ -90,4 +92,5 @@ private:
 	float				triggerR = 0.0f;
 	int					slot = 0;
 	bool				connected = false;
+	std::uint64_t nextConnectionCheck = 0;
 };

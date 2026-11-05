@@ -4,10 +4,14 @@
 
 TextWidget::TextWidget(const std::string& name, const std::string& text, float fontSize,
 	const std::string& fontPath)
-	: Widget(name), text(text), fontSize(fontSize)
+	: Widget(name), text(text), fontSize(fontSize), fontPath(fontPath)
 {
 	SetAffectedByPostProcess(false);
-	if (!fontPath.empty()) SetFont(fontPath);
+}
+
+void TextWidget::OnAwake()
+{
+	if (!font && !fontPath.empty()) SetFont(fontPath);
 }
 
 bool TextWidget::SetFont(const std::string& path)
@@ -28,7 +32,7 @@ bool TextWidget::SetFont(const std::string& path)
 void TextWidget::OnRender(const RenderContext&)
 {
 	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	DrawText(topLeft, color);
+	DrawFont(topLeft, color);
 }
 
 void TextWidget::DrawShadow(const RenderContext&, const Vector2& offset,
@@ -37,10 +41,10 @@ void TextWidget::DrawShadow(const RenderContext&, const Vector2& offset,
 	// 本体と同じ文字を指定された距離だけずらして描画
 	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
 	const Vector2 shadowPosition = topLeft + offset;
-	DrawText(shadowPosition, shadowColor);
+	DrawFont(shadowPosition, shadowColor);
 }
 
-void TextWidget::DrawText(const Vector2& topLeft, const Color& drawColor)
+void TextWidget::DrawFont(const Vector2& topLeft, const Color& drawColor)
 {
 	UIFont& selectedFont = font ? *font : UIFont::Default();
 	selectedFont.DrawFont(text, topLeft, rect.size, fontSize, drawColor, alignment);

@@ -7,10 +7,15 @@
 
 VMDLParticleEmitterComponent::VMDLParticleEmitterComponent(Object* owner, VMDLModel* model,
 	const VMDLModel::VmdlParticleEmitter& settings, bool initiallyEmitting)
-	: Component(owner), model(model), settings(settings)
+	: Component(owner), model(model), settings(settings), emitting(initiallyEmitting)
 {
-	SetSettings(settings);
-	SetEmitting(initiallyEmitting);
+}
+
+void VMDLParticleEmitterComponent::OnAwake()
+{
+	if (!settings.effectName.empty())
+		effect = EffectManager::Instance().LoadEffect(settings.effectName);
+	if (emitting) Play();
 }
 
 VMDLParticleEmitterComponent::~VMDLParticleEmitterComponent()
@@ -27,6 +32,7 @@ void VMDLParticleEmitterComponent::SetSettings(const VMDLModel::VmdlParticleEmit
 	Stop();
 	settings = value;
 	effect.reset();
+	if (!isAwake) return;
 	if (!settings.effectName.empty())
 		effect = EffectManager::Instance().LoadEffect(settings.effectName);
 	if (restart) Play();
@@ -36,6 +42,7 @@ void VMDLParticleEmitterComponent::SetEmitting(bool value)
 {
 	if (emitting == value) return;
 	emitting = value;
+	if (!isAwake) return;
 	if (emitting) Play();
 	else Stop();
 }

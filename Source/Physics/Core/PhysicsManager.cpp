@@ -1,4 +1,5 @@
-﻿#include "Physics/Core/PhysicsManager.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Physics/Core/PhysicsManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Core/PhysicsComponent.h"
@@ -326,6 +327,7 @@ void CollisionEventCallback::ReportSweptTrigger(
 
 void CollisionEventCallback::DispatchStayEvents()
 {
+	PROFILE_FUNCTION();
 	std::erase_if(currentCollisionPairs, [](const auto& pair) {
 		PhysicsComponent* a = pair.second.a;
 		PhysicsComponent* b = pair.second.b;
@@ -437,6 +439,7 @@ void PhysicsSceneContext::ReportTriggerSweepHit(
 
 void PhysicsSceneContext::ProcessTriggerSweeps()
 {
+	PROFILE_FUNCTION();
 	struct SweepFilter : PxQueryFilterCallback
 	{
 		PhysicsComponent* trigger = nullptr;
@@ -549,6 +552,7 @@ void PhysicsSceneContext::ProcessTriggerSweeps()
 
 void PhysicsSceneContext::Simulate()
 {
+	PROFILE_FUNCTION();
 	const float deltaTime = Game::Time::deltaTime;
 	if (!(deltaTime > 0.0f)) return;
 
@@ -562,8 +566,14 @@ void PhysicsSceneContext::Simulate()
 	ProcessTriggerSweeps();
 	for (int step = 0; step < stepCount; ++step)
 	{
-		scene->simulate(stepTime);
-		scene->fetchResults(true);
+		{
+			PROFILE_SCOPE("PhysX::simulate");
+			scene->simulate(stepTime);
+		}
+		{
+			PROFILE_SCOPE("PhysX::fetchResults (CPU wait)");
+			scene->fetchResults(true);
+		}
 	}
 
 	// Stay イベントを配信（接触継続中のペアに毎フレーム通知）
@@ -818,6 +828,7 @@ void CCHitReport::onControllerHit(const PxControllersHit& hit)
 }
 void CCHitReport::DispatchEvents()
 {
+    PROFILE_FUNCTION();
     if (dispatchedThisFrame) return;
     dispatchedThisFrame = true;
 

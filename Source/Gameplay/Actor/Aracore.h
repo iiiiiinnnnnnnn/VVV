@@ -10,6 +10,7 @@
 
 class Animator;
 class BossBar;
+class Effect;
 class CharacterController;
 class EnemyAI;
 class MultiLegFootIK;
@@ -71,6 +72,11 @@ public:
 	void OnTriggerEnter(PhysicsComponent* self, PhysicsComponent* other,
 		const Vector3& point, const Vector3& normal) override;
 
+	bool IsDead() const override { return movieDefeated; }
+	bool IsDefeatMovieRequested() const { return defeatMovieRequested; }
+	void ClearDefeatMovieRequest() { defeatMovieRequested = false; }
+	void RequestDefeatMovie();
+	void CompleteDefeatMovie();
 	void TakeDamage(const DamageData& damageData) override;
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;
@@ -155,18 +161,12 @@ private:
 		bool IsThreatActive() const { return threatActive; }
 		bool IsWaitingForAnimation() const { return waitingForAnimation; }
 		float GetElapsedTime() const { return elapsed.GetElapsed(); }
-		void SetFragmentModel(const std::shared_ptr<VMDLModel>& value) { fragmentModel = value; }
-		void SetFragmentSize(const Vector3& value) { fragmentSize = value; }
-		const std::shared_ptr<VMDLModel>& GetFragmentModel() const { return fragmentModel; }
-		const Vector3& GetFragmentSize() const { return fragmentSize; }
 
 	private:
 		bool angry = false;
 		bool threatActive = false;
 		bool waitingForAnimation = false;
 		Game::Timer elapsed{0.0f};
-		std::shared_ptr<VMDLModel> fragmentModel;
-		Vector3 fragmentSize = Vector3::One;
 	};
 
 	// Animatorが要求を受理するまで保持する。優先順位は被ダメージ→ジャンプ→威嚇。
@@ -230,7 +230,7 @@ private:
 	Game::Timer healTime{10.0f};
 
 	// 初期化とLuaへの行動登録。
-	void OnInit() override;
+	void OnAwake() override;
 	void OnUninit() override;
 	void ConfigureAI();
 	void RegisterAIActions();
@@ -265,7 +265,6 @@ private:
 
 	// 形態変化・体力表示・着地演出。
 	void BeginPhaseChange();
-	void SpawnPhaseFragments();
 	void UpdateHealthPresentation();
 	void UpdateHealthDissolve(float deltaTime);
 	void UpdateAngryColor();
@@ -293,6 +292,8 @@ private:
 
 	AracoreAINavigation navigation;
 	JumpState jump;
+	bool movieDefeated = false;
+	bool defeatMovieRequested = false;
 	PhaseState phase;
 	ReactionState reaction;
 	DeathState death;

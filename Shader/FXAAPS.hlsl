@@ -6,14 +6,7 @@
 #include "ShadingFunctions.hlsli"
 
 Texture2D<float4> scene_color_map : register(t0);
-Texture2D<float4> history_color_map : register(t10);
-
-#define POINT 0
-#define LINEAR 1
-#define ANISOTROPIC 2
-#define LINEAR_BORDER_BLACK 3
-#define LINEAR_BORDER_WHITE 4
-SamplerState sampler_states[5] : register(s0);
+SamplerState linearSamplerState : register(s0);
 
 // https://www.geeks3d.com/20110405/fxaa-fast-approximate-anti-aliasing-demo-glsl-opengl-test-radeon-geforce/
 #define FXAA_REDUCE_MIN (1.0f / 128.0f)
@@ -24,11 +17,11 @@ float3 fxaa(Texture2D color_texture, float2 texcoord, float2 pixel_size)
 {
     //  周辺ピクセルを参照
     float2 texcoord2 = texcoord.xy - (pixel_size * (0.5 + FXAA_SUBPIX_SHIFT));
-    float3 sampled_nw = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy).xyz;
-    float3 sampled_ne = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy, float2(1, 0)).xyz;
-    float3 sampled_sw = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy, float2(0, 1)).xyz;
-    float3 sampled_se = color_texture.Sample(sampler_states[LINEAR], texcoord2.xy, float2(1, 1)).xyz;
-    float3 sampled_m = color_texture.Sample(sampler_states[LINEAR], texcoord.xy).xyz;
+    float3 sampled_nw = color_texture.Sample(linearSamplerState, texcoord2.xy).xyz;
+    float3 sampled_ne = color_texture.Sample(linearSamplerState, texcoord2.xy, float2(1, 0)).xyz;
+    float3 sampled_sw = color_texture.Sample(linearSamplerState, texcoord2.xy, float2(0, 1)).xyz;
+    float3 sampled_se = color_texture.Sample(linearSamplerState, texcoord2.xy, float2(1, 1)).xyz;
+    float3 sampled_m = color_texture.Sample(linearSamplerState, texcoord.xy).xyz;
 
     //  それぞれの輝度を算出
     float luma_nw = convert_rgb_to_luminance(sampled_nw);
@@ -53,18 +46,18 @@ float3 fxaa(Texture2D color_texture, float2 texcoord, float2 pixel_size)
 
     //  向きベクトルを元に複数位置の色をブレンドして返す
     float3 rgb_a = (1.0f / 2.0f)
-                 * (color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (1.0f / 3.0f - 0.5f)).xyz +
-                    color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (2.0f / 3.0f - 0.5f)).xyz);
+                 * (color_texture.Sample(linearSamplerState, texcoord.xy + dir * (1.0f / 3.0f - 0.5f)).xyz +
+                    color_texture.Sample(linearSamplerState, texcoord.xy + dir * (2.0f / 3.0f - 0.5f)).xyz);
     float3 rgb_b = rgb_a * (1.0f / 2.0f)
-                 + (1.0f / 4.0f) * (color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (0.0f / 3.0f - 0.5f)).xyz +
-		                            color_texture.Sample(sampler_states[LINEAR], texcoord.xy + dir * (3.0f / 3.0f - 0.5f)).xyz);
+                 + (1.0f / 4.0f) * (color_texture.Sample(linearSamplerState, texcoord.xy + dir * (0.0f / 3.0f - 0.5f)).xyz +
+		                            color_texture.Sample(linearSamplerState, texcoord.xy + dir * (3.0f / 3.0f - 0.5f)).xyz);
     float luma_b = convert_rgb_to_luminance(rgb_b);
     return ((luma_b < luma_min) || (luma_b > luma_max)) ? rgb_a : rgb_b;
 }
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
-    float4 color = scene_color_map.Sample(sampler_states[LINEAR], pin.texcoord);
+    float4 color = scene_color_map.Sample(linearSamplerState, pin.texcoord);
 
     float2 pixel_size;
     scene_color_map.GetDimensions(pixel_size.x, pixel_size.y);

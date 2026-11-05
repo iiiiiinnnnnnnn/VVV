@@ -1,4 +1,5 @@
-﻿#include <algorithm>
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <algorithm>
 
 #include "Rendering/Effect/ParticleSystem.h"
 #include "Resource/GpuResourceUtils.h"
@@ -82,6 +83,7 @@ ParticleSystem::~ParticleSystem()
 
 void ParticleSystem::Update()
 {
+	PROFILE_FUNCTION();
 	for (int i = 0; i < numParticles; i++) {
 		if (data[i].type < 0) continue;
 
@@ -127,6 +129,7 @@ void ParticleSystem::Update()
 
 void ParticleSystem::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	ID3D11DeviceContext* immediateContext = rc.deviceContext;
 
 	//定数バッファの更新

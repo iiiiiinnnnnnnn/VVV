@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -193,25 +194,8 @@ void VmdlEditorScene::OnUninit()
 	particlePreviewOwner.reset();
 	footIkPreviewOwner.reset();
 	footIkTestStageActor.reset();
-	footIkTestStageModel.reset();
 	cameraOwner.reset();
-	previewLuminance.reset();
-	previewBloomWork.reset();
-	previewSsao.reset();
-	previewPostA.reset();
-	previewPostB.reset();
-	previewSceneTarget.reset();
-	previewTarget.reset();
-	model.reset();
-	externalMeshPreviewCaches.clear();
 	editorPointLights.clear();
-	springPreviewComponents.clear();
-	trailPreviewComponents.clear();
-	particlePreviewComponents.clear();
-	editorCamera = nullptr;
-	footIkPreviewAnimator = nullptr;
-	footIkTestStageRigidbody = nullptr;
-	footIkTestStageCollider = nullptr;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	if (GetCapture() == graphics.GetWindowHandle()) ReleaseCapture();
 	graphics.SetBorderlessFullscreen(false);
@@ -357,6 +341,7 @@ void VmdlEditorScene::SaveLayoutSettings()
 
 void VmdlEditorScene::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	HWND window = graphics.GetWindowHandle();
 	SetWindowTextW(window, L"VEER");
@@ -400,14 +385,9 @@ void VmdlEditorScene::ToggleDebugDisplay()
 	showDebugOverlays = !showDebugOverlays;
 }
 
-void VmdlEditorScene::OnDrawGUI()
+void VmdlEditorScene::HandleShortcuts()
 {
 	auto& io = ImGui::GetIO();
-	ImGuiStyle& style = ImGui::GetStyle();
-	const ImGuiStyle gameStyle = style;
-	bool selectionFocused = false;
-	ImGuiTheme::ApplyRedTheme(style);
-
 	// エディタのショートカット
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
 	{
@@ -425,6 +405,17 @@ void VmdlEditorScene::OnDrawGUI()
 		if (animationPlaying) StopUnifiedPreview(false);
 		else StartUnifiedPreview();
 	}
+}
+
+void VmdlEditorScene::OnDrawGUI()
+{
+	PROFILE_FUNCTION();
+	HandleShortcuts();
+	auto& io = ImGui::GetIO();
+	ImGuiStyle& style = ImGui::GetStyle();
+	const ImGuiStyle gameStyle = style;
+	bool selectionFocused = false;
+	ImGuiTheme::ApplyRedTheme(style);
 
 	// アニメーションプレビューの再生
 	if (animationPlaying && model && selectedAnimation >= 0 &&
@@ -480,6 +471,7 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	DrawMenuBar();
+	DrawSerialViewer();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
 
 	constexpr float gap = 3.0f;
@@ -610,7 +602,6 @@ void VmdlEditorScene::OnDrawGUI()
 			IM_COL32(255, 0, 0, 255), 0.0f, ImDrawFlags_None, thickness);
 	}
 
-	if (showPhysicsLayerWindow) PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
 
 	if (showSetScaleWindow) ImGui::OpenPopup((const char*)u8"スケール設定");
 	showSetScaleWindow = false;
@@ -884,6 +875,7 @@ void VmdlEditorScene::ResizePreviewTargets()
 
 void VmdlEditorScene::RenderPreview()
 {
+	PROFILE_FUNCTION();
 	ResizePreviewTargets();
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
 
@@ -1382,9 +1374,20 @@ void VmdlEditorScene::RenderPreview()
 	previewTarget->Deactivate(dc);
 }
 
+void VmdlEditorScene::DrawSerialViewer()
+{
+	if (!showSerialViewer || !model) return;
+	try
+	{
+		if (!serialViewerDocument) serialViewerDocument = &model->GetSerialDocument();
+		if (serialViewer.Draw(*serialViewerDocument, &showSerialViewer))
+			MarkDirty();
+	}
+	catch (const std::exception& exception) { showSerialViewer = false; ErrorMessage(exception.what()); }
+}
+
 void VmdlEditorScene::DrawMenuBar()
 {
-	auto& io = ImGui::GetIO();
 	if (!ImGui::BeginMainMenuBar()) return;
 
 	// ファイル操作
@@ -1429,17 +1432,16 @@ void VmdlEditorScene::DrawMenuBar()
 	}
 
 	// 補助ウィンドウ
-	if (ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")))
-	{
-		if (ImGui::MenuItem((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター")))
-			OpenAnimatorEditor();
-		if (ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"))) showPhysicsLayerWindow = true;
-		ImGui::EndMenu();
-	}
+	DrawWindowMenu();
 
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
 	{
+		if (ImGui::MenuItem((const char*)u8"シリアルビューアー", nullptr, false, model != nullptr))
+		{
+			showSerialViewer = true;
+			serialViewerDocument = nullptr;
+		}
 		if (ImGui::MenuItem((const char*)(ICON_FA_UNDO " " u8"ライティング環境をリセット"))) ResetLightingEnvironment();
 		if (ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"VSTGからライティング環境を適用"))) ApplyVstgLighting();
 		if (ImGui::MenuItem((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"スケール設定"), nullptr, false, model != nullptr))
@@ -1463,18 +1465,7 @@ void VmdlEditorScene::DrawMenuBar()
 		title += " *";
 	}
 
-	const std::string fpsText = std::format("FPS: {:.0f}", io.Framerate);
-	const float titleWidth = ImGui::CalcTextSize(title.c_str()).x;
-	const float fpsWidth = ImGui::CalcTextSize(fpsText.c_str()).x;
-	const float rightPadding = 12.0f;
-
-	ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX() + 20.0f,
-		ImGui::GetWindowWidth() - fpsWidth - titleWidth - rightPadding - 20.0f));
-
-	ImGui::TextColored(
-		ImVec4(0.45f, 1.0f, 0.55f, 1.0f), "%s", fpsText.c_str());
-	ImGui::SameLine(0.0f, 20.0f);
-	ImGui::TextUnformatted(title.c_str());
+	DrawEditorText(title);
 	ImGui::EndMainMenuBar();
 
 	if (exiting && SceneManager::Instance().LoadScene<TitleScene>()) exiting = false;
@@ -1638,6 +1629,7 @@ void VmdlEditorScene::RebuildFootIkPreview()
 
 bool VmdlEditorScene::ApplyFootIkPreview()
 {
+	PROFILE_FUNCTION();
 	if (!model || selectedAnimation < 0 ||
 		selectedAnimation >= Count(model->GetAnimations()))
 		return false;
@@ -1678,6 +1670,7 @@ bool VmdlEditorScene::ApplyFootIkPreview()
 
 void VmdlEditorScene::DrawHierarchy()
 {
+	PROFILE_FUNCTION();
 	ImGui::TextUnformatted((const char*)u8"ヒエラルキー");
 	ImGui::Separator();
 
@@ -2793,18 +2786,33 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 
 void VmdlEditorScene::DrawPreviewToolbar()
 {
-	ImGui::TextUnformatted((const char*)u8"プレビュー");
 	const float transportButtonWidth = 42.0f;
 	const float loopWidth = 58.0f;
 	const float speedWidth = 74.0f;
+	const auto transportButton = [&](const char* id, const char* icon, ImWchar character) {
+		const bool pressed = ImGui::Button(id, {transportButtonWidth, 0.0f});
+		const ImVec2 buttonMin = ImGui::GetItemRectMin();
+		const ImVec2 buttonMax = ImGui::GetItemRectMax();
+		const ImFontGlyph* glyph = ImGui::GetFontBaked()->FindGlyph(character);
+		if (glyph)
+		{
+			// 送り幅ではなく、図形の中心をボタンの中心へ合わせる。
+			const ImVec2 buttonCenter((buttonMin.x + buttonMax.x) * 0.5f, (buttonMin.y + buttonMax.y) * 0.5f);
+			const ImVec2 iconPosition(buttonCenter.x - (glyph->X0 + glyph->X1) * 0.5f,
+				buttonCenter.y - (glyph->Y0 + glyph->Y1) * 0.5f);
+			ImGui::GetWindowDrawList()->AddText(iconPosition, ImGui::GetColorU32(ImGuiCol_Text), icon);
+		}
+		return pressed;
+	};
 	ImGui::SameLine();
-	if (ImGui::Button(animationPlaying ? ICON_FA_PAUSE "##UnifiedPlay" : ICON_FA_PLAY "##UnifiedPlay",
-			ImVec2(transportButtonWidth, 0.0f)))
+	if (transportButton("##UnifiedPlay", animationPlaying ? ICON_FA_PAUSE : ICON_FA_PLAY,
+			animationPlaying ? 0xf04c : 0xf04b))
 	{
 		if (animationPlaying) StopUnifiedPreview(false); else StartUnifiedPreview();
 	}
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生/停止 (SPACE)");
 	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_STOP "##UnifiedStop", ImVec2(transportButtonWidth, 0.0f)))
+	if (transportButton("##UnifiedStop", ICON_FA_STOP, 0xf04d))
 		StopUnifiedPreview(true);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(loopWidth);
@@ -2814,12 +2822,14 @@ void VmdlEditorScene::DrawPreviewToolbar()
 	ImGui::DragFloat("##PlaybackSpeed", &playbackSpeed, 0.05f, 0.05f, 4.0f, "x%.2f");
 	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生速度");
 	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT " " u8"移動"))) gizmoOperation = ImGuizmo::TRANSLATE;
+	if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT))) gizmoOperation = ImGuizmo::TRANSLATE;
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"移動 (W)");
 	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT " " u8"回転"))) gizmoOperation = ImGuizmo::ROTATE;
+	if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT))) gizmoOperation = ImGuizmo::ROTATE;
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"回転 (E)");
 	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"サイズ"))) gizmoOperation = ImGuizmo::SCALE;
-	ImGui::TextDisabled((const char*)u8"右ドラッグ: 見渡し / Alt+左ドラッグ: 回り込み / 中ドラッグ: 平行移動");
+	if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT))) gizmoOperation = ImGuizmo::SCALE;
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"サイズ (R)");
 }
 
 void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax)
@@ -2831,12 +2841,6 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	const ImVec2 imageMin = viewport->Pos;
 	const ImVec2 imageMax(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y);
-	if (viewportRotationDragging)
-	{
-		const std::string speedText = std::format("移動速度 {:.1f}  ホイールで調整", previewCameraMoveSpeed);
-		ImGui::GetForegroundDrawList()->AddText(
-			ImVec2(inputMin.x + 10.0f, inputMin.y + 10.0f), IM_COL32(255, 255, 255, 220), speedText.c_str());
-	}
 	// ImGuizmo自身のマウスキャプチャでギズモを無効にしない。
 	const bool imageHovered = io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
 		io.MousePos.y >= inputMin.y && io.MousePos.y <= inputMax.y &&
@@ -2853,6 +2857,15 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 			showSpringCollider = !showSpringCollider;
 		else if (!io.KeyAlt && !io.KeyShift)
 		{
+			// カメラ移動・ギズモのドラッグ中は操作モードを切り替えない。
+			if (Game::Input::IsFocusedWindow(true) && !io.KeySuper &&
+				!viewportRotationDragging && !viewportOrbitDragging &&
+				!ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGuizmo::IsUsingAny())
+			{
+				if (ImGui::IsKeyPressed(ImGuiKey_W, false)) gizmoOperation = ImGuizmo::TRANSLATE;
+				else if (ImGui::IsKeyPressed(ImGuiKey_E, false)) gizmoOperation = ImGuizmo::ROTATE;
+				else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) gizmoOperation = ImGuizmo::SCALE;
+			}
 			if (ImGui::IsKeyPressed(ImGuiKey_M, false)) showMesh = !showMesh;
 			else if (ImGui::IsKeyPressed(ImGuiKey_B, false)) showBones = !showBones;
 			else if (ImGui::IsKeyPressed(ImGuiKey_I, false)) showIkPole = !showIkPole;
@@ -3086,6 +3099,7 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 
 void VmdlEditorScene::DrawProperty()
 {
+	PROFILE_FUNCTION();
 	ImGui::TextUnformatted((const char*)u8"プロパティ");
 	ImGui::Separator();
 	if (previewStageSelected)
@@ -3118,19 +3132,19 @@ void VmdlEditorScene::DrawProperty()
 	VMDLModel::Node& node = model->GetNodes()[selectedNode];
 	ImGui::Text((const char*)u8"ノード: %s", MakeNodeLabel(selectedNode, node.name).c_str());
 	bool transformChanged =
-		ImGui::DragFloat3((const char*)u8"ローカル位置", &node.position.x, 0.01f);
+		ImGui::DragFloat3((const char*)u8"位置", &node.position.x, 0.01f);
 	Vector3 euler = node.rotation.ToEuler();
 	euler.x = DEG(euler.x);
 	euler.y = DEG(euler.y);
 	euler.z = DEG(euler.z);
-	if (ImGui::DragFloat3((const char*)u8"ローカル回転", &euler.x, 0.1f))
+	if (ImGui::DragFloat3((const char*)u8"回転", &euler.x, 0.1f))
 	{
 		node.rotation =
 			Quaternion::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z));
 		node.rotation.Normalize();
 		transformChanged = true;
 	}
-	transformChanged |= ImGui::DragFloat3((const char*)u8"ローカルスケール", &node.scale.x, 0.01f);
+	transformChanged |= ImGui::DragFloat3((const char*)u8"スケール", &node.scale.x, 0.01f);
 	if (transformChanged)
 	{
 		MarkDirty();
@@ -4250,6 +4264,7 @@ void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 
 void VmdlEditorScene::DrawTimeline()
 {
+	PROFILE_FUNCTION();
 	if (!model)
 	{
 		ImGui::TextDisabled((const char*)u8"モデルが読み込まれていません");
@@ -5499,6 +5514,7 @@ void VmdlEditorScene::RebuildSpringPreview()
 
 bool VmdlEditorScene::UpdateSpringPreview()
 {
+	PROFILE_FUNCTION();
 	if (!animationPlaying || !model || model->GetVmdlExtensionData().springs.empty())
 	{
 		springPreviewOwner.reset();
@@ -6514,8 +6530,10 @@ void VmdlEditorScene::DrawMaterialEditor()
 			material.baseTextureFileName, material.baseTextureDDS);
 		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal, material.normalTextureFileName,
 			material.normalTextureDDS);
-		textureRow("Metalness / Roughness", VMDLModel::MaterialTextureSlot::MetalnessRoughness,
-			material.metalnessRoughnessTextureFileName, material.metalnessRoughnessTextureDDS);
+		textureRow((const char*)u8"メタリック（R）", VMDLModel::MaterialTextureSlot::Metalness,
+			material.metalnessTextureFileName, material.metalnessTextureDDS);
+		textureRow((const char*)u8"ラフネス（R）", VMDLModel::MaterialTextureSlot::Roughness,
+			material.roughnessTextureFileName, material.roughnessTextureDDS);
 		textureRow("Occlusion", VMDLModel::MaterialTextureSlot::Occlusion,
 			material.occlusionTextureFileName, material.occlusionTextureDDS);
 		textureRow("Emissive", VMDLModel::MaterialTextureSlot::Emissive,
@@ -7162,6 +7180,7 @@ void VmdlEditorScene::ResolveMissingExternalMeshes()
 
 void VmdlEditorScene::SaveVmdl()
 {
+	PROFILE_FUNCTION();
 	if (!model) return;
 	if (documentPath.empty())
 	{
@@ -7171,6 +7190,7 @@ void VmdlEditorScene::SaveVmdl()
 	documentPath = ResourceManager::ResolveSourcePath(documentPath);
 	if (model->SaveVmdl(documentPath))
 	{
+		serialViewerDocument = nullptr;
 		if (!ResourceManager::Instance().RefreshResources(documentPath))
 		{
 			ErrorMessage("VMDL saved, but runtime cache refresh failed. Save again to retry.");
@@ -7200,6 +7220,7 @@ void VmdlEditorScene::SaveVmdlAs()
 	const auto destination = ResourceManager::ResolveSourcePath(std::filesystem::path(filepath));
 	if (model->SaveVmdl(destination))
 	{
+		serialViewerDocument = nullptr;
 		documentPath = destination;
 		recentModelPath = destination;
 		if (!ResourceManager::Instance().RefreshResources(documentPath))
@@ -7219,6 +7240,8 @@ void VmdlEditorScene::SaveVmdlAs()
 void VmdlEditorScene::LoadModel(
 	const std::filesystem::path& requestedPath, const std::filesystem::path& requestedDestination)
 {
+	PROFILE_FUNCTION();
+	serialViewerDocument = nullptr;
 	const auto filepath = ResourceManager::ResolveSourcePath(ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(requestedPath), ResourceManager::ResourceType::Model)));
 	const auto importDestination = ResourceManager::ResolveSourcePath(requestedDestination);
 	if (!std::filesystem::is_regular_file(filepath))

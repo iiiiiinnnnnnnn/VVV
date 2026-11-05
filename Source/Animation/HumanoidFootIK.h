@@ -11,6 +11,7 @@ class Animator;
 class HumanoidFootIK : public Component
 {
   public:
+	void OnAwake() override;
 	HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model, Animator* animator,
 		const char* activeStateName, const char* pelvisName, const char* thighLName,
 		const char* calfLName, const char* footLName, const char* ballLName, const char* thighRName,
@@ -32,6 +33,8 @@ class HumanoidFootIK : public Component
 	void ApplyHipOffset(const Vector3& baseHipLocalPosition);
 	void ResetHipOffset(const Vector3& baseHipLocalPosition);
 
+	LayerId layerId;
+	std::string legNames[8];
 	VMDLModel* model = nullptr;
 	Animator* animator = nullptr;
 	FootIK* footIK_L = nullptr;

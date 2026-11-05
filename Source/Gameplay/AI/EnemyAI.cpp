@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/AI/EnemyAI.h"
 
 #include <algorithm>
@@ -17,7 +18,7 @@
 #include "imgui.h"
 
 EnemyAI::EnemyAI(Object* owner, const std::string& path)
-	: LuaScript(owner)
+	: LuaScript(owner), initialScriptPath(path)
 {
 	SetFloat("SearchRange", 15.0f); // 追跡開始距離
 	SetFloat("LostRange", 22.5f); // 追跡終了距離
@@ -38,7 +39,12 @@ EnemyAI::EnemyAI(Object* owner, const std::string& path)
 	SetFloat("TurnThreshold", 15.0f); // ナビメッシュの目的地に向かって回転中の角度の閾値
 	SetFloat("TargetDistance", std::numeric_limits<float>::max()); // ターゲットまでの距離
 	SetVector3("TargetPosition", Vector3::Zero); // ターゲットの位置
-	if (!path.empty()) Load(path);
+}
+
+void EnemyAI::OnAwake()
+{
+	LuaScript::OnAwake();
+	if (!HasScriptPath() && !initialScriptPath.empty()) Load(initialScriptPath);
 }
 
 void EnemyAI::WaitForCamera(const Vector3& centerOffset, float radius)
@@ -56,6 +62,7 @@ void EnemyAI::OnStart()
 
 void EnemyAI::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	if (waitingForCamera)
 	{
 		StopMovement();
@@ -231,6 +238,7 @@ void EnemyAI::FaceTarget()
 
 void EnemyAI::UpdateSensors()
 {
+	PROFILE_FUNCTION();
 	Actor* ownerActor = dynamic_cast<Actor*>(owner);
 	ActorManager* actorManager = ActorManager::GetActive();
 	if (!navMeshAgent) navMeshAgent = owner->GetComponent<NavMeshAgent>();
@@ -266,6 +274,7 @@ void EnemyAI::UpdateSensors()
 float EnemyAI::UpdateTarget(
 	Actor* ownerActor, ActorManager* actorManager, float searchRange, float lostRange)
 {
+	PROFILE_FUNCTION();
 	float closestDistance = std::numeric_limits<float>::max();
 	if (ownerActor && actorManager)
 	{
@@ -339,6 +348,7 @@ void EnemyAI::UpdateTurnSensors(bool hasTarget)
 
 void EnemyAI::UpdateSightRay()
 {
+	PROFILE_FUNCTION();
 	const Actor* ownerActor = dynamic_cast<const Actor*>(owner);
 	if (!ownerActor)
 	{
@@ -435,34 +445,23 @@ void EnemyAI::OnDrawGUI()
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
 	ImGui::Text("Locked Target: %s", lockedTarget ? lockedTarget->GetName().c_str() : "None");
 	ImGui::Text("Target Distance: %.2f", GetFloat("TargetDistance"));
-	ImGui::Text(
-		"In Search Range: %s",
-		GetBool("IsTargetInSearchRange") ? "true" : "false");
-	ImGui::Text(
-		"In Lost Range: %s",
-		GetBool("IsTargetInLostRange") ? "true" : "false");
+	ImGui::Text("In Search Range: %s", GetBool("IsTargetInSearchRange") ? "true" : "false");
+	ImGui::Text("In Lost Range: %s", GetBool("IsTargetInLostRange") ? "true" : "false");
 	ImGui::Text("In Sight Angle: %s", GetBool("IsTargetInSightAngle") ? "true" : "false");
 	ImGui::Text("Target Visible: %s", GetBool("IsTargetVisible") ? "true" : "false");
 	ImGui::Text("Has Destination: %s", GetBool("HasDestination") ? "true" : "false");
-	ImGui::Text("Turning: %s (%.1f deg)", GetBool("IsTurning") ? "true" : "false", GetFloat("TurnAngle"));
 	ImGui::Text(
-		"NavMesh: %s",
-		navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : "Not cached yet");
+		"Turning: %s (%.1f deg)", GetBool("IsTurning") ? "true" : "false", GetFloat("TurnAngle"));
+	ImGui::Text(
+		"NavMesh: %s", navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : "Not cached yet");
 	ImGui::Text("Move Speed: %.2f", navMeshAgent ? navMeshAgent->GetMoveAmount() : 0.0f);
 	ImGui::Checkbox("Show Sight Debug", &showSightDebug);
 
 	float searchRange = GetFloat("SearchRange", 20.0f);
 	if (ImGui::DragFloat("Search Range", &searchRange, 0.25f, 0.0f, 1000.0f))
 		SetSearchRange(searchRange);
-	float lostRange = GetFloat(
-		"LostRange",
-		searchRange * 1.5f);
-	if (ImGui::DragFloat(
-		"Lost Range",
-		&lostRange,
-		0.25f,
-		searchRange,
-		1000.0f))
+	float lostRange = GetFloat("LostRange", searchRange * 1.5f);
+	if (ImGui::DragFloat("Lost Range", &lostRange, 0.25f, searchRange, 1000.0f))
 	{
 		SetLostRange(lostRange);
 	}
@@ -559,6 +558,7 @@ void EnemyAI::OnEnabled()
 
 void EnemyAI::OnLateUpdate()
 {
+	PROFILE_FUNCTION();
 	if (waitingForCamera) return;
 	CallScript("LateUpdate");
 }

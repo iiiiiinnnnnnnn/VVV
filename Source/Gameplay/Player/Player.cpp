@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Player/PlayerInput.h"
 #include "Application/Input/Input.h"
@@ -25,6 +26,8 @@
 #include "Audio/SoundSystem.h"
 #include <sol/sol.hpp>
 #include <cassert>
+#include <cmath>
+#include "Application/SettingsAndDebug/Profiler.h"
 
 void RemapQuickshiftWindTracks(VMDLModel& model)
 {
@@ -53,7 +56,7 @@ void RemapQuickshiftWindTracks(VMDLModel& model)
 
 Player::Player() : Entity("Player", "Player", true, Transform(), 100.0f, 100.0f) {}
 
-void Player::OnInit()
+void Player::OnAwake()
 {
 	InitializeModel();
 	InitializeMovement();
@@ -85,25 +88,15 @@ Player::~Player()
 
 void Player::OnUninit()
 {
+	// エフェクトの描画登録は、退場した時点で解除する。
 	attackHitEffect.reset();
-	model.reset();
-	justDodgeSkillTarget.reset();
-	anim = nullptr;
-	vmdl = nullptr;
-	cc = nullptr;
-	motor = nullptr;
-	lockOnComponent = nullptr;
-	trail = nullptr;
-	afterimage = nullptr;
-	footSound = nullptr;
-	cameraController = nullptr;
-	justDodgeAttacker = nullptr;
 }
 
 void Player::InitializeModel()
 {
 	// VMDL読み込み
 	vmdl = AddComponent<VMDL>("Player/CombatGirls_Sword_Shield");
+	vmdl->Awake();
 	model = vmdl->GetSharedModel();
 	vmdl->SetAutoUpdateTransform(false);
 	vmdl->SetModelYawOffset(RAD(180.0f)); // 反転
@@ -189,6 +182,8 @@ void Player::SetSpawnTransform(const Transform& spawnTransform)
 
 void Player::OnUpdate()
 {
+	PROFILE_FUNCTION();
+	START_PROFILER("Player::OnUpdate");
 	Entity::OnUpdate();
 	UpdateAttackContacts();
 	UpdateWaterDamage();
@@ -204,16 +199,20 @@ void Player::OnUpdate()
 	}
 
 	UpdateTerrainDeformInput();
+	END_PROFILER();
 }
 
 void Player::OnLateUpdate()
 {
+	PROFILE_FUNCTION();
+	START_PROFILER("Player::OnLateUpdate");
 	vmdl->UpdateTransform(transform.GetMatrix());
 
 	if (cc)
 	{
 		cc->ClearDebugRenderPosition();
 	}
+	END_PROFILER();
 }
 
 void Player::OnDrawGUI()
@@ -409,6 +408,12 @@ Player::ActionState Player::GetActionState() const
 	return state;
 }
 
+float Player::GetJustDodgeInputRemaining() const
+{
+	if (!justDodgeTriggered || justDodgeSkillActive || IsDead() || !anim) return 0.0f;
+	return anim->GetMatchingAnimationRemainingTime("Quickshift");
+}
+
 void Player::UpdateDodgeState(const ActionState& state)
 {
 	// 歩行へ戻った後まで、固定クールタイムだけが残らないようにする。
@@ -496,19 +501,43 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 	}
 }
 
+bool Player::CanContinueJustDodgeSkill() const
+{
+	if (IsDead() || !justDodgeSkillActive || !anim || anim->IsTransitioning()) return false;
+	if (anim->GetCurrentStateName() != "SpSkill2Freeze" || IsJustDodgeSkillContinuationQueued()) return false;
+	Actor* target = lockOnComponent ? lockOnComponent->GetTarget() : nullptr;
+	if (!target || !target->CompareTag("Enemy")) return false;
+	const float progress = anim->GetCurrentAnimationProgress();
+	return progress >= SkillContinueStart && progress <= SkillContinueEnd;
+}
+
+float Player::GetJustDodgeSkillInputRemaining() const
+{
+	if (!CanContinueJustDodgeSkill()) return 0.0f;
+	return anim->GetCurrentAnimationRemainingTime(SkillContinueEnd);
+}
+
 void Player::HandleAttackInput(const InputContext& input, const ActionState& state)
 {
 	// もしSpSkill2Freezeなら、0.235f~0.345fにクリックすると続きの攻撃(剣で刺すやつ)になります
 	const bool skillContinuationWindow = anim->GetCurrentStateName() == "SpSkill2Freeze";
+	// 一段目で敵を倒していても、受付前に次のロックオン対象を確保する。
+	if (skillContinuationWindow && justDodgeSkillActive && lockOnComponent)
+		lockOnComponent->LockOnNearestEnemy();
 	if (!skillContinuationWindow) anim->SetBool("SkillContinue", false);
 	if (!input.Down(PlayerAction::Attack)) return;
 	if (skillContinuationWindow)
 	{
-		const auto& layer = anim->GetLayer(0);
-		const float length = anim->GetStateLength(layer.states[layer.currentStateIndex]);
-		const float progress = length > 0.0f ? layer.currentTime / length : 0.0f;
-		if (!anim->IsTransitioning() && progress >= 0.235f && progress <= 0.345f)
+		if (CanContinueJustDodgeSkill())
+		{
+			Actor* target = lockOnComponent->GetTarget();
+			justDodgeSkillTarget = target->weak_from_this();
+			Vector3 direction = target->transform.position - transform.position;
+			direction.y = 0.0f;
+			if (direction.LengthSquared() > eps * eps)
+				transform.SetRotation(Quaternion::CreateFromYawPitchRoll(atan2f(direction.x, direction.z), 0.0f, 0.0f));
 			anim->SetBool("SkillContinue", true);
+		}
 		return;
 	}
 
@@ -540,9 +569,9 @@ Actor* Player::GetJustDodgeTarget() const
 
 void Player::StartJustDodgeSkill(Actor* target)
 {
-	if (!target || !anim || !model || anim->GetLayerCount() == 0 || IsDead()) return;
+	if (!target || !anim || !model || IsDead()) return;
 	const std::string retreatState = "SpSkill" + std::to_string(anim->GetInt("SkillVariant")) + "QuickshiftB";
-	if (!anim->GetLayer(0).GetState(retreatState)) return;
+	if (!anim->HasState(retreatState)) return;
 
 	// 対象へ向ける処理だけを行い、後方回避から必殺技への接続はAnimatorに任せる。
 	Vector3 direction = target->transform.position - transform.position;
@@ -567,6 +596,31 @@ void Player::StartJustDodgeSkill(Actor* target)
 	anim->SetBool("IsCrouching", false);
 	anim->SetBool("IsJustDodge", true);
 	anim->SetTrigger("Attack");
+}
+
+void Player::FinishMovie()
+{
+	justDodgeSkillActive = false;
+	justDodgeSkillTarget.reset();
+	justDodgeTriggered = false;
+	justDodgeAttacker = nullptr;
+	justDodgeWindowActive = false;
+	dodgeInvincible = false;
+	dodgeWasActive = false;
+	dodgeInputBufferTimer.Stop();
+	attackContacts.clear();
+	knockBackVelocity = Vector3::Zero;
+	if (motor) motor->SetExternalVelocity(Vector3::Zero);
+	if (lockOnComponent)
+	{
+		lockOnComponent->SetRotationPaused(false);
+		lockOnComponent->SetAimActive(false);
+	}
+	if (!anim) return;
+	anim->SetBool("IsJustDodge", false);
+	anim->SetFloat("Speed", 0.0f);
+	anim->ResetTriggers();
+	anim->PlayState("Idle");
 }
 
 void Player::ActivateJustDodgeSkill()
@@ -640,9 +694,8 @@ void Player::TakeDamage(const DamageData& damageData)
 		if (IsEnemyAttackActive(attacker, damageData.attackerCollider))
 		{
 			// ジャスト回避
-			if (justDodgeTriggered || justDodgeSkillActive)
-				vmdl->GetRenderer()->PlayParticleEmitter("JUSTDODGE");
-			else TriggerJustDodge(attacker);
+			if (!justDodgeTriggered && !justDodgeSkillActive)
+				TriggerJustDodge(attacker);
 		}
 		return;
 	}
@@ -662,6 +715,8 @@ bool Player::IsEnemyAttackActive(const Actor* enemy, const PhysicsComponent* col
 
 void Player::OnDamaged(const DamageData& damageData)
 {
+	if (motor) motor->SetExternalVelocity(knockBackVelocity);
+
 	justDodgeSkillTarget.reset();
 	healthRecoveryTimer.Reset();
 	CameraEffectController::Request(0.13f, 0.07f);
@@ -698,9 +753,19 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::TriggerJustDodge(Actor* attacker)
 {
 	if (justDodgeTriggered || justDodgeSkillActive || !justDodgeWindowActive) return;
+	// HP0のボスへのジャスト回避は、通常の必殺技受付の代わりに撃破ムービーへつなぐ。
+	if (auto* aracore = dynamic_cast<Aracore*>(attacker))
+	{
+		if (aracore->GetLife() <= 0.0f)
+		{
+			aracore->RequestDefeatMovie();
+			return;
+		}
+	}
 	justDodgeAttacker = attacker;
 	justDodgeTriggered = true;
 	vmdl->GetRenderer()->PlaySoundSource("JUSTDODGE");
+	vmdl->GetRenderer()->PlayParticleEmitter("JUSTDODGE");
 	if (afterimage) afterimage->Play(0.5f);
 
 	CameraEffectController::Request(0.13f, 0.045f);
@@ -749,10 +814,9 @@ void Player::HandleAttackContact(
 	const bool skillAttack = justDodgeSkillActive || GetActionState().skill;
 	const bool kick = self->CompareName("kick");
 	const float damage = GetAttackDamage(target, skillAttack, kick);
-	const float knockBackPower = kick ? 5.0f : 0.0f;
 	target->TakeDamage({
 		.damage = damage,
-		.knockBackPower = knockBackPower,
+		.knockBackPower = 0.0f,
 		.isForceDamage = skillAttack,
 		.specialAttack = skillAttack,
 		.attackerCollider = self,
@@ -763,16 +827,24 @@ void Player::HandleAttackContact(
 
 	inBattleTimer.Reset(BattleTimerDuration);
 
+	float requestStopTime = 0.09f;
+
 	PlayAttackHitEffect(hitPosition);
 	if (skillAttack)
 	{
-		TimeScaleController::Request(0.35f, 0.0f);
+		requestStopTime += 0.2f;
 		PostProcessController::Instance().RequestSkillHit();
 	}
 	else if (!target->IsDead())
 	{
+		if (target->GetLife() - damage < 0)
+		{
+			requestStopTime *= 2.0f;
+		}
 		lockOnComponent->LockOn(target);
 	}
+
+	TimeScaleController::Request(requestStopTime, 0.0f);
 }
 
 bool Player::RegisterAttackContact(PhysicsComponent* attack, PhysicsComponent* other, Actor* target)

@@ -3,7 +3,7 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/Actor.h"
-#include "Gameplay/Actor/Crystal.h"
+#include "Gameplay/Actor/CrystalPart.h"
 #include "Physics/Core/PhysicsComponent.h"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Object* owner, Player* character)

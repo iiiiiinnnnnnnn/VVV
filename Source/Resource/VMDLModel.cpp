@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Core/VMatRenderParams.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
@@ -9,6 +10,7 @@
 #include "Rendering/Core/Graphics.h"
 #include "Core/Foundation/DirectXTexConverts.h"
 #include "Core/Foundation/Json.h"
+#include "Resource/SerialJson.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -26,99 +28,9 @@
 
 namespace
 {
-std::string BuildVfxExtensionJson(const VMDLModel::VmdlParticleData& particles,
-	const VMDLModel::VmdlPresentationData& presentation)
-{
-	json root;
-	root["version"] = 3;
-	root["particleModelDerived"] = json::array();
-	root["particleBillboards"] = json::array();
-	for (const auto& emitter : particles.emitters)
-	{
-		root["particleModelDerived"].push_back(emitter.modelDerived);
-		root["particleBillboards"].push_back(emitter.billboard);
-	}
-	root["cameraShakes"] = json::array();
-	for (const auto& value : presentation.cameraShakes)
-		root["cameraShakes"].push_back({{"name", value.name}, {"node", value.nodeIndex},
-			{"range", value.range}, {"distanceAttenuation", value.distanceAttenuation},
-			{"duration", value.duration}, {"intensity", value.intensity}});
-	root["radialBlurs"] = json::array();
-	for (const auto& value : presentation.radialBlurs)
-		root["radialBlurs"].push_back({{"name", value.name}, {"node", value.nodeIndex},
-			{"range", value.range}, {"distanceAttenuation", value.distanceAttenuation},
-			{"duration", value.duration}, {"power", value.power},
-			{"attackRate", value.attackRate}});
-	const auto saveTracks = [&root](const char* name, const auto& tracks)
-	{
-		root[name] = json::array();
-		for (const auto& track : tracks)
-		{
-			json keys = json::array();
-			for (const auto& key : track.keys)
-				keys.push_back({{"seconds", key.seconds}, {"component", key.componentIndex}});
-			root[name].push_back({{"animation", track.animationName}, {"keys", std::move(keys)}});
-		}
-	};
-	saveTracks("cameraShakeTracks", presentation.cameraShakeTracks);
-	saveTracks("radialBlurTracks", presentation.radialBlurTracks);
-	return root.dump();
-}
 
-void ApplyVfxExtensionJson(const std::string& source, VMDLModel::VmdlParticleData& particles,
-	VMDLModel::VmdlPresentationData& presentation)
-{
-	const json root = json::parse(source);
-	if (root.at("version").get<int>() != 3)
-		throw std::runtime_error("Unsupported VMDL VFX data version.");
-	const json& modelDerived = root.at("particleModelDerived");
-	const json& billboards = root.at("particleBillboards");
-	if (!modelDerived.is_array() || !billboards.is_array() ||
-		modelDerived.size() != particles.emitters.size() ||
-		billboards.size() != particles.emitters.size())
-		throw std::runtime_error("Invalid VMDL VFX emitter data.");
-	for (size_t i = 0; i < particles.emitters.size(); ++i)
-	{
-		particles.emitters[i].modelDerived = modelDerived.at(i).get<bool>();
-		particles.emitters[i].billboard = billboards.at(i).get<bool>();
-	}
 
-	presentation = {};
-	for (const auto& sourceValue : root.at("cameraShakes"))
-	{
-		auto& value = presentation.cameraShakes.emplace_back();
-		value.name = sourceValue.at("name").get<std::string>();
-		value.nodeIndex = sourceValue.at("node").get<int>();
-		value.range = sourceValue.at("range").get<float>();
-		value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
-		value.duration = sourceValue.at("duration").get<float>();
-		value.intensity = sourceValue.at("intensity").get<float>();
-	}
-	for (const auto& sourceValue : root.at("radialBlurs"))
-	{
-		auto& value = presentation.radialBlurs.emplace_back();
-		value.name = sourceValue.at("name").get<std::string>();
-		value.nodeIndex = sourceValue.at("node").get<int>();
-		value.range = sourceValue.at("range").get<float>();
-		value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
-		value.duration = sourceValue.at("duration").get<float>();
-		value.power = sourceValue.at("power").get<float>();
-		value.attackRate = sourceValue.at("attackRate").get<float>();
-	}
-	const auto loadTracks = [&root](const char* name, auto& tracks)
-	{
-		for (const auto& sourceTrack : root.at(name))
-		{
-			auto& track = tracks.emplace_back();
-			track.animationName = sourceTrack.at("animation").get<std::string>();
-			for (const auto& sourceKey : sourceTrack.at("keys"))
-				track.keys.push_back({sourceKey.at("seconds").get<float>(),
-					sourceKey.at("component").get<int>()});
-		}
-	};
-	loadTracks("cameraShakeTracks", presentation.cameraShakeTracks);
-	loadTracks("radialBlurTracks", presentation.radialBlurTracks);
-}
+
 
 std::string ToUpperAscii(std::string value)
 {
@@ -307,6 +219,123 @@ void VMDLModel::BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device,
 	outDDS.clear();
 }
 
+void VMDLModel::SplitMetalnessRoughnessTexture(Material& material)
+{
+	if (material.metalnessRoughnessTextureDDS.empty()) return;
+	DirectX::ScratchImage source, rgba;
+	DirectX::TexMetadata metadata{};
+	if (FAILED(DirectX::LoadFromDDSMemory(material.metalnessRoughnessTextureDDS.data(),
+		material.metalnessRoughnessTextureDDS.size(), DirectX::DDS_FLAGS_NONE, &metadata, source)))
+		throw std::runtime_error("Could not decode the imported PBR texture.");
+	if (metadata.dimension != DirectX::TEX_DIMENSION_TEXTURE2D || metadata.arraySize != 1)
+		throw std::runtime_error("PBR textures must be 2D images.");
+	HRESULT result = S_OK;
+	if (DirectX::IsCompressed(metadata.format))
+		result = DirectX::Decompress(source.GetImages(), source.GetImageCount(), metadata, DXGI_FORMAT_R8G8B8A8_UNORM, rgba);
+	else if (metadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
+		result = DirectX::Convert(source.GetImages(), source.GetImageCount(), metadata, DXGI_FORMAT_R8G8B8A8_UNORM,
+			DirectX::TEX_FILTER_DEFAULT, 0.0f, rgba);
+	else rgba = std::move(source);
+	if (FAILED(result)) throw std::runtime_error("Could not convert the imported PBR texture.");
+	const auto extract = [&](size_t channel, std::vector<uint8_t>& bytes, std::string& name, const char* suffix) {
+		if (!bytes.empty() || !name.empty()) return;
+		DirectX::ScratchImage scalar;
+		if (FAILED(scalar.Initialize2D(DXGI_FORMAT_R8_UNORM, metadata.width, metadata.height, 1, metadata.mipLevels)))
+			throw std::runtime_error("Could not allocate a PBR channel texture.");
+		for (size_t mip = 0; mip < metadata.mipLevels; ++mip)
+		{
+			const auto* input = rgba.GetImage(mip, 0, 0);
+			const auto* output = scalar.GetImage(mip, 0, 0);
+			for (size_t y = 0; y < input->height; ++y)
+				for (size_t x = 0; x < input->width; ++x)
+					output->pixels[y * output->rowPitch + x] = input->pixels[y * input->rowPitch + x * 4 + channel];
+		}
+		DirectX::Blob blob;
+		if (FAILED(DirectX::SaveToDDSMemory(scalar.GetImages(), scalar.GetImageCount(), scalar.GetMetadata(), DirectX::DDS_FLAGS_NONE, blob)))
+			throw std::runtime_error("Could not encode a PBR channel texture.");
+		const auto* begin = static_cast<const uint8_t*>(blob.GetBufferPointer());
+		bytes.assign(begin, begin + blob.GetBufferSize());
+		name = material.name + suffix;
+	};
+	extract(2, material.metalnessTextureDDS, material.metalnessTextureFileName, "_metalness.dds");
+	extract(1, material.roughnessTextureDDS, material.roughnessTextureFileName, "_roughness.dds");
+	material.metalnessRoughnessTextureDDS.clear();
+	material.metalnessRoughnessTextureDDS.shrink_to_fit();
+	material.metalnessRoughnessTextureFileName.clear();
+}
+
+std::vector<uint8_t> VMDLModel::PackMetalnessRoughnessTexture(const Material& material)
+{
+	const bool metal = material.hasMetalnessTexture || !material.metalnessTextureDDS.empty();
+	const bool rough = material.hasRoughnessTexture || !material.roughnessTextureDDS.empty();
+	if (!metal && !rough) return material.metalnessRoughnessTextureDDS;
+	std::array<DirectX::ScratchImage, 3> images;
+	const std::vector<uint8_t>* bytes[] = {&material.metalnessRoughnessTextureDDS,
+		&material.metalnessTextureDDS, &material.roughnessTextureDDS};
+	ID3D11ShaderResourceView* views[] = {nullptr,
+		material.metalnessMap.Get(), material.roughnessMap.Get()};
+	const bool enabled[] = {!bytes[0]->empty(), metal, rough};
+	size_t width = 1, height = 1;
+	for (size_t i = 0; i < images.size(); ++i)
+	{
+		if (!enabled[i]) continue;
+		std::vector<uint8_t> captured;
+		const auto* data = bytes[i];
+		if (data->empty())
+		{
+			if (FAILED(ConvertSRVToDDSBytes(Game::Graphics::Instance().GetDevice(), views[i], captured)))
+				throw std::runtime_error("Could not capture a PBR texture.");
+			data = &captured;
+		}
+		DirectX::ScratchImage source;
+		if (FAILED(DirectX::LoadFromDDSMemory(data->data(), data->size(), DirectX::DDS_FLAGS_NONE, nullptr, source)))
+			throw std::runtime_error("Could not decode a PBR texture.");
+		const auto* image = source.GetImage(0, 0, 0);
+		HRESULT result = S_OK;
+		if (image->format == DXGI_FORMAT_R8G8B8A8_UNORM) images[i] = std::move(source);
+		else if (DirectX::IsCompressed(image->format))
+			result = DirectX::Decompress(*image, DXGI_FORMAT_R8G8B8A8_UNORM, images[i]);
+		else
+			result = DirectX::Convert(*image, DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, 0.0f, images[i]);
+		if (FAILED(result)) throw std::runtime_error("Could not convert a PBR texture.");
+		width = std::max(width, images[i].GetMetadata().width);
+		height = std::max(height, images[i].GetMetadata().height);
+	}
+	for (size_t i = 0; i < images.size(); ++i)
+	{
+		if (!enabled[i]) continue;
+		if (images[i].GetMetadata().width == width && images[i].GetMetadata().height == height) continue;
+		DirectX::ScratchImage resized;
+		if (FAILED(DirectX::Resize(*images[i].GetImage(0, 0, 0), width, height, DirectX::TEX_FILTER_LINEAR, resized)))
+			throw std::runtime_error("Could not resize a PBR texture.");
+		images[i] = std::move(resized);
+	}
+	DirectX::ScratchImage packed;
+	if (FAILED(packed.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1)))
+		throw std::runtime_error("Could not allocate a packed PBR texture.");
+	const auto sample = [&](size_t i, size_t x, size_t y, size_t channel, uint8_t fallback) {
+		const auto* image = images[i].GetImage(0, 0, 0);
+		return image ? image->pixels[y * image->rowPitch + x * 4 + channel] : fallback;
+	};
+	const auto* output = packed.GetImage(0, 0, 0);
+	for (size_t y = 0; y < height; ++y)
+		for (size_t x = 0; x < width; ++x)
+		{
+			auto* pixel = output->pixels + y * output->rowPitch + x * 4;
+			pixel[0] = 255;
+			pixel[1] = rough ? sample(2, x, y, 0, 255) : sample(0, x, y, 1,
+				static_cast<uint8_t>(std::clamp(material.roughness, 0.0f, 1.0f) * 255.0f));
+			pixel[2] = metal ? sample(1, x, y, 0, 0) : sample(0, x, y, 2,
+				static_cast<uint8_t>(std::clamp(material.metalness, 0.0f, 1.0f) * 255.0f));
+			pixel[3] = 255;
+		}
+	DirectX::Blob blob;
+	if (FAILED(DirectX::SaveToDDSMemory(*output, DirectX::DDS_FLAGS_NONE, blob)))
+		throw std::runtime_error("Could not encode a packed PBR texture.");
+	const auto* begin = static_cast<const uint8_t*>(blob.GetBufferPointer());
+	return {begin, begin + blob.GetBufferSize()};
+}
+
 void VMDLModel::BuildMaterialEmbeddedDDS(
 	ID3D11Device* device, const std::filesystem::path& dirpath, VMDLModel::Material& material)
 {
@@ -322,8 +351,13 @@ void VMDLModel::BuildMaterialEmbeddedDDS(
 	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.occlusionTextureFileName,
 		material.occlusionMap.Get(), material.occlusionTextureDDS);
 
-	BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.metalnessRoughnessTextureFileName,
-		material.metalnessRoughnessMap.Get(), material.metalnessRoughnessTextureDDS);
+	SplitMetalnessRoughnessTexture(material);
+	if (material.metalnessTextureDDS.empty())
+		BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.metalnessTextureFileName,
+			material.metalnessMap.Get(), material.metalnessTextureDDS);
+	if (material.roughnessTextureDDS.empty())
+		BuildEmbeddedDDSFromFileOrSRV(device, dirpath, material.roughnessTextureFileName,
+			material.roughnessMap.Get(), material.roughnessTextureDDS);
 }
 
 void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
@@ -365,6 +399,7 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
 void VMDLModel::BuildMaterialTextureResources(
 	ID3D11Device* device, const std::filesystem::path& dirpath, VMDLModel::Material& material)
 {
+	SplitMetalnessRoughnessTexture(material);
 	material.hasBaseTexture = !material.baseTextureFileName.empty() ||
 		!material.baseTextureDDS.empty();
 	material.hasNormalTexture = !material.normalTextureFileName.empty() ||
@@ -373,9 +408,8 @@ void VMDLModel::BuildMaterialTextureResources(
 		!material.emissiveTextureDDS.empty();
 	material.hasOcclusionTexture = !material.occlusionTextureFileName.empty() ||
 		!material.occlusionTextureDDS.empty();
-	material.hasMetalnessRoughnessTexture =
-		!material.metalnessRoughnessTextureFileName.empty() ||
-		!material.metalnessRoughnessTextureDDS.empty();
+	material.hasMetalnessTexture = !material.metalnessTextureFileName.empty() || !material.metalnessTextureDDS.empty();
+	material.hasRoughnessTexture = !material.roughnessTextureFileName.empty() || !material.roughnessTextureDDS.empty();
 
 	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.baseTextureFileName,
 		material.baseTextureDDS, 0xFFFFFFFF, material.baseMap);
@@ -389,8 +423,10 @@ void VMDLModel::BuildMaterialTextureResources(
 	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.occlusionTextureFileName,
 		material.occlusionTextureDDS, 0xFFFFFFFF, material.occlusionMap);
 
-	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.metalnessRoughnessTextureFileName,
-		material.metalnessRoughnessTextureDDS, 0xFF00FF00, material.metalnessRoughnessMap);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.metalnessTextureFileName,
+		material.metalnessTextureDDS, 0xFFFFFFFF, material.metalnessMap);
+	CreateSRVFromEmbeddedDDSOrFile(device, dirpath, material.roughnessTextureFileName,
+		material.roughnessTextureDDS, 0xFFFFFFFF, material.roughnessMap);
 }
 
 void VMDLModel::SyncMaterialTextureToSource(size_t materialIndex, MaterialTextureSlot slot)
@@ -408,9 +444,13 @@ void VMDLModel::SyncMaterialTextureToSource(size_t materialIndex, MaterialTextur
 		target.normalTextureFileName = source.normalTextureFileName;
 		target.normalTextureDDS = source.normalTextureDDS;
 		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		target.metalnessRoughnessTextureFileName = source.metalnessRoughnessTextureFileName;
-		target.metalnessRoughnessTextureDDS = source.metalnessRoughnessTextureDDS;
+	case MaterialTextureSlot::Metalness:
+		target.metalnessTextureFileName = source.metalnessTextureFileName;
+		target.metalnessTextureDDS = source.metalnessTextureDDS;
+		break;
+	case MaterialTextureSlot::Roughness:
+		target.roughnessTextureFileName = source.roughnessTextureFileName;
+		target.roughnessTextureDDS = source.roughnessTextureDDS;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		target.occlusionTextureFileName = source.occlusionTextureFileName;
@@ -447,11 +487,17 @@ bool VMDLModel::ReplaceMaterialTexture(
 		srv = &material.normalMap;
 		hasTexture = &material.hasNormalTexture;
 		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		filename = &material.metalnessRoughnessTextureFileName;
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
-		srv = &material.metalnessRoughnessMap;
-		hasTexture = &material.hasMetalnessRoughnessTexture;
+	case MaterialTextureSlot::Metalness:
+		filename = &material.metalnessTextureFileName;
+		embeddedDDS = &material.metalnessTextureDDS;
+		srv = &material.metalnessMap;
+		hasTexture = &material.hasMetalnessTexture;
+		break;
+	case MaterialTextureSlot::Roughness:
+		filename = &material.roughnessTextureFileName;
+		embeddedDDS = &material.roughnessTextureDDS;
+		srv = &material.roughnessMap;
+		hasTexture = &material.hasRoughnessTexture;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		filename = &material.occlusionTextureFileName;
@@ -506,8 +552,11 @@ bool VMDLModel::ExportMaterialTexture(
 	case MaterialTextureSlot::Normal:
 		embeddedDDS = &material.normalTextureDDS;
 		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
+	case MaterialTextureSlot::Metalness:
+		embeddedDDS = &material.metalnessTextureDDS;
+		break;
+	case MaterialTextureSlot::Roughness:
+		embeddedDDS = &material.roughnessTextureDDS;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		embeddedDDS = &material.occlusionTextureDDS;
@@ -565,12 +614,17 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 		hasTexture = &material.hasNormalTexture;
 		dummyColor = 0xFFFF7F7F;
 		break;
-	case MaterialTextureSlot::MetalnessRoughness:
-		filename = &material.metalnessRoughnessTextureFileName;
-		embeddedDDS = &material.metalnessRoughnessTextureDDS;
-		srv = &material.metalnessRoughnessMap;
-		hasTexture = &material.hasMetalnessRoughnessTexture;
-		dummyColor = 0xFF00FF00;
+	case MaterialTextureSlot::Metalness:
+		filename = &material.metalnessTextureFileName;
+		embeddedDDS = &material.metalnessTextureDDS;
+		srv = &material.metalnessMap;
+		hasTexture = &material.hasMetalnessTexture;
+		break;
+	case MaterialTextureSlot::Roughness:
+		filename = &material.roughnessTextureFileName;
+		embeddedDDS = &material.roughnessTextureDDS;
+		srv = &material.roughnessMap;
+		hasTexture = &material.hasRoughnessTexture;
 		break;
 	case MaterialTextureSlot::Occlusion:
 		filename = &material.occlusionTextureFileName;
@@ -835,6 +889,7 @@ VMDLModel::VMDLModel(const VMDLModel& other)
 	  modelScale(other.modelScale), worldTransform(other.worldTransform),
 	  modelCacheFilepath(other.modelCacheFilepath)
 {
+	serialDocument = other.serialDocument;
 	RebuildRuntimeReferences();
 }
 
@@ -856,12 +911,14 @@ VMDLModel::VMDLModel(VMDLModel&& other) noexcept
 	  externalMeshGroups(std::move(other.externalMeshGroups)), modelScale(other.modelScale),
 	  worldTransform(other.worldTransform), modelCacheFilepath(std::move(other.modelCacheFilepath))
 {
+	serialDocument = std::move(other.serialDocument);
 	RebuildRuntimeReferences();
 }
 
 VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 {
 	if (this == &other) return *this;
+	serialDocument = other.serialDocument;
 
 	materials = other.materials;
 	sourceMaterials = other.sourceMaterials;
@@ -892,6 +949,7 @@ VMDLModel& VMDLModel::operator=(const VMDLModel& other)
 VMDLModel& VMDLModel::operator=(VMDLModel&& other) noexcept
 {
 	if (this == &other) return *this;
+	serialDocument = std::move(other.serialDocument);
 
 	materials = std::move(other.materials);
 	sourceMaterials = std::move(other.sourceMaterials);
@@ -1198,21 +1256,28 @@ bool VMDLModel::ExternalizeMeshes(const std::string& path,
 		material.emissiveTextureFileName.clear();
 		material.occlusionTextureFileName.clear();
 		material.metalnessRoughnessTextureFileName.clear();
+		material.metalnessTextureFileName.clear();
+		material.roughnessTextureFileName.clear();
 		material.baseTextureDDS.clear();
 		material.normalTextureDDS.clear();
 		material.emissiveTextureDDS.clear();
 		material.occlusionTextureDDS.clear();
 		material.metalnessRoughnessTextureDDS.clear();
+		material.metalnessTextureDDS.clear();
+		material.roughnessTextureDDS.clear();
 		material.baseTextureDDS.shrink_to_fit();
 		material.normalTextureDDS.shrink_to_fit();
 		material.emissiveTextureDDS.shrink_to_fit();
 		material.occlusionTextureDDS.shrink_to_fit();
 		material.metalnessRoughnessTextureDDS.shrink_to_fit();
+		material.metalnessTextureDDS.shrink_to_fit();
+		material.roughnessTextureDDS.shrink_to_fit();
 		material.baseMap.Reset();
 		material.normalMap.Reset();
 		material.emissiveMap.Reset();
 		material.occlusionMap.Reset();
-		material.metalnessRoughnessMap.Reset();
+		material.metalnessMap.Reset();
+		material.roughnessMap.Reset();
 	};
 	for (int materialIndex = 0; materialIndex < static_cast<int>(candidateMaterials.size());
 		++materialIndex)
@@ -1336,6 +1401,7 @@ const VMDLModel::ExternalMeshGroup* VMDLModel::GetExternalMeshGroupForMesh(int m
 VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 	: nodes(other.nodes), modelScale(other.modelScale), worldTransform(other.worldTransform)
 {
+	serialDocument = other.serialDocument;
 	materials.reserve(other.materials.size());
 	for (const Material& source : other.materials)
 	{
@@ -1362,12 +1428,14 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		target.normalMap = source.normalMap;
 		target.emissiveMap = source.emissiveMap;
 		target.occlusionMap = source.occlusionMap;
-		target.metalnessRoughnessMap = source.metalnessRoughnessMap;
+		target.metalnessMap = source.metalnessMap;
+		target.roughnessMap = source.roughnessMap;
 		target.hasBaseTexture = source.hasBaseTexture;
 		target.hasNormalTexture = source.hasNormalTexture;
 		target.hasEmissiveTexture = source.hasEmissiveTexture;
 		target.hasOcclusionTexture = source.hasOcclusionTexture;
-		target.hasMetalnessRoughnessTexture = source.hasMetalnessRoughnessTexture;
+		target.hasMetalnessTexture = source.hasMetalnessTexture;
+		target.hasRoughnessTexture = source.hasRoughnessTexture;
 	}
 
 	meshes.reserve(other.meshes.size());
@@ -1389,6 +1457,7 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 
 std::shared_ptr<VMDLModel> VMDLModel::CloneRuntimeInstance(bool includeGeometry) const
 {
+	PROFILE_FUNCTION();
 	auto result = CloneRenderPose();
 	if (includeGeometry)
 	{
@@ -1449,6 +1518,31 @@ std::shared_ptr<VMDLModel> VMDLModel::CloneRenderPose(
 	result->RebuildRuntimeReferences();
 	result->UpdateTransform(worldTransform);
 	return result;
+}
+
+bool VMDLModel::GetLocalBounds(Vector3& center, Vector3& size) const
+{
+	const float limit = std::numeric_limits<float>::max();
+	Vector3 minimum(limit), maximum(-limit);
+	bool found = false;
+	const Matrix placement = Matrix::CreateScale(GetModelScale()) *
+		Matrix::CreateTranslation(GetVmdlExtensionData().rootOffset);
+	for (const auto& mesh : GetMeshes())
+	{
+		if (!mesh.isDraw) continue;
+		const Matrix world = (mesh.node ? mesh.node->globalTransform : Matrix::Identity) * placement;
+		for (const auto& vertex : mesh.vertices)
+		{
+			const Vector3 point = Vector3::Transform(vertex.position, world);
+			minimum = Vector3::Min(minimum, point);
+			maximum = Vector3::Max(maximum, point);
+			found = true;
+		}
+	}
+	if (!found) return false;
+	center = (minimum + maximum) * 0.5f;
+	size = maximum - minimum;
+	return size.x > 0.0001f && size.y > 0.0001f && size.z > 0.0001f;
 }
 
 bool VMDLModel::HasSkeleton() const
@@ -1716,6 +1810,7 @@ bool VMDLModel::ApplyMorph(int morphIndex)
 
 void VMDLModel::UpdateTransform(const Matrix& worldTransform)
 {
+	PROFILE_FUNCTION();
 	this->worldTransform = worldTransform;
 
 	for (Node& node : nodes)
@@ -1765,6 +1860,7 @@ const Matrix& VMDLModel::GetWorldTransform() const
 void VMDLModel::ComputeAnimation(
 	int animationIndex, int nodeIndex, float time, NodePose& nodePose) const
 {
+	PROFILE_FUNCTION();
 	const Animation& animation = animations.at(animationIndex);
 	const NodeAnim& nodeAnim = animation.nodeAnims.at(nodeIndex);
 
@@ -1821,6 +1917,7 @@ void VMDLModel::ComputeAnimation(
 void VMDLModel::ComputeAnimation(
 	int animationIndex, float time, std::vector<NodePose>& nodePoses) const
 {
+	PROFILE_FUNCTION();
 	if (nodePoses.size() != nodes.size())
 	{
 		nodePoses.resize(nodes.size());
@@ -2320,6 +2417,7 @@ void VMDLModel::RestoreRuntimeMorphVisibility()
 
 void VMDLModel::ApplyMaterialAnimation(int animationIndex, float time, VMatRenderParams& params) const
 {
+	PROFILE_FUNCTION();
 	for (int i = 0; i < static_cast<int>(materials.size()); ++i)
 	{
 		const auto value = EvaluateMaterialAnimation(animationIndex, time, i);
@@ -2381,6 +2479,7 @@ std::optional<VMDLModel::VmdlMaterialKeyframe> VMDLModel::EvaluateMaterialAnimat
 
 void VMDLModel::ApplyMorphAnimation(int animationIndex, float time)
 {
+	PROFILE_FUNCTION();
 	RestoreRuntimeMorphVisibility();
 	if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size())) return;
 
@@ -2411,6 +2510,17 @@ std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() co
 			material.shadowStrength, material.alphaCutoff, material.alphaMode,
 			material.fresnelColor, material.fresnelPower, material.fresnelStrength,
 			material.isFlatShading});
+		auto& value = result.back();
+		value.metalnessTextureFileName = material.metalnessTextureFileName;
+		value.roughnessTextureFileName = material.roughnessTextureFileName;
+		value.metalnessTextureDDS = material.metalnessTextureDDS;
+		value.roughnessTextureDDS = material.roughnessTextureDDS;
+		if (material.hasMetalnessTexture && value.metalnessTextureDDS.empty() &&
+			FAILED(ConvertSRVToDDSBytes(Game::Graphics::Instance().GetDevice(), material.metalnessMap.Get(), value.metalnessTextureDDS)))
+			throw std::runtime_error("Could not save the metalness texture.");
+		if (material.hasRoughnessTexture && value.roughnessTextureDDS.empty() &&
+			FAILED(ConvertSRVToDDSBytes(Game::Graphics::Instance().GetDevice(), material.roughnessMap.Get(), value.roughnessTextureDDS)))
+			throw std::runtime_error("Could not save the roughness texture.");
 	}
 	return result;
 }
@@ -2439,6 +2549,12 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 		material.fresnelPower = value.fresnelPower;
 		material.fresnelStrength = value.fresnelStrength;
 		material.isFlatShading = value.isFlatShading;
+		material.metalnessTextureFileName = value.metalnessTextureFileName;
+		material.roughnessTextureFileName = value.roughnessTextureFileName;
+		material.metalnessTextureDDS = value.metalnessTextureDDS;
+		material.roughnessTextureDDS = value.roughnessTextureDDS;
+		material.metalnessMap.Reset();
+		material.roughnessMap.Reset();
 	}
 }
 
@@ -2597,6 +2713,8 @@ bool VMDLModel::ReplaceGLBCache(
 		}
 	}
 	ApplyVmdlMaterialData(materialData);
+	for (auto& material : materials)
+		BuildMaterialTextureResources(Game::Graphics::Instance().GetDevice(), filepath.parent_path(), material);
 	RebuildRuntimeReferences();
 	return true;
 }
@@ -2677,13 +2795,11 @@ void VMDLModel::GetNodePoses(std::vector<NodePose>& nodePoses) const
 	}
 }
 
-void VMDLModel::Serialize(const char* filename)
+SerialDocument& VMDLModel::GetSerialDocument()
 {
 	NormalizeAttachmentNames();
 	NormalizeMorphNames();
 	const auto bindingKeys = BuildMeshBindingKeys(meshes, nodes, materials);
-	std::vector<std::vector<std::string>> externalMeshBindingKeys;
-	std::vector<std::vector<int>> externalMeshCacheIndices;
 	for (ExternalMeshGroup& group : externalMeshGroups)
 	{
 		if (group.cacheMeshIndices.size() != group.meshIndices.size())
@@ -2698,183 +2814,55 @@ void VMDLModel::Serialize(const char* filename)
 				throw std::runtime_error("VMDL external mesh index is invalid.");
 			group.meshKeys.push_back(bindingKeys[meshIndex]);
 		}
-		externalMeshBindingKeys.push_back(group.meshKeys);
-		externalMeshCacheIndices.push_back(group.cacheMeshIndices);
 	}
-	std::ostringstream serializedStream(std::ios::binary | std::ios::out);
-	const std::vector<VmdlMaterialData> materialData = CaptureVmdlMaterialData();
-	std::vector<VmdlSoundSourceBinding> soundBindings;
-	for (const auto& source : vmdlSoundData.sources)
-		soundBindings.push_back({ResourceManager::ShortResourcePath(source.soundPath, "Sound"), source.variant, source.pitchMin, source.pitchMax});
-	VmdlComponentTransformData componentTransforms;
-	for (const auto& value : vmdlExtensionData.rigidBodies)
-		componentTransforms.rigidBodies.push_back(value.transform);
-	for (const auto& value : vmdlExtensionData.colliders)
-		componentTransforms.colliders.push_back(value.transform);
-	for (const auto& value : vmdlExtensionData.springs)
-		componentTransforms.springs.push_back(value.transform);
-	for (const auto& value : vmdlExtensionData.springColliders)
-		componentTransforms.springColliders.push_back(value.transform);
-	for (const auto& value : vmdlTrailData.trails)
-		componentTransforms.trails.push_back(value.transform);
-	for (const auto& value : vmdlParticleData.emitters)
-		componentTransforms.particles.push_back(value.transform);
-	for (const auto& value : vmdlSoundData.sources)
-		componentTransforms.sounds.push_back(value.transform);
-	for (const auto& value : vmdlPresentationData.cameraShakes)
-		componentTransforms.cameraShakes.push_back(value.transform);
-	for (const auto& value : vmdlPresentationData.radialBlurs)
-		componentTransforms.radialBlurs.push_back(value.transform);
-	const std::vector<Material>& glbMaterials =
-		sourceMaterials.empty() ? materials : sourceMaterials;
 
-	try
+	if (!serialDocument) serialDocument = std::make_shared<SerialDocument>();
+	else if (serialDocument.use_count() > 1) serialDocument = std::make_shared<SerialDocument>(*serialDocument);
+	auto& document = *serialDocument;
+	document.type = "VMDL";
+	document.root.name = "VMDL";
+	document.root.understood = true;
+	auto& geometry = document.root.Field("geometry");
+	if (geometry.kind != SerialKind::Deleted && geometry.error.empty())
 	{
-		// 内部ファイルを作成
-		std::vector<std::pair<std::string, std::string>> files;
-		auto addFile = [&](const char* name, auto&& write) {
-			std::ostringstream stream(std::ios::binary | std::ios::out);
-			cereal::BinaryOutputArchive archive(stream);
-			write(archive);
-			files.emplace_back(name, stream.str());
-		};
-		addFile("model.glbcache",
-			[&](auto& archive) { archive(nodes, glbMaterials, meshes, animations); });
-		addFile("model.vmdldata", [&](auto& archive) {
-			archive(materialData, vmdlExtensionData, vmdlIKSettings, vmdlIKPoles, modelScale,
-				vmdlTrailData, vmdlAnimationEditorData, vmdlAnimationControlData,
-				vmdlIKRaySettings);
-		});
-		addFile("model.iksolver", [&](auto& archive) { archive(vmdlMultiLegIKSettings); });
-		addFile("model.ikheighttracks", [&](auto& archive) {
-			archive(vmdlAnimationEditorData.ikContactOffsetTracks);
-		});
-		addFile("model.ikeasing", [&](auto& archive) {
-			archive(vmdlMultiLegIKSettings.interpolationEasing);
-		});
-		addFile("model.iksyncoffsets", [&](auto& archive) {
-			std::vector<Vector3> offsets;
-			for (const auto& ray : vmdlIKRaySettings) offsets.push_back(ray.syncOffset);
-			archive(offsets);
-		});
-		addFile("model.sounddata", [&](auto& archive) { archive(vmdlSoundData); });
-		addFile("model.navmeshobstacles", [&](auto& archive) {
-			std::vector<uint8_t> enabled;
-			for (const auto& collider : vmdlExtensionData.colliders)
-				enabled.push_back(collider.navMeshObstacle ? 1 : 0);
-			archive(enabled);
-		});
-		addFile("model.lightdata", [&](auto& archive) { archive(vmdlLightData); });
-		addFile("model.soundbindings", [&](auto& archive) { archive(soundBindings); });
-		addFile("model.componenttransforms", [&](auto& archive) { archive(componentTransforms); });
-		addFile("model.particledata", [&](auto& archive) { archive(vmdlParticleData); });
-		addFile("model.effectbindings", [&](auto& archive) {
-			std::vector<std::string> effects;
-			for (const auto& emitter : vmdlParticleData.emitters)
-				effects.push_back(emitter.effectName);
-			archive(effects);
-		});
-		addFile("model.vfxdata", [&](auto& archive) {
-			const std::string value = BuildVfxExtensionJson(vmdlParticleData, vmdlPresentationData);
-			archive(value);
-		});
-		addFile("model.crystalsettings", [&](auto& archive) {
-			json settings = json::object();
-			for (const Material& material : materials)
-				settings[material.name] = {{"transmission", material.transmission},
-					{"ior", material.indexOfRefraction}, {"distance", material.refractionDistance},
-					{"roughness", material.crystalRoughness}};
-			archive(settings.dump());
-		});
-		// スプリングの角度設定。
-		addFile("model.springangles", [&](auto& archive) {
-			std::vector<float> angles;
-			for (const auto& spring : vmdlExtensionData.springs)
-				angles.push_back(spring.maxAngleDegrees);
-			archive(angles);
-		});
-		addFile("model.springaxisangles", [&](auto& archive) {
-			std::vector<Vector3> minimums, maximums;
-			for (const auto& spring : vmdlExtensionData.springs)
-			{
-				minimums.push_back(spring.minAnglesDegrees);
-				maximums.push_back(spring.maxAnglesDegrees);
-			}
-			archive(minimums, maximums);
-		});
-		addFile("model.materialanimation", [&](auto& archive) { archive(materialAnimationTracks); });
-		addFile("model.externalmeshes", [&](auto& archive) { archive(externalMeshGroups); });
-		addFile("model.externalmeshbindings",
-			[&](auto& archive) { archive(externalMeshBindingKeys); });
-		addFile("model.externalmeshslots",
-			[&](auto& archive) { archive(externalMeshCacheIndices); });
-
-		cereal::BinaryOutputArchive package(serializedStream);
-		package(files);
+		std::ostringstream stream(std::ios::binary);
+		cereal::BinaryOutputArchive archive(stream);
+		archive(nodes, sourceMaterials.empty() ? materials : sourceMaterials, meshes, animations);
+		const auto bytes = stream.str();
+		geometry.kind = SerialKind::Bytes;
+		geometry.data.assign(bytes.begin(), bytes.end());
+		geometry.understood = true;
 	}
-	catch (const std::exception& exception)
-	{
-		throw std::runtime_error(
-			"VMDLModel serialize failed: " + std::string(exception.what()));
-	}
+	auto materialData = CaptureVmdlMaterialData();
+	if (auto* previous = document.root.Find(SerialNode::FieldId("materialData")))
+		for (auto& material : materialData)
+			for (const auto& item : previous->children)
+				if (item.name == material.name) { material.serialIdentity = item.id; break; }
 
-	const std::string serializedData = serializedStream.str();
-	COMPRESSOR_HANDLE compressor = nullptr;
-	if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &compressor))
-	{
-		throw std::runtime_error("VMDLModel compressor creation failed.");
-	}
+	SerialOutputArchive archive(document.root);
+	archive(CEREAL_NVP(materialData), CEREAL_NVP(vmdlExtensionData), CEREAL_NVP(vmdlIKSettings),
+		CEREAL_NVP(vmdlIKPoles), CEREAL_NVP(vmdlIKRaySettings), CEREAL_NVP(vmdlMultiLegIKSettings),
+		CEREAL_NVP(vmdlAnimationEditorData), CEREAL_NVP(vmdlAnimationControlData),
+		CEREAL_NVP(vmdlTrailData), CEREAL_NVP(vmdlParticleData), CEREAL_NVP(vmdlSoundData),
+		CEREAL_NVP(vmdlLightData), CEREAL_NVP(vmdlPresentationData), CEREAL_NVP(externalMeshGroups),
+		CEREAL_NVP(materialAnimationTracks), CEREAL_NVP(modelScale));
+	json crystal = json::object();
+	for (const auto& material : materials)
+		crystal[material.name] = {{"transmission", material.transmission}, {"ior", material.indexOfRefraction},
+			{"distance", material.refractionDistance}, {"roughness", material.crystalRoughness}};
+	WriteSerialJson(document.root.Field("crystalSettings"), crystal);
+	return document;
+}
 
-	SIZE_T compressedSize = 0;
-	Compress(compressor, serializedData.data(), serializedData.size(), nullptr, 0, &compressedSize);
-
-	if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || compressedSize == 0)
-	{
-		CloseCompressor(compressor);
-		throw std::runtime_error("VMDLModel compressed size calculation failed.");
-	}
-
-	std::vector<uint8_t> compressedData(compressedSize);
-	if (!Compress(compressor, serializedData.data(), serializedData.size(), compressedData.data(),
-			compressedData.size(), &compressedSize))
-	{
-		CloseCompressor(compressor);
-		throw std::runtime_error("VMDLModel compression failed.");
-	}
-	CloseCompressor(compressor);
-	compressedData.resize(compressedSize);
-
-	const auto destination = std::filesystem::path(filename);
-	const auto temporary = std::filesystem::path(destination.wstring() + L".saving.tmp");
-	std::ofstream ostream(temporary, std::ios::binary | std::ios::trunc);
-	if (!ostream.is_open())
-	{
-		throw std::runtime_error("VMDLModel file open failed.");
-	}
-
-	static constexpr std::array<char, 8> magic = {'V', 'M', 'D', 'L', 'C', 'M', 'P', '\0'};
-	const uint32_t version = VmdlCompressionVersion;
-	const uint64_t uncompressedSize = static_cast<uint64_t>(serializedData.size());
-	const uint64_t storedCompressedSize = static_cast<uint64_t>(compressedData.size());
-
-	ostream.write(magic.data(), magic.size());
-	ostream.write(reinterpret_cast<const char*>(&version), sizeof(version));
-	ostream.write(reinterpret_cast<const char*>(&uncompressedSize), sizeof(uncompressedSize));
-	ostream.write(
-		reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
-	ostream.write(reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
-
-	ostream.close();
-	if (!ostream.good())
-	{
-		throw std::runtime_error("VMDLModel file write failed.");
-	}
-	if (!MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-		throw std::runtime_error("VMDLModel file replacement failed.");
+void VMDLModel::Serialize(const char* filename)
+{
+	PROFILE_FUNCTION();
+	GetSerialDocument().Save(std::filesystem::path(filename));
 }
 
 void VMDLModel::Deserialize(const char* filename)
 {
+	PROFILE_FUNCTION();
 	std::ifstream fileStream(std::filesystem::path(filename), std::ios::binary);
 	if (!fileStream.is_open())
 		throw std::runtime_error("VMDLModel file not found: " + std::string(filename));
@@ -2883,6 +2871,112 @@ void VMDLModel::Deserialize(const char* filename)
 
 void VMDLModel::Deserialize(std::istream& fileStream)
 {
+	PROFILE_FUNCTION();
+	if (!SerialDocument::IsCurrent(fileStream)) { LoadGokan(fileStream); return; }
+	serialDocument = std::make_shared<SerialDocument>();
+	serialDocument->Load(fileStream, "VMDL");
+	auto& root = serialDocument->root;
+	auto* geometry = root.Find(SerialNode::FieldId("geometry"));
+	if (!geometry || geometry->kind != SerialKind::Bytes) throw std::runtime_error("VMDL geometry is missing or unsupported.");
+	std::istringstream stream(std::string(geometry->data.begin(), geometry->data.end()), std::ios::binary);
+	cereal::BinaryInputArchive binary(stream);
+	binary(nodes, materials, meshes, animations);
+	geometry->understood = true;
+	std::vector<VmdlMaterialData> materialData;
+	SerialInputArchive archive(root);
+	archive(CEREAL_NVP(materialData), CEREAL_NVP(vmdlExtensionData), CEREAL_NVP(vmdlIKSettings),
+		CEREAL_NVP(vmdlIKPoles), CEREAL_NVP(vmdlIKRaySettings), CEREAL_NVP(vmdlMultiLegIKSettings),
+		CEREAL_NVP(vmdlAnimationEditorData), CEREAL_NVP(vmdlAnimationControlData),
+		CEREAL_NVP(vmdlTrailData), CEREAL_NVP(vmdlParticleData), CEREAL_NVP(vmdlSoundData),
+		CEREAL_NVP(vmdlLightData), CEREAL_NVP(vmdlPresentationData), CEREAL_NVP(externalMeshGroups),
+		CEREAL_NVP(materialAnimationTracks), CEREAL_NVP(modelScale));
+	sourceMaterials = materials;
+	ApplyVmdlMaterialData(materialData);
+	if (auto* crystal = root.Find(SerialNode::FieldId("crystalSettings")); crystal && crystal->kind != SerialKind::Deleted)
+	{
+		try
+		{
+			const auto settings = ReadSerialJson(*crystal);
+			for (auto& material : materials)
+			{
+				if (!settings.contains(material.name)) continue;
+				const auto& value = settings.at(material.name);
+				material.transmission = value.value("transmission", 0.0f);
+				material.indexOfRefraction = value.value("ior", 1.45f);
+				material.refractionDistance = value.value("distance", 0.0f);
+				material.crystalRoughness = value.value("roughness", 0.1f);
+			}
+		}
+		catch (const std::exception& exception) { crystal->error = exception.what(); }
+	}
+	SetModelScale(modelScale);
+	NormalizeAttachmentNames();
+	NormalizeVmdlIKRaySettings();
+	NormalizeMorphNames();
+	// 既知のジオメトリはモデル側に展開済み。通常実行では原本を二重保持しない。
+	geometry->data.clear();
+	geometry->data.shrink_to_fit();
+}
+
+void VMDLModel::LoadGokan(std::istream& fileStream)
+{
+	serialDocument.reset();
+	const auto applyVfxGokan = [](const std::string& source, VMDLModel::VmdlParticleData& particles,
+		VMDLModel::VmdlPresentationData& presentation)
+	{
+		const json root = json::parse(source);
+		if (root.at("version").get<int>() != 3)
+			throw std::runtime_error("Unsupported VMDL VFX data version.");
+		const json& modelDerived = root.at("particleModelDerived");
+		const json& billboards = root.at("particleBillboards");
+		if (!modelDerived.is_array() || !billboards.is_array() ||
+			modelDerived.size() != particles.emitters.size() ||
+			billboards.size() != particles.emitters.size())
+			throw std::runtime_error("Invalid VMDL VFX emitter data.");
+		for (size_t i = 0; i < particles.emitters.size(); ++i)
+		{
+			particles.emitters[i].modelDerived = modelDerived.at(i).get<bool>();
+			particles.emitters[i].billboard = billboards.at(i).get<bool>();
+		}
+
+		presentation = {};
+		for (const auto& sourceValue : root.at("cameraShakes"))
+		{
+			auto& value = presentation.cameraShakes.emplace_back();
+			value.name = sourceValue.at("name").get<std::string>();
+			value.nodeIndex = sourceValue.at("node").get<int>();
+			value.range = sourceValue.at("range").get<float>();
+			value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
+			value.duration = sourceValue.at("duration").get<float>();
+			value.intensity = sourceValue.at("intensity").get<float>();
+		}
+		for (const auto& sourceValue : root.at("radialBlurs"))
+		{
+			auto& value = presentation.radialBlurs.emplace_back();
+			value.name = sourceValue.at("name").get<std::string>();
+			value.nodeIndex = sourceValue.at("node").get<int>();
+			value.range = sourceValue.at("range").get<float>();
+			value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
+			value.duration = sourceValue.at("duration").get<float>();
+			value.power = sourceValue.at("power").get<float>();
+			value.attackRate = sourceValue.at("attackRate").get<float>();
+		}
+		const auto loadTracks = [&root](const char* name, auto& tracks)
+		{
+			for (const auto& sourceTrack : root.at(name))
+			{
+				auto& track = tracks.emplace_back();
+				track.animationName = sourceTrack.at("animation").get<std::string>();
+				for (const auto& sourceKey : sourceTrack.at("keys"))
+					track.keys.push_back({sourceKey.at("seconds").get<float>(),
+						sourceKey.at("component").get<int>()});
+			}
+		};
+		loadTracks("cameraShakeTracks", presentation.cameraShakeTracks);
+		loadTracks("radialBlurTracks", presentation.radialBlurTracks);
+	};
+
+	PROFILE_FUNCTION();
 
 	try
 	{
@@ -2902,7 +2996,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			fileStream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
 			fileStream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
 
-			if (!fileStream.good() || version != VmdlCompressionVersion || uncompressedSize == 0 ||
+			if (!fileStream.good() || version != 13 || uncompressedSize == 0 ||
 				compressedSize == 0 ||
 				uncompressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()) ||
 				compressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()))
@@ -3131,7 +3225,7 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 				vmdlSoundData.sources[i].pitchMin = soundBindings[i].pitchMin;
 				vmdlSoundData.sources[i].pitchMax = soundBindings[i].pitchMax;
 			}
-			ApplyVfxExtensionJson(vfxExtensionJson, vmdlParticleData, vmdlPresentationData);
+			applyVfxGokan(vfxExtensionJson, vmdlParticleData, vmdlPresentationData);
 			requireTransformCount(vmdlPresentationData.cameraShakes, componentTransforms.cameraShakes);
 			requireTransformCount(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
 			applyTransforms(vmdlPresentationData.cameraShakes, componentTransforms.cameraShakes);

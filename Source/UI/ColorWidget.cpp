@@ -3,7 +3,11 @@
 #include "Rendering/Component/SpriteRenderComponent.h"
 
 ColorWidget::ColorWidget(SpriteShaderId shaderId, const Color& color)
-	: Widget("Color Widget")
+	: Widget("Color Widget"), shaderId(shaderId), color(color)
+{
+}
+
+void ColorWidget::OnAwake()
 {
 	AddComponent<SpriteRenderComponent>(
 		std::make_shared<Texture>(Color(1, 1, 1, 1)), shaderId, color);
@@ -11,10 +15,12 @@ ColorWidget::ColorWidget(SpriteShaderId shaderId, const Color& color)
 
 void ColorWidget::SetColor(const Color& color)
 {
-	GetComponent<SpriteRenderComponent>()->SetColor(color);
+	this->color = color;
+	if (auto* sprite = GetComponent<SpriteRenderComponent>()) sprite->SetColor(color);
 }
 
 const Color& ColorWidget::GetColor() const
 {
-	return GetComponent<SpriteRenderComponent>()->GetColor();
+	if (auto* sprite = GetComponent<SpriteRenderComponent>()) return sprite->GetColor();
+	return color;
 }

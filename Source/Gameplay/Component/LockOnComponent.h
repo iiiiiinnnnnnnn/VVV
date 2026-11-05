@@ -10,22 +10,18 @@
 
 // 敵をロックオンするためのゲームコンポーネント
 // 攻撃→ロックオン→以後攻撃時にロックオン対象に向かって攻撃する
-// モデルにあるArrowUIのTrigger位置にUIを表示する
 
 class Actor;
 class Entity;
-class SpriteWidget;
-class VMDLModel;
 
 class LockOnComponent : public Component
 {
 public:
+	void OnAwake() override;
 	LockOnComponent(Object* owner);
-	~LockOnComponent() override;
 
 	void OnUpdate() override;
 	void OnDisabled() override;
-	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_BULLSEYE " LockOnComponent"; }
 
@@ -45,14 +41,12 @@ public:
 
 private:
 	int GetUpdateOrder() const override { return 200; }
+	Actor* GetAttackCandidate() const;
 	bool IsTargetValid() const;
-	void ResolveTargetAnchor();
 
 	Entity* ownerEntity = nullptr;
 	Actor* target = nullptr;
 	std::weak_ptr<Actor> targetLifetime;
-	VMDLModel* targetModel = nullptr;
-	int targetAnchorIndex = -1;
 	float acquireRange = 10.0f;
 	float lostRange = 30.0f;
 	float rotationSpeed = 8.0f;

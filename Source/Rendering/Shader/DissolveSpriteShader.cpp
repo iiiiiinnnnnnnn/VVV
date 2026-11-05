@@ -31,6 +31,8 @@ void DissolveSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	CbDissolve constant{};
 	constant.color = color;
 	constant.amount = mask ? std::clamp(params->dissolve.amount, 0.0f, 1.0f) : 0.0f;
+	constant.maskScale = params ? std::clamp(params->dissolve.maskScale, 0.01f, 10.0f) : 1.0f;
+	constant.softness = params ? std::clamp(params->dissolve.softness, 0.0f, 0.5f) : 0.0f;
 	auto dc = rc.deviceContext;
 	dc->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constant, 0, 0);
 	ID3D11Buffer* buffer = constantBuffer.Get();

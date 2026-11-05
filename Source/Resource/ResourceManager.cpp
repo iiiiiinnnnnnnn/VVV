@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
@@ -19,6 +20,7 @@ static constexpr const char* ResourceSection = "[resources]";
 
 bool ResourceManager::PrepareGameResources()
 {
+	PROFILE_FUNCTION();
 	if (resourcesPrepared) return true;
 	errors.clear();
 	assetPaths.clear();
@@ -42,6 +44,7 @@ bool ResourceManager::PrepareGameResources()
 
 bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
 {
+	PROFILE_FUNCTION();
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	try
 	{
@@ -137,7 +140,7 @@ bool ResourceManager::PreloadFile(const std::string& path)
 	if (value->type == AssetType::VMDLModel)
 	{
 		// モデルをキャッシュ
-		loaded = LoadModel(path, true) != nullptr;
+		loaded = GetModelResource(path) != nullptr;
 	}
 	else
 	{
@@ -160,6 +163,7 @@ bool ResourceManager::PreloadFile(const std::string& path)
 // Manifestから読み込んだ先読み設定に従ってリソースを準備
 bool ResourceManager::PreloadConfiguredResources()
 {
+	PROFILE_FUNCTION();
 	bool success = true;
 	for (const auto& asset : assetPaths)
 	{
@@ -298,10 +302,10 @@ std::string ResourceManager::ShortResourcePath(std::string_view value, const cha
 	return ResourcePath::Text(path);
 }
 
-std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bool runtimeInstance)
+std::shared_ptr<const VMDLModel> ResourceManager::GetModelResource(const std::string& key)
 {
+	PROFILE_FUNCTION();
 	const std::string modelPath = ResolveResourcePath(key, ResourceType::Model);
-	const auto loadStarted = std::chrono::steady_clock::now();
 	if (cacheSettings.Get(ResolvePath(modelPath)).excluded) return nullptr;
 	const std::string lookupKey = MakeLookupKey(modelPath);
 	const auto pathIt = assetPathLookup.find(lookupKey);
@@ -328,7 +332,16 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bo
 		}
 	}
 
-	auto result = runtimeInstance ? it->second->CloneRuntimeInstance(true) : it->second->Clone();
+	return it->second;
+}
+
+std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bool runtimeInstance)
+{
+	PROFILE_FUNCTION();
+	const auto loadStarted = std::chrono::steady_clock::now();
+	auto source = GetModelResource(key);
+	if (!source) return {};
+	auto result = runtimeInstance ? source->CloneRuntimeInstance(true) : source->Clone();
 	const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
 		std::chrono::steady_clock::now() - loadStarted).count();
 	if (milliseconds >= 50)
@@ -343,6 +356,7 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bo
 
 std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key, bool required)
 {
+	PROFILE_FUNCTION();
 	const std::string resolvedPath = ResolvePath(ResolveResourcePath(key, ResourceType::Texture));
 	if (cacheSettings.Get(resolvedPath).excluded) return nullptr;
 	const std::string lookupKey = CacheSettings::Key(resolvedPath);

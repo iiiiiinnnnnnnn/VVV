@@ -11,18 +11,13 @@
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
+#include "UI/SpriteWidget.h"
 
 TitleScene::TitleScene() = default;
 
 TitleScene::~TitleScene()
 {
 	Uninit();
-}
-
-void TitleScene::OnUninit()
-{
-	dummyPlayer.reset();
-	titleHud.reset();
 }
 
 void TitleScene::OnInit()

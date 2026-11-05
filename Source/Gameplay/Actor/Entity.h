@@ -34,15 +34,13 @@ public:
 
     virtual void TakeDamage(const DamageData& damageData);
     void Heal(float amount);
-    bool IsDead() const { return life <= 0.0f; }
+    virtual bool IsDead() const { return life <= 0.0f; }
 
     float GetLife() const { return life; }
     float GetMaxLife() const { return maxLife; }
 
     Vector3 GetKnockBackVelocity() const { return knockBackVelocity; }
     void AddKnockBack(const Vector3& velocity) { knockBackVelocity += velocity; }
-
-	void SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale = 1.0f);
 
 private:
     struct Cooldowns

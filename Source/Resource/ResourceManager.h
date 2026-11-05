@@ -63,6 +63,7 @@ public:
 	const std::vector<std::string>& GetErrors() const { return errors; }
 	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
 
+	std::shared_ptr<const VMDLModel> GetModelResource(const std::string& key);
 	std::shared_ptr<VMDLModel> LoadModel(const std::string& key, bool runtimeInstance = false);
 	std::shared_ptr<Texture> LoadTexture(const std::string& key, bool required = true);
 

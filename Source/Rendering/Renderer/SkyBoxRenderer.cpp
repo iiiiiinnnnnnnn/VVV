@@ -1,4 +1,5 @@
-﻿#include "Rendering/Renderer/SkyBoxRenderer.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Rendering/Renderer/SkyBoxRenderer.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/RenderContext.h"
@@ -58,6 +59,7 @@ void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
                              ID3D11ShaderResourceView* skyTex,
 							 const RenderSettings& renderSettings)
 {
+    PROFILE_FUNCTION();
     if (!skyTex) return;
 
     // 定数バッファ更新

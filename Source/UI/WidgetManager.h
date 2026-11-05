@@ -1,6 +1,9 @@
-#pragma once
+﻿#pragma once
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "IconsFontAwesome5.h"
 #include <algorithm>
+#include <cctype>
+#include <string>
 #include <memory>
 #include <vector>
 
@@ -14,12 +17,17 @@ public:
 	void Register(std::shared_ptr<Widget> widget)
 	{
 		if (!widget) return;
+		if (widget->IsPendingDestroy()) return;
 		widget->widgetManager = this;
+
+		widget->Awake();
+		widget->Start();
 		data.push_back(std::move(widget));
 	}
 
 	void Update()
 	{
+		PROFILE_FUNCTION();
 		for (auto& d : data)
 		{
 			d->Update();
@@ -42,6 +50,7 @@ public:
 
 	void Render(const RenderContext& rc, bool affectedByPostProcess)
 	{
+		PROFILE_FUNCTION();
 		for (auto& d : data)
 		{
 			if (!d)
@@ -63,29 +72,45 @@ public:
 		}
 	}
 
-	void DrawGUI()
+	bool DrawGUI(const char* search = "")
 	{
+		selectionChanged = false;
 		ImGui::TextDisabled((const char*)u8"ルートWidget: %zu", data.size());
-		if (ImGui::BeginChild("##WidgetHierarchy", ImVec2(0.0f, 170.0f), true))
-		{
-			for (const std::shared_ptr<Widget>& widget : data)
-				DrawWidgetNode(widget);
-		}
-		ImGui::EndChild();
+		for (const std::shared_ptr<Widget>& widget : data) DrawWidgetNode(widget, search);
+		return selectionChanged;
+	}
 
-		ImGui::SeparatorText((const char*)u8"選択中のWidget");
-		std::shared_ptr<Widget> selected = selectedWidget.lock();
-		if (selected && !selected->IsPendingDestroy()) selected->DrawGUI();
-		else ImGui::TextDisabled((const char*)u8"ノードを選択すると詳細を表示します");
+	std::shared_ptr<Widget> GetSelectedWidget() const
+	{
+		auto selected = selectedWidget.lock();
+		return selected && !selected->IsPendingDestroy() ? selected : nullptr;
 	}
 
 	std::vector<std::shared_ptr<Widget>>& GetWidgets() { return data; }
 	const std::vector<std::shared_ptr<Widget>>& GetWidgets() const { return data; }
 
 private:
-	void DrawWidgetNode(const std::shared_ptr<Widget>& widget)
+	void DrawWidgetNode(const std::shared_ptr<Widget>& widget, const char* search)
 	{
 		if (!widget || widget->IsPendingDestroy()) return;
+		// Keep matching parents visible so filtered children remain reachable.
+		if (search && *search)
+		{
+			const auto contains = [&](const std::string& value) {
+				std::string name = value, filter = search;
+				std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				return name.find(filter) != std::string::npos;
+			};
+			const auto matchesDescendant = [&](const auto& self, const std::shared_ptr<Widget>& node) -> bool {
+				if (!node || node->IsPendingDestroy()) return false;
+				if (contains(node->GetName())) return true;
+				if (auto* group = dynamic_cast<WidgetGroup*>(node.get()))
+					for (const auto& child : group->GetChildren()) if (self(self, child)) return true;
+				return false;
+			};
+			if (!matchesDescendant(matchesDescendant, widget)) return;
+		}
 
 		ImGui::PushID(widget.get());
 		bool active = widget->IsActive();
@@ -105,20 +130,26 @@ private:
 		const std::string& widgetName = widget->GetName();
 		const char* label = widgetName.c_str();
 		if (widgetName.empty()) label = (const char*)u8"名前なし";
+		if (search && *search) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		const bool open = ImGui::TreeNodeEx("##WidgetNode", flags, ICON_FA_WINDOW_MAXIMIZE " %s", label);
-		if (ImGui::IsItemClicked()) selectedWidget = widget;
+		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+		{
+			selectedWidget = widget;
+			selectionChanged = true;
+		}
 		if (open)
 		{
 			if (group)
 			{
 				for (const std::shared_ptr<Widget>& child : group->GetChildren())
-					DrawWidgetNode(child);
+					DrawWidgetNode(child, search);
 			}
 			ImGui::TreePop();
 		}
 		ImGui::PopID();
 	}
 
+	bool selectionChanged = false;
 	UIEventSystem eventSystem;
 	std::vector<std::shared_ptr<Widget>> data;
 	std::weak_ptr<Widget> selectedWidget;

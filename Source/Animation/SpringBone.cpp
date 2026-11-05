@@ -1,4 +1,5 @@
-﻿#include "Animation/SpringBone.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Animation/SpringBone.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -135,9 +136,6 @@ SpringBone::SpringBone(
     , springCapsules(bodyCapsules)
     , model(model)
 {
-    // エラー用
-    dynamic_cast<Actor*>(owner);
-
     BuildBones(boneContainNames);
 }
 
@@ -436,6 +434,7 @@ void SpringBone::Reset()
 
 void SpringBone::LateUpdate()
 {
+	PROFILE_FUNCTION();
 	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
     if (model == nullptr || bones.empty())
         return;

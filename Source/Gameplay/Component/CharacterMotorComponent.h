@@ -11,6 +11,7 @@ class CharacterController;
 class CharacterMotorComponent : public Component
 {
 public:
+	void OnAwake() override;
 	CharacterMotorComponent(
 		Object* owner,
 		Animator* animator,

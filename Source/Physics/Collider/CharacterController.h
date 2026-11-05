@@ -11,6 +11,7 @@
 
 class CharacterController : public PhysicsComponent {
 public:
+	void OnAwake() override;
     CharacterController(Object* owner, LayerId layerId, float radius, float height);
     ~CharacterController();
     void Update() override;
@@ -43,6 +44,7 @@ public:
     void SetStepOffset(float value);
     void SetConstrainedClimbing(bool value)
     {
+        constrainedClimbing = value;
         if (!controller) return;
 
         PxCapsuleController* capsule = static_cast<PxCapsuleController*>(controller);
@@ -56,13 +58,13 @@ public:
     void ReleaseController();
     float GetSlopeLimitDeg() const
     {
-        if (!controller) return 45.0f;
+        if (!controller) return slopeLimitDeg;
         return DirectX::XMConvertToDegrees(acosf(std::clamp(controller->getSlopeLimit(), 0.0f, 1.0f)));
     }
-    float GetRadius() const { return controller ? static_cast<PxCapsuleController*>(controller)->getRadius() : 0.0f; }
+    float GetRadius() const { return controller ? static_cast<PxCapsuleController*>(controller)->getRadius() : radius; }
     float GetHeight() const
     {
-        if (!controller) return 0.0f;
+        if (!controller) return height + radius * 2.0f;
         auto* capsule = static_cast<PxCapsuleController*>(controller);
         return capsule->getHeight() + capsule->getRadius() * 2.0f;
     }
@@ -73,6 +75,12 @@ private:
     void SyncOwnerTransform();
     float GetFootToControllerCenter() const;
 
+    float stepOffset = 0.1f;
+    float slopeLimitDeg = 45.0f;
+    float contactOffset = 0.1f;
+    bool constrainedClimbing = false;
+    float radius;
+    float height;
     PxController* controller = nullptr;
     CCHitReport* hitReport = nullptr;
     bool grounded = false;

@@ -1,5 +1,6 @@
 // VmdlEditorScene.h
 #pragma once
+#include "Application/SettingsAndDebug/SerialViewer.h"
 
 #include "Application/Time/Timer.h"
 
@@ -42,6 +43,12 @@ class VmdlEditorScene : public Scene
 	bool OnRequestExit() override;
 
   private:
+	void HandleShortcuts();
+	void DrawSerialViewer();
+	SerialViewer serialViewer;
+	SerialDocument* serialViewerDocument = nullptr;
+	bool showSerialViewer = false;
+
 	std::filesystem::path initialModelPath;
 
 	enum class AttachedComponentType
@@ -326,7 +333,6 @@ class VmdlEditorScene : public Scene
 	bool showIkPole = false;
 	bool showSetScaleWindow = false;
 	float setScaleValue = 1.0f;
-	bool showPhysicsLayerWindow = false;
 	bool exiting = false;
 	std::vector<uint8_t> previewColliderActive;
 	std::vector<uint8_t> previewTrailActive;

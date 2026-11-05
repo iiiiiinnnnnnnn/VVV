@@ -10,8 +10,7 @@ class RigidRock : public Actor
 	~RigidRock() override;
 
   protected:
-	void OnInit() override;
-	void OnUninit() override;
+	void OnAwake() override;
 
 	VMDL* vmdl = nullptr;
 	std::string modelPath;

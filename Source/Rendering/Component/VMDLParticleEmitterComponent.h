@@ -10,6 +10,7 @@
 class VMDLParticleEmitterComponent : public Component
 {
 public:
+	void OnAwake() override;
 	VMDLParticleEmitterComponent(Object* owner, VMDLModel* model,
 		const VMDLModel::VmdlParticleEmitter& settings, bool initiallyEmitting);
 	~VMDLParticleEmitterComponent() override;

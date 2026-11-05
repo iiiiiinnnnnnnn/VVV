@@ -14,7 +14,6 @@ public:
 
 protected:
 	void OnInit() override;
-	void OnUninit() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 	bool UsesGameDebugGUI() const override;

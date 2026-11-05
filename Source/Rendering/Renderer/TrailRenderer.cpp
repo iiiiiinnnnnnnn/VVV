@@ -1,4 +1,5 @@
-﻿#include "Application/SettingsAndDebug/DebugUtil.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Rendering/Renderer/TrailRenderer.h"
 
@@ -63,6 +64,7 @@ void TrailRenderer::Render(
 	Color color,
 	Color endColor)
 {
+	PROFILE_FUNCTION();
 	// シェーダー設定
 	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
 	dc->PSSetShader(pixelShader.Get(), nullptr, 0);

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Component/VMDL.h"
 
 #include "Animation/HumanoidFootIK.h"
@@ -10,31 +11,36 @@
 #include "Resource/ResourcePath.h"
 
 VMDL::VMDL(Object* owner, const std::string& path, bool buildEmbeddedColliders)
-	: Component(owner), path(path)
+	: Component(owner), buildEmbeddedColliders(buildEmbeddedColliders), path(path)
 {
-	// モデルを事前読込
-	if (!SetPreloadResourceFiles({ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Model)})) throw std::runtime_error("VMDL preload failed: " + path);
-
-	// キャラクターごとに埋め込みテクスチャをコピーせず、描画リソースを共有する。
-	auto loaded = ResourceManager::Instance().LoadModel(path, true);
-	if (!loaded) throw std::runtime_error("VMDL could not be loaded: " + path);
-	model = std::move(loaded);
-	BuildModelComponents(buildEmbeddedColliders);
 }
 
 VMDL::VMDL(Object* owner, std::shared_ptr<VMDLModel> model)
 	: Component(owner), model(std::move(model))
 {
 	if (!this->model) throw std::runtime_error("VMDL requires a model.");
-	BuildModelComponents();
+}
+
+void VMDL::OnAwake()
+{
+	PROFILE_FUNCTION();
+	if (!model)
+	{
+		if (!SetPreloadResourceFiles({ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Model)}))
+			throw std::runtime_error("VMDL preload failed: " + path);
+		model = ResourceManager::Instance().LoadModel(path, true);
+		if (!model) throw std::runtime_error("VMDL could not be loaded: " + path);
+	}
+	BuildModelComponents(buildEmbeddedColliders);
 }
 
 void VMDL::BuildModelComponents(bool buildEmbeddedColliders)
 {
+	PROFILE_FUNCTION();
 	renderer = owner->AddComponent<VMDLModelComponent>(
 		model, ModelShaderId::VMat, VMatRenderParams{}, buildEmbeddedColliders);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());
-	renderer->BuildAttachments();
+	renderer->Awake();
 
 	model->ApplyInitialMorphs();
 }

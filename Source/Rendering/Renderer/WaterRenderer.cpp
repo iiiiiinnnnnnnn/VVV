@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Renderer/WaterRenderer.h"
 
 #include <algorithm>
@@ -15,6 +16,10 @@
 #include "Resource/Texture.h"
 
 WaterRenderer::WaterRenderer(Object* owner) : Component(owner)
+{
+}
+
+void WaterRenderer::OnAwake()
 {
 	static_assert(sizeof(ConstantBuffer) % 16 == 0);
 
@@ -99,6 +104,7 @@ void WaterRenderer::ApplyUnderwaterContext(RenderContext& rc) const
 
 void WaterRenderer::OnRender(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	if (!vertexBuffer || !constantBuffer) return;
 	if (!vertexShader || !pixelShader) return;
 	if (!rc.camera || !rc.deviceContext || !rc.renderState) return;

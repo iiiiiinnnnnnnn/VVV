@@ -12,6 +12,7 @@ class NavMeshAgent;
 class EnemyAI : public LuaScript
 {
 public:
+	void OnAwake() override;
 	// LuaはResources/AIと拡張子を省略できる。省略時は後からLoadで指定する。
 	EnemyAI(Object* owner, const std::string& path = {});
 
@@ -74,4 +75,5 @@ private:
 	bool waitingForCamera = false;
 	Vector3 cameraActivationCenter = Vector3::Zero;
 	float cameraActivationRadius = 0.0f;
+	std::string initialScriptPath;
 };

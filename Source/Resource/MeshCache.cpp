@@ -50,12 +50,14 @@ void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
 		target.normalMap = found->normalMap;
 		target.emissiveMap = found->emissiveMap;
 		target.occlusionMap = found->occlusionMap;
-		target.metalnessRoughnessMap = found->metalnessRoughnessMap;
+		target.metalnessMap = found->metalnessMap;
+		target.roughnessMap = found->roughnessMap;
 		target.hasBaseTexture = found->hasBaseTexture;
 		target.hasNormalTexture = found->hasNormalTexture;
 		target.hasEmissiveTexture = found->hasEmissiveTexture;
 		target.hasOcclusionTexture = found->hasOcclusionTexture;
-		target.hasMetalnessRoughnessTexture = found->hasMetalnessRoughnessTexture;
+		target.hasMetalnessTexture = found->hasMetalnessTexture;
+		target.hasRoughnessTexture = found->hasRoughnessTexture;
 	}
 }
 
@@ -160,11 +162,15 @@ MeshCache::MeshCache(
 			material.emissiveTextureDDS.clear();
 			material.occlusionTextureDDS.clear();
 			material.metalnessRoughnessTextureDDS.clear();
+			material.metalnessTextureDDS.clear();
+			material.roughnessTextureDDS.clear();
 			material.baseTextureDDS.shrink_to_fit();
 			material.normalTextureDDS.shrink_to_fit();
 			material.emissiveTextureDDS.shrink_to_fit();
 			material.occlusionTextureDDS.shrink_to_fit();
 			material.metalnessRoughnessTextureDDS.shrink_to_fit();
+			material.metalnessTextureDDS.shrink_to_fit();
+			material.roughnessTextureDDS.shrink_to_fit();
 		}
 	}
 	for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
@@ -287,10 +293,13 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 					cacheMaterial.emissiveMap.Get(), cacheMaterial.emissiveTextureDDS);
 				rebuildTexture(cacheMaterial.hasOcclusionTexture, cacheMaterial.occlusionTextureFileName,
 					cacheMaterial.occlusionMap.Get(), cacheMaterial.occlusionTextureDDS);
-				rebuildTexture(cacheMaterial.hasMetalnessRoughnessTexture,
-					cacheMaterial.metalnessRoughnessTextureFileName,
-					cacheMaterial.metalnessRoughnessMap.Get(),
-					cacheMaterial.metalnessRoughnessTextureDDS);
+
+				// 装備キャッシュの固定バイナリにはglTF互換のG/B形式で格納する。
+				if (cacheMaterial.hasMetalnessTexture || cacheMaterial.hasRoughnessTexture)
+				{
+					cacheMaterial.metalnessRoughnessTextureDDS = VMDLModel::PackMetalnessRoughnessTexture(cacheMaterial);
+					cacheMaterial.metalnessRoughnessTextureFileName = "PackedMetalnessRoughness.dds";
+				}
 				cacheMaterials.push_back(std::move(cacheMaterial));
 				pbrSettings.push_back({material.occlusion, material.shadowStrength});
 				vmatSettings.push_back({material.fresnelColor, material.fresnelPower,

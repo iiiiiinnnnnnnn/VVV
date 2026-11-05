@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "IconsFontAwesome5.h"
 
@@ -70,6 +71,7 @@ AreaLight* LightManager::AddAreaLight()
 
 void LightManager::Update()
 {
+	PROFILE_FUNCTION();
 	std::erase_if(attachedPointLights, [](const auto& light) { return light.expired(); });
 	for (auto& light : directionalLights)
 		if (!light.IsPendingDestroy()) light.Update();
@@ -96,6 +98,7 @@ void LightManager::Update()
 
 void LightManager::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	for (auto& light : directionalLights)
 		if (!light.IsPendingDestroy()) light.Render(rc);
 
@@ -119,6 +122,7 @@ void LightManager::Render(const RenderContext& rc)
 
 void LightManager::DrawDebug() const
 {
+	PROFILE_FUNCTION();
 	ShapeRenderer* renderer = Game::Graphics::Instance().GetShapeRenderer();
 	PrimitiveRenderer* primitiveRenderer = Game::Graphics::Instance().GetPrimitiveRenderer();
 	if (!renderer || !primitiveRenderer) return;

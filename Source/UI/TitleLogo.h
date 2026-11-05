@@ -5,6 +5,7 @@
 class TitleLogo final : public SpriteWidget
 {
 public:
+	void OnAwake() override;
 	TitleLogo();
 
 protected:

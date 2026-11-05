@@ -31,13 +31,12 @@ CapsuleCollider::CapsuleCollider(
     , height(height)
     , localPosition(localPosition)
 {
-    // エラー用
-
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
 void CapsuleCollider::OnAwake()
 {
+    if (!material) material = PhysicsManager::Instance().GetDefaultMaterial();
+    if (rigidbody) rigidbody->Awake();
     UpdateShape();
 }
 

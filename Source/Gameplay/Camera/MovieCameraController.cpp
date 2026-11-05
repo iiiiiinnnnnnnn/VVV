@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -13,6 +14,8 @@
 #include <type_traits>
 
 #include "Application/Time/GameTime.h"
+#include "Application/Input/Input.h"
+#include "Physics/Collider/CharacterController.h"
 #include "Application/Tools/Dialog.h"
 #include "Audio/SoundSystem.h"
 #include "Core/Foundation/Json.h"
@@ -23,6 +26,8 @@
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Rendering/Core/Graphics.h"
+#include "Rendering/Effect/Effect.h"
+#include "Rendering/Effect/EffectManager.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 
@@ -47,6 +52,21 @@ template <class Key> static void StoreMovieKey(std::vector<Key>& keys, const Key
 	if (found != keys.end() && std::abs(found->time - key.time) < 0.001f) *found = key;
 	else keys.push_back(key);
 	std::sort(keys.begin(), keys.end(), [](const Key& a, const Key& b) { return a.time < b.time; });
+}
+
+// 発生イベントは同時刻にも複数登録できる。
+static void StoreMovieKey(std::vector<MovieCameraController::ParticleKey>& keys,
+	const MovieCameraController::ParticleKey& key)
+{
+	keys.push_back(key);
+	std::stable_sort(keys.begin(), keys.end(), [](const auto& a, const auto& b) { return a.time < b.time; });
+}
+
+static void StoreMovieKey(std::vector<MovieCameraController::SoundKey>& keys,
+	const MovieCameraController::SoundKey& key)
+{
+	keys.push_back(key);
+	std::stable_sort(keys.begin(), keys.end(), [](const auto& a, const auto& b) { return a.time < b.time; });
 }
 
 MovieCameraController::MovieCameraController(Object* owner) : CameraController(owner)
@@ -84,7 +104,7 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 	stage = &value;
 	camera = owner->GetComponent<Camera>();
 	freeCamera = owner->GetComponent<FreeCameraController>();
-	if (!camera || !freeCamera) { message = "Movie camera requires Camera and FreeCameraController."; return false; }
+	if (!camera || !freeCamera) return false;
 	try
 	{
 		if (!boss)
@@ -116,6 +136,7 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 		SyncCameraToController(*camera);
 		savedEye = eye; savedFocus = focus; savedUp = up; savedFov = fov;
 		wasPaused = Game::Time::paused;
+		savedTimeScale = Game::Time::scale;
 		moviePostProcess = &postProcess;
 		savedPostSettings = postProcess.CaptureMovieSettings();
 		currentPostSettings = savedPostSettings;
@@ -130,18 +151,10 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 			}
 		}
 		editing = true;
+		particlePathsLoaded = false;
+		soundPathsLoaded = false;
 		for (const auto& state : controllerStates) state.controller->SetActive(false);
-		Terrain* terrain = stage->GetComponent<Terrain>();
-		if (!terrain) terrain = stage->GetTerrain();
-		origin = temporaryBoss ? player.transform.position : boss->transform.position;
-		if (terrain)
-		{
-			const Matrix world = stage->GetTransform()->GetMatrix();
-			Vector3 local = Vector3::Transform(origin, world.Invert());
-			local.y = terrain->GetSurfaceHeightByUV(local.x / terrain->GetTerrainSize() + 0.5f,
-				local.z / terrain->GetTerrainSize() + 0.5f);
-			origin = Vector3::Transform(local, world);
-		}
+		origin = stage->GetTransform()->position;
 		for (const auto& entry : visibility) entry.actor->SetActive(false);
 		player.SetActive(true); boss->SetActive(true);
 		stage->PromoteCamera(camera);
@@ -157,27 +170,46 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 			documentPath = root / "Movie" / "BossDefeat.vmovie";
 			if (std::filesystem::exists(documentPath)) Load(documentPath);
 		}
+		PlaceAtStageCenter();
 		Seek(0.0f);
 		return true;
 	}
 	catch (const std::exception& error)
 	{
-		message = error.what();
 		if (editing) End();
 		else if (temporaryBoss) { temporaryBoss->SetActive(false); temporaryBoss->Destroy(); temporaryBoss.reset(); }
 		return false;
 	}
 }
 
-void MovieCameraController::End()
+bool MovieCameraController::BeginPlayback(Stage& value, Actor& player, Actor& boss, Game::PostProcess& postProcess)
 {
+	if (editing) return false;
+	if (!Begin(value, player, &boss, postProcess)) return false;
+	auto root = ResourceManager::FindSourceResourceRoot();
+	if (root.empty()) root = std::filesystem::absolute("Resources");
+	if (!Load(root / "Movie" / "BossDefeat.vmovie")) { End(); return false; }
+	runtimePlayback = true;
+	playbackResult = 0;
+	playing = true;
+	freeView = false;
+	Seek(0.0f);
+	return true;
+}
+
+void MovieCameraController::End(bool keepActorPositions)
+{
+	StopSounds();
+	StopParticles();
 	if (!editing) return;
 	playing = false;
 	for (ActorState* state : { &playerState, &bossState })
 	{
-		state->actor->transform = state->transform;
-		state->renderer->GetModel()->SetNodePoses(state->pose);
-		state->renderer->UpdateModelTransform(state->transform.GetMatrix());
+		if (!keepActorPositions) state->actor->transform = state->transform;
+		else if (auto* controller = state->actor->GetComponent<CharacterController>())
+			controller->SetPosition(state->actor->transform.position);
+		if (!keepActorPositions) state->renderer->GetModel()->SetNodePoses(state->pose);
+		state->renderer->UpdateModelTransform(state->actor->transform.GetMatrix());
 	}
 	for (const auto& state : visibility) state.actor->SetActive(state.active);
 	playerState.actor->SetActive(playerState.active);
@@ -187,14 +219,55 @@ void MovieCameraController::End()
 	camera->SetPerspectiveFov(RAD(savedFov), aspect, 0.1f, 1000.0f);
 	for (const auto& state : cameraStates) state.camera->SetPriority(state.priority);
 	for (const auto& state : controllerStates) state.controller->SetActive(state.active);
+	Game::Time::scale = savedTimeScale;
 	Game::Time::paused = wasPaused;
 	Game::Time::deltaTime = 0.0f;
 	SoundSystem::Instance().SetPaused(wasPaused);
 	if (moviePostProcess) moviePostProcess->ApplyMovieSettings(savedPostSettings);
 	moviePostProcess = nullptr;
 	if (temporaryBoss) { temporaryBoss->SetActive(false); temporaryBoss->Destroy(); temporaryBoss.reset(); }
-	editing = false; closeRequested = false; freeView = false;
+	editing = false; closeRequested = false; freeView = false; runtimePlayback = false;
 	stage = nullptr;
+}
+
+void MovieCameraController::PlaceAtStageCenter()
+{
+	if (!stage) return;
+	// ボスの開始キーをステージ中央へ合わせ、全トラックへ同じ移動量を適用する。
+	const Vector3 center = stage->GetTransform()->position;
+	origin = center;
+	if (!sequence.boss.empty()) origin -= sequence.boss.front().position;
+	Terrain* terrain = stage->GetComponent<Terrain>();
+	Transform* terrainTransform = stage->GetTransform();
+	if (!terrain)
+	{
+		terrain = stage->GetTerrain();
+		if (!terrain) return;
+		for (Actor* actor : stage->GetActorManager().GetActors())
+			if (actor->GetComponent<Terrain>() == terrain) { terrainTransform = actor->GetTransform(); break; }
+	}
+	if (!terrain || !terrainTransform) return;
+	const Matrix world = terrainTransform->GetMatrix();
+	const Matrix inverse = world.Invert();
+	const auto groundHeight = [&](const Vector3& position)
+	{
+		Vector3 local = Vector3::Transform(position, inverse);
+		local.y = terrain->GetSurfaceHeightByUV(local.x / terrain->GetTerrainSize() + 0.5f,
+			local.z / terrain->GetTerrainSize() + 0.5f);
+		return Vector3::Transform(local, world).y;
+	};
+	origin.y += groundHeight(center) - center.y;
+	// 開始キーに負のYがあっても埋まらないよう、全トラックを共通の高さだけ持ち上げる。
+	float lift = 0.0f;
+	const auto fit = [&](const auto& keys)
+	{
+		if (keys.empty()) return;
+		const Vector3 position = origin + keys.front().position;
+		lift = std::max(lift, groundHeight(position) + 0.02f - position.y);
+	};
+	fit(sequence.player);
+	fit(sequence.boss);
+	origin.y += lift;
 }
 
 void MovieCameraController::SeedSequence()
@@ -226,15 +299,81 @@ void MovieCameraController::SeedSequence()
 	sequence.bossMotions = { {0, motion(bossState, "Idle"), 0, 1, true},
 		{1, motion(bossState, "Jump"), 0, 1, false} };
 	sequence.effects = { {0.0f, savedPostSettings} };
+	sequence.timeScales = { {0.0f, 1.0f} };
 	undoStack.clear(); redoStack.clear();
 	dirty = false;
 }
 
 void MovieCameraController::Seek(float time)
 {
+	StopSounds();
+	StopParticles();
 	cursor = std::clamp(time, 0.0f, sequence.duration);
 	qteResult = 0;
+	pendingQteResult = QteResult::None;
 	Evaluate();
+}
+
+void MovieCameraController::StopSounds()
+{
+	auto& sound = SoundSystem::Instance();
+	for (const auto& playback : soundPlaybacks)
+		if (playback.voice) sound.Stop(playback.voice);
+	soundPlaybacks.clear();
+	if (previewSound) sound.Stop(previewSound);
+	previewSound = SoundSystem::InvalidVoiceId;
+}
+
+void MovieCameraController::UpdateSounds(float previousTime)
+{
+	PROFILE_FUNCTION();
+	auto& sound = SoundSystem::Instance();
+	if (soundPlaybacks.size() != sequence.sounds.size())
+	{
+		StopSounds();
+		soundPlaybacks.resize(sequence.sounds.size());
+	}
+	if (!playing)
+	{
+		for (auto& playback : soundPlaybacks)
+		{
+			if (!playback.voice || playback.paused) continue;
+			sound.SetVoicePaused(playback.voice, true);
+			playback.paused = true;
+		}
+		return;
+	}
+	if (previewSound) { sound.Stop(previewSound); previewSound = SoundSystem::InvalidVoiceId; }
+	for (size_t i = 0; i < sequence.sounds.size(); ++i)
+	{
+		const auto& key = sequence.sounds[i];
+		auto& playback = soundPlaybacks[i];
+		if (!playback.started && key.time <= cursor)
+		{
+			playback.started = true;
+			// シークで通り過ぎた音は鳴らさず、再生中に通過したキーだけ発音する。
+			if (key.time >= previousTime && cursor < key.time + key.duration && !key.path.empty())
+			{
+				SoundSystem::PlayOptions options;
+				options.volume = key.volume;
+				options.pitch = key.pitch;
+				options.pan = key.pan;
+				options.loop = key.loop;
+				playback.voice = sound.Play(key.path, options);
+			}
+		}
+		if (!playback.voice) continue;
+		if (cursor >= key.time + key.duration)
+		{
+			sound.Stop(playback.voice);
+			playback.voice = SoundSystem::InvalidVoiceId;
+		}
+		else if (playback.paused)
+		{
+			sound.SetVoicePaused(playback.voice, false);
+			playback.paused = false;
+		}
+	}
 }
 
 void MovieCameraController::EvaluateActor(ActorState& state, const std::vector<ActorKey>& keys,
@@ -268,9 +407,106 @@ void MovieCameraController::EvaluateActor(ActorState& state, const std::vector<A
 	state.renderer->UpdateModelTransform(state.actor->transform.GetMatrix());
 }
 
+void MovieCameraController::StopParticles()
+{
+	auto manager = EffectManager::Instance().GetEffekseerManager();
+	for (auto& playback : particlePlaybacks)
+		if (playback.effect && manager && playback.handle >= 0 && manager->Exists(playback.handle))
+			playback.effect->Stop(playback.handle);
+	particlePlaybacks.clear();
+	particleCursor = -1.0f;
+}
+
+Matrix MovieCameraController::GetParticleTransform(const ParticleKey& key) const
+{
+	Matrix anchor = Matrix::CreateTranslation(origin);
+	if (key.target != 0)
+	{
+		const auto& keys = key.target == 1 ? sequence.player : sequence.boss;
+		const ActorState& state = key.target == 1 ? playerState : bossState;
+		if (!keys.empty())
+		{
+			const float time = key.follow ? cursor : key.time;
+			const size_t index = MovieKeyIndex(keys, time);
+			const auto& a = keys[index];
+			const auto& b = keys[std::min(index + 1, keys.size() - 1)];
+			const float blend = MovieKeyBlend(time, a.time, b.time, a.easing);
+			const float yaw = a.yaw + std::remainder(b.yaw - a.yaw, 360.0f) * blend;
+			anchor = Matrix::CreateScale(state.transform.scale) * Matrix::CreateRotationY(RAD(yaw)) *
+				Matrix::CreateTranslation(origin + Vector3::Lerp(a.position, b.position, blend));
+		}
+	}
+	return Matrix::CreateScale(key.scale) *
+		Matrix::CreateFromYawPitchRoll(RAD(key.rotation.y), RAD(key.rotation.x), RAD(key.rotation.z)) *
+		Matrix::CreateTranslation(key.position) * anchor;
+}
+
+void MovieCameraController::EvaluateParticles()
+{
+	PROFILE_FUNCTION();
+	if (!editing) return;
+	auto manager = EffectManager::Instance().GetEffekseerManager();
+	if (!manager) return;
+	if (cursor < particleCursor || particlePlaybacks.size() != sequence.particles.size()) StopParticles();
+	particlePlaybacks.resize(sequence.particles.size());
+	particleCursor = cursor;
+	for (size_t i = 0; i < sequence.particles.size(); ++i)
+	{
+		const auto& key = sequence.particles[i];
+		auto& playback = particlePlaybacks[i];
+		if (key.path.empty() || cursor < key.time || cursor >= key.time + key.duration)
+		{
+			if (playback.effect && playback.handle >= 0 && manager->Exists(playback.handle))
+				playback.effect->Stop(playback.handle);
+			playback.handle = -1;
+			playback.started = false;
+			playback.frame = -1.0f;
+			continue;
+		}
+		if (!playback.started)
+		{
+			playback.started = true;
+			try
+			{
+				if (!playback.effect) playback.effect = EffectManager::Instance().LoadEffect(key.path);
+				playback.effect->SetBillboard(key.billboard);
+				playback.handle = playback.effect->Play(Vector3::Zero);
+				if (playback.handle >= 0) manager->SetRandomSeed(playback.handle, key.seed);
+			}
+			catch (const std::exception& error) {  }
+		}
+		if (!playback.effect || playback.handle < 0 || !manager->Exists(playback.handle)) continue;
+		Matrix transform = GetParticleTransform(key);
+		if (key.billboard) transform = EffectManager::CreateBillboardTransform(transform, camera->GetView());
+		const float frame = std::floor(std::max(cursor - key.time, 0.0f) * key.speed * 60.0f + 0.0001f);
+		if (playback.frame == frame && playback.transform == transform) continue;
+		playback.transform = transform;
+		playback.effect->SetTransform(playback.handle, transform);
+
+		// ムービーの時刻だけで進める。ゲーム時間や他のエフェクトは進めない。
+		manager->SetPaused(playback.handle, false);
+		manager->BeginUpdate();
+		if (playback.frame < 0.0f)
+		{
+			manager->UpdateHandle(playback.handle, 0.0f);
+			playback.frame = 0.0f;
+		}
+		for (; playback.frame < frame; playback.frame += 1.0f)
+		{
+			manager->UpdateHandle(playback.handle, 1.0f);
+			if (manager->GetInstanceCount(playback.handle) == 0) { playback.frame = frame; break; }
+		}
+		manager->UpdateHandle(playback.handle, 0.0f);
+		manager->EndUpdate();
+		manager->SetPaused(playback.handle, true);
+	}
+}
+
 void MovieCameraController::Evaluate()
 {
+	PROFILE_FUNCTION();
 	if (!editing || sequence.cameras.empty()) return;
+	Game::Time::scale = GetMovieTimeScale(cursor);
 	EvaluateActor(playerState, sequence.player, sequence.playerMotions);
 	EvaluateActor(bossState, sequence.boss, sequence.bossMotions);
 	currentPostSettings = savedPostSettings;
@@ -298,7 +534,7 @@ void MovieCameraController::Evaluate()
 		};
 		currentPostSettings = mix(mix, a.settings, b.settings, savedPostSettings);
 	}
-	if (freeView) return;
+	if (freeView) { EvaluateParticles(); return; }
 	const size_t index = MovieKeyIndex(sequence.cameras, cursor);
 	const auto& a = sequence.cameras[index];
 	const auto& b = sequence.cameras[std::min(index + 1, sequence.cameras.size() - 1)];
@@ -307,12 +543,113 @@ void MovieCameraController::Evaluate()
 	focus = origin + Vector3::Lerp(a.focus, b.focus, blend);
 	fov = std::lerp(a.fov, b.fov, blend);
 	SyncControllerToCamera(*camera);
+	EvaluateParticles();
 }
 
-void MovieCameraController::Tick()
+float MovieCameraController::GetMovieTimeScale(float time) const
 {
+	const auto& keys = sequence.timeScales;
+	if (keys.empty() || time < keys.front().time) return 1.0f;
+	const size_t index = MovieKeyIndex(keys, time);
+	const auto& a = keys[index];
+	const auto& b = keys[std::min(index + 1, keys.size() - 1)];
+	const float blend = a.interpolate ? MovieKeyBlend(time, a.time, b.time, a.easing) : 0.0f;
+	return std::clamp(std::lerp(a.scale, b.scale, blend), 0.01f, 10.0f);
+}
+
+void MovieCameraController::AdvanceTime(float deltaTime)
+{
+	// スケール切替点を跨ぐ長いフレームでも、区間ごとの速度を反映する。
+	double time = cursor;
+	double remaining = std::max(deltaTime, 0.0f);
+	while (remaining > 0.0 && time < sequence.duration)
+	{
+		const auto next = std::upper_bound(sequence.timeScales.begin(), sequence.timeScales.end(), time,
+			[](double value, const TimeScaleKey& key) { return value < key.time; });
+		const double boundary = next == sequence.timeScales.end() ? sequence.duration : next->time;
+		const double step = std::min(remaining, 1.0 / 120.0);
+		const double scale = GetMovieTimeScale(static_cast<float>(time));
+		const double midpoint = std::min(time + scale * step * 0.5, (time + boundary) * 0.5);
+		const double rate = GetMovieTimeScale(static_cast<float>(midpoint));
+		const double advance = rate * step;
+		if (advance >= boundary - time)
+		{
+			remaining = std::max(remaining - (boundary - time) / rate, 0.0);
+			time = boundary;
+		}
+		else
+		{
+			time += advance;
+			remaining = std::max(remaining - step, 0.0);
+		}
+	}
+	cursor = std::min(static_cast<float>(time), sequence.duration);
+}
+
+MovieCameraController::QteResult MovieCameraController::ConsumeQteResult()
+{
+	const auto result = pendingQteResult;
+	pendingQteResult = QteResult::None;
+	return result;
+}
+
+void MovieCameraController::ResolveQte(QteResult result)
+{
+	if (qteResult || result == QteResult::None) return;
+	qteResult = result == QteResult::Success ? 1 : -1;
+	pendingQteResult = result;
+}
+
+float MovieCameraController::GetQteRemaining() const
+{
+	if (!editing || !sequence.qteEnabled || qteResult || cursor < sequence.qteStart) return 0.0f;
+	const float end = runtimePlayback ? std::min(sequence.qteEnd, 2.250f) : sequence.qteEnd;
+	return std::max(end - cursor, 0.0f);
+}
+
+float MovieCameraController::GetQteDuration() const
+{
+	const float end = runtimePlayback ? std::min(sequence.qteEnd, 2.250f) : sequence.qteEnd;
+	return std::max(end - sequence.qteStart, 0.0f);
+}
+
+void MovieCameraController::Tick(bool qtePressed)
+{
+	PROFILE_FUNCTION();
 	if (!editing) return;
+	SoundSystem::Instance().SetPaused(!playing && !SoundSystem::Instance().IsPlaying(previewSound));
 	Game::Time::deltaTime = 0.0f;
+	Game::Time::scale = GetMovieTimeScale(cursor);
+	if (runtimePlayback)
+	{
+		const float previous = cursor;
+		const float failureTime = std::min(2.250f, sequence.duration);
+		const float deadline = std::min(sequence.qteEnd, failureTime);
+		AdvanceTime(Game::Time::unscaledDeltaTime);
+		if (sequence.qteEnabled && !qteResult)
+		{
+			if (qtePressed && previous <= deadline && cursor >= sequence.qteStart) ResolveQte(QteResult::Success);
+			else if (cursor > deadline || cursor >= failureTime) ResolveQte(QteResult::Failed);
+		}
+		if (sequence.qteEnabled && qteResult <= 0 && cursor >= failureTime)
+		{
+			cursor = failureTime;
+			Evaluate();
+			playbackResult = -1;
+			End(true);
+			Game::Input::Instance().SuppressGameplayInput();
+			return;
+		}
+		Evaluate();
+		UpdateSounds(previous);
+		if ((!sequence.qteEnabled || qteResult > 0) && cursor >= sequence.duration)
+		{
+			playbackResult = 1;
+			End(true);
+			Game::Input::Instance().SuppressGameplayInput();
+		}
+		return;
+	}
 	if (closeRequested) { End(); return; }
 	if (!ImGui::IsAnyItemActive()) editUndoSaved = false;
 	if (!ImGui::GetIO().WantTextInput)
@@ -331,18 +668,19 @@ void MovieCameraController::Tick()
 		SyncCameraToController(*camera);
 		SyncControllerToCamera(*camera);
 	}
-	if (!playing) return;
-	cursor += Game::Time::unscaledDeltaTime;
+	if (!playing) { UpdateSounds(cursor); EvaluateParticles(); return; }
+	const float previous = cursor;
+	AdvanceTime(Game::Time::unscaledDeltaTime);
+	UpdateSounds(previous);
 	if (sequence.qteEnabled && !qteResult)
 	{
-		if (cursor >= sequence.qteStart && cursor <= sequence.qteEnd &&
-			!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Space, false)) qteResult = 1;
-		else if (cursor > sequence.qteEnd) qteResult = -1;
+		if (qtePressed && previous <= sequence.qteEnd && cursor >= sequence.qteStart) ResolveQte(QteResult::Success);
+		else if (cursor > sequence.qteEnd) ResolveQte(QteResult::Failed);
 	}
 	if (cursor >= sequence.duration)
 	{
-		if (loop) { cursor = std::fmod(cursor, sequence.duration); qteResult = 0; }
-		else { cursor = sequence.duration; playing = false; }
+		if (loop) { StopSounds(); StopParticles(); cursor = std::fmod(cursor, sequence.duration); qteResult = 0; UpdateSounds(0.0f); }
+		else { cursor = sequence.duration; playing = false; StopSounds(); }
 	}
 	Evaluate();
 }
@@ -369,10 +707,12 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 		float previous = -1.0f;
 		for (const auto& key : keys)
 		{
-			if (!std::isfinite(key.time) || key.time < 0.0f || key.time > movie.duration || key.time <= previous)
+			using Key = std::decay_t<decltype(key)>;
+			if (!std::isfinite(key.time) || key.time < 0.0f || key.time > movie.duration || key.time < previous ||
+				(key.time == previous && !std::is_same_v<Key, MovieCameraController::ParticleKey> &&
+					!std::is_same_v<Key, MovieCameraController::SoundKey>))
 				throw std::runtime_error("Movie key times must be ordered, unique and within the duration.");
 			previous = key.time;
-			using Key = std::decay_t<decltype(key)>;
 			if constexpr (std::is_same_v<Key, MovieCameraController::CameraKey>)
 			{
 				if (!MovieFinite(key.eye) || !MovieFinite(key.focus) ||
@@ -384,6 +724,27 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 			{
 				if (!MovieFinite(key.position) || !std::isfinite(key.yaw)) throw std::runtime_error("Invalid movie actor key.");
 			}
+			else if constexpr (std::is_same_v<Key, MovieCameraController::TimeScaleKey>)
+			{
+				if (!std::isfinite(key.scale) || key.scale < 0.01f || key.scale > 10.0f)
+					throw std::runtime_error("Invalid movie time scale.");
+			}
+			else if constexpr (std::is_same_v<Key, MovieCameraController::ParticleKey>)
+			{
+				if (key.path.size() > 1024 || !std::isfinite(key.duration) || key.duration <= 0.0f || key.duration > 3600.0f ||
+					!MovieFinite(key.position) || !MovieFinite(key.rotation) || !MovieFinite(key.scale) ||
+					key.scale.x <= 0.0f || key.scale.y <= 0.0f || key.scale.z <= 0.0f ||
+					!std::isfinite(key.speed) || key.speed < 0.0f || key.speed > 10.0f || key.target < 0 || key.target > 2)
+					throw std::runtime_error("Invalid movie particle key.");
+			}
+			else if constexpr (std::is_same_v<Key, MovieCameraController::SoundKey>)
+			{
+				if (key.path.size() > 1024 || !std::isfinite(key.duration) || key.duration <= 0.0f || key.duration > 3600.0f ||
+					!std::isfinite(key.volume) || key.volume < 0.0f || key.volume > 4.0f ||
+					!std::isfinite(key.pitch) || key.pitch < 0.01f || key.pitch > 2.0f ||
+					!std::isfinite(key.pan) || key.pan < -1.0f || key.pan > 1.0f)
+					throw std::runtime_error("Invalid movie sound key.");
+			}
 			else if constexpr (std::is_same_v<Key, MovieCameraController::EffectKey>)
 			{
 				Game::PostProcess::ValidateMovieSettings(key.settings);
@@ -394,7 +755,9 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 					!std::isfinite(key.speed) || key.speed < 0.0f || key.animation.size() > 512)
 					throw std::runtime_error("Invalid movie motion key.");
 			}
-			if constexpr (!std::is_same_v<Key, MovieCameraController::MotionKey>)
+			if constexpr (!std::is_same_v<Key, MovieCameraController::MotionKey> &&
+				!std::is_same_v<Key, MovieCameraController::ParticleKey> &&
+				!std::is_same_v<Key, MovieCameraController::SoundKey>)
 				if (key.easing < 0 || key.easing >= static_cast<int>(Easing::Type::Count))
 					throw std::runtime_error("Invalid movie easing.");
 		}
@@ -402,6 +765,9 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 	validate(movie.cameras, true); validate(movie.player, true); validate(movie.boss, true);
 	validate(movie.playerMotions, false); validate(movie.bossMotions, false);
 	validate(movie.effects, true);
+	validate(movie.particles, false);
+	validate(movie.timeScales, false);
+	validate(movie.sounds, false);
 }
 
 bool MovieCameraController::Save(const std::filesystem::path& path)
@@ -410,7 +776,7 @@ bool MovieCameraController::Save(const std::filesystem::path& path)
 	try
 	{
 		ValidateMovieSequence(sequence);
-		json root = {{"format", "VEER.Movie"}, {"version", 2}, {"duration", sequence.duration},
+		json root = {{"format", "VEER.Movie"}, {"version", 5}, {"duration", sequence.duration},
 			{"qte", {{"enabled", sequence.qteEnabled}, {"start", sequence.qteStart}, {"end", sequence.qteEnd}}}};
 		root["camera"] = json::array();
 		for (const auto& key : sequence.cameras)
@@ -429,6 +795,19 @@ bool MovieCameraController::Save(const std::filesystem::path& path)
 		root["effects"] = json::array();
 		for (const auto& key : sequence.effects) root["effects"].push_back({
 			{"time", key.time}, {"settings", key.settings}, {"easing", key.easing}});
+		root["particles"] = json::array();
+		for (const auto& key : sequence.particles) root["particles"].push_back({
+			{"time", key.time}, {"path", key.path}, {"duration", key.duration},
+			{"position", MovieVectorJson(key.position)}, {"rotation", MovieVectorJson(key.rotation)},
+			{"scale", MovieVectorJson(key.scale)}, {"speed", key.speed}, {"target", key.target},
+			{"follow", key.follow}, {"billboard", key.billboard}, {"seed", key.seed}});
+		root["timeScales"] = json::array();
+		for (const auto& key : sequence.timeScales) root["timeScales"].push_back({
+			{"time", key.time}, {"scale", key.scale}, {"easing", key.easing}, {"interpolate", key.interpolate}});
+		root["sounds"] = json::array();
+		for (const auto& key : sequence.sounds) root["sounds"].push_back({
+			{"time", key.time}, {"path", key.path}, {"duration", key.duration},
+			{"volume", key.volume}, {"pitch", key.pitch}, {"pan", key.pan}, {"loop", key.loop}});
 		auto destination = path; destination.replace_extension(".vmovie");
 		if (!destination.parent_path().empty()) std::filesystem::create_directories(destination.parent_path());
 		temporary = destination; temporary += L".saving.tmp";
@@ -438,13 +817,11 @@ bool MovieCameraController::Save(const std::filesystem::path& path)
 		if (!stream || !MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 			throw std::runtime_error("Failed to save movie timeline.");
 		documentPath = destination; dirty = false;
-		message = "Saved: " + ResourcePath::Text(destination);
 		return true;
 	}
 	catch (const std::exception& error)
 	{
 		if (!temporary.empty()) { std::error_code ignored; std::filesystem::remove(temporary, ignored); }
-		message = error.what();
 		return false;
 	}
 }
@@ -456,8 +833,7 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 		std::ifstream stream(path, std::ios::binary);
 		if (!stream) throw std::runtime_error("Movie timeline not found.");
 		json root; stream >> root;
-		const bool legacy = root.at("format") == "VEER.Scene" && root.at("version") == 1;
-		if (!legacy && (root.at("format") != "VEER.Movie" || root.at("version") != 2))
+		if (root.at("format") != "VEER.Movie" || root.at("version") != 5)
 			throw std::runtime_error("Unsupported movie timeline format/version.");
 		Sequence candidate;
 		candidate.duration = root.at("duration").get<float>();
@@ -476,25 +852,42 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 		};
 		readActor("player", candidate.player, candidate.playerMotions);
 		readActor("boss", candidate.boss, candidate.bossMotions);
-		if (root.contains("effects"))
-			for (const auto& item : root.at("effects"))
-			{
-				json settings = savedPostSettings;
-				settings.update(item.at("settings"));
-				candidate.effects.push_back({item.at("time").get<float>(), std::move(settings), item.at("easing").get<int>()});
-			}
-		if (candidate.effects.empty()) candidate.effects.push_back({0.0f, savedPostSettings});
+		for (const auto& item : root.at("effects")) candidate.effects.push_back({
+			item.at("time").get<float>(), item.at("settings"), item.at("easing").get<int>()});
+		for (const auto& item : root.at("particles"))
+		{
+			ParticleKey key;
+			key.time = item.at("time").get<float>();
+			key.path = item.at("path").get<std::string>();
+			key.duration = item.at("duration").get<float>();
+			key.position = ReadMovieVector(item.at("position"));
+			key.rotation = ReadMovieVector(item.at("rotation"));
+			key.scale = ReadMovieVector(item.at("scale"));
+			key.speed = item.at("speed").get<float>();
+			key.target = item.at("target").get<int>();
+			key.follow = item.at("follow").get<bool>();
+			key.billboard = item.at("billboard").get<bool>();
+			key.seed = item.at("seed").get<int>();
+			candidate.particles.push_back(std::move(key));
+		}
+		for (const auto& item : root.at("timeScales")) candidate.timeScales.push_back({
+			item.at("time").get<float>(), item.at("scale").get<float>(),
+			item.at("easing").get<int>(), item.at("interpolate").get<bool>()});
+		for (const auto& item : root.at("sounds")) candidate.sounds.push_back({
+			item.at("time").get<float>(), item.at("path").get<std::string>(),
+			item.at("duration").get<float>(), item.at("volume").get<float>(),
+			item.at("pitch").get<float>(), item.at("pan").get<float>(), item.at("loop").get<bool>()});
 		ValidateMovieSequence(candidate);
 		sequence = std::move(candidate);
 		documentPath = path; documentPath.replace_extension(".vmovie");
 		undoStack.clear(); redoStack.clear();
 		dirty = false; playing = false; freeView = false;
 		selectedTrack = 0; selectedKey = -1;
+		PlaceAtStageCenter();
 		Seek(0.0f);
-		message = "Loaded: " + ResourcePath::Text(path);
 		return true;
 	}
-	catch (const std::exception& error) { message = error.what(); return false; }
+	catch (const std::exception& error) { return false; }
 }
 
 
@@ -545,6 +938,9 @@ void MovieCameraController::SelectKey(int track, int index)
 	case 3: select(sequence.playerMotions); break;
 	case 4: select(sequence.bossMotions); break;
 	case 5: select(sequence.effects); break;
+	case 6: select(sequence.particles); break;
+	case 7: select(sequence.timeScales); break;
+	case 8: select(sequence.sounds); break;
 	}
 }
 
@@ -583,13 +979,33 @@ void MovieCameraController::RegisterKey()
 		}
 		store(keys, key);
 	}
-	else
+	else if (selectedTrack == 5)
 	{
 		EffectKey key{cursor, currentPostSettings};
 		if (!sequence.effects.empty()) key.easing = sequence.effects[MovieKeyIndex(sequence.effects, cursor)].easing;
 		store(sequence.effects, key);
 	}
+	else if (selectedTrack == 6)
+	{
+		ParticleKey key = particleDraft;
+		if (selectedKey >= 0 && selectedKey < static_cast<int>(sequence.particles.size())) key = sequence.particles[selectedKey];
+		store(sequence.particles, key);
+	}
+	else if (selectedTrack == 7)
+	{
+		TimeScaleKey key{cursor, GetMovieTimeScale(cursor)};
+		if (!sequence.timeScales.empty()) key = sequence.timeScales[MovieKeyIndex(sequence.timeScales, cursor)];
+		key.scale = std::clamp(Game::Time::scale, 0.01f, 10.0f);
+		store(sequence.timeScales, key);
+	}
+	else
+	{
+		SoundKey key = soundDraft;
+		if (selectedKey >= 0 && selectedKey < static_cast<int>(sequence.sounds.size())) key = sequence.sounds[selectedKey];
+		store(sequence.sounds, key);
+	}
 	dirty = true; playing = false;
+	Seek(cursor);
 }
 
 void MovieCameraController::DeleteKey()
@@ -597,7 +1013,7 @@ void MovieCameraController::DeleteKey()
 	bool erased = false;
 	const auto erase = [&](auto& keys, bool required) {
 		if (selectedKey < 0 || selectedKey >= static_cast<int>(keys.size())) return;
-		if (required && keys.size() == 1) { message = (const char*)u8"このトラックには最低1個のキーが必要です。"; return; }
+		if (required && keys.size() == 1) { return; }
 		PushUndo(); keys.erase(keys.begin() + selectedKey); erased = true;
 	};
 	switch (selectedTrack)
@@ -608,8 +1024,11 @@ void MovieCameraController::DeleteKey()
 	case 3: erase(sequence.playerMotions, false); break;
 	case 4: erase(sequence.bossMotions, false); break;
 	case 5: erase(sequence.effects, true); break;
+	case 6: erase(sequence.particles, false); break;
+	case 7: erase(sequence.timeScales, false); break;
+	case 8: erase(sequence.sounds, false); break;
 	}
-	if (erased) { selectedKey = -1; dirty = true; Evaluate(); }
+	if (erased) { selectedKey = -1; dirty = true; Seek(cursor); }
 }
 
 void MovieCameraController::DrawTimeline()
@@ -623,21 +1042,21 @@ void MovieCameraController::DrawTimeline()
 	const ImVec2 begin = ImGui::GetCursorScreenPos();
 	const float left = begin.x + labelWidth + padding;
 	const auto timeX = [&](float time) { return left + time / sequence.duration * timeWidth; };
-	ImGui::InvisibleButton("MovieTimelineCanvas", {width, rulerHeight + rowHeight * 7},
+	ImGui::InvisibleButton("MovieTimelineCanvas", {width, rulerHeight + rowHeight * 10},
 		ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 	const bool hovered = ImGui::IsItemHovered();
 	const bool active = ImGui::IsItemActive();
 	auto* draw = ImGui::GetWindowDrawList();
-	draw->AddRectFilled(begin, {begin.x + width, begin.y + rulerHeight + rowHeight * 7}, IM_COL32(23,26,33,255));
+	draw->AddRectFilled(begin, {begin.x + width, begin.y + rulerHeight + rowHeight * 10}, IM_COL32(23,26,33,255));
 	for (int tick = 0; tick <= 10; ++tick)
 	{
 		char text[24]; std::snprintf(text, sizeof(text), "%.2f", sequence.duration * tick / 10.0f);
 		const float x = left + timeWidth * tick / 10.0f;
 		draw->AddText({x - ImGui::CalcTextSize(text).x * 0.5f,begin.y + 3}, IM_COL32(180,190,205,255), text);
-		draw->AddLine({x,begin.y + rulerHeight}, {x,begin.y + rulerHeight + rowHeight * 7}, IM_COL32(50,55,65,255));
+		draw->AddLine({x,begin.y + rulerHeight}, {x,begin.y + rulerHeight + rowHeight * 10}, IM_COL32(50,55,65,255));
 	}
-	const char* labels[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects" };
-	for (int track = 0; track < 6; ++track)
+	const char* labels[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds" };
+	for (int track = 0; track < 9; ++track)
 	{
 		const float y = begin.y + rulerHeight + rowHeight * track;
 		if (selectedTrack == track) draw->AddRectFilled({begin.x,y}, {begin.x + width,y + rowHeight}, IM_COL32(40,58,78,150));
@@ -645,11 +1064,15 @@ void MovieCameraController::DrawTimeline()
 		draw->AddLine({begin.x,y + rowHeight}, {begin.x + width,y + rowHeight}, IM_COL32(60,65,75,255));
 	}
 	const auto keys = [&](const auto& values, int track) {
+		using Key = typename std::decay_t<decltype(values)>::value_type;
 		const float y = begin.y + rulerHeight + rowHeight * (track + 0.5f);
 		for (size_t i = 0; i < values.size(); ++i)
 		{
 			const bool selected = selectedTrack == track && selectedKey == static_cast<int>(i);
 			const float x = timeX(values[i].time);
+			if constexpr (std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>)
+				draw->AddRectFilled({x, y - 7}, {timeX(std::min(values[i].time + values[i].duration, sequence.duration)), y + 7},
+					IM_COL32(100, 180, 140, selected ? 180 : 90), 3.0f);
 			draw->AddCircleFilled({x,y}, selected ? 7.0f : 5.5f,
 				selected ? IM_COL32(255,190,60,255) : IM_COL32(90,180,255,255));
 			if (selected) draw->AddCircle({x,y}, 10.0f, IM_COL32(255,220,130,255));
@@ -658,9 +1081,9 @@ void MovieCameraController::DrawTimeline()
 		}
 	};
 	keys(sequence.cameras, 0); keys(sequence.player, 1); keys(sequence.boss, 2);
-	keys(sequence.playerMotions, 3); keys(sequence.bossMotions, 4); keys(sequence.effects, 5);
-	const float qteY = begin.y + rulerHeight + rowHeight * 6;
-	draw->AddText({begin.x + 6,qteY + 8}, IM_COL32(225,230,240,255), "QTE / SPACE");
+	keys(sequence.playerMotions, 3); keys(sequence.bossMotions, 4); keys(sequence.effects, 5); keys(sequence.particles, 6); keys(sequence.timeScales, 7); keys(sequence.sounds, 8);
+	const float qteY = begin.y + rulerHeight + rowHeight * 9;
+	draw->AddText({begin.x + 6,qteY + 8}, IM_COL32(225,230,240,255), "QTE / Attack");
 	if (sequence.qteEnabled)
 		draw->AddRectFilled({timeX(sequence.qteStart),qteY + 4}, {timeX(sequence.qteEnd),qteY + rowHeight - 4}, IM_COL32(155,110,30,200));
 	draw->AddLine({timeX(cursor),begin.y}, {timeX(cursor),qteY + rowHeight}, IM_COL32(255,100,100,255), 2.0f);
@@ -670,7 +1093,7 @@ void MovieCameraController::DrawTimeline()
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("MovieKeyMenu");
 		const auto& mouse = ImGui::GetIO().MousePos;
 		const int track = static_cast<int>(std::floor((mouse.y - begin.y - rulerHeight) / rowHeight));
-		if (track >= 0 && track < 6)
+		if (track >= 0 && track < 9)
 		{
 			selectedTrack = track;
 			const auto pick = [&](const auto& values) {
@@ -692,6 +1115,9 @@ void MovieCameraController::DrawTimeline()
 			case 3: pick(sequence.playerMotions); break;
 			case 4: pick(sequence.bossMotions); break;
 			case 5: pick(sequence.effects); break;
+			case 6: pick(sequence.particles); break;
+			case 7: pick(sequence.timeScales); break;
+			case 8: pick(sequence.sounds); break;
 			}
 			if (selectedKey < 0 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) RegisterKey();
 		}
@@ -703,9 +1129,12 @@ void MovieCameraController::DrawTimeline()
 		const auto move = [&](auto& values) {
 			if (selectedKey < 0 || selectedKey >= static_cast<int>(values.size())) { Scrub(time); return; }
 			if (!dragUndoSaved) { PushUndo(); dragUndoSaved = true; }
-			const float minimum = selectedKey ? std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity()) : 0;
+			using Key = typename std::decay_t<decltype(values)>::value_type;
+			const float minimum = selectedKey ? ((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey - 1].time :
+				std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity())) : 0;
 			const float maximum = selectedKey + 1 < static_cast<int>(values.size()) ?
-				std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity()) : sequence.duration;
+				((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey + 1].time :
+				std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity())) : sequence.duration;
 			time = std::clamp(time, minimum, maximum); values[selectedKey].time = time; dirty = true; Seek(time);
 		};
 		switch (selectedTrack)
@@ -716,6 +1145,9 @@ void MovieCameraController::DrawTimeline()
 		case 3: move(sequence.playerMotions); break;
 		case 4: move(sequence.bossMotions); break;
 		case 5: move(sequence.effects); break;
+		case 6: move(sequence.particles); break;
+		case 7: move(sequence.timeScales); break;
+		case 8: move(sequence.sounds); break;
 		}
 	}
 	if (ImGui::BeginPopup("MovieKeyMenu"))
@@ -752,6 +1184,9 @@ void MovieCameraController::DrawKeyList()
 	case 3: list(sequence.playerMotions); break;
 	case 4: list(sequence.bossMotions); break;
 	case 5: list(sequence.effects); break;
+	case 6: list(sequence.particles); break;
+	case 7: list(sequence.timeScales); break;
+	case 8: list(sequence.sounds); break;
 	}
 }
 
@@ -759,9 +1194,9 @@ void MovieCameraController::DrawInspector()
 {
 	static const char* easingNames[] = { "Linear", "In Quad", "Out Quad", "In Out Quad",
 		"In Cubic", "Out Cubic", "In Out Cubic", "In Sine", "Out Sine", "In Out Sine" };
-	const char* tracks[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects" };
+	const char* tracks[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds" };
 	int track = selectedTrack;
-	if (ImGui::Combo((const char*)u8"トラック", &track, tracks, 6)) { selectedTrack = track; selectedKey = -1; }
+	if (ImGui::Combo((const char*)u8"トラック", &track, tracks, 9)) { selectedTrack = track; selectedKey = -1; }
 	DrawKeyList();
 	ImGui::TextUnformatted(selectedKey >= 0 ? (const char*)u8"選択キーを編集（変更は即座に反映）" :
 		(const char*)u8"現在時刻の値を編集するとキーを自動登録します");
@@ -772,11 +1207,13 @@ void MovieCameraController::DrawInspector()
 		const bool selected = selectedKey >= 0 && selectedKey < static_cast<int>(values.size());
 		Key key = selected ? values[selectedKey] : current;
 		bool changed = ImGui::DragFloat((const char*)u8"キー時刻 (秒)", &key.time, 1.0f / 60.0f);
-		const float minimum = selected && selectedKey ? std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity()) : 0;
+		const float minimum = selected && selectedKey ? ((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey - 1].time :
+			std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity())) : 0;
 		const float maximum = selected && selectedKey + 1 < static_cast<int>(values.size()) ?
-			std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity()) : sequence.duration;
+			((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey + 1].time :
+			std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity())) : sequence.duration;
 		key.time = std::clamp(key.time, minimum, maximum);
-		if constexpr (!std::is_same_v<Key, MotionKey>)
+		if constexpr (!std::is_same_v<Key, MotionKey> && !std::is_same_v<Key, ParticleKey> && !std::is_same_v<Key, SoundKey>)
 			changed |= ImGui::Combo((const char*)u8"補間", &key.easing, easingNames, static_cast<int>(Easing::Type::Count));
 		if constexpr (std::is_same_v<Key, CameraKey>)
 		{
@@ -789,6 +1226,94 @@ void MovieCameraController::DrawInspector()
 		{
 			changed |= ImGui::DragFloat3((const char*)u8"配置位置", &key.position.x, 0.05f);
 			changed |= ImGui::DragFloat((const char*)u8"向き (度)", &key.yaw, 0.5f);
+		}
+		else if constexpr (std::is_same_v<Key, TimeScaleKey>)
+		{
+			changed |= ImGui::DragFloat((const char*)u8"時間スケール", &key.scale, 0.01f, 0.01f, 10.0f);
+			changed |= ImGui::Checkbox((const char*)u8"次のキーへ補間", &key.interpolate);
+			key.scale = std::clamp(key.scale, 0.01f, 10.0f);
+			ImGui::TextWrapped((const char*)u8"1: 通常速度 / 0.2: 5倍スロー。カメラ・配置・モーション・エフェクトをまとめて変更します。");
+		}
+		else if constexpr (std::is_same_v<Key, ParticleKey>)
+		{
+			if (!particlePathsLoaded)
+			{
+				particlePaths = EffectManager::GetEffectPaths();
+				particlePathsLoaded = true;
+			}
+			if (ImGui::BeginCombo((const char*)u8"エフェクト", key.path.empty() ? (const char*)u8"未設定" : key.path.c_str()))
+			{
+				ImGui::InputTextWithHint("##MovieParticleSearch", (const char*)u8"エフェクト名で検索", &particleSearch);
+				const ImGuiTextFilter filter(particleSearch.c_str());
+				for (const auto& path : particlePaths)
+				{
+					if (!filter.PassFilter(path.c_str())) continue;
+					if (ImGui::Selectable(path.c_str(), key.path == path)) { key.path = path; changed = true; }
+				}
+				ImGui::EndCombo();
+			}
+			if (ImGui::Button((const char*)u8"エフェクト一覧を更新")) particlePathsLoaded = false;
+			changed |= ImGui::InputTextWithHint((const char*)u8"パス", "Resources/Effect/...efkpkg", &key.path);
+			changed |= ImGui::DragFloat((const char*)u8"表示時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
+			const char* targets[] = {(const char*)u8"ムービー基準位置", (const char*)u8"プレイヤー", (const char*)u8"ボス"};
+			changed |= ImGui::Combo((const char*)u8"配置基準", &key.target, targets, 3);
+			changed |= ImGui::Checkbox((const char*)u8"配置基準へ追従", &key.follow);
+			changed |= ImGui::DragFloat3((const char*)u8"位置 / オフセット", &key.position.x, 0.05f);
+			changed |= ImGui::DragFloat3((const char*)u8"回転 (度)", &key.rotation.x, 0.5f);
+			changed |= ImGui::DragFloat3((const char*)u8"サイズ", &key.scale.x, 0.01f, 0.001f, 1000.0f);
+			changed |= ImGui::DragFloat((const char*)u8"再生速度 (0で停止)", &key.speed, 0.01f, 0.0f, 10.0f);
+			changed |= ImGui::Checkbox((const char*)u8"ビルボード", &key.billboard);
+			changed |= ImGui::InputInt((const char*)u8"ランダムシード", &key.seed);
+			key.duration = std::clamp(key.duration, 0.01f, 3600.0f);
+			key.speed = std::clamp(key.speed, 0.0f, 10.0f);
+			key.scale.x = std::clamp(key.scale.x, 0.001f, 1000.0f);
+			key.scale.y = std::clamp(key.scale.y, 0.001f, 1000.0f);
+			key.scale.z = std::clamp(key.scale.z, 0.001f, 1000.0f);
+			particleDraft = key;
+			ImGui::TextWrapped((const char*)u8"登録時刻に一度発生し、表示時間の終了・ムービー終了で停止します。同時刻にも複数登録できます。");
+		}
+		else if constexpr (std::is_same_v<Key, SoundKey>)
+		{
+			if (!soundPathsLoaded) { soundPaths = SoundSystem::GetSoundPaths(); soundPathsLoaded = true; }
+			if (ImGui::BeginCombo((const char*)u8"サウンド", key.path.empty() ? (const char*)u8"未設定" : key.path.c_str()))
+			{
+				ImGui::InputTextWithHint("##MovieSoundSearch", (const char*)u8"サウンド名で検索", &soundSearch);
+				const ImGuiTextFilter filter(soundSearch.c_str());
+				for (const auto& path : soundPaths)
+				{
+					if (!filter.PassFilter(path.c_str())) continue;
+					if (ImGui::Selectable(path.c_str(), key.path == path)) { key.path = path; changed = true; }
+				}
+				ImGui::EndCombo();
+			}
+			if (ImGui::Button((const char*)u8"サウンド一覧を更新")) soundPathsLoaded = false;
+			changed |= ImGui::InputTextWithHint((const char*)u8"パス", "SE/Threat", &key.path);
+			changed |= ImGui::DragFloat((const char*)u8"再生時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
+			changed |= ImGui::DragFloat((const char*)u8"音量", &key.volume, 0.01f, 0.0f, 4.0f);
+			changed |= ImGui::DragFloat((const char*)u8"ピッチ", &key.pitch, 0.01f, 0.01f, 2.0f);
+			changed |= ImGui::SliderFloat((const char*)u8"左右バランス", &key.pan, -1.0f, 1.0f);
+			changed |= ImGui::Checkbox((const char*)u8"サウンドをループ", &key.loop);
+			key.duration = std::clamp(key.duration, 0.01f, 3600.0f);
+			key.volume = std::clamp(key.volume, 0.0f, 4.0f);
+			key.pitch = std::clamp(key.pitch, 0.01f, 2.0f);
+			if (ImGui::Button((const char*)u8"試聴"))
+			{
+				playing = false;
+				UpdateSounds(cursor);
+				SoundSystem::Instance().SetPaused(false);
+				if (previewSound) SoundSystem::Instance().Stop(previewSound);
+				SoundSystem::PlayOptions options;
+				options.volume = key.volume; options.pitch = key.pitch; options.pan = key.pan; options.loop = key.loop;
+				previewSound = SoundSystem::Instance().Play(key.path, options);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button((const char*)u8"試聴停止"))
+			{
+				SoundSystem::Instance().Stop(previewSound);
+				previewSound = SoundSystem::InvalidVoiceId;
+			}
+			soundDraft = key;
+			ImGui::TextWrapped((const char*)u8"再生中にキーを通過すると発音します。シーク中は発音せず、再生時間の終了で停止します。スローは発音時刻に適用し、音のピッチはこの設定を使います。");
 		}
 		else if constexpr (std::is_same_v<Key, EffectKey>)
 		{
@@ -851,15 +1376,30 @@ void MovieCameraController::DrawInspector()
 		if (!values.empty()) { current = values[MovieKeyIndex(values, cursor)]; current.offset += std::max(cursor - current.time, 0.0f) * current.speed; }
 		current.time = cursor; inspect(values, current);
 	}
-	else inspect(sequence.effects, EffectKey{cursor, currentPostSettings});
+	else if (selectedTrack == 5) inspect(sequence.effects, EffectKey{cursor, currentPostSettings});
+	else if (selectedTrack == 6)
+	{
+		ParticleKey key = particleDraft;
+		key.time = cursor;
+		inspect(sequence.particles, key);
+	}
+	else if (selectedTrack == 7) inspect(sequence.timeScales, TimeScaleKey{cursor, GetMovieTimeScale(cursor)});
+	else
+	{
+		SoundKey key = soundDraft;
+		key.time = cursor;
+		inspect(sequence.sounds, key);
+	}
 	ImGui::Separator();
 	if (ImGui::Button((const char*)u8"選択キーを削除 / Delete", {-1, 0})) DeleteKey();
 }
 
 void MovieCameraController::DrawEditor()
 {
+	PROFILE_FUNCTION();
 	if (!editing) return;
 	const auto* viewport = ImGui::GetMainViewport();
+	if (runtimePlayback) return;
 	ImGui::SetNextWindowSize({std::min(1260.0f, viewport->Size.x - 24), std::min(620.0f, viewport->Size.y * 0.65f)}, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos({viewport->Pos.x + 12, viewport->Pos.y + viewport->Size.y - 12}, ImGuiCond_FirstUseEver, {0,1});
 	ImGui::SetNextWindowSizeConstraints({760, 440}, {10000, 10000});
@@ -878,7 +1418,7 @@ void MovieCameraController::DrawEditor()
 		if (ImGui::Button((const char*)u8"開く"))
 		{
 			std::string filename;
-			if (Dialog::OpenFileName(filename, "Movie (*.vmovie)\0*.vmovie\0Legacy (*.vscene)\0*.vscene\0", "Open Movie") == DialogResult::OK)
+			if (Dialog::OpenFileName(filename, "Movie (*.vmovie)\0*.vmovie\0", "Open Movie") == DialogResult::OK)
 				Load(ResourcePath::Path(filename));
 		}
 		ImGui::SameLine(); if (ImGui::Button((const char*)u8"元に戻す")) Undo();
@@ -893,6 +1433,7 @@ void MovieCameraController::DrawEditor()
 		ImGui::SameLine();
 		if (ImGui::Button((const char*)u8"先頭から再生")) { Scrub(0); playing = true; }
 		ImGui::SameLine(); ImGui::Checkbox((const char*)u8"ループ", &loop);
+		ImGui::Text("Time Scale: %.3f", GetMovieTimeScale(cursor));
 		float time = cursor;
 		if (ImGui::SliderFloat((const char*)u8"時刻", &time, 0, sequence.duration, "%.3f s")) Scrub(time);
 		ImGui::SameLine();
@@ -910,14 +1451,15 @@ void MovieCameraController::DrawEditor()
 			{
 				float minimum = 0.05f;
 				const auto last = [&](const auto& values) { if (!values.empty()) minimum = std::max(minimum, values.back().time); };
-				last(sequence.cameras); last(sequence.player); last(sequence.boss); last(sequence.playerMotions); last(sequence.bossMotions); last(sequence.effects);
+				last(sequence.cameras); last(sequence.player); last(sequence.boss); last(sequence.playerMotions); last(sequence.bossMotions); last(sequence.effects); last(sequence.particles); last(sequence.timeScales); last(sequence.sounds);
 				PushUndo(); sequence.duration = std::clamp(duration, minimum, 3600.0f);
 				sequence.qteEnd = std::clamp(sequence.qteEnd, 0.02f, sequence.duration);
 				sequence.qteStart = std::clamp(sequence.qteStart, 0.0f, sequence.qteEnd - 0.01f); dirty = true; Scrub(cursor);
 			}
 			if (ImGui::DragFloat3((const char*)u8"基準位置 (保存対象外)", &origin.x, 0.1f)) Evaluate();
+			if (ImGui::Button((const char*)u8"ステージ中央へ戻す")) { PlaceAtStageCenter(); Seek(cursor); }
 			bool enabled = sequence.qteEnabled; float start = sequence.qteStart, end = sequence.qteEnd;
-			bool changed = ImGui::Checkbox((const char*)u8"SPACE判定プレビュー", &enabled);
+			bool changed = ImGui::Checkbox((const char*)u8"攻撃入力判定プレビュー", &enabled);
 			changed |= ImGui::DragFloat((const char*)u8"受付開始", &start, 0.05f);
 			changed |= ImGui::DragFloat((const char*)u8"受付終了", &end, 0.05f);
 			if (changed)
@@ -928,7 +1470,6 @@ void MovieCameraController::DrawEditor()
 			}
 		}
 		ImGui::TextWrapped("%s", (const char*)u8"右ドラッグ＋WASDQE:自由カメラ / K:登録 / Delete:削除 / Ctrl+Z,Y:元に戻す・やり直す");
-		if (!message.empty()) ImGui::TextWrapped("%s", message.c_str());
 		if (qteResult) ImGui::TextUnformatted(qteResult > 0 ? "QTE: success" : "QTE: failed");
 		ImGui::EndChild();
 		ImGui::SameLine();
@@ -939,11 +1480,5 @@ void MovieCameraController::DrawEditor()
 	}
 	ImGui::End();
 	if (!open) closeRequested = true;
-	if (sequence.qteEnabled && cursor >= sequence.qteStart && cursor <= sequence.qteEnd)
-	{
-		const char* text = qteResult == 1 ? (const char*)u8"成功！" : (const char*)u8"SPACE 押せ！";
-		const ImVec2 size = ImGui::CalcTextSize(text);
-		ImGui::GetForegroundDrawList()->AddText({viewport->Pos.x + (viewport->Size.x - size.x) * 0.5f,
-			viewport->Pos.y + viewport->Size.y * 0.2f}, IM_COL32(255,220,80,255), text);
-	}
+
 }

@@ -13,6 +13,7 @@ class Texture;
 class WaterRenderer : public Component
 {
 public:
+	void OnAwake() override;
 	struct Settings
 	{
 		Color shallowColor = {0.08f, 0.42f, 0.58f, 0.62f};

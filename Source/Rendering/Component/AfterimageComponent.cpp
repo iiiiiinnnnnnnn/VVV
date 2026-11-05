@@ -1,4 +1,3 @@
-// AfterimageComponent.cpp
 #include "Rendering/Component/AfterimageComponent.h"
 
 #include <algorithm>

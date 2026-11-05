@@ -40,7 +40,7 @@ private:
 	float visibilityStart = 1.0f;
 	Game::Timer fillTime{0.0f};
 	Game::Timer phaseColorElapsed{3.0f};
-	float showDuration = 0.45f;
-	float hideDuration = 0.55f;
+	float showDuration = 1.45f;
+	float hideDuration = 1.55f;
 	float fillDuration = 0.9f;
 };

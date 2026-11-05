@@ -10,6 +10,7 @@ class VMDLModel;
 class VMDLColliderComponent : public PhysicsComponent
 {
   public:
+	void OnAwake() override;
 	VMDLColliderComponent(Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex,
 		int shapeType, const Vector3& size, const Matrix& offset = Matrix::Identity,
 		PxMaterial* material = nullptr, bool isTrigger = true);

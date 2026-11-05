@@ -12,6 +12,10 @@ BoneCollider::BoneCollider(
     isTrigger(isTrigger), freezePositions{freezePositions},
     freezeRotations{freezeRotations}
 {
+}
+
+void BoneCollider::OnAwake()
+{
 
     this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 
@@ -48,6 +52,7 @@ BoneCollider::BoneCollider(
     ghostActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     ghostActor->userData = owner;
+    InitializeShape();
 }
 
 BoneCollider::~BoneCollider()

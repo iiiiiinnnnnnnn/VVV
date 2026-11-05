@@ -31,8 +31,8 @@
         "animation": "damage",
         "loop": false,
         "offset": 0.0,
-        "speed": 0.5,
-        "time": 2.7391304969787598
+        "speed": 0.20000000298023224,
+        "time": 2.7612252235412598
       }
     ]
   },
@@ -201,17 +201,17 @@
       "cut": false,
       "easing": 9,
       "eye": [
-        0.26908159255981445,
-        1.2204211950302124,
-        -6.5792036056518555
+        0.17682194709777832,
+        1.7410888671875,
+        -4.569973945617676
       ],
       "focus": [
-        0.019227027893066406,
-        1.4875422716140747,
-        -9.418954849243164
+        -0.08926606178283691,
+        1.56459641456604,
+        -7.41530704498291
       ],
-      "fov": 20.892000198364258,
-      "time": 2.5565216541290283
+      "fov": 20.89199447631836,
+      "time": 2.687788248062134
     },
     {
       "cut": false,
@@ -227,7 +227,7 @@
         -3.026801109313965
       ],
       "fov": 22.753000259399414,
-      "time": 2.7826085090637207
+      "time": 2.9080986976623535
     }
   ],
   "duration": 3.5,
@@ -237,9 +237,9 @@
       "settings": {
         "baseIntensity": 1.0,
         "baseSaturation": 1.0,
-        "basicEffectIndex": 0,
+        "basicEffectIndex": 5,
         "bloomBlurBrightness": 1.0,
-        "bloomBlurSize": 1.399999976158142,
+        "bloomBlurSize": 1.100000023841858,
         "bloomIntensity": 0.2199999988079071,
         "bloomSaturation": 1.0,
         "bloomThreshold": 0.18000000715255737,
@@ -265,7 +265,7 @@
             0.0
           ]
         ],
-        "colorFilterBrightness": 1.2999999523162842,
+        "colorFilterBrightness": 1.3,
         "colorFilterHueShift": 0.0,
         "colorFilterSaturation": 2.0,
         "colorGradientHighlights": [
@@ -300,8 +300,8 @@
         "enableRadialBlur": false,
         "enableSSAO": true,
         "enableToneMapping": true,
-        "enableUnderwater": true,
-        "enableVignette": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
         "exposure": 1.0,
         "finalBloomBlurBrightness": 1.0,
         "finalBloomBlurSize": 4.0,
@@ -352,9 +352,787 @@
         "vignetteSmoothness": 2.0
       },
       "time": 0.0
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.014999999664723873,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": false,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": false,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 80.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 0.009987635537981987
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.0,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": true,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": true,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 0.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 1.2782608270645142
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.009999999776482582,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": true,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": true,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 24.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 2.250000238418579
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.009999999776482582,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": true,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": true,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 24.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 2.7318503856658936
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.0,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": true,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": true,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 0.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 2.996222972869873
+    },
+    {
+      "easing": 9,
+      "settings": {
+        "baseIntensity": 1.0,
+        "baseSaturation": 1.0,
+        "basicEffectIndex": 5,
+        "bloomBlurBrightness": 1.0,
+        "bloomBlurSize": 1.100000023841858,
+        "bloomIntensity": 0.2199999988079071,
+        "bloomSaturation": 1.0,
+        "bloomThreshold": 0.18000000715255737,
+        "chromaticAberrationAmount": 0.0,
+        "chromaticAberrationMaxSamples": 10,
+        "chromaticAberrationShift": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ]
+        ],
+        "colorFilterBrightness": 1.3,
+        "colorFilterHueShift": 0.0,
+        "colorFilterSaturation": 2.0,
+        "colorGradientHighlights": [
+          1.0,
+          0.9200000166893005,
+          0.7799999713897705,
+          1.0
+        ],
+        "colorGradientMidtones": [
+          0.44999998807907104,
+          0.5,
+          0.550000011920929,
+          1.0
+        ],
+        "colorGradientShadows": [
+          0.019999999552965164,
+          0.03999999910593033,
+          0.10000000149011612,
+          1.0
+        ],
+        "colorGradientStrength": 0.25,
+        "colorRotationIndex": 0,
+        "dualEffectIndex": 1,
+        "enableBasicEffect": false,
+        "enableBloomBlur": true,
+        "enableBloomExtract": true,
+        "enableChromaticAberration": true,
+        "enableColorFilter": true,
+        "enableColorGradient": false,
+        "enableDualEffect": true,
+        "enableFXAA": true,
+        "enableRadialBlur": true,
+        "enableSSAO": true,
+        "enableToneMapping": true,
+        "enableUnderwater": false,
+        "enableVignette": false,
+        "exposure": 1.0,
+        "finalBloomBlurBrightness": 1.0,
+        "finalBloomBlurSize": 4.0,
+        "finalBloomThreshold": 0.25,
+        "gaussianMultiplier": 1.0,
+        "mergeWeight1": 1.0,
+        "mergeWeight2": 1.0,
+        "paperWhiteNits": 200.0,
+        "radialBlurCenter": [
+          0.5,
+          0.5
+        ],
+        "radialBlurMaskRadius": 150.0,
+        "radialBlurRadius": 0.0,
+        "radialBlurSamplingCount": 8,
+        "ssaoIntensity": 3.0,
+        "ssaoMaxDistance": 3.0,
+        "ssaoMinDistance": 0.09000000357627869,
+        "ssaoRadius": 1.5,
+        "toneMapOperatorIndex": 3,
+        "transferFunctionIndex": 1,
+        "underwaterAbsorption": [
+          0.023000000044703484,
+          0.11699999868869781,
+          0.27799999713897705
+        ],
+        "underwaterColor": [
+          0.02352900058031082,
+          0.2784309983253479,
+          0.21960799396038055,
+          1.0
+        ],
+        "underwaterDensity": 0.11999999731779099,
+        "underwaterTint": 0.11999999731779099,
+        "vignetteCenter": [
+          0.5,
+          0.5
+        ],
+        "vignetteColor": [
+          0.20000000298023224,
+          0.20000000298023224,
+          0.20000000298023224,
+          1.0
+        ],
+        "vignetteIntensity": 1.0,
+        "vignetteRounded": false,
+        "vignetteRoundness": 1.0,
+        "vignetteSmoothness": 2.0
+      },
+      "time": 3.495593547821045
     }
   ],
   "format": "VEER.Movie",
+  "particles": [
+    {
+      "billboard": true,
+      "duration": 1.0,
+      "follow": true,
+      "path": "crystal_break",
+      "position": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "seed": 0,
+      "speed": 1.0,
+      "target": 2,
+      "time": 2.839517116546631
+    },
+    {
+      "billboard": true,
+      "duration": 1.0,
+      "follow": true,
+      "path": "critical",
+      "position": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "seed": 0,
+      "speed": 1.0,
+      "target": 2,
+      "time": 2.8519439697265625
+    }
+  ],
   "player": {
     "keys": [
       {
@@ -401,7 +1179,7 @@
         "easing": 9,
         "position": [
           -1.9000000953674316,
-          3.4499998092651367,
+          4.150000095367432,
           -19.649999618530273
         ],
         "time": 2.0063693523406982,
@@ -458,7 +1236,149 @@
   "qte": {
     "enabled": true,
     "end": 2.250200033187866,
-    "start": 0.0
+    "start": 1.0
   },
-  "version": 2
+  "sounds": [
+    {
+      "duration": 2.0,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_dodge",
+      "pitch": 1.0,
+      "time": 0.00894454400986433,
+      "volume": 0.07999999821186066
+    },
+    {
+      "duration": 1.0,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_walk",
+      "pitch": 1.0,
+      "time": 0.1610018014907837,
+      "volume": 0.009999999776482582
+    },
+    {
+      "duration": 2.3499999046325684,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Boss/aracore_threat",
+      "pitch": 1.0,
+      "time": 1.2522361278533936,
+      "volume": 0.10999999940395355
+    },
+    {
+      "duration": 1.0,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Voice/pl_attack_middle",
+      "pitch": 1.0,
+      "time": 1.4579607248306274,
+      "volume": 0.44999998807907104
+    },
+    {
+      "duration": 1.5,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_sword",
+      "pitch": 0.9900000095367432,
+      "time": 1.5384615659713745,
+      "volume": 1.2400000095367432
+    },
+    {
+      "duration": 1.0,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Voice/pl_attack_long",
+      "pitch": 1.0,
+      "time": 2.7549195289611816,
+      "volume": 0.44999998807907104
+    },
+    {
+      "duration": 1.0,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_hit",
+      "pitch": 0.8199999928474426,
+      "time": 2.7906978130340576,
+      "volume": 0.5799999833106995
+    },
+    {
+      "duration": 1.8600000143051147,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_sword",
+      "pitch": 1.7999999523162842,
+      "time": 2.8711986541748047,
+      "volume": 1.3200000524520874
+    },
+    {
+      "duration": 1.8600000143051147,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Player/pl_sword",
+      "pitch": 0.75,
+      "time": 2.915921449661255,
+      "volume": 1.3200000524520874
+    },
+    {
+      "duration": 7.659999847412109,
+      "loop": false,
+      "pan": 0.0,
+      "path": "SE/Boss/die",
+      "pitch": 1.5700000524520874,
+      "time": 2.915921449661255,
+      "volume": 0.5899999737739563
+    }
+  ],
+  "timeScales": [
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 1.0,
+      "time": 0.0
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 0.6000000238418579,
+      "time": 0.4349370002746582
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 1.0,
+      "time": 0.76424640417099
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 1.0,
+      "time": 1.55955970287323
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 0.8999999761581421,
+      "time": 1.6838274002075195
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 1.0,
+      "time": 2.8208770751953125
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 0.30000001192092896,
+      "time": 2.907864570617676
+    },
+    {
+      "easing": 9,
+      "interpolate": false,
+      "scale": 1.0,
+      "time": 3.181253433227539
+    }
+  ],
+  "version": 5
 }

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 // ShadowMapRenderer.cpp
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
@@ -134,6 +135,7 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
                                const Vector3& lightDir,
                                float shadowDistance)
 {
+    PROFILE_FUNCTION();
     ID3D11DeviceContext* dc = rc.deviceContext;
     if (!rc.camera)
     {
@@ -285,6 +287,7 @@ void ShadowMapRenderer::CalculateCascadeMatrices(
 
 void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
 {
+    PROFILE_FUNCTION();
     CbShadowScene cbShadowScene{};
     cbShadowScene.lightViewProjection = lightViewProjections[cascadeIndex];
     dc->UpdateSubresource(shadowSceneConstantBuffer.Get(), 0, nullptr, &cbShadowScene, 0, 0);

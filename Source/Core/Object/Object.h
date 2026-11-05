@@ -27,6 +27,8 @@ public:
 	virtual void LateUpdate();
 	virtual void Render(const RenderContext& rc);
 	virtual void DrawGUI();
+	void DrawBasicInspector();
+	void DrawComponentInspector();
 
 	virtual void Destroy(float delay = 0.0f) { destroyTimer.emplace(delay); }
 	bool IsPendingDestroy() const { return destroyTimer.has_value() && !destroyTimer->IsRunning(); }
@@ -40,17 +42,8 @@ public:
 		components.push_back(std::move(component));
 		updateOrderDirty = true;
 
-		if (isAwake)
-		{
-			result->Awake();
-			result->isAwake = true;
-		}
-
-		if (isStarted && isActive && result->IsActive())
-		{
-			result->Start();
-			result->isStarted = true;
-		}
+		if (isAwake) result->Awake();
+		if (isStarted && isActive && result->IsActive()) result->Start();
 
 		return result;
 	}
@@ -93,12 +86,14 @@ protected:
 	std::optional<Game::Timer> destroyTimer;
 	std::vector<std::unique_ptr<Component>> components;
 	bool isAwake = false;
+	bool isAwaking = false;
 	bool isStarted = false;
 	bool componentDebugVisible = false;
 
 private:
 	void SortComponentsByUpdateOrder();
 	bool updateOrderDirty = false;
+	std::string componentSearch;
 };
 
 #include "Core/Object/Object.inl"

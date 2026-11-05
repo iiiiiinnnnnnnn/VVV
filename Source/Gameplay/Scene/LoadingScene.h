@@ -22,7 +22,6 @@ class LoadingScene : public Scene
 
   protected:
 	void OnInit() override;
-	void OnUninit() override;
 
   private:
 	void UpdateLayout();

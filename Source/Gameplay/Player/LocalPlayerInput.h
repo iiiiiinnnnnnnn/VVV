@@ -11,8 +11,10 @@
 class LocalPlayerInput : public PlayerInput
 {
 public:
+	void OnAwake() override;
     LocalPlayerInput(Object* owner);
     InputContext Poll() override;
+    bool PollAttackButton();
     void OnDrawGUI() override;
     void OnDisabled() override { ResetRuntime(); }
     const char* GetDebugName() const override { return ICON_FA_GAMEPAD " LocalPlayerInput"; }

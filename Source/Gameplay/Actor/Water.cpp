@@ -9,7 +9,7 @@ Water::~Water()
 	Uninit();
 }
 
-void Water::OnInit()
+void Water::OnAwake()
 {
 	renderer = AddComponent<WaterRenderer>();
 	renderer->SetSettings(settings);

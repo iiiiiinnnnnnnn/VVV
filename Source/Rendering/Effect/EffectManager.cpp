@@ -1,4 +1,4 @@
-// EffectManager.cpp
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Effect/Effect.h"
@@ -135,8 +135,20 @@ void EffectManager::Finalize()
 }
 
 // 更新処理
-void EffectManager::Update()
+void EffectManager::Update(const Camera* camera)
 {
+	PROFILE_FUNCTION();
+	// ベース行列はEffekseerの更新時に反映されるため、Updateより先に設定する。
+	if (camera)
+	{
+		const Matrix& view = camera->GetView();
+		for (const EffectPlayback& playback : effectPlaybacks)
+		{
+			if (playback.layer != 0 || !playback.billboard) continue;
+			SetBaseMatrix(effekseerManager, playback.handle,
+				CreateBillboardTransform(playback.transform, view));
+		}
+	}
 	// エフェクト更新処理（引数にはフレームの経過時間を渡す）
 	effekseerManager->Update(Game::Time::deltaTime * 60.0f);
 	for (const auto& object : playbackObjects)
@@ -171,6 +183,35 @@ Effekseer::Handle EffectManager::PlayDetached(
 	return handle;
 }
 
+Effekseer::Handle EffectManager::Play2D(const std::shared_ptr<Effect>& effect,
+	const Vector2& screenPosition, float scale, bool affectedByPostProcess)
+{
+	if (!effekseerManager || !effect || !effect->IsValid()) return -1;
+
+	const float width = Game::Graphics::ScreenWidth;
+	const float height = Game::Graphics::ScreenHeight;
+	if (width <= 0.0f || height <= 0.0f) return -1;
+
+	// 左上原点の画面座標 → 中央原点・上がプラスの座標
+	const Vector3 position(screenPosition.x - width * 0.5f, height * 0.5f - screenPosition.y, 0.0f);
+
+	const auto handle = effect->Play(position, scale);
+	if (handle < 0) return handle;
+
+	const int layer = affectedByPostProcess ? 1 : 2;
+	effekseerManager->SetLayer(handle, layer);
+
+	for (EffectPlayback& playback : effectPlaybacks)
+	{
+		if (playback.handle != handle) continue;
+		playback.layer = layer;
+		playback.billboard = false;
+		break;
+	}
+
+	return handle;
+}
+
 std::vector<std::string> EffectManager::GetEffectPaths()
 {
 	auto root = ResourceManager::FindSourceResourceRoot();
@@ -195,6 +236,7 @@ std::vector<std::string> EffectManager::GetEffectPaths()
 
 std::shared_ptr<Effect> EffectManager::LoadEffect(std::string_view effectPath)
 {
+	PROFILE_FUNCTION();
 	if (effectPath.empty()) throw std::runtime_error("Effect path is empty");
 	const auto path = std::filesystem::weakly_canonical(ResourceManager::ResolveSourcePath(
 		ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(effectPath, ResourceManager::ResourceType::Effect))));
@@ -227,6 +269,7 @@ void EffectManager::RegisterPlayback(
 		return playback.handle == handle;
 	});
 	effectPlaybacks.push_back({effect, handle, Matrix::Identity, billboard});
+	effekseerManager->SetLayer(handle, 0);
 }
 
 void EffectManager::SetPlaybackTransform(
@@ -328,6 +371,7 @@ void EffectManager::ReleaseEffect(const Effect* effect)
 // 描画処理
 void EffectManager::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	if (!rc.camera) return;
 	const Matrix& view = rc.camera->GetView();
 	const Matrix& projection = rc.camera->GetProjection();
@@ -337,12 +381,17 @@ void EffectManager::Render(const RenderContext& rc)
 	effekseerRenderer->SetProjectionMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&projection));
 	for (const EffectPlayback& playback : effectPlaybacks)
 	{
+		// 3D描画だけ
+		if (playback.layer != 0) continue;
+
+		// 再生中でなければスキップ
 		if (!effekseerManager->Exists(playback.handle)) continue;
+
 		if (playback.billboard)
 			SetBaseMatrix(effekseerManager, playback.handle,
-				EffectManager::CreateBillboardTransform(playback.transform, view));
+				CreateBillboardTransform(playback.transform, view));
 
-
+		effekseerManager->SetLayer(playback.handle, 0);
 	}
 
 	// Effekseer描画開始
@@ -365,10 +414,60 @@ void EffectManager::Render(const RenderContext& rc)
 	dc->UpdateSubresource(fogConstantBuffer.Get(), 0, nullptr, &fog, 0, 0);
 	dc->PSSetConstantBuffers(13, 1, fogConstantBuffer.GetAddressOf());
 
-	// Effekseer描画実行
-	// マネージャー単位で描画するので描画順を制御する場合はマネージャーを複数個作成し、
-	// Draw()関数を実行する順序で制御できそう
-	effekseerManager->Draw();
+	Effekseer::Manager::DrawParameter param;
+	param.CameraCullingMask = 1 << 0;
+	const Matrix viewProjection = view * projection;
+	param.ViewProjectionMatrix =
+		*reinterpret_cast<const Effekseer::Matrix44*>(&viewProjection);
+	// 3dだけ描画
+	effekseerManager->Draw(param);
+
+	// Effekseer描画終了
+	effekseerRenderer->EndRendering();
+	dc->PSSetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+}
+
+void EffectManager::Render2D(const RenderContext& rc, bool affectedByPostProcess)
+{
+	PROFILE_FUNCTION();
+	// 2d描画
+
+	const float width = Game::Graphics::ScreenWidth;
+	const float height = Game::Graphics::ScreenHeight;
+	if (width <= 0.0f || height <= 0.0f) return;
+
+	const Matrix view = Matrix::Identity;
+	const Matrix projection = DirectX::XMMatrixOrthographicLH(width, height, -10000.0f, 10000.0f);
+	const int layer = affectedByPostProcess ? 1 : 2;
+
+	// ビュー＆プロジェクション行列をEffekseerレンダラに設定
+	effekseerRenderer->SetCameraMatrix(*reinterpret_cast<const Effekseer::Matrix44*>(&view));
+	effekseerRenderer->SetProjectionMatrix(
+		*reinterpret_cast<const Effekseer::Matrix44*>(&projection));
+
+	// Effekseer描画開始
+	effekseerRenderer->BeginRendering();
+
+	ID3D11DeviceContext* dc = rc.deviceContext;
+
+	// 2d用のシェーダー作るの手間なので中身のないfogだけ入れとく
+
+	FogConstants fog{};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> previousFogBuffer;
+	dc->PSGetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+
+	dc->UpdateSubresource(fogConstantBuffer.Get(), 0, nullptr, &fog, 0, 0);
+	dc->PSSetConstantBuffers(13, 1, fogConstantBuffer.GetAddressOf());
+
+	const Matrix viewProjection = view * projection;
+
+	// 2d描画だけに限定してpost processも考慮
+	Effekseer::Manager::DrawParameter parameter;
+	parameter.CameraCullingMask = 1 << layer;
+	parameter.ViewProjectionMatrix =
+		*reinterpret_cast<const Effekseer::Matrix44*>(&viewProjection);
+
+	effekseerManager->Draw(parameter);
 
 	// Effekseer描画終了
 	effekseerRenderer->EndRendering();

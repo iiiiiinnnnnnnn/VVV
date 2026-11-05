@@ -1,16 +1,19 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 
 #include "LuaScript.h"
 
 #include <iostream>
-#include <system_error>
 #include <utility>
 
 #include "Application/Time/GameTime.h"
-#include "Resource/ResourceManager.h"
-#include "Resource/ResourcePath.h"
 
 LuaScript::LuaScript(Object* owner) : Component(owner)
 {
+}
+
+void LuaScript::OnAwake()
+{
+	if (lua) return;
 	lua = std::make_unique<sol::state>();
 
 	lua->open_libraries(sol::lib::base, sol::lib::math, sol::lib::string, sol::lib::table);
@@ -26,20 +29,16 @@ LuaScript::~LuaScript()
 
 bool LuaScript::Load(const std::string& path)
 {
-	// Debug/Developmentで親階層にVEER.slnがあれば、プロジェクトのResourcesを使う。
-	// 見つからない場合とReleaseは、実行ファイル側のキャッシュを使う。
-	// 解決した絶対パスを保持し、読み込みと更新日時の監視を同じファイルへ向ける。
-	scriptPath = std::filesystem::absolute(ResourceManager::ResolveSourcePath(
-		ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::AI))))
-		.lexically_normal().string();
-	hasWriteTime = false;
-	return Reload();
+	PROFILE_FUNCTION();
+	scriptPath = path;
+	return ApplyScript(LuaManager::Instance().GetScript(path));
 }
 
-bool LuaScript::CreateEnvironment(sol::environment& newEnvironment,
+bool LuaScript::CreateEnvironment(const LuaManager::ScriptSource& source,
+	sol::environment& newEnvironment,
 	sol::protected_function& newStart, sol::protected_function& newUpdate)
 {
-	sol::load_result chunk = lua->load_file(scriptPath);
+	sol::load_result chunk = lua->load(source.code, "@" + source.path);
 
 	if (!chunk.valid())
 	{
@@ -77,12 +76,23 @@ bool LuaScript::CreateEnvironment(sol::environment& newEnvironment,
 bool LuaScript::Reload()
 {
 	if (scriptPath.empty()) return false;
+	return ApplyScript(LuaManager::Instance().Reload(scriptPath));
+}
+
+bool LuaScript::ApplyScript(std::shared_ptr<const LuaManager::ScriptSource> source)
+{
+	PROFILE_FUNCTION();
+	if (!source) return false;
+	LuaScript::OnAwake();
+	// 構文エラーも同じ内容を毎フレーム再コンパイルせず、次の変更を待つ。
+	scriptPath = source->path;
+	scriptSource = source;
 
 	sol::environment newEnvironment;
 	sol::protected_function newStart;
 	sol::protected_function newUpdate;
 
-	if (!CreateEnvironment(newEnvironment, newStart, newUpdate))
+	if (!CreateEnvironment(*source, newEnvironment, newStart, newUpdate))
 	{
 		return false;
 	}
@@ -107,15 +117,6 @@ bool LuaScript::Reload()
 
 	loaded = true;
 
-	std::error_code ec;
-	auto writeTime = std::filesystem::last_write_time(scriptPath, ec);
-
-	if (!ec)
-	{
-		lastWriteTime = writeTime;
-		hasWriteTime = true;
-	}
-
 	std::cout << "[Lua] Loaded: " << scriptPath << '\n';
 
 	return true;
@@ -138,26 +139,17 @@ void LuaScript::OnStart()
 
 void LuaScript::CheckHotReload()
 {
+	PROFILE_FUNCTION();
 #ifndef _RELEASE
 	if (scriptPath.empty()) return;
-
-	std::error_code ec;
-
-	auto writeTime = std::filesystem::last_write_time(scriptPath, ec);
-
-	if (ec) return;
-
-	if (!hasWriteTime || writeTime != lastWriteTime)
-	{
-		lastWriteTime = writeTime;
-		hasWriteTime = true;
-		Reload();
-	}
+	auto source = LuaManager::Instance().GetScript(scriptPath);
+	if (source && source != scriptSource) ApplyScript(std::move(source));
 #endif
 }
 
 void LuaScript::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	UpdateSensors();
 	CheckHotReload();
 
@@ -176,6 +168,7 @@ void LuaScript::OnUpdate()
 
 void LuaScript::CallScript(const char* name)
 {
+	PROFILE_FUNCTION();
 	if (!loaded) return;
 	sol::object object = environment[name];
 	if (object.get_type() != sol::type::function) return;

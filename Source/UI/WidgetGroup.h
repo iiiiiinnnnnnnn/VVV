@@ -14,6 +14,10 @@ public:
 	template<class T>
 	std::shared_ptr<T> AddChild(const std::shared_ptr<T>& child)
 	{
+		if (!child || child->IsPendingDestroy()) return child;
+
+		child->Awake();
+		child->Start();
 		children.push_back(child);
 		return child;
 	}

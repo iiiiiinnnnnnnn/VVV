@@ -8,6 +8,7 @@
 class TitleCamera final : public Component
 {
 public:
+	void OnAwake() override;
 	TitleCamera(Object* owner, const Vector3& position);
 	const char* GetDebugName() const override { return ICON_FA_VIDEO " TitleCamera"; }
 	void SetMotionEnabled(bool enabled) { motionEnabled = enabled; }

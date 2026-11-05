@@ -3,19 +3,20 @@
 
 #include <sol/sol.hpp>
 
-#include <filesystem>
 #include <memory>
 #include <string>
 
 #include "Core/Object/Component.h"
+#include "Gameplay/AI/LuaManager.h"
 
 class LuaScript : public Component
 {
   public:
+	void OnAwake() override;
 	explicit LuaScript(Object* owner);
 	~LuaScript() override;
 
-	// Resources/AIを基準に読み込む（例：Aracore.lua、Aracore）。
+	// Resources/AI...
 	bool Load(const std::string& path);
 	bool Reload();
 
@@ -25,12 +26,15 @@ class LuaScript : public Component
 	const char* GetDebugName() const override { return "LuaScript"; }
 
   protected:
+	bool HasScriptPath() const { return !scriptPath.empty(); }
 	virtual void BindEnvironment(sol::environment&) {}
 	virtual void UpdateSensors() {}
 	void CallScript(const char* name);
 
   private:
-	bool CreateEnvironment(sol::environment& environment, sol::protected_function& start,
+	bool ApplyScript(std::shared_ptr<const LuaManager::ScriptSource> source);
+	bool CreateEnvironment(const LuaManager::ScriptSource& source,
+		sol::environment& environment, sol::protected_function& start,
 		sol::protected_function& update);
 
 	void CheckHotReload();
@@ -44,9 +48,7 @@ class LuaScript : public Component
 	sol::protected_function startFunc;
 	sol::protected_function updateFunc;
 
-	std::filesystem::file_time_type lastWriteTime{};
-
-	bool hasWriteTime = false;
+	std::shared_ptr<const LuaManager::ScriptSource> scriptSource;
 	bool started = false;
 	bool loaded = false;
 };

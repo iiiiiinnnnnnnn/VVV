@@ -51,23 +51,28 @@ void GamePad::Update(bool acceptsInput)
 
 	GamePadButton newButtonState = 0;
 
-	// 指定スロットが未接続なら、接続中のXboxコントローラーを自動検出
+	// 接続中の入力は毎フレーム取得し、未接続スロットの探索は1秒ごとに行う。
 	XINPUT_STATE xinputState{};
-	DWORD inputResult = XInputGetState(slot, &xinputState);
-	if (inputResult != ERROR_SUCCESS)
+	const auto now = GetTickCount64();
+	if (connected || now >= nextConnectionCheck)
 	{
-		for (DWORD candidate = 0; candidate < XUSER_MAX_COUNT; ++candidate)
+		DWORD inputResult = XInputGetState(slot, &xinputState);
+		if (inputResult != ERROR_SUCCESS)
 		{
-			if (static_cast<int>(candidate) == slot) continue;
-			XINPUT_STATE candidateState{};
-			if (XInputGetState(candidate, &candidateState) != ERROR_SUCCESS) continue;
-			slot = static_cast<int>(candidate);
-			xinputState = candidateState;
-			inputResult = ERROR_SUCCESS;
-			break;
+			for (DWORD candidate = 0; candidate < XUSER_MAX_COUNT; ++candidate)
+			{
+				if (static_cast<int>(candidate) == slot) continue;
+				XINPUT_STATE candidateState{};
+				if (XInputGetState(candidate, &candidateState) != ERROR_SUCCESS) continue;
+				slot = static_cast<int>(candidate);
+				xinputState = candidateState;
+				inputResult = ERROR_SUCCESS;
+				break;
+			}
 		}
+		connected = inputResult == ERROR_SUCCESS;
+		if (!connected) nextConnectionCheck = now + 1000;
 	}
-	connected = inputResult == ERROR_SUCCESS;
 	if (connected)
 	{
 		const XINPUT_GAMEPAD& pad = xinputState.Gamepad;

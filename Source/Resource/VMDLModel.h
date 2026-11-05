@@ -1,5 +1,7 @@
 // VMDLModel.h
 #pragma once
+
+#include "Resource/SerialArchive.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -45,6 +47,7 @@ class VMDLModel
 		}
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに追従する物理剛体の設定
@@ -59,6 +62,7 @@ class VMDLModel
 		bool kinematic = false;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに追従する当たり判定の設定
@@ -76,6 +80,7 @@ class VMDLModel
 		bool navMeshObstacle = false;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 揺れ物に使うスプリングの設定
@@ -93,6 +98,7 @@ class VMDLModel
 		Vector3 maxAnglesDegrees = { 180.0f, 180.0f, 180.0f };
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// スプリング専用の当たり判定設定
@@ -105,6 +111,7 @@ class VMDLModel
 		float radius = 0.1f;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// メッシュ表示を切り替えるモーフ設定
@@ -115,6 +122,7 @@ class VMDLModel
 		bool applyOnInitialize = false;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// VMDLへ追加する付加設定のまとめ
@@ -128,6 +136,7 @@ class VMDLModel
 		std::vector<VmdlMorph> morphs;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// IKで制御する脚のノード設定
@@ -140,6 +149,7 @@ class VMDLModel
 		std::string contact;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// VMDL全体のIK設定
@@ -152,6 +162,7 @@ class VMDLModel
 		std::vector<VmdlIKLeg> legs;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// IKの曲がる方向を決めるポール設定
@@ -161,6 +172,7 @@ class VMDLModel
 		Vector3 position = Vector3::Zero;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 接地判定に使うIKレイ設定
@@ -172,6 +184,7 @@ class VMDLModel
 		Vector3 syncOffset = Vector3::Zero;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// アニメーションごとのFootIKウェイト
@@ -184,6 +197,7 @@ class VMDLModel
 		std::vector<float> weights;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// アニメーションごとのIK接地オフセット。
@@ -192,6 +206,7 @@ class VMDLModel
 		float seconds = 0.0f;
 		float contactOffset = 0.0f;
 		template <class Archive> void serialize(Archive& archive) { archive(seconds, contactOffset); }
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlIkContactOffsetTrack
@@ -199,6 +214,7 @@ class VMDLModel
 		std::string animationName;
 		std::vector<VmdlIkContactOffsetKeyframe> keys;
 		template <class Archive> void serialize(Archive& archive) { archive(animationName, keys); }
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlAnimationEditorData
@@ -208,6 +224,7 @@ class VMDLModel
 		std::vector<VmdlIkContactOffsetTrack> ikContactOffsetTracks;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに追従するトレイル設定
@@ -225,6 +242,7 @@ class VMDLModel
 		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 有効状態を切り替えるキーフレーム
@@ -234,6 +252,7 @@ class VMDLModel
 		bool value = true;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// コライダーの有効状態を制御するトラック
@@ -244,6 +263,7 @@ class VMDLModel
 		std::vector<VmdlBoolKeyframe> keys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// モーフを切り替えるキーフレーム
@@ -253,6 +273,7 @@ class VMDLModel
 		int morphIndex = -1;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// モーフを制御するアニメーショントラック
@@ -262,6 +283,7 @@ class VMDLModel
 		std::vector<VmdlMorphKeyframe> keys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// トレイルの有効状態を制御するトラック
@@ -272,6 +294,7 @@ class VMDLModel
 		std::vector<VmdlBoolKeyframe> keys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// トレイルと再生トラックのまとめ
@@ -282,6 +305,7 @@ class VMDLModel
 		std::vector<VmdlTrailAnimationTrack> tracks;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// アニメーション連動設定のまとめ
@@ -292,6 +316,7 @@ class VMDLModel
 		std::vector<VmdlMorphAnimationTrack> morphTracks;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// VMDL内にはメッシュの位置だけを残し、頂点実体を外部.vmshへ分離する
@@ -307,6 +332,7 @@ class VMDLModel
 		std::vector<std::string> meshKeys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに追従するパーティクル設定
@@ -352,6 +378,7 @@ class VMDLModel
 		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// パーティクルの有効状態を制御するトラック
@@ -362,6 +389,7 @@ class VMDLModel
 		std::vector<VmdlBoolKeyframe> keys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// パーティクルと再生トラックのまとめ
@@ -372,6 +400,7 @@ class VMDLModel
 		std::vector<VmdlParticleAnimationTrack> tracks;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 多脚モデル向けのIK補正設定
@@ -394,6 +423,7 @@ class VMDLModel
 		}
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに配置する空間サウンド設定
@@ -415,6 +445,7 @@ class VMDLModel
 		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlSoundSourceBinding
@@ -425,6 +456,7 @@ class VMDLModel
 		float pitchMax = 1.0f;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// サウンドを再生するキーフレーム
@@ -438,6 +470,7 @@ class VMDLModel
 		float pitchMax = 1.0f;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// サウンド再生を制御するアニメーショントラック
@@ -447,6 +480,7 @@ class VMDLModel
 		std::vector<VmdlSoundKeyframe> keys;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlComponentTransformData
@@ -462,6 +496,7 @@ class VMDLModel
 		std::vector<VmdlComponentTransform> radialBlurs;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// サウンドソースと再生トラックのまとめ
@@ -471,6 +506,7 @@ class VMDLModel
 		std::vector<VmdlSoundAnimationTrack> tracks;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// ノードに追従するポイントライト設定
@@ -485,6 +521,7 @@ class VMDLModel
 		VmdlComponentTransform transform;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlLightData
@@ -492,6 +529,7 @@ class VMDLModel
 		std::vector<VmdlPointLight> pointLights;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 範囲内のカメラへ適用する揺れ設定
@@ -504,6 +542,8 @@ class VMDLModel
 		float duration = 2.0f;
 		float intensity = 0.1f;
 		VmdlComponentTransform transform;
+		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// 範囲内のカメラへ適用するラジアルブラー設定
@@ -517,6 +557,8 @@ class VMDLModel
 		float power = 3.0f;
 		float attackRate = 0.15f;
 		VmdlComponentTransform transform;
+		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// カメラ演出を再生するキーフレーム
@@ -524,6 +566,8 @@ class VMDLModel
 	{
 		float seconds = 0.0f;
 		int componentIndex = -1;
+		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// カメラ演出を制御するアニメーショントラック
@@ -531,6 +575,8 @@ class VMDLModel
 	{
 		std::string animationName;
 		std::vector<VmdlPresentationKeyframe> keys;
+		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	// カメラ演出と再生トラックのまとめ
@@ -540,6 +586,8 @@ class VMDLModel
 		std::vector<VmdlRadialBlur> radialBlurs;
 		std::vector<VmdlPresentationAnimationTrack> cameraShakeTracks;
 		std::vector<VmdlPresentationAnimationTrack> radialBlurTracks;
+		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
 	};
 
 	VMDLModel(const char* filename, float sampleRate = 60, const char* savePath = nullptr,
@@ -556,6 +604,7 @@ class VMDLModel
 	std::shared_ptr<VMDLModel> CloneRuntimeInstance(bool includeGeometry = false) const;
 	std::shared_ptr<VMDLModel> CloneRenderPose(const std::vector<std::shared_ptr<MeshCache>>& caches) const;
 	bool HasSkeleton() const;
+	bool GetLocalBounds(Vector3& center, Vector3& size) const;
 
 	struct Node
 	{
@@ -589,13 +638,18 @@ class VMDLModel
 		std::string normalTextureFileName;
 		std::string emissiveTextureFileName;
 		std::string occlusionTextureFileName;
+		// glTF・既存バイナリの入出力用。描画前に個別マップへ分離する。
 		std::string metalnessRoughnessTextureFileName;
+		std::string metalnessTextureFileName;
+		std::string roughnessTextureFileName;
 
 		std::vector<uint8_t> baseTextureDDS;
 		std::vector<uint8_t> normalTextureDDS;
 		std::vector<uint8_t> emissiveTextureDDS;
 		std::vector<uint8_t> occlusionTextureDDS;
 		std::vector<uint8_t> metalnessRoughnessTextureDDS;
+		std::vector<uint8_t> metalnessTextureDDS;
+		std::vector<uint8_t> roughnessTextureDDS;
 
 		Color baseColor = {1, 1, 1, 1};
 		Color emissiveColor = {0, 0, 0, 1};
@@ -620,14 +674,16 @@ class VMDLModel
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> emissiveMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> occlusionMap;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalnessRoughnessMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalnessMap;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughnessMap;
 
 		// GPU転送後にDDSを解放しても、実テクスチャの有無は保持する
 		bool hasBaseTexture = false;
 		bool hasNormalTexture = false;
 		bool hasEmissiveTexture = false;
 		bool hasOcclusionTexture = false;
-		bool hasMetalnessRoughnessTexture = false;
+		bool hasMetalnessTexture = false;
+		bool hasRoughnessTexture = false;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -669,6 +725,11 @@ class VMDLModel
 		int isFlatShading = false;
 
 		template <class Archive> void serialize(Archive& archive);
+		uint64_t serialIdentity = 0;
+		std::string metalnessTextureFileName;
+		std::string roughnessTextureFileName;
+		std::vector<uint8_t> metalnessTextureDDS;
+		std::vector<uint8_t> roughnessTextureDDS;
 	};
 
 	struct VmdlMaterialKeyframe
@@ -681,8 +742,9 @@ class VMDLModel
 
 		template <class Archive> void serialize(Archive& archive)
 		{
-			archive(seconds, baseColor, emissiveColor, metalness, roughness);
+			archive(CEREAL_NVP(seconds), CEREAL_NVP(baseColor), CEREAL_NVP(emissiveColor), CEREAL_NVP(metalness), CEREAL_NVP(roughness));
 		}
+		uint64_t serialIdentity = 0;
 	};
 
 	struct VmdlMaterialAnimationTrack
@@ -693,17 +755,19 @@ class VMDLModel
 
 		template <class Archive> void serialize(Archive& archive)
 		{
-			archive(animationName, materialIndex, keys);
+			archive(CEREAL_NVP(animationName), CEREAL_NVP(materialIndex), CEREAL_NVP(keys));
 		}
+		uint64_t serialIdentity = 0;
 	};
 
 	enum class MaterialTextureSlot
 	{
 		BaseColor,
 		Normal,
-		MetalnessRoughness,
 		Occlusion,
-		Emissive
+		Emissive,
+		Metalness,
+		Roughness
 	};
 
 	struct Vertex
@@ -904,6 +968,7 @@ class VMDLModel
 	bool ApplyMorph(const char* name);
 	int GetMorphIndex(const char* name) const;
 	void NormalizeMorphNames();
+	SerialDocument& GetSerialDocument();
 	bool SaveVmdl();
 	bool ExportGlb(const std::filesystem::path& filepath, std::string* error = nullptr) const;
 	bool SaveVmdl(const std::filesystem::path& filepath);
@@ -965,12 +1030,14 @@ class VMDLModel
 	void Deserialize(const char* filename);
 	void Deserialize(std::istream& fileStream);
 
-	// 分割形式
-	static constexpr uint32_t VmdlCompressionVersion = 13;
+	void LoadGokan(std::istream& fileStream);
+	std::shared_ptr<SerialDocument> serialDocument;
 
 	static void BuildEmbeddedDDSFromFileOrSRV(ID3D11Device* device, const std::filesystem::path& dirpath,
 		const std::string& textureFileName, ID3D11ShaderResourceView* srv,
 		std::vector<uint8_t>& outDDS);
+	static void SplitMetalnessRoughnessTexture(Material& material);
+	static std::vector<uint8_t> PackMetalnessRoughnessTexture(const Material& material);
 	void BuildMaterialEmbeddedDDS(
 		ID3D11Device* device, const std::filesystem::path& dirpath, Material& material);
 	void CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device, const std::filesystem::path& dirpath,

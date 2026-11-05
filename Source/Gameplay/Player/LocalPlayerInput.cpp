@@ -56,6 +56,10 @@ LocalPlayerInput::Settings LocalPlayerInput::Defaults()
 
 LocalPlayerInput::LocalPlayerInput(Object* owner) : PlayerInput(owner), settings(Defaults())
 {
+}
+
+void LocalPlayerInput::OnAwake()
+{
     auto directory = std::filesystem::current_path();
     settingsPath = (directory / "Resources/Input/Player.playerinput").string();
     while (!directory.empty())
@@ -122,6 +126,22 @@ LocalPlayerInput::ButtonState LocalPlayerInput::ReadButton(Action action) const
         result.down |= down;
     }
     return result;
+}
+
+bool LocalPlayerInput::PollAttackButton()
+{
+    const auto& io = ImGui::GetIO();
+    if (!IsActive() || Game::Input::Instance().IsGameplayInputSuppressed() ||
+        !Game::Input::IsFocusedWindow(true) || io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput)
+    {
+        ResetRuntime();
+        return false;
+    }
+    for (int key = 0; key < static_cast<int>(keys.size()); ++key)
+        keys[key] = (GetAsyncKeyState(key) & 0x8000) != 0;
+    const bool pressed = ReadButton(Action::Attack).down;
+    previousKeys = keys;
+    return pressed;
 }
 
 InputContext LocalPlayerInput::Poll()

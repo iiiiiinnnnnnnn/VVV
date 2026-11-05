@@ -20,8 +20,7 @@ class DummyPlayer : public Entity
 	Animator* GetAnimator() const { return anim; }
 
   protected:
-	void OnInit() override;
-	void OnUninit() override;
+	void OnAwake() override;
 
 	VMDL* vmdl = nullptr;
 	Animator* anim = nullptr;

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Physics/Navigation/NavMeshActor.h"
 
 #include "Gameplay/Actor/Actor.h"
@@ -21,6 +22,10 @@
 NavMeshActor* NavMeshActor::active = nullptr;
 
 NavMeshActor::NavMeshActor(Object* owner) : Component(owner)
+{
+}
+
+void NavMeshActor::OnAwake()
 {
 	active = this;
 }
@@ -55,6 +60,7 @@ void NavMeshActor::Release()
 
 void NavMeshActor::Update()
 {
+	PROFILE_FUNCTION();
 	if (!buildRequested && !regionBuildRequested) return;
 
 	if (buildDelayFrames > 0)
@@ -174,6 +180,7 @@ void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) cons
 
 void NavMeshActor::Build()
 {
+	PROFILE_FUNCTION();
 	Release();
 
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
@@ -253,6 +260,7 @@ bool NavMeshActor::BuildTile(
 	int tileZ,
 	Terrain& terrain)
 {
+	PROFILE_FUNCTION();
 	const int grid = std::max(terrain.GetHeightMapWidth(), 2);
 	const int minGridX = tileX * CellsPerTile;
 	const int minGridZ = tileZ * CellsPerTile;
@@ -598,6 +606,7 @@ bool NavMeshActor::BuildTile(
 
 void NavMeshActor::RebuildRegion()
 {
+	PROFILE_FUNCTION();
 	if (!built || !navMesh)
 	{
 		Build();
@@ -679,6 +688,7 @@ bool NavMeshActor::FindNextPoint(
 	const Vector3& start, const Vector3& goal, Vector3& nextPoint,
 	Vector3* reachableGoal) const
 {
+	PROFILE_FUNCTION();
 	if (!built || !navQuery) return false;
 
 	dtQueryFilter filter;

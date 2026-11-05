@@ -9,6 +9,7 @@
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
 #include "Resource/GLTFImporter.h"
+#include <DirectXTex.h>
 
 #include "Gameplay/Lighting/LightManager.h"
 
@@ -784,7 +785,23 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 		loadTexture(gltfMaterial.normalTexture.index, "Normal", material.normalTextureFileName, material.normalMap.GetAddressOf());
 		loadTexture(gltfMaterial.emissiveTexture.index, "Emissive", material.emissiveTextureFileName, material.emissiveMap.GetAddressOf());
 		loadTexture(gltfMaterial.occlusionTexture.index, "Occlusion", material.occlusionTextureFileName, material.occlusionMap.GetAddressOf());
-		loadTexture(gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, "MetallicRoughness", material.metalnessRoughnessTextureFileName, material.metalnessRoughnessMap.GetAddressOf());
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> importedPbr;
+		loadTexture(gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, "MetallicRoughness",
+			material.metalnessRoughnessTextureFileName, importedPbr.GetAddressOf());
+		if (importedPbr)
+		{
+			Microsoft::WRL::ComPtr<ID3D11Resource> texture;
+			Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+			importedPbr->GetResource(texture.GetAddressOf());
+			device->GetImmediateContext(context.GetAddressOf());
+			DirectX::ScratchImage image;
+			DirectX::Blob bytes;
+			if (FAILED(DirectX::CaptureTexture(device, context.Get(), texture.Get(), image)) ||
+				FAILED(DirectX::SaveToDDSMemory(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::DDS_FLAGS_NONE, bytes)))
+				throw std::runtime_error("Could not capture the imported metallic/roughness texture.");
+			const auto* begin = static_cast<const uint8_t*>(bytes.GetBufferPointer());
+			material.metalnessRoughnessTextureDDS.assign(begin, begin + bytes.GetBufferSize());
+		}
 	}
 }
 

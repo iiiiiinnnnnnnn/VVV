@@ -30,6 +30,11 @@ static std::shared_ptr<Widget> MakeTitleFill(const char* name, const Color& colo
 TitleHUD::TitleHUD(std::function<void(int)> onSelected)
 	: WidgetGroup("HUD / Title Menu"), onSelected(std::move(onSelected))
 {
+}
+
+void TitleHUD::OnAwake()
+{
+	WidgetGroup::OnAwake();
 	mainHud = std::make_shared<WidgetGroup>("Play / Exit");
 	toolsHud = std::make_shared<WidgetGroup>("Editor Labels");
 	dimmer = MakeTitleFill("Background Dimmer", Color(0.01f, 0.02f, 0.04f, 0.34f));

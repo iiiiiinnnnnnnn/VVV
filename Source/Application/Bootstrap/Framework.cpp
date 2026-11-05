@@ -13,6 +13,8 @@
 #include "Gameplay/Scene/TimeScaleController.h"
 #include "Audio/SoundSystem.h"
 #include "Rendering/Effect/EffectManager.h"
+#include "Gameplay/AI/LuaManager.h"
+#include "Application/SettingsAndDebug/Profiler.h"
 
 #include <cwchar>
 #include <iomanip>
@@ -87,6 +89,8 @@ Framework::~Framework()
 // 更新処理
 void Framework::Update(float elapsedTime)
 {
+	PROFILE_FUNCTION();
+
 	// 時間更新処理
 	Game::Time::time += elapsedTime;
 
@@ -105,6 +109,9 @@ void Framework::Update(float elapsedTime)
 	// IMGUIフレーム開始処理
 	ImGuiRenderer::NewFrame();
 
+	// 同じLuaファイルの更新確認は、個体ごとではなくManagerで共有する。
+	if (!SceneManager::Instance().IsLoading()) LuaManager::Instance().Update();
+
 	// シーン更新処理
 	SceneManager::Instance().Update();
 
@@ -113,13 +120,17 @@ void Framework::Update(float elapsedTime)
 	{
 		PhysicsManager::Instance().GetSceneContext().Simulate();
 		SoundSystem::Instance().Update();
-		EffectManager::Instance().Update();
+		Scene* scene = SceneManager::Instance().GetCurrentScene();
+		Stage* stage = scene ? scene->GetCurrentStage() : nullptr;
+		EffectManager::Instance().Update(stage ? stage->GetActiveCamera() : nullptr);
 	}
 }
 
 // 描画処理
 void Framework::Render(float elapsedTime)
 {
+	PROFILE_FUNCTION();
+
 	ID3D11DeviceContext* dc = Game::Graphics::Instance().GetDeviceContext();
 
 	// 画面クリア＆レンダーターゲット設定
@@ -137,7 +148,10 @@ void Framework::Render(float elapsedTime)
 	ImGuiRenderer::Render(dc);
 
 	// 画面表示
-	Game::Graphics::Instance().Present(PresentSyncInterval);
+	{
+		PROFILE_SCOPE("Present (CPU wait)");
+		Game::Graphics::Instance().Present(PresentSyncInterval);
+	}
 }
 
 // アプリケーションループ
@@ -154,6 +168,9 @@ int Framework::Run()
 	const LONGLONG targetFrameTicks =
 		static_cast<LONGLONG>(performanceFrequency.QuadPart * TargetFrameSeconds);
 
+	float sampleSeconds = 0.0f;
+	double updateSeconds = 0.0, renderSeconds = 0.0;
+	int sampleFrames = 0;
 	while (WM_QUIT != msg.message)
 	{
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -166,8 +183,36 @@ int Framework::Run()
 			timer.Tick();
 
 			float elapsedTime = timer.TimeInterval();
-			Update(elapsedTime);
-			Render(elapsedTime);
+			LARGE_INTEGER updateBegin, renderBegin, renderEnd;
+
+			QueryPerformanceCounter(&updateBegin);
+
+			Profiler::BeginFrame(); // BEGIN PROFILER
+			Update(elapsedTime); // UPDATE SCENE
+
+			QueryPerformanceCounter(&renderBegin);
+
+			Render(elapsedTime); // RENDER SCENE
+			Profiler::EndFrame(); // END PROFILER
+
+			QueryPerformanceCounter(&renderEnd);
+
+			sampleSeconds += elapsedTime;
+			updateSeconds += static_cast<double>(renderBegin.QuadPart - updateBegin.QuadPart) / performanceFrequency.QuadPart;
+			renderSeconds += static_cast<double>(renderEnd.QuadPart - renderBegin.QuadPart) / performanceFrequency.QuadPart;
+			++sampleFrames;
+			if (sampleSeconds >= 2.0f)
+			{
+				if (sampleSeconds / sampleFrames > 0.025f || Game::Time::scale < 0.99f)
+
+					Scene::Log("Performance: %.1f FPS, update %.2f ms, render/present %.2f ms, scale %.3f, paused %d",
+						sampleFrames / sampleSeconds, updateSeconds * 1000.0 / sampleFrames,
+						renderSeconds * 1000.0 / sampleFrames, Game::Time::scale, Game::Time::paused ? 1 : 0);
+
+				sampleSeconds = 0.0f;
+				updateSeconds = renderSeconds = 0.0;
+				sampleFrames = 0;
+			}
 
 			nextFrameTime.QuadPart += targetFrameTicks;
 			LARGE_INTEGER currentTime;

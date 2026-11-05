@@ -4,8 +4,8 @@
 
 LocalPlayer::LocalPlayer() = default;
 
-void LocalPlayer::OnInit()
+void LocalPlayer::OnAwake()
 {
-    Player::OnInit();
+    Player::OnAwake();
     AddComponent<LocalPlayerInput>();
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Application/SettingsAndDebug/ProfileScope.h"
 
 #include "Core/Object/Object.h"
 #include "Core/Object/Transform.h"
@@ -28,6 +29,7 @@ public:
 
 	void Update() override
 	{
+		PROFILE_FUNCTION();
 		Object::Update();
 		actorManager.Update();
 		NormalizeCameraPriorities();
@@ -36,6 +38,7 @@ public:
 
 	void Render(const RenderContext& rc) override
 	{
+		PROFILE_FUNCTION();
 		Object::Render(rc);
 		actorManager.Render(rc);
 	}

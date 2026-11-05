@@ -3,7 +3,8 @@
 
 void Light::DrawGUI()
 {
-	Object::DrawGUI();
+	DrawBasicInspector();
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	transform.DrawGUI();
 	if (ImGui::TreeNodeEx((const char*)u8"ライト設定", ImGuiTreeNodeFlags_DefaultOpen))
 	{

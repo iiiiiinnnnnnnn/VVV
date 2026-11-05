@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 // GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 #include <cmath>
@@ -112,6 +113,7 @@ namespace Game
 		RenderTarget* luminance, RenderTarget* bloomWork, RenderTarget* ssao,
 		RenderTarget* workA, RenderTarget* workB)
 	{
+		PROFILE_FUNCTION();
 		auto* dc = rc.deviceContext;
 		ID3D11ShaderResourceView* sceneColorMap = scene->GetSRV();
 		if (IsSSAOEnabled())
@@ -336,6 +338,7 @@ namespace Game
 		ID3D11ShaderResourceView* colorMap,
 		ID3D11ShaderResourceView* bloomMap)
 	{
+		PROFILE_FUNCTION();
 		const auto effect = static_cast<DirectX::DualPostProcess::Effect>(dualEffectIndex);
 		bloomCombine->SetEffect(effect);
 		bloomCombine->SetSourceTexture(colorMap);
@@ -358,6 +361,7 @@ namespace Game
 
 	void PostProcess::ToneMapping(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
+		PROFILE_FUNCTION();
 		toneMap->SetOperator(static_cast<DirectX::ToneMapPostProcess::Operator>(toneMapOperatorIndex));
 		toneMap->SetTransferFunction(static_cast<DirectX::ToneMapPostProcess::TransferFunction>(transferFunctionIndex));
 		toneMap->SetColorRotation(static_cast<DirectX::ToneMapPostProcess::ColorPrimaryRotation>(colorRotationIndex));
@@ -403,6 +407,7 @@ namespace Game
 
 	void PostProcess::SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap)
 	{
+		PROFILE_FUNCTION();
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
 		Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
@@ -549,6 +554,7 @@ namespace Game
 
 	void PostProcess::BasicEffect(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
+		PROFILE_FUNCTION();
 		const auto effect = static_cast<DirectX::BasicPostProcess::Effect>(basicEffectIndex);
 		basicEffect->SetEffect(effect);
 		basicEffect->SetSourceTexture(colorMap);
@@ -572,6 +578,7 @@ namespace Game
 
 	void PostProcess::FXAA(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
+		PROFILE_FUNCTION();
 		DrawFullscreen(rc, FXAAPixelShader.Get(), colorMap, nullptr);
 	}
 
@@ -582,6 +589,7 @@ namespace Game
 		RenderTarget* workBufferB,
 		RenderTarget* outputBuffer)
 	{
+		PROFILE_FUNCTION();
 		ID3D11DeviceContext* dc = rc.deviceContext;
 		RenderTarget* workBuffers[] = {workBufferA, workBufferB};
 		ID3D11ShaderResourceView* source = colorMap;

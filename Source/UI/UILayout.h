@@ -72,6 +72,7 @@ public:
 	static void Source(const std::shared_ptr<Widget>& widget, Vector2 position, Vector2 size)
 	{
 		if (!widget) return;
+		widget->Awake();
 		if (auto* sprite = widget->GetComponent<SpriteRenderComponent>())
 			sprite->SetSourceRect(position, size);
 	}

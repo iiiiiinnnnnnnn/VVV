@@ -13,7 +13,12 @@ HumanoidFootIK::HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model,
 	const char* activeStateName, const char* pelvisName, const char* thighLName,
 	const char* calfLName, const char* footLName, const char* ballLName, const char* thighRName,
 	const char* calfRName, const char* footRName, const char* ballRName)
-	: Component(owner), model(model), animator(animator)
+	: Component(owner), layerId(layerId),
+	  legNames{thighLName ? thighLName : "", calfLName ? calfLName : "",
+		  footLName ? footLName : "", ballLName ? ballLName : "",
+		  thighRName ? thighRName : "", calfRName ? calfRName : "",
+		  footRName ? footRName : "", ballRName ? ballRName : ""},
+	  model(model), animator(animator)
 {
 	if (activeStateName)
 	{
@@ -24,14 +29,19 @@ HumanoidFootIK::HumanoidFootIK(Object* owner, LayerId layerId, VMDLModel* model,
 	{
 		hipNodeIndex = model->GetNodeIndex(pelvisName);
 	}
+}
 
+void HumanoidFootIK::OnAwake()
+{
 	if (owner && model)
 	{
 		footIK_L = owner->AddComponent<FootIK>(
-			layerId, model, thighLName, calfLName, footLName, ballLName);
+			layerId, model, legNames[0].c_str(), legNames[1].c_str(),
+			legNames[2].c_str(), legNames[3].empty() ? nullptr : legNames[3].c_str());
 
 		footIK_R = owner->AddComponent<FootIK>(
-			layerId, model, thighRName, calfRName, footRName, ballRName);
+			layerId, model, legNames[4].c_str(), legNames[5].c_str(),
+			legNames[6].c_str(), legNames[7].empty() ? nullptr : legNames[7].c_str());
 
 		const auto& poles = model->GetVmdlIKPoles();
 		if (footIK_L && !poles.empty() && poles[0].custom)

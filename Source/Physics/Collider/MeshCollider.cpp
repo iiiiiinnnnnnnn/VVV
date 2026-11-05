@@ -97,27 +97,25 @@ void MeshCollider::Render(const RenderContext& rc)
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), useConvex(false), quantizedCount(32), material(material)
 {
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), localScale(localScale), useConvex(false), quantizedCount(32), material(material)
 {
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
 MeshCollider::MeshCollider(Object* owner, LayerId layerId, Rigidbody* rigidbody, std::shared_ptr<VMDLModel> model, const Vector3& localScale, bool useConvex, unsigned int quantizedCount, PxMaterial* material)
     : PhysicsComponent(owner, layerId), rigidbody(rigidbody), model(std::move(model)), localScale(localScale), useConvex(useConvex), quantizedCount(quantizedCount), material(material)
 {
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 void MeshCollider::OnAwake()
 {
+    if (!material) material = PhysicsManager::Instance().GetDefaultMaterial();
+    if (rigidbody) rigidbody->Awake();
     UpdateShape();
 }
 

@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Stage/Stage01.h"
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
@@ -13,6 +14,10 @@
 #include "Gameplay/Actor/RigidRock.h"
 
 Stage01::Stage01(Player* player) : Stage(), player(player)
+{
+}
+
+void Stage01::OnAwake()
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -83,7 +88,7 @@ Stage01::Stage01(Player* player) : Stage(), player(player)
 	// aracore
 	Terrain* terrain = GetComponent<Terrain>();
 	stageLoader->RegisterSpawnerFactory(
-		"Aracore", [player, terrain, loader = stageLoader](const Transform& transform,
+		"Aracore", [player = player, terrain, loader = stageLoader](const Transform& transform,
 					   const std::string& modelPath, const std::string& spawnTag) {
 			auto queen = std::make_shared<Aracore>(player, transform, terrain, modelPath);
 			queen->SetStageLoader(loader);
@@ -111,6 +116,7 @@ void Stage01::Update()
 
 void Stage01::UpdateAmbientBgm()
 {
+	PROFILE_FUNCTION();
 	// player死んだらbgm全部止める
 	if (player && player->IsDead())
 	{
@@ -121,6 +127,7 @@ void Stage01::UpdateAmbientBgm()
 	}
 
 	bool chasingPlayer = false;
+	aracoreThreating = false;
 	float largeLife = 0.0f;
 	for (const auto* actor : actorManager.GetActors())
 	{
@@ -131,9 +138,13 @@ void Stage01::UpdateAmbientBgm()
 
 		largeLife = std::max(aracore->GetLife(), largeLife);
 		chasingPlayer = true;
+		if (aracore->IsThreating())
+		{
+			aracoreThreating = true;
+		}
 		break;
 	}
-	chaseAudio.Update(chasingPlayer, largeLife);
+	chaseAudio.Update(chasingPlayer, largeLife, aracoreThreating);
 
 	if (chaseAudio.IsPlaying())
 	{
@@ -150,6 +161,7 @@ void Stage01::UpdateAmbientBgm()
 
 void Stage01::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	////////////////////////////////////////////////////////////////////////
 	// particle systemを直接計算(ParticleSystemは手動で使うEffectみたいな感じ)
 	// しかしジオメトリシェーダーで位置やカメラ情報から4頂点を生成してる
@@ -280,18 +292,19 @@ bool Stage01::ChaseAudio::IsPlaying() const
 	return SoundSystem::Instance().IsPlaying(voiceId);
 }
 
-void Stage01::ChaseAudio::Update(bool engaged, float life)
+void Stage01::ChaseAudio::Update(bool engaged, float life, bool threatening)
 {
 	SoundSystem& sound = SoundSystem::Instance();
-	const bool lastTime = engaged && life <= 0.0f;
-	if (engaged && sound.IsPlaying(voiceId) && playingLastTime != lastTime) Stop();
-	if (engaged && !sound.IsPlaying(voiceId))
+	const bool lastTime = engaged && life <= 100.0f;
+	retryRemaining = std::max(retryRemaining - Game::Time::unscaledDeltaTime, 0.0f);
+
+	if (engaged && retryRemaining <= 0.0f && !sound.IsPlaying(voiceId))
 	{
 		SoundSystem::PlayOptions options;
 		options.volume = 0.0f;
 		options.loop = true;
-		voiceId = sound.Play(lastTime ? "BGM/the_lasttime" : "BGM/boss_battle", options, -1);
-		playingLastTime = lastTime;
+		voiceId = sound.Play("BGM/boss_battle", options, -1);
+		if (!voiceId) retryRemaining = 1.0f;
 		volume = 0.0f;
 	}
 
@@ -314,7 +327,12 @@ void Stage01::ChaseAudio::Update(bool engaged, float life)
 		return;
 	}
 
-	if (!sound.SetVolume(voiceId, volume)) Stop();
+	const float threatVolumeScale = threatening ? 0.5f : 1.0f;
+	if (!sound.SetVolume(voiceId, volume * threatVolumeScale))
+	{
+		Stop();
+		retryRemaining = 1.0f;
+	}
 }
 
 void Stage01::ChaseAudio::Stop()

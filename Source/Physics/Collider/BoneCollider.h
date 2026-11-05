@@ -13,6 +13,7 @@ static Matrix MakeBoneOffsetWorld(const Matrix& boneWorld, const Matrix& offset)
 class BoneCollider : public PhysicsComponent
 {
 public:
+	void OnAwake() override;
     BoneCollider(Object* owner, LayerId layerId, VMDLModel* model, int nodeIndex, Matrix offset, PxMaterial* material,
         bool isTrigger, bool freezePositions, bool freezeRotations);
     ~BoneCollider() override;

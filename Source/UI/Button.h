@@ -25,7 +25,7 @@ public:
 	const Vector2& GetLabelOffset() const { return labelOffset; }
 	// 空文字・未存在の画像は未設定として扱い、画像なしでも文字を表示する。
 	void SetTexture(const std::string& path);
-	void SetTexture(std::shared_ptr<Texture> value) { texture = std::move(value); }
+	void SetTexture(std::shared_ptr<Texture> value) { texturePath.clear(); texture = std::move(value); }
 	void SetSelectionTexture(const std::string& path);
 	// 共通の氷結ボタン素材。装飾を切り取らず画像全体を表示する。
 	void SetMenuStyle();
@@ -34,6 +34,7 @@ public:
 	void SetSelectionSourceRect(const Vector2& position, const Vector2& size);
 
 protected:
+	void OnAwake() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
 	void OnRender(const RenderContext& rc) override;
@@ -41,6 +42,8 @@ protected:
 private:
 	std::string label;
 	Vector2 labelOffset = Vector2::Zero;
+	std::string texturePath;
+	std::string selectionTexturePath;
 	std::shared_ptr<Texture> texture;
 	std::shared_ptr<Texture> selectionTexture;
 	std::shared_ptr<Texture> whiteTexture;

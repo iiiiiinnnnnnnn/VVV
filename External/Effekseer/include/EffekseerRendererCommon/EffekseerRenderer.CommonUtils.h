@@ -1,4 +1,4 @@
-﻿
+
 #ifndef __EFFEKSEERRENDERER_COMMON_UTILS_H__
 #define __EFFEKSEERRENDERER_COMMON_UTILS_H__
 
@@ -865,7 +865,7 @@ struct MaterialShaderParameterGenerator
 			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 			// TODO : remove magic number
-			vsOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
+			vsOffset += sizeof(float) * 4 * 13 * (int32_t)materialFile.Gradients.size();
 
 			VertexShaderUniformBufferSize = vsOffset;
 		}
@@ -891,7 +891,7 @@ struct MaterialShaderParameterGenerator
 			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 			// TODO : remove magic number
-			vsOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
+			vsOffset += sizeof(float) * 4 * 13 * (int32_t)materialFile.Gradients.size();
 
 			VertexShaderUniformBufferSize = vsOffset;
 		}
@@ -932,7 +932,7 @@ struct MaterialShaderParameterGenerator
 		psOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 		// TODO : remove magic number
-		psOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
+		psOffset += sizeof(float) * 4 * 13 * (int32_t)materialFile.Gradients.size();
 
 		PixelShaderUniformBufferSize = psOffset;
 	}
@@ -1039,8 +1039,11 @@ struct ShaderParameterCollector
 			}
 
 			// Validate parameters
-			if (isMaterial && (MaterialDataPtr->TextureCount != param->MaterialRenderDataPtr->MaterialTextures.size() ||
-							   MaterialDataPtr->UniformCount != param->MaterialRenderDataPtr->MaterialUniforms.size()))
+			if (isMaterial &&
+				(MaterialDataPtr->TextureCount !=
+						(int32_t)param->MaterialRenderDataPtr->MaterialTextures.size() ||
+					MaterialDataPtr->UniformCount !=
+						(int32_t)param->MaterialRenderDataPtr->MaterialUniforms.size()))
 			{
 				isMaterial = false;
 			}

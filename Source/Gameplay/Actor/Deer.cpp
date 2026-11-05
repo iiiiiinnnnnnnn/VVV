@@ -1,4 +1,7 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Deer.h"
+
+#include <cmath>
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Scene/CameraEffectController.h"
@@ -6,12 +9,14 @@
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Audio/SoundSystem.h"
 #include "Crystal.h"
+#include "CrystalPart.h"
 #include "Gameplay/AI/EnemyAI.h"
 #include "Animation/LookAt.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Animation/Animator.h"
 #include "Rendering/Component/VMDL.h"
 #include "Rendering/Component/HitstopVibrationComponent.h"
+#include "Gameplay/Scene/TimeScaleController.h"
 
 Deer::Deer(const Transform& transform, const std::string& modelPath, bool inBossField)
 	: Entity(inBossField ? "BossFieldDeer" : "Deer", "Enemy", true, transform, 200.0f, 200.0f),
@@ -23,19 +28,10 @@ Deer::~Deer()
 	Uninit();
 }
 
-void Deer::OnUninit()
-{
-	model.reset();
-	vmdl = nullptr;
-	anim = nullptr;
-	controller = nullptr;
-	navMeshAgent = nullptr;
-	cc = nullptr;
-}
-
-void Deer::OnInit()
+void Deer::OnAwake()
 {
 	vmdl = AddComponent<VMDL>(modelPath);
+	vmdl->Awake();
 	anim = AddComponent<Animator>(vmdl->GetSharedModel());
 	vmdl->BuildFootIK(anim);
 	model = vmdl->GetSharedModel();
@@ -108,13 +104,8 @@ void Deer::ConfigureAI()
 
 	controller->AddAction("Freedom", stop, updateFreedom, {}, stop);
 
-	// 戦闘：突進に備えて構える。
-	const auto updateAttacking = [this]()
-	{
-		anim->SetBool("ready", true);
-	};
-
-	controller->AddAction("Attacking", stop, updateAttacking, {}, stop);
+	// 戦闘共通では移動の後始末だけを行い、構えは突進準備の処理で管理する。
+	controller->AddAction("Attacking", stop, {}, {}, stop);
 
 	// 徘徊：ランダムな目的地へ歩く。
 	const auto enterWander = [this]()
@@ -127,12 +118,20 @@ void Deer::ConfigureAI()
 
 	controller->AddAction("FreedomWander", enterWander);
 
-	// 旋回：移動を止め、向きを合わせる。
-	const auto updateTurn = [this]()
+	const auto updateTurnAnimation = [this](float angle)
 	{
-		const float angle = controller->GetFloat("TurnAngle");
-		anim->SetBool("turnR", angle > 0.0f);
-		anim->SetBool("turnL", angle < 0.0f);
+		const bool turning = std::abs(angle) > 1.0f;
+		anim->SetBool("turnR", turning && angle > 0.0f);
+		anim->SetBool("turnL", turning && angle < 0.0f);
+		return turning;
+	};
+
+	// 徘徊中は移動先へ、戦闘中は相手へ向き直る角度でアニメーションを選ぶ。
+	const auto updateTurn = [this, updateTurnAnimation]()
+	{
+		const float angle = controller->GetFloat(navMeshAgent->HasDestination() ? "TurnAngle" : "TargetTurnAngle");
+		updateTurnAnimation(angle);
+		anim->SetBool("ready", false);
 		navMeshAgent->SetMovementPaused(true);
 		if (!navMeshAgent->HasDestination()) controller->FaceTarget();
 	};
@@ -146,13 +145,25 @@ void Deer::ConfigureAI()
 
 	controller->AddAction("Turn", {}, updateTurn, {}, exitTurn);
 
-	// 突進準備：プレイヤーの方向を向く。
-	const auto updateFaceTarget = [this]()
+	// 突進準備の間だけ構えを有効にし、終了時は突進・旋回・休憩のどれへ進んでも解除する。
+	const auto enterPreparation = [this]()
 	{
+		anim->SetBool("turnR", false);
+		anim->SetBool("turnL", false);
+		anim->SetBool("ready", true);
+	};
+	const auto updateFaceTarget = [this, enterPreparation]()
+	{
+		enterPreparation();
 		controller->FaceTarget();
 	};
+	const auto exitPreparation = [this, exitTurn]()
+	{
+		anim->SetBool("ready", false);
+		exitTurn();
+	};
 
-	controller->AddAction("FaceTarget", {}, updateFaceTarget);
+	controller->AddAction("FaceTarget", enterPreparation, updateFaceTarget, {}, exitPreparation);
 
 	// 突進：開始時の方向に固定して直進する。
 	const auto enterChase = [this]()
@@ -216,13 +227,18 @@ void Deer::StopCharge()
 	controller->StopMovement();
 	controller->SetBool("HasDestination", false);
 	anim->SetFloat("speed", 0.0f);
+	anim->SetBool("ready", false);
 }
 
 void Deer::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	if (deathCleanupPending)
 	{
 		if (GetComponent<ActorHitstopComponent>()->IsStopping()) return;
+		// deer消える直前にクリスタル
+		CrystalPart::Spawn(transform.position + Vector3(0.0f, 2.0f, 0.0f),
+			{0.0f, 3.0f, 0.0f}, 3, 0.4f, 4.0f, 0.5f, this);
 		Destroy();
 		return;
 	}
@@ -235,6 +251,7 @@ void Deer::OnUpdate()
 
 void Deer::OnLateUpdate()
 {
+	PROFILE_FUNCTION();
 	vmdl->UpdateTransform(transform.GetMatrix());
 
 	if (cc)
@@ -245,7 +262,7 @@ void Deer::OnLateUpdate()
 
 void Deer::OnDrawGUI()
 {
-	ImGui::TextDisabled("AI behavior and timings are edited in Resources/AI/Deer.lua.");
+	ImGui::TextUnformatted((const char*)u8"AIパス：Resources/AI/Deer.lua");
 }
 
 void Deer::OnCollisionEnter(
@@ -300,7 +317,7 @@ void Deer::OnTriggerEnter(
 
 		DamageData damageData{
 			.damage = 10.0f,
-			.knockBackPower = 5.0f,
+			.knockBackPower = 7.0f,
 			.attackerCollider = self,
 			.targetCollider = other,
 			.hitPosition = point,

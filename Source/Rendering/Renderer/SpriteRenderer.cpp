@@ -1,4 +1,5 @@
-﻿#include "Rendering/Renderer/SpriteRenderer.h"
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Rendering/Renderer/SpriteRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Shader/BasicSpriteShader.h"
 #include "Rendering/Shader/DissolveSpriteShader.h"
@@ -129,6 +130,7 @@ void SpriteRenderer::Draw(
 
 void SpriteRenderer::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	if (drawCalls.empty()) return;
 
 	ID3D11DeviceContext* dc = rc.deviceContext;

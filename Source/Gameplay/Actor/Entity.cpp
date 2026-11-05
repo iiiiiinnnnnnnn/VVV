@@ -1,6 +1,8 @@
 #include "Gameplay/Actor/Entity.h"
 #include "imgui.h"
 #include "Application/Time/GameTime.h"
+#include "Physics/Core/PhysicsComponent.h"
+#include <cmath>
 
 using std::max;
 using std::min;
@@ -8,11 +10,6 @@ using std::min;
 void Entity::Cooldowns::Update()
 {
     damageCooldown.Update(Game::Time::unscaledDeltaTime);
-}
-
-void Entity::SpawnBloodParticles(const Vector3& position, const Vector3& normal, float scale)
-{
-
 }
 
 void Entity::DeathOfFall()
@@ -49,13 +46,26 @@ void Entity::TakeDamage(const DamageData& damageData)
     if (!damageData.isForceDamage && cooldowns.damageCooldown.GetRemaining() > 0.0f) return;
     if (IsDead()) return;
 
-    if (damageData.knockBackPower > 0 && damageData.hitPosition.has_value())
+    // 攻撃側が指定した強さで、攻撃者から離れる方向へ押す。
+    if (std::isfinite(damageData.knockBackPower) && damageData.knockBackPower > 0.0f)
     {
-        Vector3 dir = damageData.hitPosition.value() - transform.position;
-        dir.y = 0;
-        dir.Normalize();
-
-        AddKnockBack(-dir * damageData.knockBackPower);
+        const Actor* attacker = damageData.attackerCollider
+            ? dynamic_cast<Actor*>(damageData.attackerCollider->GetOwner()) : nullptr;
+        Vector3 direction = attacker ? transform.position - attacker->transform.position : Vector3::Zero;
+        direction.y = 0.0f;
+        if (direction.LengthSquared() <= eps && damageData.hitPosition)
+        {
+            direction = transform.position - *damageData.hitPosition;
+            direction.y = 0.0f;
+        }
+        if (direction.LengthSquared() <= eps && damageData.hitNormal)
+        {
+            direction = *damageData.hitNormal;
+            direction.y = 0.0f;
+        }
+        if (direction.LengthSquared() <= eps) direction = -transform.GetForward();
+        direction.Normalize();
+        AddKnockBack(direction * damageData.knockBackPower);
     }
 
     life -= damageData.damage;

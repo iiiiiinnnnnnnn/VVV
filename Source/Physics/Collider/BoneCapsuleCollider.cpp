@@ -7,7 +7,6 @@ BoneCapsuleCollider::BoneCapsuleCollider(Object* owner, LayerId layerId, VMDLMod
     : BoneCollider(owner, layerId, model, nodeIndex, offset, material, isTrigger, freezePositions, freezeRotations)
     , radius(radius), height(height)
 {
-    InitializeShape();
 }
 
 PxShape* BoneCapsuleCollider::CreateShape(PxPhysics* physics, PxMaterial* material) const

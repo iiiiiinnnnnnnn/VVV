@@ -1,4 +1,3 @@
-﻿// SpriteWidget.cpp
 #include "UI/SpriteWidget.h"
 #include "Resource/ResourceManager.h"
 
@@ -7,7 +6,12 @@
 SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
 						   SpriteShaderId shaderId, const Color& color,
 						   SpriteRenderParams renderParams)
-    : Widget(spritePath.filename().string().c_str())
+    : Widget(spritePath.filename().string()), spritePath(std::move(spritePath)),
+	  shaderId(shaderId), color(color), renderParams(std::move(renderParams))
+{
+}
+
+void SpriteWidget::OnAwake()
 {
     AddComponent<SpriteRenderComponent>(
 		ResourceManager::Instance().LoadTexture(spritePath.generic_string(), false), shaderId, color,

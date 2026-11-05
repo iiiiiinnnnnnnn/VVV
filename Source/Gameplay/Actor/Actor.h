@@ -1,4 +1,4 @@
-// Actor.h
+﻿// Actor.h
 #pragma once
 
 #include "Core/Object/Object.h"
@@ -16,11 +16,12 @@ public:
     ~Actor() override;
 
 	// 初期化・終了処理は一度だけ実行する。再使用時は新しいインスタンスを生成する。
-	void Init();
+	void Awake() override;
 	void Uninit();
 	void Update() override;
 	void DrawGUI() override;
 	void DrawGUI(bool selected);
+	void DrawInspector();
 	Transform* GetTransform() override { return &transform; }
 	const Transform* GetTransform() const override { return &transform; }
 
@@ -44,7 +45,6 @@ public:
     Transform transform;
 
 protected:
-	virtual void OnInit() {}
 	virtual void OnUninit() {}
 
 private:

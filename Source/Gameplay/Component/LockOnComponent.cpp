@@ -1,47 +1,44 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Component/LockOnComponent.h"
 
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Actor/Entity.h"
-#include "Gameplay/Camera/Camera.h"
-#include "Gameplay/Scene/Scene.h"
-#include "Gameplay/Scene/SceneManager.h"
-#include "Rendering/Core/Graphics.h"
-#include "Rendering/Component/VMDLModelComponent.h"
-#include "Resource/VMDLModel.h"
 
 LockOnComponent::LockOnComponent(Object* owner)
-	: Component(owner), ownerEntity(dynamic_cast<Entity*>(owner))
+	: Component(owner)
 {
 }
 
-LockOnComponent::~LockOnComponent()
+void LockOnComponent::OnAwake()
 {
-
+	ownerEntity = dynamic_cast<Entity*>(owner);
 }
 
 void LockOnComponent::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	rotationPauseTimer.Update(Game::Time::deltaTime);
 
-	if (!target) return;
-	if (!IsTargetValid())
+	if (!ownerEntity || ownerEntity->IsDead())
 	{
 		ClearTarget();
 		return;
 	}
+	if (target && !IsTargetValid()) ClearTarget();
 
 	Transform* ownerTransform = owner->GetTransform();
 	if (!ownerTransform) return;
 
-	Vector3 direction = target->transform.position - ownerTransform->position;
-	direction.y = 0.0f;
-	if (direction.LengthSquared() > lostRange * lostRange)
+	Vector3 direction = Vector3::Zero;
+	if (target)
 	{
-		ClearTarget();
-		return;
+		direction = target->transform.position - ownerTransform->position;
+		direction.y = 0.0f;
+		if (direction.LengthSquared() > lostRange * lostRange) ClearTarget();
 	}
+	if (!target) return;
 	if (!aimActive || ownerEntity->IsDead() || rotationPaused || rotationPauseTimer.GetRemaining() > 0.0f) return;
 	if (direction.LengthSquared() <= eps) return;
 	direction.Normalize();
@@ -62,43 +59,13 @@ void LockOnComponent::OnUpdate()
 
 void LockOnComponent::OnDisabled()
 {
-
-}
-
-void LockOnComponent::OnRender(const RenderContext& rc)
-{
-	if (target && !IsTargetValid()) ClearTarget();
-
-	if (!targetModel || targetAnchorIndex < 0) ResolveTargetAnchor();
-	if (!targetModel || targetAnchorIndex < 0)
-	{
-		return;
-	}
-
-	const auto& colliders = targetModel->GetVmdlExtensionData().colliders;
-	const auto& nodes = targetModel->GetNodes();
-	if (targetAnchorIndex >= static_cast<int>(colliders.size()))
-	{
-		return;
-	}
-	const VMDLModel::VmdlCollider& anchor = colliders[targetAnchorIndex];
-	if (anchor.nodeIndex < 0 || anchor.nodeIndex >= static_cast<int>(nodes.size()))
-	{
-		return;
-	}
-
-	const Matrix offset = anchor.transform.ToMatrix();
-	const Matrix anchorWorld = targetModel->GetScaledAttachmentTransform(
-		offset * nodes[anchor.nodeIndex].worldTransform);
-	const Vector3 worldPosition = anchorWorld.Translation();
-	if (!rc.camera->IsInView(worldPosition)) return;
+	ClearTarget();
 }
 
 void LockOnComponent::OnDrawGUI()
 {
 	if (target && !IsTargetValid()) ClearTarget();
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
-	ImGui::Text("ArrowUI: %s", targetAnchorIndex >= 0 ? "Found" : "Not Found");
 	ImGui::DragFloat("Acquire Range", &acquireRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Lost Range", &lostRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
@@ -117,28 +84,25 @@ void LockOnComponent::LockOn(Actor* actor)
 		if (target == actor) ClearTarget();
 		return;
 	}
+	if (target == actor && IsTargetValid()) return;
 	target = actor;
 	targetLifetime = actor->weak_from_this();
-	ResolveTargetAnchor();
 }
 
-// 攻撃が当たった対象を優先し、対象がない場合だけ最寄りのEnemyを取得する。
-bool LockOnComponent::LockOnNearestEnemy()
+// 攻撃時は既存のロックオン対象を優先し、対象がなければ最寄りの敵を選ぶ。
+Actor* LockOnComponent::GetAttackCandidate() const
 {
-	Transform* ownerTransform = owner ? owner->GetTransform() : nullptr;
-	if (!ownerTransform) return false;
-	if (target)
+	if (!IsActive() || !ownerEntity || !owner->IsActive() || ownerEntity->IsDead()) return nullptr;
+	const Transform* ownerTransform = owner->GetTransform();
+	if (!ownerTransform) return nullptr;
+	if (IsTargetValid())
 	{
-		if (IsTargetValid())
-		{
-			Vector3 difference = target->transform.position - ownerTransform->position;
-			difference.y = 0.0f;
-			if (difference.LengthSquared() <= lostRange * lostRange) return true;
-		}
-		ClearTarget();
+		Vector3 difference = target->transform.position - ownerTransform->position;
+		difference.y = 0.0f;
+		if (difference.LengthSquared() <= lostRange * lostRange) return target;
 	}
 	ActorManager* actorManager = ActorManager::GetActive();
-	if (!actorManager) return false;
+	if (!actorManager) return nullptr;
 
 	Actor* nearest = nullptr;
 	float nearestDistanceSquared = acquireRange * acquireRange;
@@ -156,8 +120,14 @@ bool LockOnComponent::LockOnNearestEnemy()
 		nearest = actor;
 	}
 
-	if (!nearest) return false;
-	LockOn(nearest);
+	return nearest;
+}
+
+bool LockOnComponent::LockOnNearestEnemy()
+{
+	Actor* candidate = GetAttackCandidate();
+	if (!candidate) { ClearTarget(); return false; }
+	LockOn(candidate);
 	return true;
 }
 
@@ -190,8 +160,6 @@ void LockOnComponent::ClearTarget()
 {
 	target = nullptr;
 	targetLifetime.reset();
-	targetModel = nullptr;
-	targetAnchorIndex = -1;
 }
 
 void LockOnComponent::PauseRotation(float duration)
@@ -201,30 +169,10 @@ void LockOnComponent::PauseRotation(float duration)
 
 bool LockOnComponent::IsTargetValid() const
 {
-	const auto targetOwner = targetLifetime.lock();
-	if (!targetOwner || targetOwner.get() != target) return false;
-	if (!ownerEntity || !target || !target->IsActive() || target->IsPendingDestroy()) return false;
+	const auto actorOwner = targetLifetime.lock();
+	if (!actorOwner || actorOwner.get() != target) return false;
+	if (!ownerEntity || ownerEntity->IsDead() || !target->IsActive() || target->IsPendingDestroy()) return false;
 
-	const Entity* targetEntity = dynamic_cast<const Entity*>(target);
-	return !targetEntity || !targetEntity->IsDead();
-}
-
-void LockOnComponent::ResolveTargetAnchor()
-{
-	targetModel = nullptr;
-	targetAnchorIndex = -1;
-	if (!IsTargetValid()) return;
-
-	VMDLModelComponent* modelComponent = target->GetComponent<VMDLModelComponent>();
-	if (!modelComponent) return;
-	targetModel = modelComponent->GetModel();
-	if (!targetModel) return;
-
-	const auto& colliders = targetModel->GetVmdlExtensionData().colliders;
-	for (int i = 0; i < static_cast<int>(colliders.size()); ++i)
-	{
-		if (colliders[i].name != "ARROWUI") continue;
-		targetAnchorIndex = i;
-		return;
-	}
+	const Entity* entity = dynamic_cast<const Entity*>(target);
+	return !entity || !entity->IsDead();
 }

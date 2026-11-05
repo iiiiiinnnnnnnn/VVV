@@ -23,6 +23,7 @@ public:
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
     void Update() override;
     void DrawGUI() override;
+    void DrawInspector();
 	RectTransform* GetRectTransform() override { return &rect; }
 	const RectTransform* GetRectTransform() const override { return &rect; }
 
@@ -35,4 +36,5 @@ protected:
 	friend class WidgetManager;
     WidgetManager* widgetManager = nullptr;
 	bool affectedByPostProcess = false;
+
 };

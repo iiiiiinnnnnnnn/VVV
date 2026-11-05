@@ -55,6 +55,7 @@ local parameters = {
     AngryJumpChance          = 0.35,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryTossinCount         = 4.0,    -- 怒り状態の突進回数
+    AngryTossinMoveSpeed     = 14.0,
     AngryLowHpJumpCount      = 3.0,    -- HPが25％以下の連続ジャンプ回数
     PhaseThreatDuration      = 3.2,    -- 形態変化の威嚇が始まってから待つ時間（秒）
     PhaseColorChangeDuration = 6.0,    -- 形態変化で体色が変わる時間（秒）

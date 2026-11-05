@@ -1,3 +1,4 @@
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Component/CharacterMotorComponent.h"
 
 #include "Animation/Animator.h"
@@ -14,11 +15,16 @@ CharacterMotorComponent::CharacterMotorComponent(
 	, animator(animator)
 	, characterController(characterController)
 {
+}
+
+void CharacterMotorComponent::OnAwake()
+{
 	if (characterController) characterController->SetUseGravity(false);
 }
 
 void CharacterMotorComponent::OnUpdate()
 {
+	PROFILE_FUNCTION();
 	Actor* actor = dynamic_cast<Actor*>(owner);
 	if (!actor || !animator || !characterController) return;
 

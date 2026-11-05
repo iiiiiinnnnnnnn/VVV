@@ -23,9 +23,6 @@ BoxCollider::BoxCollider(
     , size(size)
     , localPosition(localPosition)
 {
-    // エラー用
-
-    this->material = material ? material : PhysicsManager::Instance().GetDefaultMaterial();
 }
 
 void BoxCollider::Render(const RenderContext& rc)
@@ -44,6 +41,8 @@ void BoxCollider::Render(const RenderContext& rc)
 
 void BoxCollider::OnAwake()
 {
+    if (!material) material = PhysicsManager::Instance().GetDefaultMaterial();
+    if (rigidbody) rigidbody->Awake();
     UpdateShape();
 }
 

@@ -179,15 +179,21 @@ end
 
 -- 突進の構え
 local function UpdateAttackPreparation()
-    -- 設定した待ち時間が過ぎたら、突進へ進む。
-    if GetFloat("StateTime") >= GetFloat("AttackPrepareDuration") then
-        ChangeState("Chase")
-        return
-    end
-
     -- 追跡範囲の外に出たら、待機に戻る。
     if not GetBool("IsTargetInLostRange") then
         ChangeState("Wait")
+        return
+    end
+
+    -- 構え中に大きく方向がずれた場合は、旋回してから改めて構える。
+    if not GetBool("IsFacingTarget") then
+        ChangeState("Face_Target")
+        return
+    end
+
+    -- 設定した待ち時間が過ぎたら、突進へ進む。
+    if GetFloat("StateTime") >= GetFloat("AttackPrepareDuration") then
+        ChangeState("Chase")
         return
     end
 end

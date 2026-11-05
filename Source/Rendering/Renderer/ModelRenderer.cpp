@@ -1,4 +1,5 @@
-﻿// ModelRenderer.cpp
+﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+// ModelRenderer.cpp
 #include <algorithm>
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GpuResourceUtils.h"
@@ -55,6 +56,7 @@ void ModelRenderer::DrawMeshCache(
 // 描画実行
 void ModelRenderer::Render(const RenderContext& rc)
 {
+	PROFILE_FUNCTION();
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	// シーン用定数バッファ更新
