@@ -40,9 +40,9 @@ void DissolveWidget::DrawSprite(const std::shared_ptr<Texture>& sprite, const Ve
 void DissolveWidget::OnRender(const RenderContext& rc)
 {
 	if (!texture) return;
-	DrawSprite(texture, rect.position - rect.size * rect.anchor, rect.size,
+	DrawSprite(texture, Vector2::Zero, rect.size,
 		{static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight())},
-		rect.angle, spriteColor);
+		0.0f, spriteColor);
 }
 
 void DissolveWidget::OnDrawGUI()

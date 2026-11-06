@@ -34,7 +34,7 @@
 #include "Rendering/Component/VMDLModelComponent.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
-#include "UI/BossBar.h"
+#include "UI/BossBarWidget.h"
 #include "Rendering/Component/HitstopVibrationComponent.h"
 #include "Rendering/Component/AfterimageComponent.h"
 #include "Rendering/Effect/EffectManager.h"
@@ -953,7 +953,7 @@ void Aracore::UpdateChaseState()
 	}
 }
 
-void Aracore::SetBossBar(BossBar* value)
+void Aracore::SetBossBar(BossBarWidget* value)
 {
 	if (bossBar && bossBar != value) bossBar->Hide(this);
 	bossBar = value;

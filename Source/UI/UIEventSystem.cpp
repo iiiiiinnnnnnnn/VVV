@@ -199,7 +199,7 @@ std::shared_ptr<Widget> UIEventSystem::FindNext(const std::shared_ptr<Widget>& c
 	if (mode == UINavigation::None ||
 		(mode == UINavigation::Vertical && direction.y == 0) ||
 		(mode == UINavigation::Horizontal && direction.x == 0)) return current;
-	const Vector2 center = current->rect.position + current->rect.size * (Vector2(0.5f, 0.5f) - current->rect.anchor);
+	const Vector2 center = current->GetWorldCenter();
 	std::shared_ptr<Widget> next;
 	std::shared_ptr<Widget> wrap;
 	float bestScore = -std::numeric_limits<float>::max();
@@ -209,8 +209,7 @@ std::shared_ptr<Widget> UIEventSystem::FindNext(const std::shared_ptr<Widget>& c
 		const auto& candidate = target.widget;
 		if (candidate == current || !IsAvailable(candidate) ||
 			candidate->GetComponent<EventTrigger>()->GetNavigation() == UINavigation::None) continue;
-		const Vector2 candidateCenter = candidate->rect.position +
-			candidate->rect.size * (Vector2(0.5f, 0.5f) - candidate->rect.anchor);
+		const Vector2 candidateCenter = candidate->GetWorldCenter();
 		const Vector2 delta = candidateCenter - center;
 		const float distanceSquared = delta.LengthSquared();
 		const float forward = delta.Dot(direction);
@@ -305,7 +304,7 @@ void UIEventSystem::Update(const std::vector<std::shared_ptr<Widget>>& roots)
 	// ポストプロセス適用後に描画する通常UIを、手前の入力対象として扱う。
 	for (bool postProcess : {true, false})
 		for (const auto& widget : roots)
-			if (widget && widget->GetAffectedByPostProcess() == postProcess) Collect(widget, parents);
+			if (widget && !widget->GetParent() && widget->GetAffectedByPostProcess() == postProcess) Collect(widget, parents);
 	Mouse& mouse = Game::Input::Instance().GetMouse();
 	UIEventData data;
 	data.position = Vector2(static_cast<float>(mouse.GetPositionX()), static_cast<float>(mouse.GetPositionY()));

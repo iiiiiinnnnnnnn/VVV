@@ -352,9 +352,6 @@
     <ClCompile Include="Source\Rendering\Shader\GaussianFilterShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Component\SpriteRenderComponent.cpp">
-      <Filter>Rendering\Component</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Rendering\Component\TrailRenderComponent.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
@@ -373,22 +370,25 @@
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp">
       <Filter>Rendering\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\CmdActionUI.cpp">
+    <ClCompile Include="Source\UI\CmdActionWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\SpriteWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\TitleHUD.cpp">
+    <ClCompile Include="Source\UI\CustomLineWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\TitleLogo.cpp">
+    <ClCompile Include="Source\UI\TitleMenuWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\PressAnyButton.cpp">
+    <ClCompile Include="Source\UI\TitleLogoWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\Button.cpp">
+    <ClCompile Include="Source\UI\PressAnyButtonWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\ButtonWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\EventTrigger.cpp">
@@ -400,19 +400,25 @@
     <ClCompile Include="Source\UI\DissolveWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\GaugeHUD.cpp">
+    <ClCompile Include="Source\UI\GaugeWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\WidgetGroup.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\PauseMenu.cpp">
+    <ClCompile Include="Source\UI\XboxControllerWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\PauseMenuWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\TextWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\WidgetShadow.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\WidgetAlpha.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\UIFont.cpp">
@@ -634,7 +640,7 @@
     <ClInclude Include="Source\Gameplay\Actor\Deer.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\BossBar.h">
+    <ClInclude Include="Source\UI\BossBarWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\ColorWidget.h">
@@ -768,9 +774,6 @@
     <ClInclude Include="Source\Rendering\Component\AfterimageComponent.h">
       <Filter>Rendering\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Component\SpriteRenderComponent.h">
-      <Filter>Rendering\Component</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Rendering\Component\TrailRenderComponent.h">
       <Filter>Rendering\Component</Filter>
     </ClInclude>
@@ -786,22 +789,25 @@
     <ClInclude Include="Source\Gameplay\Stage\Component\Terrain.h">
       <Filter>Gameplay\Stage\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\CmdActionUI.h">
+    <ClInclude Include="Source\UI\CmdActionWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\SpriteWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\TitleHUD.h">
+    <ClInclude Include="Source\UI\CustomLineWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\TitleLogo.h">
+    <ClInclude Include="Source\UI\TitleMenuWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\PressAnyButton.h">
+    <ClInclude Include="Source\UI\TitleLogoWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\Button.h">
+    <ClInclude Include="Source\UI\PressAnyButtonWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\ButtonWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\EventTrigger.h">
@@ -816,19 +822,25 @@
     <ClInclude Include="Source\UI\DissolveWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\GaugeHUD.h">
+    <ClInclude Include="Source\UI\GaugeWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\WidgetGroup.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\PauseMenu.h">
+    <ClInclude Include="Source\UI\XboxControllerWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\PauseMenuWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\TextWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\WidgetShadow.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\WidgetAlpha.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\UIFont.h">
@@ -1276,7 +1288,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\UI\BossBar.cpp">
+    <ClCompile Include="Source\UI\BossBarWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\ColorWidget.cpp">

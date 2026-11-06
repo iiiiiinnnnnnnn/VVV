@@ -7,7 +7,7 @@
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TitleScene.h"
-#include "Rendering/Component/SpriteRenderComponent.h"
+#include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/SpriteWidget.h"
 #include "UI/Widget.h"
@@ -50,10 +50,8 @@ void LoadingScene::OnInit()
 
 	const auto makeFill = [this](const char* name, const Color& color)
 	{
-		auto widget = std::make_shared<Widget>(name);
-		widget->AddComponent<SpriteRenderComponent>(
-			std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1)),
-			SpriteShaderId::Basic, color);
+		auto widget = std::make_shared<ColorWidget>(SpriteShaderId::Basic, color);
+		widget->SetName(name);
 		widget->SetAffectedByPostProcess(false);
 		widgetManager.Register(widget);
 		return widget;
@@ -72,12 +70,9 @@ void LoadingScene::OnUpdate()
 		SceneManager::Instance().GetLoadProgress(), 0.0f, 1.0f);
 	if (progressFill)
 	{
-		if (auto* sprite = progressFill->GetComponent<SpriteRenderComponent>())
-		{
-			sprite->SetHorizontalFill(progress);
-			const float pulse = 0.86f + std::sin(elapsedTime.GetElapsed() * 4.0f) * 0.12f;
-			sprite->SetColor(Color(0.52f, 0.76f, 1.0f, pulse));
-		}
+		progressFill->SetHorizontalFill(progress);
+		const float pulse = 0.86f + std::sin(elapsedTime.GetElapsed() * 4.0f) * 0.12f;
+		progressFill->SetColor(Color(0.52f, 0.76f, 1.0f, pulse));
 	}
 }
 
@@ -120,14 +115,9 @@ void LoadingScene::UpdateLayout()
 	if (background)
 	{
 		float imageAspect = 16.0f / 9.0f;
-		if (auto* sprite = background->GetComponent<SpriteRenderComponent>())
-		{
-			if (Texture* texture = sprite->GetTexture();
-				texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
-			{
-				imageAspect = static_cast<float>(texture->GetWidth()) / texture->GetHeight();
-			}
-		}
+		if (Texture* texture = background->GetTexture();
+			texture && texture->GetWidth() > 0 && texture->GetHeight() > 0)
+			imageAspect = static_cast<float>(texture->GetWidth()) / texture->GetHeight();
 
 		// Cover表示を少し拡大し、その余白の範囲だけをゆっくり漂わせる。
 		float width = screenWidth;

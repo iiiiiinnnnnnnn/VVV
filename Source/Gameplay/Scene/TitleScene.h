@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Gameplay/Scene/Scene.h"
-#include "UI/TitleHUD.h"
+#include "UI/TitleMenuWidget.h"
 
 class Actor;
 class DummyPlayer;
@@ -24,8 +24,8 @@ private:
 	void CreateTitleWorld();
 	void RequestExit();
 	std::shared_ptr<DummyPlayer> dummyPlayer;
-	std::shared_ptr<TitleHUD> titleHud;
+	std::shared_ptr<TitleMenuWidget> titleHud;
 	bool loadRequested = false;
 	bool exitRequested = false;
-	TitleHUD::MenuPage prevMenuPage = TitleHUD::MenuPage::Prompt; // 監視用
+	TitleMenuWidget::MenuPage prevMenuPage = TitleMenuWidget::MenuPage::Prompt; // 監視用
 };

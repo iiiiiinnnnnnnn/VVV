@@ -1,5 +1,8 @@
 #include "Application/SettingsAndDebug/ProfileScope.h"
 #include "UI/Widget.h"
+#include "UI/WidgetAlpha.h"
+#include "UI/WidgetGroup.h"
+#include "Rendering/Core/Graphics.h"
 #include "IconsFontAwesome5.h"
 #include <cmath>
 
@@ -32,6 +35,7 @@ void Widget::DrawGUI()
             ImGui::DragFloat2("Position", &rect.position.x);
             ImGui::DragFloat("Angle", &rect.angle);
             ImGui::DragFloat2("Size", &rect.size.x);
+            ImGui::DragFloat2("Scale", &rect.scale.x, 0.01f);
             ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
             ImGui::TreePop();
         }
@@ -47,19 +51,68 @@ void Widget::DrawGUI()
     ImGui::Separator();
 }
 
+void Widget::Render(const RenderContext& rc)
+{
+	if (!IsActive() || IsPendingDestroy()) return;
+	auto* renderer = Game::Graphics::Instance().GetSpriteRenderer();
+	const Matrix previous = renderer->GetTransform();
+	const float previousAlpha = renderer->GetAlpha();
+	renderer->SetTransform(GetWorldTransform());
+	renderer->SetAlpha(GetWorldAlpha());
+	try { Object::Render(rc); }
+	catch (...)
+	{
+		renderer->SetTransform(previous);
+		renderer->SetAlpha(previousAlpha);
+		throw;
+	}
+	renderer->SetTransform(previous);
+	renderer->SetAlpha(previousAlpha);
+}
+
+float Widget::GetWorldAlpha() const
+{
+	const auto* component = GetComponent<WidgetAlpha>();
+	const float alpha = component && component->IsActive() ? component->GetAlpha() : 1.0f;
+	return parent ? alpha * parent->GetWorldAlpha() : alpha;
+}
+
+Matrix Widget::GetWorldTransform() const
+{
+	return parent ? rect.GetMatrix() * parent->GetWorldTransform() : rect.GetMatrix();
+}
+
+Vector2 Widget::GetWorldCenter() const
+{
+	return Vector2::Transform(rect.size * 0.5f, GetWorldTransform());
+}
+
+bool Widget::ScreenToLocal(const Vector2& screen, Vector2& local) const
+{
+	const Matrix world = GetWorldTransform();
+	if (std::abs(world.Determinant()) < 0.000001f) return false;
+	local = Vector2::Transform(screen, world.Invert());
+	return true;
+}
+
+bool Widget::SetScreenPosition(const Vector2& screen)
+{
+	if (!parent)
+	{
+		rect.position = screen;
+		return true;
+	}
+	return parent->ScreenToLocal(screen, rect.position);
+}
+
 bool Widget::ContainsPoint(const Vector2& point) const
 {
 	if (!IsActive() || IsPendingDestroy() || rect.size.x <= 0 || rect.size.y <= 0) return false;
-	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	const Vector2 center = topLeft + rect.size * 0.5f;
-	const Vector2 offset = point - center;
-	// SpriteRendererと同じく、矩形の中心を回転の原点にする。
-	const float angle = DirectX::XMConvertToRadians(rect.angle);
-	const float cosine = std::cos(angle);
-	const float sine = std::sin(angle);
-	const Vector2 local(offset.x * cosine + offset.y * sine, -offset.x * sine + offset.y * cosine);
-	return std::abs(local.x) <= rect.size.x * 0.5f && std::abs(local.y) <= rect.size.y * 0.5f;
+	Vector2 local;
+	return ScreenToLocal(point, local) && local.x >= 0 && local.x <= rect.size.x &&
+		local.y >= 0 && local.y <= rect.size.y;
 }
+
 void Widget::DrawInspector()
 {
 	ImGui::PushID(this);
@@ -69,6 +122,7 @@ void Widget::DrawInspector()
 		ImGui::DragFloat2("Position", &rect.position.x);
 		ImGui::DragFloat("Angle", &rect.angle);
 		ImGui::DragFloat2("Size", &rect.size.x);
+		ImGui::DragFloat2("Scale", &rect.scale.x, 0.01f);
 		ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
 	}
 	if (ImGui::CollapsingHeader((const char*)u8"ユーザーパラメーター", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();

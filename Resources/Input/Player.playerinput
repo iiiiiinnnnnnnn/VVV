@@ -105,6 +105,16 @@
         "downOnly": false,
         "device": "Mouse",
         "code": 4
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 4096
+      },
+      {
+        "downOnly": false,
+        "device": "GamePad",
+        "code": 8192
       }
     ]
   }

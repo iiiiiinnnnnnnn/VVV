@@ -2,7 +2,8 @@
 
 const Gpu::InputLayoutDesc SpriteShader::InputLayout = Gpu::InputLayoutDesc()
 	.AddPosition()
-	.AddTexcoord();
+	.AddTexcoord()
+	.AddColor(DXGI_FORMAT_R32_FLOAT);
 
 const Gpu::InputLayoutDesc ModelShader::InputLayout = Gpu::InputLayoutDesc()
 	.AddPosition()

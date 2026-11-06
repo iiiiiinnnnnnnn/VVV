@@ -1,6 +1,6 @@
 # Widgetの入力とEventTrigger
 
-入力判定はButtonから分離しています。Widget / TextWidget / SpriteWidget / WidgetGroup / Buttonのいずれも、EventTriggerを追加すれば入力を受け取れます。画像は不要です。
+入力判定はButtonWidgetから分離しています。Widget / TextWidget / SpriteWidget / WidgetGroup / ButtonWidgetのいずれも、EventTriggerを追加すれば入力を受け取れます。画像は不要です。
 
 ## 登録例
 
@@ -46,7 +46,7 @@ widgetManager.Register(widget);
 ## 配送とナビゲーション
 
 - WidgetManager::UpdateでWidgetと子階層を更新した後、UIEventSystemが1回入力を配送します。個々のWidgetで生の入力を再処理する必要はありません。
-- 矩形の位置・サイズ・anchor・回転で判定し、重なった入力対象では最後に描画される対象を優先します。
+- 親子の位置・サイズ・anchor・回転・scaleを合成して判定し、重なった入力対象では最後に描画される対象を優先します。
 - クリックは同じ対象上で押して離した場合に発火します。ドラッグ開始後はクリックしません。
 - ドラッグの標準しきい値は5ピクセルです。左右・中央のボタンごとに押下対象を保持します。
 - 親グループの非表示、破棄、コンポーネント無効化、ウィンドウのフォーカス喪失、ImGuiの入力捕捉を考慮します。
@@ -55,16 +55,16 @@ widgetManager.Register(widget);
 - `SetInteractable(false)` で入力を止められます。`SetInputDelay(seconds)` はページ切替直後の持ち越し入力の抑制に使用します。
 - グループへの登録が必要な場合は、グループをWidgetManagerに登録します。親子両方をルートへ二重登録しないでください。
 
-## Button
+## ButtonWidget
 
-Buttonは通常画像・選択時画像・ラベル・フォーカス装飾を描くクラスです。EventTriggerは自動では追加しません。入力が必要な場所で明示的に追加してください。
+ButtonWidgetは通常画像・選択時画像・ラベル・フォーカス装飾を描くクラスです。EventTriggerは自動では追加しません。入力が必要な場所で明示的に追加してください。
 
 `SetTexture(path)` と `SetSelectionTexture(path)` は任意です。空文字や見つからない画像、画像の読込失敗は画像未設定として扱い、文字や入力処理を継続します。画像不要のWidgetは画像を作る必要がありません。
 
 ## ビルド後の確認項目
 
 1. タイトルの全項目とポーズメニューをマウス・パッドで操作し、決定が1回ずつ実行されること。
-2. 画像を設定しないButtonと通常のWidgetにEventTriggerを付け、出入り・押下・解放・クリックを確認すること。
+2. 画像を設定しないButtonWidgetと通常のWidgetにEventTriggerを付け、出入り・押下・解放・クリックを確認すること。
 3. 重ねたWidgetでは手前だけが反応し、領域外で離した場合やドラッグした場合はクリックしないこと。
 4. ドラッグ中のPointerUp / Drop / EndDragと、ホイール、右・中クリックのbutton値を確認すること。
 5. 選択・押下中に親を非表示にする、破棄する、Alt+Tabする、ImGuiを操作する場合に、入力が残らないこと。
@@ -76,3 +76,37 @@ UILayout::Apply(widget, {x, y}, {width, height}, fontSize)で配置をまとめ�
 位置とサイズは画面比率、文字サイズは1080p基準です。画像の比率を保つ場合はImage、画像の透明余白を切り出す場合はSource、ゲージ内部の範囲はFillを使用します。
 
 実行中のWidgetの確認・編集には、F2で開くヒエラルキーとインスペクターを使用します。
+## 親子の配置とscale
+
+WidgetGroupにAddChildしたWidgetのrect.positionは、親の矩形左上を基準とするローカル座標です。
+親の移動・回転・scaleは、子と孫の画像・文字・線・入力判定へ反映されます。
+回転とscaleの中心は矩形の中心です。親のrect.sizeでその範囲を指定できます。
+
+sizeはレイアウト寸法、scaleは描画内容全体の拡大率です。scaleの初期値は{1, 1}で、変更してもsizeやfontSize自体は書き換えません。
+
+```cpp
+auto group = std::make_shared<WidgetGroup>("Controls");
+group->rect.position = {100, 50};
+group->rect.scale = {0.8f, 0.8f};
+widgetManager.Register(group);
+
+auto text = std::make_shared<TextWidget>("Help", "Move");
+text->rect.position = {20, 30};
+group->AddChild(text);
+```
+
+画面座標を親のローカル座標へ直して配置する場合はWidget::SetScreenPositionを使います。
+ポインターの座標変換にはScreenToLocal、最終的な画面上の中心の取得にはGetWorldCenterを使います。
+
+## Widgetのクラス名
+
+| 旧名 | 現在の名前 |
+| --- | --- |
+| CmdActionUI | CmdActionWidget |
+| GaugeHUD | GaugeWidget |
+| BossBar | BossBarWidget |
+| Button | ButtonWidget |
+| TitleHUD | TitleMenuWidget |
+| PauseMenu | PauseMenuWidget |
+| TitleLogo | TitleLogoWidget |
+| PressAnyButton | PressAnyButtonWidget |

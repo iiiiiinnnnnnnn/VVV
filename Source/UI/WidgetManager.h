@@ -16,7 +16,7 @@ class WidgetManager
 public:
 	void Register(std::shared_ptr<Widget> widget)
 	{
-		if (!widget) return;
+		if (!widget || widget->GetParent()) return;
 		if (widget->IsPendingDestroy()) return;
 		widget->widgetManager = this;
 
@@ -30,7 +30,7 @@ public:
 		PROFILE_FUNCTION();
 		for (auto& d : data)
 		{
-			d->Update();
+			if (d && !d->GetParent()) d->Update();
 		}
 
 		// 削除フラグありのオブジェクトを削除
@@ -40,7 +40,7 @@ public:
 			data.end(),
 			[](const std::shared_ptr<Widget>& widget)
 		{
-			return widget->IsPendingDestroy();
+			return !widget || widget->IsPendingDestroy() || widget->GetParent();
 		}),
 			data.end());
 
@@ -58,7 +58,7 @@ public:
 				continue;
 			}
 
-			if (d->IsPendingDestroy())
+			if (d->IsPendingDestroy() || d->GetParent())
 			{
 				continue;
 			}

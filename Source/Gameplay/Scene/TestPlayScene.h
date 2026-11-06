@@ -2,17 +2,17 @@
 
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Effect/ParticleSystem.h"
-#include "UI/TextWidget.h"
 
 class LocalPlayer;
-class BossBar;
-class ThirdPersonCameraController;
-class GaugeHUD;
+class TextWidget;
 class WidgetGroup;
-class PauseMenu;
+class BossBarWidget;
+class ThirdPersonCameraController;
+class GaugeWidget;
+class PauseMenuWidget;
 class MovieCameraController;
 class Aracore;
-class CmdActionUI;
+class CmdActionWidget;
 
 class TestPlayScene : public Scene
 {
@@ -47,12 +47,12 @@ private:
 	std::shared_ptr<WidgetGroup> gameHud;
 	std::shared_ptr<WidgetGroup> playerHudGroup;
 	std::shared_ptr<WidgetGroup> bossHudGroup;
-	std::shared_ptr<GaugeHUD> playerHealthGauge;
-	std::shared_ptr<BossBar> bossBar;
-	std::shared_ptr<CmdActionUI> cmdBtnWidget;
-	std::shared_ptr<CmdActionUI> movieCmdWidget;
+	std::shared_ptr<GaugeWidget> playerHealthGauge;
+	std::shared_ptr<BossBarWidget> bossBar;
+	std::shared_ptr<CmdActionWidget> cmdBtnWidget;
+	std::shared_ptr<CmdActionWidget> movieCmdWidget;
 	ThirdPersonCameraController* thirdPersonCamera = nullptr;
-	PauseMenu* pauseMenu = nullptr;
+	PauseMenuWidget* pauseMenu = nullptr;
 	MovieCameraController* movieCamera = nullptr;
 	bool moviePreviewTransition = false;
 	Aracore* movieBoss = nullptr;

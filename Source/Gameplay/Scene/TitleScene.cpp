@@ -27,7 +27,7 @@ void TitleScene::OnInit()
 	graphics.SetWindowMovementLocked(true);
 	showGameEditorGUI = false;
 	CreateTitleWorld();
-	titleHud = std::make_shared<TitleHUD>([this](int index) { OnMenuSelected(index); });
+	titleHud = std::make_shared<TitleMenuWidget>([this](int index) { OnMenuSelected(index); });
 	widgetManager.Register(titleHud);
 }
 
@@ -84,8 +84,8 @@ void TitleScene::OnUpdate()
 	titleHud->SetInputEnabled(!showGameEditorGUI && !loadRequested && !exitRequested);
 
 	// 遷移状況監視してプレイヤー動かす
-	if (prevMenuPage == TitleHUD::MenuPage::Prompt &&
-		titleHud->GetMenuPage() == TitleHUD::MenuPage::Main)
+	if (prevMenuPage == TitleMenuWidget::MenuPage::Prompt &&
+		titleHud->GetMenuPage() == TitleMenuWidget::MenuPage::Main)
 	{
 		dummyPlayer->GetAnimator()->SetTrigger("trigger");
 	}

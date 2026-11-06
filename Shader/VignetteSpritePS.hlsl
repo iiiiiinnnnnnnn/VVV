@@ -36,8 +36,9 @@ float4 main(VS_OUT pin) : SV_TARGET
     const float amount = vignette * saturate(vignetteColor.a);
     if (overlayOnly > 0.5f)
     {
-        return float4(vignetteColor.rgb, amount);
+        return float4(vignetteColor.rgb, amount * pin.alpha);
     }
     finalColor.rgb = lerp(finalColor.rgb, vignetteColor.rgb, amount);
+    finalColor.a *= pin.alpha;
     return finalColor;
 }

@@ -49,6 +49,8 @@ void EffectWidget::Play()
 	if (handle >= 0)
 	{
 		playbacks.push_back({effect, handle});
+		effect->SetTransform(handle, GetEffectTransform());
+		effect->SetAlpha(handle, GetWorldAlpha() * screenAlpha);
 		if (useUnscaledTime)
 		{
 			auto manager = EffectManager::Instance().GetEffekseerManager();
@@ -62,8 +64,17 @@ void EffectWidget::Play()
 
 Vector2 EffectWidget::GetEffectPosition() const
 {
-	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	return topLeft + rect.size * 0.5f;
+	return Vector2::Transform(rect.size * 0.5f, screenTransform ? *screenTransform : GetWorldTransform());
+}
+
+Matrix EffectWidget::GetEffectTransform() const
+{
+	// エフェクトの上向き座標をUI座標へ変換し、親子の変換後に画面中央基準へ戻す。
+	return Matrix::CreateScale(effectScale, -effectScale, effectScale)
+		* Matrix::CreateTranslation(rect.size.x * 0.5f, rect.size.y * 0.5f, 0.0f)
+		* (screenTransform ? *screenTransform : GetWorldTransform())
+		* Matrix::CreateScale(1.0f, -1.0f, 1.0f)
+		* Matrix::CreateTranslation(-Game::Graphics::ScreenWidth * 0.5f, Game::Graphics::ScreenHeight * 0.5f, 0.0f);
 }
 
 void EffectWidget::Update()
@@ -71,10 +82,12 @@ void EffectWidget::Update()
 	auto manager = EffectManager::Instance().GetEffekseerManager();
 	if (!manager) return;
 	std::erase_if(playbacks, [&](const Playback& playback) { return !manager->Exists(playback.handle); });
-	const Vector2 screenPosition = GetEffectPosition();
-	const Vector3 position(screenPosition.x - Game::Graphics::ScreenWidth * 0.5f,
-		Game::Graphics::ScreenHeight * 0.5f - screenPosition.y, 0.0f);
-	for (const Playback& playback : playbacks) playback.effect->SetPosition(playback.handle, position);
+	const Matrix transform = GetEffectTransform();
+	for (const Playback& playback : playbacks)
+	{
+		playback.effect->SetTransform(playback.handle, transform);
+		playback.effect->SetAlpha(playback.handle, GetWorldAlpha() * screenAlpha);
+	}
 	if (useUnscaledTime && !playbacks.empty())
 	{
 		manager->BeginUpdate();

@@ -1,4 +1,3 @@
-// TextWidget.cpp
 #include "UI/TextWidget.h"
 #include <filesystem>
 
@@ -31,17 +30,14 @@ bool TextWidget::SetFont(const std::string& path)
 
 void TextWidget::OnRender(const RenderContext&)
 {
-	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	DrawFont(topLeft, color);
+	DrawFont(Vector2::Zero, color);
 }
 
 void TextWidget::DrawShadow(const RenderContext&, const Vector2& offset,
 	const Color& shadowColor)
 {
 	// 本体と同じ文字を指定された距離だけずらして描画
-	const Vector2 topLeft = rect.position - rect.size * rect.anchor;
-	const Vector2 shadowPosition = topLeft + offset;
-	DrawFont(shadowPosition, shadowColor);
+	DrawFont(offset, shadowColor);
 }
 
 void TextWidget::DrawFont(const Vector2& topLeft, const Color& drawColor)
@@ -54,20 +50,25 @@ void TextWidget::OnDrawGUI()
 {
 	const std::string preview = fontPath.empty() ? "Default (Isometra)"
 		: std::filesystem::path(fontPath).filename().string();
-	if (!ImGui::BeginCombo("Font", preview.c_str())) return;
-	if (ImGui::Selectable("Default (Isometra)", fontPath.empty())) SetFont("");
-	std::error_code error;
-	std::filesystem::directory_iterator files("Resources/Font", error);
-	const std::filesystem::directory_iterator end;
-	for (; !error && files != end; files.increment(error))
+	ImGui::InputTextMultiline((const char*)u8"テキスト", &text);
+	if (ImGui::BeginCombo((const char*)u8"フォントファミリ", preview.c_str()))
 	{
-		const auto& path = files->path();
-		const auto extension = path.extension();
-		if (extension != ".ttf" && extension != ".otf" && extension != ".ttc") continue;
-		const std::string label = path.filename().string();
-		const std::string value = path.generic_string();
-		if (ImGui::Selectable(label.c_str(), fontPath == value) && !SetFont(value))
-			ImGui::SetTooltip("Failed to load font: %s", value.c_str());
+		if (ImGui::Selectable((const char*)u8"既定(Isometra)", fontPath.empty())) SetFont("");
+		std::error_code error;
+		std::filesystem::directory_iterator files("Resources/Font", error);
+		const std::filesystem::directory_iterator end;
+		for (; !error && files != end; files.increment(error))
+		{
+			const auto& path = files->path();
+			const auto extension = path.extension();
+			if (extension != ".ttf" && extension != ".otf" && extension != ".ttc") continue;
+			const std::string label = path.filename().string();
+			const std::string value = path.generic_string();
+			if (ImGui::Selectable(label.c_str(), fontPath == value) && !SetFont(value))
+				ImGui::SetTooltip("Failed to load font: %s", value.c_str());
+		}
+		ImGui::EndCombo();
 	}
-	ImGui::EndCombo();
+	ImGui::DragFloat((const char*)u8"フォントサイズ", &fontSize);
+	ImGui::ColorPicker4((const char*)u8"色", &color.x);
 }

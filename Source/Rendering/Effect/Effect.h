@@ -26,6 +26,7 @@ public:
 
 	// スケール設定
 	void SetScale(Effekseer::Handle handle, const Vector3& scale);
+	void SetAlpha(Effekseer::Handle handle, float alpha);
 	void SetTransform(Effekseer::Handle handle, const Matrix& transform);
 	bool IsValid() const { return effekseerEffect != nullptr; }
 

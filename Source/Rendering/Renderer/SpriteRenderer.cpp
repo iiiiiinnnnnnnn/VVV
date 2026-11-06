@@ -103,7 +103,8 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	// スクリーン座標のまま保存（NDC 変換は Render() 時にビューポートを使って行う）
 	for (int i = 0; i < 4; ++i)
 	{
-		info.vertices[i].position = { positions[i].x, positions[i].y, dxyz.z };
+		info.vertices[i].alpha = alpha;
+		info.vertices[i].position = Vector3::Transform(Vector3(positions[i].x, positions[i].y, dxyz.z), transform);
 		info.vertices[i].texcoord = {
 			texcoords[i].x / textureSize.x,
 			texcoords[i].y / textureSize.y

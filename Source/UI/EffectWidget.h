@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "UI/Widget.h"
@@ -16,6 +17,9 @@ class EffectWidget : public Widget
 	void Play();
 	void Stop();
 	void SetUseUnscaledTime(bool value);
+	void SetScreenAlpha(float value) { screenAlpha = std::clamp(value, 0.0f, 1.0f); }
+	void SetScreenTransform(const Matrix& value) { screenTransform = value; }
+	void ClearScreenTransform() { screenTransform.reset(); }
 	void Update() override;
 
 	void SetEffectPath(const std::string& path)
@@ -46,9 +50,12 @@ private:
 		int handle = -1;
 	};
 	Vector2 GetEffectPosition() const;
+	Matrix GetEffectTransform() const;
 	std::vector<Playback> playbacks;
 	std::shared_ptr<Effect> effect;
 	std::string effectPath = "";
 	float effectScale = 1.0f;
+	float screenAlpha = 1.0f;
+	std::optional<Matrix> screenTransform;
 	bool useUnscaledTime = false;
 };

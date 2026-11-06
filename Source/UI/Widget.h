@@ -7,6 +7,7 @@
 #include <imgui.h>
 
 class WidgetManager;
+class WidgetGroup;
 
 class Widget : public Object
 {
@@ -21,6 +22,14 @@ public:
 	bool ContainsPoint(const Vector2& point) const;
 
 	// オーバーライドする必要があるやつだけ(rect transform割り込み)
+	void Render(const RenderContext& rc) override;
+	Matrix GetWorldTransform() const;
+	float GetWorldAlpha() const;
+	Vector2 GetWorldCenter() const;
+	bool ScreenToLocal(const Vector2& screen, Vector2& local) const;
+	bool SetScreenPosition(const Vector2& screen);
+	WidgetGroup* GetParent() const { return parent; }
+
     void Update() override;
     void DrawGUI() override;
     void DrawInspector();
@@ -34,7 +43,11 @@ public:
 
 protected:
 	friend class WidgetManager;
+	friend class WidgetGroup;
     WidgetManager* widgetManager = nullptr;
 	bool affectedByPostProcess = false;
+
+private:
+	WidgetGroup* parent = nullptr;
 
 };

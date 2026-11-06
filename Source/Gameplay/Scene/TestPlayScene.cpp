@@ -18,16 +18,20 @@
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Gameplay/Stage/Stage01.h"
 #include "Rendering/Core/Graphics.h"
-#include "UI/BossBar.h"
-#include "UI/GaugeHUD.h"
+#include "UI/BossBarWidget.h"
+#include "UI/GaugeWidget.h"
 #include "UI/WidgetGroup.h"
-#include "UI/PauseMenu.h"
+#include "UI/XboxControllerWidget.h"
+#include "UI/TextWidget.h"
+#include "UI/PauseMenuWidget.h"
 #include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Actor/Crystal.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "UI/WidgetShadow.h"
-#include "UI/CmdActionUI.h"
+#include "UI/CmdActionWidget.h"
 #include "Physics/Collider/CharacterController.h"
+#include "UI/UILayout.h"
+#include "UI/ColorWidget.h"
 
 TestPlayScene::TestPlayScene() = default;
 
@@ -71,18 +75,18 @@ void TestPlayScene::OnInit()
 	gameHud->AddChild(bossHudGroup);
 
 	// ジャスト回避したときのボタン
-	cmdBtnWidget = std::make_shared<CmdActionUI>(
-		CmdActionUI::ActionBtns::B, player.get(), camera);
+	cmdBtnWidget =
+		std::make_shared<CmdActionWidget>(CmdActionWidget::ActionBtns::B, player.get(), camera);
 	gameHud->AddChild(cmdBtnWidget);
-	
+
 	// ムービー用
-	movieCmdWidget =
-		std::make_shared<CmdActionUI>(CmdActionUI::ActionBtns::B, player.get(), camera, Vector2{140, 140});
+	movieCmdWidget = std::make_shared<CmdActionWidget>(
+		CmdActionWidget::ActionBtns::B, player.get(), camera, Vector2{140, 140});
 	movieCmdWidget->SetName("Movie QTE");
 	movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
 	widgetManager.Register(movieCmdWidget);
 
-	playerHealthGauge = std::make_shared<GaugeHUD>("Player Health Gauge");
+	playerHealthGauge = std::make_shared<GaugeWidget>("Player Health Gauge");
 	playerHealthGauge->SetFrameTexture("Resources/UI/window.png");
 	playerHealthGauge->SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
 	playerHealthGauge->rect.position = {screenWidth / 2.0f, 999.600f};
@@ -92,7 +96,7 @@ void TestPlayScene::OnInit()
 	playerHudGroup->AddChild(playerHealthGauge);
 
 	// ボスバー
-	bossBar = std::make_shared<BossBar>();
+	bossBar = std::make_shared<BossBarWidget>();
 	bossHudGroup->AddChild(bossBar);
 	widgetManager.Register(gameHud);
 	for (Actor* actor : actorManager.GetActors())
@@ -102,9 +106,8 @@ void TestPlayScene::OnInit()
 	}
 
 	// ポーズ画面の内部状態とWidgetはPauseMenu自身が管理する
-	auto ownedPauseMenu = std::make_shared<PauseMenu>(
-		[this](bool paused) { OnPauseChanged(paused); },
-		[this] { ReturnToTitle(); });
+	auto ownedPauseMenu = std::make_shared<PauseMenuWidget>(
+		[this](bool paused) { OnPauseChanged(paused); }, [this] { ReturnToTitle(); });
 	pauseMenu = ownedPauseMenu.get();
 	widgetManager.Register(std::move(ownedPauseMenu));
 
@@ -112,16 +115,6 @@ void TestPlayScene::OnInit()
 	developText = std::make_shared<TextWidget>("DevHelp",
 		(const char*)u8"※デバッグ/デベロップビルドです\r\n"
 					 u8"\r\n"
-					 u8"[ゲーム操作]\r\n"
-					 u8"[WASD] 移動\r\n"
-					 u8"[スペース] 回避（ジャスト回避時クリックで必殺技＋2コンボ）\r\n"
-					 u8"[LSHIFT] ダッシュ\r\n"
-					 u8"[LCTRL] しゃがみ\r\n"
-					 u8"[マウス] 視点操作\r\n"
-					 u8"[左クリック] 攻撃＋4コンボ\r\n"
-					 u8"[右クリック] キャラにカメラを合わせる\r\n"
-					 u8"\r\n"
-					 u8"[デバッグコマンド]\r\n"
 					 u8"[1] Deerを出現させる\r\n"
 					 u8"[2] クリスタルを出現させる\r\n"
 					 u8"[3] Aracoreを出現させる\r\n"
@@ -129,12 +122,11 @@ void TestPlayScene::OnInit()
 					 u8"[5] プレイヤーにダメージ\r\n"
 					 u8"[6] プレイヤーを回復\r\n"
 					 u8"[7] すべての敵に致死ダメージ\r\n"
-					 u8"[8] 現在のシーンをリロード\r\n"
-					 u8"[9] 空中浮遊\r\n"
+					 u8"[8] すべてのクリスタルを破壊\r\n"
+					 u8"[9] 現在のシーンをリロード\r\n"
+					 u8"[0] 空中浮遊\r\n"
 					 u8"[F] フォグを表示/非表示\r\n"
 					 u8"[G] 草マップを表示/非表示\r\n"
-					 u8"\r\n"
-					 u8"[ゲーム内エディタ操作]\r\n"
 					 u8"[F1] カーソルをロック/解除\r\n"
 					 u8"[F2] ゲーム内エディタ表示/非表示\r\n"
 					 u8"[F3] デバッグ表示/非表示\r\n"
@@ -142,14 +134,18 @@ void TestPlayScene::OnInit()
 					 u8"[F5] ゲーム時間を再開\r\n"
 					 u8"[F6] ムービーカメラ・タイムライン編集\r\n"
 					 u8"[F7] この文字を表示/非表示",
-		25.0f, "NotoSansJP");
-	developText->AddComponent<WidgetShadow>(
-		Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
-	developText->rect.position = {1414.1f, 100.0f};
+		22.0f, "NotoSansJP");
+	developText->AddComponent<WidgetShadow>(Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
+	developText->rect.position = {48.1f, -143.0f};
 	developText->rect.size = {499.200f, 864.000f};
 	developText->rect.anchor = Vector2::Zero;
+	gameHud->AddChild(developText);
 	widgetManager.Register(developText);
 #endif
+
+	// 操作確認画面
+	gameHud->AddChild(std::make_shared<XboxControllerWidget>(
+		player, Vector2{-48.0f, 686.0f}, Vector2{0.4f, 0.4f}));
 }
 
 TestPlayScene::~TestPlayScene()
@@ -217,6 +213,7 @@ void TestPlayScene::OnUpdate()
 {
 	PROFILE_FUNCTION();
 	moviePreviewTransition = false;
+
 	if (movieCmdWidget && (!movieCamera || !movieCamera->IsEditing())) movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
 	if (movieCamera && !movieCamera->IsEditing() && currentStage && player &&
 		(!pauseMenu || !pauseMenu->IsPaused()))
@@ -351,9 +348,17 @@ void TestPlayScene::OnUpdate()
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_8))
 		{
+			auto& acts = currentStage->GetActorManager();
+			for (auto& enem : acts.GetActorsByTag("Crystal"))
+			{
+				reinterpret_cast<Entity*>(enem)->TakeDamage(DamageData{.damage = 1000000.0f});
+			}
+		}
+		if (ImGui::IsKeyPressed(ImGuiKey_9))
+		{
 			if (ImGui::Button("ReloadScene")) SceneManager::Instance().LoadScene<TestPlayScene>();
 		}
-		if (ImGui::IsKeyDown(ImGuiKey_9))
+		if (ImGui::IsKeyDown(ImGuiKey_0))
 		{
 			if (auto c = player->GetComponent<CharacterController>())
 			{

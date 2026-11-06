@@ -740,14 +740,14 @@ void Player::OnDamaged(const DamageData& damageData)
 		{
 			anim->SetTrigger("Hit_L");
 		}
-
-		inBattleTimer.Reset(BattleTimerDuration);
 	}
 	else
 	{
 		if (damageData.targetCollider) anim->SetTrigger("Hit_R");
 	}
 	lockOnComponent->PauseRotation(0.15f);
+
+	inBattleTimer.Reset(BattleTimerDuration);
 }
 
 void Player::TriggerJustDodge(Actor* attacker)

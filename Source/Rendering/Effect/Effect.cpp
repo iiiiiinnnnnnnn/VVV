@@ -293,3 +293,11 @@ void Effect::SetTransform(Effekseer::Handle handle, const Matrix& transform)
 {
 	EffectManager::Instance().SetPlaybackTransform(this, handle, transform);
 }
+
+void Effect::SetAlpha(Effekseer::Handle handle, float alpha)
+{
+	auto manager = EffectManager::Instance().GetEffekseerManager();
+	if (!manager) return;
+	const auto value = static_cast<uint8_t>(std::clamp(alpha, 0.0f, 1.0f) * 255.0f + 0.5f);
+	manager->SetAllColor(handle, Effekseer::Color(255, 255, 255, value));
+}

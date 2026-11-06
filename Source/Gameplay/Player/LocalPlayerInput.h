@@ -11,6 +11,9 @@
 class LocalPlayerInput : public PlayerInput
 {
 public:
+    enum class Control { None, Pause, Move, Camera, Attack, Sprint, Dodge, Crouch, AlignCamera };
+    bool IsControlHeld(Control control) const;
+
 	void OnAwake() override;
     LocalPlayerInput(Object* owner);
     InputContext Poll() override;
@@ -52,7 +55,7 @@ private:
     static std::string KeyName(int key);
     static Settings Defaults();
     float ReadAxis(Axis axis) const;
-    ButtonState ReadButton(Action action) const;
+    ButtonState ReadButton(Action action, bool physicalInput = false) const;
     void ResetRuntime();
     bool Load();
     bool Save() const;

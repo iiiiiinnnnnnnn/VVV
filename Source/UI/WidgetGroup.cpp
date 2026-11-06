@@ -23,7 +23,10 @@ void WidgetGroup::OnUpdate()
 		std::remove_if(children.begin(), children.end(),
 			[](const std::shared_ptr<Widget>& child)
 			{
-				return !child || child->IsPendingDestroy();
+				if (!child) return true;
+				if (!child->IsPendingDestroy()) return false;
+				child->parent = nullptr;
+				return true;
 			}),
 		children.end());
 }
@@ -45,4 +48,20 @@ void WidgetGroup::OnDrawGUI()
 		if (ImGui::Checkbox(child->GetName().c_str(), &active)) child->SetActive(active);
 		ImGui::PopID();
 	}
+}
+
+WidgetGroup::~WidgetGroup()
+{
+	for (const auto& child : children)
+		if (child) child->parent = nullptr;
+}
+
+void WidgetGroup::RemoveChild(Widget* child)
+{
+	std::erase_if(children, [child](const std::shared_ptr<Widget>& value)
+	{
+		if (value.get() != child) return false;
+		value->parent = nullptr;
+		return true;
+	});
 }

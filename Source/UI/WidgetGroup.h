@@ -10,15 +10,21 @@ class WidgetGroup : public Widget
 {
 public:
 	WidgetGroup(const std::string& name);
+	~WidgetGroup() override;
+	void RemoveChild(Widget* child);
 
 	template<class T>
-	std::shared_ptr<T> AddChild(const std::shared_ptr<T>& child)
+	std::shared_ptr<T> AddChild(std::shared_ptr<T> child)
 	{
-		if (!child || child->IsPendingDestroy()) return child;
+		if (!child || child->IsPendingDestroy() || child->parent == this) return child;
+		for (Widget* ancestor = this; ancestor; ancestor = ancestor->GetParent())
+			if (ancestor == child.get()) return child;
 
 		child->Awake();
-		child->Start();
+		if (child->parent) child->parent->RemoveChild(child.get());
 		children.push_back(child);
+		child->parent = this;
+		child->Start();
 		return child;
 	}
 

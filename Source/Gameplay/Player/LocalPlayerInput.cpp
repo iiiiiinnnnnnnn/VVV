@@ -51,6 +51,8 @@ LocalPlayerInput::Settings LocalPlayerInput::Defaults()
     bind(Action::Attack, Device::GamePad, GamePad::BTN_X);
     bind(Action::Attack, Device::GamePad, GamePad::BTN_RIGHT_TRIGGER);
     bind(Action::AlignCamera, Device::Mouse, Mouse::BTN_RIGHT);
+    bind(Action::AlignCamera, Device::GamePad, GamePad::BTN_LEFT_SHOULDER);
+    bind(Action::AlignCamera, Device::GamePad, GamePad::BTN_RIGHT_SHOULDER);
     return result;
 }
 
@@ -99,7 +101,7 @@ float LocalPlayerInput::ReadAxis(Axis axis) const
     }
 }
 
-LocalPlayerInput::ButtonState LocalPlayerInput::ReadButton(Action action) const
+LocalPlayerInput::ButtonState LocalPlayerInput::ReadButton(Action action, bool physicalInput) const
 {
     auto& input = Game::Input::Instance();
     ButtonState result;
@@ -110,7 +112,7 @@ LocalPlayerInput::ButtonState LocalPlayerInput::ReadButton(Action action) const
         switch (binding.device)
         {
         case Device::Keyboard:
-            held = keys[binding.code];
+            held = physicalInput ? (GetAsyncKeyState(binding.code) & 0x8000) != 0 : keys[binding.code];
             down = held && !previousKeys[binding.code];
             break;
         case Device::Mouse:
@@ -122,10 +124,40 @@ LocalPlayerInput::ButtonState LocalPlayerInput::ReadButton(Action action) const
             down = (input.GetGamePad().GetButtonDown() & binding.code) != 0;
             break;
         }
-        result.held |= binding.downOnly ? down : held;
+        result.held |= !physicalInput && binding.downOnly ? down : held;
         result.down |= down;
     }
     return result;
+}
+
+bool LocalPlayerInput::IsControlHeld(Control control) const
+{
+    if (control == Control::None) return false;
+    const auto& io = ImGui::GetIO();
+    auto& input = Game::Input::Instance();
+    if (!IsActive() || input.IsGameplayInputSuppressed() || !Game::Input::IsFocusedWindow(true) ||
+        io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput) return false;
+
+    switch (control)
+    {
+    case Control::Pause:
+        return (input.GetGamePad().GetButton() & (GamePad::BTN_ESCAPE | GamePad::BTN_START)) != 0;
+    case Control::Move:
+        return std::abs(ReadAxis(settings.moveXAxis)) >= settings.moveDeadZone ||
+            std::abs(ReadAxis(settings.moveZAxis)) >= settings.moveDeadZone ||
+            ReadButton(Action::Forward, true).held || ReadButton(Action::Backward, true).held ||
+            ReadButton(Action::Left, true).held || ReadButton(Action::Right, true).held;
+    case Control::Camera:
+        return input.GetMouse().GetAxisX() != 0 || input.GetMouse().GetAxisY() != 0 ||
+            std::abs(input.GetGamePad().GetAxisRX()) > 0.0001f ||
+            std::abs(input.GetGamePad().GetAxisRY()) > 0.0001f;
+    case Control::Attack: return ReadButton(Action::Attack, true).held;
+    case Control::Sprint: return ReadButton(Action::Sprint, true).held;
+    case Control::Dodge: return ReadButton(Action::QuickShift, true).held;
+    case Control::Crouch: return ReadButton(Action::Crouch, true).held;
+    case Control::AlignCamera: return ReadButton(Action::AlignCamera, true).held;
+    default: return false;
+    }
 }
 
 bool LocalPlayerInput::PollAttackButton()

@@ -9,7 +9,7 @@
 #include "Application/Time/Timer.h"
 
 class Animator;
-class BossBar;
+class BossBarWidget;
 class Effect;
 class CharacterController;
 class EnemyAI;
@@ -84,7 +84,7 @@ public:
 	bool IsChasingPlayer() const { return chasingPlayer; }
 	bool HasDetectedPlayer() const { return playerDetected; }
 	bool IsThreating() const { return phase.IsThreatActive(); }
-	void SetBossBar(BossBar* value);
+	void SetBossBar(BossBarWidget* value);
 	void SetStageLoader(StageLoader* value) { stageLoader = value; }
 
 private:
@@ -303,7 +303,7 @@ private:
 	Player* player = nullptr;
 	Terrain* terrain = nullptr;
 	StageLoader* stageLoader = nullptr;
-	BossBar* bossBar = nullptr;
+	BossBarWidget* bossBar = nullptr;
 	Vector3 spawnPosition = Vector3::Zero;
 	bool playerDetected = false;
 	float healthDissolveAmount = 0.0f;

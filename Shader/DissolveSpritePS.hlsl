@@ -28,5 +28,6 @@ float4 main(VS_OUT pin) : SV_TARGET
         }
         else result.a *= step(amount, noise);
     }
+    result.a *= pin.alpha;
     return result;
 }

@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -39,12 +40,19 @@ public:
 		const SpriteRenderParams* params = nullptr);
 
 	void Render(const RenderContext& rc);
+	void SetAlpha(float value) { alpha = std::clamp(value, 0.0f, 1.0f); }
+	float GetAlpha() const { return alpha; }
+	void SetTransform(const Matrix& value) { transform = value; }
+	const Matrix& GetTransform() const { return transform; }
 
 private:
+	Matrix transform = Matrix::Identity;
+	float alpha = 1.0f;
 	struct SpriteVertex
 	{
 		Vector3	position;
 		Vector2	texcoord;
+		float alpha = 1.0f;
 	};
 
 	struct DrawInfo

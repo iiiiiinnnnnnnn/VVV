@@ -3,9 +3,9 @@
 #include <algorithm>
 
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Component/SpriteRenderComponent.h"
-#include "UI/Button.h"
-#include "UI/GaugeHUD.h"
+#include "UI/SpriteWidget.h"
+#include "UI/ButtonWidget.h"
+#include "UI/GaugeWidget.h"
 #include "UI/TextWidget.h"
 
 // 画面比率の座標をピクセルへ変換する。anchorはWidget内の基準点
@@ -15,6 +15,17 @@ public:
 	static float Scale()
 	{
 		return std::clamp(Game::Graphics::ScreenHeight / 1080.0f, 0.65f, 1.5f);
+	}
+
+	// 画面比率で位置だけを設定する。
+	static void Apply(Widget& widget, Vector2 position)
+	{
+		widget.rect.position = position * Vector2(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
+	}
+
+	static void Apply(const std::shared_ptr<Widget>& widget, Vector2 position)
+	{
+		if (widget) Apply(*widget, position);
 	}
 
 	// テキストの配置と、解像度に合わせた文字サイズを反映する。
@@ -29,7 +40,7 @@ public:
 		if (fontSize <= 0) return;
 		if (auto* text = dynamic_cast<TextWidget*>(&widget))
 			text->SetFontSize(fontSize * Scale());
-		if (auto* button = dynamic_cast<Button*>(&widget))
+		if (auto* button = dynamic_cast<ButtonWidget*>(&widget))
 			button->SetFontSize(fontSize * Scale());
 	}
 
@@ -40,7 +51,7 @@ public:
 	}
 
 	// タイトルとポーズで共通の画像付きボタンサイズ。
-	static void MenuButton(const std::shared_ptr<Button>& button, Vector2 position,
+	static void MenuButton(const std::shared_ptr<ButtonWidget>& button, Vector2 position,
 		float fontSize, Vector2 offset = Vector2::Zero)
 	{
 		const float height = Game::Graphics::ScreenHeight;
@@ -53,7 +64,7 @@ public:
 		Vector2 offset = Vector2::Zero, Vector2 anchor = Vector2::Zero)
 	{
 		Apply(widget, position, size, 0, offset, anchor);
-		const auto* sprite = widget.GetComponent<SpriteRenderComponent>();
+		const auto* sprite = dynamic_cast<const SpriteWidget*>(&widget);
 		const auto* texture = sprite ? sprite->GetTexture() : nullptr;
 		if (!texture || !texture->GetWidth() || !texture->GetHeight()) return;
 		const float scale = std::max(0.0f, std::min(widget.rect.size.x / texture->GetWidth(),
@@ -73,12 +84,12 @@ public:
 	{
 		if (!widget) return;
 		widget->Awake();
-		if (auto* sprite = widget->GetComponent<SpriteRenderComponent>())
+		if (auto* sprite = dynamic_cast<SpriteWidget*>(widget.get()))
 			sprite->SetSourceRect(position, size);
 	}
 
 	// ゲージ画像内の塗りつぶし領域は、ゲージに対する比率で調整する。
-	static void Fill(const std::shared_ptr<GaugeHUD>& gauge, Vector2 position, Vector2 size)
+	static void Fill(const std::shared_ptr<GaugeWidget>& gauge, Vector2 position, Vector2 size)
 	{
 		if (!gauge) return;
 		gauge->SetFillRect(position, size);
