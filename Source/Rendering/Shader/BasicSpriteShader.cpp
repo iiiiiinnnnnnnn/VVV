@@ -1,39 +1,28 @@
-﻿#include "Rendering/Shader/BasicSpriteShader.h"
-#include "Resource/GpuResourceUtils.h"
+﻿#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Rendering/Shader/BasicSpriteShader.h"
 
 BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 {
 	// 頂点シェーダー
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/BasicSpriteVS.cso",
-		SpriteShader::InputElementDescs.data(),
-		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
-		inputLayout.GetAddressOf(),
-		vertexShader.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+		SpriteShader::InputLayout);
 
 	// ピクセルシェーダー
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/BasicSpritePS.cso",
-		pixelShader.GetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/BasicSpritePS.cso");
 
 	// 定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbBasic),
-		constantBuffer.GetAddressOf());
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbBasic));
 }
 
 void BasicSpriteShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	dc->IASetInputLayout(inputLayout.Get());
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	ID3D11SamplerState* sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
-	dc->PSSetSamplers(0, 1, &sampler);
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
+	rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
 }
 
 void BasicSpriteShader::Update(
@@ -49,28 +38,22 @@ void BasicSpriteShader::Update(
 	cb.color = color;
 
 	//	定数バッファを設定
-	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
+	constantBuffer->Update(dc, &cb);
 
 	// 定数バッファ設定
-	ID3D11Buffer* cbs[] =
-	{
-		constantBuffer.Get()
-	};
-	dc->PSSetConstantBuffers(0, _countof(cbs), cbs);
+	constantBuffer->BindPS(dc, 0);
 
-	dc->PSSetShaderResources(0, 1, &srv);
+	Gpu::PixelShader::SetShaderResources(dc, 0, srv);
 }
 
 void BasicSpriteShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
 
-	ID3D11ShaderResourceView* nullSrv = nullptr;
-	dc->PSSetShaderResources(0, 1, &nullSrv);
-	ID3D11SamplerState* nullSampler = nullptr;
-	dc->PSSetSamplers(0, 1, &nullSampler);
+	Gpu::PixelShader::UnbindShaderResources(dc, 0);
+	Gpu::SamplerState::UnbindPS(dc, 0);
 }

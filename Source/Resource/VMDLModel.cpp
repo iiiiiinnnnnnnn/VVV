@@ -1,11 +1,11 @@
 #include "Application/SettingsAndDebug/ProfileScope.h"
-#include "Rendering/Core/VMatRenderParams.h"
+#include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
 #include "Resource/ResourcePath.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/GLTFImporter.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Resource/Texture.h"
 #include "Resource/MeshCache.h"
 #include "Rendering/Core/Graphics.h"
 #include "Core/Foundation/DirectXTexConverts.h"
@@ -28,9 +28,6 @@
 
 namespace
 {
-
-
-
 
 std::string ToUpperAscii(std::string value)
 {
@@ -383,17 +380,13 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
 
 	if (textureFileName.empty())
 	{
-		hr = GpuResourceUtils::CreateDummyTexture(device, dummyColor, srv.GetAddressOf());
-
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		srv = Texture(device, dummyColor).GetShaderResourceView();
 		return;
 	}
 
 	std::filesystem::path texturePath = dirpath / textureFileName;
 
-	hr = GpuResourceUtils::LoadTexture(device, texturePath.string().c_str(), srv.GetAddressOf());
-
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	srv = Texture(device, texturePath.string().c_str(), true).GetShaderResourceView();
 }
 
 void VMDLModel::BuildMaterialTextureResources(
@@ -643,9 +636,11 @@ bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot s
 	if (!filename || !embeddedDDS || !srv || !hasTexture) return false;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
-	if (FAILED(GpuResourceUtils::CreateDummyTexture(
-			Game::Graphics::Instance().GetDevice(), dummyColor, replacement.GetAddressOf())))
-		return false;
+	try
+	{
+		replacement = Texture(Game::Graphics::Instance().GetDevice(), dummyColor).GetShaderResourceView();
+	}
+	catch (const std::exception&) { return false; }
 
 	filename->clear();
 	embeddedDDS->clear();
@@ -808,53 +803,35 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 		{
 			mesh.vertices.clear();
 			mesh.indices.clear();
-			mesh.vertexBuffer.Reset();
-			mesh.indexBuffer.Reset();
+			mesh.vertexBuffer.reset();
+			mesh.indexBuffer.reset();
 			mesh.indexCount = 0;
 			for (Bone& bone : mesh.bones) bone.node = &nodes.at(bone.nodeIndex);
 			continue;
 		}
 
 		{
-			D3D11_BUFFER_DESC bufferDesc = {};
+			const Gpu::BufferDesc bufferDesc(static_cast<UINT>(sizeof(Vertex) * mesh.vertices.size()),
+				D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
-
-			bufferDesc.ByteWidth = static_cast<UINT>(sizeof(Vertex) * mesh.vertices.size());
-			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-			bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			bufferDesc.CPUAccessFlags = 0;
-			bufferDesc.MiscFlags = 0;
-			bufferDesc.StructureByteStride = 0;
 
 			subresourceData.pSysMem = mesh.vertices.data();
 			subresourceData.SysMemPitch = 0;
 			subresourceData.SysMemSlicePitch = 0;
 
-			HRESULT hr = device->CreateBuffer(
-				&bufferDesc, &subresourceData, mesh.vertexBuffer.GetAddressOf());
-
-			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+			mesh.vertexBuffer = std::make_shared<Gpu::VertexBuffer>(device, bufferDesc, &subresourceData);
 		}
 
 		{
-			D3D11_BUFFER_DESC bufferDesc = {};
+			const Gpu::BufferDesc bufferDesc(static_cast<UINT>(sizeof(uint32_t) * mesh.indices.size()),
+				D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
-
-			bufferDesc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * mesh.indices.size());
-			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-			bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-			bufferDesc.CPUAccessFlags = 0;
-			bufferDesc.MiscFlags = 0;
-			bufferDesc.StructureByteStride = 0;
 
 			subresourceData.pSysMem = mesh.indices.data();
 			subresourceData.SysMemPitch = 0;
 			subresourceData.SysMemSlicePitch = 0;
 
-			HRESULT hr = device->CreateBuffer(
-				&bufferDesc, &subresourceData, mesh.indexBuffer.GetAddressOf());
-
-			_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+			mesh.indexBuffer = std::make_shared<Gpu::IndexBuffer>(device, bufferDesc, &subresourceData);
 		}
 		mesh.indexCount = static_cast<uint32_t>(mesh.indices.size());
 
@@ -1235,8 +1212,8 @@ bool VMDLModel::ExternalizeMeshes(const std::string& path,
 		mesh.indices.clear();
 		mesh.vertices.shrink_to_fit();
 		mesh.indices.shrink_to_fit();
-		mesh.vertexBuffer.Reset();
-		mesh.indexBuffer.Reset();
+		mesh.vertexBuffer.reset();
+		mesh.indexBuffer.reset();
 		mesh.indexCount = 0;
 	}
 	externalMeshGroups.push_back(std::move(group));
@@ -1341,6 +1318,7 @@ bool VMDLModel::RestoreExternalMeshes(
 		const bool cachedVisible = restored.isDraw;
 		Material restoredMaterial = cache.materials[restored.materialIndex];
 		const Material& currentMaterial = materials[targetMaterialIndex];
+		restoredMaterial.shaderId = currentMaterial.shaderId;
 		restoredMaterial.transmission = currentMaterial.transmission;
 		restoredMaterial.indexOfRefraction = currentMaterial.indexOfRefraction;
 		restoredMaterial.refractionDistance = currentMaterial.refractionDistance;
@@ -1407,6 +1385,7 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 	{
 		Material& target = materials.emplace_back();
 		target.name = source.name;
+		target.shaderId = source.shaderId;
 		target.baseColor = source.baseColor;
 		target.emissiveColor = source.emissiveColor;
 		target.metalness = source.metalness;
@@ -1484,6 +1463,7 @@ std::shared_ptr<VMDLModel> VMDLModel::CloneRuntimeInstance(bool includeGeometry)
 	result->externalMeshGroups = externalMeshGroups;
 	result->modelCacheFilepath = modelCacheFilepath;
 	result->RebuildRuntimeReferences();
+	result->ApplyInitialMorphs();
 	result->UpdateTransform(worldTransform);
 	return result;
 }
@@ -2415,7 +2395,7 @@ void VMDLModel::RestoreRuntimeMorphVisibility()
 	for (size_t i = 0; i < count; ++i) meshes[i].isDraw = runtimeMorphVisibility[i] != 0;
 }
 
-void VMDLModel::ApplyMaterialAnimation(int animationIndex, float time, VMatRenderParams& params) const
+void VMDLModel::ApplyMaterialAnimation(int animationIndex, float time, PBRRenderParams& params) const
 {
 	PROFILE_FUNCTION();
 	for (int i = 0; i < static_cast<int>(materials.size()); ++i)
@@ -2511,6 +2491,7 @@ std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() co
 			material.fresnelColor, material.fresnelPower, material.fresnelStrength,
 			material.isFlatShading});
 		auto& value = result.back();
+		value.shaderId = material.shaderId;
 		value.metalnessTextureFileName = material.metalnessTextureFileName;
 		value.roughnessTextureFileName = material.roughnessTextureFileName;
 		value.metalnessTextureDDS = material.metalnessTextureDDS;
@@ -2536,6 +2517,7 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 		const auto found = lookup.find(material.name);
 		if (found == lookup.end()) continue;
 		const VmdlMaterialData& value = *found->second;
+		material.shaderId = value.shaderId;
 		material.baseColor = value.baseColor;
 		material.emissiveColor = value.emissiveColor;
 		material.metalness = value.metalness;
@@ -2707,8 +2689,8 @@ bool VMDLModel::ReplaceGLBCache(
 			mesh.indices.clear();
 			mesh.vertices.shrink_to_fit();
 			mesh.indices.shrink_to_fit();
-			mesh.vertexBuffer.Reset();
-			mesh.indexBuffer.Reset();
+			mesh.vertexBuffer.reset();
+			mesh.indexBuffer.reset();
 			mesh.indexCount = 0;
 		}
 	}

@@ -52,7 +52,7 @@ void LoadingScene::OnInit()
 	{
 		auto widget = std::make_shared<Widget>(name);
 		widget->AddComponent<SpriteRenderComponent>(
-			std::make_shared<Texture>(Color(1, 1, 1, 1)),
+			std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1)),
 			SpriteShaderId::Basic, color);
 		widget->SetAffectedByPostProcess(false);
 		widgetManager.Register(widget);

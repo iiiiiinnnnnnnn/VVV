@@ -1,47 +1,32 @@
 ﻿#include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/RasterizerState.h"
+#include "Rendering/Core/IndexBuffer.h"
+#include "Rendering/Core/DepthStencilState.h"
+#include "Rendering/Core/BlendState.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
-#include "Rendering/Core/RenderState.h"
+#include "Rendering/Core/Graphics.h"
 
 // コンストラクタ
 PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 {
-	D3D11_INPUT_ELEMENT_DESC inputElementDesc[]
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+	Gpu::InputLayoutDesc inputElementDesc;
+	inputElementDesc.AddPosition()
+		.AddColor();
 	// 頂点シェーダー
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/PrimitiveRendererVS.cso",
-		inputElementDesc,
-		_countof(inputElementDesc),
-		inputLayout.GetAddressOf(),
-		vertexShader.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/PrimitiveRendererVS.cso",
+		inputElementDesc);
 
 	// ピクセルシェーダー
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/PrimitiveRendererPS.cso",
-		pixelShader.GetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/PrimitiveRendererPS.cso");
 
 	// 定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbScene),
-		constantBuffer.GetAddressOf());
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbScene));
 
 	// 頂点バッファ
-	D3D11_BUFFER_DESC desc;
-	desc.ByteWidth = sizeof(Vertex) * VertexCapacity;
-	desc.Usage = D3D11_USAGE_DYNAMIC;
-	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	desc.MiscFlags = 0;
-	desc.StructureByteStride = 0;
-	HRESULT hr = device->CreateBuffer(&desc, nullptr, vertexBuffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	const Gpu::BufferDesc desc(sizeof(Vertex) * VertexCapacity,
+		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, desc, nullptr);
 }
 
 // 頂点追加
@@ -178,25 +163,19 @@ void PrimitiveRenderer::RenderTriangles(
 	ID3D11DeviceContext* dc,
 	const Matrix& view,
 	const Matrix& projection,
-	RenderState* renderState)
+	const Game::Graphics* graphicsResources)
 {
 	if (triangleVertices.empty()) return;
-	Microsoft::WRL::ComPtr<ID3D11BlendState> previousBlend;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> previousDepth;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> previousRasterizer;
-	FLOAT blendFactor[4]{};
-	UINT sampleMask = 0xFFFFFFFF;
-	UINT stencilReference = 0;
-	dc->OMGetBlendState(previousBlend.GetAddressOf(), blendFactor, &sampleMask);
-	dc->OMGetDepthStencilState(previousDepth.GetAddressOf(), &stencilReference);
-	dc->RSGetState(previousRasterizer.GetAddressOf());
-	dc->OMSetBlendState(renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
-	dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestOnly), 0);
-	dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	const auto previousBlend = Gpu::BlendState::Capture(dc);
+	const auto previousDepth = Gpu::DepthStencilState::Capture(dc);
+	const auto previousRasterizer = Gpu::RasterizerState::Capture(dc);
+	graphicsResources->TransparentBlendState->Bind(dc);
+	graphicsResources->DepthReadState->Bind(dc);
+	graphicsResources->SolidRasterizerState->Bind(dc);
 	RenderVertices(dc, view, projection, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, triangleVertices);
-	dc->OMSetBlendState(previousBlend.Get(), blendFactor, sampleMask);
-	dc->OMSetDepthStencilState(previousDepth.Get(), stencilReference);
-	dc->RSSetState(previousRasterizer.Get());
+	Gpu::BlendState::Restore(dc, previousBlend);
+	Gpu::DepthStencilState::Restore(dc, previousDepth);
+	Gpu::RasterizerState::Restore(dc, previousRasterizer.Get());
 }
 
 void PrimitiveRenderer::RenderVertices(
@@ -207,12 +186,11 @@ void PrimitiveRenderer::RenderVertices(
 	std::vector<Vertex>& sourceVertices)
 {
 	// シェーダー設定
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	dc->IASetInputLayout(inputLayout.Get());
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
 
 	// 定数バッファ設定
-	dc->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+	constantBuffer->BindVS(dc, 0);
 
 	// ビュープロジェクション行列作成
 	DirectX::XMMATRIX V = DirectX::XMLoadFloat4x4(&view);
@@ -222,14 +200,14 @@ void PrimitiveRenderer::RenderVertices(
 	// 定数バッファ更新
 	CbScene cbScene;
 	DirectX::XMStoreFloat4x4(&cbScene.viewProjection, VP);
-	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cbScene, 0, 0);
+	constantBuffer->Update(dc, &cbScene);
 
 	// 頂点バッファ設定
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-	dc->IASetPrimitiveTopology(primitiveTopology);
-	dc->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-	dc->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	Gpu::VertexBuffer::SetTopology(dc, primitiveTopology);
+	Gpu::IndexBuffer::Unbind(dc, DXGI_FORMAT_R32_UINT);
+	vertexBuffer->Bind(dc, stride, 0, offset);
 
 	// 描画
 	UINT totalVertexCount = static_cast<UINT>(sourceVertices.size());
@@ -238,15 +216,9 @@ void PrimitiveRenderer::RenderVertices(
 
 	while (start < totalVertexCount)
 	{
-		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-		HRESULT hr = dc->Map(vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		vertexBuffer->Update(dc, &sourceVertices[start], static_cast<UINT>(sizeof(Vertex) * count));
 
-		memcpy(mappedSubresource.pData, &sourceVertices[start], sizeof(Vertex) * count);
-
-		dc->Unmap(vertexBuffer.Get(), 0);
-
-		dc->Draw(count, 0);
+		vertexBuffer->Draw(dc, count);
 
 		start += count;
 		if ((start + count) > totalVertexCount)

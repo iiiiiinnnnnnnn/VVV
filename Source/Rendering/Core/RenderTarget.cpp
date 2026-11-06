@@ -148,7 +148,53 @@ void RenderTarget::SetDepthReadOnly(ID3D11DeviceContext* dc, bool readOnly)
 
 void RenderTarget::Clear(ID3D11DeviceContext* dc, float r, float g, float b, float a)
 {
-    float color[4]{ r, g, b, a };
-    dc->ClearRenderTargetView(rtv.Get(), color);
-    dc->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	float color[4]{r, g, b, a};
+	dc->ClearRenderTargetView(rtv.Get(), color);
+	dc->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+}
+
+Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget::GetColorTarget(ID3D11DeviceContext* context)
+{
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> target;
+	context->OMGetRenderTargets(1, target.GetAddressOf(), nullptr);
+	return target;
+}
+
+D3D11_VIEWPORT RenderTarget::GetViewport(ID3D11DeviceContext* context)
+{
+	D3D11_VIEWPORT viewport{};
+	UINT count = 1;
+	context->RSGetViewports(&count, &viewport);
+	return viewport;
+}
+
+void RenderTarget::SetViewport(ID3D11DeviceContext* context, const D3D11_VIEWPORT& viewport)
+{
+	context->RSSetViewports(1, &viewport);
+}
+
+void RenderTarget::BindDepthTarget(ID3D11DeviceContext* context, ID3D11DepthStencilView* depth)
+{
+	ID3D11RenderTargetView* color = nullptr;
+	context->OMSetRenderTargets(1, &color, depth);
+}
+
+void RenderTarget::ClearDepth(ID3D11DeviceContext* context, ID3D11DepthStencilView* depth, float value, UINT8 stencil, UINT flags)
+{
+	context->ClearDepthStencilView(depth, flags, value, stencil);
+}
+
+RenderTarget::OutputState RenderTarget::CaptureOutput(ID3D11DeviceContext* context)
+{
+	OutputState state;
+	context->OMGetRenderTargets(1, state.color.GetAddressOf(), state.depth.GetAddressOf());
+	state.viewportCount = static_cast<UINT>(state.viewports.size());
+	context->RSGetViewports(&state.viewportCount, state.viewports.data());
+	return state;
+}
+
+void RenderTarget::RestoreOutput(ID3D11DeviceContext* context, const OutputState& state)
+{
+	context->OMSetRenderTargets(1, state.color.GetAddressOf(), state.depth.Get());
+	context->RSSetViewports(state.viewportCount, state.viewports.data());
 }

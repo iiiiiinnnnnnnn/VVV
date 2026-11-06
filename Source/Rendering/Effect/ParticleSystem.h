@@ -1,4 +1,10 @@
 ﻿#pragma once
+#include <memory>
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/GeometryShader.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 
 #include "Application/Time/Timer.h"
 
@@ -79,13 +85,12 @@ private:
 	int numParticles = 0;	//	パーティクル数
 	int komax, komay;		//	Textureの縦横分割数
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> geometryShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+	std::unique_ptr<Gpu::VertexShader> vertexShader;
+	std::unique_ptr<Gpu::GeometryShader> geometryShader;
+	std::unique_ptr<Gpu::PixelShader> pixelShader;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 };

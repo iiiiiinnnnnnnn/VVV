@@ -1,4 +1,8 @@
 #include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/IndexBuffer.h"
 #include "Rendering/Renderer/WaterRenderer.h"
 
 #include <algorithm>
@@ -11,7 +15,6 @@
 #include "Gameplay/Lighting/LightManager.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderContext.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/Texture.h"
 
@@ -26,19 +29,13 @@ void WaterRenderer::OnAwake()
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 	if (!device) return;
 
-	const D3D11_INPUT_ELEMENT_DESC elements[] =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
-		 D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
-		 D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/WaterSurfaceVS.cso",
-		elements, _countof(elements), inputLayout.GetAddressOf(), vertexShader.GetAddressOf());
-	GpuResourceUtils::LoadPixelShader(
-		device, "Resources/Shader/WaterSurfacePS.cso", pixelShader.GetAddressOf());
-	GpuResourceUtils::CreateConstantBuffer(
-		device, sizeof(ConstantBuffer), constantBuffer.GetAddressOf());
+	Gpu::InputLayoutDesc elements;
+	elements.AddPosition()
+		.AddTexcoord();
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/WaterSurfaceVS.cso",
+		elements);
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/WaterSurfacePS.cso");
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(ConstantBuffer));
 	normalTexture = ResourceManager::Instance().LoadTexture(
 		"Resources/Texture/Water/water_normal.png");
 	heightTexture = ResourceManager::Instance().LoadTexture(
@@ -78,11 +75,7 @@ void WaterRenderer::OnAwake()
 	}
 	vertexCount = static_cast<UINT>(vertices.size());
 
-	GpuResourceUtils::CreateVertexBuffer(
-		device,
-		vertices.data(),
-		static_cast<UINT>(vertices.size() * sizeof(Vertex)),
-		vertexBuffer.GetAddressOf());
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, vertices.data(), static_cast<UINT>(vertices.size() * sizeof(Vertex)));
 }
 
 void WaterRenderer::ApplyUnderwaterContext(RenderContext& rc) const
@@ -107,7 +100,7 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 	PROFILE_FUNCTION();
 	if (!vertexBuffer || !constantBuffer) return;
 	if (!vertexShader || !pixelShader) return;
-	if (!rc.camera || !rc.deviceContext || !rc.renderState) return;
+	if (!rc.camera || !rc.deviceContext || !rc.graphics) return;
 
 	const Transform* transform = owner->GetTransform();
 	if (!transform) return;
@@ -152,21 +145,16 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 		constants.lightColor = {1.0f, 1.0f, 1.0f, 1.0f};
 		constants.ambientColor = {0.35f, 0.35f, 0.35f, 1.0f};
 	}
-	rc.deviceContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constants, 0, 0);
+	constantBuffer->Update(rc.deviceContext, &constants);
 
 	const float blendFactor[4]{};
-	rc.deviceContext->OMSetBlendState(
-		rc.renderState->GetBlendState(BlendState::Transparency), blendFactor, 0xffffffff);
-	rc.deviceContext->OMSetDepthStencilState(
-		rc.renderState->GetDepthStencilState(DepthState::TestOnly), 0);
-	rc.deviceContext->RSSetState(
-		rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
-	rc.deviceContext->VSSetShader(vertexShader.Get(), nullptr, 0);
-	rc.deviceContext->PSSetShader(pixelShader.Get(), nullptr, 0);
-	rc.deviceContext->IASetInputLayout(inputLayout.Get());
-	ID3D11Buffer* constantBuffers[] = {constantBuffer.Get()};
-	rc.deviceContext->VSSetConstantBuffers(0, 1, constantBuffers);
-	rc.deviceContext->PSSetConstantBuffers(0, 1, constantBuffers);
+	rc.graphics->TransparentBlendState->Bind(rc.deviceContext, blendFactor);
+	rc.graphics->DepthReadState->Bind(rc.deviceContext);
+	rc.graphics->SolidRasterizerState->Bind(rc.deviceContext);
+	vertexShader->Bind(rc.deviceContext);
+	pixelShader->Bind(rc.deviceContext);
+	constantBuffer->BindVS(rc.deviceContext, 0);
+	constantBuffer->BindPS(rc.deviceContext, 0);
 	RenderTarget* sceneBuffer =
 		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Scene);
 	if (sceneBuffer) sceneBuffer->SetDepthReadOnly(rc.deviceContext, true);
@@ -178,34 +166,21 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 		rc.iblData.specularPremappingRadianceEnvironmentMap,
 		sceneBuffer ? sceneBuffer->GetDepthSRV() : nullptr,
 	};
-	rc.deviceContext->VSSetShaderResources(1, 1, &waterTextures[1]);
-	rc.deviceContext->PSSetShaderResources(0, _countof(waterTextures), waterTextures);
-	ID3D11SamplerState* sampler =
-		rc.renderState->GetSamplerState(SamplerState::AnisotropicWrap);
-	rc.deviceContext->VSSetSamplers(0, 1, &sampler);
-	ID3D11SamplerState* pixelSamplers[] =
-	{
-		sampler,
-		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
-	};
-	rc.deviceContext->PSSetSamplers(0, _countof(pixelSamplers), pixelSamplers);
+	Gpu::VertexShader::SetShaderResources(rc.deviceContext, 1, waterTextures[1]);
+	Gpu::PixelShader::SetShaderResources(rc.deviceContext, 0, waterTextures);
+	rc.graphics->AnisotropicWrapSamplerState->BindVS(rc.deviceContext, 0);
+	Gpu::SamplerState::BindPS(rc.deviceContext, 0, {rc.graphics->AnisotropicWrapSamplerState.get(), rc.graphics->LinearClampSamplerState.get()});
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-	ID3D11Buffer* vertexBuffers[] = {vertexBuffer.Get()};
-	rc.deviceContext->IASetVertexBuffers(0, 1, vertexBuffers, &stride, &offset);
-	rc.deviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	rc.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	rc.deviceContext->Draw(vertexCount, 0);
-	ID3D11ShaderResourceView* nullWaterTextures[_countof(waterTextures)]{};
-	rc.deviceContext->VSSetShaderResources(1, 1, nullWaterTextures);
-	rc.deviceContext->PSSetShaderResources(
-		0, _countof(nullWaterTextures), nullWaterTextures);
+	vertexBuffer->Bind(rc.deviceContext, stride, 0, offset);
+	Gpu::IndexBuffer::Unbind(rc.deviceContext, DXGI_FORMAT_UNKNOWN);
+	Gpu::VertexBuffer::SetTopology(rc.deviceContext, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	vertexBuffer->Draw(rc.deviceContext, vertexCount);
+	Gpu::VertexShader::UnbindShaderResources(rc.deviceContext, 1);
+	Gpu::PixelShader::UnbindShaderResources(rc.deviceContext, 0, _countof(waterTextures));
 	if (sceneBuffer) sceneBuffer->SetDepthReadOnly(rc.deviceContext, false);
 
-	rc.deviceContext->OMSetBlendState(
-		rc.renderState->GetBlendState(BlendState::Opaque), blendFactor, 0xffffffff);
-	rc.deviceContext->OMSetDepthStencilState(
-		rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	rc.deviceContext->RSSetState(
-		rc.renderState->GetRasterizerState(RasterizerState::SolidCullBack));
+	rc.graphics->OpaqueBlendState->Bind(rc.deviceContext, blendFactor);
+	rc.graphics->DepthWriteState->Bind(rc.deviceContext);
+	rc.graphics->BackCullRasterizerState->Bind(rc.deviceContext);
 }

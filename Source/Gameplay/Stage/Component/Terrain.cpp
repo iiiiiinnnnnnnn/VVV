@@ -1,3 +1,9 @@
+#include "Rendering/Core/DomainShader.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/HullShader.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 #include "Application/SettingsAndDebug/ProfileScope.h"
 
 #include "IconsFontAwesome5.h"
@@ -5,7 +11,8 @@
 
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Resource/Texture.h"
+#include "Resource/ImageData.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Application/Input/Input.h"
 #include "Application/Time/GameTime.h"
@@ -99,78 +106,38 @@ void Terrain::InitializeGpuResources()
 {
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbShadowMap),
-		shadowMapConstantBuffer.GetAddressOf());
+	shadowMapConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbShadowMap));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbMaterial),
-		materialConstantBuffer.GetAddressOf());
+	materialConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMaterial));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTerrainObject),
-		terrainObjectConstantBuffer.GetAddressOf());
+	terrainObjectConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainObject));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTerrainScene),
-		terrainSceneConstantBuffer.GetAddressOf());
+	terrainSceneConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainScene));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTessellation),
-		tesselationConstantBuffer.GetAddressOf());
+	tesselationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTessellation));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTerrainLayer),
-		terrainLayerConstantBuffer.GetAddressOf());
+	terrainLayerConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainLayer));
 
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTerrainColliderBuild),
-		terrainColliderBuildConstantBuffer.GetAddressOf());
+	terrainColliderBuildConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainColliderBuild));
 
 	CreateGridMesh(device);
 	CreateTerrainTexture(device);
 
-	D3D11_INPUT_ELEMENT_DESC inputElementDescs[]
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
+	Gpu::InputLayoutDesc inputElementDescs;
+	inputElementDescs.AddPosition()
+		.AddNormal()
+		.AddTexcoord();
 
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/TerrainPrimitiveMeshVS.cso",
-		inputElementDescs,
-		_countof(inputElementDescs),
-		terrainInputLayout.GetAddressOf(),
-		terrainVertexShader.GetAddressOf());
+	terrainVertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TerrainPrimitiveMeshVS.cso",
+		inputElementDescs);
 
-	GpuResourceUtils::LoadHullShader(
-		device,
-		"Resources/Shader/TerrainPrimitiveHS.cso",
-		terrainHullShader.GetAddressOf());
+	terrainHullShader = std::make_unique<Gpu::HullShader>(device, "Resources/Shader/TerrainPrimitiveHS.cso");
 
-	GpuResourceUtils::LoadDomainShader(
-		device,
-		"Resources/Shader/TerrainPrimitiveDS.cso",
-		terrainDomainShader.GetAddressOf());
+	terrainDomainShader = std::make_unique<Gpu::DomainShader>(device, "Resources/Shader/TerrainPrimitiveDS.cso");
 
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/TerrainPrimitivePS.cso",
-		terrainPixelShader.GetAddressOf());
+	terrainPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TerrainPrimitivePS.cso");
 
-	GpuResourceUtils::LoadComputeShader(
-		device,
-		"Resources/Shader/TerrainColliderBuildCS.cso",
-		terrainColliderBuildComputeShader.GetAddressOf());
+	terrainColliderBuildComputeShader = std::make_unique<Gpu::ComputeShader>(device, "Resources/Shader/TerrainColliderBuildCS.cso");
 
 	// レイヤー追加
 	// ブレンドで違和感のない順番で追加する
@@ -201,35 +168,20 @@ void Terrain::CreateGridMesh(ID3D11Device* device)
 
 	indexCount = static_cast<UINT>(indices.size());
 
-	D3D11_BUFFER_DESC vertexBufferDesc{};
-	vertexBufferDesc.ByteWidth = static_cast<UINT>(sizeof(TerrainVertex) * vertices.size());
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	const Gpu::BufferDesc vertexBufferDesc(static_cast<UINT>(sizeof(TerrainVertex) * vertices.size()),
+		D3D11_BIND_VERTEX_BUFFER);
 
 	D3D11_SUBRESOURCE_DATA vertexData{};
 	vertexData.pSysMem = vertices.data();
 
-	HRESULT hr = device->CreateBuffer(
-		&vertexBufferDesc,
-		&vertexData,
-		vertexBuffer.ReleaseAndGetAddressOf());
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, vertexBufferDesc, &vertexData);
 
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-
-	D3D11_BUFFER_DESC indexBufferDesc{};
-	indexBufferDesc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * indices.size());
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	const Gpu::BufferDesc indexBufferDesc(static_cast<UINT>(sizeof(uint32_t) * indices.size()), D3D11_BIND_INDEX_BUFFER);
 
 	D3D11_SUBRESOURCE_DATA indexData{};
 	indexData.pSysMem = indices.data();
 
-	hr = device->CreateBuffer(
-		&indexBufferDesc,
-		&indexData,
-		indexBuffer.ReleaseAndGetAddressOf());
-
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	indexBuffer = std::make_unique<Gpu::IndexBuffer>(device, indexBufferDesc, &indexData);
 
 	terrainMeshDirty = false;
 }
@@ -391,13 +343,7 @@ void Terrain::UploadTerrainTexture(ID3D11DeviceContext* dc)
 		return;
 	}
 
-	dc->UpdateSubresource(
-		terrainTexture.Get(),
-		0,
-		nullptr,
-		terrainPixels.data(),
-		sizeof(Vector4) * TerrainTextureWidth,
-		0);
+	Texture::Update(dc, terrainTexture.Get(), terrainPixels.data(), static_cast<UINT>(sizeof(Vector4) * TerrainTextureWidth));
 
 	terrainTextureDirty = false;
 }
@@ -431,13 +377,7 @@ void Terrain::UpdateTerrainObjectConstantBuffer(ID3D11DeviceContext* dc)
 	cbObject.terrainSize = terrainSize;
 	cbObject.heightMapTexelSize = 1.0f / static_cast<float>(TerrainTextureWidth);
 
-	dc->UpdateSubresource(
-		terrainObjectConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbObject,
-		0,
-		0);
+	terrainObjectConstantBuffer->Update(dc, &cbObject);
 }
 
 void Terrain::UpdateTerrainSceneConstantBuffer(
@@ -455,13 +395,7 @@ void Terrain::UpdateTerrainSceneConstantBuffer(
 		rc.renderSettings.distanceFogEnd,
 		rc.renderSettings.distanceFogStrength,
 		rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
-	dc->UpdateSubresource(
-		terrainSceneConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbScene,
-		0,
-		0);
+	terrainSceneConstantBuffer->Update(dc, &cbScene);
 }
 
 void Terrain::UpdateShadowConstantBuffer(
@@ -491,13 +425,7 @@ void Terrain::UpdateShadowConstantBuffer(
 	cbShadow.shadowBias = shadowBias;
 	cbShadow.pcfKernelSize = pcfKernelSize;
 
-	dc->UpdateSubresource(
-		shadowMapConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbShadow,
-		0,
-		0);
+	shadowMapConstantBuffer->Update(dc, &cbShadow);
 }
 
 void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
@@ -521,13 +449,7 @@ void Terrain::UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc)
 	cbMaterial.isFlatShading = 0;
 	cbMaterial.useBaseColorTexture = 0;
 
-	dc->UpdateSubresource(
-		materialConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbMaterial,
-		0,
-		0);
+	materialConstantBuffer->Update(dc, &cbMaterial);
 }
 
 void Terrain::PrepareRenderResources()
@@ -575,13 +497,7 @@ void Terrain::Render(const RenderContext& rc)
 		rc.shadowMapData.pcfKernelSize);
 	UpdateMaterialConstantBuffer(dc);
 
-	dc->UpdateSubresource(
-		tesselationConstantBuffer.Get(),
-		0,
-		nullptr,
-		&tesselation_constant,
-		0,
-		0);
+	tesselationConstantBuffer->Update(dc, &tesselation_constant);
 
 	CbTerrainLayer cbTerrainLayer{};
 	cbTerrainLayer.layerCount = static_cast<int>(terrainLayers.size());
@@ -605,69 +521,41 @@ void Terrain::Render(const RenderContext& rc)
 				(y + 0.5f) / TerrainTextureHeight, static_cast<float>(brush_size) / TerrainTextureWidth, 1.0f);
 		}
 	}
-	dc->UpdateSubresource(
-		terrainLayerConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbTerrainLayer,
-		0,
-		0);
+	terrainLayerConstantBuffer->Update(dc, &cbTerrainLayer);
 
-	dc->OMSetBlendState(
-		rc.renderState->GetBlendState(BlendState::Opaque),
-		nullptr,
-		0xFFFFFFFF);
+	rc.graphics->OpaqueBlendState->Bind(dc);
 
-	dc->OMSetDepthStencilState(
-		rc.renderState->GetDepthStencilState(DepthState::TestAndWrite),
-		0);
+	rc.graphics->DepthWriteState->Bind(dc);
 
-	dc->RSSetState(
-		rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	(rc.renderSettings.shadingMode == ShadingMode::Wire
+		? *rc.graphics->WireframeRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
 
 	UINT stride = sizeof(TerrainVertex);
 	UINT offset = 0;
-	ID3D11Buffer* vertexBuffers[] = {vertexBuffer.Get()};
 
-	dc->IASetInputLayout(terrainInputLayout.Get());
-	dc->IASetVertexBuffers(0, 1, vertexBuffers, &stride, &offset);
-	dc->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	vertexBuffer->Bind(dc, stride, 0, offset);
+	indexBuffer->Bind(dc, DXGI_FORMAT_R32_UINT, 0);
+	Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	dc->VSSetShader(terrainVertexShader.Get(), nullptr, 0);
-	dc->HSSetShader(nullptr, nullptr, 0);
-	dc->DSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(terrainPixelShader.Get(), nullptr, 0);
+	terrainVertexShader->Bind(dc);
+	Gpu::HullShader::Unbind(dc);
+	Gpu::DomainShader::Unbind(dc);
+	terrainPixelShader->Bind(dc);
 
-	ID3D11Buffer* objectCb = terrainObjectConstantBuffer.Get();
-	ID3D11Buffer* shadowCb = shadowMapConstantBuffer.Get();
-	ID3D11Buffer* sceneCb = terrainSceneConstantBuffer.Get();
-	ID3D11Buffer* layerCb = terrainLayerConstantBuffer.Get();
-
-	ID3D11Buffer* psPbrCbs[] =
-	{
-		shadowMapConstantBuffer.Get(),
-		materialConstantBuffer.Get(),
-		tesselationConstantBuffer.Get(),
-	};
-
-	dc->VSSetConstantBuffers(0, 1, &shadowCb);
-	dc->VSSetConstantBuffers(3, 1, &objectCb);
-	dc->VSSetConstantBuffers(7, 1, &sceneCb);
-	dc->PSSetConstantBuffers(0, _countof(psPbrCbs), psPbrCbs);
-	dc->PSSetConstantBuffers(4, 1, &layerCb);
-	dc->PSSetConstantBuffers(7, 1, &sceneCb);
+	shadowMapConstantBuffer->BindVS(dc, 0);
+	terrainObjectConstantBuffer->BindVS(dc, 3);
+	terrainSceneConstantBuffer->BindVS(dc, 7);
+	Gpu::ConstantBuffer::BindPS(dc, 0, {shadowMapConstantBuffer.get(), materialConstantBuffer.get(), tesselationConstantBuffer.get()});
+	terrainLayerConstantBuffer->BindPS(dc, 4);
+	terrainSceneConstantBuffer->BindPS(dc, 7);
 
 	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
-	dc->PSSetShaderResources(0, 1, &terrainSrv);
+	Gpu::PixelShader::SetShaderResources(dc, 0, terrainSrv);
 	const TerrainBrush* previewBrush = GetCurrentBrush();
 	ID3D11ShaderResourceView* brushSrv = previewBrush ? previewBrush->shaderResourceView.Get() : nullptr;
-	dc->PSSetShaderResources(1, 1, &brushSrv);
+	Gpu::PixelShader::SetShaderResources(dc, 1, brushSrv);
 
-	dc->PSSetShaderResources(
-		8,
-		ShadowMapData::CascadeCount,
-		rc.shadowMapData.shadowMaps.data());
+	Gpu::PixelShader::SetShaderResources(dc, 8, rc.shadowMapData.shadowMaps);
 
 	ID3D11ShaderResourceView* iblSrvs[] =
 	{
@@ -675,7 +563,7 @@ void Terrain::Render(const RenderContext& rc)
 		rc.iblData.specularPremappingRadianceEnvironmentMap,
 		rc.iblData.diffuseIrradianceEnvironmentMap,
 	};
-	dc->PSSetShaderResources(17, _countof(iblSrvs), iblSrvs);
+	Gpu::PixelShader::SetShaderResources(dc, 17, iblSrvs);
 
 	ID3D11ShaderResourceView* terrainBaseColorSrvs[MaxTerrainLayers] = {};
 	ID3D11ShaderResourceView* terrainNormalSrvs[MaxTerrainLayers] = {};
@@ -685,48 +573,45 @@ void Terrain::Render(const RenderContext& rc)
 		terrainNormalSrvs[i] = terrainLayers[i].normalView.Get();
 	}
 
-	dc->PSSetShaderResources(20, MaxTerrainLayers, terrainBaseColorSrvs);
-	dc->PSSetShaderResources(36, MaxTerrainLayers, terrainNormalSrvs);
+	Gpu::PixelShader::SetShaderResources(dc, 20, terrainBaseColorSrvs);
+	Gpu::PixelShader::SetShaderResources(dc, 36, terrainNormalSrvs);
 
-	ID3D11SamplerState* samplerStates[] =
+	Gpu::SamplerState::BindPS(dc, 0, {rc.graphics->PointClampSamplerState.get(), rc.graphics->LinearClampSamplerState.get(), rc.graphics->AnisotropicWrapSamplerState.get()});
+
+	indexBuffer->Draw(dc, indexCount);
+	if (rc.renderSettings.shadingMode == ShadingMode::SolidAndWire)
 	{
-		rc.renderState->GetSamplerState(SamplerState::PointClamp),
-		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
-		rc.renderState->GetSamplerState(SamplerState::AnisotropicWrap),
-	};
+		RenderContext wireContext = rc;
+		wireContext.renderSettings.shadingMode = ShadingMode::Wire;
+		UpdateTerrainSceneConstantBuffer(dc, wireContext);
+		rc.graphics->DepthReadState->Bind(dc);
+		rc.graphics->WireframeRasterizerState->Bind(dc);
+		indexBuffer->Draw(dc, indexCount);
+		UpdateTerrainSceneConstantBuffer(dc, rc);
+		rc.graphics->DepthWriteState->Bind(dc);
+	}
+	rc.graphics->SolidRasterizerState->Bind(dc);
 
-	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
+	Gpu::ConstantBuffer::UnbindVS(dc, 0);
+	Gpu::ConstantBuffer::UnbindVS(dc, 3);
+	Gpu::ConstantBuffer::UnbindVS(dc, 7);
+	Gpu::ConstantBuffer::UnbindPS(dc, 0, 3);
+	Gpu::ConstantBuffer::UnbindPS(dc, 4);
+	Gpu::ConstantBuffer::UnbindPS(dc, 7);
 
-	dc->DrawIndexed(indexCount, 0, 0);
 
-	ID3D11Buffer* nullCb = nullptr;
-	ID3D11Buffer* nullCbs3[] = {nullptr, nullptr, nullptr};
+	Gpu::PixelShader::UnbindShaderResources(dc, 0);
+	Gpu::PixelShader::UnbindShaderResources(dc, 1);
+	Gpu::PixelShader::UnbindShaderResources(dc, 8, ShadowMapData::CascadeCount);
+	Gpu::PixelShader::UnbindShaderResources(dc, 17, 3);
+	Gpu::PixelShader::UnbindShaderResources(dc, 20, MaxTerrainLayers);
+	Gpu::PixelShader::UnbindShaderResources(dc, 36, MaxTerrainLayers);
 
-	dc->VSSetConstantBuffers(0, 1, &nullCb);
-	dc->VSSetConstantBuffers(3, 1, &nullCb);
-	dc->VSSetConstantBuffers(7, 1, &nullCb);
-	dc->PSSetConstantBuffers(0, _countof(nullCbs3), nullCbs3);
-	dc->PSSetConstantBuffers(4, 1, &nullCb);
-	dc->PSSetConstantBuffers(7, 1, &nullCb);
+	Gpu::SamplerState::UnbindPS(dc, 0, 3);
 
-	ID3D11ShaderResourceView* nullSrv = nullptr;
-	ID3D11ShaderResourceView* nullSrvs3[] = {nullptr, nullptr, nullptr};
-	ID3D11ShaderResourceView* nullTerrainSrvs[MaxTerrainLayers] = {};
-
-	dc->PSSetShaderResources(0, 1, &nullSrv);
-	dc->PSSetShaderResources(1, 1, &nullSrv);
-	ID3D11ShaderResourceView* nullShadowSrvs[ShadowMapData::CascadeCount] = {};
-	dc->PSSetShaderResources(8, ShadowMapData::CascadeCount, nullShadowSrvs);
-	dc->PSSetShaderResources(17, _countof(nullSrvs3), nullSrvs3);
-	dc->PSSetShaderResources(20, MaxTerrainLayers, nullTerrainSrvs);
-	dc->PSSetShaderResources(36, MaxTerrainLayers, nullTerrainSrvs);
-
-	ID3D11SamplerState* nullSamplers3[] = {nullptr, nullptr, nullptr};
-	dc->PSSetSamplers(0, _countof(nullSamplers3), nullSamplers3);
-
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
 
 	const bool paintingGrass = use_brush && brushMode == BrushMode::GrassPaint;
 	if (grassRenderer && grassDirty && !paintingGrass)
@@ -782,54 +667,34 @@ void Terrain::RenderShadowMap(
 	CbTerrainScene cbScene{};
 	cbScene.viewProjection = lightViewProjection;
 
-	dc->UpdateSubresource(
-		terrainSceneConstantBuffer.Get(),
-		0,
-		nullptr,
-		&cbScene,
-		0,
-		0);
+	terrainSceneConstantBuffer->Update(dc, &cbScene);
 
-	dc->UpdateSubresource(
-		tesselationConstantBuffer.Get(),
-		0,
-		nullptr,
-		&tesselation_constant,
-		0,
-		0);
+	tesselationConstantBuffer->Update(dc, &tesselation_constant);
 
 	UINT stride = sizeof(TerrainVertex);
 	UINT offset = 0;
-	ID3D11Buffer* vertexBuffers[] = {vertexBuffer.Get()};
 
-	dc->IASetInputLayout(terrainInputLayout.Get());
-	dc->IASetVertexBuffers(0, 1, vertexBuffers, &stride, &offset);
-	dc->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	vertexBuffer->Bind(dc, stride, 0, offset);
+	indexBuffer->Bind(dc, DXGI_FORMAT_R32_UINT, 0);
+	Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	dc->VSSetShader(terrainVertexShader.Get(), nullptr, 0);
-	dc->HSSetShader(nullptr, nullptr, 0);
-	dc->DSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
+	terrainVertexShader->Bind(dc);
+	Gpu::HullShader::Unbind(dc);
+	Gpu::DomainShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
 
-	ID3D11Buffer* objectCb = terrainObjectConstantBuffer.Get();
-	ID3D11Buffer* shadowCb = shadowMapConstantBuffer.Get();
-	ID3D11Buffer* sceneCb = terrainSceneConstantBuffer.Get();
+	shadowMapConstantBuffer->BindVS(dc, 0);
+	terrainObjectConstantBuffer->BindVS(dc, 3);
+	terrainSceneConstantBuffer->BindVS(dc, 7);
 
-	dc->VSSetConstantBuffers(0, 1, &shadowCb);
-	dc->VSSetConstantBuffers(3, 1, &objectCb);
-	dc->VSSetConstantBuffers(7, 1, &sceneCb);
+	indexBuffer->Draw(dc, indexCount);
 
-	dc->DrawIndexed(indexCount, 0, 0);
+	Gpu::ConstantBuffer::UnbindVS(dc, 0);
+	Gpu::ConstantBuffer::UnbindVS(dc, 3);
+	Gpu::ConstantBuffer::UnbindVS(dc, 7);
 
-	ID3D11Buffer* nullCb = nullptr;
-
-	dc->VSSetConstantBuffers(0, 1, &nullCb);
-	dc->VSSetConstantBuffers(3, 1, &nullCb);
-	dc->VSSetConstantBuffers(7, 1, &nullCb);
-
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
 }
 
 void Terrain::PaintByMouse(const RenderContext& rc)
@@ -1128,10 +993,10 @@ bool Terrain::AddBrushTexture(const std::string& filename)
 		}
 	}
 
-	DirectX::TexMetadata sourceMetadata{};
-	DirectX::ScratchImage sourceImage;
-
-	HRESULT hr = GpuResourceUtils::LoadImageFile(filepath, sourceMetadata, sourceImage);
+	ImageData decodedImage;
+	HRESULT hr = decodedImage.LoadFile(filepath);
+	const auto& sourceMetadata = decodedImage.GetMetadata();
+	const auto& sourceImage = decodedImage.GetImage();
 	if (FAILED(hr))
 	{
 		terrainIoMessage = "Brush image load failed: " + normalizedPath;
@@ -1378,27 +1243,21 @@ bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::strin
 	layer.baseColorPath = normalizedBasePath;
 	layer.normalPath = normalizedNormalPath;
 
-	HRESULT hr = MipmapTexture::LoadTexture(
-		Game::Graphics::Instance().GetDevice(),
-		layer.baseColorPath.c_str(),
-		layer.baseColorView.GetAddressOf());
-
-	if (FAILED(hr))
+	MipmapTexture baseTexture;
+	if (!baseTexture.Load(layer.baseColorPath.c_str()))
 	{
 		terrainIoMessage = "Terrain layer base color load failed: " + layer.baseColorPath;
 		return false;
 	}
+	layer.baseColorView = baseTexture.GetShaderResourceView();
 
-	hr = MipmapTexture::LoadTexture(
-		Game::Graphics::Instance().GetDevice(),
-		layer.normalPath.c_str(),
-		layer.normalView.GetAddressOf());
-
-	if (FAILED(hr))
+	MipmapTexture normalTexture;
+	if (!normalTexture.Load(layer.normalPath.c_str()))
 	{
 		terrainIoMessage = "Terrain layer normal load failed: " + layer.normalPath;
 		return false;
 	}
+	layer.normalView = normalTexture.GetShaderResourceView();
 
 	terrainLayers.push_back(std::move(layer));
 	currentTerrainLayerIndex = static_cast<int>(terrainLayers.size()) - 1;
@@ -1493,10 +1352,10 @@ bool Terrain::LoadTerrainTexture(const std::string& filename)
 		return false;
 	}
 
-	DirectX::TexMetadata sourceMetadata{};
-	DirectX::ScratchImage sourceImage;
-
-	HRESULT hr = GpuResourceUtils::LoadImageFile(filepath, sourceMetadata, sourceImage);
+	ImageData decodedImage;
+	HRESULT hr = decodedImage.LoadFile(filepath);
+	const auto& sourceMetadata = decodedImage.GetMetadata();
+	const auto& sourceImage = decodedImage.GetImage();
 	if (FAILED(hr))
 	{
 		terrainIoMessage = "Terrain load failed: image load error.";

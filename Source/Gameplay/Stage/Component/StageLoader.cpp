@@ -548,7 +548,7 @@ Actor* StageLoader::CreatePropActor(PropData& propData)
 	if (propData.editorPreview)
 	{
 		auto renderer = actor->AddComponent<VMDLModelComponent>(
-			propData.model, ModelShaderId::VMat);
+			propData.model, ModelShaderId::PBR);
 		renderer->SetAttachmentLayerId(Layers::Get("Prop"));
 	}
 

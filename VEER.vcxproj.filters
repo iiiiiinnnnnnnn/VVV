@@ -182,6 +182,33 @@
     <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\InputLayoutDesc.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\BufferDesc.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\Buffer.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer\FullScreenRenderer.h">
+      <Filter>Rendering\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\VertexBuffer.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\IndexBuffer.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\ConstantBuffer.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\ModelShaderId.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ImageData.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -208,6 +235,9 @@
     <ClInclude Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\EditorScene.h">
+      <Filter>Gameplay\Scene</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
@@ -226,8 +256,26 @@
     <ClCompile Include="Source\Resource\GLTFImporter.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resource\GpuResourceUtils.cpp">
-      <Filter>Resource</Filter>
+    <ClCompile Include="Source\Rendering\Core\VertexShader.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\ShaderBytecode.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\ComputeShader.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\DomainShader.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\HullShader.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\GeometryShader.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\PixelShader.cpp">
+      <Filter>Rendering\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\Bootstrap\Framework.cpp">
       <Filter>Application\Bootstrap</Filter>
@@ -246,6 +294,9 @@
     </ClCompile>
     <ClCompile Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\EditorScene.cpp">
+      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
       <Filter>Gameplay\Scene</Filter>
@@ -271,7 +322,7 @@
     <ClCompile Include="Source\Rendering\Effect\Effect.cpp">
       <Filter>Rendering\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp">
+    <ClCompile Include="Source\Rendering\Shader\PBRShader.cpp">
       <Filter>Rendering\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\DissolveSpriteShader.cpp">
@@ -469,9 +520,6 @@
     <ClCompile Include="Source\Rendering\Core\Graphics.cpp">
       <Filter>Rendering\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\RenderState.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Rendering\Core\RenderTarget.cpp">
       <Filter>Rendering\Core</Filter>
     </ClCompile>
@@ -633,8 +681,26 @@
     <ClInclude Include="Source\Resource\GLTFImporter.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Resource\GpuResourceUtils.h">
-      <Filter>Resource</Filter>
+    <ClInclude Include="Source\Rendering\Core\VertexShader.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\ShaderBytecode.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\ComputeShader.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\DomainShader.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\HullShader.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\GeometryShader.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\PixelShader.h">
+      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\Bootstrap\Framework.h">
       <Filter>Application\Bootstrap</Filter>
@@ -666,7 +732,7 @@
     <ClInclude Include="Source\Rendering\Effect\Effect.h">
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Shader\VMatShader.h">
+    <ClInclude Include="Source\Rendering\Shader\PBRShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h">
@@ -882,13 +948,22 @@
     <ClInclude Include="Source\Rendering\Core\RenderContext.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h">
+    <ClInclude Include="Source\Rendering\Core\PBRRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\RenderState.h">
+    <ClInclude Include="Source\Rendering\Core\DepthStencilState.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\BlendState.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\RasterizerState.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\SamplerState.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Core\RenderTarget.h">
@@ -1071,7 +1146,6 @@
       <Filter>Core\Object</Filter>
     </None>
     <None Include=".gitignore" />
-    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
@@ -1255,6 +1329,30 @@
     </ClCompile>
     <ClCompile Include="External\TimelineProfiler\Profiler.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\InputLayoutDesc.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\BufferDesc.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\Buffer.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Renderer\FullScreenRenderer.cpp">
+      <Filter>Rendering\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\VertexBuffer.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\IndexBuffer.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Core\ConstantBuffer.cpp">
+      <Filter>Rendering\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ImageData.cpp">
+      <Filter>Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

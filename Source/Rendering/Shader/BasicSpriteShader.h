@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <memory>
+#include "Rendering/Core/ConstantBuffer.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -25,5 +27,5 @@ private:
 		Color color;
 	};
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
 };

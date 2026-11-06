@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include "Rendering/Core/ConstantBuffer.h"
 
 #include "Rendering/Shader/Shader.h"
 
@@ -20,5 +22,5 @@ private:
 		float softness;
 		float padding;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
 };

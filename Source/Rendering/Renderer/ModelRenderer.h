@@ -1,5 +1,5 @@
-﻿// ModelRenderer.h
 #pragma once
+#include "Rendering/Core/ConstantBuffer.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -15,13 +15,6 @@
 
 class MeshCache;
 
-enum class ModelShaderId
-{
-	VMat,
-
-	EnumCount
-};
-
 class ModelRenderer
 {
 public:
@@ -31,12 +24,18 @@ public:
 	void Draw(
 		ModelShaderId shaderId,
 		std::shared_ptr<VMDLModel> model,
-		const VMatRenderParams* params = nullptr);
+		const PBRRenderParams* params = nullptr);
 	void DrawMeshCache(
 		ModelShaderId shaderId,
 		std::shared_ptr<MeshCache> meshCache,
 		std::shared_ptr<VMDLModel> skeleton,
-		const VMatRenderParams* params = nullptr);
+		const PBRRenderParams* params = nullptr);
+
+	// シェーダーは各マテリアルのIDから選択する。
+	void Draw(std::shared_ptr<VMDLModel> model, const PBRRenderParams* params = nullptr);
+	void DrawMeshCache(std::shared_ptr<MeshCache> meshCache, std::shared_ptr<VMDLModel> skeleton,
+		const PBRRenderParams* params = nullptr);
+	ModelShader* GetShader(ModelShaderId id) const;
 
 	void Render(const RenderContext& rc);
 
@@ -62,7 +61,7 @@ private:
 		ModelShaderId				shaderId;
 		std::shared_ptr<VMDLModel>	model;
 		std::shared_ptr<MeshCache>	meshCache;
-		const VMatRenderParams*		params;
+		const PBRRenderParams*		params;
 	};
 
 	struct TransparencyDrawInfo
@@ -72,15 +71,15 @@ private:
 		const VMDLModel::Mesh*		mesh;
 		Matrix					renderScaleTransform;
 		float					distance;
-		const VMatRenderParams*		params;
+		const PBRRenderParams*		params;
 	};
 
 	std::unique_ptr<ModelShader>			shaders[static_cast<int>(ModelShaderId::EnumCount)];
 	std::vector<DrawInfo>					drawInfos;
 	std::vector<TransparencyDrawInfo>		transparencyDrawInfos;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	sceneConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	skeletonConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> sceneConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> skeletonConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> transmissionBackground;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> transmissionBackgroundView;
 };

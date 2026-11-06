@@ -1,5 +1,13 @@
 // Terrain.h
 #pragma once
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/IndexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/ComputeShader.h"
+#include "Rendering/Core/DomainShader.h"
+#include "Rendering/Core/HullShader.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 
 #include "Application/Time/Timer.h"
 
@@ -343,28 +351,27 @@ private:
 
 	// 地形メッシュ
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
+	std::unique_ptr<Gpu::IndexBuffer> indexBuffer;
 	bool terrainMeshDirty = true;
 
 	// 定数バッファ
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> materialConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainObjectConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainSceneConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> tesselationConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainLayerConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> terrainColliderBuildConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> shadowMapConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> materialConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> terrainObjectConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> terrainSceneConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> tesselationConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> terrainLayerConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> terrainColliderBuildConstantBuffer;
 
 	// シェーダー
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> terrainVertexShader;
-	Microsoft::WRL::ComPtr<ID3D11HullShader> terrainHullShader;
-	Microsoft::WRL::ComPtr<ID3D11DomainShader> terrainDomainShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> terrainPixelShader;
-	Microsoft::WRL::ComPtr<ID3D11ComputeShader> terrainColliderBuildComputeShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> terrainInputLayout;
+	std::unique_ptr<Gpu::VertexShader> terrainVertexShader;
+	std::unique_ptr<Gpu::HullShader> terrainHullShader;
+	std::unique_ptr<Gpu::DomainShader> terrainDomainShader;
+	std::unique_ptr<Gpu::PixelShader> terrainPixelShader;
+	std::unique_ptr<Gpu::ComputeShader> terrainColliderBuildComputeShader;
 
 	// 地形テクスチャ
 

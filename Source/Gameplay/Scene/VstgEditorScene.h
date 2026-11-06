@@ -1,5 +1,4 @@
 #pragma once
-#include "Application/SettingsAndDebug/SerialViewer.h"
 
 #include <filesystem>
 #include <memory>
@@ -8,9 +7,9 @@
 #include <vector>
 
 #include "Gameplay/Lighting/LightManager.h"
-#include "Gameplay/Scene/Scene.h"
+#include "Gameplay/Scene/EditorScene.h"
 #include "Resource/VSTG.h"
-#include "Rendering/Core/VMatRenderParams.h"
+#include "Rendering/Core/PBRRenderParams.h"
 
 class StageLoader;
 class Terrain;
@@ -21,31 +20,26 @@ class Object;
 class RenderTarget;
 class VMDLModel;
 
-class VstgEditorScene : public Scene
+class VstgEditorScene : public EditorScene
 {
   public:
 	VstgEditorScene();
 	~VstgEditorScene() override;
 
   protected:
+	SerialDocument* PrepareSerialDocument() override;
+	void OnSerialDocumentChanged() override;
 	void OnInit() override;
 	void OnUninit() override;
 	void OnUpdate() override;
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
-	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 	bool UsesGameDebugGUI() const override { return false; }
 	bool OnRequestExit() override;
 
   private:
 	void HandleShortcuts();
-	void DrawSerialViewer();
-	void DrawRenderDiagnostics();
-	bool showRenderDiagnostics = false;
-	SerialViewer serialViewer;
-	SerialDocument* serialViewerDocument = nullptr;
-	bool showSerialViewer = false;
 
 	// ステージ操作
 	void CreateStage();
@@ -60,7 +54,6 @@ class VstgEditorScene : public Scene
 	void LoadEditorSettings();
 	void SaveEditorSettings() const;
 	void UpdateTitle();
-	void ErrorMessage(const std::string& message);
 
 	enum class EditorLightType { None, Point, Spot, Area, Directional };
 	Light* GetSelectedLight();
@@ -108,13 +101,13 @@ class VstgEditorScene : public Scene
 	std::unique_ptr<Object> propPreviewCameraOwner;
 	Camera* propPreviewCamera = nullptr;
 	LightManager propPreviewLights;
-	VMatRenderParams propPreviewRenderParams;
+	PBRRenderParams propPreviewRenderParams;
 
 	// 配置プレビュー
 	std::string dragPreviewModelPath;
 	std::shared_ptr<VMDLModel> dragPreviewModel;
 	Transform dragPreviewTransform;
-	VMatRenderParams dragPreviewRenderParams;
+	PBRRenderParams dragPreviewRenderParams;
 	bool showDragPreview = false;
 	bool showPlayerStartDragPreview = false;
 	bool showLightDragPreview = false;

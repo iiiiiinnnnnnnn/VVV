@@ -1,4 +1,9 @@
 ﻿#pragma once
+#include <memory>
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -30,7 +35,7 @@ private:
 		Color color;
 		Color endColor;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constant;
+	std::unique_ptr<Gpu::ConstantBuffer> constant;
 
 	struct Vertex
 	{
@@ -39,8 +44,7 @@ private:
 	};
 	std::vector<Vertex>		vertices;
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>	inputLayout;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>		vertexBuffer;
+	std::unique_ptr<Gpu::VertexShader> vertexShader;
+	std::unique_ptr<Gpu::PixelShader> pixelShader;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
 };

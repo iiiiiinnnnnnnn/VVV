@@ -210,17 +210,14 @@ void Stage01::OnUpdate()
 void Stage01::RenderEffects(const RenderContext& rc)
 {
 	// 降雪
-	rc.deviceContext->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
-	rc.deviceContext->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestOnly), 0);
-	rc.deviceContext->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	rc.graphics->AdditiveBlendState->Bind(rc.deviceContext);
+	rc.graphics->DepthReadState->Bind(rc.deviceContext);
+	rc.graphics->SolidRasterizerState->Bind(rc.deviceContext);
 	particleSystem->Render(rc);
 
 	// 霧
 	if (!fogParticleSystem) return;
-	rc.deviceContext->OMSetBlendState(
-		rc.renderState->GetBlendState(BlendState::Transparency),
-		nullptr,
-		0xFFFFFFFF);
+	rc.graphics->TransparentBlendState->Bind(rc.deviceContext);
 	fogParticleSystem->Render(rc);
 }
 

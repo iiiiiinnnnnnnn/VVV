@@ -1,48 +1,30 @@
 ﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/IndexBuffer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Rendering/Renderer/TrailRenderer.h"
 
 // コンストラクタ
 TrailRenderer::TrailRenderer(ID3D11Device* device)
 {
-	D3D11_INPUT_ELEMENT_DESC inputElementDesc[]
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
+	Gpu::InputLayoutDesc inputElementDesc;
+	inputElementDesc.AddPosition()
+		.AddTexcoord();
 
 	// 頂点シェーダー
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/TrailRendererVS.cso",
-		inputElementDesc,
-		_countof(inputElementDesc),
-		inputLayout.GetAddressOf(),
-		vertexShader.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TrailRendererVS.cso",
+		inputElementDesc);
 
 	// ピクセルシェーダー
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/TrailRendererPS.cso",
-		pixelShader.GetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TrailRendererPS.cso");
 
 	// 定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbTrail),
-		constant.GetAddressOf());
+	constant = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTrail));
 
 	// 頂点バッファ
-	D3D11_BUFFER_DESC desc;
-	desc.ByteWidth = sizeof(Vertex) * VertexCapacity;
-	desc.Usage = D3D11_USAGE_DYNAMIC;
-	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	desc.MiscFlags = 0;
-	desc.StructureByteStride = 0;
-	HRESULT hr = device->CreateBuffer(&desc, nullptr, vertexBuffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	const Gpu::BufferDesc desc(sizeof(Vertex) * VertexCapacity,
+		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, desc, nullptr);
 }
 
 void TrailRenderer::AddPoint(const Vector3& root, const Vector3& tip, float uvY)
@@ -66,17 +48,12 @@ void TrailRenderer::Render(
 {
 	PROFILE_FUNCTION();
 	// シェーダー設定
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	dc->IASetInputLayout(inputLayout.Get());
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
 
 	// 定数バッファ設定
-	ID3D11Buffer* constantBuffers[] =
-	{
-		constant.Get(),
-	};
-	dc->VSSetConstantBuffers(0, _countof(constantBuffers), constantBuffers);
-	dc->PSSetConstantBuffers(0, _countof(constantBuffers), constantBuffers);
+	constant->BindVS(dc, 0);
+	constant->BindPS(dc, 0);
 
 	// 定数バッファ更新
 	CbTrail cbTrail;
@@ -84,14 +61,14 @@ void TrailRenderer::Render(
 	cbTrail.color = color;
 	if (endColor.w < 0.0f) endColor = Color(color.x, color.y, color.z, 0.0f);
 	cbTrail.endColor = endColor;
-	dc->UpdateSubresource(constant.Get(), 0, 0, &cbTrail, 0, 0);
+	constant->Update(dc, &cbTrail);
 
 	// 頂点バッファ設定
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	dc->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-	dc->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	Gpu::IndexBuffer::Unbind(dc, DXGI_FORMAT_R32_UINT);
+	vertexBuffer->Bind(dc, stride, 0, offset);
 
 	// 描画
 	UINT totalVertexCount = static_cast<UINT>(vertices.size());
@@ -100,15 +77,9 @@ void TrailRenderer::Render(
 
 	while (start < totalVertexCount)
 	{
-		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-		HRESULT hr = dc->Map(vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		vertexBuffer->Update(dc, &vertices[start], static_cast<UINT>(sizeof(Vertex) * count));
 
-		memcpy(mappedSubresource.pData, &vertices[start], sizeof(Vertex) * count);
-
-		dc->Unmap(vertexBuffer.Get(), 0);
-
-		dc->Draw(count, 0);
+		vertexBuffer->Draw(dc, count);
 
 		start += count;
 		if ((start + count) > totalVertexCount)

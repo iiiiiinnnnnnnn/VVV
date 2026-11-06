@@ -1,5 +1,8 @@
-// GamePostProcess.h
 #pragma once
+#include "Rendering/Renderer/FullScreenRenderer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 
 #include <memory>
 #include <d3d11.h>
@@ -87,14 +90,14 @@ namespace Game
 			float tint;
 			float padding[3];
 		};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> underwaterPixelShader;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> underwaterConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> underwaterPixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> underwaterConstantBuffer;
 
 		void DrawFullscreen(
 			const RenderContext& rc,
-			ID3D11PixelShader* pixelShader,
+			const Gpu::PixelShader& pixelShader,
 			ID3D11ShaderResourceView* colorMap,
-			ID3D11Buffer* constantBuffer,
+			const Gpu::ConstantBuffer* constantBuffer,
 			ID3D11ShaderResourceView* colorMap2 = nullptr);
 		void UnbindShaderResources(ID3D11DeviceContext* dc);
 		static const char* BasicEffectName(int index);
@@ -104,15 +107,7 @@ namespace Game
 		static const char* ColorRotationName(int index);
 
 		// Fullscreen pass
-		struct FullscreenVertex
-		{
-			Vector3 position;
-			Vector2 texcoord;
-		};
-		static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
-		Microsoft::WRL::ComPtr<ID3D11VertexShader> fullscreenVertexShader;
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> fullscreenInputLayout;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> fullscreenVertexBuffer;
+		std::unique_ptr<FullScreenRenderer> fullscreenRenderer;
 
 		// DirectXTK post process objects
 		std::unique_ptr<DirectX::BasicPostProcess> copyEffect;
@@ -169,8 +164,8 @@ namespace Game
 			Color gradientMidtones;
 			Color gradientHighlights;
 		};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> colorFilterPixelShader;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> colorFilterConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> colorFilterPixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> colorFilterConstantBuffer;
 
 		// Radial Blur
 		bool enableRadialBlur = false;
@@ -187,8 +182,8 @@ namespace Game
 			float maskRadius;
 			float DUMMY[3];
 		};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> radialBlurPixelShader;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> radialBlurConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> radialBlurPixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> radialBlurConstantBuffer;
 
 		// Vignette
 		bool enableVignette = true;
@@ -212,8 +207,8 @@ namespace Game
 			float tintIntensity;
 			float DUMMY2[3];
 		};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> vignettePixelShader;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vignetteConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> vignettePixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> vignetteConstantBuffer;
 
 		// Chromatic Aberration
 		bool enableChromaticAberration = false;
@@ -232,8 +227,8 @@ namespace Game
 
 			Color shift[3];
 		};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> chromaticAberrationPixelShader;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> chromaticAberrationConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> chromaticAberrationPixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> chromaticAberrationConstantBuffer;
 
 		// SSAO
 		bool enableSSAO = true;
@@ -254,13 +249,13 @@ namespace Game
 			float maxDistance;
 			Vector4 distanceFogParams;
 		};
-		Microsoft::WRL::ComPtr<ID3D11Buffer> SSAOConstantBuffer;
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOPixelShader;
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> SSAOCompositePixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> SSAOConstantBuffer;
+		std::unique_ptr<Gpu::PixelShader> SSAOPixelShader;
+		std::unique_ptr<Gpu::PixelShader> SSAOCompositePixelShader;
 
 		// FXAA
 		bool enableFXAA = true;
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> FXAAPixelShader;
+		std::unique_ptr<Gpu::PixelShader> FXAAPixelShader;
 
 		// Final Basic Effect
 		bool enableBasicEffect = false;

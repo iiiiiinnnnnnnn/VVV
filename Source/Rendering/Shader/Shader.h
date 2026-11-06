@@ -1,4 +1,7 @@
-﻿#pragma once
+#pragma once
+#include <memory>
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -7,41 +10,53 @@
 #include "Core/Foundation/Common.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Core/SpriteRenderParams.h"
-#include "Rendering/Core/VMatRenderParams.h"
+#include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/VMDLModel.h"
+
+enum class DrawPass
+{
+	Opaque,
+	Transparent
+};
 
 class Shader
 {
 public:
 	Shader() = default;
 	virtual ~Shader() = default;
-	virtual void Begin(const RenderContext& rc) = 0;
 	virtual void End(const RenderContext& rc) = 0;
+	virtual void DrawGUI() {}
+	// 戻り値は編集の有無。変更通知・保存は呼び出し側で行う。
+	virtual bool DrawGUI(VMDLModel::Material& material) { return false; }
+	virtual bool DrawGUI(VMDLModel::VmdlMaterialKeyframe& key) { return false; }
 
 protected:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>		vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>		pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>		inputLayout;
+	std::unique_ptr<Gpu::VertexShader> vertexShader;
+	std::unique_ptr<Gpu::PixelShader> pixelShader;
 };
 
 class SpriteShader : public Shader
 {
 public:
+	virtual void Begin(const RenderContext& rc) = 0;
 	virtual void Update(
 		const RenderContext& rc,
 		ID3D11ShaderResourceView* srv,
 		Vector2 textureSize,
 		const Color& color,
 		const SpriteRenderParams* params) = 0;
-	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
+	static const Gpu::InputLayoutDesc InputLayout;
 };
 
 class ModelShader : public Shader
 {
 public:
+	virtual ModelShaderId GetId() const = 0;
+	virtual const char* GetName() const = 0;
+	virtual void Begin(const RenderContext& rc, DrawPass pass) = 0;
 	virtual void Update(
 		const RenderContext& rc,
 		const VMDLModel::Mesh& mesh,
-		const VMatRenderParams* params) = 0;
-	static const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs;
+		const PBRRenderParams* params) = 0;
+	static const Gpu::InputLayoutDesc InputLayout;
 };

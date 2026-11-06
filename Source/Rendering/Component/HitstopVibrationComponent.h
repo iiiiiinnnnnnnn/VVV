@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "Core/Object/Component.h"
-#include "Rendering/Core/VMatRenderParams.h"
+#include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/VMDLModel.h"
 
 class HitstopVibrationComponent : public Component

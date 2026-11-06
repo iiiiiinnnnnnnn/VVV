@@ -1,4 +1,3 @@
-﻿// RenderContext.h
 #pragma once
 #include <d3d11.h>
 #include <wrl.h>
@@ -6,12 +5,12 @@
 #include <array>
 
 #include "Gameplay/Camera/Camera.h"
-#include "Rendering/Core/RenderState.h"
 
 class LightManager;
+namespace Game { class Graphics; }
 
 // レンダリング設定
-enum class ShadingMode { Pbr, Unlit, Solid };
+enum class ShadingMode { Shading, Unlit, Solid, Wire, SolidAndWire };
 
 struct RenderSettings
 {
@@ -22,8 +21,7 @@ struct RenderSettings
 	bool showLightDebug = true;
 	bool showGrass = true;
 	bool showFog = true;
-	bool wireframe = false;
-	ShadingMode shadingMode = ShadingMode::Pbr;
+	ShadingMode shadingMode = ShadingMode::Shading;
 	bool pointMaterialTextures = false;
 	bool distanceFogEnabled = true;
 	float distanceFogStart = 18.0f;
@@ -52,12 +50,13 @@ struct IBLData
 	ID3D11ShaderResourceView* ggxLookUpTableMap = nullptr;
 };
 
+// 描画に必要な参照と設定を渡す。GPUリソースの生成・所有・Bindは行わない。
 struct RenderContext
 {
 	ID3D11DeviceContext* deviceContext = nullptr;
-	const RenderState* renderState = nullptr;
+	const Game::Graphics* graphics = nullptr;
 	const Camera* camera = nullptr;
-	const LightManager* lightManager;
+	const LightManager* lightManager = nullptr;
 
 	RenderSettings			renderSettings;
 	ShadowMapData			shadowMapData;

@@ -72,7 +72,7 @@ void AfterimageComponent::OnRender(const RenderContext& rc)
 
 	ModelRenderer* renderer = Game::Graphics::Instance().GetModelRenderer();
 	for (const Afterimage& afterimage : afterimages)
-		renderer->Draw(ModelShaderId::VMat, afterimage.model, &afterimage.renderParams);
+		renderer->Draw(ModelShaderId::PBR, afterimage.model, &afterimage.renderParams);
 }
 
 void AfterimageComponent::OnDrawGUI()
@@ -107,7 +107,7 @@ void AfterimageComponent::CapturePose()
 
 	for (const VMDLModel::Material& material : afterimage.model->GetMaterials())
 	{
-		VMatMaterialParams& params = afterimage.renderParams.materials[material.name];
+		PBRMaterialParams& params = afterimage.renderParams.materials[material.name];
 		params.useBaseColorTexture = false;
 		params.transmission = 0.0f;
 	}

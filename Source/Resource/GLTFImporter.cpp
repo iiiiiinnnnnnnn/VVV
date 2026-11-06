@@ -7,7 +7,7 @@
 #define STBI_MSC_SECURE_CRT
 
 #include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Resource/Texture.h"
 #include "Resource/GLTFImporter.h"
 #include <DirectXTex.h>
 
@@ -695,12 +695,17 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 						const tinygltf::BufferView& gltfBufferView = gltfModel.bufferViews.at(gltfImage.bufferView);
 						const tinygltf::Buffer& gltfBuffer = gltfModel.buffers.at(gltfBufferView.buffer);
 						const byte* data = gltfBuffer.data.data() + gltfBufferView.byteOffset;
-						GpuResourceUtils::LoadTexture(device, data, gltfBufferView.byteLength, srv);
+						Texture texture(device, data, gltfBufferView.byteLength);
+						texture.GetShaderResourceView().CopyTo(srv);
 					}
 					else
 					{
-						HRESULT hr = GpuResourceUtils::LoadTexture(device, gltfImage.image.data(), gltfImage.image.size(), srv);
-						if (FAILED(hr))
+						try
+						{
+							Texture texture(device, gltfImage.image.data(), gltfImage.image.size());
+							texture.GetShaderResourceView().CopyTo(srv);
+						}
+						catch (const std::exception&)
 						{
 							D3D11_TEXTURE2D_DESC desc = { 0 };
 							desc.Width = gltfImage.width;
@@ -719,12 +724,8 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 							data.pSysMem = gltfImage.image.data();
 							data.SysMemPitch = gltfImage.width * (gltfImage.bits / 8);
 
-							Microsoft::WRL::ComPtr<ID3D11Texture2D>	texture;
-							HRESULT hr = device->CreateTexture2D(&desc, &data, texture.GetAddressOf());
-							_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-
-							hr = device->CreateShaderResourceView(texture.Get(), nullptr, srv);
-							_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+							Texture texture(device, desc, data);
+							texture.GetShaderResourceView().CopyTo(srv);
 						}
 					}
 				}

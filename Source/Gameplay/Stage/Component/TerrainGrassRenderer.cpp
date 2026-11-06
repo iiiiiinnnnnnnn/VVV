@@ -1,3 +1,7 @@
+#include "Rendering/Core/GeometryShader.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/IndexBuffer.h"
+#include "Rendering/Core/Graphics.h"
 #include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
 
@@ -10,33 +14,25 @@
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Rendering/Core/RenderContext.h"
-#include "Resource/GpuResourceUtils.h"
 
 TerrainGrassRenderer::TerrainGrassRenderer(ID3D11Device* device) : device(device)
 {
 	if (!device) return;
-	const D3D11_INPUT_ELEMENT_DESC elements[] =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
-		 D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
-		 D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
-		 D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/TerrainGrassVS.cso",
-		elements, _countof(elements), inputLayout.GetAddressOf(), vertexShader.GetAddressOf());
-	GpuResourceUtils::LoadGeometryShader(
-		device, "Resources/Shader/TerrainGrassGS.cso", geometryShader.GetAddressOf());
-	GpuResourceUtils::LoadPixelShader(
-		device, "Resources/Shader/TerrainGrassPS.cso", pixelShader.GetAddressOf());
-	GpuResourceUtils::CreateConstantBuffer(device, sizeof(Constants), constantBuffer.GetAddressOf());
+	Gpu::InputLayoutDesc elements;
+	elements.AddPosition()
+		.AddNormal()
+		.AddTexcoord(DXGI_FORMAT_R32_FLOAT);
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TerrainGrassVS.cso",
+		elements);
+	geometryShader = std::make_unique<Gpu::GeometryShader>(device, "Resources/Shader/TerrainGrassGS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TerrainGrassPS.cso");
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(Constants));
 }
 
 void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& settings)
 {
 	PROFILE_FUNCTION();
-	vertexBuffer.Reset();
+	vertexBuffer.reset();
 	tuftCount = 0;
 	if (!device) return;
 	if (settings.density <= 0.0f) return;
@@ -83,14 +79,16 @@ void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& setti
 	}
 	if (vertices.empty()) return;
 
-	D3D11_BUFFER_DESC desc{};
-	desc.ByteWidth = static_cast<UINT>(vertices.size() * sizeof(Vertex));
-	desc.Usage = D3D11_USAGE_IMMUTABLE;
-	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	const Gpu::BufferDesc desc(static_cast<UINT>(vertices.size() * sizeof(Vertex)),
+		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 	D3D11_SUBRESOURCE_DATA data{};
 	data.pSysMem = vertices.data();
-	if (SUCCEEDED(device->CreateBuffer(&desc, &data, vertexBuffer.GetAddressOf())))
+	try
+	{
+		vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device.Get(), desc, &data);
 		tuftCount = static_cast<int>(vertices.size());
+	}
+	catch (const std::exception&) { return; }
 }
 
 void TerrainGrassRenderer::Render(
@@ -100,7 +98,7 @@ void TerrainGrassRenderer::Render(
 	PROFILE_FUNCTION();
 	if (tuftCount <= 0) return;
 	if (!vertexBuffer || !constantBuffer) return;
-	if (!rc.camera || !rc.deviceContext || !rc.renderState) return;
+	if (!rc.camera || !rc.deviceContext || !rc.graphics) return;
 	Constants constants{};
 	constants.world = world;
 	const Matrix view = rc.camera->GetView();
@@ -128,37 +126,27 @@ void TerrainGrassRenderer::Render(
 	constants.fogEnd = rc.renderSettings.distanceFogEnd;
 	constants.fogStrength = rc.renderSettings.distanceFogStrength;
 	constants.fogEnabled = fogEnabled;
-	rc.deviceContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constants, 0, 0);
+	constantBuffer->Update(rc.deviceContext, &constants);
 
-	rc.deviceContext->OMSetBlendState(
-		rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xffffffff);
-	rc.deviceContext->OMSetDepthStencilState(
-		rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	rc.deviceContext->RSSetState(
-		rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
-	rc.deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	rc.deviceContext->IASetInputLayout(inputLayout.Get());
+	rc.graphics->OpaqueBlendState->Bind(rc.deviceContext);
+	rc.graphics->DepthWriteState->Bind(rc.deviceContext);
+	rc.graphics->SolidRasterizerState->Bind(rc.deviceContext);
+	Gpu::VertexBuffer::SetTopology(rc.deviceContext, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-	ID3D11Buffer* vertex = vertexBuffer.Get();
-	rc.deviceContext->IASetVertexBuffers(0, 1, &vertex, &stride, &offset);
-	rc.deviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	rc.deviceContext->VSSetShader(vertexShader.Get(), nullptr, 0);
-	rc.deviceContext->GSSetShader(geometryShader.Get(), nullptr, 0);
-	rc.deviceContext->PSSetShader(pixelShader.Get(), nullptr, 0);
-	ID3D11Buffer* constant = constantBuffer.Get();
-	rc.deviceContext->VSSetConstantBuffers(0, 1, &constant);
-	rc.deviceContext->GSSetConstantBuffers(0, 1, &constant);
-	rc.deviceContext->PSSetConstantBuffers(0, 1, &constant);
-	rc.deviceContext->GSSetShaderResources(0, 1, &terrainDataView);
-	ID3D11SamplerState* terrainSampler =
-		rc.renderState->GetSamplerState(SamplerState::PointClamp);
-	rc.deviceContext->GSSetSamplers(0, 1, &terrainSampler);
-	rc.deviceContext->Draw(tuftCount, 0);
+	vertexBuffer->Bind(rc.deviceContext, stride, 0, offset);
+	Gpu::IndexBuffer::Unbind(rc.deviceContext, DXGI_FORMAT_UNKNOWN);
+	vertexShader->Bind(rc.deviceContext);
+	geometryShader->Bind(rc.deviceContext);
+	pixelShader->Bind(rc.deviceContext);
+	constantBuffer->BindVS(rc.deviceContext, 0);
+	constantBuffer->BindGS(rc.deviceContext, 0);
+	constantBuffer->BindPS(rc.deviceContext, 0);
+	Gpu::GeometryShader::SetShaderResources(rc.deviceContext, 0, terrainDataView);
+	rc.graphics->PointClampSamplerState->BindGS(rc.deviceContext, 0);
+	vertexBuffer->Draw(rc.deviceContext, tuftCount);
 
-	ID3D11ShaderResourceView* nullView = nullptr;
-	ID3D11SamplerState* nullSampler = nullptr;
-	rc.deviceContext->GSSetShaderResources(0, 1, &nullView);
-	rc.deviceContext->GSSetSamplers(0, 1, &nullSampler);
-	rc.deviceContext->GSSetShader(nullptr, nullptr, 0);
+	Gpu::GeometryShader::UnbindShaderResources(rc.deviceContext, 0);
+	Gpu::SamplerState::UnbindGS(rc.deviceContext, 0);
+	Gpu::GeometryShader::Unbind(rc.deviceContext);
 }

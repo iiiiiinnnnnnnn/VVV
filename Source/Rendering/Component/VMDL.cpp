@@ -38,7 +38,7 @@ void VMDL::BuildModelComponents(bool buildEmbeddedColliders)
 {
 	PROFILE_FUNCTION();
 	renderer = owner->AddComponent<VMDLModelComponent>(
-		model, ModelShaderId::VMat, VMatRenderParams{}, buildEmbeddedColliders);
+		model, ModelShaderId::PBR, PBRRenderParams{}, buildEmbeddedColliders);
 	renderer->SetAttachmentLayerId(GetAttachmentLayer());
 	renderer->Awake();
 

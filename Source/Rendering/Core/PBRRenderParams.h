@@ -1,4 +1,3 @@
-﻿// VMatRenderParams.h
 #pragma once
 
 #include <array>
@@ -8,7 +7,7 @@
 
 #include "Core/Foundation/Common.h"
 
-struct VMatMaterialParams
+struct PBRMaterialParams
 {
 	std::optional<Color> baseColor;
 	std::optional<Color> emissionColor;
@@ -25,9 +24,9 @@ struct VMatMaterialParams
 	std::optional<bool> useBaseColorTexture;
 };
 
-struct VMatRenderParams
+struct PBRRenderParams
 {
-	std::unordered_map<std::string, VMatMaterialParams> materials;
+	std::unordered_map<std::string, PBRMaterialParams> materials;
 	float dissolveAmount = 0.0f;
 	Vector3 vibrationDirection = Vector3::Zero;
 	float vibrationPower = 0.0f;

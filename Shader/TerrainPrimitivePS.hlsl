@@ -565,6 +565,8 @@ float4 main(VS_OUT pin) : SV_TARGET
     if (previewShadingMode > 0.5f && previewShadingMode < 1.5f)
         color = albedo.rgb;
 
+    if (previewShadingMode > 2.5f && previewShadingMode < 3.5f) color = float3(0.08f, 0.08f, 0.08f);
+
     color = ApplyDistanceFog(color, pin.position);
 
     const float waterDepth = max(-0.5f - pin.position.y, 0.0f);

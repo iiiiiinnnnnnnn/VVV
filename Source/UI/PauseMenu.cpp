@@ -23,7 +23,7 @@ void PauseMenu::OnAwake()
 	WidgetGroup::OnAwake();
 	dimmer = std::make_shared<Widget>("Background Dimmer");
 	dimmer->AddComponent<SpriteRenderComponent>(
-		std::make_shared<Texture>(Color(1, 1, 1, 1)), SpriteShaderId::Basic,
+		std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1)), SpriteShaderId::Basic,
 		Color(0.01f, 0.02f, 0.04f, 0.54f));
 	dimmer->SetAffectedByPostProcess(false);
 	AddChild(dimmer);

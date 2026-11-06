@@ -37,7 +37,7 @@ Vector3 AttachmentPosition(const VMDLModel& model, int nodeIndex,
 }
 
 VMDLModelComponent::VMDLModelComponent(Object* owner, std::shared_ptr<VMDLModel> model,
-	ModelShaderId shaderId, VMatRenderParams renderParams, bool buildEmbeddedColliders)
+	ModelShaderId shaderId, PBRRenderParams renderParams, bool buildEmbeddedColliders)
 	: Component(owner), model(model), shaderId(shaderId), renderParams(std::move(renderParams)),
 	  buildEmbeddedColliders(buildEmbeddedColliders)
 {
@@ -754,7 +754,7 @@ void VMDLModelComponent::UnequipMeshCache(const std::string& slot)
 	meshCaches.erase(slot);
 }
 
-void VMDLModelComponent::SetMaterialParamsForAllMaterials(const VMatMaterialParams& params)
+void VMDLModelComponent::SetMaterialParamsForAllMaterials(const PBRMaterialParams& params)
 {
 	if (!model) return;
 	for (const VMDLModel::Material& material : model->GetMaterials())
@@ -906,7 +906,7 @@ void VMDLModelComponent::DrawGUI()
 				const auto it = renderParams.materials.find(material.name);
 				if (it != renderParams.materials.end())
 				{
-					const VMatMaterialParams& params = it->second;
+					const PBRMaterialParams& params = it->second;
 					ImGui::SeparatorText("Instance Overrides");
 					if (params.baseColor)
 						ImGui::Text("Base Color: %.3f, %.3f, %.3f, %.3f", params.baseColor->x,

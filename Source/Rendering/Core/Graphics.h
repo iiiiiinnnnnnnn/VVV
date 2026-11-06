@@ -11,7 +11,10 @@
 #include <wrl.h>
 #include <memory>
 #include <windows.h>
-#include "Rendering/Core/RenderState.h"
+#include "Rendering/Core/BlendState.h"
+#include "Rendering/Core/DepthStencilState.h"
+#include "Rendering/Core/RasterizerState.h"
+#include "Rendering/Core/SamplerState.h"
 #include "Rendering/Core/RenderTarget.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Renderer/DebugSolidRenderer.h"
@@ -59,7 +62,6 @@ namespace Game
 		HWND GetWindowHandle() { return hWnd; }
 		ID3D11Device* GetDevice() { return device.Get(); }
 		ID3D11DeviceContext* GetDeviceContext() { return immediateContext.Get(); }
-		RenderState* GetRenderState() { return renderState.get(); }
 		RenderTarget* GetFrameBuffer(FrameBufferId frameBufferId) { return frameBuffers[static_cast<int>(frameBufferId)].get(); }
 		PrimitiveRenderer* GetPrimitiveRenderer() const { return primitiveRenderer.get(); }
 		DebugSolidRenderer* GetDebugSolidRenderer() const { return debugSolidRenderer.get(); }
@@ -97,7 +99,29 @@ namespace Game
 		Microsoft::WRL::ComPtr<IDXGISwapChain>		swapchain;
 
 		std::unique_ptr<RenderTarget>		frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
-		std::unique_ptr<RenderState>		renderState;
+
+	public:
+		std::unique_ptr<Gpu::BlendState> OpaqueBlendState;
+		std::unique_ptr<Gpu::BlendState> TransparentBlendState;
+		std::unique_ptr<Gpu::BlendState> AdditiveBlendState;
+		std::unique_ptr<Gpu::BlendState> SubtractiveBlendState;
+		std::unique_ptr<Gpu::BlendState> MultiplicativeBlendState;
+		std::unique_ptr<Gpu::DepthStencilState> DepthWriteState;
+		std::unique_ptr<Gpu::DepthStencilState> DepthReadState;
+		std::unique_ptr<Gpu::DepthStencilState> DepthWriteOnlyState;
+		std::unique_ptr<Gpu::DepthStencilState> DepthDisabledState;
+		std::unique_ptr<Gpu::RasterizerState> SolidRasterizerState;
+		std::unique_ptr<Gpu::RasterizerState> BackCullRasterizerState;
+		std::unique_ptr<Gpu::RasterizerState> WireframeRasterizerState;
+		std::unique_ptr<Gpu::RasterizerState> WireframeBackCullRasterizerState;
+		std::unique_ptr<Gpu::SamplerState> PointWrapSamplerState;
+		std::unique_ptr<Gpu::SamplerState> PointWrapBaseLevelSamplerState;
+		std::unique_ptr<Gpu::SamplerState> PointClampSamplerState;
+		std::unique_ptr<Gpu::SamplerState> LinearWrapSamplerState;
+		std::unique_ptr<Gpu::SamplerState> LinearClampSamplerState;
+		std::unique_ptr<Gpu::SamplerState> AnisotropicWrapSamplerState;
+
+	private:
 		std::unique_ptr<PrimitiveRenderer>	primitiveRenderer;
 		std::unique_ptr<DebugSolidRenderer>	debugSolidRenderer;
 		std::unique_ptr<TrailRenderer>		trailRenderer;

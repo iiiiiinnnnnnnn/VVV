@@ -44,7 +44,7 @@ template <class Archive> void VMDLModel::VmdlMaterialData::serialize(Archive& ar
 		CEREAL_NVP(fresnelStrength), CEREAL_NVP(isFlatShading));
 	if constexpr (IsSerialArchive<Archive>)
 		archive(CEREAL_NVP(metalnessTextureFileName), CEREAL_NVP(roughnessTextureFileName),
-			CEREAL_NVP(metalnessTextureDDS), CEREAL_NVP(roughnessTextureDDS));
+			CEREAL_NVP(metalnessTextureDDS), CEREAL_NVP(roughnessTextureDDS), CEREAL_NVP(shaderId));
 }
 
 template <class Archive> void VMDLModel::Vertex::serialize(Archive& archive)

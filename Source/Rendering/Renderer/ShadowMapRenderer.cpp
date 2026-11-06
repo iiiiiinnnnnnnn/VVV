@@ -1,8 +1,12 @@
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/RenderTarget.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/BlendState.h"
 #include "Application/SettingsAndDebug/ProfileScope.h"
-// ShadowMapRenderer.cpp
+#include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 
 #include <cfloat>
@@ -44,7 +48,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
             depthDsvs[cascadeIndex].GetAddressOf());
         _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
 
-        // SRV（VMatShaderのslot8にバインドする）
+        // SRV（PBRShaderのslot8にバインドする）
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -65,43 +69,16 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     shadowViewport.TopLeftX = 0.0f;
     shadowViewport.TopLeftY = 0.0f;
 
-    GpuResourceUtils::LoadVertexShader(
-        device,
-        "Resources/Shader/ShadowMapCasterVS.cso",
-        ModelShader::InputElementDescs.data(),
-        static_cast<UINT>(ModelShader::InputElementDescs.size()),
-        inputLayout.GetAddressOf(),
-        vertexShader.GetAddressOf());
+    vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/ShadowMapCasterVS.cso",
+		ModelShader::InputLayout);
 
     // 6
-    GpuResourceUtils::CreateConstantBuffer(
-        device,
-        sizeof(CbSkeleton),
-        skeletonConstantBuffer.GetAddressOf());
+    skeletonConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkeleton));
 
     // 7
-    GpuResourceUtils::CreateConstantBuffer(
-        device,
-        sizeof(CbShadowScene),
-        shadowSceneConstantBuffer.GetAddressOf());
+    shadowSceneConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbShadowScene));
 
-    // ----- ラスタライザーステート -----
-    {
-        D3D11_RASTERIZER_DESC desc = {};
-        desc.FillMode = D3D11_FILL_SOLID;
-        desc.CullMode = D3D11_CULL_FRONT;
-        desc.FrontCounterClockwise = false;
-        desc.DepthBias = 1000;
-        desc.SlopeScaledDepthBias = 2.0f;
-        desc.DepthBiasClamp = 0.0f;
-        desc.DepthClipEnable = true;
-        hr = device->CreateRasterizerState(&desc, rasterizerState.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-
-        desc.CullMode = D3D11_CULL_NONE;
-        hr = device->CreateRasterizerState(&desc, terrainRasterizerState.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-    }
+    CreateRasterizerStates(device);
 
     // ----- デプスステンシルステート -----
     {
@@ -109,8 +86,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
         desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        hr = device->CreateDepthStencilState(&desc, depthStencilState.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+        depthStencilState = std::make_unique<Gpu::DepthStencilState>(device, desc);
     }
 }
 
@@ -144,15 +120,9 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
         return;
     }
 
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> previousTarget;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> previousDepth;
-    dc->OMGetRenderTargets(1, previousTarget.GetAddressOf(), previousDepth.GetAddressOf());
-    D3D11_VIEWPORT previousViewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE]{};
-    UINT previousViewportCount = _countof(previousViewports);
-    dc->RSGetViewports(&previousViewportCount, previousViewports);
+    const auto previousOutput = RenderTarget::CaptureOutput(dc);
 
-    ID3D11ShaderResourceView* nullShadowSrvs[CascadeCount] = {};
-    dc->PSSetShaderResources(8, CascadeCount, nullShadowSrvs);
+    Gpu::PixelShader::UnbindShaderResources(dc, 8, CascadeCount);
 
     CalculateCascadeMatrices(*rc.camera, lightDir, shadowDistance);
 
@@ -164,13 +134,34 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
     drawList.clear();
     terrainDrawList.clear();
 
-    ID3D11RenderTargetView* nullRtv = nullptr;
-    dc->OMSetRenderTargets(1, &nullRtv, nullptr);
+    RenderTarget::BindDepthTarget(dc, nullptr);
 
-    ID3D11Buffer* nullCbs[] = {nullptr, nullptr};
-    dc->VSSetConstantBuffers(6, _countof(nullCbs), nullCbs);
-    dc->OMSetRenderTargets(1, previousTarget.GetAddressOf(), previousDepth.Get());
-    dc->RSSetViewports(previousViewportCount, previousViewports);
+    Gpu::ConstantBuffer::UnbindVS(dc, 6, 2);
+    RenderTarget::RestoreOutput(dc, previousOutput);
+}
+
+void ShadowMapRenderer::CreateRasterizerStates(ID3D11Device* device)
+{
+	D3D11_RASTERIZER_DESC desc{};
+	desc.FillMode = D3D11_FILL_SOLID;
+	desc.CullMode = D3D11_CULL_BACK;
+	desc.DepthBias = depthBias;
+	desc.SlopeScaledDepthBias = slopeScaledDepthBias;
+	desc.DepthClipEnable = true;
+	auto modelState = std::make_unique<Gpu::RasterizerState>(device, desc);
+	desc.CullMode = D3D11_CULL_NONE;
+	auto terrainState = std::make_unique<Gpu::RasterizerState>(device, desc);
+	rasterizerState = std::move(modelState);
+	terrainRasterizerState = std::move(terrainState);
+}
+
+void ShadowMapRenderer::DrawGUI()
+{
+	bool changed = ImGui::DragInt((const char*)u8"固定深度バイアス", &depthBias, 1.0f);
+	changed |= ImGui::DragFloat((const char*)u8"傾斜バイアス係数", &slopeScaledDepthBias, 0.001f, 0.0f, 0.0f, "%.6f");
+	ImGui::DragFloat((const char*)u8"深度比較バイアス", &comparisonBias, 0.00001f, 0.0f, 0.0f, "%.6f");
+	const char* cullLabels[] = {(const char*)u8"両面を描画", (const char*)u8"裏面を描画（従来方式）", (const char*)u8"表面を描画"};
+	if (changed) CreateRasterizerStates(Game::Graphics::Instance().GetDevice());
 }
 
 void ShadowMapRenderer::CalculateCascadeMatrices(
@@ -290,39 +281,29 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     PROFILE_FUNCTION();
     CbShadowScene cbShadowScene{};
     cbShadowScene.lightViewProjection = lightViewProjections[cascadeIndex];
-    dc->UpdateSubresource(shadowSceneConstantBuffer.Get(), 0, nullptr, &cbShadowScene, 0, 0);
+    shadowSceneConstantBuffer->Update(dc, &cbShadowScene);
 
     // ----- RenderTarget切り替え -----
     // カラーRTはnull（デプスのみ書き込み）
     // 呼出元が描画先を戻す
     {
-        ID3D11RenderTargetView* nullRtv = nullptr;
-        dc->OMSetRenderTargets(1, &nullRtv, depthDsvs[cascadeIndex].Get());
-        dc->RSSetViewports(1, &shadowViewport);
-        dc->ClearDepthStencilView(
-            depthDsvs[cascadeIndex].Get(),
-            D3D11_CLEAR_DEPTH,
-            1.0f,
-            0);
+
+        RenderTarget::BindDepthTarget(dc, depthDsvs[cascadeIndex].Get());
+        RenderTarget::SetViewport(dc, shadowViewport);
+        RenderTarget::ClearDepth(dc, depthDsvs[cascadeIndex].Get());
     }
 
     // ----- シェーダー＆ステート設定 -----
-    dc->IASetInputLayout(inputLayout.Get());
-    dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-    dc->PSSetShader(nullptr, nullptr, 0); // デプスのみ
-    dc->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF); // ブレンド無効
-    dc->OMSetDepthStencilState(depthStencilState.Get(), 0);
-    dc->RSSetState(rasterizerState.Get());
+    vertexShader->Bind(dc);
+    Gpu::PixelShader::Unbind(dc); // デプスのみ
+    Gpu::BlendState::Unbind(dc); // ブレンド無効
+    depthStencilState->Bind(dc);
+    rasterizerState->Bind(dc);
 
     // 定数バッファ設定
     // VS slot6: スケルトン（ModelRendererと同じスロット番号で統一）
     // VS slot7: ライトViewProjection
-    ID3D11Buffer* vsCbs[] =
-    {
-        skeletonConstantBuffer.Get(),       // slot 6
-        shadowSceneConstantBuffer.Get(),    // slot 7
-    };
-    dc->VSSetConstantBuffers(6, _countof(vsCbs), vsCbs);
+    Gpu::ConstantBuffer::BindVS(dc, 6, {skeletonConstantBuffer.get(), shadowSceneConstantBuffer.get()});
 
     // ----- メッシュ描画 -----
 	for (const ModelDrawInfo& drawInfo : drawList)
@@ -348,19 +329,19 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
             {
                 cbSkeleton.boneTransforms[0] = mesh.node->worldTransform * renderScaleTransform;
             }
-            dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
+            skeletonConstantBuffer->Update(dc, &cbSkeleton);
 
             // 頂点バッファ・インデックスバッファ設定
             UINT stride = sizeof(VMDLModel::Vertex);
             UINT offset = 0;
-            dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
-            dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-            dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            mesh.vertexBuffer->Bind(dc, stride, 0, offset);
+            mesh.indexBuffer->Bind(dc, DXGI_FORMAT_R32_UINT, 0);
+            Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-			dc->DrawIndexed(mesh.indexCount, 0, 0);
+			mesh.indexBuffer->Draw(dc, mesh.indexCount);
         }
     }
-    dc->RSSetState(terrainRasterizerState.Get());
+    terrainRasterizerState->Bind(dc);
 
     for (Terrain* terrain : terrainDrawList)
     {
@@ -368,11 +349,10 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     }
 
     // ----- 後始末 -----
-    // SRVとしてVMatShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
+    // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
     {
-        ID3D11RenderTargetView* nullRtv = nullptr;
-        ID3D11DepthStencilView* nullDsv = nullptr;
-        dc->OMSetRenderTargets(1, &nullRtv, nullDsv);
+
+        RenderTarget::BindDepthTarget(dc, nullptr);
     }
 
 }

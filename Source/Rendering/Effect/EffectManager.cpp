@@ -1,9 +1,11 @@
+#include "Rendering/Core/ShaderBytecode.h"
+#include "Rendering/Core/RenderTarget.h"
+#include "Rendering/Core/ConstantBuffer.h"
 #include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Effect/Effect.h"
 #include "Rendering/Core/RenderContext.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Rendering/Effect/EffekseerOverride/Shader.h"
 #include <EffekseerRendererCommon/EffekseerRenderer.Renderer_Impl.h>
 #include "Application/Time/GameTime.h"
@@ -97,11 +99,13 @@ void EffectManager::InitializeFog()
 	const auto replace = [this](std::unique_ptr<EffekseerRenderer::ShaderBase>& shader,
 		EffekseerRenderer::RendererShaderType type, const char* name) {
 		const std::string base = std::string("Resources/Shader/Effekseer") + name;
-		const auto vs = GpuResourceUtils::LoadBinaryFile((base + "VS.cso").c_str());
-		const auto ps = GpuResourceUtils::LoadBinaryFile((base + "PS.cso").c_str());
+		Gpu::ShaderBytecode vs;
+		vs.Load((base + "VS.cso").c_str());
+		Gpu::ShaderBytecode ps;
+		ps.Load((base + "PS.cso").c_str());
 		auto replacement = effekseerRenderer->GetGraphicsDevice()->CreateShaderFromBinary(
-			vs.data(), static_cast<int32_t>(vs.size()),
-			ps.data(), static_cast<int32_t>(ps.size()));
+			vs.GetData(), static_cast<int32_t>(vs.GetSize()),
+			ps.GetData(), static_cast<int32_t>(ps.GetSize()));
 		if (!replacement) throw std::runtime_error("Failed to create effect fog shader: " + base);
 		auto device = effekseerRenderer->GetGraphicsDevice();
 		auto layout = EffekseerRenderer::GetVertexLayout(device, type);
@@ -120,9 +124,7 @@ void EffectManager::InitializeFog()
 	replace(impl->ShaderAdUnlit, EffekseerRenderer::RendererShaderType::AdvancedUnlit, "AdvancedUnlit");
 	replace(impl->ShaderAdLit, EffekseerRenderer::RendererShaderType::AdvancedLit, "AdvancedLit");
 	replace(impl->ShaderAdDistortion, EffekseerRenderer::RendererShaderType::AdvancedBackDistortion, "AdvancedDistortion");
-	if (FAILED(GpuResourceUtils::CreateConstantBuffer(Game::Graphics::Instance().GetDevice(),
-		sizeof(FogConstants), fogConstantBuffer.ReleaseAndGetAddressOf())))
-		throw std::runtime_error("Failed to create effect fog constant buffer");
+	fogConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(Game::Graphics::Instance().GetDevice(), sizeof(FogConstants));
 }
 
 // 終了化
@@ -131,7 +133,7 @@ void EffectManager::Finalize()
 	playbackObjects.clear();
 	effectPlaybacks.clear();
 	effectData.clear();
-	fogConstantBuffer.Reset();
+	fogConstantBuffer.reset();
 }
 
 // 更新処理
@@ -398,9 +400,7 @@ void EffectManager::Render(const RenderContext& rc)
 	effekseerRenderer->BeginRendering();
 
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	D3D11_VIEWPORT viewport{};
-	UINT count = 1;
-	dc->RSGetViewports(&count, &viewport);
+	const auto viewport = RenderTarget::GetViewport(dc);
 	FogConstants fog{};
 	fog.inverseViewProjection = (view * projection).Invert();
 	const Vector3 eye = rc.camera->GetEye();
@@ -409,10 +409,9 @@ void EffectManager::Render(const RenderContext& rc)
 		1.0f / std::max(viewport.Width, 1.0f), 1.0f / std::max(viewport.Height, 1.0f)};
 	fog.parameters = {settings.distanceFogStart, settings.distanceFogEnd,
 		settings.distanceFogStrength, settings.showFog && settings.distanceFogEnabled ? 1.0f : 0.0f};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> previousFogBuffer;
-	dc->PSGetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
-	dc->UpdateSubresource(fogConstantBuffer.Get(), 0, nullptr, &fog, 0, 0);
-	dc->PSSetConstantBuffers(13, 1, fogConstantBuffer.GetAddressOf());
+	auto previousFogBuffer = Gpu::ConstantBuffer::GetBoundPS(dc, 13);
+	fogConstantBuffer->Update(dc, &fog);
+	fogConstantBuffer->BindPS(dc, 13);
 
 	Effekseer::Manager::DrawParameter param;
 	param.CameraCullingMask = 1 << 0;
@@ -424,7 +423,7 @@ void EffectManager::Render(const RenderContext& rc)
 
 	// Effekseer描画終了
 	effekseerRenderer->EndRendering();
-	dc->PSSetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+	Gpu::ConstantBuffer::BindNativePS(dc, 13, previousFogBuffer.Get());
 }
 
 void EffectManager::Render2D(const RenderContext& rc, bool affectedByPostProcess)
@@ -453,11 +452,10 @@ void EffectManager::Render2D(const RenderContext& rc, bool affectedByPostProcess
 	// 2d用のシェーダー作るの手間なので中身のないfogだけ入れとく
 
 	FogConstants fog{};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> previousFogBuffer;
-	dc->PSGetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+	auto previousFogBuffer = Gpu::ConstantBuffer::GetBoundPS(dc, 13);
 
-	dc->UpdateSubresource(fogConstantBuffer.Get(), 0, nullptr, &fog, 0, 0);
-	dc->PSSetConstantBuffers(13, 1, fogConstantBuffer.GetAddressOf());
+	fogConstantBuffer->Update(dc, &fog);
+	fogConstantBuffer->BindPS(dc, 13);
 
 	const Matrix viewProjection = view * projection;
 
@@ -471,5 +469,5 @@ void EffectManager::Render2D(const RenderContext& rc, bool affectedByPostProcess
 
 	// Effekseer描画終了
 	effekseerRenderer->EndRendering();
-	dc->PSSetConstantBuffers(13, 1, previousFogBuffer.GetAddressOf());
+	Gpu::ConstantBuffer::BindNativePS(dc, 13, previousFogBuffer.Get());
 }

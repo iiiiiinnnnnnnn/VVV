@@ -387,6 +387,7 @@ void VmdlEditorScene::ToggleDebugDisplay()
 
 void VmdlEditorScene::HandleShortcuts()
 {
+	HandleVisibilityShortcuts();
 	auto& io = ImGui::GetIO();
 	// エディタのショートカット
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
@@ -939,7 +940,7 @@ void VmdlEditorScene::RenderPreview()
 
 	RenderContext rc{};
 	rc.deviceContext = dc;
-	rc.renderState = graphics.GetRenderState();
+	rc.graphics = &graphics;
 	rc.camera = editorCamera;
 	if (!usesCustomLighting)
 		editorLights.GetDirectionalLight().transform.SetAngle(editorLightDirection);
@@ -963,9 +964,10 @@ void VmdlEditorScene::RenderPreview()
 			graphics.GetShadowMapRenderer()->GetLightViewProjection(i);
 	}
 	rc.shadowMapData.cascadeSplits = graphics.GetShadowMapRenderer()->GetCascadeSplits();
+	rc.shadowMapData.shadowBias = graphics.GetShadowMapRenderer()->GetShadowBias();
 	previewSceneTarget->Clear(dc, 0, 0, 0, 1.0f);
 	previewSceneTarget->Activate(dc);
-	graphics.GetSkyBoxRenderer()->Render(dc, rc.renderState, *editorCamera,
+	graphics.GetSkyBoxRenderer()->Render(dc, rc.graphics, *editorCamera,
 		graphics.GetIBLSpecularPMREM(), rc.renderSettings);
 	if (showFootIkTestStage && footIkTestStageModel)
 	{
@@ -976,7 +978,7 @@ void VmdlEditorScene::RenderPreview()
 				RAD(footIkTestStageRotation.x), RAD(footIkTestStageRotation.z)) *
 			Matrix::CreateTranslation(footIkTestStagePosition);
 		footIkTestStageModel->UpdateTransform(stageTransform);
-		graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, footIkTestStageModel);
+		graphics.GetModelRenderer()->Draw(footIkTestStageModel);
 		RenderContext stageContext = rc;
 		stageContext.renderSettings.pointMaterialTextures = true;
 		graphics.GetModelRenderer()->Render(stageContext);
@@ -1016,11 +1018,11 @@ void VmdlEditorScene::RenderPreview()
 		if (showMesh)
 		{
 			UpdateExternalMeshPreview();
-			rc.renderSettings.wireframe = false;
-			VMatRenderParams params;
+			PBRRenderParams params;
 			model->ApplyMaterialAnimation(selectedAnimation, animationTime, params);
-			params.unlit = previewShadingMode == PreviewShadingMode::Unlit;
-			if (previewShadingMode == PreviewShadingMode::Solid)
+			params.unlit = renderSettings.shadingMode == ShadingMode::Unlit;
+			if (renderSettings.shadingMode == ShadingMode::Solid ||
+			renderSettings.shadingMode == ShadingMode::SolidAndWire)
 			{
 				for (const VMDLModel::Material& material : model->GetMaterials())
 				{
@@ -1030,12 +1032,12 @@ void VmdlEditorScene::RenderPreview()
 					};
 				}
 			}
-			if (previewShadingMode != PreviewShadingMode::Pbr)
+			if (renderSettings.shadingMode != ShadingMode::Shading)
 				for (const auto& material : model->GetMaterials()) params.materials[material.name].transmission = 0.0f;
-			graphics.GetModelRenderer()->Draw(ModelShaderId::VMat, model, &params);
+			graphics.GetModelRenderer()->Draw(model, &params);
 			for (const auto& [groupIndex, cache] : externalMeshPreviewCaches)
 				graphics.GetModelRenderer()->DrawMeshCache(
-					ModelShaderId::VMat, cache, model, &params);
+					cache, model, &params);
 			graphics.GetModelRenderer()->Render(rc);
 		}
 		UpdateTrailPreview(rc);
@@ -1043,8 +1045,7 @@ void VmdlEditorScene::RenderPreview()
 		if (unifiedPreviewActive && showParticle)
 			EffectManager::Instance().Render(rc);
 		finishSceneColor();
-		dc->OMSetDepthStencilState(
-			rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
+		rc.graphics->DepthDisabledState->Bind(dc);
 
 		bool hasShapes = false;
 		if (showDebugOverlays && showBones)
@@ -1361,8 +1362,7 @@ void VmdlEditorScene::RenderPreview()
 				editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 		}
 
-		dc->OMSetDepthStencilState(
-			rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
+		rc.graphics->DepthWriteState->Bind(dc);
 		if (footIkApplied || springApplied)
 		{
 			model->SetNodePoses(animationPose);
@@ -1372,18 +1372,6 @@ void VmdlEditorScene::RenderPreview()
 	else finishSceneColor();
 
 	previewTarget->Deactivate(dc);
-}
-
-void VmdlEditorScene::DrawSerialViewer()
-{
-	if (!showSerialViewer || !model) return;
-	try
-	{
-		if (!serialViewerDocument) serialViewerDocument = &model->GetSerialDocument();
-		if (serialViewer.Draw(*serialViewerDocument, &showSerialViewer))
-			MarkDirty();
-	}
-	catch (const std::exception& exception) { showSerialViewer = false; ErrorMessage(exception.what()); }
 }
 
 void VmdlEditorScene::DrawMenuBar()
@@ -1409,13 +1397,7 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー表示
 	if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
 	{
-		if (ImGui::MenuItem(ICON_FA_ADJUST " PBR", nullptr, previewShadingMode == PreviewShadingMode::Pbr))
-			previewShadingMode = PreviewShadingMode::Pbr;
-		if (ImGui::MenuItem(ICON_FA_SUN " Unlit", nullptr, previewShadingMode == PreviewShadingMode::Unlit))
-			previewShadingMode = PreviewShadingMode::Unlit;
-		if (ImGui::MenuItem((const char*)(ICON_FA_ADJUST " " u8"ソリッド"), nullptr, previewShadingMode == PreviewShadingMode::Solid))
-			previewShadingMode = PreviewShadingMode::Solid;
-		ImGui::MenuItem((const char*)(ICON_FA_CUBE " " u8"メッシュ"), "M", &showMesh);
+		DrawCommonVisibilityGUI(&showMesh);
 		ImGui::Separator();
 		ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &showDebugOverlays);
 		ImGui::Separator();
@@ -1437,11 +1419,7 @@ void VmdlEditorScene::DrawMenuBar()
 	// プレビュー用ツール
 	if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
 	{
-		if (ImGui::MenuItem((const char*)u8"シリアルビューアー", nullptr, false, model != nullptr))
-		{
-			showSerialViewer = true;
-			serialViewerDocument = nullptr;
-		}
+		DrawSerialViewerTools();
 		if (ImGui::MenuItem((const char*)(ICON_FA_UNDO " " u8"ライティング環境をリセット"))) ResetLightingEnvironment();
 		if (ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"VSTGからライティング環境を適用"))) ApplyVstgLighting();
 		if (ImGui::MenuItem((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"スケール設定"), nullptr, false, model != nullptr))
@@ -1452,20 +1430,7 @@ void VmdlEditorScene::DrawMenuBar()
 		ImGui::EndMenu();
 	}
 
-	// 右側のFPSと編集中ファイル
-	std::string title = (const char*)u8"名称未設定";
-	if (!documentPath.empty())
-	{
-		const std::u8string utf8Path = documentPath.u8string();
-		title.assign(reinterpret_cast<const char*>(utf8Path.data()), utf8Path.size());
-	}
-
-	if (dirty)
-	{
-		title += " *";
-	}
-
-	DrawEditorText(title);
+	DrawDocumentTitle(documentPath, dirty);
 	ImGui::EndMainMenuBar();
 
 	if (exiting && SceneManager::Instance().LoadScene<TitleScene>()) exiting = false;
@@ -2821,15 +2786,7 @@ void VmdlEditorScene::DrawPreviewToolbar()
 	ImGui::SetNextItemWidth(speedWidth);
 	ImGui::DragFloat("##PlaybackSpeed", &playbackSpeed, 0.05f, 0.05f, 4.0f, "x%.2f");
 	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生速度");
-	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT))) gizmoOperation = ImGuizmo::TRANSLATE;
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"移動 (W)");
-	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT))) gizmoOperation = ImGuizmo::ROTATE;
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"回転 (E)");
-	ImGui::SameLine();
-	if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT))) gizmoOperation = ImGuizmo::SCALE;
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"サイズ (R)");
+	DrawGizmoButtons(gizmoOperation, false);
 }
 
 void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax)
@@ -2858,14 +2815,7 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 		else if (!io.KeyAlt && !io.KeyShift)
 		{
 			// カメラ移動・ギズモのドラッグ中は操作モードを切り替えない。
-			if (Game::Input::IsFocusedWindow(true) && !io.KeySuper &&
-				!viewportRotationDragging && !viewportOrbitDragging &&
-				!ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGuizmo::IsUsingAny())
-			{
-				if (ImGui::IsKeyPressed(ImGuiKey_W, false)) gizmoOperation = ImGuizmo::TRANSLATE;
-				else if (ImGui::IsKeyPressed(ImGuiKey_E, false)) gizmoOperation = ImGuizmo::ROTATE;
-				else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) gizmoOperation = ImGuizmo::SCALE;
-			}
+			if (!viewportRotationDragging && !viewportOrbitDragging) HandleGizmoShortcuts(gizmoOperation);
 			if (ImGui::IsKeyPressed(ImGuiKey_M, false)) showMesh = !showMesh;
 			else if (ImGui::IsKeyPressed(ImGuiKey_B, false)) showBones = !showBones;
 			else if (ImGui::IsKeyPressed(ImGuiKey_I, false)) showIkPole = !showIkPole;
@@ -3169,7 +3119,8 @@ void VmdlEditorScene::DrawProperty()
 		selectedMaterial = mesh.materialIndex;
 		DrawMaterialEditor();
 	}
-	if (previewShadingMode == PreviewShadingMode::Solid)
+	if (renderSettings.shadingMode == ShadingMode::Solid ||
+			renderSettings.shadingMode == ShadingMode::SolidAndWire)
 		ImGui::ColorEdit4((const char*)u8"ソリッド色", &solidColor.x);
 }
 
@@ -6405,46 +6356,29 @@ void VmdlEditorScene::DrawMaterialEditor()
 		changed = true;
 	}
 
-	// PBRパラメーター
-	ImGui::SeparatorText("PBR");
-	changed |= ImGui::ColorEdit4((const char*)u8"基本色", &material.baseColor.x);
-	changed |= ImGui::ColorEdit4((const char*)u8"発光色", &material.emissiveColor.x,
-		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-	changed |= ImGui::SliderFloat((const char*)u8"メタリック", &material.metalness, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &material.roughness, 0.0001f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"オクルージョン", &material.occlusion, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat(
-		(const char*)u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
-
-	ImGui::SeparatorText((const char*)u8"リフレクション");
-	bool crystalEnabled = material.transmission > 0.0f;
-	if (ImGui::Checkbox((const char*)u8"リフレクション", &crystalEnabled))
+	auto* renderer = Game::Graphics::Instance().GetModelRenderer();
+	auto* shader = renderer->GetShader(material.shaderId);
+	const std::string shaderName = shader ? shader->GetName()
+		: std::format("未対応 (ID: {})", static_cast<int>(material.shaderId));
+	if (ImGui::BeginCombo((const char*)u8"シェーダー", shaderName.c_str()))
 	{
-		material.transmission = crystalEnabled ? 0.88f : 0.0f;
-		changed = true;
+		for (int i = 0; i < static_cast<int>(ModelShaderId::EnumCount); ++i)
+		{
+			auto* candidate = renderer->GetShader(static_cast<ModelShaderId>(i));
+			if (!candidate) continue;
+			const bool selected = material.shaderId == candidate->GetId();
+			if (ImGui::Selectable(candidate->GetName(), selected))
+			{
+				material.shaderId = candidate->GetId();
+				shader = candidate;
+				changed = true;
+			}
+			if (selected) ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
 	}
-	if (crystalEnabled)
-	{
-		changed |= ImGui::SliderFloat((const char*)u8"透過率", &material.transmission, 0.001f, 1.0f);
-		changed |= ImGui::SliderFloat((const char*)u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
-		changed |= ImGui::DragFloat((const char*)u8"屈折の距離", &material.refractionDistance,
-			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		changed |= ImGui::SliderFloat((const char*)u8"リフレクションのラフネス", &material.crystalRoughness, 0.0001f, 1.0f);
-	}
-
-	const char* alphaModes[] = {
-		(const char*)u8"不透明", (const char*)u8"マスク", (const char*)u8"ブレンド"};
-	int alphaMode = static_cast<int>(material.alphaMode);
-	if (ImGui::Combo(
-			(const char*)u8"アルファモード", &alphaMode, alphaModes, IM_ARRAYSIZE(alphaModes)))
-	{
-		material.alphaMode = static_cast<VMDLModel::AlphaMode>(alphaMode);
-		changed = true;
-	}
-	if (material.alphaMode == VMDLModel::AlphaMode::Mask)
-		changed |= ImGui::SliderFloat(
-			(const char*)u8"アルファしきい値", &material.alphaCutoff, 0.0f, 1.0f);
+	if (shader) changed |= shader->DrawGUI(material);
+	else ImGui::TextDisabled((const char*)u8"このシェーダーにはパラメーター調整機能がありません。");
 
 	// テクスチャの書き出しと置換
 	ImGui::SeparatorText((const char*)u8"テクスチャ");
@@ -6565,7 +6499,9 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 		model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
 		MarkDirty();
 	}
-	ImGui::TextDisabled((const char*)u8"基本色・発光色・メタリック・ラフネスを補間します");
+	auto* shader = selectedMaterial >= 0 && selectedMaterial < Count(model->GetMaterials())
+		? Game::Graphics::Instance().GetModelRenderer()->GetShader(model->GetMaterials()[selectedMaterial].shaderId)
+		: nullptr;
 	for (auto& track : model->GetMaterialAnimationTracks())
 	{
 		if (track.animationName != animation.name || track.materialIndex != selectedMaterial) continue;
@@ -6579,11 +6515,7 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 			{
 				changed |= ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f,
 					0.0f, animation.secondsLength, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-				changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
-				changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x,
-					ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
-				changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
+				if (shader) changed |= shader->DrawGUI(key);
 				if (ImGui::SmallButton((const char*)u8"このキーへ移動"))
 				{
 					animationPlaying = false;
@@ -6784,6 +6716,7 @@ void VmdlEditorScene::ImportGlb()
 
 void VmdlEditorScene::ExportGlb()
 {
+	/*
 	if (!model) return;
 	std::filesystem::path proposedPath = documentPath;
 	if (proposedPath.empty()) proposedPath = "model.vmdl";
@@ -6795,6 +6728,7 @@ void VmdlEditorScene::ExportGlb()
 	destination.replace_extension(".glb");
 	std::string error;
 	if (!model->ExportGlb(destination, &error)) ErrorMessage("GLB export failed: " + error);
+	*/
 }
 
 void VmdlEditorScene::AppendAnimationGlb()
@@ -7323,8 +7257,14 @@ void VmdlEditorScene::LoadModel(
 	}
 }
 
-void VmdlEditorScene::ErrorMessage(const std::string& message)
+
+
+SerialDocument* VmdlEditorScene::PrepareSerialDocument()
 {
-	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		Utf8ToWide(message).c_str(), L"VEER", MB_ICONERROR);
+	return model ? &model->GetSerialDocument() : nullptr;
+}
+
+void VmdlEditorScene::OnSerialDocumentChanged()
+{
+	MarkDirty();
 }

@@ -1,139 +1,62 @@
-﻿// Texture.cpp
 #include "Resource/Texture.h"
+#include "Resource/ImageData.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
 #endif
-
-//#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#include <DirectXTex.h>
-#include <sstream>
+#include "Rendering/Core/Graphics.h"
+#include "Resource/ResourceManager.h"
 #include <stdexcept>
 
-#include "Rendering/Core/Graphics.h"
-#include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
-#include "Resource/ResourceManager.h"
-
-// テクスチャ読み込み
-HRESULT Texture::LoadTexture(
-	ID3D11Device* device,
-	const char* filename,
-	ID3D11ShaderResourceView** shaderResourceView,
-	D3D11_TEXTURE2D_DESC* texture2dDesc)
-{
-	if (device == nullptr || filename == nullptr || shaderResourceView == nullptr)
-		return E_INVALIDARG;
-	*shaderResourceView = nullptr;
-
-	// WICのCOM環境を読み込みスレッドの終了まで保持
-	struct ComScope
-	{
-		HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-		~ComScope() { if (SUCCEEDED(result)) CoUninitialize(); }
-	};
-	thread_local const ComScope com;
-	if (FAILED(com.result) && com.result != RPC_E_CHANGED_MODE) return com.result;
-	// 拡張子を取得
-	const auto& resources = ResourceManager::Instance();
-	const auto resolved = resources.ResolveResourcePath(filename, ResourceManager::ResourceType::Texture);
-	std::filesystem::path filepath(resolved);
-	std::string extension = filepath.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// 小文字化
-
-	// ワイド文字に変換
-	std::wstring wfilename = filepath.wstring();
-	if(!std::filesystem::exists(wfilename))
-	{
-		return E_FAIL;
-	}
-
-	// フォーマット毎に画像読み込み処理
-	HRESULT hr;
-	DirectX::TexMetadata metadata;
-	DirectX::ScratchImage scratch_image;
-	if (extension == ".tga")
-	{
-		hr = DirectX::GetMetadataFromTGAFile(wfilename.c_str(), metadata);
-		if (FAILED(hr)) return hr;
-
-		hr = DirectX::LoadFromTGAFile(wfilename.c_str(), &metadata, scratch_image);
-		if (FAILED(hr)) return hr;
-	}
-	else if (extension == ".dds")
-	{
-		hr = DirectX::GetMetadataFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, metadata);
-		if (FAILED(hr)) return hr;
-
-		hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, &metadata, scratch_image);
-		if (FAILED(hr)) return hr;
-	}
-	else if (extension == ".hdr")
-	{
-		hr = DirectX::GetMetadataFromHDRFile(wfilename.c_str(), metadata);
-		if (FAILED(hr)) return hr;
-
-		hr = DirectX::LoadFromHDRFile(wfilename.c_str(), &metadata, scratch_image);
-		if (FAILED(hr)) return hr;
-	}
-	else
-	{
-		hr = DirectX::GetMetadataFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_NONE, metadata);
-		if (FAILED(hr)) return hr;
-
-		hr = DirectX::LoadFromWICFile(wfilename.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, scratch_image);
-		if (FAILED(hr)) return hr;
-	}
-
-	// シェーダーリソースビュー作成
-	hr = DirectX::CreateShaderResourceView(device, scratch_image.GetImages(), scratch_image.GetImageCount(),
-		metadata, shaderResourceView);
-	if (FAILED(hr)) return hr;
-
-	// テクスチャ情報取得
-	if (texture2dDesc != nullptr)
-	{
-		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
-		(*shaderResourceView)->GetResource(resource.GetAddressOf());
-		if (!resource) return E_FAIL;
-
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d;
-		hr = resource->QueryInterface<ID3D11Texture2D>(texture2d.GetAddressOf());
-		if (FAILED(hr)) return hr;
-
-		texture2d->GetDesc(texture2dDesc);
-	}
-	return hr;
-}
-
-Texture::Texture(const char* filename)
-{
-	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
-	HRESULT hr = LoadTexture(device, filename, &shaderResourceView, &texture2dDesc);
-	if (FAILED(hr))
-	{
-		std::ostringstream output;
-		output << "[Texture] Load failed: " << filename
-			<< " (HRESULT 0x" << std::hex << static_cast<unsigned long>(hr) << ")";
-		throw std::runtime_error(output.str());
-	}
-}
-
-Texture::Texture(const Color& color)
-{
-	UINT packedColor =
+Texture::Texture(ID3D11Device* device, const Color& color)
+	: Texture(device,
 		(static_cast<UINT>(color.A() * 255) << 24) |
 		(static_cast<UINT>(color.B() * 255) << 16) |
-		(static_cast<UINT>(color.G() * 255) << 8)  |
-		(static_cast<UINT>(color.R() * 255));
+		(static_cast<UINT>(color.G() * 255) << 8) |
+		static_cast<UINT>(color.R() * 255))
+{
+}
 
-	auto device = Game::Graphics::Instance().GetDevice();
-	HRESULT hr = GpuResourceUtils::CreateDummyTexture(
-		device,
-		packedColor,
-		shaderResourceView.GetAddressOf(),
-		&texture2dDesc);
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+Texture::Texture(ID3D11Device* device, const char* filename, bool forceRgb)
+	: Texture(device, ImageData(filename, forceRgb))
+{
+}
+
+Texture::Texture(ID3D11Device* device, const uint8_t* data, size_t size)
+	: Texture(device, ImageData(data, size))
+{
+}
+
+Texture::Texture(ID3D11Device* device, const ImageData& image)
+{
+	if (!device) throw std::invalid_argument("Texture device is null.");
+	const auto& pixels = image.GetImage();
+	if (FAILED(DirectX::CreateShaderResourceView(device, pixels.GetImages(), pixels.GetImageCount(),
+		image.GetMetadata(), shaderResourceView.GetAddressOf())))
+		throw std::runtime_error("Texture shader resource view creation failed.");
+	Microsoft::WRL::ComPtr<ID3D11Resource> resource;
+	shaderResourceView->GetResource(resource.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+	if (FAILED(resource.As(&texture))) throw std::runtime_error("Texture is not a 2D texture.");
+	texture->GetDesc(&texture2dDesc);
+}
+
+Texture::Texture(ID3D11Device* device, UINT color)
+	: Texture(device,
+		D3D11_TEXTURE2D_DESC{
+			1, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, {1, 0},
+			D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE, 0, 0},
+		D3D11_SUBRESOURCE_DATA{&color, sizeof(color), 0})
+{
+}
+
+Texture::Texture(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& description, const D3D11_SUBRESOURCE_DATA& data)
+	: texture2dDesc(description)
+{
+	if (!device) throw std::invalid_argument("Texture device is null.");
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+	if (FAILED(device->CreateTexture2D(&description, &data, texture.GetAddressOf())) ||
+		FAILED(device->CreateShaderResourceView(texture.Get(), nullptr, shaderResourceView.GetAddressOf())))
+		throw std::runtime_error("Texture creation failed.");
 }
 
 Texture::Texture(ID3D11ShaderResourceView* shaderResourceView, const D3D11_TEXTURE2D_DESC& texture2dDesc)
@@ -153,100 +76,51 @@ MipmapTexture::MipmapTexture(const char* filename)
 
 bool MipmapTexture::Load(const char* filename)
 {
-	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
-
-	std::string loadedPath;
-	HRESULT hr = LoadTexture(
-		device,
-		filename,
-		shaderResourceView.ReleaseAndGetAddressOf(),
-		&texture2dDesc,
-		&loadedPath);
-
-	sourceFilePath = filename != nullptr ? std::filesystem::path(filename).lexically_normal().generic_string() : "";
-	loadedFilePath = loadedPath;
-
-	if (FAILED(hr))
+	auto* device = Game::Graphics::Instance().GetDevice();
+	sourceFilePath = filename ? std::filesystem::path(filename).lexically_normal().generic_string() : "";
+	loadedFilePath.clear();
+	try
 	{
-		GpuResourceUtils::CreateDummyTexture(
-			device,
-			0xFFFFFFFF,
-			shaderResourceView.ReleaseAndGetAddressOf(),
-			&texture2dDesc);
+		if (!filename) throw std::invalid_argument("Texture filename is null.");
+		std::filesystem::path loadPath = ResourceManager::Instance().ResolveResourcePath(
+			filename, ResourceManager::ResourceType::Texture);
+		if (ToLowerWString(loadPath.extension().wstring()) != L".dds")
+		{
+			auto ddsPath = loadPath;
+			ddsPath.replace_extension(".dds");
+			if (!std::filesystem::exists(ddsPath))
+			{
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+				if (FAILED(CacheBuilder::CreateDDSCache(loadPath, ddsPath)))
+					throw std::runtime_error("DDS cache creation failed.");
+#else
+				throw std::runtime_error("DDS cache not found.");
+#endif
+			}
+			loadPath = ddsPath;
+		}
+		Texture texture(device, loadPath.generic_string().c_str());
+		shaderResourceView = texture.GetShaderResourceView();
+		texture2dDesc = texture.GetTexture2dDesc();
+		loadedFilePath = loadPath.generic_string();
+		return true;
+	}
+	catch (const std::exception&)
+	{
+		Texture fallback(device, 0xFFFFFFFFu);
+		shaderResourceView = fallback.GetShaderResourceView();
+		texture2dDesc = fallback.GetTexture2dDesc();
 		return false;
 	}
-
-	return true;
 }
 
-HRESULT MipmapTexture::LoadTexture(
-	ID3D11Device* device,
-	const char* filename,
-	ID3D11ShaderResourceView** shaderResourceView,
-	D3D11_TEXTURE2D_DESC* texture2dDesc,
-	std::string* loadedFilePath)
+void Texture::Copy(ID3D11DeviceContext* context, ID3D11Texture2D* destination, ID3D11Texture2D* source)
 {
-	if (device == nullptr || filename == nullptr || shaderResourceView == nullptr)
-	{
-		return E_INVALIDARG;
-	}
-
-	const auto& resources = ResourceManager::Instance();
-	const std::filesystem::path sourcePath = resources.ResolveResourcePath(
-		filename, ResourceManager::ResourceType::Texture);
-	const std::wstring extension = ToLowerWString(sourcePath.extension().wstring());
-
-	std::filesystem::path loadPath = sourcePath;
-	if (extension != L".dds")
-	{
-		const std::filesystem::path ddsPath = GetDDSCachePath(sourcePath);
-		if (!std::filesystem::exists(ddsPath))
-		{
-#if !defined(_DEBUG) && !defined(VVV_DEVELOPMENT)
-			return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-#else
-			HRESULT hr = CreateDDSCache(sourcePath, ddsPath);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-#endif
-		}
-
-		loadPath = ddsPath;
-	}
-
-	if (!std::filesystem::exists(loadPath))
-	{
-		return E_FAIL;
-	}
-
-	HRESULT hr = Texture::LoadTexture(
-		device,
-		loadPath.generic_string().c_str(),
-		shaderResourceView,
-		texture2dDesc);
-
-	if (SUCCEEDED(hr) && loadedFilePath != nullptr)
-	{
-		*loadedFilePath = loadPath.generic_string();
-	}
-
-	return hr;
+	context->CopyResource(destination, source);
 }
 
-std::filesystem::path MipmapTexture::GetDDSCachePath(const std::filesystem::path& sourcePath)
+void Texture::Update(ID3D11DeviceContext* context, ID3D11Texture2D* texture,
+	const void* data, UINT rowPitch, UINT depthPitch)
 {
-	std::filesystem::path ddsPath = sourcePath;
-	ddsPath.replace_extension(".dds");
-	return ddsPath.lexically_normal();
-}
-
-HRESULT MipmapTexture::CreateDDSCache(const std::filesystem::path& sourcePath, const std::filesystem::path& ddsPath)
-{
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	return CacheBuilder::CreateDDSCache(sourcePath, ddsPath);
-#else
-	return E_NOTIMPL;
-#endif
+	context->UpdateSubresource(texture, 0, nullptr, data, rowPitch, depthPitch);
 }

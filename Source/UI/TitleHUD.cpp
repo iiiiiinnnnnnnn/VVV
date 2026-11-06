@@ -22,7 +22,7 @@ static std::shared_ptr<Widget> MakeTitleFill(const char* name, const Color& colo
 {
 	auto widget = std::make_shared<Widget>(name);
 	widget->AddComponent<SpriteRenderComponent>(
-		std::make_shared<Texture>(Color(1, 1, 1, 1)), SpriteShaderId::Basic, color);
+		std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1)), SpriteShaderId::Basic, color);
 	widget->SetAffectedByPostProcess(false);
 	return widget;
 }

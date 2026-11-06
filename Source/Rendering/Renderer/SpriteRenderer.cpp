@@ -1,4 +1,7 @@
 ﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Rendering/Core/RenderTarget.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Shader/BasicSpriteShader.h"
@@ -12,13 +15,9 @@
 SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 {
 	// 頂点バッファ生成（DYNAMIC: 毎フレーム Map/Unmap で更新）
-	D3D11_BUFFER_DESC bufferDesc = {};
-	bufferDesc.ByteWidth = sizeof(SpriteVertex) * 4;
-	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	HRESULT hr = device->CreateBuffer(&bufferDesc, nullptr, vertexBuffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	const Gpu::BufferDesc bufferDesc(sizeof(SpriteVertex) * 4,
+		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, bufferDesc, nullptr);
 
 	shaders[static_cast<int>(SpriteShaderId::Basic)] = std::make_unique<BasicSpriteShader>(device);
 	shaders[static_cast<int>(SpriteShaderId::Dissolve)] = std::make_unique<DissolveSpriteShader>(device);
@@ -136,22 +135,20 @@ void SpriteRenderer::Render(const RenderContext& rc)
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	// ビューポート取得（NDC 変換に使う）
-	D3D11_VIEWPORT viewport;
-	UINT numViewports = 1;
-	dc->RSGetViewports(&numViewports, &viewport);
+	const auto viewport = RenderTarget::GetViewport(dc);
 	float screenWidth = viewport.Width;
 	float screenHeight = viewport.Height;
 
 	// レンダーステート設定
-	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
-	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
-	dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+	rc.graphics->TransparentBlendState->Bind(dc);
+	rc.graphics->DepthDisabledState->Bind(dc);
+	rc.graphics->SolidRasterizerState->Bind(dc);
 
 	// プリミティブトポロジー・頂点バッファ設定
 	UINT stride = sizeof(SpriteVertex);
 	UINT offset = 0;
-	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	dc->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	vertexBuffer->Bind(dc, stride, 0, offset);
 
 	SpriteShader* currentShader = nullptr;
 
@@ -177,16 +174,12 @@ void SpriteRenderer::Render(const RenderContext& rc)
 		}
 
 		// 頂点バッファ更新
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		HRESULT hr = dc->Map(vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-		memcpy(mapped.pData, verts, sizeof(verts));
-		dc->Unmap(vertexBuffer.Get(), 0);
+		vertexBuffer->Update(dc, verts, static_cast<UINT>(sizeof(verts)));
 
 		shader->Update(rc, call.srv.Get(), call.textureSize, call.color, call.params);
 
 		// 描画
-		dc->Draw(4, 0);
+		vertexBuffer->Draw(dc, 4);
 	}
 
 	if (currentShader) currentShader->End(rc);

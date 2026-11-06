@@ -113,7 +113,7 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 			auto model = ResourceManager::Instance().LoadModel("Aracore", true);
 			model->ApplyInitialMorphs();
 			auto* renderer = temporaryBoss->AddComponent<VMDLModelComponent>(
-				model, ModelShaderId::VMat, VMatRenderParams{}, false);
+				model, ModelShaderId::PBR, PBRRenderParams{}, false);
 			renderer->SetModelYawOffset(DirectX::XM_PI);
 			renderer->SetAutoUpdateTransform(false);
 			stage->GetActorManager().Register(temporaryBoss);

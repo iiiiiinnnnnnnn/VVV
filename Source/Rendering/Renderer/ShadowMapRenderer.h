@@ -1,4 +1,9 @@
 #pragma once
+#include <memory>
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Rendering/Core/DepthStencilState.h"
+#include "Rendering/Core/RasterizerState.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -27,6 +32,8 @@ public:
                 const Vector3& lightDir,
                 float shadowDistance = 500.0f);
 
+	void DrawGUI();
+
     ID3D11ShaderResourceView* GetDepthSRV(int cascadeIndex) const
     {
         return depthSrvs.at(cascadeIndex).Get();
@@ -36,8 +43,10 @@ public:
         return lightViewProjections.at(cascadeIndex);
     }
     const Vector4& GetCascadeSplits() const { return cascadeSplits; }
+    float GetShadowBias() const { return comparisonBias; }
 
 private:
+    void CreateRasterizerStates(ID3D11Device* device);
     void CalculateCascadeMatrices(
         const Camera& camera,
         const Vector3& lightDir,
@@ -52,20 +61,19 @@ private:
     {
         Matrix boneTransforms[256];
     };
-    Microsoft::WRL::ComPtr<ID3D11Buffer> skeletonConstantBuffer;
+    std::unique_ptr<Gpu::ConstantBuffer> skeletonConstantBuffer;
 
     struct CbShadowScene
     {
         Matrix lightViewProjection;
     };
-    Microsoft::WRL::ComPtr<ID3D11Buffer> shadowSceneConstantBuffer;
+    std::unique_ptr<Gpu::ConstantBuffer> shadowSceneConstantBuffer;
 
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+    std::unique_ptr<Gpu::VertexShader> vertexShader;
 
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState> terrainRasterizerState;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState;
+    std::unique_ptr<Gpu::RasterizerState> rasterizerState;
+    std::unique_ptr<Gpu::RasterizerState> terrainRasterizerState;
+    std::unique_ptr<Gpu::DepthStencilState> depthStencilState;
 
 	struct ModelDrawInfo
 	{
@@ -78,4 +86,8 @@ private:
     std::array<Matrix, CascadeCount> lightViewProjections;
     Vector4 cascadeSplits = {};
     UINT shadowMapSize;
+
+	int depthBias = 1000;
+	float slopeScaledDepthBias = 0.0001f;
+	float comparisonBias = 0.0001f;
 };

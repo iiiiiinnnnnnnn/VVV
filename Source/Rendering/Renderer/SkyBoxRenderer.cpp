@@ -1,36 +1,25 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/IndexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Rendering/Renderer/SkyBoxRenderer.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/RenderContext.h"
 #include <imgui.h>
 
 SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 {
-    HRESULT hr;
-
     // 頂点シェーダー（入力レイアウト不要 = SV_VertexID 使用）
-    hr = GpuResourceUtils::LoadVertexShader(
-        device,
-        "Resources/Shader/SkyBoxVS.cso",
-        nullptr, 0,
-        nullptr,
-        vertexShader.GetAddressOf());
-    _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+    vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/SkyBoxVS.cso");
 
     // ピクセルシェーダー
-    hr = GpuResourceUtils::LoadPixelShader(
-        device,
-        "Resources/Shader/SkyBoxPS.cso",
-        pixelShader.GetAddressOf());
-    _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+    pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SkyBoxPS.cso");
 
     // 定数バッファ
-    hr = GpuResourceUtils::CreateConstantBuffer(
-        device,
-        sizeof(CbSkyBox),
-        constantBuffer.GetAddressOf());
-    _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+    constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkyBox));
 
     // デプスステート: TestOnly z=1 が通るように LESS_EQUAL
     {
@@ -38,8 +27,7 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
         desc.DepthEnable    = TRUE;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 書かない
         desc.DepthFunc      = D3D11_COMPARISON_LESS_EQUAL; // z=1.0 が通る
-        hr = device->CreateDepthStencilState(&desc, depthStencilState.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+        depthStencilState = std::make_unique<Gpu::DepthStencilState>(device, desc);
     }
 
     // ラスタライザー: CullNone
@@ -48,13 +36,12 @@ SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_NONE;
         desc.DepthClipEnable = TRUE;
-        hr = device->CreateRasterizerState(&desc, rasterizerState.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+        rasterizerState = std::make_unique<Gpu::RasterizerState>(device, desc);
     }
 }
 
 void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
-                             const RenderState* renderState,
+                             const Game::Graphics* graphicsResources,
                              const Camera& camera,
                              ID3D11ShaderResourceView* skyTex,
 							 const RenderSettings& renderSettings)
@@ -78,39 +65,35 @@ void SkyBoxRenderer::Render(ID3D11DeviceContext* dc,
 			renderSettings.distanceFogEnabled ? 1.0f : 0.0f,
 			0.0f,
 			0.0f};
-        dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cb, 0, 0);
+        constantBuffer->Update(dc, &cb);
     }
 
     // ステート設定
-    dc->IASetInputLayout(nullptr);
-    dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    dc->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-    dc->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    Gpu::VertexShader::UnbindInputLayout(dc);
+    Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    Gpu::IndexBuffer::Unbind(dc, DXGI_FORMAT_UNKNOWN);
 
-    dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-    dc->PSSetShader(pixelShader.Get(), nullptr, 0);
+    vertexShader->Bind(dc);
+    pixelShader->Bind(dc);
 
-    dc->PSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-    dc->PSSetShaderResources(0, 1, &skyTex);
+    constantBuffer->BindPS(dc, 0);
+    Gpu::PixelShader::SetShaderResources(dc, 0, skyTex);
 
-    ID3D11SamplerState* samp = renderState->GetSamplerState(SamplerState::LinearWrap);
-    dc->PSSetSamplers(0, 1, &samp);
+    graphicsResources->LinearWrapSamplerState->BindPS(dc, 0);
 
-    dc->OMSetDepthStencilState(depthStencilState.Get(), 0);
-    dc->RSSetState(rasterizerState.Get());
-    dc->OMSetBlendState(renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
+    depthStencilState->Bind(dc);
+    rasterizerState->Bind(dc);
+    graphicsResources->OpaqueBlendState->Bind(dc);
 
     // 頂点バッファなしで3頂点描画
-    dc->Draw(3, 0);
+    vertexShader->Draw(dc, 3);
 
     // 後始末
-    dc->VSSetShader(nullptr, nullptr, 0);
-    dc->PSSetShader(nullptr, nullptr, 0);
-    dc->IASetInputLayout(nullptr);
-    ID3D11ShaderResourceView* nullSrv = nullptr;
-    dc->PSSetShaderResources(0, 1, &nullSrv);
-    ID3D11Buffer* nullCb = nullptr;
-    dc->PSSetConstantBuffers(0, 1, &nullCb);
+    Gpu::VertexShader::Unbind(dc);
+    Gpu::PixelShader::Unbind(dc);
+    Gpu::VertexShader::UnbindInputLayout(dc);
+    Gpu::PixelShader::UnbindShaderResources(dc, 0);
+    Gpu::ConstantBuffer::UnbindPS(dc, 0);
 }
 
 void SkyBoxRenderer::DrawGUI()

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "Core/Object/Component.h"
-#include "Rendering/Core/VMatRenderParams.h"
+#include "Rendering/Core/PBRRenderParams.h"
 
 class VMDLModel;
 
@@ -30,7 +30,7 @@ private:
 	struct Afterimage
 	{
 		std::shared_ptr<VMDLModel> model;
-		VMatRenderParams renderParams;
+		PBRRenderParams renderParams;
 		Game::Timer age{0.0f};
 	};
 

@@ -1,5 +1,6 @@
 #include "Application/SettingsAndDebug/ProfileScope.h"
 #include "Resource/ResourceManager.h"
+#include "Rendering/Core/Graphics.h"
 #include "Resource/ResourcePath.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
@@ -370,7 +371,7 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key, bo
 			return {};
 		}
 
-		auto texture = std::make_shared<Texture>(resolvedPath.c_str());
+		auto texture = std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), resolvedPath.c_str());
 		it = textures.emplace(lookupKey, std::move(texture)).first;
 	}
 

@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include "Rendering/Core/ConstantBuffer.h"
 
 #include "Rendering/Shader/Shader.h"
 
@@ -25,6 +27,6 @@ private:
 		float padding[3];
 	};
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
 	bool overlayOnly = false;
 };

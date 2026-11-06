@@ -29,6 +29,7 @@ void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
 			[&](const VMDLModel::Material& material) { return material.name == target.name; });
 		if (found == sourceMaterials.end()) continue;
 
+		target.shaderId = found->shaderId;
 		target.baseColor = found->baseColor;
 		target.emissiveColor = found->emissiveColor;
 		target.metalness = found->metalness;
@@ -197,23 +198,17 @@ MeshCache::MeshCache(
 		}
 
 		// GPUバッファを生成
-		D3D11_BUFFER_DESC vertexDesc{};
-		vertexDesc.ByteWidth = static_cast<UINT>(mesh.vertices.size() * sizeof(VMDLModel::Vertex));
-		vertexDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		const Gpu::BufferDesc vertexDesc(static_cast<UINT>(mesh.vertices.size() * sizeof(VMDLModel::Vertex)),
+			D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 		D3D11_SUBRESOURCE_DATA vertexData{};
 		vertexData.pSysMem = mesh.vertices.data();
-		if (FAILED(device->CreateBuffer(&vertexDesc, &vertexData, mesh.vertexBuffer.GetAddressOf())))
-			throw std::runtime_error("MeshCache vertex buffer failed");
+		mesh.vertexBuffer = std::make_shared<Gpu::VertexBuffer>(device, vertexDesc, &vertexData);
 
-		D3D11_BUFFER_DESC indexDesc{};
-		indexDesc.ByteWidth = static_cast<UINT>(mesh.indices.size() * sizeof(uint32_t));
-		indexDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		const Gpu::BufferDesc indexDesc(static_cast<UINT>(mesh.indices.size() * sizeof(uint32_t)),
+			D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 		D3D11_SUBRESOURCE_DATA indexData{};
 		indexData.pSysMem = mesh.indices.data();
-		if (FAILED(device->CreateBuffer(&indexDesc, &indexData, mesh.indexBuffer.GetAddressOf())))
-			throw std::runtime_error("MeshCache index buffer failed");
+		mesh.indexBuffer = std::make_shared<Gpu::IndexBuffer>(device, indexDesc, &indexData);
 
 		mesh.indexCount = static_cast<uint32_t>(mesh.indices.size());
 		if (!retainCpuData)
@@ -310,8 +305,8 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 			mesh.materialIndex = cacheMaterialIndex;
 			mesh.material = nullptr;
 			mesh.node = nullptr;
-			mesh.vertexBuffer.Reset();
-			mesh.indexBuffer.Reset();
+			mesh.vertexBuffer.reset();
+			mesh.indexBuffer.reset();
 			for (VMDLModel::Bone& bone : mesh.bones) bone.node = nullptr;
 			cacheMeshes.push_back(std::move(mesh));
 			meshNodeNames.push_back(source.nodes[sourceMesh.nodeIndex].name);

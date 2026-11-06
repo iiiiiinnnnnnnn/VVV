@@ -1,4 +1,9 @@
 ﻿#pragma once
+#include <memory>
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -6,7 +11,7 @@
 
 #include "Core/Foundation/Common.h"
 
-class RenderState;
+namespace Game { class Graphics; }
 
 class PrimitiveRenderer
 {
@@ -38,7 +43,7 @@ public:
 		ID3D11DeviceContext* dc,
 		const Matrix& view,
 		const Matrix& projection,
-		RenderState* renderState);
+		const Game::Graphics* graphicsResources);
 
 	// 描画実行
 	void Render(
@@ -69,9 +74,8 @@ private:
 		D3D11_PRIMITIVE_TOPOLOGY primitiveTopology,
 		std::vector<Vertex>& sourceVertices);
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>	vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>	pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>	inputLayout;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>		vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>		constantBuffer;
+	std::unique_ptr<Gpu::VertexShader> vertexShader;
+	std::unique_ptr<Gpu::PixelShader> pixelShader;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
 };

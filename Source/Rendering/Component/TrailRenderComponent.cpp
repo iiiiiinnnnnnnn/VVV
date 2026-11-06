@@ -145,18 +145,18 @@ void TrailRenderComponent::RenderTrail(const RenderContext& rc)
 
     auto& graphics   = Game::Graphics::Instance();
     auto  dc          = rc.deviceContext;
-    auto  renderState = rc.renderState;
+    auto  graphicsResources = rc.graphics;
 
 	// 軌跡は加算・深度書き込みなし・両面描画で描き、終了後は標準状態へ必ず戻す。
-    dc->OMSetBlendState(renderState->GetBlendState(BlendState::Additive), nullptr, 0xFFFFFFFF);
-    dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestOnly), 0);
-    dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullNone));
+    graphicsResources->AdditiveBlendState->Bind(dc);
+    graphicsResources->DepthReadState->Bind(dc);
+    graphicsResources->SolidRasterizerState->Bind(dc);
 
     graphics.GetTrailRenderer()->Render(dc, rc.camera->GetView(), rc.camera->GetProjection(), color);
 
-    dc->OMSetBlendState(renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
-    dc->OMSetDepthStencilState(renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-    dc->RSSetState(renderState->GetRasterizerState(RasterizerState::SolidCullBack));
+    graphicsResources->OpaqueBlendState->Bind(dc);
+    graphicsResources->DepthWriteState->Bind(dc);
+    graphicsResources->BackCullRasterizerState->Bind(dc);
 }
 
 void TrailRenderComponent::DrawGUI()

@@ -1,0 +1,28 @@
+#pragma once
+#include "Rendering/Core/Buffer.h"
+
+namespace Gpu
+{
+class IndexBuffer : public Buffer
+{
+  public:
+	// BufferDescを受け取るコンストラクタも使用する。
+	using Buffer::Buffer;
+	IndexBuffer(ID3D11Device* device, const void* data, UINT size);
+	
+	void Draw(ID3D11DeviceContext* context, UINT count, UINT start = 0, INT baseVertex = 0) const
+	{
+		context->DrawIndexed(count, start, baseVertex);
+	}
+	static void Unbind(ID3D11DeviceContext* context, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+	{
+		context->IASetIndexBuffer(nullptr, format, 0);
+	}
+	void Bind(ID3D11DeviceContext* context, DXGI_FORMAT format = DXGI_FORMAT_R32_UINT,
+		UINT offset = 0) const
+	{
+		context->IASetIndexBuffer(Get(), format, offset);
+	}
+};
+} // namespace Gpu
+

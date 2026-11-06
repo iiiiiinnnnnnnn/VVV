@@ -1,36 +1,53 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
-// ModelRenderer.cpp
+#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Resource/Texture.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/RenderTarget.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/ConstantBuffer.h"
 #include <algorithm>
 #include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Resource/MeshCache.h"
 #include "Rendering/Renderer/ModelRenderer.h"
-#include "Rendering/Shader/VMatShader.h"
+#include "Rendering/Shader/PBRShader.h"
 
 // コンストラクタ
 ModelRenderer::ModelRenderer(ID3D11Device* device)
 {
 	// シーン用定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbScene),
-		sceneConstantBuffer.GetAddressOf());
+	sceneConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbScene));
 
 	// スケルトン用定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbSkeleton),
-		skeletonConstantBuffer.GetAddressOf());
+	skeletonConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkeleton));
 
-	shaders[static_cast<int>(ModelShaderId::VMat)] = std::make_unique<VMatShader>(device);
+	auto shader = std::make_unique<PBRShader>(device);
+	shaders[static_cast<int>(shader->GetId())] = std::move(shader);
+}
+
+ModelShader* ModelRenderer::GetShader(ModelShaderId id) const
+{
+	const int index = static_cast<int>(id);
+	if (index < 0 || index >= static_cast<int>(ModelShaderId::EnumCount)) return nullptr;
+	return shaders[index].get();
+}
+
+void ModelRenderer::Draw(std::shared_ptr<VMDLModel> model, const PBRRenderParams* params)
+{
+	Draw(ModelShaderId::PBR, std::move(model), params);
+}
+
+void ModelRenderer::DrawMeshCache(std::shared_ptr<MeshCache> meshCache,
+	std::shared_ptr<VMDLModel> skeleton, const PBRRenderParams* params)
+{
+	DrawMeshCache(ModelShaderId::PBR, std::move(meshCache), std::move(skeleton), params);
 }
 
 // 箱描画
 void ModelRenderer::Draw(
 	ModelShaderId shaderId,
 	std::shared_ptr<VMDLModel> model,
-	const VMatRenderParams* params)
+	const PBRRenderParams* params)
 {
 	DrawInfo& drawInfo = drawInfos.emplace_back();
 	drawInfo.shaderId = shaderId;
@@ -43,7 +60,7 @@ void ModelRenderer::DrawMeshCache(
 	ModelShaderId shaderId,
 	std::shared_ptr<MeshCache> meshCache,
 	std::shared_ptr<VMDLModel> skeleton,
-	const VMatRenderParams* params)
+	const PBRRenderParams* params)
 {
 	if (!meshCache || !skeleton) return;
 	DrawInfo& drawInfo = drawInfos.emplace_back();
@@ -73,51 +90,24 @@ void ModelRenderer::Render(const RenderContext& rc)
 			rc.renderSettings.distanceFogEnd,
 			rc.renderSettings.distanceFogStrength,
 			rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
-		dc->UpdateSubresource(sceneConstantBuffer.Get(), 0, 0, &cbScene, 0, 0);
+		sceneConstantBuffer->Update(dc, &cbScene);
 	}
 
 	// 定数バッファ設定
-	ID3D11Buffer* vsConstantBuffers[] =
-	{
-		skeletonConstantBuffer.Get(),
-		sceneConstantBuffer.Get(),
-	};
-	ID3D11Buffer* psConstantBuffers[] =
-	{
-		sceneConstantBuffer.Get(),
-	};
-	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
-	dc->GSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
-	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
-
-	// サンプラステート設定
-	// s0 = LinearWrap  : IBL用
-	// s1 = LinearClamp : シャドウマップ用
-	// s2 = マテリアルテクスチャ用
-	ID3D11SamplerState* samplerStates[] =
-	{
-		rc.renderState->GetSamplerState(SamplerState::LinearWrap),
-		rc.renderState->GetSamplerState(SamplerState::LinearClamp),
-		rc.renderState->GetSamplerState(rc.renderSettings.pointMaterialTextures
-			? SamplerState::PointWrapBaseLevel : SamplerState::LinearWrap),
-	};
-	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
-
-	// レンダーステート設定
-	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	dc->RSSetState(rc.renderState->GetRasterizerState(
-		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
+	Gpu::ConstantBuffer::BindVS(dc, 6, {skeletonConstantBuffer.get(), sceneConstantBuffer.get()});
+	Gpu::ConstantBuffer::BindGS(dc, 6, {skeletonConstantBuffer.get(), sceneConstantBuffer.get()});
+	sceneConstantBuffer->BindPS(dc, 7);
 
 	// メッシュ描画関数
 	auto drawMesh = [&](const VMDLModel::Mesh& mesh, const Matrix& renderScaleTransform,
-		ModelShader* shader, const VMatRenderParams* params)
+		ModelShader* shader, const PBRRenderParams* params)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(VMDLModel::Vertex);
 		UINT offset = 0;
-		dc->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
-		dc->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-		dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		mesh.vertexBuffer->Bind(dc, stride, 0, offset);
+		mesh.indexBuffer->Bind(dc, DXGI_FORMAT_R32_UINT, 0);
+		Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// スケルトン用定数バッファ更新
 		CbSkeleton cbSkeleton{};
@@ -134,24 +124,33 @@ void ModelRenderer::Render(const RenderContext& rc)
 		{
 			cbSkeleton.boneTransforms[0] = mesh.node->worldTransform * renderScaleTransform;
 		}
-		dc->UpdateSubresource(skeletonConstantBuffer.Get(), 0, 0, &cbSkeleton, 0, 0);
+		skeletonConstantBuffer->Update(dc, &cbSkeleton);
 
 		// 更新
 		shader->Update(rc, mesh, params);
 
 		// 描画
-		dc->DrawIndexed(mesh.indexCount, 0, 0);
+		mesh.indexBuffer->Draw(dc, mesh.indexCount);
+		if (rc.renderSettings.shadingMode == ShadingMode::SolidAndWire)
+		{
+			const auto previousDepth = Gpu::DepthStencilState::Capture(dc);
+			const auto previousRasterizer = Gpu::RasterizerState::Capture(dc);
+			RenderContext wireContext = rc;
+			wireContext.renderSettings.shadingMode = ShadingMode::Wire;
+			shader->Update(wireContext, mesh, params);
+			rc.graphics->DepthReadState->Bind(dc);
+			rc.graphics->WireframeRasterizerState->Bind(dc);
+			mesh.indexBuffer->Draw(dc, mesh.indexCount);
+			Gpu::DepthStencilState::Restore(dc, previousDepth);
+			Gpu::RasterizerState::Restore(dc, previousRasterizer.Get());
+		}
 	};
-
-	// ブレンドステート設定
-	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
 
 	// 不透明描画処理
 	for (DrawInfo& drawInfo : drawInfos)
 	{
-		ModelShader* shader = shaders[static_cast<int>(drawInfo.shaderId)].get();
+		ModelShader* currentShader = nullptr;
 		const Matrix renderScaleTransform = drawInfo.model->GetRenderScaleTransform();
-		shader->Begin(rc);
 
 		const auto& meshes = drawInfo.meshCache
 			? drawInfo.meshCache->GetMeshes()
@@ -161,6 +160,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 			// 描画しないメッシュはスキップ
 			if (!mesh.isDraw || !mesh.vertexBuffer || !mesh.indexBuffer || mesh.indexCount == 0)
 				continue;
+
+			auto* shader = GetShader(mesh.material->shaderId);
+			if (!shader) shader = GetShader(drawInfo.shaderId);
+			if (!shader) continue;
 
 			// 半透明メッシュ登録
 			float w = mesh.material->baseColor.w;
@@ -173,7 +176,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 				if (it != drawInfo.params->materials.end() && it->second.transmission)
 					transmission = *it->second.transmission;
 			}
-			if (rc.renderSettings.shadingMode != ShadingMode::Pbr) transmission = 0.0f;
+			if (rc.renderSettings.shadingMode != ShadingMode::Shading) transmission = 0.0f;
 			if ((drawInfo.params && drawInfo.params->justDodgeUnlit) ||
 				mesh.material->alphaMode == VMDLModel::AlphaMode::Blend ||
 				transmission > 0.0f || (w > 0.01f && w < 0.99f))
@@ -181,7 +184,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 				TransparencyDrawInfo& transparencyDrawInfo = transparencyDrawInfos.emplace_back();
 				transparencyDrawInfo.refractive = transmission > 0.0f;
 				transparencyDrawInfo.mesh = &mesh;
-				transparencyDrawInfo.shaderId = drawInfo.shaderId;
+				transparencyDrawInfo.shaderId = shader->GetId();
 				transparencyDrawInfo.renderScaleTransform = renderScaleTransform;
 				transparencyDrawInfo.params = drawInfo.params;
 				// カメラとの距離を算出
@@ -192,24 +195,29 @@ void ModelRenderer::Render(const RenderContext& rc)
 				continue;
 			}
 
+			if (shader != currentShader)
+			{
+				if (currentShader) currentShader->End(rc);
+				shader->Begin(rc, DrawPass::Opaque);
+				currentShader = shader;
+			}
+
 			// 描画
 			drawMesh(mesh, renderScaleTransform, shader, drawInfo.params);
 		}
 
-		shader->End(rc);
+		if (currentShader) currentShader->End(rc);
 	}
 	drawInfos.clear();
 
 	// Copy the opaque scene before rendering refractive surfaces; never sample the active RTV.
-	ID3D11ShaderResourceView* nullBackground = nullptr;
-	dc->PSSetShaderResources(5, 1, &nullBackground);
+	Gpu::PixelShader::UnbindShaderResources(dc, 5);
 	const bool needsTransmission = std::any_of(transparencyDrawInfos.begin(), transparencyDrawInfos.end(),
 		[](const TransparencyDrawInfo& info) { return info.refractive; });
 	bool backgroundAvailable = false;
 	if (needsTransmission)
 	{
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> target;
-		dc->OMGetRenderTargets(1, target.GetAddressOf(), nullptr);
+		auto target = RenderTarget::GetColorTarget(dc);
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> source;
 		if (target) target->GetResource(resource.GetAddressOf());
@@ -230,24 +238,20 @@ void ModelRenderer::Render(const RenderContext& rc)
 					desc.Usage = D3D11_USAGE_DEFAULT;
 					desc.CPUAccessFlags = 0;
 					desc.MiscFlags = 0;
-					Microsoft::WRL::ComPtr<ID3D11Device> device;
-					dc->GetDevice(device.GetAddressOf());
+					auto device = Game::Graphics::Instance().GetDevice();
 					if (SUCCEEDED(device->CreateTexture2D(&desc, nullptr, transmissionBackground.GetAddressOf())))
 						device->CreateShaderResourceView(transmissionBackground.Get(), nullptr, transmissionBackgroundView.GetAddressOf());
 				}
 				if (transmissionBackgroundView)
 				{
-					dc->CopyResource(transmissionBackground.Get(), source.Get());
+					Texture::Copy(dc, transmissionBackground.Get(), source.Get());
 					backgroundAvailable = true;
 				}
 			}
 		}
 	}
 	ID3D11ShaderResourceView* background = backgroundAvailable ? transmissionBackgroundView.Get() : nullptr;
-	dc->PSSetShaderResources(5, 1, &background);
-
-	// ブレンドステート設定
-	dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Transparency), nullptr, 0xFFFFFFFF);
+	Gpu::PixelShader::SetShaderResources(dc, 5, background);
 
 	// カメラから遠い順にソート
 	std::sort(transparencyDrawInfos.begin(), transparencyDrawInfos.end(),
@@ -257,15 +261,12 @@ void ModelRenderer::Render(const RenderContext& rc)
 		});
 
 	// 半透明描画処理
-	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestOnly), 0);
 	for (const TransparencyDrawInfo& transparencyDrawInfo : transparencyDrawInfos)
 	{
-		const bool refractive = transparencyDrawInfo.refractive;
-		dc->RSSetState(rc.renderState->GetRasterizerState(rc.renderSettings.wireframe
-			? RasterizerState::WireCullNone : refractive ? RasterizerState::SolidCullBack : RasterizerState::SolidCullNone));
-		ModelShader* shader = shaders[static_cast<int>(transparencyDrawInfo.shaderId)].get();
+		ModelShader* shader = GetShader(transparencyDrawInfo.shaderId);
+		if (!shader) continue;
 
-		shader->Begin(rc);
+		shader->Begin(rc, DrawPass::Transparent);
 
 		drawMesh(
 			*transparencyDrawInfo.mesh,
@@ -276,19 +277,10 @@ void ModelRenderer::Render(const RenderContext& rc)
 		shader->End(rc);
 	}
 	transparencyDrawInfos.clear();
-	dc->PSSetShaderResources(5, 1, &nullBackground);
-	dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::TestAndWrite), 0);
-	dc->RSSetState(rc.renderState->GetRasterizerState(
-		rc.renderSettings.wireframe ? RasterizerState::WireCullNone : RasterizerState::SolidCullNone));
+	Gpu::PixelShader::UnbindShaderResources(dc, 5);
 
 	// 定数バッファ設定解除
-	for (ID3D11Buffer*& vsConstantBuffer : vsConstantBuffers) { vsConstantBuffer = nullptr; }
-	for (ID3D11Buffer*& psConstantBuffer : psConstantBuffers) { psConstantBuffer = nullptr; }
-	dc->VSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
-	dc->GSSetConstantBuffers(6, _countof(vsConstantBuffers), vsConstantBuffers);
-	dc->PSSetConstantBuffers(7, _countof(psConstantBuffers), psConstantBuffers);
-
-	// サンプラステート設定解除
-	for (ID3D11SamplerState*& samplerState : samplerStates) { samplerState = nullptr; }
-	dc->PSSetSamplers(0, _countof(samplerStates), samplerStates);
+	Gpu::ConstantBuffer::UnbindVS(dc, 6, 2);
+	Gpu::ConstantBuffer::UnbindGS(dc, 6, 2);
+	Gpu::ConstantBuffer::UnbindPS(dc, 7, 1);
 }

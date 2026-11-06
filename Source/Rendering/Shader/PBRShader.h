@@ -1,24 +1,33 @@
-// VMatShader.h
 #pragma once
+#include <memory>
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/GeometryShader.h"
+#include "Rendering/Core/PixelShader.h"
 #include <d3d11.h>
 #include <wrl.h>
 
 #include "Rendering/Shader/Shader.h"
 
-class VMatShader : public ModelShader
+class PBRShader : public ModelShader
 {
 public:
-	VMatShader(ID3D11Device* device);
-	~VMatShader() override = default;
+	PBRShader(ID3D11Device* device);
+	~PBRShader() override = default;
 
-	void Begin(const RenderContext& rc) override;
+	ModelShaderId GetId() const override { return ModelShaderId::PBR; }
+	const char* GetName() const override { return "PBR"; }
+	bool DrawGUI(VMDLModel::Material& material) override;
+	bool DrawGUI(VMDLModel::VmdlMaterialKeyframe& key) override;
+
+	void Begin(const RenderContext& rc, DrawPass pass) override;
 	void Update(
 		const RenderContext& rc,
 		const VMDLModel::Mesh& mesh,
-		const VMatRenderParams* params) override;
+		const PBRRenderParams* params) override;
 	void End(const RenderContext& rc) override;
 
 private:
+	DrawPass drawPass = DrawPass::Opaque;
 
 	// b0
 	struct CbShadowMap
@@ -33,7 +42,7 @@ private:
 	private:
 		float	dummy[2];
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> shadowMapConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> shadowMapConstantBuffer;
 
 	// b1
 	struct CbMaterial
@@ -70,10 +79,10 @@ private:
 		Vector3 vivraDir;
 		float	vivraPower;
 	};
-	Microsoft::WRL::ComPtr<ID3D11Buffer> materialConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> materialConstantBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> geometryShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> unlitPixelShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> justDodgeUnlitPixelShader;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> justDodgeFadeConstantBuffer;
+	std::unique_ptr<Gpu::GeometryShader> geometryShader;
+	std::unique_ptr<Gpu::PixelShader> unlitPixelShader;
+	std::unique_ptr<Gpu::PixelShader> justDodgeUnlitPixelShader;
+	std::unique_ptr<Gpu::ConstantBuffer> justDodgeFadeConstantBuffer;
 };

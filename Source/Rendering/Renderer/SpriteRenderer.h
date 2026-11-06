@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Rendering/Core/VertexBuffer.h"
 #include <d3d11.h>
 #include <wrl.h>
 
@@ -60,5 +61,5 @@ private:
 
 	std::unique_ptr<SpriteShader>	shaders[static_cast<int>(SpriteShaderId::EnumCount)];
 	std::vector<DrawInfo>			drawCalls;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>	vertexBuffer;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
 };

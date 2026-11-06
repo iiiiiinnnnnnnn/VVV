@@ -423,7 +423,7 @@ void Scene::Render()
 		Game::Graphics& graphics = Game::Graphics::Instance();
 		RenderContext rc{};
 		rc.deviceContext = graphics.GetDeviceContext();
-		rc.renderState = graphics.GetRenderState();
+		rc.graphics = &graphics;
 
 		widgetManager.Render(rc, true);
 		graphics.GetSpriteRenderer()->Render(rc);
@@ -444,8 +444,7 @@ void Scene::Render()
 	renderSettings.distanceFogEnabled &= renderSettings.showFog;
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	ID3D11DeviceContext* dc = graphics.GetDeviceContext();
-	RenderState* renderState = graphics.GetRenderState();
-	PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
+		PrimitiveRenderer* primitiveRenderer = graphics.GetPrimitiveRenderer();
 
 	RenderTarget* displayBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Display);
 	RenderTarget* sceneBuffer = graphics.GetFrameBuffer(Game::FrameBufferId::Scene);
@@ -459,7 +458,7 @@ void Scene::Render()
 	RenderContext rc;
 	{
 		rc.deviceContext = dc;
-		rc.renderState = renderState;
+		rc.graphics = &graphics;
 		rc.camera = &camera;
 		rc.lightManager = &lightManager;
 		rc.renderSettings = renderSettings;
@@ -512,6 +511,7 @@ void Scene::Render()
 				graphics.GetShadowMapRenderer()->GetLightViewProjection(cascadeIndex);
 		}
 		shadowMapData.cascadeSplits = graphics.GetShadowMapRenderer()->GetCascadeSplits();
+		shadowMapData.shadowBias = graphics.GetShadowMapRenderer()->GetShadowBias();
 		rc.shadowMapData = shadowMapData;
 	}
 
@@ -519,7 +519,7 @@ void Scene::Render()
 	sceneBuffer->Clear(dc);
 	sceneBuffer->Activate(dc);
 	{
-		graphics.GetSkyBoxRenderer()->Render(rc.deviceContext, renderState, *rc.camera,
+		graphics.GetSkyBoxRenderer()->Render(rc.deviceContext, &graphics, *rc.camera,
 			graphics.GetIBLSpecularPMREM(), rc.renderSettings);
 
 		stage.Render(rc);
@@ -579,7 +579,7 @@ void Scene::Render()
 	graphics.GetShapeRenderer()->Render(dc, camera.GetView(), camera.GetProjection());
 
 	// PrimitiveRenderer描画
-	primitiveRenderer->RenderTriangles(dc, camera.GetView(), camera.GetProjection(), renderState);
+	primitiveRenderer->RenderTriangles(dc, camera.GetView(), camera.GetProjection(), &graphics);
 
 	primitiveRenderer->Render(
 		dc, camera.GetView(), camera.GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -767,7 +767,7 @@ void Scene::DrawGUI(RenderContext& rc)
 		// 一覧は選択だけを担当し、詳細は右側のInspectorへ表示する。
 		ImGui::SetNextWindowPos(contentPosition, ImGuiCond_Always);
 		ImGui::SetNextWindowSize({gameEditorLeftWidth, gameEditorPanelHeight}, ImGuiCond_Always);
-		if (ImGui::Begin("Hierarchy / 一覧##GameEditor", nullptr, panelWindowFlags))
+		if (ImGui::Begin("ヒエラルキー##GameEditor", nullptr, panelWindowFlags))
 		{
 			ImGui::TextDisabled("RUNTIME EDITOR   /   F2");
 			if (ImGui::BeginTabBar("##HierarchyTabs"))
@@ -868,7 +868,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			{contentPosition.x + contentSize.x - gameEditorRightWidth, contentPosition.y},
 			ImGuiCond_Always);
 		ImGui::SetNextWindowSize({gameEditorRightWidth, gameEditorPanelHeight}, ImGuiCond_Always);
-		if (ImGui::Begin("Inspector / 詳細##GameEditor", nullptr, panelWindowFlags))
+		if (ImGui::Begin("インスペクタ##GameEditor", nullptr, panelWindowFlags))
 		{
 			if (ImGui::BeginTabBar("##InspectorTabs"))
 			{
@@ -920,10 +920,11 @@ void Scene::DrawGUI(RenderContext& rc)
 			else
 			{
 				ImGui::Combo((const char*)u8"設定カテゴリ", &sceneSettingsPage,
-					(const char*)u8"カメラ\0時間\0環境\0画面効果\0ゲーム固有\0");
+					(const char*)u8"カメラ\0時間\0環境\0画面効果\0シーン固有\0");
 				ImGui::Separator();
 				if (sceneSettingsPage == 2)
 					ImGui::ColorEdit3((const char*)u8"環境光", &lightManager.GetAmbientColor().x);
+				
 				// カメラ
 				if (sceneSettingsPage == 0 && ImGui::CollapsingHeader((const char*)(ICON_FA_CAMERA " " u8"カメラ"), ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -932,7 +933,7 @@ void Scene::DrawGUI(RenderContext& rc)
 						controller->DrawGUI();
 				}
 
-				// Time
+				// 時間
 				if (sceneSettingsPage == 1 && ImGui::CollapsingHeader((const char*)(ICON_FA_CLOCK " " u8"時間"), ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					ImGui::Text((const char*)u8"経過時間: %.4f", Game::Time::time);
@@ -942,15 +943,23 @@ void Scene::DrawGUI(RenderContext& rc)
 					ImGui::DragFloat((const char*)(ICON_FA_CLOCK " " u8"時間倍率"), &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 				}
 
-				if (sceneSettingsPage == 2 && ImGui::CollapsingHeader(
-						(const char*)(ICON_FA_CLOUD " " u8"スカイボックス"), ImGuiTreeNodeFlags_DefaultOpen))
+				// 環境
+				if (sceneSettingsPage == 2)
 				{
-					Game::Graphics& graphics = Game::Graphics::Instance();
-					graphics.GetSkyBoxRenderer()->DrawGUI();
-					graphics.DrawSkyMapGUI();
+					if (ImGui::CollapsingHeader((const char*)(ICON_FA_SUN " " u8"シャドウ"), ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						Game::Graphics::Instance().GetShadowMapRenderer()->DrawGUI();
+					}
+					if (ImGui::CollapsingHeader((const char*)(ICON_FA_CLOUD " " u8"スカイボックス"),
+							ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						Game::Graphics& graphics = Game::Graphics::Instance();
+						graphics.GetSkyBoxRenderer()->DrawGUI();
+						graphics.DrawSkyMapGUI();
+					}
 				}
 
-				// PostProcess
+				// 画面効果
 				if (sceneSettingsPage == 3 && ImGui::CollapsingHeader(
 						(const char*)(ICON_FA_MAGIC " " u8"ポストプロセス"), ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -963,6 +972,7 @@ void Scene::DrawGUI(RenderContext& rc)
 					PostProcessController::Instance().DrawGUI();
 				}
 
+				// シーン固有
 				if (sceneSettingsPage == 4) OnDrawGUI();
 			}
 		}

@@ -1,4 +1,8 @@
 #pragma once
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/ConstantBuffer.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 
 #include <d3d11.h>
 #include <memory>
@@ -70,11 +74,10 @@ private:
 	};
 
 	Settings settings;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+	std::unique_ptr<Gpu::VertexBuffer> vertexBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> constantBuffer;
+	std::unique_ptr<Gpu::VertexShader> vertexShader;
+	std::unique_ptr<Gpu::PixelShader> pixelShader;
 	std::shared_ptr<Texture> normalTexture;
 	std::shared_ptr<Texture> heightTexture;
 	std::shared_ptr<Texture> foamTexture;

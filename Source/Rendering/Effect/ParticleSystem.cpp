@@ -1,8 +1,12 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include "Rendering/Core/GeometryShader.h"
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Application/SettingsAndDebug/ProfileScope.h"
 #include <algorithm>
 
 #include "Rendering/Effect/ParticleSystem.h"
-#include "Resource/GpuResourceUtils.h"
 #include "Application/Time/GameTime.h"
 
 ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView, int komax, int komay, int num)
@@ -10,8 +14,6 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 	, komay(komay)
 	, numParticles(num)
 {
-	HRESULT hr;
-
 	//	パーティクル情報リスト
 	data = new ParticleData[num]{};
 
@@ -25,54 +27,28 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 	this->shaderResourceView = shaderResourceView;
 
 	//	頂点バッファ作成
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	//	頂点数分のバッファ
-	bd.ByteWidth = sizeof(Vertex) * numParticles;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
+	const Gpu::BufferDesc bd(sizeof(Vertex) * numParticles, D3D11_BIND_VERTEX_BUFFER);
 
-	hr = device->CreateBuffer(&bd, NULL, vertexBuffer.GetAddressOf());
-	assert(SUCCEEDED(hr));
+	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, bd);
 
 	//	定数バッファ生成
-	D3D11_BUFFER_DESC cbd;
-	ZeroMemory(&cbd, sizeof(cbd));
-	cbd.Usage = D3D11_USAGE_DEFAULT;
-	cbd.ByteWidth = sizeof(Constants);
-	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbd.CPUAccessFlags = 0;
+	const Gpu::BufferDesc cbd(sizeof(Constants), D3D11_BIND_CONSTANT_BUFFER);
 
-	hr = device->CreateBuffer(&cbd, nullptr, constantBuffer.GetAddressOf());
-	assert(SUCCEEDED(hr));
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, cbd, nullptr);
 
 	//	頂点シェーダー
-	std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDesc
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "PARAMETER", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+	Gpu::InputLayoutDesc InputElementDesc;
+	InputElementDesc.AddPosition()
+		.AddTexcoord()
+		.AddColor()
+		.Add("PARAMETER", DXGI_FORMAT_R32G32B32A32_FLOAT);
 
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/GeometryParticleVS.cso",
-		InputElementDesc.data(),
-		(UINT)InputElementDesc.size(),
-		inputLayout.ReleaseAndGetAddressOf(),
-		vertexShader.ReleaseAndGetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/GeometryParticleVS.cso",
+		InputElementDesc);
 
-	GpuResourceUtils::LoadGeometryShader(
-		device,
-		"Resources/Shader/GeometryParticleGS.cso",
-		geometryShader.ReleaseAndGetAddressOf());
+	geometryShader = std::make_unique<Gpu::GeometryShader>(device, "Resources/Shader/GeometryParticleGS.cso");
 
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/GeometryParticlePS.cso",
-		pixelShader.ReleaseAndGetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/GeometryParticlePS.cso");
 }
 
 ParticleSystem::~ParticleSystem()
@@ -137,26 +113,24 @@ void ParticleSystem::Render(const RenderContext& rc)
 	cb.viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 	cb.cameraRight = rc.camera->GetRight();
 	cb.cameraUp = rc.camera->GetUp();
-	immediateContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	immediateContext->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-	immediateContext->GSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
-	immediateContext->PSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+	constantBuffer->Update(immediateContext, &cb);
+	constantBuffer->BindVS(immediateContext, 0);
+	constantBuffer->BindGS(immediateContext, 0);
+	constantBuffer->BindPS(immediateContext, 0);
 
 	//	点描画設定
-	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	Gpu::VertexBuffer::SetTopology(immediateContext, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 	//	シェーダー設定
-	immediateContext->VSSetShader(vertexShader.Get(), nullptr, 0);
-	immediateContext->GSSetShader(geometryShader.Get(), nullptr, 0);
-	immediateContext->PSSetShader(pixelShader.Get(), nullptr, 0);
+	vertexShader->Bind(immediateContext);
+	geometryShader->Bind(immediateContext);
+	pixelShader->Bind(immediateContext);
 
 	//	入力レイアウト設定
-	immediateContext->IASetInputLayout(inputLayout.Get());
 
 	//	テクスチャ設定
-	immediateContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
-	ID3D11SamplerState* samplerState = rc.renderState->GetSamplerState(SamplerState::LinearWrap);
-	immediateContext->PSSetSamplers(0, 1, &samplerState);
+	Gpu::PixelShader::SetShaderResources(immediateContext, 0, shaderResourceView.Get());
+	rc.graphics->LinearWrapSamplerState->BindPS(immediateContext, 0);
 
 	//	パーティクル情報を頂点バッファに転送
 	int n = 0; //パーティクル発生数
@@ -179,25 +153,23 @@ void ParticleSystem::Render(const RenderContext& rc)
 		++n;
 	}
 	//	頂点データ更新
-	immediateContext->UpdateSubresource(vertexBuffer.Get(), 0, nullptr, vertices, 0, 0);
+	vertexBuffer->Update(immediateContext, vertices);
 
 	//	バーテックスバッファーをセット
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-	immediateContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	vertexBuffer->Bind(immediateContext, stride, 0, offset);
 
 	//	パーティクル情報分描画コール
-	immediateContext->Draw(n, 0);
+	vertexBuffer->Draw(immediateContext, n);
 
-	ID3D11ShaderResourceView* nullShaderResourceView = nullptr;
-	ID3D11SamplerState* nullSamplerState = nullptr;
-	immediateContext->PSSetShaderResources(0, 1, &nullShaderResourceView);
-	immediateContext->PSSetSamplers(0, 1, &nullSamplerState);
+	Gpu::PixelShader::UnbindShaderResources(immediateContext, 0);
+	Gpu::SamplerState::UnbindPS(immediateContext, 0);
 
 	//	シェーダ無効化
-	immediateContext->VSSetShader(nullptr, nullptr, 0);
-	immediateContext->GSSetShader(nullptr, nullptr, 0);
-	immediateContext->PSSetShader(nullptr, nullptr, 0);
+	Gpu::VertexShader::Unbind(immediateContext);
+	Gpu::GeometryShader::Unbind(immediateContext);
+	Gpu::PixelShader::Unbind(immediateContext);
 }
 
 void ParticleSystem::Set(

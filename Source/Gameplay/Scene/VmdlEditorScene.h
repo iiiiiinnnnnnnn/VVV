@@ -1,11 +1,9 @@
-// VmdlEditorScene.h
 #pragma once
-#include "Application/SettingsAndDebug/SerialViewer.h"
 
 #include "Application/Time/Timer.h"
 
 #include "Gameplay/Lighting/LightManager.h"
-#include "Gameplay/Scene/Scene.h"
+#include "Gameplay/Scene/EditorScene.h"
 
 #include <filesystem>
 #include <memory>
@@ -26,7 +24,7 @@ class VMDLParticleEmitterComponent;
 class SpringBone;
 class MeshCache;
 
-class VmdlEditorScene : public Scene
+class VmdlEditorScene : public EditorScene
 {
   public:
 	VmdlEditorScene();
@@ -34,20 +32,17 @@ class VmdlEditorScene : public Scene
 	~VmdlEditorScene() override;
 
   protected:
+	SerialDocument* PrepareSerialDocument() override;
+	void OnSerialDocumentChanged() override;
 	void OnInit() override;
 	void OnUninit() override;
 	void OnUpdate() override;
 	void ToggleDebugDisplay() override;
 	void OnDrawGUI() override;
-	MouseCursorMode GetMouseCursorMode() const override { return MouseCursorMode::VisibleFree; }
 	bool OnRequestExit() override;
 
   private:
 	void HandleShortcuts();
-	void DrawSerialViewer();
-	SerialViewer serialViewer;
-	SerialDocument* serialViewerDocument = nullptr;
-	bool showSerialViewer = false;
 
 	std::filesystem::path initialModelPath;
 
@@ -170,7 +165,6 @@ class VmdlEditorScene : public Scene
 	void ApplyVstgLighting();
 	void LoadModel(
 		const std::filesystem::path& filepath, const std::filesystem::path& importDestination = {});
-	void ErrorMessage(const std::string& message);
 
 	// 編集対象
 	std::shared_ptr<VMDLModel> model;
@@ -311,14 +305,6 @@ class VmdlEditorScene : public Scene
 	int draggingNumericComponent = -1;
 
 	// 表示設定
-	enum class PreviewShadingMode
-	{
-		Pbr,
-		Unlit,
-		Solid,
-	};
-
-	PreviewShadingMode previewShadingMode = PreviewShadingMode::Pbr;
 	Color solidColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
 	bool showMesh = true;
 	bool showDebugOverlays = true;

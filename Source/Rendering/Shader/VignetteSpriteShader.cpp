@@ -1,28 +1,24 @@
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/VignetteSpriteShader.h"
 
-#include "Resource/GpuResourceUtils.h"
 
 VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device, bool overlayOnly)
 	: overlayOnly(overlayOnly)
 {
-	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/BasicSpriteVS.cso",
-		SpriteShader::InputElementDescs.data(),
-		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
-		inputLayout.GetAddressOf(), vertexShader.GetAddressOf());
-	GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/VignetteSpritePS.cso",
-		pixelShader.GetAddressOf());
-	GpuResourceUtils::CreateConstantBuffer(
-		device, sizeof(CbVignette), constantBuffer.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+		SpriteShader::InputLayout);
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/VignetteSpritePS.cso");
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 }
 
 void VignetteSpriteShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	dc->IASetInputLayout(inputLayout.Get());
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	ID3D11SamplerState* sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
-	dc->PSSetSamplers(0, 1, &sampler);
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
+	rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
 }
 
 void VignetteSpriteShader::Update(const RenderContext& rc,
@@ -37,20 +33,17 @@ void VignetteSpriteShader::Update(const RenderContext& rc,
 	constant.softness = std::clamp(
 		vignette ? vignette->softness : 0.92f, 0.001f, constant.range);
 	constant.overlayOnly = overlayOnly ? 1.0f : 0.0f;
-	rc.deviceContext->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constant, 0, 0);
-	ID3D11Buffer* buffers[] = {constantBuffer.Get()};
-	rc.deviceContext->PSSetConstantBuffers(2, _countof(buffers), buffers);
-	rc.deviceContext->PSSetShaderResources(0, 1, &srv);
+	constantBuffer->Update(rc.deviceContext, &constant);
+	constantBuffer->BindPS(rc.deviceContext, 2);
+	Gpu::PixelShader::SetShaderResources(rc.deviceContext, 0, srv);
 }
 
 void VignetteSpriteShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
-	ID3D11ShaderResourceView* nullSrv = nullptr;
-	dc->PSSetShaderResources(0, 1, &nullSrv);
-	ID3D11SamplerState* nullSampler = nullptr;
-	dc->PSSetSamplers(0, 1, &nullSampler);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
+	Gpu::PixelShader::UnbindShaderResources(dc, 0);
+	Gpu::SamplerState::UnbindPS(dc, 0);
 }

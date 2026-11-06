@@ -1,27 +1,24 @@
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/Graphics.h"
+#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/DissolveSpriteShader.h"
 #include <algorithm>
-#include "Resource/GpuResourceUtils.h"
 #include "Resource/Texture.h"
 
 DissolveSpriteShader::DissolveSpriteShader(ID3D11Device* device)
 {
-	GpuResourceUtils::LoadVertexShader(device, "Resources/Shader/BasicSpriteVS.cso",
-		SpriteShader::InputElementDescs.data(),
-		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
-		inputLayout.GetAddressOf(), vertexShader.GetAddressOf());
-	GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/DissolveSpritePS.cso",
-		pixelShader.GetAddressOf());
-	GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbDissolve), constantBuffer.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+		SpriteShader::InputLayout);
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/DissolveSpritePS.cso");
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbDissolve));
 }
 
 void DissolveSpriteShader::Begin(const RenderContext& rc)
 {
 	auto dc = rc.deviceContext;
-	dc->IASetInputLayout(inputLayout.Get());
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	auto sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
-	dc->PSSetSamplers(0, 1, &sampler);
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
+	rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
 }
 
 void DissolveSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceView* srv,
@@ -34,21 +31,18 @@ void DissolveSpriteShader::Update(const RenderContext& rc, ID3D11ShaderResourceV
 	constant.maskScale = params ? std::clamp(params->dissolve.maskScale, 0.01f, 10.0f) : 1.0f;
 	constant.softness = params ? std::clamp(params->dissolve.softness, 0.0f, 0.5f) : 0.0f;
 	auto dc = rc.deviceContext;
-	dc->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &constant, 0, 0);
-	ID3D11Buffer* buffer = constantBuffer.Get();
-	dc->PSSetConstantBuffers(0, 1, &buffer);
+	constantBuffer->Update(dc, &constant);
+	constantBuffer->BindPS(dc, 0);
 	ID3D11ShaderResourceView* resources[] = {srv, mask ? mask->GetShaderResourceView().Get() : nullptr};
-	dc->PSSetShaderResources(0, 2, resources);
+	Gpu::PixelShader::SetShaderResources(dc, 0, resources);
 }
 
 void DissolveSpriteShader::End(const RenderContext& rc)
 {
 	auto dc = rc.deviceContext;
-	ID3D11ShaderResourceView* resources[] = {nullptr, nullptr};
-	dc->PSSetShaderResources(0, 2, resources);
-	ID3D11SamplerState* sampler = nullptr;
-	dc->PSSetSamplers(0, 1, &sampler);
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
+	Gpu::PixelShader::UnbindShaderResources(dc, 0, 2);
+	rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
 }

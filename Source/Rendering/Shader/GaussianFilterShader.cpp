@@ -1,37 +1,26 @@
-﻿#include "Rendering/Shader/GaussianFilterShader.h"
-#include "Resource/GpuResourceUtils.h"
+﻿#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
+#include "Rendering/Shader/GaussianFilterShader.h"
 
 GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 {
 	// 頂点シェーダー
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/BasicSpriteVS.cso",
-		SpriteShader::InputElementDescs.data(),
-		static_cast<UINT>(SpriteShader::InputElementDescs.size()),
-		inputLayout.GetAddressOf(),
-		vertexShader.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+		SpriteShader::InputLayout);
 
 	// ピクセルシェーダー
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/GaussianFilteringPS.cso",
-		pixelShader.GetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/GaussianFilteringPS.cso");
 
 	// ガウスフィルター用定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbGaussianFilter),
-		constantBuffer.GetAddressOf());
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbGaussianFilter));
 }
 
 void GaussianFilterShader::Begin(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	dc->IASetInputLayout(inputLayout.Get());
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
 }
 
 void GaussianFilterShader::Update(
@@ -75,26 +64,21 @@ void GaussianFilterShader::Update(
 	}
 
 	//	定数バッファを設定
-	dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &constant, 0, 0);
+	constantBuffer->Update(dc, &constant);
 
 	// 定数バッファ設定
-	ID3D11Buffer* cbs[] =
-	{
-		constantBuffer.Get()
-	};
-	dc->PSSetConstantBuffers(2, _countof(cbs), cbs);
+	constantBuffer->BindPS(dc, 2);
 
-	dc->PSSetShaderResources(0, 1, &srv);
+	Gpu::PixelShader::SetShaderResources(dc, 0, srv);
 }
 
 void GaussianFilterShader::End(const RenderContext& rc)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	dc->VSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(nullptr, nullptr, 0);
-	dc->IASetInputLayout(nullptr);
+	Gpu::VertexShader::Unbind(dc);
+	Gpu::PixelShader::Unbind(dc);
+	Gpu::VertexShader::UnbindInputLayout(dc);
 
-	ID3D11ShaderResourceView* nullSrv = nullptr;
-	dc->PSSetShaderResources(0, 1, &nullSrv);
+	Gpu::PixelShader::UnbindShaderResources(dc, 0);
 }

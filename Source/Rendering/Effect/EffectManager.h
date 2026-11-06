@@ -1,5 +1,6 @@
 // EffectManager.h
 #pragma once
+#include "Rendering/Core/ConstantBuffer.h"
 
 #include <DirectXMath.h>
 #include <d3d11.h>
@@ -72,7 +73,7 @@ private:
 		Vector4 parameters;
 	};
 	static_assert(sizeof(FogConstants) % 16 == 0);
-	Microsoft::WRL::ComPtr<ID3D11Buffer> fogConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> fogConstantBuffer;
 
 	void RegisterPlayback(const Effect* effect, Effekseer::Handle handle, bool billboard);
 	void SetPlaybackTransform(const Effect* effect, Effekseer::Handle handle, const Matrix& transform);

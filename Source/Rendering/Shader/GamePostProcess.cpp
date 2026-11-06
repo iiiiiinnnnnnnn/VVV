@@ -1,22 +1,16 @@
+#include "Rendering/Core/PixelShader.h"
+#include "Rendering/Core/VertexShader.h"
 #include "Application/SettingsAndDebug/ProfileScope.h"
-// GamePostProcess.cpp
 #include "Rendering/Shader/GamePostProcess.h"
 #include <cmath>
 #include <stdexcept>
 
-#include "Resource/GpuResourceUtils.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Core/RenderTarget.h"
 #include "imgui.h"
 
 namespace Game
 {
-	const std::vector<D3D11_INPUT_ELEMENT_DESC> PostProcess::InputElementDescs =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-
 	void PostProcess::CopySettingsFrom(const PostProcess& source)
 	{
 		// 水中のフォグ・色補正・吸収
@@ -202,10 +196,8 @@ namespace Game
 		if (initialized) return;
 		ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 		static_assert(sizeof(CbUnderwater) % 16 == 0);
-		GpuResourceUtils::LoadPixelShader(device, "Resources/Shader/UnderwaterPS.cso",
-			underwaterPixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbUnderwater),
-			underwaterConstantBuffer.GetAddressOf());
+		underwaterPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/UnderwaterPS.cso");
+		underwaterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbUnderwater));
 
 		// Copy
 		copyEffect = std::make_unique<DirectX::BasicPostProcess>(device);
@@ -233,77 +225,30 @@ namespace Game
 		toneMap->SetTransferFunction(DirectX::ToneMapPostProcess::SRGB);
 
 		// Color Filter
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/ColorFilterPS.cso",
-			colorFilterPixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbColorFilter),
-			colorFilterConstantBuffer.GetAddressOf());
+		colorFilterPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ColorFilterPS.cso");
+		colorFilterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbColorFilter));
 
 		// SSAO
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/SSAOPS.cso",
-			SSAOPixelShader.GetAddressOf());
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/SSAOCompositePS.cso",
-			SSAOCompositePixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbSSAO),
-			SSAOConstantBuffer.GetAddressOf());
+		SSAOPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SSAOPS.cso");
+		SSAOCompositePixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SSAOCompositePS.cso");
+		SSAOConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSSAO));
 
 		// Radial Blur
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/RadialBlurPS.cso",
-			radialBlurPixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbRadialBlur),
-			radialBlurConstantBuffer.GetAddressOf());
+		radialBlurPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/RadialBlurPS.cso");
+		radialBlurConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbRadialBlur));
 
 		// Vignette
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/VignettePS.cso",
-			vignettePixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbVignette),
-			vignetteConstantBuffer.GetAddressOf());
+		vignettePixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/VignettePS.cso");
+		vignetteConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 
 		// Chromatic Aberration
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/ChromaticAberrationPS.cso",
-			chromaticAberrationPixelShader.GetAddressOf());
-		GpuResourceUtils::CreateConstantBuffer(device, sizeof(CbChromaticAberration),
-			chromaticAberrationConstantBuffer.GetAddressOf());
+		chromaticAberrationPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ChromaticAberrationPS.cso");
+		chromaticAberrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbChromaticAberration));
 
 		// FXAA
-		GpuResourceUtils::LoadPixelShader(
-			device,
-			"Resources/Shader/FXAAPS.cso",
-			FXAAPixelShader.GetAddressOf());
+		FXAAPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/FXAAPS.cso");
 
-		// Fullscreen quad
-		GpuResourceUtils::LoadVertexShader(
-			device,
-			"Resources/Shader/FullScreenQuadVS.cso",
-			InputElementDescs.data(),
-			static_cast<UINT>(InputElementDescs.size()),
-			fullscreenInputLayout.GetAddressOf(),
-			fullscreenVertexShader.GetAddressOf());
-		const FullscreenVertex vertices[] =
-		{
-			{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-			{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f}},
-			{{1.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
-		};
-		D3D11_BUFFER_DESC vertexBufferDesc = {};
-		vertexBufferDesc.ByteWidth = sizeof(vertices);
-		vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		D3D11_SUBRESOURCE_DATA vertexData = {};
-		vertexData.pSysMem = vertices;
-		device->CreateBuffer(&vertexBufferDesc, &vertexData, fullscreenVertexBuffer.GetAddressOf());
+		fullscreenRenderer = std::make_unique<FullScreenRenderer>(device);
 		initialized = true;
 	}
 
@@ -382,11 +327,10 @@ namespace Game
 		cb.gradientShadows = colorGradientShadows;
 		cb.gradientMidtones = colorGradientMidtones;
 		cb.gradientHighlights = colorGradientHighlights;
-		rc.deviceContext->UpdateSubresource(
-			colorFilterConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+		colorFilterConstantBuffer->Update(rc.deviceContext, &cb);
 
 		DrawFullscreen(
-			rc, colorFilterPixelShader.Get(), colorMap, colorFilterConstantBuffer.Get());
+			rc, *colorFilterPixelShader, colorMap, colorFilterConstantBuffer.get());
 	}
 
 	void PostProcess::Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
@@ -401,8 +345,8 @@ namespace Game
 		cb.absorption = underwaterAbsorption;
 		cb.density = underwaterDensity;
 		cb.tint = underwaterTint;
-		rc.deviceContext->UpdateSubresource(underwaterConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-		DrawFullscreen(rc, underwaterPixelShader.Get(), colorMap, underwaterConstantBuffer.Get(), depthMap);
+		underwaterConstantBuffer->Update(rc.deviceContext, &cb);
+		DrawFullscreen(rc, *underwaterPixelShader, colorMap, underwaterConstantBuffer.get(), depthMap);
 	}
 
 	void PostProcess::SSAO(const RenderContext& rc, ID3D11ShaderResourceView* depthMap)
@@ -427,9 +371,9 @@ namespace Game
 			rc.renderSettings.distanceFogEnd,
 			rc.renderSettings.distanceFogStrength,
 			rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
-		dc->UpdateSubresource(SSAOConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+		SSAOConstantBuffer->Update(dc, &cb);
 
-		DrawFullscreen(rc, SSAOPixelShader.Get(), depthMap, SSAOConstantBuffer.Get());
+		DrawFullscreen(rc, *SSAOPixelShader, depthMap, SSAOConstantBuffer.get());
 	}
 
 	void PostProcess::ApplySSAO(
@@ -437,7 +381,7 @@ namespace Game
 		ID3D11ShaderResourceView* colorMap,
 		ID3D11ShaderResourceView* ssaoMap)
 	{
-		DrawFullscreen(rc, SSAOCompositePixelShader.Get(), colorMap, nullptr, ssaoMap);
+		DrawFullscreen(rc, *SSAOCompositePixelShader, colorMap, nullptr, ssaoMap);
 	}
 
 	void PostProcess::RadialBlur(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
@@ -454,9 +398,9 @@ namespace Game
 		cb.center = radialBlurCenter;
 		cb.maskRadius = radialBlurMaskRadius;
 
-		dc->UpdateSubresource(radialBlurConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+		radialBlurConstantBuffer->Update(dc, &cb);
 
-		DrawFullscreen(rc, radialBlurPixelShader.Get(), colorMap, radialBlurConstantBuffer.Get());
+		DrawFullscreen(rc, *radialBlurPixelShader, colorMap, radialBlurConstantBuffer.get());
 	}
 
 	void PostProcess::ChromaticAberration(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
@@ -475,9 +419,9 @@ namespace Game
 		cb.shift[1] = chromaticAberrationShift[1];
 		cb.shift[2] = chromaticAberrationShift[2];
 
-		dc->UpdateSubresource(chromaticAberrationConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+		chromaticAberrationConstantBuffer->Update(dc, &cb);
 
-		DrawFullscreen(rc, chromaticAberrationPixelShader.Get(), colorMap, chromaticAberrationConstantBuffer.Get());
+		DrawFullscreen(rc, *chromaticAberrationPixelShader, colorMap, chromaticAberrationConstantBuffer.get());
 	}
 
 	void PostProcess::Vignette(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
@@ -506,49 +450,36 @@ namespace Game
 		cb.tintColor = runtimeColorTint;
 		cb.tintIntensity = runtimeColorTintIntensity;
 
-		dc->UpdateSubresource(vignetteConstantBuffer.Get(), 0, 0, &cb, 0, 0);
+		vignetteConstantBuffer->Update(dc, &cb);
 
-		DrawFullscreen(rc, vignettePixelShader.Get(), colorMap, vignetteConstantBuffer.Get());
+		DrawFullscreen(rc, *vignettePixelShader, colorMap, vignetteConstantBuffer.get());
 	}
 
 	void PostProcess::DrawFullscreen(
 		const RenderContext& rc,
-		ID3D11PixelShader* pixelShader,
+		const Gpu::PixelShader& pixelShader,
 		ID3D11ShaderResourceView* colorMap,
-		ID3D11Buffer* constantBuffer,
+		const Gpu::ConstantBuffer* constantBuffer,
 		ID3D11ShaderResourceView* colorMap2)
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
-		UINT stride = sizeof(FullscreenVertex);
-		UINT offset = 0;
-		ID3D11Buffer* vertexBuffers[] = {fullscreenVertexBuffer.Get()};
-		ID3D11SamplerState* sampler = rc.renderState->GetSamplerState(SamplerState::LinearClamp);
 		ID3D11ShaderResourceView* srvs[] = {colorMap, colorMap2};
 		const UINT srvCount = colorMap2 ? 2 : 1;
 
-		dc->OMSetBlendState(rc.renderState->GetBlendState(BlendState::Opaque), nullptr, 0xFFFFFFFF);
-		dc->OMSetDepthStencilState(rc.renderState->GetDepthStencilState(DepthState::NoTestNoWrite), 0);
-		dc->RSSetState(rc.renderState->GetRasterizerState(RasterizerState::SolidCullNone));
-		dc->IASetInputLayout(fullscreenInputLayout.Get());
-		dc->IASetVertexBuffers(0, _countof(vertexBuffers), vertexBuffers, &stride, &offset);
-		dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		dc->VSSetShader(fullscreenVertexShader.Get(), nullptr, 0);
-		dc->PSSetShader(pixelShader, nullptr, 0);
-		dc->PSSetShaderResources(0, srvCount, srvs);
+		rc.graphics->OpaqueBlendState->Bind(dc);
+		rc.graphics->DepthDisabledState->Bind(dc);
+		rc.graphics->SolidRasterizerState->Bind(dc);
+		pixelShader.Bind(dc);
+		Gpu::PixelShader::SetShaderResources(dc, 0, std::span<ID3D11ShaderResourceView* const>(srvs, srvCount));
 		if (constantBuffer)
 		{
-			dc->PSSetConstantBuffers(2, 1, &constantBuffer);
+			constantBuffer->BindPS(dc, 2);
 		}
-		dc->PSSetSamplers(0, 1, &sampler);
-		dc->Draw(4, 0);
+		rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
+		fullscreenRenderer->Draw(dc);
 
-		ID3D11Buffer* nullBuffer = nullptr;
-		ID3D11SamplerState* nullSampler = nullptr;
-		dc->IASetVertexBuffers(0, 1, &nullBuffer, &stride, &offset);
-		dc->VSSetShader(nullptr, nullptr, 0);
-		dc->PSSetShader(nullptr, nullptr, 0);
-		dc->IASetInputLayout(nullptr);
-		dc->PSSetSamplers(0, 1, &nullSampler);
+		Gpu::PixelShader::Unbind(dc);
+		Gpu::SamplerState::UnbindPS(dc, 0);
 		UnbindShaderResources(dc);
 	}
 
@@ -579,7 +510,7 @@ namespace Game
 	void PostProcess::FXAA(const RenderContext& rc, ID3D11ShaderResourceView* colorMap)
 	{
 		PROFILE_FUNCTION();
-		DrawFullscreen(rc, FXAAPixelShader.Get(), colorMap, nullptr);
+		DrawFullscreen(rc, *FXAAPixelShader, colorMap, nullptr);
 	}
 
 	void PostProcess::RenderFinal(
@@ -606,6 +537,8 @@ namespace Game
 		const bool useVignette =
 			enableVignette || runtimeVignetteIntensity > 0.001f ||
 			runtimeColorTintIntensity > 0.001f;
+
+		// 残りのパス数を計算して、最終結果のみをoutputBufferに書き込むようにする
 
 		int passCount = 1;
 		if (enableColorFilter || enableColorGradient) ++passCount;
@@ -917,8 +850,7 @@ namespace Game
 	}
 	void PostProcess::UnbindShaderResources(ID3D11DeviceContext* dc)
 	{
-		ID3D11ShaderResourceView* srvs[] = {nullptr, nullptr};
-		dc->PSSetShaderResources(0, _countof(srvs), srvs);
+		Gpu::PixelShader::UnbindShaderResources(dc, 0, 2);
 	}
 
 	const char* PostProcess::BasicEffectName(int index)

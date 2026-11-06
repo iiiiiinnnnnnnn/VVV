@@ -1,5 +1,9 @@
 // VMDLModel.h
 #pragma once
+#include <memory>
+#include "Rendering/Core/VertexBuffer.h"
+#include "Rendering/Core/IndexBuffer.h"
+#include "Rendering/Core/ModelShaderId.h"
 
 #include "Resource/SerialArchive.h"
 #include <d3d11.h>
@@ -24,7 +28,7 @@
 #include <cereal/types/utility.hpp>
 
 class MeshCache;
-struct VMatRenderParams;
+struct PBRRenderParams;
 
 #include <DirectXTex.h>
 #include <DDSTextureLoader.h>
@@ -634,6 +638,7 @@ class VMDLModel
 	struct Material
 	{
 		std::string name;
+		ModelShaderId shaderId = ModelShaderId::PBR;
 		std::string baseTextureFileName;
 		std::string normalTextureFileName;
 		std::string emissiveTextureFileName;
@@ -730,6 +735,7 @@ class VMDLModel
 		std::string roughnessTextureFileName;
 		std::vector<uint8_t> metalnessTextureDDS;
 		std::vector<uint8_t> roughnessTextureDDS;
+		ModelShaderId shaderId = ModelShaderId::PBR;
 	};
 
 	struct VmdlMaterialKeyframe
@@ -803,8 +809,8 @@ class VMDLModel
 		Node* node = nullptr;
 		bool isDraw = true;
 		uint32_t indexCount = 0;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+		std::shared_ptr<Gpu::VertexBuffer> vertexBuffer;
+		std::shared_ptr<Gpu::IndexBuffer> indexBuffer;
 
 		template <class Archive> void serialize(Archive& archive);
 	};
@@ -958,7 +964,7 @@ class VMDLModel
 	std::vector<VmdlMaterialAnimationTrack>& GetMaterialAnimationTracks() { return materialAnimationTracks; }
 	const std::vector<VmdlMaterialAnimationTrack>& GetMaterialAnimationTracks() const { return materialAnimationTracks; }
 	void RecordMaterialKey(int animationIndex, int materialIndex, float time);
-	void ApplyMaterialAnimation(int animationIndex, float time, VMatRenderParams& params) const;
+	void ApplyMaterialAnimation(int animationIndex, float time, PBRRenderParams& params) const;
 	std::optional<VmdlMaterialKeyframe> EvaluateMaterialAnimation(int animationIndex, float time, int materialIndex) const;
 	void ApplyMorphAnimation(int animationIndex, float time);
 	void RestoreMorphVisibility(const std::vector<uint8_t>& visibility);

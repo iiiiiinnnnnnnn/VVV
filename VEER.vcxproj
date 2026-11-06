@@ -65,6 +65,7 @@
       <ForcedIncludeFiles />
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Actor\Deer.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\EditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
@@ -96,7 +97,7 @@
     <ClCompile Include="Source\Animation\Animator.cpp" />
     <ClCompile Include="Source\Animation\AnimatorEditor.cpp" />
     <ClCompile Include="Source\Animation\AnimatorSerialization.cpp" />
-    <ClCompile Include="Source\Rendering\Shader\VMatShader.cpp" />
+    <ClCompile Include="Source\Rendering\Shader\PBRShader.cpp" />
     <ClCompile Include="Source\Animation\BoneFollower.cpp" />
     <ClCompile Include="Source\Rendering\Shader\DissolveSpriteShader.cpp" />
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
@@ -133,7 +134,20 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles />
     </ClCompile>
-    <ClCompile Include="Source\Resource\GpuResourceUtils.cpp" />
+    <ClCompile Include="Source\Rendering\Core\InputLayoutDesc.cpp" />
+    <ClCompile Include="Source\Rendering\Core\VertexShader.cpp" />
+    <ClCompile Include="Source\Rendering\Core\BufferDesc.cpp" />
+    <ClCompile Include="Source\Rendering\Core\Buffer.cpp" />
+    <ClCompile Include="Source\Rendering\Renderer\FullScreenRenderer.cpp" />
+    <ClCompile Include="Source\Rendering\Core\VertexBuffer.cpp" />
+    <ClCompile Include="Source\Rendering\Core\IndexBuffer.cpp" />
+    <ClCompile Include="Source\Rendering\Core\ConstantBuffer.cpp" />
+    <ClCompile Include="Source\Rendering\Core\ShaderBytecode.cpp" />
+    <ClCompile Include="Source\Rendering\Core\ComputeShader.cpp" />
+    <ClCompile Include="Source\Rendering\Core\DomainShader.cpp" />
+    <ClCompile Include="Source\Rendering\Core\HullShader.cpp" />
+    <ClCompile Include="Source\Rendering\Core\GeometryShader.cpp" />
+    <ClCompile Include="Source\Rendering\Core\PixelShader.cpp" />
     <ClCompile Include="Source\Rendering\Core\Graphics.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ImGuiRenderer.cpp" />
     <ClCompile Include="Source\Application\Input\Input.cpp" />
@@ -166,7 +180,6 @@
     <ClCompile Include="Source\Physics\Core\PhysicsManager.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\Core\Object\RectTransform.cpp" />
-    <ClCompile Include="Source\Rendering\Core\RenderState.cpp" />
     <ClCompile Include="Source\Rendering\Core\RenderTarget.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\Scene.cpp" />
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp" />
@@ -198,6 +211,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles />
     </ClCompile>
+    <ClCompile Include="Source\Resource\ImageData.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Application\Time\GameTime.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\ThirdPersonCameraController.cpp" />
@@ -222,6 +236,7 @@
     <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h" />
     <ClInclude Include="Source\Core\Foundation\Json.h" />
     <ClInclude Include="Source\Gameplay\Actor\Deer.h" />
+    <ClInclude Include="Source\Gameplay\Scene\EditorScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h" />
     <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\Benchmark.h" />
@@ -251,7 +266,7 @@
     <ClInclude Include="Source\Gameplay\Actor\Actor.h" />
     <ClInclude Include="Source\Gameplay\Actor\ActorManager.h" />
     <ClInclude Include="Source\Animation\Animator.h" />
-    <ClInclude Include="Source\Rendering\Shader\VMatShader.h" />
+    <ClInclude Include="Source\Rendering\Shader\PBRShader.h" />
     <ClInclude Include="Source\Animation\BoneFollower.h" />
     <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
@@ -287,7 +302,20 @@
     <ClInclude Include="Source\Application\Input\GamePad.h" />
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h" />
     <ClInclude Include="Source\Resource\GLTFImporter.h" />
-    <ClInclude Include="Source\Resource\GpuResourceUtils.h" />
+    <ClInclude Include="Source\Rendering\Core\InputLayoutDesc.h" />
+    <ClInclude Include="Source\Rendering\Core\VertexShader.h" />
+    <ClInclude Include="Source\Rendering\Core\BufferDesc.h" />
+    <ClInclude Include="Source\Rendering\Core\Buffer.h" />
+    <ClInclude Include="Source\Rendering\Renderer\FullScreenRenderer.h" />
+    <ClInclude Include="Source\Rendering\Core\VertexBuffer.h" />
+    <ClInclude Include="Source\Rendering\Core\IndexBuffer.h" />
+    <ClInclude Include="Source\Rendering\Core\ConstantBuffer.h" />
+    <ClInclude Include="Source\Rendering\Core\ShaderBytecode.h" />
+    <ClInclude Include="Source\Rendering\Core\ComputeShader.h" />
+    <ClInclude Include="Source\Rendering\Core\DomainShader.h" />
+    <ClInclude Include="Source\Rendering\Core\HullShader.h" />
+    <ClInclude Include="Source\Rendering\Core\GeometryShader.h" />
+    <ClInclude Include="Source\Rendering\Core\PixelShader.h" />
     <ClInclude Include="Source\Rendering\Core\Graphics.h" />
     <ClInclude Include="Source\Application\Time\HighResolutionTimer.h" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
@@ -329,8 +357,12 @@
     <ClInclude Include="Source\Rendering\Renderer\PrimitiveRenderer.h" />
     <ClInclude Include="Source\Rendering\Core\RenderContext.h" />
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h" />
-    <ClInclude Include="Source\Rendering\Core\VMatRenderParams.h" />
-    <ClInclude Include="Source\Rendering\Core\RenderState.h" />
+    <ClInclude Include="Source\Rendering\Core\ModelShaderId.h" />
+    <ClInclude Include="Source\Rendering\Core\PBRRenderParams.h" />
+    <ClInclude Include="Source\Rendering\Core\DepthStencilState.h" />
+    <ClInclude Include="Source\Rendering\Core\BlendState.h" />
+    <ClInclude Include="Source\Rendering\Core\RasterizerState.h" />
+    <ClInclude Include="Source\Rendering\Core\SamplerState.h" />
     <ClInclude Include="Source\Gameplay\Scene\Scene.h" />
     <ClInclude Include="Source\Rendering\Shader\Shader.h" />
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h" />
@@ -358,6 +390,7 @@
     <ClInclude Include="Source\UI\TextWidget.h" />
     <ClInclude Include="Source\UI\WidgetShadow.h" />
     <ClInclude Include="Source\UI\UIFont.h" />
+    <ClInclude Include="Source\Resource\ImageData.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
     <ClInclude Include="Source\Application\Time\Timer.h" />
     <ClInclude Include="Source\Application\Time\GameTime.h" />
@@ -371,7 +404,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="README.md" />
     <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\TerrainGrass.hlsli" />
@@ -858,7 +890,6 @@
     <None Include="Source\Rendering\Effect\EffekseerOverride\LICENSE" />
     <None Include="Source\Rendering\Effect\EffekseerOverride\README.md" />
   </ItemGroup>
-
   <ItemGroup>
     <ClCompile Include="Source\Resource\SerialArchive.cpp" />
     <ClInclude Include="Source\Resource\SerialArchive.h" />

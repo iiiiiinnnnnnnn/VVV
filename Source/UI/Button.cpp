@@ -33,7 +33,7 @@ static std::shared_ptr<Texture> LoadOptionalButtonTexture(const std::string& pat
 
 void Button::OnAwake()
 {
-	whiteTexture = std::make_shared<Texture>(Color(1, 1, 1, 1));
+	whiteTexture = std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1));
 	if (!texturePath.empty()) SetTexture(texturePath);
 	if (!selectionTexturePath.empty()) SetSelectionTexture(selectionTexturePath);
 }

@@ -1,36 +1,23 @@
 ﻿#include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Rendering/Core/VertexBuffer.h"
 #include "Rendering/Renderer/ShapeRenderer.h"
 
 // コンストラクタ
 ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 {
 	// 入力レイアウト
-	D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+	Gpu::InputLayoutDesc inputElementDesc;
+	inputElementDesc.AddPosition();
 
 	// 頂点シェーダー
-	GpuResourceUtils::LoadVertexShader(
-		device,
-		"Resources/Shader/ShapeRendererVS.cso",
-		inputElementDesc,
-		_countof(inputElementDesc),
-		inputLayout.GetAddressOf(),
-		vertexShader.GetAddressOf());
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/ShapeRendererVS.cso",
+		inputElementDesc);
 
 	// ピクセルシェーダー
-	GpuResourceUtils::LoadPixelShader(
-		device,
-		"Resources/Shader/ShapeRendererPS.cso",
-		pixelShader.GetAddressOf());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ShapeRendererPS.cso");
 
 	// 定数バッファ
-	GpuResourceUtils::CreateConstantBuffer(
-		device,
-		sizeof(CbMesh),
-		constantBuffer.GetAddressOf());
+	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMesh));
 
 	// 箱メッシュ生成
 	CreateBoxMesh(device, 1.0f, 1.0f, 1.0f);
@@ -157,20 +144,14 @@ void ShapeRenderer::DrawBone(
 // メッシュ生成
 void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh)
 {
-	D3D11_BUFFER_DESC desc = {};
-	desc.ByteWidth = static_cast<UINT>(sizeof(Vector3) * vertices.size());
-	desc.Usage = D3D11_USAGE_IMMUTABLE;
-	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	desc.CPUAccessFlags = 0;
-	desc.MiscFlags = 0;
-	desc.StructureByteStride = 0;
+	const Gpu::BufferDesc desc(static_cast<UINT>(sizeof(Vector3) * vertices.size()),
+		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
 	D3D11_SUBRESOURCE_DATA subresourceData = {};
 	subresourceData.pSysMem = vertices.data();
 	subresourceData.SysMemPitch = 0;
 	subresourceData.SysMemSlicePitch = 0;
 
-	HRESULT hr = device->CreateBuffer(&desc, &subresourceData, mesh.vertexBuffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+	mesh.vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, desc, &subresourceData);
 
 	mesh.vertexCount = static_cast<UINT>(vertices.size());
 }
@@ -441,12 +422,11 @@ void ShapeRenderer::Render(
 	const Matrix& projection)
 {
 	// シェーダー設定
-	dc->VSSetShader(vertexShader.Get(), nullptr, 0);
-	dc->PSSetShader(pixelShader.Get(), nullptr, 0);
-	dc->IASetInputLayout(inputLayout.Get());
+	vertexShader->Bind(dc);
+	pixelShader->Bind(dc);
 
 	// 定数バッファ設定
-	dc->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
+	constantBuffer->BindVS(dc, 0);
 
 	// ビュープロジェクション行列作成
 	DirectX::XMMATRIX V = DirectX::XMLoadFloat4x4(&view);
@@ -456,12 +436,12 @@ void ShapeRenderer::Render(
 	// プリミティブ設定
 	UINT stride = sizeof(Vector3);
 	UINT offset = 0;
-	dc->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	Gpu::VertexBuffer::SetTopology(dc, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	for (const Instance& instance : instances)
 	{
 		// 頂点バッファ設定
-		dc->IASetVertexBuffers(0, 1, instance.mesh->vertexBuffer.GetAddressOf(), &stride, &offset);
+		instance.mesh->vertexBuffer->Bind(dc, stride, 0, offset);
 
 		// ワールドビュープロジェクション行列作成
 		DirectX::XMMATRIX W = DirectX::XMLoadFloat4x4(&instance.worldTransform);
@@ -472,10 +452,10 @@ void ShapeRenderer::Render(
 		DirectX::XMStoreFloat4x4(&cbMesh.worldViewProjection, WVP);
 		cbMesh.color = instance.color;
 
-		dc->UpdateSubresource(constantBuffer.Get(), 0, 0, &cbMesh, 0, 0);
+		constantBuffer->Update(dc, &cbMesh);
 
 		// 描画
-		dc->Draw(instance.mesh->vertexCount, 0);
+		instance.mesh->vertexBuffer->Draw(dc, instance.mesh->vertexCount);
 	}
 	instances.clear();
 }

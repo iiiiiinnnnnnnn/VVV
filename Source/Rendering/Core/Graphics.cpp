@@ -1,7 +1,7 @@
 // Graphics.cpp
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/Graphics.h"
-#include "Resource/GpuResourceUtils.h"
+#include "Resource/Texture.h"
 
 #include <d3d11_4.h>
 #include <stdexcept>
@@ -98,7 +98,26 @@ namespace Game
 		RecreateFrameBuffers(screenWidth, screenHeight);
 
 		// 各レンダラー生成
-		renderState       = std::make_unique<RenderState>(device.Get());
+		// 共通ステート
+		OpaqueBlendState = std::make_unique<Gpu::BlendState>(device.Get(), false, D3D11_BLEND_ONE, D3D11_BLEND_ZERO);
+		TransparentBlendState = std::make_unique<Gpu::BlendState>(device.Get(), true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA);
+		AdditiveBlendState = std::make_unique<Gpu::BlendState>(device.Get(), true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_ONE);
+		SubtractiveBlendState = std::make_unique<Gpu::BlendState>(device.Get(), true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_ONE, D3D11_BLEND_OP_REV_SUBTRACT);
+		MultiplicativeBlendState = std::make_unique<Gpu::BlendState>(device.Get(), true, D3D11_BLEND_DEST_COLOR, D3D11_BLEND_ZERO);
+		DepthWriteState = std::make_unique<Gpu::DepthStencilState>(device.Get(), true, true);
+		DepthReadState = std::make_unique<Gpu::DepthStencilState>(device.Get(), true, false);
+		DepthWriteOnlyState = std::make_unique<Gpu::DepthStencilState>(device.Get(), true, true, D3D11_COMPARISON_ALWAYS);
+		DepthDisabledState = std::make_unique<Gpu::DepthStencilState>(device.Get(), false, false);
+		SolidRasterizerState = std::make_unique<Gpu::RasterizerState>(device.Get(), D3D11_FILL_SOLID, D3D11_CULL_NONE);
+		BackCullRasterizerState = std::make_unique<Gpu::RasterizerState>(device.Get(), D3D11_FILL_SOLID, D3D11_CULL_BACK);
+		WireframeRasterizerState = std::make_unique<Gpu::RasterizerState>(device.Get(), D3D11_FILL_WIREFRAME, D3D11_CULL_NONE, true);
+		WireframeBackCullRasterizerState = std::make_unique<Gpu::RasterizerState>(device.Get(), D3D11_FILL_WIREFRAME, D3D11_CULL_BACK, true);
+		PointWrapSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP);
+		PointWrapBaseLevelSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_WRAP, 1, 0.0f, 0.0f);
+		PointClampSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
+		LinearWrapSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		LinearClampSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		AnisotropicWrapSamplerState = std::make_unique<Gpu::SamplerState>(device.Get(), D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP, 16);
 		primitiveRenderer = std::make_unique<PrimitiveRenderer>(device.Get());
 		debugSolidRenderer = std::make_unique<DebugSolidRenderer>(device.Get());
 		trailRenderer	  = std::make_unique<TrailRenderer>(device.Get());
@@ -326,23 +345,11 @@ namespace Game
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newSpecularPMREM;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> newDiffuseIEM;
 
-		HRESULT hr = GpuResourceUtils::LoadTexture(
-			device.Get(),
-			lutPath.generic_string().c_str(),
-			newGGXLUT.GetAddressOf());
-		if (FAILED(hr)) return false;
+		newGGXLUT = Texture(device.Get(), lutPath.generic_string().c_str(), true).GetShaderResourceView();
 
-		hr = GpuResourceUtils::LoadTexture(
-			device.Get(),
-			specularPath.generic_string().c_str(),
-			newSpecularPMREM.GetAddressOf());
-		if (FAILED(hr)) return false;
+		newSpecularPMREM = Texture(device.Get(), specularPath.generic_string().c_str(), true).GetShaderResourceView();
 
-		hr = GpuResourceUtils::LoadTexture(
-			device.Get(),
-			diffusePath.generic_string().c_str(),
-			newDiffuseIEM.GetAddressOf());
-		if (FAILED(hr)) return false;
+		newDiffuseIEM = Texture(device.Get(), diffusePath.generic_string().c_str(), true).GetShaderResourceView();
 
 		iblGGXLUT = newGGXLUT;
 		iblSpecularPMREM = newSpecularPMREM;

@@ -1,5 +1,6 @@
 // ColorWidget.cpp
 #include "UI/ColorWidget.h"
+#include "Rendering/Core/Graphics.h"
 #include "Rendering/Component/SpriteRenderComponent.h"
 
 ColorWidget::ColorWidget(SpriteShaderId shaderId, const Color& color)
@@ -10,7 +11,7 @@ ColorWidget::ColorWidget(SpriteShaderId shaderId, const Color& color)
 void ColorWidget::OnAwake()
 {
 	AddComponent<SpriteRenderComponent>(
-		std::make_shared<Texture>(Color(1, 1, 1, 1)), shaderId, color);
+		std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), Color(1, 1, 1, 1)), shaderId, color);
 }
 
 void ColorWidget::SetColor(const Color& color)

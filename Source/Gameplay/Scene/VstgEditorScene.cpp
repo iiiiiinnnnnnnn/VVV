@@ -250,7 +250,7 @@ void VstgEditorScene::RenderPropPreview(const RenderContext& rc)
 	previewContext.shadowMapData = {};
 	previewContext.renderSettings.showDebug = false;
 	graphics.GetModelRenderer()->Draw(
-		ModelShaderId::VMat, propPreviewModel, &propPreviewRenderParams);
+		ModelShaderId::PBR, propPreviewModel, &propPreviewRenderParams);
 	graphics.GetModelRenderer()->Render(previewContext);
 	propPreviewTarget->Deactivate(dc);
 }
@@ -264,33 +264,16 @@ void VstgEditorScene::RenderDragPreview(const RenderContext& rc)
 	dragPreviewModel->UpdateTransform(modelTransform);
 	Game::Graphics& graphics = Game::Graphics::Instance();
 	graphics.GetModelRenderer()->Draw(
-		ModelShaderId::VMat, dragPreviewModel, &dragPreviewRenderParams);
+		ModelShaderId::PBR, dragPreviewModel, &dragPreviewRenderParams);
 	graphics.GetModelRenderer()->Render(rc);
-}
-
-void VstgEditorScene::DrawSerialViewer()
-{
-	if (!showSerialViewer || !terrain || !navMesh || !stageLoader || !currentStage) return;
-	try
-	{
-		if (!serialViewerDocument)
-		{
-			if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager())) throw std::runtime_error(data.GetError());
-			serialViewerDocument = &data.GetSerialDocument();
-		}
-		if (serialViewer.Draw(*serialViewerDocument, &showSerialViewer))
-			dirty = true;
-	}
-	catch (const std::exception& exception) { showSerialViewer = false; ErrorMessage(exception.what()); }
 }
 
 void VstgEditorScene::HandleShortcuts()
 {
+	HandleVisibilityShortcuts();
 	auto& io = ImGui::GetIO();
 	if (!io.WantTextInput && !io.KeyCtrl && !io.KeyAlt && !io.KeySuper)
 	{
-		if (ImGui::IsKeyPressed(ImGuiKey_F, false)) renderSettings.showFog = !renderSettings.showFog;
-		if (ImGui::IsKeyPressed(ImGuiKey_G, false)) renderSettings.showGrass = !renderSettings.showGrass;
 		if (terrain && ImGui::IsKeyPressed(ImGuiKey_B, false))
 			terrain->SetBrushEnabled(!terrain->IsBrushEnabled());
 	}
@@ -386,43 +369,21 @@ void VstgEditorScene::OnDrawGUI()
 		}
 		if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
 		{
-			if (ImGui::MenuItem(ICON_FA_ADJUST " PBR", nullptr, renderSettings.shadingMode == ShadingMode::Pbr))
-				renderSettings.shadingMode = ShadingMode::Pbr;
-			if (ImGui::MenuItem(ICON_FA_SUN " Unlit", nullptr, renderSettings.shadingMode == ShadingMode::Unlit))
-				renderSettings.shadingMode = ShadingMode::Unlit;
-			if (ImGui::MenuItem((const char*)(ICON_FA_ADJUST " " u8"ソリッド"), nullptr, renderSettings.shadingMode == ShadingMode::Solid))
-				renderSettings.shadingMode = ShadingMode::Solid;
-			ImGui::Separator();
-			ImGui::Checkbox((const char*)(ICON_FA_LEAF " " u8"草マップ"), &renderSettings.showGrass);
-			ImGui::Checkbox((const char*)(ICON_FA_SMOG " " u8"フォグ"), &renderSettings.showFog);
-			ImGui::Separator();
+			DrawCommonVisibilityGUI();
 			ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &renderSettings.showDebug);
 			ImGui::Checkbox((const char*)(ICON_FA_SHAPES " " u8"コライダー"), &renderSettings.showColliderDebug);
 			ImGui::Checkbox((const char*)(ICON_FA_PUZZLE_PIECE " " u8"コンポーネント"), &renderSettings.showComponentDebug);
 			ImGui::Checkbox((const char*)(ICON_FA_LIGHTBULB " " u8"ライト"), &renderSettings.showLightDebug);
 			ImGui::Checkbox((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"ナビメッシュ"), &renderSettings.showNavMeshDebug);
-			ImGui::Checkbox((const char*)(ICON_FA_DRAW_POLYGON " " u8"ワイヤーフレーム"), &renderSettings.wireframe);
 			ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
 		{
-			if (ImGui::MenuItem((const char*)u8"シリアルビューアー"))
-			{
-				showSerialViewer = true;
-				serialViewerDocument = nullptr;
-			}
-			ImGui::MenuItem((const char*)u8"描画診断", nullptr, &showRenderDiagnostics);
+			DrawSerialViewerTools();
 			ImGui::EndMenu();
 		}
 		DrawWindowMenu();
-		std::string displayPath = (const char*)u8"名称未設定";
-		if (!path.empty())
-		{
-			const std::u8string utf8Path = path.u8string();
-			displayPath.assign(reinterpret_cast<const char*>(utf8Path.data()), utf8Path.size());
-		}
-		if (dirty) displayPath += " *";
-		DrawEditorText(displayPath);
+		DrawDocumentTitle(path, dirty);
 		ImGui::EndMainMenuBar();
 	}
 
@@ -485,14 +446,7 @@ void VstgEditorScene::OnDrawGUI()
 		else if (stageLoader && stageLoader->DeleteSelectedEditorObject()) dirty = true;
 	}
 
-	// ギズモ操作のショートカット
-	if (!io.WantTextInput &&
-		(Game::Input::Instance().GetMouse().GetButton() & Mouse::BTN_RIGHT) == 0)
-	{
-		if (ImGui::IsKeyPressed(ImGuiKey_W, false)) gizmoOperation = ImGuizmo::TRANSLATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_E, false)) gizmoOperation = ImGuizmo::ROTATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_R, false)) gizmoOperation = ImGuizmo::SCALE;
-	}
+	HandleGizmoShortcuts(gizmoOperation);
 
 	// 3Dビュー上部のギズモ切り替え
 	const ImVec2 viewportMin = {workPosition.x + leftWidth + gap, workPosition.y};
@@ -508,12 +462,7 @@ void VstgEditorScene::OnDrawGUI()
 	if (ImGui::Begin("###VSTG Viewport Toolbar", nullptr, toolbarFlags))
 	{
 		ImGui::TextUnformatted((const char*)(ICON_FA_CUBE " " u8"3Dビュー"));
-		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)(ICON_FA_ARROWS_ALT " " u8"移動"))) gizmoOperation = ImGuizmo::TRANSLATE;
-		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)(ICON_FA_SYNC_ALT " " u8"回転"))) gizmoOperation = ImGuizmo::ROTATE;
-		ImGui::SameLine();
-		if (ImGui::SmallButton((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"サイズ"))) gizmoOperation = ImGuizmo::SCALE;
+		DrawGizmoButtons(gizmoOperation, true);
 	}
 	ImGui::End();
 
@@ -970,7 +919,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			{
 				for (const VMDLModel::Material& material : dragPreviewModel->GetMaterials())
 				{
-					VMatMaterialParams& params = dragPreviewRenderParams.materials[material.name];
+					PBRMaterialParams& params = dragPreviewRenderParams.materials[material.name];
 					params.baseColor = Color(0.15f, 0.65f, 1.0f, 0.45f);
 					params.emissionColor = Color(0.05f, 0.2f, 0.35f, 1.0f);
 					params.metalness = 0.0f;
@@ -1641,8 +1590,17 @@ void VstgEditorScene::UpdateTitle()
 	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VEER");
 }
 
-void VstgEditorScene::ErrorMessage(const std::string& message)
+
+
+SerialDocument* VstgEditorScene::PrepareSerialDocument()
 {
-	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		Utf8ToWide(message).c_str(), L"VEER", MB_ICONERROR);
+	if (!terrain || !navMesh || !stageLoader || !currentStage) return nullptr;
+	if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()))
+		throw std::runtime_error(data.GetError());
+	return &data.GetSerialDocument();
+}
+
+void VstgEditorScene::OnSerialDocumentChanged()
+{
+	dirty = true;
 }
