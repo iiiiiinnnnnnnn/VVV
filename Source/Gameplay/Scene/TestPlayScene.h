@@ -2,6 +2,7 @@
 
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Effect/ParticleSystem.h"
+#include "UI/XboxControllerWidget.h"
 
 class LocalPlayer;
 class TextWidget;
@@ -58,4 +59,8 @@ private:
 	Aracore* movieBoss = nullptr;
 
 	bool showDevelopText = true;
+
+	const Vector2 DefaultXboxControllerPos = Vector2{-48.0f, 686.0f};
+	std::shared_ptr<XboxControllerWidget> xboxControllerWidget;
+
 };

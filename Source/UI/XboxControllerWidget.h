@@ -14,6 +14,7 @@ public:
 protected:
 	void OnAwake() override;
 	void OnUpdate() override;
+	void OnDrawGUI() override;
 
 private:
 	using Control = LocalPlayerInput::Control;
@@ -25,6 +26,7 @@ private:
 		std::vector<std::shared_ptr<Widget>> widgets;
 		Control control;
 		Control secondaryControl;
+		float offTimer = 0.4f; // 消灯タイマー(これがないとチカチカする)
 	};
 	std::vector<ControlHighlight> highlights;
 	std::weak_ptr<Object> inputOwner;

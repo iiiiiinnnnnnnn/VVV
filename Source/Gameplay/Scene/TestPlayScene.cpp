@@ -21,7 +21,6 @@
 #include "UI/BossBarWidget.h"
 #include "UI/GaugeWidget.h"
 #include "UI/WidgetGroup.h"
-#include "UI/XboxControllerWidget.h"
 #include "UI/TextWidget.h"
 #include "UI/PauseMenuWidget.h"
 #include "Gameplay/Actor/Deer.h"
@@ -144,8 +143,9 @@ void TestPlayScene::OnInit()
 #endif
 
 	// 操作確認画面
-	gameHud->AddChild(std::make_shared<XboxControllerWidget>(
-		player, Vector2{-48.0f, 686.0f}, Vector2{0.4f, 0.4f}));
+	xboxControllerWidget = std::make_shared<XboxControllerWidget>(
+		player, DefaultXboxControllerPos + Vector2(0, 400.0f), Vector2{0.4f, 0.4f});
+	gameHud->AddChild(xboxControllerWidget);
 }
 
 TestPlayScene::~TestPlayScene()
@@ -246,7 +246,11 @@ void TestPlayScene::OnUpdate()
 		{
 			Actor* boss = nullptr;
 			for (Actor* actor : currentStage->GetActorManager().GetActors())
-				if (dynamic_cast<Aracore*>(actor) && !actor->IsPendingDestroy()) { boss = actor; break; }
+				if (dynamic_cast<Aracore*>(actor) && !actor->IsPendingDestroy())
+				{
+					boss = actor;
+					break;
+				}
 			movieCamera->Begin(*currentStage, *player, boss, postProcess);
 		}
 		if (gameHud) gameHud->SetActive(!movieCamera->IsEditing());
@@ -313,18 +317,16 @@ void TestPlayScene::OnUpdate()
 		if (ImGui::IsKeyPressed(ImGuiKey_2))
 		{
 			currentStage->GetActorManager().Register(std::make_shared<Crystal>(
-				Transform::FromPosition(player->transform.position + Vector3(0, 0.0f, 0)))
-			);
+				Transform::FromPosition(player->transform.position + Vector3(0, 0.0f, 0))));
 		}
 		// aracore
 		if (ImGui::IsKeyPressed(ImGuiKey_3))
 		{
 			currentStage->GetActorManager().Register(
 				std::make_shared<Aracore>(
-				player.get(),
-				Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)),
-				currentStage->GetComponent<Terrain>())
-			);
+					player.get(),
+					Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)),
+					currentStage->GetComponent<Terrain>()));
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_4))
 		{
@@ -388,8 +390,36 @@ void TestPlayScene::OnUpdate()
 	if (!player || !playerHealthGauge) return;
 
 	const float maximumLife = player->GetMaxLife();
-	playerHealthGauge->SetValue(maximumLife > 0 ?
-		std::clamp(player->GetLife() / maximumLife, 0.0f, 1.0f) : 0.0f);
+	playerHealthGauge->SetValue(maximumLife > 0 ? std::clamp(player->GetLife() / maximumLife, 0.0f, 1.0f) : 0.0f);
+
+	// とある地点でxboxコントローラーの操作UIを隠す
+
+	// とあるエリアのベクトル
+	Transform hideArea = Transform::FromPosition({50.685f, 3.295f, 2.631f});
+	hideArea.SetAngle(9.213f, -103.898f, 0.0f);
+	auto areaVec = hideArea.GetMatrix();
+
+	// プレイヤーのベクトル
+	auto plVec = player->GetTransform()->GetMatrix();
+
+	// 裏表計算
+	float omote = (plVec * areaVec.Invert()).m[3][2];
+	const float HideSpeed = 4.0f;
+	const float blend = std::clamp(Game::Time::unscaledDeltaTime * HideSpeed, 0.0f, 1.0f);
+	if (omote > 0)
+	{
+		// 隠す
+		xboxControllerWidget->rect.position =
+			Vector2::Lerp(xboxControllerWidget->rect.position,
+				DefaultXboxControllerPos + Vector2(0, 400.0f), blend);
+	}
+	else
+	{
+		// 出す
+		xboxControllerWidget->rect.position =
+			Vector2::Lerp(xboxControllerWidget->rect.position,
+				DefaultXboxControllerPos + Vector2(0, 0), blend);
+	}
 }
 
 void TestPlayScene::OnDrawGUI()

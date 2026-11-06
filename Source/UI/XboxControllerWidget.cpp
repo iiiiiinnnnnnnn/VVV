@@ -192,18 +192,29 @@ void XboxControllerWidget::OnUpdate()
 	
 	const auto owner = inputOwner.lock(); // プレイヤーが存在するか
 	const auto* input = owner ? owner->GetComponent<LocalPlayerInput>() : nullptr;
-	for (const auto& group : highlights)
+
+	for (auto& group : highlights)
 	{
 		const bool highlighted = input && (input->IsControlHeld(group.control) ||
 											  input->IsControlHeld(group.secondaryControl));
-		const Color color = highlighted ? Color(0.0f, 0.318f, 0.29f, 1.0f) : Color(1, 1, 1, 1);
+		const Color color = (highlighted || group.offTimer > 0.0f) ? Color(0,0,0,1) : Color(1, 1, 1, 1);
+		if (highlighted) group.offTimer = 0.1f; // 消灯タイマー(これがないとチカチカする)
 		for (const auto& widget : group.widgets)
 		{
-			if (auto* text = dynamic_cast<TextWidget*>(widget.get())) text->SetColor(color);
-			else if (auto* line = dynamic_cast<CustomLineWidget*>(widget.get()))
-				line->SetColor(color);
-			else if (auto* sprite = dynamic_cast<SpriteWidget*>(widget.get()))
+			// ボタンだけ黒くした方が綺麗だった
+			// if (auto* text = dynamic_cast<TextWidget*>(widget.get())) text->SetColor(color);
+			//if (auto* line = dynamic_cast<CustomLineWidget*>(widget.get()))
+			//	line->SetColor(color);
+			if (auto* sprite = dynamic_cast<SpriteWidget*>(widget.get()))
 				sprite->SetColor(color);
 		}
+
+		group.offTimer -= Game::Time::unscaledDeltaTime;
 	}
+}
+
+void XboxControllerWidget::OnDrawGUI()
+{
+	WidgetGroup::OnDrawGUI();
+
 }
