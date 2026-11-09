@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Windows.h>
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
@@ -9,136 +8,21 @@
 #include <cctype>
 #include <cwctype>
 #include <filesystem>
-#include <string>
 #include <fstream>
 #include <stdexcept>
 #include <vector>
+#include <windows.h>
+#include <memory>
+#include <assert.h>
+#include <tchar.h>
+#include <Windows.h>
+#include <wrl.h>
 
-inline std::wstring Utf8ToWide(const std::string& text)
-{
-	if (text.empty()) return {};
-	const int length =
-		MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-	if (length <= 0) return std::wstring(text.begin(), text.end());
-	std::wstring result(static_cast<size_t>(length), L'\0');
-	MultiByteToWideChar(
-		CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(), length);
-	return result;
-}
-
-// Convert a string to lowercase
-inline std::wstring ToLowerWString(std::wstring text)
-{
-    std::transform(
-        text.begin(),
-        text.end(),
-        text.begin(),
-        [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }
-    );
-
-    return text;
-}
-
-// Convert a string to uppercase
-inline std::wstring ToUpperWString(std::wstring text)
-{
-    std::transform(
-        text.begin(),
-        text.end(),
-        text.begin(),
-        [](wchar_t c) { return static_cast<wchar_t>(std::towupper(c)); }
-    );
-
-    return text;
-}
-
-// Convert a string to lowercase
-inline std::string ToLowerString(std::string text)
-{
-    std::transform(
-        text.begin(),
-        text.end(),
-        text.begin(),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); }
-    );
-
-    return text;
-}
-
-// Convert a string to uppercase
-inline std::string ToUpperString(std::string text)
-{
-    std::transform(
-        text.begin(),
-        text.end(),
-        text.begin(),
-        [](unsigned char c) { return static_cast<char>(std::toupper(c)); }
-    );
-
-    return text;
-}
-
-inline bool ReadBinaryFile(const std::filesystem::path& path, std::vector<uint8_t>& outData)
-{
-	outData.clear();
-
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	if (!file) return false;
-
-	std::streamsize size = file.tellg();
-	if (size <= 0) return false;
-
-	outData.resize(static_cast<size_t>(size));
-	file.seekg(0, std::ios::beg);
-	file.read(reinterpret_cast<char*>(outData.data()), size);
-
-	if (file) return true;
-
-	outData.clear();
-	return false;
-}
-
-// Generate a random
-class Random
-{
-public:
-    static float Range(float min, float max)
-    {
-        float t = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-        return min + t * (max - min);
-    }
-
-    static int Range(int min, int max)
-    {
-        return min + rand() % (max - min + 1);
-    }
-};
-
-#include <DirectXMath.h>
-#include <SimpleMath.h>
-
-using DirectX::SimpleMath::Vector2;
-using DirectX::SimpleMath::Vector3;
-using DirectX::SimpleMath::Vector4;
-using DirectX::SimpleMath::Matrix;
-using DirectX::SimpleMath::Quaternion;
-using DirectX::SimpleMath::Color;
-
-constexpr float eps = 1e-6f;
-
-#define RAD(x) DirectX::XMConvertToRadians(x)
-#define DEG(x) DirectX::XMConvertToDegrees(x)
-
-// Convert a 32-bit RGBA color to a Color object
-inline Color ColorFromRGBA(uint32_t rgba)
-{
-    return Color(
-        ((rgba >> 24) & 0xFF) / 255.0f,
-        ((rgba >> 16) & 0xFF) / 255.0f,
-        ((rgba >>  8) & 0xFF) / 255.0f,
-        ((rgba >>  0) & 0xFF) / 255.0f
-    );
-}
+#include <Dx11Kit/Dx11Kit.h>
+#include <magic_enum/magic_enum_all.hpp>
+#include "Random.h"
+#include "StrUtils.h"
+#include "BinaryFile.h"
 
 // ピクセル座標へ変換
 inline bool WorldToScreen(const Vector3& worldPosition, const Matrix& viewProjection,
@@ -170,4 +54,5 @@ inline bool WorldToScreen(const Vector3& worldPosition, const Matrix& viewProjec
 	return true;
 }
 
-#include <magic_enum/magic_enum_all.hpp>
+
+#include "Core/Foundation/Logger.h"

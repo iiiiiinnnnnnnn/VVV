@@ -139,7 +139,6 @@ class VmdlEditorScene : public EditorScene
 	void UpdateParticlePreview(const RenderContext& rc);
 	void UpdatePointLightPreview();
 	void UpdateExternalMeshPreview();
-	void RecordSelectedNodeKey();
 	void MarkDirty();
 	void UpdateModelFraming();
 	std::string MakeUniqueMorphName(const std::string& baseName) const;
@@ -266,7 +265,6 @@ class VmdlEditorScene : public EditorScene
 	float radialBlurPreviewPower = 0.0f;
 	float radialBlurPreviewAttackRate = 0.15f;
 	bool animationLoop = true;
-	bool animationRecording = false;
 	bool draggingAnimationKey = false;
 	bool scrubbingAnimationTime = false;
 	bool paintingFootWeight = false;

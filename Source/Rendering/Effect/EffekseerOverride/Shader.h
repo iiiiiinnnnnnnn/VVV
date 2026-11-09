@@ -3,7 +3,10 @@
 #define __EFFEKSEERRENDERER_DX11_SHADER_H__
 
 #include "GraphicsDevice.h"
+#pragma push_macro("Log")
+#undef Log
 #include <EffekseerRendererCommon/EffekseerRenderer.ShaderBase.h>
+#pragma pop_macro("Log")
 
 namespace EffekseerRendererDX11
 {

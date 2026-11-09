@@ -1,4 +1,5 @@
 ﻿#include "Physics/Collider/MeshCollider.h"
+#include "Core/Foundation/Logger.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
@@ -212,7 +213,7 @@ void MeshCollider::UpdateShape()
         {
             if (vertices.size() < 4)
             {
-                OutputDebugStringA("MeshCollider: skipped convex mesh with fewer than 4 vertices.\n");
+                Log("MeshCollider: skipped convex mesh with fewer than 4 vertices.\n");
                 continue;
             }
 
@@ -227,7 +228,7 @@ void MeshCollider::UpdateShape()
             const bool cooked = PxCookConvexMesh(*cookingParams, convexDesc, writeBuffer);
             if (!cooked || writeBuffer.getSize() == 0)
             {
-                OutputDebugStringA("MeshCollider: skipped convex mesh because PhysX cooking failed.\n");
+                Log("MeshCollider: skipped convex mesh because PhysX cooking failed.\n");
                 continue;
             }
 
@@ -235,7 +236,7 @@ void MeshCollider::UpdateShape()
             PxConvexMesh* convexMesh = physics->createConvexMesh(readBuffer);
             if (convexMesh == nullptr)
             {
-                OutputDebugStringA("MeshCollider: skipped convex mesh because createConvexMesh failed.\n");
+                Log("MeshCollider: skipped convex mesh because createConvexMesh failed.\n");
                 continue;
             }
 
@@ -256,7 +257,7 @@ void MeshCollider::UpdateShape()
             const bool cooked = PxCookTriangleMesh(*cookingParams, meshDesc, writeBuffer);
             if (!cooked || writeBuffer.getSize() == 0)
             {
-                OutputDebugStringA("MeshCollider: skipped triangle mesh because PhysX cooking failed.\n");
+                Log("MeshCollider: skipped triangle mesh because PhysX cooking failed.\n");
                 continue;
             }
 
@@ -264,7 +265,7 @@ void MeshCollider::UpdateShape()
             PxTriangleMesh* triangleMesh = physics->createTriangleMesh(readBuffer);
             if (triangleMesh == nullptr)
             {
-                OutputDebugStringA("MeshCollider: skipped triangle mesh because createTriangleMesh failed.\n");
+                Log("MeshCollider: skipped triangle mesh because createTriangleMesh failed.\n");
                 continue;
             }
 
@@ -274,7 +275,7 @@ void MeshCollider::UpdateShape()
 
         if (shape == nullptr)
         {
-            OutputDebugStringA("MeshCollider: skipped mesh because createShape failed.\n");
+            Log("MeshCollider: skipped mesh because createShape failed.\n");
             continue;
         }
 

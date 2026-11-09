@@ -13,8 +13,8 @@ for /d %%D in (*) do (
     if /i "!NAME!"=="Obj" set "SKIP=1"
     if /i "!NAME!"=="dist" set "SKIP=1"
     if /i "!NAME!"=="External" set "SKIP=1"
-    if /i "!NAME!"=="TOols" set "SKIP=1"
-
+    if /i "!NAME!"=="Tools" set "SKIP=1"
+    if /i "!NAME!"=="Log" set "SKIP=1"
     if /i "!NAME!"=="Resources" set "SKIP=1"
 
     if not defined SKIP (

@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "maps": {
+    "DebugInput": {
+      "actions": {
+        "ToggleCursor": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 112,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "ToggleEditor": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 113,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "ToggleDebugDisplay": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 114,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "TogglePause": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 115,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "Resume": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 116,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        }
+      }
+    }
+  }
+}

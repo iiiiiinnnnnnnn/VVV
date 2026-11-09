@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "Application/Time/GameTime.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Resource/ResourceManager.h"
@@ -67,7 +67,7 @@ void GaugeWidget::OnUpdate()
 {
 	if (onValueChanged)
 	{
-		Mouse& mouse = Game::Input::Instance().GetMouse();
+		InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 		const Vector2 topLeft = Vector2::Zero;
 		const float fillLeft = topLeft.x + rect.size.x * fillPosition.x;
 		const float fillTop = topLeft.y + rect.size.y * fillPosition.y;
@@ -78,11 +78,11 @@ void GaugeWidget::OnUpdate()
 			static_cast<float>(mouse.GetPositionY())), localMouse);
 		const float mouseX = localMouse.x;
 		const float mouseY = localMouse.y;
-		if (hasMouse && (mouse.GetButtonDown() & Mouse::BTN_LEFT) &&
+		if (hasMouse && (mouse.GetButtonDown() & InputKit::Mouse::BTN_LEFT) &&
 			mouseX >= fillLeft && mouseX <= fillLeft + fillWidth &&
 			mouseY >= fillTop && mouseY <= fillTop + fillHeight)
 			dragging = true;
-		if ((mouse.GetButton() & Mouse::BTN_LEFT) == 0) dragging = false;
+		if ((mouse.GetButton() & InputKit::Mouse::BTN_LEFT) == 0) dragging = false;
 		if (dragging && hasMouse && fillWidth > 0.0f)
 		{
 			const float value = std::clamp((mouseX - fillLeft) / fillWidth, 0.0f, 1.0f);

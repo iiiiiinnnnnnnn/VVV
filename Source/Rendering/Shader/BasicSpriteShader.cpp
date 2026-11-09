@@ -1,16 +1,16 @@
-﻿#include "Rendering/Core/PixelShader.h"
+﻿#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/BasicSpriteShader.h"
 
 BasicSpriteShader::BasicSpriteShader(ID3D11Device* device)
 {
 	// 頂点シェーダー
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpriteVS.cso").c_str(),
 		SpriteShader::InputLayout);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/BasicSpritePS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpritePS.cso").c_str());
 
 	// 定数バッファ
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbBasic));

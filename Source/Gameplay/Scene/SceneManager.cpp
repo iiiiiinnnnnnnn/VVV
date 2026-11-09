@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 // SceneManager.cpp
 #include "Gameplay/Scene/SceneManager.h"
 

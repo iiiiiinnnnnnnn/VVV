@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ImGuiToolKit/ImGuiToolKit.h>
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/VstgEditorScene.h"
 
 #include <algorithm>
@@ -10,7 +11,7 @@
 #include <imguizmo/ImGuizmo.h>
 
 #include "Application/Tools/Dialog.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -28,8 +29,7 @@
 #include "Resource/ResourcePath.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/RenderTarget.h"
-#include "Rendering/Renderer/ImGuiTheme.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Renderer/ShapeRenderer.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "IconsFontAwesome5.h"
@@ -316,35 +316,35 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, popupColor);
 
 	// VSTG Editorの青テーマ
-	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGuiTheme::BlueSelectedBorder);
-	ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImGuiTheme::BlueButton);
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_Header, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_SeparatorActive, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_ResizeGrip, ImGuiTheme::BlueButton);
-	ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, ImGuiTheme::BlueButtonHovered);
-	ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ImGuiTheme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGuiToolKit::Theme::BlueSelectedBorder);
+	ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImGuiToolKit::Theme::BlueButton);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_Header, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_SeparatorActive, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_ResizeGrip, ImGuiToolKit::Theme::BlueButton);
+	ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, ImGuiToolKit::Theme::BlueButtonHovered);
+	ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ImGuiToolKit::Theme::BlueButtonActive);
 	const ImVec4 tabColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
 	ImGui::PushStyleColor(ImGuiCol_Tab, tabColor);
-	ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiTheme::BlueSelectedBorder);
+	ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiToolKit::Theme::BlueSelectedBorder);
 	ImGui::PushStyleColor(ImGuiCol_TabDimmed, tabColor);
-	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiTheme::BlueSelectedBorder);
-	ImGui::PushStyleColor(ImGuiCol_TextLink, ImGuiTheme::BlueSelectedBorder);
-	ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImGuiTheme::BlueSelected);
-	ImGui::PushStyleColor(ImGuiCol_DockingPreview, ImGuiTheme::BlueButtonActive);
-	ImGui::PushStyleColor(ImGuiCol_NavCursor, ImGuiTheme::BlueSelectedBorder);
+	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiToolKit::Theme::BlueSelectedBorder);
+	ImGui::PushStyleColor(ImGuiCol_TextLink, ImGuiToolKit::Theme::BlueSelectedBorder);
+	ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImGuiToolKit::Theme::BlueSelected);
+	ImGui::PushStyleColor(ImGuiCol_DockingPreview, ImGuiToolKit::Theme::BlueButtonActive);
+	ImGui::PushStyleColor(ImGuiCol_NavCursor, ImGuiToolKit::Theme::BlueSelectedBorder);
 
 	// メインメニューとファイル情報
 	UpdateTitle();
@@ -438,7 +438,7 @@ void VstgEditorScene::OnDrawGUI()
 	}
 	ImGui::End();
 
-	if (Game::Input::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
+	if (InputKit::InputSystem::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
 		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) && !ImGuizmo::IsUsing() &&
 		ImGui::IsKeyPressed(ImGuiKey_Delete, false))
 	{
@@ -732,7 +732,7 @@ void VstgEditorScene::RefreshPropModels()
 {
 	if (!ResourceManager::Instance().RefreshResources())
 	{
-		ErrorMessage("Runtime resource refresh failed.");
+		ImGuiToolKit::Alert("Runtime resource refresh failed.");
 		return;
 	}
 	propPreviewModel.reset();
@@ -968,7 +968,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 						lightingSettingsSelected = false;
 						dirty = true;
 					}
-					else if (!stageLoader->GetError().empty()) ErrorMessage(stageLoader->GetError());
+					else if (!stageLoader->GetError().empty()) ImGuiToolKit::Alert(stageLoader->GetError());
 				}
 			}
 			if (const ImGuiPayload* payload =
@@ -1049,7 +1049,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 			ImGui::EndDragDropTarget();
 		}
 		ImGui::GetWindowDrawList()->AddRect(viewportMin, viewportMax,
-			ImGui::ColorConvertFloat4ToU32(ImGuiTheme::BlueSelectedBorder), 0.0f, 0, 2.0f);
+			ImGui::ColorConvertFloat4ToU32(ImGuiToolKit::Theme::BlueSelectedBorder), 0.0f, 0, 2.0f);
 	}
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -1394,7 +1394,7 @@ void VstgEditorScene::New()
 	auto& graphics = Game::Graphics::Instance();
 	if (!graphics.LoadSkyMap("Default"))
 	{
-		ErrorMessage((const char*)u8"デフォルトのライティング環境を読み込めませんでした。");
+		ImGuiToolKit::Alert((const char*)u8"デフォルトのライティング環境を読み込めませんでした。");
 		return;
 	}
 	graphics.GetSkyBoxRenderer()->SetIntensity(1.0f);
@@ -1431,19 +1431,19 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 	VSTG loaded;
 	if (!loaded.Load(stagePath))
 	{
-		ErrorMessage(loaded.GetError());
+		ImGuiToolKit::Alert(loaded.GetError());
 		return false;
 	}
 	CreateStage();
 	if (!loaded.Apply(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()))
 	{
-		ErrorMessage(loaded.GetError());
+		ImGuiToolKit::Alert(loaded.GetError());
 		return false;
 	}
 	// 現在のスキーマで扱う項目を確定し、それ以外は未知のまま保持する。
 	if (!loaded.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()))
 	{
-		ErrorMessage(loaded.GetError());
+		ImGuiToolKit::Alert(loaded.GetError());
 		return false;
 	}
 	loaded.GetSerialDocument();
@@ -1507,7 +1507,7 @@ bool VstgEditorScene::ResolveMissingModels()
 		}
 		if (relativePath.empty())
 		{
-			ErrorMessage((const char*)u8"Resourcesフォルダ内のVMDLを選択してください。");
+			ImGuiToolKit::Alert((const char*)u8"Resourcesフォルダ内のVMDLを選択してください。");
 			continue;
 		}
 
@@ -1516,7 +1516,7 @@ bool VstgEditorScene::ResolveMissingModels()
 		RefreshPropModels();
 		if (!stageLoader->ReplaceMissingModelPath(missingPath, replacementPath))
 		{
-			ErrorMessage(stageLoader->GetError().empty()
+			ImGuiToolKit::Alert(stageLoader->GetError().empty()
 				? (const char*)u8"選択したVMDLを読み込めませんでした。" : stageLoader->GetError());
 			continue;
 		}
@@ -1538,13 +1538,13 @@ void VstgEditorScene::Save()
 	if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()) ||
 		!data.Save(path))
 	{
-		ErrorMessage(data.GetError());
+		ImGuiToolKit::Alert(data.GetError());
 		return;
 	}
 	serialViewerDocument = nullptr;
 	if (!ResourceManager::Instance().RefreshResources(path))
 	{
-		ErrorMessage("Stage saved, but runtime cache refresh failed. Save again to retry.");
+		ImGuiToolKit::Alert("Stage saved, but runtime cache refresh failed. Save again to retry.");
 		return;
 	}
 	recentStagePath = path;

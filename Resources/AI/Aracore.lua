@@ -81,6 +81,7 @@ local stateActions = {
     Tossin_Turn = "TossinTurn",  -- 突進方向の調整
     Tossin = "Tossin",  -- 突進
     Recovery = "Recovery",  -- 攻撃後の休憩
+    Jump_Turn = "TossinTurn", -- ジャンプ前の向き調整
     Jump_To_Center = "JumpCenter",  -- ジャンプ
     Phase_Threat = "PhaseThreat",  -- 形態変化の威嚇
 }
@@ -139,7 +140,7 @@ local function ChangeState(nextState, restart)
     if currentState ~= "Tossin_Turn" and currentState ~= "Tossin" then
         remainingTossins = 0
     end
-    if currentState ~= "Jump_To_Center" then
+    if currentState ~= "Jump_Turn" and currentState ~= "Jump_To_Center" then
         remainingJumps = 0
     end
 
@@ -155,13 +156,11 @@ local function ChangeState(nextState, restart)
     elseif currentState == "Tossin" then
         remainingTossins = remainingTossins - 1
 
-    -- 同じジャンプ状態を再開するときは、残り回数を初期化しない。
+    -- 最初の旋回で回数を決め、ジャンプ開始ごとに1回消費する。
+    elseif currentState == "Jump_Turn" and previousState ~= "Jump_To_Center" then
+        local countParameter = GetBool("LowHealth") and "AngryLowHpJumpCount" or "AngryJumpCount"
+        remainingJumps = GetRepeatCount(countParameter)
     elseif currentState == "Jump_To_Center" then
-        if previousState ~= "Jump_To_Center" then
-            local countParameter = GetBool("LowHealth") and "AngryLowHpJumpCount" or "AngryJumpCount"
-            remainingJumps = GetRepeatCount(countParameter)
-        end
-
         remainingJumps = remainingJumps - 1
     end
 end
@@ -335,7 +334,7 @@ end
 local function UpdateRecovery()
     -- 休憩が終わり、ジャンプを選んでいたら跳ぶ。
     if GetBool("ActionFinished") and GetBool("ShouldJump") then
-        ChangeState("Jump_To_Center")
+        ChangeState("Jump_Turn")
         return
     end
 
@@ -358,6 +357,13 @@ local function UpdateRecovery()
     end
 end
 
+-- ジャンプ前向き調整
+local function UpdateJumpTurning()
+    if GetBool("IsFacingTarget") and not GetBool("IsTurning") then
+        ChangeState("Jump_To_Center")
+    end
+end
+
 -- ジャンプ
 local function UpdateJumping()
     -- 空中では中断せず、着地と着地後の待ち時間が完了するまで待つ。
@@ -376,7 +382,7 @@ local function UpdateJumping()
     end
 
     if remainingJumps > 0 and not GetBool("PhaseChangeQueued") then
-        ChangeState("Jump_To_Center", true)
+        ChangeState("Jump_Turn")
     else
         ChangeState("Tossin_Turn")
     end
@@ -401,6 +407,7 @@ local stateUpdates = {
     Tossin_Turn = UpdateTossinPreparation,
     Tossin = UpdateTossin,
     Recovery = UpdateRecovery,
+    Jump_Turn = UpdateJumpTurning,
     Jump_To_Center = UpdateJumping,
     Phase_Threat = UpdatePhaseThreat,
 }

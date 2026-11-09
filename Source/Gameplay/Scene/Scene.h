@@ -1,16 +1,13 @@
-﻿// Scene.h
+// Scene.h
 #pragma once
-#include <cstdio>
 #include <memory>
-#include <source_location>
-#include <string_view>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "Core/Foundation/Common.h"
 #include "Rendering/Core/Graphics.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "UI/Widget.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Shader/GamePostProcess.h"
@@ -25,27 +22,6 @@ class VMDLModel;
 class Scene
 {
 public:
-	struct LogFormat
-	{
-		const char* text;
-		std::source_location location;
-
-		LogFormat(const char* value,
-			std::source_location source = std::source_location::current())
-			: text(value), location(source) {}
-	};
-
-	template<class... Args>
-	static void Log(LogFormat format, Args... args)
-	{
-		const int length = std::snprintf(nullptr, 0, format.text, args...);
-		if (length < 0) return;
-		std::string message(static_cast<size_t>(length) + 1, '\0');
-		std::snprintf(message.data(), message.size(), format.text, args...);
-		message.resize(length);
-		WriteLog(message, format.location);
-	}
-
 	enum class MouseCursorMode
 	{
 		VisibleFree,
@@ -81,7 +57,6 @@ public:
 	}
 
 private:
-	static void WriteLog(std::string_view message, const std::source_location& location);
 
 	bool initialized = false;
 	bool uninitialized = false;
@@ -125,6 +100,7 @@ protected:
 
 	bool showPhysicsLayerWindow = false;
 	bool showProfilerWindow = false;
+	bool showInputSystemWindow = false;
 
 	// ゲーム内エディタ
 	bool isCursorReleased = false;

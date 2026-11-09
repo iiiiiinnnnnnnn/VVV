@@ -1,6 +1,5 @@
 #pragma once
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/VertexShader.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include <DirectXMath.h>
 #include <memory>
 

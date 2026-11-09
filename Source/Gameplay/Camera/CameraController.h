@@ -4,7 +4,7 @@
 #include "Core/Object/Component.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Camera/Camera.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 
 class CameraController : public Component
 {
@@ -41,7 +41,7 @@ public:
 		{
 			OnFocusLost();
 		}
-		else if (Game::Input::IsFocusedWindow(!BlocksOnImGuiFocus()))
+		else if (InputKit::InputSystem::IsFocusedWindow(!BlocksOnImGuiFocus()))
 		{
 			UpdateCamera();
 		}

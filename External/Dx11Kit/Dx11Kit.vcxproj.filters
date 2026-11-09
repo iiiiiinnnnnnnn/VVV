@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{CC13CC5A-D129-4188-844C-59A6098EB863}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\Dx11Kit">
+      <UniqueIdentifier>{891A6C61-7E8E-4588-BF01-7D78762AE699}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\Dx11Kit\Common.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\Dx11Kit.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\RenderTarget.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\Buffer.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\BufferDesc.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\ConstantBuffer.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\IndexBuffer.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\VertexBuffer.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\DirectXSerialization.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\DirectXTexConverts.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\VertexShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\PixelShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\GeometryShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\HullShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\DomainShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\ComputeShader.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\InputLayoutDesc.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\ShaderBytecode.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\BlendState.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\DepthStencilState.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\RasterizerState.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\SamplerState.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

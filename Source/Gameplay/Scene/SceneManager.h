@@ -32,7 +32,9 @@ class SceneManager
 
 	template <typename T, typename... Args> bool LoadScene(Args&&... args)
 	{
+		// Scene基底でなければエラー
 		static_assert(std::is_base_of_v<Scene, T>, "T must inherit from Scene.");
+
 		auto arguments = std::make_tuple(std::forward<Args>(args)...);
 
 		return RequestLoadScene(

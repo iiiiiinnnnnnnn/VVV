@@ -1,5 +1,5 @@
 #pragma once
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include <cstddef>
 
 #include <algorithm>

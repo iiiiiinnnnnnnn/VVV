@@ -1,4 +1,5 @@
 ﻿#include <array>
+#include "Core/Foundation/Logger.h"
 #include <cmath>
 #include <fstream>
 #define TINYGLTF_IMPLEMENTATION
@@ -9,6 +10,7 @@
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/Texture.h"
 #include "Resource/GLTFImporter.h"
+#include "Core/Foundation/BinaryFile.h"
 #include <DirectXTex.h>
 
 #include "Gameplay/Lighting/LightManager.h"
@@ -156,19 +158,13 @@ GLTFImporter::GLTFImporter(const char* filename)
 	if (extension == ".glb")
 	{
 		// 日本語パスでも読めるように先にメモリへ読込
-		std::ifstream stream(filepath, std::ios::binary | std::ios::ate);
-		std::streamsize size = -1;
-		if (stream) size = static_cast<std::streamsize>(stream.tellg());
-		if (size > 0 && size <= static_cast<std::streamsize>(UINT_MAX))
+		const auto file = BinaryFile::Read(filepath, UINT_MAX);
+		if (file.IsValid() && file.GetSize())
 		{
-			std::vector<unsigned char> data(static_cast<size_t>(size));
-			stream.seekg(0, std::ios::beg);
-			if (stream.read(reinterpret_cast<char*>(data.data()), size))
-			{
-				result = gltf.LoadBinaryFromMemory(
-					&gltfModel, &error, &warning, data.data(),
-					static_cast<unsigned int>(data.size()), filepath.parent_path().string());
-			}
+			const auto& data = file.GetData();
+			result = gltf.LoadBinaryFromMemory(
+				&gltfModel, &error, &warning, data.data(),
+				static_cast<unsigned int>(data.size()), filepath.parent_path().string());
 		}
 		if (!result && error.empty()) error = "Failed to read GLB file";
 	}
@@ -178,13 +174,11 @@ GLTFImporter::GLTFImporter(const char* filename)
 	}
 	if (!warning.empty())
 	{
-		OutputDebugStringA(warning.c_str());
-		OutputDebugStringA("\n");
+		Log(warning.c_str());
 	}
 	if (!result)
 	{
-		OutputDebugStringA(error.c_str());
-		OutputDebugStringA("\n");
+		Log(error.c_str());
 		throw std::runtime_error(error.empty() ? "Failed to import GLB" : error);
 	}
 }
@@ -1013,7 +1007,7 @@ void GLTFImporter::LoadLights(LightManager& lightData, const NodeList& nodes)
 	{
 		const std::string output = "light: " + l.name + " type: " + l.type +
 			" intensity: " + std::to_string(l.intensity) + "\n";
-		OutputDebugStringA(output.c_str());
+		Log(output.c_str());
 	}
 
 	bool importedDirectional = false;

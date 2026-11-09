@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -56,7 +57,7 @@ void CharacterController::OnAwake()
         .GetSceneContext().GetControllerManager()->createController(desc);
     if (!controller)
     {
-        OutputDebugStringA("CharacterController: failed to create PhysX controller.\n");
+        Log("CharacterController: failed to create PhysX controller.\n");
         return;
     }
     SetPosition(actor->transform.position);
@@ -270,7 +271,7 @@ void CharacterController::Move(const Vector3& velocity)
 
     if (!IsUsableControllerPosition(controller->getPosition()))
     {
-        OutputDebugStringA("CharacterController: skipped move because its PhysX position is invalid.\n");
+        Log("CharacterController: skipped move because its PhysX position is invalid.\n");
         return;
     }
 

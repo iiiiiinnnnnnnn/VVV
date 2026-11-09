@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <cstdint>
@@ -11,11 +11,7 @@
 #include <wrl.h>
 #include <memory>
 #include <windows.h>
-#include "Rendering/Core/BlendState.h"
-#include "Rendering/Core/DepthStencilState.h"
-#include "Rendering/Core/RasterizerState.h"
-#include "Rendering/Core/SamplerState.h"
-#include "Rendering/Core/RenderTarget.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Renderer/DebugSolidRenderer.h"
 #include "Rendering/Renderer/ShapeRenderer.h"

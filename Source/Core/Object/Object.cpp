@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
 #include "imgui.h"

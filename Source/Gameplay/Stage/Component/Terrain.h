@@ -1,13 +1,6 @@
 // Terrain.h
 #pragma once
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/IndexBuffer.h"
-#include "Rendering/Core/ConstantBuffer.h"
-#include "Rendering/Core/ComputeShader.h"
-#include "Rendering/Core/DomainShader.h"
-#include "Rendering/Core/HullShader.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
+#include <Dx11Kit/Dx11Kit.h>
 
 #include "Application/Time/Timer.h"
 

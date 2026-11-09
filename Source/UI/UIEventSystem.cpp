@@ -1,6 +1,6 @@
 #include "UI/UIEventSystem.h"
 
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "UI/WidgetGroup.h"
 
@@ -112,14 +112,14 @@ void UIEventSystem::ResetPointer(UIEventData& data)
 
 void UIEventSystem::UpdatePointer(UIEventData& data)
 {
-	Mouse& mouse = Game::Input::Instance().GetMouse();
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 	if (ImGui::GetIO().WantCaptureMouse || !mouse.IsCursorVisible() || mouse.IsCursorLocked())
 	{
 		ResetPointer(data);
 		return;
 	}
 	SetHovered(Raycast(data.position), data);
-	const MouseButton buttons[] = {Mouse::BTN_LEFT, Mouse::BTN_RIGHT, Mouse::BTN_MIDDLE};
+	const InputKit::MouseButton buttons[] = {InputKit::Mouse::BTN_LEFT, InputKit::Mouse::BTN_RIGHT, InputKit::Mouse::BTN_MIDDLE};
 	for (size_t index = 0; index < pointers.size(); ++index)
 	{
 		auto& pointer = pointers[index];
@@ -234,10 +234,9 @@ std::shared_ptr<Widget> UIEventSystem::FindNext(const std::shared_ptr<Widget>& c
 
 void UIEventSystem::UpdateNavigation(UIEventData& data)
 {
-	GamePad& pad = Game::Input::Instance().GetGamePad();
-	const bool submitHeld = (pad.GetButton() & GamePad::BTN_A) ||
-		(GetAsyncKeyState(VK_RETURN) & 0x8000) || (GetAsyncKeyState(VK_SPACE) & 0x8000);
-	const bool cancelHeld = (pad.GetButton() & (GamePad::BTN_B | GamePad::BTN_ESCAPE)) != 0;
+	const auto& input = InputKit::InputSystem::Instance();
+	const bool submitHeld = input.IsPressed("UIInput/Submit");
+	const bool cancelHeld = input.IsPressed("UIInput/Cancel");
 	if (ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantTextInput)
 	{
 		submitWasHeld = submitHeld;
@@ -269,8 +268,9 @@ void UIEventSystem::UpdateNavigation(UIEventData& data)
 	current = selected.lock();
 	if (!submitHeld) submitArmed = true;
 	Vector2 direction = Vector2::Zero;
-	const float x = pad.GetAxisLX();
-	const float y = pad.GetAxisLY();
+	const auto navigation = input.ReadValue<InputKit::Vector2>("UIInput/Navigate");
+	const float x = navigation.x;
+	const float y = navigation.y;
 	if (std::abs(x) > 0.5f || std::abs(y) > 0.5f)
 	{
 		if (std::abs(x) > std::abs(y)) direction.x = x > 0 ? 1.0f : -1.0f;
@@ -305,13 +305,13 @@ void UIEventSystem::Update(const std::vector<std::shared_ptr<Widget>>& roots)
 	for (bool postProcess : {true, false})
 		for (const auto& widget : roots)
 			if (widget && !widget->GetParent() && widget->GetAffectedByPostProcess() == postProcess) Collect(widget, parents);
-	Mouse& mouse = Game::Input::Instance().GetMouse();
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 	UIEventData data;
 	data.position = Vector2(static_cast<float>(mouse.GetPositionX()), static_cast<float>(mouse.GetPositionY()));
 	data.delta = hasPosition ? data.position - lastPosition : Vector2::Zero;
 	lastPosition = data.position;
 	hasPosition = true;
-	if (!Game::Input::IsFocusedWindow(true))
+	if (!InputKit::InputSystem::IsFocusedWindow(true))
 	{
 		ResetPointer(data);
 		submitArmed = false;

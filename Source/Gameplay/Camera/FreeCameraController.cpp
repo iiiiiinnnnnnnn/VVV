@@ -64,10 +64,10 @@ void FreeCameraController::SyncControllerToCamera(Camera& camera)
 void FreeCameraController::UpdateCamera()
 {
 	auto& io = ImGui::GetIO();
-    if (!Game::Input::IsFocusedWindow(true))
+    if (!InputKit::InputSystem::IsFocusedWindow(true))
         return;
 
-    Mouse& mouse = Game::Input::Instance().GetMouse();
+    InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 
     // マウスカーソルの移動量
     float moveX = mouse.GetAxisX() * 0.01f;
@@ -81,11 +81,11 @@ void FreeCameraController::UpdateCamera()
 	if (adjustingFov && !mouseCapturedByImGui && !io.WantTextInput)
 		verticalFovDegrees = std::clamp(verticalFovDegrees - mouse.GetWheel() * 2.0f, 10.0f, 120.0f);
     bool isRightMouseDown = !mouseCapturedByImGui &&
-        (mouse.GetButton() & Mouse::BTN_RIGHT) != 0;
+        (mouse.GetButton() & InputKit::Mouse::BTN_RIGHT) != 0;
     bool isLeftMouseDown = !mouseCapturedByImGui &&
-        (mouse.GetButton() & Mouse::BTN_LEFT) != 0;
+        (mouse.GetButton() & InputKit::Mouse::BTN_LEFT) != 0;
     bool isMiddleMouseDown = !mouseCapturedByImGui &&
-        (mouse.GetButton() & Mouse::BTN_MIDDLE) != 0;
+        (mouse.GetButton() & InputKit::Mouse::BTN_MIDDLE) != 0;
 
     // 左クリックだけでは見渡さない。Alt + 左クリックのときだけオービット操作にする
     bool isAltLeftMouseDown = isAltPressed && isLeftMouseDown;
@@ -201,7 +201,7 @@ void FreeCameraController::UpdateCamera()
 void FreeCameraController::OnFocusLost()
 {
 	auto& io = ImGui::GetIO();
-    Mouse& mouse = Game::Input::Instance().GetMouse();
+    InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
     mouse.SetCursorLock(false);
     mouse.SetCursorVisible(true);
 

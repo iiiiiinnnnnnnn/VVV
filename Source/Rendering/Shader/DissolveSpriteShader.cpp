@@ -1,15 +1,15 @@
-#include "Rendering/Core/PixelShader.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/DissolveSpriteShader.h"
 #include <algorithm>
 #include "Resource/Texture.h"
 
 DissolveSpriteShader::DissolveSpriteShader(ID3D11Device* device)
 {
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpriteVS.cso").c_str(),
 		SpriteShader::InputLayout);
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/DissolveSpritePS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/DissolveSpritePS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbDissolve));
 }
 

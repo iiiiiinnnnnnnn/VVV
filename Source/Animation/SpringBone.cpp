@@ -1,4 +1,4 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include <ProfileKit/ProfileKit.h>
 #include "Animation/SpringBone.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Actor.h"

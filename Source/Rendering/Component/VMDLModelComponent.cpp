@@ -1,4 +1,6 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Core/Foundation/Random.h"
+#include "Core/Foundation/Logger.h"
+#include <ProfileKit/ProfileKit.h>
 // VMDLModelComponent.cpp
 #include "Rendering/Component/VMDLModelComponent.h"
 #include <cstring>
@@ -696,7 +698,7 @@ void VMDLModelComponent::SyncExternalMeshCaches()
 			{
 				const std::string message = "Lazy VMSH load failed: " + group.path +
 					" (" + exception.what() + ")\n";
-				OutputDebugStringA(message.c_str());
+				Log(message.c_str());
 				continue;
 			}
 		}
@@ -743,7 +745,7 @@ bool VMDLModelComponent::EquipMeshCache(
 	{
 		const std::string message =
 			"MeshCache equip failed: " + path + " (" + exception.what() + ")\n";
-		OutputDebugStringA(message.c_str());
+		Log(message.c_str());
 		return false;
 	}
 }

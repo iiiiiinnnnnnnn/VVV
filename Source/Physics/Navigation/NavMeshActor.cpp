@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Core/Foundation/Random.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Physics/Navigation/NavMeshActor.h"
 
 #include "Gameplay/Actor/Actor.h"

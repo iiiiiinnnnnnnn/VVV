@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Component/LockOnComponent.h"
 
 #include "Application/Time/GameTime.h"

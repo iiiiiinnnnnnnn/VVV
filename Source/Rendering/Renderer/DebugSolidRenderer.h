@@ -1,11 +1,6 @@
 ﻿#pragma once
 #include <memory>
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/ConstantBuffer.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Rendering/Core/BlendState.h"
-#include "Rendering/Core/RasterizerState.h"
+#include <Dx11Kit/Dx11Kit.h>
 
 #include <d3d11.h>
 #include <wrl.h>

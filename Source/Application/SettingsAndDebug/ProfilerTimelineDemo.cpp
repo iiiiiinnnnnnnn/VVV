@@ -1,5 +1,5 @@
 #include "Application/SettingsAndDebug/ProfilerTimelineDemo.h"
-#include "Application/SettingsAndDebug/Profiler.h"
+#include <ProfileKit/ProfileKit.h>
 
 void ProfilerTimelineDemo::DrawGUI()
 {

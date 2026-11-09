@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TitleScene.h"

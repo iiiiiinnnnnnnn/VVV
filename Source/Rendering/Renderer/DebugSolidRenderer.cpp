@@ -1,7 +1,6 @@
-﻿#include "Rendering/Renderer/DebugSolidRenderer.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/RasterizerState.h"
-#include "Rendering/Core/BlendState.h"
+﻿#include "Resource/ResourceManager.h"
+#include "Rendering/Renderer/DebugSolidRenderer.h"
+#include <Dx11Kit/Dx11Kit.h>
 
 #include "Application/SettingsAndDebug/DebugUtil.h"
 
@@ -13,9 +12,9 @@ DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 {
 	Gpu::InputLayoutDesc layout;
 	layout.Add("POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 0);
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/ShapeRendererVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererVS.cso").c_str(),
 		layout);
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ShapeRendererPS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererPS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMesh));
 
 	// Root、太いJoint、Tipで八面体を作る

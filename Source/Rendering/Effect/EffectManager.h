@@ -1,12 +1,18 @@
 // EffectManager.h
 #pragma once
-#include "Rendering/Core/ConstantBuffer.h"
+#include <Dx11Kit/Dx11Kit.h>
 
 #include <DirectXMath.h>
 #include <d3d11.h>
 #include <wrl.h>
+#pragma push_macro("Log")
+#undef Log
 #include <Effekseer.h>
+#pragma pop_macro("Log")
+#pragma push_macro("Log")
+#undef Log
 #include <EffekseerRendererDX11.h>
+#pragma pop_macro("Log")
 #include <cstdint>
 #include <filesystem>
 #include <memory>

@@ -47,9 +47,6 @@
     <Filter Include="Application\Bootstrap">
       <UniqueIdentifier>{a0b5356b-83a8-5461-9e62-beb3ad77de49}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Application\Input">
-      <UniqueIdentifier>{3bbf9c12-77f5-5dd9-8501-25c5f35b31c8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Application\SettingsAndDebug">
       <UniqueIdentifier>{97c321c8-115a-5871-bcea-30517ad367ea}</UniqueIdentifier>
     </Filter>
@@ -182,32 +179,17 @@
     <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\InputLayoutDesc.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\BufferDesc.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\Buffer.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\FullScreenRenderer.h">
       <Filter>Rendering\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\VertexBuffer.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\IndexBuffer.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\ConstantBuffer.h">
-      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Core\ModelShaderId.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Resource\ImageData.h">
       <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Stage\StageTitle.h">
+      <Filter>Gameplay\Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -222,15 +204,6 @@
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerInput.h">
       <Filter>Gameplay\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h">
-      <Filter>Application\SettingsAndDebug</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\SettingsAndDebug\ProfileScope.h">
-      <Filter>Application\SettingsAndDebug</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\SettingsAndDebug\Profiler.h">
-      <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.h">
       <Filter>Application\SettingsAndDebug</Filter>
@@ -256,41 +229,11 @@
     <ClCompile Include="Source\Resource\GLTFImporter.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\VertexShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\ShaderBytecode.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\ComputeShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\DomainShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\HullShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\GeometryShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\PixelShader.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Application\Bootstrap\Framework.cpp">
       <Filter>Application\Bootstrap</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\Bootstrap\Main.cpp">
       <Filter>Application\Bootstrap</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp">
-      <Filter>Application\SettingsAndDebug</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\SettingsAndDebug\ProfileScope.cpp">
-      <Filter>Application\SettingsAndDebug</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\SettingsAndDebug\Profiler.cpp">
-      <Filter>Application\SettingsAndDebug</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
@@ -354,15 +297,6 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\Component\TrailRenderComponent.cpp">
       <Filter>Rendering\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\Input\Input.cpp">
-      <Filter>Application\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\Input\Mouse.cpp">
-      <Filter>Application\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Application\Input\GamePad.cpp">
-      <Filter>Application\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp">
       <Filter>Gameplay\Stage\Component</Filter>
@@ -526,9 +460,6 @@
     <ClCompile Include="Source\Rendering\Core\Graphics.cpp">
       <Filter>Rendering\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\RenderTarget.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Application\Time\GameTime.cpp">
       <Filter>Application\Time</Filter>
     </ClCompile>
@@ -631,9 +562,6 @@
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyStatic.cpp">
       <Filter>Physics\RigidBody</Filter>
     </ClCompile>
-    <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h">
-      <Filter>Core\Foundation</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Foundation\Json.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
@@ -686,27 +614,6 @@
     </ClInclude>
     <ClInclude Include="Source\Resource\GLTFImporter.h">
       <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\VertexShader.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\ShaderBytecode.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\ComputeShader.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\DomainShader.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\HullShader.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\GeometryShader.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\PixelShader.h">
-      <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\Bootstrap\Framework.h">
       <Filter>Application\Bootstrap</Filter>
@@ -776,15 +683,6 @@
     </ClInclude>
     <ClInclude Include="Source\Rendering\Component\TrailRenderComponent.h">
       <Filter>Rendering\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Input\Input.h">
-      <Filter>Application\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Input\Mouse.h">
-      <Filter>Application\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Application\Input\GamePad.h">
-      <Filter>Application\Input</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Stage\Component\Terrain.h">
       <Filter>Gameplay\Stage\Component</Filter>
@@ -930,12 +828,6 @@
     <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h">
-      <Filter>Rendering\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiPath.h">
-      <Filter>Rendering\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Rendering\Renderer\ShapeRenderer.h">
       <Filter>Rendering\Renderer</Filter>
     </ClInclude>
@@ -964,21 +856,6 @@
       <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\DepthStencilState.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\BlendState.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\RasterizerState.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\SamplerState.h">
-      <Filter>Rendering\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Rendering\Core\RenderTarget.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Application\SettingsAndDebug\Benchmark.h">
@@ -1021,9 +898,6 @@
       <Filter>Rendering\Effect</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Foundation\Common.h">
-      <Filter>Core\Foundation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Stage\Stage.h">
@@ -1158,6 +1032,12 @@
       <Filter>Core\Object</Filter>
     </None>
     <None Include=".gitignore" />
+    <None Include="Resources\AI\Aracore.lua">
+      <Filter>Gameplay\AI</Filter>
+    </None>
+    <None Include="Resources\AI\Deer.lua">
+      <Filter>Gameplay\AI</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PBRGS.hlsl">
@@ -1342,29 +1222,14 @@
     <ClCompile Include="External\TimelineProfiler\Profiler.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\InputLayoutDesc.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\BufferDesc.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\Buffer.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Rendering\Renderer\FullScreenRenderer.cpp">
       <Filter>Rendering\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\VertexBuffer.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\IndexBuffer.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\ConstantBuffer.cpp">
-      <Filter>Rendering\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Resource\ImageData.cpp">
       <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Stage\StageTitle.cpp">
+      <Filter>Gameplay\Stage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1537,5 +1402,39 @@
     <ClInclude Include="Source\Resource\SerialJson.h">
       <Filter>Resource</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Core\Foundation\Random.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Foundation\BinaryFile.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Foundation\StrUtils.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Camera\CameraMoveSpeedOverlay.h">
+      <Filter>Gameplay\Camera</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Core\Foundation\Logger.h">
+      <Filter>Core\Foundation</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Input\PlayerInput.vis">
+      <Filter>Resource</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Input\UIInput.vis">
+      <Filter>Resource</Filter>
+    </None>
+    <None Include="Resources\Input\DebugInput.vis">
+      <Filter>Resource</Filter>
+    </None>
   </ItemGroup>
 </Project>

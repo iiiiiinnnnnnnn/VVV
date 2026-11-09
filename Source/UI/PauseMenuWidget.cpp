@@ -4,7 +4,7 @@
 #include <cmath>
 #include <utility>
 
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
@@ -56,6 +56,10 @@ void PauseMenuWidget::OnAwake()
 	controlPage->AddChild(std::make_shared<XboxControllerWidget>(
 		std::weak_ptr<Object>{}, Vector2{50.0f, 73.0f}, Vector2{1, 1}
 	));
+	auto backBtn = std::make_shared<ButtonWidget>("Button / Baack", "Back");
+	backBtn->rect.anchor = {0.5f, 0.5f};
+	UILayout::Apply(backBtn, {0.5f, 0.9f}, {0.3f, 0.08f});
+	controlPage->AddChild(backBtn);
 	AddChild(controlPage);
 
 	// 一時停止メニュー全部非アクティブ化
@@ -92,8 +96,8 @@ void PauseMenuWidget::OnUpdate()
 {
 	if (!canPause && paused) SetPaused(false);
 
-	const GamePadButton buttonDown = Game::Input::Instance().GetGamePad().GetButtonDown();
-	if (buttonDown & (GamePad::BTN_ESCAPE | GamePad::BTN_START))
+	const auto& input = InputKit::InputSystem::Instance();
+	if (input.IsDown("PlayerInput/Pause"))
 	{
 		if (!paused) SetPaused(true);
 		else if (!inputDelay.IsRunning()) SetPaused(false);
@@ -101,7 +105,7 @@ void PauseMenuWidget::OnUpdate()
 	if (paused)
 	{
 		inputDelay.Update(Game::Time::unscaledDeltaTime);
-		if (!inputDelay.IsRunning() && (buttonDown & GamePad::BTN_B))
+		if (!inputDelay.IsRunning() && input.IsDown("UIInput/Cancel"))
 		{
 			if (currentPage == Page::Control) SetPage(Page::Main);
 			else SetPaused(false);

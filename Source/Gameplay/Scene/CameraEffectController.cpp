@@ -1,3 +1,4 @@
+#include "Core/Foundation/Random.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Application/Time/GameTime.h"
 

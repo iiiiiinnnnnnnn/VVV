@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 // MultiLegFootIK.cpp
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"

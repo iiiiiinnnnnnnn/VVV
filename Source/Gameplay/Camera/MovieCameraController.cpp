@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -14,7 +14,7 @@
 #include <type_traits>
 
 #include "Application/Time/GameTime.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Physics/Collider/CharacterController.h"
 #include "Application/Tools/Dialog.h"
 #include "Audio/SoundSystem.h"
@@ -637,7 +637,7 @@ void MovieCameraController::Tick(bool qtePressed)
 			Evaluate();
 			playbackResult = -1;
 			End(true);
-			Game::Input::Instance().SuppressGameplayInput();
+			InputKit::InputSystem::Instance().SuppressGameplayInput();
 			return;
 		}
 		Evaluate();
@@ -646,7 +646,7 @@ void MovieCameraController::Tick(bool qtePressed)
 		{
 			playbackResult = 1;
 			End(true);
-			Game::Input::Instance().SuppressGameplayInput();
+			InputKit::InputSystem::Instance().SuppressGameplayInput();
 		}
 		return;
 	}

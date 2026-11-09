@@ -1,8 +1,6 @@
 #pragma once
 #include "Rendering/Renderer/FullScreenRenderer.h"
-#include "Rendering/Core/ConstantBuffer.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
+#include <Dx11Kit/Dx11Kit.h>
 
 #include <memory>
 #include <d3d11.h>

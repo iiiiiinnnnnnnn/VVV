@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Animation/Animator.h"
 #include "Resource/ResourceManager.h"
@@ -303,7 +304,7 @@ void Animator::_print() const
 
     for (const auto& anim : model->GetAnimations())
     {
-        printf("Anim: %s, length=%.2f\n", anim.name.c_str(), anim.secondsLength);
+        Log("Anim: %s, length=%.2f\n", anim.name.c_str(), anim.secondsLength);
     }
 }
 

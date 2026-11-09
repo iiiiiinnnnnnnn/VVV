@@ -1,3 +1,4 @@
+#include "Core/Foundation/Random.h"
 #include "pch.h"
 #include "HitstopVibrationComponent.h"
 #include "Core/Object/Object.h"

@@ -1,6 +1,5 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
-#include "Rendering/Core/RenderTarget.h"
-#include "Rendering/Core/VertexBuffer.h"
+﻿#include <ProfileKit/ProfileKit.h>
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"

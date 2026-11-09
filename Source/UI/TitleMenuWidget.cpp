@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include "Application/Time/GameTime.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Core/Foundation/Common.h"
 #include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
@@ -141,7 +141,7 @@ void TitleMenuWidget::SetMenuPage(MenuPage page)
 
 static bool IsTitleInputPressed()
 {
-	auto& input = Game::Input::Instance();
+	auto& input = InputKit::InputSystem::Instance();
 	if (input.GetMouse().GetButtonDown() || (input.GetGamePad().GetButtonDown() & 0xffff)) return true;
 	for (int button = 0; button < 5; ++button)
 		if (ImGui::IsMouseClicked(button)) return true;
@@ -160,16 +160,13 @@ void TitleMenuWidget::UpdateMenu()
 
 	// 入力とフォーカス受け取る
 	const bool pressed = IsTitleInputPressed();
-	const bool focused = Game::Input::IsFocusedWindow(true);
+	const bool focused = InputKit::InputSystem::IsFocusedWindow(true);
 	if (!focused || !inputEnabled) return;
 	if (menuPage == MenuPage::Prompt)
 	{
 		if (waitForCancelRelease)
 		{
-			const auto held = Game::Input::Instance().GetGamePad().GetButton();
-			if (!(held & (GamePad::BTN_ESCAPE | GamePad::BTN_B)) &&
-				!ImGui::IsKeyDown(ImGuiKey_Escape) && !ImGui::IsKeyDown(ImGuiKey_X))
-				waitForCancelRelease = false;
+			if (!InputKit::InputSystem::Instance().IsPressed("UIInput/Cancel")) waitForCancelRelease = false;
 			return;
 		}
 		if (pressed) SetMenuPage(MenuPage::Main);
@@ -177,8 +174,7 @@ void TitleMenuWidget::UpdateMenu()
 	}
 
 	// ESCで戻る
-	const auto buttons = Game::Input::Instance().GetGamePad().GetButtonDown();
-	if (buttons & (GamePad::BTN_ESCAPE | GamePad::BTN_B))
+	if (InputKit::InputSystem::Instance().IsDown("UIInput/Cancel"))
 	{
 		waitForCancelRelease = true;
 		SetMenuPage(MenuPage::Prompt);

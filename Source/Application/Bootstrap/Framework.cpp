@@ -1,9 +1,10 @@
-// Framework.cpp
+#include <ImGuiToolKit/ImGuiToolKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Application/Bootstrap/Framework.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Resource/ResourceManager.h"
-#include "GameInput.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Gameplay/Scene/SceneManager.h"
@@ -14,27 +15,47 @@
 #include "Audio/SoundSystem.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Gameplay/AI/LuaManager.h"
-#include "Application/SettingsAndDebug/Profiler.h"
-
-#include <cwchar>
-#include <iomanip>
-#include <sstream>
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Common.h"
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
 static constexpr double TargetFrameSeconds = 1.0 / 60.0;
-static constexpr float DefaultClearRed = 0.025f;
-static constexpr float DefaultClearGreen = 0.04f;
-static constexpr float DefaultClearBlue = 0.065f;
 
 // コンストラクタ
 Framework::Framework(HWND hWnd, const wchar_t* commandLine) : hWnd(hWnd)
 {
-	// 入力初期化
-	Game::Input::Instance().Initialize(hWnd);
+	Logger::Initialize();
+	Log("Game started");
+
+	// ImGuiとTimelineProfilerを使う表示バックエンドを登録する。
+	Profiler::SetBackend(CreateProfilerTimelineBackend());
+
+	// InputSystemの初期化時に、Input内の全定義を読み込む。
+	const auto inputDirectory = ResourceManager::ResolveSourcePath(
+		ResourceManager::Instance().ResolvePath("Resources/Input"));
+	try
+	{
+		InputKit::InputSystem::Instance().Initialize(hWnd, inputDirectory);
+	}
+	catch (const std::exception& error)
+	{
+		Log(error.what());
+		ImGuiToolKit::Alert(error.what(), "Input file error");
+	}
+
+	// ImGui操作中の入力抑制
+	InputKit::InputSystem::Instance().SetFocusFilter([](bool ignoreUI) {
+			const auto& io = ImGui::GetIO();
+			return ignoreUI || (!io.WantTextInput &&
+				(InputKit::InputSystem::Instance().GetMouse().IsCursorLocked() ||
+					(!io.WantCaptureMouse && !io.WantCaptureKeyboard)));
+		});
 
 	// グラフィックス初期化
 	Game::Graphics::Instance().Initialize(hWnd);
+	InputKit::InputSystem::Instance().SetViewportSize(
+		static_cast<UINT>(Game::Graphics::ScreenWidth), static_cast<UINT>(Game::Graphics::ScreenHeight));
 
 	// サウンドシステム初期化
 	SoundSystem::Instance().Initialize();
@@ -58,14 +79,17 @@ Framework::Framework(HWND hWnd, const wchar_t* commandLine) : hWnd(hWnd)
 	std::wstring startupMode;
 	arguments >> std::quoted(startupMode);
 
+	// もしコマンドで実行されたとき引数によって起動するシーンを切り替え(一応)
 	std::unique_ptr<Scene> initialScene;
-	if (!_wcsicmp(startupMode.c_str(), L"vmdl"))
+	auto lowerArg = ToLowerWString(startupMode);
+	if (!_wcsicmp(lowerArg.c_str(), L"vmdl"))
 		initialScene = std::make_unique<VmdlEditorScene>();
-	else if (!_wcsicmp(startupMode.c_str(), L"vstg"))
+	else if (!_wcsicmp(lowerArg.c_str(), L"vstg"))
 		initialScene = std::make_unique<VstgEditorScene>();
 	else
 		initialScene = std::make_unique<TitleScene>();
 
+	// シーン起動
 	SceneManager::Instance().Initialize(std::move(initialScene));
 }
 
@@ -97,11 +121,14 @@ void Framework::Update(float elapsedTime)
 	// 一時停止してなかったら時間を進める
 	Game::Time::deltaTime = Game::Time::paused ? 0.0f : elapsedTime * Game::Time::scale;
 
+	// 一時停止してなかったら時間を進める(スケール無視)
 	Game::Time::unscaledDeltaTime = elapsedTime;
+
+	// 時間スケール更新処理
 	TimeScaleController::Update();
 
 	// 入力更新処理
-	Game::Input::Instance().Update();
+	InputKit::InputSystem::Instance().Update();
 
 	// ImGuiのフレーム開始前にシーン切り替えと旧シーンの破棄を終える
 	SceneManager::Instance().ApplyPendingChanges();
@@ -110,7 +137,8 @@ void Framework::Update(float elapsedTime)
 	ImGuiRenderer::NewFrame();
 
 	// 同じLuaファイルの更新確認は、個体ごとではなくManagerで共有する。
-	if (!SceneManager::Instance().IsLoading()) LuaManager::Instance().Update();
+	if (!SceneManager::Instance().IsLoading())
+		LuaManager::Instance().Update();
 
 	// シーン更新処理
 	SceneManager::Instance().Update();
@@ -136,8 +164,7 @@ void Framework::Render(float elapsedTime)
 	// 画面クリア＆レンダーターゲット設定
 	RenderTarget* backBuffer =
 		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Display);
-	backBuffer->Clear(
-		dc, DefaultClearRed, DefaultClearGreen, DefaultClearBlue, 1.0f);
+	backBuffer->Clear(dc, 0.025f, 0.04f, 0.065f, 1.0f);
 	backBuffer->Activate(dc);
 
 	// シーン通常描画＆GUI描画処理
@@ -148,10 +175,7 @@ void Framework::Render(float elapsedTime)
 	ImGuiRenderer::Render(dc);
 
 	// 画面表示
-	{
-		PROFILE_SCOPE("Present (CPU wait)");
-		Game::Graphics::Instance().Present(PresentSyncInterval);
-	}
+	Game::Graphics::Instance().Present(PresentSyncInterval);
 }
 
 // アプリケーションループ
@@ -205,7 +229,7 @@ int Framework::Run()
 			{
 				if (sampleSeconds / sampleFrames > 0.025f || Game::Time::scale < 0.99f)
 
-					Scene::Log("Performance: %.1f FPS, update %.2f ms, render/present %.2f ms, scale %.3f, paused %d",
+					Log("Performance: %.1f FPS, update %.2f ms, render/present %.2f ms, scale %.3f, paused %d",
 						sampleFrames / sampleSeconds, updateSeconds * 1000.0 / sampleFrames,
 						renderSeconds * 1000.0 / sampleFrames, Game::Time::scale, Game::Time::paused ? 1 : 0);
 
@@ -241,7 +265,7 @@ LRESULT CALLBACK Framework::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 {
 	if (msg == WM_MOUSEWHEEL)
 	{
-		Game::Input::Instance().GetMouse().SetWheel(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+		InputKit::InputSystem::Instance().GetMouse().SetWheel(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 	}
 
 	if (ImGuiRenderer::HandleMessage(hWnd, msg, wParam, lParam)) return true;

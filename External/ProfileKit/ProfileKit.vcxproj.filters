@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{4CBC0794-AD69-4039-8A55-78AF3C8593FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\ProfileKit">
+      <UniqueIdentifier>{3A21C08E-237A-4A1A-B72B-49CBA3DB581C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{1CD99A95-6E2F-47D7-B983-81270A76B274}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\ProfileKit\ProfilerTimeline.h">
+      <Filter>Include\ProfileKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ProfileKit\ProfileKit.h">
+      <Filter>Include\ProfileKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ProfileKit\Profiler.h">
+      <Filter>Include\ProfileKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ProfileKit\ProfileScope.h">
+      <Filter>Include\ProfileKit</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\Profiler.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ProfilerImGui.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ProfileScope.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

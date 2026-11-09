@@ -2,8 +2,14 @@
 #ifndef __EFFEKSEERRENDERER_DX11_GRAPHICS_DEVICE_H__
 #define __EFFEKSEERRENDERER_DX11_GRAPHICS_DEVICE_H__
 
+#pragma push_macro("Log")
+#undef Log
 #include <Effekseer.h>
+#pragma pop_macro("Log")
+#pragma push_macro("Log")
+#undef Log
 #include <EffekseerRendererCommon/EffekseerRenderer.CommonUtils.h>
+#pragma pop_macro("Log")
 #include <assert.h>
 #include <d3d11.h>
 #include <set>

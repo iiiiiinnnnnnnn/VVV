@@ -1,10 +1,7 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Resource/Texture.h"
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/RenderTarget.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/ConstantBuffer.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include <algorithm>
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Gameplay/Lighting/LightManager.h"

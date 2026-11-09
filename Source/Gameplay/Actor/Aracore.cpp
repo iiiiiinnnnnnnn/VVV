@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Actor/Aracore.h"
 
 #include <algorithm>
@@ -10,7 +10,6 @@
 #include "Animation/Animator.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Application/Time/GameTime.h"
-#include "Application/SettingsAndDebug/Profiler.h"
 #include "Audio/SoundSystem.h"
 
 #include "Gameplay/AI/EnemyAI.h"
@@ -194,7 +193,13 @@ void Aracore::OnUpdate()
 		return;
 	}
 
+	if (playerDetected)
+	{
+		battleTime += Game::Time::deltaTime;
+	}
+
 	navigation.Update();
+
 	END_PROFILER();
 }
 
@@ -382,14 +387,6 @@ void Aracore::BeginJump()
 		jump.SetAnimationPending(false);
 	}
 	else anim->SetTrigger("Jump");
-
-	Vector3 direction = jump.GetLandingPosition() - this->transform.position;
-	direction.y = 0.0f;
-	if (direction.LengthSquared() > eps)
-	{
-		const float targetYaw = atan2f(direction.x, direction.z);
-		this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
-	}
 }
 
 void Aracore::UpdateJump()
@@ -977,6 +974,8 @@ void Aracore::OnDrawGUI()
 	Entity::OnDrawGUI();
 	ImGui::TextUnformatted((const char*)u8"AIパス：Resources/AI/Aracore.lua");
 
+	ImGui::Text((const char*)u8"バトル時間: %.2f秒", battleTime);
+
 	if (ImGui::Button((const char*)u8"威嚇"))
 	{
 		PlayThreatPresentation();
@@ -991,7 +990,6 @@ void Aracore::OnDrawGUI()
 	{
 		TakeDamage(DamageData{.damage = 10000.0f});
 	}
-
 
 	for (Vector3& pos : colPositions)
 	{

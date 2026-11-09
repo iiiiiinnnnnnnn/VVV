@@ -1,4 +1,5 @@
 // AnimatorSerialization.cpp
+#include "Core/Foundation/Logger.h"
 #include "Animation/Animator.h"
 
 #include <algorithm>
@@ -180,7 +181,7 @@ void Animator::Deserialize(const std::string& path)
         std::ifstream ifs(path);
 		if (!ifs)
 		{
-			OutputDebugStringA(("Animator file open failed: " + path + "\n").c_str());
+			Log(("Animator file open failed: " + path + "\n").c_str());
 			return;
 		}
 
@@ -193,7 +194,7 @@ void Animator::Deserialize(const std::string& path)
 		{
 			const std::string message =
 				"Animator parse failed: " + path + " (" + exception.what() + ")\n";
-			OutputDebugStringA(message.c_str());
+			Log(message.c_str());
 			return;
 		}
 
@@ -202,7 +203,7 @@ void Animator::Deserialize(const std::string& path)
 		if (fileMode != expectedMode)
         {
 			const std::string message = "Animator mode mismatch: " + path + "\n";
-			OutputDebugStringA(message.c_str());
+			Log(message.c_str());
             return;
         }
 

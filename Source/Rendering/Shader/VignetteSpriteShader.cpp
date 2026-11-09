@@ -1,15 +1,15 @@
-#include "Rendering/Core/PixelShader.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/VignetteSpriteShader.h"
 
 
 VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device, bool overlayOnly)
 	: overlayOnly(overlayOnly)
 {
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpriteVS.cso").c_str(),
 		SpriteShader::InputLayout);
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/VignetteSpritePS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignetteSpritePS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 }
 

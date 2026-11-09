@@ -1,8 +1,7 @@
-#include "Rendering/Core/GeometryShader.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/IndexBuffer.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
 
 #include <algorithm>
@@ -22,10 +21,10 @@ TerrainGrassRenderer::TerrainGrassRenderer(ID3D11Device* device) : device(device
 	elements.AddPosition()
 		.AddNormal()
 		.AddTexcoord(DXGI_FORMAT_R32_FLOAT);
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TerrainGrassVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainGrassVS.cso").c_str(),
 		elements);
-	geometryShader = std::make_unique<Gpu::GeometryShader>(device, "Resources/Shader/TerrainGrassGS.cso");
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TerrainGrassPS.cso");
+	geometryShader = std::make_unique<Gpu::GeometryShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainGrassGS.cso").c_str());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainGrassPS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(Constants));
 }
 

@@ -1,6 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "IconsFontAwesome5.h"
-// Scene.cpp
 #include "Gameplay/Scene/Scene.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include <cmath>
@@ -17,7 +16,6 @@
 #include "Rendering/Renderer/WaterRenderer.h"
 #include "Gameplay/Scene/PostProcessController.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
-#include "Application/SettingsAndDebug/Profiler.h"
 #include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Scene/TitleScene.h"
@@ -33,24 +31,6 @@
 #include <format>
 #include <fstream>
 #include <mutex>
-
-void Scene::WriteLog(std::string_view message, const std::source_location& location)
-{
-	static std::mutex mutex;
-	const std::lock_guard lock(mutex);
-	const auto now = std::chrono::system_clock::now();
-	const std::time_t time = std::chrono::system_clock::to_time_t(now);
-	std::tm localTime{};
-	localtime_s(&localTime, &time);
-	char timestamp[20];
-	std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &localTime);
-	const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
-		now.time_since_epoch()).count() % 1000;
-	const std::string file = std::filesystem::path(location.file_name()).filename().string();
-	std::ofstream("scene.log", std::ios::app | std::ios::binary) << std::format(
-		"[{}.{:03}] [{}:{}] {}\n",
-		timestamp, milliseconds, file, location.line(), message);
-}
 
 Scene::Scene() = default;
 Scene::~Scene()
@@ -245,7 +225,7 @@ void Scene::Update()
 
 	// ステージを持たないツールシーンでもF3を受け取れるよう、早期returnより前で処理する
 	// F3でデバッグ表示切り替え
-	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_F3)
+	if (InputKit::InputSystem::Instance().IsDown("DebugInput/ToggleDebugDisplay", true))
 	{
 		ToggleDebugDisplay();
 	}
@@ -271,16 +251,16 @@ void Scene::Update()
 
 	if (UsesGameDebugGUI())
 	{
-		GamePad& gamePad = Game::Input::Instance().GetGamePad();
+		const auto& input = InputKit::InputSystem::Instance();
 
 		// F1でマウスカーソル解放切り替え
-		if (gamePad.GetButtonDown() & GamePad::BTN_F1)
+		if (input.IsDown("DebugInput/ToggleCursor", true))
 		{
 			isCursorReleased = !isCursorReleased;
 		}
 
 		// F2でゲーム内エディタ表示切り替え
-		if (gamePad.GetButtonDown() & GamePad::BTN_F2)
+		if (input.IsDown("DebugInput/ToggleEditor", true))
 		{
 			showGameEditorGUI = !showGameEditorGUI;
 		}
@@ -288,14 +268,14 @@ void Scene::Update()
 		// F3でデバッグ表示切り替え => 95行目～
 
 		// F4でゲーム止める
-		if (gamePad.GetButtonDown() & GamePad::BTN_F4)
+		if (input.IsDown("DebugInput/TogglePause", true))
 		{
 			if (Game::Time::scale > 0.0f) SwitchToDebugMode();
 			else SwitchToPlayMode();
 		}
 
 		// F5でゲーム再開
-		if (gamePad.GetButtonDown() & GamePad::BTN_F5)
+		if (input.IsDown("DebugInput/Resume", true))
 		{
 			SwitchToPlayMode();
 		}
@@ -365,7 +345,7 @@ void Scene::ApplyMouseCursorMode()
 		locked = true;
 	}
 
-	Mouse& mouse = Game::Input::Instance().GetMouse();
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 	mouse.SetCursorLock(locked);
 	mouse.SetCursorVisible(visible);
 }
@@ -375,10 +355,10 @@ void Scene::SelectPausedActor()
 	auto& io = ImGui::GetIO();
 	if (!UsesGameDebugGUI() || !showGameEditorGUI || !currentStage || Game::Time::scale > 0.0f)
 		return;
-	if (!Game::Input::IsFocusedWindow(true) || io.WantCaptureMouse) return;
+	if (!InputKit::InputSystem::IsFocusedWindow(true) || io.WantCaptureMouse) return;
 
-	Mouse& mouse = Game::Input::Instance().GetMouse();
-	if ((mouse.GetButtonDown() & Mouse::BTN_LEFT) == 0) return;
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
+	if ((mouse.GetButtonDown() & InputKit::Mouse::BTN_LEFT) == 0) return;
 
 	Camera* camera = currentStage->GetActiveCamera();
 	if (!camera || Game::Graphics::ScreenWidth <= 0.0f || Game::Graphics::ScreenHeight <= 0.0f)
@@ -598,10 +578,10 @@ void Scene::Render()
 void Scene::DrawWindowMenu()
 {
 	if (!ImGui::BeginMenu((const char*)(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ"))) return;
-	if (ImGui::MenuItem((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター")))
-		OpenAnimatorEditor();
+	if (ImGui::MenuItem((const char*)(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター"))) OpenAnimatorEditor();
+	ImGui::MenuItem((const char*)(ICON_FA_KEYBOARD " " u8"入力アクション"), nullptr, &showInputSystemWindow);
 	ImGui::MenuItem((const char*)(ICON_FA_LAYER_GROUP " " u8"物理レイヤー"), nullptr, &showPhysicsLayerWindow);
-	ImGui::MenuItem((const char*)u8"負荷プロファイラ", nullptr, &showProfilerWindow);
+	ImGui::MenuItem((const char*)(ICON_FA_WAVE_SQUARE " " u8"負荷プロファイラ"), nullptr, &showProfilerWindow);
 	ImGui::EndMenu();
 }
 
@@ -626,14 +606,24 @@ void Scene::DrawToolWindows()
 {
 	if (showPhysicsLayerWindow)
 		PhysicsLayerManager::Instance().DrawGUI(&showPhysicsLayerWindow);
-	if (!showProfilerWindow) return;
-
-	ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
-	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (ImGui::Begin((const char*)u8"負荷プロファイラ", &showProfilerWindow))
-		Profiler::DrawGUI();
-	ImGui::End();
+	if (showInputSystemWindow)
+	{
+		ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
+		ImGui::SetNextWindowBgAlpha(1.0f);
+		if (ImGui::Begin((const char*)u8"入力アクション", &showInputSystemWindow))
+			InputKit::InputSystemGUI::Instance().DrawGUI(InputKit::InputSystem::Instance());
+		ImGui::End();
+	}
+	if (showProfilerWindow)
+	{
+		ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
+		ImGui::SetNextWindowBgAlpha(1.0f);
+		if (ImGui::Begin((const char*)u8"負荷プロファイラ", &showProfilerWindow))
+			Profiler::DrawGUI();
+		ImGui::End();
+	}
 }
 
 void Scene::DrawGUI(RenderContext& rc)
@@ -769,7 +759,6 @@ void Scene::DrawGUI(RenderContext& rc)
 		ImGui::SetNextWindowSize({gameEditorLeftWidth, gameEditorPanelHeight}, ImGuiCond_Always);
 		if (ImGui::Begin("ヒエラルキー##GameEditor", nullptr, panelWindowFlags))
 		{
-			ImGui::TextDisabled("RUNTIME EDITOR   /   F2");
 			if (ImGui::BeginTabBar("##HierarchyTabs"))
 			{
 				if (ImGui::BeginTabItem("Actor", nullptr, restoreLayoutTabs && restoredHierarchyTab == 0 ? ImGuiTabItemFlags_SetSelected : 0)) { hierarchyTab = 0; ImGui::EndTabItem(); }
@@ -913,9 +902,8 @@ void Scene::DrawGUI(RenderContext& rc)
 					for (auto& light : lightManager.GetAreaLights()) check(light);
 					if (valid)
 					{ ImGui::PushID(selectedLight); selectedLight->DrawGUI(); ImGui::PopID(); deleteButton(*selectedLight); }
-					else { selectedLight = nullptr; ImGui::TextDisabled("Select a Light in Hierarchy."); }
+					else { selectedLight = nullptr; }
 				}
-				else ImGui::TextDisabled((const char*)u8"左の一覧から対象を選択してください。");
 			}
 			else
 			{

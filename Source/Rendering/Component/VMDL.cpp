@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Rendering/Component/VMDL.h"
 
 #include "Animation/HumanoidFootIK.h"

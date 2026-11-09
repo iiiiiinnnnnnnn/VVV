@@ -1,7 +1,8 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Core/Foundation/Random.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Player/PlayerInput.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
@@ -27,7 +28,6 @@
 #include <sol/sol.hpp>
 #include <cassert>
 #include <cmath>
-#include "Application/SettingsAndDebug/Profiler.h"
 
 void RemapQuickshiftWindTracks(VMDLModel& model)
 {
@@ -243,7 +243,7 @@ void Player::UpdateAttackContacts()
 void Player::UpdateTerrainDeformInput()
 {
 	const bool deformKeyHeld =
-		Game::Input::IsFocusedWindow() && (GetAsyncKeyState('U') & 0x8000) != 0;
+		InputKit::InputSystem::IsFocusedWindow() && (GetAsyncKeyState('U') & 0x8000) != 0;
 	if (deformKeyHeld && !terrainDeformKeyHeld)
 	{
 		Scene* scene = SceneManager::Instance().GetCurrentScene();

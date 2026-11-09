@@ -1,8 +1,7 @@
 // VMDLModel.h
 #pragma once
 #include <memory>
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/IndexBuffer.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/ModelShaderId.h"
 
 #include "Resource/SerialArchive.h"
@@ -17,7 +16,6 @@
 
 #include "Core/Foundation/Common.h"
 #include "Core/Foundation/Easing.h"
-#include "Core/Foundation/DirectXSerialization.h"
 #include "Rendering/Core/RenderContext.h"
 
 // Cereal

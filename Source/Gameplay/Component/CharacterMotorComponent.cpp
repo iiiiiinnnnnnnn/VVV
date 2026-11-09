@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Component/CharacterMotorComponent.h"
 
 #include "Animation/Animator.h"

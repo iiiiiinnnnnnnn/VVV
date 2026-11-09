@@ -1,29 +1,9 @@
-﻿// Main.cpp
-
-#include <windows.h>
-#include <filesystem>
-#include <memory>
-#include <cstdlib>
-#include <random>
-#include <assert.h>
-#include <tchar.h>
-
+#include "Core/Foundation/Common.h"
 #include "Application/Bootstrap/Framework.h"
-#include "Application/SettingsAndDebug/DebugLog.h"
+#include <random>
 
-const LONG SCREEN_WIDTH = 1280;
-const LONG SCREEN_HEIGHT = 720;
-
-namespace
-{
-void SetExecutableWorkingDirectory()
-{
-	wchar_t executablePath[MAX_PATH]{};
-	if (!GetModuleFileNameW(nullptr, executablePath, _countof(executablePath))) return;
-	SetCurrentDirectoryW(std::filesystem::path(executablePath).parent_path().c_str());
-}
-
-}
+const LONG SCREEN_WIDTH = 1920;
+const LONG SCREEN_HEIGHT = 1080;
 
 LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
@@ -33,9 +13,14 @@ LRESULT CALLBACK fnWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
 INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line, INT cmd_show)
 {
-	SetExecutableWorkingDirectory();
+	// カレントディレクトリを実行ファイルのあるディレクトリに変更
+	wchar_t executablePath[MAX_PATH]{};
+	if (!GetModuleFileNameW(nullptr, executablePath, _countof(executablePath))) return -1;
+	SetCurrentDirectoryW(std::filesystem::path(executablePath).parent_path().c_str());
+
+	// ランダムシードを初期化
 	std::srand(std::random_device{}());
-	DebugLog::Initialize();
+
 
 #if defined(DEBUG) || defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -56,17 +41,14 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	wcex.hIconSm = 0;
 	RegisterClassEx(&wcex);
 
-	constexpr int initializeWindowPosX = 5;
-	constexpr int initializeWindowPosY = 5;
-
 	RECT rc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 	HWND hWnd = CreateWindow(
 		_T("VEER"),
 		_T("VEER"),
 		(WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME),
-		initializeWindowPosX,
-		initializeWindowPosY,
+		0,
+		0,
 		rc.right - rc.left,
 		rc.bottom - rc.top,
 		NULL,
@@ -84,6 +66,5 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 	if (IsWindow(hWnd)) DestroyWindow(hWnd);
 
-	DebugLog::Finalize();
 	return result;
 }

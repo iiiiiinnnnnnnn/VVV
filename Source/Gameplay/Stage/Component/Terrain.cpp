@@ -1,10 +1,5 @@
-#include "Rendering/Core/DomainShader.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/ConstantBuffer.h"
-#include "Rendering/Core/HullShader.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include <Dx11Kit/Dx11Kit.h>
+#include <ProfileKit/ProfileKit.h>
 
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -14,7 +9,7 @@
 #include "Resource/Texture.h"
 #include "Resource/ImageData.h"
 #include "Gameplay/Lighting/LightManager.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
@@ -128,16 +123,16 @@ void Terrain::InitializeGpuResources()
 		.AddNormal()
 		.AddTexcoord();
 
-	terrainVertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TerrainPrimitiveMeshVS.cso",
+	terrainVertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainPrimitiveMeshVS.cso").c_str(),
 		inputElementDescs);
 
-	terrainHullShader = std::make_unique<Gpu::HullShader>(device, "Resources/Shader/TerrainPrimitiveHS.cso");
+	terrainHullShader = std::make_unique<Gpu::HullShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainPrimitiveHS.cso").c_str());
 
-	terrainDomainShader = std::make_unique<Gpu::DomainShader>(device, "Resources/Shader/TerrainPrimitiveDS.cso");
+	terrainDomainShader = std::make_unique<Gpu::DomainShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainPrimitiveDS.cso").c_str());
 
-	terrainPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TerrainPrimitivePS.cso");
+	terrainPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainPrimitivePS.cso").c_str());
 
-	terrainColliderBuildComputeShader = std::make_unique<Gpu::ComputeShader>(device, "Resources/Shader/TerrainColliderBuildCS.cso");
+	terrainColliderBuildComputeShader = std::make_unique<Gpu::ComputeShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainColliderBuildCS.cso").c_str());
 
 	// レイヤー追加
 	// ブレンドで違和感のない順番で追加する
@@ -513,7 +508,7 @@ void Terrain::Render(const RenderContext& rc)
 		float u = 0.0f;
 		float v = 0.0f;
 		if (brush && (useBrushViewportInput ? brushViewportInputAllowed : !ImGui::GetIO().WantCaptureMouse) &&
-			Game::Input::IsFocusedWindow() && ScreenToTerrainUV(rc, u, v))
+			InputKit::InputSystem::IsFocusedWindow() && ScreenToTerrainUV(rc, u, v))
 		{
 			const int x = std::clamp(static_cast<int>(u * TerrainTextureWidth), 0, TerrainTextureWidth - 1);
 			const int y = std::clamp(static_cast<int>(v * TerrainTextureHeight), 0, TerrainTextureHeight - 1);
@@ -705,7 +700,7 @@ void Terrain::PaintByMouse(const RenderContext& rc)
 		return;
 	}
 
-	if (!Game::Input::IsFocusedWindow())
+	if (!InputKit::InputSystem::IsFocusedWindow())
 	{
 		return;
 	}
@@ -724,9 +719,9 @@ void Terrain::PaintByMouse(const RenderContext& rc)
 		if (ImGui::IsKeyPressed(ImGuiKey_Backslash, true)) brush_size = std::min(brush_size + step, 256);
 	}
 	if (useBrushViewportInput ? !brushViewportInputAllowed : io.WantCaptureMouse) return;
-	Mouse& mouse = Game::Input::Instance().GetMouse();
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 
-	if ((mouse.GetButton() & Mouse::BTN_LEFT) == 0)
+	if ((mouse.GetButton() & InputKit::Mouse::BTN_LEFT) == 0)
 	{
 		return;
 	}
@@ -749,7 +744,7 @@ void Terrain::PaintByMouse(const RenderContext& rc)
 
 bool Terrain::ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const
 {
-	Mouse& mouse = Game::Input::Instance().GetMouse();
+	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 
 	float screenWidth = Game::Graphics::ScreenWidth;
 	float screenHeight = Game::Graphics::ScreenHeight;

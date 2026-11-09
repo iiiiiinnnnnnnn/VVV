@@ -1,9 +1,6 @@
-﻿#include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/RasterizerState.h"
-#include "Rendering/Core/IndexBuffer.h"
-#include "Rendering/Core/DepthStencilState.h"
-#include "Rendering/Core/BlendState.h"
+﻿#include "Resource/ResourceManager.h"
+#include "Application/SettingsAndDebug/DebugUtil.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Core/Graphics.h"
 
@@ -14,11 +11,11 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 	inputElementDesc.AddPosition()
 		.AddColor();
 	// 頂点シェーダー
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/PrimitiveRendererVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PrimitiveRendererVS.cso").c_str(),
 		inputElementDesc);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/PrimitiveRendererPS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PrimitiveRendererPS.cso").c_str());
 
 	// 定数バッファ
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbScene));

@@ -1,8 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/IndexBuffer.h"
+#include <ProfileKit/ProfileKit.h>
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Renderer/WaterRenderer.h"
 
 #include <algorithm>
@@ -32,9 +29,9 @@ void WaterRenderer::OnAwake()
 	Gpu::InputLayoutDesc elements;
 	elements.AddPosition()
 		.AddTexcoord();
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/WaterSurfaceVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/WaterSurfaceVS.cso").c_str(),
 		elements);
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/WaterSurfacePS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/WaterSurfacePS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(ConstantBuffer));
 	normalTexture = ResourceManager::Instance().LoadTexture(
 		"Resources/Texture/Water/water_normal.png");

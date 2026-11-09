@@ -1,10 +1,7 @@
-﻿#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/IndexBuffer.h"
-#include "Rendering/Core/ConstantBuffer.h"
+﻿#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Rendering/Renderer/SkyBoxRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/RenderContext.h"
@@ -13,10 +10,10 @@
 SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 {
     // 頂点シェーダー（入力レイアウト不要 = SV_VertexID 使用）
-    vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/SkyBoxVS.cso");
+    vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SkyBoxVS.cso").c_str());
 
     // ピクセルシェーダー
-    pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SkyBoxPS.cso");
+    pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SkyBoxPS.cso").c_str());
 
     // 定数バッファ
     constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkyBox));

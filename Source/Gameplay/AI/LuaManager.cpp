@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Gameplay/AI/LuaManager.h"
 
 #include <fstream>
@@ -41,7 +42,7 @@ std::shared_ptr<const LuaManager::ScriptSource> LuaManager::GetScript(const std:
 		std::error_code error;
 		const auto writeTime = std::filesystem::last_write_time(ResourcePath::Path(key), error);
 		if (!error) ReadScript(key, found->second, writeTime);
-		else std::cerr << "[Lua] Script was not found: " << key << '\n';
+		else Log(std::string("[Lua] Script was not found: ") + key);
 	}
 	return found->second.source;
 }
@@ -68,7 +69,7 @@ bool LuaManager::ReadScript(const std::string& path, CachedScript& script,
 	std::ifstream input(ResourcePath::Path(path), std::ios::binary);
 	if (!input)
 	{
-		std::cerr << "[Lua] Failed to read: " << path << '\n';
+		Log(std::string("[Lua] Failed to read: ") + path);
 		return false;
 	}
 	std::string code((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());

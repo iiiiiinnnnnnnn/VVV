@@ -1,13 +1,13 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
-// ImGuiRenderer.cpp
+#include <ImGuiToolKit/ImGuiToolKit.h>
+#include <ProfileKit/ProfileKit.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_internal.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
-#include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/EmbeddedResources.h"
 #include <filesystem>
 
+// 再起動時に元のUI読み込み
 namespace
 {
 VmdlEditorLayoutSettings vmdlEditorLayoutSettings;
@@ -98,8 +98,8 @@ void RegisterVmdlEditorSettingsHandler()
 		auto* settings = static_cast<VmdlEditorLayoutSettings*>(entry);
 		int maximized = 0;
 		if (sscanf_s(line, "Window=%d,%d,%d,%d,%d", &settings->windowX,
-			&settings->windowY, &settings->windowWidth, &settings->windowHeight,
-			&maximized) == 5)
+				&settings->windowY, &settings->windowWidth, &settings->windowHeight,
+				&maximized) == 5)
 		{
 			settings->windowMaximized = maximized != 0;
 			return;
@@ -128,7 +128,7 @@ void RegisterVmdlEditorSettingsHandler()
 	};
 	ImGui::AddSettingsHandler(&handler);
 }
-}
+} // namespace
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -320,7 +320,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
 		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-		ImGuiTheme::ApplyYellowTheme(style);
+		ImGuiToolKit::Theme::ApplyYellowTheme(style); // ImGuiToolKitさんのテーマ(でっかくて押しやすい)
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		style.Colors[ImGuiCol_ChildBg].w = 1.0f;
 		style.Colors[ImGuiCol_PopupBg].w = 1.0f;
@@ -374,6 +374,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 
 void ImGuiRenderer::Finalize()
 {
+	ImGuiToolKit::ClearAlerts();
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
@@ -385,47 +386,13 @@ void ImGuiRenderer::NewFrame()
 	ImGui_ImplWin32_NewFrame();
 
 	ImGui::NewFrame();
-
-#if 0
-	// Docking
-	const ImGuiWindowFlags window_flags = ImGuiWindowFlags_None
-		| ImGuiWindowFlags_NoTitleBar
-		| ImGuiWindowFlags_NoResize
-		| ImGuiWindowFlags_NoMove
-		| ImGuiWindowFlags_NoSavedSettings
-		| ImGuiWindowFlags_NoBringToFrontOnFocus
-		| ImGuiWindowFlags_NoNavFocus
-		| ImGuiWindowFlags_NoBackground
-		;
-	const ImGuiDockNodeFlags docspace_flags = ImGuiDockNodeFlags_None
-		//| ImGuiDockNodeFlags_KeepAliveOnly
-		| ImGuiDockNodeFlags_PassthruCentralNode
-		;
-
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->Pos);
-	ImGui::SetNextWindowSize(viewport->Size);
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-	bool dock_open = true;
-	if (ImGui::Begin("MainDockspace", &dock_open, window_flags))
-	{
-		ImGui::PopStyleVar(3);
-
-		ImGuiID dockspaceId = ImGui::GetID("MyDockspace");
-		ImGui::DockSpace(dockspaceId, ImVec2(0, 0), docspace_flags);
-	}
-	ImGui::End();
-#endif
 }
 
 void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 {
 	PROFILE_FUNCTION();
 	auto& io = ImGui::GetIO();
+	ImGuiToolKit::DrawAlerts();
 	// Rendering
 	ImGui::Render();
 

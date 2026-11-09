@@ -133,13 +133,13 @@ bool SerialViewer::DrawNode(SerialNode& node, size_t depth, std::vector<uint64_t
 	ImGui::TableSetColumnIndex(4);
 	ImGui::TextUnformatted(SerialViewerText::Value(node).c_str());
 	ImGui::TableSetColumnIndex(5);
-	ImGui::TextUnformatted(node.kind == SerialKind::Deleted ? (const char*)u8"削除指定" :
-		warning ? (const char*)u8"未対応・保持" : (const char*)u8"読込対応");
+	ImGui::TextUnformatted(node.kind == SerialKind::Deleted ? (const char*)(ICON_FA_TIMES u8" 削除") :
+		warning ? (const char*)(ICON_FA_EXCLAMATION_TRIANGLE u8" 未対応") : (const char*)(ICON_FA_CHECK u8" 読込"));
 	ImGui::TableSetColumnIndex(6);
 	const bool essential = !depth || (depth == 1 && node.name == "geometry");
 	const bool positional = arrayElement && node.understood && !node.stableIdentity;
 	ImGui::BeginDisabled(essential || positional || node.kind == SerialKind::Deleted);
-	const bool remove = ImGui::Button((const char*)u8"削除");
+	const bool remove = ImGui::Button((const char*)ICON_FA_TIMES);
 	ImGui::EndDisabled();
 	if (positional && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		ImGui::SetTooltip((const char*)u8"位置で参照する配列要素です。親の項目全体、または通常のエディタで削除してください。");
@@ -157,14 +157,14 @@ bool SerialViewer::Draw(SerialDocument& document, bool* open)
 {
 	ImGui::SetNextWindowSize({1150, 680}, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (!ImGui::Begin((const char*)(ICON_FA_VIAL u8"シリアルビュアー"), open))
+	if (!ImGui::Begin((const char*)(ICON_FA_SITEMAP u8" シリアルビュアー"), open))
 	{
 		ImGui::End();
 		return false;
 	}
 	bool changed = false;
 	if (ImGui::BeginTable("##SerialItems", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
-		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0, ImGui::GetContentRegionAvail().y * 0.7f}))
+		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0, ImGui::GetContentRegionAvail().y}))
 	{
 		for (const auto* label : {(const char*)u8"項目", "ID", (const char*)u8"型", (const char*)u8"バイト数",
 			(const char*)u8"値", (const char*)u8"状態", (const char*)u8"操作"}) ImGui::TableSetupColumn(label);
@@ -173,31 +173,6 @@ bool SerialViewer::Draw(SerialDocument& document, bool* open)
 		std::vector<uint64_t> path;
 		changed = DrawNode(document.root, 0, path, false);
 		ImGui::EndTable();
-	}
-	SerialNode* selection = &document.root;
-	for (size_t i = 1; selection && i < selected.size(); ++i) selection = selection->Find(selected[i]);
-	if (selection && !selected.empty())
-	{
-		ImGui::SeparatorText(selection->name.c_str());
-		if (!selection->error.empty()) ImGui::TextWrapped("%s", selection->error.c_str());
-		const size_t pages = std::max<size_t>(1, (selection->data.size() + 511) / 512);
-		bytePage = std::min(bytePage, pages - 1);
-		if (ImGui::Button("<") && bytePage) --bytePage;
-		ImGui::SameLine();
-		ImGui::Text("%zu / %zu", bytePage + 1, pages);
-		ImGui::SameLine();
-		if (ImGui::Button(">") && bytePage + 1 < pages) ++bytePage;
-		if (ImGui::BeginChild("##Hex", {0, 0}, ImGuiChildFlags_Borders))
-		{
-			for (size_t offset = bytePage * 512; offset < std::min(selection->data.size(), (bytePage + 1) * 512); offset += 16)
-			{
-				std::string line = std::format("{:08X}  ", offset);
-				for (size_t i = offset; i < std::min(offset + 16, selection->data.size()); ++i)
-					line += std::format("{:02X} ", selection->data[i]);
-				ImGui::TextUnformatted(line.c_str());
-			}
-		}
-		ImGui::EndChild();
 	}
 	ImGui::End();
 	return changed;

@@ -1,4 +1,5 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Actor.h"
@@ -747,7 +748,7 @@ void PhysicsManager::Initialize()
 
     // 接続
     if(gPvd->connect(*gPvdTransport, PxPvdInstrumentationFlag::eALL)) {
-        printf("[PhysicsManager] PVD Connected!");
+        Log("[PhysicsManager] PVD Connected!");
     }
 
     // Physics

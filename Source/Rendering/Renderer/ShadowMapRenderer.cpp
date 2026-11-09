@@ -1,9 +1,6 @@
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/RenderTarget.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/ConstantBuffer.h"
-#include "Rendering/Core/BlendState.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
+#include <ProfileKit/ProfileKit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
@@ -69,7 +66,7 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     shadowViewport.TopLeftX = 0.0f;
     shadowViewport.TopLeftY = 0.0f;
 
-    vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/ShadowMapCasterVS.cso",
+    vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShadowMapCasterVS.cso").c_str(),
 		ModelShader::InputLayout);
 
     // 6

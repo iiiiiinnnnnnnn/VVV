@@ -1,6 +1,6 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
-#include "Rendering/Core/VertexBuffer.h"
-#include "Rendering/Core/IndexBuffer.h"
+﻿#include "Resource/ResourceManager.h"
+#include <ProfileKit/ProfileKit.h>
+#include <Dx11Kit/Dx11Kit.h>
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Renderer/TrailRenderer.h"
 
@@ -12,11 +12,11 @@ TrailRenderer::TrailRenderer(ID3D11Device* device)
 		.AddTexcoord();
 
 	// 頂点シェーダー
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/TrailRendererVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TrailRendererVS.cso").c_str(),
 		inputElementDesc);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/TrailRendererPS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TrailRendererPS.cso").c_str());
 
 	// 定数バッファ
 	constant = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTrail));

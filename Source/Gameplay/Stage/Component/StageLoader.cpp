@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Stage.h"

@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
@@ -8,7 +8,7 @@
 #include "Resource/Texture.h"
 #include "Resource/MeshCache.h"
 #include "Rendering/Core/Graphics.h"
-#include "Core/Foundation/DirectXTexConverts.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Core/Foundation/Json.h"
 #include "Resource/SerialJson.h"
 #include <algorithm>

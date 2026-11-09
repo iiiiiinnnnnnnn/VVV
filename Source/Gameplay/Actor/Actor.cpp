@@ -1,4 +1,4 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
+﻿#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Actor/Actor.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"

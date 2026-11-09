@@ -1,12 +1,11 @@
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
+#include <ProfileKit/ProfileKit.h>
 #include "Rendering/Shader/GamePostProcess.h"
 #include <cmath>
 #include <stdexcept>
 
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/RenderTarget.h"
 #include "imgui.h"
 
 namespace Game
@@ -196,7 +195,7 @@ namespace Game
 		if (initialized) return;
 		ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 		static_assert(sizeof(CbUnderwater) % 16 == 0);
-		underwaterPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/UnderwaterPS.cso");
+		underwaterPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnderwaterPS.cso").c_str());
 		underwaterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbUnderwater));
 
 		// Copy
@@ -225,28 +224,28 @@ namespace Game
 		toneMap->SetTransferFunction(DirectX::ToneMapPostProcess::SRGB);
 
 		// Color Filter
-		colorFilterPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ColorFilterPS.cso");
+		colorFilterPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ColorFilterPS.cso").c_str());
 		colorFilterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbColorFilter));
 
 		// SSAO
-		SSAOPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SSAOPS.cso");
-		SSAOCompositePixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/SSAOCompositePS.cso");
+		SSAOPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOPS.cso").c_str());
+		SSAOCompositePixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOCompositePS.cso").c_str());
 		SSAOConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSSAO));
 
 		// Radial Blur
-		radialBlurPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/RadialBlurPS.cso");
+		radialBlurPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/RadialBlurPS.cso").c_str());
 		radialBlurConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbRadialBlur));
 
 		// Vignette
-		vignettePixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/VignettePS.cso");
+		vignettePixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignettePS.cso").c_str());
 		vignetteConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 
 		// Chromatic Aberration
-		chromaticAberrationPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ChromaticAberrationPS.cso");
+		chromaticAberrationPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ChromaticAberrationPS.cso").c_str());
 		chromaticAberrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbChromaticAberration));
 
 		// FXAA
-		FXAAPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/FXAAPS.cso");
+		FXAAPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/FXAAPS.cso").c_str());
 
 		fullscreenRenderer = std::make_unique<FullScreenRenderer>(device);
 		initialized = true;

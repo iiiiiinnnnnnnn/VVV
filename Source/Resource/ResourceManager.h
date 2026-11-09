@@ -59,6 +59,10 @@ public:
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
 	std::string ResolveResourcePath(std::string_view value, ResourceType type) const;
+	std::string ResolveShaderPath(std::string_view value) const
+	{
+		return ResolvePath(ResolveResourcePath(value, ResourceType::Shader));
+	}
 	static std::string ShortResourcePath(std::string_view value, const char* directory);
 	const std::vector<std::string>& GetErrors() const { return errors; }
 	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
@@ -71,7 +75,6 @@ private:
 	bool LoadCachedPathList();
 	bool SaveCachedPathList();
 	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});
-	void ReportError(const std::string& message);
 
 	static std::string NormalizePath(const std::string& path);
 	static std::string MakeLookupKey(const std::string& path);

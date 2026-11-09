@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "maps": {
+    "UIInput": {
+      "actions": {
+        "Navigate": {
+          "type": "Vector2",
+          "bindings": [],
+          "vector2": {
+            "directions": [
+              [
+                {
+                  "device": "Keyboard",
+                  "code": 37,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "Keyboard",
+                  "code": 65,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "GamePad",
+                  "code": 8,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                }
+              ],
+              [
+                {
+                  "device": "Keyboard",
+                  "code": 39,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "Keyboard",
+                  "code": 68,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "GamePad",
+                  "code": 2,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                }
+              ],
+              [
+                {
+                  "device": "Keyboard",
+                  "code": 40,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "Keyboard",
+                  "code": 83,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "GamePad",
+                  "code": 4,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                }
+              ],
+              [
+                {
+                  "device": "Keyboard",
+                  "code": 38,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "Keyboard",
+                  "code": 87,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                },
+                {
+                  "device": "GamePad",
+                  "code": 1,
+                  "downOnly": false,
+                  "axis": "None",
+                  "threshold": 0.35,
+                  "negative": false
+                }
+              ]
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.5,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "Submit": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 13,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            },
+            {
+              "device": "Keyboard",
+              "code": 32,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            },
+            {
+              "device": "GamePad",
+              "code": 16,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        },
+        "Cancel": {
+          "type": "Button",
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 27,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            },
+            {
+              "device": "GamePad",
+              "code": 32,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "vector2": {
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "xAxis": "LeftX",
+            "yAxis": "LeftY",
+            "deadZone": 0.1,
+            "normalize": true,
+            "mouseDelta": false
+          }
+        }
+      }
+    }
+  }
+}

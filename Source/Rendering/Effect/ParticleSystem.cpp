@@ -1,9 +1,7 @@
-﻿#include "Rendering/Core/GeometryShader.h"
-#include "Rendering/Core/VertexBuffer.h"
+﻿#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include <algorithm>
 
 #include "Rendering/Effect/ParticleSystem.h"
@@ -43,12 +41,12 @@ ParticleSystem::ParticleSystem(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D
 		.AddColor()
 		.Add("PARAMETER", DXGI_FORMAT_R32G32B32A32_FLOAT);
 
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/GeometryParticleVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/GeometryParticleVS.cso").c_str(),
 		InputElementDesc);
 
-	geometryShader = std::make_unique<Gpu::GeometryShader>(device, "Resources/Shader/GeometryParticleGS.cso");
+	geometryShader = std::make_unique<Gpu::GeometryShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/GeometryParticleGS.cso").c_str());
 
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/GeometryParticlePS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/GeometryParticlePS.cso").c_str());
 }
 
 ParticleSystem::~ParticleSystem()

@@ -1,6 +1,6 @@
-﻿#include "Application/SettingsAndDebug/ProfileScope.h"
-// SoundSystem.cpp
+#include <ProfileKit/ProfileKit.h>
 #include "Audio/SoundSystem.h"
+#include "Core/Foundation/BinaryFile.h"
 #include "Audio/SoundPaths.h"
 #include "Audio/VSoundFormat.h"
 
@@ -95,19 +95,6 @@ bool IsFourCC(const std::array<char, 4>& value, const char (&expected)[5])
 }
 
 // 音声エラーをデバッガーに出力
-void ReportSoundError(const std::string& message)
-{
-	static thread_local std::string previousMessage;
-	static thread_local std::chrono::steady_clock::time_point nextReport{};
-	const auto now = std::chrono::steady_clock::now();
-	if (message == previousMessage && now < nextReport) return;
-	previousMessage = message;
-	nextReport = now + std::chrono::seconds(2);
-	const std::string output = "[SoundSystem] " + message + "\n";
-	OutputDebugStringA(output.c_str());
-	Scene::Log("%s", output.c_str());
-}
-
 // キャッシュ用にパスを正規化
 std::string MakeSoundKey(const std::filesystem::path& path)
 {
@@ -158,14 +145,14 @@ bool SoundSystem::Initialize()
 	if (FAILED(result))
 	{
 		xaudio = nullptr;
-		ReportSoundError("XAudio2Create failed: " + std::to_string(result));
+		Log("XAudio2Create failed: " + std::to_string(result));
 		return false;
 	}
 
 	result = xaudio->RegisterForCallbacks(&engineCallback);
 	if (FAILED(result))
 	{
-		ReportSoundError("RegisterForCallbacks failed: " + std::to_string(result));
+		Log("RegisterForCallbacks failed: " + std::to_string(result));
 		ReleaseDevice();
 		return false;
 	}
@@ -173,7 +160,7 @@ bool SoundSystem::Initialize()
 	result = xaudio->CreateMasteringVoice(&masteringVoice);
 	if (FAILED(result))
 	{
-		ReportSoundError("CreateMasteringVoice failed: " + std::to_string(result));
+		Log("CreateMasteringVoice failed: " + std::to_string(result));
 		ReleaseDevice();
 		return false;
 	}
@@ -186,7 +173,7 @@ bool SoundSystem::Initialize()
 	if (SUCCEEDED(result)) result = X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, spatialHandle);
 	if (FAILED(result))
 	{
-		ReportSoundError("X3DAudioInitialize failed: " + std::to_string(result));
+		Log("X3DAudioInitialize failed: " + std::to_string(result));
 		ReleaseDevice();
 		return false;
 	}
@@ -272,7 +259,7 @@ SoundSystem::VoiceId SoundSystem::Play3D(const std::string& path, Actor* emitter
 		!IsValidSpatialOptions(options)) return InvalidVoiceId;
 	if (emitter->weak_from_this().expired())
 	{
-		ReportSoundError("Play3D requires a shared_ptr-managed Actor");
+		Log("Play3D requires a shared_ptr-managed Actor");
 		return InvalidVoiceId;
 	}
 	const Camera* listener = GetListenerCamera();
@@ -354,7 +341,7 @@ SoundSystem::VoiceId SoundSystem::StartVoiceData(const std::string& name,
 		spatial ? XAUDIO2_VOICE_USEFILTER : 0, XAUDIO2_MAX_FREQ_RATIO, active->callback.get(), &sendList);
 	if (FAILED(result))
 	{
-		ReportSoundError("CreateSourceVoice failed: " + name);
+		Log("CreateSourceVoice failed: " + name);
 		return InvalidVoiceId;
 	}
 
@@ -366,7 +353,7 @@ SoundSystem::VoiceId SoundSystem::StartVoiceData(const std::string& name,
 	result = active->source->SubmitSourceBuffer(&buffer);
 	if (FAILED(result))
 	{
-		ReportSoundError("SubmitSourceBuffer failed: " + name);
+		Log("SubmitSourceBuffer failed: " + name);
 		return InvalidVoiceId;
 	}
 
@@ -388,7 +375,7 @@ SoundSystem::VoiceId SoundSystem::StartVoiceData(const std::string& name,
 	result = active->source->Start(0);
 	if (FAILED(result))
 	{
-		ReportSoundError("SourceVoice Start failed: " + name);
+		Log("SourceVoice Start failed: " + name);
 		return InvalidVoiceId;
 	}
 
@@ -452,7 +439,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 	const auto writeTime = std::filesystem::last_write_time(resolved, error);
 	if (error)
 	{
-		ReportSoundError("WAV was not found: " + path);
+		Log("WAV was not found: " + path);
 		return nullptr;
 	}
 	const std::string key = MakeSoundKey(resolved) + "#" + std::to_string(writeTime.time_since_epoch().count());
@@ -460,21 +447,16 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadSound(const std::string
 
 	try
 	{
-		std::ifstream input(resolved, std::ios::binary | std::ios::ate);
-		if (!input) throw std::runtime_error("file not found");
-		const auto size = input.tellg();
-		if (size <= 0) throw std::runtime_error("empty file");
-		std::vector<uint8_t> bytes(static_cast<size_t>(size));
-		input.seekg(0);
-		if (!input.read(reinterpret_cast<char*>(bytes.data()), size))
-			throw std::runtime_error("file read failed");
+		const auto file = BinaryFile::Read(resolved);
+		if (!file.IsValid() || !file.GetSize()) throw std::runtime_error("WAV file read failed or empty");
+		const auto& bytes = file.GetData();
 		auto sound = DecodeWave(bytes.data(), bytes.size(), resolved.generic_string());
 		sounds.emplace(key, sound);
 		return sound;
 	}
 	catch (const std::exception& exception)
 	{
-		ReportSoundError("WAV load failed: " + resolved.generic_string() + " (" +
+		Log("WAV load failed: " + resolved.generic_string() + " (" +
 			exception.what() + ")");
 		return nullptr;
 	}
@@ -502,7 +484,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::st
 		{
 			for (const auto& [index, wave] : waves)
 				if (index == variant) return LoadSound(ResourcePath::Text(wave));
-			ReportSoundError("Sound variant was not found: " + path);
+			Log("Sound variant was not found: " + path);
 			return nullptr;
 		}
 		static thread_local std::mt19937 random(std::random_device{}());
@@ -514,7 +496,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::st
 	runtimeWave.replace_extension(".wav");
 	if (source != runtimeWave)
 	{
-		ReportSoundError("Source WAV was not found: " + path);
+		Log("Source WAV was not found: " + path);
 		return nullptr;
 	}
 #endif
@@ -599,7 +581,7 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadCachedSound(
 	}
 	catch (const std::exception& exception)
 	{
-		ReportSoundError("VSND load failed: " + resolved.generic_string() + " (" +
+		Log("VSND load failed: " + resolved.generic_string() + " (" +
 			exception.what() + ")");
 		return nullptr;
 	}
@@ -682,7 +664,7 @@ bool SoundSystem::InitializeReverb()
 	HRESULT result = XAudio2CreateReverb(&reverb);
 	if (FAILED(result))
 	{
-		ReportSoundError("XAudio2CreateReverb failed: " + std::to_string(result));
+		Log("XAudio2CreateReverb failed: " + std::to_string(result));
 		return false;
 	}
 
@@ -703,7 +685,7 @@ bool SoundSystem::InitializeReverb()
 		result = reverbVoice->SetEffectParameters(0, &parameters, sizeof(parameters));
 	}
 	if (SUCCEEDED(result)) return true;
-	ReportSoundError("Cave reverb initialization failed: " + std::to_string(result));
+	Log("Cave reverb initialization failed: " + std::to_string(result));
 	if (reverbVoice) reverbVoice->DestroyVoice();
 	if (spatialVoice) spatialVoice->DestroyVoice();
 	reverbVoice = nullptr;

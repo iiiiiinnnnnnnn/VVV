@@ -21,10 +21,12 @@
     <ClInclude Include="Source\Gameplay\Actor\CrystalPart.h" />
     <ClInclude Include="Source\Gameplay\Actor\RigidRock.h" />
     <ClInclude Include="Source\Gameplay\Player\DummyPlayer.h" />
+    <ClInclude Include="Source\Gameplay\Stage\StageTitle.h" />
     <ClInclude Include="Source\pch.h" />
     <ClCompile Include="Source\Gameplay\Actor\CrystalPart.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\RigidRock.cpp" />
     <ClCompile Include="Source\Gameplay\Player\DummyPlayer.cpp" />
+    <ClCompile Include="Source\Gameplay\Stage\StageTitle.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -51,9 +53,6 @@
       <ForcedIncludeFiles />
     </ClCompile>
     <ClCompile Include="Source\Audio\SoundSystem.cpp" />
-    <ClCompile Include="Source\Application\SettingsAndDebug\DebugLog.cpp" />
-    <ClCompile Include="Source\Application\SettingsAndDebug\ProfileScope.cpp" />
-    <ClCompile Include="Source\Application\SettingsAndDebug\Profiler.cpp" />
     <ClCompile Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.cpp" />
     <ClCompile Include="External\TimelineProfiler\Profiler.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -128,29 +127,14 @@
     <ClCompile Include="Source\Rendering\Effect\EffectManager.cpp" />
     <ClCompile Include="Source\Application\Bootstrap\Framework.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\FreeCameraController.cpp" />
-    <ClCompile Include="Source\Application\Input\GamePad.cpp" />
     <ClCompile Include="Source\Rendering\Shader\GaussianFilterShader.cpp" />
     <ClCompile Include="Source\Resource\GLTFImporter.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles />
     </ClCompile>
-    <ClCompile Include="Source\Rendering\Core\InputLayoutDesc.cpp" />
-    <ClCompile Include="Source\Rendering\Core\VertexShader.cpp" />
-    <ClCompile Include="Source\Rendering\Core\BufferDesc.cpp" />
-    <ClCompile Include="Source\Rendering\Core\Buffer.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\FullScreenRenderer.cpp" />
-    <ClCompile Include="Source\Rendering\Core\VertexBuffer.cpp" />
-    <ClCompile Include="Source\Rendering\Core\IndexBuffer.cpp" />
-    <ClCompile Include="Source\Rendering\Core\ConstantBuffer.cpp" />
-    <ClCompile Include="Source\Rendering\Core\ShaderBytecode.cpp" />
-    <ClCompile Include="Source\Rendering\Core\ComputeShader.cpp" />
-    <ClCompile Include="Source\Rendering\Core\DomainShader.cpp" />
-    <ClCompile Include="Source\Rendering\Core\HullShader.cpp" />
-    <ClCompile Include="Source\Rendering\Core\GeometryShader.cpp" />
-    <ClCompile Include="Source\Rendering\Core\PixelShader.cpp" />
     <ClCompile Include="Source\Rendering\Core\Graphics.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ImGuiRenderer.cpp" />
-    <ClCompile Include="Source\Application\Input\Input.cpp" />
     <ClCompile Include="Source\Core\Object\Object.cpp" />
     <ClCompile Include="Source\Core\Object\Component.cpp" />
     <ClCompile Include="Source\Gameplay\Player\LocalPlayer.cpp" />
@@ -176,11 +160,9 @@
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
     <ClCompile Include="Source\Resource\ResourceManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp" />
-    <ClCompile Include="Source\Application\Input\Mouse.cpp" />
     <ClCompile Include="Source\Physics\Core\PhysicsManager.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\Core\Object\RectTransform.cpp" />
-    <ClCompile Include="Source\Rendering\Core\RenderTarget.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\Scene.cpp" />
     <ClCompile Include="Source\Rendering\Shader\Shader.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\ShadowMapRenderer.cpp" />
@@ -229,13 +211,9 @@
     <ClInclude Include="Source\Audio\SoundPaths.h" />
     <ClInclude Include="Source\Audio\VSoundFormat.h" />
     <ClInclude Include="Source\Rendering\Shader\VignetteSpriteShader.h" />
-    <ClInclude Include="Source\Application\SettingsAndDebug\DebugLog.h" />
-    <ClInclude Include="Source\Application\SettingsAndDebug\ProfileScope.h" />
-    <ClInclude Include="Source\Application\SettingsAndDebug\Profiler.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.h" />
     <ClInclude Include="External\TimelineProfiler\Profiler.h" />
     <ClInclude Include="External\TimelineProfiler\IconsFontAwesome4.h" />
-    <ClInclude Include="Source\Core\Foundation\DirectXTexConverts.h" />
     <ClInclude Include="Source\Core\Foundation\Json.h" />
     <ClInclude Include="Source\Gameplay\Actor\Deer.h" />
     <ClInclude Include="Source\Gameplay\Scene\EditorScene.h" />
@@ -251,8 +229,8 @@
     <ClInclude Include="Source\Physics\Collider\CapsuleCollider.h" />
     <ClInclude Include="Source\Physics\Collider\VMDLColliderComponent.h" />
     <ClInclude Include="Source\Physics\Core\CollidersDef.h" />
+    <ClInclude Include="Source\Core\Foundation\Random.h" />
     <ClInclude Include="Source\Core\Foundation\Common.h" />
-    <ClInclude Include="Source\Core\Foundation\DirectXSerialization.h" />
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugUtil.h" />
     <ClInclude Include="Source\Core\Foundation\Easing.h" />
     <ClInclude Include="Source\Animation\FootIK.h" />
@@ -301,29 +279,12 @@
     <ClInclude Include="Source\Application\Bootstrap\Framework.h" />
     <ClInclude Include="Source\Gameplay\Camera\FreeCameraController.h" />
     <ClInclude Include="Source\Gameplay\Camera\MovieCameraController.h" />
-    <ClInclude Include="Source\Application\Input\GamePad.h" />
     <ClInclude Include="Source\Rendering\Shader\GaussianFilterShader.h" />
     <ClInclude Include="Source\Resource\GLTFImporter.h" />
-    <ClInclude Include="Source\Rendering\Core\InputLayoutDesc.h" />
-    <ClInclude Include="Source\Rendering\Core\VertexShader.h" />
-    <ClInclude Include="Source\Rendering\Core\BufferDesc.h" />
-    <ClInclude Include="Source\Rendering\Core\Buffer.h" />
     <ClInclude Include="Source\Rendering\Renderer\FullScreenRenderer.h" />
-    <ClInclude Include="Source\Rendering\Core\VertexBuffer.h" />
-    <ClInclude Include="Source\Rendering\Core\IndexBuffer.h" />
-    <ClInclude Include="Source\Rendering\Core\ConstantBuffer.h" />
-    <ClInclude Include="Source\Rendering\Core\ShaderBytecode.h" />
-    <ClInclude Include="Source\Rendering\Core\ComputeShader.h" />
-    <ClInclude Include="Source\Rendering\Core\DomainShader.h" />
-    <ClInclude Include="Source\Rendering\Core\HullShader.h" />
-    <ClInclude Include="Source\Rendering\Core\GeometryShader.h" />
-    <ClInclude Include="Source\Rendering\Core\PixelShader.h" />
     <ClInclude Include="Source\Rendering\Core\Graphics.h" />
     <ClInclude Include="Source\Application\Time\HighResolutionTimer.h" />
     <ClInclude Include="Source\Rendering\Renderer\ImGuiRenderer.h" />
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiTheme.h" />
-    <ClInclude Include="Source\Rendering\Renderer\ImGuiPath.h" />
-    <ClInclude Include="Source\Application\Input\Input.h" />
     <ClInclude Include="Source\Core\Object\Object.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayer.h" />
     <ClInclude Include="Source\Gameplay\Player\LocalPlayerInput.h" />
@@ -347,12 +308,10 @@
     <ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h" />
     <ClInclude Include="Source\Physics\Collider\TerrainMeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
-    <ClInclude Include="Source\Application\Input\Mouse.h" />
     <ClInclude Include="Source\Gameplay\Component\ActorHitstopComponent.h" />
     <ClInclude Include="Source\Gameplay\Component\CharacterMotorComponent.h" />
     <ClInclude Include="Source\Gameplay\Component\LockOnComponent.h" />
     <ClInclude Include="Source\Core\Object\RectTransform.h" />
-    <ClInclude Include="Source\Rendering\Core\RenderTarget.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />
     <ClInclude Include="Source\Resource\ResourcePath.h" />
     <ClInclude Include="Source\Physics\Core\PhysicsManager.h" />
@@ -361,10 +320,6 @@
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h" />
     <ClInclude Include="Source\Rendering\Core\ModelShaderId.h" />
     <ClInclude Include="Source\Rendering\Core\PBRRenderParams.h" />
-    <ClInclude Include="Source\Rendering\Core\DepthStencilState.h" />
-    <ClInclude Include="Source\Rendering\Core\BlendState.h" />
-    <ClInclude Include="Source\Rendering\Core\RasterizerState.h" />
-    <ClInclude Include="Source\Rendering\Core\SamplerState.h" />
     <ClInclude Include="Source\Gameplay\Scene\Scene.h" />
     <ClInclude Include="Source\Rendering\Shader\Shader.h" />
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h" />
@@ -408,6 +363,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="Resources\AI\Aracore.lua" />
+    <None Include="Resources\AI\Deer.lua" />
     <None Include="Shader\filter_functions.hlsli" />
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\TerrainGrass.hlsli" />
@@ -633,6 +590,9 @@
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -673,7 +633,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\ImGuiToolKit\Include;.\External\InputKit\Include;.\External\ProfileKit\Include;.\External\Dx11Kit\Include;.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -714,7 +674,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_RELEASE;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\ImGuiToolKit\Include;.\External\InputKit\Include;.\External\ProfileKit\Include;.\External\Dx11Kit\Include;.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -759,7 +719,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>VVV_DEVELOPMENT;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\ImGuiToolKit\Include;.\External\InputKit\Include;.\External\ProfileKit\Include;.\External\Dx11Kit\Include;.\Source;.\External;.\External\stb;.\External\tinygltf;.\External\juliettef;.\External\cereal\include;.\External\imgui\include;.\External\PhysX\include;.\External\Effekseer\include;.\External\DirectXTK\include;.\External\DirectXTex\include;.\External\RecastNavigation\include;.\External\lua\include;.\External\sol2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp23</LanguageStandard>
@@ -850,6 +810,17 @@
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="External\ImGuiToolKit\ImGuiToolKit.vcxproj">
+      <Project>{FA1E2821-06BE-4C41-9D18-5A9F35B10AB4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="External\InputKit\InputKit.vcxproj">
+      <Project>{45B1B3C7-381B-44B2-B57A-43028ED7987A}</Project>
+    </ProjectReference>
+    <ProjectReference Include="External\ProfileKit\ProfileKit.vcxproj">
+      <Project>{9986C9F8-2717-49E7-8FB3-4059F310838B}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <Target Name="CopyRuntimeFiles" AfterTargets="Build">
@@ -902,5 +873,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Resource\SerialJson.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Core\Foundation\BinaryFile.h" />
+    <ClInclude Include="Source\Core\Foundation\StrUtils.h" />
+    <ClInclude Include="Source\Gameplay\Camera\CameraMoveSpeedOverlay.h" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Core\Foundation\Logger.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Input\PlayerInput.vis" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Input\UIInput.vis" />
+    <None Include="Resources\Input\DebugInput.vis" />
   </ItemGroup>
 </Project>

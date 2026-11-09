@@ -87,6 +87,8 @@ public:
 	void SetBossBar(BossBarWidget* value);
 	void SetStageLoader(StageLoader* value) { stageLoader = value; }
 
+	float GetBattleTime() const { return battleTime; }
+
 private:
 	// ジャンプの移動・アニメーション待機・着地後の処理。
 	class JumpState
@@ -298,6 +300,8 @@ private:
 	ReactionState reaction;
 	DeathState death;
 	bool chasingPlayer = false;
+
+	float battleTime = 0.0f;
 
 	// シーン側から渡される参照と、ボス全体の情報。
 	Player* player = nullptr;

@@ -1,15 +1,15 @@
-﻿#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
+﻿#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Shader/GaussianFilterShader.h"
 
 GaussianFilterShader::GaussianFilterShader(ID3D11Device* device)
 {
 	// 頂点シェーダー
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/BasicSpriteVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpriteVS.cso").c_str(),
 		SpriteShader::InputLayout);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/GaussianFilteringPS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/GaussianFilteringPS.cso").c_str());
 
 	// ガウスフィルター用定数バッファ
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbGaussianFilter));

@@ -1,4 +1,6 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ImGuiToolKit/ImGuiToolKit.h>
+#include "Core/Foundation/Random.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/VmdlEditorScene.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
@@ -10,7 +12,6 @@
 #include "Animation/SpringBone.h"
 #include "Audio/SoundSystem.h"
 #include "Resource/ResourcePath.h"
-#include "Rendering/Renderer/ImGuiPath.h"
 #include "Core/Object/Object.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Camera/Camera.h"
@@ -22,7 +23,6 @@
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Effect/EffectManager.h"
-#include "Rendering/Renderer/ImGuiTheme.h"
 #include "Resource/VMDLModel.h"
 #include "Resource/VSTG.h"
 #include "Resource/EmbeddedResources.h"
@@ -211,7 +211,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 {
 	const std::string display = SoundPathLabel(soundPath);
 	const float previewWidth = ImGui::CalcItemWidth() - ImGui::GetFrameHeight() - ImGui::GetStyle().FramePadding.x * 2;
-	const std::string preview = ImGuiPath::Tail(display, previewWidth);
+	const std::string preview = ImGuiToolKit::Path::Tail(display, previewWidth);
 	bool changed = false;
 	const bool open = ImGui::BeginCombo(label, preview.c_str());
 	if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", display.c_str());
@@ -225,7 +225,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 		for (const auto& candidate : SoundSystem::GetSoundPaths())
 		{
 			ImGui::PushID(candidate.c_str());
-			const std::string item = ImGuiPath::Tail(candidate, ImGui::GetContentRegionAvail().x);
+			const std::string item = ImGuiToolKit::Path::Tail(candidate, ImGui::GetContentRegionAvail().x);
 			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(soundPath, "Sound") == candidate))
 			{
 				soundPath = candidate;
@@ -416,7 +416,7 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGuiStyle& style = ImGui::GetStyle();
 	const ImGuiStyle gameStyle = style;
 	bool selectionFocused = false;
-	ImGuiTheme::ApplyRedTheme(style);
+	ImGuiToolKit::Theme::ApplyRedTheme(style);
 
 	// アニメーションプレビューの再生
 	if (animationPlaying && model && selectedAnimation >= 0 &&
@@ -531,15 +531,15 @@ void VmdlEditorScene::OnDrawGUI()
 	{
 		const ImVec4 menuColor = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
 		ImGui::PushStyleColor(ImGuiCol_Tab, menuColor);
-		ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabSelected, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabHovered, ImGuiToolKit::Theme::Selected);
 		ImGui::PushStyleColor(ImGuiCol_TabDimmed, menuColor);
-		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiTheme::SelectedBorder);
-		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiTheme::SelectedBorder);
-		ImGui::PushStyleColor(ImGuiCol_Header, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, ImGuiToolKit::Theme::SelectedBorder);
+		ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, ImGuiToolKit::Theme::SelectedBorder);
+		ImGui::PushStyleColor(ImGuiCol_Header, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiToolKit::Theme::Selected);
 		if (ImGui::BeginTabBar("VMDL Editor Tabs"))
 		{
 			if (ImGui::BeginTabItem((const char*)u8"アニメーション"))
@@ -547,9 +547,9 @@ void VmdlEditorScene::OnDrawGUI()
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
 				ImGui::GetWindowDrawList()->AddRect(
-					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+					tabMin, tabMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 				ImGui::GetWindowDrawList()->AddRectFilled(
-					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiToolKit::Theme::SelectedAccent);
 				DrawTimeline();
 				ImGui::EndTabItem();
 			}
@@ -558,9 +558,9 @@ void VmdlEditorScene::OnDrawGUI()
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
 				ImGui::GetWindowDrawList()->AddRect(
-					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+					tabMin, tabMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 				ImGui::GetWindowDrawList()->AddRectFilled(
-					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiToolKit::Theme::SelectedAccent);
 				DrawMorphEditor();
 				ImGui::EndTabItem();
 			}
@@ -569,9 +569,9 @@ void VmdlEditorScene::OnDrawGUI()
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
 				ImGui::GetWindowDrawList()->AddRect(
-					tabMin, tabMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+					tabMin, tabMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 				ImGui::GetWindowDrawList()->AddRectFilled(
-					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiTheme::SelectedAccent);
+					tabMin, ImVec2(tabMin.x + 4.0f, tabMax.y), ImGuiToolKit::Theme::SelectedAccent);
 				DrawIkSettings();
 				ImGui::EndTabItem();
 			}
@@ -586,22 +586,10 @@ void VmdlEditorScene::OnDrawGUI()
 	const ImVec2 inputMax(workPosition.x + totalWidth - hierarchyWidth - gap, workPosition.y + upperHeight);
 	DrawViewport(inputMin, inputMax);
 	if (!bottomFocused && (selectionFocused || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow)) &&
-		Game::Input::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
+		InputKit::InputSystem::IsFocusedWindow(true) && !io.WantTextInput && !ImGui::IsAnyItemActive() &&
 		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) && !ImGuizmo::IsUsing() &&
 		ImGui::IsKeyPressed(ImGuiKey_Delete, false)) DeleteSelection();
 
-	if (animationRecording)
-	{
-		const ImVec2 position = viewport->Pos;
-		const ImVec2 size = viewport->Size;
-
-		constexpr float thickness = 4.0f;
-		constexpr float inset = thickness * 0.5f;
-
-		ImGui::GetForegroundDrawList()->AddRect(ImVec2(position.x + inset, position.y + inset),
-			ImVec2(position.x + size.x - inset, position.y + size.y - inset),
-			IM_COL32(255, 0, 0, 255), 0.0f, ImDrawFlags_None, thickness);
-	}
 
 
 	if (showSetScaleWindow) ImGui::OpenPopup((const char*)u8"スケール設定");
@@ -880,7 +868,7 @@ void VmdlEditorScene::RenderPreview()
 	ResizePreviewTargets();
 	if (!previewSceneTarget || !previewTarget || !editorCamera) return;
 
-	if (Game::Input::Instance().GetGamePad().GetButtonDown() & GamePad::BTN_LEFT_TRIGGER)
+	if (InputKit::InputSystem::Instance().GetGamePad().GetButtonDown() & InputKit::GamePad::BTN_LEFT_TRIGGER)
 		cameraReturningToFront = true;
 	if (cameraReturningToFront)
 	{
@@ -1505,7 +1493,7 @@ void VmdlEditorScene::LoadFootIkTestStage()
 	}
 	catch (const std::exception& exception)
 	{
-		ErrorMessage(exception.what());
+		ImGuiToolKit::Alert(exception.what());
 		return;
 	}
 
@@ -2088,7 +2076,7 @@ void VmdlEditorScene::DeleteSelection()
 		for (const auto& bone : mesh.bones)
 		{
 			if (!deletingNode(bone.nodeIndex)) continue;
-			ErrorMessage("This node is used by another mesh as a bone.");
+			ImGuiToolKit::Alert("This node is used by another mesh as a bone.");
 			return;
 		}
 	}
@@ -2461,9 +2449,9 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	if (!hierarchySearchUpper.empty()) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 	if (selected)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Header, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiTheme::Selected);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiTheme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_Header, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiToolKit::Theme::Selected);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiToolKit::Theme::Selected);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
 	}
 	const bool open =
@@ -2475,9 +2463,9 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 	{
 		ImGui::PopStyleColor(4);
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		drawList->AddRect(itemMin, itemMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+		drawList->AddRect(itemMin, itemMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 		drawList->AddRectFilled(
-			itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
+			itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiToolKit::Theme::SelectedAccent);
 	}
 	const bool nodeClicked = ImGui::IsItemClicked();
 	if (ImGui::BeginDragDropTarget())
@@ -2792,7 +2780,7 @@ void VmdlEditorScene::DrawPreviewToolbar()
 void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax)
 {
 	auto& io = ImGui::GetIO();
-	const Mouse& mouseInput = Game::Input::Instance().GetMouse();
+	const InputKit::Mouse& mouseInput = InputKit::InputSystem::Instance().GetMouse();
 	const float yawDelta = -mouseInput.GetAxisX() * FreeCameraController::MouseRotationSensitivity;
 	const float pitchDelta = mouseInput.GetAxisY() * FreeCameraController::MouseRotationSensitivity;
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -2914,7 +2902,6 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 			Matrix local = node.parent ? global * node.parent->globalTransform.Invert() : global;
 			local.Decompose(node.scale, node.rotation, node.position);
 			MarkDirty();
-			if (animationRecording) RecordSelectedNodeKey();
 		}
 		gizmoHovered = ImGuizmo::IsOver(ImGuizmo::UNIVERSAL) ||
 			ImGuizmo::IsOver(&world._41, 24.0f);
@@ -3098,7 +3085,6 @@ void VmdlEditorScene::DrawProperty()
 	if (transformChanged)
 	{
 		MarkDirty();
-		if (animationRecording) RecordSelectedNodeKey();
 	}
 
 	// 選択メッシュの情報
@@ -4253,9 +4239,9 @@ void VmdlEditorScene::DrawTimeline()
 			if (selectedAnimation == i)
 			{
 				ImGui::GetWindowDrawList()->AddRect(
-					itemMin, itemMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+					itemMin, itemMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 				ImGui::GetWindowDrawList()->AddRectFilled(
-					itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
+					itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiToolKit::Theme::SelectedAccent);
 			}
 		}
 		ImGui::EndCombo();
@@ -4328,7 +4314,6 @@ void VmdlEditorScene::DrawTimeline()
 						: std::min(selectedAnimation, Count(animations) - 1);
 				animationTime = 0.0f;
 				animationPlaying = false;
-				animationRecording = false;
 				draggingAnimationKey = false;
 				scrubbingAnimationTime = false;
 				paintingFootWeight = false;
@@ -4352,23 +4337,6 @@ void VmdlEditorScene::DrawTimeline()
 
 	VMDLModel::Animation& animation = animations[selectedAnimation];
 
-	// 録画と再生操作
-	if (animationRecording)
-	{
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
-	}
-
-	const bool recordClicked = ImGui::Button(ICON_FA_CAMERA "##Record", ImVec2(38.0f, 0.0f));
-
-	if (animationRecording)
-	{
-		ImGui::PopStyleColor(3);
-	}
-
-	if (recordClicked) animationRecording = !animationRecording;
-	ImGui::SameLine();
 	const float progress = animation.secondsLength > 0.0f
 		? std::clamp(animationTime / animation.secondsLength, 0.0f, 1.0f) : 0.0f;
 	ImGui::Text("%.3f / %.3f sec  (%.3f / 1.000)",
@@ -5110,7 +5078,6 @@ void VmdlEditorScene::DrawAnimationCurves()
 		}
 		MarkDirty();
 		if (selectedKeyTrack == draggingNumericTrack) ApplyAnimationPreview();
-		else if (animationRecording) RecordSelectedNodeKey();
 	}
 	if (draggingNumericTrack >= 0 && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 	{
@@ -5857,9 +5824,9 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 					if (selectedMorphEventTarget == i)
 					{
 						ImGui::GetWindowDrawList()->AddRect(
-							itemMin, itemMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+							itemMin, itemMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 						ImGui::GetWindowDrawList()->AddRectFilled(itemMin,
-							ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
+							ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiToolKit::Theme::SelectedAccent);
 					}
 				}
 				ImGui::EndCombo();
@@ -6242,9 +6209,9 @@ void VmdlEditorScene::DrawMorphEditor()
 			if (selectedMorph == i)
 			{
 				ImGui::GetWindowDrawList()->AddRect(
-					itemMin, itemMax, ImGuiTheme::SelectedOutline, 2.0f, 0, 2.0f);
+					itemMin, itemMax, ImGuiToolKit::Theme::SelectedOutline, 2.0f, 0, 2.0f);
 				ImGui::GetWindowDrawList()->AddRectFilled(
-					itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiTheme::SelectedAccent);
+					itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), ImGuiToolKit::Theme::SelectedAccent);
 			}
 			if (ImGui::BeginPopupContextItem("Morph Actions"))
 			{
@@ -6417,7 +6384,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 				}
 				else
 				{
-					ErrorMessage("Failed to export the material texture.");
+					ImGuiToolKit::Alert("Failed to export the material texture.");
 				}
 			}
 		}
@@ -6441,7 +6408,7 @@ void VmdlEditorScene::DrawMaterialEditor()
 				}
 				else
 				{
-					ErrorMessage("Failed to replace the material texture.");
+					ImGuiToolKit::Alert("Failed to replace the material texture.");
 				}
 			}
 		}
@@ -6479,7 +6446,6 @@ void VmdlEditorScene::DrawMaterialEditor()
 		for (auto& [groupIndex, cache] : externalMeshPreviewCaches)
 			if (cache) cache->SyncMaterialsFrom(*model);
 		MarkDirty();
-		if (animationRecording) model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
 	}
 	DrawMaterialAnimationKeys();
 }
@@ -6537,35 +6503,6 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 		}
 		break;
 	}
-}
-
-void VmdlEditorScene::RecordSelectedNodeKey()
-{
-	if (!model || selectedAnimation < 0 || selectedNode < 0) return;
-	auto& animation = model->GetAnimations()[selectedAnimation];
-	if (animation.nodeAnims.size() < model->GetNodes().size())
-		animation.nodeAnims.resize(model->GetNodes().size());
-	const VMDLModel::Node& node = model->GetNodes()[selectedNode];
-	auto& nodeAnimation = animation.nodeAnims[selectedNode];
-	const auto upsert = [&](auto& keyframes, const auto& value) {
-		for (auto& key : keyframes)
-		{
-			if (std::abs(key.seconds - animationTime) > 0.0005f) continue;
-			key.value = value;
-			return;
-		}
-		keyframes.push_back({animationTime, value});
-	};
-	upsert(nodeAnimation.positionKeyframes, node.position);
-	upsert(nodeAnimation.rotationKeyframes, node.rotation);
-	upsert(nodeAnimation.scaleKeyframes, node.scale);
-	auto byTime = [](const auto& left, const auto& right) { return left.seconds < right.seconds; };
-	std::sort(
-		nodeAnimation.positionKeyframes.begin(), nodeAnimation.positionKeyframes.end(), byTime);
-	std::sort(
-		nodeAnimation.rotationKeyframes.begin(), nodeAnimation.rotationKeyframes.end(), byTime);
-	std::sort(nodeAnimation.scaleKeyframes.begin(), nodeAnimation.scaleKeyframes.end(), byTime);
-	MarkDirty();
 }
 
 void VmdlEditorScene::MarkDirty()
@@ -6650,7 +6587,7 @@ void VmdlEditorScene::ResetLightingEnvironment()
 	auto& graphics = Game::Graphics::Instance();
 	if (!graphics.LoadSkyMap("Default"))
 	{
-		ErrorMessage("Default lighting environment could not be loaded.");
+		ImGuiToolKit::Alert("Default lighting environment could not be loaded.");
 		return;
 	}
 	graphics.GetSkyBoxRenderer()->SetIntensity(1.0f);
@@ -6675,14 +6612,14 @@ void VmdlEditorScene::ApplyVstgLighting()
 		VSTG stage;
 		if (!stage.Load(filepath) || !stage.ApplyLighting(editorLights))
 		{
-			ErrorMessage(stage.GetError());
+			ImGuiToolKit::Alert(stage.GetError());
 			return;
 		}
 		usesCustomLighting = true;
 	}
 	catch (const std::exception& exception)
 	{
-		ErrorMessage(std::string("VSTG lighting import failed: ") + exception.what());
+		ImGuiToolKit::Alert(std::string("VSTG lighting import failed: ") + exception.what());
 	}
 }
 
@@ -6727,7 +6664,7 @@ void VmdlEditorScene::ExportGlb()
 	std::filesystem::path destination = filepath;
 	destination.replace_extension(".glb");
 	std::string error;
-	if (!model->ExportGlb(destination, &error)) ErrorMessage("GLB export failed: " + error);
+	if (!model->ExportGlb(destination, &error)) ImGuiToolKit::Alert("GLB export failed: " + error);
 	*/
 }
 
@@ -6749,7 +6686,7 @@ void VmdlEditorScene::AppendAnimationGlb()
 		model->AppendAnimations(filepath.c_str());
 		if (firstAppendedIndex >= Count(model->GetAnimations()))
 		{
-			ErrorMessage("The selected GLB contains no animations.");
+			ImGuiToolKit::Alert("The selected GLB contains no animations.");
 			return;
 		}
 
@@ -6764,7 +6701,7 @@ void VmdlEditorScene::AppendAnimationGlb()
 	}
 	catch (const std::exception& exception)
 	{
-		ErrorMessage(std::string("Animation append failed: ") + exception.what());
+		ImGuiToolKit::Alert(std::string("Animation append failed: ") + exception.what());
 	}
 }
 
@@ -6798,7 +6735,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 		std::string replaceError;
 		if (!model->ReplaceGLBCache(filepath, 60.0f, &replaceError))
 		{
-			ErrorMessage(replaceError.empty()
+			ImGuiToolKit::Alert(replaceError.empty()
 				? "Failed to replace the GLB cache."
 				: "Failed to replace the GLB cache: " + replaceError);
 			return;
@@ -6834,7 +6771,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 	}
 	catch (const std::exception& exception)
 	{
-		ErrorMessage(std::string("GLB cache replacement failed: ") + exception.what());
+		ImGuiToolKit::Alert(std::string("GLB cache replacement failed: ") + exception.what());
 	}
 }
 
@@ -6870,7 +6807,7 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 	if (selectedMorph < 0 ||
 		selectedMorph >= Count(model->GetVmdlExtensionData().morphs))
 	{
-		ErrorMessage("Select the activation morph before externalizing meshes.");
+		ImGuiToolKit::Alert("Select the activation morph before externalizing meshes.");
 		return;
 	}
 	const std::wstring message =
@@ -6892,23 +6829,23 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 		const std::filesystem::path existingPath =
 			ResourceManager::ResolveSourcePath(group.path);
 		if (!IsSameFilePath(existingPath, filepath)) continue;
-		ErrorMessage((const char*)u8"このVMSHは別の分離メッシュが使用しています。別のファイル名を指定してください。");
+		ImGuiToolKit::Alert((const char*)u8"このVMSHは別の分離メッシュが使用しています。別のファイル名を指定してください。");
 		return;
 	}
 
 	std::string error;
 	if (!MeshCache::Save(filepath, *model, meshIndices, &error))
 	{
-		ErrorMessage("Failed to save the outfit mesh cache: " + error);
+		ImGuiToolKit::Alert("Failed to save the outfit mesh cache: " + error);
 		return;
 	}
 
 	if (!ResourceManager::Instance().RefreshResources(filepath))
-		ErrorMessage("Mesh saved, but runtime cache refresh failed.");
+		ImGuiToolKit::Alert("Mesh saved, but runtime cache refresh failed.");
 	const std::string portablePath = PortableResourcePath(filepath);
 	if (!model->ExternalizeMeshes(portablePath, meshIndices, selectedMorph))
 	{
-		ErrorMessage("The VMSH was saved, but the meshes could not be externalized.");
+		ImGuiToolKit::Alert("The VMSH was saved, but the meshes could not be externalized.");
 		return;
 	}
 
@@ -6981,7 +6918,7 @@ void VmdlEditorScene::SeparateMorphMeshes(int morphIndex)
 		MarkDirty();
 	}
 	if (!failures.empty())
-		ErrorMessage("Some morph meshes could not be separated:\n" + failures);
+		ImGuiToolKit::Alert("Some morph meshes could not be separated:\n" + failures);
 }
 
 void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
@@ -7007,7 +6944,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 	std::string error;
 	if (!model->RestoreExternalMeshes(meshIndex, resolved, &error))
 	{
-		ErrorMessage(error.empty() ? "Failed to restore the VMSH meshes." : error);
+		ImGuiToolKit::Alert(error.empty() ? "Failed to restore the VMSH meshes." : error);
 		return;
 	}
 	externalMeshPreviewCaches.clear();
@@ -7028,18 +6965,14 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		// VMDLが古い外部参照を保持したままVMSHだけ消える状態を防ぐ
 		if (documentPath.empty())
 		{
-			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-				L"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。",
-				L"VEER", MB_OK | MB_ICONWARNING);
+			ImGuiToolKit::Alert((const char*)u8"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。", "Warning");
 			return;
 		}
 		documentPath = ResourceManager::ResolveSourcePath(documentPath);
 		if (!model->SaveVmdl(documentPath) ||
 			!ResourceManager::Instance().RefreshResources(documentPath))
 		{
-			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-				L"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。",
-				L"VEER", MB_OK | MB_ICONWARNING);
+			ImGuiToolKit::Alert((const char*)u8"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。", "Warning");
 			return;
 		}
 		dirty = false;
@@ -7048,11 +6981,10 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		const bool removed = std::filesystem::remove(resolved, removeError);
 		if (removeError || (!removed && std::filesystem::exists(resolved)))
 		{
-			const std::wstring warning =
-				L"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n" +
-				resolved.wstring();
-			MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), warning.c_str(),
-				L"VEER", MB_OK | MB_ICONWARNING);
+			std::string warning = (const char*)u8"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n";
+			const auto path = resolved.u8string();
+			warning.append(reinterpret_cast<const char*>(path.data()), path.size());
+			ImGuiToolKit::Alert(warning, "Warning");
 		}
 		else
 		{
@@ -7086,7 +7018,7 @@ bool VmdlEditorScene::ResolveExternalMeshPath(
 		return false;
 	if (!std::filesystem::is_regular_file(replacementFile))
 	{
-		ErrorMessage("The selected VMSH file does not exist.");
+		ImGuiToolKit::Alert("The selected VMSH file does not exist.");
 		return false;
 	}
 
@@ -7127,14 +7059,14 @@ void VmdlEditorScene::SaveVmdl()
 		serialViewerDocument = nullptr;
 		if (!ResourceManager::Instance().RefreshResources(documentPath))
 		{
-			ErrorMessage("VMDL saved, but runtime cache refresh failed. Save again to retry.");
+			ImGuiToolKit::Alert("VMDL saved, but runtime cache refresh failed. Save again to retry.");
 			return;
 		}
 		dirty = false;
 	}
 	else
 	{
-		ErrorMessage("Failed to save the VMDL file.");
+		ImGuiToolKit::Alert("Failed to save the VMDL file.");
 	}
 }
 
@@ -7159,14 +7091,14 @@ void VmdlEditorScene::SaveVmdlAs()
 		recentModelPath = destination;
 		if (!ResourceManager::Instance().RefreshResources(documentPath))
 		{
-			ErrorMessage("VMDL saved, but runtime cache refresh failed. Save again to retry.");
+			ImGuiToolKit::Alert("VMDL saved, but runtime cache refresh failed. Save again to retry.");
 			return;
 		}
 		dirty = false;
 	}
 	else
 	{
-		ErrorMessage("Failed to save the VMDL file.");
+		ImGuiToolKit::Alert("Failed to save the VMDL file.");
 	}
 }
 
@@ -7180,7 +7112,7 @@ void VmdlEditorScene::LoadModel(
 	const auto importDestination = ResourceManager::ResolveSourcePath(requestedDestination);
 	if (!std::filesystem::is_regular_file(filepath))
 	{
-		ErrorMessage("Model file not found. Open an existing file from Resources/Model.");
+		ImGuiToolKit::Alert("Model file not found. Open an existing file from Resources/Model.");
 		return;
 	}
 	if (model && !OnRequestExit()) return;
@@ -7206,7 +7138,7 @@ void VmdlEditorScene::LoadModel(
 				filepath.string().c_str(), 60.0f, importDestination.string().c_str());
 			documentPath = importDestination;
 			if (!ResourceManager::Instance().RefreshResources(documentPath))
-				ErrorMessage("VMDL imported, but runtime cache refresh failed.");
+				ImGuiToolKit::Alert("VMDL imported, but runtime cache refresh failed.");
 			dirty = false;
 		}
 		else
@@ -7253,7 +7185,7 @@ void VmdlEditorScene::LoadModel(
 		externalMeshPreviewCaches.clear();
 		selectedNode = -1;
 		selectedNodes.clear();
-		ErrorMessage(std::string("Load failed: ") + exception.what());
+		ImGuiToolKit::Alert(std::string("Load failed: ") + exception.what());
 	}
 }
 

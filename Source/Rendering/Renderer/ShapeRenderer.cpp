@@ -1,5 +1,6 @@
-﻿#include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Rendering/Core/VertexBuffer.h"
+﻿#include "Resource/ResourceManager.h"
+#include "Application/SettingsAndDebug/DebugUtil.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Renderer/ShapeRenderer.h"
 
 // コンストラクタ
@@ -10,11 +11,11 @@ ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 	inputElementDesc.AddPosition();
 
 	// 頂点シェーダー
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/ShapeRendererVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererVS.cso").c_str(),
 		inputElementDesc);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/ShapeRendererPS.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererPS.cso").c_str());
 
 	// 定数バッファ
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMesh));

@@ -1,5 +1,5 @@
-// CacheBuilder.cpp
 #include "Resource/CacheBuilder.h"
+#include "Core/Foundation/Logger.h"
 #include "Resource/CacheSettings.h"
 #include "Audio/VSoundFormat.h"
 #include "Audio/SoundPaths.h"
@@ -529,8 +529,8 @@ std::vector<std::string> CacheBuilder::Build(const fs::path& sourceRoot, const f
 		++removed;
 	}
 	WriteText(manifestPath, ManifestText(next));
-	std::cout << "CacheBuilder: " << assets.size() << " resources, " << converted << " converted, "
-		<< copied << " copied, " << skipped << " unchanged, " << removed << " removed\n";
+	Log(std::format("CacheBuilder: {} resources, {} converted, {} copied, {} unchanged, {} removed",
+		assets.size(), converted, copied, skipped, removed));
 	return changed;
 }
 

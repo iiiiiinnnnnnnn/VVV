@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "UI/Widget.h"
 #include "UI/WidgetAlpha.h"
 #include "UI/WidgetGroup.h"

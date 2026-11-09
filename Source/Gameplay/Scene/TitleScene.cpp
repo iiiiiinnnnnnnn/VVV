@@ -12,6 +12,7 @@
 #include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/SpriteWidget.h"
+#include "Gameplay/Stage/StageTitle.h"
 
 TitleScene::TitleScene() = default;
 
@@ -47,24 +48,18 @@ void TitleScene::OnMenuSelected(int index)
 
 void TitleScene::CreateTitleWorld()
 {
-	auto titleStage = std::make_unique<Stage>();
-	if (!titleStage->LoadVSTG("cave_title")) return;
-
-	StageLoader* loader = titleStage->GetComponent<StageLoader>();
-	const Vector3 showcasePosition = loader && loader->HasPlayerStart()
-		? loader->GetPlayerStartTransforms().front().position
-		: Vector3::Zero;
+	auto stageTitle = std::make_unique<StageTitle>();
+	stageTitle->Awake();
 
 	// dummy player
 	dummyPlayer = std::make_shared<DummyPlayer>();
 
-	titleStage->GetDefaultCameraActor()->AddComponent<TitleCamera>(showcasePosition);
-	dummyPlayer->transform.SetPosition(showcasePosition);
-	titleStage->GetActorManager().Register(dummyPlayer);
-	currentStage = std::move(titleStage);
-
-	// ゲーム本編と同じくVSTGのライトだけを使い、共有Skybox光を持ち越さない
-	Game::Graphics::Instance().GetSkyBoxRenderer()->SetIntensity(0.0f);
+	stageTitle->GetDefaultCameraActor()->AddComponent<TitleCamera>(
+		stageTitle->GetShowcasePosition()
+	);
+	dummyPlayer->transform.SetPosition(stageTitle->GetShowcasePosition());
+	stageTitle->GetActorManager().Register(dummyPlayer);
+	currentStage = std::move(stageTitle);
 }
 
 void TitleScene::RequestExit()

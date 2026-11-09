@@ -15,7 +15,6 @@ class EditorScene : public Scene
 	void DrawGizmoButtons(int& operation, bool showLabels);
 	void HandleVisibilityShortcuts();
 	void HandleGizmoShortcuts(int& operation);
-	void ErrorMessage(const std::string& message);
 
 	virtual SerialDocument* PrepareSerialDocument() = 0;
 	virtual void OnSerialDocumentChanged() = 0;

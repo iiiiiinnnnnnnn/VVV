@@ -1,6 +1,6 @@
+#include "Resource/ResourceManager.h"
 #include "Rendering/Renderer/FullScreenRenderer.h"
-#include "Rendering/Core/VertexShader.h"
-#include "Rendering/Core/VertexBuffer.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include <cstddef>
 
 FullScreenRenderer::FullScreenRenderer(ID3D11Device* device)
@@ -17,7 +17,7 @@ FullScreenRenderer::FullScreenRenderer(ID3D11Device* device)
 	layout.AddPosition().AddTexcoord();
 
 	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, vertices, static_cast<UINT>(sizeof(vertices)));
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/FullScreenQuadVS.cso", layout);
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/FullScreenQuadVS.cso").c_str(), layout);
 }
 
 void FullScreenRenderer::Draw(ID3D11DeviceContext* context) const

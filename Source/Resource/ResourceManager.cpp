@@ -1,5 +1,7 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 #include "Resource/ResourceManager.h"
+#include "Core/Foundation/BinaryFile.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/ResourcePath.h"
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
@@ -91,7 +93,7 @@ bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
 		textures.clear();
 		files.clear();
 		preloadedFiles.clear();
-		ReportError(exception.what());
+		{ errors.push_back(exception.what()); Log(errors.back()); }
 		return false;
 	}
 #else
@@ -180,14 +182,9 @@ std::shared_ptr<const std::vector<uint8_t>> ResourceManager::LoadFile(const std:
 	if (cacheSettings.Get(resolved).excluded) return nullptr;
 	const auto key = CacheSettings::Key(resolved);
 	if (const auto found = files.find(key); found != files.end()) return found->second;
-	std::ifstream input(resolved, std::ios::binary | std::ios::ate);
-	if (!input) throw std::runtime_error("Resource not found: " + resolved);
-	const auto size = input.tellg();
-	if (size < 0) throw std::runtime_error("Resource size failed: " + resolved);
-	auto bytes = std::make_shared<std::vector<uint8_t>>(static_cast<size_t>(size));
-	input.seekg(0);
-	if (!input.read(reinterpret_cast<char*>(bytes->data()), static_cast<std::streamsize>(bytes->size())))
-		throw std::runtime_error("Resource read failed: " + resolved);
+	auto file = BinaryFile::Read(resolved);
+	if (!file.IsValid()) throw std::runtime_error("Resource read failed: " + resolved);
+	auto bytes = std::make_shared<std::vector<uint8_t>>(file.TakeData());
 	if (cacheSettings.Get(resolved).preload) files.emplace(key, bytes);
 	return bytes;
 }
@@ -205,7 +202,7 @@ void ResourceManager::RegisterGeneratedCache(const std::string& path)
 	const auto normalizedPath = (std::filesystem::path("Resources") / relative).generic_string();
 	if (!std::filesystem::exists(normalizedPath))
 	{
-		ReportError("Generated cache not found: " + normalizedPath);
+		{ errors.push_back("Generated cache not found: " + normalizedPath); Log(errors.back()); }
 		return;
 	}
 	for (auto& asset : assetPaths)
@@ -349,8 +346,7 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bo
 	{
 		const std::string message = "[SceneLoad] Model " + key + ": " +
 			std::to_string(milliseconds) + " ms\n";
-		OutputDebugStringA(message.c_str());
-		std::ofstream("SceneLoad.log", std::ios::app) << message;
+		Log(message.c_str());
 	}
 	return result;
 }
@@ -385,7 +381,7 @@ bool ResourceManager::LoadCachedPathList()
 	std::ifstream file(cachedPathList);
 	if (!file)
 	{
-		ReportError("Resources/ResourceManifest.ini was not found. Release builds never create caches.");
+		{ errors.push_back("Resources/ResourceManifest.ini was not found. Release builds never create caches."); Log(errors.back()); }
 		return false;
 	}
 
@@ -406,7 +402,7 @@ bool ResourceManager::LoadCachedPathList()
 		const size_t separator = line.find('=');
 		if (separator == std::string::npos)
 		{
-			ReportError("Resources/ResourceManifest.ini contains an invalid line: " + line);
+			{ errors.push_back("Resources/ResourceManifest.ini contains an invalid line: " + line); Log(errors.back()); }
 			continue;
 		}
 
@@ -416,7 +412,7 @@ bool ResourceManager::LoadCachedPathList()
 		{
 			if (!lastAsset)
 			{
-				ReportError("Resources/ResourceManifest.ini contains updated before a resource.");
+				{ errors.push_back("Resources/ResourceManifest.ini contains updated before a resource."); Log(errors.back()); }
 				continue;
 			}
 			lastAsset->updated = value;
@@ -427,7 +423,7 @@ bool ResourceManager::LoadCachedPathList()
 		{
 			if (!lastAsset || (value != "0" && value != "1"))
 			{
-				ReportError("ResourceManifest.ini contains an invalid preload entry.");
+				{ errors.push_back("ResourceManifest.ini contains an invalid preload entry."); Log(errors.back()); }
 				continue;
 			}
 			cacheSettings.Set(lastAsset->path, {false, value == "1"});
@@ -437,14 +433,14 @@ bool ResourceManager::LoadCachedPathList()
 		AssetType type;
 		if (!ParseTypeName(name, type))
 		{
-			ReportError("Resources/ResourceManifest.ini contains an unknown type: " + name);
+			{ errors.push_back("Resources/ResourceManifest.ini contains an unknown type: " + name); Log(errors.back()); }
 			continue;
 		}
 		if (AddAssetPath(type, value)) lastAsset = &assetPaths.back();
 	}
 
 	if (!inResourceSection && assetPaths.empty())
-		ReportError("Resources/ResourceManifest.ini has no [resources] section.");
+		{ errors.push_back("Resources/ResourceManifest.ini has no [resources] section."); Log(errors.back()); }
 	return errors.empty();
 }
 
@@ -454,7 +450,7 @@ bool ResourceManager::SaveCachedPathList()
 	std::ofstream file(cachedPathList, std::ios::trunc);
 	if (!file)
 	{
-		ReportError("Resources/ResourceManifest.ini could not be written.");
+		{ errors.push_back("Resources/ResourceManifest.ini could not be written."); Log(errors.back()); }
 		return false;
 	}
 
@@ -466,7 +462,7 @@ bool ResourceManager::SaveCachedPathList()
 		file << "preload=" << cacheSettings.Get(asset.path).preload << '\n';
 	}
 	if (file.good()) return true;
-	ReportError("Resources/ResourceManifest.ini write failed.");
+	{ errors.push_back("Resources/ResourceManifest.ini write failed."); Log(errors.back()); }
 	return false;
 }
 
@@ -485,7 +481,7 @@ bool ResourceManager::AddAssetPath(
 		if (existing != assetPathLookup.end())
 		{
 			if (assetPaths[existing->second].path == asset.path) return true;
-			ReportError("Duplicate resource name: " + lookupKey);
+			{ errors.push_back("Duplicate resource name: " + lookupKey); Log(errors.back()); }
 			return false;
 		}
 		assetPathLookup[lookupKey] = assetPaths.size();
@@ -495,10 +491,6 @@ bool ResourceManager::AddAssetPath(
 	return true;
 }
 
-void ResourceManager::ReportError(const std::string& message)
-{
-	errors.push_back(message);
-}
 
 std::filesystem::path ResourceManager::FindSourceResourceRoot()
 {

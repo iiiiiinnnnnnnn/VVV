@@ -1,4 +1,3 @@
-// Graphics.cpp
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Rendering/Core/Graphics.h"
 #include "Resource/Texture.h"

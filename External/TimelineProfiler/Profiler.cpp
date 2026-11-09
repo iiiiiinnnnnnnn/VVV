@@ -9,16 +9,15 @@ namespace TimelineProfiler
 
 Profiler gProfiler;
 
-
 // Thread-safe page allocator that recycles pages based on ID
 struct ProfilerAllocator
 {
-public:
+  public:
 	static constexpr uint32 cPageSize = 2 * 1024;
 
 	struct Page
 	{
-		uint32 ID	= 0;
+		uint32 ID = 0;
 		uint32 Size = 0;
 
 		void* GetData()
@@ -106,23 +105,23 @@ public:
 		MinValidID = id + 1;
 	}
 
-private:
-	std::mutex		  PageLock;
-	Array<Page*>	  FreePages;
+  private:
+	std::mutex PageLock;
+	Array<Page*> FreePages;
 	std::queue<Page*> AllocatedPages;
-	uint32			  MinValidID = 0;
-	int				  NumPages	 = 0;
+	uint32 MinValidID = 0;
+	int NumPages = 0;
 };
 
 static ProfilerAllocator sProfilerAllocator;
 
 class SubAllocator
 {
-public:
+  public:
 	const char* String(const char* pStr, uint32 id)
 	{
-		uint32 len	 = (uint32)strlen(pStr) + 1;
-		char*  pData = (char*)Allocate(len, id);
+		uint32 len = (uint32)strlen(pStr) + 1;
+		char* pData = (char*)Allocate(len, id);
 		strcpy_s(pData, len, pStr);
 		return pData;
 	}
@@ -131,8 +130,8 @@ public:
 	{
 		if (pPage == nullptr || id > ID || !sProfilerAllocator.IsValidPage(ID) || Offset + size > pPage->Size)
 		{
-			ID	   = std::max(ID, id);
-			pPage  = sProfilerAllocator.AllocatePage(ID);
+			ID = std::max(ID, id);
+			pPage = sProfilerAllocator.AllocatePage(ID);
 			Offset = 0;
 		}
 		void* pData = static_cast<char*>(pPage->GetData()) + Offset;
@@ -140,10 +139,10 @@ public:
 		return pData;
 	}
 
-private:
-	uint32						 Offset = 0;
-	uint32						 ID		= 0;
-	ProfilerAllocator::Page*	 pPage	= nullptr;
+  private:
+	uint32 Offset = 0;
+	uint32 ID = 0;
+	ProfilerAllocator::Page* pPage = nullptr;
 };
 static thread_local SubAllocator gAllocator;
 
@@ -171,15 +170,14 @@ static uint32 GetFrameColor(uint32 frameIndex)
 static uint32 ColorFromString(const char* pStr)
 {
 	const float saturation = 0.5f;
-	const float value	   = 0.6f;
-	float		hue		   = (float)std::hash<std::string>{}(pStr) / std::numeric_limits<size_t>::max();
+	const float value = 0.6f;
+	float hue = (float)std::hash<std::string>{}(pStr) / std::numeric_limits<size_t>::max();
 	return HSV2RGB(hue, saturation, value);
 }
 
-
 void Profiler::Initialize(uint32 historySize)
 {
-	m_HistorySize	= historySize;
+	m_HistorySize = historySize;
 	m_IsInitialized = true;
 	m_BeginFrameTicks.resize(historySize);
 
@@ -209,17 +207,17 @@ void Profiler::BeginEvent(const char* pName, uint32 color, const char* pFilePath
 		return;
 
 	// Record new event
-	EventTrack&		   track	 = GetCurrentThreadTrack();
+	EventTrack& track = GetCurrentThreadTrack();
 	ProfilerEventData& eventData = track.GetFrameData(m_FrameIndex);
 	track.EventStack.Push() = (uint32)eventData.size();
 
 	ProfilerEvent& newEvent = eventData.emplace_back();
-	newEvent.Depth			= track.EventStack.GetSize() - 1;
-	newEvent.ThreadIndex	= track.Index;
-	newEvent.pName			= gAllocator.String(pName, m_FrameIndex);
-	newEvent.pFilePath		= pFilePath;
-	newEvent.LineNumber		= lineNumber;
-	newEvent.Color			= color == 0 ? ColorFromString(pName) : color;
+	newEvent.Depth = track.EventStack.GetSize() - 1;
+	newEvent.ThreadIndex = track.Index;
+	newEvent.pName = gAllocator.String(pName, m_FrameIndex);
+	newEvent.pFilePath = pFilePath;
+	newEvent.LineNumber = lineNumber;
+	newEvent.Color = color == 0 ? ColorFromString(pName) : color;
 	QueryPerformanceCounter((LARGE_INTEGER*)(&newEvent.TicksBegin));
 }
 
@@ -239,24 +237,22 @@ void Profiler::EndEvent()
 	EventTrack& track = GetCurrentThreadTrack();
 
 	gAssert(track.EventStack.GetSize() > 0, "Event mismatch. Called EndEvent more than BeginEvent");
-	uint32		   eventIndex = track.EventStack.Pop();
-	ProfilerEvent& event	  = track.GetFrameData(m_FrameIndex)[eventIndex];
+	uint32 eventIndex = track.EventStack.Pop();
+	ProfilerEvent& event = track.GetFrameData(m_FrameIndex)[eventIndex];
 	QueryPerformanceCounter((LARGE_INTEGER*)(&event.TicksEnd));
 }
 
-
 void Profiler::AddEvent(uint32 trackIndex, const ProfilerEvent& event, uint32 frameIndex)
 {
-	EventTrack&		   track  = m_Tracks[trackIndex];
+	EventTrack& track = m_Tracks[trackIndex];
 	ProfilerEventData& events = track.GetFrameData(frameIndex);
 
 	// Name must be copied
 	ProfilerEvent newEvent = event;
-	newEvent.pName		   = gAllocator.String(newEvent.pName, frameIndex);
+	newEvent.pName = gAllocator.String(newEvent.pName, frameIndex);
 
 	events.push_back(newEvent);
 }
-
 
 void Profiler::Present(IDXGISwapChain* pSwapChain)
 {
@@ -273,18 +269,18 @@ void Profiler::Present(IDXGISwapChain* pSwapChain)
 			// that means the swapchain may have been recreated and we need to reset.
 			if (m_LastQueuedPresentID > presentID || m_pPresentSwapChain != pSwapChain)
 			{
-				m_LastQueriedPresentID		  = 0;
-				m_LastProcessedPresentID	  = 0;
+				m_LastQueriedPresentID = 0;
+				m_LastProcessedPresentID = 0;
 				m_LastProcessedValidPresentID = 0;
-				m_PresentQueue				  = {};
-				m_LastSyncRefreshCount		  = 0;
-				m_pPresentSwapChain			  = pSwapChain;
+				m_PresentQueue = {};
+				m_LastSyncRefreshCount = 0;
+				m_pPresentSwapChain = pSwapChain;
 			}
 
 			PresentEntry* pEntry = GetPresentEntry(presentID, true);
-			*pEntry				 = {};
+			*pEntry = {};
 			QueryPerformanceCounter((LARGE_INTEGER*)&pEntry->PresentQPC);
-			pEntry->PresentID  = presentID;
+			pEntry->PresentID = presentID;
 			pEntry->FrameIndex = m_FrameIndex;
 
 			m_LastQueuedPresentID = presentID;
@@ -316,7 +312,7 @@ void Profiler::Present(IDXGISwapChain* pSwapChain)
 						// printf("MISSED FRAME: %d - ID %d\n", pPreviousEntry->FrameIndex, pPreviousEntry->PresentID);
 
 						// Taking a guess: the sync happened one sync after the one before it (most likely timing to have been missed)
-						uint64 duration			 = pEntry->DisplayQPC - pPreviousPreviousEntry->DisplayQPC;
+						uint64 duration = pEntry->DisplayQPC - pPreviousPreviousEntry->DisplayQPC;
 						uint64 estimatedSyncTime = pPreviousPreviousEntry->DisplayQPC + duration / numRefreshes;
 
 						pPreviousEntry->DisplayQPC = estimatedSyncTime;
@@ -348,7 +344,7 @@ void Profiler::Present(IDXGISwapChain* pSwapChain)
 			const PresentEntry* pEntry = GetPresentEntry(nextValidPresent, false);
 			if (pEntry && pEntry->DisplayQPC != PresentEntry::sQPCDroppedFrame)
 			{
-				pNextValidPresentEntry		  = pEntry;
+				pNextValidPresentEntry = pEntry;
 				m_LastProcessedValidPresentID = pEntry->PresentID;
 			}
 		}
@@ -366,27 +362,27 @@ void Profiler::Present(IDXGISwapChain* pSwapChain)
 			else if (pToProcessEntry->DisplayQPC == PresentEntry::sQPCDroppedFrame)
 			{
 				ProfilerEvent event{
-					.pName		= "Discarded",
-					.Color		= GetFrameColor(pToProcessEntry->FrameIndex),
-					.Depth		= 1,
+					.pName = "Discarded",
+					.Color = GetFrameColor(pToProcessEntry->FrameIndex),
+					.Depth = 1,
 					.TicksBegin = pNextValidPresentEntry->DisplayQPC,
-					.TicksEnd	= pNextValidPresentEntry->DisplayQPC + m_MsToTicks,
+					.TicksEnd = pNextValidPresentEntry->DisplayQPC + m_MsToTicks,
 				};
 				AddEvent(m_PresentTrackIndex, event, pToProcessEntry->FrameIndex);
 			}
 			else
 			{
-				// If the timing of the refresh is the same as the current frame, stack the events. 
+				// If the timing of the refresh is the same as the current frame, stack the events.
 				// Wait for the next frame with a different refresh time
 				if (pNextValidPresentEntry->DisplayQPC == pToProcessEntry->DisplayQPC)
 					break;
 
 				ProfilerEvent event{
-					.pName		= "Present",
-					.Color		= GetFrameColor(pToProcessEntry->FrameIndex),
-					.Depth		= stackSize,
+					.pName = "Present",
+					.Color = GetFrameColor(pToProcessEntry->FrameIndex),
+					.Depth = stackSize,
 					.TicksBegin = pToProcessEntry->DisplayQPC,
-					.TicksEnd	= pNextValidPresentEntry->DisplayQPC,
+					.TicksEnd = pNextValidPresentEntry->DisplayQPC,
 				};
 				++stackSize;
 				AddEvent(m_PresentTrackIndex, event, pToProcessEntry->FrameIndex);
@@ -396,8 +392,6 @@ void Profiler::Present(IDXGISwapChain* pSwapChain)
 		m_LastProcessedPresentID = presentID;
 	}
 }
-
-
 
 // Process the last frame and advance
 void Profiler::Tick()
@@ -430,8 +424,6 @@ void Profiler::Tick()
 		sProfilerAllocator.Evict(m_FrameIndex - m_HistorySize);
 }
 
-
-
 // Register a new thread
 int Profiler::RegisterCurrentThread(const char* pName)
 {
@@ -459,7 +451,6 @@ int Profiler::RegisterCurrentThread(const char* pName)
 	return threadIndex;
 }
 
-
 // Register a new track
 int Profiler::RegisterTrack(const char* pName, EventTrack::EType type, uint32 id)
 {
@@ -467,15 +458,14 @@ int Profiler::RegisterTrack(const char* pName, EventTrack::EType type, uint32 id
 
 	EventTrack& data = m_Tracks.emplace_back();
 	strcpy_s(data.Name, ARRAYSIZE(data.Name), pName);
-	data.ID	   = id;
+	data.ID = id;
 	data.Index = (uint32)m_Tracks.size() - 1;
-	data.Type  = type;
+	data.Type = type;
 	data.Events.resize(m_HistorySize);
 
 	return data.Index;
 }
 
-
-}
+} // namespace TimelineProfiler
 
 #endif

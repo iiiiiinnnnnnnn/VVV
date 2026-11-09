@@ -110,9 +110,6 @@ struct URange
 	uint32 GetLength() const { return End - Begin; }
 };
 
-
-
-
 /*
 	General
 */

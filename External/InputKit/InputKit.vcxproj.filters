@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{4AB63CB1-CBF4-41B1-B66A-DDAEF4C80E83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\InputKit">
+      <UniqueIdentifier>{6FDF76CF-89B4-44EF-8247-B54B05FD9B5F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{4D9914B6-B090-47B9-9321-50CB6E140D47}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\InputKit\InputKit.h">
+      <Filter>Include\InputKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\InputKit\GamePad.h">
+      <Filter>Include\InputKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\InputKit\InputActions.h">
+      <Filter>Include\InputKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\InputKit\InputSystem.h">
+      <Filter>Include\InputKit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\InputKit\Mouse.h">
+      <Filter>Include\InputKit</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\GamePad.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\InputSystem.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mouse.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\InputKit\InputSystemGUI.h"><Filter>Include\InputKit</Filter></ClInclude>
+    <ClCompile Include="Source\InputSystemGUI.cpp"><Filter>Source</Filter></ClCompile>
+    <ClCompile Include="Source\InputSystemIO.cpp"><Filter>Source</Filter></ClCompile>
+  </ItemGroup>
+</Project>

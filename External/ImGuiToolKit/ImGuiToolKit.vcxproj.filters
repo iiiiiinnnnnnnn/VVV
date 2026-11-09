@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Include"><UniqueIdentifier>{39548782-DA53-4B51-8AE4-B8FC8F668222}</UniqueIdentifier></Filter>
+    <Filter Include="Include\ImGuiToolKit"><UniqueIdentifier>{F652554A-70AF-4A66-88D1-4C3739F024C0}</UniqueIdentifier></Filter>
+    <Filter Include="Source"><UniqueIdentifier>{D41C3318-2898-4857-AB91-3DA0333F0814}</UniqueIdentifier></Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\ImGuiToolKit\ImGuiToolKit.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Alert.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Path.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Theme.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClCompile Include="Source\Alert.cpp"><Filter>Source</Filter></ClCompile>
+  </ItemGroup>
+</Project>

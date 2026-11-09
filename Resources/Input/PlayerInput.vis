@@ -1,0 +1,547 @@
+{
+  "maps": {
+    "PlayerInput": {
+      "actions": {
+        "Align Camera": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 4,
+              "device": "Mouse",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 4096,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 8192,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Attack": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 1,
+              "device": "Mouse",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 16,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 64,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 32768,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Camera": {
+          "bindings": [],
+          "type": "Vector2",
+          "vector2": {
+            "deadZone": 0.00009999999747378752,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": true,
+            "normalize": true,
+            "xAxis": "RightX",
+            "yAxis": "RightY"
+          }
+        },
+        "Crouch": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 17,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 2048,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "DodgeBackward": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 83,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "LeftY",
+              "code": 0,
+              "device": "Axis",
+              "downOnly": false,
+              "negative": true,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "DodgeForward": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 87,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "LeftY",
+              "code": 0,
+              "device": "Axis",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "DodgeLeft": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 65,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "LeftX",
+              "code": 0,
+              "device": "Axis",
+              "downOnly": false,
+              "negative": true,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "DodgeRight": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 68,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "LeftX",
+              "code": 0,
+              "device": "Axis",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Move": {
+          "bindings": [],
+          "type": "Vector2",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [
+                {
+                  "axis": "None",
+                  "code": 65,
+                  "device": "Keyboard",
+                  "downOnly": false,
+                  "negative": false,
+                  "threshold": 0.3499999940395355
+                }
+              ],
+              [
+                {
+                  "axis": "None",
+                  "code": 68,
+                  "device": "Keyboard",
+                  "downOnly": false,
+                  "negative": false,
+                  "threshold": 0.3499999940395355
+                }
+              ],
+              [
+                {
+                  "axis": "None",
+                  "code": 83,
+                  "device": "Keyboard",
+                  "downOnly": false,
+                  "negative": false,
+                  "threshold": 0.3499999940395355
+                }
+              ],
+              [
+                {
+                  "axis": "None",
+                  "code": 87,
+                  "device": "Keyboard",
+                  "downOnly": false,
+                  "negative": false,
+                  "threshold": 0.3499999940395355
+                }
+              ]
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Move Backward": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 83,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Move Forward": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 87,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Move Left": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 65,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Move Right": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 68,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Pause": {
+          "bindings": [
+            {
+              "device": "Keyboard",
+              "code": 27,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            },
+            {
+              "device": "GamePad",
+              "code": 256,
+              "downOnly": false,
+              "axis": "None",
+              "threshold": 0.35,
+              "negative": false
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "QuickShift": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 32,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 16384,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        },
+        "Sprint": {
+          "bindings": [
+            {
+              "axis": "None",
+              "code": 160,
+              "device": "Keyboard",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 1024,
+              "device": "GamePad",
+              "downOnly": true,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            }
+          ],
+          "type": "Button",
+          "vector2": {
+            "deadZone": 0.10000000149011612,
+            "directions": [
+              [],
+              [],
+              [],
+              []
+            ],
+            "mouseDelta": false,
+            "normalize": true,
+            "xAxis": "LeftX",
+            "yAxis": "LeftY"
+          }
+        }
+      }
+    }
+  },
+  "version": 1
+}

@@ -1,10 +1,11 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include "Core/Foundation/Random.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/TestPlayScene.h"
 
 #include <algorithm>
 
 #include "Application/Time/GameTime.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Audio/SoundSystem.h"
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Camera/FreeCameraController.h"
@@ -184,7 +185,7 @@ void TestPlayScene::OnPauseChanged(bool paused)
 {
 	Game::Time::paused = paused;
 	SoundSystem::Instance().SetPaused(paused);
-	if (!paused) Game::Input::Instance().SuppressGameplayInput(2);
+	if (!paused) InputKit::InputSystem::Instance().SuppressGameplayInput(2);
 
 	if (paused)
 	{

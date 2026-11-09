@@ -2,7 +2,10 @@
 
 #include "Core/Foundation/Common.h"
 #include <DirectXMath.h>
+#pragma push_macro("Log")
+#undef Log
 #include <Effekseer.h>
+#pragma pop_macro("Log")
 
 class EffectManager;
 

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Rendering/Core/VertexBuffer.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include <d3d11.h>
 #include <wrl.h>
 

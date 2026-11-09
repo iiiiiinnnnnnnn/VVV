@@ -1,5 +1,5 @@
-﻿#pragma once
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#pragma once
+#include <ProfileKit/ProfileKit.h>
 #include "IconsFontAwesome5.h"
 #include <algorithm>
 #include <cctype>
@@ -75,7 +75,6 @@ public:
 	bool DrawGUI(const char* search = "")
 	{
 		selectionChanged = false;
-		ImGui::TextDisabled((const char*)u8"ルートWidget: %zu", data.size());
 		for (const std::shared_ptr<Widget>& widget : data) DrawWidgetNode(widget, search);
 		return selectionChanged;
 	}

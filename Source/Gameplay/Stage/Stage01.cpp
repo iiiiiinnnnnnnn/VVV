@@ -1,4 +1,6 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <stdexcept>
+#include "Core/Foundation/Random.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Stage/Stage01.h"
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
@@ -26,8 +28,8 @@ void Stage01::OnAwake()
 	bgmId = SoundSystem::Instance().Play("BGM/cave_ambient",
 		SoundSystem::PlayOptions{.loop = true}, -1);
 
-	const bool loadedVstg = LoadVSTG("cave_02");
-	_ASSERT_EXPR(loadedVstg, "Failed to load VSTG file.");
+	if (!LoadVSTG("cave_02"))
+		throw std::runtime_error("Failed to load stage");
 
 	stageLoader = GetComponent<StageLoader>();
 	if (player && stageLoader && stageLoader->HasPlayerStart())
@@ -78,14 +80,14 @@ void Stage01::OnAwake()
 			return std::make_shared<RigidRock>(transform, modelPath);
 		});
 
-	// deer
+	// 鹿
 	stageLoader->RegisterSpawnerFactory("Deer",
 		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
 			return std::make_shared<Deer>(
 				transform, modelPath, spawnTag == "BossField" ? true : false);
 		});
 
-	// aracore
+	// ボス
 	Terrain* terrain = GetComponent<Terrain>();
 	stageLoader->RegisterSpawnerFactory(
 		"Aracore", [player = player, terrain, loader = stageLoader](const Transform& transform,
@@ -95,7 +97,7 @@ void Stage01::OnAwake()
 			return queen;
 		});
 
-	// crystal
+	// 結晶
 	stageLoader->RegisterSpawnerFactory("Crystal",
 		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
 			return std::make_shared<Crystal>(transform, modelPath);

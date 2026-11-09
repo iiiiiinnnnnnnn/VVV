@@ -1,4 +1,5 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
+#include "Core/Foundation/Logger.h"
 
 #include "LuaScript.h"
 
@@ -43,7 +44,7 @@ bool LuaScript::CreateEnvironment(const LuaManager::ScriptSource& source,
 	if (!chunk.valid())
 	{
 		sol::error error = chunk;
-		std::cerr << "[Lua] " << error.what() << '\n';
+		Log(std::string("[Lua] ") + error.what());
 		return false;
 	}
 
@@ -59,7 +60,7 @@ bool LuaScript::CreateEnvironment(const LuaManager::ScriptSource& source,
 	if (!result.valid())
 	{
 		sol::error error = result;
-		std::cerr << "[Lua] " << error.what() << '\n';
+		Log(std::string("[Lua] ") + error.what());
 		return false;
 	}
 
@@ -106,7 +107,7 @@ bool LuaScript::ApplyScript(std::shared_ptr<const LuaManager::ScriptSource> sour
 		if (!result.valid())
 		{
 			sol::error error = result;
-			std::cerr << "[Lua] " << error.what() << '\n';
+			Log(std::string("[Lua] ") + error.what());
 			return false;
 		}
 	}
@@ -117,7 +118,7 @@ bool LuaScript::ApplyScript(std::shared_ptr<const LuaManager::ScriptSource> sour
 
 	loaded = true;
 
-	std::cout << "[Lua] Loaded: " << scriptPath << '\n';
+	Log(std::string("[Lua] Loaded: ") + scriptPath);
 
 	return true;
 }
@@ -133,7 +134,7 @@ void LuaScript::OnStart()
 	if (!result.valid())
 	{
 		sol::error error = result;
-		std::cerr << "[Lua] " << error.what() << '\n';
+		Log(std::string("[Lua] ") + error.what());
 	}
 }
 
@@ -160,7 +161,7 @@ void LuaScript::OnUpdate()
 	if (!result.valid())
 	{
 		sol::error error = result;
-		std::cerr << "[Lua] " << error.what() << '\n';
+		Log(std::string("[Lua] ") + error.what());
 		CallScript("Stop");
 		loaded = false;
 	}
@@ -177,6 +178,6 @@ void LuaScript::CallScript(const char* name)
 	if (!result.valid())
 	{
 		sol::error error = result;
-		std::cerr << "[Lua] " << error.what() << '\n';
+		Log(std::string("[Lua] ") + error.what());
 	}
 }

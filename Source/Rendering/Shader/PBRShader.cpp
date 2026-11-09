@@ -1,24 +1,22 @@
-#include "Rendering/Core/GeometryShader.h"
-#include "Rendering/Core/ConstantBuffer.h"
+#include "Resource/ResourceManager.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
 #include "Rendering/Shader/PBRShader.h"
 #include <imgui.h>
 
 PBRShader::PBRShader(ID3D11Device* device)
 {
-	vertexShader = std::make_unique<Gpu::VertexShader>(device, "Resources/Shader/PBRVS.cso",
+	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRVS.cso").c_str(),
 		ModelShader::InputLayout);
 
 	// ピクセルシェーダー
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/PBRPS.cso");
-	unlitPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/UnlitPS.cso");
-	justDodgeUnlitPixelShader = std::make_unique<Gpu::PixelShader>(device, "Resources/Shader/JustDodgeUnlit.cso");
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRPS.cso").c_str());
+	unlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnlitPS.cso").c_str());
+	justDodgeUnlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/JustDodgeUnlit.cso").c_str());
 	justDodgeFadeConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(Vector4));
 
 	// 現在フラットシェーディングだけです。
-	geometryShader = std::make_unique<Gpu::GeometryShader>(device, "Resources/Shader/PBRGS.cso");
+	geometryShader = std::make_unique<Gpu::GeometryShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRGS.cso").c_str());
 
 	// シャドウマップ用定数バッファ (PSスロット0)
 	shadowMapConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbShadowMap));

@@ -1,3 +1,4 @@
+#include <ImGuiToolKit/ImGuiToolKit.h>
 #include "EditorScene.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include <imguizmo/ImGuizmo.h>
@@ -43,7 +44,7 @@ void EditorScene::DrawSerialViewer()
 	catch (const std::exception& exception)
 	{
 		showSerialViewer = false;
-		ErrorMessage(exception.what());
+		ImGuiToolKit::Alert(exception.what());
 	}
 }
 
@@ -74,7 +75,7 @@ void EditorScene::DrawGizmoButtons(int& operation, bool showLabels)
 void EditorScene::HandleGizmoShortcuts(int& operation)
 {
 	const auto& io = ImGui::GetIO();
-	if (!Game::Input::IsFocusedWindow(true) || io.WantTextInput || io.KeyCtrl || io.KeyShift ||
+	if (!InputKit::InputSystem::IsFocusedWindow(true) || io.WantTextInput || io.KeyCtrl || io.KeyShift ||
 		io.KeyAlt || io.KeySuper || ImGui::IsAnyItemActive() ||
 		ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) ||
 		ImGui::IsMouseDown(ImGuiMouseButton_Right) || ImGuizmo::IsUsingAny()) return;
@@ -83,16 +84,10 @@ void EditorScene::HandleGizmoShortcuts(int& operation)
 	else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) operation = ImGuizmo::SCALE;
 }
 
-void EditorScene::ErrorMessage(const std::string& message)
-{
-	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(),
-		Utf8ToWide(message).c_str(), L"VEER", MB_ICONERROR);
-}
-
 void EditorScene::HandleVisibilityShortcuts()
 {
 	const auto& io = ImGui::GetIO();
-	if (!Game::Input::IsFocusedWindow(true) || io.WantTextInput || io.KeyCtrl || io.KeyShift ||
+	if (!InputKit::InputSystem::IsFocusedWindow(true) || io.WantTextInput || io.KeyCtrl || io.KeyShift ||
 		io.KeyAlt || io.KeySuper || ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId)) return;
 	if (ImGui::IsKeyPressed(ImGuiKey_F, false)) renderSettings.showFog = !renderSettings.showFog;
 	if (ImGui::IsKeyPressed(ImGuiKey_G, false)) renderSettings.showGrass = !renderSettings.showGrass;

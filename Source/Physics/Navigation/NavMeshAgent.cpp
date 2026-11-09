@@ -1,4 +1,4 @@
-#include "Application/SettingsAndDebug/ProfileScope.h"
+#include <ProfileKit/ProfileKit.h>
 #include "Physics/Navigation/NavMeshAgent.h"
 
 #include "Gameplay/Actor/Actor.h"

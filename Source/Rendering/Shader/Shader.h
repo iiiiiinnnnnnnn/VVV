@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
-#include "Rendering/Core/PixelShader.h"
-#include "Rendering/Core/VertexShader.h"
+#include <Dx11Kit/Dx11Kit.h>
 #include <d3d11.h>
 #include <wrl.h>
 

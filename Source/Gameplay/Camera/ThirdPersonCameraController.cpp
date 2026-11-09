@@ -1,5 +1,5 @@
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
-#include "Application/Input/Input.h"
+#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Actor/Actor.h"
@@ -218,8 +218,8 @@ void ThirdPersonCameraController::SyncControllerToCamera(Camera& camera)
 
 void ThirdPersonCameraController::UpdateCamera()
 {
-    Mouse& mouse = Game::Input::Instance().GetMouse();
-	GamePad& gamePad = Game::Input::Instance().GetGamePad();
+    InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
+	InputKit::GamePad& gamePad = InputKit::InputSystem::Instance().GetGamePad();
     mouse.SetCursorLock(true);
     mouse.SetCursorVisible(false);
 	if (bossDefeatTarget && bossDefeatFocusTimer.GetRemaining() > 0.0f)
@@ -252,7 +252,7 @@ void ThirdPersonCameraController::UpdateCamera()
 
 void ThirdPersonCameraController::OnFocusLost()
 {
-    Mouse& mouse = Game::Input::Instance().GetMouse();
+    InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
     mouse.SetCursorLock(false);
     mouse.SetCursorVisible(true);
 }
