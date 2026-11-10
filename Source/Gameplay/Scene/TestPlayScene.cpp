@@ -396,8 +396,8 @@ void TestPlayScene::OnUpdate()
 	// とある地点でxboxコントローラーの操作UIを隠す
 
 	// とあるエリアのベクトル
-	Transform hideArea = Transform::FromPosition({50.685f, 3.295f, 2.631f});
-	hideArea.SetAngle(9.213f, -103.898f, 0.0f);
+	Transform hideArea = Transform::FromPosition({54.633f, 5.659f, 0.704f});
+	hideArea.SetAngle(7.4f, -56.15f, 0);
 	auto areaVec = hideArea.GetMatrix();
 
 	// プレイヤーのベクトル
