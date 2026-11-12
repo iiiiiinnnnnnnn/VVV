@@ -8,7 +8,6 @@ namespace Gpu
 class ConstantBuffer : public Buffer
 {
 public:
-	// BufferDescを受け取るコンストラクタも使用する。
 	using Buffer::Buffer;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetBoundPS(ID3D11DeviceContext* context, UINT slot);
 	ConstantBuffer(ID3D11Device* device, UINT size);
@@ -39,7 +38,7 @@ public:
 };
 }
 inline Gpu::ConstantBuffer::ConstantBuffer(ID3D11Device* device, UINT size)
-	: Buffer(device, BufferDesc(size, D3D11_BIND_CONSTANT_BUFFER))
+	: Buffer(device, D3D11_BUFFER_DESC{size, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0})
 {
 }
 

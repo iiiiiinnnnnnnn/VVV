@@ -214,7 +214,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 	bool backgroundAvailable = false;
 	if (needsTransmission)
 	{
-		auto target = RenderTarget::GetColorTarget(dc);
+		auto target = RenderOutput::GetColorTarget(dc);
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> source;
 		if (target) target->GetResource(resource.GetAddressOf());

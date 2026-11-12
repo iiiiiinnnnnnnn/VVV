@@ -10,8 +10,10 @@
 
 DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 {
-	Gpu::InputLayoutDesc layout;
-	layout.Add("POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 0);
+	const D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererVS.cso").c_str(),
 		layout);
 	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererPS.cso").c_str());
@@ -31,7 +33,10 @@ DebugSolidRenderer::DebugSolidRenderer(ID3D11Device* device)
 		tip, bottom, left, tip, right, bottom};
 	vertexCount = static_cast<UINT>(vertices.size());
 
-	const Gpu::BufferDesc bufferDesc(sizeof(vertices), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.ByteWidth = sizeof(vertices);
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA data{};
 	data.pSysMem = vertices.data();
 	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, bufferDesc, &data);

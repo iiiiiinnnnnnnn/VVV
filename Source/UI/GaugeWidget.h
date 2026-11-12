@@ -14,7 +14,7 @@ class GaugeWidget : public DissolveWidget
 {
 public:
 	void OnAwake() override;
-	GaugeWidget(const std::string& name, bool revealOnStart = true);
+	GaugeWidget(const std::string& name, const std::string& maskPath = "Resources/UI/dissolve_animation.png", bool revealOnStart = true);
 
 	// 値は0〜1。SetValueは補間し、SetValueImmediateは即時反映する。
 	void SetValue(float ratio);

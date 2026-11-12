@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "UI/Widget.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
@@ -9,11 +9,11 @@
 class SpriteWidget : public Widget
 {
 public:
-	SpriteWidget(std::filesystem::path spritePath,
+	SpriteWidget(const std::string& name, std::filesystem::path spritePath,
 		SpriteShaderId shaderId = SpriteShaderId::Basic,
 		const Color& color = Color(1, 1, 1, 1),
 		SpriteRenderParams renderParams = {});
-	SpriteWidget(std::shared_ptr<Texture> texture,
+	SpriteWidget(const std::string& name, std::shared_ptr<Texture> texture,
 		SpriteShaderId shaderId = SpriteShaderId::Basic,
 		const Color& color = Color(1, 1, 1, 1),
 		SpriteRenderParams renderParams = {});

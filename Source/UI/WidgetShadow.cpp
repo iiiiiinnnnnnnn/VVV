@@ -1,4 +1,6 @@
 #include "UI/WidgetShadow.h"
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 
 #include "UI/Widget.h"
 
@@ -20,6 +22,6 @@ void WidgetShadow::OnRender(const RenderContext& rc)
 
 void WidgetShadow::OnDrawGUI()
 {
-	ImGui::DragFloat2((const char*)u8"影の位置", &offset.x, 0.5f);
-	ImGui::ColorEdit4((const char*)u8"影の色", &color.x);
+	ImGuiToolKit::DragPosFloat2(u8"影の位置", &offset.x, 0.5f);
+	ImGuiToolKit::ColorEdit4(u8"影の色", &color.x);
 }

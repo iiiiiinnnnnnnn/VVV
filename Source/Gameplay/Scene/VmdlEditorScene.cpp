@@ -1,7 +1,11 @@
 #include <ImGuiToolKit/ImGuiToolKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include "Core/Foundation/Random.h"
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/VmdlEditorScene.h"
+#include "Gameplay/Scene/VmdlComponents/VmdlComponentEditor.h"
 
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 #include "Application/Tools/Dialog.h"
@@ -75,17 +79,6 @@ std::string MakeVmshFileLabel(const std::string& source)
 	return result.empty() ? "mesh" : result;
 }
 
-std::string MakeMeshLabel(const VMDLModel& model, int meshIndex)
-{
-	const auto& meshes = model.GetMeshes();
-	if (meshIndex < 0 || meshIndex >= Count(meshes)) return (const char*)u8"メッシュなし";
-
-	const auto& mesh = meshes[meshIndex];
-	const std::string nodeName = mesh.node ? mesh.node->name : (const char*)u8"ノードなし";
-	const std::string materialName = mesh.material ? mesh.material->name : (const char*)u8"マテリアルなし";
-	return std::format("{}: {} / {}", meshIndex, nodeName, materialName);
-}
-
 bool IsSameFilePath(const std::filesystem::path& left, const std::filesystem::path& right)
 {
 	std::error_code error;
@@ -114,21 +107,6 @@ std::string PortableResourcePath(const std::filesystem::path& path)
 			return (std::filesystem::path("Resources") / relative).lexically_normal().generic_string();
 	}
 	return path.lexically_normal().generic_string();
-}
-
-bool DrawComponentTransform(VMDLModel& model, VMDLModel::VmdlComponentTransform& transform)
-{
-	ImGui::SeparatorText("Transform Offset");
-	bool changed = false;
-	Vector3 position = model.GetScaledAttachmentVector(transform.position);
-	if (ImGui::DragFloat3((const char*)u8"位置", &position.x, 0.01f))
-	{
-		transform.position = model.GetUnscaledAttachmentVector(position);
-		changed = true;
-	}
-	changed |= ImGui::DragFloat3((const char*)u8"回転", &transform.rotation.x, 0.1f);
-	changed |= ImGui::DragFloat3((const char*)u8"スケール", &transform.scale.x, 0.01f);
-	return changed;
 }
 
 VmdlEditorScene::VmdlEditorScene() : VmdlEditorScene(std::filesystem::path{}) {}
@@ -204,7 +182,7 @@ void VmdlEditorScene::OnUninit()
 
 std::string VmdlEditorScene::SoundPathLabel(const std::string& soundPath) const
 {
-	return soundPath.empty() ? (const char*)u8"なし" : ResourceManager::ShortResourcePath(soundPath, "Sound");
+	return soundPath.empty() ? JText(u8"なし") : ResourceManager::ShortResourcePath(soundPath, "Sound");
 }
 
 bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soundPath)
@@ -217,7 +195,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 	if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", display.c_str());
 	if (open)
 	{
-		if (ImGui::Selectable((const char*)u8"なし", soundPath.empty()))
+		if (ImGuiToolKit::Selectable(u8"なし", soundPath.empty()))
 		{
 			soundPath.clear();
 			changed = true;
@@ -241,7 +219,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 
 std::string VmdlEditorScene::EffectLabel(const std::string& effectName) const
 {
-	return effectName.empty() ? (const char*)u8"なし" : ResourceManager::ShortResourcePath(effectName, "Effect");
+	return effectName.empty() ? JText(u8"なし") : ResourceManager::ShortResourcePath(effectName, "Effect");
 }
 
 bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectName)
@@ -250,7 +228,7 @@ bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectN
 	bool changed = false;
 	if (ImGui::BeginCombo(label, preview.c_str()))
 	{
-		if (ImGui::Selectable((const char*)u8"なし", effectName.empty()))
+		if (ImGuiToolKit::Selectable(u8"なし", effectName.empty()))
 		{
 			effectName.clear();
 			changed = true;
@@ -281,9 +259,6 @@ void VmdlEditorScene::LoadLayoutSettings()
 		savedWindowHeight = settings.windowHeight;
 		savedWindowMaximized = settings.windowMaximized;
 		savedWindowPlacementValid = savedWindowWidth >= 640 && savedWindowHeight >= 480;
-		loadedPropertyPanelRatio = settings.propertyPanelRatio;
-		loadedViewportPanelRatio = settings.viewportPanelRatio;
-		loadedBottomPanelRatio = settings.bottomPanelRatio;
 		const std::string& path = settings.recentModelPath;
 		recentModelPath = std::filesystem::path(std::u8string(
 			reinterpret_cast<const char8_t*>(path.data()), path.size()));
@@ -306,12 +281,6 @@ void VmdlEditorScene::SaveLayoutSettings()
 	}
 	const int windowWidth = std::max(1L, rect.right - rect.left);
 	const int windowHeight = std::max(1L, rect.bottom - rect.top);
-	const float propertyRatio = layoutInitialized && layoutColumnWidth > 0.0f
-		? propertyPanelWidth / layoutColumnWidth : loadedPropertyPanelRatio;
-	const float viewportRatio = layoutInitialized && layoutColumnWidth > 0.0f
-		? viewportPanelWidth / layoutColumnWidth : loadedViewportPanelRatio;
-	const float bottomRatio = layoutInitialized && layoutTotalHeight > 0.0f
-		? bottomPanelHeight / layoutTotalHeight : loadedBottomPanelRatio;
 	const std::u8string recentUtf8 = recentModelPath.u8string();
 	const std::string recentPath(
 		reinterpret_cast<const char*>(recentUtf8.data()), recentUtf8.size());
@@ -321,9 +290,6 @@ void VmdlEditorScene::SaveLayoutSettings()
 	settings.windowWidth = windowWidth;
 	settings.windowHeight = windowHeight;
 	settings.windowMaximized = maximized;
-	settings.propertyPanelRatio = propertyRatio;
-	settings.viewportPanelRatio = viewportRatio;
-	settings.bottomPanelRatio = bottomRatio;
 	settings.recentModelPath = recentPath;
 	settings.loaded = true;
 	ImGuiRenderer::SaveSettings();
@@ -334,9 +300,6 @@ void VmdlEditorScene::SaveLayoutSettings()
 	savedWindowHeight = windowHeight;
 	savedWindowMaximized = maximized;
 	savedWindowPlacementValid = windowWidth >= 640 && windowHeight >= 480;
-	loadedPropertyPanelRatio = propertyRatio;
-	loadedViewportPanelRatio = viewportRatio;
-	loadedBottomPanelRatio = bottomRatio;
 }
 
 void VmdlEditorScene::OnUpdate()
@@ -413,10 +376,7 @@ void VmdlEditorScene::OnDrawGUI()
 	PROFILE_FUNCTION();
 	HandleShortcuts();
 	auto& io = ImGui::GetIO();
-	ImGuiStyle& style = ImGui::GetStyle();
-	const ImGuiStyle gameStyle = style;
 	bool selectionFocused = false;
-	ImGuiToolKit::Theme::ApplyRedTheme(style);
 
 	// アニメーションプレビューの再生
 	if (animationPlaying && model && selectedAnimation >= 0 &&
@@ -468,9 +428,6 @@ void VmdlEditorScene::OnDrawGUI()
 
 	// 全画面の3D描画に、不透明な独立パネルを重ねる。
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.055f, 0.055f, 0.06f, 1.0f));
 	DrawMenuBar();
 	DrawSerialViewer();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
@@ -479,35 +436,31 @@ void VmdlEditorScene::OnDrawGUI()
 	const ImVec2 workPosition(viewport->Pos.x + gap, viewport->Pos.y + ImGui::GetFrameHeight() + gap);
 	const float totalWidth = std::max(1.0f, viewport->Size.x - gap * 2.0f);
 	const float totalHeight = std::max(1.0f, viewport->Pos.y + viewport->Size.y - workPosition.y - gap);
-	const bool canInitializeLayout = !restoreWindowPending && !layoutWindowMetricsPending &&
-		totalWidth >= 660.0f && totalHeight >= 360.0f;
-	propertyPanelWidth = std::min(340.0f, totalWidth * 0.25f);
-	const float hierarchyWidth = std::min(300.0f, totalWidth * 0.23f);
-	viewportPanelWidth = std::max(1.0f, totalWidth - propertyPanelWidth - hierarchyWidth - gap * 2.0f);
-	bottomPanelHeight = totalHeight * 0.36f;
-	const float upperHeight = std::max(1.0f, totalHeight - bottomPanelHeight - gap);
-	if (canInitializeLayout) layoutInitialized = true;
-	if (layoutInitialized)
-	{
-		layoutColumnWidth = totalWidth;
-		layoutTotalHeight = totalHeight;
-	}
-	if (!restoreWindowPending && layoutWindowMetricsPending) layoutWindowMetricsPending = false;
+	auto& panelLayout = ImGuiRenderer::GetVmdlEditorLayoutSettings();
+	float& propertyPanelWidth = panelLayout.inspectorWidth;
+	float& hierarchyWidth = panelLayout.hierarchyWidth;
+	const float upperHeight = std::max(1.0f, totalHeight - totalHeight * 0.36f - gap);
+	const bool panelResizeFinished = UpdatePanelWidths(workPosition, totalWidth, upperHeight,
+		propertyPanelWidth, hierarchyWidth);
 
-	constexpr ImGuiWindowFlags panelFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
+	if (panelResizeFinished) SaveLayoutSettings();
+	const ImGuiWindowFlags panelFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
+		(panelResizeHovered ? ImGuiWindowFlags_NoMouseInputs : 0);
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(propertyPanelWidth, upperHeight), ImGuiCond_Always);
-	if (ImGui::Begin((const char*)(ICON_FA_COG " " u8"インスペクタ###VMDL Inspector"), nullptr, panelFlags))
+	if (ImGuiToolKit::Begin(ICON_FA_COG " " u8"インスペクタ###VMDL Inspector", nullptr, panelFlags))
 	{
+		ImGui::PushItemWidth(VmdlComponentEditor::ItemWidth);
 		DrawProperty();
+		ImGui::PopItemWidth();
 		selectionFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 	}
 	ImGui::End();
 
 	ImGui::SetNextWindowPos(ImVec2(workPosition.x + totalWidth - hierarchyWidth, workPosition.y), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(hierarchyWidth, upperHeight), ImGuiCond_Always);
-	if (ImGui::Begin((const char*)(ICON_FA_LIST " " u8"ヒエラルキー###VMDL Hierarchy"), nullptr, panelFlags))
+	if (ImGuiToolKit::Begin(ICON_FA_LIST " " u8"ヒエラルキー###VMDL Hierarchy", nullptr, panelFlags))
 	{
 		DrawHierarchy();
 		selectionFocused |= ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
@@ -515,17 +468,16 @@ void VmdlEditorScene::OnDrawGUI()
 	ImGui::End();
 
 	const ImVec2 toolbarPosition(workPosition.x + propertyPanelWidth + gap, workPosition.y);
-	const float toolbarHeight = ImGui::GetFrameHeightWithSpacing() + ImGui::GetTextLineHeightWithSpacing() +
-		ImGui::GetStyle().WindowPadding.y * 2.0f;
+	const float toolbarHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2.0f;
 	ImGui::SetNextWindowPos(toolbarPosition, ImGuiCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(viewportPanelWidth, toolbarHeight), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(std::max(1.0f, totalWidth - propertyPanelWidth - hierarchyWidth - gap * 2.0f), toolbarHeight), ImGuiCond_Always);
 	if (ImGui::Begin("###VMDL Preview Toolbar", nullptr, panelFlags | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar))
 		DrawPreviewToolbar();
 	ImGui::End();
 
 	ImGui::SetNextWindowPos(ImVec2(workPosition.x, workPosition.y + upperHeight + gap), ImGuiCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(totalWidth, bottomPanelHeight), ImGuiCond_Always);
-	const bool bottomVisible = ImGui::Begin((const char*)u8"アニメーション・編集###VMDL Bottom", nullptr, panelFlags);
+	ImGui::SetNextWindowSize(ImVec2(totalWidth, totalHeight * 0.362f), ImGuiCond_Always);
+	const bool bottomVisible = ImGuiToolKit::Begin(u8"アニメーション・編集###VMDL Bottom", nullptr, panelFlags);
 	const bool bottomFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 	if (bottomVisible)
 	{
@@ -542,7 +494,7 @@ void VmdlEditorScene::OnDrawGUI()
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiToolKit::Theme::Selected);
 		if (ImGui::BeginTabBar("VMDL Editor Tabs"))
 		{
-			if (ImGui::BeginTabItem((const char*)u8"アニメーション"))
+			if (ImGuiToolKit::BeginTabItem(u8"アニメーション"))
 			{
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
@@ -553,7 +505,7 @@ void VmdlEditorScene::OnDrawGUI()
 				DrawTimeline();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem((const char*)u8"モーフ"))
+			if (ImGuiToolKit::BeginTabItem(u8"モーフ"))
 			{
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
@@ -564,7 +516,7 @@ void VmdlEditorScene::OnDrawGUI()
 				DrawMorphEditor();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem((const char*)u8"IK設定"))
+			if (ImGuiToolKit::BeginTabItem(u8"IK設定"))
 			{
 				const ImVec2 tabMin = ImGui::GetItemRectMin();
 				const ImVec2 tabMax = ImGui::GetItemRectMax();
@@ -592,16 +544,15 @@ void VmdlEditorScene::OnDrawGUI()
 
 
 
-	if (showSetScaleWindow) ImGui::OpenPopup((const char*)u8"スケール設定");
+	if (showSetScaleWindow) ImGuiToolKit::OpenPopup(u8"スケール設定");
 	showSetScaleWindow = false;
-	if (ImGui::BeginPopupModal(
-			(const char*)u8"スケール設定", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	if (ImGuiToolKit::BeginPopupModal(u8"スケール設定", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		ImGui::SetNextItemWidth(220.0f);
-		ImGui::InputFloat((const char*)u8"スケール", &setScaleValue, 0.01f, 0.1f, "%.4f");
+		ImGuiToolKit::InputFloat(u8"スケール", &setScaleValue, 0.01f, 0.1f, "%.4f");
 		const bool validScale = model && std::isfinite(setScaleValue) && setScaleValue > 0.0f;
 		ImGui::BeginDisabled(!validScale);
-		if (ImGui::Button((const char*)u8"適用", ImVec2(100.0f, 0.0f)))
+		if (ImGuiToolKit::Button(u8"適用", ImVec2(100.0f, 0.0f)))
 		{
 			model->SetModelScale(setScaleValue);
 			setScaleValue = model->GetModelScale();
@@ -611,14 +562,12 @@ void VmdlEditorScene::OnDrawGUI()
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		if (ImGui::Button((const char*)u8"キャンセル", ImVec2(100.0f, 0.0f)))
+		if (ImGuiToolKit::Button(u8"キャンセル", ImVec2(100.0f, 0.0f)))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 
-	ImGui::PopStyleColor(3);
 	ImGui::PopStyleVar(2);
-	style = gameStyle;
 }
 
 void VmdlEditorScene::StartUnifiedPreview()
@@ -853,6 +802,8 @@ void VmdlEditorScene::ResizePreviewTargets()
 	const UINT height = static_cast<UINT>(std::max(1.0f, Game::Graphics::ScreenHeight));
 	if (previewTarget && previewTarget->GetWidth() == width && previewTarget->GetHeight() == height) return;
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
+	previewDepthTarget = std::make_unique<DepthTarget>(device, width, height,
+		DXGI_FORMAT_R24G8_TYPELESS, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	previewSceneTarget = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
 	previewTarget = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
 	previewLuminance = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
@@ -920,7 +871,7 @@ void VmdlEditorScene::RenderPreview()
 	SoundSystem::Instance().SetListenerOverride(editorCamera);
 	const float nearClip = std::max(0.01f, cameraDistance * 0.0001f);
 	const float farClip = std::max(1000.0f, cameraDistance * 2.0f);
-	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(previewVerticalFovDegrees),
+	editorCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(editorCamera->GetVerticalFovDegrees()),
 		static_cast<float>(previewTarget->GetWidth()) / previewTarget->GetHeight(), nearClip, farClip);
 
 	Game::Graphics& graphics = Game::Graphics::Instance();
@@ -953,8 +904,11 @@ void VmdlEditorScene::RenderPreview()
 	}
 	rc.shadowMapData.cascadeSplits = graphics.GetShadowMapRenderer()->GetCascadeSplits();
 	rc.shadowMapData.shadowBias = graphics.GetShadowMapRenderer()->GetShadowBias();
+	rc.depthTarget = previewDepthTarget.get();
 	previewSceneTarget->Clear(dc, 0, 0, 0, 1.0f);
-	previewSceneTarget->Activate(dc);
+	previewDepthTarget->Clear(dc, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	const auto previewSceneOutput = RenderOutput::CaptureOutput(dc);
+	RenderOutput::Bind(dc, previewSceneTarget.get(), previewDepthTarget.get(), false);
 	graphics.GetSkyBoxRenderer()->Render(dc, rc.graphics, *editorCamera,
 		graphics.GetIBLSpecularPMREM(), rc.renderSettings);
 	if (showFootIkTestStage && footIkTestStageModel)
@@ -974,7 +928,7 @@ void VmdlEditorScene::RenderPreview()
 
 	// デバッグ表示を含めずにポストエフェクトを完了し、最終画像へ重ね描きする。
 	auto finishSceneColor = [&]() {
-		previewSceneTarget->Deactivate(dc);
+		RenderOutput::RestoreOutput(dc, previewSceneOutput);
 
 		postProcess.PrepareSceneColor(rc, previewSceneTarget.get(), previewLuminance.get(),
 			previewBloomWork.get(), previewSsao.get(), previewPostA.get(), previewPostB.get());
@@ -991,6 +945,8 @@ void VmdlEditorScene::RenderPreview()
 		}
 		postProcess.RenderFinal(rc, previewPostA->GetSRV(),
 			previewPostB.get(), previewPostA.get(), previewTarget.get());
+		previewDepthTarget->Clear(dc, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		RenderOutput::Bind(dc, previewTarget.get(), previewDepthTarget.get(), false);
 	};
 
 	if (model)
@@ -1359,7 +1315,7 @@ void VmdlEditorScene::RenderPreview()
 	}
 	else finishSceneColor();
 
-	previewTarget->Deactivate(dc);
+	RenderOutput::RestoreOutput(dc, previewSceneOutput);
 }
 
 void VmdlEditorScene::DrawMenuBar()
@@ -1367,56 +1323,43 @@ void VmdlEditorScene::DrawMenuBar()
 	if (!ImGui::BeginMainMenuBar()) return;
 
 	// ファイル操作
-	if (ImGui::BeginMenu((const char*)(ICON_FA_FILE " " u8"ファイル")))
+	if (ImGuiToolKit::BeginMenu(ICON_FA_FILE " " u8"ファイル"))
 	{
-		if (ImGui::MenuItem((const char*)(ICON_FA_FOLDER_OPEN " " u8"VMDLを開く"), "Ctrl+O")) OpenVmdl();
-		if (ImGui::MenuItem((const char*)(ICON_FA_SAVE " " u8"VMDLを保存"), "Ctrl+S", false, model != nullptr)) SaveVmdl();
-		if (ImGui::MenuItem((const char*)(ICON_FA_COPY " " u8"名前を付けて保存"), "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
+		if (ImGuiToolKit::MenuItem(ICON_FA_FOLDER_OPEN " " u8"開く", "Ctrl+O")) OpenVmdl();
+		if (ImGuiToolKit::MenuItem(ICON_FA_SAVE " " u8"保存", "Ctrl+S", false, model != nullptr)) SaveVmdl();
+		if (ImGuiToolKit::MenuItem(ICON_FA_COPY " " u8"名前を付けて保存", "Ctrl+Shift+S", false, model != nullptr)) SaveVmdlAs();
 		ImGui::Separator();
-		if (ImGui::MenuItem((const char*)(ICON_FA_FILE_IMPORT " " u8"GLBをインポート"))) ImportGlb();
-		//if (ImGui::MenuItem((const char*)(ICON_FA_FILE_EXPORT " " u8"GLBをエクスポート"), nullptr, false, model != nullptr)) ExportGlb();
-		if (ImGui::MenuItem((const char*)(ICON_FA_EXCHANGE_ALT " " u8"GLBキャッシュを置換"), nullptr, false, model != nullptr)) ReplaceGlbCache();
-		if (ImGui::MenuItem((const char*)(ICON_FA_PLUS " " u8"アニメーションGLBを追加"), nullptr, false, model != nullptr)) AppendAnimationGlb();
+		if (ImGuiToolKit::MenuItem(ICON_FA_FILE_IMPORT " " u8"GLBをインポート")) ImportGlb();
+		//if (ImGuiToolKit::MenuItem(ICON_FA_FILE_EXPORT " " u8"GLBをエクスポート", nullptr, false, model != nullptr)) ExportGlb();
+		if (ImGuiToolKit::MenuItem(ICON_FA_EXCHANGE_ALT " " u8"GLBキャッシュを置換", nullptr, false, model != nullptr)) ReplaceGlbCache();
+		if (ImGuiToolKit::MenuItem(ICON_FA_PLUS " " u8"アニメーションGLBを追加", nullptr, false, model != nullptr)) AppendAnimationGlb();
 		ImGui::Separator();
-		if (ImGui::MenuItem((const char*)(ICON_FA_SIGN_OUT_ALT " " u8"終了")) && OnRequestExit()) exiting = true;
+		if (ImGuiToolKit::MenuItem(ICON_FA_SIGN_OUT_ALT " " u8"終了") && OnRequestExit()) exiting = true;
 		ImGui::EndMenu();
 	}
 
 	// プレビュー表示
-	if (ImGui::BeginMenu((const char*)(ICON_FA_EYE " " u8"表示")))
+	if (ImGuiToolKit::BeginMenu(ICON_FA_EYE " " u8"表示"))
 	{
 		DrawCommonVisibilityGUI(&showMesh);
 		ImGui::Separator();
-		ImGui::MenuItem((const char*)(ICON_FA_BUG " " u8"デバッグ表示"), "F3", &showDebugOverlays);
+		ImGuiToolKit::MenuItem(ICON_FA_BUG " " u8"デバッグ表示", "F3", &showDebugOverlays);
 		ImGui::Separator();
-		ImGui::MenuItem((const char*)(ICON_FA_BONE " " u8"ボーン"), "B", &showBones);
-		ImGui::MenuItem((const char*)(ICON_FA_BULLSEYE " " u8"IKポール"), "I", &showIkPole);
-		ImGui::MenuItem((const char*)(ICON_FA_SHAPES " " u8"コライダー"), "C", &showCollider);
-		ImGui::MenuItem((const char*)(ICON_FA_VOLUME_UP " " u8"サウンド・演出範囲"), nullptr, &showSoundRange);
-		ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"), nullptr, &showPointLight);
-		ImGui::MenuItem((const char*)(ICON_FA_LINK " " u8"スプリング"), "S", &showSpring);
-		ImGui::MenuItem((const char*)(ICON_FA_BULLSEYE " " u8"スプリングコライダー"), "Shift+C", &showSpringCollider);
-		ImGui::MenuItem((const char*)(ICON_FA_WIND " " u8"トレイル"), "T", &showTrail);
-		ImGui::MenuItem((const char*)(ICON_FA_MAGIC " " u8"パーティクル"), "P", &showParticle);
+		ImGuiToolKit::MenuItem(ICON_FA_BONE " " u8"ボーン", "B", &showBones);
+		ImGuiToolKit::MenuItem(ICON_FA_BULLSEYE " " u8"IKポール", "I", &showIkPole);
+		ImGuiToolKit::MenuItem(ICON_FA_SHAPES " " u8"コライダー", "C", &showCollider);
+		ImGuiToolKit::MenuItem(ICON_FA_VOLUME_UP " " u8"サウンド・演出範囲", nullptr, &showSoundRange);
+		ImGuiToolKit::MenuItem(ICON_FA_LIGHTBULB " " u8"ポイントライト", nullptr, &showPointLight);
+		ImGuiToolKit::MenuItem(ICON_FA_LINK " " u8"スプリング", "S", &showSpring);
+		ImGuiToolKit::MenuItem(ICON_FA_BULLSEYE " " u8"スプリングコライダー", "Shift+C", &showSpringCollider);
+		ImGuiToolKit::MenuItem(ICON_FA_WIND " " u8"トレイル", "T", &showTrail);
+		ImGuiToolKit::MenuItem(ICON_FA_MAGIC " " u8"パーティクル", "P", &showParticle);
 		ImGui::EndMenu();
 	}
 
 	// 補助ウィンドウ
 	DrawWindowMenu();
 
-	// プレビュー用ツール
-	if (ImGui::BeginMenu((const char*)(ICON_FA_TOOLS " " u8"ツール")))
-	{
-		DrawSerialViewerTools();
-		if (ImGui::MenuItem((const char*)(ICON_FA_UNDO " " u8"ライティング環境をリセット"))) ResetLightingEnvironment();
-		if (ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"VSTGからライティング環境を適用"))) ApplyVstgLighting();
-		if (ImGui::MenuItem((const char*)(ICON_FA_EXPAND_ARROWS_ALT " " u8"スケール設定"), nullptr, false, model != nullptr))
-		{
-			setScaleValue = model->GetModelScale();
-			showSetScaleWindow = true;
-		}
-		ImGui::EndMenu();
-	}
 
 	DrawDocumentTitle(documentPath, dirty);
 	ImGui::EndMainMenuBar();
@@ -1624,21 +1567,21 @@ bool VmdlEditorScene::ApplyFootIkPreview()
 void VmdlEditorScene::DrawHierarchy()
 {
 	PROFILE_FUNCTION();
-	ImGui::TextUnformatted((const char*)u8"ヒエラルキー");
+	ImGuiToolKit::TextUnformatted(u8"ヒエラルキー");
 	ImGui::Separator();
 
 	// ノードとコンポーネントの検索
 	ImGui::SetNextItemWidth(-1.0f);
 	if (ImGui::InputTextWithHint("##HierarchySearch",
-			(const char*)(ICON_FA_SEARCH u8" ノード・メッシュ・コンポーネントを検索"),
+			JText(ICON_FA_SEARCH u8" ノード・メッシュ・コンポーネントを検索"),
 			&hierarchySearch))
 		hierarchySearchUpper = ToUpperString(hierarchySearch);
 	ImGui::Separator();
 	ImGui::BeginChild("HierarchyTree", ImVec2(0.0f, 0.0f), false,
 		ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-	if (MatchesHierarchySearch((const char*)u8"プレビューステージ Preview Stage"))
+	if (MatchesHierarchySearch(JText(u8"プレビューステージ")))
 	{
-		if (ImGui::Selectable((const char*)u8"プレビューステージ", previewStageSelected))
+		if (ImGuiToolKit::Selectable(u8"プレビューステージ", previewStageSelected))
 		{
 			previewStageSelected = true;
 			selectedNode = -1;
@@ -1657,21 +1600,21 @@ void VmdlEditorScene::DrawHierarchy()
 	}
 	if (!model)
 	{
-		ImGui::TextDisabled((const char*)u8"モデルが読み込まれていません");
+		ImGuiToolKit::TextDisabled(u8"モデルが読み込まれていません");
 		ImGui::EndChild();
 		return;
 	}
 
 	// 検索条件に一致したノードツリー
 	const auto& nodes = model->GetNodes();
-	bool found = MatchesHierarchySearch((const char*)u8"プレビューステージ Preview Stage");
+	bool found = MatchesHierarchySearch(JText(u8"プレビューステージ"));
 	for (int index = 0; index < Count(nodes); ++index)
 	{
 		if (nodes[index].parentIndex >= 0 || !NodeMatchesHierarchySearch(index)) continue;
 		DrawNodeTree(index);
 		found = true;
 	}
-	if (!found) ImGui::TextDisabled((const char*)u8"一致する項目がありません");
+	if (!found) ImGuiToolKit::TextDisabled(u8"一致する項目がありません");
 	ImGui::EndChild();
 	// ツリーを描画し終えてから移動し、同じフレームでの二重表示を防ぐ。
 	ReparentAttachedComponents();
@@ -1700,7 +1643,7 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 	for (const VMDLModel::Mesh& mesh : model->GetMeshes())
 	{
 		if (mesh.nodeIndex != nodeIndex) continue;
-		if (MatchesHierarchySearch((const char*)u8"メッシュ MESH") ||
+		if (MatchesHierarchySearch(JText(u8"メッシュ")) ||
 			MatchesHierarchySearch(mesh.material->name))
 			return true;
 	}
@@ -1709,57 +1652,57 @@ bool VmdlEditorScene::NodeMatchesHierarchySearch(int nodeIndex) const
 	for (const auto& value : data.rigidBodies)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"リジッドボディ RIGID BODY", value.name))
+				JText(u8"リジッドボディ"), value.name))
 			return true;
 	}
 	for (const auto& value : data.colliders)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"コライダー COLLIDER", value.name))
+				JText(u8"コライダー"), value.name))
 			return true;
 	}
 	for (const auto& value : data.springs)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"スプリング SPRING", value.name))
+				JText(u8"スプリング"), value.name))
 			return true;
 	}
 	for (const auto& value : data.springColliders)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"スプリングコライダー SPRING COLLIDER", value.name))
+				JText(u8"スプリングコライダー"), value.name))
 			return true;
 	}
 	for (const auto& value : model->GetVmdlTrailData().trails)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"トレイル TRAIL", value.name))
+				JText(u8"トレイル"), value.name))
 			return true;
 	}
 	for (const auto& value : model->GetVmdlParticleData().emitters)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"パーティクル PARTICLE", value.name))
+				JText(u8"パーティクル"), value.name))
 			return true;
 	}
 	for (const auto& value : model->GetVmdlSoundData().sources)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"サウンドソース SOUND SOURCE", value.name))
+				JText(u8"サウンドソース"), value.name))
 			return true;
 	}
 	for (const auto& value : model->GetVmdlLightData().pointLights)
 	{
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"ポイントライト POINT LIGHT", value.name))
+				JText(u8"ポイントライト"), value.name))
 			return true;
 	}
 	for (const auto& value : model->GetVmdlPresentationData().cameraShakes)
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"カメラシェイク CAMERA SHAKE", value.name)) return true;
+				JText(u8"カメラシェイク"), value.name)) return true;
 	for (const auto& value : model->GetVmdlPresentationData().radialBlurs)
 		if (value.nodeIndex == nodeIndex && ComponentMatchesHierarchySearch(
-				(const char*)u8"ラジアルブラー RADIAL BLUR", value.name)) return true;
+				JText(u8"ラジアルブラー"), value.name)) return true;
 
 	for (const VMDLModel::Node* child : node.children)
 	{
@@ -2292,7 +2235,7 @@ void VmdlEditorScene::DrawHierarchyComponent(int nodeIndex, AttachedComponentTyp
 	ImGui::PushID(static_cast<int>(type));
 	ImGui::PushID(componentIndex);
 	const std::string componentName = name.empty() ? label : std::string(label) + " : " + name;
-	const std::string displayName = std::string((const char*)u8"│  ") + componentName;
+	const std::string displayName = std::string(JText(u8"│  ")) + componentName;
 	const bool selected = selectedComponentType == type &&
 		(selectedComponentIndex == componentIndex ||
 			std::find(selectedComponentIndices.begin(), selectedComponentIndices.end(), componentIndex) != selectedComponentIndices.end());
@@ -2337,7 +2280,7 @@ void VmdlEditorScene::DrawHierarchyComponent(int nodeIndex, AttachedComponentTyp
 		ImGui::SetDragDropPayload("VMDL_COMPONENT_PARENT", payload.data(), payload.size() * sizeof(int));
 		ImGui::TextUnformatted(componentName.c_str());
 		if (payload.size() > 2)
-			ImGui::Text((const char*)u8"%dコンポーネント", static_cast<int>(payload.size()) - 1);
+			ImGuiToolKit::Text(u8"%dコンポーネント", static_cast<int>(payload.size()) - 1);
 		ImGui::EndDragDropSource();
 	}
 	ImGui::PopID();
@@ -2535,10 +2478,10 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		if (mesh.nodeIndex != nodeIndex) continue;
 		const bool external = model->IsExternalMesh(meshIndex);
 		const std::string label = (external ? "[VMSH] " : "") +
-			std::string((const char*)u8"メッシュ ") + std::to_string(meshIndex) + " : " +
+			std::string(JText(u8"メッシュ ")) + std::to_string(meshIndex) + " : " +
 			mesh.material->name;
 		if (!showAllContents && !MatchesHierarchySearch(label) &&
-			!MatchesHierarchySearch((const char*)u8"メッシュ MESH"))
+			!MatchesHierarchySearch(JText(u8"メッシュ MESH")))
 			continue;
 		ImGui::PushID(meshIndex);
 		if (external)
@@ -2563,16 +2506,16 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 				SelectMesh(meshIndex, false);
 			if (external)
 			{
-				if (ImGui::MenuItem((const char*)u8"VMDLへ結合"))
+				if (ImGuiToolKit::MenuItem(u8"VMDLへ結合"))
 					RestoreExternalMesh(meshIndex);
 			}
 			else
 			{
-				if (ImGui::MenuItem((const char*)u8"VMSHへ分離", nullptr, false,
+				if (ImGuiToolKit::MenuItem(u8"VMSHへ分離", nullptr, false,
 						selectedMorph >= 0))
 					SeparateMeshToCache(meshIndex);
 				if (selectedMorph < 0)
-					ImGui::TextDisabled((const char*)u8"分離には適用先モーフの選択が必要です");
+					ImGuiToolKit::TextDisabled(u8"分離には適用先モーフの選択が必要です");
 			}
 			ImGui::EndPopup();
 		}
@@ -2583,40 +2526,40 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		const auto& value = extension.rigidBodies[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"リジッドボディ RIGID BODY", value.name)))
+				JText(u8"リジッドボディ RIGID BODY"), value.name)))
 			continue;
 		DrawHierarchyComponent(
-			nodeIndex, AttachedComponentType::RigidBody, i, (const char*)(ICON_FA_CUBE " " u8"リジッドボディ"), value.name);
+			nodeIndex, AttachedComponentType::RigidBody, i, JText(ICON_FA_CUBE " " u8"リジッドボディ"), value.name);
 	}
 	for (int i = 0; i < Count(extension.colliders); ++i)
 	{
 		const auto& value = extension.colliders[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"コライダー COLLIDER", value.name)))
+				JText(u8"コライダー COLLIDER"), value.name)))
 			continue;
 		DrawHierarchyComponent(
-			nodeIndex, AttachedComponentType::Collider, i, (const char*)(ICON_FA_SHAPES " " u8"コライダー"), value.name);
+			nodeIndex, AttachedComponentType::Collider, i, JText(ICON_FA_SHAPES " " u8"コライダー"), value.name);
 	}
 	for (int i = 0; i < Count(extension.springs); ++i)
 	{
 		const auto& value = extension.springs[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"スプリング SPRING", value.name)))
+				JText(u8"スプリング SPRING"), value.name)))
 			continue;
 		DrawHierarchyComponent(
-			nodeIndex, AttachedComponentType::Spring, i, (const char*)(ICON_FA_LINK " " u8"スプリング"), value.name);
+			nodeIndex, AttachedComponentType::Spring, i, JText(ICON_FA_LINK " " u8"スプリング"), value.name);
 	}
 	for (int i = 0; i < Count(extension.springColliders); ++i)
 	{
 		const auto& value = extension.springColliders[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"スプリングコライダー SPRING COLLIDER", value.name)))
+				JText(u8"スプリングコライダー SPRING COLLIDER"), value.name)))
 			continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::SpringCollider, i,
-			(const char*)(ICON_FA_BULLSEYE " " u8"スプリングコライダー"), value.name);
+			JText(ICON_FA_BULLSEYE " " u8"スプリングコライダー"), value.name);
 	}
 	const auto& trailComponents = model->GetVmdlTrailData().trails;
 	for (int i = 0; i < Count(trailComponents); ++i)
@@ -2624,54 +2567,54 @@ void VmdlEditorScene::DrawNodeTree(int nodeIndex)
 		const auto& value = trailComponents[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"トレイル TRAIL", value.name)))
+				JText(u8"トレイル TRAIL"), value.name)))
 			continue;
 		DrawHierarchyComponent(
-			nodeIndex, AttachedComponentType::Trail, i, (const char*)(ICON_FA_WIND " " u8"トレイル"), value.name);
+			nodeIndex, AttachedComponentType::Trail, i, JText(ICON_FA_WIND " " u8"トレイル"), value.name);
 	}
 	for (int i = 0; i < Count(particleEmitters); ++i)
 	{
 		const auto& value = particleEmitters[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"パーティクル PARTICLE", value.name)))
+				JText(u8"パーティクル PARTICLE"), value.name)))
 			continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::Particle, i,
-			(const char*)(ICON_FA_MAGIC " " u8"パーティクル"), value.name);
+			JText(ICON_FA_MAGIC " " u8"パーティクル"), value.name);
 	}
 	for (int i = 0; i < Count(soundSources); ++i)
 	{
 		const auto& value = soundSources[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"サウンドソース SOUND SOURCE", value.name)))
+				JText(u8"サウンドソース SOUND SOURCE"), value.name)))
 			continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::SoundSource, i,
-			(const char*)(ICON_FA_VOLUME_UP " " u8"サウンドソース"), value.name);
+			JText(ICON_FA_VOLUME_UP " " u8"サウンドソース"), value.name);
 	}
 	for (int i = 0; i < Count(pointLights); ++i)
 	{
 		const auto& value = pointLights[i];
 		if (value.nodeIndex != nodeIndex ||
 			(!showAllContents && !ComponentMatchesHierarchySearch(
-				(const char*)u8"ポイントライト POINT LIGHT", value.name)))
+				JText(u8"ポイントライト POINT LIGHT"), value.name)))
 			continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::PointLight, i,
-			(const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"), value.name);
+			JText(ICON_FA_LIGHTBULB " " u8"ポイントライト"), value.name);
 	}
 	for (int i = 0; i < Count(cameraShakes); ++i)
 	{
 		const auto& value = cameraShakes[i];
 		if (value.nodeIndex != nodeIndex) continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::CameraShake, i,
-			(const char*)(ICON_FA_CAMERA " " u8"カメラシェイク"), value.name);
+			JText(ICON_FA_CAMERA " " u8"カメラシェイク"), value.name);
 	}
 	for (int i = 0; i < Count(radialBlurs); ++i)
 	{
 		const auto& value = radialBlurs[i];
 		if (value.nodeIndex != nodeIndex) continue;
 		DrawHierarchyComponent(nodeIndex, AttachedComponentType::RadialBlur, i,
-			(const char*)(ICON_FA_SUN " " u8"ラジアルブラー"), value.name);
+			JText(ICON_FA_SUN " " u8"ラジアルブラー"), value.name);
 	}
 	for (const VMDLModel::Node* child : node.children)
 	{
@@ -2689,46 +2632,45 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 		if (!IsNodeSelected(nodeIndex)) SelectNode(nodeIndex, false);
 		const auto& node = model->GetNodes()[nodeIndex];
 		if (selectedComponentIndices.size() > 1)
-			ImGui::TextDisabled((const char*)u8"選択中: %zuコンポーネント", selectedComponentIndices.size());
+			ImGuiToolKit::TextDisabled(u8"選択中: %zuコンポーネント", selectedComponentIndices.size());
 		else if (selectedNodes.size() > 1)
-			ImGui::TextDisabled((const char*)u8"選択中: %zuノード", selectedNodes.size());
+			ImGuiToolKit::TextDisabled(u8"選択中: %zuノード", selectedNodes.size());
 		else
-			ImGui::TextDisabled(
-				(const char*)u8"ノード: %s", MakeNodeLabel(nodeIndex, node.name).c_str());
+			ImGuiToolKit::TextDisabled(u8"ノード: %s", MakeNodeLabel(nodeIndex, node.name).c_str());
 		ImGui::Separator();
-		if (ImGui::BeginMenu((const char*)(ICON_FA_PLUS " " u8"追加")))
+		if (ImGuiToolKit::BeginMenu(ICON_FA_PLUS " " u8"追加"))
 		{
-			if (ImGui::BeginMenu((const char*)(ICON_FA_CAMERA " " u8"カメラ")))
+			if (ImGuiToolKit::BeginMenu(ICON_FA_CAMERA " " u8"カメラ"))
 			{
-				if (ImGui::MenuItem((const char*)(ICON_FA_CAMERA " " u8"カメラシェイク")))
+				if (ImGuiToolKit::MenuItem(ICON_FA_CAMERA " " u8"カメラシェイク"))
 					AddAttachedComponentToSelectedNodes(AttachedComponentType::CameraShake);
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu((const char*)(ICON_FA_MAGIC " " u8"ポストエフェクト")))
+			if (ImGuiToolKit::BeginMenu(ICON_FA_MAGIC " " u8"ポストエフェクト"))
 			{
-				if (ImGui::MenuItem((const char*)(ICON_FA_SUN " " u8"ラジアルブラー")))
+				if (ImGuiToolKit::MenuItem(ICON_FA_SUN " " u8"ラジアルブラー"))
 					AddAttachedComponentToSelectedNodes(AttachedComponentType::RadialBlur);
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu((const char*)(ICON_FA_LIGHTBULB " " u8"ライト")))
+			if (ImGuiToolKit::BeginMenu(ICON_FA_LIGHTBULB " " u8"ライト"))
 			{
-				if (ImGui::MenuItem((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト")))
+				if (ImGuiToolKit::MenuItem(ICON_FA_LIGHTBULB " " u8"ポイントライト"))
 					AddAttachedComponentToSelectedNodes(AttachedComponentType::PointLight);
 				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem((const char*)(ICON_FA_CUBE " " u8"リジッドボディ")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_CUBE " " u8"リジッドボディ"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::RigidBody);
-			if (ImGui::MenuItem((const char*)(ICON_FA_SHAPES " " u8"コライダー")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_SHAPES " " u8"コライダー"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::Collider);
-			if (ImGui::MenuItem((const char*)(ICON_FA_LINK " " u8"スプリング")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_LINK " " u8"スプリング"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::Spring);
-			if (ImGui::MenuItem((const char*)(ICON_FA_BULLSEYE " " u8"スプリングコライダー")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_BULLSEYE " " u8"スプリングコライダー"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::SpringCollider);
-			if (ImGui::MenuItem((const char*)(ICON_FA_WIND " " u8"トレイル")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_WIND " " u8"トレイル"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::Trail);
-			if (ImGui::MenuItem((const char*)(ICON_FA_MAGIC " " u8"パーティクル")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_MAGIC " " u8"パーティクル"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::Particle);
-			if (ImGui::MenuItem((const char*)(ICON_FA_VOLUME_UP " " u8"サウンドソース")))
+			if (ImGuiToolKit::MenuItem(ICON_FA_VOLUME_UP " " u8"サウンドソース"))
 				AddAttachedComponentToSelectedNodes(AttachedComponentType::SoundSource);
 			ImGui::EndMenu();
 		}
@@ -2739,17 +2681,18 @@ void VmdlEditorScene::DrawNodeContextMenu(int nodeIndex)
 
 void VmdlEditorScene::DrawPreviewToolbar()
 {
-	const float transportButtonWidth = 42.0f;
+	const float toolbarButtonWidth = 42.0f;
 	const float loopWidth = 58.0f;
 	const float speedWidth = 74.0f;
-	const auto transportButton = [&](const char* id, const char* icon, ImWchar character) {
-		const bool pressed = ImGui::Button(id, {transportButtonWidth, 0.0f});
+	const auto toolbarButton = [&](const char* id, const char* icon, ImWchar character)
+	{
+		const bool pressed = ImGui::Button(id, {toolbarButtonWidth, 0.0f});
 		const ImVec2 buttonMin = ImGui::GetItemRectMin();
 		const ImVec2 buttonMax = ImGui::GetItemRectMax();
 		const ImFontGlyph* glyph = ImGui::GetFontBaked()->FindGlyph(character);
 		if (glyph)
 		{
-			// 送り幅ではなく、図形の中心をボタンの中心へ合わせる。
+			// 送り幅ではなく、図形の中心をボタンの中心へ合わせる
 			const ImVec2 buttonCenter((buttonMin.x + buttonMax.x) * 0.5f, (buttonMin.y + buttonMax.y) * 0.5f);
 			const ImVec2 iconPosition(buttonCenter.x - (glyph->X0 + glyph->X1) * 0.5f,
 				buttonCenter.y - (glyph->Y0 + glyph->Y1) * 0.5f);
@@ -2757,24 +2700,53 @@ void VmdlEditorScene::DrawPreviewToolbar()
 		}
 		return pressed;
 	};
-	ImGui::SameLine();
-	if (transportButton("##UnifiedPlay", animationPlaying ? ICON_FA_PAUSE : ICON_FA_PLAY,
+	if (toolbarButton("##UnifiedPlay", animationPlaying ? ICON_FA_PAUSE : ICON_FA_PLAY,
 			animationPlaying ? 0xf04c : 0xf04b))
 	{
 		if (animationPlaying) StopUnifiedPreview(false); else StartUnifiedPreview();
 	}
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生/停止 (SPACE)");
+	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"再生/停止 (SPACE)");
 	ImGui::SameLine();
-	if (transportButton("##UnifiedStop", ICON_FA_STOP, 0xf04d))
+	if (toolbarButton("##UnifiedStop", ICON_FA_STOP, 0xf04d))
 		StopUnifiedPreview(true);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(loopWidth);
-	ImGui::Checkbox((const char*)u8"ループ", &animationLoop);
+	ImGuiToolKit::Checkbox(u8"ループ", &animationLoop);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(speedWidth);
 	ImGui::DragFloat("##PlaybackSpeed", &playbackSpeed, 0.05f, 0.05f, 4.0f, "x%.2f");
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"再生速度");
-	DrawGizmoButtons(gizmoOperation, false);
+	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"再生速度");
+	ImGui::SameLine();
+	ImGui::TextUnformatted("|");
+	DrawGizmoButtons(gizmoOperation);
+	ImGui::SameLine();
+	ImGui::TextUnformatted("|");
+
+	ImGui::SameLine();
+	if (toolbarButton("##SerialViewer", ICON_FA_SITEMAP, 0xf0e8))
+	{
+		showSerialViewer = true;
+		serialViewerDocument = nullptr;
+	}
+	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"シリアルビューアー");
+
+	ImGui::SameLine();
+	if (toolbarButton("##ResetLighting", ICON_FA_UNDO, 0xf0e2)) ResetLightingEnvironment();
+	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"ライティング環境をリセット");
+
+	ImGui::SameLine();
+	if (toolbarButton("##ApplyVstgLighting", ICON_FA_LIGHTBULB, 0xf0eb)) ApplyVstgLighting();
+	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"VSTGからライティング環境を適用");
+
+	ImGui::SameLine();
+	ImGui::BeginDisabled(!model);
+	if (toolbarButton("##SetModelScale", ICON_FA_EXPAND_ARROWS_ALT, 0xf31e))
+	{
+		setScaleValue = model->GetModelScale();
+		showSetScaleWindow = true;
+	}
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGuiToolKit::SetTooltip(u8"スケール設定");
+	ImGui::EndDisabled();
 }
 
 void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMax)
@@ -2787,14 +2759,16 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 	const ImVec2 imageMin = viewport->Pos;
 	const ImVec2 imageMax(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y);
 	// ImGuizmo自身のマウスキャプチャでギズモを無効にしない。
-	const bool imageHovered = io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
+	const bool imageHovered = !panelResizeHovered && io.MousePos.x >= inputMin.x && io.MousePos.x <= inputMax.x &&
 		io.MousePos.y >= inputMin.y && io.MousePos.y <= inputMax.y &&
 		!ImGui::IsAnyItemActive() &&
 		!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
 		!ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);
-	if ((imageHovered || viewportRotationDragging) && !io.WantTextInput && io.KeyCtrl && io.MouseWheel != 0.0f)
-		previewVerticalFovDegrees = std::clamp(previewVerticalFovDegrees - io.MouseWheel * 2.0f, 10.0f, 120.0f);
-	if (imageHovered && !io.WantTextInput && !io.KeyCtrl)
+	UpdateCamFov(*editorCamera, imageHovered || viewportRotationDragging);
+	// カメラ操作中は移動キーと表示切り替えのショートカットを競合させない
+	if (imageHovered && !io.WantTextInput && !io.KeyCtrl &&
+		!viewportRotationDragging && !viewportOrbitDragging &&
+		!ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
 	{
 		if (io.KeyShift && io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Z, false))
 			showDebugOverlays = !showDebugOverlays;
@@ -2913,17 +2887,12 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 		viewportRotationDragging = true;
 		SetCapture(Game::Graphics::Instance().GetWindowHandle());
 	}
+	UpdateCamSpeed(previewCameraMoveSpeed, viewportRotationDragging);
 	if (viewportRotationDragging)
 	{
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
 			RotatePreviewCamera(yawDelta, pitchDelta, false);
-			if (io.MouseWheel != 0.0f && !io.KeyCtrl)
-			{
-				previewCameraMoveSpeed = std::clamp(previewCameraMoveSpeed *
-					std::pow(1.1f, io.MouseWheel), 0.1f, 500.0f);
-				CameraMoveSpeedOverlay::Show(previewCameraMoveSpeedOverlayTimer);
-			}
 			Vector3 move = Vector3::Zero;
 			if (ImGui::IsKeyDown(ImGuiKey_W)) move += editorCamera->GetFront();
 			if (ImGui::IsKeyDown(ImGuiKey_S)) move -= editorCamera->GetFront();
@@ -2944,8 +2913,6 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 			if (GetCapture() == Game::Graphics::Instance().GetWindowHandle()) ReleaseCapture();
 		}
 	}
-	CameraMoveSpeedOverlay::Draw(
-		previewCameraMoveSpeed, previewCameraMoveSpeedOverlayTimer);
 	if (!imageHovered || viewportOrbitDragging || viewportRotationDragging ||
 		io.KeyAlt || gizmoHovered || ImGuizmo::IsUsingAny() || ImGuizmo::IsOver()) return;
 
@@ -3037,28 +3004,28 @@ void VmdlEditorScene::DrawViewport(const ImVec2& inputMin, const ImVec2& inputMa
 void VmdlEditorScene::DrawProperty()
 {
 	PROFILE_FUNCTION();
-	ImGui::TextUnformatted((const char*)u8"プロパティ");
-	ImGui::Separator();
 	if (previewStageSelected)
 	{
-		ImGui::TextUnformatted((const char*)u8"プレビューステージ");
-		if (ImGui::Checkbox((const char*)u8"表示", &showFootIkTestStage))
+		ImGuiToolKit::TextUnformatted(u8"プレビューステージ");
+		ImGui::Separator();
+		if (ImGuiToolKit::Checkbox(u8"表示", &showFootIkTestStage))
 		{
 			if (showFootIkTestStage) LoadFootIkTestStage();
 			UpdateFootIkTestStage();
 		}
-		ImGui::SeparatorText("Transform");
-		bool changed = ImGui::DragFloat3((const char*)u8"位置", &footIkTestStagePosition.x, 0.1f);
-		changed |= ImGui::DragFloat3((const char*)u8"回転", &footIkTestStageRotation.x, 0.1f);
-		changed |= ImGui::DragFloat((const char*)u8"スケール", &footIkTestStageSize, 0.1f, 0.01f, 100000.0f);
+		ImGui::SeparatorText(JText(u8"トランスフォーム"));
+		bool changed = ImGuiToolKit::DragPosFloat3(u8"位置", &footIkTestStagePosition.x, 0.1f);
+		changed |= ImGuiToolKit::DragRotFloat3(u8"回転", &footIkTestStageRotation.x, 0.1f);
+		changed |= ImGuiToolKit::DragSizeFloat(u8"スケール", &footIkTestStageSize, 0.1f, 0.01f, 100000.0f);
 		if (changed) UpdateFootIkTestStage();
 		return;
 	}
+
 	if (!model || selectedNode < 0 || selectedNode >= Count(model->GetNodes()))
 	{
-		ImGui::TextDisabled((const char*)u8"ノードまたはメッシュを選択してください");
 		return;
 	}
+
 	if (selectedComponentType != AttachedComponentType::None && selectedComponentIndex >= 0)
 	{
 		DrawSelectedComponents();
@@ -3067,21 +3034,23 @@ void VmdlEditorScene::DrawProperty()
 
 	// 選択ノードのローカルトランスフォーム
 	VMDLModel::Node& node = model->GetNodes()[selectedNode];
-	ImGui::Text((const char*)u8"ノード: %s", MakeNodeLabel(selectedNode, node.name).c_str());
+	ImGuiToolKit::TextUnformatted(MakeNodeLabel(selectedNode, node.name).c_str());
+	ImGui::Separator();
+
 	bool transformChanged =
-		ImGui::DragFloat3((const char*)u8"位置", &node.position.x, 0.01f);
+		ImGuiToolKit::DragPosFloat3(u8"位置", &node.position.x, 0.01f);
 	Vector3 euler = node.rotation.ToEuler();
 	euler.x = DEG(euler.x);
 	euler.y = DEG(euler.y);
 	euler.z = DEG(euler.z);
-	if (ImGui::DragFloat3((const char*)u8"回転", &euler.x, 0.1f))
+	if (ImGuiToolKit::DragRotFloat3(u8"回転", &euler.x, 0.1f))
 	{
 		node.rotation =
 			Quaternion::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z));
 		node.rotation.Normalize();
 		transformChanged = true;
 	}
-	transformChanged |= ImGui::DragFloat3((const char*)u8"スケール", &node.scale.x, 0.01f);
+	transformChanged |= ImGuiToolKit::DragSizeFloat3(u8"スケール", &node.scale.x, 0.01f);
 	if (transformChanged)
 	{
 		MarkDirty();
@@ -3091,23 +3060,25 @@ void VmdlEditorScene::DrawProperty()
 	if (selectedMesh >= 0 && selectedMesh < Count(model->GetMeshes()))
 	{
 		VMDLModel::Mesh& mesh = model->GetMeshes()[selectedMesh];
-		ImGui::SeparatorText((const char*)u8"メッシュ");
-		ImGui::Text((const char*)u8"マテリアル: %s", mesh.material->name.c_str());
-		ImGui::Text((const char*)u8"頂点数: %zu", mesh.vertices.size());
-		ImGui::Text((const char*)u8"面数: %zu", mesh.indices.size() / 3);
 		if (const auto* external = model->GetExternalMeshGroupForMesh(selectedMesh))
 		{
-			ImGui::TextColored(ImVec4(0.20f, 0.85f, 1.0f, 1.0f), "VMSH / Lazy Load");
-			ImGui::TextWrapped((const char*)u8"外部メッシュ: %s", external->path.c_str());
-			ImGui::TextDisabled((const char*)u8"頂点・インデックスはVMDLに保持されず、表示時だけ読み込みます");
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.20f, 0.85f, 1.0f, 1.0f));
+			ImGuiToolKit::SeparatorText(u8"外部メッシュ");
+			ImGui::PopStyleColor();
+			std::string externalPath = external->path;
+			ImGui::InputText(JText(u8"VMESHパス"), &externalPath, ImGuiInputTextFlags_ReadOnly);
 		}
-		if (ImGui::Checkbox((const char*)u8"表示", &mesh.isDraw)) MarkDirty();
+		else
+		{
+			ImGuiToolKit::SeparatorText(u8"メッシュ");
+		}
+		if (ImGuiToolKit::Checkbox(u8"表示", &mesh.isDraw)) MarkDirty();
 		selectedMaterial = mesh.materialIndex;
 		DrawMaterialEditor();
 	}
 	if (renderSettings.shadingMode == ShadingMode::Solid ||
 			renderSettings.shadingMode == ShadingMode::SolidAndWire)
-		ImGui::ColorEdit4((const char*)u8"ソリッド色", &solidColor.x);
+		ImGuiToolKit::ColorEdit4(u8"ソリッド色", &solidColor.x);
 }
 
 // 同種のコンポーネントだけを選択集合として保持する。ノードは主選択の表示に使う。
@@ -3147,8 +3118,8 @@ void VmdlEditorScene::DrawSelectedComponents()
 
 void VmdlEditorScene::DrawBatchComponentProperties()
 {
-	ImGui::Text((const char*)u8"同種コンポーネントの一括編集: %zu個", selectedComponentIndices.size());
-	ImGui::TextWrapped((const char*)u8"* は値が異なる項目です。最後に選んだ値を表示しています。操作した項目・軸だけを全選択へ反映します。「=」で表示中の値へ揃えられます。");
+	ImGuiToolKit::Text(u8"同種コンポーネントの一括編集: %zu個", selectedComponentIndices.size());
+	ImGuiToolKit::TextWrapped(u8"* は値が異なる項目です。最後に選んだ値を表示しています。操作した項目・軸だけを全選択へ反映します。「=」で表示中の値へ揃えられます。");
 	ImGui::Separator();
 
 	// 一括編集専用の入力。名前・所属ノード・再生トラックには触れない。
@@ -3181,16 +3152,16 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 			}
 			else if constexpr (std::is_same_v<Value, std::string>)
 			{
-				if (std::string_view(label) == (const char*)u8"エフェクト") edited = DrawEffectSelector(display.c_str(), value);
+				if (std::string_view(label) == JText(u8"エフェクト")) edited = DrawEffectSelector(display.c_str(), value);
 				else edited = DrawSoundPathSelector(display.c_str(), value);
 			}
 			// 代表値と同じ数値を全員へ揃える操作も用意する。
 			ImGui::SameLine();
 			ImGui::PushID(label);
 			ImGui::BeginDisabled(!mixed);
-			edited |= ImGui::SmallButton("=##Unify");
+			edited |= ImGui::Button("=##Unify");
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGui::SetTooltip((const char*)u8"表示中の値を全選択へ適用");
+				ImGuiToolKit::SetTooltip(u8"表示中の値を全選択へ適用");
 			ImGui::EndDisabled();
 			ImGui::PopID();
 			if (!edited) return;
@@ -3209,7 +3180,7 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 			const auto selected = std::find_if(options.begin(), options.end(), [current](const auto& option) {
 				return option.first == current;
 			});
-			const std::string preview = mixed ? (const char*)u8"複数の値" :
+			const std::string preview = mixed ? JText(u8"複数の値") :
 				(selected != options.end() ? selected->second : std::to_string(current));
 			if (!ImGui::BeginCombo(label, preview.c_str())) return;
 			for (const auto& [index, name] : options)
@@ -3228,9 +3199,9 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 			edit("Z", [&](auto& target) -> auto& { return field(target).z; }, minimum, maximum, displayScale);
 			ImGui::PopID();
 		};
-		vector((const char*)u8"ローカル位置", [](auto& target) -> auto& { return target.transform.position; }, -100000.0f, 100000.0f, model->GetModelScale());
-		vector((const char*)u8"ローカル回転 (度)", [](auto& target) -> auto& { return target.transform.rotation; });
-		vector((const char*)u8"ローカルスケール", [](auto& target) -> auto& { return target.transform.scale; });
+		vector(JText(u8"位置"), [](auto& target) -> auto& { return target.transform.position; }, -100000.0f, 100000.0f, model->GetModelScale());
+		vector(JText(u8"回転 (度)"), [](auto& target) -> auto& { return target.transform.rotation; });
+		vector(JText(u8"スケール"), [](auto& target) -> auto& { return target.transform.scale; });
 		drawFields(edit, vector, choice);
 		if (changed)
 		{
@@ -3261,101 +3232,101 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 	{
 	case AttachedComponentType::RigidBody:
 		drawBatch(model->GetVmdlExtensionData().rigidBodies, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"静的", [](auto& target) -> auto& { return target.kinematic; });
-			edit((const char*)u8"質量", [](auto& target) -> auto& { return target.mass; }, 0.001f, 100000.0f);
+			edit(JText(u8"静的"), [](auto& target) -> auto& { return target.kinematic; });
+			edit(JText(u8"質量"), [](auto& target) -> auto& { return target.mass; }, 0.001f, 100000.0f);
 		});
 		break;
 	case AttachedComponentType::Collider:
 		drawBatch(model->GetVmdlExtensionData().colliders, [&](auto edit, auto vector, auto choice) {
-			std::vector<std::pair<int, std::string>> layers = {{-1, (const char*)u8"継承"}};
+			std::vector<std::pair<int, std::string>> layers = {{-1, JText(u8"継承")}};
 			for (int layer = 0; layer < EditableLayerCount; ++layer)
 				layers.emplace_back(layer, PhysicsLayerManager::Instance().GetLayerDisplayName(static_cast<LayerId>(layer)));
-			choice((const char*)u8"レイヤー", [](auto& target) -> auto& { return target.layer; }, layers);
+			choice(JText(u8"レイヤー"), [](auto& target) -> auto& { return target.layer; }, layers);
 			std::vector<std::pair<int, std::string>> shapes = {
-				{0, (const char*)u8"ボックス"}, {1, (const char*)u8"球"}, {2, (const char*)u8"カプセル"}};
+				{0, JText(u8"ボックス")}, {1, JText(u8"球")}, {2, JText(u8"カプセル")}};
 			for (int mesh = 0; mesh < Count(model->GetMeshes()); ++mesh)
-				shapes.emplace_back(mesh + 3, MakeMeshLabel(*model, mesh));
-			choice((const char*)u8"形状", [](auto& target) -> auto& { return target.shape; }, shapes);
-			vector((const char*)u8"大きさ", [](auto& target) -> auto& { return target.size; }, 0.001f, 100000.0f, model->GetModelScale());
-			edit((const char*)u8"トリガー", [](auto& target) -> auto& { return target.trigger; });
-			edit((const char*)u8"NavMesh障害物", [](auto& target) -> auto& { return target.navMeshObstacle; });
+				shapes.emplace_back(mesh + 3, VmdlComponentEditor::MakeMeshLabel(*model, mesh));
+			choice(JText(u8"形状"), [](auto& target) -> auto& { return target.shape; }, shapes);
+			vector(JText(u8"大きさ"), [](auto& target) -> auto& { return target.size; }, 0.001f, 100000.0f, model->GetModelScale());
+			edit(JText(u8"トリガー"), [](auto& target) -> auto& { return target.trigger; });
+			edit(JText(u8"NavMesh障害物"), [](auto& target) -> auto& { return target.navMeshObstacle; });
 		});
 		break;
 	case AttachedComponentType::Spring:
 		drawBatch(model->GetVmdlExtensionData().springs, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"硬さ", [](auto& target) -> auto& { return target.stiffness; }, 0.0f, 1.0f);
-			edit((const char*)u8"抵抗", [](auto& target) -> auto& { return target.drag; }, 0.0f, 1.0f);
-			edit((const char*)u8"全方向の最大角度 (度)", [](auto& target) -> auto& { return target.maxAngleDegrees; }, 0.0f, 180.0f);
-			vector((const char*)u8"最小角度 XYZ (度)", [](auto& target) -> auto& { return target.minAnglesDegrees; }, -180.0f, 180.0f);
-			vector((const char*)u8"最大角度 XYZ (度)", [](auto& target) -> auto& { return target.maxAnglesDegrees; }, -180.0f, 180.0f);
+			edit(JText(u8"硬さ"), [](auto& target) -> auto& { return target.stiffness; }, 0.0f, 1.0f);
+			edit(JText(u8"抵抗"), [](auto& target) -> auto& { return target.drag; }, 0.0f, 1.0f);
+			edit(JText(u8"全方向の最大角度 (度)"), [](auto& target) -> auto& { return target.maxAngleDegrees; }, 0.0f, 180.0f);
+			vector(JText(u8"最小角度 XYZ (度)"), [](auto& target) -> auto& { return target.minAnglesDegrees; }, -180.0f, 180.0f);
+			vector(JText(u8"最大角度 XYZ (度)"), [](auto& target) -> auto& { return target.maxAnglesDegrees; }, -180.0f, 180.0f);
 		});
 		break;
 	case AttachedComponentType::SpringCollider:
 		drawBatch(model->GetVmdlExtensionData().springColliders, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"半径", [](auto& target) -> auto& { return target.radius; }, 0.001f, 100000.0f);
+			edit(JText(u8"半径"), [](auto& target) -> auto& { return target.radius; }, 0.001f, 100000.0f);
 		});
 		break;
 	case AttachedComponentType::Trail:
 		drawBatch(model->GetVmdlTrailData().trails, [&](auto edit, auto vector, auto choice) {
-			vector((const char*)u8"根元オフセット", [](auto& target) -> auto& { return target.rootOffset; });
-			vector((const char*)u8"先端オフセット", [](auto& target) -> auto& { return target.tipOffset; });
+			vector(JText(u8"根元オフセット"), [](auto& target) -> auto& { return target.rootOffset; });
+			vector(JText(u8"先端オフセット"), [](auto& target) -> auto& { return target.tipOffset; });
 			edit("R", [](auto& target) -> auto& { return target.color.x; }, 0.0f, 100000.0f);
 			edit("G", [](auto& target) -> auto& { return target.color.y; }, 0.0f, 100000.0f);
 			edit("B", [](auto& target) -> auto& { return target.color.z; }, 0.0f, 100000.0f);
 			edit("A", [](auto& target) -> auto& { return target.color.w; }, 0.0f, 1.0f);
-			edit((const char*)u8"先端比率", [](auto& target) -> auto& { return target.tipRatio; }, 0.0f, 4.0f);
-			edit((const char*)u8"生存時間", [](auto& target) -> auto& { return target.lifeTime; }, 0.01f, 10.0f);
-			edit((const char*)u8"最大頂点数", [](auto& target) -> auto& { return target.maxPoints; }, 2.0f, 1024.0f);
-			vector((const char*)u8"角度オフセット", [](auto& target) -> auto& { return target.offsetAngle; });
+			edit(JText(u8"先端比率"), [](auto& target) -> auto& { return target.tipRatio; }, 0.0f, 4.0f);
+			edit(JText(u8"生存時間"), [](auto& target) -> auto& { return target.lifeTime; }, 0.01f, 10.0f);
+			edit(JText(u8"最大頂点数"), [](auto& target) -> auto& { return target.maxPoints; }, 2.0f, 1024.0f);
+			vector(JText(u8"角度オフセット"), [](auto& target) -> auto& { return target.offsetAngle; });
 		});
 		break;
 	case AttachedComponentType::Particle:
 		drawBatch(model->GetVmdlParticleData().emitters, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"ノードに追従", [](auto& target) -> auto& { return target.modelDerived; });
-			edit((const char*)u8"ビルボード", [](auto& target) -> auto& { return target.billboard; });
-			edit((const char*)u8"エフェクト", [](auto& target) -> auto& { return target.effectName; });
+			edit(JText(u8"ノードに追従"), [](auto& target) -> auto& { return target.modelDerived; });
+			edit(JText(u8"ビルボード"), [](auto& target) -> auto& { return target.billboard; });
+			edit(JText(u8"エフェクト"), [](auto& target) -> auto& { return target.effectName; });
 		});
 		break;
 	case AttachedComponentType::SoundSource:
 		drawBatch(model->GetVmdlSoundData().sources, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"サウンド", [](auto& target) -> auto& { return target.soundPath; });
-			edit((const char*)u8"バリエーション番号 (-1: ランダム)", [](auto& target) -> auto& { return target.variant; }, -1.0f, 10000.0f);
-			edit((const char*)u8"音量", [](auto& target) -> auto& { return target.volume; }, 0.0f, 4.0f);
-			edit((const char*)u8"最小ピッチ", [](auto& target) -> auto& { return target.pitchMin; }, 0.125f, 8.0f);
-			edit((const char*)u8"最大ピッチ", [](auto& target) -> auto& { return target.pitchMax; }, 0.125f, 8.0f);
-			edit((const char*)u8"3Dサウンド", [](auto& target) -> auto& { return target.spatial; });
-			edit((const char*)u8"減衰開始距離", [](auto& target) -> auto& { return target.minDistance; }, 0.01f, 1000.0f);
-			edit((const char*)u8"再生限界距離", [](auto& target) -> auto& { return target.maxDistance; }, 0.02f, 1000.0f);
-			edit((const char*)u8"近距離ローパス", [](auto& target) -> auto& { return target.lowPassHz; }, 20.0f, 20000.0f);
-			edit((const char*)u8"遠距離ローパス", [](auto& target) -> auto& { return target.farLowPassHz; }, 20.0f, 20000.0f);
-			edit((const char*)u8"残響", [](auto& target) -> auto& { return target.reverbMix; }, 0.0f, 1.0f);
+			edit(JText(u8"サウンド"), [](auto& target) -> auto& { return target.soundPath; });
+			edit(JText(u8"バリエーション番号 (-1: ランダム)"), [](auto& target) -> auto& { return target.variant; }, -1.0f, 10000.0f);
+			edit(JText(u8"音量"), [](auto& target) -> auto& { return target.volume; }, 0.0f, 4.0f);
+			edit(JText(u8"最小ピッチ"), [](auto& target) -> auto& { return target.pitchMin; }, 0.125f, 8.0f);
+			edit(JText(u8"最大ピッチ"), [](auto& target) -> auto& { return target.pitchMax; }, 0.125f, 8.0f);
+			edit(JText(u8"3Dサウンド"), [](auto& target) -> auto& { return target.spatial; });
+			edit(JText(u8"減衰開始距離"), [](auto& target) -> auto& { return target.minDistance; }, 0.01f, 1000.0f);
+			edit(JText(u8"再生限界距離"), [](auto& target) -> auto& { return target.maxDistance; }, 0.02f, 1000.0f);
+			edit(JText(u8"近距離ローパス"), [](auto& target) -> auto& { return target.lowPassHz; }, 20.0f, 20000.0f);
+			edit(JText(u8"遠距離ローパス"), [](auto& target) -> auto& { return target.farLowPassHz; }, 20.0f, 20000.0f);
+			edit(JText(u8"残響"), [](auto& target) -> auto& { return target.reverbMix; }, 0.0f, 1.0f);
 		});
 		break;
 	case AttachedComponentType::PointLight:
 		drawBatch(model->GetVmdlLightData().pointLights, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"有効", [](auto& target) -> auto& { return target.active; });
+			edit(JText(u8"有効"), [](auto& target) -> auto& { return target.active; });
 			edit("R", [](auto& target) -> auto& { return target.color.x; }, 0.0f, 100000.0f);
 			edit("G", [](auto& target) -> auto& { return target.color.y; }, 0.0f, 100000.0f);
 			edit("B", [](auto& target) -> auto& { return target.color.z; }, 0.0f, 100000.0f);
-			edit((const char*)u8"強度", [](auto& target) -> auto& { return target.intensity; }, 0.0f, 100000.0f);
-			edit((const char*)u8"範囲", [](auto& target) -> auto& { return target.range; }, 0.0f, 10000.0f);
+			edit(JText(u8"強度"), [](auto& target) -> auto& { return target.intensity; }, 0.0f, 100000.0f);
+			edit(JText(u8"範囲"), [](auto& target) -> auto& { return target.range; }, 0.0f, 10000.0f);
 		});
 		break;
 	case AttachedComponentType::CameraShake:
 		drawBatch(model->GetVmdlPresentationData().cameraShakes, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"効果範囲", [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
-			edit((const char*)u8"距離に応じて減衰", [](auto& target) -> auto& { return target.distanceAttenuation; });
-			edit((const char*)u8"継続時間", [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
-			edit((const char*)u8"揺れの強さ", [](auto& target) -> auto& { return target.intensity; }, 0.0f, 10.0f);
+			edit(JText(u8"効果範囲"), [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
+			edit(JText(u8"距離に応じて減衰"), [](auto& target) -> auto& { return target.distanceAttenuation; });
+			edit(JText(u8"継続時間"), [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
+			edit(JText(u8"揺れの強さ"), [](auto& target) -> auto& { return target.intensity; }, 0.0f, 10.0f);
 		});
 		break;
 	case AttachedComponentType::RadialBlur:
 		drawBatch(model->GetVmdlPresentationData().radialBlurs, [&](auto edit, auto vector, auto choice) {
-			edit((const char*)u8"効果範囲", [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
-			edit((const char*)u8"距離に応じて減衰", [](auto& target) -> auto& { return target.distanceAttenuation; });
-			edit((const char*)u8"継続時間", [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
-			edit((const char*)u8"ブラー強度", [](auto& target) -> auto& { return target.power; }, 0.0f, 20.0f);
-			edit((const char*)u8"立ち上がり割合", [](auto& target) -> auto& { return target.attackRate; }, 0.01f, 0.95f);
+			edit(JText(u8"効果範囲"), [](auto& target) -> auto& { return target.range; }, 0.01f, 10000.0f);
+			edit(JText(u8"距離に応じて減衰"), [](auto& target) -> auto& { return target.distanceAttenuation; });
+			edit(JText(u8"継続時間"), [](auto& target) -> auto& { return target.duration; }, 0.01f, 30.0f);
+			edit(JText(u8"ブラー強度"), [](auto& target) -> auto& { return target.power; }, 0.0f, 20.0f);
+			edit(JText(u8"立ち上がり割合"), [](auto& target) -> auto& { return target.attackRate; }, 0.01f, 0.95f);
 		});
 		break;
 	default: break;
@@ -3366,11 +3337,11 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 		bool value = get(selectedComponentIndex);
 		const bool mixed = std::any_of(selectedComponentIndices.begin(), selectedComponentIndices.end(),
 			[&](int index) { return get(index) != value; });
-		const char* label = mixed ? (const char*)u8"初期状態で有効 *" : (const char*)u8"初期状態で有効";
+		const char* label = mixed ? JText(u8"初期状態で有効 *") : JText(u8"初期状態で有効");
 		bool changed = ImGui::Checkbox(label, &value);
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!mixed);
-		changed |= ImGui::SmallButton("=##InitialActive");
+		changed |= ImGui::Button("=##InitialActive");
 		ImGui::EndDisabled();
 		if (!changed) return;
 		for (int index : selectedComponentIndices) set(index, value);
@@ -3630,572 +3601,43 @@ void VmdlEditorScene::DeleteAttachedComponent(AttachedComponentType type, int in
 
 void VmdlEditorScene::DrawAttachedData(int nodeIndex)
 {
-	bool duplicatePending = false;
-	auto& data = model->GetVmdlExtensionData();
 	const bool openSelectedComponent = focusSelectedComponent;
 	focusSelectedComponent = false;
-
-	// リジッドボディ
-	int deleteRigidBody = -1;
-	for (int i = 0; i < Count(data.rigidBodies); ++i)
+	bool duplicatePending = false;
+	switch (selectedComponentType)
 	{
-		auto& value = data.rigidBodies[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RigidBody ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(1000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::RigidBody &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_CUBE " " u8"リジッドボディ"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			const char* rigidBodyTypes[] = {(const char*)u8"静的", (const char*)u8"動的"};
-			int rigidBodyType = value.kinematic ? 0 : 1;
-			if (ImGui::Combo((const char*)u8"種類", &rigidBodyType,
-					rigidBodyTypes, IM_ARRAYSIZE(rigidBodyTypes)))
-			{
-				value.kinematic = rigidBodyType == 0;
-				changed = true;
-			}
-			if (rigidBodyType == 1)
-				changed |= ImGui::DragFloat((const char*)u8"質量", &value.mass, 0.05f, 0.001f);
-			if (changed) MarkDirty();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteRigidBody = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
+	case AttachedComponentType::RigidBody:
+		duplicatePending = VmdlRigidBodyEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::Collider:
+		duplicatePending = VmdlColliderEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::Spring:
+		duplicatePending = VmdlSpringEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::SpringCollider:
+		duplicatePending = VmdlSpringColliderEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::Trail:
+		duplicatePending = VmdlTrailEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::Particle:
+		duplicatePending = VmdlParticleEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::SoundSource:
+		duplicatePending = VmdlSoundSourceEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::PointLight:
+		duplicatePending = VmdlPointLightEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::CameraShake:
+		duplicatePending = VmdlCameraShakeEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	case AttachedComponentType::RadialBlur:
+		duplicatePending = VmdlRadialBlurEditor::DrawGUI(*this, nodeIndex, openSelectedComponent);
+		break;
+	default: break;
 	}
-	if (deleteRigidBody >= 0) DeleteAttachedComponent(AttachedComponentType::RigidBody, deleteRigidBody);
-
-	// コライダー
-	int deleteCollider = -1;
-	for (int i = 0; i < Count(data.colliders); ++i)
-	{
-		auto& value = data.colliders[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Collider ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(2000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::Collider &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_SHAPES " " u8"コライダー"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			const char* shapes[] = {(const char*)u8"ボックス", (const char*)u8"球",
-				(const char*)u8"カプセル", "Mesh"};
-			bool initialActive = model->GetColliderInitialActive(i);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			PhysicsLayerManager& layerManager = PhysicsLayerManager::Instance();
-			const std::string layerPreview =
-				value.layer < 0
-					? (const char*)u8"-1: 継承"
-					: layerManager.GetLayerDisplayName(static_cast<LayerId>(value.layer));
-			if (ImGui::BeginCombo((const char*)u8"レイヤー", layerPreview.c_str()))
-			{
-				if (ImGui::Selectable((const char*)u8"-1: 継承", value.layer < 0))
-				{
-					value.layer = -1;
-					changed = true;
-				}
-				for (int layer = 0; layer < EditableLayerCount; ++layer)
-				{
-					const std::string label =
-						layerManager.GetLayerDisplayName(static_cast<LayerId>(layer));
-					if (ImGui::Selectable(label.c_str(), value.layer == layer))
-					{
-						value.layer = layer;
-						changed = true;
-					}
-				}
-				ImGui::EndCombo();
-			}
-			int shape = value.shape >= 3 ? 3 : value.shape;
-			if (ImGui::Combo((const char*)u8"形状", &shape, shapes, IM_ARRAYSIZE(shapes)))
-			{
-				value.shape = shape == 3 ? 3 : shape;
-				if (shape == 1) value.size.y = value.size.z = value.size.x;
-				changed = true;
-			}
-			Vector3 scaledSize = model->GetScaledAttachmentVector(value.size);
-			changed |= DrawComponentTransform(*model, value.transform);
-			if (shape == 3)
-			{
-				auto& meshes = model->GetMeshes();
-				int meshIndex = value.shape - 3;
-				if (meshes.empty())
-				{
-					ImGui::TextDisabled((const char*)u8"参照できるメッシュがありません");
-				}
-				else
-				{
-					meshIndex = std::clamp(meshIndex, 0, Count(meshes) - 1);
-					if (value.shape != meshIndex + 3)
-					{
-						value.shape = meshIndex + 3;
-						changed = true;
-					}
-					const std::string preview = MakeMeshLabel(*model, meshIndex);
-					if (ImGui::BeginCombo((const char*)u8"参照メッシュ", preview.c_str()))
-					{
-						for (int candidate = 0; candidate < Count(meshes); ++candidate)
-						{
-							const std::string label = MakeMeshLabel(*model, candidate);
-							if (ImGui::Selectable(label.c_str(), candidate == meshIndex))
-							{
-								meshIndex = candidate;
-								value.shape = candidate + 3;
-								changed = true;
-							}
-						}
-						ImGui::EndCombo();
-					}
-				}
-			}
-			else if (shape == 1)
-			{
-				if (ImGui::DragFloat((const char*)u8"半径", &scaledSize.x, 0.01f, 0.001f))
-				{
-					scaledSize.x = std::max(0.001f, scaledSize.x);
-					scaledSize.y = scaledSize.z = scaledSize.x;
-					value.size = model->GetUnscaledAttachmentVector(scaledSize);
-					changed = true;
-				}
-			}
-			else if (value.shape == 2)
-			{
-				bool sizeChanged =
-					ImGui::DragFloat((const char*)u8"半径", &scaledSize.x, 0.01f, 0.001f);
-				sizeChanged |=
-					ImGui::DragFloat((const char*)u8"高さ", &scaledSize.y, 0.01f, 0.001f);
-				if (sizeChanged)
-				{
-					scaledSize.x = std::max(0.001f, scaledSize.x);
-					scaledSize.y = std::max(0.001f, scaledSize.y);
-					value.size = model->GetUnscaledAttachmentVector(scaledSize);
-					changed = true;
-				}
-			}
-			else if (ImGui::DragFloat3((const char*)u8"大きさ", &scaledSize.x, 0.01f))
-			{
-				value.size = model->GetUnscaledAttachmentVector(scaledSize);
-				changed = true;
-			}
-			changed |= ImGui::Checkbox((const char*)u8"トリガー", &value.trigger);
-			changed |= ImGui::Checkbox((const char*)u8"NavMesh障害物", &value.navMeshObstacle);
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip((const char*)u8"このコライダーの範囲を、経路探索で避ける障害物にします");
-			if (changed) MarkDirty();
-			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
-			{
-				model->SetColliderInitialActive(i, initialActive);
-				if (Count(previewColliderActive) <= i)
-					previewColliderActive.resize(i + 1, 1);
-				previewColliderActive[i] = initialActive ? 1 : 0;
-				MarkDirty();
-			}
-
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteCollider = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteCollider >= 0) DeleteAttachedComponent(AttachedComponentType::Collider, deleteCollider);
-
-	// スプリング
-	int deleteSpring = -1;
-	for (int i = 0; i < Count(data.springs); ++i)
-	{
-		auto& value = data.springs[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Spring ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(3000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::Spring &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_LINK " " u8"スプリング"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::DragFloat((const char*)u8"硬さ", &value.stiffness, 0.01f, 0.0f, 1.0f);
-			changed |= ImGui::DragFloat((const char*)u8"抵抗", &value.drag, 0.01f, 0.0f, 1.0f);
-			changed |= ImGui::SliderFloat((const char*)u8"最大角度 (度)",
-				&value.maxAngleDegrees, 0.0f, 180.0f, "%.1f");
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip(
-				(const char*)u8"アニメーションの向きを中心に揺れる範囲を制限します。0度で揺れなし、180度で制限なし。コライダーと両立できない場合は角度制限を優先します。");
-			bool angleChanged = ImGui::SliderFloat3((const char*)u8"最小角度 XYZ (度)",
-				&value.minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
-			angleChanged |= ImGui::SliderFloat3((const char*)u8"最大角度 XYZ (度)",
-				&value.maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
-			if (angleChanged)
-			{
-				const Vector3 minimum = Vector3::Min(value.minAnglesDegrees, value.maxAnglesDegrees);
-				value.maxAnglesDegrees = Vector3::Max(value.minAnglesDegrees, value.maxAnglesDegrees);
-				value.minAnglesDegrees = minimum;
-			}
-			ImGui::TextDisabled((const char*)u8"アニメーション姿勢からのローカル追加回転。X=Pitch / Y=Yaw / Z=Roll");
-			changed |= angleChanged;
-			if (changed) MarkDirty();
-
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSpring = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteSpring >= 0) DeleteAttachedComponent(AttachedComponentType::Spring, deleteSpring);
-
-	// スプリングコライダー
-	int deleteSpringCollider = -1;
-	for (int i = 0; i < Count(data.springColliders); ++i)
-	{
-		auto& value = data.springColliders[i];
-		if (value.nodeIndex != nodeIndex ||
-			selectedComponentType != AttachedComponentType::SpringCollider ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(4000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::SpringCollider &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_BULLSEYE " " u8"スプリングコライダー"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::DragFloat((const char*)u8"半径", &value.radius, 0.01f, 0.001f);
-			if (changed) MarkDirty();
-
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSpringCollider = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteSpringCollider >= 0) DeleteAttachedComponent(AttachedComponentType::SpringCollider, deleteSpringCollider);
-
-	// トレイル
-	auto& trailData = model->GetVmdlTrailData();
-	int deleteTrail = -1;
-	for (int i = 0; i < Count(trailData.trails); ++i)
-	{
-		auto& value = trailData.trails[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Trail ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(5000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::Trail &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_WIND " " u8"トレイル"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool initialActive = model->GetTrailInitialActive(i);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"根元オフセット", &value.rootOffset.x, 0.01f);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"先端オフセット", &value.tipOffset.x, 0.01f);
-			changed |= ImGui::ColorEdit4((const char*)u8"色", &value.color.x,
-				ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-			changed |=
-				ImGui::DragFloat((const char*)u8"先端比率", &value.tipRatio, 0.01f, 0.0f, 4.0f);
-			changed |= ImGui::DragFloat(
-				(const char*)u8"生存時間", &value.lifeTime, 0.01f, 0.01f, 10.0f, "%.3f sec");
-			changed |= ImGui::DragInt((const char*)u8"最大頂点数", &value.maxPoints, 1.0f, 2, 1024);
-			changed |=
-				ImGui::DragFloat3((const char*)u8"角度オフセット", &value.offsetAngle.x, 0.01f);
-			value.tipRatio = std::clamp(value.tipRatio, 0.0f, 4.0f);
-			value.lifeTime = std::clamp(value.lifeTime, 0.01f, 10.0f);
-			value.maxPoints = std::clamp(value.maxPoints, 2, 1024);
-			if (changed) MarkDirty();
-			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
-			{
-				model->SetTrailInitialActive(i, initialActive);
-				if (Count(previewTrailActive) <= i)
-					previewTrailActive.resize(i + 1, 1);
-				previewTrailActive[i] = initialActive ? 1 : 0;
-				MarkDirty();
-			}
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteTrail = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteTrail >= 0) DeleteAttachedComponent(AttachedComponentType::Trail, deleteTrail);
-
-	// パーティクルエミッタ
-	auto& particleData = model->GetVmdlParticleData();
-	int deleteParticle = -1;
-	for (int i = 0; i < Count(particleData.emitters); ++i)
-	{
-		auto& value = particleData.emitters[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::Particle ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(5500 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::Particle &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_MAGIC " " u8"Effekseer"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= ImGui::Checkbox((const char*)u8"ノードに追従", &value.modelDerived);
-			changed |= ImGui::Checkbox((const char*)u8"ビルボード", &value.billboard);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= DrawEffectSelector((const char*)u8"エフェクト", value.effectName);
-			ImGui::BeginDisabled(value.effectName.empty());
-			if (ImGui::Button(ICON_FA_PLAY "##TestPlay"))
-			{
-				showParticle = true;
-				unifiedPreviewActive = true;
-				if (!particlePreviewOwner || particlePreviewComponents.size() !=
-					particleData.emitters.size())
-					RebuildParticlePreview();
-				if (i < Count(particlePreviewComponents) &&
-					particlePreviewComponents[i])
-				{
-					manualParticlePreviewIndex = i;
-					particlePreviewComponents[i]->Play();
-				}
-			}
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGui::SetTooltip((const char*)u8"テスト再生");
-			ImGui::EndDisabled();
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteParticle = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			if (changed) { MarkDirty(); RebuildParticlePreview(); }
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteParticle >= 0) DeleteAttachedComponent(AttachedComponentType::Particle, deleteParticle);
-
-	// サウンドソース
-	auto& soundData = model->GetVmdlSoundData();
-	int deleteSoundSource = -1;
-	for (int i = 0; i < Count(soundData.sources); ++i)
-	{
-		auto& value = soundData.sources[i];
-		if (value.nodeIndex != nodeIndex ||
-			selectedComponentType != AttachedComponentType::SoundSource ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(6000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::SoundSource &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_VOLUME_UP " " u8"サウンドソース"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			if (DrawSoundPathSelector((const char*)u8"サウンド", value.soundPath)) changed = true;
-			bool randomVariant = value.variant < 0;
-			if (ImGui::Checkbox((const char*)u8"バリエーションをランダム選択", &randomVariant))
-			{
-				value.variant = randomVariant ? -1 : 0;
-				changed = true;
-			}
-			if (!randomVariant)
-				changed |= ImGui::DragInt(
-					(const char*)u8"バリエーション番号", &value.variant, 1.0f, 0, 10000);
-			changed |= ImGui::DragFloat((const char*)u8"音量", &value.volume, 0.01f, 0.0f, 4.0f);
-			changed |= ImGui::DragFloatRange2((const char*)u8"ランダムピッチ",
-				&value.pitchMin, &value.pitchMax, 0.01f, 0.125f, 8.0f, "%.2f", "%.2f");
-			changed |= ImGui::Checkbox((const char*)u8"3Dサウンド", &value.spatial);
-			if (value.spatial)
-			{
-				changed |= ImGui::DragFloat(
-					(const char*)u8"減衰開始距離", &value.minDistance, 0.1f, 0.01f, 1000.0f);
-				changed |= ImGui::DragFloat(
-					(const char*)u8"再生限界距離", &value.maxDistance, 0.1f, 0.02f, 1000.0f);
-				changed |= ImGui::DragFloat(
-					(const char*)u8"近距離ローパス", &value.lowPassHz, 10.0f, 20.0f, 20000.0f);
-				changed |= ImGui::DragFloat(
-					(const char*)u8"遠距離ローパス", &value.farLowPassHz, 10.0f, 20.0f, 20000.0f);
-				changed |= ImGui::SliderFloat(
-					(const char*)u8"残響", &value.reverbMix, 0.0f, 1.0f);
-			}
-			value.volume = std::clamp(value.volume, 0.0f, 4.0f);
-			value.pitchMin = std::clamp(value.pitchMin, 0.125f, 8.0f);
-			value.pitchMax = std::clamp(value.pitchMax, value.pitchMin, 8.0f);
-			value.minDistance = std::max(0.01f, value.minDistance);
-			value.maxDistance = std::max(value.minDistance + 0.01f, value.maxDistance);
-			value.lowPassHz = std::clamp(value.lowPassHz, 20.0f, 20000.0f);
-			value.farLowPassHz = std::clamp(value.farLowPassHz, 20.0f, 20000.0f);
-			value.reverbMix = std::clamp(value.reverbMix, 0.0f, 1.0f);
-			if (changed) MarkDirty();
-
-			ImGui::BeginDisabled(value.soundPath.empty());
-			if (ImGui::Button(ICON_FA_PLAY "##TestSound")) PlaySoundSourcePreview(i);
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGui::SetTooltip((const char*)u8"テスト再生");
-			ImGui::EndDisabled();
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSoundSource = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteSoundSource >= 0) DeleteAttachedComponent(AttachedComponentType::SoundSource, deleteSoundSource);
-
-	// ポイントライト
-	auto& pointLights = model->GetVmdlLightData().pointLights;
-	int deletePointLight = -1;
-	for (int i = 0; i < Count(pointLights); ++i)
-	{
-		auto& value = pointLights[i];
-		if (value.nodeIndex != nodeIndex ||
-			selectedComponentType != AttachedComponentType::PointLight ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(6500 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::PointLight &&
-			selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"),
-				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
-		{
-			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::Checkbox((const char*)u8"有効", &value.active);
-			changed |= ImGui::ColorEdit3((const char*)u8"色", &value.color.x,
-				ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-			changed |= ImGui::DragFloat(
-				(const char*)u8"強度", &value.intensity, 0.1f, 0.0f, 100000.0f);
-			changed |= ImGui::DragFloat(
-				(const char*)u8"範囲", &value.range, 0.1f, 0.0f, 10000.0f);
-			value.intensity = std::max(0.0f, value.intensity);
-			value.range = std::max(0.0f, value.range);
-			if (changed) MarkDirty();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deletePointLight = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deletePointLight >= 0) DeleteAttachedComponent(AttachedComponentType::PointLight, deletePointLight);
-
-	auto& presentation = model->GetVmdlPresentationData();
-	auto drawDistanceMode = [](bool& attenuate) {
-		bool fixed = !attenuate;
-		if (ImGui::Checkbox((const char*)u8"範囲内は固定強度", &fixed) && fixed)
-			attenuate = false;
-		bool distance = attenuate;
-		if (ImGui::Checkbox((const char*)u8"プレイヤーとの距離に応じて減衰", &distance) && distance)
-			attenuate = true;
-	};
-	int deleteCameraShake = -1;
-	for (int i = 0; i < Count(presentation.cameraShakes); ++i)
-	{
-		auto& value = presentation.cameraShakes[i];
-		if (value.nodeIndex != nodeIndex ||
-			selectedComponentType != AttachedComponentType::CameraShake ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(7000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::CameraShake && selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_CAMERA " " u8"カメラシェイク"), selected ? ImGuiTreeNodeFlags_Selected : 0))
-		{
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
-			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
-			changed |= oldMode != value.distanceAttenuation;
-			changed |= ImGui::DragFloat((const char*)u8"継続時間", &value.duration, 0.05f, 0.01f, 30.0f);
-			changed |= ImGui::DragFloat((const char*)u8"揺れの強さ", &value.intensity, 0.005f, 0.0f, 10.0f);
-			value.range = std::max(0.01f, value.range); value.duration = std::max(0.01f, value.duration);
-			value.intensity = std::max(0.0f, value.intensity);
-			if (changed) MarkDirty();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteCameraShake = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteCameraShake >= 0) DeleteAttachedComponent(AttachedComponentType::CameraShake, deleteCameraShake);
-
-	int deleteRadialBlur = -1;
-	for (int i = 0; i < Count(presentation.radialBlurs); ++i)
-	{
-		auto& value = presentation.radialBlurs[i];
-		if (value.nodeIndex != nodeIndex || selectedComponentType != AttachedComponentType::RadialBlur ||
-			selectedComponentIndex != i) continue;
-		ImGui::PushID(8000 + i);
-		const bool selected = selectedComponentType == AttachedComponentType::RadialBlur && selectedComponentIndex == i;
-		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGui::TreeNodeEx((const char*)(ICON_FA_SUN " " u8"ラジアルブラー"), selected ? ImGuiTreeNodeFlags_Selected : 0))
-		{
-			bool changed = ImGui::InputText((const char*)u8"名前", &value.name);
-			if (changed) value.name = ToUpperString(value.name);
-			changed |= DrawComponentTransform(*model, value.transform);
-			changed |= ImGui::DragFloat((const char*)u8"効果範囲", &value.range, 0.1f, 0.01f, 10000.0f);
-			const bool oldMode = value.distanceAttenuation; drawDistanceMode(value.distanceAttenuation);
-			changed |= oldMode != value.distanceAttenuation;
-			changed |= ImGui::DragFloat((const char*)u8"継続時間", &value.duration, 0.05f, 0.01f, 30.0f);
-			changed |= ImGui::DragFloat((const char*)u8"ブラー強度", &value.power, 0.05f, 0.0f, 20.0f);
-			changed |= ImGui::SliderFloat((const char*)u8"立ち上がり割合", &value.attackRate, 0.01f, 0.95f);
-			value.range = std::max(0.01f, value.range); value.duration = std::max(0.01f, value.duration);
-			value.power = std::max(0.0f, value.power);
-			if (changed) MarkDirty();
-			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteRadialBlur = i;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"削除");
-			ImGui::SameLine();
-			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip((const char*)u8"複製");
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	if (deleteRadialBlur >= 0) DeleteAttachedComponent(AttachedComponentType::RadialBlur, deleteRadialBlur);
 	if (duplicatePending) DuplicateSelectedAttachedComponent();
 }
 
@@ -4204,7 +3646,7 @@ void VmdlEditorScene::DrawTimeline()
 	PROFILE_FUNCTION();
 	if (!model)
 	{
-		ImGui::TextDisabled((const char*)u8"モデルが読み込まれていません");
+		ImGuiToolKit::TextDisabled(u8"モデルが読み込まれていません");
 		return;
 	}
 
@@ -4213,9 +3655,9 @@ void VmdlEditorScene::DrawTimeline()
 	const char* preview =
 		selectedAnimation >= 0 && selectedAnimation < Count(animations)
 			? animations[selectedAnimation].name.c_str()
-			: (const char*)u8"（なし）";
+			: JText(u8"（なし）");
 	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted((const char*)u8"アニメーション");
+	ImGuiToolKit::TextUnformatted(u8"アニメーション");
 	ImGui::SameLine();
 	const float deleteAnimationButtonWidth = ImGui::GetFrameHeight();
 	ImGui::SetNextItemWidth(
@@ -4250,20 +3692,17 @@ void VmdlEditorScene::DrawTimeline()
 	const bool canDeleteAnimation =
 		selectedAnimation >= 0 && selectedAnimation < Count(animations);
 	ImGui::BeginDisabled(!canDeleteAnimation);
-	if (ImGui::Button(
-			(const char*)u8"×##DeleteAnimation", ImVec2(deleteAnimationButtonWidth, 0.0f)))
-		ImGui::OpenPopup((const char*)u8"アニメーションを削除");
+	if (ImGuiToolKit::Button(u8"×##DeleteAnimation", ImVec2(deleteAnimationButtonWidth, 0.0f)))
+		ImGuiToolKit::OpenPopup(u8"アニメーションを削除");
 	ImGui::EndDisabled();
 
-	if (ImGui::BeginPopupModal(
-			(const char*)u8"アニメーションを削除", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	if (ImGuiToolKit::BeginPopupModal(u8"アニメーションを削除", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		if (canDeleteAnimation)
 		{
-			ImGui::Text(
-				(const char*)u8"「%s」を削除しますか", animations[selectedAnimation].name.c_str());
-			ImGui::TextDisabled((const char*)u8"関連するIKウェイトとイベント設定も削除されます");
-			if (ImGui::Button((const char*)u8"削除", ImVec2(120.0f, 0.0f)))
+			ImGuiToolKit::Text(u8"「%s」を削除しますか", animations[selectedAnimation].name.c_str());
+			ImGuiToolKit::TextDisabled(u8"関連するIKウェイトとイベント設定も削除されます");
+			if (ImGuiToolKit::Button(u8"削除", ImVec2(120.0f, 0.0f)))
 			{
 				const std::string deletedName = animations[selectedAnimation].name;
 				animations.erase(animations.begin() + selectedAnimation);
@@ -4329,7 +3768,7 @@ void VmdlEditorScene::DrawTimeline()
 			}
 			ImGui::SameLine();
 		}
-		if (ImGui::Button((const char*)u8"キャンセル", ImVec2(120.0f, 0.0f)))
+		if (ImGuiToolKit::Button(u8"キャンセル", ImVec2(120.0f, 0.0f)))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
@@ -4388,9 +3827,9 @@ void VmdlEditorScene::DrawAnimationCurves()
 	};
 	if (hasNode)
 	{
-		addRows((const char*)u8"  位置", 0, positionTrackExpanded, 3);
-		addRows((const char*)u8"  回転", 1, rotationTrackExpanded, 4);
-		addRows((const char*)u8"  スケール", 2, scaleTrackExpanded, 3);
+		addRows(JText(u8"  位置"), 0, positionTrackExpanded, 3);
+		addRows(JText(u8"  回転"), 1, rotationTrackExpanded, 4);
+		addRows(JText(u8"  スケール"), 2, scaleTrackExpanded, 3);
 	}
 	struct KeyHit
 	{
@@ -4400,7 +3839,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 	};
 	std::vector<KeyHit> hitKeys;
 
-	ImGui::SeparatorText((const char*)u8"ドープシート");
+	ImGuiToolKit::SeparatorText(u8"ドープシート");
 	if (timelineSelectionAnimation != selectedAnimation || timelineSelectionNode != selectedNode ||
 		timelineSelectionMesh != selectedMesh)
 	{
@@ -4420,7 +3859,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 	}
 	else selectedKeyTrack = selectedKeyIndex = -1;
 	ImGui::BeginDisabled(timelineSelectedKeys.empty());
-	const bool deleteTimelineKeys = ImGui::SmallButton((const char*)u8"選択キーを削除");
+	const bool deleteTimelineKeys = ImGuiToolKit::Button(u8"選択キーを削除");
 	ImGui::EndDisabled();
 	const float rulerHeight = 26.0f;
 	const float footWeightHeight = 20.0f;
@@ -4495,7 +3934,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 	const float ikRowTop = sheetMin.y + rulerHeight;
 	const float ikRowCenter = ikRowTop + ikContactOffsetRowHeight * 0.5f;
 	drawList->AddText(ImVec2(sheetMin.x + 8.0f, ikRowTop + 2.0f), IM_COL32(100, 220, 185, 255),
-		(const char*)u8"IK接地オフセット");
+		JText(u8"IK接地オフセット"));
 	drawList->AddText(ImVec2(sheetMin.x + labelWidth - 20.0f, ikRowTop + 2.0f), IM_COL32(100, 220, 185, 255), "+");
 	if (auto* heightTrack = model->FindIkContactOffsetTrack(animation.name))
 	{
@@ -4515,7 +3954,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		const float rowBottom = rowTop + footWeightHeight;
 		drawList->AddRectFilled(ImVec2(sheetMin.x, rowTop),
 			ImVec2(sheetMin.x + labelWidth, rowBottom), IM_COL32(45, 45, 48, 255));
-		std::string label = std::string((const char*)u8"足ウェイト／") + footWeightLabel(footIndex);
+		std::string label = std::string(JText(u8"足ウェイト／")) + footWeightLabel(footIndex);
 		drawList->AddText(
 			ImVec2(sheetMin.x + 8.0f, rowTop + 2.0f), IM_COL32(210, 210, 215, 255), label.c_str());
 		const ImVec2 noneButtonMin(sheetMin.x + labelWidth - 42.0f, rowTop + 2.0f);
@@ -4658,7 +4097,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		if (eventRow < colliderRowCount)
 		{
 			const int colliderIndex = eventRow;
-			const std::string label = (const char*)u8"コライダー／" + colliders[colliderIndex].name;
+			const std::string label = JText(u8"コライダー／") + colliders[colliderIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(100, 220, 235, 255), label.c_str());
 			for (const auto& track : controlData.colliderTracks)
@@ -4674,7 +4113,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else if (eventRow < colliderRowCount + trailRowCount)
 		{
 			const int trailIndex = eventRow - colliderRowCount;
-			const std::string label = (const char*)u8"トレイル／" + trails[trailIndex].name;
+			const std::string label = JText(u8"トレイル／") + trails[trailIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(255, 155, 55, 255), label.c_str());
 			for (const auto& track : model->GetVmdlTrailData().tracks)
@@ -4690,7 +4129,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount)
 		{
 			const int particleIndex = eventRow - colliderRowCount - trailRowCount;
-			const std::string label = (const char*)u8"パーティクル／" + particles[particleIndex].name;
+			const std::string label = JText(u8"パーティクル／") + particles[particleIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(95, 210, 255, 255), label.c_str());
 			for (const auto& track : particleData.tracks)
@@ -4705,7 +4144,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else if (eventRow < colliderRowCount + trailRowCount + particleRowCount + morphRowCount)
 		{
 			const int morphIndex = eventRow - colliderRowCount - trailRowCount - particleRowCount;
-			const std::string label = (const char*)u8"モーフ／" + morphs[morphIndex].name;
+			const std::string label = JText(u8"モーフ／") + morphs[morphIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(210, 125, 255, 255), label.c_str());
 			for (const auto& track : controlData.morphTracks)
@@ -4724,7 +4163,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 			const int soundIndex =
 				eventRow - colliderRowCount - trailRowCount - particleRowCount - morphRowCount;
 			const std::string label =
-				(const char*)u8"サウンド／" + soundData.sources[soundIndex].name;
+				JText(u8"サウンド／") + soundData.sources[soundIndex].name;
 			drawList->AddText(
 				ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(245, 110, 190, 255), label.c_str());
 			for (const auto& track : soundData.tracks)
@@ -4743,7 +4182,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		{
 			const int index = eventRow - colliderRowCount - trailRowCount - particleRowCount -
 				morphRowCount - soundRowCount;
-			const std::string label = (const char*)u8"カメラシェイク／" + presentation.cameraShakes[index].name;
+			const std::string label = JText(u8"カメラシェイク／") + presentation.cameraShakes[index].name;
 			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f),
 				IM_COL32(255, 180, 65, 255), label.c_str());
 			for (const auto& track : presentation.cameraShakeTracks)
@@ -4756,7 +4195,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		{
 			const int index = eventRow - colliderRowCount - trailRowCount - particleRowCount -
 				morphRowCount - soundRowCount - cameraShakeRowCount;
-			const std::string label = (const char*)u8"ラジアルブラー／" + presentation.radialBlurs[index].name;
+			const std::string label = JText(u8"ラジアルブラー／") + presentation.radialBlurs[index].name;
 			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f),
 				IM_COL32(190, 105, 255, 255), label.c_str());
 			for (const auto& track : presentation.radialBlurTracks)
@@ -4767,7 +4206,7 @@ void VmdlEditorScene::DrawAnimationCurves()
 		}
 		else
 		{
-			const std::string label = (const char*)u8"マテリアル／" + model->GetMaterials()[selectedMaterial].name;
+			const std::string label = JText(u8"マテリアル／") + model->GetMaterials()[selectedMaterial].name;
 			drawList->AddText(ImVec2(sheetMin.x + 8.0f, y0 + 2.0f), IM_COL32(255, 205, 95, 255), label.c_str());
 			for (const auto& track : model->GetMaterialAnimationTracks())
 				if (track.animationName == animation.name && track.materialIndex == selectedMaterial)
@@ -5169,46 +4608,46 @@ void VmdlEditorScene::DrawAnimationCurves()
 		else
 		{
 			bool changed = false, remove = false;
-			ImGui::TextUnformatted((const char*)u8"キー詳細");
+			ImGuiToolKit::TextUnformatted(u8"キー詳細");
 			visitTrack(timelineDetailKey, [&](auto& trackKeys) {
 				if (timelineDetailKey.index < 0 || timelineDetailKey.index >= Count(trackKeys)) return;
 				auto& key = trackKeys[timelineDetailKey.index];
-				changed |= ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec", ImGuiSliderFlags_AlwaysClamp);
+				changed |= ImGuiToolKit::DragDelayFloat(u8"時間", &key.seconds, 0.01f, 0.0f, length, "%.3f sec", ImGuiSliderFlags_AlwaysClamp);
 				if constexpr (requires { key.contactOffset; })
-					changed |= ImGui::DragFloat((const char*)u8"接地オフセット", &key.contactOffset, 0.005f);
+					changed |= ImGuiToolKit::DragPosFloat(u8"接地オフセット", &key.contactOffset, 0.005f);
 				if constexpr (requires { key.value; })
 				{
 					if constexpr (std::is_same_v<decltype(key.value), bool>)
-						changed |= ImGui::Checkbox((const char*)u8"有効", &key.value);
+						changed |= ImGuiToolKit::Checkbox(u8"有効", &key.value);
 					else if constexpr (requires { key.value.w; })
 					{
-						if (ImGui::DragFloat4((const char*)u8"回転", &key.value.x, 0.01f))
+						if (ImGuiToolKit::DragFloat4(u8"回転", &key.value.x, 0.01f))
 						{
 							key.value.Normalize(); changed = true;
 						}
 					}
-					else changed |= ImGui::DragFloat3((const char*)u8"値", &key.value.x, 0.01f);
+					else changed |= ImGuiToolKit::DragFloat3(u8"値", &key.value.x, 0.01f);
 				}
 				if constexpr (requires { key.sourceIndex; })
 				{
 					if (key.sourceIndex >= 0 && key.sourceIndex < Count(soundData.sources))
 						ImGui::TextUnformatted(soundData.sources[key.sourceIndex].name.c_str());
-					changed |= ImGui::DragInt((const char*)u8"バリエーション", &key.variant, 1.0f, -1, 100);
-					changed |= ImGui::DragFloat((const char*)u8"音量", &key.volume, 0.01f, 0.0f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-					changed |= ImGui::DragFloat((const char*)u8"ピッチ最小", &key.pitchMin, 0.01f, 0.125f, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-					changed |= ImGui::DragFloat((const char*)u8"ピッチ最大", &key.pitchMax, 0.01f, key.pitchMin, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-					if (ImGui::Button((const char*)u8"試聴")) PlaySoundSourcePreview(key.sourceIndex);
+					changed |= ImGuiToolKit::DragInt(u8"バリエーション", &key.variant, 1.0f, -1, 100);
+					changed |= ImGuiToolKit::DragFloat(u8"音量", &key.volume, 0.01f, 0.0f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					changed |= ImGuiToolKit::DragFloat(u8"ピッチ最小", &key.pitchMin, 0.01f, 0.125f, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					changed |= ImGuiToolKit::DragFloat(u8"ピッチ最大", &key.pitchMax, 0.01f, key.pitchMin, 8.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+					if (ImGuiToolKit::Button(u8"試聴")) PlaySoundSourcePreview(key.sourceIndex);
 				}
 				if constexpr (requires { key.morphIndex; })
 					if (key.morphIndex >= 0 && key.morphIndex < Count(morphs)) ImGui::TextUnformatted(morphs[key.morphIndex].name.c_str());
 				if constexpr (requires { key.baseColor; })
 				{
-					changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
-					changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-					changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
-					changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
+					changed |= ImGuiToolKit::ColorEdit4(u8"基本色", &key.baseColor.x);
+					changed |= ImGuiToolKit::ColorEdit4(u8"発光色", &key.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					changed |= ImGuiToolKit::SliderFloat(u8"メタリック", &key.metalness, 0.0f, 1.0f);
+					changed |= ImGuiToolKit::SliderFloat(u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
 				}
-				remove = ImGui::Button((const char*)u8"キーを削除");
+				remove = ImGuiToolKit::Button(u8"キーを削除");
 			});
 			if (changed)
 			{
@@ -5222,8 +4661,8 @@ void VmdlEditorScene::DrawAnimationCurves()
 	{
 		ImGui::Text("%.3f sec", timelineAddTime);
 		const bool booleanKey = timelineAddKind == 4 || timelineAddKind == 5 || timelineAddKind == 6;
-		const bool addOn = ImGui::MenuItem(booleanKey ? (const char*)u8"ONキーを追加" : (const char*)u8"キーを追加");
-		const bool addOff = booleanKey && ImGui::MenuItem((const char*)u8"OFFキーを追加");
+		const bool addOn = ImGui::MenuItem(booleanKey ? JText(u8"ONキーを追加") : JText(u8"キーを追加"));
+		const bool addOff = booleanKey && ImGuiToolKit::MenuItem(u8"OFFキーを追加");
 		if (addOn || addOff)
 		{
 			TimelineKeyId added{timelineAddKind, -1, -1};
@@ -5644,18 +5083,18 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 		return left.seconds < right.seconds;
 	};
 
-	ImGui::SeparatorText((const char*)u8"アニメーションイベント");
+	ImGuiToolKit::SeparatorText(u8"アニメーションイベント");
 
 	// コライダーのON/OFFキー
-	if (ImGui::TreeNodeEx((const char*)u8"コライダー有効状態", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::TreeNodeEx(u8"コライダー有効状態", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		if (colliders.empty())
-			ImGui::TextDisabled((const char*)u8"このVMDLにはコライダーが登録されていません");
+			ImGuiToolKit::TextDisabled(u8"このVMDLにはコライダーが登録されていません");
 		else
 		{
 			selectedColliderEventTarget =
 				std::clamp(selectedColliderEventTarget, 0, Count(colliders) - 1);
-			if (ImGui::BeginCombo((const char*)u8"コライダー",
+			if (ImGuiToolKit::BeginCombo(u8"コライダー",
 					colliders[selectedColliderEventTarget].name.c_str()))
 			{
 				for (int i = 0; i < Count(colliders); ++i)
@@ -5667,13 +5106,13 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				ImGui::EndCombo();
 			}
 			bool initialActive = model->GetColliderInitialActive(selectedColliderEventTarget);
-			if (ImGui::Checkbox((const char*)u8"初期状態で有効", &initialActive))
+			if (ImGuiToolKit::Checkbox(u8"初期状態で有効", &initialActive))
 			{
 				model->SetColliderInitialActive(selectedColliderEventTarget, initialActive);
 				MarkDirty();
 				ApplyAnimationPreview();
 			}
-			if (ImGui::Button((const char*)u8"ONキーを追加"))
+			if (ImGuiToolKit::Button(u8"ONキーを追加"))
 			{
 				auto& track = model->GetOrCreateColliderAnimationTrack(
 					animation.name, selectedColliderEventTarget);
@@ -5683,7 +5122,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				ApplyAnimationPreview();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"OFFキーを追加"))
+			if (ImGuiToolKit::Button(u8"OFFキーを追加"))
 			{
 				auto& track = model->GetOrCreateColliderAnimationTrack(
 					animation.name, selectedColliderEventTarget);
@@ -5717,9 +5156,9 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 							animation.secondsLength, "%.3f sec"))
 						sortKeys = true;
 					ImGui::SameLine();
-					if (ImGui::Checkbox((const char*)u8"有効", &key.value)) valueChanged = true;
+					if (ImGuiToolKit::Checkbox(u8"有効", &key.value)) valueChanged = true;
 					ImGui::SameLine();
-					if (ImGui::SmallButton((const char*)u8"削除")) removeIndex = i;
+					if (ImGuiToolKit::Button(u8"削除")) removeIndex = i;
 					ImGui::PopID();
 				}
 				if (removeIndex >= 0)
@@ -5741,15 +5180,15 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 
 	// パーティクルON/OFFキー
 	auto& particleData = model->GetVmdlParticleData();
-	if (ImGui::TreeNodeEx((const char*)u8"パーティクル発生", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::TreeNodeEx(u8"パーティクル発生", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		if (particleData.emitters.empty())
-			ImGui::TextDisabled((const char*)u8"このVMDLにはパーティクルが登録されていません");
+			ImGuiToolKit::TextDisabled(u8"このVMDLにはパーティクルが登録されていません");
 		else
 		{
 			selectedParticleEventTarget = std::clamp(selectedParticleEventTarget, 0,
 				Count(particleData.emitters) - 1);
-			if (ImGui::BeginCombo((const char*)u8"エミッタ",
+			if (ImGuiToolKit::BeginCombo(u8"エミッタ",
 					particleData.emitters[selectedParticleEventTarget].name.c_str()))
 			{
 				for (int i = 0; i < Count(particleData.emitters); ++i)
@@ -5758,12 +5197,12 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				ImGui::EndCombo();
 			}
 			bool initialActive = model->GetParticleInitialActive(selectedParticleEventTarget);
-			if (ImGui::Checkbox((const char*)u8"初期状態で発生", &initialActive))
+			if (ImGuiToolKit::Checkbox(u8"初期状態で発生", &initialActive))
 			{
 				model->SetParticleInitialActive(selectedParticleEventTarget, initialActive);
 				MarkDirty();
 			}
-			if (ImGui::Button((const char*)u8"ONキーを追加"))
+			if (ImGuiToolKit::Button(u8"ONキーを追加"))
 			{
 				auto& track = model->GetOrCreateParticleAnimationTrack(
 					animation.name, selectedParticleEventTarget);
@@ -5771,7 +5210,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				std::sort(track.keys.begin(), track.keys.end(), byTime); MarkDirty();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"OFFキーを追加"))
+			if (ImGuiToolKit::Button(u8"OFFキーを追加"))
 			{
 				auto& track = model->GetOrCreateParticleAnimationTrack(
 					animation.name, selectedParticleEventTarget);
@@ -5791,8 +5230,8 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 					ImGui::SetNextItemWidth(150.0f);
 					changed |= ImGui::DragFloat("##ParticleTime", &key.seconds, 0.01f,
 						0.0f, animation.secondsLength, "%.3f sec");
-					ImGui::SameLine(); changed |= ImGui::Checkbox((const char*)u8"発生", &key.value);
-					ImGui::SameLine(); if (ImGui::SmallButton((const char*)u8"削除")) remove = i;
+					ImGui::SameLine(); changed |= ImGuiToolKit::Checkbox(u8"発生", &key.value);
+					ImGui::SameLine(); if (ImGuiToolKit::Button(u8"削除")) remove = i;
 					ImGui::PopID();
 				}
 				if (remove >= 0) selectedTrack->keys.erase(selectedTrack->keys.begin() + remove);
@@ -5804,16 +5243,15 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 	}
 
 	// モーフ切り替えキー
-	if (ImGui::TreeNodeEx((const char*)u8"モーフ適用", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::TreeNodeEx(u8"モーフ適用", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		if (morphs.empty())
-			ImGui::TextDisabled((const char*)u8"このVMDLにはモーフが登録されていません");
+			ImGuiToolKit::TextDisabled(u8"このVMDLにはモーフが登録されていません");
 		else
 		{
 			selectedMorphEventTarget =
 				std::clamp(selectedMorphEventTarget, 0, Count(morphs) - 1);
-			if (ImGui::BeginCombo(
-					(const char*)u8"モーフ", morphs[selectedMorphEventTarget].name.c_str()))
+			if (ImGuiToolKit::BeginCombo(u8"モーフ", morphs[selectedMorphEventTarget].name.c_str()))
 			{
 				for (int i = 0; i < Count(morphs); ++i)
 				{
@@ -5831,7 +5269,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::Button((const char*)u8"モーフキーを追加"))
+			if (ImGuiToolKit::Button(u8"モーフキーを追加"))
 			{
 				auto& track = model->GetOrCreateMorphAnimationTrack(animation.name);
 				track.keys.push_back({animationTime, selectedMorphEventTarget});
@@ -5882,7 +5320,7 @@ void VmdlEditorScene::DrawAnimationEventEditor()
 						ImGui::EndCombo();
 					}
 					ImGui::SameLine();
-					if (ImGui::SmallButton((const char*)u8"削除")) removeIndex = i;
+					if (ImGuiToolKit::Button(u8"削除")) removeIndex = i;
 					ImGui::PopID();
 				}
 				if (removeIndex >= 0)
@@ -5928,7 +5366,7 @@ void VmdlEditorScene::DrawIkSettings()
 {
 	if (!model)
 	{
-		ImGui::TextDisabled((const char*)u8"設定なし");
+		ImGuiToolKit::TextDisabled(u8"設定なし");
 		return;
 	}
 
@@ -5940,7 +5378,7 @@ void VmdlEditorScene::DrawIkSettings()
 		"InCubic", "OutCubic", "InOutCubic", "InSine", "OutSine", "InOutSine"};
 	int easingIndex = std::clamp(interpolation.interpolationEasing + 1, 0,
 		static_cast<int>(Easing::Type::Count));
-	if (ImGui::Combo((const char*)u8"補間イージング (Interpolation Easing)",
+	if (ImGuiToolKit::Combo(u8"補間イージング (Interpolation Easing)",
 			&easingIndex, easingNames, static_cast<int>(Easing::Type::Count) + 1))
 	{
 		interpolation.interpolationEasing = easingIndex - 1;
@@ -5949,13 +5387,13 @@ void VmdlEditorScene::DrawIkSettings()
 
 	// IKの種類と自動割り当て
 	const char* types[] = {
-		(const char*)u8"なし (None)",
-		(const char*)u8"人型足IK (Humanoid Foot IK)",
-		(const char*)u8"四足IK (Quadruped IK)",
-		(const char*)u8"昆虫IK (Insect IK)",
+		JText(u8"なし (None)"),
+		JText(u8"人型足IK (Humanoid Foot IK)"),
+		JText(u8"四足IK (Quadruped IK)"),
+		JText(u8"昆虫IK (Insect IK)"),
 	};
 	int selectedType = settings.type;
-	if (ImGui::Combo((const char*)u8"IK種類 (IK Type)", &selectedType, types, IM_ARRAYSIZE(types)))
+	if (ImGuiToolKit::Combo(u8"IK種類 (IK Type)", &selectedType, types, IM_ARRAYSIZE(types)))
 	{
 		settings.type = selectedType;
 		model->ResetVmdlIKLegsForType();
@@ -5963,7 +5401,7 @@ void VmdlEditorScene::DrawIkSettings()
 	}
 	if (settings.type == 0) return;
 	if (raySettings.size() < settings.legs.size()) raySettings.resize(settings.legs.size());
-	if (ImGui::Button((const char*)u8"名前から自動設定 (Auto Assign)"))
+	if (ImGuiToolKit::Button(u8"名前から自動設定 (Auto Assign)"))
 	{
 		if (model->AutoAssignVmdlIKNodes()) MarkDirty();
 	}
@@ -5974,11 +5412,11 @@ void VmdlEditorScene::DrawIkSettings()
 		const std::string preview =
 			selectedNodeIndex >= 0
 				? MakeNodeLabel(selectedNodeIndex, model->GetNodes()[selectedNodeIndex].name)
-			: name.empty() ? (const char*)u8"（なし）"
+			: name.empty() ? JText(u8"（なし）")
 						   : name;
 		if (ImGui::BeginCombo(label, preview.c_str()))
 		{
-			if (allowNone && ImGui::Selectable((const char*)u8"（なし）", name.empty()))
+			if (allowNone && ImGuiToolKit::Selectable(u8"（なし）", name.empty()))
 			{
 				name.clear();
 				changed = true;
@@ -5999,32 +5437,28 @@ void VmdlEditorScene::DrawIkSettings()
 		if (!name.empty() && model->GetNodeIndex(name.c_str()) < 0)
 		{
 			ImGui::SameLine();
-			ImGui::TextUnformatted((const char*)u8"不足");
+			ImGuiToolKit::TextUnformatted(u8"不足");
 		}
 		return changed;
 	};
 
 	// IK全体の基準ノード
-	if (nodeCombo(settings.type == 1 ? (const char*)u8"骨盤 (Pelvis)"
-									 : (const char*)u8"胴体中心 (Body Center)",
+	if (nodeCombo(settings.type == 1 ? JText(u8"骨盤 (Pelvis)")
+									 : JText(u8"胴体中心 (Body Center)"),
 			settings.centerNode))
 		MarkDirty();
 
 	if (settings.type == 2 || settings.type == 3)
 	{
 		auto& solver = model->GetVmdlMultiLegIKSettings();
-		ImGui::SeparatorText((const char*)u8"多脚IKの補正 (Multi-Leg IK Correction)");
-		bool changed = ImGui::DragFloat(
-			(const char*)u8"胴体の高さ補正 (Body Height Offset)",
+		ImGuiToolKit::SeparatorText(u8"多脚IKの補正 (Multi-Leg IK Correction)");
+		bool changed = ImGuiToolKit::DragPosFloat(u8"胴体の高さ補正 (Body Height Offset)",
 			&solver.bodyHeightOffset, 0.005f, -5.0f, 5.0f);
-		changed |= ImGui::DragFloat(
-			(const char*)u8"接地オフセット (Contact Offset)",
+		changed |= ImGuiToolKit::DragPosFloat(u8"接地オフセット (Contact Offset)",
 			&solver.contactOffset, 0.001f, -5.0f, 5.0f);
-		changed |= ImGui::DragFloat(
-			(const char*)u8"上方の最大補正 (Max Up Correction)",
+		changed |= ImGuiToolKit::DragFloat(u8"上方の最大補正 (Max Up Correction)",
 			&solver.maxUpCorrection, 0.01f, 0.0f, 20.0f);
-		changed |= ImGui::DragFloat(
-			(const char*)u8"下方の最大補正 (Max Down Correction)",
+		changed |= ImGuiToolKit::DragFloat(u8"下方の最大補正 (Max Down Correction)",
 			&solver.maxDownCorrection, 0.01f, 0.0f, 20.0f);
 		solver.maxUpCorrection = std::max(solver.maxUpCorrection, 0.0f);
 		solver.maxDownCorrection = std::max(solver.maxDownCorrection, 0.0f);
@@ -6037,18 +5471,18 @@ void VmdlEditorScene::DrawIkSettings()
 		auto& leg = settings.legs[i];
 		ImGui::PushID(i);
 		const std::string header =
-			leg.name.empty() ? (const char*)u8"脚 " + std::to_string(i + 1) : leg.name;
+			leg.name.empty() ? JText(u8"脚 ") + std::to_string(i + 1) : leg.name;
 		if (ImGui::CollapsingHeader(header.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			bool changed = ImGui::InputText((const char*)u8"名前 (Name)", &leg.name);
-			changed |= nodeCombo((const char*)u8"付け根 (Root)", leg.root);
-			changed |= nodeCombo((const char*)u8"中間 (Middle)", leg.mid);
-			changed |= nodeCombo((const char*)u8"先端 (Foot / Tip)", leg.tip);
-			changed |= nodeCombo((const char*)u8"接地点 (Contact)", leg.contact, true);
+			bool changed = ImGuiToolKit::InputText(u8"名前 (Name)", &leg.name);
+			changed |= nodeCombo(JText(u8"付け根 (Root)"), leg.root);
+			changed |= nodeCombo(JText(u8"中間 (Middle)"), leg.mid);
+			changed |= nodeCombo(JText(u8"先端 (Foot / Tip)"), leg.tip);
+			changed |= nodeCombo(JText(u8"接地点 (Contact)"), leg.contact, true);
 
 			auto& pole = poles[i];
 			const bool wasCustom = pole.custom;
-			if (ImGui::Checkbox((const char*)u8"カスタムポール (Custom Pole)", &pole.custom))
+			if (ImGuiToolKit::Checkbox(u8"カスタムポール (Custom Pole)", &pole.custom))
 			{
 				changed = true;
 				if (!pole.custom) pole = VMDLModel::VmdlIKPole{};
@@ -6083,13 +5517,13 @@ void VmdlEditorScene::DrawIkSettings()
 			}
 			if (pole.custom)
 			{
-				changed |= DrawIkVector3((const char*)u8"ポール位置 (Pole Position)",
+				changed |= DrawIkVector3(JText(u8"ポール位置"),
 					pole.position, 0.01f, i, IkGizmoTarget::Pole);
-				ImGui::TextDisabled((const char*)u8"モデルのローカル座標");
+				ImGuiToolKit::TextDisabled(u8"モデルのローカル座標");
 			}
 
 			auto& ray = raySettings[i];
-			if (ImGui::Checkbox((const char*)u8"カスタムレイ (Custom Ray)", &ray.custom))
+			if (ImGuiToolKit::Checkbox(u8"カスタムレイ (Custom Ray)", &ray.custom))
 			{
 				changed = true;
 				if (!ray.custom)
@@ -6104,13 +5538,12 @@ void VmdlEditorScene::DrawIkSettings()
 			}
 			if (ray.custom)
 			{
-				changed |= DrawIkVector3((const char*)u8"開始位置 (Start Offset)",
+				changed |= DrawIkVector3(JText(u8"開始位置"),
 					ray.startOffset, 0.01f, i, IkGizmoTarget::RayStart);
-				changed |= DrawIkVector3((const char*)u8"同期オフセット (Sync Offset)",
+				changed |= DrawIkVector3(JText(u8"同期オフセット"),
 					ray.syncOffset, 0.001f, i, IkGizmoTarget::RaySync);
-				ImGui::TextDisabled((const char*)u8"ボーンからレイをずらす量（モデルのローカル座標）");
-				changed |= ImGui::DragFloat(
-					(const char*)u8"レイの長さ (Ray Length)", &ray.length, 0.01f, 0.01f, 100.0f);
+				ImGuiToolKit::TextDisabled(u8"ボーンからレイをずらす量（ローカル）");
+				changed |= ImGuiToolKit::DragFloat(u8"レイの長さ", &ray.length, 0.01f, 0.01f, 100.0f);
 				ray.length = std::max(0.01f, ray.length);
 			}
 			if (changed) MarkDirty();
@@ -6121,7 +5554,7 @@ void VmdlEditorScene::DrawIkSettings()
 
 void VmdlEditorScene::DrawMorphEditor()
 {
-	ImGui::TextDisabled((const char*)u8"+ は表示、- は非表示、中点は変更なしです");
+	ImGuiToolKit::TextDisabled(u8"[＋] 表示　[ー] 非表示　[・] 変更なし");
 	if (!model) return;
 
 	auto& morphs = model->GetVmdlExtensionData().morphs;
@@ -6129,7 +5562,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		selectedMorph >= 0 && selectedMorph < Count(morphs);
 
 	// モーフの追加と操作
-	if (ImGui::Button((const char*)u8"現在のモーフを登録"))
+	if (ImGuiToolKit::Button(u8"現在のモーフを登録"))
 	{
 		auto& morph = morphs.emplace_back();
 		morph.name = MakeUniqueMorphName("MORPH " + std::to_string(morphs.size()));
@@ -6141,7 +5574,7 @@ void VmdlEditorScene::DrawMorphEditor()
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!hasSelectedMorph);
-	if (ImGui::Button((const char*)u8"現在の表示状態を反映") && hasSelectedMorph)
+	if (ImGuiToolKit::Button(u8"現在の表示状態を反映") && hasSelectedMorph)
 	{
 		auto& visibility = morphs[selectedMorph].meshVisibility;
 		visibility.resize(model->GetMeshes().size());
@@ -6151,14 +5584,14 @@ void VmdlEditorScene::DrawMorphEditor()
 	}
 	ImGui::EndDisabled();
 	ImGui::SameLine();
-	if (ImGui::Button((const char*)u8"モーフを適用") && hasSelectedMorph)
+	if (ImGuiToolKit::Button(u8"モーフを適用") && hasSelectedMorph)
 	{
 		model->ApplyMorph(selectedMorph);
 	}
 	ImGui::SameLine();
 	const bool canDeleteMorph = hasSelectedMorph;
 	ImGui::BeginDisabled(!canDeleteMorph);
-	if (ImGui::Button((const char*)u8"モーフを複製") && canDeleteMorph)
+	if (ImGuiToolKit::Button(u8"モーフを複製") && canDeleteMorph)
 	{
 		VMDLModel::VmdlMorph duplicate = morphs[selectedMorph];
 		duplicate.name = MakeUniqueMorphName(duplicate.name + " COPY");
@@ -6170,7 +5603,7 @@ void VmdlEditorScene::DrawMorphEditor()
 	ImGui::EndDisabled();
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!canDeleteMorph);
-	if (ImGui::Button((const char*)u8"モーフを削除") && canDeleteMorph)
+	if (ImGuiToolKit::Button(u8"モーフを削除") && canDeleteMorph)
 	{
 		morphs.erase(morphs.begin() + selectedMorph);
 		for (auto& track : model->GetVmdlAnimationControlData().morphTracks)
@@ -6228,11 +5661,11 @@ void VmdlEditorScene::DrawMorphEditor()
 						break;
 					}
 				}
-				if (ImGui::MenuItem((const char*)u8"モーフに関連するメッシュを分離",
+				if (ImGuiToolKit::MenuItem(u8"モーフに関連するメッシュを分離",
 						nullptr, false, hasResidentMesh))
 					SeparateMorphMeshes(i);
 				if (!hasResidentMesh)
-					ImGui::TextDisabled((const char*)u8"分離できる表示メッシュがありません");
+					ImGuiToolKit::TextDisabled(u8"分離できる表示メッシュがありません");
 				ImGui::EndPopup();
 			}
 			ImGui::PopID();
@@ -6246,7 +5679,7 @@ void VmdlEditorScene::DrawMorphEditor()
 		{
 			auto& morph = morphs[selectedMorph];
 			std::string name = morph.name;
-			if (ImGui::InputText((const char*)u8"名前", &name))
+			if (ImGuiToolKit::InputText(u8"名前", &name))
 			{
 				const std::string newName = ToUpperString(name.c_str());
 				const int duplicateIndex = model->GetMorphIndex(newName.c_str());
@@ -6256,14 +5689,9 @@ void VmdlEditorScene::DrawMorphEditor()
 					MarkDirty();
 				}
 			}
-			if (ImGui::Checkbox((const char*)u8"初期状態", &morph.applyOnInitialize)) MarkDirty();
+			if (ImGuiToolKit::Checkbox(u8"初期状態", &morph.applyOnInitialize)) MarkDirty();
 			if (morph.meshVisibility.size() != model->GetMeshes().size())
 				morph.meshVisibility.resize(model->GetMeshes().size(), 2);
-			ImGui::TextUnformatted((const char*)u8"+ 表示");
-			ImGui::SameLine();
-			ImGui::TextUnformatted((const char*)u8"- 非表示");
-			ImGui::SameLine();
-			ImGui::TextDisabled((const char*)u8"中点：変更なし");
 			ImGui::Separator();
 			for (int i = 0; i < Count(model->GetMeshes()); ++i)
 			{
@@ -6271,7 +5699,7 @@ void VmdlEditorScene::DrawMorphEditor()
 				if (state > 2) state = 2;
 				const VMDLModel::Mesh& mesh = model->GetMeshes()[i];
 				const std::string label =
-					(const char*)u8"メッシュ " + std::to_string(i) + " : " + mesh.material->name;
+					JText(u8"メッシュ ") + std::to_string(i) + " : " + mesh.material->name;
 				ImGui::PushID(i);
 				bool changed = false;
 				if (ImGui::RadioButton("+", state == 1))
@@ -6309,15 +5737,15 @@ void VmdlEditorScene::DrawMaterialEditor()
 	auto& materials = model->GetMaterials();
 	if (materials.empty())
 	{
-		ImGui::TextDisabled((const char*)u8"このモデルにはマテリアルがありません");
+		ImGuiToolKit::TextDisabled(u8"このモデルにはマテリアルがありません");
 		return;
 	}
 	if (selectedMaterial < 0 || selectedMaterial >= Count(materials)) return;
-	ImGui::SeparatorText((const char*)(ICON_FA_PALETTE " " u8"マテリアル"));
+	ImGuiToolKit::SeparatorText(ICON_FA_PALETTE " " u8"マテリアル");
 	auto& material = materials[selectedMaterial];
-	ImGui::Text((const char*)u8"マテリアル: %s", material.name.c_str());
+	ImGuiToolKit::Text(u8"マテリアル: %s", material.name.c_str());
 	bool changed = false;
-	if (ImGui::Button((const char*)u8"GLB設定に初期化") &&
+	if (ImGuiToolKit::Button(u8"GLB設定に初期化") &&
 		model->ResetMaterialToGLB(static_cast<size_t>(selectedMaterial)))
 	{
 		changed = true;
@@ -6326,8 +5754,9 @@ void VmdlEditorScene::DrawMaterialEditor()
 	auto* renderer = Game::Graphics::Instance().GetModelRenderer();
 	auto* shader = renderer->GetShader(material.shaderId);
 	const std::string shaderName = shader ? shader->GetName()
-		: std::format("未対応 (ID: {})", static_cast<int>(material.shaderId));
-	if (ImGui::BeginCombo((const char*)u8"シェーダー", shaderName.c_str()))
+										  : std::format("未対応 (ID: {})", static_cast<int>(material.shaderId));
+	ImGui::SetNextItemWidth(240.0f);
+	if (ImGuiToolKit::BeginCombo(u8"シェーダー", shaderName.c_str()))
 	{
 		for (int i = 0; i < static_cast<int>(ModelShaderId::EnumCount); ++i)
 		{
@@ -6345,10 +5774,10 @@ void VmdlEditorScene::DrawMaterialEditor()
 		ImGui::EndCombo();
 	}
 	if (shader) changed |= shader->DrawGUI(material);
-	else ImGui::TextDisabled((const char*)u8"このシェーダーにはパラメーター調整機能がありません。");
+	else ImGuiToolKit::TextDisabled(u8"このシェーダーにはパラメーター調整機能がありません。");
 
 	// テクスチャの書き出しと置換
-	ImGui::SeparatorText((const char*)u8"テクスチャ");
+	ImGuiToolKit::SeparatorText(u8"テクスチャ");
 	const auto textureRow = [&](const char* label, VMDLModel::MaterialTextureSlot slot,
 								const std::string& filename, const std::vector<uint8_t>& embedded) {
 		ImGui::TableNextRow();
@@ -6358,15 +5787,15 @@ void VmdlEditorScene::DrawMaterialEditor()
 
 		if (filename.empty())
 			ImGui::TextDisabled(
-				embedded.empty() ? (const char*)u8"なし" : (const char*)u8"埋め込み");
+				embedded.empty() ? JText(u8"なし") : JText(u8"埋め込み"));
 		else
 			ImGui::Text(
-				"%s%s", filename.c_str(), embedded.empty() ? "" : (const char*)u8"（埋め込み）");
+				"%s%s", filename.c_str(), embedded.empty() ? "" : JText(u8"(埋め込み)"));
 
 		ImGui::TableSetColumnIndex(2);
 		ImGui::PushID(label);
 
-		if (ImGui::SmallButton((const char*)u8"書き出し"))
+		if (ImGuiToolKit::Button(ICON_FA_UPLOAD))
 		{
 			std::string filepath;
 			const char* filter = "PNG Image (*.png)\0"
@@ -6388,14 +5817,15 @@ void VmdlEditorScene::DrawMaterialEditor()
 				}
 			}
 		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip(JText(u8"書き出し"));
 		ImGui::SameLine();
 
-		if (ImGui::SmallButton((const char*)u8"置換"))
+		if (ImGuiToolKit::Button(ICON_FA_DOWNLOAD))
 		{
 			std::string filepath;
-			const char* filter = "PNG Image (*.png)\0"
+			const char* filter = "PNG (*.png)\0"
 								 "*.png\0"
-								 "DDS Texture (*.dds)\0"
+								 "DDS (*.dds)\0"
 								 "*.dds\0"
 								 "\0";
 			if (Dialog::OpenFileName(filepath, filter, "Replace Material Texture") ==
@@ -6412,32 +5842,34 @@ void VmdlEditorScene::DrawMaterialEditor()
 				}
 			}
 		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip(JText(u8"埋め込み"));
 		ImGui::SameLine();
 
-		if (ImGui::SmallButton((const char*)u8"クリア") &&
+		if (ImGuiToolKit::Button(ICON_FA_TRASH) &&
 			model->ClearMaterialTexture(static_cast<size_t>(selectedMaterial), slot))
 		{
 			changed = true;
 		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip(JText(u8"削除"));
 		ImGui::PopID();
 	};
 	if (ImGui::BeginTable("Material Textures", 3,
 			ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp))
 	{
-		ImGui::TableSetupColumn((const char*)u8"種類", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn((const char*)u8"参照元", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn((const char*)u8"操作", ImGuiTableColumnFlags_WidthStretch);
-		textureRow("Base Color", VMDLModel::MaterialTextureSlot::BaseColor,
+		ImGuiToolKit::TableSetupColumn(u8"種類", ImGuiTableColumnFlags_WidthStretch);
+		ImGuiToolKit::TableSetupColumn(u8"参照元", ImGuiTableColumnFlags_WidthStretch);
+		ImGuiToolKit::TableSetupColumn(u8"操作", ImGuiTableColumnFlags_WidthStretch);
+		textureRow(JText(u8"ベースカラー"), VMDLModel::MaterialTextureSlot::BaseColor,
 			material.baseTextureFileName, material.baseTextureDDS);
-		textureRow("Normal", VMDLModel::MaterialTextureSlot::Normal, material.normalTextureFileName,
+		textureRow(JText(u8"ノーマル"), VMDLModel::MaterialTextureSlot::Normal, material.normalTextureFileName,
 			material.normalTextureDDS);
-		textureRow((const char*)u8"メタリック（R）", VMDLModel::MaterialTextureSlot::Metalness,
+		textureRow(JText(u8"メタリック（R）"), VMDLModel::MaterialTextureSlot::Metalness,
 			material.metalnessTextureFileName, material.metalnessTextureDDS);
-		textureRow((const char*)u8"ラフネス（R）", VMDLModel::MaterialTextureSlot::Roughness,
+		textureRow(JText(u8"ラフネス（R）"), VMDLModel::MaterialTextureSlot::Roughness,
 			material.roughnessTextureFileName, material.roughnessTextureDDS);
-		textureRow("Occlusion", VMDLModel::MaterialTextureSlot::Occlusion,
+		textureRow(JText(u8"オクルージョン"), VMDLModel::MaterialTextureSlot::Occlusion,
 			material.occlusionTextureFileName, material.occlusionTextureDDS);
-		textureRow("Emissive", VMDLModel::MaterialTextureSlot::Emissive,
+		textureRow(JText(u8"発光"), VMDLModel::MaterialTextureSlot::Emissive,
 			material.emissiveTextureFileName, material.emissiveTextureDDS);
 		ImGui::EndTable();
 	}
@@ -6452,19 +5884,8 @@ void VmdlEditorScene::DrawMaterialEditor()
 
 void VmdlEditorScene::DrawMaterialAnimationKeys()
 {
-	if (selectedAnimation < 0 || selectedAnimation >= Count(model->GetAnimations()))
-	{
-		ImGui::TextDisabled((const char*)u8"アニメーションを選択するとキー登録できます");
-		return;
-	}
+	if (selectedAnimation < 0 || selectedAnimation >= Count(model->GetAnimations())) return;
 	const auto& animation = model->GetAnimations()[selectedAnimation];
-	ImGui::SeparatorText((const char*)(ICON_FA_KEY " " u8"マテリアルキー"));
-	ImGui::Text("%s / %.3f sec", animation.name.c_str(), animationTime);
-	if (ImGui::Button((const char*)u8"現在のマテリアルをキー登録"))
-	{
-		model->RecordMaterialKey(selectedAnimation, selectedMaterial, animationTime);
-		MarkDirty();
-	}
 	auto* shader = selectedMaterial >= 0 && selectedMaterial < Count(model->GetMaterials())
 		? Game::Graphics::Instance().GetModelRenderer()->GetShader(model->GetMaterials()[selectedMaterial].shaderId)
 		: nullptr;
@@ -6479,17 +5900,17 @@ void VmdlEditorScene::DrawMaterialAnimationKeys()
 			ImGui::PushID(i);
 			if (ImGui::TreeNode(std::format("{:.3f} sec###MaterialKey", key.seconds).c_str()))
 			{
-				changed |= ImGui::DragFloat((const char*)u8"時間", &key.seconds, 0.01f,
+				changed |= ImGuiToolKit::DragDelayFloat(u8"時間", &key.seconds, 0.01f,
 					0.0f, animation.secondsLength, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 				if (shader) changed |= shader->DrawGUI(key);
-				if (ImGui::SmallButton((const char*)u8"このキーへ移動"))
+				if (ImGuiToolKit::Button(u8"このキーへ移動"))
 				{
 					animationPlaying = false;
 					animationTime = key.seconds;
 					ApplyAnimationPreview();
 				}
 				ImGui::SameLine();
-				if (ImGui::SmallButton((const char*)u8"削除")) remove = i;
+				if (ImGuiToolKit::Button(u8"削除")) remove = i;
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -6645,7 +6066,7 @@ void VmdlEditorScene::ImportGlb()
 	proposedPath.replace_extension(".vmdl");
 	std::string destination = proposedPath.string();
 	if (Dialog::SaveFileName(destination, "VMDL (*.vmdl)\0*.vmdl\0",
-			(const char*)u8"VMDLの保存先", "vmdl") != DialogResult::OK)
+			JText(u8"VMDLの保存先"), "vmdl") != DialogResult::OK)
 		return;
 
 	LoadModel(filepath, destination);
@@ -6822,14 +6243,14 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 	const std::filesystem::path proposedPath = MakeMeshCachePath(meshIndex);
 	std::string filepath = proposedPath.string();
 	if (Dialog::SaveFileName(filepath, "VMDL Mesh Cache (*.vmsh)\0*.vmsh\0",
-			(const char*)u8"VMSHの分離先", "vmsh") != DialogResult::OK)
+			JText(u8"VMSHの分離先"), "vmsh") != DialogResult::OK)
 		return;
 	for (const auto& group : model->GetExternalMeshGroups())
 	{
 		const std::filesystem::path existingPath =
 			ResourceManager::ResolveSourcePath(group.path);
 		if (!IsSameFilePath(existingPath, filepath)) continue;
-		ImGuiToolKit::Alert((const char*)u8"このVMSHは別の分離メッシュが使用しています。別のファイル名を指定してください。");
+		ImGuiToolKit::Alert(JText(u8"このVMSHは別の分離メッシュが使用しています。別のファイル名を指定してください。"));
 		return;
 	}
 
@@ -6965,14 +6386,14 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		// VMDLが古い外部参照を保持したままVMSHだけ消える状態を防ぐ
 		if (documentPath.empty())
 		{
-			ImGuiToolKit::Alert((const char*)u8"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。", "Warning");
+			ImGuiToolKit::Alert(JText(u8"結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。"), "Warning");
 			return;
 		}
 		documentPath = ResourceManager::ResolveSourcePath(documentPath);
 		if (!model->SaveVmdl(documentPath) ||
 			!ResourceManager::Instance().RefreshResources(documentPath))
 		{
-			ImGuiToolKit::Alert((const char*)u8"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。", "Warning");
+			ImGuiToolKit::Alert(JText(u8"VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。"), "Warning");
 			return;
 		}
 		dirty = false;
@@ -6981,7 +6402,7 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 		const bool removed = std::filesystem::remove(resolved, removeError);
 		if (removeError || (!removed && std::filesystem::exists(resolved)))
 		{
-			std::string warning = (const char*)u8"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n";
+			std::string warning = JText(u8"VMDLへの結合は完了しましたが、VMSHファイルを削除できませんでした。\n\n");
 			const auto path = resolved.u8string();
 			warning.append(reinterpret_cast<const char*>(path.data()), path.size());
 			ImGuiToolKit::Alert(warning, "Warning");
@@ -7013,7 +6434,7 @@ bool VmdlEditorScene::ResolveExternalMeshPath(
 	const std::filesystem::path modelRoot = ResourceManager::FindSourceResourceRoot() / "Model";
 	std::string replacementFile;
 	if (Dialog::OpenFileName(replacementFile, "VMSH (*.vmsh)\0*.vmsh\0\0",
-			(const char*)u8"代わりとなるVMSHを選択", modelRoot.string().c_str()) !=
+			JText(u8"代わりとなるVMSHを選択"), modelRoot.string().c_str()) !=
 		DialogResult::OK)
 		return false;
 	if (!std::filesystem::is_regular_file(replacementFile))

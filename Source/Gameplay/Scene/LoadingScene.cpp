@@ -1,4 +1,5 @@
 #include "Gameplay/Scene/LoadingScene.h"
+#include <ImGuiToolKit/Widgets.h>
 
 #include <algorithm>
 #include <cmath>
@@ -24,24 +25,22 @@ LoadingScene::~LoadingScene()
 void LoadingScene::OnInit()
 {
 	background = std::make_shared<SpriteWidget>(
-		"Resources/UI/loading.png",
+		"Loading Background", "Resources/UI/loading.png",
 		SpriteShaderId::Basic, Color(1, 1, 1, 0.3f));
-	background->SetName("Loading Background");
 	background->SetAffectedByPostProcess(false);
 	widgetManager.Register(background);
 
 	// 背景とは別レイヤーにして、画像の移動に影響されない画面端の暗さを作る。
 	vignetteOverlay = std::make_shared<SpriteWidget>(
-		"Resources/UI/loading.png",
+		"Loading Vignette Overlay", "Resources/UI/loading.png",
 		SpriteShaderId::VignetteOverlay,
 		Color(0.0f, 0.01f, 0.03f, 0.82f),
 		SpriteRenderParams{SpriteVignetteParams{0.38f, 0.36f}});
-	vignetteOverlay->SetName("Loading Vignette Overlay");
 	vignetteOverlay->SetAffectedByPostProcess(false);
 	widgetManager.Register(vignetteOverlay);
 
 	resourceFileIsLoading =
-		std::make_shared<TextWidget>("ldt", (const char*)u8"リソースを読み込み中...", 30,
+		std::make_shared<TextWidget>("ldt", JText(u8"リソースを読み込み中..."), 30,
 			"NotoSansJP");
 	resourceFileIsLoading->SetColor({1, 1, 1, 1});
 	resourceFileIsLoading->SetAlignment(UITextAlignment::Center);
@@ -50,8 +49,7 @@ void LoadingScene::OnInit()
 
 	const auto makeFill = [this](const char* name, const Color& color)
 	{
-		auto widget = std::make_shared<ColorWidget>(SpriteShaderId::Basic, color);
-		widget->SetName(name);
+		auto widget = std::make_shared<ColorWidget>(name, SpriteShaderId::Basic, color);
 		widget->SetAffectedByPostProcess(false);
 		widgetManager.Register(widget);
 		return widget;
@@ -93,9 +91,9 @@ void LoadingScene::OnDrawGUI()
 	if (ImGui::Begin("Load failed", nullptr,
 		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
 	{
-		ImGui::TextUnformatted((const char*)u8"読み込みに失敗しました");
+		ImGuiToolKit::TextUnformatted(u8"読み込みに失敗しました");
 		ImGui::TextWrapped("%s", error.c_str());
-		if (ImGui::Button((const char*)u8"タイトルへ戻る"))
+		if (ImGuiToolKit::Button(u8"タイトルへ戻る"))
 		{
 			manager.LoadScene<TitleScene>();
 		}

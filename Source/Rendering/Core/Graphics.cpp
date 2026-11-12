@@ -52,7 +52,7 @@ namespace Game
 				swapchainDesc.BufferDesc.Height                  = screenHeight;
 				swapchainDesc.BufferDesc.RefreshRate.Numerator   = 60;
 				swapchainDesc.BufferDesc.RefreshRate.Denominator = 1;
-				swapchainDesc.BufferDesc.Format                  = DXGI_FORMAT_R8G8B8A8_UNORM;
+				swapchainDesc.BufferDesc.Format                  = DXGI_FORMAT_R16G16B16A16_FLOAT;
 				swapchainDesc.BufferDesc.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 				swapchainDesc.BufferDesc.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
 				swapchainDesc.SampleDesc.Count                   = 1;
@@ -250,6 +250,9 @@ namespace Game
 		ScreenWidth = static_cast<float>(screenWidth);
 		ScreenHeight = static_cast<float>(screenHeight);
 
+		sceneDepthTarget = std::make_unique<DepthTarget>(device.Get(), screenWidth, screenHeight,
+			DXGI_FORMAT_R24G8_TYPELESS, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+
 		UINT bloomWidth = screenWidth / 4;
 		UINT bloomHeight = screenHeight / 4;
 
@@ -296,7 +299,7 @@ namespace Game
 				device.Get(),
 				screenWidth,
 				screenHeight,
-				DXGI_FORMAT_R8G8B8A8_UNORM);
+				DXGI_FORMAT_R16G16B16A16_UNORM);
 
 		frameBuffers[static_cast<int>(FrameBufferId::PostProcess)] =
 			std::make_unique<RenderTarget>(

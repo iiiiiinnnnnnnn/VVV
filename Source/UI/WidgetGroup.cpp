@@ -1,4 +1,5 @@
 #include "UI/WidgetGroup.h"
+#include <ImGuiToolKit/Widgets.h>
 
 #include <algorithm>
 #include <imgui.h>
@@ -39,7 +40,7 @@ void WidgetGroup::OnRender(const RenderContext& rc)
 
 void WidgetGroup::OnDrawGUI()
 {
-	ImGui::TextDisabled((const char*)u8"子Widget: %zu", children.size());
+	ImGuiToolKit::TextDisabled(u8"子Widget: %zu", children.size());
 	for (const auto& child : children)
 	{
 		if (!child) continue;

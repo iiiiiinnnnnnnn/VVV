@@ -6,7 +6,7 @@
 #include "UI/UIFont.h"
 #include "UI/Widget.h"
 
-class TextWidget final : public Widget
+class TextWidget : public Widget
 {
 public:
 	void OnAwake() override;
@@ -17,6 +17,7 @@ public:
 
 	void SetText(const std::string& value) { text = value; }
 	const std::string& GetText() const { return text; }
+	void SetTextOffset(const Vector2& value) { textOffset = value; }
 	void SetFontSize(float value) { fontSize = value; }
 	void SetColor(const Color& value) { color = value; }
 	void SetAlignment(UITextAlignment value) { alignment = value; }
@@ -27,10 +28,10 @@ protected:
 	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;
 
-private:
 	void DrawFont(const Vector2& topLeft, const Color& drawColor);
 
 	std::string text;
+	Vector2 textOffset = Vector2::Zero;
 	std::shared_ptr<UIFont> font;
 	std::string fontPath;
 	float fontSize = 36.0f;

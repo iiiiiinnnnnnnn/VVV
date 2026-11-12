@@ -2,11 +2,11 @@
     "animationMode": "VMDLModel",
     "layers": [
         {
-            "anyStateEditorPosX": 19.0,
-            "anyStateEditorPosY": 57.0,
+            "anyStateEditorPosX": 385.0,
+            "anyStateEditorPosY": -231.0,
             "anyStateTransitions": [],
             "blendMode": 0,
-            "defaultState": 0,
+            "defaultState": 3,
             "hasAnyStateEditorPosition": true,
             "mask": [],
             "name": "Base",
@@ -15,8 +15,8 @@
                     "animationIndex": 11,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "editorPosX": 100.0,
-                    "editorPosY": -12.0,
+                    "editorPosX": 86.0,
+                    "editorPosY": -29.0,
                     "hasEditorPosition": true,
                     "loop": true,
                     "name": "Idle",
@@ -26,22 +26,16 @@
                     "transitions": [
                         {
                             "canInterrupt": false,
-                            "conditions": [
-                                {
-                                    "mode": 6,
-                                    "paramName": "trigger",
-                                    "threshold": 1
-                                }
-                            ],
+                            "conditions": [],
                             "excludedFromStateIndices": [],
-                            "exitTime": 0.800000011920929,
-                            "hasExitTime": false,
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
                             "isAny": true,
                             "priority": 0,
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
-                            "toStateIndex": 1,
-                            "transitionDuration": 0.30000001192092896
+                            "toStateIndex": 2,
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 },
@@ -49,8 +43,8 @@
                     "animationIndex": 28,
                     "blockAnyStateTransitions": false,
                     "callbacks": [],
-                    "editorPosX": 100.0,
-                    "editorPosY": 163.0,
+                    "editorPosX": 370.0,
+                    "editorPosY": 196.0,
                     "hasEditorPosition": true,
                     "loop": false,
                     "name": "Take",
@@ -70,6 +64,90 @@
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.30000001192092896
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 278.0,
+                    "editorPosY": -29.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "新規ステート",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 3,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 466.0,
+                    "editorPosY": -28.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "新規ステート",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 4,
+                            "transitionDuration": 0.10000000149011612
+                        }
+                    ]
+                },
+                {
+                    "animationIndex": 11,
+                    "blockAnyStateTransitions": false,
+                    "callbacks": [],
+                    "editorPosX": 662.0,
+                    "editorPosY": -29.0,
+                    "hasEditorPosition": true,
+                    "loop": true,
+                    "name": "新規ステート",
+                    "playbackEnd": 1.0,
+                    "playbackStart": 0.0,
+                    "speed": 1.0,
+                    "transitions": [
+                        {
+                            "canInterrupt": false,
+                            "conditions": [],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1.0,
+                            "hasExitTime": true,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1.0,
+                            "sourceProgressMin": 0.0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 }

@@ -1,4 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Color.h>
 #include "Gameplay/Lighting/LightManager.h"
 #include "IconsFontAwesome5.h"
 
@@ -177,14 +179,13 @@ void LightManager::DrawGUI()
 
 	ImGui::Text("Lights: %d / %d", GetLightCount(), CbLightData::MaxLights);
 	// 環境光
-	if (ImGui::CollapsingHeader((const char*)(ICON_FA_SUN " " u8"環境光"), ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::CollapsingHeader(ICON_FA_SUN " " u8"環境光", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::ColorEdit4((const char*)(ICON_FA_SUN " " u8"環境光の色"), &ambientColor.x, ImGuiColorEditFlags_Float);
+		ImGuiToolKit::ColorEdit4(u8"環境光の色", &ambientColor.x, ImGuiColorEditFlags_Float);
 	}
 
 	// ディレクショナルライト
-	if (ImGui::CollapsingHeader(
-			(const char*)(ICON_FA_SUN " " u8"ディレクショナルライト"), ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::CollapsingHeader(ICON_FA_SUN " " u8"ディレクショナルライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::BeginDisabled(!CanAddLight());
 		if (ImGui::Button("Add Directional Light")) AddDirectionalLight();
@@ -199,13 +200,13 @@ void LightManager::DrawGUI()
 	}
 
 	// ポイントライト一覧
-	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"ポイントライト"), ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::CollapsingHeader(ICON_FA_LIGHTBULB " " u8"ポイントライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(pointLights),
+		ImGuiToolKit::Text(u8"個数: %d / %d", visibleLightCount(pointLights),
 			CbLightData::MaxPointLights);
 		const int attachedCount = static_cast<int>(std::count_if(attachedPointLights.begin(),
 			attachedPointLights.end(), [](const auto& light) { return !light.expired(); }));
-		if (attachedCount > 0) ImGui::Text((const char*)u8"VMDL付属: %d", attachedCount);
+		if (attachedCount > 0) ImGuiToolKit::Text(u8"VMDL付属: %d", attachedCount);
 
 		for (int i = 0; i < static_cast<int>(pointLights.size()); ++i)
 		{
@@ -223,9 +224,9 @@ void LightManager::DrawGUI()
 	}
 
 	// スポットライト一覧
-	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"スポットライト"), ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::CollapsingHeader(ICON_FA_LIGHTBULB " " u8"スポットライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(spotLights),
+		ImGuiToolKit::Text(u8"個数: %d / %d", visibleLightCount(spotLights),
 			CbLightData::MaxSpotLights);
 
 		for (int i = 0; i < static_cast<int>(spotLights.size()); ++i)
@@ -244,9 +245,9 @@ void LightManager::DrawGUI()
 	}
 
 	// エリアライト一覧
-	if (ImGui::CollapsingHeader((const char*)(ICON_FA_LIGHTBULB " " u8"エリアライト"), ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::CollapsingHeader(ICON_FA_LIGHTBULB " " u8"エリアライト", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text((const char*)u8"個数: %d / %d", visibleLightCount(areaLights),
+		ImGuiToolKit::Text(u8"個数: %d / %d", visibleLightCount(areaLights),
 			CbLightData::MaxAreaLights);
 
 		for (int i = 0; i < static_cast<int>(areaLights.size()); ++i)

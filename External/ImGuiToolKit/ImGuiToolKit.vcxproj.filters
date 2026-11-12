@@ -10,6 +10,10 @@
     <ClInclude Include="Include\ImGuiToolKit\Alert.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
     <ClInclude Include="Include\ImGuiToolKit\Path.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
     <ClInclude Include="Include\ImGuiToolKit\Theme.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Color.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Drag.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Widgets.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
+    <ClInclude Include="Include\ImGuiToolKit\Utf8.h"><Filter>Include\ImGuiToolKit</Filter></ClInclude>
     <ClCompile Include="Source\Alert.cpp"><Filter>Source</Filter></ClCompile>
   </ItemGroup>
 </Project>

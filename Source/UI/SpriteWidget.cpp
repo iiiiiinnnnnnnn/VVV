@@ -1,17 +1,18 @@
 #include "UI/SpriteWidget.h"
+#include <ImGuiToolKit/Color.h>
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
 
-SpriteWidget::SpriteWidget(std::filesystem::path spritePath,
+SpriteWidget::SpriteWidget(const std::string& name, std::filesystem::path spritePath,
 	SpriteShaderId shaderId, const Color& color, SpriteRenderParams renderParams)
-	: Widget(spritePath.filename().string()), spritePath(std::move(spritePath)),
+	: Widget(name), spritePath(std::move(spritePath)),
 	shaderId(shaderId), color(color), renderParams(std::move(renderParams))
 {
 }
 
-SpriteWidget::SpriteWidget(std::shared_ptr<Texture> texture,
+SpriteWidget::SpriteWidget(const std::string& name, std::shared_ptr<Texture> texture,
 	SpriteShaderId shaderId, const Color& color, SpriteRenderParams renderParams)
-	: Widget("Sprite Widget"), texture(std::move(texture)), shaderId(shaderId),
+	: Widget(name), texture(std::move(texture)), shaderId(shaderId),
 	color(color), renderParams(std::move(renderParams))
 {
 }
@@ -74,7 +75,7 @@ void SpriteWidget::OnDrawGUI()
 	}
 	if (shaderId == SpriteShaderId::Vignette || shaderId == SpriteShaderId::VignetteOverlay)
 	{
-		ImGui::ColorEdit3("Color", &color.x);
+		ImGuiToolKit::ColorEdit3(u8"Color", &color.x);
 		ImGui::SliderFloat("Vignette Strength", &color.w, 0.0f, 1.0f);
 		if (ImGui::SliderFloat(
 			"Vignette Range", &renderParams.vignette.range, 0.001f, 1.0f))
@@ -87,7 +88,7 @@ void SpriteWidget::OnDrawGUI()
 	}
 	else
 	{
-		ImGui::ColorEdit4("Color", &color.x);
+		ImGuiToolKit::ColorEdit4(u8"Color", &color.x);
 	}
 	ImGui::SliderFloat("Horizontal Fill", &horizontalFill, 0.0f, 1.0f);
 }

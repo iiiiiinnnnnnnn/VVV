@@ -39,7 +39,7 @@
       <WarningLevel>Level4</WarningLevel>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)Include;$(MSBuildThisFileDirectory)..\imgui\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\Include;..\imgui\include;..\juliettef;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
@@ -54,6 +54,10 @@
     <ClInclude Include="Include\ImGuiToolKit\Alert.h" />
     <ClInclude Include="Include\ImGuiToolKit\Path.h" />
     <ClInclude Include="Include\ImGuiToolKit\Theme.h" />
+    <ClInclude Include="Include\ImGuiToolKit\Color.h" />
+    <ClInclude Include="Include\ImGuiToolKit\Drag.h" />
+    <ClInclude Include="Include\ImGuiToolKit\Widgets.h" />
+    <ClInclude Include="Include\ImGuiToolKit\Utf8.h" />
     <ClCompile Include="Source\Alert.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

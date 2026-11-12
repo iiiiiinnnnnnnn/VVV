@@ -2,18 +2,14 @@
 
 #include <Dx11Kit/Common.h>
 
-#include "Common.h"
-
-#include <Dx11Kit/BufferDesc.h>
-
 namespace Gpu
 {
 class Buffer
 {
   public:
-	Buffer(ID3D11Device* device, const BufferDesc& description,
+	Buffer(ID3D11Device* device, const D3D11_BUFFER_DESC& description,
 		const D3D11_SUBRESOURCE_DATA* initialData = nullptr);
-	Buffer(ID3D11Device* device, const BufferDesc& description,
+	Buffer(ID3D11Device* device, const D3D11_BUFFER_DESC& description,
 		const D3D11_SUBRESOURCE_DATA& initialData);
 
 	void Update(ID3D11DeviceContext* context, const void* data) const;
@@ -44,16 +40,18 @@ class Buffer
 	D3D11_USAGE usage = D3D11_USAGE_DEFAULT;
 };
 } // namespace Gpu
-inline Gpu::Buffer::Buffer(ID3D11Device* device, const BufferDesc& description,
+inline Gpu::Buffer::Buffer(ID3D11Device* device, const D3D11_BUFFER_DESC& description,
 	const D3D11_SUBRESOURCE_DATA* initialData)
-	: byteWidth(description.GetByteWidth()), bindFlags(description.GetBindFlags()), usage(description.GetUsage())
+	: byteWidth(description.ByteWidth), bindFlags(description.BindFlags), usage(description.Usage)
 {
 	if (!device || !byteWidth) throw std::invalid_argument("Invalid GPU buffer description.");
-	if (FAILED(device->CreateBuffer(&description.Get(), initialData, buffer.GetAddressOf())))
+	if ((bindFlags & D3D11_BIND_CONSTANT_BUFFER) && (byteWidth & 15))
+		throw std::invalid_argument("Constant buffer size must be a multiple of 16.");
+	if (FAILED(device->CreateBuffer(&description, initialData, buffer.GetAddressOf())))
 		throw std::runtime_error("Could not create GPU buffer.");
 }
 
-inline Gpu::Buffer::Buffer(ID3D11Device* device, const BufferDesc& description,
+inline Gpu::Buffer::Buffer(ID3D11Device* device, const D3D11_BUFFER_DESC& description,
 	const D3D11_SUBRESOURCE_DATA& initialData)
 	: Buffer(device, description, &initialData)
 {

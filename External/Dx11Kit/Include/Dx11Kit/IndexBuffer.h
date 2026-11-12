@@ -8,7 +8,6 @@ namespace Gpu
 class IndexBuffer : public Buffer
 {
   public:
-	// BufferDescを受け取るコンストラクタも使用する。
 	using Buffer::Buffer;
 	IndexBuffer(ID3D11Device* device, const void* data, UINT size);
 	
@@ -30,7 +29,7 @@ class IndexBuffer : public Buffer
 
 
 inline Gpu::IndexBuffer::IndexBuffer(ID3D11Device* device, const void* data, UINT size)
-	: Buffer(device, BufferDesc(size, D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_IMMUTABLE), D3D11_SUBRESOURCE_DATA{data, 0, 0})
+	: Buffer(device, D3D11_BUFFER_DESC{size, D3D11_USAGE_IMMUTABLE, D3D11_BIND_INDEX_BUFFER, 0, 0, 0}, D3D11_SUBRESOURCE_DATA{data, 0, 0})
 {
 }
 

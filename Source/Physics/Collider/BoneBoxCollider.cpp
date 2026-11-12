@@ -1,4 +1,5 @@
 ﻿#include "Physics/Collider/BoneBoxCollider.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
@@ -35,7 +36,7 @@ void BoneBoxCollider::Render(const RenderContext& rc)
 void BoneBoxCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat3(u8"Size", &size.x, 0.01f, 0.01f, 10.0f);
     size.x = std::max(size.x, 0.01f);
     size.y = std::max(size.y, 0.01f);
     size.z = std::max(size.z, 0.01f);

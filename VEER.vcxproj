@@ -15,6 +15,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlComponentEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlRigidBodyEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlColliderEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSpringEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSpringColliderEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlTrailEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlParticleEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSoundSourceEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlPointLightEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlCameraShakeEditor.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlRadialBlurEditor.cpp" />
+    <ClInclude Include="Source\Gameplay\Scene\VmdlComponents\VmdlComponentEditor.h" />
     <ResourceCompile Include="EmbeddedResources.rc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ResourceCompile>
@@ -102,7 +114,6 @@
     <ClCompile Include="Source\Rendering\Shader\BasicSpriteShader.cpp" />
     <ClCompile Include="Source\Rendering\Shader\VignetteSpriteShader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Aracore.cpp" />
-    <ClCompile Include="Source\Gameplay\Camera\TitleCamera.cpp" />
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Crystal.cpp" />
     <ClCompile Include="Source\Rendering\Component\AfterimageComponent.cpp" />
@@ -159,6 +170,7 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp" />
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
     <ClCompile Include="Source\Resource\ResourceManager.cpp" />
+    <ClCompile Include="Source\Resource\ResourceManagerGUI.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TestPlayScene.cpp" />
     <ClCompile Include="Source\Physics\Core\PhysicsManager.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\PrimitiveRenderer.cpp" />
@@ -175,12 +187,12 @@
     <ClCompile Include="Source\UI\SpriteWidget.cpp" />
     <ClCompile Include="Source\UI\CustomLineWidget.cpp" />
     <ClCompile Include="Source\UI\CmdActionWidget.cpp" />
-    <ClCompile Include="Source\UI\TitleMenuWidget.cpp" />
     <ClCompile Include="Source\UI\TitleLogoWidget.cpp" />
     <ClCompile Include="Source\UI\PressAnyButtonWidget.cpp" />
     <ClCompile Include="Source\UI\ColorWidget.cpp" />
     <ClCompile Include="Source\UI\BossBarWidget.cpp" />
-    <ClCompile Include="Source\UI\ButtonWidget.cpp" />
+    <ClCompile Include="Source\UI\LabelButton.cpp" />
+    <ClCompile Include="Source\UI\SpriteButton.cpp" />
     <ClCompile Include="Source\UI\EventTrigger.cpp" />
     <ClCompile Include="Source\UI\UIEventSystem.cpp" />
     <ClCompile Include="Source\UI\DissolveWidget.cpp" />
@@ -189,6 +201,8 @@
     <ClCompile Include="Source\UI\XboxControllerWidget.cpp" />
     <ClCompile Include="Source\UI\PauseMenuWidget.cpp" />
     <ClCompile Include="Source\UI\TextWidget.cpp" />
+    <ClCompile Include="Source\UI\MenuButtonWidget.cpp" />
+    <ClCompile Include="Source\UI\DevelopMenuButtonWidget.cpp" />
     <ClCompile Include="Source\UI\WidgetShadow.cpp" />
     <ClCompile Include="Source\UI\WidgetAlpha.cpp" />
     <ClCompile Include="Source\UI\UIFont.cpp">
@@ -251,7 +265,6 @@
     <ClInclude Include="Source\Rendering\Shader\DissolveSpriteShader.h" />
     <ClInclude Include="Source\Rendering\Shader\BasicSpriteShader.h" />
     <ClInclude Include="Source\Gameplay\Actor\Aracore.h" />
-    <ClInclude Include="Source\Gameplay\Camera\TitleCamera.h" />
     <ClInclude Include="Source\Gameplay\Camera\Camera.h" />
     <ClInclude Include="Source\Gameplay\Camera\CameraController.h" />
     <ClInclude Include="Source\Gameplay\Lighting\CbLightData.h" />
@@ -331,12 +344,12 @@
     <ClInclude Include="Source\UI\SpriteWidget.h" />
     <ClInclude Include="Source\UI\CustomLineWidget.h" />
     <ClInclude Include="Source\UI\CmdActionWidget.h" />
-    <ClInclude Include="Source\UI\TitleMenuWidget.h" />
     <ClInclude Include="Source\UI\TitleLogoWidget.h" />
     <ClInclude Include="Source\UI\PressAnyButtonWidget.h" />
     <ClInclude Include="Source\UI\ColorWidget.h" />
     <ClInclude Include="Source\UI\BossBarWidget.h" />
-    <ClInclude Include="Source\UI\ButtonWidget.h" />
+    <ClInclude Include="Source\UI\LabelButton.h" />
+    <ClInclude Include="Source\UI\SpriteButton.h" />
     <ClInclude Include="Source\UI\EventTrigger.h" />
     <ClInclude Include="Source\UI\UILayout.h" />
     <ClInclude Include="Source\UI\UIEventSystem.h" />
@@ -346,6 +359,8 @@
     <ClInclude Include="Source\UI\XboxControllerWidget.h" />
     <ClInclude Include="Source\UI\PauseMenuWidget.h" />
     <ClInclude Include="Source\UI\TextWidget.h" />
+    <ClInclude Include="Source\UI\MenuButtonWidget.h" />
+    <ClInclude Include="Source\UI\DevelopMenuButtonWidget.h" />
     <ClInclude Include="Source\UI\WidgetShadow.h" />
     <ClInclude Include="Source\UI\WidgetAlpha.h" />
     <ClInclude Include="Source\UI\UIFont.h" />
@@ -383,6 +398,13 @@
     <None Include="Source\Core\Object\Object.inl" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Shader\DepthOfFieldPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\DepthOfFieldBlurPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <ClInclude Include="Shader\DepthOfField.hlsli" />
     <FxCompile Include="Shader\UnderwaterPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -645,8 +667,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -687,8 +709,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\$(Configuration);.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\PhysX\lib\$(PlatformTarget)\$(Configuration);.\External\RecastNavigation\lib\$(PlatformTarget)\$(Configuration);.\External\Effekseer\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTK\lib\$(PlatformTarget)\$(Configuration);.\External\DirectXTex\lib\$(PlatformTarget)\$(Configuration);.\External\lua\lib\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -732,8 +754,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;DearImGui.lib;NodeEditor.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>.\External\imgui\lib\$(PlatformTarget)\Release;.\External\PhysX\lib\$(PlatformTarget)\Release;.\External\RecastNavigation\lib\$(PlatformTarget)\Release;.\External\Effekseer\lib\$(PlatformTarget)\Release;.\External\DirectXTK\lib\$(PlatformTarget)\Release;.\External\DirectXTex\lib\$(PlatformTarget)\Release;.\External\lua\lib\$(PlatformTarget)\Release;%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;xinput.lib;Cabinet.lib;winmm.lib;xaudio2.lib;Comdlg32.lib;ole32.lib;RecastNavigation.lib;Effekseer.lib;EffekseerRendererDX11.lib;DirectXTK.lib;DirectXTex.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;EffekseerRendererCommon.lib;LLGI.lib;lualib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\PhysX\lib\$(PlatformTarget)\Release;.\External\RecastNavigation\lib\$(PlatformTarget)\Release;.\External\Effekseer\lib\$(PlatformTarget)\Release;.\External\DirectXTK\lib\$(PlatformTarget)\Release;.\External\DirectXTex\lib\$(PlatformTarget)\Release;.\External\lua\lib\$(PlatformTarget)\Release;%(AdditionalLibraryDirectories);.\$(PlatformTarget)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -831,6 +853,7 @@
     <Copy SourceFiles="@(PhysXRuntimeDll)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
   </Target>
   <Import Project="Tools\CacheBuilder\CacheBuilder.targets" />
+  <Import Project="External\imgui\ImGuiSources.targets" />
   <ItemGroup>
     <None Include="Shader\EffekseerOverride\EffekseerFog.hlsli" />
     <None Include="Shader\EffekseerOverride\Original\ad_common_ps.fx" />
@@ -883,12 +906,5 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Foundation\Logger.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Input\PlayerInput.vis" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Input\UIInput.vis" />
-    <None Include="Resources\Input\DebugInput.vis" />
   </ItemGroup>
 </Project>

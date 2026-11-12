@@ -1,4 +1,7 @@
 #include "UI/CustomLineWidget.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include <cmath>
@@ -37,19 +40,19 @@ void CustomLineWidget::DrawLine(const Vector2& start, const Vector2& end)
 
 void CustomLineWidget::OnDrawGUI()
 {
-	ImGui::ColorEdit4((const char*)u8"線の色", &color.x);
-	if (ImGui::DragFloat((const char*)u8"線の太さ", &lineWidth, 0.1f)) SetLineWidth(lineWidth);
-	ImGui::TextDisabled((const char*)u8"各点は矩形左上からのピクセル座標です");
+	ImGuiToolKit::ColorEdit4(u8"線の色", &color.x);
+	if (ImGuiToolKit::DragSizeFloat(u8"線の太さ", &lineWidth, 0.1f)) SetLineWidth(lineWidth);
+	ImGuiToolKit::TextDisabled(u8"各点は矩形左上からのピクセル座標です");
 	for (size_t i = 0; i < points.size(); ++i)
 	{
 		ImGui::PushID(static_cast<int>(i));
-		ImGui::DragFloat2((const char*)u8"座標", &points[i].x, 1.0f);
+		ImGuiToolKit::DragPosFloat2(u8"座標", &points[i].x, 1.0f);
 		ImGui::PopID();
 	}
-	if (ImGui::Button((const char*)u8"点を追加"))
+	if (ImGuiToolKit::Button(u8"点を追加"))
 		points.push_back(points.empty() ? Vector2::Zero : points.back() + Vector2(50.0f, 0.0f));
 	ImGui::SameLine();
 	ImGui::BeginDisabled(points.empty());
-	if (ImGui::Button((const char*)u8"末尾を削除")) points.pop_back();
+	if (ImGuiToolKit::Button(u8"末尾を削除")) points.pop_back();
 	ImGui::EndDisabled();
 }

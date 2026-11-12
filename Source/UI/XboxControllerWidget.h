@@ -8,7 +8,7 @@ class XboxControllerWidget : public WidgetGroup
 {
 public:
 	explicit XboxControllerWidget(
-		std::weak_ptr<Object> inputOwner = {}, const Vector2& position = Vector2::Zero, const Vector2& scale = Vector2::One);
+		const std::string& name, std::weak_ptr<Object> inputOwner = {}, const Vector2& position = Vector2::Zero, const Vector2& scale = Vector2::One);
 	void SetInputOwner(std::weak_ptr<Object> value) { inputOwner = std::move(value); }
 
 protected:

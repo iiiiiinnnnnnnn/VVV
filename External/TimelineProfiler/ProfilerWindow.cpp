@@ -1,10 +1,8 @@
-// Modified for VEER: CPU-only TimelineProfiler sample, isolated in TimelineProfiler namespace.
-
 #include "Profiler.h"
 
 #if WITH_PROFILING
 
-#include "IconsFontAwesome4.h"
+#include "juliettef/IconsFontAwesome5.h"
 #include <algorithm>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>

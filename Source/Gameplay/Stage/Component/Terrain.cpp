@@ -1,4 +1,7 @@
 ﻿#include <Dx11Kit/Dx11Kit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include <ProfileKit/ProfileKit.h>
 
 #include "IconsFontAwesome5.h"
@@ -118,10 +121,12 @@ void Terrain::InitializeGpuResources()
 	CreateGridMesh(device);
 	CreateTerrainTexture(device);
 
-	Gpu::InputLayoutDesc inputElementDescs;
-	inputElementDescs.AddPosition()
-		.AddNormal()
-		.AddTexcoord();
+	const D3D11_INPUT_ELEMENT_DESC inputElementDescs[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 
 	terrainVertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainPrimitiveMeshVS.cso").c_str(),
 		inputElementDescs);
@@ -163,15 +168,20 @@ void Terrain::CreateGridMesh(ID3D11Device* device)
 
 	indexCount = static_cast<UINT>(indices.size());
 
-	const Gpu::BufferDesc vertexBufferDesc(static_cast<UINT>(sizeof(TerrainVertex) * vertices.size()),
-		D3D11_BIND_VERTEX_BUFFER);
+	D3D11_BUFFER_DESC vertexBufferDesc{};
+	vertexBufferDesc.ByteWidth = static_cast<UINT>(sizeof(TerrainVertex) * vertices.size());
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA vertexData{};
 	vertexData.pSysMem = vertices.data();
 
 	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, vertexBufferDesc, &vertexData);
 
-	const Gpu::BufferDesc indexBufferDesc(static_cast<UINT>(sizeof(uint32_t) * indices.size()), D3D11_BIND_INDEX_BUFFER);
+	D3D11_BUFFER_DESC indexBufferDesc{};
+	indexBufferDesc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * indices.size());
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA indexData{};
 	indexData.pSysMem = indices.data();
@@ -1669,14 +1679,14 @@ void Terrain::BakeCollider()
 
 void Terrain::DrawTerrainLayerGUI()
 {
-	if (!ImGui::TreeNode((const char*)(ICON_FA_LAYER_GROUP " " u8"地形ペイントレイヤー")))
+	if (!ImGuiToolKit::TreeNode(ICON_FA_LAYER_GROUP " " u8"地形ペイントレイヤー"))
 	{
 		return;
 	}
 
-	ImGui::Text((const char*)u8"選択中: %s",
+	ImGuiToolKit::Text(u8"選択中: %s",
 		terrainLayers.empty()
-			? (const char*)u8"なし"
+			? JText(u8"なし")
 			: terrainLayers[currentTerrainLayerIndex].name.c_str());
 
 	// ペイントレイヤーのサムネイル一覧
@@ -1740,7 +1750,7 @@ void Terrain::DrawTerrainLayerGUI()
 		ImGui::EndChild();
 	}
 
-	ImGui::Text((const char*)u8"レイヤー数: %d / %d",
+	ImGuiToolKit::Text(u8"レイヤー数: %d / %d",
 		static_cast<int>(terrainLayers.size()),
 		MaxTerrainLayers);
 
@@ -1749,14 +1759,14 @@ void Terrain::DrawTerrainLayerGUI()
 
 void Terrain::DrawBrushGUI()
 {
-	if (!ImGui::TreeNode((const char*)(ICON_FA_IMAGE " " u8"ブラシテクスチャ")))
+	if (!ImGuiToolKit::TreeNode(ICON_FA_IMAGE " " u8"ブラシテクスチャ"))
 	{
 		return;
 	}
 
 	const TerrainBrush* currentBrush = GetCurrentBrush();
-	ImGui::Text((const char*)u8"選択中: %s",
-		currentBrush != nullptr ? currentBrush->name.c_str() : (const char*)u8"なし");
+	ImGuiToolKit::Text(u8"選択中: %s",
+		currentBrush != nullptr ? currentBrush->name.c_str() : JText(u8"なし"));
 
 	// ブラシテクスチャのサムネイル一覧
 	{
@@ -1820,9 +1830,9 @@ void Terrain::DrawBrushGUI()
 		ImGui::EndChild();
 	}
 
-	ImGui::Checkbox((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシマスクを反転"), &invertBrushMask);
+	ImGuiToolKit::Checkbox(ICON_FA_PAINT_BRUSH " " u8"ブラシマスクを反転", &invertBrushMask);
 
-	ImGui::Text((const char*)u8"ブラシ数: %d", static_cast<int>(brushes.size()));
+	ImGuiToolKit::Text(u8"ブラシ数: %d", static_cast<int>(brushes.size()));
 	ImGui::TreePop();
 }
 
@@ -1835,56 +1845,51 @@ void Terrain::DrawGUI()
 	}
 
 	// よく使う地形ブラシ
-	ImGui::TextUnformatted((const char*)(ICON_FA_PAINT_BRUSH " " u8"地形ブラシ"));
-	ImGui::Checkbox((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシを使用（B）"), &use_brush);
+	ImGuiToolKit::TextUnformatted(ICON_FA_PAINT_BRUSH " " u8"地形ブラシ");
+	ImGuiToolKit::Checkbox(ICON_FA_PAINT_BRUSH " " u8"ブラシを使用（B）", &use_brush);
 
 	int brushModeIndex = static_cast<int>(brushMode);
 	const char* brushModeItems[] =
 	{
-		(const char*)u8"上げる／下げる",
-		(const char*)u8"高さを指定",
-		(const char*)u8"ペイント",
-		(const char*)(ICON_FA_LEAF " " u8"草マップ"),
-		(const char*)u8"NavMesh範囲",
+		JText(u8"上げる／下げる"),
+		JText(u8"高さを指定"),
+		JText(u8"ペイント"),
+		JText(ICON_FA_LEAF " " u8"草マップ"),
+		JText(u8"NavMesh範囲"),
 	};
 
-	if (ImGui::Combo(
-			(const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシモード"), &brushModeIndex, brushModeItems,
+	if (ImGuiToolKit::Combo(ICON_FA_PAINT_BRUSH " " u8"ブラシモード", &brushModeIndex, brushModeItems,
 			_countof(brushModeItems)))
 	{
 		brushMode = static_cast<BrushMode>(brushModeIndex);
 		use_brush = true;
 	}
 
-	ImGui::DragInt((const char*)(ICON_FA_PAINT_BRUSH " " u8"ブラシサイズ"), &brush_size, 1.0f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
+	ImGuiToolKit::DragInt(ICON_FA_PAINT_BRUSH " " u8"ブラシサイズ", &brush_size, 1.0f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
 	if (brushMode == BrushMode::RaiseLower)
 	{
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"上下の強さ"), &heightBrushStrength, 0.001f, 0.0f, 1.0f);
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"上下の強さ", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::SetHeight)
 	{
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"指定する高さ"), &setHeightValue, 0.001f, -10.0f, 10.0f);
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"指定する高さ", &setHeightValue, 0.001f, -10.0f, 10.0f);
 	}
 	else if (brushMode == BrushMode::Paint)
 	{
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_PAINT_BRUSH " " u8"ペイント不透明度"), &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGuiToolKit::DragFloat(ICON_FA_PAINT_BRUSH " " u8"ペイント不透明度", &paintOpacity, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::GrassPaint)
 	{
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"草の塗り強さ"), &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"草の塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
 	}
 	else if (brushMode == BrushMode::NavMeshPaint)
 	{
-		ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"塗り強さ"), &paintOpacity, 0.001f, 0.0f, 1.0f);
-		ImGui::TextUnformatted((const char*)u8"左ドラッグ：範囲を追加 / Shift：範囲を削除");
-		ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.3f, 1.0f), (const char*)u8"緑：入力範囲 / 赤：範囲外 / 水色の線：生成結果");
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
+		ImGuiToolKit::TextUnformatted(u8"左ドラッグ：範囲を追加 / Shift：範囲を削除");
+		ImGuiToolKit::TextColored(ImVec4(0.2f, 1.0f, 0.3f, 1.0f), u8"緑：入力範囲 / 赤：範囲外 / 水色の線：生成結果");
 		if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
 		{
-			if (ImGui::TreeNode((const char*)(ICON_FA_MAP " " u8"NavMesh生成設定")))
+			if (ImGuiToolKit::TreeNode(ICON_FA_MAP " " u8"NavMesh生成設定"))
 			{
 				navMesh->DrawGUI();
 				ImGui::TreePop();
@@ -1898,36 +1903,36 @@ void Terrain::DrawGUI()
 	if (brushMode == BrushMode::Paint) DrawTerrainLayerGUI();
 
 	// 地形のマテリアル
-	if (ImGui::TreeNode((const char*)(ICON_FA_SLIDERS_H " " u8"地形PBR")))
+	if (ImGuiToolKit::TreeNode(ICON_FA_SLIDERS_H " " u8"地形PBR"))
 	{
-		ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"基本色"), &baseColor.x);
-		ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"発光色"), &emissiveColor.x);
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"メタリック"), &metalness, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"粗さ"), &roughness, 0.0001f, 1.0f);
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"オクルージョン"), &occlusion, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"オクルージョン強度"), &occlusionStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"影の強度"), &shadowStrength, 0.0f, 1.0f);
+		ImGuiToolKit::ColorEdit4(u8"基本色", &baseColor.x);
+		ImGuiToolKit::ColorEdit4(u8"発光色", &emissiveColor.x);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"メタリック", &metalness, 0.0f, 1.0f);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"粗さ", &roughness, 0.0001f, 1.0f);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"オクルージョン", &occlusion, 0.0f, 1.0f);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"オクルージョン強度", &occlusionStrength, 0.0f, 1.0f);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"影の強度", &shadowStrength, 0.0f, 1.0f);
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode((const char*)(ICON_FA_LEAF " " u8"草マップ")))
+	if (ImGuiToolKit::TreeNode(ICON_FA_LEAF " " u8"草マップ"))
 	{
 		bool changed = false;
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"密度"), &grassDraftSettings.density,
+		changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"密度", &grassDraftSettings.density,
 			0.05f, 0.0f, 0.0f);
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"横幅"), &grassDraftSettings.width,
+		changed |= ImGuiToolKit::DragSizeFloat(u8"横幅", &grassDraftSettings.width,
 			0.01f, 0.05f, 5.0f);
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"高さ"), &grassDraftSettings.height,
+		changed |= ImGuiToolKit::DragSizeFloat(u8"高さ", &grassDraftSettings.height,
 			0.01f, 0.05f, 8.0f);
-		changed |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"大きさのばらつき"),
+		changed |= ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"大きさのばらつき",
 			&grassDraftSettings.sizeVariation, 0.0f, 0.9f);
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"風の強さ"), &grassDraftSettings.windStrength,
+		changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"風の強さ", &grassDraftSettings.windStrength,
 			0.01f, 0.0f, 2.0f);
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"風の速度"), &grassDraftSettings.windSpeed,
+		changed |= ImGuiToolKit::DragSpeedFloat(u8"風の速度", &grassDraftSettings.windSpeed,
 			0.01f, 0.0f, 8.0f);
-		changed |= ImGui::DragFloat((const char*)(ICON_FA_COG " " u8"描画距離"), &grassDraftSettings.drawDistance,
+		changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"描画距離", &grassDraftSettings.drawDistance,
 			1.0f, 5.0f, 500.0f);
-		changed |= ImGui::ColorEdit4((const char*)(ICON_FA_COG " " u8"草の色"), &grassDraftSettings.tint.x);
+		changed |= ImGuiToolKit::ColorEdit4(u8"草の色", &grassDraftSettings.tint.x);
 
 		if (changed)
 		{
@@ -1939,47 +1944,44 @@ void Terrain::DrawGUI()
 		{
 			generatedTuftCount = grassRenderer->GetTuftCount();
 		}
-		ImGui::Text((const char*)u8"生成株数: %d", generatedTuftCount);
-		ImGui::TextDisabled((const char*)u8"草マップはブラシモードから編集し、ブラシをOFFにすると確定します");
+		ImGuiToolKit::Text(u8"生成株数: %d", generatedTuftCount);
+		ImGuiToolKit::TextDisabled(u8"草マップはブラシモードから編集し、ブラシをOFFにすると確定します");
 		ImGui::TreePop();
 	}
 
 	// 地形に適用する距離フォグ
-	if (ImGui::TreeNode((const char*)(ICON_FA_CLOUD " " u8"距離フォグ")))
+	if (ImGuiToolKit::TreeNode(ICON_FA_CLOUD " " u8"距離フォグ"))
 	{
-		ImGui::Checkbox((const char*)(ICON_FA_COG " " u8"有効##TerrainDistanceFog"), &distanceFogEnabled);
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"開始距離##TerrainDistanceFog"),
+		ImGuiToolKit::Checkbox(ICON_FA_COG " " u8"有効##TerrainDistanceFog", &distanceFogEnabled);
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"開始距離##TerrainDistanceFog",
 			&distanceFogStart,
 			0.5f,
 			0.0f,
 			std::max(distanceFogEnd - 0.1f, 0.0f));
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"終了距離##TerrainDistanceFog"),
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"終了距離##TerrainDistanceFog",
 			&distanceFogEnd,
 			0.5f,
 			distanceFogStart + 0.1f,
 			1000.0f);
-		ImGui::DragFloat(
-			(const char*)(ICON_FA_COG " " u8"強度##TerrainDistanceFog"),
+		ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"強度##TerrainDistanceFog",
 			&distanceFogStrength,
 			0.01f,
 			0.0f,
 			1.0f);
-		ImGui::ColorEdit3((const char*)(ICON_FA_COG " " u8"色##TerrainDistanceFog"), &distanceFogColor.x);
+		ImGuiToolKit::ColorEdit3(u8"色##TerrainDistanceFog", &distanceFogColor.x);
 		ImGui::TreePop();
 	}
 
 	// 高さとペイントを保持する地形データ
-	if (ImGui::TreeNode((const char*)(ICON_FA_DATABASE " " u8"地形データ")))
+	if (ImGuiToolKit::TreeNode(ICON_FA_DATABASE " " u8"地形データ"))
 	{
-		if (ImGui::Button((const char*)(ICON_FA_MOUNTAIN " " u8"地形テクスチャをクリア")))
+		if (ImGuiToolKit::Button(ICON_FA_MOUNTAIN " " u8"地形テクスチャをクリア"))
 		{
 			ClearTerrainTexture();
 		}
 
-		ImGui::Text((const char*)u8"R：高さ / G：レイヤー / B：草 / A：NavMesh範囲");
-		ImGui::DragFloat4((const char*)(ICON_FA_COG " " u8"クリア時のRGBA"), &terrain_texture_clear_color.x, 0.01f);
+		ImGuiToolKit::Text(u8"R：高さ / G：レイヤー / B：草 / A：NavMesh範囲");
+		ImGuiToolKit::DragFloat4(ICON_FA_COG " " u8"クリア時のRGBA", &terrain_texture_clear_color.x, 0.01f);
 
 		if (terrainTextureShaderResourceView)
 		{
@@ -1994,31 +1996,31 @@ void Terrain::DrawGUI()
 	}
 
 	// 地形メッシュとテセレーション
-	if (ImGui::TreeNode((const char*)(ICON_FA_MOUNTAIN " " u8"地形レンダリング")))
+	if (ImGuiToolKit::TreeNode(ICON_FA_MOUNTAIN " " u8"地形レンダリング"))
 	{
 		float newTerrainSize = terrainSize;
-		if (ImGui::DragFloat((const char*)(ICON_FA_MOUNTAIN " " u8"地形サイズ"), &newTerrainSize, 1.0f, 1.0f, 10000.0f))
+		if (ImGuiToolKit::DragSizeFloat(u8"地形サイズ", &newTerrainSize, 1.0f, 1.0f, 10000.0f))
 		{
 			terrainSize = newTerrainSize;
 			MarkTerrainMeshDirty();
 		}
 
 		int newGridResolution = gridResolution;
-		if (ImGui::DragInt((const char*)(ICON_FA_COG " " u8"グリッド解像度"), &newGridResolution, 1, 1, 256))
+		if (ImGuiToolKit::DragInt(ICON_FA_COG " " u8"グリッド解像度", &newGridResolution, 1, 1, 256))
 		{
 			gridResolution = newGridResolution;
 			MarkTerrainMeshDirty();
 		}
 
 		bool meshSettingChanged = false;
-		meshSettingChanged |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"外周分割"), &tesselation_constant.edge_factor, 1.0f, 16.0f);
-		meshSettingChanged |= ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"内部分割"), &tesselation_constant.inner_factor, 1.0f, 16.0f);
-		if (ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"高さ倍率"), &tesselation_constant.height_scaler, -200.0f, 200.0f))
+		meshSettingChanged |= ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"外周分割", &tesselation_constant.edge_factor, 1.0f, 16.0f);
+		meshSettingChanged |= ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"内部分割", &tesselation_constant.inner_factor, 1.0f, 16.0f);
+		if (ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"高さ倍率", &tesselation_constant.height_scaler, -200.0f, 200.0f))
 		{
 			meshSettingChanged = true;
 		}
 		if (meshSettingChanged) MarkTerrainMeshDirty();
-		ImGui::SliderFloat((const char*)(ICON_FA_COG " " u8"タイリング倍率"), &tesselation_constant.tilling_scale, 1.0f, 300.0f);
+		ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"タイリング倍率", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
 
 		ImGui::TreePop();
 	}

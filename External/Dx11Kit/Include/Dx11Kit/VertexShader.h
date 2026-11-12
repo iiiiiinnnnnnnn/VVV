@@ -3,16 +3,14 @@
 #include <Dx11Kit/Common.h>
 #include <Dx11Kit/ShaderBytecode.h>
 
-#include <Dx11Kit/InputLayoutDesc.h>
-
 namespace Gpu
 {
 class VertexShader
 {
   public:
-	VertexShader(ID3D11Device* device, const char* filename, const InputLayoutDesc& layout = {});
+	VertexShader(ID3D11Device* device, const char* filename, std::span<const D3D11_INPUT_ELEMENT_DESC> layout);
 	VertexShader(ID3D11Device* device, const void* bytecode, size_t size,
-		const InputLayoutDesc& layout = {});
+		std::span<const D3D11_INPUT_ELEMENT_DESC> layout);
 
 	// シェーダーリソース設定用
 	static void SetShaderResources(
@@ -44,14 +42,14 @@ class VertexShader
 
   private:
 	void Create(
-		ID3D11Device* device, const void* bytecode, size_t size, const InputLayoutDesc& layout);
+		ID3D11Device* device, const void* bytecode, size_t size, std::span<const D3D11_INPUT_ELEMENT_DESC> layout);
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> shader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
 };
 } // namespace Gpu
 
 inline Gpu::VertexShader::VertexShader(ID3D11Device* device, const char* filename,
-	const InputLayoutDesc& layout)
+	std::span<const D3D11_INPUT_ELEMENT_DESC> layout)
 {
 	ShaderBytecode bytecode;
 	bytecode.Load(filename);
@@ -59,21 +57,22 @@ inline Gpu::VertexShader::VertexShader(ID3D11Device* device, const char* filenam
 }
 
 inline Gpu::VertexShader::VertexShader(ID3D11Device* device, const void* bytecode, size_t size,
-	const InputLayoutDesc& layout)
+	std::span<const D3D11_INPUT_ELEMENT_DESC> layout)
 {
 	Create(device, bytecode, size, layout);
 }
 
 inline void Gpu::VertexShader::Create(ID3D11Device* device, const void* bytecode, size_t size,
-	const InputLayoutDesc& layout)
+	std::span<const D3D11_INPUT_ELEMENT_DESC> layout)
 {
 	if (!device || !bytecode || !size) throw std::invalid_argument("Invalid vertex shader source.");
-	const auto elements = layout.GetElements();
+	if (layout.size() > D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT)
+		throw std::out_of_range("Too many input elements.");
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> replacement;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> replacementLayout;
 	if (FAILED(device->CreateVertexShader(bytecode, size, nullptr, replacement.GetAddressOf())))
 		throw std::runtime_error("Could not create vertex shader.");
-	if (layout.GetCount() && FAILED(device->CreateInputLayout(elements.data(), layout.GetCount(), bytecode, size, replacementLayout.GetAddressOf())))
+	if (!layout.empty() && FAILED(device->CreateInputLayout(layout.data(), static_cast<UINT>(layout.size()), bytecode, size, replacementLayout.GetAddressOf())))
 		throw std::runtime_error("Could not create vertex input layout.");
 	shader = std::move(replacement);
 	inputLayout = std::move(replacementLayout);

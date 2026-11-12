@@ -165,7 +165,7 @@ void Framework::Render(float elapsedTime)
 	RenderTarget* backBuffer =
 		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Display);
 	backBuffer->Clear(dc, 0.025f, 0.04f, 0.065f, 1.0f);
-	backBuffer->Activate(dc);
+	RenderOutput::Bind(dc, backBuffer, nullptr, false);
 
 	// シーン通常描画＆GUI描画処理
 	// GUI描画もSceneに任せちゃうお(rc拾えるようにするため)

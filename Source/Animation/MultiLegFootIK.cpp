@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 // MultiLegFootIK.cpp
 #include "Animation/MultiLegFootIK.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
@@ -61,7 +62,7 @@ void MultiLegFootIK::LateUpdate()
 
 void MultiLegFootIK::DrawGUI()
 {
-	ImGui::DragFloat("VMDLModel Visual Offset Y", &modelVisualOffsetY, 0.01f, -2.0f, 2.0f);
+	ImGuiToolKit::DragPosFloat(u8"VMDLModel Visual Offset Y", &modelVisualOffsetY, 0.01f, -2.0f, 2.0f);
 	if (waistNodeIndex >= 0)
 	{
 		const Vector3 waistPosition =
@@ -71,7 +72,7 @@ void MultiLegFootIK::DrawGUI()
 	}
 	ImGui::DragFloat("Ray Up", &rayUp, 0.01f, 0.0f);
 	ImGui::DragFloat("Ray Down", &rayDown, 0.01f, 0.0f);
-	ImGui::DragFloat("Contact Offset", &contactOffset, 0.001f, 0.0f);
+	ImGuiToolKit::DragPosFloat(u8"Contact Offset", &contactOffset, 0.001f, 0.0f);
 	ImGui::DragFloat("Max Up Correction", &maxUpCorrection, 0.01f, 0.0f);
 	ImGui::DragFloat("Max Down Correction", &maxDownCorrection, 0.01f, 0.0f);
 	if (ImGui::Checkbox("Show Foot Debug", &showFootDebug))

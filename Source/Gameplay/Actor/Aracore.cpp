@@ -1,4 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Actor/Aracore.h"
 
 #include <algorithm>
@@ -972,16 +974,16 @@ void Aracore::SetPlayerDetected(bool detected)
 void Aracore::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-	ImGui::TextUnformatted((const char*)u8"AIパス：Resources/AI/Aracore.lua");
+	ImGuiToolKit::TextUnformatted(u8"AIパス：Resources/AI/Aracore.lua");
 
-	ImGui::Text((const char*)u8"バトル時間: %.2f秒", battleTime);
+	ImGuiToolKit::Text(u8"バトル時間: %.2f秒", battleTime);
 
-	if (ImGui::Button((const char*)u8"威嚇"))
+	if (ImGuiToolKit::Button(u8"威嚇"))
 	{
 		PlayThreatPresentation();
 	}
 
-	if (ImGui::Button((const char*)u8"20ダメージ"))
+	if (ImGuiToolKit::Button(u8"20ダメージ"))
 	{
 		TakeDamage(DamageData{.damage = 20.0f});
 	}
@@ -994,7 +996,7 @@ void Aracore::OnDrawGUI()
 	for (Vector3& pos : colPositions)
 	{
 		ImGui::PushID(&pos);
-		ImGui::DragFloat3("Foot Collider Offset", &pos.x, 0.01f);
+		ImGuiToolKit::DragPosFloat3(u8"Foot Collider Offset", &pos.x, 0.01f);
 		ImGui::PopID();
 	}
 }

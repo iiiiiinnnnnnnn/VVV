@@ -1,4 +1,7 @@
 #include "UI/TextWidget.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include <filesystem>
 
 TextWidget::TextWidget(const std::string& name, const std::string& text, float fontSize,
@@ -43,17 +46,17 @@ void TextWidget::DrawShadow(const RenderContext&, const Vector2& offset,
 void TextWidget::DrawFont(const Vector2& topLeft, const Color& drawColor)
 {
 	UIFont& selectedFont = font ? *font : UIFont::Default();
-	selectedFont.DrawFont(text, topLeft, rect.size, fontSize, drawColor, alignment);
+	selectedFont.DrawFont(text, topLeft + textOffset, rect.size, fontSize, drawColor, alignment);
 }
 
 void TextWidget::OnDrawGUI()
 {
 	const std::string preview = fontPath.empty() ? "Default (Isometra)"
 		: std::filesystem::path(fontPath).filename().string();
-	ImGui::InputTextMultiline((const char*)u8"テキスト", &text);
-	if (ImGui::BeginCombo((const char*)u8"フォントファミリ", preview.c_str()))
+	ImGuiToolKit::InputTextMultiline(u8"テキスト", &text);
+	if (ImGuiToolKit::BeginCombo(u8"フォントファミリ", preview.c_str()))
 	{
-		if (ImGui::Selectable((const char*)u8"既定(Isometra)", fontPath.empty())) SetFont("");
+		if (ImGuiToolKit::Selectable(u8"既定(Isometra)", fontPath.empty())) SetFont("");
 		std::error_code error;
 		std::filesystem::directory_iterator files("Resources/Font", error);
 		const std::filesystem::directory_iterator end;
@@ -69,6 +72,10 @@ void TextWidget::OnDrawGUI()
 		}
 		ImGui::EndCombo();
 	}
-	ImGui::DragFloat((const char*)u8"フォントサイズ", &fontSize);
-	ImGui::ColorPicker4((const char*)u8"色", &color.x);
+	ImGuiToolKit::DragTextSizeFloat(u8"フォントサイズ", &fontSize);
+	ImGuiToolKit::ColorPicker4(u8"色", &color.x);
+	const char* alignmentLabels[] = {JText(u8"左"), JText(u8"中"), JText(u8"右")};
+	int selectedAlignment = static_cast<int>(alignment);
+	if (ImGuiToolKit::Combo(u8"アライン", &selectedAlignment, alignmentLabels, IM_ARRAYSIZE(alignmentLabels)))
+		alignment = static_cast<UITextAlignment>(selectedAlignment);
 }

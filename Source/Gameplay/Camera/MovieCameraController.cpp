@@ -1,4 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -878,6 +880,12 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 			item.at("duration").get<float>(), item.at("volume").get<float>(),
 			item.at("pitch").get<float>(), item.at("pan").get<float>(), item.at("loop").get<bool>()});
 		ValidateMovieSequence(candidate);
+		Game::PostProcess effectSettings;
+		for (auto& key : candidate.effects)
+		{
+			effectSettings.ApplyMovieSettings(key.settings);
+			key.settings = effectSettings.CaptureMovieSettings();
+		}
 		sequence = std::move(candidate);
 		documentPath = path; documentPath.replace_extension(".vmovie");
 		undoStack.clear(); redoStack.clear();
@@ -1152,9 +1160,9 @@ void MovieCameraController::DrawTimeline()
 	}
 	if (ImGui::BeginPopup("MovieKeyMenu"))
 	{
-		if (ImGui::MenuItem((const char*)u8"現在時刻にキーを登録", "K")) RegisterKey();
-		if (ImGui::MenuItem((const char*)u8"選択キーを削除", "Delete", false, selectedKey >= 0)) DeleteKey();
-		if (ImGui::MenuItem((const char*)u8"元に戻す", "Ctrl+Z", false, !undoStack.empty())) Undo();
+		if (ImGuiToolKit::MenuItem(u8"現在時刻にキーを登録", "K")) RegisterKey();
+		if (ImGuiToolKit::MenuItem(u8"選択キーを削除", "Delete", false, selectedKey >= 0)) DeleteKey();
+		if (ImGuiToolKit::MenuItem(u8"元に戻す", "Ctrl+Z", false, !undoStack.empty())) Undo();
 		ImGui::EndPopup();
 	}
 }
@@ -1166,7 +1174,7 @@ void MovieCameraController::DrawKeyList()
 		if (selectedKey >= 0 && selectedKey < static_cast<int>(values.size()))
 			std::snprintf(label, sizeof(label), "Key %d / %.3f s", selectedKey + 1, values[selectedKey].time);
 		else std::snprintf(label, sizeof(label), "New key / %.3f s", cursor);
-		if (ImGui::BeginCombo((const char*)u8"キー一覧", label))
+		if (ImGuiToolKit::BeginCombo(u8"キー一覧", label))
 		{
 			for (size_t i = 0; i < values.size(); ++i)
 			{
@@ -1196,17 +1204,17 @@ void MovieCameraController::DrawInspector()
 		"In Cubic", "Out Cubic", "In Out Cubic", "In Sine", "Out Sine", "In Out Sine" };
 	const char* tracks[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds" };
 	int track = selectedTrack;
-	if (ImGui::Combo((const char*)u8"トラック", &track, tracks, 9)) { selectedTrack = track; selectedKey = -1; }
+	if (ImGuiToolKit::Combo(u8"トラック", &track, tracks, 9)) { selectedTrack = track; selectedKey = -1; }
 	DrawKeyList();
-	ImGui::TextUnformatted(selectedKey >= 0 ? (const char*)u8"選択キーを編集（変更は即座に反映）" :
-		(const char*)u8"現在時刻の値を編集するとキーを自動登録します");
-	if (ImGui::Button((const char*)u8"現在の状態を登録 / K", {-1, 0})) RegisterKey();
+	ImGui::TextUnformatted(selectedKey >= 0 ? JText(u8"選択キーを編集（変更は即座に反映）") :
+		JText(u8"現在時刻の値を編集するとキーを自動登録します"));
+	if (ImGuiToolKit::Button(u8"現在の状態を登録 / K", {-1, 0})) RegisterKey();
 	ImGui::Separator();
 	const auto inspect = [&](auto& values, auto current) {
 		using Key = std::decay_t<decltype(current)>;
 		const bool selected = selectedKey >= 0 && selectedKey < static_cast<int>(values.size());
 		Key key = selected ? values[selectedKey] : current;
-		bool changed = ImGui::DragFloat((const char*)u8"キー時刻 (秒)", &key.time, 1.0f / 60.0f);
+		bool changed = ImGuiToolKit::DragDelayFloat(u8"キー時刻 (秒)", &key.time, 1.0f / 60.0f);
 		const float minimum = selected && selectedKey ? ((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey - 1].time :
 			std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity())) : 0;
 		const float maximum = selected && selectedKey + 1 < static_cast<int>(values.size()) ?
@@ -1214,25 +1222,25 @@ void MovieCameraController::DrawInspector()
 			std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity())) : sequence.duration;
 		key.time = std::clamp(key.time, minimum, maximum);
 		if constexpr (!std::is_same_v<Key, MotionKey> && !std::is_same_v<Key, ParticleKey> && !std::is_same_v<Key, SoundKey>)
-			changed |= ImGui::Combo((const char*)u8"補間", &key.easing, easingNames, static_cast<int>(Easing::Type::Count));
+			changed |= ImGuiToolKit::Combo(u8"補間", &key.easing, easingNames, static_cast<int>(Easing::Type::Count));
 		if constexpr (std::is_same_v<Key, CameraKey>)
 		{
-			changed |= ImGui::DragFloat3((const char*)u8"位置", &key.eye.x, 0.05f);
-			changed |= ImGui::DragFloat3((const char*)u8"注視点", &key.focus.x, 0.05f);
+			changed |= ImGuiToolKit::DragPosFloat3(u8"位置", &key.eye.x, 0.05f);
+			changed |= ImGuiToolKit::DragPosFloat3(u8"注視点", &key.focus.x, 0.05f);
 			changed |= ImGui::SliderFloat("FOV", &key.fov, 10, 120);
-			changed |= ImGui::Checkbox((const char*)u8"このキーでカメラを切り替え", &key.cut);
+			changed |= ImGuiToolKit::Checkbox(u8"このキーでカメラを切り替え", &key.cut);
 		}
 		else if constexpr (std::is_same_v<Key, ActorKey>)
 		{
-			changed |= ImGui::DragFloat3((const char*)u8"配置位置", &key.position.x, 0.05f);
-			changed |= ImGui::DragFloat((const char*)u8"向き (度)", &key.yaw, 0.5f);
+			changed |= ImGuiToolKit::DragPosFloat3(u8"配置位置", &key.position.x, 0.05f);
+			changed |= ImGuiToolKit::DragRotFloat(u8"向き (度)", &key.yaw, 0.5f);
 		}
 		else if constexpr (std::is_same_v<Key, TimeScaleKey>)
 		{
-			changed |= ImGui::DragFloat((const char*)u8"時間スケール", &key.scale, 0.01f, 0.01f, 10.0f);
-			changed |= ImGui::Checkbox((const char*)u8"次のキーへ補間", &key.interpolate);
+			changed |= ImGuiToolKit::DragSpeedFloat(u8"時間スケール", &key.scale, 0.01f, 0.01f, 10.0f);
+			changed |= ImGuiToolKit::Checkbox(u8"次のキーへ補間", &key.interpolate);
 			key.scale = std::clamp(key.scale, 0.01f, 10.0f);
-			ImGui::TextWrapped((const char*)u8"1: 通常速度 / 0.2: 5倍スロー。カメラ・配置・モーション・エフェクトをまとめて変更します。");
+			ImGuiToolKit::TextWrapped(u8"1: 通常速度 / 0.2: 5倍スロー。カメラ・配置・モーション・エフェクトをまとめて変更します。");
 		}
 		else if constexpr (std::is_same_v<Key, ParticleKey>)
 		{
@@ -1241,9 +1249,9 @@ void MovieCameraController::DrawInspector()
 				particlePaths = EffectManager::GetEffectPaths();
 				particlePathsLoaded = true;
 			}
-			if (ImGui::BeginCombo((const char*)u8"エフェクト", key.path.empty() ? (const char*)u8"未設定" : key.path.c_str()))
+			if (ImGuiToolKit::BeginCombo(u8"エフェクト", key.path.empty() ? JText(u8"未設定") : key.path.c_str()))
 			{
-				ImGui::InputTextWithHint("##MovieParticleSearch", (const char*)u8"エフェクト名で検索", &particleSearch);
+				ImGui::InputTextWithHint("##MovieParticleSearch", JText(u8"エフェクト名で検索"), &particleSearch);
 				const ImGuiTextFilter filter(particleSearch.c_str());
 				for (const auto& path : particlePaths)
 				{
@@ -1252,32 +1260,32 @@ void MovieCameraController::DrawInspector()
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::Button((const char*)u8"エフェクト一覧を更新")) particlePathsLoaded = false;
-			changed |= ImGui::InputTextWithHint((const char*)u8"パス", "Resources/Effect/...efkpkg", &key.path);
-			changed |= ImGui::DragFloat((const char*)u8"表示時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
-			const char* targets[] = {(const char*)u8"ムービー基準位置", (const char*)u8"プレイヤー", (const char*)u8"ボス"};
-			changed |= ImGui::Combo((const char*)u8"配置基準", &key.target, targets, 3);
-			changed |= ImGui::Checkbox((const char*)u8"配置基準へ追従", &key.follow);
-			changed |= ImGui::DragFloat3((const char*)u8"位置 / オフセット", &key.position.x, 0.05f);
-			changed |= ImGui::DragFloat3((const char*)u8"回転 (度)", &key.rotation.x, 0.5f);
-			changed |= ImGui::DragFloat3((const char*)u8"サイズ", &key.scale.x, 0.01f, 0.001f, 1000.0f);
-			changed |= ImGui::DragFloat((const char*)u8"再生速度 (0で停止)", &key.speed, 0.01f, 0.0f, 10.0f);
-			changed |= ImGui::Checkbox((const char*)u8"ビルボード", &key.billboard);
-			changed |= ImGui::InputInt((const char*)u8"ランダムシード", &key.seed);
+			if (ImGuiToolKit::Button(u8"エフェクト一覧を更新")) particlePathsLoaded = false;
+			changed |= ImGuiToolKit::InputTextWithHint(u8"パス", "Resources/Effect/...efkpkg", &key.path);
+			changed |= ImGuiToolKit::DragDelayFloat(u8"表示時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
+			const char* targets[] = {JText(u8"ムービー基準位置"), JText(u8"プレイヤー"), JText(u8"ボス")};
+			changed |= ImGuiToolKit::Combo(u8"配置基準", &key.target, targets, 3);
+			changed |= ImGuiToolKit::Checkbox(u8"配置基準へ追従", &key.follow);
+			changed |= ImGuiToolKit::DragPosFloat3(u8"位置 / オフセット", &key.position.x, 0.05f);
+			changed |= ImGuiToolKit::DragRotFloat3(u8"回転 (度)", &key.rotation.x, 0.5f);
+			changed |= ImGuiToolKit::DragSizeFloat3(u8"サイズ", &key.scale.x, 0.01f, 0.001f, 1000.0f);
+			changed |= ImGuiToolKit::DragSpeedFloat(u8"再生速度 (0で停止)", &key.speed, 0.01f, 0.0f, 10.0f);
+			changed |= ImGuiToolKit::Checkbox(u8"ビルボード", &key.billboard);
+			changed |= ImGuiToolKit::InputInt(u8"ランダムシード", &key.seed);
 			key.duration = std::clamp(key.duration, 0.01f, 3600.0f);
 			key.speed = std::clamp(key.speed, 0.0f, 10.0f);
 			key.scale.x = std::clamp(key.scale.x, 0.001f, 1000.0f);
 			key.scale.y = std::clamp(key.scale.y, 0.001f, 1000.0f);
 			key.scale.z = std::clamp(key.scale.z, 0.001f, 1000.0f);
 			particleDraft = key;
-			ImGui::TextWrapped((const char*)u8"登録時刻に一度発生し、表示時間の終了・ムービー終了で停止します。同時刻にも複数登録できます。");
+			ImGuiToolKit::TextWrapped(u8"登録時刻に一度発生し、表示時間の終了・ムービー終了で停止します。同時刻にも複数登録できます。");
 		}
 		else if constexpr (std::is_same_v<Key, SoundKey>)
 		{
 			if (!soundPathsLoaded) { soundPaths = SoundSystem::GetSoundPaths(); soundPathsLoaded = true; }
-			if (ImGui::BeginCombo((const char*)u8"サウンド", key.path.empty() ? (const char*)u8"未設定" : key.path.c_str()))
+			if (ImGuiToolKit::BeginCombo(u8"サウンド", key.path.empty() ? JText(u8"未設定") : key.path.c_str()))
 			{
-				ImGui::InputTextWithHint("##MovieSoundSearch", (const char*)u8"サウンド名で検索", &soundSearch);
+				ImGui::InputTextWithHint("##MovieSoundSearch", JText(u8"サウンド名で検索"), &soundSearch);
 				const ImGuiTextFilter filter(soundSearch.c_str());
 				for (const auto& path : soundPaths)
 				{
@@ -1286,17 +1294,17 @@ void MovieCameraController::DrawInspector()
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::Button((const char*)u8"サウンド一覧を更新")) soundPathsLoaded = false;
-			changed |= ImGui::InputTextWithHint((const char*)u8"パス", "SE/Threat", &key.path);
-			changed |= ImGui::DragFloat((const char*)u8"再生時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
-			changed |= ImGui::DragFloat((const char*)u8"音量", &key.volume, 0.01f, 0.0f, 4.0f);
-			changed |= ImGui::DragFloat((const char*)u8"ピッチ", &key.pitch, 0.01f, 0.01f, 2.0f);
-			changed |= ImGui::SliderFloat((const char*)u8"左右バランス", &key.pan, -1.0f, 1.0f);
-			changed |= ImGui::Checkbox((const char*)u8"サウンドをループ", &key.loop);
+			if (ImGuiToolKit::Button(u8"サウンド一覧を更新")) soundPathsLoaded = false;
+			changed |= ImGuiToolKit::InputTextWithHint(u8"パス", "SE/Threat", &key.path);
+			changed |= ImGuiToolKit::DragDelayFloat(u8"再生時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
+			changed |= ImGuiToolKit::DragFloat(u8"音量", &key.volume, 0.01f, 0.0f, 4.0f);
+			changed |= ImGuiToolKit::DragFloat(u8"ピッチ", &key.pitch, 0.01f, 0.01f, 2.0f);
+			changed |= ImGuiToolKit::SliderFloat(u8"左右バランス", &key.pan, -1.0f, 1.0f);
+			changed |= ImGuiToolKit::Checkbox(u8"サウンドをループ", &key.loop);
 			key.duration = std::clamp(key.duration, 0.01f, 3600.0f);
 			key.volume = std::clamp(key.volume, 0.0f, 4.0f);
 			key.pitch = std::clamp(key.pitch, 0.01f, 2.0f);
-			if (ImGui::Button((const char*)u8"試聴"))
+			if (ImGuiToolKit::Button(u8"試聴"))
 			{
 				playing = false;
 				UpdateSounds(cursor);
@@ -1307,19 +1315,19 @@ void MovieCameraController::DrawInspector()
 				previewSound = SoundSystem::Instance().Play(key.path, options);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)u8"試聴停止"))
+			if (ImGuiToolKit::Button(u8"試聴停止"))
 			{
 				SoundSystem::Instance().Stop(previewSound);
 				previewSound = SoundSystem::InvalidVoiceId;
 			}
 			soundDraft = key;
-			ImGui::TextWrapped((const char*)u8"再生中にキーを通過すると発音します。シーク中は発音せず、再生時間の終了で停止します。スローは発音時刻に適用し、音のピッチはこの設定を使います。");
+			ImGuiToolKit::TextWrapped(u8"再生中にキーを通過すると発音します。シーク中は発音せず、再生時間の終了で停止します。スローは発音時刻に適用し、音のピッチはこの設定を使います。");
 		}
 		else if constexpr (std::is_same_v<Key, EffectKey>)
 		{
 			Game::PostProcess editor;
 			editor.ApplyMovieSettings(key.settings);
-			ImGui::TextUnformatted((const char*)u8"数値・色は補間、有効/無効・方式はキーで切り替え");
+			ImGuiToolKit::TextUnformatted(u8"数値・色は補間、有効/無効・方式はキーで切り替え");
 			editor.DrawGUI();
 			const json settings = editor.CaptureMovieSettings();
 			if (settings != key.settings) { key.settings = settings; changed = true; }
@@ -1327,17 +1335,17 @@ void MovieCameraController::DrawInspector()
 		else
 		{
 			auto* model = (selectedTrack == 3 ? playerState : bossState).renderer->GetModel();
-			if (ImGui::BeginCombo((const char*)u8"アニメーション", key.animation.c_str()))
+			if (ImGuiToolKit::BeginCombo(u8"アニメーション", key.animation.c_str()))
 			{
-				if (ImGui::Selectable((const char*)u8"編集開始時の姿勢", key.animation.empty())) { key.animation.clear(); changed = true; }
+				if (ImGuiToolKit::Selectable(u8"編集開始時の姿勢", key.animation.empty())) { key.animation.clear(); changed = true; }
 				for (const auto& animation : model->GetAnimations())
 					if (ImGui::Selectable(animation.name.c_str(), key.animation == animation.name))
 					{ key.animation = animation.name; key.offset = 0; changed = true; }
 				ImGui::EndCombo();
 			}
-			changed |= ImGui::DragFloat((const char*)u8"モーション開始秒", &key.offset, 0.01f, 0, 3600);
-			changed |= ImGui::DragFloat((const char*)u8"再生速度 (0で姿勢固定)", &key.speed, 0.01f, 0, 10);
-			changed |= ImGui::Checkbox((const char*)u8"モーションループ", &key.loop);
+			changed |= ImGuiToolKit::DragDelayFloat(u8"モーション開始秒", &key.offset, 0.01f, 0, 3600);
+			changed |= ImGuiToolKit::DragSpeedFloat(u8"再生速度 (0で姿勢固定)", &key.speed, 0.01f, 0, 10);
+			changed |= ImGuiToolKit::Checkbox(u8"モーションループ", &key.loop);
 			key.offset = std::max(key.offset, 0.0f); key.speed = std::clamp(key.speed, 0.0f, 10.0f);
 		}
 		if (changed)
@@ -1349,7 +1357,7 @@ void MovieCameraController::DrawInspector()
 			if constexpr (std::is_same_v<Key, CameraKey>) freeView = false;
 			Seek(key.time);
 		}
-		if (selected && ImGui::Button((const char*)u8"1フレーム後に複製"))
+		if (selected && ImGuiToolKit::Button(u8"1フレーム後に複製"))
 		{
 			key.time = std::min(key.time + 1.0f / 60.0f, sequence.duration);
 			PushUndo(); StoreMovieKey(values, key); dirty = true;
@@ -1391,7 +1399,7 @@ void MovieCameraController::DrawInspector()
 		inspect(sequence.sounds, key);
 	}
 	ImGui::Separator();
-	if (ImGui::Button((const char*)u8"選択キーを削除 / Delete", {-1, 0})) DeleteKey();
+	if (ImGuiToolKit::Button(u8"選択キーを削除 / Delete", {-1, 0})) DeleteKey();
 }
 
 void MovieCameraController::DrawEditor()
@@ -1404,50 +1412,50 @@ void MovieCameraController::DrawEditor()
 	ImGui::SetNextWindowPos({viewport->Pos.x + 12, viewport->Pos.y + viewport->Size.y - 12}, ImGuiCond_FirstUseEver, {0,1});
 	ImGui::SetNextWindowSizeConstraints({760, 440}, {10000, 10000});
 	bool open = true;
-	if (ImGui::Begin((const char*)u8"Movie Editor / ムービー編集", &open))
+	if (ImGuiToolKit::Begin(u8"Movie Editor / ムービー編集", &open))
 	{
-		if (ImGui::Button((const char*)u8"保存 / Ctrl+S")) Save(documentPath);
+		if (ImGuiToolKit::Button(u8"保存 / Ctrl+S")) Save(documentPath);
 		ImGui::SameLine();
-		if (ImGui::Button((const char*)u8"別名保存"))
+		if (ImGuiToolKit::Button(u8"別名保存"))
 		{
 			std::string filename = ResourcePath::Text(documentPath);
 			if (Dialog::SaveFileName(filename, "Movie (*.vmovie)\0*.vmovie\0", "Save Movie", "vmovie") == DialogResult::OK)
 			{ auto path = ResourcePath::Path(filename); path.replace_extension(".vmovie"); Save(path); }
 		}
 		ImGui::SameLine();
-		if (ImGui::Button((const char*)u8"開く"))
+		if (ImGuiToolKit::Button(u8"開く"))
 		{
 			std::string filename;
 			if (Dialog::OpenFileName(filename, "Movie (*.vmovie)\0*.vmovie\0", "Open Movie") == DialogResult::OK)
 				Load(ResourcePath::Path(filename));
 		}
-		ImGui::SameLine(); if (ImGui::Button((const char*)u8"元に戻す")) Undo();
-		ImGui::SameLine(); if (ImGui::Button((const char*)u8"やり直す")) Redo();
-		ImGui::SameLine(); if (ImGui::Button((const char*)u8"終了 / F6")) closeRequested = true;
+		ImGui::SameLine(); if (ImGuiToolKit::Button(u8"元に戻す")) Undo();
+		ImGui::SameLine(); if (ImGuiToolKit::Button(u8"やり直す")) Redo();
+		ImGui::SameLine(); if (ImGuiToolKit::Button(u8"終了 / F6")) closeRequested = true;
 		ImGui::Text("%s%s", ResourcePath::Text(documentPath).c_str(), dirty ? " *" : "");
 		ImGui::Separator();
 		const float inspectorWidth = std::clamp(ImGui::GetContentRegionAvail().x * 0.36f, 300.0f, 450.0f);
 		ImGui::BeginChild("MovieTimelinePane", {std::max(ImGui::GetContentRegionAvail().x - inspectorWidth - 10, 220.0f), 0}, true);
-		if (ImGui::Button(playing ? (const char*)u8"一時停止" : (const char*)u8"再生"))
+		if (ImGui::Button(playing ? JText(u8"一時停止") : JText(u8"再生")))
 		{ if (cursor >= sequence.duration) Seek(0); freeView = false; playing = !playing; }
 		ImGui::SameLine();
-		if (ImGui::Button((const char*)u8"先頭から再生")) { Scrub(0); playing = true; }
-		ImGui::SameLine(); ImGui::Checkbox((const char*)u8"ループ", &loop);
+		if (ImGuiToolKit::Button(u8"先頭から再生")) { Scrub(0); playing = true; }
+		ImGui::SameLine(); ImGuiToolKit::Checkbox(u8"ループ", &loop);
 		ImGui::Text("Time Scale: %.3f", GetMovieTimeScale(cursor));
 		float time = cursor;
-		if (ImGui::SliderFloat((const char*)u8"時刻", &time, 0, sequence.duration, "%.3f s")) Scrub(time);
+		if (ImGuiToolKit::SliderFloat(u8"時刻", &time, 0, sequence.duration, "%.3f s")) Scrub(time);
 		ImGui::SameLine();
 		if (ImGui::Button("-1F")) Scrub(cursor - 1.0f / 60.0f);
 		ImGui::SameLine(); if (ImGui::Button("+1F")) Scrub(cursor + 1.0f / 60.0f);
-		if (ImGui::Checkbox((const char*)u8"自由カメラ", &freeView))
+		if (ImGuiToolKit::Checkbox(u8"自由カメラ", &freeView))
 		{ playing = false; if (freeView) freeCamera->SyncCameraToController(*camera); else Evaluate(); }
-		ImGui::SameLine(); if (ImGui::Button((const char*)u8"＋キー / K")) RegisterKey();
-		ImGui::TextUnformatted((const char*)u8"キーをクリック→右に詳細 / 空白をダブルクリック→追加");
+		ImGui::SameLine(); if (ImGuiToolKit::Button(u8"＋キー / K")) RegisterKey();
+		ImGuiToolKit::TextUnformatted(u8"キーをクリック→右に詳細 / 空白をダブルクリック→追加");
 		DrawTimeline();
-		if (ImGui::CollapsingHeader((const char*)u8"ムービー設定 / QTE"))
+		if (ImGuiToolKit::CollapsingHeader(u8"ムービー設定 / QTE"))
 		{
 			float duration = sequence.duration;
-			if (ImGui::DragFloat((const char*)u8"長さ (秒)", &duration, 0.1f, 0.05f, 3600))
+			if (ImGuiToolKit::DragDelayFloat(u8"長さ (秒)", &duration, 0.1f, 0.05f, 3600))
 			{
 				float minimum = 0.05f;
 				const auto last = [&](const auto& values) { if (!values.empty()) minimum = std::max(minimum, values.back().time); };
@@ -1456,12 +1464,12 @@ void MovieCameraController::DrawEditor()
 				sequence.qteEnd = std::clamp(sequence.qteEnd, 0.02f, sequence.duration);
 				sequence.qteStart = std::clamp(sequence.qteStart, 0.0f, sequence.qteEnd - 0.01f); dirty = true; Scrub(cursor);
 			}
-			if (ImGui::DragFloat3((const char*)u8"基準位置 (保存対象外)", &origin.x, 0.1f)) Evaluate();
-			if (ImGui::Button((const char*)u8"ステージ中央へ戻す")) { PlaceAtStageCenter(); Seek(cursor); }
+			if (ImGuiToolKit::DragPosFloat3(u8"基準位置 (保存対象外)", &origin.x, 0.1f)) Evaluate();
+			if (ImGuiToolKit::Button(u8"ステージ中央へ戻す")) { PlaceAtStageCenter(); Seek(cursor); }
 			bool enabled = sequence.qteEnabled; float start = sequence.qteStart, end = sequence.qteEnd;
-			bool changed = ImGui::Checkbox((const char*)u8"攻撃入力判定プレビュー", &enabled);
-			changed |= ImGui::DragFloat((const char*)u8"受付開始", &start, 0.05f);
-			changed |= ImGui::DragFloat((const char*)u8"受付終了", &end, 0.05f);
+			bool changed = ImGuiToolKit::Checkbox(u8"攻撃入力判定プレビュー", &enabled);
+			changed |= ImGuiToolKit::DragDelayFloat(u8"受付開始", &start, 0.05f);
+			changed |= ImGuiToolKit::DragDelayFloat(u8"受付終了", &end, 0.05f);
 			if (changed)
 			{
 				PushUndo(); sequence.qteEnabled = enabled;
@@ -1469,12 +1477,12 @@ void MovieCameraController::DrawEditor()
 				sequence.qteEnd = std::clamp(end, sequence.qteStart + 0.01f, sequence.duration); dirty = true; qteResult = 0;
 			}
 		}
-		ImGui::TextWrapped("%s", (const char*)u8"右ドラッグ＋WASDQE:自由カメラ / K:登録 / Delete:削除 / Ctrl+Z,Y:元に戻す・やり直す");
+		ImGui::TextWrapped("%s", JText(u8"右ドラッグ＋WASDQE:自由カメラ / K:登録 / Delete:削除 / Ctrl+Z,Y:元に戻す・やり直す"));
 		if (qteResult) ImGui::TextUnformatted(qteResult > 0 ? "QTE: success" : "QTE: failed");
 		ImGui::EndChild();
 		ImGui::SameLine();
 		ImGui::BeginChild("MovieInspectorPane", {0,0}, true);
-		ImGui::TextUnformatted((const char*)u8"キー詳細 / 現在時刻の値");
+		ImGuiToolKit::TextUnformatted(u8"キー詳細 / 現在時刻の値");
 		DrawInspector();
 		ImGui::EndChild();
 	}

@@ -17,7 +17,7 @@ inline void Show(Game::Timer& timer)
 	timer.Reset(Duration);
 }
 
-inline void Draw(float moveSpeed, Game::Timer& timer)
+inline void Draw(float moveSpeed, Game::Timer& timer, const char* label)
 {
 	if (timer.GetRemaining() <= 0.0f) return;
 
@@ -25,7 +25,7 @@ inline void Draw(float moveSpeed, Game::Timer& timer)
 	const float alpha = std::min(timer.GetRemaining() / FadeDuration, 1.0f);
 
 	char text[64];
-	sprintf_s(text, "%.1f", moveSpeed);
+	sprintf_s(text, "%s: %.1f", label, moveSpeed);
 
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	const ImVec2 textSize = ImGui::CalcTextSize(text);

@@ -1,4 +1,5 @@
 #include "UI/EventTrigger.h"
+#include <ImGuiToolKit/Widgets.h>
 
 #include "Application/Time/GameTime.h"
 
@@ -58,10 +59,10 @@ void EventTrigger::OnDisabled()
 
 void EventTrigger::OnDrawGUI()
 {
-	ImGui::Checkbox("Interactable", &interactable);
+	ImGuiToolKit::Checkbox(u8"操作可能", &interactable);
 	const char* modes[] = {"None", "Horizontal", "Vertical", "Automatic"};
 	int mode = static_cast<int>(navigation);
-	if (ImGui::Combo("Navigation", &mode, modes, 4)) navigation = static_cast<UINavigation>(mode);
+	if (ImGuiToolKit::Combo(u8"ナビゲーション", &mode, modes, 4)) navigation = static_cast<UINavigation>(mode);
 	ImGui::Checkbox("Wrap Navigation", &wrapNavigation);
 	ImGui::Text("Hovered: %s / Selected: %s / Pressed: %s",
 		pointerInside ? "Yes" : "No", selected ? "Yes" : "No", IsPressed() ? "Yes" : "No");

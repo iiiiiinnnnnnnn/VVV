@@ -7,6 +7,7 @@
 #include "Gameplay/Camera/Camera.h"
 
 class LightManager;
+class DepthTarget;
 namespace Game { class Graphics; }
 
 // レンダリング設定
@@ -54,6 +55,7 @@ struct IBLData
 struct RenderContext
 {
 	ID3D11DeviceContext* deviceContext = nullptr;
+	DepthTarget* depthTarget = nullptr;
 	const Game::Graphics* graphics = nullptr;
 	const Camera* camera = nullptr;
 	const LightManager* lightManager = nullptr;

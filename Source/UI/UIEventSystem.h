@@ -37,6 +37,7 @@ private:
 	void SetHovered(const std::shared_ptr<Widget>& widget, UIEventData& data);
 	void SetSelected(const std::shared_ptr<Widget>& widget, UIEventData& data);
 	void ResetPointer(UIEventData& data);
+	void UpdateInputMode(UIEventData& data);
 	void UpdatePointer(UIEventData& data);
 	void UpdateNavigation(UIEventData& data);
 	std::shared_ptr<Widget> FindNext(const std::shared_ptr<Widget>& current, const Vector2& direction) const;
@@ -44,13 +45,16 @@ private:
 	std::vector<Target> targets;
 	std::weak_ptr<Widget> hovered;
 	std::weak_ptr<Widget> selected;
+	std::weak_ptr<Widget> navigationSelection;
 	std::array<PointerState, 3> pointers;
 	Vector2 lastPosition = Vector2::Zero;
 	Vector2 lastMove = Vector2::Zero;
+	Vector2 lastNavigationInput = Vector2::Zero;
 	Game::Timer moveTimer{0.0f};
 	float dragThreshold = 5.0f;
 	bool submitWasHeld = true;
 	bool submitArmed = false;
 	bool cancelWasHeld = true;
 	bool hasPosition = false;
+	bool pointerMode = true;
 };

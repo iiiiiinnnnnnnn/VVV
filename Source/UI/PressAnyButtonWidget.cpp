@@ -5,7 +5,8 @@
 
 #include "Core/Foundation/Easing.h"
 
-PressAnyButtonWidget::PressAnyButtonWidget(const std::string& spritePath) : SpriteWidget(spritePath) {}
+PressAnyButtonWidget::PressAnyButtonWidget()
+	: SpriteWidget("PressAnyButton", "Resources/UI/pressAnyButton.png"){}
 
 void PressAnyButtonWidget::Update()
 {

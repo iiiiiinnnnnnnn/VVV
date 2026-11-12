@@ -66,7 +66,19 @@ bool InputKit::InputSystem::IsUp(const std::string& path) const
 	return action && action->state.up;
 }
 
-void InputKit::InputSystem::Update(bool acceptsInput, UINT viewportWidth, UINT viewportHeight)
+bool InputKit::InputSystem::IsAnyDown(std::span<const int> excludedKeys, bool ignoreUI) const
+{
+	if (!enabled || (!ignoreUI && !CanReadActions())) return false;
+	if (mouse.GetButtonDown() || gamePad.GetButtonDown()) return true;
+	for (int key = 0; key < static_cast<int>(keys.size()); ++key)
+	{
+		if (!keys[key] || previousKeys[key]) continue;
+		if (std::find(excludedKeys.begin(), excludedKeys.end(), key) == excludedKeys.end()) return true;
+	}
+	return false;
+}
+
+void InputKit::InputSystem::Update(bool acceptsInput, UINT _viewportWidth, UINT _viewportHeight)
 {
 	if (suppressionFrames > 0) --suppressionFrames;
 	previousKeys = keys;
@@ -74,7 +86,7 @@ void InputKit::InputSystem::Update(bool acceptsInput, UINT viewportWidth, UINT v
 	for (int key = 0; key < static_cast<int>(keys.size()); ++key)
 		keys[key] = enabled && (GetAsyncKeyState(key) & 0x8000) != 0;
 	gamePad.Update(enabled);
-	mouse.Update(viewportWidth, viewportHeight);
+	mouse.Update(_viewportWidth, _viewportHeight);
 
 	for (auto& file : files)
 	{

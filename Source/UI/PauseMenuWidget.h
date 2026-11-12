@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-class ButtonWidget;
+class LabelButton;
 class SpriteWidget;
 
 class PauseMenuWidget : public WidgetGroup
@@ -17,7 +17,7 @@ public:
 	using PauseChangedCallback = std::function<void(bool)>;
 	using ReturnToTitleCallback = std::function<void()>;
 
-	PauseMenuWidget(PauseChangedCallback pauseChanged, ReturnToTitleCallback returnToTitle);
+	PauseMenuWidget(const std::string& name, PauseChangedCallback pauseChanged, ReturnToTitleCallback returnToTitle);
 
 	void SetPaused(bool value);
 	bool IsPaused() const { return paused; }
@@ -39,7 +39,7 @@ private:
 	PauseChangedCallback pauseChanged;
 	ReturnToTitleCallback returnToTitle;
 	std::shared_ptr<SpriteWidget> dimmer;
-	std::vector<std::shared_ptr<ButtonWidget>> mainButtons;
+	std::vector<std::shared_ptr<LabelButton>> mainButtons;
 	float transition = 0.0f;
 	Game::Timer inputDelay{0.0f};
 	bool paused = false;

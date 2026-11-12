@@ -1,5 +1,6 @@
 // FootIK.cpp
 #include "Animation/FootIK.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
@@ -176,7 +177,7 @@ void FootIK::Render(const RenderContext& rc)
 
 void FootIK::DrawGUI()
 {
-	if (ImGui::DragFloat3("Pole Position", &chain.polePosition.x, 0.01f))
+	if (ImGuiToolKit::DragPosFloat3(u8"Pole Position", &chain.polePosition.x, 0.01f))
 	{
 		SyncPoleLocalPosition();
 	}

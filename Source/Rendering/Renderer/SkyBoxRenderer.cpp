@@ -10,7 +10,8 @@
 SkyBoxRenderer::SkyBoxRenderer(ID3D11Device* device)
 {
     // 頂点シェーダー（入力レイアウト不要 = SV_VertexID 使用）
-    vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SkyBoxVS.cso").c_str());
+    vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SkyBoxVS.cso").c_str(),
+        std::span<const D3D11_INPUT_ELEMENT_DESC>{});
 
     // ピクセルシェーダー
     pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SkyBoxPS.cso").c_str());

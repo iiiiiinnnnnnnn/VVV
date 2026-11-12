@@ -13,7 +13,7 @@ cbuffer CbBasic : register(b0)
 // ピクセルシェーダーエントリポイント
 float4 main(VS_OUT pin) : SV_TARGET
 {
-	float4 final = spriteTexture.Sample(spriteSampler, pin.texcoord);
+	float4 final = DecodeSpriteColor(spriteTexture.Sample(spriteSampler, pin.texcoord));
     final *= color;
     final.a *= pin.alpha;
     return final;

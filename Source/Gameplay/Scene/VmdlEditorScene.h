@@ -19,6 +19,7 @@ class Animator;
 class Rigidbody;
 class MeshCollider;
 class RenderTarget;
+class DepthTarget;
 class TrailRenderComponent;
 class VMDLParticleEmitterComponent;
 class SpringBone;
@@ -42,6 +43,17 @@ class VmdlEditorScene : public EditorScene
 	bool OnRequestExit() override;
 
   private:
+	friend class VmdlRigidBodyEditor;
+	friend class VmdlColliderEditor;
+	friend class VmdlSpringEditor;
+	friend class VmdlSpringColliderEditor;
+	friend class VmdlTrailEditor;
+	friend class VmdlParticleEditor;
+	friend class VmdlSoundSourceEditor;
+	friend class VmdlPointLightEditor;
+	friend class VmdlCameraShakeEditor;
+	friend class VmdlRadialBlurEditor;
+
 	void HandleShortcuts();
 
 	std::filesystem::path initialModelPath;
@@ -172,6 +184,7 @@ class VmdlEditorScene : public EditorScene
 	std::filesystem::path recentModelPath;
 	std::unique_ptr<RenderTarget> previewLuminance, previewBloomWork, previewSsao;
 	std::unique_ptr<RenderTarget> previewPostA, previewPostB;
+	std::unique_ptr<DepthTarget> previewDepthTarget;
 	std::unique_ptr<RenderTarget> previewSceneTarget;
 	std::unique_ptr<RenderTarget> previewTarget;
 	std::unique_ptr<Object> cameraOwner;
@@ -202,27 +215,12 @@ class VmdlEditorScene : public EditorScene
 	float animationTime = 0.0f;
 	float playbackSpeed = 1.0f;
 
-	// レイアウト設定
-	float bottomPanelHeight = 430.0f;
-	float propertyPanelWidth = -1.0f;
-	float viewportPanelWidth = -1.0f;
-	float loadedBottomPanelRatio = -1.0f;
-	float loadedPropertyPanelRatio = -1.0f;
-	float loadedViewportPanelRatio = -1.0f;
-	float layoutColumnWidth = 0.0f;
-	float layoutTotalHeight = 0.0f;
-	bool layoutInitialized = false;
-	// Win32のサイズ変更が次のImGuiフレームへ反映されるまで初期化を待つ
-	bool layoutWindowMetricsPending = true;
-
 	// カメラ状態
 	float cameraYaw = 0.55f;
 	float cameraPitch = 0.35f;
 	float cameraDistance = 5.0f;
-	float previewVerticalFovDegrees = 45.0f;
 	float targetCameraDistance = 5.0f;
 	float previewCameraMoveSpeed = 10.0f;
-	Game::Timer previewCameraMoveSpeedOverlayTimer{0.0f};
 	Vector3 cameraFocusOffset = Vector3::Zero;
 	Vector3 cameraOrbitPivot = Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 previewCameraEye = Vector3::Zero;

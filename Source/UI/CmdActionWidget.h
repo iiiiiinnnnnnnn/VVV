@@ -17,7 +17,7 @@ public:
 		Y
 	};
 	CmdActionWidget(
-		ActionBtns btn, Player* player, Camera* camera, const Vector2& defaultSize = {80, 80});
+		const std::string& name, const std::string& maskPath, ActionBtns btn, Player* player, Camera* camera, const Vector2& defaultSize = {80, 80});
 	// 消去中・非表示中も、状態とディゾルブを更新する
 	void Update() override;
 	void OnDrawGUI() override;

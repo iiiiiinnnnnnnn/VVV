@@ -1,4 +1,7 @@
 ﻿#include "Gameplay/Lighting/Light.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include "imgui.h"
 
 void Light::DrawGUI()
@@ -6,7 +9,7 @@ void Light::DrawGUI()
 	DrawBasicInspector();
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	transform.DrawGUI();
-	if (ImGui::TreeNodeEx((const char*)u8"ライト設定", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGuiToolKit::TreeNodeEx(u8"ライト設定", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		DrawLightSettings();
 		ImGui::TreePop();
@@ -15,13 +18,11 @@ void Light::DrawGUI()
 
 void Light::DrawLightSettings()
 {
-	ImGui::ColorEdit3(
-		(const char*)u8"色",
+	ImGuiToolKit::ColorEdit3(u8"色",
 		&color.x,
 		ImGuiColorEditFlags_Float);
 
-	ImGui::DragFloat(
-		(const char*)u8"強度",
+	ImGuiToolKit::DragFloat(u8"強度",
 		&intensity,
 		0.1f,
 		0.0f,
@@ -34,8 +35,7 @@ void Light::DrawLightSettings()
 void DirectionalLight::DrawLightSettings()
 {
 	Light::DrawLightSettings();
-	ImGui::TextDisabled(
-		(const char*)u8"向き: %.3f, %.3f, %.3f",
+	ImGuiToolKit::TextDisabled(u8"向き: %.3f, %.3f, %.3f",
 		transform.GetForward().x,
 		transform.GetForward().y,
 		transform.GetForward().z);
@@ -44,8 +44,7 @@ void DirectionalLight::DrawLightSettings()
 void PointLight::DrawLightSettings()
 {
 	Light::DrawLightSettings();
-	ImGui::DragFloat(
-		(const char*)u8"範囲",
+	ImGuiToolKit::DragFloat(u8"範囲",
 		&range,
 		0.1f,
 		0.0f,
@@ -58,24 +57,21 @@ void PointLight::DrawLightSettings()
 void SpotLight::DrawLightSettings()
 {
 	Light::DrawLightSettings();
-	ImGui::DragFloat(
-		(const char*)u8"範囲",
+	ImGuiToolKit::DragFloat(u8"範囲",
 		&range,
 		0.1f,
 		0.0f,
 		10000.0f,
 		"%.2f");
 
-	ImGui::DragFloat(
-		(const char*)u8"内側コーン角度",
+	ImGuiToolKit::DragRotFloat(u8"内側コーン角度",
 		&innerConeAngle,
 		0.001f,
 		0.0f,
 		1.0f,
 		"%.3f");
 
-	ImGui::DragFloat(
-		(const char*)u8"外側コーン角度",
+	ImGuiToolKit::DragRotFloat(u8"外側コーン角度",
 		&outerConeAngle,
 		0.001f,
 		0.0f,
@@ -102,8 +98,7 @@ void SpotLight::DrawLightSettings()
 			outerConeAngle;
 	}
 
-	ImGui::TextDisabled(
-		(const char*)u8"向き: %.3f, %.3f, %.3f",
+	ImGuiToolKit::TextDisabled(u8"向き: %.3f, %.3f, %.3f",
 		transform.GetForward().x,
 		transform.GetForward().y,
 		transform.GetForward().z);
@@ -112,24 +107,21 @@ void SpotLight::DrawLightSettings()
 void AreaLight::DrawLightSettings()
 {
 	Light::DrawLightSettings();
-	ImGui::DragFloat(
-		(const char*)u8"幅",
+	ImGuiToolKit::DragFloat(u8"幅",
 		&width,
 		0.01f,
 		0.0f,
 		10000.0f,
 		"%.2f");
 
-	ImGui::DragFloat(
-		(const char*)u8"高さ",
+	ImGuiToolKit::DragSizeFloat(u8"高さ",
 		&height,
 		0.01f,
 		0.0f,
 		10000.0f,
 		"%.2f");
 
-	ImGui::DragFloat(
-		(const char*)u8"範囲",
+	ImGuiToolKit::DragFloat(u8"範囲",
 		&range,
 		0.1f,
 		0.0f,
@@ -142,14 +134,12 @@ void AreaLight::DrawLightSettings()
 
 	range = std::max(range, 0.0f);
 
-	ImGui::TextDisabled(
-		(const char*)u8"向き: %.3f, %.3f, %.3f",
+	ImGuiToolKit::TextDisabled(u8"向き: %.3f, %.3f, %.3f",
 		transform.GetForward().x,
 		transform.GetForward().y,
 		transform.GetForward().z);
 
-	ImGui::TextDisabled(
-		(const char*)u8"右方向: %.3f, %.3f, %.3f",
+	ImGuiToolKit::TextDisabled(u8"右方向: %.3f, %.3f, %.3f",
 		transform.GetRight().x,
 		transform.GetRight().y,
 		transform.GetRight().z);

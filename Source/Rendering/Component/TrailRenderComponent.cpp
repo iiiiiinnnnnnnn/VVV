@@ -1,4 +1,5 @@
 ﻿#include "Rendering/Component/TrailRenderComponent.h"
+#include <ImGuiToolKit/Color.h>
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
 #include "IconsFontAwesome5.h"
@@ -170,5 +171,5 @@ void TrailRenderComponent::DrawGUI()
 	ImGui::Text("Tip Ratio  : %.2f", tipRatio);
 	ImGui::Text("Offset Angle: (%.2f, %.2f, %.2f)", offsetAngle.x, offsetAngle.y, offsetAngle.z);
 
-    ImGui::ColorPicker3("Color", &color.x);
+    ImGuiToolKit::ColorPicker3(u8"Color", &color.x);
 }

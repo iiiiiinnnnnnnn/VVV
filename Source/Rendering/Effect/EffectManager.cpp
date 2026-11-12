@@ -401,7 +401,7 @@ void EffectManager::Render(const RenderContext& rc)
 	effekseerRenderer->BeginRendering();
 
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	const auto viewport = RenderTarget::GetViewport(dc);
+	const auto viewport = RenderOutput::GetViewport(dc);
 	FogConstants fog{};
 	fog.inverseViewProjection = (view * projection).Invert();
 	const Vector3 eye = rc.camera->GetEye();

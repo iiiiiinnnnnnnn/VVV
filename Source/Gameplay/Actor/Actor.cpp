@@ -1,4 +1,5 @@
 ﻿#include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
 #include "Gameplay/Actor/Actor.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
@@ -80,78 +81,6 @@ bool Actor::IsUpdateSuspended() const
 
 void Actor::DrawGUI()
 {
-	DrawGUI(false);
-}
-
-void Actor::DrawGUI(bool selected)
-{
-    ImGui::PushID(this);
-	const ImGuiTreeNodeFlags flags = selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None;
-	if (selected) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-	if (selected)
-	{
-		const ImVec4 selectedColor = ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive);
-		ImGui::PushStyleColor(ImGuiCol_Header, selectedColor);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, selectedColor);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, selectedColor);
-	}
-	const std::string label = std::string(ICON_FA_CUBE " ") +
-		(name.empty() ? (const char*)u8"名前なしオブジェクト" : name) + "###ActorInspector";
-    const bool inspectorOpen = ImGui::CollapsingHeader(label.c_str(), flags);
-	if (selected)
-	{
-		const ImVec2 itemMin = ImGui::GetItemRectMin();
-		const ImVec2 itemMax = ImGui::GetItemRectMax();
-		const ImU32 accentColor = ImGui::GetColorU32(ImGuiCol_NavCursor);
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		drawList->AddRect(itemMin, itemMax, accentColor, 2.0f, 0, 2.0f);
-		drawList->AddRectFilled(itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), accentColor);
-		ImGui::PopStyleColor(3);
-	}
-    if (inspectorOpen)
-    {
-        Transform::TransformChangedResult res = transform.DrawGUI();
-        if (res.positionChanged)
-        {
-            auto rb = GetComponent<Rigidbody>();
-            if (rb)
-            {
-                RigidbodyDynamic* rbd = dynamic_cast<RigidbodyDynamic*>(rb);
-                if (rbd)
-                {
-                    rbd->SetVelocity(Vector3::Zero);
-                }
-                rb->SetPosition(transform.position);
-            }
-
-            auto cc = GetComponent<CharacterController>();
-            if (cc)
-                cc->SetPosition(transform.position);
-        }
-        if (res.rotationChanged)
-        {
-            auto rb = GetComponent<Rigidbody>();
-            if (rb)
-                rb->SetRotation(transform.rotation);
-        }
-        if (res.scaleChanged)
-        {
-            // you have no idea what's come
-        }
-
-        Object::DrawGUI();
-
-        if (ImGui::TreeNode((const char*)u8"ユーザーパラメーター"))
-        {
-            OnDrawGUI();
-            ImGui::TreePop();
-        }
-    }
-    ImGui::PopID();
-}
-
-void Actor::DrawInspector()
-{
 	ImGui::PushID(this);
 	DrawBasicInspector();
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -169,7 +98,36 @@ void Actor::DrawInspector()
 	if (changed.rotationChanged)
 		if (auto* rigidbody = GetComponent<Rigidbody>()) rigidbody->SetRotation(transform.rotation);
 
-	if (ImGui::CollapsingHeader((const char*)u8"ユーザーパラメーター", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	if (ImGuiToolKit::CollapsingHeader(u8"ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
 	DrawComponentInspector();
+	ImGui::PopID();
+}
+
+void Actor::DrawGUI(bool selected)
+{
+    ImGui::PushID(this);
+	const ImGuiTreeNodeFlags flags = selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None;
+	if (selected) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (selected)
+	{
+		const ImVec4 selectedColor = ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive);
+		ImGui::PushStyleColor(ImGuiCol_Header, selectedColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, selectedColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, selectedColor);
+	}
+	const std::string label = std::string(ICON_FA_CUBE " ") +
+		(name.empty() ? JText(u8"名前なしオブジェクト") : name) + "###ActorInspector";
+    const bool inspectorOpen = ImGui::CollapsingHeader(label.c_str(), flags);
+	if (selected)
+	{
+		const ImVec2 itemMin = ImGui::GetItemRectMin();
+		const ImVec2 itemMax = ImGui::GetItemRectMax();
+		const ImU32 accentColor = ImGui::GetColorU32(ImGuiCol_NavCursor);
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		drawList->AddRect(itemMin, itemMax, accentColor, 2.0f, 0, 2.0f);
+		drawList->AddRectFilled(itemMin, ImVec2(itemMin.x + 4.0f, itemMax.y), accentColor);
+		ImGui::PopStyleColor(3);
+	}
+	if (inspectorOpen) DrawGUI();
 	ImGui::PopID();
 }

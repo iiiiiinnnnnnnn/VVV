@@ -110,10 +110,43 @@ void UIEventSystem::ResetPointer(UIEventData& data)
 	}
 }
 
+void UIEventSystem::UpdateInputMode(UIEventData& data)
+{
+	auto& input = InputKit::InputSystem::Instance();
+	auto& mouse = input.GetMouse();
+	const auto navigation = input.ReadValue<InputKit::Vector2>("UIInput/Navigate");
+	const Vector2 navigationInput(
+		std::abs(navigation.x) > 0.5f ? (navigation.x > 0 ? 1.0f : -1.0f) : 0.0f,
+		std::abs(navigation.y) > 0.5f ? (navigation.y > 0 ? 1.0f : -1.0f) : 0.0f);
+	const bool mouseUsed = !ImGui::GetIO().WantCaptureMouse &&
+		mouse.IsCursorVisible() && !mouse.IsCursorLocked() &&
+		(data.delta.LengthSquared() > 0.0f || mouse.GetButtonDown() || mouse.GetButtonUp() || mouse.GetWheel());
+	const bool navigationUsed = !ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantTextInput &&
+		((navigationInput != Vector2::Zero && navigationInput != lastNavigationInput) ||
+		input.GetGamePad().GetButtonDown() || input.IsDown("UIInput/Submit") || input.IsDown("UIInput/Cancel"));
+	lastNavigationInput = navigationInput;
+
+	if (mouseUsed && !pointerMode)
+	{
+		navigationSelection = selected;
+		pointerMode = true;
+		SetSelected({}, data);
+		lastMove = Vector2::Zero;
+	}
+	else if (!mouseUsed && navigationUsed && pointerMode)
+	{
+		pointerMode = false;
+		ResetPointer(data);
+		SetSelected(navigationSelection.lock(), data);
+		lastMove = Vector2::Zero;
+		moveTimer.Stop();
+	}
+}
+
 void UIEventSystem::UpdatePointer(UIEventData& data)
 {
 	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
-	if (ImGui::GetIO().WantCaptureMouse || !mouse.IsCursorVisible() || mouse.IsCursorLocked())
+	if (!pointerMode || ImGui::GetIO().WantCaptureMouse || !mouse.IsCursorVisible() || mouse.IsCursorLocked())
 	{
 		ResetPointer(data);
 		return;
@@ -138,7 +171,6 @@ void UIEventSystem::UpdatePointer(UIEventData& data)
 		if (mouse.GetButtonDown() & buttons[index])
 		{
 			auto hit = Raycast(data.position);
-			if (index == 0) SetSelected(hit, data);
 			if (!IsAvailable(hit)) continue;
 			pointer.pressed = hit;
 			pointer.pressPosition = data.position;
@@ -252,7 +284,18 @@ void UIEventSystem::UpdateNavigation(UIEventData& data)
 		auto* trigger = target.widget->GetComponent<EventTrigger>();
 		if (!trigger->selectionRequested || !IsAvailable(target.widget)) continue;
 		trigger->selectionRequested = false;
-		SetSelected(target.widget, data);
+		navigationSelection = target.widget;
+		if (!pointerMode) SetSelected(target.widget, data);
+	}
+	// マウス操作中はホバーだけを使い、自動選択や決定入力を処理しない。
+	if (pointerMode)
+	{
+		SetSelected({}, data);
+		submitWasHeld = submitHeld;
+		cancelWasHeld = cancelHeld;
+		submitArmed = !submitHeld;
+		lastMove = Vector2::Zero;
+		return;
 	}
 	current = selected.lock();
 	if (!current)
@@ -319,6 +362,7 @@ void UIEventSystem::Update(const std::vector<std::shared_ptr<Widget>>& roots)
 		lastMove = Vector2::Zero;
 		return;
 	}
+	UpdateInputMode(data);
 	UpdatePointer(data);
 	data.relatedTarget = nullptr;
 	data.dragging = false;

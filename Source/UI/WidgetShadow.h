@@ -10,7 +10,7 @@ public:
 	WidgetShadow(Object* owner, const Vector2& offset = Vector2(3.0f, 3.0f),
 		const Color& color = Color(0.0f, 0.0f, 0.0f, 0.7f));
 
-	const char* GetDebugName() const override { return "WidgetShadow"; }
+	const char* GetDebugName() const override { return "ウィジェットシャドウ"; }
 
 	void SetOffset(const Vector2& value) { offset = value; }
 	void SetColor(const Color& value) { color = value; }

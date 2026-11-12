@@ -7,8 +7,10 @@
 ShapeRenderer::ShapeRenderer(ID3D11Device* device)
 {
 	// 入力レイアウト
-	Gpu::InputLayoutDesc inputElementDesc;
-	inputElementDesc.AddPosition();
+	const D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 
 	// 頂点シェーダー
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShapeRendererVS.cso").c_str(),
@@ -145,8 +147,10 @@ void ShapeRenderer::DrawBone(
 // メッシュ生成
 void ShapeRenderer::CreateMesh(ID3D11Device* device, const std::vector<Vector3>& vertices, Mesh& mesh)
 {
-	const Gpu::BufferDesc desc(static_cast<UINT>(sizeof(Vector3) * vertices.size()),
-		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = static_cast<UINT>(sizeof(Vector3) * vertices.size());
+	desc.Usage = D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA subresourceData = {};
 	subresourceData.pSysMem = vertices.data();
 	subresourceData.SysMemPitch = 0;

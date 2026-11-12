@@ -1,26 +1,12 @@
 #include "UI/TitleLogoWidget.h"
 
-#include <algorithm>
-#include "Application/Time/GameTime.h"
-#include "UI/UILayout.h"
-
-TitleLogoWidget::TitleLogoWidget() : SpriteWidget("Resources/UI/titleLogo.png")
+TitleLogoWidget::TitleLogoWidget(const std::string& name, const std::filesystem::path& spritePath)
+	: SpriteWidget(name, spritePath)
 {
-	SetName("TitleLogoWidget");
-}
-
-void TitleLogoWidget::OnAwake()
-{
-	SpriteWidget::OnAwake();
-	UpdateLayout();
-}
-
-void TitleLogoWidget::OnUpdate()
-{
-	UpdateLayout();
-}
-
-void TitleLogoWidget::UpdateLayout()
-{
-	UILayout::Image(*this, {0.50f, 0}, {0.50f, 0.45f}, {0, 268.8f}, {0.5f, 0.5f});
+	rect.position = {1479.0f, 576.8f};
+	rect.angle = 0.0f;
+	rect.size = {1526.0f, 625.0f};
+	rect.scale = {0.36f, 0.43f};
+	rect.anchor = {0.5f, 0.5f};
+	SetAffectedByPostProcess(false);
 }

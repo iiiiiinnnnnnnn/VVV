@@ -1,4 +1,4 @@
-﻿#include <ProfileKit/ProfileKit.h>
+#include <ProfileKit/ProfileKit.h>
 #include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
@@ -13,9 +13,14 @@
 // コンストラクタ
 SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 {
+	colorConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, static_cast<UINT>(sizeof(CbSpriteColor)));
+
 	// 頂点バッファ生成（DYNAMIC: 毎フレーム Map/Unmap で更新）
-	const Gpu::BufferDesc bufferDesc(sizeof(SpriteVertex) * 4,
-		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.ByteWidth = sizeof(SpriteVertex) * 4;
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, bufferDesc, nullptr);
 
 	shaders[static_cast<int>(SpriteShaderId::Basic)] = std::make_unique<BasicSpriteShader>(device);
@@ -41,11 +46,14 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	const Color& color,
 	const SpriteRenderParams* params)
 {
-	return BuildDrawInfo(
+	DrawInfo info = BuildDrawInfo(
 		shaderId,
 		texture->GetShaderResourceView().Get(),
 		{ static_cast<float>(texture->GetWidth()), static_cast<float>(texture->GetHeight()) },
 		dxyz, dwh, sxy, swh, angle, color, params);
+	// 描画結果を表示する場合は、通常の UNORM でも画像用の sRGB 変換を掛けない
+	if (texture->GetTexture2dDesc().BindFlags & D3D11_BIND_RENDER_TARGET) info.decodeSrgb = 0.0f;
+	return info;
 }
 
 SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
@@ -63,6 +71,13 @@ SpriteRenderer::DrawInfo SpriteRenderer::BuildDrawInfo(
 	DrawInfo info = {};
 	info.shaderId = shaderId;
 	info.srv = srv;
+	if (srv)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc{};
+		srv->GetDesc(&desc);
+		// sRGB ビューは GPU が変換済み。浮動小数点の描画結果もリニアなので変換しない
+		info.decodeSrgb = DirectX::MakeSRGB(desc.Format) != desc.Format ? 1.0f : 0.0f;
+	}
 	info.textureSize = textureSize;
 	info.color = color;
 	info.params = params;
@@ -135,7 +150,7 @@ void SpriteRenderer::Render(const RenderContext& rc)
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
 	// ビューポート取得（NDC 変換に使う）
-	const auto viewport = RenderTarget::GetViewport(dc);
+	const auto viewport = RenderOutput::GetViewport(dc);
 	float screenWidth = viewport.Width;
 	float screenHeight = viewport.Height;
 
@@ -176,6 +191,12 @@ void SpriteRenderer::Render(const RenderContext& rc)
 		// 頂点バッファ更新
 		vertexBuffer->Update(dc, verts, static_cast<UINT>(sizeof(verts)));
 
+		static_assert(sizeof(CbSpriteColor) == 16);
+		CbSpriteColor spriteColor{};
+		spriteColor.decodeSrgb = call.decodeSrgb;
+		colorConstantBuffer->Update(dc, &spriteColor);
+		colorConstantBuffer->BindPS(dc, 3);
+
 		shader->Update(rc, call.srv.Get(), call.textureSize, call.color, call.params);
 
 		// 描画
@@ -183,6 +204,7 @@ void SpriteRenderer::Render(const RenderContext& rc)
 	}
 
 	if (currentShader) currentShader->End(rc);
+	Gpu::ConstantBuffer::UnbindPS(dc, 3);
 
 	drawCalls.clear();
 }

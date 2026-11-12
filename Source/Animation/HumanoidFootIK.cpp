@@ -1,5 +1,6 @@
 // HumanoidFootIK.cpp
 #include "Animation/HumanoidFootIK.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Component/ActorHitstopComponent.h"
 
 #include "Animation/Animator.h"
@@ -105,10 +106,10 @@ void HumanoidFootIK::DrawGUI()
 {
 	ImGui::DragFloat("Ray Up", &rayUp, 0.01f, 0.0f, 3.0f);
 	ImGui::DragFloat("Ray Down", &rayDown, 0.01f, 0.0f, 5.0f);
-	ImGui::DragFloat("Contact Offset", &contactOffset, 0.001f, 0.0f, 0.2f);
-	ImGui::DragFloat("Visual Hip Offset Y", &visualHipOffsetY, 0.01f, -1.0f, 1.0f);
-	ImGui::DragFloat("Min Hip Offset Y", &minHipOffsetY, 0.01f, -1.0f, 0.0f);
-	ImGui::DragFloat("Max Hip Offset Y", &maxHipOffsetY, 0.01f, -1.0f, 1.0f);
+	ImGuiToolKit::DragPosFloat(u8"Contact Offset", &contactOffset, 0.001f, 0.0f, 0.2f);
+	ImGuiToolKit::DragPosFloat(u8"Visual Hip Offset Y", &visualHipOffsetY, 0.01f, -1.0f, 1.0f);
+	ImGuiToolKit::DragPosFloat(u8"Min Hip Offset Y", &minHipOffsetY, 0.01f, -1.0f, 0.0f);
+	ImGuiToolKit::DragPosFloat(u8"Max Hip Offset Y", &maxHipOffsetY, 0.01f, -1.0f, 1.0f);
 }
 
 void HumanoidFootIK::SetRay(float up, float down, float contactOffset)

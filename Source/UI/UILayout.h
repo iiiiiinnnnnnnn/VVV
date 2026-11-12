@@ -4,7 +4,6 @@
 
 #include "Rendering/Core/Graphics.h"
 #include "UI/SpriteWidget.h"
-#include "UI/ButtonWidget.h"
 #include "UI/GaugeWidget.h"
 #include "UI/TextWidget.h"
 
@@ -20,6 +19,7 @@ public:
 	// 画面比率で位置だけを設定する。
 	static void Apply(Widget& widget, Vector2 position)
 	{
+		if (!widget.GetAutoLayout()) return;
 		widget.rect.position = position * Vector2(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
 	}
 
@@ -32,6 +32,7 @@ public:
 	static void Apply(Widget& widget, Vector2 position, Vector2 size,
 		float fontSize = 0, Vector2 offset = Vector2::Zero, Vector2 anchor = Vector2::Zero)
 	{
+		if (!widget.GetAutoLayout()) return;
 		const Vector2 screen(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
 		widget.rect.position = position * screen + offset;
 		widget.rect.size = size * screen;
@@ -40,8 +41,6 @@ public:
 		if (fontSize <= 0) return;
 		if (auto* text = dynamic_cast<TextWidget*>(&widget))
 			text->SetFontSize(fontSize * Scale());
-		if (auto* button = dynamic_cast<ButtonWidget*>(&widget))
-			button->SetFontSize(fontSize * Scale());
 	}
 
 	static void Apply(const std::shared_ptr<Widget>& widget, Vector2 position, Vector2 size,
@@ -51,7 +50,7 @@ public:
 	}
 
 	// タイトルとポーズで共通の画像付きボタンサイズ。
-	static void MenuButton(const std::shared_ptr<ButtonWidget>& button, Vector2 position,
+	static void MenuButton(const std::shared_ptr<TextWidget>& button, Vector2 position,
 		float fontSize, Vector2 offset = Vector2::Zero)
 	{
 		const float height = Game::Graphics::ScreenHeight;
@@ -63,6 +62,7 @@ public:
 	static void Image(Widget& widget, Vector2 position, Vector2 size,
 		Vector2 offset = Vector2::Zero, Vector2 anchor = Vector2::Zero)
 	{
+		if (!widget.GetAutoLayout()) return;
 		Apply(widget, position, size, 0, offset, anchor);
 		const auto* sprite = dynamic_cast<const SpriteWidget*>(&widget);
 		const auto* texture = sprite ? sprite->GetTexture() : nullptr;

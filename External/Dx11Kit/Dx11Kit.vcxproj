@@ -26,7 +26,6 @@
     <ClInclude Include="Include\Dx11Kit\Dx11Kit.h" />
     <ClInclude Include="Include\Dx11Kit\RenderTarget.h" />
     <ClInclude Include="Include\Dx11Kit\Buffer.h" />
-    <ClInclude Include="Include\Dx11Kit\BufferDesc.h" />
     <ClInclude Include="Include\Dx11Kit\ConstantBuffer.h" />
     <ClInclude Include="Include\Dx11Kit\IndexBuffer.h" />
     <ClInclude Include="Include\Dx11Kit\VertexBuffer.h" />
@@ -38,12 +37,13 @@
     <ClInclude Include="Include\Dx11Kit\HullShader.h" />
     <ClInclude Include="Include\Dx11Kit\DomainShader.h" />
     <ClInclude Include="Include\Dx11Kit\ComputeShader.h" />
-    <ClInclude Include="Include\Dx11Kit\InputLayoutDesc.h" />
     <ClInclude Include="Include\Dx11Kit\ShaderBytecode.h" />
     <ClInclude Include="Include\Dx11Kit\BlendState.h" />
     <ClInclude Include="Include\Dx11Kit\DepthStencilState.h" />
     <ClInclude Include="Include\Dx11Kit\RasterizerState.h" />
     <ClInclude Include="Include\Dx11Kit\SamplerState.h" />
+    <ClInclude Include="Include\Dx11Kit\DepthTarget.h" />
+    <ClInclude Include="Include\Dx11Kit\RenderOutput.h" />
   </ItemGroup>
   <ItemDefinitionGroup>
     <ClCompile>

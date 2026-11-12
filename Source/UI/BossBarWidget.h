@@ -14,7 +14,7 @@ class Texture;
 class BossBarWidget final : public GaugeWidget
 {
 public:
-	BossBarWidget();
+	BossBarWidget(const std::string& name, const std::string& maskPath = "Resources/UI/dissolve_animation.png", bool revealOnStart = false);
 
 	// 通常時の色は共通API、HP低下時の変化先はボス固有の設定。
 	void SetColor(const Color& value) override;

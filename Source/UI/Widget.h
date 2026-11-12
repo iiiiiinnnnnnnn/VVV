@@ -32,12 +32,13 @@ public:
 
     void Update() override;
     void DrawGUI() override;
-    void DrawInspector();
 	RectTransform* GetRectTransform() override { return &rect; }
 	const RectTransform* GetRectTransform() const override { return &rect; }
 
 	void SetAffectedByPostProcess(bool affected) { affectedByPostProcess = affected; }
 	bool GetAffectedByPostProcess() const { return affectedByPostProcess; }
+	void SetAutoLayout(bool value) { autoLayout = value; }
+	bool GetAutoLayout() const { return autoLayout; }
 	virtual void DrawShadow(const RenderContext& rc, const Vector2& offset,
 		const Color& color) {}
 
@@ -49,5 +50,6 @@ protected:
 
 private:
 	WidgetGroup* parent = nullptr;
+	bool autoLayout = true;
 
 };

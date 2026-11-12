@@ -198,14 +198,18 @@ MeshCache::MeshCache(
 		}
 
 		// GPUバッファを生成
-		const Gpu::BufferDesc vertexDesc(static_cast<UINT>(mesh.vertices.size() * sizeof(VMDLModel::Vertex)),
-			D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+		D3D11_BUFFER_DESC vertexDesc{};
+		vertexDesc.ByteWidth = static_cast<UINT>(mesh.vertices.size() * sizeof(VMDLModel::Vertex));
+		vertexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		D3D11_SUBRESOURCE_DATA vertexData{};
 		vertexData.pSysMem = mesh.vertices.data();
 		mesh.vertexBuffer = std::make_shared<Gpu::VertexBuffer>(device, vertexDesc, &vertexData);
 
-		const Gpu::BufferDesc indexDesc(static_cast<UINT>(mesh.indices.size() * sizeof(uint32_t)),
-			D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+		D3D11_BUFFER_DESC indexDesc{};
+		indexDesc.ByteWidth = static_cast<UINT>(mesh.indices.size() * sizeof(uint32_t));
+		indexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		D3D11_SUBRESOURCE_DATA indexData{};
 		indexData.pSysMem = mesh.indices.data();
 		mesh.indexBuffer = std::make_shared<Gpu::IndexBuffer>(device, indexDesc, &indexData);

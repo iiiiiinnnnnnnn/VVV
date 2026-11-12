@@ -1,7 +1,6 @@
 #include <imgui.h>
 #include <cmath>
 #include "Gameplay/Camera/FreeCameraController.h"
-#include "Gameplay/Camera/CameraMoveSpeedOverlay.h"
 #include "Application/Time/GameTime.h"
 
 FreeCameraController::FreeCameraController(Object* owner)
@@ -77,9 +76,7 @@ void FreeCameraController::UpdateCamera()
     bool isShiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
     bool isAltPressed = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
 	const bool mouseCapturedByImGui = io.WantCaptureMouse;
-	const bool adjustingFov = fovWheelEnabled && io.KeyCtrl;
-	if (adjustingFov && !mouseCapturedByImGui && !io.WantTextInput)
-		verticalFovDegrees = std::clamp(verticalFovDegrees - mouse.GetWheel() * 2.0f, 10.0f, 120.0f);
+	const bool adjustingFov = io.KeyCtrl;
     bool isRightMouseDown = !mouseCapturedByImGui &&
         (mouse.GetButton() & InputKit::Mouse::BTN_RIGHT) != 0;
     bool isLeftMouseDown = !mouseCapturedByImGui &&
@@ -124,18 +121,6 @@ void FreeCameraController::UpdateCamera()
 
     if (isRightMouseDown)
     {
-		const int wheel = mouse.GetWheel();
-		if (wheel != 0 && !adjustingFov)
-		{
-			constexpr float speedStep = 1.1f;
-			constexpr float minimumSpeed = 0.1f;
-			constexpr float maximumSpeed = 500.0f;
-			moveSpeed = (std::clamp)(
-				moveSpeed * std::pow(speedStep, static_cast<float>(wheel)),
-				minimumSpeed, maximumSpeed);
-			CameraMoveSpeedOverlay::Show(moveSpeedOverlayTimer);
-		}
-
         // 右ドラッグ中のみ、WASDキーによるFPS移動を許可
         float speed = moveSpeed;
         if (isShiftPressed)
@@ -195,7 +180,6 @@ void FreeCameraController::UpdateCamera()
     right = Vector3::TransformNormal(Vector3(1, 0, 0), World);
     up = Vector3::TransformNormal(Vector3(0, 1, 0), World);
 
-	CameraMoveSpeedOverlay::Draw(moveSpeed, moveSpeedOverlayTimer);
 }
 
 void FreeCameraController::OnFocusLost()

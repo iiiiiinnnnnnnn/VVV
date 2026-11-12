@@ -15,7 +15,7 @@ cbuffer CbDissolve : register(b0)
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
-    float4 result = spriteTexture.Sample(spriteSampler, pin.texcoord) * color;
+    float4 result = DecodeSpriteColor(spriteTexture.Sample(spriteSampler, pin.texcoord)) * color;
     if (amount >= 1.0f) return 0.0f;
     if (amount > 0.0f)
     {

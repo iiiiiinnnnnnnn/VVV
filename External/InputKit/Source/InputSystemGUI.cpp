@@ -6,12 +6,12 @@
 
 namespace InputKit
 {
-static const char* devices[] = {"Keyboard", "Mouse", "GamePad", "Axis"};
-static const char* axes[] = {"None", "Left Stick X", "Left Stick Y", "Right Stick X", "Right Stick Y"};
-static const char* directions[] = {"Left", "Right", "Backward", "Forward"};
-static const char* padButtons[] = {"D-Pad Up", "D-Pad Right", "D-Pad Down", "D-Pad Left",
-	"A", "B", "X", "Y", "Start", "Back", "Left Thumb", "Right Thumb",
-	"Left Shoulder", "Right Shoulder", "Left Trigger", "Right Trigger"};
+static const char* devices[] = {JText(u8"キーボード"), JText(u8"マウス"), JText(u8"ゲームパッド"), JText(u8"軸")};
+static const char* axes[] = {JText(u8"なし"), JText(u8"左スティック X"), JText(u8"左スティック Y"), JText(u8"右スティック X"), JText(u8"右スティック Y")};
+static const char* directions[] = {JText(u8"左"), JText(u8"右"), JText(u8"後ろ"), JText(u8"前")};
+static const char* padButtons[] = {JText(u8"十字キー 上"), JText(u8"十字キー 右"), JText(u8"十字キー 下"), JText(u8"十字キー 左"),
+	"A", "B", "X", "Y", JText(u8"スタート"), JText(u8"バック"), JText(u8"左スティック押し込み"), JText(u8"右スティック押し込み"),
+	JText(u8"左ショルダー"), JText(u8"右ショルダー"), JText(u8"左トリガー"), JText(u8"右トリガー")};
 
 static std::string GetKeyName(int code)
 {
@@ -33,21 +33,21 @@ static std::string GetBindingName(const Binding& binding)
 {
 	switch (binding.device)
 	{
-	case Device::Keyboard: return GetKeyName(binding.code) + " [Keyboard]";
+	case Device::Keyboard: return GetKeyName(binding.code) + JText(u8" [キーボード]");
 	case Device::Mouse:
-		if (binding.code == Mouse::BTN_LEFT) return "Left [Mouse]";
-		if (binding.code == Mouse::BTN_MIDDLE) return "Middle [Mouse]";
-		return "Right [Mouse]";
+		if (binding.code == Mouse::BTN_LEFT) return JText(u8"左 [マウス]");
+		if (binding.code == Mouse::BTN_MIDDLE) return JText(u8"中央 [マウス]");
+		return JText(u8"右 [マウス]");
 	case Device::GamePad:
 		for (int i = 0; i < 16; ++i)
 		{
-			if (binding.code == (1 << i)) return std::string(padButtons[i]) + " [GamePad]";
+			if (binding.code == (1 << i)) return std::string(padButtons[i]) + JText(u8" [ゲームパッド]");
 		}
-		return std::string("Button mask ") + std::to_string(binding.code) + " [GamePad]";
+		return std::string(JText(u8"ボタンマスク ")) + std::to_string(binding.code) + JText(u8" [ゲームパッド]");
 	case Device::Axis:
-		return std::string(axes[std::clamp(static_cast<int>(binding.axis), 0, 4)]) + (binding.negative ? " - [Axis]" : " + [Axis]");
+		return std::string(axes[std::clamp(static_cast<int>(binding.axis), 0, 4)]) + (binding.negative ? JText(u8" - [軸]") : JText(u8" + [軸]"));
 	}
-	return std::string("Unknown binding");
+	return std::string(JText(u8"不明なバインディング"));
 }
 
 static std::vector<std::string> GetMapNames(const InputActions& actions)
@@ -81,9 +81,9 @@ void InputSystemGUI::DrawGUI(InputSystem& system)
 
 	if (ImGui::BeginTable("Input Editor", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
 	{
-		ImGui::TableSetupColumn("Action Maps", ImGuiTableColumnFlags_WidthStretch, 0.7f);
-		ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-		ImGui::TableSetupColumn("Details", ImGuiTableColumnFlags_WidthStretch, 1.3f);
+		ImGuiToolKit::TableSetupColumn(u8"アクションマップ", ImGuiTableColumnFlags_WidthStretch, 0.7f);
+		ImGuiToolKit::TableSetupColumn(u8"アクション", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+		ImGuiToolKit::TableSetupColumn(u8"詳細", ImGuiTableColumnFlags_WidthStretch, 1.3f);
 		ImGui::TableNextRow();
 
 		ImGui::TableSetColumnIndex(0);
@@ -111,13 +111,13 @@ void InputSystemGUI::DrawFileControls(InputSystem& system)
 {
 	const auto& files = system.GetFiles();
 	const auto selected = system.GetSelectedFile();
-	const std::string preview = files[selected].path.empty() ? "(Unsaved)" : files[selected].path.filename().generic_string();
-	if (ImGui::BeginCombo("Input file", preview.c_str()))
+	const std::string preview = files[selected].path.empty() ? JText(u8"（未保存）") : files[selected].path.filename().generic_string();
+	if (ImGuiToolKit::BeginCombo(u8"入力ファイル", preview.c_str()))
 	{
 		for (size_t index = 0; index < files.size(); ++index)
 		{
 			ImGui::PushID(static_cast<int>(index));
-			const std::string name = files[index].path.empty() ? "(Unsaved)" : files[index].path.generic_string();
+			const std::string name = files[index].path.empty() ? JText(u8"（未保存）") : files[index].path.generic_string();
 			if (ImGui::Selectable(name.c_str(), index == selected))
 			{
 				system.SelectFile(index);
@@ -139,12 +139,12 @@ void InputSystemGUI::DrawFileControls(InputSystem& system)
 	ImGui::SetNextItemWidth(std::max(100.0f, ImGui::GetContentRegionAvail().x - 170.0f));
 	ImGui::InputText("##Path", &filePathEdit);
 	ImGui::SameLine();
-	if (ImGui::Button("Save"))
+	if (ImGuiToolKit::Button(u8"保存"))
 	{
-		if (!system.Save(filePathEdit)) ImGuiToolKit::Alert(system.GetLastError(), "Input file error");
+		if (!system.Save(filePathEdit)) ImGuiToolKit::Alert(system.GetLastError(), JText(u8"入力ファイルエラー"));
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Load"))
+	if (ImGuiToolKit::Button(u8"読み込み"))
 	{
 		if (system.Load(filePathEdit))
 		{
@@ -152,7 +152,7 @@ void InputSystemGUI::DrawFileControls(InputSystem& system)
 			selectedAction.clear();
 			editingTarget.clear();
 		}
-		else ImGuiToolKit::Alert(system.GetLastError(), "Input file error");
+		else ImGuiToolKit::Alert(system.GetLastError(), JText(u8"入力ファイルエラー"));
 	}
 
 }
@@ -160,8 +160,8 @@ void InputSystemGUI::DrawFileControls(InputSystem& system)
 void InputSystemGUI::DrawMaps(InputSystem& system)
 {
 	auto& actions = system.GetActions();
-	ImGui::SeparatorText("Action Maps");
-	if (ImGui::Button("+ Map"))
+	ImGuiToolKit::SeparatorText(u8"アクションマップ");
+	if (ImGuiToolKit::Button(u8"+ マップ"))
 	{
 		std::string name = "New Map";
 		for (int i = 2; system.FindActionMap(name); ++i) name = "New Map " + std::to_string(i);
@@ -181,11 +181,11 @@ void InputSystemGUI::DrawMaps(InputSystem& system)
 
 void InputSystemGUI::DrawActions(InputActions& actions)
 {
-	ImGui::SeparatorText("Actions");
+	ImGuiToolKit::SeparatorText(u8"アクション");
 	auto* map = actions.FindMap(selectedMap);
 	if (!map) return;
 
-	if (ImGui::Button("+ Action"))
+	if (ImGuiToolKit::Button(u8"+ アクション"))
 	{
 		std::string name = "New Action";
 		for (int i = 2; map->FindAction(name); ++i) name = "New Action " + std::to_string(i);
@@ -203,7 +203,7 @@ bool InputSystemGUI::DrawBindings(InputSystem& system, const char* label, std::v
 	ImGui::PushID(label);
 	ImGui::SeparatorText(label);
 	bool changed = false;
-	if (ImGui::Button("+ Binding"))
+	if (ImGuiToolKit::Button(u8"+ バインディング"))
 	{
 		bindings.push_back(Binding{});
 		changed = true;
@@ -216,7 +216,7 @@ bool InputSystemGUI::DrawBindings(InputSystem& system, const char* label, std::v
 		auto& binding = bindings[index];
 		ImGui::SeparatorText(GetBindingName(binding).c_str());
 		changed |= DrawBindingEditor(system, binding);
-		if (ImGui::Button("Delete")) removeIndex = index;
+		if (ImGuiToolKit::Button(u8"削除")) removeIndex = index;
 		ImGui::PopID();
 	}
 	if (removeIndex >= 0)
@@ -230,7 +230,7 @@ bool InputSystemGUI::DrawBindings(InputSystem& system, const char* label, std::v
 
 void InputSystemGUI::DrawDetails(InputSystem& system)
 {
-	ImGui::SeparatorText("Details");
+	ImGuiToolKit::SeparatorText(u8"詳細");
 	auto& actions = system.GetActions();
 	auto* map = actions.FindMap(selectedMap);
 	if (!map) return;
@@ -244,7 +244,7 @@ void InputSystemGUI::DrawDetails(InputSystem& system)
 		nameError = false;
 	}
 	ImGui::SetNextItemWidth(std::max(80.0f, ImGui::GetContentRegionAvail().x - 80.0f));
-	if (ImGui::InputText("Name", &editName, ImGuiInputTextFlags_EnterReturnsTrue))
+	if (ImGuiToolKit::InputText(u8"名前", &editName, ImGuiInputTextFlags_EnterReturnsTrue))
 	{
 		bool renamed = false;
 		if (action) renamed = map->RenameAction(selectedAction, editName);
@@ -258,10 +258,10 @@ void InputSystemGUI::DrawDetails(InputSystem& system)
 			action = map->FindAction(selectedAction);
 		}
 	}
-	if (nameError) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Use a unique nonempty name without '/'.");
+	if (nameError) ImGuiToolKit::TextColored(ImVec4(1, 0.4f, 0.4f, 1), u8"名前は空欄・重複を避け、「/」を含めないでください。");
 	if (!action)
 	{
-		if (ImGui::Button("Delete"))
+		if (ImGuiToolKit::Button(u8"削除"))
 		{
 			actions.RemoveMap(selectedMap);
 			selectedMap.clear();
@@ -271,8 +271,8 @@ void InputSystemGUI::DrawDetails(InputSystem& system)
 	}
 
 	ImGui::TextWrapped("%s / %s", selectedMap.c_str(), selectedAction.c_str());
-	ImGui::TextDisabled("Held %d  Down %d  Up %d", action->state.held, action->state.down, action->state.up);
-	if (ImGui::Button("Delete"))
+	ImGuiToolKit::TextDisabled(u8"押下中 %d  押した瞬間 %d  離した瞬間 %d", action->state.held, action->state.down, action->state.up);
+	if (ImGuiToolKit::Button(u8"削除"))
 	{
 		map->RemoveAction(selectedAction);
 		selectedAction.clear();
@@ -281,14 +281,14 @@ void InputSystemGUI::DrawDetails(InputSystem& system)
 
 	bool changed = false;
 	int type = static_cast<int>(action->type);
-	if (ImGui::Combo("Type", &type, "Button\0Vector2\0"))
+	if (ImGuiToolKit::Combo(u8"タイプ", &type, JText(u8"ボタン\0ベクトル2\0")))
 	{
 		action->type = static_cast<ActionType>(type);
 		changed = true;
 	}
 	if (action->type == ActionType::Vector2) changed |= DrawVector2Editor(*action);
 
-	changed |= DrawBindings(system, "Bindings", action->bindings);
+	changed |= DrawBindings(system, JText(u8"バインディング"), action->bindings);
 	if (action->type == ActionType::Vector2)
 	{
 		for (int direction = 0; direction < 4; ++direction)
@@ -308,20 +308,20 @@ bool InputSystemGUI::DrawVector2Editor(InputAction& action)
 	auto& vector = action.vectorBinding;
 	int x = static_cast<int>(vector.xAxis);
 	int y = static_cast<int>(vector.yAxis);
-	if (ImGui::Combo("X Axis", &x, axes, 5))
+	if (ImGuiToolKit::Combo(u8"X軸", &x, axes, 5))
 	{
 		vector.xAxis = static_cast<Axis>(x);
 		changed = true;
 	}
-	if (ImGui::Combo("Y Axis", &y, axes, 5))
+	if (ImGuiToolKit::Combo(u8"Y軸", &y, axes, 5))
 	{
 		vector.yAxis = static_cast<Axis>(y);
 		changed = true;
 	}
-	changed |= ImGui::SliderFloat("Dead Zone", &vector.deadZone, 0.01f, 1.0f);
-	changed |= ImGui::Checkbox("Normalize", &vector.normalize);
-	changed |= ImGui::Checkbox("Mouse Delta", &vector.mouseDelta);
-	ImGui::Text("Value: %.3f, %.3f", action.vector.x, action.vector.y);
+	changed |= ImGuiToolKit::SliderFloat(u8"デッドゾーン", &vector.deadZone, 0.01f, 1.0f);
+	changed |= ImGuiToolKit::Checkbox(u8"正規化", &vector.normalize);
+	changed |= ImGuiToolKit::Checkbox(u8"マウス移動量", &vector.mouseDelta);
+	ImGuiToolKit::Text(u8"値: %.3f, %.3f", action.vector.x, action.vector.y);
 	return changed;
 }
 
@@ -329,7 +329,7 @@ bool InputSystemGUI::DrawBindingEditor(InputSystem& system, Binding& binding)
 {
 	bool changed = false;
 	int device = static_cast<int>(binding.device);
-	if (ImGui::Combo("Device", &device, devices, 4))
+	if (ImGuiToolKit::Combo(u8"デバイス", &device, devices, 4))
 	{
 		binding = {};
 		binding.device = static_cast<Device>(device);
@@ -341,7 +341,7 @@ bool InputSystemGUI::DrawBindingEditor(InputSystem& system, Binding& binding)
 	}
 	if (binding.device == Device::Keyboard)
 	{
-		if (ImGui::BeginCombo("Key", GetKeyName(binding.code).c_str()))
+		if (ImGuiToolKit::BeginCombo(u8"キー", GetKeyName(binding.code).c_str()))
 		{
 			for (int key = 1; key < 255; ++key)
 			{
@@ -359,17 +359,17 @@ bool InputSystemGUI::DrawBindingEditor(InputSystem& system, Binding& binding)
 	else if (binding.device == Device::Axis)
 	{
 		int axis = static_cast<int>(binding.axis);
-		if (ImGui::Combo("Axis", &axis, axes, 5))
+		if (ImGuiToolKit::Combo(u8"軸", &axis, axes, 5))
 		{
 			binding.axis = static_cast<Axis>(axis);
 			changed = true;
 		}
-		changed |= ImGui::Checkbox("Negative", &binding.negative);
-		changed |= ImGui::SliderFloat("Threshold", &binding.threshold, 0.0f, 1.0f);
+		changed |= ImGuiToolKit::Checkbox(u8"マイナス方向", &binding.negative);
+		changed |= ImGuiToolKit::SliderFloat(u8"しきい値", &binding.threshold, 0.0f, 1.0f);
 	}
 	else
 	{
-		const char* mouseButtons[] = {"Left", "Middle", "Right"};
+		const char* mouseButtons[] = {JText(u8"左"), JText(u8"中央"), JText(u8"右")};
 		const bool isMouse = binding.device == Device::Mouse;
 		int button = -1;
 		const int buttonCount = isMouse ? 3 : 16;
@@ -377,15 +377,15 @@ bool InputSystemGUI::DrawBindingEditor(InputSystem& system, Binding& binding)
 		{
 			if (binding.code == (1 << i)) button = i;
 		}
-		if (ImGui::Combo("Button", &button, isMouse ? mouseButtons : padButtons, buttonCount))
+		if (ImGuiToolKit::Combo(u8"ボタン", &button, isMouse ? mouseButtons : padButtons, buttonCount))
 		{
 			binding.code = 1 << button;
 			changed = true;
 		}
 	}
-	if (binding.device != Device::Axis) changed |= ImGui::Checkbox("Pulse on Down", &binding.downOnly);
+	if (binding.device != Device::Axis) changed |= ImGuiToolKit::Checkbox(u8"押した瞬間だけ有効", &binding.downOnly);
 	const auto state = system.ReadBindings(std::span<const Binding>(&binding, 1));
-	ImGui::TextDisabled("Binding held: %d", state.held);
+	ImGuiToolKit::TextDisabled(u8"バインディングの押下状態: %d", state.held);
 	return changed;
 }
 }

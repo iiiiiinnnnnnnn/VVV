@@ -1,7 +1,8 @@
 #include "Gameplay/Actor/Water.h"
+#include <ImGuiToolKit/Utf8.h>
 
 Water::Water(const Transform& transform, const WaterRenderer::Settings& settings)
-	: Actor((const char*)u8"ワールド水面", "WorldWater", true, transform), settings(settings)
+	: Actor(JText(u8"ワールド水面"), "WorldWater", true, transform), settings(settings)
 {}
 
 Water::~Water()

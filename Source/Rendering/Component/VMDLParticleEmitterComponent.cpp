@@ -1,5 +1,6 @@
 // VMDLParticleEmitterComponent.cpp
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
+#include <ImGuiToolKit/Widgets.h>
 
 #include "Gameplay/Camera/Camera.h"
 #include "Rendering/Core/RenderContext.h"
@@ -113,6 +114,6 @@ void VMDLParticleEmitterComponent::OnDrawGUI()
 	ImGui::Text("Effect: %s", settings.name.c_str());
 	ImGui::Text("Effect: %s", settings.effectName.c_str());
 	bool active = emitting;
-	if (ImGui::Checkbox((const char*)u8"再生中", &active)) SetEmitting(active);
-	if (ImGui::Button((const char*)u8"再生")) Play();
+	if (ImGuiToolKit::Checkbox(u8"再生中", &active)) SetEmitting(active);
+	if (ImGuiToolKit::Button(u8"再生")) Play();
 }

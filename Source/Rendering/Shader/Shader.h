@@ -44,7 +44,7 @@ public:
 		Vector2 textureSize,
 		const Color& color,
 		const SpriteRenderParams* params) = 0;
-	static const Gpu::InputLayoutDesc InputLayout;
+	static const D3D11_INPUT_ELEMENT_DESC InputLayout[3];
 };
 
 class ModelShader : public Shader
@@ -57,5 +57,5 @@ public:
 		const RenderContext& rc,
 		const VMDLModel::Mesh& mesh,
 		const PBRRenderParams* params) = 0;
-	static const Gpu::InputLayoutDesc InputLayout;
+	static const D3D11_INPUT_ELEMENT_DESC InputLayout[6];
 };

@@ -12,7 +12,7 @@ class EffectWidget : public Widget
 {
   public:
 	void OnAwake() override;
-	EffectWidget(const std::string& path, float scale = 1);
+	EffectWidget(const std::string& name, const std::string& path, float scale = 1);
 	~EffectWidget() override;
 	void Play();
 	void Stop();

@@ -17,10 +17,12 @@
 TerrainGrassRenderer::TerrainGrassRenderer(ID3D11Device* device) : device(device)
 {
 	if (!device) return;
-	Gpu::InputLayoutDesc elements;
-	elements.AddPosition()
-		.AddNormal()
-		.AddTexcoord(DXGI_FORMAT_R32_FLOAT);
+	const D3D11_INPUT_ELEMENT_DESC elements[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainGrassVS.cso").c_str(),
 		elements);
 	geometryShader = std::make_unique<Gpu::GeometryShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainGrassGS.cso").c_str());
@@ -78,8 +80,10 @@ void TerrainGrassRenderer::Rebuild(const Terrain& terrain, const Settings& setti
 	}
 	if (vertices.empty()) return;
 
-	const Gpu::BufferDesc desc(static_cast<UINT>(vertices.size() * sizeof(Vertex)),
-		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = static_cast<UINT>(vertices.size() * sizeof(Vertex));
+	desc.Usage = D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA data{};
 	data.pSysMem = vertices.data();
 	try

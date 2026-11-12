@@ -1,4 +1,5 @@
 #include "Core/Foundation/Random.h"
+#include <ImGuiToolKit/Utf8.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/TestPlayScene.h"
 
@@ -76,13 +77,12 @@ void TestPlayScene::OnInit()
 
 	// ジャスト回避したときのボタン
 	cmdBtnWidget =
-		std::make_shared<CmdActionWidget>(CmdActionWidget::ActionBtns::B, player.get(), camera);
+		std::make_shared<CmdActionWidget>("CmdActionWidget", "Resources/UI/dissolve_animation.png", CmdActionWidget::ActionBtns::B, player.get(), camera);
 	gameHud->AddChild(cmdBtnWidget);
 
 	// ムービー用
 	movieCmdWidget = std::make_shared<CmdActionWidget>(
-		CmdActionWidget::ActionBtns::B, player.get(), camera, Vector2{140, 140});
-	movieCmdWidget->SetName("Movie QTE");
+		"Movie QTE", "Resources/UI/dissolve_animation.png", CmdActionWidget::ActionBtns::B, player.get(), camera, Vector2{140, 140});
 	movieCmdWidget->SetExternalPrompt(0.0f, 0.0f);
 	widgetManager.Register(movieCmdWidget);
 
@@ -96,7 +96,7 @@ void TestPlayScene::OnInit()
 	playerHudGroup->AddChild(playerHealthGauge);
 
 	// ボスバー
-	bossBar = std::make_shared<BossBarWidget>();
+	bossBar = std::make_shared<BossBarWidget>("Boss Bar");
 	bossHudGroup->AddChild(bossBar);
 	widgetManager.Register(gameHud);
 	for (Actor* actor : actorManager.GetActors())
@@ -107,13 +107,13 @@ void TestPlayScene::OnInit()
 
 	// ポーズ画面の内部状態とWidgetはPauseMenu自身が管理する
 	auto ownedPauseMenu = std::make_shared<PauseMenuWidget>(
-		[this](bool paused) { OnPauseChanged(paused); }, [this] { ReturnToTitle(); });
+		"HUD / Pause Menu", [this](bool paused) { OnPauseChanged(paused); }, [this] { ReturnToTitle(); });
 	pauseMenu = ownedPauseMenu.get();
 	widgetManager.Register(std::move(ownedPauseMenu));
 
 #ifndef _RELEASE // ちょうデバッグ
 	developText = std::make_shared<TextWidget>("DevHelp",
-		(const char*)u8"※デバッグ/デベロップビルドです\r\n"
+		JText(u8"※デバッグ/デベロップビルドです\r\n"
 					 u8"\r\n"
 					 u8"[1] Deerを出現させる\r\n"
 					 u8"[2] クリスタルを出現させる\r\n"
@@ -133,7 +133,7 @@ void TestPlayScene::OnInit()
 					 u8"[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
 					 u8"[F5] ゲーム時間を再開\r\n"
 					 u8"[F6] ムービーカメラ・タイムライン編集\r\n"
-					 u8"[F7] この文字を表示/非表示",
+					 u8"[F7] この文字を表示/非表示"),
 		22.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
 	developText->rect.position = {48.1f, -143.0f};
@@ -145,7 +145,7 @@ void TestPlayScene::OnInit()
 
 	// 操作確認画面
 	xboxControllerWidget = std::make_shared<XboxControllerWidget>(
-		player, DefaultXboxControllerPos + Vector2(0, 400.0f), Vector2{0.4f, 0.4f});
+		"XboxControllerWidget", player, DefaultXboxControllerPos + Vector2(0, 400.0f), Vector2{0.4f, 0.4f});
 	gameHud->AddChild(xboxControllerWidget);
 }
 
@@ -359,7 +359,7 @@ void TestPlayScene::OnUpdate()
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_9))
 		{
-			if (ImGui::Button("ReloadScene")) SceneManager::Instance().LoadScene<TestPlayScene>();
+			SceneManager::Instance().LoadScene<TestPlayScene>();
 		}
 		if (ImGui::IsKeyDown(ImGuiKey_0))
 		{
@@ -425,12 +425,11 @@ void TestPlayScene::OnUpdate()
 
 void TestPlayScene::OnDrawGUI()
 {
-	PROFILE_FUNCTION();
 	if (movieCamera && movieCamera->IsEditing()) return;
-	if (ImGui::CollapsingHeader("SceneManager"))
+
+	if (ImGui::Button((const char*)u8"シーンを再読み込み"))
 	{
-		if (ImGui::Button("ReloadScene"))
-			SceneManager::Instance().LoadScene<TestPlayScene>();
+		SceneManager::Instance().LoadScene<TestPlayScene>();
 	}
 }
 
@@ -439,26 +438,28 @@ Scene::MouseCursorMode TestPlayScene::GetMouseCursorMode() const
 	return movieCamera && movieCamera->IsEditing() ? MouseCursorMode::VisibleFree : MouseCursorMode::HiddenLocked;
 }
 
+/* ムービーの再生中は
+* ゲーム内デバッグGUI
+* ワールドエフェクト
+* ポストエフェクト
+* を無効化
+*/
 bool TestPlayScene::UsesGameDebugGUI() const
 {
 	return !movieCamera || !movieCamera->IsEditing();
 }
-
 bool TestPlayScene::ShouldRenderWorldEffects() const
 {
 	return !movieCamera || !movieCamera->IsEditing();
 }
-
 void TestPlayScene::OnDrawOverlayGUI()
 {
 	if (movieCamera) movieCamera->DrawEditor();
 }
-
 void TestPlayScene::ConfigurePostProcess(Game::PostProcess& value)
 {
 	if (movieCamera) movieCamera->ApplyPostEffects(value);
 }
-
 bool TestPlayScene::ShouldApplyGameplayPostEffects() const
 {
 	return !movieCamera || !movieCamera->IsEditing();

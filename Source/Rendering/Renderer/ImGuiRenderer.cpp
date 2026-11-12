@@ -6,6 +6,9 @@
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Resource/EmbeddedResources.h"
 #include <filesystem>
+#include <array>
+#include <cmath>
+#include <vector>
 
 // 再起動時に元のUI読み込み
 namespace
@@ -66,6 +69,9 @@ void RegisterVstgEditorSettingsHandler()
 		return settings;
 	};
 	handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line) {
+		auto* settings = static_cast<VstgEditorSettings*>(entry);
+		if (sscanf_s(line, "InspectorWidth=%f", &settings->inspectorWidth) == 1) return;
+		if (sscanf_s(line, "HierarchyWidth=%f", &settings->hierarchyWidth) == 1) return;
 		constexpr const char* prefix = "RecentStagePath=";
 		if (strncmp(line, prefix, strlen(prefix)) == 0)
 			static_cast<VstgEditorSettings*>(entry)->recentStagePath = line + strlen(prefix);
@@ -74,6 +80,7 @@ void RegisterVstgEditorSettingsHandler()
 		const auto* settings = static_cast<VstgEditorSettings*>(value->UserData);
 		if (!settings->loaded) return;
 		output->append("[VstgEditor][Settings]\n");
+		output->appendf("InspectorWidth=%.3f\nHierarchyWidth=%.3f\n", settings->inspectorWidth, settings->hierarchyWidth);
 		output->appendf("RecentStagePath=%s\n\n", settings->recentStagePath.c_str());
 	};
 	ImGui::AddSettingsHandler(&handler);
@@ -96,6 +103,8 @@ void RegisterVmdlEditorSettingsHandler()
 	};
 	handler.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line) {
 		auto* settings = static_cast<VmdlEditorLayoutSettings*>(entry);
+		if (sscanf_s(line, "InspectorWidth=%f", &settings->inspectorWidth) == 1) return;
+		if (sscanf_s(line, "HierarchyWidth=%f", &settings->hierarchyWidth) == 1) return;
 		int maximized = 0;
 		if (sscanf_s(line, "Window=%d,%d,%d,%d,%d", &settings->windowX,
 				&settings->windowY, &settings->windowWidth, &settings->windowHeight,
@@ -104,12 +113,6 @@ void RegisterVmdlEditorSettingsHandler()
 			settings->windowMaximized = maximized != 0;
 			return;
 		}
-		if (sscanf_s(line, "PropertyPanelRatio=%f", &settings->propertyPanelRatio) == 1)
-			return;
-		if (sscanf_s(line, "ViewportPanelRatio=%f", &settings->viewportPanelRatio) == 1)
-			return;
-		if (sscanf_s(line, "BottomPanelRatio=%f", &settings->bottomPanelRatio) == 1)
-			return;
 		constexpr const char* prefix = "RecentModelPath=";
 		if (strncmp(line, prefix, strlen(prefix)) == 0)
 			settings->recentModelPath = line + strlen(prefix);
@@ -118,12 +121,10 @@ void RegisterVmdlEditorSettingsHandler()
 		const auto* settings = static_cast<VmdlEditorLayoutSettings*>(value->UserData);
 		if (!settings->loaded) return;
 		output->append("[VmdlEditor][Layout]\n");
+		output->appendf("InspectorWidth=%.3f\nHierarchyWidth=%.3f\n", settings->inspectorWidth, settings->hierarchyWidth);
 		output->appendf("Window=%d,%d,%d,%d,%d\n", settings->windowX, settings->windowY,
 			settings->windowWidth, settings->windowHeight,
 			settings->windowMaximized ? 1 : 0);
-		output->appendf("PropertyPanelRatio=%.8f\n", settings->propertyPanelRatio);
-		output->appendf("ViewportPanelRatio=%.8f\n", settings->viewportPanelRatio);
-		output->appendf("BottomPanelRatio=%.8f\n", settings->bottomPanelRatio);
 		output->appendf("RecentModelPath=%s\n\n", settings->recentModelPath.c_str());
 	};
 	ImGui::AddSettingsHandler(&handler);
@@ -156,152 +157,49 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	// Enable Docking
+	io.ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 														//io.ConfigViewportsNoAutoMerge = true;
 														//io.ConfigViewportsNoTaskBarIcon = true;
 														//io.ConfigViewportsNoDefaultParent = true;
 														//io.ConfigDockingAlwaysTabBar = true;
 														//io.ConfigDockingTransparentPayload = true;
-#if 1
 	io.ConfigFlags |=
 		ImGuiConfigFlags_DpiEnableScaleFonts; // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
 	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
-#endif
 
-		// Bootstrap Dark style by Madam-Herta from ImThemes
-		ImGuiStyle& style = ImGui::GetStyle();
+	// 余白やサイズを設定し、配色は Theme.h に集約する
+	ImGuiStyle& style = ImGui::GetStyle();
 
-		style.Alpha = 1.0f;
-		style.DisabledAlpha = 0.5f;
-		style.WindowPadding = ImVec2(11.69999980926514f, 6.0f);
-		style.WindowRounding = 3.299999952316284f;
-		style.WindowBorderSize = 0.0f;
-		style.WindowMinSize = ImVec2(20.0f, 20.0f);
-		style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
-		style.WindowMenuButtonPosition = ImGuiDir_Left;
-		style.ChildRounding = 0.0f;
-		style.ChildBorderSize = 1.0f;
-		style.PopupRounding = 0.0f;
-		style.PopupBorderSize = 1.0f;
-		style.FramePadding = ImVec2(20.0f, 9.899999618530273f);
-		style.FrameRounding = 0.0f;
-		style.FrameBorderSize = 0.0f;
-		style.ItemSpacing = ImVec2(8.0f, 4.0f);
-		style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
-		style.CellPadding = ImVec2(4.0f, 2.0f);
-		style.IndentSpacing = 21.0f;
-		style.ColumnsMinSpacing = 6.0f;
-		style.ScrollbarSize = 14.0f;
-		style.ScrollbarRounding = 9.0f;
-		style.GrabMinSize = 10.0f;
-		style.GrabRounding = 0.0f;
-		style.TabRounding = 4.0f;
-		style.TabBorderSize = 0.0f;
-		style.ColorButtonPosition = ImGuiDir_Right;
-		style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
-		style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
-
-		style.Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-		style.Colors[ImGuiCol_TextDisabled] =
-			ImVec4(0.5843137502670288f, 0.5960784554481506f, 0.615686297416687f, 1.0f);
-		style.Colors[ImGuiCol_WindowBg] =
-			ImVec4(0.062745101749897f, 0.06666667014360428f, 0.08627451211214066f, 1.0f);
-		style.Colors[ImGuiCol_ChildBg] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_PopupBg] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_Border] =
-			ImVec4(0.1098039224743843f, 0.1137254908680916f, 0.1333333402872086f, 1.0f);
-		style.Colors[ImGuiCol_BorderShadow] =
-			ImVec4(0.1098039224743843f, 0.1137254908680916f, 0.1333333402872086f, 1.0f);
-		style.Colors[ImGuiCol_FrameBg] =
-			ImVec4(0.062745101749897f, 0.06666667014360428f, 0.08627451211214066f, 1.0f);
-		style.Colors[ImGuiCol_FrameBgHovered] =
-			ImVec4(0.05882352963089943f, 0.529411792755127f, 0.9764705896377563f, 1.0f);
-		style.Colors[ImGuiCol_FrameBgActive] =
-			ImVec4(0.05882352963089943f, 0.529411792755127f, 0.9764705896377563f, 0.0f);
-		style.Colors[ImGuiCol_TitleBg] =
-			ImVec4(0.0470588244497776f, 0.05098039284348488f, 0.062745101749897f, 1.0f);
-		style.Colors[ImGuiCol_TitleBgActive] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_TitleBgCollapsed] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_MenuBarBg] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_ScrollbarBg] =
-			ImVec4(0.04313725605607033f, 0.0470588244497776f, 0.05882352963089943f, 1.0f);
-		style.Colors[ImGuiCol_ScrollbarGrab] =
-			ImVec4(0.1098039224743843f, 0.1137254908680916f, 0.1333333402872086f, 1.0f);
-		style.Colors[ImGuiCol_ScrollbarGrabHovered] =
-			ImVec4(0.1450980454683304f, 0.1490196138620377f, 0.1843137294054031f, 1.0f);
-		style.Colors[ImGuiCol_ScrollbarGrabActive] =
-			ImVec4(0.4862745106220245f, 0.4862745106220245f, 0.4862745106220245f, 1.0f);
-		style.Colors[ImGuiCol_CheckMark] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-		style.Colors[ImGuiCol_SliderGrab] = ImVec4(1.0f, 1.0f, 1.0f, 0.2274678349494934f);
-		style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(
-			0.8196078538894653f, 0.8196078538894653f, 0.8196078538894653f, 0.3304721117019653f);
-		style.Colors[ImGuiCol_Button] =
-			ImVec4(0.2274509817361832f, 0.4431372582912445f, 0.7568627595901489f, 1.0f);
-		style.Colors[ImGuiCol_ButtonHovered] =
-			ImVec4(0.2078431397676468f, 0.4705882370471954f, 0.8509804010391235f, 1.0f);
-		style.Colors[ImGuiCol_ButtonActive] =
-			ImVec4(0.05882352963089943f, 0.529411792755127f, 0.9764705896377563f, 1.0f);
-		style.Colors[ImGuiCol_Header] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.3100000023841858f);
-		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.800000011920929f);
-		style.Colors[ImGuiCol_HeaderActive] =
-			ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 1.0f);
-		style.Colors[ImGuiCol_Separator] = ImVec4(
-			0.3882353007793427f, 0.3882353007793427f, 0.3882353007793427f, 0.6200000047683716f);
-		style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(
-			0.1372549086809158f, 0.4392156898975372f, 0.800000011920929f, 0.7799999713897705f);
-		style.Colors[ImGuiCol_SeparatorActive] =
-			ImVec4(0.1372549086809158f, 0.4392156898975372f, 0.800000011920929f, 1.0f);
-		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(
-			0.3490196168422699f, 0.3490196168422699f, 0.3490196168422699f, 0.1700000017881393f);
-		style.Colors[ImGuiCol_ResizeGripHovered] =
-			ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 1.0f);
-		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.949999988079071f);
-		style.Colors[ImGuiCol_Tab] = ImVec4(0.0f, 0.4745098054409027f, 1.0f, 0.9309999942779541f);
-		style.Colors[ImGuiCol_TabHovered] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.800000011920929f);
-		style.Colors[ImGuiCol_TabActive] =
-			ImVec4(0.2078431397676468f, 0.2078431397676468f, 0.2078431397676468f, 1.0f);
-		style.Colors[ImGuiCol_TabUnfocused] = ImVec4(
-			0.9176470637321472f, 0.9254902005195618f, 0.9333333373069763f, 0.9861999750137329f);
-		style.Colors[ImGuiCol_TabUnfocusedActive] =
-			ImVec4(0.7411764860153198f, 0.8196078538894653f, 0.9137254953384399f, 1.0f);
-		style.Colors[ImGuiCol_PlotLines] =
-			ImVec4(0.3882353007793427f, 0.3882353007793427f, 0.3882353007793427f, 1.0f);
-		style.Colors[ImGuiCol_PlotLinesHovered] =
-			ImVec4(1.0f, 0.4274509847164154f, 0.3490196168422699f, 1.0f);
-		style.Colors[ImGuiCol_PlotHistogram] =
-			ImVec4(0.8980392217636108f, 0.6980392336845398f, 0.0f, 1.0f);
-		style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.0f, 0.4470588266849518f, 0.0f, 1.0f);
-		style.Colors[ImGuiCol_TableHeaderBg] =
-			ImVec4(0.19f, 0.19f, 0.20f, 1.0f);
-		style.Colors[ImGuiCol_TableBorderStrong] =
-			ImVec4(0.5686274766921997f, 0.5686274766921997f, 0.6392157077789307f, 1.0f);
-		style.Colors[ImGuiCol_TableBorderLight] =
-			ImVec4(0.6784313917160034f, 0.6784313917160034f, 0.7372549176216125f, 1.0f);
-		style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-		style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(
-			0.2980392277240753f, 0.2980392277240753f, 0.2980392277240753f, 0.09000000357627869f);
-		style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.3499999940395355f);
-		style.Colors[ImGuiCol_DragDropTarget] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.949999988079071f);
-		style.Colors[ImGuiCol_NavHighlight] = ImVec4(
-			0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.800000011920929f);
-		style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(
-			0.6980392336845398f, 0.6980392336845398f, 0.6980392336845398f, 0.699999988079071f);
-		style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(
-			0.2000000029802322f, 0.2000000029802322f, 0.2000000029802322f, 0.2000000029802322f);
-		style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(
-			0.2000000029802322f, 0.2000000029802322f, 0.2000000029802322f, 0.3499999940395355f);
+	style.Alpha = 1.0f;
+	style.DisabledAlpha = 0.5f;
+	style.WindowPadding = ImVec2(11.69999980926514f, 6.0f);
+	style.WindowRounding = 3.299999952316284f;
+	style.WindowBorderSize = 0.0f;
+	style.WindowMinSize = ImVec2(20.0f, 20.0f);
+	style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
+	style.WindowMenuButtonPosition = ImGuiDir_Left;
+	style.ChildRounding = 0.0f;
+	style.ChildBorderSize = 1.0f;
+	style.PopupRounding = 0.0f;
+	style.PopupBorderSize = 1.0f;
+	style.FramePadding = ImVec2(20.0f, 9.899999618530273f);
+	style.FrameRounding = 0.0f;
+	style.FrameBorderSize = 0.0f;
+	style.ItemSpacing = ImVec2(8.0f, 4.0f);
+	style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+	style.CellPadding = ImVec2(4.0f, 2.0f);
+	style.IndentSpacing = 21.0f;
+	style.ColumnsMinSpacing = 6.0f;
+	style.ScrollbarSize = 14.0f;
+	style.ScrollbarRounding = 9.0f;
+	style.GrabMinSize = 10.0f;
+	style.GrabRounding = 0.0f;
+	style.TabRounding = 4.0f;
+	style.TabBorderSize = 0.0f;
+	style.ColorButtonPosition = ImGuiDir_Right;
+	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+	style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -310,27 +208,7 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	// ImGuiスタイル設定
-	{
-		style.Alpha = 1.0f; // 全体を不透明にする
-		style.WindowRounding = 8.0f;
-		style.FrameRounding = 4.0f;
-
-		// 背景色
-		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-		ImGuiToolKit::Theme::ApplyYellowTheme(style); // ImGuiToolKitさんのテーマ(でっかくて押しやすい)
-		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		style.Colors[ImGuiCol_ChildBg].w = 1.0f;
-		style.Colors[ImGuiCol_PopupBg].w = 1.0f;
-		style.Colors[ImGuiCol_FrameBg].w = 1.0f;
-		style.Colors[ImGuiCol_FrameBgHovered].w = 1.0f;
-		style.Colors[ImGuiCol_FrameBgActive].w = 1.0f;
-		style.Colors[ImGuiCol_TitleBg].w = 1.0f;
-		style.Colors[ImGuiCol_TitleBgActive].w = 1.0f;
-		style.Colors[ImGuiCol_TitleBgCollapsed].w = 1.0f;
-	}
+	ImGuiToolKit::Theme::ApplyYellowTheme(style);
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hWnd);
@@ -388,15 +266,70 @@ void ImGuiRenderer::NewFrame()
 	ImGui::NewFrame();
 }
 
+// 再集合成をLinearの16Floatにしたので描画時にSRGから変換する関数
+static ImU32 SRGBCONV(ImU32 color)
+{
+	static const auto linear = []
+	{
+		std::array<ImU32, 256> values{};
+		for (ImU32 channel = 0; channel < values.size(); ++channel)
+		{
+			const float srgb = static_cast<float>(channel) / 255.0f;
+			const float value = srgb <= 0.04045f ? srgb / 12.92f : std::pow((srgb + 0.055f) / 1.055f, 2.4f);
+			values[channel] = static_cast<ImU32>(value * 255.0f + 0.5f);
+		}
+		return values;
+	}();
+
+	// アルファは被覆率なので変換しない。RGB の並びは ImGui のパック設定に従う
+	return (color & IM_COL32_A_MASK) |
+		(linear[(color >> IM_COL32_R_SHIFT) & 0xff] << IM_COL32_R_SHIFT) |
+		(linear[(color >> IM_COL32_G_SHIFT) & 0xff] << IM_COL32_G_SHIFT) |
+		(linear[(color >> IM_COL32_B_SHIFT) & 0xff] << IM_COL32_B_SHIFT);
+}
+
 void ImGuiRenderer::Render(ID3D11DeviceContext* context)
 {
 	PROFILE_FUNCTION();
 	auto& io = ImGui::GetIO();
+	// 貯めたAlertを出す
 	ImGuiToolKit::DrawAlerts();
 	// Rendering
 	ImGui::Render();
 
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	ImDrawData* drawData = ImGui::GetDrawData();
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> target;
+	context->OMGetRenderTargets(1, target.GetAddressOf(), nullptr);
+	bool linearOutput = false;
+	if (target)
+	{
+		D3D11_RENDER_TARGET_VIEW_DESC desc{};
+		target->GetDesc(&desc);
+		linearOutput = desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT;
+	}
+
+	// スタイルだけでなく PushStyleColor や独自描画も含め、今回描く頂点色を変換する
+	static std::vector<ImU32> originalColors;
+	originalColors.clear();
+	if (linearOutput)
+	{
+		originalColors.reserve(drawData->TotalVtxCount);
+		for (ImDrawList* list : drawData->CmdLists)
+			for (ImDrawVert& vertex : list->VtxBuffer)
+			{
+				originalColors.push_back(vertex.col);
+				vertex.col = SRGBCONV(vertex.col);
+			}
+	}
+	ImGui_ImplDX11_RenderDrawData(drawData);
+
+	// 元データを残し、次のフレームや SDR の別ウィンドウで二重に変換しない
+	if (linearOutput)
+	{
+		size_t index = 0;
+		for (ImDrawList* list : drawData->CmdLists)
+			for (ImDrawVert& vertex : list->VtxBuffer) vertex.col = originalColors[index++];
+	}
 
 	// Update and Render additional Platform Windows
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

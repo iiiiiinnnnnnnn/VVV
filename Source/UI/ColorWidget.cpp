@@ -1,10 +1,9 @@
 #include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
 
-ColorWidget::ColorWidget(SpriteShaderId shaderId, const Color& color)
-	: SpriteWidget(std::filesystem::path{}, shaderId, color)
+ColorWidget::ColorWidget(const std::string& name, SpriteShaderId shaderId, const Color& color)
+	: SpriteWidget(name, std::filesystem::path{}, shaderId, color)
 {
-	SetName("Color Widget");
 }
 
 void ColorWidget::OnAwake()

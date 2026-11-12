@@ -13,8 +13,6 @@ public:
 	FreeCameraController(Object* owner);
 	void SetMoveSpeed(float speed) { moveSpeed = (std::max)(speed, 0.0f); }
 	float GetMoveSpeed() const { return moveSpeed; }
-	void SetFovWheelEnabled(bool enabled) { fovWheelEnabled = enabled; }
-	float GetVerticalFovDegrees() const { return verticalFovDegrees; }
 	void FocusOn(const Vector3& target);
 	void SyncCameraToController(const Camera& camera) override;
 	void SyncControllerToCamera(Camera& camera) override;
@@ -26,7 +24,4 @@ protected:
 
 private:
 	float moveSpeed = 5.0f;
-	bool fovWheelEnabled = false;
-	float verticalFovDegrees = VerticalFovDegrees;
-	Game::Timer moveSpeedOverlayTimer{0.0f};
 };

@@ -1,4 +1,5 @@
 #include "Gameplay/Camera/ThirdPersonCameraController.h"
+#include <ImGuiToolKit/Drag.h>
 #include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Scene/CameraEffectController.h"
@@ -260,19 +261,19 @@ void ThirdPersonCameraController::OnFocusLost()
 void ThirdPersonCameraController::OnDrawGUI()
 {
     ImGui::DragFloat("Arm Length",    &armLength,    0.05f, minArmLength, maxArmLength);
-    ImGui::DragFloat("Height Offset", &heightOffset, 0.05f, 0.0f, 3.0f);
+    ImGuiToolKit::DragPosFloat(u8"Height Offset", &heightOffset, 0.05f, 0.0f, 3.0f);
     ImGui::DragFloat("Sens X",        &mouseSensX,   0.0005f, 0.0001f, 0.01f);
     ImGui::DragFloat("Sens Y",        &mouseSensY,   0.0005f, 0.0001f, 0.01f);
-    ImGui::DragFloat("Follow Speed",  &followSpeed,  0.5f,   1.0f, 30.0f);
+    ImGuiToolKit::DragSpeedFloat(u8"Follow Speed",  &followSpeed,  0.5f,   1.0f, 30.0f);
 	ImGui::DragFloat("Sprint Arm Extension", &sprintArmExtension, 0.05f, 0.0f, 10.0f);
-	ImGui::DragFloat("Sprint Arm Speed", &sprintArmSpeed, 0.1f, 0.1f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"Sprint Arm Speed", &sprintArmSpeed, 0.1f, 0.1f, 30.0f);
 	ImGui::DragFloat("Skill Focus Arm Length", &skillFocusArmLength, 0.05f, minArmLength, maxArmLength);
-	ImGui::DragFloat("Skill Focus FOV Offset", &skillFocusFovOffset, 0.25f, -30.0f, 0.0f);
+	ImGuiToolKit::DragRotFloat(u8"Skill Focus FOV Offset", &skillFocusFovOffset, 0.25f, -30.0f, 0.0f);
 
     ImGui::Separator();
 
-    ImGui::DragFloat("FOV Y", &fovYDegrees, 0.5f, 10.0f, 120.0f, "%.1f");
-    ImGui::DragFloat("Camera Collision Radius", &cameraCollisionRadius, 0.01f, 0.05f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+    ImGuiToolKit::DragRotFloat(u8"FOV Y", &fovYDegrees, 0.5f, 10.0f, 120.0f, "%.1f");
+    ImGuiToolKit::DragSizeFloat(u8"Camera Collision Radius", &cameraCollisionRadius, 0.01f, 0.05f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
     ImGui::DragFloat("Near Clip", &nearClip, 0.01f, 0.01f, 10.0f);
     ImGui::DragFloat("Far Clip", &farClip, 10.0f, 10.0f, 10000.0f);
 

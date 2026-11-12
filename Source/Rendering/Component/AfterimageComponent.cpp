@@ -1,4 +1,5 @@
 #include "Rendering/Component/AfterimageComponent.h"
+#include <ImGuiToolKit/Drag.h>
 
 #include <algorithm>
 
@@ -77,9 +78,9 @@ void AfterimageComponent::OnRender(const RenderContext& rc)
 
 void AfterimageComponent::OnDrawGUI()
 {
-	ImGui::DragFloat("Capture duration", &captureDuration, 0.01f, 0.01f, 1.0f);
+	ImGuiToolKit::DragDelayFloat(u8"Capture duration", &captureDuration, 0.01f, 0.01f, 1.0f);
 	ImGui::DragFloat("Capture interval", &captureInterval, 0.005f, 0.01f, 0.25f);
-	ImGui::DragFloat("Lifetime", &lifetime, 0.01f, 0.05f, 2.0f);
+	ImGuiToolKit::DragDelayFloat(u8"Lifetime", &lifetime, 0.01f, 0.05f, 2.0f);
 	ImGui::DragFloat("Max opacity", &maxOpacity, 0.01f, 0.01f, 0.98f);
 	ImGui::DragFloat("Emissive intensity", &emissiveIntensity, 0.1f, 0.0f, 20.0f);
 	ImGui::DragInt("Max afterimages", &maxAfterimages, 1.0f, 1, 32);

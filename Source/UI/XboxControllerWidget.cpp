@@ -1,11 +1,12 @@
 #include "UI/XboxControllerWidget.h"
+#include <ImGuiToolKit/Utf8.h>
 #include "UI/CustomLineWidget.h"
 #include "UI/SpriteWidget.h"
 #include "UI/TextWidget.h"
 #include "UI/WidgetShadow.h"
 
-XboxControllerWidget::XboxControllerWidget(std::weak_ptr<Object> inputOwner, const Vector2& position, const Vector2& scale)
-	: WidgetGroup("XboxControllerWidget"), inputOwner(std::move(inputOwner))
+XboxControllerWidget::XboxControllerWidget(const std::string& name, std::weak_ptr<Object> inputOwner, const Vector2& position, const Vector2& scale)
+	: WidgetGroup(name), inputOwner(std::move(inputOwner))
 {
 	rect.position = position;
 	rect.scale = scale;
@@ -14,7 +15,7 @@ XboxControllerWidget::XboxControllerWidget(std::weak_ptr<Object> inputOwner, con
 
 void XboxControllerWidget::OnAwake()
 {
-	auto xbox = std::make_shared<SpriteWidget>("UI/Xbox.png", SpriteShaderId::Basic);
+	auto xbox = std::make_shared<SpriteWidget>("Xbox", "UI/Xbox.png", SpriteShaderId::Basic);
 	xbox->rect.position = {960.0f, 540.0f};
 	xbox->rect.size = Vector2(4096.0f, 2160.0f) * 0.4f;
 	xbox->rect.anchor = Vector2(0.5f, 0.5f);
@@ -30,13 +31,13 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"ポーズ", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"ポーズ"), 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1161.0f, 152.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s = std::make_shared<SpriteWidget>("UI/512w/Menu.png");
+		auto s = std::make_shared<SpriteWidget>("Menu", "UI/512w/Menu.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s->rect.position = {1057.0f, 154.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
@@ -52,25 +53,25 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"移動", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"移動"), 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {407.0f, 441.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s = std::make_shared<SpriteWidget>("UI/512w/Left_Stick.png");
+		auto s = std::make_shared<SpriteWidget>("Left_Stick", "UI/512w/Left_Stick.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s->rect.position = {489.0f, 441.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"ダッシュ", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"ダッシュ"), 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {335.0f, 542.0f};
 		t2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s2 = std::make_shared<SpriteWidget>("UI/512w/Left_Stick_Click.png");
+		auto s2 = std::make_shared<SpriteWidget>("Left_Stick_Click", "UI/512w/Left_Stick_Click.png");
 		s2->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s2->rect.position = {490.0f, 540.0f};
 		s2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
@@ -89,25 +90,25 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>();
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"カメラ回転", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"カメラ回転"), 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1483.0f, 635.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s = std::make_shared<SpriteWidget>("UI/512w/Right_Stick.png");
+		auto s = std::make_shared<SpriteWidget>("Right_Stick", "UI/512w/Right_Stick.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s->rect.position = {1372.0f, 635.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"しゃがみ", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"しゃがみ"), 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {1482.0f, 736.0f};
 		t2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s2 = std::make_shared<SpriteWidget>("UI/512w/Right_Stick_Click.png");
+		auto s2 = std::make_shared<SpriteWidget>("Right_Stick_Click", "UI/512w/Right_Stick_Click.png");
 		s2->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s2->rect.position = {1373.0f, 738.0f};
 		s2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
@@ -127,13 +128,13 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"攻撃", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"攻撃"), 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1376.0f, 215.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s = std::make_shared<SpriteWidget>("UI/512w/Right_Trigger.png");
+		auto s = std::make_shared<SpriteWidget>("Right_Trigger", "UI/512w/Right_Trigger.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s->rect.position = {1269.0f, 217.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
@@ -150,25 +151,25 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"回避", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"回避"), 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {473.0f, 215.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s = std::make_shared<SpriteWidget>("UI/512w/Left_Trigger.png");
+		auto s = std::make_shared<SpriteWidget>("Left_Trigger", "UI/512w/Left_Trigger.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s->rect.position = {546.0f, 217.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", (const char*)u8"カメラリセット", 20.0f, "LINESeedJP");
+			"Custom Line Text", JText(u8"カメラリセット"), 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {288.0f, 309.0f};
 		t2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		auto s2 = std::make_shared<SpriteWidget>("UI/512w/Left_Bumper.png");
+		auto s2 = std::make_shared<SpriteWidget>("Left_Bumper", "UI/512w/Left_Bumper.png");
 		s2->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
 		s2->rect.position = {546.0f, 309.0f};
 		s2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});

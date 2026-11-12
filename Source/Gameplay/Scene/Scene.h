@@ -1,6 +1,10 @@
-// Scene.h
 #pragma once
 #include <memory>
+#include <algorithm>
+#include <cmath>
+#include "Gameplay/Camera/Camera.h"
+#include "Gameplay/Camera/FreeCameraController.h"
+#include "Gameplay/Camera/CameraMoveSpeedOverlay.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -74,6 +78,43 @@ private:
 	void DrawGUI(RenderContext& rc);
 
 protected:
+	static constexpr float CameraFovStep = 2.0f;
+	static constexpr float CameraMinimumFov = 10.0f;
+	static constexpr float CameraMaximumFov = 120.0f;
+	static constexpr float CameraSpeedStep = 1.1f;
+	static constexpr float CameraMinimumSpeed = 0.1f;
+	static constexpr float CameraMaximumSpeed = 500.0f;
+
+	void UpdateCamFov(Camera& camera, bool acceptsInput)
+	{
+		const auto& io = ImGui::GetIO();
+		if (acceptsInput && io.KeyCtrl && io.MouseWheel != 0.0f && !io.WantTextInput &&
+			InputKit::InputSystem::IsFocusedWindow(true))
+		{
+			camera.SetVerticalFovDegrees(std::clamp(camera.GetVerticalFovDegrees() -
+				io.MouseWheel * CameraFovStep, CameraMinimumFov, CameraMaximumFov));
+			cameraSpeedOverlayTimer.Reset(0.0f);
+			CameraMoveSpeedOverlay::Show(cameraFovOverlayTimer);
+		}
+		CameraMoveSpeedOverlay::Draw(camera.GetVerticalFovDegrees(), cameraFovOverlayTimer, "FOV");
+	}
+
+	void UpdateCamSpeed(float& speed, bool acceptsInput)
+	{
+		const auto& io = ImGui::GetIO();
+		if (acceptsInput && !io.KeyCtrl && io.MouseWheel != 0.0f && !io.WantTextInput &&
+			ImGui::IsMouseDown(ImGuiMouseButton_Right) && InputKit::InputSystem::IsFocusedWindow(true))
+		{
+			speed = std::clamp(speed * std::pow(CameraSpeedStep, io.MouseWheel),
+				CameraMinimumSpeed, CameraMaximumSpeed);
+			cameraFovOverlayTimer.Reset(0.0f);
+			CameraMoveSpeedOverlay::Show(cameraSpeedOverlayTimer);
+		}
+		CameraMoveSpeedOverlay::Draw(speed, cameraSpeedOverlayTimer, "Speed");
+	}
+
+	Game::Timer cameraFovOverlayTimer{0.0f};
+	Game::Timer cameraSpeedOverlayTimer{0.0f};
 	void DrawWindowMenu();
 	void DrawEditorText(const std::string& title = {}, bool alignRight = true);
 	void DrawToolWindows();
@@ -110,6 +151,7 @@ protected:
 	float gameEditorRightWidth = 440.0f;
 	float gameEditorPanelHeight = 0.0f;
 	bool gameEditorLayoutLoaded = false;
+	int gameEditorResizeEdge = 0;
 	int hierarchyTab = 0;
 	int inspectorTab = 0;
 	int sceneSettingsPage = 0;

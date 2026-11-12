@@ -18,6 +18,7 @@ class FreeCameraController;
 class Camera;
 class Object;
 class RenderTarget;
+class DepthTarget;
 class VMDLModel;
 
 class VstgEditorScene : public EditorScene
@@ -98,6 +99,7 @@ class VstgEditorScene : public EditorScene
 	std::string propPreviewLoadedPath;
 	std::shared_ptr<VMDLModel> propPreviewModel;
 	std::unique_ptr<RenderTarget> propPreviewTarget;
+	std::unique_ptr<DepthTarget> propPreviewDepthTarget;
 	std::unique_ptr<Object> propPreviewCameraOwner;
 	Camera* propPreviewCamera = nullptr;
 	LightManager propPreviewLights;

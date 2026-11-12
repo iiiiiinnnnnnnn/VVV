@@ -5,7 +5,7 @@
 class ColorWidget : public SpriteWidget
 {
 public:
-	ColorWidget(SpriteShaderId shaderId = SpriteShaderId::Basic,
+	ColorWidget(const std::string& name = "noname", SpriteShaderId shaderId = SpriteShaderId::Basic,
 		const Color& color = Color(1, 1, 1, 1));
 	void OnAwake() override;
 };

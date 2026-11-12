@@ -1,4 +1,7 @@
 #include "Resource/ResourceManager.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include <Dx11Kit/Dx11Kit.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Rendering/Shader/GamePostProcess.h"
@@ -12,6 +15,13 @@ namespace Game
 {
 	void PostProcess::CopySettingsFrom(const PostProcess& source)
 	{
+		enableDepthOfField = source.enableDepthOfField;
+		dofFocusDistance = source.dofFocusDistance;
+		dofFocusRange = source.dofFocusRange;
+		dofBlurRadius = source.dofBlurRadius;
+		dofNearStrength = source.dofNearStrength;
+		dofFarStrength = source.dofFarStrength;
+
 		// 水中のフォグ・色補正・吸収
 		enableUnderwater = source.enableUnderwater;
 		underwaterColor = source.underwaterColor;
@@ -108,81 +118,116 @@ namespace Game
 	{
 		PROFILE_FUNCTION();
 		auto* dc = rc.deviceContext;
+		// UI が重なる前の HDR シーンに適用する。深度を使う処理は呼び出し側が深度をクリアする前に終える
+		const auto previousOutput = RenderOutput::CaptureOutput(dc);
 		ID3D11ShaderResourceView* sceneColorMap = scene->GetSRV();
 		if (IsSSAOEnabled())
 		{
+			// AO の白は遮蔽なしを表す。元のシーン色を残したまま workB に遮蔽を合成する
 			ssao->Clear(dc, 1, 1, 1, 1);
-			ssao->Activate(dc);
-			{
-				SSAO(rc, scene->GetDepthSRV());
-			}
-			ssao->Deactivate(dc);
+			RenderOutput::Bind(dc, ssao, nullptr, false);
+			SSAO(rc, rc.depthTarget->GetSRV());
 
 			workB->Clear(dc);
-			workB->Activate(dc);
-			{
-				ApplySSAO(rc, scene->GetSRV(), ssao->GetSRV());
-			}
-			workB->Deactivate(dc);
+			RenderOutput::Bind(dc, workB, nullptr, false);
+			ApplySSAO(rc, scene->GetSRV(), ssao->GetSRV());
 			sceneColorMap = workB->GetSRV();
 		}
 
-		// ---- 輝度抽出: scene → luminance --------------------------
 		luminance->Clear(dc);
-		luminance->Activate(dc);
-		{
-			if (IsBloomExtractEnabled())
-			{
-				LuminanceExtraction(rc, sceneColorMap);
-			}
-			else
-			{
-				Copy(rc, sceneColorMap);
-			}
-		}
-		luminance->Deactivate(dc);
+		RenderOutput::Bind(dc, luminance, nullptr, false);
+		if (IsBloomExtractEnabled()) LuminanceExtraction(rc, sceneColorMap);
+		else Copy(rc, sceneColorMap);
 
+		// 2 次元のぼかしを横・縦へ分離し、サンプル数を抑える。縦パスの出力は luminance に戻す
 		if (IsBloomBlurEnabled())
 		{
 			bloomWork->Clear(dc);
-			bloomWork->Activate(dc);
-			{
-				BloomBlur(rc, luminance->GetSRV(), true);
-			}
-			bloomWork->Deactivate(dc);
+			RenderOutput::Bind(dc, bloomWork, nullptr, false);
+			BloomBlur(rc, luminance->GetSRV(), true);
 
 			luminance->Clear(dc);
-			luminance->Activate(dc);
-			{
-				BloomBlur(rc, bloomWork->GetSRV(), false);
-			}
-			luminance->Deactivate(dc);
+			RenderOutput::Bind(dc, luminance, nullptr, false);
+			BloomBlur(rc, bloomWork->GetSRV(), false);
 		}
 
-		// ---- Bloom合成 / Merge: scene + luminance → workA -----
+		// 以降の入力と、呼び出し側へ渡す完成画像を workA に統一する
 		workA->Clear(dc);
-		workA->Activate(dc);
+		RenderOutput::Bind(dc, workA, nullptr, false);
+		if (IsDualEffectEnabled()) Bloom(rc, sceneColorMap, luminance->GetSRV());
+		else Copy(rc, sceneColorMap);
+
+		// 同じテクスチャを SRV と RTV に同時指定できないため、workB に描いてから workA へ戻す
+		if (enableUnderwater && rc.underwaterBlend > 0.0f && rc.depthTarget->GetSRV())
 		{
-			if (IsDualEffectEnabled())
-			{
-				Bloom(rc, sceneColorMap, luminance->GetSRV());
-			}
-			else
-			{
-				Copy(rc, sceneColorMap);
-			}
-		}
-		workA->Deactivate(dc);
-		// 水潜りシェーダー
-		if (enableUnderwater && rc.underwaterBlend > 0.0f && scene->GetDepthSRV())
-		{
-			workB->Activate(dc);
-			Underwater(rc, workA->GetSRV(), scene->GetDepthSRV());
-			workB->Deactivate(dc);
-			workA->Activate(dc);
+			RenderOutput::Bind(dc, workB, nullptr, false);
+			Underwater(rc, workA->GetSRV(), rc.depthTarget->GetSRV());
+			RenderOutput::Bind(dc, workA, nullptr, false);
 			Copy(rc, workB->GetSRV());
-			workA->Deactivate(dc);
 		}
+
+		if (enableDepthOfField && dofBlurRadius > 0.0f && (dofNearStrength > 0.0f || dofFarStrength > 0.0f))
+		{
+			DepthOfField(rc, workA, workB);
+			RenderOutput::Bind(dc, workA, nullptr, false);
+			Copy(rc, workB->GetSRV());
+		}
+
+		RenderOutput::RestoreOutput(dc, previousOutput);
+	}
+
+	void PostProcess::DepthOfField(const RenderContext& rc, RenderTarget* source, RenderTarget* output)
+	{
+		PROFILE_FUNCTION();
+		auto* device = Game::Graphics::Instance().GetDevice();
+		auto* dc = rc.deviceContext;
+
+		// 未使用のシーンでは専用シェーダーと定数バッファを作らない
+		if (!dofPixelShader)
+		{
+			dofBlurPixelShader = std::make_unique<Gpu::PixelShader>(
+				device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/DepthOfFieldBlurPS.cso").c_str());
+			dofConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, static_cast<UINT>(sizeof(CbDepthOfField)));
+			dofPixelShader = std::make_unique<Gpu::PixelShader>(
+				device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/DepthOfFieldPS.cso").c_str());
+		}
+
+		// 奇数サイズは切り上げ、最小サイズでも 0 にならない半解像度を使う
+		const UINT width = std::max(1u, (source->GetWidth() + 1) / 2);
+		const UINT height = std::max(1u, (source->GetHeight() + 1) / 2);
+		if (!dofWorkA || dofWorkA->GetWidth() != width || dofWorkA->GetHeight() != height)
+		{
+			dofWorkA = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+			dofWorkB = std::make_unique<RenderTarget>(device, width, height, DXGI_FORMAT_R16G16B16A16_FLOAT);
+		}
+
+		// HLSL の cbuffer と同じ順序・16 バイト単位の配置で渡す。逆射影で深度をビュー空間へ戻す
+		static_assert(sizeof(CbDepthOfField) == 96);
+		CbDepthOfField cb{};
+		cb.inverseProjection = rc.camera->GetProjection().Invert();
+		cb.focusDistance = dofFocusDistance;
+		cb.focusRange = dofFocusRange;
+		cb.nearStrength = dofNearStrength;
+		cb.farStrength = dofFarStrength;
+
+		RenderOutput::Bind(dc, dofWorkA.get(), nullptr, false);
+		Copy(rc, source->GetSRV());
+
+		// シェーダーは中心から片側 4 点を読む。最遠点が指定した「元解像度の半径」になる UV 間隔を渡す
+		cb.blurStep = Vector2(dofBlurRadius / (4.0f * source->GetWidth()), 0.0f);
+		dofConstantBuffer->Update(dc, &cb);
+		RenderOutput::Bind(dc, dofWorkB.get(), nullptr, false);
+		DrawFullscreen(rc, *dofBlurPixelShader, dofWorkA->GetSRV(), dofConstantBuffer.get());
+
+		cb.blurStep = Vector2(0.0f, dofBlurRadius / (4.0f * source->GetHeight()));
+		dofConstantBuffer->Update(dc, &cb);
+		RenderOutput::Bind(dc, dofWorkA.get(), nullptr, false);
+		DrawFullscreen(rc, *dofBlurPixelShader, dofWorkB->GetSRV(), dofConstantBuffer.get());
+
+		// ぼかし画像は全体で共通。深度から求めた混合率で元画像のピントを残す簡易 DoF
+		RenderOutput::Bind(dc, output, nullptr, false);
+		DrawFullscreen(rc, *dofPixelShader, source->GetSRV(), dofConstantBuffer.get(),
+			dofWorkA->GetSRV(), rc.depthTarget->GetSRV());
 	}
 
 	void PostProcess::Uninit()
@@ -195,7 +240,8 @@ namespace Game
 		if (initialized) return;
 		ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 		static_assert(sizeof(CbUnderwater) % 16 == 0);
-		underwaterPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnderwaterPS.cso").c_str());
+		underwaterPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnderwaterPS.cso").c_str());
 		underwaterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbUnderwater));
 
 		// Copy
@@ -224,28 +270,35 @@ namespace Game
 		toneMap->SetTransferFunction(DirectX::ToneMapPostProcess::SRGB);
 
 		// Color Filter
-		colorFilterPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ColorFilterPS.cso").c_str());
+		colorFilterPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ColorFilterPS.cso").c_str());
 		colorFilterConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbColorFilter));
 
 		// SSAO
-		SSAOPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOPS.cso").c_str());
-		SSAOCompositePixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOCompositePS.cso").c_str());
+		SSAOPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOPS.cso").c_str());
+		SSAOCompositePixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/SSAOCompositePS.cso").c_str());
 		SSAOConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSSAO));
 
 		// Radial Blur
-		radialBlurPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/RadialBlurPS.cso").c_str());
+		radialBlurPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/RadialBlurPS.cso").c_str());
 		radialBlurConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbRadialBlur));
 
 		// Vignette
-		vignettePixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignettePS.cso").c_str());
+		vignettePixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignettePS.cso").c_str());
 		vignetteConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 
 		// Chromatic Aberration
-		chromaticAberrationPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ChromaticAberrationPS.cso").c_str());
+		chromaticAberrationPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ChromaticAberrationPS.cso").c_str());
 		chromaticAberrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbChromaticAberration));
 
 		// FXAA
-		FXAAPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/FXAAPS.cso").c_str());
+		FXAAPixelShader = std::make_unique<Gpu::PixelShader>(
+			device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/FXAAPS.cso").c_str());
 
 		fullscreenRenderer = std::make_unique<FullScreenRenderer>(device);
 		initialized = true;
@@ -336,6 +389,7 @@ namespace Game
 		ID3D11ShaderResourceView* depthMap)
 	{
 		CbUnderwater cb{};
+		// 深度からワールド座標を復元し、水面ローカルへ変換して光が水中を進む長さを求める
 		cb.inverseViewProjection = (rc.camera->GetView() * rc.camera->GetProjection()).Invert();
 		cb.inverseWaterWorld = rc.underwaterInverseWorld;
 		cb.cameraPosition = rc.camera->GetEye();
@@ -353,6 +407,7 @@ namespace Game
 		PROFILE_FUNCTION();
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
+		// 深度からワールド位置を復元してビュー空間の Z に変換し、中心と周辺の前後差で遮蔽を調べる
 		Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
 		Matrix inverseViewProjection = viewProjection.Invert();
 
@@ -387,6 +442,7 @@ namespace Game
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
 
+		// 常設効果が OFF でもヒット演出などの一時効果は使える。強度 1 の基準量は共通の設定値
 		const float runtimeRadius = radialBlurRadius * runtimeRadialBlurIntensity;
 
 		CbRadialBlur cb = {};
@@ -431,6 +487,7 @@ namespace Game
 			enableVignette ? vignetteIntensity : 0.0f;
 		const float totalIntensity =
 			baseVignetteIntensity + runtimeVignetteIntensity;
+		// 暗くする強さは加算し、色はその強さの比率で混ぜる。一時効果だけなら一時効果の色になる
 		const float runtimeBlend = totalIntensity > 0.001f
 			? runtimeVignetteIntensity / totalIntensity
 			: 0.0f;
@@ -459,12 +516,14 @@ namespace Game
 		const Gpu::PixelShader& pixelShader,
 		ID3D11ShaderResourceView* colorMap,
 		const Gpu::ConstantBuffer* constantBuffer,
-		ID3D11ShaderResourceView* colorMap2)
+		ID3D11ShaderResourceView* colorMap2,
+		ID3D11ShaderResourceView* colorMap3)
 	{
 		ID3D11DeviceContext* dc = rc.deviceContext;
-		ID3D11ShaderResourceView* srvs[] = {colorMap, colorMap2};
-		const UINT srvCount = colorMap2 ? 2 : 1;
+		ID3D11ShaderResourceView* srvs[] = {colorMap, colorMap2, colorMap3};
+		const UINT srvCount = colorMap3 ? 3 : colorMap2 ? 2 : 1;
 
+		// 全画面処理は画素を置き換える。直前の透明描画や深度テストの状態を引き継がない
 		rc.graphics->OpaqueBlendState->Bind(dc);
 		rc.graphics->DepthDisabledState->Bind(dc);
 		rc.graphics->SolidRasterizerState->Bind(dc);
@@ -477,6 +536,7 @@ namespace Game
 		rc.graphics->LinearClampSamplerState->BindPS(dc, 0);
 		fullscreenRenderer->Draw(dc);
 
+		// 次のパスで入力テクスチャを描画先として再利用できるよう、SRV の参照を外す
 		Gpu::PixelShader::Unbind(dc);
 		Gpu::SamplerState::UnbindPS(dc, 0);
 		UnbindShaderResources(dc);
@@ -525,8 +585,7 @@ namespace Game
 		ID3D11ShaderResourceView* source = colorMap;
 		int workBufferIndex = 0;
 
-		// エフェクトが有効ならパス増やす
-
+		// 常設設定が OFF でも、一時演出や画面の色付けに必要なパスは実行する
 		const bool useRadialBlur =
 			enableRadialBlur || runtimeRadialBlurIntensity > 0.001f;
 
@@ -537,8 +596,7 @@ namespace Game
 			enableVignette || runtimeVignetteIntensity > 0.001f ||
 			runtimeColorTintIntensity > 0.001f;
 
-		// 残りのパス数を計算して、最終結果のみをoutputBufferに書き込むようにする
-
+		// ToneMapping を切っても Copy を 1 パス実行するため、初期値は 1。最後のパスだけ出力先へ直描きする
 		int passCount = 1;
 		if (enableColorFilter || enableColorGradient) ++passCount;
 		if (useRadialBlur) ++passCount;
@@ -556,18 +614,19 @@ namespace Game
 				: workBuffers[workBufferIndex];
 
 			target->Clear(dc);
-			target->Activate(dc);
+			RenderOutput::Bind(dc, target, nullptr, false);
 
 			draw(source);
 
+			// 中間結果を次の入力にし、書き込み先を交互に切り替えて読み書きの競合を避ける
 			if (target != outputBuffer)
 			{
-				target->Deactivate(dc);
 				source = target->GetSRV();
 				workBufferIndex = 1 - workBufferIndex;
 			}
 		};
 
+		// 最終パス後は outputBuffer をバインドしたままにし、呼び出し側のデバッグ描画・UI の描画先とする
 		renderPass([&](ID3D11ShaderResourceView* passSource)
 		{
 			if (enableToneMapping)
@@ -631,38 +690,48 @@ namespace Game
 
 	void PostProcess::DrawGUI()
 	{
-		if (ImGui::TreeNode((const char*)u8"水中"))
+		if (ImGuiToolKit::TreeNode(u8"被写界深度"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##Underwater", &enableUnderwater);
-			ImGui::ColorEdit3((const char*)u8"フォグ色##Underwater", &underwaterColor.x);
-			ImGui::DragFloat((const char*)u8"濃さ##Underwater", &underwaterDensity, 0.005f, 0.0f, 2.0f);
-			ImGui::DragFloat3((const char*)u8"RGB吸収##Underwater", &underwaterAbsorption.x, 0.005f, 0.0f, 2.0f);
-			ImGui::SliderFloat((const char*)u8"色補正##Underwater", &underwaterTint, 0.0f, 1.0f);
+			ImGuiToolKit::Checkbox(u8"有効##DoF", &enableDepthOfField);
+			ImGuiToolKit::DragFloat(u8"ピント距離##DoF", &dofFocusDistance, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+			ImGuiToolKit::DragFloat(u8"ぼけへの移行距離##DoF", &dofFocusRange, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+			ImGuiToolKit::DragFloat(u8"ぼけ半径（画素）##DoF", &dofBlurRadius, 0.1f, 0.0f, 64.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			ImGuiToolKit::SliderFloat(u8"手前のぼけ##DoF", &dofNearStrength, 0.0f, 1.0f);
+			ImGuiToolKit::SliderFloat(u8"奥のぼけ##DoF", &dofFarStrength, 0.0f, 1.0f);
+			ImGui::TreePop();
+		}
+		if (ImGuiToolKit::TreeNode(u8"水中"))
+		{
+			ImGuiToolKit::Checkbox(u8"有効##Underwater", &enableUnderwater);
+			ImGuiToolKit::ColorEdit3(u8"フォグ色##Underwater", &underwaterColor.x);
+			ImGuiToolKit::DragFloat(u8"濃さ##Underwater", &underwaterDensity, 0.005f, 0.0f, 2.0f);
+			ImGuiToolKit::DragFloat3(u8"RGB吸収##Underwater", &underwaterAbsorption.x, 0.005f, 0.0f, 2.0f);
+			ImGuiToolKit::SliderFloat(u8"色補正##Underwater", &underwaterTint, 0.0f, 1.0f);
 			ImGui::TreePop();
 		}
 
 		// Extract bright pixels for Bloom.
-		if (ImGui::TreeNode((const char*)u8"ブルーム抽出"))
+		if (ImGuiToolKit::TreeNode(u8"ブルーム抽出"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##BloomExtract", &enableBloomExtract);
-			ImGui::DragFloat((const char*)u8"しきい値", &bloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::Checkbox(u8"有効##BloomExtract", &enableBloomExtract);
+			ImGuiToolKit::DragFloat(u8"しきい値", &bloomThreshold, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur the Bloom texture.
-		if (ImGui::TreeNode((const char*)u8"ブルームぼかし"))
+		if (ImGuiToolKit::TreeNode(u8"ブルームぼかし"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##BloomBlur", &enableBloomBlur);
-			ImGui::DragFloat((const char*)u8"ぼかしサイズ", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGui::DragFloat((const char*)u8"明るさ", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::Checkbox(u8"有効##BloomBlur", &enableBloomBlur);
+			ImGuiToolKit::DragSizeFloat(u8"ぼかしサイズ", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGuiToolKit::DragFloat(u8"明るさ", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Combine the base scene and Bloom texture.
-		if (ImGui::TreeNode((const char*)u8"合成エフェクト"))
+		if (ImGuiToolKit::TreeNode(u8"合成エフェクト"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##DualEffect", &enableDualEffect);
-			if (ImGui::BeginCombo((const char*)u8"エフェクト", DualEffectName(dualEffectIndex)))
+			ImGuiToolKit::Checkbox(u8"有効##DualEffect", &enableDualEffect);
+			if (ImGuiToolKit::BeginCombo(u8"エフェクト", DualEffectName(dualEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::DualPostProcess::Effect_Max; ++i)
 				{
@@ -675,20 +744,20 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat((const char*)u8"ブルーム強度", &bloomIntensity, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"元画像の強度", &baseIntensity, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"ブルーム彩度", &bloomSaturation, 0.01f, 0.0f, 3.0f);
-			ImGui::DragFloat((const char*)u8"元画像の彩度", &baseSaturation, 0.01f, 0.0f, 3.0f);
-			ImGui::DragFloat((const char*)u8"合成比率1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"合成比率2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"ブルーム強度", &bloomIntensity, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"元画像の強度", &baseIntensity, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"ブルーム彩度", &bloomSaturation, 0.01f, 0.0f, 3.0f);
+			ImGuiToolKit::DragFloat(u8"元画像の彩度", &baseSaturation, 0.01f, 0.0f, 3.0f);
+			ImGuiToolKit::DragFloat(u8"合成比率1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"合成比率2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Convert HDR color for display.
-		if (ImGui::TreeNode((const char*)u8"トーンマッピング"))
+		if (ImGuiToolKit::TreeNode(u8"トーンマッピング"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##ToneMapping", &enableToneMapping);
-			if (ImGui::BeginCombo((const char*)u8"方式", ToneMapOperatorName(toneMapOperatorIndex)))
+			ImGuiToolKit::Checkbox(u8"有効##ToneMapping", &enableToneMapping);
+			if (ImGuiToolKit::BeginCombo(u8"方式", ToneMapOperatorName(toneMapOperatorIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::Operator_Max; ++i)
 				{
@@ -701,7 +770,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::BeginCombo((const char*)u8"伝達関数", TransferFunctionName(transferFunctionIndex)))
+			if (ImGuiToolKit::BeginCombo(u8"伝達関数", TransferFunctionName(transferFunctionIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::TransferFunction_Max; ++i)
 				{
@@ -714,7 +783,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGui::BeginCombo((const char*)u8"色空間変換", ColorRotationName(colorRotationIndex)))
+			if (ImGuiToolKit::BeginCombo(u8"色空間変換", ColorRotationName(colorRotationIndex)))
 			{
 				for (int i = 0; i <= DirectX::ToneMapPostProcess::HDTV_to_DCI_P3_D65; ++i)
 				{
@@ -727,21 +796,18 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat((const char*)u8"露出", &exposure, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat((const char*)u8"基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
+			ImGuiToolKit::DragFloat(u8"露出", &exposure, 0.01f, 0.0f, 5.0f);
+			ImGuiToolKit::DragFloat(u8"基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode((const char*)u8"カラーフィルター"))
+		if (ImGuiToolKit::TreeNode(u8"カラーフィルター"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##ColorFilter", &enableColorFilter);
-			ImGui::SliderFloat(
-				(const char*)u8"色相シフト", &colorFilterHueShift, 0.0f, 360.0f, "%.1f deg");
-			ImGui::SliderFloat(
-				(const char*)u8"彩度", &colorFilterSaturation, 0.0f, 2.0f);
-			ImGui::SliderFloat(
-				(const char*)u8"明るさ", &colorFilterBrightness, 0.0f, 2.0f);
-			if (ImGui::Button((const char*)u8"初期値に戻す##ColorFilter"))
+			ImGuiToolKit::Checkbox(u8"有効##ColorFilter", &enableColorFilter);
+			ImGuiToolKit::SliderFloat(u8"色相シフト", &colorFilterHueShift, 0.0f, 360.0f, "%.1f deg");
+			ImGuiToolKit::SliderFloat(u8"彩度", &colorFilterSaturation, 0.0f, 2.0f);
+			ImGuiToolKit::SliderFloat(u8"明るさ", &colorFilterBrightness, 0.0f, 2.0f);
+			if (ImGuiToolKit::Button(u8"初期値に戻す##ColorFilter"))
 			{
 				colorFilterHueShift = 0.0f;
 				colorFilterSaturation = 1.0f;
@@ -750,19 +816,20 @@ namespace Game
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode((const char*)u8"カラーグレーディング"))
+		if (ImGuiToolKit::TreeNode(u8"カラーグレーディング"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##ColorGradient", &enableColorGradient);
-			ImGui::SliderFloat((const char*)u8"適用強度", &colorGradientStrength, 0.0f, 1.0f);
-			ImGui::ColorEdit3((const char*)u8"暗部", &colorGradientShadows.x);
-			ImGui::ColorEdit3((const char*)u8"中間色", &colorGradientMidtones.x);
-			ImGui::ColorEdit3((const char*)u8"明部", &colorGradientHighlights.x);
-			if (ImGui::Button((const char*)u8"初期値に戻す##ColorGradient"))
+			ImGuiToolKit::Checkbox(u8"有効##ColorGradient", &enableColorGradient);
+			ImGuiToolKit::SliderFloat(u8"適用強度", &colorGradientStrength, 0.0f, 1.0f);
+			ImGuiToolKit::ColorEdit3(u8"暗部", &colorGradientShadows.x);
+			ImGuiToolKit::ColorEdit3(u8"中間色", &colorGradientMidtones.x);
+			ImGuiToolKit::ColorEdit3(u8"明部", &colorGradientHighlights.x);
+			if (ImGuiToolKit::Button(u8"初期値に戻す##ColorGradient"))
 			{
-				colorGradientStrength = 0.25f;
-				colorGradientShadows = {0.02f, 0.04f, 0.10f, 1.0f};
-				colorGradientMidtones = {0.45f, 0.50f, 0.55f, 1.0f};
-				colorGradientHighlights = {1.0f, 0.92f, 0.78f, 1.0f};
+				const PostProcess defaults;
+				colorGradientStrength = defaults.colorGradientStrength;
+				colorGradientShadows = defaults.colorGradientShadows;
+				colorGradientMidtones = defaults.colorGradientMidtones;
+				colorGradientHighlights = defaults.colorGradientHighlights;
 			}
 			ImGui::TreePop();
 		}
@@ -770,58 +837,58 @@ namespace Game
 		// Add depth-based contact shadows in screen space.
 		if (ImGui::TreeNode("SSAO"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##SSAO", &enableSSAO);
-			ImGui::DragFloat((const char*)u8"半径##SSAO", &ssaoRadius, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"強度##SSAO", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat((const char*)u8"最小距離##SSAO", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
-			ImGui::DragFloat((const char*)u8"最大距離##SSAO", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
+			ImGuiToolKit::Checkbox(u8"有効##SSAO", &enableSSAO);
+			ImGuiToolKit::DragSizeFloat(u8"半径##SSAO", &ssaoRadius, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"強度##SSAO", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
+			ImGuiToolKit::DragFloat(u8"最小距離##SSAO", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
+			ImGuiToolKit::DragFloat(u8"最大距離##SSAO", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur outward from the screen center.
-		if (ImGui::TreeNode((const char*)u8"放射ブラー"))
+		if (ImGuiToolKit::TreeNode(u8"放射ブラー"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##RadialBlur", &enableRadialBlur);
-			ImGui::DragFloat((const char*)u8"半径##RadialBlur", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
-			ImGui::DragInt((const char*)u8"サンプル数##RadialBlur", &radialBlurSamplingCount, 1, 1, 64);
-			ImGui::DragFloat2((const char*)u8"中心##RadialBlur", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat((const char*)u8"マスク半径##RadialBlur", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
+			ImGuiToolKit::Checkbox(u8"有効##RadialBlur", &enableRadialBlur);
+			ImGuiToolKit::DragSizeFloat(u8"半径##RadialBlur", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
+			ImGuiToolKit::DragInt(u8"サンプル数##RadialBlur", &radialBlurSamplingCount, 1, 1, 64);
+			ImGuiToolKit::DragFloat2(u8"中心##RadialBlur", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGuiToolKit::DragSizeFloat(u8"マスク半径##RadialBlur", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
 			ImGui::TreePop();
 		}
 
 		// Vignette effect to darken the edges of the screen.
-		if (ImGui::TreeNode((const char*)u8"ビネット"))
+		if (ImGuiToolKit::TreeNode(u8"ビネット"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##Vignette", &enableVignette);
-			ImGui::ColorEdit3((const char*)u8"色##Vignette", &vignetteColor.x);
-			ImGui::DragFloat2((const char*)u8"中心##Vignette", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGui::DragFloat((const char*)u8"強度##Vignette", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
-			ImGui::DragFloat((const char*)u8"滑らかさ##Vignette", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
-			ImGui::Checkbox((const char*)u8"円形補正", &vignetteRounded);
+			ImGuiToolKit::Checkbox(u8"有効##Vignette", &enableVignette);
+			ImGuiToolKit::ColorEdit3(u8"色##Vignette", &vignetteColor.x);
+			ImGuiToolKit::DragFloat2(u8"中心##Vignette", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGuiToolKit::DragFloat(u8"強度##Vignette", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
+			ImGuiToolKit::DragFloat(u8"滑らかさ##Vignette", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
+			ImGuiToolKit::Checkbox(u8"円形補正", &vignetteRounded);
 			if (vignetteRounded)
 			{
-				ImGui::DragFloat((const char*)u8"丸み", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
+				ImGuiToolKit::DragFloat(u8"丸み", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
 			}
 			ImGui::TreePop();
 		}
 
 		// Chromatic aberration effect to simulate lens distortion.
-		if (ImGui::TreeNode((const char*)u8"色収差"))
+		if (ImGuiToolKit::TreeNode(u8"色収差"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##ChromaticAberration", &enableChromaticAberration);
-			ImGui::DragFloat((const char*)u8"ずれ量", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
-			ImGui::DragInt((const char*)u8"最大サンプル数", &chromaticAberrationMaxSamples, 1, 1, 64);
-			ImGui::ColorEdit3((const char*)u8"色ずれ0", &chromaticAberrationShift[0].x);
-			ImGui::ColorEdit3((const char*)u8"色ずれ1", &chromaticAberrationShift[1].x);
-			ImGui::ColorEdit3((const char*)u8"色ずれ2", &chromaticAberrationShift[2].x);
+			ImGuiToolKit::Checkbox(u8"有効##ChromaticAberration", &enableChromaticAberration);
+			ImGuiToolKit::DragFloat(u8"ずれ量", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
+			ImGuiToolKit::DragInt(u8"最大サンプル数", &chromaticAberrationMaxSamples, 1, 1, 64);
+			ImGuiToolKit::ColorEdit3(u8"色ずれ0", &chromaticAberrationShift[0].x);
+			ImGuiToolKit::ColorEdit3(u8"色ずれ1", &chromaticAberrationShift[1].x);
+			ImGuiToolKit::ColorEdit3(u8"色ずれ2", &chromaticAberrationShift[2].x);
 			ImGui::TreePop();
 		}
 
 		// Apply one final BasicPostProcess effect.
-		if (ImGui::TreeNode((const char*)u8"最終基本エフェクト"))
+		if (ImGuiToolKit::TreeNode(u8"最終基本エフェクト"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##FinalBasicEffect", &enableBasicEffect);
-			if (ImGui::BeginCombo((const char*)u8"エフェクト##FinalBasicEffect", BasicEffectName(basicEffectIndex)))
+			ImGuiToolKit::Checkbox(u8"有効##FinalBasicEffect", &enableBasicEffect);
+			if (ImGuiToolKit::BeginCombo(u8"エフェクト##FinalBasicEffect", BasicEffectName(basicEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::BasicPostProcess::Effect_Max; ++i)
 				{
@@ -834,22 +901,22 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGui::DragFloat((const char*)u8"ガウシアン倍率", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"ブルームしきい値", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
-			ImGui::DragFloat((const char*)u8"ブルームぼかしサイズ", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGui::DragFloat((const char*)u8"ブルームぼかし明るさ", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"ガウシアン倍率", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragFloat(u8"ブルームしきい値", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragSizeFloat(u8"ブルームぼかしサイズ", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGuiToolKit::DragFloat(u8"ブルームぼかし明るさ", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNode("FXAA"))
 		{
-			ImGui::Checkbox((const char*)u8"有効##FXAA", &enableFXAA);
+			ImGuiToolKit::Checkbox(u8"有効##FXAA", &enableFXAA);
 			ImGui::TreePop();
 		}
 	}
 	void PostProcess::UnbindShaderResources(ID3D11DeviceContext* dc)
 	{
-		Gpu::PixelShader::UnbindShaderResources(dc, 0, 2);
+		Gpu::PixelShader::UnbindShaderResources(dc, 0, 3);
 	}
 
 	const char* PostProcess::BasicEffectName(int index)
@@ -926,6 +993,7 @@ namespace Game
 
 	void PostProcess::AddRuntimeRadialBlur(float intensity)
 	{
+		// 同じフレームの複数要求は加算せず、最も強い要求を採用して過剰なぼけを抑える
 		runtimeRadialBlurIntensity = std::max(runtimeRadialBlurIntensity, intensity);
 	}
 
@@ -938,7 +1006,7 @@ namespace Game
 	{
 		if (intensity <= 0.0f) return;
 		const float combinedIntensity = std::max(runtimeVignetteIntensity, intensity);
-		// 強度を掛けた各色の寄与を加算し、描画時の強度で正規化する。
+		// 強度を掛けた各色の寄与を加算し、描画時の強度で正規化する
 		runtimeVignetteColor = {
 			(runtimeVignetteColor.x * runtimeVignetteIntensity + color.x * intensity) / combinedIntensity,
 			(runtimeVignetteColor.y * runtimeVignetteIntensity + color.y * intensity) / combinedIntensity,
@@ -949,6 +1017,7 @@ namespace Game
 
 	void PostProcess::AddRuntimeColorTint(float intensity, const Color& color)
 	{
+		// 色は混ぜず、最も強い要求の色で統一する。強度が同じ場合は先に届いた要求を優先する
 		if (intensity <= runtimeColorTintIntensity) return;
 		runtimeColorTintIntensity = intensity;
 		runtimeColorTint = color;
@@ -957,16 +1026,26 @@ namespace Game
 	json PostProcess::CaptureMovieSettings() const
 	{
 		json settings;
+		settings["enableDepthOfField"] = enableDepthOfField;
+		settings["dofFocusDistance"] = dofFocusDistance;
+		settings["dofFocusRange"] = dofFocusRange;
+		settings["dofBlurRadius"] = dofBlurRadius;
+		settings["dofNearStrength"] = dofNearStrength;
+		settings["dofFarStrength"] = dofFarStrength;
+
 		settings["enableUnderwater"] = enableUnderwater;
 		settings["underwaterColor"] = json::array({underwaterColor.x, underwaterColor.y, underwaterColor.z, underwaterColor.w});
 		settings["underwaterDensity"] = underwaterDensity;
 		settings["underwaterTint"] = underwaterTint;
 		settings["underwaterAbsorption"] = json::array({underwaterAbsorption.x, underwaterAbsorption.y, underwaterAbsorption.z});
+
 		settings["enableBloomExtract"] = enableBloomExtract;
 		settings["bloomThreshold"] = bloomThreshold;
+
 		settings["enableBloomBlur"] = enableBloomBlur;
 		settings["bloomBlurSize"] = bloomBlurSize;
 		settings["bloomBlurBrightness"] = bloomBlurBrightness;
+
 		settings["enableDualEffect"] = enableDualEffect;
 		settings["dualEffectIndex"] = dualEffectIndex;
 		settings["bloomIntensity"] = bloomIntensity;
@@ -975,26 +1054,34 @@ namespace Game
 		settings["baseSaturation"] = baseSaturation;
 		settings["mergeWeight1"] = mergeWeight1;
 		settings["mergeWeight2"] = mergeWeight2;
+
 		settings["enableToneMapping"] = enableToneMapping;
 		settings["toneMapOperatorIndex"] = toneMapOperatorIndex;
 		settings["transferFunctionIndex"] = transferFunctionIndex;
 		settings["colorRotationIndex"] = colorRotationIndex;
 		settings["exposure"] = exposure;
 		settings["paperWhiteNits"] = paperWhiteNits;
+
 		settings["enableColorFilter"] = enableColorFilter;
 		settings["colorFilterHueShift"] = colorFilterHueShift;
 		settings["colorFilterSaturation"] = colorFilterSaturation;
 		settings["colorFilterBrightness"] = colorFilterBrightness;
+
 		settings["enableColorGradient"] = enableColorGradient;
 		settings["colorGradientStrength"] = colorGradientStrength;
-		settings["colorGradientShadows"] = json::array({colorGradientShadows.x, colorGradientShadows.y, colorGradientShadows.z, colorGradientShadows.w});
-		settings["colorGradientMidtones"] = json::array({colorGradientMidtones.x, colorGradientMidtones.y, colorGradientMidtones.z, colorGradientMidtones.w});
-		settings["colorGradientHighlights"] = json::array({colorGradientHighlights.x, colorGradientHighlights.y, colorGradientHighlights.z, colorGradientHighlights.w});
+		settings["colorGradientShadows"] = json::array({
+			colorGradientShadows.x, colorGradientShadows.y, colorGradientShadows.z, colorGradientShadows.w});
+		settings["colorGradientMidtones"] = json::array({
+			colorGradientMidtones.x, colorGradientMidtones.y, colorGradientMidtones.z, colorGradientMidtones.w});
+		settings["colorGradientHighlights"] = json::array({
+			colorGradientHighlights.x, colorGradientHighlights.y, colorGradientHighlights.z, colorGradientHighlights.w});
+
 		settings["enableRadialBlur"] = enableRadialBlur;
 		settings["radialBlurRadius"] = radialBlurRadius;
 		settings["radialBlurSamplingCount"] = radialBlurSamplingCount;
 		settings["radialBlurCenter"] = json::array({radialBlurCenter.x, radialBlurCenter.y});
 		settings["radialBlurMaskRadius"] = radialBlurMaskRadius;
+
 		settings["enableVignette"] = enableVignette;
 		settings["vignetteColor"] = json::array({vignetteColor.x, vignetteColor.y, vignetteColor.z, vignetteColor.w});
 		settings["vignetteCenter"] = json::array({vignetteCenter.x, vignetteCenter.y});
@@ -1002,33 +1089,49 @@ namespace Game
 		settings["vignetteSmoothness"] = vignetteSmoothness;
 		settings["vignetteRounded"] = vignetteRounded;
 		settings["vignetteRoundness"] = vignetteRoundness;
+
 		settings["enableChromaticAberration"] = enableChromaticAberration;
 		settings["chromaticAberrationAmount"] = chromaticAberrationAmount;
 		settings["chromaticAberrationMaxSamples"] = chromaticAberrationMaxSamples;
+
 		settings["enableSSAO"] = enableSSAO;
 		settings["ssaoRadius"] = ssaoRadius;
 		settings["ssaoIntensity"] = ssaoIntensity;
 		settings["ssaoMinDistance"] = ssaoMinDistance;
 		settings["ssaoMaxDistance"] = ssaoMaxDistance;
+
 		settings["enableFXAA"] = enableFXAA;
+
 		settings["enableBasicEffect"] = enableBasicEffect;
 		settings["basicEffectIndex"] = basicEffectIndex;
 		settings["gaussianMultiplier"] = gaussianMultiplier;
 		settings["finalBloomThreshold"] = finalBloomThreshold;
 		settings["finalBloomBlurSize"] = finalBloomBlurSize;
 		settings["finalBloomBlurBrightness"] = finalBloomBlurBrightness;
+
 		settings["chromaticAberrationShift"] = json::array();
 		for (const Color& value : chromaticAberrationShift)
 			settings["chromaticAberrationShift"].push_back(json::array({value.x, value.y, value.z, value.w}));
 		return settings;
 	}
 
-	void PostProcess::ValidateMovieSettings(const json& settings)
+	void PostProcess::ValidateMovieSettings(const json& inputSettings)
 	{
+		json settings = inputSettings;
 		const json schema = PostProcess{}.CaptureMovieSettings();
+
+		// DoF 追加前のムービーだけを補完する。他の必須項目の欠落や未知の項目は従来どおり拒否する
+		if (settings.is_object())
+			for (const char* name : {"enableDepthOfField", "dofFocusDistance", "dofFocusRange",
+				"dofBlurRadius", "dofNearStrength", "dofFarStrength"})
+				if (!settings.contains(name)) settings[name] = schema.at(name);
+
 		if (!settings.is_object() || settings.size() != schema.size())
 			throw std::runtime_error("Invalid movie post-process settings.");
-		const auto validate = [](const auto& self, const json& value, const json& expected) -> void {
+
+		// 初期設定を型と配列長の見本にする。色・ベクトルの各成分も再帰的に検証する
+		const auto validate = [](const auto& self, const json& value, const json& expected) -> void
+		{
 			if (expected.is_array())
 			{
 				if (!value.is_array() || value.size() != expected.size()) throw std::runtime_error("Invalid movie effect vector.");
@@ -1047,10 +1150,16 @@ namespace Game
 			}
 		};
 		for (const auto& [name, expected] : schema.items()) validate(validate, settings.at(name), expected);
-		const auto index = [&](const char* name, int maximum) {
+		const auto index = [&](const char* name, int maximum)
+		{
 			const int value = settings.at(name).get<int>();
 			if (value < 0 || value >= maximum) throw std::runtime_error("Invalid movie effect mode.");
 		};
+		if (settings.at("dofFocusDistance").get<float>() <= 0.0f || settings.at("dofFocusRange").get<float>() <= 0.0f ||
+			settings.at("dofBlurRadius").get<float>() < 0.0f || settings.at("dofBlurRadius").get<float>() > 64.0f ||
+			settings.at("dofNearStrength").get<float>() < 0.0f || settings.at("dofNearStrength").get<float>() > 1.0f ||
+			settings.at("dofFarStrength").get<float>() < 0.0f || settings.at("dofFarStrength").get<float>() > 1.0f)
+			throw std::runtime_error("Invalid movie depth-of-field settings.");
 		index("dualEffectIndex", DirectX::DualPostProcess::Effect_Max);
 		index("basicEffectIndex", DirectX::BasicPostProcess::Effect_Max);
 		index("toneMapOperatorIndex", DirectX::ToneMapPostProcess::Operator_Max);
@@ -1063,16 +1172,33 @@ namespace Game
 
 	void PostProcess::ApplyMovieSettings(const json& settings)
 	{
+		enableDepthOfField = settings.value("enableDepthOfField", false);
+		dofFocusDistance = settings.value("dofFocusDistance", 25.0f);
+		dofFocusRange = settings.value("dofFocusRange", 20.0f);
+		dofBlurRadius = settings.value("dofBlurRadius", 12.0f);
+		dofNearStrength = settings.value("dofNearStrength", 1.0f);
+		dofFarStrength = settings.value("dofFarStrength", 1.0f);
+
 		enableUnderwater = settings.at("enableUnderwater").get<bool>();
-		underwaterColor = Color(settings.at("underwaterColor").at(0).get<float>(), settings.at("underwaterColor").at(1).get<float>(), settings.at("underwaterColor").at(2).get<float>(), settings.at("underwaterColor").at(3).get<float>());
+		underwaterColor = Color(
+			settings.at("underwaterColor").at(0).get<float>(),
+			settings.at("underwaterColor").at(1).get<float>(),
+			settings.at("underwaterColor").at(2).get<float>(),
+			settings.at("underwaterColor").at(3).get<float>());
 		underwaterDensity = settings.at("underwaterDensity").get<float>();
 		underwaterTint = settings.at("underwaterTint").get<float>();
-		underwaterAbsorption = Vector3(settings.at("underwaterAbsorption").at(0).get<float>(), settings.at("underwaterAbsorption").at(1).get<float>(), settings.at("underwaterAbsorption").at(2).get<float>());
+		underwaterAbsorption = Vector3(
+			settings.at("underwaterAbsorption").at(0).get<float>(),
+			settings.at("underwaterAbsorption").at(1).get<float>(),
+			settings.at("underwaterAbsorption").at(2).get<float>());
+
 		enableBloomExtract = settings.at("enableBloomExtract").get<bool>();
 		bloomThreshold = settings.at("bloomThreshold").get<float>();
+
 		enableBloomBlur = settings.at("enableBloomBlur").get<bool>();
 		bloomBlurSize = settings.at("bloomBlurSize").get<float>();
 		bloomBlurBrightness = settings.at("bloomBlurBrightness").get<float>();
+
 		enableDualEffect = settings.at("enableDualEffect").get<bool>();
 		dualEffectIndex = settings.at("dualEffectIndex").get<int>();
 		bloomIntensity = settings.at("bloomIntensity").get<float>();
@@ -1081,42 +1207,67 @@ namespace Game
 		baseSaturation = settings.at("baseSaturation").get<float>();
 		mergeWeight1 = settings.at("mergeWeight1").get<float>();
 		mergeWeight2 = settings.at("mergeWeight2").get<float>();
+
 		enableToneMapping = settings.at("enableToneMapping").get<bool>();
 		toneMapOperatorIndex = settings.at("toneMapOperatorIndex").get<int>();
 		transferFunctionIndex = settings.at("transferFunctionIndex").get<int>();
 		colorRotationIndex = settings.at("colorRotationIndex").get<int>();
 		exposure = settings.at("exposure").get<float>();
 		paperWhiteNits = settings.at("paperWhiteNits").get<float>();
+
 		enableColorFilter = settings.at("enableColorFilter").get<bool>();
 		colorFilterHueShift = settings.at("colorFilterHueShift").get<float>();
 		colorFilterSaturation = settings.at("colorFilterSaturation").get<float>();
 		colorFilterBrightness = settings.at("colorFilterBrightness").get<float>();
+
 		enableColorGradient = settings.at("enableColorGradient").get<bool>();
 		colorGradientStrength = settings.at("colorGradientStrength").get<float>();
-		colorGradientShadows = Color(settings.at("colorGradientShadows").at(0).get<float>(), settings.at("colorGradientShadows").at(1).get<float>(), settings.at("colorGradientShadows").at(2).get<float>(), settings.at("colorGradientShadows").at(3).get<float>());
-		colorGradientMidtones = Color(settings.at("colorGradientMidtones").at(0).get<float>(), settings.at("colorGradientMidtones").at(1).get<float>(), settings.at("colorGradientMidtones").at(2).get<float>(), settings.at("colorGradientMidtones").at(3).get<float>());
-		colorGradientHighlights = Color(settings.at("colorGradientHighlights").at(0).get<float>(), settings.at("colorGradientHighlights").at(1).get<float>(), settings.at("colorGradientHighlights").at(2).get<float>(), settings.at("colorGradientHighlights").at(3).get<float>());
+		colorGradientShadows = Color(
+			settings.at("colorGradientShadows").at(0).get<float>(),
+			settings.at("colorGradientShadows").at(1).get<float>(),
+			settings.at("colorGradientShadows").at(2).get<float>(),
+			settings.at("colorGradientShadows").at(3).get<float>());
+		colorGradientMidtones = Color(
+			settings.at("colorGradientMidtones").at(0).get<float>(),
+			settings.at("colorGradientMidtones").at(1).get<float>(),
+			settings.at("colorGradientMidtones").at(2).get<float>(),
+			settings.at("colorGradientMidtones").at(3).get<float>());
+		colorGradientHighlights = Color(
+			settings.at("colorGradientHighlights").at(0).get<float>(),
+			settings.at("colorGradientHighlights").at(1).get<float>(),
+			settings.at("colorGradientHighlights").at(2).get<float>(),
+			settings.at("colorGradientHighlights").at(3).get<float>());
+
 		enableRadialBlur = settings.at("enableRadialBlur").get<bool>();
 		radialBlurRadius = settings.at("radialBlurRadius").get<float>();
 		radialBlurSamplingCount = settings.at("radialBlurSamplingCount").get<int>();
 		radialBlurCenter = Vector2(settings.at("radialBlurCenter").at(0).get<float>(), settings.at("radialBlurCenter").at(1).get<float>());
 		radialBlurMaskRadius = settings.at("radialBlurMaskRadius").get<float>();
+
 		enableVignette = settings.at("enableVignette").get<bool>();
-		vignetteColor = Color(settings.at("vignetteColor").at(0).get<float>(), settings.at("vignetteColor").at(1).get<float>(), settings.at("vignetteColor").at(2).get<float>(), settings.at("vignetteColor").at(3).get<float>());
+		vignetteColor = Color(
+			settings.at("vignetteColor").at(0).get<float>(),
+			settings.at("vignetteColor").at(1).get<float>(),
+			settings.at("vignetteColor").at(2).get<float>(),
+			settings.at("vignetteColor").at(3).get<float>());
 		vignetteCenter = Vector2(settings.at("vignetteCenter").at(0).get<float>(), settings.at("vignetteCenter").at(1).get<float>());
 		vignetteIntensity = settings.at("vignetteIntensity").get<float>();
 		vignetteSmoothness = settings.at("vignetteSmoothness").get<float>();
 		vignetteRounded = settings.at("vignetteRounded").get<bool>();
 		vignetteRoundness = settings.at("vignetteRoundness").get<float>();
+
 		enableChromaticAberration = settings.at("enableChromaticAberration").get<bool>();
 		chromaticAberrationAmount = settings.at("chromaticAberrationAmount").get<float>();
 		chromaticAberrationMaxSamples = settings.at("chromaticAberrationMaxSamples").get<int>();
+
 		enableSSAO = settings.at("enableSSAO").get<bool>();
 		ssaoRadius = settings.at("ssaoRadius").get<float>();
 		ssaoIntensity = settings.at("ssaoIntensity").get<float>();
 		ssaoMinDistance = settings.at("ssaoMinDistance").get<float>();
 		ssaoMaxDistance = settings.at("ssaoMaxDistance").get<float>();
+
 		enableFXAA = settings.at("enableFXAA").get<bool>();
+
 		enableBasicEffect = settings.at("enableBasicEffect").get<bool>();
 		basicEffectIndex = settings.at("basicEffectIndex").get<int>();
 		gaussianMultiplier = settings.at("gaussianMultiplier").get<float>();

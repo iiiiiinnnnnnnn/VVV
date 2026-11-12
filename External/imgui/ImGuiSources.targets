@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <VeerNodeEditorSourceDirectory>$(MSBuildThisFileDirectory)node-editor\</VeerNodeEditorSourceDirectory>
+    <VeerImGuiSourceDirectory>$(MSBuildThisFileDirectory)source\</VeerImGuiSourceDirectory>
+  </PropertyGroup>
+  <!-- Register sources only during builds so Solution Explorer does not list them. -->
+  <Target Name="AddImGuiSources" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MakeDir Directories="$(IntDir)DearImGui;$(IntDir)NodeEditor" />
+    <ItemGroup>
+      <ClCompile Include="$(VeerImGuiSourceDirectory)imgui.cpp;$(VeerImGuiSourceDirectory)imgui_draw.cpp;$(VeerImGuiSourceDirectory)imgui_tables.cpp;$(VeerImGuiSourceDirectory)imgui_widgets.cpp;$(VeerImGuiSourceDirectory)imgui_demo.cpp;$(VeerImGuiSourceDirectory)imgui_impl_win32.cpp;$(VeerImGuiSourceDirectory)imgui_impl_dx11.cpp;$(VeerImGuiSourceDirectory)imgui_stdlib.cpp">
+        <PrecompiledHeader>NotUsing</PrecompiledHeader>
+        <ForcedIncludeFiles />
+        <ObjectFileName>$(IntDir)DearImGui\</ObjectFileName>
+      </ClCompile>
+      <ClCompile Include="$(VeerNodeEditorSourceDirectory)crude_json.cpp;$(VeerNodeEditorSourceDirectory)imgui_canvas.cpp;$(VeerNodeEditorSourceDirectory)imgui_node_editor.cpp;$(VeerNodeEditorSourceDirectory)imgui_node_editor_api.cpp">
+        <PrecompiledHeader>NotUsing</PrecompiledHeader>
+        <ForcedIncludeFiles />
+        <ObjectFileName>$(IntDir)NodeEditor\</ObjectFileName>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
+</Project>

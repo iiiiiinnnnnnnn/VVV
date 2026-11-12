@@ -33,7 +33,7 @@ public:
 
     ID3D11ShaderResourceView* GetDepthSRV(int cascadeIndex) const
     {
-        return depthSrvs.at(cascadeIndex).Get();
+        return depthTargets.at(cascadeIndex)->GetSRV();
     }
     const Matrix& GetLightViewProjection(int cascadeIndex) const
     {
@@ -50,9 +50,7 @@ private:
         float shadowDistance);
     void RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex);
 
-    std::array<Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, CascadeCount> depthDsvs;
-    std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, CascadeCount> depthSrvs;
-    D3D11_VIEWPORT shadowViewport = {};
+    std::array<std::unique_ptr<DepthTarget>, CascadeCount> depthTargets;
 
     struct CbSkeleton
     {

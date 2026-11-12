@@ -39,9 +39,9 @@ class GamePad
 	void Update(bool acceptsInput);
 
 	// スロット設定
-	void SetSlot(int slot)
+	void SetSlot(int _slot)
 	{
-		this->slot = slot;
+		this->slot = _slot;
 		connected = false;
 		nextConnectionCheck = 0;
 	}

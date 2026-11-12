@@ -1,4 +1,6 @@
 #include <stdexcept>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include "Core/Foundation/Random.h"
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Stage/Stage01.h"
@@ -6,7 +8,6 @@
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Camera/Camera.h"
-#include "Gameplay/Camera/FreeCameraController.h"
 #include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Stage/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
@@ -36,20 +37,6 @@ void Stage01::OnAwake()
 	{
 		// まぁ使わないとは思うけど、複数ある場合はランダムな初期位置から開始する
 		player->SetSpawnTransform(stageLoader->GetRandomPlayerStartTransform());
-	}
-	{
-		auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
-		Camera* debugCamera = debugCameraActor->AddComponent<Camera>(100);
-		debugCamera->SetPerspectiveFov(DirectX::XMConvertToRadians(45.0f),
-			Game::Graphics::ScreenWidth / Game::Graphics::ScreenHeight, 0.1f, 1000.0f);
-		debugCamera->SetLookAt({0.0f, 3.0f, 5.0f}, Vector3::Zero, Vector3::Up);
-
-		FreeCameraController* controller = debugCameraActor->AddComponent<FreeCameraController>();
-		debugCamera->SetActive(false);
-		controller->SetActive(false);
-
-		SetDebugCamera(debugCamera);
-		actorManager.Register(debugCameraActor);
 	}
 
 	//	パーティクル準備
@@ -229,26 +216,26 @@ void Stage01::OnDrawGUI()
 	{
 		float fadeIn = chaseAudio.GetFadeInSeconds();
 		float fadeOut = chaseAudio.GetFadeOutSeconds();
-		if (ImGui::DragFloat("Fade In", &fadeIn, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+		if (ImGuiToolKit::DragDelayFloat(u8"Fade In", &fadeIn, 0.05f, 0.0f, 10.0f, "%.2f sec"))
 			chaseAudio.SetFadeInSeconds(fadeIn);
-		if (ImGui::DragFloat("Fade Out", &fadeOut, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+		if (ImGuiToolKit::DragDelayFloat(u8"Fade Out", &fadeOut, 0.05f, 0.0f, 10.0f, "%.2f sec"))
 			chaseAudio.SetFadeOutSeconds(fadeOut);
 		ImGui::TreePop();
 	}
 	if (!ImGui::TreeNode("Fog")) return;
 	ImGui::DragFloat("Spawn Rate", &fogSpawnRate, 0.1f, 0.0f, 30.0f);
-	ImGui::DragFloat("Area Half Width", &fogAreaHalfWidth, 0.5f, 1.0f, 500.0f);
-	ImGui::DragFloat("Area Half Depth", &fogAreaHalfDepth, 0.5f, 1.0f, 500.0f);
+	ImGuiToolKit::DragSizeFloat(u8"Area Half Width", &fogAreaHalfWidth, 0.5f, 1.0f, 500.0f);
+	ImGuiToolKit::DragSizeFloat(u8"Area Half Depth", &fogAreaHalfDepth, 0.5f, 1.0f, 500.0f);
 	ImGui::DragFloat("Min Height", &fogMinHeight, 0.1f, -10.0f, fogMaxHeight);
 	ImGui::DragFloat("Max Height", &fogMaxHeight, 0.1f, fogMinHeight, 20.0f);
-	ImGui::DragFloat("Min Lifetime", &fogMinLifetime, 0.1f, 0.1f, fogMaxLifetime);
-	ImGui::DragFloat("Max Lifetime", &fogMaxLifetime, 0.1f, fogMinLifetime, 30.0f);
-	ImGui::DragFloat("Fade In", &fogFadeInDuration, 0.1f, 0.0f, fogMinLifetime);
-	ImGui::DragFloat("Fade Out", &fogFadeOutDuration, 0.1f, 0.0f, fogMinLifetime);
-	ImGui::DragFloat("Min Size", &fogMinSize, 0.1f, 0.1f, fogMaxSize);
-	ImGui::DragFloat("Max Size", &fogMaxSize, 0.1f, fogMinSize, 30.0f);
-	ImGui::DragFloat("Drift Speed", &fogDriftSpeed, 0.01f, 0.0f, 5.0f);
-	ImGui::ColorEdit4("Fog Color", &fogColor.x);
+	ImGuiToolKit::DragDelayFloat(u8"Min Lifetime", &fogMinLifetime, 0.1f, 0.1f, fogMaxLifetime);
+	ImGuiToolKit::DragDelayFloat(u8"Max Lifetime", &fogMaxLifetime, 0.1f, fogMinLifetime, 30.0f);
+	ImGuiToolKit::DragDelayFloat(u8"Fade In", &fogFadeInDuration, 0.1f, 0.0f, fogMinLifetime);
+	ImGuiToolKit::DragDelayFloat(u8"Fade Out", &fogFadeOutDuration, 0.1f, 0.0f, fogMinLifetime);
+	ImGuiToolKit::DragSizeFloat(u8"Min Size", &fogMinSize, 0.1f, 0.1f, fogMaxSize);
+	ImGuiToolKit::DragSizeFloat(u8"Max Size", &fogMaxSize, 0.1f, fogMinSize, 30.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"Drift Speed", &fogDriftSpeed, 0.01f, 0.0f, 5.0f);
+	ImGuiToolKit::ColorEdit4(u8"Fog Color", &fogColor.x);
 	ImGui::TreePop();
 }
 

@@ -1,4 +1,6 @@
 #include "UI/GaugeWidget.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Color.h>
 
 #include <algorithm>
 #include <cmath>
@@ -10,8 +12,8 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/Texture.h"
 
-GaugeWidget::GaugeWidget(const std::string& name, bool revealOnStart)
-	: DissolveWidget(name), revealing(revealOnStart)
+GaugeWidget::GaugeWidget(const std::string& name, const std::string& maskPath, bool revealOnStart)
+	: DissolveWidget(name, maskPath), revealing(revealOnStart)
 {
 	SetDissolveAmount(revealOnStart ? 1.0f : 0.0f);
 	SetAffectedByPostProcess(false);
@@ -115,10 +117,10 @@ void GaugeWidget::OnUpdate()
 void GaugeWidget::OnDrawGUI()
 {
 	DissolveWidget::OnDrawGUI();
-	ImGui::Checkbox((const char*)u8"ダメージ残像", &damageTrailEnabled);
-	ImGui::SliderFloat((const char*)u8"残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
-	ImGui::SliderFloat((const char*)u8"残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
-	ImGui::ColorEdit4((const char*)u8"残像の色", &damageTrailColor.x);
+	ImGuiToolKit::Checkbox(u8"ダメージ残像", &damageTrailEnabled);
+	ImGuiToolKit::SliderFloat(u8"残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
+	ImGuiToolKit::SliderFloat(u8"残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
+	ImGuiToolKit::ColorEdit4(u8"残像の色", &damageTrailColor.x);
 }
 
 void GaugeWidget::DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color)

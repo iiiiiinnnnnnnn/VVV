@@ -1,13 +1,10 @@
 #pragma once
 
 #include "Application/Time/Timer.h"
+#include <ImGuiToolKit/Utf8.h>
 
 #include "Core/Object/Component.h"
 #include "Core/Foundation/Common.h"
-
-#include <array>
-#include <functional>
-#include <utility>
 
 class Widget;
 class UIEventSystem;
@@ -48,8 +45,8 @@ class EventTrigger final : public Component
 public:
 	using Callback = std::function<void(UIEventData&)>;
 
-	explicit EventTrigger(Object* owner) : Component(owner) {}
-	const char* GetDebugName() const override { return "EventTrigger"; }
+	EventTrigger(Object* owner) : Component(owner) {}
+	const char* GetDebugName() const override { return JText(ICON_FA_FINGERPRINT u8" イベントトリガー"); }
 	void AddListener(EventTriggerType type, Callback callback);
 	void AddActivationListener(std::function<void()> action);
 	void RemoveListeners(EventTriggerType type);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -48,6 +49,11 @@ public:
 	static std::filesystem::path FindSourceResourceRoot();
 	static std::filesystem::path ResolveSourcePath(const std::filesystem::path& path);
 
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	void DrawGUI();
+	void ReloadResourceList();
+#endif
+
 	bool PrepareGameResources();
 	bool RefreshResources(const std::filesystem::path& savedSource = {});
 	bool AreGameResourcesPrepared() const { return resourcesPrepared; }
@@ -72,6 +78,27 @@ public:
 	std::shared_ptr<Texture> LoadTexture(const std::string& key, bool required = true);
 
 private:
+#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	struct ResourceTreeNode
+	{
+		std::string name;
+		std::string path;
+		bool file = false;
+		std::map<std::string, ResourceTreeNode> children;
+	};
+
+	void DrawTreeLabel(const ResourceTreeNode& node, int depth,
+		const std::vector<bool>& guides, bool last);
+	void AddResourceTreePath(ResourceTreeNode& root, const std::string& path);
+	void DrawCacheTreeNode(ResourceTreeNode& node, int depth,
+		const std::vector<bool>& guides, bool last);
+
+	CacheSettings resourceGUISettings;
+	std::vector<std::string> resourceGUIPaths;
+	std::string resourceGUIMessage;
+	bool resourceGUIInitialized = false;
+#endif
+
 	bool LoadCachedPathList();
 	bool SaveCachedPathList();
 	bool AddAssetPath(AssetType type, const std::filesystem::path& path, const std::string& updated = {});

@@ -92,7 +92,11 @@ void Camera::SyncTransform() const
 void Camera::SetPerspectiveFov(float fovY, float aspect, float nearZ, float farZ)
 {
 	// 画角、画面比率、クリップ距離からプロジェクション行列を作成
-	Matrix Projection = DirectX::XMMatrixPerspectiveFovLH(fovY, aspect, nearZ, farZ);
+	verticalFov = fovOverride > 0.0f ? fovOverride : fovY;
+	aspectRatio = aspect;
+	nearClip = nearZ;
+	farClip = farZ;
+	Matrix Projection = DirectX::XMMatrixPerspectiveFovLH(verticalFov, aspect, nearZ, farZ);
 	projection = Projection;
 }
 

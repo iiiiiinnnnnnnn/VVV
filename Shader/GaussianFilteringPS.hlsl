@@ -26,7 +26,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     {
         float2 offset = texcel * weights[i].xy;
         float weight = weights[i].z;
-        color.rgb += texture0.Sample(sampler0, pin.texcoord + offset).rgb * weight;
+        color.rgb += DecodeSpriteColor(texture0.Sample(sampler0, pin.texcoord + offset)).rgb * weight;
     }
     
     color.a *= pin.alpha;

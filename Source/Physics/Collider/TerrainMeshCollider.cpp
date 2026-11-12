@@ -1,5 +1,6 @@
 // TerrainMeshCollider.cpp
 #include "Physics/Collider/TerrainMeshCollider.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
@@ -559,10 +560,10 @@ void TerrainMeshCollider::DrawGUI()
     {
         ClampCollisionArea();
 
-        ImGui::DragFloat("Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
-        ImGui::DragFloat("Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
-        ImGui::DragFloat("Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
-        ImGui::DragFloat("Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat(u8"Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat(u8"Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat(u8"Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat(u8"Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
 
         if (ImGui::Button("Reset Full Terrain Area"))
         {

@@ -8,20 +8,21 @@
 struct VmdlEditorLayoutSettings
 {
 	bool loaded = false;
+	float inspectorWidth = 340.0f;
+	float hierarchyWidth = 300.0f;
 	int windowX = 0;
 	int windowY = 0;
 	int windowWidth = 0;
 	int windowHeight = 0;
 	bool windowMaximized = false;
-	float propertyPanelRatio = -1.0f;
-	float viewportPanelRatio = -1.0f;
-	float bottomPanelRatio = -1.0f;
 	std::string recentModelPath;
 };
 
 struct VstgEditorSettings
 {
 	bool loaded = false;
+	float inspectorWidth = 340.0f;
+	float hierarchyWidth = 300.0f;
 	std::string recentStagePath;
 };
 

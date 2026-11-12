@@ -21,9 +21,6 @@
     <ClInclude Include="Include\Dx11Kit\Buffer.h">
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Dx11Kit\BufferDesc.h">
-      <Filter>Include\Dx11Kit</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Dx11Kit\ConstantBuffer.h">
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
@@ -57,9 +54,6 @@
     <ClInclude Include="Include\Dx11Kit\ComputeShader.h">
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Dx11Kit\InputLayoutDesc.h">
-      <Filter>Include\Dx11Kit</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Dx11Kit\ShaderBytecode.h">
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
@@ -73,6 +67,12 @@
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
     <ClInclude Include="Include\Dx11Kit\SamplerState.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\DepthTarget.h">
+      <Filter>Include\Dx11Kit</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Dx11Kit\RenderOutput.h">
       <Filter>Include\Dx11Kit</Filter>
     </ClInclude>
   </ItemGroup>

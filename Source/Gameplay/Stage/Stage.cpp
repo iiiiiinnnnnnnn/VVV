@@ -1,5 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Stage/Stage.h"
+#include "Gameplay/Camera/FreeCameraController.h"
 
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "Gameplay/Stage/Component/Terrain.h"
@@ -9,6 +10,21 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/VSTG.h"
 #include "Resource/ResourcePath.h"
+
+Stage::Stage()
+{
+	defaultCameraActor = std::make_shared<Actor>("Stage Camera");
+	defaultCameraActor->AddComponent<Camera>();
+	actorManager.Register(defaultCameraActor);
+
+	auto debugCameraActor = std::make_shared<Actor>("Debug Camera");
+	debugCamera = debugCameraActor->AddComponent<Camera>(100);
+	FreeCameraController* controller = debugCameraActor->AddComponent<FreeCameraController>();
+	debugCamera->SetActive(false);
+	controller->SetActive(false);
+	actorManager.Register(debugCameraActor);
+	actorManager.FlushPendingActors();
+}
 
 bool Stage::LoadVSTG(const std::string& path)
 {

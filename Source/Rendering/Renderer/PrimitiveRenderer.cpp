@@ -7,9 +7,11 @@
 // コンストラクタ
 PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 {
-	Gpu::InputLayoutDesc inputElementDesc;
-	inputElementDesc.AddPosition()
-		.AddColor();
+	const D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 	// 頂点シェーダー
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PrimitiveRendererVS.cso").c_str(),
 		inputElementDesc);
@@ -21,8 +23,11 @@ PrimitiveRenderer::PrimitiveRenderer(ID3D11Device* device)
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbScene));
 
 	// 頂点バッファ
-	const Gpu::BufferDesc desc(sizeof(Vertex) * VertexCapacity,
-		D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = sizeof(Vertex) * VertexCapacity;
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	vertexBuffer = std::make_unique<Gpu::VertexBuffer>(device, desc, nullptr);
 }
 

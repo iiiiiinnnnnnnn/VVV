@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Utf8.h>
 #include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
@@ -811,8 +812,10 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 		}
 
 		{
-			const Gpu::BufferDesc bufferDesc(static_cast<UINT>(sizeof(Vertex) * mesh.vertices.size()),
-				D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+			D3D11_BUFFER_DESC bufferDesc{};
+			bufferDesc.ByteWidth = static_cast<UINT>(sizeof(Vertex) * mesh.vertices.size());
+			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+			bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
 
 			subresourceData.pSysMem = mesh.vertices.data();
@@ -823,8 +826,10 @@ VMDLModel::VMDLModel(const char* filename, float sampleRate, const char* savePat
 		}
 
 		{
-			const Gpu::BufferDesc bufferDesc(static_cast<UINT>(sizeof(uint32_t) * mesh.indices.size()),
-				D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+			D3D11_BUFFER_DESC bufferDesc{};
+			bufferDesc.ByteWidth = static_cast<UINT>(sizeof(uint32_t) * mesh.indices.size());
+			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+			bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
 
 			subresourceData.pSysMem = mesh.indices.data();
@@ -1962,16 +1967,16 @@ bool VMDLModel::AutoAssignVmdlIKNodes()
 	int centerIndex = -1;
 	if (vmdlIKSettings.type == 1)
 		centerIndex = FindBestIkNode(nodes,
-			{"HIPS", "PELVIS", "WAIST", "HIP", "ROOT", (const char*)u8"骨盤", (const char*)u8"腰"},
+			{"HIPS", "PELVIS", "WAIST", "HIP", "ROOT", JText(u8"骨盤"), JText(u8"腰")},
 			0, 0, -1);
 	else if (vmdlIKSettings.type == 2)
 		centerIndex = FindBestIkNode(nodes,
-			{"BODY", "SPINE", "CHEST", "PELVIS", "HIPS", "ROOT", (const char*)u8"胴体",
-				(const char*)u8"背骨"},
+			{"BODY", "SPINE", "CHEST", "PELVIS", "HIPS", "ROOT", JText(u8"胴体"),
+				JText(u8"背骨")},
 			0, 0, -1);
 	else
 		centerIndex = FindBestIkNode(nodes,
-			{"THORAX", "BODY", "CHEST", "ROOT", (const char*)u8"胸部", (const char*)u8"胴体"}, 0, 0,
+			{"THORAX", "BODY", "CHEST", "ROOT", JText(u8"胸部"), JText(u8"胴体")}, 0, 0,
 			-1);
 	if (centerIndex >= 0)
 		changed |= AssignIkNodeReference(vmdlIKSettings.centerNode, nodes, centerIndex);
@@ -1991,17 +1996,17 @@ bool VMDLModel::AutoAssignVmdlIKNodes()
 		if (vmdlIKSettings.type == 1)
 		{
 			rootIndex = FindBestIkNode(nodes,
-				{"UPPERLEG", "UPLEG", "THIGH", (const char*)u8"太もも", (const char*)u8"腿",
-					(const char*)u8"足"},
+				{"UPPERLEG", "UPLEG", "THIGH", JText(u8"太もも"), JText(u8"腿"),
+					JText(u8"足")},
 				side, 0, centerIndex);
 			midIndex = FindBestIkNode(nodes,
-				{"LOWERLEG", "CALF", "SHIN", "KNEE", (const char*)u8"ひざ", (const char*)u8"膝",
-					(const char*)u8"すね"},
+				{"LOWERLEG", "CALF", "SHIN", "KNEE", JText(u8"ひざ"), JText(u8"膝"),
+					JText(u8"すね")},
 				side, 0, rootIndex);
 			tipIndex = FindBestIkNode(nodes,
-				{"FOOT", "ANKLE", (const char*)u8"足首", (const char*)u8"足"}, side, 0, midIndex);
+				{"FOOT", "ANKLE", JText(u8"足首"), JText(u8"足")}, side, 0, midIndex);
 			contactIndex = FindBestIkNode(nodes,
-				{"TOEBASE", "TOE", "BALL", (const char*)u8"つま先", (const char*)u8"爪先"}, side, 0,
+				{"TOEBASE", "TOE", "BALL", JText(u8"つま先"), JText(u8"爪先")}, side, 0,
 				tipIndex);
 		}
 		else if (vmdlIKSettings.type == 2)

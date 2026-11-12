@@ -5,8 +5,8 @@
 #include "Rendering/Core/Graphics.h"
 #include "Application/Time/GameTime.h"
 
-EffectWidget::EffectWidget(const std::string& path, float scale)
-	: effectPath(path),
+EffectWidget::EffectWidget(const std::string& name, const std::string& path, float scale)
+	: Widget(name), effectPath(path),
 	  effectScale(scale)
 {
 	// 初期状態ではrect.positionをエフェクトの再生原点にする。

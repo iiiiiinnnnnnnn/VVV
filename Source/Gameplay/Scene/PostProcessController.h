@@ -84,7 +84,7 @@ private:
 	float poisonVignetteIntensity = 0.0f;
 	float poisonVignetteStartIntensity = 0.0f;
 	float poisonVignetteProgress = 1.0f;
-	float poisonVignetteDuration = 0.5f;
+	float poisonVignetteDuration = 0.75f;
 	Easing::Type poisonVignetteEasing = Easing::Type::InOutCubic;
 
 	Game::Timer justDodgeTimer{0.0f};

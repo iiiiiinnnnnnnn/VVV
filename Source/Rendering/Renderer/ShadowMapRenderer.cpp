@@ -1,4 +1,5 @@
 #include "Resource/ResourceManager.h"
+#include <ImGuiToolKit/Widgets.h>
 #include <Dx11Kit/Dx11Kit.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Rendering/Core/Graphics.h"
@@ -12,59 +13,9 @@
 ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     : shadowMapSize(shadowMapSize)
 {
-    HRESULT hr;
-
-    // ----- デプスオンリーテクスチャの生成 -----
-    // デプスのみ作成してSRVでも使う
-    // フォーマット:
-    //   テクスチャ本体  → DXGI_FORMAT_R32_TYPELESS  (DSVとSRV両方に使える)
-    //   DSV            → DXGI_FORMAT_D32_FLOAT
-    //   SRV            → DXGI_FORMAT_R32_FLOAT
-    for (int cascadeIndex = 0; cascadeIndex < CascadeCount; ++cascadeIndex)
-    {
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
-        D3D11_TEXTURE2D_DESC desc = {};
-        desc.Width = shadowMapSize;
-        desc.Height = shadowMapSize;
-        desc.MipLevels = 1;
-        desc.ArraySize = 1;
-        desc.Format = DXGI_FORMAT_R32_TYPELESS;
-        desc.SampleDesc.Count = 1;
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-        hr = device->CreateTexture2D(&desc, nullptr, tex.GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-
-        // DSV
-        D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-        hr = device->CreateDepthStencilView(
-            tex.Get(),
-            &dsvDesc,
-            depthDsvs[cascadeIndex].GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-
-        // SRV（PBRShaderのslot8にバインドする）
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = 1;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-        hr = device->CreateShaderResourceView(
-            tex.Get(),
-            &srvDesc,
-            depthSrvs[cascadeIndex].GetAddressOf());
-        _ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
-    }
-
-    // ビューポート
-    shadowViewport.Width = static_cast<float>(shadowMapSize);
-    shadowViewport.Height = static_cast<float>(shadowMapSize);
-    shadowViewport.MinDepth = 0.0f;
-    shadowViewport.MaxDepth = 1.0f;
-    shadowViewport.TopLeftX = 0.0f;
-    shadowViewport.TopLeftY = 0.0f;
+    for (auto& target : depthTargets)
+        target = std::make_unique<DepthTarget>(device, shadowMapSize, shadowMapSize,
+            DXGI_FORMAT_R32_TYPELESS, DXGI_FORMAT_D32_FLOAT, DXGI_FORMAT_R32_FLOAT);
 
     vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShadowMapCasterVS.cso").c_str(),
 		ModelShader::InputLayout);
@@ -117,7 +68,7 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
         return;
     }
 
-    const auto previousOutput = RenderTarget::CaptureOutput(dc);
+    const auto previousOutput = RenderOutput::CaptureOutput(dc);
 
     Gpu::PixelShader::UnbindShaderResources(dc, 8, CascadeCount);
 
@@ -131,10 +82,10 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
     drawList.clear();
     terrainDrawList.clear();
 
-    RenderTarget::BindDepthTarget(dc, nullptr);
+    RenderOutput::Bind(dc, nullptr, nullptr, false);
 
     Gpu::ConstantBuffer::UnbindVS(dc, 6, 2);
-    RenderTarget::RestoreOutput(dc, previousOutput);
+    RenderOutput::RestoreOutput(dc, previousOutput);
 }
 
 void ShadowMapRenderer::CreateRasterizerStates(ID3D11Device* device)
@@ -154,10 +105,10 @@ void ShadowMapRenderer::CreateRasterizerStates(ID3D11Device* device)
 
 void ShadowMapRenderer::DrawGUI()
 {
-	bool changed = ImGui::DragInt((const char*)u8"固定深度バイアス", &depthBias, 1.0f);
-	changed |= ImGui::DragFloat((const char*)u8"傾斜バイアス係数", &slopeScaledDepthBias, 0.001f, 0.0f, 0.0f, "%.6f");
-	ImGui::DragFloat((const char*)u8"深度比較バイアス", &comparisonBias, 0.00001f, 0.0f, 0.0f, "%.6f");
-	const char* cullLabels[] = {(const char*)u8"両面を描画", (const char*)u8"裏面を描画（従来方式）", (const char*)u8"表面を描画"};
+	bool changed = ImGuiToolKit::DragInt(u8"固定深度バイアス", &depthBias, 1.0f);
+	changed |= ImGuiToolKit::DragFloat(u8"傾斜バイアス係数", &slopeScaledDepthBias, 0.001f, 0.0f, 0.0f, "%.6f");
+	ImGuiToolKit::DragFloat(u8"深度比較バイアス", &comparisonBias, 0.00001f, 0.0f, 0.0f, "%.6f");
+	const char* cullLabels[] = {JText(u8"両面を描画"), JText(u8"裏面を描画（従来方式）"), JText(u8"表面を描画")};
 	if (changed) CreateRasterizerStates(Game::Graphics::Instance().GetDevice());
 }
 
@@ -285,9 +236,8 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // 呼出元が描画先を戻す
     {
 
-        RenderTarget::BindDepthTarget(dc, depthDsvs[cascadeIndex].Get());
-        RenderTarget::SetViewport(dc, shadowViewport);
-        RenderTarget::ClearDepth(dc, depthDsvs[cascadeIndex].Get());
+        RenderOutput::Bind(dc, nullptr, depthTargets[cascadeIndex].get(), false);
+        depthTargets[cascadeIndex]->Clear(dc, D3D11_CLEAR_DEPTH, 1.0f, 0);
     }
 
     // ----- シェーダー＆ステート設定 -----
@@ -349,7 +299,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
     {
 
-        RenderTarget::BindDepthTarget(dc, nullptr);
+        RenderOutput::Bind(dc, nullptr, nullptr, false);
     }
 
 }

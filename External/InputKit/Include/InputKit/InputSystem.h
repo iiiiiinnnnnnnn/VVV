@@ -71,6 +71,8 @@ class InputSystem
 	bool IsPressed(const std::string& action, bool physicalInput = false) const;
 	bool IsDown(const std::string& action, bool ignoreUI = false) const;
 	bool IsUp(const std::string& action) const;
+	// マウス・キーボード・ゲームパッドの押下。除外キーはWindowsの仮想キーコード。
+	bool IsAnyDown(std::span<const int> excludedKeys = {}, bool ignoreUI = false) const;
 
 	// Vector2の入力取得
 	template <class T>

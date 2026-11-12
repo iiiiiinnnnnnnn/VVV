@@ -59,6 +59,7 @@ namespace Game
 		ID3D11Device* GetDevice() { return device.Get(); }
 		ID3D11DeviceContext* GetDeviceContext() { return immediateContext.Get(); }
 		RenderTarget* GetFrameBuffer(FrameBufferId frameBufferId) { return frameBuffers[static_cast<int>(frameBufferId)].get(); }
+		DepthTarget* GetSceneDepthTarget() const { return sceneDepthTarget.get(); }
 		PrimitiveRenderer* GetPrimitiveRenderer() const { return primitiveRenderer.get(); }
 		DebugSolidRenderer* GetDebugSolidRenderer() const { return debugSolidRenderer.get(); }
 		TrailRenderer* GetTrailRenderer() const { return trailRenderer.get(); }
@@ -95,6 +96,8 @@ namespace Game
 		Microsoft::WRL::ComPtr<IDXGISwapChain>		swapchain;
 
 		std::unique_ptr<RenderTarget>		frameBuffers[static_cast<int>(FrameBufferId::EnumCount)];
+
+		std::unique_ptr<DepthTarget> sceneDepthTarget;
 
 	public:
 		std::unique_ptr<Gpu::BlendState> OpaqueBlendState;

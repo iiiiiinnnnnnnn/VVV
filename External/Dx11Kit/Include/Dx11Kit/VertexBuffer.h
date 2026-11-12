@@ -8,7 +8,6 @@ namespace Gpu
 class VertexBuffer : public Buffer
 {
   public:
-	// BufferDescを受け取るコンストラクタも使用する。
 	using Buffer::Buffer;
 	VertexBuffer(ID3D11Device* device, const void* data, UINT size);
 	void Bind(ID3D11DeviceContext* context, UINT stride, UINT slot = 0, UINT offset = 0) const
@@ -33,7 +32,7 @@ class VertexBuffer : public Buffer
 } // namespace Gpu
 
 inline Gpu::VertexBuffer::VertexBuffer(ID3D11Device* device, const void* data, UINT size)
-	: Buffer(device, BufferDesc(size, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE),
+	: Buffer(device, D3D11_BUFFER_DESC{size, D3D11_USAGE_IMMUTABLE, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0},
 		  D3D11_SUBRESOURCE_DATA{data, 0, 0})
 {
 }

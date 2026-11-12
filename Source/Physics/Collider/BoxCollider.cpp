@@ -1,4 +1,5 @@
 #include "Physics/Collider/BoxCollider.h"
+#include <ImGuiToolKit/Drag.h>
 #include <algorithm>
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
@@ -83,8 +84,8 @@ void BoxCollider::UpdateShape()
 void BoxCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGui::DragFloat3("Size", &size.x, 0.01f, 0.01f, 100.0f);
-    changed |= ImGui::DragFloat3("Local Position", &localPosition.x, 0.01f);
+    changed |= ImGuiToolKit::DragSizeFloat3(u8"Size", &size.x, 0.01f, 0.01f, 100.0f);
+    changed |= ImGuiToolKit::DragPosFloat3(u8"Local Position", &localPosition.x, 0.01f);
 
     if (changed) UpdateShape();
 

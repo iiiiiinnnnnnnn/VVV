@@ -1,4 +1,7 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Color.h>
 #include "Gameplay/Stage/Component/StageLoader.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Stage/Stage.h"
@@ -763,7 +766,7 @@ void StageLoader::SetEditorPlayerStart(const Vector3& terrainPoint)
 void StageLoader::AddEditorBlockedArea()
 {
 	BlockedAreaData area;
-	area.name = std::string((const char*)u8"侵入不可エリア ") +
+	area.name = std::string(JText(u8"侵入不可エリア ")) +
 		std::to_string(blockedAreas.size() + 1);
 	area.transform.scale = {4.0f, 3.0f, 4.0f};
 	blockedAreas.push_back(std::move(area));
@@ -850,7 +853,7 @@ bool StageLoader::BuildEditorPropTransform(
 
 void StageLoader::DrawEditorGUI()
 {
-	if (ImGui::Button((const char*)(ICON_FA_COG " " u8"侵入不可エリアを追加"))) AddEditorBlockedArea();
+	if (ImGuiToolKit::Button(ICON_FA_COG " " u8"侵入不可エリアを追加")) AddEditorBlockedArea();
 	DrawEditorHierarchy();
 	ImGui::Separator();
 	DrawSelectedEditorInspector();
@@ -960,7 +963,7 @@ void StageLoader::DrawSelectedEditorInspector()
 		selectedEditorObjectIndex < static_cast<int>(effects.size()))
 	{
 		auto& value = effects[selectedEditorObjectIndex];
-		if (ImGui::BeginCombo((const char*)u8"エフェクト", value.effectName.c_str()))
+		if (ImGuiToolKit::BeginCombo(u8"エフェクト", value.effectName.c_str()))
 		{
 			for (const auto& candidate : EffectManager::GetEffectPaths())
 				if (ImGui::Selectable(candidate.c_str(), candidate == value.effectName))
@@ -974,14 +977,14 @@ void StageLoader::DrawSelectedEditorInspector()
 			ImGui::EndCombo();
 		}
 		value.transform.DrawGUI();
-		ImGui::Checkbox((const char*)u8"ループ再生", &value.loop);
-		if (ImGui::Button((const char*)u8"再生"))
+		ImGuiToolKit::Checkbox(u8"ループ再生", &value.loop);
+		if (ImGuiToolKit::Button(u8"再生"))
 		{
 			if (value.effect && value.handle >= 0) value.effect->Stop(value.handle);
 			value.started = false;
 		}
 		ImGui::SameLine();
-		if (ImGui::Button((const char*)u8"削除"))
+		if (ImGuiToolKit::Button(u8"削除"))
 		{
 			DeleteSelectedEditorObject();
 			return;
@@ -991,7 +994,7 @@ void StageLoader::DrawSelectedEditorInspector()
 	}
 	if (selectedEditorObjectType == EditorObjectType::None)
 	{
-		ImGui::TextDisabled((const char*)u8"配置物を選択してください");
+		ImGuiToolKit::TextDisabled(u8"配置物を選択してください");
 		return;
 	}
 	if (selectedEditorObjectType == EditorObjectType::WorldWater)
@@ -1021,10 +1024,10 @@ void StageLoader::DrawSelectedEditorInspector()
 		if (ImGui::IsItemClicked()) SelectEditorObject(EditorObjectType::BlockedArea, index);
 		if (open)
 		{
-			ImGui::InputText((const char*)(ICON_FA_COG " " u8"名前"), &area.name);
+			ImGuiToolKit::InputText(ICON_FA_COG " " u8"名前", &area.name);
 			area.transform.DrawGUI();
 			ApplyBlockedAreaData(index);
-			if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
+			if (ImGuiToolKit::Button(ICON_FA_TRASH " " u8"削除"))
 			{
 				DeleteSelectedEditorObject();
 				ImGui::TreePop();
@@ -1032,7 +1035,7 @@ void StageLoader::DrawSelectedEditorInspector()
 				break;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
+			if (ImGuiToolKit::Button(ICON_FA_COPY " " u8"複製"))
 			{
 				BlockedAreaData copy = area;
 				copy.name += " Copy";
@@ -1068,17 +1071,17 @@ void StageLoader::DrawSelectedEditorInspector()
 		bool remove = false;
 		if (ImGui::BeginPopupContextItem("PlayerStartContext"))
 		{
-			duplicate = ImGui::MenuItem((const char*)u8"複製");
-			remove = ImGui::MenuItem((const char*)u8"削除");
+			duplicate = ImGuiToolKit::MenuItem(u8"複製");
+			remove = ImGuiToolKit::MenuItem(u8"削除");
 			ImGui::EndPopup();
 		}
 		ImGui::PopStyleColor(2);
 		if (open)
 		{
 			playerStart.DrawGUI(true);
-			remove |= ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除"));
+			remove |= ImGuiToolKit::Button(ICON_FA_TRASH " " u8"削除");
 			ImGui::SameLine();
-			duplicate |= ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製"));
+			duplicate |= ImGuiToolKit::Button(ICON_FA_COPY " " u8"複製");
 			ImGui::TreePop();
 		}
 		ImGui::PopID();
@@ -1118,33 +1121,21 @@ void StageLoader::DrawWorldWaterEditor()
 
 	if (!open) return;
 
-	bool changed = ImGui::Checkbox((const char*)(ICON_FA_COG " " u8"有効##WorldWater"), &worldWater.enabled);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"水位"), &worldWater.transform.position.y, 0.05f, -500.0f, 500.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"横幅"), &worldWater.transform.scale.x, 1.0f, 1.0f, 10000.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"奥行き"), &worldWater.transform.scale.z, 1.0f, 1.0f, 10000.0f);
+	bool changed = ImGuiToolKit::Checkbox(ICON_FA_COG " " u8"有効##WorldWater", &worldWater.enabled);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"水位", &worldWater.transform.position.y, 0.05f, -500.0f, 500.0f);
+	changed |= ImGuiToolKit::DragSizeFloat(u8"横幅", &worldWater.transform.scale.x, 1.0f, 1.0f, 10000.0f);
+	changed |= ImGuiToolKit::DragSizeFloat(u8"奥行き", &worldWater.transform.scale.z, 1.0f, 1.0f, 10000.0f);
 
-	ImGui::SeparatorText((const char*)u8"水面表現");
-	changed |= ImGui::ColorEdit4(
-		(const char*)(ICON_FA_COG " " u8"浅瀬の色"), &worldWater.settings.shallowColor.x);
-	changed |= ImGui::ColorEdit4(
-		(const char*)(ICON_FA_COG " " u8"深い色"), &worldWater.settings.deepColor.x);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"波の細かさ"), &worldWater.settings.waveScale, 0.01f, 0.01f, 10.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"波の速度"), &worldWater.settings.waveSpeed, 0.01f, -5.0f, 5.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"波の強さ"), &worldWater.settings.waveStrength, 0.005f, 0.0f, 2.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"フレネル範囲"), &worldWater.settings.fresnelPower, 0.05f, 0.1f, 12.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"縁の明るさ"), &worldWater.settings.fresnelStrength, 0.01f, 0.0f, 3.0f);
-	changed |= ImGui::SliderFloat(
-		(const char*)(ICON_FA_COG " " u8"水面の濃さ"), &worldWater.settings.opacity, 0.0f, 1.0f);
-	changed |= ImGui::DragFloat(
-		(const char*)(ICON_FA_COG " " u8"岸際のぼかし"), &worldWater.settings.shoreFadeDistance,
+	ImGuiToolKit::SeparatorText(u8"水面表現");
+	changed |= ImGuiToolKit::ColorEdit4(u8"浅瀬の色", &worldWater.settings.shallowColor.x);
+	changed |= ImGuiToolKit::ColorEdit4(u8"深い色", &worldWater.settings.deepColor.x);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"波の細かさ", &worldWater.settings.waveScale, 0.01f, 0.01f, 10.0f);
+	changed |= ImGuiToolKit::DragSpeedFloat(u8"波の速度", &worldWater.settings.waveSpeed, 0.01f, -5.0f, 5.0f);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"波の強さ", &worldWater.settings.waveStrength, 0.005f, 0.0f, 2.0f);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"フレネル範囲", &worldWater.settings.fresnelPower, 0.05f, 0.1f, 12.0f);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"縁の明るさ", &worldWater.settings.fresnelStrength, 0.01f, 0.0f, 3.0f);
+	changed |= ImGuiToolKit::SliderFloat(ICON_FA_COG " " u8"水面の濃さ", &worldWater.settings.opacity, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::DragFloat(ICON_FA_COG " " u8"岸際のぼかし", &worldWater.settings.shoreFadeDistance,
 		0.01f, 0.01f, 5.0f);
 
 	if (changed)
@@ -1177,9 +1168,9 @@ bool StageLoader::DrawPropEditor(int index)
 		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
 			stage->GetActorManager().Contains(addedPropActors[index]))
 			ConfigureSpawner(addedPropActors[index], propData);
-	ImGui::Text((const char*)u8"生成対象: %s", std::filesystem::path(propData.modelPath).stem().string().c_str());
+	ImGuiToolKit::Text(u8"生成対象: %s", std::filesystem::path(propData.modelPath).stem().string().c_str());
 
-	if (ImGui::Button((const char*)(ICON_FA_TRASH " " u8"削除")))
+	if (ImGuiToolKit::Button(ICON_FA_TRASH " " u8"削除"))
 	{
 		DeleteSelectedEditorObject();
 		ImGui::TreePop();
@@ -1187,7 +1178,7 @@ bool StageLoader::DrawPropEditor(int index)
 		return true;
 	}
 	ImGui::SameLine();
-	if (ImGui::Button((const char*)(ICON_FA_COPY " " u8"複製")))
+	if (ImGuiToolKit::Button(ICON_FA_COPY " " u8"複製"))
 	{
 		PropData copy = propData;
 		copy.initialSpawned = false;
@@ -1317,6 +1308,7 @@ void StageLoader::LoadJson()
 			propData.editorPreview = editorModels != nullptr;
 
 			propData.modelPath = ResourceManager::ShortResourcePath(propJson.value("modelPath", ""), "Model");
+			if (!stage->ShouldLoadStageProp(propData.modelPath)) continue;
 			propData.spawnTag = propJson.value("spawnTag", std::string());
 			if (!propData.modelPath.empty())
 				propData.model = LoadPropModel(propData.modelPath);

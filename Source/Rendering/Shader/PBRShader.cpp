@@ -1,4 +1,6 @@
 #include "Resource/ResourceManager.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Color.h>
 #include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Shader/PBRShader.h"
@@ -291,45 +293,48 @@ bool PBRShader::DrawGUI(VMDLModel::Material& material)
 {
 	bool changed = false;
 	// PBRパラメーター
-	ImGui::SeparatorText((const char*)u8"PBRシェーダー");
-	changed |= ImGui::ColorEdit4((const char*)u8"基本色", &material.baseColor.x);
-	changed |= ImGui::ColorEdit4((const char*)u8"発光色", &material.emissiveColor.x,
+	ImGuiToolKit::SeparatorText(u8"PBRシェーダー");
+	changed |= ImGuiToolKit::ColorEdit4(u8"基本色", &material.baseColor.x);
+	changed |= ImGuiToolKit::ColorEdit4(u8"発光色", &material.emissiveColor.x,
 		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-	changed |= ImGui::SliderFloat((const char*)u8"メタリック", &material.metalness, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &material.roughness, 0.0001f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"オクルージョン", &material.occlusion, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat(
-		(const char*)u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
+	ImGui::SetNextItemWidth(240.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"メタリック", &material.metalness, 0.0f, 1.0f);
+	ImGui::SetNextItemWidth(240.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"ラフネス", &material.roughness, 0.0001f, 1.0f);
+	ImGui::SetNextItemWidth(240.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン", &material.occlusion, 0.0f, 1.0f);
+	ImGui::SetNextItemWidth(240.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
+	ImGui::SetNextItemWidth(240.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
 
-	ImGui::SeparatorText((const char*)u8"リフレクション");
+	ImGuiToolKit::SeparatorText(u8"リフレクション");
 	bool crystalEnabled = material.transmission > 0.0f;
-	if (ImGui::Checkbox((const char*)u8"リフレクション", &crystalEnabled))
+	if (ImGuiToolKit::Checkbox(u8"リフレクション", &crystalEnabled))
 	{
 		material.transmission = crystalEnabled ? 0.88f : 0.0f;
 		changed = true;
 	}
 	if (crystalEnabled)
 	{
-		changed |= ImGui::SliderFloat((const char*)u8"透過率", &material.transmission, 0.001f, 1.0f);
-		changed |= ImGui::SliderFloat((const char*)u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
-		changed |= ImGui::DragFloat((const char*)u8"屈折の距離", &material.refractionDistance,
+		changed |= ImGuiToolKit::SliderFloat(u8"透過率", &material.transmission, 0.001f, 1.0f);
+		changed |= ImGuiToolKit::SliderFloat(u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
+		changed |= ImGuiToolKit::DragFloat(u8"屈折の距離", &material.refractionDistance,
 			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		changed |= ImGui::SliderFloat((const char*)u8"リフレクションのラフネス", &material.crystalRoughness, 0.0001f, 1.0f);
+		changed |= ImGuiToolKit::SliderFloat(u8"リフレクションのラフネス", &material.crystalRoughness, 0.0001f, 1.0f);
 	}
 
 	const char* alphaModes[] = {
-		(const char*)u8"不透明", (const char*)u8"マスク", (const char*)u8"ブレンド"};
+		JText(u8"不透明"), JText(u8"マスク"), JText(u8"ブレンド")};
 	int alphaMode = static_cast<int>(material.alphaMode);
-	if (ImGui::Combo(
-			(const char*)u8"アルファモード", &alphaMode, alphaModes, IM_ARRAYSIZE(alphaModes)))
+	ImGui::SetNextItemWidth(240.0f);
+	if (ImGuiToolKit::Combo(u8"アルファモード", &alphaMode, alphaModes, IM_ARRAYSIZE(alphaModes)))
 	{
 		material.alphaMode = static_cast<VMDLModel::AlphaMode>(alphaMode);
 		changed = true;
 	}
 	if (material.alphaMode == VMDLModel::AlphaMode::Mask)
-		changed |= ImGui::SliderFloat(
-			(const char*)u8"アルファしきい値", &material.alphaCutoff, 0.0f, 1.0f);
+		changed |= ImGuiToolKit::SliderFloat(u8"アルファしきい値", &material.alphaCutoff, 0.0f, 1.0f);
 
 	return changed;
 }
@@ -337,10 +342,10 @@ bool PBRShader::DrawGUI(VMDLModel::Material& material)
 bool PBRShader::DrawGUI(VMDLModel::VmdlMaterialKeyframe& key)
 {
 	bool changed = false;
-	changed |= ImGui::ColorEdit4((const char*)u8"基本色", &key.baseColor.x);
-	changed |= ImGui::ColorEdit4((const char*)u8"発光色", &key.emissiveColor.x,
+	changed |= ImGuiToolKit::ColorEdit4(u8"基本色", &key.baseColor.x);
+	changed |= ImGuiToolKit::ColorEdit4(u8"発光色", &key.emissiveColor.x,
 		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-	changed |= ImGui::SliderFloat((const char*)u8"メタリック", &key.metalness, 0.0f, 1.0f);
-	changed |= ImGui::SliderFloat((const char*)u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"メタリック", &key.metalness, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"ラフネス", &key.roughness, 0.0001f, 1.0f);
 	return changed;
 }

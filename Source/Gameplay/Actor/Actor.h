@@ -21,7 +21,6 @@ public:
 	void Update() override;
 	void DrawGUI() override;
 	void DrawGUI(bool selected);
-	void DrawInspector();
 	Transform* GetTransform() override { return &transform; }
 	const Transform* GetTransform() const override { return &transform; }
 

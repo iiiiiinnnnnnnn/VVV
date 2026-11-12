@@ -7,7 +7,7 @@
 class PressAnyButtonWidget : public SpriteWidget
 {
   public:
-	PressAnyButtonWidget(const std::string& spritePath);
+	PressAnyButtonWidget();
 	void Update() override;
 
   private:

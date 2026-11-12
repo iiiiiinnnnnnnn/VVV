@@ -1,5 +1,6 @@
 // LookAt.cpp
 #include "Animation/LookAt.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Entity.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
@@ -208,19 +209,19 @@ void LookAt::Render(const RenderContext& rc)
 void LookAt::DrawGUI()
 {
 	ImGui::Text("found : %s", found ? "true" : "false");
-	ImGui::DragFloat3("Target", &target.x, 0.01f);
+	ImGuiToolKit::DragPosFloat3(u8"Target", &target.x, 0.01f);
 
 	float maxAngleYawDegrees = DEG(maxAngleYaw);
-	if (ImGui::DragFloat("Max Angle Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"Max Angle Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
 	{
 		maxAngleYaw = RAD(maxAngleYawDegrees);
 	}
 
 	float maxAnglePitchDegrees = DEG(maxAnglePitch);
-	if (ImGui::DragFloat("Max Angle Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"Max Angle Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
 	{
 		maxAnglePitch = RAD(maxAnglePitchDegrees);
 	}
 
-	ImGui::DragFloat("Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
 }

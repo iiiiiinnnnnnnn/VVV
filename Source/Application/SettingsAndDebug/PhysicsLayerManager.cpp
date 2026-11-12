@@ -1,4 +1,5 @@
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
+#include <ImGuiToolKit/Widgets.h>
 #include "Physics/Core/PhysicsManager.h"
 #include <fstream>
 #include <filesystem>
@@ -137,16 +138,16 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
 	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (ImGui::Begin((const char*)(ICON_FA_LAYER_GROUP u8" 物理レイヤー"), open))
+	if (ImGuiToolKit::Begin(ICON_FA_LAYER_GROUP u8" 物理レイヤー", open))
     {
-		if (ImGui::Button((const char*)(ICON_FA_SAVE u8" 保存")))
+		if (ImGuiToolKit::Button(ICON_FA_SAVE u8" 保存"))
         {
             Save();
         }
 
         ImGui::SameLine();
 
-        if (ImGui::Button((const char*)(ICON_FA_RECYCLE u8" 読み込み")))
+        if (ImGuiToolKit::Button(ICON_FA_RECYCLE u8" 読み込み"))
         {
             Load();
         }
@@ -162,7 +163,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
             const int realIndex = index;
             const std::string& name = settings.layerNames[realIndex];
 
-            return std::to_string(index) + ": " + (name.empty() ? ((const char*)u8"(空)") : name);
+            return std::to_string(index) + ": " + (name.empty() ? (JText(u8"(空)")) : name);
         };
 
         auto getDisplayLayerId = [&](int index) -> LayerId
@@ -171,7 +172,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
         };
 
         static int selectedLayer = 0;
-        if (ImGui::BeginCombo((const char*)(ICON_FA_LAYER_GROUP u8" レイヤー"), getDisplayLayerName(selectedLayer).c_str()))
+        if (ImGuiToolKit::BeginCombo(ICON_FA_LAYER_GROUP u8" レイヤー", getDisplayLayerName(selectedLayer).c_str()))
         {
             for (int i = 0; i < DisplayLayerCount; ++i)
             {
@@ -233,7 +234,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(175.0f);
 				if (ImGui::InputTextWithHint(
-						"##LayerName", ((const char*)u8"(空)"), &settings.layerNames[y]))
+						"##LayerName", (JText(u8"(空)")), &settings.layerNames[y]))
                     PhysicsManager::Instance().RefreshLayerFiltering();
                 if (ImGui::IsItemActivated()) selectedLayer = y;
                 ImGui::PopID();
@@ -296,5 +297,5 @@ std::string PhysicsLayerManager::GetLayerDisplayName(LayerId id) const
 {
     if (id >= EditableLayerCount) return std::to_string(id) + ": (Invalid)";
     const std::string& name = GetLayerName(id);
-	return std::to_string(id) + ": " + (name.empty() ? ((const char*)u8"(空)") : name);
+	return std::to_string(id) + ": " + (name.empty() ? (JText(u8"(空)")) : name);
 }

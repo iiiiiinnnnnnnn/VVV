@@ -8,13 +8,14 @@
 #include "Application/Time/GameTime.h"
 #include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
-#include "UI/ButtonWidget.h"
+#include "UI/SpriteButton.h"
+#include "UI/LabelButton.h"
 #include "UI/EventTrigger.h"
 #include "UI/UILayout.h"
 #include "UI/XboxControllerWidget.h"
 
-PauseMenuWidget::PauseMenuWidget(PauseChangedCallback pauseChanged, ReturnToTitleCallback returnToTitle)
-	: WidgetGroup("HUD / Pause Menu"), pauseChanged(std::move(pauseChanged)),
+PauseMenuWidget::PauseMenuWidget(const std::string& name, PauseChangedCallback pauseChanged, ReturnToTitleCallback returnToTitle)
+	: WidgetGroup(name), pauseChanged(std::move(pauseChanged)),
 	  returnToTitle(std::move(returnToTitle))
 {
 }
@@ -25,8 +26,7 @@ void PauseMenuWidget::OnAwake()
 
 	// 背景
 	dimmer = std::make_shared<ColorWidget>(
-		SpriteShaderId::Basic, Color(0.01f, 0.02f, 0.04f, 0.54f));
-	dimmer->SetName("Background Dimmer");
+		"Background Dimmer", SpriteShaderId::Basic, Color(0.01f, 0.02f, 0.04f, 0.54f));
 	dimmer->SetAffectedByPostProcess(false);
 	AddChild(dimmer);
 
@@ -35,8 +35,9 @@ void PauseMenuWidget::OnAwake()
 	AddChild(mainPage);
 	for (const char* label : {"Resume", "Control", "Return to Title"})
 	{
-		auto button = std::make_shared<ButtonWidget>(std::string("Button / ") + label, label);
-		button->SetMenuStyle();
+		auto button = std::make_shared<LabelButton>(std::string("Button / ") + label, label, 42.0f);
+		button->SetAlignment(UITextAlignment::Center);
+		button->AddComponent<SpriteButton>("Resources/UI/btn_back.png", "Resources/UI/btn_front.png");
 		auto* trigger = button->AddComponent<EventTrigger>();
 		trigger->SetNavigation(UINavigation::Vertical);
 		trigger->SetWrapNavigation(true);
@@ -54,9 +55,11 @@ void PauseMenuWidget::OnAwake()
 	// 操作方法ページ
 	controlPage = std::make_shared<WidgetGroup>("ControlPage");
 	controlPage->AddChild(std::make_shared<XboxControllerWidget>(
-		std::weak_ptr<Object>{}, Vector2{50.0f, 73.0f}, Vector2{1, 1}
+		"XboxControllerWidget", std::weak_ptr<Object>{}, Vector2{50.0f, 73.0f}, Vector2{1, 1}
 	));
-	auto backBtn = std::make_shared<ButtonWidget>("Button / Baack", "Back");
+	auto backBtn = std::make_shared<LabelButton>("Button / Baack", "Back", 42.0f);
+	backBtn->SetAlignment(UITextAlignment::Center);
+	backBtn->AddComponent<SpriteButton>("Resources/UI/btn_back.png", "Resources/UI/btn_front.png");
 	backBtn->rect.anchor = {0.5f, 0.5f};
 	UILayout::Apply(backBtn, {0.5f, 0.9f}, {0.3f, 0.08f});
 	controlPage->AddChild(backBtn);

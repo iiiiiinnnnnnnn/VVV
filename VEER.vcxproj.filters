@@ -7,7 +7,6 @@
     <ClCompile Include="Source\pch.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ResourceCompile Include="EmbeddedResources.rc" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -191,6 +190,60 @@
     <ClInclude Include="Source\Gameplay\Stage\StageTitle.h">
       <Filter>Gameplay\Stage</Filter>
     </ClInclude>
+    <ClInclude Include="Shader\DepthOfField.hlsli">
+      <Filter>Shaders\3D</Filter>
+    </ClInclude>
+    <ClCompile Include="Source\Gameplay\Scene\EditorScene.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlCameraShakeEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlColliderEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlComponentEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlParticleEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlPointLightEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlRadialBlurEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlRigidBodyEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSoundSourceEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSpringColliderEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlSpringEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\SceneManager.h">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -208,18 +261,6 @@
     <ClInclude Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.h">
       <Filter>Application\SettingsAndDebug</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\EditorScene.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\VstgEditorScene.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
-    <ClCompile Include="Source\Gameplay\Camera\TitleCamera.cpp">
-      <Filter>Gameplay\Camera</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\Camera\Camera.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -237,15 +278,6 @@
     </ClCompile>
     <ClCompile Include="Source\Application\SettingsAndDebug\ProfilerTimelineDemo.cpp">
       <Filter>Application\SettingsAndDebug</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\EditorScene.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
-      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Application\Tools\Dialog.cpp">
       <Filter>Application\Tools</Filter>
@@ -313,16 +345,16 @@
     <ClCompile Include="Source\UI\CustomLineWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\TitleMenuWidget.cpp">
-      <Filter>UI</Filter>
-    </ClCompile>
     <ClCompile Include="Source\UI\TitleLogoWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\PressAnyButtonWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\UI\ButtonWidget.cpp">
+    <ClCompile Include="Source\UI\LabelButton.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\SpriteButton.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\EventTrigger.cpp">
@@ -347,6 +379,12 @@
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\TextWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\MenuButtonWidget.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\DevelopMenuButtonWidget.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\UI\WidgetShadow.cpp">
@@ -421,9 +459,6 @@
     <ClCompile Include="Source\Gameplay\Scene\Scene.cpp">
       <Filter>Gameplay\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\Camera\MovieCameraController.cpp">
       <Filter>Gameplay\Camera</Filter>
     </ClCompile>
@@ -468,15 +503,6 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\GamePostProcess.cpp">
       <Filter>Rendering\Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\CameraEffectController.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp">
-      <Filter>Gameplay\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp">
-      <Filter>Gameplay\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Rendering\Effect\ParticleSystem.cpp">
       <Filter>Rendering\Effect</Filter>
@@ -556,6 +582,9 @@
     <ClCompile Include="Source\Resource\ResourceManager.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Resource\ResourceManagerGUI.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Physics\RigidBody\RigidbodyDynamic.cpp">
       <Filter>Physics\RigidBody</Filter>
     </ClCompile>
@@ -598,11 +627,17 @@
     <ClInclude Include="Source\Gameplay\Player\PlayerInput.h">
       <Filter>Gameplay\Player</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\EditorScene.h">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\VmdlComponents\VmdlComponentEditor.h">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Gameplay\Camera\TitleCamera.h">
-      <Filter>Gameplay\Camera</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\Camera.h">
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
@@ -696,16 +731,16 @@
     <ClInclude Include="Source\UI\CustomLineWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\TitleMenuWidget.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="Source\UI\TitleLogoWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\PressAnyButtonWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UI\ButtonWidget.h">
+    <ClInclude Include="Source\UI\LabelButton.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\SpriteButton.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\EventTrigger.h">
@@ -733,6 +768,12 @@
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\TextWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\MenuButtonWidget.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\DevelopMenuButtonWidget.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\UI\WidgetShadow.h">
@@ -813,9 +854,6 @@
     <ClInclude Include="Source\Gameplay\Scene\Scene.h">
       <Filter>Gameplay\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\SceneManager.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Gameplay\Camera\ThirdPersonCameraController.h">
       <Filter>Gameplay\Camera</Filter>
     </ClInclude>
@@ -879,20 +917,11 @@
     <ClInclude Include="Source\Gameplay\Actor\Actor.h">
       <Filter>Gameplay\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\PostProcessController.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Foundation\Easing.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h">
       <Filter>Rendering\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\CameraEffectController.h">
-      <Filter>Gameplay\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h">
-      <Filter>Gameplay\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Effect\ParticleSystem.h">
       <Filter>Rendering\Effect</Filter>
@@ -1106,6 +1135,12 @@
     <FxCompile Include="Shader\TrailRendererPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\DepthOfFieldPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\DepthOfFieldBlurPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
     <FxCompile Include="Shader\UnderwaterPS.hlsl">
       <Filter>Shaders\3D</Filter>
     </FxCompile>
@@ -1231,6 +1266,24 @@
     <ClCompile Include="Source\Gameplay\Stage\StageTitle.cpp">
       <Filter>Gameplay\Stage</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlTrailEditor.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
+      <Filter>Gameplay\Scene\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\CameraEffectController.cpp">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp">
+      <Filter>Gameplay\Scene\Control</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="VMDL">
@@ -1241,6 +1294,12 @@
     </Filter>
     <Filter Include="Lua">
       <UniqueIdentifier>{a28bb1be-2835-4ba9-a521-1a4b7fa777aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Gameplay\Scene\Editor">
+      <UniqueIdentifier>{208b0bf2-343c-4575-be92-dc3492af9ccf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Gameplay\Scene\Control">
+      <UniqueIdentifier>{569fab35-e730-4a56-bf6e-847143bc68d6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1418,23 +1477,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="EmbeddedResources.rc">
+      <Filter>Resource</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Foundation\Logger.h">
       <Filter>Core\Foundation</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Input\PlayerInput.vis">
-      <Filter>Resource</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Input\UIInput.vis">
-      <Filter>Resource</Filter>
-    </None>
-    <None Include="Resources\Input\DebugInput.vis">
-      <Filter>Resource</Filter>
-    </None>
   </ItemGroup>
 </Project>

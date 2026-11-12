@@ -1,4 +1,5 @@
 ﻿#include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Animation/SpringBone.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Actor.h"
@@ -736,17 +737,17 @@ void SpringBone::DrawGUI()
     ImGui::Separator();
     ImGui::DragFloat3("Gravity", &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
     ImGui::DragFloat("Damping", &damping, 0.001f, 0.0f, 1.0f, "%.3f");
-    ImGui::DragFloat("Max Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
+    ImGuiToolKit::DragSpeedFloat(u8"Max Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
 
     ImGui::Separator();
     ImGui::Text("Collision / Solver");
-    ImGui::DragFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGuiToolKit::DragSizeFloat(u8"Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
     ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
     ImGui::SliderFloat("Max Angle (deg)", &maxAngleDegrees, 0.0f, 180.0f, "%.1f");
     bool angleChanged = ImGui::SliderFloat3("Min XYZ (deg)", &minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
     angleChanged |= ImGui::SliderFloat3("Max XYZ (deg)", &maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
     if (angleChanged) SetAngleLimits(minAnglesDegrees, maxAnglesDegrees);
-    ImGui::DragFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
+    ImGuiToolKit::DragDelayFloat(u8"Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
     ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
     ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
 
@@ -798,9 +799,9 @@ void SpringBone::DrawGUI()
                     ImGui::EndCombo();
                 }
 
-                ImGui::DragFloat3("Start", &capsule.start.x, 0.01f);
-                ImGui::DragFloat3("End", &capsule.end.x, 0.01f);
-                ImGui::DragFloat("Radius", &capsule.radius, 0.005f, 0.001f, 10.0f, "%.3f");
+                ImGuiToolKit::DragPosFloat3(u8"Start", &capsule.start.x, 0.01f);
+                ImGuiToolKit::DragPosFloat3(u8"End", &capsule.end.x, 0.01f);
+                ImGuiToolKit::DragSizeFloat(u8"Radius", &capsule.radius, 0.005f, 0.001f, 10.0f, "%.3f");
 
                 if (ImGui::Button("Delete"))
                     deleteIndex = i;

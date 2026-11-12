@@ -4,6 +4,7 @@
 #include "Core/Object/Component.h"
 
 #include <cstdint>
+#include <algorithm>
 
 // カメラ
 class Camera : public Component
@@ -14,6 +15,9 @@ public:
 
 	void OnDrawGUI() override
 	{
+		float degrees = GetVerticalFovDegrees();
+		if (ImGui::DragFloat("Field of View", &degrees, 0.1f, 10.0f, 120.0f, "%.1f"))
+			SetVerticalFovDegrees(degrees);
 		int value = priority;
 		if (ImGui::DragInt("Priority", &value))
 			SetPriority(value);
@@ -25,6 +29,14 @@ public:
 
 	// パースペクティブ設定
 	void SetPerspectiveFov(float fovY, float aspect, float nearZ, float farZ);
+
+	float GetVerticalFovDegrees() const { return DirectX::XMConvertToDegrees(verticalFov); }
+	void SetVerticalFovDegrees(float degrees)
+	{
+		// コントローラーが投影行列を更新しても、手動で指定した視野角を維持する
+		fovOverride = RAD(std::clamp(degrees, 10.0f, 120.0f));
+		SetPerspectiveFov(fovOverride, aspectRatio, nearClip, farClip);
+	}
 
 	// ビュー行列取得
 	const Matrix& GetView() const { SyncTransform(); return view; }
@@ -69,6 +81,11 @@ private:
 	float focusDistance = 5.0f;
 	mutable Matrix view;
 	Matrix		projection;
+	float verticalFov = DirectX::XM_PIDIV4;
+	float fovOverride = 0.0f;
+	float aspectRatio = 1280.0f / 720.0f;
+	float nearClip = 0.1f;
+	float farClip = 1000.0f;
 
 	mutable Vector3 eye;
 	mutable Vector3 focus;

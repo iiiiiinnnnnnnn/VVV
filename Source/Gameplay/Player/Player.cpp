@@ -1,4 +1,5 @@
 #include "Core/Foundation/Random.h"
+#include <ImGuiToolKit/Widgets.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Player/Player.h"
 #include "Gameplay/Player/PlayerInput.h"
@@ -218,9 +219,9 @@ void Player::OnLateUpdate()
 void Player::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-	ImGui::Text((const char*)u8"回避無敵時間: %s", dodgeInvincible ? "Yes" : "No");
-	ImGui::Text((const char*)u8"ジャスト回避: %s", justDodgeTriggered ? "Yes" : "No");
-	ImGui::Text((const char*)u8"回避待機時間: %.2f", dodgeCooldownTimer.GetRemaining());
+	ImGuiToolKit::Text(u8"回避無敵時間: %s", dodgeInvincible ? "Yes" : "No");
+	ImGuiToolKit::Text(u8"ジャスト回避: %s", justDodgeTriggered ? "Yes" : "No");
+	ImGuiToolKit::Text(u8"回避待機時間: %.2f", dodgeCooldownTimer.GetRemaining());
 }
 
 void Player::UpdateAttackContacts()

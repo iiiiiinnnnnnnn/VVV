@@ -2,10 +2,12 @@
 
 #include <cstdint>
 
+//#define USE_PROFILER
+
 class ProfileScope
 {
 public:
-	explicit ProfileScope(const char* name);
+	ProfileScope(const char* name);
 	~ProfileScope();
 	ProfileScope(const ProfileScope&) = delete;
 	ProfileScope& operator=(const ProfileScope&) = delete;
@@ -21,6 +23,8 @@ private:
 	inline static thread_local std::uint32_t nestingDepth = 0;
 };
 
+#if defined(USE_PROFILER)
+
 #define PROFILE_DETAIL_CONCAT_IMPL(a, b) a##b
 #define PROFILE_DETAIL_CONCAT(a, b) PROFILE_DETAIL_CONCAT_IMPL(a, b)
 #define PROFILE_SCOPE(name) ProfileScope PROFILE_DETAIL_CONCAT(profileScope, __COUNTER__)(name)
@@ -29,3 +33,12 @@ private:
 // 対になるマクロでスコープを作る。途中のreturnでもデストラクタが呼ばれる
 #define START_PROFILER(name) { PROFILE_SCOPE(name)
 #define END_PROFILER() }
+
+#else
+
+#define PROFILE_SCOPE(name)
+#define PROFILE_FUNCTION()
+#define START_PROFILER(name) {
+#define END_PROFILER() }
+
+#endif

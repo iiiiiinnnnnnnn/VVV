@@ -1,4 +1,6 @@
 #include "UI/CmdActionWidget.h"
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
 
 #include "Application/Time/GameTime.h"
 #include "Core/Foundation/Easing.h"
@@ -7,8 +9,8 @@
 #include "Rendering/Core/Graphics.h"
 #include "Audio/SoundSystem.h"
 
-CmdActionWidget::CmdActionWidget(ActionBtns btn, Player* player, Camera* camera, const Vector2& defaultSize)
-	: DissolveWidget("CmdActionWidget", ""), button(btn), player(player), camera(camera),
+CmdActionWidget::CmdActionWidget(const std::string& name, const std::string& maskPath, ActionBtns btn, Player* player, Camera* camera, const Vector2& defaultSize)
+	: DissolveWidget(name, maskPath), button(btn), player(player), camera(camera),
 	  defaultSize(defaultSize)
 {
 	rect.size = defaultSize;
@@ -20,7 +22,6 @@ CmdActionWidget::CmdActionWidget(ActionBtns btn, Player* player, Camera* camera,
 							  : button == ActionBtns::X ? "UI/cmdX.png"
 														: "UI/cmdY.png";
 	SetTexture(texturePath);
-	SetDissolveMask("Resources/UI/dissolve_animation.png");
 	SetDissolveMaskScale(1.5f);
 	SetDissolveSoftness(0.16f);
 }
@@ -28,7 +29,7 @@ CmdActionWidget::CmdActionWidget(ActionBtns btn, Player* player, Camera* camera,
 void CmdActionWidget::OnAwake()
 {
 	DissolveWidget::OnAwake();
-	effectW = std::make_unique<EffectWidget>("button_clicked", 25.0f);
+	effectW = std::make_unique<EffectWidget>("Button Click Effect", "button_clicked", 25.0f);
 }
 
 bool CmdActionWidget::UpdateScreenPosition()
@@ -165,9 +166,9 @@ void CmdActionWidget::OnDrawGUI()
 {
 	DissolveWidget::OnDrawGUI();
 	if (externalControl)
-		ImGui::SliderFloat2((const char*)u8"画面位置（横・縦の比率）", &screenPositionRatio.x, 0.0f, 1.0f);
-	ImGui::DragFloat("animDuration", &animDuration, 0.01f, 0.01f, 10.0f);
-	ImGui::DragFloat((const char*)u8"表示のディゾルブ時間", &showDuration, 0.01f, 0.0f, 5.0f);
-	ImGui::DragFloat((const char*)u8"受付終了前のディゾルブ時間（ゲーム内秒）", &hideDuration, 0.01f, 0.0f, 5.0f);
+		ImGuiToolKit::SliderFloat2(u8"画面位置（横・縦の比率）", &screenPositionRatio.x, 0.0f, 1.0f);
+	ImGuiToolKit::DragDelayFloat(u8"アニメーション時間", &animDuration, 0.01f, 0.01f, 10.0f);
+	ImGuiToolKit::DragDelayFloat(u8"表示のディゾルブ時間", &showDuration, 0.01f, 0.0f, 5.0f);
+	ImGuiToolKit::DragDelayFloat(u8"受付終了前のディゾルブ時間（ゲーム内秒）", &hideDuration, 0.01f, 0.0f, 5.0f);
 	ImGui::Text("showTimer: %.2f", showTimer);
 }

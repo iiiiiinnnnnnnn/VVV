@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Scene/PostProcessController.h"
 
 void PostProcessController::RequestThreaten(float duration, float power, float attackRate, Easing::Type attackEasing, Easing::Type releaseEasing)
@@ -29,7 +30,7 @@ void PostProcessController::SetPoisonVignette(bool enabled, Easing::Type easing,
 	poisonVignetteEasing = easing;
 	poisonVignetteDuration = duration;
 	poisonVignetteProgress = duration > 0.0f ? 0.0f : 1.0f;
-	if (duration <= 0.0f) poisonVignetteIntensity = enabled ? 0.8f : 0.0f;
+	if (duration <= 0.0f) poisonVignetteIntensity = enabled ? 0.7f : 0.0f;
 }
 
 void PostProcessController::RequestJustDodge(float duration, float power)
@@ -128,7 +129,7 @@ void PostProcessController::DrawGUI()
 		static Easing::Type attackEasing = Easing::Type::InSine;
 		static Easing::Type releaseEasing = Easing::Type::OutCubic;
 		ImGui::PushID("Threaten");
-		ImGui::DragFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGuiToolKit::DragDelayFloat(u8"duration", &duration, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
 		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
@@ -148,7 +149,7 @@ void PostProcessController::DrawGUI()
 		static Easing::Type attackEasing = Easing::Type::Linear;
 		static Easing::Type releaseEasing = Easing::Type::InOutQuad;
 		ImGui::PushID("Damaged Vignette");
-		ImGui::DragFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGuiToolKit::DragDelayFloat(u8"duration", &duration, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
 		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
@@ -159,6 +160,7 @@ void PostProcessController::DrawGUI()
 		}
 		ImGui::PopID();
 	}
+
 }
 
 void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const

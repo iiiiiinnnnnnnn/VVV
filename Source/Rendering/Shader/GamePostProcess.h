@@ -69,6 +69,7 @@ namespace Game
 		const Color& GetUnderwaterColor() const { return underwaterColor; }
 
 	private:
+		// 下水
 		void Underwater(const RenderContext& rc, ID3D11ShaderResourceView* colorMap,
 			ID3D11ShaderResourceView* depthMap);
 		bool enableUnderwater = true;
@@ -91,12 +92,37 @@ namespace Game
 		std::unique_ptr<Gpu::PixelShader> underwaterPixelShader;
 		std::unique_ptr<Gpu::ConstantBuffer> underwaterConstantBuffer;
 
+		void DepthOfField(const RenderContext& rc, RenderTarget* source, RenderTarget* output);
+		bool enableDepthOfField = false;
+		float dofFocusDistance = 25.0f;
+		// ピントから最大ぼけへ移る距離幅。鮮明さを固定する帯域ではない
+		float dofFocusRange = 20.0f;
+		// 半解像度の作業バッファではなく、元画像の画素数を単位とする
+		float dofBlurRadius = 12.0f;
+		float dofNearStrength = 1.0f;
+		float dofFarStrength = 1.0f;
+
+		struct CbDepthOfField
+		{
+			Matrix inverseProjection;
+			float focusDistance;
+			float focusRange;
+			float nearStrength;
+			float farStrength;
+			Vector2 blurStep;
+			Vector2 padding;
+		};
+		std::unique_ptr<RenderTarget> dofWorkA, dofWorkB;
+		std::unique_ptr<Gpu::PixelShader> dofBlurPixelShader, dofPixelShader;
+		std::unique_ptr<Gpu::ConstantBuffer> dofConstantBuffer;
+
 		void DrawFullscreen(
 			const RenderContext& rc,
 			const Gpu::PixelShader& pixelShader,
 			ID3D11ShaderResourceView* colorMap,
 			const Gpu::ConstantBuffer* constantBuffer,
-			ID3D11ShaderResourceView* colorMap2 = nullptr);
+			ID3D11ShaderResourceView* colorMap2 = nullptr,
+			ID3D11ShaderResourceView* colorMap3 = nullptr);
 		void UnbindShaderResources(ID3D11DeviceContext* dc);
 		static const char* BasicEffectName(int index);
 		static const char* DualEffectName(int index);
@@ -121,14 +147,14 @@ namespace Game
 
 		// Bloom Blur
 		bool enableBloomBlur = true;
-		float bloomBlurSize = 7.0f;
-		float bloomBlurBrightness = 1.0f;
+		float bloomBlurSize = 2.0f;
+		float bloomBlurBrightness = 0.6f;
 
 		// Dual Effect
 		bool enableDualEffect = true;
 		int dualEffectIndex = DirectX::DualPostProcess::BloomCombine;
-		float bloomIntensity = 0.22f;
-		float baseIntensity = 1.0f;
+		float bloomIntensity = 0.57f;
+		float baseIntensity = 0.5f;
 		float bloomSaturation = 1.0f;
 		float baseSaturation = 1.0f;
 		float mergeWeight1 = 1.0f;
@@ -137,21 +163,21 @@ namespace Game
 		// Tone Mapping
 		bool enableToneMapping = true;
 		int toneMapOperatorIndex = DirectX::ToneMapPostProcess::ACESFilmic;
-		int transferFunctionIndex = DirectX::ToneMapPostProcess::SRGB;
+		int transferFunctionIndex = DirectX::ToneMapPostProcess::Linear;
 		int colorRotationIndex = DirectX::ToneMapPostProcess::HDTV_to_UHDTV;
-		float exposure = 1.0f;
+		float exposure = 1.45f;
 		float paperWhiteNits = 200.0f;
 
 		// Color Filter
 		bool enableColorFilter = true;
 		float colorFilterHueShift = 0.0f;
 		float colorFilterSaturation = 2.0f;
-		float colorFilterBrightness = 1.3f;
-		bool enableColorGradient = false;
+		float colorFilterBrightness = 1.5f;
+		bool enableColorGradient = true;
 		float colorGradientStrength = 0.25f;
-		Color colorGradientShadows = {0.02f, 0.04f, 0.10f, 1.0f};
-		Color colorGradientMidtones = {0.45f, 0.50f, 0.55f, 1.0f};
-		Color colorGradientHighlights = {1.0f, 0.92f, 0.78f, 1.0f};
+		Color colorGradientShadows = {0.054901961f, 0.054901961f, 0.054901961f, 1.0f};
+		Color colorGradientMidtones = {0.078431373f, 0.176470588f, 0.270588235f, 1.0f};
+		Color colorGradientHighlights = {1.0f, 1.0f, 1.0f, 1.0f};
 		struct CbColorFilter
 		{
 			float hueShift;
@@ -185,10 +211,10 @@ namespace Game
 
 		// Vignette
 		bool enableVignette = true;
-		Color vignetteColor = {0.2f, 0.2f, 0.2f, 1.0f};
+		Color vignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
 		Vector2 vignetteCenter = {0.5f, 0.5f};
-		float vignetteIntensity = 1.0f;
-		float vignetteSmoothness = 2.0f;
+		float vignetteIntensity = 1.29f;
+		float vignetteSmoothness = 0.7f;
 		bool vignetteRounded = false;
 		float vignetteRoundness = 1.0f;
 		struct CbVignette
@@ -210,7 +236,7 @@ namespace Game
 
 		// Chromatic Aberration
 		bool enableChromaticAberration = false;
-		float chromaticAberrationAmount = 0.015f;
+		float chromaticAberrationAmount = 0.001f;
 		int chromaticAberrationMaxSamples = 10;
 		Color chromaticAberrationShift[3] = {
 			{1.0f, 0.0f, 0.0f, 0.0f},
@@ -230,9 +256,9 @@ namespace Game
 
 		// SSAO
 		bool enableSSAO = true;
-		float ssaoRadius = 1.5f;
-		float ssaoIntensity = 3.0f;
-		float ssaoMinDistance = 0.09f;
+		float ssaoRadius = 6.34f;
+		float ssaoIntensity = 5.0f;
+		float ssaoMinDistance = 0.2f;
 		float ssaoMaxDistance = 3.0f;
 		struct CbSSAO
 		{

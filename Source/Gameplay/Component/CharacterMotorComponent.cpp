@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Component/CharacterMotorComponent.h"
 
 #include "Animation/Animator.h"
@@ -71,7 +72,7 @@ void CharacterMotorComponent::OnDrawGUI()
 	ImGui::Checkbox("Use Ground Snap", &useGroundSnap);
 	ImGui::DragFloat("Ground Snap Up", &groundSnapUpDistance, 0.01f, 0.0f, 2.0f);
 	ImGui::DragFloat("Ground Snap Down", &groundSnapDownDistance, 0.01f, 0.0f, 3.0f);
-	ImGui::DragFloat("Ground Snap Speed", &groundSnapSpeed, 0.1f, 0.0f, 100.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"Ground Snap Speed", &groundSnapSpeed, 0.1f, 0.0f, 100.0f);
 	ImGui::DragFloat("Minimum Ground Normal Y", &minimumGroundNormalY, 0.01f, 0.0f, 1.0f);
 }
 

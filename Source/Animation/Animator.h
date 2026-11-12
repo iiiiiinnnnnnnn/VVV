@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <ImGuiToolKit/Utf8.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -341,7 +342,7 @@ private:
     bool suppressNodeEditorInteractions = false;
     float editorLeftPanelWidth = 230.0f;
     bool addLayerPopupOpen = false;
-    std::string addLayerName = (const char*)u8"新規レイヤー";
+    std::string addLayerName = JText(u8"新規レイヤー");
     std::vector<bool> maskSelection;
     int contextLayerIndex = -1;
 

@@ -1,4 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Widgets.h>
+#include <ImGuiToolKit/Drag.h>
 #include "UI/Widget.h"
 #include "UI/WidgetAlpha.h"
 #include "UI/WidgetGroup.h"
@@ -17,38 +19,22 @@ void Widget::Update()
 
 void Widget::DrawGUI()
 {
-    ImGui::PushID(this);
-	const std::string label = std::string(ICON_FA_WINDOW_MAXIMIZE " ") +
-		(name.empty() ? "Unnamed Object" : name) + "###WidgetInspector";
-    if (ImGui::CollapsingHeader(label.c_str()))
-    {
-		Object::DrawGUI();
-
-        if(ImGui::TreeNode(ICON_FA_INFO_CIRCLE " Widget Info"))
-        {
-			ImGui::TextDisabled("Widget info is void");
-            ImGui::TreePop();
-		}
-
-        if (ImGui::TreeNode(ICON_FA_VECTOR_SQUARE " RectTransform"))
-        {
-            ImGui::DragFloat2("Position", &rect.position.x);
-            ImGui::DragFloat("Angle", &rect.angle);
-            ImGui::DragFloat2("Size", &rect.size.x);
-            ImGui::DragFloat2("Scale", &rect.scale.x, 0.01f);
-            ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
-            ImGui::TreePop();
-        }
-
-        if (ImGui::TreeNode(ICON_FA_SLIDERS_H " User param"))
-        {
-            OnDrawGUI();
-            ImGui::TreePop();
-        }
-    }
-    ImGui::PopID();
-
-    ImGui::Separator();
+	ImGui::PushID(this);
+	DrawBasicInspector();
+	if (ImGuiToolKit::CollapsingHeader(u8"2Dトランスフォーム", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGuiToolKit::Checkbox(u8"自動配置", &autoLayout);
+		bool changed = ImGuiToolKit::DragPosFloat2(u8"位置", &rect.position.x);
+		changed |= ImGuiToolKit::DragRotFloat(u8"角度", &rect.angle);
+		changed |= ImGuiToolKit::DragSizeFloat2(u8"サイズ", &rect.size.x);
+		changed |= ImGuiToolKit::DragSizeFloat2(u8"スケール", &rect.scale.x, 0.01f);
+		changed |= ImGuiToolKit::DragFloat2(u8"アンカー", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
+		if (changed) autoLayout = false;
+		ImGuiToolKit::TextDisabled(u8"手動で変更すると自動配置がオフになります");
+	}
+	if (ImGuiToolKit::CollapsingHeader(u8"ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	DrawComponentInspector();
+	ImGui::PopID();
 }
 
 void Widget::Render(const RenderContext& rc)
@@ -111,21 +97,4 @@ bool Widget::ContainsPoint(const Vector2& point) const
 	Vector2 local;
 	return ScreenToLocal(point, local) && local.x >= 0 && local.x <= rect.size.x &&
 		local.y >= 0 && local.y <= rect.size.y;
-}
-
-void Widget::DrawInspector()
-{
-	ImGui::PushID(this);
-	DrawBasicInspector();
-	if (ImGui::CollapsingHeader("RectTransform", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		ImGui::DragFloat2("Position", &rect.position.x);
-		ImGui::DragFloat("Angle", &rect.angle);
-		ImGui::DragFloat2("Size", &rect.size.x);
-		ImGui::DragFloat2("Scale", &rect.scale.x, 0.01f);
-		ImGui::DragFloat2("Anchor", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
-	}
-	if (ImGui::CollapsingHeader((const char*)u8"ユーザーパラメーター", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
-	DrawComponentInspector();
-	ImGui::PopID();
 }

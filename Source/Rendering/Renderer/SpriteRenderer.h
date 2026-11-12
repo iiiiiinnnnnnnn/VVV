@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <Dx11Kit/Dx11Kit.h>
 #include <d3d11.h>
 #include <wrl.h>
@@ -46,6 +46,12 @@ public:
 	const Matrix& GetTransform() const { return transform; }
 
 private:
+	struct CbSpriteColor
+	{
+		float decodeSrgb;
+		Vector3 padding;
+	};
+	std::unique_ptr<Gpu::ConstantBuffer> colorConstantBuffer;
 	Matrix transform = Matrix::Identity;
 	float alpha = 1.0f;
 	struct SpriteVertex
@@ -62,6 +68,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	srv;
 		Vector2 											textureSize;
 		Color												color;
+		float decodeSrgb;
 		const SpriteRenderParams*					params;
 	};
 	DrawInfo BuildDrawInfo(SpriteShaderId shaderId, std::shared_ptr<Texture> texture, Vector3 dxyz, Vector2 dwh, Vector2 sxy, Vector2 swh, float angle, const Color& color, const SpriteRenderParams* params);

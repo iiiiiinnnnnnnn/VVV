@@ -38,7 +38,7 @@
       <WarningLevel>Level4</WarningLevel>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\ImGuiToolKit\Include;$(MSBuildThisFileDirectory)Include;$(MSBuildThisFileDirectory)..;$(MSBuildThisFileDirectory)..\imgui\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\imgui\include;..\juliettef;..\ImGuiToolKit\Include;.\Include;..\nlohmann;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>

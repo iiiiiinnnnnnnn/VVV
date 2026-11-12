@@ -16,6 +16,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InputKit", "External\InputKit\InputKit.vcxproj", "{45B1B3C7-381B-44B2-B57A-43028ED7987A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProfileKit", "External\ProfileKit\ProfileKit.vcxproj", "{9986C9F8-2717-49E7-8FB3-4059F310838B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FA1E2821-06BE-4C41-9D18-5A9F35B10AB4} = {FA1E2821-06BE-4C41-9D18-5A9F35B10AB4}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGuiToolKit", "External\ImGuiToolKit\ImGuiToolKit.vcxproj", "{FA1E2821-06BE-4C41-9D18-5A9F35B10AB4}"
 EndProject

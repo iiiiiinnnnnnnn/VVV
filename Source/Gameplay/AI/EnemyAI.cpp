@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Gameplay/AI/EnemyAI.h"
 
 #include <algorithm>
@@ -475,14 +476,14 @@ void EnemyAI::OnDrawGUI()
 	if (ImGui::DragFloat("Sight Target Height", &sightTargetHeight, 0.05f, 0.0f, 100.0f))
 		SetFloat("SightTargetHeight", std::max(sightTargetHeight, 0.0f));
 	float horizontalFov = GetFloat("SightHorizontalFov", 90.0f);
-	if (ImGui::DragFloat("Sight Horizontal FOV", &horizontalFov, 0.5f, 1.0f, 179.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"Sight Horizontal FOV", &horizontalFov, 0.5f, 1.0f, 179.0f))
 		SetFloat("SightHorizontalFov", std::clamp(horizontalFov, 1.0f, 179.0f));
 	float verticalFov = GetFloat("SightVerticalFov", 60.0f);
-	if (ImGui::DragFloat("Sight Vertical FOV", &verticalFov, 0.5f, 1.0f, 179.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"Sight Vertical FOV", &verticalFov, 0.5f, 1.0f, 179.0f))
 		SetFloat("SightVerticalFov", std::clamp(verticalFov, 1.0f, 179.0f));
-	ImGui::DragFloat("Tracking Turn Speed", &trackingTurnSpeed, 0.1f, 0.0f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"Tracking Turn Speed", &trackingTurnSpeed, 0.1f, 0.0f, 30.0f);
 	float turnThreshold = GetFloat("TurnThreshold", 15.0f);
-	if (ImGui::DragFloat("Turn Threshold", &turnThreshold, 0.5f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"Turn Threshold", &turnThreshold, 0.5f, 0.0f, 180.0f))
 		SetFloat("TurnThreshold", std::max(turnThreshold, 0.0f));
 }
 

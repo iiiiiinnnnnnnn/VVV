@@ -1,5 +1,6 @@
 #pragma once
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Utf8.h>
 #include "IconsFontAwesome5.h"
 #include <algorithm>
 #include <cctype>
@@ -128,7 +129,7 @@ private:
 
 		const std::string& widgetName = widget->GetName();
 		const char* label = widgetName.c_str();
-		if (widgetName.empty()) label = (const char*)u8"名前なし";
+		if (widgetName.empty()) label = JText(u8"名前なし");
 		if (search && *search) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		const bool open = ImGui::TreeNodeEx("##WidgetNode", flags, ICON_FA_WINDOW_MAXIMIZE " %s", label);
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())

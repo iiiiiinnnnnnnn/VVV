@@ -1,4 +1,5 @@
 #include <ProfileKit/ProfileKit.h>
+#include <ImGuiToolKit/Drag.h>
 #include "Core/Foundation/Logger.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Gameplay/Actor/Actor.h"
@@ -178,13 +179,13 @@ void CharacterController::DrawGUI()
         float height = capsule->getHeight();
         Actor* actor = dynamic_cast<Actor*>(owner);
 
-        if (ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f))
+        if (ImGuiToolKit::DragSizeFloat(u8"Radius", &radius, 0.01f, 0.01f, 10.0f))
         {
             const Vector3 anchorPosition = actor->transform.position;
             capsule->setRadius(radius);
             SetPosition(anchorPosition);
         }
-        if (ImGui::DragFloat("Height", &height, 0.01f, 0.01f, 10.0f))
+        if (ImGuiToolKit::DragSizeFloat(u8"Height", &height, 0.01f, 0.01f, 10.0f))
         {
             const Vector3 anchorPosition = actor->transform.position;
             capsule->setHeight(height);
@@ -198,11 +199,11 @@ void CharacterController::DrawGUI()
     if (ImGui::TreeNode("Settings"))
     {
         float stepOffset = controller->getStepOffset();
-        if (ImGui::DragFloat("Step Offset", &stepOffset, 0.01f, 0.0f, 1.5f))
+        if (ImGuiToolKit::DragPosFloat(u8"Step Offset", &stepOffset, 0.01f, 0.0f, 1.5f))
             controller->setStepOffset(stepOffset);
 
         float contactOffset = controller->getContactOffset();
-        if (ImGui::DragFloat("Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
+        if (ImGuiToolKit::DragPosFloat(u8"Contact Offset", &contactOffset, 0.01f, 0.001f, 1.0f))
         {
             Actor* actor = dynamic_cast<Actor*>(owner);
             const Vector3 anchorPosition = actor->transform.position;

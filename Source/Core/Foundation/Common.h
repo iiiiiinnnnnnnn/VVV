@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ImGuiToolKit/Utf8.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <cmath>

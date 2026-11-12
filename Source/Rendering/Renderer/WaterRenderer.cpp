@@ -26,9 +26,11 @@ void WaterRenderer::OnAwake()
 	ID3D11Device* device = Game::Graphics::Instance().GetDevice();
 	if (!device) return;
 
-	Gpu::InputLayoutDesc elements;
-	elements.AddPosition()
-		.AddTexcoord();
+	const D3D11_INPUT_ELEMENT_DESC elements[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	};
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/WaterSurfaceVS.cso").c_str(),
 		elements);
 	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/WaterSurfacePS.cso").c_str());
@@ -152,16 +154,16 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 	pixelShader->Bind(rc.deviceContext);
 	constantBuffer->BindVS(rc.deviceContext, 0);
 	constantBuffer->BindPS(rc.deviceContext, 0);
-	RenderTarget* sceneBuffer =
-		Game::Graphics::Instance().GetFrameBuffer(Game::FrameBufferId::Scene);
-	if (sceneBuffer) sceneBuffer->SetDepthReadOnly(rc.deviceContext, true);
+	const auto previousOutput = RenderOutput::CaptureOutput(rc.deviceContext);
+	if (rc.depthTarget)
+		rc.deviceContext->OMSetRenderTargets(1, previousOutput.color.GetAddressOf(), rc.depthTarget->GetDSV(true));
 	ID3D11ShaderResourceView* waterTextures[] =
 	{
 		normalTexture ? normalTexture->GetShaderResourceView().Get() : nullptr,
 		heightTexture ? heightTexture->GetShaderResourceView().Get() : nullptr,
 		foamTexture ? foamTexture->GetShaderResourceView().Get() : nullptr,
 		rc.iblData.specularPremappingRadianceEnvironmentMap,
-		sceneBuffer ? sceneBuffer->GetDepthSRV() : nullptr,
+		rc.depthTarget ? rc.depthTarget->GetSRV() : nullptr,
 	};
 	Gpu::VertexShader::SetShaderResources(rc.deviceContext, 1, waterTextures[1]);
 	Gpu::PixelShader::SetShaderResources(rc.deviceContext, 0, waterTextures);
@@ -175,7 +177,7 @@ void WaterRenderer::OnRender(const RenderContext& rc)
 	vertexBuffer->Draw(rc.deviceContext, vertexCount);
 	Gpu::VertexShader::UnbindShaderResources(rc.deviceContext, 1);
 	Gpu::PixelShader::UnbindShaderResources(rc.deviceContext, 0, _countof(waterTextures));
-	if (sceneBuffer) sceneBuffer->SetDepthReadOnly(rc.deviceContext, false);
+	RenderOutput::RestoreOutput(rc.deviceContext, previousOutput);
 
 	rc.graphics->OpaqueBlendState->Bind(rc.deviceContext, blendFactor);
 	rc.graphics->DepthWriteState->Bind(rc.deviceContext);

@@ -1,4 +1,5 @@
 ﻿#include "Physics/Collider/BoneSphereCollider.h"
+#include <ImGuiToolKit/Drag.h>
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
@@ -32,7 +33,7 @@ void BoneSphereCollider::Render(const RenderContext& rc)
 void BoneSphereCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGui::DragFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat(u8"Radius", &radius, 0.01f, 0.01f, 10.0f);
     if (radius < 0.01f) radius = 0.01f;
     if (changed)
     {

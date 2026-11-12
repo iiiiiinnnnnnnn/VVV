@@ -42,9 +42,9 @@ class Mouse
 	}
 
 	// ホイール値の設定
-	void SetWheel(int wheel)
+	void SetWheel(int _wheel)
 	{
-		this->wheel[0] += wheel;
+		this->wheel[0] += _wheel;
 	}
 
 	// ホイール値の取得

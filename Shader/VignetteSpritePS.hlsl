@@ -32,7 +32,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     const float solidEnd = max(range - softness, 0.0f);
     const float vignette = 1.0f - smoothstep(solidEnd, range, nearestEdge);
 
-    float4 finalColor = spriteTexture.Sample(spriteSampler, uv);
+    float4 finalColor = DecodeSpriteColor(spriteTexture.Sample(spriteSampler, uv));
     const float amount = vignette * saturate(vignetteColor.a);
     if (overlayOnly > 0.5f)
     {

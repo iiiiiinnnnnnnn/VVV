@@ -4,7 +4,6 @@
 
 #include <Dx11Kit/BlendState.h>
 #include <Dx11Kit/Buffer.h>
-#include <Dx11Kit/BufferDesc.h>
 #include <Dx11Kit/ComputeShader.h>
 #include <Dx11Kit/ConstantBuffer.h>
 #include <Dx11Kit/DepthStencilState.h>
@@ -14,10 +13,11 @@
 #include <Dx11Kit/GeometryShader.h>
 #include <Dx11Kit/HullShader.h>
 #include <Dx11Kit/IndexBuffer.h>
-#include <Dx11Kit/InputLayoutDesc.h>
 #include <Dx11Kit/PixelShader.h>
 #include <Dx11Kit/RasterizerState.h>
 #include <Dx11Kit/RenderTarget.h>
+#include <Dx11Kit/DepthTarget.h>
+#include <Dx11Kit/RenderOutput.h>
 #include <Dx11Kit/SamplerState.h>
 #include <Dx11Kit/ShaderBytecode.h>
 #include <Dx11Kit/VertexBuffer.h>

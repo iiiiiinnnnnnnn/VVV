@@ -19,13 +19,7 @@
 class Stage : public Object
 {
 public:
-	Stage()
-	{
-		defaultCameraActor = std::make_shared<Actor>("Stage Camera");
-		defaultCameraActor->AddComponent<Camera>();
-		actorManager.Register(defaultCameraActor);
-		actorManager.FlushPendingActors();
-	}
+	Stage();
 
 	void Update() override
 	{
@@ -103,11 +97,6 @@ public:
 			highestPriority = std::max(highestPriority, current->GetPriority());
 
 		return SetCameraPriority(camera, highestPriority + 1);
-	}
-
-	void SetDebugCamera(Camera* camera)
-	{
-		debugCamera = camera;
 	}
 
 	Camera* GetDebugCamera() const
@@ -202,6 +191,7 @@ public:
 	const ActorManager& GetActorManager() const { return actorManager; }
 
 	ParticleSystem* GetParticleSystem() { return particleSystem.get(); }
+	virtual bool ShouldLoadStageProp(const std::string& path) const { return true; }
 	bool LoadVSTG(const std::string& path);
 	const std::string& GetVSTGError() const { return vstgError; }
 

@@ -1,15 +1,16 @@
 #include "UI/BossBarWidget.h"
+#include <ImGuiToolKit/Widgets.h>
 
 #include <algorithm>
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Entity.h"
 #include "Rendering/Core/Graphics.h"
 
-BossBarWidget::BossBarWidget() : GaugeWidget("Boss Bar", false)
+BossBarWidget::BossBarWidget(const std::string& name, const std::string& maskPath, bool revealOnStart)
+	: GaugeWidget(name, maskPath, revealOnStart)
 {
 	rect.position = {Game::Graphics::ScreenWidth / 2.0f, 37.800f};
 	SetFrameTexture("Resources/UI/window.png");
-	SetDissolveMask("Resources/UI/dissolve_animation.png");
 	rect.size = {819.000f, 57.720f};
 	rect.anchor = {0.5f, 0.0f};
 	SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
@@ -118,7 +119,7 @@ void BossBarWidget::OnUpdate()
 void BossBarWidget::OnDrawGUI()
 {
 	GaugeWidget::OnDrawGUI();
-	ImGui::SliderFloat((const char*)u8"出現時間", &showDuration, 0.05f, 2.0f);
-	ImGui::SliderFloat((const char*)u8"消去時間", &hideDuration, 0.05f, 2.0f);
-	ImGui::SliderFloat((const char*)u8"HP充填時間", &fillDuration, 0.05f, 3.0f);
+	ImGuiToolKit::SliderFloat(u8"出現時間", &showDuration, 0.05f, 2.0f);
+	ImGuiToolKit::SliderFloat(u8"消去時間", &hideDuration, 0.05f, 2.0f);
+	ImGuiToolKit::SliderFloat(u8"HP充填時間", &fillDuration, 0.05f, 3.0f);
 }
