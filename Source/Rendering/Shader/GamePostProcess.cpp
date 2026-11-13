@@ -62,13 +62,6 @@ namespace Game
 		colorFilterSaturation = source.colorFilterSaturation;
 		colorFilterBrightness = source.colorFilterBrightness;
 
-		// 暗部・中間色・明部のグラデーション
-		enableColorGradient = source.enableColorGradient;
-		colorGradientStrength = source.colorGradientStrength;
-		colorGradientShadows = source.colorGradientShadows;
-		colorGradientMidtones = source.colorGradientMidtones;
-		colorGradientHighlights = source.colorGradientHighlights;
-
 		// 放射ブラー
 		enableRadialBlur = source.enableRadialBlur;
 		radialBlurRadius = source.radialBlurRadius;
@@ -375,10 +368,6 @@ namespace Game
 		cb.hueShift = enableColorFilter ? colorFilterHueShift : 0.0f;
 		cb.saturation = enableColorFilter ? colorFilterSaturation : 1.0f;
 		cb.brightness = enableColorFilter ? colorFilterBrightness : 1.0f;
-		cb.gradientStrength = enableColorGradient ? colorGradientStrength : 0.0f;
-		cb.gradientShadows = colorGradientShadows;
-		cb.gradientMidtones = colorGradientMidtones;
-		cb.gradientHighlights = colorGradientHighlights;
 		colorFilterConstantBuffer->Update(rc.deviceContext, &cb);
 
 		DrawFullscreen(
@@ -598,7 +587,7 @@ namespace Game
 
 		// ToneMapping を切っても Copy を 1 パス実行するため、初期値は 1。最後のパスだけ出力先へ直描きする
 		int passCount = 1;
-		if (enableColorFilter || enableColorGradient) ++passCount;
+		if (enableColorFilter) ++passCount;
 		if (useRadialBlur) ++passCount;
 		if (useChromaticAberration) ++passCount;
 		if (useVignette) ++passCount;
@@ -639,7 +628,7 @@ namespace Game
 			}
 		});
 
-		if (enableColorFilter || enableColorGradient)
+		if (enableColorFilter)
 		{
 			renderPass([&](ID3D11ShaderResourceView* passSource)
 			{
@@ -812,24 +801,6 @@ namespace Game
 				colorFilterHueShift = 0.0f;
 				colorFilterSaturation = 1.0f;
 				colorFilterBrightness = 1.0f;
-			}
-			ImGui::TreePop();
-		}
-
-		if (ImGuiToolKit::TreeNode(u8"カラーグレーディング"))
-		{
-			ImGuiToolKit::Checkbox(u8"有効##ColorGradient", &enableColorGradient);
-			ImGuiToolKit::SliderFloat(u8"適用強度", &colorGradientStrength, 0.0f, 1.0f);
-			ImGuiToolKit::ColorEdit3(u8"暗部", &colorGradientShadows.x);
-			ImGuiToolKit::ColorEdit3(u8"中間色", &colorGradientMidtones.x);
-			ImGuiToolKit::ColorEdit3(u8"明部", &colorGradientHighlights.x);
-			if (ImGuiToolKit::Button(u8"初期値に戻す##ColorGradient"))
-			{
-				const PostProcess defaults;
-				colorGradientStrength = defaults.colorGradientStrength;
-				colorGradientShadows = defaults.colorGradientShadows;
-				colorGradientMidtones = defaults.colorGradientMidtones;
-				colorGradientHighlights = defaults.colorGradientHighlights;
 			}
 			ImGui::TreePop();
 		}
@@ -1067,15 +1038,6 @@ namespace Game
 		settings["colorFilterSaturation"] = colorFilterSaturation;
 		settings["colorFilterBrightness"] = colorFilterBrightness;
 
-		settings["enableColorGradient"] = enableColorGradient;
-		settings["colorGradientStrength"] = colorGradientStrength;
-		settings["colorGradientShadows"] = json::array({
-			colorGradientShadows.x, colorGradientShadows.y, colorGradientShadows.z, colorGradientShadows.w});
-		settings["colorGradientMidtones"] = json::array({
-			colorGradientMidtones.x, colorGradientMidtones.y, colorGradientMidtones.z, colorGradientMidtones.w});
-		settings["colorGradientHighlights"] = json::array({
-			colorGradientHighlights.x, colorGradientHighlights.y, colorGradientHighlights.z, colorGradientHighlights.w});
-
 		settings["enableRadialBlur"] = enableRadialBlur;
 		settings["radialBlurRadius"] = radialBlurRadius;
 		settings["radialBlurSamplingCount"] = radialBlurSamplingCount;
@@ -1219,24 +1181,6 @@ namespace Game
 		colorFilterHueShift = settings.at("colorFilterHueShift").get<float>();
 		colorFilterSaturation = settings.at("colorFilterSaturation").get<float>();
 		colorFilterBrightness = settings.at("colorFilterBrightness").get<float>();
-
-		enableColorGradient = settings.at("enableColorGradient").get<bool>();
-		colorGradientStrength = settings.at("colorGradientStrength").get<float>();
-		colorGradientShadows = Color(
-			settings.at("colorGradientShadows").at(0).get<float>(),
-			settings.at("colorGradientShadows").at(1).get<float>(),
-			settings.at("colorGradientShadows").at(2).get<float>(),
-			settings.at("colorGradientShadows").at(3).get<float>());
-		colorGradientMidtones = Color(
-			settings.at("colorGradientMidtones").at(0).get<float>(),
-			settings.at("colorGradientMidtones").at(1).get<float>(),
-			settings.at("colorGradientMidtones").at(2).get<float>(),
-			settings.at("colorGradientMidtones").at(3).get<float>());
-		colorGradientHighlights = Color(
-			settings.at("colorGradientHighlights").at(0).get<float>(),
-			settings.at("colorGradientHighlights").at(1).get<float>(),
-			settings.at("colorGradientHighlights").at(2).get<float>(),
-			settings.at("colorGradientHighlights").at(3).get<float>());
 
 		enableRadialBlur = settings.at("enableRadialBlur").get<bool>();
 		radialBlurRadius = settings.at("radialBlurRadius").get<float>();

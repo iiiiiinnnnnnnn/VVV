@@ -52,7 +52,6 @@ namespace Game
 		bool IsSSAOEnabled() const { return enableSSAO; }
 		bool IsToneMappingEnabled() const { return enableToneMapping; }
 		bool IsColorFilterEnabled() const { return enableColorFilter; }
-		bool IsColorGradientEnabled() const { return enableColorGradient; }
 		bool IsRadialBlurEnabled() const { return enableRadialBlur; }
 		bool IsVignetteEnabled() const { return enableVignette; }
 		bool IsChromaticAberrationEnabled() const { return enableChromaticAberration; }
@@ -148,13 +147,13 @@ namespace Game
 		// Bloom Blur
 		bool enableBloomBlur = true;
 		float bloomBlurSize = 2.0f;
-		float bloomBlurBrightness = 0.6f;
+		float bloomBlurBrightness = 0.55f;
 
 		// Dual Effect
 		bool enableDualEffect = true;
 		int dualEffectIndex = DirectX::DualPostProcess::BloomCombine;
 		float bloomIntensity = 0.57f;
-		float baseIntensity = 0.5f;
+		float baseIntensity = 0.55f;
 		float bloomSaturation = 1.0f;
 		float baseSaturation = 1.0f;
 		float mergeWeight1 = 1.0f;
@@ -173,11 +172,6 @@ namespace Game
 		float colorFilterHueShift = 0.0f;
 		float colorFilterSaturation = 2.0f;
 		float colorFilterBrightness = 1.5f;
-		bool enableColorGradient = true;
-		float colorGradientStrength = 0.25f;
-		Color colorGradientShadows = {0.054901961f, 0.054901961f, 0.054901961f, 1.0f};
-		Color colorGradientMidtones = {0.078431373f, 0.176470588f, 0.270588235f, 1.0f};
-		Color colorGradientHighlights = {1.0f, 1.0f, 1.0f, 1.0f};
 		struct CbColorFilter
 		{
 			float hueShift;

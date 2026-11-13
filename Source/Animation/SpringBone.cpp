@@ -1,6 +1,7 @@
-﻿#include <ProfileKit/ProfileKit.h>
+#include <ProfileKit/ProfileKit.h>
 #include <ImGuiToolKit/Drag.h>
 #include "Animation/SpringBone.h"
+#include "Animation/SpringBoneCollider.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Rendering/Core/Graphics.h"
@@ -91,50 +92,15 @@ namespace
         return result;
     }
 
-    Matrix MakeCapsuleDebugTransform(const Vector3& start, const Vector3& end, float& height)
-    {
-        Vector3 dir = end - start;
-        height = dir.Length();
 
-        if (height <= 0.0001f)
-            return Matrix::Identity;
-
-        Vector3 axisY = dir / height;
-        Vector3 worldUp = { 0.0f, 1.0f, 0.0f };
-        Vector3 axisX;
-
-        if (fabsf(axisY.Dot(worldUp)) > 0.99f)
-            axisX = Vector3(1.0f, 0.0f, 0.0f).Cross(axisY);
-        else
-            axisX = worldUp.Cross(axisY);
-
-        axisX = SafeNormalize(axisX, { 1.0f, 0.0f, 0.0f });
-
-        Vector3 axisZ = axisX.Cross(axisY);
-        axisZ = SafeNormalize(axisZ, { 0.0f, 0.0f, 1.0f });
-
-        Vector3 center = (start + end) * 0.5f;
-
-        DirectX::XMMATRIX world;
-        world.r[0] = DirectX::XMLoadFloat3(&axisX);
-        world.r[1] = DirectX::XMLoadFloat3(&axisY);
-        world.r[2] = DirectX::XMLoadFloat3(&axisZ);
-        world.r[3] = DirectX::XMVectorSet(center.x, center.y, center.z, 1.0f);
-
-        Matrix result;
-        DirectX::XMStoreFloat4x4(&result, world);
-        return result;
-    }
 }
 
 SpringBone::SpringBone(
     Object* owner,
 	LayerId layerId,
     VMDLModel* model,
-    std::vector<std::string> boneContainNames,
-    std::vector<SpringCapsule> bodyCapsules)
+    std::vector<std::string> boneContainNames)
     : PhysicsComponent(owner, layerId)
-    , springCapsules(bodyCapsules)
     , model(model)
 {
     BuildBones(boneContainNames);
@@ -145,11 +111,9 @@ SpringBone::SpringBone(
 	LayerId layerId,
 	VMDLModel* model,
 	int rootNodeIndex,
-	std::vector<SpringCapsule> bodyCapsules,
 	float stiffness,
 	float drag)
 	: PhysicsComponent(owner, layerId)
-	, springCapsules(std::move(bodyCapsules))
 	, stiffness(stiffness)
 	, damping(drag)
 	, model(model)
@@ -287,63 +251,11 @@ const SpringBone::Bone* SpringBone::FindBone(int nodeIndex) const
     return nullptr;
 }
 
-Matrix SpringBone::GetNodeWorldTransform(int nodeIndex) const
-{
-    if (nodeIndex < 0 || model == nullptr)
-        return Matrix::Identity;
-
-    const Bone* bone = FindBone(nodeIndex);
-    if (bone != nullptr)
-        return bone->worldTransform;
-
-    const std::vector<VMDLModel::Node>& nodes = model->GetNodes();
-    if (nodeIndex >= static_cast<int>(nodes.size()))
-        return Matrix::Identity;
-
-    return nodes[nodeIndex].worldTransform;
-}
-
 void SpringBone::ApplyCapsuleCollision(Vector3& worldPosition) const
 {
-    if (model == nullptr)
-        return;
-
-    for (const SpringCapsule& capsule : springCapsules)
-    {
-        if (capsule.radius <= 0.0f)
-            continue;
-
-        Matrix capsuleWorld = GetNodeWorldTransform(capsule.nodeIndex);
-
-        Vector3 capStart = Vector3::Transform(capsule.start, capsuleWorld);
-        Vector3 capEnd = Vector3::Transform(capsule.end, capsuleWorld);
-
-        Vector3 segment = capEnd - capStart;
-        float segmentLengthSq = segment.LengthSquared();
-
-        float t = 0.0f;
-        if (segmentLengthSq > 0.00001f)
-        {
-            t = (worldPosition - capStart).Dot(segment) / segmentLengthSq;
-            t = std::clamp(t, 0.0f, 1.0f);
-        }
-
-        Vector3 closest = capStart + segment * t;
-        Vector3 diff = worldPosition - closest;
-        float distance = diff.Length();
-
-        const float effectiveRadius = capsule.radius + collisionRadius;
-
-        if (distance < effectiveRadius)
-        {
-            if (distance < 0.0001f)
-                diff = { 0.0f, 1.0f, 0.0f };
-            else
-                diff /= distance;
-
-            worldPosition = closest + diff * effectiveRadius;
-        }
-    }
+    if (!model) return;
+    for (const SpringBoneCollider* collider : colliders)
+        if (collider) collider->ResolveCollision(worldPosition, collisionRadius);
 }
 
 void SpringBone::ApplyAngleLimit(Vector3& position, const Vector3& origin,
@@ -700,44 +612,21 @@ void SpringBone::Render(const RenderContext& rc)
         }
     }
 
-    if (drawCapsules)
-    {
-        for (const SpringCapsule& capsule : springCapsules)
-        {
-            if (capsule.radius <= 0.0f)
-                continue;
 
-            Matrix capsuleWorld = GetNodeWorldTransform(capsule.nodeIndex);
-            Vector3 capStart = Vector3::Transform(capsule.start, capsuleWorld);
-            Vector3 capEnd = Vector3::Transform(capsule.end, capsuleWorld);
-
-            float height = 0.0f;
-            Matrix capsuleTransform = MakeCapsuleDebugTransform(capStart, capEnd, height);
-
-            if (height <= 0.0001f)
-                continue;
-
-            shapeRenderer->DrawCapsule(
-                capsuleTransform,
-                capsule.radius,
-                height,
-                { 0.0f, 1.0f, 1.0f, 0.5f });
-        }
-    }
 }
 
 void SpringBone::DrawGUI()
 {
     ImGui::Text("Bones: %d", static_cast<int>(bones.size()));
-    ImGui::Text("Capsules: %d", static_cast<int>(springCapsules.size()));
+    ImGui::Text("Colliders: %d", static_cast<int>(colliders.size()));
 
-    if (ImGui::Button("Reset Physics"))
+    if (ImGui::Button(JText(u8"物理初期化")))
         Reset();
 
     ImGui::Separator();
-    ImGui::DragFloat3("Gravity", &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
-    ImGui::DragFloat("Damping", &damping, 0.001f, 0.0f, 1.0f, "%.3f");
-    ImGuiToolKit::DragSpeedFloat(u8"Max Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
+	ImGui::DragFloat3(JText(u8"重力"), &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
+	ImGui::DragFloat(JText(u8"減衰"), &damping, 0.001f, 0.0f, 1.0f, "%.3f");
+	ImGuiToolKit::DragSpeedFloat(JText(u8"最大Velocity"), &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
 
     ImGui::Separator();
     ImGui::Text("Collision / Solver");
@@ -752,65 +641,4 @@ void SpringBone::DrawGUI()
     ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
 
     ImGui::Checkbox("Draw Bones", &drawBones);
-    ImGui::Checkbox("Draw Capsules", &drawCapsules);
-
-    ImGui::Separator();
-    ImGui::Text("Capsule Colliders");
-
-    if (ImGui::Button("Add Capsule"))
-    {
-        SpringCapsule capsule;
-        springCapsules.push_back(capsule);
-    }
-
-    if (model != nullptr)
-    {
-        std::vector<VMDLModel::Node>& nodes = model->GetNodes();
-        int deleteIndex = -1;
-
-        for (int i = 0; i < static_cast<int>(springCapsules.size()); ++i)
-        {
-            SpringCapsule& capsule = springCapsules[i];
-
-            ImGui::PushID(i);
-
-            const std::string header = "Capsule[" + std::to_string(i) + "]";
-            if (ImGui::CollapsingHeader(header.c_str()))
-            {
-                std::string currentNodeName = "None";
-                if (capsule.nodeIndex >= 0 && capsule.nodeIndex < static_cast<int>(nodes.size()))
-                    currentNodeName = nodes[capsule.nodeIndex].name;
-
-                if (ImGui::BeginCombo("Node", currentNodeName.c_str()))
-                {
-                    if (ImGui::Selectable("None", capsule.nodeIndex < 0))
-                        capsule.nodeIndex = -1;
-
-                    for (int nodeIndex = 0; nodeIndex < static_cast<int>(nodes.size()); ++nodeIndex)
-                    {
-                        const bool selected = capsule.nodeIndex == nodeIndex;
-                        if (ImGui::Selectable(nodes[nodeIndex].name.c_str(), selected))
-                            capsule.nodeIndex = nodeIndex;
-
-                        if (selected)
-                            ImGui::SetItemDefaultFocus();
-                    }
-
-                    ImGui::EndCombo();
-                }
-
-                ImGuiToolKit::DragPosFloat3(u8"Start", &capsule.start.x, 0.01f);
-                ImGuiToolKit::DragPosFloat3(u8"End", &capsule.end.x, 0.01f);
-                ImGuiToolKit::DragSizeFloat(u8"Radius", &capsule.radius, 0.005f, 0.001f, 10.0f, "%.3f");
-
-                if (ImGui::Button("Delete"))
-                    deleteIndex = i;
-            }
-
-            ImGui::PopID();
-        }
-
-        if (deleteIndex >= 0)
-            springCapsules.erase(springCapsules.begin() + deleteIndex);
-    }
 }

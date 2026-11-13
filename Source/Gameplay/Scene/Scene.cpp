@@ -666,17 +666,6 @@ void Scene::DrawGUI(RenderContext& rc)
 	if (!showGameEditorGUI)
 	{
 		gameEditorResizeEdge = 0;
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(
-			{viewport->Pos.x + viewport->Size.x - 10.0f, viewport->Pos.y + 10.0f}, ImGuiCond_Always,
-			{1.0f, 0.0f});
-		constexpr ImGuiWindowFlags fpsWindowFlags =
-			ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
-			ImGuiWindowFlags_NoInputs;
-		if (ImGui::Begin("##Game FPS", nullptr, fpsWindowFlags))
-			DrawEditorText({}, false);
-		ImGui::End();
 		return;
 	}
 

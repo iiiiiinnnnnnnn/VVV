@@ -6,6 +6,8 @@
 #include "Physics/Core/PhysicsComponent.h"
 #include "Resource/VMDLModel.h"
 
+class SpringBoneCollider;
+
 class SpringBone : public PhysicsComponent
 {
 public:
@@ -21,26 +23,16 @@ public:
         Vector3 oldWorldPosition = Vector3::Zero;
     };
 
-    struct SpringCapsule
-    {
-        Vector3 start = Vector3::Zero;
-        Vector3 end = { 0.0f, 0.1f, 0.0f };
-        float   radius = 0.1f;
-        int     nodeIndex = -1;
-    };
-
     SpringBone(
         Object* owner,
 		LayerId layerId,
         VMDLModel* model,
-        std::vector<std::string> boneContainNames,
-        std::vector<SpringCapsule> bodyCapsules = {});
+        std::vector<std::string> boneContainNames);
 	SpringBone(
 		Object* owner,
 		LayerId layerId,
 		VMDLModel* model,
 		int rootNodeIndex,
-		std::vector<SpringCapsule> bodyCapsules,
 		float stiffness,
 		float drag);
 
@@ -51,6 +43,7 @@ public:
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_BONE " SpringBone"; }
 
+	void SetColliders(const std::vector<SpringBoneCollider*>& values) { colliders = values; }
     void Reset();
 	void SetUseUnscaledTime(bool value) { useUnscaledTime = value; }
     void SetMaxAngle(float degrees) { maxAngleDegrees = std::clamp(degrees, 0.0f, 180.0f); }
@@ -63,7 +56,6 @@ private:
     Bone* FindBone(int nodeIndex);
     const Bone* FindBone(int nodeIndex) const;
 
-    Matrix GetNodeWorldTransform(int nodeIndex) const;
     void ApplyCapsuleCollision(Vector3& worldPosition) const;
     int GetNodeDepth(int nodeIndex) const;
     void ApplyAngleLimit(Vector3& position, const Vector3& origin,
@@ -77,7 +69,7 @@ private:
 
 private:
     std::vector<Bone> bones;
-    std::vector<SpringCapsule> springCapsules;
+    std::vector<SpringBoneCollider*> colliders;
 
     Vector3 gravity = { 0.0f, -0.3f, 0.0f };
     float damping = 0.5f;
@@ -93,7 +85,6 @@ private:
     int solverIterations = 4;
 
     bool drawBones = true;
-    bool drawCapsules = true;
     bool initialized = false;
 	bool useUnscaledTime = false;
 

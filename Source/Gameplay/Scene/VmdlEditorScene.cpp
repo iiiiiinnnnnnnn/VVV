@@ -14,6 +14,7 @@
 #include "Animation/HumanoidFootIK.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
+#include "Animation/SpringBoneCollider.h"
 #include "Audio/SoundSystem.h"
 #include "Resource/ResourcePath.h"
 #include "Core/Object/Object.h"
@@ -612,6 +613,7 @@ void VmdlEditorScene::StopUnifiedPreview(bool rewind)
 	radialBlurPreviewDuration = radialBlurPreviewPower = 0.0f;
 	springPreviewOwner.reset();
 	springPreviewComponents.clear();
+	springColliderPreviewComponents.clear();
 	springPreviewSignature.clear();
 	trailPreviewOwner.reset();
 	trailPreviewComponents.clear();
@@ -847,7 +849,8 @@ void VmdlEditorScene::RenderPreview()
 	else
 	{
 		const float follow = std::clamp(Game::Time::unscaledDeltaTime *
-			FreeCameraController::CameraFollowSpeed, 0.0f, 1.0f);
+											FreeCameraController::CameraFollowSpeed,
+			0.0f, 1.0f);
 		previewCameraEye = Vector3::Lerp(previewCameraEye, eye, follow);
 		previewCameraFocus = Vector3::Lerp(previewCameraFocus, focus, follow);
 	}
@@ -856,7 +859,8 @@ void VmdlEditorScene::RenderPreview()
 	{
 		cameraShakePreviewTimer.Update(Game::Time::unscaledDeltaTime);
 		const float fade = cameraShakePreviewDuration > 0.0f
-			? cameraShakePreviewTimer.GetRemaining() / cameraShakePreviewDuration : 0.0f;
+							   ? cameraShakePreviewTimer.GetRemaining() / cameraShakePreviewDuration
+							   : 0.0f;
 		// VMDLプレビューはモデル全体を収めるためゲームカメラより遠くなることがある。
 		// ワールド単位の強度をそのまま使うと画面上でサブピクセルになるので、
 		// 基準距離5mに対する表示距離で補正し、見た目の揺れ幅を維持する。
@@ -865,7 +869,8 @@ void VmdlEditorScene::RenderPreview()
 		const float horizontal = std::sin(elapsed * 71.0f) * cameraShakePreviewIntensity;
 		const float vertical = std::sin(elapsed * 97.0f + 1.3f) * cameraShakePreviewIntensity;
 		const Vector3 offset = (editorCamera->GetRight() * horizontal +
-			editorCamera->GetUp() * vertical) * previewDistanceScale * fade;
+								   editorCamera->GetUp() * vertical) *
+							   previewDistanceScale * fade;
 		editorCamera->SetLookAt(previewCameraEye + offset, previewCameraFocus + offset, Vector3::Up);
 	}
 	SoundSystem::Instance().SetListenerOverride(editorCamera);
@@ -939,8 +944,8 @@ void VmdlEditorScene::RenderPreview()
 			const float elapsed = radialBlurPreviewDuration - radialBlurPreviewTimer.GetRemaining();
 			const float attackDuration = radialBlurPreviewDuration * radialBlurPreviewAttackRate;
 			const float intensity = elapsed < attackDuration
-				? elapsed / std::max(attackDuration, 0.001f)
-				: radialBlurPreviewTimer.GetRemaining() / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
+										? elapsed / std::max(attackDuration, 0.001f)
+										: radialBlurPreviewTimer.GetRemaining() / std::max(radialBlurPreviewDuration - attackDuration, 0.001f);
 			postProcess.AddRuntimeRadialBlur(radialBlurPreviewPower * std::clamp(intensity, 0.0f, 1.0f));
 		}
 		postProcess.RenderFinal(rc, previewPostA->GetSRV(),
@@ -966,7 +971,7 @@ void VmdlEditorScene::RenderPreview()
 			model->ApplyMaterialAnimation(selectedAnimation, animationTime, params);
 			params.unlit = renderSettings.shadingMode == ShadingMode::Unlit;
 			if (renderSettings.shadingMode == ShadingMode::Solid ||
-			renderSettings.shadingMode == ShadingMode::SolidAndWire)
+				renderSettings.shadingMode == ShadingMode::SolidAndWire)
 			{
 				for (const VMDLModel::Material& material : model->GetMaterials())
 				{
@@ -987,11 +992,12 @@ void VmdlEditorScene::RenderPreview()
 		UpdateTrailPreview(rc);
 		UpdateParticlePreview(rc);
 		if (unifiedPreviewActive && showParticle)
+		{
 			EffectManager::Instance().Render(rc);
+		}
 		finishSceneColor();
 		rc.graphics->DepthDisabledState->Bind(dc);
 
-		bool hasShapes = false;
 		if (showDebugOverlays && showBones)
 		{
 			const auto& nodes = model->GetNodes();
@@ -1008,9 +1014,9 @@ void VmdlEditorScene::RenderPreview()
 				const bool primary = selected && selectedNode == nodeIndex;
 				const float width = selected ? baseWidth * (primary ? 1.25f : 1.15f) : baseWidth;
 				const Color color = primary
-					? Color(0.95f, 0.05f, 0.07f, 1.0f)
-					: selected ? Color(0.68f, 0.03f, 0.05f, 0.92f)
-							   : Color(0.42f, 0.45f, 0.50f, 0.58f);
+										? Color(0.95f, 0.05f, 0.07f, 1.0f)
+									: selected ? Color(0.68f, 0.03f, 0.05f, 0.92f)
+											   : Color(0.42f, 0.45f, 0.50f, 0.58f);
 				graphics.GetDebugSolidRenderer()->DrawBone(start, end, width, color);
 			}
 			graphics.GetDebugSolidRenderer()->Render(
@@ -1037,7 +1043,8 @@ void VmdlEditorScene::RenderPreview()
 			const auto& poles = model->GetVmdlIKPoles();
 			const Matrix renderScaleTransform = model->GetRenderScaleTransform();
 			const auto previewFeet = footIkApplied
-				? footIkPreviewOwner->GetComponents<FootIK>() : std::vector<FootIK*>{};
+										 ? footIkPreviewOwner->GetComponents<FootIK>()
+										 : std::vector<FootIK*>{};
 			for (int i = 0; i < Count(ikSettings.legs); ++i)
 			{
 				const auto& leg = ikSettings.legs[i];
@@ -1049,7 +1056,6 @@ void VmdlEditorScene::RenderPreview()
 				{
 					graphics.GetShapeRenderer()->DrawSphere(previewFeet[i]->GetPoleWorldPosition(),
 						0.05f, Color(0.0f, 1.0f, 1.0f, 1.0f));
-					hasShapes = true;
 					continue;
 				}
 
@@ -1086,11 +1092,11 @@ void VmdlEditorScene::RenderPreview()
 
 				graphics.GetShapeRenderer()->DrawSphere(
 					polePosition, 0.05f, Color(0.0f, 1.0f, 1.0f, 1.0f));
-				hasShapes = true;
 			}
 		}
 		if (showDebugOverlays && showCollider)
 		{
+
 			for (int i = 0; i < Count(data.colliders); ++i)
 			{
 				if (i < Count(previewColliderActive) &&
@@ -1118,9 +1124,10 @@ void VmdlEditorScene::RenderPreview()
 					{
 						const auto& mesh = model->GetMeshes()[meshIndex];
 						const Matrix meshNodeTransform = mesh.node
-							? mesh.node->globalTransform : Matrix::Identity;
+															 ? mesh.node->globalTransform
+															 : Matrix::Identity;
 						const Matrix meshWorld = meshNodeTransform *
-							model->GetNodes()[value.nodeIndex].globalTransform.Invert() * transform;
+												 model->GetNodes()[value.nodeIndex].globalTransform.Invert() * transform;
 						Vector3 minimum(FLT_MAX, FLT_MAX, FLT_MAX);
 						Vector3 maximum(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 						for (const auto& vertex : mesh.vertices)
@@ -1146,7 +1153,6 @@ void VmdlEditorScene::RenderPreview()
 					graphics.GetShapeRenderer()->DrawBox(
 						position, rotation.ToEuler(), scaledSize, Color(0.1f, 0.9f, 1.0f, 0.7f));
 				}
-				hasShapes = true;
 			}
 		}
 		// Inspectorで選択している3Dサウンドだけ範囲を表示する。
@@ -1171,7 +1177,6 @@ void VmdlEditorScene::RenderPreview()
 				graphics.GetShapeRenderer()->DrawSphere(position,
 					std::max(0.01f, source.minDistance),
 					Color(0.25f, 0.85f, 1.0f, 0.9f));
-				hasShapes = true;
 			}
 		}
 		if (showDebugOverlays && showPointLight)
@@ -1185,7 +1190,6 @@ void VmdlEditorScene::RenderPreview()
 					light->transform.position, light->GetRange(), color);
 				graphics.GetShapeRenderer()->DrawSphere(
 					light->transform.position, 0.08f, Color(color.x, color.y, color.z, 1.0f));
-				hasShapes = true;
 			}
 		}
 		if (showDebugOverlays && showSoundRange)
@@ -1196,51 +1200,36 @@ void VmdlEditorScene::RenderPreview()
 			{
 				if (value.nodeIndex < 0 || value.nodeIndex >= Count(nodes)) continue;
 				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
-					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
+															value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(1.0f, 0.65f, 0.1f, 0.7f));
-				hasShapes = true;
 			}
 			for (const auto& value : presentation.radialBlurs)
 			{
 				if (value.nodeIndex < 0 || value.nodeIndex >= Count(nodes)) continue;
 				graphics.GetShapeRenderer()->DrawSphere(matrixPosition(model->GetScaledAttachmentTransform(
-					value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
+															value.transform.ToMatrix() * nodes[value.nodeIndex].worldTransform)),
 					value.range, Color(0.7f, 0.25f, 1.0f, 0.7f));
-				hasShapes = true;
 			}
 		}
 		if (showDebugOverlays && showSpringCollider)
 		{
-			for (const auto& value : data.springColliders)
+			for (SpringBoneCollider* collider : springColliderPreviewComponents)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
-					continue;
-				graphics.GetShapeRenderer()->DrawSphere(
-					matrixPosition(value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform),
-					value.radius * std::max({std::abs(value.transform.scale.x),
-						std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)}),
-					Color(1.0f, 0.2f, 0.9f, 0.7f));
-				hasShapes = true;
+				collider->Render(rc);
 			}
 		}
-		if (hasShapes)
-			graphics.GetShapeRenderer()->Render(
-				dc, editorCamera->GetView(), editorCamera->GetProjection());
 		if (showDebugOverlays && showSpring)
 		{
-			for (const auto& value : data.springs)
+			for (SpringBone* value : springPreviewComponents)
 			{
-				if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
-					continue;
-				const Vector3 start =
-					matrixPosition(nodeOffsetTransform(value.nodeIndex, Vector3::Zero));
-				const Vector3 end =
-					matrixPosition(value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform);
-				graphics.GetPrimitiveRenderer()->DrawLine(
-					start, end, Color(0.3f, 1.0f, 0.3f, 1.0f), Color(0.1f, 0.5f, 0.1f, 1.0f));
+				value->Render(rc);
 			}
-			graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
-				editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+			if (!springPreviewComponents.empty())
+			{
+				graphics.GetPrimitiveRenderer()->Render(dc, editorCamera->GetView(),
+					editorCamera->GetProjection(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+				graphics.GetShapeRenderer()->Render(dc, editorCamera->GetView(), editorCamera->GetProjection());
+			}
 		}
 		if (showDebugOverlays && showTrail)
 		{
@@ -1254,11 +1243,13 @@ void VmdlEditorScene::RenderPreview()
 					continue;
 				const Vector3 root = matrixPosition(model->GetScaledAttachmentTransform(
 					Matrix::CreateFromYawPitchRoll(RAD(value.offsetAngle.y), RAD(value.offsetAngle.x),
-						RAD(value.offsetAngle.z)) * Matrix::CreateTranslation(value.rootOffset) *
+						RAD(value.offsetAngle.z)) *
+					Matrix::CreateTranslation(value.rootOffset) *
 					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform));
 				const Vector3 tip = matrixPosition(model->GetScaledAttachmentTransform(
 					Matrix::CreateFromYawPitchRoll(RAD(value.offsetAngle.y), RAD(value.offsetAngle.x),
-						RAD(value.offsetAngle.z)) * Matrix::CreateTranslation(value.tipOffset) *
+						RAD(value.offsetAngle.z)) *
+					Matrix::CreateTranslation(value.tipOffset) *
 					value.transform.ToMatrix() * model->GetNodes()[value.nodeIndex].worldTransform));
 				graphics.GetPrimitiveRenderer()->DrawLine(root, tip, value.color, value.color);
 			}
@@ -1312,9 +1303,13 @@ void VmdlEditorScene::RenderPreview()
 			model->SetNodePoses(animationPose);
 			model->UpdateTransform(Matrix::Identity);
 		}
-	}
-	else finishSceneColor();
 
+		graphics.GetShapeRenderer()->Render(dc, editorCamera->GetView(), editorCamera->GetProjection());
+	}
+	else
+	{
+		finishSceneColor();
+	}
 	RenderOutput::RestoreOutput(dc, previewSceneOutput);
 }
 
@@ -4835,33 +4830,29 @@ void VmdlEditorScene::RebuildSpringPreview()
 {
 	springPreviewOwner.reset();
 	springPreviewComponents.clear();
+	springColliderPreviewComponents.clear();
 	springPreviewAnimation = -1;
 	springPreviewAnimationTime = 0.0f;
 	if (!model) return;
 
 	const auto& data = model->GetVmdlExtensionData();
-	std::vector<SpringBone::SpringCapsule> springColliders;
-	springColliders.reserve(data.springColliders.size());
+	springPreviewOwner = std::make_unique<Object>("VMDL Spring Preview");
 	for (const auto& value : data.springColliders)
 	{
-		SpringBone::SpringCapsule collider;
-		collider.start = value.transform.position;
-		collider.end = value.transform.position;
-		collider.radius = value.radius * std::max({std::abs(value.transform.scale.x),
-			std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)});
-		collider.nodeIndex = value.nodeIndex;
-		springColliders.push_back(collider);
+		auto* collider = springPreviewOwner->AddComponent<SpringBoneCollider>(model.get(), value);
+		collider->SetShowDebug(true);
+		springColliderPreviewComponents.push_back(collider);
 	}
-
-	springPreviewOwner = std::make_unique<Object>("VMDL Spring Preview");
 	for (const auto& value : data.springs)
 	{
 		if (value.nodeIndex < 0 || value.nodeIndex >= Count(model->GetNodes()))
 			continue;
 		SpringBone* spring = springPreviewOwner->AddComponent<SpringBone>(
-			0, model.get(), value.nodeIndex, springColliders, value.stiffness, value.drag);
+			0, model.get(), value.nodeIndex, value.stiffness, value.drag);
+		spring->SetColliders(springColliderPreviewComponents);
 		spring->SetName(value.name);
 		spring->SetUseUnscaledTime(true);
+		spring->SetShowDebug(true);
 		spring->SetMaxAngle(value.maxAngleDegrees);
 		spring->SetAngleLimits(value.minAnglesDegrees, value.maxAnglesDegrees);
 		springPreviewComponents.push_back(spring);
@@ -4872,10 +4863,12 @@ void VmdlEditorScene::RebuildSpringPreview()
 bool VmdlEditorScene::UpdateSpringPreview()
 {
 	PROFILE_FUNCTION();
-	if (!animationPlaying || !model || model->GetVmdlExtensionData().springs.empty())
+	if (!model || (model->GetVmdlExtensionData().springs.empty() &&
+		model->GetVmdlExtensionData().springColliders.empty()))
 	{
 		springPreviewOwner.reset();
 		springPreviewComponents.clear();
+		springColliderPreviewComponents.clear();
 		springPreviewSignature.clear();
 		return false;
 	}
@@ -4899,12 +4892,21 @@ bool VmdlEditorScene::UpdateSpringPreview()
 			value.transform.position.x, value.transform.position.y, value.transform.position.z,
 			value.transform.scale.x, value.transform.scale.y, value.transform.scale.z, value.radius);
 	}
-	if (signature != springPreviewSignature)
+	if (!springPreviewOwner || signature != springPreviewSignature)
 	{
 		springPreviewSignature = std::move(signature);
 		RebuildSpringPreview();
 	}
 	if (!springPreviewOwner || springPreviewComponents.empty()) return false;
+
+	// 停止中も描画用の実体を残し、現在のポーズへ追従させる
+	if (!animationPlaying)
+	{
+		for (SpringBone* spring : springPreviewComponents) spring->Reset();
+		springPreviewAnimation = selectedAnimation;
+		springPreviewAnimationTime = animationTime;
+		return false;
+	}
 
 	const float timeDelta = animationTime - springPreviewAnimationTime;
 	const float expectedAdvance =
@@ -6142,6 +6144,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 	footIkPreviewSignature.clear();
 	springPreviewOwner.reset();
 	springPreviewComponents.clear();
+	springColliderPreviewComponents.clear();
 	springPreviewSignature.clear();
 	trailPreviewOwner.reset();
 	trailPreviewComponents.clear();
@@ -6542,6 +6545,7 @@ void VmdlEditorScene::LoadModel(
 	footIkPreviewSignature.clear();
 	springPreviewOwner.reset();
 	springPreviewComponents.clear();
+	springColliderPreviewComponents.clear();
 	springPreviewSignature.clear();
 	trailPreviewOwner.reset();
 	trailPreviewComponents.clear();

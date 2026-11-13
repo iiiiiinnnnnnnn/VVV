@@ -23,6 +23,8 @@ class DepthTarget;
 class TrailRenderComponent;
 class VMDLParticleEmitterComponent;
 class SpringBone;
+class SpringBoneCollider;
+class SpringBoneCollider;
 class MeshCache;
 
 class VmdlEditorScene : public EditorScene
@@ -323,6 +325,8 @@ class VmdlEditorScene : public EditorScene
 	// Springプレビュー
 	std::unique_ptr<Object> springPreviewOwner;
 	std::vector<SpringBone*> springPreviewComponents;
+	std::vector<SpringBoneCollider*> springColliderPreviewComponents;
+	std::vector<SpringBoneCollider*> springPreviewColliders;
 	std::string springPreviewSignature;
 	int springPreviewAnimation = -1;
 	float springPreviewAnimationTime = 0.0f;

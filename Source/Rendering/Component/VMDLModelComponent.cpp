@@ -7,6 +7,7 @@
 #include "Animation/Animator.h"
 #include "Animation/MultiLegFootIK.h"
 #include "Animation/SpringBone.h"
+#include "Animation/SpringBoneCollider.h"
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
@@ -92,23 +93,16 @@ void VMDLModelComponent::BuildAttachments()
 		attachmentColliders[colliderIndex] = collider;
 	}
 
-	std::vector<SpringBone::SpringCapsule> springColliders;
+	std::vector<SpringBoneCollider*> springColliders;
 	for (const auto& value : data.springColliders)
-	{
-		SpringBone::SpringCapsule collider;
-		collider.start = value.transform.position;
-		collider.end = value.transform.position;
-		collider.radius = value.radius * std::max({std::abs(value.transform.scale.x),
-			std::abs(value.transform.scale.y), std::abs(value.transform.scale.z)});
-		collider.nodeIndex = value.nodeIndex;
-		springColliders.push_back(collider);
-	}
+		springColliders.push_back(owner->AddComponent<SpringBoneCollider>(model.get(), value));
 	for (const auto& value : data.springs)
 	{
 		if (value.nodeIndex < 0 || value.nodeIndex >= static_cast<int>(model->GetNodes().size()))
 			continue;
 		auto* spring = owner->AddComponent<SpringBone>(attachmentLayerId, model.get(),
-			value.nodeIndex, springColliders, value.stiffness, value.drag);
+			value.nodeIndex, value.stiffness, value.drag);
+		spring->SetColliders(springColliders);
 		spring->SetName(value.name);
 		spring->SetMaxAngle(value.maxAngleDegrees);
 		spring->SetAngleLimits(value.minAnglesDegrees, value.maxAnglesDegrees);
