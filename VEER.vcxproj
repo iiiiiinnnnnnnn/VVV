@@ -27,9 +27,6 @@
     <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlCameraShakeEditor.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlComponents\VmdlRadialBlurEditor.cpp" />
     <ClInclude Include="Source\Gameplay\Scene\VmdlComponents\VmdlComponentEditor.h" />
-    <ResourceCompile Include="EmbeddedResources.rc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ResourceCompile>
     <ClInclude Include="Source\Gameplay\Actor\CrystalPart.h" />
     <ClInclude Include="Source\Gameplay\Actor\RigidRock.h" />
     <ClInclude Include="Source\Gameplay\Player\DummyPlayer.h" />
@@ -910,6 +907,7 @@
     <ClInclude Include="Source\Gameplay\Camera\CameraMoveSpeedOverlay.h" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="Embedded\EmbeddedResources.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Foundation\Logger.h" />
