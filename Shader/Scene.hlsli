@@ -1,4 +1,5 @@
-// Scene.hlsli
+#ifndef __SCENE_HLSLI__
+#define __SCENE_HLSLI__
 
 struct CbDirectionalLight
 {
@@ -64,12 +65,28 @@ struct CbLightData
     int directionalLightCount;
 };
 
+struct CbTimeData
+{
+    float time; // 起動してからの経過時間
+    float scale; // 時間のスケール
+    float deltaTime; // 前フレームからの経過時間
+    float unscaledDeltaTime; // 時間スケールの影響を受けない経過時間
+};
+
+struct CbFogData
+{
+    float4 distanceFogColor;
+    float4 distanceFogParams;
+};
+
 cbuffer CbScene : register(b7)
 {
     row_major float4x4 viewProjection;
     float3 viewPosition;
     float previewShadingMode;
     CbLightData lightData;
-    float4 distanceFogColor;
-    float4 distanceFogParams;
+    CbFogData cbFogData;
+    CbTimeData timeData;
 };
+
+#endif

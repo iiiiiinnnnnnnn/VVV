@@ -244,6 +244,9 @@
     <ClInclude Include="Source\Gameplay\Scene\TimeScaleController.h">
       <Filter>Gameplay\Scene\Control</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Shader\FunkyShader.h">
+      <Filter>Rendering\Shader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -1201,6 +1204,9 @@
     <FxCompile Include="Shader\GeometryParticlePS.hlsl">
       <Filter>Shaders\Particle</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\FunkyPS.hlsl">
+      <Filter>Shaders\3D</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\UI\BossBarWidget.cpp">
@@ -1283,6 +1289,9 @@
     </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\TimeScaleController.cpp">
       <Filter>Gameplay\Scene\Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Shader\FunkyShader.cpp">
+      <Filter>Rendering\Shader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

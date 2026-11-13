@@ -46,6 +46,7 @@
     <ClCompile Include="Source\Gameplay\AI\LuaManager.cpp" />
     <ClInclude Include="Source\Gameplay\AI\LuaScript.h" />
     <ClInclude Include="Source\Gameplay\Player\PlayerInput.h" />
+    <ClInclude Include="Source\Rendering\Shader\FunkyShader.h" />
     <ClInclude Include="Source\Resource\EmbeddedResources.h" />
     <ClCompile Include="Source\Gameplay\AI\LuaScript.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -54,6 +55,7 @@
       <ProgramDataBaseFileName>$(IntDir)%(Filename).compiler.pdb</ProgramDataBaseFileName>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
+    <ClCompile Include="Source\Rendering\Shader\FunkyShader.cpp" />
     <ClCompile Include="Source\Resource\CacheBuilder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
     </ClCompile>
@@ -405,6 +407,11 @@
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <ClInclude Include="Shader\DepthOfField.hlsli" />
+    <FxCompile Include="Shader\FunkyPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Development|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shader\UnderwaterPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>

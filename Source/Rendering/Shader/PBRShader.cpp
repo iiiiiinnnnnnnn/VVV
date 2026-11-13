@@ -13,9 +13,6 @@ PBRShader::PBRShader(ID3D11Device* device)
 
 	// ピクセルシェーダー
 	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRPS.cso").c_str());
-	unlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnlitPS.cso").c_str());
-	justDodgeUnlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/JustDodgeUnlit.cso").c_str());
-	justDodgeFadeConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(Vector4));
 
 	// 現在フラットシェーディングだけです。
 	geometryShader = std::make_unique<Gpu::GeometryShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRGS.cso").c_str());
@@ -32,11 +29,10 @@ void PBRShader::Begin(const RenderContext& rc, DrawPass pass)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
 
-	drawPass = pass;
 	const bool transparent = pass == DrawPass::Transparent;
 	(transparent ? *rc.graphics->TransparentBlendState : *rc.graphics->OpaqueBlendState).Bind(dc);
 	(transparent ? *rc.graphics->DepthReadState : *rc.graphics->DepthWriteState).Bind(dc);
-	(rc.renderSettings.shadingMode == ShadingMode::Wire ? *rc.graphics->WireframeRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
+	rc.graphics->SolidRasterizerState->Bind(dc);
 
 	// s0: IBL、s1: シャドウ、s2: マテリアルテクスチャ
 	Gpu::SamplerState::BindPS(dc, 0, {
@@ -63,47 +59,13 @@ void PBRShader::Begin(const RenderContext& rc, DrawPass pass)
 void PBRShader::Update(
 	const RenderContext& rc,
 	const VMDLModel::Mesh& mesh,
-	const PBRRenderParams* params)
+	const PBRRenderParams* params,
+	const PBRMaterialParams* materialParams)
 {
 	ID3D11DeviceContext* dc = rc.deviceContext;
-	const bool unlit = (params && params->unlit) || rc.renderSettings.shadingMode == ShadingMode::Unlit ||
-		rc.renderSettings.shadingMode == ShadingMode::Wire;
-	const Gpu::PixelShader& selectedShader = params && params->justDodgeUnlit
-		? *justDodgeUnlitPixelShader : unlit ? *unlitPixelShader : *pixelShader;
-	selectedShader.Bind(dc);
-	if (params && params->justDodgeUnlit)
-	{
-		justDodgeFadeConstantBuffer->Update(dc, &params->justDodgeFade);
-		justDodgeFadeConstantBuffer->BindPS(dc, 3);
-	}
-	const PBRMaterialParams* materialParams = nullptr;
-	if (params)
-	{
-		const auto it = params->materials.find(mesh.material->name);
-		if (it != params->materials.end()) materialParams = &it->second;
-	}
-	PBRMaterialParams previewMaterial;
-	if (rc.renderSettings.shadingMode != ShadingMode::Shading)
-	{
-		if (materialParams) previewMaterial = *materialParams;
-		previewMaterial.transmission = 0.0f;
-		if (rc.renderSettings.shadingMode == ShadingMode::Solid ||
-			rc.renderSettings.shadingMode == ShadingMode::SolidAndWire)
-		{
-			if (!previewMaterial.baseColor) previewMaterial.baseColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
-			previewMaterial.useBaseColorTexture = false;
-		}
-		if (rc.renderSettings.shadingMode == ShadingMode::Wire)
-		{
-			previewMaterial.baseColor = Color(0.08f, 0.08f, 0.08f, 1.0f);
-			previewMaterial.useBaseColorTexture = false;
-		}
-		materialParams = &previewMaterial;
-	}
-	float transmission = std::clamp(materialParams && materialParams->transmission
+	pixelShader->Bind(dc);
+	const float transmission = std::clamp(materialParams && materialParams->transmission
 		? *materialParams->transmission : mesh.material->transmission, 0.0f, 1.0f);
-	if (drawPass == DrawPass::Transparent && rc.renderSettings.shadingMode != ShadingMode::Wire)
-		(transmission > 0.0f ? *rc.graphics->BackCullRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
 
 	// シャドウCB更新
 	{
@@ -234,7 +196,6 @@ void PBRShader::Update(
 	const bool useGeometryShader = isFlatShading || transmission > 0.0f;
 
 	// CBセット
-
 	Gpu::ConstantBuffer::BindPS(dc, 0, {shadowMapConstantBuffer.get(), materialConstantBuffer.get()});
 	Gpu::ConstantBuffer::BindVS(dc, 0, {shadowMapConstantBuffer.get(), materialConstantBuffer.get()});
 	if (useGeometryShader) geometryShader->Bind(dc);
@@ -286,7 +247,7 @@ void PBRShader::End(const RenderContext& rc)
 
 	// 次の描画に向けて、深度書き込みと通常のカリングへ戻す。
 	rc.graphics->DepthWriteState->Bind(dc);
-	(rc.renderSettings.shadingMode == ShadingMode::Wire ? *rc.graphics->WireframeRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
+	rc.graphics->SolidRasterizerState->Bind(dc);
 }
 
 bool PBRShader::DrawGUI(VMDLModel::Material& material)

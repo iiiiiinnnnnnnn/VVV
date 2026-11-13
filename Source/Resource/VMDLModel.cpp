@@ -1324,6 +1324,8 @@ bool VMDLModel::RestoreExternalMeshes(
 		Material restoredMaterial = cache.materials[restored.materialIndex];
 		const Material& currentMaterial = materials[targetMaterialIndex];
 		restoredMaterial.shaderId = currentMaterial.shaderId;
+		restoredMaterial.funkyLineWidth = currentMaterial.funkyLineWidth;
+		restoredMaterial.funkySpeed = currentMaterial.funkySpeed;
 		restoredMaterial.transmission = currentMaterial.transmission;
 		restoredMaterial.indexOfRefraction = currentMaterial.indexOfRefraction;
 		restoredMaterial.refractionDistance = currentMaterial.refractionDistance;
@@ -1391,6 +1393,8 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		Material& target = materials.emplace_back();
 		target.name = source.name;
 		target.shaderId = source.shaderId;
+		target.funkyLineWidth = source.funkyLineWidth;
+		target.funkySpeed = source.funkySpeed;
 		target.baseColor = source.baseColor;
 		target.emissiveColor = source.emissiveColor;
 		target.metalness = source.metalness;
@@ -2497,6 +2501,8 @@ std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() co
 			material.isFlatShading});
 		auto& value = result.back();
 		value.shaderId = material.shaderId;
+		value.funkyLineWidth = material.funkyLineWidth;
+		value.funkySpeed = material.funkySpeed;
 		value.metalnessTextureFileName = material.metalnessTextureFileName;
 		value.roughnessTextureFileName = material.roughnessTextureFileName;
 		value.metalnessTextureDDS = material.metalnessTextureDDS;
@@ -2523,6 +2529,8 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 		if (found == lookup.end()) continue;
 		const VmdlMaterialData& value = *found->second;
 		material.shaderId = value.shaderId;
+		material.funkyLineWidth = value.funkyLineWidth;
+		material.funkySpeed = value.funkySpeed;
 		material.baseColor = value.baseColor;
 		material.emissiveColor = value.emissiveColor;
 		material.metalness = value.metalness;

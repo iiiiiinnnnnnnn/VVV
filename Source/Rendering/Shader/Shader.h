@@ -38,12 +38,14 @@ class SpriteShader : public Shader
 {
 public:
 	virtual void Begin(const RenderContext& rc) = 0;
-	virtual void Update(
-		const RenderContext& rc,
-		ID3D11ShaderResourceView* srv,
-		Vector2 textureSize,
-		const Color& color,
-		const SpriteRenderParams* params) = 0;
+  virtual void Update(
+	  const RenderContext& rc,
+	  ID3D11ShaderResourceView* srv,
+	  Vector2 textureSize,
+	  const Color& color,
+	  const SpriteRenderParams* params)
+  {
+  }
 	static const D3D11_INPUT_ELEMENT_DESC InputLayout[3];
 };
 
@@ -56,6 +58,47 @@ public:
 	virtual void Update(
 		const RenderContext& rc,
 		const VMDLModel::Mesh& mesh,
-		const PBRRenderParams* params) = 0;
+		const PBRRenderParams* params,
+		const PBRMaterialParams* materialParams)
+	{
+	}
 	static const D3D11_INPUT_ELEMENT_DESC InputLayout[6];
+
+protected:
+	// b1
+	struct CbMaterial
+	{
+		Color	baseColor;
+		Color	emissiveColor;
+		Color	emissionColor;
+		Color	fresnelColor;
+
+		float	metalness;
+		float	roughness;
+		float	occlusion;
+		float	occlusionStrength;
+
+		float	shadowStrength;
+		float	fresnelPower;
+		float	fresnelStrength;
+		int		useMetalnessTexture;
+
+		int		useRoughnessTexture;
+		int		useOcclusionTexture;
+		int 	useEmissiveTexture;
+		int		isFlatShading;
+
+		int		useBaseColorTexture;
+		float	dissolveAmount;
+		float	materialDummy[2];
+
+		float	transmission;
+		float	indexOfRefraction;
+		float	refractionDistance;
+		float	transmissionDummy;
+
+		Vector3 vivraDir;
+		float	vivraPower;
+	};
+
 };

@@ -8,6 +8,8 @@
 #include "Resource/MeshCache.h"
 #include "Rendering/Renderer/ModelRenderer.h"
 #include "Rendering/Shader/PBRShader.h"
+#include "Rendering/Shader/FunkyShader.h"
+#include "Resource/ResourceManager.h"
 
 // コンストラクタ
 ModelRenderer::ModelRenderer(ID3D11Device* device)
@@ -18,8 +20,15 @@ ModelRenderer::ModelRenderer(ID3D11Device* device)
 	// スケルトン用定数バッファ
 	skeletonConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkeleton));
 
-	auto shader = std::make_unique<PBRShader>(device);
-	shaders[static_cast<int>(shader->GetId())] = std::move(shader);
+	unlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/UnlitPS.cso").c_str());
+	justDodgeUnlitPixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/JustDodgeUnlit.cso").c_str());
+	justDodgeFadeConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(Vector4));
+
+	auto pbr = std::make_unique<PBRShader>(device);
+	shaders[static_cast<int>(pbr->GetId())] = std::move(pbr);
+
+	auto funky = std::make_unique<FunkyShader>(device);
+	shaders[static_cast<int>(funky->GetId())] = std::move(funky);
 }
 
 ModelShader* ModelRenderer::GetShader(ModelShaderId id) const
@@ -81,12 +90,16 @@ void ModelRenderer::Render(const RenderContext& rc)
 		cbScene.viewProjection = V * P;
 		cbScene.viewPosition = rc.camera->GetEye();
 		cbScene.lightData = rc.lightManager->ConvertToCb();
-		cbScene.distanceFogColor = rc.renderSettings.distanceFogColor;
-		cbScene.distanceFogParams = {
+		cbScene.fogData.distanceFogColor = rc.renderSettings.distanceFogColor;
+		cbScene.fogData.distanceFogParams = {
 			rc.renderSettings.distanceFogStart,
 			rc.renderSettings.distanceFogEnd,
 			rc.renderSettings.distanceFogStrength,
 			rc.renderSettings.distanceFogEnabled ? 1.0f : 0.0f};
+		cbScene.timeData.time = Game::Time::time;
+		cbScene.timeData.scale = Game::Time::scale;
+		cbScene.timeData.deltaTime = Game::Time::deltaTime;
+		cbScene.timeData.unscaledDeltaTime = Game::Time::unscaledDeltaTime;
 		sceneConstantBuffer->Update(dc, &cbScene);
 	}
 
@@ -97,7 +110,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 
 	// メッシュ描画関数
 	auto drawMesh = [&](const VMDLModel::Mesh& mesh, const Matrix& renderScaleTransform,
-		ModelShader* shader, const PBRRenderParams* params)
+		ModelShader* shader, const PBRRenderParams* params, DrawPass pass)
 	{
 		// 頂点バッファ設定
 		UINT stride = sizeof(VMDLModel::Vertex);
@@ -123,21 +136,62 @@ void ModelRenderer::Render(const RenderContext& rc)
 		}
 		skeletonConstantBuffer->Update(dc, &cbSkeleton);
 
-		// 更新
-		shader->Update(rc, mesh, params);
+		const auto drawMode = [&](ShadingMode mode) {
+			const PBRMaterialParams* materialParams = nullptr;
+			if (params)
+			{
+				const auto it = params->materials.find(mesh.material->name);
+				if (it != params->materials.end()) materialParams = &it->second;
+			}
 
-		// 描画
-		mesh.indexBuffer->Draw(dc, mesh.indexCount);
+			// 表示モード用の上書きはこのメッシュだけに適用する
+			PBRMaterialParams previewMaterial;
+			if (mode != ShadingMode::Shading)
+			{
+				if (materialParams) previewMaterial = *materialParams;
+				previewMaterial.transmission = 0.0f;
+				if (mode == ShadingMode::Solid || mode == ShadingMode::SolidAndWire)
+				{
+					if (!previewMaterial.baseColor) previewMaterial.baseColor = Color(0.72f, 0.72f, 0.75f, 1.0f);
+					previewMaterial.useBaseColorTexture = false;
+				}
+				else if (mode == ShadingMode::Wire)
+				{
+					previewMaterial.baseColor = Color(0.08f, 0.08f, 0.08f, 1.0f);
+					previewMaterial.useBaseColorTexture = false;
+				}
+				materialParams = &previewMaterial;
+			}
+			shader->Update(rc, mesh, params, materialParams);
+
+			if (params && params->justDodgeUnlit)
+			{
+				justDodgeUnlitPixelShader->Bind(dc);
+				justDodgeFadeConstantBuffer->Update(dc, &params->justDodgeFade);
+				justDodgeFadeConstantBuffer->BindPS(dc, 3);
+			}
+			else if ((params && params->unlit) || mode == ShadingMode::Unlit || mode == ShadingMode::Wire)
+				unlitPixelShader->Bind(dc);
+
+			if (mode == ShadingMode::Wire)
+				rc.graphics->WireframeRasterizerState->Bind(dc);
+			else
+			{
+				const float transmission = materialParams && materialParams->transmission
+					? *materialParams->transmission : mesh.material->transmission;
+				(pass == DrawPass::Transparent && transmission > 0.0f
+					? *rc.graphics->BackCullRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
+			}
+			mesh.indexBuffer->Draw(dc, mesh.indexCount);
+		};
+
+		drawMode(rc.renderSettings.shadingMode);
 		if (rc.renderSettings.shadingMode == ShadingMode::SolidAndWire)
 		{
 			const auto previousDepth = Gpu::DepthStencilState::Capture(dc);
 			const auto previousRasterizer = Gpu::RasterizerState::Capture(dc);
-			RenderContext wireContext = rc;
-			wireContext.renderSettings.shadingMode = ShadingMode::Wire;
-			shader->Update(wireContext, mesh, params);
 			rc.graphics->DepthReadState->Bind(dc);
-			rc.graphics->WireframeRasterizerState->Bind(dc);
-			mesh.indexBuffer->Draw(dc, mesh.indexCount);
+			drawMode(ShadingMode::Wire);
 			Gpu::DepthStencilState::Restore(dc, previousDepth);
 			Gpu::RasterizerState::Restore(dc, previousRasterizer.Get());
 		}
@@ -200,7 +254,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 			}
 
 			// 描画
-			drawMesh(mesh, renderScaleTransform, shader, drawInfo.params);
+			drawMesh(mesh, renderScaleTransform, shader, drawInfo.params, DrawPass::Opaque);
 		}
 
 		if (currentShader) currentShader->End(rc);
@@ -269,7 +323,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 			*transparencyDrawInfo.mesh,
 			transparencyDrawInfo.renderScaleTransform,
 			shader,
-			transparencyDrawInfo.params);
+			transparencyDrawInfo.params,
+			DrawPass::Transparent);
 
 		shader->End(rc);
 	}

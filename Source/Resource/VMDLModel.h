@@ -637,6 +637,8 @@ class VMDLModel
 	{
 		std::string name;
 		ModelShaderId shaderId = ModelShaderId::PBR;
+		float funkyLineWidth = 4.0f;
+		float funkySpeed = 30.0f;
 		std::string baseTextureFileName;
 		std::string normalTextureFileName;
 		std::string emissiveTextureFileName;
@@ -734,6 +736,8 @@ class VMDLModel
 		std::vector<uint8_t> metalnessTextureDDS;
 		std::vector<uint8_t> roughnessTextureDDS;
 		ModelShaderId shaderId = ModelShaderId::PBR;
+		float funkyLineWidth = 4.0f;
+		float funkySpeed = 30.0f;
 	};
 
 	struct VmdlMaterialKeyframe

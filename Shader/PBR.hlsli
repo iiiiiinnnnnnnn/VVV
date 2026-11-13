@@ -81,15 +81,15 @@ void ApplyDissolve(float2 uv)
 float DistanceFogFactor(float3 worldPosition)
 {
     float distanceFromCamera = distance(viewPosition, worldPosition);
-    float fogEnd = max(distanceFogParams.y, distanceFogParams.x + 0.001f);
-    float fog = smoothstep(distanceFogParams.x, fogEnd, distanceFromCamera);
-    float enabled = step(0.5f, distanceFogParams.w);
-    return fog * fog * saturate(distanceFogParams.z) * enabled;
+    float fogEnd = max(cbFogData.distanceFogParams.y, cbFogData.distanceFogParams.x + 0.001f);
+    float fog = smoothstep(cbFogData.distanceFogParams.x, fogEnd, distanceFromCamera);
+    float enabled = step(0.5f, cbFogData.distanceFogParams.w);
+    return fog * fog * saturate(cbFogData.distanceFogParams.z) * enabled;
 }
 
 float3 DistanceFogColor()
 {
-    return distanceFogColor.rgb;
+    return cbFogData.distanceFogColor.rgb;
 }
 
 float3 ApplyDistanceFog(float3 color, float3 worldPosition)

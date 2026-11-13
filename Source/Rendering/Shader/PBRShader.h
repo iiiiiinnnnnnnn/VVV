@@ -21,12 +21,11 @@ public:
 	void Update(
 		const RenderContext& rc,
 		const VMDLModel::Mesh& mesh,
-		const PBRRenderParams* params) override;
+		const PBRRenderParams* params,
+		const PBRMaterialParams* materialParams) override;
 	void End(const RenderContext& rc) override;
 
 private:
-	DrawPass drawPass = DrawPass::Opaque;
-
 	// b0
 	struct CbShadowMap
 	{
@@ -42,45 +41,7 @@ private:
 	};
 	std::unique_ptr<Gpu::ConstantBuffer> shadowMapConstantBuffer;
 
-	// b1
-	struct CbMaterial
-	{
-		Color	baseColor;
-		Color	emissiveColor;
-		Color	emissionColor;
-		Color	fresnelColor;
-
-		float	metalness;
-		float	roughness;
-		float	occlusion;
-		float	occlusionStrength;
-
-		float	shadowStrength;
-		float	fresnelPower;
-		float	fresnelStrength;
-		int		useMetalnessTexture;
-
-		int		useRoughnessTexture;
-		int		useOcclusionTexture;
-		int 	useEmissiveTexture;
-		int		isFlatShading;
-
-		int		useBaseColorTexture;
-		float	dissolveAmount;
-		float	materialDummy[2];
-
-		float	transmission;
-		float	indexOfRefraction;
-		float	refractionDistance;
-		float	transmissionDummy;
-
-		Vector3 vivraDir;
-		float	vivraPower;
-	};
 	std::unique_ptr<Gpu::ConstantBuffer> materialConstantBuffer;
 
 	std::unique_ptr<Gpu::GeometryShader> geometryShader;
-	std::unique_ptr<Gpu::PixelShader> unlitPixelShader;
-	std::unique_ptr<Gpu::PixelShader> justDodgeUnlitPixelShader;
-	std::unique_ptr<Gpu::ConstantBuffer> justDodgeFadeConstantBuffer;
 };

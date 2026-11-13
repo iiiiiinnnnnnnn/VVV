@@ -384,7 +384,7 @@ imgui.ini
 /Tools/Effekseer
 /VstgEditorSettings.ini
 /Editor.ini
-/7Zipper.bat
+*.bat
 /*.xlsx
 *.pptx
 *.lnk

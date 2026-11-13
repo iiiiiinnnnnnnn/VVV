@@ -40,6 +40,19 @@ public:
 	void Render(const RenderContext& rc);
 
 private:
+	struct CbFogData
+	{
+		Color distanceFogColor;
+		Vector4 distanceFogParams;
+	};
+
+	struct CbTimeData
+	{
+		float time;				 // 起動してからの経過時間
+		float scale;			 // 時間のスケール
+		float deltaTime;		 // 前フレームからの経過時間
+		float unscaledDeltaTime; // 時間スケールの影響を受けない経過時間
+	};
 	
 	struct CbScene
 	{
@@ -47,8 +60,8 @@ private:
 		Vector3		viewPosition;
 		float DUMMY;
 		CbLightData lightData;
-		Color distanceFogColor;
-		Vector4 distanceFogParams;
+		CbFogData fogData;
+		CbTimeData timeData;
 	};
 
 	struct CbSkeleton
@@ -78,6 +91,9 @@ private:
 	std::vector<DrawInfo>					drawInfos;
 	std::vector<TransparencyDrawInfo>		transparencyDrawInfos;
 
+	std::unique_ptr<Gpu::PixelShader> unlitPixelShader;
+	std::unique_ptr<Gpu::PixelShader> justDodgeUnlitPixelShader;
+	std::unique_ptr<Gpu::ConstantBuffer> justDodgeFadeConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> sceneConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> skeletonConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> transmissionBackground;

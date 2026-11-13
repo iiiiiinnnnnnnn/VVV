@@ -30,6 +30,8 @@ void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
 		if (found == sourceMaterials.end()) continue;
 
 		target.shaderId = found->shaderId;
+		target.funkyLineWidth = found->funkyLineWidth;
+		target.funkySpeed = found->funkySpeed;
 		target.baseColor = found->baseColor;
 		target.emissiveColor = found->emissiveColor;
 		target.metalness = found->metalness;
