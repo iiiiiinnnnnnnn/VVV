@@ -853,6 +853,8 @@ void Scene::DrawGUI(RenderContext& rc)
 						if (ImGui::Checkbox("##Active", &active)) object.SetActive(active);
 						ImGui::TableSetColumnIndex(1);
 						const char* name = object.GetName().empty() ? "(Unnamed)" : object.GetName().c_str();
+						// Checkboxの行ベースライン分を戻し、Selectableの中央揃えと二重に加算しない
+						ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().FramePadding.y);
 						ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, {0.0f, 0.5f});
 						const bool clicked = ImGui::Selectable(name, selected, 0, {0, ImGui::GetFrameHeight()});
 						ImGui::PopStyleVar();

@@ -116,6 +116,7 @@ public:
 	void DrawEditor();
 	void ApplyPostEffects(Game::PostProcess& postProcess) const;
 	bool IsEditing() const { return editing; }
+	const std::string& GetLastError() const { return lastError; }
 
 private:
 	struct ActorState
@@ -219,5 +220,6 @@ private:
 	int selectedKey = -1;
 	int qteResult = 0;
 	QteResult pendingQteResult = QteResult::None;
+	std::string lastError;
 	std::filesystem::path documentPath;
 };

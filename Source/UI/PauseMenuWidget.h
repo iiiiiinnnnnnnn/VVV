@@ -2,13 +2,13 @@
 
 #include "Application/Time/Timer.h"
 #include "UI/WidgetGroup.h"
+#include "UI/SpriteWidget.h"
 
 #include <functional>
 #include <memory>
 #include <vector>
 
-class LabelButton;
-class SpriteWidget;
+class MenuButtonWidget;
 
 class PauseMenuWidget : public WidgetGroup
 {
@@ -39,7 +39,8 @@ private:
 	PauseChangedCallback pauseChanged;
 	ReturnToTitleCallback returnToTitle;
 	std::shared_ptr<SpriteWidget> dimmer;
-	std::vector<std::shared_ptr<LabelButton>> mainButtons;
+	std::vector<std::shared_ptr<MenuButtonWidget>> mainButtons;
+	std::shared_ptr<MenuButtonWidget> backButton;
 	float transition = 0.0f;
 	Game::Timer inputDelay{0.0f};
 	bool paused = false;

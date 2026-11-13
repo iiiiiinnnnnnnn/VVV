@@ -1082,7 +1082,13 @@ namespace Game
 		json settings = inputSettings;
 		const json schema = PostProcess{}.CaptureMovieSettings();
 
-		// DoF 追加前のムービーだけを補完する。他の必須項目の欠落や未知の項目は従来どおり拒否する
+		// 廃止したカラーグラデーションの設定は、旧ムービーから読み込む際に除外する
+		if (settings.is_object())
+			for (const char* name : {"enableColorGradient", "colorGradientStrength",
+				"colorGradientShadows", "colorGradientMidtones", "colorGradientHighlights"})
+				settings.erase(name);
+
+		// DoF追加前のムービーは不足する設定だけを補完する
 		if (settings.is_object())
 			for (const char* name : {"enableDepthOfField", "dofFocusDistance", "dofFocusRange",
 				"dofBlurRadius", "dofNearStrength", "dofFarStrength"})

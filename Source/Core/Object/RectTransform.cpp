@@ -30,10 +30,9 @@ RectTransform RectTransform::FromSize(float size)
 }
 Matrix RectTransform::GetMatrix() const
 {
-	const Vector2 halfSize = size * 0.5f;
-	const Vector2 center = position - size * anchor + halfSize;
-	return Matrix::CreateTranslation(-halfSize.x, -halfSize.y, 0.0f)
+	// アンカーを原点へ移してから拡縮・回転し、指定位置へ配置する
+	return Matrix::CreateTranslation(-size.x * anchor.x, -size.y * anchor.y, 0.0f)
 		* Matrix::CreateScale(scale.x, scale.y, 1.0f)
 		* Matrix::CreateRotationZ(DirectX::XMConvertToRadians(angle))
-		* Matrix::CreateTranslation(center.x, center.y, 0.0f);
+		* Matrix::CreateTranslation(position.x, position.y, 0.0f);
 }

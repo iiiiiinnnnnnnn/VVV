@@ -51,4 +51,6 @@ private:
 	MenuPage menuPage = MenuPage::Main;
 	bool loadRequested = false;
 	bool exitRequested = false;
+
+	float waitTimer = 0.0f;
 };

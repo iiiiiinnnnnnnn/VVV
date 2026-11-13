@@ -73,6 +73,8 @@ class Player : public Entity
 	void SetSpawnTransform(const Transform& spawnTransform);
 	void FinishMovie();
 
+	Vector3 GetHPGaugePosition() const;
+
   private:
 	static constexpr float SkillContinueStart = 0.235f;
 	static constexpr float SkillContinueEnd = 0.345f;
@@ -180,4 +182,6 @@ class Player : public Entity
 
 	// サウンド
 	VMDLModel::VmdlSoundSource* footSound = nullptr;
+
+	int hpGaugeNodeIndex = -1;
 };

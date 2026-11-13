@@ -14,6 +14,7 @@ class PauseMenuWidget;
 class MovieCameraController;
 class Aracore;
 class CmdActionWidget;
+class CharacterController;
 
 class TestPlayScene : public Scene
 {
@@ -22,7 +23,10 @@ public:
 
 	~TestPlayScene() override;
 
+	void OnInit() override;
+	void OnUninit() override;
 	void OnUpdate() override;
+	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
 	MouseCursorMode GetMouseCursorMode() const override;
 	bool UsesGameDebugGUI() const override;
@@ -30,10 +34,6 @@ public:
 	void OnDrawOverlayGUI() override;
 	void ConfigurePostProcess(Game::PostProcess& value) override;
 	bool ShouldApplyGameplayPostEffects() const override;
-
-protected:
-	void OnInit() override;
-	void OnUninit() override;
 
 private:
 	void OnMovieQteResult(bool success);
@@ -55,6 +55,7 @@ private:
 	ThirdPersonCameraController* thirdPersonCamera = nullptr;
 	PauseMenuWidget* pauseMenu = nullptr;
 	MovieCameraController* movieCamera = nullptr;
+	CharacterController*  playerCC= nullptr;
 	bool moviePreviewTransition = false;
 	Aracore* movieBoss = nullptr;
 

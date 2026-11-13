@@ -32,6 +32,10 @@ void Widget::DrawGUI()
 		if (changed) autoLayout = false;
 		ImGuiToolKit::TextDisabled(u8"手動で変更すると自動配置がオフになります");
 	}
+	if (ImGuiToolKit::CollapsingHeader(u8"描画設定", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGuiToolKit::Checkbox(u8"ポストプロセスの影響を受ける", &affectedByPostProcess);
+	}
 	if (ImGuiToolKit::CollapsingHeader(u8"ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
 	DrawComponentInspector();
 	ImGui::PopID();

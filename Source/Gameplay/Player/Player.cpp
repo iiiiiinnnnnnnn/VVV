@@ -80,6 +80,16 @@ void Player::OnAwake()
 
 	attackHitEffect = EffectManager::Instance().LoadEffect("critical");
 	attackHitEffect->SetBillboard(true);
+
+	hpGaugeNodeIndex = model->GetNodeIndex("spine_02");
+}
+
+Vector3 Player::GetHPGaugePosition() const
+{
+	if (!model || hpGaugeNodeIndex < 0 || hpGaugeNodeIndex >= static_cast<int>(model->GetNodes().size()))
+		return transform.position;
+	// 描画メッシュと同じ骨のワールド行列・モデル倍率を使う
+	return model->GetScaledAttachmentTransform(model->GetNodes()[hpGaugeNodeIndex].worldTransform).Translation();
 }
 
 Player::~Player()
@@ -165,11 +175,9 @@ void Player::RegisterAnimationCallbacks()
 
 void Player::DeathOfFall()
 {
-	// プレイヤーは落下死せずに上にTP
-	transform.SetPosition(
-		transform.position.x, 
-		transform.position.y + (deathOfFallHeight * -1.0f), 
-		transform.position.z);
+	// 万が一奈落に落ちたらプレイヤーは落下死せずに上にTP。ついでに回復してあげる
+	cc->SetPosition(transform.position.x, 10.0f, transform.position.z);
+	Heal(maxLife - life);
 }
 
 void Player::SetSpawnTransform(const Transform& spawnTransform)
@@ -754,15 +762,6 @@ void Player::OnDamaged(const DamageData& damageData)
 void Player::TriggerJustDodge(Actor* attacker)
 {
 	if (justDodgeTriggered || justDodgeSkillActive || !justDodgeWindowActive) return;
-	// HP0のボスへのジャスト回避は、通常の必殺技受付の代わりに撃破ムービーへつなぐ。
-	if (auto* aracore = dynamic_cast<Aracore*>(attacker))
-	{
-		if (aracore->GetLife() <= 0.0f)
-		{
-			aracore->RequestDefeatMovie();
-			return;
-		}
-	}
 	justDodgeAttacker = attacker;
 	justDodgeTriggered = true;
 	vmdl->GetRenderer()->PlaySoundSource("JUSTDODGE");
@@ -773,6 +772,10 @@ void Player::TriggerJustDodge(Actor* attacker)
 	CameraEffectController::RequestFovOffset(0.24f, 8.0f);
 	TimeScaleController::Request(0.20f, 0.03f);
 	PostProcessController::Instance().RequestJustDodge();
+
+	// HP0でも成功演出を成立させたうえで、撃破ムービーを要求する
+	if (auto* boss = dynamic_cast<Aracore*>(attacker))
+		if (boss->GetLife() <= 0.0f) boss->RequestDefeatMovie();
 }
 
 // 攻撃の接触とダメージ

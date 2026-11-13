@@ -1,5 +1,5 @@
 #include "UI/SpriteButton.h"
-#include <ImGuiToolKit/Color.h>
+#include <ImGuiToolKit/ImGuiToolKit.h>
 
 #include <algorithm>
 #include <cmath>
@@ -29,7 +29,7 @@ void SpriteButton::OnUpdate()
 	const bool highlighted = trigger && trigger->IsInteractable() &&
 		(trigger->IsSelected() || trigger->IsPointerInside() || trigger->IsPressed());
 	const float targetAlpha = highlighted ? 1.0f : 0.0f;
-	const float blend = std::clamp(Game::Time::unscaledDeltaTime * 14.0f, 0.0f, 1.0f);
+	const float blend = std::clamp(Game::Time::unscaledDeltaTime * blendSpeed, 0.0f, 1.0f);
 	frontAlpha = std::lerp(frontAlpha, targetAlpha, blend);
 }
 
@@ -39,18 +39,20 @@ void SpriteButton::OnRender(const RenderContext&)
 	auto* renderer = Game::Graphics::Instance().GetSpriteRenderer();
 
 	// 背面
-	renderer->Draw(SpriteShaderId::Basic, backTexture, {0.0f, 5.0f, 0.0f}, owner->GetRectTransform()->size,
+	renderer->Draw(SpriteShaderId::Basic, backTexture, Vector3{0.0f, 5.0f, 0.0f} + Vector3(backOffset.x, backOffset.y, 0), owner->GetRectTransform()->size,
 		Vector2::Zero, Vector2(static_cast<float>(backTexture->GetWidth()), static_cast<float>(backTexture->GetHeight())),
 		0.0f, Color(backColor.x, backColor.y, backColor.z, 1.0f));
 
 	// 前面
-	renderer->Draw(SpriteShaderId::Basic, frontTexture, {0.0f, 0.0f, 0.0f}, owner->GetRectTransform()->size + Vector2(0, 10.0f),
+	renderer->Draw(SpriteShaderId::Basic, frontTexture, Vector3{0.0f, 0.0f, 0.0f} + Vector3(frontOffset.x, frontOffset.y, 0), owner->GetRectTransform()->size + Vector2(0, 10.0f),
 		Vector2::Zero, Vector2(static_cast<float>(frontTexture->GetWidth()), static_cast<float>(frontTexture->GetHeight())),
 		0.0f, Color(frontColor.x, frontColor.y, frontColor.z, frontAlpha));
 }
 
 void SpriteButton::OnDrawGUI()
 {
+	ImGuiToolKit::DragPosFloat2(u8"背面オフセット", &backOffset.x);
+	ImGuiToolKit::DragPosFloat2(u8"前面オフセット", &frontOffset.x);
 	ImGuiToolKit::ColorPicker3(u8"背面色", &backColor.x);
 	ImGuiToolKit::ColorPicker3(u8"前面色", &frontColor.x);
 }

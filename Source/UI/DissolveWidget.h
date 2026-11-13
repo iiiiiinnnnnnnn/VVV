@@ -19,6 +19,7 @@ public:
 	void SetDissolveSoftness(float value) { renderParams.dissolve.softness = std::clamp(value, 0.0f, 0.5f); }
 
 protected:
+	const SpriteRenderParams& GetSpriteRenderParams() const { return renderParams; }
 	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;
 	void DrawSprite(const std::shared_ptr<Texture>& texture, const Vector2& position,

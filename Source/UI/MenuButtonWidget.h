@@ -6,7 +6,8 @@
 
 class MenuButtonWidget final : public LabelButton
 {
-public:
+  public:
 	MenuButtonWidget(const std::string& name, const std::string& label, float fontSize,
 		const std::string& fontPath, std::function<void()> onActivated);
+	static void PlayClickSound();
 };

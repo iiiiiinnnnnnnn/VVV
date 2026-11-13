@@ -8,12 +8,13 @@
 
 #include "UI/DissolveWidget.h"
 
-class Texture;
+class SpriteRendererComponent;
 
 class GaugeWidget : public DissolveWidget
 {
 public:
 	void OnAwake() override;
+	void Render(const RenderContext& rc) override;
 	GaugeWidget(const std::string& name, const std::string& maskPath = "Resources/UI/dissolve_animation.png", bool revealOnStart = true);
 
 	// 値は0〜1。SetValueは補間し、SetValueImmediateは即時反映する。
@@ -23,15 +24,10 @@ public:
 	float GetDisplayedValue() const { return displayedValue; }
 	void SetValueSmoothingSpeed(float value) { smoothingSpeed = value; }
 
+	// 非表示中も更新を続け、ディゾルブだけを切り替える
+	void SetVisibility(bool visible) { targetDissolve = visible ? 0.0f : 1.0f; }
 	void SetRevealDuration(float seconds) { revealDuration = std::max(seconds, 0.0f); }
-	void SetFrameTexture(const std::string& path);
 	void SetFillRect(const Vector2& position, const Vector2& size);
-	// SetColorで通常色と低残量色を揃え、必要なら低残量色だけ個別に指定する。
-	virtual void SetColor(const Color& value);
-	const Color& GetColor() const { return normalColor; }
-	void SetLowValueColor(const Color& value) { lowColor = value; }
-	void SetFrameColor(const Color& value) { frameColor = value; }
-	void SetBackgroundColor(const Color& value) { trackColor = value; }
 	void SetDamageTrailColor(const Color& value) { damageTrailColor = value; }
 	void SetDamageTrailEnabled(bool value) { damageTrailEnabled = value; }
 
@@ -43,32 +39,27 @@ public:
 
 protected:
 	void OnUpdate() override;
-	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;
 
-private:
-	void DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color);
-	std::string frameTexturePath;
-	std::shared_ptr<Texture> frameTexture;
-	std::shared_ptr<Texture> fillTexture;
-	Vector2 fillPosition = {0.1f, 0.3f};
-	Vector2 fillSize = {0.8f, 0.4f};
-	Color normalColor = Color(0.04f, 0.48f, 0.95f, 0.98f);
-	Color lowColor = Color(1.0f, 0.035f, 0.02f, 0.98f);
-	Color frameColor = Color(0.5f, 0.55f, 0.7f, 0.95f);
-	Color trackColor = Color(0.015f, 0.035f, 0.055f, 0.88f);
-	bool revealing = true;
-	Game::Timer revealElapsed{0.0f};
-	float revealDuration = 2.0f;
+	SpriteRendererComponent* frameSprite = nullptr;
+	SpriteRendererComponent* backgroundSprite = nullptr;
+	SpriteRendererComponent* damageSprite = nullptr;
+	SpriteRendererComponent* fillSprite = nullptr;
+	Vector2 fillPosition = {135.0f / 2036.0f, 52.0f / 221.0f};
+	Vector2 fillSize = {1766.0f / 2036.0f, 103.0f / 221.0f};
+	Color normalColor = Color(0.137f, 0.624f, 0.373f);
+	Color backgroundColor = Color(0.071f, 0.0f, 0.0f);
+	float targetDissolve = 0.0f;
+	float revealDuration = 0.3f;
 	float targetValue = 1.0f;
 	float displayedValue = 1.0f;
 	float smoothingSpeed = 5.5f;
-	bool damageTrailEnabled = false;
+	bool damageTrailEnabled = true;
 	float damageTrailValue = 1.0f;
-	float damageTrailDelay = 0.25f;
+	float damageTrailDelay = 0.367f;
 	Game::Timer damageTrailTimer{0.0f};
-	float damageTrailSpeed = 0.65f;
-	Color damageTrailColor = Color(0.48f, 0.52f, 0.57f, 0.98f);
-	std::function<void(float)> onValueChanged;
+	float damageTrailSpeed = 0.411f;
+	Color damageTrailColor = Color(1.0f, 0, 0, 0.1764f);
+	std::function<void(float)> onValueChanged; // 変更通知
 	bool dragging = false;
 };

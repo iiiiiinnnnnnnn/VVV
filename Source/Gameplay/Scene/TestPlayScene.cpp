@@ -1,5 +1,7 @@
 #include "Core/Foundation/Random.h"
+
 #include <ImGuiToolKit/Utf8.h>
+#include <ImGuiToolKit/Alert.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/TestPlayScene.h"
 
@@ -49,6 +51,8 @@ void TestPlayScene::OnInit()
 
 	player = std::make_shared<LocalPlayer>();
 	player->Awake();
+	playerCC = player->GetComponent<CharacterController>();
+
 	currentStage = std::make_unique<Stage01>(player.get());
 	currentStage->Awake();
 
@@ -87,12 +91,12 @@ void TestPlayScene::OnInit()
 	widgetManager.Register(movieCmdWidget);
 
 	playerHealthGauge = std::make_shared<GaugeWidget>("Player Health Gauge");
-	playerHealthGauge->SetFrameTexture("Resources/UI/window.png");
-	playerHealthGauge->SetFillRect({0.15f, 0.25f}, {0.75f, 0.52f});
-	playerHealthGauge->rect.position = {screenWidth / 2.0f, 999.600f};
-	playerHealthGauge->rect.size = {518.400f, 51.840f};
-	playerHealthGauge->rect.anchor = {0.5f, 0.0f};
+	playerHealthGauge->rect.angle = -90.0f;
+	playerHealthGauge->rect.size = {222.0f, 25.0f};
+	playerHealthGauge->rect.scale = {1.0f, 1.0f};
 	playerHealthGauge->SetValueSmoothingSpeed(4.5f);
+	playerHealthGauge->SetVisibility(false);
+	playerHealthGauge->rect.anchor = {0.5f, 0.0f};
 	playerHudGroup->AddChild(playerHealthGauge);
 
 	// ボスバー
@@ -223,9 +227,9 @@ void TestPlayScene::OnUpdate()
 		{
 			auto* boss = dynamic_cast<Aracore*>(actor);
 			if (!boss || !boss->IsActive() || boss->IsPendingDestroy() || !boss->IsDefeatMovieRequested()) continue;
-			boss->ClearDefeatMovieRequest();
 			if (movieCamera->BeginPlayback(*currentStage, *player, *boss, postProcess))
 			{
+				boss->ClearDefeatMovieRequest();
 				movieBoss = boss;
 				if (movieCmdWidget) movieCmdWidget->ResetPrompt();
 				if (gameHud) gameHud->SetActive(false);
@@ -235,6 +239,8 @@ void TestPlayScene::OnUpdate()
 				if (pauseMenu) pauseMenu->SetCanPause(false);
 				return;
 			}
+			boss->ClearDefeatMovieRequest();
+			ImGuiToolKit::Alert(movieCamera->GetLastError().c_str());
 			break;
 		}
 	}
@@ -452,6 +458,31 @@ bool TestPlayScene::ShouldRenderWorldEffects() const
 {
 	return !movieCamera || !movieCamera->IsEditing();
 }
+void TestPlayScene::OnRender(RenderContext& rc)
+{
+	if (Game::Time::scale <= 0) return;
+	if (!player || !playerHealthGauge || !rc.camera) return;
+
+	// 描画中のノードの位置を、そのフレームのカメラで画面座標へ変換する
+	const Vector3 gaugePosition = player->GetHPGaugePosition();
+	Vector2 position;
+	const bool visible = WorldToScreen(gaugePosition,
+		rc.camera->GetViewProjection(),
+		Game::Graphics::GetScreenSize(), position);
+	playerHealthGauge->SetVisibility(player->IsInBattle() && visible);
+	if (visible)
+	{
+		// 基準ノードが奥に行けば行くほど小さくなる
+		const Vector3 offset = gaugePosition - rc.camera->GetEye();
+		const float depth = offset.Dot(rc.camera->GetFront());
+		const float scale = 4.0f / std::max(depth, 0.1f);
+
+		playerHealthGauge->rect.scale = {scale, scale};
+		// 本体からの距離も同じ割合で縮め、バーだけ左へ取り残されるのを防ぐ
+		playerHealthGauge->SetScreenPosition(position + Vector2(-105.0f, 45.0f) * scale);
+	}
+}
+
 void TestPlayScene::OnDrawOverlayGUI()
 {
 	if (movieCamera) movieCamera->DrawEditor();

@@ -127,6 +127,9 @@ void Framework::Update(float elapsedTime)
 	// 時間スケール更新処理
 	TimeScaleController::Update();
 
+	// リサイズ後もマウス座標を描画と同じ画面サイズへ変換する
+	InputKit::InputSystem::Instance().SetViewportSize(
+		static_cast<UINT>(Game::Graphics::ScreenWidth), static_cast<UINT>(Game::Graphics::ScreenHeight));
 	// 入力更新処理
 	InputKit::InputSystem::Instance().Update();
 

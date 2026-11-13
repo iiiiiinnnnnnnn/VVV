@@ -6,7 +6,6 @@
 #include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Scene/VstgEditorScene.h"
-#include "Gameplay/Stage/Stage.h"
 #include "Rendering/Core/Graphics.h"
 #include "UI/WidgetGroup.h"
 #include "UI/TitleLogoWidget.h"
@@ -63,7 +62,9 @@ void TitleScene::CreateTitleUI()
 	for (const auto& item : menuItems)
 	{
 		auto button = std::make_shared<MenuButtonWidget>(item.label, item.label, 42.0f, "",
-			[this, action = item.action] { OnMenuSelected(action); });
+			[this, action = item.action] {
+				OnMenuSelected(action);
+			});
 		button->AddComponent<WidgetShadow>();
 		mainHud->AddChild(button);
 		menuButtons.push_back(button);
@@ -130,7 +131,8 @@ void TitleScene::OnMenuSelected(MenuAction action)
 	{
 		case MenuAction::Play:
 		{
-			loadRequested = SceneManager::Instance().LoadScene<TestPlayScene>();
+			loadRequested = true;
+			MenuButtonWidget::PlayClickSound();
 			break;
 		}
 		case MenuAction::Control:
@@ -142,6 +144,7 @@ void TitleScene::OnMenuSelected(MenuAction action)
 		{
 			ResourceManager::Instance().ReloadResourceList();
 			SetMenuPage(MenuPage::Resources);
+			MenuButtonWidget::PlayClickSound();
 			break;
 		}
 		case MenuAction::VmdlEditor:
@@ -183,6 +186,15 @@ void TitleScene::RequestExit()
 void TitleScene::OnUpdate()
 {
 	SetButtonsInteractable(!showGameEditorGUI && !loadRequested && !exitRequested && menuPage == MenuPage::Main);
+
+	if (loadRequested)
+	{
+		waitTimer += Game::Time::deltaTime;
+		if (waitTimer > 1.0f)
+		{
+			SceneManager::Instance().LoadScene<TestPlayScene>();
+		}
+	}
 }
 
 void TitleScene::OnDrawGUI()

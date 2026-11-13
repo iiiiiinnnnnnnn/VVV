@@ -70,7 +70,8 @@ public:
     }
     bool IsGrounded() const { return grounded; }
     bool HitSideOnLastMove() const { return hitSideOnLastMove; }
-private:
+
+  private:
     void ApplyGravity();
     void SyncOwnerTransform();
     float GetFootToControllerCenter() const;

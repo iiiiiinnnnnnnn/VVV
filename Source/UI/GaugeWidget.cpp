@@ -3,17 +3,14 @@
 #include <ImGuiToolKit/Color.h>
 
 #include <algorithm>
-#include <cmath>
 
 #include "Application/Time/GameTime.h"
 #include <InputKit/InputKit.h>
 #include "Rendering/Core/Graphics.h"
-#include "Rendering/Renderer/SpriteRenderer.h"
-#include "Resource/ResourceManager.h"
-#include "Resource/Texture.h"
+#include "Rendering/Component/SpriteRendererComponent.h"
 
 GaugeWidget::GaugeWidget(const std::string& name, const std::string& maskPath, bool revealOnStart)
-	: DissolveWidget(name, maskPath), revealing(revealOnStart)
+	: DissolveWidget(name, maskPath)
 {
 	SetDissolveAmount(revealOnStart ? 1.0f : 0.0f);
 	SetAffectedByPostProcess(false);
@@ -22,15 +19,12 @@ GaugeWidget::GaugeWidget(const std::string& name, const std::string& maskPath, b
 void GaugeWidget::OnAwake()
 {
 	DissolveWidget::OnAwake();
-	fillTexture = ResourceManager::Instance().LoadTexture("Resources/UI/gauge.png");
-	if (!frameTexturePath.empty()) SetFrameTexture(frameTexturePath);
-}
-
-void GaugeWidget::SetFrameTexture(const std::string& path)
-{
-	frameTexturePath = path;
-	if (!isAwake && !isAwaking) return;
-	frameTexture = ResourceManager::Instance().LoadTexture(path);
+	backgroundSprite = AddComponent<SpriteRendererComponent>("Resources/UI/guage_back.png");
+	damageSprite = AddComponent<SpriteRendererComponent>("Resources/UI/guage_back.png");
+	fillSprite = AddComponent<SpriteRendererComponent>("Resources/UI/guage_back.png");
+	frameSprite = AddComponent<SpriteRendererComponent>("Resources/UI/guage_front.png");
+	for (auto* sprite : {backgroundSprite, damageSprite, fillSprite})
+		sprite->SetSourceRect({135.0f, 52.0f}, {1766.0f, 103.0f});
 }
 
 void GaugeWidget::SetValue(float ratio)
@@ -59,20 +53,13 @@ void GaugeWidget::SetFillRect(const Vector2& position, const Vector2& size)
 	fillSize = size;
 }
 
-void GaugeWidget::SetColor(const Color& value)
-{
-	normalColor = value;
-	lowColor = value;
-}
-
 void GaugeWidget::OnUpdate()
 {
-	if (onValueChanged)
+	if (onValueChanged && targetDissolve < 1.0f && GetDissolveAmount() < 1.0f)
 	{
 		InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
-		const Vector2 topLeft = Vector2::Zero;
-		const float fillLeft = topLeft.x + rect.size.x * fillPosition.x;
-		const float fillTop = topLeft.y + rect.size.y * fillPosition.y;
+		const float fillLeft = rect.size.x * fillPosition.x;
+		const float fillTop = rect.size.y * fillPosition.y;
 		const float fillWidth = rect.size.x * fillSize.x;
 		const float fillHeight = rect.size.y * fillSize.y;
 		Vector2 localMouse = Vector2::Zero;
@@ -93,17 +80,14 @@ void GaugeWidget::OnUpdate()
 		}
 	}
 
+	else dragging = false;
+
 	const float dt = std::max(Game::Time::unscaledDeltaTime, 0.0f);
-	if (revealing)
-	{
-		revealElapsed.Advance(dt);
-		const float progress = revealDuration > 0.0f
-			? std::clamp(revealElapsed.GetElapsed() / revealDuration, 0.0f, 1.0f) : 1.0f;
-		const float smoothProgress = progress * progress * (3.0f - 2.0f * progress);
-		SetDissolveAmount(1.0f - smoothProgress);
-		revealing = progress < 1.0f;
-	}
-	const float blend = 1.0f - std::exp(-smoothingSpeed * dt);
+	// 途中で表示状態が反転しても、現在の量からそのまま目標へ進める
+	const float amount = GetDissolveAmount();
+	const float step = revealDuration > 0.0f ? dt / revealDuration : 1.0f;
+	SetDissolveAmount(amount + std::clamp(targetDissolve - amount, -step, step));
+	const float blend = std::clamp(smoothingSpeed * dt, 0.0f, 1.0f);
 	displayedValue += (targetValue - displayedValue) * blend;
 	if (std::abs(displayedValue - targetValue) < 0.0005f) displayedValue = targetValue;
 	if (damageTrailEnabled)
@@ -117,40 +101,33 @@ void GaugeWidget::OnUpdate()
 void GaugeWidget::OnDrawGUI()
 {
 	DissolveWidget::OnDrawGUI();
+
+	ImGuiToolKit::ColorEdit4(u8"通常色", &normalColor.x);
+	ImGuiToolKit::ColorEdit4(u8"背景色", &backgroundColor.x);
+	ImGui::Separator();
 	ImGuiToolKit::Checkbox(u8"ダメージ残像", &damageTrailEnabled);
 	ImGuiToolKit::SliderFloat(u8"残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
 	ImGuiToolKit::SliderFloat(u8"残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
 	ImGuiToolKit::ColorEdit4(u8"残像の色", &damageTrailColor.x);
 }
 
-void GaugeWidget::DrawFillTiles(const Vector2& position, const Vector2& size, float ratio, const Color& color)
+void GaugeWidget::Render(const RenderContext& rc)
 {
-	if (!fillTexture || size.x <= 0.0f || size.y <= 0.0f || ratio <= 0.0f) return;
-	const Vector2 sourceSize = {
-		static_cast<float>(fillTexture->GetWidth()), static_cast<float>(fillTexture->GetHeight())};
-	if (sourceSize.x <= 0.0f || sourceSize.y <= 0.0f) return;
-	const float tileWidth = size.y * sourceSize.x / sourceSize.y;
-	const float width = size.x * std::clamp(ratio, 0.0f, 1.0f);
-	for (float x = 0.0f; x < width; x += tileWidth)
+	if (!IsActive() || IsPendingDestroy() || GetDissolveAmount() >= 1.0f) return;
+	const SpriteRenderParams& params = GetSpriteRenderParams();
+	for (auto* sprite : {backgroundSprite, damageSprite, fillSprite})
 	{
-		const float visibleWidth = std::min(tileWidth, width - x);
-		DrawSprite(fillTexture, position + Vector2(x, 0.0f), {visibleWidth, size.y},
-			{sourceSize.x * visibleWidth / tileWidth, sourceSize.y}, 0.0f, color);
+		sprite->SetRect(fillPosition, fillSize);
+		sprite->SetRenderParams(params);
 	}
-}
-
-void GaugeWidget::OnRender(const RenderContext&)
-{
-	const Vector2 topLeft = Vector2::Zero;
-	if (frameTexture)
-		DrawSprite(frameTexture, topLeft, rect.size,
-			{static_cast<float>(frameTexture->GetWidth()),
-				static_cast<float>(frameTexture->GetHeight())}, 0.0f, frameColor);
-	const Vector2 fillTopLeft = topLeft + Vector2(rect.size.x * fillPosition.x, rect.size.y * fillPosition.y);
-	const Vector2 maximumFill = {rect.size.x * fillSize.x, rect.size.y * fillSize.y};
-	const float ratio = std::clamp(displayedValue, 0.0f, 1.0f);
-	DrawFillTiles(fillTopLeft, maximumFill, 1.0f, trackColor);
-	if (damageTrailEnabled && damageTrailValue > ratio)
-		DrawFillTiles(fillTopLeft, maximumFill, damageTrailValue, damageTrailColor);
-	DrawFillTiles(fillTopLeft, maximumFill, ratio, ratio < 0.3f ? lowColor : normalColor);
+	damageSprite->SetColor(damageTrailColor);
+	damageSprite->SetFill(damageTrailEnabled ? damageTrailValue : 0.0f);
+	auto toReddddd = Color::Lerp(
+		normalColor, Color(1.0f, 0, 0, 1),
+		Easing::Evaluate(1.0f - std::clamp(displayedValue * 1.5f, 0.0f, 1.0f), Easing::Type::OutCubic));
+	fillSprite->SetColor(toReddddd);
+	fillSprite->SetFill(displayedValue);
+	frameSprite->SetRenderParams(params);
+	backgroundSprite->SetColor(backgroundColor);
+	Widget::Render(rc);
 }

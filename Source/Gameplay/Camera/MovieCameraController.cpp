@@ -5,6 +5,7 @@
 #define NOMINMAX
 #endif
 #include "Gameplay/Camera/MovieCameraController.h"
+#include "Core/Foundation/Logger.h"
 
 #include <algorithm>
 #include <cmath>
@@ -106,7 +107,12 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 	stage = &value;
 	camera = owner->GetComponent<Camera>();
 	freeCamera = owner->GetComponent<FreeCameraController>();
-	if (!camera || !freeCamera) return false;
+	if (!camera || !freeCamera)
+	{
+		lastError = "Movie camera or free camera controller is missing.";
+		Log("Movie begin failed: camera=%p, freeCamera=%p", static_cast<void*>(camera), static_cast<void*>(freeCamera));
+		return false;
+	}
 	try
 	{
 		if (!boss)
@@ -178,6 +184,8 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 	}
 	catch (const std::exception& error)
 	{
+		lastError = error.what();
+		Log("Movie begin failed: %s", error.what());
 		if (editing) End();
 		else if (temporaryBoss) { temporaryBoss->SetActive(false); temporaryBoss->Destroy(); temporaryBoss.reset(); }
 		return false;
@@ -187,6 +195,7 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 bool MovieCameraController::BeginPlayback(Stage& value, Actor& player, Actor& boss, Game::PostProcess& postProcess)
 {
 	if (editing) return false;
+	lastError.clear();
 	if (!Begin(value, player, &boss, postProcess)) return false;
 	auto root = ResourceManager::FindSourceResourceRoot();
 	if (root.empty()) root = std::filesystem::absolute("Resources");
@@ -895,7 +904,12 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 		Seek(0.0f);
 		return true;
 	}
-	catch (const std::exception& error) { return false; }
+	catch (const std::exception& error)
+	{
+		lastError = "Failed to load " + path.string() + ": " + error.what();
+		Log("Movie load failed: %s (%s)", path.string().c_str(), error.what());
+		return false;
+	}
 }
 
 

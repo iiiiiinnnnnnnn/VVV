@@ -6,8 +6,8 @@ chcp 65001 >nul
 for %%I in ("%~dp0..\..") do set "ROOT_DIR=%%~fI"
 cd /d "%ROOT_DIR%"
 
-set RELEASE_REPO=iiiiiinnnnnnnn/shuushoku-download-site
-set RELEASE_TAG=vvv-latest
+set RELEASE_REPO=iiiiiinnnnnnnn/VVV
+set RELEASE_TAG=Release
 set ZIP_NAME=Development.zip
 set OUT_DIR=Bin\Development
 set CACHE_BUILDER=Bin\Tools\Development\CacheBuilder.exe
@@ -91,5 +91,5 @@ if errorlevel 1 (
 )
 
 echo 完了しました。
-echo https://github.com/iiiiiinnnnnnnn/shuushoku-download-site/releases/download/vvv-latest/Development.zip
+echo https://github.com/iiiiiinnnnnnnn/VVV/releases/download/Release/Development.zip
 pause

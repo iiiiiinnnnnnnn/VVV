@@ -8,11 +8,11 @@
 #include "Application/Time/GameTime.h"
 #include "UI/ColorWidget.h"
 #include "Rendering/Core/Graphics.h"
-#include "UI/SpriteButton.h"
-#include "UI/LabelButton.h"
 #include "UI/EventTrigger.h"
 #include "UI/UILayout.h"
 #include "UI/XboxControllerWidget.h"
+#include "UI/MenuButtonWidget.h"
+#include "UI/WidgetShadow.h"
 
 PauseMenuWidget::PauseMenuWidget(const std::string& name, PauseChangedCallback pauseChanged, ReturnToTitleCallback returnToTitle)
 	: WidgetGroup(name), pauseChanged(std::move(pauseChanged)),
@@ -33,36 +33,48 @@ void PauseMenuWidget::OnAwake()
 	// メインページ
 	mainPage = std::make_shared<WidgetGroup>("MainPage");
 	AddChild(mainPage);
-	for (const char* label : {"Resume", "Control", "Return to Title"})
+
+	// ゲーム用ボタン
+	struct ButtonDefinition
 	{
-		auto button = std::make_shared<LabelButton>(std::string("Button / ") + label, label, 42.0f);
-		button->SetAlignment(UITextAlignment::Center);
-		button->AddComponent<SpriteButton>("Resources/UI/btn_back.png", "Resources/UI/btn_front.png");
-		auto* trigger = button->AddComponent<EventTrigger>();
-		trigger->SetNavigation(UINavigation::Vertical);
-		trigger->SetWrapNavigation(true);
+		const char* label;
+		std::function<void()> onActivated;
+	};
+	const ButtonDefinition menuItems[] = {
+		{"RESUME", [this] {
+			 SetPaused(false);
+			 MenuButtonWidget::PlayClickSound();
+		 }},
+		{"CONTROL", [this] {
+			 SetPage(Page::Control);
+			 MenuButtonWidget::PlayClickSound();
+		 }},
+		{"RETURN TO TITLE", [this] {
+			 if (returnToTitle) returnToTitle();
+			 MenuButtonWidget::PlayClickSound();
+		 }}};
+	for (const auto& item : menuItems)
+	{
+		auto button = std::make_shared<MenuButtonWidget>(
+			item.label, item.label, 42.0f, "", item.onActivated);
+		button->AddComponent<WidgetShadow>();
+		
 		mainPage->AddChild(button);
 		mainButtons.push_back(button);
 	}
-	mainButtons[0]->GetComponent<EventTrigger>()->AddActivationListener(
-		[this] { SetPaused(false); });
-	mainButtons[1]->GetComponent<EventTrigger>()->AddActivationListener(
-		[this] { SetPage(Page::Control); });
-	mainButtons[2]->GetComponent<EventTrigger>()->AddActivationListener([this] {
-		if (this->returnToTitle) this->returnToTitle();
-	});
 
 	// 操作方法ページ
 	controlPage = std::make_shared<WidgetGroup>("ControlPage");
 	controlPage->AddChild(std::make_shared<XboxControllerWidget>(
 		"XboxControllerWidget", std::weak_ptr<Object>{}, Vector2{50.0f, 73.0f}, Vector2{1, 1}
 	));
-	auto backBtn = std::make_shared<LabelButton>("Button / Baack", "Back", 42.0f);
-	backBtn->SetAlignment(UITextAlignment::Center);
-	backBtn->AddComponent<SpriteButton>("Resources/UI/btn_back.png", "Resources/UI/btn_front.png");
-	backBtn->rect.anchor = {0.5f, 0.5f};
-	UILayout::Apply(backBtn, {0.5f, 0.9f}, {0.3f, 0.08f});
-	controlPage->AddChild(backBtn);
+	backButton = std::make_shared<MenuButtonWidget>("Button / Back", "BACK", 42.0f, "",
+		[this] {
+			SetPage(Page::Main);
+			MenuButtonWidget::PlayClickSound();
+	});
+	backButton->AddComponent<WidgetShadow>();
+	controlPage->AddChild(backButton);
 	AddChild(controlPage);
 
 	// 一時停止メニュー全部非アクティブ化
@@ -84,14 +96,24 @@ void PauseMenuWidget::SetPaused(bool value)
 void PauseMenuWidget::SetPage(Page page)
 {
 	currentPage = page;
-	mainPage->SetActive(paused && page == Page::Main);
-	controlPage->SetActive(paused && page == Page::Control);
+	const bool mainActive = paused && page == Page::Main;
+	const bool controlActive = paused && page == Page::Control;
+	mainPage->SetActive(mainActive);
+	controlPage->SetActive(controlActive);
 	inputDelay.Reset(paused ? 0.12f : 0.0f);
-	if (paused && page == Page::Main)
+	for (const auto& button : mainButtons)
 	{
-		for (const auto& button : mainButtons)
-			button->GetComponent<EventTrigger>()->SetInputDelay(0.12f);
-		mainButtons.front()->GetComponent<EventTrigger>()->Select();
+		auto* trigger = button->GetComponent<EventTrigger>();
+		trigger->SetInteractable(mainActive);
+		if (mainActive) trigger->SetInputDelay(0.12f);
+	}
+	auto* backTrigger = backButton->GetComponent<EventTrigger>();
+	backTrigger->SetInteractable(controlActive);
+	if (mainActive) mainButtons.front()->GetComponent<EventTrigger>()->Select();
+	else if (controlActive)
+	{
+		backTrigger->SetInputDelay(0.12f);
+		backTrigger->Select();
 	}
 }
 
@@ -131,7 +153,30 @@ void PauseMenuWidget::UpdateLayout()
 	UILayout::Apply(dimmer, {0, 0}, {1, 1});
 	dimmer->SetColor(Color(0.01f, 0.02f, 0.04f, 0.54f * transition));
 
-	UILayout::MenuButton(mainButtons[0], {0.5f, 0.33f}, 38, offset);
-	UILayout::MenuButton(mainButtons[1], {0.5f, 0.5f}, 38, offset);
-	UILayout::MenuButton(mainButtons[2], {0.5f, 0.67f}, 38, offset);
+	// タイトルと同じ大きさ・行間で、ボタン列の中心を画面中央に揃える
+	const float centerY = Game::Graphics::ScreenHeight * 0.5f;
+	const float halfRows = static_cast<float>(mainButtons.size() - 1) * 0.5f;
+	for (size_t i = 0; i < mainButtons.size(); ++i)
+	{
+		const auto& button = mainButtons[i];
+		if (!button->GetAutoLayout()) continue;
+		button->rect.position = Vector2(width * 0.5f,
+			centerY + (static_cast<float>(i) - halfRows) * 44.0f * 0.8f) + offset;
+		button->rect.angle = 0.0f;
+		button->rect.size = {593.0f, 44.0f};
+		button->rect.scale = {0.8f, 0.8f};
+		button->rect.anchor = {0.5f, 0.5f};
+		button->SetFontSize(38.0f);
+		button->SetAlignment(UITextAlignment::Left);
+	}
+	if (backButton->GetAutoLayout())
+	{
+		backButton->rect.position = Vector2(width * 0.5f, Game::Graphics::ScreenHeight * 0.9f) + offset;
+		backButton->rect.angle = 0.0f;
+		backButton->rect.size = {593.0f, 44.0f};
+		backButton->rect.scale = {0.8f, 0.8f};
+		backButton->rect.anchor = {0.5f, 0.5f};
+		backButton->SetFontSize(38.0f);
+		backButton->SetAlignment(UITextAlignment::Left);
+	}
 }

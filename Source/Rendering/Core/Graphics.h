@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -84,6 +84,10 @@ namespace Game
 
 		static float ScreenWidth;
 		static float ScreenHeight;
+		static const Vector2 GetScreenSize()
+		{
+			return Vector2(ScreenWidth, ScreenHeight);
+		}
 
 	private:
 		void RecreateFrameBuffers(UINT screenWidth, UINT screenHeight);

@@ -5,6 +5,8 @@
 
 #include <utility>
 
+#include "Audio/SoundSystem.h"
+
 MenuButtonWidget::MenuButtonWidget(const std::string& name, const std::string& label, float fontSize,
 	const std::string& fontPath, std::function<void()> onActivated)
 	: LabelButton(name, label, fontSize, fontPath)
@@ -13,6 +15,8 @@ MenuButtonWidget::MenuButtonWidget(const std::string& name, const std::string& l
 		"Resources/UI/btn_back.png", "Resources/UI/btn_front.png");
 	spritebtn->SetBackColor({0, 0, 0});
 	spritebtn->SetFrontColor({1, 1, 1});
+	spritebtn->SetFrontOffset({0, 18.0f});
+	spritebtn->SetBlendSpeed(28.0f);
 
 	SetFontSize(35.0f);
 	SetOffset({20.0f, 4.0f});
@@ -22,4 +26,9 @@ MenuButtonWidget::MenuButtonWidget(const std::string& name, const std::string& l
 	trigger->SetWrapNavigation(true);
 	trigger->SetInteractable(false);
 	trigger->AddActivationListener(std::move(onActivated));
+}
+
+void MenuButtonWidget::PlayClickSound()
+{
+	SoundSystem::Instance().Play("SE/UI/ButtonClick");
 }

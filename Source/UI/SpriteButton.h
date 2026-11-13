@@ -27,6 +27,14 @@ class SpriteButton final : public Component
 	}
 	void OnDrawGUI() override;
 
+	void SetBackOffset(const Vector2& offset)
+	{
+		backOffset = offset;
+	}
+	void SetFrontOffset(const Vector2& offset)
+	{
+		frontOffset = offset;
+	}
 	void SetBackColor(const Color& color)
 	{
 		backColor = color;
@@ -35,13 +43,20 @@ class SpriteButton final : public Component
 	{
 		frontColor = color;
 	}
+	void SetBlendSpeed(float speed)
+	{
+		blendSpeed = speed;
+	}
 
   private:
 	std::string backPath;
 	std::string frontPath;
 	std::shared_ptr<Texture> backTexture;
 	std::shared_ptr<Texture> frontTexture;
+	Vector2 backOffset = {0, 0};
+	Vector2 frontOffset = {0, 0};
 	Color backColor = {1, 1, 1};
 	Color frontColor = {1, 1, 1};
 	float frontAlpha = 0.0f;
+	float blendSpeed = 14.0f;
 };
