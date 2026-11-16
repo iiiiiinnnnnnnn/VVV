@@ -74,6 +74,13 @@ void Stage01::OnAwake()
 				transform, modelPath, spawnTag == "BossField" ? true : false);
 		});
 
+	// Golden鹿
+	stageLoader->RegisterSpawnerFactory("GoldenDeer",
+		[](const Transform& transform, const std::string& modelPath, const std::string& spawnTag) {
+			return std::make_shared<Deer>(
+				transform, modelPath, spawnTag == "BossField" ? true : false);
+		});
+
 	// ボス
 	Terrain* terrain = GetComponent<Terrain>();
 	stageLoader->RegisterSpawnerFactory(
