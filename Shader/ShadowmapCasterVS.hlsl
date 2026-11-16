@@ -1,6 +1,7 @@
 // ShadowmapCasterVS.hlsl
 
 #include "ShadowmapCaster.hlsli"
+#include "Vibration.hlsli"
 
 float4 main(
     float4 position     : POSITION,
@@ -13,6 +14,8 @@ float4 main(
 {
     // スキニングしてワールド空間へ（boneTransformsにワールド変換が含まれる）
     float4 worldPos = SkinningPosition(position, boneWeights, boneIndices);
+
+    worldPos.xyz += vivDir.xyz * vivPower;
 
     // ライトのViewProjectionでクリップ空間へ
     return mul(float4(worldPos.xyz, 1.0f), lightViewProjection);

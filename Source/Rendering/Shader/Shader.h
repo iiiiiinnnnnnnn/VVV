@@ -49,6 +49,13 @@ public:
 	static const D3D11_INPUT_ELEMENT_DESC InputLayout[3];
 };
 
+struct CbVibration
+{
+	Vector3 direction;
+	float power;
+};
+static_assert(sizeof(CbVibration) == 16);
+
 class ModelShader : public Shader
 {
 public:
@@ -96,9 +103,6 @@ protected:
 		float	indexOfRefraction;
 		float	refractionDistance;
 		float	transmissionDummy;
-
-		Vector3 vivraDir;
-		float	vivraPower;
 	};
 
 };

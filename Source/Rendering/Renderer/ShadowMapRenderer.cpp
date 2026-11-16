@@ -20,6 +20,8 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/ShadowMapCasterVS.cso").c_str(),
 		ModelShader::InputLayout);
 
+    vibrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVibration));
+
     // 6
     skeletonConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbSkeleton));
 
@@ -38,16 +40,21 @@ ShadowMapRenderer::ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize)
     }
 }
 
-void ShadowMapRenderer::Draw(VMDLModel* model)
+void ShadowMapRenderer::Draw(VMDLModel* model, const PBRRenderParams* params)
 {
-	if (model) drawList.push_back({model, &model->GetMeshes()});
+	if (model) Draw(model, &model->GetMeshes(), params);
 }
 
 void ShadowMapRenderer::Draw(
 	VMDLModel* skeleton,
-	const std::vector<VMDLModel::Mesh>* meshes)
+	const std::vector<VMDLModel::Mesh>* meshes,
+	const PBRRenderParams* params)
 {
-	if (skeleton && meshes) drawList.push_back({skeleton, meshes});
+	if (!skeleton || !meshes) return;
+	CbVibration vibration{};
+	vibration.direction = params ? params->vibrationDirection : Vector3::Zero;
+	vibration.power = params ? params->vibrationPower : 0.0f;
+	drawList.push_back({skeleton, meshes, vibration});
 }
 
 void ShadowMapRenderer::Draw(Terrain* terrain)
@@ -84,6 +91,7 @@ void ShadowMapRenderer::Render(const RenderContext& rc,
 
     RenderOutput::Bind(dc, nullptr, nullptr, false);
 
+    Gpu::ConstantBuffer::UnbindVS(dc, 2, 1);
     Gpu::ConstantBuffer::UnbindVS(dc, 6, 2);
     RenderOutput::RestoreOutput(dc, previousOutput);
 }
@@ -248,6 +256,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     rasterizerState->Bind(dc);
 
     // 定数バッファ設定
+    vibrationConstantBuffer->BindVS(dc, 2);
     // VS slot6: スケルトン（ModelRendererと同じスロット番号で統一）
     // VS slot7: ライトViewProjection
     Gpu::ConstantBuffer::BindVS(dc, 6, {skeletonConstantBuffer.get(), shadowSceneConstantBuffer.get()});
@@ -255,6 +264,7 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // ----- メッシュ描画 -----
 	for (const ModelDrawInfo& drawInfo : drawList)
     {
+		vibrationConstantBuffer->Update(dc, &drawInfo.vibration);
 		const Matrix renderScaleTransform = drawInfo.skeleton->GetRenderScaleTransform();
 		for (const VMDLModel::Mesh& mesh : *drawInfo.meshes)
         {
@@ -298,7 +308,6 @@ void ShadowMapRenderer::RenderCascade(ID3D11DeviceContext* dc, int cascadeIndex)
     // ----- 後始末 -----
     // SRVとしてPBRShaderで参照するため、DSVからは外しておく（同一リソースの同時バインド禁止）
     {
-
         RenderOutput::Bind(dc, nullptr, nullptr, false);
     }
 

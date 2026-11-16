@@ -223,7 +223,8 @@ namespace Game
 			float DUMMY[2];
 			Color tintColor;
 			float tintIntensity;
-			float DUMMY2[3];
+			float spriteMode;
+			float DUMMY2[2];
 		};
 		std::unique_ptr<Gpu::PixelShader> vignettePixelShader;
 		std::unique_ptr<Gpu::ConstantBuffer> vignetteConstantBuffer;
@@ -289,7 +290,7 @@ namespace Game
 		float runtimeRadialBlurIntensity = 0.0f;
 		float runtimeChromaticAberrationIntensity = 0.0f;
 		float runtimeVignetteIntensity = 0.0f;
-		Color runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f};
+		Color runtimeVignetteColor = {0.0f, 0.0f, 0.0f, 1.0f}; // 色付けたりするとき
 		float runtimeColorTintIntensity = 0.0f;
 		Color runtimeColorTint = {1.0f, 1.0f, 1.0f, 1.0f};
 	};

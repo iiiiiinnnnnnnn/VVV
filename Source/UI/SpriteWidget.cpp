@@ -73,18 +73,14 @@ void SpriteWidget::OnDrawGUI()
 	{
 		ImGui::Text("Texture: None");
 	}
-	if (shaderId == SpriteShaderId::Vignette || shaderId == SpriteShaderId::VignetteOverlay)
+	if (shaderId == SpriteShaderId::Vignette)
 	{
-		ImGuiToolKit::ColorEdit3(u8"Color", &color.x);
-		ImGui::SliderFloat("Vignette Strength", &color.w, 0.0f, 1.0f);
-		if (ImGui::SliderFloat(
-			"Vignette Range", &renderParams.vignette.range, 0.001f, 1.0f))
-		{
-			renderParams.vignette.softness = std::min(
-				renderParams.vignette.softness, renderParams.vignette.range);
-		}
-		ImGui::SliderFloat("Vignette Softness", &renderParams.vignette.softness,
-			0.001f, renderParams.vignette.range);
+		ImGuiToolKit::ColorEdit4(u8"Color", &color.x);
+		ImGui::DragFloat2("Vignette Center", &renderParams.vignette.center.x, 0.01f, 0.0f, 1.0f);
+		ImGui::SliderFloat("Vignette Intensity", &renderParams.vignette.intensity, 0.0f, 5.0f);
+		ImGui::SliderFloat("Vignette Smoothness", &renderParams.vignette.smoothness, 0.01f, 10.0f);
+		ImGui::Checkbox("Vignette Rounded", &renderParams.vignette.rounded);
+		ImGui::SliderFloat("Vignette Roundness", &renderParams.vignette.roundness, 0.1f, 8.0f);
 	}
 	else
 	{

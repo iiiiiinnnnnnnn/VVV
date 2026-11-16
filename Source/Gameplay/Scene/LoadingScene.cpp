@@ -26,18 +26,9 @@ void LoadingScene::OnInit()
 {
 	background = std::make_shared<SpriteWidget>(
 		"Loading Background", "Resources/UI/loading.png",
-		SpriteShaderId::Basic, Color(1, 1, 1, 0.3f));
+		SpriteShaderId::Vignette, Color(0.0f, 0.01f, 0.03f, 0.3f));
 	background->SetAffectedByPostProcess(false);
 	widgetManager.Register(background);
-
-	// 背景とは別レイヤーにして、画像の移動に影響されない画面端の暗さを作る。
-	vignetteOverlay = std::make_shared<SpriteWidget>(
-		"Loading Vignette Overlay", "Resources/UI/loading.png",
-		SpriteShaderId::VignetteOverlay,
-		Color(0.0f, 0.01f, 0.03f, 0.82f),
-		SpriteRenderParams{SpriteVignetteParams{0.38f, 0.36f}});
-	vignetteOverlay->SetAffectedByPostProcess(false);
-	widgetManager.Register(vignetteOverlay);
 
 	resourceFileIsLoading =
 		std::make_shared<TextWidget>("ldt", JText(u8"リソースを読み込み中..."), 30,
@@ -136,13 +127,6 @@ void LoadingScene::UpdateLayout()
 			screenHeight * 0.5f + driftY};
 		background->rect.anchor = {0.5f, 0.5f};
 		background->rect.size = {width, height};
-	}
-
-	if (vignetteOverlay)
-	{
-		vignetteOverlay->rect.position = Vector2::Zero;
-		vignetteOverlay->rect.anchor = Vector2::Zero;
-		vignetteOverlay->rect.size = {screenWidth, screenHeight};
 	}
 
 	const float progressWidth = std::min(screenWidth * 0.42f, 720.0f);

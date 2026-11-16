@@ -22,6 +22,7 @@ PBRShader::PBRShader(ID3D11Device* device)
 
 	// マテリアル用定数バッファ (PSスロット1)
 	materialConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMaterial));
+	vibrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVibration));
 }
 
 // 描画開始
@@ -87,11 +88,15 @@ void PBRShader::Update(
 		shadowMapConstantBuffer->Update(dc, &cb);
 	}
 
+	CbVibration vibration{};
+	vibration.direction = params ? params->vibrationDirection : Vector3::Zero;
+	vibration.power = params ? params->vibrationPower : 0.0f;
+	vibrationConstantBuffer->Update(dc, &vibration);
+	vibrationConstantBuffer->BindVS(dc, 2);
+
 	// マテリアルCB更新
 	{
 		CbMaterial cb{};
-		cb.vivraDir = params ? params->vibrationDirection : Vector3::Zero;
-		cb.vivraPower = params ? params->vibrationPower : 0.0f;
 		cb.dissolveAmount = params ? std::clamp(params->dissolveAmount, 0.0f, 1.0f) : 0.0f;
 
 		// Base Color

@@ -21,8 +21,9 @@ public:
     ShadowMapRenderer(ID3D11Device* device, UINT shadowMapSize = 1024 * 4);
     ~ShadowMapRenderer() = default;
 
-    void Draw(VMDLModel* model);
-    void Draw(VMDLModel* skeleton, const std::vector<VMDLModel::Mesh>* meshes);
+    void Draw(VMDLModel* model, const PBRRenderParams* params = nullptr);
+    void Draw(VMDLModel* skeleton, const std::vector<VMDLModel::Mesh>* meshes,
+		const PBRRenderParams* params = nullptr);
     void Draw(Terrain* terrain);
 
     void Render(const RenderContext& rc,
@@ -63,6 +64,7 @@ private:
         Matrix lightViewProjection;
     };
     std::unique_ptr<Gpu::ConstantBuffer> shadowSceneConstantBuffer;
+    std::unique_ptr<Gpu::ConstantBuffer> vibrationConstantBuffer;
 
     std::unique_ptr<Gpu::VertexShader> vertexShader;
 
@@ -74,6 +76,7 @@ private:
 	{
 		VMDLModel* skeleton = nullptr;
 		const std::vector<VMDLModel::Mesh>* meshes = nullptr;
+		CbVibration vibration{};
 	};
 	std::vector<ModelDrawInfo> drawList;
     std::vector<Terrain*> terrainDrawList;

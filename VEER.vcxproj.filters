@@ -1027,6 +1027,9 @@
     <None Include="Shader\PBR.hlsli">
       <Filter>Shaders\3D</Filter>
     </None>
+    <None Include="Shader\Vibration.hlsli">
+      <Filter>Shaders\3D</Filter>
+    </None>
     <None Include="Shader\PBRFunctions.hlsli">
       <Filter>Shaders\3D</Filter>
     </None>
@@ -1169,9 +1172,6 @@
       <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
-      <Filter>Shaders\2D</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <Filter>Shaders\2D</Filter>
     </FxCompile>
     <FxCompile Include="Shader\RadialBlurPS.hlsl">

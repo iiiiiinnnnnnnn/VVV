@@ -387,6 +387,7 @@
     <None Include="Shader\GeometryParticle.hlsli" />
     <None Include="Shader\TerrainGrass.hlsli" />
     <None Include="Shader\PBR.hlsli" />
+    <None Include="Shader\Vibration.hlsli" />
     <None Include="Shader\PBRFunctions.hlsli" />
     <None Include="Shader\FullScreenQuad.hlsli" />
     <None Include="Shader\PrimitiveRenderer.hlsli" />
@@ -516,10 +517,6 @@
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\BasicSpritePS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Shader\VignetteSpritePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>

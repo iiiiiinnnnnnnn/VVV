@@ -16,7 +16,6 @@ enum class SpriteShaderId
 	Basic,
 	GaussianFilter,
 	Vignette,
-	VignetteOverlay,
 	Dissolve,
 
 	EnumCount

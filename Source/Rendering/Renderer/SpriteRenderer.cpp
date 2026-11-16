@@ -30,8 +30,6 @@ SpriteRenderer::SpriteRenderer(ID3D11Device* device)
 	shaders[static_cast<int>(SpriteShaderId::GaussianFilter)] = std::make_unique<GaussianFilterShader>(device);
 	shaders[static_cast<int>(SpriteShaderId::Vignette)] =
 		std::make_unique<VignetteSpriteShader>(device);
-	shaders[static_cast<int>(SpriteShaderId::VignetteOverlay)] =
-		std::make_unique<VignetteSpriteShader>(device, true);
 }
 
 // 頂点計算（Texture版）

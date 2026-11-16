@@ -42,6 +42,7 @@ private:
 	std::unique_ptr<Gpu::ConstantBuffer> shadowMapConstantBuffer;
 
 	std::unique_ptr<Gpu::ConstantBuffer> materialConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> vibrationConstantBuffer;
 
 	std::unique_ptr<Gpu::GeometryShader> geometryShader;
 };

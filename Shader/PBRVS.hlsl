@@ -1,5 +1,6 @@
 #include "Skinning.hlsli"
 #include "PBR.hlsli"
+#include "Vibration.hlsli"
 
 VS_OUT main(
     float4 position     : POSITION,

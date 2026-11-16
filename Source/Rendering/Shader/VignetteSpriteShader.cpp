@@ -4,12 +4,11 @@
 #include "Rendering/Shader/VignetteSpriteShader.h"
 
 
-VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device, bool overlayOnly)
-	: overlayOnly(overlayOnly)
+VignetteSpriteShader::VignetteSpriteShader(ID3D11Device* device)
 {
 	vertexShader = std::make_unique<Gpu::VertexShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/BasicSpriteVS.cso").c_str(),
 		SpriteShader::InputLayout);
-	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignetteSpritePS.cso").c_str());
+	pixelShader = std::make_unique<Gpu::PixelShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/VignettePS.cso").c_str());
 	constantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVignette));
 }
 
@@ -27,12 +26,15 @@ void VignetteSpriteShader::Update(const RenderContext& rc,
 {
 	CbVignette constant{};
 	constant.color = color;
-	constant.textureSize = textureSize;
 	const SpriteVignetteParams* vignette = params ? &params->vignette : nullptr;
-	constant.range = std::clamp(vignette ? vignette->range : 0.92f, 0.001f, 1.0f);
-	constant.softness = std::clamp(
-		vignette ? vignette->softness : 0.92f, 0.001f, constant.range);
-	constant.overlayOnly = overlayOnly ? 1.0f : 0.0f;
+	const SpriteVignetteParams settings = vignette ? *vignette : SpriteVignetteParams{};
+	constant.center = settings.center;
+	constant.intensity = settings.intensity;
+	constant.smoothness = settings.smoothness;
+	constant.rounded = settings.rounded ? 1.0f : 0.0f;
+	constant.roundness = settings.roundness;
+	constant.tintColor = Color(1, 1, 1, 1);
+	constant.spriteMode = 1.0f;
 	constantBuffer->Update(rc.deviceContext, &constant);
 	constantBuffer->BindPS(rc.deviceContext, 2);
 	Gpu::PixelShader::SetShaderResources(rc.deviceContext, 0, srv);

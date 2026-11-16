@@ -7,13 +7,14 @@
 FunkyShader::FunkyShader(ID3D11Device* device)
 {
 	static_assert(sizeof(CbRainbowData) == 16);
-	static_assert(sizeof(CbMaterial) == 160);
+	static_assert(sizeof(CbMaterial) == 144);
 	vertexShader = std::make_unique<Gpu::VertexShader>(device,
 		ResourceManager::Instance().ResolveShaderPath("Resources/Shader/PBRVS.cso").c_str(), ModelShader::InputLayout);
 	pixelShader = std::make_unique<Gpu::PixelShader>(device,
 		ResourceManager::Instance().ResolveShaderPath("Resources/Shader/FunkyPS.cso").c_str());
 	rainbowConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbRainbowData));
 	materialConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbMaterial));
+	vibrationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbVibration));
 }
 
 void FunkyShader::Begin(const RenderContext& rc, DrawPass pass)
@@ -34,16 +35,17 @@ void FunkyShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh,
 	pixelShader->Bind(dc);
 	Gpu::GeometryShader::Unbind(dc);
 
-	// 共用頂点シェーダーの振動と、Renderer側の表示モード切り替えに必要なCB
+	CbVibration vibration{};
+	vibration.direction = params ? params->vibrationDirection : Vector3::Zero;
+	vibration.power = params ? params->vibrationPower : 0.0f;
+	vibrationConstantBuffer->Update(dc, &vibration);
+	vibrationConstantBuffer->BindVS(dc, 2);
+
+	// Renderer側の表示モード切り替えに必要なCB
 	CbMaterial material{};
 	// 表示モードの上書き色だけを受け取り、通常の虹描画には使わない
 	material.baseColor = materialParams && materialParams->baseColor
 		? *materialParams->baseColor : Color(1, 1, 1, 1);
-	if (params)
-	{
-		material.vivraDir = params->vibrationDirection;
-		material.vivraPower = params->vibrationPower;
-	}
 	materialConstantBuffer->Update(dc, &material);
 	materialConstantBuffer->BindVS(dc, 1);
 	materialConstantBuffer->BindPS(dc, 1);
@@ -62,7 +64,7 @@ void FunkyShader::End(const RenderContext& rc)
 	Gpu::GeometryShader::Unbind(dc);
 	Gpu::PixelShader::Unbind(dc);
 	Gpu::VertexShader::UnbindInputLayout(dc);
-	Gpu::ConstantBuffer::UnbindVS(dc, 1, 1);
+	Gpu::ConstantBuffer::UnbindVS(dc, 1, 2);
 	Gpu::ConstantBuffer::UnbindPS(dc, 1, 3);
 	rc.graphics->DepthWriteState->Bind(dc);
 	rc.graphics->SolidRasterizerState->Bind(dc);

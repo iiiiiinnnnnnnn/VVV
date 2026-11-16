@@ -25,8 +25,8 @@ void Animator::DrawEditor(bool* pOpen)
             currentAnimatorPath = GetLastPath();
 
         ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
-        const char* windowTitle = "Animator";
-        if (!ImGui::Begin(windowTitle, pOpen,
+
+		if (!ImGui::Begin(JText(u8"アニメーター"), pOpen,
             ImGuiWindowFlags_NoScrollbar |
             ImGuiWindowFlags_NoScrollWithMouse))
         {
@@ -39,8 +39,8 @@ void Animator::DrawEditor(bool* pOpen)
         {
 			std::string path;
 			if (Dialog::OpenFileName(path,
-                JText(u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                JText(u8"Animatorを開く"), "Resources/Animator",
+                JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
+                JText(u8"開く"), "Resources/Animator",
                 Game::Graphics::Instance().GetWindowHandle()) == DialogResult::OK)
             {
                 if (Scene* scene = SceneManager::Instance().GetCurrentScene())
@@ -54,8 +54,8 @@ void Animator::DrawEditor(bool* pOpen)
             {
 				std::string path;
 				if (Dialog::SaveFileName(path,
-                    JText(u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                    JText(u8"Animatorを保存"), "animator", "Resources/Animator",
+                    JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
+                    JText(u8"保存"), "animator", "Resources/Animator",
                     Game::Graphics::Instance().GetWindowHandle()) ==
                     DialogResult::OK)
                 {
@@ -82,8 +82,8 @@ void Animator::DrawEditor(bool* pOpen)
                 ? currentPath.parent_path().string()
                 : std::string("Resources/Animator");
 			if (Dialog::SaveFileName(path,
-                JText(u8"Animatorファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                JText(u8"Animatorに名前を付けて保存"), "animator",
+                JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
+                JText(u8"名前を付けて保存"), "animator",
                 initialDirectory.c_str(),
                 Game::Graphics::Instance().GetWindowHandle()) ==
                 DialogResult::OK)
@@ -107,7 +107,7 @@ void Animator::DrawEditor(bool* pOpen)
             return;
         }
 
-        if (ImGui::BeginTabBar("Layers"))
+        if (ImGui::BeginTabBar(JText(u8"レイヤー")))
         {
             for (int li = 0; li < layerCount; ++li)
             {
@@ -125,7 +125,7 @@ void Animator::DrawEditor(bool* pOpen)
                     bool canRight = (li < layerCount - 1);
 
                     if (!canLeft)  ImGui::BeginDisabled();
-                    if (ImGui::SmallButton("<"))
+                    if (ImGui::Button("<"))
                     {
                         SwapLayers(li, li - 1);
                         if (selectedTransition.layerIndex == li)       selectedTransition.layerIndex = li - 1;
@@ -138,7 +138,7 @@ void Animator::DrawEditor(bool* pOpen)
                     ImGui::SameLine();
 
                     if (!canRight) ImGui::BeginDisabled();
-                    if (ImGui::SmallButton(">"))
+                    if (ImGui::Button(">"))
                     {
                         SwapLayers(li, li + 1);
                         if (selectedTransition.layerIndex == li)       selectedTransition.layerIndex = li + 1;
@@ -723,7 +723,7 @@ void Animator::DrawParameterPanel()
         ImGui::SetNextItemWidth(70.0f);
         ImGui::Combo("##newtype", &newParamType, typeLabels, 4);
         ImGui::SameLine();
-        if (ImGuiToolKit::SmallButton(u8"+ 追加") && !newParamName.empty())
+        if (ImGuiToolKit::Button(u8"+ 追加") && !newParamName.empty())
         {
             switch (newParamType)
             {
@@ -747,7 +747,7 @@ void Animator::DrawParameterPanel()
             ImGui::PushID(name.c_str());
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
-            if (ImGui::SmallButton("x")) toDelete = name;
+            if (ImGui::Button("x")) toDelete = name;
             ImGui::PopStyleColor();
             ImGui::SameLine();
 
@@ -793,7 +793,7 @@ void Animator::DrawParameterPanel()
             ImGui::PushID(("trigger_" + name).c_str());
 
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
-            if (ImGui::SmallButton("x")) toDeleteTrigger = name;
+            if (ImGui::Button("x")) toDeleteTrigger = name;
             ImGui::PopStyleColor();
             ImGui::SameLine();
 
@@ -1285,7 +1285,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
             ImGui::SameLine();
 
-            if (ImGui::SmallButton("x"))
+            if (ImGui::Button("x"))
                 removeIdx = ci;
 
             ImGui::Indent();
@@ -1510,13 +1510,13 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             }
 
             ImGui::SameLine();
-            if (ImGui::SmallButton("^") && ci > 0)
+            if (ImGui::Button("^") && ci > 0)
                 std::swap(tr.conditions[ci], tr.conditions[ci - 1]);
             ImGui::SameLine();
-            if (ImGui::SmallButton("v") && ci < (int)tr.conditions.size() - 1)
+            if (ImGui::Button("v") && ci < (int)tr.conditions.size() - 1)
                 std::swap(tr.conditions[ci], tr.conditions[ci + 1]);
             ImGui::SameLine();
-            if (ImGui::SmallButton("x"))
+            if (ImGui::Button("x"))
             {
                 tr.conditions.erase(tr.conditions.begin() + ci);
                 --ci;

@@ -478,8 +478,8 @@ namespace Game
 			baseVignetteIntensity + runtimeVignetteIntensity;
 		// 暗くする強さは加算し、色はその強さの比率で混ぜる。一時効果だけなら一時効果の色になる
 		const float runtimeBlend = totalIntensity > 0.001f
-			? runtimeVignetteIntensity / totalIntensity
-			: 0.0f;
+									   ? runtimeVignetteIntensity / totalIntensity
+									   : 0.0f;
 
 		CbVignette cb = {};
 		cb.color = {

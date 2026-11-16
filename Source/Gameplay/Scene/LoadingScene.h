@@ -27,7 +27,6 @@ class LoadingScene : public Scene
 	void UpdateLayout();
 	std::shared_ptr<TextWidget> resourceFileIsLoading = nullptr;
 	std::shared_ptr<SpriteWidget> background = nullptr;
-	std::shared_ptr<SpriteWidget> vignetteOverlay = nullptr;
 	std::shared_ptr<SpriteWidget> progressTrack = nullptr;
 	std::shared_ptr<SpriteWidget> progressFill = nullptr;
 	Game::Timer elapsedTime{0.0f};

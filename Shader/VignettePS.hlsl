@@ -1,6 +1,4 @@
-// VignettePS.hlsl
-
-#include "FullScreenQuad.hlsli"
+#include "BasicSprite.hlsli"
 
 cbuffer CbVignette : register(b2)
 {
@@ -15,7 +13,8 @@ cbuffer CbVignette : register(b2)
 
 	float4 tintColor;
 	float tintIntensity;
-	float3 DUMMY2;
+	float spriteMode;
+	float2 DUMMY2;
 };
 
 Texture2D sceneMap : register(t0);
@@ -27,6 +26,11 @@ float4 main(VS_OUT pin) : SV_TARGET
     sceneMap.GetDimensions(sceneMapSize.x, sceneMapSize.y);
 
     float4 sceneColor = sceneMap.Sample(linearSamplerState, pin.texcoord);
+	if (spriteMode > 0.5f)
+	{
+		sceneColor = DecodeSpriteColor(sceneColor);
+		sceneColor.a *= color.a * pin.alpha;
+	}
 	sceneColor.rgb = lerp(
 		sceneColor.rgb,
 		sceneColor.rgb * tintColor.rgb,

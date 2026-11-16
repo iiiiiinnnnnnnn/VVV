@@ -24,4 +24,5 @@ private:
 	};
 	std::unique_ptr<Gpu::ConstantBuffer> rainbowConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> materialConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> vibrationConstantBuffer;
 };

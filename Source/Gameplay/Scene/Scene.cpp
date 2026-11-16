@@ -479,11 +479,11 @@ void Scene::Render()
 			auto* mrc = actor->GetComponent<VMDLModelComponent>();
 			if (mrc && mrc->IsActive())
 			{
-				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel());
+				graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &mrc->GetRenderParams());
 				for (const auto& [slot, meshCache] : mrc->GetMeshCaches())
-					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes());
+					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes(), &mrc->GetRenderParams());
 				for (const auto& [groupIndex, meshCache] : mrc->GetExternalMeshCaches())
-					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes());
+					graphics.GetShadowMapRenderer()->Draw(mrc->GetModel(), &meshCache->GetMeshes(), &mrc->GetRenderParams());
 			}
 
 			auto* terrain = actor->GetComponent<Terrain>();
