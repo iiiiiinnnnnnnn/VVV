@@ -13,7 +13,7 @@ GaugeWidget::GaugeWidget(const std::string& name, const std::string& maskPath, b
 	: DissolveWidget(name, maskPath)
 {
 	SetDissolveAmount(revealOnStart ? 1.0f : 0.0f);
-	SetAffectedByPostProcess(false);
+	SetAffectedByPostProcess(true);
 }
 
 void GaugeWidget::OnAwake()
