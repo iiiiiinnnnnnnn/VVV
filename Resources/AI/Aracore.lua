@@ -42,7 +42,7 @@ local parameters = {
     RecoveryDuration         = 0.35,    -- 攻撃後に休む時間（秒）
 
     -- ジャンプ
-    JumpChance               = 0.2,   -- 休憩後にジャンプを選ぶ確率（0～1）
+    JumpChance               = 0.4,   -- 休憩後にジャンプを選ぶ確率（0～1）
     JumpTakeoffDelay         = 0.65,   -- ジャンプ開始から離陸までの時間（秒）
     JumpDuration             = 2.4,    -- 空中にいる時間（秒）
     JumpHeight               = 15.0,   -- ジャンプの高さ
@@ -52,7 +52,7 @@ local parameters = {
 
     -- 怒り状態・形態変化
     AngryIdleScale           = 0.6,    -- 怒り状態で待ち時間に掛ける倍率
-    AngryJumpChance          = 0.35,    -- 怒り状態でジャンプを選ぶ確率（0～1）
+    AngryJumpChance          = 0.6,    -- 怒り状態でジャンプを選ぶ確率（0～1）
     AngryJumpCount           = 2.0,    -- 怒り状態の連続ジャンプ回数
     AngryTossinCount         = 4.0,    -- 怒り状態の突進回数
     AngryTossinMoveSpeed     = 14.0,
