@@ -49,9 +49,6 @@
     <Filter Include="Animation">
       <UniqueIdentifier>{bec44de4-182a-5342-9af4-1e54aa2fe358}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Audio">
-      <UniqueIdentifier>{e012eb59-b425-4f08-88cd-07c83c835ec1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Application">
       <UniqueIdentifier>{26d30179-1711-5c6f-b1fd-77306bab4640}</UniqueIdentifier>
     </Filter>
@@ -1321,6 +1318,9 @@
     </Filter>
     <Filter Include="Gameplay\Scene\Control">
       <UniqueIdentifier>{569fab35-e730-4a56-bf6e-847143bc68d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{e012eb59-b425-4f08-88cd-07c83c835ec1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
