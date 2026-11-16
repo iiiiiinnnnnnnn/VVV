@@ -721,7 +721,7 @@ void Aracore::OnCollisionEnter(
 		if (otherActor->CompareTag("Player"))
 		{
 			static_cast<Entity*>(otherActor)->TakeDamage({
-				.damage = 10.0f,
+				.damage = 10.0f * (phase.IsAngry() ? 2.0f : 1.0f),
 				.knockBackPower = 10.0f,
 				.attackerCollider = self,
 				.targetCollider = other,
@@ -772,7 +772,7 @@ void Aracore::OnTriggerEnter(
 		if (otherActor->CompareTag("Player"))
 		{
 			static_cast<Entity*>(otherActor)
-				->TakeDamage({.damage = 10.0f,
+				->TakeDamage({.damage = 10.0f * (phase.IsAngry() ? 2.0f : 1.0f),
 					.knockBackPower = 15.0f,
 					.attackerCollider = self,
 					.targetCollider = other,

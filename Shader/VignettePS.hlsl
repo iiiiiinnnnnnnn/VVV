@@ -42,10 +42,10 @@ float4 main(VS_OUT pin) : SV_TARGET
     //  減光をスクリーンに合わすかどうか
     d.x *= lerp(1.0f, sceneMapSize.x / sceneMapSize.y, rounded);
 
-    //  隅の濃さ
-    d = pow(saturate(d), roundness);
+    // 距離に応じてなだらかに濃くし、角で混合率が急に100%になるのを避ける
+    d = pow(d, max(roundness, 0.001f));
 
-    float vignetteFactor = pow(saturate(1.0f - dot(d, d)), smoothness);
+    float vignetteFactor = exp(-dot(d, d) * max(smoothness, 0.0f));
     float vignetteAmount = 1.0f - vignetteFactor;
 
     sceneColor.rgb = lerp(sceneColor.rgb, color.rgb, vignetteAmount);

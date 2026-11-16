@@ -230,8 +230,8 @@ namespace Game
 		std::unique_ptr<Gpu::ConstantBuffer> vignetteConstantBuffer;
 
 		// Chromatic Aberration
-		bool enableChromaticAberration = false;
-		float chromaticAberrationAmount = 0.001f;
+		bool enableChromaticAberration = true;
+		float chromaticAberrationAmount = 0.005f;
 		int chromaticAberrationMaxSamples = 10;
 		Color chromaticAberrationShift[3] = {
 			{1.0f, 0.0f, 0.0f, 0.0f},

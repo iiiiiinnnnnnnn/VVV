@@ -78,17 +78,17 @@ void AfterimageComponent::OnRender(const RenderContext& rc)
 
 void AfterimageComponent::OnDrawGUI()
 {
-	ImGuiToolKit::DragDelayFloat(u8"Capture duration", &captureDuration, 0.01f, 0.01f, 1.0f);
-	ImGui::DragFloat("Capture interval", &captureInterval, 0.005f, 0.01f, 0.25f);
-	ImGuiToolKit::DragDelayFloat(u8"Lifetime", &lifetime, 0.01f, 0.05f, 2.0f);
-	ImGui::DragFloat("Max opacity", &maxOpacity, 0.01f, 0.01f, 0.98f);
-	ImGui::DragFloat("Emissive intensity", &emissiveIntensity, 0.1f, 0.0f, 20.0f);
-	ImGui::DragInt("Max afterimages", &maxAfterimages, 1.0f, 1, 32);
+	ImGuiToolKit::DragDelayFloat(u8"録画長さ", &captureDuration, 0.01f, 0.01f, 1.0f);
+	ImGuiToolKit::DragDelayFloat(u8"録画感覚", &captureInterval, 0.005f, 0.01f, 0.25f);
+	ImGuiToolKit::DragDelayFloat(u8"寿命", &lifetime, 0.01f, 0.05f, 2.0f);
+	ImGui::DragFloat(JText(u8"最大透過度"), &maxOpacity, 0.01f, 0.01f, 0.98f);
+	ImGui::DragFloat(JText(u8"発光強度"), &emissiveIntensity, 0.1f, 0.0f, 20.0f);
+	ImGui::DragInt(JText(u8"最大生成数"), &maxAfterimages, 1.0f, 1, 32);
 	maxAfterimages = std::clamp(maxAfterimages, 1, 32);
-	ImGui::Text("Active: %zu", afterimages.size());
-	if (ImGui::Button("Preview")) Play();
+	ImGui::Text(JText(u8"有効: %zu"), afterimages.size());
+	if (ImGui::Button(JText(u8"再生"))) Play();
 	ImGui::SameLine();
-	if (ImGui::Button("Clear")) Clear();
+	if (ImGui::Button(JText(u8"クリア"))) Clear();
 }
 
 void AfterimageComponent::CapturePose()
@@ -113,7 +113,6 @@ void AfterimageComponent::CapturePose()
 		params.transmission = 0.0f;
 	}
 	UpdateRenderParams(afterimage);
-
 }
 
 void AfterimageComponent::UpdateRenderParams(Afterimage& afterimage) const

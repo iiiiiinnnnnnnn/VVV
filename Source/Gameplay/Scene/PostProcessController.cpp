@@ -30,7 +30,7 @@ void PostProcessController::SetPoisonVignette(bool enabled, Easing::Type easing,
 	poisonVignetteEasing = easing;
 	poisonVignetteDuration = duration;
 	poisonVignetteProgress = duration > 0.0f ? 0.0f : 1.0f;
-	if (duration <= 0.0f) poisonVignetteIntensity = enabled ? 0.7f : 0.0f;
+	if (duration <= 0.0f) poisonVignetteIntensity = enabled ? 0.6f : 0.0f;
 }
 
 void PostProcessController::RequestJustDodge(float duration, float power)
@@ -204,7 +204,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	if (justDodge > 0.001f)
 	{
 		postProcess.AddRuntimeRadialBlur(justDodge * 0.22f);
-		postProcess.AddRuntimeChromaticAberration(justDodge * 1.05f);
+		postProcess.AddRuntimeChromaticAberration(justDodge * 5.25f);
 		postProcess.AddRuntimeVignette(justDodge * 0.32f, {0.05f, 0.48f, 0.95f, 1.0f});
 		postProcess.AddRuntimeColorTint(
 			justDodge * 0.16f, {0.72f, 1.04f, 1.20f, 1.0f});
@@ -223,7 +223,7 @@ void PostProcessController::ApplyTo(Game::PostProcess& postProcess) const
 	{
 		// 無敵期間全体で、青白い縁と色分離を明確に残す。
 		postProcess.AddRuntimeChromaticAberration(
-			invincibilityAuraIntensity * 0.22f);
+			invincibilityAuraIntensity * 2.2f);
 		postProcess.AddRuntimeVignette(
 			invincibilityAuraIntensity * 0.26f, {0.08f, 0.5f, 1.0f, 1.0f});
 	}
