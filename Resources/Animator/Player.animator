@@ -915,7 +915,7 @@
                     "name": "QuickshiftF",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
-                    "speed": 1.25,
+                    "speed": 2.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -994,7 +994,7 @@
                     "name": "QuickshiftB",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
-                    "speed": 1.25,
+                    "speed": 2.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -1073,7 +1073,7 @@
                     "name": "QuickshiftR",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
-                    "speed": 1.25,
+                    "speed": 2.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -1152,7 +1152,7 @@
                     "name": "QuickshiftL",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
-                    "speed": 1.25,
+                    "speed": 2.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -1272,7 +1272,7 @@
                     "name": "SpSkill2Freeze",
                     "playbackEnd": 0.3449999988079071,
                     "playbackStart": 0.0,
-                    "speed": 1.0,
+                    "speed": 1.600000023841858,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -1612,7 +1612,7 @@
                     "name": "SpSkill2Freeze2",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.3449999988079071,
-                    "speed": 1.0,
+                    "speed": 1.399999976158142,
                     "transitions": [
                         {
                             "canInterrupt": false,
