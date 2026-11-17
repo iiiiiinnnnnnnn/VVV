@@ -1612,7 +1612,7 @@
                     "name": "SpSkill2Freeze2",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.3449999988079071,
-                    "speed": 1.399999976158142,
+                    "speed": 1.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
@@ -1635,7 +1635,7 @@
     ],
     "parameters": [
         {
-            "name": "SkillContinue",
+            "name": "IsDead",
             "type": "bool",
             "value": false
         },
@@ -1645,7 +1645,7 @@
             "value": 1
         },
         {
-            "name": "IsDead",
+            "name": "SkillContinue",
             "type": "bool",
             "value": false
         },
@@ -1680,8 +1680,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QR",
         "QB",
+        "QR",
         "QL"
     ]
 }
