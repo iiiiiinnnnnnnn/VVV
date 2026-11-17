@@ -590,6 +590,7 @@ void Player::StartJustDodgeSkill(Actor* target)
 		const float targetYaw = atan2f(direction.x, direction.z);
 		transform.SetRotation(Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f));
 	}
+	cameraController->RequestAlignToPlayerForward();
 	justDodgeTriggered = false;
 	justDodgeSkillTarget = target->weak_from_this();
 	justDodgeSkillActive = true;
