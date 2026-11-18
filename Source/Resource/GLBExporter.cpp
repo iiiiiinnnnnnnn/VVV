@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "Resource/VMDLModel.h"
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Core/Foundation/Json.h"
 #include <DirectXTex.h>
 #include <algorithm>
@@ -84,11 +85,11 @@ bool VMDLModel::ExportGlb(const std::filesystem::path& filepath, std::string* er
 		const auto& glbMaterials = sourceMaterials.empty() ? materials : sourceMaterials;
 		for (const Material& material : glbMaterials)
 		{
-			json pbr = {{"baseColorFactor", {material.baseColor.x, material.baseColor.y,
-				material.baseColor.z, material.baseColor.w}}, {"metallicFactor", material.metalness},
-				{"roughnessFactor", material.roughness}};
-			json output = {{"name", material.name}, {"emissiveFactor", {material.emissiveColor.x,
-				material.emissiveColor.y, material.emissiveColor.z}}, {"alphaMode",
+			const auto& baseColor = material.parameters.Get(PBRParameters::BaseColor);
+			const auto& emissiveColor = material.parameters.Get(PBRParameters::EmissiveColor);
+			json pbr = {{"baseColorFactor", {baseColor.x, baseColor.y, baseColor.z, baseColor.w}}, {"metallicFactor", material.parameters.Get(PBRParameters::Metalness)},
+				{"roughnessFactor", material.parameters.Get(PBRParameters::Roughness)}};
+			json output = {{"name", material.name}, {"emissiveFactor", {emissiveColor.x, emissiveColor.y, emissiveColor.z}}, {"alphaMode",
 				material.alphaMode == AlphaMode::Blend ? "BLEND" : material.alphaMode == AlphaMode::Mask ? "MASK" : "OPAQUE"}};
 			if (material.alphaMode == AlphaMode::Mask) output["alphaCutoff"] = material.alphaCutoff;
 			int texture = addTexture(material.baseTextureDDS);
@@ -106,7 +107,7 @@ bool VMDLModel::ExportGlb(const std::filesystem::path& filepath, std::string* er
 			texture = addTexture(material.emissiveTextureDDS);
 			if (texture >= 0) output["emissiveTexture"] = {{"index", texture}};
 			texture = addTexture(material.occlusionTextureDDS);
-			if (texture >= 0) output["occlusionTexture"] = {{"index", texture}, {"strength", material.occlusionStrength}};
+			if (texture >= 0) output["occlusionTexture"] = {{"index", texture}, {"strength", material.parameters.Get(PBRParameters::OcclusionStrength)}};
 			output["pbrMetallicRoughness"] = pbr;
 			gltf["materials"].push_back(output);
 		}

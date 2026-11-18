@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
 #include <ImGuiToolKit/Utf8.h>
 #include "Rendering/Core/PBRRenderParams.h"
@@ -316,15 +317,15 @@ std::vector<uint8_t> VMDLModel::PackMetalnessRoughnessTexture(const Material& ma
 		return image ? image->pixels[y * image->rowPitch + x * 4 + channel] : fallback;
 	};
 	const auto* output = packed.GetImage(0, 0, 0);
+	const auto roughness = static_cast<uint8_t>(std::clamp(material.parameters.Get(PBRParameters::Roughness), 0.0f, 1.0f) * 255.0f);
+	const auto metalness = static_cast<uint8_t>(std::clamp(material.parameters.Get(PBRParameters::Metalness), 0.0f, 1.0f) * 255.0f);
 	for (size_t y = 0; y < height; ++y)
 		for (size_t x = 0; x < width; ++x)
 		{
 			auto* pixel = output->pixels + y * output->rowPitch + x * 4;
 			pixel[0] = 255;
-			pixel[1] = rough ? sample(2, x, y, 0, 255) : sample(0, x, y, 1,
-				static_cast<uint8_t>(std::clamp(material.roughness, 0.0f, 1.0f) * 255.0f));
-			pixel[2] = metal ? sample(1, x, y, 0, 0) : sample(0, x, y, 2,
-				static_cast<uint8_t>(std::clamp(material.metalness, 0.0f, 1.0f) * 255.0f));
+			pixel[1] = rough ? sample(2, x, y, 0, 255) : sample(0, x, y, 1, roughness);
+			pixel[2] = metal ? sample(1, x, y, 0, 0) : sample(0, x, y, 2, metalness);
 			pixel[3] = 255;
 		}
 	DirectX::Blob blob;
@@ -665,19 +666,19 @@ bool VMDLModel::ResetMaterialToGLB(size_t materialIndex)
 	if (!glbMaterial) return false;
 
 	Material& material = materials[materialIndex];
-	material.baseColor = glbMaterial->baseColor;
-	material.emissiveColor = glbMaterial->emissiveColor;
-	material.metalness = glbMaterial->metalness;
-	material.roughness = glbMaterial->roughness;
-	material.occlusion = glbMaterial->occlusion;
-	material.occlusionStrength = glbMaterial->occlusionStrength;
-	material.shadowStrength = glbMaterial->shadowStrength;
+	material.parameters.Get(PBRParameters::BaseColor) = glbMaterial->parameters.Get(PBRParameters::BaseColor);
+	material.parameters.Get(PBRParameters::EmissiveColor) = glbMaterial->parameters.Get(PBRParameters::EmissiveColor);
+	material.parameters.Get(PBRParameters::Metalness) = glbMaterial->parameters.Get(PBRParameters::Metalness);
+	material.parameters.Get(PBRParameters::Roughness) = glbMaterial->parameters.Get(PBRParameters::Roughness);
+	material.parameters.Get(PBRParameters::Occlusion) = glbMaterial->parameters.Get(PBRParameters::Occlusion);
+	material.parameters.Get(PBRParameters::OcclusionStrength) = glbMaterial->parameters.Get(PBRParameters::OcclusionStrength);
+	material.parameters.Get(PBRParameters::ShadowStrength) = glbMaterial->parameters.Get(PBRParameters::ShadowStrength);
 	material.alphaCutoff = glbMaterial->alphaCutoff;
 	material.alphaMode = glbMaterial->alphaMode;
-	material.fresnelColor = glbMaterial->fresnelColor;
-	material.fresnelPower = glbMaterial->fresnelPower;
-	material.fresnelStrength = glbMaterial->fresnelStrength;
-	material.isFlatShading = glbMaterial->isFlatShading;
+	material.parameters.Get(PBRParameters::FresnelColor) = glbMaterial->parameters.Get(PBRParameters::FresnelColor);
+	material.parameters.Get(PBRParameters::FresnelPower) = glbMaterial->parameters.Get(PBRParameters::FresnelPower);
+	material.parameters.Get(PBRParameters::FresnelStrength) = glbMaterial->parameters.Get(PBRParameters::FresnelStrength);
+	material.parameters.Get(PBRParameters::IsFlatShading) = glbMaterial->parameters.Get(PBRParameters::IsFlatShading);
 	return true;
 }
 
@@ -1324,12 +1325,7 @@ bool VMDLModel::RestoreExternalMeshes(
 		Material restoredMaterial = cache.materials[restored.materialIndex];
 		const Material& currentMaterial = materials[targetMaterialIndex];
 		restoredMaterial.shaderId = currentMaterial.shaderId;
-		restoredMaterial.funkyLineWidth = currentMaterial.funkyLineWidth;
-		restoredMaterial.funkySpeed = currentMaterial.funkySpeed;
-		restoredMaterial.transmission = currentMaterial.transmission;
-		restoredMaterial.indexOfRefraction = currentMaterial.indexOfRefraction;
-		restoredMaterial.refractionDistance = currentMaterial.refractionDistance;
-		restoredMaterial.crystalRoughness = currentMaterial.crystalRoughness;
+		restoredMaterial.parameters = currentMaterial.parameters;
 		materials[targetMaterialIndex] = restoredMaterial;
 		if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
 		sourceMaterials[targetMaterialIndex] = restoredMaterial;
@@ -1393,25 +1389,9 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		Material& target = materials.emplace_back();
 		target.name = source.name;
 		target.shaderId = source.shaderId;
-		target.funkyLineWidth = source.funkyLineWidth;
-		target.funkySpeed = source.funkySpeed;
-		target.baseColor = source.baseColor;
-		target.emissiveColor = source.emissiveColor;
-		target.metalness = source.metalness;
-		target.roughness = source.roughness;
-		target.transmission = source.transmission;
-		target.indexOfRefraction = source.indexOfRefraction;
-		target.refractionDistance = source.refractionDistance;
-		target.crystalRoughness = source.crystalRoughness;
-		target.occlusion = source.occlusion;
-		target.occlusionStrength = source.occlusionStrength;
-		target.shadowStrength = source.shadowStrength;
+		target.parameters = source.parameters;
 		target.alphaCutoff = source.alphaCutoff;
 		target.alphaMode = source.alphaMode;
-		target.fresnelColor = source.fresnelColor;
-		target.fresnelPower = source.fresnelPower;
-		target.fresnelStrength = source.fresnelStrength;
-		target.isFlatShading = source.isFlatShading;
 		target.baseMap = source.baseMap;
 		target.normalMap = source.normalMap;
 		target.emissiveMap = source.emissiveMap;
@@ -2433,7 +2413,8 @@ void VMDLModel::RecordMaterialKey(int animationIndex, int materialIndex, float t
 	}
 	const auto& material = materials[materialIndex];
 	const VmdlMaterialKeyframe value{std::clamp(time, 0.0f, animations[animationIndex].secondsLength),
-		material.baseColor, material.emissiveColor, material.metalness, material.roughness};
+		material.parameters.Get(PBRParameters::BaseColor), material.parameters.Get(PBRParameters::EmissiveColor),
+		material.parameters.Get(PBRParameters::Metalness), material.parameters.Get(PBRParameters::Roughness)};
 	auto key = std::find_if(found->keys.begin(), found->keys.end(),
 		[&](const auto& candidate) { return std::abs(candidate.seconds - value.seconds) < 0.0005f; });
 	if (key == found->keys.end()) found->keys.push_back(value);
@@ -2494,15 +2475,13 @@ std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() co
 	result.reserve(materials.size());
 	for (const Material& material : materials)
 	{
-		result.push_back({material.name, material.baseColor, material.emissiveColor,
-			material.metalness, material.roughness, material.occlusion, material.occlusionStrength,
-			material.shadowStrength, material.alphaCutoff, material.alphaMode,
-			material.fresnelColor, material.fresnelPower, material.fresnelStrength,
-			material.isFlatShading});
-		auto& value = result.back();
+		auto& value = result.emplace_back();
+		value.name = material.name;
+		value.parameters = material.parameters;
+		value.hasParameters = true;
 		value.shaderId = material.shaderId;
-		value.funkyLineWidth = material.funkyLineWidth;
-		value.funkySpeed = material.funkySpeed;
+		value.alphaCutoff = material.alphaCutoff;
+		value.alphaMode = material.alphaMode;
 		value.metalnessTextureFileName = material.metalnessTextureFileName;
 		value.roughnessTextureFileName = material.roughnessTextureFileName;
 		value.metalnessTextureDDS = material.metalnessTextureDDS;
@@ -2529,21 +2508,25 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 		if (found == lookup.end()) continue;
 		const VmdlMaterialData& value = *found->second;
 		material.shaderId = value.shaderId;
-		material.funkyLineWidth = value.funkyLineWidth;
-		material.funkySpeed = value.funkySpeed;
-		material.baseColor = value.baseColor;
-		material.emissiveColor = value.emissiveColor;
-		material.metalness = value.metalness;
-		material.roughness = value.roughness;
-		material.occlusion = value.occlusion;
-		material.occlusionStrength = value.occlusionStrength;
-		material.shadowStrength = value.shadowStrength;
 		material.alphaCutoff = value.alphaCutoff;
 		material.alphaMode = value.alphaMode;
-		material.fresnelColor = value.fresnelColor;
-		material.fresnelPower = value.fresnelPower;
-		material.fresnelStrength = value.fresnelStrength;
-		material.isFlatShading = value.isFlatShading;
+		if (value.hasParameters) material.parameters = value.parameters;
+		else
+		{
+			material.parameters.Get(FunkyParameters::LineWidth) = value.funkyLineWidth;
+			material.parameters.Get(FunkyParameters::Speed) = value.funkySpeed;
+			material.parameters.Get(PBRParameters::BaseColor) = value.baseColor;
+			material.parameters.Get(PBRParameters::EmissiveColor) = value.emissiveColor;
+			material.parameters.Get(PBRParameters::Metalness) = value.metalness;
+			material.parameters.Get(PBRParameters::Roughness) = value.roughness;
+			material.parameters.Get(PBRParameters::Occlusion) = value.occlusion;
+			material.parameters.Get(PBRParameters::OcclusionStrength) = value.occlusionStrength;
+			material.parameters.Get(PBRParameters::ShadowStrength) = value.shadowStrength;
+			material.parameters.Get(PBRParameters::FresnelColor) = value.fresnelColor;
+			material.parameters.Get(PBRParameters::FresnelPower) = value.fresnelPower;
+			material.parameters.Get(PBRParameters::FresnelStrength) = value.fresnelStrength;
+			material.parameters.Get(PBRParameters::IsFlatShading) = value.isFlatShading;
+		}
 		material.metalnessTextureFileName = value.metalnessTextureFileName;
 		material.roughnessTextureFileName = value.roughnessTextureFileName;
 		material.metalnessTextureDDS = value.metalnessTextureDDS;
@@ -2573,10 +2556,10 @@ bool VMDLModel::ReplaceGLBCache(
 		const auto old = std::find_if(materials.begin(), materials.end(),
 			[&](const Material& value) { return value.name == material.name; });
 		if (old == materials.end()) continue;
-		material.transmission = old->transmission;
-		material.indexOfRefraction = old->indexOfRefraction;
-		material.refractionDistance = old->refractionDistance;
-		material.crystalRoughness = old->crystalRoughness;
+		material.parameters.Get(PBRParameters::Transmission) = old->parameters.Get(PBRParameters::Transmission);
+		material.parameters.Get(PBRParameters::IndexOfRefraction) = old->parameters.Get(PBRParameters::IndexOfRefraction);
+		material.parameters.Get(PBRParameters::RefractionDistance) = old->parameters.Get(PBRParameters::RefractionDistance);
+		material.parameters.Get(PBRParameters::CrystalRoughness) = old->parameters.Get(PBRParameters::CrystalRoughness);
 	}
 
 	// VMSHの紐づけをメッシュ番号ではなく安定キーで新GLBへ移す
@@ -2841,11 +2824,6 @@ SerialDocument& VMDLModel::GetSerialDocument()
 		CEREAL_NVP(vmdlTrailData), CEREAL_NVP(vmdlParticleData), CEREAL_NVP(vmdlSoundData),
 		CEREAL_NVP(vmdlLightData), CEREAL_NVP(vmdlPresentationData), CEREAL_NVP(externalMeshGroups),
 		CEREAL_NVP(materialAnimationTracks), CEREAL_NVP(modelScale));
-	json crystal = json::object();
-	for (const auto& material : materials)
-		crystal[material.name] = {{"transmission", material.transmission}, {"ior", material.indexOfRefraction},
-			{"distance", material.refractionDistance}, {"roughness", material.crystalRoughness}};
-	WriteSerialJson(document.root.Field("crystalSettings"), crystal);
 	return document;
 }
 
@@ -2894,12 +2872,14 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 			const auto settings = ReadSerialJson(*crystal);
 			for (auto& material : materials)
 			{
+				if (std::any_of(materialData.begin(), materialData.end(), [&](const auto& item)
+					{ return item.name == material.name && item.hasParameters; })) continue;
 				if (!settings.contains(material.name)) continue;
 				const auto& value = settings.at(material.name);
-				material.transmission = value.value("transmission", 0.0f);
-				material.indexOfRefraction = value.value("ior", 1.45f);
-				material.refractionDistance = value.value("distance", 0.0f);
-				material.crystalRoughness = value.value("roughness", 0.1f);
+				material.parameters.Get(PBRParameters::Transmission) = value.value("transmission", 0.0f);
+				material.parameters.Get(PBRParameters::IndexOfRefraction) = value.value("ior", 1.45f);
+				material.parameters.Get(PBRParameters::RefractionDistance) = value.value("distance", 0.0f);
+				material.parameters.Get(PBRParameters::CrystalRoughness) = value.value("roughness", 0.1f);
 			}
 		}
 		catch (const std::exception& exception) { crystal->error = exception.what(); }
@@ -3231,10 +3211,10 @@ void VMDLModel::LoadGokan(std::istream& fileStream)
 			for (Material& material : materials)
 			{
 				const auto& settings = crystalSettings.at(material.name);
-				material.transmission = std::clamp(settings.at("transmission").get<float>(), 0.0f, 1.0f);
-				material.indexOfRefraction = std::clamp(settings.at("ior").get<float>(), 1.0f, 2.5f);
-				material.refractionDistance = std::clamp(settings.at("distance").get<float>(), 0.0f, 5.0f);
-				material.crystalRoughness = std::clamp(settings.at("roughness").get<float>(), 0.0001f, 1.0f);
+				material.parameters.Get(PBRParameters::Transmission) = std::clamp(settings.at("transmission").get<float>(), 0.0f, 1.0f);
+				material.parameters.Get(PBRParameters::IndexOfRefraction) = std::clamp(settings.at("ior").get<float>(), 1.0f, 2.5f);
+				material.parameters.Get(PBRParameters::RefractionDistance) = std::clamp(settings.at("distance").get<float>(), 0.0f, 5.0f);
+				material.parameters.Get(PBRParameters::CrystalRoughness) = std::clamp(settings.at("roughness").get<float>(), 0.0001f, 1.0f);
 			}
 			SetModelScale(modelScale);
 			NormalizeAttachmentNames();

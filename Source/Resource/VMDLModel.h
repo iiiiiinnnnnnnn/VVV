@@ -3,6 +3,7 @@
 #include <memory>
 #include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/ModelShaderId.h"
+#include "Rendering/Core/MaterialMap.h"
 
 #include "Resource/SerialArchive.h"
 #include <d3d11.h>
@@ -637,13 +638,14 @@ class VMDLModel
 	{
 		std::string name;
 		ModelShaderId shaderId = ModelShaderId::PBR;
-		float funkyLineWidth = 4.0f;
-		float funkySpeed = 30.0f;
+		MaterialMap parameters;
+
 		std::string baseTextureFileName;
 		std::string normalTextureFileName;
 		std::string emissiveTextureFileName;
 		std::string occlusionTextureFileName;
-		// glTF・既存バイナリの入出力用。描画前に個別マップへ分離する。
+
+		// glTF・既存バイナリの入出力用。描画前に個別マップへ分離する
 		std::string metalnessRoughnessTextureFileName;
 		std::string metalnessTextureFileName;
 		std::string roughnessTextureFileName;
@@ -656,24 +658,8 @@ class VMDLModel
 		std::vector<uint8_t> metalnessTextureDDS;
 		std::vector<uint8_t> roughnessTextureDDS;
 
-		Color baseColor = {1, 1, 1, 1};
-		Color emissiveColor = {0, 0, 0, 1};
-		float metalness = 0.0f;
-		float roughness = 0.0f;
-		float transmission = 0.0f;
-		float indexOfRefraction = 1.5f;
-		float refractionDistance = 0.18f;
-		float crystalRoughness = 0.12f;
-		float occlusion = 1.0f;
-		float occlusionStrength = 0.0f;
-		float shadowStrength = 1.0f;
 		float alphaCutoff = 0.5f;
 		AlphaMode alphaMode = AlphaMode::Opaque;
-
-		Color fresnelColor = {1, 1, 1, 0};
-		float fresnelPower = 0.0f;
-		float fresnelStrength = 0.0f;
-		int isFlatShading = false;
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> baseMap;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalMap;
@@ -714,6 +700,9 @@ class VMDLModel
 	// VMDL側で保持するマテリアル調整値
 	struct VmdlMaterialData
 	{
+		// 固定項目は旧形式の読み込み専用。現行形式は parameters に保存する。
+		MaterialMap parameters;
+		bool hasParameters = false;
 		std::string name;
 		Color baseColor = {1, 1, 1, 1};
 		Color emissiveColor = {0, 0, 0, 1};

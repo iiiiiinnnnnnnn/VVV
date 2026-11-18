@@ -1,4 +1,5 @@
-﻿#include <array>
+﻿#include "Rendering/Shader/ModelMaterialParameters.h"
+#include <array>
 #include "Core/Foundation/Logger.h"
 #include <cmath>
 #include <fstream>
@@ -650,16 +651,16 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 	{
 		VMDLModel::Material& material = materials.emplace_back();
 		material.name = gltfMaterial.name;
-		material.baseColor.x = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(0));
-		material.baseColor.y = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(1));
-		material.baseColor.z = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(2));
-		material.baseColor.w = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(3));
-		material.emissiveColor.x = static_cast<float>(gltfMaterial.emissiveFactor.at(0));
-		material.emissiveColor.y = static_cast<float>(gltfMaterial.emissiveFactor.at(1));
-		material.emissiveColor.z = static_cast<float>(gltfMaterial.emissiveFactor.at(2));
-		material.metalness = static_cast<float>(gltfMaterial.pbrMetallicRoughness.metallicFactor);
-		material.roughness = static_cast<float>(gltfMaterial.pbrMetallicRoughness.roughnessFactor);
-		material.occlusionStrength = static_cast<float>(gltfMaterial.occlusionTexture.strength);
+		material.parameters.Get(PBRParameters::BaseColor).x = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(0));
+		material.parameters.Get(PBRParameters::BaseColor).y = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(1));
+		material.parameters.Get(PBRParameters::BaseColor).z = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(2));
+		material.parameters.Get(PBRParameters::BaseColor).w = static_cast<float>(gltfMaterial.pbrMetallicRoughness.baseColorFactor.at(3));
+		material.parameters.Get(PBRParameters::EmissiveColor).x = static_cast<float>(gltfMaterial.emissiveFactor.at(0));
+		material.parameters.Get(PBRParameters::EmissiveColor).y = static_cast<float>(gltfMaterial.emissiveFactor.at(1));
+		material.parameters.Get(PBRParameters::EmissiveColor).z = static_cast<float>(gltfMaterial.emissiveFactor.at(2));
+		material.parameters.Get(PBRParameters::Metalness) = static_cast<float>(gltfMaterial.pbrMetallicRoughness.metallicFactor);
+		material.parameters.Get(PBRParameters::Roughness) = static_cast<float>(gltfMaterial.pbrMetallicRoughness.roughnessFactor);
+		material.parameters.Get(PBRParameters::OcclusionStrength) = static_cast<float>(gltfMaterial.occlusionTexture.strength);
 		material.alphaCutoff = static_cast<float>(gltfMaterial.alphaCutoff);
 		if (gltfMaterial.alphaMode == "BLEND")
 		{

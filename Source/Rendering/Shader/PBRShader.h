@@ -14,6 +14,7 @@ public:
 
 	ModelShaderId GetId() const override { return ModelShaderId::PBR; }
 	const char* GetName() const override { return "PBR"; }
+	const MaterialMap& GetMaterialParameters() const override;
 	bool DrawGUI(VMDLModel::Material& material) override;
 	bool DrawGUI(VMDLModel::VmdlMaterialKeyframe& key) override;
 

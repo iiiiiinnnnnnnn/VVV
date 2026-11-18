@@ -85,6 +85,12 @@ public:
 	explicit SerialInputArchive(SerialNode& node) : node(node) { node.understood = true; }
 	template <class... T> void operator()(T&&... values) { (Process(std::forward<T>(values)), ...); }
 
+	bool HasField(const char* name) const
+	{
+		const auto* field = node.Find(SerialNode::FieldId(name));
+		return field && field->kind != SerialKind::Deleted;
+	}
+
 private:
 	template <class T> void Process(cereal::NameValuePair<T> value)
 	{
