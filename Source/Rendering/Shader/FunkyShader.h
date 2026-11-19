@@ -9,6 +9,7 @@ public:
 
 	ModelShaderId GetId() const override { return ModelShaderId::Funky; }
 	const char* GetName() const override { return "Funky"; }
+	const MaterialMap& GetMaterialParameters() const override;
 	bool DrawGUI(VMDLModel::Material& material) override;
 	void Begin(const RenderContext& rc, DrawPass pass) override;
 	void Update(const RenderContext& rc, const VMDLModel::Mesh& mesh,

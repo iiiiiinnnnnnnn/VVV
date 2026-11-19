@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Core/Foundation/Random.h"
 #include "Core/Foundation/Logger.h"
 #include <ProfileKit/ProfileKit.h>
@@ -889,15 +890,15 @@ void VMDLModelComponent::DrawGUI()
 		{
 			if (ImGui::TreeNode(material.name.c_str()))
 			{
-				ImGui::Text("Base Color: %.3f, %.3f, %.3f, %.3f", material.baseColor.x,
-					material.baseColor.y, material.baseColor.z, material.baseColor.w);
-				ImGui::Text("Emissive Color: %.3f, %.3f, %.3f, %.3f", material.emissiveColor.x,
-					material.emissiveColor.y, material.emissiveColor.z, material.emissiveColor.w);
-				ImGui::Text("Metalness: %.3f", material.metalness);
-				ImGui::Text("Roughness: %.3f", material.roughness);
-				ImGui::Text("Occlusion: %.3f", material.occlusion);
-				ImGui::Text("Occlusion Strength: %.3f", material.occlusionStrength);
-				ImGui::Text("Shadow Strength: %.3f", material.shadowStrength);
+				ImGui::Text("Base Color: %.3f, %.3f, %.3f, %.3f", material.parameters.Get(PBRParameters::BaseColor).x,
+					material.parameters.Get(PBRParameters::BaseColor).y, material.parameters.Get(PBRParameters::BaseColor).z, material.parameters.Get(PBRParameters::BaseColor).w);
+				ImGui::Text("Emissive Color: %.3f, %.3f, %.3f, %.3f", material.parameters.Get(PBRParameters::EmissiveColor).x,
+					material.parameters.Get(PBRParameters::EmissiveColor).y, material.parameters.Get(PBRParameters::EmissiveColor).z, material.parameters.Get(PBRParameters::EmissiveColor).w);
+				ImGui::Text("Metalness: %.3f", material.parameters.Get(PBRParameters::Metalness));
+				ImGui::Text("Roughness: %.3f", material.parameters.Get(PBRParameters::Roughness));
+				ImGui::Text("Occlusion: %.3f", material.parameters.Get(PBRParameters::Occlusion));
+				ImGui::Text("Occlusion Strength: %.3f", material.parameters.Get(PBRParameters::OcclusionStrength));
+				ImGui::Text("Shadow Strength: %.3f", material.parameters.Get(PBRParameters::ShadowStrength));
 
 				const auto it = renderParams.materials.find(material.name);
 				if (it != renderParams.materials.end())

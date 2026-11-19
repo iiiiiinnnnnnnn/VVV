@@ -1,5 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
 #include <ImGuiToolKit/Drag.h>
+#include <ImGuiToolKit/Widgets.h>
 #include "Gameplay/AI/EnemyAI.h"
 
 #include <algorithm>
@@ -15,8 +16,12 @@
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/Navigation/NavMeshAgent.h"
 #include "Rendering/Core/Graphics.h"
+#include "Rendering/Component/VMDLModelComponent.h"
 
 #include "imgui.h"
+
+bool EnemyAI::showSightDebug = false;
+bool EnemyAI::showStateLabel = true;
 
 EnemyAI::EnemyAI(Object* owner, const std::string& path)
 	: LuaScript(owner), initialScriptPath(path)
@@ -45,6 +50,12 @@ EnemyAI::EnemyAI(Object* owner, const std::string& path)
 void EnemyAI::OnAwake()
 {
 	LuaScript::OnAwake();
+	if (const auto* renderer = owner->GetComponent<VMDLModelComponent>())
+	{
+		Vector3 center, size;
+		if (const auto* model = renderer->GetModel(); model && model->GetLocalBounds(center, size))
+			stateLabelOffset = center + Vector3(0.0f, size.y * 0.5f, 0.0f);
+	}
 	if (!HasScriptPath() && !initialScriptPath.empty()) Load(initialScriptPath);
 }
 
@@ -89,9 +100,11 @@ void EnemyAI::OnDisabled()
 	StopMovement();
 }
 
-void EnemyAI::OnRender(const RenderContext&)
+void EnemyAI::OnRender(const RenderContext& rc)
 {
-	if (!showDebug || !showSightDebug) return;
+	if (!showDebug) return;
+	DrawStateLabel(rc);
+	if (!showSightDebug) return;
 
 	const Actor* ownerActor = dynamic_cast<const Actor*>(owner);
 	if (!ownerActor) return;
@@ -439,51 +452,78 @@ void EnemyAI::UpdateSightRay()
 	SetBool("IsTargetVisible", false);
 }
 
+// vstg editorから持ってきた
+void EnemyAI::DrawStateLabel(const RenderContext& rc) const
+{
+	if (!showStateLabel || stateName.empty() || !rc.camera) return;
+	const Transform* transform = owner->GetTransform();
+	if (!transform) return;
+
+	const Vector3 anchor = Vector3::Transform(stateLabelOffset, transform->GetMatrix());
+	const Vector2 viewportSize(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
+	Vector2 screenPosition;
+	if (!WorldToScreen(anchor, rc.camera->GetView() * rc.camera->GetProjection(), viewportSize, screenPosition)) return;
+
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	const ImVec2 textSize = ImGui::CalcTextSize(stateName.c_str());
+	const ImVec2 position(
+		viewport->Pos.x + screenPosition.x - textSize.x * 0.5f,
+		viewport->Pos.y + screenPosition.y - textSize.y - 12.0f);
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList(const_cast<ImGuiViewport*>(viewport));
+	drawList->AddRectFilled({position.x - 5.0f, position.y - 3.0f},
+		{position.x + textSize.x + 5.0f, position.y + textSize.y + 3.0f}, IM_COL32(0, 0, 0, 170), 4.0f);
+	drawList->AddText(position, IM_COL32(255, 255, 255, 255), stateName.c_str());
+}
+
 void EnemyAI::OnDrawGUI()
 {
-	ImGui::Text("Waiting for camera: %s", waitingForCamera ? "true" : "false");
-	ImGui::Text("Lua state: %s", stateName.c_str());
-	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
-	ImGui::Text("Locked Target: %s", lockedTarget ? lockedTarget->GetName().c_str() : "None");
-	ImGui::Text("Target Distance: %.2f", GetFloat("TargetDistance"));
-	ImGui::Text("In Search Range: %s", GetBool("IsTargetInSearchRange") ? "true" : "false");
-	ImGui::Text("In Lost Range: %s", GetBool("IsTargetInLostRange") ? "true" : "false");
-	ImGui::Text("In Sight Angle: %s", GetBool("IsTargetInSightAngle") ? "true" : "false");
-	ImGui::Text("Target Visible: %s", GetBool("IsTargetVisible") ? "true" : "false");
-	ImGui::Text("Has Destination: %s", GetBool("HasDestination") ? "true" : "false");
+	ImGuiToolKit::Checkbox(u8"視界のデバッグ表示", &showSightDebug);
+	ImGuiToolKit::Checkbox(u8"頭上に状態名を表示", &showStateLabel);
+	ImGui::Separator();
+	ImGui::Text(JText(u8"カメラに映るまで待機: %s"), waitingForCamera ? JText(u8"はい") : JText(u8"いいえ"));
+	ImGui::Text(JText(u8"現在の状態: %s"), stateName.c_str());
+	ImGui::Text(JText(u8"ターゲット: %s"), target ? target->GetName().c_str() : JText(u8"なし"));
+	ImGui::Text(JText(u8"固定ターゲット: %s"), lockedTarget ? lockedTarget->GetName().c_str() : JText(u8"なし"));
+	ImGui::Text(JText(u8"ターゲットまでの距離: %.2f"), GetFloat("TargetDistance"));
+	ImGui::Text(JText(u8"索敵範囲内: %s"), GetBool("IsTargetInSearchRange") ? JText(u8"はい") : JText(u8"いいえ"));
+	ImGui::Text(JText(u8"追跡範囲内: %s"), GetBool("IsTargetInLostRange") ? JText(u8"はい") : JText(u8"いいえ"));
+	ImGui::Text(JText(u8"視野角内: %s"), GetBool("IsTargetInSightAngle") ? JText(u8"はい") : JText(u8"いいえ"));
+	ImGui::Text(JText(u8"ターゲットを視認: %s"), GetBool("IsTargetVisible") ? JText(u8"はい") : JText(u8"いいえ"));
+	ImGui::Text(JText(u8"移動先あり: %s"), GetBool("HasDestination") ? JText(u8"はい") : JText(u8"いいえ"));
 	ImGui::Text(
-		"Turning: %s (%.1f deg)", GetBool("IsTurning") ? "true" : "false", GetFloat("TurnAngle"));
+		JText(u8"旋回中: %s (%.1f 度)"), GetBool("IsTurning") ? JText(u8"はい") : JText(u8"いいえ"), GetFloat("TurnAngle"));
 	ImGui::Text(
-		"NavMesh: %s", navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : "Not cached yet");
-	ImGui::Text("Move Speed: %.2f", navMeshAgent ? navMeshAgent->GetMoveAmount() : 0.0f);
-	ImGui::Checkbox("Show Sight Debug", &showSightDebug);
+		JText(u8"ナビメッシュ: %s"), navMeshAgent ? navMeshAgent->GetStatusMessage().c_str() : JText(u8"未取得"));
+	ImGui::Text(JText(u8"移動速度: %.2f"), navMeshAgent ? navMeshAgent->GetMoveAmount() : 0.0f);
+	if (showStateLabel)
+		ImGuiToolKit::DragFloat(u8"状態名の表示高さ", &stateLabelOffset.y, 0.1f);
 
 	float searchRange = GetFloat("SearchRange", 20.0f);
-	if (ImGui::DragFloat("Search Range", &searchRange, 0.25f, 0.0f, 1000.0f))
+	if (ImGuiToolKit::DragFloat(u8"索敵距離", &searchRange, 0.25f, 0.0f, 1000.0f))
 		SetSearchRange(searchRange);
 	float lostRange = GetFloat("LostRange", searchRange * 1.5f);
-	if (ImGui::DragFloat("Lost Range", &lostRange, 0.25f, searchRange, 1000.0f))
+	if (ImGuiToolKit::DragFloat(u8"追跡解除距離", &lostRange, 0.25f, searchRange, 1000.0f))
 	{
 		SetLostRange(lostRange);
 	}
 	float sightRayLength = GetFloat("SightRayLength", 30.0f);
-	if (ImGui::DragFloat("Sight Ray Length", &sightRayLength, 0.25f, 0.0f, 1000.0f))
+	if (ImGuiToolKit::DragFloat(u8"視線の長さ", &sightRayLength, 0.25f, 0.0f, 1000.0f))
 		SetFloat("SightRayLength", std::max(sightRayLength, 0.0f));
 	float sightRayHeight = GetFloat("SightRayHeight", 1.0f);
-	if (ImGui::DragFloat("Sight Ray Height", &sightRayHeight, 0.05f, 0.0f, 100.0f))
+	if (ImGuiToolKit::DragFloat(u8"視線の開始高さ", &sightRayHeight, 0.05f, 0.0f, 100.0f))
 		SetFloat("SightRayHeight", std::max(sightRayHeight, 0.0f));
 	float sightTargetHeight = GetFloat("SightTargetHeight", 1.0f);
-	if (ImGui::DragFloat("Sight Target Height", &sightTargetHeight, 0.05f, 0.0f, 100.0f))
+	if (ImGuiToolKit::DragFloat(u8"視線の対象高さ", &sightTargetHeight, 0.05f, 0.0f, 100.0f))
 		SetFloat("SightTargetHeight", std::max(sightTargetHeight, 0.0f));
 	float horizontalFov = GetFloat("SightHorizontalFov", 90.0f);
-	if (ImGuiToolKit::DragRotFloat(u8"Sight Horizontal FOV", &horizontalFov, 0.5f, 1.0f, 179.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"水平視野角", &horizontalFov, 0.5f, 1.0f, 179.0f))
 		SetFloat("SightHorizontalFov", std::clamp(horizontalFov, 1.0f, 179.0f));
 	float verticalFov = GetFloat("SightVerticalFov", 60.0f);
-	if (ImGuiToolKit::DragRotFloat(u8"Sight Vertical FOV", &verticalFov, 0.5f, 1.0f, 179.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"垂直視野角", &verticalFov, 0.5f, 1.0f, 179.0f))
 		SetFloat("SightVerticalFov", std::clamp(verticalFov, 1.0f, 179.0f));
-	ImGuiToolKit::DragSpeedFloat(u8"Tracking Turn Speed", &trackingTurnSpeed, 0.1f, 0.0f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat(u8"追従時の旋回速度", &trackingTurnSpeed, 0.1f, 0.0f, 30.0f);
 	float turnThreshold = GetFloat("TurnThreshold", 15.0f);
-	if (ImGuiToolKit::DragRotFloat(u8"Turn Threshold", &turnThreshold, 0.5f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat(u8"旋回開始角度", &turnThreshold, 0.5f, 0.0f, 180.0f))
 		SetFloat("TurnThreshold", std::max(turnThreshold, 0.0f));
 }
 

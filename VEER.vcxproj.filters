@@ -905,6 +905,12 @@
     <ClInclude Include="Source\Rendering\Core\PBRRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Rendering\Core\MaterialMap.h">
+      <Filter>Rendering\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Shader\ModelMaterialParameters.h">
+      <Filter>Rendering\Shader</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h">
       <Filter>Rendering\Core</Filter>
     </ClInclude>

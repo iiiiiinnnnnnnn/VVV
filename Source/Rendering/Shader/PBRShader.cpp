@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Resource/ResourceManager.h"
 #include <ImGuiToolKit/Widgets.h>
 #include <ImGuiToolKit/Color.h>
@@ -66,7 +67,7 @@ void PBRShader::Update(
 	ID3D11DeviceContext* dc = rc.deviceContext;
 	pixelShader->Bind(dc);
 	const float transmission = std::clamp(materialParams && materialParams->transmission
-		? *materialParams->transmission : mesh.material->transmission, 0.0f, 1.0f);
+		? *materialParams->transmission : mesh.material->parameters.Get(PBRParameters::Transmission), 0.0f, 1.0f);
 
 	// シャドウCB更新
 	{
@@ -102,7 +103,7 @@ void PBRShader::Update(
 		// Base Color
 		cb.baseColor = materialParams && materialParams->baseColor
 			? *materialParams->baseColor
-			: mesh.material->baseColor;
+			: mesh.material->parameters.Get(PBRParameters::BaseColor);
 		if (params) cb.baseColor *= params->baseColorTint;
 		cb.useBaseColorTexture = materialParams && materialParams->useBaseColorTexture
 			? (*materialParams->useBaseColorTexture ? 1 : 0)
@@ -112,14 +113,14 @@ void PBRShader::Update(
 		cb.metalness = std::clamp(
 			materialParams && materialParams->metalness
 				? *materialParams->metalness
-				: mesh.material->metalness,
+				: mesh.material->parameters.Get(PBRParameters::Metalness),
 			0.0f,
 			1.0f);
 		cb.useMetalnessTexture = mesh.material->hasMetalnessTexture && !(materialParams && materialParams->metalness) ? 1 : 0;
 		cb.roughness = std::clamp(
 			materialParams && materialParams->roughness
 				? *materialParams->roughness
-				: mesh.material->roughness,
+				: mesh.material->parameters.Get(PBRParameters::Roughness),
 			0.0001f,
 			1.0f);
 		cb.useRoughnessTexture = mesh.material->hasRoughnessTexture && !(materialParams && materialParams->roughness) ? 1 : 0;
@@ -129,20 +130,20 @@ void PBRShader::Update(
 		cb.occlusion = std::clamp(
 			materialParams && materialParams->occlusion
 				? *materialParams->occlusion
-				: mesh.material->occlusion,
+				: mesh.material->parameters.Get(PBRParameters::Occlusion),
 			0.0f,
 			1.0f);
 		cb.occlusionStrength = std::clamp(
 			materialParams && materialParams->occlusionStrength
 				? *materialParams->occlusionStrength
-				: mesh.material->occlusionStrength,
+				: mesh.material->parameters.Get(PBRParameters::OcclusionStrength),
 			0.0f,
 			1.0f);
 		cb.useOcclusionTexture = hasOcclusionTexture && !(materialParams && materialParams->occlusion) ? 1 : 0;
 
 		// Emissive
 		const bool hasEmissiveTexture = mesh.material->hasEmissiveTexture;
-		cb.emissiveColor = mesh.material->emissiveColor;
+		cb.emissiveColor = mesh.material->parameters.Get(PBRParameters::EmissiveColor);
 		cb.emissionColor = materialParams && materialParams->emissionColor
 			? *materialParams->emissionColor
 			: Color(0, 0, 0, 0);
@@ -151,40 +152,40 @@ void PBRShader::Update(
 		// Fresnel
 		cb.fresnelColor = materialParams && materialParams->fresnelColor
 			? *materialParams->fresnelColor
-			: mesh.material->fresnelColor;
+			: mesh.material->parameters.Get(PBRParameters::FresnelColor);
 		cb.fresnelPower = std::max(
 			materialParams && materialParams->fresnelPower
 				? *materialParams->fresnelPower
-				: mesh.material->fresnelPower,
+				: mesh.material->parameters.Get(PBRParameters::FresnelPower),
 			0.0001f);
 		cb.fresnelStrength = std::max(
 			materialParams && materialParams->fresnelStrength
 				? *materialParams->fresnelStrength
-				: mesh.material->fresnelStrength,
+				: mesh.material->parameters.Get(PBRParameters::FresnelStrength),
 			0.0f);
 
 		// 1.0 = 通常の影  0.0 = 影がかなり付きにくい
 		cb.shadowStrength = std::clamp(
 			materialParams && materialParams->shadowStrength
 				? *materialParams->shadowStrength
-				: mesh.material->shadowStrength,
+				: mesh.material->parameters.Get(PBRParameters::ShadowStrength),
 			0.0f,
 			1.0f);
 
 		// FlatShading
 		const bool isFlatShading = materialParams && materialParams->isFlatShading
 			? *materialParams->isFlatShading
-			: mesh.material->isFlatShading != 0;
+			: mesh.material->parameters.Get(PBRParameters::IsFlatShading) != 0;
 		cb.isFlatShading = isFlatShading ? 1 : 0;
 
 		// 定数バッファ更新
 		cb.transmission = transmission;
-		cb.indexOfRefraction = std::clamp(mesh.material->indexOfRefraction, 1.0f, 2.5f);
-		cb.refractionDistance = std::clamp(mesh.material->refractionDistance, 0.0f, 5.0f);
+		cb.indexOfRefraction = std::clamp(mesh.material->parameters.Get(PBRParameters::IndexOfRefraction), 1.0f, 2.5f);
+		cb.refractionDistance = std::clamp(mesh.material->parameters.Get(PBRParameters::RefractionDistance), 0.0f, 5.0f);
 		if (cb.transmission > 0.0f)
 		{
 			cb.metalness = 0.0f;
-			cb.roughness = std::clamp(mesh.material->crystalRoughness, 0.0001f, 1.0f);
+			cb.roughness = std::clamp(mesh.material->parameters.Get(PBRParameters::CrystalRoughness), 0.0001f, 1.0f);
 			cb.useMetalnessTexture = 0;
 			cb.useRoughnessTexture = 0;
 			cb.occlusionStrength = 0.0f;
@@ -197,7 +198,7 @@ void PBRShader::Update(
 	// フラットシェーディング(vmdl内でreflection使うと強制的にonになります)
 	const bool isFlatShading = materialParams && materialParams->isFlatShading
 		? *materialParams->isFlatShading
-		: mesh.material->isFlatShading != 0;
+		: mesh.material->parameters.Get(PBRParameters::IsFlatShading) != 0;
 	const bool useGeometryShader = isFlatShading || transmission > 0.0f;
 
 	// CBセット
@@ -255,39 +256,46 @@ void PBRShader::End(const RenderContext& rc)
 	rc.graphics->SolidRasterizerState->Bind(dc);
 }
 
+const MaterialMap& PBRShader::GetMaterialParameters() const
+{
+	static const MaterialMap parameters = PBRParameters::Defaults();
+	return parameters;
+}
+
 bool PBRShader::DrawGUI(VMDLModel::Material& material)
 {
+	material.parameters.ApplyDefaults(GetMaterialParameters());
 	bool changed = false;
 	// PBRパラメーター
 	ImGuiToolKit::SeparatorText(u8"PBRシェーダー");
-	changed |= ImGuiToolKit::ColorEdit4(u8"基本色", &material.baseColor.x);
-	changed |= ImGuiToolKit::ColorEdit4(u8"発光色", &material.emissiveColor.x,
+	changed |= ImGuiToolKit::ColorEdit4(u8"基本色", &material.parameters.Get(PBRParameters::BaseColor).x);
+	changed |= ImGuiToolKit::ColorEdit4(u8"発光色", &material.parameters.Get(PBRParameters::EmissiveColor).x,
 		ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 	ImGui::SetNextItemWidth(240.0f);
-	changed |= ImGuiToolKit::SliderFloat(u8"メタリック", &material.metalness, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"メタリック", &material.parameters.Get(PBRParameters::Metalness), 0.0f, 1.0f);
 	ImGui::SetNextItemWidth(240.0f);
-	changed |= ImGuiToolKit::SliderFloat(u8"ラフネス", &material.roughness, 0.0001f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"ラフネス", &material.parameters.Get(PBRParameters::Roughness), 0.0001f, 1.0f);
 	ImGui::SetNextItemWidth(240.0f);
-	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン", &material.occlusion, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン", &material.parameters.Get(PBRParameters::Occlusion), 0.0f, 1.0f);
 	ImGui::SetNextItemWidth(240.0f);
-	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン強度", &material.occlusionStrength, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"オクルージョン強度", &material.parameters.Get(PBRParameters::OcclusionStrength), 0.0f, 1.0f);
 	ImGui::SetNextItemWidth(240.0f);
-	changed |= ImGuiToolKit::SliderFloat(u8"影の強度", &material.shadowStrength, 0.0f, 1.0f);
+	changed |= ImGuiToolKit::SliderFloat(u8"影の強度", &material.parameters.Get(PBRParameters::ShadowStrength), 0.0f, 1.0f);
 
 	ImGuiToolKit::SeparatorText(u8"リフレクション");
-	bool crystalEnabled = material.transmission > 0.0f;
+	bool crystalEnabled = material.parameters.Get(PBRParameters::Transmission) > 0.0f;
 	if (ImGuiToolKit::Checkbox(u8"リフレクション", &crystalEnabled))
 	{
-		material.transmission = crystalEnabled ? 0.88f : 0.0f;
+		material.parameters.Get(PBRParameters::Transmission) = crystalEnabled ? 0.88f : 0.0f;
 		changed = true;
 	}
 	if (crystalEnabled)
 	{
-		changed |= ImGuiToolKit::SliderFloat(u8"透過率", &material.transmission, 0.001f, 1.0f);
-		changed |= ImGuiToolKit::SliderFloat(u8"屈折率", &material.indexOfRefraction, 1.0f, 2.5f);
-		changed |= ImGuiToolKit::DragFloat(u8"屈折の距離", &material.refractionDistance,
+		changed |= ImGuiToolKit::SliderFloat(u8"透過率", &material.parameters.Get(PBRParameters::Transmission), 0.001f, 1.0f);
+		changed |= ImGuiToolKit::SliderFloat(u8"屈折率", &material.parameters.Get(PBRParameters::IndexOfRefraction), 1.0f, 2.5f);
+		changed |= ImGuiToolKit::DragFloat(u8"屈折の距離", &material.parameters.Get(PBRParameters::RefractionDistance),
 			0.005f, 0.0f, 5.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		changed |= ImGuiToolKit::SliderFloat(u8"リフレクションのラフネス", &material.crystalRoughness, 0.0001f, 1.0f);
+		changed |= ImGuiToolKit::SliderFloat(u8"リフレクションのラフネス", &material.parameters.Get(PBRParameters::CrystalRoughness), 0.0001f, 1.0f);
 	}
 
 	const char* alphaModes[] = {

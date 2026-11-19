@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Rendering/Shader/FunkyShader.h"
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
@@ -51,8 +52,8 @@ void FunkyShader::Update(const RenderContext& rc, const VMDLModel::Mesh& mesh,
 	materialConstantBuffer->BindPS(dc, 1);
 
 	CbRainbowData rainbow{};
-	rainbow.lineWidth = std::max(mesh.material->funkyLineWidth, 0.001f);
-	rainbow.speed = mesh.material->funkySpeed;
+	rainbow.lineWidth = std::max(mesh.material->parameters.Get(FunkyParameters::LineWidth), 0.001f);
+	rainbow.speed = mesh.material->parameters.Get(FunkyParameters::Speed);
 	rainbowConstantBuffer->Update(dc, &rainbow);
 	rainbowConstantBuffer->BindPS(dc, 2);
 }
@@ -70,15 +71,22 @@ void FunkyShader::End(const RenderContext& rc)
 	rc.graphics->SolidRasterizerState->Bind(dc);
 }
 
+const MaterialMap& FunkyShader::GetMaterialParameters() const
+{
+	static const MaterialMap parameters = FunkyParameters::Defaults();
+	return parameters;
+}
+
 bool FunkyShader::DrawGUI(VMDLModel::Material& material)
 {
+	material.parameters.ApplyDefaults(GetMaterialParameters());
 	ImGuiToolKit::SeparatorText(u8"Funkyシェーダー");
 	
 	ImGui::PushItemWidth(240.0f);
 
-	bool changed = ImGuiToolKit::DragSizeFloat(u8"縞の幅", &material.funkyLineWidth,
+	bool changed = ImGuiToolKit::DragSizeFloat(u8"縞の幅", &material.parameters.Get(FunkyParameters::LineWidth),
 		0.05f, 0.001f, 10000.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-	changed |= ImGuiToolKit::DragSpeedFloat(u8"移動速度", &material.funkySpeed,
+	changed |= ImGuiToolKit::DragSpeedFloat(u8"移動速度", &material.parameters.Get(FunkyParameters::Speed),
 		0.1f, -1000.0f, 1000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"0で停止、負の値で逆方向に流れます");
 	

@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Resource/MeshCache.h"
 
 #include "Rendering/Core/Graphics.h"
@@ -30,25 +31,9 @@ void MeshCache::SyncMaterialsFrom(const VMDLModel& source)
 		if (found == sourceMaterials.end()) continue;
 
 		target.shaderId = found->shaderId;
-		target.funkyLineWidth = found->funkyLineWidth;
-		target.funkySpeed = found->funkySpeed;
-		target.baseColor = found->baseColor;
-		target.emissiveColor = found->emissiveColor;
-		target.metalness = found->metalness;
-		target.roughness = found->roughness;
-		target.transmission = found->transmission;
-		target.indexOfRefraction = found->indexOfRefraction;
-		target.refractionDistance = found->refractionDistance;
-		target.crystalRoughness = found->crystalRoughness;
-		target.occlusion = found->occlusion;
-		target.occlusionStrength = found->occlusionStrength;
-		target.shadowStrength = found->shadowStrength;
+		target.parameters = found->parameters;
 		target.alphaCutoff = found->alphaCutoff;
 		target.alphaMode = found->alphaMode;
-		target.fresnelColor = found->fresnelColor;
-		target.fresnelPower = found->fresnelPower;
-		target.fresnelStrength = found->fresnelStrength;
-		target.isFlatShading = found->isFlatShading;
 		target.baseMap = found->baseMap;
 		target.normalMap = found->normalMap;
 		target.emissiveMap = found->emissiveMap;
@@ -83,7 +68,7 @@ MeshCache::MeshCache(
 	input.read(reinterpret_cast<char*>(&sourceSize), sizeof(sourceSize));
 	input.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
 	static constexpr std::array<char, 8> expected = {'M', 'E', 'S', 'H', 'C', 'C', 'H', '\0'};
-	if (!input || magic != expected || version != 1 || sourceSize == 0 ||
+	if (!input || magic != expected || (version != 1 && version != 2) || sourceSize == 0 ||
 		sourceSize > std::numeric_limits<uint32_t>::max() || compressedSize == 0)
 		throw std::runtime_error("Invalid MeshCache header");
 	std::vector<uint8_t> compressedData(static_cast<size_t>(compressedSize));
@@ -115,7 +100,21 @@ MeshCache::MeshCache(
 		std::ios::binary | std::ios::in);
 	{
 		cereal::BinaryInputArchive archive(stream);
-		archive(materials, meshes, meshNodeNames, boneNodeNames, pbrSettings, vmatSettings);
+		archive(materials, meshes, meshNodeNames, boneNodeNames);
+		if (version == 1) archive(pbrSettings, vmatSettings);
+		else
+		{
+			std::vector<MaterialMap> parameters;
+			std::vector<ModelShaderId> shaderIds;
+			archive(parameters, shaderIds);
+			if (parameters.size() != materials.size() || shaderIds.size() != materials.size())
+				throw std::runtime_error("MeshCache material data is invalid.");
+			for (size_t i = 0; i < materials.size(); ++i)
+			{
+				materials[i].parameters = std::move(parameters[i]);
+				materials[i].shaderId = shaderIds[i];
+			}
+		}
 	}
 	if (meshes.size() != meshNodeNames.size() || meshes.size() != boneNodeNames.size())
 		throw std::runtime_error("MeshCache binding data is invalid");
@@ -123,15 +122,15 @@ MeshCache::MeshCache(
 	{
 		if (i < pbrSettings.size())
 		{
-			materials[i].occlusion = pbrSettings[i].occlusion;
-			materials[i].shadowStrength = pbrSettings[i].shadowStrength;
+			materials[i].parameters.Get(PBRParameters::Occlusion) = pbrSettings[i].occlusion;
+			materials[i].parameters.Get(PBRParameters::ShadowStrength) = pbrSettings[i].shadowStrength;
 		}
 		if (i < vmatSettings.size())
 		{
-			materials[i].fresnelColor = vmatSettings[i].fresnelColor;
-			materials[i].fresnelPower = vmatSettings[i].fresnelPower;
-			materials[i].fresnelStrength = vmatSettings[i].fresnelStrength;
-			materials[i].isFlatShading = vmatSettings[i].isFlatShading;
+			materials[i].parameters.Get(PBRParameters::FresnelColor) = vmatSettings[i].fresnelColor;
+			materials[i].parameters.Get(PBRParameters::FresnelPower) = vmatSettings[i].fresnelPower;
+			materials[i].parameters.Get(PBRParameters::FresnelStrength) = vmatSettings[i].fresnelStrength;
+			materials[i].parameters.Get(PBRParameters::IsFlatShading) = vmatSettings[i].isFlatShading;
 		}
 	}
 
@@ -242,8 +241,8 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 		std::vector<VMDLModel::Mesh> cacheMeshes;
 		std::vector<std::string> meshNodeNames;
 		std::vector<std::vector<std::string>> boneNodeNames;
-		std::vector<VMDLModel::MaterialPbrSettings> pbrSettings;
-		std::vector<VMDLModel::MaterialVMatSettings> vmatSettings;
+		std::vector<MaterialMap> parameters;
+		std::vector<ModelShaderId> shaderIds;
 		std::unordered_map<int, int> materialRemap;
 		cacheMeshes.reserve(meshIndices.size());
 		meshNodeNames.reserve(meshIndices.size());
@@ -302,9 +301,8 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 					cacheMaterial.metalnessRoughnessTextureFileName = "PackedMetalnessRoughness.dds";
 				}
 				cacheMaterials.push_back(std::move(cacheMaterial));
-				pbrSettings.push_back({material.occlusion, material.shadowStrength});
-				vmatSettings.push_back({material.fresnelColor, material.fresnelPower,
-					material.fresnelStrength, material.isFlatShading});
+				parameters.push_back(material.parameters);
+				shaderIds.push_back(material.shaderId);
 			}
 
 			VMDLModel::Mesh mesh = sourceMesh;
@@ -330,8 +328,7 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 		std::ostringstream sourceStream(std::ios::binary | std::ios::out);
 		{
 			cereal::BinaryOutputArchive archive(sourceStream);
-			archive(cacheMaterials, cacheMeshes, meshNodeNames, boneNodeNames, pbrSettings,
-				vmatSettings);
+			archive(cacheMaterials, cacheMeshes, meshNodeNames, boneNodeNames, parameters, shaderIds);
 		}
 		const std::string sourceData = sourceStream.str();
 		if (sourceData.empty() || sourceData.size() > std::numeric_limits<uint32_t>::max())
@@ -361,7 +358,7 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 		std::ofstream output(filepath, std::ios::binary | std::ios::trunc);
 		if (!output) throw std::runtime_error("MeshCache output could not be opened.");
 		static constexpr std::array<char, 8> magic = {'M', 'E', 'S', 'H', 'C', 'C', 'H', '\0'};
-		const uint32_t version = 1;
+		const uint32_t version = 2;
 		const uint64_t sourceSize = sourceData.size();
 		const uint64_t storedCompressedSize = compressedData.size();
 		output.write(magic.data(), magic.size());

@@ -336,6 +336,8 @@
     <ClInclude Include="Source\Rendering\Core\SpriteRenderParams.h" />
     <ClInclude Include="Source\Rendering\Core\ModelShaderId.h" />
     <ClInclude Include="Source\Rendering\Core\PBRRenderParams.h" />
+    <ClInclude Include="Source\Rendering\Core\MaterialMap.h" />
+    <ClInclude Include="Source\Rendering\Shader\ModelMaterialParameters.h" />
     <ClInclude Include="Source\Gameplay\Scene\Scene.h" />
     <ClInclude Include="Source\Rendering\Shader\Shader.h" />
     <ClInclude Include="Source\Rendering\Renderer\ShadowMapRenderer.h" />

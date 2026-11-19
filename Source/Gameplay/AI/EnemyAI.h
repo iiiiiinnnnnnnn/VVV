@@ -56,6 +56,7 @@ private:
 	void UpdateTurnSensors(bool hasTarget);
 	void UpdateSightRay();
 	bool IsVisibleToCamera() const;
+	void DrawStateLabel(const RenderContext& rc) const;
 
 	std::unordered_map<std::string, bool> bools;
 	std::unordered_map<std::string, float> floats;
@@ -71,7 +72,9 @@ private:
 	Vector3 sightRayEnd = Vector3::Zero;
 	bool sightRayHit = false;
 	bool movementLocked = false;
-	bool showSightDebug = true;
+	static bool showSightDebug;
+	static bool showStateLabel;
+	Vector3 stateLabelOffset = {0.0f, 3.0f, 0.0f};
 	bool waitingForCamera = false;
 	Vector3 cameraActivationCenter = Vector3::Zero;
 	float cameraActivationRadius = 0.0f;

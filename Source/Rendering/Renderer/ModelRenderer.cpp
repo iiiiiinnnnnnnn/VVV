@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
 #include "Resource/Texture.h"
 #include "Rendering/Core/Graphics.h"
@@ -178,7 +179,7 @@ void ModelRenderer::Render(const RenderContext& rc)
 			else
 			{
 				const float transmission = materialParams && materialParams->transmission
-					? *materialParams->transmission : mesh.material->transmission;
+					? *materialParams->transmission : mesh.material->parameters.Get(PBRParameters::Transmission);
 				(pass == DrawPass::Transparent && transmission > 0.0f
 					? *rc.graphics->BackCullRasterizerState : *rc.graphics->SolidRasterizerState).Bind(dc);
 			}
@@ -217,8 +218,8 @@ void ModelRenderer::Render(const RenderContext& rc)
 			if (!shader) continue;
 
 			// 半透明メッシュ登録
-			float w = mesh.material->baseColor.w;
-			float transmission = mesh.material->transmission;
+			float w = mesh.material->parameters.Get(PBRParameters::BaseColor).w;
+			float transmission = mesh.material->parameters.Get(PBRParameters::Transmission);
 			if (drawInfo.params)
 			{
 				const auto it = drawInfo.params->materials.find(mesh.material->name);

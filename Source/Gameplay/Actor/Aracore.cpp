@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
 #include <ImGuiToolKit/Widgets.h>
 #include <ImGuiToolKit/Drag.h>
@@ -603,8 +604,8 @@ void Aracore::UpdateAngryColor()
 	// 現在の色から怒り色へ、フレーム時間に依存せず滑らかに近づける。
 	for (auto& material : model->GetMaterials())
 	{
-		material.baseColor = Color::Lerp(material.baseColor, angryBaseColor, blend);
-		material.emissiveColor = Color::Lerp(material.emissiveColor, angryEmisColor, blend);
+		material.parameters.Get(PBRParameters::BaseColor) = Color::Lerp(material.parameters.Get(PBRParameters::BaseColor), angryBaseColor, blend);
+		material.parameters.Get(PBRParameters::EmissiveColor) = Color::Lerp(material.parameters.Get(PBRParameters::EmissiveColor), angryEmisColor, blend);
 	}
 }
 

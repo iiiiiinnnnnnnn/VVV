@@ -1,5 +1,6 @@
 // VMDLModelSerialize.cpp
 #include "Resource/VMDLModel.h"
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
@@ -14,6 +15,12 @@ template <class Archive> void VMDLModel::Node::serialize(Archive& archive)
 
 template <class Archive> void VMDLModel::Material::serialize(Archive& archive)
 {
+	// geometry と旧 MeshCache のバイナリ配置は維持する。
+	auto& baseColor = parameters.Get(PBRParameters::BaseColor);
+	auto& emissiveColor = parameters.Get(PBRParameters::EmissiveColor);
+	auto& metalness = parameters.Get(PBRParameters::Metalness);
+	auto& roughness = parameters.Get(PBRParameters::Roughness);
+	auto& occlusionStrength = parameters.Get(PBRParameters::OcclusionStrength);
 	archive(CEREAL_NVP(name), CEREAL_NVP(baseTextureFileName), CEREAL_NVP(normalTextureFileName),
 		CEREAL_NVP(emissiveTextureFileName), CEREAL_NVP(occlusionTextureFileName),
 		CEREAL_NVP(metalnessRoughnessTextureFileName), CEREAL_NVP(baseTextureDDS),
@@ -37,15 +44,9 @@ template <class Archive> void VMDLModel::MaterialVMatSettings::serialize(Archive
 
 template <class Archive> void VMDLModel::VmdlMaterialData::serialize(Archive& archive)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(baseColor), CEREAL_NVP(emissiveColor),
-		CEREAL_NVP(metalness), CEREAL_NVP(roughness), CEREAL_NVP(occlusion),
-		CEREAL_NVP(occlusionStrength), CEREAL_NVP(shadowStrength), CEREAL_NVP(alphaCutoff),
-		CEREAL_NVP(alphaMode), CEREAL_NVP(fresnelColor), CEREAL_NVP(fresnelPower),
-		CEREAL_NVP(fresnelStrength), CEREAL_NVP(isFlatShading));
-	if constexpr (IsSerialArchive<Archive>)
-		archive(CEREAL_NVP(metalnessTextureFileName), CEREAL_NVP(roughnessTextureFileName),
-			CEREAL_NVP(metalnessTextureDDS), CEREAL_NVP(roughnessTextureDDS), CEREAL_NVP(shaderId),
-			CEREAL_NVP(funkyLineWidth), CEREAL_NVP(funkySpeed));
+	archive(CEREAL_NVP(name), CEREAL_NVP(parameters), CEREAL_NVP(alphaCutoff), CEREAL_NVP(alphaMode),
+		CEREAL_NVP(metalnessTextureFileName), CEREAL_NVP(roughnessTextureFileName),
+		CEREAL_NVP(metalnessTextureDDS), CEREAL_NVP(roughnessTextureDDS), CEREAL_NVP(shaderId));
 }
 
 template <class Archive> void VMDLModel::Vertex::serialize(Archive& archive)
@@ -343,10 +344,6 @@ template void VMDLModel::MaterialPbrSettings::serialize<cereal::BinaryOutputArch
 template void VMDLModel::MaterialVMatSettings::serialize<cereal::BinaryInputArchive>(
 	cereal::BinaryInputArchive&);
 template void VMDLModel::MaterialVMatSettings::serialize<cereal::BinaryOutputArchive>(
-	cereal::BinaryOutputArchive&);
-template void VMDLModel::VmdlMaterialData::serialize<cereal::BinaryInputArchive>(
-	cereal::BinaryInputArchive&);
-template void VMDLModel::VmdlMaterialData::serialize<cereal::BinaryOutputArchive>(
 	cereal::BinaryOutputArchive&);
 template void VMDLModel::Vertex::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&);
 template void VMDLModel::Vertex::serialize<cereal::BinaryOutputArchive>(

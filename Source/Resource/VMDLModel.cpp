@@ -1,3 +1,4 @@
+#include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
 #include <ImGuiToolKit/Utf8.h>
 #include "Rendering/Core/PBRRenderParams.h"
@@ -11,13 +12,11 @@
 #include "Rendering/Core/Graphics.h"
 #include <Dx11Kit/Dx11Kit.h>
 #include "Core/Foundation/Json.h"
-#include "Resource/SerialJson.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <charconv>
 #include <cmath>
-#include <compressapi.h>
 #include <cstring>
 #include <initializer_list>
 #include <limits>
@@ -316,15 +315,15 @@ std::vector<uint8_t> VMDLModel::PackMetalnessRoughnessTexture(const Material& ma
 		return image ? image->pixels[y * image->rowPitch + x * 4 + channel] : fallback;
 	};
 	const auto* output = packed.GetImage(0, 0, 0);
+	const auto roughness = static_cast<uint8_t>(std::clamp(material.parameters.Get(PBRParameters::Roughness), 0.0f, 1.0f) * 255.0f);
+	const auto metalness = static_cast<uint8_t>(std::clamp(material.parameters.Get(PBRParameters::Metalness), 0.0f, 1.0f) * 255.0f);
 	for (size_t y = 0; y < height; ++y)
 		for (size_t x = 0; x < width; ++x)
 		{
 			auto* pixel = output->pixels + y * output->rowPitch + x * 4;
 			pixel[0] = 255;
-			pixel[1] = rough ? sample(2, x, y, 0, 255) : sample(0, x, y, 1,
-				static_cast<uint8_t>(std::clamp(material.roughness, 0.0f, 1.0f) * 255.0f));
-			pixel[2] = metal ? sample(1, x, y, 0, 0) : sample(0, x, y, 2,
-				static_cast<uint8_t>(std::clamp(material.metalness, 0.0f, 1.0f) * 255.0f));
+			pixel[1] = rough ? sample(2, x, y, 0, 255) : sample(0, x, y, 1, roughness);
+			pixel[2] = metal ? sample(1, x, y, 0, 0) : sample(0, x, y, 2, metalness);
 			pixel[3] = 255;
 		}
 	DirectX::Blob blob;
@@ -665,19 +664,19 @@ bool VMDLModel::ResetMaterialToGLB(size_t materialIndex)
 	if (!glbMaterial) return false;
 
 	Material& material = materials[materialIndex];
-	material.baseColor = glbMaterial->baseColor;
-	material.emissiveColor = glbMaterial->emissiveColor;
-	material.metalness = glbMaterial->metalness;
-	material.roughness = glbMaterial->roughness;
-	material.occlusion = glbMaterial->occlusion;
-	material.occlusionStrength = glbMaterial->occlusionStrength;
-	material.shadowStrength = glbMaterial->shadowStrength;
+	material.parameters.Get(PBRParameters::BaseColor) = glbMaterial->parameters.Get(PBRParameters::BaseColor);
+	material.parameters.Get(PBRParameters::EmissiveColor) = glbMaterial->parameters.Get(PBRParameters::EmissiveColor);
+	material.parameters.Get(PBRParameters::Metalness) = glbMaterial->parameters.Get(PBRParameters::Metalness);
+	material.parameters.Get(PBRParameters::Roughness) = glbMaterial->parameters.Get(PBRParameters::Roughness);
+	material.parameters.Get(PBRParameters::Occlusion) = glbMaterial->parameters.Get(PBRParameters::Occlusion);
+	material.parameters.Get(PBRParameters::OcclusionStrength) = glbMaterial->parameters.Get(PBRParameters::OcclusionStrength);
+	material.parameters.Get(PBRParameters::ShadowStrength) = glbMaterial->parameters.Get(PBRParameters::ShadowStrength);
 	material.alphaCutoff = glbMaterial->alphaCutoff;
 	material.alphaMode = glbMaterial->alphaMode;
-	material.fresnelColor = glbMaterial->fresnelColor;
-	material.fresnelPower = glbMaterial->fresnelPower;
-	material.fresnelStrength = glbMaterial->fresnelStrength;
-	material.isFlatShading = glbMaterial->isFlatShading;
+	material.parameters.Get(PBRParameters::FresnelColor) = glbMaterial->parameters.Get(PBRParameters::FresnelColor);
+	material.parameters.Get(PBRParameters::FresnelPower) = glbMaterial->parameters.Get(PBRParameters::FresnelPower);
+	material.parameters.Get(PBRParameters::FresnelStrength) = glbMaterial->parameters.Get(PBRParameters::FresnelStrength);
+	material.parameters.Get(PBRParameters::IsFlatShading) = glbMaterial->parameters.Get(PBRParameters::IsFlatShading);
 	return true;
 }
 
@@ -1324,12 +1323,7 @@ bool VMDLModel::RestoreExternalMeshes(
 		Material restoredMaterial = cache.materials[restored.materialIndex];
 		const Material& currentMaterial = materials[targetMaterialIndex];
 		restoredMaterial.shaderId = currentMaterial.shaderId;
-		restoredMaterial.funkyLineWidth = currentMaterial.funkyLineWidth;
-		restoredMaterial.funkySpeed = currentMaterial.funkySpeed;
-		restoredMaterial.transmission = currentMaterial.transmission;
-		restoredMaterial.indexOfRefraction = currentMaterial.indexOfRefraction;
-		restoredMaterial.refractionDistance = currentMaterial.refractionDistance;
-		restoredMaterial.crystalRoughness = currentMaterial.crystalRoughness;
+		restoredMaterial.parameters = currentMaterial.parameters;
 		materials[targetMaterialIndex] = restoredMaterial;
 		if (sourceMaterials.size() < materials.size()) sourceMaterials.resize(materials.size());
 		sourceMaterials[targetMaterialIndex] = restoredMaterial;
@@ -1393,25 +1387,9 @@ VMDLModel::VMDLModel(const VMDLModel& other, RenderPoseCloneTag)
 		Material& target = materials.emplace_back();
 		target.name = source.name;
 		target.shaderId = source.shaderId;
-		target.funkyLineWidth = source.funkyLineWidth;
-		target.funkySpeed = source.funkySpeed;
-		target.baseColor = source.baseColor;
-		target.emissiveColor = source.emissiveColor;
-		target.metalness = source.metalness;
-		target.roughness = source.roughness;
-		target.transmission = source.transmission;
-		target.indexOfRefraction = source.indexOfRefraction;
-		target.refractionDistance = source.refractionDistance;
-		target.crystalRoughness = source.crystalRoughness;
-		target.occlusion = source.occlusion;
-		target.occlusionStrength = source.occlusionStrength;
-		target.shadowStrength = source.shadowStrength;
+		target.parameters = source.parameters;
 		target.alphaCutoff = source.alphaCutoff;
 		target.alphaMode = source.alphaMode;
-		target.fresnelColor = source.fresnelColor;
-		target.fresnelPower = source.fresnelPower;
-		target.fresnelStrength = source.fresnelStrength;
-		target.isFlatShading = source.isFlatShading;
 		target.baseMap = source.baseMap;
 		target.normalMap = source.normalMap;
 		target.emissiveMap = source.emissiveMap;
@@ -2433,7 +2411,8 @@ void VMDLModel::RecordMaterialKey(int animationIndex, int materialIndex, float t
 	}
 	const auto& material = materials[materialIndex];
 	const VmdlMaterialKeyframe value{std::clamp(time, 0.0f, animations[animationIndex].secondsLength),
-		material.baseColor, material.emissiveColor, material.metalness, material.roughness};
+		material.parameters.Get(PBRParameters::BaseColor), material.parameters.Get(PBRParameters::EmissiveColor),
+		material.parameters.Get(PBRParameters::Metalness), material.parameters.Get(PBRParameters::Roughness)};
 	auto key = std::find_if(found->keys.begin(), found->keys.end(),
 		[&](const auto& candidate) { return std::abs(candidate.seconds - value.seconds) < 0.0005f; });
 	if (key == found->keys.end()) found->keys.push_back(value);
@@ -2494,15 +2473,12 @@ std::vector<VMDLModel::VmdlMaterialData> VMDLModel::CaptureVmdlMaterialData() co
 	result.reserve(materials.size());
 	for (const Material& material : materials)
 	{
-		result.push_back({material.name, material.baseColor, material.emissiveColor,
-			material.metalness, material.roughness, material.occlusion, material.occlusionStrength,
-			material.shadowStrength, material.alphaCutoff, material.alphaMode,
-			material.fresnelColor, material.fresnelPower, material.fresnelStrength,
-			material.isFlatShading});
-		auto& value = result.back();
+		auto& value = result.emplace_back();
+		value.name = material.name;
+		value.parameters = material.parameters;
 		value.shaderId = material.shaderId;
-		value.funkyLineWidth = material.funkyLineWidth;
-		value.funkySpeed = material.funkySpeed;
+		value.alphaCutoff = material.alphaCutoff;
+		value.alphaMode = material.alphaMode;
 		value.metalnessTextureFileName = material.metalnessTextureFileName;
 		value.roughnessTextureFileName = material.roughnessTextureFileName;
 		value.metalnessTextureDDS = material.metalnessTextureDDS;
@@ -2529,21 +2505,9 @@ void VMDLModel::ApplyVmdlMaterialData(const std::vector<VmdlMaterialData>& data)
 		if (found == lookup.end()) continue;
 		const VmdlMaterialData& value = *found->second;
 		material.shaderId = value.shaderId;
-		material.funkyLineWidth = value.funkyLineWidth;
-		material.funkySpeed = value.funkySpeed;
-		material.baseColor = value.baseColor;
-		material.emissiveColor = value.emissiveColor;
-		material.metalness = value.metalness;
-		material.roughness = value.roughness;
-		material.occlusion = value.occlusion;
-		material.occlusionStrength = value.occlusionStrength;
-		material.shadowStrength = value.shadowStrength;
 		material.alphaCutoff = value.alphaCutoff;
 		material.alphaMode = value.alphaMode;
-		material.fresnelColor = value.fresnelColor;
-		material.fresnelPower = value.fresnelPower;
-		material.fresnelStrength = value.fresnelStrength;
-		material.isFlatShading = value.isFlatShading;
+		material.parameters = value.parameters;
 		material.metalnessTextureFileName = value.metalnessTextureFileName;
 		material.roughnessTextureFileName = value.roughnessTextureFileName;
 		material.metalnessTextureDDS = value.metalnessTextureDDS;
@@ -2573,10 +2537,10 @@ bool VMDLModel::ReplaceGLBCache(
 		const auto old = std::find_if(materials.begin(), materials.end(),
 			[&](const Material& value) { return value.name == material.name; });
 		if (old == materials.end()) continue;
-		material.transmission = old->transmission;
-		material.indexOfRefraction = old->indexOfRefraction;
-		material.refractionDistance = old->refractionDistance;
-		material.crystalRoughness = old->crystalRoughness;
+		material.parameters.Get(PBRParameters::Transmission) = old->parameters.Get(PBRParameters::Transmission);
+		material.parameters.Get(PBRParameters::IndexOfRefraction) = old->parameters.Get(PBRParameters::IndexOfRefraction);
+		material.parameters.Get(PBRParameters::RefractionDistance) = old->parameters.Get(PBRParameters::RefractionDistance);
+		material.parameters.Get(PBRParameters::CrystalRoughness) = old->parameters.Get(PBRParameters::CrystalRoughness);
 	}
 
 	// VMSHの紐づけをメッシュ番号ではなく安定キーで新GLBへ移す
@@ -2841,11 +2805,6 @@ SerialDocument& VMDLModel::GetSerialDocument()
 		CEREAL_NVP(vmdlTrailData), CEREAL_NVP(vmdlParticleData), CEREAL_NVP(vmdlSoundData),
 		CEREAL_NVP(vmdlLightData), CEREAL_NVP(vmdlPresentationData), CEREAL_NVP(externalMeshGroups),
 		CEREAL_NVP(materialAnimationTracks), CEREAL_NVP(modelScale));
-	json crystal = json::object();
-	for (const auto& material : materials)
-		crystal[material.name] = {{"transmission", material.transmission}, {"ior", material.indexOfRefraction},
-			{"distance", material.refractionDistance}, {"roughness", material.crystalRoughness}};
-	WriteSerialJson(document.root.Field("crystalSettings"), crystal);
 	return document;
 }
 
@@ -2867,7 +2826,6 @@ void VMDLModel::Deserialize(const char* filename)
 void VMDLModel::Deserialize(std::istream& fileStream)
 {
 	PROFILE_FUNCTION();
-	if (!SerialDocument::IsCurrent(fileStream)) { LoadGokan(fileStream); return; }
 	serialDocument = std::make_shared<SerialDocument>();
 	serialDocument->Load(fileStream, "VMDL");
 	auto& root = serialDocument->root;
@@ -2887,23 +2845,6 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 		CEREAL_NVP(materialAnimationTracks), CEREAL_NVP(modelScale));
 	sourceMaterials = materials;
 	ApplyVmdlMaterialData(materialData);
-	if (auto* crystal = root.Find(SerialNode::FieldId("crystalSettings")); crystal && crystal->kind != SerialKind::Deleted)
-	{
-		try
-		{
-			const auto settings = ReadSerialJson(*crystal);
-			for (auto& material : materials)
-			{
-				if (!settings.contains(material.name)) continue;
-				const auto& value = settings.at(material.name);
-				material.transmission = value.value("transmission", 0.0f);
-				material.indexOfRefraction = value.value("ior", 1.45f);
-				material.refractionDistance = value.value("distance", 0.0f);
-				material.crystalRoughness = value.value("roughness", 0.1f);
-			}
-		}
-		catch (const std::exception& exception) { crystal->error = exception.what(); }
-	}
 	SetModelScale(modelScale);
 	NormalizeAttachmentNames();
 	NormalizeVmdlIKRaySettings();
@@ -2911,358 +2852,4 @@ void VMDLModel::Deserialize(std::istream& fileStream)
 	// 既知のジオメトリはモデル側に展開済み。通常実行では原本を二重保持しない。
 	geometry->data.clear();
 	geometry->data.shrink_to_fit();
-}
-
-void VMDLModel::LoadGokan(std::istream& fileStream)
-{
-	serialDocument.reset();
-	const auto applyVfxGokan = [](const std::string& source, VMDLModel::VmdlParticleData& particles,
-		VMDLModel::VmdlPresentationData& presentation)
-	{
-		const json root = json::parse(source);
-		if (root.at("version").get<int>() != 3)
-			throw std::runtime_error("Unsupported VMDL VFX data version.");
-		const json& modelDerived = root.at("particleModelDerived");
-		const json& billboards = root.at("particleBillboards");
-		if (!modelDerived.is_array() || !billboards.is_array() ||
-			modelDerived.size() != particles.emitters.size() ||
-			billboards.size() != particles.emitters.size())
-			throw std::runtime_error("Invalid VMDL VFX emitter data.");
-		for (size_t i = 0; i < particles.emitters.size(); ++i)
-		{
-			particles.emitters[i].modelDerived = modelDerived.at(i).get<bool>();
-			particles.emitters[i].billboard = billboards.at(i).get<bool>();
-		}
-
-		presentation = {};
-		for (const auto& sourceValue : root.at("cameraShakes"))
-		{
-			auto& value = presentation.cameraShakes.emplace_back();
-			value.name = sourceValue.at("name").get<std::string>();
-			value.nodeIndex = sourceValue.at("node").get<int>();
-			value.range = sourceValue.at("range").get<float>();
-			value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
-			value.duration = sourceValue.at("duration").get<float>();
-			value.intensity = sourceValue.at("intensity").get<float>();
-		}
-		for (const auto& sourceValue : root.at("radialBlurs"))
-		{
-			auto& value = presentation.radialBlurs.emplace_back();
-			value.name = sourceValue.at("name").get<std::string>();
-			value.nodeIndex = sourceValue.at("node").get<int>();
-			value.range = sourceValue.at("range").get<float>();
-			value.distanceAttenuation = sourceValue.at("distanceAttenuation").get<bool>();
-			value.duration = sourceValue.at("duration").get<float>();
-			value.power = sourceValue.at("power").get<float>();
-			value.attackRate = sourceValue.at("attackRate").get<float>();
-		}
-		const auto loadTracks = [&root](const char* name, auto& tracks)
-		{
-			for (const auto& sourceTrack : root.at(name))
-			{
-				auto& track = tracks.emplace_back();
-				track.animationName = sourceTrack.at("animation").get<std::string>();
-				for (const auto& sourceKey : sourceTrack.at("keys"))
-					track.keys.push_back({sourceKey.at("seconds").get<float>(),
-						sourceKey.at("component").get<int>()});
-			}
-		};
-		loadTracks("cameraShakeTracks", presentation.cameraShakeTracks);
-		loadTracks("radialBlurTracks", presentation.radialBlurTracks);
-	};
-
-	PROFILE_FUNCTION();
-
-	try
-	{
-		static constexpr std::array<char, 8> magic = {'V', 'M', 'D', 'L', 'C', 'M', 'P', '\0'};
-		std::array<char, magic.size()> fileMagic{};
-		fileStream.read(fileMagic.data(), fileMagic.size());
-
-		if (fileStream.gcount() != static_cast<std::streamsize>(fileMagic.size()) ||
-			fileMagic != magic)
-			throw std::runtime_error("Invalid compressed VMDL magic.");
-
-		{
-			uint32_t version = 0;
-			uint64_t uncompressedSize = 0;
-			uint64_t compressedSize = 0;
-			fileStream.read(reinterpret_cast<char*>(&version), sizeof(version));
-			fileStream.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
-			fileStream.read(reinterpret_cast<char*>(&compressedSize), sizeof(compressedSize));
-
-			if (!fileStream.good() || version != 13 || uncompressedSize == 0 ||
-				compressedSize == 0 ||
-				uncompressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()) ||
-				compressedSize > static_cast<uint64_t>((std::numeric_limits<SIZE_T>::max)()))
-			{
-				throw std::runtime_error("Invalid compressed VMDL header.");
-			}
-			std::vector<uint8_t> compressedData(static_cast<size_t>(compressedSize));
-			fileStream.read(reinterpret_cast<char*>(compressedData.data()),
-				static_cast<std::streamsize>(compressedData.size()));
-			if (!fileStream.good())
-			{
-				throw std::runtime_error("Compressed VMDL data is truncated.");
-			}
-
-			std::vector<uint8_t> serializedData(static_cast<size_t>(uncompressedSize));
-			DECOMPRESSOR_HANDLE decompressor = nullptr;
-			if (!CreateDecompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &decompressor))
-			{
-				throw std::runtime_error("VMDL decompressor creation failed.");
-			}
-
-			SIZE_T decompressedSize = 0;
-			const BOOL result =
-				Decompress(decompressor, compressedData.data(), compressedData.size(),
-					serializedData.data(), serializedData.size(), &decompressedSize);
-			CloseDecompressor(decompressor);
-
-			if (!result || decompressedSize != serializedData.size())
-			{
-				throw std::runtime_error("VMDL decompression failed.");
-			}
-
-			std::string serializedString(
-				reinterpret_cast<const char*>(serializedData.data()), serializedData.size());
-			std::istringstream serializedStream(serializedString, std::ios::binary | std::ios::in);
-			materialAnimationTracks.clear();
-			vmdlAnimationEditorData.ikContactOffsetTracks.clear();
-			std::vector<VmdlMaterialData> materialData;
-			std::vector<VmdlSoundSourceBinding> soundBindings;
-			VmdlComponentTransformData componentTransforms;
-			std::vector<std::string> effectBindings;
-			std::vector<Vector3> ikSyncOffsets;
-			std::vector<float> springAngles;
-			std::vector<Vector3> springMinimums, springMaximums;
-			int ikInterpolationEasing = static_cast<int>(Easing::Type::Linear);
-			std::string vfxExtensionJson;
-			std::string crystalSettingsJson;
-			std::vector<std::vector<std::string>> externalMeshBindingKeys;
-			std::vector<std::vector<int>> externalMeshCacheIndices;
-			std::vector<std::pair<std::string, std::string>> files;
-			cereal::BinaryInputArchive package(serializedStream);
-			package(files);
-
-			// 現行の保存処理が出力する全セクション
-			constexpr const char* requiredSections[] = {
-				"model.glbcache", "model.vmdldata", "model.materialanimation",
-				"model.iksolver", "model.ikheighttracks", "model.ikeasing", "model.iksyncoffsets",
-				"model.sounddata", "model.lightdata", "model.navmeshobstacles",
-				"model.soundbindings", "model.componenttransforms", "model.particledata",
-				"model.effectbindings", "model.vfxdata", "model.crystalsettings",
-				"model.externalmeshes", "model.externalmeshbindings", "model.externalmeshslots",
-				"model.springangles", "model.springaxisangles"
-			};
-			for (const char* required : requiredSections)
-			{
-				const auto missing = std::none_of(files.begin(), files.end(), [&](const auto& file) {
-					return file.first == required;
-				});
-				if (missing) throw std::runtime_error("VMDL package is missing required data: " + std::string(required));
-			}
-			std::vector<uint8_t> navMeshObstacles;
-			for (const auto& [name, data] : files)
-			{
-				std::istringstream section(data, std::ios::binary | std::ios::in);
-				cereal::BinaryInputArchive archive(section);
-				if (name == "model.glbcache")
-				{
-					archive(nodes, materials, meshes, animations);
-				}
-				else if (name == "model.ikheighttracks")
-				{
-					archive(vmdlAnimationEditorData.ikContactOffsetTracks);
-					for (auto& track : vmdlAnimationEditorData.ikContactOffsetTracks)
-						std::stable_sort(track.keys.begin(), track.keys.end(), [](const auto& left, const auto& right) {
-							return left.seconds < right.seconds;
-						});
-				}
-				else if (name == "model.materialanimation")
-				{
-					archive(materialAnimationTracks);
-				}
-				else if (name == "model.vmdldata")
-				{
-					archive(materialData, vmdlExtensionData, vmdlIKSettings, vmdlIKPoles,
-						modelScale, vmdlTrailData, vmdlAnimationEditorData,
-						vmdlAnimationControlData, vmdlIKRaySettings);
-				}
-				else if (name == "model.iksyncoffsets")
-				{
-					archive(ikSyncOffsets);
-				}
-				else if (name == "model.ikeasing")
-				{
-					archive(ikInterpolationEasing);
-				}
-				else if (name == "model.springangles")
-				{
-					archive(springAngles);
-				}
-				else if (name == "model.springaxisangles")
-				{
-					archive(springMinimums, springMaximums);
-				}
-				else if (name == "model.navmeshobstacles") archive(navMeshObstacles);
-				else if (name == "model.sounddata")
-				{
-					archive(vmdlSoundData);
-				}
-				else if (name == "model.lightdata")
-				{
-					archive(vmdlLightData);
-				}
-				else if (name == "model.iksolver")
-				{
-					archive(vmdlMultiLegIKSettings);
-				}
-				else if (name == "model.soundbindings")
-				{
-					archive(soundBindings);
-				}
-				else if (name == "model.componenttransforms")
-				{
-					archive(componentTransforms);
-				}
-				else if (name == "model.particledata")
-				{
-					archive(vmdlParticleData);
-				}
-				else if (name == "model.effectbindings")
-				{
-					archive(effectBindings);
-				}
-				else if (name == "model.vfxdata")
-				{
-					archive(vfxExtensionJson);
-				}
-				else if (name == "model.crystalsettings") archive(crystalSettingsJson);
-				else if (name == "model.externalmeshes")
-				{
-					archive(externalMeshGroups);
-				}
-				else if (name == "model.externalmeshbindings")
-				{
-					archive(externalMeshBindingKeys);
-				}
-				else if (name == "model.externalmeshslots")
-				{
-					archive(externalMeshCacheIndices);
-				}
-			}
-			if (springAngles.size() != vmdlExtensionData.springs.size())
-				throw std::runtime_error("VMDL spring angle count mismatch.");
-			for (size_t i = 0; i < vmdlExtensionData.springs.size(); ++i)
-				vmdlExtensionData.springs[i].maxAngleDegrees = std::clamp(springAngles[i], 0.0f, 180.0f);
-			if (springMinimums.size() != vmdlExtensionData.springs.size() ||
-				springMaximums.size() != vmdlExtensionData.springs.size())
-				throw std::runtime_error("VMDL spring axis angle count mismatch.");
-			for (size_t i = 0; i < vmdlExtensionData.springs.size(); ++i)
-			{
-				auto& spring = vmdlExtensionData.springs[i];
-				spring.minAnglesDegrees = Vector3::Min(springMinimums[i], springMaximums[i]);
-				spring.maxAnglesDegrees = Vector3::Max(springMinimums[i], springMaximums[i]);
-				spring.minAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
-				spring.maxAnglesDegrees.Clamp(Vector3(-180.0f), Vector3(180.0f));
-			}
-			if (navMeshObstacles.size() != vmdlExtensionData.colliders.size())
-				throw std::runtime_error("VMDL NavMesh obstacle count mismatch.");
-			for (size_t i = 0; i < vmdlExtensionData.colliders.size(); ++i)
-				vmdlExtensionData.colliders[i].navMeshObstacle =
-					navMeshObstacles[i] != 0;
-
-			if (soundBindings.size() != vmdlSoundData.sources.size() ||
-				effectBindings.size() != vmdlParticleData.emitters.size() ||
-				externalMeshBindingKeys.size() != externalMeshGroups.size() ||
-				externalMeshCacheIndices.size() != externalMeshGroups.size())
-				throw std::runtime_error("VMDL component data count mismatch.");
-			const auto requireTransformCount = [](const auto& values, const auto& transforms)
-			{
-				if (values.size() != transforms.size())
-					throw std::runtime_error("VMDL component transform count mismatch.");
-			};
-			requireTransformCount(vmdlExtensionData.rigidBodies, componentTransforms.rigidBodies);
-			requireTransformCount(vmdlExtensionData.colliders, componentTransforms.colliders);
-			requireTransformCount(vmdlExtensionData.springs, componentTransforms.springs);
-			requireTransformCount(
-				vmdlExtensionData.springColliders, componentTransforms.springColliders);
-			requireTransformCount(vmdlTrailData.trails, componentTransforms.trails);
-			requireTransformCount(vmdlParticleData.emitters, componentTransforms.particles);
-			requireTransformCount(vmdlSoundData.sources, componentTransforms.sounds);
-			for (size_t groupIndex = 0; groupIndex < externalMeshGroups.size(); ++groupIndex)
-			{
-				auto& group = externalMeshGroups[groupIndex];
-				if (externalMeshBindingKeys[groupIndex].size() != group.meshIndices.size() ||
-					externalMeshCacheIndices[groupIndex].size() != group.meshIndices.size())
-					throw std::runtime_error("VMDL external mesh data is invalid.");
-				group.meshKeys = std::move(externalMeshBindingKeys[groupIndex]);
-				group.cacheMeshIndices = std::move(externalMeshCacheIndices[groupIndex]);
-			}
-			const auto applyTransforms = [](auto& values, const auto& transforms)
-			{
-				for (size_t i = 0; i < values.size(); ++i) values[i].transform = transforms[i];
-			};
-			applyTransforms(vmdlExtensionData.rigidBodies, componentTransforms.rigidBodies);
-			applyTransforms(vmdlExtensionData.colliders, componentTransforms.colliders);
-			applyTransforms(vmdlExtensionData.springs, componentTransforms.springs);
-			applyTransforms(vmdlExtensionData.springColliders, componentTransforms.springColliders);
-			applyTransforms(vmdlTrailData.trails, componentTransforms.trails);
-			applyTransforms(vmdlParticleData.emitters, componentTransforms.particles);
-			applyTransforms(vmdlSoundData.sources, componentTransforms.sounds);
-			for (size_t i = 0; i < vmdlParticleData.emitters.size(); ++i)
-				vmdlParticleData.emitters[i].effectName = ResourceManager::ShortResourcePath(effectBindings[i], "Effect");
-			for (size_t i = 0; i < vmdlSoundData.sources.size(); ++i)
-			{
-				vmdlSoundData.sources[i].soundPath = ResourceManager::ShortResourcePath(soundBindings[i].soundPath, "Sound");
-				vmdlSoundData.sources[i].variant = soundBindings[i].variant;
-				vmdlSoundData.sources[i].pitchMin = soundBindings[i].pitchMin;
-				vmdlSoundData.sources[i].pitchMax = soundBindings[i].pitchMax;
-			}
-			applyVfxGokan(vfxExtensionJson, vmdlParticleData, vmdlPresentationData);
-			requireTransformCount(vmdlPresentationData.cameraShakes, componentTransforms.cameraShakes);
-			requireTransformCount(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
-			applyTransforms(vmdlPresentationData.cameraShakes, componentTransforms.cameraShakes);
-			applyTransforms(vmdlPresentationData.radialBlurs, componentTransforms.radialBlurs);
-			sourceMaterials = materials;
-			ApplyVmdlMaterialData(materialData);
-			const json crystalSettings = json::parse(crystalSettingsJson);
-			for (Material& material : materials)
-			{
-				const auto& settings = crystalSettings.at(material.name);
-				material.transmission = std::clamp(settings.at("transmission").get<float>(), 0.0f, 1.0f);
-				material.indexOfRefraction = std::clamp(settings.at("ior").get<float>(), 1.0f, 2.5f);
-				material.refractionDistance = std::clamp(settings.at("distance").get<float>(), 0.0f, 5.0f);
-				material.crystalRoughness = std::clamp(settings.at("roughness").get<float>(), 0.0001f, 1.0f);
-			}
-			SetModelScale(modelScale);
-			NormalizeAttachmentNames();
-			NormalizeVmdlIKRaySettings();
-			vmdlMultiLegIKSettings.interpolationEasing = std::clamp(
-				ikInterpolationEasing, -1, static_cast<int>(Easing::Type::Count) - 1);
-			if (ikSyncOffsets.size() != vmdlIKRaySettings.size())
-				throw std::runtime_error("VMDL IK sync offset count mismatch.");
-			for (size_t i = 0; i < vmdlIKRaySettings.size(); ++i)
-				vmdlIKRaySettings[i].syncOffset =
-					ikSyncOffsets[i];
-			NormalizeMorphNames();
-			for (auto& source : vmdlSoundData.sources)
-			{
-				source.volume = std::clamp(source.volume, 0.0f, 4.0f);
-				source.pitchMin = std::clamp(source.pitchMin, 0.125f, 8.0f);
-				source.pitchMax = std::clamp(source.pitchMax, source.pitchMin, 8.0f);
-			}
-			for (auto& light : vmdlLightData.pointLights)
-			{
-				light.intensity = std::max(0.0f, light.intensity);
-				light.range = std::max(0.0f, light.range);
-			}
-		}
-	}
-	catch (const std::exception& exception)
-	{
-		throw std::runtime_error(
-			"VMDLModel deserialize failed: " + std::string(exception.what()));
-	}
 }

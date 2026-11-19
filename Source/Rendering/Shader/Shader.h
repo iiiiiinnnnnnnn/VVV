@@ -61,6 +61,7 @@ class ModelShader : public Shader
 public:
 	virtual ModelShaderId GetId() const = 0;
 	virtual const char* GetName() const = 0;
+	virtual const MaterialMap& GetMaterialParameters() const = 0;
 	virtual void Begin(const RenderContext& rc, DrawPass pass) = 0;
 	virtual void Update(
 		const RenderContext& rc,
