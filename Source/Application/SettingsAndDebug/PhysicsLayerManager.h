@@ -52,12 +52,14 @@ private:
 
 	// 読み書き
 
-	bool Load();
-	bool Save() const;
-	bool Validate();
+	bool Load(const std::string& path);
+	bool Save(const std::string& path);
 	void CreateDefault();
 
 	PhysicsLayers settings;
+	std::string currentPath;
+	std::string pathInput;
+	std::string fileStatus;
 };
 
 // ヘルパー

@@ -171,7 +171,7 @@ void PauseMenuWidget::UpdateLayout()
 	}
 	if (backButton->GetAutoLayout())
 	{
-		backButton->rect.position = Vector2(width * 0.5f, Game::Graphics::ScreenHeight * 0.9f) + offset;
+		backButton->rect.position = Vector2(260.0f, Game::Graphics::ScreenHeight * 0.9f) + offset;
 		backButton->rect.angle = 0.0f;
 		backButton->rect.size = {593.0f, 44.0f};
 		backButton->rect.scale = {0.8f, 0.8f};

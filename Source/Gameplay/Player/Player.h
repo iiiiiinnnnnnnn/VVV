@@ -152,7 +152,7 @@ class Player : public Entity
 	float dodgeCooldownDuration = 0.35f;
 	bool dodgeWasActive = false;
 	Game::Timer dodgeInputBufferTimer{0.0f};
-	const float dodgeInputBufferDuration = 0.15f;
+	const float dodgeInputBufferDuration = 0.2f;
 	Vector3 bufferedDodgeDirection = Vector3::Zero;
 	Game::Timer inBattleTimer{0.0f}; // バトル中(idleモーションが変わったり自動回復止まったりする)
 	const float BattleTimerDuration = 10.0f;
