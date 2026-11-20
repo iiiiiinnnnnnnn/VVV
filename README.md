@@ -7,4 +7,13 @@
 【制作開始】　２０２６年４月  
 【使用言語】　C++ / HLSL / Lua  
 
-<img width="1920" height="1080" alt="スクリーンショット 2026-11-13 113341" src="https://github.com/user-attachments/assets/e84288c0-5a0d-4fb2-bb20-f0ee7bbcf355" />
+<table>
+  <tr>
+    <td><img src="Publishes/Screenshot1.png" width="300"></td>
+    <td><img src="Publishes/Screenshot2.png" width="300"></td>
+  </tr>
+  <tr>
+    <td><img src="Publishes/Screenshot3.png" width="300"></td>
+    <td><img src="Publishes/Screenshot4.png" width="300"></td>
+  </tr>
+</table>
