@@ -17,6 +17,7 @@
 #include "Gameplay/AI/LuaManager.h"
 #include <ProfileKit/ProfileKit.h>
 #include "Core/Foundation/Common.h"
+#include "Application/Tools/GamePadVib.h"
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -73,6 +74,9 @@ Framework::Framework(HWND hWnd, const wchar_t* commandLine) : hWnd(hWnd)
 
 	// 物理マネージャ初期化
 	PhysicsManager::Instance().Initialize();
+
+	// ゲームパッド振動初期化
+	GamePadVib::Instance().Initialize();
 
 	// 起動引数の先頭で初期シーンを選ぶ。エディター起動ではタイトルを生成しない。
 	std::wistringstream arguments(commandLine ? commandLine : L"");
@@ -145,6 +149,9 @@ void Framework::Update(float elapsedTime)
 
 	// シーン更新処理
 	SceneManager::Instance().Update();
+
+	// ゲームパッド振動更新処理
+	GamePadVib::Instance().Update();
 
 	// ロード中は旧シーンの処理を動かさず、ロードスレッドによる生成と競合させない。
 	if (!SceneManager::Instance().IsLoading())

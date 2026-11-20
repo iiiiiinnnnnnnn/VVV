@@ -11,7 +11,7 @@ set RELEASE_TAG=Release
 set ZIP_NAME=Development.zip
 set OUT_DIR=Bin\Development
 set CACHE_BUILDER=Bin\Tools\Development\CacheBuilder.exe
-set DIST_DIR=dist
+set DIST_DIR=Dist
 
 echo [1/5] Checking development build...
 

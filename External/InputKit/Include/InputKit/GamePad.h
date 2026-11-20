@@ -31,9 +31,7 @@ class GamePad
 	GamePad()
 	{
 	}
-	~GamePad()
-	{
-	}
+	~GamePad();
 
 	// 更新
 	void Update(bool acceptsInput);
@@ -105,6 +103,9 @@ class GamePad
 	{
 		return triggerR;
 	}
+
+	// 振動
+	void SetVibration(float leftMotor, float rightMotor);
 
   private:
 	GamePadButton buttonState[2] = {0};

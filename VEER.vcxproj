@@ -15,7 +15,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Application\Tools\GamePadVib.cpp" />
     <ClCompile Include="Source\Rendering\Component\SpriteRendererComponent.cpp" />
+    <ClInclude Include="Source\Application\Tools\GamePadVib.h" />
     <ClInclude Include="Source\Rendering\Component\SpriteRendererComponent.h" />
     <ClCompile Include="Source\Animation\SpringBoneCollider.cpp" />
     <ClInclude Include="Source\Animation\SpringBoneCollider.h" />

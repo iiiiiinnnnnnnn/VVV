@@ -1,4 +1,4 @@
-﻿#include <windows.h>
+#include <windows.h>
 #include <Xinput.h>
 #include <algorithm>
 #include <cmath>
@@ -22,7 +22,8 @@ static void NormalizeStick(SHORT rawX, SHORT rawY, SHORT deadZone, float& x, flo
 	constexpr float maximumMagnitude = 32767.0f;
 	const float normalizedMagnitude = std::clamp(
 		(magnitude - static_cast<float>(deadZone)) /
-		(maximumMagnitude - static_cast<float>(deadZone)), 0.0f, 1.0f);
+			(maximumMagnitude - static_cast<float>(deadZone)),
+		0.0f, 1.0f);
 	x = sourceX / magnitude * normalizedMagnitude;
 	y = sourceY / magnitude * normalizedMagnitude;
 }
@@ -32,7 +33,13 @@ static float NormalizeTrigger(BYTE value)
 {
 	if (value <= XINPUT_GAMEPAD_TRIGGER_THRESHOLD) return 0.0f;
 	return static_cast<float>(value - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) /
-		static_cast<float>(255 - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+		   static_cast<float>(255 - XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+}
+
+GamePad::~GamePad()
+{
+	XINPUT_VIBRATION vibration{};
+	XInputSetState(0, &vibration);
 }
 
 // 更新
@@ -102,12 +109,22 @@ void GamePad::Update(bool acceptsInput)
 
 	// ボタン情報の更新
 	{
-		buttonState[1] = buttonState[0];	// スイッチ履歴
+		buttonState[1] = buttonState[0]; // スイッチ履歴
 		buttonState[0] = newButtonState;
 
-		buttonDown = ~buttonState[1] & newButtonState;	// 押した瞬間
-		buttonUp = ~newButtonState & buttonState[1];	// 離した瞬間
+		buttonDown = ~buttonState[1] & newButtonState; // 押した瞬間
+		buttonUp = ~newButtonState & buttonState[1];   // 離した瞬間
 	}
 }
 
+void GamePad::SetVibration(float leftMotor, float rightMotor)
+{
+	if (!connected) return;
+
+	XINPUT_VIBRATION vibration{};
+	vibration.wLeftMotorSpeed = static_cast<WORD>(std::clamp(leftMotor, 0.0f, 1.0f) * 65535.0f);
+	vibration.wRightMotorSpeed = static_cast<WORD>(std::clamp(rightMotor, 0.0f, 1.0f) * 65535.0f);
+	XInputSetState(slot, &vibration);
 }
+
+} // namespace InputKit

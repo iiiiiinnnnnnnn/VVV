@@ -256,6 +256,9 @@
     <ClInclude Include="Source\Rendering\Shader\FunkyShader.h">
       <Filter>Rendering\Shader</Filter>
     </ClInclude>
+    <ClCompile Include="Source\Application\Tools\GamePadVib.cpp">
+      <Filter>Application\Tools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Audio\SoundSystem.h">
@@ -647,6 +650,9 @@
     </ClInclude>
     <ClInclude Include="Source\Gameplay\Scene\VmdlEditorScene.h">
       <Filter>Gameplay\Scene\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Application\Tools\GamePadVib.h">
+      <Filter>Application\Tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
