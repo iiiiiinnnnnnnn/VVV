@@ -1542,20 +1542,20 @@
                     "name": "SpSkill2QuickshiftB",
                     "playbackEnd": 1.0,
                     "playbackStart": 0.0,
-                    "speed": 2.0,
+                    "speed": 3.0,
                     "transitions": [
                         {
                             "canInterrupt": false,
                             "conditions": [],
                             "excludedFromStateIndices": [],
-                            "exitTime": 0.10000000149011612,
+                            "exitTime": 0.1599999964237213,
                             "hasExitTime": true,
                             "isAny": false,
                             "priority": 0,
                             "sourceProgressMax": 1.0,
                             "sourceProgressMin": 0.0,
                             "toStateIndex": 16,
-                            "transitionDuration": 0.02500000037252903
+                            "transitionDuration": 0.10000000149011612
                         }
                     ]
                 },
@@ -1635,7 +1635,7 @@
     ],
     "parameters": [
         {
-            "name": "IsDead",
+            "name": "SkillContinue",
             "type": "bool",
             "value": false
         },
@@ -1645,7 +1645,7 @@
             "value": 1
         },
         {
-            "name": "SkillContinue",
+            "name": "IsDead",
             "type": "bool",
             "value": false
         },
@@ -1680,8 +1680,8 @@
         "Hit_R",
         "Hit_L",
         "QF",
-        "QB",
         "QR",
+        "QB",
         "QL"
     ]
 }
