@@ -6,12 +6,16 @@
 #include "UI/TextWidget.h"
 #include "UI/WidgetShadow.h"
 #include "Application/Tools/GamePadVib.h"
+#include "Application/Time/GameTime.h"
+#include "Core/Foundation/Easing.h"
+#include "Core/Foundation/Random.h"
+#include <algorithm>
+#include <cmath>
 
 XboxControllerWidget::XboxControllerWidget(const std::string& name, std::weak_ptr<Object> inputOwner, const Vector2& position, const Vector2& scale)
 	: WidgetGroup(name), inputOwner(std::move(inputOwner))
 {
-	originPosition = position;
-	rect.position = originPosition;
+	rect.position = position;
 	rect.scale = scale;
 	rect.anchor = Vector2(0.5f, 0.5f);
 }
@@ -194,9 +198,23 @@ void XboxControllerWidget::OnUpdate()
 {
 	WidgetGroup::OnUpdate();
 
-	// 振動
-	auto vib = GamePadVib::Instance().GetVibration();
-	rect.position = originPosition + vib;
+	float leftPower, rightPower, duration;
+	GamePadVib::Instance().GetVibration(leftPower, rightPower, duration);
+	if (duration > previousVibrationDuration)
+	{
+		const float power = std::clamp(duration, 0.0f, 1.0f);
+		vibrationPower = Vector2(std::max(vibrationAmplitude.x, leftPower * power),
+			std::max(vibrationAmplitude.y, rightPower * power));
+		vibrationDuration = std::max(0.5f, std::max(vibrationRemaining, duration));
+		vibrationRemaining = vibrationDuration;
+	}
+	previousVibrationDuration = duration;
+	vibrationRemaining = std::max(vibrationRemaining - std::max(Game::Time::unscaledDeltaTime, 0.0f), 0.0f);
+	const float progress = 1.0f - std::clamp(vibrationRemaining / vibrationDuration, 0.0f, 1.0f);
+	vibrationAmplitude = vibrationPower * (1.0f - Easing::Evaluate(progress, Easing::Type::OutCubic));
+	const float amplitudeX = std::abs(vibrationAmplitude.x);
+	const float amplitudeY = std::abs(vibrationAmplitude.y);
+	vibrationOffset = Vector2(Random::Range(-amplitudeX, amplitudeX), Random::Range(-amplitudeY, amplitudeY));
 	
 	const auto owner = inputOwner.lock(); // プレイヤーが存在するか
 	const auto* input = owner ? owner->GetComponent<LocalPlayerInput>() : nullptr;
@@ -219,6 +237,14 @@ void XboxControllerWidget::OnUpdate()
 
 		group.offTimer -= Game::Time::unscaledDeltaTime;
 	}
+}
+
+void XboxControllerWidget::OnRender(const RenderContext& rc)
+{
+	const Vector2 position = rect.position;
+	rect.position += vibrationOffset * 100.0f;
+	WidgetGroup::OnRender(rc);
+	rect.position = position;
 }
 
 void XboxControllerWidget::OnDrawGUI()

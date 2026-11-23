@@ -22,11 +22,11 @@ void GamePadVib::Vibrate(float leftPower, float rightPower, float duration)
 	this->duration += std::max(duration, 0.0f);
 }
 
-Vector2 GamePadVib::GetVibration()
+void GamePadVib::GetVibration(float& leftPower, float& rightPower, float& duration) const
 {
-	return Vector2(
-		leftPower * std::clamp(duration, 0.0f, 1.0f),
-		rightPower * std::clamp(duration, 0.0f, 1.0f));
+	leftPower = this->leftPower;
+	rightPower = this->rightPower;
+	duration = this->duration;
 }
 
 void GamePadVib::Update()

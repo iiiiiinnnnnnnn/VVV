@@ -14,6 +14,7 @@ public:
 protected:
 	void OnAwake() override;
 	void OnUpdate() override;
+	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;
 
 private:
@@ -30,5 +31,10 @@ private:
 	};
 	std::vector<ControlHighlight> highlights;
 	std::weak_ptr<Object> inputOwner;
-	Vector2 originPosition = Vector2::Zero;
+	Vector2 vibrationPower = Vector2::Zero;
+	Vector2 vibrationAmplitude = Vector2::Zero;
+	Vector2 vibrationOffset = Vector2::Zero;
+	float vibrationDuration = 0.5f;
+	float vibrationRemaining = 0.0f;
+	float previousVibrationDuration = 0.0f;
 };
