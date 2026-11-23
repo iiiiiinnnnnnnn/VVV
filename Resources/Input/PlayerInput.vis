@@ -56,15 +56,7 @@
             },
             {
               "axis": "None",
-              "code": 16,
-              "device": "GamePad",
-              "downOnly": false,
-              "negative": false,
-              "threshold": 0.3499999940395355
-            },
-            {
-              "axis": "None",
-              "code": 64,
+              "code": 32,
               "device": "GamePad",
               "downOnly": false,
               "negative": false,
@@ -485,6 +477,14 @@
             {
               "axis": "None",
               "code": 16384,
+              "device": "GamePad",
+              "downOnly": false,
+              "negative": false,
+              "threshold": 0.3499999940395355
+            },
+            {
+              "axis": "None",
+              "code": 16,
               "device": "GamePad",
               "downOnly": false,
               "negative": false,

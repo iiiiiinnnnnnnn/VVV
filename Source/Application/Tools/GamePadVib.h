@@ -11,6 +11,7 @@ class GamePadVib
 	~GamePadVib();
 	void Initialize();
 	void Vibrate(float leftMotorPower, float rightMotorPower, float duration);
+	Vector2 GetVibration();
 	void Update();
 
   private:

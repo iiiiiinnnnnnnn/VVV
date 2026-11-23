@@ -5,11 +5,13 @@
 #include "UI/SpriteWidget.h"
 #include "UI/TextWidget.h"
 #include "UI/WidgetShadow.h"
+#include "Application/Tools/GamePadVib.h"
 
 XboxControllerWidget::XboxControllerWidget(const std::string& name, std::weak_ptr<Object> inputOwner, const Vector2& position, const Vector2& scale)
 	: WidgetGroup(name), inputOwner(std::move(inputOwner))
 {
-	rect.position = position;
+	originPosition = position;
+	rect.position = originPosition;
 	rect.scale = scale;
 	rect.anchor = Vector2(0.5f, 0.5f);
 }
@@ -191,6 +193,10 @@ void XboxControllerWidget::AddControl(const std::vector<std::shared_ptr<Widget>>
 void XboxControllerWidget::OnUpdate()
 {
 	WidgetGroup::OnUpdate();
+
+	// 振動
+	auto vib = GamePadVib::Instance().GetVibration();
+	rect.position = originPosition + vib;
 	
 	const auto owner = inputOwner.lock(); // プレイヤーが存在するか
 	const auto* input = owner ? owner->GetComponent<LocalPlayerInput>() : nullptr;

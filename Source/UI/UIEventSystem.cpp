@@ -110,11 +110,26 @@ void UIEventSystem::ResetPointer(UIEventData& data)
 	}
 }
 
+Vector2 UIEventSystem::ReadNavigation() const
+{
+	const auto& input = InputKit::InputSystem::Instance();
+	if (!input.CanReadActions()) return Vector2::Zero;
+	const auto buttons = input.GetGamePad().GetButton();
+	Vector2 direction = Vector2::Zero;
+	if (buttons & InputKit::GamePad::BTN_LEFT) direction.x -= 1.0f;
+	if (buttons & InputKit::GamePad::BTN_RIGHT) direction.x += 1.0f;
+	if (buttons & InputKit::GamePad::BTN_DOWN) direction.y -= 1.0f;
+	if (buttons & InputKit::GamePad::BTN_UP) direction.y += 1.0f;
+	if (direction != Vector2::Zero) return direction;
+	const auto navigation = input.ReadValue<InputKit::Vector2>("UIInput/Navigate");
+	return Vector2(navigation.x, navigation.y);
+}
+
 void UIEventSystem::UpdateInputMode(UIEventData& data)
 {
 	auto& input = InputKit::InputSystem::Instance();
 	auto& mouse = input.GetMouse();
-	const auto navigation = input.ReadValue<InputKit::Vector2>("UIInput/Navigate");
+	const auto navigation = ReadNavigation();
 	const Vector2 navigationInput(
 		std::abs(navigation.x) > 0.5f ? (navigation.x > 0 ? 1.0f : -1.0f) : 0.0f,
 		std::abs(navigation.y) > 0.5f ? (navigation.y > 0 ? 1.0f : -1.0f) : 0.0f);
@@ -311,7 +326,7 @@ void UIEventSystem::UpdateNavigation(UIEventData& data)
 	current = selected.lock();
 	if (!submitHeld) submitArmed = true;
 	Vector2 direction = Vector2::Zero;
-	const auto navigation = input.ReadValue<InputKit::Vector2>("UIInput/Navigate");
+	const auto navigation = ReadNavigation();
 	const float x = navigation.x;
 	const float y = navigation.y;
 	if (std::abs(x) > 0.5f || std::abs(y) > 0.5f)

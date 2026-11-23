@@ -37,6 +37,7 @@ private:
 	void SetHovered(const std::shared_ptr<Widget>& widget, UIEventData& data);
 	void SetSelected(const std::shared_ptr<Widget>& widget, UIEventData& data);
 	void ResetPointer(UIEventData& data);
+	Vector2 ReadNavigation() const;
 	void UpdateInputMode(UIEventData& data);
 	void UpdatePointer(UIEventData& data);
 	void UpdateNavigation(UIEventData& data);

@@ -22,6 +22,13 @@ void GamePadVib::Vibrate(float leftPower, float rightPower, float duration)
 	this->duration += std::max(duration, 0.0f);
 }
 
+Vector2 GamePadVib::GetVibration()
+{
+	return Vector2(
+		leftPower * std::clamp(duration, 0.0f, 1.0f),
+		rightPower * std::clamp(duration, 0.0f, 1.0f));
+}
+
 void GamePadVib::Update()
 {
 	auto& gamepad = InputKit::InputSystem::Instance().GetGamePad();

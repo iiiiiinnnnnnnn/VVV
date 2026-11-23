@@ -30,4 +30,5 @@ private:
 	};
 	std::vector<ControlHighlight> highlights;
 	std::weak_ptr<Object> inputOwner;
+	Vector2 originPosition = Vector2::Zero;
 };
