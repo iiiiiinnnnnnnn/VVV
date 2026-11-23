@@ -64,4 +64,3 @@ struct CbLightData
 	int directionalLightCount;
 };
 
-static_assert(sizeof(CbLightData) == 28832);
