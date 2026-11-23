@@ -42,6 +42,8 @@
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Effect/Effect.h"
 
+#include "Gameplay/Scene/SceneManager.h"
+
 // 初期化
 
 Aracore::Aracore(Player* player_init,
@@ -637,9 +639,19 @@ void Aracore::SpawnDeerFromSky()
 void Aracore::DeformTerrainAtLanding()
 {
 	if (!terrain || !controller) return;
-	constexpr float power = 2.0f; // 強さ
+
+	// Terrain凹み
+	constexpr float power = 2.0f;  // 強さ
 	constexpr float radius = 9.0f; // 半径
 	terrain->Deform(jump.GetLandingPosition(), Vector3::Down, power, radius);
+
+	// デカール
+	Transform transform(
+		jump.GetLandingPosition(),
+		transform.rotation,
+		{decalSize, 1.0f, decalSize});
+	auto terrain = SceneManager::Instance().GetCurrentScene()->GetCurrentStage()->GetComponent<Terrain>();
+	if (terrain) terrain->AddDecal("break", transform, 0.810f);
 }
 
 void Aracore::ShakeCameraAtLanding()
@@ -975,24 +987,21 @@ void Aracore::SetPlayerDetected(bool detected)
 void Aracore::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-	ImGui::TextUnformatted("AIパス：Resources/AI/Aracore.lua");
+
+	ImGui::TextUnformatted("AI：Resources/AI/Aracore.lua");
 
 	ImGui::Text("バトル時間: %.2f秒", battleTime);
 
+	ImGuiToolKit::DragSizeFloat("デカールサイズ", &decalSize, 0.1f, 0.1f, 100.0f);
+
 	if (ImGui::Button("威嚇"))
-	{
 		PlayThreatPresentation();
-	}
 
 	if (ImGui::Button("20ダメージ"))
-	{
 		TakeDamage(DamageData{.damage = 20.0f});
-	}
 
-	if (ImGui::Button("Kill"))
-	{
+	if (ImGui::Button("キル"))
 		TakeDamage(DamageData{.damage = 10000.0f});
-	}
 
 	for (Vector3& pos : colPositions)
 	{

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -18,7 +20,22 @@ class ResourceManager
 public:
 	enum class ResourceType
 	{
-		Model, Effect, Stage, Sound, Animator, AI, Texture, Shader, Font,
+		Model,
+		Effect,
+		Stage,
+		Sound,
+		Animator,
+		AI,
+		Texture,
+		Shader,
+		Font,
+		DecalTex,
+		Movie,
+		Mesh,
+		PhysicsLayers,
+		Input,
+		TerrainLayer,
+		TerrainBrush,
 	};
 
 	enum class AssetType
@@ -46,8 +63,18 @@ public:
 		return instance;
 	}
 
-	static std::filesystem::path FindSourceResourceRoot();
 	static std::filesystem::path ResolveSourcePath(const std::filesystem::path& path);
+	// 編集用の正本はプロジェクト優先。実行用の配置はexe直下に固定する。
+	static std::filesystem::path GetResourceRoot();
+	static std::filesystem::path GetRuntimeResourceRoot();
+	static std::filesystem::path GetResourceDirectory(ResourceType type);
+	static std::string PortableResourcePath(const std::filesystem::path& path);
+	std::filesystem::path ResolveEditPath(std::string_view value, ResourceType type) const;
+	static std::filesystem::path ResolveSavePath(const std::filesystem::path& path);
+	std::filesystem::path SaveResourceFile(const std::filesystem::path& path,
+		const std::function<void(const std::filesystem::path&)>& writer);
+	std::filesystem::path SaveResourceFile(std::string_view value, ResourceType type,
+		const std::function<void(const std::filesystem::path&)>& writer);
 
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	void DrawGUI();
@@ -62,6 +89,7 @@ public:
 	bool PreloadFile(const std::string& path);
     bool PreloadConfiguredResources();
     std::shared_ptr<const std::vector<uint8_t>> LoadFile(const std::string& path);
+	static std::span<const uint8_t> LoadEmbeddedResource(int IDR_ID);
 	void RegisterGeneratedCache(const std::string& path);
 	std::string ResolvePath(const std::string& path) const;
 	std::string ResolveResourcePath(std::string_view value, ResourceType type) const;
@@ -69,15 +97,23 @@ public:
 	{
 		return ResolvePath(ResolveResourcePath(value, ResourceType::Shader));
 	}
-	static std::string ShortResourcePath(std::string_view value, const char* directory);
+	static std::string ShortResourcePath(std::string_view value, ResourceType type);
 	const std::vector<std::string>& GetErrors() const { return errors; }
 	const std::vector<AssetPath>& GetAssetPaths() const { return assetPaths; }
 
 	std::shared_ptr<const VMDLModel> GetModelResource(const std::string& key);
 	std::shared_ptr<VMDLModel> LoadModel(const std::string& key, bool runtimeInstance = false);
-	std::shared_ptr<Texture> LoadTexture(const std::string& key, bool required = true);
+	std::shared_ptr<Texture> LoadTexture(const std::string& key, ResourceType type = ResourceType::Texture);
 
 private:
+	struct PathSettings
+	{
+		const char* directory;
+		const char* extension;
+	};
+	static const PathSettings& GetPathSettings(ResourceType type);
+	static std::filesystem::path ExpandResourcePath(std::string_view value, ResourceType type);
+	static std::filesystem::path FindSourceResourceRoot();
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 	struct ResourceTreeNode
 	{

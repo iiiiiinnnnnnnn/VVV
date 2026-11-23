@@ -368,14 +368,9 @@ void VMDLModel::CreateSRVFromEmbeddedDDSOrFile(ID3D11Device* device,
 		return;
 	}
 
-	HRESULT hr = S_OK;
-
 	if (!embeddedDDS.empty())
 	{
-		hr = DirectX::CreateDDSTextureFromMemory(
-			device, embeddedDDS.data(), embeddedDDS.size(), nullptr, srv.GetAddressOf());
-
-		_ASSERT_EXPR(SUCCEEDED(hr), HRTrace(hr));
+		srv = Texture(device, embeddedDDS.data(), embeddedDDS.size()).GetShaderResourceView();
 		return;
 	}
 
@@ -508,21 +503,20 @@ bool VMDLModel::ReplaceMaterialTexture(
 	}
 	if (!filename || !embeddedDDS || !srv || !hasTexture) return false;
 
-	std::vector<uint8_t> convertedDDS;
-	if (FAILED(ConvertTextureFileToDDSBytes(texturePath, convertedDDS)) || convertedDDS.empty())
-		return false;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacement;
-	const HRESULT hr = DirectX::CreateDDSTextureFromMemory(Game::Graphics::Instance().GetDevice(),
-		convertedDDS.data(), convertedDDS.size(), nullptr, replacement.GetAddressOf());
-	if (FAILED(hr)) return false;
-
-	*filename = texturePath.filename().string();
-	*embeddedDDS = std::move(convertedDDS);
-	*srv = std::move(replacement);
-	*hasTexture = true;
-	SyncMaterialTextureToSource(materialIndex, slot);
-	return true;
+	try
+	{
+		auto* device = Game::Graphics::Instance().GetDevice();
+		Texture texture(device, texturePath.string().c_str());
+		std::vector<uint8_t> convertedDDS;
+		if (FAILED(ConvertSRVToDDSBytes(device, texture.GetShaderResourceView().Get(), convertedDDS))) return false;
+		*filename = texturePath.filename().string();
+		*embeddedDDS = std::move(convertedDDS);
+		*srv = texture.GetShaderResourceView();
+		*hasTexture = true;
+		SyncMaterialTextureToSource(materialIndex, slot);
+		return true;
+	}
+	catch (const std::exception&) { return false; }
 }
 
 bool VMDLModel::ExportMaterialTexture(
@@ -562,25 +556,23 @@ bool VMDLModel::ExportMaterialTexture(
 
 	if (!embeddedDDS) return false;
 
-	if (ext == ".dds")
+	try
 	{
-		std::ofstream file(savePath, std::ios::binary | std::ios::out | std::ios::trunc);
-
-		if (!file)
-		{
-			return false;
-		}
-
-		file.write(reinterpret_cast<const char*>(embeddedDDS->data()),
-			static_cast<std::streamsize>(embeddedDDS->size()));
+		ResourceManager::Instance().SaveResourceFile(savePath, [&](const std::filesystem::path& destination) {
+			if (ext == ".dds")
+			{
+				std::ofstream file(destination, std::ios::binary | std::ios::trunc);
+				file.write(reinterpret_cast<const char*>(embeddedDDS->data()),
+					static_cast<std::streamsize>(embeddedDDS->size()));
+				file.close();
+				if (!file) throw std::runtime_error("Material texture write failed.");
+			}
+			else if (FAILED(SaveDDSAsPNG(*embeddedDDS, destination)))
+				throw std::runtime_error("Material PNG write failed.");
+		});
+		return true;
 	}
-	else if (ext == ".png")
-	{
-		HRESULT hr = SaveDDSAsPNG(*embeddedDDS, savePath);
-		if (FAILED(hr)) return false;
-	}
-
-	return true;
+	catch (const std::exception&) { return false; }
 }
 
 bool VMDLModel::ClearMaterialTexture(size_t materialIndex, MaterialTextureSlot slot)
@@ -2719,8 +2711,9 @@ bool VMDLModel::SaveVmdl(const std::filesystem::path& filepath)
 	if (filepath.empty()) return false;
 	try
 	{
-		Serialize(filepath.string().c_str());
-		modelCacheFilepath = filepath;
+		const auto destination = ResourceManager::ResolveSavePath(filepath);
+		Serialize(destination.string().c_str());
+		modelCacheFilepath = destination;
 		return true;
 	}
 	catch (const std::exception&) { return false; }

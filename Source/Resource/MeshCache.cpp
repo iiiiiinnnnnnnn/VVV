@@ -1,5 +1,6 @@
 #include "Rendering/Shader/ModelMaterialParameters.h"
 #include "Resource/MeshCache.h"
+#include "Resource/ResourceManager.h"
 
 #include "Rendering/Core/Graphics.h"
 
@@ -355,20 +356,24 @@ bool MeshCache::Save(const std::filesystem::path& filepath, const VMDLModel& sou
 		CloseCompressor(compressor);
 		compressedData.resize(compressedSize);
 
-		std::ofstream output(filepath, std::ios::binary | std::ios::trunc);
-		if (!output) throw std::runtime_error("MeshCache output could not be opened.");
-		static constexpr std::array<char, 8> magic = {'M', 'E', 'S', 'H', 'C', 'C', 'H', '\0'};
-		const uint32_t version = 2;
-		const uint64_t sourceSize = sourceData.size();
-		const uint64_t storedCompressedSize = compressedData.size();
-		output.write(magic.data(), magic.size());
-		output.write(reinterpret_cast<const char*>(&version), sizeof(version));
-		output.write(reinterpret_cast<const char*>(&sourceSize), sizeof(sourceSize));
-		output.write(
-			reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
-		output.write(
-			reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
-		if (!output.good()) throw std::runtime_error("MeshCache output write failed.");
+		ResourceManager::Instance().SaveResourceFile(filepath, [&](const std::filesystem::path& destination) {
+			std::ofstream output(destination, std::ios::binary | std::ios::trunc);
+			if (!output) throw std::runtime_error("MeshCache output could not be opened.");
+			static constexpr std::array<char, 8> magic = {'M', 'E', 'S', 'H', 'C', 'C', 'H', '\0'};
+			const uint32_t version = 2;
+			const uint64_t sourceSize = sourceData.size();
+			const uint64_t storedCompressedSize = compressedData.size();
+			output.write(magic.data(), magic.size());
+			output.write(reinterpret_cast<const char*>(&version), sizeof(version));
+			output.write(reinterpret_cast<const char*>(&sourceSize), sizeof(sourceSize));
+			output.write(
+				reinterpret_cast<const char*>(&storedCompressedSize), sizeof(storedCompressedSize));
+			output.write(
+				reinterpret_cast<const char*>(compressedData.data()), compressedData.size());
+			if (!output.good()) throw std::runtime_error("MeshCache output write failed.");
+			output.close();
+			if (!output) throw std::runtime_error("MeshCache output close failed.");
+		});
 		return true;
 	}
 	catch (const std::exception& exception)

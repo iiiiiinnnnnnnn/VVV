@@ -8,7 +8,9 @@
 #include "Resource/CacheBuilder.h"
 #endif
 
+#include <Windows.h>
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <format>
 #include <ctime>
@@ -33,7 +35,7 @@ bool ResourceManager::PrepareGameResources()
 	files.clear();
 	preloadedFiles.clear();
 
-	runtimeResourceRoot = std::filesystem::current_path() / "Resources";
+	runtimeResourceRoot = GetRuntimeResourceRoot();
 	cachedPathList = runtimeResourceRoot / "ResourceManifest.ini";
 
 	if (!LoadCachedPathList())
@@ -56,9 +58,10 @@ bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
 		std::unordered_map<std::string, std::string> previousUpdates;
 		for (const auto& asset : assetPaths)
 			previousUpdates[CacheSettings::Key(asset.path)] = asset.updated;
-		if (runtimeResourceRoot.empty()) runtimeResourceRoot = std::filesystem::current_path() / "Resources";
+		if (runtimeResourceRoot.empty()) runtimeResourceRoot = GetRuntimeResourceRoot();
 		cachedPathList = runtimeResourceRoot / "ResourceManifest.ini";
-		const auto changed = CacheBuilder::Build(sourceRoot, runtimeResourceRoot, false, savedSource);
+		const auto changed = sourceRoot == runtimeResourceRoot ? std::vector<std::string>{}
+			: CacheBuilder::Build(sourceRoot, runtimeResourceRoot, false, savedSource);
 		for (const auto& path : changed)
 		{
 			const auto key = MakeLookupKey(path);
@@ -104,16 +107,135 @@ bool ResourceManager::RefreshResources(const std::filesystem::path& savedSource)
 // 実行用パスを編集用の正本へ解決
 std::filesystem::path ResourceManager::ResolveSourcePath(const std::filesystem::path& path)
 {
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
+	if (path.empty()) return path;
 	const auto sourceRoot = FindSourceResourceRoot();
-	if (sourceRoot.empty() || path.empty()) return path;
-	const auto runtime = std::filesystem::weakly_canonical(std::filesystem::current_path() / "Resources");
+	const auto runtime = GetRuntimeResourceRoot();
+	if (path.is_relative() && *path.begin() == "Resources")
+		return (sourceRoot.empty() ? runtime : sourceRoot) / path.lexically_relative("Resources");
+	if (sourceRoot.empty()) return path;
 	const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
 	const auto relative = absolute.lexically_relative(runtime);
 	if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..")
 		return sourceRoot / relative;
-#endif
 	return path;
+}
+
+std::filesystem::path ResourceManager::GetRuntimeResourceRoot()
+{
+	std::wstring executable(32768, L'\0');
+	const DWORD length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
+	if (!length || length >= executable.size()) throw std::runtime_error("Cannot locate the executable.");
+	executable.resize(length);
+	return std::filesystem::weakly_canonical(std::filesystem::path(executable).parent_path() / "Resources");
+}
+
+std::filesystem::path ResourceManager::GetResourceRoot()
+{
+	const auto source = FindSourceResourceRoot();
+	return source.empty() ? GetRuntimeResourceRoot() : source;
+}
+
+std::filesystem::path ResourceManager::GetResourceDirectory(ResourceType type)
+{
+	return GetResourceRoot() / GetPathSettings(type).directory;
+}
+
+std::string ResourceManager::PortableResourcePath(const std::filesystem::path& path)
+{
+	if (path.empty()) return {};
+	const auto absolute = std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+	for (const auto& root : {GetResourceRoot(), GetRuntimeResourceRoot()})
+	{
+		const auto relative = absolute.lexically_relative(root);
+		if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..")
+			return ResourcePath::Text(std::filesystem::path("Resources") / relative);
+	}
+	return ResourcePath::Text(path.lexically_normal());
+}
+
+std::filesystem::path ResourceManager::ResolveEditPath(std::string_view value, ResourceType type) const
+{
+	if (value.empty()) return {};
+	const auto portable = ResourcePath::Path(PortableResourcePath(ResourcePath::Path(value)));
+	auto path = ResolveSourcePath(ExpandResourcePath(ResourcePath::Text(portable), type));
+	std::error_code error;
+	if (!std::filesystem::exists(path, error))
+		path = ResolveSourcePath(ResourcePath::Path(ResolveResourcePath(ResourcePath::Text(portable), type)));
+	return std::filesystem::weakly_canonical(std::filesystem::absolute(path));
+}
+
+std::filesystem::path ResourceManager::ResolveSavePath(const std::filesystem::path& path)
+{
+	if (path.empty()) throw std::invalid_argument("Resource save path is empty.");
+	const auto root = GetResourceRoot();
+	const auto portable = ResourcePath::Path(PortableResourcePath(path));
+	if (portable.is_relative() && *portable.begin() == "Resources")
+		return root / portable.lexically_relative("Resources");
+	if (FindSourceResourceRoot().empty() && path.is_absolute()) return path.lexically_normal();
+	if (path.is_relative() && path.has_parent_path() && *path.begin() != "..") return root / path;
+	// プロジェクト外への保存指定も、リソースの種類に応じた正本へまとめる。
+	for (size_t i = 0; i <= static_cast<size_t>(ResourceType::TerrainBrush); ++i)
+	{
+		const auto& settings = GetPathSettings(static_cast<ResourceType>(i));
+		if (path.extension() == settings.extension) return root / settings.directory / path.filename();
+	}
+	if (CacheSettings::IsImage(ResourcePath::Text(path)))
+		return root / GetPathSettings(ResourceType::Texture).directory / path.filename();
+	return root / path.filename();
+}
+
+std::filesystem::path ResourceManager::SaveResourceFile(const std::filesystem::path& path,
+	const std::function<void(const std::filesystem::path&)>& writer)
+{
+	const auto source = ResolveSavePath(path);
+	std::filesystem::create_directories(source.parent_path());
+	const auto staging = source.parent_path() / (source.stem().wstring() + L".resourcewriting" + source.extension().wstring());
+	try
+	{
+		writer(staging);
+		if (!std::filesystem::is_regular_file(staging)) throw std::runtime_error("Resource writer did not create a file.");
+		if (!MoveFileExW(staging.c_str(), source.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+			throw std::runtime_error("Cannot replace project resource: " + ResourcePath::Text(source));
+	}
+	catch (...)
+	{
+		std::error_code ignored;
+		std::filesystem::remove(staging, ignored);
+		throw;
+	}
+	const auto relative = source.lexically_relative(GetResourceRoot());
+	if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..")
+	{
+		const auto destination = GetRuntimeResourceRoot() / relative;
+		if (source != destination)
+		{
+			const auto temporary = std::filesystem::path(destination.wstring() + L".resource.tmp");
+			try
+			{
+				std::filesystem::create_directories(destination.parent_path());
+				std::filesystem::copy_file(source, temporary, std::filesystem::copy_options::overwrite_existing);
+				if (!MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+					throw std::runtime_error("Cannot replace runtime resource: " + ResourcePath::Text(destination));
+			}
+			catch (const std::exception& exception)
+			{
+				std::error_code ignored;
+				std::filesystem::remove(temporary, ignored);
+				throw std::runtime_error("Project resource saved, but runtime synchronization failed: " + std::string(exception.what()));
+			}
+		}
+	}
+	if (!RefreshResources(source)) throw std::runtime_error("Project resource saved, but runtime cache refresh failed.");
+	return source;
+}
+
+std::filesystem::path ResourceManager::SaveResourceFile(std::string_view value, ResourceType type,
+	const std::function<void(const std::filesystem::path&)>& writer)
+{
+	auto path = ResolveEditPath(value, type);
+	if (!FindSourceResourceRoot().empty() && !PortableResourcePath(path).starts_with("Resources/"))
+		path = GetResourceDirectory(type) / path.filename();
+	return SaveResourceFile(path, writer);
 }
 
 bool ResourceManager::PreloadFile(const std::string& path)
@@ -224,37 +346,59 @@ std::string ResourceManager::ResolvePath(const std::string& path) const
 	return assetPaths[it->second].path;
 }
 
+const ResourceManager::PathSettings& ResourceManager::GetPathSettings(ResourceType type)
+{
+	static constexpr std::array<PathSettings, 16> settings = {{
+		{"Model", ".vmdl"},
+		{"Effect", ".efkpkg"},
+		{"Stage", ".vstg"},
+		{"Sound", ".vsnd"},
+		{"Animator", ".animator"},
+		{"AI", ".lua"},
+		{"Image", ".png"},
+		{"Shader", ".cso"},
+		{"Font", ".ttf"},
+		{"Terrain/Decals", ".png"},
+		{"Movie", ".vmovie"},
+		{"Model", ".vmsh"},
+		{"", ".physicslayers"},
+		{"Input", ".vis"},
+		{"Terrain/Layers", ".png"},
+		{"Terrain/Brushes", ".png"}}};
+	static_assert(settings.size() == static_cast<size_t>(ResourceType::TerrainBrush) + 1);
+	const size_t index = static_cast<size_t>(type);
+	if (index >= settings.size()) throw std::invalid_argument("Invalid resource type.");
+	return settings[index];
+}
+
+std::filesystem::path ResourceManager::ExpandResourcePath(std::string_view value, ResourceType type)
+{
+	if (value.empty()) return {};
+	const auto [directory, extension] = GetPathSettings(type);
+	auto path = ResourcePath::Path(value).lexically_normal();
+	if (!path.has_extension()) path += extension;
+	if (path.is_absolute() || *path.begin() == "Resources") return path;
+	const auto category = ResourcePath::Path(directory);
+	const std::string first = ResourcePath::Text(*path.begin());
+	const bool rooted = (!category.empty() && first == ResourcePath::Text(*category.begin())) ||
+		(type == ResourceType::Texture && (first == "UI" || first == "Image" || first == "Texture" ||
+			first == "Terrain" || first == "Sky" || first == "Model"));
+	if (rooted) return std::filesystem::path("Resources") / path;
+	if (first == ResourcePath::Text(category.filename()))
+		return std::filesystem::path("Resources") / category.parent_path() / path;
+	return std::filesystem::path("Resources") / category / path;
+}
+
 std::string ResourceManager::ResolveResourcePath(std::string_view value, ResourceType type) const
 {
 	if (value.empty()) return {};
-	const char* directory = "";
-	const char* extension = "";
-	switch (type)
-	{
-	case ResourceType::Model: directory = "Model"; extension = ".vmdl"; break;
-	case ResourceType::Effect: directory = "Effect"; extension = ".efkpkg"; break;
-	case ResourceType::Stage: directory = "Stage"; extension = ".vstg"; break;
-	case ResourceType::Sound: directory = "Sound"; extension = ".vsnd"; break;
-	case ResourceType::Animator: directory = "Animator"; extension = ".animator"; break;
-	case ResourceType::AI: directory = "AI"; extension = ".lua"; break;
-	case ResourceType::Texture: directory = "Image"; extension = ".png"; break;
-	case ResourceType::Shader: directory = "Shader"; extension = ".cso"; break;
-	case ResourceType::Font: directory = "Font"; extension = ".ttf"; break;
-	}
+	const auto [directory, extension] = GetPathSettings(type);
 
-	auto path = ResourcePath::Path(value).lexically_normal();
-	if (!path.has_extension()) path += extension;
-	if (path.is_absolute() || *path.begin() == "Resources") return ResourcePath::Text(path);
-
+	const auto path = ExpandResourcePath(value, type);
+	if (path.is_absolute()) return ResourcePath::Text(path);
+	auto relative = ResourcePath::Path(value).lexically_normal();
+	if (!relative.has_extension()) relative += extension;
 	std::error_code error;
-	if (std::filesystem::exists(path, error)) return ResourcePath::Text(path);
-	const auto relative = path;
-	const std::string first = ResourcePath::Text(*path.begin());
-	const bool rooted = first == directory || (type == ResourceType::Texture &&
-		(first == "UI" || first == "Image" || first == "Texture" ||
-		 first == "Terrain" || first == "Sky" || first == "Model"));
-	path = rooted ? std::filesystem::path("Resources") / path
-		: std::filesystem::path("Resources") / directory / path;
 	const std::string expanded = ResourcePath::Text(path);
 	const std::string resolved = ResolvePath(expanded);
 	if (std::filesystem::exists(path, error)) return expanded;
@@ -268,8 +412,10 @@ std::string ResourceManager::ResolveResourcePath(std::string_view value, Resourc
 	{
 		std::string ext = ResourcePath::Text(ResourcePath::Path(asset.path).extension());
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-		if (type == ResourceType::Texture)
+		if (type == ResourceType::Texture || type == ResourceType::DecalTex ||
+			type == ResourceType::TerrainLayer || type == ResourceType::TerrainBrush)
 		{
+			if (type != ResourceType::Texture && !asset.path.starts_with(prefix)) continue;
 			if (ext != ".png" && ext != ".dds" && ext != ".jpg" && ext != ".jpeg" &&
 				ext != ".bmp" && ext != ".tga" && ext != ".hdr") continue;
 		}
@@ -285,14 +431,15 @@ std::string ResourceManager::ResolveResourcePath(std::string_view value, Resourc
 	return match.empty() ? expanded : match;
 }
 
-std::string ResourceManager::ShortResourcePath(std::string_view value, const char* directory)
+std::string ResourceManager::ShortResourcePath(std::string_view value, ResourceType type)
 {
-	auto path = ResourcePath::Path(value).lexically_normal();
+	const auto directory = GetPathSettings(type).directory;
+	auto path = ResourcePath::Path(PortableResourcePath(ResourcePath::Path(value))).lexically_normal();
 	const std::string text = ResourcePath::Text(path);
-	const std::string prefix = std::string("Resources/") + directory + "/";
+	const std::string prefix = std::string("Resources/") + directory + (*directory ? "/" : "");
 	if (text.starts_with(prefix)) path = ResourcePath::Path(text.substr(prefix.size()));
 	const auto extension = path.extension();
-	if (extension == ".wav" || extension == ".vsnd" || extension == ".vmdl" ||
+	if (extension == GetPathSettings(type).extension || extension == ".wav" || extension == ".vsnd" || extension == ".vmdl" ||
 		extension == ".vstg" || extension == ".efkpkg" || extension == ".animator" ||
 		extension == ".lua" || extension == ".png" || extension == ".dds" ||
 		extension == ".ttf" || extension == ".otf" || extension == ".cso")
@@ -303,7 +450,7 @@ std::string ResourceManager::ShortResourcePath(std::string_view value, const cha
 std::shared_ptr<const VMDLModel> ResourceManager::GetModelResource(const std::string& key)
 {
 	PROFILE_FUNCTION();
-	const std::string modelPath = ResolveResourcePath(key, ResourceType::Model);
+	const std::string modelPath = ResolveResourcePath(PortableResourcePath(ResourcePath::Path(key)), ResourceType::Model);
 	if (cacheSettings.Get(ResolvePath(modelPath)).excluded) return nullptr;
 	const std::string lookupKey = MakeLookupKey(modelPath);
 	const auto pathIt = assetPathLookup.find(lookupKey);
@@ -351,22 +498,28 @@ std::shared_ptr<VMDLModel> ResourceManager::LoadModel(const std::string& key, bo
 	return result;
 }
 
-std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key, bool required)
+std::span<const uint8_t> ResourceManager::LoadEmbeddedResource(int IDR_ID)
+{
+	const HMODULE module = GetModuleHandleW(nullptr);
+	const HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(IDR_ID), MAKEINTRESOURCEW(10));
+	if (!resource) throw std::runtime_error("Embedded resource not found: " + std::to_string(IDR_ID));
+	const HGLOBAL loaded = LoadResource(module, resource);
+	const auto* data = static_cast<const uint8_t*>(loaded ? LockResource(loaded) : nullptr);
+	const DWORD size = SizeofResource(module, resource);
+	if (!data || !size) throw std::runtime_error("Embedded resource could not be read: " + std::to_string(IDR_ID));
+	return {data, size};
+}
+
+std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& key, ResourceType type)
 {
 	PROFILE_FUNCTION();
-	const std::string resolvedPath = ResolvePath(ResolveResourcePath(key, ResourceType::Texture));
+	if (key.empty()) return {};
+	const std::string resolvedPath = ResolvePath(ResolveResourcePath(key, type));
 	if (cacheSettings.Get(resolvedPath).excluded) return nullptr;
 	const std::string lookupKey = CacheSettings::Key(resolvedPath);
 	auto it = textures.find(lookupKey);
 	if (it == textures.end())
 	{
-		// 任意のUI画像は、未設定・未存在なら例外を投げずに省略する。
-		if (!std::filesystem::exists(resolvedPath))
-		{
-			if (required) throw std::runtime_error("Texture not found: " + resolvedPath);
-			return {};
-		}
-
 		auto texture = std::make_shared<Texture>(Game::Graphics::Instance().GetDevice(), resolvedPath.c_str());
 		it = textures.emplace(lookupKey, std::move(texture)).first;
 	}
@@ -494,15 +647,19 @@ bool ResourceManager::AddAssetPath(
 
 std::filesystem::path ResourceManager::FindSourceResourceRoot()
 {
-	for (std::filesystem::path directory = std::filesystem::current_path(); !directory.empty();
-		directory = directory.parent_path())
+	for (const auto& start : {GetRuntimeResourceRoot().parent_path(), std::filesystem::current_path()})
 	{
-		if (std::filesystem::exists(directory / "VEER.sln") &&
-			std::filesystem::is_directory(directory / "Resources"))
+		for (auto directory = start; !directory.empty(); directory = directory.parent_path())
 		{
-			return std::filesystem::weakly_canonical(directory / "Resources");
+			std::error_code error;
+			for (std::filesystem::directory_iterator file(directory, error), end;
+				file != end && !error; file.increment(error))
+			{
+				if (file->is_regular_file(error) && file->path().extension() == ".sln")
+					return std::filesystem::weakly_canonical(directory / "Resources");
+			}
+			if (directory == directory.root_path()) break;
 		}
-		if (directory == directory.root_path()) break;
 	}
 	return {};
 }

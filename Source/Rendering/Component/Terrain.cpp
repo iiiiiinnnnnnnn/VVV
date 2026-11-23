@@ -1,8 +1,4 @@
 #include <Dx11Kit/Dx11Kit.h>
-#include <imgui.h>
-#include <imgui_stdlib.h>
-#include <ImGuiToolKit/Drag.h>
-#include <ImGuiToolKit/Color.h>
 #include <ProfileKit/ProfileKit.h>
 
 #include "IconsFontAwesome5.h"
@@ -13,13 +9,13 @@
 #include "Resource/Texture.h"
 #include "Resource/ImageData.h"
 #include "Gameplay/Lighting/LightManager.h"
-#include <InputKit/InputKit.h>
 #include "Application/Time/GameTime.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Resource/Texture.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 #include "Core/Foundation/Json.h"
 #include "Rendering/Effect/Effect.h"
 #include "Rendering/Effect/EffectManager.h"
@@ -27,6 +23,7 @@
 
 #include <cfloat>
 #include <cmath>
+#include <stdexcept>
 
 Terrain::Terrain(Object* owner)
 	: Component(owner)
@@ -38,24 +35,44 @@ void Terrain::OnAwake()
 	InitializeGpuResources();
 	grassRenderer = std::make_unique<TerrainGrassRenderer>(Game::Graphics::Instance().GetDevice());
 	ClearTerrainTexture();
-
-	AddBrushTexture("Resources/Terrain/Brushes/brush_default.png");
-	AddBrushTexture("Resources/Terrain/Brushes/brush_pen.png");
-	AddBrushTexture("Resources/Terrain/Brushes/brush_square.png");
-	AddBrushTexture("Resources/Terrain/Brushes/brush_triangle.png");
-	AddBrushTexture("Resources/Terrain/Brushes/brush_manji.png");
-	if (brushes.empty())
-	{
-		AddBrushTexture("Resources/Image/bugTex.png");
-	}
-
 }
 
 void Terrain::AddDecal(const std::string& path, const Transform& transform, float opacity)
 {
-	terrainDecals.push_back({transform,
-		path,
-		opacity});
+	if (terrainDecals.size() >= MaxTerrainDecals)
+		terrainDecals.erase(terrainDecals.begin());
+	if (path.empty() || !std::isfinite(opacity) || !std::isfinite(transform.position.x) ||
+		!std::isfinite(transform.position.z) || !std::isfinite(transform.scale.x) ||
+		!std::isfinite(transform.scale.z) || std::abs(transform.scale.x) < 0.0001f ||
+		std::abs(transform.scale.z) < 0.0001f)
+		throw std::invalid_argument("Invalid terrain decal parameters.");
+
+	auto texture = ResourceManager::Instance().LoadTexture(path, ResourceManager::ResourceType::DecalTex);
+	if (!texture) throw std::runtime_error("Terrain decal texture could not be loaded: " + path);
+	terrainDecals.push_back({transform, path, std::move(texture), std::clamp(opacity, 0.0f, 1.0f)});
+}
+
+void Terrain::BindDecals(ID3D11DeviceContext* dc)
+{
+	CbTerrainDecal constants{};
+	ID3D11ShaderResourceView* textures[MaxTerrainDecals] = {};
+	for (const auto& decal : terrainDecals)
+	{
+		if (!decal.texture || decal.opacity <= 0.0f) continue;
+		// 真上からの投影。高さやX/Z回転に依存させず、Y回転だけを使用する。
+		const Vector3 forward = decal.transform.GetForward();
+		const float yaw = std::atan2(forward.x, forward.z);
+		const Matrix world = Matrix::CreateScale(decal.transform.scale.x, 1.0f, decal.transform.scale.z)
+			* Matrix::CreateRotationY(yaw)
+			* Matrix::CreateTranslation(decal.transform.position.x, 0.0f, decal.transform.position.z);
+		const int index = constants.count++;
+		constants.worldToDecal[index] = world.Invert();
+		constants.parameters[index] = Vector4(decal.opacity, 0.0f, 0.0f, 0.0f);
+		textures[index] = decal.texture->GetShaderResourceView().Get();
+	}
+	terrainDecalConstantBuffer->Update(dc, &constants);
+	terrainDecalConstantBuffer->BindPS(dc, 5);
+	Gpu::PixelShader::SetShaderResources(dc, 52, textures);
 }
 
 void Terrain::ClearDecals()
@@ -128,6 +145,8 @@ void Terrain::InitializeGpuResources()
 	tesselationConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTessellation));
 
 	terrainLayerConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainLayer));
+	static_assert(sizeof(CbTerrainDecal) == MaxTerrainDecals * 80 + 16);
+	terrainDecalConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainDecal));
 
 	terrainColliderBuildConstantBuffer = std::make_unique<Gpu::ConstantBuffer>(device, sizeof(CbTerrainColliderBuild));
 
@@ -152,20 +171,8 @@ void Terrain::InitializeGpuResources()
 
 	terrainColliderBuildComputeShader = std::make_unique<Gpu::ComputeShader>(device, ResourceManager::Instance().ResolveShaderPath("Resources/Shader/TerrainColliderBuildCS.cso").c_str());
 
-	// レイヤー追加
-	// ブレンドで違和感のない順番で追加する
-
-	AddTerrainLayer("Resources/Terrain/Layers/stone.png", "Resources/Terrain/Layers/stone_n.png");
-	AddTerrainLayer("Resources/Terrain/Layers/rock.png", "Resources/Terrain/Layers/rock_n.png");
-	AddTerrainLayer("Resources/Terrain/Layers/dirt.png", "Resources/Terrain/Layers/dirt_n.png");
-	AddTerrainLayer("Resources/Terrain/Layers/grass.png", "Resources/Terrain/Layers/grass_n.png");
-	AddTerrainLayer("Resources/Terrain/Layers/test.png", "Resources/Terrain/Layers/test.png");
-
-	// エラー用
-	if (terrainLayers.empty())
-	{
-		AddTerrainLayer("Resources/Image/bugTex.png", "Resources/Image/bugTex.png");
-	}
+	defaultBaseTexture = std::make_shared<Texture>(device, 0xFFFFFFFFu);
+	defaultNormalTexture = std::make_shared<Texture>(device, 0xFFFF7F7Fu);
 }
 
 void Terrain::CreateGridMesh(ID3D11Device* device)
@@ -496,7 +503,6 @@ void Terrain::Render(const RenderContext& rc)
 		ClearTerrainTexture();
 	}
 
-	PaintByMouse(rc);
 	UploadTerrainTexture(dc);
 	if (terrainMeshDirty)
 	{
@@ -518,26 +524,16 @@ void Terrain::Render(const RenderContext& rc)
 	tesselationConstantBuffer->Update(dc, &tesselation_constant);
 
 	CbTerrainLayer cbTerrainLayer{};
-	cbTerrainLayer.layerCount = static_cast<int>(terrainLayers.size());
-	if (use_brush)
+	cbTerrainLayer.layerCount = std::max(static_cast<int>(terrainLayers.size()), 1);
+	const auto* preview = rc.renderSettings.terrainBrushPreview;
+	if (preview && preview->terrain != this) preview = nullptr;
+	if (preview)
 	{
-		cbTerrainLayer.brushPreviewMode = static_cast<int>(brushMode) + 1;
-		cbTerrainLayer.brushFlags = (invertBrushMask ? 1 : 0) |
-			(ImGui::GetIO().KeyShift && brushMode != BrushMode::SetHeight && brushMode != BrushMode::Paint ? 2 : 0);
-		cbTerrainLayer.brushParams = Vector4(heightBrushStrength, setHeightValue,
-			GetTerrainLayerValue(currentTerrainLayerIndex), paintOpacity);
-		const TerrainBrush* brush = GetCurrentBrush();
-		if (brush) cbTerrainLayer.brushUsesAlpha = brush->usesAlpha;
-		float u = 0.0f;
-		float v = 0.0f;
-		if (brush && (useBrushViewportInput ? brushViewportInputAllowed : !ImGui::GetIO().WantCaptureMouse) &&
-			InputKit::InputSystem::IsFocusedWindow() && ScreenToTerrainUV(rc, u, v))
-		{
-			const int x = std::clamp(static_cast<int>(u * TerrainTextureWidth), 0, TerrainTextureWidth - 1);
-			const int y = std::clamp(static_cast<int>(v * TerrainTextureHeight), 0, TerrainTextureHeight - 1);
-			cbTerrainLayer.brushArea = Vector4((x + 0.5f) / TerrainTextureWidth,
-				(y + 0.5f) / TerrainTextureHeight, static_cast<float>(brush_size) / TerrainTextureWidth, 1.0f);
-		}
+		cbTerrainLayer.brushPreviewMode = preview->mode;
+		cbTerrainLayer.brushFlags = preview->flags;
+		cbTerrainLayer.brushUsesAlpha = preview->usesAlpha;
+		cbTerrainLayer.brushArea = preview->area;
+		cbTerrainLayer.brushParams = preview->parameters;
 	}
 	terrainLayerConstantBuffer->Update(dc, &cbTerrainLayer);
 
@@ -569,8 +565,7 @@ void Terrain::Render(const RenderContext& rc)
 
 	ID3D11ShaderResourceView* terrainSrv = terrainTextureShaderResourceView.Get();
 	Gpu::PixelShader::SetShaderResources(dc, 0, terrainSrv);
-	const TerrainBrush* previewBrush = GetCurrentBrush();
-	ID3D11ShaderResourceView* brushSrv = previewBrush ? previewBrush->shaderResourceView.Get() : nullptr;
+	ID3D11ShaderResourceView* brushSrv = preview ? preview->texture : nullptr;
 	Gpu::PixelShader::SetShaderResources(dc, 1, brushSrv);
 
 	Gpu::PixelShader::SetShaderResources(dc, 8, rc.shadowMapData.shadowMaps);
@@ -591,8 +586,14 @@ void Terrain::Render(const RenderContext& rc)
 		terrainNormalSrvs[i] = terrainLayers[i].normalView.Get();
 	}
 
+	if (terrainLayers.empty())
+	{
+		terrainBaseColorSrvs[0] = defaultBaseTexture->GetShaderResourceView().Get();
+		terrainNormalSrvs[0] = defaultNormalTexture->GetShaderResourceView().Get();
+	}
 	Gpu::PixelShader::SetShaderResources(dc, 20, terrainBaseColorSrvs);
 	Gpu::PixelShader::SetShaderResources(dc, 36, terrainNormalSrvs);
+	BindDecals(dc);
 
 	Gpu::SamplerState::BindPS(dc, 0, {rc.graphics->PointClampSamplerState.get(), rc.graphics->LinearClampSamplerState.get(), rc.graphics->AnisotropicWrapSamplerState.get()});
 
@@ -615,6 +616,7 @@ void Terrain::Render(const RenderContext& rc)
 	Gpu::ConstantBuffer::UnbindVS(dc, 7);
 	Gpu::ConstantBuffer::UnbindPS(dc, 0, 3);
 	Gpu::ConstantBuffer::UnbindPS(dc, 4);
+	Gpu::ConstantBuffer::UnbindPS(dc, 5);
 	Gpu::ConstantBuffer::UnbindPS(dc, 7);
 
 
@@ -624,6 +626,7 @@ void Terrain::Render(const RenderContext& rc)
 	Gpu::PixelShader::UnbindShaderResources(dc, 17, 3);
 	Gpu::PixelShader::UnbindShaderResources(dc, 20, MaxTerrainLayers);
 	Gpu::PixelShader::UnbindShaderResources(dc, 36, MaxTerrainLayers);
+	Gpu::PixelShader::UnbindShaderResources(dc, 52, MaxTerrainDecals);
 
 	Gpu::SamplerState::UnbindPS(dc, 0, 3);
 
@@ -631,7 +634,7 @@ void Terrain::Render(const RenderContext& rc)
 	Gpu::PixelShader::Unbind(dc);
 	Gpu::VertexShader::UnbindInputLayout(dc);
 
-	const bool paintingGrass = use_brush && brushMode == BrushMode::GrassPaint;
+	const bool paintingGrass = preview && preview->mode == 4;
 	if (grassRenderer && grassDirty && !paintingGrass)
 	{
 		grassRenderer->Rebuild(*this, grassSettings);
@@ -715,588 +718,41 @@ void Terrain::RenderShadowMap(
 	Gpu::VertexShader::UnbindInputLayout(dc);
 }
 
-void Terrain::PaintByMouse(const RenderContext& rc)
-{
-	auto& io = ImGui::GetIO();
-	if (!use_brush)
-	{
-		return;
-	}
 
-	if (!InputKit::InputSystem::IsFocusedWindow())
-	{
-		return;
-	}
 
-	if (io.KeyAlt)
-	{
-		return;
-	}
 
-	if (!io.WantTextInput)
-	{
-		// [] でブラシサイズ変更
-		const int step = std::max(brush_size / 10, 1);
-		if (ImGui::IsKeyPressed(ImGuiKey_RightBracket, true)) brush_size = std::max(brush_size - step, 1);
-		// なぜか]ではなく@になるので色々さがして変えました
-		if (ImGui::IsKeyPressed(ImGuiKey_Backslash, true)) brush_size = std::min(brush_size + step, 256);
-	}
-	if (useBrushViewportInput ? !brushViewportInputAllowed : io.WantCaptureMouse) return;
-	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
 
-	if ((mouse.GetButton() & InputKit::Mouse::BTN_LEFT) == 0)
-	{
-		return;
-	}
 
-	float u = 0.0f;
-	float v = 0.0f;
-	if (!ScreenToTerrainUV(rc, u, v))
-	{
-		return;
-	}
 
-	float heightSign = 1.0f;
-	if (::GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		heightSign = -1.0f;
-	}
-
-	ApplyBrush(u, v, heightSign);
-}
-
-bool Terrain::ScreenToTerrainUV(const RenderContext& rc, float& outU, float& outV) const
-{
-	InputKit::Mouse& mouse = InputKit::InputSystem::Instance().GetMouse();
-
-	float screenWidth = Game::Graphics::ScreenWidth;
-	float screenHeight = Game::Graphics::ScreenHeight;
-
-	if (screenWidth <= 0.0f || screenHeight <= 0.0f)
-	{
-		return false;
-	}
-
-	const Vector2 mouseNdc = Game::Graphics::Instance().GetMouseNDC(
-		static_cast<float>(mouse.GetPositionX()),
-		static_cast<float>(mouse.GetPositionY()));
-
-	Matrix viewProjection = rc.camera->GetView() * rc.camera->GetProjection();
-	Matrix invViewProjection = viewProjection.Invert();
-
-	Vector3 nearPoint =
-		Vector3::Transform(Vector3(mouseNdc.x, mouseNdc.y, 0.0f), invViewProjection);
-	Vector3 farPoint =
-		Vector3::Transform(Vector3(mouseNdc.x, mouseNdc.y, 1.0f), invViewProjection);
-
-	Vector3 rayOriginWorld = nearPoint;
-	Vector3 rayDirectionWorld = farPoint - nearPoint;
-	rayDirectionWorld.Normalize();
-
-	Transform* transform = owner->GetComponent<Transform>();
-	if (!transform) return false;
-	Matrix invWorld = transform->GetMatrix().Invert();
-
-	Vector3 rayOriginLocal = Vector3::Transform(rayOriginWorld, invWorld);
-	Vector3 rayDirectionLocal = Vector3::TransformNormal(rayDirectionWorld, invWorld);
-	rayDirectionLocal.Normalize();
-
-	if (terrainSize <= 0.0f || terrainPixels.empty()) return false;
-	const Vector3 farLocal = Vector3::Transform(farPoint, invWorld);
-	float begin = 0.0f;
-	float end = (farLocal - rayOriginLocal).Length();
-	const float halfSize = terrainSize * 0.5f;
-	auto clipAxis = [&](float origin, float direction) {
-		if (fabsf(direction) < eps) return origin >= -halfSize && origin <= halfSize;
-		float entry = (-halfSize - origin) / direction;
-		float exit = (halfSize - origin) / direction;
-		if (entry > exit) std::swap(entry, exit);
-		begin = std::max(begin, entry);
-		end = std::min(end, exit);
-		return begin <= end;
-	};
-	if (!clipAxis(rayOriginLocal.x, rayDirectionLocal.x) ||
-		!clipAxis(rayOriginLocal.z, rayDirectionLocal.z)) return false;
-
-	const int factor = std::max(static_cast<int>(std::ceil(std::max(
-		tesselation_constant.edge_factor, tesselation_constant.inner_factor))), 1);
-	const int segments = std::max(gridResolution * factor, 1);
-	const float cellSize = terrainSize / segments;
-	const Vector3 entry = rayOriginLocal + rayDirectionLocal * begin;
-	int x = std::clamp(static_cast<int>(floorf((entry.x + halfSize) / cellSize)), 0, segments - 1);
-	int z = std::clamp(static_cast<int>(floorf((entry.z + halfSize) / cellSize)), 0, segments - 1);
-	const int stepX = rayDirectionLocal.x > 0.0f ? 1 : -1;
-	const int stepZ = rayDirectionLocal.z > 0.0f ? 1 : -1;
-	auto edgeTime = [&](int cell, int step, float origin, float direction) {
-		if (fabsf(direction) < eps) return end + 1.0f;
-		return ((cell + (step > 0 ? 1 : 0)) * cellSize - halfSize - origin) / direction;
-	};
-	auto intersectTriangle = [&](const Vector3& a, const Vector3& b, const Vector3& c, float& hitTime) {
-		const Vector3 edge1 = b - a;
-		const Vector3 edge2 = c - a;
-		const Vector3 cross = rayDirectionLocal.Cross(edge2);
-		const float determinant = edge1.Dot(cross);
-		if (fabsf(determinant) < eps) return false;
-		const Vector3 offset = rayOriginLocal - a;
-		const float u = offset.Dot(cross) / determinant;
-		if (u < 0.0f || u > 1.0f) return false;
-		const Vector3 q = offset.Cross(edge1);
-		const float v = rayDirectionLocal.Dot(q) / determinant;
-		if (v < 0.0f || u + v > 1.0f) return false;
-		hitTime = edge2.Dot(q) / determinant;
-		return hitTime >= begin - 0.0001f && hitTime <= end;
-	};
-	// レイが通るセルを手前から調べ、高さ0の平面ではなく地形表面へ当てる。
-	while (x >= 0 && x < segments && z >= 0 && z < segments && begin <= end)
-	{
-		const float u0 = static_cast<float>(x) / segments;
-		const float u1 = static_cast<float>(x + 1) / segments;
-		const float v0 = static_cast<float>(z) / segments;
-		const float v1 = static_cast<float>(z + 1) / segments;
-		const Vector3 p00((u0 - 0.5f) * terrainSize, GetHeightByUV(u0, v0), (v0 - 0.5f) * terrainSize);
-		const Vector3 p10((u1 - 0.5f) * terrainSize, GetHeightByUV(u1, v0), (v0 - 0.5f) * terrainSize);
-		const Vector3 p01((u0 - 0.5f) * terrainSize, GetHeightByUV(u0, v1), (v1 - 0.5f) * terrainSize);
-		const Vector3 p11((u1 - 0.5f) * terrainSize, GetHeightByUV(u1, v1), (v1 - 0.5f) * terrainSize);
-		float first = end;
-		float second = end;
-		const bool hitFirst = intersectTriangle(p00, p01, p10, first);
-		const bool hitSecond = intersectTriangle(p10, p01, p11, second);
-		if (hitFirst || hitSecond)
-		{
-			const float hitTime = hitFirst && hitSecond ? std::min(first, second) : hitFirst ? first : second;
-			const Vector3 hit = rayOriginLocal + rayDirectionLocal * hitTime;
-			outU = std::clamp(hit.x / terrainSize + 0.5f, 0.0f, 1.0f);
-			outV = std::clamp(hit.z / terrainSize + 0.5f, 0.0f, 1.0f);
-			return true;
-		}
-		const float nextX = edgeTime(x, stepX, rayOriginLocal.x, rayDirectionLocal.x);
-		const float nextZ = edgeTime(z, stepZ, rayOriginLocal.z, rayDirectionLocal.z);
-		begin = std::min(nextX, nextZ);
-		if (nextX <= nextZ) x += stepX;
-		if (nextZ <= nextX) z += stepZ;
-	}
-	return false;
-}
-
-void Terrain::ApplyBrush(float u, float v, float heightSign)
-{
-	const TerrainBrush* brush = GetCurrentBrush();
-	if (brush == nullptr || brush_size <= 0)
-	{
-		return;
-	}
-
-	const int centerX = std::clamp(static_cast<int>(u * TerrainTextureWidth), 0, TerrainTextureWidth - 1);
-	const int centerY = std::clamp(static_cast<int>(v * TerrainTextureHeight), 0, TerrainTextureHeight - 1);
-	const int radius = brush_size;
-
-	const int x0 = std::max(centerX - radius, 0);
-	const int y0 = std::max(centerY - radius, 0);
-	const int x1 = std::min(centerX + radius, TerrainTextureWidth - 1);
-	const int y1 = std::min(centerY + radius, TerrainTextureHeight - 1);
-	const float brushDiameter = static_cast<float>(radius * 2);
-
-	if (brushDiameter <= 0.0f)
-	{
-		return;
-	}
-
-	for (int y = y0; y <= y1; ++y)
-	{
-		for (int x = x0; x <= x1; ++x)
-		{
-			const float brushU =
-				static_cast<float>(x - (centerX - radius)) / brushDiameter;
-
-			const float brushV =
-				static_cast<float>(y - (centerY - radius)) / brushDiameter;
-
-			float mask = SampleBrushMask(brushU, brushV);
-			if (invertBrushMask)
-			{
-				mask = 1.0f - mask;
-			}
-
-			if (mask <= 0.0001f)
-			{
-				continue;
-			}
-
-			Vector4& pixel = terrainPixels[
-				static_cast<size_t>(y) * TerrainTextureWidth +
-				static_cast<size_t>(x)];
-
-			if (brushMode == BrushMode::RaiseLower)
-			{
-				pixel.x += heightBrushStrength * heightSign * mask;
-			}
-			else if (brushMode == BrushMode::SetHeight)
-			{
-				const float setAmount = std::clamp(mask, 0.0f, 1.0f);
-				pixel.x += (setHeightValue - pixel.x) * setAmount;
-			}
-			else if (brushMode == BrushMode::Paint)
-			{
-				const float paintAmount = std::clamp(
-					paintOpacity * mask,
-					0.0f,
-					1.0f);
-				const float targetLayer = GetTerrainLayerValue(currentTerrainLayerIndex);
-
-				pixel.y += (targetLayer - pixel.y) * paintAmount;
-				pixel.y = std::clamp(pixel.y, 0.0f, 1.0f);
-			}
-			else if (brushMode == BrushMode::GrassPaint)
-			{
-				const float paintAmount = std::clamp(paintOpacity * mask, 0.0f, 1.0f);
-				float targetGrass = 1.0f;
-				if (heightSign < 0.0f) targetGrass = 0.0f;
-				pixel.z += (targetGrass - pixel.z) * paintAmount;
-				pixel.z = std::clamp(pixel.z, 0.0f, 1.0f);
-			}
-			else if (brushMode == BrushMode::NavMeshPaint)
-			{
-				const float amount = std::clamp(paintOpacity * mask, 0.0f, 1.0f);
-				pixel.w = std::clamp(pixel.w + ((heightSign < 0.0f ? 0.0f : 1.0f) - pixel.w) * amount, 0.0f, 1.0f);
-				navMeshMaskInitialized = true;
-			}
-		}
-	}
-
-	terrainTextureDirty = true;
-
-	terrainEditHashDirty = true;
-	const bool heightChanged = brushMode == BrushMode::RaiseLower || brushMode == BrushMode::SetHeight;
-	if (heightChanged)
-	{
-		navigationBaseHeights.clear();
-		MarkTerrainMeshDirty();
-	}
-	if (brushMode == BrushMode::GrassPaint) grassDirty = true;
-	if (heightChanged || brushMode == BrushMode::NavMeshPaint)
-	{
-		if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
-		{
-			const Vector3 center((u - 0.5f) * terrainSize, GetHeightByUV(u, v), (v - 0.5f) * terrainSize);
-			navMesh->RequestBuildRegion(center, (brush_size + 1.0f) / TerrainTextureWidth * terrainSize);
-		}
-	}
-}
-
-bool Terrain::AddBrushTexture(const std::string& filename)
-{
-	if (filename.empty())
-	{
-		terrainIoMessage = "Brush add failed: filename is empty.";
-		return false;
-	}
-
-	const std::filesystem::path filepath =
-		std::filesystem::path(filename).lexically_normal();
-
-	if (!std::filesystem::exists(filepath))
-	{
-		terrainIoMessage = "Brush file not found: " + filepath.generic_string();
-		return false;
-	}
-
-	const std::string normalizedPath = filepath.generic_string();
-
-	for (int i = 0; i < static_cast<int>(brushes.size()); ++i)
-	{
-		if (brushes[i].filepath == normalizedPath)
-		{
-			currentBrushIndex = i;
-			return true;
-		}
-	}
-
-	ImageData decodedImage;
-	HRESULT hr = decodedImage.LoadFile(filepath);
-	const auto& sourceMetadata = decodedImage.GetMetadata();
-	const auto& sourceImage = decodedImage.GetImage();
-	if (FAILED(hr))
-	{
-		terrainIoMessage = "Brush image load failed: " + normalizedPath;
-		return false;
-	}
-
-	const DirectX::ScratchImage* workingImage = &sourceImage;
-	DirectX::ScratchImage convertedImage;
-
-	if (sourceMetadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
-	{
-		if (DirectX::IsCompressed(sourceMetadata.format))
-		{
-			hr = DirectX::Decompress(
-				sourceImage.GetImages(),
-				sourceImage.GetImageCount(),
-				sourceMetadata,
-				DXGI_FORMAT_R8G8B8A8_UNORM,
-				convertedImage);
-		}
-		else
-		{
-			hr = DirectX::Convert(
-				sourceImage.GetImages(),
-				sourceImage.GetImageCount(),
-				sourceMetadata,
-				DXGI_FORMAT_R8G8B8A8_UNORM,
-				DirectX::TEX_FILTER_DEFAULT,
-				DirectX::TEX_THRESHOLD_DEFAULT,
-				convertedImage);
-		}
-
-		if (FAILED(hr))
-		{
-			terrainIoMessage = "Brush format conversion failed: " + normalizedPath;
-			return false;
-		}
-
-		workingImage = &convertedImage;
-	}
-
-	const DirectX::Image* image = workingImage->GetImage(0, 0, 0);
-	if (image == nullptr)
-	{
-		terrainIoMessage = "Brush image data is empty: " + normalizedPath;
-		return false;
-	}
-
-	TerrainBrush brush;
-	brush.name = filepath.stem().string();
-	brush.filepath = normalizedPath;
-	brush.width = static_cast<int>(image->width);
-	brush.height = static_cast<int>(image->height);
-
-	if (brush.width <= 0 || brush.height <= 0)
-	{
-		terrainIoMessage = "Brush image size is invalid: " + normalizedPath;
-		return false;
-	}
-
-	brush.mask.resize(
-		static_cast<size_t>(brush.width) *
-		static_cast<size_t>(brush.height));
-
-	uint8_t minimumAlpha = 255;
-	uint8_t maximumAlpha = 0;
-
-	for (int y = 0; y < brush.height; ++y)
-	{
-		const uint8_t* row = image->pixels + static_cast<size_t>(y) * image->rowPitch;
-
-		for (int x = 0; x < brush.width; ++x)
-		{
-			const uint8_t* pixel = row + static_cast<size_t>(x) * 4;
-			minimumAlpha = std::min(minimumAlpha, pixel[3]);
-			maximumAlpha = std::max(maximumAlpha, pixel[3]);
-		}
-	}
-
-	const bool useAlphaMask =
-		static_cast<int>(maximumAlpha) -
-		static_cast<int>(minimumAlpha) > 4;
-
-	brush.usesAlpha = useAlphaMask;
-	for (int y = 0; y < brush.height; ++y)
-	{
-		const uint8_t* row = image->pixels + static_cast<size_t>(y) * image->rowPitch;
-
-		for (int x = 0; x < brush.width; ++x)
-		{
-			const uint8_t* pixel = row + static_cast<size_t>(x) * 4;
-
-			const float red = static_cast<float>(pixel[0]) / 255.0f;
-			const float green = static_cast<float>(pixel[1]) / 255.0f;
-			const float blue = static_cast<float>(pixel[2]) / 255.0f;
-			const float alpha = static_cast<float>(pixel[3]) / 255.0f;
-
-			const float luminance =
-				red * 0.2126f +
-				green * 0.7152f +
-				blue * 0.0722f;
-
-			brush.mask[
-				static_cast<size_t>(y) * static_cast<size_t>(brush.width) +
-				static_cast<size_t>(x)] =
-				std::clamp(useAlphaMask ? alpha : luminance, 0.0f, 1.0f);
-		}
-	}
-
-	hr = DirectX::CreateShaderResourceView(
-		Game::Graphics::Instance().GetDevice(),
-		workingImage->GetImages(),
-		workingImage->GetImageCount(),
-		workingImage->GetMetadata(),
-		brush.shaderResourceView.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		terrainIoMessage = "Brush GPU texture creation failed: " + normalizedPath;
-		return false;
-	}
-
-	brushes.push_back(std::move(brush));
-
-	if (currentBrushIndex < 0)
-	{
-		currentBrushIndex = 0;
-	}
-
-	terrainIoMessage = "Brush added: " + brushes.back().name;
-	return true;
-}
-
-bool Terrain::SetBrushTexture(int index)
-{
-	if (index < 0 || index >= static_cast<int>(brushes.size()))
-	{
-		terrainIoMessage = "Brush switch failed: invalid index.";
-		return false;
-	}
-
-	currentBrushIndex = index;
-	terrainIoMessage = "Brush selected: " + brushes[currentBrushIndex].name;
-	return true;
-}
-
-const Terrain::TerrainBrush* Terrain::GetCurrentBrush() const
-{
-	if (currentBrushIndex < 0 || currentBrushIndex >= static_cast<int>(brushes.size()))
-	{
-		return nullptr;
-	}
-
-	return &brushes[currentBrushIndex];
-}
-
-float Terrain::SampleBrushMask(float u, float v) const
-{
-	const TerrainBrush* brush = GetCurrentBrush();
-
-	if (brush == nullptr || brush->mask.empty() || brush->width <= 0 || brush->height <= 0)
-	{
-		return 0.0f;
-	}
-
-	if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f)
-	{
-		return 0.0f;
-	}
-
-	const float sourceX = u * static_cast<float>(brush->width - 1);
-	const float sourceY = v * static_cast<float>(brush->height - 1);
-
-	const int x0 = static_cast<int>(std::floor(sourceX));
-	const int y0 = static_cast<int>(std::floor(sourceY));
-	const int x1 = std::min(x0 + 1, brush->width - 1);
-	const int y1 = std::min(y0 + 1, brush->height - 1);
-
-	const float tx = sourceX - static_cast<float>(x0);
-	const float ty = sourceY - static_cast<float>(y0);
-
-	auto GetMask = [brush](int x, int y)
-	{
-		return brush->mask[
-			static_cast<size_t>(y) * static_cast<size_t>(brush->width) +
-			static_cast<size_t>(x)];
-	};
-
-	const float mask00 = GetMask(x0, y0);
-	const float mask10 = GetMask(x1, y0);
-	const float mask01 = GetMask(x0, y1);
-	const float mask11 = GetMask(x1, y1);
-
-	const float upper = mask00 + (mask10 - mask00) * tx;
-	const float lower = mask01 + (mask11 - mask01) * tx;
-
-	return upper + (lower - upper) * ty;
-}
 
 bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath)
 {
+	if (baseColorPath.empty()) return false;
+	auto& resources = ResourceManager::Instance();
+	const auto type = ResourceManager::ResourceType::TerrainLayer;
+	const std::string basePath = ResourceManager::PortableResourcePath(resources.ResolveEditPath(baseColorPath, type));
+	const auto key = ResourceManager::ShortResourcePath(basePath, type);
+	for (const auto& layer : terrainLayers)
+		if (ResourceManager::ShortResourcePath(layer.baseColorPath, type) == key) return true;
 	if (terrainLayers.size() >= MaxTerrainLayers)
 	{
-		terrainIoMessage = "Terrain layer add failed: max layer count reached.";
+		terrainIoMessage = "地形レイヤー数の上限です。";
 		return false;
 	}
-
-	if (baseColorPath.empty() || normalPath.empty())
-	{
-		terrainIoMessage = "Terrain layer add failed: path is empty.";
-		return false;
-	}
-
-	const std::filesystem::path basePath = ResourceManager::Instance().ResolvePath(baseColorPath);
-	const std::filesystem::path normalMapPath = ResourceManager::Instance().ResolvePath(normalPath);
-
-	if (!std::filesystem::exists(basePath))
-	{
-		terrainIoMessage = "Terrain layer base color not found: " + basePath.generic_string();
-		return false;
-	}
-
-	if (!std::filesystem::exists(normalMapPath))
-	{
-		terrainIoMessage = "Terrain layer normal not found: " + normalMapPath.generic_string();
-		return false;
-	}
-
-	const std::string normalizedBasePath = basePath.generic_string();
-	const std::string normalizedNormalPath = normalMapPath.generic_string();
-
-	for (int i = 0; i < static_cast<int>(terrainLayers.size()); ++i)
-	{
-		if (terrainLayers[i].baseColorPath == normalizedBasePath)
-		{
-			currentTerrainLayerIndex = i;
-			terrainIoMessage = "Terrain layer selected: " + terrainLayers[i].name;
-			return true;
-		}
-	}
-
 	TerrainLayer layer;
-	layer.name = basePath.stem().string();
-	layer.baseColorPath = normalizedBasePath;
-	layer.normalPath = normalizedNormalPath;
-
-	MipmapTexture baseTexture;
-	if (!baseTexture.Load(layer.baseColorPath.c_str()))
-	{
-		terrainIoMessage = "Terrain layer base color load failed: " + layer.baseColorPath;
-		return false;
-	}
+	layer.name = ResourcePath::Text(ResourcePath::Path(basePath).stem());
+	layer.baseColorPath = basePath;
+	if (!normalPath.empty()) layer.normalPath = ResourceManager::PortableResourcePath(resources.ResolveEditPath(normalPath, type));
+	MipmapTexture baseTexture(layer.baseColorPath.c_str());
 	layer.baseColorView = baseTexture.GetShaderResourceView();
-
-	MipmapTexture normalTexture;
-	if (!normalTexture.Load(layer.normalPath.c_str()))
+	if (layer.normalPath.empty()) layer.normalView = defaultNormalTexture->GetShaderResourceView();
+	else
 	{
-		terrainIoMessage = "Terrain layer normal load failed: " + layer.normalPath;
-		return false;
+		MipmapTexture normalTexture(layer.normalPath.c_str());
+		layer.normalView = normalTexture.GetShaderResourceView();
 	}
-	layer.normalView = normalTexture.GetShaderResourceView();
-
 	terrainLayers.push_back(std::move(layer));
-	currentTerrainLayerIndex = static_cast<int>(terrainLayers.size()) - 1;
-	terrainIoMessage = "Terrain layer added: " + terrainLayers.back().name;
 	return true;
-}
-
-float Terrain::GetTerrainLayerValue(int layerIndex) const
-{
-	if (terrainLayers.size() <= 1)
-	{
-		return 0.0f;
-	}
-
-	const int clampedIndex = std::clamp(
-		layerIndex,
-		0,
-		static_cast<int>(terrainLayers.size()) - 1);
-
-	return static_cast<float>(clampedIndex) /
-		static_cast<float>(terrainLayers.size() - 1);
 }
 
 bool Terrain::SaveTerrainTexture(const std::string& filename)
@@ -1339,14 +795,16 @@ bool Terrain::SaveTerrainTexture(const std::string& filename)
 	image.slicePitch = image.rowPitch * static_cast<size_t>(TerrainTextureHeight);
 	image.pixels = reinterpret_cast<uint8_t*>(terrainPixels.data());
 
-	const HRESULT hr = DirectX::SaveToDDSFile(
-		image,
-		DirectX::DDS_FLAGS_NONE,
-		filepath.wstring().c_str());
-
-	if (FAILED(hr))
+	try
 	{
-		terrainIoMessage = "Terrain save failed.";
+		filepath = ResourceManager::Instance().SaveResourceFile(filepath, [&](const std::filesystem::path& destination) {
+			if (FAILED(DirectX::SaveToDDSFile(image, DirectX::DDS_FLAGS_NONE, destination.c_str())))
+				throw std::runtime_error("Terrain DDS save failed.");
+		});
+	}
+	catch (const std::exception& exception)
+	{
+		terrainIoMessage = exception.what();
 		return false;
 	}
 
@@ -1460,15 +918,6 @@ std::string Terrain::SaveSettingsJson() const
 		root["layers"].push_back({{"baseColor", layer.baseColorPath},
 			{"normal", layer.normalPath}});
 	}
-	for (const TerrainDecal& decal : terrainDecals)
-	{
-		root["decals"].push_back({
-			{"position", {decal.transform.position.x, decal.transform.position.y, decal.transform.position.z},
-			{"rotation", {decal.transform.rotation.x, decal.transform.rotation.y, decal.transform.rotation.z},
-				{"position", {decal.transform.scale.x, decal.transform.scale.y, decal.transform.scale.z},
-					{"texturePath", decal.texturePath},
-					{"opacity", decal.opacity}}}}});
-	}
 	return root.dump();
 }
 
@@ -1488,6 +937,7 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 	try
 	{
 		const json root = json::parse(text);
+		ClearDecals();
 		navMeshMaskInitialized = root.value("navMeshMaskVersion", 0) >= 1;
 		terrainSize = root.value("terrainSize", terrainSize);
 		gridResolution = root.value("gridResolution", gridResolution);
@@ -1527,8 +977,6 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 			grassSettings.windSpeed = it->value("windSpeed", grassSettings.windSpeed);
 			grassSettings.drawDistance = it->value("drawDistance", grassSettings.drawDistance);
 			if (it->contains("tint")) grassSettings.tint = loadColor((*it)["tint"], grassSettings.tint);
-			grassDraftSettings = grassSettings;
-			grassDraftInitialized = true;
 			grassDirty = true;
 		}
 		if (root.contains("clearColor"))
@@ -1536,10 +984,8 @@ bool Terrain::LoadSettingsJson(const std::string& text)
 
 		terrainLayers.clear();
 		for (const auto& layer : root.value("layers", json::array()))
-			AddTerrainLayer(layer.value("baseColor", ""), layer.value("normal", ""));
-		currentTerrainLayerIndex = 0;
+			if (!AddTerrainLayer(layer.value("baseColor", ""), layer.value("normal", ""))) return false;
 
-		use_brush = false;
 		MarkTerrainMeshDirty();
 		return true;
 	}
@@ -1672,411 +1118,8 @@ void Terrain::BakeCollider()
 	pendingColliderRebuild = false;
 }
 
-void Terrain::DrawTerrainLayerGUI()
-{
-	if (!ImGui::TreeNode(ICON_FA_LAYER_GROUP " 地形ペイントレイヤー"))
-	{
-		return;
-	}
 
-	if (ImGui::Button(ICON_FA_SYNC_ALT " 再読み込み##TerrainLayers"))
-	{
-		if (ResourceManager::Instance().RefreshResources())
-		{
-			const int selected = currentTerrainLayerIndex;
-			for (auto& layer : terrainLayers)
-			{
-				MipmapTexture baseTexture(layer.baseColorPath.c_str());
-				MipmapTexture normalTexture(layer.normalPath.c_str());
-				layer.baseColorView = baseTexture.GetShaderResourceView();
-				layer.normalView = normalTexture.GetShaderResourceView();
-			}
-			auto root = ResourceManager::FindSourceResourceRoot();
-			if (root.empty()) root = ResourceManager::Instance().ResolvePath("Resources");
-			std::vector<std::filesystem::path> paths;
-			std::error_code error;
-			for (std::filesystem::directory_iterator file(root / "Terrain/Layers", error), end;
-				file != end && !error; file.increment(error))
-			{
-				if (file->is_regular_file(error) && file->path().extension() == ".png" &&
-					!file->path().stem().string().ends_with("_n")) paths.push_back(file->path());
-			}
-			std::sort(paths.begin(), paths.end());
-			for (const auto& file : paths)
-			{
-				const auto normal = file.parent_path() / (file.stem().string() + "_n.png");
-				if (!std::filesystem::exists(normal)) continue;
-				AddTerrainLayer("Resources/Terrain/Layers/" + file.filename().generic_string(),
-					"Resources/Terrain/Layers/" + normal.filename().generic_string());
-			}
-			currentTerrainLayerIndex = selected;
-		}
-		else terrainIoMessage = "ペイント画像の再読み込みに失敗しました。";
-	}
 
-	// ペイントレイヤーのサムネイル一覧
-	{
-		const float thumbnailSize = 72.0f;
-		const float childHeight =
-			thumbnailSize +
-			ImGui::GetStyle().ScrollbarSize +
-			ImGui::GetStyle().WindowPadding.y * 2.0f;
-
-		ImGui::BeginChild(
-			"terrain layer palette",
-			ImVec2(0.0f, childHeight),
-			true,
-			ImGuiWindowFlags_HorizontalScrollbar);
-
-		for (int i = 0; i < static_cast<int>(terrainLayers.size()); ++i)
-		{
-			ImGui::PushID(i);
-
-			const bool selected = i == currentTerrainLayerIndex;
-			if (selected)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.95f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.65f, 1.0f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.45f, 0.85f, 1.0f));
-			}
-
-			if (ImGui::ImageButton(
-				"terrain layer",
-				terrainLayers[i].baseColorView.Get(),
-				ImVec2(thumbnailSize, thumbnailSize),
-				ImVec2(0.0f, 0.0f),
-				ImVec2(1.0f, 1.0f)))
-			{
-				currentTerrainLayerIndex = i;
-			}
-
-			if (selected)
-			{
-				ImGui::PopStyleColor(3);
-			}
-
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip(
-					"%s\n%s\n%s",
-					terrainLayers[i].name.c_str(),
-					terrainLayers[i].baseColorPath.c_str(),
-					terrainLayers[i].normalPath.c_str());
-			}
-
-			if (i + 1 < static_cast<int>(terrainLayers.size()))
-			{
-				ImGui::SameLine();
-			}
-
-			ImGui::PopID();
-		}
-
-		ImGui::EndChild();
-	}
-
-	ImGui::Text("レイヤー数: %d / %d",
-		static_cast<int>(terrainLayers.size()),
-		MaxTerrainLayers);
-
-	ImGui::TreePop();
-}
-
-void Terrain::DrawBrushGUI()
-{
-	if (!ImGui::TreeNode(ICON_FA_IMAGE " ブラシテクスチャ"))
-	{
-		return;
-	}
-
-	if (ImGui::Button(ICON_FA_SYNC_ALT " 再読み込み##TerrainBrushes"))
-	{
-		const int selected = currentBrushIndex;
-		std::vector<std::string> paths;
-		for (const auto& brush : brushes) paths.push_back(brush.filepath);
-		auto root = ResourceManager::FindSourceResourceRoot();
-		if (root.empty()) root = ResourceManager::Instance().ResolvePath("Resources");
-		std::error_code error;
-		for (std::filesystem::directory_iterator file(root / "Terrain/Brushes", error), end;
-			file != end && !error; file.increment(error))
-		{
-			if (!file->is_regular_file(error) || file->path().extension() != ".png") continue;
-			const std::string imagePath = file->path().lexically_normal().generic_string();
-			if (std::none_of(paths.begin(), paths.end(), [&](const std::string& existing) {
-				return std::filesystem::absolute(existing).lexically_normal() ==
-					std::filesystem::absolute(file->path()).lexically_normal();
-			})) paths.push_back(imagePath);
-		}
-		brushes.clear();
-		currentBrushIndex = -1;
-		for (const auto& imagePath : paths) AddBrushTexture(imagePath);
-		if (!brushes.empty()) currentBrushIndex = std::clamp(selected, 0, static_cast<int>(brushes.size()) - 1);
-	}
-
-	const TerrainBrush* currentBrush = GetCurrentBrush();
-	ImGui::Text("選択中: %s",
-		currentBrush != nullptr ? currentBrush->name.c_str() : "なし");
-
-	// ブラシテクスチャのサムネイル一覧
-	{
-		const float thumbnailSize = 72.0f;
-		const float childHeight =
-			thumbnailSize +
-			ImGui::GetStyle().ScrollbarSize +
-			ImGui::GetStyle().WindowPadding.y * 2.0f;
-
-		ImGui::BeginChild(
-			"brush texture palette",
-			ImVec2(0.0f, childHeight),
-			true,
-			ImGuiWindowFlags_HorizontalScrollbar);
-
-		for (int i = 0; i < static_cast<int>(brushes.size()); ++i)
-		{
-			ImGui::PushID(i);
-
-			const bool selected = i == currentBrushIndex;
-			if (selected)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.95f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.65f, 1.0f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.45f, 0.85f, 1.0f));
-			}
-
-			if (ImGui::ImageButton(
-				"brush texture",
-				brushes[i].shaderResourceView.Get(),
-				ImVec2(thumbnailSize, thumbnailSize),
-				ImVec2(0.0f, 0.0f),
-				ImVec2(1.0f, 1.0f)))
-			{
-				SetBrushTexture(i);
-			}
-
-			if (selected)
-			{
-				ImGui::PopStyleColor(3);
-			}
-
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip(
-					"%s\n%d x %d\n%s",
-					brushes[i].name.c_str(),
-					brushes[i].width,
-					brushes[i].height,
-					brushes[i].filepath.c_str());
-			}
-
-			if (i + 1 < static_cast<int>(brushes.size()))
-			{
-				ImGui::SameLine();
-			}
-
-			ImGui::PopID();
-		}
-
-		ImGui::EndChild();
-	}
-
-	ImGui::Checkbox(ICON_FA_PAINT_BRUSH " ブラシマスクを反転", &invertBrushMask);
-
-	ImGui::Text("ブラシ数: %d", static_cast<int>(brushes.size()));
-	ImGui::TreePop();
-}
-
-void Terrain::DrawGUI()
-{
-	if (!grassDraftInitialized)
-	{
-		grassDraftSettings = grassSettings;
-		grassDraftInitialized = true;
-	}
-
-	// よく使う地形ブラシ
-	ImGui::TextUnformatted(ICON_FA_PAINT_BRUSH " 地形ブラシ");
-	ImGui::Checkbox(ICON_FA_PAINT_BRUSH " ブラシを使用（B）", &use_brush);
-
-	int brushModeIndex = static_cast<int>(brushMode);
-	const char* brushModeItems[] =
-	{
-		ICON_FA_MOUNTAIN  " 上げる／下げる",
-		ICON_FA_MOUNTAIN " 高さを指定",
-		ICON_FA_PAINT_BRUSH " ペイント",
-		ICON_FA_LEAF " 草マップ",
-		ICON_FA_WALKING " NavMesh範囲",
-	};
-
-	if (ImGui::Combo(ICON_FA_PAINT_BRUSH " ブラシモード", &brushModeIndex, brushModeItems,
-			_countof(brushModeItems)))
-	{
-		brushMode = static_cast<BrushMode>(brushModeIndex);
-		use_brush = true;
-	}
-
-	ImGui::DragInt(ICON_FA_PAINT_BRUSH " ブラシサイズ", &brush_size, 1.0f, 1, 256, "%d", ImGuiSliderFlags_AlwaysClamp);
-	if (brushMode == BrushMode::RaiseLower)
-	{
-		ImGui::DragFloat(ICON_FA_COG " 上下の強さ", &heightBrushStrength, 0.001f, 0.0f, 1.0f);
-	}
-	else if (brushMode == BrushMode::SetHeight)
-	{
-		ImGui::DragFloat(ICON_FA_COG " 指定する高さ", &setHeightValue, 0.001f, -10.0f, 10.0f);
-	}
-	else if (brushMode == BrushMode::Paint)
-	{
-		ImGui::DragFloat(ICON_FA_PAINT_BRUSH " ペイント不透明度", &paintOpacity, 0.001f, 0.0f, 1.0f);
-	}
-	else if (brushMode == BrushMode::GrassPaint)
-	{
-		ImGui::DragFloat(ICON_FA_COG " 草の塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
-	}
-	else if (brushMode == BrushMode::NavMeshPaint)
-	{
-		ImGui::DragFloat(ICON_FA_COG " 塗り強さ", &paintOpacity, 0.001f, 0.0f, 1.0f);
-		ImGui::TextUnformatted("左ドラッグ：範囲を追加 / Shift：範囲を削除");
-		ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.3f, 1.0f), "緑：入力範囲 / 赤：範囲外 / 水色の線：生成結果");
-		if (NavMeshActor* navMesh = owner->GetComponent<NavMeshActor>())
-		{
-			if (ImGui::TreeNode(ICON_FA_MAP " NavMesh生成設定"))
-			{
-				navMesh->DrawGUI();
-				ImGui::TreePop();
-			}
-		}
-	}
-	ImGui::Separator();
-
-	// ブラシとペイントレイヤー
-	DrawBrushGUI();
-	if (brushMode == BrushMode::Paint)
-	{
-		DrawTerrainLayerGUI();
-	}
-
-	// 地形のマテリアル
-	if (ImGui::TreeNode(ICON_FA_SLIDERS_H " 地形PBR"))
-	{
-		ImGuiToolKit::ColorEdit4("基本色", &baseColor.x);
-		ImGuiToolKit::ColorEdit4("発光色", &emissiveColor.x);
-		ImGui::SliderFloat(ICON_FA_COG " メタリック", &metalness, 0.0f, 1.0f);
-		ImGui::SliderFloat(ICON_FA_COG " 粗さ", &roughness, 0.0001f, 1.0f);
-		ImGui::SliderFloat(ICON_FA_COG " オクルージョン", &occlusion, 0.0f, 1.0f);
-		ImGui::SliderFloat(ICON_FA_COG " オクルージョン強度", &occlusionStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat(ICON_FA_COG " 影の強度", &shadowStrength, 0.0f, 1.0f);
-		ImGui::TreePop();
-	}
-
-	if (ImGui::TreeNode(ICON_FA_LEAF " 草マップ"))
-	{
-		bool changed = false;
-		changed |= ImGui::DragFloat(ICON_FA_COG " 密度", &grassDraftSettings.density,
-			0.05f, 0.0f, 0.0f);
-		changed |= ImGuiToolKit::DragSizeFloat("横幅", &grassDraftSettings.width,
-			0.01f, 0.05f, 5.0f);
-		changed |= ImGuiToolKit::DragSizeFloat("高さ", &grassDraftSettings.height,
-			0.01f, 0.05f, 8.0f);
-		changed |= ImGui::SliderFloat(ICON_FA_COG " 大きさのばらつき",
-			&grassDraftSettings.sizeVariation, 0.0f, 0.9f);
-		changed |= ImGui::DragFloat(ICON_FA_COG " 風の強さ", &grassDraftSettings.windStrength,
-			0.01f, 0.0f, 2.0f);
-		changed |= ImGuiToolKit::DragSpeedFloat("風の速度", &grassDraftSettings.windSpeed,
-			0.01f, 0.0f, 8.0f);
-		changed |= ImGui::DragFloat(ICON_FA_COG " 描画距離", &grassDraftSettings.drawDistance,
-			1.0f, 5.0f, 500.0f);
-		changed |= ImGuiToolKit::ColorEdit4("草の色", &grassDraftSettings.tint.x);
-
-		if (changed)
-		{
-			grassSettings = grassDraftSettings;
-			grassDirty = true;
-		}
-		int generatedTuftCount = 0;
-		if (grassRenderer)
-		{
-			generatedTuftCount = grassRenderer->GetTuftCount();
-		}
-		ImGui::Text("生成株数: %d", generatedTuftCount);
-		ImGui::TextDisabled("草マップはブラシモードから編集し、ブラシをOFFにすると確定します");
-		ImGui::TreePop();
-	}
-
-	// 地形に適用する距離フォグ
-	if (ImGui::TreeNode(ICON_FA_CLOUD " 距離フォグ"))
-	{
-		ImGui::Checkbox(ICON_FA_COG " 有効##TerrainDistanceFog", &distanceFogEnabled);
-		ImGui::DragFloat(ICON_FA_COG " 開始距離##TerrainDistanceFog",
-			&distanceFogStart,
-			0.5f,
-			0.0f,
-			std::max(distanceFogEnd - 0.1f, 0.0f));
-		ImGui::DragFloat(ICON_FA_COG " 終了距離##TerrainDistanceFog",
-			&distanceFogEnd,
-			0.5f,
-			distanceFogStart + 0.1f,
-			1000.0f);
-		ImGui::DragFloat(ICON_FA_COG " 強度##TerrainDistanceFog",
-			&distanceFogStrength,
-			0.01f,
-			0.0f,
-			1.0f);
-		ImGuiToolKit::ColorEdit3("色##TerrainDistanceFog", &distanceFogColor.x);
-		ImGui::TreePop();
-	}
-
-	// 高さとペイントを保持する地形データ
-	if (ImGui::TreeNode(ICON_FA_DATABASE " 地形データ"))
-	{
-		if (ImGui::Button(ICON_FA_MOUNTAIN " 地形テクスチャをクリア"))
-		{
-			ClearTerrainTexture();
-		}
-
-		ImGui::Text("R：高さ / G：レイヤー / B：草 / A：NavMesh範囲");
-		ImGui::DragFloat4(ICON_FA_COG " クリア時のRGBA", &terrain_texture_clear_color.x, 0.01f);
-
-		if (terrainTextureShaderResourceView)
-		{
-			ImGui::Image(
-				terrainTextureShaderResourceView.Get(),
-				ImVec2(256, 256),
-				ImVec2(0, 0),
-				ImVec2(1, 1));
-		}
-
-		ImGui::TreePop();
-	}
-
-	// 地形メッシュとテセレーション
-	if (ImGui::TreeNode(ICON_FA_MOUNTAIN " 地形レンダリング"))
-	{
-		float newTerrainSize = terrainSize;
-		if (ImGuiToolKit::DragSizeFloat("地形サイズ", &newTerrainSize, 1.0f, 1.0f, 10000.0f))
-		{
-			terrainSize = newTerrainSize;
-			MarkTerrainMeshDirty();
-		}
-
-		int newGridResolution = gridResolution;
-		if (ImGui::DragInt(ICON_FA_COG " グリッド解像度", &newGridResolution, 1, 1, 256))
-		{
-			gridResolution = newGridResolution;
-			MarkTerrainMeshDirty();
-		}
-
-		bool meshSettingChanged = false;
-		meshSettingChanged |= ImGui::SliderFloat(ICON_FA_COG " 外周分割", &tesselation_constant.edge_factor, 1.0f, 16.0f);
-		meshSettingChanged |= ImGui::SliderFloat(ICON_FA_COG " 内部分割", &tesselation_constant.inner_factor, 1.0f, 16.0f);
-		if (ImGui::SliderFloat(ICON_FA_COG " 高さ倍率", &tesselation_constant.height_scaler, -200.0f, 200.0f))
-		{
-			meshSettingChanged = true;
-		}
-		if (meshSettingChanged) MarkTerrainMeshDirty();
-		ImGui::SliderFloat(ICON_FA_COG " タイリング倍率", &tesselation_constant.tilling_scale, 1.0f, 300.0f);
-
-		ImGui::TreePop();
-	}
-}
 
 void Terrain::ApplyDistanceFogSettings(RenderSettings& settings) const
 {

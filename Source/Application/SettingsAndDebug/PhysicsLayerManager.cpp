@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <filesystem>
 #include "Application/Tools/Dialog.h"
+#include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 
 // Cereal
 #include <cereal/cereal.hpp>
@@ -18,18 +20,7 @@
 
 std::filesystem::path GetPhysicsLayerPath()
 {
-	const std::filesystem::path runtimePath =
-		std::filesystem::current_path() / "Resources/PhysicsLayers.physicslayers";
-	if (std::filesystem::exists(runtimePath)) return runtimePath;
-
-	for (std::filesystem::path directory = std::filesystem::current_path();
-		!directory.empty(); directory = directory.parent_path())
-	{
-		if (std::filesystem::exists(directory / "VEER.sln"))
-			return directory / "Resources/PhysicsLayers.physicslayers";
-		if (directory == directory.root_path()) break;
-	}
-	return runtimePath;
+	return ResourceManager::Instance().ResolveEditPath("PhysicsLayers", ResourceManager::ResourceType::PhysicsLayers);
 }
 
 template<class Archive>
@@ -45,7 +36,7 @@ bool PhysicsLayerManager::Load(const std::string& path)
 {
 	try
 	{
-		const auto filepath = std::filesystem::absolute(std::filesystem::path(path));
+		const auto filepath = ResourceManager::Instance().ResolveEditPath(path, ResourceManager::ResourceType::PhysicsLayers);
 		std::ifstream ifs(filepath, std::ios::binary);
 		if (!ifs) throw std::runtime_error("Cannot open physics layers");
 		PhysicsLayers loaded{};
@@ -69,16 +60,18 @@ bool PhysicsLayerManager::Save(const std::string& path)
 {
 	try
 	{
-		const auto filepath = std::filesystem::absolute(std::filesystem::path(path));
-		std::ofstream ofs(filepath, std::ios::binary);
-		if (!ofs) throw std::runtime_error("Cannot save physics layers");
-		{
-			cereal::BinaryOutputArchive archive(ofs);
-			archive(CEREAL_NVP(settings));
-		}
-		ofs.close();
-		if (!ofs) throw std::runtime_error("Cannot write physics layers");
-		currentPath = filepath.string();
+		const auto filepath = ResourceManager::Instance().ResolveEditPath(path, ResourceManager::ResourceType::PhysicsLayers);
+		const auto saved = ResourceManager::Instance().SaveResourceFile(filepath, [&](const std::filesystem::path& destination) {
+			std::ofstream ofs(destination, std::ios::binary);
+			if (!ofs) throw std::runtime_error("Cannot save physics layers");
+			{
+				cereal::BinaryOutputArchive archive(ofs);
+				archive(CEREAL_NVP(settings));
+			}
+			ofs.close();
+			if (!ofs) throw std::runtime_error("Cannot write physics layers");
+		});
+		currentPath = saved.string();
 		pathInput = currentPath;
 		fileStatus = "保存しました。";
 		return true;

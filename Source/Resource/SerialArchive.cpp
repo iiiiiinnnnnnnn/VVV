@@ -1,5 +1,7 @@
 #include "Resource/SerialArchive.h"
 #include "Resource/SerialJson.h"
+#include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 #include <compressapi.h>
 #include <array>
 #include <fstream>
@@ -180,42 +182,45 @@ void SerialDocument::Load(std::istream& stream, const char* expectedType)
 	type = expectedType;
 }
 
-void SerialDocument::Save(const std::filesystem::path& path) const
+void SerialDocument::Save(const std::filesystem::path& requestedPath) const
 {
 	if (type != "VMDL" && type != "VSTG") throw std::runtime_error("Invalid serial document type.");
-	std::ostringstream payload(std::ios::binary);
-	SerialWire::WriteNode(payload, root);
-	const auto plain = payload.str();
-	COMPRESSOR_HANDLE handle = nullptr;
-	if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &handle)) throw std::runtime_error("Serial compressor creation failed.");
-	SIZE_T size = 0;
-	Compress(handle, plain.data(), plain.size(), nullptr, 0, &size);
-	if (!size) { CloseCompressor(handle); throw std::runtime_error("Serial compression size failed."); }
-	std::vector<uint8_t> stored(size);
-	const BOOL result = Compress(handle, plain.data(), plain.size(), stored.data(), stored.size(), &size);
-	CloseCompressor(handle);
-	if (!result) throw std::runtime_error("Serial compression failed.");
-	if (!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path());
-	const auto temporary = std::filesystem::path(path.wstring() + L".saving.tmp");
-	try
-	{
-		std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
-		stream.write(SerialWire::magic.data(), SerialWire::magic.size());
-		stream.write(type.data(), 4);
-		SerialWire::Write(stream, uint32_t(1)); // 圧縮方式ID。ファイルの世代番号ではない。
-		SerialWire::Write(stream, static_cast<uint64_t>(plain.size()));
-		SerialWire::Write(stream, static_cast<uint64_t>(size));
-		stream.write(reinterpret_cast<const char*>(stored.data()), size);
-		stream.close();
-		if (!stream || !MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-			throw std::runtime_error("Serial file replacement failed: " + std::to_string(GetLastError()));
-	}
-	catch (...)
-	{
-		std::error_code ignored;
-		std::filesystem::remove(temporary, ignored);
-		throw;
-	}
+	const auto resourceType = type == "VMDL" ? ResourceManager::ResourceType::Model : ResourceManager::ResourceType::Stage;
+	ResourceManager::Instance().SaveResourceFile(ResourcePath::Text(requestedPath), resourceType, [&](const std::filesystem::path& path) {
+		std::ostringstream payload(std::ios::binary);
+		SerialWire::WriteNode(payload, root);
+		const auto plain = payload.str();
+		COMPRESSOR_HANDLE handle = nullptr;
+		if (!CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &handle)) throw std::runtime_error("Serial compressor creation failed.");
+		SIZE_T size = 0;
+		Compress(handle, plain.data(), plain.size(), nullptr, 0, &size);
+		if (!size) { CloseCompressor(handle); throw std::runtime_error("Serial compression size failed."); }
+		std::vector<uint8_t> stored(size);
+		const BOOL result = Compress(handle, plain.data(), plain.size(), stored.data(), stored.size(), &size);
+		CloseCompressor(handle);
+		if (!result) throw std::runtime_error("Serial compression failed.");
+		if (!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path());
+		const auto temporary = std::filesystem::path(path.wstring() + L".saving.tmp");
+		try
+		{
+			std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+			stream.write(SerialWire::magic.data(), SerialWire::magic.size());
+			stream.write(type.data(), 4);
+			SerialWire::Write(stream, uint32_t(1)); // 圧縮方式ID。ファイルの世代番号ではない。
+			SerialWire::Write(stream, static_cast<uint64_t>(plain.size()));
+			SerialWire::Write(stream, static_cast<uint64_t>(size));
+			stream.write(reinterpret_cast<const char*>(stored.data()), size);
+			stream.close();
+			if (!stream || !MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+				throw std::runtime_error("Serial file replacement failed: " + std::to_string(GetLastError()));
+		}
+		catch (...)
+		{
+			std::error_code ignored;
+			std::filesystem::remove(temporary, ignored);
+			throw;
+		}
+	});
 }
 
 void WriteSerialJson(SerialNode& node, const json& value)

@@ -9,6 +9,7 @@
 #include "Gameplay/Actor/Actor.h"
 
 #include <cmath>
+#include <stdexcept>
 #include <unordered_map>
 
 TerrainMeshCollider::TerrainMeshCollider(
@@ -393,13 +394,6 @@ bool TerrainMeshCollider::SaveCachedMesh(
         return false;
     }
 
-    std::ofstream file(filepath, std::ios::binary);
-    if (!file)
-    {
-        vxMessage = "Terrain .vx save failed: open failed.";
-        return false;
-    }
-
     Transform* transform = owner->GetComponent<Transform>();
     if (!transform) return false;
     const Vector3 scale = transform->scale;
@@ -421,23 +415,24 @@ bool TerrainMeshCollider::SaveCachedMesh(
     header.innerFactor = terrain->GetTessellationInnerFactor();
     header.heightScaler = terrain->GetHeightScaler();
 
-    file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-    file.write(
-        reinterpret_cast<const char*>(vertices.data()),
-        sizeof(Vector3) * vertices.size());
-    file.write(
-        reinterpret_cast<const char*>(indices.data()),
-        sizeof(uint32_t) * indices.size());
-
-    if (!file)
+    try
     {
-        vxMessage = "Terrain .vx save failed: write failed.";
+        ResourceManager::Instance().SaveResourceFile(filepath, [&](const std::filesystem::path& destination) {
+            std::ofstream file(destination, std::ios::binary | std::ios::trunc);
+            file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+            file.write(reinterpret_cast<const char*>(vertices.data()), sizeof(Vector3) * vertices.size());
+            file.write(reinterpret_cast<const char*>(indices.data()), sizeof(uint32_t) * indices.size());
+            file.close();
+            if (!file) throw std::runtime_error("Terrain .vx write failed.");
+        });
+        vxMessage = "Terrain .vx saved: " + filepath.generic_string();
+        return true;
+    }
+    catch (const std::exception& exception)
+    {
+        vxMessage = exception.what();
         return false;
     }
-
-	vxMessage = "Terrain .vx saved: " + filepath.generic_string();
-	ResourceManager::Instance().RegisterGeneratedCache(filepath.generic_string());
-	return true;
 #endif
 }
 

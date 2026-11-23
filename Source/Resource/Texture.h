@@ -48,6 +48,7 @@ public:
 
 private:
 	Texture(ID3D11Device* device, const ImageData& image);
+	void LoadErrorTexture(ID3D11Device* device);
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	shaderResourceView;
 	D3D11_TEXTURE2D_DESC	texture2dDesc{};
 };

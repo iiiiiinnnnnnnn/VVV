@@ -27,6 +27,57 @@ cbuffer CbTerrainLayer : register(b4)
 Texture2D<float4> terrainBaseTextures[MAX_TERRAIN_LAYERS] : register(t20);
 Texture2D<float4> terrainNormalTextures[MAX_TERRAIN_LAYERS] : register(t36);
 
+#define MAX_TERRAIN_DECALS 10
+
+cbuffer CbTerrainDecal : register(b5)
+{
+    row_major float4x4 terrain_decal_world_to_local[MAX_TERRAIN_DECALS];
+    float4 terrain_decal_parameters[MAX_TERRAIN_DECALS];
+    int terrain_decal_count;
+    float3 terrain_decal_dummy;
+};
+
+Texture2D<float4> terrainDecalTextures[MAX_TERRAIN_DECALS] : register(t52);
+
+float4 SampleTerrainDecal(int index, float2 uv, float2 dx, float2 dy)
+{
+    switch (index)
+    {
+    case 0: return terrainDecalTextures[0].SampleGrad(shadowSampler, uv, dx, dy);
+    case 1: return terrainDecalTextures[1].SampleGrad(shadowSampler, uv, dx, dy);
+    case 2: return terrainDecalTextures[2].SampleGrad(shadowSampler, uv, dx, dy);
+    case 3: return terrainDecalTextures[3].SampleGrad(shadowSampler, uv, dx, dy);
+    case 4: return terrainDecalTextures[4].SampleGrad(shadowSampler, uv, dx, dy);
+    case 5: return terrainDecalTextures[5].SampleGrad(shadowSampler, uv, dx, dy);
+    case 6: return terrainDecalTextures[6].SampleGrad(shadowSampler, uv, dx, dy);
+    case 7: return terrainDecalTextures[7].SampleGrad(shadowSampler, uv, dx, dy);
+    case 8: return terrainDecalTextures[8].SampleGrad(shadowSampler, uv, dx, dy);
+    case 9: return terrainDecalTextures[9].SampleGrad(shadowSampler, uv, dx, dy);
+    default: return 0.0f.xxxx;
+    }
+}
+
+float3 ApplyTerrainDecals(float3 color, float3 worldPosition)
+{
+    float3 worldDx = ddx(worldPosition);
+    float3 worldDy = ddy(worldPosition);
+    [loop]
+    for (int i = 0; i < terrain_decal_count; ++i)
+    {
+        float3 localPosition = mul(float4(worldPosition, 1.0f), terrain_decal_world_to_local[i]).xyz;
+        float2 uv = localPosition.xz * float2(1.0f, -1.0f) + 0.5f;
+        if (all(uv >= 0.0f) && all(uv <= 1.0f))
+        {
+            float2 dx = mul(worldDx, (float3x3)terrain_decal_world_to_local[i]).xz * float2(1.0f, -1.0f);
+            float2 dy = mul(worldDy, (float3x3)terrain_decal_world_to_local[i]).xz * float2(1.0f, -1.0f);
+            float4 decal = SampleTerrainDecal(i, uv, dx, dy);
+            color = lerp(color, pow(max(decal.rgb, 0.0f), GammaFactor),
+                saturate(decal.a * terrain_decal_parameters[i].x));
+        }
+    }
+    return color;
+}
+
 float3 UnpackNormalBC5(Texture2D<float4> tex, float2 uv)
 {
     float2 xy = tex.Sample(linearSampler, uv).rg * 2.0f - 1.0f;
@@ -290,6 +341,8 @@ float4 main(VS_OUT pin) : SV_TARGET
         albedo.rgb,
         lerp(albedoLuminance.xxx, albedo.rgb, 0.55f),
         terrainDistanceFade * 0.45f);
+
+    albedo.rgb = ApplyTerrainDecals(albedo.rgb, pin.position);
 
     float3 emissive =
         emissiveColor.rgb * emissiveColor.a

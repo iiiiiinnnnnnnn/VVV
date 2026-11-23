@@ -5,9 +5,12 @@
 #include <InputKit/InputActions.h>
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <algorithm>
 #include <span>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace InputKit
@@ -29,6 +32,12 @@ class InputSystem
 	bool Load(const std::filesystem::path& path);
 	bool Save();
 	bool Save(const std::filesystem::path& path);
+	void SetFileWriter(std::function<std::filesystem::path(const std::filesystem::path&, std::string_view)> writer,
+		std::function<std::filesystem::path(const std::filesystem::path&)> resolver = {})
+	{
+		fileWriter = std::move(writer);
+		savePathResolver = std::move(resolver);
+	}
 
 	const std::filesystem::path& GetFilePath() const
 	{
@@ -128,6 +137,8 @@ class InputSystem
 	std::vector<File> files{File{}};
 	size_t selectedFile = 0;
 	std::string lastError;
+	std::function<std::filesystem::path(const std::filesystem::path&, std::string_view)> fileWriter;
+	std::function<std::filesystem::path(const std::filesystem::path&)> savePathResolver;
 	HWND window = nullptr;
 	UINT viewportWidth = 0;
 	UINT viewportHeight = 0;

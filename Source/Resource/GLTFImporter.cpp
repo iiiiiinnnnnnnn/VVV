@@ -10,6 +10,8 @@
 
 #include "Application/SettingsAndDebug/DebugUtil.h"
 #include "Resource/Texture.h"
+#include "Resource/ResourceManager.h"
+#include "Resource/EmbeddedResources.h"
 #include "Resource/GLTFImporter.h"
 #include "Core/Foundation/BinaryFile.h"
 #include <DirectXTex.h>
@@ -695,12 +697,12 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 					}
 					else
 					{
-						try
+						if (gltfImage.as_is)
 						{
 							Texture texture(device, gltfImage.image.data(), gltfImage.image.size());
 							texture.GetShaderResourceView().CopyTo(srv);
 						}
-						catch (const std::exception&)
+						else
 						{
 							D3D11_TEXTURE2D_DESC desc = { 0 };
 							desc.Width = gltfImage.width;
@@ -717,10 +719,19 @@ void GLTFImporter::LoadMaterials(MaterialList& materials, ID3D11Device* device)
 							D3D11_SUBRESOURCE_DATA data;
 							::memset(&data, 0, sizeof(data));
 							data.pSysMem = gltfImage.image.data();
-							data.SysMemPitch = gltfImage.width * (gltfImage.bits / 8);
+							data.SysMemPitch = gltfImage.width * gltfImage.component * (gltfImage.bits / 8);
 
-							Texture texture(device, desc, data);
-							texture.GetShaderResourceView().CopyTo(srv);
+							try
+							{
+								Texture texture(device, desc, data);
+								texture.GetShaderResourceView().CopyTo(srv);
+							}
+							catch (const std::exception&)
+							{
+								const auto error = ResourceManager::LoadEmbeddedResource(IDR_ERROR_TEXTURE);
+								Texture texture(device, error.data(), error.size());
+								texture.GetShaderResourceView().CopyTo(srv);
+							}
 						}
 					}
 				}

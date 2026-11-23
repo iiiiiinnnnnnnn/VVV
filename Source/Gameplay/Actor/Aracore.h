@@ -312,4 +312,6 @@ private:
 	bool playerDetected = false;
 	float healthDissolveAmount = 0.0f;
 	std::vector<Vector3> colPositions;
+
+	float decalSize = 17.0f;
 };

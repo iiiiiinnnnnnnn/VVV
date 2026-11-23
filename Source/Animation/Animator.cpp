@@ -11,49 +11,8 @@
 #include "Application/Time/GameTime.h"
 #include "IconsFontAwesome5.h"
 #include <filesystem>
+#include <stdexcept>
 #include <unordered_set>
-
-namespace
-{
-    std::filesystem::path FindProjectResourceRoot()
-    {
-        for (std::filesystem::path directory =
-                std::filesystem::current_path();
-             !directory.empty();
-             directory = directory.parent_path())
-        {
-            const std::filesystem::path resourceRoot =
-                directory / "Resources";
-            if (std::filesystem::exists(directory / "VEER.sln") &&
-                std::filesystem::is_directory(resourceRoot))
-            {
-                return resourceRoot.lexically_normal();
-            }
-            if (directory == directory.root_path()) break;
-        }
-        return {};
-    }
-
-    bool TryGetRelativeResourcePath(
-        const std::filesystem::path& path,
-        const std::filesystem::path& resourceRoot,
-        std::filesystem::path& relativePath)
-    {
-        if (resourceRoot.empty()) return false;
-
-        const std::filesystem::path relative =
-            path.lexically_relative(resourceRoot);
-        if (relative.empty()) return false;
-
-        const auto first = relative.begin();
-        if (first != relative.end() && *first == "..")
-            return false;
-
-        relativePath = relative;
-        return true;
-    }
-
-}
 
 Animator::Animator(Object* owner, std::shared_ptr<VMDLModel> model, bool unscaledTime)
     : Component(owner), model(model), unscaledTime(unscaledTime)
@@ -1319,58 +1278,21 @@ bool Animator::GetAnimationControlState(int& animationIndex, float& time,
 }
 bool Animator::Save(const std::string& path)
 {
-    m_lastPath = ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Animator);
-
-    const std::filesystem::path selectedPath =
-        std::filesystem::absolute(ResourcePath::Path(m_lastPath)).lexically_normal();
-    const std::filesystem::path runtimeResourceRoot =
-        (std::filesystem::current_path() / "Resources")
-        .lexically_normal();
-    const std::filesystem::path projectResourceRoot =
-        FindProjectResourceRoot();
-
-    std::filesystem::path relativePath;
-    if (!TryGetRelativeResourcePath(
-            selectedPath,
-            runtimeResourceRoot,
-            relativePath) &&
-        !TryGetRelativeResourcePath(
-            selectedPath,
-            projectResourceRoot,
-            relativePath))
+    try
     {
-        relativePath =
-            std::filesystem::path("Animator") /
-            selectedPath.filename();
+        auto& resources = ResourceManager::Instance();
+        const auto destination = resources.ResolveEditPath(path, ResourceManager::ResourceType::Animator);
+        const auto saved = resources.SaveResourceFile(destination, [&](const std::filesystem::path& file) {
+            if (!Serialize(ResourcePath::Text(file))) throw std::runtime_error("Animator save failed.");
+        });
+        m_lastPath = ResourceManager::PortableResourcePath(saved);
+        return true;
     }
-
-    std::vector<std::filesystem::path> savePaths = {
-        selectedPath,
-        runtimeResourceRoot / relativePath
-    };
-    if (!projectResourceRoot.empty())
-        savePaths.push_back(projectResourceRoot / relativePath);
-
-    bool saved = true;
-    std::unordered_set<std::string> uniquePaths;
-    for (const std::filesystem::path& savePath : savePaths)
+    catch (const std::exception& exception)
     {
-        const std::filesystem::path normalizedPath =
-            savePath.lexically_normal();
-        if (!uniquePaths.insert(
-                normalizedPath.generic_string()).second)
-        {
-            continue;
-        }
-
-        std::error_code error;
-        std::filesystem::create_directories(
-            normalizedPath.parent_path(),
-            error);
-        if (error || !Serialize(normalizedPath.string()))
-            saved = false;
+        Log(exception.what());
+        return false;
     }
-    return saved;
 }
 
 float Animator::GetStateLength(const State& state) const
@@ -1401,5 +1323,5 @@ std::string Animator::GetStateAnimationName(const State& state) const
 void Animator::Load(const std::string& path)
 {
     m_lastPath = ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::Animator);
-    Deserialize(m_lastPath);
+    Deserialize(ResourcePath::Text(ResourceManager::Instance().ResolveEditPath(m_lastPath, ResourceManager::ResourceType::Animator)));
 }

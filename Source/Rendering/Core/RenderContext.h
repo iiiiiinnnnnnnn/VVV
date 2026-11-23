@@ -8,10 +8,22 @@
 
 class LightManager;
 class DepthTarget;
+class Terrain;
 namespace Game { class Graphics; }
 
 // レンダリング設定
 enum class ShadingMode { Shading, Unlit, Solid, Wire, SolidAndWire };
+
+struct TerrainBrushPreview
+{
+	const Terrain* terrain = nullptr;
+	int mode = 0;
+	int flags = 0;
+	int usesAlpha = 0;
+	Vector4 area = {};
+	Vector4 parameters = {};
+	ID3D11ShaderResourceView* texture = nullptr;
+};
 
 struct RenderSettings
 {
@@ -23,6 +35,7 @@ struct RenderSettings
 	bool showGrass = true;
 	bool showFog = true;
 	ShadingMode shadingMode = ShadingMode::Shading;
+	const TerrainBrushPreview* terrainBrushPreview = nullptr;
 	bool pointMaterialTextures = false;
 	bool distanceFogEnabled = true;
 	float distanceFogStart = 18.0f;

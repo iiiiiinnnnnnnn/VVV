@@ -1,5 +1,6 @@
 #include "Resource/ImageData.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/ResourcePath.h"
 #include "Core/Foundation/Common.h"
 #include <stdexcept>
 
@@ -32,7 +33,7 @@ HRESULT ImageData::LoadFile(const std::filesystem::path& filepath, bool forceRgb
 	if (FAILED(decoder)) return decoder;
 	const auto& resources = ResourceManager::Instance();
 	const std::filesystem::path resolved = resources.ResolveResourcePath(
-		filepath.generic_string(), ResourceManager::ResourceType::Texture);
+		ResourcePath::Text(filepath), ResourceManager::ResourceType::Texture);
 	const std::wstring extension = ToLowerWString(resolved.extension().wstring());
 	const std::wstring filename = resolved.wstring();
 

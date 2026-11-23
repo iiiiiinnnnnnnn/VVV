@@ -20,7 +20,7 @@ SpriteWidget::SpriteWidget(const std::string& name, std::shared_ptr<Texture> tex
 void SpriteWidget::OnAwake()
 {
 	if (!texture && !spritePath.empty())
-		texture = ResourceManager::Instance().LoadTexture(spritePath.generic_string(), false);
+		texture = ResourceManager::Instance().LoadTexture(spritePath.generic_string());
 }
 
 void SpriteWidget::OnRender(const RenderContext&)

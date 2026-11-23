@@ -29,6 +29,7 @@ struct TerrainDecal
 {
 	Transform transform;
 	std::string texturePath;
+	std::shared_ptr<Texture> texture;
 	float opacity = 1.0f;
 };
 
@@ -43,7 +44,6 @@ public:
 
 	void Update() override;
 	void Render(const RenderContext& rc) override;
-	void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_MOUNTAIN " テライン地形"; }
 
 	// 描画
@@ -123,41 +123,21 @@ public:
 	bool LoadSettingsJson(const std::string& text);
 	void UseEmbeddedStorage() { terrainFilePath.clear(); }
 
-	// ブラシ
+	// デカール（Transformはワールド座標、ScaleのXZが幅と奥行き）
 
-	bool IsBrushEnabled() const { return use_brush; }
-	void SetBrushEnabled(bool enabled) { use_brush = enabled; }
-	void SetBrushViewportInputAllowed(bool allowed) { useBrushViewportInput = true; brushViewportInputAllowed = allowed; }
-	bool IsNavMeshPreviewActive() const { return use_brush && brushMode == BrushMode::NavMeshPaint; }
-	int GetBrushTextureIndex() const { return currentBrushIndex; }
-	bool SetBrushTexture(int index);
-
-	int GetBrushTextureCount() const { return static_cast<int>(brushes.size()); }
-	bool AddBrushTexture(const std::string& filename);
-
-	// デカール
-
+	static constexpr int MaxTerrainDecals = 10;
 	void AddDecal(const std::string& path, const Transform& transform, float opacity = 1.0f);
 	void ClearDecals();
 	const std::vector<TerrainDecal>& GetDecals() const { return terrainDecals; }
 
 private:
+	friend class VstgEditorScene;
+
 	// 定数
 
 	static constexpr int MaxTerrainLayers = 16;
 	static constexpr int TerrainTextureWidth = 1024;
 	static constexpr int TerrainTextureHeight = 1024;
-
-	// ブラシモード
-
-	enum class BrushMode
-	{
-		RaiseLower,
-		SetHeight,
-		Paint,
-		GrassPaint,
-		NavMeshPaint,
-	};
 
 	// 頂点
 
@@ -264,17 +244,12 @@ private:
 		Vector4 brushParams = {};
 	};
 
-	// ブラシ
-
-	struct TerrainBrush
+	struct CbTerrainDecal
 	{
-		std::string name;
-		std::string filepath;
-		int width = 0;
-		int height = 0;
-		std::vector<float> mask;
-		bool usesAlpha = false;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+		std::array<Matrix, MaxTerrainDecals> worldToDecal;
+		std::array<Vector4, MaxTerrainDecals> parameters;
+		int count = 0;
+		float dummy[3] = {};
 	};
 
 	// 地形レイヤー
@@ -325,30 +300,17 @@ private:
 		float shadowBias,
 		int pcfKernelSize);
 	void UpdateMaterialConstantBuffer(ID3D11DeviceContext* dc);
+	void BindDecals(ID3D11DeviceContext* dc);
 
 	// 地形編集
 
-	void PaintByMouse(const RenderContext& rc);
-	bool ScreenToTerrainUV(
-		const RenderContext& rc,
-		float& outU,
-		float& outV) const;
-	void ApplyBrush(float u, float v, float heightSign);
 	void PlayGrassRemovalEffect(const Vector3& worldPosition);
-
-	// ブラシ処理
-
-	const TerrainBrush* GetCurrentBrush() const;
-	float SampleBrushMask(float u, float v) const;
-	void DrawBrushGUI();
 
 	// 地形レイヤー処理
 
 	bool AddTerrainLayer(
 		const std::string& baseColorPath,
 		const std::string& normalPath);
-	float GetTerrainLayerValue(int layerIndex) const;
-	void DrawTerrainLayerGUI();
 
 	// 地形メッシュ設定
 
@@ -371,6 +333,7 @@ private:
 	std::unique_ptr<Gpu::ConstantBuffer> terrainSceneConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> tesselationConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> terrainLayerConstantBuffer;
+	std::unique_ptr<Gpu::ConstantBuffer> terrainDecalConstantBuffer;
 	std::unique_ptr<Gpu::ConstantBuffer> terrainColliderBuildConstantBuffer;
 
 	// シェーダー
@@ -396,8 +359,9 @@ private:
 
 	// 地形レイヤー
 
-	int currentTerrainLayerIndex = 0;
 	std::vector<TerrainLayer> terrainLayers;
+	std::shared_ptr<Texture> defaultBaseTexture;
+	std::shared_ptr<Texture> defaultNormalTexture;
 
 	// マテリアル
 
@@ -417,20 +381,6 @@ private:
 	float distanceFogStrength = 0.9f;
 	Color distanceFogColor = {0.38f, 0.46f, 0.54f, 1.0f};
 
-	// 地形ブラシ
-
-	bool use_brush = false;
-	bool useBrushViewportInput = false;
-	bool brushViewportInputAllowed = false;
-	BrushMode brushMode = BrushMode::RaiseLower;
-	int brush_size = 32;
-	float heightBrushStrength = 0.02f;
-	float setHeightValue = 0.0f;
-	float paintOpacity = 0.08f;
-	bool invertBrushMask = false;
-	std::vector<TerrainBrush> brushes;
-	int currentBrushIndex = -1;
-
 	// 保存状態
 
 	std::string terrainFilePath;
@@ -441,11 +391,9 @@ private:
 
 	std::unique_ptr<TerrainGrassRenderer> grassRenderer;
 	TerrainGrassRenderer::Settings grassSettings;
-	TerrainGrassRenderer::Settings grassDraftSettings;
 	bool grassDirty = true;
 	std::shared_ptr<Effect> grassRemovalEffect;
 	Game::Timer grassRemovalEffectCooldown{0.0f};
-	bool grassDraftInitialized = false;
 
 	// デカール
 

@@ -43,8 +43,6 @@ public:
 			return "Matrix";
 		case SerialKind::Json:
 			return "JSON Value";
-		case SerialKind::Deleted:
-			return "Deleted";
 		default:
 			return "Unknown";
 		}
@@ -110,6 +108,8 @@ public:
 
 bool SerialViewer::DrawNode(SerialNode& node, size_t depth, std::vector<uint64_t>& path, bool arrayElement)
 {
+	if (node.kind == SerialKind::Deleted) return false;
+
 	path.push_back(node.id);
 	ImGui::PushID(&node);
 	ImGui::TableNextRow();
@@ -134,12 +134,11 @@ bool SerialViewer::DrawNode(SerialNode& node, size_t depth, std::vector<uint64_t
 	ImGui::TableSetColumnIndex(4);
 	ImGui::TextUnformatted(SerialViewerText::Value(node).c_str());
 	ImGui::TableSetColumnIndex(5);
-	ImGui::TextUnformatted(node.kind == SerialKind::Deleted ? ICON_FA_TIMES " 削除" :
-		warning ? ICON_FA_EXCLAMATION_TRIANGLE " 未対応" : ICON_FA_CHECK " 読込");
+	ImGui::TextUnformatted(warning ? ICON_FA_EXCLAMATION_TRIANGLE " 未対応" : ICON_FA_CHECK " 読込");
 	ImGui::TableSetColumnIndex(6);
 	const bool essential = !depth || (depth == 1 && node.name == "geometry");
 	const bool positional = arrayElement && node.understood && !node.stableIdentity;
-	ImGui::BeginDisabled(essential || positional || node.kind == SerialKind::Deleted);
+	ImGui::BeginDisabled(essential || positional);
 	const bool remove = ImGui::Button(ICON_FA_TIMES);
 	ImGui::EndDisabled();
 	if (positional && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))

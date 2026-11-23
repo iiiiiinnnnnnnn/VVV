@@ -226,7 +226,8 @@ bool InputSystem::Save(const std::filesystem::path& path)
 	std::filesystem::path temporary;
 	try
 	{
-		const auto absolute = std::filesystem::absolute(path).lexically_normal();
+		const auto absolute = savePathResolver ? savePathResolver(path)
+			: std::filesystem::absolute(path).lexically_normal();
 		if (absolute.extension() != ".vis") throw std::runtime_error("入力ファイルの拡張子は.visにしてください。");
 		for (size_t index = 0; index < files.size(); ++index)
 		{
@@ -260,6 +261,12 @@ bool InputSystem::Save(const std::filesystem::path& path)
 		}
 		const auto contents = root.dump(2) + '\n';
 		if (contents.size() > 16 * 1024 * 1024) throw std::runtime_error("入力ファイルのサイズが上限を超えています。");
+		if (fileWriter)
+		{
+			files[selectedFile].path = fileWriter(absolute, contents);
+			lastError.clear();
+			return true;
+		}
 		std::filesystem::create_directories(absolute.parent_path());
 		// 書込みが成功してから置き換え、既存のファイルを保護する。
 		temporary = absolute;

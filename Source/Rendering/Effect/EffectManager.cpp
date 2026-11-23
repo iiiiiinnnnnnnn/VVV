@@ -217,8 +217,7 @@ Effekseer::Handle EffectManager::Play2D(const std::shared_ptr<Effect>& effect,
 
 std::vector<std::string> EffectManager::GetEffectPaths()
 {
-	auto root = ResourceManager::FindSourceResourceRoot();
-	if (root.empty()) root = std::filesystem::current_path() / "Resources";
+	auto root = ResourceManager::GetResourceRoot();
 	root /= "Effect";
 	std::vector<std::string> paths;
 	std::error_code error;
@@ -231,7 +230,7 @@ std::vector<std::string> EffectManager::GetEffectPaths()
 			[](unsigned char character) { return static_cast<char>(std::tolower(character)); });
 		if (extension != ".efkpkg") continue;
 		auto relative = iterator->path().lexically_relative(root);
-		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), "Effect"));
+		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), ResourceManager::ResourceType::Effect));
 	}
 	std::sort(paths.begin(), paths.end());
 	return paths;

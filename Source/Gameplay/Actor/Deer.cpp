@@ -265,7 +265,7 @@ void Deer::OnLateUpdate()
 
 void Deer::OnDrawGUI()
 {
-	ImGui::TextUnformatted("AIパス：Resources/AI/Deer.lua");
+	ImGui::TextUnformatted("AI：Resources/AI/Deer.lua");
 }
 
 void Deer::OnCollisionEnter(

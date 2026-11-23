@@ -171,7 +171,8 @@ bool Animator::Serialize(const std::string& path) const
         std::ofstream ofs(path);
         if (!ofs) return false;
         ofs << root.dump(4);
-        return true;
+        ofs.close();
+        return static_cast<bool>(ofs);
     }
 
     // -------------------------------------------------------

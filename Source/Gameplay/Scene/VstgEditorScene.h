@@ -11,6 +11,7 @@
 #include "Gameplay/Scene/EditorScene.h"
 #include "Resource/VSTG.h"
 #include "Rendering/Core/PBRRenderParams.h"
+#include "Rendering/Component/Terrain.h"
 
 class StageLoader;
 class Terrain;
@@ -38,12 +39,58 @@ class VstgEditorScene : public EditorScene
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
-	void DrawDecalRegistration();
 	bool UsesGameDebugGUI() const override { return false; }
 	bool OnRequestExit() override;
 
   private:
 	void HandleShortcuts();
+	void DrawTerrainGUI();
+	void DrawTerrainLayerGUI();
+	void DrawBrushGUI();
+	void RefreshTerrainAssets();
+	void UpdateTerrainBrush();
+	bool ScreenToTerrainUV(float& u, float& v) const;
+	void ApplyBrush(float u, float v, float heightSign);
+	bool AddBrushTexture(const std::string& filename);
+	bool SetBrushTexture(int index);
+	float GetTerrainLayerValue(int index) const;
+	float SampleBrushMask(float u, float v) const;
+
+	enum class BrushMode { RaiseLower, SetHeight, Paint, GrassPaint, NavMeshPaint };
+	struct TerrainBrush
+	{
+		std::string name;
+		std::string filepath;
+		int width = 0;
+		int height = 0;
+		std::vector<float> mask;
+		bool usesAlpha = false;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+	};
+	const TerrainBrush* GetCurrentBrush() const;
+	struct TerrainLayerImage
+	{
+		std::string name;
+		std::string baseColorPath;
+		std::string normalPath;
+		std::shared_ptr<Texture> texture;
+	};
+	std::vector<TerrainBrush> brushes;
+	std::vector<TerrainLayerImage> terrainLayerImages;
+	int currentBrushIndex = -1;
+	int currentTerrainLayerIndex = 0;
+	bool use_brush = false;
+	bool brushViewportInputAllowed = false;
+	BrushMode brushMode = BrushMode::RaiseLower;
+	int brush_size = 32;
+	float heightBrushStrength = 0.02f;
+	float setHeightValue = 0.0f;
+	float paintOpacity = 0.08f;
+	bool invertBrushMask = false;
+	std::string terrainEditorMessage;
+	TerrainGrassRenderer::Settings grassDraftSettings;
+	bool grassDraftInitialized = false;
+	TerrainBrushPreview terrainBrushPreview;
 
 	// ステージ操作
 	void CreateStage();
@@ -76,6 +123,7 @@ class VstgEditorScene : public EditorScene
 	bool OpenVmdlEditor(const std::string& modelPath);
 	void DrawPlacementDropTarget(const ImVec2& viewportMin, const ImVec2& viewportMax);
 	void DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& viewportMax);
+	void DrawDecalPalette();
 	bool ScreenToTerrainPoint(
 		const ImVec2& mousePosition, Vector3& point, Vector3* normal = nullptr) const;
 	bool ScreenToPlacementSurface(const ImVec2& mousePosition, Vector3& point,

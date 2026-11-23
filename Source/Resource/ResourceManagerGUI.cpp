@@ -10,7 +10,7 @@ void ResourceManager::ReloadResourceList()
 {
 	resourceGUIInitialized = true;
 	// リソース設定とキャッシュ対象を読み直す
-	const auto source = ResourceManager::FindSourceResourceRoot();
+	const auto source = ResourceManager::GetResourceRoot();
 	if (source.empty())
 	{
 		resourceGUIMessage = "Source Resources was not found";
@@ -189,7 +189,7 @@ void ResourceManager::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
 
 		if (changed)
 		{
-			const auto source = ResourceManager::FindSourceResourceRoot();
+			const auto source = ResourceManager::GetResourceRoot();
 			if (source.empty())
 			{
 				resourceGUIMessage = "Source Resources was not found";
@@ -200,7 +200,9 @@ void ResourceManager::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
 				{
 					auto nextSettings = resourceGUISettings;
 					nextSettings.Set(path, options);
-					nextSettings.Save(source / "ResourceSettings.ini");
+					SaveResourceFile(source / "ResourceSettings.ini", [&](const std::filesystem::path& destination) {
+						nextSettings.Save(destination);
+					});
 					resourceGUISettings = std::move(nextSettings);
 					resourceGUIMessage.clear();
 				}

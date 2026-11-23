@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include "Resource/EmbeddedResources.h"
+#include "Resource/ResourceManager.h"
 #include <filesystem>
 #include <array>
 #include <cmath>
@@ -237,17 +238,9 @@ void ImGuiRenderer::Initialize(HWND hWnd, ID3D11Device* device, ID3D11DeviceCont
 	config.PixelSnapH = true;
 	config.GlyphMinAdvanceX = 16.0f;
 	config.FontDataOwnedByAtlas = false;
-	const HMODULE module = GetModuleHandleW(nullptr);
-	const HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(IDR_FONT_AWESOME),
-		MAKEINTRESOURCEW(10)); // RT_RCDATA
-	if (resource)
-	{
-		const HGLOBAL loaded = LoadResource(module, resource);
-		void* data = loaded ? LockResource(loaded) : nullptr;
-		const DWORD size = SizeofResource(module, resource);
-		if (data && size)
-			io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), 18.0f, &config, icon_ranges);
-	}
+	const auto data = ResourceManager::LoadEmbeddedResource(IDR_FONT_AWESOME);
+	io.Fonts->AddFontFromMemoryTTF(const_cast<uint8_t*>(data.data()),
+		static_cast<int>(data.size()), 18.0f, &config, icon_ranges);
 }
 
 void ImGuiRenderer::Finalize()

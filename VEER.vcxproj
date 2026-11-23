@@ -84,6 +84,7 @@
     <ClCompile Include="Source\Gameplay\Scene\EditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VmdlEditorScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp" />
+    <ClCompile Include="Source\Gameplay\Scene\VstgEditorSceneTerrain.cpp" />
     <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles />

@@ -113,7 +113,7 @@ void Scene::DrawAnimatorEditor()
 				auto model = std::move(pendingAnimatorModel);
 				if (!model && !pendingAnimatorPath.empty())
 				{
-					const auto modelPath = ResourceManager::FindSourceResourceRoot() / "Model" /
+					const auto modelPath = ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model) /
 						(std::filesystem::path(pendingAnimatorPath).stem().string() + ".vmdl");
 					// ソースの絶対パスはマニフェストの検索キーと一致しないため、直接読み込む
 					if (std::filesystem::is_regular_file(modelPath))

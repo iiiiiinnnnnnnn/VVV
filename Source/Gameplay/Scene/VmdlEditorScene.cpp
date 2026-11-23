@@ -95,20 +95,6 @@ bool IsSameFilePath(const std::filesystem::path& left, const std::filesystem::pa
 		CSTR_EQUAL;
 }
 
-std::string PortableResourcePath(const std::filesystem::path& path)
-{
-	if (path.empty()) return {};
-	if (path.is_relative()) return path.lexically_normal().generic_string();
-	const std::filesystem::path sourceRoot = ResourceManager::FindSourceResourceRoot();
-	if (!sourceRoot.empty())
-	{
-		const std::filesystem::path relative = path.lexically_relative(sourceRoot);
-		if (!relative.empty() && *relative.begin() != "..")
-			return (std::filesystem::path("Resources") / relative).lexically_normal().generic_string();
-	}
-	return path.lexically_normal().generic_string();
-}
-
 VmdlEditorScene::VmdlEditorScene() : VmdlEditorScene(std::filesystem::path{}) {}
 
 VmdlEditorScene::VmdlEditorScene(std::filesystem::path filepath)
@@ -140,14 +126,6 @@ void VmdlEditorScene::OnInit()
 	LoadLayoutSettings();
 	const bool restoreRecentModel = filepath.empty();
 	if (restoreRecentModel && !recentModelPath.empty()) filepath = recentModelPath;
-	if (!filepath.empty() && filepath.is_relative() && !ResourceManager::FindSourceResourceRoot().empty())
-	{
-		const std::filesystem::path relativePath =
-			filepath.lexically_relative(std::filesystem::path("Resources"));
-		const std::filesystem::path sourcePath =
-			ResourceManager::FindSourceResourceRoot() / relativePath;
-		if (std::filesystem::exists(sourcePath)) filepath = sourcePath;
-	}
 	if (!filepath.empty())
 	{
 		std::error_code error;
@@ -182,7 +160,7 @@ void VmdlEditorScene::OnUninit()
 
 std::string VmdlEditorScene::SoundPathLabel(const std::string& soundPath) const
 {
-	return soundPath.empty() ? "なし" : ResourceManager::ShortResourcePath(soundPath, "Sound");
+	return soundPath.empty() ? "なし" : ResourceManager::ShortResourcePath(soundPath, ResourceManager::ResourceType::Sound);
 }
 
 bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soundPath)
@@ -204,7 +182,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 		{
 			ImGui::PushID(candidate.c_str());
 			const std::string item = ImGuiToolKit::Path::Tail(candidate, ImGui::GetContentRegionAvail().x);
-			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(soundPath, "Sound") == candidate))
+			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(soundPath, ResourceManager::ResourceType::Sound) == candidate))
 			{
 				soundPath = candidate;
 				changed = true;
@@ -219,7 +197,7 @@ bool VmdlEditorScene::DrawSoundPathSelector(const char* label, std::string& soun
 
 std::string VmdlEditorScene::EffectLabel(const std::string& effectName) const
 {
-	return effectName.empty() ? "なし" : ResourceManager::ShortResourcePath(effectName, "Effect");
+	return effectName.empty() ? "なし" : ResourceManager::ShortResourcePath(effectName, ResourceManager::ResourceType::Effect);
 }
 
 bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectName)
@@ -236,7 +214,7 @@ bool VmdlEditorScene::DrawEffectSelector(const char* label, std::string& effectN
 		for (const auto& candidate : EffectManager::GetEffectPaths())
 		{
 			const std::string item = EffectLabel(candidate);
-			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(effectName, "Effect") == candidate))
+			if (ImGui::Selectable(item.c_str(), ResourceManager::ShortResourcePath(effectName, ResourceManager::ResourceType::Effect) == candidate))
 			{
 				effectName = candidate;
 				changed = true;
@@ -1418,15 +1396,8 @@ void VmdlEditorScene::LoadFootIkTestStage()
 
 	try
 	{
-		const HMODULE module = GetModuleHandleW(nullptr);
-		const HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(IDR_PREVIEW_STAGE),
-			MAKEINTRESOURCEW(10)); // RT_RCDATA
-		if (!resource) throw std::runtime_error("Embedded PreviewStage.vmdl was not found.");
-		const HGLOBAL loaded = LoadResource(module, resource);
-		const auto* data = static_cast<const uint8_t*>(loaded ? LockResource(loaded) : nullptr);
-		const DWORD size = SizeofResource(module, resource);
-		if (!data || !size) throw std::runtime_error("Embedded PreviewStage.vmdl could not be read.");
-		footIkTestStageModel = std::make_shared<VMDLModel>("PreviewStage.vmdl", 60.0f, nullptr, data, size);
+		const auto data = ResourceManager::LoadEmbeddedResource(IDR_PREVIEW_STAGE);
+		footIkTestStageModel = std::make_shared<VMDLModel>("PreviewStage.vmdl", 60.0f, nullptr, data.data(), data.size());
 	}
 	catch (const std::exception& exception)
 	{
@@ -6025,7 +5996,7 @@ void VmdlEditorScene::ResetLightingEnvironment()
 
 void VmdlEditorScene::ApplyVstgLighting()
 {
-	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Stage").string();
+	const std::string initialDirectory = (ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Stage)).string();
 	std::string filepath;
 	if (Dialog::OpenFileName(filepath, "VSTG (*.vstg)\0*.vstg\0\0",
 			"Apply VSTG lighting environment", initialDirectory.c_str()) != DialogResult::OK) return;
@@ -6047,7 +6018,7 @@ void VmdlEditorScene::ApplyVstgLighting()
 
 void VmdlEditorScene::OpenVmdl()
 {
-	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Model").string();
+	const std::string initialDirectory = (ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model)).string();
 	std::string filepath;
 	if (Dialog::OpenFileName(filepath, "VMDL (*.vmdl)\0*.vmdl\0", "Open VMDL",
 			initialDirectory.c_str()) != DialogResult::OK)
@@ -6057,7 +6028,7 @@ void VmdlEditorScene::OpenVmdl()
 
 void VmdlEditorScene::ImportGlb()
 {
-	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Model").string();
+	const std::string initialDirectory = (ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model)).string();
 	std::string filepath;
 	if (Dialog::OpenFileName(filepath, "glTF Binary (*.glb)\0*.glb\0", "Import GLB",
 			initialDirectory.c_str()) != DialogResult::OK)
@@ -6094,7 +6065,7 @@ void VmdlEditorScene::AppendAnimationGlb()
 {
 	if (!model) return;
 
-	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Model").string();
+	const std::string initialDirectory = (ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model)).string();
 	std::string filepath;
 	if (Dialog::OpenFileName(filepath, "glTF Binary (*.glb)\0*.glb\0",
 			"Append Animation GLB", initialDirectory.c_str()) != DialogResult::OK)
@@ -6132,7 +6103,7 @@ void VmdlEditorScene::ReplaceGlbCache()
 	// GLB部分のみ交換
 	if (!model) return;
 
-	const std::string initialDirectory = (ResourceManager::FindSourceResourceRoot() / "Model").string();
+	const std::string initialDirectory = (ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model)).string();
 	std::string filepath;
 	if (Dialog::OpenFileName(filepath, "glTF Binary (*.glb)\0*.glb\0",
 			"Replace GLB Cache", initialDirectory.c_str()) != DialogResult::OK)
@@ -6218,7 +6189,7 @@ std::filesystem::path VmdlEditorScene::MakeMeshCachePath(
 		MakeVmshFileLabel(meshLabel) + ".vmsh";
 	if (!documentPath.empty())
 		return documentPath.parent_path() / (documentPath.stem().string() + suffix);
-	return ResourceManager::FindSourceResourceRoot() / "Model" / ("model" + suffix);
+	return ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model) / ("model" + suffix);
 }
 
 // 右クリックした1メッシュをVMSHへ分離する
@@ -6247,6 +6218,7 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 	if (Dialog::SaveFileName(filepath, "VMDL Mesh Cache (*.vmsh)\0*.vmsh\0",
 			"VMSHの分離先", "vmsh") != DialogResult::OK)
 		return;
+	filepath = ResourceManager::ResolveSavePath(filepath).string();
 	for (const auto& group : model->GetExternalMeshGroups())
 	{
 		const std::filesystem::path existingPath =
@@ -6263,9 +6235,7 @@ void VmdlEditorScene::SeparateMeshToCache(int meshIndex)
 		return;
 	}
 
-	if (!ResourceManager::Instance().RefreshResources(filepath))
-		ImGuiToolKit::Alert("Mesh saved, but runtime cache refresh failed.");
-	const std::string portablePath = PortableResourcePath(filepath);
+	const std::string portablePath = ResourceManager::PortableResourcePath(filepath);
 	if (!model->ExternalizeMeshes(portablePath, meshIndices, selectedMorph))
 	{
 		ImGuiToolKit::Alert("The VMSH was saved, but the meshes could not be externalized.");
@@ -6319,12 +6289,8 @@ void VmdlEditorScene::SeparateMorphMeshes(int morphIndex)
 			failures += "mesh " + std::to_string(meshIndex) + ": " + error + "\n";
 			continue;
 		}
-		if (!ResourceManager::Instance().RefreshResources(filepath))
-		{
-			failures += "mesh " + std::to_string(meshIndex) + ": cache refresh failed\n";
-		}
 		if (!model->ExternalizeMeshes(
-				PortableResourcePath(filepath), {meshIndex}, morphIndex))
+				ResourceManager::PortableResourcePath(filepath), {meshIndex}, morphIndex))
 		{
 			failures += "mesh " + std::to_string(meshIndex) + ": externalize failed\n";
 			std::error_code removeError;
@@ -6391,9 +6357,8 @@ void VmdlEditorScene::RestoreExternalMesh(int meshIndex)
 			ImGuiToolKit::Alert("結合は完了しましたが、VMDLの保存先が未設定のためVMSHは削除しませんでした。", "Warning");
 			return;
 		}
-		documentPath = ResourceManager::ResolveSourcePath(documentPath);
-		if (!model->SaveVmdl(documentPath) ||
-			!ResourceManager::Instance().RefreshResources(documentPath))
+		documentPath = ResourceManager::ResolveSavePath(documentPath);
+		if (!model->SaveVmdl(documentPath))
 		{
 			ImGuiToolKit::Alert("VMDLの保存に失敗したため、復旧用のVMSHは削除しませんでした。", "Warning");
 			return;
@@ -6433,7 +6398,7 @@ bool VmdlEditorScene::ResolveExternalMeshPath(
 	MessageBoxW(Game::Graphics::Instance().GetWindowHandle(), message.c_str(),
 		L"VMSH リソースの復旧", MB_OK | MB_ICONWARNING);
 
-	const std::filesystem::path modelRoot = ResourceManager::FindSourceResourceRoot() / "Model";
+	const std::filesystem::path modelRoot = ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model);
 	std::string replacementFile;
 	if (Dialog::OpenFileName(replacementFile, "VMSH (*.vmsh)\0*.vmsh\0\0",
 			"代わりとなるVMSHを選択", modelRoot.string().c_str()) !=
@@ -6445,7 +6410,7 @@ bool VmdlEditorScene::ResolveExternalMeshPath(
 		return false;
 	}
 
-	const std::string portablePath = PortableResourcePath(replacementFile);
+	const std::string portablePath = ResourceManager::PortableResourcePath(replacementFile);
 	if (!model->SetExternalMeshPath(meshIndex, portablePath)) return false;
 	ResourceManager::Instance().RefreshResources(replacementFile);
 	resolvedPath = replacementFile;
@@ -6476,15 +6441,10 @@ void VmdlEditorScene::SaveVmdl()
 		SaveVmdlAs();
 		return;
 	}
-	documentPath = ResourceManager::ResolveSourcePath(documentPath);
+	documentPath = ResourceManager::ResolveSavePath(documentPath);
 	if (model->SaveVmdl(documentPath))
 	{
 		serialViewerDocument = nullptr;
-		if (!ResourceManager::Instance().RefreshResources(documentPath))
-		{
-			ImGuiToolKit::Alert("VMDL saved, but runtime cache refresh failed. Save again to retry.");
-			return;
-		}
 		dirty = false;
 	}
 	else
@@ -6498,7 +6458,7 @@ void VmdlEditorScene::SaveVmdlAs()
 	if (!model) return;
 	const auto sourcePath = ResourceManager::ResolveSourcePath(documentPath);
 	const auto initialDirectory = sourcePath.empty()
-		? ResourceManager::FindSourceResourceRoot() / "Model"
+		? ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Model)
 		: std::filesystem::absolute(sourcePath).parent_path();
 	const std::string directory = initialDirectory.string();
 	std::string filepath = sourcePath.filename().string();
@@ -6506,17 +6466,12 @@ void VmdlEditorScene::SaveVmdlAs()
 			directory.c_str(), Game::Graphics::Instance().GetWindowHandle()) != DialogResult::OK)
 		return;
 
-	const auto destination = ResourceManager::ResolveSourcePath(std::filesystem::path(filepath));
+	const auto destination = ResourceManager::ResolveSavePath(std::filesystem::path(filepath));
 	if (model->SaveVmdl(destination))
 	{
 		serialViewerDocument = nullptr;
 		documentPath = destination;
 		recentModelPath = destination;
-		if (!ResourceManager::Instance().RefreshResources(documentPath))
-		{
-			ImGuiToolKit::Alert("VMDL saved, but runtime cache refresh failed. Save again to retry.");
-			return;
-		}
 		dirty = false;
 	}
 	else
@@ -6531,8 +6486,8 @@ void VmdlEditorScene::LoadModel(
 {
 	PROFILE_FUNCTION();
 	serialViewerDocument = nullptr;
-	const auto filepath = ResourceManager::ResolveSourcePath(ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(ResourcePath::Text(requestedPath), ResourceManager::ResourceType::Model)));
-	const auto importDestination = ResourceManager::ResolveSourcePath(requestedDestination);
+	const auto filepath = ResourceManager::Instance().ResolveEditPath(ResourcePath::Text(requestedPath), ResourceManager::ResourceType::Model);
+	const auto importDestination = requestedDestination.empty() ? std::filesystem::path{} : ResourceManager::ResolveSavePath(requestedDestination);
 	if (!std::filesystem::is_regular_file(filepath))
 	{
 		ImGuiToolKit::Alert("Model file not found. Open an existing file from Resources/Model.");

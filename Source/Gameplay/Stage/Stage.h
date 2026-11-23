@@ -69,16 +69,6 @@ public:
 		return const_cast<Stage*>(this)->GetActiveCamera();
 	}
 
-	Terrain* GetTerrain() const
-	{
-		for (Actor* actor : actorManager.GetActors())
-		{
-			if (Terrain* terrain = actor->GetComponent<Terrain>())
-				return terrain;
-		}
-		return nullptr;
-	}
-
 	bool SetCameraPriority(Camera* camera, int priority)
 	{
 		if (!IsCameraRegistered(camera)) return false;

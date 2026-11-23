@@ -19,10 +19,7 @@ LuaManager& LuaManager::Instance()
 
 std::string LuaManager::ResolveScriptPath(const std::string& path)
 {
-	auto resolved = ResourcePath::Path(path);
-	if (!resolved.is_absolute())
-		resolved = ResourceManager::ResolveSourcePath(ResourcePath::Path(
-			ResourceManager::Instance().ResolveResourcePath(path, ResourceManager::ResourceType::AI)));
+	const auto resolved = ResourceManager::Instance().ResolveEditPath(path, ResourceManager::ResourceType::AI);
 	std::string key = ResourcePath::Text(std::filesystem::absolute(resolved).lexically_normal());
 	for (char& character : key)
 		if (character >= 'A' && character <= 'Z') character += 'a' - 'A';

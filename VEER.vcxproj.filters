@@ -237,6 +237,9 @@
     <ClCompile Include="Source\Gameplay\Scene\VstgEditorScene.cpp">
       <Filter>Source\Gameplay\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Gameplay\Scene\VstgEditorSceneTerrain.cpp">
+      <Filter>Source\Gameplay\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Gameplay\AI\EnemyAI.cpp">
       <Filter>Source\Gameplay\AI</Filter>
     </ClCompile>

@@ -18,6 +18,8 @@
 #include <ProfileKit/ProfileKit.h>
 #include "Core/Foundation/Common.h"
 #include "Application/Tools/GamePadVib.h"
+#include <fstream>
+#include <stdexcept>
 
 // 垂直同期間隔設定
 static constexpr UINT PresentSyncInterval = 0;
@@ -33,8 +35,15 @@ Framework::Framework(HWND hWnd, const wchar_t* commandLine) : hWnd(hWnd)
 	Profiler::SetBackend(CreateProfilerTimelineBackend());
 
 	// InputSystemの初期化時に、Input内の全定義を読み込む。
-	const auto inputDirectory = ResourceManager::ResolveSourcePath(
-		ResourceManager::Instance().ResolvePath("Resources/Input"));
+	const auto inputDirectory = ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Input);
+	InputKit::InputSystem::Instance().SetFileWriter([](const std::filesystem::path& path, std::string_view contents) {
+		return ResourceManager::Instance().SaveResourceFile(path, [&](const std::filesystem::path& destination) {
+			std::ofstream output(destination, std::ios::binary | std::ios::trunc);
+			output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+			output.close();
+			if (!output) throw std::runtime_error("Input resource save failed.");
+		});
+	}, ResourceManager::ResolveSavePath);
 	try
 	{
 		InputKit::InputSystem::Instance().Initialize(hWnd, inputDirectory);

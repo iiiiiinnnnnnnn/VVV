@@ -1069,7 +1069,8 @@ bool NavMeshActor::FindObstacleDetourPoint(
 void NavMeshActor::Render(const RenderContext& rc)
 {
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
-	const bool preview = terrain && terrain->IsNavMeshPreviewActive();
+	const auto* brushPreview = rc.renderSettings.terrainBrushPreview;
+	const bool preview = terrain && brushPreview && brushPreview->terrain == terrain && brushPreview->mode == 5;
 	if (!preview && (!rc.renderSettings.showDebug || !rc.renderSettings.showNavMeshDebug)) return;
 
 	PrimitiveRenderer* renderer = Game::Graphics::Instance().GetPrimitiveRenderer();

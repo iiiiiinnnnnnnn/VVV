@@ -38,15 +38,6 @@
 #include "IconsFontAwesome5.h"
 #include "Rendering/Effect/EffectManager.h"
 
-static std::filesystem::path GetVstgEditorResourceRoot()
-{
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	const auto sourceRoot = ResourceManager::FindSourceResourceRoot();
-	if (!sourceRoot.empty()) return sourceRoot;
-#endif
-	return std::filesystem::absolute("Resources");
-}
-
 // 現在の向きを保ちながら、上方向だけを接地面に合わせる。
 static Quaternion AlignPropRotationToSurface(const Quaternion& rotation, const Vector3& normal)
 {
@@ -90,6 +81,18 @@ void VstgEditorScene::OnInit()
 		Quaternion::CreateFromYawPitchRoll(RAD(-30.0f), RAD(35.0f), 0.0f);
 	CreateStage();
 	RefreshPropModels();
+	RefreshTerrainAssets();
+	grassDraftInitialized = false;
+	use_brush = false;
+	brushViewportInputAllowed = false;
+	currentTerrainLayerIndex = 0;
+	terrainBrushPreview = {};
+	for (const auto& layer : terrainLayerImages)
+	{
+		if (terrain->GetTerrainLayerCount() >= Terrain::MaxTerrainLayers) break;
+		terrain->AddTerrainLayer(layer.baseColorPath, layer.normalPath);
+	}
+	cleanStateHash = data.BuildEditorStateHash(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager());
 	LoadEditorSettings();
 	std::error_code error;
 	if (!recentStagePath.empty() && std::filesystem::is_regular_file(recentStagePath, error))
@@ -159,6 +162,16 @@ void VstgEditorScene::CreateStage()
 		currentStage->AddComponent<StageLoader>(currentStage.get(), std::string("{}"), true);
 	stageLoader->SetEditorModels(&propModels);
 	terrain->Awake();
+	grassDraftInitialized = false;
+	use_brush = false;
+	brushViewportInputAllowed = false;
+	currentTerrainLayerIndex = 0;
+	terrainBrushPreview = {};
+	for (const auto& layer : terrainLayerImages)
+	{
+		if (terrain->GetTerrainLayerCount() >= Terrain::MaxTerrainLayers) break;
+		terrain->AddTerrainLayer(layer.baseColorPath, layer.normalPath);
+	}
 	navMesh->Awake();
 	stageLoader->Awake();
 	Camera* camera = currentStage->GetActiveCamera();
@@ -174,6 +187,8 @@ void VstgEditorScene::CreateStage()
 
 void VstgEditorScene::ConfigureRenderSettings(RenderSettings& settings)
 {
+	UpdateTerrainBrush();
+	settings.terrainBrushPreview = &terrainBrushPreview;
 	settings.distanceFogEnabled = settings.distanceFogEnabled && settings.showFog;
 }
 
@@ -282,7 +297,7 @@ void VstgEditorScene::HandleShortcuts()
 		!ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle))
 	{
 		if (terrain && ImGui::IsKeyPressed(ImGuiKey_B, false))
-			terrain->SetBrushEnabled(!terrain->IsBrushEnabled());
+			use_brush = !use_brush;
 	}
 
 	// ファイル操作のショートカット
@@ -398,7 +413,7 @@ void VstgEditorScene::OnDrawGUI()
 			}
 			if (ImGui::BeginTabItem(ICON_FA_MOUNTAIN " テライン地形"))
 			{
-				if (terrain) terrain->DrawGUI();
+				if (terrain) DrawTerrainGUI();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem(ICON_FA_WALKING "NavMesh設定"))
@@ -406,9 +421,9 @@ void VstgEditorScene::OnDrawGUI()
 				if (navMesh) navMesh->DrawGUI();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem(ICON_FA_STAMP " デカール登録"))
+			if (ImGui::BeginTabItem(ICON_FA_STAMP " デカール画像"))
 			{
-				DrawDecalRegistration();
+				DrawDecalPalette();
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
@@ -455,7 +470,7 @@ void VstgEditorScene::OnDrawGUI()
 
 	// 不透明パネル上では地形を編集しない。ドラッグ終了後は通常のブラシ操作へ戻す。
 	const ImVec2 mouse = ImGui::GetMousePos();
-	if (terrain) terrain->SetBrushViewportInputAllowed(
+	if (terrain) brushViewportInputAllowed = (
 		!panelResizeHovered && mouse.x >= viewportMin.x && mouse.x <= viewportMax.x &&
 		mouse.y >= viewportMin.y + toolbarHeight && mouse.y <= viewportMax.y &&
 		!ImGui::GetDragDropPayload() && !ImGuizmo::IsUsing() && !ImGui::IsAnyItemActive());
@@ -481,7 +496,7 @@ void VstgEditorScene::OnDrawGUI()
 		if (ImGui::Button("配置") && stageLoader)
 		{
 			stageLoader->AddEditorEffect(placementEffectName, effectPlacementPosition);
-			if (terrain) terrain->SetBrushEnabled(false);
+			if (terrain) use_brush = false;
 			selectedLightType = EditorLightType::None;
 			selectedLightIndex = -1;
 			lightingSettingsSelected = false;
@@ -508,7 +523,7 @@ void VstgEditorScene::OnDrawGUI()
 	DrawSerialViewer();
 }
 
-void VstgEditorScene::DrawDecalRegistration()
+void VstgEditorScene::DrawDecalPalette()
 {
 	const bool reload = ImGui::Button(ICON_FA_SYNC_ALT " 再読み込み##DecalTextures");
 	if (!decalTexturesLoaded || reload)
@@ -518,7 +533,7 @@ void VstgEditorScene::DrawDecalRegistration()
 		else
 		{
 			decalTextures.clear();
-			const auto resourceRoot = GetVstgEditorResourceRoot();
+			const auto resourceRoot = ResourceManager::GetResourceRoot();
 			std::vector<std::filesystem::path> paths;
 			std::error_code error;
 			for (std::filesystem::directory_iterator file(resourceRoot / "Terrain/Decals", error), end;
@@ -542,7 +557,7 @@ void VstgEditorScene::DrawDecalRegistration()
 					file.lexically_relative(resourceRoot)).generic_string();
 				try
 				{
-					auto texture = ResourceManager::Instance().LoadTexture(imagePath, false);
+					auto texture = ResourceManager::Instance().LoadTexture(imagePath);
 					if (texture) decalTextures.emplace_back(imagePath, std::move(texture));
 				}
 				catch (const std::exception&)
@@ -595,11 +610,16 @@ Light* VstgEditorScene::GetSelectedLight()
 	};
 	switch (selectedLightType)
 	{
-	case EditorLightType::Directional: return get(lights.GetDirectionalLights());
-	case EditorLightType::Point: return get(lights.GetPointLights());
-	case EditorLightType::Spot: return get(lights.GetSpotLights());
-	case EditorLightType::Area: return get(lights.GetAreaLights());
-	default: return nullptr;
+	case EditorLightType::Directional:
+		return get(lights.GetDirectionalLights());
+	case EditorLightType::Point:
+		return get(lights.GetPointLights());
+	case EditorLightType::Spot:
+		return get(lights.GetSpotLights());
+	case EditorLightType::Area:
+		return get(lights.GetAreaLights());
+	default:
+		return nullptr;
 	}
 }
 
@@ -609,7 +629,7 @@ void VstgEditorScene::SelectLight(EditorLightType type, int index)
 	selectedLightIndex = index;
 	lightingSettingsSelected = false;
 	if (stageLoader) stageLoader->ClearEditorSelection();
-	if (terrain) terrain->SetBrushEnabled(false);
+	if (terrain) use_brush = false;
 }
 
 void VstgEditorScene::DrawHierarchy()
@@ -626,14 +646,14 @@ void VstgEditorScene::DrawHierarchy()
 	ImGui::Separator();
 	if (stageLoader && stageLoader->DrawEditorHierarchy())
 	{
-		if (terrain) terrain->SetBrushEnabled(false);
+		if (terrain) use_brush = false;
 		selectedLightType = EditorLightType::None;
 		selectedLightIndex = -1;
 		lightingSettingsSelected = false;
 	}
 	auto& lights = currentStage->GetLightManager();
-	ImGui::Text("Lights: %d / %d", lights.GetLightCount(), CbLightData::MaxLights);
-	if (!lights.CanAddLight()) ImGui::TextDisabled("Light limit reached");
+	ImGui::Text("ライト数: %d / %d", lights.GetLightCount(), CbLightData::MaxLights);
+	if (!lights.CanAddLight()) ImGui::TextDisabled("ライト数の限界です。");
 	const auto group = [this](const char* icon, const char* label, auto&& values, EditorLightType type) {
 		int count = 0;
 		for (const auto& light : values)
@@ -737,7 +757,7 @@ void VstgEditorScene::DuplicateSelectedLight()
 		index = static_cast<int>(lights.GetAreaLights().size()) - 1;
 	}
 	if (!copy) return;
-	copy->SetName(source->GetName() + " Copy");
+	copy->SetName(source->GetName() + " コピー");
 	copy->SetTag(source->GetTag());
 	copy->SetActive(source->IsActive());
 	copy->SetColor(source->GetColor());
@@ -801,7 +821,7 @@ void VstgEditorScene::RefreshPropModels()
 	propPreviewLoadedPath.clear();
 	propModelPaths.clear();
 	propModels.clear();
-	const std::filesystem::path resourceRoot = GetVstgEditorResourceRoot();
+	const std::filesystem::path resourceRoot = ResourceManager::GetResourceRoot();
 	const std::filesystem::path modelRoot = resourceRoot / "Model";
 	std::error_code error;
 	for (std::filesystem::recursive_directory_iterator file(modelRoot, error), end;
@@ -926,14 +946,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
-	std::filesystem::path editorPath = ResourcePath::Path(ResourceManager::Instance().ResolveResourcePath(modelPath, ResourceManager::ResourceType::Model));
-	const std::filesystem::path sourceResourceRoot = GetVstgEditorResourceRoot();
-	if (!sourceResourceRoot.empty())
-	{
-		const std::filesystem::path relativePath =
-			editorPath.lexically_relative(std::filesystem::path("Resources"));
-		editorPath = sourceResourceRoot / relativePath;
-	}
+	const auto editorPath = ResourceManager::Instance().ResolveEditPath(modelPath, ResourceManager::ResourceType::Model);
 	return SceneManager::Instance().LoadScene<VmdlEditorScene>(editorPath);
 }
 
@@ -1001,7 +1014,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 		}
 	}
 
-	if (terrain) terrain->SetBrushViewportInputAllowed(false);
+	if (terrain) brushViewportInputAllowed = false;
 	// 3Dビュー全体をドロップ領域として受け付ける
 	ImGui::SetNextWindowPos(viewportMin, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(
@@ -1014,7 +1027,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	if (ImGui::Begin("##VSTG Prop Drop Target", nullptr, flags))
 	{
 		ImGui::InvisibleButton("##VSTG Surface Drop", ImGui::GetContentRegionAvail());
-		if (terrain) terrain->SetBrushViewportInputAllowed(false);
+		if (terrain) brushViewportInputAllowed = false;
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VSTG_PROP"))
@@ -1024,7 +1037,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 					if (stageLoader->AddEditorProp(static_cast<const char*>(payload->Data),
 						surfacePoint, dragPreviewTransform.rotation))
 					{
-						if (terrain) terrain->SetBrushEnabled(false);
+						if (terrain) use_brush = false;
 						selectedLightType = EditorLightType::None;
 						selectedLightIndex = -1;
 						lightingSettingsSelected = false;
@@ -1039,7 +1052,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 				if (payload->IsDelivery() && hasSurfacePoint && stageLoader)
 				{
 					stageLoader->SetEditorPlayerStart(surfacePoint);
-					if (terrain) terrain->SetBrushEnabled(false);
+					if (terrain) use_brush = false;
 					selectedLightType = EditorLightType::None;
 					selectedLightIndex = -1;
 					lightingSettingsSelected = false;
@@ -1096,7 +1109,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 				if (payload->IsDelivery() && hasSurfacePoint && stageLoader)
 				{
 					stageLoader->AddEditorBlockedArea();
-					if (terrain) terrain->SetBrushEnabled(false);
+					if (terrain) use_brush = false;
 					if (Transform* transform = stageLoader->GetSelectedEditorTransform())
 					{
 						transform->position = surfacePoint;
@@ -1244,7 +1257,7 @@ bool VstgEditorScene::ScreenToTerrainPoint(
 
 void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& viewportMax)
 {
-	if (terrain && terrain->IsBrushEnabled()) return;
+	if (terrain && use_brush) return;
 	if (ImGui::GetDragDropPayload()) return;
 	if (!stageLoader || !currentStage) return;
 	// ImGuizmo自身もWantCaptureMouseを設定するため、実際のUI操作だけを調べる。
@@ -1478,7 +1491,7 @@ void VstgEditorScene::New()
 void VstgEditorScene::Open()
 {
 	const std::string initialDirectory =
-		(GetVstgEditorResourceRoot() / "Stage").string();
+		(ResourceManager::GetResourceDirectory(ResourceManager::ResourceType::Stage)).string();
 	std::string filename;
 	if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
 			"VSTGを開く", initialDirectory.c_str()) != DialogResult::OK)
@@ -1543,7 +1556,7 @@ bool VstgEditorScene::ResolveMissingModels()
 			continue;
 		}
 
-		const std::filesystem::path resourceRoot = GetVstgEditorResourceRoot();
+		const std::filesystem::path resourceRoot = ResourceManager::GetResourceRoot();
 		const std::filesystem::path modelRoot = resourceRoot / "Model";
 		std::string replacementFile;
 		if (Dialog::OpenFileName(replacementFile, "VMDL (*.vmdl)\0*.vmdl\0\0",
@@ -1551,30 +1564,12 @@ bool VstgEditorScene::ResolveMissingModels()
 			DialogResult::OK)
 			continue;
 
-		std::error_code pathError;
-		const std::filesystem::path selectedPath =
-			std::filesystem::weakly_canonical(replacementFile, pathError);
-		std::filesystem::path relativePath;
-		if (!pathError)
-		{
-			for (const auto& root : {resourceRoot, std::filesystem::absolute("Resources")})
-			{
-				std::error_code rootError;
-				const auto candidate = std::filesystem::relative(selectedPath, root, rootError);
-				if (rootError || candidate.empty() || candidate.is_absolute() ||
-					*candidate.begin() == "..") continue;
-				relativePath = candidate;
-				break;
-			}
-		}
-		if (relativePath.empty())
+		const std::string replacementPath = ResourceManager::PortableResourcePath(replacementFile);
+		if (!replacementPath.starts_with("Resources/"))
 		{
 			ImGuiToolKit::Alert("Resourcesフォルダ内のVMDLを選択してください。");
 			continue;
 		}
-
-		const std::string replacementPath =
-			(std::filesystem::path("Resources") / relativePath).generic_string();
 		RefreshPropModels();
 		if (!stageLoader->ReplaceMissingModelPath(missingPath, replacementPath))
 		{
@@ -1595,7 +1590,7 @@ void VstgEditorScene::Save()
 		SaveAs();
 		return;
 	}
-	path = ResourceManager::ResolveSourcePath(path);
+	path = ResourceManager::ResolveSavePath(path);
 	terrain->BakeCollider();
 	if (!data.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()) ||
 		!data.Save(path))
@@ -1604,11 +1599,6 @@ void VstgEditorScene::Save()
 		return;
 	}
 	serialViewerDocument = nullptr;
-	if (!ResourceManager::Instance().RefreshResources(path))
-	{
-		ImGuiToolKit::Alert("Stage saved, but runtime cache refresh failed. Save again to retry.");
-		return;
-	}
 	recentStagePath = path;
 	SaveEditorSettings();
 	cleanStateHash = data.BuildEditorStateHash(

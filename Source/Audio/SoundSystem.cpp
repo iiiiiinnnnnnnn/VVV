@@ -288,8 +288,7 @@ void SoundSystem::SetListenerOverride(const Camera* camera)
 
 std::vector<std::string> SoundSystem::GetSoundPaths()
 {
-	auto root = ResourceManager::FindSourceResourceRoot();
-	if (root.empty()) root = std::filesystem::current_path() / "Resources";
+	auto root = ResourceManager::GetResourceRoot();
 	root /= "Sound";
 	std::vector<std::string> paths;
 	std::error_code error;
@@ -300,9 +299,9 @@ std::vector<std::string> SoundSystem::GetSoundPaths()
 		const auto extension = SoundPaths::Lower(ResourcePath::Text(iterator->path().extension()));
 		if (extension != ".wav" && extension != ".vsnd") continue;
 		auto relative = iterator->path().lexically_relative(root);
-		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), "Sound"));
+		paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(relative), ResourceManager::ResourceType::Sound));
 		if (SoundPaths::Variant(relative) >= 0)
-			paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(SoundPaths::Group(relative)), "Sound"));
+			paths.push_back(ResourceManager::ShortResourcePath(ResourcePath::Text(SoundPaths::Group(relative)), ResourceManager::ResourceType::Sound));
 	}
 	std::sort(paths.begin(), paths.end());
 	paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
@@ -470,12 +469,8 @@ std::shared_ptr<SoundSystem::SoundData> SoundSystem::LoadPathSound(const std::st
 	const int pathVariant = SoundPaths::Variant(requested);
 	if (pathVariant >= 0) variant = pathVariant;
 
-#if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
-	// 開発時は新規追加・削除されたWAVも、生成ヘッダーを介さず直接反映する。
+	// 編集元と実行用の選択はResourceManagerに任せる。
 	auto source = ResourceManager::ResolveSourcePath(requested);
-#else
-	auto source = requested;
-#endif
 	source.replace_extension(".wav");
 	const auto waves = SoundPaths::Waves(source);
 	if (!waves.empty())

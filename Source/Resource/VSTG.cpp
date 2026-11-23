@@ -5,6 +5,7 @@
 #include "Resource/ResourcePath.h"
 
 #include <sstream>
+#include <algorithm>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
@@ -61,8 +62,8 @@ bool VSTG::Load(const std::filesystem::path& path)
 {
 	try
 	{
-		const auto bytes = ResourceManager::Instance().LoadFile(ResourceManager::Instance().ResolveResourcePath(
-			ResourcePath::Text(path), ResourceManager::ResourceType::Stage));
+		const auto bytes = ResourceManager::Instance().LoadFile(ResourcePath::Text(ResourceManager::Instance().ResolveEditPath(
+			ResourcePath::Text(path), ResourceManager::ResourceType::Stage)));
 		if (!bytes) throw std::runtime_error("VSTG not found: " + path.generic_string());
 		std::istringstream stream(std::string(bytes->begin(), bytes->end()), std::ios::binary);
 		serialDocument.reset();
@@ -103,6 +104,12 @@ SerialDocument& VSTG::GetSerialDocument() const
 	writeJson("lighting", lightingJson);
 	writeJson("stage", stageJson);
 	writeJson("terrainSettings", terrainSettingsJson);
+	if (auto* settings = document.root.Find(SerialNode::FieldId("terrainSettings")))
+	{
+		std::erase_if(settings->children, [](const SerialNode& field) {
+			return field.id == SerialNode::FieldId("decals");
+		});
+	}
 	writeJson("navigationSettings", navMeshSettingsJson);
 	SerialOutputArchive archive(document.root);
 	archive(CEREAL_NVP(terrainDds));

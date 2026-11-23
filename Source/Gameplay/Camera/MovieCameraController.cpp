@@ -174,8 +174,7 @@ bool MovieCameraController::Begin(Stage& value, Actor& player, Actor* boss, Game
 		if (sequence.cameras.empty())
 		{
 			SeedSequence();
-			auto root = ResourceManager::FindSourceResourceRoot();
-			if (root.empty()) root = std::filesystem::absolute("Resources");
+			auto root = ResourceManager::GetResourceRoot();
 			documentPath = root / "Movie" / "BossDefeat.vmovie";
 			if (std::filesystem::exists(documentPath)) Load(documentPath);
 		}
@@ -198,8 +197,7 @@ bool MovieCameraController::BeginPlayback(Stage& value, Actor& player, Actor& bo
 	if (editing) return false;
 	lastError.clear();
 	if (!Begin(value, player, &boss, postProcess)) return false;
-	auto root = ResourceManager::FindSourceResourceRoot();
-	if (root.empty()) root = std::filesystem::absolute("Resources");
+	auto root = ResourceManager::GetResourceRoot();
 	if (!Load(root / "Movie" / "BossDefeat.vmovie")) { End(); return false; }
 	runtimePlayback = true;
 	playbackResult = 0;
@@ -253,8 +251,6 @@ void MovieCameraController::PlaceAtStageCenter()
 	Transform* terrainTransform = stage->GetTransform();
 	if (!terrain)
 	{
-		terrain = stage->GetTerrain();
-		if (!terrain) return;
 		for (Actor* actor : stage->GetActorManager().GetActors())
 			if (actor->GetComponent<Terrain>() == terrain) { terrainTransform = actor->GetTransform(); break; }
 	}
@@ -820,19 +816,23 @@ bool MovieCameraController::Save(const std::filesystem::path& path)
 		for (const auto& key : sequence.sounds) root["sounds"].push_back({
 			{"time", key.time}, {"path", key.path}, {"duration", key.duration},
 			{"volume", key.volume}, {"pitch", key.pitch}, {"pan", key.pan}, {"loop", key.loop}});
-		auto destination = path; destination.replace_extension(".vmovie");
-		if (!destination.parent_path().empty()) std::filesystem::create_directories(destination.parent_path());
-		temporary = destination; temporary += L".saving.tmp";
-		std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
-		stream << root.dump(2);
-		stream.close();
-		if (!stream || !MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-			throw std::runtime_error("Failed to save movie timeline.");
+		const auto requested = ResourceManager::Instance().ResolveEditPath(
+			ResourcePath::Text(path), ResourceManager::ResourceType::Movie);
+		const auto destination = ResourceManager::Instance().SaveResourceFile(requested, [&](const std::filesystem::path& destination) {
+			if (!destination.parent_path().empty()) std::filesystem::create_directories(destination.parent_path());
+			temporary = destination; temporary += L".saving.tmp";
+			std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+			stream << root.dump(2);
+			stream.close();
+			if (!stream || !MoveFileExW(temporary.c_str(), destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+				throw std::runtime_error("Failed to save movie timeline.");
+		});
 		documentPath = destination; dirty = false;
 		return true;
 	}
 	catch (const std::exception& error)
 	{
+		lastError = error.what();
 		if (!temporary.empty()) { std::error_code ignored; std::filesystem::remove(temporary, ignored); }
 		return false;
 	}
@@ -842,7 +842,9 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 {
 	try
 	{
-		std::ifstream stream(path, std::ios::binary);
+		const auto source = ResourceManager::Instance().ResolveEditPath(
+			ResourcePath::Text(path), ResourceManager::ResourceType::Movie);
+		std::ifstream stream(source, std::ios::binary);
 		if (!stream) throw std::runtime_error("Movie timeline not found.");
 		json root; stream >> root;
 		if (root.at("format") != "VEER.Movie" || root.at("version") != 5)
@@ -897,7 +899,7 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 			key.settings = effectSettings.CaptureMovieSettings();
 		}
 		sequence = std::move(candidate);
-		documentPath = path; documentPath.replace_extension(".vmovie");
+		documentPath = source;
 		undoStack.clear(); redoStack.clear();
 		dirty = false; playing = false; freeView = false;
 		selectedTrack = 0; selectedKey = -1;

@@ -5,6 +5,7 @@
 #endif
 #include "Rendering/Core/Graphics.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/EmbeddedResources.h"
 #include <stdexcept>
 
 Texture::Texture(ID3D11Device* device, const Color& color)
@@ -17,13 +18,21 @@ Texture::Texture(ID3D11Device* device, const Color& color)
 }
 
 Texture::Texture(ID3D11Device* device, const char* filename, bool forceRgb)
-	: Texture(device, ImageData(filename, forceRgb))
 {
+	try { *this = Texture(device, ImageData(filename, forceRgb)); }
+	catch (const std::exception&) { LoadErrorTexture(device); }
 }
 
 Texture::Texture(ID3D11Device* device, const uint8_t* data, size_t size)
-	: Texture(device, ImageData(data, size))
 {
+	try { *this = Texture(device, ImageData(data, size)); }
+	catch (const std::exception&) { LoadErrorTexture(device); }
+}
+
+void Texture::LoadErrorTexture(ID3D11Device* device)
+{
+	const auto data = ResourceManager::LoadEmbeddedResource(IDR_ERROR_TEXTURE);
+	*this = Texture(device, ImageData(data.data(), data.size()));
 }
 
 Texture::Texture(ID3D11Device* device, const ImageData& image)
@@ -77,11 +86,12 @@ MipmapTexture::MipmapTexture(const char* filename)
 bool MipmapTexture::Load(const char* filename)
 {
 	auto* device = Game::Graphics::Instance().GetDevice();
-	sourceFilePath = filename ? std::filesystem::path(filename).lexically_normal().generic_string() : "";
+	sourceFilePath.clear();
 	loadedFilePath.clear();
 	try
 	{
 		if (!filename) throw std::invalid_argument("Texture filename is null.");
+		sourceFilePath = std::filesystem::path(filename).lexically_normal().generic_string();
 		std::filesystem::path loadPath = ResourceManager::Instance().ResolveResourcePath(
 			filename, ResourceManager::ResourceType::Texture);
 		if (ToLowerWString(loadPath.extension().wstring()) != L".dds")
@@ -107,7 +117,8 @@ bool MipmapTexture::Load(const char* filename)
 	}
 	catch (const std::exception&)
 	{
-		Texture fallback(device, 0xFFFFFFFFu);
+		const auto data = ResourceManager::LoadEmbeddedResource(IDR_ERROR_TEXTURE);
+		Texture fallback(device, data.data(), data.size());
 		shaderResourceView = fallback.GetShaderResourceView();
 		texture2dDesc = fallback.GetTexture2dDesc();
 		return false;

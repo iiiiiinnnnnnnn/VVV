@@ -685,11 +685,11 @@ void StageLoader::ConfigureSpawner(Actor* actor, const PropData& propData)
 bool StageLoader::ValidateModelName(const std::string& modelPath, const std::string& replacedPath)
 {
 	error.clear();
-	const auto path = ResourcePath::Path(ResourceManager::ShortResourcePath(modelPath, "Model")).lexically_normal();
+	const auto path = ResourcePath::Path(ResourceManager::ShortResourcePath(modelPath, ResourceManager::ResourceType::Model)).lexically_normal();
 	for (const PropData& prop : propDataList)
 	{
 		if (prop.modelPath == replacedPath) continue;
-		const auto existing = ResourcePath::Path(ResourceManager::ShortResourcePath(prop.modelPath, "Model")).lexically_normal();
+		const auto existing = ResourcePath::Path(ResourceManager::ShortResourcePath(prop.modelPath, ResourceManager::ResourceType::Model)).lexically_normal();
 		if (existing == path || existing.stem() != path.stem()) continue;
 		error = "Duplicate VMDL filename: " + path.stem().string() + " (" +
 			existing.generic_string() + " / " + path.generic_string() + ")";
@@ -734,7 +734,7 @@ bool StageLoader::AddEditorProp(
 {
 	if (!ValidateModelName(modelPath)) return false;
 	PropData propData;
-	propData.modelPath = ResourceManager::ShortResourcePath(modelPath, "Model");
+	propData.modelPath = ResourceManager::ShortResourcePath(modelPath, ResourceManager::ResourceType::Model);
 	propData.editorPreview = editorModels != nullptr;
 	propData.model = LoadPropModel(modelPath);
 	if (!propData.model) return false;
@@ -805,7 +805,7 @@ bool StageLoader::ReplaceMissingModelPath(
 		PropData& propData = propDataList[index];
 		if (propData.modelPath != missingPath) continue;
 		propData.initialSpawned = false;
-		propData.modelPath = ResourceManager::ShortResourcePath(replacementPath, "Model");
+		propData.modelPath = ResourceManager::ShortResourcePath(replacementPath, ResourceManager::ResourceType::Model);
 		propData.model = replacement->CloneRuntimeInstance(true);
 
 		if (index < static_cast<int>(addedPropActors.size()) && addedPropActors[index] &&
@@ -1308,7 +1308,7 @@ void StageLoader::LoadJson()
 				LoadTransformJson(propJson["transform"], propData.transform);
 			propData.editorPreview = editorModels != nullptr;
 
-			propData.modelPath = ResourceManager::ShortResourcePath(propJson.value("modelPath", ""), "Model");
+			propData.modelPath = ResourceManager::ShortResourcePath(propJson.value("modelPath", ""), ResourceManager::ResourceType::Model);
 			if (!stage->ShouldLoadStageProp(propData.modelPath)) continue;
 			propData.spawnTag = propJson.value("spawnTag", std::string());
 			if (!propData.modelPath.empty())
@@ -1438,7 +1438,7 @@ void StageLoader::SaveJson()
 		propJson["transform"]["scale"]["y"] = propData.transform.scale.y;
 		propJson["transform"]["scale"]["z"] = propData.transform.scale.z;
 
-		propJson["modelPath"] = ResourceManager::ShortResourcePath(propData.modelPath, "Model");
+		propJson["modelPath"] = ResourceManager::ShortResourcePath(propData.modelPath, ResourceManager::ResourceType::Model);
 		propJson["spawnTag"] = propData.spawnTag;
 		root["props"].push_back(propJson);
 	}

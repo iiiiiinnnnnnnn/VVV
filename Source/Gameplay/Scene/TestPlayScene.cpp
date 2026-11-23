@@ -127,7 +127,7 @@ void TestPlayScene::OnInit()
 					 "[6] プレイヤーを回復\r\n"
 					 "[7] すべての敵に致死ダメージ\r\n"
 					 "[8] すべてのクリスタルを破壊\r\n"
-					 "[9] 現在のシーンをリロード\r\n"
+					 "[9] この位置にデカールを設置\r\n"
 					 "[0] 空中浮遊\r\n"
 					 "[F] フォグを表示/非表示\r\n"
 					 "[G] 草マップを表示/非表示\r\n"
@@ -306,7 +306,7 @@ void TestPlayScene::OnUpdate()
 	// F2デバッグ画面操作中は不可
 	if (!showGameEditorGUI)
 	{
-		// deer
+		// 雑魚敵召喚
 		if (ImGui::IsKeyPressed(ImGuiKey_1))
 		{
 			if (Random::Range(0, 10) != 0)
@@ -320,13 +320,13 @@ void TestPlayScene::OnUpdate()
 					Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)), "GoldenDeer"));
 			}
 		}
-		// crystal
+		// クリスタル召喚
 		if (ImGui::IsKeyPressed(ImGuiKey_2))
 		{
 			currentStage->GetActorManager().Register(std::make_shared<Crystal>(
 				Transform::FromPosition(player->transform.position + Vector3(0, 0.0f, 0))));
 		}
-		// aracore
+		// ボス召喚
 		if (ImGui::IsKeyPressed(ImGuiKey_3))
 		{
 			currentStage->GetActorManager().Register(
@@ -335,18 +335,22 @@ void TestPlayScene::OnUpdate()
 					Transform::FromPosition(player->transform.position + Vector3(0, 3.0f, 0)),
 					currentStage->GetComponent<Terrain>()));
 		}
+		// プレイヤーTP
 		if (ImGui::IsKeyPressed(ImGuiKey_4))
 		{
 			player->GetComponent<CharacterController>()->SetPosition(7.0f, 10.0f, 7.0f);
 		}
+		// プレイヤーダメージ
 		if (ImGui::IsKeyPressed(ImGuiKey_5))
 		{
 			player->TakeDamage(DamageData{.damage = 50.0f});
 		}
+		// プレイヤー回復
 		if (ImGui::IsKeyPressed(ImGuiKey_6))
 		{
 			player->Heal(player->GetMaxLife());
 		}
+		// エネミー全滅
 		if (ImGui::IsKeyPressed(ImGuiKey_7))
 		{
 			auto& acts = currentStage->GetActorManager();
@@ -355,6 +359,7 @@ void TestPlayScene::OnUpdate()
 				reinterpret_cast<Entity*>(enem)->TakeDamage(DamageData{.damage = 1000000.0f});
 			}
 		}
+		// クリスタル破壊
 		if (ImGui::IsKeyPressed(ImGuiKey_8))
 		{
 			auto& acts = currentStage->GetActorManager();
@@ -363,10 +368,17 @@ void TestPlayScene::OnUpdate()
 				reinterpret_cast<Entity*>(enem)->TakeDamage(DamageData{.damage = 1000000.0f});
 			}
 		}
+		// デカール
 		if (ImGui::IsKeyPressed(ImGuiKey_9))
 		{
-			SceneManager::Instance().LoadScene<TestPlayScene>();
+			Transform transform;
+			transform.SetPosition(player->transform.position);
+			transform.SetScale(10.0f, 1.0f, 10.0f);
+			transform.SetAngle(player->transform.rotation.ToEuler());
+			auto terrain = currentStage->GetComponent<Terrain>();
+			if (terrain) terrain->AddDecal("break", transform, 1.0f);
 		}
+		// 空中浮遊
 		if (ImGui::IsKeyDown(ImGuiKey_0))
 		{
 			if (auto c = player->GetComponent<CharacterController>())
