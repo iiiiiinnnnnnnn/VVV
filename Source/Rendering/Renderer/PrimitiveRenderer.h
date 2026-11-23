@@ -6,7 +6,6 @@
 
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 
 namespace Game { class Graphics; }
 

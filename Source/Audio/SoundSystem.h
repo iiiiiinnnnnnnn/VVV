@@ -16,7 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 
 class Actor;
 class Camera;

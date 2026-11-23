@@ -4,7 +4,6 @@
 #include <vector>
 #include <ranges>
 
-#include "Core/Foundation/Common.h"
 #include "Gameplay/Lighting/Light.h"
 #include "Gameplay/Lighting/CbLightData.h"
 

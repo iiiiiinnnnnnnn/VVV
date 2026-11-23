@@ -3,7 +3,6 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "Core/Foundation/Common.h"
 #include "Application/Time/HighResolutionTimer.h"
 #include "Gameplay/Scene/Scene.h"
 

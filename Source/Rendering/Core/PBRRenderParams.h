@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "Core/Foundation/Common.h"
 
 struct PBRMaterialParams
 {

@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 
 // 敵をロックオンするためのゲームコンポーネント

@@ -7,7 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Rendering/Shader/Shader.h"
 #include "Resource/Texture.h"
 

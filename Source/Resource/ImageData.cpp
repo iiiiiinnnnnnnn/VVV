@@ -1,7 +1,6 @@
 #include "Resource/ImageData.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
-#include "Core/Foundation/Common.h"
 #include <stdexcept>
 
 ImageData::ImageData(const char* filename, bool forceRgb)

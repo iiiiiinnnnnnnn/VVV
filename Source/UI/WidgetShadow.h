@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Object/Component.h"
-#include "Core/Foundation/Common.h"
 
 // 影に対応したWidgetへ影描画を追加する
 class WidgetShadow : public Component

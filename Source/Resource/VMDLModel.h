@@ -15,7 +15,6 @@
 #include <string>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Core/Foundation/Easing.h"
 #include "Rendering/Core/RenderContext.h"
 

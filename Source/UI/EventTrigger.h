@@ -5,7 +5,6 @@
 #include <imgui_stdlib.h>
 
 #include "Core/Object/Component.h"
-#include "Core/Foundation/Common.h"
 
 class Widget;
 class UIEventSystem;

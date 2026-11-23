@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Shader/Shader.h"
 #include "Gameplay/Lighting/CbLightData.h"

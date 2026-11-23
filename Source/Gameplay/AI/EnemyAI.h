@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Gameplay/AI/LuaScript.h"
-#include "Core/Foundation/Common.h"
 #include <functional>
 #include <unordered_map>
 

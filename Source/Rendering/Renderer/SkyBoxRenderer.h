@@ -5,7 +5,6 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "Core/Foundation/Common.h"
 #include "Gameplay/Camera/Camera.h"
 namespace Game { class Graphics; }
 

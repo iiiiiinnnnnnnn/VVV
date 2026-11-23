@@ -1,7 +1,6 @@
 #include "Gameplay/Scene/TitleScene.h"
 
 #include <windows.h>
-#include "Core/Foundation/Common.h"
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/TestPlayScene.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"

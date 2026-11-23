@@ -749,9 +749,6 @@
     <ClInclude Include="Source\Core\Foundation\Random.h">
       <Filter>Source\Core\Foundation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Core\Foundation\Common.h">
-      <Filter>Source\Core\Foundation</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Application\SettingsAndDebug\DebugUtil.h">
       <Filter>Source\Application\SettingsAndDebug</Filter>
     </ClInclude>

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/Foundation/Common.h"
 #include <DirectXMath.h>
 #pragma push_macro("Log")
 #undef Log

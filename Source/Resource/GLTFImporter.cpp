@@ -3,6 +3,9 @@
 #include "Core/Foundation/Logger.h"
 #include <cmath>
 #include <fstream>
+#include "Core/Foundation/Json.h"
+// tinygltfにもプロジェクト共通のJSONを使用する。
+#define TINYGLTF_NO_INCLUDE_JSON
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION

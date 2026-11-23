@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/Foundation/Common.h"
 
 // コンスタントバッファに渡す用のライトデータ
 struct CbLightData

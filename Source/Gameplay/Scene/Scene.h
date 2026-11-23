@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Rendering/Core/Graphics.h"
 #include <InputKit/InputKit.h>
 #include "UI/Widget.h"

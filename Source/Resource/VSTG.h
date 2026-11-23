@@ -3,7 +3,6 @@
 
 #include "Resource/SerialArchive.h"
 
-#include "Core\Foundation\Common.h"
 
 class LightManager;
 class NavMeshActor;

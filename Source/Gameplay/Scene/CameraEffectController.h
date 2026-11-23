@@ -2,7 +2,6 @@
 
 #include "Application/Time/Timer.h"
 
-#include "Core/Foundation/Common.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Application/Time/GameTime.h"
 

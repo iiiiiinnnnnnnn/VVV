@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 #include "Animation/FootIK.h"
 #include "Resource/VMDLModel.h"

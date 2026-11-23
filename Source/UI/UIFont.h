@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 
-#include "Core/Foundation/Common.h"
 
 class Texture;
 

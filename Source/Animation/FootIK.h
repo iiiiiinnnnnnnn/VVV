@@ -4,7 +4,6 @@
 #include <cmath>
 #include <cfloat>
 
-#include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
 #include "Physics/Core/PhysicsComponent.h"
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/Foundation/Common.h"
 #include "Resource/SerialArchive.h"
 #include <algorithm>
 #include <cereal/types/string.hpp>

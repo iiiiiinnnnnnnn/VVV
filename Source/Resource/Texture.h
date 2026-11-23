@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <string>
 
-#include "Core/Foundation/Common.h"
 
 class ImageData;
 

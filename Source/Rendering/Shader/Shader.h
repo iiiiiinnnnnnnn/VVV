@@ -6,7 +6,6 @@
 
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Core/SpriteRenderParams.h"
 #include "Rendering/Core/PBRRenderParams.h"

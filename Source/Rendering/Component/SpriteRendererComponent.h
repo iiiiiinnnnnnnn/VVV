@@ -1,6 +1,5 @@
 #pragma once
 #include "Core/Object/Component.h"
-#include "Core/Foundation/Common.h"
 #include "Rendering/Core/SpriteRenderParams.h"
 
 class Texture;

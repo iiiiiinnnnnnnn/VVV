@@ -16,7 +16,6 @@
 #include "Rendering/Effect/EffectManager.h"
 #include "Gameplay/AI/LuaManager.h"
 #include <ProfileKit/ProfileKit.h>
-#include "Core/Foundation/Common.h"
 #include "Application/Tools/GamePadVib.h"
 #include <fstream>
 #include <stdexcept>

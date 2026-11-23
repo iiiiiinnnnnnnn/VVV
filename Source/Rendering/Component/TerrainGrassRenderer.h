@@ -5,7 +5,6 @@
 #include <memory>
 #include <wrl.h>
 
-#include "Core/Foundation/Common.h"
 
 struct RenderContext;
 class Terrain;

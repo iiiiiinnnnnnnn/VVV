@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 
-#include "Core/Foundation/Common.h"
 #include "Core/Object/Component.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"

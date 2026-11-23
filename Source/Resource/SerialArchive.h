@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/Foundation/Common.h"
 #include <cereal/cereal.hpp>
 #include <algorithm>
 #include <atomic>

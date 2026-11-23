@@ -1,7 +1,6 @@
 // HumanoidFootIK.h
 #pragma once
 
-#include "Core/Foundation/Common.h"
 #include "Resource/VMDLModel.h"
 #include "Core/Object/Component.h"
 #include "Animation/FootIK.h"

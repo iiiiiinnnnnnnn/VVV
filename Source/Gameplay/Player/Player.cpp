@@ -30,6 +30,7 @@
 #include <sol/sol.hpp>
 #include <cassert>
 #include <cmath>
+#include "Application/Tools/GamePadVib.h"
 
 void RemapQuickshiftWindTracks(VMDLModel& model)
 {
@@ -733,6 +734,7 @@ void Player::OnDamaged(const DamageData& damageData)
 	CameraEffectController::Request(0.13f, 0.07f);
 	PostProcessController::Instance().RequestDamagedVignette(
 		0.7f, 0.6f, 0.17f, Easing::Type::InSine, Easing::Type::OutCubic);
+	GamePadVib::Instance().Vibrate(0.2f, 0.2f, 0.1f);
 
 	// 本来はanimatorに任せたほうがいいとは思う
 	if (damageData.hitPosition.has_value())
@@ -774,6 +776,7 @@ void Player::TriggerJustDodge(Actor* attacker)
 	CameraEffectController::RequestFovOffset(0.24f, 8.0f);
 	TimeScaleController::Request(0.20f, 0.03f);
 	PostProcessController::Instance().RequestJustDodge();
+	GamePadVib::Instance().Vibrate(0.5f, 0.5f, 0.2f);
 
 	// HP0でも成功演出を成立させたうえで、撃破ムービーを要求する
 	if (auto* boss = dynamic_cast<Aracore*>(attacker))
@@ -834,6 +837,7 @@ void Player::HandleAttackContact(
 	inBattleTimer.Reset(BattleTimerDuration);
 
 	float requestStopTime = 0.09f;
+	float requestVibPower = 0.3f;
 
 	PlayAttackHitEffect(hitPosition);
 	if (skillAttack)
@@ -846,11 +850,13 @@ void Player::HandleAttackContact(
 		if (target->GetLife() - damage < 0)
 		{
 			requestStopTime *= 2.0f;
+			requestVibPower *= 1.5f;
 		}
 		lockOnComponent->LockOn(target);
 	}
 
 	TimeScaleController::Request(requestStopTime, 0.0f);
+	GamePadVib::Instance().Vibrate(requestVibPower, requestVibPower, requestStopTime);
 }
 
 bool Player::RegisterAttackContact(PhysicsComponent* attack, PhysicsComponent* other, Actor* target)
