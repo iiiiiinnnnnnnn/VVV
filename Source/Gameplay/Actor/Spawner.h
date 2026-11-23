@@ -42,7 +42,7 @@ class Spawner : public Component
 	const std::string& GetSpawnTag() const { return spawnTag; }
 
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MAP_MARKED_ALT " Spawner"; }
+	const char* GetDebugName() const override { return ICON_FA_MAP_MARKED_ALT " 出現管理"; }
 
   private:
 	// 召喚設定

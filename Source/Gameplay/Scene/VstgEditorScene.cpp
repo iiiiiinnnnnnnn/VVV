@@ -1,5 +1,6 @@
 #include <ImGuiToolKit/ImGuiToolKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/VstgEditorScene.h"
 
@@ -20,13 +21,14 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/VmdlEditorScene.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Gameplay/Stage/Stage.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/Core/PhysicsManager.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Resource/ResourceManager.h"
+#include "Resource/Texture.h"
 #include "Resource/ResourcePath.h"
 #include "Resource/VMDLModel.h"
 #include "Rendering/Core/Graphics.h"
@@ -319,15 +321,15 @@ void VstgEditorScene::OnDrawGUI()
 	if (ImGui::BeginMainMenuBar())
 	{
 		mainMenuBarHeight = ImGui::GetWindowHeight();
-		if (ImGuiToolKit::BeginMenu(ICON_FA_FILE " " u8"ファイル"))
+		if (ImGui::BeginMenu(ICON_FA_FILE " ファイル"))
 		{
-			if (ImGuiToolKit::MenuItem(ICON_FA_FOLDER_OPEN " " u8"開く", "Ctrl+O")) Open();
-			if (ImGuiToolKit::MenuItem(ICON_FA_SAVE " " u8"保存", "Ctrl+S")) Save();
-			if (ImGuiToolKit::MenuItem(ICON_FA_COPY " " u8"名前を付けて保存", "Ctrl+Shift+S")) SaveAs();
+			if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN " 開く", "Ctrl+O")) Open();
+			if (ImGui::MenuItem(ICON_FA_SAVE " 保存", "Ctrl+S")) Save();
+			if (ImGui::MenuItem(ICON_FA_COPY " 名前を付けて保存", "Ctrl+Shift+S")) SaveAs();
 			ImGui::Separator();
-			if (ImGuiToolKit::MenuItem(ICON_FA_FILE " " u8"新規作成", "Ctrl+N")) New();
+			if (ImGui::MenuItem(ICON_FA_FILE " 新規作成", "Ctrl+N")) New();
 			ImGui::Separator();
-			if (ImGuiToolKit::MenuItem(ICON_FA_SIGN_OUT_ALT " " u8"終了"))
+			if (ImGui::MenuItem(ICON_FA_SIGN_OUT_ALT " 終了"))
 			{
 				if (OnRequestExit())
 				{
@@ -336,14 +338,14 @@ void VstgEditorScene::OnDrawGUI()
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGuiToolKit::BeginMenu(ICON_FA_EYE " " u8"表示"))
+		if (ImGui::BeginMenu(ICON_FA_EYE " 表示"))
 		{
 			DrawCommonVisibilityGUI();
-			ImGuiToolKit::MenuItem(ICON_FA_BUG " " u8"デバッグ表示", "F3", &renderSettings.showDebug);
-			ImGuiToolKit::Checkbox(ICON_FA_SHAPES " " u8"コライダー", &renderSettings.showColliderDebug);
-			ImGuiToolKit::Checkbox(ICON_FA_PUZZLE_PIECE " " u8"コンポーネント", &renderSettings.showComponentDebug);
-			ImGuiToolKit::Checkbox(ICON_FA_LIGHTBULB " " u8"ライト", &renderSettings.showLightDebug);
-			ImGuiToolKit::Checkbox(ICON_FA_PROJECT_DIAGRAM " " u8"ナビメッシュ", &renderSettings.showNavMeshDebug);
+			ImGui::MenuItem(ICON_FA_BUG " デバッグ表示", "F3", &renderSettings.showDebug);
+			ImGui::Checkbox(ICON_FA_SHAPES " コライダー", &renderSettings.showColliderDebug);
+			ImGui::Checkbox(ICON_FA_PUZZLE_PIECE " コンポーネント", &renderSettings.showComponentDebug);
+			ImGui::Checkbox(ICON_FA_LIGHTBULB " ライト", &renderSettings.showLightDebug);
+			ImGui::Checkbox(ICON_FA_PROJECT_DIAGRAM " ナビメッシュ", &renderSettings.showNavMeshDebug);
 			ImGui::EndMenu();
 		}
 		DrawWindowMenu();
@@ -373,35 +375,40 @@ void VstgEditorScene::OnDrawGUI()
 
 	ImGui::SetNextWindowPos(workPosition, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({leftWidth, topHeight}, ImGuiCond_Always);
-	if (ImGuiToolKit::Begin(ICON_FA_COG " " u8"インスペクタ###VSTG Inspector", nullptr, windowFlags))
+	if (ImGui::Begin(ICON_FA_COG " インスペクタ###VSTG Inspector", nullptr, windowFlags))
 		DrawInspector();
 	ImGui::End();
 
 	ImGui::SetNextWindowPos({workPosition.x + workSize.x - rightWidth, workPosition.y}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({rightWidth, topHeight}, ImGuiCond_Always);
-	if (ImGuiToolKit::Begin(ICON_FA_LIST " " u8"ヒエラルキー###VSTG Hierarchy", nullptr, windowFlags))
+	if (ImGui::Begin(ICON_FA_LIST " ヒエラルキー###VSTG Hierarchy", nullptr, windowFlags))
 		DrawHierarchy();
 	ImGui::End();
 
 	ImGui::SetNextWindowPos({workPosition.x, workPosition.y + topHeight + gap}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize({workSize.x, bottomHeight}, ImGuiCond_Always);
-	if (ImGuiToolKit::Begin(u8"ステージ編集###VSTG Bottom", nullptr, windowFlags))
+	if (ImGui::Begin("ステージ編集###VSTG Bottom", nullptr, windowFlags))
 	{
 		if (ImGui::BeginTabBar("VSTG Bottom Tabs"))
 		{
-			if (ImGuiToolKit::BeginTabItem(ICON_FA_CUBES " " u8"アセット"))
+			if (ImGui::BeginTabItem(ICON_FA_CUBES " アセット"))
 			{
 				DrawPropBrowser(0.0f);
 				ImGui::EndTabItem();
 			}
-			if (ImGuiToolKit::BeginTabItem(ICON_FA_MOUNTAIN " Terrain"))
+			if (ImGui::BeginTabItem(ICON_FA_MOUNTAIN " テライン地形"))
 			{
-				if (ImGui::BeginChild("VSTG Terrain Settings"))
-				{
-					if (terrain) terrain->DrawGUI();
-					if (navMesh && ImGuiToolKit::CollapsingHeader(u8"NavMesh設定")) navMesh->DrawGUI();
-				}
-				ImGui::EndChild();
+				if (terrain) terrain->DrawGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem(ICON_FA_WALKING "NavMesh設定"))
+			{
+				if (navMesh) navMesh->DrawGUI();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem(ICON_FA_STAMP " デカール登録"))
+			{
+				DrawDecalRegistration();
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
@@ -432,7 +439,7 @@ void VstgEditorScene::OnDrawGUI()
 	ImGui::SetNextWindowSize({viewportMax.x - viewportMin.x, toolbarHeight}, ImGuiCond_Always);
 	if (ImGui::Begin("###VSTG Viewport Toolbar", nullptr, toolbarFlags))
 	{
-		ImGuiToolKit::TextUnformatted(ICON_FA_CUBE " " u8"3Dビュー");
+		ImGui::TextUnformatted(ICON_FA_CUBE " 3Dビュー");
 		DrawGizmoButtons(gizmoOperation);
 		ImGui::SameLine();
 		ImGui::TextUnformatted("|");
@@ -442,7 +449,7 @@ void VstgEditorScene::OnDrawGUI()
 			showSerialViewer = true;
 			serialViewerDocument = nullptr;
 		}
-		if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"シリアルビューアー");
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("シリアルビューアー");
 	}
 	ImGui::End();
 
@@ -462,8 +469,8 @@ void VstgEditorScene::OnDrawGUI()
 	}
 	if (ImGui::BeginPopup("VSTG Effect Placement"))
 	{
-		if (ImGuiToolKit::BeginCombo(u8"エフェクト", placementEffectName.empty()
-			? JText(u8"選択してください") : placementEffectName.c_str()))
+		if (ImGui::BeginCombo("エフェクト", placementEffectName.empty()
+			? "選択してください" : placementEffectName.c_str()))
 		{
 			for (const auto& candidate : EffectManager::GetEffectPaths())
 				if (ImGui::Selectable(candidate.c_str(), candidate == placementEffectName))
@@ -471,7 +478,7 @@ void VstgEditorScene::OnDrawGUI()
 			ImGui::EndCombo();
 		}
 		ImGui::BeginDisabled(placementEffectName.empty());
-		if (ImGuiToolKit::Button(u8"配置") && stageLoader)
+		if (ImGui::Button("配置") && stageLoader)
 		{
 			stageLoader->AddEditorEffect(placementEffectName, effectPlacementPosition);
 			if (terrain) terrain->SetBrushEnabled(false);
@@ -483,7 +490,7 @@ void VstgEditorScene::OnDrawGUI()
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		if (ImGuiToolKit::Button(u8"キャンセル")) ImGui::CloseCurrentPopup();
+		if (ImGui::Button("キャンセル")) ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 	DrawLightMarkers({viewportMin.x, viewportMin.y + toolbarHeight}, viewportMax);
@@ -499,6 +506,82 @@ void VstgEditorScene::OnDrawGUI()
 		dirty = true;
 	ImGui::PopStyleVar();
 	DrawSerialViewer();
+}
+
+void VstgEditorScene::DrawDecalRegistration()
+{
+	const bool reload = ImGui::Button(ICON_FA_SYNC_ALT " 再読み込み##DecalTextures");
+	if (!decalTexturesLoaded || reload)
+	{
+		if (reload && !ResourceManager::Instance().RefreshResources())
+			ImGuiToolKit::Alert("デカール画像の再読み込みに失敗しました。");
+		else
+		{
+			decalTextures.clear();
+			const auto resourceRoot = GetVstgEditorResourceRoot();
+			std::vector<std::filesystem::path> paths;
+			std::error_code error;
+			for (std::filesystem::directory_iterator file(resourceRoot / "Terrain/Decals", error), end;
+				file != end && !error; file.increment(error))
+			{
+				if (!file->is_regular_file(error)) continue;
+				std::string extension = file->path().extension().string();
+				std::transform(extension.begin(), extension.end(), extension.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" ||
+					extension == ".tga" || extension == ".bmp" || extension == ".dds")
+					paths.push_back(file->path());
+			}
+			std::sort(paths.begin(), paths.end());
+			for (const auto& file : paths)
+			{
+				auto source = file;
+				source.replace_extension(".png");
+				if (file.extension() == ".dds" && std::filesystem::exists(source)) continue;
+				const std::string imagePath = (std::filesystem::path("Resources") /
+					file.lexically_relative(resourceRoot)).generic_string();
+				try
+				{
+					auto texture = ResourceManager::Instance().LoadTexture(imagePath, false);
+					if (texture) decalTextures.emplace_back(imagePath, std::move(texture));
+				}
+				catch (const std::exception&)
+				{
+					ImGuiToolKit::Alert("デカール画像を読み込めませんでした: " + imagePath);
+				}
+			}
+			if (std::none_of(decalTextures.begin(), decalTextures.end(), [this](const auto& entry) {
+				return entry.first == selectedDecalTexturePath;
+			})) selectedDecalTexturePath.clear();
+			decalTexturesLoaded = true;
+		}
+	}
+
+	const float thumbnailSize = 72.0f;
+	const float childHeight = thumbnailSize + ImGui::GetStyle().ScrollbarSize +
+		ImGui::GetStyle().WindowPadding.y * 2.0f;
+	ImGui::BeginChild("decal texture palette", ImVec2(0.0f, childHeight), true,
+		ImGuiWindowFlags_HorizontalScrollbar);
+	for (size_t i = 0; i < decalTextures.size(); ++i)
+	{
+		const auto& [imagePath, texture] = decalTextures[i];
+		ImGui::PushID(imagePath.c_str());
+		const bool selected = imagePath == selectedDecalTexturePath;
+		if (selected)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.95f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.65f, 1.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.45f, 0.85f, 1.0f));
+		}
+		if (ImGui::ImageButton("decal texture", texture->GetShaderResourceView().Get(),
+			ImVec2(thumbnailSize, thumbnailSize))) selectedDecalTexturePath = imagePath;
+		if (selected) ImGui::PopStyleColor(3);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n%d x %d",
+			imagePath.c_str(), texture->GetWidth(), texture->GetHeight());
+		ImGui::PopID();
+		if (i + 1 < decalTextures.size()) ImGui::SameLine();
+	}
+	ImGui::EndChild();
 }
 
 Light* VstgEditorScene::GetSelectedLight()
@@ -533,7 +616,7 @@ void VstgEditorScene::DrawHierarchy()
 {
 	PROFILE_FUNCTION();
 	if (!currentStage) return;
-	if (ImGuiToolKit::Selectable(ICON_FA_SUN " " u8"環境・ライト設定", lightingSettingsSelected))
+	if (ImGui::Selectable(ICON_FA_SUN " 環境・ライト設定", lightingSettingsSelected))
 	{
 		lightingSettingsSelected = true;
 		selectedLightType = EditorLightType::None;
@@ -570,13 +653,13 @@ void VstgEditorScene::DrawHierarchy()
 		}
 		ImGui::TreePop();
 	};
-	group(ICON_FA_SUN, JText(u8"ディレクショナルライト"),
+	group(ICON_FA_SUN, "ディレクショナルライト",
 		lights.GetDirectionalLights(), EditorLightType::Directional);
-	group(ICON_FA_LIGHTBULB, JText(u8"ポイントライト"),
+	group(ICON_FA_LIGHTBULB, "ポイントライト",
 		lights.GetPointLights(), EditorLightType::Point);
-	group(ICON_FA_LIGHTBULB, JText(u8"スポットライト"),
+	group(ICON_FA_LIGHTBULB, "スポットライト",
 		lights.GetSpotLights(), EditorLightType::Spot);
-	group(ICON_FA_LIGHTBULB, JText(u8"エリアライト"),
+	group(ICON_FA_LIGHTBULB, "エリアライト",
 		lights.GetAreaLights(), EditorLightType::Area);
 }
 
@@ -587,7 +670,7 @@ void VstgEditorScene::DrawInspector()
 	if (lightingSettingsSelected)
 	{
 		currentStage->GetLightManager().DrawGUI();
-		ImGuiToolKit::SeparatorText(u8"IBL・スカイボックス");
+		ImGui::SeparatorText("IBL・スカイボックス");
 		Game::Graphics::Instance().DrawSkyMapGUI();
 		Game::Graphics::Instance().GetSkyBoxRenderer()->DrawGUI();
 		return;
@@ -596,11 +679,11 @@ void VstgEditorScene::DrawInspector()
 	{
 		ImGui::PushID(light);
 		std::string name = light->GetName();
-		if (ImGuiToolKit::InputText(u8"名前", &name)) { light->SetName(name); dirty = true; }
+		if (ImGui::InputText("名前", &name)) { light->SetName(name); dirty = true; }
 		light->DrawGUI();
-		if (ImGuiToolKit::Button(ICON_FA_TRASH " " u8"削除")) DeleteSelectedLight();
+		if (ImGui::Button(ICON_FA_TRASH " 削除")) DeleteSelectedLight();
 		ImGui::SameLine();
-		if (ImGuiToolKit::Button(ICON_FA_COPY " " u8"複製")) DuplicateSelectedLight();
+		if (ImGui::Button(ICON_FA_COPY " 複製")) DuplicateSelectedLight();
 		ImGui::PopID();
 		return;
 	}
@@ -753,7 +836,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 {
 	// VMDLの検索と再読み込み
 	ImGui::SetNextItemWidth(-38.0f);
-	ImGui::InputTextWithHint("##VSTG Prop Search", JText(u8"検索"), &propSearch);
+	ImGui::InputTextWithHint("##VSTG Prop Search", "検索", &propSearch);
 	ImGui::SameLine();
 	if (ImGui::Button(ICON_FA_SYNC_ALT "##Refresh VSTG Props")) RefreshPropModels();
 	ImGui::Separator();
@@ -771,19 +854,19 @@ void VstgEditorScene::DrawPropBrowser(float height)
 		{
 			ImGui::SetDragDropPayload(payloadType, &value, sizeof(value));
 			ImGui::TextUnformatted(label);
-			ImGuiToolKit::TextDisabled(u8"ステージ上へドロップして配置");
+			ImGui::TextDisabled("ステージ上へドロップして配置");
 			ImGui::EndDragDropSource();
 		}
-		if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"ステージ上へドラッグして配置");
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ステージ上へドラッグして配置");
 		nextTile();
 	};
-	specialTile(JText(ICON_FA_MAP_MARKER_ALT "\n" u8"プレイヤー初期位置"), "VSTG_PLAYER_START", 0);
-	specialTile(JText(ICON_FA_SUN "\n" u8"ディレクショナルライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Directional));
-	specialTile(JText(ICON_FA_LIGHTBULB "\n" u8"ポイントライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Point));
-	specialTile(JText(ICON_FA_LIGHTBULB "\n" u8"スポットライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Spot));
-	specialTile(JText(ICON_FA_LIGHTBULB "\n" u8"エリアライト"), "VSTG_LIGHT", static_cast<int>(EditorLightType::Area));
-	specialTile(JText(ICON_FA_MAGIC "\n" u8"エフェクト"), "VSTG_EFFECT", 0);
-	specialTile(JText(ICON_FA_COG "\n" u8"侵入不可エリア"), "VSTG_BLOCKED_AREA", 0);
+	specialTile(ICON_FA_MAP_MARKER_ALT "\n" "プレイヤー初期位置", "VSTG_PLAYER_START", 0);
+	specialTile(ICON_FA_SUN "\n" "ディレクショナルライト", "VSTG_LIGHT", static_cast<int>(EditorLightType::Directional));
+	specialTile(ICON_FA_LIGHTBULB "\n" "ポイントライト", "VSTG_LIGHT", static_cast<int>(EditorLightType::Point));
+	specialTile(ICON_FA_LIGHTBULB "\n" "スポットライト", "VSTG_LIGHT", static_cast<int>(EditorLightType::Spot));
+	specialTile(ICON_FA_LIGHTBULB "\n" "エリアライト", "VSTG_LIGHT", static_cast<int>(EditorLightType::Area));
+	specialTile(ICON_FA_MAGIC "\n" "エフェクト", "VSTG_EFFECT", 0);
+	specialTile(ICON_FA_COG "\n" "侵入不可エリア", "VSTG_BLOCKED_AREA", 0);
 
 	// 検索結果のVMDL一覧
 	std::string search = propSearch;
@@ -826,7 +909,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 				ImGui::TextUnformatted(name.c_str());
 				if (propPreviewLoadedPath == modelPath && propPreviewModel && propPreviewTarget)
 					ImGui::Image(propPreviewTarget->GetSRV(), ImVec2(192.0f, 192.0f));
-				else ImGuiToolKit::TextDisabled(u8"プレビューを読み込み中");
+				else ImGui::TextDisabled("プレビューを読み込み中");
 				ImGui::TextDisabled("%s", modelPath.c_str());
 				ImGui::EndTooltip();
 			}
@@ -836,7 +919,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 		++visibleIndex;
 	}
 	ImGui::NewLine();
-	if (visibleIndex == 0) ImGuiToolKit::TextDisabled(u8"該当するVMDLはありません");
+	if (visibleIndex == 0) ImGui::TextDisabled("該当するVMDLはありません");
 	ImGui::EndChild();
 }
 
@@ -1373,7 +1456,7 @@ void VstgEditorScene::New()
 	auto& graphics = Game::Graphics::Instance();
 	if (!graphics.LoadSkyMap("Default"))
 	{
-		ImGuiToolKit::Alert(JText(u8"デフォルトのライティング環境を読み込めませんでした。"));
+		ImGuiToolKit::Alert("デフォルトのライティング環境を読み込めませんでした。");
 		return;
 	}
 	graphics.GetSkyBoxRenderer()->SetIntensity(1.0f);
@@ -1398,7 +1481,7 @@ void VstgEditorScene::Open()
 		(GetVstgEditorResourceRoot() / "Stage").string();
 	std::string filename;
 	if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
-			JText(u8"VSTGを開く"), initialDirectory.c_str()) != DialogResult::OK)
+			"VSTGを開く", initialDirectory.c_str()) != DialogResult::OK)
 		return;
 	LoadStage(filename);
 }
@@ -1464,7 +1547,7 @@ bool VstgEditorScene::ResolveMissingModels()
 		const std::filesystem::path modelRoot = resourceRoot / "Model";
 		std::string replacementFile;
 		if (Dialog::OpenFileName(replacementFile, "VMDL (*.vmdl)\0*.vmdl\0\0",
-				JText(u8"代わりとなるVMDLを選択"), modelRoot.string().c_str()) !=
+				"代わりとなるVMDLを選択", modelRoot.string().c_str()) !=
 			DialogResult::OK)
 			continue;
 
@@ -1486,7 +1569,7 @@ bool VstgEditorScene::ResolveMissingModels()
 		}
 		if (relativePath.empty())
 		{
-			ImGuiToolKit::Alert(JText(u8"Resourcesフォルダ内のVMDLを選択してください。"));
+			ImGuiToolKit::Alert("Resourcesフォルダ内のVMDLを選択してください。");
 			continue;
 		}
 
@@ -1496,7 +1579,7 @@ bool VstgEditorScene::ResolveMissingModels()
 		if (!stageLoader->ReplaceMissingModelPath(missingPath, replacementPath))
 		{
 			ImGuiToolKit::Alert(stageLoader->GetError().empty()
-				? JText(u8"選択したVMDLを読み込めませんでした。") : stageLoader->GetError());
+				? "選択したVMDLを読み込めませんでした。" : stageLoader->GetError());
 			continue;
 		}
 		changed = true;
@@ -1537,7 +1620,7 @@ void VstgEditorScene::SaveAs()
 {
 	std::string filename;
 	if (Dialog::SaveFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
-			JText(u8"VSTGを保存"), "vstg") != DialogResult::OK)
+			"VSTGを保存", "vstg") != DialogResult::OK)
 		return;
 	path = filename;
 	if (path.extension() != ".vstg") path.replace_extension(".vstg");

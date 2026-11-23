@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{70106b1f-8fe1-5a1e-bb3d-6c6332fd4f62}</UniqueIdentifier>
+    <Filter Include="Source">
+      <UniqueIdentifier>{75c35d5a-e6e3-44c0-bfcd-a3d2b3472f82}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Audio">
-      <UniqueIdentifier>{2c06b306-7d7f-5911-af4e-447d0717987b}</UniqueIdentifier>
+    <Filter Include="Source\Audio">
+      <UniqueIdentifier>{4bf71b8c-1365-49c7-aa27-89a6d5cba855}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Resource">
+      <UniqueIdentifier>{54b977e8-5684-4e0e-86e0-89470c46c6fe}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="..\..\Source\Resource\CacheBuilder.cpp">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Resource\CacheBuilder.h">
-      <Filter>Resource</Filter>
+      <Filter>Source\Resource</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Audio\VSoundFormat.h">
-      <Filter>Audio</Filter>
+      <Filter>Source\Audio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

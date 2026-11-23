@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Application/Time/Timer.h"
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include "Core/Object/Component.h"
 #include "Core/Foundation/Common.h"
@@ -46,7 +47,7 @@ public:
 	using Callback = std::function<void(UIEventData&)>;
 
 	EventTrigger(Object* owner) : Component(owner) {}
-	const char* GetDebugName() const override { return JText(ICON_FA_FINGERPRINT u8" イベントトリガー"); }
+	const char* GetDebugName() const override { return ICON_FA_FINGERPRINT " イベントトリガー"; }
 	void AddListener(EventTriggerType type, Callback callback);
 	void AddActivationListener(std::function<void()> action);
 	void RemoveListeners(EventTriggerType type);

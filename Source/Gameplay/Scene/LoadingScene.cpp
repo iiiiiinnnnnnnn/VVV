@@ -1,5 +1,6 @@
 #include "Gameplay/Scene/LoadingScene.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <algorithm>
 #include <cmath>
@@ -31,7 +32,7 @@ void LoadingScene::OnInit()
 	widgetManager.Register(background);
 
 	resourceFileIsLoading =
-		std::make_shared<TextWidget>("ldt", JText(u8"リソースを読み込み中..."), 30,
+		std::make_shared<TextWidget>("ldt", "リソースを読み込み中...", 30,
 			"NotoSansJP");
 	resourceFileIsLoading->SetColor({1, 1, 1, 1});
 	resourceFileIsLoading->SetAlignment(UITextAlignment::Center);
@@ -82,9 +83,9 @@ void LoadingScene::OnDrawGUI()
 	if (ImGui::Begin("Load failed", nullptr,
 		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings))
 	{
-		ImGuiToolKit::TextUnformatted(u8"読み込みに失敗しました");
+		ImGui::TextUnformatted("読み込みに失敗しました");
 		ImGui::TextWrapped("%s", error.c_str());
-		if (ImGuiToolKit::Button(u8"タイトルへ戻る"))
+		if (ImGui::Button("タイトルへ戻る"))
 		{
 			manager.LoadScene<TitleScene>();
 		}

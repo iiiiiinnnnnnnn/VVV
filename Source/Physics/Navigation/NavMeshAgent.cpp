@@ -277,9 +277,9 @@ void NavMeshAgent::DrawGUI()
 	ImGui::InputText("Target Tag", &targetTag);
 	ImGui::Checkbox("Rotate To Move Direction", &rotateToMoveDirection);
 	ImGui::Checkbox("Movement Paused", &movementPaused);
-	ImGuiToolKit::DragSpeedFloat(u8"Speed", &speed, 0.1f, 0.0f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat("Speed", &speed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Stopping Distance", &stoppingDistance, 0.1f, 0.0f, 20.0f);
-	ImGuiToolKit::DragSpeedFloat(u8"Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat("Turn Speed", &turnSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::DragFloat("Random Min Distance", &randomMinDistance, 0.1f, 0.0f, 100.0f);
 	ImGui::DragFloat("Random Max Distance", &randomMaxDistance, 0.1f, 0.0f, 100.0f);
 	if (ImGui::Button("Move To Random Position"))

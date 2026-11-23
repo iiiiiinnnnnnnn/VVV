@@ -9,7 +9,7 @@
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Camera/CameraController.h"
 #include "Rendering/Effect/ParticleSystem.h"
-#include "Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 
 #include <limits>
 #include <algorithm>

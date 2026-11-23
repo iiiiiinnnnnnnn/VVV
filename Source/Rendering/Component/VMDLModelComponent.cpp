@@ -21,7 +21,7 @@
 #include "Gameplay/Scene/SceneManager.h"
 #include "Gameplay/Scene/Scene.h"
 #include "Gameplay/Stage/Stage.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Core/Foundation/Easing.h"

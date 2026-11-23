@@ -17,7 +17,7 @@ public:
 	void LateUpdate() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_EYE " LookAt"; }
+	const char* GetDebugName() const override { return ICON_FA_EYE " 注視"; }
 
 	void SetTarget(const Vector3& target) { this->target = target; }
 	Vector3 GetTarget() const { return target; }

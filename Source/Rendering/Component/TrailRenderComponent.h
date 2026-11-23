@@ -37,7 +37,7 @@ public:
     void Render(const RenderContext& rc);
     void RenderTrail(const RenderContext& rc);
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MAGIC " TrailRenderComponent"; }
+	const char* GetDebugName() const override { return ICON_FA_MAGIC " 軌跡描画"; }
 
     struct TrailPoint
     {

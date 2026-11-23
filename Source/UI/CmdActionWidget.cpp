@@ -1,5 +1,6 @@
 #include "UI/CmdActionWidget.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 
 #include "Application/Time/GameTime.h"
@@ -166,9 +167,9 @@ void CmdActionWidget::OnDrawGUI()
 {
 	DissolveWidget::OnDrawGUI();
 	if (externalControl)
-		ImGuiToolKit::SliderFloat2(u8"画面位置（横・縦の比率）", &screenPositionRatio.x, 0.0f, 1.0f);
-	ImGuiToolKit::DragDelayFloat(u8"アニメーション時間", &animDuration, 0.01f, 0.01f, 10.0f);
-	ImGuiToolKit::DragDelayFloat(u8"表示のディゾルブ時間", &showDuration, 0.01f, 0.0f, 5.0f);
-	ImGuiToolKit::DragDelayFloat(u8"受付終了前のディゾルブ時間（ゲーム内秒）", &hideDuration, 0.01f, 0.0f, 5.0f);
+		ImGui::SliderFloat2("画面位置（横・縦の比率）", &screenPositionRatio.x, 0.0f, 1.0f);
+	ImGuiToolKit::DragDelayFloat("アニメーション時間", &animDuration, 0.01f, 0.01f, 10.0f);
+	ImGuiToolKit::DragDelayFloat("表示のディゾルブ時間", &showDuration, 0.01f, 0.0f, 5.0f);
+	ImGuiToolKit::DragDelayFloat("受付終了前のディゾルブ時間（ゲーム内秒）", &hideDuration, 0.01f, 0.0f, 5.0f);
 	ImGui::Text("showTimer: %.2f", showTimer);
 }

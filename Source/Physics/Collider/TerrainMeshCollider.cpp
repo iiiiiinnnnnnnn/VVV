@@ -4,7 +4,7 @@
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Rendering/Core/Graphics.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Resource/ResourceManager.h"
 #include "Gameplay/Actor/Actor.h"
 
@@ -560,10 +560,10 @@ void TerrainMeshCollider::DrawGUI()
     {
         ClampCollisionArea();
 
-        ImGuiToolKit::DragPosFloat(u8"Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
-        ImGuiToolKit::DragPosFloat(u8"Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
-        ImGuiToolKit::DragPosFloat(u8"Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
-        ImGuiToolKit::DragPosFloat(u8"Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat("Min X", &collisionArea.minX, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat("Max X", &collisionArea.maxX, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat("Min Z", &collisionArea.minZ, 0.01f, 0.0f, 1.0f);
+        ImGuiToolKit::DragPosFloat("Max Z", &collisionArea.maxZ, 0.01f, 0.0f, 1.0f);
 
         if (ImGui::Button("Reset Full Terrain Area"))
         {

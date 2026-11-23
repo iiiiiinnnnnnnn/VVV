@@ -1,5 +1,6 @@
 #include "UI/GaugeWidget.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Color.h>
 
 #include <algorithm>
@@ -102,13 +103,13 @@ void GaugeWidget::OnDrawGUI()
 {
 	DissolveWidget::OnDrawGUI();
 
-	ImGuiToolKit::ColorEdit4(u8"通常色", &normalColor.x);
-	ImGuiToolKit::ColorEdit4(u8"背景色", &backgroundColor.x);
+	ImGuiToolKit::ColorEdit4("通常色", &normalColor.x);
+	ImGuiToolKit::ColorEdit4("背景色", &backgroundColor.x);
 	ImGui::Separator();
-	ImGuiToolKit::Checkbox(u8"ダメージ残像", &damageTrailEnabled);
-	ImGuiToolKit::SliderFloat(u8"残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
-	ImGuiToolKit::SliderFloat(u8"残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
-	ImGuiToolKit::ColorEdit4(u8"残像の色", &damageTrailColor.x);
+	ImGui::Checkbox("ダメージ残像", &damageTrailEnabled);
+	ImGui::SliderFloat("残像の待機時間", &damageTrailDelay, 0.0f, 1.0f);
+	ImGui::SliderFloat("残像の減少速度", &damageTrailSpeed, 0.05f, 3.0f);
+	ImGuiToolKit::ColorEdit4("残像の色", &damageTrailColor.x);
 }
 
 void GaugeWidget::Render(const RenderContext& rc)

@@ -40,8 +40,8 @@ void BoneCapsuleCollider::Render(const RenderContext& rc)
 void BoneCapsuleCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGuiToolKit::DragSizeFloat(u8"Radius", &radius, 0.01f, 0.01f, 10.0f);
-    changed |= ImGuiToolKit::DragSizeFloat(u8"Height", &height, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat("Height", &height, 0.01f, 0.01f, 10.0f);
     radius = std::max(radius, 0.01f);
     height = std::max(height, 0.01f);
     if (changed)

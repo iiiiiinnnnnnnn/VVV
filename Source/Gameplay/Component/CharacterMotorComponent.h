@@ -19,7 +19,7 @@ public:
 
 	void OnUpdate() override;
 	void OnDrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_COG " CharacterMotor"; }
+	const char* GetDebugName() const override { return ICON_FA_COG " キャラクターモーター"; }
 
 	void SetRootMotionNode(const std::string& nodeName);
 	void SetExternalVelocity(const Vector3& velocity) { externalVelocity = velocity; }

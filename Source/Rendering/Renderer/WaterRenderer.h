@@ -31,7 +31,7 @@ public:
 	WaterRenderer(Object* owner);
 	void OnRender(const RenderContext& rc) override;
 	void ApplyUnderwaterContext(RenderContext& rc) const;
-	const char* GetDebugName() const override { return ICON_FA_WATER " Water Renderer"; }
+	const char* GetDebugName() const override { return ICON_FA_WATER " 水面描画"; }
 
 	void SetSettings(const Settings& value) { settings = value; }
 	const Settings& GetSettings() const { return settings; }

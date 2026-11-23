@@ -22,6 +22,6 @@ void WidgetShadow::OnRender(const RenderContext& rc)
 
 void WidgetShadow::OnDrawGUI()
 {
-	ImGuiToolKit::DragPosFloat2(u8"影の位置", &offset.x, 0.5f);
-	ImGuiToolKit::ColorEdit4(u8"影の色", &color.x);
+	ImGuiToolKit::DragPosFloat2("影の位置", &offset.x, 0.5f);
+	ImGuiToolKit::ColorEdit4("影の色", &color.x);
 }

@@ -27,7 +27,6 @@ class VSTG
 	const std::string& GetError() const { return error; }
 
   private:
-	bool LoadGokan(std::istream& stream);
 	mutable std::shared_ptr<SerialDocument> serialDocument;
 	std::string BuildLightingJson(const LightManager& lights) const;
 	bool ApplyLightingJson(const std::string& text, LightManager& lights) const;

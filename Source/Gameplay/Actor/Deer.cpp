@@ -1,5 +1,6 @@
 #include "Core/Foundation/Random.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Deer.h"
 
@@ -264,7 +265,7 @@ void Deer::OnLateUpdate()
 
 void Deer::OnDrawGUI()
 {
-	ImGuiToolKit::TextUnformatted(u8"AIパス：Resources/AI/Deer.lua");
+	ImGui::TextUnformatted("AIパス：Resources/AI/Deer.lua");
 }
 
 void Deer::OnCollisionEnter(

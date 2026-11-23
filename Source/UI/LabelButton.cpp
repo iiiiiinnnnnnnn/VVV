@@ -22,7 +22,7 @@ void LabelButton::OnRender(const RenderContext& rc)
 void LabelButton::OnDrawGUI()
 {
 	TextWidget::OnDrawGUI();
-	ImGuiToolKit::ColorEdit4(u8"通常色", &normalColor.x);
-	ImGuiToolKit::ColorEdit4(u8"選択色", &highlightColor.x);
-	ImGuiToolKit::DragPosFloat2(u8"オフセット", &textOffset.x);
+	ImGuiToolKit::ColorEdit4("通常色", &normalColor.x);
+	ImGuiToolKit::ColorEdit4("選択色", &highlightColor.x);
+	ImGuiToolKit::DragPosFloat2("オフセット", &textOffset.x);
 }

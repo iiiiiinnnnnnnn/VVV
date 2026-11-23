@@ -19,7 +19,7 @@ class MultiLegFootIK : public Component
 
 	void LateUpdate() override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BONE " MultiLegFootIK"; }
+	const char* GetDebugName() const override { return ICON_FA_BONE " 多脚の接地補正"; }
 	int GetUpdateOrder() const override { return 200; }
 
 	void AddLeg(const char* rootName, const char* midName, const char* tipName,

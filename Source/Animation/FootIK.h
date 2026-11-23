@@ -18,7 +18,7 @@ class FootIK : public PhysicsComponent
 
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BONE " FootIK"; }
+	const char* GetDebugName() const override { return ICON_FA_BONE " 足の接地補正"; }
 
 	int GetUpdateOrder() const override { return 200; }
 

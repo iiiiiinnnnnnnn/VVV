@@ -41,7 +41,7 @@ public:
     void LateUpdate() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BONE " SpringBone"; }
+	const char* GetDebugName() const override { return ICON_FA_BONE " ボーンの揺れ"; }
 
 	void SetColliders(const std::vector<SpringBoneCollider*>& values) { colliders = values; }
     void Reset();

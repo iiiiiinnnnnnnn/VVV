@@ -20,7 +20,7 @@ class HumanoidFootIK : public Component
 
 	void LateUpdate() override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BONE " HumanoidFootIK"; }
+	const char* GetDebugName() const override { return ICON_FA_BONE " 人型足の接地補正"; }
 	int GetUpdateOrder() const override { return 200; }
 
 	void SetRay(float up, float down, float contactOffset);

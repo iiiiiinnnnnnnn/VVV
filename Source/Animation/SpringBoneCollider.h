@@ -12,7 +12,7 @@ public:
 	SpringBoneCollider(Object* owner, VMDLModel* model, const VMDLModel::VmdlSpringCollider& settings);
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BULLSEYE " SpringBoneCollider"; }
+	const char* GetDebugName() const override { return ICON_FA_BULLSEYE " 揺れもの用コライダー"; }
 	void ResolveCollision(Vector3& position, float pointRadius) const;
 	Vector3 start = Vector3::Zero;
 	Vector3 end = {0.0f, 0.1f, 0.0f};

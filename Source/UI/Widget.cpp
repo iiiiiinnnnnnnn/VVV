@@ -1,5 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 #include "UI/Widget.h"
 #include "UI/WidgetAlpha.h"
@@ -21,22 +22,22 @@ void Widget::DrawGUI()
 {
 	ImGui::PushID(this);
 	DrawBasicInspector();
-	if (ImGuiToolKit::CollapsingHeader(u8"2Dトランスフォーム", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("2Dトランスフォーム", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGuiToolKit::Checkbox(u8"自動配置", &autoLayout);
-		bool changed = ImGuiToolKit::DragPosFloat2(u8"位置", &rect.position.x);
-		changed |= ImGuiToolKit::DragRotFloat(u8"角度", &rect.angle);
-		changed |= ImGuiToolKit::DragSizeFloat2(u8"サイズ", &rect.size.x);
-		changed |= ImGuiToolKit::DragSizeFloat2(u8"スケール", &rect.scale.x, 0.01f);
-		changed |= ImGuiToolKit::DragFloat2(u8"アンカー", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
+		ImGui::Checkbox("自動配置", &autoLayout);
+		bool changed = ImGuiToolKit::DragPosFloat2("位置", &rect.position.x);
+		changed |= ImGuiToolKit::DragRotFloat("角度", &rect.angle);
+		changed |= ImGuiToolKit::DragSizeFloat2("サイズ", &rect.size.x);
+		changed |= ImGuiToolKit::DragSizeFloat2("スケール", &rect.scale.x, 0.01f);
+		changed |= ImGui::DragFloat2("アンカー", &rect.anchor.x, 0.01f, 0.0f, 1.0f);
 		if (changed) autoLayout = false;
-		ImGuiToolKit::TextDisabled(u8"手動で変更すると自動配置がオフになります");
+		ImGui::TextDisabled("手動で変更すると自動配置がオフになります");
 	}
-	if (ImGuiToolKit::CollapsingHeader(u8"描画設定", ImGuiTreeNodeFlags_DefaultOpen))
+	if (ImGui::CollapsingHeader("描画設定", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGuiToolKit::Checkbox(u8"ポストプロセスの影響を受ける", &affectedByPostProcess);
+		ImGui::Checkbox("ポストプロセスの影響を受ける", &affectedByPostProcess);
 	}
-	if (ImGuiToolKit::CollapsingHeader(u8"ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	if (ImGui::CollapsingHeader("ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
 	DrawComponentInspector();
 	ImGui::PopID();
 }

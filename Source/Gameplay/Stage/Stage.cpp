@@ -3,7 +3,7 @@
 #include "Gameplay/Camera/FreeCameraController.h"
 
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Physics/Collider/TerrainMeshCollider.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Physics/RigidBody/Rigidbody.h"

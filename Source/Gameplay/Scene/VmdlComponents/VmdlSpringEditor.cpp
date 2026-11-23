@@ -17,21 +17,21 @@ bool VmdlSpringEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool openS
 		const bool selected = scene.selectedComponentType == AttachedComponentType::Spring &&
 			scene.selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGuiToolKit::TreeNodeEx(ICON_FA_LINK " " u8"スプリング",
+		if (ImGui::TreeNodeEx(ICON_FA_LINK " " "スプリング",
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGuiToolKit::InputText(u8"名前", &value.name);
+			bool changed = ImGui::InputText("名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			changed |= DrawTransform(*scene.model, value.transform);
-			changed |= ImGuiToolKit::DragFloat(u8"硬さ", &value.stiffness, 0.01f, 0.0f, 1.0f);
-			changed |= ImGuiToolKit::DragFloat(u8"抵抗", &value.drag, 0.01f, 0.0f, 1.0f);
-			changed |= ImGuiToolKit::SliderFloat(u8"最大角度 (度)",
+			changed |= ImGui::DragFloat("硬さ", &value.stiffness, 0.01f, 0.0f, 1.0f);
+			changed |= ImGui::DragFloat("抵抗", &value.drag, 0.01f, 0.0f, 1.0f);
+			changed |= ImGui::SliderFloat("最大角度 (度)",
 				&value.maxAngleDegrees, 0.0f, 180.0f, "%.1f");
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"アニメーションの向きを中心に揺れる範囲を制限します。0度で揺れなし、180度で制限なし。コライダーと両立できない場合は角度制限を優先します。");
-			bool angleChanged = ImGuiToolKit::SliderFloat3(u8"最小角度 XYZ (度)",
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("アニメーションの向きを中心に揺れる範囲を制限します。0度で揺れなし、180度で制限なし。コライダーと両立できない場合は角度制限を優先します。");
+			bool angleChanged = ImGui::SliderFloat3("最小角度 XYZ (度)",
 				&value.minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
-			angleChanged |= ImGuiToolKit::SliderFloat3(u8"最大角度 XYZ (度)",
+			angleChanged |= ImGui::SliderFloat3("最大角度 XYZ (度)",
 				&value.maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
 			if (angleChanged)
 			{
@@ -43,10 +43,10 @@ bool VmdlSpringEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool openS
 			if (changed) scene.MarkDirty();
 
 			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSpring = i;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"削除");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("削除");
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"複製");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("複製");
 			ImGui::TreePop();
 		}
 		ImGui::PopID();

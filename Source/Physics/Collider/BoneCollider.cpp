@@ -203,7 +203,7 @@ void BoneCollider::DrawBoneSettingsGUI()
     Vector3 scale;
     Vector3 euler;
     offset.Decompose(scale, rot, pos);
-    if (ImGuiToolKit::DragPosFloat3(u8"OffsetPos", &pos.x, 0.01f))
+    if (ImGuiToolKit::DragPosFloat3("OffsetPos", &pos.x, 0.01f))
     {
         offset = Matrix::CreateScale(scale) *
             Matrix::CreateFromQuaternion(rot) *
@@ -213,7 +213,7 @@ void BoneCollider::DrawBoneSettingsGUI()
     euler.x = DEG(euler.x);
     euler.y = DEG(euler.y);
     euler.z = DEG(euler.z);
-    if (ImGuiToolKit::DragRotFloat3(u8"OffsetRotation", &euler.x, 0.01f))
+    if (ImGuiToolKit::DragRotFloat3("OffsetRotation", &euler.x, 0.01f))
     {
         offset = Matrix::CreateScale(scale) *
             Matrix::CreateFromYawPitchRoll(RAD(euler.y), RAD(euler.x), RAD(euler.z)) *

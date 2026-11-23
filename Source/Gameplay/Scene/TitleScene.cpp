@@ -12,7 +12,8 @@
 #include "UI/MenuButtonWidget.h"
 #include "UI/EventTrigger.h"
 #include "UI/WidgetShadow.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Resource/ResourceManager.h"
 #include "Gameplay/Stage/StageTitle.h"
 
@@ -116,7 +117,7 @@ void TitleScene::DrawResources()
 		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
 	if (ImGui::Begin("Resources", nullptr, flags))
 	{
-		if (ImGuiToolKit::Button(u8"戻る")) SetMenuPage(MenuPage::Main);
+		if (ImGui::Button("戻る")) SetMenuPage(MenuPage::Main);
 		else ResourceManager::Instance().DrawGUI();
 	}
 	ImGui::End();

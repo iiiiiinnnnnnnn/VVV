@@ -7,7 +7,7 @@ public:
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_SHAPES " CapsuleCollider"; }
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " カプセルコライダー"; }
 
     const float GetRadius() const { return radius; }
     const float GetHeight() const { return height; }

@@ -18,23 +18,23 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 		const bool selected = scene.selectedComponentType == AttachedComponentType::Collider &&
 			scene.selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGuiToolKit::TreeNodeEx(ICON_FA_SHAPES " " u8"コライダー",
+		if (ImGui::TreeNodeEx(ICON_FA_SHAPES " " "コライダー",
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			const char* shapes[] = {JText(u8"ボックス"), JText(u8"球"),
-				JText(u8"カプセル"), "Mesh"};
+			const char* shapes[] = {"ボックス", "球",
+				"カプセル", "Mesh"};
 			bool initialActive = scene.model->GetColliderInitialActive(i);
-			bool changed = ImGuiToolKit::InputText(u8"名前", &value.name);
+			bool changed = ImGui::InputText("名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			PhysicsLayerManager& layerManager = PhysicsLayerManager::Instance();
 			const std::string layerPreview =
 				value.layer < 0
-					? JText(u8"-1: 継承")
+					? "-1: 継承"
 					: layerManager.GetLayerDisplayName(static_cast<LayerId>(value.layer));
-			if (ImGuiToolKit::BeginCombo(u8"レイヤー", layerPreview.c_str()))
+			if (ImGui::BeginCombo("レイヤー", layerPreview.c_str()))
 			{
-				if (ImGuiToolKit::Selectable(u8"-1: 継承", value.layer < 0))
+				if (ImGui::Selectable("-1: 継承", value.layer < 0))
 				{
 					value.layer = -1;
 					changed = true;
@@ -52,7 +52,7 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 				ImGui::EndCombo();
 			}
 			int shape = value.shape >= 3 ? 3 : value.shape;
-			if (ImGuiToolKit::Combo(u8"形状", &shape, shapes, IM_ARRAYSIZE(shapes)))
+			if (ImGui::Combo("形状", &shape, shapes, IM_ARRAYSIZE(shapes)))
 			{
 				value.shape = shape == 3 ? 3 : shape;
 				if (shape == 1) value.size.y = value.size.z = value.size.x;
@@ -66,7 +66,7 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 				int meshIndex = value.shape - 3;
 				if (meshes.empty())
 				{
-					ImGuiToolKit::TextDisabled(u8"参照できるメッシュがありません");
+					ImGui::TextDisabled("参照できるメッシュがありません");
 				}
 				else
 				{
@@ -77,7 +77,7 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 						changed = true;
 					}
 					const std::string preview = MakeMeshLabel(*scene.model, meshIndex);
-					if (ImGuiToolKit::BeginCombo(u8"参照メッシュ", preview.c_str()))
+					if (ImGui::BeginCombo("参照メッシュ", preview.c_str()))
 					{
 						for (int candidate = 0; candidate < Count(meshes); ++candidate)
 						{
@@ -95,7 +95,7 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 			}
 			else if (shape == 1)
 			{
-				if (ImGuiToolKit::DragSizeFloat(u8"半径", &scaledSize.x, 0.01f, 0.001f))
+				if (ImGuiToolKit::DragSizeFloat("半径", &scaledSize.x, 0.01f, 0.001f))
 				{
 					scaledSize.x = std::max(0.001f, scaledSize.x);
 					scaledSize.y = scaledSize.z = scaledSize.x;
@@ -106,9 +106,9 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 			else if (value.shape == 2)
 			{
 				bool sizeChanged =
-					ImGuiToolKit::DragSizeFloat(u8"半径", &scaledSize.x, 0.01f, 0.001f);
+					ImGuiToolKit::DragSizeFloat("半径", &scaledSize.x, 0.01f, 0.001f);
 				sizeChanged |=
-					ImGuiToolKit::DragSizeFloat(u8"高さ", &scaledSize.y, 0.01f, 0.001f);
+					ImGuiToolKit::DragSizeFloat("高さ", &scaledSize.y, 0.01f, 0.001f);
 				if (sizeChanged)
 				{
 					scaledSize.x = std::max(0.001f, scaledSize.x);
@@ -117,17 +117,17 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 					changed = true;
 				}
 			}
-			else if (ImGuiToolKit::DragFloat3(u8"大きさ", &scaledSize.x, 0.01f))
+			else if (ImGui::DragFloat3("大きさ", &scaledSize.x, 0.01f))
 			{
 				value.size = scene.model->GetUnscaledAttachmentVector(scaledSize);
 				changed = true;
 			}
-			changed |= ImGuiToolKit::Checkbox(u8"トリガー", &value.trigger);
-			changed |= ImGuiToolKit::Checkbox(u8"NavMesh障害物", &value.navMeshObstacle);
+			changed |= ImGui::Checkbox("トリガー", &value.trigger);
+			changed |= ImGui::Checkbox("NavMesh障害物", &value.navMeshObstacle);
 			if (ImGui::IsItemHovered())
-				ImGuiToolKit::SetTooltip(u8"このコライダーの範囲を、経路探索で避ける障害物にします");
+				ImGui::SetTooltip("このコライダーの範囲を、経路探索で避ける障害物にします");
 			if (changed) scene.MarkDirty();
-			if (ImGuiToolKit::Checkbox(u8"初期状態で有効", &initialActive))
+			if (ImGui::Checkbox("初期状態で有効", &initialActive))
 			{
 				scene.model->SetColliderInitialActive(i, initialActive);
 				if (Count(scene.previewColliderActive) <= i)
@@ -137,10 +137,10 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 			}
 
 			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteCollider = i;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"削除");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("削除");
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"複製");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("複製");
 			ImGui::TreePop();
 		}
 		ImGui::PopID();

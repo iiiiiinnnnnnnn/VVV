@@ -1,6 +1,7 @@
 #include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 #include "Gameplay/Actor/Aracore.h"
 
@@ -8,7 +9,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <imgui.h>
 
 #include "Animation/Animator.h"
 #include "Animation/MultiLegFootIK.h"
@@ -26,7 +26,7 @@
 #include "Gameplay/Scene/CameraEffectController.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 
 #include "Physics/Collider/CharacterController.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
@@ -975,16 +975,16 @@ void Aracore::SetPlayerDetected(bool detected)
 void Aracore::OnDrawGUI()
 {
 	Entity::OnDrawGUI();
-	ImGuiToolKit::TextUnformatted(u8"AIパス：Resources/AI/Aracore.lua");
+	ImGui::TextUnformatted("AIパス：Resources/AI/Aracore.lua");
 
-	ImGuiToolKit::Text(u8"バトル時間: %.2f秒", battleTime);
+	ImGui::Text("バトル時間: %.2f秒", battleTime);
 
-	if (ImGuiToolKit::Button(u8"威嚇"))
+	if (ImGui::Button("威嚇"))
 	{
 		PlayThreatPresentation();
 	}
 
-	if (ImGuiToolKit::Button(u8"20ダメージ"))
+	if (ImGui::Button("20ダメージ"))
 	{
 		TakeDamage(DamageData{.damage = 20.0f});
 	}
@@ -997,7 +997,7 @@ void Aracore::OnDrawGUI()
 	for (Vector3& pos : colPositions)
 	{
 		ImGui::PushID(&pos);
-		ImGuiToolKit::DragPosFloat3(u8"Foot Collider Offset", &pos.x, 0.01f);
+		ImGuiToolKit::DragPosFloat3("Foot Collider Offset", &pos.x, 0.01f);
 		ImGui::PopID();
 	}
 }

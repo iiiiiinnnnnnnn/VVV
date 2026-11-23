@@ -1,13 +1,12 @@
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Core/Object/Object.h"
 #include "IconsFontAwesome5.h"
-#include "imgui.h"
-#include "imgui_stdlib.h"
 #include "Application/Time/GameTime.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Physics/Core/PhysicsComponent.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 
 Object::~Object()
 {
@@ -120,13 +119,13 @@ void Object::Render(const RenderContext& rc)
 
 void Object::DrawGUI()
 {
-    if (ImGuiToolKit::TreeNode(ICON_FA_INFO_CIRCLE " " u8"オブジェクト情報"))
+    if (ImGui::TreeNode(ICON_FA_INFO_CIRCLE " " "オブジェクト情報"))
     {
-        ImGuiToolKit::Checkbox(u8"有効", &isActive);
-        ImGuiToolKit::Text(u8"名前: %s、タグ: %s", name.c_str(), tag.c_str());
-        ImGuiToolKit::Text(u8"破棄タイマー: %s", destroyTimer.has_value() ? std::to_string(destroyTimer->GetRemaining()).c_str() : JText(u8"なし"));
+        ImGui::Checkbox("有効", &isActive);
+        ImGui::Text("名前: %s、タグ: %s", name.c_str(), tag.c_str());
+        ImGui::Text("破棄タイマー: %s", destroyTimer.has_value() ? std::to_string(destroyTimer->GetRemaining()).c_str() : "なし");
 
-        if (ImGuiToolKit::Button(u8"破棄"))
+        if (ImGui::Button("破棄"))
             Destroy();
 
         ImGui::TreePop();
@@ -148,28 +147,28 @@ void Object::DrawGUI()
 void Object::DrawBasicInspector()
 {
 	ImGui::AlignTextToFramePadding();
-	ImGuiToolKit::TextUnformatted(u8"名前：");
+	ImGui::TextUnformatted("名前：");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(-1.0f);
 	ImGui::InputText("##ObjectName", &name);
 	ImGui::AlignTextToFramePadding();
-	ImGuiToolKit::TextUnformatted(u8"タグ：");
+	ImGui::TextUnformatted("タグ：");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(-1.0f);
 	ImGui::InputText("##ObjectTag", &tag);
-	ImGuiToolKit::Checkbox(u8"有効", &isActive);
+	ImGui::Checkbox("有効", &isActive);
 }
 
 void Object::DrawComponentInspector()
 {
-	ImGuiToolKit::SeparatorText(u8"コンポーネント");
+	ImGui::SeparatorText("コンポーネント");
 	const float clearWidth = ImGui::CalcTextSize(ICON_FA_TIMES).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 	ImGui::SetNextItemWidth(-clearWidth - ImGui::GetStyle().ItemSpacing.x);
 	const bool searchChanged = ImGui::InputTextWithHint("##ComponentSearch",
-		JText(u8"コンポーネント名で検索…"), &componentSearch);
+		"コンポーネント名で検索…", &componentSearch);
 	ImGui::SameLine();
 	if (ImGui::Button(ICON_FA_TIMES "##ClearComponentSearch")) componentSearch.clear();
-	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"検索をクリア");
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip("検索をクリア");
 
 	const ImGuiTextFilter filter(componentSearch.c_str());
 	bool hasMatches = false;
@@ -183,12 +182,12 @@ void Object::DrawComponentInspector()
 		if (ImGui::CollapsingHeader(component->GetDebugName()))
 		{
 			bool active = component->IsActive();
-			if (ImGuiToolKit::Checkbox(u8"有効##Component", &active)) component->SetActive(active);
+			if (ImGui::Checkbox("有効##Component", &active)) component->SetActive(active);
 			component->DrawGUI();
 		}
 		ImGui::PopID();
 	}
-	if (!hasMatches) ImGuiToolKit::TextDisabled(u8"表示するコンポーネントがありません");
+	if (!hasMatches) ImGui::TextDisabled("表示するコンポーネントがありません");
 }
 
 void Object::SortComponentsByUpdateOrder()

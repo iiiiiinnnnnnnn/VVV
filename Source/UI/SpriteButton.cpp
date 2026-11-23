@@ -51,8 +51,8 @@ void SpriteButton::OnRender(const RenderContext&)
 
 void SpriteButton::OnDrawGUI()
 {
-	ImGuiToolKit::DragPosFloat2(u8"背面オフセット", &backOffset.x);
-	ImGuiToolKit::DragPosFloat2(u8"前面オフセット", &frontOffset.x);
-	ImGuiToolKit::ColorPicker3(u8"背面色", &backColor.x);
-	ImGuiToolKit::ColorPicker3(u8"前面色", &frontColor.x);
+	ImGuiToolKit::DragPosFloat2("背面オフセット", &backOffset.x);
+	ImGuiToolKit::DragPosFloat2("前面オフセット", &frontOffset.x);
+	ImGuiToolKit::ColorPicker3("背面色", &backColor.x);
+	ImGuiToolKit::ColorPicker3("前面色", &frontColor.x);
 }

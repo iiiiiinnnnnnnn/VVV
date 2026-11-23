@@ -18,33 +18,33 @@ bool VmdlSoundSourceEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool 
 		const bool selected = scene.selectedComponentType == AttachedComponentType::SoundSource &&
 			scene.selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGuiToolKit::TreeNodeEx(ICON_FA_VOLUME_UP " " u8"サウンドソース",
+		if (ImGui::TreeNodeEx(ICON_FA_VOLUME_UP " " "サウンドソース",
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			if (selected && openSelectedComponent) ImGui::SetScrollHereY(0.25f);
-			bool changed = ImGuiToolKit::InputText(u8"名前", &value.name);
+			bool changed = ImGui::InputText("名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
 			changed |= DrawTransform(*scene.model, value.transform);
-			if (scene.DrawSoundPathSelector(JText(u8"サウンド"), value.soundPath)) changed = true;
+			if (scene.DrawSoundPathSelector("サウンド", value.soundPath)) changed = true;
 			bool randomVariant = value.variant < 0;
-			if (ImGuiToolKit::Checkbox(u8"バリエーションをランダム選択", &randomVariant))
+			if (ImGui::Checkbox("バリエーションをランダム選択", &randomVariant))
 			{
 				value.variant = randomVariant ? -1 : 0;
 				changed = true;
 			}
 			if (!randomVariant)
-				changed |= ImGuiToolKit::DragInt(u8"バリエーション番号", &value.variant, 1.0f, 0, 10000);
-			changed |= ImGuiToolKit::DragFloat(u8"音量", &value.volume, 0.01f, 0.0f, 4.0f);
-			changed |= ImGuiToolKit::DragFloatRange2(u8"ランダムピッチ",
+				changed |= ImGui::DragInt("バリエーション番号", &value.variant, 1.0f, 0, 10000);
+			changed |= ImGui::DragFloat("音量", &value.volume, 0.01f, 0.0f, 4.0f);
+			changed |= ImGui::DragFloatRange2("ランダムピッチ",
 				&value.pitchMin, &value.pitchMax, 0.01f, 0.125f, 8.0f, "%.2f", "%.2f");
-			changed |= ImGuiToolKit::Checkbox(u8"3Dサウンド", &value.spatial);
+			changed |= ImGui::Checkbox("3Dサウンド", &value.spatial);
 			if (value.spatial)
 			{
-				changed |= ImGuiToolKit::DragFloat(u8"減衰開始距離", &value.minDistance, 0.1f, 0.01f, 1000.0f);
-				changed |= ImGuiToolKit::DragFloat(u8"再生限界距離", &value.maxDistance, 0.1f, 0.02f, 1000.0f);
-				changed |= ImGuiToolKit::DragFloat(u8"近距離ローパス", &value.lowPassHz, 10.0f, 20.0f, 20000.0f);
-				changed |= ImGuiToolKit::DragFloat(u8"遠距離ローパス", &value.farLowPassHz, 10.0f, 20.0f, 20000.0f);
-				changed |= ImGuiToolKit::SliderFloat(u8"残響", &value.reverbMix, 0.0f, 1.0f);
+				changed |= ImGui::DragFloat("減衰開始距離", &value.minDistance, 0.1f, 0.01f, 1000.0f);
+				changed |= ImGui::DragFloat("再生限界距離", &value.maxDistance, 0.1f, 0.02f, 1000.0f);
+				changed |= ImGui::DragFloat("近距離ローパス", &value.lowPassHz, 10.0f, 20.0f, 20000.0f);
+				changed |= ImGui::DragFloat("遠距離ローパス", &value.farLowPassHz, 10.0f, 20.0f, 20000.0f);
+				changed |= ImGui::SliderFloat("残響", &value.reverbMix, 0.0f, 1.0f);
 			}
 			value.volume = std::clamp(value.volume, 0.0f, 4.0f);
 			value.pitchMin = std::clamp(value.pitchMin, 0.125f, 8.0f);
@@ -59,14 +59,14 @@ bool VmdlSoundSourceEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool 
 			ImGui::BeginDisabled(value.soundPath.empty());
 			if (ImGui::Button(ICON_FA_PLAY "##TestSound")) scene.PlaySoundSourcePreview(i);
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGuiToolKit::SetTooltip(u8"テスト再生");
+				ImGui::SetTooltip("テスト再生");
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteSoundSource = i;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"削除");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("削除");
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"複製");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("複製");
 			ImGui::TreePop();
 		}
 		ImGui::PopID();

@@ -33,7 +33,7 @@ void BoneSphereCollider::Render(const RenderContext& rc)
 void BoneSphereCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGuiToolKit::DragSizeFloat(u8"Radius", &radius, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat("Radius", &radius, 0.01f, 0.01f, 10.0f);
     if (radius < 0.01f) radius = 0.01f;
     if (changed)
     {

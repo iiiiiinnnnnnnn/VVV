@@ -9,7 +9,7 @@ public:
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-    const char* GetDebugName() const override { return ICON_FA_SHAPES " SphereCollider"; }
+    const char* GetDebugName() const override { return ICON_FA_SHAPES " 球コライダー"; }
 
     const float GetRadius() const { return radius; }
     const Vector3& GetLocalPosition() const { return localPosition; }

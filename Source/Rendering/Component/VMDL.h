@@ -20,7 +20,7 @@ class VMDL : public Component
 	VMDL(Object* owner, const std::string& path, bool buildEmbeddedColliders = true);
 	VMDL(Object* owner, std::shared_ptr<VMDLModel> model);
 
-	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDL"; }
+	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDLモデル"; }
 	void OnDrawGUI() override;
 
 	const std::string& GetPath() const { return path; }

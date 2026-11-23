@@ -36,7 +36,7 @@ void BoneBoxCollider::Render(const RenderContext& rc)
 void BoneBoxCollider::DrawGUI()
 {
     bool changed = false;
-    changed |= ImGuiToolKit::DragSizeFloat3(u8"Size", &size.x, 0.01f, 0.01f, 10.0f);
+    changed |= ImGuiToolKit::DragSizeFloat3("Size", &size.x, 0.01f, 0.01f, 10.0f);
     size.x = std::max(size.x, 0.01f);
     size.y = std::max(size.y, 0.01f);
     size.z = std::max(size.z, 0.01f);

@@ -1,6 +1,6 @@
 #include "Gameplay/Actor/Entity.h"
-#include <ImGuiToolKit/Widgets.h>
-#include "imgui.h"
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Application/Time/GameTime.h"
 #include "Physics/Core/PhysicsComponent.h"
 #include <cmath>
@@ -23,9 +23,9 @@ void Entity::OnDrawGUI()
 {
     if (ImGui::TreeNode("Entity Info"))
     {
-        ImGuiToolKit::Text(u8"ライフ: %.1f / %.1f", life, maxLife);
-		ImGuiToolKit::Text(u8"ダメージクールダウン: %.2f", cooldowns.damageCooldown.GetRemaining());
-		ImGuiToolKit::Text(u8"死亡: %s", IsDead() ? "Yes" : "No");
+        ImGui::Text("ライフ: %.1f / %.1f", life, maxLife);
+		ImGui::Text("ダメージクールダウン: %.2f", cooldowns.damageCooldown.GetRemaining());
+		ImGui::Text("死亡: %s", IsDead() ? "Yes" : "No");
         ImGui::TreePop();
     }
 }

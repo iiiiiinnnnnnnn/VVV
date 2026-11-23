@@ -2,7 +2,8 @@
 #include "Resource/VMDLModel.h"
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ShapeRenderer.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 
 void SpringBoneCollider::ResolveCollision(Vector3& position, const Matrix& world, float pointRadius) const
@@ -84,9 +85,9 @@ bool SpringBoneCollider::DrawGUI(const VMDLModel& model)
 		}
 		ImGui::EndCombo();
 	}
-	changed |= ImGuiToolKit::DragPosFloat3(u8"Start", &start.x, 0.01f);
-	changed |= ImGuiToolKit::DragPosFloat3(u8"End", &end.x, 0.01f);
-	changed |= ImGuiToolKit::DragSizeFloat(u8"Radius", &radius, 0.005f, 0.001f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+	changed |= ImGuiToolKit::DragPosFloat3("Start", &start.x, 0.01f);
+	changed |= ImGuiToolKit::DragPosFloat3("End", &end.x, 0.01f);
+	changed |= ImGuiToolKit::DragSizeFloat("Radius", &radius, 0.005f, 0.001f, 10.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 	ImGui::PopItemWidth();
 	return changed;
 }

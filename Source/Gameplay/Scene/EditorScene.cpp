@@ -1,5 +1,6 @@
 #include <ImGuiToolKit/ImGuiToolKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "EditorScene.h"
 #include "Rendering/Renderer/ImGuiRenderer.h"
 #include <imguizmo/ImGuizmo.h>
@@ -7,26 +8,26 @@
 void EditorScene::DrawCommonVisibilityGUI(bool* meshVisibility)
 {
 	const struct { const char* label; ShadingMode mode; } modes[] = {
-		{JText(ICON_FA_ADJUST u8" シェーディング"), ShadingMode::Shading},
-		{JText(ICON_FA_SUN    u8" アンリット"), ShadingMode::Unlit},
-		{JText(ICON_FA_ADJUST u8" ソリッド"), ShadingMode::Solid},
-		{JText(ICON_FA_ADJUST u8" ワイヤー"), ShadingMode::Wire},
-		{JText(ICON_FA_ADJUST u8" ソリッド＋ワイヤー"), ShadingMode::SolidAndWire},
+		{ICON_FA_ADJUST " シェーディング", ShadingMode::Shading},
+		{ICON_FA_SUN    " アンリット", ShadingMode::Unlit},
+		{ICON_FA_ADJUST " ソリッド", ShadingMode::Solid},
+		{ICON_FA_ADJUST " ワイヤー", ShadingMode::Wire},
+		{ICON_FA_ADJUST " ソリッド＋ワイヤー", ShadingMode::SolidAndWire},
 	};
 	for (const auto& item : modes)
 		if (ImGui::MenuItem(item.label, nullptr, renderSettings.shadingMode == item.mode))
 			renderSettings.shadingMode = item.mode;
 	if (meshVisibility)
-		ImGuiToolKit::MenuItem(ICON_FA_CUBE u8" メッシュ", "M", meshVisibility);
+		ImGui::MenuItem(ICON_FA_CUBE " メッシュ", "M", meshVisibility);
 	ImGui::Separator();
-	ImGuiToolKit::MenuItem(ICON_FA_LEAF u8" 草マップ", "G", &renderSettings.showGrass);
-	ImGuiToolKit::MenuItem(ICON_FA_SMOG u8" フォグ", "F", &renderSettings.showFog);
+	ImGui::MenuItem(ICON_FA_LEAF " 草マップ", "G", &renderSettings.showGrass);
+	ImGui::MenuItem(ICON_FA_SMOG " フォグ", "F", &renderSettings.showFog);
 	ImGui::Separator();
 }
 
 void EditorScene::DrawSerialViewerTools()
 {
-	if (ImGuiToolKit::MenuItem(ICON_FA_SITEMAP u8" シリアルビューアー"))
+	if (ImGui::MenuItem(ICON_FA_SITEMAP " シリアルビューアー"))
 	{
 		showSerialViewer = true;
 		serialViewerDocument = nullptr;
@@ -52,7 +53,7 @@ void EditorScene::DrawSerialViewer()
 void EditorScene::DrawDocumentTitle(const std::filesystem::path& path, bool dirty)
 {
 	const auto utf8Path = path.u8string();
-	std::string title = path.empty() ? JText(u8"未保存")
+	std::string title = path.empty() ? "未保存"
 		: std::string(reinterpret_cast<const char*>(utf8Path.data()), utf8Path.size());
 	if (dirty) title += " *";
 	DrawEditorText(title);
@@ -61,9 +62,9 @@ void EditorScene::DrawDocumentTitle(const std::filesystem::path& path, bool dirt
 void EditorScene::DrawGizmoButtons(int& operation)
 {
 	const struct { const char* icon; const char* tooltip; int operation; } buttons[] = {
-		{ICON_FA_ARROWS_ALT, JText(u8"移動 (W)"), ImGuizmo::TRANSLATE},
-		{ICON_FA_SYNC_ALT, JText(u8"回転 (E)"), ImGuizmo::ROTATE},
-		{ICON_FA_EXPAND_ARROWS_ALT, JText(u8"サイズ (R)"), ImGuizmo::SCALE},
+		{ICON_FA_ARROWS_ALT, "移動 (W)", ImGuizmo::TRANSLATE},
+		{ICON_FA_SYNC_ALT, "回転 (E)", ImGuizmo::ROTATE},
+		{ICON_FA_EXPAND_ARROWS_ALT, "サイズ (R)", ImGuizmo::SCALE},
 	};
 	for (const auto& button : buttons)
 	{

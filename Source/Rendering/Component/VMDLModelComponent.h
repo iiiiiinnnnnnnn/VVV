@@ -29,7 +29,7 @@ class VMDLModelComponent : public Component
 	void LateUpdate() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_CUBES " VMDLModelComponent"; }
+	const char* GetDebugName() const override { return ICON_FA_CUBES " モデル描画"; }
 
 	VMDLModel* GetModel() const { return model.get(); }
 	void SetModel(std::shared_ptr<VMDLModel> model) { this->model = model; }

@@ -177,7 +177,7 @@ void FootIK::Render(const RenderContext& rc)
 
 void FootIK::DrawGUI()
 {
-	if (ImGuiToolKit::DragPosFloat3(u8"Pole Position", &chain.polePosition.x, 0.01f))
+	if (ImGuiToolKit::DragPosFloat3("Pole Position", &chain.polePosition.x, 0.01f))
 	{
 		SyncPoleLocalPosition();
 	}

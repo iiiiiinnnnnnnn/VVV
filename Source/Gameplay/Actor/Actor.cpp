@@ -1,5 +1,6 @@
 ﻿#include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Gameplay/Actor/Actor.h"
 #include "IconsFontAwesome5.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
@@ -7,7 +8,6 @@
 #include "Physics/RigidBody/Rigidbody.h"
 #include "Physics/Collider/CharacterController.h"
 #include "Physics/Core/PhysicsComponent.h"
-#include <imgui.h>
 
 Actor::~Actor()
 {
@@ -98,7 +98,7 @@ void Actor::DrawGUI()
 	if (changed.rotationChanged)
 		if (auto* rigidbody = GetComponent<Rigidbody>()) rigidbody->SetRotation(transform.rotation);
 
-	if (ImGuiToolKit::CollapsingHeader(u8"ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
+	if (ImGui::CollapsingHeader("ユーザー定義", ImGuiTreeNodeFlags_DefaultOpen)) OnDrawGUI();
 	DrawComponentInspector();
 	ImGui::PopID();
 }
@@ -116,7 +116,7 @@ void Actor::DrawGUI(bool selected)
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, selectedColor);
 	}
 	const std::string label = std::string(ICON_FA_CUBE " ") +
-		(name.empty() ? JText(u8"名前なしオブジェクト") : name) + "###ActorInspector";
+		(name.empty() ? "名前なしオブジェクト" : name) + "###ActorInspector";
     const bool inspectorOpen = ImGui::CollapsingHeader(label.c_str(), flags);
 	if (selected)
 	{

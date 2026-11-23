@@ -1,6 +1,6 @@
 #include "Core/Foundation/Random.h"
-
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Alert.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Gameplay/Scene/TestPlayScene.h"
@@ -29,7 +29,7 @@
 #include "UI/PauseMenuWidget.h"
 #include "Gameplay/Actor/Deer.h"
 #include "Gameplay/Actor/Crystal.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "UI/WidgetShadow.h"
 #include "UI/CmdActionWidget.h"
 #include "Physics/Collider/CharacterController.h"
@@ -117,27 +117,27 @@ void TestPlayScene::OnInit()
 
 #ifndef _RELEASE // ちょうデバッグ
 	developText = std::make_shared<TextWidget>("DevHelp",
-		JText(u8"※デバッグ/デベロップビルドです\r\n"
-					 u8"\r\n"
-					 u8"[1] Deerを出現させる\r\n"
-					 u8"[2] クリスタルを出現させる\r\n"
-					 u8"[3] Aracoreを出現させる\r\n"
-					 u8"[4] プレイヤーボスの間にTP\r\n"
-					 u8"[5] プレイヤーにダメージ\r\n"
-					 u8"[6] プレイヤーを回復\r\n"
-					 u8"[7] すべての敵に致死ダメージ\r\n"
-					 u8"[8] すべてのクリスタルを破壊\r\n"
-					 u8"[9] 現在のシーンをリロード\r\n"
-					 u8"[0] 空中浮遊\r\n"
-					 u8"[F] フォグを表示/非表示\r\n"
-					 u8"[G] 草マップを表示/非表示\r\n"
-					 u8"[F1] カーソルをロック/解除\r\n"
-					 u8"[F2] ゲーム内エディタ表示/非表示\r\n"
-					 u8"[F3] デバッグ表示/非表示\r\n"
-					 u8"[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
-					 u8"[F5] ゲーム時間を再開\r\n"
-					 u8"[F6] ムービーカメラ・タイムライン編集\r\n"
-					 u8"[F7] この文字を表示/非表示"),
+		"※デバッグ/デベロップビルドです\r\n"
+					 "\r\n"
+					 "[1] Deerを出現させる\r\n"
+					 "[2] クリスタルを出現させる\r\n"
+					 "[3] Aracoreを出現させる\r\n"
+					 "[4] プレイヤーボスの間にTP\r\n"
+					 "[5] プレイヤーにダメージ\r\n"
+					 "[6] プレイヤーを回復\r\n"
+					 "[7] すべての敵に致死ダメージ\r\n"
+					 "[8] すべてのクリスタルを破壊\r\n"
+					 "[9] 現在のシーンをリロード\r\n"
+					 "[0] 空中浮遊\r\n"
+					 "[F] フォグを表示/非表示\r\n"
+					 "[G] 草マップを表示/非表示\r\n"
+					 "[F1] カーソルをロック/解除\r\n"
+					 "[F2] ゲーム内エディタ表示/非表示\r\n"
+					 "[F3] デバッグ表示/非表示\r\n"
+					 "[F4] ゲーム時間を停止（右クリック＋WASDQEで移動）\r\n"
+					 "[F5] ゲーム時間を再開\r\n"
+					 "[F6] ムービーカメラ・タイムライン編集\r\n"
+					 "[F7] この文字を表示/非表示",
 		22.0f, "NotoSansJP");
 	developText->AddComponent<WidgetShadow>(Vector2(2.0f, 2.0f), Color(0.0f, 0.0f, 0.0f, 1.0f));
 	developText->rect.position = {48.1f, -143.0f};
@@ -433,7 +433,7 @@ void TestPlayScene::OnDrawGUI()
 {
 	if (movieCamera && movieCamera->IsEditing()) return;
 
-	if (ImGui::Button((const char*)u8"シーンを再読み込み"))
+	if (ImGui::Button((const char*)"シーンを再読み込み"))
 	{
 		SceneManager::Instance().LoadScene<TestPlayScene>();
 	}

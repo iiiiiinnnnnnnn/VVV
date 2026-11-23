@@ -101,7 +101,7 @@ public:
 
 	MovieCameraController(Object* owner);
 	~MovieCameraController() override;
-	const char* GetDebugName() const override { return ICON_FA_VIDEO "MovieCameraController"; }
+	const char* GetDebugName() const override { return ICON_FA_VIDEO "演出カメラ制御"; }
 	void SyncCameraToController(const Camera& camera) override;
 	void SyncControllerToCamera(Camera& camera) override;
 	bool Begin(Stage& stage, Actor& player, Actor* boss, Game::PostProcess& postProcess);

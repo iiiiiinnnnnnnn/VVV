@@ -1,5 +1,6 @@
 #include "UI/WidgetAlpha.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 WidgetAlpha::WidgetAlpha(Object* owner, float alpha) : Component(owner)
 {
@@ -8,5 +9,5 @@ WidgetAlpha::WidgetAlpha(Object* owner, float alpha) : Component(owner)
 
 void WidgetAlpha::OnDrawGUI()
 {
-	if (ImGuiToolKit::SliderFloat(u8"透明度", &alpha, 0.0f, 1.0f)) SetAlpha(alpha);
+	if (ImGui::SliderFloat("透明度", &alpha, 0.0f, 1.0f)) SetAlpha(alpha);
 }

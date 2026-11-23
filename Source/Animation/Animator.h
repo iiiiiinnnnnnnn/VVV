@@ -1,13 +1,13 @@
 #pragma once
 #include <functional>
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 
-#include <imgui.h>
 #include <imgui_node_editor.h>
 
 #include "Core/Foundation/Common.h"
@@ -24,7 +24,7 @@ public:
     ~Animator() override;
     void Update() override;
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_FILM " Animator"; }
+	const char* GetDebugName() const override { return ICON_FA_FILM " アニメーター"; }
     int GetUpdateOrder() const override { return 100; }
     void _print() const;
 
@@ -342,7 +342,7 @@ private:
     bool suppressNodeEditorInteractions = false;
     float editorLeftPanelWidth = 230.0f;
     bool addLayerPopupOpen = false;
-    std::string addLayerName = JText(u8"新規レイヤー");
+    std::string addLayerName = "新規レイヤー";
     std::vector<bool> maskSelection;
     int contextLayerIndex = -1;
 

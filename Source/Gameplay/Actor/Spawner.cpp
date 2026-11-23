@@ -1,5 +1,6 @@
 #include "Gameplay/Actor/Spawner.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include "Gameplay/Actor/Actor.h"
 #include "Gameplay/Actor/ActorManager.h"
@@ -43,7 +44,7 @@ void Spawner::ClearSummonedActors()
 
 void Spawner::DrawGUI()
 {
-	ImGuiToolKit::Text(u8"生成対象: %s", entityName.c_str());
+	ImGui::Text("生成対象: %s", entityName.c_str());
 	ImGui::Text("SpawnTag: %s", spawnTag.c_str());
-	ImGuiToolKit::Text(u8"生成数: %d", static_cast<int>(summonedActors.size()));
+	ImGui::Text("生成数: %d", static_cast<int>(summonedActors.size()));
 }

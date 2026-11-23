@@ -11,7 +11,7 @@ public:
 	void OnDisabled() override;
 
 public:
-	const char* GetDebugName() const override { return ICON_FA_WEIGHT_HANGING " RigidbodyStatic"; }
+	const char* GetDebugName() const override { return ICON_FA_WEIGHT_HANGING " 静的剛体"; }
 	PxRigidActor* GetRigidActor() const override { return rb; }
 
 	Vector3 GetPosition() const { return Conv::ToVector3(rb->getGlobalPose().p); }

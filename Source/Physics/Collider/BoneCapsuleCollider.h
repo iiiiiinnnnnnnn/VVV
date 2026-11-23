@@ -13,7 +13,7 @@ public:
         bool isTrigger = true, bool freezePositions = false, bool freezeRotations = false);
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_SHAPES " BoneCapsuleCollider"; }
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " ボーンカプセルコライダー"; }
 
 private:
     PxShape* CreateShape(PxPhysics* physics, PxMaterial* material) const override;

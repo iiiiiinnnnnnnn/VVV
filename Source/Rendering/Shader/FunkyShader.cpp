@@ -2,7 +2,8 @@
 #include "Rendering/Shader/FunkyShader.h"
 #include "Resource/ResourceManager.h"
 #include "Rendering/Core/Graphics.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 
 FunkyShader::FunkyShader(ID3D11Device* device)
@@ -80,15 +81,15 @@ const MaterialMap& FunkyShader::GetMaterialParameters() const
 bool FunkyShader::DrawGUI(VMDLModel::Material& material)
 {
 	material.parameters.ApplyDefaults(GetMaterialParameters());
-	ImGuiToolKit::SeparatorText(u8"Funkyシェーダー");
+	ImGui::SeparatorText("Funkyシェーダー");
 	
 	ImGui::PushItemWidth(240.0f);
 
-	bool changed = ImGuiToolKit::DragSizeFloat(u8"縞の幅", &material.parameters.Get(FunkyParameters::LineWidth),
+	bool changed = ImGuiToolKit::DragSizeFloat("縞の幅", &material.parameters.Get(FunkyParameters::LineWidth),
 		0.05f, 0.001f, 10000.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-	changed |= ImGuiToolKit::DragSpeedFloat(u8"移動速度", &material.parameters.Get(FunkyParameters::Speed),
+	changed |= ImGuiToolKit::DragSpeedFloat("移動速度", &material.parameters.Get(FunkyParameters::Speed),
 		0.1f, -1000.0f, 1000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-	if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"0で停止、負の値で逆方向に流れます");
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip("0で停止、負の値で逆方向に流れます");
 	
 	ImGui::PopItemWidth();
 	

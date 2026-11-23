@@ -1,6 +1,7 @@
 #include "Rendering/Shader/ModelMaterialParameters.h"
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Rendering/Core/PBRRenderParams.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/VMDLModel.h"
@@ -94,7 +95,7 @@ bool HasNodeSide(const std::string& name, bool left)
 		upper.ends_with(std::string(".") + shortSide) ||
 		upper.ends_with(std::string("-") + shortSide))
 		return true;
-	return name.find(reinterpret_cast<const char*>(left ? u8"左" : u8"右")) != std::string::npos;
+	return name.find(reinterpret_cast<const char*>(left ? "左" : "右")) != std::string::npos;
 }
 
 bool HasNodeRegion(const std::string& name, bool front)
@@ -104,12 +105,12 @@ bool HasNodeRegion(const std::string& name, bool front)
 	{
 		return normalized.find("FRONT") != std::string::npos ||
 			   normalized.find("FORE") != std::string::npos ||
-			   name.find(reinterpret_cast<const char*>(u8"前")) != std::string::npos;
+			   name.find(reinterpret_cast<const char*>("前")) != std::string::npos;
 	}
 	return normalized.find("BACK") != std::string::npos ||
 		   normalized.find("HIND") != std::string::npos ||
 		   normalized.find("REAR") != std::string::npos ||
-		   name.find(reinterpret_cast<const char*>(u8"後")) != std::string::npos;
+		   name.find(reinterpret_cast<const char*>("後")) != std::string::npos;
 }
 
 int FindBestIkNode(const std::vector<VMDLModel::Node>& nodes,
@@ -1949,16 +1950,16 @@ bool VMDLModel::AutoAssignVmdlIKNodes()
 	int centerIndex = -1;
 	if (vmdlIKSettings.type == 1)
 		centerIndex = FindBestIkNode(nodes,
-			{"HIPS", "PELVIS", "WAIST", "HIP", "ROOT", JText(u8"骨盤"), JText(u8"腰")},
+			{"HIPS", "PELVIS", "WAIST", "HIP", "ROOT", "骨盤", "腰"},
 			0, 0, -1);
 	else if (vmdlIKSettings.type == 2)
 		centerIndex = FindBestIkNode(nodes,
-			{"BODY", "SPINE", "CHEST", "PELVIS", "HIPS", "ROOT", JText(u8"胴体"),
-				JText(u8"背骨")},
+			{"BODY", "SPINE", "CHEST", "PELVIS", "HIPS", "ROOT", "胴体",
+				"背骨"},
 			0, 0, -1);
 	else
 		centerIndex = FindBestIkNode(nodes,
-			{"THORAX", "BODY", "CHEST", "ROOT", JText(u8"胸部"), JText(u8"胴体")}, 0, 0,
+			{"THORAX", "BODY", "CHEST", "ROOT", "胸部", "胴体"}, 0, 0,
 			-1);
 	if (centerIndex >= 0)
 		changed |= AssignIkNodeReference(vmdlIKSettings.centerNode, nodes, centerIndex);
@@ -1978,17 +1979,17 @@ bool VMDLModel::AutoAssignVmdlIKNodes()
 		if (vmdlIKSettings.type == 1)
 		{
 			rootIndex = FindBestIkNode(nodes,
-				{"UPPERLEG", "UPLEG", "THIGH", JText(u8"太もも"), JText(u8"腿"),
-					JText(u8"足")},
+				{"UPPERLEG", "UPLEG", "THIGH", "太もも", "腿",
+					"足"},
 				side, 0, centerIndex);
 			midIndex = FindBestIkNode(nodes,
-				{"LOWERLEG", "CALF", "SHIN", "KNEE", JText(u8"ひざ"), JText(u8"膝"),
-					JText(u8"すね")},
+				{"LOWERLEG", "CALF", "SHIN", "KNEE", "ひざ", "膝",
+					"すね"},
 				side, 0, rootIndex);
 			tipIndex = FindBestIkNode(nodes,
-				{"FOOT", "ANKLE", JText(u8"足首"), JText(u8"足")}, side, 0, midIndex);
+				{"FOOT", "ANKLE", "足首", "足"}, side, 0, midIndex);
 			contactIndex = FindBestIkNode(nodes,
-				{"TOEBASE", "TOE", "BALL", JText(u8"つま先"), JText(u8"爪先")}, side, 0,
+				{"TOEBASE", "TOE", "BALL", "つま先", "爪先"}, side, 0,
 				tipIndex);
 		}
 		else if (vmdlIKSettings.type == 2)

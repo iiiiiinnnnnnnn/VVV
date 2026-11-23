@@ -75,7 +75,7 @@ void SpriteWidget::OnDrawGUI()
 	}
 	if (shaderId == SpriteShaderId::Vignette)
 	{
-		ImGuiToolKit::ColorEdit4(u8"Color", &color.x);
+		ImGuiToolKit::ColorEdit4("Color", &color.x);
 		ImGui::DragFloat2("Vignette Center", &renderParams.vignette.center.x, 0.01f, 0.0f, 1.0f);
 		ImGui::SliderFloat("Vignette Intensity", &renderParams.vignette.intensity, 0.0f, 5.0f);
 		ImGui::SliderFloat("Vignette Smoothness", &renderParams.vignette.smoothness, 0.01f, 10.0f);
@@ -84,7 +84,7 @@ void SpriteWidget::OnDrawGUI()
 	}
 	else
 	{
-		ImGuiToolKit::ColorEdit4(u8"Color", &color.x);
+		ImGuiToolKit::ColorEdit4("Color", &color.x);
 	}
 	ImGui::SliderFloat("Horizontal Fill", &horizontalFill, 0.0f, 1.0f);
 }

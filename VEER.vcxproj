@@ -171,8 +171,8 @@
     <ClCompile Include="Source\Gameplay\Stage\Component\StageLoader.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Water.cpp" />
     <ClCompile Include="Source\Rendering\Renderer\WaterRenderer.cpp" />
-    <ClCompile Include="Source\Gameplay\Stage\Component\Terrain.cpp" />
-    <ClCompile Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.cpp" />
+    <ClCompile Include="Source\Rendering\Component\Terrain.cpp" />
+    <ClCompile Include="Source\Rendering\Component\TerrainGrassRenderer.cpp" />
     <ClCompile Include="Source\Physics\Collider\TerrainMeshCollider.cpp" />
     <ClCompile Include="Source\Resource\ResourceManager.cpp" />
     <ClCompile Include="Source\Resource\ResourceManagerGUI.cpp" />
@@ -322,8 +322,8 @@
     <ClInclude Include="Source\Gameplay\Stage\Component\StageLoader.h" />
     <ClInclude Include="Source\Gameplay\Actor\Water.h" />
     <ClInclude Include="Source\Rendering\Renderer\WaterRenderer.h" />
-    <ClInclude Include="Source\Gameplay\Stage\Component\Terrain.h" />
-    <ClInclude Include="Source\Gameplay\Stage\Component\TerrainGrassRenderer.h" />
+    <ClInclude Include="Source\Rendering\Component\Terrain.h" />
+    <ClInclude Include="Source\Rendering\Component\TerrainGrassRenderer.h" />
     <ClInclude Include="Source\Physics\Collider\TerrainMeshCollider.h" />
     <ClInclude Include="Source\Gameplay\Scene\TestPlayScene.h" />
     <ClInclude Include="Source\Gameplay\Component\ActorHitstopComponent.h" />

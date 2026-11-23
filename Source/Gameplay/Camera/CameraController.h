@@ -12,7 +12,7 @@ public:
 	using Component::Component;
 
 	virtual ~CameraController() = default;
-	const char* GetDebugName() const override { return ICON_FA_VIDEO " CameraController"; }
+	const char* GetDebugName() const override { return ICON_FA_VIDEO " カメラ制御"; }
 	void SetInputEnabled(bool enabled)
 	{
 		inputEnabled = enabled;

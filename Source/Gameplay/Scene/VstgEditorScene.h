@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Scene/EditorScene.h"
@@ -20,6 +21,7 @@ class Object;
 class RenderTarget;
 class DepthTarget;
 class VMDLModel;
+class Texture;
 
 class VstgEditorScene : public EditorScene
 {
@@ -36,6 +38,7 @@ class VstgEditorScene : public EditorScene
 	void ConfigureRenderSettings(RenderSettings& settings) override;
 	void OnRender(RenderContext& rc) override;
 	void OnDrawGUI() override;
+	void DrawDecalRegistration();
 	bool UsesGameDebugGUI() const override { return false; }
 	bool OnRequestExit() override;
 
@@ -90,6 +93,11 @@ class VstgEditorScene : public EditorScene
 	NavMeshActor* navMesh = nullptr;
 	StageLoader* stageLoader = nullptr;
 	FreeCameraController* freeCameraController = nullptr;
+
+	// デカール画像一覧（編集用）
+	std::vector<std::pair<std::string, std::shared_ptr<Texture>>> decalTextures;
+	bool decalTexturesLoaded = false;
+	std::string selectedDecalTexturePath;
 
 	// プロップ一覧
 	std::vector<std::string> propModelPaths;

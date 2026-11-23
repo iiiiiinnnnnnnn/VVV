@@ -3,7 +3,8 @@
 #if defined(_DEBUG) || defined(VVV_DEVELOPMENT)
 #include "Resource/CacheBuilder.h"
 #include "Core/Foundation/Common.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 void ResourceManager::ReloadResourceList()
 {
@@ -159,14 +160,14 @@ void ResourceManager::DrawCacheTreeNode(ResourceTreeNode& node, int depth,
 		const std::string& path = node.path;
 		auto options = resourceGUISettings.Get(path);
 		const bool cacheExists = std::filesystem::exists(path);
-		const char* statusText = JText(u8"未生成");
+		const char* statusText = "未生成";
 		if (cacheExists)
 		{
-			statusText = JText(u8"生成済み");
+			statusText = "生成済み";
 		}
 		if (options.excluded)
 		{
-			statusText = JText(u8"除外");
+			statusText = "除外";
 		}
 
 		ImGui::TableNextColumn();
@@ -231,7 +232,7 @@ void ResourceManager::DrawGUI()
 {
 	if (!resourceGUIInitialized) ReloadResourceList();
 	// キャッシュ対象をフォルダー階層へまとめて表示
-	ImGuiToolKit::TextUnformatted(u8"リソース設定");
+	ImGui::TextUnformatted("リソース設定");
 	if (!resourceGUIMessage.empty())
 	{
 		ImGui::TextWrapped("%s", resourceGUIMessage.c_str());
@@ -239,10 +240,10 @@ void ResourceManager::DrawGUI()
 	constexpr auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
 	if (!ImGui::BeginTable("CacheList", 4, flags, {0, -1})) return;
-	ImGuiToolKit::TableSetupColumn(u8"名前", ImGuiTableColumnFlags_WidthStretch);
-	ImGuiToolKit::TableSetupColumn(u8"状態", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-	ImGuiToolKit::TableSetupColumn(u8"除外", ImGuiTableColumnFlags_WidthFixed, 45.0f);
-	ImGuiToolKit::TableSetupColumn(u8"先読み", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+	ImGui::TableSetupColumn("名前", ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("状態", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+	ImGui::TableSetupColumn("除外", ImGuiTableColumnFlags_WidthFixed, 45.0f);
+	ImGui::TableSetupColumn("先読み", ImGuiTableColumnFlags_WidthFixed, 55.0f);
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 

@@ -10,7 +10,7 @@ public:
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_SHAPES " BoxCollider"; }
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " 箱コライダー"; }
 
     const Vector3& GetSize() const { return size; }
     const Vector3& GetLocalPosition() const { return localPosition; }

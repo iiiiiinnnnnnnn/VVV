@@ -1,5 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 #include <ImGuiToolKit/Color.h>
 #include "IconsFontAwesome5.h"
@@ -14,7 +15,7 @@
 #include "Resource/ResourceManager.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Rendering/Effect/EffectManager.h"
 #include "Rendering/Renderer/WaterRenderer.h"
 #include "Gameplay/Scene/PostProcessController.h"
@@ -596,11 +597,11 @@ void Scene::Render()
 // 共通の補助ウィンドウ
 void Scene::DrawWindowMenu()
 {
-	if (!ImGuiToolKit::BeginMenu(ICON_FA_WINDOW_MAXIMIZE " " u8"ウィンドウ")) return;
-	if (ImGuiToolKit::MenuItem(ICON_FA_PROJECT_DIAGRAM " " u8"アニメーター")) OpenAnimatorEditor();
-	ImGuiToolKit::MenuItem(ICON_FA_KEYBOARD " " u8"入力アクション", nullptr, &showInputSystemWindow);
-	ImGuiToolKit::MenuItem(ICON_FA_LAYER_GROUP " " u8"物理レイヤー", nullptr, &showPhysicsLayerWindow);
-	ImGuiToolKit::MenuItem(ICON_FA_WAVE_SQUARE " " u8"負荷プロファイラ", nullptr, &showProfilerWindow);
+	if (!ImGui::BeginMenu(ICON_FA_WINDOW_MAXIMIZE " " "ウィンドウ")) return;
+	if (ImGui::MenuItem(ICON_FA_PROJECT_DIAGRAM " " "アニメーター")) OpenAnimatorEditor();
+	ImGui::MenuItem(ICON_FA_KEYBOARD " " "入力アクション", nullptr, &showInputSystemWindow);
+	ImGui::MenuItem(ICON_FA_LAYER_GROUP " " "物理レイヤー", nullptr, &showPhysicsLayerWindow);
+	ImGui::MenuItem(ICON_FA_WAVE_SQUARE " " "負荷プロファイラ", nullptr, &showProfilerWindow);
 	ImGui::EndMenu();
 }
 
@@ -630,7 +631,7 @@ void Scene::DrawToolWindows()
 		ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
 		ImGui::SetNextWindowBgAlpha(1.0f);
-		if (ImGuiToolKit::Begin(u8"入力アクション", &showInputSystemWindow))
+		if (ImGui::Begin("入力アクション", &showInputSystemWindow))
 			InputKit::InputSystemGUI::Instance().DrawGUI(InputKit::InputSystem::Instance());
 		ImGui::End();
 	}
@@ -639,7 +640,7 @@ void Scene::DrawToolWindows()
 		ImGui::SetNextWindowSize({1100.0f, 650.0f}, ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSizeConstraints({760.0f, 400.0f}, {10000.0f, 10000.0f});
 		ImGui::SetNextWindowBgAlpha(1.0f);
-		if (ImGuiToolKit::Begin(u8"負荷プロファイラ", &showProfilerWindow))
+		if (ImGui::Begin("負荷プロファイラ", &showProfilerWindow))
 			Profiler::DrawGUI();
 		ImGui::End();
 	}
@@ -695,9 +696,9 @@ void Scene::DrawGUI(RenderContext& rc)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGuiToolKit::BeginMenu(ICON_FA_FILE " " u8"ファイル"))
+			if (ImGui::BeginMenu(ICON_FA_FILE " " "ファイル"))
 			{
-				if (ImGuiToolKit::MenuItem(ICON_FA_FOLDER_OPEN " " u8"ステージを開く"))
+				if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN " " "ステージを開く"))
 				{
 					std::string filename;
 					if (Dialog::OpenFileName(filename, "VSTG (*.vstg)\0*.vstg\0",
@@ -705,7 +706,7 @@ void Scene::DrawGUI(RenderContext& rc)
 						pendingStagePath = filename;
 				}
 				ImGui::Separator();
-				if (ImGuiToolKit::MenuItem(ICON_FA_SIGN_OUT_ALT " " u8"終了"))
+				if (ImGui::MenuItem(ICON_FA_SIGN_OUT_ALT " " "終了"))
 				{
 					if (OnRequestExit())
 					{
@@ -714,25 +715,25 @@ void Scene::DrawGUI(RenderContext& rc)
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGuiToolKit::BeginMenu(ICON_FA_EYE " " u8"表示"))
+			if (ImGui::BeginMenu(ICON_FA_EYE " " "表示"))
 			{
-				ImGuiToolKit::MenuItem(ICON_FA_LEAF " " u8"草", "G", &renderSettings.showGrass);
-				ImGuiToolKit::MenuItem(ICON_FA_SMOG " " u8"フォグ", "F", &renderSettings.showFog);
+				ImGui::MenuItem(ICON_FA_LEAF " " "草", "G", &renderSettings.showGrass);
+				ImGui::MenuItem(ICON_FA_SMOG " " "フォグ", "F", &renderSettings.showFog);
 				ImGui::Separator();
-				ImGuiToolKit::MenuItem(ICON_FA_BUG " " u8"デバッグ表示", "F3", &renderSettings.showDebug);
-				ImGuiToolKit::Checkbox(ICON_FA_SHAPES " " u8"コライダー", &renderSettings.showColliderDebug);
-				ImGuiToolKit::Checkbox(ICON_FA_PUZZLE_PIECE " " u8"コンポーネント", &renderSettings.showComponentDebug);
-				ImGuiToolKit::Checkbox(ICON_FA_PROJECT_DIAGRAM " " u8"ナビメッシュ移動範囲", &renderSettings.showNavMeshDebug);
+				ImGui::MenuItem(ICON_FA_BUG " " "デバッグ表示", "F3", &renderSettings.showDebug);
+				ImGui::Checkbox(ICON_FA_SHAPES " " "コライダー", &renderSettings.showColliderDebug);
+				ImGui::Checkbox(ICON_FA_PUZZLE_PIECE " " "コンポーネント", &renderSettings.showComponentDebug);
+				ImGui::Checkbox(ICON_FA_PROJECT_DIAGRAM " " "ナビメッシュ移動範囲", &renderSettings.showNavMeshDebug);
 				ImGui::EndMenu();
 			}
 			DrawWindowMenu();
 			ImGui::Separator();
 			if (ImGui::MenuItem(ICON_FA_PLAY "##PlayGame", nullptr, false, Game::Time::scale <= 0.0f))
 				SwitchToPlayMode();
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"再生 (F5)");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("再生 (F5)");
 			if (ImGui::MenuItem(ICON_FA_STOP "##StopGame", nullptr, false, Game::Time::scale > 0.0f))
 				SwitchToDebugMode();
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"停止 (F4)");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("停止 (F4)");
 
 			DrawEditorText();
 			ImGui::EndMainMenuBar();
@@ -811,7 +812,7 @@ void Scene::DrawGUI(RenderContext& rc)
 				ImGui::EndTabBar();
 			}
 			ImGui::SetNextItemWidth(-1.0f);
-			ImGui::InputTextWithHint("##HierarchySearch", JText(u8"名前・タグ・種類で検索"), hierarchySearch, sizeof(hierarchySearch));
+			ImGui::InputTextWithHint("##HierarchySearch", "名前・タグ・種類で検索", hierarchySearch, sizeof(hierarchySearch));
 			const ImGuiTextFilter filter(hierarchySearch);
 			const auto select = [&](int type) {
 				editorSelectionType = type;
@@ -821,7 +822,7 @@ void Scene::DrawGUI(RenderContext& rc)
 			if (hierarchyTab == 2)
 			{
 				ImGui::BeginDisabled(!lightManager.CanAddLight());
-				if (ImGuiToolKit::Button(u8"+ ライトを追加")) ImGui::OpenPopup("AddLight");
+				if (ImGui::Button("+ ライトを追加")) ImGui::OpenPopup("AddLight");
 				if (ImGui::BeginPopup("AddLight"))
 				{
 					Light* added = nullptr;
@@ -845,7 +846,7 @@ void Scene::DrawGUI(RenderContext& rc)
 					ImGuiTableFlags_RowBg))
 				{
 					ImGui::TableSetupColumn("On", ImGuiTableColumnFlags_WidthFixed, 28.0f);
-					ImGuiToolKit::TableSetupColumn(u8"名前", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+					ImGui::TableSetupColumn("名前", ImGuiTableColumnFlags_WidthStretch, 2.0f);
 					const auto row = [&](Object& object, bool selected) {
 						ImGui::TableNextRow(0, ImGui::GetFrameHeight() + 4.0f);
 						ImGui::TableSetColumnIndex(0);
@@ -919,7 +920,7 @@ void Scene::DrawGUI(RenderContext& rc)
 				const auto deleteButton = [](Object& object) {
 					ImGui::PushID(&object);
 					ImGui::Separator();
-					if (ImGuiToolKit::Button(u8"削除", {120.0f, 0.0f})) object.Destroy();
+					if (ImGui::Button("削除", {120.0f, 0.0f})) object.Destroy();
 					ImGui::PopID();
 				};
 				if (editorSelectionType == 0)
@@ -955,37 +956,37 @@ void Scene::DrawGUI(RenderContext& rc)
 			}
 			else
 			{
-				ImGuiToolKit::Combo(u8"設定カテゴリ", &sceneSettingsPage,
-					JText(u8"カメラ\0時間\0環境\0画面効果\0シーン固有\0"));
+				ImGui::Combo("設定カテゴリ", &sceneSettingsPage,
+					"カメラ\0時間\0環境\0画面効果\0シーン固有\0");
 				ImGui::Separator();
 				if (sceneSettingsPage == 2)
-					ImGuiToolKit::ColorEdit3(u8"環境光", &lightManager.GetAmbientColor().x);
+					ImGuiToolKit::ColorEdit3("環境光", &lightManager.GetAmbientColor().x);
 				
 				// カメラ
-				if (sceneSettingsPage == 0 && ImGuiToolKit::CollapsingHeader(ICON_FA_CAMERA " " u8"カメラ", ImGuiTreeNodeFlags_DefaultOpen))
+				if (sceneSettingsPage == 0 && ImGui::CollapsingHeader(ICON_FA_CAMERA " " "カメラ", ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					ImGuiToolKit::Text(u8"優先度: %d", camera.GetPriority());
+					ImGui::Text("優先度: %d", camera.GetPriority());
 					if (CameraController* controller = stage.GetActiveCameraController())
 						controller->DrawGUI();
 				}
 
 				// 時間
-				if (sceneSettingsPage == 1 && ImGuiToolKit::CollapsingHeader(ICON_FA_CLOCK " " u8"時間", ImGuiTreeNodeFlags_DefaultOpen))
+				if (sceneSettingsPage == 1 && ImGui::CollapsingHeader(ICON_FA_CLOCK " " "時間", ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					ImGuiToolKit::Text(u8"経過時間: %.4f", Game::Time::time);
-					ImGuiToolKit::Text(u8"非スケール差分時間: %.4f", Game::Time::unscaledDeltaTime);
-					ImGuiToolKit::Text(u8"差分時間: %.4f", Game::Time::deltaTime);
-					ImGuiToolKit::DragSpeedFloat(u8"時間倍率", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
+					ImGui::Text("経過時間: %.4f", Game::Time::time);
+					ImGui::Text("非スケール差分時間: %.4f", Game::Time::unscaledDeltaTime);
+					ImGui::Text("差分時間: %.4f", Game::Time::deltaTime);
+					ImGuiToolKit::DragSpeedFloat("時間倍率", &Game::Time::scale, 0.01f, 0.0f, 10.0f);
 				}
 
 				// 環境
 				if (sceneSettingsPage == 2)
 				{
-					if (ImGuiToolKit::CollapsingHeader(ICON_FA_SUN " " u8"シャドウ", ImGuiTreeNodeFlags_DefaultOpen))
+					if (ImGui::CollapsingHeader(ICON_FA_SUN " " "シャドウ", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						Game::Graphics::Instance().GetShadowMapRenderer()->DrawGUI();
 					}
-					if (ImGuiToolKit::CollapsingHeader(ICON_FA_CLOUD " " u8"スカイボックス",
+					if (ImGui::CollapsingHeader(ICON_FA_CLOUD " " "スカイボックス",
 							ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						Game::Graphics& graphics = Game::Graphics::Instance();
@@ -995,13 +996,13 @@ void Scene::DrawGUI(RenderContext& rc)
 				}
 
 				// 画面効果
-				if (sceneSettingsPage == 3 && ImGuiToolKit::CollapsingHeader(ICON_FA_MAGIC " " u8"ポストプロセス", ImGuiTreeNodeFlags_DefaultOpen))
+				if (sceneSettingsPage == 3 && ImGui::CollapsingHeader(ICON_FA_MAGIC " " "ポストプロセス", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					postProcess.DrawGUI();
 
 					ImGui::Separator();
 
-					ImGuiToolKit::Text(u8"コントローラー");
+					ImGui::Text("コントローラー");
 
 					PostProcessController::Instance().DrawGUI();
 				}

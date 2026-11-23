@@ -22,7 +22,7 @@ public:
 		if (ImGui::DragInt("Priority", &value))
 			SetPriority(value);
 	}
-	const char* GetDebugName() const override { return ICON_FA_VIDEO " Camera"; }
+	const char* GetDebugName() const override { return ICON_FA_VIDEO " カメラ"; }
 
 	// 指定方向を向く
 	void SetLookAt(const Vector3& eye, const Vector3& focus, const Vector3& up);

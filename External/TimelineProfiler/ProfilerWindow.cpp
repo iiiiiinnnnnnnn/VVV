@@ -613,11 +613,11 @@ void DrawProfilerHUD()
 	ImGui::PushFont(context.TextFont);
 	ImGui::PushStyleColor(ImGuiCol_Text, style.FGTextColor);
 
-	if (gProfiler.IsPaused()) ImGui::TextUnformatted((const char*)u8"一時停止中");
-	else ImGui::TextUnformatted((const char*)u8"計測中");
+	if (gProfiler.IsPaused()) ImGui::TextUnformatted("一時停止中");
+	else ImGui::TextUnformatted("計測中");
 	ImGui::SameLine(100);
 
-	if (ImGui::Button((const char*)u8"表示設定"))
+	if (ImGui::Button("表示設定"))
 		ImGui::OpenPopup("Display Settings");
 
 	if (ImGui::BeginPopup("Display Settings"))
@@ -627,7 +627,7 @@ void DrawProfilerHUD()
 	}
 
 
-	if (ImGui::Button(context.IsPaused ? (const char*)u8"再開" : (const char*)u8"一時停止")) context.IsPaused = !context.IsPaused;
+	if (ImGui::Button(context.IsPaused ? "再開" : "一時停止")) context.IsPaused = !context.IsPaused;
 	gProfiler.SetPaused(context.IsPaused);
 
 	if (ImGui::IsWindowHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Left)))

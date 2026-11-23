@@ -1,5 +1,6 @@
 #include "UI/TextWidget.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 #include <ImGuiToolKit/Color.h>
 #include <filesystem>
@@ -53,10 +54,10 @@ void TextWidget::OnDrawGUI()
 {
 	const std::string preview = fontPath.empty() ? "Default (Isometra)"
 		: std::filesystem::path(fontPath).filename().string();
-	ImGuiToolKit::InputTextMultiline(u8"テキスト", &text);
-	if (ImGuiToolKit::BeginCombo(u8"フォントファミリ", preview.c_str()))
+	ImGui::InputTextMultiline("テキスト", &text);
+	if (ImGui::BeginCombo("フォントファミリ", preview.c_str()))
 	{
-		if (ImGuiToolKit::Selectable(u8"既定(Isometra)", fontPath.empty())) SetFont("");
+		if (ImGui::Selectable("既定(Isometra)", fontPath.empty())) SetFont("");
 		std::error_code error;
 		std::filesystem::directory_iterator files("Resources/Font", error);
 		const std::filesystem::directory_iterator end;
@@ -72,10 +73,10 @@ void TextWidget::OnDrawGUI()
 		}
 		ImGui::EndCombo();
 	}
-	ImGuiToolKit::DragTextSizeFloat(u8"フォントサイズ", &fontSize);
-	ImGuiToolKit::ColorPicker4(u8"色", &color.x);
-	const char* alignmentLabels[] = {JText(u8"左"), JText(u8"中"), JText(u8"右")};
+	ImGuiToolKit::DragTextSizeFloat("フォントサイズ", &fontSize);
+	ImGuiToolKit::ColorPicker4("色", &color.x);
+	const char* alignmentLabels[] = {"左", "中", "右"};
 	int selectedAlignment = static_cast<int>(alignment);
-	if (ImGuiToolKit::Combo(u8"アライン", &selectedAlignment, alignmentLabels, IM_ARRAYSIZE(alignmentLabels)))
+	if (ImGui::Combo("アライン", &selectedAlignment, alignmentLabels, IM_ARRAYSIZE(alignmentLabels)))
 		alignment = static_cast<UITextAlignment>(selectedAlignment);
 }

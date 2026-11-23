@@ -1,11 +1,12 @@
 #include "Resource/ResourceManager.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <Dx11Kit/Dx11Kit.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/ShadowMapRenderer.h"
 #include "Application/SettingsAndDebug/DebugUtil.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 
 #include <cfloat>
 #include <cmath>
@@ -113,10 +114,10 @@ void ShadowMapRenderer::CreateRasterizerStates(ID3D11Device* device)
 
 void ShadowMapRenderer::DrawGUI()
 {
-	bool changed = ImGuiToolKit::DragInt(u8"固定深度バイアス", &depthBias, 1.0f);
-	changed |= ImGuiToolKit::DragFloat(u8"傾斜バイアス係数", &slopeScaledDepthBias, 0.001f, 0.0f, 0.0f, "%.6f");
-	ImGuiToolKit::DragFloat(u8"深度比較バイアス", &comparisonBias, 0.00001f, 0.0f, 0.0f, "%.6f");
-	const char* cullLabels[] = {JText(u8"両面を描画"), JText(u8"裏面を描画（従来方式）"), JText(u8"表面を描画")};
+	bool changed = ImGui::DragInt("固定深度バイアス", &depthBias, 1.0f);
+	changed |= ImGui::DragFloat("傾斜バイアス係数", &slopeScaledDepthBias, 0.001f, 0.0f, 0.0f, "%.6f");
+	ImGui::DragFloat("深度比較バイアス", &comparisonBias, 0.00001f, 0.0f, 0.0f, "%.6f");
+	const char* cullLabels[] = {"両面を描画", "裏面を描画（従来方式）", "表面を描画"};
 	if (changed) CreateRasterizerStates(Game::Graphics::Instance().GetDevice());
 }
 

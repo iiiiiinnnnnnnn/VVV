@@ -129,7 +129,7 @@ void PostProcessController::DrawGUI()
 		static Easing::Type attackEasing = Easing::Type::InSine;
 		static Easing::Type releaseEasing = Easing::Type::OutCubic;
 		ImGui::PushID("Threaten");
-		ImGuiToolKit::DragDelayFloat(u8"duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGuiToolKit::DragDelayFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
 		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);
@@ -149,7 +149,7 @@ void PostProcessController::DrawGUI()
 		static Easing::Type attackEasing = Easing::Type::Linear;
 		static Easing::Type releaseEasing = Easing::Type::InOutQuad;
 		ImGui::PushID("Damaged Vignette");
-		ImGuiToolKit::DragDelayFloat(u8"duration", &duration, 0.1f, 0.1f, 10.0f);
+		ImGuiToolKit::DragDelayFloat("duration", &duration, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("power", &power, 0.1f, 0.1f, 10.0f);
 		ImGui::DragFloat("attackRate", &attackRate, 0.01f, 0.01f, 0.95f);
 		ImGui::DragInt(("Attack Easing: " + std::string(magic_enum::enum_name(attackEasing))).c_str(), (int*)&attackEasing, 1.0f, 0, static_cast<int>(Easing::Type::Count) - 1);

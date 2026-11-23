@@ -22,7 +22,7 @@ public:
     void SetLocalScale(const Vector3& scale);
     void SetCollisionEnabled(bool enabled);
 	void SetTrigger(bool trigger);
-	const char* GetDebugName() const override { return ICON_FA_SHAPES " MeshCollider"; }
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " メッシュコライダー"; }
 
     void SetSimulationIgnoredLayers(PxU32 mask);
     bool GetBounds(Vector3& center, Vector3& size) const;

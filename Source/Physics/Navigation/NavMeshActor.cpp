@@ -1,5 +1,6 @@
 #include "Core/Foundation/Random.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Physics/Navigation/NavMeshActor.h"
 
@@ -10,7 +11,7 @@
 #include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Core/RenderContext.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Core/Foundation/Json.h"
 
 #include "DetourAlloc.h"
@@ -143,7 +144,7 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 	}
 	catch (const json::exception&)
 	{
-		statusMessage = JText(u8"ナビメッシュ設定の読み込みに失敗しました（JSONが不正です）");
+		statusMessage = "ナビメッシュ設定の読み込みに失敗しました（JSONが不正です）";
 		return false;
 	}
 }
@@ -188,7 +189,7 @@ void NavMeshActor::Build()
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 	if (!terrain)
 	{
-		statusMessage = JText(u8"地形がないためナビメッシュを生成できません");
+		statusMessage = "地形がないためナビメッシュを生成できません";
 		return;
 	}
 
@@ -211,14 +212,14 @@ void NavMeshActor::Build()
 	navMesh = dtAllocNavMesh();
 	if (!navMesh)
 	{
-		statusMessage = JText(u8"ナビメッシュのメモリ確保に失敗しました");
+		statusMessage = "ナビメッシュのメモリ確保に失敗しました";
 		return;
 	}
 
 	if (dtStatusFailed(navMesh->init(&params)))
 	{
 		Release();
-		statusMessage = JText(u8"ナビメッシュの初期化に失敗しました");
+		statusMessage = "ナビメッシュの初期化に失敗しました";
 		return;
 	}
 
@@ -230,7 +231,7 @@ void NavMeshActor::Build()
 			if (!BuildTile(tileX, tileZ, *terrain))
 			{
 				Release();
-				statusMessage = JText(u8"ナビメッシュタイルの生成に失敗しました");
+				statusMessage = "ナビメッシュタイルの生成に失敗しました";
 				return;
 			}
 		}
@@ -240,20 +241,20 @@ void NavMeshActor::Build()
 	if (!navQuery)
 	{
 		Release();
-		statusMessage = JText(u8"ナビメッシュ検索のメモリ確保に失敗しました");
+		statusMessage = "ナビメッシュ検索のメモリ確保に失敗しました";
 		return;
 	}
 
 	if (dtStatusFailed(navQuery->init(navMesh, 8192)))
 	{
 		Release();
-		statusMessage = JText(u8"ナビメッシュ検索の初期化に失敗しました");
+		statusMessage = "ナビメッシュ検索の初期化に失敗しました";
 		return;
 	}
 
 	built = true;
 	RefreshDebugCells();
-	statusMessage = JText(u8"タイル生成完了  タイル=") +
+	statusMessage = "タイル生成完了  タイル=" +
 		std::to_string(tileCountX * tileCountZ);
 }
 
@@ -618,7 +619,7 @@ void NavMeshActor::RebuildRegion()
 	Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr;
 	if (!terrain)
 	{
-		statusMessage = JText(u8"地形がないためナビメッシュを再生成できません");
+		statusMessage = "地形がないためナビメッシュを再生成できません";
 		return;
 	}
 
@@ -642,7 +643,7 @@ void NavMeshActor::RebuildRegion()
 		{
 			if (!BuildTile(tileX, tileZ, *terrain))
 			{
-				statusMessage = JText(u8"NavMeshタイルの局所再生成に失敗しました");
+				statusMessage = "NavMeshタイルの局所再生成に失敗しました";
 				return;
 			}
 			++rebuiltTileCount;
@@ -650,7 +651,7 @@ void NavMeshActor::RebuildRegion()
 	}
 
 	RefreshDebugCells();
-	statusMessage = JText(u8"局所再生成完了  タイル=") +
+	statusMessage = "局所再生成完了  タイル=" +
 		std::to_string(rebuiltTileCount);
 }
 
@@ -1096,23 +1097,23 @@ void NavMeshActor::Render(const RenderContext& rc)
 void NavMeshActor::DrawGUI()
 {
 	if (Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr)
-		ImGuiToolKit::Text(u8"入力：NavMesh範囲マップ %d × %d",
+		ImGui::Text("入力：NavMesh範囲マップ %d × %d",
 			terrain->GetHeightMapWidth(), terrain->GetHeightMapHeight());
 
-	bool simplifyChanged = ImGuiToolKit::Checkbox(u8"平面のポリゴンを削減", &simplifyFlatAreas);
+	bool simplifyChanged = ImGui::Checkbox("平面のポリゴンを削減", &simplifyFlatAreas);
 	if (simplifyFlatAreas)
 	{
-		simplifyChanged |= ImGuiToolKit::DragFloat(u8"高さの許容誤差", &simplifyHeightError,
+		simplifyChanged |= ImGui::DragFloat("高さの許容誤差", &simplifyHeightError,
 			0.001f, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		simplifyChanged |= ImGuiToolKit::DragInt(u8"統合する最大幅（画素）", &simplifyMaxCells,
+		simplifyChanged |= ImGui::DragInt("統合する最大幅（画素）", &simplifyMaxCells,
 			1.0f, 1, CellsPerTile, "%d", ImGuiSliderFlags_AlwaysClamp);
-		ImGuiToolKit::TextDisabled(u8"誤差・最大幅を大きくすると削減量が増えます");
+		ImGui::TextDisabled("誤差・最大幅を大きくすると削減量が増えます");
 	}
 	if (simplifyChanged) RequestBuild();
-	ImGuiToolKit::Text(u8"生成ポリゴン数：%zu", debugCells.size());
+	ImGui::Text("生成ポリゴン数：%zu", debugCells.size());
 
 	// 生成状態と手動再生成
 	ImGui::Text("%s", statusMessage.c_str());
 
-	if (ImGuiToolKit::Button(u8"ナビメッシュを再生成")) buildRequested = true;
+	if (ImGui::Button("ナビメッシュを再生成")) buildRequested = true;
 }

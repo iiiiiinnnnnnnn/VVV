@@ -18,15 +18,15 @@ bool VmdlParticleEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 		const bool selected = scene.selectedComponentType == AttachedComponentType::Particle &&
 			scene.selectedComponentIndex == i;
 		if (selected && openSelectedComponent) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		if (ImGuiToolKit::TreeNodeEx(ICON_FA_MAGIC " " u8"Effekseer",
+		if (ImGui::TreeNodeEx(ICON_FA_MAGIC " " "Effekseer",
 				selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
-			bool changed = ImGuiToolKit::InputText(u8"名前", &value.name);
+			bool changed = ImGui::InputText("名前", &value.name);
 			if (changed) value.name = ToUpperString(value.name);
-			changed |= ImGuiToolKit::Checkbox(u8"ノードに追従", &value.modelDerived);
-			changed |= ImGuiToolKit::Checkbox(u8"ビルボード", &value.billboard);
+			changed |= ImGui::Checkbox("ノードに追従", &value.modelDerived);
+			changed |= ImGui::Checkbox("ビルボード", &value.billboard);
 			changed |= DrawTransform(*scene.model, value.transform);
-			changed |= scene.DrawEffectSelector(JText(u8"エフェクト"), value.effectName);
+			changed |= scene.DrawEffectSelector("エフェクト", value.effectName);
 			ImGui::BeginDisabled(value.effectName.empty());
 			if (ImGui::Button(ICON_FA_PLAY "##TestPlay"))
 			{
@@ -43,14 +43,14 @@ bool VmdlParticleEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 				}
 			}
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGuiToolKit::SetTooltip(u8"テスト再生");
+				ImGui::SetTooltip("テスト再生");
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_TRASH "##DeleteComponent")) deleteParticle = i;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"削除");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("削除");
 			ImGui::SameLine();
 			if (ImGui::Button(ICON_FA_COPY "##DuplicateComponent")) duplicatePending = true;
-			if (ImGui::IsItemHovered()) ImGuiToolKit::SetTooltip(u8"複製");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("複製");
 			if (changed) { scene.MarkDirty(); scene.RebuildParticlePreview(); }
 			ImGui::TreePop();
 		}

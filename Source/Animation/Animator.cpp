@@ -1,5 +1,6 @@
 #include <ProfileKit/ProfileKit.h>
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Core/Foundation/Logger.h"
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Animation/Animator.h"
@@ -274,7 +275,7 @@ void Animator::DrawGUI()
         ++layerIndex)
     {
         const AnimatorLayer& layer = layers[layerIndex];
-        ImGuiToolKit::Text(u8"[%d] %s  ウェイト=%.2f",
+        ImGui::Text("[%d] %s  ウェイト=%.2f",
             layerIndex,
             layer.name.c_str(),
             layer.weight);
@@ -292,7 +293,7 @@ void Animator::DrawGUI()
         }
     }
 
-    if (ImGuiToolKit::Button(u8"Animatorを開く"))
+    if (ImGui::Button("Animatorを開く"))
         OpenEditor();
 
 }
@@ -1393,7 +1394,7 @@ float Animator::GetStateEndTime(const State& state) const
 std::string Animator::GetStateAnimationName(const State& state) const
 {
     if (!model || state.animationIndex < 0 ||
-        state.animationIndex >= static_cast<int>(model->GetAnimations().size())) return JText(u8"（なし）");
+        state.animationIndex >= static_cast<int>(model->GetAnimations().size())) return "（なし）";
     return model->GetAnimations()[state.animationIndex].name;
 }
 

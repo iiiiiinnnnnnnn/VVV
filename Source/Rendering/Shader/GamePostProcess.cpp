@@ -1,5 +1,6 @@
 #include "Resource/ResourceManager.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 #include <ImGuiToolKit/Color.h>
 #include <Dx11Kit/Dx11Kit.h>
@@ -9,7 +10,6 @@
 #include <stdexcept>
 
 #include "Rendering/Core/Graphics.h"
-#include "imgui.h"
 
 namespace Game
 {
@@ -679,48 +679,48 @@ namespace Game
 
 	void PostProcess::DrawGUI()
 	{
-		if (ImGuiToolKit::TreeNode(u8"被写界深度"))
+		if (ImGui::TreeNode("被写界深度"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##DoF", &enableDepthOfField);
-			ImGuiToolKit::DragFloat(u8"ピント距離##DoF", &dofFocusDistance, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-			ImGuiToolKit::DragFloat(u8"ぼけへの移行距離##DoF", &dofFocusRange, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-			ImGuiToolKit::DragFloat(u8"ぼけ半径（画素）##DoF", &dofBlurRadius, 0.1f, 0.0f, 64.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
-			ImGuiToolKit::SliderFloat(u8"手前のぼけ##DoF", &dofNearStrength, 0.0f, 1.0f);
-			ImGuiToolKit::SliderFloat(u8"奥のぼけ##DoF", &dofFarStrength, 0.0f, 1.0f);
+			ImGui::Checkbox("有効##DoF", &enableDepthOfField);
+			ImGui::DragFloat("ピント距離##DoF", &dofFocusDistance, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+			ImGui::DragFloat("ぼけへの移行距離##DoF", &dofFocusRange, 0.1f, 0.01f, 10000.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+			ImGui::DragFloat("ぼけ半径（画素）##DoF", &dofBlurRadius, 0.1f, 0.0f, 64.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			ImGui::SliderFloat("手前のぼけ##DoF", &dofNearStrength, 0.0f, 1.0f);
+			ImGui::SliderFloat("奥のぼけ##DoF", &dofFarStrength, 0.0f, 1.0f);
 			ImGui::TreePop();
 		}
-		if (ImGuiToolKit::TreeNode(u8"水中"))
+		if (ImGui::TreeNode("水中"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##Underwater", &enableUnderwater);
-			ImGuiToolKit::ColorEdit3(u8"フォグ色##Underwater", &underwaterColor.x);
-			ImGuiToolKit::DragFloat(u8"濃さ##Underwater", &underwaterDensity, 0.005f, 0.0f, 2.0f);
-			ImGuiToolKit::DragFloat3(u8"RGB吸収##Underwater", &underwaterAbsorption.x, 0.005f, 0.0f, 2.0f);
-			ImGuiToolKit::SliderFloat(u8"色補正##Underwater", &underwaterTint, 0.0f, 1.0f);
+			ImGui::Checkbox("有効##Underwater", &enableUnderwater);
+			ImGuiToolKit::ColorEdit3("フォグ色##Underwater", &underwaterColor.x);
+			ImGui::DragFloat("濃さ##Underwater", &underwaterDensity, 0.005f, 0.0f, 2.0f);
+			ImGui::DragFloat3("RGB吸収##Underwater", &underwaterAbsorption.x, 0.005f, 0.0f, 2.0f);
+			ImGui::SliderFloat("色補正##Underwater", &underwaterTint, 0.0f, 1.0f);
 			ImGui::TreePop();
 		}
 
 		// Extract bright pixels for Bloom.
-		if (ImGuiToolKit::TreeNode(u8"ブルーム抽出"))
+		if (ImGui::TreeNode("ブルーム抽出"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##BloomExtract", &enableBloomExtract);
-			ImGuiToolKit::DragFloat(u8"しきい値", &bloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox("有効##BloomExtract", &enableBloomExtract);
+			ImGui::DragFloat("しきい値", &bloomThreshold, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur the Bloom texture.
-		if (ImGuiToolKit::TreeNode(u8"ブルームぼかし"))
+		if (ImGui::TreeNode("ブルームぼかし"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##BloomBlur", &enableBloomBlur);
-			ImGuiToolKit::DragSizeFloat(u8"ぼかしサイズ", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGuiToolKit::DragFloat(u8"明るさ", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGui::Checkbox("有効##BloomBlur", &enableBloomBlur);
+			ImGuiToolKit::DragSizeFloat("ぼかしサイズ", &bloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGui::DragFloat("明るさ", &bloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Combine the base scene and Bloom texture.
-		if (ImGuiToolKit::TreeNode(u8"合成エフェクト"))
+		if (ImGui::TreeNode("合成エフェクト"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##DualEffect", &enableDualEffect);
-			if (ImGuiToolKit::BeginCombo(u8"エフェクト", DualEffectName(dualEffectIndex)))
+			ImGui::Checkbox("有効##DualEffect", &enableDualEffect);
+			if (ImGui::BeginCombo("エフェクト", DualEffectName(dualEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::DualPostProcess::Effect_Max; ++i)
 				{
@@ -733,20 +733,20 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGuiToolKit::DragFloat(u8"ブルーム強度", &bloomIntensity, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragFloat(u8"元画像の強度", &baseIntensity, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragFloat(u8"ブルーム彩度", &bloomSaturation, 0.01f, 0.0f, 3.0f);
-			ImGuiToolKit::DragFloat(u8"元画像の彩度", &baseSaturation, 0.01f, 0.0f, 3.0f);
-			ImGuiToolKit::DragFloat(u8"合成比率1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragFloat(u8"合成比率2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("ブルーム強度", &bloomIntensity, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("元画像の強度", &baseIntensity, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("ブルーム彩度", &bloomSaturation, 0.01f, 0.0f, 3.0f);
+			ImGui::DragFloat("元画像の彩度", &baseSaturation, 0.01f, 0.0f, 3.0f);
+			ImGui::DragFloat("合成比率1", &mergeWeight1, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("合成比率2", &mergeWeight2, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		// Convert HDR color for display.
-		if (ImGuiToolKit::TreeNode(u8"トーンマッピング"))
+		if (ImGui::TreeNode("トーンマッピング"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##ToneMapping", &enableToneMapping);
-			if (ImGuiToolKit::BeginCombo(u8"方式", ToneMapOperatorName(toneMapOperatorIndex)))
+			ImGui::Checkbox("有効##ToneMapping", &enableToneMapping);
+			if (ImGui::BeginCombo("方式", ToneMapOperatorName(toneMapOperatorIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::Operator_Max; ++i)
 				{
@@ -759,7 +759,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGuiToolKit::BeginCombo(u8"伝達関数", TransferFunctionName(transferFunctionIndex)))
+			if (ImGui::BeginCombo("伝達関数", TransferFunctionName(transferFunctionIndex)))
 			{
 				for (int i = 0; i < DirectX::ToneMapPostProcess::TransferFunction_Max; ++i)
 				{
@@ -772,7 +772,7 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			if (ImGuiToolKit::BeginCombo(u8"色空間変換", ColorRotationName(colorRotationIndex)))
+			if (ImGui::BeginCombo("色空間変換", ColorRotationName(colorRotationIndex)))
 			{
 				for (int i = 0; i <= DirectX::ToneMapPostProcess::HDTV_to_DCI_P3_D65; ++i)
 				{
@@ -785,18 +785,18 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGuiToolKit::DragFloat(u8"露出", &exposure, 0.01f, 0.0f, 5.0f);
-			ImGuiToolKit::DragFloat(u8"基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
+			ImGui::DragFloat("露出", &exposure, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat("基準白輝度（nit）", &paperWhiteNits, 1.0f, 1.0f, 10000.0f);
 			ImGui::TreePop();
 		}
 
-		if (ImGuiToolKit::TreeNode(u8"カラーフィルター"))
+		if (ImGui::TreeNode("カラーフィルター"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##ColorFilter", &enableColorFilter);
-			ImGuiToolKit::SliderFloat(u8"色相シフト", &colorFilterHueShift, 0.0f, 360.0f, "%.1f deg");
-			ImGuiToolKit::SliderFloat(u8"彩度", &colorFilterSaturation, 0.0f, 2.0f);
-			ImGuiToolKit::SliderFloat(u8"明るさ", &colorFilterBrightness, 0.0f, 2.0f);
-			if (ImGuiToolKit::Button(u8"初期値に戻す##ColorFilter"))
+			ImGui::Checkbox("有効##ColorFilter", &enableColorFilter);
+			ImGui::SliderFloat("色相シフト", &colorFilterHueShift, 0.0f, 360.0f, "%.1f deg");
+			ImGui::SliderFloat("彩度", &colorFilterSaturation, 0.0f, 2.0f);
+			ImGui::SliderFloat("明るさ", &colorFilterBrightness, 0.0f, 2.0f);
+			if (ImGui::Button("初期値に戻す##ColorFilter"))
 			{
 				colorFilterHueShift = 0.0f;
 				colorFilterSaturation = 1.0f;
@@ -808,58 +808,58 @@ namespace Game
 		// Add depth-based contact shadows in screen space.
 		if (ImGui::TreeNode("SSAO"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##SSAO", &enableSSAO);
-			ImGuiToolKit::DragSizeFloat(u8"半径##SSAO", &ssaoRadius, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragFloat(u8"強度##SSAO", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
-			ImGuiToolKit::DragFloat(u8"最小距離##SSAO", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
-			ImGuiToolKit::DragFloat(u8"最大距離##SSAO", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
+			ImGui::Checkbox("有効##SSAO", &enableSSAO);
+			ImGuiToolKit::DragSizeFloat("半径##SSAO", &ssaoRadius, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("強度##SSAO", &ssaoIntensity, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat("最小距離##SSAO", &ssaoMinDistance, 0.0001f, 0.0001f, 0.2f);
+			ImGui::DragFloat("最大距離##SSAO", &ssaoMaxDistance, 0.001f, 0.01f, 3.0f);
 			ImGui::TreePop();
 		}
 
 		// Blur outward from the screen center.
-		if (ImGuiToolKit::TreeNode(u8"放射ブラー"))
+		if (ImGui::TreeNode("放射ブラー"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##RadialBlur", &enableRadialBlur);
-			ImGuiToolKit::DragSizeFloat(u8"半径##RadialBlur", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
-			ImGuiToolKit::DragInt(u8"サンプル数##RadialBlur", &radialBlurSamplingCount, 1, 1, 64);
-			ImGuiToolKit::DragFloat2(u8"中心##RadialBlur", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGuiToolKit::DragSizeFloat(u8"マスク半径##RadialBlur", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
+			ImGui::Checkbox("有効##RadialBlur", &enableRadialBlur);
+			ImGuiToolKit::DragSizeFloat("半径##RadialBlur", &radialBlurRadius, 1.0f, 0.0f, 512.0f);
+			ImGui::DragInt("サンプル数##RadialBlur", &radialBlurSamplingCount, 1, 1, 64);
+			ImGui::DragFloat2("中心##RadialBlur", &radialBlurCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGuiToolKit::DragSizeFloat("マスク半径##RadialBlur", &radialBlurMaskRadius, 1.0f, 0.0f, 512.0f);
 			ImGui::TreePop();
 		}
 
 		// Vignette effect to darken the edges of the screen.
-		if (ImGuiToolKit::TreeNode(u8"ビネット"))
+		if (ImGui::TreeNode("ビネット"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##Vignette", &enableVignette);
-			ImGuiToolKit::ColorEdit3(u8"色##Vignette", &vignetteColor.x);
-			ImGuiToolKit::DragFloat2(u8"中心##Vignette", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
-			ImGuiToolKit::DragFloat(u8"強度##Vignette", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
-			ImGuiToolKit::DragFloat(u8"滑らかさ##Vignette", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
-			ImGuiToolKit::Checkbox(u8"円形補正", &vignetteRounded);
+			ImGui::Checkbox("有効##Vignette", &enableVignette);
+			ImGuiToolKit::ColorEdit3("色##Vignette", &vignetteColor.x);
+			ImGui::DragFloat2("中心##Vignette", &vignetteCenter.x, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("強度##Vignette", &vignetteIntensity, 0.01f, 0.0f, 5.0f);
+			ImGui::DragFloat("滑らかさ##Vignette", &vignetteSmoothness, 0.01f, 0.01f, 10.0f);
+			ImGui::Checkbox("円形補正", &vignetteRounded);
 			if (vignetteRounded)
 			{
-				ImGuiToolKit::DragFloat(u8"丸み", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
+				ImGui::DragFloat("丸み", &vignetteRoundness, 0.01f, 0.1f, 8.0f);
 			}
 			ImGui::TreePop();
 		}
 
 		// Chromatic aberration effect to simulate lens distortion.
-		if (ImGuiToolKit::TreeNode(u8"色収差"))
+		if (ImGui::TreeNode("色収差"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##ChromaticAberration", &enableChromaticAberration);
-			ImGuiToolKit::DragFloat(u8"ずれ量", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
-			ImGuiToolKit::DragInt(u8"最大サンプル数", &chromaticAberrationMaxSamples, 1, 1, 64);
-			ImGuiToolKit::ColorEdit3(u8"色ずれ0", &chromaticAberrationShift[0].x);
-			ImGuiToolKit::ColorEdit3(u8"色ずれ1", &chromaticAberrationShift[1].x);
-			ImGuiToolKit::ColorEdit3(u8"色ずれ2", &chromaticAberrationShift[2].x);
+			ImGui::Checkbox("有効##ChromaticAberration", &enableChromaticAberration);
+			ImGui::DragFloat("ずれ量", &chromaticAberrationAmount, 0.01f, 0.0f, 1.0f);
+			ImGui::DragInt("最大サンプル数", &chromaticAberrationMaxSamples, 1, 1, 64);
+			ImGuiToolKit::ColorEdit3("色ずれ0", &chromaticAberrationShift[0].x);
+			ImGuiToolKit::ColorEdit3("色ずれ1", &chromaticAberrationShift[1].x);
+			ImGuiToolKit::ColorEdit3("色ずれ2", &chromaticAberrationShift[2].x);
 			ImGui::TreePop();
 		}
 
 		// Apply one final BasicPostProcess effect.
-		if (ImGuiToolKit::TreeNode(u8"最終基本エフェクト"))
+		if (ImGui::TreeNode("最終基本エフェクト"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##FinalBasicEffect", &enableBasicEffect);
-			if (ImGuiToolKit::BeginCombo(u8"エフェクト##FinalBasicEffect", BasicEffectName(basicEffectIndex)))
+			ImGui::Checkbox("有効##FinalBasicEffect", &enableBasicEffect);
+			if (ImGui::BeginCombo("エフェクト##FinalBasicEffect", BasicEffectName(basicEffectIndex)))
 			{
 				for (int i = 0; i < DirectX::BasicPostProcess::Effect_Max; ++i)
 				{
@@ -872,16 +872,16 @@ namespace Game
 				}
 				ImGui::EndCombo();
 			}
-			ImGuiToolKit::DragFloat(u8"ガウシアン倍率", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragFloat(u8"ブルームしきい値", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
-			ImGuiToolKit::DragSizeFloat(u8"ブルームぼかしサイズ", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
-			ImGuiToolKit::DragFloat(u8"ブルームぼかし明るさ", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("ガウシアン倍率", &gaussianMultiplier, 0.01f, 0.0f, 10.0f);
+			ImGui::DragFloat("ブルームしきい値", &finalBloomThreshold, 0.01f, 0.0f, 10.0f);
+			ImGuiToolKit::DragSizeFloat("ブルームぼかしサイズ", &finalBloomBlurSize, 0.1f, 0.0f, 64.0f);
+			ImGui::DragFloat("ブルームぼかし明るさ", &finalBloomBlurBrightness, 0.01f, 0.0f, 10.0f);
 			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNode("FXAA"))
 		{
-			ImGuiToolKit::Checkbox(u8"有効##FXAA", &enableFXAA);
+			ImGui::Checkbox("有効##FXAA", &enableFXAA);
 			ImGui::TreePop();
 		}
 	}

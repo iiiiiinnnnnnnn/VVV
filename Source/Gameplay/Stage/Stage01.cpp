@@ -9,7 +9,7 @@
 #include "Gameplay/Actor/ActorManager.h"
 #include "Gameplay/Camera/Camera.h"
 #include "Gameplay/Actor/Deer.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Actor/Aracore.h"
 #include "Gameplay/Player/Player.h"
@@ -223,26 +223,26 @@ void Stage01::OnDrawGUI()
 	{
 		float fadeIn = chaseAudio.GetFadeInSeconds();
 		float fadeOut = chaseAudio.GetFadeOutSeconds();
-		if (ImGuiToolKit::DragDelayFloat(u8"Fade In", &fadeIn, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+		if (ImGuiToolKit::DragDelayFloat("Fade In", &fadeIn, 0.05f, 0.0f, 10.0f, "%.2f sec"))
 			chaseAudio.SetFadeInSeconds(fadeIn);
-		if (ImGuiToolKit::DragDelayFloat(u8"Fade Out", &fadeOut, 0.05f, 0.0f, 10.0f, "%.2f sec"))
+		if (ImGuiToolKit::DragDelayFloat("Fade Out", &fadeOut, 0.05f, 0.0f, 10.0f, "%.2f sec"))
 			chaseAudio.SetFadeOutSeconds(fadeOut);
 		ImGui::TreePop();
 	}
 	if (!ImGui::TreeNode("Fog")) return;
 	ImGui::DragFloat("Spawn Rate", &fogSpawnRate, 0.1f, 0.0f, 30.0f);
-	ImGuiToolKit::DragSizeFloat(u8"Area Half Width", &fogAreaHalfWidth, 0.5f, 1.0f, 500.0f);
-	ImGuiToolKit::DragSizeFloat(u8"Area Half Depth", &fogAreaHalfDepth, 0.5f, 1.0f, 500.0f);
+	ImGuiToolKit::DragSizeFloat("Area Half Width", &fogAreaHalfWidth, 0.5f, 1.0f, 500.0f);
+	ImGuiToolKit::DragSizeFloat("Area Half Depth", &fogAreaHalfDepth, 0.5f, 1.0f, 500.0f);
 	ImGui::DragFloat("Min Height", &fogMinHeight, 0.1f, -10.0f, fogMaxHeight);
 	ImGui::DragFloat("Max Height", &fogMaxHeight, 0.1f, fogMinHeight, 20.0f);
-	ImGuiToolKit::DragDelayFloat(u8"Min Lifetime", &fogMinLifetime, 0.1f, 0.1f, fogMaxLifetime);
-	ImGuiToolKit::DragDelayFloat(u8"Max Lifetime", &fogMaxLifetime, 0.1f, fogMinLifetime, 30.0f);
-	ImGuiToolKit::DragDelayFloat(u8"Fade In", &fogFadeInDuration, 0.1f, 0.0f, fogMinLifetime);
-	ImGuiToolKit::DragDelayFloat(u8"Fade Out", &fogFadeOutDuration, 0.1f, 0.0f, fogMinLifetime);
-	ImGuiToolKit::DragSizeFloat(u8"Min Size", &fogMinSize, 0.1f, 0.1f, fogMaxSize);
-	ImGuiToolKit::DragSizeFloat(u8"Max Size", &fogMaxSize, 0.1f, fogMinSize, 30.0f);
-	ImGuiToolKit::DragSpeedFloat(u8"Drift Speed", &fogDriftSpeed, 0.01f, 0.0f, 5.0f);
-	ImGuiToolKit::ColorEdit4(u8"Fog Color", &fogColor.x);
+	ImGuiToolKit::DragDelayFloat("Min Lifetime", &fogMinLifetime, 0.1f, 0.1f, fogMaxLifetime);
+	ImGuiToolKit::DragDelayFloat("Max Lifetime", &fogMaxLifetime, 0.1f, fogMinLifetime, 30.0f);
+	ImGuiToolKit::DragDelayFloat("Fade In", &fogFadeInDuration, 0.1f, 0.0f, fogMinLifetime);
+	ImGuiToolKit::DragDelayFloat("Fade Out", &fogFadeOutDuration, 0.1f, 0.0f, fogMinLifetime);
+	ImGuiToolKit::DragSizeFloat("Min Size", &fogMinSize, 0.1f, 0.1f, fogMaxSize);
+	ImGuiToolKit::DragSizeFloat("Max Size", &fogMaxSize, 0.1f, fogMinSize, 30.0f);
+	ImGuiToolKit::DragSpeedFloat("Drift Speed", &fogDriftSpeed, 0.01f, 0.0f, 5.0f);
+	ImGuiToolKit::ColorEdit4("Fog Color", &fogColor.x);
 	ImGui::TreePop();
 }
 

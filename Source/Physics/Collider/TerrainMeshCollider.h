@@ -25,7 +25,7 @@ public:
     void OnAwake() override;
     void Render(const RenderContext& rc) override;
     void DrawGUI() override;
-    const char* GetDebugName() const override { return ICON_FA_SHAPES " TerrainMeshCollider"; }
+    const char* GetDebugName() const override { return ICON_FA_SHAPES " 地形メッシュコライダー"; }
 
     void RebuildFromTerrain(bool saveCache = true);
     void RebuildRegionFromTerrain(float minX, float maxX, float minZ, float maxZ);

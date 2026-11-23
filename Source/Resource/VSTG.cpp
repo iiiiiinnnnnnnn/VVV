@@ -4,13 +4,11 @@
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
 
-#include <array>
-#include <fstream>
 #include <sstream>
 
 #include "Gameplay/Lighting/LightManager.h"
 #include "Gameplay/Stage/Component/StageLoader.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Physics/Navigation/NavMeshActor.h"
 #include "Core/Foundation/Json.h"
 
@@ -59,18 +57,6 @@ void LoadLight(const json& value, Light& light)
 	};
 }
 
-template <typename T>
-bool Read(std::istream& stream, T& value)
-{
-	return static_cast<bool>(stream.read(reinterpret_cast<char*>(&value), sizeof(value)));
-}
-
-template <typename T>
-void Write(std::ofstream& stream, const T& value)
-{
-	stream.write(reinterpret_cast<const char*>(&value), sizeof(value));
-}
-
 bool VSTG::Load(const std::filesystem::path& path)
 {
 	try
@@ -81,7 +67,6 @@ bool VSTG::Load(const std::filesystem::path& path)
 		std::istringstream stream(std::string(bytes->begin(), bytes->end()), std::ios::binary);
 		serialDocument.reset();
 		lightingJson.clear(); stageJson.clear(); terrainSettingsJson.clear(); navMeshSettingsJson.clear(); terrainDds.clear();
-		if (!SerialDocument::IsCurrent(stream)) return LoadGokan(stream);
 		serialDocument = std::make_shared<SerialDocument>();
 		serialDocument->Load(stream, "VSTG");
 		auto& root = serialDocument->root;
@@ -102,84 +87,6 @@ bool VSTG::Load(const std::filesystem::path& path)
 		return true;
 	}
 	catch (const std::exception& exception) { error = exception.what(); return false; }
-}
-
-bool VSTG::LoadGokan(std::istream& stream)
-{
-	char magic[4]{};
-	uint32_t version = 0;
-	uint64_t lightingSize = 0;
-	uint64_t stageSize = 0;
-	uint64_t terrainSize = 0;
-	uint64_t terrainSettingsSize = 0;
-	uint64_t navMeshSettingsSize = 0;
-	stream.read(magic, sizeof(magic));
-	if (!Read(stream, version) || !Read(stream, lightingSize) || !Read(stream, stageSize) ||
-		!Read(stream, terrainSize) || !Read(stream, terrainSettingsSize) ||
-		!Read(stream, navMeshSettingsSize) || std::string(magic, sizeof(magic)) != "VSTG" ||
-		version != 4)
-	{
-		error = "Invalid VSTG header.";
-		return false;
-	}
-
-	const auto payloadStart = stream.tellg();
-	stream.seekg(0, std::ios::end);
-	const uint64_t fileSize = static_cast<uint64_t>(stream.tellg());
-	stream.seekg(payloadStart);
-	const uint64_t headerSize =
-		sizeof(magic) + sizeof(version) +
-		sizeof(lightingSize) + sizeof(stageSize) + sizeof(terrainSize) +
-		sizeof(terrainSettingsSize) + sizeof(navMeshSettingsSize);
-	if (fileSize < headerSize)
-	{
-		error = "VSTG file is smaller than its header.";
-		return false;
-	}
-
-	const uint64_t payloadSize = fileSize - headerSize;
-	const std::array<uint64_t, 5> sectionSizes = {
-		lightingSize,
-		stageSize,
-		terrainSize,
-		terrainSettingsSize,
-		navMeshSettingsSize,
-	};
-	uint64_t expectedPayloadSize = 0;
-	for (const uint64_t sectionSize : sectionSizes)
-	{
-		const uint64_t remainingSize = payloadSize - expectedPayloadSize;
-		if (sectionSize > remainingSize)
-		{
-			error = "VSTG section sizes exceed file size.";
-			return false;
-		}
-		expectedPayloadSize += sectionSize;
-	}
-	if (expectedPayloadSize != payloadSize)
-	{
-		error = "VSTG file size does not match section sizes.";
-		return false;
-	}
-
-	lightingJson.resize(static_cast<size_t>(lightingSize));
-	stageJson.resize(static_cast<size_t>(stageSize));
-	terrainDds.resize(static_cast<size_t>(terrainSize));
-	terrainSettingsJson.resize(static_cast<size_t>(terrainSettingsSize));
-	navMeshSettingsJson.resize(static_cast<size_t>(navMeshSettingsSize));
-	stream.read(lightingJson.data(), static_cast<std::streamsize>(lightingSize));
-	stream.read(stageJson.data(), static_cast<std::streamsize>(stageSize));
-	stream.read(
-		reinterpret_cast<char*>(terrainDds.data()), static_cast<std::streamsize>(terrainSize));
-	stream.read(terrainSettingsJson.data(), static_cast<std::streamsize>(terrainSettingsSize));
-	stream.read(navMeshSettingsJson.data(), static_cast<std::streamsize>(navMeshSettingsSize));
-	if (!stream)
-	{
-		error = "VSTG data is truncated.";
-		return false;
-	}
-	error.clear();
-	return true;
 }
 
 SerialDocument& VSTG::GetSerialDocument() const
@@ -323,7 +230,7 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 	try
 	{
 		const json root = json::parse(text);
-		
+
 		{
 			auto& graphics = Game::Graphics::Instance();
 			const auto& ibl = root.at("ibl");
@@ -337,7 +244,7 @@ bool VSTG::ApplyLightingJson(const std::string& text, LightManager& lights) cons
 			graphics.GetSkyBoxRenderer()->SetIntensity(intensity);
 		}
 		lights.SetAmbientColor(LoadColor(root.at("ambient")));
-		
+
 		const auto& directionals = root.at("directionals");
 		const size_t count = directionals.size()
 			+ root.value("points", json::array()).size()

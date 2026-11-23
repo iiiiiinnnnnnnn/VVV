@@ -21,7 +21,7 @@ public:
     bool PollAttackButton();
 
     void OnDisabled() override { ResetRuntime(); }
-    const char* GetDebugName() const override { return ICON_FA_GAMEPAD " LocalPlayerInput"; }
+    const char* GetDebugName() const override { return ICON_FA_GAMEPAD " ローカルプレイヤー入力"; }
 
 private:
     enum class Action { Forward, Backward, Left, Right, Sprint, QuickShift, Crouch, Attack, AlignCamera, Count };

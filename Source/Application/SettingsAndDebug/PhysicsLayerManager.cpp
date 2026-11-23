@@ -1,5 +1,6 @@
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Physics/Core/PhysicsManager.h"
 #include <fstream>
 #include <stdexcept>
@@ -14,8 +15,6 @@
 #include <cereal/types/utility.hpp>
 #include <cereal/types/array.hpp>
 
-#include "imgui.h"
-#include "imgui_stdlib.h"
 
 std::filesystem::path GetPhysicsLayerPath()
 {
@@ -55,13 +54,13 @@ bool PhysicsLayerManager::Load(const std::string& path)
 		settings = std::move(loaded);
 		currentPath = filepath.string();
 		pathInput = currentPath;
-		fileStatus = JText(u8"読み込みました。");
+		fileStatus = "読み込みました。";
 		PhysicsManager::Instance().RefreshLayerFiltering();
 		return true;
 	}
 	catch (const std::exception&)
 	{
-		fileStatus = JText(u8"読み込みに失敗しました。");
+		fileStatus = "読み込みに失敗しました。";
 		return false;
 	}
 }
@@ -81,12 +80,12 @@ bool PhysicsLayerManager::Save(const std::string& path)
 		if (!ofs) throw std::runtime_error("Cannot write physics layers");
 		currentPath = filepath.string();
 		pathInput = currentPath;
-		fileStatus = JText(u8"保存しました。");
+		fileStatus = "保存しました。";
 		return true;
 	}
 	catch (const std::exception&)
 	{
-		fileStatus = JText(u8"保存に失敗しました。");
+		fileStatus = "保存に失敗しました。";
 		return false;
 	}
 }
@@ -157,57 +156,57 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
 	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (ImGuiToolKit::Begin(ICON_FA_LAYER_GROUP u8" 物理レイヤー", open, ImGuiWindowFlags_MenuBar))
+	if (ImGui::Begin(ICON_FA_LAYER_GROUP " 物理レイヤー", open, ImGuiWindowFlags_MenuBar))
 	{
 		const char* filter = "Physics Layers (*.physicslayers)\0*.physicslayers\0";
 		auto openFile = [&]()
 		{
 			std::string path = pathInput;
-			if (Dialog::OpenFileName(path, filter, JText(u8"物理レイヤーを開く")) == DialogResult::OK) Load(path);
+			if (Dialog::OpenFileName(path, filter, "物理レイヤーを開く") == DialogResult::OK) Load(path);
 		};
 		auto saveAs = [&]()
 		{
 			std::string path = pathInput;
-			if (Dialog::SaveFileName(path, filter, JText(u8"物理レイヤーを保存"), "physicslayers") == DialogResult::OK) Save(path);
+			if (Dialog::SaveFileName(path, filter, "物理レイヤーを保存", "physicslayers") == DialogResult::OK) Save(path);
 		};
 		if (ImGui::BeginMenuBar())
 		{
-			if (ImGuiToolKit::BeginMenu(u8"ファイル"))
+			if (ImGui::BeginMenu("ファイル"))
 			{
-				if (ImGuiToolKit::MenuItem(u8"新規作成"))
+				if (ImGui::MenuItem("新規作成"))
 				{
 					CreateDefault();
 					currentPath.clear();
 					pathInput.clear();
-					fileStatus = JText(u8"新規作成（未保存）");
+					fileStatus = "新規作成（未保存）";
 				}
-				if (ImGuiToolKit::MenuItem(u8"開く...")) openFile();
-				if (ImGuiToolKit::MenuItem(u8"保存"))
+				if (ImGui::MenuItem("開く...")) openFile();
+				if (ImGui::MenuItem("保存"))
 				{
 					if (currentPath.empty()) saveAs();
 					else Save(currentPath);
 				}
-				if (ImGuiToolKit::MenuItem(u8"名前を付けて保存...")) saveAs();
+				if (ImGui::MenuItem("名前を付けて保存...")) saveAs();
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
 		}
 		ImGui::SetNextItemWidth(-100.0f);
-		ImGui::InputText(JText(u8"パス"), &pathInput);
+		ImGui::InputText("パス", &pathInput);
 		ImGui::SameLine();
-		if (ImGuiToolKit::Button(u8"参照...")) openFile();
-		if (ImGuiToolKit::Button(ICON_FA_SAVE u8" 保存"))
+		if (ImGui::Button("参照...")) openFile();
+		if (ImGui::Button(ICON_FA_SAVE " 保存"))
 		{
 			if (pathInput.empty()) saveAs();
 			else Save(pathInput);
 		}
 		ImGui::SameLine();
-		if (ImGuiToolKit::Button(ICON_FA_RECYCLE u8" 読み込み"))
+		if (ImGui::Button(ICON_FA_RECYCLE " 読み込み"))
 		{
 			if (pathInput.empty()) openFile();
 			else Load(pathInput);
 		}
-		if (!fileStatus.empty()) ImGuiToolKit::Text("%s", fileStatus.c_str());
+		if (!fileStatus.empty()) ImGui::Text("%s", fileStatus.c_str());
 		ImGui::Separator();
 
 		constexpr int DisplayLayerCount = EditableLayerCount;
@@ -217,7 +216,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 			const int realIndex = index;
 			const std::string& name = settings.layerNames[realIndex];
 
-			return std::to_string(index) + ": " + (name.empty() ? (JText(u8"(空)")) : name);
+			return std::to_string(index) + ": " + (name.empty() ? ("(空)") : name);
 		};
 
 		auto getDisplayLayerId = [&](int index) -> LayerId
@@ -264,7 +263,7 @@ void PhysicsLayerManager::DrawGUI(bool* open)
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(175.0f);
 				if (ImGui::InputTextWithHint(
-						"##LayerName", (JText(u8"(空)")), &settings.layerNames[y]))
+						"##LayerName", ("(空)"), &settings.layerNames[y]))
 					PhysicsManager::Instance().RefreshLayerFiltering();
 				ImGui::PopID();
 
@@ -326,5 +325,5 @@ std::string PhysicsLayerManager::GetLayerDisplayName(LayerId id) const
 {
 	if (id >= EditableLayerCount) return std::to_string(id) + ": (Invalid)";
 	const std::string& name = GetLayerName(id);
-	return std::to_string(id) + ": " + (name.empty() ? (JText(u8"(空)")) : name);
+	return std::to_string(id) + ": " + (name.empty() ? ("(空)") : name);
 }

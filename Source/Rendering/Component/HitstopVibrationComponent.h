@@ -20,7 +20,7 @@ class HitstopVibrationComponent : public Component
 	void OnDisabled() override;
 	const char* GetDebugName() const override
 	{
-		return ICON_FA_TIMES " HitstopVibrationComponent";
+		return ICON_FA_TIMES " ヒットストップ振動";
 	}
 
   private:

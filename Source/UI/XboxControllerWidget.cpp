@@ -1,5 +1,6 @@
 #include "UI/XboxControllerWidget.h"
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "UI/CustomLineWidget.h"
 #include "UI/SpriteWidget.h"
 #include "UI/TextWidget.h"
@@ -31,7 +32,7 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"ポーズ"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "ポーズ", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1161.0f, 152.0f};
@@ -53,7 +54,7 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"移動"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "移動", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {407.0f, 441.0f};
@@ -65,7 +66,7 @@ void XboxControllerWidget::OnAwake()
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"ダッシュ"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "ダッシュ", 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {335.0f, 542.0f};
@@ -90,7 +91,7 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>();
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"カメラ回転"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "カメラ回転", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1483.0f, 635.0f};
@@ -102,7 +103,7 @@ void XboxControllerWidget::OnAwake()
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"しゃがみ"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "しゃがみ", 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {1482.0f, 736.0f};
@@ -128,7 +129,7 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"攻撃"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "攻撃", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {1376.0f, 215.0f};
@@ -151,7 +152,7 @@ void XboxControllerWidget::OnAwake()
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"回避"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "回避", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
 		t->rect.position = {473.0f, 215.0f};
@@ -163,7 +164,7 @@ void XboxControllerWidget::OnAwake()
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
-			"Custom Line Text", JText(u8"カメラリセット"), 20.0f, "LINESeedJP");
+			"Custom Line Text", "カメラリセット", 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
 		t2->rect.position = {288.0f, 309.0f};

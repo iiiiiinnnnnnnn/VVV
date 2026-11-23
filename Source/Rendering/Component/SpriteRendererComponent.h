@@ -12,7 +12,7 @@ public:
 	SpriteRendererComponent(Object* owner, const std::string& path);
 	void OnAwake() override;
 	void OnRender(const RenderContext& rc) override;
-	const char* GetDebugName() const override { return ICON_FA_IMAGE " SpriteRendererComponent"; }
+	const char* GetDebugName() const override { return ICON_FA_IMAGE " スプライト描画"; }
 	void SetTexture(const std::string& path);
 	void SetRect(const Vector2& position, const Vector2& size) { localPosition = position; localSize = size; }
 	void SetSourceRect(const Vector2& position, const Vector2& size) { sourcePosition = position; sourceSize = size; }

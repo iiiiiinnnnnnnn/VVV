@@ -171,5 +171,5 @@ void TrailRenderComponent::DrawGUI()
 	ImGui::Text("Tip Ratio  : %.2f", tipRatio);
 	ImGui::Text("Offset Angle: (%.2f, %.2f, %.2f)", offsetAngle.x, offsetAngle.y, offsetAngle.z);
 
-    ImGuiToolKit::ColorPicker3(u8"Color", &color.x);
+    ImGuiToolKit::ColorPicker3("Color", &color.x);
 }

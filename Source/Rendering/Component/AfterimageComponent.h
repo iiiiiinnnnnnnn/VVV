@@ -17,7 +17,7 @@ class AfterimageComponent : public Component
 public:
 	AfterimageComponent(Object* owner, std::shared_ptr<VMDLModel> sourceModel);
 
-	const char* GetDebugName() const override { return ICON_FA_IMAGES " AfterimageComponent"; }
+	const char* GetDebugName() const override { return ICON_FA_IMAGES " 残像"; }
 	void OnLateUpdate() override;
 	void OnRender(const RenderContext& rc) override;
 	void OnDrawGUI() override;

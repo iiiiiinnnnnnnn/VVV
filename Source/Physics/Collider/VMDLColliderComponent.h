@@ -22,7 +22,7 @@ class VMDLColliderComponent : public PhysicsComponent
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
 
-	const char* GetDebugName() const override { return ICON_FA_SHAPES " VMDLColliderComponent"; }
+	const char* GetDebugName() const override { return ICON_FA_SHAPES " モデルコライダー"; }
 
 	void UpdateFromNode();
 	bool StartDynamicMotion(const Vector3& velocity, const Vector3& angularVelocity);

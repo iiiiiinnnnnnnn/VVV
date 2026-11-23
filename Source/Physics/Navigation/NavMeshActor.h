@@ -21,7 +21,7 @@ class NavMeshActor : public Component
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MAP " NavMeshActor"; }
+	const char* GetDebugName() const override { return ICON_FA_MAP " ナビメッシュ生成"; }
 
 	bool FindNextPoint(const Vector3& start, const Vector3& goal, Vector3& nextPoint,
 		Vector3* reachableGoal = nullptr) const;

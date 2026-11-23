@@ -69,7 +69,7 @@ void LockOnComponent::OnDrawGUI()
 	ImGui::Text("Target: %s", target ? target->GetName().c_str() : "None");
 	ImGui::DragFloat("Acquire Range", &acquireRange, 0.1f, 0.0f, 1000.0f);
 	ImGui::DragFloat("Lost Range", &lostRange, 0.1f, 0.0f, 1000.0f);
-	ImGuiToolKit::DragSpeedFloat(u8"Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
+	ImGuiToolKit::DragSpeedFloat("Rotation Speed", &rotationSpeed, 0.1f, 0.0f, 30.0f);
 	ImGui::Text("Aim Active: %s", aimActive ? "true" : "false");
 	ImGui::Text("Rotation Paused: %s", rotationPaused ? "true" : "false");
 	ImGui::Text("Rotation Pause: %.2f", rotationPauseTimer.GetRemaining());

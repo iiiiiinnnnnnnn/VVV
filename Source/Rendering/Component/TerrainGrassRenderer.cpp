@@ -2,7 +2,7 @@
 #include <Dx11Kit/Dx11Kit.h>
 #include "Rendering/Core/Graphics.h"
 #include <ProfileKit/ProfileKit.h>
-#include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
+#include "Rendering/Component/TerrainGrassRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +11,7 @@
 
 #include "Application/Time/GameTime.h"
 #include "Gameplay/Camera/Camera.h"
-#include "Gameplay/Stage/Component/Terrain.h"
+#include "Rendering/Component/Terrain.h"
 #include "Rendering/Core/RenderContext.h"
 
 TerrainGrassRenderer::TerrainGrassRenderer(ID3D11Device* device) : device(device)

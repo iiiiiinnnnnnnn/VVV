@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Core/Object/Component.h"
-#include <ImGuiToolKit/Utf8.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 
 #include <memory>
 #include <string>
@@ -16,7 +17,7 @@ class SpriteButton final : public Component
 	SpriteButton(Object* owner, const std::string& backPath, const std::string& frontPath, const Color& backColor = {1, 1, 1, 1}, const Color& frontColor = {1, 1, 1, 1});
 	const char* GetDebugName() const override
 	{
-		return JText(ICON_FA_MOUSE u8" スプライトボタン");
+		return ICON_FA_MOUSE " スプライトボタン";
 	}
 	void OnAwake() override;
 	void OnUpdate() override;

@@ -26,7 +26,7 @@ public:
 	void OnAwake() override;
 	void OnUpdate() override;
 	void OnDrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BONE " BoneFollower"; }
+	const char* GetDebugName() const override { return ICON_FA_BONE " ボーン追従"; }
 
 	void SetTarget(VMDLModel* targetModel, const std::string& targetNodeName);
 	void SetTarget(VMDLModel* targetModel, int targetNodeIndex);

@@ -209,19 +209,19 @@ void LookAt::Render(const RenderContext& rc)
 void LookAt::DrawGUI()
 {
 	ImGui::Text("found : %s", found ? "true" : "false");
-	ImGuiToolKit::DragPosFloat3(u8"Target", &target.x, 0.01f);
+	ImGuiToolKit::DragPosFloat3("Target", &target.x, 0.01f);
 
 	float maxAngleYawDegrees = DEG(maxAngleYaw);
-	if (ImGuiToolKit::DragRotFloat(u8"Max Angle Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat("Max Angle Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
 	{
 		maxAngleYaw = RAD(maxAngleYawDegrees);
 	}
 
 	float maxAnglePitchDegrees = DEG(maxAnglePitch);
-	if (ImGuiToolKit::DragRotFloat(u8"Max Angle Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
+	if (ImGuiToolKit::DragRotFloat("Max Angle Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
 	{
 		maxAnglePitch = RAD(maxAnglePitchDegrees);
 	}
 
-	ImGuiToolKit::DragSpeedFloat(u8"Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
+	ImGuiToolKit::DragSpeedFloat("Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
 }

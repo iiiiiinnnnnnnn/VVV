@@ -23,7 +23,7 @@ class LuaScript : public Component
 	void OnStart() override;
 	void OnUpdate() override;
 
-	const char* GetDebugName() const override { return "LuaScript"; }
+	const char* GetDebugName() const override { return "スクリプト"; }
 
   protected:
 	bool HasScriptPath() const { return !scriptPath.empty(); }

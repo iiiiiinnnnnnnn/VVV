@@ -1,5 +1,5 @@
-// Terrain.h
 #pragma once
+
 #include <Dx11Kit/Dx11Kit.h>
 
 #include "Application/Time/Timer.h"
@@ -15,13 +15,22 @@
 #include <string>
 #include <vector>
 
+#include "Core/Object/Transform.h"
 #include "Core/Object/Component.h"
 #include "Gameplay/Lighting/CbLightData.h"
-#include "Gameplay/Stage/Component/TerrainGrassRenderer.h"
+#include "Rendering/Component/TerrainGrassRenderer.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
 class Effect;
+class Texture;
+
+struct TerrainDecal
+{
+	Transform transform;
+	std::string texturePath;
+	float opacity = 1.0f;
+};
 
 class Terrain : public Component
 {
@@ -35,7 +44,7 @@ public:
 	void Update() override;
 	void Render(const RenderContext& rc) override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MOUNTAIN " Terrain"; }
+	const char* GetDebugName() const override { return ICON_FA_MOUNTAIN " テライン地形"; }
 
 	// 描画
 
@@ -125,6 +134,12 @@ public:
 
 	int GetBrushTextureCount() const { return static_cast<int>(brushes.size()); }
 	bool AddBrushTexture(const std::string& filename);
+
+	// デカール
+
+	void AddDecal(const std::string& path, const Transform& transform, float opacity = 1.0f);
+	void ClearDecals();
+	const std::vector<TerrainDecal>& GetDecals() const { return terrainDecals; }
 
 private:
 	// 定数
@@ -381,8 +396,8 @@ private:
 
 	// 地形レイヤー
 
-	std::vector<TerrainLayer> terrainLayers;
 	int currentTerrainLayerIndex = 0;
+	std::vector<TerrainLayer> terrainLayers;
 
 	// マテリアル
 
@@ -423,6 +438,7 @@ private:
 	bool pendingColliderRebuild = false;
 
 	// 草描画
+
 	std::unique_ptr<TerrainGrassRenderer> grassRenderer;
 	TerrainGrassRenderer::Settings grassSettings;
 	TerrainGrassRenderer::Settings grassDraftSettings;
@@ -430,4 +446,8 @@ private:
 	std::shared_ptr<Effect> grassRemovalEffect;
 	Game::Timer grassRemovalEffectCooldown{0.0f};
 	bool grassDraftInitialized = false;
+
+	// デカール
+
+	std::vector<TerrainDecal> terrainDecals;
 };

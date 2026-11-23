@@ -24,7 +24,7 @@ public:
 
 	void OnDisabled() override;
 	void OnRender(const RenderContext& rc) override;
-	const char* GetDebugName() const override { return ICON_FA_COG " EnemyAI"; }
+	const char* GetDebugName() const override { return ICON_FA_COG " 敵の行動制御"; }
 
 	using Action = std::function<void()>;
 	void AddAction(const std::string& name, Action enter = {}, Action update = {}, Action late = {}, Action exit = {});

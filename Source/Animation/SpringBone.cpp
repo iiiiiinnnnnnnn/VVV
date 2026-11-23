@@ -620,23 +620,23 @@ void SpringBone::DrawGUI()
     ImGui::Text("Bones: %d", static_cast<int>(bones.size()));
     ImGui::Text("Colliders: %d", static_cast<int>(colliders.size()));
 
-    if (ImGui::Button(JText(u8"物理初期化")))
+    if (ImGui::Button("物理初期化"))
         Reset();
 
     ImGui::Separator();
-	ImGui::DragFloat3(JText(u8"重力"), &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
-	ImGui::DragFloat(JText(u8"減衰"), &damping, 0.001f, 0.0f, 1.0f, "%.3f");
-	ImGuiToolKit::DragSpeedFloat(JText(u8"最大Velocity"), &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
+	ImGui::DragFloat3("重力", &gravity.x, 0.01f, -10.0f, 10.0f, "%.3f");
+	ImGui::DragFloat("減衰", &damping, 0.001f, 0.0f, 1.0f, "%.3f");
+	ImGuiToolKit::DragSpeedFloat("最大Velocity", &maxVelocity, 0.01f, 0.0f, 10.0f, "%.3f");
 
     ImGui::Separator();
     ImGui::Text("Collision / Solver");
-    ImGuiToolKit::DragSizeFloat(u8"Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
+    ImGuiToolKit::DragSizeFloat("Collision Radius", &collisionRadius, 0.001f, 0.0f, 1.0f, "%.3f");
     ImGui::DragFloat("Stiffness", &stiffness, 0.001f, 0.0f, 1.0f, "%.3f");
     ImGui::SliderFloat("Max Angle (deg)", &maxAngleDegrees, 0.0f, 180.0f, "%.1f");
     bool angleChanged = ImGui::SliderFloat3("Min XYZ (deg)", &minAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
     angleChanged |= ImGui::SliderFloat3("Max XYZ (deg)", &maxAnglesDegrees.x, -180.0f, 180.0f, "%.1f");
     if (angleChanged) SetAngleLimits(minAnglesDegrees, maxAnglesDegrees);
-    ImGuiToolKit::DragDelayFloat(u8"Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
+    ImGuiToolKit::DragDelayFloat("Max SubStep Time", &maxSubStepTime, 0.0001f, 0.001f, 0.1f, "%.4f");
     ImGui::DragInt("Max SubSteps", &maxSubSteps, 1, 1, 16);
     ImGui::DragInt("Solver Iterations", &solverIterations, 1, 1, 12);
 

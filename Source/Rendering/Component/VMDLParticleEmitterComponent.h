@@ -17,7 +17,7 @@ public:
 	void OnLateUpdate() override;
 	void RenderParticles(const RenderContext& rc);
 	void OnDrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_MAGIC " Effekseer Effect"; }
+	const char* GetDebugName() const override { return ICON_FA_MAGIC " エフェクト"; }
 	void SetEmitting(bool value);
 	bool IsEmitting() const { return emitting; }
 	bool IsPlaying() const { return !playbacks.empty(); }

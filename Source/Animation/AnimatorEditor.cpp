@@ -1,6 +1,7 @@
 // AnimatorEditor.cpp
 #include "Animation/Animator.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include <ImGuiToolKit/Drag.h>
 
 #include <algorithm>
@@ -12,8 +13,6 @@
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Scene/SceneManager.h"
 
-#include <imgui.h>
-#include <imgui_stdlib.h>
 #include <imgui_node_editor.h>
 
 namespace ed = ax::NodeEditor;
@@ -26,7 +25,7 @@ void Animator::DrawEditor(bool* pOpen)
 
         ImGui::SetNextWindowSize(ImVec2(1100, 700), ImGuiCond_FirstUseEver);
 
-		if (!ImGui::Begin(JText(u8"アニメーター"), pOpen,
+		if (!ImGui::Begin("アニメーター", pOpen,
             ImGuiWindowFlags_NoScrollbar |
             ImGuiWindowFlags_NoScrollWithMouse))
         {
@@ -35,12 +34,12 @@ void Animator::DrawEditor(bool* pOpen)
         }
 
         // Toolbar
-        if (ImGuiToolKit::Button(u8"開く"))
+        if (ImGui::Button("開く"))
         {
 			std::string path;
 			if (Dialog::OpenFileName(path,
-                JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                JText(u8"開く"), "Resources/Animator",
+                "アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                "開く", "Resources/Animator",
                 Game::Graphics::Instance().GetWindowHandle()) == DialogResult::OK)
             {
                 if (Scene* scene = SceneManager::Instance().GetCurrentScene())
@@ -48,14 +47,14 @@ void Animator::DrawEditor(bool* pOpen)
             }
         }
         ImGui::SameLine();
-        if (ImGuiToolKit::Button(u8"保存"))
+        if (ImGui::Button("保存"))
         {
             if (currentAnimatorPath.empty())
             {
 				std::string path;
 				if (Dialog::SaveFileName(path,
-                    JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                    JText(u8"保存"), "animator", "Resources/Animator",
+                    "アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                    "保存", "animator", "Resources/Animator",
                     Game::Graphics::Instance().GetWindowHandle()) ==
                     DialogResult::OK)
                 {
@@ -69,7 +68,7 @@ void Animator::DrawEditor(bool* pOpen)
             }
         }
         ImGui::SameLine();
-        if (ImGuiToolKit::Button(u8"名前を付けて保存"))
+        if (ImGui::Button("名前を付けて保存"))
         {
 			std::string path;
 			const std::filesystem::path currentPath =
@@ -82,8 +81,8 @@ void Animator::DrawEditor(bool* pOpen)
                 ? currentPath.parent_path().string()
                 : std::string("Resources/Animator");
 			if (Dialog::SaveFileName(path,
-                JText(u8"アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0"),
-                JText(u8"名前を付けて保存"), "animator",
+                "アニメーターファイル\0*.animator\0すべてのファイル\0*.*\0\0",
+                "名前を付けて保存", "animator",
                 initialDirectory.c_str(),
                 Game::Graphics::Instance().GetWindowHandle()) ==
                 DialogResult::OK)
@@ -94,20 +93,20 @@ void Animator::DrawEditor(bool* pOpen)
         }
         ImGui::SameLine();
         ImGui::TextDisabled(
-            currentAnimatorPath.empty() ? JText(u8"（未保存）") : currentAnimatorPath.c_str());
+            currentAnimatorPath.empty() ? "（未保存）" : currentAnimatorPath.c_str());
         ImGui::Separator();
 
         const int layerCount = (int)GetLayerCount();
         if (layerCount == 0)
         {
-            ImGuiToolKit::TextDisabled(u8"レイヤーがありません。");
-            if (ImGuiToolKit::Button(u8"+ レイヤーを追加"))
-                AddLayer(JText(u8"基本レイヤー"), Animator::BlendMode::Override, 1.0f, {});
+            ImGui::TextDisabled("レイヤーがありません。");
+            if (ImGui::Button("+ レイヤーを追加"))
+                AddLayer("基本レイヤー", Animator::BlendMode::Override, 1.0f, {});
             ImGui::End();
             return;
         }
 
-        if (ImGui::BeginTabBar(JText(u8"レイヤー")))
+        if (ImGui::BeginTabBar("レイヤー"))
         {
             for (int li = 0; li < layerCount; ++li)
             {
@@ -151,7 +150,7 @@ void Animator::DrawEditor(bool* pOpen)
                     ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
                     ImGui::SameLine();
-                    ImGuiToolKit::TextDisabled(u8"レイヤー %d（左ほど優先）", li);
+                    ImGui::TextDisabled("レイヤー %d（左ほど優先）", li);
                     ImGui::Separator();
 
                     DrawLayerEditor(layer, li);
@@ -160,7 +159,7 @@ void Animator::DrawEditor(bool* pOpen)
             }
 
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing))
-                AddLayer(JText(u8"新規レイヤー"), Animator::BlendMode::Override, 1.0f, {});
+                AddLayer("新規レイヤー", Animator::BlendMode::Override, 1.0f, {});
 
             ImGui::EndTabBar();
         }
@@ -169,12 +168,12 @@ void Animator::DrawEditor(bool* pOpen)
         if (ImGui::BeginPopupModal("AddLayerModal", nullptr,
             ImGuiWindowFlags_NoResize))
         {
-            ImGuiToolKit::Text(u8"レイヤー名:");
+            ImGui::Text("レイヤー名:");
             ImGui::SetNextItemWidth(-1.0f);
             ImGui::InputText("##layername", &addLayerName);
 
             ImGui::Spacing();
-            ImGuiToolKit::Text(u8"ボーンマスク（未選択なら全ボーン）:");
+            ImGui::Text("ボーンマスク（未選択なら全ボーン）:");
             ImGui::Separator();
 
             const std::vector<VMDLModel::Node> emptyNodes;
@@ -193,7 +192,7 @@ void Animator::DrawEditor(bool* pOpen)
             ImGui::EndChild();
 
             ImGui::Spacing();
-            if (ImGuiToolKit::Button(u8"追加", ImVec2(120, 0)))
+            if (ImGui::Button("追加", ImVec2(120, 0)))
             {
                 Animator::AvatarMask mask;
                 for (int ni = 0; ni < (int)maskSelection.size(); ++ni)
@@ -204,7 +203,7 @@ void Animator::DrawEditor(bool* pOpen)
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGuiToolKit::Button(u8"キャンセル", ImVec2(120, 0)))
+            if (ImGui::Button("キャンセル", ImVec2(120, 0)))
                 ImGui::CloseCurrentPopup();
 
             ImGui::EndPopup();
@@ -346,7 +345,7 @@ void Animator::DrawNodes(Animator::AnimatorLayer& layer, int li)
             ImGui::PushID(li * 10000 + ANY_STATE_INDEX);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.3f, 1.0f));
-            ImGuiToolKit::TextUnformatted(u8"AnyState");
+            ImGui::TextUnformatted("AnyState");
             ImGui::PopStyleColor();
 
             ax::NodeEditor::BeginPin(OutPin(li, ANY_STATE_INDEX), ax::NodeEditor::PinKind::Output);
@@ -415,7 +414,7 @@ void Animator::DrawNodes(Animator::AnimatorLayer& layer, int li)
 
             ImGui::TextUnformatted(state.name.c_str());
             if (isCurrent)
-                ImGuiToolKit::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), u8">> 再生中 <<");
+                ImGui::TextColored(ImVec4(0.25f, 1.0f, 0.35f, 1.0f), ">> 再生中 <<");
 
             const std::string animationName =
                 GetStateAnimationName(state);
@@ -677,10 +676,10 @@ void Animator::HandleInteractions(Animator::AnimatorLayer& layer, int li)
 
         if (ImGui::BeginPopup("BackgroundContextMenu"))
         {
-            if (ImGuiToolKit::MenuItem(u8"+ ステートを追加"))
+            if (ImGui::MenuItem("+ ステートを追加"))
             {
                 pendingNodePlacement = true;
-                pendingNodeStateIndex = AddState(li, JText(u8"新規ステート"), 0, true, 1.0f);
+                pendingNodeStateIndex = AddState(li, "新規ステート", 0, true, 1.0f);
                 pendingNodePosition = editorContextMenuPosition;
             }
             ImGui::EndPopup();
@@ -711,7 +710,7 @@ void Animator::HandleInteractions(Animator::AnimatorLayer& layer, int li)
     // -------------------------------------------------------------------
 void Animator::DrawParameterPanel()
     {
-        ImGuiToolKit::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), u8"パラメーター");
+        ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "パラメーター");
 
         static std::string newParamName;
         static int  newParamType = 0; // 0=Float 1=Int 2=Bool 3=Trigger
@@ -723,7 +722,7 @@ void Animator::DrawParameterPanel()
         ImGui::SetNextItemWidth(70.0f);
         ImGui::Combo("##newtype", &newParamType, typeLabels, 4);
         ImGui::SameLine();
-        if (ImGuiToolKit::Button(u8"+ 追加") && !newParamName.empty())
+        if (ImGui::Button("+ 追加") && !newParamName.empty())
         {
             switch (newParamType)
             {
@@ -817,16 +816,16 @@ void Animator::DrawParameterPanel()
     // -------------------------------------------------------------------
 void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
     {
-        ImGuiToolKit::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), u8"レイヤー設定");
+        ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "レイヤー設定");
 
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::InputText("##layername", &layer.name);
 
-        ImGuiToolKit::TextDisabled(u8"ウェイト");
+        ImGui::TextDisabled("ウェイト");
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::DragFloat("##weight", &layer.weight, 0.01f, 0.0f, 1.0f, "%.2f");
 
-        ImGuiToolKit::TextDisabled(u8"ブレンドモード");
+        ImGui::TextDisabled("ブレンドモード");
         const char* blendModes[] = { "Override", "Additive" };
         int blendMode = static_cast<int>(layer.blendMode);
         ImGui::SetNextItemWidth(-1.0f);
@@ -834,7 +833,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
             layer.blendMode = static_cast<Animator::BlendMode>(blendMode);
 
         ImGui::Spacing();
-        ImGuiToolKit::TextDisabled(u8"ボーンマスク");
+        ImGui::TextDisabled("ボーンマスク");
         const std::vector<VMDLModel::Node> emptyNodes;
         const auto& nodes = model ? model->GetNodes() : emptyNodes;
         ImGui::BeginChild("BoneMask", ImVec2(0, 120), true);
@@ -865,7 +864,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
 
         ImGui::Spacing();
         ImGui::Separator();
-        ImGuiToolKit::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), u8"トランジション優先");
+        ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1), "トランジション優先");
 
         int anyMoveFrom = -1;
         int anyMoveTo = -1;
@@ -882,7 +881,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
         {
             const float rowHeight = ImGui::GetFrameHeight();
 
-            ImGuiToolKit::TableSetupColumn(u8"トランジション",
+            ImGui::TableSetupColumn("トランジション",
                 ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn(
                 "##AnyStateDelete",
@@ -1084,7 +1083,7 @@ void Animator::DrawLayerSettings(Animator::AnimatorLayer& layer, int li)
         {
             ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
-            if (ImGuiToolKit::Button(u8"レイヤーを削除", ImVec2(-1, 0)))
+            if (ImGui::Button("レイヤーを削除", ImVec2(-1, 0)))
                 RemoveLayer(li);
             ImGui::PopStyleColor();
         }
@@ -1099,7 +1098,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
 
         Animator::State& state = layer.states[si];
 
-        ImGuiToolKit::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), u8"ステート");
+        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ステート");
         ImGui::Separator();
 
         ImGui::SetNextItemWidth(-1.0f);
@@ -1113,9 +1112,9 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
             (state.animationIndex >= 0 &&
              state.animationIndex < static_cast<int>(animations.size()))
             ? animations[state.animationIndex].name.c_str()
-            : JText(u8"（なし）");
+            : "（なし）";
 
-        ImGuiToolKit::Text(u8"アニメーション");
+        ImGui::Text("アニメーション");
         ImGui::SetNextItemWidth(-1.0f);
         if (ImGui::BeginCombo("##anim", currentAnimationName))
         {
@@ -1140,36 +1139,36 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         ImGui::Spacing();
         if (!model)
         {
-            ImGuiToolKit::TextDisabled(u8"モデル未選択のため、クリップ番号で編集します。");
-            if (ImGuiToolKit::InputInt(u8"クリップ番号", &state.animationIndex))
+            ImGui::TextDisabled("モデル未選択のため、クリップ番号で編集します。");
+            if (ImGui::InputInt("クリップ番号", &state.animationIndex))
                 state.animationIndex = std::max(state.animationIndex, -1);
         }
-        ImGuiToolKit::DragSpeedFloat(u8"再生速度", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
-        ImGuiToolKit::TextDisabled(u8"再生区間（元クリップの0〜1）");
+        ImGuiToolKit::DragSpeedFloat("再生速度", &state.speed, 0.01f, 0.0f, 10.0f, "%.2f");
+        ImGui::TextDisabled("再生区間（元クリップの0〜1）");
         ImGui::SetNextItemWidth(-1.0f);
-        if (ImGuiToolKit::DragFloat(u8"開始##playbackStart", &state.playbackStart, 0.001f,
+        if (ImGui::DragFloat("開始##playbackStart", &state.playbackStart, 0.001f,
             0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
             state.playbackEnd = std::max(state.playbackEnd, state.playbackStart);
         ImGui::SetNextItemWidth(-1.0f);
-        ImGuiToolKit::DragFloat(u8"終了##playbackEnd", &state.playbackEnd, 0.001f,
+        ImGui::DragFloat("終了##playbackEnd", &state.playbackEnd, 0.001f,
             state.playbackStart, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
-        ImGuiToolKit::Checkbox(u8"ループ", &state.loop);
-        ImGuiToolKit::Checkbox(u8"AnyStateからのトランジションを禁止", &state.blockAnyStateTransitions);
+        ImGui::Checkbox("ループ", &state.loop);
+        ImGui::Checkbox("AnyStateからのトランジションを禁止", &state.blockAnyStateTransitions);
 
         ImGui::Spacing();
         bool isDefault = (layer.defaultStateIndex == si);
         if (isDefault)
-            ImGuiToolKit::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), u8"* デフォルトステート");
+            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "* デフォルトステート");
         else
-            if (ImGuiToolKit::Button(u8"デフォルトステートに設定"))
+            if (ImGui::Button("デフォルトステートに設定"))
                 SetDefaultState(li, si);
 
         if (!state.transitions.empty())
         {
             ImGui::Spacing();
             ImGui::Separator();
-            ImGuiToolKit::TextColored(ImVec4(1, 0.8f, 0.2f, 1), u8"トランジションの順番（上から下）");
+            ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "トランジションの順番（上から下）");
 
             int dragFrom = -1, dragTo = -1;
             for (int ti = 0; ti < (int)state.transitions.size(); ++ti)
@@ -1258,7 +1257,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         // ---- Callbacks ----
         ImGui::Spacing();
         ImGui::Separator();
-        ImGuiToolKit::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), u8"コールバック");
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "コールバック");
 
         auto& callbacks = state.callbacks;
         int removeIdx = -1;
@@ -1269,15 +1268,15 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
             ImGui::PushID(ci);
 
             ImGui::SetNextItemWidth(120.0f);
-            ImGuiToolKit::InputText(u8"ラベル##cblabel", &cb.label);
+            ImGui::InputText("ラベル##cblabel", &cb.label);
 
             ImGui::SameLine();
 
-            ImGuiToolKit::Checkbox(u8"秒単位", &cb.useSeconds);
+            ImGui::Checkbox("秒単位", &cb.useSeconds);
             ImGui::SameLine();
             float range[2] = { cb.enterTimePer, cb.exitTimePer };
             ImGui::SetNextItemWidth(150.0f);
-            if (ImGuiToolKit::DragFloat2(u8"範囲##cbrange", range, 0.01f, 0.0f, cb.useSeconds ? 0.0f : 1.0f, "%.2f"))
+            if (ImGui::DragFloat2("範囲##cbrange", range, 0.01f, 0.0f, cb.useSeconds ? 0.0f : 1.0f, "%.2f"))
             {
                 cb.enterTimePer = range[0];
                 cb.exitTimePer  = std::max(range[1], range[0] + 0.01f);
@@ -1289,9 +1288,9 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
                 removeIdx = ci;
 
             ImGui::Indent();
-            ImGuiToolKit::TextDisabled(u8"onEnter: %s", cb.onEnter ? JText(u8"登録済み") : JText(u8"（なし）"));
+            ImGui::TextDisabled("onEnter: %s", cb.onEnter ? "登録済み" : "（なし）");
             ImGui::SameLine();
-            ImGuiToolKit::TextDisabled(u8"onExit: %s",  cb.onExit  ? JText(u8"登録済み") : JText(u8"（なし）"));
+            ImGui::TextDisabled("onExit: %s",  cb.onExit  ? "登録済み" : "（なし）");
             ImGui::Unindent();
 
             ImGui::PopID();
@@ -1300,7 +1299,7 @@ void Animator::DrawStateDetail(Animator::AnimatorLayer& layer, int li)
         if (removeIdx >= 0)
             callbacks.erase(callbacks.begin() + removeIdx);
 
-        if (ImGuiToolKit::Button(u8"+ コールバックを追加"))
+        if (ImGui::Button("+ コールバックを追加"))
             state.callbacks.push_back({ "(unnamed)", 0.0f, 1.0f, nullptr, nullptr });
     }
 
@@ -1324,16 +1323,16 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             ? layer.anyStateTransitions[ti]
             : layer.states[si].transitions[ti];
 
-        const std::string& fromName = (si == ANY_STATE_INDEX) ? JText(u8"AnyState") : layer.states[si].name;
+        const std::string& fromName = (si == ANY_STATE_INDEX) ? "AnyState" : layer.states[si].name;
         const std::string& toName =
             (tr.toStateIndex >= 0 && tr.toStateIndex < (int)layer.states.size())
             ? layer.states[tr.toStateIndex].name : "???";
 
-        ImGuiToolKit::TextColored(ImVec4(1, 0.8f, 0.2f, 1), u8"トランジション");
+        ImGui::TextColored(ImVec4(1, 0.8f, 0.2f, 1), "トランジション");
         ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.18f, 0.18f, 1.0f));
-        if (ImGuiToolKit::Button(u8"トランジションを削除", ImVec2(-1.0f, 0.0f)))
+        if (ImGui::Button("トランジションを削除", ImVec2(-1.0f, 0.0f)))
         {
             suppressNodeEditorInteractions = true;
 
@@ -1356,24 +1355,24 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
 
         ImGui::Separator();
 
-        ImGuiToolKit::DragDelayFloat(u8"トランジション時間", &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
-        ImGuiToolKit::Checkbox(u8"ExitTimeを使用", &tr.hasExitTime);
+        ImGuiToolKit::DragDelayFloat("トランジション時間", &tr.transitionDuration, 0.01f, 0.0f, 5.0f);
+        ImGui::Checkbox("ExitTimeを使用", &tr.hasExitTime);
         if (tr.hasExitTime)
-            ImGuiToolKit::DragFloat(u8"Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
-        ImGuiToolKit::Checkbox(u8"再生進行度を問わない", &tr.isAny);
+            ImGui::DragFloat("Exit Time", &tr.exitTime, 0.01f, 0.0f, 1.0f);
+        ImGui::Checkbox("再生進行度を問わない", &tr.isAny);
         if (!tr.isAny)
         {
-            ImGuiToolKit::DragFloat(u8"開始進行度", &tr.sourceProgressMin, 0.01f, 0.0f, 1.0f, "%.2f");
-            ImGuiToolKit::DragFloat(u8"終了進行度",   &tr.sourceProgressMax, 0.01f, 0.0f, 1.0f, "%.2f");
+            ImGui::DragFloat("開始進行度", &tr.sourceProgressMin, 0.01f, 0.0f, 1.0f, "%.2f");
+            ImGui::DragFloat("終了進行度",   &tr.sourceProgressMax, 0.01f, 0.0f, 1.0f, "%.2f");
             if (tr.sourceProgressMin > tr.sourceProgressMax) tr.sourceProgressMax = tr.sourceProgressMin;
         }
-        ImGuiToolKit::TextDisabled(u8"優先度: %d（トランジション一覧で並べ替え）", tr.priority);
-        ImGuiToolKit::Checkbox(u8"トランジション中の割り込みを許可", &tr.canInterrupt);
+        ImGui::TextDisabled("優先度: %d（トランジション一覧で並べ替え）", tr.priority);
+        ImGui::Checkbox("トランジション中の割り込みを許可", &tr.canInterrupt);
 
         if (si == ANY_STATE_INDEX)
         {
             ImGui::Separator();
-            ImGuiToolKit::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), u8"トランジションを禁止する元のステート");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), "トランジションを禁止する元のステート");
             ImGui::BeginChild("ExcludedAnyStateSources", ImVec2(0, 120), true);
             for (int st = 0; st < (int)layer.states.size(); ++st)
             {
@@ -1403,7 +1402,7 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
         }
 
         ImGui::Separator();
-        ImGuiToolKit::TextColored(ImVec4(0.8f, 0.8f, 1, 1), u8"条件");
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 1, 1), "条件");
 
         const auto& params = GetParameters();
         const auto& triggers = GetTriggers();
@@ -1525,7 +1524,7 @@ void Animator::DrawTransitionDetail(Animator::AnimatorLayer& layer)
             ImGui::PopID();
         }
 
-        if (ImGuiToolKit::Button(u8"+ 条件を追加"))
+        if (ImGui::Button("+ 条件を追加"))
         {
             Animator::Condition newC;
             if (!params.empty())

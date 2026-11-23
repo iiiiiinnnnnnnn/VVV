@@ -53,7 +53,7 @@ class StageLoader : public Component
 
 	void Update() override;
 	void DrawGUI() override;
-	const char* GetDebugName() const override { return ICON_FA_BOX " StageLoader"; }
+	const char* GetDebugName() const override { return ICON_FA_BOX " ステージ読み込み"; }
 
 	void LoadJson();
 	void LoadJsonText(const std::string& text);

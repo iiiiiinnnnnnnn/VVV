@@ -56,8 +56,6 @@
     <ClInclude Include="Include\ImGuiToolKit\Theme.h" />
     <ClInclude Include="Include\ImGuiToolKit\Color.h" />
     <ClInclude Include="Include\ImGuiToolKit\Drag.h" />
-    <ClInclude Include="Include\ImGuiToolKit\Widgets.h" />
-    <ClInclude Include="Include\ImGuiToolKit\Utf8.h" />
     <ClCompile Include="Source\Alert.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

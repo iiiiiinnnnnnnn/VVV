@@ -1,7 +1,7 @@
 #include "Application/SettingsAndDebug/SerialViewer.h"
-#include <ImGuiToolKit/Widgets.h>
-#include "IconsFontAwesome5.h"
 #include <imgui.h>
+#include <imgui_stdlib.h>
+#include "IconsFontAwesome5.h"
 #include <format>
 
 class SerialViewerText
@@ -134,16 +134,16 @@ bool SerialViewer::DrawNode(SerialNode& node, size_t depth, std::vector<uint64_t
 	ImGui::TableSetColumnIndex(4);
 	ImGui::TextUnformatted(SerialViewerText::Value(node).c_str());
 	ImGui::TableSetColumnIndex(5);
-	ImGui::TextUnformatted(node.kind == SerialKind::Deleted ? JText(ICON_FA_TIMES u8" 削除") :
-		warning ? JText(ICON_FA_EXCLAMATION_TRIANGLE u8" 未対応") : JText(ICON_FA_CHECK u8" 読込"));
+	ImGui::TextUnformatted(node.kind == SerialKind::Deleted ? ICON_FA_TIMES " 削除" :
+		warning ? ICON_FA_EXCLAMATION_TRIANGLE " 未対応" : ICON_FA_CHECK " 読込");
 	ImGui::TableSetColumnIndex(6);
 	const bool essential = !depth || (depth == 1 && node.name == "geometry");
 	const bool positional = arrayElement && node.understood && !node.stableIdentity;
 	ImGui::BeginDisabled(essential || positional || node.kind == SerialKind::Deleted);
-	const bool remove = ImGuiToolKit::Button(ICON_FA_TIMES);
+	const bool remove = ImGui::Button(ICON_FA_TIMES);
 	ImGui::EndDisabled();
 	if (positional && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-		ImGuiToolKit::SetTooltip(u8"位置で参照する配列要素です。親の項目全体、または通常のエディタで削除してください。");
+		ImGui::SetTooltip("位置で参照する配列要素です。親の項目全体、または通常のエディタで削除してください。");
 	bool changed = false;
 	if (remove) { node.Delete(); changed = true; }
 	else if (expanded && !node.children.empty())
@@ -158,7 +158,7 @@ bool SerialViewer::Draw(SerialDocument& document, bool* open)
 {
 	ImGui::SetNextWindowSize({1150, 680}, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowBgAlpha(1.0f);
-	if (!ImGuiToolKit::Begin(ICON_FA_SITEMAP u8" シリアルビュアー", open))
+	if (!ImGui::Begin(ICON_FA_SITEMAP " シリアルビュアー", open))
 	{
 		ImGui::End();
 		return false;
@@ -167,8 +167,8 @@ bool SerialViewer::Draw(SerialDocument& document, bool* open)
 	if (ImGui::BeginTable("##SerialItems", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0, ImGui::GetContentRegionAvail().y}))
 	{
-		for (const auto* label : {JText(u8"項目"), "ID", JText(u8"型"), JText(u8"バイト数"),
-			JText(u8"値"), JText(u8"状態"), JText(u8"操作")}) ImGui::TableSetupColumn(label);
+		for (const auto* label : {"項目", "ID", "型", "バイト数",
+			"値", "状態", "操作"}) ImGui::TableSetupColumn(label);
 		ImGui::TableSetupScrollFreeze(0, 1);
 		ImGui::TableHeadersRow();
 		std::vector<uint64_t> path;

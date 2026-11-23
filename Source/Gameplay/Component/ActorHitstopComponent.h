@@ -24,7 +24,7 @@ public:
 	void OnDisabled() override { remaining.Stop(); }
 	const char* GetDebugName() const override
 	{
-		return ICON_FA_TIMES "ActorHitstopComponent";
+		return ICON_FA_TIMES "ヒットストップ";
 	}
 
 private:

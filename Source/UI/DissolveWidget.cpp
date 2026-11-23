@@ -1,5 +1,6 @@
 #include "UI/DissolveWidget.h"
-#include <ImGuiToolKit/Widgets.h>
+#include <imgui.h>
+#include <imgui_stdlib.h>
 #include "Rendering/Core/Graphics.h"
 #include "Rendering/Renderer/SpriteRenderer.h"
 #include "Resource/ResourceManager.h"
@@ -48,10 +49,10 @@ void DissolveWidget::OnRender(const RenderContext& rc)
 
 void DissolveWidget::OnDrawGUI()
 {
-	ImGuiToolKit::SliderFloat(u8"ディソルブ影響度", &renderParams.dissolve.amount, 0.0f, 1.0f);
-	ImGuiToolKit::TextDisabled(u8"0: 全表示 / 1: 全消去");
-	ImGuiToolKit::DragFloat(u8"ノイズの表示範囲", &renderParams.dissolve.maskScale, 0.01f, 0.01f, 10.0f);
-	ImGuiToolKit::DragFloat(u8"境界の柔らかさ", &renderParams.dissolve.softness, 0.005f, 0.0f, 0.5f);
+	ImGui::SliderFloat("ディソルブ影響度", &renderParams.dissolve.amount, 0.0f, 1.0f);
+	ImGui::TextDisabled("0: 全表示 / 1: 全消去");
+	ImGui::DragFloat("ノイズの表示範囲", &renderParams.dissolve.maskScale, 0.01f, 0.01f, 10.0f);
+	ImGui::DragFloat("境界の柔らかさ", &renderParams.dissolve.softness, 0.005f, 0.0f, 0.5f);
 	if (!renderParams.dissolve.mask)
-		ImGuiToolKit::TextDisabled(u8"マスク未設定");
+		ImGui::TextDisabled("マスク未設定");
 }
