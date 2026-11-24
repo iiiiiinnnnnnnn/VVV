@@ -35,7 +35,7 @@ void GamePadVib::Update()
 	if (duration > 0.0f)
 	{
 		gamepad.SetVibration(leftPower, rightPower);
-		duration -= Game::Time::deltaTime;
+		duration -= Game::Time::unscaledDeltaTime;
 	}
 	else
 	{

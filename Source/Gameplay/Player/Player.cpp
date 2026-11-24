@@ -364,7 +364,7 @@ void Player::UpdateMovement()
 	const bool quickStepStarted = input.Down(PlayerAction::QuickForward) || input.Down(PlayerAction::QuickBackward) ||
 		input.Down(PlayerAction::QuickLeft) || input.Down(PlayerAction::QuickRight) || input.Down(PlayerAction::QuickDefaultForward);
 
-	if (input.Down(PlayerAction::AlignCamera) && cameraController)
+	if (input.Held(PlayerAction::AlignCamera) && cameraController)
 		cameraController->RequestAlignToPlayerForward();
 
 	const bool actionBlocksCrouch = state.frozen || IsDead() || state.attacking ||
@@ -510,6 +510,8 @@ void Player::UpdateMovementAnimation(const InputContext& input, float inputLengt
 		if (isInWater) rootMotionScale *= waterMoveSpeedScale;
 		motor->SetRootMotionScale(rootMotionScale);
 	}
+
+	anim->SetCurrentAnimationSpeed(isInWater ? 0.8f : 1.0f);
 }
 
 bool Player::CanContinueJustDodgeSkill() const

@@ -127,9 +127,9 @@ void XboxControllerWidget::OnAwake()
 	}
 	{
 		auto c = std::make_shared<CustomLineWidget>("Custom Line");
-		c->AddPoint({1085.0f, 572.0f});
-		c->AddPoint({1137.0f, 535.0f});
-		c->AddPoint({1196.0f, 535.0f});
+		c->AddPoint({1096.0f, 574.0f});
+		c->AddPoint({1168.0f, 553.0f});
+		c->AddPoint({1298.0f, 609.0f});
 		c->SetLineWidth(2.0f);
 		c->rect.position = {73.0f, -269.0f};
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
@@ -138,51 +138,76 @@ void XboxControllerWidget::OnAwake()
 			"Custom Line Text", "攻撃", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
-		t->rect.position = {1376.0f, 215.0f};
+		t->rect.position = {1470.0f, 285.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto s = std::make_shared<SpriteWidget>("Right_Trigger", "UI/512w/Right_Trigger.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
-		s->rect.position = {1269.0f, 217.0f};
+		s->rect.position = {1370.0f, 292.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
-		AddControl({c, t, s}, Control::Attack);
+		auto c2 = std::make_shared<CustomLineWidget>("Custom Line");
+		c2->AddPoint({1210.0f, 412.0f});
+		c2->AddPoint({1244.0f, 379.0f});
+		c2->AddPoint({1243.0f, 285.0f});
+		c2->SetLineWidth(2.0f);
+		c2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
+
+		auto s2 = std::make_shared<SpriteWidget>("B", "UI/512w/B.png");
+		s2->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
+		s2->rect.position = {1369.0f, 384.0f};
+		s2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
+
+		AddControl({c, c2, t, s, s2}, Control::Attack);
 	}
 	{
 		auto c = std::make_shared<CustomLineWidget>("Custom Line");
-		c->AddPoint({835.0f, 572.0f});
-		c->AddPoint({783.0f, 535.0f});
-		c->AddPoint({724.0f, 535.0f});
+		c->AddPoint({823.0f, 572.0f});
+		c->AddPoint({825.0f, 522.0f});
+		c->AddPoint({730.0f, 452.0f});
 		c->SetLineWidth(2.0f);
 		c->rect.position = {-75.0f, -269.0f};
 		c->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
+
+		auto c2 = std::make_shared<CustomLineWidget>("Custom Line");
+		c2->AddPoint({823.0f, 519.0f});
+		c2->AddPoint({979.0f, 753.0f});
+		c2->AddPoint({1175.0f, 753.0f});
+		c2->SetLineWidth(2.0f);
+		c2->rect.position = {-75.0f, -269.0f};
+		c2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t = std::make_shared<TextWidget>(
 			"Custom Line Text", "回避", 20.0f, "LINESeedJP");
 		t->SetFontSize(40.0f);
 		t->SetColor(Color(1, 1, 1, 1));
-		t->rect.position = {473.0f, 215.0f};
+		t->rect.position = {473.0f, 128.0f};
 		t->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto s = std::make_shared<SpriteWidget>("Left_Trigger", "UI/512w/Left_Trigger.png");
 		s->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
-		s->rect.position = {546.0f, 217.0f};
+		s->rect.position = {546.0f, 129.0f};
 		s->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
+
+		auto a = std::make_shared<SpriteWidget>("A", "UI/512w/A.png");
+		a->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
+		a->rect.position = {546.0f, 217.0f};
+		a->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto t2 = std::make_shared<TextWidget>(
 			"Custom Line Text", "カメラリセット", 20.0f, "LINESeedJP");
 		t2->SetFontSize(40.0f);
 		t2->SetColor(Color(1, 1, 1, 1));
-		t2->rect.position = {288.0f, 309.0f};
+		t2->rect.position = {288.0f, 324.0f};
 		t2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		auto s2 = std::make_shared<SpriteWidget>("Left_Bumper", "UI/512w/Left_Bumper.png");
 		s2->rect.size = Vector2(512.0f, 512.0f) * 0.2f;
-		s2->rect.position = {546.0f, 309.0f};
+		s2->rect.position = {546.0f, 323.0f};
 		s2->AddComponent<WidgetShadow>(Vector2{3.5f, 3.5f});
 
 		AddControl({c}, Control::Dodge, Control::AlignCamera);
-		AddControl({t, s}, Control::Dodge);
+		AddControl({c2, t, s, a}, Control::Dodge);
 		AddControl({t2, s2}, Control::AlignCamera);
 	}
 }
