@@ -19,7 +19,7 @@ cbuffer CbTerrainLayer : register(b4)
     int terrain_layer_count;
     int terrain_brush_preview_mode;
     int terrain_brush_flags;
-    int terrain_brush_uses_alpha;
+    int terrain_layer_padding;
     float4 terrain_brush_area;
     float4 terrain_brush_params;
 };
@@ -648,7 +648,7 @@ float4 main(VS_OUT pin) : SV_TARGET
                 float2 dimensions = float2(width, height);
                 float2 sampleUV = (brushUV * max(dimensions - 1.0f, 0.0f) + 0.5f) / max(dimensions, 1.0f);
                 float4 brushSample = terrainBrushMap.SampleLevel(shadowSampler, sampleUV, 0);
-                influence = terrain_brush_uses_alpha != 0 ? brushSample.a : dot(brushSample.rgb, float3(0.2126f, 0.7152f, 0.0722f));
+                influence = brushSample.a;
                 if ((terrain_brush_flags & 1) != 0) influence = 1.0f - influence;
                 float strength = terrain_brush_preview_mode == 1 ? terrain_brush_params.x : terrain_brush_params.w;
                 if (terrain_brush_preview_mode == 2) strength = 1.0f;

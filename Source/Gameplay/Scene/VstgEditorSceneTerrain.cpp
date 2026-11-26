@@ -213,9 +213,6 @@ bool VstgEditorScene::AddBrushTexture(const std::string& filename)
 		static_cast<size_t>(brush.width) *
 		static_cast<size_t>(brush.height));
 
-	uint8_t minimumAlpha = 255;
-	uint8_t maximumAlpha = 0;
-
 	for (int y = 0; y < brush.height; ++y)
 	{
 		const uint8_t* row = image->pixels + static_cast<size_t>(y) * image->rowPitch;
@@ -223,38 +220,11 @@ bool VstgEditorScene::AddBrushTexture(const std::string& filename)
 		for (int x = 0; x < brush.width; ++x)
 		{
 			const uint8_t* pixel = row + static_cast<size_t>(x) * 4;
-			minimumAlpha = std::min(minimumAlpha, pixel[3]);
-			maximumAlpha = std::max(maximumAlpha, pixel[3]);
-		}
-	}
-
-	const bool useAlphaMask =
-		static_cast<int>(maximumAlpha) -
-		static_cast<int>(minimumAlpha) > 4;
-
-	brush.usesAlpha = useAlphaMask;
-	for (int y = 0; y < brush.height; ++y)
-	{
-		const uint8_t* row = image->pixels + static_cast<size_t>(y) * image->rowPitch;
-
-		for (int x = 0; x < brush.width; ++x)
-		{
-			const uint8_t* pixel = row + static_cast<size_t>(x) * 4;
-
-			const float red = static_cast<float>(pixel[0]) / 255.0f;
-			const float green = static_cast<float>(pixel[1]) / 255.0f;
-			const float blue = static_cast<float>(pixel[2]) / 255.0f;
-			const float alpha = static_cast<float>(pixel[3]) / 255.0f;
-
-			const float luminance =
-				red * 0.2126f +
-				green * 0.7152f +
-				blue * 0.0722f;
 
 			brush.mask[
 				static_cast<size_t>(y) * static_cast<size_t>(brush.width) +
 				static_cast<size_t>(x)] =
-				std::clamp(useAlphaMask ? alpha : luminance, 0.0f, 1.0f);
+				static_cast<float>(pixel[3]) / 255.0f;
 		}
 	}
 
@@ -670,7 +640,6 @@ void VstgEditorScene::UpdateTerrainBrush()
 	terrainBrushPreview.mode = static_cast<int>(brushMode) + 1;
 	terrainBrushPreview.flags = (invertBrushMask ? 1 : 0) |
 		(io.KeyShift && brushMode != BrushMode::SetHeight && brushMode != BrushMode::Paint ? 2 : 0);
-	terrainBrushPreview.usesAlpha = brush->usesAlpha;
 	terrainBrushPreview.parameters = Vector4(heightBrushStrength, setHeightValue,
 		GetTerrainLayerValue(currentTerrainLayerIndex), paintOpacity);
 	terrainBrushPreview.texture = brush->shaderResourceView.Get();

@@ -531,7 +531,6 @@ void Terrain::Render(const RenderContext& rc)
 	{
 		cbTerrainLayer.brushPreviewMode = preview->mode;
 		cbTerrainLayer.brushFlags = preview->flags;
-		cbTerrainLayer.brushUsesAlpha = preview->usesAlpha;
 		cbTerrainLayer.brushArea = preview->area;
 		cbTerrainLayer.brushParams = preview->parameters;
 	}

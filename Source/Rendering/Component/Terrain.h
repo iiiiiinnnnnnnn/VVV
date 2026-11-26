@@ -239,7 +239,7 @@ private:
 		int layerCount = 0;
 		int brushPreviewMode = 0;
 		int brushFlags = 0;
-		int brushUsesAlpha = 0;
+		int padding = 0;
 		Vector4 brushArea = {};
 		Vector4 brushParams = {};
 	};

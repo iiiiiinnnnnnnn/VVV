@@ -64,7 +64,6 @@ class VstgEditorScene : public EditorScene
 		int width = 0;
 		int height = 0;
 		std::vector<float> mask;
-		bool usesAlpha = false;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 	};
 	const TerrainBrush* GetCurrentBrush() const;

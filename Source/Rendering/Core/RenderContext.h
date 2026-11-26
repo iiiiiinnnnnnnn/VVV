@@ -19,7 +19,6 @@ struct TerrainBrushPreview
 	const Terrain* terrain = nullptr;
 	int mode = 0;
 	int flags = 0;
-	int usesAlpha = 0;
 	Vector4 area = {};
 	Vector4 parameters = {};
 	ID3D11ShaderResourceView* texture = nullptr;
