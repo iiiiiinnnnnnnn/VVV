@@ -1,4 +1,3 @@
-#include "Core/Foundation/Random.h"
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <ProfileKit/ProfileKit.h>
@@ -19,8 +18,9 @@
 #include "DetourStatus.h"
 
 #include <cmath>
-#include <map>
-#include <set>
+#include <cstdlib>
+#include <memory>
+#include "Recast.h"
 
 NavMeshActor* NavMeshActor::active = nullptr;
 
@@ -224,11 +224,13 @@ void NavMeshActor::Build()
 	}
 
 	navTiles.resize(static_cast<size_t>(tileCountX) * tileCountZ);
+	std::vector<ObstacleBounds> obstacles;
+	CollectObstacles(obstacles);
 	for (int tileZ = 0; tileZ < tileCountZ; ++tileZ)
 	{
 		for (int tileX = 0; tileX < tileCountX; ++tileX)
 		{
-			if (!BuildTile(tileX, tileZ, *terrain))
+			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
 			{
 				Release();
 				statusMessage = "ナビメッシュタイルの生成に失敗しました";
@@ -258,348 +260,168 @@ void NavMeshActor::Build()
 		std::to_string(tileCountX * tileCountZ);
 }
 
-bool NavMeshActor::BuildTile(
-	int tileX,
-	int tileZ,
-	Terrain& terrain)
+bool NavMeshActor::BuildTile(int tileX, int tileZ, Terrain& terrain,
+	const std::vector<ObstacleBounds>& obstacles)
 {
 	PROFILE_FUNCTION();
-	const int grid = std::max(terrain.GetHeightMapWidth(), 2);
-	const int minGridX = tileX * CellsPerTile;
-	const int minGridZ = tileZ * CellsPerTile;
-	const int maxGridX = std::min(minGridX + CellsPerTile, grid);
-	const int maxGridZ = std::min(minGridZ + CellsPerTile, grid);
-	const int cellCountX = maxGridX - minGridX;
-	const int cellCountZ = maxGridZ - minGridZ;
-	if (cellCountX <= 0 || cellCountZ <= 0) return true;
+	const int grid = terrain.GetHeightMapWidth();
+	const float size = terrain.GetTerrainSize();
+	const float halfSize = size * 0.5f;
 
-	const int tileIndex = tileZ * tileCountX + tileX;
-	NavTile& tile = navTiles[tileIndex];
-	if (tile.reference)
+	// 隣接タイルの領域も含めて生成し、Recastに境界の接続を任せる。
+	rcConfig config{};
+	config.cs = size / grid;
+	config.ch = std::max(0.05f, (navMaxY - navMinY) / (RC_SPAN_MAX_HEIGHT - 1));
+	config.walkableSlopeAngle = agentMaxSlope;
+	config.walkableHeight = std::max(3, static_cast<int>(std::ceil(agentHeight / config.ch)));
+	config.walkableClimb = static_cast<int>(std::floor(agentMaxClimb / config.ch));
+	config.walkableRadius = static_cast<int>(std::ceil(agentRadius / config.cs));
+	config.tileSize = CellsPerTile;
+	config.borderSize = config.walkableRadius + 3;
+	config.width = config.tileSize + config.borderSize * 2;
+	config.height = config.width;
+	config.maxEdgeLen = simplifyFlatAreas ? simplifyMaxCells : 1;
+	config.maxSimplificationError = simplifyFlatAreas ? contourMaxError : 0.0f;
+	config.maxVertsPerPoly = DT_VERTS_PER_POLYGON;
+	config.detailSampleDist = config.cs;
+	config.detailSampleMaxError = simplifyFlatAreas ? simplifyHeightError : 0.0f;
+	config.bmin[0] = (tileX * CellsPerTile - config.borderSize) * config.cs - halfSize;
+	config.bmin[1] = navMinY;
+	config.bmin[2] = (tileZ * CellsPerTile - config.borderSize) * config.cs - halfSize;
+	config.bmax[0] = config.bmin[0] + config.width * config.cs;
+	config.bmax[1] = navMaxY;
+	config.bmax[2] = config.bmin[2] + config.height * config.cs;
+
+	// 高さと範囲マスクをRecastの入力三角形へ変換する。
+	const int minX = std::max(tileX * CellsPerTile - config.borderSize, 0);
+	const int minZ = std::max(tileZ * CellsPerTile - config.borderSize, 0);
+	const int maxX = std::min((tileX + 1) * CellsPerTile + config.borderSize, grid);
+	const int maxZ = std::min((tileZ + 1) * CellsPerTile + config.borderSize, grid);
+	const int columns = maxX - minX + 1;
+	std::vector<float> vertices;
+	std::vector<int> triangles;
+	std::vector<unsigned char> masks;
+	vertices.reserve(static_cast<size_t>(columns) * (maxZ - minZ + 1) * 3);
+	for (int z = minZ; z <= maxZ; ++z)
 	{
-		unsigned char* oldData = nullptr;
-		int oldDataSize = 0;
-		navMesh->removeTile(tile.reference, &oldData, &oldDataSize);
-		dtFree(oldData);
-		tile.reference = 0;
-	}
-	tile.debugCells.clear();
-
-	constexpr int nvp = 3;
-	const float terrainSize = terrain.GetTerrainSize();
-	const float cellSize = terrainSize / static_cast<float>(grid);
-	const float cellHeight = 0.25f;
-	const float halfTerrainSize = terrainSize * 0.5f;
-	std::vector<unsigned short> verts(
-		static_cast<size_t>(cellCountX + 1) * (cellCountZ + 1) * 3);
-	std::vector<Vector3> worldVertices(
-		static_cast<size_t>(cellCountX + 1) * (cellCountZ + 1));
-	std::vector<unsigned short> polys;
-	std::vector<unsigned short> flags;
-	std::vector<unsigned char> areas;
-
-	for (int localZ = 0; localZ <= cellCountZ; ++localZ)
-	{
-		for (int localX = 0; localX <= cellCountX; ++localX)
+		for (int x = minX; x <= maxX; ++x)
 		{
-			const int gridX = minGridX + localX;
-			const int gridZ = minGridZ + localZ;
-			const float u = static_cast<float>(gridX) / static_cast<float>(grid);
-			const float v = static_cast<float>(gridZ) / static_cast<float>(grid);
-			const int vertexIndex = localZ * (cellCountX + 1) + localX;
-			Vector3& position = worldVertices[vertexIndex];
-			position = Vector3(
-				(u - 0.5f) * terrainSize,
-				terrain.GetSurfaceHeightByUV(u, v, true),
-				(v - 0.5f) * terrainSize);
-
-			verts[static_cast<size_t>(vertexIndex) * 3] =
-				static_cast<unsigned short>(localX);
-			verts[static_cast<size_t>(vertexIndex) * 3 + 1] =
-				static_cast<unsigned short>(std::clamp(
-					static_cast<int>((position.y - navMinY) / cellHeight), 0, 0xffff));
-			verts[static_cast<size_t>(vertexIndex) * 3 + 2] =
-				static_cast<unsigned short>(localZ);
+			const float u = static_cast<float>(x) / grid;
+			const float v = static_cast<float>(z) / grid;
+			vertices.push_back((u - 0.5f) * size);
+			vertices.push_back(terrain.GetSurfaceHeightByUV(u, v, true));
+			vertices.push_back((v - 0.5f) * size);
 		}
 	}
-
-	for (int localZ = 0; localZ < cellCountZ; ++localZ)
+	for (int z = minZ; z < maxZ; ++z)
 	{
-		for (int localX = 0; localX < cellCountX; ++localX)
+		for (int x = minX; x < maxX; ++x)
 		{
-			const int gridX = minGridX + localX;
-			const int gridZ = minGridZ + localZ;
-			const float u = (static_cast<float>(gridX) + 0.5f) / static_cast<float>(grid);
-			const float v = (static_cast<float>(gridZ) + 0.5f) / static_cast<float>(grid);
-			// Each green mask pixel owns one cell; adjacent pixels share the same edge vertices.
-			if (terrain.GetNavMeshMaskByUV(u, v) < 0.5f) continue;
-
-			const unsigned short i0 =
-				static_cast<unsigned short>(localZ * (cellCountX + 1) + localX);
-			const unsigned short i1 = i0 + 1;
-			const unsigned short i2 = i0 + static_cast<unsigned short>(cellCountX + 1);
-			const unsigned short i3 = i2 + 1;
-			const Vector3& p0 = worldVertices[i0];
-			const Vector3& p1 = worldVertices[i1];
-			const Vector3& p2 = worldVertices[i2];
-			const Vector3& p3 = worldVertices[i3];
-
-			const bool firstWalkable = (p2 - p0).Cross(p1 - p0).LengthSquared() > eps;
-			const bool secondWalkable = (p2 - p1).Cross(p3 - p1).LengthSquared() > eps;
-
-			DebugCell firstCell;
-			firstCell.corners[0] = p0;
-			firstCell.corners[1] = p2;
-			firstCell.corners[2] = p1;
-			firstCell.walkable = firstWalkable;
-			tile.debugCells.push_back(firstCell);
-
-			DebugCell secondCell;
-			secondCell.corners[0] = p1;
-			secondCell.corners[1] = p2;
-			secondCell.corners[2] = p3;
-			secondCell.walkable = secondWalkable;
-			tile.debugCells.push_back(secondCell);
-
-			if (firstWalkable)
-			{
-				const size_t polygonOffset = polys.size();
-				polys.resize(polygonOffset + nvp * 2, 0xffff);
-				polys[polygonOffset] = i0;
-				polys[polygonOffset + 1] = i2;
-				polys[polygonOffset + 2] = i1;
-				flags.push_back(1);
-				areas.push_back(0);
-			}
-			if (secondWalkable)
-			{
-				const size_t polygonOffset = polys.size();
-				polys.resize(polygonOffset + nvp * 2, 0xffff);
-				polys[polygonOffset] = i1;
-				polys[polygonOffset + 1] = i2;
-				polys[polygonOffset + 2] = i3;
-				flags.push_back(1);
-				areas.push_back(0);
-			}
+			const int i = (z - minZ) * columns + x - minX;
+			triangles.insert(triangles.end(), {i, i + columns, i + 1,
+				i + 1, i + columns, i + columns + 1});
+			const bool painted = terrain.GetNavMeshMaskByUV(
+				(x + 0.5f) / grid, (z + 0.5f) / grid) >= 0.5f;
+			masks.push_back(painted);
+			masks.push_back(painted);
 		}
 	}
 
-	if (flags.empty()) return true;
+	rcContext context;
+	std::unique_ptr<rcHeightfield, decltype(&rcFreeHeightField)> field(rcAllocHeightfield(), rcFreeHeightField);
+	std::unique_ptr<rcCompactHeightfield, decltype(&rcFreeCompactHeightfield)> compact(
+		rcAllocCompactHeightfield(), rcFreeCompactHeightfield);
+	std::unique_ptr<rcContourSet, decltype(&rcFreeContourSet)> contours(rcAllocContourSet(), rcFreeContourSet);
+	std::unique_ptr<rcPolyMesh, decltype(&rcFreePolyMesh)> mesh(rcAllocPolyMesh(), rcFreePolyMesh);
+	std::unique_ptr<rcPolyMeshDetail, decltype(&rcFreePolyMeshDetail)> detail(rcAllocPolyMeshDetail(), rcFreePolyMeshDetail);
+	if (!field || !compact || !contours || !mesh || !detail) return false;
 
-	if (simplifyFlatAreas)
+	const int triangleCount = static_cast<int>(triangles.size() / 3);
+	const int vertexCount = static_cast<int>(vertices.size() / 3);
+	std::vector<unsigned char> areas(triangleCount, RC_NULL_AREA);
+	rcMarkWalkableTriangles(&context, config.walkableSlopeAngle,
+		vertices.data(), vertexCount, triangles.data(), triangleCount, areas.data());
+	for (int i = 0; i < triangleCount; ++i)
+		if (!masks[i]) areas[i] = RC_NULL_AREA;
+
+	if (!rcCreateHeightfield(&context, *field, config.width, config.height,
+		config.bmin, config.bmax, config.cs, config.ch)) return false;
+	if (!rcRasterizeTriangles(&context, vertices.data(), vertexCount, triangles.data(),
+		areas.data(), triangleCount, *field, config.walkableClimb)) return false;
+
+	// 段差・崖・頭上の空間はRecastの標準フィルターで判定する。
+	rcFilterLedgeSpans(&context, config.walkableHeight, config.walkableClimb, *field);
+	rcFilterWalkableLowHeightSpans(&context, config.walkableHeight, *field);
+	if (!rcBuildCompactHeightfield(&context, config.walkableHeight, config.walkableClimb,
+		*field, *compact)) return false;
+	field.reset();
+
+	// コライダーの範囲を歩行不可にし、その後でキャラクター半径分を縮小する。
+	for (const ObstacleBounds& obstacle : obstacles)
 	{
-		struct Triangle
-		{
-			unsigned short vertices[3];
-			bool alive = true;
-		};
-		std::vector<Triangle> triangles;
-		std::vector<std::vector<size_t>> incident(worldVertices.size());
-		for (size_t i = 0; i < flags.size(); ++i)
-		{
-			const unsigned short* polygon = &polys[i * nvp * 2];
-			triangles.push_back({{polygon[0], polygon[1], polygon[2]}, true});
-			for (unsigned short vertex : triangles.back().vertices) incident[vertex].push_back(i);
-		}
-		const float maxEdge = cellSize * simplifyMaxCells;
-		const float maxEdgeSq = maxEdge * maxEdge;
-		auto horizontalArea = [&](const Triangle& triangle) {
-			const Vector3& a = worldVertices[triangle.vertices[0]];
-			const Vector3& b = worldVertices[triangle.vertices[1]];
-			const Vector3& c = worldVertices[triangle.vertices[2]];
-			return (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
-		};
-		// Collapse only interior vertices. Mask boundaries and tile seams keep their original edges.
-		for (unsigned short vertex = 0; vertex < worldVertices.size(); ++vertex)
-		{
-			const int x = vertex % (cellCountX + 1);
-			const int z = vertex / (cellCountX + 1);
-			if (!x || !z || x == cellCountX || z == cellCountZ) continue;
-			std::vector<size_t> fan;
-			std::map<unsigned short, int> neighbors;
-			for (size_t index : incident[vertex])
-			{
-				const Triangle& triangle = triangles[index];
-				if (!triangle.alive) continue;
-				fan.push_back(index);
-				for (unsigned short other : triangle.vertices)
-					if (other != vertex) ++neighbors[other];
-			}
-			if (fan.size() < 3) continue;
-			bool interior = true;
-			for (const auto& [other, count] : neighbors)
-				if (count != 2) { interior = false; break; }
-			if (!interior) continue;
-			const Triangle& basis = triangles[fan.front()];
-			const Vector3& origin = worldVertices[basis.vertices[0]];
-			const Vector3 normal = (worldVertices[basis.vertices[1]] - origin).Cross(
-				worldVertices[basis.vertices[2]] - origin);
-			if (fabsf(normal.y) <= eps) continue;
-			bool planar = true;
-			for (const auto& [other, count] : neighbors)
-				if (fabsf(normal.Dot(worldVertices[other] - origin) / normal.y) > simplifyHeightError + 0.00001f)
-				{ planar = false; break; }
-			if (!planar) continue;
-			for (const auto& [target, count] : neighbors)
-			{
-				std::set<unsigned short> targetNeighbors;
-				for (size_t index : incident[target])
-					if (triangles[index].alive)
-						for (unsigned short other : triangles[index].vertices)
-							if (other != target) targetNeighbors.insert(other);
-				int common = 0;
-				for (const auto& [other, degree] : neighbors)
-					if (targetNeighbors.contains(other)) ++common;
-				if (common != 2) continue;
-				std::vector<Triangle> replacement;
-				bool valid = true;
-				for (size_t index : fan)
-				{
-					Triangle triangle = triangles[index];
-					bool containsTarget = false;
-					for (unsigned short other : triangle.vertices)
-						if (other == target) containsTarget = true;
-					if (containsTarget) continue;
-					for (unsigned short& other : triangle.vertices)
-						if (other == vertex) other = target;
-					const float area = horizontalArea(triangle);
-					if (fabsf(area) <= eps || area * horizontalArea(triangles[index]) <= 0.0f)
-					{ valid = false; break; }
-					for (int edge = 0; edge < 3; ++edge)
-					{
-						Vector3 delta = worldVertices[triangle.vertices[edge]] - worldVertices[triangle.vertices[(edge + 1) % 3]];
-						delta.y = 0.0f;
-						if (delta.LengthSquared() > maxEdgeSq) { valid = false; break; }
-					}
-					if (!valid) break;
-					// Check against the original samples so repeated collapses cannot accumulate height error.
-					const Vector3& a = worldVertices[triangle.vertices[0]];
-					const Vector3& b = worldVertices[triangle.vertices[1]];
-					const Vector3& c = worldVertices[triangle.vertices[2]];
-					int minX = cellCountX, minZ = cellCountZ, maxX = 0, maxZ = 0;
-					for (unsigned short other : triangle.vertices)
-					{
-						minX = std::min(minX, other % (cellCountX + 1));
-						maxX = std::max(maxX, other % (cellCountX + 1));
-						minZ = std::min(minZ, other / (cellCountX + 1));
-						maxZ = std::max(maxZ, other / (cellCountX + 1));
-					}
-					for (int z = minZ; z <= maxZ && valid; ++z)
-						for (int x = minX; x <= maxX; ++x)
-						{
-							const Vector3& sample = worldVertices[z * (cellCountX + 1) + x];
-							const float u = ((sample.x - a.x) * (c.z - a.z) - (sample.z - a.z) * (c.x - a.x)) / area;
-							const float v = ((b.x - a.x) * (sample.z - a.z) - (b.z - a.z) * (sample.x - a.x)) / area;
-							if (u < -0.00001f || v < -0.00001f || u + v > 1.00001f) continue;
-							if (fabsf(sample.y - (a.y + u * (b.y - a.y) + v * (c.y - a.y))) > simplifyHeightError + 0.00001f)
-							{ valid = false; break; }
-						}
-					if (!valid) break;
-					replacement.push_back(triangle);
-				}
-				if (!valid) continue;
-				for (size_t index : fan) triangles[index].alive = false;
-				for (const Triangle& triangle : replacement)
-				{
-					const size_t index = triangles.size();
-					triangles.push_back(triangle);
-					for (unsigned short other : triangle.vertices) incident[other].push_back(index);
-				}
-				break;
-			}
-		}
-		polys.clear();
-		flags.clear();
-		areas.clear();
-		for (const Triangle& triangle : triangles)
-		{
-			if (!triangle.alive) continue;
-			const size_t offset = polys.size();
-			polys.resize(offset + nvp * 2, 0xffff);
-			for (int i = 0; i < 3; ++i) polys[offset + i] = triangle.vertices[i];
-			flags.push_back(1);
-			areas.push_back(0);
-		}
+		const Vector3 half = obstacle.size * 0.5f;
+		const float boundsMin[] = {obstacle.center.x - half.x,
+			obstacle.center.y - half.y - agentHeight, obstacle.center.z - half.z};
+		const float boundsMax[] = {obstacle.center.x + half.x,
+			obstacle.center.y + half.y, obstacle.center.z + half.z};
+		rcMarkBoxArea(&context, boundsMin, boundsMax, RC_NULL_AREA, *compact);
 	}
+	if (!rcErodeWalkableArea(&context, config.walkableRadius, *compact)) return false;
+	if (!rcBuildDistanceField(&context, *compact)) return false;
+	if (!rcBuildRegions(&context, *compact, config.borderSize,
+		config.minRegionArea, config.mergeRegionArea)) return false;
+	if (!rcBuildContours(&context, *compact, config.maxSimplificationError,
+		config.maxEdgeLen, *contours)) return false;
+	if (!rcBuildPolyMesh(&context, *contours, config.maxVertsPerPoly, *mesh)) return false;
+	if (mesh->npolys && !rcBuildPolyMeshDetail(&context, *mesh, *compact,
+		config.detailSampleDist, config.detailSampleMaxError, *detail)) return false;
 
-	struct EdgeRef
+	// ポリゴンの隣接情報とタイルポータルはRecastの生成結果をそのまま渡す。
+	for (int i = 0; i < mesh->npolys; ++i)
 	{
-		unsigned short polygon = 0xffff;
-		unsigned short edge = 0xffff;
-	};
-	std::map<std::pair<unsigned short, unsigned short>, EdgeRef> edgeRefs;
-	for (int polygonIndex = 0; polygonIndex < static_cast<int>(flags.size()); ++polygonIndex)
-	{
-		unsigned short* polygon = &polys[static_cast<size_t>(polygonIndex) * nvp * 2];
-		for (int edgeIndex = 0; edgeIndex < nvp; ++edgeIndex)
-		{
-			const unsigned short a = polygon[edgeIndex];
-			const unsigned short b = polygon[(edgeIndex + 1) % nvp];
-			const std::pair<unsigned short, unsigned short> key(std::min(a, b), std::max(a, b));
-			auto [it, inserted] = edgeRefs.emplace(
-				key, EdgeRef{static_cast<unsigned short>(polygonIndex),
-							 static_cast<unsigned short>(edgeIndex)});
-			if (inserted) continue;
-
-			unsigned short* other =
-				&polys[static_cast<size_t>(it->second.polygon) * nvp * 2];
-			polygon[nvp + edgeIndex] = it->second.polygon;
-			other[nvp + it->second.edge] = static_cast<unsigned short>(polygonIndex);
-		}
+		mesh->areas[i] = 0;
+		mesh->flags[i] = 1;
 	}
-
-	for (int polygonIndex = 0; polygonIndex < static_cast<int>(flags.size()); ++polygonIndex)
-	{
-		unsigned short* polygon = &polys[static_cast<size_t>(polygonIndex) * nvp * 2];
-		for (int edgeIndex = 0; edgeIndex < nvp; ++edgeIndex)
-		{
-			if (polygon[nvp + edgeIndex] != 0xffff) continue;
-			const unsigned short a = polygon[edgeIndex];
-			const unsigned short b = polygon[(edgeIndex + 1) % nvp];
-			const int ax = verts[static_cast<size_t>(a) * 3];
-			const int az = verts[static_cast<size_t>(a) * 3 + 2];
-			const int bx = verts[static_cast<size_t>(b) * 3];
-			const int bz = verts[static_cast<size_t>(b) * 3 + 2];
-
-			if (ax == 0 && bx == 0 && tileX > 0)
-				polygon[nvp + edgeIndex] = 0x8000 | 0;
-			else if (az == cellCountZ && bz == cellCountZ && tileZ + 1 < tileCountZ)
-				polygon[nvp + edgeIndex] = 0x8000 | 1;
-			else if (ax == cellCountX && bx == cellCountX && tileX + 1 < tileCountX)
-				polygon[nvp + edgeIndex] = 0x8000 | 2;
-			else if (az == 0 && bz == 0 && tileZ > 0)
-				polygon[nvp + edgeIndex] = 0x8000 | 3;
-		}
-	}
-
-	dtNavMeshCreateParams params = {};
-	params.verts = verts.data();
-	params.vertCount = static_cast<int>(verts.size() / 3);
-	params.polys = polys.data();
-	params.polyFlags = flags.data();
-	params.polyAreas = areas.data();
-	params.polyCount = static_cast<int>(flags.size());
-	params.nvp = nvp;
+	dtNavMeshCreateParams params{};
+	params.verts = mesh->verts;
+	params.vertCount = mesh->nverts;
+	params.polys = mesh->polys;
+	params.polyFlags = mesh->flags;
+	params.polyAreas = mesh->areas;
+	params.polyCount = mesh->npolys;
+	params.nvp = mesh->nvp;
+	params.detailMeshes = detail->meshes;
+	params.detailVerts = detail->verts;
+	params.detailVertsCount = detail->nverts;
+	params.detailTris = detail->tris;
+	params.detailTriCount = detail->ntris;
 	params.tileX = tileX;
 	params.tileY = tileZ;
-	params.bmin[0] = minGridX * cellSize - halfTerrainSize;
-	params.bmin[1] = navMinY;
-	params.bmin[2] = minGridZ * cellSize - halfTerrainSize;
-	params.bmax[0] = maxGridX * cellSize - halfTerrainSize;
-	params.bmax[1] = navMaxY;
-	params.bmax[2] = maxGridZ * cellSize - halfTerrainSize;
-	params.walkableHeight = 0.0f;
-	params.walkableRadius = 0.0f;
-	params.walkableClimb = navMaxY - navMinY;
-	params.cs = cellSize;
-	params.ch = cellHeight;
+	rcVcopy(params.bmin, mesh->bmin);
+	rcVcopy(params.bmax, mesh->bmax);
+	params.walkableHeight = agentHeight;
+	params.walkableRadius = agentRadius;
+	params.walkableClimb = agentMaxClimb;
+	params.cs = config.cs;
+	params.ch = config.ch;
 	params.buildBvTree = true;
 
 	unsigned char* data = nullptr;
 	int dataSize = 0;
-	if (!dtCreateNavMeshData(&params, &data, &dataSize)) return false;
-	if (dtStatusFailed(navMesh->addTile(
-		data, dataSize, DT_TILE_FREE_DATA, 0, &tile.reference)))
+	if (mesh->npolys && !dtCreateNavMeshData(&params, &data, &dataSize)) return false;
+
+	NavTile& tile = navTiles[tileZ * tileCountX + tileX];
+	if (tile.reference)
+	{
+		if (dtStatusFailed(navMesh->removeTile(tile.reference, nullptr, nullptr)))
+		{
+			dtFree(data);
+			return false;
+		}
+		tile.reference = 0;
+	}
+	if (!data) return true;
+	if (dtStatusFailed(navMesh->addTile(data, dataSize, DT_TILE_FREE_DATA, 0, &tile.reference)))
 	{
 		dtFree(data);
 		return false;
@@ -627,21 +449,25 @@ void NavMeshActor::RebuildRegion()
 	const float terrainSize = terrain->GetTerrainSize();
 	const float halfTerrainSize = terrainSize * 0.5f;
 	const float tileSize = terrainSize / static_cast<float>(grid) * CellsPerTile;
+	const float rebuildMargin = std::ceil(agentRadius / (terrainSize / grid)) *
+		(terrainSize / grid) + 3.0f * terrainSize / grid;
 	const int minTileX = std::clamp(static_cast<int>(floorf(
-		(rebuildRegionMin.x + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
+		(rebuildRegionMin.x - rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
 	const int minTileZ = std::clamp(static_cast<int>(floorf(
-		(rebuildRegionMin.z + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
+		(rebuildRegionMin.z - rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
 	const int maxTileX = std::clamp(static_cast<int>(floorf(
-		(rebuildRegionMax.x + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
+		(rebuildRegionMax.x + rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
 	const int maxTileZ = std::clamp(static_cast<int>(floorf(
-		(rebuildRegionMax.z + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
+		(rebuildRegionMax.z + rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
 
+	std::vector<ObstacleBounds> obstacles;
+	CollectObstacles(obstacles);
 	int rebuiltTileCount = 0;
 	for (int tileZ = minTileZ; tileZ <= maxTileZ; ++tileZ)
 	{
 		for (int tileX = minTileX; tileX <= maxTileX; ++tileX)
 		{
-			if (!BuildTile(tileX, tileZ, *terrain))
+			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
 			{
 				statusMessage = "NavMeshタイルの局所再生成に失敗しました";
 				return;
@@ -658,9 +484,6 @@ void NavMeshActor::RebuildRegion()
 void NavMeshActor::RefreshDebugCells()
 {
 	debugCells.clear();
-	for (const NavTile& tile : navTiles)
-		for (const DebugCell& cell : tile.debugCells)
-			if (!cell.walkable) debugCells.push_back(cell);
 	if (!navMesh) return;
 	const dtNavMesh& mesh = *navMesh;
 	for (int tileIndex = 0; tileIndex < mesh.getMaxTiles(); ++tileIndex)
@@ -780,7 +603,6 @@ bool NavMeshActor::FindNearestPoint(const Vector3& position, Vector3& nearestPoi
 bool NavMeshActor::IsOutsideOrNearBoundary(const Vector3& position, float distance) const
 {
 	if (!built || !navQuery) return true;
-	if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)) return true;
 
 	dtQueryFilter filter;
 	filter.setIncludeFlags(1);

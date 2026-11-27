@@ -78,13 +78,13 @@ void EffectManager::Initialize()
 	// Effekseerマネージャー生成
 	effekseerManager = Effekseer::Manager::Create(2048);
 
-	// Effekseerレンダラの各種設定（特別なカスタマイズをしない場合は定型的に以下の設定でOK）
+	// Effekseerレンダラの各種設定
 	effekseerManager->SetSpriteRenderer(effekseerRenderer->CreateSpriteRenderer());
 	effekseerManager->SetRibbonRenderer(effekseerRenderer->CreateRibbonRenderer());
 	effekseerManager->SetRingRenderer(effekseerRenderer->CreateRingRenderer());
 	effekseerManager->SetTrackRenderer(effekseerRenderer->CreateTrackRenderer());
 	effekseerManager->SetModelRenderer(effekseerRenderer->CreateModelRenderer());
-	// Effekseer内でのローダーの設定（特別なカスタマイズをしない場合は以下の設定でOK）
+	// Effekseer内でのローダーの設定
 	effekseerManager->SetTextureLoader(effekseerRenderer->CreateTextureLoader());
 	effekseerManager->SetModelLoader(effekseerRenderer->CreateModelLoader());
 	effekseerManager->SetMaterialLoader(effekseerRenderer->CreateMaterialLoader());
