@@ -179,9 +179,13 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	if (!chargeMovement && !directMovement && navMeshActor &&
 		!navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f))
 	{
-		directMove = !navMeshActor->FindNextPoint(
-			actor->transform.position, targetPosition, nextPoint);
-		if (directMove) nextPoint = targetPosition;
+		if (!navMeshActor->FindNextPoint(actor->transform.position, targetPosition, nextPoint))
+		{
+			statusMessage = "NavMesh path not found.";
+			currentSpeed = 0.0f;
+			return false;
+		}
+		directMove = false;
 	}
 
 	// 到着判定には、AIが決めた元の目的地を使う。
@@ -195,11 +199,12 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	Vector3 direction = nextPoint - actor->transform.position;
 	direction.y = 0.0f;
 
-	// 経路の端まで来ても目的地には届いていなければ、そのまま外へ進む。
-	if (direction.LengthSquared() <= 0.01f)
+	// 部分経路の終端では止まり、Recastが歩行不可にした領域へ直進しない。
+	if (direction.LengthSquared() <= 0.01f && !directMove)
 	{
-		direction = flatToTarget;
-		directMove = true;
+		statusMessage = "NavMesh path end reached.";
+		currentSpeed = 0.0f;
+		return false;
 	}
 
 	const float nextPointDistance = direction.Length();
