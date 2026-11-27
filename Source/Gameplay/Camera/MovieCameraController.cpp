@@ -21,6 +21,7 @@
 #include <InputKit/InputKit.h>
 #include "Physics/Collider/CharacterController.h"
 #include "Application/Tools/Dialog.h"
+#include "Application/Tools/GamePadVib.h"
 #include "Audio/SoundSystem.h"
 #include "Core/Foundation/Json.h"
 #include "Gameplay/Actor/Actor.h"
@@ -34,6 +35,17 @@
 #include "Rendering/Effect/EffectManager.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/ResourcePath.h"
+
+static constexpr const char* MovieTrackLabels[] = {
+	"Camera", "Player / Position", "Boss / Position", "Player / Motion",
+	"Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds", "Vibrations"
+};
+static constexpr int MovieTrackCount = IM_ARRAYSIZE(MovieTrackLabels);
+
+template <class Key> static constexpr bool MovieEventKey =
+	std::is_same_v<Key, MovieCameraController::ParticleKey> ||
+	std::is_same_v<Key, MovieCameraController::SoundKey> ||
+	std::is_same_v<Key, MovieCameraController::VibrationKey>;
 
 static float MovieKeyBlend(float time, float begin, float end, int easing)
 {
@@ -71,6 +83,17 @@ static void StoreMovieKey(std::vector<MovieCameraController::SoundKey>& keys,
 {
 	keys.push_back(key);
 	std::stable_sort(keys.begin(), keys.end(), [](const auto& a, const auto& b) { return a.time < b.time; });
+}
+
+static void StoreMovieKey(std::vector<MovieCameraController::VibrationKey>& keys,
+	const MovieCameraController::VibrationKey& key)
+{
+	auto position = keys.begin();
+	while (position != keys.end() && position->time <= key.time)
+	{
+		++position;
+	}
+	keys.insert(position, key);
 }
 
 MovieCameraController::MovieCameraController(Object* owner) : CameraController(owner)
@@ -320,6 +343,20 @@ void MovieCameraController::Seek(float time)
 	qteResult = 0;
 	pendingQteResult = QteResult::None;
 	Evaluate();
+}
+
+void MovieCameraController::UpdateVibrations(float previousTime)
+{
+	if (!playing || cursor <= previousTime) return;
+
+	for (const VibrationKey& key : sequence.vibrations)
+	{
+		// 再生カーソルがキーを通過したときだけ、既存の振動処理を呼び出す。
+		if (key.time >= previousTime && key.time < cursor)
+		{
+			GamePadVib::Instance().Vibrate(key.power, key.power, key.duration);
+		}
+	}
 }
 
 void MovieCameraController::StopSounds()
@@ -650,6 +687,7 @@ void MovieCameraController::Tick(bool qtePressed)
 		}
 		Evaluate();
 		UpdateSounds(previous);
+		UpdateVibrations(previous);
 		if ((!sequence.qteEnabled || qteResult > 0) && cursor >= sequence.duration)
 		{
 			playbackResult = 1;
@@ -676,10 +714,16 @@ void MovieCameraController::Tick(bool qtePressed)
 		SyncCameraToController(*camera);
 		SyncControllerToCamera(*camera);
 	}
-	if (!playing) { UpdateSounds(cursor); EvaluateParticles(); return; }
+	if (!playing)
+	{
+		UpdateSounds(cursor);
+		EvaluateParticles();
+		return;
+	}
 	const float previous = cursor;
 	AdvanceTime(Game::Time::unscaledDeltaTime);
 	UpdateSounds(previous);
+	UpdateVibrations(previous);
 	if (sequence.qteEnabled && !qteResult)
 	{
 		if (qtePressed && previous <= sequence.qteEnd && cursor >= sequence.qteStart) ResolveQte(QteResult::Success);
@@ -687,7 +731,7 @@ void MovieCameraController::Tick(bool qtePressed)
 	}
 	if (cursor >= sequence.duration)
 	{
-		if (loop) { StopSounds(); StopParticles(); cursor = std::fmod(cursor, sequence.duration); qteResult = 0; UpdateSounds(0.0f); }
+		if (loop) { StopSounds(); StopParticles(); cursor = std::fmod(cursor, sequence.duration); qteResult = 0; UpdateSounds(0.0f); UpdateVibrations(0.0f); }
 		else { cursor = sequence.duration; playing = false; StopSounds(); }
 	}
 	Evaluate();
@@ -717,8 +761,7 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 		{
 			using Key = std::decay_t<decltype(key)>;
 			if (!std::isfinite(key.time) || key.time < 0.0f || key.time > movie.duration || key.time < previous ||
-				(key.time == previous && !std::is_same_v<Key, MovieCameraController::ParticleKey> &&
-					!std::is_same_v<Key, MovieCameraController::SoundKey>))
+				(key.time == previous && !MovieEventKey<Key>))
 				throw std::runtime_error("Movie key times must be ordered, unique and within the duration.");
 			previous = key.time;
 			if constexpr (std::is_same_v<Key, MovieCameraController::CameraKey>)
@@ -753,6 +796,12 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 					!std::isfinite(key.pan) || key.pan < -1.0f || key.pan > 1.0f)
 					throw std::runtime_error("Invalid movie sound key.");
 			}
+			else if constexpr (std::is_same_v<Key, MovieCameraController::VibrationKey>)
+			{
+				if (!std::isfinite(key.duration) || key.duration <= 0.0f || key.duration > 3600.0f ||
+					!std::isfinite(key.power) || key.power < 0.0f || key.power > 1.0f)
+					throw std::runtime_error("Invalid movie vibration key.");
+			}
 			else if constexpr (std::is_same_v<Key, MovieCameraController::EffectKey>)
 			{
 				Game::PostProcess::ValidateMovieSettings(key.settings);
@@ -763,9 +812,7 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 					!std::isfinite(key.speed) || key.speed < 0.0f || key.animation.size() > 512)
 					throw std::runtime_error("Invalid movie motion key.");
 			}
-			if constexpr (!std::is_same_v<Key, MovieCameraController::MotionKey> &&
-				!std::is_same_v<Key, MovieCameraController::ParticleKey> &&
-				!std::is_same_v<Key, MovieCameraController::SoundKey>)
+			if constexpr (!std::is_same_v<Key, MovieCameraController::MotionKey> && !MovieEventKey<Key>)
 				if (key.easing < 0 || key.easing >= static_cast<int>(Easing::Type::Count))
 					throw std::runtime_error("Invalid movie easing.");
 		}
@@ -776,6 +823,7 @@ static void ValidateMovieSequence(const MovieCameraController::Sequence& movie)
 	validate(movie.particles, false);
 	validate(movie.timeScales, false);
 	validate(movie.sounds, false);
+	validate(movie.vibrations, false);
 }
 
 bool MovieCameraController::Save(const std::filesystem::path& path)
@@ -894,8 +942,12 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 			item.at("time").get<float>(), item.at("path").get<std::string>(),
 			item.at("duration").get<float>(), item.at("volume").get<float>(),
 			item.at("pitch").get<float>(), item.at("pan").get<float>(), item.at("loop").get<bool>()});
-		for (const auto& item : root.at("vibrations")) candidate.vibrations.push_back({
-			item.at("time").get<float>(), item.at("duration").get<float>(), item.at("power").get<float>()});
+		// 振動トラック追加前のversion 5のムービーも読み込めるようにする。
+		if (root.contains("vibrations"))
+		{
+			for (const auto& item : root.at("vibrations")) candidate.vibrations.push_back({
+				item.at("time").get<float>(), item.at("duration").get<float>(), item.at("power").get<float>()});
+		}
 		ValidateMovieSequence(candidate);
 		Game::PostProcess effectSettings;
 		for (auto& key : candidate.effects)
@@ -1029,7 +1081,7 @@ void MovieCameraController::RegisterKey()
 		key.scale = std::clamp(Game::Time::scale, 0.01f, 10.0f);
 		store(sequence.timeScales, key);
 	}
-	else if (selectedTrack == 8)
+	else if (selectedTrack == 9)
 	{
 		VibrationKey key = vibrationDraft;
 		if (selectedKey >= 0 && selectedKey < static_cast<int>(sequence.vibrations.size())) key = sequence.vibrations[selectedKey];
@@ -1080,25 +1132,24 @@ void MovieCameraController::DrawTimeline()
 	const ImVec2 begin = ImGui::GetCursorScreenPos();
 	const float left = begin.x + labelWidth + padding;
 	const auto timeX = [&](float time) { return left + time / sequence.duration * timeWidth; };
-	ImGui::InvisibleButton("MovieTimelineCanvas", {width, rulerHeight + rowHeight * 10},
+	ImGui::InvisibleButton("MovieTimelineCanvas", {width, rulerHeight + rowHeight * (MovieTrackCount + 1)},
 		ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 	const bool hovered = ImGui::IsItemHovered();
 	const bool active = ImGui::IsItemActive();
 	auto* draw = ImGui::GetWindowDrawList();
-	draw->AddRectFilled(begin, {begin.x + width, begin.y + rulerHeight + rowHeight * 10}, IM_COL32(23,26,33,255));
+	draw->AddRectFilled(begin, {begin.x + width, begin.y + rulerHeight + rowHeight * (MovieTrackCount + 1)}, IM_COL32(23,26,33,255));
 	for (int tick = 0; tick <= 10; ++tick)
 	{
 		char text[24]; std::snprintf(text, sizeof(text), "%.2f", sequence.duration * tick / 10.0f);
 		const float x = left + timeWidth * tick / 10.0f;
 		draw->AddText({x - ImGui::CalcTextSize(text).x * 0.5f,begin.y + 3}, IM_COL32(180,190,205,255), text);
-		draw->AddLine({x,begin.y + rulerHeight}, {x,begin.y + rulerHeight + rowHeight * 10}, IM_COL32(50,55,65,255));
+		draw->AddLine({x,begin.y + rulerHeight}, {x,begin.y + rulerHeight + rowHeight * (MovieTrackCount + 1)}, IM_COL32(50,55,65,255));
 	}
-	const char* labels[] = {"Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds", "Vibrations"};
-	for (int track = 0; track < 10; ++track)
+	for (int track = 0; track < MovieTrackCount; ++track)
 	{
 		const float y = begin.y + rulerHeight + rowHeight * track;
 		if (selectedTrack == track) draw->AddRectFilled({begin.x,y}, {begin.x + width,y + rowHeight}, IM_COL32(40,58,78,150));
-		draw->AddText({begin.x + 6,y + 8}, IM_COL32(225,230,240,255), labels[track]);
+		draw->AddText({begin.x + 6,y + 8}, IM_COL32(225,230,240,255), MovieTrackLabels[track]);
 		draw->AddLine({begin.x,y + rowHeight}, {begin.x + width,y + rowHeight}, IM_COL32(60,65,75,255));
 	}
 	const auto keys = [&](const auto& values, int track) {
@@ -1108,19 +1159,20 @@ void MovieCameraController::DrawTimeline()
 		{
 			const bool selected = selectedTrack == track && selectedKey == static_cast<int>(i);
 			const float x = timeX(values[i].time);
-			if constexpr (std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>)
+			if constexpr (MovieEventKey<Key>)
 				draw->AddRectFilled({x, y - 7}, {timeX(std::min(values[i].time + values[i].duration, sequence.duration)), y + 7},
 					IM_COL32(100, 180, 140, selected ? 180 : 90), 3.0f);
 			draw->AddCircleFilled({x,y}, selected ? 7.0f : 5.5f,
 				selected ? IM_COL32(255,190,60,255) : IM_COL32(90,180,255,255));
 			if (selected) draw->AddCircle({x,y}, 10.0f, IM_COL32(255,220,130,255));
 			if (hovered && std::abs(ImGui::GetIO().MousePos.x - x) <= 12 && std::abs(ImGui::GetIO().MousePos.y - y) <= 14)
-				ImGui::SetTooltip("%s / Key %zu / %.3f s", labels[track], i + 1, values[i].time);
+				ImGui::SetTooltip("%s / Key %zu / %.3f s", MovieTrackLabels[track], i + 1, values[i].time);
 		}
 	};
 	keys(sequence.cameras, 0); keys(sequence.player, 1); keys(sequence.boss, 2);
 	keys(sequence.playerMotions, 3); keys(sequence.bossMotions, 4); keys(sequence.effects, 5); keys(sequence.particles, 6); keys(sequence.timeScales, 7); keys(sequence.sounds, 8);
-	const float qteY = begin.y + rulerHeight + rowHeight * 9;
+	keys(sequence.vibrations, 9);
+	const float qteY = begin.y + rulerHeight + rowHeight * MovieTrackCount;
 	draw->AddText({begin.x + 6,qteY + 8}, IM_COL32(225,230,240,255), "QTE / Attack");
 	if (sequence.qteEnabled)
 		draw->AddRectFilled({timeX(sequence.qteStart),qteY + 4}, {timeX(sequence.qteEnd),qteY + rowHeight - 4}, IM_COL32(155,110,30,200));
@@ -1131,7 +1183,7 @@ void MovieCameraController::DrawTimeline()
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("MovieKeyMenu");
 		const auto& mouse = ImGui::GetIO().MousePos;
 		const int track = static_cast<int>(std::floor((mouse.y - begin.y - rulerHeight) / rowHeight));
-		if (track >= 0 && track < 9)
+		if (track >= 0 && track < MovieTrackCount)
 		{
 			selectedTrack = track;
 			const auto pick = [&](const auto& values) {
@@ -1141,7 +1193,17 @@ void MovieCameraController::DrawTimeline()
 					const float dx = std::abs(mouse.x - timeX(values[i].time));
 					if (dx <= distance) { distance = dx; index = static_cast<int>(i); }
 				}
-				if (mouse.x < begin.x + labelWidth && !values.empty()) index = static_cast<int>(MovieKeyIndex(values, cursor));
+				if (mouse.x < begin.x + labelWidth)
+				{
+					if (!values.empty()) index = static_cast<int>(MovieKeyIndex(values, cursor));
+					else
+					{
+						// 空のトラックの名前を選んでも現在時刻は維持する。
+						selectedKey = -1;
+						playing = false;
+						return;
+					}
+				}
 				if (index >= 0) SelectKey(track, index);
 				else Scrub((mouse.x - left) / timeWidth * sequence.duration);
 			};
@@ -1156,6 +1218,7 @@ void MovieCameraController::DrawTimeline()
 			case 6: pick(sequence.particles); break;
 			case 7: pick(sequence.timeScales); break;
 			case 8: pick(sequence.sounds); break;
+			case 9: pick(sequence.vibrations); break;
 			}
 			if (selectedKey < 0 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) RegisterKey();
 		}
@@ -1168,10 +1231,10 @@ void MovieCameraController::DrawTimeline()
 			if (selectedKey < 0 || selectedKey >= static_cast<int>(values.size())) { Scrub(time); return; }
 			if (!dragUndoSaved) { PushUndo(); dragUndoSaved = true; }
 			using Key = typename std::decay_t<decltype(values)>::value_type;
-			const float minimum = selectedKey ? ((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey - 1].time :
+			const float minimum = selectedKey ? ((MovieEventKey<Key>) ? values[selectedKey - 1].time :
 				std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity())) : 0;
 			const float maximum = selectedKey + 1 < static_cast<int>(values.size()) ?
-				((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey + 1].time :
+				((MovieEventKey<Key>) ? values[selectedKey + 1].time :
 				std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity())) : sequence.duration;
 			time = std::clamp(time, minimum, maximum); values[selectedKey].time = time; dirty = true; Seek(time);
 		};
@@ -1186,6 +1249,7 @@ void MovieCameraController::DrawTimeline()
 		case 6: move(sequence.particles); break;
 		case 7: move(sequence.timeScales); break;
 		case 8: move(sequence.sounds); break;
+		case 9: move(sequence.vibrations); break;
 		}
 	}
 	if (ImGui::BeginPopup("MovieKeyMenu"))
@@ -1233,9 +1297,8 @@ void MovieCameraController::DrawInspector()
 {
 	static const char* easingNames[] = { "Linear", "In Quad", "Out Quad", "In Out Quad",
 		"In Cubic", "Out Cubic", "In Out Cubic", "In Sine", "Out Sine", "In Out Sine" };
-	const char* tracks[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds" };
 	int track = selectedTrack;
-	if (ImGui::Combo("トラック", &track, tracks, 9)) { selectedTrack = track; selectedKey = -1; }
+	if (ImGui::Combo("トラック", &track, MovieTrackLabels, MovieTrackCount)) { selectedTrack = track; selectedKey = -1; }
 	DrawKeyList();
 	ImGui::TextUnformatted(selectedKey >= 0 ? "選択キーを編集（変更は即座に反映）" :
 		"現在時刻の値を編集するとキーを自動登録します");
@@ -1246,13 +1309,13 @@ void MovieCameraController::DrawInspector()
 		const bool selected = selectedKey >= 0 && selectedKey < static_cast<int>(values.size());
 		Key key = selected ? values[selectedKey] : current;
 		bool changed = ImGuiToolKit::DragDelayFloat("キー時刻 (秒)", &key.time, 1.0f / 60.0f);
-		const float minimum = selected && selectedKey ? ((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey - 1].time :
+		const float minimum = selected && selectedKey ? ((MovieEventKey<Key>) ? values[selectedKey - 1].time :
 			std::nextafter(values[selectedKey - 1].time, std::numeric_limits<float>::infinity())) : 0;
 		const float maximum = selected && selectedKey + 1 < static_cast<int>(values.size()) ?
-			((std::is_same_v<Key, ParticleKey> || std::is_same_v<Key, SoundKey>) ? values[selectedKey + 1].time :
+			((MovieEventKey<Key>) ? values[selectedKey + 1].time :
 			std::nextafter(values[selectedKey + 1].time, -std::numeric_limits<float>::infinity())) : sequence.duration;
 		key.time = std::clamp(key.time, minimum, maximum);
-		if constexpr (!std::is_same_v<Key, MotionKey> && !std::is_same_v<Key, ParticleKey> && !std::is_same_v<Key, SoundKey>)
+		if constexpr (!std::is_same_v<Key, MotionKey> && !MovieEventKey<Key>)
 			changed |= ImGui::Combo("補間", &key.easing, easingNames, static_cast<int>(Easing::Type::Count));
 		if constexpr (std::is_same_v<Key, CameraKey>)
 		{
@@ -1357,7 +1420,11 @@ void MovieCameraController::DrawInspector()
 		else if constexpr (std::is_same_v<Key, VibrationKey>)
 		{
 			changed |= ImGuiToolKit::DragDelayFloat("振動時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
-			changed |= ImGuiToolKit::DragSpeedFloat("強さ", &key.power, 0.01f, 0.0f, 1.0f);
+			changed |= ImGui::SliderFloat("強さ", &key.power, 0.0f, 1.0f, "%.2f");
+			key.duration = std::clamp(key.duration, 0.01f, 3600.0f);
+			key.power = std::clamp(key.power, 0.0f, 1.0f);
+			vibrationDraft = key;
+			ImGui::TextWrapped("再生中にキーを通過すると振動します。振動時間は実時間です。");
 		}
 		else if constexpr (std::is_same_v<Key, EffectKey>)
 		{
@@ -1428,6 +1495,12 @@ void MovieCameraController::DrawInspector()
 		inspect(sequence.particles, key);
 	}
 	else if (selectedTrack == 7) inspect(sequence.timeScales, TimeScaleKey{cursor, GetMovieTimeScale(cursor)});
+	else if (selectedTrack == 9)
+	{
+		VibrationKey key = vibrationDraft;
+		key.time = cursor;
+		inspect(sequence.vibrations, key);
+	}
 	else
 	{
 		SoundKey key = soundDraft;
@@ -1495,7 +1568,7 @@ void MovieCameraController::DrawEditor()
 			{
 				float minimum = 0.05f;
 				const auto last = [&](const auto& values) { if (!values.empty()) minimum = std::max(minimum, values.back().time); };
-				last(sequence.cameras); last(sequence.player); last(sequence.boss); last(sequence.playerMotions); last(sequence.bossMotions); last(sequence.effects); last(sequence.particles); last(sequence.timeScales); last(sequence.sounds);
+				last(sequence.cameras); last(sequence.player); last(sequence.boss); last(sequence.playerMotions); last(sequence.bossMotions); last(sequence.effects); last(sequence.particles); last(sequence.timeScales); last(sequence.sounds); last(sequence.vibrations);
 				PushUndo(); sequence.duration = std::clamp(duration, minimum, 3600.0f);
 				sequence.qteEnd = std::clamp(sequence.qteEnd, 0.02f, sequence.duration);
 				sequence.qteStart = std::clamp(sequence.qteStart, 0.0f, sequence.qteEnd - 0.01f); dirty = true; Scrub(cursor);

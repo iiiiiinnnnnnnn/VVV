@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -156,6 +156,7 @@ private:
 	void ResolveQte(QteResult result);
 	void StopSounds();
 	void UpdateSounds(float previousTime);
+	void UpdateVibrations(float previousTime);
 	void StopParticles();
 	void EvaluateParticles();
 	Matrix GetParticleTransform(const ParticleKey& key) const;
