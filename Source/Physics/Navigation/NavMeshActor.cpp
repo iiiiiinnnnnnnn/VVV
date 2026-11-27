@@ -118,6 +118,11 @@ std::string NavMeshActor::SaveSettingsJson() const
 	root["simplifyFlatAreas"] = simplifyFlatAreas;
 	root["simplifyHeightError"] = simplifyHeightError;
 	root["simplifyMaxCells"] = simplifyMaxCells;
+	root["agentHeight"] = agentHeight;
+	root["agentRadius"] = agentRadius;
+	root["agentMaxClimb"] = agentMaxClimb;
+	root["agentMaxSlope"] = agentMaxSlope;
+	root["contourMaxError"] = contourMaxError;
 	root["navMinY"] = navMinY;
 	root["navMaxY"] = navMaxY;
 
@@ -607,7 +612,16 @@ bool NavMeshActor::FindRecoveryPoint(
 	Vector3 inward(wallNormal[0], 0.0f, wallNormal[2]);
 	if (inward.LengthSquared() <= eps) return true;
 	inward.Normalize();
-	recoveryPoint += inward * (safeDistance - wallDistance);
+	const Vector3 target = recoveryPoint + inward * (safeDistance - wallDistance);
+	const float end[] = {target.x, target.y, target.z};
+	float result[3] = {};
+	dtPolyRef visited[32] = {};
+	int visitedCount = 0;
+	if (dtStatusFailed(navQuery->moveAlongSurface(nearestRef, nearestPosition, end,
+		&filter, result, visited, &visitedCount, _countof(visited)))) return false;
+	if (!visitedCount) return false;
+	if (dtStatusFailed(navQuery->getPolyHeight(visited[visitedCount - 1], result, &result[1]))) return false;
+	recoveryPoint = Vector3(result[0], result[1], result[2]);
 	return true;
 }
 
@@ -643,33 +657,18 @@ bool NavMeshActor::FindRandomPoint(
 	const float maxDistanceSq = maxDistance * maxDistance;
 	for (int attempt = 0; attempt < maxAttempts; ++attempt)
 	{
-		const float angle = Random::Range(-DirectX::XM_PI, DirectX::XM_PI);
-		const float distance = sqrtf(Random::Range(minDistanceSq, maxDistanceSq));
-		const Vector3 navigationCandidate = ProjectTerrainPosition(Vector3(
-			center.x + sinf(angle) * distance, center.y, center.z + cosf(angle) * distance), true);
-		const float candidate[3] = {navigationCandidate.x, navigationCandidate.y, navigationCandidate.z};
-
 		dtPolyRef goalRef = 0;
 		float nearestGoal[3] = {};
-		if (dtStatusFailed(navQuery->findNearestPoly(
-				candidate, halfExtents, &filter, &goalRef, nearestGoal)) ||
-			!goalRef)
+		const auto random = []() -> float
 		{
-			continue;
-		}
+			return static_cast<float>(std::rand() / (RAND_MAX + 1.0));
+		};
+		if (dtStatusFailed(navQuery->findRandomPointAroundCircle(centerRef, nearestCenter,
+			maxDistance, &filter, random, &goalRef, nearestGoal)) || !goalRef) continue;
 
 		const Vector3 offset(nearestGoal[0] - center.x, 0.0f, nearestGoal[2] - center.z);
 		const float distanceSq = offset.LengthSquared();
 		if (distanceSq < minDistanceSq || distanceSq > maxDistanceSq) continue;
-
-		dtPolyRef path[64] = {};
-		int pathCount = 0;
-		if (dtStatusFailed(navQuery->findPath(centerRef, goalRef, nearestCenter, nearestGoal,
-				&filter, path, &pathCount, _countof(path))) ||
-			pathCount <= 0 || path[pathCount - 1] != goalRef)
-		{
-			continue;
-		}
 
 		randomPoint = Vector3(nearestGoal[0], nearestGoal[1], nearestGoal[2]);
 		return true;
@@ -787,6 +786,17 @@ void NavMeshActor::DrawGUI()
 	if (Terrain* terrain = owner ? owner->GetComponent<Terrain>() : nullptr)
 		ImGui::Text("入力：NavMesh範囲マップ %d × %d",
 			terrain->GetHeightMapWidth(), terrain->GetHeightMapHeight());
+
+	// キャラクターの通行条件はRecastの生成設定に統一する。
+	bool generationChanged = ImGui::DragFloat("エージェントの高さ", &agentHeight,
+		0.05f, 0.1f, 20.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+	generationChanged |= ImGui::DragFloat("エージェントの半径", &agentRadius,
+		0.05f, 0.0f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+	generationChanged |= ImGui::DragFloat("登れる段差", &agentMaxClimb,
+		0.05f, 0.0f, agentHeight, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+	generationChanged |= ImGui::SliderFloat("歩行可能な最大傾斜", &agentMaxSlope, 0.0f, 89.0f);
+	generationChanged |= ImGui::DragFloatRange2("生成する高さの範囲", &navMinY, &navMaxY, 1.0f);
+	if (generationChanged) RequestBuild();
 
 	bool simplifyChanged = ImGui::Checkbox("平面のポリゴンを削減", &simplifyFlatAreas);
 	if (simplifyFlatAreas)

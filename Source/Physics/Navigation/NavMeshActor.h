@@ -83,6 +83,11 @@ class NavMeshActor : public Component
 	float simplifyHeightError = 0.02f;
 	int simplifyMaxCells = 8;
 	static constexpr float nearestPolyExtent = 8.0f;
+	float agentHeight = 2.0f;
+	float agentRadius = 0.4f;
+	float agentMaxClimb = 0.3f;
+	float agentMaxSlope = 45.0f;
+	float contourMaxError = 1.3f;
 	float navMinY = -100.0f;
 	float navMaxY = 100.0f;
 	std::string statusMessage;

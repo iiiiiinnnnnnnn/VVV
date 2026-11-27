@@ -165,6 +165,8 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 	config.maxVertsPerPoly = DT_VERTS_PER_POLYGON;
 	config.detailSampleDist = settings.detailSampleDistance;
 	config.detailSampleMaxError = settings.detailMaxError;
+	config.minRegionArea = settings.minRegionArea;
+	config.mergeRegionArea = settings.mergeRegionArea;
 	rcVcopy(config.bmin, region.bounds.min.data());
 	rcVcopy(config.bmax, region.bounds.max.data());
 	rcCalcGridSize(config.bmin, config.bmax, config.cs, &config.width, &config.height);
@@ -185,6 +187,8 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 	const int vertexCount = static_cast<int>(input.vertices.size() / 3);
 	stats.inputTriangles = triangleCount;
 	std::vector<unsigned char> areas(triangleCount, RC_NULL_AREA);
+	rcMarkWalkableTriangles(&context, config.walkableSlopeAngle,
+		input.vertices.data(), vertexCount, input.indices.data(), triangleCount, areas.data());
 	for (int i = 0; i < triangleCount; ++i)
 	{
 		const float* a = &input.vertices[input.indices[i * 3] * 3];
@@ -247,7 +251,7 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 				const rcCompactCell& cell = compact->cells[z * compact->width + x];
 				if (cell.count != 1) continue;
 				for (int direction = 0; direction < 4; ++direction)
-				{
+	{
 					const int nx = x + rcGetDirOffsetX(direction);
 					const int nz = z + rcGetDirOffsetY(direction);
 					if (nx < 0 || nx >= compact->width || nz < 0 || nz >= compact->height) continue;

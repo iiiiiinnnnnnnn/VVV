@@ -21,11 +21,17 @@ public:
 		float cellSize = 0.5f;
 		// 高さ範囲をRecastで表現できない場合は、この値より粗い刻みへ調整する。
 		float cellHeight = 0.1f;
+		float agentHeight = 2.0f;
+		float agentRadius = 0.5f;
+		float agentMaxClimb = 0.3f;
+		float agentMaxSlope = 45.0f;
 		int maxEdgeLength = 8;
 		// Aマスクの輪郭を動かさない。ポリゴン内部の統合はRecastに任せる。
 		float contourMaxError = 0.0f;
 		float detailSampleDistance = 3.0f;
 		float detailMaxError = 0.02f;
+		int minRegionArea = 0;
+		int mergeRegionArea = 0;
 	};
 
 	struct HeightMap
