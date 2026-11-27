@@ -12,6 +12,13 @@ public:
 	NavMeshAgent(Object* owner);
 
 	void Update() override;
+	void UpdateMovement();
+	void SetManualUpdate(bool value) { manualUpdate = value; }
+	bool IsManualUpdate() const { return manualUpdate; }
+	void SetStayOnNavMesh(bool value) { stayOnNavMesh = value; }
+	void SetTurnThresholdDegrees(float degrees) { turnThreshold = RAD(std::max(degrees, 0.0f)); }
+	bool IsTurning() const { return turning; }
+	bool FacePosition(const Vector3& position);
 	void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_MAP " ナビメッシュ移動"; }
 
@@ -43,12 +50,17 @@ public:
 
 private:
 	Actor* FindTargetByTag();
+	void RotateTowards(Actor* actor, const Vector3& direction);
 	bool MoveToPosition(Actor* actor, const Vector3& targetPosition);
 
 	Actor* target = nullptr;
 	CharacterController* characterController = nullptr;
 	std::string targetTag = "Player";
 	std::string statusMessage;
+	bool manualUpdate = false;
+	bool stayOnNavMesh = false;
+	bool turning = false;
+	float turnThreshold = 0.0f;
 	bool autoMove = false;
 	bool hasDestination = false;
 	bool chaseTargetTag = false;
@@ -58,6 +70,7 @@ private:
 	bool chargeMovement = false;
 	bool directMovement = false;
 	Vector3 destination = Vector3::Zero;
+	Vector3 chargeDirection = Vector3::Zero;
 	float randomMinDistance = 3.0f;
 	float randomMaxDistance = 10.0f;
 	float stoppingDistance = 1.5f;

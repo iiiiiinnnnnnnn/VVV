@@ -12,7 +12,6 @@
 #include "Rendering/Core/Graphics.h"
 #include "Gameplay/Actor/Actor.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
-#include "Physics/Navigation/NavMeshObstacle.h"
 #include "Rendering/Component/TrailRenderComponent.h"
 #include "Rendering/Component/VMDLParticleEmitterComponent.h"
 #include "Audio/SoundSystem.h"
@@ -88,9 +87,6 @@ void VMDLModelComponent::BuildAttachments()
 
 		collider->SetName(value.name);
 		collider->SetActive(model->GetColliderInitialActive(colliderIndex));
-		collider->SetNavMeshObstacle(value.navMeshObstacle);
-		if (value.navMeshObstacle && !owner->GetComponent<NavMeshObstacle>())
-			owner->AddComponent<NavMeshObstacle>();
 		attachmentColliders[colliderIndex] = collider;
 	}
 

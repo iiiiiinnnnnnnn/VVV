@@ -351,9 +351,6 @@
     <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp">
       <Filter>Source\Gameplay\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp">
-      <Filter>Source\Physics\Navigation</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp">
       <Filter>Source\Gameplay\Scene</Filter>
     </ClCompile>
@@ -948,9 +945,6 @@
       <Filter>Source\Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\Navigation\NavMeshBuilder.h">
-      <Filter>Source\Physics\Navigation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h">
       <Filter>Source\Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h">

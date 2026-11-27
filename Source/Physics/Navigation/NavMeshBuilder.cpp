@@ -187,8 +187,6 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 	const int vertexCount = static_cast<int>(input.vertices.size() / 3);
 	stats.inputTriangles = triangleCount;
 	std::vector<unsigned char> areas(triangleCount, RC_NULL_AREA);
-	rcMarkWalkableTriangles(&context, config.walkableSlopeAngle,
-		input.vertices.data(), vertexCount, input.indices.data(), triangleCount, areas.data());
 	for (int i = 0; i < triangleCount; ++i)
 	{
 		const float* a = &input.vertices[input.indices[i * 3] * 3];
@@ -236,7 +234,7 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 		return true;
 	}
 
-	// 傾斜・段差・頭上空間・半径・AABBによる追加の削除は行わない。
+	// 傾斜・段差・頭上空間・半径による自動削除は行わない。
 	stats.stage = "compact";
 	if (!rcBuildCompactHeightfield(&context, config.walkableHeight, config.walkableClimb,
 		*field, *compact)) return false;
@@ -263,6 +261,7 @@ bool NavMeshBuilder::BuildFromMesh(const Mesh& input, const BuildSettings& setti
 	}
 	stats.compactCells = CountWalkableCells(*compact, config.borderSize);
 	field.reset();
+
 	stats.stage = "distance field";
 	if (!rcBuildDistanceField(&context, *compact)) return false;
 	stats.distanceFieldCells = CountWalkableCells(*compact, config.borderSize);

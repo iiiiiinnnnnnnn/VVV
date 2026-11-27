@@ -71,7 +71,6 @@ void Player::OnAwake()
 	// 注視処理
 	auto lookAt = AddComponent<LookAt>(
 		model.get(), "head", "neck_01");
-	lookAt->SetLookDistance(10.0f);
 	lookAt->SetFilterTags({"Enemy"});
 
 	// プレイヤーはダメージのクールダウン長い

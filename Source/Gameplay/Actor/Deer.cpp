@@ -72,8 +72,7 @@ void Deer::OnAwake()
 
 	// LookAt
 	auto lookAt = AddComponent<LookAt>(model.get(), "spine", "neck");
-	lookAt->SetFilterTags({"Player", "Enemy"});
-	lookAt->SetLookDistance(8.0f);
+	lookAt->SetFilterTags({"Player"});
 
 	// EnemyAI
 	ConfigureAI();
@@ -83,143 +82,161 @@ void Deer::ConfigureAI()
 {
 	controller = AddComponent<EnemyAI>("Deer.lua");
 
-	controller->SetTrackingTurnSpeed(1.0f);
-
-	// FootIK
 	auto ik = vmdl->GetMultiLegFootIK();
 	ik->SetModelVisualOffsetY(-0.07f);
 	ik->SetContactOffset(-0.044f);
 
-	// 共通：移動停止
-	const auto stop = [this]()
+	// LuaのAction内で一度だけ進め、移動結果をそのフレームの判断とアニメーションへ渡す。
+	navMeshAgent->SetManualUpdate(true);
+	navMeshAgent->SetStayOnNavMesh(true);
+
+	controller->AddAction("Wait", std::bind(&Deer::StopCharge, this));
+	controller->AddAction("Wander",
+		std::bind(&Deer::BeginWander, this),
+		std::bind(&Deer::UpdateWander, this), {},
+		std::bind(&Deer::StopCharge, this));
+	controller->AddAction("Approach",
+		std::bind(&Deer::BeginApproach, this),
+		std::bind(&Deer::UpdateApproach, this), {},
+		std::bind(&Deer::StopCharge, this));
+	controller->AddAction("Attack_Prepare",
+		std::bind(&Deer::BeginAttackPreparation, this),
+		std::bind(&Deer::UpdateAttackPreparation, this), {},
+		std::bind(&Deer::StopCharge, this));
+	controller->AddAction("Chase",
+		std::bind(&Deer::BeginCharge, this),
+		std::bind(&Deer::UpdateCharge, this), {},
+		std::bind(&Deer::StopCharge, this));
+	controller->AddAction("Recovery", std::bind(&Deer::StopCharge, this));
+}
+
+void Deer::BeginWander()
+{
+	StopCharge();
+	navMeshAgent->SetSpeed(controller->GetFloat("FreedomMoveSpeed", 1.0f));
+	navMeshAgent->MoveToRandomPosition(
+		controller->GetFloat("FreedomMinDistance", 3.0f),
+		controller->GetFloat("FreedomMaxDistance", 10.0f));
+	controller->RefreshMovementSensors();
+}
+
+void Deer::UpdateWander()
+{
+	UpdateWalking();
+}
+
+void Deer::BeginApproach()
+{
+	StopCharge();
+	navMeshAgent->SetSpeed(controller->GetFloat("ApproachMoveSpeed", 2.0f));
+}
+
+void Deer::UpdateApproach()
+{
+	Actor* target = controller->GetTarget();
+	if (!target)
 	{
 		StopCharge();
-	};
+		return;
+	}
 
-	controller->AddAction("FreedomWait", stop);
-	controller->AddAction("Stop", stop);
+	const bool canCharge = !cc->IsPathBlocked(target->transform.position, target);
+	controller->SetBool("CanCharge", canCharge);
+	UpdateWalking(target, canCharge);
+}
 
-	// 非戦闘：構えを解除する。
-	const auto updateFreedom = [this]()
+void Deer::UpdateWalking(Actor* target, bool faceOnly)
+{
+	navMeshAgent->SetTurnThresholdDegrees(controller->GetFloat("TurnThreshold"));
+	navMeshAgent->SetAngularSpeed(controller->GetFloat("TurnAngularSpeed"));
+
+	if (faceOnly)
 	{
-		anim->SetBool("ready", false);
-	};
-
-	controller->AddAction("Freedom", stop, updateFreedom, {}, stop);
-
-	// 戦闘共通では移動の後始末だけを行い、構えは突進準備の処理で管理する。
-	controller->AddAction("Attacking", stop, {}, {}, stop);
-
-	// 徘徊：ランダムな目的地へ歩く。
-	const auto enterWander = [this]()
+		navMeshAgent->Stop();
+		navMeshAgent->FacePosition(target->transform.position);
+	}
+	else if (target)
 	{
-		navMeshAgent->SetSpeed(controller->GetFloat("FreedomMoveSpeed", 1.0f));
-		navMeshAgent->MoveToRandomPosition(
-			controller->GetFloat("FreedomMinDistance", 3.0f),
-			controller->GetFloat("FreedomMaxDistance", 10.0f));
-	};
-
-	controller->AddAction("FreedomWander", enterWander);
-
-	const auto updateTurnAnimation = [this](float angle)
+		navMeshAgent->MoveToTarget(target);
+	}
+	else
 	{
-		const bool turning = std::abs(angle) > 1.0f;
-		anim->SetBool("turnR", turning && angle > 0.0f);
-		anim->SetBool("turnL", turning && angle < 0.0f);
-		return turning;
-	};
+		navMeshAgent->UpdateMovement();
+	}
 
-	// 徘徊中は移動先へ、戦闘中は相手へ向き直る角度でアニメーションを選ぶ。
-	const auto updateTurn = [this, updateTurnAnimation]()
+	const bool turning = navMeshAgent->IsTurning();
+	const float angle = navMeshAgent->GetTurnAngle();
+	anim->SetBool("turnR", turning && angle > 0.0f);
+	anim->SetBool("turnL", turning && angle < 0.0f);
+	anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
+	controller->RefreshMovementSensors();
+}
+
+void Deer::BeginAttackPreparation()
+{
+	StopCharge();
+	anim->SetBool("ready", true);
+}
+
+void Deer::UpdateAttackPreparation()
+{
+	Actor* target = controller->GetTarget();
+	const bool canCharge = target && !cc->IsPathBlocked(target->transform.position, target);
+	controller->SetBool("CanCharge", canCharge);
+	controller->RefreshMovementSensors();
+}
+
+void Deer::BeginCharge()
+{
+	Actor* target = controller->GetTarget();
+	if (!target)
 	{
-		const float angle = controller->GetFloat(navMeshAgent->HasDestination() ? "TurnAngle" : "TargetTurnAngle");
-		updateTurnAnimation(angle);
-		anim->SetBool("ready", false);
-		navMeshAgent->SetMovementPaused(true);
-		if (!navMeshAgent->HasDestination()) controller->FaceTarget();
-	};
+		StopCharge();
+		return;
+	}
 
-	const auto exitTurn = [this]()
+	Vector3 over = target->transform.position - this->transform.position;
+	over.y = 0.0f;
+	if (over.LengthSquared() <= eps)
 	{
-		anim->SetBool("turnR", false);
-		anim->SetBool("turnL", false);
-		navMeshAgent->SetMovementPaused(false);
-	};
+		StopCharge();
+		return;
+	}
+	over.Normalize();
+	chargeDirection = over;
+	normalSlopeLimit = cc->GetSlopeLimitDeg();
+	cc->SetSlopeLimitDeg(45.0f);
+	charging = true;
+	this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
+		atan2f(over.x, over.z), 0.0f, 0.0f));
 
-	controller->AddAction("Turn", {}, updateTurn, {}, exitTurn);
+	const float overDistance = controller->GetFloat("AttackOverDistance", 16.0f);
+	const float moveSpeed = controller->GetFloat("AttackMoveSpeed", 6.0f);
+	const Vector3 chargeOffset = over * overDistance;
+	const Vector3 destination = target->transform.position + chargeOffset;
 
-	// 突進準備の間だけ構えを有効にし、終了時は突進・旋回・休憩のどれへ進んでも解除する。
-	const auto enterPreparation = [this]()
+	navMeshAgent->SetSpeed(moveSpeed);
+	navMeshAgent->SetChargeMovement(true);
+	navMeshAgent->MoveToPosition(destination);
+}
+
+void Deer::UpdateCharge()
+{
+	if (charging) navMeshAgent->UpdateMovement();
+	anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
+	controller->RefreshMovementSensors();
+
+	Actor* target = controller->GetTarget();
+	if (!charging || !target || !navMeshAgent->HasDestination())
 	{
-		anim->SetBool("turnR", false);
-		anim->SetBool("turnL", false);
-		anim->SetBool("ready", true);
-	};
-	const auto updateFaceTarget = [this, enterPreparation]()
-	{
-		enterPreparation();
-		controller->FaceTarget();
-	};
-	const auto exitPreparation = [this, exitTurn]()
-	{
-		anim->SetBool("ready", false);
-		exitTurn();
-	};
+		StopCharge();
+		return;
+	}
 
-	controller->AddAction("FaceTarget", enterPreparation, updateFaceTarget, {}, exitPreparation);
-
-	// 突進：開始時の方向に固定して直進する。
-	const auto enterChase = [this]()
-	{
-		Actor* target = controller->GetTarget();
-		if (!target)
-		{
-			StopCharge();
-			return;
-		}
-
-		Vector3 over = target->transform.position - this->transform.position;
-		over.y = 0.0f;
-		if (over.LengthSquared() <= eps)
-		{
-			StopCharge();
-			return;
-		}
-		over.Normalize();
-		chargeDirection = over;
-		normalSlopeLimit = cc->GetSlopeLimitDeg();
-		cc->SetSlopeLimitDeg(45.0f);
-		charging = true;
-		this->transform.SetRotation(Quaternion::CreateFromYawPitchRoll(
-			atan2f(over.x, over.z), 0.0f, 0.0f));
-
-		const float overDistance = controller->GetFloat("AttackOverDistance", 16.0f);
-		const float moveSpeed = controller->GetFloat("AttackMoveSpeed", 6.0f);
-		const Vector3 chargeOffset = over * overDistance;
-		const Vector3 destination = target->transform.position + chargeOffset;
-
-		navMeshAgent->SetSpeed(moveSpeed);
-		navMeshAgent->SetChargeMovement(true);
-		navMeshAgent->MoveToPosition(destination);
-	};
-
-	const auto updateChase = [this]()
-	{
-		Actor* target = controller->GetTarget();
-		if (!charging || !target || !navMeshAgent->HasDestination())
-		{
-			StopCharge();
-			return;
-		}
-
-		// 突進方向に対して、プレイヤーが後方へ抜けたら空振りとして終了する。
-		Vector3 toTarget = target->transform.position - this->transform.position;
-		toTarget.y = 0.0f;
-		if (chargeDirection.Dot(toTarget) < 0.0f) StopCharge();
-	};
-
-	controller->AddAction("AttackChase", enterChase, updateChase, {}, stop);
-
+	// 突進方向に対して、プレイヤーが後方へ抜けたら空振りとして終了する。
+	Vector3 toTarget = target->transform.position - this->transform.position;
+	toTarget.y = 0.0f;
+	if (chargeDirection.Dot(toTarget) < 0.0f) StopCharge();
 }
 
 void Deer::StopCharge()
@@ -228,9 +245,12 @@ void Deer::StopCharge()
 	charging = false;
 	navMeshAgent->SetChargeMovement(false);
 	controller->StopMovement();
-	controller->SetBool("HasDestination", false);
+	controller->SetBool("CanCharge", false);
+	controller->RefreshMovementSensors();
 	anim->SetFloat("speed", 0.0f);
 	anim->SetBool("ready", false);
+	anim->SetBool("turnR", false);
+	anim->SetBool("turnL", false);
 }
 
 void Deer::OnUpdate()
@@ -249,7 +269,6 @@ void Deer::OnUpdate()
 	Entity::OnUpdate();
 
 	anim->SetBool("dead", IsDead());
-	anim->SetFloat("speed", navMeshAgent->GetMoveAmount());
 }
 
 void Deer::OnLateUpdate()
@@ -266,6 +285,20 @@ void Deer::OnLateUpdate()
 void Deer::OnDrawGUI()
 {
 	ImGui::TextUnformatted("AI：Resources/AI/Deer.lua");
+
+	ImGui::Separator();
+
+	ImGui::Text("TurnAngle: %.3f", DEG(navMeshAgent->GetTurnAngle()));
+	ImGui::Text("TargetTurnAngle: %.3f", controller->GetFloat("TargetTurnAngle"));
+	ImGui::Text("TurnThreshold: %.3f", controller->GetFloat("TurnThreshold"));
+	ImGui::Text("MoveAmount: %.3f", navMeshAgent->GetMoveAmount());
+
+	ImGui::Text("IsTurning: %d", controller->GetBool("IsTurning"));
+	ImGui::Text("IsFacingTarget: %d", controller->GetBool("IsFacingTarget"));
+	ImGui::Text("CanCharge: %d", controller->GetBool("CanCharge"));
+
+	ImGui::Text("Status: %s", navMeshAgent->GetStatusMessage().c_str());
+	ImGui::Text("Animation: %s", anim->GetCurrentStateName().c_str());
 }
 
 void Deer::OnCollisionEnter(

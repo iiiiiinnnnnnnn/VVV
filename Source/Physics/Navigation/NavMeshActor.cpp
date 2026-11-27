@@ -446,7 +446,7 @@ void NavMeshActor::RefreshDebugCells()
 		"triangles: input={}, walkable={}, upward={}\n"
 		"cells: raster={} -> mask={} -> compact={} -> distance={} -> regions={} -> contours={} -> mesh={}\n"
 		"contours={}, polygons: Recast={} / Detour={}, tiles={}, external links={}\n"
-		"mask cell delta={}; height bounds=[{}, {}]; slope/ledge/headroom/radius/AABB filters=OFF\n",
+		"mask cell delta={}; height bounds=[{}, {}]; slope/ledge/headroom/radius filters=OFF\n",
 		inputCells, totals.inputTriangles, totals.walkableTriangles, totals.upwardTriangles,
 		totals.rasterizedCells, totals.maskedCells, totals.compactCells, totals.distanceFieldCells,
 		totals.regionCells, totals.contourCells, totals.meshCells, totals.contours,
@@ -456,7 +456,7 @@ void NavMeshActor::RefreshDebugCells()
 
 bool NavMeshActor::FindNextPoint(
 	const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-	Vector3* reachableGoal) const
+	Vector3* reachableGoal, float goalSearchDistance)
 {
 	PROFILE_FUNCTION();
 	if (!built || !navQuery) return false;
@@ -476,11 +476,13 @@ bool NavMeshActor::FindNextPoint(
 
 	if (dtStatusFailed(navQuery->findNearestPoly(
 		startPos, extents, &filter, &startRef, nearestStart)) || !startRef) return false;
+	// 範囲外の目標も、呼び出し側が指定した距離内の歩行面へ投影する。
+	const float goalExtent = std::max(nearestPolyExtent, goalSearchDistance);
+	const float goalExtents[] = {goalExtent, 20.0f, goalExtent};
 	if (dtStatusFailed(navQuery->findNearestPoly(
-		goalPos, extents, &filter, &goalRef, nearestGoal)) || !goalRef) return false;
+		goalPos, goalExtents, &filter, &goalRef, nearestGoal)) || !goalRef) return false;
 
 	// Detour標準の経路探索で、次に進む曲がり角だけを求める。
-	constexpr int maxPathPoints = 256;
 	dtPolyRef path[maxPathPoints] = {};
 	int pathCount = 0;
 	if (dtStatusFailed(navQuery->findPath(startRef, goalRef,
@@ -490,8 +492,8 @@ bool NavMeshActor::FindNextPoint(
 	if (dtStatusFailed(navQuery->closestPointOnPoly(
 		path[pathCount - 1], nearestGoal, pathEnd, nullptr))) return false;
 
-	float points[maxPathPoints * 3] = {};
-	int pointCount = 0;
+	points[maxPathPoints * 3] = {};
+	pointCount = 0;
 	if (dtStatusFailed(navQuery->findStraightPath(nearestStart, pathEnd,
 		path, pathCount, points, nullptr, nullptr, &pointCount, maxPathPoints)) || !pointCount) return false;
 
@@ -610,7 +612,22 @@ bool NavMeshActor::FindRecoveryPoint(
 	}
 
 	Vector3 inward(wallNormal[0], 0.0f, wallNormal[2]);
-	if (inward.LengthSquared() <= eps) return true;
+	if (inward.LengthSquared() <= eps)
+	{
+		// 境界上では壁法線がゼロになるため、所属ポリゴンの内側へ向ける。
+		const dtMeshTile* tile = nullptr;
+		const dtPoly* polygon = nullptr;
+		if (dtStatusFailed(navMesh->getTileAndPolyByRef(nearestRef, &tile, &polygon))) return false;
+		Vector3 center = Vector3::Zero;
+		for (int i = 0; i < polygon->vertCount; ++i)
+		{
+			const float* vertex = &tile->verts[polygon->verts[i] * 3];
+			center += Vector3(vertex[0], vertex[1], vertex[2]);
+		}
+		inward = center / polygon->vertCount - recoveryPoint;
+		inward.y = 0.0f;
+		if (inward.LengthSquared() <= eps) return true;
+	}
 	inward.Normalize();
 	const Vector3 target = recoveryPoint + inward * (safeDistance - wallDistance);
 	const float end[] = {target.x, target.y, target.z};
@@ -714,37 +731,33 @@ bool NavMeshActor::IsCliffAlongSegment(
 	return false;
 }
 
-bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const
+bool NavMeshActor::MoveAlongSurface(
+	const Vector3& start, const Vector3& end, Vector3& resultPosition) const
 {
-	if (!built || !navQuery) return true;
+	if (!built || !navQuery) return false;
 
 	dtQueryFilter filter;
 	filter.setIncludeFlags(1);
-	const float extents[] = {nearestPolyExtent, 20.0f, nearestPolyExtent};
 	const Vector3 navigationStart = ProjectTerrainPosition(start, true);
-	const Vector3 navigationGoal = ProjectTerrainPosition(goal, true);
-	const float origin[] = {navigationStart.x, navigationStart.y, navigationStart.z};
-	const float end[] = {navigationGoal.x, navigationGoal.y, navigationGoal.z};
-	float nearestStart[3] = {};
+	const Vector3 navigationEnd = ProjectTerrainPosition(end, true);
+	const float startPosition[] = {navigationStart.x, navigationStart.y, navigationStart.z};
+	const float endPosition[] = {navigationEnd.x, navigationEnd.y, navigationEnd.z};
+	const float extents[] = {nearestPolyExtent, 20.0f, nearestPolyExtent};
 	dtPolyRef startRef = 0;
-	if (dtStatusFailed(navQuery->findNearestPoly(origin, extents, &filter,
-		&startRef, nearestStart)) || !startRef) return true;
-	if (Vector2(nearestStart[0] - start.x, nearestStart[2] - start.z).LengthSquared() > 0.0001f)
-		return true;
+	float nearestStart[3] = {};
+	if (dtStatusFailed(navQuery->findNearestPoly(startPosition, extents, &filter,
+		&startRef, nearestStart)) || !startRef) return false;
 
-	// Aマスクで定義された歩行範囲の境界をDetourで調べる。
-	float hit = 0.0f;
-	float normal[3] = {};
-	if (dtStatusFailed(navQuery->raycast(startRef, nearestStart, end, &filter,
-		&hit, normal, nullptr, nullptr, 0))) return true;
-	return hit < 1.0f;
-}
+	// 移動先を、開始ポリゴンから接続された歩行面の内側へ収める。
+	float result[3] = {};
+	dtPolyRef visited[32] = {};
+	int visitedCount = 0;
+	if (dtStatusFailed(navQuery->moveAlongSurface(startRef, nearestStart, endPosition,
+		&filter, result, visited, &visitedCount, _countof(visited))) || !visitedCount) return false;
+	if (dtStatusFailed(navQuery->getPolyHeight(visited[visitedCount - 1], result, &result[1]))) return false;
 
-bool NavMeshActor::FindObstacleDetourPoint(
-	const Vector3& start, const Vector3& goal, Vector3& nextPoint) const
-{
-	if (!IsDirectPathBlocked(start, goal)) return false;
-	return FindNextPoint(start, goal, nextPoint);
+	resultPosition = Vector3(result[0], result[1], result[2]);
+	return true;
 }
 
 void NavMeshActor::Render(const RenderContext& rc)
@@ -779,6 +792,26 @@ void NavMeshActor::Render(const RenderContext& rc)
 		renderer->DrawLine(c, a, color, color);
 	}
 
+	// 経路表示
+	const Color color(0.0f, 1.0f, 0.0f, 1.0f);
+
+	for (int i = 0; i < pointCount - 1; ++i)
+	{
+		const int index = i * 3;
+		const int nextIndex = (i + 1) * 3;
+
+		const Vector3 a(
+			points[index],
+			points[index + 1] + 0.2f,
+			points[index + 2]);
+
+		const Vector3 b(
+			points[nextIndex],
+			points[nextIndex + 1] + 0.2f,
+			points[nextIndex + 2]);
+
+		renderer->DrawLine(a, b, color, color);
+	}
 }
 
 void NavMeshActor::DrawGUI()

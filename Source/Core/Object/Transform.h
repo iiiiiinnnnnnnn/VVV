@@ -38,6 +38,7 @@ struct Transform
 	// 回転から方向を取得する。スケールには依存しない。
 	Vector3 GetForward() const;
 	Vector3 GetRight() const;
+	Vector3 GetUp() const;
 
 	struct TransformChangedResult
 	{

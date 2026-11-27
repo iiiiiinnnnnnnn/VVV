@@ -165,6 +165,16 @@ Vector3 Transform::GetRight() const
 	return direction;
 }
 
+Vector3 Transform::GetUp() const
+{
+	Vector3 direction = Vector3::TransformNormal(
+		Vector3::UnitY, Matrix::CreateFromQuaternion(rotation));
+	const float lengthSquared = direction.LengthSquared();
+	if (!std::isfinite(lengthSquared) || lengthSquared <= 0.000001f) return Vector3::UnitY;
+	direction.Normalize();
+	return direction;
+}
+
 Transform::TransformChangedResult Transform::DrawGUI(bool hideScale)
 {
 	TransformChangedResult res{};

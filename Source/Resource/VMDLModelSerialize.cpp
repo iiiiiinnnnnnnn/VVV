@@ -109,7 +109,7 @@ template <class Archive> void VMDLModel::VmdlCollider::serialize(Archive& archiv
 		CEREAL_NVP(center), CEREAL_NVP(rotation), CEREAL_NVP(size), CEREAL_NVP(trigger));
 
 	if constexpr (IsSerialArchive<Archive>)
-		archive(CEREAL_NVP(transform), CEREAL_NVP(navMeshObstacle));
+		archive(CEREAL_NVP(transform));
 }
 
 template <class Archive> void VMDLModel::VmdlSpring::serialize(Archive& archive)

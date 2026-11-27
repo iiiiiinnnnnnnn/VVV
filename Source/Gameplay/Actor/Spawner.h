@@ -1,4 +1,4 @@
-﻿// Spawner.h
+// Spawner.h
 #pragma once
 
 #include <functional>
@@ -38,8 +38,12 @@ class Spawner : public Component
 
 	// 生成対象
 	const std::string& GetEntityName() const { return entityName; }
-	void SetSpawnTag(const std::string& value) { spawnTag = value; }
+	void SetSpawnTag(const std::string& tag) { spawnTag = tag; }
 	const std::string& GetSpawnTag() const { return spawnTag; }
+	bool EqualSpawnTag(const std::string& tag) const
+	{
+		return tag == spawnTag;
+	}
 
 	void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_MAP_MARKED_ALT " 出現管理"; }

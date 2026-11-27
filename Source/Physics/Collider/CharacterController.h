@@ -9,6 +9,8 @@
 #include "Physics/Core/PhysicsManager.h"
 #include "Core/Object/Object.h"
 
+class Actor;
+
 class CharacterController : public PhysicsComponent {
 public:
 	void OnAwake() override;
@@ -20,6 +22,7 @@ public:
     void DrawGUI() override;
 	const char* GetDebugName() const override { return ICON_FA_STREET_VIEW " キャラクターコントローラー"; }
     void Move(const Vector3& velocity);
+    bool IsPathBlocked(const Vector3& destination, const Actor* targetActor = nullptr) const;
     void SetPosition(const Vector3& pos);
 	void SetPosition(float x, float y, float z) { SetPosition(Vector3(x, y, z)); }
     void SetFootPosition(const Vector3& pos);

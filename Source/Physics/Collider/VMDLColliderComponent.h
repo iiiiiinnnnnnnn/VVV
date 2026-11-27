@@ -30,8 +30,6 @@ class VMDLColliderComponent : public PhysicsComponent
 	Vector3 GetWorldPosition() const;
 	bool GetBoundingSphere(Vector3& center, float& radius) const;
 	bool GetBounds(Vector3& center, Vector3& size) const;
-	void SetNavMeshObstacle(bool value) { navMeshObstacle = value; }
-	bool IsNavMeshObstacle() const { return navMeshObstacle; }
 	Actor* FindOverlapActorByTag(const std::string& tag) const;
 
   private:
@@ -47,7 +45,6 @@ class VMDLColliderComponent : public PhysicsComponent
 	Vector3 scaledSize = Vector3::One;
 	Matrix offset = Matrix::Identity;
 	bool isTrigger = true;
-	bool navMeshObstacle = false;
 	bool sweepReady = false;
 	bool drivesOwner = false;
 	Matrix ownerFromBody = Matrix::Identity;

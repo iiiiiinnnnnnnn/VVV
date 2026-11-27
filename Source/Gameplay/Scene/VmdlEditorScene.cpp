@@ -3214,7 +3214,6 @@ void VmdlEditorScene::DrawBatchComponentProperties()
 			choice("形状", [](auto& target) -> auto& { return target.shape; }, shapes);
 			vector("大きさ", [](auto& target) -> auto& { return target.size; }, 0.001f, 100000.0f, model->GetModelScale());
 			edit("トリガー", [](auto& target) -> auto& { return target.trigger; });
-			edit("NavMesh障害物", [](auto& target) -> auto& { return target.navMeshObstacle; });
 		});
 		break;
 	case AttachedComponentType::Spring:

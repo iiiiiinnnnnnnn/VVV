@@ -340,16 +340,26 @@ float EnemyAI::UpdateTarget(
 	return closestDistance;
 }
 
+void EnemyAI::RefreshMovementSensors()
+{
+	if (!navMeshAgent) navMeshAgent = owner->GetComponent<NavMeshAgent>();
+	UpdateTurnSensors(target != nullptr);
+}
+
 void EnemyAI::UpdateTurnSensors(bool hasTarget)
 {
 	const bool hasDestination = navMeshAgent && navMeshAgent->HasDestination();
 	// 0も進行方向に揃った正しい角度。最終目的地への角度に置き換えない。
-	const float turnAngle = hasDestination ? navMeshAgent->GetTurnAngle() : 0.0f;
+	const bool manualMovement = navMeshAgent && navMeshAgent->IsManualUpdate();
+	const float turnAngle = navMeshAgent && (hasDestination || manualMovement)
+		? navMeshAgent->GetTurnAngle() : 0.0f;
 	const float configuredThreshold = GetFloat("TurnThreshold", 15.0f);
 	const float thresholdDegrees = std::max(configuredThreshold, 0.0f);
 	const float turnThreshold = RAD(thresholdDegrees);
 	SetBool("HasDestination", hasDestination);
-	SetBool("IsTurning", hasDestination && fabsf(turnAngle) > turnThreshold);
+	const bool turning = manualMovement ? navMeshAgent->IsTurning()
+		: hasDestination && fabsf(turnAngle) > turnThreshold;
+	SetBool("IsTurning", turning);
 	Vector3 toTarget = hasTarget && target
 		? target->transform.position - owner->GetTransform()->position : Vector3::Zero;
 	toTarget.y = 0.0f;

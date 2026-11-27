@@ -116,7 +116,6 @@
     <ClCompile Include="Source\Gameplay\Lighting\LightManager.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\LoadingScene.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\TitleScene.cpp" />
-    <ClCompile Include="Source\Physics\Navigation\NavMeshObstacle.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\PostProcessController.cpp" />
     <ClCompile Include="Source\Gameplay\Actor\Spawner.cpp" />
     <ClCompile Include="Source\Gameplay\Scene\SceneManager.cpp" />
@@ -302,7 +301,6 @@
     <ClInclude Include="Source\Physics\Navigation\NavMeshAgent.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshActor.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshBuilder.h" />
-    <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h" />
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage01.h" />

@@ -1,6 +1,7 @@
-// LookAt.cpp
 #include "Animation/LookAt.h"
 #include <ImGuiToolKit/Drag.h>
+#include <algorithm>
+#include <cmath>
 #include "Gameplay/Component/ActorHitstopComponent.h"
 #include "Gameplay/Actor/Entity.h"
 #include "Physics/Collider/VMDLColliderComponent.h"
@@ -13,215 +14,225 @@
 #include "Gameplay/Actor/ActorManager.h"
 
 LookAt::LookAt(Object* owner, VMDLModel* model,
-	const std::string& nodeName1,
-	const std::string& nodeName2,
-	const std::string& nodeName3)
-	: Component(owner), model(model)
+    const std::string& nodeName1,
+    const std::string& nodeName2,
+    const std::string& nodeName3)
+    : Component(owner), model(model)
 {
+    const auto* renderer = owner->GetComponent<VMDLModelComponent>();
 
-	// 初期姿勢のワールド軸をノードのローカル空間へ戻し、モデル固有の正面・上・右を求める。
-	// この基準を保持することで、ボーン軸が一般的なXYZ方向でなくても同じ計算を使える。
-	auto SetBasis = [&](int nodeIndex, Vector3& forward, Vector3& right, Vector3& up)
-	{
-		if (nodeIndex < 0) return;
+    float modelYaw = 0.0f;
+    if (renderer && renderer->GetModel() == model)
+    {
+        modelYaw = renderer->GetModelYawOffset();
+    }
+    const Matrix modelRotation = Matrix::CreateRotationY(modelYaw);
 
-		auto& node = model->GetNodes().at(nodeIndex);
-		Matrix inverseWorld = static_cast<Matrix>(node.worldTransform).Invert();
+    InitializeNode(lookNodes[0], nodeName1, modelRotation);
+    if (!nodeName2.empty())
+    {
+        InitializeNode(lookNodes[1], nodeName2, modelRotation);
+        if (!nodeName3.empty())
+        {
+            InitializeNode(lookNodes[2], nodeName3, modelRotation);
+        }
+    }
+}
 
-		forward = Vector3::TransformNormal(Vector3(0, 0, 1), inverseWorld);
-		if (forward.Length() < 0.001f) forward = Vector3::Forward;
-		forward.Normalize();
+void LookAt::InitializeNode(LookNode& lookNode, const std::string& nodeName, const Matrix& modelRotation)
+{
+    lookNode.nodeIndex = model->GetNodeIndex(nodeName.c_str());
+    if (lookNode.nodeIndex < 0) return;
 
-		up = Vector3::TransformNormal(Vector3::Up, inverseWorld);
-		if (up.Length() < 0.001f) up = Vector3::Up;
-		up.Normalize();
+    const auto& node = model->GetNodes().at(lookNode.nodeIndex);
+    const Matrix reference = node.globalTransform * modelRotation;
+    const Matrix inverseReference = reference.Invert();
 
-		right = up.Cross(forward);
-		if (right.Length() < 0.001f) right = Vector3::Right;
-		right.Normalize();
+    lookNode.forward = Vector3::TransformNormal(Vector3::UnitZ, inverseReference);
+    lookNode.forward.Normalize();
 
-		up = forward.Cross(right);
-		up.Normalize();
-	};
+    lookNode.up = Vector3::TransformNormal(Vector3::Up, inverseReference);
+    lookNode.up.Normalize();
 
+    lookNode.right = lookNode.up.Cross(lookNode.forward);
+    lookNode.right.Normalize();
 
-	nodeIndex1 = model->GetNodeIndex(nodeName1.c_str());
-	SetBasis(nodeIndex1, forward1, right1, up1);
-	if (!nodeName2.empty())
-	{
-		nodeIndex2 = model->GetNodeIndex(nodeName2.c_str());
-		SetBasis(nodeIndex2, forward2, right2, up2);
-		if (!nodeName3.empty())
-		{
-			nodeIndex3 = model->GetNodeIndex(nodeName3.c_str());
-			SetBasis(nodeIndex3, forward3, right3, up3);
-		}
-	}
+    lookNode.up = lookNode.forward.Cross(lookNode.right);
+    lookNode.up.Normalize();
 }
 
 void LookAt::Update()
 {
-	ActorManager* actorManager = ActorManager::GetActive();
-	found = false;
-	if (!actorManager) return;
-	if (lookDistance <= 0.0f) return;
-	float nearestDistanceSq = lookDistance * lookDistance;
+    ActorManager* actorManager = ActorManager::GetActive();
+    found = false;
 
-	for (Actor* actor : actorManager->GetActors())
-	{
-		if (!actor || actor == owner || !actor->IsActive() || actor->IsPendingDestroy()) continue;
-		if (const auto* entity = dynamic_cast<const Entity*>(actor); entity && entity->IsDead()) continue;
-		bool matchesFilter = false;
-		for (const auto& filterTag : filterTags)
-		{
-			if (actor->CompareTag(filterTag))
-			{
-				matchesFilter = true;
-				break;
-			}
-		}
-		if (!matchesFilter) continue;
-		const auto* renderer = actor->GetComponent<VMDLModelComponent>();
-		if (!renderer) continue;
-		const auto* lookHead = dynamic_cast<const VMDLColliderComponent*>(renderer->GetAttachmentCollider("LOOKHEAD"));
-		if (!lookHead) continue;
-		const float distanceSq = Vector3::DistanceSquared(
-			actor->transform.position, owner->GetTransform()->position);
-		if (distanceSq >= nearestDistanceSq) continue;
-		nearestDistanceSq = distanceSq;
-		found = true;
-		target = lookHead->GetWorldPosition();
-	}
+    if (!actorManager) return;
+    if (lookDistance <= 0.0f) return;
+
+    float nearestDistanceSq = lookDistance * lookDistance;
+
+    for (Actor* actor : actorManager->GetActors())
+    {
+        if (!actor || actor == owner || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+
+        const auto* entity = dynamic_cast<const Entity*>(actor);
+        if (entity && entity->IsDead()) continue;
+
+        bool matchesFilter = false;
+        for (const auto& filterTag : filterTags)
+        {
+            if (actor->CompareTag(filterTag))
+            {
+                matchesFilter = true;
+                break;
+            }
+        }
+        if (!matchesFilter) continue;
+
+        const auto* renderer = actor->GetComponent<VMDLModelComponent>();
+        if (!renderer) continue;
+
+        const auto* collider = renderer->GetAttachmentCollider("LOOKHEAD");
+        const auto* lookHead = dynamic_cast<const VMDLColliderComponent*>(collider);
+        if (!lookHead) continue;
+
+        const float distanceSq = Vector3::DistanceSquared(
+            actor->transform.position, owner->GetTransform()->position);
+        if (distanceSq >= nearestDistanceSq) continue;
+
+        nearestDistanceSq = distanceSq;
+        found = true;
+        target = lookHead->GetWorldPosition();
+    }
 }
 
 void LookAt::LateUpdate()
 {
-	if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
-	if (!model) return;
-	if (nodeIndex1 < 0) return;
+    if (!model || lookNodes[0].nodeIndex < 0) return;
+    if (ActorHitstopComponent::IsModelStopping(owner, model)) return;
 
-	// 首・頭など複数ノードを使う場合は、総回転量が増えないよう均等に分配する。
-	float weight = 1.0f;
-	if (nodeIndex2 != -1)
-	{
-		weight = 0.5f;
-		if (nodeIndex3 != -1)
-		{
-			weight = 1.0f / 3.0f;
-		}
-	}
+    int nodeCount = 0;
+    for (const LookNode& lookNode : lookNodes)
+    {
+        if (lookNode.nodeIndex >= 0) ++nodeCount;
+    }
 
+    // 補正量を均等に分けるため、全ノードの計算には補正前のワールド行列を使用する。
+    const float weight = 1.0f / static_cast<float>(nodeCount);
+    const float followTime = smoothSpeed * Game::Time::deltaTime;
+    const float rate = std::clamp(1.0f - expf(-followTime), 0.0f, 1.0f);
 
-	auto SetLookAt = [&](int nodeIndex, const Vector3& forward, const Vector3& right, const Vector3& up, float& currentYaw, float& currentPitch)
-	{
-		if (nodeIndex < 0) return;
+    for (LookNode& lookNode : lookNodes)
+    {
+        if (lookNode.nodeIndex < 0) continue;
+        UpdateNode(lookNode, weight, rate);
+    }
 
-		auto& node = model->GetNodes().at(nodeIndex);
-		Matrix inverseWorld = static_cast<Matrix>(node.worldTransform).Invert();
+    model->UpdateTransform(model->GetWorldTransform());
+}
 
-		float yaw = 0.0f;
-		float pitch = 0.0f;
+void LookAt::UpdateNode(LookNode& lookNode, float weight, float rate)
+{
+    auto& node = model->GetNodes().at(lookNode.nodeIndex);
+    const Matrix nodeWorld = model->GetScaledAttachmentTransform(node.worldTransform);
+    const Matrix inverseWorld = nodeWorld.Invert();
 
-		// 注視点を現在のノード空間へ変換し、初期姿勢の基準軸からyawとpitchを計算する。
-		Vector3 localDirection = Vector3::Transform(target, inverseWorld);
-		if (found && localDirection.Length() >= 0.001f)
-		{
-			localDirection.Normalize();
+    // ワールドの上方向を共通の基準とし、角度と回転軸をワールド空間で求める。
+    Vector3 worldUp = Vector3::Up;
+    Vector3 worldForward = Vector3::TransformNormal(lookNode.forward, nodeWorld);
+    worldForward.Normalize();
 
-			float front = localDirection.Dot(forward);
-			if (front > 0.001f)
-			{
-				float side = localDirection.Dot(right);
-				float height = localDirection.Dot(up);
-				float horizontalLength = sqrtf(front * front + side * side);
-				if (horizontalLength < 0.001f) horizontalLength = 0.001f;
+    const float forwardHeight = worldForward.Dot(worldUp);
+    Vector3 flatForward = worldForward - worldUp * forwardHeight;
+    if (flatForward.LengthSquared() < 0.000001f) return;
+    const float forwardHorizontal = flatForward.Length();
+    flatForward.Normalize();
 
-				yaw = atan2f(side, front);
-				pitch = atan2f(height, horizontalLength);
+    Vector3 worldRight = worldUp.Cross(flatForward);
+    worldRight.Normalize();
 
-				if (yaw > maxAngleYaw) yaw = maxAngleYaw;
-				if (yaw < -maxAngleYaw) yaw = -maxAngleYaw;
-				if (pitch > maxAnglePitch) pitch = maxAnglePitch;
-				if (pitch < -maxAnglePitch) pitch = -maxAnglePitch;
+    float yaw = 0.0f;
+    float pitch = 0.0f;
 
-				yaw *= weight;
-				pitch *= weight;
-			}
-		}
+    if (found)
+    {
+        Vector3 direction = target - nodeWorld.Translation();
+        if (direction.LengthSquared() >= 0.000001f)
+        {
+            direction.Normalize();
+            const float front = direction.Dot(flatForward);
+            const float side = direction.Dot(worldRight);
+            const float height = direction.Dot(worldUp);
 
-		// 指数補間にして、フレームレートが変わっても追従速度がほぼ一定になるようにする。
-		float rate = 1.0f - expf(-smoothSpeed * Game::Time::deltaTime);
-		if (rate > 1.0f) rate = 1.0f;
-		if (rate < 0.0f) rate = 0.0f;
+            if (front > 0.001f)
+            {
+                const float horizontal = sqrtf(front * front + side * side);
+                const float currentElevation = atan2f(forwardHeight, forwardHorizontal);
+                const float targetElevation = atan2f(height, horizontal);
 
-		currentYaw += (yaw - currentYaw) * rate;
-		currentPitch += (pitch - currentPitch) * rate;
-		if (fabsf(currentYaw) < 0.001f && fabsf(currentPitch) < 0.001f) return;
+                yaw = atan2f(side, front);
+                pitch = targetElevation - currentElevation;
+                yaw = std::clamp(yaw, -maxAngleYaw, maxAngleYaw) * weight;
+                pitch = std::clamp(pitch, -maxAnglePitch, maxAnglePitch) * weight;
+            }
+        }
+    }
 
-		yaw = currentYaw;
-		pitch = currentPitch;
+    lookNode.currentYaw += (yaw - lookNode.currentYaw) * rate;
+    lookNode.currentPitch += (pitch - lookNode.currentPitch) * rate;
 
-		Quaternion yawRotation = Quaternion::CreateFromAxisAngle(up, yaw);
-		Vector3 pitchAxis = Vector3::TransformNormal(
-			right,
-			Matrix::CreateFromQuaternion(yawRotation));
-		if (pitchAxis.Length() < 0.001f) return;
-		pitchAxis.Normalize();
+    // Yaw後の水平な右軸でPitchを適用する。首の傾いたローカルUp軸は使わない。
+    const Matrix worldYaw = Matrix::CreateFromAxisAngle(worldUp, lookNode.currentYaw);
+    Vector3 worldPitchAxis = Vector3::TransformNormal(worldRight, worldYaw);
 
-		Quaternion pitchRotation = Quaternion::CreateFromAxisAngle(pitchAxis, -pitch);
+    Vector3 localYawAxis = Vector3::TransformNormal(worldUp, inverseWorld);
+    Vector3 localPitchAxis = Vector3::TransformNormal(worldPitchAxis, inverseWorld);
+    localYawAxis.Normalize();
+    localPitchAxis.Normalize();
 
-		node.rotation *= yawRotation;
-		node.rotation.Normalize();
-		node.rotation *= pitchRotation;
-		node.rotation.Normalize();
-	};
+    const Matrix yawMatrix = Matrix::CreateFromAxisAngle(localYawAxis, lookNode.currentYaw);
+    const Matrix pitchMatrix = Matrix::CreateFromAxisAngle(localPitchAxis, -lookNode.currentPitch);
 
-
-	SetLookAt(nodeIndex1, forward1, right1, up1, currentYaw1, currentPitch1);
-	if (nodeIndex2 != -1)
-	{
-		SetLookAt(nodeIndex2, forward2, right2, up2, currentYaw2, currentPitch2);
-		if (nodeIndex3 != -1)
-		{
-			SetLookAt(nodeIndex3, forward3, right3, up3, currentYaw3, currentPitch3);
-		}
-	}
-
-	model->UpdateTransform(model->GetWorldTransform());
+    const Matrix localCorrection = yawMatrix * pitchMatrix;
+    const Matrix animatedRotation = Matrix::CreateFromQuaternion(node.rotation);
+    node.rotation = Quaternion::CreateFromRotationMatrix(localCorrection * animatedRotation);
+    node.rotation.Normalize();
 }
 
 void LookAt::Render(const RenderContext& rc)
 {
-	if (!showDebug) return;
-	if (!model) return;
-	if (nodeIndex1 < 0) return;
+    if (!showDebug) return;
+    if (!model) return;
+    if (lookNodes[0].nodeIndex < 0) return;
 
-	Vector3 nodePosition = static_cast<Matrix>(
-		model->GetNodes()[nodeIndex1].worldTransform).Translation();
+    const Vector3 nodePosition = model->GetScaledAttachmentTransform(
+        model->GetNodes()[lookNodes[0].nodeIndex].worldTransform).Translation();
 
-	Game::Graphics::Instance().GetPrimitiveRenderer()->DrawLine(
-		nodePosition,
-		target,
-		Color(1.0f, 1.0f, 0.0f, 1.0f),
-		Color(1.0f, 1.0f, 0.0f, 1.0f));
+    Game::Graphics::Instance().GetPrimitiveRenderer()->DrawLine(
+        nodePosition,
+        target,
+        Color(1.0f, 1.0f, 0.0f, 1.0f),
+        Color(1.0f, 1.0f, 0.0f, 1.0f));
 }
 
 void LookAt::DrawGUI()
 {
-	ImGui::Text("found : %s", found ? "true" : "false");
-	ImGuiToolKit::DragPosFloat3("Target", &target.x, 0.01f);
+    ImGui::Text("found : %s", found ? "true" : "false");
+    ImGuiToolKit::DragPosFloat3("Target", &target.x, 0.01f);
 
-	float maxAngleYawDegrees = DEG(maxAngleYaw);
-	if (ImGuiToolKit::DragRotFloat("Max Angle Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
-	{
-		maxAngleYaw = RAD(maxAngleYawDegrees);
-	}
+	ImGuiToolKit::DragRangeFloat("範囲", &lookDistance, 0.1f, 0.0f, 1000.0f);
 
-	float maxAnglePitchDegrees = DEG(maxAnglePitch);
-	if (ImGuiToolKit::DragRotFloat("Max Angle Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
-	{
-		maxAnglePitch = RAD(maxAnglePitchDegrees);
-	}
+    float maxAngleYawDegrees = DEG(maxAngleYaw);
+    if (ImGuiToolKit::DragRotFloat("最大 Yaw", &maxAngleYawDegrees, 0.1f, 0.0f, 180.0f))
+    {
+        maxAngleYaw = RAD(maxAngleYawDegrees);
+    }
 
-	ImGuiToolKit::DragSpeedFloat("Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
+    float maxAnglePitchDegrees = DEG(maxAnglePitch);
+    if (ImGuiToolKit::DragRotFloat("最大 Pitch", &maxAnglePitchDegrees, 0.1f, 0.0f, 180.0f))
+    {
+        maxAnglePitch = RAD(maxAnglePitchDegrees);
+    }
+
+    ImGuiToolKit::DragSpeedFloat("Smooth Speed", &smoothSpeed, 0.1f, 0.0f, 100.0f);
 }

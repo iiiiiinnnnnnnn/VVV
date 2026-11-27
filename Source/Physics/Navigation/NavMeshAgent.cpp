@@ -24,6 +24,12 @@ NavMeshAgent::NavMeshAgent(Object* owner)
 
 void NavMeshAgent::Update()
 {
+	if (manualUpdate) return;
+	UpdateMovement();
+}
+
+void NavMeshAgent::UpdateMovement()
+{
 	PROFILE_FUNCTION();
 	lastMoveDelta = Vector3::Zero;
 
@@ -91,6 +97,12 @@ void NavMeshAgent::MoveToTarget(Actor* targetActor)
 
 void NavMeshAgent::MoveToPosition(const Vector3& targetPosition)
 {
+	if (chargeMovement)
+	{
+		chargeDirection = targetPosition - owner->GetTransform()->position;
+		chargeDirection.y = 0.0f;
+		if (chargeDirection.LengthSquared() > eps) chargeDirection.Normalize();
+	}
 	destination = targetPosition;
 	hasDestination = true;
 	autoMove = true;
@@ -135,6 +147,7 @@ void NavMeshAgent::Stop()
 {
 	currentSpeed = 0.0f;
 	currentTurnAngle = 0.0f;
+	turning = false;
 	lastMoveDelta = Vector3::Zero;
 	hasDestination = false;
 	autoMove = false;
@@ -160,6 +173,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 {
 	lastMoveDelta = Vector3::Zero;
 	currentTurnAngle = 0.0f;
+	turning = false;
 	if (!actor || !IsFinite(actor->transform.position) || !IsFinite(targetPosition))
 	{
 		statusMessage = "Movement stopped: Position is invalid.";
@@ -172,24 +186,49 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	flatToTarget.y = 0.0f;
 
 	Vector3 nextPoint = targetPosition;
-	bool directMove = true;
+	bool directMove = chargeMovement || directMovement;
+	bool recovering = false;
 	NavMeshActor* navMeshActor = NavMeshActor::GetActive();
 
-	// 自身がNavMesh内なら経路を使い、外なら目的地へ直線移動する。
-	if (!chargeMovement && !directMovement && navMeshActor &&
-		!navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f))
+	if (!directMove)
 	{
-		if (!navMeshActor->FindNextPoint(actor->transform.position, targetPosition, nextPoint))
+		if (stayOnNavMesh && !navMeshActor)
 		{
-			statusMessage = "NavMesh path not found.";
 			currentSpeed = 0.0f;
+			statusMessage = "NavMesh unavailable.";
 			return false;
 		}
-		directMove = false;
+
+		const bool outside = !navMeshActor || navMeshActor->IsOutsideOrNearBoundary(actor->transform.position, 0.0f);
+		if (stayOnNavMesh && outside)
+		{
+			if (!navMeshActor->FindRecoveryPoint(actor->transform.position, characterController->GetRadius(), nextPoint))
+			{
+				currentSpeed = 0.0f;
+				statusMessage = "NavMesh recovery point not found.";
+				return false;
+			}
+			recovering = true;
+		}
+		else if (!outside)
+		{
+			const float goalSearchDistance = stayOnNavMesh ? flatToTarget.Length() : 0.0f;
+			if (!navMeshActor->FindNextPoint(
+				actor->transform.position, targetPosition, nextPoint, nullptr, goalSearchDistance))
+			{
+				currentSpeed = 0.0f;
+				statusMessage = "NavMesh path not found.";
+				return false;
+			}
+		}
+		else
+		{
+			directMove = true;
+		}
 	}
 
 	// 到着判定には、AIが決めた元の目的地を使う。
-	if (flatToTarget.LengthSquared() <= stoppingDistance * stoppingDistance)
+	if (!recovering && flatToTarget.LengthSquared() <= stoppingDistance * stoppingDistance)
 	{
 		statusMessage = "Arrived.";
 		currentSpeed = 0.0f;
@@ -200,7 +239,7 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 	direction.y = 0.0f;
 
 	// 部分経路の終端では止まり、Recastが歩行不可にした領域へ直進しない。
-	if (direction.LengthSquared() <= 0.01f && !directMove)
+	if (direction.LengthSquared() <= 0.01f && !directMove && !recovering)
 	{
 		statusMessage = "NavMesh path end reached.";
 		currentSpeed = 0.0f;
@@ -215,23 +254,11 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		return false;
 	}
 	direction /= nextPointDistance;
-	currentTurnAngle = atan2f(
-		direction.Dot(actor->transform.GetRight()),
-		direction.Dot(actor->transform.GetForward()));
+	if (chargeMovement) direction = chargeDirection;
+	RotateTowards(actor, direction);
+	turning = manualUpdate && !chargeMovement && std::abs(currentTurnAngle) > turnThreshold;
 
-	if (rotateToMoveDirection && !chargeMovement && !rotationPaused)
-	{
-		const float targetYaw = atan2f(direction.x, direction.z);
-		const Quaternion targetRotation =
-			Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
-		const float rate = angularSpeed > 0.0f
-			? std::min(1.0f, RAD(angularSpeed) * Game::Time::deltaTime / std::max(fabsf(currentTurnAngle), eps))
-			: 1.0f - expf(-turnSpeed * Game::Time::deltaTime);
-		actor->transform.SetRotation(
-			Quaternion::Slerp(actor->transform.rotation, targetRotation, rate));
-	}
-
-	if (movementPaused)
+	if (movementPaused || turning)
 	{
 		currentSpeed = 0.0f;
 		statusMessage = "Turning.";
@@ -243,6 +270,26 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		speed * Game::Time::deltaTime,
 		nextPointDistance);
 	lastMoveDelta = direction * moveDistance;
+
+	// 通常歩行は歩行面内に収め、復帰中だけは最寄りの内側へ物理移動する。
+	if (!directMove && !recovering && navMeshActor)
+	{
+		const Vector3 start = actor->transform.position;
+		const Vector3 end = start + lastMoveDelta;
+
+		Vector3 resultPosition;
+
+		if (!navMeshActor->MoveAlongSurface(start, end, resultPosition))
+		{
+			currentSpeed = 0.0f;
+			lastMoveDelta = Vector3::Zero;
+			return false;
+		}
+
+		lastMoveDelta = resultPosition - start;
+		lastMoveDelta.y = 0.0f;
+	}
+
 	if (!IsFinite(lastMoveDelta))
 	{
 		statusMessage = "Movement stopped: Movement delta is invalid.";
@@ -261,7 +308,6 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		return true;
 	}
 
-	// Move first so contact callbacks run before the charge stops.
 	characterController->Move(lastMoveDelta);
 	if (chargeMovement && characterController->HitSideOnLastMove())
 	{
@@ -270,9 +316,64 @@ bool NavMeshAgent::MoveToPosition(Actor* actor, const Vector3& targetPosition)
 		return true;
 	}
 
-	statusMessage = directMove ? "Direct move." : "NavMesh move.";
+	statusMessage = directMove ? "Direct move."
+		: recovering ? "Recovering to NavMesh." : "NavMesh move.";
 
 	return false;
+}
+
+void NavMeshAgent::RotateTowards(Actor* actor, const Vector3& direction)
+{
+	const float side = direction.Dot(actor->transform.GetRight());
+	const float forward = direction.Dot(actor->transform.GetForward());
+	currentTurnAngle = atan2f(side, forward);
+
+	if (!rotateToMoveDirection || chargeMovement || rotationPaused) return;
+
+	const float targetYaw = atan2f(direction.x, direction.z);
+	const Quaternion targetRotation = Quaternion::CreateFromYawPitchRoll(targetYaw, 0.0f, 0.0f);
+	float rate;
+	if (angularSpeed > 0.0f)
+	{
+		const float turnAmount = RAD(angularSpeed) * Game::Time::deltaTime;
+		rate = std::min(1.0f, turnAmount / std::max(std::abs(currentTurnAngle), eps));
+	}
+	else
+	{
+		const float followTime = turnSpeed * Game::Time::deltaTime;
+		rate = 1.0f - expf(-followTime);
+	}
+	const Quaternion rotation = Quaternion::Slerp(actor->transform.rotation, targetRotation, rate);
+	actor->transform.SetRotation(rotation);
+
+	// 手動更新では、このフレームの旋回後の角度で歩行開始を判断する。
+	// 自動更新を利用する既存の敵の判定タイミングは変えない。
+	if (manualUpdate)
+	{
+		const float remainingSide = direction.Dot(actor->transform.GetRight());
+		const float remainingForward = direction.Dot(actor->transform.GetForward());
+		currentTurnAngle = atan2f(remainingSide, remainingForward);
+	}
+}
+
+bool NavMeshAgent::FacePosition(const Vector3& position)
+{
+	lastMoveDelta = Vector3::Zero;
+	currentSpeed = 0.0f;
+	currentTurnAngle = 0.0f;
+	turning = false;
+
+	Actor* actor = dynamic_cast<Actor*>(owner);
+	if (!actor) return false;
+
+	Vector3 direction = position - actor->transform.position;
+	direction.y = 0.0f;
+	if (direction.LengthSquared() <= eps) return true;
+	direction.Normalize();
+	RotateTowards(actor, direction);
+	turning = std::abs(currentTurnAngle) > turnThreshold;
+	statusMessage = turning ? "Turning." : "Facing target.";
+	return !turning;
 }
 
 void NavMeshAgent::DrawGUI()

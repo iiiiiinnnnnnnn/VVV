@@ -35,6 +35,7 @@ class VMDLModelComponent : public Component
 	void SetModel(std::shared_ptr<VMDLModel> model) { this->model = model; }
 	void SetAutoUpdateTransform(bool value) { autoUpdateTransform = value; }
 	void SetModelYawOffset(float radians) { modelYawOffset = radians; }
+	float GetModelYawOffset() const { return modelYawOffset; }
 	void UpdateModelTransform(const Matrix& actorTransform);
 	void PrepareMoviePreview() { SyncExternalMeshCaches(); }
 	void SyncAttachmentColliders();

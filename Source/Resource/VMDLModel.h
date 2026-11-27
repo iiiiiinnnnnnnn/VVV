@@ -79,7 +79,6 @@ class VMDLModel
 		Vector3 size = Vector3::One;
 		VmdlComponentTransform transform;
 		bool trigger = false;
-		bool navMeshObstacle = false;
 
 		template <class Archive> void serialize(Archive& archive);
 		uint64_t serialIdentity = 0;

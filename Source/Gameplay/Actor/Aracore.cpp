@@ -124,46 +124,208 @@ void Aracore::ConfigureAI()
 void Aracore::RegisterAIActions()
 {
 	// 行動名、開始、更新、後半更新、終了。判断条件は Aracore.lua に置く。
-	controller->AddAction("FreedomWait", [this] { BeginFreedomWait(); });
-	controller->AddAction("FreedomWander", [this] { BeginWander(); });
-	controller->AddAction(
-		"WanderTurn",
-		{},
-		[this] { UpdateWanderTurn(); },
-		{},
-		[this] { EndWanderTurn(); });
-	controller->AddAction("Threat", [this] { BeginThreat(); }, {}, {}, [this] { StopAIAction(); });
-	controller->AddAction(
-		"PhaseThreat",
-		[this] { BeginPhaseThreat(); },
-		[this] { UpdatePhaseThreat(); },
-		{},
-		[this] { EndPhaseThreat(); });
-	controller->AddAction(
-		"Chase",
-		[this] { BeginChase(); },
-		[this] { UpdateChase(); },
-		{},
-		[this] { StopAIAction(); });
-	controller->AddAction(
-		"TossinTurn",
-		[this] { BeginTossinTurn(); },
-		[this] { UpdateTossinTurn(); },
-		{},
-		[this] { StopAIAction(); });
-	controller->AddAction(
-		"Tossin",
-		[this] { BeginTossin(); },
-		[this] { UpdateTossin(); },
-		{},
-		[this] { StopAIAction(); });
-	controller->AddAction("Recovery", [this] { BeginRecovery(); }, {}, {}, [this] { StopAIAction(); });
-	controller->AddAction(
-		"JumpCenter",
-		[this] { BeginJump(); },
-		[this] { UpdateJump(); },
-		{},
-		[this] { EndJump(); });
+	const auto enterFreedomWait = [this]()
+	{
+		BeginFreedomWait();
+	};
+
+	const auto updateFreedomWait = []()
+	{
+	};
+
+	const auto lateFreedomWait = []()
+	{
+	};
+
+	const auto exitFreedomWait = []()
+	{
+	};
+
+	controller->AddAction("FreedomWait", enterFreedomWait, updateFreedomWait, lateFreedomWait, exitFreedomWait);
+
+	const auto enterWander = [this]()
+	{
+		BeginWander();
+	};
+
+	const auto updateWander = []()
+	{
+	};
+
+	const auto lateWander = []()
+	{
+	};
+
+	const auto exitWander = []()
+	{
+	};
+
+	controller->AddAction("FreedomWander", enterWander, updateWander, lateWander, exitWander);
+
+	const auto enterWanderTurn = []()
+	{
+	};
+
+	const auto updateWanderTurn = [this]()
+	{
+		UpdateWanderTurn();
+	};
+
+	const auto lateWanderTurn = []()
+	{
+	};
+
+	const auto exitWanderTurn = [this]()
+	{
+		EndWanderTurn();
+	};
+
+	controller->AddAction("WanderTurn", enterWanderTurn, updateWanderTurn, lateWanderTurn, exitWanderTurn);
+
+	const auto enterThreat = [this]()
+	{
+		BeginThreat();
+	};
+
+	const auto updateThreat = []()
+	{
+	};
+
+	const auto lateThreat = []()
+	{
+	};
+
+	const auto exitThreat = [this]()
+	{
+		StopAIAction();
+	};
+
+	controller->AddAction("Threat", enterThreat, updateThreat, lateThreat, exitThreat);
+
+	const auto enterPhaseThreat = [this]()
+	{
+		BeginPhaseThreat();
+	};
+
+	const auto updatePhaseThreat = [this]()
+	{
+		UpdatePhaseThreat();
+	};
+
+	const auto latePhaseThreat = []()
+	{
+	};
+
+	const auto exitPhaseThreat = [this]()
+	{
+		EndPhaseThreat();
+	};
+
+	controller->AddAction("PhaseThreat", enterPhaseThreat, updatePhaseThreat, latePhaseThreat, exitPhaseThreat);
+
+	const auto enterChase = [this]()
+	{
+		BeginChase();
+	};
+
+	const auto updateChase = [this]()
+	{
+		UpdateChase();
+	};
+
+	const auto lateChase = []()
+	{
+	};
+
+	const auto exitChase = [this]()
+	{
+		StopAIAction();
+	};
+
+	controller->AddAction("Chase", enterChase, updateChase, lateChase, exitChase);
+
+	const auto enterTossinTurn = [this]()
+	{
+		BeginTossinTurn();
+	};
+
+	const auto updateTossinTurn = [this]()
+	{
+		UpdateTossinTurn();
+	};
+
+	const auto lateTossinTurn = []()
+	{
+	};
+
+	const auto exitTossinTurn = [this]()
+	{
+		StopAIAction();
+	};
+
+	controller->AddAction("TossinTurn", enterTossinTurn, updateTossinTurn, lateTossinTurn, exitTossinTurn);
+
+	const auto enterTossin = [this]()
+	{
+		BeginTossin();
+	};
+
+	const auto updateTossin = [this]()
+	{
+		UpdateTossin();
+	};
+
+	const auto lateTossin = []()
+	{
+	};
+
+	const auto exitTossin = [this]()
+	{
+		StopAIAction();
+	};
+
+	controller->AddAction("Tossin", enterTossin, updateTossin, lateTossin, exitTossin);
+
+	const auto enterRecovery = [this]()
+	{
+		BeginRecovery();
+	};
+
+	const auto updateRecovery = []()
+	{
+	};
+
+	const auto lateRecovery = []()
+	{
+	};
+
+	const auto exitRecovery = [this]()
+	{
+		StopAIAction();
+	};
+
+	controller->AddAction("Recovery", enterRecovery, updateRecovery, lateRecovery, exitRecovery);
+
+	const auto enterJumpCenter = [this]()
+	{
+		BeginJump();
+	};
+
+	const auto updateJumpCenter = [this]()
+	{
+		UpdateJump();
+	};
+
+	const auto lateJumpCenter = []()
+	{
+	};
+
+	const auto exitJumpCenter = [this]()
+	{
+		EndJump();
+	};
+
+	controller->AddAction("JumpCenter", enterJumpCenter, updateJumpCenter, lateJumpCenter, exitJumpCenter);
 }
 
 // フレーム更新
@@ -627,6 +789,7 @@ void Aracore::SpawnDeerFromSky()
 	constexpr size_t maxBossSummonedDeer = 4; // 召喚最大数
 	for (Spawner* spawner : stageLoader->GetSpawners("Deer"))
 	{
+		if (!spawner->EqualSpawnTag("BossField")) continue;
 		if (deers.size() >= maxBossSummonedDeer) break;
 		if (std::rand() % 3 != 0) continue;
 

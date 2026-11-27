@@ -8,6 +8,7 @@
 #include "IconsFontAwesome5.h"
 #include "Application/SettingsAndDebug/PhysicsLayerManager.h"
 
+#include <extensions/PxShapeExt.h>
 #include <cmath>
 #include <limits>
 
@@ -224,18 +225,21 @@ void CharacterController::DrawGUI()
 // that should not block the player (e.g. Hair, Body). No hardcoding needed.
 struct CCShapeFilterCallback : public PxQueryFilterCallback
 {
-    CCShapeFilterCallback(Actor* owner, int ownerLayer)
-        : owner(owner), ownerLayer(ownerLayer) {}
+    CCShapeFilterCallback(Actor* owner, int ownerLayer, const Actor* targetActor = nullptr)
+        : owner(owner), ownerLayer(ownerLayer), targetActor(targetActor) {}
 
     PxQueryHitType::Enum preFilter(
         const PxFilterData& filterData, const PxShape* shape,
         const PxRigidActor* rigidActor, PxHitFlags&) override
     {
         if (rigidActor && rigidActor->userData == owner) return PxQueryHitType::eNONE;
+        if (targetActor && rigidActor && rigidActor->userData == targetActor) return PxQueryHitType::eNONE;
 		if (shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) return PxQueryHitType::eNONE;
 
         int layer = (int)shape->getSimulationFilterData().word1;
         auto* otherCollider = static_cast<PhysicsComponent*>(shape->userData);
+        if (targetActor && PhysicsComponent::IsLive(otherCollider) && otherCollider->GetOwner() == targetActor)
+            return PxQueryHitType::eNONE;
         if (CharacterController* characterController = owner->GetComponent<CharacterController>();
             characterController &&
             (characterController->IgnoresLayer(static_cast<LayerId>(layer)) ||
@@ -253,7 +257,37 @@ struct CCShapeFilterCallback : public PxQueryFilterCallback
 private:
     Actor* owner = nullptr;
     int ownerLayer = 0;
+    const Actor* targetActor = nullptr;
 };
+
+bool CharacterController::IsPathBlocked(const Vector3& destination, const Actor* targetActor) const
+{
+    if (!controller) return true;
+    Actor* actor = dynamic_cast<Actor*>(owner);
+    if (!actor) return true;
+
+    // 突進と同じ水平移動を、実際のCCTの形状・レイヤー設定で検査する。
+    // NavMeshの範囲は参照しないため、相手が範囲外でも障害物と混同しない。
+    Vector3 movement = destination - actor->transform.position;
+    movement.y = 0.0f;
+    const float distance = movement.Length();
+    if (distance <= eps) return false;
+    movement /= distance;
+
+    PxRigidDynamic* body = controller->getActor();
+    PxShape* shape = nullptr;
+    if (!body->getShapes(&shape, 1)) return true;
+    const PxGeometryHolder geometry = shape->getGeometry();
+    const PxTransform pose = PxShapeExt::getGlobalPose(*shape, *body);
+
+    CCShapeFilterCallback filter(actor, layerId, targetActor);
+    PxQueryFilterData filterData;
+    filterData.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::ePREFILTER;
+    PxSweepBuffer hit;
+    const PxVec3 direction(movement.x, movement.y, movement.z);
+    return PhysicsManager::Instance().GetSceneContext().GetScene()->sweep(
+        geometry.any(), pose, direction, distance, hit, PxHitFlag::eDEFAULT, filterData, &filter);
+}
 
 void CharacterController::Move(const Vector3& velocity)
 {

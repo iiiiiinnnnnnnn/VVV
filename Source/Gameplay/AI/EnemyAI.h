@@ -45,6 +45,7 @@ public:
 	void MoveToTarget(float speed);
 	void FaceTarget();
 	void StopMovement();
+	void RefreshMovementSensors();
 
 protected:
 	void UpdateSensors() override;

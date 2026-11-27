@@ -7,7 +7,6 @@
 #include "DetourNavMeshQuery.h"
 #include "Physics/Navigation/NavMeshBuilder.h"
 
-class ActorManager;
 class Terrain;
 struct RenderContext;
 
@@ -24,17 +23,21 @@ class NavMeshActor : public Component
 	const char* GetDebugName() const override { return ICON_FA_MAP " ナビメッシュ生成"; }
 
 	bool FindNextPoint(const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-		Vector3* reachableGoal = nullptr) const;
+		Vector3* reachableGoal = nullptr, float goalSearchDistance = 0.0f);
+
 	bool FindNearestPoint(const Vector3& position, Vector3& nearestPoint) const;
+
 	bool IsOutsideOrNearBoundary(const Vector3& position, float distance) const;
+
 	bool FindRecoveryPoint(
 		const Vector3& position, float safeDistance, Vector3& recoveryPoint) const;
+
 	bool FindRandomPoint(
 		const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const;
-	bool FindObstacleDetourPoint(
-		const Vector3& start, const Vector3& goal, Vector3& nextPoint) const;
+
+	bool MoveAlongSurface(const Vector3& start, const Vector3& end, Vector3& resultPosition) const;
+
 	bool IsCliffAlongSegment(const Vector3& start, const Vector3& goal, float maxSlope) const;
-	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
 
 	void RequestBuild(int delayFrames = 1);
 	void RequestBuildRegion(const Vector3& center, float radius, int delayFrames = 1);
@@ -98,4 +101,7 @@ class NavMeshActor : public Component
 	std::string buildDiagnostics;
 	Vector3 rebuildRegionMin = Vector3::Zero;
 	Vector3 rebuildRegionMax = Vector3::Zero;
+	static constexpr int maxPathPoints = 256;
+	float points[maxPathPoints * 3] = {};
+	int pointCount = 0;
 };

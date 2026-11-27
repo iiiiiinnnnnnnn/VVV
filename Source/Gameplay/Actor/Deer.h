@@ -25,6 +25,15 @@ public:
 	void BreakCrystalOnContact(PhysicsComponent* self, PhysicsComponent* other, const Vector3& point, const Vector3& normal);
 	void OnAwake() override;
 	void ConfigureAI();
+	void BeginWander();
+	void UpdateWander();
+	void BeginApproach();
+	void UpdateApproach();
+	void UpdateWalking(Actor* target = nullptr, bool faceOnly = false);
+	void BeginAttackPreparation();
+	void UpdateAttackPreparation();
+	void BeginCharge();
+	void UpdateCharge();
 	void StopCharge();
 	void OnDamaged(const DamageData& damageData) override;
 	void OnDead(const DamageData& damageData) override;

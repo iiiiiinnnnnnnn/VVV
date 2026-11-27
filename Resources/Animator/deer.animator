@@ -75,7 +75,7 @@
                     "transitionDuration": 0.10000000149011612
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 4,
@@ -86,9 +86,7 @@
                     "excludedFromStateIndices": [
                         2,
                         3,
-                        4,
-                        5,
-                        6
+                        4
                     ],
                     "exitTime": 1.0,
                     "hasExitTime": false,
@@ -100,46 +98,48 @@
                     "transitionDuration": 0.10000000149011612
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 4,
                             "paramName": "turnR",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
-                        6,
-                        5
+                        2,
+                        7,
+                        6
                     ],
-                    "exitTime": 1.0,
+                    "exitTime": 1,
                     "hasExitTime": false,
                     "isAny": true,
                     "priority": 0,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
+                    "sourceProgressMax": 1,
+                    "sourceProgressMin": 0,
                     "toStateIndex": 6,
                     "transitionDuration": 0.10000000149011612
                 },
                 {
-                    "canInterrupt": false,
+                    "canInterrupt": true,
                     "conditions": [
                         {
                             "mode": 4,
                             "paramName": "turnL",
-                            "threshold": 0.0
+                            "threshold": 0
                         }
                     ],
                     "excludedFromStateIndices": [
-                        6,
+                        2,
+                        7,
                         5
                     ],
-                    "exitTime": 1.0,
+                    "exitTime": 1,
                     "hasExitTime": false,
                     "isAny": true,
                     "priority": 0,
-                    "sourceProgressMax": 1.0,
-                    "sourceProgressMin": 0.0,
+                    "sourceProgressMax": 1,
+                    "sourceProgressMin": 0,
                     "toStateIndex": 5,
                     "transitionDuration": 0.10000000149011612
                 }
@@ -353,21 +353,55 @@
                     "speed": 1.0,
                     "transitions": [
                         {
+                            "canInterrupt": true,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.0010000000474974513
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnL",
+                                    "threshold": 0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnR",
+                                    "threshold": 0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1,
+                            "sourceProgressMin": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
                             "canInterrupt": false,
                             "conditions": [
                                 {
                                     "mode": 5,
                                     "paramName": "turnL",
-                                    "threshold": 0.0
+                                    "threshold": 0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnR",
+                                    "threshold": 0
                                 }
                             ],
                             "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
+                            "exitTime": 1,
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
+                            "sourceProgressMax": 1,
+                            "sourceProgressMin": 0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }
@@ -387,21 +421,55 @@
                     "speed": 1.0,
                     "transitions": [
                         {
+                            "canInterrupt": true,
+                            "conditions": [
+                                {
+                                    "mode": 0,
+                                    "paramName": "speed",
+                                    "threshold": 0.0010000000474974513
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnL",
+                                    "threshold": 0
+                                },
+                                {
+                                    "mode": 5,
+                                    "paramName": "turnR",
+                                    "threshold": 0
+                                }
+                            ],
+                            "excludedFromStateIndices": [],
+                            "exitTime": 1,
+                            "hasExitTime": false,
+                            "isAny": true,
+                            "priority": 0,
+                            "sourceProgressMax": 1,
+                            "sourceProgressMin": 0,
+                            "toStateIndex": 1,
+                            "transitionDuration": 0.10000000149011612
+                        },
+                        {
                             "canInterrupt": false,
                             "conditions": [
                                 {
                                     "mode": 5,
+                                    "paramName": "turnL",
+                                    "threshold": 0
+                                },
+                                {
+                                    "mode": 5,
                                     "paramName": "turnR",
-                                    "threshold": 0.0
+                                    "threshold": 0
                                 }
                             ],
                             "excludedFromStateIndices": [],
-                            "exitTime": 1.0,
+                            "exitTime": 1,
                             "hasExitTime": false,
                             "isAny": true,
                             "priority": 0,
-                            "sourceProgressMax": 1.0,
-                            "sourceProgressMin": 0.0,
+                            "sourceProgressMax": 1,
+                            "sourceProgressMin": 0,
                             "toStateIndex": 0,
                             "transitionDuration": 0.10000000149011612
                         }

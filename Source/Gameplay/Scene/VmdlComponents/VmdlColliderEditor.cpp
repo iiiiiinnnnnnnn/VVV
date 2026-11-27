@@ -123,9 +123,6 @@ bool VmdlColliderEditor::DrawGUI(VmdlEditorScene& scene, int nodeIndex, bool ope
 				changed = true;
 			}
 			changed |= ImGui::Checkbox("トリガー", &value.trigger);
-			changed |= ImGui::Checkbox("NavMesh障害物", &value.navMeshObstacle);
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("このコライダーの範囲を、経路探索で避ける障害物にします");
 			if (changed) scene.MarkDirty();
 			if (ImGui::Checkbox("初期状態で有効", &initialActive))
 			{
