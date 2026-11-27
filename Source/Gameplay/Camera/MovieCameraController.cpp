@@ -816,6 +816,9 @@ bool MovieCameraController::Save(const std::filesystem::path& path)
 		for (const auto& key : sequence.sounds) root["sounds"].push_back({
 			{"time", key.time}, {"path", key.path}, {"duration", key.duration},
 			{"volume", key.volume}, {"pitch", key.pitch}, {"pan", key.pan}, {"loop", key.loop}});
+		root["vibrations"] = json::array();
+		for (const auto& key : sequence.vibrations) root["vibrations"].push_back({
+			{"time", key.time}, {"duration", key.duration}, {"power", key.power}});
 		const auto requested = ResourceManager::Instance().ResolveEditPath(
 			ResourcePath::Text(path), ResourceManager::ResourceType::Movie);
 		const auto destination = ResourceManager::Instance().SaveResourceFile(requested, [&](const std::filesystem::path& destination) {
@@ -891,6 +894,8 @@ bool MovieCameraController::Load(const std::filesystem::path& path)
 			item.at("time").get<float>(), item.at("path").get<std::string>(),
 			item.at("duration").get<float>(), item.at("volume").get<float>(),
 			item.at("pitch").get<float>(), item.at("pan").get<float>(), item.at("loop").get<bool>()});
+		for (const auto& item : root.at("vibrations")) candidate.vibrations.push_back({
+			item.at("time").get<float>(), item.at("duration").get<float>(), item.at("power").get<float>()});
 		ValidateMovieSequence(candidate);
 		Game::PostProcess effectSettings;
 		for (auto& key : candidate.effects)
@@ -966,6 +971,7 @@ void MovieCameraController::SelectKey(int track, int index)
 	case 6: select(sequence.particles); break;
 	case 7: select(sequence.timeScales); break;
 	case 8: select(sequence.sounds); break;
+	case 9: select(sequence.vibrations); break;
 	}
 }
 
@@ -1023,6 +1029,12 @@ void MovieCameraController::RegisterKey()
 		key.scale = std::clamp(Game::Time::scale, 0.01f, 10.0f);
 		store(sequence.timeScales, key);
 	}
+	else if (selectedTrack == 8)
+	{
+		VibrationKey key = vibrationDraft;
+		if (selectedKey >= 0 && selectedKey < static_cast<int>(sequence.vibrations.size())) key = sequence.vibrations[selectedKey];
+		store(sequence.vibrations, key);
+	}
 	else
 	{
 		SoundKey key = soundDraft;
@@ -1052,6 +1064,7 @@ void MovieCameraController::DeleteKey()
 	case 6: erase(sequence.particles, false); break;
 	case 7: erase(sequence.timeScales, false); break;
 	case 8: erase(sequence.sounds, false); break;
+	case 9: erase(sequence.vibrations, false); break;
 	}
 	if (erased) { selectedKey = -1; dirty = true; Seek(cursor); }
 }
@@ -1080,8 +1093,8 @@ void MovieCameraController::DrawTimeline()
 		draw->AddText({x - ImGui::CalcTextSize(text).x * 0.5f,begin.y + 3}, IM_COL32(180,190,205,255), text);
 		draw->AddLine({x,begin.y + rulerHeight}, {x,begin.y + rulerHeight + rowHeight * 10}, IM_COL32(50,55,65,255));
 	}
-	const char* labels[] = { "Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds" };
-	for (int track = 0; track < 9; ++track)
+	const char* labels[] = {"Camera", "Player / Position", "Boss / Position", "Player / Motion", "Boss / Motion", "Post Effects", "Particles", "Time Scale", "Sounds", "Vibrations"};
+	for (int track = 0; track < 10; ++track)
 	{
 		const float y = begin.y + rulerHeight + rowHeight * track;
 		if (selectedTrack == track) draw->AddRectFilled({begin.x,y}, {begin.x + width,y + rowHeight}, IM_COL32(40,58,78,150));
@@ -1212,6 +1225,7 @@ void MovieCameraController::DrawKeyList()
 	case 6: list(sequence.particles); break;
 	case 7: list(sequence.timeScales); break;
 	case 8: list(sequence.sounds); break;
+	case 9: list(sequence.vibrations); break;
 	}
 }
 
@@ -1339,6 +1353,11 @@ void MovieCameraController::DrawInspector()
 			}
 			soundDraft = key;
 			ImGui::TextWrapped("再生中にキーを通過すると発音します。シーク中は発音せず、再生時間の終了で停止します。スローは発音時刻に適用し、音のピッチはこの設定を使います。");
+		}
+		else if constexpr (std::is_same_v<Key, VibrationKey>)
+		{
+			changed |= ImGuiToolKit::DragDelayFloat("振動時間 (秒)", &key.duration, 0.05f, 0.01f, 3600.0f);
+			changed |= ImGuiToolKit::DragSpeedFloat("強さ", &key.power, 0.01f, 0.0f, 1.0f);
 		}
 		else if constexpr (std::is_same_v<Key, EffectKey>)
 		{

@@ -82,6 +82,12 @@ public:
 		float pan = 0.0f;
 		bool loop = false;
 	};
+	struct VibrationKey
+	{
+		float time = 0.0f;
+		float duration = 0.3f;
+		float power = 1.0f;
+	};
 	struct Sequence
 	{
 		float duration = 5.0f;
@@ -97,6 +103,7 @@ public:
 		std::vector<ParticleKey> particles;
 		std::vector<TimeScaleKey> timeScales;
 		std::vector<SoundKey> sounds;
+		std::vector<VibrationKey> vibrations;
 	};
 
 	MovieCameraController(Object* owner);
@@ -180,6 +187,7 @@ private:
 	std::vector<std::string> soundPaths;
 	std::string soundSearch;
 	bool soundPathsLoaded = false;
+	VibrationKey vibrationDraft;
 	ParticleKey particleDraft;
 	std::vector<ParticlePlayback> particlePlaybacks;
 	std::vector<std::string> particlePaths;
