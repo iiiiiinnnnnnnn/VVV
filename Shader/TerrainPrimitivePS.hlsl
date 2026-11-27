@@ -19,7 +19,7 @@ cbuffer CbTerrainLayer : register(b4)
     int terrain_layer_count;
     int terrain_brush_preview_mode;
     int terrain_brush_flags;
-    int terrain_layer_padding;
+    int terrain_nav_mesh_mask_initialized;
     float4 terrain_brush_area;
     float4 terrain_brush_params;
 };
@@ -631,11 +631,12 @@ float4 main(VS_OUT pin) : SV_TARGET
         float influence = 0.0f;
         if (terrain_brush_preview_mode == 4 || terrain_brush_preview_mode == 5)
         {
-            float coverage = terrain_brush_preview_mode == 4 ? data.b : data.a;
+            float coverage = terrain_brush_preview_mode == 4 ? data.b
+                : (terrain_nav_mesh_mask_initialized != 0 ? data.a : 1.0f);
             float3 previewColor = coverage >= 0.5f
                 ? float3(0.10f, 0.95f, 0.22f)
                 : float3(0.85f, 0.12f, 0.08f);
-            color = lerp(color, previewColor, 0.15f);
+            color = lerp(color, previewColor, 0.55f);
         }
 
         if (terrain_brush_area.w > 0.0f && terrain_brush_area.z > 0.0f)

@@ -59,6 +59,7 @@ public:
 	float GetHeightByUV(float u, float v) const;
 	float GetSurfaceHeightByUV(float u, float v, bool navigationBase = false) const;
 	float GetNavigationHeightByUV(float u, float v) const;
+	void GetNavigationHeightRange(float& minHeight, float& maxHeight) const;
 	float GetNavMeshMaskByUV(float u, float v) const;
 	void SetNavMeshMaskByUV(float u, float v, float value);
 	bool HasNavMeshMask() const { return navMeshMaskInitialized; }
@@ -239,7 +240,7 @@ private:
 		int layerCount = 0;
 		int brushPreviewMode = 0;
 		int brushFlags = 0;
-		int padding = 0;
+		int navMeshMaskInitialized = 0;
 		Vector4 brushArea = {};
 		Vector4 brushParams = {};
 	};

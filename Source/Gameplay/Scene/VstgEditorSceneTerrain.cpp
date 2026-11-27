@@ -604,7 +604,15 @@ bool VstgEditorScene::ScreenToTerrainUV(float& u, float& v) const
 void VstgEditorScene::UpdateTerrainBrush()
 {
 	terrainBrushPreview = {};
-	if (!terrain || !use_brush) return;
+	if (!terrain) return;
+
+	// マスクの表示はブラシ操作から独立させる。フォーカスがなくても確認できる。
+	if (brushMode == BrushMode::NavMeshPaint)
+	{
+		terrainBrushPreview.terrain = terrain;
+		terrainBrushPreview.mode = static_cast<int>(brushMode) + 1;
+	}
+	if (!use_brush) return;
 
 	auto& io = ImGui::GetIO();
 	if (!InputKit::InputSystem::IsFocusedWindow() || io.KeyAlt) return;

@@ -1,26 +1,22 @@
+#include "Core/Foundation/Random.h"
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <ProfileKit/ProfileKit.h>
 #include "Physics/Navigation/NavMeshActor.h"
 
 #include "Gameplay/Actor/Actor.h"
-#include "Gameplay/Actor/ActorManager.h"
 #include "Rendering/Core/Graphics.h"
-#include "Physics/Navigation/NavMeshObstacle.h"
-#include "Physics/Collider/VMDLColliderComponent.h"
 #include "Rendering/Renderer/PrimitiveRenderer.h"
 #include "Rendering/Core/RenderContext.h"
 #include "Rendering/Component/Terrain.h"
 #include "Core/Foundation/Json.h"
 
 #include "DetourAlloc.h"
-#include "DetourNavMeshBuilder.h"
+#include "Physics/Navigation/NavMeshBuilder.h"
 #include "DetourStatus.h"
 
 #include <cmath>
-#include <cstdlib>
-#include <memory>
-#include "Recast.h"
+#include <format>
 
 NavMeshActor* NavMeshActor::active = nullptr;
 
@@ -64,6 +60,7 @@ void NavMeshActor::Release()
 void NavMeshActor::Update()
 {
 	PROFILE_FUNCTION();
+
 	if (!buildRequested && !regionBuildRequested) return;
 
 	if (buildDelayFrames > 0)
@@ -117,7 +114,7 @@ void NavMeshActor::RequestBuildRegion(const Vector3& center, float radius, int d
 std::string NavMeshActor::SaveSettingsJson() const
 {
 	json root;
-	root["generationVersion"] = 3;
+	root["generationVersion"] = 5;
 	root["simplifyFlatAreas"] = simplifyFlatAreas;
 	root["simplifyHeightError"] = simplifyHeightError;
 	root["simplifyMaxCells"] = simplifyMaxCells;
@@ -135,6 +132,7 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 		simplifyFlatAreas = root.at("simplifyFlatAreas").get<bool>();
 		simplifyHeightError = std::clamp(root.at("simplifyHeightError").get<float>(), 0.0f, 1.0f);
 		simplifyMaxCells = std::clamp(root.at("simplifyMaxCells").get<int>(), 1, CellsPerTile);
+
 		navMinY = root.at("navMinY").get<float>();
 		navMaxY = root.at("navMaxY").get<float>();
 		if (navMinY > navMaxY) std::swap(navMinY, navMaxY);
@@ -146,36 +144,6 @@ bool NavMeshActor::LoadSettingsJson(const std::string& text)
 	{
 		statusMessage = "ナビメッシュ設定の読み込みに失敗しました（JSONが不正です）";
 		return false;
-	}
-}
-
-void NavMeshActor::CollectObstacles(std::vector<ObstacleBounds>& obstacles) const
-{
-	ActorManager* actorManager = ActorManager::GetActive();
-	if (!actorManager) return;
-
-	for (Actor* other : actorManager->GetActors())
-	{
-		if (!other || other->IsPendingDestroy()) continue;
-
-		NavMeshObstacle* obstacle = other->GetComponent<NavMeshObstacle>();
-		if (!obstacle) continue;
-
-		// VMDLでは、指定されたコライダーを個別の障害物として扱う。
-		bool hasVmdlObstacles = false;
-		for (auto* collider : other->GetComponents<VMDLColliderComponent>())
-		{
-			if (!collider->IsNavMeshObstacle()) continue;
-			hasVmdlObstacles = true;
-			ObstacleBounds bounds;
-			if (collider->GetBounds(bounds.center, bounds.size)) obstacles.push_back(bounds);
-		}
-		if (hasVmdlObstacles) continue;
-
-		ObstacleBounds bounds;
-		if (!obstacle->GetBounds(bounds.center, bounds.size)) continue;
-
-		obstacles.push_back(bounds);
 	}
 }
 
@@ -193,6 +161,11 @@ void NavMeshActor::Build()
 		return;
 	}
 
+	// 旧実装のnavMaxYは頂点の上限ではなかったため、実データ全体を含める。
+	terrain->GetNavigationHeightRange(buildMinY, buildMaxY);
+	buildMinY = std::min(navMinY, std::floor(buildMinY / 0.25f) * 0.25f - 0.25f);
+	buildMaxY = std::max(navMaxY, std::ceil(buildMaxY / 0.25f) * 0.25f + 0.25f);
+
 	const int grid = std::max(terrain->GetHeightMapWidth(), 2);
 	const float terrainSize = terrain->GetTerrainSize();
 	const float cellSize = terrainSize / static_cast<float>(grid);
@@ -202,7 +175,7 @@ void NavMeshActor::Build()
 
 	dtNavMeshParams params = {};
 	params.orig[0] = -halfTerrainSize;
-	params.orig[1] = navMinY;
+	params.orig[1] = buildMinY;
 	params.orig[2] = -halfTerrainSize;
 	params.tileWidth = cellSize * CellsPerTile;
 	params.tileHeight = cellSize * CellsPerTile;
@@ -224,16 +197,13 @@ void NavMeshActor::Build()
 	}
 
 	navTiles.resize(static_cast<size_t>(tileCountX) * tileCountZ);
-	std::vector<ObstacleBounds> obstacles;
-	CollectObstacles(obstacles);
 	for (int tileZ = 0; tileZ < tileCountZ; ++tileZ)
 	{
 		for (int tileX = 0; tileX < tileCountX; ++tileX)
 		{
-			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
+			if (!BuildTile(tileX, tileZ, *terrain))
 			{
 				Release();
-				statusMessage = "ナビメッシュタイルの生成に失敗しました";
 				return;
 			}
 		}
@@ -260,172 +230,93 @@ void NavMeshActor::Build()
 		std::to_string(tileCountX * tileCountZ);
 }
 
-bool NavMeshActor::BuildTile(int tileX, int tileZ, Terrain& terrain,
-	const std::vector<ObstacleBounds>& obstacles)
+bool NavMeshActor::BuildTile(int tileX, int tileZ, Terrain& terrain)
 {
 	PROFILE_FUNCTION();
 	const int grid = terrain.GetHeightMapWidth();
 	const float size = terrain.GetTerrainSize();
 	const float halfSize = size * 0.5f;
+	NavMeshBuilder::BuildSettings settings;
+	settings.cellSize = size / grid;
+	settings.cellHeight = 0.05f;
+	settings.maxEdgeLength = simplifyFlatAreas ? simplifyMaxCells : 1;
+	settings.contourMaxError = 0.0f;
+	settings.detailSampleDistance = std::max(0.9f, settings.cellSize * 6.0f);
+	settings.detailMaxError = simplifyFlatAreas ? simplifyHeightError : 0.0f;
 
-	// 隣接タイルの領域も含めて生成し、Recastに境界の接続を任せる。
-	rcConfig config{};
-	config.cs = size / grid;
-	config.ch = std::max(0.05f, (navMaxY - navMinY) / (RC_SPAN_MAX_HEIGHT - 1));
-	config.walkableSlopeAngle = agentMaxSlope;
-	config.walkableHeight = std::max(3, static_cast<int>(std::ceil(agentHeight / config.ch)));
-	config.walkableClimb = static_cast<int>(std::floor(agentMaxClimb / config.ch));
-	config.walkableRadius = static_cast<int>(std::ceil(agentRadius / config.cs));
-	config.tileSize = CellsPerTile;
-	config.borderSize = config.walkableRadius + 3;
-	config.width = config.tileSize + config.borderSize * 2;
-	config.height = config.width;
-	config.maxEdgeLen = simplifyFlatAreas ? simplifyMaxCells : 1;
-	config.maxSimplificationError = simplifyFlatAreas ? contourMaxError : 0.0f;
-	config.maxVertsPerPoly = DT_VERTS_PER_POLYGON;
-	config.detailSampleDist = config.cs;
-	config.detailSampleMaxError = simplifyFlatAreas ? simplifyHeightError : 0.0f;
-	config.bmin[0] = (tileX * CellsPerTile - config.borderSize) * config.cs - halfSize;
-	config.bmin[1] = navMinY;
-	config.bmin[2] = (tileZ * CellsPerTile - config.borderSize) * config.cs - halfSize;
-	config.bmax[0] = config.bmin[0] + config.width * config.cs;
-	config.bmax[1] = navMaxY;
-	config.bmax[2] = config.bmin[2] + config.height * config.cs;
+	NavMeshBuilder::Tile buildTile;
+	buildTile.origin = {-halfSize, 0.0f, -halfSize};
+	buildTile.x = tileX;
+	buildTile.z = tileZ;
+	buildTile.cellCount = CellsPerTile;
+	buildTile.minY = buildMinY;
+	buildTile.maxY = buildMaxY;
+	const int border = NavMeshBuilder::GetBorderSize();
+	const int minX = std::max(tileX * CellsPerTile - border, 0);
+	const int minZ = std::max(tileZ * CellsPerTile - border, 0);
+	const int maxX = std::min((tileX + 1) * CellsPerTile + border, grid);
+	const int maxZ = std::min((tileZ + 1) * CellsPerTile + border, grid);
 
-	// 高さと範囲マスクをRecastの入力三角形へ変換する。
-	const int minX = std::max(tileX * CellsPerTile - config.borderSize, 0);
-	const int minZ = std::max(tileZ * CellsPerTile - config.borderSize, 0);
-	const int maxX = std::min((tileX + 1) * CellsPerTile + config.borderSize, grid);
-	const int maxZ = std::min((tileZ + 1) * CellsPerTile + config.borderSize, grid);
-	const int columns = maxX - minX + 1;
-	std::vector<float> vertices;
-	std::vector<int> triangles;
-	std::vector<unsigned char> masks;
-	vertices.reserve(static_cast<size_t>(columns) * (maxZ - minZ + 1) * 3);
+	// 描画と同じ補間と変形前の高さを使い、以前と同じ入力値を用意する。
+	std::vector<float> heights;
+	std::vector<uint8_t> masks;
+	heights.reserve(static_cast<size_t>(maxX - minX + 1) * (maxZ - minZ + 1));
+	masks.reserve(static_cast<size_t>(maxX - minX) * (maxZ - minZ));
 	for (int z = minZ; z <= maxZ; ++z)
 	{
 		for (int x = minX; x <= maxX; ++x)
 		{
 			const float u = static_cast<float>(x) / grid;
 			const float v = static_cast<float>(z) / grid;
-			vertices.push_back((u - 0.5f) * size);
-			vertices.push_back(terrain.GetSurfaceHeightByUV(u, v, true));
-			vertices.push_back((v - 0.5f) * size);
+			heights.push_back(terrain.GetSurfaceHeightByUV(u, v, true));
 		}
 	}
 	for (int z = minZ; z < maxZ; ++z)
-	{
 		for (int x = minX; x < maxX; ++x)
-		{
-			const int i = (z - minZ) * columns + x - minX;
-			triangles.insert(triangles.end(), {i, i + columns, i + 1,
-				i + 1, i + columns, i + columns + 1});
-			const bool painted = terrain.GetNavMeshMaskByUV(
-				(x + 0.5f) / grid, (z + 0.5f) / grid) >= 0.5f;
-			masks.push_back(painted);
-			masks.push_back(painted);
-		}
-	}
+			masks.push_back(terrain.GetNavMeshMaskByUV((x + 0.5f) / grid, (z + 0.5f) / grid) >= 0.5f);
 
-	rcContext context;
-	std::unique_ptr<rcHeightfield, decltype(&rcFreeHeightField)> field(rcAllocHeightfield(), rcFreeHeightField);
-	std::unique_ptr<rcCompactHeightfield, decltype(&rcFreeCompactHeightfield)> compact(
-		rcAllocCompactHeightfield(), rcFreeCompactHeightfield);
-	std::unique_ptr<rcContourSet, decltype(&rcFreeContourSet)> contours(rcAllocContourSet(), rcFreeContourSet);
-	std::unique_ptr<rcPolyMesh, decltype(&rcFreePolyMesh)> mesh(rcAllocPolyMesh(), rcFreePolyMesh);
-	std::unique_ptr<rcPolyMeshDetail, decltype(&rcFreePolyMeshDetail)> detail(rcAllocPolyMeshDetail(), rcFreePolyMeshDetail);
-	if (!field || !compact || !contours || !mesh || !detail) return false;
+	NavMeshBuilder::HeightMap input;
+	input.heights = heights;
+	input.walkableMask = masks;
+	input.width = maxX - minX + 1;
+	input.height = maxZ - minZ + 1;
+	input.originX = (static_cast<float>(minX) / grid - 0.5f) * size;
+	input.originZ = (static_cast<float>(minZ) / grid - 0.5f) * size;
+	input.spacingX = settings.cellSize;
+	input.spacingZ = settings.cellSize;
 
-	const int triangleCount = static_cast<int>(triangles.size() / 3);
-	const int vertexCount = static_cast<int>(vertices.size() / 3);
-	std::vector<unsigned char> areas(triangleCount, RC_NULL_AREA);
-	rcMarkWalkableTriangles(&context, config.walkableSlopeAngle,
-		vertices.data(), vertexCount, triangles.data(), triangleCount, areas.data());
-	for (int i = 0; i < triangleCount; ++i)
-		if (!masks[i]) areas[i] = RC_NULL_AREA;
-
-	if (!rcCreateHeightfield(&context, *field, config.width, config.height,
-		config.bmin, config.bmax, config.cs, config.ch)) return false;
-	if (!rcRasterizeTriangles(&context, vertices.data(), vertexCount, triangles.data(),
-		areas.data(), triangleCount, *field, config.walkableClimb)) return false;
-
-	// 段差・崖・頭上の空間はRecastの標準フィルターで判定する。
-	rcFilterLedgeSpans(&context, config.walkableHeight, config.walkableClimb, *field);
-	rcFilterWalkableLowHeightSpans(&context, config.walkableHeight, *field);
-	if (!rcBuildCompactHeightfield(&context, config.walkableHeight, config.walkableClimb,
-		*field, *compact)) return false;
-	field.reset();
-
-	// コライダーの範囲を歩行不可にし、その後でキャラクター半径分を縮小する。
-	for (const ObstacleBounds& obstacle : obstacles)
+	NavMeshBuilder::TileData result;
+	if (!NavMeshBuilder::BuildTile(input, settings, buildTile, result))
 	{
-		const Vector3 half = obstacle.size * 0.5f;
-		const float boundsMin[] = {obstacle.center.x - half.x,
-			obstacle.center.y - half.y - agentHeight, obstacle.center.z - half.z};
-		const float boundsMax[] = {obstacle.center.x + half.x,
-			obstacle.center.y + half.y, obstacle.center.z + half.z};
-		rcMarkBoxArea(&context, boundsMin, boundsMax, RC_NULL_AREA, *compact);
-	}
-	if (!rcErodeWalkableArea(&context, config.walkableRadius, *compact)) return false;
-	if (!rcBuildDistanceField(&context, *compact)) return false;
-	if (!rcBuildRegions(&context, *compact, config.borderSize,
-		config.minRegionArea, config.mergeRegionArea)) return false;
-	if (!rcBuildContours(&context, *compact, config.maxSimplificationError,
-		config.maxEdgeLen, *contours)) return false;
-	if (!rcBuildPolyMesh(&context, *contours, config.maxVertsPerPoly, *mesh)) return false;
-	if (mesh->npolys && !rcBuildPolyMeshDetail(&context, *mesh, *compact,
-		config.detailSampleDist, config.detailSampleMaxError, *detail)) return false;
-
-	// ポリゴンの隣接情報とタイルポータルはRecastの生成結果をそのまま渡す。
-	for (int i = 0; i < mesh->npolys; ++i)
-	{
-		mesh->areas[i] = 0;
-		mesh->flags[i] = 1;
-	}
-	dtNavMeshCreateParams params{};
-	params.verts = mesh->verts;
-	params.vertCount = mesh->nverts;
-	params.polys = mesh->polys;
-	params.polyFlags = mesh->flags;
-	params.polyAreas = mesh->areas;
-	params.polyCount = mesh->npolys;
-	params.nvp = mesh->nvp;
-	params.detailMeshes = detail->meshes;
-	params.detailVerts = detail->verts;
-	params.detailVertsCount = detail->nverts;
-	params.detailTris = detail->tris;
-	params.detailTriCount = detail->ntris;
-	params.tileX = tileX;
-	params.tileY = tileZ;
-	rcVcopy(params.bmin, mesh->bmin);
-	rcVcopy(params.bmax, mesh->bmax);
-	params.walkableHeight = agentHeight;
-	params.walkableRadius = agentRadius;
-	params.walkableClimb = agentMaxClimb;
-	params.cs = config.cs;
-	params.ch = config.ch;
-	params.buildBvTree = true;
-
-	unsigned char* data = nullptr;
-	int dataSize = 0;
-	if (mesh->npolys && !dtCreateNavMeshData(&params, &data, &dataSize)) return false;
-
-	NavTile& tile = navTiles[tileZ * tileCountX + tileX];
-	if (tile.reference)
-	{
-		if (dtStatusFailed(navMesh->removeTile(tile.reference, nullptr, nullptr)))
-		{
-			dtFree(data);
-			return false;
-		}
-		tile.reference = 0;
-	}
-	if (!data) return true;
-	if (dtStatusFailed(navMesh->addTile(data, dataSize, DT_TILE_FREE_DATA, 0, &tile.reference)))
-	{
-		dtFree(data);
+		statusMessage = std::format("NavMesh tile ({}, {}) failed: {} (mask={}, compact={}, polygons={})",
+			tileX, tileZ, result.stats.stage, result.stats.maskedCells, result.stats.compactCells, result.stats.polygons);
+		OutputDebugStringA((statusMessage + "\n").c_str());
 		return false;
 	}
+
+	NavTile& tile = navTiles[tileZ * tileCountX + tileX];
+	tile.stats = result.stats;
+	tile.inputWalkableCells = 0;
+	for (int z = tileZ * CellsPerTile; z < std::min((tileZ + 1) * CellsPerTile, grid); ++z)
+		for (int x = tileX * CellsPerTile; x < std::min((tileX + 1) * CellsPerTile, grid); ++x)
+			if (masks[static_cast<size_t>(z - minZ) * (input.width - 1) + x - minX]) ++tile.inputWalkableCells;
+	if (tile.reference)
+	{
+		if (dtStatusFailed(navMesh->removeTile(tile.reference, nullptr, nullptr))) return false;
+		tile.reference = 0;
+	}
+	if (!result.data) return true;
+	const dtStatus addStatus = navMesh->addTile(result.data.get(), result.size, DT_TILE_FREE_DATA, 0, &tile.reference);
+	if (dtStatusFailed(addStatus))
+	{
+		statusMessage = std::format("Detour addTile ({}, {}) failed: 0x{:08X}, polygons={}",
+			tileX, tileZ, addStatus, result.stats.polygons);
+		OutputDebugStringA((statusMessage + "\n").c_str());
+		return false;
+	}
+
+	// 登録に成功したデータだけ、Detourへ所有権を移す。
+	result.data.release();
 	return true;
 }
 
@@ -445,12 +336,21 @@ void NavMeshActor::RebuildRegion()
 		return;
 	}
 
+	float minimumHeight, maximumHeight;
+	terrain->GetNavigationHeightRange(minimumHeight, maximumHeight);
+	if (minimumHeight <= buildMinY || maximumHeight >= buildMaxY)
+	{
+		Build();
+		return;
+	}
+
 	const int grid = std::max(terrain->GetHeightMapWidth(), 2);
 	const float terrainSize = terrain->GetTerrainSize();
 	const float halfTerrainSize = terrainSize * 0.5f;
 	const float tileSize = terrainSize / static_cast<float>(grid) * CellsPerTile;
-	const float rebuildMargin = std::ceil(agentRadius / (terrainSize / grid)) *
-		(terrainSize / grid) + 3.0f * terrainSize / grid;
+	NavMeshBuilder::BuildSettings settings;
+	settings.cellSize = terrainSize / grid;
+	const float rebuildMargin = NavMeshBuilder::GetBorderSize() * settings.cellSize;
 	const int minTileX = std::clamp(static_cast<int>(floorf(
 		(rebuildRegionMin.x - rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountX - 1);
 	const int minTileZ = std::clamp(static_cast<int>(floorf(
@@ -460,16 +360,13 @@ void NavMeshActor::RebuildRegion()
 	const int maxTileZ = std::clamp(static_cast<int>(floorf(
 		(rebuildRegionMax.z + rebuildMargin + halfTerrainSize) / tileSize)), 0, tileCountZ - 1);
 
-	std::vector<ObstacleBounds> obstacles;
-	CollectObstacles(obstacles);
 	int rebuiltTileCount = 0;
 	for (int tileZ = minTileZ; tileZ <= maxTileZ; ++tileZ)
 	{
 		for (int tileX = minTileX; tileX <= maxTileX; ++tileX)
 		{
-			if (!BuildTile(tileX, tileZ, *terrain, obstacles))
+			if (!BuildTile(tileX, tileZ, *terrain))
 			{
-				statusMessage = "NavMeshタイルの局所再生成に失敗しました";
 				return;
 			}
 			++rebuiltTileCount;
@@ -485,29 +382,71 @@ void NavMeshActor::RefreshDebugCells()
 {
 	debugCells.clear();
 	if (!navMesh) return;
+	NavMeshBuilder::BuildStats totals;
+	int inputCells = 0;
+	for (const NavTile& tile : navTiles)
+	{
+		inputCells += tile.inputWalkableCells;
+		totals.inputTriangles += tile.stats.inputTriangles;
+		totals.walkableTriangles += tile.stats.walkableTriangles;
+		totals.upwardTriangles += tile.stats.upwardTriangles;
+		totals.rasterizedCells += tile.stats.rasterizedCells;
+		totals.maskedCells += tile.stats.maskedCells;
+		totals.compactCells += tile.stats.compactCells;
+		totals.distanceFieldCells += tile.stats.distanceFieldCells;
+		totals.regionCells += tile.stats.regionCells;
+		totals.contourCells += tile.stats.contourCells;
+		totals.meshCells += tile.stats.meshCells;
+		totals.contours += tile.stats.contours;
+		totals.polygons += tile.stats.polygons;
+		totals.detailTriangles += tile.stats.detailTriangles;
+	}
+	int registeredPolygons = 0;
+	int externalLinks = 0;
+	int populatedTiles = 0;
 	const dtNavMesh& mesh = *navMesh;
 	for (int tileIndex = 0; tileIndex < mesh.getMaxTiles(); ++tileIndex)
 	{
 		const dtMeshTile* tile = mesh.getTile(tileIndex);
 		if (!tile || !tile->header) continue;
+		++populatedTiles;
+		registeredPolygons += tile->header->polyCount;
 		for (int i = 0; i < tile->header->polyCount; ++i)
 		{
 			const dtPoly& polygon = tile->polys[i];
+			for (unsigned int link = polygon.firstLink; link != DT_NULL_LINK; link = tile->links[link].next)
+				if (tile->links[link].side != 0xff) ++externalLinks;
 			if (!(polygon.flags & 1) || polygon.getType() != DT_POLYTYPE_GROUND) continue;
-			for (int vertex = 1; vertex + 1 < polygon.vertCount; ++vertex)
+			// Detourの詳細三角形を表示し、経路が参照する地表の高さと揃える。
+			const dtPolyDetail& detail = tile->detailMeshes[i];
+			for (int triangle = 0; triangle < detail.triCount; ++triangle)
 			{
 				DebugCell cell;
 				cell.walkable = true;
-				const int indices[] = {0, vertex, vertex + 1};
+				const unsigned char* indices = &tile->detailTris[(detail.triBase + triangle) * 4];
 				for (int corner = 0; corner < 3; ++corner)
 				{
-					const float* position = &tile->verts[polygon.verts[indices[corner]] * 3];
+					const int vertex = indices[corner];
+					const float* position = vertex < polygon.vertCount
+						? &tile->verts[polygon.verts[vertex] * 3]
+						: &tile->detailVerts[(detail.vertBase + vertex - polygon.vertCount) * 3];
 					cell.corners[corner] = Vector3(position[0], position[1], position[2]);
 				}
 				debugCells.push_back(cell);
 			}
 		}
 	}
+	buildDiagnostics = std::format(
+		"[NavMesh] input mask cells={}\n"
+		"triangles: input={}, walkable={}, upward={}\n"
+		"cells: raster={} -> mask={} -> compact={} -> distance={} -> regions={} -> contours={} -> mesh={}\n"
+		"contours={}, polygons: Recast={} / Detour={}, tiles={}, external links={}\n"
+		"mask cell delta={}; height bounds=[{}, {}]; slope/ledge/headroom/radius/AABB filters=OFF\n",
+		inputCells, totals.inputTriangles, totals.walkableTriangles, totals.upwardTriangles,
+		totals.rasterizedCells, totals.maskedCells, totals.compactCells, totals.distanceFieldCells,
+		totals.regionCells, totals.contourCells, totals.meshCells, totals.contours,
+		totals.polygons, registeredPolygons, populatedTiles, externalLinks, inputCells - totals.maskedCells, buildMinY, buildMaxY);
+	OutputDebugStringA(buildDiagnostics.c_str());
 }
 
 bool NavMeshActor::FindNextPoint(
@@ -739,6 +678,7 @@ bool NavMeshActor::FindRandomPoint(
 	return false;
 }
 
+// 突進の停止条件。NavMeshの塗装範囲とは分け、指定角度の上り坂だけを調べる。
 bool NavMeshActor::IsCliffAlongSegment(
 	const Vector3& start, const Vector3& goal, float maxSlope) const
 {
@@ -775,117 +715,37 @@ bool NavMeshActor::IsCliffAlongSegment(
 	return false;
 }
 
-bool NavMeshActor::IsDirectPathBlocked(
-	const Vector3& start, const Vector3& goal, float radius, float height) const
+bool NavMeshActor::IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const
 {
+	if (!built || !navQuery) return true;
 
-	std::vector<ObstacleBounds> obstacles;
-	CollectObstacles(obstacles);
+	dtQueryFilter filter;
+	filter.setIncludeFlags(1);
+	const float extents[] = {nearestPolyExtent, 20.0f, nearestPolyExtent};
+	const Vector3 navigationStart = ProjectTerrainPosition(start, true);
+	const Vector3 navigationGoal = ProjectTerrainPosition(goal, true);
+	const float origin[] = {navigationStart.x, navigationStart.y, navigationStart.z};
+	const float end[] = {navigationGoal.x, navigationGoal.y, navigationGoal.z};
+	float nearestStart[3] = {};
+	dtPolyRef startRef = 0;
+	if (dtStatusFailed(navQuery->findNearestPoly(origin, extents, &filter,
+		&startRef, nearestStart)) || !startRef) return true;
+	if (Vector2(nearestStart[0] - start.x, nearestStart[2] - start.z).LengthSquared() > 0.0001f)
+		return true;
 
-	const Vector3 delta = goal - start;
-	for (const ObstacleBounds& obstacle : obstacles)
-	{
-		const float lowestFoot = std::min(start.y, goal.y);
-		const float highestHead = std::max(start.y, goal.y) + height;
-		if (height > 0.0f && (highestHead <= obstacle.center.y - obstacle.size.y * 0.5f ||
-			lowestFoot >= obstacle.center.y + obstacle.size.y * 0.5f)) continue;
-		const Vector3 halfSize = obstacle.size * 0.5f + Vector3(radius, 0.0f, radius);
-		const float minX = obstacle.center.x - halfSize.x;
-		const float maxX = obstacle.center.x + halfSize.x;
-		const float minZ = obstacle.center.z - halfSize.z;
-		const float maxZ = obstacle.center.z + halfSize.z;
-
-		float enter = 0.0f;
-		float exit = 1.0f;
-		auto clipAxis = [&enter, &exit](
-							float origin, float direction, float minValue, float maxValue) {
-			if (fabsf(direction) <= eps) return origin >= minValue && origin <= maxValue;
-
-			float first = (minValue - origin) / direction;
-			float second = (maxValue - origin) / direction;
-			if (first > second) std::swap(first, second);
-			enter = std::max(enter, first);
-			exit = std::min(exit, second);
-			return enter <= exit;
-		};
-
-		if (clipAxis(start.x, delta.x, minX, maxX) && clipAxis(start.z, delta.z, minZ, maxZ))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	// Aマスクで定義された歩行範囲の境界をDetourで調べる。
+	float hit = 0.0f;
+	float normal[3] = {};
+	if (dtStatusFailed(navQuery->raycast(startRef, nearestStart, end, &filter,
+		&hit, normal, nullptr, nullptr, 0))) return true;
+	return hit < 1.0f;
 }
 
 bool NavMeshActor::FindObstacleDetourPoint(
-	const Vector3& start, const Vector3& goal, Vector3& nextPoint, float radius, float height) const
+	const Vector3& start, const Vector3& goal, Vector3& nextPoint) const
 {
-	std::vector<ObstacleBounds> obstacles;
-	CollectObstacles(obstacles);
-
-	auto intersects = [radius, height](const Vector3& from, const Vector3& to, const ObstacleBounds& obstacle) {
-		if (height > 0.0f && (std::max(from.y, to.y) + height <= obstacle.center.y - obstacle.size.y * 0.5f ||
-			std::min(from.y, to.y) >= obstacle.center.y + obstacle.size.y * 0.5f)) return false;
-		const Vector3 halfSize = obstacle.size * 0.5f + Vector3(radius, 0.0f, radius);
-		const Vector3 delta = to - from;
-		float enter = 0.0f;
-		float exit = 1.0f;
-		auto clipAxis = [&enter, &exit](
-							float origin, float direction, float minValue, float maxValue) {
-			if (fabsf(direction) <= eps) return origin >= minValue && origin <= maxValue;
-			float first = (minValue - origin) / direction;
-			float second = (maxValue - origin) / direction;
-			if (first > second) std::swap(first, second);
-			enter = std::max(enter, first);
-			exit = std::min(exit, second);
-			return enter <= exit;
-		};
-
-		return clipAxis(from.x, delta.x, obstacle.center.x - halfSize.x,
-				   obstacle.center.x + halfSize.x) &&
-			   clipAxis(
-				   from.z, delta.z, obstacle.center.z - halfSize.z, obstacle.center.z + halfSize.z);
-	};
-
-	float bestDistance = FLT_MAX;
-	bool found = false;
-	const float clearance = std::max(radius, 0.1f);
-	for (const ObstacleBounds& obstacle : obstacles)
-	{
-		if (!intersects(start, goal, obstacle)) continue;
-		const Vector3 halfSize = obstacle.size * 0.5f;
-		const Vector3 candidates[] = {Vector3(obstacle.center.x - halfSize.x - clearance, start.y,
-										  obstacle.center.z - halfSize.z - clearance),
-			Vector3(obstacle.center.x + halfSize.x + clearance, start.y,
-				obstacle.center.z - halfSize.z - clearance),
-			Vector3(obstacle.center.x - halfSize.x - clearance, start.y,
-				obstacle.center.z + halfSize.z + clearance),
-			Vector3(obstacle.center.x + halfSize.x + clearance, start.y,
-				obstacle.center.z + halfSize.z + clearance)};
-
-		for (const Vector3& candidate : candidates)
-		{
-
-			bool blocked = false;
-			for (const ObstacleBounds& other : obstacles)
-			{
-				if (!intersects(start, candidate, other)) continue;
-				blocked = true;
-				break;
-			}
-			if (blocked) continue;
-
-			const float distance =
-				Vector3::Distance(start, candidate) + Vector3::Distance(candidate, goal);
-			if (distance >= bestDistance) continue;
-			bestDistance = distance;
-			nextPoint = candidate;
-			found = true;
-		}
-	}
-
-	return found;
+	if (!IsDirectPathBlocked(start, goal)) return false;
+	return FindNextPoint(start, goal, nextPoint);
 }
 
 void NavMeshActor::Render(const RenderContext& rc)
@@ -899,20 +759,25 @@ void NavMeshActor::Render(const RenderContext& rc)
 	if (!renderer) return;
 
 	const Color walkableColor(0.0f, 0.75f, 1.0f, 0.30f);
+	const Matrix world = owner->GetTransform()->GetMatrix();
+	const Vector3 offset(0.0f, 0.03f, 0.0f);
 	const Color blockedColor(1.0f, 0.15f, 0.05f, 0.65f);
 
 	for (int index = 0; index < static_cast<int>(debugCells.size()); ++index)
 	{
 		const DebugCell& cell = debugCells[index];
 		const Color color = cell.walkable ? (preview ? Color(0.1f, 0.8f, 1.0f, 0.8f) : walkableColor) : blockedColor;
+		const Vector3 a = Vector3::Transform(cell.corners[0] + offset, world);
+		const Vector3 b = Vector3::Transform(cell.corners[1] + offset, world);
+		const Vector3 c = Vector3::Transform(cell.corners[2] + offset, world);
 		if (cell.walkable && !preview)
 		{
-			renderer->DrawTriangle(cell.corners[0], cell.corners[1], cell.corners[2], color);
+			renderer->DrawTriangle(a, b, c, color);
 			continue;
 		}
-		renderer->DrawLine(cell.corners[0], cell.corners[1], color, color);
-		renderer->DrawLine(cell.corners[1], cell.corners[2], color, color);
-		renderer->DrawLine(cell.corners[2], cell.corners[0], color, color);
+		renderer->DrawLine(a, b, color, color);
+		renderer->DrawLine(b, c, color, color);
+		renderer->DrawLine(c, a, color, color);
 	}
 
 }
@@ -926,17 +791,33 @@ void NavMeshActor::DrawGUI()
 	bool simplifyChanged = ImGui::Checkbox("平面のポリゴンを削減", &simplifyFlatAreas);
 	if (simplifyFlatAreas)
 	{
-		simplifyChanged |= ImGui::DragFloat("高さの許容誤差", &simplifyHeightError,
+		simplifyChanged |= ImGui::DragFloat("詳細メッシュの高さ誤差", &simplifyHeightError,
 			0.001f, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		simplifyChanged |= ImGui::DragInt("統合する最大幅（画素）", &simplifyMaxCells,
+		simplifyChanged |= ImGui::DragInt("輪郭辺の最大長（セル）", &simplifyMaxCells,
 			1.0f, 1, CellsPerTile, "%d", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::TextDisabled("誤差・最大幅を大きくすると削減量が増えます");
 	}
 	if (simplifyChanged) RequestBuild();
-	ImGui::Text("生成ポリゴン数：%zu", debugCells.size());
+	int polygonCount = 0;
+	if (navMesh)
+	{
+		const dtNavMesh& mesh = *navMesh;
+		for (int i = 0; i < mesh.getMaxTiles(); ++i)
+		{
+			const dtMeshTile* tile = mesh.getTile(i);
+			if (tile && tile->header) polygonCount += tile->header->polyCount;
+		}
+	}
+	ImGui::Text("生成ポリゴン数：%d", polygonCount);
+
+	if (ImGui::TreeNode("生成診断"))
+	{
+		ImGui::TextUnformatted(buildDiagnostics.c_str());
+		ImGui::TreePop();
+	}
 
 	// 生成状態と手動再生成
 	ImGui::Text("%s", statusMessage.c_str());
 
-	if (ImGui::Button("ナビメッシュを再生成")) buildRequested = true;
+	if (ImGui::Button("ナビメッシュを再生成")) RequestBuild();
 }

@@ -151,6 +151,10 @@
     <ClCompile Include="Source\Rendering\Renderer\ModelRenderer.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshAgent.cpp" />
     <ClCompile Include="Source\Physics\Navigation\NavMeshActor.cpp" />
+    <ClCompile Include="Source\Physics\Navigation\NavMeshBuilder.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\GamePostProcess.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Stage01.cpp" />
     <ClCompile Include="Source\Gameplay\Stage\Stage.cpp" />
@@ -297,6 +301,7 @@
     <ClInclude Include="Source\Rendering\Renderer\ModelRenderer.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshAgent.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshActor.h" />
+    <ClInclude Include="Source\Physics\Navigation\NavMeshBuilder.h" />
     <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h" />
     <ClInclude Include="Source\Rendering\Shader\GamePostProcess.h" />
     <ClInclude Include="Source\Gameplay\Stage\Stage.h" />

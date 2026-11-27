@@ -5,6 +5,7 @@
 #include "Core/Object/Component.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
+#include "Physics/Navigation/NavMeshBuilder.h"
 
 class ActorManager;
 class Terrain;
@@ -31,11 +32,9 @@ class NavMeshActor : public Component
 	bool FindRandomPoint(
 		const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const;
 	bool FindObstacleDetourPoint(
-		const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-		float radius = 0.0f, float height = 0.0f) const;
+		const Vector3& start, const Vector3& goal, Vector3& nextPoint) const;
 	bool IsCliffAlongSegment(const Vector3& start, const Vector3& goal, float maxSlope) const;
-	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal,
-		float radius = 0.0f, float height = 0.0f) const;
+	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
 
 	void RequestBuild(int delayFrames = 1);
 	void RequestBuildRegion(const Vector3& center, float radius, int delayFrames = 1);
@@ -45,12 +44,6 @@ class NavMeshActor : public Component
 	static NavMeshActor* GetActive() { return active; }
 
   private:
-	struct ObstacleBounds
-	{
-		Vector3 center = Vector3::Zero;
-		Vector3 size = Vector3::Zero;
-	};
-
 	struct DebugCell
 	{
 		Vector3 corners[3] = {};
@@ -64,18 +57,15 @@ class NavMeshActor : public Component
 	struct NavTile
 	{
 		dtTileRef reference = 0;
-		std::vector<DebugCell> debugCells;
+		NavMeshBuilder::BuildStats stats;
+		int inputWalkableCells = 0;
 	};
 
 	void Build();
-	bool BuildTile(
-		int tileX,
-		int tileZ,
-		Terrain& terrain);
+	bool BuildTile(int tileX, int tileZ, Terrain& terrain);
 	void RebuildRegion();
 	void RefreshDebugCells();
 	void Release();
-	void CollectObstacles(std::vector<ObstacleBounds>& obstacles) const;
 	Vector3 ProjectTerrainPosition(const Vector3& position, bool navigationBase) const;
 
 	static NavMeshActor* active;
@@ -98,6 +88,9 @@ class NavMeshActor : public Component
 	std::string statusMessage;
 	std::vector<DebugCell> debugCells;
 	std::vector<NavTile> navTiles;
+	float buildMinY = -100.0f;
+	float buildMaxY = 100.0f;
+	std::string buildDiagnostics;
 	Vector3 rebuildRegionMin = Vector3::Zero;
 	Vector3 rebuildRegionMax = Vector3::Zero;
 };

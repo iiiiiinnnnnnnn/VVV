@@ -522,6 +522,7 @@ void Terrain::Render(const RenderContext& rc)
 	tesselationConstantBuffer->Update(dc, &tesselation_constant);
 
 	CbTerrainLayer cbTerrainLayer{};
+	cbTerrainLayer.navMeshMaskInitialized = navMeshMaskInitialized;
 	cbTerrainLayer.layerCount = std::max(static_cast<int>(terrainLayers.size()), 1);
 	const auto* preview = rc.renderSettings.terrainBrushPreview;
 	if (preview && preview->terrain != this) preview = nullptr;
@@ -1151,6 +1152,27 @@ float Terrain::GetNavigationHeightByUV(float u, float v) const
 	const int x = std::clamp(static_cast<int>(floorf(u * TerrainTextureWidth)), 0, TerrainTextureWidth - 1);
 	const int y = std::clamp(static_cast<int>(floorf(v * TerrainTextureHeight)), 0, TerrainTextureHeight - 1);
 	return navigationBaseHeights[static_cast<size_t>(y) * TerrainTextureWidth + x] * tesselation_constant.height_scaler;
+}
+
+void Terrain::GetNavigationHeightRange(float& minHeight, float& maxHeight) const
+{
+	minHeight = FLT_MAX;
+	maxHeight = -FLT_MAX;
+	const auto include = [&](float height)
+	{
+		height *= tesselation_constant.height_scaler;
+		minHeight = std::min(minHeight, height);
+		maxHeight = std::max(maxHeight, height);
+	};
+	if (navigationBaseHeights.empty())
+	{
+		for (const Vector4& pixel : terrainPixels) include(pixel.x);
+	}
+	else
+	{
+		for (float height : navigationBaseHeights) include(height);
+	}
+	if (minHeight == FLT_MAX) minHeight = maxHeight = 0.0f;
 }
 
 float Terrain::GetNavMeshMaskByUV(float u, float v) const

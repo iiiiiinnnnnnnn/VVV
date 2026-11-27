@@ -456,6 +456,9 @@
     <ClCompile Include="Source\Physics\Navigation\NavMeshActor.cpp">
       <Filter>Source\Physics\Navigation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Physics\Navigation\NavMeshBuilder.cpp">
+      <Filter>Source\Physics\Navigation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Rendering\Shader\GamePostProcess.cpp">
       <Filter>Source\Rendering\Shader</Filter>
     </ClCompile>
@@ -942,6 +945,9 @@
       <Filter>Source\Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\Navigation\NavMeshActor.h">
+      <Filter>Source\Physics\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Navigation\NavMeshBuilder.h">
       <Filter>Source\Physics\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\Navigation\NavMeshObstacle.h">
