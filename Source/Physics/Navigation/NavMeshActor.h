@@ -31,11 +31,9 @@ class NavMeshActor : public Component
 	bool FindRandomPoint(
 		const Vector3& center, float minDistance, float maxDistance, Vector3& randomPoint) const;
 	bool FindObstacleDetourPoint(
-		const Vector3& start, const Vector3& goal, Vector3& nextPoint,
-		float radius = 0.0f, float height = 0.0f) const;
+		const Vector3& start, const Vector3& goal, Vector3& nextPoint) const;
 	bool IsCliffAlongSegment(const Vector3& start, const Vector3& goal, float maxSlope) const;
-	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal,
-		float radius = 0.0f, float height = 0.0f) const;
+	bool IsDirectPathBlocked(const Vector3& start, const Vector3& goal) const;
 
 	void RequestBuild(int delayFrames = 1);
 	void RequestBuildRegion(const Vector3& center, float radius, int delayFrames = 1);
@@ -64,14 +62,11 @@ class NavMeshActor : public Component
 	struct NavTile
 	{
 		dtTileRef reference = 0;
-		std::vector<DebugCell> debugCells;
 	};
 
 	void Build();
-	bool BuildTile(
-		int tileX,
-		int tileZ,
-		Terrain& terrain);
+	bool BuildTile(int tileX, int tileZ, Terrain& terrain,
+		const std::vector<ObstacleBounds>& obstacles);
 	void RebuildRegion();
 	void RefreshDebugCells();
 	void Release();
@@ -93,11 +88,17 @@ class NavMeshActor : public Component
 	float simplifyHeightError = 0.02f;
 	int simplifyMaxCells = 8;
 	static constexpr float nearestPolyExtent = 8.0f;
+	float agentHeight = 2.0f;
+	float agentRadius = 0.4f;
+	float agentMaxClimb = 0.3f;
+	float agentMaxSlope = 45.0f;
+	float contourMaxError = 1.3f;
 	float navMinY = -100.0f;
 	float navMaxY = 100.0f;
 	std::string statusMessage;
 	std::vector<DebugCell> debugCells;
 	std::vector<NavTile> navTiles;
+	std::vector<ObstacleBounds> previousObstacles;
 	Vector3 rebuildRegionMin = Vector3::Zero;
 	Vector3 rebuildRegionMax = Vector3::Zero;
 };
