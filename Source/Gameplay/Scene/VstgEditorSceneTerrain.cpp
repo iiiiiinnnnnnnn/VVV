@@ -18,11 +18,9 @@
 void VstgEditorScene::ApplyBrush(float u, float v, float heightSign)
 {
 	const TerrainBrush* brush = GetCurrentBrush();
-	if (brush == nullptr || brush_size <= 0)
-	{
-		return;
-	}
+	if (!brush || brush_size <= 0) return;
 
+	// ブラシの中心と半径から、地形テクスチャ内の描画範囲を求める。
 	const int centerX = std::clamp(static_cast<int>(u * Terrain::TerrainTextureWidth), 0, Terrain::TerrainTextureWidth - 1);
 	const int centerY = std::clamp(static_cast<int>(v * Terrain::TerrainTextureHeight), 0, Terrain::TerrainTextureHeight - 1);
 	const int radius = brush_size;
@@ -33,11 +31,7 @@ void VstgEditorScene::ApplyBrush(float u, float v, float heightSign)
 	const int y1 = std::min(centerY + radius, Terrain::TerrainTextureHeight - 1);
 	const float brushDiameter = static_cast<float>(radius * 2);
 
-	if (brushDiameter <= 0.0f)
-	{
-		return;
-	}
-
+	// ブラシ画像のマスクを使い、選択モードのチャンネルへ書き込む。
 	for (int y = y0; y <= y1; ++y)
 	{
 		for (int x = x0; x <= x1; ++x)
@@ -54,10 +48,7 @@ void VstgEditorScene::ApplyBrush(float u, float v, float heightSign)
 				mask = 1.0f - mask;
 			}
 
-			if (mask <= 0.0001f)
-			{
-				continue;
-			}
+			if (mask <= 0.0001f) continue;
 
 			Vector4& pixel = terrain->terrainPixels[
 				static_cast<size_t>(y) * Terrain::TerrainTextureWidth +
@@ -104,6 +95,8 @@ void VstgEditorScene::ApplyBrush(float u, float v, float heightSign)
 
 	terrain->terrainEditHashDirty = true;
 	dirty = true;
+
+	// 高さ変更はメッシュ、通行範囲の変更はナビメッシュへ反映する。
 	const bool heightChanged = brushMode == BrushMode::RaiseLower || brushMode == BrushMode::SetHeight;
 	if (heightChanged)
 	{
@@ -131,7 +124,6 @@ bool VstgEditorScene::AddBrushTexture(const std::string& filename)
 
 	const std::filesystem::path filepath =
 		ResourcePath::Path(filename).lexically_normal();
-
 
 	const std::string normalizedPath = ResourcePath::Text(filepath);
 
@@ -191,7 +183,7 @@ bool VstgEditorScene::AddBrushTexture(const std::string& filename)
 	}
 
 	const DirectX::Image* image = workingImage->GetImage(0, 0, 0);
-	if (image == nullptr)
+	if (!image)
 	{
 		terrainEditorMessage = "Brush image data is empty: " + normalizedPath;
 		return false;
@@ -267,10 +259,7 @@ bool VstgEditorScene::SetBrushTexture(int index)
 
 const VstgEditorScene::TerrainBrush* VstgEditorScene::GetCurrentBrush() const
 {
-	if (currentBrushIndex < 0 || currentBrushIndex >= static_cast<int>(brushes.size()))
-	{
-		return nullptr;
-	}
+	if (currentBrushIndex < 0 || currentBrushIndex >= static_cast<int>(brushes.size())) return nullptr;
 
 	return &brushes[currentBrushIndex];
 }
@@ -279,16 +268,11 @@ float VstgEditorScene::SampleBrushMask(float u, float v) const
 {
 	const TerrainBrush* brush = GetCurrentBrush();
 
-	if (brush == nullptr || brush->mask.empty() || brush->width <= 0 || brush->height <= 0)
-	{
-		return 0.0f;
-	}
+	if (!brush) return 0.0f;
 
-	if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f)
-	{
-		return 0.0f;
-	}
+	if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f) return 0.0f;
 
+	// ブラシ画像の隣接4画素を補間し、拡大時の輪郭を滑らかにする。
 	const float sourceX = u * static_cast<float>(brush->width - 1);
 	const float sourceY = v * static_cast<float>(brush->height - 1);
 
@@ -320,10 +304,7 @@ float VstgEditorScene::SampleBrushMask(float u, float v) const
 
 float VstgEditorScene::GetTerrainLayerValue(int layerIndex) const
 {
-	if (terrain->terrainLayers.size() <= 1)
-	{
-		return 0.0f;
-	}
+	if (terrain->terrainLayers.size() <= 1) return 0.0f;
 
 	const int clampedIndex = std::clamp(
 		layerIndex,
@@ -533,16 +514,13 @@ void VstgEditorScene::DrawTerrainGUI()
 
 void VstgEditorScene::DrawBrushGUI()
 {
-	if (!ImGui::TreeNode(ICON_FA_IMAGE " ブラシテクスチャ"))
-	{
-		return;
-	}
+	if (!ImGui::TreeNode(ICON_FA_IMAGE " ブラシテクスチャ")) return;
 
 	if (ImGui::Button(ICON_FA_SYNC_ALT " 再読み込み##TerrainBrushes")) RefreshTerrainAssets();
 
 	const TerrainBrush* currentBrush = GetCurrentBrush();
 	ImGui::Text("選択中: %s",
-		currentBrush != nullptr ? currentBrush->name.c_str() : "なし");
+		currentBrush ? currentBrush->name.c_str() : "なし");
 
 	// ブラシテクスチャのサムネイル一覧
 	{
@@ -616,6 +594,7 @@ bool VstgEditorScene::ScreenToTerrainUV(float& u, float& v) const
 {
 	Vector3 point;
 	if (!terrain || !currentStage || !ScreenToTerrainPoint(ImGui::GetMousePos(), point)) return false;
+
 	const Vector3 local = Vector3::Transform(point, currentStage->GetTransform()->GetMatrix().Invert());
 	u = local.x / terrain->GetTerrainSize() + 0.5f;
 	v = local.z / terrain->GetTerrainSize() + 0.5f;
@@ -626,6 +605,7 @@ void VstgEditorScene::UpdateTerrainBrush()
 {
 	terrainBrushPreview = {};
 	if (!terrain || !use_brush) return;
+
 	auto& io = ImGui::GetIO();
 	if (!InputKit::InputSystem::IsFocusedWindow() || io.KeyAlt) return;
 	if (!io.WantTextInput)
@@ -636,6 +616,8 @@ void VstgEditorScene::UpdateTerrainBrush()
 	}
 	const TerrainBrush* brush = GetCurrentBrush();
 	if (!brush) return;
+
+	// 描画側へブラシの種類、マスクと強さを渡す。
 	terrainBrushPreview.terrain = terrain;
 	terrainBrushPreview.mode = static_cast<int>(brushMode) + 1;
 	terrainBrushPreview.flags = (invertBrushMask ? 1 : 0) |
@@ -646,6 +628,8 @@ void VstgEditorScene::UpdateTerrainBrush()
 	float u = 0.0f;
 	float v = 0.0f;
 	if (!brushViewportInputAllowed || !ScreenToTerrainUV(u, v)) return;
+
+	// プレビューと実際の書き込み位置を、同じテクセル中心へ揃える。
 	const int width = terrain->GetHeightMapWidth();
 	const int height = terrain->GetHeightMapHeight();
 	const int x = std::clamp(static_cast<int>(u * width), 0, width - 1);
@@ -678,6 +662,8 @@ void VstgEditorScene::RefreshTerrainAssets()
 		std::sort(paths.begin(), paths.end());
 		return paths;
 	};
+
+	// 再読み込み前の選択パスを控え、同じブラシを選び直す。
 	const std::string selectedBrush = GetCurrentBrush() ? GetCurrentBrush()->filepath : "";
 	brushes.clear();
 	currentBrushIndex = -1;
@@ -686,6 +672,8 @@ void VstgEditorScene::RefreshTerrainAssets()
 		if (AddBrushTexture(ResourcePath::Text(path)) && brushes.back().filepath == selectedBrush)
 			currentBrushIndex = static_cast<int>(brushes.size()) - 1;
 	}
+
+	// 通常画像と対応する法線画像を組にしてパレットへ登録する。
 	terrainLayerImages.clear();
 	for (const auto& path : listPng(ResourceManager::ResourceType::TerrainLayer))
 	{
@@ -736,7 +724,12 @@ void VstgEditorScene::DrawTerrainLayerGUI()
 		int activeIndex = -1;
 		for (int j = 0; j < terrain->GetTerrainLayerCount(); ++j)
 			if (key == ResourceManager::ShortResourcePath(terrain->terrainLayers[j].baseColorPath,
-				ResourceManager::ResourceType::TerrainLayer)) { activeIndex = j; break; }
+				ResourceManager::ResourceType::TerrainLayer))
+			{
+				activeIndex = j;
+				break;
+			}
+
 		ImGui::PushID(static_cast<int>(i));
 		const bool selected = activeIndex >= 0 && activeIndex == currentTerrainLayerIndex;
 		if (selected)
@@ -754,6 +747,8 @@ void VstgEditorScene::DrawTerrainLayerGUI()
 				if (terrain->AddTerrainLayer(layer.baseColorPath, layer.normalPath))
 				{
 					const int newCount = terrain->GetTerrainLayerCount();
+
+					// レイヤー追加後も既存のペイントが同じ番号を指すよう値を換算する。
 					const float scale = static_cast<float>(std::max(oldCount - 1, 0)) / std::max(newCount - 1, 1);
 					for (auto& pixel : terrain->terrainPixels) pixel.y *= scale;
 					terrain->terrainTextureDirty = true;

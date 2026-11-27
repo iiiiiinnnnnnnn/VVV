@@ -41,9 +41,7 @@ void Terrain::AddDecal(const std::string& path, const Transform& transform, floa
 {
 	if (terrainDecals.size() >= MaxTerrainDecals)
 		terrainDecals.erase(terrainDecals.begin());
-	if (path.empty() || !std::isfinite(opacity) || !std::isfinite(transform.position.x) ||
-		!std::isfinite(transform.position.z) || !std::isfinite(transform.scale.x) ||
-		!std::isfinite(transform.scale.z) || std::abs(transform.scale.x) < 0.0001f ||
+	if (path.empty() || std::abs(transform.scale.x) < 0.0001f ||
 		std::abs(transform.scale.z) < 0.0001f)
 		throw std::invalid_argument("Invalid terrain decal parameters.");
 
@@ -59,6 +57,7 @@ void Terrain::BindDecals(ID3D11DeviceContext* dc)
 	for (const auto& decal : terrainDecals)
 	{
 		if (!decal.texture || decal.opacity <= 0.0f) continue;
+
 		// 真上からの投影。高さやX/Z回転に依存させず、Y回転だけを使用する。
 		const Vector3 forward = decal.transform.GetForward();
 		const float yaw = std::atan2(forward.x, forward.z);
@@ -236,6 +235,7 @@ void Terrain::BuildTerrainMesh(
 			1),
 		1);
 
+	// 指定されたUV範囲を、描画と同じ分割数のグリッドへ揃える。
 	const int minGridX = std::clamp(static_cast<int>(std::floor(minX * meshSegments)), 0, meshSegments - 1);
 	const int maxGridX = std::clamp(static_cast<int>(std::ceil(maxX * meshSegments)), minGridX + 1, meshSegments);
 	const int minGridZ = std::clamp(static_cast<int>(std::floor(minZ * meshSegments)), 0, meshSegments - 1);
@@ -294,6 +294,7 @@ void Terrain::BuildTerrainMesh(
 		vertex.normal = Vector3::Zero;
 	}
 
+	// 各三角形の法線を頂点へ加算し、隣接面の向きを平均する。
 	for (size_t i = 0; i + 2 < indices.size(); i += 3)
 	{
 		TerrainVertex& v0 = vertices[indices[i + 0]];
@@ -363,10 +364,7 @@ void Terrain::CreateTerrainTexture(ID3D11Device* device)
 
 void Terrain::UploadTerrainTexture(ID3D11DeviceContext* dc)
 {
-	if (!terrainTextureDirty)
-	{
-		return;
-	}
+	if (!terrainTextureDirty) return;
 
 	Texture::Update(dc, terrainTexture.Get(), terrainPixels.data(), static_cast<UINT>(sizeof(Vector4) * TerrainTextureWidth));
 
@@ -618,7 +616,6 @@ void Terrain::Render(const RenderContext& rc)
 	Gpu::ConstantBuffer::UnbindPS(dc, 5);
 	Gpu::ConstantBuffer::UnbindPS(dc, 7);
 
-
 	Gpu::PixelShader::UnbindShaderResources(dc, 0);
 	Gpu::PixelShader::UnbindShaderResources(dc, 1);
 	Gpu::PixelShader::UnbindShaderResources(dc, 8, ShadowMapData::CascadeCount);
@@ -717,16 +714,10 @@ void Terrain::RenderShadowMap(
 	Gpu::VertexShader::UnbindInputLayout(dc);
 }
 
-
-
-
-
-
-
-
 bool Terrain::AddTerrainLayer(const std::string& baseColorPath, const std::string& normalPath)
 {
 	if (baseColorPath.empty()) return false;
+
 	auto& resources = ResourceManager::Instance();
 	const auto type = ResourceManager::ResourceType::TerrainLayer;
 	const std::string basePath = ResourceManager::PortableResourcePath(resources.ResolveEditPath(baseColorPath, type));
@@ -855,6 +846,7 @@ bool Terrain::SaveTerrainMemory(std::vector<uint8_t>& bytes) const
 	image.pixels = reinterpret_cast<uint8_t*>(const_cast<Vector4*>(terrainPixels.data()));
 	DirectX::Blob blob;
 	if (FAILED(DirectX::SaveToDDSMemory(image, DirectX::DDS_FLAGS_NONE, blob))) return false;
+
 	const auto* begin = static_cast<const uint8_t*>(blob.GetBufferPointer());
 	bytes.assign(begin, begin + blob.GetBufferSize());
 	return true;
@@ -923,6 +915,7 @@ std::string Terrain::SaveSettingsJson() const
 bool Terrain::LoadSettingsJson(const std::string& text)
 {
 	if (text.empty()) return true;
+
 	const auto loadColor = [](const json& value, const Color& fallback)
 	{
 		if (!value.is_array() || value.size() < 4) return fallback;
@@ -1040,7 +1033,7 @@ bool Terrain::LoadTerrainImage(const DirectX::TexMetadata& sourceMetadata, const
 	}
 
 	const DirectX::Image* image = workingImage->GetImage(0, 0, 0);
-	if (image == nullptr)
+	if (!image)
 	{
 		terrainIoMessage = "Terrain load failed: image data is empty.";
 		return false;
@@ -1117,9 +1110,6 @@ void Terrain::BakeCollider()
 	pendingColliderRebuild = false;
 }
 
-
-
-
 void Terrain::ApplyDistanceFogSettings(RenderSettings& settings) const
 {
 	settings.distanceFogEnabled = distanceFogEnabled;
@@ -1131,10 +1121,7 @@ void Terrain::ApplyDistanceFogSettings(RenderSettings& settings) const
 
 float Terrain::GetHeightByUV(float u, float v) const
 {
-	if (terrainPixels.empty())
-	{
-		return 0.0f;
-	}
+	if (terrainPixels.empty()) return 0.0f;
 
 	u = std::clamp(u, 0.0f, 1.0f);
 	v = std::clamp(v, 0.0f, 1.0f);
@@ -1158,7 +1145,9 @@ float Terrain::GetHeightByUV(float u, float v) const
 
 float Terrain::GetNavigationHeightByUV(float u, float v) const
 {
+	// 保存済みの変形前の高さを優先し、ナビメッシュの基準面を維持する。
 	if (navigationBaseHeights.empty()) return GetHeightByUV(u, v);
+
 	const int x = std::clamp(static_cast<int>(floorf(u * TerrainTextureWidth)), 0, TerrainTextureWidth - 1);
 	const int y = std::clamp(static_cast<int>(floorf(v * TerrainTextureHeight)), 0, TerrainTextureHeight - 1);
 	return navigationBaseHeights[static_cast<size_t>(y) * TerrainTextureWidth + x] * tesselation_constant.height_scaler;
@@ -1168,6 +1157,7 @@ float Terrain::GetNavMeshMaskByUV(float u, float v) const
 {
 	if (terrainPixels.empty() || u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f) return 0.0f;
 	if (!navMeshMaskInitialized) return 1.0f;
+
 	const int x = std::min(static_cast<int>(u * TerrainTextureWidth), TerrainTextureWidth - 1);
 	const int y = std::min(static_cast<int>(v * TerrainTextureHeight), TerrainTextureHeight - 1);
 	return std::clamp(terrainPixels[static_cast<size_t>(y) * TerrainTextureWidth + x].w, 0.0f, 1.0f);
@@ -1176,6 +1166,7 @@ float Terrain::GetNavMeshMaskByUV(float u, float v) const
 void Terrain::SetNavMeshMaskByUV(float u, float v, float value)
 {
 	if (terrainPixels.empty()) return;
+
 	const int x = std::clamp(static_cast<int>(u * TerrainTextureWidth), 0, TerrainTextureWidth - 1);
 	const int y = std::clamp(static_cast<int>(v * TerrainTextureHeight), 0, TerrainTextureHeight - 1);
 	terrainPixels[static_cast<size_t>(y) * TerrainTextureWidth + x].w = std::clamp(value, 0.0f, 1.0f);
@@ -1272,10 +1263,7 @@ Vector3 Terrain::GetSurfaceNormalByUV(float u, float v, bool navigationBase) con
 		normal = (position01 - position10).Cross(position11 - position10);
 	}
 
-	if (normal.LengthSquared() <= eps)
-	{
-		return Vector3::UnitY;
-	}
+	if (normal.LengthSquared() <= eps) return Vector3::UnitY;
 
 	normal.Normalize();
 	return normal;
@@ -1302,6 +1290,7 @@ float Terrain::GetGrassMaskByUV(float u, float v) const
 int Terrain::GetSurfaceLayerIndex(const Vector3& worldPosition) const
 {
 	if (terrainPixels.empty() || terrainLayers.empty()) return -1;
+
 	const Transform* transform = owner ? owner->GetComponent<Transform>() : nullptr;
 	if (!transform) return -1;
 
@@ -1341,6 +1330,7 @@ std::string Terrain::GetSurfaceLayerName(const Vector3& worldPosition) const
 void Terrain::PlayGrassRemovalEffect(const Vector3& worldPosition)
 {
 	if (grassRemovalEffectCooldown.GetRemaining() > 0.0f) return;
+
 	auto& effects = EffectManager::Instance();
 	if (!grassRemovalEffect) grassRemovalEffect = effects.LoadEffect("feather");
 	effects.PlayDetached(grassRemovalEffect, 
@@ -1352,10 +1342,12 @@ void Terrain::PlayGrassRemovalEffect(const Vector3& worldPosition)
 bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius, LayerId sourceLayer)
 {
 	if (!PhysicsLayerManager::Instance().Collides(sourceLayer, Layers::Get("GrassMap"))) return false;
-	if (terrainPixels.empty() || worldRadius <= 0.0f || !std::isfinite(worldRadius) ||
-		!std::isfinite(worldCenter.x) || !std::isfinite(worldCenter.y) || !std::isfinite(worldCenter.z)) return false;
+	if (terrainPixels.empty() || worldRadius <= 0.0f) return false;
+
 	const Transform* transform = owner ? owner->GetTransform() : nullptr;
 	if (!transform) return false;
+
+	// 球の範囲を地形座標へ移し、調べる草マップの領域を絞る。
 	const Matrix& world = transform->GetMatrix();
 	const Matrix inverse = world.Invert();
 	const Vector3 center = Vector3::Transform(worldCenter, inverse);
@@ -1371,6 +1363,8 @@ bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius,
 	const int x1 = std::min(texel(center.x + radiusX, TerrainTextureWidth) + 1, TerrainTextureWidth - 1);
 	const int z0 = std::max(texel(center.z - radiusZ, TerrainTextureHeight) - 1, 0);
 	const int z1 = std::min(texel(center.z + radiusZ, TerrainTextureHeight) + 1, TerrainTextureHeight - 1);
+
+	// 草の根元から先端までの線分と球の距離で、削除対象を判定する。
 	Vector3 removedPosition = Vector3::Zero;
 	int removedCount = 0;
 	const float grassHeight = grassSettings.height * (1.0f + grassSettings.sizeVariation);
@@ -1383,6 +1377,7 @@ bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius,
 		{
 			Vector4& pixel = terrainPixels[static_cast<size_t>(z) * TerrainTextureWidth + x];
 			if (pixel.z < 0.5f) continue;
+
 			const float u = (static_cast<float>(x) + 0.5f) / TerrainTextureWidth;
 			const float v = (static_cast<float>(z) + 0.5f) / TerrainTextureHeight;
 			const Vector3 localRoot((u - 0.5f) * terrainSize, GetSurfaceHeightByUV(u, v), (v - 0.5f) * terrainSize);
@@ -1395,10 +1390,13 @@ bool Terrain::RemoveGrassInSphere(const Vector3& worldCenter, float worldRadius,
 			++removedCount;
 		}
 	}
+
+	// 削除した位置の平均にエフェクトを出し、草のマスクを更新する。
 	if (!removedCount) return false;
 	terrainTextureDirty = true;
 	terrainEditHashDirty = true;
 	is_terrain_texture_clear_color = false;
+
 	// 既存の草頂点はGPU側のマスクで消すため再生成しない。
 	PlayGrassRemovalEffect(removedPosition / static_cast<float>(removedCount));
 	return true;
@@ -1440,6 +1438,7 @@ void Terrain::Deform(
 		power,
 		terrainSize / static_cast<float>(TerrainTextureWidth),
 		meshSpacing * 2.0f});
+
 	// へこみの縁に草が残らないように少し広く消す
 	const float grassRemovalMargin = std::max(grassSettings.height, 0.5f);
 	const float grassRemovalRadius = radius + grassRemovalMargin;
@@ -1461,6 +1460,8 @@ void Terrain::Deform(
 		navigationBaseHeights.reserve(terrainPixels.size());
 		for (const Vector4& pixel : terrainPixels) navigationBaseHeights.push_back(pixel.x);
 	}
+
+	// 半径内の高さを滑らかに変え、周囲の草も取り除く。
 	const float texelSize = terrainSize / static_cast<float>(TerrainTextureWidth - 1);
 	Vector3 removedGrassPosition = Vector3::Zero;
 	int removedGrassCount = 0;
@@ -1497,6 +1498,7 @@ void Terrain::Deform(
 
 	terrainEditHashDirty = true;
 	is_terrain_texture_clear_color = false;
+
 	// 既存の草頂点はGPU側のマスクで消すため再生成しない
 	MarkTerrainMeshDirty();
 	if (removedGrassCount)

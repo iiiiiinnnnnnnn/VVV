@@ -42,6 +42,7 @@
 static Quaternion AlignPropRotationToSurface(const Quaternion& rotation, const Vector3& normal)
 {
 	if (normal.LengthSquared() < 0.000001f) return rotation;
+
 	Vector3 targetUp = normal;
 	targetUp.Normalize();
 	const Matrix currentRotation = Matrix::CreateFromQuaternion(rotation);
@@ -241,6 +242,7 @@ void VstgEditorScene::RenderPropPreview(const RenderContext& rc)
 	for (const VMDLModel::Mesh& mesh : propPreviewModel->GetMeshes())
 	{
 		if (!mesh.isDraw || !mesh.node) continue;
+
 		const Matrix transform = mesh.node->worldTransform * renderScale;
 		for (const VMDLModel::Vertex& vertex : mesh.vertices)
 		{
@@ -279,6 +281,7 @@ void VstgEditorScene::RenderPropPreview(const RenderContext& rc)
 void VstgEditorScene::RenderDragPreview(const RenderContext& rc)
 {
 	if (!showDragPreview || !dragPreviewModel) return;
+
 	const Matrix modelTransform =
 		Matrix::CreateTranslation(dragPreviewModel->GetVmdlExtensionData().rootOffset) *
 		dragPreviewTransform.GetMatrix();
@@ -553,6 +556,7 @@ void VstgEditorScene::DrawDecalPalette()
 				auto source = file;
 				source.replace_extension(".png");
 				if (file.extension() == ".dds" && std::filesystem::exists(source)) continue;
+
 				const std::string imagePath = (std::filesystem::path("Resources") /
 					file.lexically_relative(resourceRoot)).generic_string();
 				try
@@ -602,6 +606,7 @@ void VstgEditorScene::DrawDecalPalette()
 Light* VstgEditorScene::GetSelectedLight()
 {
 	if (!currentStage || selectedLightIndex < 0) return nullptr;
+
 	auto& lights = currentStage->GetLightManager();
 	const auto get = [this](auto&& values) -> Light* {
 		if (selectedLightIndex >= static_cast<int>(values.size())) return nullptr;
@@ -714,6 +719,7 @@ void VstgEditorScene::DuplicateSelectedLight()
 {
 	Light* source = GetSelectedLight();
 	if (!source || !currentStage) return;
+
 	auto& lights = currentStage->GetLightManager();
 	Light* copy = nullptr;
 	int index = -1;
@@ -727,6 +733,7 @@ void VstgEditorScene::DuplicateSelectedLight()
 		const float range = static_cast<PointLight*>(source)->GetRange();
 		auto* addedLight = lights.AddPointLight();
 		if (!addedLight) return;
+
 		auto& light = *addedLight;
 		light.SetRange(range);
 		copy = &light;
@@ -737,6 +744,7 @@ void VstgEditorScene::DuplicateSelectedLight()
 		const auto* original = static_cast<SpotLight*>(source);
 		auto* addedLight = lights.AddSpotLight();
 		if (!addedLight) return;
+
 		auto& light = *addedLight;
 		light.SetRange(original->GetRange());
 		light.SetInnerConeAngle(original->GetInnerConeAngle());
@@ -749,6 +757,7 @@ void VstgEditorScene::DuplicateSelectedLight()
 		const auto* original = static_cast<AreaLight*>(source);
 		auto* addedLight = lights.AddAreaLight();
 		if (!addedLight) return;
+
 		auto& light = *addedLight;
 		light.SetRange(original->GetRange());
 		light.SetWidth(original->GetWidth());
@@ -771,6 +780,7 @@ void VstgEditorScene::DeleteSelectedLight()
 {
 	Light* light = GetSelectedLight();
 	if (!light) return;
+
 	// 他のObjectと同じ破棄予約を使い、コンポーネントを持つライトを移動代入しない。
 	light->Destroy();
 	selectedLightType = EditorLightType::None;
@@ -784,6 +794,7 @@ void VstgEditorScene::DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& 
 	if (!currentStage) return;
 	Camera* camera = currentStage->GetActiveCamera();
 	if (!camera) return;
+
 	const Matrix viewProjection = camera->GetView() * camera->GetProjection();
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImDrawList* draw = ImGui::GetBackgroundDrawList(ImGui::GetMainViewport());
@@ -793,8 +804,10 @@ void VstgEditorScene::DrawLightMarkers(const ImVec2& viewportMin, const ImVec2& 
 		{
 			const auto& light = values[index];
 			if (light.IsPendingDestroy()) continue;
+
 			const Vector3 projected = Vector3::Transform(light.transform.position, viewProjection);
 			if (projected.z < 0.0f || projected.z > 1.0f) continue;
+
 			const ImVec2 screen = {viewport->Pos.x + (projected.x + 1.0f) * 0.5f * Game::Graphics::ScreenWidth,
 				viewport->Pos.y + (1.0f - projected.y) * 0.5f * Game::Graphics::ScreenHeight};
 			const bool selected = selectedLightType == type && selectedLightIndex == index;
@@ -946,6 +959,7 @@ void VstgEditorScene::DrawPropBrowser(float height)
 bool VstgEditorScene::OpenVmdlEditor(const std::string& modelPath)
 {
 	if (!OnRequestExit()) return false;
+
 	const auto editorPath = ResourceManager::Instance().ResolveEditPath(modelPath, ResourceManager::ResourceType::Model);
 	return SceneManager::Instance().LoadScene<VmdlEditorScene>(editorPath);
 }
@@ -962,6 +976,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	const bool draggingBlockedArea = draggingPayload && draggingPayload->IsDataType("VSTG_BLOCKED_AREA");
 	const bool draggingEffect = draggingPayload && draggingPayload->IsDataType("VSTG_EFFECT");
 	if (!draggingProp && !draggingPlayerStart && !draggingLight && !draggingBlockedArea && !draggingEffect) return;
+
 	const std::string modelPath = draggingProp
 		? static_cast<const char*>(draggingPayload->Data) : std::string{};
 	Vector3 surfacePoint;
@@ -1015,6 +1030,7 @@ void VstgEditorScene::DrawPlacementDropTarget(
 	}
 
 	if (terrain) brushViewportInputAllowed = false;
+
 	// 3Dビュー全体をドロップ領域として受け付ける
 	ImGui::SetNextWindowPos(viewportMin, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(
@@ -1136,6 +1152,7 @@ bool VstgEditorScene::ScreenToPlacementSurface(const ImVec2& mousePosition,
 	if (!currentStage || !stageLoader) return false;
 	Camera* camera = currentStage->GetActiveCamera();
 	if (!camera) return false;
+
 	const Vector2 ndc = Game::Graphics::Instance().GetMouseNDC(mousePosition.x, mousePosition.y);
 	const Matrix inverse = (camera->GetView() * camera->GetProjection()).Invert();
 	const Vector3 origin = Vector3::Transform(Vector3(ndc.x, ndc.y, 0.0f), inverse);
@@ -1155,103 +1172,309 @@ bool VstgEditorScene::ScreenToPlacementSurface(const ImVec2& mousePosition,
 bool VstgEditorScene::ScreenToTerrainPoint(
 	const ImVec2& mousePosition, Vector3& point, Vector3* normal) const
 {
-	if (!currentStage) return false;
+	if (!currentStage || !terrain) return false;
+
 	Camera* camera = currentStage->GetActiveCamera();
 	if (!camera) return false;
 
+	// マウス座標からレイを生成
 	const Vector2 mouseNdc =
-		Game::Graphics::Instance().GetMouseNDC(mousePosition.x, mousePosition.y);
-	const Matrix inverseViewProjection = (camera->GetView() * camera->GetProjection()).Invert();
-	const DirectX::XMVECTOR nearValue = DirectX::XMVector3TransformCoord(
-		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 0.0f, 1.0f), inverseViewProjection);
-	const DirectX::XMVECTOR farValue = DirectX::XMVector3TransformCoord(
-		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 1.0f, 1.0f), inverseViewProjection);
-	Vector3 nearPoint;
-	Vector3 farPoint;
-	DirectX::XMStoreFloat3(&nearPoint, nearValue);
-	DirectX::XMStoreFloat3(&farPoint, farValue);
-	const Matrix terrainWorld = currentStage->GetTransform()->GetMatrix();
+		Game::Graphics::Instance().GetMouseNDC(
+			mousePosition.x, mousePosition.y);
+
+	const Matrix inverseViewProjection =
+		(camera->GetView() * camera->GetProjection()).Invert();
+
+	const Vector3 nearPoint = Vector3::Transform(
+		Vector3(mouseNdc.x, mouseNdc.y, 0.0f), inverseViewProjection);
+	const Vector3 farPoint = Vector3::Transform(
+		Vector3(mouseNdc.x, mouseNdc.y, 1.0f), inverseViewProjection);
+
+	// 地形のローカル座標へレイを移し、拡大や回転を判定に反映する。
+	const Matrix terrainWorld =
+		currentStage->GetTransform()->GetMatrix();
+
 	const Matrix inverseTerrainWorld = terrainWorld.Invert();
-	const Vector3 localOrigin = Vector3::Transform(nearPoint, inverseTerrainWorld);
-	Vector3 localDirection = Vector3::TransformNormal(farPoint - nearPoint, inverseTerrainWorld);
-	if (localDirection.LengthSquared() < 0.000001f) return false;
+
+	const Vector3 localOrigin =
+		Vector3::Transform(nearPoint, inverseTerrainWorld);
+
+	Vector3 localDirection =
+		Vector3::TransformNormal(
+			farPoint - nearPoint, inverseTerrainWorld);
+
+	if (localDirection.LengthSquared() < 0.000001f)
+		return false;
+
 	localDirection.Normalize();
 
-	const float halfSize = terrain->GetTerrainSize() * 0.5f;
+	// XZ平面上でテラインへの進入・退出距離を求める
+	const float terrainSize = terrain->GetTerrainSize();
+	const float halfSize = terrainSize * 0.5f;
+
 	float entryDistance = 0.0f;
 	float exitDistance = 10000.0f;
-	const float axisOrigins[] = {localOrigin.x, localOrigin.z};
-	const float axisDirections[] = {localDirection.x, localDirection.z};
+
+	const float axisOrigins[] = {
+		localOrigin.x, localOrigin.z};
+
+	const float axisDirections[] = {
+		localDirection.x, localDirection.z};
+
 	for (int axis = 0; axis < 2; ++axis)
 	{
-		if (std::abs(axisDirections[axis]) < 0.000001f)
+		if (axisDirections[axis] == 0.0f)
 		{
-			if (axisOrigins[axis] < -halfSize || axisOrigins[axis] > halfSize) return false;
+			if (axisOrigins[axis] < -halfSize ||
+				axisOrigins[axis] > halfSize)
+			{
+				return false;
+			}
+
 			continue;
 		}
-		float nearDistance = (-halfSize - axisOrigins[axis]) / axisDirections[axis];
-		float farDistance = (halfSize - axisOrigins[axis]) / axisDirections[axis];
-		if (nearDistance > farDistance) std::swap(nearDistance, farDistance);
+
+		float nearDistance =
+			(-halfSize - axisOrigins[axis]) /
+			axisDirections[axis];
+
+		float farDistance =
+			(halfSize - axisOrigins[axis]) /
+			axisDirections[axis];
+
+		if (nearDistance > farDistance)
+			std::swap(nearDistance, farDistance);
+
 		entryDistance = std::max(entryDistance, nearDistance);
 		exitDistance = std::min(exitDistance, farDistance);
-		if (entryDistance > exitDistance) return false;
-	}
-	if (exitDistance < 0.0f) return false;
-	entryDistance = std::max(0.0f, entryDistance);
 
+		if (entryDistance > exitDistance)
+			return false;
+	}
+
+	// テッセレーションを考慮したグリッド分割数
 	const int tessellationFactor = std::max(
 		static_cast<int>(std::ceil(std::max(
 			terrain->GetTessellationEdgeFactor(),
 			terrain->GetTessellationInnerFactor()))),
 		1);
-	const int surfaceSegments = terrain->GetGridResolution() * tessellationFactor;
-	const int searchSteps = std::clamp(surfaceSegments * 2, 512, 4096);
-	float previousDistance = entryDistance;
-	Vector3 sample = localOrigin + localDirection * previousDistance;
-	float u = sample.x / terrain->GetTerrainSize() + 0.5f;
-	float v = sample.z / terrain->GetTerrainSize() + 0.5f;
-	float previousDifference = sample.y - terrain->GetSurfaceHeightByUV(u, v);
-	for (int step = 1; step <= searchSteps; ++step)
+
+	const int segments = std::max(
+		terrain->GetGridResolution() * tessellationFactor, 1);
+
+	const float cellSize = terrainSize / segments;
+
+	// レイの進入位置から最初のグリッドを特定
+	const Vector3 entryPoint =
+		localOrigin + localDirection * entryDistance;
+
+	const float gridX =
+		(entryPoint.x + halfSize) / cellSize;
+
+	const float gridZ =
+		(entryPoint.z + halfSize) / cellSize;
+
+	int x = static_cast<int>(std::floor(gridX));
+	int z = static_cast<int>(std::floor(gridZ));
+
+	// 境界上から負方向に進む場合は隣のセルを選ぶ
+	if (localDirection.x < 0.0f && gridX == std::floor(gridX))
+		--x;
+
+	if (localDirection.z < 0.0f && gridZ == std::floor(gridZ))
+		--z;
+
+	x = std::clamp(x, 0, segments - 1);
+	z = std::clamp(z, 0, segments - 1);
+
+	int stepX = 0;
+	int stepZ = 0;
+
+	if (localDirection.x > 0.0f) stepX = 1;
+	if (localDirection.x < 0.0f) stepX = -1;
+
+	if (localDirection.z > 0.0f) stepZ = 1;
+	if (localDirection.z < 0.0f) stepZ = -1;
+
+	const float infinity =
+		std::numeric_limits<float>::infinity();
+
+	float nextX = infinity;
+	float nextZ = infinity;
+
+	float deltaX = infinity;
+	float deltaZ = infinity;
+
+	// 次のグリッド境界までの距離と、1セル分の距離
+	if (stepX != 0)
 	{
-		const float distance =
-			entryDistance + (exitDistance - entryDistance) * static_cast<float>(step) / searchSteps;
-		sample = localOrigin + localDirection * distance;
-		u = sample.x / terrain->GetTerrainSize() + 0.5f;
-		v = sample.z / terrain->GetTerrainSize() + 0.5f;
-		const float difference = sample.y - terrain->GetSurfaceHeightByUV(u, v);
-		if ((previousDifference <= 0.0f && difference >= 0.0f) ||
-			(previousDifference >= 0.0f && difference <= 0.0f))
-		{
-			float low = previousDistance;
-			float high = distance;
-			for (int iteration = 0; iteration < 16; ++iteration)
-			{
-				const float middle = (low + high) * 0.5f;
-				const Vector3 middleSample = localOrigin + localDirection * middle;
-				const float middleU = middleSample.x / terrain->GetTerrainSize() + 0.5f;
-				const float middleV = middleSample.z / terrain->GetTerrainSize() + 0.5f;
-				const float middleDifference =
-					middleSample.y - terrain->GetSurfaceHeightByUV(middleU, middleV);
-				if ((previousDifference <= 0.0f && middleDifference <= 0.0f) ||
-					(previousDifference >= 0.0f && middleDifference >= 0.0f))
-					low = middle;
-				else high = middle;
-			}
-			Vector3 localPoint = localOrigin + localDirection * ((low + high) * 0.5f);
-			const float u = localPoint.x / terrain->GetTerrainSize() + 0.5f;
-			const float v = localPoint.z / terrain->GetTerrainSize() + 0.5f;
-			localPoint.y = terrain->GetSurfaceHeightByUV(u, v);
-			point = Vector3::Transform(localPoint, terrainWorld);
-			if (normal)
-			{
-				*normal = Vector3::TransformNormal(terrain->GetSurfaceNormalByUV(u, v), inverseTerrainWorld.Transpose());
-				normal->Normalize();
-			}
-			return true;
-		}
-		previousDistance = distance;
-		previousDifference = difference;
+		int boundaryX = x;
+
+		if (stepX > 0)
+			++boundaryX;
+
+		const float edgeX =
+			-halfSize + boundaryX * cellSize;
+
+		nextX =
+			(edgeX - localOrigin.x) / localDirection.x;
+
+		deltaX = cellSize / std::abs(localDirection.x);
 	}
+
+	if (stepZ != 0)
+	{
+		int boundaryZ = z;
+
+		if (stepZ > 0)
+			++boundaryZ;
+
+		const float edgeZ =
+			-halfSize + boundaryZ * cellSize;
+
+		nextZ =
+			(edgeZ - localOrigin.z) / localDirection.z;
+
+		deltaZ = cellSize / std::abs(localDirection.z);
+	}
+
+	const DirectX::SimpleMath::Ray localRay(localOrigin, localDirection);
+	float cellEntry = entryDistance;
+
+	// 2D DDAでレイが通過するグリッドのみ探索
+	while (x >= 0 && x < segments &&
+		   z >= 0 && z < segments &&
+		   cellEntry <= exitDistance)
+	{
+		const float nextBoundary = std::min(nextX, nextZ);
+
+		const float cellExit =
+			std::min(nextBoundary, exitDistance);
+
+		const float u0 = static_cast<float>(x) / segments;
+		const float u1 = static_cast<float>(x + 1) / segments;
+		const float v0 = static_cast<float>(z) / segments;
+		const float v1 = static_cast<float>(z + 1) / segments;
+
+		const float h00 = terrain->GetHeightByUV(u0, v0);
+		const float h10 = terrain->GetHeightByUV(u1, v0);
+		const float h01 = terrain->GetHeightByUV(u0, v1);
+		const float h11 = terrain->GetHeightByUV(u1, v1);
+
+		// グリッド内の地形の高さの範囲
+		const float terrainMinY =
+			std::min({h00, h10, h01, h11});
+
+		const float terrainMaxY =
+			std::max({h00, h10, h01, h11});
+
+		// グリッド通過中のレイの高さの範囲
+		const float enterY =
+			localOrigin.y + localDirection.y * cellEntry;
+
+		const float exitY =
+			localOrigin.y + localDirection.y * cellExit;
+
+		const float rayMinY = std::min(enterY, exitY);
+		const float rayMaxY = std::max(enterY, exitY);
+
+		// 高さの範囲が重なる場合のみ三角形との交差判定
+		if (rayMinY <= terrainMaxY &&
+			rayMaxY >= terrainMinY)
+		{
+			const Vector3 p00(
+				(u0 - 0.5f) * terrainSize,
+				h00,
+				(v0 - 0.5f) * terrainSize);
+
+			const Vector3 p10(
+				(u1 - 0.5f) * terrainSize,
+				h10,
+				(v0 - 0.5f) * terrainSize);
+
+			const Vector3 p01(
+				(u0 - 0.5f) * terrainSize,
+				h01,
+				(v1 - 0.5f) * terrainSize);
+
+			const Vector3 p11(
+				(u1 - 0.5f) * terrainSize,
+				h11,
+				(v1 - 0.5f) * terrainSize);
+
+			float distance0 = 0.0f;
+			float distance1 = 0.0f;
+
+			bool hit0 = localRay.Intersects(
+				p00, p01, p10, distance0);
+
+			bool hit1 = localRay.Intersects(
+				p10, p01, p11, distance1);
+
+			constexpr float hitEpsilon = 0.0001f;
+
+			hit0 = hit0 &&
+				   distance0 >= cellEntry - hitEpsilon &&
+				   distance0 <= cellExit + hitEpsilon;
+
+			hit1 = hit1 &&
+				   distance1 >= cellEntry - hitEpsilon &&
+				   distance1 <= cellExit + hitEpsilon;
+
+			if (hit0 || hit1)
+			{
+				float hitDistance = distance0;
+
+				if (!hit0 || (hit1 && distance1 < distance0))
+					hitDistance = distance1;
+
+				const Vector3 localPoint =
+					localOrigin + localDirection * hitDistance;
+
+				point = Vector3::Transform(
+					localPoint, terrainWorld);
+
+				if (normal)
+				{
+					const float u =
+						localPoint.x / terrainSize + 0.5f;
+
+					const float v =
+						localPoint.z / terrainSize + 0.5f;
+
+					*normal = Vector3::TransformNormal(
+						terrain->GetSurfaceNormalByUV(u, v),
+						inverseTerrainWorld.Transpose());
+
+					normal->Normalize();
+				}
+
+				return true;
+			}
+		}
+
+		if (nextBoundary >= exitDistance)
+			break;
+
+		// 先に到達する境界の方向へグリッドを移動
+		const bool moveX = nextX <= nextZ;
+		const bool moveZ = nextZ <= nextX;
+
+		cellEntry = nextBoundary;
+
+		if (moveX)
+		{
+			x += stepX;
+			nextX += deltaX;
+		}
+
+		if (moveZ)
+		{
+			z += stepZ;
+			nextZ += deltaZ;
+		}
+	}
+
 	return false;
 }
 
@@ -1260,6 +1483,7 @@ void VstgEditorScene::DrawObjectGizmo(const ImVec2& viewportMin, const ImVec2& v
 	if (terrain && use_brush) return;
 	if (ImGui::GetDragDropPayload()) return;
 	if (!stageLoader || !currentStage) return;
+
 	// ImGuizmo自身もWantCaptureMouseを設定するため、実際のUI操作だけを調べる。
 	const bool uiCapturesMouse = ImGui::IsAnyItemActive() ||
 		ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ||
@@ -1338,20 +1562,21 @@ void VstgEditorScene::SelectObjectAt(
 
 	Camera* camera = currentStage->GetActiveCamera();
 	if (!camera) return;
+
 	const Vector2 mouseNdc =
 		Game::Graphics::Instance().GetMouseNDC(mousePosition.x, mousePosition.y);
 	const Matrix inverseViewProjection = (camera->GetView() * camera->GetProjection()).Invert();
-	const DirectX::XMVECTOR nearValue = DirectX::XMVector3TransformCoord(
-		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 0.0f, 1.0f), inverseViewProjection);
-	const DirectX::XMVECTOR farValue = DirectX::XMVector3TransformCoord(
-		DirectX::XMVectorSet(mouseNdc.x, mouseNdc.y, 1.0f, 1.0f), inverseViewProjection);
-	Vector3 nearPoint;
-	Vector3 farPoint;
-	DirectX::XMStoreFloat3(&nearPoint, nearValue);
-	DirectX::XMStoreFloat3(&farPoint, farValue);
+
+	// 画面座標を逆投影し、手前と奥の点から選択用レイを作る。
+	const Vector3 nearPoint = Vector3::Transform(
+		Vector3(mouseNdc.x, mouseNdc.y, 0.0f), inverseViewProjection);
+	const Vector3 farPoint = Vector3::Transform(
+		Vector3(mouseNdc.x, mouseNdc.y, 1.0f), inverseViewProjection);
 
 	const Matrix viewProjection = camera->GetView() * camera->GetProjection();
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+	// ライトは画面上のマーカーとの距離で選択する。
 	float lightDistanceSquared = 18.0f * 18.0f;
 	EditorLightType hitLightType = EditorLightType::None;
 	int hitLightIndex = -1;
@@ -1359,8 +1584,10 @@ void VstgEditorScene::SelectObjectAt(
 		for (int index = 0; index < static_cast<int>(values.size()); ++index)
 		{
 			if (values[index].IsPendingDestroy()) continue;
+
 			const Vector3 projected = Vector3::Transform(values[index].transform.position, viewProjection);
 			if (projected.z < 0.0f || projected.z > 1.0f) continue;
+
 			const float x = viewport->Pos.x + (projected.x + 1.0f) * 0.5f * Game::Graphics::ScreenWidth;
 			const float y = viewport->Pos.y + (1.0f - projected.y) * 0.5f * Game::Graphics::ScreenHeight;
 			const float dx = x - mousePosition.x, dy = y - mousePosition.y;
@@ -1376,18 +1603,27 @@ void VstgEditorScene::SelectObjectAt(
 	pickLights(lights.GetPointLights(), EditorLightType::Point);
 	pickLights(lights.GetSpotLights(), EditorLightType::Spot);
 	pickLights(lights.GetAreaLights(), EditorLightType::Area);
-	if (hitLightIndex >= 0) { SelectLight(hitLightType, hitLightIndex); return; }
+	if (hitLightIndex >= 0)
+	{
+		SelectLight(hitLightType, hitLightIndex);
+		return;
+	}
+
 	selectedLightType = EditorLightType::None;
 	selectedLightIndex = -1;
 	lightingSettingsSelected = false;
+
+	// エフェクトは画面上の位置で選択する。
 	StageLoader::EditorObjectReference effectHit;
 	float effectDistanceSquared = 18.0f * 18.0f;
 	for (const auto& object : stageLoader->GetEditorObjects())
 	{
 		if (object.type != StageLoader::EditorObjectType::Effect || !object.transform) continue;
+
 		const Vector2 viewportSize(Game::Graphics::ScreenWidth, Game::Graphics::ScreenHeight);
 		Vector2 screenPosition;
 		if (!WorldToScreen(object.transform->position, viewProjection, viewportSize, screenPosition)) continue;
+
 		const float x = viewport->Pos.x + screenPosition.x;
 		const float y = viewport->Pos.y + screenPosition.y;
 		const float dx = x - mousePosition.x, dy = y - mousePosition.y;
@@ -1401,6 +1637,8 @@ void VstgEditorScene::SelectObjectAt(
 		stageLoader->SelectEditorObject(effectHit.type, effectHit.index);
 		return;
 	}
+
+	// 物理レイとモデルのレイ判定で配置オブジェクトを選択する。
 	PhysicsManager::PhysicsRaycastHit hit;
 	bool selected =
 		PhysicsManager::Instance().Raycast(nearPoint, farPoint - nearPoint, 10000.0f, hit) &&
@@ -1418,11 +1656,10 @@ void VstgEditorScene::SelectObjectAt(
 		for (const StageLoader::EditorObjectReference& object : stageLoader->GetEditorObjects())
 		{
 			if (!object.transform) continue;
-			const DirectX::XMVECTOR projectedValue =
-				DirectX::XMVector3TransformCoord(object.transform->position, viewProjection);
-			Vector3 projected;
-			DirectX::XMStoreFloat3(&projected, projectedValue);
+
+			const Vector3 projected = Vector3::Transform(object.transform->position, viewProjection);
 			if (projected.z < 0.0f || projected.z > 1.0f) continue;
+
 			const float screenX = (projected.x + 1.0f) * 0.5f * width;
 			const float screenY = (1.0f - projected.y) * 0.5f * height;
 			const float dx = screenX - mousePosition.x;
@@ -1515,6 +1752,7 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 		ImGuiToolKit::Alert(loaded.GetError());
 		return false;
 	}
+
 	// 現在のスキーマで扱う項目を確定し、それ以外は未知のまま保持する。
 	if (!loaded.Capture(*terrain, *navMesh, *stageLoader, currentStage->GetLightManager()))
 	{
@@ -1537,6 +1775,7 @@ bool VstgEditorScene::LoadStage(const std::filesystem::path& stagePath)
 bool VstgEditorScene::ResolveMissingModels()
 {
 	if (!stageLoader) return false;
+
 	bool changed = false;
 	for (;;)
 	{
@@ -1621,6 +1860,7 @@ void VstgEditorScene::LoadEditorSettings()
 {
 	const auto& settings = ImGuiRenderer::GetVstgEditorSettings();
 	if (!settings.loaded || settings.recentStagePath.empty()) return;
+
 	const std::string& recentPathUtf8 = settings.recentStagePath;
 	recentStagePath = std::filesystem::path(std::u8string(
 		reinterpret_cast<const char8_t*>(recentPathUtf8.data()), recentPathUtf8.size()));
@@ -1641,8 +1881,6 @@ void VstgEditorScene::UpdateTitle()
 {
 	SetWindowTextW(Game::Graphics::Instance().GetWindowHandle(), L"VEER");
 }
-
-
 
 SerialDocument* VstgEditorScene::PrepareSerialDocument()
 {
